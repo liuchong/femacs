@@ -30866,6 +30866,19 @@ pub unsafe extern "C" fn x_find_selection_owner (dpyinfo: *mut x_display_info,
 unsafe extern "C" {
   /// C: xterm.h 1919: `extern void x_handle_property_notify (const XPropertyEvent *);`
   pub fn x_handle_property_notify (event: *const XPropertyEvent);
+  /// C: dispextern.h 3675: `extern void expose_frame (struct frame *, int, int, int, int);` -
+  /// C 19939/19979's calls (and the two this unit already carried at 6833/6954 in text no
+  /// arm compiles).  `src/dispnew.rs` defines it; no mirror of this unit's graph declares it.
+  pub fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
+}
+
+/* C 19964's `xlwmenu_redisplay` is the lwlib/xlwmenu.c function (`src/lwlib/xlwmenu.rs` 3665
+   carries it under the same `use_lucid` arm) whose declaration lives in lwlib.h 85 - a header
+   this unit's graph does not reach - so it stands at this use site (P-88 1).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_lucid"))]
+unsafe extern "C" {
+  /// C: lwlib.h 85: `extern void xlwmenu_redisplay (Widget);`
+  pub fn xlwmenu_redisplay (w: Widget);
 }
 
 /// C 18866-25632: `handle_one_xevent (struct x_display_info *dpyinfo, XEvent *event, int *finish,
@@ -31470,6 +31483,157 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		  x_set_frame_alpha (f);                             // C 19860
 		}
 	      break 'other;                                          // C 19862
+	    }
+
+	  /* C 19863-19971: `case Expose:`.  The xwidget-view early return (C 19865-19877), the frame
+	     lookup and the three visibility paths (`FRAME_VISIBLE_P`, `FRAME_GARBAGED_P`, and the
+	     `x-set-frame-visibility-more-laxly` override C 19889-19890), then the widget dispatch C
+	     hands to the toolkit.  `xexpose` is one of the `XEvent` stand-in's owed members, so C's
+	     own member text stays (slices 110-112's class).  */
+	  Expose =>
+	    {
+	      /* C 19865-19877's `#ifdef HAVE_XWIDGETS` block.  */
+#[cfg (feature = "have_xwidgets")]
+	      {
+		let xv: *mut xwidget_view;                                // C 19867
+
+		xv = xwidget_view_from_window ((*event).xexpose.window);  // C 19869
+
+		if !xv.is_null ()                                         // C 19871
+		  {
+		    xwidget_expose (xv);                                  // C 19873
+		    break 'other;                                         // C 19874
+		  }
+	      }
+
+	      f = x_window_to_frame (dpyinfo, (*event).xexpose.window);   // C 19879
+	      if !f.is_null ()                                            // C 19880
+		{
+		  if !FRAME_VISIBLE_P (f)                                 // C 19882
+		    {
+		      /* "By default, do not set the frame's visibility here, see
+			 https://lists.gnu.org/archive/html/emacs-devel/2017-02/msg00133.html.
+			 The default behavior can be overridden by setting
+			 'x-set-frame-visibility-more-laxly' (Bug#49955, Bug#53298)."  */
+		      if EQ (x_set_frame_visibility_more_laxly, Qexpose ())  // C 19889
+			|| EQ (x_set_frame_visibility_more_laxly, Qt ())     // C 19890
+			{
+			  SET_FRAME_VISIBLE! (f, 1);                      // C 19892
+			  SET_FRAME_ICONIFIED (f, false as c_int);        // C 19893
+			}
+
+		      /* C 19896-19899's `#ifdef HAVE_XDBE` block.  */
+#[cfg (feature = "have_xdbe")]
+		      if FRAME_X_DOUBLE_BUFFERED_P! (f)                   // C 19897
+			{ x_drop_xrender_surfaces (f); }                  // C 19898
+		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;  // C 19900
+		      SET_FRAME_GARBAGED! (f);                            // C 19901
+		    }
+		  else if FRAME_GARBAGED_P (f)                            // C 19903
+		    {
+		      /* C 19905-19918's `#ifdef USE_GTK` block: "Go around the back buffer and
+			 manually clear the window the first time we show it. … Yuck."  */
+#[cfg (feature = "use_gtk")]
+		      {
+			x_clear_area1 (FRAME_X_DISPLAY! (f),             // C 19912
+				       FRAME_X_WINDOW! (f),
+				       (*event).xexpose.x,                // C 19914
+				       (*event).xexpose.y,
+				       (*event).xexpose.width,            // C 19915
+				       (*event).xexpose.height,
+				       0);                                // C 19916
+			x_clear_under_internal_border (f);               // C 19917
+		      }
+		    }
+
+		  /* C 19921's `if (!FRAME_GARBAGED_P (f))` is evaluated once, as C evaluates it,
+		     because the two arms below read the value the test produced.  */
+		  let garbaged: bool = FRAME_GARBAGED_P (f);              // C 19921
+		  if !garbaged
+		    {
+		      /* C 19923-19928's `#if defined USE_X_TOOLKIT && defined
+			 USE_TOOLKIT_SCROLL_BARS`: the widget's expose proc is what runs then.  */
+#[cfg (all (feature = "use_x_toolkit", feature = "use_toolkit_scroll_bars"))]
+		      if !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).edit_widget.is_null ()  // C 19924
+			{ break 'other; }                                 // C 19927
+		      /* C 19929-19938's `#ifdef USE_GTK` block.  */
+#[cfg (feature = "use_gtk")]
+		      {
+			x_clear_area (f,                                   // C 19932
+				      (*event).xexpose.x,                  // C 19933
+				      (*event).xexpose.y,
+				      (*event).xexpose.width,              // C 19934
+				      (*event).xexpose.height);
+			x_clear_under_internal_border (f);               // C 19937
+		      }
+		      expose_frame (f, (*event).xexpose.x,                // C 19939
+				    (*event).xexpose.y,
+				    (*event).xexpose.width,                // C 19940
+				    (*event).xexpose.height);
+		      /* C 19941-19943's `#ifndef USE_TOOLKIT_SCROLL_BARS`.  */
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+		      { x_scroll_bar_handle_exposure (f, event); }        // C 19942
+		    }
+		  /* C 19945-19948's `#ifndef USE_TOOLKIT_SCROLL_BARS` else, whose test is the
+		     value C 19921 saved.  */
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+		  if garbaged
+		    { x_scroll_bar_handle_exposure (f, event); }          // C 19947
+
+		  /* C 19950-19953's `#ifdef HAVE_XDBE` tail - C's own second read of the flag.  */
+#[cfg (feature = "have_xdbe")]
+		  if !FRAME_GARBAGED_P (f)                                // C 19951
+		    { show_back_buffer (f); }                             // C 19952
+		}
+	      else
+		{
+		  /* C 19957-19966's `#if defined USE_LUCID` block.  */
+#[cfg (feature = "use_lucid")]
+		  {
+		    let widget: Widget = x_window_to_menu_bar ((*event).xexpose.window);  // C 19962
+		    if !widget.is_null ()                                 // C 19963
+		      { xlwmenu_redisplay (widget); }                     // C 19964
+		  }
+
+		  /* "Dispatch event to the widget."  */
+		  break 'other;                                           // C 19969
+		}
+	    }
+
+	  /* C 19973-19997: `case GraphicsExpose:` - "this occurs when an XCopyArea's source area
+	     was obscured or not available".  */
+	  GraphicsExpose =>
+	    {
+	      f = x_window_to_frame (dpyinfo, (*event).xgraphicsexpose.drawable);  // C 19976
+	      if !f.is_null ()                                                  // C 19977
+		{
+		  expose_frame (f, (*event).xgraphicsexpose.x,                     // C 19979
+				(*event).xgraphicsexpose.y,                        // C 19980
+				(*event).xgraphicsexpose.width,                    // C 19981
+				(*event).xgraphicsexpose.height);                  // C 19982
+		  /* C 19983-19985's `#ifndef USE_TOOLKIT_SCROLL_BARS`.  */
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+		  { x_scroll_bar_handle_exposure (f, event); }                     // C 19984
+		  /* C 19986-19988's `#ifdef USE_GTK`.  */
+#[cfg (feature = "use_gtk")]
+		  { x_clear_under_internal_border (f); }                           // C 19987
+		  /* C 19989-19991's `#ifdef HAVE_XDBE`.  */
+#[cfg (feature = "have_xdbe")]
+		  { show_back_buffer (f); }                                        // C 19990
+		}
+	      /* C 19993-19996's `#ifdef USE_X_TOOLKIT` else.  */
+#[cfg (feature = "use_x_toolkit")]
+	      if f.is_null ()
+		{ break 'other; }                                                  // C 19995
+	    }
+
+	  /* C 19999-20005: `case NoExpose:` - "this occurs when an XCopyArea's source area was
+	     completely available".  */
+	  NoExpose =>
+	    {
+	      /* C 20002-20004's `#ifdef USE_X_TOOLKIT`.  */
+#[cfg (feature = "use_x_toolkit")]
+	      { *finish = X_EVENT_DROP; }                                          // C 20003
 	    }
 
 	  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in

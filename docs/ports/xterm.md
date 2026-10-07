@@ -335,6 +335,12 @@ their own C line numbers.  The row `--check` reads keeps its two lines and its t
 that arm's first reading was not a number at all (an abort at macro expansion, from HEAD's
 `SAFE_FREE! ()` at C 3607), and the fix it forced is Decision 123's fourth item.
 
+  Slice 113 (C 19863-20006, Decision 124) lands the three expose cases - `Expose`, `GraphicsExpose`
+and `NoExpose`, 144 C lines - where C's two `#ifdef`'d `else` branches become a saved value and an
+independent test (Rust has no attribute for an `else`), and where the lane keeps its two standing
+bounds rather than opening new arms: `HAVE_XWIDGETS`'s early return and `USE_LUCID`'s widget
+dispatch are carried text no arm compiles, as they have been since Decision 101's note.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5210,6 +5216,48 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `x_get_wm_check_window does not mention false`); the long row's list goes **484 -> 388**.  The
   unit is **32,389 lines** against C's 33,125 (**2.22%** drift, was 3.34%), file md5
   `fbc0d1e591673668ae46e1489ca84922`.
+
+### 124. Slice 113 (C 19863-20006): the three expose cases, and the two bounds they leave standing
+
+* **What it lands.**  `case Expose:` (C 19863-19971), `case GraphicsExpose:` (C 19973-19997) and
+  `case NoExpose:` (C 19999-20005), each line with its own `// C NNNN` comment: the xwidget-view
+  early return, the frame lookup, the three visibility paths (`FRAME_VISIBLE_P`,
+  `x-set-frame-visibility-more-laxly`'s `Qexpose`/`Qt` override, `FRAME_GARBAGED_P`), the two
+  `USE_GTK` clears (`x_clear_area1` then `x_clear_area`), the toolkit's widget hand-off,
+  `expose_frame` with the scroll-bar exposure, the `HAVE_XDBE` pairs, and the three `goto OTHER`
+  sites as `break 'other`.
+* **C's `#ifdef`'d `else`, which Rust has no attribute for.**  C 19945-19948's
+  `else x_scroll_bar_handle_exposure (f, event);` hangs on C 19921's
+  `if (!FRAME_GARBAGED_P (f))`, and C 19993-19996's `else goto OTHER;` on C 19977's `if (f)`; an
+  attribute on an `else` is `E0658` (slice 110's reading, and the reason `x_dnd_free_toplevels`
+  spells its own pair the way it does).  Both keep C's own *value*: C 19921's test is evaluated
+  once into `let garbaged: bool = FRAME_GARBAGED_P (f);` and the
+  `#ifndef USE_TOOLKIT_SCROLL_BARS` arm is an independent `if garbaged` - the same one-of-two order
+  C's `else` gives, and the same single evaluation point - while C 19993's site re-tests the
+  pointer (`if f.is_null ()`), which is pure.  C 19951's **second** read of the flag
+  (`show_back_buffer`) stays a fresh call: C re-reads it *after* the exposure calls, which can
+  change it, so folding it into `garbaged` would be a different program.
+* **Two use-site declarations.**  `expose_frame` (dispextern.h 3675) is `src/dispnew.rs`'s and no
+  mirror of this unit's graph carries it; the two calls this unit already had (6833/6954) sit in
+  `use_cairo` text that no arm of this lane compiles, which is why the gap survived.  The second is
+  `xlwmenu_redisplay` (lwlib.h 85), `src/lwlib/xlwmenu.rs`'s function, declared under the same
+  `use_lucid` arm its own definition carries.
+* **The two bounds this slice leaves standing, named rather than opened.**  C 19865-19877 is
+  `HAVE_XWIDGETS`'s block and C 19957-19966 is `USE_LUCID`'s; **no arm in this lane opens either**
+  feature, which is the bound Decision 101's note (this ledger, 2604) and status 3.368 already
+  record for the earlier `HAVE_XWIDGETS` and `use_lucid` text.  Both blocks are therefore carried
+  text with their gates, and their reading is `0` in all eighteen arms - not a new hole, the same
+  one.  Everything else in the three cases is read by an arm that exists: the two `USE_GTK` blocks
+  by UG/AIU/AG3/UGX/AIUX, `HAVE_XDBE`'s two by AX, the toolkit blocks by UT/UM, and
+  `not (USE_TOOLKIT_SCROLL_BARS)`'s three sites by the twelve arms that leave it off.
+* **One repair the first writing read.**  `FRAME_X_DOUBLE_BUFFERED_P` is a *macro*
+  (include/xterm.rs 1086), and the first writing called it as a function: the AX arm read
+  `cannot find function, tuple struct or tuple variant FRAME_X_DOUBLE_BUFFERED_P` (E0425, 997
+  rows); with the `!` it reads **996**, which is the +11 every other arm shows.
+* **What `--check` reads.**  Unchanged at two rows (`handle_one_xevent`'s long token row and
+  `x_get_wm_check_window does not mention false`); the long row's list goes **388 -> 373**.  The
+  unit is **32,553 lines** against C's 33,125 (**1.73%** drift, was 2.22%), file md5
+  `98326e93ce65349619f3bf0db9a15443`.
 
 ## Evidence
 
@@ -10548,3 +10596,55 @@ ever delivered; the readings are the eighteen arm compiles, the `--check` row's 
 this ledger.  The `x_output` bitfield rows and the `XEvent` member rows are debts this slice
 *names*, not repairs it makes: the first belongs to the include/xterm.rs mirror's own round and the
 second to include/xlib.rs's owed-member list.
+
+### Slice 113's readings (C 19863-20006), as landed and measured (2026-10-08)
+
+`case Expose:` (C 19863-19971), `case GraphicsExpose:` (C 19973-19997) and `case NoExpose:`
+(C 19999-20005).  Twenty-two `case` bodies remain.
+
+| arm | baseline | slice 113 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 975 / 76 | **986 / 76** | **+11 / 0** |
+| U `A +use_toolkit_scroll_bars` | 988 / 76 | **999 / 76** | **+11 / 0** |
+| UT `U +use_x_toolkit` | 982 / 75 | **993 / 75** | **+11 / 0** |
+| UM `UT +use_motif` | 983 / 75 | **994 / 75** | **+11 / 0** |
+| UG `U +use_gtk` | 983 / 77 | **1002 / 77** | **+19 / 0** |
+| UGX `UG +have_xinput2` | 1079 / 79 | **1098 / 79** | **+19 / 0** |
+| AE `A +enable_checking` | 1007 / 75 | **1018 / 75** | **+11 / 0** |
+| AI `A +have_x_i18n` | 999 / 77 | **1010 / 77** | **+11 / 0** |
+| AIU `AI +use_gtk` | 1050 / 77 | **1069 / 77** | **+19 / 0** |
+| AIUX `AIU +have_xinput2` | 1150 / 79 | **1169 / 79** | **+19 / 0** |
+| AX `A +have_xdbe` | 985 / 76 | **996 / 76** | **+11 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1036 / 76 | **1055 / 76** | **+19 / 0** |
+| AXF `A +have_xfixes` | 985 / 76 | **996 / 76** | **+11 / 0** |
+| AXPM `A +have_xpm` | 976 / 76 | **987 / 76** | **+11 / 0** |
+| AXKB `A +have_xkb` | 1013 / 76 | **1024 / 76** | **+11 / 0** |
+| AXR `A +have_xrandr` | 982 / 76 | **993 / 76** | **+11 / 0** |
+| AX11 `A +have_x11` | 959 / 76 | **970 / 76** | **+11 / 0** |
+| AUX `A +use_xcb` | 1058 / 74 | **1069 / 74** | **+11 / 0** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`2b989cb3`, slice 112) with its
+own `_root.rs` re-materialised per arm - the eighteen baseline numbers reproduce the ledger's
+slice-112 column to the digit - and the slice's file md5 is
+`98326e93ce65349619f3bf0db9a15443`.  **No warning moves in any arm**: this slice adds no label, no
+`mut` and no unused binding.
+
+**The `of which`, by name:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `no field xexpose` +5 | the twelve non-GTK arms | C 19879, C 19939 (x, y), C 19940 (width, height) |
+| `no field xexpose` +13 | UG, UGX, AIU, AIUX, AG3 | the five above **plus** C 19914 (x, y) and C 19915 (width, height) in `x_clear_area1`, and C 19933 (x, y) and C 19934 (width, height) in `x_clear_area` |
+| `no field xgraphicsexpose` +5 | every arm | C 19976, C 19979 (x, y), C 19981/C 19982 (width, height) |
+| `no field has_been_visible` +1 | every arm | C 19900's write, the same `x_output` bitfield debt slices 112 keeps naming |
+| `cannot find function FRAME_X_DOUBLE_BUFFERED_P` +1 | AX, before the `!` was added | C 19897 - retired by the repair in Decision 124's fifth item |
+
+Every row is one this lane has already classified: `xexpose`/`xgraphicsexpose` are
+`include/xlib.rs`'s owed `XEvent` members (the class slices 110-112 carry), and the `x_output`
+bitfield is the same six-member debt (include/xterm.rs 821-928).  The two `HAVE_XWIDGETS`/
+`USE_LUCID` blocks contribute nothing to any arm, because no arm compiles them (Decision 124's
+fourth item).
+
+**Not claimed**: no runtime evidence - this lane does not link, and no expose event was ever
+delivered; the readings are the eighteen arm compiles, the `--check` row's token count and this
+ledger.

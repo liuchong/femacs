@@ -17142,3 +17142,19 @@
      ⑷ **`--check`** 仍 2 行，长行的 token 清单 **484 → 388**；单元 **32,389 行**（C 33,125，**2.22%** 漂移，was 3.34%），文件 md5 `fbc0d1e591673668ae46e1489ca84922`。
   ⑥ **预算与清理**：本片 rustc 编译 **约 80 发**（18 臂 × 3 轮 + 若干探针；每次 12-15 秒，单文件 `--emit=metadata`），`build/probes/xterm/`、`/tmp/s112/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，这两个臂处理的事件一次也没到过；读数只有十八臂编译、`--check` 的 token 数与台账。剩余二十五个 `case` 体（C 18951-25595 内），下一片是 `Expose`/`GraphicsExpose`/`NoExpose`（C 19863-20006）。
+
+- **4.029 `src/xterm.c` round 88（xterm lane，slice 113）：三个 expose case 落地（C 19863-20006，144 C 行）；C 的两处 `#ifdef` 版 `else` 落成"保存一次的值 + 独立判定"（2026-10-08）**：
+  ① **本片落的文本**：`case Expose:`（C 19863-19971）、`case GraphicsExpose:`（C 19973-19997）、`case NoExpose:`（C 19999-20005）。xwidget 视图的提前返回、帧查找、三条可见性路径（`FRAME_VISIBLE_P`、`x-set-frame-visibility-more-laxly` 的 `Qexpose`/`Qt` 覆盖、`FRAME_GARBAGED_P`）、两条 `USE_GTK` 清屏、工具包的 widget 交接、`expose_frame` 与滚动条曝光、两处 `HAVE_XDBE`，以及三处 `goto OTHER`（写成 `break 'other`）。
+  ② **Rust 没有"给 `else` 加属性"的写法，所以两处按 C 自己的*值*落**：C 19945-19948 的 `else x_scroll_bar_handle_exposure (...)` 挂在 C 19921 的 `if (!FRAME_GARBAGED_P (f))` 上，C 19993-19996 的 `else goto OTHER;` 挂在 C 19977 的 `if (f)` 上；`#[cfg]` 加在 `else` 上是 `E0658`（slice 110 的读数）。
+     前者把 C 19921 的判定**只求值一次**存进 `let garbaged: bool = FRAME_GARBAGED_P (f);`，`#ifndef USE_TOOLKIT_SCROLL_BARS` 的那一支写成独立的 `if garbaged`——与 C 的 `else` 同样是"二选一、单次求值"；后者的站点重新判指针（`if f.is_null ()`，纯读）。**C 19951 的第二次读保持独立**（`show_back_buffer`）：C 是在曝光调用*之后*再读一次，那两次调用可以改这个位，折进 `garbaged` 就是另一个程序。
+  ③ **两处使用点声明**：`expose_frame`（dispextern.h 3675，`src/dispnew.rs` 的定义）本图无镜像行——本单元原有的两处调用（6833/6954）落在 `use_cairo` 的、**没有任何臂编译**的正文里，所以这个缺口一直没被发现；第二处是 `xlwmenu_redisplay`（lwlib.h 85，`src/lwlib/xlwmenu.rs` 3665 的定义），按它自己的定义所在的门用 `use_lucid` 声明。
+  ④ **本片把两条**既有的**边界留在原处、并点名**：C 19865-19877 属 `HAVE_XWIDGETS`、C 19957-19966 属 `USE_LUCID`，**本 lane 没有任何臂打开这两个特性**——这正是 Decision 101 的注（本台账 2604）与 status 3.368 已经记过的同一条边界，因此这两块是"带门携带的正文"，在十八条臂里读数都是 0，**不是新洞**。
+     除此之外三个 case 的每一行都被已有臂读到：两条 `USE_GTK` 由 UG/AIU/AG3/UGX/AIUX 读，`HAVE_XDBE` 的两处由 AX 读，工具包两块由 UT/UM 读，`not (USE_TOOLKIT_SCROLL_BARS)` 的三处由"关掉它"的十二条臂读。
+  ⑤ **首写抓到一处自己的缺陷**：`FRAME_X_DOUBLE_BUFFERED_P` 是**宏**（include/xterm.rs 1086），首写当成函数调用，AX 臂因此读 `cannot find function, tuple struct or tuple variant FRAME_X_DOUBLE_BUFFERED_P`（E0425，997 行）；补上 `!` 后该臂读 **996**，与其余各臂一致的 **+11**。
+  ⑥ **读数（两侧都在本修订测）**：⑴ **十八臂表**（baseline = HEAD `2b989cb3`，十八个 baseline 与 slice 112 台账逐位相同）：A 975/76 → **986/76**、U 988/76 → **999/76**、UT 982/75 → **993/75**、UM 983/75 → **994/75**、UG 983/77 → **1002/77**、UGX 1079/79 → **1098/79**、AE 1007/75 → **1018/75**、AI 999/77 → **1010/77**、
+     AIU 1050/77 → **1069/77**、AIUX 1150/79 → **1169/79**、AX 985/76 → **996/76**、AG3 1036/76 → **1055/76**、AXF 985/76 → **996/76**、AXPM 976/76 → **987/76**、AXKB 1013/76 → **1024/76**、AXR 982/76 → **993/76**、AX11 959/76 → **970/76**、AUX 1058/74 → **1069/74**；**十八条臂的警告列一条都没动**。
+     ⑵ 按名字的 `of which`：十二条非 GTK 臂 **+11** = `no field xexpose` +5（C 19879、C 19939 的 x/y、C 19940 的 width/height）+ `no field xgraphicsexpose` +5（C 19976、C 19979 的 x/y、C 19981/C 19982）+ `no field has_been_visible` +1（C 19900 的写）；
+     五条 GTK 臂 **+19**，多出的 8 条全是 `xexpose`（`x_clear_area1` 的 C 19914 x/y 与 C 19915 width/height、`x_clear_area` 的 C 19933 x/y 与 C 19934 width/height）。两类都是本 lane 已登记的欠账（`include/xlib.rs` 的 `XEvent` 占位成员、`include/xterm.rs` 821-928 的六个 `x_output` 位域）。
+     ⑶ **`--check`** 仍 2 行，长行的 token 清单 **388 → 373**；单元 **32,553 行**（C 33,125，**1.73%** 漂移，was 2.22%），文件 md5 `98326e93ce65349619f3bf0db9a15443`。
+  ⑦ **预算与清理**：本片 rustc 编译 **约 45 发**（18 臂 × 2 轮 + 4 个复测 + 探针；每次 12-15 秒，单文件 `--emit=metadata`），`build/probes/xterm/`、`/tmp/s113/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，曝光事件一次也没到过；读数只有十八臂编译、`--check` 的 token 数与台账。剩余二十二个 `case` 体，下一片从 `UnmapNotify`（C 20007）起。
