@@ -275,7 +275,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)newFrame: (id)sender`  (line 6416) — landed as `@objc func newFrame (_:)`, the row above's twin with `KEY_NS_NEW_FRAME` (`src/nsterm.h` 804)
   - [x] `- (BOOL) openFile: (NSString *)fileName`  (line 6433) — landed as `@objc func openFile (_:) -> Bool`, the event constructor the pending open-file queue drains into; `ns_input_file`/`ns_input_line` are this file's own file-scope objects imported as data symbols, and `lispString` is the Cocoa lane's exported helper
   - [ ] `- (void) updateMonitors: (NSNotification *) notification`  (line 6454)
-  - [ ] `- (void)applicationDidFinishLaunching: (NSNotification *)notification`  (line 6490)
+  - [x] `- (void)applicationDidFinishLaunching: (NSNotification *)notification`  (line 6490) — landed as `@objc func applicationDidFinishLaunching (_:)`: the GNUstep arm (C 6497-6499) is dead, the three dummy CoreFoundation/Foundation calls (C 6531-6533) precede the `RLIMIT_NOFILE` clamp to `FD_SETSIZE`, and the antialias notification's Swift spelling is `NSFont.antialiasThresholdChangedNotification` (the compiler's own rename reading, class B)
   - [x] `- (void)antialiasThresholdDidChange:(NSNotification *)notification`  (line 6556) — landed as `@objc func antialiasThresholdDidChange (_:)`: its one statement calls the Mac font lane's exported entry (`macfont.swift` 1376 over `src/macfont.m` 747)
   - [x] `- (void) systemWillSleep:(NSNotification *)notification`  (line 6565) — landed as `@objc func systemWillSleep (_:)`: C 6569's `struct input_event ie` is the state C 6570's `EVENT_INIT` writes, `SLEEP_EVENT`'s value comes from the port's own mirror (`src/include/termhooks.rs` 55), and the `kind` write is a bitfield setter that keeps `part`
   - [x] `- (void) systemDidWake:(NSNotification *)notification`  (line 6577) — landed as `@objc func systemDidWake (_:)`, `Qpre_sleep`'s twin with `Qpost_wake` (C 6584)
@@ -293,7 +293,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)timeout_handler: (NSTimer *)timedEntry`  (line 6769) — landed as `@objc func timeout_handler (_ timedEntry: Timer)`: its one statement calls `ns_send_appdefined (-2)`, so it lands with round 22
   - [x] `- (void)sendFromMainThread:(id)unused`  (line 6778) — landed as `@objc func sendFromMainThread (_ unused: Any?)`: the main-thread half of `ns_send_appdefined`'s non-main-thread arm (C 5027 posts this very selector), which is why the two land together
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
-  - [ ] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881)
+  - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
 - [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch
   - [ ] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041)
@@ -3040,3 +3040,28 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **Three boxes are ticked** (233 -> 236).  `fd_handler:` is the run loop's own worker - the thread
   `ns_term_init` starts - so the event loop now has both its entry pair (round 28) and its select
   side (round 26) in the port.
+
+
+
+### Round 30: `applicationDidFinishLaunching:` and `requestService:` (C 6490-6554, C 6881-6887)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-29 carry, so **no new warning**.  Object
+  `/tmp/nsterm30.o`, **643,776 bytes**, md5 `0fb82a0b8c9224c5241f16b3bf27081f`.
+* **Four errors on the first compiles, all of them Swift's own naming, all recorded in the source**:
+  `NSApplication` has no `antialiasThresholdChangedNotification`, and the compiler then names the
+  spelling it does have (`'NSAntialiasThresholdChangedNotification' has been renamed to
+  'NSFont.antialiasThresholdChangedNotification'`) - the apinotes reading this unit already uses for
+  `canBecomeKey` and `NSAppKitVersionNumber10_10`; `'NSFileHandle' has been renamed to
+  'FileHandle'`; and `UInt (FD_SETSIZE)` does not assign to `rlim_t` (`UInt64`), which the cast
+  spells.
+* **Four imports**: `CFSocketGetTypeID`/`CFFileDescriptorGetTypeID` (CoreFoundation's two `CFTypeID`
+  entries), `build_string` (the port's `femacs/src/alloc.rs`), `EmacsImage_allocInitFromFile` (the
+  `<Class>_<selector>` C-ABI entry round 18 set for that class) and the selection lane's
+  `stringWithLispString`/`ns_string_from_pasteboard` pair.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 36 unported,
+  36 row(s); **428** C symbol import(s)` - the unported count is unchanged (both are selectors),
+  and the six new symbols (`CFSocketGetTypeID`, `CFFileDescriptorGetTypeID`, `build_string`,
+  `EmacsImage_allocInitFromFile`, `stringWithLispString`, `ns_string_from_pasteboard`) account for
+  422 -> 428.  Final: `0 new, 0 stale, 7 Swift unit(s)
+  landed`; `tools/check-own-voice.py` reads 0 failure(s).  Two boxes are ticked (236 -> 238).

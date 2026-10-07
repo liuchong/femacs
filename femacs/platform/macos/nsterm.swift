@@ -6963,6 +6963,63 @@ class EmacsApp: NSApplication {
     ns_send_appdefined(-1)                            // C 6757
   }
 
+  /// C 6881-6887: `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData
+  /// error: (NSString **)error` - "Called from system: queue for next pass through event loop."
+  /// The queue `ns_read_socket_1` drains is filled here, and C 6886's
+  /// `[NSString stringWithLispString: …]` is the selection lane's exported factory.
+  @objc func requestService(_ pboard: NSPasteboard, userData: String,
+                            error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+    ns_pending_service_names?.add(userData)                                 // C 6885
+    ns_pending_service_args?.add(stringWithLispString(ns_string_from_pasteboard(pboard))!)  // C 6886
+  }
+
+  /// C 6490-6554: `- (void)applicationDidFinishLaunching: (NSNotification *)notification` -
+  /// "When application is loaded, terminate event loop in ns_term_init."  The GNUstep arm
+  /// (C 6497-6499) is dead here; the three dummy CoreFoundation/Foundation calls (C 6531-6533)
+  /// raise the process's open-file limit before C 6535-6539 lowers it to `FD_SETSIZE`, "since
+  /// pselect cannot handle file descriptors that are greater than or equal to FD_SETSIZE".
+  @objc func applicationDidFinishLaunching(_ notification: Notification) {
+    NSApp.servicesProvider = NSApp                    // C 6500
+    antialiasThresholdDidChange(notification)         // C 6502
+
+    /* C 6504-6508: observe the antialias-threshold notification.  C's constant is
+       `NSAntialiasThresholdChangedNotification`; the compiler names Swift's spelling
+       (`'NSAntialiasThresholdChangedNotification' has been renamed to
+       'NSFont.antialiasThresholdChangedNotification'`, measured - class B, no symbol invented).  */
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(EmacsApp.antialiasThresholdDidChange(_:)),
+      name: NSFont.antialiasThresholdChangedNotification,
+      object: nil)
+
+    /* C 6511-6523: "Sleep event notification."  */
+    NSWorkspace.shared.notificationCenter.addObserver(
+      self, selector: #selector(EmacsApp.systemWillSleep(_:)),
+      name: NSWorkspace.willSleepNotification, object: nil)
+    NSWorkspace.shared.notificationCenter.addObserver(
+      self, selector: #selector(EmacsApp.systemDidWake(_:)),
+      name: NSWorkspace.didWakeNotification, object: nil)
+
+    /* C 6526-6530: the dummy calls, then the limit itself.  */
+    _ = CFSocketGetTypeID()                           // C 6531
+    _ = CFFileDescriptorGetTypeID()                   // C 6532
+    _ = FileHandle()                                  // C 6533 (Swift's name for NSFileHandle)
+    var rlim = rlimit()                               // C 6534
+    if getrlimit(RLIMIT_NOFILE, &rlim) == 0 && rlim.rlim_cur > UInt(FD_SETSIZE) {  // C 6535-6536
+      rlim.rlim_cur = rlim_t(FD_SETSIZE)              // C 6538
+      _ = setrlimit(RLIMIT_NOFILE, &rlim)             // C 6539
+    }
+    if NSApp.activationPolicy() == .prohibited {      // C 6541
+      /* C 6542-6544: "Set the app's activation policy to regular when we run outside of a
+         bundle.  This is already done for us by Info.plist when we run inside a bundle."  */
+      NSApp.setActivationPolicy(.regular)             // C 6545
+      NSApp.applicationIconImage =                    // C 6546-6549
+        EmacsImage_allocInitFromFile(build_string("icons/hicolor/128x128/apps/emacs.png")) as? NSImage
+    }
+
+    ns_send_appdefined(-2)                            // C 6553
+  }
+
   /// C 6402-6413: `- (void)showPreferencesWindow: (id)sender`.
   @objc func showPreferencesWindow(_ sender: Any?) {
     let emacsframe = SELECTED_FRAME()                 // C 6404
@@ -7834,4 +7891,30 @@ let KEY_NS_SHOW_PREFS = (1 << 28) | (0 << 16) | 14
 @_silgen_name("__darwin_fd_zero") func __darwin_fd_zero(_ set: UnsafeMutablePointer<fd_set>?)
 @_silgen_name("__darwin_fd_set")
 func __darwin_fd_set(_ fd: Int32, _ set: UnsafeMutablePointer<fd_set>?)
+
+// ==========================================================================
+// Round 30: `applicationDidFinishLaunching:` and `requestService:`
+// ==========================================================================
+
+/// C: `CFTypeID CFSocketGetTypeID (void)` and `CFTypeID CFFileDescriptorGetTypeID (void)`
+/// (CoreFoundation) - the two dummy calls C 6531/6532 makes so that the framework raises the
+/// process's open-file limit before C 6535-6539 lowers it again.
+@_silgen_name("CFSocketGetTypeID") func CFSocketGetTypeID() -> UInt
+@_silgen_name("CFFileDescriptorGetTypeID") func CFFileDescriptorGetTypeID() -> UInt
+
+/// C: `Lisp_Object build_string (const char *)` (src/lisp.h) - the port defines it in
+/// `femacs/src/alloc.rs`; the `fputs` import shape.
+@_silgen_name("build_string") func build_string(_ s: UnsafePointer<CChar>) -> Lisp_Object
+
+/// C `+[EmacsImage allocInitFromFile:]` - the class is `nsimage.swift`'s, so the call crosses as a
+/// C-ABI entry under `<Class>_<selector>` (the `EmacsImage_stippleMask` shape round 18 set).
+@_silgen_name("EmacsImage_allocInitFromFile")
+func EmacsImage_allocInitFromFile(_ file: Lisp_Object) -> AnyObject?
+
+/// C: `NSPasteboard`-side helpers of the selection lane, both defined in `nsselect.swift`
+/// (`stringWithLispString` at 228, `ns_string_from_pasteboard` at 533); `requestService:` below is
+/// their reader in this unit.
+@_silgen_name("stringWithLispString") func stringWithLispString(_ string: Lisp_Object) -> NSString?
+@_silgen_name("ns_string_from_pasteboard")
+func ns_string_from_pasteboard(_ pb: NSPasteboard?) -> Lisp_Object
 
