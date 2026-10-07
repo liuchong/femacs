@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073 and C 8075-8176
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176 and C 8178-8256
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -23,12 +23,12 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073 and C 8075-8176
 > twenty-third, **10,404 lines** after the twenty-fourth, **10,631 lines** after the twenty-fifth,
 > **10,782 lines** after the twenty-sixth, **11,042 lines** after the twenty-seventh and
 > **11,088 lines** after the twenty-eighth, **11,179 lines** after the twenty-ninth and
-> **11,286 lines** after the thirtieth - C 803-2149,
+> **11,286 lines** after the thirtieth and **11,371 lines** after the thirty-first - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
-> C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073 and C 8075-8176,
-> whose own
+> C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176 and
+> C 8178-8256, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -208,7 +208,8 @@ defines both features.
 | 7953-7995 | `x-delete-window-property` (C 7953-7955 the `DEFUN` header, C 7956-7967 the verbatim doc string, C 7970-7994 the body: the `CHECK_STRING`, the `WINDOW-ID` pair with its root-window fallback, the cached-atom intern and the error pair around `XDeleteProperty`) | `have_x_windows`, with no nested `#if` (slice 28) |
 | 7998-8073 | `x_window_property_intern` (C 7998-8005 the `static Lisp_Object` and its seven parameters, C 8007-8012 the locals, C 8014-8017 the first `XGetWindowProperty`, C 8019's `*found`, C 8026-8031 the second call with C 8029's `! NILP (delete_p)`, C 8034-8046 the quoted `XGetWindowProperty` man page, C 8048-8056 the `LONG_WIDTH > 32` arm, C 8058-8066 the `make_string`/`x_property_data_to_lisp` pair, C 8069's `XFree`) | `have_x_windows`, with no nested `#if` (slice 29) |
 | 8075-8176 | `x-window-property` (C 8075-8076 the `DEFUN` header, C 8077-8115 the verbatim doc string, C 8119-8124 the locals, C 8126's `CHECK_STRING`, C 8128-8133 the `WINDOW-ID` pair, C 8136's `x_catch_errors`, C 8138-8145 the `AnyPropertyType`/intern pair, C 8149-8155 and C 8161-8167 the two `x_window_property_intern` calls with C 8156-8159's four-way test, C 8170-8172 the error pair) | `have_x_windows`, with no nested `#if` (slice 30) |
-| 8178-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,485 lines, whose first live definition is `x-window-property-attributes` (C 8178, the `DEFUN`) - the next slice's first item | not ported in this slice |
+| 8178-8256 | `x-window-property-attributes` (C 8178-8179 the `DEFUN` header, C 8180-8194 the verbatim doc string, C 8197-8205 the locals, C 8207's `CHECK_STRING`, C 8209-8214 the `WINDOW-ID` pair, C 8218-8220's `x_catch_errors` and cached-atom intern, C 8221-8224's first `XGetWindowProperty`, C 8225-8238's four-way outer-window retry with C 8230-8232's comment, C 8240-8248's `XFree` and `CALLN (Fvector, ...)`, C 8250-8252's error pair) | `have_x_windows`, with no nested `#if` (slice 31) |
+| 8258-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,404 lines, whose first live items are C 8258's form feed, C 8259-8261's `Coordinate management` section comment and `x-translate-coordinates` (C 8263, the `DEFUN`) - the next slice's first items | not ported in this slice |
 
 ## Evidence
 
@@ -3119,3 +3120,76 @@ place; `missing defsubr` stays 45, `missing function` 13.  `check-mirror-dupes.p
 
 The frozen configuration compiles none of this file: no window property was read, no atom was
 interned, no outer window was tried; the fourteen arms' counts are text compile readings.
+
+## Slice 31 (2026-10-08, status 3.935 - the integrator sets the round number): C 8178-8256
+
+**The slice is C 8178-8256**: the `x-window-property-attributes` `DEFUN` - its header
+(C 8178-8179) and verbatim doc string (C 8180-8194), the locals (C 8197-8205), C 8207's
+`CHECK_STRING`, C 8209-8214's `WINDOW-ID` pair, C 8216's `block_input`, C 8218-8220's
+`x_catch_errors` and cached-atom intern, C 8221-8224's first `XGetWindowProperty` (whose requested
+type is C 8222's `AnyPropertyType`), C 8225-8238's four-way test with the outer-window retry
+(C 8230-8232's comment included), C 8240-8248's `XFree` and `CALLN (Fvector, ...)` of the three
+`make_fixnum`s, and C 8250-8252's error pair.  The port's slice is **85 Rust lines**
+(11,371 - 11,286, `grep -c ''`) against C's 79; md5 `b9f4d65a0ac368e4ac61906284c228a5` (the slice 30
+tree) -> `3c9eae3abf16a3d2e94c142030975da3`.
+
+**Twelve arms are byte-identical; the GTK pair moves by two more named rows.**  plain-X, WS, WSX,
+WSR, WSRX, WSR12 and XCB **15 / 9**, LUCID **23 / 12**, XI2 **19 / 9**, XSN **13 / 9**, XR **19 / 9**
+and Xt **16 / 12** - all with both sets empty-diff against the in-tree HEAD baseline - and GTK and
+GTK22 read **44 / 20 -> 46 / 20**: two more `GDK_WINDOW_XID` instances of the class slice 8 named,
+reached by C 8228's `target_window != FRAME_OUTER_WINDOW (f)` and C 8233's assignment.  This file
+now carries four instances (slice 27's C 7852, slice 30's C 8159/8162 and these two).  No warning
+moves in any arm.
+
+**The first measurement's two rows were one row twice.**  Both arms that read an error beyond the
+GTK class read `E0308` at C 8222 and C 8235: `AnyPropertyType` is `x11_constants`' `c_long` (X.h
+131's `0L`) while `XGetWindowProperty`'s requested type is an `Atom`, so C's implicit conversion is
+written out at both call sites - `AnyPropertyType as Atom`, the form `src/xselect.rs` 2269 uses.
+After that the arms read their baselines.
+
+**Arm touch measured** (P-86 ⑦): an injection at the body's first statement (A) moves plain-X
+**15 -> 16**, GTK **46 -> 47**, XCB **15 -> 16** and XI2 **19 -> 20**; one before C 8255's
+`return prop_attr;` (B) moves plain-X **15 -> 16**, GTK **46 -> 47**, XCB **15 -> 16**, LUCID
+**23 -> 24** and Xt **16 -> 17**; both logs carry the injected line's text once.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash.
+
+**② The fourteen arms.**  See above; the GTK pair's two rows are the named class.
+
+**③ `extract-abi.py --check`**: **103 rows -> 102** - `missing subr Fx_window_property_attributes
+(x-window-property-attributes)` retiring and the drift row moving from `5.9%: C 10662 vs Rust
+11286` to `6.6%: C 10662 vs Rust 11371` (`missing subr` 18 -> 17).  The drift row is the reader's
+own ratchet and its tolerance table is the integrator's, so the lane records both readings.
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures**.
+
+### Deviations (this slice)
+
+1. **`AnyPropertyType` is imported in the body and cast where C's conversion applies**:
+   `use crate::x11_constants::{AnyPropertyType, Success};` and `AnyPropertyType as Atom` at both
+   `XGetWindowProperty` calls (the row is `include/xlib.rs` 87's `c_long`; `src/xselect.rs` 2269).
+2. **C's four out-parameters take the file's zero initialisers** (`actual_type`, `actual_format`,
+   `actual_size`, `bytes_remaining`) and `tmp_data`'s `NULL` is `std::ptr::null_mut ()`.
+3. **The three `make_fixnum`s write C's conversions out**: `actual_type as EMACS_INT`,
+   `actual_format as EMACS_INT` and
+   `(bytes_remaining / (actual_format >> 3) as c_ulong) as EMACS_INT` (C's `unsigned long`
+   quotient), the file's `make_fixnum (… as EMACS_INT)` form.
+4. **C 8242's `XFree (tmp_data)`** is `XFree (tmp_data as *mut c_void)`, the file's cast form.
+
+### Owed (this slice)
+
+- The two new rows are further instances of the `GDK_WINDOW_XID` class
+  (`include/gtk.rs`/`include/xterm.rs`); the class now has four instances in this file.
+- `syms_of_xfns`' `defsubr` sites (45, plus this slice's `Sx_window_property_attributes`) and the
+  rest of the remainder from C 8258 (the section comment and `x-translate-coordinates`, C 8263):
+  2,404 C lines plus the 13 missing functions, 1 macro, 4 objects, 17 subrs and 45 defsubrs
+  `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no window property metadata was read, no atom
+was interned and no vector was built; the fourteen arms' counts are text compile readings.

@@ -11284,3 +11284,88 @@ if PROP has no value of TYPE (always a string in the MS Windows case).",
   unblock_input ();                                                       // C 8174
   return prop_value;                                                      // C 8175
 });
+
+/* C 8178-8256.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-window-property-attributes", Fx_window_property_attributes,
+	Sx_window_property_attributes, 1, 3, 0,
+	doc: "Retrieve metadata about window property PROP on FRAME.
+If FRAME is nil or omitted, use the selected frame.
+If WINDOW-ID is non-nil, get the property of that window instead of
+ FRAME's X window; the number 0 denotes the root window.  This
+ argument is separate from FRAME because window IDs are not unique
+ across X displays or screens on the same display, so FRAME provides
+ context for the window ID.
+
+Return value is nil if FRAME doesn't have a property named PROP.
+Otherwise, the return value is a vector with the following fields:
+
+0. The property type, as an integer.  The symbolic name of
+ the type can be obtained with `x-get-atom-name'.
+1. The format of each element; one of 8, 16, or 32.
+2. The length of the property, in number of elements.",
+	(prop: Lisp_Object, frame: Lisp_Object, window_id: Lisp_Object),
+	{
+  use crate::x11_constants::{AnyPropertyType, Success};                   // C 8222/8225/8235/8240
+
+  let f: *mut frame = decode_window_system_frame (frame);                 // C 8197
+  let mut target_window: Window = FRAME_X_WINDOW! (f);                    // C 8198
+  let mut prop_atom: Atom;                                                // C 8199
+  let mut prop_attr: Lisp_Object = Qnil ();                               // C 8200
+  let mut actual_type: Atom = 0;                                          // C 8201
+  let mut actual_format: c_int = 0;                                       // C 8202
+  let mut actual_size: c_ulong = 0;                                       // C 8203
+  let mut bytes_remaining: c_ulong = 0;
+  let mut tmp_data: *mut c_uchar = std::ptr::null_mut ();                 // C 8204
+  let mut rc: c_int;                                                      // C 8205
+
+  CHECK_STRING (prop);                                                    // C 8207
+
+  if !NILP (window_id)                                                    // C 8209
+    {
+      CONS_TO_INTEGER! (window_id, target_window);                        // C 8211
+      if target_window == 0                                               // C 8212
+	{ target_window = (*FRAME_DISPLAY_INFO! (f)).root_window; }          // C 8213
+    }
+
+  block_input ();                                                         // C 8216
+
+  x_catch_errors (FRAME_X_DISPLAY! (f));                                  // C 8218
+  prop_atom = x_intern_cached_atom (FRAME_DISPLAY_INFO! (f),              // C 8219-8220
+				    SSDATA (prop), false);
+  rc = XGetWindowProperty (FRAME_X_DISPLAY! (f), target_window,           // C 8221-8224
+			   prop_atom, 0, 0, False, AnyPropertyType as Atom,          // C 8222/8235
+			   &raw mut actual_type, &raw mut actual_format, &raw mut actual_size,
+			   &raw mut bytes_remaining, &raw mut tmp_data);
+  if rc == Success          /* no invalid params */                       // C 8225
+    && actual_format == 0  /* but prop not found */                       // C 8226
+    && NILP (window_id)                                                   // C 8227
+    && target_window != FRAME_OUTER_WINDOW! (f)                           // C 8228
+    {
+      /* analogous behavior to x-window-property: if property isn't found
+         on the frame's inner window and no alternate window id was
+         provided, try the frame's outer window. */
+      target_window = FRAME_OUTER_WINDOW! (f);                            // C 8233
+      rc = XGetWindowProperty (FRAME_X_DISPLAY! (f), target_window,       // C 8234-8237
+			       prop_atom, 0, 0, False, AnyPropertyType as Atom,          // C 8222/8235
+			       &raw mut actual_type, &raw mut actual_format, &raw mut actual_size,
+			       &raw mut bytes_remaining, &raw mut tmp_data);
+    }
+
+  if rc == Success && actual_format != 0                                  // C 8240
+    {
+      XFree (tmp_data as *mut c_void);                                    // C 8242
+
+      prop_attr = CALLN! (Fvector,                                        // C 8244-8247
+			  make_fixnum (actual_type as EMACS_INT),
+			  make_fixnum (actual_format as EMACS_INT),
+			  make_fixnum ((bytes_remaining / (actual_format >> 3) as c_ulong) as EMACS_INT));
+    }
+
+  x_check_errors (FRAME_X_DISPLAY! (f),                                   // C 8250-8251
+		  c"Can't retrieve window property: %s".as_ptr ());
+  x_uncatch_errors_after_check ();                                        // C 8252
+
+  unblock_input ();                                                       // C 8254
+  return prop_attr;                                                       // C 8255
+});
