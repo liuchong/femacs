@@ -172,6 +172,18 @@ body reads: the seven arms that compile C 18532's block each add five rows (`Con
 warning moved in any of the twelve arms**.  The GTK arm's two calls resolve: `include/gtk.rs`
 declares `gtk_events_pending`/`gtk_main_iteration` and reaches this unit through `include/xterm.rs`
 53's C 69 edge - which is also what the earlier slices' includer counts missed.
+  Slice 97 (C 18614-18679, Decision 110) goes **18 -> 17**: `x_find_monitors_changed_event` retires as
+a missing function, and the slice reads **0/0** in the seven arms without `use_gtk` - everything the
+finder names is already in the unit or in its include graph - while the five `use_gtk` arms add **two
+rows** apiece for the callback: `E0609 no field last_monitor_attributes_list on type x_display_info`,
+one per site (C 18663's read, C 18677's write).  That field is C's `#if defined HAVE_XRANDR ||
+defined USE_GTK` member (xterm.h 834), which the mirror does not carry - the class slice 92's
+`x_display_info.prefer_native_input` row opened, owed to the mirror's own round.  A 790 -> **790**,
+U 819 -> **819**, UT 805 -> **805**, UM 806 -> **806**, UG 803 -> **805**, UGX 905 -> **907**, AE 822
+-> **822**, AI 798 -> **798**, AIU 838 -> **840**, AIUX 944 -> **946**, AX 804 -> **804**, AG3 842 ->
+**844**, with **no warning moved in any of the twelve arms**.  `x_monitors_changed_cb` (C 18638-18678)
+is dead text - `USE_GTK` is `undef` in the frozen table - so it is carried with its gate (P-86 1) and
+is not a checklist row.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -378,7 +390,7 @@ declares `gtk_events_pending`/`gtk_main_iteration` and reaches this unit through
 - [x] x_display_pixel_height  (line 18482)
 - [x] x_display_pixel_width  (line 18491)
 - [x] x_wait_for_cell_change  (line 18502)
-- [ ] x_find_monitors_changed_event  (line 18619, static)
+- [x] x_find_monitors_changed_event  (line 18619, static)
 - [ ] x_coords_from_dnd_message  (line 18685, static)
 - [ ] x_handle_wm_state  (line 18764, static)
 - [ ] handle_one_xevent  (line 18876, static)
@@ -4555,6 +4567,32 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   uninitialised locals and stay that way (`FD_ZERO` writes them through the address).
 * **What `--check` reads.**  **19 -> 18**, with the line-count row at **28,303** against C's 33,125
   (14.6% drift, was 28,148 / 15.0%).
+
+### 110. Slice 97 (C 18614-18679): `x_find_monitors_changed_event`, and the GTK callback that calls it
+
+* **The `--check` item and a zero in the seven arms.**  `x_find_monitors_changed_event` (C 18618-18635)
+  is C's `static`, so a plain `unsafe fn`, and **18 -> 17**.  It reads 0/0 in the seven arms without
+  `use_gtk`: the queue walk is this unit's own (`kbd_fetch_ptr`/`kbd_store_ptr`, `X_NEXT_KBD_EVENT!`
+  at 745), the kind is the masked read `input_event_bits! (kind, &raw mut (*event).ie)` (PORTING.md
+  1.3) against `include/termhooks.rs` 62's `MONITORS_CHANGED_EVENT`, and `XTERMINAL` is
+  `include/termhooks.rs` 346's function.
+* **The GTK callback is dead text carried whole.**  C 18637-18679's `#ifdef USE_GTK` block is
+  `undef` in the frozen table, so `x_monitors_changed_cb` gets the gate on the item and no checklist
+  row - P-86 1's rule, and the shape `event_handler_gdk` (slice 89) gave a whole-file arm.
+* **Two rows, and the field they name is the mirror's.**  The five `use_gtk` arms add
+  `E0609 no field last_monitor_attributes_list on type x_display_info` twice - C 18663's
+  `NILP (Fequal (current_monitors, dpyinfo->last_monitor_attributes_list))` and C 18677's write.
+  C declares that member under `#if defined HAVE_XRANDR || defined USE_GTK` (xterm.h 831-834), and
+  the mirror carries only the frozen configuration's layout, so the row is the same class slice 92's
+  `prefer_native_input` row opened: the mirror's own round owns it (P-87 3).  `Fequal` and
+  `Fx_display_monitor_attributes_list` resolve without a row - `include/globals.rs` 8862 carries the
+  subr and this unit's include graph reaches it.
+* **Deviation 12's zero.**  `ie` is C's uninitialised `struct input_event`, zeroed at its declaration
+  and then handed to `EVENT_INIT` (this file 14980's shape); C 18666's `ie.kind = ...` is the masked
+  write (`input_event_bits!`'s three-argument form); `kbd_buffer_store_event` takes `*mut c_void`
+  (this file 5206).
+* **What `--check` reads.**  **18 -> 17**, with the line-count row at **28,389** against C's 33,125
+  (14.3% drift, was 28,303 / 14.6%).
 
 ## Evidence
 
@@ -9015,3 +9053,49 @@ against C's 33,125 (14.6% drift, was 28,148 / 15.0%).
 **Not claimed.**  The frozen configuration compiles none of this file: no display was polled, no
 event was read and no cell was inspected; the readings above are compile readings of text this
 machine cannot build.
+
+### Slice 97's readings (C 18614-18679), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s97/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`.
+Both sides were measured on this revision (the baseline by restoring `src/xterm.rs` from HEAD, then
+putting the saved copy back - its md5 is the copy's).
+
+| arm | HEAD's unit (slice 96 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 790 / 73 | **790 / 73** | 0 |
+| U `+use_toolkit_scroll_bars` | 819 / 73 | **819 / 73** | 0 |
+| UT `U +use_x_toolkit` | 805 / 72 | **805 / 72** | 0 |
+| UM `UT +use_motif` | 806 / 72 | **806 / 72** | 0 |
+| **UG** `U +use_gtk` | 803 / 74 | **805 / 74** | **+2** |
+| **UGX** `UG +have_xinput2` | 905 / 76 | **907 / 76** | **+2** |
+| AE `A +enable_checking` | 822 / 72 | **822 / 72** | 0 |
+| AI `A +have_x_i18n` | 798 / 74 | **798 / 74** | 0 |
+| **AIU** `AI +use_gtk` | 838 / 74 | **840 / 74** | **+2** |
+| **AIUX** `AIU +have_xinput2` | 944 / 76 | **946 / 76** | **+2** |
+| AX `A +have_xdbe` | 804 / 73 | **804 / 73** | 0 |
+| AG3 `A +use_gtk +have_gtk3` | 842 / 73 | **844 / 73** | **+2** |
+
+**Additions, by name.**  The five `use_gtk` arms: `E0609 no field last_monitor_attributes_list on
+type x_display_info` x2, the two sites of C 18663/18677 - the mirror carries the frozen
+configuration's `x_display_info` layout, and C's member is behind `#if defined HAVE_XRANDR ||
+defined USE_GTK` (xterm.h 831-834).  The seven others: nothing, in either direction.
+**Warning sets are identical to the baselines' in all twelve arms.**
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so neither function is compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18623's `event = kbd_fetch_ptr;` moves
+**A 790 -> 791** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:28333:18`; removing
+the line returns A to the table.
+
+**What `--check` reads.**  **18 -> 17** as Decision 110 5 says, with the line-count row at **28,389**
+against C's 33,125 (14.3% drift, was 28,303 / 14.6%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no event queue was walked, no
+monitor list was compared and no terminal was set; the readings above are compile readings of text
+this machine cannot build.

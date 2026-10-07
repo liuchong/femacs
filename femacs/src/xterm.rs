@@ -28299,5 +28299,91 @@ pub unsafe extern "C" fn x_wait_for_cell_change (cell: Lisp_Object, mut timeout:
     }
 }
 
-/* C 18614-18616's comment opens `x_find_monitors_changed_event` (C 18618-...), the next
-   definition.  */
+/* Find whether or not an undelivered MONITORS_CHANGED_EVENT is
+   already on the event queue.  DPYINFO is the display any such event
+   must apply to.  */
+
+/// C 18618-18635: `static bool x_find_monitors_changed_event (struct x_display_info *dpyinfo)` -
+/// C's `static`, so a plain `unsafe fn`, and this slice's `--check` item.  Three shapes: the
+/// queue walk is C's own `while (event != kbd_store_ptr)` over `kbd_fetch_ptr`/`kbd_store_ptr`
+/// with `X_NEXT_KBD_EVENT` this unit's macro (745), the kind is read through
+/// `input_event_bits!` (the file's masked read of C's `union buffered_input_event` - PORTING.md
+/// 1.3), and `XTERMINAL` is `include/termhooks.rs` 346's function, so the comparison with
+/// `(*dpyinfo).terminal` is C's `==`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_find_monitors_changed_event (dpyinfo: *mut x_display_info) -> bool
+{
+  let mut event: *mut buffered_input_event;                            // C 18621
+
+  event = kbd_fetch_ptr;                                               // C 18623
+
+  while event != kbd_store_ptr                                         // C 18625
+    {
+      if input_event_bits! (kind, &raw mut (*event).ie)                // C 18627
+	  == MONITORS_CHANGED_EVENT
+	  && XTERMINAL ((*event).ie.arg) == (*dpyinfo).terminal        // C 18628
+	{ return true; }                                               // C 18629
+
+      event = X_NEXT_KBD_EVENT! (event);                               // C 18631
+    }
+
+  return false;                                                        // C 18634
+}
+
+/* C 18637-18679: the GTK arm's monitor-change callback, which is what calls the function above.
+   It is dead text in the frozen configuration (`USE_GTK` is `undef` there), carried with its
+   gate (P-86 ①).  */
+
+/// C 18638-18678: `static void x_monitors_changed_cb (GdkScreen *gscr, gpointer user_data)` -
+/// C's `static` inside C 18637's `#ifdef USE_GTK`, so a plain `unsafe fn` whose whole item
+/// carries `use_gtk`.  Four shapes: `ie` is C's uninitialised `struct input_event` zeroed per
+/// Deviation 12 and then handed to `EVENT_INIT` (this file 14980's shape), C 18666's
+/// `ie.kind = MONITORS_CHANGED_EVENT` is the masked write (`input_event_bits!`'s three-argument
+/// form), `kbd_buffer_store_event` takes `*mut c_void` (this file 5206), and `Fx_display_monitor_attributes_list`
+/// is the subr (`include/globals.rs` 8862) that this unit's include graph does not carry - the
+/// row the GTK arms read.  `user_data` is unused by C too, and the unit's `#![allow
+/// (unused_variables)]` (638) is what keeps C's parameter name.
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe fn x_monitors_changed_cb (gscr: *mut GdkScreen, user_data: gpointer)
+{
+  let mut dpyinfo: *mut x_display_info;                                // C 18641
+  let mut ie: input_event = core::mem::zeroed ();                       // C 18642 (Deviation 12)
+  let mut current_monitors: Lisp_Object;                               // C 18643
+  let mut terminal: Lisp_Object;
+  let mut gdpy: *mut GdkDisplay;                                       // C 18644
+  let mut dpy: *mut Display;                                           // C 18645
+
+  gdpy = gdk_screen_get_display (gscr);                                // C 18647
+  dpy = gdk_x11_display_get_xdisplay (gdpy);                           // C 18648
+  dpyinfo = x_display_info_for_display (dpy);                          // C 18649
+
+  if dpyinfo.is_null ()                                                // C 18651
+    { return; }                                                        // C 18652
+
+  if x_find_monitors_changed_event (dpyinfo)                           // C 18654
+    { return; }                                                        // C 18655
+
+  XSETTERMINAL! (terminal, (*dpyinfo).terminal);                        // C 18657
+
+  current_monitors                                                     // C 18659-18660
+    = Fx_display_monitor_attributes_list (terminal);
+
+  if NILP (Fequal (current_monitors,                                   // C 18662-18663
+		   (*dpyinfo).last_monitor_attributes_list))
+    {
+      EVENT_INIT (&raw mut ie);                                        // C 18665
+      input_event_bits! (kind, &raw mut ie, MONITORS_CHANGED_EVENT);    // C 18666
+      ie.arg = terminal;                                               // C 18667
+
+      kbd_buffer_store_event (&raw mut ie as *mut c_void);              // C 18669
+
+      if x_dnd_in_progress && x_dnd_update_tooltip                     // C 18671
+	{ x_dnd_monitors = current_monitors; }                          // C 18672
+
+      x_dnd_update_tooltip_now ();                                     // C 18674
+    }
+
+  (*dpyinfo).last_monitor_attributes_list = current_monitors;          // C 18677
+}
+
+/* C 18681-18683's comment opens `x_coords_from_dnd_message` (C 18685-...), the next definition.  */
