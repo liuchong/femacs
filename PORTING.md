@@ -555,6 +555,43 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     ⑸ `test/` 2,623 行——goal 第 5 条与验收第 5 条的保护（第十四半的 `forbidden-tree` 类）；⑹ **裸 `Emacs`** 这一族（六个照抄树 **23,977 行**）
     仍按第十半 ⑴ 留给用户裁决，本半只作读数、一行不动；⑺ `etc/images/splash.png` 的 tEXt `Description`（与上面那行 SVG 是同一句）与 SVG 不同：
     **二进制资产没有"行"**——`tools/check-verbatim.py` 的行表按 `\n` 切分、按 UTF-8 文本比对，所以这一处无法用行登记收口，本半点名它、不改它。
+    这条规则现在有第二十八半（2026-10-07，status 3.956）：**`man` 印在页眉上的那一格、以及软件中心的注册名，此前
+    没有任何一半读过**。前二十七半的入口逐面推过"程序运行时打印什么"（文件头、注释、复述、工具写出的身份行、程序的自我声明、
+    工具与探针、向外报出的身份、默认显示名、照抄树里打印/写出的名字、文件自称属于谁、那句话的其它拼法、注释里的片段、
+    平台面与工具面的裸名、安装后的注册名），而 `.TH` 的**第四栏**——`man` 把程序名与版本印在**每一页页眉**上的那一格——
+    从第一轮起就没有读者：它既不是第十四/十五半要的形状（`part of`），也不是第十半读的 elisp `format` 串，
+    所以两份照抄树普查都不看它。判据仍是"这句话说的是谁"：第四栏的主语是**本程序**，而它把参照产品名与本程序的
+    版本号写在同一个字段里（`emacs.1.in` 的第四栏是 `"<参照产品名> @version@"`，安装时 `@version@` 换成本仓库的版本号）
+    ⇒ 写本仓库自己的名字。
+    **同一格里认出来、按判据不动的是另一半**：`.TH` 的第一栏是**命令名**（`EMACS`/`EMACSCLIENT`/`EBROWSE`/`ETAGS`，
+    用户敲的那个名字）、第五栏是**手册系列**（`"GNU"`，说的是这份文档属于哪个手册集合，与第十四半的 `manual-membership` 同类）、
+    `etags.1` 的第四栏是 `"GNU Tools"`（一个来源类别，不含产品名）——三处都保留，逐条点名。
+    同一面第二次漏的是 **AppStream 的组件 id**：第二十七半读了 `etc/emacs.metainfo.xml`、改了它的 `<name>` 与两行描述，
+    **把第 4 行的 id 留在原地**——那个 id 是软件中心把本程序登记在哪个名字下的值，与第九半的 Haiku bundle 签名、
+    第七半的 Android 包名同一判据 ⇒ 写本仓库自己的反向域名注册名（`org.femacs`，与 `femacs/platform/android/kotlin/*.kt`
+    的 `package org.femacs` 逐字一致；**本文档不重复写出参照的那个 id**，与第八、第十、第十一、第二十七半同一写法）。
+    字形仍是第十半的**机械替换**：只换产品名那一个 token，同一行其余字符一个都不动，逐行记进
+    `docs/baseline/verbatim-substitutions.tsv`（**7,197 → 7,202 行**，本半新增 5 行 / 4 个文件）。
+    **5 个站点逐条点名**：`doc/man/emacs.1.in` 2（第四栏的版本字段）与 6（`NAME` 段——`whatis`/`apropos` 交给用户的
+    那句"这个程序做什么"，与第二十七半改的桌面文件 `Comment=` 是同一句话）、`doc/man/emacsclient.1` 2、
+    `doc/man/ebrowse.1` 2（同一栏）、`etc/emacs.metainfo.xml` 4（组件 id）。
+    读数：`python3 tools/check-verbatim.py` **`6 trees, 4604 files, 7,197 → 7,202 sanctioned line(s), 0 failures`**
+    （逐树 `doc` 85 → **89**、`etc` 459 → **460**，六棵树的文件数逐个不变）、`--selftest` **7 例 / 0 失败**；
+    **三处真树变异**各 1 处失败（把 `emacs.1.in` 2 改回参照 ⇒ 报"1 changed"、退出 1；改成第三种文本 ⇒ 同样退出 1；
+    把行与表**同时**改成参照的原文 ⇒ 同样退出 1，即"该行已与参照相同、行过时"）；改动前四个手册页与参照 `cmp`
+    **逐字节相同**（所以这 5 行是新增登记，不是覆盖旧行）；`check-verbatim-declarations` **820 candidate / 116 keep /
+    0 failure** 并把表的规模报成 **7,202 行**（与 `check-verbatim` 同源）；`check-declarations` **18 declaration sites
+    (0 forbidden, 18 allowed literals), 0 failures**（`docs/baseline/` 的 reason 列仍 **0 cell(s) naming the product**、
+    两份日志仍 **0 as our own prose**）。
+    **按判据不动、点名计数**：⑴ `doc/man/*` **正文**里提到参照产品的行（`emacs.1.in` 的 `DESCRIPTION` 段、`etags.1` 305
+    引的手册名、各页的 `COPYING` 注释）——句子说的是参照产品或那份文档（第二十七半 ⑴ 的 853 行同源）；
+    ⑵ `.SH NAME` 里的**裸名**两处（`emacsclient.1` 6、`etags.1` 9）——第十半 ⑴ 把裸名这一族留给用户裁决，本半只作读数；
+    ⑶ `etc/emacs.desktop`/`emacsclient.desktop`/`*-mail.desktop` 的 `Name=`（4 处裸名）与 `etc/emacs.service` 6 的
+    `Description=`——同 ⑵；⑷ 同族的**约定名**（`StartupWMClass=Emacs`、`Icon=emacs`、`Exec=`/`ExecStart=` 的命令名、
+    `.TH` 第一栏）——第八半的边界（与 WM/桌面/图标/路径的约定）不变。
+    **未声称**：没有任何运行证据——本机没有把改后的手册页装进 `man` 的路径树、也没有重建 `whatis`/`apropos` 数据库；
+    改的是文本，读数全部来自逐字节门与变异实测。同一批读数与上面的"不动"清单记在 `docs/status.md` 3.956。
+
 
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike

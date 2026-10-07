@@ -1,9 +1,9 @@
 .\" See section COPYING for copyright and redistribution information.
-.TH EMACS 1 "2024-07-18" "GNU Emacs @version@" "GNU"
+.TH EMACS 1 "2024-07-18" "femacs @version@" "GNU"
 .
 .
 .SH NAME
-emacs \- GNU project Emacs editor
+emacs \- femacs editor
 .
 .
 .SH SYNOPSIS
