@@ -9659,3 +9659,88 @@ func scroll_bar_move_ratio() -> Int32
 /// (`femacs/src/include/termhooks.rs` 35 and 36 give 8 and 9).
 fileprivate let SCROLL_BAR_CLICK_EVENT: UInt32 = 8
 fileprivate let HORIZONTAL_SCROLL_BAR_CLICK_EVENT: UInt32 = 9
+
+// ==========================================================================
+// Round 49: the rest of the scroll-bar hook batch (C 5575-5640) and the dead
+// `ns_redraw_scroll_bars` (C 2771-2786)
+// ==========================================================================
+
+/// C: `WINDOW_HAS_VERTICAL_SCROLL_BAR (W)` (src/window.h 894) and
+/// `WINDOW_HAS_HORIZONTAL_SCROLL_BAR (W)` (src/window.h 909) - predicate macros, declared as `Bool`
+/// the way this unit declares `FRAME_LIVE_P` (C's `||` yields an `int`, which the `if` tests).
+@_silgen_name("WINDOW_HAS_VERTICAL_SCROLL_BAR")
+func WINDOW_HAS_VERTICAL_SCROLL_BAR(_ w: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("WINDOW_HAS_HORIZONTAL_SCROLL_BAR")
+func WINDOW_HAS_HORIZONTAL_SCROLL_BAR(_ w: UnsafeMutableRawPointer?) -> Bool
+
+/// C 5575-5593: `static void ns_condemn_scroll_bars (struct frame *f)` - "External (hook): arrange
+/// for all frame's scrollbars to be removed at next call to judge_scroll_bars, except for those
+/// redeemed."  C's descending `for` is the `while` (the `initFrame:window:` reading), its
+/// `isKindOfClass: [EmacsScroller class]` is the port's own class test, and `condemn`'s
+/// `instancetype` result is discarded as C's statement discards it.
+fileprivate func ns_condemn_scroll_bars(_ f: UnsafeMutableRawPointer?) {
+  var i: Int32 = 0                                   // C 5581
+  let subviews = FRAME_NS_VIEW(f)?.superview?.subviews   // C 5582
+
+  // C 5585: `NSTRACE ("ns_condemn_scroll_bars");` - empty at `NSTRACE_ENABLED` 0.
+
+  i = Int32(subviews?.count ?? 0) - 1                // C 5587
+  while i >= 0 {                                     // C 5587 (C's descending `for`)
+    let view = subviews?[Int(i)]                     // C 5589
+    if view is EmacsScroller {                       // C 5590
+      _ = (view as? EmacsScroller)?.condemn()        // C 5591
+    }
+    i -= 1
+  }
+}
+
+/// C 5597-5618: `static void ns_redeem_scroll_bar (struct window *window)` - "External (hook):
+/// arrange to spare this window's scrollbar at next call to judge_scroll_bars."  C's `id bar` is
+/// `AnyObject?` here, C's `XNS_SCROLL_BAR` cast is the `as? EmacsScroller`, and each `[bar
+/// reprieve]` discards the `instancetype` result as C's statement does.
+fileprivate func ns_redeem_scroll_bar(_ window: UnsafeMutableRawPointer?) {
+  var bar: AnyObject? = nil                          // C 5603
+  // C 5604: `NSTRACE ("ns_redeem_scroll_bar");` - empty.
+
+  if !NILP(window_vertical_scroll_bar(window))       // C 5605
+       && WINDOW_HAS_VERTICAL_SCROLL_BAR(window) {   // C 5606
+    bar = XNS_SCROLL_BAR(window_vertical_scroll_bar(window))     // C 5608
+    _ = (bar as? EmacsScroller)?.reprieve()          // C 5609
+  }
+
+  if !NILP(window_horizontal_scroll_bar(window))     // C 5612
+       && WINDOW_HAS_HORIZONTAL_SCROLL_BAR(window) { // C 5613
+    bar = XNS_SCROLL_BAR(window_horizontal_scroll_bar(window))   // C 5615
+    _ = (bar as? EmacsScroller)?.reprieve()          // C 5616
+  }
+}
+
+/// C 5622-5640: `static void ns_judge_scroll_bars (struct frame *f)` - "External (hook): destroy all
+/// scrollbars on frame that weren't redeemed after call to condemn_scroll_bars."  C's `continue`
+/// is written as such here, which in a `while` needs the decrement both sides of it (C's `for`
+/// does that itself); `judge`'s `bool` result is discarded as C's statement discards it.
+fileprivate func ns_judge_scroll_bars(_ f: UnsafeMutableRawPointer?) {
+  var i: Int32 = 0                                   // C 5628
+  let eview = FRAME_NS_VIEW(f) as? EmacsView         // C 5630
+  let subviews = eview?.superview?.subviews          // C 5631
+
+  // C 5633: `NSTRACE ("ns_judge_scroll_bars");` - empty.
+
+  i = Int32(subviews?.count ?? 0) - 1                // C 5634
+  while i >= 0 {                                     // C 5634 (C's descending `for`)
+    let view = subviews?[Int(i)]                     // C 5636
+    if !(view is EmacsScroller) {                    // C 5637
+      i -= 1                                         // (C's `for` increment, before the `continue`)
+      continue
+    }
+    _ = (view as? EmacsScroller)?.judge()            // C 5638
+    i -= 1
+  }
+}
+
+/* C 2771-2786: `static void ns_redraw_scroll_bars (struct frame *f)` - **dead in this build**: C
+   opens `#ifdef NS_IMPL_GNUSTEP` at C 2771 and closes it at C 2786, so the whole definition is the
+   arm this target does not take.  Recorded, not transcribed (the `ns_update_window_end` and
+   `-updateMonitors:` reading); its body would walk `[[FRAME_NS_VIEW (f) superview] subviews]`
+   backwards, skipping everything that is not an `EmacsScroller`, and send each the rest `display`.
+   It sits after round 4's C 641-991 block, which is why it is recorded here.  */

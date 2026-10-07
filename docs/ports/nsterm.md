@@ -133,7 +133,7 @@
       in `aa3e13a`), the Carbon dependency is C 72-73's `#include <Carbon/Carbon.h>` - the file now
       carries `import Carbon` - `dead_key_state` is the function-scope static at C 2703, and
       `QCordinary` is this file's own `DEFSYM` (C 11793)
-- [ ] ns_redraw_scroll_bars  (line 2773, static)
+- [x] ns_redraw_scroll_bars  (line 2773, static) — **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 2771 and closes it at C 2786, so the whole definition is the arm this target does not take.  Recorded, not transcribed (the `ns_update_window_end` / `-updateMonitors:` reading), in round 49's block with its body described
 - [x] ns_clear_frame  (line 2790) — landed as **`@_cdecl("ns_clear_frame")`** (src/nsterm.h 1124, the `clear_frame_hook`); the `NS_IMPL_GNUSTEP` arm at C 2816-2818 is dead (`ns_redraw_scroll_bars` is GNUstep-only, C 2771-2786)
 - [x] ns_clear_frame_area  (line 2824, static) — landed as `fileprivate func` (C's `static void`); `NSIntersectionRect` is AppKit's own Swift-visible function while `NSRectFill` is reached by name (the `NSRectClip` reading)
 - [x] ns_scroll_run  (line 2850, static) — landed as `fileprivate func`; `w->frame` is the `window_frame` member entry, the three `run->…` reads are the new `struct run` member entries, and `[view copyRect:to:]` is the deferred entry `copyRect` (this unit's own `EmacsView` method, C 9340) - the SDK-101400 arm at C 2910-2912 is dead here
@@ -196,9 +196,9 @@
 - [x] ns_run_loop_break  (line 5376) — landed as `func ns_run_loop_break ()` (the `HAVE_PTHREAD` arm): C's two lines are the `NSApp` guard and the `ns_send_appdefined (-1)` it wraps
 - [x] ns_set_vertical_scroll_bar  (line 5396, static) — C 5396-5486, landed as `fileprivate func ns_set_vertical_scroll_bar (_:_:_:_:)`: the `EmacsScroller` it builds and drives landed in rounds 42-46, C's `XNS_SCROLL_BAR` cast is `as? EmacsScroller`, `NSEqualRects (a, b)` is `a == b`, the possibly-nil view's reads are C's nil-receiver answers (`?? .zero` for the rect), and C 5466's `make_mint_ptr (bar)` is the object's own opaque pointer
 - [x] ns_set_horizontal_scroll_bar  (line 5490, static) — C 5490-5571, landed as `fileprivate func ns_set_horizontal_scroll_bar (_:_:_:_:)`: the vertical hook's twin with the three differences C's own text shows - C 5525 takes the *x* pair out of `window_box`, C 5528-5529 read the horizontal bar's own height and y (the round's two new macro entries), and C 5548-5558's update branch sets `update_p = YES` without the vertical hook's C 5474 width copy; C 5561-5566's shared-corner clear keeps C's own `window->vertical_scroll_bar` test (the frame's read nothing else in this batch needs)
-- [ ] ns_condemn_scroll_bars  (line 5575, static)
-- [ ] ns_redeem_scroll_bar  (line 5597, static)
-- [ ] ns_judge_scroll_bars  (line 5622, static)
+- [x] ns_condemn_scroll_bars  (line 5575, static) — C 5575-5593, landed as `fileprivate func ns_condemn_scroll_bars (_:)`: C's descending `for` is the `while`, the `isKindOfClass:` test is the port's own class test, and `condemn`'s `instancetype` result is discarded as C's statement discards it
+- [x] ns_redeem_scroll_bar  (line 5597, static) — C 5597-5618, landed as `fileprivate func ns_redeem_scroll_bar (_:)`: C's `id bar` is `AnyObject?`, each `XNS_SCROLL_BAR` cast is `as? EmacsScroller`, and the two guards need this round's `WINDOW_HAS_VERTICAL_SCROLL_BAR`/`WINDOW_HAS_HORIZONTAL_SCROLL_BAR` macro entries
+- [x] ns_judge_scroll_bars  (line 5622, static) — C 5622-5640, landed as `fileprivate func ns_judge_scroll_bars (_:)`: C's `continue` is written as such, which in a `while` needs the decrement on both sides of it (C's `for` does that itself), and `judge`'s `bool` result is discarded as C's statement discards it
 - [x] ns_free_pixmap  (line 5649, static) — C 5648-5652, landed as `fileprivate func ns_free_pixmap (_:_:)`: C's whole body is the `ns_release_object` call (C 5651), and the pixmap parameter is spelled the way that export spells its own (an optional untyped pointer, C 805-811), so C's NULL arm needs no code here (round 35's Evidence)
 - [x] ns_display_pixel_height  (line 5661) — C 5660-5673, landed as `func ns_display_pixel_height (_:) -> Int32`: C's enumerator over the screen list, with `NSUnionRect` accumulating each `-frame`, is the Swift `for` loop over `NSScreen.screens`; `dpyinfo` is unused in C too
 - [x] ns_display_pixel_width  (line 5676) — C 5675-5688, landed as `func ns_display_pixel_width (_:) -> Int32`: the same union read as a width, in C's own two-call shape (round 35's Evidence)
@@ -2212,6 +2212,11 @@ call site takes an entry and the definition lands at its own C line - and **both
   entries the horizontal hook adds; the rest of its reads (`XNS_SCROLL_BAR`, `make_mint_ptr`,
   `window_box`, `WINDOW_FRAME`, `WINDOW_TOTAL_LINES`, `WINDOW_SCROLL_BAR_AREA_X`/`_WIDTH`) landed
   with round 47.
+* **round 49's names**: the two predicate macros `WINDOW_HAS_VERTICAL_SCROLL_BAR` (src/window.h 894)
+  and `WINDOW_HAS_HORIZONTAL_SCROLL_BAR` (src/window.h 909) - declared as `Bool` the way this unit
+  declares `FRAME_LIVE_P` - are what round 49 adds and the core owes.  The scroll-bar hook batch is
+  closed with this round: five hooks landed (rounds 47-49) and `ns_redraw_scroll_bars` recorded as a
+  dead arm.
 
 ## Evidence
 
@@ -3703,4 +3708,33 @@ call site takes an entry and the definition lands at its own C line - and **both
   Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
 * **What this round does not claim**: no run evidence (no horizontal bar created, resized or
   corner-cleared); the compile gate reaches parsing and type checking only; the three entries are
+  declarations the core still owes.
+
+### Round 49: the scroll-bar hook batch closes (C 5575-5640), and the batch's dead arm (C 2771-2786)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-48 carry, so **no new warning**, and the round
+  **compiled first try**.  Object `/tmp/nsterm49.o`, **860,064 bytes**, md5
+  `53c692b9cd3ec35e7ea610c27e833003`.  The unit is **9,746 lines**.
+* **Three definitions land**: `ns_condemn_scroll_bars` (C 5575-5593), `ns_redeem_scroll_bar`
+  (C 5597-5618) and `ns_judge_scroll_bars` (C 5622-5640).  Each is short, and each is a *consumer*
+  of things earlier rounds built: `condemn`/`reprieve`/`judge` are round 43's `EmacsScroller`
+  methods, `XNS_SCROLL_BAR` is round 47's entry, and the two member readers are rounds 47-48's.
+  The new names are just the two predicate macros.
+* **The dead arm, recorded**: `ns_redraw_scroll_bars` (C 2771-2786) is wholly inside
+  `#ifdef NS_IMPL_GNUSTEP`, so it is not transcribed - the round's block describes what its body
+  would do (walk the superview's subviews backwards, skip everything that is not an
+  `EmacsScroller`, send each the rest `display`) and says why it sits after round 4's block, not at
+  its C position.
+* **Two shapes C's text forces, both written out**: `ns_judge_scroll_bars`'s `continue` (in a
+  `while` it needs the decrement on both sides, which C's `for` does itself) and `ns_redeem_scroll_bar`'s
+  `id bar` (the port's `AnyObject?`, with the `XNS_SCROLL_BAR` cast at the use site).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **16** unported,
+  16 row(s); **491** C symbol import(s)` - three fewer unported than round 48's 19 (the three
+  definitions), three stale rows cleared by name, and the round's imports are 489 -> 491 (the two
+  macros).  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **The batch is closed**: all five scroll-bar hooks are landed (rounds 47-49) and the one dead
+  member of the family is recorded - which is what `ns_create_terminal` (C 5908) was waiting for.
+* **What this round does not claim**: no run evidence (nothing condemned, redeemed, judged or
+  redrawn); the compile gate reaches parsing and type checking only; the two macro entries are
   declarations the core still owes.
