@@ -398,7 +398,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (BOOL) writeSelectionToPasteboard: (NSPasteboard *)pb types: (NSArray *)types`  (line 9688)
   - [ ] `- (instancetype)setMiniwindowImage: (BOOL) setMini`  (line 9721)
   - [ ] `- (int) fullscreenState`  (line 9741)
-- [ ] EmacsWindow  (`@implementation` 9756, `@end` 10610) - round 24 landed **the class record** (the four Cocoa ivars, `src/nsterm.h` 421-424) and five methods; the four drag-and-drop ivars (nsterm.h 426-429, whose `dnd_mode` is this unit's own `ns_return_frame_mode`, the `nsselect.swift` 102-107 shape) **landed in round 62** with `mustNotDropOn:` (C 10522-10526) and `beginDrag:…` (C 10528-10608, plus the cross-unit C-ABI entry `nsselect.swift` 220-224 imports); round 62 also **records the three methods of that family Swift refuses** (`draggingSourceOperationMaskForLocal:` C 10470-10473, `draggedImage:endedAt:operation:` C 10475-10480 and `draggedImage:movedTo:` C 10482-10520); **rounds 63 and 64 add the zoom/appearance/frame-setter five** (C 10299-10442) **and the two initializers** (C 9759-9875, whose `EmacsWindow_initWithEmacsFrame` entry this unit now provides), **round 65** `setParentChildRelationships` (C 9934-10037, whose deferred entry it supplies), `restackWindow:above:` (C 10124-10155) and the `orderedIndex` dead arm (C 10071-10078, GNUstep-only); **round 66** `createToolbar:` (C 9878-9910, whose deferred entry it supplies), `dealloc` (C 9912-9926, as `deinit`) and `constrainFrameRect:toScreen:` (C 10230-10296) - so the only method this class still owes is `accessibilityAttributeValue:` (C 10158-10211); `dealloc` stays a named deferral, and the remaining methods keep this box open
+- [x] EmacsWindow  (`@implementation` 9756, `@end` 10610) - round 24 landed **the class record** (the four Cocoa ivars, `src/nsterm.h` 421-424) and five methods; the four drag-and-drop ivars (nsterm.h 426-429, whose `dnd_mode` is this unit's own `ns_return_frame_mode`, the `nsselect.swift` 102-107 shape) **landed in round 62** with `mustNotDropOn:` (C 10522-10526) and `beginDrag:…` (C 10528-10608, plus the cross-unit C-ABI entry `nsselect.swift` 220-224 imports); round 62 also **records the three methods of that family Swift refuses** (`draggingSourceOperationMaskForLocal:` C 10470-10473, `draggedImage:endedAt:operation:` C 10475-10480 and `draggedImage:movedTo:` C 10482-10520); **rounds 63 and 64 add the zoom/appearance/frame-setter five** (C 10299-10442) **and the two initializers** (C 9759-9875, whose `EmacsWindow_initWithEmacsFrame` entry this unit now provides), **round 65** `setParentChildRelationships` (C 9934-10037, whose deferred entry it supplies), `restackWindow:above:` (C 10124-10155) and the `orderedIndex` dead arm (C 10071-10078, GNUstep-only); **round 66** `createToolbar:` (C 9878-9910, whose deferred entry it supplies), `dealloc` (C 9912-9926, as `deinit`) and `constrainFrameRect:toScreen:` (C 10230-10296); **round 67** closes it: `accessibilityAttributeValue:` (C 10158-10211) lands, so **the class's whole checklist is either landed or recorded** (the three Swift-refused drag methods above, and the `toggleFullScreen:`/`handleFS`/`windowWillUseStandardFrame:defaultFrame:` calls that belong to other classes' batches).  The class box is closed on that reading - every box under it is ticked, and each one says what it is
   - [x] `- (instancetype) initWithEmacsFrame: (struct frame *) f`  (line 9759) — landed as `convenience init(frame:)` (round 64): C's body is the forward to the designated initializer below and nothing else.  **The provider the deferred entry waited for** (`@_cdecl("EmacsWindow_initWithEmacsFrame")`, round 64) is what C 1983's call site - line 2317 of this unit - and C 8615/8624/9076 reach; the definition takes another Swift name because the import keeps its own (the `ns_set_offset`/`setAppearance` pair's shape)
   - [x] `- (instancetype) initWithEmacsFrame: (struct frame *) f fullscreen: (BOOL) fullscreen screen: (NSScreen *) screen`  (line 9765) — landed as `convenience init(frame:fullscreen:screen:)` (round 64): the five-arm style mask, the two size macros, the delegate/subview/responder trio, the title pair (C 9825's `setMiniwindowTitle:` has no Swift member - measured - so it is sent dynamically), `setAppearance`, the transparent-titlebar/parent-child/z-group block, the `IN_BOUND`-clamped top-left point, the border width, the background colour, the deferred `createToolbar:` call and the tabbing-mode guard.  **It is a `convenience` initializer because C's super call is the `screen:` variant**, which Swift imports as `NSWindow`'s convenience (only the four-argument one is `NS_DESIGNATED_INITIALIZER`, NSWindow.h 293-294; measured: a designated initializer cannot call it), and a subclass inherits that convenience because this class overrides the designated one; C 9791's `last_drag_event = nil` is the one statement that moves below `self.init` for that reason
   - [x] `- (void)createToolbar: (struct frame *)f`  (line 9878) — landed as `func createToolbar (_:)` (round 66) **plus the C-ABI provider `@_cdecl("createToolbar")` that round 64's initializer reaches through the deferred entry**: the guard C 9888 opens (`>= 101400`) is this target's, so the `EmacsLayer` test is transcribed, `[self toolbar]` is `NSWindow`'s own property, `EmacsToolbar`'s `initForView:withIdentifier:` is another unit's class method (`nsmenu.swift`) reached through the new cross-file entry (the `EmacsMenu_initWithTitle` shape), C 9897's `%p` is spelled through the pointer's bit pattern (measured: `String (format: "%p", UInt (bitPattern: p))` prints what C's `printf` prints), and C 9907's `@selector (toggleToolbar:)` is the selector itself (`EmacsView`'s method, C 9275, still owed)
@@ -410,7 +410,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (NSInteger) orderedIndex`  (line 10074) — **dead on this target, recorded**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 10071 and closes it at C 10078, and the ledger's own neighbour says why - the comment above C 10074 is "orderedIndex isn't yet available in GNUstep, but it seems pretty easy to implement."  On Cocoa the selector is AppKit's, which is why `nswindow_orderedIndex_sort` (C 10084-10096, landed) sends it as a *message* and why the port declares no member for it
   - [x] `- (void)orderBack:(id)sender`  (line 10098) — landed as `@objc override func orderBack (_:)`: C sorts the parent's children with the comparator above (`sorted` over `childWindows`), re-adds the receiver above them, then walks the sorted list; C's `NSArray` is the optional array with its own empty default
   - [x] `- (BOOL)restackWindow:(NSWindow *)win above:(BOOL)above`  (line 10124) — landed as `func restackWindow (_:above:) -> Bool` (round 65): C's comparator call is this unit's own `nswindow_orderedIndex_sort`, C 10133's `orderWindow:relativeTo:` is the SDK's rename `order (_:relativeTo:)` (measured), the sorted children are copied into an `NSMutableArray` so C's `removeObject:`/`indexOfObject:`/`insertObject:atIndex:` keep their meanings, and the re-add loop is C's own
-  - [ ] `- (id)accessibilityAttributeValue:(NSString *)attribute`  (line 10158)
+  - [x] `- (id)accessibilityAttributeValue:(NSString *)attribute`  (line 10158) — landed as `override func accessibilityAttributeValue (_: NSAccessibility.Attribute) -> Any?` (round 67): the SDK's Swift shape takes the typed attribute (measured: the `String`-parameter spelling is not an override at all), the three comparisons are `NSAccessibility.Attribute.role`/`.selectedText`/`.value` and C 10167's answer is `NSAccessibility.Role.window.rawValue`, and **overriding it is a deprecation warning** (macOS 10.10, "Use the NSAccessibility protocol methods instead") - the round's one new warning, recorded below and in the status log.  The body's chains are this unit's own readers (`frame_selected_window`, `window_contents`, `XBUFFER`, the two `buffer_…` field readers) plus the four `BUF_*` position accessors, `BYTE_POS_ADDR`/`SDATA`/`make_uninit_*` and `nsselect.swift`'s `ns_get_local_selection`; C 10210's fallback is the `super` call
   - [x] `- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen *)screen`  (line 10230) — landed as `override func constrainFrameRect (_:to:)` (round 66; the SDK's own rename, measured - the `toScreen:` spelling is refused with "has been renamed to", and the same name is used for C 10253/10287's two `super` calls): C 10243's `>= 1090` arm is live while C 10247-10249's `< 1090` `respondsToSelector:` wrapper is dead on this target and recorded, so `NSScreen.screensHaveSeparateSpaces` is read directly, the screen walk keeps C's loop, and C 10295's `isFullscreen` goes through the deferred entry round 65 provided
   - [x] `- (void)performZoom:(id)sender`  (line 10299) — landed as `override func performZoom (_:)` (round 63): C's body is the `super` call and nothing else (C 10301's `NSTRACE` is the empty macro)
   - [x] `- (void)zoom:(id)sender`  (line 10306) — landed as `override func zoom (_:)` (round 63; `zoom:` is `NSWindow`'s own method, NSWindow.h 397): C carries three implementations and compiles one — the `#if 0` arm (C 10315-10320) and the `#elif 0` arm (C 10321-10374) are **recorded as the dead arms they are** (C 10312-10313's own comment says the last is the one meant: "In the final commit, the idea is that the last should be included.") — so C 10376-10395 is transcribed: `ns_screen_margins_ignoring_hidden_dock`'s four adjustments, the `windowWillUseStandardFrame:defaultFrame:` message to the delegate force-called (the optional `NSWindowDelegate` requirement, NSWindow.h 833; C assumes an `EmacsView` answers it, C 8670), and `[self setFrame:display:NO]`
@@ -2226,6 +2226,13 @@ call site takes an entry and the definition lands at its own C line - and **both
   entry - `macfont.swift` 1321-1327 says as much ("the port of src/nsterm.m owns the definition")
   and the import gate read the mistake as "imported by `nsterm.swift` and provided by nothing".
   Round 64 turns it into the `@_cdecl` provider and calls the Swift class method at C 10550.
+* **round 67's ninth warning, named**: overriding `accessibilityAttributeValue` is deprecated in
+  macOS 10.10 ("Use the NSAccessibility protocol methods instead (see NSAccessibilityProtocols.h)"),
+  so this round's compile carries **nine** warnings instead of eight - the one it adds is the
+  method's own deprecation, and it is named here, in the round's `## Evidence` entry, in
+  `docs/status.md` 4.006 and in the commit message, which is what this lane's rule asks for when a
+  warning cannot be avoided (the eight others are the lockFocus/unlockFocus, `scanFloat` and
+  `context` deprecations rounds 22-66 already carry).
 * **round 66's correction of an earlier reading**: the `dealloc` box used to say the method was
   "deferred by name" because "Swift forbids overriding `dealloc`".  That is true of the *name* and
   false of the *method*: `EmacsScroller -dealloc` (C 10719) landed as `deinit` in round 43, and this
@@ -2288,6 +2295,14 @@ call site takes an entry and the definition lands at its own C line - and **both
   `adjust_frame_size` and `Qfont` (the last already the core's, `src/textprop.c` 2439) - are what that
   round adds and the core owes.  The rule it settles: **reads keep the accessor macro's name, writes go
   through the setter of the family the record belongs to** (`ns_output_set_*` vs `frame_set_*`).
+* **round 67's names**: the buffer/window readers C 10162-10183 needs - `XBUFFER`,
+  `window_contents` (C 10162's `XWINDOW (…)->contents`), the two per-field `BVAR` readers
+  `buffer_mark_active` and `buffer_enable_multibyte_characters`, the four INLINE position accessors
+  `BUF_BEGV`/`BUF_BEGV_BYTE`/`BUF_ZV`/`BUF_ZV_BYTE`, `BYTE_POS_ADDR` and `SDATA` - plus
+  `make_uninit_multibyte_string` and `make_uninit_string` (C 10186/10188) and the two `Q*` symbols
+  C 10172 passes (`QPRIMARY`, `QUTF8_STRING`); all are entries the core owes (the `QUTF8_STRING` one
+  is this file's own `DEFSYM` at C 11564).  `ns_get_local_selection` is **not** owed: `nsselect.swift`
+  441 already defines it.
 * **round 66's names**: the `struct frame` macro `FRAME_EXTERNAL_TOOL_BAR` (C 9882) and the core
   function `update_frame_tool_bar_1` (C 9900, declared src/nsterm.h 1177) are entries this round
   adds and the core owes; `EmacsToolbar_initForView` is the cross-file class-method entry for
@@ -4487,3 +4502,38 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: **no run evidence** - no toolbar was created, no window torn
   down, no frame constrained; the compile gate reaches parsing and type checking only, and
   `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.
+
+### Round 67: `accessibilityAttributeValue:` (C 10158-10211) - and `EmacsWindow` closes
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the eight rounds 22-66 carry, **plus one new one**, which is this method's own
+  deprecation: `'accessibilityAttributeValue' was deprecated in macOS 10.10: Use the NSAccessibility
+  protocol methods instead (see NSAccessibilityProtocols.h)` at the override.  It cannot be avoided
+  (the warning is on the override itself) and it is named here and in `docs/status.md` 4.006, which
+  is what this lane's rule asks.  Object `/tmp/nsterm67.o`, **1,164,088 bytes**, md5
+  `7a1c91ac301f181c01b10f8b9ca0360e`.  The unit is **12,354 lines**.
+* **The class closes**: with this method landed, every box under `EmacsWindow` is either landed or
+  recorded - the section's 25 boxes are all ticked, and the class box is closed on that reading.
+  What stays recorded rather than transcribed is what Swift refuses (`draggingSourceOperationMaskForLocal:`,
+  `draggedImage:endedAt:operation:`, `draggedImage:movedTo:`, C 10470-10520) and the `orderedIndex`
+  GNUstep arm (C 10071-10078); what stays *deferred* is other classes' methods that this unit calls
+  by entry (`toggleFullScreen:`, `handleFS`, `windowWillUseStandardFrame:defaultFrame:`, `EmacsToolbar`'s
+  initializer).
+* **The SDK's own shape of the method** (measured): the `String`-parameter spelling is not an
+  override at all, and the Swift signature is
+  `accessibilityAttributeValue (_ attribute: NSAccessibility.Attribute) -> Any?`; C 10166/10169/10174's
+  three comparisons are `NSAccessibility.Attribute.role`/`.selectedText`/`.value`, C 10167's answer is
+  `NSAccessibility.Role.window.rawValue`, and C 10210's fallback is the `super` call.
+* **Fifteen entries this round adds** (all named in `## ABI` (3)): `XBUFFER`, `window_contents`,
+  `buffer_mark_active`, `buffer_enable_multibyte_characters`, `BUF_BEGV`, `BUF_BEGV_BYTE`, `BUF_ZV`,
+  `BUF_ZV_BYTE`, `BYTE_POS_ADDR`, `SDATA`, `make_uninit_multibyte_string`, `make_uninit_string`,
+  `ns_get_local_selection` (defined by `nsselect.swift` 441, so only declared here), `QPRIMARY` and
+  `QUTF8_STRING`.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **6** unported,
+  6 row(s); **647** C symbol import(s)` - fifteen more than round 66's 632, all of them this method's
+  readers; no stale row.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: **no run evidence** - no accessibility query was answered, no
+  buffer text was copied out; the compile gate reaches parsing and type checking only, and
+  `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  With the class
+  closed, what `src/nsterm.m` still owes is `EmacsView`'s and `EmacsApp`'s method batches, the three
+  macro boxes and the `EmacsDocument` dead arm.

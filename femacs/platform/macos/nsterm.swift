@@ -7998,6 +7998,67 @@ class EmacsWindow: NSWindow {
 
     return constrain_frame_rect(frameRect, isFullscreen_entry(delegate as? NSView))   // C 10294-10295
   }
+
+  /// C 10157-10212: `- (id)accessibilityAttributeValue:(NSString *)attribute` - the
+  /// `NS_IMPL_COCOA` arm C 10157 opens and C 10212 closes.  The SDK's own Swift shape of the
+  /// method is `accessibilityAttributeValue (_ attribute: NSAccessibility.Attribute) -> Any?`
+  /// (measured: the `String`-parameter spelling is not an override at all, and the attribute/role
+  /// comparisons are the typed constants `NSAccessibility.Attribute.role`/`.selectedText`/`.value`
+  /// and `NSAccessibility.Role.window`), and overriding it **is** a deprecation warning in macOS
+  /// 10.10 ("Use the NSAccessibility protocol methods instead") - the round's one new warning,
+  /// named in the ledger and the status log.  The body's other readings: `f->selected_window` is
+  /// this unit's `frame_selected_window`, `XWINDOW (…)->contents` is the `window_contents` reader,
+  /// `XBUFFER`/`BVAR` are the lane's `XBUFFER` entry and per-field `buffer_…` readers, and
+  /// `ns_get_local_selection` is `nsselect.swift`'s own (C 204 there).
+  override func accessibilityAttributeValue(_ attribute: NSAccessibility.Attribute) -> Any? {
+    var str: Lisp_Object = Qnil()                      // C 10160
+    let f = SELECTED_FRAME()                           // C 10161
+    let curbuf = XBUFFER(window_contents(XWINDOW(frame_selected_window(f))))   // C 10162
+
+    // C 10164: `NSTRACE ("[EmacsWindow accessibilityAttributeValue:]");` - empty.
+
+    if attribute == .role {                            // C 10166
+      return NSAccessibility.Role.window.rawValue      // C 10167
+    }
+
+    if attribute == .selectedText && curbuf != nil
+         && !NILP(buffer_mark_active(curbuf)) {        // C 10169-10170
+      str = ns_get_local_selection(QPRIMARY(), QUTF8_STRING())   // C 10172
+    } else if curbuf != nil && attribute == .value {    // C 10174
+      if !NILP(buffer_mark_active(curbuf)) {            // C 10176
+        str = ns_get_local_selection(QPRIMARY(), QUTF8_STRING())   // C 10177
+      }
+
+      if NILP(str) {                                    // C 10179
+        let start_byte = BUF_BEGV_BYTE(curbuf)           // C 10181
+        let byte_range = BUF_ZV_BYTE(curbuf) - start_byte   // C 10182
+        let range = BUF_ZV(curbuf) - BUF_BEGV(curbuf)    // C 10183
+
+        if !NILP(buffer_enable_multibyte_characters(curbuf)) {   // C 10185
+          str = make_uninit_multibyte_string(range, byte_range)   // C 10186
+        } else {
+          str = make_uninit_string(range)                // C 10188
+        }
+        /* To check: This returns emacs-utf-8, which is a superset of utf-8.
+           Is this a problem?  */
+        _ = memcpy(SDATA(str), BYTE_POS_ADDR(start_byte), byte_range)   // C 10191
+      }
+    }
+
+    if !NILP(str) {                                     // C 10196
+      if CONSP(str) && SYMBOLP(XCAR(str)) {             // C 10198
+        str = XCDR(str)                                 // C 10200
+        if CONSP(str) && NILP(XCDR(str)) {              // C 10201
+          str = XCAR(str)                               // C 10202
+        }
+      }
+      if STRINGP(str) {                                 // C 10204
+        return stringWithLispString(str)                // C 10206
+      }
+    }
+
+    return super.accessibilityAttributeValue(attribute)  // C 10210
+  }
 }
 
 // ==========================================================================
@@ -12244,3 +12305,50 @@ func EmacsToolbar_initForView(_ view: NSView?, _ identifier: NSString?) -> AnyOb
 func createToolbar_definition(_ window: NSWindow?, _ f: UnsafeMutableRawPointer?) {
   (window as? EmacsWindow)?.createToolbar(f)
 }
+
+// ==========================================================================
+// Round 67: the entries `accessibilityAttributeValue:` needs, and the class's last box
+// ==========================================================================
+
+/// C: `struct buffer *XBUFFER (Lisp_Object)` (src/buffer.h) - the lane's reading is
+/// `nsfns.swift` 203's, and C 10162's chain needs it around the `window_contents` reader below.
+@_silgen_name("XBUFFER") func XBUFFER(_ a: Lisp_Object) -> UnsafeMutableRawPointer?
+/// C: `struct window`'s `contents` member, read through `XWINDOW (…)` at C 10162 - a member reader
+/// of the `window_frame` family this unit already carries.
+@_silgen_name("window_contents")
+func window_contents(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `BVAR (buf, mark_active)` and `BVAR (buf, enable_multibyte_characters)` (src/buffer.h 308's
+/// `BVAR`, whose mirror is `femacs/src/include/buffer.rs` 407) - the per-field reader shape
+/// `nsfns.swift`'s `buffer_filename` uses, one entry per field C reads.
+@_silgen_name("buffer_mark_active")
+func buffer_mark_active(_ buf: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("buffer_enable_multibyte_characters")
+func buffer_enable_multibyte_characters(_ buf: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: the four INLINE position accessors of src/buffer.h - `BUF_BEGV` (917), `BUF_BEGV_BYTE` (925),
+/// `BUF_ZV` (951) and `BUF_ZV_BYTE` (959) - each taking the buffer C 10181-10183 passes and
+/// returning the `ptrdiff_t` its own text computes.
+@_silgen_name("BUF_BEGV") func BUF_BEGV(_ buf: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("BUF_BEGV_BYTE") func BUF_BEGV_BYTE(_ buf: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("BUF_ZV") func BUF_ZV(_ buf: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("BUF_ZV_BYTE") func BUF_ZV_BYTE(_ buf: UnsafeMutableRawPointer?) -> Int
+/// C: `INLINE unsigned char *BYTE_POS_ADDR (ptrdiff_t n)` (src/buffer.h 1078) - the accessor C
+/// 10191's `memcpy` reads through, over the buffer it names implicitly (`current_buffer`).
+@_silgen_name("BYTE_POS_ADDR")
+func BYTE_POS_ADDR(_ n: Int) -> UnsafeMutablePointer<UInt8>
+/// C: `char *SDATA (Lisp_Object)` (src/lisp.h) - the string's bytes, the `macfont.swift` 806 shape.
+@_silgen_name("SDATA") func SDATA(_ string: Lisp_Object) -> UnsafeMutablePointer<CChar>
+/// C: `Lisp_Object make_uninit_multibyte_string (ptrdiff_t, ptrdiff_t)` and
+/// `Lisp_Object make_uninit_string (ptrdiff_t)` (src/alloc.c; the latter is `macfont.swift` 584's
+/// entry) - C 10186/10188's two constructors.
+@_silgen_name("make_uninit_multibyte_string")
+func make_uninit_multibyte_string(_ nchars: Int, _ nbytes: Int) -> Lisp_Object
+@_silgen_name("make_uninit_string") func make_uninit_string(_ len: Int) -> Lisp_Object
+/// C: `Lisp_Object ns_get_local_selection (Lisp_Object selection_name, Lisp_Object target_type)`
+/// (defined src/nsselect.m 204, declared src/nsterm.h) - C 10172/10177's call, whose C-ABI
+/// definition `nsselect.swift` 441 already provides.
+@_silgen_name("ns_get_local_selection")
+func ns_get_local_selection(_ selection_name: Lisp_Object, _ target_type: Lisp_Object) -> Lisp_Object
+/// C: `QPRIMARY` and `QUTF8_STRING` - the selection name and target type C 10172 passes (`QUTF8_STRING`
+/// is `DEFSYM`'d by this file itself at C 11564, the C 555 `QCmouse` shape).
+@_silgen_name("QPRIMARY") func QPRIMARY() -> Lisp_Object
+@_silgen_name("QUTF8_STRING") func QUTF8_STRING() -> Lisp_Object
