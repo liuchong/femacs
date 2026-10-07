@@ -40,7 +40,11 @@ REF = REPO / "emacs"
 TREES = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/nt",
          "femacs/lwlib", "femacs/oldXMenu", "femacs/exec", "femacs/msdos")
 
-FIRST_LINE = re.compile(r"^// femacs: (?:port|mirror) of (\S+) @ (\S+)\.\s*$")
+# The declaration is a *prefix* of the file's first line, not the whole of it (the twenty-third
+# half, status 3.886): `// femacs: port of lib/c-strcasecmp.c @ fd7afced403.  The file is` names
+# the reference and carries on - the strict `\s*$` form this regex used to require left those
+# files out of every gate's reading while their first line did name a reference.
+FIRST_LINE = re.compile(r"^// femacs: (?:port|mirror) of (\S+) @ (\S+)\.")
 INCLUDE = re.compile(r'include!\s*\(\s*"([^"]+)"\s*\)')
 BARE_NAME = re.compile(r"(?<!GNU )\bEmacs\b")
 WHITESPACE = re.compile(r"\s+")
@@ -224,8 +228,6 @@ def scan_file(path: Path, references: References) -> list[tuple[int, str]]:
     lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
     refs = reference_set(path)
     findings: list[tuple[int, str]] = []
-    if not refs:
-        return findings
     for block in comment_blocks(lines):
         state: dict[str, str] = {}
         for number, start, _end, text in block:
@@ -259,13 +261,14 @@ def main(argv: list[str]) -> int:
     walked = files()
     no_reference: list[str] = []
     for path in walked:
-        # A file's own comments can only be compared with the reference its own first line
-        # names.  A file that declares none - a generated mirror, or a unit whose first line is
-        # C's own comment rather than the licence block the rule replaced - has nothing to
-        # compare against, so it is counted rather than read silently.
+        # A file that declares no reference - a generated mirror, or a unit whose first line is
+        # C's own comment rather than the licence block the rule replaced - has no reference
+        # bytes to compare against, and that is the reading, not an exemption: nothing in such a
+        # file can be *C's copied comment*, so every bare name in it is written here.  The
+        # twenty-third half (status 3.886) reads them instead of skipping them and prints the
+        # count, which is the class the nineteenth half left unmeasured.
         if reference_of(path) is None:
             no_reference.append(str(path.relative_to(REPO)))
-            continue
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
         refs = reference_set(path)
         hits = scan_file(path, references)
@@ -288,8 +291,9 @@ def main(argv: list[str]) -> int:
             failures += 1
     print(f"read {read} bare-name occurrence(s) in ported comment(s): {read - quoted - own} "
           f"copied from the reference, {quoted} inside a citation, {own} this repository's own "
-          f"voice; {len(walked)} file(s) walked, {len(no_reference)} left out - "
-          f"no reference declaration on the file's own first line")
+          f"voice; {len(walked)} file(s) walked, {len(no_reference)} with no reference "
+          f"declaration on the file's own first line (read against an empty reference set, so "
+          f"their comment prose is this repository's)")
     print(f"{failures} failure(s)")
     return 1 if failures else 0
 
@@ -332,6 +336,39 @@ def selftest() -> int:
     check("this repository's own voice", "// the two Emacs headers this slice names", 1)
     check("our own voice even next to a citation",
           "// `x` is ours but the Emacs names below are not", 1)
+
+    def check_pair(label: str, header: str, body: str, expected: int) -> None:
+        nonlocal cases, failed
+        cases += 1
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "emacs/src").mkdir(parents=True)
+            (root / "femacs/src").mkdir(parents=True)
+            (root / "emacs/src/demo.c").write_text(
+                "/* Demo does a thing.\n   Demo may also do another thing.  */\n", encoding="utf-8")
+            target = root / "femacs/src/demo.rs"
+            target.write_text(f"{header}\n{body}\n", encoding="utf-8")
+            global REPO, REF
+            saved = (REPO, REF)
+            REPO, REF = root, root / "emacs"
+            try:
+                found = len(scan_file(target, References()))
+            finally:
+                REPO, REF = saved
+            if found != expected:
+                failed += 1
+                print(f"FAIL selftest {label}: {found} finding(s), expected {expected}")
+            else:
+                print(f"ok   selftest {label}")
+
+    # The twenty-third half's two cases: the declaration is a prefix of the first line, and a
+    # file that declares none is read (its comment prose is ours, so nothing in it is C's).
+    check_pair("a first line that names a reference and carries on",
+               "// femacs: port of src/demo.c @ deadbeef.  The file is a demo.",
+               "/* Demo does a thing.  */", 0)
+    check_pair("no reference declared: C's comment is not C's here",
+               "/* Demo does a thing.  */",
+               "// the Emacs program's own note", 1)
 
     print(f"{cases} case(s), {failed} failure(s)")
     return 1 if failed else 0

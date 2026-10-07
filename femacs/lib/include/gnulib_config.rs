@@ -2,7 +2,7 @@
 //
 // These are not in any reference header: the reference gets them from the configure-
 // generated config header (gnulib's `lib/config.h`, emitted from m4/gnulib-common.m4's
-// AH_VERBATIM blocks; Emacs reaches it through src/config.h).  The port's
+// AH_VERBATIM blocks; the reference reaches it through src/config.h).  The port's
 // `src/include/config.rs` is generated from the curated value list in
 // docs/baseline/config/*.json and holds value constants only, so the *macro-shaped* ones
 // live here together with the reason each is needed.

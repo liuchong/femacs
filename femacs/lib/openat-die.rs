@@ -1,3 +1,4 @@
+// femacs: port of lib/openat-die.c @ fd7afced403.
 /* Respond to a save- or restore-cwd failure.
    This should never happen with Emacs.  */
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
