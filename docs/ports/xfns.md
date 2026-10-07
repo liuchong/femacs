@@ -1,6 +1,6 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-C 5760-5889, C 5891-5991, C 5993-6123 and C 6125-6215
+C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215 and C 6217-6297
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -14,11 +14,11 @@ C 5760-5889, C 5891-5991, C 5993-6123 and C 6125-6215
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
 > the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth,
-> **8,538 lines** after the fourteenth and **8,650 lines** after the fifteenth - C 803-2149,
-> C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
-> C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123 and C 6125-6215, whose own
-> ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
-> `#if` carried.
+> **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth and **8,768 lines**
+> after the sixteenth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428,
+> C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991,
+> C 5993-6123, C 6125-6215 and C 6217-6297, whose own ledger sections are at the end of this
+> file - measured with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -181,7 +181,8 @@ defines both features.
 | 5891-5991 | the next three subrs: `x-display-backing-store` (C 5891), `x-display-visual-class` (C 5930) and `x-display-save-under` (C 5975) | `have_x_windows` (slice 13; the two `switch` bodies' `break`/`case`/`default`/`switch` tokens are answered in `docs/ports/macro-body-notes.tsv`) |
 | 5993-6123 | C 5993's `#if !(defined USE_GTK && defined HAVE_GTK3)`, `x_get_net_workarea` (C 5995-5997 its comment, C 5999-6000 the `static bool`, C 6002-6055 the `#ifndef USE_XCB` arm, C 6056-6120 the `#else` arm) and C 6123's `#endif` | `all (have_x_windows, not (all (use_gtk, have_gtk3)))`, with `not (use_xcb)` / `use_xcb` for the two arms (slice 14) |
 | 6125-6215 | C 6125's `#ifndef USE_GTK`, `x_get_monitor_for_frame` (C 6127 its comment, C 6128-6131 the `static int`) and `x_make_monitor_attribute_list` (C 6190-6195 the `static Lisp_Object`) | `all (have_x_windows, not (use_gtk), have_window_system)` - C's own `#ifndef USE_GTK` narrowed by frame.h 1926's `#ifdef HAVE_WINDOW_SYSTEM`, which is where `struct MonitorInfo` lives (slice 15) |
-| 6217-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,445 lines, whose first live definition is `x_get_monitor_attributes_fallback` (C 6217-6218, a `static Lisp_Object` under C 6125's `#ifndef USE_GTK`) - the next slice's first item | not ported in this slice |
+| 6217-6297 | `x_get_monitor_attributes_fallback` (C 6217-6238) and C 6241's `#ifdef HAVE_XINERAMA`, `x_get_monitor_attributes_xinerama` (C 6242-6296) and C 6297's `#endif` | the slice 15 pair, with `have_xinerama` for the second (the record and entry point stand at the use site; slice 16) |
+| 6299-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,363 lines, whose first live definition is `x_get_monitor_attributes_xrandr` (C 6301-6302, a `static Lisp_Object` under C 6300's `#ifdef HAVE_XRANDR`) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1936,3 +1937,63 @@ drift reads `C 10662 vs Rust 8650` (**18.9%**, was 19.9%).  `check-mirror-dupes.
 
 The frozen configuration compiles none of this file: no frame was walked, no monitor was compared
 and no attribute list was built; the five arms' counts are text compile readings.
+
+
+## Slice 16 (2026-10-08, status 3.919 - the integrator sets the round number): C 6217-6297
+
+**The slice is C 6217-6297**: `x_get_monitor_attributes_fallback` (C 6217-6238 - the single
+synthesised monitor, the `xstrdup`'d name and the workarea/geom choice) and
+`x_get_monitor_attributes_xinerama` (C 6242-6296 - `XineramaQueryScreens`, the two per-pixel
+scales, the `xcalloc`'d array, the per-monitor loop and `free_monitors`), inside C 6241's
+`#ifdef HAVE_XINERAMA`.  Both sit under C 6125's `#ifndef USE_GTK` and name `struct MonitorInfo`,
+so the slice 15 guard pair is theirs too, with C 6241's own gate added for the second.  The port's
+slice is **118 Rust lines** (8,768 - 8,650, `grep -c ''`) against C's 81; md5
+`bc5b60c371ecdb5ad0c46b241ccb3d95` (the slice 15 tree) -> `862bdbed15cf2467a644f212b5183005`.
+
+**What it reads.**  One new group: `X11/extensions/Xinerama.h`'s record and entry point
+(`XineramaScreenInfo` - `int` + `short` + `short` + `unsigned short` + `unsigned short`, 12 bytes
+with align 4 - and `XineramaQueryScreens`), declared at the use site under the same guard as the
+function that calls them; every other name is already there (`xstrdup` at `include/lisp.rs` 4220,
+`xcalloc` at 4042, `free_monitors` at `include/frame.rs` 1956, the two `MMOfScreen` macros from
+slice 12 and `x_make_monitor_attribute_list` from slice 15).  `x_get_monitor_attributes_xinerama`
+needs a *second* new arm to be measured at all: the slice 15 pair alone does not carry
+`have_xinerama`, so the table gains **WSX** = the pair + `have_xinerama`.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0), both sides.
+
+**② The six arms.**  plain-X **14 / 9**, WS **14 / 9**, WSX **14 / 9** (first reading), XCB
+**14 / 9**, GTK **34 / 20** and Xt **15 / 12**, before and after - the first measurement was clean
+in every arm, so this slice adds no warning and no diagnostic anywhere.
+
+**③ `extract-abi.py --check`**: **132 rows -> 130** - exactly the two `missing function` rows
+(`x_get_monitor_attributes_fallback`, `x_get_monitor_attributes_xinerama`) retiring, with nothing
+added - and the drift reads `C 10662 vs Rust 8768` (**17.8%**, was 18.9%).
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures**.
+
+### Deviations (this slice)
+
+1. **C 6226's chained assignment** is the port's two statements, and the two `XRectangle`/`MonitorInfo`
+   locals are zero-initialised (C declares them without an initialiser).
+2. **C's mixed-width writes** (`monitor.geom.width = x_display_pixel_width (…)`, an `int` into
+   `unsigned short`) and **C's double-to-int truncation** (`… * mm_width_per_pixel + 0.5` into
+   `int mm_width`) are written out with `as c_ushort` / `as c_int`.
+3. **The Xinerama loop** is the slice 15 `while` with `i += 1` at the body's end, and
+   `gui_intersect_rectangles (&mi->geom, &mi->work, &mi->work)` keeps C's aliasing (a `*const` and
+   a `*mut` of the same member).
+
+### Owed (this slice)
+
+- `include/xlib.rs`-style rows for the Xinerama record and entry point, and `syms_of_xfns`
+  (unchanged: no subr lands here).
+- The rest of the remainder: the 24 missing functions, 1 macro, 4 objects, 33 subrs and 45
+  defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no monitor was queried, no rectangle was
+intersected and no attribute list was built; the six arms' counts are text compile readings.

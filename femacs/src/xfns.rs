@@ -8648,3 +8648,121 @@ unsafe fn x_make_monitor_attribute_list (monitors: *mut MonitorInfo, n_monitors:
   return make_monitor_attribute_list (monitors, n_monitors, primary_monitor,   // C 6213-6214
 				      monitor_frames, source);
 }
+
+/* C 6217-6297: `x_get_monitor_attributes_fallback` (C 6217-6238) and C 6241-6297's
+   `#ifdef HAVE_XINERAMA` with `x_get_monitor_attributes_xinerama` (C 6242-6296).  Both sit under
+   C 6125's `#ifndef USE_GTK` and name `struct MonitorInfo` (frame.h 1926's
+   `HAVE_WINDOW_SYSTEM`), so their guard is the slice 15 pair; the Xinerama one adds C 6241's own
+   gate.  */
+/* X11/extensions/Xinerama.h's record and entry point - the header is the toolchain's, so no
+   mirror carries them and the rows are owed (`docs/ports/xfns.md`).  Layout measured from the
+   header's own text: `int screen_number; short x_org, y_org; unsigned short width, height;` =
+   12 bytes with align 4.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xinerama"))]
+#[repr (C)]
+pub struct XineramaScreenInfo
+{
+  pub screen_number: c_int,
+  pub x_org: c_short,
+  pub y_org: c_short,
+  pub width: c_ushort,
+  pub height: c_ushort,
+}
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xinerama"))]
+unsafe extern "C" {
+  /// C: `<X11/extensions/Xinerama.h>`: `extern XineramaScreenInfo *XineramaQueryScreens
+  /// (Display *, int *);`
+  pub fn XineramaQueryScreens (dpy: *mut Display, number: *mut c_int) -> *mut XineramaScreenInfo;
+}
+
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system"))]
+unsafe fn x_get_monitor_attributes_fallback (dpyinfo: *mut x_display_info) -> Lisp_Object
+{
+  let mut monitor: MonitorInfo = std::mem::zeroed ();                      // C 6220
+  let mut workarea_r: XRectangle = std::mem::zeroed ();                    // C 6221
+
+  /* Fallback: treat (possibly) multiple physical monitors as if they
+     formed a single monitor as a whole.  This should provide a
+     consistent result at least on single monitor environments.  */
+  monitor.geom.x = 0;                                                      // C 6226 (C's chain splits)
+  monitor.geom.y = 0;
+  monitor.geom.width = x_display_pixel_width (dpyinfo) as c_ushort;        // C 6227
+  monitor.geom.height = x_display_pixel_height (dpyinfo) as c_ushort;      // C 6228
+  monitor.mm_width = WidthMMOfScreen! ((*dpyinfo).screen);                 // C 6229
+  monitor.mm_height = HeightMMOfScreen! ((*dpyinfo).screen);               // C 6230
+  monitor.name = xstrdup (c"combined screen".as_ptr ());                   // C 6231
+
+  if x_get_net_workarea (dpyinfo, &raw mut workarea_r)                     // C 6233
+    { monitor.work = workarea_r; }                                         // C 6234
+  else
+    { monitor.work = monitor.geom; }                                       // C 6236
+  return x_make_monitor_attribute_list (&raw mut monitor, 1, 0, dpyinfo,    // C 6237
+					c"fallback".as_ptr ());
+}
+
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xinerama"))]
+unsafe fn x_get_monitor_attributes_xinerama (dpyinfo: *mut x_display_info) -> Lisp_Object
+{
+  let mut n_monitors: c_int = 0;                                           // C 6245
+  let mut i: c_int = 0;
+  let mut attributes_list: Lisp_Object = Qnil ();                          // C 6246
+  let dpy: *mut Display = (*dpyinfo).display;                              // C 6247
+  let info: *mut XineramaScreenInfo                                      // C 6248
+    = XineramaQueryScreens (dpy, &raw mut n_monitors);
+  let monitors: *mut MonitorInfo;                                          // C 6249
+  let mm_width_per_pixel: c_double;                                        // C 6250
+  let mm_height_per_pixel: c_double;
+
+  if info.is_null () || n_monitors == 0                                    // C 6252
+    {
+      if !info.is_null () { XFree (info as *mut c_void); }                 // C 6254-6255
+      return attributes_list;                                              // C 6256
+    }
+
+  mm_width_per_pixel = WidthMMOfScreen! ((*dpyinfo).screen) as c_double    // C 6259-6260
+    / x_display_pixel_width (dpyinfo) as c_double;
+  mm_height_per_pixel = HeightMMOfScreen! ((*dpyinfo).screen) as c_double  // C 6261-6262
+    / x_display_pixel_height (dpyinfo) as c_double;
+  monitors = xcalloc (n_monitors as usize, std::mem::size_of::<MonitorInfo> ())  // C 6263
+    as *mut MonitorInfo;
+  while i < n_monitors                                                     // C 6264
+    {
+      let mi: *mut MonitorInfo = monitors.offset (i as isize);             // C 6266
+      let mut workarea_r: XRectangle = std::mem::zeroed ();                // C 6267
+
+      (*mi).geom.x = (*info.offset (i as isize)).x_org;                    // C 6269
+      (*mi).geom.y = (*info.offset (i as isize)).y_org;                    // C 6270
+      (*mi).geom.width = (*info.offset (i as isize)).width;                // C 6271
+      (*mi).geom.height = (*info.offset (i as isize)).height;              // C 6272
+      (*mi).mm_width                                                       // C 6273
+	= ((*mi).geom.width as c_double * mm_width_per_pixel + 0.5) as c_int;
+      (*mi).mm_height                                                      // C 6274
+	= ((*mi).geom.height as c_double * mm_height_per_pixel + 0.5) as c_int;
+      (*mi).name = std::ptr::null_mut ();                                  // C 6275
+
+      /* Xinerama usually have primary monitor first, just use that.  */
+      if i == 0 && x_get_net_workarea (dpyinfo, &raw mut workarea_r)       // C 6278
+	{
+	  (*mi).work = workarea_r;                                         // C 6280
+	  if !gui_intersect_rectangles (&raw const (*mi).geom,               // C 6281
+				       &raw const (*mi).work,
+				       &raw mut (*mi).work)
+	    { (*mi).work = (*mi).geom; }                                   // C 6282
+	}
+      else
+	{ (*mi).work = (*mi).geom; }                                       // C 6285
+      i += 1;                                                              // C 6264's `++i`
+    }
+  XFree (info as *mut c_void);                                             // C 6287
+
+  attributes_list = x_make_monitor_attribute_list (monitors,               // C 6289-6293
+						   n_monitors,
+						   0,
+						   dpyinfo,
+						   c"Xinerama".as_ptr ());
+  free_monitors (monitors, n_monitors);                                    // C 6294
+  return attributes_list;                                                  // C 6295
+}
