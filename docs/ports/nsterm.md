@@ -426,9 +426,9 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void) draggedImage: (NSImage *) dragged_image movedTo: (NSPoint) screen_point`  (line 10482)
   - [ ] `- (BOOL) mustNotDropOn: (NSView *) receiver`  (line 10522)
   - [ ] `- (NSDragOperation) beginDrag: (NSDragOperation) op forPasteboard: (NSPasteboard *) pasteboard withMode: (enum ns_return_frame_mode) mode returnFrameTo: (struct frame **) frame_return prohibitSame: (BOOL) prohibit_same_frame followTooltip: (BOOL) follow_tooltip`  (line 10528)
-- [ ] EmacsScroller  (`@implementation` 10620, `@end` 11117)
-  - [ ] `+ (CGFloat) scrollerWidth`  (line 10626)
-  - [ ] `- (instancetype)initFrame: (NSRect )r window: (Lisp_Object)nwin`  (line 10650)
+- [ ] EmacsScroller  (`@implementation` 10620, `@end` 11117) - round 42 landed **the class record** (the eleven ivars of `src/nsterm.h` 716-733, two of whose C names `NSView` already owns: `window`/`frame`, carried as `emacs_window`/`emacs_frame` - a declared deviation) and one method (`initFrame:window:` C 10650); `+scrollerWidth` (C 10626) is **omitted** because Swift refuses both spellings of it (the `EmacsFileDelegate` class of refusal), and the fourteen methods below keep this box open
+  - [x] `+ (CGFloat) scrollerWidth`  (line 10626) — **omitted, recorded**: Swift refuses the override (`cannot override 'scrollerWidth' which has been marked unavailable`) *and* the `@objc(scrollerWidth)` renamed spelling (`conflicts with method 'scrollerWidth()' from superclass 'NSScroller'`), and nothing in the reference calls it, so omitting it changes no caller's behaviour (the `EmacsFileDelegate` shape; the ledger's `## ABI` (3) carries the gap)
+  - [x] `- (instancetype)initFrame: (NSRect )r window: (Lisp_Object)nwin`  (line 10650) — landed as `@objc(initFrame:window:) init(frame:window:)`: C's descending `for` is the `while`, C 10679's `20 / pixel_length` keeps C's integer division, C 10666-10667's GNUstep arm is dead here, and the `isKindOfClass: [EmacsScroller class]` count is the `is EmacsScroller` test
   - [ ] `- (void)setFrame: (NSRect)newRect`  (line 10703)
   - [ ] `- (void)dealloc`  (line 10719)
   - [ ] `- (instancetype)condemn`  (line 10734)
@@ -2181,6 +2181,13 @@ call site takes an entry and the definition lands at its own C line - and **both
   from its own mirror instead (`KBD_BUFFER_SIZE` 4096 at `femacs/src/include/keyboard.rs` 43,
   `MONITORS_CHANGED_EVENT` 35 at `femacs/src/include/termhooks.rs` 62) because neither the frozen
   macro table nor the core's exports carry them.
+* **round 42's omission**: `+[EmacsScroller scrollerWidth]` (C 10626-10648) cannot be declared in Swift at
+  all - the SDK marks `NSScroller`'s `+scrollerWidth` unavailable, so the plain override and the
+  `@objc(scrollerWidth)`-renamed spelling are both refused (measured; `nsfns.swift` 4867-4874 records the same
+  refusal class for `EmacsFileDelegate`'s three delegate methods).  C's method *overrides* the superclass's, its
+  live body is one message (`NSScroller.scrollerWidth (for: .regular, scrollerStyle: .legacy)`), and no reference
+  caller reaches it (`[EmacsScroller scrollerWidth]` occurs nowhere; C 10645's call is on `NSScroller`, in a dead
+  arm), so the class is declared with the method omitted - the gap named here rather than hidden.
 
 ## Evidence
 
@@ -3466,3 +3473,37 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no terminal deleted, no activation policy
   changed, no bitmaps destroyed); the compile gate reaches parsing and type checking only;
   `terminal_name` is a declaration whose provider the core still owes.
+
+### Round 42: the `EmacsScroller` record and `initFrame:window:` (C 10620-10701)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-41 carry, so **no new warning**.  Object
+  `/tmp/nsterm42.o`, **804,112 bytes**, md5 `1ecb1c3e047774ffac1c2a22ba7aaf78`.  The unit is
+  **8,956 lines**.
+* **The record** (src/nsterm.h 714-754): eleven ivars, and **two of C's names are `NSView`'s own** -
+  `window` (the `NSWindow` a view is in) and `frame` (its rect), which a Swift subclass cannot
+  redeclare.  They are carried as `emacs_window`/`emacs_frame`, the `emacs*` spelling this file
+  already uses for C pointers of that kind (`EmacsView`'s `emacsframe`); the other nine keep C's
+  names.  This is this lane's first *name* deviation of the record kind and it is declared here.
+* **Three compile failures, all measured, and the decision they force**: ⑴ `override class var
+  scrollerWidth: CGFloat` - `error: property does not override any property from its superclass`
+  (Swift imports the superclass entry as a class *method*); ⑵ `override class func scrollerWidth()`
+  - `error: cannot override 'scrollerWidth' which has been marked unavailable`; ⑶
+  `@objc(scrollerWidth) class func ns_scrollerWidth()` - `error: method … with Objective-C selector
+  'scrollerWidth' conflicts with method 'scrollerWidth()' from superclass 'NSScroller' with the same
+  Objective-C selector`.  So the method is **omitted and recorded** - the shape `nsfns.swift`
+  4867-4874 documents for `EmacsFileDelegate`'s three delegate methods, and the reason the
+  omission is harmless is measured too: no reference caller reaches it.
+* **`initFrame:window:` (C 10650-10701) lands whole**: C 10652's `NSTRACE` is the empty macro, C's
+  three-arm `scrollerWidth` test is not part of it, the `NS_IMPL_GNUSTEP` arm at C 10666-10667 is
+  dead here (this target takes C 10669's `NSViewMinXMargin | NSViewHeightSizable`,
+  `[.minXMargin, .height]`), C 10679's `20 / pixel_length` keeps C's *integer* division before the
+  `float` store, and C 10691's descending `for` is the `while` (the `sendEvent` block's reading of
+  that shape).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **21** unported,
+  21 row(s); **469** C symbol import(s)` - unchanged from round 41, which is the expected reading
+  for an Objective-C method round (`cinventory` counts C definitions, not `@implementation`
+  methods).  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no scroller created, no frame read, no
+  subview added); the compile gate reaches parsing and type checking only; the omitted
+  `+scrollerWidth` is a gap named in `## ABI` (3), not a transcribed method.
