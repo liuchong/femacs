@@ -16357,3 +16357,11 @@
   ④ **一处按实测改掉的入口写法**：`fcntl` 那条最初把属性单独放一行、行尾带注释，`check-swift-units.py` 因此把它读成"没有体的 Swift func"（把属性与 `func` 放同一行后，它报的 import 数由 575 变 576，多出来的正是它）；对象摘要未变（纯格式）。
   ⑤ **读数（实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 8 warnings**（与 round 22-53 的八条逐条相同，**无新增**），且**一次即过**；对象 `/tmp/nsterm54.o` **886,048 字节**、md5 `d7a907a82a95d902217f7e489858f4ff`；单元 **10,249 行**。⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **13** unported, 13 row(s); **576** C symbol import(s)`（round 53 是 13 unported、557 imports）——unported 不变正是"入口层轮"应有读数；终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**。⑶ 台账：`ns_term_init` 盒子**保持未勾**但文字写明"入口层已落 + 剩余三件点名"；`## File-scope objects` 加一条未勾手加行；勾 **300**、未勾 **130**。
   ⑥ **未声称**：本轮**没有运行证据**（没有初始化过 terminal）；编译门只到解析与类型检查；入口全是**声明**，`ns_term_init` 的体还没写。
+
+- **3.994 `src/nsterm.m` round 55（Swift lane）：`ns_term_init` 入口层的余下三件 + 一处事实纠正（C 5965-6194）**：
+  ① **落地**：`EmacsMenu` 的 `-initWithTitle:`（在本单元声明入口，provider 由 `nsmenu` lane 欠——`EmacsWindow_initWithEmacsFrame` 形状）、`CGDisplayRegisterReconfigurationCallback`（CoreGraphics，C 6184）、`terminal_rif`（C 6058 的成员读侧），以及文件级的 `ns_initialized`（C 5972 的函数内 `static`，Swift 表达不了——`timed_entry` 那条读数）。
+  ② **纠正 round 54 的一处错claim**：那一轮把 `ns_antialias_text` 当成"第三条生成器缺口"加了对象行。本轮的搜索证明参照树里**它既无声明也无定义**（只有 C 6064、C 11685 与 `src/macfont.m` 2934 三处使用），而 C 11685 的 `DEFVAR_LISP` 是用它的第二实参拼出 `globals.f_ns_antialias_text`——所以它是**配置相关的全局**（与 `QCmouse` 同族：不进 `docs/baseline/globals/symbols.tsv` 的理由一样），按数据入口携带。那条行现在记的是这次纠正本身。
+  ③ **编译器抓到的一处重复**：本轮初稿重复声明了 `ns_antialias_text`（`error: invalid redeclaration`）——round 54 已把它列在 17 个名字里 ⇒ 入口只留一份，注释改成正确读数。
+  ④ **`FD_ZERO` 的拼法（看代码即定）**：C 6002-6003 要清零两个 `fd_set`，而本单元自己的 `select_readfds`/`select_writefds` 就是 `fd_set()` 值 ⇒ 该操作写成 `x = fd_set()`（与它们声明时同一个初始化式），不需要入口。
+  ⑤ **读数（实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 8 warnings**（与 round 22-54 的八条逐条相同，**无新增**）；对象 `/tmp/nsterm55.o` **886,304 字节**、md5 `1dd2b56c8f277bffcb65b6e5fb2035c3`；单元 **10,279 行**。⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **13** unported, 13 row(s); **579** C symbol import(s)`（round 54 是 13 unported、576 imports）；终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**。⑶ 台账：`ns_term_init` 盒子文字改为"入口层已齐、体下一轮整块写"（含 `FD_ZERO` 的判定），对象表那条行改为记录纠正；勾 **301**、未勾 **129**。
+  ⑥ **未声称**：本轮**没有运行证据**；编译门只到解析与类型检查；三个入口是**声明**（其中一个由 nsmenu lane 提供），`ns_term_init` 的体**仍一个字未写**——这是刻意的：它是单一整体，写一半会把 terminal 留在半初始化状态。

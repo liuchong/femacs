@@ -212,7 +212,7 @@
 - [x] ns_delete_display  (line 5872, static) — C 5871-5875, landed as `fileprivate func ns_delete_display (_:)`: C's whole body is the comment `/* TODO...  */`, so the body is empty here too and the parameter unread (the `ns_default_font_parameter`/`applicationWillBecomeActive` reading: a body C leaves empty is transcribed empty rather than stubbed)
 - [x] ns_delete_terminal  (line 5880, static) — C 5877-5902, landed as `fileprivate func ns_delete_terminal (_:)`: it needed `terminal_display_info_ns` (already the core's own shim, `femacs/src/abi_shim.rs` 412), `image_destroy_all_bitmaps` (the core's, `femacs/src/image.rs` 1841) and one new member entry, `terminal_name`, for C 5888's guard; `ns_delete_display` (C 5900) landed in round 38, and C 5896's `setActivationPolicy:` is `NSApp.setActivationPolicy (.prohibited)`
 - [x] ns_create_terminal  (line 5908, static) — C 5906-5961, landed as `fileprivate func ns_create_terminal (_:) -> UnsafeMutableRawPointer?`: round 50 landed the entry layer (create_terminal/output_ns/ns_display_info_set_terminal + the 36 setters) and round 51 the last hook it needed (`ns_new_font`), so round 52 is the body - C 5917's create call with the round-39 table's address, C 5919's `terminal_set_display_info_ns` write, C 5920's setter, the 36 hook writes as non-capturing `@convention(c)` closures over the ported functions (seven of them the nsfns/nsmenu lanes' `@_cdecl` entries), and C 5960's return
-- [ ] ns_term_init  (line 5965) - **open, first half landed in round 54**: the entry layer its body needs is in the unit now (17 core names - `baud_rate`, `Fset_input_interrupt_mode`, `emacs_pipe`, `emacs_strerror`, `fcntl`, `xzalloc`, `allocate_kboard`, `Qns`, `current_kboard`, `initial_kboard`, `Fcons`, `xlispstrdup`, `gui_init_fringe`, `inhibit_x_resources`, `extract_float`, `ns_antialias_text`, `delete_keyboard_wait_descriptor` - plus the `terminal`/`kboard`/`ns_display_info` member writes it makes).  **Named for the remainder**: `EmacsMenu`'s `-initWithTitle:` (the class is `nsmenu.swift` 829 and that lane has no entry for it yet - the `EmacsWindow_initWithEmacsFrame` shape), `CGDisplayRegisterReconfigurationCallback` (C 6184) and the `fd_set`/`FD_ZERO` spelling C 6002-6003 needs.  The body (C 5969-6193, including the whole macOS menu block) is what keeps this box open
+- [ ] ns_term_init  (line 5965) - **open, first half landed in round 54**: the entry layer its body needs is in the unit now (17 core names - `baud_rate`, `Fset_input_interrupt_mode`, `emacs_pipe`, `emacs_strerror`, `fcntl`, `xzalloc`, `allocate_kboard`, `Qns`, `current_kboard`, `initial_kboard`, `Fcons`, `xlispstrdup`, `gui_init_fringe`, `inhibit_x_resources`, `extract_float`, `ns_antialias_text`, `delete_keyboard_wait_descriptor` - plus the `terminal`/`kboard`/`ns_display_info` member writes it makes).  **Round 55 landed the rest of that layer**: `EmacsMenu`'s `-initWithTitle:` (declared here; the class is `nsmenu.swift` 829 and that lane has no entry for it yet - the `EmacsWindow_initWithEmacsFrame` shape), `CGDisplayRegisterReconfigurationCallback` (C 6184), `terminal_rif` (C 6058's read) and the file-scope `ns_initialized` (C 5972's function-local `static`), and it **corrected round 54's claim** about `ns_antialias_text` (see `## File-scope objects`).  **The body (C 5969-6193) is the remainder**, written in one piece next round: it is a single unit - half of it would leave the terminal half-initialised - and the `FD_ZERO` spelling that block needs is settled (`x = fd_set()`, the initializer the unit's own `select_readfds`/`select_writefds` declarations already use)
 - [ ] ns_term_shutdown  (line 6198)
 - [x] runAlertPanel  (line 6634, static) — landed as `fileprivate func runAlertPanel (_:_:_:_:) -> Bool`: the `NS_IMPL_COCOA` arm builds an `NSAlert` (the GNUstep `NSRunAlertPanel` at C 6640 is dead), and C 6649's `[alert release]` is the reference being dropped under ARC
 - [x] not_in_argv  (line 6672, static) — landed as `fileprivate func not_in_argv (_:) -> Int32`: C's `[arg UTF8String]` is the `withCString` view, and `initial_argc`/`initial_argv`/`strcmp` are imports in the lane's established shapes
@@ -628,10 +628,14 @@ now **C 60-1956**.  **Round 10 lands C 1959-2398** - the seven frame-parameter h
 (C 2332-2354) and `ns_query_frame_background_color` (C 2357-2363), and **`ns_set_frame_alpha`
 (C 2366-2398) - the definition the (4) table's second function row waited for** - so the covered
 range is now **C 60-2398**.  The next live definition is C 2409's `frame_set_mouse_pixel_position`
-- [ ] Lisp_Object ns_antialias_text  (line 6064, static) — **the third generator gap of this hand-added
-      family, found by round 54**: `tools/extract-abi.py` lists no row for it, and C defines it at
-      C 11685 as a `DEFVAR_LISP ("ns-antialias-text", …)` variable (read at C 6064/6070's anti-alias
-      default block).  Not landed yet; round 54's entry layer declares the data symbol it will be.
+- [x] `ns_antialias_text`  (C 6064/11685) — **corrected in round 55: it is not a file-scope
+      object of this file at all.**  Round 54 added this row as "a third generator gap" on the strength
+      of `extract-abi.py` listing nothing for it; round 55's grep over the tree shows the reference
+      *declares and defines it nowhere* (only C 6064, C 11685 and one read at src/macfont.m 2934), and
+      C 11685's `DEFVAR_LISP` builds the name `globals.f_ns_antialias_text` from its second argument.
+      It is therefore a configuration-specific global - absent from `docs/baseline/globals/symbols.tsv`
+      for the same reason `QCmouse` is - and it is carried as the unit's data entry, not as an object
+      of this file.  The row stays as the record of the correction
 - and **round 11 lands C 2401-2621**, the whole Mouse handling section: `frame_set_mouse_pixel_position`
 (C 2408-2430, the `NS_IMPL_COCOA` arm; the GNUstep arm is dead), `ns_note_mouse_movement`
 (C 2432-2472), `ns_mouse_position` (C 2475-2595) and `ns_frame_up_to_date` (C 2598-2621) - so the
@@ -3903,3 +3907,32 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no terminal initialised); the compile gate
   reaches parsing and type checking only; every entry is a declaration the core owes, and
   `ns_term_init`'s body is not written yet.
+
+### Round 55: the rest of `ns_term_init`'s entry layer, and a correction (C 5965-6194)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-54 carry, so **no new warning** after the correction.
+  Object `/tmp/nsterm55.o`, **886,304 bytes**, md5 `1dd2b56c8f277bffcb65b6e5fb2035c3`.  The unit is
+  **10,279 lines**.
+* **What landed**: `EmacsMenu`'s `-initWithTitle:` (declared here, its provider owed by the `nsmenu`
+  lane - the `EmacsWindow_initWithEmacsFrame` shape), `CGDisplayRegisterReconfigurationCallback`
+  (CoreGraphics, C 6184), `terminal_rif` (C 6058's member read) and the file-scope `ns_initialized`
+  (C 5972's function-local `static`, which Swift cannot express - the `timed_entry` reading).
+* **A wrong claim from round 54, corrected here**: that round added an object-list row for
+  `ns_antialias_text` as "a third generator gap".  Round 55's search shows the reference *declares and
+  defines it nowhere* - only C 6064, C 11685 and one read at src/macfont.m 2934 use it - and C 11685's
+  `DEFVAR_LISP` builds the name `globals.f_ns_antialias_text` from its second argument, so it is a
+  configuration-specific global of the `QCmouse` class, carried as a data entry.  The row now records
+  the correction instead of the wrong class.
+* **One duplicate caught by the compiler**: round 55's first draft redeclared `ns_antialias_text`
+  (`error: invalid redeclaration of 'ns_antialias_text'`) - round 54 had already declared it as one of
+  its 17 names; the entry stands once, with the corrected comment.
+* **The `FD_ZERO` spelling, settled by inspection**: C 6002-6003 zero two `fd_set`s, and this unit's
+  own `select_readfds`/`select_writefds` are `fd_set()` values - so the operation is `x = fd_set()`
+  (the same initializer their declarations use), which needs no entry.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **13** unported,
+  13 row(s); **579** C symbol import(s)` - unported unchanged (no C definition lands), and the round's
+  imports are 576 -> 579.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence; the compile gate reaches parsing and type
+  checking only; the three entries are declarations (one of them the `nsmenu` lane's to provide), and
+  `ns_term_init`'s body is still unwritten - deliberately in one piece next round.

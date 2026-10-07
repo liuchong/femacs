@@ -10222,9 +10222,13 @@ func xlispstrdup(_ string: Lisp_Object) -> UnsafeMutablePointer<CChar>?  // C 60
 @_silgen_name("gui_init_fringe") func gui_init_fringe(_ rif: UnsafeMutableRawPointer?)   // C 6058
 @_silgen_name("inhibit_x_resources") var inhibit_x_resources: Bool       // C 6062
 @_silgen_name("extract_float") func extract_float(_ f: Lisp_Object) -> Double   // C 6070
-/// C: `ns_antialias_text` - the variable C 11685's `DEFVAR_LISP ("ns-antialias-text", …)` defines
-/// (it is not one of the objects `tools/extract-abi.py` lists for this file - a hand-added row of
-/// the `## File-scope objects` kind, named in the ledger by this round).
+/// C: `ns_antialias_text` (C 6064's `&ns_antialias_text`, C 11685's `DEFVAR_LISP`) - **not a
+/// file-scope object of this file, corrected in round 55**: the reference declares and defines it
+/// nowhere (a grep over the tree finds only those two uses and one read at src/macfont.m 2934), and
+/// C 11685's `DEFVAR_LISP` builds the name `globals.f_ns_antialias_text` out of its second argument -
+/// so it is a configuration-specific global, absent from `docs/baseline/globals/symbols.tsv` for the
+/// very reason `QCmouse` is (that table comes from a build that never compiles this file).  It is a
+/// data entry whose address C 6064 hands `ns_default` (the `kbd_buffer` shape).
 @_silgen_name("ns_antialias_text") var ns_antialias_text: Lisp_Object     // C 6064
 @_silgen_name("delete_keyboard_wait_descriptor")
 func delete_keyboard_wait_descriptor(_ fd: Int32)                        // C 6075
@@ -10247,3 +10251,29 @@ func terminal_set_name(_ t: UnsafeMutableRawPointer?, _ v: UnsafeMutablePointer<
 func ns_display_info_set_next(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
 @_silgen_name("ns_display_info_set_name_list_element")
 func ns_display_info_set_name_list_element(_ f: UnsafeMutableRawPointer?, _ v: Lisp_Object)
+
+// ==========================================================================
+// Round 55: the four names `ns_term_init`'s body takes, and one correction
+// ==========================================================================
+
+/// C: `EmacsMenu`'s `-initWithTitle:` (C 6088/6090/6092/6093) - the class is `nsmenu.swift` 829, and
+/// that lane has no entry for this initializer yet, so this is the `EmacsWindow_initWithEmacsFrame`
+/// shape: the entry is declared here and its provider is that lane's to add.
+@_silgen_name("EmacsMenu_initWithTitle")
+func EmacsMenu_initWithTitle(_ title: String) -> AnyObject?
+
+/// C: `CGError CGDisplayRegisterReconfigurationCallback (CGDisplayReconfigurationCallBack, void *)`
+/// (CoreGraphics) - C 6184 registers round 40's callback through it.
+@_silgen_name("CGDisplayRegisterReconfigurationCallback")
+func CGDisplayRegisterReconfigurationCallback(
+  _ callback: (@convention(c) (UInt32, UInt32, UnsafeMutableRawPointer?) -> Void)?,
+  _ userInfo: UnsafeMutableRawPointer?) -> Int32
+
+/// C: the `struct terminal` member C 6058 reads, `terminal->rif` - a `<record>_<member>` reader of
+/// the family round 54 added the writer-side of.
+@_silgen_name("terminal_rif")
+func terminal_rif(_ t: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: the function-local `static int ns_initialized = 0;` (C 5972) - a file-scope Swift `var`, since
+/// Swift has no function-local static storage (the `timed_entry` reading of round 22).
+fileprivate var ns_initialized: Int32 = 0
