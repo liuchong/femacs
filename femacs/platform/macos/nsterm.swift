@@ -7031,3 +7031,77 @@ fileprivate let SLEEP_EVENT: UInt32 = 28
 fileprivate func input_event_set_kind(_ e: UnsafeMutablePointer<input_event>, _ kind: UInt32) {
   e.pointee.bits = (e.pointee.bits & 0xffff0000) | (kind & 0xffff)
 }
+
+// ==========================================================================
+// Round 24: `EmacsWindow`'s class record and five of its methods (C 9756)
+// ==========================================================================
+
+/// C `src/nsterm.h` 419-430: `@interface EmacsWindow : NSWindow` - the drag-and-drop window whose
+/// type `EmacsView` needs for its `nonfs_window` ivar (nsterm.h 482), which is why this record
+/// lands before that class's.  C declares **no** protocol here (nsterm.h 419 has no `<...>`
+/// list), so the class can land as a record plus the methods below.
+///
+/// **Round 24 lands** the four Cocoa ivars (nsterm.h 421-424) and five methods:
+/// `borderWidth` (declared nsterm.h 442, defined C 9928-9931), `setFrameTopLeftPoint:`
+/// (C 10444-10450), `canBecomeKeyWindow` (C 10452-10455),
+/// `canBecomeMainWindow` (C 10457-10461) and `setLastDragEvent:` (C 10463-10468).  Two things are
+/// deferred by name: the four drag-and-drop ivars (nsterm.h 426-429 - `dnd_mode` is the
+/// `ns_return_frame_mode` enum `nsselect.swift` 104 spells, so they land with the drag methods
+/// that read them) and `dealloc` (C 9912-9926, whose `release` calls ARC forbids overriding; the
+/// reference being dropped is the same statement this lane reads elsewhere).
+class EmacsWindow: NSWindow {
+  /// C nsterm.h 421: `NSPoint grabOffset;`
+  var grabOffset: NSPoint = .zero
+  /// C nsterm.h 422: `NSEvent *last_drag_event;`
+  var last_drag_event: NSEvent? = nil
+  /// C nsterm.h 423-424: `NSDragOperation drag_op; NSDragOperation selected_op;`
+  var drag_op: NSDragOperation = []
+  var selected_op: NSDragOperation = []
+
+  /// `NSWindow`'s designated initializer, spelled out because a Swift subclass must reach one and
+  /// Swift marks `NSWindow`'s `init (coder:)` unavailable (id: `error: 'init(coder:)' is
+  /// unavailable`, measured).  C's own creators are `initWithEmacsFrame:` (C 9759/9765), which
+  /// land with `origin:`/`styleMask:` below, and they chain to this one.
+  override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask,
+                backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
+    super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
+  }
+
+  /// C 10444-10450: `- (void)setFrameTopLeftPoint:(NSPoint)point` - C's body is the `super` call
+  /// and nothing else.
+  override func setFrameTopLeftPoint(_ point: NSPoint) {
+    super.setFrameTopLeftPoint(point)                 // C 10449
+  }
+
+  /// C 9928-9931: `- (NSInteger) borderWidth` - C's `NSWidth ([self frame]) - NSWidth ([[self
+  /// contentView] frame])`, where `NSWidth` is the rect's own width.
+  func borderWidth() -> Int {
+    Int(frame.width - (contentView?.frame.width ?? 0))// C 9930
+  }
+
+  /// C 10452-10455: `- (BOOL)canBecomeKeyWindow`.  Swift's AppKit apinotes rename the pair below
+  /// (`canBecomeKeyWindow` -> `canBecomeKey`, `canBecomeMainWindow` -> `canBecomeMain`), the class
+  /// B reading this unit uses for `NSAppKitVersionNumber10_10`; neither renames the reference's
+  /// own text, so the C line numbers stay the anchor.  C reaches the view's frame through the
+  /// delegate cast (`((EmacsView *)[self delegate])->emacsframe`), which this unit already spells
+  /// as the `emacs_view_frame` shim (C 2831), and the predicate is `FRAME_NO_ACCEPT_FOCUS`, whose
+  /// entry this unit declares at C 1660.
+  override var canBecomeKey: Bool {
+    let f = emacs_view_frame(delegate)
+    return !frame_no_accept_focus(f)                  // C 10454
+  }
+
+  /// C 10457-10461: `- (BOOL)canBecomeMainWindow` - "Required for fullscreen and undecorated
+  /// windows"; C's whole body is `return YES;`.  The renamed Swift spelling is `canBecomeMain`
+  /// (the note above).
+  override var canBecomeMain: Bool {
+    true                                              // C 10460
+  }
+
+  /// C 10463-10468: `- (void) setLastDragEvent: (NSEvent *) event`.  C's `[event copy]` is
+  /// Swift's `copy()`, whose `NSCopying` result is cast back to the record type.
+  func setLastDragEvent(_ event: NSEvent) {
+    last_drag_event = event.copy() as? NSEvent         // C 10467
+  }
+}
+

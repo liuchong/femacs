@@ -398,12 +398,12 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (BOOL) writeSelectionToPasteboard: (NSPasteboard *)pb types: (NSArray *)types`  (line 9688)
   - [ ] `- (instancetype)setMiniwindowImage: (BOOL) setMini`  (line 9721)
   - [ ] `- (int) fullscreenState`  (line 9741)
-- [ ] EmacsWindow  (`@implementation` 9756, `@end` 10610)
+- [ ] EmacsWindow  (`@implementation` 9756, `@end` 10610) - round 24 landed **the class record** (the four Cocoa ivars, `src/nsterm.h` 421-424) and five methods; the four drag-and-drop ivars (nsterm.h 426-429, whose `dnd_mode` is `nsselect.swift` 104's enum) and `dealloc` are the two named deferrals, and the remaining methods keep this box open
   - [ ] `- (instancetype) initWithEmacsFrame: (struct frame *) f`  (line 9759)
   - [ ] `- (instancetype) initWithEmacsFrame: (struct frame *) f fullscreen: (BOOL) fullscreen screen: (NSScreen *) screen`  (line 9765)
   - [ ] `- (void)createToolbar: (struct frame *)f`  (line 9878)
-  - [ ] `- (void)dealloc`  (line 9912)
-  - [ ] `- (NSInteger) borderWidth`  (line 9928)
+  - [ ] `- (void)dealloc`  (line 9912) — **deferred by name**: Swift forbids overriding `dealloc` (measured: `error: 'init(coder:)' is unavailable`'s family - ARC owns the releases C writes), so this box records the reference's three statements (`toolbar` release, `setToolbar: nil`, `last_drag_event` release) as the ARC equivalent they already read as
+  - [x] `- (NSInteger) borderWidth`  (line 9928) — landed as `func borderWidth () -> Int`: C's `NSWidth` is the rect's own `width`, and the `contentView` read is optional-chained because C's own message to nil does nothing
   - [ ] `- (void)setParentChildRelationships`  (line 9934)
   - [ ] `- (void)orderFront:(id)sender`  (line 10043)
   - [ ] `- (void)makeKeyAndOrderFront:(id)sender`  (line 10057)
@@ -417,10 +417,10 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void)setAppearance`  (line 10398)
   - [ ] `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews`  (line 10424)
   - [ ] `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews animate:(BOOL)performAnimation`  (line 10433)
-  - [ ] `- (void)setFrameTopLeftPoint:(NSPoint)point`  (line 10444)
-  - [ ] `- (BOOL)canBecomeKeyWindow`  (line 10452)
-  - [ ] `- (BOOL)canBecomeMainWindow`  (line 10457)
-  - [ ] `- (void) setLastDragEvent: (NSEvent *) event`  (line 10463)
+  - [x] `- (void)setFrameTopLeftPoint:(NSPoint)point`  (line 10444) — landed as `override func setFrameTopLeftPoint (_:)`; C's body is the `super` call and nothing else
+  - [x] `- (BOOL)canBecomeKeyWindow`  (line 10452) — landed as `override var canBecomeKey: Bool` (the AppKit apinotes' rename, class B: no symbol is invented); the frame comes through this unit's `emacs_view_frame` shim and the predicate is the `frame_no_accept_focus` entry
+  - [x] `- (BOOL)canBecomeMainWindow`  (line 10457) — landed as `override var canBecomeMain: Bool` (the same rename): C's whole body is `return YES;`
+  - [x] `- (void) setLastDragEvent: (NSEvent *) event`  (line 10463) — landed as `func setLastDragEvent (_:)`: C's `[event copy]` is `copy()` with the `NSCopying` result cast back to the record type
   - [ ] `- (NSDragOperation) draggingSourceOperationMaskForLocal: (BOOL) is_local`  (line 10470)
   - [ ] `- (void) draggedImage: (NSImage *) image endedAt: (NSPoint) screen_point operation: (NSDragOperation) operation`  (line 10475)
   - [ ] `- (void) draggedImage: (NSImage *) dragged_image movedTo: (NSPoint) screen_point`  (line 10482)
@@ -658,7 +658,7 @@ C 4747-4780) and the RIF's `ns_draw_glyph_string` (C 4782-5001) - **no new C exp
 C `static`s) - so the covered range is now **C 60-5001**.  The boundary is the `Event loop` banner
 at C 5005-5009: the dispatcher is the Glyph drawing operations section's last definition (the
 section the ledger has walked since round 17), and the next live definition - C 5013's
-`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.  **Round 23 lands `EmacsApp`'s four notification methods** (C 6556-6613: `antialiasThresholdDidChange:` C 6556, `systemWillSleep:` C 6565, `systemDidWake:` C 6577 and `applicationSupportsSecureRestorableState:` C 6610), so the range becomes **C 60-5001, C 5012-5084, C 6556-6613 and C 6769-6781**.  C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair stays held on `check_native_fs`, i.e. on `EmacsView`'s class - the two `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` guards at C 5126 and C 5217 are the live arm, so the dependency is hard.
+`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.  **Round 23 lands `EmacsApp`'s four notification methods** (C 6556-6613: `antialiasThresholdDidChange:` C 6556, `systemWillSleep:` C 6565, `systemDidWake:` C 6577 and `applicationSupportsSecureRestorableState:` C 6610), so the range becomes **C 60-5001, C 5012-5084, C 6556-6613 and C 6769-6781**.  C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair stays held on `check_native_fs`, i.e. on `EmacsView`'s class - the two `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` guards at C 5126 and C 5217 are the live arm, so the dependency is hard.  **Round 24 lands `EmacsWindow`'s record** (`src/nsterm.h` 419-430's four Cocoa ivars) with `borderWidth` (C 9928), `setFrameTopLeftPoint:` (C 10444), `canBecomeKeyWindow` (C 10452), `canBecomeMainWindow` (C 10457) and `setLastDragEvent:` (C 10463) - the type `EmacsView`'s own `nonfs_window` ivar needs, so that class's record is the next round's.
 
 Ticked above: **109 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
@@ -2892,4 +2892,31 @@ call site takes an entry and the definition lands at its own C line - and **both
   required methods Swift enforces.  Those two facts are why the event-loop pair is the next round's
   subject and not this one's: no `EmacsView` shell can compile without deciding that class's
   conformance question first.
+
+### Round 24: `EmacsWindow`'s class record and five of its methods (C 9756)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22 and 23 carry, so **no new warning**.  Object
+  `/tmp/nsterm24.o`, **504,048 bytes**, md5 `af13a351891674e7608337aa8c3b18e0` (the
+  citation repair below moved it from the first compile's 503,392 / `3794318feaaccaea07816cee1dab332f`: a
+  `///` comment reaches the object, so the reading is taken after the repair).
+* **The first compile failed with four errors**, all of them Swift-vs-AppKit, and all four are
+  recorded in the source rather than worked around: `'canBecomeKeyWindow' has been renamed to
+  'canBecomeKey'` and `'canBecomeMainWindow' has been renamed to 'canBecomeMain'` (the apinotes
+  rename this unit already reads for `NSAppKitVersionNumber10_10`, class B - no symbol is
+  invented), plus `'init(coder:)' is unavailable` with `must call a designated initializer of the
+  superclass 'NSWindow'`, which the class answers by spelling `NSWindow`'s designated initializer
+  out.
+* **`python3 tools/check-swift-units.py`**: `0 new, 0 stale, 7 Swift unit(s) landed`, with
+  nsterm.swift at 150 C definitions / 44 unported / 415 C symbol imports - every number unchanged,
+  which is what an Objective-C-method round reads as through that gate.
+* **One citation drift, repaired**: this round's first write cited `nsterm.h 421-424` on the same
+  line as `borderWidth`, and `tools/check-citations.py` reported it as `drift` (the name belongs to
+  `nsterm.h` 442, the declaration the reference carries at that line).  Splitting the sentence and
+  giving `borderWidth` its own citation clears it: `676 file(s) scanned, 0 drift, 0 range, 2414
+  external, 36 allowed, 0 stale`.
+* **Two deferrals, by name**: the four drag-and-drop ivars (`src/nsterm.h` 426-429; `dnd_mode`'s
+  type is `ns_return_frame_mode`, which `nsselect.swift` 104 already spells, so they land with the
+  drag methods that read them) and `dealloc` (C 9912-9926, which Swift forbids overriding - ARC
+  owns the three releases C writes).
 
