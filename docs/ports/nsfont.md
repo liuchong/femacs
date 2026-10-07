@@ -18,11 +18,13 @@
 > descriptor / entity / charset / script layer (35-830), the driver entry points, the glyph
 > and metrics caches, the shaping, the `font_driver` record and `syms_of_nsfont` - and its
 > C-ABI boundary is the core's (the lane's rule of `docs/status.md` 3.144: Swift speaks to the
-> Rust port only through the C ABI).  Two bodies are still absent: `nsfont_draw` (1151) and
-> `ns_dump_glyphstring` (1711) dereference `struct glyph_string`, and this tree declares that
-> record only as the opaque placeholder `femacs/src/font.rs` 739 (P-70, because font.c only
-> ever passes a pointer to it).  They are the `## Deferred` list below; everything else is
-> ported.  (Round 1 recorded the core's `font.h` mirror as 84 lines of "lands with font.c";
+> Rust port only through the C ABI).  **Round 83 lands the two bodies the record kept out**:
+> `nsfont_draw` (1151) and `ns_dump_glyphstring` (1711) dereference `struct glyph_string`,
+> and this tree still declares that record only as the opaque placeholder `femacs/src/font.rs`
+> 739 (P-70, because font.c only ever passes a pointer to it) - so every member the two bodies
+> read is a reader entry of the `glyph_string_*` family this unit now declares beside its
+> neighbours (`## ABI` (2g)), which is what the `## Deferred` section below records as the
+> blocker's resolution.  Everything in the file is ported.  (Round 1 recorded the core's `font.h` mirror as 84 lines of "lands with font.c";
 > that is stale: `femacs/src/include/font.rs` (3.158/3.159) and `femacs/src/font.rs` carry
 > `font`, `font_metrics`, `font_driver`, `font_bitmap` and `Lisp_Fwd`, and this unit names
 > them.)
@@ -32,7 +34,7 @@
 
 ## Functions defined — 36
 
-Ported (34):
+Ported (36):
 
 - [x] ns_done_font_data  (line 122, static)
 - [x] ns_get_font_data  (line 129, static)
@@ -61,18 +63,21 @@ Ported (34):
 - [x] nsfont_has_char  (line 1077, static)
 - [x] nsfont_encode_char  (line 1086, static)
 - [x] nsfont_text_extents  (line 1108, static)
+- [x] nsfont_draw  (line 1151, static) — landed (round 83) as `fileprivate func nsfont_draw
+      (_:_:_:_:_:_:) -> Int32`, the `font_driver.draw` slot (C 1740): every `struct glyph_string`
+      member is a reader entry, C's `alloca` is `withUnsafeTemporaryAllocation` (the C 1491/1514
+      reading), and C's nil-font arm is `FRAME_FONT`
 - [x] ns_font_shape  (line 1214, static)
 - [x] nsfont_shape  (line 1464, static)
 - [x] ns_uni_to_glyphs_1  (line 1576, static)
 - [x] ns_uni_to_glyphs  (line 1622, static)
 - [x] ns_glyph_metrics  (line 1664, static)
+- [x] ns_dump_glyphstring  (line 1711, exported; declared src/nsterm.h 1118) — landed (round 83)
+      as `@_cdecl("ns_dump_glyphstring")`: the same reader family, plus this round's two new
+      reads (`glyph_row_overlapping_p`, the indexed `glyph_u_ch`), `fprintf`/`putc`/`stderr`
 - [x] syms_of_nsfont  (line 1744) -> `@_cdecl("syms_of_nsfont")`
 - [x] syms_of_nsfont_for_pdumper  (line 1762, static)
 
-Deferred (2) - see `## Deferred`; each needs `struct glyph_string`:
-
-- [ ] nsfont_draw  (line 1151, static)
-- [ ] ns_dump_glyphstring  (line 1711, exported; declared src/nsterm.h 1118)
 
 The list above is the one `tools/extract-abi.py` now produces (36 functions, 0 subrs); its
 round-1 blind spot - the six signatures whose return type is split across lines - was fixed in
@@ -246,7 +251,7 @@ to that entry on the Rust side; inside this unit the Swift global is still read 
 assignment is `permutation = NULL` (1303), so `RIGHT_TO_LEFT_P` is constant-false and every
 branch behind it is dead text the port still writes (`permutation != nil`).
 
-## Deferred
+## Deferred - **closed by round 83**
 
 Two bodies, one blocker.  The list the integrator asked for, in the requested shape:
 
@@ -261,9 +266,16 @@ was): `struct face` (`femacs/src/font.rs` 464; C's windowed form adds `gc`, `sti
 and `struct glyph_row`'s `overlapping_p` bit (`femacs/src/include/dispextern.rs` 767, whose own
 comment says `HAVE_WINDOW_SYSTEM`'s `clip` is behind its feature).
 
-`nsfont_draw`'s driver slot (`font_driver.draw`) is written `nil` in `nsfont_driver` for this
-reason - it is the **one** member of the record whose C value the port cannot yet supply, and
-the ledger says so rather than pointing it at a stand-in.
+`nsfont_draw`'s driver slot (`font_driver.draw`) was written `nil` in `nsfont_driver` for this
+reason - it was the **one** member of the record whose C value the port could not yet supply,
+and the ledger said so rather than pointing it at a stand-in.  **Round 83 closes both halves
+of the hole**: the slot now holds C 1740's own value (`draw: nsfont_draw`), and the record is
+read through entries instead of mirrored - `glyph_string_*` for the record's members,
+`glyph_row_overlapping_p` for the row bit, the indexed `glyph_u_ch` for `first_glyph[i].u.ch`
+(the index lives in that entry because `struct glyph`'s stride is the core mirror's), and
+`NS_FACE_BACKGROUND`/`NS_FACE_FOREGROUND`/`FRAME_*_COLOR` for the two *secondary* records
+(`struct face`, and the frame's colour slots) the paragraph above lists - so none of the three
+records needs a windowed Swift mirror after all.
 
 ## ABI
 
@@ -272,7 +284,7 @@ the ledger says so rather than pointing it at a stand-in.
 | C name | C prototype | where | how |
 | --- | --- | --- | --- |
 | `syms_of_nsfont` | `void (void)` | 1744, declared src/font.h 986 | `@_cdecl("syms_of_nsfont")` - `nm -g` shows `T _syms_of_nsfont` |
-| `ns_dump_glyphstring` | `void (struct glyph_string *)` | 1711, declared src/nsterm.h 1118 | **deferred** (see above) |
+| `ns_dump_glyphstring` | `void (struct glyph_string *)` | 1711, declared src/nsterm.h 1118 | `@_cdecl("ns_dump_glyphstring")` (round 83) - `nm -g` shows `T _ns_dump_glyphstring` |
 | `nsfont_driver` | `struct font_driver const` | 1726, declared src/font.h 985 | a C data symbol Swift cannot emit - **exported as a getter of the same C name**: `@_cdecl("nsfont_driver") func nsfont_driver_getter() -> UnsafeMutableRawPointer?` (see (3) item 1) |
 
 `nm -g` on the object shows two non-mangled exports, `T _syms_of_nsfont` and
@@ -333,9 +345,30 @@ C data symbols; `syms_of_nsfont` registers it through `defvar_lisp` with the fil
 
 **f. GNUstep-only entries** (no provider in this repository; Apple's SDK has none of them):
 `GSFontEnumerator_sharedEnumerator`, `GSFontEnumerator_availableFontDescriptors` (the class
-and its two messages, 790/799), `setFont` (1254), and - for the deferred `nsfont_draw` -
-`DPSmoveto`/`GSShowGlyphs`.  A Swift port can *declare* them; only the GNUstep libraries can
-define them.
+and its two messages, 790/799), `setFont` (1254), and `DPSmoveto`/`GSShowGlyphs` (C
+1205-1206's two calls, which round 83's `nsfont_draw` is the first body to need - they are
+declared now).  A Swift port can *declare* them; only the GNUstep libraries can define them.
+
+**g. The `struct glyph_string` reader family round 83 adds** (the record is the tree's opaque
+placeholder, so each read is its own entry - the shape `nsterm.swift` 3578-5016 spells; this
+unit declares them because it compiles alone):
+
+| entry | C member | C line | state |
+| --- | --- | --- | --- |
+| `glyph_string_first_glyph`, `glyph_type` | `s->first_glyph->type` | 1161 | **open** (the core's) |
+| `glyph_string_font`, `glyph_string_f`, `glyph_string_face` | `s->font`, `s->f`, `s->face` | 1165-1169 | **open** |
+| `glyph_string_width`, `glyph_string_hl`, `glyph_string_char2b` | `s->width`, `s->hl`, `s->char2b` | 1176-1193 | **open** |
+| `glyph_string_nchars`, `glyph_string_x`, `glyph_string_y` | `s->nchars`, `s->x`, `s->y` | 1716-1717 | **open** |
+| `glyph_string_left_overhang`, `glyph_string_right_overhang` | `s->left_overhang`, `s->right_overhang` | 1717 | **open** |
+| `glyph_string_row`, `glyph_row_overlapping_p` | `s->row`, `s->row->overlapping_p` | 1718 | **open** (the row read is new here) |
+| `glyph_string_background_filled_p` | `s->background_filled_p` | 1718 | **open** |
+| `glyph_u_ch` | `s->first_glyph[i].u.ch` | 1720 | **open** (new; the index is in the entry) |
+| `COMPOSITE_GLYPH`, `DRAW_CURSOR` | the two enumerators | 1161/1183 | **open** |
+| `FONT_HEIGHT`, `FONT_BASE` | `#define FONT_HEIGHT/FONT_BASE` (src/font.h 244-245) | 1173-1182 | **provided** (the core's) |
+| `NS_FACE_BACKGROUND`, `NS_FACE_FOREGROUND`, `FRAME_BACKGROUND_COLOR`, `FRAME_CURSOR_COLOR`, `FRAME_FOREGROUND_COLOR`, `FRAME_FONT` | the face/frame reads | 1167-1198 | **provided** (the port of src/nsterm.m) |
+| `colorWithUnsignedLong` | `+[NSColor colorWithUnsignedLong:]` (src/nsterm.h 361) | 1185/1197 | **provided** |
+| `NSRectFill` | AppKit's `NSGraphics.h` | 1189 | **provided** (the SDK) |
+| `putc` | `stdio.h` | 1720-1721 | **provided** (libSystem) |
 
 ### (3) What the lane still has to settle (flagged for the integrator)
 
@@ -453,3 +486,27 @@ define them.
   (`lib/mempcpy`, `lib/regex`, pre-existing).
 - `emacs/` is untouched by this round (`git -C emacs status --short` is empty), and no
   `/tmp` product of the probes remains.
+
+- **Round 83 lands the file's last two bodies** (`nsfont_draw`, C 1151-1212, and
+  `ns_dump_glyphstring`, C 1710-1722) and closes the hole the `## Deferred` section named:
+  `swiftc -parse-as-library -c femacs/platform/macos/nsfont.swift` -> **exit 0**, **0 errors**,
+  **0 warnings** (the file's baseline is 0 warnings, and the two the first run raised -
+  "result of call to 'putc' is unused" - were repaired in place by writing C's own discard
+  (`_ = putc (...)`), not by naming them).  Object `/tmp/nsfont83.o`, **409,936 bytes**, md5
+  `57b4593546d766070432c084a4379120`.  The unit is **2,521 lines**.
+- **The two repairs the first compiles asked for**: `GSShowGlyphs (context, c, len)` needed
+  `Int (len)` (the entry's count is the GNUstep `NSInteger`, not C's `int`), and the two `putc`
+  discards above.  C's `NSGlyph` turned out to need no spelling decision at all: the SDK
+  declares it (`NSFont.h` 147, `typedef unsigned int NSGlyph`), the same width as `char2b`'s
+  `unsigned` (src/dispextern.h 1407), so C's element copy is exact.
+- **`python3 tools/check-swift-units.py`**: `nsfont.swift: 36 C definition(s), **0** unported,
+  0 row(s); **143** C symbol imports` (the round's 29 new entries), and the terminal reading
+  **`0 new, 0 stale, 7 Swift unit(s) landed`** - the two manifest rows
+  (`docs/baseline/swift-units.tsv`: `ns_dump_glyphstring`, `nsfont_draw`) were removed by name
+  in the same commit, the reading the earlier rounds got when a row landed.  The lane's other
+  units still read `nsfns.swift: 1 unported` (its recorded permanent dead arm) and
+  `nsterm.swift: 6 unported` (the six recorded dead arms), so with this round **every Swift
+  unit of the lane is landed or recorded**.
+- **Not claimed**: no runtime evidence - no glyph string was drawn and no dumper ran (this
+  lane does not link, and the entries are the core's to define); the reading is the compile
+  gate, the export/import gates and this ledger.

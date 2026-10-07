@@ -17029,3 +17029,31 @@
      `/tmp/nsterm82.o`、`/tmp/r82_*.py` 跑完即删，无全盘/大内存扫描。
      **未声称**：本轮**没有运行证据**——没有窗口被重排、没有字体面板被打开、没有图层被要求双缓冲，跨单元调用也没有被解析（本 lane 不链接）；
      读数只有编译门与 import/覆盖门。
+
+- **4.024 `src/nsfont.m` round 83（Swift lane）：这个 lane 的最后两个函数落地（`nsfont_draw` C 1151-1212、`ns_dump_glyphstring` C 1710-1722），`nsfont_driver.draw` 槽填上 C 1740 自己的值——**整条 macOS Swift lane 的七个单元全部"已落地或已记名"**（2026-10-08）**：
+  ① **落的两个函数**：`nsfont_draw`（`font_driver.draw` 的入口，C 1740 的 `.draw = nsfont_draw`）与导出函数 `ns_dump_glyphstring`（`@_cdecl("ns_dump_glyphstring")`）。
+     `struct glyph_string` **仍然是**本树的不透明占位（`femacs/src/font.rs` 739，P-70：font.c 只传指针），所以两个函数读的每一个成员都落成
+     `glyph_string_*` **读取入口**（本单元自己声明一遍——"每个单元拼它读的东西"），这正是台账 `## Deferred` 段里那个"两个函数、一个阻塞"的**解除方式**：
+     连 `struct face` 与 `glyph_row` 的位都**不需要**窗口化 Swift 镜像（面与帧颜色走 `NS_FACE_*`/`FRAME_*_COLOR` 入口，行位走新入口 `glyph_row_overlapping_p`）。
+  ② **几处已定的读法**：C 的 `alloca` 是 `withUnsafeTemporaryAllocation`（本文件 C 1491/1514 的既有判据，容量 `max (_, 1)`）；`NSGlyph` **不需要**自定拼法——
+     本机 SDK 就有（NSFont.h 147 `typedef unsigned int NSGlyph`），与 `char2b` 的 `unsigned`（src/dispextern.h 1407）**同宽**，所以 C 的 `c[i] = s->char2b[i + from]`
+     是精确的元素拷贝（不是 `macfont.swift` 里 `CGGlyph` 那种截断）；C 1166-1167 的 nil `s->font` 臂读 `FRAME_FONT (s->f)`（`struct nsfont_info` 的首成员就是 `struct font`，`nsfont_open` 那条读法）；
+     C 1200-1207 的 DPS 块整段照录（GNUstep 专有，`DPSmoveto`/`GSShowGlyphs` 声明成入口，provider 在 GNUstep 库）。
+  ③ **驱动记录收口**：`nsfont_driver` 的 `draw: nil` 改成 `draw: nsfont_draw`（C 1740 自己的值），台账里"这是唯一一个端口补不出的成员"那句话随之改成已补。
+  ④ **新增 29 条入口**（台账 ABI 新增 **`(2g)`** 表逐条列状态）：`glyph_string_first_glyph`/`glyph_type`/`_font`/`_f`/`_face`/`_width`/`_hl`/`_char2b`/`_nchars`/`_x`/`_y`/`_left_overhang`/`_right_overhang`/`_row`/`_background_filled_p`
+     与两条**本轮新读**（`glyph_row_overlapping_p`、带索引的 `glyph_u_ch`——索引落在入口签名里，因为 `struct glyph` 的 stride 属核心镜像）标 **open**（核心的）；
+     `COMPOSITE_GLYPH`/`DRAW_CURSOR` **open**；`FONT_HEIGHT`/`FONT_BASE`、`NS_FACE_BACKGROUND`/`NS_FACE_FOREGROUND`/`FRAME_BACKGROUND_COLOR`/`FRAME_CURSOR_COLOR`/`FRAME_FOREGROUND_COLOR`/`FRAME_FONT`、
+     `colorWithUnsignedLong`、`NSRectFill`、`putc` 标 **provided**（核心/本 lane 的 src/nsterm.m 端口/SDK/libSystem）。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 0 warnings**——本文件基线就是 0 警告；首跑的两条 `result of call to 'putc' is unused` **按 C 自己的丢弃修掉**
+     （写成 `_ = putc (...)`），而不是"记名"。对象 `/tmp/nsfont83.o` **409,936 字节**、md5 `57b4593546d766070432c084a4379120`；单元 **2,521 行**。
+     ⑵ `nm -g` 读 `T _ns_dump_glyphstring`（台账 (1) 那条导出行的判据）；`nm -u` 有 **19** 条本轮入口名未定义（那就是"核心的"那一列）。
+     ⑶ **覆盖门** ⇒ `nsfont.swift: 36 C definition(s), **0** unported, **0** row(s); **143** C symbol import(s)`，终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**
+     （manifest 的两行 `ns_dump_glyphstring`/`nsfont_draw` 按名删掉，与此前每轮"行落地即删行"同一读法）。lane 其它单元仍是 `nsfns.swift: 1 unported`（已记名的永久死臂）、`nsterm.swift: 6 unported`（六条已记名死臂）——
+     **至此这条 lane 的每个 Swift 单元都是"已落地或已记名"**。
+     ⑷ 首跑还有一处类型修复：`GSShowGlyphs` 的 count 是 GNUstep 的 `NSInteger`（不是 C 的 `int`）⇒ 写 `Int (len)`。
+     ⑸ 十门其余：declarations **18/0/18/0**、own-voice **0**、citations **676 / 0 drift / 0 range / 2,420 external / 36 allowed / 0 stale**、
+     mirror-dupes **16/16/0**、port-lines **0/0/0/0**、ledger-ticks **238/0**、carried **11/11/4/0**、verbatim **6 树 / 4604 文件 / 8,419 行 / 0**、
+     verbatim-declarations **710 候选 / 6 登记 / 0 失败**、dead-file-coverage **145/0**。
+  ⑥ **预算与清理**：本片**单文件编译门 4 发**（基线 1、首跑 1、修 `GSShowGlyphs` 后 1、修 `putc` 丢弃后 1；每发不到 1 秒）+ **3 组只读 grep** + 一次 `nm -g`/`nm -u` 读对象；
+     `/tmp/nsfont83.o`、`/tmp/nsfont83base.o`、`/tmp/r83_*.py` 跑完即删，无全盘/大内存扫描。
+     **未声称**：无运行证据——没有字形串被画、没有 dumper 跑过（本 lane 不链接，那 29 条入口是核心的，本片只声明）；读数只有编译门、导出/导入门与台账。

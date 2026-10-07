@@ -8,8 +8,6 @@ femacs/platform/macos/macfont.swift	mac_ctfont_get_glyph_for_cid	src/macfont.m	i
 femacs/platform/macos/macfont.swift	mac_font_copy_default_descriptors_for_language	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_copy_default_name_for_charset_and_languages	src/macfont.m
 femacs/platform/macos/nsfns.swift	interpret_services_menu	src/nsfns.m	in the arm this target does not take (`NS_IMPL_COCOA` is defined, so src/nsfns.m 200-258 is `#ifndef NS_IMPL_COCOA` text); permanent
-femacs/platform/macos/nsfont.swift	ns_dump_glyphstring	src/nsfont.m
-femacs/platform/macos/nsfont.swift	nsfont_draw	src/nsfont.m
 femacs/platform/macos/nsterm.swift	hide_bell	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redraw_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_update_window_end	src/nsterm.m

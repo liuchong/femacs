@@ -1694,11 +1694,91 @@ fileprivate func nsfont_text_extents(_ font: UnsafeMutablePointer<font>?,
   metrics!.pointee.width = Int16(truncatingIfNeeded: totalWidth)
 }
 
-/// C: `nsfont_draw` (src/nsfont.m 1151-1212) - **deferred**: the body dereferences
-/// `struct glyph_string` through `s->first_glyph->type`, `s->font`, `s->f`, `s->face`,
-/// `s->char2b`, `s->width` and `s->hl`, and this tree declares that record only as the
-/// opaque placeholder `femacs/src/font.rs` 739 (P-70: font.c never dereferences it).  The
-/// driver slot that points here is `font_driver.draw`; see `docs/ports/nsfont.md`.
+/// C: `nsfont_draw` (src/nsfont.m 1151-1212) - the GNUstep driver's draw entry (C 1740's
+/// `.draw = nsfont_draw`), and one of the two bodies this file was waiting for.  Readings:
+/// `struct glyph_string` is this tree's opaque placeholder (`femacs/src/font.rs` 739, P-70:
+/// font.c never dereferences it), so every access is a reader entry of the `glyph_string_*`
+/// family (`## ABI` (2f)); `s->first_glyph->type` is the `glyph_type` reader against the
+/// `COMPOSITE_GLYPH` enumerator; C's `alloca` is `withUnsafeTemporaryAllocation` (the C
+/// 1491/1514 reading), and its `NSGlyph` is the SDK's `unsigned int` (NSFont.h 147) - the same
+/// width as `char2b`'s `unsigned` (src/dispextern.h 1407), so C's `c[i] = s->char2b[i + from]`
+/// is an exact element copy (no `CGGlyph`-style truncation); C 1166-1167's nil `s->font` arm
+/// reads `FRAME_FONT (s->f)`, whose value is the same `struct nsfont_info` address (`struct
+/// nsfont_info`'s first member *is* the `struct font`, the `nsfont_open` reading); and C
+/// 1200-1207's DPS block is GNUstep-only text this file carries in full (`## Decisions`), its
+/// two callees being declared entries.
+fileprivate func nsfont_draw(_ s: UnsafeMutableRawPointer?, _ from: Int32, _ to: Int32,
+                             _ x: Int32, _ y: Int32, _ with_background: Bool) -> Int32 {
+  let len = to - from
+  let isComposite = glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()
+  var face: UnsafeMutableRawPointer?
+  var r = NSRect()
+  var font: UnsafeMutableRawPointer?
+  var col: NSColor?
+
+  block_input()
+
+  font = glyph_string_font(s)
+  if font == nil {
+    font = FRAME_FONT(glyph_string_f(s))
+  }
+
+  face = glyph_string_face(s)
+
+  r.origin.x = CGFloat(x)
+  r.origin.y = CGFloat(y)
+  r.size.height = CGFloat(FONT_HEIGHT(font))
+
+  return withUnsafeTemporaryAllocation(of: NSGlyph.self, capacity: max(Int(len), 1)) { buffer in
+    let c = buffer.baseAddress!
+
+    for i in 0..<Int(max(len, 0)) {
+      c[i] = glyph_string_char2b(s)![Int(from) + i]
+    }
+
+    /* Fill background if requested.  */
+    if with_background && !isComposite {
+      let br = NSRect(x: CGFloat(x),
+                      y: CGFloat(y) - CGFloat(FONT_BASE(glyph_string_font(s))),
+                      width: CGFloat(glyph_string_width(s)),
+                      height: CGFloat(FONT_HEIGHT(glyph_string_font(s))))
+      if glyph_string_hl(s) != DRAW_CURSOR() {
+        (NS_FACE_BACKGROUND(face) != 0
+         ? colorWithUnsignedLong(unsafeBitCast(NSColor.self,
+                                               to: UnsafeMutableRawPointer.self),
+                                 NS_FACE_BACKGROUND(face))
+         : FRAME_BACKGROUND_COLOR(glyph_string_f(s)))!.set()
+      } else {
+        FRAME_CURSOR_COLOR(glyph_string_f(s))!.set()
+      }
+      NSRectFill(br)
+    }
+
+    /* set up for character rendering */
+    if glyph_string_hl(s) == DRAW_CURSOR() {
+      col = FRAME_BACKGROUND_COLOR(glyph_string_f(s))
+    } else {
+      col = (NS_FACE_FOREGROUND(face) != 0
+             ? colorWithUnsignedLong(unsafeBitCast(NSColor.self,
+                                                   to: UnsafeMutableRawPointer.self),
+                                     NS_FACE_FOREGROUND(face))
+             : FRAME_FOREGROUND_COLOR(glyph_string_f(s)))
+    }
+
+    /* render under GNUstep using DPS */
+    do {
+      let context = NSGraphicsContext.current
+      let font_info = UnsafeMutableRawPointer(font!).assumingMemoryBound(to: nsfont_info.self)
+      Unmanaged<NSFont>.fromOpaque(font_info.pointee.nsfont!).takeUnretainedValue().set()
+      col!.set()
+      DPSmoveto(context, r.origin.x, r.origin.y)
+      GSShowGlyphs(context, c, Int(len))
+    }
+
+    unblock_input()
+    return to - from
+  }
+}
 
 /// C: `ns_font_shape` (src/nsfont.m 1214-1462).  `[textStorage setFont:]` is GNUstep's own
 /// `NSMutableAttributedString` extension, so it is a declared C-ABI entry like
@@ -2216,11 +2296,27 @@ fileprivate func ns_glyph_metrics(_ font_info: UnsafeMutablePointer<nsfont_info>
   unblock_input()
 }
 
-/// C: `ns_dump_glyphstring` (src/nsfont.m 1711-1723) - **deferred**: it reads
-/// `s->nchars`, `s->x`, `s->y`, `s->left_overhang`, `s->right_overhang`,
-/// `s->row->overlapping_p`, `s->background_filled_p` and `s->first_glyph[i].u.ch`, so it
-/// needs the same `struct glyph_string` (and, through `s->row`, `struct glyph_row`) that
-/// `nsfont_draw` does; see `docs/ports/nsfont.md`.
+/// C: `ns_dump_glyphstring` (src/nsfont.m 1710-1722) - the reference's debugging dumper,
+/// exported (declared src/nsterm.h 1118).  Readings: every `s->…` read is a `glyph_string_*`
+/// entry (the family `nsfont_draw` above declares), `s->row->overlapping_p` and
+/// `s->first_glyph[i].u.ch` are the two reads no earlier body needed (`glyph_row_overlapping_p`
+/// and the indexed `glyph_u_ch`, whose index lives in the entry because `struct glyph`'s stride
+/// is the core mirror's), C's two `%d` bit-field arguments take the 0/1 C's own promotion
+/// produces, and `fprintf`/`putc`/`stderr` are the standard streams (C 1180's reading).
+@_cdecl("ns_dump_glyphstring")
+func ns_dump_glyphstring(_ s: UnsafeMutableRawPointer?) {
+  fprintf(stderr,
+          "Glyph string len = %d at (%d, %d) overhang (%d, %d),overlap = %d, bg_filled = %d:",
+          glyph_string_nchars(s), glyph_string_x(s), glyph_string_y(s),
+          glyph_string_left_overhang(s), glyph_string_right_overhang(s),
+          glyph_row_overlapping_p(glyph_string_row(s)) ? Int32(1) : Int32(0),
+          glyph_string_background_filled_p(s) ? Int32(1) : Int32(0))
+  for i in 0..<Int(max(glyph_string_nchars(s), 0)) {
+    /* C's `putc (…)` result is discarded; Swift wants the discard spelled out.  */
+    _ = putc(Int32(glyph_u_ch(glyph_string_first_glyph(s), i)), stderr)
+  }
+  _ = putc(Int32(UInt8(ascii: "\n")), stderr)
+}
 
 /// C: `struct font_driver const nsfont_driver = { … };` (src/nsfont.m 1726-1742).  Swift cannot
 /// emit a C data symbol (`@_cdecl` refuses `var` and `@_silgen_name` on a `var` imports), so
@@ -2229,9 +2325,9 @@ fileprivate func ns_glyph_metrics(_ font_info: UnsafeMutablePointer<nsfont_info>
 /// src/nsfns.m 1316/3001 take the address of is a lane-level decision, the same one
 /// `docs/ports/nsselect.md`'s `## ABI` (3) item 3 records for PORTING.md P-31's five `S…`
 /// records.  The initialiser keeps C's order; the members C leaves unmentioned are zero, so
-/// `nil` is C's value for them.  `draw` is the one member whose C value is a function this
-/// half cannot carry (`nsfont_draw`, see `## Deferred`), so it is the one member to fill when
-/// that decision lands.
+/// `nil` is C's value for them.  `draw` was the one member this half could not carry while
+/// `nsfont_draw` was deferred; **round 83 lands it**, so C's `.draw = nsfont_draw` (C 1740) is
+/// the function reference below.
 fileprivate let nsfont_driver: UnsafeMutablePointer<font_driver> = {
   let p = UnsafeMutablePointer<font_driver>.allocate(capacity: 1)
 
@@ -2256,7 +2352,7 @@ fileprivate let nsfont_driver: UnsafeMutablePointer<font_driver> = {
       nsfont_text_extents(f?.assumingMemoryBound(to: font.self), code, n,
                           metrics?.assumingMemoryBound(to: font_metrics.self))
     },
-    draw: nil,
+    draw: nsfont_draw,
     get_bitmap: nil,
     free_bitmap: nil,
     anchor_point: nil,
@@ -2322,3 +2418,104 @@ fileprivate func syms_of_nsfont_for_pdumper() {
 func nsfont_driver_getter() -> UnsafeMutableRawPointer? {
   UnsafeMutableRawPointer(nsfont_driver)
 }
+
+// ==========================================================================
+// Round 83: the entries `nsfont_draw` and `ns_dump_glyphstring` need (`## ABI` (2f))
+// ==========================================================================
+
+/// C: `struct glyph_string`'s members the two bodies read - `s->first_glyph` and the glyph's
+/// `type` (C 1161), `s->font`/`s->f`/`s->face` (C 1165-1169), `s->width` (C 1182), `s->hl`
+/// (C 1183/1193), `s->char2b` (C 1176) and, for the dumper, `s->nchars`, `s->x`, `s->y`,
+/// `s->left_overhang`, `s->right_overhang`, `s->row` and `s->background_filled_p` (C 1716-1720).
+/// The record is the tree's opaque placeholder (`femacs/src/font.rs` 739, P-70), so each access
+/// is its own reader entry - the shape `nsterm.swift` 3578-5016 already spells, declared here
+/// as well because each unit spells what it reads.  **Open**: the core's to export.
+@_silgen_name("glyph_string_first_glyph")
+func glyph_string_first_glyph(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_type") func glyph_type(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_font")
+func glyph_string_font(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_f")
+func glyph_string_f(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_face")
+func glyph_string_face(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_width") func glyph_string_width(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_hl") func glyph_string_hl(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_char2b")
+func glyph_string_char2b(_ s: UnsafeMutableRawPointer?) -> UnsafePointer<UInt32>?
+@_silgen_name("glyph_string_nchars") func glyph_string_nchars(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_x") func glyph_string_x(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_y") func glyph_string_y(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_left_overhang")
+func glyph_string_left_overhang(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_right_overhang")
+func glyph_string_right_overhang(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_row")
+func glyph_string_row(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_background_filled_p")
+func glyph_string_background_filled_p(_ s: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `s->row->overlapping_p` (C 1718, the row's bit-field) and `s->first_glyph[i].u.ch`
+/// (C 1720, src/dispextern.h 593's `unsigned ch`) - the two reads no earlier body needed.
+/// `glyph_u_ch` takes the index because `struct glyph`'s stride belongs to the core's mirror
+/// (`femacs/src/include/dispextern.rs`), which this unit never sees.  **Open**: the core's to
+/// export.
+@_silgen_name("glyph_row_overlapping_p")
+func glyph_row_overlapping_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_u_ch") func glyph_u_ch(_ g: UnsafeMutableRawPointer?, _ i: Int) -> UInt32
+
+/// C: the enumerators the two bodies compare against - `COMPOSITE_GLYPH` (C 1161, `enum
+/// glyph_type`) and `DRAW_CURSOR` (C 1183/1187/1193, `enum draw_glyphs_face`, src/dispextern.h
+/// 1348).  **Open**: the core's to export.
+@_silgen_name("COMPOSITE_GLYPH") func COMPOSITE_GLYPH() -> Int32
+@_silgen_name("DRAW_CURSOR") func DRAW_CURSOR() -> Int32
+
+/// C: `#define FONT_HEIGHT(f) ((f)->height)` and `#define FONT_BASE(f) ((f)->ascent)`
+/// (src/font.h 244-245) - C 1173/1181/1182's four reads.  **Provided**: the core's
+/// (`macfont.swift` 745-746 imports the same two names).
+@_silgen_name("FONT_HEIGHT") func FONT_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FONT_BASE") func FONT_BASE(_ f: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `NS_FACE_BACKGROUND`/`NS_FACE_FOREGROUND` (src/nsterm.h 1031-1041) and the three frame
+/// colours (src/nsterm.h 1037-1038) - C 1184-1198's reads.  **Provided**: the port of
+/// src/nsterm.m owns the definitions (`macfont.swift` 752-757 imports the same names).
+@_silgen_name("NS_FACE_BACKGROUND")
+func NS_FACE_BACKGROUND(_ face: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("NS_FACE_FOREGROUND")
+func NS_FACE_FOREGROUND(_ face: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("FRAME_BACKGROUND_COLOR")
+func FRAME_BACKGROUND_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
+@_silgen_name("FRAME_CURSOR_COLOR")
+func FRAME_CURSOR_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
+@_silgen_name("FRAME_FOREGROUND_COLOR")
+func FRAME_FOREGROUND_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
+
+/// C: `#define FRAME_FONT(f) ((struct nsfont_info *) (f)->output_data.ns->font)` (src/nsterm.h)
+/// - C 1167's fallback read.  **Provided**: the port of src/nsterm.m owns the definition.
+@_silgen_name("FRAME_FONT")
+func FRAME_FONT(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `+[NSColor colorWithUnsignedLong: (unsigned long)]` (declared src/nsterm.h 361, defined
+/// src/nsterm.m 157, the `NSColor (EmacsColor)` category) - C 1185/1197's two calls, reached as
+/// the class-first entry `macfont.swift` 1321-1327 declares.  **Provided**: the port of
+/// src/nsterm.m owns the definition.
+@_silgen_name("colorWithUnsignedLong")
+func colorWithUnsignedLong(_ cls: UnsafeMutableRawPointer?, _ c: UInt) -> NSColor?
+
+/// C: `void NSRectFill (NSRect)` (AppKit's NSGraphics.h) - C 1189's fill.  **Provided**: the SDK
+/// (Swift marks the `NSRect*` C family unavailable, the `nsterm.swift` 3362 reading).
+@_silgen_name("NSRectFill") func NSRectFill(_ rect: NSRect)
+
+/// C: `int putc (int, FILE *)` (stdio.h) - C 1720/1721's two puts (`fprintf`/`stderr` are C
+/// 1180's declarations above).  **Provided**: libSystem.
+@_silgen_name("putc") func putc(_ c: Int32, _ stream: UnsafeMutablePointer<FILE>?) -> Int32
+
+/// C: `void DPSmoveto (NSGraphicsContext *ctxt, CGFloat x, CGFloat y)` and
+/// `void GSShowGlyphs (NSGraphicsContext *ctxt, const NSGlyph *glyphs, NSInteger count)`
+/// (GNUstep's NSGraphicsContext.h) - C 1205-1206's two calls.  **Open**: these are the two
+/// callees the file's `## Decisions` names as GNUstep-only - Apple's SDK has neither, so their
+/// definitions live in the GNUstep libraries (`## ABI` (2e)).
+@_silgen_name("DPSmoveto")
+func DPSmoveto(_ context: NSGraphicsContext?, _ x: CGFloat, _ y: CGFloat)
+@_silgen_name("GSShowGlyphs")
+func GSShowGlyphs(_ context: NSGraphicsContext?, _ glyphs: UnsafePointer<NSGlyph>?, _ count: Int)
