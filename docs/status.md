@@ -16793,3 +16793,32 @@
      **对象 `/tmp/nsterm76.o` 与两个 `/tmp/r76*.swift` 片段跑完即删**，无全盘/大内存扫描。
   ⑦ **未声称**：本轮**没有运行证据**——没有鼠标进入/离开视图、没有点过工具栏按钮、没有索要过图层；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.017 `src/nsterm.m` round 77（Swift lane）：copy/layout/draw 批落地（C 9340-9446，三个方法），round 8 的延迟入口收口（2026-10-08）**：
+  ① **落地三个 `EmacsView` 方法**：`copyRect:to:`（C 9340-9396，像素缓冲区的两种拷贝方向）、`layoutSublayersOfLayer:`
+     （C 9399-9428）、`drawRect:`（C 9431-9446）。台账勾 **3 个框**（勾 **411 → 414**、未勾 **19 → 16**；
+     缩进的方法盒子剩 **15**），`EmacsView` 类盒子同步改成"还剩 **15** 个方法盒子"。
+  ② **round 8 留下的提供者落地**：`@_cdecl("copyRect")`（`beginDrag` 那条读法），它的延迟入口 `copyRect_entry`
+     带着 C 2909 的 `[view copyRect:srcRect to:dest];` 调用点。
+  ③ **写进代码的读数**：C 9359 的 `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` 臂是本目标的，其中
+     `CGContextFlush`/`CGBitmapContextGet*` 是 SDK 自己的改名（`CGContext.flush ()` 与上下文自己的
+     `data`/`bytesPerRow`/`bitsPerPixel`——C 11224 那条读法），`NSIntersectsRect` 是 rect 自己的 `intersects`，
+     而 C 9387-9395 的 `#else` 臂（`hide_bell` + `ns_focus`/`scrollRect`/`ns_unfocus`）在本目标是**死的**——
+     `hide_bell` 正是覆盖门仍记作未落的六个名字之一（round 49 的记录）；C 9410 的 `layoutSublayersOfLayer:`
+     在 Swift 里**不是** `override`（`CALayerDelegate` 的方法只经 C 9295 那条动态 `setDelegate:` 到达，类尚未声明协议表），
+     C 9400-9409 的注释保留；C 9436 的守卫落成两个测试，四个 rect 访问器写出 C 的隐式 `int` 转换。
+  ④ **本轮新增 5 个入口**：`redisplaying_p`（**已提供**，`femacs/src/dispnew.rs` 7434）、`frame_garbaged_p`
+     （**open**，镜像的宏）、`waiting_for_input` 的读（**已提供**——写侧同族，`femacs/src/abi_shim.rs` 1092；
+     `nsmenu.swift` 406 为它自己那一侧声明了同名入口）与 `redisplay`（**已提供**，`femacs/src/abi_shim.rs` 246）。
+  ⑤ **首跑四处编译错误、一处读数**：`(self.layer as? EmacsLayer)?.getContext()!` 仍留可选（`!` 落在可选链**内部**），
+     所以 C 9360 的假定写成 `(self.layer as? EmacsLayer)!.getContext()!`——round 72 那条强解包读法。
+  ⑥ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 76 的九条逐条相同）；对象
+     `/tmp/nsterm77.o` **1,351,936 字节**、md5 `6a5c638c380ff0351d158ec4ee6a39a0`；单元 **14,751 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **703** C symbol import(s)`
+     （round 76 是 698），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**；`check-citations` **676 / 0 drift /
+     0 range / 2,416 external / 36 allowed / 0 stale**。
+  ⑦ **预算与清理**：本片编译 **2 发**（首跑 4 错、修后 1 发即过，都是单文件 `swiftc -c`，各约 2 秒）；另用 **5 组只读 grep**
+     钉准入口名与提供者状态（含一次逐文件扫描 `#[unsafe(no_mangle)]` 的探针）；**对象 `/tmp/nsterm77.o` 与两个
+     `/tmp/r77*.swift` 片段跑完即删**，无全盘/大内存扫描。
+  ⑧ **未声称**：本轮**没有运行证据**——没有拷贝过任何矩形、没有做过图层布局、没有绘制过视图；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。

@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) round 73 the class prologue and the font panel (C 7041-7235) and round 74 `keyDown:` (C 7243-7427) and round 75 the fullscreen trio (C 9017-9200) and round 76 the mouse/toolbar/layer batch (C 9202-9336) - **18 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) round 73 the class prologue and the font panel (C 7041-7235) and round 74 `keyDown:` (C 7243-7427) and round 75 the fullscreen trio (C 9017-9200) and round 76 the mouse/toolbar/layer batch (C 9202-9336) and round 77 the copy/layout/draw batch (C 9340-9446) - **15 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
   - [x] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041) — landed as `@objc func windowDidEndLiveResize (_:)`; C's body is the forward to `updateFramePosition`
   - [x] `- (void) setWindowClosing: (BOOL)closing`  (line 7047) — landed as `@objc func setWindowClosing (_:)`: C's one statement assigns the ivar the class keeps as `windowClosing` (Swift's stored property is not Objective-C visible, which leaves the selector free)
   - [x] `- (void)dealloc`  (line 7055) — landed as `deinit`: the three `release` calls are the references ARC drops (C 7066's `nonfs_window`, C 7071's layer, C 7074's menu), `[super dealloc]` has no Swift statement, and C 7068-7072's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's
@@ -385,9 +385,9 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)lockFocus`  (line 9301) — landed as `@objc override func lockFocus ()` - one of the two deprecated `NSView` methods this class overrides (the reason the unit's warning baseline names `lockFocus()`); C 9305's `getContext` is `EmacsLayer`'s own method
   - [x] `- (void)unlockFocus`  (line 9314) — landed as `@objc override func unlockFocus ()`; C 9318-9319's two statements are the nil context and the display request
   - [x] `- (void)windowDidChangeBackingProperties:(NSNotification *)notification`  (line 9323) — landed as `@objc func windowDidChangeBackingProperties (_:)`: C 9331/9332's layer writes are `EmacsLayer`'s `contentsScale`/`setColorSpace`, and C 9334/9335's two calls are `ns_clear_frame` (this unit's own) and the new `expose_frame` entry
-  - [ ] `- (void)copyRect:(NSRect)srcRect to:(NSPoint)dest`  (line 9340)
-  - [ ] `- (void)layoutSublayersOfLayer:(CALayer *)layer`  (line 9410)
-  - [ ] `- (void)drawRect: (NSRect)rect`  (line 9431)
+  - [x] `- (void)copyRect:(NSRect)srcRect to:(NSPoint)dest`  (line 9340) — landed as `@objc func copyRect (_:to:)` (C mutates both parameters, so the port shadows them): C 9359's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's and its `CGContextFlush`/`CGBitmapContextGet*` are the SDK's own renames (`CGContext.flush()` and the context's `data`/`bytesPerRow`/`bitsPerPixel`), `NSIntersectsRect` is the rect's `intersects`, and C 9387-9395's `#else` arm (`hide_bell` + `ns_focus`/`scrollRect`/`ns_unfocus`) is **dead** on this target (`hide_bell` is one of the six unported names the coverage gate counts); this round also lands the `@_cdecl("copyRect")` provider round 8's deferred entry waited for (C 2909's call site)
+  - [x] `- (void)layoutSublayersOfLayer:(CALayer *)layer`  (line 9410) — landed as `@objc func layoutSublayers (of:)` (**not** an `override`: `CALayerDelegate`'s method is only reached through C 9295's dynamic `setDelegate:` send, since the class declares no protocol list yet): the `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's with C 9400-9409's comment kept, and `redisplaying_p`/`FRAME_GARBAGED_P`/`waiting_for_input`/`redisplay` are the new entries
+  - [x] `- (void)drawRect: (NSRect)rect`  (line 9431) — landed as `@objc override func draw (_:)`: C 9436's guard reads as the two tests (the `frame_output_data_ns` member), the four `NSMin*`/`NSWidth`/`NSHeight` are the rect's accessors with C's implicit `int` conversions written out, and C 9442's call is this unit's own `ns_clear_frame_area`
   - [ ] `-(NSDragOperation) draggingEntered: (id <NSDraggingInfo>) sender`  (line 9452)
   - [ ] `-(BOOL) prepareForDragOperation: (id <NSDraggingInfo>) sender`  (line 9468)
   - [ ] `- (BOOL) wantsPeriodicDraggingUpdates`  (line 9481)
@@ -4894,3 +4894,39 @@ call site takes an entry and the definition lands at its own C line - and **both
   landed`**.
 * **Not claimed**: no runtime evidence - no mouse entered or left the view, no toolbar button was
   clicked and no layer was asked for; the compile gate reaches type checking only.
+
+### Round 77: the copy/layout/draw batch (C 9340-9446), and the provider round 8 left waiting
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the same nine round 76 leaves.  The first run had **four errors**, all one
+  reading: `(self.layer as? EmacsLayer)?.getContext()!` leaves the label optional (the `!` binds
+  inside the optional chain), so C 9360's assumption is written as
+  `(self.layer as? EmacsLayer)!.getContext()!` - the round-72 force-unwrap reading.  Object
+  `/tmp/nsterm77.o`, **1,351,936 bytes**, md5 `6a5c638c380ff0351d158ec4ee6a39a0`.  The unit is
+  **14,751 lines**.
+* **Three `EmacsView` methods land**: `copyRect:to:` (C 9340-9396), `layoutSublayersOfLayer:`
+  (C 9399-9428) and `drawRect:` (C 9431-9446).  The class box's own count moves to **15 method
+  boxes remaining**.
+* **The provider round 8 left waiting lands**: `@_cdecl("copyRect")` (the `beginDrag` reading),
+  whose deferred entry `copyRect_entry` carries C 2909's `[view copyRect:srcRect to:dest];`.
+* **Readings written into the code**: C 9359's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is
+  this target's, and inside it `CGContextFlush`/`CGBitmapContextGet*` are the SDK's own renames
+  (`CGContext.flush ()` and the context's `data`/`bytesPerRow`/`bitsPerPixel` properties - the
+  C 11224 reading), `NSIntersectsRect` is the rect's `intersects`, and C 9387-9395's `#else` arm
+  (`hide_bell` + `ns_focus`/`scrollRect`/`ns_unfocus`) is **dead** on this target - `hide_bell`
+  being one of the six names the coverage gate still counts as unported (round 49's record);
+  C 9410's `layoutSublayersOfLayer:` is **not** an `override` in Swift, because `CALayerDelegate`'s
+  method is only reached through C 9295's dynamic `setDelegate:` send (the class declares no
+  protocol list yet), and C 9400-9409's comment is kept; and C 9436's guard reads as the two tests
+  with C's implicit `int` conversions written out for the four rect accessors.
+* **The ABI block adds five entries**: `redisplaying_p` (**provided**, `femacs/src/dispnew.rs`
+  7434), `frame_garbaged_p` (**open**, the mirror's macro), the `waiting_for_input` read
+  (**provided** by the write-half's shim family, `femacs/src/abi_shim.rs` 1092; `nsmenu.swift` 406
+  declares the same entry for its own unit) and `redisplay` (**provided**,
+  `femacs/src/abi_shim.rs` 246).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **703** C symbol imports (round 76 read 698) and **`0 new, 0 stale, 7 Swift unit(s)
+  landed`**; `check-citations` reads **676 / 0 drift / 0 range / 2,416 external / 36 allowed /
+  0 stale**.
+* **Not claimed**: no runtime evidence - no rect was copied, no layer laid out and no view was
+  drawn; the compile gate reaches type checking only.

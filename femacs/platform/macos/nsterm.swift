@@ -8789,6 +8789,110 @@ class EmacsView: NSView {
                  Int32(frame.width), Int32(frame.height))        // C 9335
   }
 
+  /// C 9340-9396: `- (void)copyRect:(NSRect)srcRect to:(NSPoint)dest`.  C mutates both parameters,
+  /// so the port shadows them; C 9359's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this
+  /// target's, whose `CGContextFlush`/`CGBitmapContextGet*` are the SDK's own renames
+  /// (`CGContext.flush ()` and the context's `data`/`bytesPerRow`/`bitsPerPixel` properties - the
+  /// C 11224 reading); `NSIntersectsRect` is the rect's `intersects`; and C 9387-9395's `#else` arm
+  /// (`hide_bell` + `ns_focus`/`scrollRect`/`ns_unfocus`) is **dead** on this target - `hide_bell`
+  /// being one of the six names the coverage gate still counts as unported (round 49's record).
+  /// This is the method round 8's deferred entry waited for.
+  @objc func copyRect(_ srcRect: NSRect, to dest: NSPoint) {
+    var srcRect = srcRect                                       // C 9352-9353 mutate it
+    var dest = dest                                             // C 9351 mutates it
+
+    // C 9342-9344: the three `NSTRACE*` calls - empty at `NSTRACE_ENABLED` 0.
+
+    /* C 9346-9347: "If the destination is off the top of the pixel buffer, fix the source and
+       destination to copy only to y = 0."  */
+    if dest.y < 0 {                                             // C 9348
+      let d = dest.y                                            // C 9350
+      dest.y = 0                                                // C 9351
+      srcRect.origin.y -= d                                     // C 9352
+      srcRect.size.height += d                                  // C 9353
+    }
+
+    let dstRect = NSRect(x: dest.x, y: dest.y,                  // C 9356-9357
+                         width: srcRect.width, height: srcRect.height)
+
+    let context = (self.layer as? EmacsLayer)!.getContext()!    // C 9360
+    context.flush()                                             // C 9361 (`CGContextFlush`)
+
+    let scale = self.window!.backingScaleFactor                  // C 9363
+    let bpp = context.bitsPerPixel / 8                           // C 9364
+    let pixels = context.data!                                   // C 9365
+    let rowSize = context.bytesPerRow                            // C 9366
+    let srcRowSize = Int(srcRect.width * scale) * bpp            // C 9367
+    let srcPixels = pixels
+      + Int((srcRect.minY * scale) * CGFloat(rowSize)
+            + srcRect.minX * scale * CGFloat(bpp))               // C 9368-9370
+    let dstPixels = pixels
+      + Int((dest.y * scale) * CGFloat(rowSize)
+            + dest.x * scale * CGFloat(bpp))                     // C 9371-9373
+
+    if srcRect.intersects(dstRect)
+         && srcRect.minY < dstRect.minY {                        // C 9375-9376
+      var y = Int(srcRect.height * scale) - 1                    // C 9377
+      while y >= 0 {
+        memmove(dstPixels + y * rowSize, srcPixels + y * rowSize, srcRowSize)   // C 9378-9380
+        y -= 1
+      }
+    } else {
+      var y = 0                                                  // C 9382
+      while y < Int(srcRect.height * scale) {
+        memmove(dstPixels + y * rowSize, srcPixels + y * rowSize, srcRowSize)   // C 9383-9385
+        y += 1
+      }
+    }
+    /* C 9387-9395: the dead `#else` arm (see the note above).  */
+  }
+
+  /// C 9399-9428: `- (void)layoutSublayersOfLayer: (CALayer *)layer` - the
+  /// `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm (this target's), with C 9400-9409's comment
+  /// kept.  It is not an `override` in Swift: `CALayerDelegate`'s method is only reached through
+  /// the dynamic `setDelegate:` C 9295 sends, and this class declares no protocol list yet.
+  /// `redisplaying_p`, `FRAME_GARBAGED_P`, `waiting_for_input` and `redisplay` are this round's
+  /// entries.
+  @objc func layoutSublayers(of layer: CALayer) {
+    if !redisplaying_p() && frame_garbaged_p(emacsframe) {      // C 9412
+      /* C 9414-9418: "If there is IO going on when redisplay is run here Emacs crashes.  I think
+         it's because this code will always be run within the run loop and for whatever reason
+         processing input is dangerous.  This technique was stolen wholesale from nsmenu.m and
+         seems to work."  */
+      let owfi = waiting_for_input_get()                        // C 9419
+      waiting_for_input_set(false)                              // C 9420
+      block_input()                                             // C 9421
+
+      redisplay()                                               // C 9423
+
+      unblock_input()                                           // C 9425
+      waiting_for_input_set(owfi)                               // C 9426
+    }
+  }
+
+  /// C 9431-9446: `- (void)drawRect: (NSRect)rect`.  C 9436's
+  /// `!emacsframe || !emacsframe->output_data.ns` guard reads as the two tests (the
+  /// `frame_output_data_ns` member entry), the four `NSMin*`/`NSWidth`/`NSHeight` are the rect's
+  /// accessors with C's implicit `int` conversions written out, and C 9442's call is this unit's
+  /// own `ns_clear_frame_area`.
+  @objc override func draw(_ rect: NSRect) {
+    // C 9433-9434: the `NSTRACE` call - empty.
+
+    if emacsframe == nil || frame_output_data_ns(emacsframe) == nil {   // C 9436
+      return                                                    // C 9437
+    }
+
+    let x = Int32(rect.minX)                                    // C 9439
+    let y = Int32(rect.minY)
+    let width = Int32(rect.width)                               // C 9440
+    let height = Int32(rect.height)
+
+    ns_clear_frame_area(emacsframe, x, y, width, height)        // C 9442
+    block_input()                                               // C 9443
+    expose_frame(emacsframe, x, y, width, height)               // C 9444
+    unblock_input()                                             // C 9445
+  }
+
   /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
   func fsIsNative() -> Bool {
     fs_is_native                                      // C 8954
@@ -14607,3 +14711,41 @@ fileprivate let TOOL_BAR_ITEM_NSLOTS: Int32 = 12
 /// The macro's own expression is kept (the `SCROLL_BAR_*` reading of a literal macro), typed the
 /// way C's `unsigned code` field uses it.
 fileprivate let KEY_NS_TOGGLE_TOOLBAR: UInt32 = UInt32((1 << 28) | (0 << 16) | 13)
+
+// ==========================================================================
+// Round 77: the entries the copy/layout/draw batch needs, and the provider it closes
+// ==========================================================================
+
+/// C: `bool redisplaying_p` (declared as an `extern` in the units that read it, defined
+/// src/xdisp.c) - C 9412's read.  Provided: `femacs/src/dispnew.rs` 7434 (`#[unsafe(no_mangle)]`;
+/// `femacs/src/xdisp.rs` 2748 declares it too).
+@_silgen_name("redisplaying_p") func redisplaying_p() -> Bool
+
+/// C: `#define FRAME_GARBAGED_P(f) (f)->garbaged` (src/frame.h 1177) - C 9412's test.  **Open**:
+/// the mirror carries the bit as a Rust macro (`femacs/src/term.rs`'s `frame_garbaged_p!`, the
+/// `frame_mouse_moved` reading), which has no C symbol yet.
+@_silgen_name("frame_garbaged_p")
+func frame_garbaged_p(_ f: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `#define waiting_for_input (current_thread->m_waiting_for_input)` (src/thread.h 185) -
+/// C 9419's read, the twin of the write entry C 9420 uses
+/// (`set_waiting_for_input_flag`, `femacs/src/abi_shim.rs` 1092).  The read's entry is the one
+/// `nsmenu.swift` 406 declares for its own unit (`waiting_for_input_get`, whose shim comment names
+/// this very C read); this unit declares its own copy of that entry, the section's rule.
+@_silgen_name("waiting_for_input") func waiting_for_input_get() -> Bool
+@_silgen_name("set_waiting_for_input_flag") func waiting_for_input_set(_ v: Bool)
+
+/// C: `void redisplay (void)` (declared src/dispextern.h 3719, defined src/xdisp.c) - C 9423's
+/// call.  Provided: `femacs/src/abi_shim.rs` 246.
+@_silgen_name("redisplay") func redisplay()
+
+// ==========================================================================
+// Round 77: the provider round 8 left waiting
+// ==========================================================================
+
+/// The C-ABI half of `copyRect:to:` above (the `beginDrag` reading): round 8 landed the deferred
+/// entry `copyRect_entry` with C 2909's call site, and this round lands the method.
+@_cdecl("copyRect")
+func copyRect_definition(_ view: NSView?, _ srcRect: NSRect, _ dest: NSPoint) {
+  (view as? EmacsView)?.copyRect(srcRect, to: dest)
+}
