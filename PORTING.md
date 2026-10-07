@@ -530,6 +530,31 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     **未声称**：门报 0 forbidden 只证明这两行字不在本仓库的注释里（引文仍是 C 的句子，只有名字换了占位符），
     不证明参照没这样写过；第八半点名的另外四处（`src/w32term.c` 7834、`src/androidterm.c` 6838、
     `src/haikuterm.c` 4536-4547、`src/android-emacs.c` 的 `app_process` 类名）**仍未落库**，仍欠各自的 lane。
+    这条规则现在有第二十七半（2026-10-07，status 3.931）：**照抄树里"程序装进系统之后，系统拿什么名字称呼它"这一面此前从未被读过**。
+    前二十六半的入口一直是"哪一句还说自己是参照产品"，逐面推的顺序是文件头 → 注释 → 复述 → 工具写出的身份行 → 程序的自我声明 →
+    工具/探针/CI → 程序向外报出的身份 → 默认显示名 → 照抄树里程序打印/写出的名字 → 照抄树里"文件自称属于参照产品"的那句话 →
+    那句话的其它拼法 → 移植单元注释里的片段 → 平台面与工具面的裸名。**这些面读的都是"程序运行时打印什么"，没有一个读"程序安装后注册成什么"**：
+    AppStream 元数据的 `<name>`、启动器入口的 `Comment=`、Windows 卸载列表里的 `DisplayName`、splash 图像自己的描述——它们是
+    安装器/软件中心/文件管理器拿去向用户介绍本程序的那句，主语是本程序（第五、第八、第九半把同一族的 C 侧落点 `PACKAGE_NAME`、
+    `AppUserModelID`、快捷方式描述、`PACKAGE_BUGREPORT` 改成过本仓库自己的名字），而它们全在逐字节照抄的六棵树里，离第十半那份 24 行的清单最近。
+    字形仍是第十半的**机械替换**：只换产品名那一个 token，其余字符一个都不动，逐行记进 `docs/baseline/verbatim-substitutions.tsv`
+    （**7,188 → 7,197 行**，本半新增 9 行）。**9 行 / 7 个文件**：`etc/emacs.metainfo.xml` 6（`<name>`）、11 与 15（组件自己的描述两行）、
+    `etc/emacs-mail.desktop` 3 与 `etc/emacsclient-mail.desktop` 3（`Comment=`）、`etc/images/splash.svg` 85（`dc:description`）、
+    `lisp/mail/emacsbug.el` 212（`report-emacs-bug` 的 docstring——本程序叫用户把缺陷报给**它自己**）与它在 `lisp/ldefs-boot.el`
+    10702 的**生成副本**（两处必须同步）、`admin/nt/dist-build/emacs.nsi` 77（安装程序写进 Windows 卸载项的 `DisplayName`）。
+    读数：`python3 tools/check-verbatim.py` **`6 trees, 4604 files, 7196 → 7197 sanctioned line(s), 0 failures`**、`--selftest` **7 例 / 0 失败**；
+    **三处真树变异**各 1 处失败（把 metainfo 6 改回参照 ⇒ 报"行是 ` <name>…</name>`，表里写的是 ` <name>femacs</name>`"（**本文档不重复写出那个字面量**，与第八、第十、第十一半同一写法）；把 emacsbug 212
+    改成第三种文本 ⇒ 报"行是 …，表里写的是 …"；把行与表同时改成参照的原文 ⇒ 报"该行已与参照相同（行过时）"）；两个 XML 与两个 `.desktop`
+    用本机解析器读完（XML well-formed；`[Desktop Entry]` 头在、键数 9 与 15）；两个改动的 elisp 用**参照自己的 reader** 读：
+    `emacsbug.el` 30 个 form、`report-emacs-bug` 的 docstring 首行是 `"Report a bug in femacs."`，`ldefs-boot.el` 里那条 `(autoload …)`
+    的 docstring 同样是 `"Report a bug in femacs.`（**直接读那一个 form**；全文件 5,424 个 form 的循环读法在这个文件上与它不等价，本半不引用那一条读数）。
+    **按判据不动、逐类点名计数**（判据不变：这句话说的是谁）：⑴ 参考卡片与教程（`etc/refcards/*` 77 行、`etc/tutorials/*` 57 行）与手册
+    （`doc/` 853 行）里的文档名与正文——句子说的是**那份文档**；⑵ `ChangeLog*`/`NEWS*`/`HISTORY` 一族 288 行——历史引用；
+    ⑶ `admin/nt/dist-build/build-zips.sh` 151 与 `admin/quick-install-emacs` 178 各一行——它们是**解析参照 `configure.ac` 的 `AC_INIT` 行**的 sed，改模式等于改行为；
+    ⑷ `admin/admin.el` 85/822/925 与 `etc/NEWS`——**发布记录**（公告与 NEWS 标题那一类，第十半 ⑶ 的理由不变）；
+    ⑸ `test/` 2,623 行——goal 第 5 条与验收第 5 条的保护（第十四半的 `forbidden-tree` 类）；⑹ **裸 `Emacs`** 这一族（六个照抄树 **23,977 行**）
+    仍按第十半 ⑴ 留给用户裁决，本半只作读数、一行不动；⑺ `etc/images/splash.png` 的 tEXt `Description`（与上面那行 SVG 是同一句）与 SVG 不同：
+    **二进制资产没有"行"**——`tools/check-verbatim.py` 的行表按 `\n` 切分、按 UTF-8 文本比对，所以这一处无法用行登记收口，本半点名它、不改它。
 
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike

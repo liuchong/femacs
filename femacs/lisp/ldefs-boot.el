@@ -10699,7 +10699,7 @@ or penultimate step during initialization.
 ;;; Generated autoloads from mail/emacsbug.el
 
 (autoload 'report-emacs-bug "emacsbug"
-"Report a bug in GNU Emacs.
+"Report a bug in femacs.
 Prompts for bug subject.  Leaves you in a mail buffer.
 
 Already submitted bugs can be found in the Emacs bug tracker:

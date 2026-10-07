@@ -82,7 +82,7 @@
             <dc:title>GPL</dc:title>
           </cc:Agent>
         </dc:rights>
-        <dc:description>GNU Emacs splash image</dc:description>
+        <dc:description>femacs splash image</dc:description>
         <dc:contributor>
           <cc:Agent>
             <dc:title>Based on the original work by Luis Fernandes.</dc:title>
