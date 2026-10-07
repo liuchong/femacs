@@ -13789,3 +13789,231 @@ DEFUN! ("x-select-font", Fx_select_font, Sx_select_font, 0, 2, 0,              /
   return unbind_to (count, font);                                             // C 9783
 });
 
+
+/* ==============================================================================================
+   C 9787-9893: `#endif /* USE_GTK */` (C 9787), the `Keyboard` banner (C 9790-9792), C 9794's
+   `#ifdef HAVE_XKB` pair of includes, `x-backspace-delete-keys-p` (C 9799-9874) and
+   `x-get-modifier-masks` (C 9876-9893), which stands between it and the `Printing` banner
+   (C 9895-9898).
+
+   The XKB surface C 9799 reads is `<X11/XKBlib.h>`'s (C 9795), whose records
+   `include/xterm.rs` 708-711 deliberately leaves as `*mut c_void` (`xkb_desc`), so the three
+   records C 9809/9846-9859 names stand at their use site - **measured on this machine's
+   xorgproto headers** (`X11/extensions/XKBstr.h` with `XKB.h`'s three sizes), the
+   `docs/ports/xfns.md` Evidence ② reading.  The `have_xkb` feature is the tree's registered
+   spelling of C's `HAVE_XKB` (`src/xterm.rs` 1498/1501, 20818).  */
+
+/* C: X11/extensions/XKBstr.h 404-406: `typedef struct _XkbKeyNameRec { char
+   name[XkbKeyNameLength] _X_NONSTRING; } XkbKeyNameRec, *XkbKeyNamePtr;` with XKB.h 564's
+   `#define XkbKeyNameLength 4` - C 9857/9859's `keys[i].name`; measured: `sizeof` **4**,
+   `name`@0.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XkbKeyNameRec
+{
+  pub name: [c_char; 4],      // C: char name[XkbKeyNameLength];
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+pub type XkbKeyNamePtr = *mut XkbKeyNameRec;
+
+/* C: X11/extensions/XKBstr.h 416-437: `typedef struct _XkbNamesRec { Atom keycodes; Atom
+   geometry; Atom symbols; Atom types; Atom compat; Atom vmods[XkbNumVirtualMods]; Atom
+   indicators[XkbNumIndicators]; Atom groups[XkbNumKbdGroups]; XkbKeyNamePtr keys; XkbKeyAliasPtr
+   key_aliases; Atom *radio_groups; Atom phys_symbols; unsigned char num_keys; unsigned char
+   num_key_aliases; unsigned short num_rg; } XkbNamesRec, *XkbNamesPtr;` with XKB.h 555/556/348's
+   16, 32 and 4 - C 9846-9859 read `keys` only; measured: `sizeof` **496**, `keycodes`@0,
+   `keys`@456.  `key_aliases`' pointee is not read by this unit, so its pointer stands as
+   `*mut c_void` (the layout is a pointer either way).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XkbNamesRec
+{
+  pub keycodes: Atom,                     // C: Atom keycodes;
+  pub geometry: Atom,
+  pub symbols: Atom,
+  pub types: Atom,
+  pub compat: Atom,
+  pub vmods: [Atom; 16],                  // C: Atom vmods[XkbNumVirtualMods];
+  pub indicators: [Atom; 32],             // C: Atom indicators[XkbNumIndicators];
+  pub groups: [Atom; 4],                  // C: Atom groups[XkbNumKbdGroups];
+  pub keys: XkbKeyNamePtr,                // C: XkbKeyNamePtr keys;
+  pub key_aliases: *mut c_void,           // C: XkbKeyAliasPtr key_aliases;
+  pub radio_groups: *mut Atom,            // C: Atom *radio_groups;
+  pub phys_symbols: Atom,                 // C: Atom phys_symbols;
+  pub num_keys: c_uchar,                  // C: unsigned char num_keys;
+  pub num_key_aliases: c_uchar,
+  pub num_rg: c_ushort,                   // C: unsigned short num_rg;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+pub type XkbNamesPtr = *mut XkbNamesRec;
+
+/* C: X11/extensions/XKBstr.h 444-457: `typedef struct _XkbDesc { struct _XDisplay *dpy;
+   unsigned short flags; unsigned short device_spec; KeyCode min_key_code; KeyCode
+   max_key_code; XkbControlsPtr ctrls; XkbServerMapPtr server; XkbClientMapPtr map;
+   XkbIndicatorPtr indicators; XkbNamesPtr names; XkbCompatMapPtr compat; XkbGeometryPtr geom; }
+   XkbDescRec, *XkbDescPtr;` - C 9809/9846-9865 read `min_key_code`, `max_key_code` and `names`;
+   measured: `sizeof` **72**, `dpy`@0, `flags`@8, `device_spec`@10, `min_key_code`@12,
+   `max_key_code`@13, `names`@48.  The five records between `max_key_code` and `geom` are not
+   read by this unit, so their pointers stand as `*mut c_void`.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XkbDescRec
+{
+  pub dpy: *mut Display,                  // C: struct _XDisplay *dpy;
+  pub flags: c_ushort,                    // C: unsigned short flags;
+  pub device_spec: c_ushort,
+  pub min_key_code: KeyCode,              // C: KeyCode min_key_code;
+  pub max_key_code: KeyCode,
+  pub ctrls: *mut c_void,                 // C: XkbControlsPtr ctrls;
+  pub server: *mut c_void,
+  pub map: *mut c_void,
+  pub indicators: *mut c_void,
+  pub names: XkbNamesPtr,                 // C: XkbNamesPtr names;
+  pub compat: *mut c_void,
+  pub geom: *mut c_void,
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+pub type XkbDescPtr = *mut XkbDescRec;
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+const _: () = {
+  core::assert! (core::mem::size_of::<XkbKeyNameRec> () == 4);
+  core::assert! (core::mem::offset_of! (XkbKeyNameRec, name) == 0);
+  core::assert! (core::mem::size_of::<XkbNamesRec> () == 496);
+  core::assert! (core::mem::offset_of! (XkbNamesRec, keys) == 456);
+  core::assert! (core::mem::size_of::<XkbDescRec> () == 72);
+  core::assert! (core::mem::offset_of! (XkbDescRec, dpy) == 0);
+  core::assert! (core::mem::offset_of! (XkbDescRec, flags) == 8);
+  core::assert! (core::mem::offset_of! (XkbDescRec, device_spec) == 10);
+  core::assert! (core::mem::offset_of! (XkbDescRec, min_key_code) == 12);
+  core::assert! (core::mem::offset_of! (XkbDescRec, max_key_code) == 13);
+  core::assert! (core::mem::offset_of! (XkbDescRec, names) == 48);
+};
+
+/* C: `<X11/keysymdef.h>`: the two keysyms C 9864-9865 pass `XKeysymToKeycode`, measured on this
+   machine's header.  */
+/// C: X11/keysymdef.h 200: `#define XK_BackSpace 0xff08`
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+pub const XK_BackSpace: KeySym = 0xff08;
+/// C: X11/keysymdef.h 209: `#define XK_Delete 0xffff`
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+pub const XK_Delete: KeySym = 0xffff;
+
+/* C: `<X11/Xlib.h>`: `extern KeyCode XKeysymToKeycode (Display *, KeySym);` - C 9864-9865's two
+   calls; the mirror carries no row for it.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb"))]
+unsafe extern "C" {
+  pub fn XKeysymToKeycode (display: *mut Display, keysym: KeySym) -> KeyCode;   // Xlib.h 1687
+}
+
+/* C: `xterm.h` 1969: `extern Lisp_Object x_get_keyboard_modifiers (struct x_display_info *);` -
+   C 9892's call; `src/xterm.c` 32643 defines it and no mirror carries the row (P-55/P-72 rule 3).
+   */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_get_keyboard_modifiers (dpyinfo: *mut x_display_info) -> Lisp_Object;   // xterm.h 1969
+}
+
+
+/* C 9799-9874.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-backspace-delete-keys-p", Fx_backspace_delete_keys_p,
+	Sx_backspace_delete_keys_p, 0, 1, 0,                                   // C 9799-9800
+	doc: "Check if both Backspace and Delete keys are on the keyboard of FRAME.\nFRAME nil means use the selected frame.\nValue is t if we know that both keys are present, and are mapped to the\nusual X keysyms.  Value is `lambda' if we cannot determine if both keys are\npresent and mapped to the usual X keysyms.",  // C 9801-9805
+	(frame: Lisp_Object),                                                  // C 9806
+	{
+  /* C 9808-9814's `#ifdef HAVE_XKB` declarations and C 9816-9873's `#ifndef HAVE_XKB` / `#else`
+     pair as two cfg blocks, in C's own order (the `HAVE_XDBE` device of slice 38).  */
+  #[cfg (not (feature = "have_xkb"))]                                      // C 9816-9817
+  {
+    return Qlambda ();                                                     // C 9817
+  }
+  #[cfg (feature = "have_xkb")]                                            // C 9808-9814, C 9818-9873
+  {
+    let kb: XkbDescPtr;                                                    // C 9809
+    let f: *mut frame;                                                     // C 9810
+    let dpy: *mut Display;                                                 // C 9811
+    let mut have_keys: Lisp_Object;                                        // C 9812
+    let mut delete_keycode: c_int;                                         // C 9813
+    let mut backspace_keycode: c_int;
+    let mut i: c_int;
+
+    delete_keycode = 0;                                                    // C 9819
+    backspace_keycode = 0;                                                 // C 9820
+    f = decode_window_system_frame (frame);                                // C 9821
+    dpy = FRAME_X_DISPLAY! (f);                                            // C 9822
+
+    if !(*FRAME_DISPLAY_INFO! (f)).supports_xkb                            // C 9824
+      { return Qlambda (); }                                               // C 9825
+
+    block_input ();                                                        // C 9827
+
+    /* In this code we check that the keyboard has physical keys with names
+       that start with BKSP (Backspace) and DELE (Delete), and that they
+       generate keysym XK_BackSpace and XK_Delete respectively.
+       This function is used to test if normal-erase-is-backspace should be
+       turned on.
+       An alternative approach would be to just check if XK_BackSpace and
+       XK_Delete are mapped to any key.  But if any of those are mapped to
+       some non-intuitive key combination (Meta-Shift-Ctrl-whatever) and the
+       user doesn't know about it, it is better to return false here.
+       It is more obvious to the user what to do if there are two keys
+       clearly marked with names/symbols and one key does something not
+       expected (and the user then tries the other).
+       The cases where Backspace/Delete is mapped to some other key combination
+       are rare, and in those cases, normal-erase-is-backspace can be turned on
+       manually.  */                                                      // C 9829-9843
+
+    have_keys = Qnil ();                                                   // C 9845
+    /* C 9846's `FRAME_DISPLAY_INFO (f)->xkb_desc` is the mirror's `*mut c_void` row, so the
+       assignment states the cast C's typedef gives it for free.  */
+    kb = (*FRAME_DISPLAY_INFO! (f)).xkb_desc as XkbDescPtr;
+    if !kb.is_null () && !(*kb).names.is_null ()                           // C 9847
+      {
+	i = (*kb).min_key_code as c_int;                                   // C 9849
+	while i < (*kb).max_key_code as c_int
+	    && (delete_keycode == 0 || backspace_keycode == 0)             // C 9849-9851
+	  {
+	    /* The XKB symbolic key names can be seen most easily in
+	       the PS file generated by `xkbprint -label name
+	       $DISPLAY'.  */                                              // C 9854-9856
+	    if memcmp (c"DELE".as_ptr () as *const c_void,
+		       (*((*(*kb).names).keys.offset (i as isize))).name.as_ptr ()
+		       as *const c_void, 4) == 0                           // C 9857
+	      { delete_keycode = i; }                                      // C 9858
+	    else if memcmp (c"BKSP".as_ptr () as *const c_void,
+			    (*((*(*kb).names).keys.offset (i as isize))).name.as_ptr ()
+			    as *const c_void, 4) == 0                      // C 9859
+	      { backspace_keycode = i; }                                   // C 9860
+	    i += 1;                                                        // C 9852
+	  }
+
+	if delete_keycode != 0 && backspace_keycode != 0                   // C 9863
+	    && XKeysymToKeycode (dpy, XK_Delete) as c_int == delete_keycode  // C 9864
+	    && XKeysymToKeycode (dpy, XK_BackSpace) as c_int == backspace_keycode  // C 9865
+	  { have_keys = Qt (); }                                           // C 9866
+      }
+    else
+      /* The keyboard names couldn't be obtained for some reason.  */      // C 9869
+      { have_keys = Qlambda (); }                                          // C 9870
+
+    unblock_input ();                                                      // C 9871
+    return have_keys;                                                      // C 9872
+  }
+});
+
+/* C 9876-9893.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-get-modifier-masks", Fx_get_modifier_masks, Sx_get_modifier_masks,
+	0, 1, 0,                                                               // C 9876-9877
+	doc: "Return the X modifier masks corresponding to keyboard modifiers.\nThe optional second argument TERMINAL specifies which display to fetch\nmodifier masks from.  TERMINAL should be a terminal object, a frame or\na display name (a string).  If TERMINAL is omitted or nil, that stands\nfor the selected frame's display.\n\nReturn a list of (HYPER SUPER ALT SHIFT-LOCK META), each element being\na number describing the modifier mask for the corresponding Emacs\nmodifier.",  // C 9878-9886
+	(terminal: Lisp_Object),                                               // C 9887
+	{
+  let dpyinfo: *mut x_display_info;                                            // C 9889
+
+  dpyinfo = check_x_display_info (terminal);                                   // C 9891
+  return x_get_keyboard_modifiers (dpyinfo);                                   // C 9892
+});
+

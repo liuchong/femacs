@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658, C 9660-9733 and C 9736-9785
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785 and C 9787-9893
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -28,14 +28,14 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **12,025 lines** after the thirty-fourth, **12,155 lines** after the thirty-fifth and
 > **12,303 lines** after the thirty-sixth, **12,855 lines** after the thirty-seventh and
 > **12,912 lines** after the thirty-eighth, **13,022 lines** after the thirty-ninth and
-> **13,637 lines** after the fortieth, **13,724 lines** after the forty-first and
-> **13,791 lines** after the forty-second - C 803-2149,
+> **13,637 lines** after the fortieth, **13,724 lines** after the forty-first,
+> **13,791 lines** after the forty-second and **14,019 lines** after the forty-third - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
 > C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and
-> C 9418-9453, C 9456-9658, C 9660-9733 and C 9736-9785, whose own
+> C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785 and C 9787-9893, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -76,6 +76,7 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 | C 9418 `#ifdef USE_MOTIF` … C 9660 | `all (feature = "have_x_windows", feature = "use_motif")` | the Motif configuration - measured by the probe matrix's **MOTIF** arm from status 3.944, and its C 9585-9628 `HAVE_XINPUT2` arm by the **MOTIFXI2** arm from status 3.945 |
 | C 9585 `#ifdef HAVE_XINPUT2` … C 9628 (inside the Motif subr) | `all (feature = "have_x_windows", feature = "use_motif", feature = "have_xinput2")` | a Motif configuration with XInput2 - the **MOTIFXI2** arm |
 | C 9736 `#ifdef HAVE_FREETYPE` … C 9785 (`x-select-font`) | `all (feature = "have_x_windows", feature = "use_gtk", feature = "freetype")` - the tree's registered spelling of C's `HAVE_FREETYPE` | a GTK configuration with FreeType - the **GTKFT**/**GTK22FT** arms, added by status 3.947 |
+| C 9794 `#ifdef HAVE_XKB` … C 9797 (the two `<X11/XKBlib.h>`/`<X11/keysym.h>` includes) and C 9808-9814 with C 9816-9873 (the XKB arm against its `return Qlambda` arm) | `all (feature = "have_x_windows", feature = "have_xkb")` / `not` it - `have_xkb` is the tree's registered spelling (`src/xterm.rs` 1498/1501, 20818) | an X11 configuration with XKB - the **XKB** arm, added by status 3.948 |
 | C 9662 `#ifdef USE_GTK` … C 9787 (`clean_up_dialog`, the second `x-file-dialog`, `x-select-font` under C 9736's `HAVE_FREETYPE`) | `all (feature = "have_x_windows", feature = "use_gtk")` (and `freetype` for the third item) | the GTK configuration - the **GTK**/**GTK22** arms, whose C 9667/C 9698 `x_menu_set_in_use` reads are why that row carries C's own `USE_GTK`/`USE_MOTIF` pair |
 | C 251/279/292/331/343/383/416/450/482/490/539/557/567 (`USE_XCB` and its `#else` partners, inside `x_real_pos_and_offsets`) | `use_xcb` / `not (use_xcb)` | both arms carried |
 | C 673 `#ifdef USE_GTK` (inside `x_defined_color`) | `use_gtk`, nested in the file gate | the GTK configuration |
@@ -231,7 +232,8 @@ defines both features.
 | 9456-9658 | the Motif `x-file-dialog` (C 9456-9459's `DEFUN` header with the `SKIP` docstring, C 9461-9469's locals, the setup C 9471-9501, the three `XtAddCallback`s and the two `XtUnmanageChild`/`XtVaSetValues` runs C 9503-9517, the `MUSTMATCH` block C 9519-9530, C 9532-9559's dialog fill-in, C 9561's `record_unwind_protect_ptr`, C 9563-9632's event loop with C 9585-9628's `HAVE_XINPUT2` arm, and C 9634-9657's result) | `all (have_x_windows, use_motif)`, with `have_xinput2` for the XI2 arm inside (slice 40) |
 | 9660-9733 | C 9660's `#endif /* USE_MOTIF */`, C 9662's `#ifdef USE_GTK`, `clean_up_dialog` (C 9664-9668) and the **second** `x-file-dialog` `DEFUN` (C 9670-9733), whose docstring is the real doc C 9457's Motif definition skips to | `all (have_x_windows, use_gtk)` (slice 41) |
 | 9736-9785 | `#ifdef HAVE_FREETYPE` (C 9736) and `x-select-font` (C 9738-9784), the file's second GTK dialog | `all (have_x_windows, use_gtk, freetype)` (slice 42) |
-| 9787-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 875 lines, whose first live items are C 9787's `#endif /* USE_GTK */`, the `Keyboard` banner (C 9790-9792), C 9794's `#ifdef HAVE_XKB` pair of includes and C 9799's `DEFUN ("x-backspace-delete-keys-p", …)` | not ported in this slice |
+| 9787-9893 | C 9787's `#endif /* USE_GTK */`, the `Keyboard` banner (C 9790-9792), C 9794's `#ifdef HAVE_XKB` includes, `x-backspace-delete-keys-p` (C 9799-9874) and `x-get-modifier-masks` (C 9876-9893) | file gate, with C 9794's and C 9808-9873's `have_xkb` pair inside (slice 43) |
+| 9895-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 767 lines, whose first live items are the `Printing` banner (C 9896-9898) and C 9900's `#ifdef USE_CAIRO` | not ported in this slice |
 
 ## Evidence
 
@@ -4053,3 +4055,95 @@ moves from `28.7%` to `29.3%: C 10662 vs Rust 13791`.
 The frozen configuration compiles none of this file: no font chooser was opened, no font spec was
 returned and no name was duplicated; the eighteen arms' counts are text compile readings, and the
 MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
+
+## Slice 43 (2026-10-08, status 3.948): C 9787-9893
+
+**The slice is C 9787-9893**: `#endif /* USE_GTK */` (C 9787), the `Keyboard` banner (C 9790-9792),
+C 9794's `#ifdef HAVE_XKB` pair of includes, `x-backspace-delete-keys-p` (C 9799-9874) and
+`x-get-modifier-masks` (C 9876-9893), which stands between it and the `Printing` banner
+(C 9895-9898) - 228 Rust lines (13,791 -> 14,019), the unit's first keyboard-side subrs.
+
+**The probe matrix gains a nineteenth arm, `XKB`** (plain-X plus `have_xkb`, the tree's registered
+spelling of C's `HAVE_XKB`): no arm set that feature, so C 9794's and C 9808-9873's XKB surface was
+compiled by nobody - the gap `MOTIF` (39), `MOTIFXI2` (40) and `GTKFT`/`GTK22FT` (42) closed before
+it.  Its baseline is the in-tree HEAD text's **18 / 9**.  **All nineteen arms end at their HEAD
+level** - plain-X and XKB **18 / 9**, WS, WSX, WSR, WSRX, WSR12 and XSN **16 / 9**, LUCID
+**25 / 12**, MOTIF **20 / 12**, MOTIFXI2 **24 / 12**, GTK, GTK22, GTKFT and GTK22FT **47 / 20**, XI2
+and XR **22 / 9**, Xt **20 / 12** and XCB **18 / 9** - with both the `^error` and the `^warning`
+sets empty-diff in all nineteen.  **The first measurement needed no repair.**
+
+**The three XKB records are measured, not guessed.**  `include/xterm.rs` 708-711 leaves
+`xkb_desc` as `*mut c_void` on purpose (the `<X11/XKBlib.h>` record has no mirror), so
+`XkbKeyNameRec`, `XkbNamesRec` and `XkbDescRec` stand at their use site with this machine's
+xorgproto readings: `XkbKeyNameRec` **4**/`name`@0, `XkbNamesRec` **496**/`keycodes`@0,`keys`@456,
+`XkbDescRec` **72**/`dpy`@0,`flags`@8,`device_spec`@10,`min_key_code`@12,`max_key_code`@13,
+`names`@48 - each asserted.  The probe that produced them is Evidence ②.
+
+**Arm touch measured** (P-86 ⑦), three injections, one per arm of the new gate:
+an injection before C 9819's `delete_keycode = 0;` (A, the XKB body's first statement) moves **XKB
+18 -> 19** and leaves plain-X at 18, GTK at 47 and XCB at 18; one before C 9817's
+`return Qlambda ();` (A2, the `not HAVE_XKB` arm's only statement) moves plain-X **18 -> 19**,
+GTK **47 -> 48**, GTKFT **47 -> 48** and XCB **18 -> 19** while **XKB stays at 18**; one before
+C 9892's `return x_get_keyboard_modifiers (dpyinfo);` (B, the second subr's last statement) moves
+plain-X **18 -> 19**, XKB **18 -> 19** and GTK **47 -> 48** - so both arms of C's pair and both
+new subrs are compiled by the arm that owns them and by nobody else.  All three logs carry the
+injected line's text once.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+`femacs/src/xfns.rs` md5 `2d71dd84381f0469212d84aa0fd4ec76` (slice 42's end hash was
+`ee7670a2928e595102c8915f113b7427`).
+
+**② The records' measurement** (`clang -I/opt/homebrew/include -o /tmp/s43/xkb /tmp/s43/xkb.c`,
+2026-10-08, xorgproto 2025.1's `X11/extensions/XKBstr.h` with `X11/extensions/XKB.h`'s sizes):
+
+    XkbKeyNameRec size=4 name=0
+    XkbNamesRec size=496 keys=456 keycodes=0
+    XkbDescRec size=72 dpy=0 flags=8 device_spec=10 min_key_code=12 max_key_code=13 names=48
+
+**③ The nineteen arms.**  See above.
+
+**④ `extract-abi.py --check`**: **83 rows -> 81** - `missing subr Fx_backspace_delete_keys_p` and
+`missing subr Fx_get_modifier_masks` retire with **nothing appearing** (both docstring literals
+match the reference's values) and the drift row moves from `29.3%` to `31.5%: C 10662 vs Rust
+14019`.
+
+### Deviations (this slice)
+
+1. **The `XKB` arm is new**, and its baseline is the in-tree HEAD text's 18 / 9 rather than a zero
+   reading; the ledger's gate table records the arm and C's two conditions it measures.
+2. **The three XKB records stand at their use site** (P-88 ①, since `include/xterm.rs` 708-711
+   keeps the field opaque): `XkbKeyNameRec`, `XkbNamesRec`, `XkbDescRec` and their three pointer
+   typedefs, under `all (have_x_windows, have_xkb)`, with the measured layouts above.  The five
+   unread `XkbDescRec` pointers and `XkbNamesRec.key_aliases` stand as `*mut c_void`: a pointer's
+   size does not depend on its pointee, and this unit reads none of them.
+3. **C 9846's `kb = FRAME_DISPLAY_INFO (f)->xkb_desc;`** states the cast C's typedef gives for
+   free (`as XkbDescPtr`), because the mirror's field is `*mut c_void`.
+4. **C's `for` loop (C 9849-9852)** is the port's `i = …; while … { …; i += 1; }` (the file's
+   2204-2211 shape), and C's `#ifdef HAVE_XKB` declarations with its `#ifndef HAVE_XKB` / `#else`
+   pair are two cfg blocks in C's own order (the `HAVE_XDBE` device of slice 38).
+5. **`XKeysymToKeycode` and `x_get_keyboard_modifiers` stand at their use sites** (Xlib.h 1687 and
+   xterm.h 1969; `src/xterm.c` 32643 defines the second and no mirror carries either), and the two
+   keysyms are this machine's readings (`XK_BackSpace` 0xff08, `XK_Delete` 0xffff).
+
+### Owed (this slice)
+
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 9895: 767 C lines plus
+  the 5 missing functions, 1 macro, 0 objects, 7 subrs and 45 defsubrs `--check` reads.
+- **`subr Fx_file_dialog: docstring differs` stays** (slice 41's Evidence ④ and slice 42's Owed):
+  the checker pairs each C `DEFUN` with the first Rust subr of that name, and it retires only when
+  `src/xfns.c` joins `docs/baseline/config/cond-eval-verified.txt` or the checker pairs
+  definitions in order - neither is a port change.
+- The XKB records' five unread pointers and `XkbNamesRec.key_aliases` are the same toolchain row
+  `docs/ports/lwlib-Xm.md`'s `## Owed` 5 names for the other X surfaces.
+- `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
+  `femacs/xtask/Cargo.toml`'s feature table; the nineteen-arm probe passes it with `--cfg`.
+- The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
+  Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no keyboard was queried, no XKB description
+was read and no modifier mask was returned; the nineteen arms' counts are text compile readings,
+and the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
