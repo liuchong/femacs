@@ -644,11 +644,28 @@ pub struct x_display_info
   /* C 820-821: the core modifier map, used when XKB is not present.  `XModifierKeymap` is
      Xlib's; the pointer keeps C's name (this file's convention for X11 types).  */
   pub modmap: *mut XModifierKeymap,   // C: XModifierKeymap *modmap;
+#[cfg (feature = "have_xrandr")]
+  pub xrandr_supported_p: bool,   // C 824: `bool xrandr_supported_p;`
+#[cfg (feature = "have_xrandr")]
+  pub xrandr_event_base: c_int,   // C 825: `int xrandr_event_base;`
+#[cfg (feature = "have_xrandr")]
+  pub xrandr_error_base: c_int,   // C 826: `int xrandr_error_base;`
+#[cfg (feature = "have_xrandr")]
+  pub xrandr_major_version: c_int,   // C 827: `int xrandr_major_version;`
+#[cfg (feature = "have_xrandr")]
+  pub xrandr_minor_version: c_int,   // C 828: `int xrandr_minor_version;`
+#[cfg (any (feature = "have_xrandr", feature = "use_gtk"))]
+  pub last_monitor_attributes_list: Lisp_Object,   // C 834: `Lisp_Object last_monitor_attributes_list;`
+/// C: 838: `XExtCodes *ext_codes;` - `<X11/extensions/Xext.h>`'s record, which no mirror here
+/// carries: the port's untyped pointer (P-72 rule 3), cast at each use site.
+#[cfg (any (feature = "use_cairo", feature = "have_xrender"))]
+  pub ext_codes: *mut c_void,   // C 838: `XExtCodes *ext_codes;`
   /* C 823-910 is the run of members C guards with macros the frozen reading leaves undefined
      (`HAVE_XRANDR`, `HAVE_XRENDER`/`USE_CAIRO`, `USE_XCB`, `HAVE_XDBE`, `HAVE_XINPUT2`,
-     `HAVE_XKB`, `USE_GTK`, `HAVE_XRENDER`, `HAVE_XFIXES`, `HAVE_XINERAMA`) - this round carries
-     the two the ported slices name, at C's own position; the rest are named in `docs/ports/
-     xterm.md`'s report as the same class (a name C's text carries, no member in this mirror). */
+     `HAVE_XKB`, `USE_GTK`, `HAVE_XRENDER`, `HAVE_XFIXES`, `HAVE_XINERAMA`) - this round carried
+     the two the ported slices name, at C's own position; the sixty-sixth `xterm` slice's
+     mirror round (status 3.902) carried the rest - C 824-838's XRANDR, XRANDR/GTK and
+     cairo/XRender runs, all at C's own position and under their own guards. */
   /* C 841-844: `#ifdef USE_XCB` - the connection this display keeps, and the visual it was
      created with.  Their pointee types are the xcb mirror's (`include/xlib.rs`'s `use_xcb`
      section, which is also where C's `<xcb/xproto.h>`/`<xcb/xcb.h>` includes - C 643-646 - are
@@ -658,16 +675,42 @@ pub struct x_display_info
   pub xcb_connection: *mut xcb_connection_t,   // C: xcb_connection_t *xcb_connection;
   #[cfg (feature = "use_xcb")]
   pub xcb_visual: *mut xcb_visualtype_t,   // C: xcb_visualtype_t *xcb_visual;
+#[cfg (feature = "have_xdbe")]
+  pub supports_xdbe: bool,   // C 847: `bool supports_xdbe;`
   /* C 847-888: `#ifdef HAVE_XDBE`'s `supports_xdbe` (C 847) and `#ifdef HAVE_XINPUT2`'s block.
      The two members `x_error_handler` reads stand at C's own position - C 851's `supports_xi2`
      and C 858's `xi2_opcode`, with C 855's `xi2_version` between them still owed; so is the rest
      of the block (C 861's `num_devices`, C 865's `devices`, C 868/873/880's `pending_keystroke_*`
-     and C 885's `client_pointer_device`), named in `docs/ports/xterm.md` as this mirror's owed
-     run, not as absent C text.  */
+     and C 885's `client_pointer_device`) came in the sixty-sixth `xterm` slice's mirror round
+     (status 3.902), each under C's own guard.  */
   #[cfg (feature = "have_xinput2")]
   pub supports_xi2: bool,   // C 851: `bool supports_xi2;`
+#[cfg (feature = "have_xinput2")]
+  pub xi2_version: c_int,   // C 855: `int xi2_version;`
   #[cfg (feature = "have_xinput2")]
   pub xi2_opcode: c_int,   // C 858: `int xi2_opcode;`
+#[cfg (feature = "have_xinput2")]
+  pub num_devices: c_int,   // C 861: `int num_devices;`
+#[cfg (feature = "have_xinput2")]
+  pub devices: *mut xi_device_t,   // C 865: `struct xi_device_t *devices;`
+#[cfg (feature = "have_xinput2")]
+  pub pending_keystroke_time: Time,   // C 868: `Time pending_keystroke_time;`
+#[cfg (feature = "have_xinput2")]
+  pub pending_keystroke_source: c_int,   // C 873: `int pending_keystroke_source;`
+#[cfg (all (feature = "have_xinput2", feature = "use_gtk", not (feature = "have_gtk3")))]
+  pub pending_keystroke_time_special_p: bool,   // C 880: `bool pending_keystroke_time_special_p;`
+#[cfg (feature = "have_xinput2")]
+  pub client_pointer_device: c_int,   // C 885: `int client_pointer_device;`
+#[cfg (feature = "have_xkb")]
+  pub supports_xkb: bool,   // C 889: `bool supports_xkb;`
+#[cfg (feature = "have_xkb")]
+  pub xkb_event_type: c_int,   // C 890: `int xkb_event_type;`
+/// C: 891: `XkbDescPtr xkb_desc;` - `<X11/XKBlib.h>`'s record, which no mirror here carries and
+/// this machine has no header for: the port's untyped pointer (P-72 rule 3).
+#[cfg (feature = "have_xkb")]
+  pub xkb_desc: *mut c_void,   // C 891: `XkbDescPtr xkb_desc;`
+#[cfg (feature = "use_gtk")]
+  pub prefer_native_input: bool,   // C 895: `bool prefer_native_input;`
   /* C 941-950: the screen's dimensions, as last seen in a ConfigureNotify.  */
   /* C 911-915: `#ifdef HAVE_XSYNC` - whether the XSync extension is present, and its
      version.  */
@@ -677,17 +720,35 @@ pub struct x_display_info
   pub xsync_major: c_int,   // C: int xsync_major;
   #[cfg (feature = "have_xsync")]
   pub xsync_minor: c_int,   // C: int xsync_minor;
+#[cfg (feature = "have_xinerama")]
+  pub xinerama_supported_p: bool,   // C 918: `bool xinerama_supported_p;`
   /* C 921-925: `#ifdef HAVE_XCOMPOSITE` - whether the Composite extension is present, and its
      version.  These are the three members `xterm.c` 4225-4443 names (the arms C guards with
      `#if defined HAVE_XCOMPOSITE && (XCOMPOSITE_MAJOR > 0 || XCOMPOSITE_MINOR > 2)`, the
      derived `have_xcomposite_overlay`), and C 918-920 (`HAVE_XINERAMA`) and C 927-932
-     (`HAVE_XSHAPE`) between them are still uncarried (same class as the C 823-910 note above).  */
+     (`HAVE_XSHAPE`) between them came in the sixty-sixth `xterm` slice's mirror round (3.902).  */
   #[cfg (feature = "have_xcomposite")]
   pub composite_supported_p: bool,   // C: bool composite_supported_p;
   #[cfg (feature = "have_xcomposite")]
   pub composite_major: c_int,   // C: int composite_major;
   #[cfg (feature = "have_xcomposite")]
   pub composite_minor: c_int,   // C: int composite_minor;
+#[cfg (feature = "have_xshape")]
+  pub xshape_supported_p: bool,   // C 928: `bool xshape_supported_p;`
+#[cfg (feature = "have_xshape")]
+  pub xshape_major: c_int,   // C 929: `int xshape_major;`
+#[cfg (feature = "have_xshape")]
+  pub xshape_minor: c_int,   // C 930: `int xshape_minor;`
+#[cfg (feature = "have_xshape")]
+  pub xshape_event_base: c_int,   // C 931: `int xshape_event_base;`
+#[cfg (feature = "have_xshape")]
+  pub xshape_error_base: c_int,   // C 932: `int xshape_error_base;`
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  pub protected_windows: *mut Lisp_Object,   // C 936: `Lisp_Object *protected_windows;`
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  pub n_protected_windows: c_int,   // C 937: `int n_protected_windows;`
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  pub protected_windows_max: c_int,   // C 938: `int protected_windows_max;`
   pub screen_width: c_int,   // C: int screen_width;
   pub screen_height: c_int,   // C: int screen_height;
   pub screen_mm_width: c_int,   // C: int screen_mm_width;
@@ -695,6 +756,12 @@ pub struct x_display_info
   /* C 952-957: the circular buffer of request serial ranges to ignore.  */
   pub failable_requests: [x_failable_request; N_FAILABLE_REQUESTS as usize],   // C: struct x_failable_request failable_requests[N_FAILABLE_REQUESTS];
   pub next_failable_request: *mut x_failable_request,   // C: struct x_failable_request *next_failable_request;
+#[cfg (feature = "have_xfixes")]
+  pub monitored_selections: *mut x_monitored_selection,   // C 961: `struct x_monitored_selection *monitored_selections;`
+#[cfg (feature = "have_xfixes")]
+  pub selection_tracking_window: Window,   // C 964: `Window selection_tracking_window;`
+#[cfg (feature = "have_xfixes")]
+  pub n_monitored_selections: c_int,   // C 967: `int n_monitored_selections;`
   /* C 970-990: the DND emulation time, and the double-press quit keysym.  */
   pub pending_dnd_time: Time,   // C: Time pending_dnd_time;
   /* C 974-983: `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME` -
@@ -715,6 +782,14 @@ pub struct x_display_info
   pub xrender_major: c_int,   // C 900: int xrender_major;
   #[cfg (feature = "have_xrender")]
   pub xrender_minor: c_int,   // C 901: int xrender_minor;
+#[cfg (feature = "have_xfixes")]
+  pub xfixes_supported_p: bool,   // C 905: `bool xfixes_supported_p;`
+#[cfg (feature = "have_xfixes")]
+  pub xfixes_major: c_int,   // C 906: `int xfixes_major;`
+#[cfg (feature = "have_xfixes")]
+  pub xfixes_minor: c_int,   // C 907: `int xfixes_minor;`
+#[cfg (feature = "have_xfixes")]
+  pub xfixes_event_base: c_int,   // C 908: `int xfixes_event_base;`
 }
 
 /* C 740-745's anonymous enum, written as the constants its members are (PORTING.md 1.3);

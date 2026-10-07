@@ -381,3 +381,27 @@ record_unwind_protect_void (x_release_selection_requests_and_flush)` 在这面�
 声明要 `Option<unsafe extern "C" fn ()>`（`src/alloc.rs` 6266 / `src/androidmenu.rs` 90 的形状），
 宏体交的是裸 fn。改法只加一层 `Some (...)`；P-87 两条腿跑过：`check-mirror-dupes` 16/16/0、
 `tools/check-all-units.sh` `checked 83 unit(s), 0 failure(s)`。
+
+## 2026-10-07: the gated member run is carried - 35 members C's `#if`s keep out of the frozen reading（3.902）
+
+本镜像的 `struct x_display_info` 一直只带"已被移植切片点过名"的那些成员：C 823-910、921-925 与
+947-968 三段里有 **35 个成员**挂在冻结表留成 `undef` 的宏下面（`HAVE_XRANDR`、`USE_CAIRO`/
+`HAVE_XRENDER`、`HAVE_XDBE`、`HAVE_XINPUT2`、`HAVE_XKB`、`USE_GTK`、`HAVE_XFIXES`、
+`HAVE_XINERAMA`、`HAVE_XSHAPE`、`USE_TOOLKIT_SCROLL_BARS`），而 `extract-abi --check` 只比**活**成员
+（P-73），所以它既不报缺、也不报多——欠账只写在注释里。本轮把这 35 个成员**按 C 的位置**补齐，
+每个带 C 自己的守卫（`#[cfg (feature = "have_xrandr")]` 等；析取与合取照 C 的原样写：
+`any (have_xrandr, use_gtk)`、`any (use_cairo, have_xrender)`、
+`all (have_xinput2, use_gtk, not (have_gtk3))`）。其中两个成员的指针类型本树没有镜像
+（`XExtCodes *`、`XkbDescPtr`）⇒ 按 P-72 rule 3 写 `*mut c_void` 并在源码里点名理由。
+
+**读数（十七臂，两侧都实取）**：这一轮**退掉 176 行**——A/AE/AI/AX/AWS/AXPM 不动（它们的臂不开那些门），
+U 859→**843**、UT 845→**829**、UM 846→**830**、UG 843→**822**、UGX 948→**901**、AIU 879→**874**、
+AIUX 988→**957**、AG3 881→**876**、AXF 843→**832**、AXKB 856→**850**、AXR 833→**831**；
+**十七臂警告数与本轮前逐臂相同**。P-87 两条腿：`check-mirror-dupes` 16/16/0、
+`tools/check-all-units.sh` `checked 83 unit(s), 0 failure(s)` + `checking 83 unit(s), 0 unit failure(s)`。
+
+**顺带读出的七处缺陷（全部当场修掉）**：成员一解析，rustc 就走进那些此前被 `E0609` 挡住的身体，
+于是"变量不需要 mut"这类 MIR 诊断第一次冒出来——`x_find_monitors_changed_event` 的
+`dpyinfo`/`current_monitors`/`gdpy`/`dpy`（C 18641/18643/18644/18645）与 `terminal`（同一函数）、
+`x_...` 的 `window`（C 15558）以及 `x_handle_selection_error` 的 `notify`（C 18832，XFIXES 臂）。
+七行的 `mut` 都去掉了（这正是本台账记过的"未解析的名字会压掉它所在身体的 MIR 诊断"）。

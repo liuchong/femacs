@@ -6479,8 +6479,10 @@ new `AXKB` arm's `HAVE_XKB` block, which no earlier arm could read).  The mirror
 shape slice 105 found for GDK: `x_display_info`'s `last_monitor_attributes_list` (xterm.h 834,
 inside `#if defined HAVE_XRANDR || defined USE_GTK`) is not in this mirror, so the six arms that
 compile C 12857 read one more `no field ...` row of a class the baseline already carries (16 rows
-of it exist from earlier text).  Closing them needs the SDKs (item 0) or a mirror round that adds
-the gated members - both are the integrator's, not this slice's.
+of it exist from earlier text).  Closing the SDK names needs the SDKs (item 0); the mirror gap is **closed** - the
+sixty-sixth `xterm` slice's mirror round (status 3.902) carries the whole gated member run,
+35 members including this one, and retires 176 arm rows (U/UT/UM/UG/UGX/AIU/AIUX/AG3/AXF/
+AXKB/AXR).
 
 ### Slice 15's readings (C 26994-27126), as landed and measured (2026-10-06)
 

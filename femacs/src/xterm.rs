@@ -24707,7 +24707,7 @@ unsafe fn x_protect_window_for_callback (dpyinfo: *mut x_display_info,
 #[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
 unsafe fn x_unprotect_window_for_callback (dpyinfo: *mut x_display_info) -> Lisp_Object
 {
-  let mut window: Lisp_Object;                                          // C 15558
+  let window: Lisp_Object;                                              // C 15558
 
   if (*dpyinfo).n_protected_windows == 0                                // C 15560
     { return Qnil (); }                                                 // C 15561
@@ -29071,12 +29071,12 @@ unsafe fn x_find_monitors_changed_event (dpyinfo: *mut x_display_info) -> bool
 #[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
 unsafe fn x_monitors_changed_cb (gscr: *mut GdkScreen, user_data: gpointer)
 {
-  let mut dpyinfo: *mut x_display_info;                                // C 18641
+  let dpyinfo: *mut x_display_info;                                    // C 18641
   let mut ie: input_event = core::mem::zeroed ();                       // C 18642 (Deviation 12)
-  let mut current_monitors: Lisp_Object;                               // C 18643
-  let mut terminal: Lisp_Object;
-  let mut gdpy: *mut GdkDisplay;                                       // C 18644
-  let mut dpy: *mut Display;                                           // C 18645
+  let current_monitors: Lisp_Object;                                   // C 18643
+  let terminal: Lisp_Object;
+  let gdpy: *mut GdkDisplay;                                           // C 18644
+  let dpy: *mut Display;                                               // C 18645
 
   gdpy = gdk_screen_get_display (gscr);                                // C 18647
   dpy = gdk_x11_display_get_xdisplay (gdpy);                           // C 18648
@@ -29331,7 +29331,7 @@ pub struct XFixesSelectionNotifyEvent
 unsafe fn x_handle_selection_monitor_event (dpyinfo: *mut x_display_info,
 					    event: *const XEvent) -> bool
 {
-  let mut notify: *mut XFixesSelectionNotifyEvent;                     // C 18832
+  let notify: *mut XFixesSelectionNotifyEvent;                         // C 18832
   let mut i: c_int;                                                    // C 18833
 
   notify = event as *mut XFixesSelectionNotifyEvent;                   // C 18835
