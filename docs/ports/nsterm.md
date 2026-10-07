@@ -203,10 +203,10 @@
 - [x] ns_display_pixel_height  (line 5661) — C 5660-5673, landed as `func ns_display_pixel_height (_:) -> Int32`: C's enumerator over the screen list, with `NSUnionRect` accumulating each `-frame`, is the Swift `for` loop over `NSScreen.screens`; `dpyinfo` is unused in C too
 - [x] ns_display_pixel_width  (line 5676) — C 5675-5688, landed as `func ns_display_pixel_width (_:) -> Int32`: the same union read as a width, in C's own two-call shape (round 35's Evidence)
 - [x] ns_string_to_lispmod  (line 5691, static) — C 5691-5710, landed as `fileprivate func ns_string_to_lispmod (_:) -> Lisp_Object`: C's six `strncmp (SSDATA (SYMBOL_NAME (Q…)), s, 10)` tests keep their order and their length 10, and the five modifier symbols are read through this file's own `DEFSYM` names (C 11799's `syms_of_nsterm`)
-- [ ] ns_default  (line 5714, static)
+- [x] ns_default  (line 5714, static) — C 5713-5738, landed as `fileprivate func ns_default (_:_:_:_:_:_:)`: C's two `BOOL`s are `Bool`, C 5731's comma expression is one local function (`strtod_and_test`) whose body is C's own two steps so the chain keeps its single `else if` and its short-circuit, and the two pointer uses carry `value!` behind C's own `if (value)` guard (the `Fns_get_resource` shape)
 - [ ] ns_initialize_display_info  (line 5742, static)
-- [ ] ns_default_font_parameter  (line 5770, static)
-- [ ] ns_update_window_end  (line 5776, static)
+- [x] ns_default_font_parameter  (line 5770, static) — C 5769-5773, landed as `fileprivate func ns_default_font_parameter (_:_:)`: C's body is empty and the comment above the definition (C 5766-5768) says why, so both parameters stay unread (the `applicationWillBecomeActive` reading)
+- [x] ns_update_window_end  (line 5776, static) — **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 5774 and closes it at C 5783, so the whole definition is the arm this target does not take.  Recorded, not transcribed (the `-updateMonitors:` reading); its two statements, named in the round's note, are `NSTRACE` (empty) and `ns_redraw_scroll_bars (WINDOW_XFRAME (w))`
 - [ ] ns_flush_display  (line 5786, static)
 - [ ] ns_displays_reconfigured  (line 5839, static)
 - [ ] ns_delete_display  (line 5872, static)
@@ -3199,4 +3199,43 @@ call site takes an entry and the definition lands at its own C line - and **both
   `tools/check-own-voice.py` reads 0 failure(s).  Four boxes are ticked (260 -> 264).
 * **What this round does not claim**: no run evidence (no pixmap freed, no screen list walked, no
   modifier string converted); the compile gate reaches parsing and type checking only, and
+  `tools/check-swift-units.py` compares name sets, not signatures, bodies, layout or ABI.
+
+### Round 36: `ns_default`, `ns_default_font_parameter`, and the dead GNUstep `ns_update_window_end` (C 5713-5783)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-35 carry, so **no new warning**.  Object
+  `/tmp/nsterm36.o`, **700,568 bytes**, md5 `3ed96154faa125e1f9add0675271f72b`.  The unit is
+  **8,419 lines**.
+* **Three C definitions and the imports they need**: `ns_default` (C 5713-5738, the preferences
+  reader), `ns_default_font_parameter` (C 5769-5773, empty in C) and `ns_update_window_end`
+  (C 5775-5783, dead).  The imports are `ns_get_defaults_value` (src/nsterm.h 1170; defined in
+  src/nsfns.m 1886, which this lane's `nsfns.swift` 2858-2865 already exports), `c_strcasecmp`
+  (gnulib; this tree's own `femacs/lib/c-strcasecmp.rs` 22) and `make_float` (src/alloc.c;
+  `femacs/src/alloc.rs` 2789).  `fprintf`/`stderr` were already in the unit (round 3).
+* **Two compile failures and their fixes** (both named in the source): ⑴ every pointer use needed
+  C's own guard made explicit - `c_strcasecmp (value!, …)`, `strtod (value!, &pos)` and
+  `fprintf (…, value!)` - because a Swift `Optional` pointer does not convert where these entries
+  want a plain one (measured: three `error:` lines, two of them "must be unwrapped"); the guard is
+  C's `if (value)` itself, so the unwrapping is C's own control flow, not a new one.  ⑵ a local
+  `@_silgen_name("strtod")` made the call **ambiguous** against Darwin's import of the same C
+  symbol (`error: ambiguous use of 'strtod'`), so the unit does what it already does for
+  `setlocale`/`getenv`/`setenv` (C 785-805): the available entry is called by name with no
+  declaration of its own.  Unlike `fprintf`, whose Swift name is marked unavailable, `strtod`
+  needs no local spelling.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **26** unported,
+  26 row(s); **445** C symbol import(s)` - two fewer unported than round 35's 28 (the two
+  functions that land code), **two stale rows cleared** by name, and the round's imports are the
+  new symbol count (442 -> 445).  `ns_update_window_end` keeps its manifest row on purpose: no
+  Swift item carries that name because the arm does not exist in this build.  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What moved out of this round, by name**: `ns_initialize_display_info` (C 5741-5764) needs
+  eight member setters this unit does not carry yet (`resx`/`resy`/`color_p`/`n_planes`/
+  `root_window`/`n_fonts`/`smallest_font_height`/`smallest_char_width`, plus the `mouse_highlight`
+  member `reset_mouse_highlight` takes by address), and `ns_flush_display` (C 5785-5792) needs a
+  reader for `FRAME_TERMINAL (f)`, which exists nowhere in the lane yet (`frame_set_terminal` is
+  the only `terminal` accessor; `frame.rs` carries the member as a raw pointer).  Each gets its own
+  round, with those spellings settled first.
+* **What this round does not claim**: no run evidence (no defaults key read, no float parsed, no
+  `ns_redraw_scroll_bars` reached); the compile gate reaches parsing and type checking only, and
   `tools/check-swift-units.py` compares name sets, not signatures, bodies, layout or ABI.

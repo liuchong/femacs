@@ -8332,3 +8332,88 @@ fileprivate func ns_string_to_lispmod(_ s: UnsafePointer<CChar>) -> Lisp_Object 
   return Qnil()                                      // C 5709
 }
 
+
+// ==========================================================================
+// Round 36: `ns_default`, `ns_default_font_parameter`, and the GNUstep-only
+// `ns_update_window_end` (C 5713-5783)
+// ==========================================================================
+
+/// C: `extern const char *ns_get_defaults_value (const char *key)` (src/nsterm.h 1170) - the
+/// definition is src/nsfns.m 1886's, which this lane's `nsfns.swift` (2858-2865) already exports
+/// under the same name, and this unit reaches it the way that export spells it (a mutable pointer,
+/// the shape `@_cdecl` accepts in Swift 6.4).
+@_silgen_name("ns_get_defaults_value")
+func ns_get_defaults_value(_ key: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>?
+
+/// C: `int c_strcasecmp (const char *, const char *)` - gnulib's entry, ported in this tree as
+/// `femacs/lib/c-strcasecmp.rs` 22 (`pub unsafe extern "C" fn c_strcasecmp`); the `fputs` shape.
+@_silgen_name("c_strcasecmp")
+func c_strcasecmp(_ a: UnsafePointer<CChar>, _ b: UnsafePointer<CChar>) -> Int32
+
+/// C: `double strtod (const char *nptr, char **endptr)` (stdlib.h).  Unlike `fprintf`, this entry
+/// is *available* in Swift (Darwin imports it, and it is the same C symbol), so the unit calls it
+/// by name with no declaration of its own - the `setlocale`/`getenv`/`setenv` treatment at
+/// C 785-805 above.  A local `@_silgen_name("strtod")` next to that import made the call
+/// ambiguous (measured: `error: ambiguous use of 'strtod'`).
+
+/// C: `Lisp_Object make_float (double)` (src/alloc.c) - the mirror's own entry
+/// (`femacs/src/alloc.rs` 2789), reached by name like this unit's other core imports.
+@_silgen_name("make_float") func make_float(_ f: Double) -> Lisp_Object
+
+/// C 5713-5738: `static void ns_default (const char *parameter, Lisp_Object *result, Lisp_Object
+/// yesval, Lisp_Object noval, BOOL is_float, BOOL is_modstring)` - "Check a parameter value in
+/// user's preferences."  C's two `BOOL`s are this unit's `Bool` (the `ns_is_UAZoomEnabled` 1274
+/// reading), and the nil test followed by `value!` is the `Fns_get_resource` shape
+/// (`nsfns.swift` 2883-2887).
+fileprivate func ns_default(_ parameter: UnsafePointer<CChar>,
+                            _ result: UnsafeMutablePointer<Lisp_Object>,
+                            _ yesval: Lisp_Object, _ noval: Lisp_Object,
+                            _ is_float: Bool, _ is_modstring: Bool) {
+  let value = ns_get_defaults_value (parameter)      // C 5721
+
+  if value != nil {                                  // C 5723
+    var f: Double = 0                                // C 5725
+    var pos: UnsafeMutablePointer<CChar>? = nil      // C 5726
+
+    /// C 5731's comma expression `(f = strtod (value, &pos), pos != value)`: Swift has no comma
+    /// operator, so its two halves are one local function whose body is C's own two steps in C's
+    /// order - the `ns_after_update_window_line` note's reshaping, narrowed to the one expression
+    /// that cannot become a nested `if` without breaking the chain's fall-through.  The call sits
+    /// in the condition below, so C's short-circuit is kept: `is_float` false never runs the
+    /// assignment.
+    func strtod_and_test () -> Bool {
+      f = strtod (value!, &pos)                      // C 5731 (first half)
+      return pos != value                            // C 5731 (second half)
+    }
+
+    if c_strcasecmp (value!, "YES") == 0 {           // C 5727
+      result.pointee = yesval                        // C 5728
+    } else if c_strcasecmp (value!, "NO") == 0 {     // C 5729
+      result.pointee = noval                         // C 5730
+    } else if is_float && strtod_and_test () {       // C 5731
+      result.pointee = make_float (f)                // C 5732
+    } else if is_modstring && value != nil {         // C 5733
+      result.pointee = ns_string_to_lispmod (value!) // C 5734
+    } else {
+      fprintf (stderr, "Bad value for default \"%s\": \"%s\"\n",
+               parameter, value!)                    // C 5735-5736
+    }
+  }
+}
+
+/// C 5769-5773: `static void ns_default_font_parameter (struct frame *f, Lisp_Object parms)` -
+/// C's body is empty, and the comment above it (C 5766-5768) is why: the hook "currently does
+/// nothing, since it's only really needed when changing the font-backend, but macOS currently
+/// only has one possible backend."  Both parameters are unread in C, so neither is read here
+/// (the `applicationWillBecomeActive` reading: a body C leaves empty is transcribed as empty).
+fileprivate func ns_default_font_parameter(_ f: UnsafeMutableRawPointer?, _ parms: Lisp_Object) {
+  // C 5771-5773: nothing - see the note above the definition.
+}
+
+/// C 5775-5783: `static void ns_update_window_end (struct window *w, bool cursor_on_p, bool
+/// mouse_face_overwritten_p)` - **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 5774
+/// and closes it at C 5783 (src/nsterm.h's `NS_IMPL_COCOA` is the arm this target takes), so the
+/// whole definition is the arm that does not exist here.  Recorded, not transcribed - no Swift
+/// item carries the name, and the ledger's box says the same (the `-updateMonitors:` reading of
+/// round 31).  The definition's two statements would be `NSTRACE`, empty at `NSTRACE_ENABLED` 0,
+/// and `ns_redraw_scroll_bars (WINDOW_XFRAME (w))`.
