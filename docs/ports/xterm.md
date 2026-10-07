@@ -744,7 +744,7 @@ in Decision 119 4-5.
 - [x] static struct x_error_message_stack x_error_message  (line 26249, static)
 - [x] int x_error_message_count  (line 26252)
 - [x] static char error_msg  (line 26722, static)
-- [ ] static bool x_initialized  (line 30491, static)
+- [x] static bool x_initialized  (line 30491, static)
 - [x] static unsigned x_display_id  (line 30595, static)
 
 ## Gate mapping
@@ -10195,6 +10195,16 @@ sides with comments stripped and C's multi-declarator lines - `int x, y;` - spli
   two extra field names an unconditional reading of C's text would not see.  `have_xshape` is not
   in `femacs/xtask/Cargo.toml`'s feature table - the ledger's `## Owed by the integrator` class.
 
-**What this audit does not close.**  The same section still has two unticked rows and they are the
-real work: `handle_one_xevent` (C 18876) - xterm.c's largest function - and `x_initialized`
-(C 30491, `static bool x_initialized`).  Neither is a record; both are xterm.c's own remainder.
+**`x_initialized` (the fourteenth stale box).**  The same round checked the two rows it left:
+`x_initialized` is ported - `femacs/src/xterm.rs` 19738's `pub static mut x_initialized: bool =
+false;` (C 30491's tentative `static bool`, its initial value C's zero by NIL_IS_ZERO's rule) with
+its two readers at 20007-20011 (C 30704-30709) - so its box is ticked too; the earlier paragraph
+that named it alongside `handle_one_xevent` was wrong about this row and is corrected here.
+
+**What this audit does not close.**  One row is left unticked and it is the whole of the file's
+remainder: **`handle_one_xevent`**, C 18875's `static int` and C 18876-25811's body - **6,936
+lines** of C, the largest single function in the reference and the reason this unit's
+`extract-abi.py --check` reports exactly one `missing function` row and no other.  A function is
+one Rust item, so it cannot be sliced across commits the way this ledger's files are: the port has
+to land it whole, in one change with its own arm readings, which makes it the next round's work
+rather than this one's.
