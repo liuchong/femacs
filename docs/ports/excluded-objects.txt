@@ -12,3 +12,7 @@
 # gap.  A row here says "this absence is decided, and this is where the name lives instead";
 # a row that names an object its own reference does not declare is a failure (a stale row).
 src/xterm.h	x_error_message_count	its definition is the unit's (`src/xterm.rs` 13702-13707, C 26252's non-`static` `int x_error_message_count;`, exported), so a declaration in this mirror would be `E0428` in the single-crate layout (P-90 7); the readers declare it themselves (`src/eval.rs` 1835-1836), and the mirror's own comment at 1644-1647 is the same record
+src/xterm.h	tip_window	its definition is the unit's (`src/xfns.rs` C 8374, the non-`static` `Window tip_window;`, exported), so a declaration in this mirror would be `E0428` in the single-crate layout (P-90 7); no other unit reads the name
+src/xterm.h	tip_dx	its definition is the unit's (`src/xfns.rs` C 8377, the non-`static` `Lisp_Object tip_dx, tip_dy;`, exported), the same `E0428` reason as `tip_window`
+src/xterm.h	tip_dy	the second declarator of C 8377: its definition is the unit's (`src/xfns.rs`), the same `E0428` reason as `tip_window`
+src/xterm.h	tip_frame	its definition is the unit's (`src/xfns.rs` C 8370, the non-`static` `Lisp_Object tip_frame;`, exported), the same `E0428` reason as `tip_window`

@@ -11491,3 +11491,64 @@ server. ",
 		   { make_uint (child_return as uintmax_t) }
 		 else { Qnil () }));
 });
+
+/* -----------------------------------------------------------------------------------------
+   C 8362-8404: the `Tool tips` section banner (C 8362-8364; banners are described in these
+   blocks rather than transcribed - see the slice 32 note), C 8366-8367's forward declaration of
+   `compute_tip_xy` (Rust needs none: its definition later in this file is visible to callers),
+   the eight objects of C 8369-8390 and `unwind_create_tip_frame` (C 8393-8404).
+   -------------------------------------------------------------------------------------- */
+
+/* C 8369-8390.  The four externally-linked ones carry `#[unsafe(no_mangle)]` (PORTING.md 0.2;
+   xterm.h 1010-1013 declares `tip_window`, `tip_dx`, `tip_dy` and `tip_frame`), the four
+   `static` ones stay private, and each tentative definition's zero value is C's (`std::ptr::null_mut`
+   for a `Lisp_Object`, `0` for the `Window`) - the `src/haikufns.rs` 556-567 shape.  */
+/// C 8369-8370: `/* The frame of the currently visible tooltip, or nil if none.  */` /
+/// `Lisp_Object tip_frame;`
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut tip_frame: Lisp_Object = std::ptr::null_mut ();                 // C 8370 (tentative)
+/// C 8372-8374: `/* The window-system window corresponding to the frame of the
+///    currently visible tooltip.  */` / `Window tip_window;`
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut tip_window: Window = 0;                                         // C 8374 (tentative)
+/// C 8376-8377: `/* The X and Y deltas of the last call to `x-show-tip'.  */` /
+/// `Lisp_Object tip_dx, tip_dy;`
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut tip_dx: Lisp_Object = std::ptr::null_mut ();                    // C 8377 (tentative)
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut tip_dy: Lisp_Object = std::ptr::null_mut ();
+/// C 8379-8381: `/* A timer that hides or deletes the currently visible tooltip when it
+///    fires.  */` / `static Lisp_Object tip_timer;`
+#[cfg (feature = "have_x_windows")]
+static mut tip_timer: Lisp_Object = std::ptr::null_mut ();                     // C 8381 (tentative)
+/// C 8383-8384: `/* STRING argument of last `x-show-tip' call.  */` /
+/// `static Lisp_Object tip_last_string;`
+#[cfg (feature = "have_x_windows")]
+static mut tip_last_string: Lisp_Object = std::ptr::null_mut ();               // C 8384 (tentative)
+/// C 8386-8387: `/* Normalized FRAME argument of last `x-show-tip' call.  */` /
+/// `static Lisp_Object tip_last_frame;`
+#[cfg (feature = "have_x_windows")]
+static mut tip_last_frame: Lisp_Object = std::ptr::null_mut ();                // C 8387 (tentative)
+/// C 8389-8390: `/* PARMS argument of last `x-show-tip' call.  */` /
+/// `static Lisp_Object tip_last_parms;`
+#[cfg (feature = "have_x_windows")]
+static mut tip_last_parms: Lisp_Object = std::ptr::null_mut ();                // C 8390 (tentative)
+
+/* C 8393-8404.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn unwind_create_tip_frame (frame: Lisp_Object)                         // C 8393-8394
+{                                                                              // C 8395
+  use crate::x11_constants::None;                                              // C 8401
+  let deleted: Lisp_Object;                                                    // C 8396
+
+  deleted = unwind_create_frame (frame);                                       // C 8398
+  if EQ (deleted, Qt ())                                                       // C 8399
+    {                                                                          // C 8400
+      tip_window = None as Window;                                             // C 8401
+      tip_frame = Qnil ();                                                      // C 8402
+    }
+}                                                                              // C 8404

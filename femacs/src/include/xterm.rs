@@ -804,15 +804,17 @@ pub const X_WMTYPE_B: c_int = 2;
 
 /* C 990-1013: the display chain and the tooltip objects `xterm.c` keeps.  */
 /// C 999: `extern struct x_display_info *x_display_list;`
-/// C 1010-1013: `extern Window tip_window; extern Lisp_Object tip_dx; extern Lisp_Object
-/// tip_dy; extern Lisp_Object tip_frame;`
+/* C 1010-1013's four tooltip objects (`extern Window tip_window; extern Lisp_Object tip_dx;
+   extern Lisp_Object tip_dy; extern Lisp_Object tip_frame;`) are **not** declared here: their
+   definitions are the unit's (`src/xfns.rs`, C 8370/8374/8377/8377, exported with
+   `#[unsafe(no_mangle)]`), and in the single-crate layout a mirror declaration beside the unit's
+   definition is `E0428` (PORTING.md 0.1-2's exception, status 3.900).  The absence is recorded in
+   `docs/ports/excluded-objects.txt` and a reader declares the name at its own use site
+   (P-72 rule 4); this unit's own readers are `src/xfns.rs` (the definitions) and
+   `src/haikufns.rs`/`src/androidfns.rs` (their own `have_haiku`/`have_android` objects).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   pub static mut x_display_list: *mut x_display_info;
-  pub static mut tip_window: Window;
-  pub static mut tip_dx: Lisp_Object;
-  pub static mut tip_dy: Lisp_Object;
-  pub static mut tip_frame: Lisp_Object;
 }
 
 /* C 1050-1170: "Each X frame object points to its own struct x_output object in the
