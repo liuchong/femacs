@@ -19534,12 +19534,53 @@ unsafe fn x_free_pixmap (f: *mut frame, pixmap: Emacs_Pixmap)
 			    Initialization
  ***********************************************************************/
 
-/* C 30466-30489 is `#ifdef USE_X_TOOLKIT`'s own text: the `XrmOptionDescRec emacs_options[]`
-   table (C 30467-30483) and `x_timeout_atimer_activated_flag` (C 30487).  No arm this lane runs
-   sets `use_x_toolkit`, and carrying them needs two more `<X11/Xresource.h>` records
-   (`XrmOptionKind`/`XrmOptionDescRec`, Xresource.h 327-343) in the mirror, so the region is
-   **owed text**: the round that first compiles a toolkit arm takes it, together with the
-   `XrmParseCommand` call site in `x_term_init`.  */
+/// C 30466-30489 (inside `#ifdef USE_X_TOOLKIT`): the resource table `XtOpenDisplay` is handed at
+/// C 30821 (`XtNumber (emacs_options)` is the `size_of_val` ratio there), and the atimer flag C
+/// 30485-30487 declares beside it.  C's array is file-scope `static`, so the port keeps it a
+/// `static mut` (PORTING.md 1.3's file-scope reading), and its record type is the mirror's
+/// `XrmOptionDescRec` (measured on this machine, `include/xlib.rs`) - the two `<X11/Xresource.h>`
+/// records this region was owed for (`XrmOptionKind`/`XrmOptionDescRec`, Xresource.h 327-343).
+/// C 30469's `(XtPointer) "yes"` is Xlib.h 76's `char *`.
+#[cfg (feature = "use_x_toolkit")]
+pub static mut emacs_options: [XrmOptionDescRec; 11] = [
+	  XrmOptionDescRec { option: c"-geometry".as_ptr () as *mut c_char,
+	  	     specifier: c".geometry".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30468
+	  XrmOptionDescRec { option: c"-iconic".as_ptr () as *mut c_char,
+	  	     specifier: c".iconic".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionNoArg, value: c"yes".as_ptr () as *mut c_char },   // C 30469
+	  XrmOptionDescRec { option: c"-internal-border-width".as_ptr () as *mut c_char,
+	  	     specifier: c"*EmacsScreen.internalBorderWidth".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30471-30472
+	  XrmOptionDescRec { option: c"-ib".as_ptr () as *mut c_char,
+	  	     specifier: c"*EmacsScreen.internalBorderWidth".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30473-30474
+	  XrmOptionDescRec { option: c"-T".as_ptr () as *mut c_char,
+	  	     specifier: c"*EmacsShell.title".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30475
+	  XrmOptionDescRec { option: c"-wn".as_ptr () as *mut c_char,
+	  	     specifier: c"*EmacsShell.title".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30476
+	  XrmOptionDescRec { option: c"-title".as_ptr () as *mut c_char,
+	  	     specifier: c"*EmacsShell.title".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30477
+	  XrmOptionDescRec { option: c"-iconname".as_ptr () as *mut c_char,
+	  	     specifier: c"*EmacsShell.iconName".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30478-30479
+	  XrmOptionDescRec { option: c"-in".as_ptr () as *mut c_char,
+	  	     specifier: c"*EmacsShell.iconName".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30480
+	  XrmOptionDescRec { option: c"-mc".as_ptr () as *mut c_char,
+	  	     specifier: c"*pointerColor".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30481
+	  XrmOptionDescRec { option: c"-cr".as_ptr () as *mut c_char,
+	  	     specifier: c"*cursorColor".as_ptr () as *mut c_char,
+	  	     argKind: XrmOptionKind::XrmoptionSepArg, value: std::ptr::null_mut () },   // C 30482
+];
+
+/* Whether atimer for Xt timeouts is activated or not.  */
+#[cfg (feature = "use_x_toolkit")]
+pub static mut x_timeout_atimer_activated_flag: bool = false;          // C 30487
 
 #[cfg (feature = "have_x_windows")]
 pub static mut x_initialized: bool = false;                             // C 30491 (tentative, i.e. false)

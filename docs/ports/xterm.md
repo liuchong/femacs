@@ -2955,7 +2955,10 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   lane runs sets; carrying the table faithfully needs two more `<X11/Xresource.h>` records
   (`XrmOptionKind`, `XrmOptionDescRec`, Xresource.h 327-343) in the mirror, so the region is named
   here as **not landed** and left for the round that first compiles a toolkit arm - the same
-  accounting `x_atom_refs` (Decision 9) and `n_protected_windows` (Decision 50) already carry.  The
+  accounting `x_atom_refs` (Decision 9) and `n_protected_windows` (Decision 50) already carry.
+  **Taken by slice 107 (Decision 120)**: the two `<X11/Xresource.h>` records landed in
+  `include/xlib.rs` first, and C 30467-30483's eleven entries plus C 30487's flag are now the
+  unit's own text under `#[cfg (feature = "use_x_toolkit")]`.  The
   section comments around it *are* carried, so the port's text keeps C's shape.
 * **`x_initialized` is a tentative definition, so the port writes `= false`.**  C 30491's
   `static bool x_initialized;` is zero-initialised by C's own rule; the port's shape for that is the
@@ -5025,6 +5028,29 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   because a `#[cfg]` on an expression is `E0658`.
 * **What `--check` reads.**  **5 -> 4** as above, with the line-count row at **30,214** against C's
   33,125 (8.8% drift, was 29,493 / 11.0%).
+
+### 120. Slice 107 (C 30466-30489): the toolkit resource table, and the two `<X11/Xresource.h>` records it was owed for
+
+* **What it lands.**  `emacs_options[]` (C 30467-30483, eleven `XrmOptionDescRec` entries) and
+  `x_timeout_atimer_activated_flag` (C 30487), both inside C 30466's `#ifdef USE_X_TOOLKIT`, so the
+  port carries them under `#[cfg (feature = "use_x_toolkit")]` at C's own position - replacing the
+  comment that recorded the region as owed (Decision 57).  C 30469's `(XtPointer) "yes"` is Xlib.h
+  76's `char *`, and each entry keeps C's line in its own `// C NNNN` comment.
+* **The mirror round that had to come first.**  The region was owed *because*
+  `XrmOptionKind`/`XrmOptionDescRec` (Xresource.h 327-343) were not in the mirror; they are now,
+  measured on this machine's header: the enum's eight members in C's order are 0-7 with
+  `sizeof = 4`/`align = 4` (what a `#[repr (C)]` enum with those discriminants is), and the record
+  is `sizeof = 32`, `align = 8`, offsets `option 0 specifier 8 argKind 16 value 24`.  The second
+  typedef `XrmOptionDescList` came with them.
+* **What the probes read.**  UT 829/73, UM 830/73, A 830/74 and U 843/74 - **identical to the
+  pre-slice readings**, because the table resolves completely once the two records are in the
+  mirror: no new error row and no moved warning in either toolkit arm.  That is what a *text* debt
+  should read like; the behaviour is still C's table handed to `XtOpenDisplay` at C 30821, which
+  `x_term_init` will land.
+* **P-87's two legs.**  `check-mirror-dupes` 16/16/0 and `tools/check-all-units.sh`
+  `checked 83 unit(s), 0 failure(s)` + `checking 83 unit(s), 0 unit failure(s)`.
+* **Not claimed.**  The frozen configuration compiles none of this (`USE_X_TOOLKIT` is `undef`
+  there); only the UT and UM arms compile the table, and their readings are the line above.
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -7351,7 +7377,7 @@ arms are carried text.
 **What it lands.**  `x_free_pixmap` (C 30447-30459, both `USE_CAIRO` arms), `same_x_server`
 (C 30495-30540, with the two stepped pointer parameters and the `char` comparisons), `get_bits_and_offset`
 (C 30545-30565) and `x_display_ok` (C 30570-30581), plus the file-scope `x_initialized` (C 30491);
-C 30466-30489's toolkit-only table and flag are recorded as owed text (Decision 57).  Rust
+C 30466-30489's toolkit-only table and flag were recorded as owed text by Decision 57 and are **taken by slice 107 (Decision 120)**: the mirror gained the two `<X11/Xresource.h>` records and the unit carries the eleven entries and the flag.  Rust
 19,413 -> 19,564 lines.
 
 **What the probes read.**  Baseline = HEAD's unit (slice 43's commit) with the same arm, both sides

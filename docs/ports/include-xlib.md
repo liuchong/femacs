@@ -117,3 +117,14 @@ to the frozen legs).  No runtime, layout or symbol evidence beyond those measure
   the `match` they pattern on has `int sym` for a scrutinee.
 - Additive, so P-87 ①'s legs read **83/0 + 83/0** and `check-mirror-dupes` stays 16/16/0; the unit
   side of the reading is `docs/ports/xterm.md`'s slice-60 section.
+
+## 2026-10-07: the two `<X11/Xresource.h>` records the toolkit table needs（3.903）
+
+C 30466-30489（`#ifdef USE_X_TOOLKIT` 的 `emacs_options[]` 与 `x_timeout_atimer_activated_flag`）
+此前被记为"欠账文本"，理由正是本文件缺两个记录：`XrmOptionKind`（Xresource.h 327-336）与
+`XrmOptionDescRec`（Xresource.h 338-343）。本轮补上，值**在本机头文件上实测**：枚举八个成员按 C
+的顺序是 0-7、`sizeof = 4`、`align = 4`（`#[repr (C)]` 枚举即该布局）；记录
+`sizeof = 32`、`align = 8`、偏移 `option 0 specifier 8 argKind 16 value 24`，两条断言各写进源码。
+C 的 `XtPointer` 就是 Xlib.h 76 的 `char *`，所以字段类型是 `XPointer`（本文件已有）。第二个
+typedef `XrmOptionDescList` 一并落地。P-87 两条腿：`check-mirror-dupes` 16/16/0、
+`tools/check-all-units.sh` `83 unit(s), 0 failure(s)`。

@@ -326,6 +326,55 @@ pub struct XrmValue
 #[cfg (feature = "have_x_windows")]
 pub type XrmValuePtr = *mut XrmValue;
 
+/// Xresource.h 327-336: `typedef enum { XrmoptionNoArg, XrmoptionIsArg, XrmoptionStickyArg,
+/// XrmoptionSepArg, XrmoptionResArg, XrmoptionSkipArg, XrmoptionSkipLine, XrmoptionSkipNArgs }
+/// XrmOptionKind;` - the eight values measured on this machine's header (0-7 in that order) and
+/// the type measured `sizeof = 4`, which is what a `#[repr (C)]` enum with those discriminants is.
+/// Their consumer is `src/xterm.rs` 30467's `emacs_options` table (C `-geometry`, `-iconic`, ...)
+/// and the `XtOpenDisplay` call C 30821 makes with it.
+#[cfg (feature = "have_x_windows")]
+#[repr (C)]
+#[derive (Clone, Copy, PartialEq, Eq)]
+pub enum XrmOptionKind
+{
+  XrmoptionNoArg = 0,
+  XrmoptionIsArg = 1,
+  XrmoptionStickyArg = 2,
+  XrmoptionSepArg = 3,
+  XrmoptionResArg = 4,
+  XrmoptionSkipArg = 5,
+  XrmoptionSkipLine = 6,
+  XrmoptionSkipNArgs = 7,
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::size_of::<XrmOptionKind> () == 4);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::align_of::<XrmOptionKind> () == 4);
+
+/// Xresource.h 338-343: `typedef struct { char *option; char *specifier; XrmOptionKind argKind;
+/// XPointer value; } XrmOptionDescRec, *XrmOptionDescList;` - the record measured on this machine
+/// (`sizeof = 32`, `align = 8`, offsets `option 0 specifier 8 argKind 16 value 24`), which is what
+/// the port's text declares: `XtPointer` in C's `value` is Xlib.h 76's `char *`.
+#[cfg (feature = "have_x_windows")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct XrmOptionDescRec
+{
+  pub option: *mut c_char,      // C: char *option;
+  pub specifier: *mut c_char,   // C: char *specifier;
+  pub argKind: XrmOptionKind,   // C: XrmOptionKind argKind;
+  pub value: XPointer,          // C: XPointer value;  (XtPointer)
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::size_of::<XrmOptionDescRec> () == 32);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XrmOptionDescRec, argKind) == 16);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XrmOptionDescRec, value) == 24);
+/// Xresource.h 338-343, second typedef.
+#[cfg (feature = "have_x_windows")]
+pub type XrmOptionDescList = *mut XrmOptionDescRec;
+
 /// Xresource.h 160-163's record is sixteen bytes with align 8 and offsets 0/8 - a clang probe
 /// against the installed header (this ledger's Evidence), asserted here because a wrong `addr`
 /// width would move every consumer's `<XrmValue>`.
