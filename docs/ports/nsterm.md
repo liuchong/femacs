@@ -444,17 +444,17 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)mouseDragged: (NSEvent *)e`  (line 11051) — landed as `@objc override func mouseDragged (with:)`: C's two locals are `double` (not `CGFloat`), C 11077-11079's bound is `length + last_mouse_offset` with C's own promotions, and C 11090 hands the `double` to the `float` parameter of `sendScrollEventAtLoc:`, which the port converts where C's call does
   - [x] `- (void)mouseUp: (NSEvent *)e`  (line 11094) — landed as `@objc override func mouseUp (with:)`: C 11101's `release` is the reference the method drops (the `repeatScroll:` reading) and C 11104's enumerator is one this unit already imports
   - [x] `- (void) scrollWheel: (NSEvent *)theEvent`  (line 11109) — landed as `@objc override func scrollWheel (with:)`: C 11113's cast is the unit's `as? EmacsView` and C 11114's message to a nil view is the optional chain's no-op
-- [ ] EmacsLayer  (`@implementation` 11128, `@end` 11396)
-  - [ ] `- (id) initWithDoubleBuffered: (bool)db`  (line 11152)
-  - [ ] `- (void) setColorSpace: (CGColorSpaceRef)cs`  (line 11170)
-  - [ ] `- (void) setDoubleBuffered: (bool)db`  (line 11181)
-  - [ ] `- (void) dealloc`  (line 11190)
-  - [ ] `- (void) releaseSurfaces`  (line 11199)
-  - [ ] `- (BOOL) checkDimensions`  (line 11222)
-  - [ ] `- (CGContextRef) getContext`  (line 11235)
-  - [ ] `- (void) releaseContext`  (line 11324)
-  - [ ] `- (void) display`  (line 11341)
-  - [ ] `- (void) copyContentsTo: (IOSurfaceRef) destination`  (line 11364)
+- [x] EmacsLayer  (`@implementation` 11128, `@end` 11396) — C 11128-11396, landed as `final class EmacsLayer: CALayer` (round 61) with the five ivars of src/nsterm.h 752-759 in C's order (`cache`/`colorSpace`/`currentSurface`/`context`/`doubleBuffered`): the ten methods below, the `iosurface` module (the reference reaches it through Carbon/ApplicationServices' umbrella), and four measured SDK readings - `kCGColorSpaceGenericRGB` is `nonswift` and its string name is what `CGColorSpace (name:)` takes (the constant's own value, same object), `kCGBitmapByteOrder32Host` is `CGImage.h` 49-52's little-endian member, `CFRelease`/`CGContextRelease` are dropped (ARC owns them), and the SDK's own Swift renames (`CGContext (data:…)`, `translateBy (x:y:)`, `scaleBy (x:y:)`, `CGContext.flush ()`, `IOSurfaceLockOptions.readOnly`)
+  - [x] `- (id) initWithDoubleBuffered: (bool)db`  (line 11152) — landed as `init(doubleBuffered:)`: C's `if (self) … else return nil` is the non-failable initializer (the `EmacsMenu` reading), C 11161's `[[NSMutableArray arrayWithCapacity:] retain]` is ARC's strong reference, and `required init?(coder:)` is spelled out beside it (the same pair's reading)
+  - [x] `- (void) setColorSpace: (CGColorSpaceRef)cs`  (line 11170) — landed as `func setColorSpace (_:)`: C's `if (cs)` test is Swift's nil test on the optional, and C 11177's `CGColorSpaceCreateWithName (kCGColorSpaceGenericRGB)` is the measured name reading above
+  - [x] `- (void) setDoubleBuffered: (bool)db`  (line 11181) — landed as `func setDoubleBuffered (_:)`: C's `!=` test and the `releaseSurfaces` call keep their order
+  - [x] `- (void) dealloc`  (line 11190) — landed as `deinit` (a class cannot name `dealloc`; the `EmacsScroller` reading): C 11193's `[cache release]` is the strong reference's release and C 11195's `[super dealloc]` is implicit
+  - [x] `- (void) releaseSurfaces`  (line 11199) — landed as `func releaseSurfaces ()`: C's two `CFRelease`s are dropped (the reading above) while the loop over the cache keeps C's shape, and C 11215's `removeAllObjects` is the SDK's own message
+  - [x] `- (BOOL) checkDimensions`  (line 11222) — landed as `func checkDimensions () -> Bool`: C's two `int` conversions of a `CGFloat` expression are written out, and C 11227's `(IOSurfaceRef)[cache firstObject]` is the nil test plus the unconditional cast (Swift refuses a conditional downcast to a CF type)
+  - [x] `- (CGContextRef) getContext`  (line 11235) — landed as `func getContext () -> CGContext?`: the dimension check, the cache walk with C's `removeObject:` (Swift's `remove (_:)`), the two grab arms and the surface creation with C's five dictionary keys in C's order (`'BGRA'` is the measured `0x42475241`), then the lock, `copyContentsTo:`, the context creation and the two CTM calls
+  - [x] `- (void) releaseContext`  (line 11324) — landed as `func releaseContext ()`: C 11331's `CGContextFlush` is the SDK's rename `CGContext.flush ()`, C 11332's release is dropped, and C 11335's unlock keeps its status test
+  - [x] `- (void) display`  (line 11341) — landed as `override func display ()` (`CALayer`'s own method): C 11345's `[[NSGraphicsContext currentContext] CGContext]` is `NSGraphicsContext.current?.cgContext`, and C's `setContents:` pair plus the cache push keep C's order
+  - [x] `- (void) copyContentsTo: (IOSurfaceRef) destination`  (line 11364) — landed as `func copyContentsTo (_:)`: C 11367's unconditional cast of `[self contents]` is the nil test plus `as!` (the `checkDimensions` reading), the two lock/unlock pairs keep C's `kIOSurfaceLockReadOnly` (Swift's `.readOnly`) and their status tests, and C 11387's `memcpy` is the same call
 - [ ] EmacsDocument  (`@implementation` 11404, `@end` 11406)
 
 ## Macros defined — 23
@@ -4164,3 +4164,54 @@ call site takes an entry and the definition lands at its own C line - and **both
   only, and `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  The
   providers of the new data imports are owed by the port's C-ABI side (the same open item the
   modifiers' row names).
+
+### Round 61: `EmacsLayer` (C 11128-11396) - the screen-buffer class
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-60 carry, so **no new warning**.  Object
+  `/tmp/nsterm61.o`, **1,087,192 bytes**, md5 `c9d73011438683c3162129e02d7861ba`.  The unit is
+  **11,494 lines**.  The first four measurements stopped on errors; they are the entries below.
+* **The class lands whole**: the record (`final class EmacsLayer: CALayer` with the five ivars of
+  src/nsterm.h 752-759) and all ten methods - `init(doubleBuffered:)` with its `required
+  init?(coder:)`, `setColorSpace:`, `setDoubleBuffered:`, `dealloc` (as `deinit`), `releaseSurfaces`,
+  `checkDimensions`, `getContext`, `releaseContext`, `display` (a `CALayer` override) and
+  `copyContentsTo:`.
+* **Four SDK readings this class needs, each measured (probes under `/tmp`, removed)**:
+  1. C 11177's `CGColorSpaceCreateWithName (kCGColorSpaceGenericRGB)`: the SDK marks that constant
+     `nonswift` (CoreGraphics.apinotes 1122-1124) and both of its spellings are unavailable to
+     Swift.  A C probe read its value (`kCGColorSpaceGenericRGB`) and showed that
+     `CGColorSpaceCreateWithName` of that string returns the **same object** (`a=0x1011de230
+     b=0x1011de230`), so the string - not a different colour space - is what Swift's
+     `CGColorSpace (name:)` gets.
+  2. C 11302-11303's `kCGBitmapByteOrder32Host` is the soft-deprecated alias of
+     `kCGImageByteOrder32Host`, which `CGImage.h` 49-52 defines as the little-endian member on a
+     little-endian host (this target) - so the Swift spelling is
+     `CGBitmapInfo.byteOrder32Little`.
+  3. C 11206/11213/11309's `CFRelease` and C 11332's `CGContextRelease` are **dropped** (Swift owns
+     what C releases by hand - the `docs/ports/macfont.md` 348 reading), while C's own Swift renames
+     are used where the SDK names them: `CGBitmapContextCreate` ->
+     `CGContext (data:width:height:bitsPerComponent:bytesPerRow:space:bitmapInfo:)`,
+     `CGContextTranslateCTM`/`CGContextScaleCTM` -> `translateBy (x:y:)`/`scaleBy (x:y:)`,
+     `CGContextFlush` -> `CGContext.flush ()`, and `removeObject:` -> `remove (_:)`.
+  4. C 11376/11389's `kIOSurfaceLockReadOnly` is a `CF_OPTIONS` member, which Swift imports without
+     the `k` prefix (`.readOnly`); `'BGRA'` (C 11279) is a multi-character literal, measured
+     `0x42475241`; C 11284/11307's `%@` on `[self delegate]` is `String (describing:)` with
+     `"(null)"` for the nil case (measured with a C probe).
+* **Two Swift refusals, met with the same shape twice**: a *conditional* downcast to a CF type is an
+  error ("conditional downcast to CoreFoundation type 'IOSurfaceRef' will always succeed"), so
+  C 11227's `(IOSurfaceRef)[cache firstObject]` and C 11367's `(IOSurfaceRef)[self contents]` are
+  written as the nil test plus `as!` - C's own cast is unconditional and its nil case is the message
+  to nil.
+* **One new module**: `import IOSurface` (the reference reaches IOSurface through
+  Carbon/ApplicationServices' umbrella; Swift needs the module named).  **No new C-ABI entry**: the
+  class's ten methods and its ivars are this unit's own, and it is reached only from `EmacsView`'s
+  methods of this same unit (C 7070/8619/9292/9305/9329/9360/9891).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **6** unported,
+  6 row(s); **613** C symbol import(s)` - the reading is unchanged from round 60, because this
+  round's class is a ledger box and not a row of the function inventory (`## Objective-C classes and
+  categories` is hand-written, its cause in `## Decisions`), and it declares no import of its own.
+  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: **no run evidence** - no layer was created, no IOSurface was
+  allocated, no context was made and nothing was drawn; the compile gate reaches parsing and type
+  checking only, and `check-swift-units.py` compares name sets, not signatures, bodies, layouts or
+  ABI.  After this round the checklist still owes `EmacsDocument` (C 11404-11406).

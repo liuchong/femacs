@@ -89,6 +89,9 @@ import ApplicationServices
 // what `ns_get_shifted_character` needs (TIS/UCKeyTranslate), and C 74-79's comment about
 // ApplicationServices' UniversalAccess pair is the text round 5's UAZoom block already records.
 import Carbon
+// C 11131-11396's `EmacsLayer` is the one place this unit needs IOSurface (C 11128-11396); the
+// reference gets it through Carbon/ApplicationServices' umbrella, Swift needs the module named.
+import IOSurface
 
 // ==========================================================================
 // Lane ABI: C types.
@@ -11195,3 +11198,297 @@ func syms_of_nsterm() {
   last_known_monitors = Qnil()                                         // C 11809
   staticpro(withUnsafePointer(to: &last_known_monitors) { $0 })         // C 11810
 }
+
+// ==========================================================================
+// Round 61: `EmacsLayer` (C 11128-11396) - the screen-buffer class
+// ==========================================================================
+
+/// C: `@interface EmacsLayer : CALayer` (src/nsterm.h 752-759) - the five ivars, in C's order, with
+/// C's own names and types.  The class's four methods the header declares (753-760) and the six it
+/// does not (`releaseSurfaces`, `checkDimensions`, `releaseContext`, `display`, `copyContentsTo:`,
+/// all class-internal in the `.m`) are the ten below.
+///
+/// Three SDK readings this class needs, each measured (`/tmp` probes, removed after the readings):
+///  * C 11177's `CGColorSpaceCreateWithName (kCGColorSpaceGenericRGB)`: the SDK marks that constant
+///    `nonswift` (CoreGraphics.apinotes 1122-1124), and both spellings of it are unavailable to
+///    Swift.  Measured with a C probe: its value is the string `kCGColorSpaceGenericRGB` and
+///    `CGColorSpaceCreateWithName` of that string returns the **same** object as the constant
+///    (`a=0x1011de230 b=0x1011de230`), so the name - not a different colour space - is what is
+///    handed to Swift's `CGColorSpace (name:)` replacement.
+///  * C 11302-11303's `kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host`: the first is
+///    `CGImageAlphaInfo.premultipliedFirst`; the second is the soft-deprecated alias of
+///    `kCGImageByteOrder32Host` (`CGImage.h` 87), which `CGImage.h` 49-52 defines as the
+///    little-endian member on a little-endian host - this target - so the Swift spelling is that
+///    member's (`CGBitmapInfo.byteOrder32Little`).
+///  * C 11376/11389's `kIOSurfaceLockReadOnly` is the SDK's own `CF_OPTIONS` member, which Swift
+///    imports without the `k` prefix (`.readOnly`); C 11288/11335's plain `0` is the empty option
+///    set's raw value, and C 11296's `CGBitmapContextCreate` plus C 11314-11315's two CTM calls are
+///    the SDK's own Swift renames (`CGContext (data:…)`, `translateBy (x:y:)`, `scaleBy (x:y:)`,
+///    each measured as "has been replaced by").
+///  * C 11309/11206/11213's `CFRelease` and C 11332's `CGContextRelease`: dropped, because Swift
+///    owns what C releases by hand (the `docs/ports/macfont.md` 348 reading), and C 11331's
+///    `CGContextFlush` is the SDK's own rename `CGContext.flush ()`.  `'BGRA'` (C 11279) is a
+///    multi-character literal: measured `0x42475241`.
+final class EmacsLayer: CALayer {
+  /// C 754: `NSMutableArray *cache;`
+  var cache: NSMutableArray? = nil
+  /// C 755: `CGColorSpaceRef colorSpace;`
+  var colorSpace: CGColorSpace? = nil
+  /// C 756: `IOSurfaceRef currentSurface;`
+  var currentSurface: IOSurfaceRef? = nil
+  /// C 757: `CGContextRef context;`
+  var context: CGContext? = nil
+  /// C 758: `bool doubleBuffered;`
+  var doubleBuffered: Bool = false
+
+  /// C 11152-11167: `- (id) initWithDoubleBuffered: (bool)db`.  C's `self = [super init]` with its
+  /// `if (self) … else return nil` is Swift's non-failable initializer (the `EmacsMenu` reading: the
+  /// nil branch is `[super init]`'s failure, which Swift's own `super.init ()` does not have), C
+  /// 11161's `[[NSMutableArray arrayWithCapacity:] retain]` is ARC's strong reference, and
+  /// C 11154's `NSTRACE` is the empty macro.
+  init(doubleBuffered db: Bool) {
+    super.init()                                          // C 11156
+    setColorSpace(nil)                                    // C 11159
+    setDoubleBuffered(db)                                 // C 11160
+    cache = NSMutableArray(capacity: db ? 2 : 1)          // C 11161
+  }
+
+  /// C's `- (id) initWithCoder: (NSCoder *)coder`, inherited as-is: the port's initializer above is
+  /// a designated initializer, so Swift wants this one spelled out rather than synthesised (the
+  /// `EmacsMenu` reading of the same pair).
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  /// C 11170-11178: `- (void) setColorSpace: (CGColorSpaceRef)cs`.
+  func setColorSpace(_ cs: CGColorSpace?) {
+    /* We don't need to clear the cache because the new colorspace will
+       be used next time we create a new context.  */
+    if cs != nil {
+      colorSpace = cs                                     // C 11175
+    } else {
+      // C 11177: `CGColorSpaceCreateWithName (kCGColorSpaceGenericRGB)` - the reading above.
+      colorSpace = CGColorSpace(name: "kCGColorSpaceGenericRGB" as CFString)
+    }
+  }
+
+  /// C 11181-11187: `- (void) setDoubleBuffered: (bool)db`.
+  func setDoubleBuffered(_ db: Bool) {
+    if doubleBuffered != db { releaseSurfaces() }         // C 11183-11184
+
+    doubleBuffered = db                                   // C 11186
+  }
+
+  /// C 11190-11196: `- (void) dealloc` - Swift's `deinit` (a class cannot name `dealloc`; the
+  /// `EmacsScroller` reading).  C 11193's `[cache release]` is the strong reference's release and
+  /// C 11195's `[super dealloc]` is implicit here.
+  deinit {
+    releaseSurfaces()                                     // C 11192
+  }
+
+  /// C 11199-11217: `- (void) releaseSurfaces`.
+  func releaseSurfaces() {
+    contents = nil                                        // C 11201 (C's `[self setContents:nil]`)
+    releaseContext()                                      // C 11202
+
+    if currentSurface != nil {                            // C 11204
+      // C 11206: `CFRelease (currentSurface);` - dropped, the reading above.
+      currentSurface = nil                                // C 11207
+    }
+
+    if let c = cache {                                    // C 11210
+      for case let surface as IOSurfaceRef in c {         // C 11212-11213
+        // C 11213: `CFRelease ((IOSurfaceRef)object);` - dropped, the reading above; the array's
+        // own release below is what frees them (C 11215).
+        _ = surface
+      }
+
+      c.removeAllObjects()                                // C 11215
+    }
+  }
+
+  /// C 11220-11231: `- (BOOL) checkDimensions` - "Check whether the current bounds match the
+  /// IOSurfaces we are using.  If they do return YES, otherwise NO."  C's two `int` conversions of
+  /// a `CGFloat` expression are written out (Swift has no implicit narrowing).
+  func checkDimensions() -> Bool {
+    let width = Int(NSWidth(bounds) * contentsScale)      // C 11224
+    let height = Int(NSHeight(bounds) * contentsScale)    // C 11225
+    var s: IOSurfaceRef? = currentSurface                 // C 11226
+    if s == nil {                                         // C 11227 (C's nil-receiver send is NULL)
+      // C 11227's cast is unconditional, and Swift makes a *conditional* downcast to a CF type an
+      // error ("will always succeed"), so the nil test is written out and the cast is `as!`.
+      let first = cache?.firstObject
+      if first != nil { s = (first as! IOSurfaceRef) }
+    }
+
+    return s == nil || (IOSurfaceGetWidth(s!) == width    // C 11229
+                          && IOSurfaceGetHeight(s!) == height)   // C 11230
+  }
+
+  /// C 11234-11319: `- (CGContextRef) getContext` - "Return a CGContextRef that can be used for
+  /// drawing to the screen."  C 11239-11240's `NSTRACE_WHEN`/`NSTRACE_MSG` are the empty macros.
+  func getContext() -> CGContext? {
+    let scale = contentsScale                             // C 11237
+
+    if !checkDimensions() {                               // C 11242
+      releaseSurfaces()                                   // C 11243
+    }
+
+    if context == nil {                                   // C 11245
+      var surface: IOSurfaceRef? = nil                    // C 11247
+      let width = Int(NSWidth(bounds) * scale)            // C 11248
+      let height = Int(NSHeight(bounds) * scale)          // C 11249
+
+      if let c = cache {                                  // C 11251
+        for case let object as IOSurfaceRef in c {        // C 11251-11259
+          if !IOSurfaceIsInUse(object) {                  // C 11253
+            surface = object                              // C 11255
+            c.remove(object)                              // C 11256 (the SDK's rename of `removeObject:`)
+            break                                         // C 11257
+          }
+        }
+      }
+
+      if surface == nil && (cache?.count ?? 0) >= (doubleBuffered ? 2 : 1) {   // C 11261
+        /* Just grab the first one off the cache.  This may result
+           in tearing effects.  The alternative is to wait for one
+           of the surfaces to become free.  */
+        let first = cache?.firstObject                    // C 11266
+        if first != nil { surface = (first as! IOSurfaceRef) }
+        cache?.remove(surface!)                           // C 11267 (C's `removeObject:(id)surface`)
+      } else if surface == nil {                          // C 11269
+        let bytesPerRow = IOSurfaceAlignProperty(kIOSurfaceBytesPerRow,
+                                                 width * 4)   // C 11271-11272
+
+        // C 11274-11279: the five properties C's dictionary literal carries, in C's order;
+        // C 11279's `'BGRA'` is the measured `0x42475241` (the reading above).
+        surface = IOSurfaceCreate(
+          [kIOSurfaceWidth: NSNumber(value: width),
+           kIOSurfaceHeight: NSNumber(value: height),
+           kIOSurfaceBytesPerRow: NSNumber(value: bytesPerRow),
+           kIOSurfaceBytesPerElement: NSNumber(value: 4),
+           kIOSurfacePixelFormat: NSNumber(value: UInt32(0x42475241))] as CFDictionary)
+      }
+
+      if surface == nil {                                 // C 11282
+        // C 11284's `%@` is `[self delegate]`'s description, and Foundation prints `(null)` for a
+        // nil one (measured with a C probe), which is the text the fallback below reproduces.
+        NSLog("Failed to create IOSurface for frame %@",
+              delegate.map { String(describing: $0) } ?? "(null)")   // C 11284
+        return nil                                        // C 11285
+      }
+
+      let lockStatus = IOSurfaceLock(surface!, IOSurfaceLockOptions(rawValue: 0), nil)   // C 11288
+      if lockStatus != kIOReturnSuccess {                 // C 11289
+        NSLog("Failed to lock surface: %x", UInt32(lockStatus))   // C 11290
+      }
+
+      copyContentsTo(surface!)                            // C 11292
+
+      currentSurface = surface                            // C 11294
+
+      // C 11296-11303: `CGBitmapContextCreate` is the SDK's own Swift rename
+      // `CGContext (data:width:height:bitsPerComponent:bytesPerRow:space:bitmapInfo:)`
+      // (measured: "has been replaced by"), with C's seven arguments in C's order.
+      context = CGContext(data: IOSurfaceGetBaseAddress(currentSurface!),
+                          width: IOSurfaceGetWidth(currentSurface!),
+                          height: IOSurfaceGetHeight(currentSurface!),
+                          bitsPerComponent: 8,
+                          bytesPerRow: IOSurfaceGetBytesPerRow(currentSurface!),
+                          space: colorSpace!,
+                          bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
+                            | CGBitmapInfo.byteOrder32Little.rawValue)
+
+      if context == nil {                                 // C 11305
+        NSLog("Failed to create context for frame %@",
+              delegate.map { String(describing: $0) } ?? "(null)")   // C 11307
+        _ = IOSurfaceUnlock(currentSurface!, IOSurfaceLockOptions(rawValue: 0), nil)   // C 11308
+        // C 11309: `CFRelease (currentSurface);` - dropped, the reading above.
+        currentSurface = nil                              // C 11310
+        return nil                                        // C 11311
+      }
+
+      // C 11314-11315: `CGContextTranslateCTM`/`CGContextScaleCTM` are the SDK's own Swift
+      // renames `translateBy (x:y:)`/`scaleBy (x:y:)` (measured: "has been replaced by").
+      context!.translateBy(x: 0, y: CGFloat(IOSurfaceGetHeight(surface!)))   // C 11314
+      context!.scaleBy(x: scale, y: -scale)               // C 11315
+    }
+
+    return context                                        // C 11318
+  }
+
+  /// C 11322-11338: `- (void) releaseContext` - "Releases the CGGraphicsContext and unlocks the
+  /// associated IOSurface, so it will be sent to VRAM."
+  func releaseContext() {
+    if context == nil {                                   // C 11328
+      return                                              // C 11329
+    }
+
+    context!.flush()                                      // C 11331 (the SDK's rename of CGContextFlush)
+    // C 11332: `CGContextRelease (context);` - dropped, the reading above.
+    context = nil                                         // C 11333
+
+    let lockStatus = IOSurfaceUnlock(currentSurface!, IOSurfaceLockOptions(rawValue: 0), nil)   // C 11335
+    if lockStatus != kIOReturnSuccess {                   // C 11336
+      NSLog("Failed to unlock surface: %x", UInt32(lockStatus))   // C 11337
+    }
+  }
+
+  /// C 11341-11358: `- (void) display` - the `CALayer` method of that name, so it is an override
+  /// here (C's `[self setContents:…]` pair is the `contents` property).
+  override func display() {
+    if context != nil && context != NSGraphicsContext.current?.cgContext {   // C 11345
+      releaseContext()                                    // C 11347
+
+      /* This forces the layer to see the surface as updated even if
+         we replace it with itself.  */
+      contents = nil                                      // C 11351
+      contents = currentSurface                           // C 11352
+
+      /* Put currentSurface back on the end of the cache.  */
+      cache?.add(currentSurface as Any)                   // C 11355
+      currentSurface = nil                                // C 11356
+    }
+  }
+
+  /// C 11361-11392: `- (void) copyContentsTo: (IOSurfaceRef) destination` - "Copy the contents of
+  /// lastSurface to DESTINATION.  This is required every time we want to use an IOSurface as its
+  /// contents are probably blanks (if it's new), or stale."
+  func copyContentsTo(_ destination: IOSurfaceRef) {
+    // C 11367's cast is unconditional (and Swift refuses a conditional downcast to a CF type), so
+    // the nil test is written out and the cast is `as!` - C 11373's `!source` is the nil test.
+    var source: IOSurfaceRef? = nil
+    if contents != nil { source = (contents as! IOSurfaceRef) }
+    let numBytes = IOSurfaceGetAllocSize(destination)     // C 11369
+
+    if source == nil || source == destination {           // C 11373
+      return                                              // C 11374
+    }
+
+    var lockStatus = IOSurfaceLock(source!,
+                                   .readOnly,
+                                   nil)                   // C 11376
+    if lockStatus != kIOReturnSuccess {                   // C 11377
+      NSLog("Failed to lock source surface: %x", UInt32(lockStatus))   // C 11378-11379
+    }
+
+    let sourceData = IOSurfaceGetBaseAddress(source!)     // C 11381
+    let destinationData = IOSurfaceGetBaseAddress(destination)   // C 11382
+
+    /* Since every IOSurface should have the exact same settings, a
+       memcpy seems like the fastest way to copy the data from one to
+       the other.  */
+    memcpy(destinationData, sourceData, numBytes)         // C 11387
+
+    lockStatus = IOSurfaceUnlock(source!,
+                                 .readOnly,
+                                 nil)                     // C 11389
+    if lockStatus != kIOReturnSuccess {                   // C 11390
+      NSLog("Failed to unlock source surface: %x", UInt32(lockStatus))   // C 11391
+    }
+  }
+}
+
+// C 11394: `#undef CACHE_MAX_SIZE` - a macro the tree never defines (a grep over `src/` finds only
+// this `#undef`), so the site carries no statement; recorded, like the other empty-macro sites.
+// C 11396: `@end` closes the class.
