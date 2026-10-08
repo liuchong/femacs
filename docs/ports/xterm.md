@@ -566,6 +566,14 @@ walk) and `XI_TouchEnd` (the `xi_unlink_touch_point` state, the `TOUCHSCREEN_END
 unit's XI2 vocabulary (XI2.h 163 and 208-211), and `--check` still reads its two rows: the long
 `handle_one_xevent` row's token list stays 69.
 
+Slice 136 (C 25123-25193, Decision 148) closes the inner `switch`: the `HAVE_XINPUT2_4`
+gesture-pinch pair `XI_GesturePinchBegin`/`XI_GesturePinchUpdate` (one body under C's two labels,
+written as an or-pattern; the xwidget hand-off, the `PINCH_EVENT` build with `list4`/`make_float`,
+and the unconditional `X_EVENT_DROP`) and `XI_GesturePinchEnd`, then C 25191's own `default:` - the
+arm the port's `_` has stood in for since slice 121.  Three XI 2.4 event types join the unit's
+vocabulary (XI2.h 217-219), and the lane gains an arm, `XI24` (`XI2 + have_xinput2_4`), because
+nothing in this lane turned that macro on before.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6414,6 +6422,43 @@ expected direction once the file starts carrying records the X11 headers would s
   ever delivered.  The readings are the three arms below, both sides.  The next slice takes C 25123
   onwards (`XI_GesturePinchBegin`/`XI_GesturePinchUpdate`/`XI_GesturePinchEnd` under
   `HAVE_XINPUT2_4`, then C 25191's inner `default:` and C 25195's `xi_done_keysym:` tail).
+
+### 148. Slice 136 (C 25123-25193): the `HAVE_XINPUT2_4` gesture-pinch pair, `XI_GesturePinchEnd`, and C's inner `default:`
+
+* **What it lands.**  C 25123's `#ifdef HAVE_XINPUT2_4` with its three arms, and C 25191-25192's
+  inner `default: goto XI_OTHER;`, which closes the port's inner `match` - the `_` arm that has
+  stood in for it since slice 121:
+  * `XI_GesturePinchBegin`/`XI_GesturePinchUpdate` (C 25124-25176): one body under C's two labels -
+    the `pev` cast, the two device lookups with their user-time pair, the **inverted** master-pointer
+    guard (`device->use != XIMasterPointer`, C 25135, where the four touch arms test `==`), the
+    `#ifdef HAVE_XWIDGETS` hand-off (`xwidget_view_from_window` / `xwidget_pinch` plus the
+    `X_EVENT_DROP` that drops the event), the frame lookup, and the `PINCH_EVENT` build -
+    `x_x_to_emacs_modifiers (…, pev->mods.effective)`, the two `XSETINT!`s, `XSETFRAME!` and
+    `list4 (make_float (delta_x), …, make_float (delta_angle))` - with C 25174's unconditional
+    `*finish = X_EVENT_DROP` and the GTK comment above it.
+  * `XI_GesturePinchEnd` (C 25178-25189): only the `HAVE_XWIDGETS` hand-off and the forced drop.
+* **C's fall-through pair is an or-pattern.**  C 25124-25125's two labels share one body, so the port
+  writes `XI_GesturePinchBegin | XI_GesturePinchUpdate =>` (the `MappingNotify` shape, slice 120),
+  which is the same text the two `case` labels produce.
+* **The three XI 2.4 event types join the unit's block** (`XI_GesturePinchBegin` 27,
+  `XI_GesturePinchUpdate` 28, `XI_GesturePinchEnd` 29 - XI2.h 217-219, the numbers `xfns.rs`
+  5828-5832 carries for `setup_xi_event_mask`).  The arms' own type stays a bare name:
+  `XIGesturePinchEvent` is Decision 15's XInput2 class (no mirror row; the unit's three
+  `xi_compute_root_window_offset*` wrappers already name it in their signatures - this file 25061's
+  note).
+* **The inner switch is now closed, so the note above `'xi_other:` moves.**  It said the arms "land
+  one per slice ... before the `_ => {}` C's switch lacks a `default` for"; C 25191 *is* that
+  `default`, so the note now records that every arm of C's inner switch is landed and that the port's
+  `_` arm is C's own.
+* **What `--check` reads.**  Two rows, unchanged: the long `handle_one_xevent` row's token list is
+  **69 -> 69** and `x_get_wm_check_window does not mention false` stays.  The unit is **38,378
+  lines** (+89), md5 `ac5062fbd5f2f1641123e2ca2c5a171b`.
+* **Not claimed.**  No runtime evidence: the frozen configuration compiles none of this file, so no
+  pinch was ever recognised, no xwidget was ever handed a gesture and no `PINCH_EVENT` was built.
+  The readings are the three arms below - one of them, `XI24`, is this slice's **new arm**, because
+  no arm of this lane turned `have_xinput2_4` on before.  The next slice takes C 25215's outer
+  `default:` and the rest of `handle_one_xevent` (C 25215-25811); C 25195-25213's `xi_done_keysym:`
+  and `XI_OTHER:` tails are already landed as Decision 142.
 
 ## Evidence
 
@@ -12862,6 +12907,38 @@ and writes are the `no field` class in slice 134's *macro type* shape (this arm 
 191 lines, so an absolute-line comparison would report every row below the insertion as moved.  With
 that key the two `have_xinput2_2` arms read exactly the +13 rows above and nothing else, and the
 plain arm reads nothing at all.
+
+**Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
+per-arm message diff and `--check`'s two rows with its token list (69 -> 69).
+
+### Slice 136's readings (C 25123-25193), as landed and measured (2026-10-08)
+
+The `HAVE_XINPUT2_4` pinch pair, `XI_GesturePinchEnd` and C 25191's inner `default:`.  A new arm is
+needed to compile any of it: **XI24** = `XI2 + have_xinput2_4`, where XI2 is the lane's
+`have_x_windows` + `have_xinput2` pair - no arm of this lane turned that macro on before - plus
+**XI24W** = XI24 + `have_xwidgets` for the two xwidget hand-offs.  Three arms, both sides, one probe
+root per side.
+
+| arm | baseline | slice 136 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| XI24 `XI2 +have_xinput2_4` (new) | 1343 / 89 | **1347 / 89** | **+4 / 0** |
+| XI24W `XI24 +have_xwidgets` (new) | 1377 / 88 | **1383 / 88** | **+6 / 0** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`a11cbe95`, slice 135), and the
+plain arm reads a zero delta because the arms sit behind the `have_xinput2_4` gate.
+
+| grew | of which |
+| --- | --- |
+| XI24's four rows | `lrint` x2 (C 25160, C 25161) and `XIGesturePinchEvent` x2 - one `E0425` for each mention on C 25127's declaration line (`*mut XIGesturePinchEvent` in the annotation and again in the cast) |
+| XI24W's two extra rows | `XIGesturePinchEvent` x2 on C 25181's declaration line - the copy inside `XI_GesturePinchEnd`'s `HAVE_XWIDGETS` block |
+
+**Every row is a registered class.**  `lrint` is `<math.h>`'s (slices 134-135's row), and
+`XIGesturePinchEvent` is Decision 15's bare XInput2 type - the `XIRawEvent` / `XIHierarchyEvent` /
+`XITouchOwnershipEvent` class of slices 132-135.  The two xwidget hand-offs add no row:
+`xwidget_view_from_window` and `xwidget_pinch` are already in scope (the `include/xwidget.rs` extern
+block, and `XI21W`/`XI_Motion` have compiled the former since slice 125).  **No warning moved in
+either arm** (A 83, XI24 89, XI24W 88 on both sides), and nothing shrank.
 
 **Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
 per-arm message diff and `--check`'s two rows with its token list (69 -> 69).

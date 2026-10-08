@@ -1030,6 +1030,15 @@ pub const XI_TouchEnd: c_int = 20;             // XI2.h 210
 pub const XI_TouchOwnership: c_int = 21;       // XI2.h 211
 #[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XITouchPendingEnd: c_int = 1 << 16;  // XI2.h 163
+/// XI2.h 217-219: the three XI 2.4 gesture-pinch event types C 25124-25178's arms match on
+/// (the numbers `xfns.rs` 5828-5832 carries for `setup_xi_event_mask`).  Carried here for
+/// the same reason as the touch family above: this unit matches on the names it spells.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchBegin: c_int = 27;    // XI2.h 217
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchUpdate: c_int = 28;   // XI2.h 218
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchEnd: c_int = 29;      // XI2.h 219
 /// C's `<X11/extensions/XInput2.h>` 181-184: `#define XISetMask(ptr, event) (((unsigned char*)
 /// (ptr))[(event)>>3] |= (1 << ((event) & 7)))`, `#define XIMaskIsSet(ptr, event)
 /// (((unsigned char*)(ptr))[(event)>>3] & (1 << ((event) & 7)))` and
@@ -34453,8 +34462,9 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		}
 
 	      /* C 22289-25214's inner `switch (event->xcookie.evtype)`, with C 25210-25213's
-		 `XI_OTHER:` label as its shared tail (the `'xi_other` block below).  Its arms land
-		 one per slice in C's order, before the `_ => {}` C's switch lacks a `default` for.  */
+		 `XI_OTHER:` label as its shared tail (the `'xi_other` block below).  Every arm of C's
+		 switch is landed (slice 136 adds the `HAVE_XINPUT2_4` gesture-pinch pair and C 25191's
+		 `default` as the port's `_`).  */
 	      'xi_other:
 		{
 		  match (*event).xcookie.evtype
@@ -37310,8 +37320,87 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 
 
 
-		      /* C 25190-25191's inner `default: goto XI_OTHER;` - the stand-in until that arm
-			 lands, and the reason no arm falls into the block below.  */
+		      /* C 25123's `#ifdef HAVE_XINPUT2_4` gates the three pinch arms.  C's two labels
+		         `XI_GesturePinchBegin`/`XI_GesturePinchUpdate` share one body, so the port writes the
+		         fall-through as an or-pattern (the `MappingNotify` shape of slice 120).  */
+#[cfg (feature = "have_xinput2_4")]
+		      XI_GesturePinchBegin | XI_GesturePinchUpdate =>
+		        {
+		          let pev: *mut XIGesturePinchEvent = xi_event as *mut XIGesturePinchEvent; // C 25127
+		          let mut device: *mut xi_device_t;                    // C 25128
+		          let mut source: *mut xi_device_t;
+
+		          device = xi_device_from_id (dpyinfo, (*pev).deviceid); // C 25130
+		          source = xi_device_from_id (dpyinfo, (*pev).sourceid); // C 25131
+		          x_display_set_last_user_time (dpyinfo, (*pev).time,  // C 25132-25133
+		          			(*pev).send_event != 0, true);
+
+		          if device.is_null () || (*device).r#use != XIMasterPointer // C 25135
+		            { break 'xi_other; }                               // C 25136 (`goto XI_OTHER`)
+
+		          /* C 25138-25147's `#ifdef HAVE_XWIDGETS`: the pinch belongs to an xwidget, so it is
+		             handed to `xwidget_pinch` and the event is dropped.  */
+#[cfg (feature = "have_xwidgets")]
+		          {
+		            let xvw: *mut xwidget_view = xwidget_view_from_window ((*pev).event); // C 25139
+
+		            if !xvw.is_null ()                                 // C 25141
+		              {
+		                *finish = X_EVENT_DROP;                        // C 25143
+		                xwidget_pinch (xvw, pev);                      // C 25144
+		                break 'xi_other;                               // C 25145 (`goto XI_OTHER`)
+		              }
+		          }
+
+		          any = x_window_to_frame (dpyinfo, (*pev).event);     // C 25149
+
+		          if !any.is_null ()                                   // C 25151
+		            {
+		              if (*pev).event == FRAME_X_WINDOW! (any)         // C 25153
+		                { xi_compute_root_window_offset_pinch (any, pev); } // C 25154
+
+		              input_event_bits! (kind, &raw mut inev.ie, PINCH_EVENT); // C 25156
+		              inev.ie.modifiers                                // C 25157-25158
+		              		    = x_x_to_emacs_modifiers (dpyinfo, (*pev).mods.effective) as c_uint;
+
+		              XSETINT! (inev.ie.x, lrint ((*pev).event_x) as EMACS_INT); // C 25160
+		              XSETINT! (inev.ie.y, lrint ((*pev).event_y) as EMACS_INT); // C 25161
+		              XSETFRAME! (inev.ie.frame_or_window, any);       // C 25162
+		              inev.ie.arg = list4 (make_float ((*pev).delta_x), // C 25163-25166
+		              			     make_float ((*pev).delta_y),
+		              			     make_float ((*pev).scale),
+		              			     make_float ((*pev).delta_angle));
+
+		              if !source.is_null ()                            // C 25168
+		                { inev.ie.device = (*source).name; }           // C 25169
+		            }
+
+		            /* "Once again GTK seems to crash when confronted by
+		               events it doesn't understand."  */
+		          *finish = X_EVENT_DROP;                              // C 25174
+		          break 'xi_other;                                     // C 25175 (`goto XI_OTHER`)
+		        }
+
+		      /* C 25178-25189's `XI_GesturePinchEnd`: no event of its own, only the xwidget hand-off
+		         and the drop C 25187 forces.  */
+#[cfg (feature = "have_xinput2_4")]
+		      XI_GesturePinchEnd =>
+		        {
+		          /* C 25180-25186's `#if defined HAVE_XWIDGETS`.  */
+#[cfg (feature = "have_xwidgets")]
+		          {
+		            let pev: *mut XIGesturePinchEvent = xi_event as *mut XIGesturePinchEvent; // C 25181
+		            let xvw: *mut xwidget_view = xwidget_view_from_window ((*pev).event); // C 25182
+
+		            if !xvw.is_null ()                                 // C 25184
+		              { xwidget_pinch (xvw, pev); }                    // C 25185
+		          }
+		          *finish = X_EVENT_DROP;                              // C 25187
+		          break 'xi_other;                                     // C 25188 (`goto XI_OTHER`)
+		        }
+		      /* C 25191-25192's inner `default: goto XI_OTHER;` - every `evtype` this file does not
+		         match, and the arm C 25190's `#endif` closes just above.  C writes the switch's own
+		         `default:`, which the port spells `_`.  */
 		      _ => { break 'xi_other; }
 		    }
 
