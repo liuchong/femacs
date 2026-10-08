@@ -7,12 +7,17 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**2,610 lines**), which carries **C 1-1732** - P-86 ④'s first six
+> `femacs/src/haikuterm.rs` (**2,810 lines**), which carries **C 1-1902** - P-86 ④'s first seven
 > slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 1902 and not 1904 (slice 7).**  C 1904 is `haiku_draw_glyph_string`'s `static void` and
+> C 1902 the closing brace of the item before it, so the slice is **C 1733-1902** - the blank line
+> C 1733, `haiku_translate_transform` (C 1734-1740) and `haiku_draw_image_glyph_string`
+> (C 1742-1902).  The next definition is `haiku_draw_glyph_string` (C 1904).
 >
 > **Why 1732 and not 1734 (slice 6).**  C 1734 is `haiku_translate_transform`'s `static void` and
 > C 1732 the closing brace of the item before it, so the slice is **C 1641-1732** - the blank line
@@ -127,7 +132,8 @@ the pre-flight below sets it as well.
 | 1400-1511 | `haiku_draw_stretch_glyph_string` (C 1401-1497; C 1407 the cursor/stretch test, C 1412-1434 the R2L and column-width choices, C 1443-1476 the stipple pair, C 1478-1495 the background arm, C 1496 the `background_filled_p` write), `haiku_start_clip` (C 1499-1504) and `haiku_end_clip` (C 1506-1511) | file gate (slice 4) |
 | 1512-1640 | `haiku_clip_to_row` (C 1513-1530; C 1521 `window_box`'s three outputs, C 1524 `WINDOW_TO_FRAME_PIXEL_Y`), `haiku_update_begin` (C 1532-1538; C 1537 the `FRAME_COMPLETE_P` write), `haiku_update_end` (C 1540-1545; C 1543 the `mouse_face_defer` write) and `haiku_draw_composite_glyph_string_foreground` (C 1547-1640; C 1581 the `u.cmp.automatic` test, C 1588 `COMPOSITION_GLYPH`, C 1600-1637 the `LGSTRING`/`LGLYPH_*` arm) | file gate (slice 5) |
 | 1641-1732 | `haiku_draw_image_relief` (C 1642-1732; C 1650 the `image_ascent` call, C 1656-1659 the left box line, C 1663-1666 the two margins, C 1668-1685 the relief/fork, C 1692-1716 the tab-bar/tool-bar `V*_button_margin` chains, C 1720-1727 the four edges, C 1729-1731 the clip rectangle and `haiku_draw_relief_rect`) | file gate (slice 6) |
-| 1733-4898 | **the remainder of the file** (C 1734 `haiku_translate_transform` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1733-1902 | `haiku_translate_transform` (C 1734-1740) and `haiku_draw_image_glyph_string` (C 1742-1902; C 1747-1748 the two box widths, C 1755-1772 the height/width/x/y folds, C 1777 the `stippled_p` write, C 1780/1782 the cursor background, C 1787-1896 the bitmap arm with `CONVERT_TO_EMACS_RECT`/`gui_intersect_rectangles`/`memcpy`/`be_apply_affine_transform`/`BView_DrawBitmap`/`be_draw_image_mask`/`be_draw_bitmap_with_mask` and the cursor rectangle, C 1898-1901 the relief tail) | file gate (slice 7) |
+| 1903-4898 | **the remainder of the file** (C 1904 `haiku_draw_glyph_string` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -778,3 +784,80 @@ compare token for token.
   type-checking and the text/token gates.
 - The five mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 1733-4898 text this file has not reached.
+
+## Slice 7 (2026-10-08, status 4.083 - the integrator sets the round number): C 1733-1902
+
+**The slice's text.**  The blank line C 1733, `haiku_translate_transform` (C 1734-1740) and
+`haiku_draw_image_glyph_string` (C 1742-1902) - the whole image path: the two box widths, the
+`height`/`width`/`x`/`y` folds, the `stippled_p` write, the cursor background, the bitmap arm
+(clip rectangle, `gui_intersect_rectangles`, the `memcpy` of `s->img->transform`, the two
+`BView_StartClip`/`EndClip` guards, `be_apply_affine_transform` and the three draw calls) and the
+relief tail.  Port line count **2,610 -> 2,810** (+200).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Three runs of slice 2's
+command, arm set `have_haiku` + `have_window_system`:
+
+- **Run 1: `exit 1`, 7 primary errors, and 2 of them are in `include/haikugui.rs`** -
+  `CONVERT_TO_EMACS_RECT!`'s `width`/`height` assignments are `c_int` -> `c_uint` here, and the
+  macro had no conversion written out (Deviation 1).
+- **Run 2 (after the mirror repair): `exit 1`, 5 primary errors among 34 error-prefixed lines,
+  every one in a mirror** - the same five slices 5 and 6 read (`include/haikuterm.rs` three times,
+  `include/systime.rs` once, `include/frame.rs` once).  **The unit's own text has no primary
+  error** in either run; 4 warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 52 rows -> 51.**  The one closed is
+`haiku_draw_image_glyph_string`'s `missing function` row (`haiku_translate_transform`'s row had
+already closed with slice 5's `haiku_clip_to_row` note - it is the same `missing function` batch,
+so the arithmetic is 52 - 1 = 51 with no new row at all).  The 51 that remain are 50
+`missing function` rows plus `missing macro ASSIGN_CURSOR`, all inside the C 1903-4898 remainder.
+**No new spelling row**: `CONVERT_TO_EMACS_RECT`, `gui_intersect_rectangles`, `memcpy`, the six
+`be_*`/`BView_*` calls and the `size_of` fold all compare token for token (`sizeof` is on the
+checker's skip list, `tools/extract-abi.py` 165).
+
+### Deviations (this slice)
+
+1. **A mirror line this slice changes**: `include/haikugui.rs` 72-96's `CONVERT_TO_EMACS_RECT` /
+   `CONVERT_FROM_EMACS_RECT` gain C's own `int`/`unsigned` conversions (`as c_uint` on the two
+   `width`/`height` assignments of the `TO` macro, `as c_int` on the twin's), because C relies on
+   the implicit conversion of its comma-expression body: the non-X `Emacs_Rectangle` is
+   `int x, y; unsigned width, height;` (dispextern.h 66-70) while this arm's `NativeRectangle` is
+   `struct haiku_rect` with `int` members (haikugui.h 41-47).  Measured by this file's first use of
+   either macro (C 1790: two `E0308` rows, *expected `u32`, found `i32`*), and the shape is
+   `include/w32gui.rs` 188-204's pair, which writes the same two casts for its own `LONG`
+   rectangle.  The `FROM` twin is the same class in the other direction and is repaired with it;
+   **no unit's text exercises `FROM` yet**, so that half is text-only.  P-87's re-scan
+   (`tools/check-all-units.sh`, expected `83 unit(s), 0 failure(s)`) is owed to the integrator, as
+   this file's Owed 7 already records for slice 1's mirror line.
+2. **C 1752's `unsigned long background` and C 1753's `double image_transform[3][3]`** are
+   zero-initialised and named (PORTING.md 1.5): C 1780 hands the callee the first's address and C
+   1814's `memcpy` fills the second, both of which the port cannot follow - the reading this
+   file's C 1113, C 1171, C 1316, C 1405 and C 1648 already took.
+3. **`CONVERT_TO_EMACS_RECT! (cr, nr)` is a statement here**, as the mirror's own comment says
+   (C's comma expression's value is read by no caller).
+4. **C 1815's `sizeof image_transform`** is `core::mem::size_of::<[[c_double; 3]; 3]> ()`
+   (72 bytes); `sizeof` is a skipped token in the body comparison.
+5. **C 1826-1827's two `x - s->slice.x` / `y - s->slice.y` differences** are `c_int` arithmetic
+   (`glyph_slice_bits!`'s reads cast to `c_int`) widened to `c_double` at the call, which is what
+   C's prototype for `haiku_translate_transform` takes.
+6. **C 1790's `CONVERT_TO_EMACS_RECT` and C 1789's clip rectangle** take the untyped pointers the
+   mirrors give them (`haiku_rect` -> `*mut c_void`, the C 544/1729 spellings).
+
+### Owed (this slice's additions)
+
+- **The P-87 re-scan of the mirror line above** (`tools/check-all-units.sh`), which is Owed 7's
+  and now covers two mirror changes (slice 1's `include/haikuterm.rs` pair and this
+  `include/haikugui.rs` pair).
+- Nothing else: `--check` produced no new row (Evidence ②) and the line-drift row is unchanged
+  (C 4898 vs Rust 2,810 is 42.6%, inside the `haikuterm` row's 0.69).
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no image was drawn (no
+  `BView_DrawBitmap`, no mask compositing), no affine transform was applied, no clip rectangle was
+  set and no rectangle/bitmap was blitted.**  The `CONVERT_TO_EMACS_RECT` repair is a *compile*
+  reading (the two `E0308` rows before it), not a byte-level one: `c_int` -> `c_uint` is the
+  conversion C performs implicitly, and the frozen clang's own layout for both records is asserted
+  where each is declared.
+- The five mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 1903-4898 text this file has not reached.

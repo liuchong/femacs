@@ -69,13 +69,21 @@ macro_rules! NativeRectangle {
 // haikugui.h 47-58: C's bodies are comma expressions; Rust has no comma operator, so the port
 // keeps the four assignments as a block.  The macros are used as statements (the value of C's
 // comma expression is the last assignment, which no caller reads).
+//
+// **The two `width`/`height` assignments need C's own conversion written out** (measured by
+// `src/haikuterm.rs`'s C 1790, the first use of either macro).  C's non-X `Emacs_Rectangle`
+// (dispextern.h 66-70) spells its two extents `unsigned`, and this arm's `struct haiku_rect`
+// (C 41-47) spells them `int`, so `(xr).width = (nr).width` is `c_int` -> `c_uint` here - the
+// `include/w32gui.rs` 188-204 pair writes the same two casts for its own `LONG` rectangle.
+// `CONVERT_FROM_EMACS_RECT` is the same class in the other direction and carries its cast for
+// symmetry; no unit's text exercises it yet.
 macro_rules! CONVERT_TO_EMACS_RECT {
   ($xr:expr, $nr:expr) =>
     { {
         ($xr).x = ($nr).x;
         ($xr).y = ($nr).y;
-        ($xr).width = ($nr).width;
-        ($xr).height = ($nr).height;
+        ($xr).width = ($nr).width as c_uint;
+        ($xr).height = ($nr).height as c_uint;
       } };
 }
 macro_rules! CONVERT_FROM_EMACS_RECT {
@@ -83,8 +91,8 @@ macro_rules! CONVERT_FROM_EMACS_RECT {
     { {
         ($nr).x = ($xr).x;
         ($nr).y = ($xr).y;
-        ($nr).width = ($xr).width;
-        ($nr).height = ($xr).height;
+        ($nr).width = ($xr).width as c_int;
+        ($nr).height = ($xr).height as c_int;
       } };
 }
 

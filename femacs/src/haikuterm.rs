@@ -2608,3 +2608,203 @@ unsafe fn haiku_draw_image_relief (s: *mut glyph_string)
   haiku_draw_relief_rect (s, x, y, x1, y1, thick, thick, raised_p,      // C 1730
 			  top_p, bot_p, left_p, right_p, &raw mut r);   // C 1731
 }
+
+/* C 1733-1902: `haiku_translate_transform` (C 1734-1740) and `haiku_draw_image_glyph_string`
+   (C 1742-1902).  The next first definition is C 1904's `haiku_draw_glyph_string`.  Everything
+   this slice calls is in reach of the unit's own include graph: `Emacs_Rectangle`
+   (`include/dispextern.rs` 68), `CONVERT_TO_EMACS_RECT!` (`include/haikugui.rs` 72),
+   `gui_intersect_rectangles` (dispextern.rs 4048), the `BView_*`/`be_*` surface
+   (`include/haiku_support.rs` 604-634) and `memcpy` (`lib/include/string.rs`).  */
+
+/* C 1734-1740.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_translate_transform (transform: *mut [c_double; 3], dx: c_double, dy: c_double)
+{
+  (*transform)[2] += dx;                                              // C 1738
+  (*transform.offset (1))[2] += dy;                                   // C 1739
+}
+
+/* C 1742-1902.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_image_glyph_string (s: *mut glyph_string)
+{
+  let face: *mut face = GS_FACE! (s);                                 // C 1745
+  let mut view: *mut c_void;                                          // C 1746
+  let mut bitmap: *mut c_void;
+  let mut mask: *mut c_void;
+  let box_line_hwidth: c_int
+    = std::cmp::max ((*face).box_vertical_line_width, 0);             // C 1747
+  let box_line_vwidth: c_int
+    = std::cmp::max ((*face).box_horizontal_line_width, 0);           // C 1748
+  let mut x: c_int;                                                   // C 1749
+  let mut y: c_int;
+  let mut height: c_int;
+  let mut width: c_int;
+  let mut relief: c_int;
+  let mut nr: haiku_rect = unsafe { core::mem::zeroed () };             // C 1750
+  let mut cr: Emacs_Rectangle = unsafe { core::mem::zeroed () };        // C 1751
+  let mut ir: Emacs_Rectangle = unsafe { core::mem::zeroed () };
+  let mut r: Emacs_Rectangle = unsafe { core::mem::zeroed () };
+  /* C 1752 declares `background` with no initialiser and C 1780 hands the callee its address,
+     so the port zero-initialises it (PORTING.md 1.5; this file's C 1113 reading).  */
+  let mut background: c_ulong = 0;
+  let _ = &mut background;
+  /* C 1753's `image_transform` is filled by C 1814's `memcpy`, which the port cannot follow, so
+     it is zeroed and named too.  */
+  let mut image_transform: [[c_double; 3]; 3] = [[0.0; 3]; 3];
+  let _ = &mut image_transform;
+
+  height = (*s).height;                                               // C 1755
+  if glyph_slice_bits! (y, (*s).slice) == 0                           // C 1756
+    { height -= box_line_vwidth; }                                    // C 1757
+  if glyph_slice_bits! (y, (*s).slice) as c_int                       // C 1758
+      + glyph_slice_bits! (height, (*s).slice) as c_int >= (*(*s).img).height
+    { height -= box_line_vwidth; }                                    // C 1759
+
+  width = (*s).background_width;                                      // C 1761
+  x = (*s).x;                                                         // C 1762
+  if glyph_bits! (left_box_line_p, (*(*s).first_glyph))                // C 1763
+      && glyph_slice_bits! (x, (*s).slice) == 0                       // C 1764
+    {
+      x += box_line_hwidth;                                           // C 1766
+      width -= box_line_hwidth;                                       // C 1767
+    }
+
+  y = (*s).y;                                                         // C 1770
+  if glyph_slice_bits! (y, (*s).slice) == 0                           // C 1771
+    { y += box_line_vwidth; }                                         // C 1772
+
+  view = FRAME_HAIKU_DRAWABLE! ((*s).f);                              // C 1774
+  bitmap = (*(*s).img).pixmap;                                        // C 1775
+
+  glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);         // C 1777
+
+  if (*s).hl == DRAW_CURSOR                                           // C 1779
+    { haiku_merge_cursor_foreground (s as *mut c_void, std::ptr::null_mut (),
+				     &raw mut background); }  // C 1780
+  else
+    { background = (*face).background; }                              // C 1782
+
+  haiku_draw_background_rect (s, GS_FACE! (s), x, y,                   // C 1784
+			      width, height);                         // C 1785
+
+  if ! bitmap.is_null ()                                              // C 1787
+    {
+      get_glyph_string_clip_rect (s, &raw mut nr as *mut c_void);      // C 1789
+      CONVERT_TO_EMACS_RECT! (cr, nr);                                // C 1790
+      x = (*s).x;                                                     // C 1791
+      y = (*s).ybase                                                  // C 1792
+	- image_ascent ((*s).img, face, &raw mut (*s).slice);
+
+      if glyph_slice_bits! (x, (*s).slice) == 0                       // C 1794
+	{ x += (*(*s).img).hmargin; }                                 // C 1795
+      if glyph_slice_bits! (y, (*s).slice) == 0                       // C 1796
+	{ y += (*(*s).img).vmargin; }                                 // C 1797
+
+      if face_bits! (box, face) != FACE_NO_BOX                        // C 1799
+	  && glyph_bits! (left_box_line_p, (*(*s).first_glyph))         // C 1800
+	  && glyph_slice_bits! (x, (*s).slice) == 0                     // C 1801
+	{ x += std::cmp::max ((*face).box_vertical_line_width, 0); }    // C 1802
+
+      ir.x = x;                                                       // C 1804
+      ir.y = y;                                                       // C 1805
+      ir.width = glyph_slice_bits! (width, (*s).slice) as c_uint;      // C 1806
+      ir.height = glyph_slice_bits! (height, (*s).slice) as c_uint;    // C 1807
+      r = ir;                                                         // C 1808
+
+      mask = (*(*s).img).mask;                                        // C 1810
+
+      if gui_intersect_rectangles (&raw const cr, &raw const ir, &raw mut r)   // C 1812
+	{
+	  memcpy (&raw mut image_transform as *mut c_void,             // C 1814
+		  &raw const (*(*s).img).transform as *const c_void,
+		  core::mem::size_of::<[[c_double; 3]; 3]> ());       // C 1815
+
+	  if glyph_slice_bits! (x, (*s).slice) as c_int != x            // C 1817
+	      || glyph_slice_bits! (y, (*s).slice) as c_int != y        // C 1818
+	      || glyph_slice_bits! (width, (*s).slice) as c_int != (*(*s).img).width    // C 1819
+	      || glyph_slice_bits! (height, (*s).slice) as c_int != (*(*s).img).height  // C 1820
+	    {
+	      BView_StartClip (view);                                  // C 1821
+	      BView_ClipToRect (view, r.x, r.y, r.width as c_int, r.height as c_int);   // C 1822
+	    }
+
+	  haiku_translate_transform (image_transform.as_mut_ptr (),     // C 1825
+				     (x - glyph_slice_bits! (x, (*s).slice) as c_int) as c_double,   // C 1826
+				     (y - glyph_slice_bits! (y, (*s).slice) as c_int) as c_double);  // C 1827
+
+	  be_apply_affine_transform (view,                              // C 1829
+				     image_transform[0][0],            // C 1830
+				     image_transform[0][1],            // C 1831
+				     image_transform[0][2],            // C 1832
+				     image_transform[1][0],            // C 1833
+				     image_transform[1][1],            // C 1834
+				     image_transform[1][2]);           // C 1835
+
+	  if ! glyph_string_bits! (stippled_p, (*s)) || mask.is_null ()  // C 1837
+	    {
+	      BView_DrawBitmap (view, bitmap, 0, 0,                      // C 1839
+				(*(*s).img).original_width,               // C 1840
+				(*(*s).img).original_height,              // C 1841
+				0, 0,                                     // C 1842
+				(*(*s).img).original_width,               // C 1843
+				(*(*s).img).original_height,              // C 1844
+				(*(*s).img).use_bilinear_filtering);      // C 1845
+
+	      if ! mask.is_null ()                                      // C 1847
+		{ be_draw_image_mask (mask, view, 0, 0,                  // C 1848
+				      (*(*s).img).original_width,        // C 1849
+				      (*(*s).img).original_height,       // C 1850
+				      0, 0,                              // C 1851
+				      (*(*s).img).original_width,        // C 1852
+				      (*(*s).img).original_height,       // C 1853
+				      background as uint32_t); }         // C 1854
+	    }
+	  else
+	    /* In order to make sure the stipple background remains
+	       visible, use the mask for the alpha channel of BITMAP
+	       and composite it onto the view instead.  */             // C 1857-1859
+	    { be_draw_bitmap_with_mask (view, bitmap, mask, 0, 0,        // C 1860
+					(*(*s).img).original_width,     // C 1861
+					(*(*s).img).original_height,    // C 1862
+					0, 0,                           // C 1863
+					(*(*s).img).original_width,     // C 1864
+					(*(*s).img).original_height,    // C 1865
+					(*(*s).img).use_bilinear_filtering); }   // C 1866
+
+	  if glyph_slice_bits! (x, (*s).slice) as c_int != x            // C 1868
+	      || glyph_slice_bits! (y, (*s).slice) as c_int != y        // C 1869
+	      || glyph_slice_bits! (width, (*s).slice) as c_int != (*(*s).img).width    // C 1870
+	      || glyph_slice_bits! (height, (*s).slice) as c_int != (*(*s).img).height  // C 1871
+	    { BView_EndClip (view); }                                   // C 1872
+
+	  be_apply_affine_transform (view, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0);   // C 1873
+	}
+
+      if (*(*s).img).mask.is_null ()                                   // C 1876
+	{
+	  /* When the image has a mask, we can expect that at
+	     least part of a mouse highlight or a block cursor will
+	     be visible.  If the image doesn't have a mask, make
+	     a block cursor visible by drawing a rectangle around
+	     the image.  I believe it's looking better if we do
+	     nothing here for mouse-face.  */                          // C 1878-1883
+
+	  if (*s).hl == DRAW_CURSOR                                     // C 1885
+	    {
+	      relief = eabs! ((*(*s).img).relief);                       // C 1887
+
+	      BView_SetPenSize (view, 1);                                // C 1889
+	      BView_SetHighColor (view, FRAME_CURSOR_COLOR! ((*s).f).pixel as uint32_t);   // C 1890
+	      BView_StrokeRectangle (view, x - relief, y - relief,        // C 1891
+				     glyph_slice_bits! (width, (*s).slice) as c_int + relief * 2,    // C 1892
+				     glyph_slice_bits! (height, (*s).slice) as c_int + relief * 2);   // C 1893
+	    }
+	}
+    }
+
+  if (*(*s).img).relief != 0                                          // C 1898
+      || (*s).hl == DRAW_IMAGE_RAISED                                 // C 1899
+      || (*s).hl == DRAW_IMAGE_SUNKEN                                 // C 1900
+    { haiku_draw_image_relief (s); }                                  // C 1901
+}
