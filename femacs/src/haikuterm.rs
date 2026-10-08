@@ -2808,3 +2808,202 @@ unsafe fn haiku_draw_image_glyph_string (s: *mut glyph_string)
       || (*s).hl == DRAW_IMAGE_SUNKEN                                 // C 1900
     { haiku_draw_image_relief (s); }                                  // C 1901
 }
+
+/* C 1903-2074: `haiku_draw_glyph_string` (C 1904-2074).  The next first definition is C 2076's
+   `haiku_draw_glyph_string_background`.  Every name this slice calls is one of this file's own
+   (C 155-196's `haiku_clip_to_string`, C 198-206's `haiku_clip_to_string_exactly`, the five
+   drawing functions of slices 1-7) or the mirrors'; `emacs_abort` is the `default:` arm C 1998
+   spells.  */
+
+/* C 1904-2074.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_glyph_string (s: *mut glyph_string)
+{
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);              // C 1907
+  let face: *mut face = GS_FACE! (s);                                 // C 1908
+
+  block_input ();                                                     // C 1910
+  BView_draw_lock (view, false, 0, 0, 0, 0);                          // C 1911
+  prepare_face_for_display ((*s).f, GS_FACE! (s));                    // C 1912
+
+  glyph_string_bits! (stippled_p, (*s),                                // C 1914
+		      (*s).hl != DRAW_CURSOR && (*face).stipple != 0);
+
+  if ! (*s).next.is_null () && (*s).right_overhang != 0                // C 1916
+      && glyph_string_bits! (for_overlaps, (*s)) == 0
+    {
+      let mut width: c_int;                                           // C 1918
+      let mut next: *mut glyph_string;                                // C 1919
+
+      width = 0;                                                      // C 1921
+      next = (*s).next;
+      while ! next.is_null () && width < (*s).right_overhang          // C 1922
+	{
+	  if glyph_bits! (type, (*(*next).first_glyph)) != IMAGE_GLYPH   // C 1924
+	    {
+	      prepare_face_for_display ((*s).f, GS_FACE! (next));       // C 1926
+	      glyph_string_bits! (stippled_p, (*next),                   // C 1927
+				  (*next).hl != DRAW_CURSOR
+				  && (*(GS_FACE! (next))).stipple != 0);   // C 1928
+
+	      haiku_start_clip (next);                                  // C 1930
+	      haiku_clip_to_string (next);                              // C 1931
+	      if glyph_bits! (type, (*(*next).first_glyph)) != STRETCH_GLYPH   // C 1932
+		{ haiku_maybe_draw_background (next, 1); }              // C 1933
+	      else
+		{ haiku_draw_stretch_glyph_string (next); }             // C 1935
+	      haiku_end_clip (s);                                       // C 1936
+	    }
+	  width += (*next).width;                                       // C 1923's step
+	  next = (*next).next;
+	}
+    }
+
+  haiku_start_clip (s);                                              // C 1940
+
+  let mut box_filled_p: c_int = 0;                                    // C 1942
+
+  if glyph_string_bits! (for_overlaps, (*s)) == 0                      // C 1944
+      && face_bits! (box, face) != FACE_NO_BOX
+      && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH       // C 1945
+	  || glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH)   // C 1946
+    {
+      haiku_clip_to_string (s);                                       // C 1948
+      haiku_maybe_draw_background (s, 1);                             // C 1949
+      box_filled_p = 1;                                               // C 1950
+      haiku_draw_string_box (s);                                      // C 1951
+    }
+  else if (*s).clip_head.is_null ()                                   // C 1953
+	   && (*s).clip_tail.is_null ()                               // C 1954
+	   && ((! (*s).prev.is_null () && (*(*s).prev).hl != (*s).hl  // C 1955
+		&& (*s).left_overhang != 0)
+	       || (! (*s).next.is_null () && (*(*s).next).hl != (*s).hl   // C 1956
+		   && (*s).right_overhang != 0))
+    /* We must clip just this glyph.  left_overhang part has already
+       drawn when s->prev was drawn, and right_overhang part will be
+       drawn later when s->next is drawn.  */                         // C 1957-1959
+    { haiku_clip_to_string_exactly (s, s); }                          // C 1960
+  else
+    { haiku_clip_to_string (s); }                                     // C 1962
+
+  if glyph_string_bits! (for_overlaps, (*s)) != 0                     // C 1964
+    { glyph_string_bits! (background_filled_p, (*s), true); }         // C 1965
+
+  match glyph_bits! (type, (*(*s).first_glyph))                       // C 1967
+    {
+      COMPOSITE_GLYPH =>
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0             // C 1970
+	      || ((*s).cmp_from > 0                                   // C 1971
+		  && ! glyph_u_cmp_bits! (automatic, (*s).first_glyph))
+	    { glyph_string_bits! (background_filled_p, (*s), true); }  // C 1972
+	  else
+	    { haiku_maybe_draw_background (s, 1); }                   // C 1974
+	  haiku_draw_composite_glyph_string_foreground (s);           // C 1975
+	}
+      CHAR_GLYPH =>
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0             // C 1978
+	    { glyph_string_bits! (background_filled_p, (*s), true); }  // C 1979
+	  else
+	    { haiku_maybe_draw_background (s, 0); }                   // C 1981
+	  haiku_draw_glyph_string_foreground (s);                     // C 1982
+	}
+      STRETCH_GLYPH =>
+	{ haiku_draw_stretch_glyph_string (s); }                      // C 1985
+      IMAGE_GLYPH =>
+	{ haiku_draw_image_glyph_string (s); }                        // C 1988
+      GLYPHLESS_GLYPH =>
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0             // C 1991
+	    { glyph_string_bits! (background_filled_p, (*s), true); }  // C 1992
+	  else
+	    { haiku_maybe_draw_background (s, 1); }                   // C 1994
+	  haiku_draw_glyphless_glyph_string_foreground (s);           // C 1995
+	}
+      _ =>
+	{ emacs_abort (); }                                           // C 1998
+    }
+
+  if glyph_string_bits! (for_overlaps, (*s)) == 0                      // C 2001
+    {
+      if box_filled_p == 0 && face_bits! (box, face) != FACE_NO_BOX    // C 2003
+	{ haiku_draw_string_box (s); }                                // C 2004
+      else
+	{ haiku_draw_text_decoration (s, GS_FACE! (s), (*s).width, (*s).x); }   // C 2006
+
+      if ! (*s).prev.is_null ()                                       // C 2008
+	{
+	  let mut prev: *mut glyph_string;                            // C 2010
+
+	  prev = (*s).prev;                                           // C 2012
+	  while ! prev.is_null ()
+	    {
+	      if (*prev).hl != (*s).hl                                // C 2013
+		  && (*prev).x + (*prev).width + (*prev).right_overhang > (*s).x   // C 2014
+		{
+		  /* As prev was drawn while clipped to its own area, we
+		     must draw the right_overhang part using s->hl now.  */   // C 2016-2017
+		  let save: draw_glyphs_face = (*prev).hl;             // C 2018
+
+		  (*prev).hl = (*s).hl;                                // C 2020
+		  haiku_start_clip (s);                                // C 2021
+		  haiku_clip_to_string (s);                            // C 2022
+		  haiku_clip_to_string_exactly (s, prev);              // C 2023
+		  if glyph_bits! (type, (*(*prev).first_glyph)) == CHAR_GLYPH   // C 2024
+		    { haiku_draw_glyph_string_foreground (prev); }     // C 2025
+		  else
+		    { haiku_draw_composite_glyph_string_foreground (prev); }   // C 2027
+		  haiku_end_clip (s);                                 // C 2028
+		  (*prev).hl = save;                                  // C 2029
+		}
+	      prev = (*prev).prev;                                    // C 2012's step
+	    }
+	}
+
+      if ! (*s).next.is_null ()                                       // C 2033
+	{
+	  let mut next: *mut glyph_string;                            // C 2035
+
+	  next = (*s).next;                                           // C 2037
+	  while ! next.is_null ()
+	    {
+	      if (*next).hl != (*s).hl                                // C 2038
+		  && (*next).x - (*next).left_overhang < (*s).x + (*s).width   // C 2039
+		{
+		  /* As next will be drawn while clipped to its own area,
+		     we must draw the left_overhang part using s->hl now.  */   // C 2041-2042
+		  let save: draw_glyphs_face = (*next).hl;             // C 2043
+
+		  (*next).hl = (*s).hl;                                // C 2045
+		  haiku_start_clip (s);                                // C 2046
+		  haiku_clip_to_string (s);                            // C 2047
+		  haiku_clip_to_string_exactly (s, next);              // C 2048
+		  if glyph_bits! (type, (*(*next).first_glyph)) == CHAR_GLYPH   // C 2049
+		    { haiku_draw_glyph_string_foreground (next); }     // C 2050
+		  else
+		    { haiku_draw_composite_glyph_string_foreground (next); }   // C 2052
+		  haiku_end_clip (s);                                 // C 2053
+
+		  (*next).hl = save;                                  // C 2055
+		  (*next).clip_head = (*s).next;                       // C 2056
+		}
+	      next = (*next).next;                                    // C 2037's step
+	    }
+	}
+    }
+
+  haiku_end_clip (s);                                                 // C 2061
+  BView_draw_unlock (view);                                           // C 2062
+
+  /* Set the stipple_p flag indicating whether or not a stipple was
+     drawn in s->row.  That is the case either when s is a stretch
+     glyph string and s->face->stipple is not NULL, or when
+     s->face->stipple exists and s->hl is not DRAW_CURSOR.  */       // C 2064-2067
+  if (*(GS_FACE! (s))).stipple != 0                                   // C 2068
+      && (glyph_bits! (type, (*(*s).first_glyph)) == STRETCH_GLYPH     // C 2069
+	  || (*s).hl != DRAW_CURSOR)                                  // C 2070
+    { glyph_row_bits! (stipple_p, (*s).row, true); }                   // C 2071
+
+  unblock_input ();                                                   // C 2073
+}

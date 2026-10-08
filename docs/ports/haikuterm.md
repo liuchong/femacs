@@ -7,12 +7,17 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**2,810 lines**), which carries **C 1-1902** - P-86 ④'s first seven
+> `femacs/src/haikuterm.rs` (**3,009 lines**), which carries **C 1-2074** - P-86 ④'s first eight
 > slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 2074 and not 2076 (slice 8).**  C 2076 is `haiku_draw_glyph_string_background`'s `static
+> void` and C 2074 the closing brace of the item before it, so the slice is **C 1903-2074** - the
+> blank line C 1903 and `haiku_draw_glyph_string` (C 1904-2074), the dispatcher every glyph-string
+> type goes through.  The next definition is `haiku_draw_glyph_string_background` (C 2076).
 >
 > **Why 1902 and not 1904 (slice 7).**  C 1904 is `haiku_draw_glyph_string`'s `static void` and
 > C 1902 the closing brace of the item before it, so the slice is **C 1733-1902** - the blank line
@@ -133,7 +138,8 @@ the pre-flight below sets it as well.
 | 1512-1640 | `haiku_clip_to_row` (C 1513-1530; C 1521 `window_box`'s three outputs, C 1524 `WINDOW_TO_FRAME_PIXEL_Y`), `haiku_update_begin` (C 1532-1538; C 1537 the `FRAME_COMPLETE_P` write), `haiku_update_end` (C 1540-1545; C 1543 the `mouse_face_defer` write) and `haiku_draw_composite_glyph_string_foreground` (C 1547-1640; C 1581 the `u.cmp.automatic` test, C 1588 `COMPOSITION_GLYPH`, C 1600-1637 the `LGSTRING`/`LGLYPH_*` arm) | file gate (slice 5) |
 | 1641-1732 | `haiku_draw_image_relief` (C 1642-1732; C 1650 the `image_ascent` call, C 1656-1659 the left box line, C 1663-1666 the two margins, C 1668-1685 the relief/fork, C 1692-1716 the tab-bar/tool-bar `V*_button_margin` chains, C 1720-1727 the four edges, C 1729-1731 the clip rectangle and `haiku_draw_relief_rect`) | file gate (slice 6) |
 | 1733-1902 | `haiku_translate_transform` (C 1734-1740) and `haiku_draw_image_glyph_string` (C 1742-1902; C 1747-1748 the two box widths, C 1755-1772 the height/width/x/y folds, C 1777 the `stippled_p` write, C 1780/1782 the cursor background, C 1787-1896 the bitmap arm with `CONVERT_TO_EMACS_RECT`/`gui_intersect_rectangles`/`memcpy`/`be_apply_affine_transform`/`BView_DrawBitmap`/`be_draw_image_mask`/`be_draw_bitmap_with_mask` and the cursor rectangle, C 1898-1901 the relief tail) | file gate (slice 7) |
-| 1903-4898 | **the remainder of the file** (C 1904 `haiku_draw_glyph_string` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1903-2074 | `haiku_draw_glyph_string` (C 1904-2074; C 1914 and C 1927-1928 the two `stippled_p` writes, C 1916-1938 the right-overhang loop, C 1942-1962 the box/clip decision, C 1967-1999 the five-arm dispatch, C 2001-2059 the prev/next overhang loops, C 2068-2071 the row's `stipple_p` write) | file gate (slice 8) |
+| 2075-4898 | **the remainder of the file** (C 2076 `haiku_draw_glyph_string_background` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -861,3 +867,65 @@ checker's skip list, `tools/extract-abi.py` 165).
   where each is declared.
 - The five mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 1903-4898 text this file has not reached.
+
+## Slice 8 (2026-10-08, status 4.084 - the integrator sets the round number): C 1903-2074
+
+**The slice's text.**  The blank line C 1903 and `haiku_draw_glyph_string` (C 1904-2074): the draw
+lock, the two `stippled_p` writes, the right-overhang loop, the box/clip decision, the five-arm
+dispatch, the prev/next overhang loops with the two `save` restores, and the row's `stipple_p`
+write.  Port line count **2,810 -> 3,009** (+199).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Two runs of slice 2's command,
+arm set `have_haiku` + `have_window_system`:
+
+- **Run 1: `exit 1`, 12 primary errors, 3 in the unit's own text** - `glyph_string_bits!
+  (for_overlaps, …)` returns the packed **integer**, not a `bool` (include/dispextern.rs 1859-1863),
+  so C's `!s->for_overlaps` / `if (s->for_overlaps)` have to be spelled `== 0` / `!= 0`;
+  4 mirror rows were new too (see run 2).
+- **Run 2 (final revision): `exit 1`, 5 primary errors among 34 error-prefixed lines, every one in
+  a mirror** - the same five slices 5-7 read (`include/haikuterm.rs` three times, `include/systime.rs`
+  once, `include/frame.rs` once).  **The unit's own text has no primary error**, 4 warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 51 rows -> 50.**  The one closed is
+`haiku_draw_glyph_string`'s `missing function` row, and one new row appeared and is discharged:
+**`function haiku_draw_glyph_string does not mention break, case, cmp, default, switch`** (C 1967's
+`switch` and its five `case` labels are the port's `match`, and C 1971's `u.cmp.automatic` read goes
+through this unit's `glyph_u_cmp_bits!`) - a `docs/ports/macro-body-notes.tsv` row with its reason.
+The 50 that remain are 49 `missing function` rows plus `missing macro ASSIGN_CURSOR`, all inside the
+C 2075-4898 remainder.
+
+### Deviations (this slice)
+
+1. **`for_overlaps` is compared against `0`** (`!= 0` / `== 0`) at C 1916/1944/1964/1970/1978/1991/
+   2001: the mirror's arm returns the three-bit field's value as an integer
+   (include/dispextern.rs 1859-1863), the spelling slice 3's C 1299 and `pgtkterm.rs`'s own copy of
+   this C function already use.  The two `bool_bf` members that *are* booleans (`stippled_p`,
+   `background_filled_p`) keep their `bool` arms, and C 1914/1927-1928's `&& face->stipple` writes
+   the `!= 0` test the `bool_bf` member needs.
+2. **`s->right_overhang`/`s->left_overhang` are plain `int` members of the mirror's
+   `glyph_string`** (include/dispextern.rs 1631/1636), so C's four truth tests are `!= 0`
+   comparisons rather than bit accessors.
+3. **C 1967-1999's `switch`** is the port's `match` on `glyph_bits! (type, …)` with the same five
+   arms in C's order and `default:` as `_` (the `emacs_abort ()` arm), the `xterm.rs` 12816 shape.
+4. **C 1921-1923's and C 2012/2037's `for` heads** are the init/`while`/step trios with the
+   increments at the foot, C's order (`width += next->width, next = next->next` becomes two
+   statements; neither loop has a `continue`), and C 1942's mid-block `int box_filled_p = 0;` is a
+   `let` at the same point in the body.
+5. **C 2018/2043's `enum draw_glyphs_face save = prev->hl;`** keeps C's `draw_glyphs_face` type
+   (include/dispextern.rs) and is restored at C 2029/2055 exactly where C restores it.
+
+### Owed (this slice's additions)
+
+- **Nothing new**: the one `--check` row is discharged in `docs/ports/macro-body-notes.tsv`
+  (Evidence ②), and the line-drift row is unchanged (C 4898 vs Rust 3,009 is 38.6%, inside the
+  `haikuterm` row's 0.69).  The mirror-change re-scan (Owed 7) is unchanged by this slice: it
+  touches no mirror file.
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no glyph string was drawn, no clip was
+  started or ended, no box was filled and no overhang was redrawn.**  What is measured is the arm's
+  type-checking and the text/token gates.
+- The five mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 2075-4898 text this file has not reached.
