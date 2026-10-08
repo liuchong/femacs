@@ -12,8 +12,9 @@
 > 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines), **slice 8 = C
 > 2295-2583** (3,313 Rust lines), **slice 9 = C 2584-2662** (3,416 Rust lines), **slice 10 = C
 > 2663-2832** (3,615 Rust lines), **slice 11 = C 2833-2972** (3,826 Rust lines), **slice 12 = C
-> 2973-3063** (3,951 Rust lines), **slice 13 = C 3064-3195** (4,183 Rust lines) and **slice 14 = C
-> 3196-3357** (4,311 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 2973-3063** (3,951 Rust lines), **slice 13 = C 3064-3195** (4,183 Rust lines), **slice 14 = C
+> 3196-3357** (4,311 Rust lines) and **slice 15 = C 3358-3577** (4,562 Rust lines), both arms of
+> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -154,7 +155,8 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 3292-3309 | C 3293's `DEFUN ("android-request-storage-access")` | file gate |
 | 3310-3337 | C 3313-3316's comments and `android_set_preeditarea` (C 3323 the frame, C 3325-3330 the coordinate conversion, C 3332-3336 the anchor call) | real arm |
 | 3338-3357 | C 3341's "Debugging" comment, C 3343's `DEFUN ("android-recreate-activity")` and C 3357's `#endif /* !ANDROID_STUBIFY */` | file gate / gate marker |
-| 3358-3797 | not ported: the file's remaining 440 lines (C 3361's `#ifndef ANDROID_STUBIFY` with `syms_of_androidfns_for_pdumper` at C 3363-3577, then C 3579's `syms_of_androidfns` with its registrations) | not ported |
+| 3358-3575 | C 3361's `#ifndef ANDROID_STUBIFY` and `syms_of_androidfns_for_pdumper` (C 3379-3401 the Locale class and the default locale, C 3407-3436 the language, C 3440-3468 the country, C 3472-3505 the script's API-level arm, C 3509-3538 the variant, C 3541-3542 the two remaining local references, C 3545 the `Vandroid_os_language` write, C 3552-3574 the tracer detection) | real arm |
+| 3576-3797 | not ported: the file's remaining 222 lines (C 3577's `#endif /* ANDROID_STUBIFY */` and C 3579's `syms_of_androidfns`, whose registrations are the 35 `missing defsubr` rows) | not ported |
 
 ## Evidence
 
@@ -1265,3 +1267,66 @@ and `syms_of_androidfns`).
   no activity was recreated, no preedit area was reported.
 - The eight `E0609` rows of arm set A are not this slice's alone (four are slice 1's, two are
   slice 11's, two are this slice's); all eight compile in arm set C.
+
+## Slice 15 (2026-10-08, status 4.076 - the integrator sets the round number): C 3358-3577
+
+**The slice's text.**  C 3361's `#ifndef ANDROID_STUBIFY` and `syms_of_androidfns_for_pdumper`
+(C 3363-3575): the Locale class lookup and the default locale (C 3379-3401), the four
+`getLanguage`/`getCountry`/`getScript`/`getVariant` retrievals with their `android_exception_check_*`
+calls and `ANDROID_DELETE_LOCAL_REF`s, the `Vandroid_os_language` write (C 3545) and the
+`/proc/self/status` tracer detection (C 3552-3574), plus C 3577's
+`#endif /* ANDROID_STUBIFY */`.  Port line count **4,311 -> 4,562** (+251).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**  The
+first run read **10 errors**: two in this slice's text - `atol` and `getline`, neither of which any
+mirror in this unit's graph carries - and the eight `E0609` rows of the class slices 11 and 14
+recorded.  Both fixes are the tree's own shapes: `include!("../lib/include/stdio.rs")` for
+`FILE`/`fopen`/`fclose` (lisp.h 34's own include, the `alloc.rs` 63 line) plus **use-site
+declarations** for `atol` (the `gtkutil.rs` 1033-1042 shape) and `getline` (the `android.rs`
+1345-1356 note: the gnulib template mirror carries it but no unit reaches it).  The re-run reads
+**exit 1, exactly 8 `E0609` rows** - no new row of that class.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings**.  **Evidence
+③ - arm set C = A + `have_window_system`:** **exit 0, 0 errors, 14 warnings** - the extra one over
+arm B is another `unused doc comment` (4 against 3), the pre-existing class the mirror's extern
+blocks carry when an arm brings more of the include graph in; no warning names this slice's text.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **37 rows -> 36**: the one closed
+is **1 `missing function`** (2 -> 1: `syms_of_androidfns_for_pdumper`).  The drift stays inside the
+file's tolerance row (+20.1% against the 0.35 it carries, whose reason names the remaining C lines
+as the headroom).  What remains is **35 `missing defsubr`** - `syms_of_androidfns`'s registrations
+- and **1 `missing function`** (`syms_of_androidfns` itself).
+
+### Deviations (this slice)
+
+1. **`include!("../lib/include/stdio.rs")` is added under the file gate** (C 3372/3554/3573's
+   `FILE`/`fopen`/`fclose`), with lisp.h 34's citation and the `alloc.rs` 63 precedent; C reaches
+   the header through `lisp.h`'s own include chain.
+2. **`atol` and `getline` are declared at the use site** (P-88 ①): `lib/include/stdlib.rs` has
+   `strtol` but not `atol`, and `getline` lives in the gnulib template mirror no unit reaches (the
+   `gtkutil.rs` / `android.rs` notes say the same about their own two).
+3. **Every JNI call is the `include/jni.rs` vtable member** spelled
+   `((*(*android_java_env)).NAME.unwrap ()) (…)` (the `android.rs` 1775 shape), and
+   `ANDROID_DELETE_LOCAL_REF!` is this unit's own macro from slice 1.
+4. **C 3374's `size_t size` is zero-initialised** (PORTING.md 1.5): C 3559 passes its address to
+   `getline`, and Rust cannot prove the callee writes it.
+5. **C 3561/3564's `sizeof "TracerPid:" - 1` is that literal's length**, written
+   `c"TracerPid:".to_bytes ().len ()` (PORTING.md 1.1's `sizeof LITERAL - 1` case; the `doprnt.rs`
+   468 spelling), and the pointer arithmetic is `line.offset (…)` with the same length minus one.
+6. **`pid != 0` for C's `if (pid)`** (a `long`, so its truth test is a zero comparison).
+
+### Owed (this slice's additions)
+
+- **`lib/include/stdlib.rs` / `lib/include/stdio.rs`**: `atol` and `getline` respectively (each
+  unit that needs them keeps a use-site declaration today; `android.rs` and `gtkutil.rs` say the
+  same).
+- **The file's remainder**: C 3576-3797 (222 lines) - C 3579's `syms_of_androidfns` with its 35
+  registrations (the `missing defsubr` rows) and the file's other `safe_call`-style helpers.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no locale was read from the JVM, no process status
+  file was opened, and no local reference was deleted.
+- The eight `E0609` rows of arm set A are not this slice's (four are slice 1's, two slice 11's,
+  two slice 14's); all eight compile in arm set C.

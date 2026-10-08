@@ -56,6 +56,12 @@ include!("../lib/include/stdlib.rs");                 // C 22: `#include <stdlib
 include!("../lib/include/string.rs");                 // lisp.h 30's `#include <string.h>` (strcmp)
 #[cfg (feature = "have_android")]
 include!("../lib/include/limits.in.rs");              // lisp.h 33's `#include <limits.h>` (INT_MAX)
+/* P-72 rule 4: this file reaches `FILE`, `fopen`, `getline` and `fclose` (C 3372/3554/3559/3573)
+   through lisp.h's own `#include <stdio.h>`, which is lisp.h 34 and which the mirror
+   `include/lisp.rs` does not carry, so the unit names the include here (the `src/alloc.rs` 63
+   shape).  */
+#[cfg (feature = "have_android")]
+include!("../lib/include/stdio.rs");                  // lisp.h 34: `#include <stdio.h>`
 
 /* C 24-31: the file's own include list, in C's order.  */
 #[cfg (feature = "have_android")]
@@ -4309,3 +4315,249 @@ DEFUN! ("android-recreate-activity", Fandroid_recreate_activity, Sandroid_recrea
 });
 
 /* C 3357: the `#endif /* !ANDROID_STUBIFY */` that closes C 2666's block.  */
+
+/* C 3358-3577: C 3361's `#ifndef ANDROID_STUBIFY` and `syms_of_androidfns_for_pdumper`
+   (C 3363-3575), plus C 3577's `#endif /* ANDROID_STUBIFY */`.  Every JNI call is the
+   `include/jni.rs` vtable member (`((*(*android_java_env)).NAME.unwrap ()) (…​)`, the
+   `android.rs` 1775 spelling), and `ANDROID_DELETE_LOCAL_REF` is the macro this unit already
+   carries from slice 1.  The next item is C 3579's `syms_of_androidfns`.  */
+
+/* `atol` (C 3564) is the one libc function this slice names that no mirror carries:
+   `lib/include/stdlib.rs` has `strtol` but not `atol`, so it is declared here at the use site
+   (the `gtkutil.rs` 1033-1042 shape) and `## Owed` records it.  */
+/// C: stdlib.h: `long int atol (const char *nptr);` - C 3564's `pid = atol (line + …);`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub fn atol (nptr: *const c_char) -> c_long;
+  /// C: `<stdio.h>`: `ssize_t getline (char **, size_t *, FILE *);` - C 3559's `while (getline
+  /// (&line, &size, fd) != -1)`.  `lib/include/stdio.rs` is the frozen target's *system* header
+  /// mirror and does not carry it; the gnulib *template* mirror `lib/include/stdio.in.rs` 238
+  /// does, but no unit reaches it (the `android.rs` 1345-1356 note), so it stands here.
+  pub fn getline (lineptr: *mut *mut c_char, n: *mut size_t, stream: *mut FILE) -> ssize_t;
+}
+
+/* C 3363-3575.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn syms_of_androidfns_for_pdumper ()
+{
+  let mut locale: jclass;                                          // C 3366
+  let mut method: jmethodID;                                       // C 3367
+  let mut object: jobject;                                         // C 3368
+  let mut string: jstring;                                         // C 3369
+  let mut language: Lisp_Object;                                   // C 3370
+  let mut country: Lisp_Object;
+  let mut script: Lisp_Object;
+  let mut variant: Lisp_Object;
+  let mut data: *const c_char;                                     // C 3371
+  let mut fd: *mut FILE;                                           // C 3372
+  let mut line: *mut c_char;                                       // C 3373
+  /* C 3374 declares `size_t size;` and C 3559 passes its address, so the port zero-initialises it
+     (PORTING.md 1.5).  */
+  let mut size: size_t = 0;
+  let mut pid: c_long;                                             // C 3375
+
+  /* Find the Locale class.  */                                    // C 3377
+
+  locale = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 3379-3380
+							 c"java/util/Locale".as_ptr ());
+  if locale.is_null ()                                             // C 3381
+    { emacs_abort (); }                                            // C 3382
+
+  /* And the method from which the default locale can be
+     extracted.  */                                                // C 3384-3385
+
+  method = ((*(*android_java_env)).GetStaticMethodID.unwrap ()) (android_java_env,   // C 3387-3390
+								  locale,
+								  c"getDefault".as_ptr (),
+								  c"()Ljava/util/Locale;".as_ptr ());
+  if method.is_null ()                                             // C 3391
+    { emacs_abort (); }                                            // C 3392
+
+  /* Retrieve the default locale.  */                              // C 3394
+
+  object = ((*(*android_java_env)).CallStaticObjectMethod.unwrap ()) (android_java_env,   // C 3396-3397
+								      locale, method);
+  android_exception_check_1 (locale);                              // C 3398
+
+  if object.is_null ()                                             // C 3400
+    { emacs_abort (); }                                            // C 3401
+
+  /* Retrieve its language field.  Each of these methods is liable to
+     return the empty string, though if language is empty, the locale
+     is malformed.  */                                             // C 3403-3405
+
+  method = ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env, locale,   // C 3407-3409
+							   c"getLanguage".as_ptr (),
+							   c"()Ljava/lang/String;".as_ptr ());
+  if method.is_null ()                                             // C 3410
+    { emacs_abort (); }                                            // C 3411
+
+  string = ((*(*android_java_env)).CallObjectMethod.unwrap ()) (android_java_env, object,   // C 3413-3414
+								method);
+  android_exception_check_2 (object, locale);                      // C 3415
+
+  if string.is_null ()                                             // C 3417
+    { language = empty_unibyte_string; }                           // C 3418
+  else
+    {
+      data = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env,   // C 3421-3422
+								   string, std::ptr::null_mut ());
+      android_exception_check_3 (object, locale, string);          // C 3423
+
+      if data.is_null ()                                           // C 3425
+	{ language = empty_unibyte_string; }                       // C 3426
+      else
+	{
+	  language = build_unibyte_string (data);                  // C 3429
+	  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ()) (android_java_env,   // C 3430-3431
+								    string, data);
+	}
+    }
+
+  /* Delete the reference to this string.  */                      // C 3435
+  ANDROID_DELETE_LOCAL_REF! (string);                              // C 3436
+
+  /* Proceed to retrieve the country code.  */                     // C 3438
+
+  method = ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env, locale,   // C 3440-3442
+							   c"getCountry".as_ptr (),
+							   c"()Ljava/lang/String;".as_ptr ());
+  if method.is_null ()                                             // C 3443
+    { emacs_abort (); }                                            // C 3444
+
+  string = ((*(*android_java_env)).CallObjectMethod.unwrap ()) (android_java_env, object,   // C 3446-3447
+								method);
+  android_exception_check_2 (object, locale);                      // C 3448
+
+  if string.is_null ()                                             // C 3450
+    { country = empty_unibyte_string; }                            // C 3451
+  else
+    {
+      data = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env,   // C 3454-3455
+								   string, std::ptr::null_mut ());
+      android_exception_check_3 (object, locale, string);          // C 3456
+
+      if data.is_null ()                                           // C 3458
+	{ country = empty_unibyte_string; }                        // C 3459
+      else
+	{
+	  country = build_unibyte_string (data);                   // C 3462
+	  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ()) (android_java_env,   // C 3463-3464
+								    string, data);
+	}
+    }
+
+  ANDROID_DELETE_LOCAL_REF! (string);                              // C 3468
+
+  /* Proceed to retrieve the script.  */                           // C 3470
+
+  if android_get_current_api_level () < 21                         // C 3472
+    { script = empty_unibyte_string; }                             // C 3473
+  else
+    {
+      method = ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env, locale,   // C 3476-3478
+							       c"getScript".as_ptr (),
+							       c"()Ljava/lang/String;".as_ptr ());
+      if method.is_null ()                                         // C 3479
+	{ emacs_abort (); }                                        // C 3480
+
+      string = ((*(*android_java_env)).CallObjectMethod.unwrap ()) (android_java_env,   // C 3482-3483
+								    object, method);
+      android_exception_check_2 (object, locale);                  // C 3484
+
+      if string.is_null ()                                         // C 3486
+	{ script = empty_unibyte_string; }                         // C 3487
+      else
+	{
+	  data = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env,   // C 3490-3491
+								       string, std::ptr::null_mut ());
+	  android_exception_check_3 (object, locale, string);      // C 3492
+
+	  if data.is_null ()                                       // C 3494
+	    { script = empty_unibyte_string; }                     // C 3495
+	  else
+	    {
+	      script = build_unibyte_string (data);                // C 3498
+	      ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ()) (android_java_env,   // C 3499-3500
+									string, data);
+	    }
+	}
+
+      ANDROID_DELETE_LOCAL_REF! (string);                          // C 3504
+    }
+
+  /* And variant.  */                                              // C 3507
+
+  method = ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env, locale,   // C 3509-3511
+							   c"getVariant".as_ptr (),
+							   c"()Ljava/lang/String;".as_ptr ());
+  if method.is_null ()                                             // C 3512
+    { emacs_abort (); }                                            // C 3513
+
+  string = ((*(*android_java_env)).CallObjectMethod.unwrap ()) (android_java_env, object,   // C 3515-3516
+								method);
+  android_exception_check_2 (object, locale);                      // C 3517
+
+  if string.is_null ()                                             // C 3519
+    { variant = empty_unibyte_string; }                            // C 3520
+  else
+    {
+      data = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env,   // C 3523-3524
+								   string, std::ptr::null_mut ());
+      android_exception_check_3 (object, locale, string);          // C 3525
+
+      if data.is_null ()                                           // C 3527
+        { variant = empty_unibyte_string; }                        // C 3528
+      else
+	{
+	  variant = build_unibyte_string (data);                   // C 3531
+	  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ()) (android_java_env,   // C 3532-3533
+								    string, data);
+	}
+    }
+
+  /* Delete the reference to this string.  */                      // C 3537
+  ANDROID_DELETE_LOCAL_REF! (string);                              // C 3538
+
+  /* And other remaining local references.  */                     // C 3540
+  ANDROID_DELETE_LOCAL_REF! (object);                              // C 3541
+  ANDROID_DELETE_LOCAL_REF! (locale);                              // C 3542
+
+  /* Set Vandroid_os_language.  */                                 // C 3544
+  Vandroid_os_language = list4 (language, country, script, variant);   // C 3545
+
+  /* Detect whether Emacs is running under libloader.so or another
+     process tracing mechanism, and disable `android_use_exec_loader' if
+     so, leaving subprocesses started by Emacs to the care of that
+     loader instance.  */                                          // C 3547-3550
+
+  if android_get_current_api_level () >= 29 /* Q */                 // C 3552
+    {
+      fd = fopen (c"/proc/self/status".as_ptr (), c"r".as_ptr ());   // C 3554
+      if fd.is_null ()                                              // C 3555
+	{ return; }                                                 // C 3556
+
+      line = std::ptr::null_mut ();                                 // C 3558
+      /* C's `sizeof "TracerPid:" - 1` is that literal's ten bytes, and the port writes the
+	 length the way PORTING.md 1.1's `sizeof LITERAL - 1` case asks (`.to_bytes ().len ()`;
+	 the `doprnt.rs` 468 spelling).  */
+      while getline (&raw mut line, &raw mut size, fd) != -1        // C 3559
+	{
+	  if strncmp (line, c"TracerPid:".as_ptr (),                  // C 3561
+		      c"TracerPid:".to_bytes ().len ()) != 0
+	    { continue; }                                            // C 3562
+
+	  pid = atol (line.offset ((c"TracerPid:".to_bytes ().len () - 1) as isize));   // C 3564
+
+	  if pid != 0                                                // C 3566
+	    { android_use_exec_loader = false; }                     // C 3567
+
+	  break;
+	}
+
+      free (line as *mut c_void);                                    // C 3572
+      fclose (fd);                                                   // C 3573
+    }
+}
+
+/* C 3577: the `#endif /* ANDROID_STUBIFY */` that closes C 3361's block.  */
