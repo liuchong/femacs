@@ -17693,3 +17693,41 @@
   ⑥ **预算与清理**：本片 rustc 约 **45 发**（首发归因、逐轮定点复测、十臂 × 两侧、三臂修正复测；每次 17-24 秒，单文件 `--emit=metadata`），
      无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s128`。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片按 C 顺序进入 `XI_KeyPress`（C 23953）。
+
+- **4.048 `src/xterm.c` round 105（xterm lane，slice 129）：`XI_KeyPress` 的头（C 23953-24169）落地，并补上 `KeyPress`/`KeyRelease` 两个事件类型（2026-10-08）**：
+  ① **本片落的文本**：C 23953 的 `case XI_KeyPress:` 与其头——十一个局部量（C 23955-23968：`state`、`c`、`HAVE_XKB` 的 `mods_rtrn`、`keycode`、`keysym`、
+     81 字节 `copy_buffer` 及其两个伙伴、`i`、`old_state`、`device`/`source`、`XKeyPressedEvent xkey`）；C 自己那段 100 行注释（C 23972-24071，按段落逐段携带）；
+     `coding = Qlatin_1`（C 23970）；两个设备查找与 `!device` 出口（C 24073-24077）；键盘状态换算（C 24083）；
+     `USE_X_TOOLKIT || USE_GTK` 的菜单派发与其中 `USE_LUCID` 的拷贝块（C 24085-24112）；`x_display_set_last_user_time` 与
+     `ignore_next_mouse_click_timeout`（C 24114-24116）；`x_any_window_to_frame` 查找与根窗偏移优化（C 24118-24123）；
+     `USE_GTK` 的用户时间调用（C 24129-24132）；`xi_handle_interaction` 块（C 24134-24142）；以及 `xkey` 的核心事件转换（C 24148-24169：
+     `memset`、C 的十三处成员写入、`xi_convert_button_state` 与两条收尾赋值）。
+  ② **`KeyPress`/`KeyRelease` 此前是"绑定模式"，本片把它们变成常量**：镜像的 `x11_constants` 有 `KeyPressMask` 却没有这两个事件类型，
+     于是 C 20196 与 C 20705 的 `case KeyPress` / `case KeyRelease` 标签被读成**绑定**（两条臂都匹配一切）——这是 slice 128 那个 XI_* 发现的第二例。
+     本片在本单元的词表块里声明这两个值（`X11/X.h` 181/182，姊妹单元 `xfns.rs` 13203 的写法），并在读数上双向可见：
+     臂自身的行不动，而 `have_x_i18n` 臂里 **4 行既有** `cannot find value`（C 20362/20407 的 `KeyPress` 与 C 20715 的 `KeyRelease`）、
+     GTK 臂里 1 行（C 21993 的拷贝）被**关掉**。`XKeyPressedEvent` 是 Xlib.h 568 自己的 `typedef XKeyEvent XKeyPressedEvent;`，
+     与本文件已有的 `XKeyEvent` 记录并列声明（P-88 1）。
+  ③ **修补上一片的漏字**：携带 C 23972-24071 那段注释时量出 slice 122 渲染 C 22303-22316 时**漏掉了中间一段**，本片按 C 22307-22313 原文补回
+     （"But don't do that by default on GTK …"，含 2017 年那条邮件列表链接）。
+  ④ **探针集 23 → 25 臂**：C 24089-24108 的拷贝块挂在 `#ifdef USE_LUCID` 下，而台账早就记着 `use_lucid` 是**没有臂覆盖的两道门之一**（台账 3858 行）。
+     本片新增 `UL`（`have_x_windows` + `use_x_toolkit` + `use_lucid`：这道门自身的对照）与 `ULI2`（再加 `have_xinput2`：真正编到那个块的臂），两侧都测。
+     `UL` 读零增量；`ULI2` 读 **+25**：16 行 `no field xkey`（C 24092-24108 的十七处 `copy.xkey.*` 写入，`XEvent` 替身的已登记 `E0609` 类）、
+     8 行 `lrint`（拷贝里的 C 24103-24106 四处 + `xkey` 填充里的 C 24159-24162 四处）、1 行 `xi_handle_interaction`（C 24140）。
+  ⑤ **读数（两侧都在本修订测，同一根 `_root.rs`；baseline = HEAD `7e9479e2`）**：
+     A 1174/83 → **1174/83**（0/0）、UL 1246/82 → **1246/82**（0/0）、ULI2 1387/86 → **1412/86**（+25/0）、
+     XI2 1319/87 → **1324/87**、UGX 1374/88 → **1378/88**、AG3X 1418/87 → **1422/87**、AIUX 1448/87 → **1449/87**、
+     UMI2 1418/86 → **1423/86**、XI21 1366/88 → **1371/88**、XI21W 1400/88 → **1405/88**。两个没有 `have_xinput2` 的臂读零增量
+     （臂、两个常量的自有行与别名都在门内或只从门内可读）。每臂增量都是三行：`lrint` +4（C 24159-24162）与 `xi_handle_interaction` +1（C 24140），
+     其余差由两个常量关掉的行解释（UGX/AG3X −1、AIUX −4）。**warning 一个臂都没动**，新增行全在已登记类里。
+  ⑥ **拼写取自已落地的孪生体**：`state` 的 `as c_int`（C 的 unsigned→int 隐式截断，`dnd_state` 先例）；缓冲区三件套用 `KeyPress` 臂自己的形状
+     （`[c_char; 81] = [0; 81]`、`as_mut_ptr ()`、`core::mem::size_of_val (&copy_buffer) as c_int`）；`Qlatin_1 ()`；
+     `memset (&raw mut xkey as *mut c_void, 0, core::mem::size_of_val (&xkey))`（本文件已用四次的形状）；`x_any_window_to_frame` 按两个形状各自的门拆
+     （`any (use_x_toolkit, use_gtk)` 调函数、补集调 `x_any_window_to_frame!`，各自包块——裸语句挂 `#[cfg]` 是 `E0658`，3.635 的教训），
+     与本文件 25840 的写法一致。
+  ⑦ **台账**：`docs/ports/xterm.md` 加 Decision **141** 与 `### Slice 129's readings`（含逐臂 grew/shrank 分解）；`--check` 仍三行，
+     长行 token 清单 **73 不变**，`family memset` 行从 *4 vs 2* 改善到 **4 vs 3**（本片的 `xkey` memset）；单元 **37,220 行**（+204），
+     文件 md5 `fa6245296b8a8ee374894ef8d0c70a02`。
+  ⑧ **预算与清理**：本片 rustc 约 **30 发**（首发归因、逐轮定点复测、11 臂 × 两侧、两次修正复测；每次 17-24 秒，单文件 `--emit=metadata`），
+     无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s129`。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片按 C 顺序进入 C 24171-24569（输入法过滤、三条换算路径与 `inev` 构造）。

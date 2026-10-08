@@ -505,6 +505,16 @@ vocabulary (twelve constants and the three mask macros, measured on this machine
 the readings move in both directions for the first time - the seven `have_xinput2` arms gain the
 arm's owed rows and lose the bare names they had been reading as `E0425`.
 
+Slice 129 (C 23953-24169, Decision 141) opens the file's third-largest `XI_*` arm, `XI_KeyPress`:
+the eleven locals, C's own hundred-line comment on the label, the device lookups, the menu
+dispatch, the user-time and frame bookkeeping, and the `xkey` core-event conversion.  Two names
+the label needs were missing from the unit - `KeyPress`/`KeyRelease`, the two X.h event types that
+both this arm and the *landed* `KeyPress`/`KeyRelease` case labels match on (until this slice
+those two labels were binding patterns, so both arms matched every event), and `XKeyPressedEvent`,
+Xlib's own typedef of the `XKeyEvent` record this file already declares.  The lane's probe set
+grows from twenty-three arms to twenty-five: `UL` and `ULI2` carry `use_lucid`, the one gate no
+arm had, and `ULI2` is what compiles C 24089-24108's menu-dispatch copy.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6063,6 +6073,60 @@ expected direction once the file starts carrying records the X11 headers would s
 * **Not claimed.**  No runtime evidence: this lane does not link, and no generic event was ever
   delivered.  The readings are the ten arms of the table below (both sides, one probe root), the
   per-arm message-level diff, and `--check`.
+
+### 141. Slice 129 (C 23953-24169): `XI_KeyPress`'s head, and the two X.h event types the label needs
+
+* **What it lands.**  C 23953's `case XI_KeyPress:` and the head of its body: the eleven locals
+  (C 23955-23968 - `state`, `c`, the `HAVE_XKB` `mods_rtrn`, `keycode`, `keysym`, the 81-byte
+  `copy_buffer` and its two companions, `i`, `old_state`, `device`/`source` and the
+  `XKeyPressedEvent xkey`); C's own hundred-line comment on the label (C 23972-24071), carried
+  paragraph by paragraph; `coding = Qlatin_1` (C 23970); the two device lookups and the
+  `!device` exit (C 24073-24077); the keyboard-state conversion (C 24083); the
+  `USE_X_TOOLKIT || USE_GTK` menu dispatch with the `USE_LUCID` copy block (C 24085-24112);
+  `x_display_set_last_user_time` and `ignore_next_mouse_click_timeout` (C 24114-24116); the
+  `x_any_window_to_frame` lookup and the root-window-offset optimization (C 24118-24123); the
+  `USE_GTK` user-time call (C 24129-24132); the `xi_handle_interaction` block (C 24134-24142);
+  and the `xkey` core-event conversion (C 24148-24169: the `memset`, C's thirteen member writes,
+  `xi_convert_button_state` and the two closing assignments).
+* **`KeyPress` and `KeyRelease` were binding patterns, and this slice makes them constants.**
+  The mirror's `x11_constants` declares `KeyPressMask` but neither event type, so C 20196's and
+  C 20705's `case KeyPress` / `case KeyRelease` labels were read as *bindings* - both arms
+  matched every event (the slice-128 XI_* finding's second instance).  The slice declares the two
+  values in the unit's own vocabulary block (`X11/X.h` 181/182, the `xfns.rs` 13203 sibling), and
+  the readings show both sides of that: the arms' own rows do not move, while four *pre-existing*
+  `cannot find value` rows retire in the `have_x_i18n` arm (C 20362/20407's `KeyPress` and
+  C 20715's `KeyRelease` pair) and one in the GTK arms (C 21993's copy), which is the +4/+1 the
+  table below shows against the same file.  `XKeyPressedEvent` is Xlib.h 568's own
+  `typedef XKeyEvent XKeyPressedEvent;`, declared next to the record it names (P-88 1).
+* **The probe set grows to twenty-five arms.**  C 24089-24108's copy block sits under
+  `#ifdef USE_LUCID`, and the ledger had recorded `use_lucid` as one of the two gates *no* arm's
+  `--cfg` set carried (line 3858) - so this slice adds `UL` (`have_x_windows` +
+  `use_x_toolkit` + `use_lucid`, the gate's own control) and `ULI2` (the same plus
+  `have_xinput2`, the arm that actually reaches the block), both measured on both sides.  `UL`
+  reads a zero delta and `ULI2` reads +25: 16 `no field xkey` (C 24092-24108's seventeen
+  `copy.xkey.*` writes, the `XEvent` stand-in's registered `E0609` class), 8 `lrint` (four in the
+  copy at C 24103-24106 and four in the `xkey` fill at C 24159-24162) and one
+  `xi_handle_interaction` (C 24140).
+* **Spellings, from landed twins rather than invented.**  `state` takes C's implicit
+  `unsigned int` -> `int` as `as c_int` (the `dnd_state` precedent); the buffer trio is the
+  `KeyPress` arm's own shape (`[c_char; 81] = [0; 81]`, `as_mut_ptr ()`,
+  `core::mem::size_of_val (&copy_buffer) as c_int`); the `Qlatin_1 ()` symbol macro; the
+  `memset (&raw mut xkey as *mut c_void, 0, core::mem::size_of_val (&xkey))` shape this file
+  already uses four times; and `x_any_window_to_frame` is split the way its two shapes are gated
+  (`any (use_x_toolkit, use_gtk)` calls the function, the complement calls the `x_any_window_to_frame!`
+  macro, each in its own block - a bare `#[cfg]` on an assignment is `E0658`, the lane's 3.635
+  lesson), which the `KeyPress` arm's own site at this file 25840 spells the same way.
+* **A repair to a landed slice.**  Carrying C 23972-24071's comment turned up that slice 122's
+  rendering of C 22303-22316 dropped its middle paragraph; this slice restores it (C 22307-22313,
+  the "But don't do that by default on GTK" text with its 2017 mailing-list URL) in place.
+* **What `--check` reads.**  Three rows, unchanged; the long row's token list stays at **73**, and
+  the `family memset` row improves from *4 vs 2* to **4 vs 3** (this slice's `xkey` memset).  The
+  unit is **37,220 lines** (+204) against C's 33,125, md5
+  `fa6245296b8a8ee374894ef8d0c70a02`.
+* **Not claimed.**  No runtime evidence: this lane does not link, and no generic event was ever
+  delivered.  The readings are the nine arms of the table below plus the two new ones (all on both
+  sides), the per-arm message diff, and `--check`.  The next slice takes C 24171-24569 (the
+  input-method filter, the three translation paths and the `inev` C builds).
 
 ## Evidence
 
@@ -12282,3 +12346,51 @@ classes.  Nothing is silenced, and the one warning is C's own parentheses.
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the ten arm compiles (both sides), the per-arm message diff and the
 `--check` row's token count.
+
+### Slice 129's readings (C 23953-24169), as landed and measured (2026-10-08)
+
+`case XI_KeyPress:`'s head - the locals, C's comment, the device lookups, the menu dispatch, the
+frame bookkeeping and the `xkey` conversion.  Eleven arms, both sides, one probe root per side.
+
+| arm | baseline | slice 129 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| UL `A +use_x_toolkit +use_lucid` (new) | 1246 / 82 | **1246 / 82** | **0 / 0** |
+| ULI2 `UL +have_xinput2` (new) | 1387 / 86 | **1412 / 86** | **+25 / 0** |
+| XI2 `A +have_xinput2` | 1319 / 87 | **1324 / 87** | **+5 / 0** |
+| UGX `XI2 +use_toolkit_scroll_bars +use_gtk` | 1374 / 88 | **1378 / 88** | **+4 / 0** |
+| AG3X `XI2 +use_gtk +have_gtk3` | 1418 / 87 | **1422 / 87** | **+4 / 0** |
+| AIUX `XI2 +have_x_i18n +use_gtk` | 1448 / 87 | **1449 / 87** | **+1 / 0** |
+| UMI2 `XI2 +use_x_toolkit +use_motif` | 1418 / 86 | **1423 / 86** | **+5 / 0** |
+| XI21 `XI2 +have_xinput2_1 +have_xinput2_2` | 1366 / 88 | **1371 / 88** | **+5 / 0** |
+| XI21W `XI21 +have_xwidgets` | 1400 / 88 | **1405 / 88** | **+5 / 0** |
+
+**Both sides were measured in this revision with one probe root per side**, the baseline is HEAD
+(`7e9479e2`, slice 128) and the two arms without `have_xinput2` read a zero delta, so nothing this
+slice adds reaches them (the arm, the two constants' *own* rows and the alias all sit under the
+gate or are read only from inside it).  The slice's file md5 is
+`fa6245296b8a8ee374894ef8d0c70a02` (37,220 lines against C's 33,125).
+
+**The delta is three rows per `have_xinput2` arm, and the constants' closures explain the rest.**
+
+| arm | grew | shrank |
+| --- | --- | --- |
+| XI2 / UMI2 / XI21 / XI21W | `lrint` +4 (C 24159-24162), `xi_handle_interaction` +1 (C 24140) = +5 | - |
+| UGX / AG3X | the same +5 | -1 `cannot find value KeyPress` (C 21993's GTK copy) |
+| AIUX | the same +5 | -2 `KeyPress`, -2 `KeyRelease` (C 20362/20407, C 20715) |
+| ULI2 | +16 `no field xkey` (C 24092-24108), +8 `lrint` (C 24103-24106 and C 24159-24162), +1 `xi_handle_interaction` = +25 | - |
+
+**Every row is a registered class.**  `lrint` is `<math.h>`'s (the `xi_link_touch_point` note);
+`xi_handle_interaction` is C 13573's static, in this unit but not yet ported; `no field xkey` is
+the `XEvent` stand-in's member class (every `copy.x*` write the toolkit arms carry is that row);
+`KeyPress`/`KeyRelease`/`XKeyPressedEvent` were the three names this slice's own declarations
+resolve, and the rows they retire are the ones the *earlier* slices recorded as owed.  No warning
+moved in any arm.
+
+**The two new arms.**  `UL` and `ULI2` differ from `A`/`XI2` only by `use_x_toolkit` +
+`use_lucid`, the gate the ledger named as uncovered (line 3858); `UL`'s zero delta is the gate's
+own control and `ULI2`'s +25 is C 24089-24111's block, which no earlier round could compile.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the eleven arm compiles (both sides), the per-arm message diff and the
+`--check` row's token count and memset family.

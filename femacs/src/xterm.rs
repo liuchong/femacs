@@ -1018,6 +1018,19 @@ macro_rules! XIMaskIsSet {
   ($p:expr, $e:expr) => { (*($p as *const u8).offset (($e >> 3) as isize) & (1u8 << ($e & 7))) != 0 };
 }
 
+/* C's `<X11/X.h>`: the two event types the `KeyPress`/`KeyRelease` case labels match on
+   (C 20196, C 20705) and the values C 24150/24168 and C 24592/24610 write into `xkey.type`.
+   The mirror's `x11_constants` declares `KeyPressMask` but neither of these, and the sibling
+   units carry their own copies (`xfns.rs` 13203's `KeyPress`), so the unit that spells them
+   declares them.  Declaring them matters: with no row in scope both labels were *bindings*,
+   so the two arms matched every event (the slice-128 XI_* finding's second instance).  */
+/// X11/X.h 181: `#define KeyPress 2`
+#[cfg (feature = "have_x_windows")]
+pub const KeyPress: c_int = 2;
+/// X11/X.h 182: `#define KeyRelease 3`
+#[cfg (feature = "have_x_windows")]
+pub const KeyRelease: c_int = 3;
+
 /* C 1139-1142 and 1144-1160: the XEmbed protocol's flag and message numbers.  */
 #[cfg (feature = "have_x_windows")]
 #[repr(C)]
@@ -31047,6 +31060,11 @@ pub struct XKeyEvent
   pub same_screen: Bool,
 }
 
+/// Xlib.h 568's `typedef XKeyEvent XKeyPressedEvent;` - the alias C 23965's (and C 24590's)
+/// `XKeyPressedEvent xkey;` declares, which the record above already names (P-88 1).
+#[cfg (feature = "have_x_windows")]
+pub type XKeyPressedEvent = XKeyEvent;
+
 /* C 19801's `x_handle_property_notify` is another unit's definition (`src/xselect.rs` 2025)
    whose header - xterm.h 1919 - this unit's mirror graph does not carry, so it stands at
    this use site (P-88 1) with C's own prototype.  C 19802's `xft_settings_event` needs no
@@ -34437,7 +34455,11 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 
 		          /* "Some WMs (e.g. Mutter in Gnome Shell), don't unmap minimized/iconified windows;
 			     thus, for those WMs we won't get a MapNotify when unminimizing/deiconifying.  Check
-			     here if we are deiconizing a window (Bug42655)."  "The option
+			     here if we are deiconizing a window (Bug42655)."  "But don't do that by default
+			     on GTK since it may cause a plain invisible frame get reported as iconified,
+			     compare
+			     https://lists.gnu.org/archive/html/emacs-devel/2017-02/msg00133.html.  That is
+			     fixed above but bites us here again."  "The option
 			     x_set_frame_visibility_more_laxly enables overriding the default behavior
 			     (Bug#49955, Bug#53298)."  */
 		          if focus_in_laxly
@@ -36083,6 +36105,188 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		              }
 		          }
 		          break 'xi_other;                                    // C 23950 (`goto XI_OTHER`)
+		        }
+		      /* C 23953's `case XI_KeyPress:` - the head (C 23953-24169): the eleven locals,
+			 C's own comment on the label, the device lookups, the menu dispatch, the user-time
+			 and frame bookkeeping, and the `xkey` core-event conversion.  The rest of the arm -
+			 the input-method filter, the three translation paths and the `inev` C builds - follows.  */
+		      XI_KeyPress =>
+		        {
+		          let mut state: c_int = (*xev).mods.effective as c_int;  // C 23955
+		          let mut c: Lisp_Object;                            // C 23956
+		          /* C 23957-23959's `#ifdef HAVE_XKB`.  */
+#[cfg (feature = "have_xkb")]
+		          let mut mods_rtrn: c_uint;                         // C 23958
+		          let mut keycode: c_int = (*xev).detail;            // C 23960
+		          let mut keysym: KeySym;                            // C 23961
+		          let mut copy_buffer: [c_char; 81] = [0; 81];       // C 23962
+		          let mut copy_bufptr: *mut c_char = copy_buffer.as_mut_ptr ();  // C 23963
+		          let mut copy_bufsiz: c_int
+		            = core::mem::size_of_val (&copy_buffer) as c_int;  // C 23964
+		          let mut i: ptrdiff_t;                              // C 23965
+		          let mut old_state: c_uint;                         // C 23966
+		          let mut device: *mut xi_device_t;                  // C 23967
+		          let mut source: *mut xi_device_t;                  // C 23967
+		          let mut xkey: XKeyPressedEvent;                    // C 23968
+
+		          coding = Qlatin_1 ();                              // C 23970
+
+		          /* "The code under this label is quite desultory.  There
+			     are also several important discrepancies with the
+			     core KeyPress code to mind."  "There are three principal objectives:"  "The first is to produce a core or GDK translation of
+			     this XI_KeyPress event, which is relayed to the
+			     toolkit.  This transpires by setting `copy' to a
+			     close copy of XEV, which is later copied or
+			     dispatched to the toolkit by the code beneath the
+			     OTHER label."  "The second objective is to filter the event through
+			     an input method, by generating a second copy of the
+			     event expressly tailored for such a purpose.  The
+			     core KeyPress code does not endeavor to do so;
+			     instead, this action is taken prior to calling
+			     handle_one_xevent.  Calls to `x_filter_event' or
+			     `xg_filter_key' serve to implement this objective."  "If the event is not removed by the input method's
+			     filter, the third objective is to establish either a
+			     keysym or a sequence of characters to insert, using
+			     the information supplied within the key event."  "When an input method connection is available, this
+			     responsibility is vested in the hands of the input
+			     method -- yet another copy of XEV as a core event is
+			     produced, and the input method is responsible for
+			     deriving a keysym or text to insert."  "Otherwise, if the XKB extension is available, calls
+			     are made to XkbTranslateKeyCode and
+			     XkbTranslateKeySym."  "And if all else fails, XEV is transformed into a core
+			     event and provided to XLookupString, in a manner
+			     analogous to the core event processing under the
+			     KeyPress label."  "A wide number of variables are employed during this
+			     translation process.  The most pertinent ones are:"  "`copy'"  "This variable is defined when an X toolkit
+			     incognizant of input extension events is being
+			     employed.  If a popup is active, Emacs copies
+			     fields of interest from the extension event to
+			     COPY, sets the `use_copy' flag, and jumps to the
+			     XI_OTHER label.  `copy' is then relayed to the
+			     toolkit."  "`xkey'"  "This variable is defined to a copy of the event
+			     used by input methods or XLookupString at various
+			     points during the execution of this label."  "`coding'"  "This variable is consulted at the conclusion of
+			     event generation, and holds the coding system
+			     for any generated string."  "`keysym'"  "This variable is eventually set to the keysym tied
+			     to the event, which may be directly provided within
+			     a generated struct input_event, should it bear a
+			     direct relation to an ASCII or Unicode character,
+			     or if it is a control key."  "`copy_buffer', `copy_bufptr', `copy_bufsiz'"  "These variables hold the buffer that incorporates
+			     characters generated during the keycode-to-keysym
+			     conversion process."  "`nbytes'"  "Holds the number of characters within that buffer,
+			     in bytes.  These characters are encoded using the
+			     coding system in `coding'."  "If greater than 0 and KEYSYM does not immediately
+			     relate to a function key, control key or character,
+			     it is provided as the string to insert within a
+			     MULTIBYTE_CHAR_KEYSTROKE_EVENT."  "`state'"  "Holds the keyboard and group (but not button)
+			     state.  After event filtering concludes, modifier
+			     bits within `extra_keyboard_modifiers' are also
+			     introduced."  "This illustration may reflect the treatment taken
+			     towards core key events to some degree."  */
+
+		          device = xi_device_from_id (dpyinfo, (*xev).deviceid);  // C 24073
+		          source = xi_device_from_id (dpyinfo, (*xev).sourceid);  // C 24074
+
+		          if device.is_null ()                               // C 24076
+		            { break 'xi_other; }                             // C 24077 (`goto XI_OTHER`)
+
+		          /* "Convert the keyboard state within XEV to a core modifier mask, later supplied as
+		             arguments to XKB and core functions.  This encompasses the keyboard group and
+		             effective modifiers but not the button state."  */
+		          state = xi_convert_event_keyboard_state (xev) as c_int;  // C 24083
+
+		          /* C 24085's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`: "Dispatch XI_KeyPress
+		             events when in menu."  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		          if popup_activated () != 0                        // C 24087
+		            {
+		              /* C 24089-24108's `#ifdef USE_LUCID`: "This makes key navigation work inside
+		                 menus."  `use_lucid` is in no arm's `--cfg` set (the ledger's recorded
+		                 bound), so this block is text no round on this machine compiles.  */
+#[cfg (feature = "use_lucid")]
+		              {
+		                use_copy = true;                            // C 24091
+		                copy.xkey.r#type = KeyPress;                // C 24092
+		                copy.xkey.serial = (*xev).serial;           // C 24093
+		                copy.xkey.send_event = (*xev).send_event;   // C 24094
+		                copy.xkey.display = (*dpyinfo).display;     // C 24095
+		                copy.xkey.window = (*xev).event;            // C 24096
+		                copy.xkey.root = (*xev).root;               // C 24097
+		                copy.xkey.subwindow = (*xev).child;         // C 24098
+		                copy.xkey.time = (*xev).time;               // C 24099
+		                copy.xkey.state = state as c_uint;          // C 24100
+		                xi_convert_button_state (&raw mut (*xev).buttons,  // C 24101
+						 &raw mut copy.xkey.state);
+		                copy.xkey.x = lrint ((*xev).event_x) as c_int;   // C 24103
+		                copy.xkey.y = lrint ((*xev).event_y) as c_int;   // C 24104
+		                copy.xkey.x_root = lrint ((*xev).root_x) as c_int;  // C 24105
+		                copy.xkey.y_root = lrint ((*xev).root_y) as c_int;  // C 24106
+		                copy.xkey.keycode = (*xev).detail as c_uint;  // C 24107
+		                copy.xkey.same_screen = True;               // C 24108
+		              }
+		              break 'xi_other;                              // C 24110 (`goto XI_OTHER`)
+		            }
+
+		          x_display_set_last_user_time (dpyinfo, (*xev).time,  // C 24114
+		            (*xev).send_event != 0, true);                  // C 24115
+		          ignore_next_mouse_click_timeout = 0;               // C 24116
+
+		          /* C 12344's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` function and C
+			 12486's `#else` macro: the call is split the way the two shapes are gated (this file
+			 21460, 21654 and 25840).  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		          { f = x_any_window_to_frame (dpyinfo, (*xev).event); }  // C 24118
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+		          { f = x_any_window_to_frame! (dpyinfo, (*xev).event); }  // C 24118
+
+		          /* "See the comment above x_compute_root_window_offset for why this optimization
+		             is performed."  */
+		          if !f.is_null () && (*xev).event == FRAME_X_WINDOW! (f)  // C 24120
+		            { xi_compute_root_window_offset (f, xev); }      // C 24123
+
+		          /* C 24125-24128's `#ifdef USE_GTK`: "GTK handles TAB events in an undesirable
+		             manner, so keyboard events are always dropped.  But as a side effect, the user
+		             time will no longer be set by GDK, so do that manually."  */
+#[cfg (feature = "use_gtk")]
+		          if !f.is_null ()                                   // C 24130
+		            { x_set_gtk_user_time (f, (*xev).time); }        // C 24131
+
+		          if !f.is_null ()                                   // C 24134
+		            {
+		              /* "If the user interacts with a frame that's focused on another device, but
+		                 not the current focus frame, make it the focus frame."  */
+		              if !device.is_null ()                          // C 24139
+		                {
+		                  xi_handle_interaction (dpyinfo, f, device,  // C 24140-24141
+							 (*xev).time);
+		                }
+		            }
+
+		          /* "Convert the XI event into a core event structure provided to old Xlib
+		             functions and input method filter functions."  */
+		          memset (&raw mut xkey as *mut c_void, 0, core::mem::size_of_val (&xkey));  // C 24148
+
+		          xkey.r#type = KeyPress;                            // C 24150
+		          xkey.serial = (*xev).serial;                       // C 24151
+		          xkey.send_event = (*xev).send_event;               // C 24152
+		          xkey.display = (*dpyinfo).display;                 // C 24153
+		          xkey.window = (*xev).event;                        // C 24154
+		          xkey.root = (*xev).root;                           // C 24155
+		          xkey.subwindow = (*xev).child;                     // C 24156
+		          xkey.time = (*xev).time;                           // C 24157
+		          xkey.state = state as c_uint;                      // C 24158
+		          xkey.x = lrint ((*xev).event_x) as c_int;          // C 24159
+		          xkey.y = lrint ((*xev).event_y) as c_int;          // C 24160
+		          xkey.x_root = lrint ((*xev).root_x) as c_int;      // C 24161
+		          xkey.y_root = lrint ((*xev).root_y) as c_int;      // C 24162
+
+		          /* "Some input methods react differently depending on the buttons that are
+		             pressed."  */
+		          xi_convert_button_state (&raw mut (*xev).buttons,  // C 24166
+					   &raw mut xkey.state);
+
+		          xkey.keycode = (*xev).detail as c_uint;            // C 24168
+		          xkey.same_screen = True;                           // C 24169
 		        }
 		      _ => {}
 		    }
