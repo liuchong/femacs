@@ -2330,3 +2330,118 @@ unsafe fn android_frame_restack (f1: *mut frame, f2: *mut frame, above_flag: boo
 				 &raw mut wc);
   unblock_input ();                                               // C 1797
 }
+
+/* C 1801-1910: `Fandroid_frame_restack` (C 1802-1837), the two mouse-position `DEFUN`s
+   (C 1839-1862), `Fandroid_get_connection` (C 1864-1895) and `Fx_display_list` (C 1897-1910).
+   C 1912 opens the `#ifndef ANDROID_STUBIFY` block that the tooltip frame helpers live in.  */
+
+/* C 1802-1837.  C 1815's `\(stacking)` is make-docfile's escape, whose *value* is `(stacking)`,
+   so the literal spells the value: the tool reads `subr Fandroid_frame_restack: docstring
+   differs` while the literal carries `\\(` - the measurement `pgtkfns.rs` 2801-2804 records for
+   the same sentence in the pgtk unit.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-frame-restack", Fandroid_frame_restack, Sandroid_frame_restack,
+	2, 3, 0,
+	doc: "Restack FRAME1 below FRAME2.\nThis means that if both frames are visible and the display areas of\nthese frames overlap, FRAME2 (partially) obscures FRAME1.  If optional\nthird argument ABOVE is non-nil, restack FRAME1 above FRAME2.  This\nmeans that if both frames are visible and the display areas of these\nframes overlap, FRAME1 (partially) obscures FRAME2.\n\nThis may be thought of as an atomic action performed in two steps: The\nfirst step removes FRAME1's window-step window from the display.  The\nsecond step reinserts FRAME1's window below (above if ABOVE is true)\nthat of FRAME2.  Hence the position of FRAME2 in its display's Z\n(stacking) order relative to all other frames excluding FRAME1 remains\nunaltered.\n\nAndroid does not facilitate restacking top-level windows managed by\nits own window manager; nor is it possible to restack frames that are\nchildren of different parents.  Consequently, this function only\nfunctions when FRAME1 and FRAME2 are both child frames subordinate to\nthe same parent frame.  ",
+	(frame1: Lisp_Object, frame2: Lisp_Object, above: Lisp_Object),
+	{
+  /* C 1825-1827: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());  // C 1826
+    return Qnil ();                                               // C 1827
+  }
+
+  /* C 1828-1836: the `#else /* !ANDROID_STUBIFY */` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  let f1: *mut frame = decode_live_frame (frame1);                // C 1829
+  let f2: *mut frame = decode_live_frame (frame2);                // C 1830
+
+  /* C's `!(a && b)` over two integer handles; both are `android_handle` here, so the truth tests
+     are zero comparisons.  */
+  if ! (FRAME_ANDROID_WINDOW! (f1) != 0 && FRAME_ANDROID_WINDOW! (f2) != 0)   // C 1832
+    { error (c"Cannot restack frames".as_ptr ()); }               // C 1833
+  android_frame_restack (f1, f2, !NILP (above));                  // C 1834
+  return Qt ();                                                   // C 1835
+  }
+});
+
+/* C 1839-1850.  C's parameter list is `(void)`.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-mouse-absolute-pixel-position", Fandroid_mouse_absolute_pixel_position,
+	 Sandroid_mouse_absolute_pixel_position,
+	 0, 0, 0,
+	 doc: "Return absolute position of mouse cursor in pixels.\nThe position is returned as a cons cell (X . Y) of the coordinates of\nthe mouse cursor position in pixels relative to a position (0, 0) of the\nselected frame's display.  This does not work on Android.  ",
+	 (),
+	 {
+  /* This cannot be implemented on Android.  */                   // C 1848
+  return Qnil ();                                                 // C 1849
+});
+
+/* C 1852-1862.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-set-mouse-absolute-pixel-position", Fandroid_set_mouse_absolute_pixel_position,
+	 Sandroid_set_mouse_absolute_pixel_position,
+	 2, 2, 0,
+	 doc: "Move mouse pointer to a pixel position at (X, Y).  The\ncoordinates X and Y are interpreted to start from the top-left corner\nof the screen.  This does not work on Android.  ",
+	 (x: Lisp_Object, y: Lisp_Object),
+	 {
+  /* This cannot be implemented on Android.  */                   // C 1860
+  return Qnil ();                                                 // C 1861
+});
+
+/* C 1864-1895.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-get-connection", Fandroid_get_connection, Sandroid_get_connection,
+	0, 0, 0,
+	doc: "Get the connection to the display server.\nReturn the terminal if it exists, else nil.\n\nEmacs cannot open a connection to the display server itself under\nAndroid, so there is no equivalent of `x-open-connection'.  ",
+	(),
+	{
+  /* C 1873-1875: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());  // C 1874
+    return Qnil ();                                               // C 1875
+  }
+
+  /* C 1876-1894: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  let mut terminal: Lisp_Object;                                  // C 1877
+
+  terminal = Qnil ();                                             // C 1879
+
+  if x_display_list != std::ptr::null_mut ()                      // C 1881 (C's `if (x_display_list)`)
+    {
+      XSETTERMINAL! (terminal, (*x_display_list).terminal);       // C 1883
+
+      /* Update the display's bit depth from
+	 `android_display_planes'.  */                            // C 1885-1886
+      (*x_display_list).n_planes
+	= (if android_display_planes > 8                          // C 1888
+	   { 24 } else { if android_display_planes > 1            // C 1889
+			  { android_display_planes as c_int }     // C 1890
+			  else { 1 } });
+    }
+
+  return terminal;                                                // C 1893
+  }
+});
+
+/* C 1897-1910.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-list", Fx_display_list, Sx_display_list,
+	0, 0, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(),
+	{
+  let mut result: Lisp_Object;                                    // C 1901
+
+  result = Qnil ();                                               // C 1903
+
+  if x_display_list != std::ptr::null_mut ()                      // C 1905
+    { result = Fcons (XCAR ((*x_display_list).name_list_element),  // C 1906
+		      result); }
+  return result;                                                  // C 1909
+});

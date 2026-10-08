@@ -7,8 +7,9 @@
 > checkbox sections cannot be coverage evidence (P-86 ②).  What follows is P-86 ②'s substitute: the
 > **C line-range table**, the `## Evidence` readings and the `## Deviations`.
 > Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), **slice 2 = C
-> 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines) and **slice 4 = C
-> 1705-1800** (2,332 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines), **slice 4 = C
+> 1705-1800** (2,332 Rust lines) and **slice 5 = C 1801-1910** (2,447 Rust lines), both arms of
+> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -111,7 +112,12 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 1705-1743 | C 1706's `#ifndef ANDROID_STUBIFY` plus `android_frame_list_z_order` (C 1722-1734 the child walk, C 1736-1737 the `xfree`) | real arm |
 | 1744-1778 | C 1745's `DEFUN ("android-frame-list-z-order")`: C 1762-1764 the stub arm, C 1765-1777 the real one | file gate, both sub-arms |
 | 1779-1800 | C 1780's `#ifndef ANDROID_STUBIFY` plus `android_frame_restack` (C 1790-1793 the four writes, C 1796 the reconfigure call) and C's own `#endif` at 1800 | real arm |
-| 1801-3797 | not ported: the file's remaining 1,997 lines (C 1802's `DEFUN ("android-frame-restack")` onward - the rest of the z-order family, the tooltips, the GC and colour helpers, the terminal hooks and `syms_of_androidfns`) | not ported |
+| 1801-1837 | C 1802's `DEFUN ("android-frame-restack")`: C 1825-1827 the stub arm, C 1828-1836 the real one (C 1832's `!(A && B)` over two integer handles) | file gate, both sub-arms |
+| 1838-1850 | C 1839's `DEFUN ("android-mouse-absolute-pixel-position")` (C's `(void)` parameter list, C 1848's comment) | file gate |
+| 1851-1862 | C 1852's `DEFUN ("android-set-mouse-absolute-pixel-position")` | file gate |
+| 1863-1895 | C 1864's `DEFUN ("android-get-connection")`: C 1873-1875 the stub arm, C 1876-1894 the real one (C 1881 the display list test, C 1887-1890 the three-way bit-depth read) | file gate, both sub-arms |
+| 1896-1910 | C 1897's `DEFUN ("x-display-list")` (C 1905-1907 the `name_list_element` walk) | file gate |
+| 1911-3797 | not ported: the file's remaining 1,887 lines (C 1912's `#ifndef ANDROID_STUBIFY` and the tooltip frame helpers onward) | not ported |
 
 ## Evidence
 
@@ -575,4 +581,63 @@ reads **`C 3797 vs Rust 2332` (38.6%)**, from 41.4%.
 
 - **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
   compiles nothing from this file (P-86 ③⑵): no window tree was queried, no frame was restacked.
+- The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
+
+## Slice 5 (2026-10-08, status 4.066 - the integrator sets the round number): C 1801-1910
+
+**The slice's text.**  `Fandroid_frame_restack` (C 1802-1837), the two mouse-position `DEFUN`s
+(C 1839-1862, C's `(void)` parameter list on the first), `Fandroid_get_connection` (C 1864-1895)
+and `Fx_display_list` (C 1897-1910).  Port line count **2,332 -> 2,447** (+115).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**
+**exit 1, exactly 4 `error[E0609]` rows** - unchanged, still slice 1's class (`_root.rs` 707/708's
+`tool_bar_window` pair, 797/798's `tab_bar_window` pair) and **0 in this slice's text**.  The
+`--check` run is what found the slice's one real defect (Evidence ④).
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings** (the same
+`include/android.rs` FFI-safety warnings as slices 2-4): the three stub arms compile.
+
+**Evidence ③ - arm set C = A + `have_window_system`.**  **exit 0, 0 errors, 12 warnings**: the new
+items compile against `include/androidterm.rs` 531's `x_display_list`, `include/lisp.rs`'s
+`XSETTERMINAL!` / `XCAR` / `Fcons`, `include/globals.rs` 6922's `android_display_planes` and
+`include/frame.rs`'s `decode_live_frame` copy this unit declares.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **88 rows -> 83**: the five closed
+are **5 `missing subr`** (15 -> 10: `Fandroid_frame_restack`, `Fandroid_mouse_absolute_pixel_position`,
+`Fandroid_set_mouse_absolute_pixel_position`, `Fandroid_get_connection`, `Fx_display_list`).  The
+first run read **`subr Fandroid_frame_restack: docstring differs`** and that row is this slice's one
+real defect: C 1815's `\(stacking)` is make-docfile's escape, whose *value* is `(stacking)`, so the
+literal must spell the value - the same reading `pgtkfns.rs` 2801-2804 records for the same sentence
+in the pgtk unit, and the fix is one escape in one literal.  The drift row now reads **`C 3797 vs
+Rust 2447` (35.6%)**, from 38.6%.
+
+### Deviations (this slice)
+
+1. **One docstring escape decoded**: C 1815's `\(stacking)` is written `(stacking)` (make-docfile's
+   escape value; the measured note above), the only place in this slice where the literal is not a
+   byte-for-byte copy of C's text.
+2. **`x_display_list`'s C truth tests are `.is_null ()` / `!= std::ptr::null_mut ()` spellings**
+   (C 1881, C 1905): the port's own line 434 already spells the same test as
+   `! x_display_list.is_null ()`, and this slice keeps C's pointer comparison shape.
+3. **C's `!(FRAME_ANDROID_WINDOW (f1) && FRAME_ANDROID_WINDOW (f2))` (C 1832)** is written
+   `! (FRAME_ANDROID_WINDOW! (f1) != 0 && FRAME_ANDROID_WINDOW! (f2) != 0)`: both handles are
+   `android_handle = intptr_t`, so their C truth tests are zero comparisons.
+4. **C 1887-1890's three-way bit-depth expression** keeps C's nesting (`android_display_planes` is
+   `EMACS_INT` in the mirror because the reference declares it with `DEFVAR_INT`), and its
+   assignment into `n_planes` (`c_int`) is the `as c_int` C performs implicitly.
+5. **Two `DEFUN`s have no parameters at all** (`(void)` in C): the port writes `()` for C's
+   parameter list (the `alloc.rs` 4153 shape).
+
+### Owed (this slice's additions)
+
+- **The file's remainder**: C 1911-3797 - the tooltip frame helpers and their `DEFUN`s, the GC and
+  colour functions, the terminal hooks, and `syms_of_androidfns`'s registrations (the 35 unchanged
+  `missing defsubr` rows).
+- Nothing new for the mirrors.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no frame was restacked, no connection was returned, no
+  display list was walked.
 - The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
