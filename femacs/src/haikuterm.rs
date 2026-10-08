@@ -2483,3 +2483,128 @@ unsafe fn haiku_draw_composite_glyph_string_foreground (s: *mut glyph_string)
 	}
     }
 }
+
+/* C 1641-1732: `haiku_draw_image_relief` (C 1642-1732).  The next first definition is C 1734's
+   `haiku_translate_transform`.  `image_ascent` (dispextern.h 3774) is declared at the use site
+   below: `src/image.rs` defines it with `#[unsafe(no_mangle)]` and no mirror carries the
+   prototype (the `pgtkterm.rs` 3041-3048 declaration of the same one).  */
+
+/* C: dispextern.h 3774: `int image_ascent (struct image *, struct face *, struct glyph_slice
+   *);` - the C 1650 call, C's `&s->slice` being the port's `&raw mut`.  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn image_ascent (img: *mut image, face: *mut face, slice: *mut glyph_slice) -> c_int;
+}
+
+/* C 1642-1732.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_image_relief (s: *mut glyph_string)
+{
+  let mut x1: c_int;                                                  // C 1645
+  let mut y1: c_int;
+  let mut thick: c_int;
+  let mut raised_p: bool;                                             // C 1646
+  let mut top_p: bool;
+  let mut bot_p: bool;
+  let mut left_p: bool;
+  let mut right_p: bool;
+  let mut extra_x: c_int;                                             // C 1647
+  let mut extra_y: c_int;
+  let mut r: haiku_rect = unsafe { core::mem::zeroed () };             // C 1648
+  let mut x: c_int = (*s).x;                                          // C 1649
+  let mut y: c_int = (*s).ybase                                       // C 1650
+    - image_ascent ((*s).img, GS_FACE! (s), &raw mut (*s).slice);
+
+  let face: *mut face = GS_FACE! (s);                                 // C 1652
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */                                         // C 1654-1655
+  if face_bits! (box, face) != FACE_NO_BOX                            // C 1656
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))            // C 1657
+      && glyph_slice_bits! (x, (*s).slice) == 0                        // C 1658
+    { x += std::cmp::max ((*face).box_vertical_line_width, 0); }       // C 1659
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */                                             // C 1661-1662
+  if glyph_slice_bits! (x, (*s).slice) == 0                            // C 1663
+    { x += (*(*s).img).hmargin; }                                      // C 1664
+  if glyph_slice_bits! (y, (*s).slice) == 0                            // C 1665
+    { y += (*(*s).img).vmargin; }                                      // C 1666
+
+  if (*s).hl == DRAW_IMAGE_SUNKEN                                      // C 1668
+      || (*s).hl == DRAW_IMAGE_RAISED                                  // C 1669
+    {
+      if (*face).id == TAB_BAR_FACE_ID                                 // C 1671
+	{ thick = (if tab_bar_button_relief < 0                        // C 1672
+		     { DEFAULT_TAB_BAR_BUTTON_RELIEF }                 // C 1673
+		     else { std::cmp::min (tab_bar_button_relief, 1000000) as c_int }); }   // C 1674
+      else
+	{ thick = (if tool_bar_button_relief < 0                       // C 1676
+		     { DEFAULT_TOOL_BAR_BUTTON_RELIEF }                // C 1677
+		     else { std::cmp::min (tool_bar_button_relief, 1000000) as c_int }); }   // C 1678
+      raised_p = (*s).hl == DRAW_IMAGE_RAISED;                          // C 1679
+    }
+  else
+    {
+      thick = eabs! ((*(*s).img).relief);                              // C 1683
+      raised_p = (*(*s).img).relief > 0;                               // C 1684
+    }
+
+  x1 = x + glyph_slice_bits! (width, (*s).slice) as c_int - 1;          // C 1687
+  y1 = y + glyph_slice_bits! (height, (*s).slice) as c_int - 1;         // C 1688
+
+  extra_x = 0;                                                         // C 1690
+  extra_y = 0;
+
+  if (*face).id == TAB_BAR_FACE_ID                                     // C 1692
+    {
+      if CONSP (Vtab_bar_button_margin)                                // C 1694
+	  && FIXNUMP (XCAR (Vtab_bar_button_margin))                   // C 1695
+	  && FIXNUMP (XCDR (Vtab_bar_button_margin))                   // C 1696
+	{
+	  extra_x = XFIXNUM (XCAR (Vtab_bar_button_margin)) as c_int - thick;   // C 1698
+	  extra_y = XFIXNUM (XCDR (Vtab_bar_button_margin)) as c_int - thick;   // C 1699
+	}
+      else if FIXNUMP (Vtab_bar_button_margin)                         // C 1701
+	{
+	  extra_x = XFIXNUM (Vtab_bar_button_margin) as c_int - thick;   // C 1702
+	  extra_y = XFIXNUM (Vtab_bar_button_margin) as c_int - thick;
+	}
+    }
+
+  if (*face).id == TOOL_BAR_FACE_ID                                    // C 1705
+    {
+      if CONSP (Vtool_bar_button_margin)                               // C 1707
+	  && FIXNUMP (XCAR (Vtool_bar_button_margin))                  // C 1708
+	  && FIXNUMP (XCDR (Vtool_bar_button_margin))                  // C 1709
+	{
+	  extra_x = XFIXNUM (XCAR (Vtool_bar_button_margin)) as c_int;   // C 1711
+	  extra_y = XFIXNUM (XCDR (Vtool_bar_button_margin)) as c_int;   // C 1712
+	}
+      else if FIXNUMP (Vtool_bar_button_margin)                        // C 1714
+	{
+	  extra_x = XFIXNUM (Vtool_bar_button_margin) as c_int;          // C 1715
+	  extra_y = XFIXNUM (Vtool_bar_button_margin) as c_int;
+	}
+    }
+
+  top_p = false;                                                       // C 1718
+  bot_p = false;
+  left_p = false;
+  right_p = false;
+
+  if glyph_slice_bits! (x, (*s).slice) == 0                            // C 1720
+    { x -= thick + extra_x; left_p = true; }                           // C 1721
+  if glyph_slice_bits! (y, (*s).slice) == 0                            // C 1722
+    { y -= thick + extra_y; top_p = true; }                            // C 1723
+  if (glyph_slice_bits! (x, (*s).slice) as c_int                       // C 1724
+      + glyph_slice_bits! (width, (*s).slice) as c_int) == (*(*s).img).width
+    { x1 += thick + extra_x; right_p = true; }                         // C 1725
+  if (glyph_slice_bits! (y, (*s).slice) as c_int                       // C 1726
+      + glyph_slice_bits! (height, (*s).slice) as c_int) == (*(*s).img).height
+    { y1 += thick + extra_y; bot_p = true; }                           // C 1727
+
+  get_glyph_string_clip_rect (s, &raw mut r as *mut c_void);          // C 1729
+  haiku_draw_relief_rect (s, x, y, x1, y1, thick, thick, raised_p,      // C 1730
+			  top_p, bot_p, left_p, right_p, &raw mut r);   // C 1731
+}

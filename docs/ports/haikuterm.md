@@ -7,12 +7,17 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**2,485 lines**), which carries **C 1-1640** - P-86 ④'s first five
+> `femacs/src/haikuterm.rs` (**2,610 lines**), which carries **C 1-1732** - P-86 ④'s first six
 > slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 1732 and not 1734 (slice 6).**  C 1734 is `haiku_translate_transform`'s `static void` and
+> C 1732 the closing brace of the item before it, so the slice is **C 1641-1732** - the blank line
+> C 1641 and `haiku_draw_image_relief` (C 1642-1732).  The next definition is
+> `haiku_translate_transform` (C 1734).
 >
 > **Why 1640 and not 1642 (slice 5).**  C 1642 is `haiku_draw_image_relief`'s `static void` and
 > C 1640 the closing brace of the item before it, so the slice is **C 1512-1640** - the blank line
@@ -121,7 +126,8 @@ the pre-flight below sets it as well.
 | 1199-1399 | `haiku_draw_background_rect` (C 1200-1209, non-`static`), `haiku_maybe_draw_background` (C 1211-1231; C 1228 the `background_filled_p` write), `haiku_mouse_face_colors` (C 1233-1258; C 1242-1251 the four inline accessors), `haiku_draw_glyph_string_foreground` (C 1260-1307) and `haiku_draw_glyphless_glyph_string_foreground` (C 1309-1399; C 1330 the `GCC_LINT` pair, C 1335 `buf`, C 1339-1363 the two method arms, C 1371 `encode_char`, C 1383-1395 the box) | file gate (slice 3) |
 | 1400-1511 | `haiku_draw_stretch_glyph_string` (C 1401-1497; C 1407 the cursor/stretch test, C 1412-1434 the R2L and column-width choices, C 1443-1476 the stipple pair, C 1478-1495 the background arm, C 1496 the `background_filled_p` write), `haiku_start_clip` (C 1499-1504) and `haiku_end_clip` (C 1506-1511) | file gate (slice 4) |
 | 1512-1640 | `haiku_clip_to_row` (C 1513-1530; C 1521 `window_box`'s three outputs, C 1524 `WINDOW_TO_FRAME_PIXEL_Y`), `haiku_update_begin` (C 1532-1538; C 1537 the `FRAME_COMPLETE_P` write), `haiku_update_end` (C 1540-1545; C 1543 the `mouse_face_defer` write) and `haiku_draw_composite_glyph_string_foreground` (C 1547-1640; C 1581 the `u.cmp.automatic` test, C 1588 `COMPOSITION_GLYPH`, C 1600-1637 the `LGSTRING`/`LGLYPH_*` arm) | file gate (slice 5) |
-| 1641-4898 | **the remainder of the file** (C 1642 `haiku_draw_image_relief` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1641-1732 | `haiku_draw_image_relief` (C 1642-1732; C 1650 the `image_ascent` call, C 1656-1659 the left box line, C 1663-1666 the two margins, C 1668-1685 the relief/fork, C 1692-1716 the tab-bar/tool-bar `V*_button_margin` chains, C 1720-1727 the four edges, C 1729-1731 the clip rectangle and `haiku_draw_relief_rect`) | file gate (slice 6) |
+| 1733-4898 | **the remainder of the file** (C 1734 `haiku_translate_transform` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -708,3 +714,67 @@ mouse_face_defer`** (C 1543's write, which the port makes through the mirror's
   type-checking and the text/token gates.
 - The five mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 1641-4898 text this file has not reached.
+
+## Slice 6 (2026-10-08, status 4.082 - the integrator sets the round number): C 1641-1732
+
+**The slice's text.**  The blank line C 1641 and `haiku_draw_image_relief` (C 1642-1732): the six
+`int`/`bool` locals, `x`/`y` (with C 1650's `image_ascent` on `s->img`/`s->face`/`&s->slice`), the
+left box line, the two margins, the `DRAW_IMAGE_SUNKEN`/`RAISED` fork with the tab-bar/tool-bar
+relief globals, the `x1`/`y1` corners, the two `V*_button_margin` chains, the four edge tests and
+the closing `get_glyph_string_clip_rect` + `haiku_draw_relief_rect` pair.  Port line count
+**2,485 -> 2,610** (+125).  `image_ascent` (dispextern.h 3774) is declared at the use site, since
+no mirror carries the prototype and `src/image.rs` 2846-2849 defines it.
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Two runs of slice 2's command,
+arm set `have_haiku` + `have_window_system`:
+
+- **Run 1: `exit 1`, 6 primary errors, 1 of them in the unit's own text** - `get_glyph_string_clip_rect`
+  takes the mirror's `*mut c_void` (include/dispextern.rs 4044), so C 1729's `&r` needs the cast
+  this file's C 544 already writes for the plural sibling (Deviation 3).
+- **Run 2 (final revision): `exit 1`, 5 primary errors among 35 error-prefixed lines, every one in
+  a mirror** - `include/systime.rs` once, `include/frame.rs` once, and **`include/haikuterm.rs`
+  three times** (slice 5's reading; the extra one there is slice 1's recorded `FRAME_COMPLETE_P`
+  write-arm class, and this slice adds none).  **The unit's own text has no primary error**, 4
+  warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 53 rows -> 52.**  The one closed is
+`haiku_draw_image_relief`'s `missing function` row; the 52 that remain are 51 `missing function`
+rows plus `missing macro ASSIGN_CURSOR`, all inside the C 1733-4898 remainder.  **No new spelling
+row**: the two `relief` symbols, the four `V*_button_margin` chains and the two `min` folds all
+compare token for token.
+
+### Deviations (this slice)
+
+1. **C 1648's `struct haiku_rect r`** is zero-initialised with `core::mem::zeroed ()` (PORTING.md
+   1.5; this file's C 544 uses the same spelling for the same record) - C 1729 hands the callee its
+   address before C 1730-1731 read it back.
+2. **C's two `min (…, 1000000)` folds over `EMACS_INT` globals** are `std::cmp::min
+   (tab_bar_button_relief, 1000000) as c_int` / the tool-bar pair (the `isize` fold the
+   `pgtkterm.rs` 2130-2136 copy of the same C lines spells with a shim `min`; this file's own
+   C 938/981/1432 readings are `std::cmp::*`), and C's `max (face->box_vertical_line_width, 0)` is
+   `std::cmp::max` on two `int`s.
+3. **`get_glyph_string_clip_rect` takes the mirror's untyped pointer** (include/dispextern.rs
+   4044), so C 1729's `&r` is written `&raw mut r as *mut c_void` - the exact spelling this file's
+   C 544 uses for the plural sibling (Evidence ① run 1).
+4. **C 1720-1727's four comma expressions** (`x -= thick + extra_x, left_p = true;`) are one
+   statement per assignment, in C's order, with the two `s->slice.x + s->slice.width ==
+   s->img->width` tests written through `glyph_slice_bits!` and C's `int` comparisons kept
+   (`as c_int` on each `glyph_slice_bits!` read, whose members are packed fields - the
+   `pgtkterm.rs` 3050-3170 copy of the same function is the shape).
+5. **`image_ascent` is a use-site declaration** (P-72 rule 4), with C's own prototype line in the
+   `/// C:` note - the `pgtkterm.rs` 3041-3048 declaration of the same one.
+
+### Owed (this slice's additions)
+
+- **Nothing new**: `--check` produced no new row for this slice (Evidence ②), the line-drift row is
+  unchanged (C 4898 vs Rust 2,610 is 46.7%, inside the `haikuterm` row's 0.69), and the ratchet
+  list is still empty.  `image_ascent`'s definition is `src/image.rs`'s and already landed.
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no image ascent was measured, no
+  relief rectangle was drawn, and no clip rectangle was set.**  What is measured is the arm's
+  type-checking and the text/token gates.
+- The five mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 1733-4898 text this file has not reached.
