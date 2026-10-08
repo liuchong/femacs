@@ -4329,3 +4329,33 @@ unsafe fn haiku_flush (f: *mut frame)
   if FRAME_VISIBLE_P (f) && ! FRAME_TOOLTIP_P (f)                      // C 3075
     { BWindow_Flush (FRAME_HAIKU_WINDOW! (f)); }                       // C 3076
 }
+
+/* C 3078-3091: `haiku_define_frame_cursor` (C 3080-3091).  The next first definition is C 3093's
+   `haiku_default_font_parameter`.  C 3086's `f->pointer_invisible` is a bit of `frame`'s flag run
+   (frame.h 434-441's run; the mirror names the shift, `include/frame.rs` 542-546) whose accessor
+   the unit writes itself - the `androidterm.rs` 240-243 copy of this same member.  **This function
+   is also the `redisplay_interface` table's cursor entry (C 3160)**, so it joins that round's ABI
+   conversion (Deviations 2).  */
+
+/* C: `bool_bf pointer_invisible : 1;` - read at C 3086.  */
+#[cfg (feature = "have_haiku")]
+macro_rules! pointer_invisible {
+  ($f:expr) => { (*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_POINTER_INVISIBLE_SHIFT, $v) };
+}
+
+/* C 3080-3091.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+{
+  if FRAME_TOOLTIP_P (f)                                              // C 3082
+    { return; }                                                       // C 3083
+
+  block_input ();                                                     // C 3085
+  if ! pointer_invisible! (f) && ! FRAME_HAIKU_VIEW! (f).is_null ()    // C 3086
+      && ! haiku_output_bits! (hourglass_p, FRAME_OUTPUT_DATA! (f))   // C 3087
+    { BView_set_view_cursor (FRAME_HAIKU_VIEW! (f), cursor); }         // C 3088
+  unblock_input ();                                                   // C 3089
+  (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).current_cursor     // C 3090
+    = cursor;
+}

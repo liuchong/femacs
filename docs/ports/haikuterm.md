@@ -7,12 +7,18 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**4,331 lines**), which carries **C 1-3077** - P-86 ④'s first
-> seventeen slices of this file - with every `#if`'s arms both carried.
+> `femacs/src/haikuterm.rs` (**4,361 lines**), which carries **C 1-3091** - P-86 ④'s first
+> eighteen slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 3091 and not 3093 (slice 18).**  C 3093 is `haiku_default_font_parameter`'s `static void`
+> and C 3091 the closing brace of the item before it, so the slice is **C 3078-3091** - the blank
+> line C 3078 and `haiku_define_frame_cursor` (C 3080-3091).  The next definition is
+> `haiku_default_font_parameter` (C 3093); the `redisplay_interface` table follows at C 3140-3170
+> and is the ABI round Owed 1 names.
 >
 > **Why 3077 and not 3080 (slice 17).**  C 3080 is `haiku_define_frame_cursor`'s `static void` and
 > C 3077 the closing brace of the item before it, so the slice is **C 2981-3077** - the blank line
@@ -201,7 +207,8 @@ the pre-flight below sets it as well.
 | 2804-2892 | `haiku_draw_fringe_bitmap` (C 2805-2892; C 2823-2824 the invalidate pair, C 2828-2853 the stipple arm with `haiku_get_bitmap_rec`/`haiku_update_bitmap_rec`, C 2855-2888 the fringe bitmap arm with `gui_define_fringe_bitmap` and the two colour choices) | file gate (slice 15) |
 | 2893-2980 | `haiku_define_fringe_bitmap` (C 2894-2915; C 2898-2907 the grow, C 2910-2913 the `BBitmap_*` pair), `haiku_destroy_fringe_bitmap` (C 2917-2926) and `haiku_scroll_run` (C 2928-2980; C 2934 `window_box`, C 2936-2938 the three y values, C 2940-2967 the up/down folds, C 2969-2977 the copy) | file gate (slice 16) |
 | 2981-3077 | the C 2982-2987 comment block, `haiku_mouse_position` (C 2988-3061; C 3004-3008 the first `FOR_EACH_FRAME`, C 3017-3024 the selected/any-frame fallbacks, C 3031-3056 the view arm with `BView_get_mouse`/`remember_mouse_glyph`/the two `XSETINT`s) and `haiku_flush` (C 3063-3077; C 3068 the dirty/flip test, C 3073 the `FRAME_COMPLETE_P` write, C 3075-3076 the flush) | file gate (slice 17) |
-| 3078-4898 | **the remainder of the file** (C 3080 `haiku_define_frame_cursor` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3078-3091 | `haiku_define_frame_cursor` (C 3080-3091; C 3082 the tooltip guard, C 3086-3088 the three-part test and the cursor set, C 3090 the `current_cursor` store) | file gate (slice 18) |
+| 3092-4898 | **the remainder of the file** (C 3093 `haiku_default_font_parameter` onward, the C 3140-3170 `redisplay_interface` table included; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1572,3 +1579,57 @@ macro ASSIGN_CURSOR`, all inside the C 3078-4898 remainder.
   type-checking and the text/token gates.
 - The six mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 3078-4898 text this file has not reached.
+
+## Slice 18 (2026-10-08, status 4.094 - the integrator sets the round number): C 3078-3091
+
+**The slice's text.**  The blank line C 3078 and `haiku_define_frame_cursor` (C 3080-3091).  Port
+line count **4,331 -> 4,361** (+30).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  **One run**: `exit 1`, 6 primary
+errors among 34 error-prefixed lines, **every one in a mirror** (the same six slice 17 read:
+`include/haikuterm.rs` four times, `include/systime.rs` once, `include/frame.rs` once).  **The unit's
+own text has no primary error on the first run**, 4 warnings - the slice's only new local name is the
+`pointer_invisible!` macro (Deviation 1).
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 26 rows -> 25.**  The one closed is
+`haiku_define_frame_cursor`'s `missing function` row, and **no new row appeared**: the tooltip guard,
+the three-part test and the `current_cursor` store all compare token for token.  The 25 that remain
+are 24 `missing function` rows plus `missing macro ASSIGN_CURSOR`, all inside the C 3092-4898
+remainder.
+
+### Deviations (this slice)
+
+1. **`pointer_invisible!` is a unit-local macro** (the `androidterm.rs` 240-243 copy of the same
+   member): C 3086's `!f->pointer_invisible` is a bit of `frame`'s flag run, the mirror names only
+   the shift (`include/frame.rs` 542-546, whose own comment records that the number is
+   **per-configuration** - 19 frozen, 22 for x11/pgtk/android/w32, 23 for haiku/X-toolkit), so the
+   unit reads and writes it through its own `set_frame_flag1!` (slice 1) - the same shape slice 17's
+   `mouse_moved!` took.
+2. **This function is the `redisplay_interface` table's cursor entry (C 3160)**, so it joins that
+   round's ABI conversion.  **The conversion's size is now known exactly**: the table at C 3140-3170
+   hands the address of **seventeen** of this file's functions (`haiku_scroll_run`,
+   `haiku_after_update_window_line`, `haiku_flush`, `haiku_draw_fringe_bitmap`,
+   `haiku_define_fringe_bitmap`, `haiku_destroy_fringe_bitmap`,
+   `haiku_compute_glyph_string_overhangs`, `haiku_draw_glyph_string`, `haiku_define_frame_cursor`,
+   `haiku_clear_frame_area`, `haiku_clear_under_internal_border`, `haiku_draw_window_cursor`,
+   `haiku_draw_vertical_window_border`, `haiku_draw_window_divider`, `haiku_show_hourglass`,
+   `haiku_hide_hourglass`, `haiku_default_font_parameter`), and `haiku_mouse_position` joins them
+   for `terminal->mouse_position_hook` (C 4431) - so the table round converts **eighteen** `unsafe fn`
+   definitions to `unsafe extern "C" fn`, in the one move the `androidfns.rs` slice-13 precedent
+   prescribes.  (Slices 11 and 17 recorded eight and ten; this is the full count, now that the
+   table's own text has been read item by item.)
+
+### Owed (this slice's additions)
+
+- **The ABI round's size is now exact** (Deviation 2): eighteen functions, all named above.
+- Nothing else: no `--check` row (Evidence ②) and the line-drift row is unchanged (C 4898 vs Rust
+  4,361 is 11.0%, inside the `haikuterm` row's 0.69).
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no frame cursor was defined, no
+  `BView_set_view_cursor` was called and no `current_cursor` was stored.**  What is measured is the
+  arm's type-checking and the text/token gates.
+- The six mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 3092-4898 text this file has not reached.
