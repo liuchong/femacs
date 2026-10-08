@@ -525,7 +525,7 @@ unsafe fn android_decode_color (f: *mut frame, color_name: Lisp_Object, mono_col
 }
 
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_parent_frame (f: *mut frame, new_value: Lisp_Object,
+unsafe extern "C" fn android_set_parent_frame (f: *mut frame, new_value: Lisp_Object,
 				    old_value: Lisp_Object)
 {                                                              // C 179-210
   let mut p: *mut frame;
@@ -639,7 +639,7 @@ pub unsafe extern "C" fn android_explicitly_set_name (f: *mut frame, arg: Lisp_O
    changes the height of all windows on frame F to match the new tool bar height.  The frame's
    height doesn't change.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_tool_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn android_set_tool_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {                                                              // C 298-321
   let nlines: c_int;
 
@@ -657,7 +657,7 @@ unsafe fn android_set_tool_bar_lines (f: *mut frame, value: Lisp_Object, oldval:
 }
 
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_tool_bar_position (f: *mut frame, new_value: Lisp_Object,
+unsafe extern "C" fn android_set_tool_bar_position (f: *mut frame, new_value: Lisp_Object,
 					 old_value: Lisp_Object)
 {                                                              // C 323-348
   if !EQ (new_value, Qtop ()) && !EQ (new_value, Qbottom ())
@@ -731,7 +731,7 @@ pub unsafe extern "C" fn android_change_tool_bar_height (f: *mut frame, height: 
    may change the height of all windows on frame F to match the new tab bar height.  The frame's
    height may change if frame_inhibit_implied_resize was set accordingly.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn android_set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {                                                              // C 396-424
   let olines: c_int;
   let nlines: c_int;
@@ -3443,7 +3443,7 @@ unsafe extern "C" {
 
 /* C 2668-2693.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_background_color (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn android_set_background_color (f: *mut frame, arg: Lisp_Object,
 					oldval: Lisp_Object)
 {
   let mut x: *mut android_output;                                 // C 2672
@@ -3471,7 +3471,7 @@ unsafe fn android_set_background_color (f: *mut frame, arg: Lisp_Object,
 
 /* C 2695-2703.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_border_color (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn android_set_border_color (f: *mut frame, arg: Lisp_Object,
 				    oldval: Lisp_Object)
 {
   /* Left unimplemented because Android has no window borders.  */   // C 2699
@@ -3482,7 +3482,7 @@ unsafe fn android_set_border_color (f: *mut frame, arg: Lisp_Object,
 
 /* C 2705-2748.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_cursor_color (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn android_set_cursor_color (f: *mut frame, arg: Lisp_Object,
 				    oldval: Lisp_Object)
 {
   let mut fore_pixel: c_ulong;                                    // C 2709
@@ -3529,7 +3529,7 @@ unsafe fn android_set_cursor_color (f: *mut frame, arg: Lisp_Object,
 
 /* C 2750-2755.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_cursor_type (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn android_set_cursor_type (f: *mut frame, arg: Lisp_Object,
 				   oldval: Lisp_Object)
 {
   set_frame_cursor_types (f, arg);                                // C 2754
@@ -3537,7 +3537,7 @@ unsafe fn android_set_cursor_type (f: *mut frame, arg: Lisp_Object,
 
 /* C 2757-2789.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_foreground_color (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn android_set_foreground_color (f: *mut frame, arg: Lisp_Object,
 					oldval: Lisp_Object)
 {
   let mut x: *mut android_output;                                 // C 2761
@@ -3573,7 +3573,7 @@ unsafe fn android_set_foreground_color (f: *mut frame, arg: Lisp_Object,
 
 /* C 2791-2814.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn android_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object,
 						oldval: Lisp_Object)
 {
   let mut border: c_int;                                          // C 2795
@@ -3599,7 +3599,7 @@ unsafe fn android_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object,
 
 /* C 2816-2832.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_internal_border_width (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn android_set_internal_border_width (f: *mut frame, arg: Lisp_Object,
 					     oldval: Lisp_Object)
 {
   let border: c_int = check_int_nonnegative (arg);                 // C 2820
@@ -3636,7 +3636,7 @@ macro_rules! FRAME_MENU_BAR_HEIGHT {
 
 /* C 2834-2900.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_menu_bar_lines (f: *mut frame, value: Lisp_Object,
+unsafe extern "C" fn android_set_menu_bar_lines (f: *mut frame, value: Lisp_Object,
 				      oldval: Lisp_Object)
 {
   let mut nlines: c_int;                                          // C 2838
@@ -3832,7 +3832,7 @@ pub struct mouse_cursor_data
 
 /* C 2976-3043.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_mouse_color (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn android_set_mouse_color (f: *mut frame, arg: Lisp_Object,
 				   oldval: Lisp_Object)
 {
   let x: *mut android_output = (*f).output_data.android as *mut android_output;   // C 2980
@@ -3931,7 +3931,7 @@ unsafe fn android_set_mouse_color (f: *mut frame, arg: Lisp_Object,
 
 /* C 3045-3063.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_set_title (f: *mut frame, mut name: Lisp_Object,
+unsafe extern "C" fn android_set_title (f: *mut frame, mut name: Lisp_Object,
 			     old_name: Lisp_Object)
 {
   /* Don't change the title if it's already NAME.  */               // C 3049
@@ -3949,3 +3949,235 @@ unsafe fn android_set_title (f: *mut frame, mut name: Lisp_Object,
 
   android_set_name_internal (f, name);                             // C 3062
 }
+
+/* C 3064-3195: `android_set_alpha` (C 3065-3116), `android_set_no_focus_on_map` (C 3118-3128),
+   `android_set_no_accept_focus` (C 3130-3140) and C 3142-3195's `android_frame_parm_handlers[]`.
+   The next item is C 3201's `DEFUN ("android-query-battery")`.  */
+
+/* frame.h 479's `bool_bf no_focus_on_map : 1;` (A 2:9) sits under `#ifdef HAVE_WINDOW_SYSTEM` and
+   `include/frame.rs` 636-639 gates its two constants the same way, so this unit's gate set has no
+   constant at all: the write C 3126 makes is spelled with the measured number under C's own name,
+   so the copy retires itself when the mirror's gate matches (the `FRAME_OVERRIDE_REDIRECT_FLAG_SHIFT`
+   shape above).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+           not (feature = "have_window_system")))]
+const FRAME_NO_FOCUS_ON_MAP_SHIFT: u32 = 9;
+/// C: frame.h 1122: `#define FRAME_NO_FOCUS_ON_MAP(f) ((f)->no_focus_on_map)` - written at C 3126.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_NO_FOCUS_ON_MAP {
+  ($f:expr, $v:expr) => { set_frame_flag2! ($f, FRAME_NO_FOCUS_ON_MAP_SHIFT, $v) };
+}
+/// C: frame.h 1249: `#define FRAME_NO_ACCEPT_FOCUS(f) ((f)->no_accept_focus)` - written at C 3138.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_NO_ACCEPT_FOCUS {
+  ($f:expr) => { (*$f).bits1 >> FRAME_NO_ACCEPT_FOCUS_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_NO_ACCEPT_FOCUS_SHIFT, $v) };
+}
+
+/* C 3065-3116.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_set_alpha (f: *mut frame, mut arg: Lisp_Object, oldval: Lisp_Object)
+{
+  let mut alpha: f64 = 1.0;                                        // C 3068
+  /* C 3069 declares `double newval[2];` and C 3078 writes both elements before C 3108 reads
+     them; Rust cannot prove an indexed write, so the array starts zeroed (PORTING.md 1.5).  */
+  let mut newval: [f64; 2] = [0.0; 2];
+  let mut i: c_int;                                                // C 3070
+  let mut item: Lisp_Object;                                       // C 3071
+
+  /* N.B. that setting the window alpha is actually unsupported under
+     Android.  */                                                  // C 3073-3074
+
+  i = 0;                                                           // C 3076
+  while i < 2
+    {
+      newval[i as usize] = 1.0;                                    // C 3078
+      if CONSP (arg)                                               // C 3079
+	{
+	  item = CAR (arg);                                        // C 3081
+	  arg = CDR (arg);                                         // C 3082
+	}
+      else
+	{ item = arg; }                                            // C 3085
+
+      if NILP (item)                                               // C 3087
+	{ alpha = -1.0; }                                          // C 3088
+      else if FLOATP (item)                                        // C 3089
+	{
+	  alpha = XFLOAT_DATA (item);                              // C 3091
+	  if !(0.0 <= alpha && alpha <= 1.0)                       // C 3092
+	    { args_out_of_range (make_float (0.0), make_float (1.0)); }   // C 3093
+	}
+      else if FIXNUMP (item)                                       // C 3095
+	{
+	  let ialpha: EMACS_INT = XFIXNUM (item);                  // C 3097
+	  if !(0 <= ialpha && ialpha <= 100)                       // C 3098
+	    { args_out_of_range (make_fixnum (0), make_fixnum (100)); }   // C 3099
+	  alpha = ialpha as f64 / 100.0;                           // C 3100
+	}
+      else
+	{ wrong_type_argument (Qnumberp (), item); }               // C 3103
+      newval[i as usize] = alpha;                                  // C 3104
+      i += 1;
+    }
+
+  i = 0;                                                           // C 3107
+  while i < 2
+    {
+      (*f).alpha[i as usize] = newval[i as usize];                 // C 3108
+      i += 1;
+    }
+
+  if (*FRAME_TERMINAL! (f)).set_frame_alpha_hook.is_some ()         // C 3110
+    {
+      block_input ();                                              // C 3112
+      /* The mirror's hook takes `*mut c_void` where C's takes `struct frame *` (P-72 rule 3).  */
+      ((*FRAME_TERMINAL! (f)).set_frame_alpha_hook).unwrap () (f as *mut c_void);   // C 3113
+      unblock_input ();                                            // C 3114
+    }
+}
+
+/* C 3118-3128.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_set_no_focus_on_map (f: *mut frame, new_value: Lisp_Object,
+				       old_value: Lisp_Object)
+{
+  if !EQ (new_value, old_value)                                    // C 3122
+    {
+      android_set_dont_focus_on_map (FRAME_ANDROID_WINDOW! (f),     // C 3124
+				     !NILP (new_value));
+      FRAME_NO_FOCUS_ON_MAP! (f, !NILP (new_value));                // C 3126
+    }
+}
+
+/* C 3130-3140.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_set_no_accept_focus (f: *mut frame, new_value: Lisp_Object,
+				       old_value: Lisp_Object)
+{
+  if !EQ (new_value, old_value)                                    // C 3134
+    {
+      android_set_dont_accept_focus (FRAME_ANDROID_WINDOW! (f),     // C 3136
+				     !NILP (new_value));
+      FRAME_NO_ACCEPT_FOCUS! (f, !NILP (new_value));                // C 3138
+    }
+}
+
+/* C 3142-3195.  C's `frame_parm_handler` is dispextern.h 3063's typedef and the mirror keeps the
+   `redisplay_interface` member as `*mut c_void`, so the array spells the typedef's own body here
+   (the `haikufns.rs` 218-224 shape).  */
+/* C 3152-3194's table takes the *addresses* of the eighteen `android_set_*` setters, and the
+   element type is a C function pointer, so each of them is `unsafe extern "C" fn` rather than the
+   plain `unsafe fn` a `static` C helper usually becomes (the `do_unwind_create_frame` shape the
+   file's header names, and the `haikufns.rs` 2174 spelling for the same C table; C's own
+   `static`-ness changes nothing here, since the array is what keeps them alive).  */
+/// C: dispextern.h 3063: `typedef void (*frame_parm_handler) (struct frame *, Lisp_Object,`
+/// (dispextern.h 3064 continues `Lisp_Object);`)
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+type frame_parm_handler =
+  Option<unsafe extern "C" fn (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object)>;
+
+/// C: frame.h 1844-1871's `gui_set_*` family, the entries C 3144-3194's table uses.  They are
+/// `frame.c`'s definitions and `frame.h`'s prototypes; `include/frame.rs` does not carry the
+/// prototypes, so they are named here (the `haikufns.rs` 226-270 block).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: frame.h 1857/1858: `extern void gui_set_autoraise (struct frame *, Lisp_Object,
+  /// Lisp_Object);` / `gui_set_autolower (…)`
+  pub fn gui_set_autoraise (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_autolower (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1851: `extern void gui_set_border_width (struct frame *, Lisp_Object, Lisp_Object);`
+  pub fn gui_set_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1847: `extern void gui_set_font (struct frame *, Lisp_Object, Lisp_Object);`
+  pub fn gui_set_font (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1852/1854: `extern void gui_set_right_divider_width (struct frame *,
+  /// Lisp_Object, Lisp_Object);` / `gui_set_bottom_divider_width (…)`
+  pub fn gui_set_right_divider_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_bottom_divider_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1862/1863: `extern void gui_set_scroll_bar_width (struct frame *, Lisp_Object,
+  /// Lisp_Object);` / `gui_set_scroll_bar_height (…)`
+  pub fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1859-1861: `extern void gui_set_unsplittable (struct frame *, Lisp_Object,
+  /// Lisp_Object);` / `gui_set_vertical_scroll_bars (…)` / `gui_set_horizontal_scroll_bars (…)`
+  pub fn gui_set_unsplittable (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_horizontal_scroll_bars (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1856: `extern void gui_set_visibility (struct frame *, Lisp_Object, Lisp_Object);`
+  pub fn gui_set_visibility (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1844-1846: `extern void gui_set_fullscreen (struct frame *, Lisp_Object,
+  /// Lisp_Object);` / `gui_set_line_spacing (…)` / `gui_set_screen_gamma (…)`
+  pub fn gui_set_fullscreen (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_line_spacing (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_screen_gamma (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1849/1850: `extern void gui_set_left_fringe (struct frame *, Lisp_Object,
+  /// Lisp_Object);` / `gui_set_right_fringe (…)`
+  pub fn gui_set_left_fringe (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_right_fringe (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1848: `extern void gui_set_font_backend (struct frame *, Lisp_Object, Lisp_Object);`
+  pub fn gui_set_font_backend (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1871: `extern void gui_set_no_special_glyphs (struct frame *, Lisp_Object,
+  /// Lisp_Object);`
+  pub fn gui_set_no_special_glyphs (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1869: `extern void gui_set_borders_respect_alpha_background (struct frame *,
+  /// Lisp_Object, Lisp_Object);`
+  pub fn gui_set_borders_respect_alpha_background (f: *mut frame, arg: Lisp_Object,
+                                                   oldval: Lisp_Object);
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut android_frame_parm_handlers: [frame_parm_handler; 51] =
+  [
+    Some (gui_set_autoraise),                          // C 3144
+    Some (gui_set_autolower),                          // C 3145
+    Some (android_set_background_color),               // C 3146
+    Some (android_set_border_color),                   // C 3147
+    Some (gui_set_border_width),                       // C 3148
+    Some (android_set_cursor_color),                   // C 3149
+    Some (android_set_cursor_type),                    // C 3150
+    Some (gui_set_font),                               // C 3151
+    Some (android_set_foreground_color),               // C 3152
+    None,                                              // C 3153
+    None,                                              // C 3154
+    Some (android_set_child_frame_border_width),       // C 3155
+    Some (android_set_internal_border_width),          // C 3156
+    Some (gui_set_right_divider_width),                // C 3157
+    Some (gui_set_bottom_divider_width),               // C 3158
+    Some (android_set_menu_bar_lines),                 // C 3159
+    Some (android_set_mouse_color),                    // C 3160
+    Some (android_explicitly_set_name),                // C 3161
+    Some (gui_set_scroll_bar_width),                   // C 3162
+    Some (gui_set_scroll_bar_height),                  // C 3163
+    Some (android_set_title),                          // C 3164
+    Some (gui_set_unsplittable),                       // C 3165
+    Some (gui_set_vertical_scroll_bars),               // C 3166
+    Some (gui_set_horizontal_scroll_bars),             // C 3167
+    Some (gui_set_visibility),                         // C 3168
+    Some (android_set_tab_bar_lines),                  // C 3169
+    Some (android_set_tool_bar_lines),                 // C 3170
+    None,                                              // C 3171
+    None,                                              // C 3172
+    Some (gui_set_screen_gamma),                       // C 3173
+    Some (gui_set_line_spacing),                       // C 3174
+    Some (gui_set_left_fringe),                        // C 3175
+    Some (gui_set_right_fringe),                       // C 3176
+    None,                                              // C 3177
+    Some (gui_set_fullscreen),                         // C 3178
+    Some (gui_set_font_backend),                       // C 3179
+    Some (android_set_alpha),                          // C 3180
+    None,                                              // C 3181
+    Some (android_set_tool_bar_position),              // C 3182
+    None,                                              // C 3183
+    None,                                              // C 3184
+    Some (android_set_parent_frame),                   // C 3185
+    None,                                              // C 3186
+    Some (android_set_no_focus_on_map),                // C 3187
+    Some (android_set_no_accept_focus),                // C 3188
+    None,                                              // C 3189
+    None,                                              // C 3190
+    Some (gui_set_no_special_glyphs),                  // C 3191
+    None,                                              // C 3192
+    Some (gui_set_borders_respect_alpha_background),   // C 3193
+    None,                                              // C 3194
+  ];

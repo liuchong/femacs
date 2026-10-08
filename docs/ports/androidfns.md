@@ -11,8 +11,9 @@
 > 1705-1800** (2,332 Rust lines), **slice 5 = C 1801-1910** (2,447 Rust lines), **slice 6 = C
 > 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines), **slice 8 = C
 > 2295-2583** (3,313 Rust lines), **slice 9 = C 2584-2662** (3,416 Rust lines), **slice 10 = C
-> 2663-2832** (3,615 Rust lines), **slice 11 = C 2833-2972** (3,826 Rust lines) and **slice 12 = C
-> 2973-3063** (3,951 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 2663-2832** (3,615 Rust lines), **slice 11 = C 2833-2972** (3,826 Rust lines), **slice 12 = C
+> 2973-3063** (3,951 Rust lines) and **slice 13 = C 3064-3195** (4,183 Rust lines), both arms of
+> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -143,7 +144,11 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 2964-2972 | `struct mouse_cursor_data` (the two `mouse_cursor_max`-long arrays) | real arm |
 | 2973-3043 | `android_set_mouse_color` (C 2981 the aggregate initialiser, C 2992-2999 the shape loop, C 3003-3005 the cursor loop, C 3007-3013 the window arm, C 3015-3020 the `INSTALL_CURSOR` macro with C 3022-3036's fifteen calls, C 3040/3042 the tail) | real arm |
 | 3044-3063 | `android_set_title` (C 3050-3051 the early return, C 3053's `update_mode_lines`, C 3055 the title, C 3057-3060 the name) | real arm |
-| 3064-3797 | not ported: the file's remaining 734 lines (C 3065's `android_set_alpha` onward) | not ported |
+| 3064-3116 | `android_set_alpha` (C 3073-3074's "unsupported on Android" comment, C 3076-3105 the two-element parse, C 3107-3108 the writes, C 3110-3115 the terminal hook) | real arm |
+| 3117-3128 | `android_set_no_focus_on_map` (C 3122-3127) | real arm |
+| 3129-3140 | `android_set_no_accept_focus` (C 3134-3139) | real arm |
+| 3141-3195 | C 3142's `frame_parm_handler android_frame_parm_handlers[]` (C 3144-3194's fifty-one entries) | real arm |
+| 3196-3797 | not ported: the file's remaining 602 lines (C 3199's "Battery information support" comment and C 3201's `DEFUN ("android-query-battery")` onward) | not ported |
 
 ## Evidence
 
@@ -1115,5 +1120,81 @@ fifteen argument names), transcribed here with this file's line numbers.
 - **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
   compiles nothing from this file (P-86 ③⑵): no cursor was created, defined or freed, no title
   was set.
+- The six `E0609` rows of arm set A are not this slice's (four are slice 1's and two are slice
+  11's); this slice adds none.
+
+## Slice 13 (2026-10-08, status 4.074 - the integrator sets the round number): C 3064-3195
+
+**The slice's text.**  `android_set_alpha` (C 3065-3116), `android_set_no_focus_on_map`
+(C 3118-3128), `android_set_no_accept_focus` (C 3130-3140) and C 3142-3195's
+`android_frame_parm_handlers[]` - the file's frame-parameter handler table, fifty-one entries.
+Port line count **3,951 -> 4,183** (+232).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**  The
+first run read **23 errors**: seventeen `E0308` "expected `"C" fn`, found `Rust` fn" - every
+`Some (android_set_…)` entry of the new table - because the setters landed in slices 1 and 10-13
+are plain `unsafe fn` and the table's element type is a C function pointer.  The fix is the
+class the file's own header names (`do_unwind_create_frame`) and `haikufns.rs` 2174 spells for the
+same C table: **seventeen definitions become `unsafe extern "C" fn`** (C's `static`-ness changes
+nothing - the table is what keeps them alive), with the note above the type alias.  After that the
+reading is **exit 1, exactly 6 `E0609` rows** - the four slice-1 sites plus slice 11's two, i.e.
+**no new arm-A row**.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings**.  **Evidence
+③ - arm set C = A + `have_window_system`:** **exit 0, 0 errors, 13 warnings** (the same thirteen as
+arm B: this slice's text adds no warning either).
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **46 rows -> 43**: the three
+closed are **3 `missing function`** (6 -> 3: `android_set_alpha`, `android_set_no_focus_on_map`,
+`android_set_no_accept_focus`).  Two readings needed a table this round and both are recorded:
+- **`function android_set_alpha does not mention double`** - C 3068-3069 spell the two locals
+  `double`, and the port spells C's `double` as `f64` (PORTING.md 1.1), so the slice appends that
+  row to `docs/ports/macro-body-notes.tsv` (the `fixnum_float_cmp` row's exact rule).
+- **the drift row returned**, at `C 3797 vs Rust 4,183` (**10.2%**, over the 5% every file gets):
+  slice 10 had retired it by landing under the bound, and this slice's fifty-one-entry table plus
+  its twenty-prototype use-site block push the port back over.  The file's own tolerance row is
+  therefore appended to `docs/ports/line-drift-tolerance.tsv` (`androidfns`, `total`, measured
+  value plus headroom for the remaining 734 C lines, with the row stating that it will be
+  re-measured and can be tightened when the file closes - the `xterm.c` row's own wording for its
+  prediction).  **Note for the reader:** the row the `xfns.c` lane owns (`xfns\t0.41`) is keyed on
+  *that* file's stem; this file had never had one, which is why the drift was reportable at all.
+
+### Deviations (this slice)
+
+1. **Seventeen setters became `unsafe extern "C" fn`** (Evidence ①): the table takes their
+   addresses and the element type is a C function pointer.  This is the one change this slice
+   makes to text landed earlier; the ledger records it here because it is a real structural
+   change, not a spelling.
+2. **A file-local writer plus the complement-gated constant for `no_focus_on_map`**: frame.h 479's
+   flag (A 2:9) is under `HAVE_WINDOW_SYSTEM` in the mirror (636-639), so `FRAME_NO_FOCUS_ON_MAP!`
+   uses the measured number under C's own name and retires itself when the mirror's gate matches
+   (the `FRAME_OVERRIDE_REDIRECT_FLAG_SHIFT` shape).  `FRAME_NO_ACCEPT_FOCUS!` needs no copy:
+   `FRAME_NO_ACCEPT_FOCUS_SHIFT` has a frozen arm and the setter writes bits1 (the `frame.rs`
+   259-260 writer).
+3. **C 3069's `double newval[2]` starts zeroed** (PORTING.md 1.5): C 3078 writes both elements
+   before C 3108 reads them, and Rust cannot prove an indexed write.
+4. **C 3110-3113's hook call**: the mirror's `set_frame_alpha_hook` takes `*mut c_void` where C's
+   takes `struct frame *`, so the call casts (P-72 rule 3), and `.is_some ()`/`.unwrap ()` are the
+   port's reading of C's pointer test and call.
+5. **The table's element type is spelled locally** (`type frame_parm_handler = Option<unsafe
+   extern "C" fn (…)>`) with a twenty-prototype use-site block for the `gui_set_*` family (C
+   frame.h 1844-1871), the `haikufns.rs` 218-270 shape; the fifty-one entries keep C's order and
+   C's `NULL`s are `None`.
+
+### Owed (this slice's additions)
+
+- **`docs/ports/line-drift-tolerance.tsv`**: the `androidfns` row (Evidence ④) - the file's first,
+  appended after slice 10's retirement; it names the remaining 734 C lines as the reason it
+  carries headroom.
+- **`docs/ports/macro-body-notes.tsv`**: one row (`android_set_alpha` -> `double`).
+- **The file's remainder**: C 3196-3797 (602 lines) - the battery query and the four other
+  `DEFUN`s, the z-order/GC and colour helpers, the terminal hooks and `syms_of_androidfns`'s
+  registrations (the 35 unchanged `missing defsubr` rows).
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no alpha was set, no focus flag was written, and no
+  entry of the handler table has been called.
 - The six `E0609` rows of arm set A are not this slice's (four are slice 1's and two are slice
   11's); this slice adds none.
