@@ -427,7 +427,6 @@ order gives them, before the `_ => {}` C's switch has no `default` for, and C 25
 bare-SDK class; the two `x_display_info` fields the prologue reads exist only in the
 `have_xinput2` arms, which is why the frame's reading is +17 in sixteen arms and +15 in three.
 
-
   Slice 122 (C 22294-22336, Decision 134) lands the frame's first `XI_*` arm - `XI_FocusIn`: the
 `focusin` cast from `xi_event`, the `x_any_window_to_frame` lookup, GTK's conditionally-wrapped
 deiconify block (the four frame writes and `DEICONIFY_EVENT`) and the `xi_focus_handle_for_device`
