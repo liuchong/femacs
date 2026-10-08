@@ -6,13 +6,20 @@
 > 378 reads `HAIKU_OBJ = ` (empty), so `docs/baseline/frozen-build-sources.txt` lists no
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
-> readings and the `## Deviations`.  Port: `femacs/src/haikuterm.rs` (1,555 lines), which carries
-> **C 1-1044** - P-86 ④'s first slice of this file - with every `#if`'s arms both carried.
+> readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
+> `femacs/src/haikuterm.rs` (**1,815 lines**), which carries **C 1-1198** - P-86 ④'s first two
+> slices of this file - with every `#if`'s arms both carried.
 >
-> **Why 1044 and not 1000.**  C 1000 is inside `haiku_draw_text_decoration` (C 887-1044); the
-> nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past 1000) and the
-> previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044** and the next
-> first definition is `haiku_draw_string_box` (C 1046-1106).
+> **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
+> (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
+> 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 1198 and not 1200 (slice 2).**  C 1200 is `haiku_draw_image`'s `static void` and C 1198
+> the closing brace of the item before it, so the slice is **C 1045-1198** - the blank line C 1045
+> and the five items `haiku_draw_string_box` (C 1046-1106), `haiku_draw_plain_background`
+> (C 1108-1126), `haiku_get_bitmap_rec` (C 1128-1132), `haiku_update_bitmap_rec` (C 1134-1161)
+> and `haiku_draw_stipple_background` (C 1163-1198).  The next definition is `haiku_draw_image`
+> (C 1200).
 >
 > **The slice's own conditions.**  The file has five `#if`/`#ifdef` lines and
 > `tools/check-cond-eval.py src/haikuterm.c` reads it as `5 conditions, 0 unknown, 0
@@ -90,7 +97,8 @@ the pre-flight below sets it as well.
 | 807-845 | `haiku_draw_dash` | file gate |
 | 846-886 | `haiku_fill_underline` (C 861-884 the `switch`, C 872-877 the DOTS→DASHES fallthrough pair) | file gate |
 | 887-1044 | `haiku_draw_text_decoration` (C 901-1006 the underline arm, C 916-982 the previous-underline/`font` choice, C 985-988 the sanity checks, C 998-1004 the double underline, C 1008-1019 the overline arm, C 1021-1043 the strike-through arm) | file gate |
-| 1045-4898 | **the remainder of the file** (C 1046 `haiku_draw_string_box` onward; C 1330 the `GCC_LINT` arm, C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1045-1198 | `haiku_draw_string_box` (C 1046-1106; C 1054-1057 the `full_width_p`/`pseudo_window_p` choice, C 1058-1077 the last-glyph choice and C 1068-1074 the composition walk), `haiku_draw_plain_background` (C 1108-1126), `haiku_get_bitmap_rec` (C 1128-1132), `haiku_update_bitmap_rec` (C 1134-1161; C 1153 the stipple bit) and `haiku_draw_stipple_background` (C 1163-1198; C 1175 the `stipple` read) | file gate (slice 2) |
+| 1199-4898 | **the remainder of the file** (C 1200 `haiku_draw_image` onward; C 1330 the `GCC_LINT` arm, C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -287,14 +295,22 @@ mirror lines need), `cargo test`, `extract-abi --all`.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. `tools/check-port-lines.py --write-pending`: this file's ratchet row is now **stale**
-   (`src/haikuterm.c: no longer under the threshold`; Evidence ⑤).
-2. `docs/ports/line-drift-tolerance.tsv`: one row, `haikuterm`, tolerance >= 0.69, basis `total`,
-   with the slice's reason from Deviations 13.
-3. `docs/ports/macro-body-notes.tsv`: four rows - `haiku_fill_underline` →
-   `switch,case,default,break,fallthrough`, `haiku_focus_frame`/`haiku_new_focus_frame` → `1`,
-   `haiku_implicitly_set_name` → `0`, `haiku_draw_underwave` → `float` (or `c_float`) - with the
-   reasons from Deviations 8/9/11.
+1. `tools/check-port-lines.py --write-pending`: **discharged by the tree** - the ratchet list is
+   empty (`0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new, 0 stale`,
+   measured 2026-10-08), the rewrite having landed at status 3.574; this file's row (slice 1's
+   Evidence ⑤ read it as one of `90 ratchet row(s) ... 3 stale`) retired with it.  Nothing is
+   owed here.
+2. `docs/ports/line-drift-tolerance.tsv`: **discharged at slice 2** - the `haikuterm` row is
+   appended (`0.69`, basis `total`, with slice 2's measured 62.9% and the note that a half-ported
+   file's row is the placeholder the table's header describes, to be re-derived when C 4898 is
+   reached).
+3. `docs/ports/macro-body-notes.tsv`: **discharged** - the four rows of Deviations 8/9/11 landed
+   with slice 1's round (`haiku_fill_underline` → `switch,case,default,break,fallthrough`,
+   `haiku_focus_frame`/`haiku_new_focus_frame` → `1`, `haiku_implicitly_set_name` → `0`,
+   `haiku_draw_underwave` → `float`), and slice 2 added the two this file still owed:
+   `haiku_update_size_hints` → `tooltip` (C 143's member, spelled through the mirror's
+   `FRAME_TOOLTIP_P`) and `haiku_draw_stipple_background` → `face` (C 1175/1186/1187's member
+   path, spelled through the unit's `GS_FACE!`).
 4. `docs/ports/include-frame.md`'s own owed round is what this unit's flip measured:
    `include/frame.rs` carries neither `tooltip` nor the other window-system flag members'
    numbering (all its `FRAME_*_SHIFT`s are `#[cfg (not (feature = "have_window_system"))]`), nor
@@ -314,3 +330,128 @@ mirror lines need), `cargo test`, `extract-abi --all`.
 8. This ledger's remainder: C 1045-4898, whose first definition is `haiku_draw_string_box`
    (C 1046-1106); its conditions are C 1330's
    `#ifdef GCC_LINT`, C 4148's `#if 0`, C 4512's `ASSIGN_CURSOR` and C 4772/4895's `USE_BE_CAIRO`.
+
+
+## Slice 2 (2026-10-08, status 4.078 - the integrator sets the round number): C 1045-1198
+
+**The slice's text.**  The blank line C 1045, then the five items that follow
+`haiku_draw_text_decoration`: `haiku_draw_string_box` (C 1046-1106), `haiku_draw_plain_background`
+(C 1108-1126), `haiku_get_bitmap_rec` (C 1128-1132), `haiku_update_bitmap_rec` (C 1134-1161) and
+`haiku_draw_stipple_background` (C 1163-1198).  Port line count **1,555 -> 1,815** (+260; +226 of
+text as first written, +30 for the `face` layout and the two casts of Deviations 1/2, +4 for the
+zero-initialised pair of Deviations 1).  Five new unit-local names this slice declares, each with
+its precedent: the `glyph_u_cmp_bits!` accessor for C 1063-1074's `u.cmp` run (`pgtkterm.rs`
+2102-2111), the `window_bits! (pseudo_window_p, …)` arm for C 1055 (`xterm.rs` 8634-8643), and the
+`face_bits!` arms `box` (C 1081/1099, the `pgtkterm.rs` 1960 shape) and `background_defaulted_p`
+(C 1121).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`: `/tmp` pre-flight, P-86 ③).**  The arm
+set is the one slice 1 recorded and the only one this file has - `have_haiku` +
+`have_window_system`:
+
+    cd femacs && CARGO_TARGET_DIR=/tmp/haikuterm-lane cargo run -q -p xtask -- probe \
+      src/haikuterm.rs /tmp/haikuterm-lane/o.rlib --crate-type=lib -C panic=abort \
+      --cfg 'feature="have_haiku"' --cfg 'feature="have_window_system"'
+
+Three runs, and the difference between them is this slice's work:
+
+- **Run 1 (the slice's text as handed over): `exit 1`, `aborting due to 38 previous errors`.**
+  Five of the error-prefixed lines point into the unit's own text at three sites: `_root.rs`
+  1092:15/41 and 1098:15/41 (the `E0606`/`E0609` pair from `(*(*s).face as *mut face).box_color`
+  - `haiku_calculate_relief_colors`' C 631/637, slice 1's text) and 1764:57 (`no field stipple on
+  type face`, this slice's C 1175).  64 mirror rows are the two classes slice 1 recorded
+  (`eassert`/`XUNTAG` include-order, the window-system `E0080` layout assertions) plus the three
+  `FRAME_MOUSE_UPDATE`/`FRAME_COMPLETE_P` rows below.
+- **Run 2 (after the `face` layout repair, Deviation 1, and the two casts, Deviation 2):**
+  `exit 1`, the `E0606`/`E0609` rows gone, two `E0381` rows take their place - `used binding
+  foreground/background isn't initialized on any path` at C 1171's two locals (Deviation 1's third
+  part).
+- **Run 3 (final revision): `exit 1`, 4 primary errors among 35 error-prefixed lines, and every
+  one of the four is in a mirror - `include/haikuterm.rs` twice (`haiku_output_bit_set`'s `($v)
+  != 0` under `FRAME_COMPLETE_P`, a `bool`/integer mismatch slice 1's arm set also read),
+  `include/systime.rs` once (`E0080`: `!cfg! (feature = "have_haiku") || HAIKU`, the dead-arm
+  constant) and `include/frame.rs` once (`note_mouse_highlight` not in scope - the `FRAME_MOUSE_UPDATE`
+  body).  **The unit's own text has no primary error left, and none of the four belongs to this
+  slice.**  4 warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 68 rows -> 65.**  The three rows
+this slice closed are the two spelling rows (`haiku_update_size_hints` -> `tooltip`, slice 1's,
+and the new `haiku_draw_stipple_background` -> `face`) and the line-drift row; the 65 that remain
+are 64 `missing function` rows plus `missing macro ASSIGN_CURSOR`, every one of them inside the
+C 1199-4898 remainder.  The two closed rows are discharged in `docs/ports/macro-body-notes.tsv`
+with their reasons (Owed 3); the drift row is discharged in
+`docs/ports/line-drift-tolerance.tsv` with slice 2's measured 62.9% (Owed 2).
+
+**Evidence ③ - what the harness found in slice 1's text (all three repaired here).**
+
+- **The `face` record was the frozen arm's layout, not this configuration's** - `have_haiku`
+  implies `HAVE_WINDOW_SYSTEM`, and C 1175's own `s->face->stipple` is the proof (the member
+  exists only inside dispextern.h 1797-1811's `#ifdef HAVE_WINDOW_SYSTEM`).  The copy now carries
+  the `gc`/`stipple` pair under `feature = "have_window_system"` and every offset above `id` is
+  asserted as `<frozen> + FACE_WS_SHIFT` (`include/dispextern.rs` 2280-2283's spelling), with
+  `docs/baseline/face-layout.tsv`'s measured 296/8 for the window-system arms.  Without this,
+  C 1175 had no member to read.
+- **C 631/637's two member reads did not compile.**  `(*(*s).face as *mut face).box_color` parses
+  as `((*(*s).face) as *mut face).box_color` - unary `*` binds tighter than `as` - so the cast was
+  applied to a `c_void` place and the field access then landed on a raw pointer (the two
+  `E0606`/`E0609` rows).  The repair adds the inner parentheses
+  (`(*((*s).face as *mut face)).box_color`) and keeps the inline cast Deviation 5 requires, so C's
+  own `face` token survives the `--check` body comparison - no new `macro-body-notes` row is
+  needed for that function.
+- **C 1171's two colours needed PORTING.md 1.5's zero.**  C 1183 hands the callee their addresses,
+  so the port cannot prove they are written on that path (`E0381`); they are now `0`-initialised
+  and named, the same reading this file's C 1113 `cursor_color` took.
+
+**Evidence ④ - the conditions and the other gates.**  `tools/check-cond-eval.py src/haikuterm.c`
+is unchanged by this slice (`5 conditions, 0 unknown, 0 disagreements [VERIFIED]`; C 1045-1198
+spells no condition of its own).  The frozen configuration is **not** re-measured this slice:
+every item this slice adds carries the same `have_haiku` gate as slice 1's, so compiling it with
+the frozen feature set still produces the 336-byte empty object slice 1 measured twice, and the
+frozen object is named as such rather than claimed.
+
+### Deviations (this slice)
+
+1. **The `face` use-site copy gains the `HAVE_WINDOW_SYSTEM` pair** (this slice's only structural
+   change to text that was already committed, and the reason C 1175 can be written at all):
+   `gc` (`Emacs_GC *`'s Haiku arm, untyped - P-72 rule 3) and `stipple` (`ptrdiff_t`) after `id`,
+   with `FACE_WS_SHIFT` (`0`/`16`) making both arms' offsets assertions instead of one arm's
+   constants.  `docs/baseline/face-layout.tsv` measures 296/8 with `gc`@168, `stipple`@176,
+   `foreground`@184 for both window-system arms; the `ns_cocoa` row is the same sixteen bytes with
+   this record's Haiku spelling of `gc` (`ftcrfont.rs` 769-784's reading), which is why the pair's
+   *type* differs per arm while its *size* does not.  The three `E0381`-adjacent changes (the two
+   casts of C 631/637 and the two zeroed colours of C 1171) are recorded in Evidence ③.
+2. **C 1070-1074's `for (last_glyph = g++; COND; last_glyph = g++) ;`** is the init assignment
+   then a `while` whose body holds C's increment, both statements carrying C's line numbers; the
+   loop has no `continue`, so the two spellings agree on every path (the `w32fns.rs` 1524 shape
+   slice 1 used for C 916).
+3. **C 1153's stipple bit** is `((*bits.offset ((x / 8) as isize)) as c_uchar >> (x % 8)) & 1 != 0`,
+   C's own precedence written out (the `>>` before the `&`, the comparison last) and the `c_char`
+   load widened by C's `char` promotion rather than the port's choice.
+4. **The `haiku_bitmap_record` this slice walks is the mirror's** (`include/haikuterm.rs`:
+   `stipple_bits: *mut c_void`, `stipple_foreground`/`stipple_background: uint32_t`), so
+   `haiku_update_bitmap_rec` spells C 1146's `char *bits` as a `*mut c_void as *mut c_char` and
+   C 1152's `haiku_put_pixel (…, uint32_t)` as a `c_ulong` argument (the mirror's declaration takes
+   `c_ulong`; C's prototype is `uint32_t`, and the widening is the call's own).
+5. **`haiku_get_bitmap_rec`'s C `&FRAME_DISPLAY_INFO (f)->bitmaps[id - 1]`** is
+   `(*FRAME_DISPLAY_INFO! (f)).bitmaps.offset ((id - 1) as isize)`: the mirror types `bitmaps` as a
+   raw pointer, so C's subscript is an offset (the `alloc.rs` 464 shape).
+
+### Owed (this slice's additions)
+
+- **`tools/check-port-lines.py`**: discharged by the tree, not by this slice - Owed 1 above; the
+  reading at this round is `0 file(s) under ten percent ... 0 ratchet row(s), 0 new, 0 stale`.
+- **Nothing else for this slice**: both rows `--check` reported for it are discharged in the tables
+  named in Evidence ②, and the C-range table now carries the slice.
+
+### Not claimed (this slice)
+
+- **No runtime evidence, and none is possible here.**  There is no Haiku SDK and no Haiku toolchain
+  on this machine (Evidence ② of the file's own section), the frozen configuration compiles none of
+  this file, and this lane does not link: **no glyph string was drawn, no box or relief rectangle
+  was filled, no stipple bitmap was tiled, and no pixel was written.**  What is measured is the
+  arm's type-checking and the text/token gates.
+- The four mirror errors of Evidence ③(3) are **not this slice's** - two are slice 1's recorded
+  `FRAME_*` gaps and two are the mirror set's own (`systime.rs`'s `HAIKU`, `frame.rs`'s
+  `note_mouse_highlight`), all owned by the integrator's mirror round.
+- The file is **not closed**: C 1199-4898 remains (65 `--check` rows), and the line-drift row is a
+  half-ported file's placeholder, not a measurement of the finished density.

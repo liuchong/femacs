@@ -240,13 +240,39 @@ macro_rules! IMAGE_BACKGROUND_TRANSPARENT {
    (`sizeof` 280, align 8, `underline_color`@184, `foreground`@168, `background`@176,
    `overline_color`@192, `strike_through_color`@200, `box_color`@208, `underline_pixels_above_
    descent_line`@236, the 21 bit-field members in the 4-byte unit at 240); the bit members are the
-   masked accessors of PORTING.md 1.3/P-80, named after C's own members.  */
+   masked accessors of PORTING.md 1.3/P-80, named after C's own members.
+
+   **`HAVE_WINDOW_SYSTEM` is defined in this configuration, and C 1175 is the proof**: it reads
+   `s->face->stipple`, a member C declares only inside dispextern.h 1797-1811's
+   `#ifdef HAVE_WINDOW_SYSTEM` (with `gc` in front of it).  Slice 2's
+   `haiku_draw_stipple_background` fetches that id, so the copy carries both members and every
+   offset above `id` moves by the same sixteen bytes the mirror's `FACE_WS_SHIFT` names
+   (`include/dispextern.rs` 2280-2283): `docs/baseline/face-layout.tsv` measures `sizeof` 296,
+   align 8, `gc`@168, `stipple`@176 and `foreground`@184 for both window-system arms, and its
+   `ns_cocoa` arm is the same sixteen bytes with the record's Haiku `#else` spelling of `gc`
+   (`Emacs_GC *`, the `ftcrfont.rs` 769-784 reading).  The arm without the window system keeps
+   the 280-byte layout the frozen clang measured for the reference target, and both arms'
+   offsets stay asserted.  */
+#[cfg (feature = "have_haiku")]
+#[cfg (not (feature = "have_window_system"))]
+const FACE_WS_SHIFT: usize = 0;
+#[cfg (feature = "have_haiku")]
+#[cfg (feature = "have_window_system")]
+const FACE_WS_SHIFT: usize = 16;
+
 #[cfg (feature = "have_haiku")]
 #[repr(C)]
 pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
   pub id: c_int,
+  /* dispextern.h 1797-1811: the `#ifdef HAVE_WINDOW_SYSTEM` pair this configuration defines.
+     `gc`'s Haiku arm is C's `#else` (`Emacs_GC *gc;`), untyped here (P-72 rule 3) - the
+     `ftcrfont.rs` 776 spelling.  */
+  #[cfg (feature = "have_window_system")]
+  pub gc: *mut c_void,
+  #[cfg (feature = "have_window_system")]
+  pub stipple: ptrdiff_t,                   // C 1810 (measured 176)
   pub foreground: c_ulong,
   pub background: c_ulong,
   pub underline_color: c_ulong,
@@ -266,35 +292,39 @@ pub struct face
 }
 
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::size_of::<face> () == 280);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
 #[cfg (feature = "have_haiku")]
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
+#[cfg (all (feature = "have_haiku", feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
+#[cfg (all (feature = "have_haiku", feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, background) == 176);
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184);
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192);
+const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200);
+const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208);
+const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224);
+const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248);
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, next) == 256);
+const _: () = core::assert! (std::mem::offset_of! (face, next) == 256 + FACE_WS_SHIFT);
 #[cfg (feature = "have_haiku")]
-const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272);
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FACE_WS_SHIFT);
 
 /* The `ENUM_BF (face_box_type) box : 2` / `ENUM_BF (face_underline_type) underline : 3` members
    and the seventeen `bool_bf` members C declares at dispextern.h 1893-1935, in C's declaration
@@ -369,9 +399,16 @@ macro_rules! face_bits {
     { face_bit_p ($f, FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P) };
   (strike_through_color_defaulted_p, $f:expr, $v:expr) =>
     { face_bit_set ($f, FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P, $v) };
+  /* C 1121 reads `face->background_defaulted_p` (the flag next to the underline ones above).  */
+  (background_defaulted_p, $f:expr) => { face_bit_p ($f, FACE_BACKGROUND_DEFAULTED_P) };
+  (background_defaulted_p, $f:expr, $v:expr) =>
+    { face_bit_set ($f, FACE_BACKGROUND_DEFAULTED_P, $v) };
   (underline_at_descent_line_p, $f:expr) => { face_bit_p ($f, FACE_UNDERLINE_AT_DESCENT_LINE_P) };
   (underline_at_descent_line_p, $f:expr, $v:expr) =>
     { face_bit_set ($f, FACE_UNDERLINE_AT_DESCENT_LINE_P, $v) };
+  /* C 1081/1099 read `face->box`, the `ENUM_BF (face_box_type) box : 2` at dispextern.h 1893 -
+     the mask/shift above are this file's - and the arm is the `pgtkterm.rs` 1960 shape.  */
+  (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
 }
 
 #[cfg (feature = "have_haiku")]
@@ -1076,13 +1113,13 @@ unsafe fn haiku_calculate_relief_colors (s: *mut glyph_string, rgbout_w: *mut ui
   let mut di: *mut haiku_output;
 
   if face_bits! (use_box_color_for_shadows_p, ((*s).face as *mut face))
-    { rgbin = (*(*s).face as *mut face).box_color as uint32_t; }
+    { rgbin = (*((*s).face as *mut face)).box_color as uint32_t; }
   else if glyph_bits! (type, *(*s).first_glyph) == IMAGE_GLYPH
 	   && ! (*(*s).img).pixmap.is_null ()
 	   && IMAGE_BACKGROUND_TRANSPARENT! ((*s).img, (*s).f, 0 as Emacs_Pixmap) == 0
     { rgbin = IMAGE_BACKGROUND! ((*s).img, (*s).f, 0 as Emacs_Pixmap) as uint32_t; }
   else
-    { rgbin = (*(*s).face as *mut face).background as uint32_t; }
+    { rgbin = (*((*s).face as *mut face)).background as uint32_t; }
 
   di = FRAME_OUTPUT_DATA! ((*s).f) as *mut haiku_output;
 
@@ -1552,4 +1589,227 @@ unsafe fn haiku_draw_text_decoration (s: *mut glyph_string, face: *mut face,
       BView_FillRectangle (view, (*s).x, (glyph_y as c_ulong + dy) as c_int,
 			   (*s).width, h as c_int);
     }
+}
+
+/* C 1045-1198: `haiku_draw_string_box` (C 1046-1106), `haiku_draw_plain_background` (C 1108-1126),
+   `haiku_get_bitmap_rec` (C 1128-1132), `haiku_update_bitmap_rec` (C 1134-1161) and
+   `haiku_draw_stipple_background` (C 1163-1198).  The next item is C 1200's `haiku_draw_image`.
+   C 1063-1074 is the file's only reader of the `glyph.u.cmp` bitfield run, so its accessor is
+   declared below (the `pgtkterm.rs` 2102-2111 shape, whose comment cites the
+   `src/xterm.rs`/`src/w32term.rs` copies of the same macro).  */
+
+/* The one window bit this slice's text names (`w->pseudo_window_p`, C 1055).  `window.rs` has the
+   reader function `WINDOW_PSEUDO_P` and the shift constant; a unit-local `window_bits!` keeps C's
+   member name at the call site (the `src/xterm.rs` 8634-8643 shape).  */
+#[cfg (feature = "have_haiku")]
+macro_rules! window_bits {
+  (pseudo_window_p, $w:expr) => { ((*($w)).bits >> WINDOW_PSEUDO_WINDOW_P_SHIFT) & 1 != 0 };
+}
+
+/* C 597-598's `bool_bf automatic : 1; unsigned id : 31;` are the `glyph.u.cmp` members C 1064 and
+   C 1071 name; the constants are `include/dispextern.rs`'s.  */
+#[cfg (feature = "have_haiku")]
+macro_rules! glyph_u_cmp_bits {
+  (automatic, $g:expr) => { (((*$g).u.cmp.bits & GLYPH_U_CMP_AUTOMATIC) != 0) };
+  (id, $g:expr) => { (((*$g).u.cmp.bits & GLYPH_U_CMP_ID_SHIFT) as ptrdiff_t) };
+}
+
+/* C 1046-1106.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_string_box (s: *mut glyph_string)
+{
+  let mut hwidth: c_int;                                          // C 1049
+  let mut vwidth: c_int;
+  let mut left_x: c_int;
+  let mut right_x: c_int;
+  let mut top_y: c_int;
+  let mut bottom_y: c_int;
+  let mut last_x: c_int;
+  let mut raised_p: bool;                                         // C 1050
+  let mut left_p: bool;
+  let mut right_p: bool;
+  let mut last_glyph: *mut glyph;                                 // C 1051
+  let face: *mut face = GS_FACE! (s);                             // C 1052
+
+  last_x = if glyph_row_bits! (full_width_p, (*s).row)             // C 1054-1055
+             && ! window_bits! (pseudo_window_p, (*s).w)
+	   { WINDOW_RIGHT_EDGE_X! ((*s).w) }                      // C 1055
+	   else
+	   { window_box_right ((*s).w, (*s).area) };              // C 1056
+
+  /* The glyph that may have a right box line.  For static
+     compositions and images, the right-box flag is on the first glyph
+     of the glyph string; for other types it's on the last glyph.  */   // C 1058-1060
+  if !(*s).cmp.is_null () || !(*s).img.is_null ()                  // C 1061
+    { last_glyph = (*s).first_glyph; }                             // C 1062
+  else if glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH   // C 1063
+	   && glyph_u_cmp_bits! (automatic, (*s).first_glyph)      // C 1064
+    {
+      /* For automatic compositions, we need to look up the last glyph
+	 in the composition.  */                                  // C 1066-1067
+      let end: *mut glyph = (*((*s).row)).glyphs[(*s).area as usize]   // C 1068
+	.offset ((*((*s).row)).used[(*s).area as usize] as isize);
+      let mut g: *mut glyph = (*s).first_glyph;                    // C 1069
+      /* C 1070-1074's `for (last_glyph = g++; COND; last_glyph = g++) ;`: the increment is the
+	 assignment itself, so the port writes C's two statements at the end of the loop's body
+	 (the body is C's empty `;`).  */
+      last_glyph = g;                                              // C 1070 (`last_glyph = g++`)
+      g = g.offset (1);
+      while g < end && glyph_u_cmp_bits! (automatic, g)            // C 1071
+	    && glyph_u_cmp_bits! (id, g) == (*s).cmp_id             // C 1071
+	    && (*g).slice.cmp.to < (*s).cmp_to                       // C 1072
+	{
+	  last_glyph = g;                                           // C 1073 (`last_glyph = g++`)
+	  g = g.offset (1);
+	}
+    }
+  else
+    { last_glyph = (*s).first_glyph.offset ((*s).nchars as isize - 1); }   // C 1077
+
+  vwidth = eabs! ((*face).box_vertical_line_width);                 // C 1079
+  hwidth = eabs! ((*face).box_horizontal_line_width);               // C 1080
+  raised_p = face_bits! (box, face) == FACE_RAISED_BOX;             // C 1081
+  left_x = (*s).x;                                                  // C 1082
+  right_x = if glyph_row_bits! (full_width_p, (*s).row)             // C 1083
+	       && glyph_string_bits! (extends_to_end_of_line_p, (*s))
+	      { last_x - 1 }                                        // C 1084
+	      else
+	      { std::cmp::min (last_x, (*s).x + (*s).background_width) - 1 };   // C 1085
+
+  top_y = (*s).y;                                                   // C 1087
+  bottom_y = top_y + (*s).height - 1;                               // C 1088
+
+  left_p = glyph_bits! (left_box_line_p, (*(*s).first_glyph))       // C 1090
+	    || ((*s).hl == DRAW_MOUSE_FACE                         // C 1091
+		&& ((*s).prev.is_null ()                           // C 1092
+		    || (*(*s).prev).hl != (*s).hl));                // C 1093
+  right_p = glyph_bits! (right_box_line_p, (*last_glyph))           // C 1094
+	     || ((*s).hl == DRAW_MOUSE_FACE                        // C 1095
+		 && ((*s).next.is_null ()                          // C 1096
+		     || (*(*s).next).hl != (*s).hl));               // C 1097
+
+  if face_bits! (box, face) == FACE_SIMPLE_BOX                      // C 1099
+    { haiku_draw_box_rect (s, left_x, top_y, right_x, bottom_y, hwidth,   // C 1100-1101
+			   vwidth, left_p, right_p, std::ptr::null_mut ()); }
+  else
+    { haiku_draw_relief_rect (s, left_x, top_y, right_x, bottom_y, hwidth,   // C 1103-1104
+			      vwidth, raised_p, true, true, left_p, right_p,
+			      std::ptr::null_mut ()); }             // C 1105
+}
+
+/* C 1108-1126.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_plain_background (s: *mut glyph_string, face: *mut face,
+				       x: c_int, y: c_int, width: c_int, height: c_int)
+{
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);           // C 1112
+  /* C 1113 declares `cursor_color` with no initialiser and C 1117 passes its address, so the port
+     zero-initialises it (PORTING.md 1.5).  */
+  let mut cursor_color: c_ulong = 0;
+  let _ = &mut cursor_color;
+
+  if (*s).hl == DRAW_CURSOR                                         // C 1115
+    {
+      /* The mirror's declaration takes `*mut c_void` where C's takes `struct glyph_string *`
+	 (P-72 rule 3; the file's own 1391 call).  */
+      haiku_merge_cursor_foreground (s as *mut c_void, std::ptr::null_mut (),
+				     &raw mut cursor_color);   // C 1117
+      BView_SetHighColor (view, cursor_color as uint32_t);           // C 1118
+    }
+  else
+    { BView_SetHighColor (view, if face_bits! (background_defaulted_p, face)   // C 1121
+				{ FRAME_BACKGROUND_PIXEL ((*s).f) as uint32_t }   // C 1122
+				else { (*face).background as uint32_t }); }   // C 1123
+
+  BView_FillRectangle (view, x, y, width, height);                  // C 1125
+}
+
+/* C 1128-1132.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_get_bitmap_rec (f: *mut frame, id: ptrdiff_t) -> *mut haiku_bitmap_record
+{
+  /* C's `&FRAME_DISPLAY_INFO (f)->bitmaps[id - 1]`: the mirror types `bitmaps` as a raw
+     pointer, so the element address is an offset (the `alloc.rs` 464 shape).  */
+  return (*FRAME_DISPLAY_INFO! (f)).bitmaps.offset ((id - 1) as isize);   // C 1131
+}
+
+/* C 1134-1161.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_update_bitmap_rec (rec: *mut haiku_bitmap_record,
+				   new_foreground: uint32_t,
+				   new_background: uint32_t)
+{
+  let mut bits: *mut c_char;                                        // C 1139
+  let mut x: c_int;                                                 // C 1140
+  let mut y: c_int;
+  let mut bytes_per_line: c_int;
+
+  if new_foreground == (*rec).stipple_foreground                     // C 1142
+      && new_background == (*rec).stipple_background                 // C 1143
+    { return; }                                                     // C 1144
+
+  bits = (*rec).stipple_bits as *mut c_char;                        // C 1146
+  bytes_per_line = ((*rec).width + 7) / 8;                          // C 1147
+
+  y = 0;                                                            // C 1149
+  while y < (*rec).height
+    {
+      x = 0;                                                        // C 1151
+      while x < (*rec).width
+	{
+	  haiku_put_pixel ((*rec).img, x, y,                         // C 1152
+			   (if ((*bits.offset ((x / 8) as isize)) as c_uchar >> (x % 8)) & 1 != 0   // C 1153
+			    { new_foreground } else { new_background }) as c_ulong);
+	  x += 1;
+	}
+
+      bits = bits.offset (bytes_per_line as isize);                  // C 1156
+      y += 1;
+    }
+
+  (*rec).stipple_foreground = new_foreground;                        // C 1159
+  (*rec).stipple_background = new_background;                        // C 1160
+}
+
+/* C 1163-1198.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_stipple_background (s: *mut glyph_string, face: *mut face,
+					 x: c_int, y: c_int, width: c_int, height: c_int,
+					 explicit_colors_p: bool,
+					 explicit_background: uint32_t,
+					 explicit_foreground: uint32_t)
+{
+  let mut rec: *mut haiku_bitmap_record;                             // C 1170
+  /* C 1171 declares the two colours with no initialiser and C 1183 hands the callee their
+     addresses, so the port zero-initialises them (PORTING.md 1.5; the `cursor_color` reading of
+     this same file's C 1113).  */
+  let mut foreground: c_ulong = 0;                                  // C 1171
+  let mut background: c_ulong = 0;
+  let _ = (&mut foreground, &mut background);
+  let mut view: *mut c_void;
+
+  view = FRAME_HAIKU_DRAWABLE! ((*s).f);                             // C 1174
+  rec = haiku_get_bitmap_rec ((*s).f, (*(GS_FACE! (s))).stipple);   // C 1175
+
+  if explicit_colors_p                                             // C 1177
+    {
+      background = explicit_background as c_ulong;                  // C 1179
+      foreground = explicit_foreground as c_ulong;                  // C 1180
+    }
+  else if (*s).hl == DRAW_CURSOR                                    // C 1182
+    { haiku_merge_cursor_foreground (s as *mut c_void, &raw mut foreground, &raw mut background); }   // C 1183
+  else
+    {
+      foreground = (*(GS_FACE! (s))).foreground;                    // C 1186
+      background = (*(GS_FACE! (s))).background;                    // C 1187
+    }
+
+  haiku_update_bitmap_rec (rec, foreground as uint32_t, background as uint32_t);   // C 1190
+
+  BView_StartClip (view);                                          // C 1192
+  haiku_clip_to_string (s);                                        // C 1193
+  BView_ClipToRect (view, x, y, width, height);                    // C 1194
+  BView_DrawBitmapTiled (view, (*rec).img, 0, 0, -1, -1,           // C 1195-1196
+			 0, 0, x + width, y + height);
+  BView_EndClip (view);                                            // C 1197
 }
