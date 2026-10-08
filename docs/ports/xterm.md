@@ -594,6 +594,37 @@ have_xcb_shape_input_rects`.  Compiling that text for the first time also read t
 port's own making in `x_dnd_compute_toplevels` (`(*tem).bounding_rects.offset (0).width` needed one
 more dereference, two `xfree` calls needed their `*mut c_void`), and all twelve are fixed here.
 
+Slice 139 (C 25485-25557, Decision 151) closes the outer `default:` body: the
+`HAVE_XRANDR && !USE_GTK` block (the Randr event test, `XRRUpdateConfiguration`, the
+`XRRScreenChangeNotifyEvent` screen-dimension copy, the `MONITORS_CHANGED_EVENT` build with
+`XSETTERMINAL` and the two `last_monitor_attributes_list` comparisons, and the `goto OTHER` when an
+event is already queued) and the `HAVE_XFIXES` block (`x_handle_selection_monitor_event` and
+C 25556's forced `X_EVENT_DROP`).  With that, every C range of `handle_one_xevent` **except one** is
+transcribed: the switch's first `case`, `ClientMessage` (C 18951-19472, the 522-line XDND/Motif
+state machine Decision 122 named as a slice of its own), is still unwritten - and it is exactly the
+vocabulary `--check`'s long row lists (`x_handle_dnd_message`, `new_x`/`new_y`,
+`x_kill_gs_process`, the `xatom_*`/`x_dnd_*`/`xm_drag_*` families), which is why
+`extract-abi.py --all` keeps reading this file as the one **WIP** (2 differences) and its ledger
+box stays unticked.
+
+Slice 140 (C 18951-19147, Decision 152) starts `ClientMessage` - the switch's first arm and the
+XDND/Motif state machine Decision 151 identified as the file's one missing C range - with its first
+three blocks: the `XdndStatus` handler (the mouse-rectangle decode, the action update, the pending
+`XdndPosition` resend and the pending drop), `XdndFinished`, and the
+`MOTIF_DRAG_AND_DROP_MESSAGE` reply (the Motif side-effects decode, the two rejections and the
+action-symbol switch).  `--check`'s long token list drops **69 -> 34** with it, and the six
+spellings the first reading corrected are recorded in the Decision.
+
+Slice 141 (C 19149-19341, Decision 153) lands the rest of `ClientMessage`'s `wm_protocols` heart:
+the `Xatom_EMACS_TMP` hourglass message, `WM_TAKE_FOCUS` (with the port's first `have_x_i18n` arm
+inside this switch - `XSetICFocus` - and C 19173-19204's `#if false` carried as C's own text in a
+comment), `WM_SAVE_YOURSELF` (whose `#ifdef HAVE_X_SM` guard becomes a computed value),
+`WM_DELETE_WINDOW` (the `DELETE_WINDOW_EVENT` build and the `goto OTHER` for an unknown frame),
+`_NET_WM_PING` (the loop-breaking resend to the root window) and the `have_xsync`-gated XSync
+request block with its `have_gtk3` / non-GTK3 arms.  Two arms join the lane to read that last one
+(**`AXY` = `A + have_xsync`**, **`AXYG` = `AXY + use_gtk + have_gtk3`**), and `--check`'s long token
+list drops **34 -> 21**.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6567,19 +6598,6 @@ expected direction once the file starts carrying records the X11 headers would s
   repaired by this block.  The next slice takes C 25485 onwards (the `HAVE_XRANDR && !USE_GTK`
   block).
 
-Slice 139 (C 25485-25557, Decision 151) closes the outer `default:` body: the
-`HAVE_XRANDR && !USE_GTK` block (the Randr event test, `XRRUpdateConfiguration`, the
-`XRRScreenChangeNotifyEvent` screen-dimension copy, the `MONITORS_CHANGED_EVENT` build with
-`XSETTERMINAL` and the two `last_monitor_attributes_list` comparisons, and the `goto OTHER` when an
-event is already queued) and the `HAVE_XFIXES` block (`x_handle_selection_monitor_event` and
-C 25556's forced `X_EVENT_DROP`).  With that, every C range of `handle_one_xevent` **except one** is
-transcribed: the switch's first `case`, `ClientMessage` (C 18951-19472, the 522-line XDND/Motif
-state machine Decision 122 named as a slice of its own), is still unwritten - and it is exactly the
-vocabulary `--check`'s long row lists (`x_handle_dnd_message`, `new_x`/`new_y`,
-`x_kill_gs_process`, the `xatom_*`/`x_dnd_*`/`xm_drag_*` families), which is why
-`extract-abi.py --all` keeps reading this file as the one **WIP** (2 differences) and its ledger
-box stays unticked.
-
 ### 151. Slice 139 (C 25485-25557): the `HAVE_XRANDR` and `HAVE_XFIXES` blocks - and what `--check` still names is the arm that is missing
 
 * **What it lands.**  The `default:` body's last two blocks: C 25485-25546's
@@ -6618,14 +6636,6 @@ box stays unticked.
   Randr event was classified, no monitor list was compared and no XFixes selection notification was
   dropped.  The next slice is `ClientMessage` itself (C 18951-19472), which is what closes both the
   function and the file.
-
-Slice 140 (C 18951-19147, Decision 152) starts `ClientMessage` - the switch's first arm and the
-XDND/Motif state machine Decision 151 identified as the file's one missing C range - with its first
-three blocks: the `XdndStatus` handler (the mouse-rectangle decode, the action update, the pending
-`XdndPosition` resend and the pending drop), `XdndFinished`, and the
-`MOTIF_DRAG_AND_DROP_MESSAGE` reply (the Motif side-effects decode, the two rejections and the
-action-symbol switch).  `--check`'s long token list drops **69 -> 34** with it, and the six
-spellings the first reading corrected are recorded in the Decision.
 
 ### 152. Slice 140 (C 18951-19147): `ClientMessage` starts - `XdndStatus`, `XdndFinished` and the Motif reply
 
@@ -6666,6 +6676,44 @@ spellings the first reading corrected are recorded in the Decision.
   XdndStatus was decoded, no position was resent and no Motif reply was read.  The arm's remaining
   blocks (C 19149-19472) are owed; the slices that land them go above this slice's owed-note line,
   the way slices 137-139 grew the `default:` body.
+
+### 153. Slice 141 (C 19149-19341): `wm_protocols` - and the five spellings the reading corrected
+
+* **What it lands.**  C 19149-19341: the `Xatom_EMACS_TMP` hourglass message (C 19149-19157, the
+  `hourglass_p` write), and the four `wm_protocols` messages - `WM_TAKE_FOCUS` (C 19162-19216: the
+  `have_x_i18n` `XSetICFocus` pair, the `#if false` block, and the `x_display_set_last_user_time`
+  call with C's own `& 0xffffffff`), `WM_SAVE_YOURSELF` (C 19218-19246, the two `XSetCommand` calls
+  with `initial_argv`/`initial_argc`), `WM_DELETE_WINDOW` (C 19248-19260, the
+  `DELETE_WINDOW_EVENT` build and C 19254's `goto OTHER`), and `_NET_WM_PING` (C 19263-19285, the
+  `x_dnd_in_progress` guard and the `SubstructureRedirectMask | SubstructureNotifyMask` resend) -
+  plus C 19287-19339's `#if defined HAVE_XSYNC` request block with its `#ifndef HAVE_GTK3` and
+  `#else` arms.
+* **Two new arms.**  Nothing in this lane had ever turned `have_xsync` on, and the sync block is the
+  first text that needs it: `AXY` = `A + have_xsync` reads the non-GTK3 arm and `AXYG` =
+  `AXY + use_gtk + have_gtk3` the GTK one.  (The file's `x_sync_*` family is gated on the
+  `have_xsync + not use_gtk + have_clock_gettime` triple, so `AXY` does not reach it.)
+* **C's `#if false` is carried as C's own text in a comment** (C 19173-19204): the 5557 precedent,
+  with `tools/cinventory.py`'s dead-branch map marking every line of it `False`.  Its own nested
+  `/* … */` comments sit inside the wrapper, which Rust's block comments nest through.
+* **Five spellings the first reading corrected, all in this slice's own text**: the four `if`
+  conditions whose C closing paren lands on the continuation line needed the cast's own paren
+  (`if ((*event).xclient.message_type == …`, C 19149, C 19159, C 19263, C 19288 - the last one also
+  needed C 19290's `)` back); C 19236/19240's two unbraced `XSetCommand` bodies needed braces; and
+  the port's own `#[cfg (feature = "have_xsync")] { … }` wrapper needed one more `}` than C's
+  brace-less `#ifdef` (C 19336's `}` closes the request `if`, not the wrapper).  `rustfmt --check`
+  caught each one as a delimiter error before any measurement ran.
+* **What `--check` reads.**  Two rows, and the long one's token list drops **34 -> 21**: the 15
+  remaining names all live in C 19342-19472 (`msg`, `new_x`/`new_y`, `pixmap`,
+  `x_coords_from_dnd_message`, `x_handle_dnd_message`, `x_kill_gs_process`, `xatom_done`,
+  `xatom_page`, `xatom_wm_configure_denied`, `xatom_wm_window_moved`, `xatom_xembed`,
+  `xembed_focus_in`/`out`, `x_event_goto_out`) and the other six are C's own
+  `case`/`default`/`goto`/`fallthrough`/`done`/`done_keysym`.  The unit is **39,150 lines** (+202),
+  md5 `e701c90221ffbb6c087aa1ad93460626`.
+* **Not claimed.**  No runtime evidence: the frozen configuration compiles none of this file, so no
+  WM protocol message was decoded, no focus was taken and no XSync counter was written.  C
+  19342-19472 - the `wm_configure_denied`/`wm_window_moved` pair, `X_TOOLKIT_EDITRES`, `DONE`/`PAGE`,
+  the two scroll-bar messages, `XEMBED` and the XSync counters (where `rc`'s uses live) - is the
+  arm's last C range and the next slice's work.
 
 ## Evidence
 
@@ -7875,7 +7923,7 @@ and no display was opened; the remaining `E0425` rows are unresolved names, not 
 ## Owed by the integrator (nothing here is claimed as done)
 
 **6. `handle_one_xevent`'s first `case`, `ClientMessage` (C 18951-19472): C 18951-19147 landed in
-slice 140 (Decision 152), the rest is owed.**  Slice 139 closed the
+slice 140 (Decision 152) and C 19149-19341 in slice 141 (Decision 153); C 19342-19472 is owed.**  Slice 139 closed the
 outer `default:` body, and the one C range of the function still unwritten is this 522-line
 XDND/Motif state machine (Decision 122 recorded it as a slice of its own).  It is the whole of
 `--check`'s long row - `x_handle_dnd_message`, `new_x`/`new_y`, `x_kill_gs_process`, the
@@ -13284,3 +13332,34 @@ the blocks still owed below C 19147 plus the C-only words (`case`, `default`, `g
 
 **Not claimed**: no runtime evidence; the readings are the two arm compiles (both sides), the
 per-arm message diff and `--check`'s two rows with its token list (69 -> 34).
+
+### Slice 141's readings (C 19149-19341), as landed and measured (2026-10-08)
+
+The `wm_protocols` heart, read by four arms: the plain one, `AIUX` (the `have_x_i18n` pair) and the
+two new ones for the sync block - `AXY` = `A + have_xsync` and `AXYG` = `AXY + use_gtk +
+have_gtk3`.
+
+| arm | baseline | slice 141 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1191 / 84 | **1213 / 88** | **+22 / +4** |
+| AIUX `A +have_x_i18n +use_gtk +have_xinput2` | 1492 / 89 | **1515 / 93** | **+23 / +4** |
+| AXY `A +have_xsync` (new) | 1214 / 84 | **1249 / 89** | **+35 / +5** |
+| AXYG `AXY +use_gtk +have_gtk3` (new) | 1303 / 84 | **1335 / 89** | **+32 / +5** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`711fe281`, slice 140).
+
+| grew | of which |
+| --- | --- |
+| the error rows | `no field xclient` on the `XEvent` stand-in (the great majority - every message read in this block), `no field hourglass_p` / `sync_end_pending_p` / `ext_sync_end_pending_p` / `xg_sync_end_pending_p` on `x_output`, and the owed entry points: `XSendEvent`, `XSetCommand` x2, `XSetICFocus` (AIUX only), `XSyncIntsToValue` x2 (the AXY arms), `gdk_x11_window_set_frame_sync_enabled`, `gdk_window_get_frame_clock`, `gdk_frame_clock_request_phase`, the value `GDK_FRAME_CLOCK_PHASE_BEFORE_PAINT` and the type `GdkFrameClock` (AXYG only) |
+| the warning rows | `unnecessary parentheses around \`if\` condition` x3-4 and `unnecessary parentheses around function argument` x1 - all six are C's own grouping (the added cast parens of the four `if`s, and C 19212's `((… & 0xffffffff))`), kept by the file's `xrealloc` precedent |
+
+**Every row is a registered class**: the `XEvent` members and the `x_output` members are the owed
+member classes the ledger has carried since slices 106 and 133, and the entry points are owed Xlib /
+GTK names this unit has no declaration for (`XSetICFocus`, `XSetCommand`, `XSyncIntsToValue`, the
+three GDK ones and the GDK phase value).  Nothing shrank.
+
+**The token list reads the landing**: `--check`'s long row drops **34 -> 21**, and every remaining
+name but six C keywords lives in C 19342-19472.
+
+**Not claimed**: no runtime evidence; the readings are the four arm compiles (both sides), the
+per-arm message diff and `--check`'s two rows with its token list (34 -> 21).

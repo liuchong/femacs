@@ -31614,10 +31614,212 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			      break 'other;                                           // C 19145 (`goto done`)
 			    }
 			  }
-			/* C 19149-19472's blocks are still owed - the `Xatom_EMACS_TMP` head, `wm_protocols`, the
-			   `wm_configure_denied`/`wm_window_moved` pair, `X_TOOLKIT_EDITRES`, `DONE`/`PAGE`, the two
-			   scroll-bar messages, `XEMBED` and the XSync counters - and the next slices land them above
-			   this line, the way slices 137-139 grew the `default:` body.  */
+		      /* C 19149-19341: the `Xatom_EMACS_TMP` hourglass message and the whole `Xatom_wm_protocols`
+		         block (`WM_TAKE_FOCUS`, `WM_SAVE_YOURSELF`, `WM_DELETE_WINDOW`, `_NET_WM_PING` and the
+		         XSync request).  */
+		      if ((*event).xclient.message_type == (*dpyinfo).Xatom_EMACS_TMP // C 19149
+			&& (*event).xclient.format == 8)                              // C 19150
+			{
+			  /* "This is actually an hourglass message.  Set whether or not events from here on have
+			     the hourglass enabled."  */
+
+			  if !any.is_null ()                                          // C 19155
+			    { (*(FRAME_X_OUTPUT! (any) as *mut x_output)).hourglass_p = (*event).xclient.data.b[0]; } // C 19156
+			}
+
+			if ((*event).xclient.message_type == (*dpyinfo).Xatom_wm_protocols // C 19159
+			  && (*event).xclient.format == 32)                           // C 19160
+			  {
+			    if (*event).xclient.data.l[0] == (*dpyinfo).Xatom_wm_take_focus // C 19162
+			    {
+			      /* "Use the value returned by x_any_window_to_frame because this could be the shell widget
+			         window if the frame has no title bar."  */
+			      f = any;                                                // C 19167
+#[cfg (feature = "have_x_i18n")]
+			      {
+			        /* "Not quite sure this is needed -pd"  */
+			        if !f.is_null () && !FRAME_XIC! (f).is_null ()        // C 19170
+			          { XSetICFocus (FRAME_XIC! (f)); }                   // C 19171
+			      }
+      /* C 19173-19204's `#if false`: dead text in every configuration, carried as C's own text
+	 inside a comment (this file's 5557 precedent, and `tools/cinventory.py`'s dead-branch map
+	 marks every line of it `False`).  */
+      /*
+	 #if false
+      /* Emacs sets WM hints whose `input' field is `true'.  This
+	 instructs the WM to set the input focus automatically for
+	 Emacs with a call to XSetInputFocus.  Setting WM_TAKE_FOCUS
+	 tells the WM to send us a ClientMessage WM_TAKE_FOCUS after
+	 it has set the focus.  So, XSetInputFocus below is not
+	 needed.
+
+	 The call to XSetInputFocus below has also caused trouble.  In
+	 cases where the XSetInputFocus done by the WM and the one
+	 below are temporally close (on a fast machine), the call
+	 below can generate additional FocusIn events which confuse
+	 Emacs.  */
+
+	       /* Since we set WM_TAKE_FOCUS, we must call
+		  XSetInputFocus explicitly.  But not if f is null,
+		  since that might be an event for a deleted frame.  */
+	       if (f)
+		 {
+		   Display *d = event->xclient.display;
+		   /* Catch and ignore errors, in case window has been
+		      iconified by a window manager such as GWM.  */
+		   x_catch_errors (d);
+		   XSetInputFocus (d, event->xclient.window,
+				   /* The ICCCM says this is
+				      the only valid choice.  */
+				   RevertToParent,
+				   event->xclient.data.l[1]);
+		   x_uncatch_errors ();
+		 }
+	       /* Not certain about handling scroll bars here */
+	 #endif
+      */
+			      /* "Set the provided time as the user time, which is required for SetInputFocus to work
+			         correctly after taking the input focus."  */
+			      /* "Time can be sign extended if retrieved from a client message.  Make sure it is always
+			         32 bits, or systems with 64-bit longs will crash after 24 days of X server uptime.
+			         (bug#59480)"  */
+			      x_display_set_last_user_time (dpyinfo, ((*event).xclient.data.l[1] // C 19212-19214
+			        & 0xffffffff),
+			        true, true);
+			      break 'other;                                           // C 19215 (`goto done`)
+			    }
+
+			    if (*event).xclient.data.l[0] == (*dpyinfo).Xatom_wm_save_yourself // C 19218
+			    {
+			      /* "Save state modify the WM_COMMAND property to something which can reinstate us.  This
+			         notifies the session manager, who's looking for such a PropertyNotify.  Can restart
+			         processing when a keyboard or mouse event arrives."  */
+			      /* "If we have a session manager, don't set this.  KDE will then start two Emacsen, one for
+			         the session manager and one for this."  */
+			      /* C 19228-19230's `#ifdef HAVE_X_SM` guard becomes a computed value (Decision 2 item 2's
+			         shape).  */
+#[cfg (feature = "have_x_sm")]
+			      let no_session_manager = !x_session_have_connection ();
+#[cfg (not (feature = "have_x_sm"))]
+			      let no_session_manager = true;
+
+			      if no_session_manager
+			      {
+			        f = x_top_window_to_frame (dpyinfo,                   // C 19232-19233
+			          (*event).xclient.window);
+			        /* "This is just so we only give real data once for a single Emacs process."  */
+			        if f == SELECTED_FRAME ()                             // C 19236
+			          { XSetCommand (FRAME_X_DISPLAY! (f),                // C 19237-19239
+			            (*event).xclient.window,
+			            initial_argv, initial_argc); }
+			        else if !f.is_null ()                                 // C 19240
+			          { XSetCommand (FRAME_X_DISPLAY! (f),                // C 19241-19243
+			            (*event).xclient.window,
+			            0, 0); }
+			      }
+			      break 'other;                                           // C 19245 (`goto done`)
+			    }
+
+			    if (*event).xclient.data.l[0] == (*dpyinfo).Xatom_wm_delete_window // C 19248
+			    {
+			      f = x_top_window_to_frame (dpyinfo,                     // C 19250-19251
+			        (*event).xclient.window);
+
+			      if f.is_null ()                                         // C 19253
+			        { break 'switch; }                                    // C 19254 (`goto OTHER`)
+
+			      input_event_bits! (kind, &raw mut inev.ie, DELETE_WINDOW_EVENT); // C 19256
+			      inev.ie.timestamp = (*event).xclient.data.l[1];         // C 19257
+			      XSETFRAME! (inev.ie.frame_or_window, f);                // C 19258
+			      break 'other;                                           // C 19259 (`goto done`)
+			    }
+
+			    if ((*event).xclient.data.l[0] == (*dpyinfo).Xatom_net_wm_ping // C 19263
+			      /* "Handling window stacking changes during drag-and-drop requires Emacs to select for
+			         SubstructureNotifyMask, which in turn causes the message to be sent to Emacs itself
+			         using the event mask specified by the EWMH.  To avoid an infinite loop, make sure the
+			         client message's window is not the root window if DND is in progress."  */
+			      && (!(x_dnd_in_progress                                 // C 19271
+			        || x_dnd_waiting_for_finish)                          // C 19272
+			      || (*event).xclient.window != (*dpyinfo).root_window)   // C 19273
+			      && (*event).xclient.format == 32)                       // C 19274
+			      {
+			        let mut send_event: XEvent = *event;                  // C 19276
+
+			        send_event.xclient.window = (*dpyinfo).root_window;   // C 19278
+			        XSendEvent ((*dpyinfo).display, (*dpyinfo).root_window, False, // C 19279-19281
+			          SubstructureRedirectMask | SubstructureNotifyMask,
+			          &raw mut send_event);
+
+			        *finish = X_EVENT_DROP;                               // C 19283
+			        break 'other;                                         // C 19284 (`goto done`)
+			      }
+
+			    /* C 19287-19337's `#if defined HAVE_XSYNC`; the lane has no `have_xsync` arm yet, so this
+			       block is text until one lands (Decision 153).  */
+#[cfg (feature = "have_xsync")]
+			    {
+			      if ((*event).xclient.data.l[0] == (*dpyinfo).Xatom_net_wm_sync_request // C 19288
+			        && (*event).xclient.format == 32                      // C 19289
+			        && (*dpyinfo).xsync_supported_p)                      // C 19290
+			        {
+			          let f: *mut frame                                   // C 19292-19294
+			            = x_top_window_to_frame (dpyinfo,
+			              (*event).xclient.window);
+			          if !f.is_null ()                                    // C 19295
+			          {
+			          /* C 19297-19333's `#ifndef HAVE_GTK3` and its `#else`.  */
+#[cfg (not (feature = "have_gtk3"))]
+			          {
+			            if (*event).xclient.data.l[4] == 0                // C 19298
+			            {
+			              XSyncIntsToValue (&raw mut (*(FRAME_X_OUTPUT! (f) as *mut x_output)).pending_basic_counter_value, // C 19300-19301
+			                (*event).xclient.data.l[2], (*event).xclient.data.l[3]);
+			              (*(FRAME_X_OUTPUT! (f) as *mut x_output)).sync_end_pending_p = true; // C 19302
+			            }
+			            else if (*event).xclient.data.l[4] == 1           // C 19304
+			            {
+			              XSyncIntsToValue (&raw mut (*(FRAME_X_OUTPUT! (f) as *mut x_output)).resize_counter_value, // C 19306-19308
+			                (*event).xclient.data.l[2],
+			                (*event).xclient.data.l[3]);
+
+			              (*(FRAME_X_OUTPUT! (f) as *mut x_output)).ext_sync_end_pending_p = true; // C 19310
+			            }
+
+			            *finish = X_EVENT_DROP;                           // C 19313
+			          }
+#[cfg (feature = "have_gtk3")]
+			          {
+			            let widget: *mut GtkWidget = FRAME_GTK_OUTER_WIDGET! (f); // C 19315
+			            let window: *mut GdkWindow = gtk_widget_get_window (widget); // C 19316
+			            eassert! (!window.is_null ());                    // C 19317
+
+			            /* "This could be a (former) child frame for which frame synchronization was disabled.
+			               Enable it now."  */
+			            gdk_x11_window_set_frame_sync_enabled (window, TRUE); // C 19322
+
+			            if !widget.is_null () && !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).xg_sync_end_pending_p // C 19324
+			            {
+			              let frame_clock: *mut GdkFrameClock = gdk_window_get_frame_clock (window); // C 19326
+			              eassert! (!frame_clock.is_null ());             // C 19327
+
+			              gdk_frame_clock_request_phase (frame_clock,     // C 19329-19330
+			                GDK_FRAME_CLOCK_PHASE_BEFORE_PAINT);
+			              (*(FRAME_X_OUTPUT! (f) as *mut x_output)).xg_sync_end_pending_p = true; // C 19331
+			            }
+			          }
+			          break 'other;                                       // C 19334 (`goto done`)
+			          }
+			    }
+
+			  }
+			    break 'other;                                             // C 19339 (`goto done`)
+			  }
+
+			/* C 19342-19472's blocks are still owed - the `wm_configure_denied`/`wm_window_moved` pair,
+			   `X_TOOLKIT_EDITRES`, `DONE`/`PAGE`, the two scroll-bar messages, `XEMBED` and the XSync
+			   counters - and the next slice lands them above this line, the way slices 137-140 grew this
+			   arm's earlier blocks.  */
 		    }
 
 		  /* C 19473-19486: `case SelectionNotify:`.  The toolkit and GTK arms look the event's
