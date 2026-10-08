@@ -1992,3 +1992,234 @@ DEFUN! ("android-display-monitor-attributes-list", Fandroid_display_monitor_attr
   return android_make_monitor_attribute_list (&raw mut monitor, 1, 0);  // C 1487
   }
 });
+
+/* C 1490-1704: `frame_geometry` under C 1491's `#ifndef ANDROID_STUBIFY` (C 1491-1624) and the two
+   `DEFUN`s that call it - `Fandroid_frame_geometry` (C 1626-1675) and `Fandroid_frame_edges`
+   (C 1677-1704).  The last two carry C's pair in C's own order, which for `Fandroid_frame_edges`
+   is the **real arm first** (C 1696's `#ifndef ANDROID_STUBIFY`, C 1701's `#else`).  */
+
+/* One use-site declaration (P-72 rule 4): `decode_live_frame`'s C home is frame.h 1476 and no
+   mirror in this unit's include graph carries it (`include/frame.rs` has no such row; `buffer.rs`
+   92 keeps its own copy inside an `extern` block), so the unit declares it under C's name.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);`
+  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+}
+
+/* C 1491's `#ifndef ANDROID_STUBIFY` around the file's first static helper of the frame-geometry
+   family; the `#endif` is C 1624.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn frame_geometry (frame: Lisp_Object, attribute: Lisp_Object) -> Lisp_Object
+{                                                              // C 1493-1622
+  let f: *mut frame = decode_live_frame (frame);                  // C 1496
+  /* C 1497-1498 declare these three with no initialiser and C 1515 fills them through out
+     parameters, so the port zero-initialises them (PORTING.md 1.5).  */
+  let mut rootw: android_window = 0;                              // C 1497
+  let mut native_width: c_uint = 0;                               // C 1498
+  let mut native_height: c_uint = 0;
+  let mut x_border_width: c_uint = 0;
+  let mut x_native: c_int = 0;                                    // C 1499
+  let mut y_native: c_int = 0;
+  let mut xptr: c_int = 0;
+  let mut yptr: c_int = 0;
+  let mut left_off: c_int = 0;                                    // C 1500
+  let mut right_off: c_int = 0;
+  let mut top_off: c_int = 0;
+  let mut bottom_off: c_int = 0;
+  let mut outer_left: c_int;                                      // C 1501
+  let mut outer_top: c_int;
+  let mut outer_right: c_int;
+  let mut outer_bottom: c_int;
+  let mut native_left: c_int;                                     // C 1502
+  let mut native_top: c_int;
+  let mut native_right: c_int;
+  let mut native_bottom: c_int;
+  let mut inner_left: c_int;                                      // C 1503
+  let mut inner_top: c_int;
+  let mut inner_right: c_int;
+  let mut inner_bottom: c_int;
+  let mut internal_border_width: c_int;                           // C 1504
+  let mut menu_bar_external: bool = false;                        // C 1505
+  let mut tool_bar_external: bool = false;
+  let mut menu_bar_height: c_int = 0;                             // C 1506
+  let mut menu_bar_width: c_int = 0;
+  let mut tab_bar_height: c_int = 0;                              // C 1507
+  let mut tab_bar_width: c_int = 0;
+  let mut tool_bar_height: c_int = 0;                             // C 1508
+  let mut tool_bar_width: c_int = 0;
+
+  /* C's `!FRAME_ANDROID_WINDOW (f)` tests an integer handle (`android_window` is `android_handle`
+     = `intptr_t`), so the port's zero test is `== 0` (the slice-1 shape at line 569).  */
+  if FRAME_INITIAL_P (f) || !FRAME_ANDROID_P (f)                  // C 1510
+      || FRAME_ANDROID_WINDOW! (f) == 0                           // C 1511
+    { return Qnil (); }                                            // C 1512
+
+  block_input ();                                                 // C 1514
+  android_get_geometry (FRAME_ANDROID_WINDOW! (f),                // C 1515
+			&raw mut rootw, &raw mut x_native, &raw mut y_native,
+			&raw mut native_width, &raw mut native_height, &raw mut x_border_width);
+  unblock_input ();                                               // C 1518
+
+  if ! FRAME_PARENT_FRAME (f).is_null ()                          // C 1520
+    {
+      let mut parent: Lisp_Object;                                // C 1522
+      let mut edges: Lisp_Object;
+
+      XSETFRAME! (parent, FRAME_PARENT_FRAME (f));                 // C 1524
+      edges = Fandroid_frame_edges (parent, Qnative_edges ());     // C 1525
+      if !NILP (edges)                                            // C 1526
+	{
+	  x_native += XFIXNUM (Fnth (make_fixnum (0), edges)) as c_int;   // C 1528
+	  y_native += XFIXNUM (Fnth (make_fixnum (1), edges)) as c_int;   // C 1529
+	}
+
+      outer_left = x_native;                                      // C 1532
+      outer_top = y_native;                                       // C 1533
+      /* C's `outer_left + native_width + 2 * x_border_width` is int + unsigned int + unsigned int
+	 and lands in an `int` local; the two `as c_int` are C's own narrowing at that assignment
+	 (`docs/ports/androidfns.md` Deviations).  */
+      outer_right = outer_left + native_width as c_int + 2 * x_border_width as c_int;   // C 1534
+      outer_bottom = outer_top + native_height as c_int + 2 * x_border_width as c_int;  // C 1535
+
+      native_left = x_native + x_border_width as c_int;            // C 1537
+      native_top = y_native + x_border_width as c_int;             // C 1538
+      native_right = native_left + native_width as c_int;          // C 1539
+      native_bottom = native_top + native_height as c_int;         // C 1540
+    }
+  else
+    {
+      outer_left = xptr;                                          // C 1544
+      outer_top = yptr;                                           // C 1545
+      outer_right = outer_left + left_off + native_width as c_int + right_off;     // C 1546
+      outer_bottom = outer_top + top_off + native_height as c_int + bottom_off;    // C 1547
+
+      native_left = outer_left + left_off;                         // C 1549
+      native_top = outer_top + top_off;                            // C 1550
+      native_right = native_left + native_width as c_int;          // C 1551
+      native_bottom = native_top + native_height as c_int;         // C 1552
+    }
+
+  internal_border_width = FRAME_INTERNAL_BORDER_WIDTH (f);         // C 1555
+  inner_left = native_left + internal_border_width;                // C 1556
+  inner_top = native_top + internal_border_width;                  // C 1557
+  inner_right = native_right - internal_border_width;              // C 1558
+  inner_bottom = native_bottom - internal_border_width;            // C 1559
+
+  menu_bar_height = FRAME_MENU_BAR_HEIGHT (f);                     // C 1561
+  inner_top += menu_bar_height;                                    // C 1562
+  menu_bar_width = if menu_bar_height != 0                        // C 1563
+		   { native_width as c_int }
+		   else
+		   { 0 };
+
+  tab_bar_height = FRAME_TAB_BAR_HEIGHT (f);                       // C 1565
+  tab_bar_width = if tab_bar_height != 0                           // C 1566-1568
+		  { native_width as c_int - 2 * internal_border_width }
+		  else
+		  { 0 };
+  inner_top += tab_bar_height;                                     // C 1569
+
+  tool_bar_height = FRAME_TOOL_BAR_HEIGHT (f);                     // C 1571
+  tool_bar_width = if tool_bar_height != 0                         // C 1572-1574
+		   { native_width as c_int - 2 * internal_border_width }
+		   else
+		   { 0 };
+
+  /* Subtract or add to the inner dimensions based on the tool bar
+     position.  */                                                // C 1576-1577
+
+  if EQ (FRAME_TOOL_BAR_POSITION (f), Qtop ())                     // C 1579
+    { inner_top += tool_bar_height; }                              // C 1580
+  else
+    { inner_bottom -= tool_bar_height; }                           // C 1582
+
+  /* Construct list.  */                                           // C 1584
+  if EQ (attribute, Qouter_edges ())                               // C 1585
+    { return list4i (outer_left as EMACS_INT, outer_top as EMACS_INT,
+		     outer_right as EMACS_INT, outer_bottom as EMACS_INT); }      // C 1586
+  else if EQ (attribute, Qnative_edges ())                         // C 1587
+    { return list4i (native_left as EMACS_INT, native_top as EMACS_INT,
+		     native_right as EMACS_INT, native_bottom as EMACS_INT); }    // C 1588
+  else if EQ (attribute, Qinner_edges ())                          // C 1589
+    { return list4i (inner_left as EMACS_INT, inner_top as EMACS_INT,
+		     inner_right as EMACS_INT, inner_bottom as EMACS_INT); }      // C 1590
+  else
+    { return                                                       // C 1592
+       list! (Fcons (Qouter_position (),                            // C 1593
+		     Fcons (make_fixnum (outer_left as EMACS_INT),
+			    make_fixnum (outer_top as EMACS_INT))),
+	      Fcons (Qouter_size (),                                // C 1596
+		     Fcons (make_fixnum ((outer_right - outer_left) as EMACS_INT),
+			    make_fixnum ((outer_bottom - outer_top) as EMACS_INT))),
+	      /* Approximate.  */                                    // C 1599
+	      Fcons (Qexternal_border_size (),                       // C 1600
+		     Fcons (make_fixnum (right_off as EMACS_INT),
+			    make_fixnum (bottom_off as EMACS_INT))),
+	      Fcons (Qouter_border_width (),                         // C 1603
+		     make_fixnum (x_border_width as EMACS_INT)),
+	      /* Approximate.  */                                    // C 1604
+	      Fcons (Qtitle_bar_size (),                             // C 1605
+		     Fcons (make_fixnum (0),
+			    make_fixnum ((top_off - bottom_off) as EMACS_INT))),
+	      Fcons (Qmenu_bar_external (),                          // C 1608
+		     if menu_bar_external { Qt () } else { Qnil () }),
+	      Fcons (Qmenu_bar_size (),                              // C 1609
+		     Fcons (make_fixnum (menu_bar_width as EMACS_INT),
+			    make_fixnum (menu_bar_height as EMACS_INT))),
+	      Fcons (Qtab_bar_size (),                               // C 1612
+		     Fcons (make_fixnum (tab_bar_width as EMACS_INT),
+			    make_fixnum (tab_bar_height as EMACS_INT))),
+	      Fcons (Qtool_bar_external (),                          // C 1615
+		     if tool_bar_external { Qt () } else { Qnil () }),
+	      Fcons (Qtool_bar_position (), FRAME_TOOL_BAR_POSITION (f)),   // C 1616
+	      Fcons (Qtool_bar_size (),                              // C 1617
+		     Fcons (make_fixnum (tool_bar_width as EMACS_INT),
+			    make_fixnum (tool_bar_height as EMACS_INT))),
+	      Fcons (Qinternal_border_width (),                      // C 1620
+		     make_fixnum (internal_border_width as EMACS_INT)));
+    }
+}
+
+/* C 1626-1675.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-frame-geometry", Fandroid_frame_geometry, Sandroid_frame_geometry,
+	0, 1, 0,
+	doc: "Return geometric attributes of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is an association list of the attributes listed below.  All height\nand width values are in pixels.\n\n`outer-position' is a cons of the outer left and top edges of FRAME\n  relative to the origin - the position (0, 0) - of FRAME's display.\n\n`outer-size' is a cons of the outer width and height of FRAME.  The\n  outer size includes the title bar and the external borders as well as\n  any menu and/or tool bar of frame.\n\n`external-border-size' is a cons of the horizontal and vertical width of\n  FRAME's external borders as supplied by the window manager.\n\n`title-bar-size' is a cons of the width and height of the title bar of\n  FRAME as supplied by the window manager.  If both of them are zero,\n  FRAME has no title bar.  If only the width is zero, Emacs was not\n  able to retrieve the width information.\n\n`menu-bar-external', if non-nil, means the menu bar is external (never\n  included in the inner edges of FRAME).\n\n`menu-bar-size' is a cons of the width and height of the menu bar of\n  FRAME.\n\n`tool-bar-external', if non-nil, means the tool bar is external (never\n  included in the inner edges of FRAME).\n\n`tool-bar-position' tells on which side the tool bar on FRAME is and can\n  be one of `left', `top', `right' or `bottom'.  If this is nil, FRAME\n  has no tool bar.\n\n`tool-bar-size' is a cons of the width and height of the tool bar of\n  FRAME.\n\n`internal-border-width' is the width of the internal border of\n  FRAME.  ",
+	(frame: Lisp_Object),
+	{
+  /* C 1669-1671: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1670
+    return Qnil ();                                                // C 1671
+  }
+
+  /* C 1672-1674: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  return frame_geometry (frame, Qnil ());                          // C 1673
+  }
+});
+
+/* C 1677-1704.  The real arm comes first, as C's `#ifndef` does.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-frame-edges", Fandroid_frame_edges, Sandroid_frame_edges,
+	0, 2, 0,
+	doc: "Return edge coordinates of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is a list of the form (LEFT, TOP, RIGHT, BOTTOM).  All values are\nin pixels relative to the origin - the position (0, 0) - of FRAME's\ndisplay.\n\nIf optional argument TYPE is the symbol `outer-edges', return the outer\nedges of FRAME.  The outer edges comprise the decorations of the window\nmanager (like the title bar or external borders) as well as any external\nmenu or tool bar of FRAME.  If optional argument TYPE is the symbol\n`native-edges' or nil, return the native edges of FRAME.  The native\nedges exclude the decorations of the window manager and any external\nmenu or tool bar of FRAME.  If TYPE is the symbol `inner-edges', return\nthe inner edges of FRAME.  These edges exclude title bar, any borders,\nmenu bar or tool bar of FRAME.  ",
+	(frame: Lisp_Object, r#type: Lisp_Object),
+	{
+  /* C 1696-1700: the real arm (`#ifndef ANDROID_STUBIFY`).  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  return frame_geometry (frame, if EQ (r#type, Qouter_edges ())      // C 1697-1700
+			       || EQ (r#type, Qinner_edges ())
+			 { r#type } else { Qnative_edges () });
+  }
+
+  /* C 1701-1703: the `#else` arm.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+  return Qnil ();                                                  // C 1702
+  }
+});

@@ -6,8 +6,9 @@
 > `androidfns.o` for this target and `extract-abi.py`'s checklist for the file is empty - its
 > checkbox sections cannot be coverage evidence (P-86 ②).  What follows is P-86 ②'s substitute: the
 > **C line-range table**, the `## Evidence` readings and the `## Deviations`.
-> Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines) and **slice 2 = C
-> 1216-1489** (1,994 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), **slice 2 = C
+> 1216-1489** (1,994 Rust lines) and **slice 3 = C 1490-1704** (2,225 Rust lines), both arms of
+> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -104,7 +105,10 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 1410-1424 | `x-display-visual-class` | file gate |
 | 1425-1457 | C 1426's `#ifndef ANDROID_STUBIFY` plus `android_make_monitor_attribute_list` (C 1439-1450 the frame walk) | real arm |
 | 1458-1489 | C 1459's `DEFUN ("android-display-monitor-attributes-list")`: C 1472-1474 the stub arm, C 1475-1488 the real one (C 1479 the `memset`) | file gate, both sub-arms |
-| 1490-3797 | not ported: the file's remaining 2,308 lines (C 1491's `#ifndef ANDROID_STUBIFY` and `frame_geometry` onward) | not ported |
+| 1490-1624 | C 1491's `#ifndef ANDROID_STUBIFY` plus `frame_geometry` (C 1510-1512 the early return, C 1520-1553 the parent / no-parent split, C 1585-1621 the attribute list) | real arm |
+| 1625-1675 | C 1626's `DEFUN ("android-frame-geometry")`: C 1669-1671 the stub arm, C 1672-1674 the real one | file gate, both sub-arms |
+| 1676-1704 | C 1677's `DEFUN ("android-frame-edges")`: C 1696-1700 the real arm **first** (`#ifndef`), C 1701-1703 the stub one | file gate, both sub-arms |
+| 1705-3797 | not ported: the file's remaining 2,093 lines (C 1706's `#ifndef ANDROID_STUBIFY` and `android_frame_list_z_order` onward) | not ported |
 
 ## Evidence
 
@@ -419,3 +423,86 @@ conditions, 0 unknown, 0 disagreements [VERIFIED]` (unchanged: the slice adds no
   of this slice's rows are red in any of the three arm sets.
 - The `memset` at C 1479 is redundant with the port's zero-initialisation of the same object, and it
   is kept because C has it (P-86 ⑪: the port does not tidy C's text).
+
+## Slice 3 (2026-10-08, status 4.064 - the integrator sets the round number): C 1490-1704
+
+**The slice's text.**  `frame_geometry` under C 1491's `#ifndef ANDROID_STUBIFY` (C 1491-1624: the
+early return for an initial / non-Android / window-less frame at C 1510-1512, the parent arm at
+C 1520-1541, the no-parent arm at C 1542-1553, the inner/border arithmetic at C 1555-1582 and the
+attribute list at C 1584-1621) and the two `DEFUN`s that call it - `Fandroid_frame_geometry`
+(C 1626-1675) and `Fandroid_frame_edges` (C 1677-1704, whose C pair is the **real arm first**,
+C 1696's `#ifndef ANDROID_STUBIFY` before C 1701's `#else`).  Port line count **1,994 -> 2,225**
+(+231).  The slice also adds the use-site declaration of `decode_live_frame` (Deviations 4).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**
+`-> **exit 1, exactly 4 `error[E0609]` rows**, unchanged from slice 2 and still slice 1's class (the
+two `f->tool_bar_window` reads at `_root.rs` 707/708 and the two `f->tab_bar_window` reads at
+797/798).  **0 rows in this slice's text.**  The first run of this arm set is what found the slice's
+three real errors - `E0381` "used binding `rootw`/`native_width`/`native_height` isn't initialized"
+at `_root.rs` 2060/2061 - which Deviations 1 records and the patched text clears (this is the
+fourth `probe` invocation of the round, against the three of slice 2; the fix is three
+initialisers, not a shape change).
+
+**Evidence ② - the stub arms, arm set B = `have_android` alone.**  **exit 0, 0 errors, 13
+warnings** (the same thirteen `include/android.rs` FFI-safety warnings as slice 2): the two `DEFUN`s'
+stub arms compile.
+
+**Evidence ③ - the window-system variant, arm set C = A + `have_window_system`.**  **exit 0, 0
+errors, 12 warnings**: `frame_geometry` and both real arms compile against the mirror's own
+`MonitorInfo` / `make_monitor_attribute_list` (their use-site copies from slice 2 are gated off) and
+against `include/frame.rs`'s `FRAME_MENU_BAR_HEIGHT` / `FRAME_TAB_BAR_HEIGHT` /
+`FRAME_TOOL_BAR_HEIGHT` / `FRAME_TOOL_BAR_POSITION` / `FRAME_PARENT_FRAME` / `XSETFRAME!`.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **94 rows -> 91**: the three
+closed are **2 `missing subr`** (18 -> 16: `Fandroid_frame_geometry`, `Fandroid_frame_edges`) and
+**1 `missing function`** (23 -> 22: `frame_geometry`).  The drift row now reads **`C 3797 vs Rust
+2225` (41.4%)**, from 47.5%.  (`missing defsubr` 35, `missing constant` 16 and `missing macro` 1 are
+unchanged.)
+
+**Evidence ⑤ - the other gates.**  `python3 tools/check-cond-eval.py src/androidfns.c` -> `36
+conditions, 0 unknown, 0 disagreements [VERIFIED]`; `python3 tools/check-dead-file-coverage.py` ->
+`61 range row(s) cover src/androidfns.c (3797 lines; 0 blank line(s) between blocks need no row)`,
+`145 ledger(s) bound, 0 failure(s)`.
+
+### Deviations (this slice)
+
+1. **Three more C locals that are declared without an initialiser and filled through out parameters
+   are zero-initialised** (PORTING.md 1.5): C 1497's `android_window rootw;`, C 1498's
+   `unsigned int native_width, native_height;` (both filled by C 1515's `android_get_geometry`,
+   which takes their addresses).  The probe's three `E0381` rows are what made this a measured
+   requirement rather than a guess (Evidence ①).
+2. **C's mixed `int` / `unsigned int` arithmetic is spelled with `as c_int` at the widening sites**
+   (C 1534/1535, C 1537-1540, C 1546/1547, C 1551/1552, C 1563, C 1566-1568, C 1572-1574): C sums an
+   `int` local with `unsigned int` members and assigns the (unsigned) result to an `int` local; the
+   values are pixel counts, so the port's explicit narrowing is value-identical and its type is the
+   local's.
+3. **`XFIXNUM`'s `EMACS_INT` result narrows to the `int` locals it is added to** (`as c_int`, C
+   1528/1529).
+4. **One more use-site declaration** (P-72 rule 4): `decode_live_frame` is frame.h 1476's
+   declaration and no mirror in this unit's include graph carries it (`include/frame.rs` has no
+   row; `buffer.rs` 92 keeps its own copy), so the unit declares it under C's name.  It is named in
+   the owed list below.
+5. **C's `!FRAME_ANDROID_WINDOW (f)` is `FRAME_ANDROID_WINDOW! (f) == 0`**: the handle's Rust type
+   is `android_handle = intptr_t`, so C's logical negation is a zero test (the slice-1 shape at
+   `src/androidfns.rs` 569).
+6. **C's `list (...)` is `list! (...)`, and the three ternaries are `if` expressions** (C 1563,
+   1566-1568, 1572-1574, 1592-1621's two `? Qt : Qnil`); the parameter `type` is `r#type`
+   (`haikufns.rs` 3829's spelling of the same C parameter).
+7. **Both docstrings are copied from `src/haikufns.c`'s identical text** (`haiku-frame-geometry` and
+   `haiku-frame-edges` carry the same bytes; measured with a text extraction of the two C files
+   before transcription), so the subr digests compare equal by construction.
+
+### Owed (this slice's additions)
+
+- **`include/frame.rs`**: frame.h 1476's `extern struct frame *decode_live_frame (Lisp_Object);`
+  has no mirror row; the unit keeps a use-site copy until one lands (the same class as the
+  `MonitorInfo` pair but a different header row).
+- **The file's remainder**: C 1705-3797 (`android_frame_list_z_order`, the z-order/edges helpers,
+  the tooltips, the GC and colour helpers, the terminal hooks and `syms_of_androidfns`).
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no frame was created, no geometry was queried, no
+  attribute list was built.
+- The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
