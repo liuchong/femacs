@@ -4337,8 +4337,12 @@ unsafe extern "C" {
 }
 
 /* C 3363-3575.  */
+/* C 3795 takes this function's address for `pdumper_do_now_and_after_load`, whose hook type is
+   `Option<unsafe extern "C" fn ()>` (`include/pdumper.rs` 93), so it carries C's ABI rather than
+   the plain `unsafe fn` a `static` C helper usually becomes (the `androidfont.rs` 1338 spelling
+   for its own counterpart).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn syms_of_androidfns_for_pdumper ()
+unsafe extern "C" fn syms_of_androidfns_for_pdumper ()
 {
   let mut locale: jclass;                                          // C 3366
   let mut method: jmethodID;                                       // C 3367
@@ -4561,3 +4565,180 @@ unsafe fn syms_of_androidfns_for_pdumper ()
 }
 
 /* C 3577: the `#endif /* ANDROID_STUBIFY */` that closes C 3361's block.  */
+
+/* C 3578-3797: `syms_of_androidfns` (C 3579-3797), the file's last item - the `DEFSYM`s, the
+   `DEFVAR_LISP`/`DEFVAR_BOOL`/`DEFVAR_INT` registrations, the thirty-five `defsubr`s, the six
+   `staticpro`s and the pdumper hook.  C's two `#if false` blocks (C 3591-3594 and C 3651-3654)
+   are dead text in every configuration and are recorded in `docs/ports/androidfns.md` instead of
+   being transcribed (the slice-9 rule).  C's `#ifndef ANDROID_STUBIFY` at C 3773 covers the last
+   five `defsubr`s and the six `staticpro`s.  */
+
+/* C 3579-3797.  */
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_androidfns ()
+{
+  /* Miscellaneous symbols used by some functions here.  */        // C 3582
+  DEFSYM! (Qtrue_color, "true-color");                             // C 3583
+  DEFSYM! (Qstatic_gray, "static-color");                          // C 3584
+  DEFSYM! (Qwhen_mapped, "when-mapped");                           // C 3585
+
+  DEFVAR_LISP! (c"x-pointer-shape", Vx_pointer_shape,              // C 3587-3588
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_pointer_shape = Qnil ();                                      // C 3589
+
+  /* C 3591-3594: `#if false` around the `x-nontext-pointer-shape` registration - dead text in
+     every configuration, recorded in the ledger and not transcribed.  */
+
+  Vx_nontext_pointer_shape = Qnil ();                              // C 3595
+
+  DEFVAR_LISP! (c"x-hourglass-pointer-shape", Vx_hourglass_pointer_shape,   // C 3597-3598
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_hourglass_pointer_shape = Qnil ();                            // C 3599
+
+  DEFVAR_LISP! (c"x-sensitive-text-pointer-shape", Vx_sensitive_text_pointer_shape,   // C 3601-3603
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_sensitive_text_pointer_shape = Qnil ();                       // C 3604
+
+  DEFVAR_LISP! (c"x-window-horizontal-drag-cursor", Vx_window_horizontal_drag_shape,   // C 3606-3608
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_horizontal_drag_shape = Qnil ();                       // C 3609
+
+  DEFVAR_LISP! (c"x-window-vertical-drag-cursor", Vx_window_vertical_drag_shape,   // C 3611-3613
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_vertical_drag_shape = Qnil ();                         // C 3614
+
+  DEFVAR_LISP! (c"x-window-left-edge-cursor", Vx_window_left_edge_shape,   // C 3616-3618
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_left_edge_shape = Qnil ();                             // C 3619
+
+  DEFVAR_LISP! (c"x-window-top-left-corner-cursor", Vx_window_top_left_corner_shape,   // C 3621-3623
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_top_left_corner_shape = Qnil ();                       // C 3624
+
+  DEFVAR_LISP! (c"x-window-top-edge-cursor", Vx_window_top_edge_shape,   // C 3626-3628
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_top_edge_shape = Qnil ();                              // C 3629
+
+  DEFVAR_LISP! (c"x-window-top-right-corner-cursor", Vx_window_top_right_corner_shape,   // C 3631-3633
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_top_right_corner_shape = Qnil ();                      // C 3634
+
+  DEFVAR_LISP! (c"x-window-right-edge-cursor", Vx_window_right_edge_shape,   // C 3636-3638
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_right_edge_shape = Qnil ();                            // C 3639
+
+  DEFVAR_LISP! (c"x-window-bottom-right-corner-cursor", Vx_window_bottom_right_corner_shape,   // C 3641-3643
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_bottom_right_corner_shape = Qnil ();                   // C 3644
+
+  DEFVAR_LISP! (c"x-window-bottom-edge-cursor", Vx_window_bottom_edge_shape,   // C 3646-3648
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_bottom_edge_shape = Qnil ();                           // C 3649
+
+  /* C 3651-3654: the second `#if false`, around the `x-mode-pointer-shape` registration - dead
+     text, recorded and not transcribed.  */
+
+  Vx_mode_pointer_shape = Qnil ();                                 // C 3655
+
+  DEFVAR_LISP! (c"x-window-bottom-left-corner-cursor", Vx_window_bottom_left_corner_shape,   // C 3657-3659
+		doc: "SKIP: real text in xfns.c.  ");
+  Vx_window_bottom_left_corner_shape = Qnil ();                    // C 3660
+
+  DEFVAR_LISP! (c"x-cursor-fore-pixel", Vx_cursor_fore_pixel,       // C 3662-3663
+		doc: "SKIP: real doc in xfns.c.  ");
+  Vx_cursor_fore_pixel = Qnil ();                                  // C 3664
+
+  /* Used by Fx_show_tip.  */                                      // C 3666
+  DEFSYM! (Qrun_at_time, "run-at-time");                           // C 3667
+  DEFSYM! (Qx_hide_tip, "x-hide-tip");                             // C 3668
+  DEFSYM! (Qcancel_timer, "cancel-timer");                         // C 3669
+  DEFSYM! (Qassq_delete_all, "assq-delete-all");                   // C 3670
+  DEFSYM! (Qcolor, "color");                                       // C 3671
+
+  DEFVAR_LISP! (c"x-max-tooltip-size", Vx_max_tooltip_size,         // C 3673-3674
+		doc: "SKIP: real doc in xfns.c.  ");
+  Vx_max_tooltip_size = Qnil ();                                   // C 3675
+
+  DEFVAR_BOOL! (c"android-pass-multimedia-buttons-to-system",      // C 3677-3685
+		android_pass_multimedia_buttons_to_system,
+		doc: "Whether or not to pass volume control buttons to the system.\nGenerally, the `volume-up', `volume-down' and `volume-mute' keys are\nprocessed by Emacs, but setting this to non-nil they are passed to the\noperating system instead of being intercepted by Emacs.\n\nNote that if you set this, you will no longer be able to quit Emacs\nusing the volume down button.  ");
+  android_pass_multimedia_buttons_to_system = false;               // C 3686
+
+  DEFVAR_BOOL! (c"android-intercept-control-space",                // C 3688-3698
+		android_intercept_control_space,
+		doc: "Whether Emacs should intercept C-SPC.\nWhen this variable is set, Emacs intercepts C-SPC events as they are\ndelivered to a frame before they are registered and filtered by the\ninput method.\n\nFor no apparent purpose, Android input methods customarily discard SPC\nevents with the Ctrl modifier set without delivering them to Emacs\nafterwards, which is an impediment to typing key sequences\nincorporating such keys.  ");
+  android_intercept_control_space = true;                          // C 3699
+
+  DEFVAR_BOOL! (c"android-use-exec-loader", android_use_exec_loader,   // C 3701-3712
+		doc: "Whether or not to bypass system restrictions on program execution.\n\nAndroid 10 and later prevent programs from executing files installed\nin writable directories, such as the application data directory.\n\nWhen non-nil, Emacs will bypass this restriction by running such\nexecutables under system call tracing, and replacing the `execve'\nsystem call with a version which ignores the system's security\nrestrictions.\n\nThis option has no effect on Android 9 and earlier.  ");
+  android_use_exec_loader = true;                                  // C 3713
+
+  DEFVAR_INT! (c"android-keyboard-bell-duration",                  // C 3715-3720
+	       android_keyboard_bell_duration,
+	       "Number of milliseconds to vibrate after ringing the keyboard bell.\nThe keyboard bell under Android systems takes the form of a vibrating\nelement that is activated for a given number of milliseconds upon the\nbell being rung.  ");
+  android_keyboard_bell_duration = 50;                             // C 3721
+
+  DEFVAR_LISP! (c"android-os-language", Vandroid_os_language,      // C 3723-3739
+		doc: "A list representing the configured system language on Android.\nThis list has four elements: LANGUAGE, COUNTRY, SCRIPT and VARIANT, where:\n\nLANGUAGE and COUNTRY are ISO language and country codes identical to\nthose found in POSIX locale specifications.\n\nSCRIPT is an ISO 15924 script tag, representing the script used\nif available, or if required to disambiguate between distinct\nwriting systems for the same combination of language and country.\n\nVARIANT is an arbitrary string representing the variant of the\nLANGUAGE or SCRIPT.\n\nEach of these fields might be empty or nil, but the locale is invalid\nif LANGUAGE is empty.  Users of this variable should consider the\nlanguage to be US English if LANGUAGE is empty.  ");
+  Vandroid_os_language = Qnil ();                                  // C 3740
+
+  /* Functions defined.  */                                        // C 3742
+  defsubr (&raw mut Sx_create_frame);                              // C 3743
+  defsubr (&raw mut Sxw_color_defined_p);                          // C 3744
+  defsubr (&raw mut Sxw_color_values);                             // C 3745
+  defsubr (&raw mut Sxw_display_color_p);                          // C 3746
+  defsubr (&raw mut Sx_display_grayscale_p);                       // C 3747
+  defsubr (&raw mut Sx_display_pixel_width);                       // C 3748
+  defsubr (&raw mut Sx_display_pixel_height);                      // C 3749
+  defsubr (&raw mut Sx_display_planes);                            // C 3750
+  defsubr (&raw mut Sx_display_color_cells);                       // C 3751
+  defsubr (&raw mut Sx_display_screens);                           // C 3752
+  defsubr (&raw mut Sx_display_mm_width);                          // C 3753
+  defsubr (&raw mut Sx_display_mm_height);                         // C 3754
+  defsubr (&raw mut Sx_display_backing_store);                     // C 3755
+  defsubr (&raw mut Sx_display_visual_class);                      // C 3756
+  defsubr (&raw mut Sandroid_display_monitor_attributes_list);     // C 3757
+  defsubr (&raw mut Sandroid_frame_geometry);                      // C 3758
+  defsubr (&raw mut Sandroid_frame_edges);                         // C 3759
+  defsubr (&raw mut Sandroid_frame_list_z_order);                  // C 3760
+  defsubr (&raw mut Sandroid_frame_restack);                       // C 3761
+  defsubr (&raw mut Sandroid_mouse_absolute_pixel_position);       // C 3762
+  defsubr (&raw mut Sandroid_set_mouse_absolute_pixel_position);   // C 3763
+  defsubr (&raw mut Sandroid_get_connection);                      // C 3764
+  defsubr (&raw mut Sx_display_list);                              // C 3765
+  defsubr (&raw mut Sx_show_tip);                                  // C 3766
+  defsubr (&raw mut Sx_hide_tip);                                  // C 3767
+  defsubr (&raw mut Sandroid_detect_mouse);                        // C 3768
+  defsubr (&raw mut Sandroid_detect_keyboard);                     // C 3769
+  defsubr (&raw mut Sandroid_toggle_on_screen_keyboard);           // C 3770
+  defsubr (&raw mut Sx_server_vendor);                             // C 3771
+  defsubr (&raw mut Sx_server_version);                            // C 3772
+
+  /* C 3773-3796: `#ifndef ANDROID_STUBIFY`.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  defsubr (&raw mut Sandroid_query_battery);                       // C 3774
+  defsubr (&raw mut Sandroid_request_directory_access);            // C 3775
+  defsubr (&raw mut Sandroid_external_storage_available_p);        // C 3776
+  defsubr (&raw mut Sandroid_request_storage_access);              // C 3777
+  defsubr (&raw mut Sandroid_recreate_activity);                   // C 3778
+
+  tip_timer = Qnil ();                                             // C 3780
+  staticpro (&raw mut tip_timer);                                  // C 3781
+  tip_frame = Qnil ();                                             // C 3782
+  staticpro (&raw mut tip_frame);                                  // C 3783
+  tip_last_frame = Qnil ();                                        // C 3784
+  staticpro (&raw mut tip_last_frame);                             // C 3785
+  tip_last_string = Qnil ();                                       // C 3786
+  staticpro (&raw mut tip_last_string);                            // C 3787
+  tip_last_parms = Qnil ();                                        // C 3788
+  staticpro (&raw mut tip_last_parms);                             // C 3789
+  tip_dx = Qnil ();                                                // C 3790
+  staticpro (&raw mut tip_dx);                                     // C 3791
+  tip_dy = Qnil ();                                                // C 3792
+  staticpro (&raw mut tip_dy);                                     // C 3793
+
+  pdumper_do_now_and_after_load (Some (syms_of_androidfns_for_pdumper));   // C 3795
+  }
+}

@@ -13,8 +13,11 @@
 > 2295-2583** (3,313 Rust lines), **slice 9 = C 2584-2662** (3,416 Rust lines), **slice 10 = C
 > 2663-2832** (3,615 Rust lines), **slice 11 = C 2833-2972** (3,826 Rust lines), **slice 12 = C
 > 2973-3063** (3,951 Rust lines), **slice 13 = C 3064-3195** (4,183 Rust lines), **slice 14 = C
-> 3196-3357** (4,311 Rust lines) and **slice 15 = C 3358-3577** (4,562 Rust lines), both arms of
-> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 3196-3357** (4,311 Rust lines), **slice 15 = C 3358-3577** (4,562 Rust lines) and **slice 16 = C
+> 3578-3797** (4,744 Rust lines), both arms of every `#if` carried.  **The file is ported to its
+> last line (C 3,797) as of status 4.077**: `extract-abi.py --check` reads `OK` (0 rows) and the
+> whole-tree run reads `581 done, 0 in progress, 9 failing` - `src/androidfns.c` has left the FAIL
+> list.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -156,7 +159,8 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 3310-3337 | C 3313-3316's comments and `android_set_preeditarea` (C 3323 the frame, C 3325-3330 the coordinate conversion, C 3332-3336 the anchor call) | real arm |
 | 3338-3357 | C 3341's "Debugging" comment, C 3343's `DEFUN ("android-recreate-activity")` and C 3357's `#endif /* !ANDROID_STUBIFY */` | file gate / gate marker |
 | 3358-3575 | C 3361's `#ifndef ANDROID_STUBIFY` and `syms_of_androidfns_for_pdumper` (C 3379-3401 the Locale class and the default locale, C 3407-3436 the language, C 3440-3468 the country, C 3472-3505 the script's API-level arm, C 3509-3538 the variant, C 3541-3542 the two remaining local references, C 3545 the `Vandroid_os_language` write, C 3552-3574 the tracer detection) | real arm |
-| 3576-3797 | not ported: the file's remaining 222 lines (C 3577's `#endif /* ANDROID_STUBIFY */` and C 3579's `syms_of_androidfns`, whose registrations are the 35 `missing defsubr` rows) | not ported |
+| 3576-3577 | C 3577's `#endif /* ANDROID_STUBIFY */` (closing C 3361's block) | gate marker |
+| 3578-3797 | C 3579's `syms_of_androidfns`: C 3582-3585 the three `DEFSYM`s, C 3587-3664 the pointer-shape `DEFVAR_LISP`s (C 3591-3594 and C 3651-3654 the two `#if false` blocks, recorded and not transcribed), C 3666-3675 the tooltip `DEFSYM`s and `x-max-tooltip-size`, C 3677-3721 the three `DEFVAR_BOOL`s and the `DEFVAR_INT`, C 3723-3740 `android-os-language`, C 3742-3772 the thirty `defsubr`s, and C 3773-3796 the `#ifndef ANDROID_STUBIFY` arm with the last five `defsubr`s, the six `staticpro`s and the pdumper hook | file gate / both sub-arms |
 
 ## Evidence
 
@@ -1330,3 +1334,73 @@ as the headroom).  What remains is **35 `missing defsubr`** - `syms_of_androidfn
   file was opened, and no local reference was deleted.
 - The eight `E0609` rows of arm set A are not this slice's (four are slice 1's, two slice 11's,
   two slice 14's); all eight compile in arm set C.
+
+## Slice 16 (2026-10-08, status 4.077 - the integrator sets the round number): C 3578-3797 - **the file closes**
+
+**The slice's text.**  `syms_of_androidfns` (C 3579-3797), the file's last item: the three
+`DEFSYM`s (C 3582-3585), the pointer-shape `DEFVAR_LISP`s with C's two `#if false` blocks
+(C 3591-3594, C 3651-3654 - dead text, recorded here and not transcribed), the tooltip `DEFSYM`s
+and `x-max-tooltip-size` (C 3666-3675), the three `DEFVAR_BOOL`s and the `DEFVAR_INT`
+(C 3677-3721), `android-os-language` (C 3723-3740), the thirty `defsubr`s (C 3742-3772) and C
+3773's `#ifndef ANDROID_STUBIFY` arm with the last five `defsubr`s, the six `staticpro`s and the
+pdumper hook (C 3774-3795).  Port line count **4,562 -> 4,744** (+182).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**
+**exit 1, exactly 8 `E0609` rows** - the class slices 1, 11 and 14 recorded (four
+`tool_bar_window`/`tab_bar_window` sites, two `menu_bar_window`, two `phys_cursor_height`); **this
+slice adds none**, and the first run of the arm set had already compiled it clean.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings**.  **Evidence
+③ - arm set C = A + `have_window_system`:** **exit 0, 0 errors, 14 warnings** (the same
+pre-existing `unused doc comment` class slice 15 recorded).
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`): `36 rows -> OK (0 rows)`.**  The
+thirty-six closed are **35 `missing defsubr`** (35 -> 0: the registrations this slice lands) and
+**1 `missing function`** (1 -> 0: `syms_of_androidfns`).  Two readings shaped the slice:
+- the first run read **`function syms_of_androidfns does not mention doc`**: C's body carries a
+  `doc:` label at each `DEFVAR_*` invocation and the port had written the docstrings positionally,
+  so the label is now C's own (`DEFVAR_LISP! (…, Vx_pointer_shape, doc: "SKIP: …")` - the macro has
+  the `doc:` arm the `xfns.rs` lane added for exactly this; **`DEFVAR_INT!` has no such arm**, so
+  that one invocation keeps the positional form and the other nineteen carry the token).
+- C 3795's `pdumper_do_now_and_after_load (syms_of_androidfns_for_pdumper)` takes the function's
+  address, and the hook type is `Option<unsafe extern "C" fn ()>`, so slice 15's function becomes
+  **`unsafe extern "C" fn`** (the same ABI class as slice 13's seventeen, and the
+  `androidfont.rs` 1338 spelling for its own counterpart).
+
+**Evidence ⑤ - the whole-tree reading (the milestone).**  `python3 tools/extract-abi.py --all`
+(2m58s): **`checked 590 ported files: 581 done, 0 in progress, 9 failing`** - was 580/0/10 at the
+head of this round, and **`src/androidfns.c` has left the FAIL list**.  The nine that remain are
+the other platform units (`android.c`, `androidterm.c`, `androidvfs.c`, `gtkutil.c`,
+`haikuterm.c`, `w32.c`, `w32fns.c`, `w32proc.c`, `w32term.c`).
+
+### Deviations (this slice)
+
+1. **`DEFVAR_LISP!`/`DEFVAR_BOOL!` carry C's own `doc:` label; `DEFVAR_INT!` cannot** (the mirror's
+   macro has no such arm), so one invocation of twenty is positional - which is why the label is a
+   deviation worth recording rather than an accident.
+2. **`syms_of_androidfns_for_pdumper` becomes `unsafe extern "C" fn`** (Evidence ④).
+3. **C's two `#if false` blocks are dead text in every configuration** (the slice-9 rule): they are
+   recorded in the C-range table's row and here, and not transcribed; the three assignments that
+   *follow* them (`Vx_nontext_pointer_shape = Qnil;`, `Vx_mode_pointer_shape = Qnil;`) are live and
+   land with their comments naming the dead registration.
+4. **The six `staticpro`s take `&raw mut`** (the `haikufns.rs` 4241 shape), and the pdumper hook is
+   `Some (syms_of_androidfns_for_pdumper)` (the `androidfont.rs` 1349 call).
+5. **Thirty-five `defsubr (&raw mut S…)` lines**, in C's order, with the last five inside the
+   `not_android_stubify` block C 3773 opens.
+
+### Owed (this slice's additions)
+
+- **`docs/ports/line-drift-tolerance.tsv`**: the `androidfns` row (slice 13) now measures +24.9%;
+  the row carries 0.35 and says it will be re-measured when the file closes - **this is that
+  point**, and the row is left as the integrator's to tighten (the per-function token check passes
+  on every row, which is the real guard).
+- **Nothing else for this file**: the checklist has no open row.  What a run would have to show is
+  L3's business, not this ledger's.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no symbol was interned, no variable was registered, no
+  subr was registered, and no dumper hook was run.
+- The eight `E0609` rows of arm set A are not this slice's (slices 1, 11 and 14 own them); all
+  eight compile in arm set C.
