@@ -3415,3 +3415,167 @@ unsafe fn haiku_hide_hourglass (f: *mut frame)
 			       .current_cursor); }                    // C 2395
   unblock_input ();                                                   // C 2396
 }
+
+/* C 2398-2522: `haiku_compute_glyph_string_overhangs` (C 2399-2428),
+   `haiku_draw_vertical_window_border` (C 2430-2446), `haiku_set_scroll_bar_default_width`
+   (C 2448-2458), `haiku_set_scroll_bar_default_height` (C 2460-2470) and
+   `haiku_draw_window_divider` (C 2472-2522).  The next first definition is C 2524's
+   `haiku_condemn_scroll_bars`.  Three of the five are taken by the `redisplay_interface` table at
+   C 3158/3164/3165, so their C function-pointer ABI belongs to that slice (the `androidfns.rs`
+   slice-13 precedent; recorded in Deviations 5).  C 2456-2457 and C 2468-2469 write
+   `FRAME_CONFIG_SCROLL_BAR_WIDTH`/`_HEIGHT`/`_LINES`, whose mirror forms are readers, so the unit
+   adds the three setters in the `FRAME_CONFIG_SCROLL_BAR_COLS` shape above (C 711).  */
+
+#[cfg (feature = "have_haiku")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_WIDTH {
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_width = $v };
+}
+#[cfg (feature = "have_haiku")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_HEIGHT {
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_height = $v };
+}
+#[cfg (feature = "have_haiku")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_LINES {
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_lines = $v };
+}
+
+/* C 2399-2428.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_compute_glyph_string_overhangs (s: *mut glyph_string)
+{
+  if (*s).cmp.is_null ()                                              // C 2402
+      && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH        // C 2403
+	  || glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH)   // C 2404
+    {
+      let mut metrics: font_metrics = unsafe { core::mem::zeroed () };   // C 2406
+
+      if glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH         // C 2408
+	{
+	  let font: *mut font = (*s).font;                              // C 2410
+	  ((*((*font).driver as *const font_driver)).text_extents.unwrap ())
+	    (font, (*s).char2b, (*s).nchars, &raw mut metrics);           // C 2411
+	}
+      else
+	{
+	  let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);   // C 2415
+
+	  composition_gstring_width (gstring, (*s).cmp_from as ptrdiff_t,   // C 2417
+				     (*s).cmp_to as ptrdiff_t,
+				     &raw mut metrics as *mut c_void);
+	}
+      (*s).right_overhang = if metrics.rbearing > metrics.width         // C 2419
+	{ (metrics.rbearing - metrics.width) as c_int } else { 0 };    // C 2420
+      (*s).left_overhang = if metrics.lbearing < 0                      // C 2421
+	{ (- metrics.lbearing) as c_int } else { 0 };
+    }
+  else if ! (*s).cmp.is_null ()                                       // C 2423
+    {
+      (*s).right_overhang = ((*( (*s).cmp as *mut composition )).rbearing   // C 2425
+			     - (*( (*s).cmp as *mut composition )).pixel_width) as c_int;
+      (*s).left_overhang = (- (*( (*s).cmp as *mut composition )).lbearing) as c_int;   // C 2426
+    }
+}
+
+/* C 2430-2446.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_vertical_window_border (w: *mut window, x: c_int, y_0: c_int, y_1: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                     // C 2434
+  let face: *mut face;                                                // C 2435
+
+  face = FACE_FROM_ID_OR_NULL (f, VERTICAL_BORDER_FACE_ID);            // C 2437
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! (f);                    // C 2438
+  BView_draw_lock (view, true, x, y_0, 1, y_1);                         // C 2439
+  BView_StartClip (view);                                               // C 2440
+  if ! face.is_null ()                                                  // C 2441
+    { BView_SetHighColor (view, (*face).foreground as uint32_t); }       // C 2442
+  BView_StrokeLine (view, x, y_0, x, y_1);                              // C 2443
+  BView_EndClip (view);                                                 // C 2444
+  BView_draw_unlock (view);                                             // C 2445
+}
+
+/* C 2448-2458.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_set_scroll_bar_default_width (f: *mut frame)
+{
+  let mut unit: c_int;                                                 // C 2451
+  let mut size: c_int;
+
+  unit = FRAME_COLUMN_WIDTH (f);                                        // C 2453
+  size = BScrollBar_default_size (0) + 1;                               // C 2454
+
+  FRAME_CONFIG_SCROLL_BAR_WIDTH! (f, size);                             // C 2456
+  FRAME_CONFIG_SCROLL_BAR_COLS! (f, (size + unit - 1) / unit);          // C 2457
+}
+
+/* C 2460-2470.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_set_scroll_bar_default_height (f: *mut frame)
+{
+  let mut height: c_int;                                                // C 2463
+  let mut size: c_int;
+
+  height = FRAME_LINE_HEIGHT (f);                                       // C 2465
+  /* C 2466 passes C's `true` to the `int` parameter C 2454/2466 declare (haiku_support.h
+     626), so the port writes that conversion out (PORTING.md 1.1's rule; slice 1's
+     Deviation 9).  */
+  size = BScrollBar_default_size (true as c_int) + 1;                   // C 2466
+
+  FRAME_CONFIG_SCROLL_BAR_HEIGHT! (f, size);                            // C 2468
+  FRAME_CONFIG_SCROLL_BAR_LINES! (f, (size + height - 1) / height);     // C 2469
+}
+
+/* C 2472-2522.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_window_divider (w: *mut window, x0: c_int, x1: c_int,
+				     y0: c_int, y1: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                      // C 2475
+  let face: *mut face = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FACE_ID);   // C 2476
+  let face_first: *mut face                                             // C 2477
+    = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID);     // C 2478
+  let face_last: *mut face                                              // C 2479
+    = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_LAST_PIXEL_FACE_ID);      // C 2480
+  let color: c_ulong = if ! face.is_null ()                             // C 2481
+			 { (*face).foreground } else { FRAME_FOREGROUND_PIXEL (f) };
+  let color_first: c_ulong = if ! face_first.is_null ()                  // C 2482
+			       { (*face_first).foreground }              // C 2483
+			       else { FRAME_FOREGROUND_PIXEL (f) };      // C 2484
+  let color_last: c_ulong = if ! face_last.is_null ()                    // C 2485
+			      { (*face_last).foreground }                // C 2486
+			      else { FRAME_FOREGROUND_PIXEL (f) };       // C 2487
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! (f);                     // C 2488
+
+  BView_draw_lock (view, true, x0, y0, x1 - x0 + 1, y1 - y0 + 1);        // C 2490
+  BView_StartClip (view);                                               // C 2491
+
+  if (y1 - y0 > x1 - x0) && (x1 - x0 >= 3)                              // C 2493
+    /* A vertical divider, at least three pixels wide: Draw first and
+       last pixels differently.  */                                    // C 2494-2495
+    {
+      BView_SetHighColor (view, color_first as uint32_t);                // C 2497
+      BView_StrokeLine (view, x0, y0, x0, y1 - 1);                       // C 2498
+      BView_SetHighColor (view, color as uint32_t);                      // C 2499
+      BView_FillRectangle (view, x0 + 1, y0, x1 - x0 - 2, y1 - y0);       // C 2500
+      BView_SetHighColor (view, color_last as uint32_t);                 // C 2501
+      BView_StrokeLine (view, x1 - 1, y0, x1 - 1, y1 - 1);               // C 2502
+    }
+  else if (x1 - x0 > y1 - y0) && (y1 - y0 >= 3)                         // C 2504
+    /* A horizontal divider, at least three pixels high: Draw first and
+       last pixels differently.  */                                    // C 2505-2506
+    {
+      BView_SetHighColor (view, color_first as uint32_t);                // C 2508
+      BView_StrokeLine (view, x0, y0, x1 - 1, y0);                       // C 2509
+      BView_SetHighColor (view, color as uint32_t);                      // C 2510
+      BView_FillRectangle (view, x0, y0 + 1, x1 - x0, y1 - y0 - 2);       // C 2511
+      BView_SetHighColor (view, color_last as uint32_t);                 // C 2512
+      BView_FillRectangle (view, x0, y1 - 1, x1 - x0, 1);                // C 2513
+    }
+  else
+    {
+      BView_SetHighColor (view, color as uint32_t);                      // C 2517
+      BView_FillRectangleAbs (view, x0, y0, x1, y1);                     // C 2518
+    }
+  BView_EndClip (view);                                                 // C 2520
+  BView_draw_unlock (view);                                             // C 2521
+}
