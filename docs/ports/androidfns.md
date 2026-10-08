@@ -6,8 +6,8 @@
 > `androidfns.o` for this target and `extract-abi.py`'s checklist for the file is empty - its
 > checkbox sections cannot be coverage evidence (P-86 ②).  What follows is P-86 ②'s substitute: the
 > **C line-range table**, the `## Evidence` readings and the `## Deviations`.
-> Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), both arms of every
-> `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines) and **slice 2 = C
+> 1216-1489** (1,994 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -87,7 +87,24 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 708-727 | `android_create_frame_window` (C 714-720 the window creation) | real arm |
 | 728-729 | `#endif /* ANDROID_STUBIFY */` and the blank after it | gate marker |
 | 730-1214 | C 733-1214 `DEFUN ("x-create-frame")`: C 738-740 the stub arm, C 741-1213 the real arm, C 1015-1022 the `#if 0` | file gate, both sub-arms |
-| 1215-3797 | not ported: the file's remaining 2,583 lines (C 1216 `xw-color-defined-p` onward) | not ported |
+| 1215-1236 | `xw-color-defined-p` (C 1220-1222 the stub arm, C 1223-1235 the real one) | file gate, both sub-arms |
+| 1237-1258 | `xw-color-values` (C 1242-1244 / C 1245-1257 the pair) | file gate, both sub-arms |
+| 1259-1269 | `xw-display-color-p` | file gate |
+| 1270-1280 | `x-display-grayscale-p` | file gate |
+| 1281-1293 | `x-display-pixel-width` (C 1287-1289 / C 1290-1292 the pair) | file gate, both sub-arms |
+| 1294-1306 | `x-display-pixel-height` (C 1300-1302 / C 1303-1305 the pair) | file gate, both sub-arms |
+| 1307-1318 | `x-display-planes` | file gate |
+| 1319-1337 | `x-display-color-cells` (C 1333-1334 the truncation) | file gate |
+| 1338-1350 | `x-server-vendor` (C 1343-1345 / C 1346-1349 the pair; C 1348 reads a DEFVAR global) | file gate, both sub-arms |
+| 1351-1363 | `x-server-version` (C 1356-1358 / C 1359-1362 the pair) | file gate, both sub-arms |
+| 1364-1371 | `x-display-screens` | file gate |
+| 1372-1384 | `x-display-mm-width` (C 1377-1379 / C 1380-1383 the pair) | file gate, both sub-arms |
+| 1385-1397 | `x-display-mm-height` (C 1390-1392 / C 1393-1396 the pair) | file gate, both sub-arms |
+| 1398-1409 | `x-display-backing-store` (C 1406-1407 the comment C carries) | file gate |
+| 1410-1424 | `x-display-visual-class` | file gate |
+| 1425-1457 | C 1426's `#ifndef ANDROID_STUBIFY` plus `android_make_monitor_attribute_list` (C 1439-1450 the frame walk) | real arm |
+| 1458-1489 | C 1459's `DEFUN ("android-display-monitor-attributes-list")`: C 1472-1474 the stub arm, C 1475-1488 the real one (C 1479 the `memset`) | file gate, both sub-arms |
+| 1490-3797 | not ported: the file's remaining 2,308 lines (C 1491's `#ifndef ANDROID_STUBIFY` and `frame_geometry` onward) | not ported |
 
 ## Evidence
 
@@ -305,3 +322,100 @@ four pointer sizes to 4 (that target is not in this port's gate set).
   (Evidence ②), and the mirror's wrong *values* (Deviations 5, 8) are not exercised by a compiler.
 - C 1216-3797 is unported; nothing here speaks for those 2,583 lines.
 - Only `femacs/src/androidfns.rs` and `docs/ports/androidfns.md` were written by this lane.
+
+## Slice 2 (2026-10-08, status 4.063 - the integrator sets the round number): C 1216-1489
+
+**The slice's text.**  The fifteen terminal-information `DEFUN`s of C 1216-1424 (`xw-color-defined-p`,
+`xw-color-values`, `xw-display-color-p`, `x-display-grayscale-p`, `x-display-pixel-width`,
+`x-display-pixel-height`, `x-display-planes`, `x-display-color-cells`, `x-server-vendor`,
+`x-server-version`, `x-display-screens`, `x-display-mm-width`, `x-display-mm-height`,
+`x-display-backing-store`, `x-display-visual-class`), the static helper
+`android_make_monitor_attribute_list` under C 1426's `#ifndef ANDROID_STUBIFY` (C 1426-1457), and
+`Fandroid_display_monitor_attributes_list` (C 1459-1489).  Nine of the sixteen items carry C's
+`#ifdef ANDROID_STUBIFY` / `#else` pair as two cfg'd blocks in C's order (the stub arm is
+`not (not_android_stubify)`, the `Fx_create_frame` shape); the last one's real arm needs frame.h's
+`struct MonitorInfo`, which is where the slice's two use-site copies come from (Deviations 5).
+`frame_geometry` (C 1491-1622) opens the next slice.  Port line count **1,573 -> 1,994** (+421).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**
+`cd femacs && CARGO_TARGET_DIR=/tmp/androidfns-lane/cargo cargo run -q -p xtask -- probe
+src/androidfns.rs /tmp/androidfns-lane/o1.rlib --crate-type=lib -C panic=abort --cfg
+'feature="have_android"' --cfg 'feature="not_android_stubify"'` -> **exit 1, exactly 4 `error[E0609]`
+rows**, and they are slice 1's class: the two `f->tool_bar_window` reads (C 365-366) and the two
+`f->tab_bar_window` reads (C 466-467), at `build/probes/androidfns/_root.rs` **707, 708, 797 and
+798** (slice 1 recorded 705/706/795/796 against that revision's text; the unit has grown since).
+**0 rows in this slice's own text** and **no name-resolution error**, so rustc type-checked the whole
+unit and the four sites are still the complete list this gate set can produce.
+
+**Evidence ② - the stub arms, arm set B = `have_android` alone.**
+The same command without `not_android_stubify` -> **exit 0, 0 errors, 13 warnings** (all thirteen are
+`include/android.rs`'s own FFI-safety warnings about `android_vdir`).  This is the arm set C's
+`#ifdef ANDROID_STUBIFY` text lands in: the nine stub arms compile, and so do the two use-site copies
+- which is what makes the six layout assertions on the `MonitorInfo` copy a *measured* reading
+(`core::assert!` in a `const _` item is evaluated even under `--emit=metadata`; a wrong number is
+`E0080`, the reading `include/font.rs` gave for eight rows in slice 1's Evidence ③).
+
+**Evidence ③ - the window-system variant, arm set C = A + `have_window_system`.**
+-> **exit 0, 0 errors, 12 warnings.**  This is the reading that matters most for the new text: with
+`have_window_system` on, the use-site copies are gated off and the real arms compile against
+`include/frame.rs`'s own `MonitorInfo` and `make_monitor_attribute_list` (1936/1953), i.e. the slice's
+text is type-correct against **both** sides of the mirror's gate.  It also **retires slice 1's
+Evidence ③** (`--cfg 'feature="have_window_system"'` -> 8 `E0080` rows in `include/font.rs`): those
+were the mirror's window-system layout assertions, repaired by the mirror rounds (`e0ef5224`,
+`526b4670`), and the arm set that produced them is now clean.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**
+`python3 tools/extract-abi.py --check emacs/src/androidfns.c femacs/src/androidfns.rs`: **111 rows ->
+94**.  The closed seventeen are **16 `missing subr`** (34 -> 18: the fifteen `DEFUN`s above and the
+monitor-attributes one) and **1 `missing function`** (24 -> 23: `android_make_monitor_attribute_list`).
+Unchanged: **35 `missing defsubr`** (the `syms_of_*` registration block, the file's last item),
+**16 `missing constant`**, **1 `missing macro`**, and the drift row - which now reads
+**`C 3797 vs Rust 1994` (47.5%)**, down from `C 3797 vs Rust 1573` (58.6%).
+
+**Evidence ⑤ - the other gates.** `python3 tools/check-cond-eval.py src/androidfns.c` -> `36
+conditions, 0 unknown, 0 disagreements [VERIFIED]` (unchanged: the slice adds no `#if`);
+`python3 tools/check-dead-file-coverage.py` -> `58 range row(s) cover src/androidfns.c (3797 lines;
+0 blank line(s) between blocks need no row)` and `145 ledger(s) bound, 0 failure(s)`;
+`python3 tools/check-citations.py` -> 0 drift.
+
+### Deviations (this slice)
+
+1. **Two C locals that are declared without an initialiser and filled later are zero-initialised**
+   (PORTING.md 1.5): C 1224/1246's `Emacs_Color foo;` (C 1231/1253 pass it as an out parameter) and
+   C 1476's `struct MonitorInfo monitor;` (C 1479's `memset` and C 1480-1485's field writes fill it).
+2. **C's implicit integer conversions are spelled out**, because Rust's types are exact:
+   `list3i`'s three arguments `as EMACS_INT` (C 1254), `make_fixnum`'s seven
+   (C 1291/1304/1317/1336/1370/1382/1395), `make_nil_vector`/`ASET`/`AREF`'s index and size
+   `as isize` (C 1437/1447/1449), and the two geometry writes' `as c_uint` (C 1480-1481, the non-X
+   `Emacs_Rectangle`'s `unsigned int` members).
+3. **C's `&foo` / `&monitor` are `&raw mut`** (the tree's address-taking spelling, `xfns.rs`).
+4. **C 1485 assigns a string literal to `char *`**, which C allows and Rust does not: the port casts
+   C's `const` away (`c"Android device monitor".as_ptr () as *mut c_char`), the `android.rs` 1491
+   shape.
+5. **Two use-site copies** (P-72 rule 4, the `Display_Info` copy at line 417): frame.h 1926 gates
+   `struct MonitorInfo` and `make_monitor_attribute_list` on `HAVE_WINDOW_SYSTEM` and
+   `include/frame.rs` 1936/1953 gate both on `have_window_system`, so the unit supplies C's record
+   and declaration under C's names with the **complement** gate (`not (feature =
+   "have_window_system")`) - which is why arm set A type-checks (Evidence ①) and arm set C uses the
+   mirror's own copy (Evidence ③) with no duplicate-name clash.  The mirror's own comment records the
+   layout the six assertions check (sizeof 48 / align 8, members at 0 / 16 / 32 / 36 / 40).
+6. **C 1406-1407's comment is carried as a Rust comment** (C's two-line box above C 1408's `return`).
+
+### Owed (this slice's additions)
+
+- **`include/frame.rs`**: the gate on `struct MonitorInfo` (1936) and
+  `make_monitor_attribute_list` (1953) is `have_window_system`; an Android arm carries
+  `have_android` only, so the two use-site copies exist until the mirror's gate matches (`HAVE_ANDROID`
+  implies `HAVE_WINDOW_SYSTEM` in `configure.ac`'s `window_system=android` branch).
+- **The file's remainder**: C 1490-3797 (`frame_geometry`, the frame-geometry/edges/position
+  `DEFUN`s, the tooltips, the GC and colour helpers, the terminal hooks and `syms_of_androidfns`).
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - the frozen configuration compiles nothing from this file
+  (P-86 ③⑵), and this machine has no Android toolchain: nothing was run, no frame was created, no
+  display was queried.
+- **The four `E0609` rows of arm set A are pre-existing** (slice 1's sites, not this slice's); **0**
+  of this slice's rows are red in any of the three arm sets.
+- The `memset` at C 1479 is redundant with the port's zero-initialisation of the same object, and it
+  is kept because C has it (P-86 ⑪: the port does not tidy C's text).

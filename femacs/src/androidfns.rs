@@ -1571,3 +1571,424 @@ DEFUN! ("x-create-frame", Fx_create_frame, Sx_create_frame,
   return unbind_to (count, frame);
   }
 });
+
+/* --------------------------------------------------------------------------------------------
+   C 1216-1489: the terminal-information `DEFUN`s (C 1216-1424), the multimonitor list's static
+   helper (C 1426-1457) and its `DEFUN` (C 1459-1489).  Nine of the sixteen items carry C's
+   `#ifdef ANDROID_STUBIFY` / `#else` pair as two cfg'd blocks in C's order (the stub arm is
+   `not (not_android_stubify)`, the `Fx_create_frame` shape above), and the two `#ifndef
+   ANDROID_STUBIFY` blocks (C 1426, and C 1491's first half outside this slice) take the pair as
+   their gate.  `frame_geometry` (C 1491-1622) opens the next slice.  */
+
+/* C 1216-1236.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("xw-color-defined-p", Fxw_color_defined_p, Sxw_color_defined_p,
+	1, 2, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(color: Lisp_Object, frame: Lisp_Object),
+	{
+  /* C 1220-1222: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1221
+    return Qnil ();                                                // C 1222
+  }
+
+  /* C 1223-1235: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  /* C 1224 spells `Emacs_Color foo;` with no initialiser and fills it through C 1231's out
+     parameter, so the port zero-initialises it (PORTING.md 1.5; `docs/ports/androidfns.md` names
+     it).  */
+  let mut foo: Emacs_Color = std::mem::zeroed ();                  // C 1224
+  let mut f: *mut frame;                                           // C 1225
+
+  f = decode_window_system_frame (frame);                          // C 1227
+
+  CHECK_STRING (color);                                            // C 1229
+
+  if android_defined_color (f, SSDATA (color), &raw mut foo,       // C 1231
+			    false, false)
+    { return Qt (); }                                              // C 1232
+  else
+    { return Qnil (); }                                            // C 1234
+  }
+});
+
+/* C 1238-1258.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("xw-color-values", Fxw_color_values, Sxw_color_values,
+	1, 2, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(color: Lisp_Object, frame: Lisp_Object),
+	{
+  /* C 1242-1244: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1243
+    return Qnil ();                                                // C 1244
+  }
+
+  /* C 1245-1257: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  let mut foo: Emacs_Color = std::mem::zeroed ();                  // C 1246 (PORTING.md 1.5)
+  let mut f: *mut frame;                                           // C 1247
+
+  f = decode_window_system_frame (frame);                          // C 1249
+
+  CHECK_STRING (color);                                            // C 1251
+
+  if android_defined_color (f, SSDATA (color), &raw mut foo,       // C 1253
+			    false, false)
+    /* C's three `unsigned short` members widen to `list3i`'s `EMACS_INT` parameters.  */
+    { return list3i (foo.red as EMACS_INT,                         // C 1254
+		     foo.green as EMACS_INT,
+		     foo.blue as EMACS_INT); }
+  else
+    { return Qnil (); }                                            // C 1256
+  }
+});
+
+/* C 1260-1269.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("xw-display-color-p", Fxw_display_color_p, Sxw_display_color_p,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let mut dpyinfo: *mut android_display_info;                      // C 1265
+
+  dpyinfo = check_android_display_info (terminal);                 // C 1267
+  return if (*dpyinfo).n_planes > 8 { Qt () } else { Qnil () };     // C 1268
+});
+
+/* C 1271-1280.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-grayscale-p", Fx_display_grayscale_p, Sx_display_grayscale_p,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let mut dpyinfo: *mut android_display_info;                      // C 1276
+
+  dpyinfo = check_android_display_info (terminal);                 // C 1278
+  return if (*dpyinfo).n_planes > 1 { Qt () } else { Qnil () };     // C 1279
+});
+
+/* C 1282-1293.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-pixel-width", Fx_display_pixel_width, Sx_display_pixel_width,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  /* C 1287-1289: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1288
+    return Qnil ();                                                // C 1289
+  }
+
+  /* C 1290-1292: the `#else` arm.  C's `int` result widens to `make_fixnum`'s `EMACS_INT`.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+    return make_fixnum (android_get_screen_width () as EMACS_INT); // C 1291
+  }
+});
+
+/* C 1295-1306.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-pixel-height", Fx_display_pixel_height, Sx_display_pixel_height,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  /* C 1300-1302: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1301
+    return Qnil ();                                                // C 1302
+  }
+
+  /* C 1303-1305: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+    return make_fixnum (android_get_screen_height () as EMACS_INT); // C 1304
+  }
+});
+
+/* C 1308-1318.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-planes", Fx_display_planes, Sx_display_planes,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let mut dpyinfo: *mut android_display_info;                      // C 1313
+
+  dpyinfo = check_android_display_info (terminal);                 // C 1315
+
+  return make_fixnum ((*dpyinfo).n_planes as EMACS_INT);           // C 1317
+});
+
+/* C 1320-1337.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-color-cells", Fx_display_color_cells, Sx_display_color_cells,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let mut dpyinfo: *mut android_display_info;                      // C 1325
+  let mut nr_planes: c_int;                                        // C 1326
+
+  dpyinfo = check_android_display_info (terminal);                 // C 1328
+  nr_planes = (*dpyinfo).n_planes;                                 // C 1329
+
+  /* Truncate nr_planes to 24 to avoid integer overflow.  */         // C 1331
+
+  if nr_planes > 24                                                // C 1333
+    { nr_planes = 24; }                                            // C 1334
+
+  return make_fixnum ((1 << nr_planes) as EMACS_INT);              // C 1336
+});
+
+/* C 1339-1350.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-server-vendor", Fx_server_vendor, Sx_server_vendor,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  /* C 1343-1345: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1344
+    return Qnil ();                                                // C 1345
+  }
+
+  /* C 1346-1349: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  check_android_display_info (terminal);                           // C 1347
+  return Vandroid_build_manufacturer;                              // C 1348
+  }
+});
+
+/* C 1352-1363.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-server-version", Fx_server_version, Sx_server_version,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  /* C 1356-1358: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1357
+    return Qnil ();                                                // C 1358
+  }
+
+  /* C 1359-1362: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  check_android_display_info (terminal);                           // C 1360
+  return list3i (android_get_current_api_level () as EMACS_INT,     // C 1361
+		 0, 0);
+  }
+});
+
+/* C 1365-1371.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-screens", Fx_display_screens, Sx_display_screens,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  check_android_display_info (terminal);                           // C 1369
+  return make_fixnum (1);                                          // C 1370
+});
+
+/* C 1373-1384.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-mm-width", Fx_display_mm_width, Sx_display_mm_width,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  /* C 1377-1379: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1378
+    return Qnil ();                                                // C 1379
+  }
+
+  /* C 1380-1383: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  check_android_display_info (terminal);                           // C 1381
+  return make_fixnum (android_get_mm_width () as EMACS_INT);       // C 1382
+  }
+});
+
+/* C 1386-1397.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-mm-height", Fx_display_mm_height, Sx_display_mm_height,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  /* C 1390-1392: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1391
+    return Qnil ();                                                // C 1392
+  }
+
+  /* C 1393-1396: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  check_android_display_info (terminal);                           // C 1394
+  return make_fixnum (android_get_mm_height () as EMACS_INT);      // C 1395
+  }
+});
+
+/* C 1399-1409.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-backing-store", Fx_display_backing_store, Sx_display_backing_store,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  check_android_display_info (terminal);                           // C 1404
+
+  /* Window contents are preserved insofar as they remain mapped, in a
+     fashion tantamount to WhenMapped.  */                        // C 1406-1407
+  return Qwhen_mapped ();                                          // C 1408
+});
+
+/* C 1411-1424.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-display-visual-class", Fx_display_visual_class, Sx_display_visual_class,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let mut dpyinfo: *mut android_display_info;                      // C 1416
+
+  dpyinfo = check_android_display_info (terminal);                 // C 1418
+
+  if (*dpyinfo).n_planes < 24                                      // C 1420
+    { return Qstatic_gray (); }                                    // C 1421
+
+  return Qtrue_color ();                                           // C 1423
+});
+
+/* Two use-site copies (P-72 rule 4; the `Display_Info` shape at line 412): frame.h 1926's
+   `#ifdef HAVE_WINDOW_SYSTEM` gates `struct MonitorInfo` and `make_monitor_attribute_list`, and
+   `include/frame.rs` 1936/1953 carry the pair under `have_window_system` - a feature this unit's
+   gate set does not include - so the port supplies C's own record and declaration under C's own
+   names until the mirror's gate matches.  The complement gate is what keeps the two copies from
+   colliding, and the layout assertions below are the ones the mirror's own comment records
+   (sizeof 48 / align 8, members at 0 / 16 / 32 / 36 / 40; the non-X `Emacs_Rectangle` this
+   configuration's dispextern.h carries).  `docs/ports/androidfns.md` names both as mirror gaps.  */
+/// C: frame.h 1934: `struct MonitorInfo { Emacs_Rectangle geom, work; int mm_width, mm_height; char *name; };`
+#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+#[repr(C)]
+pub struct MonitorInfo
+{
+  pub geom: Emacs_Rectangle,                                       // C 1934
+  pub work: Emacs_Rectangle,
+  pub mm_width: c_int,
+  pub mm_height: c_int,
+  pub name: *mut c_char,
+}
+#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::size_of::<MonitorInfo> () == 48);
+#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, geom) == 0);
+#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, work) == 16);
+#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, mm_width) == 32);
+#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, mm_height) == 36);
+#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, name) == 40);
+/// C: frame.h 1938: `extern Lisp_Object make_monitor_attribute_list (struct MonitorInfo *monitors,`
+/// (C 1939 continues `int n_monitors, int primary_monitor, Lisp_Object monitor_frames, const char *source);`)
+#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+unsafe extern "C" {
+  pub fn make_monitor_attribute_list (monitors: *mut MonitorInfo, n_monitors: c_int,
+                                      primary_monitor: c_int, monitor_frames: Lisp_Object,
+                                      source: *const c_char) -> Lisp_Object;
+}
+
+/* C 1426-1457: `#ifndef ANDROID_STUBIFY` (C 1426) around the static helper.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_make_monitor_attribute_list (monitors: *mut MonitorInfo,
+					       n_monitors: c_int,
+					       primary_monitor: c_int) -> Lisp_Object
+{                                                              // C 1428-1455
+  let mut monitor_frames: Lisp_Object;                             // C 1433
+  let mut frame: Lisp_Object;                                      // C 1434
+  let mut rest: Lisp_Object;
+  let mut f: *mut frame;                                           // C 1435
+
+  monitor_frames = make_nil_vector (n_monitors as isize);          // C 1437
+
+  /* C's `FOR_EACH_FRAME (rest, frame)` takes the body as its last argument (the mirror's
+     `FOR_EACH_FRAME!`; docs/ports/macro-body-notes.tsv).  */
+  FOR_EACH_FRAME! (rest, frame, {                                  // C 1439
+      f = XFRAME (frame);                                          // C 1441
+
+      /* Associate all frames with the primary monitor.  */         // C 1443
+
+      if FRAME_WINDOW_P (f)                                        // C 1445
+	  && !FRAME_TOOLTIP_P (f)                                  // C 1446
+	{ ASET (monitor_frames, primary_monitor as isize,          // C 1447
+		Fcons (frame, AREF (monitor_frames,                // C 1448
+				    primary_monitor as isize)));   // C 1449
+	}
+  });
+
+  return make_monitor_attribute_list (monitors, n_monitors,        // C 1452
+				      primary_monitor,
+                                      monitor_frames, std::ptr::null ());  // C 1454
+}
+
+/* C 1459-1489.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-display-monitor-attributes-list", Fandroid_display_monitor_attributes_list,
+	 Sandroid_display_monitor_attributes_list,
+	 0, 1, 0,
+	 doc: "Return a list of physical monitor attributes on the X display TERMINAL.\n\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nInternal use only, use `display-monitor-attributes-list' instead.  ",
+	 (terminal: Lisp_Object),
+	 {
+  /* C 1472-1474: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 1473
+    return Qnil ();                                                // C 1474
+  }
+
+  /* C 1475-1488: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  /* C 1476 spells `struct MonitorInfo monitor;` with no initialiser and fills it field by field
+     from C 1479, so the port zero-initialises it (PORTING.md 1.5).  */
+  let mut monitor: MonitorInfo = std::mem::zeroed ();              // C 1476
+
+  check_android_display_info (terminal);                           // C 1478
+  memset (&raw mut monitor as *mut c_void, 0,                      // C 1479
+	  std::mem::size_of::<MonitorInfo> ());
+  monitor.geom.width = android_get_screen_width () as c_uint;      // C 1480
+  monitor.geom.height = android_get_screen_height () as c_uint;    // C 1481
+  monitor.mm_width = android_get_mm_width ();                      // C 1482
+  monitor.mm_height = android_get_mm_height ();                    // C 1483
+  monitor.work = monitor.geom;                                     // C 1484
+  monitor.name = c"Android device monitor".as_ptr () as *mut c_char;  // C 1485
+
+  return android_make_monitor_attribute_list (&raw mut monitor, 1, 0);  // C 1487
+  }
+});
