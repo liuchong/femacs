@@ -9,8 +9,9 @@
 > Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), **slice 2 = C
 > 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines), **slice 4 = C
 > 1705-1800** (2,332 Rust lines), **slice 5 = C 1801-1910** (2,447 Rust lines), **slice 6 = C
-> 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines) and **slice 8 = C
-> 2295-2583** (3,313 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines), **slice 8 = C
+> 2295-2583** (3,313 Rust lines) and **slice 9 = C 2584-2662** (3,416 Rust lines), both arms of
+> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -123,7 +124,11 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 2170-2218 | C 2171's `android_hide_tip` (C 2174-2178 the timer cancel, C 2180-2185 the early return, C 2188-2216 the delete/invisible body) | real arm |
 | 2219-2294 | C 2220's `compute_tip_xy` (C 2242-2256 the mouse-frame read and the coordinate translation, C 2258-2261 the screen bounds, C 2263-2293 the two clamps) | real arm |
 | 2295-2583 | C's `#endif` at 2296 and C 2298's `DEFUN ("x-show-tip")`: C 2303-2305 the stub arm, C 2306-2582 the real one (C 2307-2320 the locals and `AUTO_STRING`, C 2322-2347 the parameter defaults, C 2349-2428 the reuse/hide logic, C 2430-2460 the tip frame creation, C 2462-2500 the root window, C 2502-2516 the text insertion, C 2518-2534 the `ENABLE_CHECKING` row walk, C 2536-2556 the size and placement, C 2558-2575 the update, C 2577-2581 the label and the timer) | file gate, both sub-arms |
-| 2584-3797 | not ported: the file's remaining 1,214 lines (C 2585's `DEFUN ("x-hide-tip")` onward) | not ported |
+| 2584-2600 | C 2585's `DEFUN ("x-hide-tip")`: C 2589-2596 the stub arm (C 2593-2595's `#if 0` recorded, not transcribed) and C 2597-2598 the real one | file gate, both sub-arms |
+| 2601-2619 | C 2602's `DEFUN ("android-detect-mouse")`: C 2609-2615 the real arm, C 2616-2617 the stub | file gate, both sub-arms |
+| 2620-2638 | C 2621's `DEFUN ("android-detect-keyboard")`: C 2628-2634 the real arm, C 2635-2636 the stub | file gate, both sub-arms |
+| 2639-2662 | C 2640's `DEFUN ("android-toggle-on-screen-keyboard")`: C 2650-2659 the real arm and C 2661's `return Qnil;` outside its `#endif` | file gate |
+| 2663-3797 | not ported: the file's remaining 1,135 lines (C 2666's `#ifndef ANDROID_STUBIFY` and `android_set_background_color` onward) | not ported |
 
 ## Evidence
 
@@ -852,4 +857,58 @@ is **1 `missing subr`** (10 -> 9: `Fx_show_tip`).  The drift row now reads **`C 
 - **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
   compiles nothing from this file (P-86 ③⑵): no tip was shown, no tooltip buffer was filled, no
   glyph matrix was cleared.
+- The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
+
+## Slice 9 (2026-10-08, status 4.070 - the integrator sets the round number): C 2584-2662
+
+**The slice's text.**  Four `DEFUN`s: `Fx_hide_tip` (C 2585-2600, whose stub arm carries C
+2590-2592's "stay silent" comment and C 2593-2595's `#if 0` around the `error` call - C's own dead
+text, recorded here and not transcribed, the `xfns.rs` 958 `#if false` precedent),
+`Fandroid_detect_mouse` (C 2602-2619, C's `#ifndef` arm first), `Fandroid_detect_keyboard`
+(C 2621-2638, same shape, stub returns `Qt`) and `Fandroid_toggle_on_screen_keyboard`
+(C 2640-2662, whose `#endif` has no `#else`, so C 2661's `return Qnil;` stands outside it).  Port
+line count **3,313 -> 3,416** (+103).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**  The
+first run reads **exit 1, exactly 4 `error[E0609]` rows** - unchanged, still slice 1's class, **0
+in this slice's text** (no probe defect this round: the four items are C's own shapes and the
+names they reach are `include/android.rs`'s - `android_init_gui`, `android_detect_mouse`,
+`android_detect_keyboard`, `android_toggle_on_screen_keyboard`).
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings**: the four
+stub arms compile (including `Fx_hide_tip`'s, whose `#if 0` block is not transcribed).
+
+**Evidence ③ - arm set C = A + `have_window_system`.**  **exit 0, 0 errors, 12 warnings.**
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **78 rows -> 74**: the four
+closed are **4 `missing subr`** (9 -> 5: `Fx_hide_tip`, `Fandroid_detect_mouse`,
+`Fandroid_detect_keyboard`, `Fandroid_toggle_on_screen_keyboard`).  The drift row now reads
+**`C 3797 vs Rust 3416` (10.0%)**, from 12.7%.
+
+### Deviations (this slice)
+
+1. **C 2593-2595's `#if 0` block is dead text in every configuration**, so it is recorded here (and
+   in the C-range table's row) instead of transcribed; the surrounding stub arm's silent
+   `return Qnil;` is kept with C's comment.
+2. **C's `#ifndef` arms come first in the two `detect` `DEFUN`s** (the order C writes them), while
+   `Fx_hide_tip` and the on-screen-keyboard item keep C's order too - the port never reorders a
+   pair, it only spells each arm as a cfg'd block.
+3. **C 2615/2634's ternaries are `if` expressions** (`return if … { Qt () } else { Qnil () };`),
+   and C 2612/2631's `if (!android_init_gui)` reads the `bool` global directly.
+4. **C 2650-2659's `#endif` without `#else`** leaves C 2661's `return Qnil;` outside the cfg'd
+   block, exactly as C has it, so the stub side of that pair is that same statement.
+
+### Owed (this slice's additions)
+
+- **The file's remainder**: C 2663-3797 (1,135 lines) - the frame-parameter setters
+  (`android_set_background_color` onward), the remaining `DEFUN`s, the GC and colour helpers, the
+  terminal hooks and `syms_of_androidfns`'s registrations (the 35 unchanged `missing defsubr`
+  rows).
+- Nothing new for the mirrors.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no tip was hidden, no mouse or keyboard was probed,
+  no on-screen keyboard was requested.
 - The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.

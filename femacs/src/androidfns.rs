@@ -3311,3 +3311,106 @@ DEFUN! ("x-show-tip", Fx_show_tip, Sx_show_tip, 1, 6, 0,
   return unbind_to (count, Qnil ());                                // C 2581
   }
 });
+
+/* C 2584-2662: four `DEFUN`s - `Fx_hide_tip` (C 2585-2600), `Fandroid_detect_mouse`
+   (C 2602-2619), `Fandroid_detect_keyboard` (C 2621-2638) and
+   `Fandroid_toggle_on_screen_keyboard` (C 2640-2662).  The first carries C's pair in C's order
+   (the stub arm first), the next two carry C's `#ifndef` first, and the last one's real arm is
+   followed by C's `return Qnil;` outside the `#endif` (C 2661).  */
+
+/* C 2585-2600.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-hide-tip", Fx_hide_tip, Sx_hide_tip, 0, 0, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(),
+	{
+  /* C 2589-2596: `#ifdef ANDROID_STUBIFY`.  C 2590-2592's comment explains why the stub stays
+     silent (its caller is `pre-command-hook`, so signalling would stop every test) and C 2593-2595
+     wraps the `error` call in C's own `#if 0`, which no configuration compiles, so it is recorded
+     in `docs/ports/androidfns.md` and not transcribed (the `xfns.rs` 958 `#if false` precedent).  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    return Qnil ();                                                // C 2596
+  }
+
+  /* C 2597-2598: the `#else /* !ANDROID_STUBIFY */` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  return android_hide_tip (!tooltip_reuse_hidden_frame);            // C 2598
+  }
+});
+
+/* C 2602-2619.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-detect-mouse", Fandroid_detect_mouse, Sandroid_detect_mouse,
+	0, 0, 0,
+	doc: "Figure out whether or not there is a mouse.\nReturn non-nil if a mouse is connected to this computer, and nil if\nthere is no mouse.  ",
+	(),
+	{
+  /* C 2609-2615: the real arm (`#ifndef ANDROID_STUBIFY`).  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  /* If no display connection is present, just return nil.  */      // C 2610
+
+  if !android_init_gui                                             // C 2612
+    { return Qnil (); }                                            // C 2613
+
+  return if android_detect_mouse () { Qt () } else { Qnil () };     // C 2615
+  }
+
+  /* C 2616-2617: the `#else` arm.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+  return Qnil ();                                                  // C 2617
+  }
+});
+
+/* C 2621-2638.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-detect-keyboard", Fandroid_detect_keyboard, Sandroid_detect_keyboard,
+	0, 0, 0,
+	doc: "Return whether a keyboard is connected.\nReturn non-nil if a key is connected to this computer, or nil\nif there is no keyboard.  ",
+	(),
+	{
+  /* C 2628-2634: the real arm (`#ifndef ANDROID_STUBIFY`).  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  /* If no display connection is present, just return nil.  */      // C 2629
+
+  if !android_init_gui                                             // C 2631
+    { return Qnil (); }                                            // C 2632
+
+  return if android_detect_keyboard () { Qt () } else { Qnil () };  // C 2634
+  }
+
+  /* C 2635-2636: the `#else /* ANDROID_STUBIFY */` arm.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+  return Qt ();                                                    // C 2636
+  }
+});
+
+/* C 2640-2662.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-toggle-on-screen-keyboard", Fandroid_toggle_on_screen_keyboard,
+	 Sandroid_toggle_on_screen_keyboard,
+	 2, 2, 0,
+	 doc: "Display or hide the on-screen keyboard.\nIf HIDE is non-nil, hide the on screen keyboard if it is currently\nbeing displayed.  Else, request that the system display it on behalf\nof FRAME.  This request may be rejected if FRAME does not have the\ninput focus.  ",
+	 (frame: Lisp_Object, hide: Lisp_Object),
+	 {
+  /* C 2650-2659: the real arm (`#ifndef ANDROID_STUBIFY`); C's `#endif` has no `#else`, so the
+     stub side of this pair is C 2661's `return Qnil;` outside it.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  let mut f: *mut frame;                                           // C 2651
+
+  f = decode_window_system_frame (frame);                          // C 2653
+
+  block_input ();                                                  // C 2655
+  android_toggle_on_screen_keyboard (FRAME_ANDROID_WINDOW! (f),    // C 2656
+				     NILP (hide));
+  unblock_input ();                                                // C 2658
+  }
+
+  return Qnil ();                                                  // C 2661
+});
