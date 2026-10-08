@@ -3043,6 +3043,11 @@ unsafe extern "C" {
   pub fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row, glyph: *mut glyph,
 				   x: *mut c_int, y: *mut c_int, h: *mut c_int);
   pub fn do_pending_window_change (safe: bool);
+  /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);` -
+  /// reached through `WINDOW_BOX_HEIGHT_NO_MODE_LINE!` (include/dispextern.rs 1308 and the two
+  /// siblings), which no mirror declares the callee of, so the unit names it here (P-72 rule 4;
+  /// the `lookup_basic_face` entry below is the same class).
+  pub fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int;
   /// C: dispextern.h 3813: `int lookup_basic_face (struct window *, struct frame *, int);` -
   /// `include/dispextern.rs` 4051 records it as owed rather than declared, so the unit names it
   /// here (the `xterm.rs` 8692 use-site read of the same prototype).
@@ -3723,4 +3728,127 @@ unsafe fn haiku_judge_scroll_bars (f: *mut frame)
 
   /* Now there should be no references to the condemned scroll bars,
      and they should get garbage-collected.  */                      // C 2643-2644
+}
+
+/* C 2646-2745: `haiku_scroll_bar_create` (C 2647-2690) and `haiku_set_horizontal_scroll_bar`
+   (C 2692-2745).  The next first definition is C 2747's `haiku_set_vertical_scroll_bar`.
+   `haiku_set_horizontal_scroll_bar_thumb` (C 2739's call) is this file's own C 497-516
+   definition, already landed at slice 1 (line 975); everything else is a mirror's:
+   `ALLOCATE_PSEUDOVECTOR!` (include/lisp.rs 2970, the `alloc.rs` 4139 spelling),
+   `XSETWINDOW!`/`XSETVECTOR!` (include/lisp.rs), `WINDOW_HAS_HORIZONTAL_SCROLL_BAR` (the
+   mirror's *function*, window.rs 472), `WINDOW_SCROLL_BAR_AREA_Y` (window.rs), the
+   `BView_*`/`be_*` scroll-bar surface (include/haiku_support.rs) and `wset_horizontal_scroll_bar`
+   (window.rs).  */
+
+/* C 2647-2690.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_scroll_bar_create (w: *mut window, left: c_int, top: c_int,
+				   width: c_int, height: c_int,
+				   horizontal_p: bool) -> *mut scroll_bar
+{
+  let f: *mut frame;                                                  // C 2651
+  let mut barobj: Lisp_Object;                                         // C 2652
+  let mut bar: *mut scroll_bar;                                        // C 2653
+  let mut scroll_bar: *mut c_void;                                     // C 2654
+  let view: *mut c_void;                                               // C 2655
+
+  f = XFRAME (WINDOW_FRAME! (w));                                      // C 2657
+  view = FRAME_HAIKU_DRAWABLE! (f);                                    // C 2658
+
+  block_input ();                                                      // C 2660
+  bar = ALLOCATE_PSEUDOVECTOR! (scroll_bar, prev, pvec_type::PVEC_OTHER);   // C 2661
+
+  XSETWINDOW! ((*bar).window, w);                                      // C 2663
+  (*bar).top = top;                                                    // C 2664
+  (*bar).left = left;                                                  // C 2665
+  (*bar).width = width;                                                // C 2666
+  (*bar).height = height;                                              // C 2667
+  (*bar).position = 0;                                                 // C 2668
+  (*bar).total = 0;                                                    // C 2669
+  (*bar).dragging = 0;                                                 // C 2670
+  (*bar).update = -1;                                                  // C 2671
+  (*bar).horizontal = horizontal_p;                                    // C 2672
+
+  /* C's prototype takes an `int` for the flag (haiku_support.h 624), so the port writes C's own
+     `bool` -> `int` conversion out (the `BScrollBar_default_size` reading of C 2466).  */
+  scroll_bar = be_make_scroll_bar_for_view (view, horizontal_p as c_int,   // C 2674
+					    left, top, left + width - 1,   // C 2675
+					    top + height - 1);          // C 2676
+  BView_publish_scroll_bar (view, left, top, width, height);            // C 2677
+
+  (*bar).next = FRAME_SCROLL_BARS (f);                                 // C 2679
+  (*bar).prev = Qnil ();                                               // C 2680
+  (*bar).scroll_bar = scroll_bar;                                      // C 2681
+  XSETVECTOR! (barobj, bar);                                           // C 2682
+  fset_scroll_bars (f, barobj);                                        // C 2683
+
+  if ! NILP ((*bar).next)                                             // C 2685
+    { XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }          // C 2686
+
+  unblock_input ();                                                    // C 2688
+  return bar;                                                          // C 2689
+}
+
+/* C 2692-2745.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+					   position: c_int)
+{
+  let mut barobj: Lisp_Object;                                         // C 2695
+  let mut bar: *mut scroll_bar;                                        // C 2696
+  let mut top: c_int;                                                  // C 2697
+  let mut height: c_int;
+  let mut left: c_int;
+  let mut width: c_int;
+  /* C 2698 declares the two outputs of C 2703's `window_box` with no initialiser and C 2703 hands
+     the callee their addresses, so the port zero-initialises them (PORTING.md 1.5).  */
+  let mut window_x: c_int = 0;
+  let mut window_width: c_int = 0;
+  let view: *mut c_void;                                               // C 2699
+
+  eassert! (WINDOW_HAS_HORIZONTAL_SCROLL_BAR (w));                      // C 2701
+  /* Get window dimensions.  */                                       // C 2702
+  window_box (w, ANY_AREA, &raw mut window_x, std::ptr::null_mut (),    // C 2703
+	      &raw mut window_width, std::ptr::null_mut ());
+  left = window_x;                                                      // C 2704
+  width = window_width;                                                 // C 2705
+  top = WINDOW_SCROLL_BAR_AREA_Y! (w);                                  // C 2706
+  height = WINDOW_CONFIG_SCROLL_BAR_HEIGHT! (w);                        // C 2707
+  view = FRAME_HAIKU_DRAWABLE! (WINDOW_XFRAME! (w));                     // C 2708
+
+  block_input ();                                                       // C 2710
+
+  if NILP ((*w).horizontal_scroll_bar)                                  // C 2712
+    {
+      bar = haiku_scroll_bar_create (w, left, top, width, height, true);   // C 2714
+      (*bar).update = position;                                          // C 2715
+      (*bar).position = position;                                        // C 2716
+      (*bar).total = whole;                                              // C 2717
+    }
+  else
+    {
+      bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                   // C 2721
+
+      if (*bar).left != left || (*bar).top != top                        // C 2723
+	  || (*bar).width != width || (*bar).height != height            // C 2724
+	{
+	  BView_forget_scroll_bar (view, (*bar).left, (*bar).top,          // C 2726
+				   (*bar).width, (*bar).height);          // C 2727
+	  BView_move_frame ((*bar).scroll_bar, left, top,                  // C 2728
+			    left + width - 1, top + height - 1);          // C 2729
+	  BView_publish_scroll_bar (view, left, top, width, height);       // C 2730
+
+	  (*bar).left = left;                                              // C 2732
+	  (*bar).top = top;                                                // C 2733
+	  (*bar).width = width;                                            // C 2734
+	  (*bar).height = height;                                          // C 2735
+	}
+    }
+
+  haiku_set_horizontal_scroll_bar_thumb (bar, portion, position, whole);   // C 2739
+  (*bar).position = position;                                          // C 2740
+  (*bar).total = whole;                                                // C 2741
+  XSETVECTOR! (barobj, bar);                                           // C 2742
+  wset_horizontal_scroll_bar (w, barobj);                              // C 2743
+  unblock_input ();                                                    // C 2744
 }
