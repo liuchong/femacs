@@ -31416,6 +31416,210 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	  'keysym: {
 		match (*event).r#type                                             // C 18949
 		{
+		  /* C 18951-19147: `case ClientMessage:` - the switch's first arm and the head of the XDND/
+		     Motif state machine `--check`'s long token row names (Decision 151).  This slice lands the
+		     `XdndStatus` block, the `XdndFinished` block and the `MOTIF_DRAG_AND_DROP_MESSAGE` block;
+		     C's `goto done` is the port's `break 'other`, the jump that skips `OTHER:` (Decision 126).  */
+		  ClientMessage =>
+		    {
+		      use crate::x11_constants::NoEventMask;
+
+		      let mut rc: c_int;                                       // C 18953
+		      /* C 18953's local is used only at C 19465-19468 (this arm's last block); this slice's
+		         reading shows no row for it (measured), and the arm's last slice gives it its uses.  */
+
+		      if (((x_dnd_in_progress                                  // C 18955
+			&& FRAME_DISPLAY_INFO! (x_dnd_frame) == dpyinfo)              // C 18956
+			|| (x_dnd_waiting_for_finish                                  // C 18957
+			&& FRAME_DISPLAY_INFO! (x_dnd_finish_frame) == dpyinfo))      // C 18958
+			&& (*event).xclient.message_type == (*dpyinfo).Xatom_XdndStatus) // C 18959
+			{
+			let mut target: Window;                                       // C 18961
+			let mut r1: c_ulong;                                          // C 18962
+			let mut r2: c_ulong;
+			let mut root_x: c_int;                                        // C 18963
+			let mut root_y: c_int;
+			let mut button: bool;                                         // C 18964
+
+			target = (*event).xclient.data.l[0];                          // C 18966
+
+			if x_dnd_last_protocol_version != -1                          // C 18968
+			  && x_dnd_in_progress                                        // C 18969
+			  && target == x_dnd_last_seen_toplevel                       // C 18970
+			  /* "The XDND documentation is not very clearly worded.  But this should be the
+			     correct behavior, since \"kDNDStatusSendHereFlag\" in the reference implementation
+			     is 2, and means the mouse rect should be ignored."  */
+			  && ((*event).xclient.data.l[1] & 2) == 0                    // C 18976
+			  {
+			    r1 = (*event).xclient.data.l[2];                          // C 18978
+			    r2 = (*event).xclient.data.l[3];                          // C 18979
+
+			    x_dnd_mouse_rect_target = target;                         // C 18981
+			    x_dnd_mouse_rect.x = ((r1 & 0xffff0000) >> 16) as c_short; // C 18982
+			    x_dnd_mouse_rect.y = (r1 & 0xffff) as c_short;            // C 18983
+			    x_dnd_mouse_rect.width = ((r2 & 0xffff0000) >> 16) as c_ushort; // C 18984
+			    x_dnd_mouse_rect.height = (r2 & 0xffff) as c_ushort;      // C 18985
+			  }
+			  else
+			    { x_dnd_mouse_rect_target = None as Window; }             // C 18988
+
+			if x_dnd_last_protocol_version != -1                          // C 18990
+			  && (x_dnd_in_progress                                       // C 18991
+			      && target == x_dnd_last_seen_window)                    // C 18992
+			  {
+			    if ((*event).xclient.data.l[1] & 1) != 0                  // C 18994
+			    {
+			      if x_dnd_last_protocol_version >= 2                     // C 18996
+			        { x_dnd_action = (*event).xclient.data.l[4]; }        // C 18997
+			      else
+			        { x_dnd_action = (*dpyinfo).Xatom_XdndActionCopy; }   // C 18999
+			    }
+			    else
+			      { x_dnd_action = None as Atom; }                        // C 19002
+			  }
+
+			/* "Send any pending XdndPosition message."  */
+			if x_dnd_waiting_for_status_window == target                  // C 19006
+			{
+			  if x_dnd_pending_send_position.r#type != 0                  // C 19008
+			  {
+			    /* "If the last XdndStatus specified a mouse rectangle and this event falls inside,
+			       don't send the event, but clear x_dnd_waiting_for_status_window instead."  */
+
+			    root_x = x_dnd_pending_send_position_root_x;              // C 19015
+			    root_y = x_dnd_pending_send_position_root_y;              // C 19016
+			    button = x_dnd_pending_send_position_button;              // C 19017
+
+			    if target == x_dnd_mouse_rect_target                      // C 19019
+			      && x_dnd_mouse_rect.width != 0                          // C 19020
+			      && x_dnd_mouse_rect.height != 0                         // C 19021
+			      /* "Ignore the mouse rectangle if we're supposed to be sending a button press
+			         instead."  */
+			      && !button                                              // C 19025
+			      && (root_x >= x_dnd_mouse_rect.x as c_int               // C 19026
+			        && root_x < (x_dnd_mouse_rect.x as c_int              // C 19027-19028
+			          + x_dnd_mouse_rect.width as c_int)
+			        && root_y >= x_dnd_mouse_rect.y as c_int              // C 19029
+			        && root_y < (x_dnd_mouse_rect.y as c_int              // C 19030-19031
+			          + x_dnd_mouse_rect.height as c_int))
+			      { x_dnd_waiting_for_status_window = None as Window; }   // C 19032
+			    else
+			    {
+			      x_ignore_errors_for_next_request (dpyinfo, 0);          // C 19035
+			      XSendEvent ((*dpyinfo).display, target,                 // C 19036
+			        False, NoEventMask,
+			        &raw mut x_dnd_pending_send_position);
+			      x_stop_ignoring_errors (dpyinfo);                       // C 19039
+			      x_dnd_pending_send_position.r#type = 0;                 // C 19040
+
+			      /* "Since we sent another XdndPosition message, we have to wait for another one
+			         in reply, so don't reset `x_dnd_waiting_for_status_window' here."  */
+			    }
+			  }
+			  else
+			    { x_dnd_waiting_for_status_window = None as Window; }     // C 19049
+
+			  /* "Send any pending drop if warranted."  */
+			  if x_dnd_waiting_for_finish && x_dnd_need_send_drop         // C 19052
+			    && x_dnd_waiting_for_status_window == None as Window      // C 19053
+			    {
+			      if ((*event).xclient.data.l[1] & 1) != 0                // C 19055
+			      {
+			        if x_dnd_send_drop_proto >= 2                         // C 19057
+			          { x_dnd_action = (*event).xclient.data.l[4]; }      // C 19058
+			        else
+			          { x_dnd_action = (*dpyinfo).Xatom_XdndActionCopy; } // C 19060
+			      }
+			      else
+			        { x_dnd_action = None as Atom; }                      // C 19063
+
+			      x_dnd_waiting_for_finish                                // C 19065-19070
+			        = x_dnd_send_drop (x_dnd_finish_frame,
+			          target,
+			          x_dnd_last_seen_toplevel,
+			          x_dnd_selection_timestamp,
+			          x_dnd_send_drop_proto);
+			    }
+			}
+
+			break 'other;                                                 // C 19074 (`goto done`)
+			}
+
+			/* C 19077-19095's `XdndFinished`.  */
+			if (*event).xclient.message_type == (*dpyinfo).Xatom_XdndFinished // C 19077
+			  && (x_dnd_waiting_for_finish && x_dnd_waiting_for_motif_finish == 0) // C 19078
+			  /* "Also check that the display is correct, since `x_dnd_pending_finish_target'
+			     could still be valid on another X server."  */
+			  && (*dpyinfo).display as *mut c_void == x_dnd_finish_display               // C 19082
+			  && (*event).xclient.data.l[0] == x_dnd_pending_finish_target // C 19083
+			  {
+			    x_dnd_waiting_for_finish = false;                         // C 19085
+
+			    if x_dnd_waiting_for_finish_proto >= 5                    // C 19087
+			      { x_dnd_action = (*event).xclient.data.l[2]; }          // C 19088
+
+			    if x_dnd_waiting_for_finish_proto >= 5                    // C 19090
+			      && ((*event).xclient.data.l[1] & 1) == 0                // C 19091
+			      { x_dnd_action = None as Atom; }                        // C 19092
+
+			    break 'other;                                             // C 19094 (`goto done`)
+			  }
+
+			/* C 19097-19147's `Xatom_MOTIF_DRAG_AND_DROP_MESSAGE` block.  */
+			if ((*event).xclient.message_type                             // C 19097
+			  == (*dpyinfo).Xatom_MOTIF_DRAG_AND_DROP_MESSAGE)            // C 19098
+			  && x_dnd_waiting_for_finish                                 // C 19099
+			  && x_dnd_waiting_for_motif_finish == 1                      // C 19100
+			  && dpyinfo == x_dnd_waiting_for_motif_finish_display        // C 19101
+			  {
+			    let mut reply: xm_drop_start_reply;                       // C 19103
+			    let mut operation: u16;                                   // C 19104
+			    let mut status: u16;
+			    let mut action: u16;
+
+			    if xm_read_drop_start_reply (event, &raw mut reply) == 0      // C 19106
+			    {
+			      operation = XM_DRAG_SIDE_EFFECT_OPERATION! (reply.side_effects) as u16; // C 19108
+			      status = XM_DRAG_SIDE_EFFECT_SITE_STATUS! (reply.side_effects) as u16; // C 19109
+			      action = XM_DRAG_SIDE_EFFECT_DROP_ACTION! (reply.side_effects) as u16; // C 19110
+
+			      if operation != xm_drag_operation::XM_DRAG_MOVE as u16  // C 19112
+			        && operation != xm_drag_operation::XM_DRAG_COPY as u16 // C 19113
+			        && XM_DRAG_OPERATION_IS_LINK! (operation as c_int)    // C 19114
+			        {
+			          x_dnd_waiting_for_finish = false;                   // C 19116
+			          break 'other;                                       // C 19117 (`goto done`)
+			        }
+
+			      if status != xm_drop_site_status::XM_DROP_SITE_VALID as u16 // C 19120
+			        || (action == xm_drag_action::XM_DROP_ACTION_DROP_CANCEL as u16 // C 19121
+			          || action == xm_drag_action::XM_DROP_ACTION_DROP_HELP as u16) // C 19122
+			        {
+			          x_dnd_waiting_for_finish = false;                   // C 19124
+			          break 'other;                                       // C 19125 (`goto done`)
+			        }
+
+			      /* C 19128-19142's `switch (operation)`: its cases are enum members, and a cast is
+			         not a pattern, so the port spells C's three cases as an `if`/`else if` chain
+			         (Decision 2 item 2's computed-value shape).  */
+			      if operation == xm_drag_operation::XM_DRAG_MOVE as u16          // C 19130
+			        { x_dnd_action_symbol = QXdndActionMove (); }                // C 19131
+			      else if operation == xm_drag_operation::XM_DRAG_COPY as u16     // C 19134
+			        { x_dnd_action_symbol = QXdndActionCopy (); }                // C 19135
+			      /* "This means XM_DRAG_OPERATION_IS_LINK (operation)."  */
+			      else                                                            // C 19139
+			        { x_dnd_action_symbol = QXdndActionLink (); }                // C 19140
+
+			      x_dnd_waiting_for_motif_finish = 2;                     // C 19144
+			      break 'other;                                           // C 19145 (`goto done`)
+			    }
+			  }
+			/* C 19149-19472's blocks are still owed - the `Xatom_EMACS_TMP` head, `wm_protocols`, the
+			   `wm_configure_denied`/`wm_window_moved` pair, `X_TOOLKIT_EDITRES`, `DONE`/`PAGE`, the two
+			   scroll-bar messages, `XEMBED` and the XSync counters - and the next slices land them above
+			   this line, the way slices 137-139 grew the `default:` body.  */
+		    }
+
 		  /* C 19473-19486: `case SelectionNotify:`.  The toolkit and GTK arms look the event's
 		     window up among this display's frames and hand everything else to the toolkit; the
 		     other arms go straight to the handler.  `xselection` is one of the 33 owed members

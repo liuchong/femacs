@@ -6619,6 +6619,54 @@ box stays unticked.
   dropped.  The next slice is `ClientMessage` itself (C 18951-19472), which is what closes both the
   function and the file.
 
+Slice 140 (C 18951-19147, Decision 152) starts `ClientMessage` - the switch's first arm and the
+XDND/Motif state machine Decision 151 identified as the file's one missing C range - with its first
+three blocks: the `XdndStatus` handler (the mouse-rectangle decode, the action update, the pending
+`XdndPosition` resend and the pending drop), `XdndFinished`, and the
+`MOTIF_DRAG_AND_DROP_MESSAGE` reply (the Motif side-effects decode, the two rejections and the
+action-symbol switch).  `--check`'s long token list drops **69 -> 34** with it, and the six
+spellings the first reading corrected are recorded in the Decision.
+
+### 152. Slice 140 (C 18951-19147): `ClientMessage` starts - `XdndStatus`, `XdndFinished` and the Motif reply
+
+* **What it lands.**  The switch's first `case` and its first three blocks:
+  `XdndStatus` (C 18955-19075: the `x_dnd_in_progress`/`x_dnd_waiting_for_finish` guard, the
+  mouse-rectangle decode from `data.l[2]`/`data.l[3]`, `x_dnd_action` from `data.l[4]` or
+  `Xatom_XdndActionCopy`, the pending-position resend with its inside-the-rectangle test and
+  `XSendEvent`, and the pending-drop path with `x_dnd_send_drop`), `XdndFinished` (C 19077-19095:
+  the display and target checks, the two `x_dnd_waiting_for_finish_proto >= 5` arms) and
+  `MOTIF_DRAG_AND_DROP_MESSAGE` (C 19097-19147: `xm_read_drop_start_reply`, the three
+  `XM_DRAG_SIDE_EFFECT_*` decodes, the two rejections, the `switch (operation)` and C 19144's
+  `x_dnd_waiting_for_motif_finish = 2`).
+* **Six spellings the first reading corrected.**  All six are this slice's own text, caught before
+  anything was committed:
+  * `xm_drop_start_reply` is a **value** in this port (C's `&reply` is the port's `&raw mut reply`),
+    so C 19108-19110 read `reply.side_effects`, not `(*reply).side_effects` (three `E0614`s).
+  * `x_dnd_waiting_for_motif_finish` is C's `int` (the mirror has `c_int`, because C stores 0/1/2
+    in it), so C 19078's `!x` is `x == 0` (an `E0308`).
+  * `x_dnd_finish_display` is typed `*mut c_void` in this port (its `/// C:` line is C's
+    `static Display *x_dnd_finish_display;`), and every other site casts at the use site
+    (`(*dpyinfo).display as *mut c_void`, the C 21871 shape), so C 19082 does too.
+  * `xm_read_drop_start_reply` returns `c_int` in this port (C's `bool`), so C 19106's `!` is
+    `== 0`.
+  * C 19128's `switch (operation)` has **enum members** as its cases, and a cast is not a pattern in
+    Rust, so the port spells C's three cases as an `if`/`else if` chain (Decision 2 item 2's
+    computed-value shape) instead of a `match`.
+  * `NoEventMask` is not in this function's scope (the file imports constants per function, the
+    C 2644 shape), so the arm opens with `use crate::x11_constants::NoEventMask;`.
+* **C's own grouping parentheses are kept, and they are the one new warning.**  C 18955's
+  `if (((a) || (b)) && c)` is written as C wrote it, so rustc reports `unnecessary parentheses
+  around \`if\` condition` - the `xrealloc` precedent of slice 92's reading.
+* **What `--check` reads.**  Two rows, and the long one's token list drops **69 -> 34**: the
+  remaining 34 are the blocks still owed below C 19147 (`initial_argv`/`initial_argc`, `new_x`/
+  `new_y`, `delete_window_event`, `msg`, `pixmap`, ...) plus C's own `case`/`default`/`goto`/
+  `fallthrough`/`done`/`done_keysym` labels and one folded integer.  The unit is **38,948 lines**
+  (+204), md5 `4a5022980773aaa0088963a2bda136fd`.
+* **Not claimed.**  No runtime evidence: the frozen configuration compiles none of this file, so no
+  XdndStatus was decoded, no position was resent and no Motif reply was read.  The arm's remaining
+  blocks (C 19149-19472) are owed; the slices that land them go above this slice's owed-note line,
+  the way slices 137-139 grew the `default:` body.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -7826,7 +7874,8 @@ and no display was opened; the remaining `E0425` rows are unresolved names, not 
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-**6. `handle_one_xevent`'s first `case`, `ClientMessage` (C 18951-19472).**  Slice 139 closes the
+**6. `handle_one_xevent`'s first `case`, `ClientMessage` (C 18951-19472): C 18951-19147 landed in
+slice 140 (Decision 152), the rest is owed.**  Slice 139 closed the
 outer `default:` body, and the one C range of the function still unwritten is this 522-line
 XDND/Motif state machine (Decision 122 recorded it as a slice of its own).  It is the whole of
 `--check`'s long row - `x_handle_dnd_message`, `new_x`/`new_y`, `x_kill_gs_process`, the
@@ -13207,3 +13256,31 @@ stand-in's owed `r#type` member (the class every arm of this switch has carried 
 **Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
 per-arm message diff and `--check`'s two rows (whose long row is the still-unwritten `ClientMessage`
 arm's vocabulary - Decision 151).
+
+### Slice 140's readings (C 18951-19147), as landed and measured (2026-10-08)
+
+`ClientMessage`'s first three blocks, read by two arms - the plain one and the `use_gtk` one (the
+new text carries no `#[cfg]` of its own, so every arm compiles it and the two show the same delta).
+
+| arm | baseline | slice 140 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1191 / 84** | **+17 / +1** |
+| UG `A +use_toolkit_scroll_bars +use_gtk` | 1212 / 84 | **1229 / 85** | **+17 / +1** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`62cd95ff`, slice 139).
+
+| grew | of which |
+| --- | --- |
+| the 17 error rows of both arms | `no field xclient` on the `XEvent` stand-in x13 (C 18959, C 18966, C 18976, C 18978, C 18979, C 18994, C 18997, C 19055, C 19058, C 19077, C 19083, C 19088, C 19091), `no field r#type` x2 (C 19008 and C 19040, the `x_dnd_pending_send_position` static) and `XSendEvent` (C 19036) |
+| the one warning row | `unnecessary parentheses around \`if\` condition` (C 18955) - C's own grouping, kept |
+
+**Every row is a registered class.**  `xclient`/`r#type` are the `XEvent` stand-in's owed members
+(the class every arm of this switch carries since slice 106: `include/xlib.rs`'s 192-byte opaque
+record has no members yet), and `XSendEvent` is an owed Xlib entry point in this unit (the port
+declares it in `src/xselect.rs`, another unit's scope).  Nothing shrank, and the one warning is C's.
+
+**The token list reads the landing**: `--check`'s long row drops **69 -> 34** names, and the 34 are
+the blocks still owed below C 19147 plus the C-only words (`case`, `default`, `goto`, ...).
+
+**Not claimed**: no runtime evidence; the readings are the two arm compiles (both sides), the
+per-arm message diff and `--check`'s two rows with its token list (69 -> 34).
