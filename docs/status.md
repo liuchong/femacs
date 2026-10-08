@@ -17571,3 +17571,37 @@
      `build/probes/xterm/`、`/tmp/s125/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十三臂编译（两侧）、`--check` 的 token 数与台账。
      下一片是 `XI_Motion` 的剩余部分（C 22917-23295）。
+
+- **4.044 `src/xterm.c` round 102（xterm lane，slice 126）：`XI_Motion` 的本体（C 22917-23201）——Motif motion 拷贝与整块拖拽逻辑落地（2026-10-08）**：
+  ① **本片落的文本**：`xi_position_changed` 判定与假 `XMotionEvent`（C 22917-22924）；`USE_MOTIF` 的 motion 拷贝（C 22926-22945，与
+     `XI_Enter`/`XI_Leave` 的 crossing 拷贝同形）；`previous_help_echo_string`/`help_echo_string`（C 22947-22948）；两处 mouse-face 清（C 22950-22954）；
+     `mouse_or_wdesc_frame` 与 `xi_compute_root_window_offset`（C 22956-22961）；以及**整块拖拽逻辑**（C 22963-23201）：指针可见性与 glyph 更新、
+     两次目标窗查找、toplevel 变化支（Xdnd `x_dnd_send_leave`、Motif `xm_send_top_level_leave_message`、`x_dnd_return_frame` 状态迁移）、
+     window 变化支（Xdnd leave、Motif drag-motion + top-level leave，随后 enter 或 Motif top-level enter）、self-position/position/drop-motion 三连与
+     `x_dnd_update_tooltip_position`。C 23203-23295（GTK 块、`!f` 块、滚动条块）是下片。
+  ② **借已落地的孪生体取拼写**：本单元 30098-30320 的 `x_dnd_handle_motion_event` 就是 C 18269-18449（同一套逻辑），因此
+     `XM_DRAG_REASON!`、`XM_DRAG_SIDE_EFFECT!`、`XM_DRAG_STYLE_IS_DYNAMIC!`、`XM_BYTE_ORDER_CUR_FIRST as u8`、`lmsg.timestamp as u32`、
+     `dmsg.x as u16`、`x_dnd_note_self_position` 的 `c_ushort` 坐标、四个 `xm_*::` 枚举路径与 `xm_send_*_message` 调用全部照它写；
+     落在 C `&&` 里的 `x_any_window_to_frame` 先绑定成 `xi_motion_any`（孪生体的 `any`，30120-30125）——`#[cfg]` 不能挂在操作数上。
+  ③ **两处位域写法（实测逼出来的）**：C 的 `f->mouse_moved = true` 落成 `frame_bits! (mouse_moved, f, true)`（镜像把该成员记成位，25259 是先例）；
+     C 的 `hlinfo->mouse_face_hidden` 读/写落成 `mouse_face_hidden! (hlinfo)` / `mouse_face_hidden! (hlinfo, false|true)`（dispextern.h 3023 的位，32155/32161 是先例）。
+     不这么写时本臂会多出三行 `no field mouse_face_hidden` 与一行 `no field mouse_moved`——这正是发现拼写的方式。
+  ④ **一处 cast 同时修掉比较与它的后果**：C 的 `r->x + r->width` 在镜像的 `XRectangle` 上是 `i16`/`u16` 混算，落成
+     `(*r).x as c_int + (*r).width as c_int`（x_dnd 矩形求和的形状，3800-3801）；两处 `E0308` 随之消失。
+  ⑤ **一个值得记下的解析陷阱**：`lrint (x) as c_int < (*r).x` **不解析**——rustc 把 `c_int <` 读成泛型实参表的开始——所以要写
+     `(lrint ((*xev).event_x) as c_int) < (*r).x`。臂 A（不编译本臂）报了 4 条解析错误，因此在类型层扫描之前就抓到了。
+  ⑥ **行的来路（按臂类）**：十六个没有 `have_xinput2` 的臂读零增量（C 22240 的门又一次被量到）；`XI2`/`XI21`/`XI21W` **+19**（`lrint` +18、`xi_position_changed` +1）；
+     `UGX`/`AIUX`/`AG3X` **+24**，即那十九行再加五处 `FRAME_X_WINDOW`（GTK 2 臂是 `GDK_WINDOW_XWINDOW`、GTK 3 臂是 `GDK_WINDOW_XID`，两臂都是欠名，
+     见 `include/xterm.rs` 1102-1123 的双臂宏）；`UMI2` **+38**，即那十九行再加四条 `lrint`（Motif 拷贝多出的）与十五条 `xmotion` 成员。
+     `xi_position_changed` 是 Decision 133 点名的六个 `xi_*` 定义里**最后一个**被臂点到的。
+  ⑦ **读数（两侧都在本修订测）**：⑴ **二十三臂表**（baseline = HEAD `55b8e5cc`，与 slice 125 台账逐位相同）：
+     A 1176/83 → **1176/83**、U 1188/83 → **1188/83**、UT 1191/82 → **1191/82**、UM 1199/82 → **1199/82**、UG 1215/84 → **1215/84**、
+     UGX 1346/87 → **1370/87**、AE 1208/82 → **1208/82**、AI 1203/83 → **1203/83**、AIU 1285/83 → **1285/83**、AIUX 1420/86 → **1444/86**、
+     AX 1186/83 → **1186/83**、AG3 1265/83 → **1265/83**、AG3X 1380/86 → **1404/86**、AXF 1186/83 → **1186/83**、AXPM 1177/83 → **1177/83**、
+     AXKB 1217/83 → **1217/83**、AXR 1182/83 → **1182/83**、AX11 1160/83 → **1160/83**、AUX 1259/81 → **1259/81**、
+     XI2 1292/86 → **1311/86**、UMI2 1356/85 → **1394/85**、XI21 1349/87 → **1368/87**、XI21W 1379/87 → **1398/87**。
+     ⑵ **`--check`** 仍三行，长行 token 清单 **74 不变**；单元 **36,224 行**（+301），文件 md5 `d040b12b70544cdda76be1eb5c9d9f6c`。
+  ⑧ **预算与清理**：本片 rustc **约 55 发**（23 臂 × 2 轮 + 首发与几轮定点复测；每次 15-24 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s126/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十三臂编译（两侧）、`--check` 的 token 数与台账。
+     下一片是 `XI_Motion` 的最后三块（C 23203-23295）。

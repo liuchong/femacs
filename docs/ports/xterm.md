@@ -472,6 +472,18 @@ the sixteen without `have_xinput2` are kept out by C 22240's gate, and the five 
 compile the head but not the block (the head's names all resolve); the block's twenty-three
 rows land in the two new arms.
 
+
+  Slice 126 (C 22917-23201, Decision 138) finishes `XI_Motion`'s body short of its last three
+blocks: the `xi_position_changed` test, the fake `XMotionEvent`, the Motif motion copy, the
+help-echo reset and the mouse-face clears, `mouse_or_wdesc_frame` and
+`xi_compute_root_window_offset`, then the whole drag-and-drop block - the pointer-visibility and
+glyph update, the target-window lookups, the toplevel/window change handling (Xdnd leave/enter
+plus Motif's top-level leave, drag-motion and enter messages), the self-position, position and
+drop-motion sends, and the tooltip update.  The block has a landed twin in
+`x_dnd_handle_motion_event` (C 18269-18449), and the port's spellings were taken from it.  Sixteen
+of the twenty-three arms read a zero delta again (C 22240's gate); the seven `have_xinput2` arms
+carry the tail's rows.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5897,6 +5909,50 @@ expected direction once the file starts carrying records the X11 headers would s
   C 22829-22830's own parentheses around `xv_total_x == 0.0 && xv_total_y == 0.0`, kept.
 * **What `--check` reads.**  Three rows, the long row's token list **unchanged at 74**.  The unit
   is **35,923 lines** (+285) against C's 33,125.
+
+### 138. Slice 126 (C 22917-23201): `XI_Motion`'s body - the Motif motion copy and the drag-and-drop block
+
+* **What it lands.**  `xi_position_changed`'s test and the fake `XMotionEvent` (C 22917-22924); the
+  `USE_MOTIF` motion copy (C 22926-22945, the twin of the crossing copies the `XI_Enter`/`XI_Leave`
+  arms write); `previous_help_echo_string`/`help_echo_string` (C 22947-22948); the two mouse-face
+  clears (C 22950-22954); `mouse_or_wdesc_frame` and `xi_compute_root_window_offset` (C 22956-22961);
+  and the drag-and-drop block (C 22963-23201) whole: the pointer-visibility and glyph update, the
+  two target-window lookups, the toplevel-change arm (Xdnd `x_dnd_send_leave`, Motif's
+  `xm_send_top_level_leave_message`, the `x_dnd_return_frame` transitions), the window-change arm
+  (Xdnd leave, Motif drag-motion + top-level leave, then enter or Motif's top-level enter), the
+  self-position/position/drop-motion triple and `x_dnd_update_tooltip_position`.  C 23203-23295 (the
+  GTK block, the `!f` block and the scroll-bar block) is the next slice.
+* **The block's landed twin supplied the spellings.**  `x_dnd_handle_motion_event` (this file
+  30098-30320) is C 18269-18449, i.e. the same logic: `XM_DRAG_REASON!`, `XM_DRAG_SIDE_EFFECT!`,
+  `XM_DRAG_STYLE_IS_DYNAMIC!`, `XM_BYTE_ORDER_CUR_FIRST as u8`, `lmsg.timestamp as u32`,
+  `dmsg.x as u16`, `x_dnd_note_self_position`'s `c_ushort` coordinates, the
+  `xm_drag_originator::`/`xm_drag_reason::`/`xm_drop_site_status::`/`xm_drag_action::` enum paths
+  and the `xm_send_*_message` calls all come from there, and the `x_any_window_to_frame` call that
+  sits inside C's `&&` is bound first as `xi_motion_any` (the twin's `any`, 30120-30125) because a
+  `#[cfg]` cannot sit on an operand.
+* **Two bitfield spellings, measured.**  C's `f->mouse_moved = true` is `frame_bits! (mouse_moved, f,
+  true)` (the mirror carries the member as a bit - the 25259 precedent) and C's
+  `hlinfo->mouse_face_hidden` reads and writes are `mouse_face_hidden! (hlinfo)` /
+  `mouse_face_hidden! (hlinfo, false|true)` (dispextern.h 3023's bit - the 32155/32161 precedents).
+  Without them the arm drew three `no field mouse_face_hidden` rows and one `no field mouse_moved`,
+  which is how the spelling was found.
+* **One cast fixed a comparison and its consequence.**  C's `r->x + r->width` mixes the mirror's
+  `i16`/`u16` `XRectangle` members, so it is written `(*r).x as c_int + (*r).width as c_int` (the
+  x_dnd rect sum's shape at 3800-3801); that also cleared the two `E0308`s the comparison had drawn.
+* **A parse trap worth recording.**  `lrint (x) as c_int < (*r).x` does not parse - rustc reads the
+  `c_int <` as the start of a generic argument list - so the cast is parenthesised
+  (`(lrint ((*xev).event_x) as c_int) < (*r).x`).  Arm A (which does not compile the arm) reported
+  four parse errors, which is how it was caught before the type-level sweep.
+* **The rows, by arm and class.**  The sixteen arms without `have_xinput2` read a zero delta (C
+  22240's gate).  `XI2`, `XI21` and `XI21W` read **+19** (`lrint` +18, `xi_position_changed` +1);
+  `UGX`, `AIUX` and `AG3X` read **+24**, the same nineteen plus five more from their
+  `FRAME_X_WINDOW` sites (`GDK_WINDOW_XWINDOW` in the GTK 2 arms, `GDK_WINDOW_XID` in the GTK 3 one -
+  `include/xterm.rs` 1102-1123's two-arm macro, an owed name both ways); `UMI2` reads **+38**, the
+  nineteen plus twenty-two `lrint` (the Motif copy's four extra) and the fifteen `xmotion` members.
+  `xi_position_changed` is the sixth and last of Decision 133's owed `xi_*` definitions to be named
+  by an arm.
+* **What `--check` reads.**  Three rows, the long row's token list **unchanged at 74**.  The unit is
+  **36,224 lines** (+301) against C's 33,125.
 
 ## Evidence
 
@@ -11947,6 +12003,59 @@ arms only:
 | `unnecessary parentheses around function argument` +1 (warning) | `XI21W` only | C 22829-22830's own parentheses, kept |
 
 The `--check` row keeps its three lines and its token list stays at **74**.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the twenty-three arm compiles (both sides), the `--check` row's
+token count and this ledger.
+### Slice 126's readings (C 22917-23201), as landed and measured (2026-10-08)
+
+`XI_Motion`'s body: the position test, the Motif motion copy and the drag-and-drop block.
+
+| arm | baseline | slice 126 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1176 / 83 | **1176 / 83** | **0 / 0** |
+| U `A +use_toolkit_scroll_bars` | 1188 / 83 | **1188 / 83** | **0 / 0** |
+| UT `U +use_x_toolkit` | 1191 / 82 | **1191 / 82** | **0 / 0** |
+| UM `UT +use_motif` | 1199 / 82 | **1199 / 82** | **0 / 0** |
+| UG `U +use_gtk` | 1215 / 84 | **1215 / 84** | **0 / 0** |
+| UGX `UG +have_xinput2` | 1346 / 87 | **1370 / 87** | **+24 / 0** |
+| AE `A +enable_checking` | 1208 / 82 | **1208 / 82** | **0 / 0** |
+| AI `A +have_x_i18n` | 1203 / 83 | **1203 / 83** | **0 / 0** |
+| AIU `AI +use_gtk` | 1285 / 83 | **1285 / 83** | **0 / 0** |
+| AIUX `AIU +have_xinput2` | 1420 / 86 | **1444 / 86** | **+24 / 0** |
+| AX `A +have_xdbe` | 1186 / 83 | **1186 / 83** | **0 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1265 / 83 | **1265 / 83** | **0 / 0** |
+| AG3X `AG3 +have_xinput2` | 1380 / 86 | **1404 / 86** | **+24 / 0** |
+| AXF `A +have_xfixes` | 1186 / 83 | **1186 / 83** | **0 / 0** |
+| AXPM `A +have_xpm` | 1177 / 83 | **1177 / 83** | **0 / 0** |
+| AXKB `A +have_xkb` | 1217 / 83 | **1217 / 83** | **0 / 0** |
+| AXR `A +have_xrandr` | 1182 / 83 | **1182 / 83** | **0 / 0** |
+| AX11 `A +have_x11` | 1160 / 83 | **1160 / 83** | **0 / 0** |
+| AUX `A +use_xcb` | 1259 / 81 | **1259 / 81** | **0 / 0** |
+| XI2 `A +have_xinput2` | 1292 / 86 | **1311 / 86** | **+19 / 0** |
+| UMI2 `UM +have_xinput2` | 1356 / 85 | **1394 / 85** | **+38 / 0** |
+| XI21 `XI2 +have_xinput2_1 +have_xinput2_2` | 1349 / 87 | **1368 / 87** | **+19 / 0** |
+| XI21W `XI21 +have_xwidgets` | 1379 / 87 | **1398 / 87** | **+19 / 0** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`55b8e5cc`, slice 125) and
+the twenty-three arms reproduce the slice-125 table's column to the digit.  The slice's file md5
+is `d040b12b70544cdda76be1eb5c9d9f6c` (36,224 lines against C's 33,125).
+
+**The rows, by arm class:**
+
+| arriving rows | arms | C sites |
+| --- | --- | --- |
+| `lrint` +18, `xi_position_changed` +1 | `XI2`, `XI21`, `XI21W` | C 22920-23190's arithmetic and C 22917 - the sixth of Decision 133's owed `xi_*` definitions |
+| the same nineteen, plus five `FRAME_X_WINDOW` sites (`GDK_WINDOW_XWINDOW` in GTK 2, `GDK_WINDOW_XID` in GTK 3) | `UGX`, `AIUX`, `AG3X` | C 23054-23195's five `FRAME_X_WINDOW (x_dnd_frame)` uses, through `include/xterm.rs` 1102-1123's two-arm macro |
+| the nineteen, plus `lrint` +4 and `xmotion` +15 | `UMI2` | C 22929-22944's Motif motion copy |
+| **nothing at all** | the sixteen without `have_xinput2` | the arm is not compiled - C 22240's gate, measured again |
+
+**Four port-side spellings the probe settled**, all recorded in Decision 138: `frame_bits!
+(mouse_moved, f, true)` and `mouse_face_hidden! (hlinfo[, v])` for C's two bitfield member
+writes, `(*r).x as c_int + (*r).width as c_int` for C's `r->x + r->width` (the mirror's
+`XRectangle` mixes `i16`/`u16`), and the parenthesised `(lrint (…) as c_int) < (*r).x`, which the
+parser needs because `c_int <` starts a generic argument list.  The `--check` row keeps its three
+lines and its token list stays at **74**.
 
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the twenty-three arm compiles (both sides), the `--check` row's

@@ -34989,6 +34989,307 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		                { break 'xi_other; }                          // C 22910 (`goto XI_OTHER`)
 		              }
 		          }
+		          /* C 22917-22961: the position test, the fake `XMotionEvent`, the Motif motion copy, the
+		             help-echo reset and the frame lookup.  */
+		          if !xi_position_changed (device, xev)               // C 22917
+		            { break 'xi_other; }                              // C 22918 (`goto XI_OTHER`)
+
+		          ev.x = lrint ((*xev).event_x) as c_int;             // C 22920
+		          ev.y = lrint ((*xev).event_y) as c_int;             // C 22921
+		          ev.window = (*xev).event;                           // C 22922
+		          ev.time = (*xev).time;                              // C 22923
+		          ev.send_event = (*xev).send_event;                  // C 22924
+
+		          /* C 22926-22945's `#ifdef USE_MOTIF`: the motion twin of the crossing copy the
+		             `XI_Enter`/`XI_Leave` arms write.  */
+#[cfg (feature = "use_motif")]
+		          {
+		            use_copy = true;                                  // C 22927
+
+		            copy.xmotion.r#type = MotionNotify;               // C 22929
+		            copy.xmotion.serial = (*xev).serial;              // C 22930
+		            copy.xmotion.send_event = (*xev).send_event;      // C 22931
+		            copy.xmotion.display = (*dpyinfo).display;        // C 22932
+		            copy.xmotion.window = (*xev).event;               // C 22933
+		            copy.xmotion.root = (*xev).root;                  // C 22934
+		            copy.xmotion.subwindow = (*xev).child;            // C 22935
+		            copy.xmotion.time = (*xev).time;                  // C 22936
+		            copy.xmotion.x = lrint ((*xev).event_x) as c_int;  // C 22937
+		            copy.xmotion.y = lrint ((*xev).event_y) as c_int;  // C 22938
+		            copy.xmotion.x_root = lrint ((*xev).root_x) as c_int;  // C 22939
+		            copy.xmotion.y_root = lrint ((*xev).root_y) as c_int;  // C 22940
+		            copy.xmotion.state = xi_convert_event_state (xev);  // C 22941
+
+		            copy.xmotion.is_hint = False;                     // C 22943
+		            copy.xmotion.same_screen = True;                  // C 22944
+		          }
+
+		          previous_help_echo_string = help_echo_string;       // C 22947
+		          help_echo_string = Qnil ();                         // C 22948
+
+		          if mouse_face_hidden! (hlinfo)                      // C 22950
+		            {
+		            mouse_face_hidden! (hlinfo, false);              // C 22952
+		            clear_mouse_face (hlinfo);                        // C 22953
+		            }
+
+		          f = mouse_or_wdesc_frame (dpyinfo, (*xev).event);   // C 22956
+
+		          if !f.is_null () && (*xev).event == FRAME_X_WINDOW! (f)  // C 22958
+		            /* "See the comment above x_compute_root_window_offset for why this optimization is
+		               performed."  */
+		            { xi_compute_root_window_offset (f, xev); }       // C 22961
+
+		          /* C 22963-23201's drag-and-drop block.  */
+		          if x_dnd_in_progress                                // C 22963
+		            /* "Handle these events normally if the recursion level is higher than when the
+		               drag-and-drop operation was initiated.  This is so that mouse input works while we're
+		               in the debugger for, say, `x-dnd-movement-function`."  */
+		            && (command_loop_level + minibuf_level            // C 22969-22970
+		              <= x_dnd_recursion_depth as EMACS_INT)
+		            && (*xev).deviceid == x_dnd_pointer_device        // C 22971
+		            && dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)   // C 22972
+		              {
+		              let mut target: Window;                         // C 22974
+		              let mut toplevel: Window;
+		              let mut target_proto: c_int;                    // C 22975
+		              let mut motif_style: c_int;
+		              let mut r: *mut XRectangle;                     // C 22976
+		              let mut was_frame: bool;                        // C 22977
+
+		              /* "Always clear mouse face."  */
+		              clear_mouse_face (hlinfo);                      // C 22980
+		              mouse_face_hidden! (hlinfo, true);             // C 22981
+
+		              /* "Sometimes the drag-and-drop operation starts with the pointer of a frame invisible
+		                 due to input.  Since motion events are ignored during that, make the pointer visible
+		                 manually."  */
+		              if !f.is_null ()                                // C 22988
+		                {
+		                XTtoggle_invisible_pointer (f, false);        // C 22990
+		                r = &raw mut (*dpyinfo).last_mouse_glyph;     // C 22992
+		                /* "Also remember the mouse glyph and set mouse_moved."  */
+		                if f != (*dpyinfo).last_mouse_glyph_frame     // C 22996
+		                  || (lrint ((*xev).event_x) as c_int) < (*r).x  // C 22997
+		                  || (lrint ((*xev).event_x) as c_int) >= (*r).x as c_int + (*r).width as c_int  // C 22998
+		                  || (lrint ((*xev).event_y) as c_int) < (*r).y  // C 22999
+		                  || (lrint ((*xev).event_y) as c_int) >= (*r).y as c_int + (*r).height as c_int  // C 23000
+		                  {
+		                    frame_bits! (mouse_moved, f, true);                  // C 23002
+		                    (*f).last_mouse_device                    // C 23003-23004
+		                      = if source.is_null () { Qnil () } else { (*source).name };
+		                    (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();  // C 23005
+
+		                    remember_mouse_glyph (f, lrint ((*xev).event_x) as c_int,  // C 23007-23008
+		                      lrint ((*xev).event_y) as c_int, r);
+		                    (*dpyinfo).last_mouse_glyph_frame = f;    // C 23009
+		                  }
+		                }
+
+		              if (*xev).root == (*dpyinfo).root_window        // C 23013
+		                {
+		                target = x_dnd_get_target_window (dpyinfo, lrint ((*xev).root_x) as c_int,  // C 23014-23020
+		                  lrint ((*xev).root_y) as c_int, &raw mut target_proto,
+		                  &raw mut motif_style, &raw mut toplevel, &raw mut was_frame);
+		                }
+		              else
+		                {
+		                target = x_dnd_fill_empty_target (&raw mut target_proto,  // C 23022-23025
+		                  &raw mut motif_style, &raw mut toplevel, &raw mut was_frame);
+		                }
+
+		              if toplevel != x_dnd_last_seen_toplevel         // C 23027
+		                {
+		                if toplevel != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 23029
+		                  && x_dnd_return_frame == 1                  // C 23030
+		                  { x_dnd_return_frame = 2; }                 // C 23031
+
+		                /* C 23034's `x_any_window_to_frame (dpyinfo, toplevel)` sits inside C's `&&` and has two
+		                   shapes, so the arm's value is bound first - the twin's `any` in
+		                   `x_dnd_handle_motion_event` (this file 30120-30125).  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		                let xi_motion_any: bool
+		                  = !x_any_window_to_frame (dpyinfo, toplevel as c_int).is_null ();
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+		                let xi_motion_any: bool
+		                  = !x_any_window_to_frame! (dpyinfo, toplevel as c_int).is_null ();  // C 23034
+		                if x_dnd_return_frame == 2                    // C 23033
+		                  && xi_motion_any                            // C 23034
+		                  {
+		                    if x_dnd_last_seen_window != None as Window  // C 23036
+		                      && x_dnd_last_protocol_version != -1    // C 23037
+		                      && x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 23038
+		                      { x_dnd_send_leave (x_dnd_frame, x_dnd_last_seen_window,  // C 23039
+		                        x_dnd_last_seen_toplevel); }          // C 23040
+		                    else if x_dnd_last_seen_window != None as Window  // C 23041
+		                      && XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)  // C 23042
+		                      && !x_dnd_disable_motif_drag            // C 23043
+		                      && x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 23044
+		                      {
+		                        if !x_dnd_motif_setup_p               // C 23046
+		                          { xm_setup_drag_info (dpyinfo, x_dnd_frame); }  // C 23047
+
+		                        lmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 23049
+		                          xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_LEAVE as c_int) as u8;  // C 23050
+		                        lmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;  // C 23051
+		                        lmsg.zero = 0;                        // C 23052
+		                        lmsg.timestamp = (*xev).time as u32;  // C 23053
+		                        lmsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;  // C 23054
+
+		                        if x_dnd_motif_setup_p                // C 23056
+		                          {
+		                            xm_send_top_level_leave_message (dpyinfo,  // C 23057
+		                              FRAME_X_WINDOW! (x_dnd_frame),
+		                              x_dnd_last_seen_window, &raw mut lmsg);  // C 23058
+		                          }
+		                      }
+
+		                      x_dnd_end_window = x_dnd_last_seen_window;  // C 23061
+		                      x_dnd_last_seen_window = None as Window;  // C 23062
+		                      x_dnd_last_seen_toplevel = None as Window;  // C 23063
+		                      x_dnd_in_progress = false;              // C 23064
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		                      { x_dnd_return_frame_object = x_any_window_to_frame (dpyinfo, toplevel as c_int); }  // C 23065-23066
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+		                      { x_dnd_return_frame_object = x_any_window_to_frame! (dpyinfo, toplevel as c_int); }  // C 23065-23066
+		                      x_dnd_return_frame = 3;                 // C 23067
+		                      x_dnd_waiting_for_finish = false;       // C 23068
+		                      target = None as Window;                // C 23069
+		                  }
+		                  }
+
+		                if target != x_dnd_last_seen_window           // C 23073
+		                  {
+		                  if x_dnd_last_seen_window != None as Window  // C 23075
+		                    && x_dnd_last_protocol_version != -1      // C 23076
+		                    && x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 23077
+		                    { x_dnd_send_leave (x_dnd_frame, x_dnd_last_seen_window,  // C 23078
+		                      x_dnd_last_seen_toplevel); }            // C 23079
+		                  else if x_dnd_last_seen_window != None as Window  // C 23080
+		                    && XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)  // C 23081
+		                    && !x_dnd_disable_motif_drag              // C 23082
+		                    && x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 23083
+		                    {
+		                      if !x_dnd_motif_setup_p                 // C 23085
+		                        { xm_setup_drag_info (dpyinfo, x_dnd_frame); }  // C 23086
+
+		                      /* "This is apparently required.  If we don't send a motion event with the current root
+		                         window coordinates of the pointer before the top level leave, then Motif displays an
+		                         ugly black border around the previous drop site."  */
+		                      dmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 23095
+		                        xm_drag_reason::XM_DRAG_REASON_DRAG_MOTION as c_int) as u8;  // C 23096
+		                      dmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;  // C 23097
+		                      dmsg.side_effects                       // C 23098
+		                        = XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (dpyinfo,  // C 23099-23100
+		                          x_dnd_wanted_action),
+		                            xm_drop_site_status::XM_DROP_SITE_NONE as c_int,  // C 23101
+		                            x_dnd_motif_operations as c_int,
+		                            xm_drag_action::XM_DROP_ACTION_DROP_CANCEL as c_int) as u16;  // C 23102
+		                      dmsg.timestamp = (*xev).time as u32;    // C 23103
+		                      dmsg.x = lrint ((*xev).root_x) as u16;  // C 23104
+		                      dmsg.y = lrint ((*xev).root_y) as u16;  // C 23105
+
+		                      lmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 23107
+		                        xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_LEAVE as c_int) as u8;  // C 23108
+		                      lmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;  // C 23109
+		                      lmsg.zero = 0;                          // C 23110
+		                      lmsg.timestamp = (*xev).time as u32;    // C 23111
+		                      lmsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;  // C 23112
+
+		                      if x_dnd_motif_setup_p                  // C 23114
+		                        {
+		                        xm_send_drag_motion_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 23116-23117
+		                          x_dnd_last_seen_window, &raw mut dmsg);
+		                        xm_send_top_level_leave_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 23118-23119
+		                          x_dnd_last_seen_window, &raw mut lmsg);
+		                        }
+		                    }
+
+		                    x_dnd_action = None as Atom;              // C 23123
+		                    x_dnd_last_seen_toplevel = toplevel;      // C 23124
+		                    x_dnd_last_seen_window = target;          // C 23125
+		                    x_dnd_last_protocol_version = target_proto;  // C 23126
+		                    x_dnd_last_motif_style = motif_style;     // C 23127
+		                    x_dnd_last_window_is_frame = was_frame;   // C 23128
+
+		                    if target != None as Window && x_dnd_last_protocol_version != -1  // C 23130
+		                      { x_dnd_send_enter (x_dnd_frame, target,  // C 23131
+		                        x_dnd_last_seen_toplevel,             // C 23132
+		                        x_dnd_last_protocol_version); }       // C 23133
+		                    else if target != None as Window          // C 23134
+		                      && XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)  // C 23134
+		                      && !x_dnd_disable_motif_drag            // C 23135
+		                      {
+		                        if !x_dnd_motif_setup_p               // C 23137
+		                          { xm_setup_drag_info (dpyinfo, x_dnd_frame); }  // C 23138
+
+		                        emsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 23140
+		                          xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_ENTER as c_int) as u8;  // C 23141
+		                        emsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;  // C 23142
+		                        emsg.zero = 0;                        // C 23143
+		                        emsg.timestamp = (*xev).time as u32;  // C 23144
+		                        emsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;  // C 23145
+		                        emsg.index_atom = x_dnd_motif_atom as u32;  // C 23146
+
+		                        if x_dnd_motif_setup_p                // C 23148
+		                          {
+		                            xm_send_top_level_enter_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 23149-23150
+		                              target, &raw mut emsg);
+		                          }
+		                      }
+		                  }
+		                else
+		                  { x_dnd_last_seen_toplevel = toplevel; }    // C 23154
+
+		                if x_dnd_last_window_is_frame && target != None as Window  // C 23156
+		                  { x_dnd_note_self_position (dpyinfo, target,  // C 23157
+		                    lrint ((*xev).root_x) as c_ushort, lrint ((*xev).root_y) as c_ushort); }  // C 23158-23159
+		                else if x_dnd_last_protocol_version != -1 && target != None as Window  // C 23160
+		                  {
+		                  dnd_state = xi_convert_event_state (xev);   // C 23162
+
+		                  x_dnd_send_position (x_dnd_frame, target,   // C 23164
+		                    x_dnd_last_seen_toplevel,                 // C 23165
+		                    x_dnd_last_protocol_version,              // C 23166
+		                    lrint ((*xev).root_x) as c_ushort,        // C 23167
+		                    lrint ((*xev).root_y) as c_ushort,        // C 23168
+		                    x_dnd_selection_timestamp,                // C 23169
+		                    x_dnd_wanted_action, 0,                   // C 23170
+		                    dnd_state);                               // C 23171
+		                  }
+		                else if XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)  // C 23173
+		                  && target != None as Window                 // C 23173
+		                  && !x_dnd_disable_motif_drag                // C 23174
+		                  {
+		                    if !x_dnd_motif_setup_p                   // C 23176
+		                      { xm_setup_drag_info (dpyinfo, x_dnd_frame); }  // C 23177
+
+		                    dmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 23179
+		                      xm_drag_reason::XM_DRAG_REASON_DRAG_MOTION as c_int) as u8;  // C 23180
+		                    dmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;  // C 23181
+		                    dmsg.side_effects                         // C 23182
+		                      = XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (dpyinfo,  // C 23183-23184
+		                        x_dnd_wanted_action),
+		                          xm_drop_site_status::XM_DROP_SITE_VALID as c_int,  // C 23185
+		                          x_dnd_motif_operations as c_int,
+		                          (if !x_dnd_xm_use_help              // C 23186
+		                            { xm_drag_action::XM_DROP_ACTION_DROP as c_int }  // C 23187
+		                            else
+		                            { xm_drag_action::XM_DROP_ACTION_DROP_HELP as c_int })) as u16;  // C 23188
+		                    dmsg.timestamp = (*xev).time as u32;      // C 23189
+		                    dmsg.x = lrint ((*xev).root_x) as u16;    // C 23190
+		                    dmsg.y = lrint ((*xev).root_y) as u16;    // C 23191
+
+		                    if x_dnd_motif_setup_p                    // C 23193
+		                      { xm_send_drag_motion_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 23194-23195
+		                        target, &raw mut dmsg); }
+		                  }
+
+		                x_dnd_update_tooltip_position ((*xev).root_x, (*xev).root_y);  // C 23198
+
+		                break 'xi_other;                              // C 23200 (`goto XI_OTHER`)
+		              }
+
 		        }
 
 		      _ => {}
