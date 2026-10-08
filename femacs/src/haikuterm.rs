@@ -165,6 +165,13 @@ unsafe extern "C" {
                         inhibit: c_int, pretend: bool, parameter: Lisp_Object);
   /// C: dispextern.h 3581: `int window_box_right (struct window *, enum glyph_row_area);`
   fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int;
+  /// C: dispextern.h 3579-3580: `int window_box_left (struct window *, enum glyph_row_area);`
+  /// and `int window_box_left_offset (struct window *, enum glyph_row_area);` - the two the
+  /// stretch-glyph-string path reads (C 1414/1481).
+  fn window_box_left (w: *mut window, area: glyph_row_area) -> c_int;
+  fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
+  /// C: dispextern.h 3692: `extern bool cursor_in_mouse_face_p (struct window *w);` (xdisp.c)
+  fn cursor_in_mouse_face_p (w: *mut window) -> bool;
   /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *, int *);`
   fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
   /// C: dispextern.h 3638: `extern struct font *font_for_underline_metrics (struct glyph_string
@@ -2166,4 +2173,138 @@ unsafe fn haiku_draw_glyphless_glyph_string_foreground (s: *mut glyph_string)
       x += (*glyph).pixel_width as c_int;                              // C 1397
       i += 1; glyph = glyph.offset (1);                                // C 1328's step
     }
+}
+
+/* C 1400-1511: `haiku_draw_stretch_glyph_string` (C 1401-1497), `haiku_start_clip` (C 1499-1504)
+   and `haiku_end_clip` (C 1506-1511).  The next first definition is C 1513's
+   `haiku_clip_to_row`.  The three calls this slice makes to the display helpers
+   `window_box_left_offset` (dispextern.h 3580), `window_box_left` (3579) and
+   `cursor_in_mouse_face_p` (3692) are declared in this file's extern block above, the
+   `window_box_right` entry's own rule (no mirror carries them).  */
+
+/* C 1401-1497.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_stretch_glyph_string (s: *mut glyph_string)
+{
+  let face: *mut face = GS_FACE! (s);                                 // C 1404
+  /* C 1405 declares `bkg` with no initialiser and C 1459/1469 pass its address, so the port
+     zero-initialises it (PORTING.md 1.5; this file's C 1113 reading).  */
+  let mut bkg: uint32_t = 0;
+  let _ = &mut bkg;
+
+  if (*s).hl == DRAW_CURSOR && ! x_stretch_cursor_p                   // C 1407
+    {
+      let mut width: c_int;                                           // C 1409
+      let mut background_width: c_int = (*s).background_width;
+      let mut x: c_int = (*s).x;                                      // C 1410
+
+      if ! glyph_row_bits! (reversed_p, (*s).row)                     // C 1412
+	{
+	  let left_x: c_int = window_box_left_offset ((*s).w, TEXT_AREA);   // C 1414
+
+	  if x < left_x                                                  // C 1416
+	    {
+	      background_width -= left_x - x;                            // C 1418
+	      x = left_x;                                                // C 1419
+	    }
+	}
+      else
+	{
+	  /* In R2L rows, draw the cursor on the right edge of the
+	     stretch glyph.  */                                         // C 1424-1425
+	  let right_x: c_int = window_box_right ((*s).w, TEXT_AREA);      // C 1426
+	  if x + background_width > right_x                               // C 1427
+	    { background_width -= x - right_x; }                          // C 1428
+	  x += background_width;                                          // C 1429
+	}
+
+      width = std::cmp::min (FRAME_COLUMN_WIDTH ((*s).f), background_width);   // C 1432
+      if glyph_row_bits! (reversed_p, (*s).row)                       // C 1433
+	{ x -= width; }                                                // C 1434
+
+      let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);          // C 1436
+      /* C 1437 declares `cursor_color` with no initialiser and C 1439 passes its address (the
+	 same reading as `bkg` above).  */
+      let mut cursor_color: c_ulong = 0;
+      let _ = &mut cursor_color;
+
+      haiku_merge_cursor_foreground (s as *mut c_void, std::ptr::null_mut (),
+				     &raw mut cursor_color);   // C 1439
+      BView_SetHighColor (view, cursor_color as uint32_t);            // C 1440
+      BView_FillRectangle (view, x, (*s).y, width, (*s).height);       // C 1441
+
+      if width < background_width                                     // C 1443
+	{
+	  if ! glyph_row_bits! (reversed_p, (*s).row)                    // C 1445
+	    { x += width; }                                            // C 1446
+	  else
+	    { x = (*s).x; }                                            // C 1448
+
+	  let y: c_int = (*s).y;                                          // C 1450
+	  let w: c_int = background_width - width;                         // C 1451
+	  let h: c_int = (*s).height;
+
+	  /* Draw stipples manually because we want the background
+	     part of a stretch glyph to have a stipple even if the
+	     cursor is visible on top.  */                             // C 1453-1455
+	  if (*face).stipple == 0                                         // C 1456
+	    {
+	      if glyph_row_bits! (mouse_face_p, (*s).row)                 // C 1458
+		  && cursor_in_mouse_face_p ((*s).w)
+		{ haiku_mouse_face_colors (s, std::ptr::null_mut (), &raw mut bkg); }   // C 1459
+	      else
+		{ bkg = (*face).background as uint32_t; }                  // C 1461
+
+	      BView_SetHighColor (view, bkg);                             // C 1463
+	      BView_FillRectangle (view, x, y, w, h);                      // C 1464
+	    }
+	  else
+	    {
+	      if glyph_row_bits! (mouse_face_p, (*s).row)                 // C 1468
+		  && cursor_in_mouse_face_p ((*s).w)
+		{ haiku_mouse_face_colors (s, std::ptr::null_mut (), &raw mut bkg); }   // C 1469
+	      else
+		{ bkg = (*face).background as uint32_t; }                  // C 1471
+
+	      haiku_draw_stipple_background (s, GS_FACE! (s), x, y, w, h,   // C 1473
+					     true, bkg,                    // C 1474
+					     (*face).foreground as uint32_t); }
+	}
+    }
+  else if ! glyph_string_bits! (background_filled_p, (*s))             // C 1478
+    {
+      let mut background_width: c_int = (*s).background_width;         // C 1480
+      let mut x: c_int = (*s).x;
+      let text_left_x: c_int = window_box_left ((*s).w, TEXT_AREA);    // C 1481
+
+      /* Don't draw into left fringe or scrollbar area except for
+         header line and mode line.  */                              // C 1483-1484
+      if (*s).area == TEXT_AREA                                        // C 1485
+	  && x < text_left_x && ! glyph_row_bits! (mode_line_p, (*s).row)   // C 1486
+	{
+	  background_width -= text_left_x - x;                            // C 1488
+	  x = text_left_x;                                               // C 1489
+	}
+
+      if background_width > 0                                          // C 1492
+	{ haiku_draw_background_rect (s, GS_FACE! (s), x, (*s).y,      // C 1493
+				      background_width, (*s).height); }   // C 1494
+    }
+  glyph_string_bits! (background_filled_p, (*s), true);                // C 1496
+}
+
+/* C 1499-1504.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_start_clip (s: *mut glyph_string)
+{
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);              // C 1502
+  BView_StartClip (view);                                            // C 1503
+}
+
+/* C 1506-1511.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_end_clip (s: *mut glyph_string)
+{
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);              // C 1509
+  BView_EndClip (view);                                              // C 1510
 }
