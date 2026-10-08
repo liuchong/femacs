@@ -727,6 +727,14 @@ macro_rules! auto_lower {
   ($f:expr) => { (*$f).bits1 >> FRAME_AUTO_LOWER_SHIFT & 1 != 0 };
   ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_AUTO_LOWER_SHIFT, $v) };
 }
+/* C frame.h 434: `bool_bf mouse_moved : 1;` - written at C 3007.  The mirror names the shift
+   (`include/frame.rs` 529) and no accessor, so the unit reads and writes the bit itself (the
+   `androidterm.rs` 234-238 copy of this same member).  */
+#[cfg (feature = "have_haiku")]
+macro_rules! mouse_moved {
+  ($f:expr) => { (*$f).bits1 >> FRAME_MOUSE_MOVED_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_MOUSE_MOVED_SHIFT, $v) };
+}
 
 /* Give frame F the font FONT-OBJECT as its default font.  The return
    value is FONT-OBJECT.  FONTSET is an ID of the fontset for the
@@ -4090,9 +4098,13 @@ unsafe fn haiku_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
    (the `pgtkterm.rs` 4448 declaration of the same prototype).  */
 
 /// C: dispextern.h 3657: `extern void gui_clear_cursor (struct window *);` (xdisp.c)
+/// C: dispextern.h 3585-3587: `void remember_mouse_glyph (struct frame *, int, int,
+/// NativeRectangle *);` (xdisp.c) - C 3036's call, whose fourth argument is C's
+/// `&x_display_list->last_mouse_glyph`.
 #[cfg (feature = "have_haiku")]
 unsafe extern "C" {
   pub fn gui_clear_cursor (w: *mut window);
+  pub fn remember_mouse_glyph (f: *mut frame, x: c_int, y: c_int, rect: *mut haiku_rect);
 }
 
 /* C 2894-2915.  */
@@ -4202,4 +4214,118 @@ unsafe fn haiku_scroll_run (w: *mut window, run: *mut run)
   BView_draw_unlock (view);                                           // C 2977
 
   unblock_input ();                                                   // C 2979
+}
+
+/* C 2981-3077: `haiku_mouse_position` (C 2988-3061) and `haiku_flush` (C 3063-3077), the latter
+   under the C 2982-2987 comment block.  The next first definition is C 3080's
+   `haiku_define_frame_cursor`.  **Both take a C function-pointer ABI later**: `haiku_flush` is the
+   second entry of the `redisplay_interface` table (C 3151) and `haiku_mouse_position` is
+   `terminal->mouse_position_hook` (C 4431), so each must become `unsafe extern "C" fn` when its
+   referrer lands (the `androidfns.rs` slice-13 precedent; recorded in Deviations 4).  */
+
+/* C 2988-3061.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_mouse_position (fp: *mut *mut frame, insist: c_int,
+				bar_window: *mut Lisp_Object,
+				part: *mut scroll_bar_part, x: *mut Lisp_Object,
+				y: *mut Lisp_Object, timestamp: *mut Time)
+{
+  let mut frame: Lisp_Object;                                         // C 2993
+  let mut tail: Lisp_Object;
+  let mut f1: *mut frame;                                             // C 2994
+  /* C 2995 declares the two outputs of C 3035's `BView_get_mouse` with no initialiser and C 3035
+     hands the callee their addresses, so the port zero-initialises them (PORTING.md 1.5).  */
+  let mut screen_x: c_int = 0;
+  let mut screen_y: c_int = 0;
+  let mut view: *mut c_void;                                          // C 2996
+
+  if fp.is_null ()                                                    // C 2998
+    { return; }                                                       // C 2999
+
+  f1 = std::ptr::null_mut ();                                         // C 3001
+  block_input ();                                                     // C 3002
+
+  FOR_EACH_FRAME! (tail, frame, {                                     // C 3004
+    if FRAME_HAIKU_P (XFRAME (frame))                                 // C 3006
+      { mouse_moved! (XFRAME (frame), false); }                       // C 3007
+  });
+
+  if gui_mouse_grabbed (x_display_list)                              // C 3010
+      && ! EQ (track_mouse, Qdropping ())                             // C 3011
+      && ! EQ (track_mouse, Qdrag_source ())                          // C 3012
+    { f1 = (*x_display_list).last_mouse_frame; }                      // C 3013
+  else
+    { f1 = (*x_display_list).last_mouse_motion_frame; }               // C 3015
+
+  if f1.is_null () && FRAME_HAIKU_P (SELECTED_FRAME ())                // C 3017
+    { f1 = SELECTED_FRAME (); }                                       // C 3018
+
+  if f1.is_null () || (! FRAME_HAIKU_P (f1) && insist > 0)             // C 3020
+    { FOR_EACH_FRAME! (tail, frame, {                                 // C 3021
+	if FRAME_HAIKU_P (XFRAME (frame))                             // C 3022
+	    && ! FRAME_TOOLTIP_P (XFRAME (frame))                      // C 3023
+	  { f1 = XFRAME (frame); }                                    // C 3024
+      }); }
+
+  if ! f1.is_null () && FRAME_TOOLTIP_P (f1)                           // C 3026
+    { f1 = std::ptr::null_mut (); }                                   // C 3027
+
+  if ! f1.is_null () && FRAME_HAIKU_P (f1)                             // C 3029
+    {
+      view = FRAME_HAIKU_VIEW! (f1);                                   // C 3031
+
+      if ! view.is_null ()                                             // C 3033
+	{
+	  BView_get_mouse (view, &raw mut screen_x, &raw mut screen_y);   // C 3035
+	  remember_mouse_glyph (f1, screen_x, screen_y,                   // C 3036
+				&raw mut (*x_display_list).last_mouse_glyph);   // C 3037
+	  (*x_display_list).last_mouse_glyph_frame = f1;                  // C 3038
+
+	  *bar_window = Qnil ();                                          // C 3040
+	  *part = scroll_bar_nowhere;                                     // C 3041
+
+	  /* If track-mouse is `drag-source' and the mouse pointer is
+	     certain to not be actually under the chosen frame, return
+	     NULL in FP to at least try being consistent with X.  */    // C 3043-3045
+	  if EQ (track_mouse, Qdrag_source ())                           // C 3046
+	      && (screen_x < 0 || screen_y < 0                           // C 3047
+		  || screen_x >= FRAME_PIXEL_WIDTH (f1)                 // C 3048
+		  || screen_y >= FRAME_PIXEL_HEIGHT (f1))               // C 3049
+	    { *fp = std::ptr::null_mut (); }                              // C 3050
+	  else
+	    { *fp = f1; }                                                // C 3052
+
+	  *timestamp = (*x_display_list).last_mouse_movement_time;         // C 3054
+	  /* The mirror's `XSETINT!` hands its second argument to `make_fixnum`, which takes an
+	     `isize`, so C's two `int` -> `EMACS_INT` conversions are written out (PORTING.md 1.1).  */
+	  XSETINT! (*x, screen_x as isize);                               // C 3055
+	  XSETINT! (*y, screen_y as isize);                               // C 3056
+	}
+    }
+
+  unblock_input ();                                                   // C 3060
+}
+
+/* Haiku doesn't provide any way to get the frame actually underneath
+   the pointer, so we typically return dpyinfo->last_mouse_frame if
+   the display is grabbed and `track-mouse' is not `dropping' or
+   `drag-source'; failing that, we return the selected frame, and
+   finally a random window system frame (as long as `track-mouse' is
+   not `drag-source') if that didn't work either.  */               // C 2982-2987
+
+/* C 3063-3077.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_flush (f: *mut frame)
+{
+  /* This is needed for tooltip frames to work properly with double
+     buffering.  */                                                   // C 3066-3067
+  if FRAME_DIRTY_P! (f) && ! buffer_flipping_blocked_p ()              // C 3068
+    { haiku_flip_buffers (f); }                                       // C 3069
+
+  /* The frame is complete again as its contents were just
+     flushed.  */                                                     // C 3071-3072
+  FRAME_COMPLETE_P! (f, true);                                        // C 3073
+
+  if FRAME_VISIBLE_P (f) && ! FRAME_TOOLTIP_P (f)                      // C 3075
+    { BWindow_Flush (FRAME_HAIKU_WINDOW! (f)); }                       // C 3076
 }

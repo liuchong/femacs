@@ -7,12 +7,17 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**4,205 lines**), which carries **C 1-2980** - P-86 ④'s first sixteen
-> slices of this file - with every `#if`'s arms both carried.
+> `femacs/src/haikuterm.rs` (**4,331 lines**), which carries **C 1-3077** - P-86 ④'s first
+> seventeen slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 3077 and not 3080 (slice 17).**  C 3080 is `haiku_define_frame_cursor`'s `static void` and
+> C 3077 the closing brace of the item before it, so the slice is **C 2981-3077** - the blank line
+> C 2981 plus the C 2982-2987 comment block, `haiku_mouse_position` (C 2988-3061) and
+> `haiku_flush` (C 3063-3077).  The next definition is `haiku_define_frame_cursor` (C 3080).
 >
 > **Why 2980 and not 2982 (slice 16).**  C 2981 is blank and C 2982 opens a comment block, so the
 > slice is **C 2893-2980** - the blank line C 2893 and the three items `haiku_define_fringe_bitmap`
@@ -195,7 +200,8 @@ the pre-flight below sets it as well.
 | 2746-2803 | `haiku_set_vertical_scroll_bar` (C 2747-2803; C 2756 the `eassert`, C 2759 `window_box`, C 2764-2765 the two area readers, C 2770-2794 the create/move fork, C 2796-2801 the thumb call and the two setters) | file gate (slice 14) |
 | 2804-2892 | `haiku_draw_fringe_bitmap` (C 2805-2892; C 2823-2824 the invalidate pair, C 2828-2853 the stipple arm with `haiku_get_bitmap_rec`/`haiku_update_bitmap_rec`, C 2855-2888 the fringe bitmap arm with `gui_define_fringe_bitmap` and the two colour choices) | file gate (slice 15) |
 | 2893-2980 | `haiku_define_fringe_bitmap` (C 2894-2915; C 2898-2907 the grow, C 2910-2913 the `BBitmap_*` pair), `haiku_destroy_fringe_bitmap` (C 2917-2926) and `haiku_scroll_run` (C 2928-2980; C 2934 `window_box`, C 2936-2938 the three y values, C 2940-2967 the up/down folds, C 2969-2977 the copy) | file gate (slice 16) |
-| 2981-4898 | **the remainder of the file** (the C 2982 comment block onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 2981-3077 | the C 2982-2987 comment block, `haiku_mouse_position` (C 2988-3061; C 3004-3008 the first `FOR_EACH_FRAME`, C 3017-3024 the selected/any-frame fallbacks, C 3031-3056 the view arm with `BView_get_mouse`/`remember_mouse_glyph`/the two `XSETINT`s) and `haiku_flush` (C 3063-3077; C 3068 the dirty/flip test, C 3073 the `FRAME_COMPLETE_P` write, C 3075-3076 the flush) | file gate (slice 17) |
+| 3078-4898 | **the remainder of the file** (C 3080 `haiku_define_frame_cursor` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1501,3 +1507,68 @@ function` rows plus `missing macro ASSIGN_CURSOR`, all inside the C 2981-4898 re
   the text/token gates.
 - The five mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 2981-4898 text this file has not reached.
+
+## Slice 17 (2026-10-08, status 4.093 - the integrator sets the round number): C 2981-3077
+
+**The slice's text.**  The blank line C 2981 and the C 2982-2987 comment block, `haiku_mouse_position`
+(C 2988-3061) and `haiku_flush` (C 3063-3077).  Port line count **4,205 -> 4,331** (+126).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Three runs of slice 2's
+command, arm set `have_haiku` + `have_window_system`:
+
+- **Run 1: `exit 1`, 11 primary errors, 5 in the unit's own text** - C 3007's `f->mouse_moved` is a
+  **bit** (frame.h 434) with no mirror accessor, `gui_mouse_grabbed` returns `bool` in this unit's
+  own declaration, `remember_mouse_glyph` (dispextern.h 3585) is declared **nowhere**, and the two
+  `XSETINT`s hand an `i32` to `make_fixnum`'s `isize`.
+- **Run 2 (after `mouse_moved!`/`gui_mouse_grabbed`/`remember_mouse_glyph`): `exit 1`, 8 primary
+  errors, 2 in the unit's own text** - the two `XSETINT` conversions.
+- **Run 3 (final revision): `exit 1`, 6 primary errors among 34 error-prefixed lines, and every one
+  is in a mirror** - the usual `systime`/`frame` pair plus **four** rows in `include/haikuterm.rs`
+  (three from the earlier slices and one more instance of slice 1's recorded `FRAME_COMPLETE_P`
+  write-arm class, which C 3073's `= true` adds).  **The unit's own text has no primary error**,
+  4 warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 28 rows -> 26.**  The two closed are
+the `missing function` rows for the two items this slice lands, and **no new row appeared**: the two
+`FOR_EACH_FRAME!` calls, the five `x_display_list` member reads/writes and the four `BView_*`/frame
+calls all compare token for token.  The 26 that remain are 25 `missing function` rows plus `missing
+macro ASSIGN_CURSOR`, all inside the C 3078-4898 remainder.
+
+### Deviations (this slice)
+
+1. **`mouse_moved!` is a unit-local macro** (the `androidterm.rs` 234-238 copy of the same member):
+   C 3007's `f->mouse_moved = false` is a one-bit write inside `frame`'s flag run, the mirror names
+   the shift (`include/frame.rs` 529) and carries no accessor, so the unit reads/writes the bit
+   itself through the file's own `set_frame_flag1!` (slice 1).
+2. **`gui_mouse_grabbed` is the unit's own declaration and returns `bool`** (its mirror is absent;
+   the unit declares it at the use site), so C 3010's truth test needs no `!= 0` - the opposite of
+   the `int`-returning readers C's other files use.
+3. **`remember_mouse_glyph` (dispextern.h 3585-3587) is declared at the use site** (P-72 rule 4): no
+   mirror carries it, and its fourth parameter is C's `&x_display_list->last_mouse_glyph`, which the
+   unit's own `haiku_rect` type spells (`NativeRectangle`'s arm, haikugui.h 41-47).
+4. **Both functions carry an ABI debt**: `haiku_flush` is the `redisplay_interface` table's second
+   entry (C 3151) and `haiku_mouse_position` is `terminal->mouse_position_hook` (C 4431), so each
+   must become `unsafe extern "C" fn` when its referrer lands - the `androidfns.rs` slice-13
+   precedent, recorded here so the two referrer slices convert them together with the eight slice
+   11 already owes.
+5. **C 3055-3056's `XSETINT (*x, screen_x)`** is `XSETINT! (*x, screen_x as isize)`: the mirror's
+   macro hands its second argument to `make_fixnum`, so C's `int` -> `EMACS_INT` conversion is
+   written out (PORTING.md 1.1; the `BScrollBar_default_size` reading of C 2466).
+6. **C 2995's `screen_x`/`screen_y`** are zero-initialised and named (PORTING.md 1.5): C 3035 hands
+   the callee their addresses - this file's reading since C 1113.
+
+### Owed (this slice's additions)
+
+- **Two more functions join the ABI debt** (Deviation 4): `haiku_flush` for the table slice,
+  `haiku_mouse_position` for the terminal slice - so that round converts ten functions, not eight.
+- Nothing else: no `--check` row (Evidence ②) and the line-drift row is unchanged (C 4898 vs Rust
+  4,331 is 11.6%, inside the `haikuterm` row's 0.69).
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no mouse position was read, no
+  `BView_get_mouse` was called and no frame was flushed.**  What is measured is the arm's
+  type-checking and the text/token gates.
+- The six mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 3078-4898 text this file has not reached.
