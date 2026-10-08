@@ -3007,3 +3007,201 @@ unsafe fn haiku_draw_glyph_string (s: *mut glyph_string)
 
   unblock_input ();                                                   // C 2073
 }
+
+/* C 2075-2219: `haiku_after_update_window_line` (C 2076-2129), `haiku_set_window_size`
+   (C 2131-2167) and `haiku_draw_hollow_cursor` (C 2169-2219).  The next first definition is
+   C 2221's `haiku_draw_bar_cursor`.  Three of the names this slice calls are declared at the use
+   site below (`get_phys_cursor_glyph`, window.h 1186; `get_phys_cursor_geometry`, dispextern.h
+   3652-3653; `do_pending_window_change`, dispextern.h 3923) because no mirror carries the
+   prototypes - the `pgtkterm.rs` 4021-4028 and `process.rs` 5945 declarations of the same three.
+   `f->want_fullscreen` (frame.h 460) has the mirror's unit/shift/mask constants and no accessor,
+   so the unit reads the field itself (the `haikufns.rs` 1313-1321 copy of that same member).  */
+
+/// C: frame.h 460: `ENUM_BF (fullscreen_type) want_fullscreen : 4;` - read at C 2144.
+#[cfg (feature = "have_haiku")]
+macro_rules! want_fullscreen {
+  ($f:expr) => {
+    frame_field ($f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT,
+		 FRAME_WANT_FULLSCREEN_MASK) as fullscreen_type };
+}
+
+/* C: window.h 1186: `struct glyph *get_phys_cursor_glyph (struct window *w);`
+   C: dispextern.h 3652-3653: `extern void get_phys_cursor_geometry (struct window *,
+   struct glyph_row *, struct glyph *, int *, int *, int *);`
+   C: dispextern.h 3923: `void do_pending_window_change (bool);`
+   (`XSETFRAME` is *not* declared here: `include/frame.rs` 776-780 carries it as C's own macro,
+   `XSETFRAME! (frame, f)`, so the call site uses that form - `androidfns.rs` 1214's spelling.)  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph;
+  pub fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row, glyph: *mut glyph,
+				   x: *mut c_int, y: *mut c_int, h: *mut c_int);
+  pub fn do_pending_window_change (safe: bool);
+  /// C: dispextern.h 3813: `int lookup_basic_face (struct window *, struct frame *, int);` -
+  /// `include/dispextern.rs` 4051 records it as owed rather than declared, so the unit names it
+  /// here (the `xterm.rs` 8692 use-site read of the same prototype).
+  pub fn lookup_basic_face (w: *mut window, f: *mut frame, face_id: c_int) -> c_int;
+}
+
+/* C 2076-2129.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
+{
+  eassert! (! w.is_null ());                                          // C 2080
+  let f: *mut frame;                                                  // C 2081
+  let mut width: c_int;                                               // C 2082
+  let mut height: c_int;
+
+  if ! glyph_row_bits! (mode_line_p, desired_row)                     // C 2084
+      && ! window_bits! (pseudo_window_p, w)
+    { glyph_row_bits! (redraw_fringe_bitmaps_p, desired_row, true); }  // C 2085
+
+  if windows_or_buffers_changed != 0                                  // C 2087
+      && glyph_row_bits! (full_width_p, desired_row)                  // C 2088
+      && {                                                            // C 2089-2091
+	   f = XFRAME ((*w).frame);
+	   width = FRAME_INTERNAL_BORDER_WIDTH (f);
+	   width != 0
+	 }
+      && {                                                            // C 2092-2093
+	   height = (*desired_row).visible_height;
+	   height > 0
+	 }
+    {
+      let y: c_int                                                    // C 2095
+	= WINDOW_TO_FRAME_PIXEL_Y! (w, std::cmp::max (0, (*desired_row).y));
+      let face_id: c_int                                              // C 2096
+	= if ! NILP (Vface_remapping_alist)                           // C 2097
+	  { lookup_basic_face (std::ptr::null_mut (), f, INTERNAL_BORDER_FACE_ID) }   // C 2098
+	  else
+	  { INTERNAL_BORDER_FACE_ID };                                // C 2099
+      let face: *mut face = FACE_FROM_ID_OR_NULL (f, face_id);         // C 2100
+
+      block_input ();                                                 // C 2102
+      if ! face.is_null ()                                            // C 2103
+	{
+	  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! (f);             // C 2105
+	  BView_draw_lock (view, false, 0, 0, 0, 0);                      // C 2106
+	  BView_StartClip (view);                                         // C 2107
+	  BView_SetHighColor (view, if face_bits! (background_defaulted_p, face)   // C 2108
+				    { FRAME_BACKGROUND_PIXEL (f) as uint32_t }   // C 2109
+				    else { (*face).background as uint32_t });    // C 2110
+	  BView_FillRectangle (view, 0, y, width, height);                 // C 2111
+	  BView_FillRectangle (view, FRAME_PIXEL_WIDTH (f) - width,        // C 2112
+			       y, width, height);                         // C 2113
+	  BView_invalidate_region (FRAME_HAIKU_DRAWABLE! (f),              // C 2114
+				   0, y, width, height);                  // C 2115
+	  BView_invalidate_region (view, FRAME_PIXEL_WIDTH (f) - width,    // C 2116
+				   y, width, height);                     // C 2117
+	  BView_EndClip (view);                                           // C 2118
+	  BView_draw_unlock (view);                                       // C 2119
+	}
+      else
+	{
+	  haiku_clear_frame_area (f, 0, y, width, height);               // C 2123
+	  haiku_clear_frame_area (f, FRAME_PIXEL_WIDTH (f) - width,      // C 2124
+				  y, width, height);                     // C 2125
+	}
+      unblock_input ();                                               // C 2127
+    }
+}
+
+/* C 2131-2167.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_set_window_size (f: *mut frame, change_gravity: bool,
+				 width: c_int, height: c_int)
+{
+  /* C 2135 declares `frame` with no initialiser and C 2140 hands the callee its address, so the
+     port zero-initialises it (PORTING.md 1.5; the `haikufns.rs` 2090 reading of the same local).  */
+  let mut frame: Lisp_Object = Qnil ();
+  let _ = change_gravity;
+
+  /* On X Windows, window managers typically disallow resizing a
+     window when it is fullscreen.  Do the same here.  */            // C 2137-2138
+
+  XSETFRAME! (frame, f);                                              // C 2140
+  if ! NILP (Fframe_parameter (frame, Qfullscreen ()))                // C 2141
+      /* Only do this if the fullscreen status has actually been
+	 applied.  */                                                 // C 2142-2143
+      && want_fullscreen! (f) == FULLSCREEN_NONE                      // C 2144
+      /* And if the configury during frame creation has been
+	 completed.  Otherwise, there will be no valid "old size" to
+	 go back to.  */                                             // C 2145-2147
+      && (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).configury_done   // C 2148
+    { return; }                                                      // C 2149
+
+  haiku_update_size_hints (f);                                       // C 2151
+
+  if ! FRAME_HAIKU_WINDOW! (f).is_null ()                            // C 2153
+    {
+      block_input ();                                                // C 2155
+      BWindow_resize (FRAME_HAIKU_WINDOW! (f),                        // C 2156
+		      width, height);                                // C 2157
+
+      if FRAME_VISIBLE_P (f)                                         // C 2159
+	  && (width != FRAME_PIXEL_WIDTH (f)                         // C 2160
+	      || height != FRAME_PIXEL_HEIGHT (f))                   // C 2161
+	{ haiku_wait_for_event (f, FRAME_RESIZED); }                 // C 2162
+      unblock_input ();                                              // C 2163
+    }
+
+  do_pending_window_change (false);                                  // C 2166
+}
+
+/* C 2169-2219.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
+{
+  let f: *mut frame;                                                 // C 2172
+  /* C 2173's `x`/`y`/`h` have no initialiser and C 2188 hands the callee their addresses (the
+     same reading as `frame` above; `wd` C 2189 assigns before C 2205 reads it).  */
+  let mut x: c_int = 0;
+  let mut y: c_int = 0;
+  let mut wd: c_int;
+  let mut h: c_int = 0;
+  let mut cursor_glyph: *mut glyph;                                  // C 2174
+  let foreground: uint32_t;                                          // C 2175
+  let view: *mut c_void;                                             // C 2176
+
+  f = XFRAME (WINDOW_FRAME! (w));                                    // C 2178
+  view = FRAME_HAIKU_DRAWABLE! (f);                                  // C 2179
+
+  /* Get the glyph the cursor is on.  If we can't tell because
+     the current matrix is invalid or such, give up.  */             // C 2181-2182
+  cursor_glyph = get_phys_cursor_glyph (w);                          // C 2183
+  if cursor_glyph.is_null ()                                         // C 2184
+    { return; }                                                      // C 2185
+
+  /* Compute frame-relative coordinates for phys cursor.  */         // C 2187
+  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut x, &raw mut y, &raw mut h);   // C 2188
+  wd = (*w).phys_cursor_width;                                       // C 2189
+
+  /* The foreground of cursor_gc is typically the same as the normal
+     background color, which can cause the cursor box to be invisible.  */   // C 2191-2192
+  foreground = FRAME_CURSOR_COLOR! (f).pixel as uint32_t;            // C 2193
+
+  /* When on R2L character, show cursor at the right edge of the
+     glyph, unless the cursor box is as wide as the glyph or wider
+     (the latter happens when x-stretch-cursor is non-nil).  */      // C 2195-2197
+  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0        // C 2198
+      && (*cursor_glyph).pixel_width as c_int > wd                   // C 2199
+    { x += (*cursor_glyph).pixel_width as c_int - wd; }              // C 2200
+
+  /* Set clipping, draw the rectangle, and reset clipping again.
+     This also marks the region as invalidated.  */                  // C 2202-2203
+
+  BView_draw_lock (view, true, x, y, wd, h);                         // C 2205
+  BView_StartClip (view);                                            // C 2206
+  haiku_clip_to_row (w, row, TEXT_AREA);                             // C 2207
+
+  /* Now set the foreground color and pen size.  */                   // C 2209
+  BView_SetHighColor (view, foreground);                             // C 2210
+  BView_SetPenSize (view, 1);                                        // C 2211
+
+  /* Actually draw the rectangle.  */                                 // C 2213
+  BView_StrokeRectangle (view, x, y, wd, h);                         // C 2214
+
+  /* Reset clipping.  */                                             // C 2216
+  BView_EndClip (view);                                              // C 2217
+  BView_draw_unlock (view);                                          // C 2218
+}
