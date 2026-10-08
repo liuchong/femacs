@@ -3414,3 +3414,202 @@ DEFUN! ("android-toggle-on-screen-keyboard", Fandroid_toggle_on_screen_keyboard,
 
   return Qnil ();                                                  // C 2661
 });
+
+/* C 2663-2832: C 2666's `#ifndef ANDROID_STUBIFY` and the first seven frame-parameter setters -
+   `android_set_background_color` (C 2668-2693), `android_set_border_color` (C 2695-2703),
+   `android_set_cursor_color` (C 2705-2748), `android_set_cursor_type` (C 2750-2755),
+   `android_set_foreground_color` (C 2757-2789), `android_set_child_frame_border_width`
+   (C 2791-2814) and `android_set_internal_border_width` (C 2816-2832).  The `#ifndef` block runs
+   to C 3357; the next setter is C 2834's `android_set_menu_bar_lines`.  */
+
+/* Use-site declarations (P-72 rule 4) for the five names these setters call whose mirrors do not
+   carry them: each is another unit's definition, so the unit declares it under C's own name.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3794: `void update_face_from_frame_parameter (struct frame *, Lisp_Object,`
+  /// (dispextern.h 3795 continues `Lisp_Object);`)
+  pub fn update_face_from_frame_parameter (f: *mut frame, prop: Lisp_Object, new_value: Lisp_Object);
+  /// C: dispextern.h 3656: `extern void gui_update_cursor (struct frame *, bool);`
+  pub fn gui_update_cursor (f: *mut frame, invisible: bool);
+  /// C: lisp.h 4409: `void set_frame_cursor_types (struct frame *, Lisp_Object);`
+  pub fn set_frame_cursor_types (f: *mut frame, cursor_type: Lisp_Object);
+  /// C: lisp.h 607: `extern int check_int_nonnegative (Lisp_Object);`
+  pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
+  /// C: dispextern.h 3896: `extern void redraw_frame (struct frame *);`
+  pub fn redraw_frame (f: *mut frame);
+}
+
+/* C 2668-2693.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_background_color (f: *mut frame, arg: Lisp_Object,
+					oldval: Lisp_Object)
+{
+  let mut x: *mut android_output;                                 // C 2672
+  let mut bg: c_ulong;                                            // C 2673
+
+  x = (*f).output_data.android as *mut android_output;            // C 2675
+  bg = android_decode_color (f, arg, WHITE_PIX_DEFAULT! (f));      // C 2676
+  FRAME_BACKGROUND_PIXEL! (f) = bg;                               // C 2677
+
+  if FRAME_ANDROID_WINDOW! (f) != 0                               // C 2679
+    {
+      block_input ();                                             // C 2681
+      android_set_background ((*x).normal_gc, bg);                // C 2682
+      android_set_foreground ((*x).reverse_gc, bg);               // C 2683
+      android_set_window_background (FRAME_ANDROID_WINDOW! (f), bg);   // C 2684
+      android_set_foreground ((*x).cursor_gc, bg);                // C 2685
+      unblock_input ();                                           // C 2686
+
+      update_face_from_frame_parameter (f, Qbackground_color (), arg);   // C 2688
+
+      if FRAME_VISIBLE_P (f)                                      // C 2690
+        { redraw_frame (f); }                                     // C 2691
+    }
+}
+
+/* C 2695-2703.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_border_color (f: *mut frame, arg: Lisp_Object,
+				    oldval: Lisp_Object)
+{
+  /* Left unimplemented because Android has no window borders.  */   // C 2699
+  CHECK_STRING (arg);                                             // C 2700
+  android_decode_color (f, arg, BLACK_PIX_DEFAULT! (f));           // C 2701
+  update_face_from_frame_parameter (f, Qborder_color (), arg);     // C 2702
+}
+
+/* C 2705-2748.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_cursor_color (f: *mut frame, arg: Lisp_Object,
+				    oldval: Lisp_Object)
+{
+  let mut fore_pixel: c_ulong;                                    // C 2709
+  let mut pixel: c_ulong;
+  let mut x: *mut android_output;                                 // C 2710
+
+  x = (*f).output_data.android as *mut android_output;            // C 2712
+
+  if !NILP (Vx_cursor_fore_pixel)                                 // C 2714
+    { fore_pixel = android_decode_color (f, Vx_cursor_fore_pixel,   // C 2715-2716
+					 WHITE_PIX_DEFAULT! (f)); }
+  else
+    { fore_pixel = FRAME_BACKGROUND_PIXEL! (f); }                  // C 2718
+
+  pixel = android_decode_color (f, arg, BLACK_PIX_DEFAULT! (f));    // C 2720
+
+  /* Make sure that the cursor color differs from the background color.  */   // C 2722
+  if pixel == FRAME_BACKGROUND_PIXEL! (f)                          // C 2723
+    {
+      pixel = FRAME_FOREGROUND_PIXEL! (f);                         // C 2725
+      if pixel == fore_pixel                                      // C 2726
+	{ fore_pixel = FRAME_BACKGROUND_PIXEL! (f); }              // C 2727
+    }
+
+  (*x).cursor_foreground_pixel = fore_pixel;                      // C 2730
+  (*x).cursor_pixel = pixel;                                      // C 2731
+
+  if FRAME_ANDROID_WINDOW! (f) != 0                               // C 2733
+    {
+      block_input ();                                             // C 2735
+      android_set_background ((*x).cursor_gc, (*x).cursor_pixel);   // C 2736
+      android_set_foreground ((*x).cursor_gc, fore_pixel);         // C 2737
+      unblock_input ();                                           // C 2738
+
+      if FRAME_VISIBLE_P (f)                                      // C 2740
+	{
+	  gui_update_cursor (f, false);                            // C 2742
+	  gui_update_cursor (f, true);                             // C 2743
+	}
+    }
+
+  update_face_from_frame_parameter (f, Qcursor_color (), arg);     // C 2747
+}
+
+/* C 2750-2755.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_cursor_type (f: *mut frame, arg: Lisp_Object,
+				   oldval: Lisp_Object)
+{
+  set_frame_cursor_types (f, arg);                                // C 2754
+}
+
+/* C 2757-2789.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_foreground_color (f: *mut frame, arg: Lisp_Object,
+					oldval: Lisp_Object)
+{
+  let mut x: *mut android_output;                                 // C 2761
+  let mut fg: c_ulong;                                            // C 2762
+  let mut old_fg: c_ulong;
+
+  x = (*f).output_data.android as *mut android_output;            // C 2764
+
+  fg = android_decode_color (f, arg, BLACK_PIX_DEFAULT! (f));       // C 2766
+  old_fg = FRAME_FOREGROUND_PIXEL! (f);                            // C 2767
+  FRAME_FOREGROUND_PIXEL! (f) = fg;                                // C 2768
+
+  if FRAME_ANDROID_WINDOW! (f) != 0                                // C 2770
+    {
+      block_input ();                                              // C 2772
+      android_set_foreground ((*x).normal_gc, fg);                 // C 2773
+      android_set_background ((*x).reverse_gc, fg);                // C 2774
+
+      if (*x).cursor_pixel == old_fg                               // C 2776
+	{
+	  (*x).cursor_pixel = fg;                                   // C 2778
+	  android_set_background ((*x).cursor_gc, (*x).cursor_pixel);   // C 2779
+	}
+
+      unblock_input ();                                            // C 2782
+
+      update_face_from_frame_parameter (f, Qforeground_color (), arg);   // C 2784
+
+      if FRAME_VISIBLE_P (f)                                       // C 2786
+        { redraw_frame (f); }                                      // C 2787
+    }
+}
+
+/* C 2791-2814.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object,
+						oldval: Lisp_Object)
+{
+  let mut border: c_int;                                          // C 2795
+
+  if NILP (arg)                                                   // C 2797
+    { border = -1; }                                              // C 2798
+  else if RANGED_FIXNUMP (0, arg, INT_MAX as EMACS_INT)           // C 2799
+    { border = XFIXNAT (arg) as c_int; }                          // C 2800
+  else
+    { signal_error (c"Invalid child frame border width".as_ptr (), arg); }   // C 2802
+
+  if border != FRAME_CHILD_FRAME_BORDER_WIDTH (f)                 // C 2804
+    {
+      (*f).child_frame_border_width = border;                     // C 2806
+
+      if FRAME_ANDROID_WINDOW! (f) != 0                           // C 2808
+	{
+	  adjust_frame_size (f, -1, -1, 3, false, Qchild_frame_border_width ());   // C 2810
+	  android_clear_under_internal_border (f);                // C 2811
+	}
+    }
+}
+
+/* C 2816-2832.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_internal_border_width (f: *mut frame, arg: Lisp_Object,
+					     oldval: Lisp_Object)
+{
+  let border: c_int = check_int_nonnegative (arg);                 // C 2820
+
+  if border != FRAME_INTERNAL_BORDER_WIDTH (f)                     // C 2822
+    {
+      (*f).internal_border_width = border;                         // C 2824
+
+      if FRAME_ANDROID_WINDOW! (f) != 0                            // C 2826
+	{
+	  adjust_frame_size (f, -1, -1, 3, false, Qinternal_border_width ());   // C 2828
+	  android_clear_under_internal_border (f);                 // C 2829
+	}
+    }
+}

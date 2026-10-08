@@ -10,8 +10,8 @@
 > 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines), **slice 4 = C
 > 1705-1800** (2,332 Rust lines), **slice 5 = C 1801-1910** (2,447 Rust lines), **slice 6 = C
 > 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines), **slice 8 = C
-> 2295-2583** (3,313 Rust lines) and **slice 9 = C 2584-2662** (3,416 Rust lines), both arms of
-> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 2295-2583** (3,313 Rust lines), **slice 9 = C 2584-2662** (3,416 Rust lines) and **slice 10 = C
+> 2663-2832** (3,615 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -128,7 +128,14 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 2601-2619 | C 2602's `DEFUN ("android-detect-mouse")`: C 2609-2615 the real arm, C 2616-2617 the stub | file gate, both sub-arms |
 | 2620-2638 | C 2621's `DEFUN ("android-detect-keyboard")`: C 2628-2634 the real arm, C 2635-2636 the stub | file gate, both sub-arms |
 | 2639-2662 | C 2640's `DEFUN ("android-toggle-on-screen-keyboard")`: C 2650-2659 the real arm and C 2661's `return Qnil;` outside its `#endif` | file gate |
-| 2663-3797 | not ported: the file's remaining 1,135 lines (C 2666's `#ifndef ANDROID_STUBIFY` and `android_set_background_color` onward) | not ported |
+| 2663-2693 | C 2666's `#ifndef ANDROID_STUBIFY` and `android_set_background_color` (C 2679-2692 the window arm) | real arm |
+| 2694-2703 | `android_set_border_color` (C 2699's "no window borders" comment) | real arm |
+| 2704-2748 | `android_set_cursor_color` (C 2714-2718 the fore-pixel choice, C 2722-2728 the collision guard, C 2733-2745 the window arm) | real arm |
+| 2749-2755 | `android_set_cursor_type` | real arm |
+| 2756-2789 | `android_set_foreground_color` (C 2776-2780 the cursor-pixel guard) | real arm |
+| 2790-2814 | `android_set_child_frame_border_width` (C 2797-2802 the three-way border) | real arm |
+| 2815-2832 | `android_set_internal_border_width` | real arm |
+| 2833-3797 | not ported: the file's remaining 965 lines (C 2834's `android_set_menu_bar_lines` onward) | not ported |
 
 ## Evidence
 
@@ -911,4 +918,64 @@ closed are **4 `missing subr`** (9 -> 5: `Fx_hide_tip`, `Fandroid_detect_mouse`,
 - **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
   compiles nothing from this file (P-86 ③⑵): no tip was hidden, no mouse or keyboard was probed,
   no on-screen keyboard was requested.
+- The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
+
+## Slice 10 (2026-10-08, status 4.071 - the integrator sets the round number): C 2663-2832
+
+**The slice's text.**  C 2666's `#ifndef ANDROID_STUBIFY` (that block runs to C 3357) and the first
+seven frame-parameter setters: `android_set_background_color` (C 2668-2693),
+`android_set_border_color` (C 2695-2703), `android_set_cursor_color` (C 2705-2748),
+`android_set_cursor_type` (C 2750-2755), `android_set_foreground_color` (C 2757-2789),
+`android_set_child_frame_border_width` (C 2791-2814) and `android_set_internal_border_width`
+(C 2816-2832).  Port line count **3,416 -> 3,615** (+199).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**  The
+first run reads **exit 1, exactly 4 `error[E0609]` rows** - unchanged, still slice 1's class, **0 in
+this slice's text** (no probe defect this round).
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings** (the same
+`include/android.rs` FFI-safety warnings as slices 2-9).  **Evidence ③ - arm set C = A +
+`have_window_system`:** **exit 0, 0 errors, 12 warnings**.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **74 rows -> 66**: the seven
+closed are **7 `missing function`** (16 -> 9) and **the drift row itself is gone** - the port is
+3,615 lines against C's 3,797, i.e. **4.8%, inside the 5% the rule allows every file**, so
+`docs/ports/line-drift-tolerance.tsv` no longer needs an `xfns` row for this file.  (That row was
+written in slice 2 and is now superseded by the text itself; the append-only table keeps it, and
+the check's own reading is what changed.)  What remains is 35 `missing defsubr` (the `syms_of_*`
+registrations), 16 `missing constant`, 9 `missing function`, 5 `missing subr` and 1 `missing
+macro`.
+
+### Deviations (this slice)
+
+1. **Five more use-site declarations** (P-72 rule 4), each another unit's definition:
+   `update_face_from_frame_parameter` (dispextern.h 3794), `gui_update_cursor` (dispextern.h 3656),
+   `set_frame_cursor_types` (lisp.h 4409), `check_int_nonnegative` (lisp.h 607) and `redraw_frame`
+   (dispextern.h 3896).
+2. **`x = f->output_data.android;` is `x = (*f).output_data.android as *mut android_output;`** -
+   the field is `*mut c_void` in the mirror, so the cast is the one every member path in this file
+   already carries (the slice-1 spelling at line 1219).
+3. **The pixel members are the file's own l-value macros**: `FRAME_BACKGROUND_PIXEL! (f) = bg;`
+   and `FRAME_FOREGROUND_PIXEL! (f) = fg;` are C's `((f)->background_pixel)` writes (the `frame.h`
+   1239/1236 definitions the file declares above).
+4. **`RANGED_FIXNUMP (0, arg, INT_MAX)` is `RANGED_FIXNUMP (0, arg, INT_MAX as EMACS_INT)`** and
+   `border = XFIXNAT (arg);` is `XFIXNAT (arg) as c_int` - C's `int` bound and the narrowing into
+   the `int` local, both spelled (the `xfns.rs`/`haikufns.rs` shape for the same two calls).
+5. **`signal_error`'s message is C's own byte string** (`c"Invalid child frame border width"`),
+   and C's `if (FRAME_ANDROID_WINDOW (f))` truth tests are zero comparisons (the handle is
+   `intptr_t`).
+
+### Owed (this slice's additions)
+
+- **The file's remainder**: C 2833-3797 (965 lines) - the rest of the setter family
+  (`android_set_menu_bar_lines` onward), the remaining `DEFUN`s, the GC and colour helpers, the
+  terminal hooks, and `syms_of_androidfns`'s registrations (the 35 unchanged `missing defsubr`
+  rows).
+- **Nothing new for the mirrors.**
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no colour was decoded into a GC, no cursor was
+  updated, no frame size was adjusted.
 - The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
