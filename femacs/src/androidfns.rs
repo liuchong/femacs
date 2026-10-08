@@ -3613,3 +3613,214 @@ unsafe fn android_set_internal_border_width (f: *mut frame, arg: Lisp_Object,
 	}
     }
 }
+
+/* C 2833-2972: `android_set_menu_bar_lines` (C 2834-2900) and the mouse-cursor data the setters
+   below use - `enum mouse_cursor` (C 2907-2925), `struct mouse_cursor_types` (C 2927-2940), the
+   `mouse_cursor_types[]` table (C 2944-2963) and `struct mouse_cursor_data` (C 2965-2972).  The
+   next setter is C 2976's `android_set_mouse_color`.  */
+
+/* Two file-local writers for frame.h 1086/1087's two members (the mirror carries the readers as
+   functions, and C writes them): the `haikufns.rs` 376-385 shape.  */
+/// C: frame.h 1086: `#define FRAME_MENU_BAR_LINES(f) (f)->menu_bar_lines` - written at C 2856.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_MENU_BAR_LINES {
+  ($f:expr, $v:expr) => { (*($f)).menu_bar_lines = $v };
+}
+/// C: frame.h 1087: `#define FRAME_MENU_BAR_HEIGHT(f) (f)->menu_bar_height` - written at C 2857.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_MENU_BAR_HEIGHT {
+  ($f:expr, $v:expr) => { (*($f)).menu_bar_height = $v };
+}
+
+/* C 2834-2900.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_menu_bar_lines (f: *mut frame, value: Lisp_Object,
+				      oldval: Lisp_Object)
+{
+  let mut nlines: c_int;                                          // C 2838
+  let olines: c_int = FRAME_MENU_BAR_LINES (f);                    // C 2839
+
+  /* Right now, menu bars don't work properly in minibuf-only frames;
+     most of the commands try to apply themselves to the minibuffer
+     frame itself, and get an error because you can't switch buffers
+     in or split the minibuffer window.  */                        // C 2841-2844
+  if FRAME_MINIBUF_ONLY_P (f) || ! FRAME_PARENT_FRAME (f).is_null ()   // C 2845
+    { return; }                                                    // C 2846
+
+  /* C's `TYPE_RANGED_FIXNUMP (int, value)` names the bound's *type*; the port passes that type's
+     two limits (the `frame.rs` 665 shape for the same call).  */
+  if TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, value, INT_MAX as EMACS_INT)   // C 2848
+    { nlines = XFIXNUM (value) as c_int; }                         // C 2849
+  else
+    { nlines = 0; }                                                // C 2851
+
+  /* Make sure we redisplay all windows in this frame.  */          // C 2853
+  /* `fset_redisplay`'s mirror parameter is `*mut c_void` where C's is `struct frame *`, so the
+     cast is the one `frame.rs` 5617 writes (P-72 rule 3).  */
+  fset_redisplay (f as *mut c_void);                               // C 2854
+
+  FRAME_MENU_BAR_LINES! (f, nlines);                               // C 2856
+  FRAME_MENU_BAR_HEIGHT! (f, nlines * FRAME_LINE_HEIGHT (f));      // C 2857
+  if FRAME_ANDROID_WINDOW! (f) != 0                                // C 2858
+    { android_clear_under_internal_border (f); }                   // C 2859
+
+  /* If the menu bar height gets changed, the internal border below
+     the top margin has to be cleared.  Also, if the menu bar gets
+     larger, the area for the added lines has to be cleared except for
+     the first menu bar line that is to be drawn later.  */        // C 2861-2864
+  if nlines != olines                                              // C 2865
+    {
+      let mut height: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);      // C 2867
+      let width: c_int = FRAME_PIXEL_WIDTH (f);                     // C 2868
+      let mut y: c_int;                                            // C 2869
+
+      adjust_frame_size (f, -1, -1, 3, true, Qmenu_bar_lines ());    // C 2871
+
+      /* height can be zero here. */                             // C 2873
+      if FRAME_ANDROID_WINDOW! (f) != 0 && height > 0 && width > 0   // C 2874
+	{
+	  y = FRAME_TOP_MARGIN_HEIGHT (f);                          // C 2876
+
+	  block_input ();                                           // C 2878
+	  /* C's third and fourth arguments are the `int` locals and the call's are `unsigned int`,
+	     so the port spells C's implicit conversion (the `android_move_resize_window` class).  */
+	  android_clear_area (FRAME_ANDROID_DRAWABLE! (f),          // C 2879
+			      0, y, width as c_uint, height as c_uint);
+	  unblock_input ();                                         // C 2881
+	}
+
+      if nlines > 1 && nlines > olines                            // C 2884
+	{
+	  y = (if olines == 0 { 1 } else { olines }) * FRAME_LINE_HEIGHT (f);   // C 2886
+	  height = nlines * FRAME_LINE_HEIGHT (f) - y;               // C 2887
+
+	  block_input ();                                            // C 2889
+	  android_clear_area (FRAME_ANDROID_DRAWABLE! (f), 0, y,     // C 2890
+			      width as c_uint, height as c_uint);
+	  unblock_input ();                                          // C 2892
+	}
+
+      /* C 2895-2896 reads `f->menu_bar_window`, which the mirror gates on
+	 `all (have_window_system, not (have_ext_menu_bar))`; this unit's gate set does not carry
+	 `have_window_system`, so the two lines are two of the arm reading's `E0609` rows (the
+	 slice-1 class) and compile in the `have_window_system` arm.  */
+      if nlines == 0 && WINDOWP ((*f).menu_bar_window)            // C 2895
+	{ clear_glyph_matrix ((*XWINDOW ((*f).menu_bar_window)).current_matrix as *mut glyph_matrix); }   // C 2896
+    }
+
+  adjust_frame_glyphs (f);                                        // C 2899
+}
+
+/* C 2907-2925: C's `enum mouse_cursor`, whose ABI is `c_int` (PORTING.md 1.3) - the fifteen
+   members and the `_max` sentinel, in C's order.  */
+/// C: androidfns.c 2907-2925: `enum mouse_cursor { mouse_cursor_text, ... mouse_cursor_max };`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type mouse_cursor = c_int;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_text: mouse_cursor = 0;                    // C 2909
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_nontext: mouse_cursor = 1;                 // C 2910
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_hourglass: mouse_cursor = 2;               // C 2911
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_mode: mouse_cursor = 3;                    // C 2912
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_hand: mouse_cursor = 4;                    // C 2913
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_horizontal_drag: mouse_cursor = 5;         // C 2914
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_vertical_drag: mouse_cursor = 6;           // C 2915
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_left_edge: mouse_cursor = 7;               // C 2916
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_top_left_corner: mouse_cursor = 8;         // C 2917
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_top_edge: mouse_cursor = 9;                // C 2918
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_top_right_corner: mouse_cursor = 10;       // C 2919
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_right_edge: mouse_cursor = 11;             // C 2920
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_bottom_right_corner: mouse_cursor = 12;    // C 2921
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_bottom_edge: mouse_cursor = 13;            // C 2922
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_bottom_left_corner: mouse_cursor = 14;     // C 2923
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const mouse_cursor_max: mouse_cursor = 15;                    // C 2924
+
+/* C 2927-2940.  */
+/// C: androidfns.c 2927-2940: `struct mouse_cursor_types { const char *name; Lisp_Object
+/// *shape_var_ptr; int default_shape; };`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+pub struct mouse_cursor_types
+{
+  pub name: *const c_char,               // C: const char *name;
+  pub shape_var_ptr: *mut Lisp_Object,   // C: Lisp_Object *shape_var_ptr;
+  pub default_shape: c_int,              // C: int default_shape;
+}
+
+/* C 2944-2963: the table, one row per `enum mouse_cursor` member; C's own comment says it must
+   stay in sync with the enum above.  C 2904-2905 says the same about the enums.  The
+   `ANDROID_XC_*` names are `androidgui.h`'s (its `<android/cursorfont.h>` surface), and
+   `include/androidgui.rs` carries them.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut mouse_cursor_types: [mouse_cursor_types; 15] =
+  [
+    mouse_cursor_types { name: c"text".as_ptr (), shape_var_ptr: &raw mut Vx_pointer_shape,
+			 default_shape: ANDROID_XC_XTERM },                       // C 2946
+    mouse_cursor_types { name: c"nontext".as_ptr (),
+			 shape_var_ptr: &raw mut Vx_nontext_pointer_shape,
+			 default_shape: ANDROID_XC_LEFT_PTR },                    // C 2947
+    mouse_cursor_types { name: c"hourglass".as_ptr (),
+			 shape_var_ptr: &raw mut Vx_hourglass_pointer_shape,
+			 default_shape: ANDROID_XC_WATCH },                       // C 2948
+    mouse_cursor_types { name: c"modeline".as_ptr (),
+			 shape_var_ptr: &raw mut Vx_mode_pointer_shape,
+			 default_shape: ANDROID_XC_XTERM },                       // C 2949
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_sensitive_text_pointer_shape,
+			 default_shape: ANDROID_XC_HAND2 },                       // C 2950
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_horizontal_drag_shape,
+			 default_shape: ANDROID_XC_SB_H_DOUBLE_ARROW },           // C 2951
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_vertical_drag_shape,
+			 default_shape: ANDROID_XC_SB_V_DOUBLE_ARROW },           // C 2952
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_left_edge_shape,
+			 default_shape: ANDROID_XC_LEFT_SIDE },                   // C 2953
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_top_left_corner_shape,
+			 default_shape: ANDROID_XC_TOP_LEFT_CORNER },             // C 2954
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_top_edge_shape,
+			 default_shape: ANDROID_XC_TOP_SIDE },                    // C 2955
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_top_right_corner_shape,
+			 default_shape: ANDROID_XC_TOP_RIGHT_CORNER },            // C 2956
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_right_edge_shape,
+			 default_shape: ANDROID_XC_RIGHT_SIDE },                  // C 2957
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_bottom_right_corner_shape,
+			 default_shape: ANDROID_XC_BOTTOM_RIGHT_CORNER },         // C 2958-2959
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_bottom_edge_shape,
+			 default_shape: ANDROID_XC_BOTTOM_SIDE },                 // C 2960
+    mouse_cursor_types { name: std::ptr::null (),
+			 shape_var_ptr: &raw mut Vx_window_bottom_left_corner_shape,
+			 default_shape: ANDROID_XC_BOTTOM_LEFT_CORNER },          // C 2961-2962
+  ];
+
+/* C 2965-2972.  */
+/// C: androidfns.c 2965-2972: `struct mouse_cursor_data { unsigned int
+/// cursor_num[mouse_cursor_max]; android_cursor cursor[mouse_cursor_max]; };`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+pub struct mouse_cursor_data
+{
+  pub cursor_num: [c_uint; mouse_cursor_max as usize],   // C: unsigned int cursor_num[mouse_cursor_max];
+  pub cursor: [android_cursor; mouse_cursor_max as usize],   // C: android_cursor cursor[mouse_cursor_max];
+}

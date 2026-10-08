@@ -10,8 +10,9 @@
 > 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines), **slice 4 = C
 > 1705-1800** (2,332 Rust lines), **slice 5 = C 1801-1910** (2,447 Rust lines), **slice 6 = C
 > 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines), **slice 8 = C
-> 2295-2583** (3,313 Rust lines), **slice 9 = C 2584-2662** (3,416 Rust lines) and **slice 10 = C
-> 2663-2832** (3,615 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 2295-2583** (3,313 Rust lines), **slice 9 = C 2584-2662** (3,416 Rust lines), **slice 10 = C
+> 2663-2832** (3,615 Rust lines) and **slice 11 = C 2833-2972** (3,826 Rust lines), both arms of
+> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -135,7 +136,12 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 2756-2789 | `android_set_foreground_color` (C 2776-2780 the cursor-pixel guard) | real arm |
 | 2790-2814 | `android_set_child_frame_border_width` (C 2797-2802 the three-way border) | real arm |
 | 2815-2832 | `android_set_internal_border_width` | real arm |
-| 2833-3797 | not ported: the file's remaining 965 lines (C 2834's `android_set_menu_bar_lines` onward) | not ported |
+| 2833-2900 | `android_set_menu_bar_lines` (C 2845-2846 the minibuf-only/parent guard, C 2848-2851 the ranged test, C 2856-2859 the two sizes, C 2865-2897 the redisplay block, C 2899 the glyph update) | real arm |
+| 2901-2925 | C 2904-2905's "must stay in sync" comment and `enum mouse_cursor` (the fifteen members and `mouse_cursor_max`) | real arm |
+| 2926-2940 | `struct mouse_cursor_types` (C 2933-2935's FIXME comment) | real arm |
+| 2941-2963 | C 2942's "must stay in sync" comment and the `mouse_cursor_types[]` table (fifteen rows) | real arm |
+| 2964-2972 | `struct mouse_cursor_data` (the two `mouse_cursor_max`-long arrays) | real arm |
+| 2973-3797 | not ported: the file's remaining 825 lines (C 2976's `android_set_mouse_color` onward) | not ported |
 
 ## Evidence
 
@@ -979,3 +985,72 @@ macro`.
   compiles nothing from this file (P-86 ③⑵): no colour was decoded into a GC, no cursor was
   updated, no frame size was adjusted.
 - The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
+
+## Slice 11 (2026-10-08, status 4.072 - the integrator sets the round number): C 2833-2972
+
+**The slice's text.**  `android_set_menu_bar_lines` (C 2834-2900) and the mouse-cursor data the
+setters below use: `enum mouse_cursor` (C 2907-2925), `struct mouse_cursor_types` (C 2927-2940),
+the `mouse_cursor_types[]` table (C 2944-2963) and `struct mouse_cursor_data` (C 2965-2972).
+Port line count **3,615 -> 3,826** (+211).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**  The
+first run reads **exit 1 with 9 errors**: three in this slice's text - the two
+`android_clear_area` calls hand `int` locals to `unsigned int` parameters (C's implicit
+conversion, now spelled `as c_uint`) and C 2896's `current_matrix` (a `*mut c_void` in the mirror)
+went to `clear_glyph_matrix`'s `*mut glyph_matrix` parameter (now cast, the slice-8 shape) - plus
+**six `E0609` rows: slice 1's four and two new ones for C 2895/2896's `f->menu_bar_window`.  That
+field is the same class as the four: `include/frame.rs` 165-166 gates it on
+`all (have_window_system, not (have_ext_menu_bar))`, which this unit's gate set does not carry, so
+the two lines cannot compile in arm set A and do compile in arm set C** (the ledger's rule for
+this class, recorded rather than papered over).  With the three fixes, the re-run is **exit 1 with
+exactly 6 `E0609` rows: 4 pre-existing + 2 this slice's, all of one class**.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings** (the same
+`include/android.rs` FFI-safety warnings as slices 2-10).  **Evidence ③ - arm set C = A +
+`have_window_system`:** **exit 0, 0 errors, 12 warnings** - and the two `menu_bar_window` lines are
+inside it, so every line this slice adds is compiled by some measured arm.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **66 rows -> 49**: the seventeen
+closed are **1 `missing function`** (9 -> 8: `android_set_menu_bar_lines`) and **16 `missing
+constant`** (16 -> 0: the `enum mouse_cursor` members and this block's table, which the checker
+counts as the C enum's constants).  The drift stays retired (3,826 lines against C's 3,797, i.e.
++0.8%, inside the 5%).  What remains is 35 `missing defsubr` (the `syms_of_*` registrations), 8
+`missing function`, 5 `missing subr` and 1 `missing macro`.
+
+### Deviations (this slice)
+
+1. **Two file-local writers for the mirror's two readers**: `FRAME_MENU_BAR_LINES! (f, v)` and
+   `FRAME_MENU_BAR_HEIGHT! (f, v)` (C 2856/2857 write members `include/frame.rs` 1066/1068 only
+   reads - the `haikufns.rs` 376-385 shape).
+2. **`TYPE_RANGED_FIXNUMP (int, value)` names C's own bound type**, and the port passes that
+   type's two limits (`INT_MIN as EMACS_INT`, `INT_MAX as EMACS_INT`; the `frame.rs` 665 shape for
+   the same call), then narrows `XFIXNUM`'s result into the `int` local with `as c_int`.
+3. **`fset_redisplay (f as *mut c_void)`**: the mirror's parameter is `*mut c_void` where C's is
+   `struct frame *` (P-72 rule 3; the `frame.rs` 5617 cast).
+4. **`android_clear_area`'s two `unsigned int` parameters get `as c_uint`** at both call sites,
+   and C 2896's `current_matrix` is cast to `*mut glyph_matrix` (both are C's implicit conversions
+   and the mirror's exact types).
+5. **The enum is `c_int` with one `pub const` per member** (PORTING.md 1.3), and the table's
+   `&Vx_pointer_shape` entries are `&raw mut Vx_pointer_shape` (C takes the address of a global the
+   mirror declares `static mut`); C's `NULL` rows are `std::ptr::null ()`.
+6. **`menu_bar_window`'s two reads are the arm reading's new `E0609` rows** (Evidence ①): the
+   field's gate is the mirror's, and the port does not invent a zero-armed substitute for a
+   struct field.
+
+### Owed (this slice's additions)
+
+- **`include/frame.rs`**: `menu_bar_window` sits behind `all (have_window_system, not
+  (have_ext_menu_bar))` while the unit's own gate set is `have_android`; the two reads join the
+  four slice-1 sites as this unit's `E0609` class (all six compile in the `have_window_system`
+  arm).  This is the same class `docs/ports/androidfns.md`'s slice-1 Evidence ② recorded.
+- **The file's remainder**: C 2973-3797 (825 lines) - `android_set_mouse_color` and the rest of
+  the setter family, the remaining `DEFUN`s, the GC and colour helpers, the terminal hooks and
+  `syms_of_androidfns`'s registrations.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no menu bar was resized, no cursor shape was looked
+  up, no area was cleared.
+- The four slice-1 `E0609` rows remain pre-existing; this slice adds two of the same class and
+  claims neither as compiled in arm set A.
