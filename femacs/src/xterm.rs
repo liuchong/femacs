@@ -35290,6 +35290,96 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		                break 'xi_other;                              // C 23200 (`goto XI_OTHER`)
 		              }
 
+		          /* C 23203-23294: the GTK scroll-bar test, the autoselect/help-echo tail and the arm's
+		             close.  */
+#[cfg (feature = "use_gtk")]
+		          if !f.is_null () && xg_event_is_for_scrollbar (f, event, false)  // C 23204
+		            { f = std::ptr::null_mut (); }                    // C 23205 (`f = 0`)
+
+		          if !f.is_null ()                                    // C 23207
+		            {
+		            if (*xev).event != FRAME_X_WINDOW! (f)            // C 23209
+		              {
+		              x_translate_coordinates (f, lrint ((*xev).root_x) as c_int,  // C 23211-23213
+		                lrint ((*xev).root_y) as c_int,
+		                &raw mut ev.x, &raw mut ev.y);
+		              ev.window = FRAME_X_WINDOW! (f);                // C 23214
+		              }
+
+		            /* "Maybe generate a SELECT_WINDOW_EVENT for `mouse-autoselect-window' but don't let
+		               popup menus interfere with this (Bug#1261)."  */
+		            if !NILP (Vmouse_autoselect_window)               // C 23220
+		              && popup_activated () == 0                      // C 23221
+		              /* "Don't switch if we're currently in the minibuffer.  This tries to work around
+		                 problems where the minibuffer gets unselected unexpectedly, and where you then have
+		                 to move your mouse all the way down to the minibuffer to select it."  */
+		              && !MINI_WINDOW_P (XWINDOW (selected_window))   // C 23227
+		              /* "With `focus-follows-mouse' non-nil create an event also when the target window is
+		                 on another frame."  */
+		              && (f == XFRAME (selected_frame)                // C 23230
+		                || !NILP (focus_follows_mouse))               // C 23231
+		              {
+		              let mut window: Lisp_Object                     // C 23233
+		                = window_from_coordinates (f as *mut c_void, ev.x, ev.y,
+		                  std::ptr::null_mut (), false, false, false);
+
+		              /* "A window will be autoselected only when it is not selected now and the last mouse
+		                 movement event was not in it.  The remainder of the code is a bit vague wrt what a
+		                 \"window\" is.  For immediate autoselection, the window is usually the entire window
+		                 but for GTK where the scroll bars don't count.  For delayed autoselection the window
+		                 is usually the window's text area including the margins."  */
+		              if WINDOWP (window)                             // C 23244
+		                && !EQ (window, last_mouse_window)            // C 23245
+		                && !EQ (window, selected_window)              // C 23246
+		                {
+		                  input_event_bits! (kind, &raw mut inev.ie, SELECT_WINDOW_EVENT);  // C 23248
+		                  inev.ie.frame_or_window = window;           // C 23249
+
+		                  if !source.is_null ()                       // C 23251
+		                    { inev.ie.device = (*source).name; }      // C 23252
+		                }
+
+		              /* "Remember the last window where we saw the mouse."  */
+		              last_mouse_window = window;                     // C 23256
+		              }
+
+		            if !x_note_mouse_movement (f, &raw const ev,      // C 23259
+		              if source.is_null () { Qnil () } else { (*source).name })
+		              { help_echo_string = previous_help_echo_string; }  // C 23260
+		            }
+		          else
+		            {
+		            /* C 23264-23270's `#ifndef USE_TOOLKIT_SCROLL_BARS`.  */
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+		            {
+		              let mut bar: *mut scroll_bar                    // C 23265
+		                = x_window_to_scroll_bar ((*dpyinfo).display, (*xev).event, 2);  // C 23266
+
+		              if !bar.is_null ()                              // C 23268
+		                { x_scroll_bar_note_movement (bar, &raw const ev); }  // C 23269
+		            }
+
+		            /* "If we move outside the frame, then we're certainly no longer on any text in the
+		               frame."  */
+		            clear_mouse_face (hlinfo);                        // C 23274
+		            }
+
+		          /* "If the contents of the global variable help_echo_string has changed, generate a
+		             HELP_EVENT."  */
+		          if !NILP (help_echo_string) || !NILP (previous_help_echo_string)  // C 23279-23280
+		            {
+		            /* "Also allow the focus and client pointer to be adjusted accordingly, in case a help
+		               tooltip is shown."  */
+		            gen_help_device = device;                         // C 23285
+		            gen_help_time = (*xev).time;                      // C 23286
+
+		            do_help = 1;                                      // C 23288
+		            }
+
+		          if !f.is_null ()                                    // C 23291
+		            { x_flush_dirty_back_buffer_on (f); }             // C 23292
+		          break 'xi_other;                                    // C 23293 (`goto XI_OTHER`)
+
 		        }
 
 		      _ => {}

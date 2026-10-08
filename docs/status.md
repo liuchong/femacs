@@ -17605,3 +17605,29 @@
      `build/probes/xterm/`、`/tmp/s126/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十三臂编译（两侧）、`--check` 的 token 数与台账。
      下一片是 `XI_Motion` 的最后三块（C 23203-23295）。
+
+- **4.045 `src/xterm.c` round 103（xterm lane，slice 127）：`XI_Motion` 收尾（C 23203-23294）——本文件最大的 `XI_*` 臂至此闭合，且是 lane 最干净的一次读数（2026-10-08）**：
+  ① **本片落的文本**：`#ifdef USE_GTK` 的滚动条测试（C 23203-23206，`xg_event_is_for_scrollbar (f, event, false)` 清掉 `f`）；
+     `if (f)` 尾（C 23207-23261）——坐标换算（`x_translate_coordinates`）、`mouse-autoselect-window` 块（`Vmouse_autoselect_window`、
+     `popup_activated ()`、`MINI_WINDOW_P (XWINDOW (selected_window))`、`focus_follows_mouse`、`window_from_coordinates`、`WINDOWP`、
+     `last_mouse_window`、`SELECT_WINDOW_EVENT`）与 `x_note_mouse_movement`（其 `false` 返回恢复 `previous_help_echo_string`）；
+     `else` 支（C 23262-23275）连同 `#ifndef USE_TOOLKIT_SCROLL_BARS` 段（`x_window_to_scroll_bar` + `x_scroll_bar_note_movement`）与其后无条件的
+     `clear_mouse_face`；help-event 块（C 23277-23289：`gen_help_device`、`gen_help_time`、`do_help = 1`）；以及 flush 与 `goto XI_OTHER`（C 23291-23293）。
+  ② **`XI_Motion` 至此闭合**：C 22643-23294 的 **653 C 行**——本文件最大的单个 `case`——由 slice 125（头与 `HAVE_XINPUT2_1` 的 valuator 块）、
+     slice 126（位置判定、Motif motion 拷贝与整块拖拽）与本片（尾）三片承载，三片两侧都测。
+  ③ **本片是 lane 至今最干净的读数：+2，且两行都是 `lrint`**。十六个没有 `have_xinput2` 的臂读零增量（C 22240 的门），
+     七个有 `have_xinput2` 的臂读 **+2 / 0**——就是 C 23211-23212 的 `lrint (xev->root_x)`/`lrint (xev->root_y)`（`x_translate_coordinates` 的实参表）。
+     这九十行里其余名字**全部解析**：C 的 `inev.ie.kind = SELECT_WINDOW_EVENT` 落成 `input_event_bits!`（slice 126 的发现）；
+     `MINI_WINDOW_P`/`XFRAME`/`WINDOWP` 是镜像的函数；`last_mouse_window`、`Vmouse_autoselect_window`、`focus_follows_mouse`、
+     `gen_help_device`、`gen_help_time`、`x_scroll_bar_note_movement`、`x_flush_dirty_back_buffer_on` 都落在本单元已有的名字上。
+  ④ **读数（两侧都在本修订测）**：⑴ **二十三臂表**（baseline = HEAD `64202e3d`，与 slice 126 台账逐位相同）：
+     A 1176/83 → **1176/83**、U 1188/83 → **1188/83**、UT 1191/82 → **1191/82**、UM 1199/82 → **1199/82**、UG 1215/84 → **1215/84**、
+     UGX 1370/87 → **1372/87**、AE 1208/82 → **1208/82**、AI 1203/83 → **1203/83**、AIU 1285/83 → **1285/83**、AIUX 1444/86 → **1446/86**、
+     AX 1186/83 → **1186/83**、AG3 1265/83 → **1265/83**、AG3X 1404/86 → **1406/86**、AXF 1186/83 → **1186/83**、AXPM 1177/83 → **1177/83**、
+     AXKB 1217/83 → **1217/83**、AXR 1182/83 → **1182/83**、AX11 1160/83 → **1160/83**、AUX 1259/81 → **1259/81**、
+     XI2 1311/86 → **1313/86**、UMI2 1394/85 → **1396/85**、XI21 1368/87 → **1370/87**、XI21W 1398/87 → **1400/87**。
+     ⑵ **`--check`** 仍三行，长行 token 清单 **74 不变**；单元 **36,314 行**（+90），文件 md5 `c8bcf44cda8c1b2b37cea13b851bb04f`。
+  ⑤ **预算与清理**：本片 rustc **约 52 发**（23 臂 × 2 轮 + 首发与四轮定点复测；每次 15-24 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s127/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十三臂编译（两侧）、`--check` 的 token 数与台账。
+     下一片按 C 顺序进入 `XI_ButtonRelease`/`XI_ButtonPress`（C 23296 起）。

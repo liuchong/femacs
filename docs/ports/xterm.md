@@ -484,6 +484,16 @@ drop-motion sends, and the tooltip update.  The block has a landed twin in
 of the twenty-three arms read a zero delta again (C 22240's gate); the seven `have_xinput2` arms
 carry the tail's rows.
 
+
+  Slice 127 (C 23203-23294, Decision 139) closes `case XI_Motion:` - the GTK scroll-bar test, the
+`if (f)` tail (the coordinate translation, the `mouse-autoselect-window` block and the
+`x_note_mouse_movement` call with its help-echo restore), the `else` branch with its
+`#ifndef USE_TOOLKIT_SCROLL_BARS` arm, the help-event block (`gen_help_device`, `gen_help_time`,
+`do_help = 1`) and the flush plus `goto XI_OTHER` that ends the arm.  With this the file's largest
+`XI_*` arm - `XI_Motion`, C 22643-23294, 653 C lines carried by slices 125 to 127 - is complete.
+The block is the lane's cleanest reading so far: the sixteen arms without `have_xinput2` read a
+zero delta and the seven that have it read **+2**, both rows being `lrint` (C 23211-23212).
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5953,6 +5963,32 @@ expected direction once the file starts carrying records the X11 headers would s
   by an arm.
 * **What `--check` reads.**  Three rows, the long row's token list **unchanged at 74**.  The unit is
   **36,224 lines** (+301) against C's 33,125.
+
+### 139. Slice 127 (C 23203-23294): `XI_Motion` closes, and the lane's cleanest reading
+
+* **What it lands.**  The GTK scroll-bar test (C 23203-23206: `xg_event_is_for_scrollbar (f, event,
+  false)` clears `f`); the `if (f)` tail (C 23207-23261) - the coordinate translation with
+  `x_translate_coordinates`, the `mouse-autoselect-window` block (`Vmouse_autoselect_window`,
+  `popup_activated ()`, `MINI_WINDOW_P (XWINDOW (selected_window))`, `focus_follows_mouse`,
+  `window_from_coordinates`, `WINDOWP`, `last_mouse_window` and `SELECT_WINDOW_EVENT`), and the
+  `x_note_mouse_movement` call whose `false` return restores `previous_help_echo_string`; the `else`
+  branch (C 23262-23275) with its `#ifndef USE_TOOLKIT_SCROLL_BARS` arm
+  (`x_window_to_scroll_bar` + `x_scroll_bar_note_movement`) and its unconditional
+  `clear_mouse_face`; the help-event block (C 23277-23289: `gen_help_device`, `gen_help_time`,
+  `do_help = 1`); and the flush plus `goto XI_OTHER` (C 23291-23293).
+* **`XI_Motion` is complete.**  C 22643-23294's 653 lines - the largest single `case` the file
+  writes - now stand complete across slices 125 (the head and the `HAVE_XINPUT2_1` valuator block),
+  126 (the position test, the Motif motion copy and the drag-and-drop block) and 127 (this tail).
+* **The reading is the cleanest the lane has taken: +2, and both rows are `lrint`.**  Sixteen arms
+  read a zero delta (C 22240's gate) and the seven `have_xinput2` arms read **+2 / 0** - C
+  23211-23212's `lrint (xev->root_x)`/`lrint (xev->root_y)` in `x_translate_coordinates`' call.
+  Everything else in ninety lines resolves: C's `inev.ie.kind = SELECT_WINDOW_EVENT` is the
+  `input_event_bits!` shape (slice 126's finding), `MINI_WINDOW_P`, `XFRAME` and `WINDOWP` are the
+  mirrors' functions, and `last_mouse_window`, `Vmouse_autoselect_window`, `focus_follows_mouse`,
+  `gen_help_device`, `gen_help_time`, `x_scroll_bar_note_movement` and
+  `x_flush_dirty_back_buffer_on` all land on names the unit already carries.
+* **What `--check` reads.**  Three rows, the long row's token list **unchanged at 74**.  The unit is
+  **36,314 lines** (+90) against C's 33,125.
 
 ## Evidence
 
@@ -12056,6 +12092,55 @@ writes, `(*r).x as c_int + (*r).width as c_int` for C's `r->x + r->width` (the m
 `XRectangle` mixes `i16`/`u16`), and the parenthesised `(lrint (…) as c_int) < (*r).x`, which the
 parser needs because `c_int <` starts a generic argument list.  The `--check` row keeps its three
 lines and its token list stays at **74**.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the twenty-three arm compiles (both sides), the `--check` row's
+token count and this ledger.
+### Slice 127's readings (C 23203-23294), as landed and measured (2026-10-08)
+
+`case XI_Motion:`'s last blocks - the GTK scroll-bar test, the autoselect/help-echo tail and the arm's close.
+
+| arm | baseline | slice 127 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1176 / 83 | **1176 / 83** | **0 / 0** |
+| U `A +use_toolkit_scroll_bars` | 1188 / 83 | **1188 / 83** | **0 / 0** |
+| UT `U +use_x_toolkit` | 1191 / 82 | **1191 / 82** | **0 / 0** |
+| UM `UT +use_motif` | 1199 / 82 | **1199 / 82** | **0 / 0** |
+| UG `U +use_gtk` | 1215 / 84 | **1215 / 84** | **0 / 0** |
+| UGX `UG +have_xinput2` | 1370 / 87 | **1372 / 87** | **+2 / 0** |
+| AE `A +enable_checking` | 1208 / 82 | **1208 / 82** | **0 / 0** |
+| AI `A +have_x_i18n` | 1203 / 83 | **1203 / 83** | **0 / 0** |
+| AIU `AI +use_gtk` | 1285 / 83 | **1285 / 83** | **0 / 0** |
+| AIUX `AIU +have_xinput2` | 1444 / 86 | **1446 / 86** | **+2 / 0** |
+| AX `A +have_xdbe` | 1186 / 83 | **1186 / 83** | **0 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1265 / 83 | **1265 / 83** | **0 / 0** |
+| AG3X `AG3 +have_xinput2` | 1404 / 86 | **1406 / 86** | **+2 / 0** |
+| AXF `A +have_xfixes` | 1186 / 83 | **1186 / 83** | **0 / 0** |
+| AXPM `A +have_xpm` | 1177 / 83 | **1177 / 83** | **0 / 0** |
+| AXKB `A +have_xkb` | 1217 / 83 | **1217 / 83** | **0 / 0** |
+| AXR `A +have_xrandr` | 1182 / 83 | **1182 / 83** | **0 / 0** |
+| AX11 `A +have_x11` | 1160 / 83 | **1160 / 83** | **0 / 0** |
+| AUX `A +use_xcb` | 1259 / 81 | **1259 / 81** | **0 / 0** |
+| XI2 `A +have_xinput2` | 1311 / 86 | **1313 / 86** | **+2 / 0** |
+| UMI2 `UM +have_xinput2` | 1394 / 85 | **1396 / 85** | **+2 / 0** |
+| XI21 `XI2 +have_xinput2_1 +have_xinput2_2` | 1368 / 87 | **1370 / 87** | **+2 / 0** |
+| XI21W `XI21 +have_xwidgets` | 1398 / 87 | **1400 / 87** | **+2 / 0** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`64202e3d`, slice 126) and
+the twenty-three arms reproduce the slice-126 table's column to the digit.  The slice's file md5
+is `c8bcf44cda8c1b2b37cea13b851bb04f` (36,314 lines against C's 33,125).
+
+**The delta is two rows, and both are `lrint`.**  C 23211-23212's `lrint (xev->root_x)` and
+`lrint (xev->root_y)` in `x_translate_coordinates`' argument list are the only names in the
+ninety lines that no mirror carries; the rest of the block lands on names the unit already has
+(the `input_event_bits!` kind write, `MINI_WINDOW_P`/`XFRAME`/`WINDOWP`, `last_mouse_window`,
+`Vmouse_autoselect_window`, `focus_follows_mouse`, `gen_help_device`, `gen_help_time`,
+`x_scroll_bar_note_movement`, `x_flush_dirty_back_buffer_on`).  The sixteen arms without
+`have_xinput2` read a zero delta - C 22240's gate.  The `--check` row keeps its three lines and
+its token list stays at **74**.
+
+**`XI_Motion` is complete**: C 22643-23294's 653 lines stand across slices 125-127, and the arm
+was measured on both sides in each of them.
 
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the twenty-three arm compiles (both sides), the `--check` row's
