@@ -417,6 +417,16 @@ with one shared stage (C 22219 is written once), and `DestroyNotify` clears the 
 fields before its `xft_settings_event` call and C's own `break`.  The two `X.h` labels the inner
 switch reads join `x11_constants`.
 
+  Slice 121 (C 22241-22294 and C 25210-25213, Decision 133) opens the `GenericEvent` frame - the
+largest single case the lane carries (975 C lines, C 22241-25215): the XI2 prologue (the two
+`goto OTHER` guards, `must_free_data`, the `XGetEventData` fallback and the NULL-discard path) and
+the inner `switch`'s shared tail.  The `XI_*` arms land one per slice inside the `match` C's label
+order gives them, before the `_ => {}` C's switch has no `default` for, and C 25210-25213's
+`XI_OTHER:` label is the `'xi_other` block the arms `break 'xi_other` into.  C's `xcookie`/
+`xgeneric` are owed `XEvent` members and the XInput2 types and entry points are Decision 15's
+bare-SDK class; the two `x_display_info` fields the prologue reads exist only in the
+`have_xinput2` arms, which is why the frame's reading is +17 in sixteen arms and +15 in three.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5651,6 +5661,35 @@ expected direction once the file starts carrying records the X11 headers would s
   because none of the five cases carries an `#ifdef`.
 * **What `--check` reads.**  Two rows, the long row's token list going **91 -> 76**.  The unit is
   **35,196 lines** against C's 33,125, file md5 `d83b5c28628a5020375938da62f91e62`.
+
+### 133. Slice 121 (C 22241-22294 and C 25210-25213): the `GenericEvent` frame, and the `xi_*` family named
+
+* **What it lands.**  `case GenericEvent:`'s prologue (C 22242-22290) and its inner `switch`'s
+  shared tail (C 25210-25213): the two `goto OTHER` guards (`!dpyinfo->supports_xi2` and the
+  extension test), `must_free_data` and `xi_event` (C 22250/22251), the `XGetEventData` fallback
+  behind C's "already claimed by GTK" note, the cast to `XIDeviceEvent`, the NULL-discard path (C
+  22265-22287, with C's own long note on why `XFreeEventData` is called anyway), and the inner
+  `match (*event).xcookie.evtype` head.
+* **The inner switch's tail is a labelled block.**  C's `XI_OTHER:` (C 25210-25213) is the free plus
+  `goto OTHER`; Rust has no such label, so the port wraps the `match` in `'xi_other: { ... }` and
+  the arms C sends there will `break 'xi_other` (the switch-frame repair's shape, Decision 126,
+  applied to the inner switch).  The `match` carries only `_ => {}` for now - C's switch has no
+  `default` - and the `XI_*` arms land before it, one slice each, in C's order.
+* **Why sixteen arms read `+17` and three read `+15`.**  `dpyinfo->supports_xi2` and
+  `xi2_opcode` are cfg'd on `have_xinput2` in `include/xterm.rs`, so the three XI2 arms
+  (`UGX`/`AIUX`/`AG3X`) resolve them and carry two fewer `no field` rows than the other sixteen.
+  The class list is otherwise identical across arms: `xcookie` +6, `xgeneric` +1, `XIEvent` +3,
+  `XIDeviceEvent` +2, `XGetEventData` +1, `XFreeEventData` +2 (all of them Decision 15's owed-member
+  and bare-SDK classes), and the `'xi_other` label's `unused label` warning is the frame's own
+  until an arm breaks into it.
+* **Six definitions named as still ahead.**  `xi_focus_handle_for_device` (C 13462),
+  `xi_position_changed` (C 13614), `xi_report_motion_window_clear` (C 13639),
+  `xi_has_scroll_valuators` (C 13666), `xi_handle_device_changed` (C 13797) and
+  `xi_disable_devices` (C 13871) are the port's own comment at 24376's "still ahead" list; the
+  `XI_*` arms call them, so their rows arrive with those arms and the definitions land after them
+  (the same order the `xi_*` helpers the earlier slices needed already follow).
+* **What `--check` reads.**  Two rows, the long row's token list staying at **76**.  The unit is
+  **35,260 lines** against C's 33,125, file md5 `90a35b0f5b83eac73cd7f437ea4cb3ed`.
 
 ## Evidence
 
@@ -11423,5 +11462,62 @@ The warning column does not move in any arm, and the `--check` row keeps its two
 row's token list going **91 -> 76**.
 
 **Not claimed**: no runtime evidence - this lane does not link, and none of the five events was ever
+delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
+ledger.
+
+### Slice 121's readings (C 22241-22294 and C 25210-25213), as landed and measured (2026-10-08)
+
+The `GenericEvent` frame.  The `XI_*` arms follow, one per slice.
+
+| arm | baseline | slice 121 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1176 / 83 | **1193 / 84** | **+17 / +1** |
+| U `A +use_toolkit_scroll_bars` | 1188 / 83 | **1205 / 84** | **+17 / +1** |
+| UT `U +use_x_toolkit` | 1191 / 82 | **1208 / 83** | **+17 / +1** |
+| UM `UT +use_motif` | 1199 / 82 | **1216 / 83** | **+17 / +1** |
+| UG `U +use_gtk` | 1215 / 84 | **1232 / 85** | **+17 / +1** |
+| UGX `UG +have_xinput2` | 1320 / 86 | **1335 / 87** | **+15 / +1** |
+| AE `A +enable_checking` | 1208 / 82 | **1225 / 83** | **+17 / +1** |
+| AI `A +have_x_i18n` | 1203 / 83 | **1220 / 84** | **+17 / +1** |
+| AIU `AI +use_gtk` | 1285 / 83 | **1302 / 84** | **+17 / +1** |
+| AIUX `AIU +have_xinput2` | 1394 / 85 | **1409 / 86** | **+15 / +1** |
+| AX `A +have_xdbe` | 1186 / 83 | **1203 / 84** | **+17 / +1** |
+| AG3 `A +use_gtk +have_gtk3` | 1265 / 83 | **1282 / 84** | **+17 / +1** |
+| AG3X `AG3 +have_xinput2` | 1345 / 85 | **1360 / 86** | **+15 / +1** |
+| AXF `A +have_xfixes` | 1186 / 83 | **1203 / 84** | **+17 / +1** |
+| AXPM `A +have_xpm` | 1177 / 83 | **1194 / 84** | **+17 / +1** |
+| AXKB `A +have_xkb` | 1217 / 83 | **1234 / 84** | **+17 / +1** |
+| AXR `A +have_xrandr` | 1182 / 83 | **1199 / 84** | **+17 / +1** |
+| AX11 `A +have_x11` | 1160 / 83 | **1177 / 84** | **+17 / +1** |
+| AUX `A +use_xcb` | 1259 / 81 | **1276 / 82** | **+17 / +1** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`91d1845b`, slice 120) with its
+own `_root.rs` re-materialised per arm - the nineteen baseline numbers reproduce the ledger's
+slice-120 column to the digit - and the slice's file md5 is
+`90a35b0f5b83eac73cd7f437ea4cb3ed` (35,260 lines against C's 33,125).
+
+**The `of which`, by arm class:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `no field xcookie` **+6** / `no field xgeneric` **+1** | every arm | C 22251, 22257, 22260, 22284 (the two frees), 22289, and C 25211/25212 - the owed `XEvent` members |
+| `cannot find type XIEvent` **+3** / `XIDeviceEvent` **+2** | every arm | C 22251, 22263, 22265's discard path - Decision 15's bare-XInput2 class |
+| `cannot find function XGetEventData` **+1** / `XFreeEventData` **+2** | every arm | C 22257, C 22285 and C 25212 - the same class's entry points |
+| `no field supports_xi2` **+1** / `no field xi2_opcode` **+1** | the **sixteen** arms without `have_xinput2` | C 22243, C 22246 (the two fields are cfg'd on that feature in the mirror, so the three XI2 arms do not read them as missing) |
+
+The warning column moves **+1** in the arm A family: `unused label` for the `'xi_other` block,
+which no arm breaks into yet (the class this file's arm readings already carry; the XI_* slices
+retire it as they land).  The `--check` row keeps its two lines and the long row's token list stays
+**76**.
+
+**Named, measured: the `xi_*` family still ahead.**  `xi_focus_handle_for_device` (C 13462),
+`xi_position_changed` (C 13614), `xi_report_motion_window_clear` (C 13639), `xi_has_scroll_valuators`
+(C 13666), `xi_handle_device_changed` (C 13797) and `xi_disable_devices` (C 13871) are six of this
+file's own definitions the port's comment at 24376 already names as "still ahead"; the frame's
+`XGetEventData`/`XFreeEventData` calls are the bare-SDK class, and the `XI_*` arms will call the
+`xi_*` six, whose rows this slice's readings do not yet carry.  They are the next work the lane owes
+*outside* the switch, after the `XI_*` arms.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
 ledger.

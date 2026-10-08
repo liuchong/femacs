@@ -34274,6 +34274,70 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	      break 'other;                                              // C 22238 (C's `break`)
 	    }
 
+	  /* C 22241-22294 and C 25210-25213: the `GenericEvent` frame - the XI2 prologue and the
+	     inner `switch`'s shared `XI_OTHER:` tail.  The `XI_*` arms land one per slice inside the
+	     `match` (C's own label order), and the 975 C lines C 22241-25215 writes are the lane's
+	     largest single case.  C's `xcookie`/`xgeneric` are owed `XEvent` members, and the
+	     XInput2 types and entry points (`XIEvent`, `XIDeviceEvent`, `XGetEventData`, ...) are
+	     Decision 15's bare-SDK class.  */
+	  GenericEvent =>
+	    {
+	      if !(*dpyinfo).supports_xi2                                     // C 22243
+		{ break 'switch; }                                            // C 22244 (`goto OTHER`)
+
+	      if (*event).xgeneric.extension != (*dpyinfo).xi2_opcode         // C 22246
+		/* "Not an XI2 event."  */
+		{ break 'switch; }                                            // C 22248 (`goto OTHER`)
+
+	      let mut must_free_data: bool = false;                           // C 22250
+	      let mut xi_event: *mut XIEvent
+		= (*event).xcookie.data as *mut XIEvent;                      // C 22251
+
+	      /* "Sometimes the event is already claimed by GTK, which will free its data in due
+		 course."  */
+	      if xi_event.is_null ()                                          // C 22255
+		{
+		  if XGetEventData ((*dpyinfo).display, &raw mut (*event).xcookie) != 0  // C 22257
+		    { must_free_data = true; }                                // C 22258
+
+		  xi_event = (*event).xcookie.data as *mut XIEvent;           // C 22260
+		}
+
+	      let xev: *mut XIDeviceEvent = xi_event as *mut XIDeviceEvent;   // C 22263
+
+	      if xi_event.is_null ()                                          // C 22265
+		{
+		  /* "It may turn out that the event data has already been implicitly freed for various
+		     reasons up to and including XMenuActivate pushing some other event onto the
+		     foreign-event queue, or x_menu_wait_for_events calling XNextEvent through a timer
+		     that tries to wait for input."  "In that case, XGetEventData will return True, but
+		     cookie->data will be NULL.  Since handling such input events is not really
+		     important, we can afford to discard them."  "The way Xlib is currently implemented
+		     makes calling XFreeEventData unnecessary in this case, but call it anyway, since
+		     not doing so may lead to a memory leak in the future."  */
+
+		  if must_free_data                                           // C 22284
+		    { XFreeEventData ((*dpyinfo).display, &raw mut (*event).xcookie); }  // C 22285
+		  break 'switch;                                                // C 22286 (`goto OTHER`)
+		}
+
+	      /* C 22289-25214's inner `switch (event->xcookie.evtype)`, with C 25210-25213's
+		 `XI_OTHER:` label as its shared tail (the `'xi_other` block below).  Its arms land
+		 one per slice in C's order, before the `_ => {}` C's switch lacks a `default` for.  */
+	      'xi_other:
+		{
+		  match (*event).xcookie.evtype
+		    {
+		      _ => {}
+		    }
+
+		  /* C 25210-25213's `XI_OTHER:` label: the free and C's `goto OTHER`.  */
+		  if must_free_data                                             // C 25211
+		    { XFreeEventData ((*dpyinfo).display, &raw mut (*event).xcookie); }  // C 25212
+		  break 'switch;                                                // C 25213 (`goto OTHER`)
+		}
+	    }
+
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
 		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
 		  _ => {}

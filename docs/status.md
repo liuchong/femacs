@@ -17417,3 +17417,32 @@
      `build/probes/xterm/`、`/tmp/s120/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，这五个事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
      剩余七个 `case` 体（`GenericEvent` 一族与 `ClientMessage`），下一片从 `GenericEvent`（C 22240）起。
+
+- **4.039 `src/xterm.c` round 97（xterm lane，slice 121）：`GenericEvent` 框架落地（C 22241-22294 + C 25210-25213，58 C 行），内层 switch 的共享尾落成 `'xi_other` 标号块（2026-10-08）**：
+  ① **本片落的文本**：`case GenericEvent:` 的前言（C 22242-22290）与内层 `switch` 的共享尾（C 25210-25213）：
+     两道 `goto OTHER` 守卫（`!dpyinfo->supports_xi2` 与 extension 测试）、`must_free_data`/`xi_event`（C 22250/22251）、
+     C 的"已被 GTK 认领"注释之后的 `XGetEventData` 回退路径、转到 `XIDeviceEvent` 的转换、NULL 丢弃路径（C 22265-22287，
+     含 C 自己那段"为什么仍要调用 `XFreeEventData`"的长注释），以及内层 `match (*event).xcookie.evtype` 的头。
+  ② **内层 switch 的尾落成标号块**：C 的 `XI_OTHER:`（C 25210-25213）是那次 free 加 `goto OTHER`；Rust 没有这种标号，
+     所以端口把 `match` 包进 `'xi_other: { … }`，C 送往该标号的臂将写 `break 'xi_other`（slice 110/111 switch 修复的形状，
+     Decision 126，用在内层 switch 上）。`match` 现在只有 `_ => {}`（C 的 switch 没有 `default`），`XI_*` 各臂按 C 的顺序
+     在其之前逐片落地。
+  ③ **为什么十六个臂 +17、三个臂 +15**：`dpyinfo->supports_xi2` 与 `xi2_opcode` 在 `include/xterm.rs` 里按 `have_xinput2` 门控，
+     所以三个 XI2 臂（UGX/AIUX/AG3X）能解析它们、比其余十六个臂少两条 `no field` 行。其余类各臂一致：
+     `xcookie` +6、`xgeneric` +1、`XIEvent` +3、`XIDeviceEvent` +2、`XGetEventData` +1、`XFreeEventData` +2
+     （都是 Decision 15 的欠账成员 / 裸 SDK 类），外加 `'xi_other` 的 `unused label` 警告一条（在臂落地前是本片自己的）。
+  ④ **读数（两侧都在本修订测）**：⑴ **十九臂表**（baseline = HEAD `91d1845b`，十九个数字与 slice 120 台账逐位相同）：
+     A 1176/83 → **1193/84**、U 1188/83 → **1205/84**、UT 1191/82 → **1208/83**、UM 1199/82 → **1216/83**、
+     UG 1215/84 → **1232/85**、UGX 1320/86 → **1335/87**（+15）、AE 1208/82 → **1225/83**、AI 1203/83 → **1220/84**、
+     AIU 1285/83 → **1302/84**、AIUX 1394/85 → **1409/86**（+15）、AX 1186/83 → **1203/84**、AG3 1265/83 → **1282/84**、
+     AG3X 1345/85 → **1360/86**（+15）、AXF 1186/83 → **1203/84**、AXPM 1177/83 → **1194/84**、AXKB 1217/83 → **1234/84**、
+     AXR 1182/83 → **1199/84**、AX11 1160/83 → **1177/84**、AUX 1259/81 → **1276/82**。
+     ⑵ **`--check`** 仍 2 行，长行 token 清单保持 **76**；单元 **35,260 行**（C 33,125），文件 md5 `90a35b0f5b83eac73cd7f437ea4cb3ed`。
+  ⑤ **点名、已量：switch 之外还欠的 `xi_*` 一族**：`xi_focus_handle_for_device`（C 13462）、`xi_position_changed`（C 13614）、
+     `xi_report_motion_window_clear`（C 13639）、`xi_has_scroll_valuators`（C 13666）、`xi_handle_device_changed`（C 13797）、
+     `xi_disable_devices`（C 13871）——本端口 24376 的注释早已把它们记为"still ahead"；`XI_*` 各臂会调用它们，所以这些行随臂落地而来，
+     定义则在臂之后补（与既有 `xi_*` 辅助函数的顺序一致）。
+  ⑥ **预算与清理**：本片 rustc 编译 **约 45 发**（19 臂 × 2 轮 + 定点复测；每次 15-21 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s121/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
+     下一片从 `XI_FocusIn`（C 22295）起，按 C 的标签顺序逐臂推进。
