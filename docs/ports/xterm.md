@@ -494,6 +494,17 @@ carry the tail's rows.
 The block is the lane's cleanest reading so far: the sixteen arms without `have_xinput2` read a
 zero delta and the seven that have it read **+2**, both rows being `lrint` (C 23211-23212).
 
+Slice 128 (C 23296-23951, Decision 140) lands the shared `XI_ButtonRelease`/`XI_ButtonPress`
+arm.  It is the file's second-largest `XI_*` arm and its first one that is not a motion event,
+so the whole arm is C's drag-and-drop release path plus the ordinary button path behind it: the
+eight locals, the drag-in-progress branch with its `XIPointerEmulated` grab bookkeeping and its
+three drop endings, the Motif and GTK2 event copies, the focus transfer, the tab-bar/tool-bar
+`f` branch and the GTK menubar hack.  The slice also lands the unit's own copy of C's XI2
+vocabulary (twelve constants and the three mask macros, measured on this machine's
+`XI2.h`), which is what finally makes the names the file's earlier `XI_*` sites spell resolve:
+the readings move in both directions for the first time - the seven `have_xinput2` arms gain the
+arm's owed rows and lose the bare names they had been reading as `E0425`.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5989,6 +6000,69 @@ expected direction once the file starts carrying records the X11 headers would s
   `x_flush_dirty_back_buffer_on` all land on names the unit already carries.
 * **What `--check` reads.**  Three rows, the long row's token list **unchanged at 74**.  The unit is
   **36,314 lines** (+90) against C's 33,125.
+
+### 140. Slice 128 (C 23296-23951): `XI_ButtonRelease`/`XI_ButtonPress`, and the unit's XI2 vocabulary
+
+* **What it lands.**  C's two shared labels (C 23296-23297) open one arm, and the slice carries
+  it whole: the eight locals (C 23301-23311: `tab_bar_arg`, `tab_bar_p`, `tool_bar_p`,
+  `device`/`source`, the `HAVE_XWIDGETS` `xvw`, the fake `XButtonEvent bv`, `dnd_grab`,
+  `dnd_state`); the drag-in-progress branch (C 23313-23536) - `x_dnd_in_progress`,
+  `mouse_or_wdesc_frame`, `xi_device_from_id`, the `XIPointerEmulated` grab bookkeeping,
+  `xi_handle_interaction`, the `XI_ButtonPress`/`XI_ButtonRelease` split between
+  `x_dnd_note_self_wheel` and `x_dnd_send_position`, and the release side's `dnd_grab` mask scan,
+  `x_dnd_finish_frame`, `Fx_hide_tip` and the three drop endings (`x_dnd_note_self_drop`,
+  `x_dnd_do_drop`, the Motif `XmDropStart` family) with the state reset and `goto XI_OTHER`;
+  the second `x_dnd_in_progress` exit (C 23538-23541); the two event copies (C 23543-23598) -
+  the `USE_MOTIF` `copy.xbutton.*` block and the `USE_GTK && !HAVE_GTK3` block with
+  `gdk_event_new`; the `HAVE_XINPUT2_1` `XIPointerEmulated` exit (C 23600-23613) whose `finish`
+  is `X_EVENT_DROP`; the `x_display_set_last_user_time` and device lookups (C 23615-23620); the
+  `HAVE_XWIDGETS` `xwidget_button` block (C 23622-23650); the `bv` fill, `mouse_or_wdesc_frame`
+  and `xi_compute_root_window_offset` (C 23652-23672); the focus transfer into a child frame
+  (C 23674-23714, both the `XISetFocus` and the `XSetInputFocus`/`XRaiseWindow` arm); the
+  `xi_handle_interaction` call (C 23716-23724); the GTK wheel branch (C 23726-23772); the `f`
+  branch (C 23774-23883: the wheel kinds, the tab bar, the tool bar under C's `#if !defined
+  (USE_GTK)`, the `popup_activated` fold, `x_construct_mouse_click` and
+  `xembed_send_message`); the `else` branch's scroll-bar click (C 23884-23904) with its
+  `#ifndef USE_TOOLKIT_SCROLL_BARS` arm; the grab bookkeeping plus `f->mouse_moved = false`
+  (C 23906-23929); and the GTK menubar hack (C 23931-23949).
+* **The unit's XI2 block is part of this slice, and its effect is in the readings.**  The arm
+  matches on `XI_ButtonRelease`/`XI_ButtonPress` and tests `XIPointerEmulated`, so the unit has
+  to carry the names C takes from `<X11/extensions/XI2.h>` - and while it was being written it
+  turned out the *landed* sites spell ten more (`XIMaskLen`, `XIMaskIsSet`, `XISetMask`,
+  `XIAllDevices`, `XIAllMasterDevices`, `XI_LASTEVENT`, `XI_DeviceChanged`,
+  `XI_HierarchyChanged`, `XI_PropertyEvent`, `XI_RawKeyPress`), every one of them an `E0425`
+  row before this slice.  The block declares twelve constants and the three mask macros (47
+  lines, all under `all (feature = "have_x_windows", feature = "have_xinput2")`), with the
+  values and the macro bodies measured on this machine's
+  `/opt/homebrew/include/X11/extensions/XI2.h`: the constants at 187-188, 191, 201-203 and 223,
+  and the macros at 181/183/184 - the reference's `XInput2.h` is not installed here, and the
+  sibling units already carry their own copies (`xfns.rs` 5841, `xmenu.rs` 761, `xwidget.rs`
+  2775/5542), so the port keeps the per-unit shape those units set.  The seventeen call sites
+  the unit already had take the `!` form the macros need; that is what turns 26 to 36 rows of
+  `since-found function` into resolved calls, arm by arm.
+* **Spellings, taken from landed twins rather than invented.**  `x_dnd_finish_display =
+  (*dpyinfo).display as *mut c_void;` (the slice-119 sites at C 21871/21919),
+  `drag_receiver_info.protocol_style as c_int` (C 21908's shape),
+  `XM_DRAG_STYLE_IS_DROP_ONLY! (... as c_int)` (C 21908 again), `dnd_state =
+  xi_convert_event_state (xev) as c_int` (C's `int` at C 23311 against the function's `unsigned
+  int`), `FRAME_X_DISPLAY!`/`FRAME_OUTER_WINDOW!` for the focus pair,
+  `xembed_message::XEMBED_REQUEST_FOCUS` (C 22100's enum shape),
+  `waiting_for_input! ()` for C 23940-23947's four reads and writes (the macro
+  `include/thread.rs` 168 declares, the `emacs.rs` 2516 shape), and
+  `gdk_x11_window_lookup_for_display (...) as *mut GdkWindow` for C 23572 (the mirror hands back
+  `gpointer`, `gtkutil.rs` 1915 casts the same call).  C's own extra parentheses around one
+  argument stay, and cost the one warning the seven `have_xinput2` arms gain.
+* **The drop-ending block is `x_dnd_handle_motion_event`'s twin.**  C 23454-23535's
+  `XM_DRAG_REASON!`, `XM_DRAG_SIDE_EFFECT!`, `XM_DRAG_STYLE_IS_DROP_ONLY!`,
+  `x_dnd_send_unsupported_drop`'s `c_int` coordinates and `dmsg.x/y as u16` were spelled from
+  that landed twin (C 18269-18449), and `xm_drop_start_message.byte_order` keeps C's member
+  name (it is not `lmsg.byteorder`).
+* **What `--check` reads.**  Three rows - the same three as slice 127 - with the long row's
+  token list **74 -> 73**.  The unit is **37,016 lines** (+702) against C's 33,125, md5
+  `d4f492435574041f627df7f7c60e48b1`.
+* **Not claimed.**  No runtime evidence: this lane does not link, and no generic event was ever
+  delivered.  The readings are the ten arms of the table below (both sides, one probe root), the
+  per-arm message-level diff, and `--check`.
 
 ## Evidence
 
@@ -12145,3 +12219,66 @@ was measured on both sides in each of them.
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the twenty-three arm compiles (both sides), the `--check` row's
 token count and this ledger.
+
+### Slice 128's readings (C 23296-23951), as landed and measured (2026-10-08)
+
+`case XI_ButtonRelease:` / `case XI_ButtonPress:` - the shared arm, the two event copies, the drop
+endings and the GTK menubar hack.  Ten arms, both sides, one probe root per side.
+
+| arm | baseline | slice 128 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| UG `A +use_toolkit_scroll_bars +use_gtk` | 1213 / 84 | **1213 / 84** | **0 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1263 / 83 | **1263 / 83** | **0 / 0** |
+| UGX `UG +have_xinput2` | 1370 / 87 | **1374 / 88** | **+4 / +1** |
+| AG3X `AG3 +have_xinput2` | 1404 / 86 | **1418 / 87** | **+14 / +1** |
+| AIUX `AIU +have_xinput2` | 1444 / 86 | **1448 / 87** | **+4 / +1** |
+| XI2 `A +have_xinput2` | 1311 / 86 | **1319 / 87** | **+8 / +1** |
+| UMI2 `UM +have_xinput2` | 1394 / 85 | **1418 / 86** | **+24 / +1** |
+| XI21 `XI2 +have_xinput2_1 +have_xinput2_2` | 1368 / 87 | **1366 / 88** | **-2 / +1** |
+| XI21W `XI21 +have_xwidgets` | 1398 / 87 | **1400 / 88** | **+2 / +1** |
+
+**The baseline column is HEAD (`9823aa47`, slice 127) re-measured in this revision, with the same
+probe root the slice column uses**, and the three arms without `have_xinput2` read a zero delta -
+so nothing this slice adds, declares or respells reaches them: the block, the arm and every one of
+the seventeen macro sites sit under `feature = "have_xinput2"`.  The previous entry's two columns
+agree with each other for `A`/`UG`/`AG3` at 1176/1188/1215 and read 2 higher than this revision
+measures for the same file (1174/1213/1263); for the seven `have_xinput2` arms this revision's
+baseline reproduces the previous entry's *baseline* column to the digit (1311/1370/1394/1368/1398
+and 1444/1404).  The slice's file md5 is `d4f492435574041f627df7f7c60e48b1` (37,016 lines against
+C's 33,125).
+
+**What the 26 closed rows are, arm by arm.**  Ten of the names the unit already spelled are the
+block's (`XIAllDevices` 5 sites, `XI_LASTEVENT` 3, `XI_ButtonPress`/`XI_ButtonRelease`/
+`XI_Motion`/`XI_Enter`/`XI_Leave` 1 each, `XIAllMasterDevices`/`XI_DeviceChanged`/
+`XI_HierarchyChanged`/`XI_PropertyEvent`/`XI_RawKeyPress` 1 each, plus `XINotifyGrab`/
+`XINotifyUngrab`/`XINotifyPassiveGrab`/`XINotifyPassiveUngrab` 2 each in the two
+`have_xinput2_1` arms and `XIPointerEmulated` 1 there), and the seventeen macro sites take the
+`!` form (`XISetMask` 9 sites, `XIMaskLen` 4, `XIMaskIsSet` 4).  In `XI2` the closure is exactly
+-26 and the growth +34.
+
+| arm | the arm's own rows (grew) | the block's closures (shrank) |
+| --- | --- | --- |
+| UGX / AIUX | `lrint` +20, `GDK_WINDOW_XWINDOW` +3, `tab_bar_window` +3, `xi_handle_interaction` +2, `RevertToParent`/`XButtonEvent`/`GDK_BUTTON_PRESS`/`GDK_BUTTON_RELEASE`/`XRaiseWindow`/`XSetInputFocus`/`explicit_parent`/`gdk_event_new`/`x_root`/`y_root`/`set_frame_menubar` +1 each, 1 warning | -36 (the seventeen macro sites and the sixteen event/device names) |
+| AG3X | `lrint` +20, `cannot find macro GDK_WINDOW_XID` +3, `tab_bar_window` +3, `xi_handle_interaction` +2, `XButtonEvent`/`XRaiseWindow`/`XISetFocus`/`explicit_parent`/`set_frame_menubar` +1 each, 1 warning | -19 |
+| XI2 | `lrint` +18, `tab_bar_window` +3, `tool_bar_window` +3, `last_tool_bar_item` +3, `xi_handle_interaction` +2, `XButtonEvent`/`XRaiseWindow`/`XISetFocus`/`explicit_parent`/`handle_tool_bar_click_with_device` +1 each, 1 warning | -26 |
+| UMI2 | `lrint` +22, `no field xbutton` +15, `tab_bar_window`/`tool_bar_window`/`last_tool_bar_item` +3 each, `xi_handle_interaction` +2, `RevertToParent`/`XButtonEvent`/`XRaiseWindow`/`XSetInputFocus`/`explicit_parent`/`handle_tool_bar_click_with_device` +1 each, 1 warning | -17 |
+| XI21 / XI21W | `lrint` +20, `tab_bar_window`/`tool_bar_window`/`last_tool_bar_item` +3 each, `xi_handle_interaction` +2 (+3 with the xwidget block), `XButtonEvent`/`XRaiseWindow`/`XISetFocus`/`explicit_parent`/`handle_tool_bar_click_with_device` +1 each (and `no field frame on xwidget_view` +1 in XI21W), 1 warning | -36 / -37 (the block plus the four `XINotify*` and `XIPointerEmulated`) |
+
+**Every row of the table is a registered class.**  `lrint` is `<math.h>`'s (the `xi_link_touch_point`
+note); `tab_bar_window`/`tool_bar_window`/`last_tool_bar_item` are `frame.h`'s members, which the
+mirror gates on `have_window_system` (off in every arm here, the slice-119 table's class);
+`xi_handle_interaction` is C 13573's static, in this unit but not yet ported (the C 18884/C 25612
+reads); `XButtonEvent`/`Button1`/`ButtonRelease` are Decision 15's bare X11 names; `XRaiseWindow`,
+`XSetInputFocus`, `XISetFocus`, `GDK_WINDOW_XWINDOW`/`GDK_WINDOW_XID`, `GDK_BUTTON_PRESS`/
+`GDK_BUTTON_RELEASE`, `gdk_event_new`, `set_frame_menubar`, `waiting_for_input` are the bare
+Xlib/GTK/adjacent-unit class; `explicit_parent` is `x_output`'s bitfield, which
+`include/xterm.rs` records as a comment (so C 23879's `FRAME_X_EMBEDDED_P` is this unit's first
+read of it); `handle_tool_bar_click_with_device` is `dispextern.h` 3672's prototype, which the
+mirror does not carry yet; the `GdkEventButton` `x_root`/`y_root` pair and
+`no field xbutton`/`no field frame on xwidget_view` are the `XEvent`/`xwidget_view` member
+classes.  Nothing is silenced, and the one warning is C's own parentheses.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the ten arm compiles (both sides), the per-arm message diff and the
+`--check` row's token count.

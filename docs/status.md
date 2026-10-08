@@ -17657,3 +17657,39 @@
   （`PACKAGE_STRING`、`/usr/local/share/emacs/32.0.50/...` 这类被移植的路径字面量）与外部名（注册表键、Start Menu 组名、
   MCI 设备别名、窗口类）不在改写范围——后者改了就改行为，不是自我声明。
   ⑤ **未声称**：本轮是复核、不产码（端口与门一行未动）；工作树上只有 xterm lane 在飞的 slice 128 改动，未提交、不计入本读数。
+
+- **4.047 `src/xterm.c` round 104（xterm lane，slice 128）：`XI_ButtonRelease`/`XI_ButtonPress` 共享臂（C 23296-23951）落地，并顺带落地本单元自己的 XI2 词表（2026-10-08）**：
+  ① **本片落的文本**：C 的两个共享标签（C 23296-23297）与整条臂——八个局部量（C 23301-23311）、拖拽中分支（C 23313-23536：`x_dnd_in_progress`、
+     `mouse_or_wdesc_frame`、`xi_device_from_id`、`XIPointerEmulated` 的 grab 记账、`xi_handle_interaction`、press/release 分派
+     `x_dnd_note_self_wheel`/`x_dnd_send_position`、release 侧的 `dnd_grab` 扫描与 `x_dnd_finish_frame`/`Fx_hide_tip`/三种收尾（Motif `XmDropStart` 全套））、
+     第二个提前退出（C 23538-23541）、两份事件拷贝（C 23543-23598：Motif 的 `copy.xbutton.*` 与 GTK2 的 `gdk_event_new` 块）、
+     `HAVE_XINPUT2_1` 的 `XIPointerEmulated` 退出（C 23600-23613）、`x_display_set_last_user_time` 与设备查找（C 23615-23620）、
+     `HAVE_XWIDGETS` 的 `xwidget_button`（C 23622-23650）、`bv` 填充与根窗偏移（C 23652-23672）、子帧焦点转移（C 23674-23714，`XISetFocus` 与
+     `XSetInputFocus`/`XRaiseWindow` 两支）、GTK 轮分支（C 23726-23772）、`f` 分支（C 23774-23883：轮事件、tab bar、`#if !defined (USE_GTK)` 的 tool bar、
+     `popup_activated` 折叠、`x_construct_mouse_click`、`xembed_send_message`）、`else` 支的滚动条点击（C 23884-23904）、grab 记账与
+     `f->mouse_moved = false`（C 23906-23929）、GTK 菜单栏 hack（C 23931-23949）。
+  ② **本单元自己的 XI2 词表（47 行，随本片落地）**：臂要匹配 `XI_ButtonRelease`/`XI_ButtonPress`、要测 `XIPointerEmulated`，于是把 C 从
+     `<X11/extensions/XI2.h>` 取的十二个常量与三个掩码宏一并落地（全部 `all (have_x_windows, have_xinput2)`）；写的过程中量出**已落地**的代码还拼了另外十个名字
+     （`XIMaskLen`/`XIMaskIsSet`/`XISetMask`/`XIAllDevices`/`XIAllMasterDevices`/`XI_LASTEVENT`/`XI_DeviceChanged`/`XI_HierarchyChanged`/`XI_PropertyEvent`/`XI_RawKeyPress`），
+     它们在落地前**全是 `E0425` 行**。取值与宏体按本机 `/opt/homebrew/include/X11/extensions/XI2.h` 实测（常量 187-188、191、201-203、223；宏 181/183/184），
+     参照的 `XInput2.h` 本机未安装；十七个既有调用点改成宏的 `!` 形式（`XISetMask` 9 处、`XIMaskLen` 4 处、`XIMaskIsSet` 4 处）。姊妹单元各有自己的副本
+     （`xfns.rs` 5841、`xmenu.rs` 761、`xwidget.rs` 2775/5542），本单元照它们的形状。
+  ③ **拼写全部取自已落地的孪生体**：`x_dnd_finish_display = (*dpyinfo).display as *mut c_void;`（C 21871/21919）、
+     `drag_receiver_info.protocol_style as c_int` 与 `XM_DRAG_STYLE_IS_DROP_ONLY! (... as c_int)`（C 21908）、`dnd_state = xi_convert_event_state (xev) as c_int`、
+     `FRAME_X_DISPLAY!`/`FRAME_OUTER_WINDOW!`、`xembed_message::XEMBED_REQUEST_FOCUS`（C 22100 的枚举形状）、`waiting_for_input! ()`（C 23940-23947 四处读写，
+     `include/thread.rs` 168 的宏、`emacs.rs` 2516 的形状）、`gdk_x11_window_lookup_for_display (...) as *mut GdkWindow`（C 23572，镜像给 `gpointer`，
+     `gtkutil.rs` 1915 同款转型）。拖拽收尾那一块照 `x_dnd_handle_motion_event`（C 18269-18449）的拼法；`x_drop_start_message.byte_order` 保持 C 的成员名。
+  ④ **读数（十臂，两侧都在本修订测，同一根 `_root.rs`）**：baseline = HEAD `9823aa47`（slice 127）：
+     A 1174/83 → **1174/83**（0/0）、UG 1213/84 → **1213/84**（0/0）、AG3 1263/83 → **1263/83**（0/0）、
+     UGX 1370/87 → **1374/88**、AG3X 1404/86 → **1418/87**、AIUX 1444/86 → **1448/87**、XI2 1311/86 → **1319/87**、
+     UMI2 1394/85 → **1418/86**、XI21 1368/87 → **1366/88**、XI21W 1398/87 → **1400/88**。三个没有 `have_xinput2` 的臂读零增量
+     （常量块、臂本体与十七个宏点全在该 feature 下）；七个 `have_xinput2` 臂**第一次双向移动**：本片新增的欠名行（`lrint`、`tab_bar_window`/`tool_bar_window`/
+     `last_tool_bar_item`、`xi_handle_interaction`、`XButtonEvent`、`XRaiseWindow`/`XSetInputFocus`/`XISetFocus`、`explicit_parent`、
+     `handle_tool_bar_click_with_device`、GTK/Motif 一族）与被词表关掉的 26-37 行相抵。每一行都落在已登记类里，唯一的 warning 是 C 自己多写的括号。
+     **对上一节的一处更正**：本修订重测 HEAD 时 `A`/`UG`/`AG3` 读 1174/1213/1263，而 4.045 的两列都写 1176/1188/1215（同一文件差 2），
+     七个 `have_xinput2` 臂的 baseline 则与上一节 baseline 列逐位相同；本节两列同根测得，差值逐臂可核。
+  ⑤ **台账**：`docs/ports/xterm.md` 加 Decision **140** 与 `### Slice 128's readings`（含逐臂 grew/shrank 分解）；`--check` 仍三行，
+     长行 token 清单 **74 → 73**；单元 **37,016 行**（+702），文件 md5 `d4f492435574041f627df7f7c60e48b1`。
+  ⑥ **预算与清理**：本片 rustc 约 **45 发**（首发归因、逐轮定点复测、十臂 × 两侧、三臂修正复测；每次 17-24 秒，单文件 `--emit=metadata`），
+     无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s128`。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片按 C 顺序进入 `XI_KeyPress`（C 23953）。
