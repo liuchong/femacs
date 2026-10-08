@@ -17631,3 +17631,29 @@
      `build/probes/xterm/`、`/tmp/s127/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十三臂编译（两侧）、`--check` 的 token 数与台账。
      下一片按 C 顺序进入 `XI_ButtonRelease`/`XI_ButtonPress`（C 23296 起）。
+
+- **4.046 声明清扫第三次复算：已写代码里不再有产品名声明（2026-10-08，用户指令的复算）**：
+  ① **指令**：用户当轮的两句话是 3.134（首次落地）/ 3.159（第二次复算）那条指令的第三次下达
+  （`版本声明不要再说是gnu emacs了，我们这样说可能会有法律风险` + `把之前的代码中的这种声明也去掉`），要求**已写进树的代码**
+  也清；本轮在 HEAD `9823aa47` 的工作树上（含 3.159 之后新写的单元）逐段复测，**一行端口文本都没改**。
+  ② **三段的复测**：⑴ **端口首行只留修订号**——对十个端口树（`femacs/src`、`femacs/lib`、`femacs/lib-src`、`femacs/exec`、
+  `femacs/lwlib`、`femacs/oldXMenu`、`femacs/nt`、`femacs/msdos`、`femacs/xtask`、`femacs/platform`）扫
+  `@ <修订号> (<产品名>)` 括注 ⇒ **0 命中**（`2ee1d1d`/`4810bb0` 的 231 文件机械改写之后没有回溯）。
+  ⑵ **参照自带的版本/版权块不随复刻携带**（`fd9cf89`）——同十个树扫 `part of GNU` / `is free software` / `is distributed` /
+  `along with GNU` / `Free Software Foundation` / `Copyright (C)` ⇒ 只剩 **5 行**，全部是 C 自己的字符串字面量
+  （`src/emacs.rs` 1 行、`lib-src/etags.rs` 2 行、`lib-src/ebrowse.rs` 2 行），每一行都在
+  `docs/baseline/declarations-allowlist.tsv` 上（横幅要打印、docstring 门要逐字比对）。
+  ⑶ **标题注释里的产品名与"许可块怎么处理"的复述**并入 `title`/`recital` 两类，随 `decl`/`version` 每轮判；
+  "片段名"那一类里唯一在本仓库代码中出现的是 `femacs/src/pgtkfns.rs` 的 `SCHEMA_ID`（GIO 按名解析的**外部** schema，
+  改了就改行为），`w32`/`nt` 的注册表键、Start Menu 组名与 MCI 设备别名同理。
+  ③ **读数（本轮实测）**：`tools/check-declarations.py` → **18 declaration sites (0 forbidden, 18 allowed literals),
+  0 failures**（读 683 个源文件 = 625 `.rs` + 40 `.kt` + 7 `.swift` + 6 `.s` + 5 `.cc`、49 个自有 prose/manifest 文件、
+  619 个台账文件、104 个工具/探针文件；`docs/status.md` 与 `docs/acceptance.md` 里 106 行产品名**全是引文**——
+  2 行在围栏里、99 行在行内代码里、4 行在引号里、40 行是指令原话，**自有叙述 0**）；`--selftest` **75 cases / 0 failures**；
+  `tools/check-own-voice.py` → 端口注释里 1042 处裸名（**934 抄参照、108 在引号里、0 自有**）、自有工具与 CI prose 0、
+  **0 failure**；`tools/check-verbatim-declarations.py` → 6 棵照抄树 734 candidates（forbidden-tree 659 / history 55 /
+  negation 13 / enumerated 7）、**0 failure**。
+  ④ **边界（照 0.1-19 复述）**：照抄树的逐字复制（`tools/check-verbatim.py` 拥有）、冻结配置的实测值
+  （`PACKAGE_STRING`、`/usr/local/share/emacs/32.0.50/...` 这类被移植的路径字面量）与外部名（注册表键、Start Menu 组名、
+  MCI 设备别名、窗口类）不在改写范围——后者改了就改行为，不是自我声明。
+  ⑤ **未声称**：本轮是复核、不产码（端口与门一行未动）；工作树上只有 xterm lane 在飞的 slice 128 改动，未提交、不计入本读数。
