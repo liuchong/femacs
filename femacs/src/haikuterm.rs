@@ -4080,3 +4080,126 @@ unsafe fn haiku_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
   BView_draw_unlock (view);                                           // C 2890
   unblock_input ();                                                   // C 2891
 }
+
+/* C 2893-2980: `haiku_define_fringe_bitmap` (C 2894-2915), `haiku_destroy_fringe_bitmap`
+   (C 2917-2926) and `haiku_scroll_run` (C 2928-2980).  The next first definition is C 2982's
+   conditional block's first item (`haiku_translate_rect`).  `max_fringe_bmp`/`fringe_bmps` are this
+   file's own C 55/58 statics, the `BBitmap_*` surface and `BView_CopyBits` are the mirror's
+   (`include/haiku_support.rs`), `xmalloc`/`xrealloc`/`memory_full_up` are lisp.rs's, and
+   `gui_clear_cursor` (dispextern.h 3657) is declared at the use site below - no mirror carries it
+   (the `pgtkterm.rs` 4448 declaration of the same prototype).  */
+
+/// C: dispextern.h 3657: `extern void gui_clear_cursor (struct window *);` (xdisp.c)
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn gui_clear_cursor (w: *mut window);
+}
+
+/* C 2894-2915.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_define_fringe_bitmap (which: c_int, bits: *mut c_ushort,
+				      h: c_int, wd: c_int)
+{
+  if which >= max_fringe_bmp                                          // C 2898
+    {
+      let mut i: c_int = max_fringe_bmp;                              // C 2900
+      max_fringe_bmp = which + 20;                                    // C 2901
+      /* C 2902-2903's `!i ? xmalloc (…) : xrealloc (…)` and the port's two calls of the
+	 same two functions.  */
+      fringe_bmps = if i == 0
+	{ xmalloc (max_fringe_bmp as usize * std::mem::size_of::<*mut c_void> ()) as *mut *mut c_void }
+	else
+	{ xrealloc (fringe_bmps as *mut c_void,
+		    max_fringe_bmp as usize * std::mem::size_of::<*mut c_void> ()) as *mut *mut c_void };
+
+      while i < max_fringe_bmp                                        // C 2905
+	{
+	  *fringe_bmps.offset (i as isize) = std::ptr::null_mut ();     // C 2906 (`fringe_bmps[i++] = NULL`)
+	  i += 1;
+	}
+    }
+
+  block_input ();                                                     // C 2909
+  *fringe_bmps.offset (which as isize) = BBitmap_new (wd, h, 1);        // C 2910
+  if (*fringe_bmps.offset (which as isize)).is_null ()                  // C 2911
+    { memory_full_up (); }                                            // C 2912
+  BBitmap_import_fringe_bitmap (*fringe_bmps.offset (which as isize),   // C 2913
+				bits, wd, h);
+  unblock_input ();                                                   // C 2914
+}
+
+/* C 2917-2926.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_destroy_fringe_bitmap (which: c_int)
+{
+  if which >= max_fringe_bmp                                          // C 2920
+    { return; }                                                       // C 2921
+
+  if ! (*fringe_bmps.offset (which as isize)).is_null ()                // C 2923
+    { BBitmap_free (*fringe_bmps.offset (which as isize)); }            // C 2924
+  *fringe_bmps.offset (which as isize) = std::ptr::null_mut ();         // C 2925
+}
+
+/* C 2928-2980.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_scroll_run (w: *mut window, run: *mut run)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                            // C 2931
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! (f);                   // C 2932
+  /* C 2933 declares x/y/width/height with no initialiser and C 2934 hands the callee their
+     addresses, so the port zero-initialises them (PORTING.md 1.5).  */
+  let mut x: c_int = 0;
+  let mut y: c_int = 0;
+  let mut width: c_int = 0;
+  let mut height: c_int = 0;
+  let mut from_y: c_int;
+  let mut to_y: c_int;
+  let mut bottom_y: c_int;
+  window_box (w, ANY_AREA, &raw mut x, &raw mut y, &raw mut width,     // C 2934
+	      &raw mut height);
+
+  from_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).current_y);             // C 2936
+  to_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).desired_y);               // C 2937
+  bottom_y = y + height;                                              // C 2938
+
+  if to_y < from_y                                                    // C 2940
+    {
+      /* Scrolling up.  Make sure we don't copy part of the mode
+	 line at the bottom.  */                                     // C 2942-2943
+      if from_y + (*run).height > bottom_y                             // C 2944
+	{ height = bottom_y - from_y; }                               // C 2945
+      else
+	{ height = (*run).height; }                                   // C 2947
+
+      /* Don't draw over the display parts above if destination is off
+         the top of the current window.  */                          // C 2949-2950
+      if to_y < y                                                     // C 2951
+	{
+	  let d: c_int = y - to_y;                                      // C 2953
+	  height -= d;                                                 // C 2954
+	  to_y += d;                                                   // C 2955
+	  from_y += d;                                                 // C 2956
+	}
+    }
+  else
+    {
+      /* Scrolling down.  Make sure we don't copy over the mode line.
+	 at the bottom.  */                                          // C 2961-2962
+      if to_y + (*run).height > bottom_y                               // C 2963
+	{ height = bottom_y - to_y; }                                 // C 2964
+      else
+	{ height = (*run).height; }                                   // C 2966
+    }
+
+  block_input ();                                                     // C 2969
+  gui_clear_cursor (w);                                               // C 2970
+
+  BView_draw_lock (view, true, x, to_y, width, height);                // C 2972
+  BView_StartClip (view);                                             // C 2973
+  BView_CopyBits (view, x, from_y, width, height,                      // C 2974
+		  x, to_y, width, height);                            // C 2975
+  BView_EndClip (view);                                               // C 2976
+  BView_draw_unlock (view);                                           // C 2977
+
+  unblock_input ();                                                   // C 2979
+}

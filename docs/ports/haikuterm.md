@@ -7,12 +7,17 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**4,082 lines**), which carries **C 1-2892** - P-86 ④'s first fifteen
+> `femacs/src/haikuterm.rs` (**4,205 lines**), which carries **C 1-2980** - P-86 ④'s first sixteen
 > slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 2980 and not 2982 (slice 16).**  C 2981 is blank and C 2982 opens a comment block, so the
+> slice is **C 2893-2980** - the blank line C 2893 and the three items `haiku_define_fringe_bitmap`
+> (C 2894-2915), `haiku_destroy_fringe_bitmap` (C 2917-2926) and `haiku_scroll_run` (C 2928-2980).
+> The next definition follows the C 2982 comment block.
 >
 > **Why 2892 and not 2894 (slice 15).**  C 2894 is `haiku_define_fringe_bitmap`'s `static void` and
 > C 2892 the closing brace of the item before it, so the slice is **C 2804-2892** - the blank line
@@ -189,7 +194,8 @@ the pre-flight below sets it as well.
 | 2646-2745 | `haiku_scroll_bar_create` (C 2647-2690; C 2661 `ALLOCATE_PSEUDOVECTOR`, C 2663 `XSETWINDOW`, C 2674-2677 the two `be_*`/`BView_*` calls, C 2682-2686 the two `XSETVECTOR`s) and `haiku_set_horizontal_scroll_bar` (C 2692-2745; C 2701 the `eassert`, C 2703 `window_box`, C 2706-2708 the four geometry readers, C 2712-2737 the create/move fork, C 2739-2743 the thumb call and the two setters) | file gate (slice 13) |
 | 2746-2803 | `haiku_set_vertical_scroll_bar` (C 2747-2803; C 2756 the `eassert`, C 2759 `window_box`, C 2764-2765 the two area readers, C 2770-2794 the create/move fork, C 2796-2801 the thumb call and the two setters) | file gate (slice 14) |
 | 2804-2892 | `haiku_draw_fringe_bitmap` (C 2805-2892; C 2823-2824 the invalidate pair, C 2828-2853 the stipple arm with `haiku_get_bitmap_rec`/`haiku_update_bitmap_rec`, C 2855-2888 the fringe bitmap arm with `gui_define_fringe_bitmap` and the two colour choices) | file gate (slice 15) |
-| 2893-4898 | **the remainder of the file** (C 2894 `haiku_define_fringe_bitmap` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 2893-2980 | `haiku_define_fringe_bitmap` (C 2894-2915; C 2898-2907 the grow, C 2910-2913 the `BBitmap_*` pair), `haiku_destroy_fringe_bitmap` (C 2917-2926) and `haiku_scroll_run` (C 2928-2980; C 2934 `window_box`, C 2936-2938 the three y values, C 2940-2967 the up/down folds, C 2969-2977 the copy) | file gate (slice 16) |
+| 2981-4898 | **the remainder of the file** (the C 2982 comment block onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1445,3 +1451,53 @@ arm set `have_haiku` + `have_window_system`:
   arm's type-checking and the text/token gates.
 - The five mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 2893-4898 text this file has not reached.
+
+## Slice 16 (2026-10-08, status 4.092 - the integrator sets the round number): C 2893-2980
+
+**The slice's text.**  The blank line C 2893 and the three items `haiku_define_fringe_bitmap`
+(C 2894-2915), `haiku_destroy_fringe_bitmap` (C 2917-2926) and `haiku_scroll_run` (C 2928-2980).
+Port line count **4,082 -> 4,205** (+123).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  **One run**: `exit 1`, 5
+primary errors among 34 error-prefixed lines, **every one in a mirror** (the same five slices 5-15
+read).  **The unit's own text has no primary error on the first run**, 4 warnings - the slice
+reuses this file's own `fringe_bmps`/`max_fringe_bmp` statics (C 55/58), the mirror's `BBitmap_*`
+surface and `BView_CopyBits`, lisp.rs's `xmalloc`/`xrealloc`/`memory_full_up`, and one new use-site
+declaration (`gui_clear_cursor`, dispextern.h 3657 - Deviation 1).
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 31 rows -> 28.**  The three closed
+are the `missing function` rows for the three items this slice lands, and **no new row appeared**:
+the two `x*alloc` calls, the three `BBitmap_*` calls, the four `BView_*` calls and the two
+`WINDOW_TO_FRAME_PIXEL_Y!` reads all compare token for token.  The 28 that remain are 27 `missing
+function` rows plus `missing macro ASSIGN_CURSOR`, all inside the C 2981-4898 remainder.
+
+### Deviations (this slice)
+
+1. **`gui_clear_cursor` (dispextern.h 3657) is declared at the use site** (P-72 rule 4): no mirror
+   carries it - the `pgtkterm.rs` 4448 declaration of the same prototype; `src/xdisp.rs` defines it.
+2. **C 2902-2903's `!i ? xmalloc (…) : xrealloc (…)`** is the port's `if i == 0 { … } else { … }`
+   over the same two functions, with C's `sizeof (void *)` written as
+   `std::mem::size_of::<*mut c_void> ()` and the two results cast to the `*mut *mut c_void` the
+   static's type is (slice 1's C 55 declaration).
+3. **C 2906's `fringe_bmps[i++] = NULL;`** is C's store followed by its increment, as two
+   statements in C's order (slice 12's `b->next = b->prev = Qnil` rule for C's compound expressions).
+4. **C 2933's four `window_box` outputs** are zero-initialised and named (PORTING.md 1.5): C 2934
+   hands the callee their addresses - this file's C 1518/C 2698/C 2753 reading.
+5. **C 2928-2980's `run` argument** is `*mut run` (include/dispextern.rs's `struct run`, whose
+   `height`/`current_y`/`desired_y` this slice reads), and the two `WINDOW_TO_FRAME_PIXEL_Y!` calls
+   are the mirror's macro (slice 9's C 1524 reading).
+
+### Owed (this slice's additions)
+
+- **Nothing new**: no `--check` row for this slice (Evidence ②), the line-drift row is unchanged
+  (C 4898 vs Rust 4,205 is 14.2%, inside the `haikuterm` row's 0.69), no mirror file is touched,
+  and the `redisplay_interface` table's ABI debt (Owed 1 of slice 11) is unchanged.
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no fringe bitmap was created, imported
+  or freed, and no scroll run copied any bits.**  What is measured is the arm's type-checking and
+  the text/token gates.
+- The five mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 2981-4898 text this file has not reached.
