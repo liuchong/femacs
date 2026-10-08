@@ -7,12 +7,18 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**2,310 lines**), which carries **C 1-1511** - P-86 ④'s first four
+> `femacs/src/haikuterm.rs` (**2,485 lines**), which carries **C 1-1640** - P-86 ④'s first five
 > slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 1640 and not 1642 (slice 5).**  C 1642 is `haiku_draw_image_relief`'s `static void` and
+> C 1640 the closing brace of the item before it, so the slice is **C 1512-1640** - the blank line
+> C 1512 and the four items `haiku_clip_to_row` (C 1513-1530), `haiku_update_begin` (C 1532-1538),
+> `haiku_update_end` (C 1540-1545) and `haiku_draw_composite_glyph_string_foreground`
+> (C 1547-1640).  The next definition is `haiku_draw_image_relief` (C 1642).
 >
 > **Why 1511 and not 1513 (slice 4).**  C 1513 is `haiku_clip_to_row`'s `static void` and C
 > 1511 the closing brace of the item before it, so the slice is **C 1400-1511** - the blank line
@@ -114,7 +120,8 @@ the pre-flight below sets it as well.
 | 1045-1198 | `haiku_draw_string_box` (C 1046-1106; C 1054-1057 the `full_width_p`/`pseudo_window_p` choice, C 1058-1077 the last-glyph choice and C 1068-1074 the composition walk), `haiku_draw_plain_background` (C 1108-1126), `haiku_get_bitmap_rec` (C 1128-1132), `haiku_update_bitmap_rec` (C 1134-1161; C 1153 the stipple bit) and `haiku_draw_stipple_background` (C 1163-1198; C 1175 the `stipple` read) | file gate (slice 2) |
 | 1199-1399 | `haiku_draw_background_rect` (C 1200-1209, non-`static`), `haiku_maybe_draw_background` (C 1211-1231; C 1228 the `background_filled_p` write), `haiku_mouse_face_colors` (C 1233-1258; C 1242-1251 the four inline accessors), `haiku_draw_glyph_string_foreground` (C 1260-1307) and `haiku_draw_glyphless_glyph_string_foreground` (C 1309-1399; C 1330 the `GCC_LINT` pair, C 1335 `buf`, C 1339-1363 the two method arms, C 1371 `encode_char`, C 1383-1395 the box) | file gate (slice 3) |
 | 1400-1511 | `haiku_draw_stretch_glyph_string` (C 1401-1497; C 1407 the cursor/stretch test, C 1412-1434 the R2L and column-width choices, C 1443-1476 the stipple pair, C 1478-1495 the background arm, C 1496 the `background_filled_p` write), `haiku_start_clip` (C 1499-1504) and `haiku_end_clip` (C 1506-1511) | file gate (slice 4) |
-| 1512-4898 | **the remainder of the file** (C 1513 `haiku_clip_to_row` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1512-1640 | `haiku_clip_to_row` (C 1513-1530; C 1521 `window_box`'s three outputs, C 1524 `WINDOW_TO_FRAME_PIXEL_Y`), `haiku_update_begin` (C 1532-1538; C 1537 the `FRAME_COMPLETE_P` write), `haiku_update_end` (C 1540-1545; C 1543 the `mouse_face_defer` write) and `haiku_draw_composite_glyph_string_foreground` (C 1547-1640; C 1581 the `u.cmp.automatic` test, C 1588 `COMPOSITION_GLYPH`, C 1600-1637 the `LGSTRING`/`LGLYPH_*` arm) | file gate (slice 5) |
+| 1641-4898 | **the remainder of the file** (C 1642 `haiku_draw_image_relief` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -632,3 +639,72 @@ mention 1`** (C 1496's write of the same `bool_bf` member C 1228 writes) - a
   is the arm's type-checking and the text/token gates.
 - The four mirror errors are not this slice's, and the `--check` rows that remain are the
   C 1512-4898 text this file has not reached.
+
+## Slice 5 (2026-10-08, status 4.081 - the integrator sets the round number): C 1512-1640
+
+**The slice's text.**  The blank line C 1512 and the four items after it: `haiku_clip_to_row`
+(C 1513-1530), `haiku_update_begin` (C 1532-1538), `haiku_update_end` (C 1540-1545) and
+`haiku_draw_composite_glyph_string_foreground` (C 1547-1640 - the composition walk, with both the
+`u.cmp.automatic` arm and the `LGSTRING`/`LGLYPH_*` arm).  Port line count **2,310 -> 2,485**
+(+175).  `window_box` (dispextern.h 3574-3575) joins this file's use-site extern block (the
+`window_box_right` entry's rule).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Two runs of slice 2's command,
+arm set `have_haiku` + `have_window_system`:
+
+- **Run 1: `exit 1`, 8 primary errors, 3 of them in the unit's own text** - `E0381` for
+  `window_x`/`window_y`/`window_width` at C 1518 (C 1521's `window_box` writes them through
+  pointers the port cannot follow; Deviation 1's zeroing is the repair).
+- **Run 2 (final revision): `exit 1`, 5 primary errors among 35 error-prefixed lines, every one in
+  a mirror** - `include/systime.rs` once and `include/frame.rs` once (both slice 1's recorded
+  classes), and **`include/haikuterm.rs` three times, not twice**: C 1537's
+  `FRAME_COMPLETE_P (f) = false` is the *second* instance of the mirror row slice 1 recorded
+  (`haiku_output_bit_set`'s `($v) != 0` against a `bool` parameter), so the class is unchanged and
+  the count is one higher.  **The unit's own text has no primary error**, 4 warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 57 rows -> 53.**  The four closed
+are `missing function` rows for the four items this slice lands; the 53 that remain are 52
+`missing function` rows plus `missing macro ASSIGN_CURSOR`, all inside the C 1641-4898 remainder.
+One new row appeared and is discharged: **`function haiku_update_end does not mention
+mouse_face_defer`** (C 1543's write, which the port makes through the mirror's
+`set_mouse_face_defer`) - a `docs/ports/macro-body-notes.tsv` row with its reason.
+
+### Deviations (this slice)
+
+1. **C 1518's three `int` outputs of C 1521's `window_box`** are zero-initialised and named
+   (PORTING.md 1.5): C hands the callee their addresses, and C 1523-1526 read them back - the
+   reading this file's C 1113, C 1171, C 1316 and C 1405 already took.  C 1521's last argument is
+   C's `0`, so the port passes the null pointer (the `window_box` declaration's own note).
+2. **C 1537's `FRAME_COMPLETE_P (f) = false`** is the mirror's two-argument write arm
+   (`frame_bits`-style l-value macro), the spelling slice 1 used at C 237/271.
+3. **C 1543's `MOUSE_HL_INFO (f)->mouse_face_defer = false`** goes through
+   `include/dispextern.rs` 2149's setter (the `androidterm.rs` 545 / `pgtkterm.rs` 4894 spelling of
+   the same C line) - the `mouse_face_defer` token is registered in
+   `docs/ports/macro-body-notes.tsv` rather than planted in the body.
+4. **C 1547-1640's composition walk reuses the shapes the `pgtkterm.rs` 2115-2225 copy of the same
+   C function measured**: `glyph_u_cmp_bits!` for C 1581, `COMPOSITION_GLYPH` on a
+   `*mut composition` cast (`glyph_string.cmp` is the untyped P-72 rule 3 member), the two
+   `offsets[j * 2]`/`[j * 2 + 1]` reads as pointer offsets, `composition_gstring_from_id` and the
+   `LGSTRING_GLYPH`/`LGLYPH_*` accessors from `include/composite.rs` (which C reaches through
+   `dispextern.h`'s own include graph, so the unit needs no new `include!`), and the `draw` slot
+   unwrapped per call (slice 3's Deviation 6).  `haiku`'s own C 1570-1579 differs from pgtk's: the
+   rectangle is the `BView_` pair here, and `cursor_fg` comes from `FRAME_OUTPUT_DATA`.
+
+### Owed (this slice's additions)
+
+- **Nothing new**: the one `--check` row this slice produced is discharged in
+  `docs/ports/macro-body-notes.tsv` (Evidence ②); the line-drift row is unchanged (C 4898 vs
+  Rust 2,485 is 49.3%, inside the `haikuterm` row's 0.69) and the ratchet list is still empty.
+- **One mirror row's count moved** (Evidence ① run 2: `include/haikuterm.rs` 2 -> 3, the
+  `FRAME_COMPLETE_P` write arm) - the mirror round that owns that class
+  (`include-haikuterm.rs`'s `haiku_output_bit_set`) is Owed 4-6's, not this file's.
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no clip rectangle was set, no frame
+  was marked complete or incomplete, no mouse-face flag was cleared, and no composition glyph
+  string was drawn** (no `font_driver.draw` was called).  What is measured is the arm's
+  type-checking and the text/token gates.
+- The five mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 1641-4898 text this file has not reached.

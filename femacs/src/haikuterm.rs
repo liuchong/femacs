@@ -165,6 +165,10 @@ unsafe extern "C" {
                         inhibit: c_int, pretend: bool, parameter: Lisp_Object);
   /// C: dispextern.h 3581: `int window_box_right (struct window *, enum glyph_row_area);`
   fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int;
+  /// C: dispextern.h 3574-3575: `void window_box (struct window *, enum glyph_row_area, int *,
+  /// int *, int *, int *);` - the last argument is C's `0`, so the port passes the null pointer.
+  fn window_box (w: *mut window, area: glyph_row_area, x: *mut c_int, y: *mut c_int,
+                 width: *mut c_int, height: *mut c_int);
   /// C: dispextern.h 3579-3580: `int window_box_left (struct window *, enum glyph_row_area);`
   /// and `int window_box_left_offset (struct window *, enum glyph_row_area);` - the two the
   /// stretch-glyph-string path reads (C 1414/1481).
@@ -2307,4 +2311,175 @@ unsafe fn haiku_end_clip (s: *mut glyph_string)
 {
   let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);              // C 1509
   BView_EndClip (view);                                              // C 1510
+}
+
+/* C 1512-1640: `haiku_clip_to_row` (C 1513-1530), `haiku_update_begin` (C 1532-1538),
+   `haiku_update_end` (C 1540-1545) and `haiku_draw_composite_glyph_string_foreground`
+   (C 1547-1640).  The next first definition is C 1642's `haiku_draw_image_relief`.
+   `window_box` (dispextern.h 3574-3575) is declared in this file's extern block above, the
+   `window_box_right` entry's rule.  */
+
+/* C 1513-1530.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_clip_to_row (w: *mut window, row: *mut glyph_row,
+			     area: glyph_row_area)
+{
+  let f: *mut frame = WINDOW_XFRAME! (w);                             // C 1517
+  /* C 1518 declares the three outputs of C 1521's `window_box` with no initialiser and C 1521
+     hands the callee their addresses, so the port zero-initialises them (PORTING.md 1.5).  */
+  let mut window_x: c_int = 0;                                        // C 1518
+  let mut window_y: c_int = 0;
+  let mut window_width: c_int = 0;
+  let mut x: c_int;                                                   // C 1519
+  let mut y: c_int;
+  let mut width: c_int;
+  let mut height: c_int;
+
+  window_box (w, area, &raw mut window_x, &raw mut window_y,           // C 1521
+	      &raw mut window_width, std::ptr::null_mut ());
+
+  x = window_x;                                                       // C 1523
+  y = WINDOW_TO_FRAME_PIXEL_Y! (w, std::cmp::max (0, (*row).y));       // C 1524
+  y = std::cmp::max (y, window_y);                                    // C 1525
+  width = window_width;                                               // C 1526
+  height = (*row).visible_height;                                     // C 1527
+
+  BView_ClipToRect (FRAME_HAIKU_DRAWABLE! (f), x, y, width, height);   // C 1529
+}
+
+/* C 1532-1538.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_update_begin (f: *mut frame)
+{
+  /* Mark the frame as incomplete so it is not flushed upon handling
+     input.  */                                                      // C 1535-1536
+  FRAME_COMPLETE_P! (f, false);                                       // C 1537
+}
+
+/* C 1540-1545.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_update_end (f: *mut frame)
+{
+  set_mouse_face_defer (MOUSE_HL_INFO! (f), false);                    // C 1543
+  BWindow_Flush (FRAME_HAIKU_WINDOW! (f));                             // C 1544
+}
+
+/* C 1547-1640.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_composite_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut i: c_int;                                                   // C 1550
+  let mut j: c_int;
+  let mut x: c_int;
+  let font: *mut font = (*s).font;                                    // C 1551
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);              // C 1552
+  let face: *mut face = GS_FACE! (s);                                 // C 1553
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */                         // C 1555-1556
+  if ! face.is_null () && face_bits! (box, face) != FACE_NO_BOX       // C 1557
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))           // C 1558
+    { x = (*s).x + std::cmp::max ((*face).box_vertical_line_width, 0); }   // C 1559
+  else
+    { x = (*s).x; }                                                   // C 1561
+
+  /* S is a glyph string for a composition.  S->cmp_from is the index
+     of the first character drawn for glyphs of this composition.
+     S->cmp_from == 0 means we are drawing the very first character of
+     this composition.  */                                           // C 1563-1566
+
+  /* Draw a rectangle for the composition if the font for the very
+     first character of the composition could not be loaded.  */     // C 1568-1569
+  if glyph_string_bits! (font_not_found_p, (*s)) && (*s).cmp_from == 0   // C 1570
+    {
+      if (*s).hl == DRAW_CURSOR                                       // C 1572
+	{ BView_SetHighColor (view, (*(FRAME_OUTPUT_DATA! ((*s).f) as *mut haiku_output))
+				     .cursor_fg); }                   // C 1573
+      else
+	{ BView_SetHighColor (view, (*GS_FACE! (s)).foreground as uint32_t); }   // C 1575
+
+      BView_SetPenSize (view, 1);                                     // C 1577
+      BView_StrokeRectangle (view, (*s).x, (*s).y,                     // C 1578
+			     (*s).width, (*s).height);                 // C 1579
+    }
+  else if ! glyph_u_cmp_bits! (automatic, (*s).first_glyph)            // C 1581
+    {
+      let y: c_int = (*s).ybase;                                       // C 1583
+
+      i = 0;                                                           // C 1585
+      j = (*s).cmp_from;
+      while i < (*s).nchars
+	{
+	  /* TAB in a composition means display glyphs with padding
+	     space on the left or right.  */                            // C 1586-1587
+	  if COMPOSITION_GLYPH ((*s).cmp as *mut composition, j as ptrdiff_t)   // C 1588
+	      != b'\t' as isize
+	    {
+	      let cmp: *mut composition = (*s).cmp as *mut composition;
+	      let xx: c_int
+		= x + *(*cmp).offsets.offset ((j * 2) as isize) as c_int;   // C 1590
+	      let yy: c_int
+		= y - *(*cmp).offsets.offset ((j * 2 + 1) as isize) as c_int;   // C 1591
+
+	      ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, j, j + 1, xx, yy, false);                            // C 1593
+	      if face_bits! (overstrike, face)                            // C 1594
+		{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, j, j + 1, xx + 1, yy, false); }                  // C 1595
+	    }
+	  i += 1; j += 1;                                                // C 1585's step
+	}
+    }
+  else
+    {
+      let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);   // C 1600
+      let mut glyph: Lisp_Object;                                      // C 1601
+      let y: c_int = (*s).ybase;                                       // C 1602
+      let mut width: c_int = 0;                                        // C 1603
+
+      i = (*s).cmp_from;                                               // C 1605
+      j = (*s).cmp_from;
+      while i < (*s).cmp_to
+	{
+	  glyph = LGSTRING_GLYPH (gstring, i as ptrdiff_t);             // C 1607
+	  if NILP (LGLYPH_ADJUSTMENT (glyph))                           // C 1608
+	    { width += LGLYPH_WIDTH (glyph) as c_int; }                 // C 1609
+	  else
+	    {
+	      let mut xoff: c_int;                                       // C 1612
+	      let mut yoff: c_int;
+	      let mut wadjust: c_int;
+
+	      if j < i                                                   // C 1614
+		{
+		  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, j, i, x, y, false);                              // C 1616
+		  if face_bits! (overstrike, face)                          // C 1617
+		    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+			(s, j, i, x + 1, y, false); }                    // C 1618
+		  x += width;                                              // C 1619
+		}
+	      xoff = LGLYPH_XOFF (glyph) as c_int;                         // C 1621
+	      yoff = LGLYPH_YOFF (glyph) as c_int;                         // C 1622
+	      wadjust = LGLYPH_WADJUST (glyph) as c_int;                   // C 1623
+	      ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, i, i + 1, x + xoff, y + yoff, false);                // C 1624
+	      if face_bits! (overstrike, face)                             // C 1625
+		{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, i, i + 1, x + xoff + 1, y + yoff, false); }      // C 1626-1627
+	      x += wadjust;                                              // C 1628
+	      j = i + 1;                                                 // C 1629
+	      width = 0;                                                 // C 1630
+	    }
+	  i += 1;                                                        // C 1605's step
+	}
+      if j < i                                                          // C 1633
+	{
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, j, i, x, y, false);                                     // C 1635
+	  if face_bits! (overstrike, face)                                // C 1636
+	    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, j, i, x + 1, y, false); }                           // C 1637
+	}
+    }
 }
