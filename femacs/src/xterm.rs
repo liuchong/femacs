@@ -16015,7 +16015,7 @@ unsafe fn x_get_wm_check_window (dpyinfo: *mut x_display_info) -> Window
 
   rc = XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,   // C 27700-27704
 			   (*dpyinfo).Xatom_net_supporting_wm_check,
-			   0, 1, 0, XA_WINDOW, &raw mut actual_type,
+			   0, 1, False, XA_WINDOW, &raw mut actual_type,
 			   &raw mut actual_format, &raw mut actual_size,
 			   &raw mut bytes_remaining, &raw mut tmp_data);
 
@@ -31425,8 +31425,8 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		      use crate::x11_constants::NoEventMask;
 
 		      let mut rc: c_int;                                       // C 18953
-		      /* C 18953's local is used only at C 19465-19468 (this arm's last block); this slice's
-		         reading shows no row for it (measured), and the arm's last slice gives it its uses.  */
+		      /* C 18953's local is used at C 19465-19468 (this arm's last block), where C's `bool`
+		         return takes the port's `as c_int` (C's own promotion).  */
 
 		      if (((x_dnd_in_progress                                  // C 18955
 			&& FRAME_DISPLAY_INFO! (x_dnd_frame) == dpyinfo)              // C 18956
@@ -31816,10 +31816,141 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			    break 'other;                                             // C 19339 (`goto done`)
 			  }
 
-			/* C 19342-19472's blocks are still owed - the `wm_configure_denied`/`wm_window_moved` pair,
-			   `X_TOOLKIT_EDITRES`, `DONE`/`PAGE`, the two scroll-bar messages, `XEMBED` and the XSync
-			   counters - and the next slice lands them above this line, the way slices 137-140 grew this
-			   arm's earlier blocks.  */
+		      /* C 19342-19471: the arm's last blocks - `wm_configure_denied`, `wm_window_moved`, the
+		         `X_TOOLKIT_EDITRES` arm, `DONE`/`PAGE`, the two scroll-bar messages, `XEMBED`, the
+		         frame-drawn pair, `xft_settings_event`, the DND tail and C's own `break`.  */
+		      if (*event).xclient.message_type == (*dpyinfo).Xatom_wm_configure_denied // C 19342
+			{ break 'other; }                                             // C 19343 (`goto done`)
+
+			if (*event).xclient.message_type == (*dpyinfo).Xatom_wm_window_moved // C 19345
+			{
+			  let mut new_x: c_int;                                       // C 19347
+			  let mut new_y: c_int;
+			  f = x_window_to_frame (dpyinfo, (*event).xclient.window);   // C 19348
+
+			  new_x = (*event).xclient.data.s[0];                         // C 19350
+			  new_y = (*event).xclient.data.s[1];                         // C 19351
+
+			  if !f.is_null ()                                            // C 19353
+			  {
+			    (*f).left_pos = new_x;                                    // C 19355
+			    (*f).top_pos = new_y;                                     // C 19356
+			  }
+			  break 'other;                                               // C 19358 (`goto done`)
+			}
+
+			/* C 19361-19374's `#ifdef X_TOOLKIT_EDITRES`.  */
+#[cfg (feature = "x_toolkit_editres")]
+			{
+			  if (*event).xclient.message_type == (*dpyinfo).Xatom_editres // C 19362
+			  {
+			    f = any;                                                  // C 19364
+			    if !f.is_null ()                                          // C 19365
+			    {
+			      _EditResCheckMessages ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget, // C 19367-19368
+			        std::ptr::null_mut (), event, std::ptr::null_mut ());
+			      break 'other;                                           // C 19369 (`goto done`)
+			    }
+
+			    break 'switch;                                            // C 19372 (`goto OTHER`)
+			  }
+			}
+
+			if ((*event).xclient.message_type == (*dpyinfo).Xatom_DONE    // C 19376
+			  || (*event).xclient.message_type == (*dpyinfo).Xatom_PAGE)  // C 19377
+			  {
+			    /* "Ghostview job completed.  Kill it.  We could reply with \"Next\" if we received
+			       \"Page\", but we currently never do because we are interested in images, only, which
+			       should have 1 page."  */
+			    f = x_window_to_frame (dpyinfo, (*event).xclient.window); // C 19383
+			    if f.is_null ()                                           // C 19384
+			      { break 'switch; }                                      // C 19385 (`goto OTHER`)
+#[cfg (not (feature = "use_cairo"))]
+			    {
+			      let pixmap: Pixmap = (*event).xclient.data.l[1] as Pixmap; // C 19387
+			      /* "FIXME: why does this sometimes generate a BadMatch error?"  */
+			      x_catch_errors ((*dpyinfo).display);                    // C 19390
+			      x_kill_gs_process (pixmap, f);                          // C 19391
+			      x_uncatch_errors ();                                    // C 19392
+			      expose_frame (f, 0, 0, 0, 0);                           // C 19393
+			    }
+			    break 'other;                                             // C 19395 (`goto done`)
+			  }
+
+			/* C 19398-19422's `#ifdef USE_TOOLKIT_SCROLL_BARS`.  */
+#[cfg (feature = "use_toolkit_scroll_bars")]
+			{
+			  /* "Scroll bar callbacks send a ClientMessage from which we construct an input_event."  */
+			  if (*event).xclient.message_type == (*dpyinfo).Xatom_Scrollbar // C 19401
+			  {
+			    /* "Convert the scroll bar event to an input event using the first window entered into
+			       the scroll bar event queue."  */
+			    x_scroll_bar_to_input_event (dpyinfo, event, &raw mut inev.ie); // C 19406
+
+			    *finish = X_EVENT_GOTO_OUT;                               // C 19408
+			    break 'other;                                             // C 19409 (`goto done`)
+			  }
+			  else if (*event).xclient.message_type == (*dpyinfo).Xatom_Horizontal_Scrollbar // C 19411
+			  {
+			    /* "Convert the horizontal scroll bar event to an input event using the first window
+			       entered into the scroll bar event queue."  */
+			    x_horizontal_scroll_bar_to_input_event (dpyinfo, event,   // C 19416-19417
+			      &raw mut inev.ie);
+
+			    *finish = X_EVENT_GOTO_OUT;                               // C 19419
+			    break 'other;                                             // C 19420 (`goto done`)
+			  }
+			}
+
+			/* "XEmbed messages from the embedder (if any)."  */
+			if (*event).xclient.message_type == (*dpyinfo).Xatom_XEMBED   // C 19425
+			{
+			  let msg: xembed_message = (*event).xclient.data.l[1] as xembed_message; // C 19427
+			  if (msg == xembed_message::XEMBED_FOCUS_IN                  // C 19428
+			    || msg == xembed_message::XEMBED_FOCUS_OUT)
+			    { x_detect_focus_change (dpyinfo, any, event, &raw mut inev.ie); } // C 19429
+
+			  *finish = X_EVENT_GOTO_OUT;                                 // C 19431
+			  break 'other;                                               // C 19432 (`goto done`)
+			}
+
+			/* C 19435-19450's `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME`.  */
+#[cfg (all (feature = "have_xsync", not (feature = "use_gtk"), feature = "have_clock_gettime"))]
+			{
+			  /* "These messages are sent by the compositing manager after a frame is drawn under
+			     extended synchronization."  */
+			  if ((*event).xclient.message_type                           // C 19438
+			    == (*dpyinfo).Xatom_net_wm_frame_drawn)                   // C 19439
+			    {
+			      if !any.is_null ()                                      // C 19441
+			        { x_sync_handle_frame_drawn (dpyinfo, event, any); }  // C 19442
+
+			      break 'other;                                           // C 19444 (`goto done`)
+			    }
+
+			  if ((*event).xclient.message_type                           // C 19447
+			    == (*dpyinfo).Xatom_net_wm_frame_timings)                 // C 19448
+			      { break 'other; }                                       // C 19449 (`goto done`)
+			}
+
+			if xft_settings_event (dpyinfo as *mut c_void, event as *const c_void) // C 19452
+			  { break 'other; }                                           // C 19453 (`goto done`)
+
+			f = any;                                                      // C 19455
+			/* "We don't want to ever leak tooltip frames to Lisp code."  */
+			if f.is_null () || FRAME_TOOLTIP_P (f)                        // C 19457
+			  { break 'switch; }                                          // C 19458 (`goto OTHER`)
+
+			/* "These values are always used initialized, but GCC doesn't know that."  */
+			dx = 0;                                                       // C 19462
+			dy = 0;                                                       // C 19463
+
+			rc = x_coords_from_dnd_message (dpyinfo, event, &raw mut dx, &raw mut dy) as c_int; // C 19465
+
+			if x_handle_dnd_message (f, &raw mut (*event).xclient, dpyinfo, &raw mut inev.ie, // C 19467-19468
+			  rc, dx, dy)
+			  { *finish = X_EVENT_DROP; }                                 // C 19469
+			break 'other;                                                 // C 19471 (C's own `break`, which skips `OTHER:`)
 		    }
 
 		  /* C 19473-19486: `case SelectionNotify:`.  The toolkit and GTK arms look the event's

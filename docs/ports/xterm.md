@@ -625,6 +625,18 @@ request block with its `have_gtk3` / non-GTK3 arms.  Two arms join the lane to r
 (**`AXY` = `A + have_xsync`**, **`AXYG` = `AXY + use_gtk + have_gtk3`**), and `--check`'s long token
 list drops **34 -> 21**.
 
+Slice 142 (C 19342-19471, Decision 154) lands `ClientMessage`'s last blocks - the
+`wm_configure_denied`/`wm_window_moved` pair, the `X_TOOLKIT_EDITRES` arm, `DONE`/`PAGE`, the two
+scroll-bar messages, `XEMBED`, the frame-drawn pair, `xft_settings_event`, the DND tail and C's own
+`break` - and with it **`handle_one_xevent` and `src/xterm.c` are carried**: the ledger's box for the
+function is ticked, `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` reads **`OK` (0
+rows)** after one notes row for the six C-only words and a two-line repair (`rc = … as c_int` and
+C 27702's `False` in `x_get_wm_check_window`), and `extract-abi.py --all` reads
+**`checked 590 ported files: 579 done, 0 in progress, 11 failing`** - the eleven are the platform
+units.  `docs/port-inventory.md` is regenerated at **`done=590 wip=0 todo=0`**: every file of the
+reference's 590 is now carried, and what remains for the tree is the platform units' differences and
+the runtime ladder.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -832,7 +844,7 @@ list drops **34 -> 21**.
 - [x] x_find_monitors_changed_event  (line 18619, static)
 - [x] x_coords_from_dnd_message  (line 18685, static)
 - [x] x_handle_wm_state  (line 18764, static)
-- [ ] handle_one_xevent  (line 18876, static)
+- [x] handle_one_xevent  (line 18876, static)
 - [x] x_dispatch_event  (line 25645, static)
 - [x] XTread_socket  (line 25672, static)
 - [x] x_clip_to_row  (line 25831, static)
@@ -6715,6 +6727,47 @@ expected direction once the file starts carrying records the X11 headers would s
   the two scroll-bar messages, `XEMBED` and the XSync counters (where `rc`'s uses live) - is the
   arm's last C range and the next slice's work.
 
+### 154. Slice 142 (C 19342-19471): `ClientMessage` closes - and `src/xterm.c` with it
+
+* **What it lands.**  The arm's last blocks: `Xatom_wm_configure_denied` (C 19342-19343), the
+  `wm_window_moved` pair with its two `data.s` reads and the `left_pos`/`top_pos` writes
+  (C 19345-19359), the `#ifdef X_TOOLKIT_EDITRES` arm (C 19361-19374, `_EditResCheckMessages` on the
+  frame's `widget`, whose `goto OTHER` is `break 'switch`), `DONE`/`PAGE` (C 19376-19396, the
+  `x_kill_gs_process` + `expose_frame` pair under `#ifndef USE_CAIRO`), the two
+  `USE_TOOLKIT_SCROLL_BARS` messages (C 19398-19422, `X_EVENT_GOTO_OUT` and the two
+  `*_to_input_event` calls), `XEMBED` (C 19424-19433, the `xembed_message` decode and
+  `x_detect_focus_change`), the frame-drawn pair (C 19435-19450, the `have_xsync + not use_gtk +
+  have_clock_gettime` triple) and the DND tail (C 19452-19471: `xft_settings_event`, the
+  `FRAME_TOOLTIP_P` guard, `dx`/`dy`, `x_coords_from_dnd_message`, `x_handle_dnd_message` and C's
+  own `break`).
+* **Two lines the reading corrected.**  C 19465 assigns `x_coords_from_dnd_message`'s C `bool` to
+  `int rc`, so the port writes `as c_int` (C's own promotion, the `x_had_errors_p` shape) - the
+  first pass read one `E0308`.  And `x_get_wm_check_window` had spelled C 27702's `False` as `0`
+  since an early slice; the `--check` row that named it (`does not mention false`) is retired by
+  writing the constant, not the integer.
+* **The six C-only words are a recorded allowance, not a silence.**  `docs/ports/macro-body-notes.tsv`
+  gains a `handle_one_xevent` row allowing exactly `case`, `default`, `goto`, `fallthrough`, `done`
+  and `done_keysym` - C's keywords and label names, whose counterparts are the `match` arms,
+  `break 'switch`/`break 'other` (Decision 126) and the `'keysym`/`'other` blocks (Decision 142) -
+  with the reason spelled out.  The row's own header says every *other* token of the body is still
+  compared, so a dropped call elsewhere still fails.
+* **What `--check` reads: `OK`, zero rows.**  `extract-abi.py --check emacs/src/xterm.c
+  femacs/src/xterm.rs` is the file's token/ABI gate and it now passes - the first time for this unit,
+  whose long row had carried 165 tokens when slice 110 opened it and 69 when slice 135 found the
+  missing `ClientMessage` arm.  The unit is **39,281 lines** (+131), md5
+  `b4d085f8f0e1dac1e5e0448d64501913`.
+* **The tree's reading, same round.**  `extract-abi.py --all`:
+  `checked 590 ported files: 579 done, 0 in progress, 11 failing` - `src/xterm.c` is no longer the
+  in-progress row, and the eleven failures are `android.c`, `androidfns.c`, `androidterm.c`,
+  `androidvfs.c`, `gtkutil.c`, `haikuterm.c`, `w32.c`, `w32fns.c`, `w32proc.c`, `w32term.c` and
+  `xfns.c` (their own token/line rows, another lane's work).
+  `python3 tools/gen-port-inventory.py` writes `done=590 wip=0 todo=0`.
+* **Not claimed.**  No runtime evidence: the frozen configuration compiles none of this file, so no
+  EditRes message was dispatched, no Ghostview process was killed, no scroll-bar event was converted
+  and no DND message was handled.  What is complete is the **text** of the reference's 590 files
+  under this lane's gates; the ladder (L0-L5), the platform units and the runtime work are the
+  tree's remaining stages.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -7922,14 +7975,11 @@ and no display was opened; the remaining `E0425` rows are unresolved names, not 
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-**6. `handle_one_xevent`'s first `case`, `ClientMessage` (C 18951-19472): C 18951-19147 landed in
-slice 140 (Decision 152) and C 19149-19341 in slice 141 (Decision 153); C 19342-19472 is owed.**  Slice 139 closed the
-outer `default:` body, and the one C range of the function still unwritten is this 522-line
-XDND/Motif state machine (Decision 122 recorded it as a slice of its own).  It is the whole of
-`--check`'s long row - `x_handle_dnd_message`, `new_x`/`new_y`, `x_kill_gs_process`, the
-`xatom_*`/`x_dnd_*`/`xm_drag_*` families - and the reason `extract-abi.py --all` reads this file
-as the tree's one WIP with 2 differences.  Until it lands the ledger's box stays unticked; that
-is a reading, not a stub.
+**6. `handle_one_xevent`'s first `case`, `ClientMessage` (C 18951-19472): closed.**  Slices 140-142
+(Decisions 152-154) landed it - C 18951-19147, C 19149-19341 and C 19342-19471 - so the arm, the
+function and the file are carried, `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs`
+reads `OK` (0 rows) and the ledger's box is ticked.  The item stays here as the record of what
+was owed while it was owed.
 
 **5. The XShape arms' X11 entry points** (2026-10-08, Decision 150): slice 138's two arms read
 `XPending`, `XNextEvent`, `XPutBackEvent`, `XShapeGetRectangles`, `ShapeNotify` and the two
@@ -13363,3 +13413,33 @@ name but six C keywords lives in C 19342-19472.
 
 **Not claimed**: no runtime evidence; the readings are the four arm compiles (both sides), the
 per-arm message diff and `--check`'s two rows with its token list (34 -> 21).
+
+### Slice 142's readings (C 19342-19471), as landed and measured (2026-10-08)
+
+`ClientMessage`'s last blocks, read by three arms: the plain one, `UT` (`A +
+use_toolkit_scroll_bars + use_x_toolkit`, the scroll-bar block) and `AXY` (`A + have_xsync +
+have_clock_gettime`, the frame-drawn triple).
+
+| arm | baseline | slice 142 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1213 / 88 | **1227 / 90** | **+14 / +2** |
+| UT `A +use_toolkit_scroll_bars +use_x_toolkit` | 1228 / 87 | **1244 / 89** | **+16 / +2** |
+| AXY `A +have_xsync +have_clock_gettime` | 1313 / 90 | **1329 / 94** | **+16 / +4** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`715afa90`, slice 141).
+
+| grew | of which |
+| --- | --- |
+| the error rows | `no field xclient` on the `XEvent` stand-in (the bulk: C 19342, C 19345, C 19348, C 19350-19351, C 19376-19377, C 19383, C 19387, C 19425, C 19427 and the DND tail), `x_handle_dnd_message` and `x_kill_gs_process` (the file's last two owed entry points) - and in the AXY arms the two frame-drawn conditions' `xclient` reads |
+| the warning rows | `unnecessary parentheses around \`if\` condition` - C's own parens on C 19376 and C 19428 (plus C 19438 and C 19447 in the AXY arms), kept |
+
+**Every row is a registered class** and nothing shrank.  The `X_TOOLKIT_EDITRES` block is the one
+part of this slice no arm reads (the feature `x_toolkit_editres` is used by `src/xfns.rs` but no arm
+of this lane turns it on); the readings name it rather than claiming it.
+
+**The file's gate now reads `OK`**: `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs`
+returns zero rows after this slice's notes row and the two-line repair, and `extract-abi.py --all`
+reads `579 done, 0 in progress, 11 failing` for the whole tree.
+
+**Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
+per-arm message diff, `--check`'s zero rows and `--all`'s tree-wide reading.

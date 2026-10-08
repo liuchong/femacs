@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 590 |
-| 其中 done / wip | 589 / 1 |
+| 其中 done / wip | 590 / 0 |
 | 待开工 | 0 |
 
 ## 2 按目录
@@ -57,7 +57,7 @@
 | 参照文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | 批次 | 状态 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 7 | 76 | E | done |
-| `src/xterm.c` | 33,125 | 438 | 0 | 35 | 86 | 105 | F | wip |
+| `src/xterm.c` | 33,125 | 438 | 0 | 35 | 86 | 105 | F | done |
 | `src/sfnt.c` | 21,215 | 268 | 0 | 170 | 53 | 8 | E | done |
 | `src/keyboard.c` | 14,682 | 184 | 38 | 19 | 12 | 89 | E | done |
 | `src/image.c` | 13,805 | 223 | 12 | 152 | 67 | 12 | D | done |
@@ -672,7 +672,7 @@
 | `src/xsettings.c` | 1,421 | 28 | 3 | 19 | 26 | 9 | 7 | F | `femacs/src/xsettings.rs` | done |
 | `src/xsettings.h` | 51 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/xsettings.rs` | done |
 | `src/xsmfns.c` | 581 | 16 | 1 | 5 | 4 | 0 | 7 | F | `femacs/src/xsmfns.rs` | done |
-| `src/xterm.c` | 33,125 | 438 | 0 | 35 | 62 | 86 | 105 | F | `femacs/src/xterm.rs` | wip |
+| `src/xterm.c` | 33,125 | 438 | 0 | 35 | 62 | 86 | 105 | F | `femacs/src/xterm.rs` | done |
 | `src/xterm.h` | 2,045 | 3 | 0 | 99 | 12 | 323 | 14 | F | `femacs/src/include/xterm.rs` | done |
 | `src/xwidget.c` | 4,304 | 75 | 36 | 4 | 3 | 5 | 6 | F | `femacs/src/xwidget.rs` | done |
 | `src/xwidget.h` | 243 | 6 | 0 | 11 | 2 | 53 | 0 | F | `femacs/src/include/xwidget.rs` | done |
