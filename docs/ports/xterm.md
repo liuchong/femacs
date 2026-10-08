@@ -524,6 +524,16 @@ outer `match` (Decision 126's `OTHER:` hoist shape), the `xi_done_keysym:` block
 the `'xi_other` block, which is where C's `goto XI_OTHER` has to land and where slice 121's
 placement had `break 'xi_other` skip it.
 
+Slice 131 (C 24171-24569, Decision 143) closes `case XI_KeyPress:`: the three input-method filter
+shapes, the keyboard-state addition, the mouse-highlight block, the `if (f != 0)` event head, the
+XIC/XKB/`XLookupString` translation chain, the keysym classification and the `inev` C builds.  It is
+also the round the frame (slice 130's Decision 142) pays off in: the arm's ten `goto
+xi_done_keysym` statements are `break 'xi_done`, whose label turned out to belong on the arm's *own*
+block so that leaving it lands where C's label is - and carrying the arm's `symbol_p` chain turned up
+that slice 115's rendering of the same chain in the core `KeyPress` arm had dropped four of C
+20536-20547's terms, which the `--check` row had been flagging as `iscursorkey` and
+`ismiscfunctionkey` all along; both are restored here.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6176,6 +6186,58 @@ expected direction once the file starts carrying records the X11 headers would s
   readings prove the frame *compiles* in every arm, not that a path runs; and there is no runtime
   evidence, as everywhere in this lane.  The next slice takes C 24171-24569 with the labels in
   place.
+
+### 143. Slice 131 (C 24171-24569): the rest of `XI_KeyPress`, and the two terms slice 115 dropped
+
+* **What it lands.**  C 24171-24569 - everything the arm's head (slice 129) left: the three
+  input-method filter shapes (C 24171-24214: `HAVE_X_I18N` splits into C's `#ifdef USE_GTK` pair and
+  `USE_GTK` alone is the third, each tail the same four statements and each ending in `goto
+  XI_OTHER`); the `state |= x_emacs_to_x_modifiers` line (C 24216); the mouse-highlight block
+  (C 24218-24235); the `if (f != 0)` head with its `USE_GTK` `*finish = X_EVENT_DROP` (C 24237-24248);
+  the XIC path (`XmbLookupString`, the overflow re-call, the three `status_return` arms) and the
+  XKB/`XLookupString` pair beneath it (C 24250-24358); `inev.ie.modifiers` (C 24360); the `XK_F1`
+  block (C 24362-24370); the two quit arms (C 24372-24391); the four classification blocks (ASCII,
+  the direct-Unicode range, the keysym table, and the twenty-one `XK_dead_*`/cursor/function terms
+  of C 24441-24546); and the debug loop plus the `nbytes` block that end the arm (C 24548-24569).
+* **The frame's first users, and the one refinement it needed.**  All ten `goto xi_done_keysym` are
+  `break 'xi_done`, and the label had to move from "a block wrapping the arm's body" (how slice 130
+  described it) to "the arm's *own* block" (`XI_KeyPress => 'xi_done: { ... }`): a break lands after
+  its block, so with the label inside the arm the jump would have fallen into C 24567's `goto
+  XI_OTHER` instead of the `xi_done_keysym:` block.  Nothing landed was wrong - the frame had no
+  users yet - and the slice-130 text is corrected in place.  The two-phase shape C writes (the
+  `if (f != 0)` block's fall-through at C 24564 and the arm's own `goto XI_OTHER` at C 24567) is
+  preserved, which is what the warning that the jump made C 24567 unreachable first flagged.
+* **Slice 115's chain dropped four of C's terms, and this slice restores them.**  C's `symbol_p`
+  chain (C 20534-20616 in the core arm, C 24441-24523 here) carries, between `XK_Delete` and the
+  dead-key terms, C 20536-20538's `#ifdef XK_ISO_Left_Tab` pair, C 20540's `IsCursorKey`, C 20541's
+  `IsMiscFunctionKey` and C 20542-20547's `#ifdef HPUX` term - and the landed core arm's rendering
+  of that chain goes straight from `XK_Delete` to `XK_dead_circumflex`.  The machine gate had been
+  saying so: `extract-abi.py --check`'s long row listed `iscursorkey` and `ismiscfunctionkey` among
+  the tokens the port does not mention, and with the four terms restored **the token list goes
+  73 -> 71** and exactly those two retire.  Both spellings are the file's own (`IsCursorKey!` and
+  `IsMiscFunctionKey!` are this unit's macros at 30971/30975; `hpux` is `src/sysdep.rs` 1040's
+  feature name), and C's `XK_ISO_Left_Tab` term is `xk_iso_left_tab`, the `xk_dead_<name>` family's
+  shape.
+* **`XK_F1` is live, not cfg'd.**  C 24362's `#ifdef XK_F1` is always true in the reference - the
+  frozen table defines the keysym names from `keysymdef.h`, not `config.h` - so the block stands
+  without an attribute, which is how the core arm's C 20419-20425 already spells the same block
+  (slice 115's reading).  Writing it as a `xk_f1` arm would have made C's `x_dnd_xm_use_help` write
+  dead text.
+* **Spellings from the core arm's landed twin.**  C's `#if (X)`/`else` chain is the `did_xkb` flag
+  (this file 32397-32461's shape); the `#if ! defined (USE_GTK)` term inside the mouse-highlight
+  condition is the `in_hl_window` disjunction (slice 110's reading); C's `NULL` fifth argument of
+  `XLookupString` is `std::ptr::null_mut ()`; the widths are `as c_uint` for the `keycode`/`state`
+  arguments of `XkbTranslateKeyCode`/`XkbTranslateKeySym`, `as isize` for `nbytes`, `as *mut c_char`
+  for the two `SAFE_ALLOCA` re-allocations; and `Vmouse_highlight` is the Lisp variable it is, with
+  no call parentheses (the core arm's `FIXNUMP (Vmouse_highlight)`).
+* **What `--check` reads.**  Three rows, the long row's token list **73 -> 71** (the two tokens
+  above), the `family memset` row still *4 vs 3* and `x_get_wm_check_window` still the third.  The
+  unit is **37,664 lines** (+405) against C's 33,125, md5
+  `a8f957277b6fadf6bd0bb193bbeb1e38`.
+* **Not claimed.**  No runtime evidence: this lane does not link, and no generic event was ever
+  delivered.  The readings are the five arms of the table below (both sides), the per-arm message
+  diff and `--check`'s token count.  The next slice takes C 24571 onwards (`XI_RawKeyPress`, the
+  GTK2-only arm).
 
 ## Evidence
 
@@ -12465,3 +12527,36 @@ change is inside the `have_xinput2` gate or inside `'switch`'s own label structu
 
 **Not claimed**: no jump is exercised yet (the sites land next slice), so this reading is a
 compilability statement; no runtime evidence.
+
+### Slice 131's readings (C 24171-24569), as landed and measured (2026-10-08)
+
+The rest of `case XI_KeyPress:` - the filters, the translation chain, the classification and the
+`inev` builds.  Five arms, both sides, one probe root per side.
+
+| arm | baseline | slice 131 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| XI2 `A +have_xinput2` | 1326 / 87 | **1329 / 88** | **+3 / +1** |
+| UGX `XI2 +use_toolkit_scroll_bars +use_gtk` | 1380 / 88 | **1383 / 89** | **+3 / +1** |
+| AIUX `XI2 +have_x_i18n +use_gtk` | 1453 / 87 | **1457 / 87** | **+4 / 0** |
+| XI21W `XI2 +have_xinput2_1 +have_xinput2_2 +have_xwidgets` | 1407 / 88 | **1410 / 89** | **+3 / +1** |
+
+**Both sides were measured in this revision with one probe root per side**; the baseline is HEAD
+(`cb181571`, slice 130) and the arms' numbers reproduce slice 130's table.  The plain arm reads a
+zero delta - the whole body is inside C 22240's `have_xinput2` gate.
+
+| arm | grew | of which |
+| --- | --- | --- |
+| XI2 / XI21W | +3 errors, +1 warning | `XLookupString` (C 24352), `tab_bar_window` (C 24225), `tool_bar_window` (C 24223); the warning is the `'translate` label's "unused label", which the core arm's own `'translate` carries in the same arms |
+| UGX | +3, +1 warning | `xg_filter_key` (C 24203, the third filter shape), `XLookupString`, `tab_bar_window`; the same warning |
+| AIUX | +4, 0 warnings | `XmbLookupString` x2 (C 24254 and C 24264), `XLookupString`, `tab_bar_window` - the XIC path's `break 'translate` uses the label here, which is why no warning |
+
+**Every row is a registered class**: `XLookupString`/`XmbLookupString`/`xg_filter_key` are the bare
+X11/GTK class the three translation paths and the third filter shape reach, and
+`tab_bar_window`/`tool_bar_window` are the `frame.h` members behind `have_window_system` (the
+slice-119/128 class).  Nothing is silenced, and the repair above removes two rows rather than
+adding any.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the five arm compiles (both sides), the per-arm message diff and
+`--check`'s token list (73 -> 71).

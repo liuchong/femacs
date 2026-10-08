@@ -32598,6 +32598,16 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		    let mut symbol_p: bool
 		      = (keysym >= XK_BackSpace && keysym <= XK_Escape)     // C 20534
 			|| keysym == XK_Delete;                             // C 20535
+#[cfg (feature = "xk_iso_left_tab")]
+		    { symbol_p = symbol_p
+			|| (keysym >= XK_ISO_Left_Tab
+			    && keysym <= XK_ISO_Enter); }                    // C 20536-20538
+		    symbol_p = symbol_p
+		      || IsCursorKey! (keysym)                              // C 20540
+		      || IsMiscFunctionKey! (keysym);                       // C 20541
+#[cfg (feature = "hpux")]
+		    { symbol_p = symbol_p
+			|| (XK_Select <= keysym && keysym < XK_KP_Space); }  // C 20542-20547
 #[cfg (feature = "xk_dead_circumflex")]
 		    { symbol_p = symbol_p || orig_keysym == XK_dead_circumflex; }  // C 20550
 #[cfg (feature = "xk_dead_grave")]
@@ -36103,7 +36113,7 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			 and frame bookkeeping, and the `xkey` core-event conversion.  The rest of the arm -
 			 the input-method filter, the three translation paths and the `inev` C builds - follows.  */
 		      XI_KeyPress =>
-		        {
+		        'xi_done: {
 		          let mut state: c_int = (*xev).mods.effective as c_int;  // C 23955
 		          let mut c: Lisp_Object;                            // C 23956
 		          /* C 23957-23959's `#ifdef HAVE_XKB`.  */
@@ -36279,6 +36289,401 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 
 		          xkey.keycode = (*xev).detail as c_uint;            // C 24168
 		          xkey.same_screen = True;                           // C 24169
+		          /* C 24171-24569: the rest of the arm - the three input-method filter shapes, the
+			 keyboard-state addition, the mouse-highlight block, the `if (f != 0)` event head, the
+			 XIC/XKB/`XLookupString` translation paths, the keysym classification and the `inev`
+			 C builds.  Every `goto xi_done_keysym` is `break 'xi_done` (Decision 142's frame:
+			 leaving the arm lands on the `xi_done_keysym:` block) and C 24567's `goto XI_OTHER`
+			 is `break 'xi_other`.  */
+		          /* C 24171-24213's three filter arms: `HAVE_X_I18N` splits into C's `#ifdef
+			 USE_GTK` pair (C 24172-24199) and `USE_GTK` alone is the third (C 24200-24214);
+			 each tail is the same four statements.  */
+#[cfg (all (feature = "have_x_i18n", feature = "use_gtk"))]
+		          if (!x_gtk_use_native_input
+			      && x_filter_event (dpyinfo, &raw mut xkey as *mut XEvent) != 0)
+			  || (x_gtk_use_native_input
+			      && x_filter_event (dpyinfo, event) != 0)
+		            {
+		              /* "Try to attribute core key events from the input method to the input
+			         extension event that caused them."  */
+		              (*dpyinfo).pending_keystroke_time = (*xev).time;   // C 24181
+		              (*dpyinfo).pending_keystroke_source = (*xev).sourceid;  // C 24182
+
+		              *finish = X_EVENT_DROP;                            // C 24184
+		              break 'xi_other;                                   // C 24185 (`goto XI_OTHER`)
+		            }
+#[cfg (all (feature = "have_x_i18n", not (feature = "use_gtk")))]
+		          if x_filter_event (dpyinfo, &raw mut xkey as *mut XEvent) != 0  // C 24188
+		            {
+		              (*dpyinfo).pending_keystroke_time = (*xev).time;   // C 24193
+		              (*dpyinfo).pending_keystroke_source = (*xev).sourceid;  // C 24194
+
+		              *finish = X_EVENT_DROP;                            // C 24196
+		              break 'xi_other;                                   // C 24197 (`goto XI_OTHER`)
+		            }
+#[cfg (all (not (feature = "have_x_i18n"), feature = "use_gtk"))]
+		          if (x_gtk_use_native_input
+			      || (*dpyinfo).prefer_native_input)
+			  && xg_filter_key (any, event) != 0                 // C 24203
+		            {
+		              (*dpyinfo).pending_keystroke_time = (*xev).time;   // C 24208
+		              (*dpyinfo).pending_keystroke_source = (*xev).sourceid;  // C 24209
+
+		              *finish = X_EVENT_DROP;                            // C 24211
+		              break 'xi_other;                                   // C 24212 (`goto XI_OTHER`)
+		            }
+
+		          state |= x_emacs_to_x_modifiers (dpyinfo, extra_keyboard_modifiers as intmax_t);  // C 24216
+
+		          /* "If mouse-highlight is an integer, input clears out mouse highlighting."  */
+		          /* C 24221-24225's `#if ! defined (USE_GTK)` term stands *inside* the condition,
+			 and an attribute cannot stand on a term there, so the port computes the
+			 disjunction as C's own value (slice 110's reading, the `in_hl_window` shape the
+			 core arm's C 20219-20225 carries).  */
+		          let mut in_hl_window: bool = f.is_null ();             // C 24221
+		          if !f.is_null ()
+		            {
+#[cfg (not (feature = "use_gtk"))]
+		              { in_hl_window = in_hl_window
+			          || !EQ ((*f).tool_bar_window, (*hlinfo).mouse_face_window); }  // C 24223
+		              in_hl_window = in_hl_window
+			        || !EQ ((*f).tab_bar_window, (*hlinfo).mouse_face_window);  // C 24225
+		            }
+		          if !mouse_face_hidden! (hlinfo) && FIXNUMP (Vmouse_highlight)     // C 24220
+		            && in_hl_window
+		            {
+		              mouse_frame = (*hlinfo).mouse_face_mouse_frame as *mut frame;  // C 24228
+
+		              clear_mouse_face (hlinfo);                         // C 24230
+		              mouse_face_hidden! (hlinfo, 1);                    // C 24231
+
+		              if !mouse_frame.is_null ()                         // C 24233
+		                { x_flush_dirty_back_buffer_on (mouse_frame); }  // C 24234
+		            }
+
+		          if !f.is_null ()                                       // C 24237
+		            {
+		              /* C 24239-24245's `#ifdef USE_GTK`: "Don't pass keys to GTK.  A Tab will
+			         shift focus to the tool bar in GTK 2.4.  Keys will still go to menus
+			         and dialogs because in that case popup_activated is nonzero (see
+			         above)."  */
+#[cfg (feature = "use_gtk")]
+		              { *finish = X_EVENT_DROP; }                        // C 24244
+
+		              XSETFRAME! (inev.ie.frame_or_window, f);           // C 24247
+		              inev.ie.timestamp = (*xev).time;                   // C 24248
+
+		              /* C 24250-24358's translation chain: with an XIC the Xmb path runs
+			         (C 24251-24280), and C's `else` (C 24281) - which is also the whole
+			         body where `HAVE_X_I18N` is off - holds C's `#ifdef HAVE_XKB` pair
+			         (C 24284-24357) with the plain `XLookupString` as its `else`.  The
+			         port keeps the shape this file's core arm uses for the same chain
+			         (this file 32356-32461): the XIC arm breaks out of the labelled
+			         block that stands for C's `else`, and C's XKB/`else` pair is the
+			         `did_xkb` flag, because C's `#ifdef` chooses which statement runs.  */
+		              'translate: {
+#[cfg (feature = "have_x_i18n")]
+		              if !FRAME_XIC! (f).is_null ()                      // C 24251
+		                {
+		                  let mut status_return: Status;                 // C 24253
+		                  nbytes = XmbLookupString (FRAME_XIC! (f),      // C 24254
+						    &raw mut xkey,
+						    copy_bufptr,
+						    copy_bufsiz, &raw mut keysym,
+						    &raw mut status_return) as isize;
+		                  coding = FRAME_X_XIM_CODING! (f);              // C 24258
+
+		                  if status_return == XBufferOverflow            // C 24260
+		                    {
+		                      copy_bufsiz = nbytes as c_int + 1;         // C 24262
+		                      copy_bufptr = SAFE_ALLOCA! (sa_avail, copy_bufsiz) as *mut c_char;  // C 24263
+		                      nbytes = XmbLookupString (FRAME_XIC! (f),  // C 24264
+							&raw mut xkey,
+							copy_bufptr,
+							copy_bufsiz, &raw mut keysym,
+							&raw mut status_return) as isize;
+		                    }
+
+		                  if status_return == XLookupNone                // C 24270
+		                    { break 'xi_done; }                          // C 24271 (`goto xi_done_keysym`)
+		                  else if status_return == XLookupChars          // C 24272
+		                    {
+		                      keysym = NoSymbol;                         // C 24274
+		                      state = 0;                                 // C 24275
+		                    }
+		                  else if status_return != XLookupKeySym         // C 24277
+		                    && status_return != XLookupBoth              // C 24278
+		                    { emacs_abort (); }                          // C 24279
+
+		                  break 'translate;                              // C's `else` is not taken
+		                }
+		              {
+		                let mut did_xkb: bool = false;
+#[cfg (feature = "have_xkb")]
+		                {
+		                  if !(*dpyinfo).xkb_desc.is_null ()             // C 24285
+		                    {
+		                      let mut sym: KeySym;                       // C 24287
+		                      let mut overflow: c_int;                   // C 24288
+
+		                      /* "Translate the keycode into the keysym it represents, using
+				 STATE.  MODS_RTRN is set to the modifier bits consumed while
+				 undertaking this translation and should be subsequently ignored
+				 during keysym translation."  */
+
+		                      if XkbTranslateKeyCode ((*dpyinfo).xkb_desc,  // C 24297
+						      keycode as c_uint, state as c_uint,
+						      &raw mut mods_rtrn, &raw mut keysym) == 0
+						    { break 'xi_done; }                      // C 24300 (`goto xi_done_keysym`)
+
+		                      /* "Save the original keysym in case XkbTranslateKeySym
+				 overflows."  */
+		                      sym = keysym;                              // C 24304
+		                      overflow = 0;                              // C 24304
+
+		                      /* "Translate this keysym and its modifier state into the
+				 actual symbol and string it represents."  */
+		                      nbytes = XkbTranslateKeySym ((*dpyinfo).display,  // C 24309
+							   &raw mut keysym,
+							   (state & !mods_rtrn) as c_uint,  // C 24311
+							   copy_bufptr,
+							   copy_bufsiz,
+							   &raw mut overflow) as isize;  // C 24314
+		                      if overflow != 0                           // C 24315
+		                        {
+		                          copy_bufsiz += overflow;               // C 24317
+		                          copy_bufptr = SAFE_ALLOCA! (sa_avail, copy_bufsiz) as *mut c_char;  // C 24318
+		                          overflow = 0;                          // C 24319
+
+		                          /* "Use the original keysym derived from the keycode
+				     translation."  */
+		                          nbytes = XkbTranslateKeySym ((*dpyinfo).display,  // C 24323
+							       &raw mut sym,
+							       (state & !mods_rtrn) as c_uint,  // C 24325
+							       copy_bufptr,
+							       copy_bufsiz,
+							       &raw mut overflow) as isize;  // C 24328
+
+		                          if overflow != 0                   // C 24330
+		                            { nbytes = 0; }                  // C 24331
+		                        }
+
+		                      coding = Qnil ();                          // C 24334
+		                    }
+		                }
+		                if !did_xkb
+		                  {
+		                    /* "Save the state within XKEY, then remove all modifier keys
+			               Emacs understands from it, forestalling any attempt by
+			               XLookupString to introduce control characters."  */
+
+		                    old_state = xkey.state;                      // C 24345
+		                    xkey.state &= !(ControlMask as c_uint);      // C 24346
+		                    xkey.state &= !(((*dpyinfo).meta_mod_mask    // C 24347
+					     | (*dpyinfo).super_mod_mask     // C 24348
+					     | (*dpyinfo).hyper_mod_mask     // C 24349
+					     | (*dpyinfo).alt_mod_mask) as c_uint);  // C 24350
+
+		                    nbytes = XLookupString (&raw mut xkey,       // C 24352
+						    copy_bufptr,
+						    copy_bufsiz, &raw mut keysym,
+						    std::ptr::null_mut ()) as isize;  // C 24354
+
+		                    xkey.state = old_state;                      // C 24356
+		                  }
+		              }
+		            }
+
+		          inev.ie.modifiers = x_x_to_emacs_modifiers (dpyinfo, state) as c_uint;  // C 24360
+
+		          /* C 24362-24370's `#ifdef XK_F1`.  */
+		          if x_dnd_in_progress                                  // C 24363
+		            && (*xev).deviceid == x_dnd_keyboard_device          // C 24364
+		            && keysym == XK_F1                                   // C 24365
+		            {
+		              x_dnd_xm_use_help = true;                          // C 24367
+		              break 'xi_done;                                    // C 24368 (`goto xi_done_keysym`)
+		            }
+
+		          /* "See if keysym should make Emacs quit."  */
+		          if (*dpyinfo).quit_keysym != 0                         // C 24374
+		            {
+		              if keysym == (*dpyinfo).quit_keysym
+			          && (*xev).time - (*dpyinfo).quit_keysym_time <= 350  // C 24377-24378
+		                {
+		                  Vquit_flag = Qt ();                            // C 24380
+		                  break 'xi_done;                                // C 24381 (`goto xi_done_keysym`)
+		                }
+
+		              if keysym == (*dpyinfo).quit_keysym                // C 24384
+		                {
+		                  /* "Otherwise, set the last time that keysym was pressed."  */
+		                  (*dpyinfo).quit_keysym_time = (*xev).time;     // C 24388
+		                  break 'xi_done;                                // C 24389 (`goto xi_done_keysym`)
+		                }
+		            }
+
+		          /* "First deal with keysyms which have defined translations to characters."  */
+		          if keysym >= 32 && keysym < 128                        // C 24395
+		            /* "Avoid explicitly decoding each ASCII character."  */
+		            {
+		              input_event_bits! (kind, &raw mut inev.ie, ASCII_KEYSTROKE_EVENT);  // C 24398
+		              inev.ie.code = keysym as c_uint;                   // C 24399
+
+		              if !source.is_null ()                              // C 24401
+		                { inev.ie.device = (*source).name; }             // C 24402
+
+		              break 'xi_done;                                    // C 24404 (`goto xi_done_keysym`)
+		            }
+
+		          /* "Keysyms directly mapped to Unicode characters."  */
+		          if keysym >= 0x01000000 && keysym <= 0x0110FFFF        // C 24408
+		            {
+		              input_event_bits! (kind, &raw mut inev.ie,
+					 if keysym < 0x01000080                    // C 24410
+					   { ASCII_KEYSTROKE_EVENT }              // C 24411
+					 else
+					   { MULTIBYTE_CHAR_KEYSTROKE_EVENT });   // C 24413
+
+		              if !source.is_null ()                              // C 24415
+		                { inev.ie.device = (*source).name; }             // C 24416
+
+		              inev.ie.code = (keysym & 0xFFFFFF) as c_uint;      // C 24418
+		              break 'xi_done;                                    // C 24419 (`goto xi_done_keysym`)
+		            }
+
+		          /* "Now non-ASCII."  */
+		          if HASH_TABLE_P (Vx_keysym_table)                      // C 24423
+		            && {
+			         c = Fgethash (make_fixnum (keysym as EMACS_INT),  // C 24424-24426
+					   Vx_keysym_table, Qnil ());
+			         FIXNATP (c)                                     // C 24427
+			       }
+		            {
+		              input_event_bits! (kind, &raw mut inev.ie,
+					 if SINGLE_BYTE_CHAR_P (XFIXNAT (c) as intmax_t)  // C 24429
+					   { ASCII_KEYSTROKE_EVENT }
+					 else
+					   { MULTIBYTE_CHAR_KEYSTROKE_EVENT });      // C 24431
+		              inev.ie.code = XFIXNAT (c) as c_uint;           // C 24432
+
+		              if !source.is_null ()                           // C 24434
+		                { inev.ie.device = (*source).name; }          // C 24435
+
+		              break 'xi_done;                                 // C 24437 (`goto xi_done_keysym`)
+		            }
+
+		          /* "Random non-modifier sorts of keysyms."  C 24441-24534's dead-key terms are
+			 cfg'd statements, because an attribute cannot stand on a term inside a condition
+			 (Decision 2 item 2's shape); the features are named after C's own macros, the
+			 spelling the core arm's C 20549-20611 rendering uses, and none is enabled here -
+			 which is how the frozen table reads them.  */
+		          let mut symbol_p: bool
+		            = (keysym >= XK_BackSpace && keysym <= XK_Escape)  // C 24441
+			      || keysym == XK_Delete;                          // C 24442
+#[cfg (feature = "xk_iso_left_tab")]
+		          { symbol_p = symbol_p
+			      || (keysym >= XK_ISO_Left_Tab
+			          && keysym <= XK_ISO_Enter); }                // C 24444-24445
+		          symbol_p = symbol_p
+		            || IsCursorKey! (keysym)                           // C 24447
+		            || IsMiscFunctionKey! (keysym);                    // C 24448
+#[cfg (feature = "hpux")]
+		          { symbol_p = symbol_p
+			      || (XK_Select <= keysym && keysym < XK_KP_Space); }  // C 24454
+#[cfg (feature = "xk_dead_circumflex")]
+		          { symbol_p = symbol_p || keysym == XK_dead_circumflex; }  // C 24457
+#[cfg (feature = "xk_dead_grave")]
+		          { symbol_p = symbol_p || keysym == XK_dead_grave; }  // C 24460
+#[cfg (feature = "xk_dead_tilde")]
+		          { symbol_p = symbol_p || keysym == XK_dead_tilde; }  // C 24463
+#[cfg (feature = "xk_dead_diaeresis")]
+		          { symbol_p = symbol_p || keysym == XK_dead_diaeresis; }  // C 24466
+#[cfg (feature = "xk_dead_macron")]
+		          { symbol_p = symbol_p || keysym == XK_dead_macron; }  // C 24469
+#[cfg (feature = "xk_dead_degree")]
+		          { symbol_p = symbol_p || keysym == XK_dead_degree; }  // C 24472
+#[cfg (feature = "xk_dead_acute")]
+		          { symbol_p = symbol_p || keysym == XK_dead_acute; }  // C 24475
+#[cfg (feature = "xk_dead_cedilla")]
+		          { symbol_p = symbol_p || keysym == XK_dead_cedilla; }  // C 24478
+#[cfg (feature = "xk_dead_breve")]
+		          { symbol_p = symbol_p || keysym == XK_dead_breve; }  // C 24481
+#[cfg (feature = "xk_dead_ogonek")]
+		          { symbol_p = symbol_p || keysym == XK_dead_ogonek; }  // C 24484
+#[cfg (feature = "xk_dead_caron")]
+		          { symbol_p = symbol_p || keysym == XK_dead_caron; }  // C 24487
+#[cfg (feature = "xk_dead_doubleacute")]
+		          { symbol_p = symbol_p || keysym == XK_dead_doubleacute; }  // C 24490
+#[cfg (feature = "xk_dead_abovedot")]
+		          { symbol_p = symbol_p || keysym == XK_dead_abovedot; }  // C 24493
+#[cfg (feature = "xk_dead_abovering")]
+		          { symbol_p = symbol_p || keysym == XK_dead_abovering; }  // C 24496
+#[cfg (feature = "xk_dead_belowdot")]
+		          { symbol_p = symbol_p || keysym == XK_dead_belowdot; }  // C 24499
+#[cfg (feature = "xk_dead_voiced_sound")]
+		          { symbol_p = symbol_p || keysym == XK_dead_voiced_sound; }  // C 24502
+#[cfg (feature = "xk_dead_semivoiced_sound")]
+		          { symbol_p = symbol_p || keysym == XK_dead_semivoiced_sound; }  // C 24505
+#[cfg (feature = "xk_dead_hook")]
+		          { symbol_p = symbol_p || keysym == XK_dead_hook; }  // C 24508
+#[cfg (feature = "xk_dead_horn")]
+		          { symbol_p = symbol_p || keysym == XK_dead_horn; }  // C 24511
+#[cfg (feature = "xk_dead_stroke")]
+		          { symbol_p = symbol_p || keysym == XK_dead_stroke; }  // C 24514
+#[cfg (feature = "xk_dead_abovecomma")]
+		          { symbol_p = symbol_p || keysym == XK_dead_abovecomma; }  // C 24517
+		          symbol_p = symbol_p
+		            || IsKeypadKey! (keysym)                           // C 24519
+		            || IsFunctionKey! (keysym)                         // C 24520
+		            /* "Any `vendor-specific` key is ok."  */
+		            || (keysym & (1 << 28)) != 0                       // C 24522
+		            || (keysym != NoSymbol && nbytes == 0);            // C 24523
+		          let mut modifier_p: bool
+		            = IsModifierKey! (keysym);                         // C 24524
+#[cfg (all (feature = "xk_iso_lock", feature = "xk_iso_last_group_lock"))]
+		          { modifier_p = modifier_p
+			      || (XK_ISO_Lock <= keysym
+			          && keysym <= XK_ISO_Last_Group_Lock); }      // C 24531-24532
+
+		          if symbol_p && !modifier_p                           // C 24441 / C 24524
+		            {
+		              STORE_KEYSYM_FOR_DEBUG! (keysym);                // C 24536
+		              /* "make_lispy_event will convert this to a symbolic key."  */
+		              input_event_bits! (kind, &raw mut inev.ie, NON_ASCII_KEYSTROKE_EVENT);  // C 24539
+		              inev.ie.code = keysym as c_uint;                 // C 24540
+
+		              if !source.is_null ()                            // C 24542
+		                { inev.ie.device = (*source).name; }           // C 24543
+
+		              break 'xi_done;                                  // C 24545 (`goto xi_done_keysym`)
+		            }
+
+		          i = 0;                                               // C 24548
+		          while i < nbytes                                     // C 24548
+		            {
+		              STORE_KEYSYM_FOR_DEBUG! (*copy_bufptr.offset (i as isize));  // C 24550
+		              i += 1;                                          // C 24548
+		            }
+
+		          if nbytes != 0                                       // C 24553
+		            {
+		              input_event_bits! (kind, &raw mut inev.ie,       // C 24555
+					 MULTIBYTE_CHAR_KEYSTROKE_EVENT);
+		              inev.ie.arg = make_unibyte_string (copy_bufptr,  // C 24556
+							 nbytes as isize);
+
+		              Fput_text_property (make_fixnum (0),             // C 24558
+					  make_fixnum (nbytes as EMACS_INT),
+					  Qcoding (), coding, inev.ie.arg);  // C 24559
+
+		              if !source.is_null ()                            // C 24561
+		                { inev.ie.device = (*source).name; }           // C 24562
+		            }
+		          break 'xi_done;                                      // C 24564 (`goto xi_done_keysym`)
+		            }
+
+		      break 'xi_other;                                        // C 24567 (`goto XI_OTHER`)
 		        }
 		      /* C 25190-25191's inner `default: goto XI_OTHER;` - the stand-in until that arm
 			 lands, and the reason no arm falls into the block below.  */

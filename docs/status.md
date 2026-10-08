@@ -17752,3 +17752,38 @@
   ⑥ **未声称**：**新跳转没有任何臂走到**（调用点下一片才落），所以本片读数只证明框架在各臂**编得过**，不证明路径跑得通；全 lane 依旧没有运行证据。
   ⑦ **预算与清理**：本片 rustc 约 **12 发**（框架两版 × 五臂两侧 + `--check`；每次 17-24 秒，单文件 `--emit=metadata`），无全盘/大内存扫描；
      收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s130`。下一片 C 24171-24569（输入法过滤、三条换算路径与 `inev` 构造）。
+
+- **4.050 `src/xterm.c` round 107（xterm lane，slice 131）：`XI_KeyPress` 余下部分（C 24171-24569）落地，并修回 slice 115 丢掉的四个条件项（2026-10-08）**：
+  ① **本片落的文本**：C 24171-24569（slice 129 头的余下部分）——三种输入法过滤形状（C 24171-24214：`HAVE_X_I18N` 分成 C 自己的
+     `#ifdef USE_GTK` 两支，`USE_GTK` 单独是第三支，每支末尾同样四条并 `goto XI_OTHER`）；`state |= x_emacs_to_x_modifiers`（C 24216）；
+     mouse-highlight 块（C 24218-24235）；`if (f != 0)` 的头（含 `USE_GTK` 的 `*finish = X_EVENT_DROP`，C 24237-24248）；XIC 路径
+     （`XmbLookupString`、溢出重调、三个 `status_return` 支）与它下面的 XKB/`XLookupString` 对（C 24250-24358）；`inev.ie.modifiers`（C 24360）；
+     `XK_F1` 块（C 24362-24370）；两个 quit 支（C 24372-24391）；四个分类块（ASCII、直接 Unicode 区间、keysym 表，以及 C 24441-24546 的
+     二十一个 `XK_dead_*`/cursor/function 项）；收尾的 debug 循环与 `nbytes` 块（C 24548-24569）。
+  ② **框架第一次被使用，并做了一处修正**：十处 `goto xi_done_keysym` 全部是 `break 'xi_done`；标签的位置从 slice 130 描述的"包住臂正文的块"改成
+     **臂自己的块**（`XI_KeyPress => 'xi_done: { ... }`）——`break` 落点是块之后，标签若在臂内，跳转会落进 C 24567 的 `goto XI_OTHER`
+     而不是 `xi_done_keysym:` 块。**已落地的文本没有错**（框架当时还没有使用者），slice 130 的描述在台账里就地更正。C 的两段式
+     （`if (f != 0)` 块在 C 24564 的落空 + 臂自己的 C 24567）也保住了——这正是"该跳转让 C 24567 变成不可达"那条 warning 先指出的问题。
+  ③ **修回 slice 115 丢掉的四个项，机器门当场确认**：C 的 `symbol_p` 链（核心臂 C 20534-20616，本臂 C 24441-24523）在 `XK_Delete` 与死键项之间还有
+     C 20536-20538 的 `#ifdef XK_ISO_Left_Tab` 对、C 20540 的 `IsCursorKey`、C 20541 的 `IsMiscFunctionKey` 与 C 20542-20547 的 `#ifdef HPUX` 项，
+     而已落地的核心臂渲染是**从 `XK_Delete` 直接跳到 `XK_dead_circumflex`**。`extract-abi.py --check` 的长行早就把
+     `iscursorkey`/`ismiscfunctionkey` 列在"端口没提到"的 token 里——四项补回后**token 清单 73 → 71，正好是这两个 token 退休**。
+     拼写用文件自己的：`IsCursorKey!`/`IsMiscFunctionKey!` 是本单元 30971/30975 的宏，`hpux` 是 `src/sysdep.rs` 1040 的 feature 名，
+     C 的 `XK_ISO_Left_Tab` 项用 `xk_iso_left_tab`（`xk_dead_<name>` 家族的形状）。
+  ④ **`XK_F1` 是活代码，不带 cfg**：C 24362 的 `#ifdef XK_F1` 在参照里恒真（冻结表从 `keysymdef.h` 而不是 `config.h` 取这些 keysym 名），所以该块**不挂属性**——
+     与核心臂 C 20419-20425 的同一块写法一致（slice 115 的读数）。挂成 `xk_f1` 会让 C 的 `x_dnd_xm_use_help` 写入变成死文本。
+  ⑤ **拼写取自已落地的孪生体**：C 的 `#if (X)`/`else` 链是 `did_xkb` 旗标（本文件 32397-32461 的形状）；mouse-highlight 条件里的
+     `#if ! defined (USE_GTK)` 项是 `in_hl_window` 的或式（slice 110 的读数）；`XLookupString` 第五个实参 C 写 `NULL`，端口写 `std::ptr::null_mut ()`；
+     `XkbTranslateKeyCode`/`XkbTranslateKeySym` 的 `keycode`/`state` 实参 `as c_uint`、`nbytes` `as isize`、两处 `SAFE_ALLOCA` 重分配 `as *mut c_char`；
+     `Vmouse_highlight` 是 Lisp 变量，**不带调用括号**（核心臂的 `FIXNUMP (Vmouse_highlight)`）。
+  ⑥ **读数（五臂，两侧都在本修订测，同一根 `_root.rs`；baseline = HEAD `cb181571`）**：A 1174/83 → **1174/83**（0/0，整段在 C 22240 的门内）、
+     XI2 1326/87 → **1329/88**、UGX 1380/88 → **1383/89**、AIUX 1453/87 → **1457/87**、XI21W 1407/88 → **1410/89**。
+     XI2/XI21W 的 +3 是 `XLookupString`（C 24352）、`tab_bar_window`（C 24225）、`tool_bar_window`（C 24223）；UGX 的 +3 把 `tool_bar` 换成第三支过滤形状的
+     `xg_filter_key`（C 24203）；AIUX 的 +4 是 `XmbLookupString`×2（C 24254/24264）+ `XLookupString` + `tab_bar_window`。
+     三个臂各 +1 warning，是 `'translate` 标签的 "unused label"（**核心臂自己的 `'translate` 在同臂里也是这条 warning** ✓ 已落地的形状）；
+     AIUX 没有这条（XIC 路径的 `break 'translate` 用到标签 ✓）。
+  ⑦ **台账**：`docs/ports/xterm.md` 加 Decision **143** 与 `### Slice 131's readings`；`--check` 仍三行，长行 token 清单 **73 → 71**
+     （上面那两个 token 退休），`family memset` 仍 *4 vs 3*；单元 **37,664 行**（+405），文件 md5 `a8f957277b6fadf6bd0bb193bbeb1e38`。
+  ⑧ **预算与清理**：本片 rustc 约 **26 发**（首发+builds 修复 4 轮 × 5 臂 + 基线 4 臂 + `rustfmt --check` 复核；每次 17-24 秒，单文件 `--emit=metadata`），
+     无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s131`。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片从 C 24571 起（`XI_RawKeyPress` 的 GTK2 专用臂）。
