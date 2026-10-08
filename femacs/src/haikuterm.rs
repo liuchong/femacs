@@ -406,6 +406,8 @@ macro_rules! face_bits {
   (underline_at_descent_line_p, $f:expr) => { face_bit_p ($f, FACE_UNDERLINE_AT_DESCENT_LINE_P) };
   (underline_at_descent_line_p, $f:expr, $v:expr) =>
     { face_bit_set ($f, FACE_UNDERLINE_AT_DESCENT_LINE_P, $v) };
+  /* C 1304 reads `face->overstrike`, the `bool_bf overstrike : 1` at dispextern.h 1931.  */
+  (overstrike, $f:expr) => { face_bit_p ($f, FACE_OVERSTRIKE) };
   /* C 1081/1099 read `face->box`, the `ENUM_BF (face_box_type) box : 2` at dispextern.h 1893 -
      the mask/shift above are this file's - and the arm is the `pgtkterm.rs` 1960 shape.  */
   (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
@@ -1812,4 +1814,356 @@ unsafe fn haiku_draw_stipple_background (s: *mut glyph_string, face: *mut face,
   BView_DrawBitmapTiled (view, (*rec).img, 0, 0, -1, -1,           // C 1195-1196
 			 0, 0, x + width, y + height);
   BView_EndClip (view);                                            // C 1197
+}
+
+/* C 1199-1399: `haiku_draw_background_rect` (C 1200-1209; non-`static`, so its ABI is C's - the
+   `get_keysym_name` reading of C 67), `haiku_maybe_draw_background` (C 1211-1231),
+   `haiku_mouse_face_colors` (C 1233-1258), `haiku_draw_glyph_string_foreground` (C 1260-1307)
+   and `haiku_draw_glyphless_glyph_string_foreground` (C 1309-1399, whose C 1330 `#ifdef
+   GCC_LINT` pair carries both arms).  The next first definition is C 1401's
+   `haiku_draw_stretch_glyph_string`.  The four inline accessors C 1242-1251 wants
+   (`FRAME_FACE_CACHE` C 1379, `FACE_FROM_ID` C 1646, `FACE_FROM_ID_OR_NULL` C 1656,
+   `FACE_FOR_CHAR` dispextern.h 2030-2038) are per-unit copies, because C pastes each into every
+   unit that includes the header and `include/frame.rs` 1534-1552 keeps its own copy behind
+   `dispextern_face_records`, which this unit's arm set does not carry - the `pgtkterm.rs`
+   4155-4197 / `xdisp.rs` 1095-1115 shapes.  */
+
+/* dispextern.h 1991-2009's `struct face_cache` as far as those three accessors reach (the
+   `term.rs` 307-320 copy): the mirror's record is behind `dispextern_face_records` and its own
+   comment carries the measurement this copy repeats - `sizeof` 40, `faces_by_id`@16, `used`@32,
+   and C's one `bool_bf menu_face_changed_p : 1` in the int unit at 36.  */
+#[cfg (feature = "have_haiku")]
+#[repr(C)]
+pub struct face_cache
+{
+  pub buckets: *mut *mut face,                  // C 1994, offset 0
+  pub f: *mut c_void,                           // C 1997 (`struct frame *`, untyped - P-72 rule 3)
+  pub faces_by_id: *mut *mut face,              // C 2000, offset 16
+  pub size: ptrdiff_t,                          // C 2003
+  pub used: c_int,                              // C 2004, offset 32
+  pub menu_face_changed_p: u8,                  // C 2006 (a `bool_bf : 1`, a byte - P-80)
+}
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
+
+/* C 1379: `#define FRAME_FACE_CACHE(F) ((struct frame *) (F))->face_cache`.  The mirror types the
+   member `*mut c_void` (`include/frame.rs` 184), so the cast is the pointer's (P-72 rule 3).  */
+#[cfg (feature = "have_haiku")]
+#[inline(always)]
+pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
+{ unsafe { (*f).face_cache as *mut face_cache } }
+
+/// C 1646-1650: `INLINE struct face * FACE_FROM_ID (struct frame *f, int id)`
+#[cfg (feature = "have_haiku")]
+#[inline(always)]
+pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
+{
+  eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+  unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
+}
+
+/// C 1656-1661: `INLINE struct face * FACE_FROM_ID_OR_NULL (struct frame *f, int id)`
+#[cfg (feature = "have_haiku")]
+#[inline(always)]
+pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
+{
+  let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+  eassume! (0 <= used);
+  if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
+  else { core::ptr::null_mut () }
+}
+
+/* C 2030-2038's `INLINE int FACE_FOR_CHAR (struct frame *f, struct face *face, int character,
+   ptrdiff_t pos, Lisp_Object object)`: both arms carry (P-51).  The window-system arm calls
+   `face_for_char`, which `include/fontset.rs` 59-60 declares with the untyped P-72 rule 3
+   pointers, so this side casts.  */
+#[cfg (all (feature = "have_haiku", feature = "have_window_system"))]
+#[inline(always)]
+pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int, pos: ptrdiff_t,
+		      object: Lisp_Object) -> c_int
+{ unsafe { face_for_char (f as *mut c_void, face as *mut c_void, character, pos, object) } }
+#[cfg (all (feature = "have_haiku", not (feature = "have_window_system")))]
+#[inline(always)]
+pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int, pos: ptrdiff_t,
+		      object: Lisp_Object) -> c_int
+{ let _ = (f, character, pos, object); unsafe { (*face).id } }
+
+/* dispextern.h 3810: `void prepare_face_for_display (struct frame *, struct face *);` - no
+   mirror carries it, so the unit declares it at the use site (the `pgtkterm.rs` 1520-1526
+   declaration of the same prototype).  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn prepare_face_for_display (f: *mut frame, face: *mut face);
+}
+
+/* C 1200-1209.  */
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn haiku_draw_background_rect (s: *mut glyph_string, face: *mut face,
+						     x: c_int, y: c_int,
+						     width: c_int, height: c_int)
+{
+  if ! glyph_string_bits! (stippled_p, (*s))                        // C 1204
+    { haiku_draw_plain_background (s, face, x, y, width, height); } // C 1205
+  else
+    { haiku_draw_stipple_background (s, face, x, y, width, height,  // C 1207-1208
+				     false, 0, 0); }
+}
+
+/* C 1211-1231.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_maybe_draw_background (s: *mut glyph_string, force_p: c_int)
+{
+  if glyph_bits! (type, (*(*s).first_glyph)) != IMAGE_GLYPH           // C 1214
+      && ! glyph_string_bits! (background_filled_p, (*s))
+    {
+      let face: *mut face = GS_FACE! (s);                             // C 1216
+      let box_line_width: c_int
+	= std::cmp::max ((*face).box_horizontal_line_width, 0);       // C 1217
+      let box_vline_width: c_int
+	= std::cmp::max ((*face).box_vertical_line_width, 0);         // C 1218
+
+      if FONT_HEIGHT! ((*s).font) < (*s).height - 2 * box_vline_width   // C 1220
+	  || FONT_TOO_HIGH! ((*s).font)                                 // C 1221
+	  || glyph_string_bits! (font_not_found_p, (*s))
+	  || glyph_string_bits! (extends_to_end_of_line_p, (*s))        // C 1222
+	  || force_p != 0
+	{
+	  haiku_draw_background_rect (s, GS_FACE! (s), (*s).x,          // C 1224
+				      (*s).y + box_line_width,
+				      (*s).background_width,
+				      (*s).height - 2 * box_line_width);   // C 1226
+
+	  glyph_string_bits! (background_filled_p, (*s), true);         // C 1228
+	}
+    }
+}
+
+/* C 1233-1258.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_mouse_face_colors (s: *mut glyph_string, fg: *mut uint32_t,
+				   bg: *mut uint32_t)
+{
+  let mut face_id: c_int;                                             // C 1237
+  let mut face: *mut face;                                            // C 1238
+
+  /* What face has to be used last for the mouse face?  */             // C 1240
+  face_id = (*(MOUSE_HL_INFO! ((*s).f))).mouse_face_face_id;          // C 1241
+  face = FACE_FROM_ID_OR_NULL ((*s).f, face_id);                      // C 1242
+  if face.is_null ()                                                  // C 1243
+    { face = FACE_FROM_ID ((*s).f, MOUSE_FACE_ID); }                  // C 1244
+
+  if glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH            // C 1246
+    { face_id = FACE_FOR_CHAR ((*s).f, face,                          // C 1247
+			       (*(*s).first_glyph).u.ch as c_int, -1, Qnil ()); }
+  else
+    { face_id = FACE_FOR_CHAR ((*s).f, face, 0, -1, Qnil ()); }       // C 1249
+
+  face = FACE_FROM_ID ((*s).f, face_id);                              // C 1251
+  prepare_face_for_display ((*s).f, GS_FACE! (s));                    // C 1252
+
+  if ! fg.is_null ()                                                  // C 1254
+    { *fg = (*face).foreground as uint32_t; }                         // C 1255
+  if ! bg.is_null ()                                                  // C 1256
+    { *bg = (*face).background as uint32_t; }                         // C 1257
+}
+
+/* C 1260-1307.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_glyph_string_foreground (s: *mut glyph_string)
+{
+  let face: *mut face = GS_FACE! (s);                                 // C 1263
+
+  let mut i: c_int;                                                   // C 1265
+  let mut x: c_int;
+  if face_bits! (box, face) != FACE_NO_BOX                            // C 1266
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))           // C 1267
+    { x = (*s).x + std::cmp::max ((*face).box_vertical_line_width, 0); }   // C 1268
+  else
+    { x = (*s).x; }                                                   // C 1270
+
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);              // C 1272
+
+  if glyph_string_bits! (font_not_found_p, (*s))                       // C 1274
+    {
+      if (*s).hl == DRAW_CURSOR                                        // C 1276
+	{ BView_SetHighColor (view,
+			      (*(FRAME_OUTPUT_DATA! ((*s).f) as *mut haiku_output))
+				.cursor_fg); }                 // C 1277
+      else
+	{ BView_SetHighColor (view, (*face).foreground as uint32_t); }   // C 1279
+      i = 0;                                                           // C 1280
+      while i < (*s).nchars
+	{
+	  let g: *mut glyph = (*s).first_glyph.offset (i as isize);      // C 1282
+
+	  BView_SetPenSize (view, 1);                                   // C 1284
+	  BView_StrokeRectangle (view, x, (*s).y,                        // C 1285
+				 (*g).pixel_width as c_int, (*s).height);   // C 1286
+	  x += (*g).pixel_width as c_int;                               // C 1287
+	  i += 1;                                                       // C 1280's step
+	}
+    }
+  else
+    {
+      let ft: *mut font = (*s).font;                                    // C 1292
+      let mut off: c_int = (*ft).baseline_offset;                       // C 1293
+      let mut y: c_int;                                                 // C 1294
+
+      if (*ft).vertical_centering                                        // C 1296
+	{ off = VCENTER_BASELINE_OFFSET! (ft, (*s).f) - off; }          // C 1297
+      y = (*s).ybase - off;                                              // C 1298
+      if glyph_string_bits! (for_overlaps, (*s)) != 0                    // C 1299
+	  || (glyph_string_bits! (background_filled_p, (*s))
+	      && (*s).hl != DRAW_CURSOR)
+	{ ((*((*ft).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x, y, false); }                          // C 1300
+      else
+	{ ((*((*ft).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x, y, true); }                           // C 1302
+
+      if face_bits! (overstrike, face)                                   // C 1304
+	{ ((*((*ft).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x + 1, y, false); }                      // C 1305
+    }
+}
+
+/* C 1330-1334's `#ifdef GCC_LINT` / `#else` pair: both arms carry (P-51), as the `w32term.rs`
+   2435 `char2b` and this file's own `face_ws` pair do.  The member the constant sizes is
+   `bool_bf for_no_font : 1; unsigned ch : 25;`'s sibling in C 1335's `char buf[7 + …]`.  */
+
+/* C 597-600's `glyph.u.glyphless` run (`ENUM_BF (glyphless_display_method) method : 2`,
+   `unsigned len : 4`, `bool_bf for_no_font : 1`, `unsigned ch : 25`) is what C 1337-1383 names
+   and this file's only reader of it, so its accessor stands here (the `haikufont.rs` 1447-1458
+   shape, whose constants are `include/dispextern.rs`'s).  */
+#[cfg (feature = "have_haiku")]
+macro_rules! glyphless_bits {
+  (method, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_METHOD_SHIFT) & 0x3) as c_int };
+  (for_no_font, $g:expr) => { ((*$g).u.glyphless.bits & GLYPH_U_GLYPHLESS_FOR_NO_FONT) != 0 };
+  (len, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_LEN_SHIFT) & 0xf) as c_int };
+  (ch, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_CH_SHIFT) & 0x1ffffff) as c_int };
+}
+
+/* C 1309-1399.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_glyphless_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut glyph: *mut glyph = (*s).first_glyph;                       // C 1312
+  static mut char2b: [c_uint; 8] = [0; 8];                            // C 1313
+  let mut x: c_int;                                                   // C 1314
+  let mut i: c_int;
+  let mut j: c_int;
+  let face: *mut face = GS_FACE! (s);                                 // C 1315
+  /* C 1316 declares `color` with no initialiser and C 1386 passes its address, so the port
+     zero-initialises it (PORTING.md 1.5; this file's C 1113 reading).  */
+  let mut color: c_ulong = 0;
+  let _ = &mut color;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */                          // C 1318-1319
+  if ! face.is_null () && face_bits! (box, face) != FACE_NO_BOX        // C 1320
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))            // C 1321
+    { x = (*s).x + std::cmp::max ((*face).box_vertical_line_width, 0); }   // C 1322
+  else
+    { x = (*s).x; }                                                    // C 1324
+
+  (*s).char2b = &raw mut char2b as *mut c_uint;                        // C 1326
+
+  i = 0;                                                               // C 1328
+  while i < (*s).nchars
+    {
+      /* C's `#ifdef GCC_LINT` pair (C 1330-1334).  */
+      #[cfg (feature = "gcc_lint")]
+      const PACIFY_GCC_BUG_81401: c_int = 1;
+      #[cfg (not (feature = "gcc_lint"))]
+      const PACIFY_GCC_BUG_81401: c_int = 0;
+
+      let mut buf: [c_char; 7 + PACIFY_GCC_BUG_81401 as usize]
+	= [0; 7 + PACIFY_GCC_BUG_81401 as usize];                      // C 1335
+      let mut str: *mut c_char = std::ptr::null_mut ();                // C 1336
+      let len: c_int = glyphless_bits! (len, glyph);                   // C 1337
+
+      if glyphless_bits! (method, glyph)
+	  == dispextern_unit_names::GLYPHLESS_DISPLAY_ACRONYM      // C 1339
+	{
+	  if len > 0                                                    // C 1341
+	      && CHAR_TABLE_P (Vglyphless_char_display)                 // C 1342
+	      && (CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (Vglyphless_char_display))   // C 1343
+		  >= 1)
+	    {
+	      let mut acronym: Lisp_Object
+		= if ! glyphless_bits! (for_no_font, glyph)             // C 1347
+		  { CHAR_TABLE_REF (Vglyphless_char_display,            // C 1348
+				    glyphless_bits! (ch, glyph) as isize) }   // C 1349
+		  else { FAM_ELEM! ((*XCHAR_TABLE (Vglyphless_char_display)).extras, 0) };   // C 1350
+	      if CONSP (acronym)                                        // C 1351
+		{ acronym = XCAR (acronym); }                           // C 1352
+	      if STRINGP (acronym)                                      // C 1353
+		{ str = SSDATA (acronym); }                             // C 1354
+	    }
+	}
+      else if glyphless_bits! (method, glyph)
+	       == dispextern_unit_names::GLYPHLESS_DISPLAY_HEX_CODE   // C 1357
+	{
+	  let ch: c_uint = glyphless_bits! (ch, glyph) as c_uint;       // C 1359
+	  eassume! (ch as c_int <= MAX_CHAR);                           // C 1360
+	  sprintf (buf.as_mut_ptr (), c"%0*X".as_ptr (),                // C 1361
+		   if ch < 0x10000 { 4 } else { 6 }, ch);
+	  str = buf.as_mut_ptr ();                                      // C 1362
+	}
+
+      if ! str.is_null ()                                              // C 1365
+	{
+	  let upper_len: c_int = (len + 1) / 2;                         // C 1367
+
+	  /* It is assured that all LEN characters in STR is ASCII.  */  // C 1369
+	  j = 0;                                                        // C 1370
+	  while j < len
+	    {
+	      char2b[j as usize]
+		= ((*((*(*s).font).driver as *const font_driver)).encode_char.unwrap ())
+		    ((*s).font, *str.offset (j as isize) as c_int) & 0xFFFF;   // C 1371
+	      j += 1;                                                   // C 1370's step
+	    }
+
+	  ((*((*(*s).font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, upper_len,                                           // C 1373
+	     x + (*glyph).slice.glyphless.upper_xoff as c_int,          // C 1374
+	     (*s).ybase + (*glyph).slice.glyphless.upper_yoff as c_int,  // C 1375
+	     false);                                                    // C 1376
+	  ((*((*(*s).font).driver as *const font_driver)).draw.unwrap ())
+	    (s, upper_len, len,                                         // C 1377
+	     x + (*glyph).slice.glyphless.lower_xoff as c_int,          // C 1378
+	     (*s).ybase + (*glyph).slice.glyphless.lower_yoff as c_int,  // C 1379
+	     false);                                                    // C 1380
+	}
+
+      if glyphless_bits! (method, glyph)
+	  != dispextern_unit_names::GLYPHLESS_DISPLAY_THIN_SPACE   // C 1383
+	{
+	  if (*s).hl == DRAW_CURSOR                                     // C 1385
+	    { haiku_merge_cursor_foreground (s as *mut c_void,           // C 1386
+					     std::ptr::null_mut (), &raw mut color); }
+	  else
+	    { color = (*GS_FACE! (s)).foreground; }                     // C 1388
+
+	  BView_SetHighColor (FRAME_HAIKU_DRAWABLE! ((*s).f),
+			      color as uint32_t);                          // C 1390
+	  BView_SetPenSize (FRAME_HAIKU_DRAWABLE! ((*s).f), 1);          // C 1391
+	  BView_StrokeRectangle (FRAME_HAIKU_DRAWABLE! ((*s).f),         // C 1392
+				 x, (*s).ybase - (*glyph).ascent as c_int,   // C 1393
+				 (*glyph).pixel_width as c_int,            // C 1394
+				 (*glyph).ascent as c_int
+				   + (*glyph).descent as c_int);           // C 1395
+	}
+      x += (*glyph).pixel_width as c_int;                              // C 1397
+      i += 1; glyph = glyph.offset (1);                                // C 1328's step
+    }
 }
