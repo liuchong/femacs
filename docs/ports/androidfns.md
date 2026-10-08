@@ -11,8 +11,8 @@
 > 1705-1800** (2,332 Rust lines), **slice 5 = C 1801-1910** (2,447 Rust lines), **slice 6 = C
 > 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines), **slice 8 = C
 > 2295-2583** (3,313 Rust lines), **slice 9 = C 2584-2662** (3,416 Rust lines), **slice 10 = C
-> 2663-2832** (3,615 Rust lines) and **slice 11 = C 2833-2972** (3,826 Rust lines), both arms of
-> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 2663-2832** (3,615 Rust lines), **slice 11 = C 2833-2972** (3,826 Rust lines) and **slice 12 = C
+> 2973-3063** (3,951 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -141,7 +141,9 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 2926-2940 | `struct mouse_cursor_types` (C 2933-2935's FIXME comment) | real arm |
 | 2941-2963 | C 2942's "must stay in sync" comment and the `mouse_cursor_types[]` table (fifteen rows) | real arm |
 | 2964-2972 | `struct mouse_cursor_data` (the two `mouse_cursor_max`-long arrays) | real arm |
-| 2973-3797 | not ported: the file's remaining 825 lines (C 2976's `android_set_mouse_color` onward) | not ported |
+| 2973-3043 | `android_set_mouse_color` (C 2981 the aggregate initialiser, C 2992-2999 the shape loop, C 3003-3005 the cursor loop, C 3007-3013 the window arm, C 3015-3020 the `INSTALL_CURSOR` macro with C 3022-3036's fifteen calls, C 3040/3042 the tail) | real arm |
+| 3044-3063 | `android_set_title` (C 3050-3051 the early return, C 3053's `update_mode_lines`, C 3055 the title, C 3057-3060 the name) | real arm |
+| 3064-3797 | not ported: the file's remaining 734 lines (C 3065's `android_set_alpha` onward) | not ported |
 
 ## Evidence
 
@@ -1054,3 +1056,64 @@ counts as the C enum's constants).  The drift stays retired (3,826 lines against
   up, no area was cleared.
 - The four slice-1 `E0609` rows remain pre-existing; this slice adds two of the same class and
   claims neither as compiled in arm set A.
+
+## Slice 12 (2026-10-08, status 4.073 - the integrator sets the round number): C 2973-3063
+
+**The slice's text.**  `android_set_mouse_color` (C 2976-3043, including C 3015-3020's
+`INSTALL_CURSOR` macro and C 3022-3036's fifteen calls) and `android_set_title` (C 3045-3063).
+Port line count **3,826 -> 3,951** (+125).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**  The
+first run reads **6 `E0609` rows - the four slice-1 sites plus slice 11's two `menu_bar_window`
+reads, and nothing new**: the only defect was a missing declaration (`check_uinteger_max`), and
+after it landed the reading is unchanged at 6, i.e. the slice adds no arm-A row of its own class.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings** (the same
+`include/android.rs` FFI-safety warnings as slices 2-11).  **Evidence ③ - arm set C = A +
+`have_window_system`:** **exit 0, 0 errors, 12 warnings** (all six `E0609` lines included).
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **49 rows -> 46**: the three
+closed are **2 `missing function`** (8 -> 6: `android_set_mouse_color`, `android_set_title`) and
+**1 `missing macro`** (1 -> 0: `INSTALL_CURSOR`, which the checker looked for as a name).  Two
+readings found the third `macro-body-notes.tsv` class this round: the first run of the check read
+**`function android_set_mouse_color does not mention bottom_edge, …, mouse_cursor, …, short_index,
+text, …`** - seventeen tokens that exist only as the *result* of C's `##` paste - and the fix is
+the three rows the `xfns.c` lane already carries for the same macro (`INSTALL_CURSOR` ->
+`mouse_cursor_`, `INSTALL_CURSOR` -> `mouse_cursor,short_index`, `android_set_mouse_color` -> the
+fifteen argument names), transcribed here with this file's line numbers.
+
+### Deviations (this slice)
+
+1. **C 2981's `= { -1, -1 }` is spelled as the two arrays it initialises**: C's aggregate
+   initialisation writes each array's first element and zero-fills the rest, so the port builds
+   `cursor_num` and `cursor` that way inside one struct literal (`xfns.rs` 2236-2243 writes the
+   same C line for its two scalar members; this file's members are the arrays).
+2. **`check_uinteger_max`'s `uintmax_t` result and `default_shape`'s `int` are narrowed with
+   `as c_uint`** into `cursor_num`'s `unsigned int`, and the shape is passed to
+   `android_create_font_cursor` with `as android_cursor_shape` (the mirror's enum type).
+3. **The `INSTALL_CURSOR` macro takes the pasted identifier as its own parameter** (Rust has no
+   `##`), so each of C 3022-3036's fifteen calls spells `mouse_cursor_text` etc. (the `xfns.rs`
+   2356-2372 shape for the same C macro); the function-local `macro_rules!` needs no `#undef` -
+   C 3038's `#undef INSTALL_CURSOR` has no counterpart because the macro's scope ends with the
+   function - and the three `macro-body-notes.tsv` rows record the tokens this costs.
+4. **`android_set_title`'s parameter is `mut name`**: C 3058 reassigns it from `f->name` (the
+   `android_create_tip_frame` spelling).
+5. **`update_mode_lines = 38;`** writes `include/window.rs` 281's global (C 3053's magic number
+   kept as C's number).
+
+### Owed (this slice's additions)
+
+- **`docs/ports/macro-body-notes.tsv`**: three new rows for `INSTALL_CURSOR` and
+  `android_set_mouse_color` (Evidence ④) - the second unit in the tree to need them (the
+  `xfns.c` lane's rows are the first).
+- **The file's remainder**: C 3064-3797 (734 lines) - `android_set_alpha` and the rest of the
+  setter family, the remaining `DEFUN`s, the GC and colour helpers, the terminal hooks and
+  `syms_of_androidfns`'s registrations.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no cursor was created, defined or freed, no title
+  was set.
+- The six `E0609` rows of arm set A are not this slice's (four are slice 1's and two are slice
+  11's); this slice adds none.

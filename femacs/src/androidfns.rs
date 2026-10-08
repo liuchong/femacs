@@ -3437,6 +3437,8 @@ unsafe extern "C" {
   pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
   /// C: dispextern.h 3896: `extern void redraw_frame (struct frame *);`
   pub fn redraw_frame (f: *mut frame);
+  /// C: lisp.h 612: `extern uintmax_t check_uinteger_max (Lisp_Object, uintmax_t);`
+  pub fn check_uinteger_max (x: Lisp_Object, max: uintmax_t) -> uintmax_t;
 }
 
 /* C 2668-2693.  */
@@ -3823,4 +3825,127 @@ pub struct mouse_cursor_data
 {
   pub cursor_num: [c_uint; mouse_cursor_max as usize],   // C: unsigned int cursor_num[mouse_cursor_max];
   pub cursor: [android_cursor; mouse_cursor_max as usize],   // C: android_cursor cursor[mouse_cursor_max];
+}
+
+/* C 2973-3063: `android_set_mouse_color` (C 2976-3043, C 3015-3038's `INSTALL_CURSOR` included)
+   and `android_set_title` (C 3045-3063).  The next setter is C 3065's `android_set_alpha`.  */
+
+/* C 2976-3043.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_mouse_color (f: *mut frame, arg: Lisp_Object,
+				   oldval: Lisp_Object)
+{
+  let x: *mut android_output = (*f).output_data.android as *mut android_output;   // C 2980
+  /* C's `= { -1, -1 }` writes each array's first element and zero-fills the rest (C's aggregate
+     initialisation rule); Rust has no partial aggregate literal, so both arrays are built with
+     that shape.  */
+  let mut cursor_data: mouse_cursor_data
+    = mouse_cursor_data { cursor_num: { let mut a = [0; mouse_cursor_max as usize];
+					a[0] = (-1 as c_long) as c_uint; a },
+			  cursor: { let mut a = [0; mouse_cursor_max as usize];
+				    a[0] = -1; a } };                    // C 2981
+  let mut pixel: c_ulong = android_decode_color (f, arg, BLACK_PIX_DEFAULT! (f));   // C 2982
+  let mask_color: c_ulong = FRAME_BACKGROUND_PIXEL! (f);           // C 2983
+  let mut i: c_int;                                               // C 2984
+
+  /* Don't let pointers be invisible.  */                          // C 2986
+  if mask_color == pixel                                           // C 2987
+    { pixel = FRAME_FOREGROUND_PIXEL! (f); }                       // C 2988
+
+  (*x).mouse_pixel = pixel;                                        // C 2990
+
+  i = 0;                                                           // C 2992
+  while i < mouse_cursor_max
+    {
+      let shape_var: Lisp_Object = *(mouse_cursor_types[i as usize].shape_var_ptr);   // C 2994
+      /* C's `check_uinteger_max` returns `uintmax_t` and the member is `unsigned int`, and
+	 `default_shape` is `int`; both conversions are spelled.  */
+      cursor_data.cursor_num[i as usize]                            // C 2995
+	= (if !NILP (shape_var)                                     // C 2996
+	   { check_uinteger_max (shape_var, UINT_MAX as uintmax_t) as c_uint }   // C 2997
+	   else
+	   { mouse_cursor_types[i as usize].default_shape as c_uint });          // C 2998
+      i += 1;
+    }
+
+  block_input ();                                                  // C 3001
+
+  i = 0;                                                           // C 3003
+  while i < mouse_cursor_max
+    {
+      cursor_data.cursor[i as usize]                               // C 3004-3005
+	= android_create_font_cursor (cursor_data.cursor_num[i as usize] as android_cursor_shape);
+      i += 1;
+    }
+
+  if FRAME_ANDROID_WINDOW! (f) != 0                                // C 3007
+    {
+      (*((*f).output_data.android as *mut android_output)).current_cursor
+	= cursor_data.cursor[mouse_cursor_text as usize];          // C 3009-3010
+      android_define_cursor (FRAME_ANDROID_WINDOW! (f),            // C 3011-3012
+			     (*((*f).output_data.android as *mut android_output)).current_cursor);
+    }
+
+  /* C 3015-3020's `#define INSTALL_CURSOR(FIELD, SHORT_INDEX)`: C pastes the two identifiers
+     (`mouse_cursor_ ## SHORT_INDEX`), which Rust cannot do, so the macro takes the pasted
+     constant as its argument and each call spells it (the `xfns.rs` 2356-2372 shape for the same
+     C macro).  C 3038's `#undef INSTALL_CURSOR` has no counterpart: a function-local
+     `macro_rules!` ends with its scope.  */
+  macro_rules! INSTALL_CURSOR {
+    ($x:expr, $cursor_data:expr, $field:ident, $index:expr) => {
+      {
+	eassert! ((*($x)).$field != $cursor_data.cursor[$index]);
+	if (*($x)).$field != 0
+	  { android_free_cursor ((*($x)).$field); }
+	(*($x)).$field = $cursor_data.cursor[$index];
+      }
+    };
+  }
+
+  INSTALL_CURSOR! (x, cursor_data, text_cursor, mouse_cursor_text as usize);                // C 3022
+  INSTALL_CURSOR! (x, cursor_data, nontext_cursor, mouse_cursor_nontext as usize);          // C 3023
+  INSTALL_CURSOR! (x, cursor_data, hourglass_cursor, mouse_cursor_hourglass as usize);      // C 3024
+  INSTALL_CURSOR! (x, cursor_data, modeline_cursor, mouse_cursor_mode as usize);            // C 3025
+  INSTALL_CURSOR! (x, cursor_data, hand_cursor, mouse_cursor_hand as usize);                // C 3026
+  INSTALL_CURSOR! (x, cursor_data, horizontal_drag_cursor,                                  // C 3027
+		   mouse_cursor_horizontal_drag as usize);
+  INSTALL_CURSOR! (x, cursor_data, vertical_drag_cursor,                                    // C 3028
+		   mouse_cursor_vertical_drag as usize);
+  INSTALL_CURSOR! (x, cursor_data, left_edge_cursor, mouse_cursor_left_edge as usize);      // C 3029
+  INSTALL_CURSOR! (x, cursor_data, top_left_corner_cursor,                                  // C 3030
+		   mouse_cursor_top_left_corner as usize);
+  INSTALL_CURSOR! (x, cursor_data, top_edge_cursor, mouse_cursor_top_edge as usize);        // C 3031
+  INSTALL_CURSOR! (x, cursor_data, top_right_corner_cursor,                                 // C 3032
+		   mouse_cursor_top_right_corner as usize);
+  INSTALL_CURSOR! (x, cursor_data, right_edge_cursor, mouse_cursor_right_edge as usize);    // C 3033
+  INSTALL_CURSOR! (x, cursor_data, bottom_right_corner_cursor,                              // C 3034
+		   mouse_cursor_bottom_right_corner as usize);
+  INSTALL_CURSOR! (x, cursor_data, bottom_edge_cursor, mouse_cursor_bottom_edge as usize);  // C 3035
+  INSTALL_CURSOR! (x, cursor_data, bottom_left_corner_cursor,                               // C 3036
+		   mouse_cursor_bottom_left_corner as usize);
+
+  unblock_input ();                                                // C 3040
+
+  update_face_from_frame_parameter (f, Qmouse_color (), arg);       // C 3042
+}
+
+/* C 3045-3063.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_title (f: *mut frame, mut name: Lisp_Object,
+			     old_name: Lisp_Object)
+{
+  /* Don't change the title if it's already NAME.  */               // C 3049
+  if EQ (name, (*f).title)                                         // C 3050
+    { return; }                                                    // C 3051
+
+  update_mode_lines = 38;                                          // C 3053
+
+  fset_title (f, name);                                            // C 3055
+
+  if NILP (name)                                                   // C 3057
+    { name = (*f).name; }                                          // C 3058
+  else
+    { CHECK_STRING (name); }                                       // C 3060
+
+  android_set_name_internal (f, name);                             // C 3062
 }
