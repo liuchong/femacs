@@ -9,8 +9,8 @@
 > Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), **slice 2 = C
 > 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines), **slice 4 = C
 > 1705-1800** (2,332 Rust lines), **slice 5 = C 1801-1910** (2,447 Rust lines), **slice 6 = C
-> 1911-2170** (2,757 Rust lines) and **slice 7 = C 2171-2296** (2,898 Rust lines), both arms of
-> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines) and **slice 8 = C
+> 2295-2583** (3,313 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -122,7 +122,8 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 1926-2169 | `android_create_tip_frame` (C 1927-2169: C 1942-1948 the name lookup, C 1950-1971 the frame setup, C 1973-1998 the colour initialisation, C 2000-2107 the parameter defaults, C 2109-2144 the `tooltip` and `display-type` parameters, C 2146-2168 the frame's officialisation) | real arm |
 | 2170-2218 | C 2171's `android_hide_tip` (C 2174-2178 the timer cancel, C 2180-2185 the early return, C 2188-2216 the delete/invisible body) | real arm |
 | 2219-2294 | C 2220's `compute_tip_xy` (C 2242-2256 the mouse-frame read and the coordinate translation, C 2258-2261 the screen bounds, C 2263-2293 the two clamps) | real arm |
-| 2295-3797 | not ported: the file's remaining 1,503 lines (C 2296's `#endif` and C 2298's `DEFUN ("x-show-tip")` onward) | not ported |
+| 2295-2583 | C's `#endif` at 2296 and C 2298's `DEFUN ("x-show-tip")`: C 2303-2305 the stub arm, C 2306-2582 the real one (C 2307-2320 the locals and `AUTO_STRING`, C 2322-2347 the parameter defaults, C 2349-2428 the reuse/hide logic, C 2430-2460 the tip frame creation, C 2462-2500 the root window, C 2502-2516 the text insertion, C 2518-2534 the `ENABLE_CHECKING` row walk, C 2536-2556 the size and placement, C 2558-2575 the update, C 2577-2581 the label and the timer) | file gate, both sub-arms |
+| 2584-3797 | not ported: the file's remaining 1,214 lines (C 2585's `DEFUN ("x-hide-tip")` onward) | not ported |
 
 ## Evidence
 
@@ -770,4 +771,85 @@ reads **`C 3797 vs Rust 2898` (23.7%)**, from 27.4%.
 
 - **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
   compiles nothing from this file (P-86 ③⑵): no tip was hidden, no tip coordinate was computed.
+- The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
+
+## Slice 8 (2026-10-08, status 4.069 - the integrator sets the round number): C 2295-2583
+
+**The slice's text.**  C's `#endif` at 2296 and `Fx_show_tip` (C 2298-2583), the tooltip family's
+`DEFUN`: C's `#ifdef ANDROID_STUBIFY` pair at C 2303/2306, the locals and `AUTO_STRING` at
+C 2307-2320, the parameter defaults at C 2322-2347, the reuse/hide logic at C 2349-2428, the tip
+frame creation at C 2430-2460, the root window and the max-size bounds at C 2462-2500, the text
+insertion at C 2502-2516, the `ENABLE_CHECKING` row walk at C 2518-2534, the size and placement at
+C 2536-2556, the update at C 2558-2575 and C 2371's `goto start_timer` with its label at C 2577.
+Port line count **2,898 -> 3,313** (+415).  The spellings are the sibling unit's
+(`xfns.rs` 12540-12920), adapted to this file's helpers (`android_hide_tip`, `compute_tip_xy`) and
+window calls (`android_move_window`, `android_move_resize_window`, `android_map_raised`); the
+measured difference between the two C texts is recorded above in the diff's classes (the GTK arm
+and the XCB/CAIRO arms are the xfns side's; this file has the Android calls and C 2572-2575's
+`SET_FRAME_VISIBLE`).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`, four
+invocations.**  The first read **one parse error** (`unexpected closing delimiter`): C 2413-2414's
+condition keeps C's leading `(` after `if`, which the port had dropped, so the line's last `)`
+closed nothing.  The second read **14 errors**: the three use-site macros were missing
+(`window_bits` twice, `FRAME_TOTAL_COLS`, `SET_TEXT_POS`), `set_window_buffer` was missing, C
+2537's bare `Qnil` had been carried as a *name* (Rust needs the call), and
+`android_move_resize_window`'s two `unsigned int` parameters were handed `int` locals.  The third
+read **7 errors**: `try_window`, `update_single_window` (both missing) and `redisplay_interface` -
+the last one inside `include/frame.rs` 1912-1920's `flush_frame!`, whose body names the record
+`include/dispextern.rs` 3794 gates on `dispextern_face_records`.  With the seven use-site items of
+Deviations 5-6 landed, the fourth read is **exit 1, exactly 4 `error[E0609]` rows** - unchanged,
+still slice 1's class, **0 in this slice's text**.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings** (the same
+`include/android.rs` FFI-safety warnings as slices 2-7): the `DEFUN`'s stub arm compiles.
+
+**Evidence ③ - arm set C = A + `have_window_system`.**  **exit 0, 0 errors, 12 warnings.**
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **79 rows -> 78**: the one closed
+is **1 `missing subr`** (10 -> 9: `Fx_show_tip`).  The drift row now reads **`C 3797 vs Rust 3313`
+(12.7%)**, from 23.7%, i.e. inside a factor of three of the 5% the rule allows every file.
+
+### Deviations (this slice)
+
+1. **C 2371's `goto start_timer` and C 2577's label become one labelled block**, with
+   `break 'start_timer` where C jumps (PORTING.md 2.2; the `xfns.rs` 12598-12607 note for the same
+   function's two jumps).
+2. **The six parameters are re-bound as `mut`** (`let mut string = string;` … `let mut dy = dy;`)
+   because C 2326-2342 reassigns them and the `DEFUN!` macro's `$arg:ident` cannot say `mut` (the
+   `xfns.rs` 12600-12605 shape; the macro's own row in `docs/ports/macro-body-notes.tsv`).
+3. **`root_x`/`root_y` are zero-initialised** (C 2309 declares them with no initialiser and C
+   2365/2545 pass their addresses; PORTING.md 1.5).
+4. **C 2454's `NILP (tip_frame = android_create_tip_frame (…))` becomes C's call as its own
+   statement plus the test on the next line**: Rust's assignment is not an expression (the
+   `dosfns.rs` 656-660 class).
+5. **Seven use-site items** (P-72 rule 4): `window_bits!` with the two arms this slice writes
+   (`pseudo_window_p` at C 2471, `must_be_updated_p` at C 2563; the per-unit accessor the
+   `haikufns.rs` 274-289 note describes), `FRAME_TOTAL_COLS!` (C 2499; the `haikufns.rs` 449-454
+   shape), `SET_TEXT_POS!` (C 2515; the `bidi.rs` 213-221 shape - the mirror's copy sits inside a
+   module), `set_window_buffer` (window.h 1139-1140), `try_window` (dispextern.h 3573),
+   `update_single_window` (dispextern.h 3918), and `struct redisplay_interface` plus C's own
+   `flush_frame` body (the `androidterm.rs` 111-143 shape, for the same reason it records: the
+   mirror's `flush_frame!` binds `FRAME_RIF!`'s `*mut c_void` to the gated record's pointer).
+6. **`width as c_uint` / `height as c_uint`** at C 2549-2551: the call's parameters are
+   `unsigned int` and the locals are `int` (C's implicit conversion, spelled).
+7. **C's bare `Qnil` at C 2537 is `Qnil ()`**: C's globals are values, Rust's are the accessor
+   functions (the file's own 3,000-plus lines already spell it that way; the probe's `E0308` was
+   the reminder).
+
+### Owed (this slice's additions)
+
+- **`docs/ports/`-level gaps named for the integrator**: `window.h`'s bit accessors and
+  `FRAME_TOTAL_COLS` (per-unit copies by design, the `haikufns.rs` note), `dispextern.h`'s
+  `SET_TEXT_POS` (mirror-module-local), and `struct redisplay_interface` (mirror-gated on
+  `dispextern_face_records`; this unit and `androidterm.rs` each carry a copy).
+- **The file's remainder**: C 2584-3797 (1,214 lines) - `Fx_hide_tip` and the rest of the tooltip
+  family, the remaining `DEFUN`s, the GC and colour helpers, the terminal hooks and
+  `syms_of_androidfns`'s registrations (the 35 unchanged `missing defsubr` rows).
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no tip was shown, no tooltip buffer was filled, no
+  glyph matrix was cleared.
 - The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.

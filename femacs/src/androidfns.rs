@@ -2896,3 +2896,418 @@ unsafe fn compute_tip_xy (f: *mut frame, parms: Lisp_Object, dx: Lisp_Object,
 }
 
 /* C 2296: the `#endif` of C 1912's `#ifndef ANDROID_STUBIFY` block.  */
+
+/* C 2295-2583: `Fx_show_tip` (C 2298-2583), the tooltip family's `DEFUN`.  Its body carries C
+   2303's `#ifdef ANDROID_STUBIFY` pair as two cfg'd blocks in C's order, and C 2371's
+   `goto start_timer` plus C 2577's label as the labelled block the `xfns.rs` 12598-12607 note
+   describes (`break 'start_timer` is the port's spelling of the jump, PORTING.md 2.2).  The
+   spellings are the sibling unit's, adapted to this file's two helpers (`android_hide_tip`,
+   `compute_tip_xy`) and its window calls (`android_move_window`, `android_move_resize_window`,
+   `android_map_raised`).  */
+
+/* `struct redisplay_interface` - dispextern.h 3069-3196 - has no mirror at this unit's gate set
+   (`include/dispextern.rs` 3794 gates its record on `dispextern_face_records`, and
+   `include/termhooks.rs`'s `rif` is `*mut c_void`), while `include/frame.rs` 1912-1920's
+   `flush_frame!` names the type.  The unit therefore declares the record at the use site and
+   writes C's own `flush_frame` body, the `androidterm.rs` 111-143 shape (P-72 rule 4; the ten
+   members C declares before `flush_display` are all pointers, so the prefix is an opaque pointer
+   array and the one offset that matters is pinned).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+pub struct redisplay_interface
+{
+  _prefix: [*mut c_void; 9],
+  pub flush_display: Option<unsafe extern "C" fn (f: *mut frame)>,
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  assert! (std::mem::offset_of! (redisplay_interface, flush_display) == 72);
+};
+
+/* C 2565's `flush_frame (f)`.  C's is frame.h 1914-1921's inline; the mirror's `macro_rules!`
+   body hands `FRAME_RIF!`'s `*mut c_void` back to a `*mut redisplay_interface` binding, so the
+   unit writes C's own body with C's own text (the `androidterm.rs` 129-143 note).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn flush_frame (f: *mut frame)
+{
+  let rif: *mut redisplay_interface =
+    (*(*f).terminal).rif as *mut redisplay_interface;   /* C: `FRAME_RIF (f)`.  */
+
+  if !rif.is_null () && (*rif).flush_display.is_some ()
+    { ((*rif).flush_display).unwrap () (f); }
+}
+
+/* Use-site copies for the three names C 2470-2515 reaches and no mirror in this unit's graph
+   carries at the top level (P-72 rule 4):
+     * `window.h` 339-351's `bool_bf` bits (`pseudo_window_p` at C 2471, `must_be_updated_p` at
+       C 2563) - the per-unit accessor the `haikufns.rs` 274-289 note describes, with
+       `include/window.rs`'s `WINDOW_*_SHIFT` constants;
+     * `frame.h` 1035's `FRAME_TOTAL_COLS`, written at C 2499 (the `haikufns.rs` 449-454 shape);
+     * dispextern.h 291-292's `SET_TEXT_POS`, expanded at C 2515 (the mirror's copy sits inside a
+       module; the `bidi.rs` 213-221 shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! window_bits {
+  (pseudo_window_p, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }
+        else { (*($w)).bits & !(1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }; };
+  (must_be_updated_p, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_MUST_BE_UPDATED_P_SHIFT) }
+        else { (*($w)).bits & !(1u32 << WINDOW_MUST_BE_UPDATED_P_SHIFT) }; };
+}
+/// C: frame.h 1035: `#define FRAME_TOTAL_COLS(f) ((f)->total_cols)` - written at C 2499.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_TOTAL_COLS {
+  ($f:expr, $v:expr) => { (*($f)).total_cols = $v };
+}
+/// C: dispextern.h 291-292: `#define SET_TEXT_POS(pos, charpos, bytepos) ((pos).charpos = (charpos), (pos).bytepos = (bytepos))`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! SET_TEXT_POS {
+  ($pos:expr, $charpos:expr, $bytepos:expr) => {
+    { ($pos).charpos = ($charpos); ($pos).bytepos = ($bytepos); }
+  };
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: window.h 1139-1140: `void set_window_buffer (Lisp_Object window, Lisp_Object buffer,`
+  /// (window.h 1140 continues `bool run_hooks_p, bool keep_margins_p);`)
+  pub fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object, run_hooks_p: bool,
+                            keep_margins_p: bool);
+  /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);`
+  pub fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
+  /// C: dispextern.h 3918: `void update_single_window (struct window *);`
+  pub fn update_single_window (w: *mut window);
+}
+
+/* C 2298-2583.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("x-show-tip", Fx_show_tip, Sx_show_tip, 1, 6, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(string: Lisp_Object, frame: Lisp_Object, parms: Lisp_Object,
+	 timeout: Lisp_Object, dx: Lisp_Object, dy: Lisp_Object),
+	{
+  /* C 2303-2305: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());   // C 2304
+    return Qnil ();                                                // C 2305
+  }
+
+  /* C 2306-2582: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  let mut f: *mut frame;                                          // C 2307
+  let mut tip_f: *mut frame;
+  let mut w: *mut window;                                         // C 2308
+  /* C 2309 declares `root_x`/`root_y` with no initialiser and C 2365/2545 pass their addresses,
+     so the port zero-initialises them (PORTING.md 1.5).  */
+  let mut root_x: c_int = 0;
+  let mut root_y: c_int = 0;
+  let mut old_buffer: *mut buffer;                                // C 2310
+  let mut pos: text_pos = std::mem::zeroed ();                    // C 2311
+  let mut width: c_int = 0;                                       // C 2312
+  let mut height: c_int = 0;
+  let old_windows_or_buffers_changed: c_int = windows_or_buffers_changed;  // C 2313
+  let count: specpdl_ref = SPECPDL_INDEX ();                      // C 2314
+  let mut window: Lisp_Object;                                    // C 2315
+  let mut size: Lisp_Object;
+  let mut tip_buf: Lisp_Object;
+  let mut displayed: bool;                                        // C 2316
+  /* C 2317-2319: `#ifdef ENABLE_CHECKING` around the two row locals.  */
+  #[cfg (feature = "enable_checking")]
+  let mut row: *mut glyph_row = std::ptr::null_mut ();
+  #[cfg (feature = "enable_checking")]
+  let mut end: *mut glyph_row;
+  AUTO_STRING! (tip, c" *tip*".as_ptr ());                        // C 2320
+
+  /* C's `goto start_timer` (C 2371) and its label (C 2577) become this labelled block.  The six
+     parameters are re-bound as `mut` because C reassigns them and the `DEFUN!` macro's
+     `$arg:ident` cannot say `mut` (the `x-show-tip` spelling in `xfns.rs`; the macro's own note
+     in `docs/ports/macro-body-notes.tsv`).  */
+  let mut string = string;
+  let mut frame = frame;
+  let mut parms = parms;
+  let mut timeout = timeout;
+  let mut dx = dx;
+  let mut dy = dy;
+
+  'start_timer: {
+  specbind (Qinhibit_redisplay (), Qt ());                        // C 2322
+
+  CHECK_STRING (string);                                          // C 2324
+  if SCHARS (string) == 0                                         // C 2325
+    { string = make_unibyte_string (c" ".as_ptr (), 1); }          // C 2326
+
+  if NILP (frame)                                                 // C 2328
+    { frame = selected_frame; }                                   // C 2329
+  f = decode_window_system_frame (frame);                         // C 2330
+
+  if NILP (timeout)                                               // C 2332
+    { timeout = Vx_show_tooltip_timeout; }                        // C 2333
+  CHECK_FIXNAT (timeout);                                         // C 2334
+
+  if NILP (dx)                                                    // C 2336
+    { dx = make_fixnum (5); }                                     // C 2337
+  else
+    { CHECK_FIXNUM (dx); }                                        // C 2339
+
+  if NILP (dy)                                                    // C 2341
+    { dy = make_fixnum (-10); }                                   // C 2342
+  else
+    { CHECK_FIXNUM (dy); }                                        // C 2344
+
+  tip_dx = dx;                                                    // C 2346
+  tip_dy = dy;                                                    // C 2347
+
+  if !NILP (tip_frame) && FRAME_LIVE_P (XFRAME (tip_frame))        // C 2349
+    {
+      if FRAME_VISIBLE_P (XFRAME (tip_frame))                      // C 2351
+	  && !NILP (Fequal_including_properties (tip_last_string,   // C 2352
+						 string))
+	  && !NILP (Fequal (tip_last_parms, parms))                 // C 2354
+	{
+	  /* Only DX and DY have changed.  */                      // C 2356
+	  tip_f = XFRAME (tip_frame);                              // C 2357
+	  if !NILP (tip_timer)                                     // C 2358
+	    {
+	      calln! (Qcancel_timer (), tip_timer);                // C 2360
+	      tip_timer = Qnil ();                                 // C 2361
+	    }
+
+	  block_input ();                                          // C 2364
+	  compute_tip_xy (tip_f, parms, dx, dy, FRAME_PIXEL_WIDTH (tip_f),   // C 2365
+			  FRAME_PIXEL_HEIGHT (tip_f), &raw mut root_x, &raw mut root_y);
+	  android_move_window (FRAME_ANDROID_WINDOW! (tip_f),       // C 2367
+			       root_x, root_y);
+	  unblock_input ();                                        // C 2369
+
+	  break 'start_timer;                                      // C 2371 (C's `goto start_timer`)
+	}
+      else if tooltip_reuse_hidden_frame && BASE_EQ (frame, tip_last_frame)   // C 2373
+	{
+	  let mut delete: bool = false;                            // C 2375
+	  let mut tail: Lisp_Object;                               // C 2376
+	  let mut elt: Lisp_Object;
+	  let mut parm: Lisp_Object;
+	  let mut last: Lisp_Object;
+
+	  /* Check if every parameter in PARMS has the same value in
+	     tip_last_parms.  This may destruct tip_last_parms which,
+	     however, will be recreated below.  */                 // C 2378-2380
+	  tail = parms;                                            // C 2381
+	  while CONSP (tail)
+	    {
+	      elt = XCAR (tail);                                   // C 2383
+	      parm = CAR (elt);                                    // C 2384
+	      /* The left, top, right and bottom parameters are handled
+		 by compute_tip_xy so they can be ignored here.  */  // C 2385-2386
+	      if !EQ (parm, Qleft ()) && !EQ (parm, Qtop ())        // C 2387
+		  && !EQ (parm, Qright ()) && !EQ (parm, Qbottom ())  // C 2388
+		{
+		  last = Fassq (parm, tip_last_parms);              // C 2390
+		  if NILP (Fequal (CDR (elt), CDR (last)))          // C 2391
+		    {
+		      /* We lost, delete the old tooltip.  */       // C 2393
+		      delete = true;                                // C 2394
+		      break;
+		    }
+		  else
+		    { tip_last_parms                                 // C 2398-2399
+			= calln! (Qassq_delete_all (), parm, tip_last_parms); }
+		}
+	      else
+		{ tip_last_parms                                     // C 2402-2403
+		    = calln! (Qassq_delete_all (), parm, tip_last_parms); }
+	      tail = XCDR (tail);                                   // (C 2381's increment)
+	    }
+
+	  /* Now check if every parameter in what is left of
+	     tip_last_parms with a non-nil value has an association in
+	     PARMS.  */                                             // C 2406-2408
+	  tail = tip_last_parms;                                    // C 2409
+	  while CONSP (tail)
+	    {
+	      elt = XCAR (tail);                                    // C 2411
+	      parm = CAR (elt);                                     // C 2412
+	      if (!EQ (parm, Qleft ()) && !EQ (parm, Qtop ()) && !EQ (parm, Qright ())   // C 2413
+		  && !EQ (parm, Qbottom ()) && !NILP (CDR (elt)))    // C 2414
+		{
+		  /* We lost, delete the old tooltip.  */            // C 2416
+		  delete = true;                                     // C 2417
+		  break;
+		}
+	      tail = XCDR (tail);                                    // (C 2409's increment)
+	    }
+
+	  android_hide_tip (delete);                                // C 2422
+	}
+      else
+	{ android_hide_tip (true); }                                // C 2425
+    }
+  else
+    { android_hide_tip (true); }                                // C 2428
+
+  tip_last_frame = frame;                                       // C 2430
+  tip_last_string = string;                                     // C 2431
+  tip_last_parms = parms;                                       // C 2432
+
+  if NILP (tip_frame) || !FRAME_LIVE_P (XFRAME (tip_frame))       // C 2434
+    {
+      /* Add default values to frame parameters.  */              // C 2436
+      if NILP (Fassq (Qname (), parms))                           // C 2437
+	{ parms = Fcons (Fcons (Qname (), build_string (c"tooltip".as_ptr ())), parms); }   // C 2438
+      if NILP (Fassq (Qinternal_border_width (), parms))           // C 2439
+	{ parms = Fcons (Fcons (Qinternal_border_width (), make_fixnum (3)),   // C 2440-2441
+			 parms); }
+      if NILP (Fassq (Qborder_width (), parms))                    // C 2442
+	{ parms = Fcons (Fcons (Qborder_width (), make_fixnum (1)), parms); }   // C 2443
+      if NILP (Fassq (Qborder_color (), parms))                    // C 2444
+	{ parms = Fcons (Fcons (Qborder_color (), build_string (c"lightyellow".as_ptr ())),   // C 2445-2446
+			 parms); }
+      if NILP (Fassq (Qbackground_color (), parms))                // C 2447
+	{ parms = Fcons (Fcons (Qbackground_color (),               // C 2448-2450
+			      build_string (c"lightyellow".as_ptr ())),
+			 parms); }
+
+      /* Create a frame for the tooltip, and record it in the global
+	 variable tip_frame.  */                                  // C 2452-2453
+      /* C 2454's `NILP (tip_frame = android_create_tip_frame (…))` assigns inside the condition;
+	 Rust's assignment is a statement, so the port keeps C's call as its own statement and the
+	 test on the next line (the `dosfns.rs` 656-660 class).  */
+      tip_frame = android_create_tip_frame (FRAME_DISPLAY_INFO! (f),   // C 2454-2455
+					    parms);
+      if NILP (tip_frame)                                         // C 2454
+	/* Creating the tip frame failed.  */                      // C 2456
+	{ return unbind_to (count, Qnil ()); }                     // C 2457
+    }
+  else
+    { tip_window = FRAME_ANDROID_WINDOW! (XFRAME (tip_frame)); }   // C 2460
+
+  tip_f = XFRAME (tip_frame);                                     // C 2462
+  window = FRAME_ROOT_WINDOW (tip_f);                             // C 2463
+  tip_buf = Fget_buffer_create (tip, Qnil ());                    // C 2464
+  /* We will mark the tip window a "pseudo-window" below, and such
+     windows cannot have display margins.  */                     // C 2465-2466
+  bset_left_margin_cols (XBUFFER (tip_buf), make_fixnum (0));      // C 2467
+  bset_right_margin_cols (XBUFFER (tip_buf), make_fixnum (0));     // C 2468
+  set_window_buffer (window, tip_buf, false, false);               // C 2469
+  w = XWINDOW (window);                                            // C 2470
+  window_bits! (pseudo_window_p, w, true);                         // C 2471
+  /* Try to avoid that `other-window' select us (Bug#47207).  */    // C 2472
+  Fset_window_parameter (window, Qno_other_window (), Qt ());       // C 2473
+
+  /* Set up the frame's root window.  Note: The following code does not
+     try to size the window or its frame correctly.  Its only purpose is
+     to make the subsequent text size calculations work.  The right
+     sizes should get installed when the toolkit gets back to us.  */   // C 2475-2478
+  (*w).left_col = 0;                                               // C 2479
+  (*w).top_line = 0;                                               // C 2480
+  (*w).pixel_left = 0;                                             // C 2481
+  (*w).pixel_top = 0;                                              // C 2482
+
+  if CONSP (Vx_max_tooltip_size)                                   // C 2484
+      && RANGED_FIXNUMP (1, XCAR (Vx_max_tooltip_size), INT_MAX as EMACS_INT)   // C 2485
+      && RANGED_FIXNUMP (1, XCDR (Vx_max_tooltip_size), INT_MAX as EMACS_INT)   // C 2486
+    {
+      (*w).total_cols = XFIXNAT (XCAR (Vx_max_tooltip_size)) as c_int;    // C 2488
+      (*w).total_lines = XFIXNAT (XCDR (Vx_max_tooltip_size)) as c_int;   // C 2489
+    }
+  else
+    {
+      (*w).total_cols = 80;                                        // C 2493
+      (*w).total_lines = 40;                                       // C 2494
+    }
+
+  (*w).pixel_width = (*w).total_cols * FRAME_COLUMN_WIDTH (tip_f);          // C 2497
+  (*w).pixel_height = (*w).total_lines * FRAME_LINE_HEIGHT (tip_f);         // C 2498
+  FRAME_TOTAL_COLS! (tip_f, (*w).total_cols);                              // C 2499
+  adjust_frame_glyphs (tip_f);                                             // C 2500
+
+  /* Insert STRING into root window's buffer and fit the frame to the
+     buffer.  */                                                    // C 2502-2503
+  let count_1: specpdl_ref = SPECPDL_INDEX ();                     // C 2504
+  old_buffer = current_buffer! ();                                 // C 2505
+  set_buffer_internal_1 (XBUFFER ((*w).contents));                 // C 2506
+  bset_truncate_lines (current_buffer! (), Qnil ());                // C 2507
+  specbind (Qinhibit_read_only (), Qt ());                          // C 2508
+  specbind (Qinhibit_modification_hooks (), Qt ());                 // C 2509
+  specbind (Qinhibit_point_motion_hooks (), Qt ());                 // C 2510
+  Ferase_buffer ();                                                // C 2511
+  Finsert (1, &raw mut string);                                    // C 2512
+  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);    // C 2513
+  clear_glyph_matrix ((*w).current_matrix as *mut glyph_matrix);    // C 2514
+  SET_TEXT_POS! (pos, BEGV! (), BEGV_BYTE! ());                     // C 2515
+  displayed = try_window (window, pos, TRY_WINDOW_IGNORE_FONTS_CHANGE) != 0;   // C 2516
+
+  if !displayed && NILP (Vx_max_tooltip_size)                       // C 2518
+    {
+      /* C 2520-2533: `#ifdef ENABLE_CHECKING`.  */
+      #[cfg (feature = "enable_checking")]
+      {
+	row = (*((*w).desired_matrix as *mut glyph_matrix)).rows;   // C 2521
+	end = (*((*w).desired_matrix as *mut glyph_matrix)).rows    // C 2522
+	  .offset ((*((*w).desired_matrix as *mut glyph_matrix)).nrows as isize);
+
+	while row < end                                            // C 2524
+	  {
+	    if !glyph_row_bits! (displays_text_p, row)              // C 2526
+		|| glyph_row_bits! (ends_at_zv_p, row)              // C 2527
+	      { break; }                                            // C 2528
+	    row = row.offset (1);                                   // C 2529
+	  }
+
+	eassert! (row < end && glyph_row_bits! (ends_at_zv_p, row));   // C 2532
+      }
+    }
+
+  /* Calculate size of tooltip window.  */                          // C 2536
+  size = Fwindow_text_pixel_size (window, Qnil (), Qnil (), Qnil (),   // C 2537-2539
+				  make_fixnum ((*w).pixel_height as EMACS_INT), Qnil (),
+				  Qnil ());
+  /* Add the frame's internal border to calculated size.  */        // C 2540
+  width = (XFIXNUM (CAR (size)) as c_int) + 2 * FRAME_INTERNAL_BORDER_WIDTH (tip_f);    // C 2541
+  height = (XFIXNUM (CDR (size)) as c_int) + 2 * FRAME_INTERNAL_BORDER_WIDTH (tip_f);   // C 2542
+
+  /* Calculate position of tooltip frame.  */                       // C 2544
+  compute_tip_xy (tip_f, parms, dx, dy, width, height, &raw mut root_x,   // C 2545
+		  &raw mut root_y);
+
+  /* Show tooltip frame.  */                                        // C 2547
+  block_input ();                                                   // C 2548
+  /* C's third and fourth arguments are the `int` locals `width`/`height` and the call's
+     parameters are `unsigned int`, so the port spells C's implicit conversion.  */
+  android_move_resize_window (FRAME_ANDROID_WINDOW! (tip_f),        // C 2549
+			      root_x, root_y, width as c_uint,
+			      height as c_uint);
+  android_map_raised (FRAME_ANDROID_WINDOW! (tip_f));               // C 2552
+  unblock_input ();                                                 // C 2553
+
+  /* Garbage the tip frame too.  */                                 // C 2555
+  SET_FRAME_GARBAGED! (tip_f);                                      // C 2556
+
+  /* Block input around `update_single_window' and `flush_frame', lest a
+     ConfigureNotify and Expose event arrive during the update, and set
+     flags, e.g. garbaged_p, that are cleared once the update completes,
+     leaving the requested exposure or configuration outstanding.  */   // C 2558-2561
+  block_input ();                                                   // C 2562
+  window_bits! (must_be_updated_p, w, true);                        // C 2563
+  update_single_window (w);                                         // C 2564
+  flush_frame (tip_f);                                              // C 2565
+  unblock_input ();                                                 // C 2566
+
+  set_buffer_internal_1 (old_buffer);                               // C 2568
+  unbind_to (count_1, Qnil ());                                     // C 2569
+  windows_or_buffers_changed = old_windows_or_buffers_changed;      // C 2570
+
+  /* MapNotify events are not sent on Android, so make the frame
+     visible.  */                                                   // C 2572-2573
+
+  SET_FRAME_VISIBLE! (tip_f, true);                                 // C 2575
+
+  }   /* 'start_timer: */
+
+  /* Let the tip disappear after timeout seconds.  */               // C 2578
+  tip_timer = calln! (Qrun_at_time (), timeout, Qnil (), Qx_hide_tip ());   // C 2579
+
+  return unbind_to (count, Qnil ());                                // C 2581
+  }
+});
