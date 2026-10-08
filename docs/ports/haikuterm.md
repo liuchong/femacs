@@ -7,12 +7,25 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**4,445 lines**), which carries **C 1-3138** - P-86 ④'s first
-> nineteen slices of this file - with every `#if`'s arms both carried.
+> `femacs/src/haikuterm.rs` (**4,500 lines**), which carries **C 1-3206** - P-86 ④'s first twenty
+> slices of this file - with every `#if`'s arms both carried.  **C 3139-3170 (the
+> `redisplay_interface` object) is the one range inside that prefix a slice has deliberately left
+> for its own round**: it is the ABI round Owed 1 names, and its row below says so.
+>
+> **The two ranges the prefix's table splits.**  Twenty slices have covered C 1-3206 except C
+> 3140-3170, which the `## Slice 20` section records as this ledger's standing deferral.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 3206 and not 3208 (slice 20).**  C 3208 is `haiku_clear_under_internal_border`'s
+> `static void` and C 3206 the closing brace of the item before it, so the slice is **C 3171-3206**
+> - the blank line C 3171, `haiku_make_fullscreen_consistent` (C 3173-3192) and
+> `haiku_flush_dirty_back_buffer_on` (C 3194-3206) - **skipping C 3140-3170 on purpose** (the
+> `redisplay_interface` object, whose named-field literal and seventeen `transmute`d entries are a
+> round of their own; its range row below is the deferral's record).  The next definition is
+> `haiku_clear_under_internal_border` (C 3208).
 >
 > **Why 3138 and not 3140 (slice 19).**  C 3140 opens the `redisplay_interface` table's definition
 > and C 3138 the closing brace of the item before it, so the slice is **C 3092-3138** - the blank
@@ -214,7 +227,9 @@ the pre-flight below sets it as well.
 | 2981-3077 | the C 2982-2987 comment block, `haiku_mouse_position` (C 2988-3061; C 3004-3008 the first `FOR_EACH_FRAME`, C 3017-3024 the selected/any-frame fallbacks, C 3031-3056 the view arm with `BView_get_mouse`/`remember_mouse_glyph`/the two `XSETINT`s) and `haiku_flush` (C 3063-3077; C 3068 the dirty/flip test, C 3073 the `FRAME_COMPLETE_P` write, C 3075-3076 the flush) | file gate (slice 17) |
 | 3078-3091 | `haiku_define_frame_cursor` (C 3080-3091; C 3082 the tooltip guard, C 3086-3088 the three-part test and the cursor set, C 3090 the `current_cursor` store) | file gate (slice 18) |
 | 3092-3138 | `haiku_default_font_parameter` (C 3093-3138; C 3096 the display info, C 3097-3101 the two-argument read and the `Qunbound` fold, C 3103-3115 the system-font and resource fallbacks, C 3117-3134 the four-name loop, C 3136-3137 the recorder) | file gate (slice 19) |
-| 3139-4898 | **the remainder of the file** (the C 3140-3170 `redisplay_interface` table onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3139-3170 | **the `redisplay_interface` object** (C 3140-3170): the ABI round Owed 1 names, deferred by slice 20 - C's initializer is positional and Rust has none, so the port writes a named-field literal (C's 28 entries are the record's 28 fields, in C's order), `None` for C's three `NULL`s, and the `pgtkterm.rs` 5412-5480 object's two decisions (Deviation 47 of that lane) for the seventeen entries whose C parameters the mirror types `*mut c_void` | **deferred (next round)** |
+| 3171-3206 | `haiku_make_fullscreen_consistent` (C 3173-3192; C 3180-3189 the five-way fold, C 3191 the store) and `haiku_flush_dirty_back_buffer_on` (C 3194-3206; C 3197-3202 the four guards) | file gate (slice 20) |
+| 3207-4898 | **the remainder of the file** (C 3208 `haiku_clear_under_internal_border` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1701,3 +1716,63 @@ C 3139-4898 remainder.
   arm's type-checking and the text/token gates.
 - The six mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 3139-4898 text this file has not reached.
+
+## Slice 20 (2026-10-08, status 4.096 - the integrator sets the round number): C 3171-3206
+
+**The slice's text.**  The blank line C 3171, `haiku_make_fullscreen_consistent` (C 3173-3192) and
+`haiku_flush_dirty_back_buffer_on` (C 3194-3206) - **deliberately skipping C 3140-3170**, the
+`redisplay_interface` object, whose round is Owed 1 (recorded in the range table above as this
+ledger's standing deferral).  Port line count **4,445 -> 4,500** (+55, of which five lines are
+Deviation 1's declaration).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Two runs:
+
+- **Run 1: `exit 1`, 8 primary errors, 2 in the unit's own text** - `store_frame_param` (frame.h
+  2287) is declared **nowhere**, and C 3201's `!FRAME_COMPLETE_P (f)` is the mirror's **macro** (so
+  the one-argument arm needs the `!`).
+- **Run 2 (final revision): `exit 1`, 6 primary errors among 34 error-prefixed lines, every one in a
+  mirror** - the same six slices 17-19 read.  **The unit's own text has no primary error**,
+  4 warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 24 rows -> 22.**  The two closed are
+the `missing function` rows for the two items this slice lands, and **no new row appeared**.  The 22
+that remain are 21 `missing function` rows plus `missing macro ASSIGN_CURSOR`, all inside the
+C 3207-4898 remainder (the deferred C 3140-3170 object is **not** a `--check` row: C's initializer
+is not a function or a macro, so only the range table carries it).
+
+### Deviations (this slice)
+
+1. **`store_frame_param` (frame.h 2287) is declared at the use site** (P-72 rule 4): C 3191's call,
+   and no mirror carries the prototype.
+2. **C 3201's `FRAME_COMPLETE_P (f)` is `FRAME_COMPLETE_P! (f)`**: the mirror keeps that name as a
+   macro with both arms (the one-argument read this slice uses and the two-argument write C 1537/3073
+   use), so the read needs the `!` - unlike `FRAME_VISIBLE_P`/`FRAME_DIRTY_P`, which are the
+   mirror's *functions* (`FRAME_DIRTY_P!` is this file's own macro over the flag run, so C 3202's
+   test keeps the `!` form).
+3. **C 3180-3189's five-way `if`/`else if` chain** keeps C's order and leaves `lval` assigned on
+   every path (the port's `let mut lval: Lisp_Object;` with each arm a store, the slice-2
+   `last_x` reading), and C 3178's `FRAME_OUTPUT_DATA (f)` is cast to this unit's own
+   `*mut haiku_output` (the P-72 rule 3 shape this file uses at C 467-775).
+4. **The deferral itself**: C 3140-3170 is not transcribed this round, and the reasons are the
+   `pgtkterm.rs` 5412-5480 object's own record (its lane's Deviation 47) - a positional initializer
+   has no Rust counterpart, the mirror's `*mut c_void` parameters mean seventeen entries need a
+   `transmute` (a direct `as` is E0605, measured by that lane), and C's three `NULL` entries are
+   `None`.  Writing all of that against the file's own text is the next round's work, and it is the
+   round that also converts the seventeen functions plus `haiku_mouse_position` to
+   `unsafe extern "C" fn`.
+
+### Owed (this slice's additions)
+
+- **The ABI round is now the only deferral inside the file's first 3206 lines** (above), and its
+  size is fixed at eighteen functions (slice 18's reading).
+- Nothing else: no `--check` row (Evidence ②) and the line-drift row is unchanged (C 4898 vs Rust
+  4,500 is 8.1%, inside the `haikuterm` row's 0.69).
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no fullscreen parameter was made
+  consistent and no back buffer was flushed.**  What is measured is the arm's type-checking and the
+  text/token gates.
+- The six mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 3207-4898 text this file has not reached.

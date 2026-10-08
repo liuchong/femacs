@@ -4442,3 +4442,59 @@ unsafe fn haiku_default_font_parameter (f: *mut frame, parms: Lisp_Object)
   gui_default_parameter (f, parms, Qfont (), font, c"font".as_ptr (),   // C 3136
 			 c"Font".as_ptr (), RES_TYPE_STRING);          // C 3137
 }
+
+/* C: lisp.h 5117: `extern void store_frame_param (struct frame *, Lisp_Object, Lisp_Object);`
+   (C 3191's call; no mirror carries it, so the unit declares it here - P-72 rule 4).  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
+}
+
+/* C 3171-3206: `haiku_make_fullscreen_consistent` (C 3173-3192) and
+   `haiku_flush_dirty_back_buffer_on` (C 3194-3206).  The next first definition is C 3208's
+   `haiku_clear_under_internal_border`.  **The C 3140-3170 `redisplay_interface` table is not in
+   this slice** (the ledger's range table carries it as the ABI round): C's initializer is
+   positional, so its 28 entries must be written as a named-field literal in C's order, and the
+   seventeen entries whose C parameters the mirror types `*mut c_void` need the conversion the
+   `pgtkterm.rs` 5412-5480 object's own note records (Deviation 47 of that lane: `Some (name)`
+   where the declaration already has the field's type, a `transmute` where it does not, `None` for
+   C's three `NULL`s).  `FRAME_COMPLETE_P (f)` (C 3201) is the mirror's one-argument reader (its
+   write arm is the two-argument form this file uses at C 1537).  */
+
+/* C 3173-3192.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_make_fullscreen_consistent (f: *mut frame)
+{
+  let mut lval: Lisp_Object;                                          // C 3175
+  let output: *mut haiku_output;                                      // C 3176
+
+  output = FRAME_OUTPUT_DATA! (f) as *mut haiku_output;                // C 3178
+
+  if (*output).fullscreen_mode == FULLSCREEN_MODE_BOTH                // C 3180
+    { lval = Qfullboth (); }                                          // C 3181
+  else if (*output).fullscreen_mode == FULLSCREEN_MODE_WIDTH           // C 3182
+    { lval = Qfullwidth (); }                                         // C 3183
+  else if (*output).fullscreen_mode == FULLSCREEN_MODE_HEIGHT          // C 3184
+    { lval = Qfullheight (); }                                        // C 3185
+  else if (*output).fullscreen_mode == FULLSCREEN_MODE_MAXIMIZED       // C 3186
+    { lval = Qmaximized (); }                                         // C 3187
+  else
+    { lval = Qnil (); }                                               // C 3189
+
+  store_frame_param (f, Qfullscreen (), lval);                        // C 3191
+}
+
+/* C 3194-3206.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_flush_dirty_back_buffer_on (f: *mut frame)
+{
+  if FRAME_GARBAGED_P (f)                                             // C 3197
+      || buffer_flipping_blocked_p ()                                 // C 3198
+      /* If the frame is not already up to date, do not flush buffers
+	 on input, as that will result in flicker.  */                 // C 3199-3200
+      || ! FRAME_COMPLETE_P! (f)                                      // C 3201
+      || ! FRAME_DIRTY_P! (f)                                         // C 3202
+    { return; }                                                       // C 3203
+
+  haiku_flip_buffers (f);                                             // C 3205
+}
