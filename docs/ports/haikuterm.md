@@ -7,12 +7,19 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**3,208 lines**), which carries **C 1-2219** - P-86 ④'s first nine
+> `femacs/src/haikuterm.rs` (**3,430 lines**), which carries **C 1-2397** - P-86 ④'s first ten
 > slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 2397 and not 2399 (slice 10).**  C 2399 is `haiku_compute_glyph_string_overhangs`'s
+> `static void` and C 2397 the closing brace of the item before it, so the slice is **C 2220-2397**
+> - the blank line C 2220 and the four items `haiku_draw_bar_cursor` (C 2221-2316),
+> `haiku_draw_window_cursor` (C 2318-2365), `haiku_show_hourglass` (C 2367-2381) and
+> `haiku_hide_hourglass` (C 2383-2397).  The next definition is
+> `haiku_compute_glyph_string_overhangs` (C 2399).
 >
 > **Why 2219 and not 2221 (slice 9).**  C 2221 is `haiku_draw_bar_cursor`'s `static void` and
 > C 2219 the closing brace of the item before it, so the slice is **C 2075-2219** - the blank line
@@ -146,7 +153,8 @@ the pre-flight below sets it as well.
 | 1733-1902 | `haiku_translate_transform` (C 1734-1740) and `haiku_draw_image_glyph_string` (C 1742-1902; C 1747-1748 the two box widths, C 1755-1772 the height/width/x/y folds, C 1777 the `stippled_p` write, C 1780/1782 the cursor background, C 1787-1896 the bitmap arm with `CONVERT_TO_EMACS_RECT`/`gui_intersect_rectangles`/`memcpy`/`be_apply_affine_transform`/`BView_DrawBitmap`/`be_draw_image_mask`/`be_draw_bitmap_with_mask` and the cursor rectangle, C 1898-1901 the relief tail) | file gate (slice 7) |
 | 1903-2074 | `haiku_draw_glyph_string` (C 1904-2074; C 1914 and C 1927-1928 the two `stippled_p` writes, C 1916-1938 the right-overhang loop, C 1942-1962 the box/clip decision, C 1967-1999 the five-arm dispatch, C 2001-2059 the prev/next overhang loops, C 2068-2071 the row's `stipple_p` write) | file gate (slice 8) |
 | 2075-2219 | `haiku_after_update_window_line` (C 2076-2129; C 2087-2093 the two comma-expression conditions, C 2100-2126 the two face arms), `haiku_set_window_size` (C 2131-2167; C 2140 `XSETFRAME`, C 2144 `want_fullscreen`, C 2148 `configury_done`, C 2162 `haiku_wait_for_event`) and `haiku_draw_hollow_cursor` (C 2169-2219; C 2183-2188 the phys-cursor pair, C 2198-2200 the R2L shift, C 2205-2218 the clip/pen/rectangle) | file gate (slice 9) |
-| 2220-4898 | **the remainder of the file** (C 2221 `haiku_draw_bar_cursor` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 2220-2397 | `haiku_draw_bar_cursor` (C 2221-2316; C 2238-2240 the out-of-bounds return, C 2245-2249 the image arm, C 2260-2263 the colour choice, C 2270-2288 the BAR arm, C 2289-2311 the HBAR arm), `haiku_draw_window_cursor` (C 2318-2365; C 2326 the `phys_cursor_on_p` write, C 2328-2334 the fringe arm, C 2338-2362 the five-arm dispatch), `haiku_show_hourglass` (C 2367-2381) and `haiku_hide_hourglass` (C 2383-2397) | file gate (slice 10) |
+| 2398-4898 | **the remainder of the file** (C 2399 `haiku_compute_glyph_string_overhangs` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1018,3 +1026,71 @@ are the `missing function` rows for the three items this slice lands; the 47 tha
   is measured is the arm's type-checking and the text/token gates.
 - The five mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 2220-4898 text this file has not reached.
+
+## Slice 10 (2026-10-08, status 4.086 - the integrator sets the round number): C 2220-2397
+
+**The slice's text.**  The blank line C 2220 and the four items `haiku_draw_bar_cursor`
+(C 2221-2316), `haiku_draw_window_cursor` (C 2318-2365), `haiku_show_hourglass` (C 2367-2381) and
+`haiku_hide_hourglass` (C 2383-2397).  Port line count **3,208 -> 3,430** (+222).  Two prototypes
+are declared at the use site (`draw_phys_cursor_glyph`, dispextern.h 3649-3651;
+`draw_fringe_bitmap`, dispextern.h 3703), `w->phys_cursor_on_p` gains a setter arm on this unit's
+own `window_bits!` (the `pgtkterm.rs` 2875-2882 shape), and `MATRIX_ROW!`/`FRAME_CURSOR_COLOR!` are
+the mirrors'.
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Three runs of slice 2's
+command, arm set `have_haiku` + `have_window_system`:
+
+- **Run 1: `exit 1`, 7 primary errors, 2 in the unit's own text** - `MATRIX_ROW!` against the
+  mirror's untyped `current_matrix` (window.rs 104) and `glyph->face_id`, which is a **bit field**
+  (dispextern.rs 594), so it is `glyph_bits! (face_id, …)`.
+- **Run 2 (after both repairs): `exit 1`, 5 primary errors, none in the unit's own text** - the
+  same five slices 5-9 read.
+- **Run 3 (final revision, after the `phys_cursor_on_p` arm moved onto `window_bits!`): `exit 1`,
+  5 primary errors among 34 error-prefixed lines, every one in a mirror.**  **The unit's own text
+  has no primary error**, 4 warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 47 rows -> 43.**  The four closed
+are the `missing function` rows for the four items this slice lands; one new row appeared and is
+discharged: **`function haiku_draw_window_cursor does not mention break, case, default, switch`**
+(C 2338's `switch` and its five `case` labels are the port's `match`) - a
+`docs/ports/macro-body-notes.tsv` row with its reason.  The 43 that remain are 42 `missing
+function` rows plus `missing macro ASSIGN_CURSOR`, all inside the C 2398-4898 remainder.
+
+### Deviations (this slice)
+
+1. **`w->phys_cursor_on_p` (window.h 438) is written through this unit's `window_bits!`**, which
+   gains the `phys_cursor_on_p` two-argument arm (the masked store over
+   `WINDOW_PHYS_CURSOR_ON_P_SHIFT`, `include/window.rs` 191; the `pgtkterm.rs` 2875-2882 copy of the
+   same arm).  A first draft named the macro `window_bits_phys_cursor_on_p_set!`, which put the
+   member's name inside the macro *name* and left `phys_cursor_on_p` missing from the body
+   comparison - the `--check` row is what caught it, and the arm form keeps C's member token at the
+   call site (that lane's own reading of the same member).
+2. **C 2231's `dummy_x`/`dummy_y`/`dummy_h`** are zero-initialised and named (PORTING.md 1.5): C
+   2300 hands the callee their addresses - this file's C 1752/C 2135 reading.
+3. **`MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, …)`**: the mirror types
+   `window.current_matrix` as the untyped `*mut c_void` (window.rs 104), so the pointer is cast for
+   the mirror's macro - the `dispnew.rs` 2807 spelling of the same call.
+4. **`glyph->face_id`** is `glyph_bits! (face_id, (*cursor_glyph))` (dispextern.rs 594; C 553's
+   22-bit run), and `pixel_width` (a `short`) is cast to `c_int` on every one of this slice's five
+   uses.
+5. **`FRAME_CURSOR_COLOR! (f).pixel` is `c_ulong`** (include/haikuterm.rs 445, `Emacs_Color`'s
+   member, dispextern.rs 27), so C 2260's comparison needs no cast while C 2261/2263's two
+   assignments to the `uint32_t foreground` keep C's narrowing as `as uint32_t`.
+6. **`haiku_draw_window_cursor`'s unused `x`/`y`/`active_p`** (C 2319-2321; C's body reads only
+   `on_p`, `glyph_row`, `cursor_type` and `cursor_width`) are named and dropped with
+   `let _ = (x, y, active_p);` (Deviation 7 of slice 9's `change_gravity`).
+
+### Owed (this slice's additions)
+
+- **Nothing new**: the one `--check` row is discharged in `docs/ports/macro-body-notes.tsv`
+  (Evidence ②), the line-drift row is unchanged (C 4898 vs Rust 3,430 is 30.0%, inside the
+  `haikuterm` row's 0.69), and no mirror file is touched (Owed 7 unchanged).
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no bar cursor was drawn, no window
+  cursor was dispatched, and neither hourglass was shown or hidden.**  What is measured is the
+  arm's type-checking and the text/token gates.
+- The five mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 2398-4898 text this file has not reached.

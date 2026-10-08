@@ -1617,6 +1617,12 @@ unsafe fn haiku_draw_text_decoration (s: *mut glyph_string, face: *mut face,
 #[cfg (feature = "have_haiku")]
 macro_rules! window_bits {
   (pseudo_window_p, $w:expr) => { ((*($w)).bits >> WINDOW_PSEUDO_WINDOW_P_SHIFT) & 1 != 0 };
+  /* C 438's `bool_bf phys_cursor_on_p : 1` - **written** at C 2326.  The mirror names the shift
+     (`include/window.rs` 191) and carries no setter, so the unit writes the masked store (the
+     `pgtkterm.rs` 2875-2882 copy of this same arm).  */
+  (phys_cursor_on_p, $w:expr, $v:expr) =>
+    { (*($w)).bits = if $v { (*($w)).bits | (1 << WINDOW_PHYS_CURSOR_ON_P_SHIFT) }
+                     else { (*($w)).bits & ! (1 << WINDOW_PHYS_CURSOR_ON_P_SHIFT) } };
 }
 
 /* C 597-598's `bool_bf automatic : 1; unsigned id : 31;` are the `glyph.u.cmp` members C 1064 and
@@ -3204,4 +3210,208 @@ unsafe fn haiku_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
   /* Reset clipping.  */                                             // C 2216
   BView_EndClip (view);                                              // C 2217
   BView_draw_unlock (view);                                          // C 2218
+}
+
+/* C 2220-2397: `haiku_draw_bar_cursor` (C 2221-2316), `haiku_draw_window_cursor` (C 2318-2365),
+   `haiku_show_hourglass` (C 2367-2381) and `haiku_hide_hourglass` (C 2383-2397).  The next first
+   definition is C 2399's `haiku_compute_glyph_string_overhangs`.  Two names are declared at the
+   use site below - `draw_phys_cursor_glyph` (dispextern.h 3649-3651; `src/abi_shim.rs` 2493 names
+   it and no mirror carries the prototype) and `draw_fringe_bitmap` (dispextern.h 3703) - and
+   `w->phys_cursor_on_p` (window.h 422) gets its unit-local `window_bits!` setter (the
+   `pgtkterm.rs` 2875-2882 shape), while `FRAME_CURSOR_COLOR!` (include/haikuterm.rs 445) and
+   `MATRIX_ROW!` (include/dispextern.rs 1223) are the mirrors'.  */
+
+/* C: dispextern.h 3649-3651: `extern void draw_phys_cursor_glyph (struct window *,
+   struct glyph_row *, enum draw_glyphs_face);`
+   C: dispextern.h 3703: `void draw_fringe_bitmap (struct window *, struct glyph_row *, int);`  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn draw_phys_cursor_glyph (w: *mut window, row: *mut glyph_row, draw: draw_glyphs_face);
+  pub fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row, left_p: c_int);
+}
+
+/* C 2221-2316.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_bar_cursor (w: *mut window, row: *mut glyph_row,
+				 mut width: c_int, kind: text_cursor_kinds)
+{
+  let f: *mut frame;                                                  // C 2225
+  let mut cursor_glyph: *mut glyph;                                   // C 2226
+  let mut r: *mut glyph_row;                                          // C 2227
+  let mut face: *mut face;                                            // C 2228
+  let mut foreground: uint32_t;                                       // C 2229
+  let mut view: *mut c_void;                                          // C 2230
+  let mut x: c_int;                                                   // C 2231
+  let mut y: c_int;
+  /* C 2231's `dummy_x`/`dummy_y`/`dummy_h` have no initialiser and C 2300 hands the callee their
+     addresses (PORTING.md 1.5; this file's C 1752/C 2135 reading).  */
+  let mut dummy_x: c_int = 0;
+  let mut dummy_y: c_int = 0;
+  let mut dummy_h: c_int = 0;
+
+  f = XFRAME ((*w).frame);                                            // C 2233
+
+  /* If cursor is out of bounds, don't draw garbage.  This can happen
+     in mini-buffer windows when switching between echo area glyphs
+     and mini-buffer.  */                                            // C 2235-2237
+  cursor_glyph = get_phys_cursor_glyph (w);                           // C 2238
+  if cursor_glyph.is_null ()                                          // C 2239
+    { return; }                                                       // C 2240
+
+  /* If on an image, draw like a normal cursor.  That's usually better
+     visible than drawing a bar, esp. if the image is large so that
+     the bar might not be in the window.  */                         // C 2242-2244
+  if glyph_bits! (type, (*cursor_glyph)) == IMAGE_GLYPH                // C 2245
+    {
+      /* The mirror types `current_matrix` as the untyped `*mut c_void` (window.rs 104), so
+	 the pointer is cast for `MATRIX_ROW!` - the `dispnew.rs` 2807 spelling.  */
+      r = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix,   // C 2247
+		       (*w).phys_cursor.vpos);
+      draw_phys_cursor_glyph (w, r, DRAW_CURSOR);                      // C 2248
+    }
+  else
+    {
+      view = FRAME_HAIKU_DRAWABLE! (f);                                // C 2252
+      face = FACE_FROM_ID (f, glyph_bits! (face_id, (*cursor_glyph)));   // C 2253
+
+      /* If the glyph's background equals the color we normally draw
+	 the bars cursor in, the bar cursor in its normal color is
+	 invisible.  Use the glyph's foreground color instead in this
+	 case, on the assumption that the glyph's colors are chosen so
+	 that the glyph is legible.  */                              // C 2255-2259
+      if (*face).background == FRAME_CURSOR_COLOR! (f).pixel          // C 2260
+	{ foreground = (*face).foreground as uint32_t; }              // C 2261
+      else
+	{ foreground = FRAME_CURSOR_COLOR! (f).pixel as uint32_t; }    // C 2263
+
+      BView_draw_lock (view, false, 0, 0, 0, 0);                      // C 2265
+      BView_StartClip (view);                                         // C 2266
+      BView_SetHighColor (view, foreground);                          // C 2267
+      haiku_clip_to_row (w, row, TEXT_AREA);                          // C 2268
+
+      if kind == BAR_CURSOR                                           // C 2270
+	{
+	  x = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);      // C 2272
+	  y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y);           // C 2273
+
+	  if width < 0                                                    // C 2275
+	    { width = FRAME_CURSOR_WIDTH (f); }                          // C 2276
+	  width = std::cmp::min ((*cursor_glyph).pixel_width as c_int, width);   // C 2277
+
+	  (*w).phys_cursor_width = width;                                 // C 2279
+
+	  /* If the character under cursor is R2L, draw the bar cursor
+	     on the right of its glyph, rather than on the left.  */    // C 2281-2282
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0     // C 2283
+	    { x += (*cursor_glyph).pixel_width as c_int - width; }        // C 2284
+
+	  BView_FillRectangle (view, x, y, width, (*row).height);         // C 2286
+	  BView_invalidate_region (view, x, y, width, (*row).height);     // C 2287
+	}
+      else /* HBAR_CURSOR */                                          // C 2289
+	{
+	  x = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);      // C 2291
+	  y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y            // C 2292
+					   + (*row).height - width);      // C 2293
+
+	  if width < 0                                                    // C 2295
+	    { width = (*row).height; }                                    // C 2296
+
+	  width = std::cmp::min ((*row).height, width);                   // C 2298
+
+	  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut dummy_x,   // C 2300
+				    &raw mut dummy_y, &raw mut dummy_h);  // C 2301
+
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0     // C 2303
+	      && (*cursor_glyph).pixel_width as c_int > (*w).phys_cursor_width - 1   // C 2304
+	    { x += (*cursor_glyph).pixel_width as c_int - (*w).phys_cursor_width + 1; }   // C 2305
+
+	  BView_FillRectangle (view, x, y, (*w).phys_cursor_width - 1,    // C 2307
+			       width);                                    // C 2308
+	  BView_invalidate_region (view, x, y, (*w).phys_cursor_width - 1,   // C 2309
+				   width);                                // C 2310
+	}
+
+      BView_EndClip (view);                                           // C 2313
+      BView_draw_unlock (view);                                       // C 2314
+    }
+}
+
+/* C 2318-2365.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
+				    x: c_int, y: c_int, cursor_type: text_cursor_kinds,
+				    cursor_width: c_int, on_p: bool, active_p: bool)
+{
+  let _ = (x, y, active_p);
+  if on_p                                                             // C 2323
+    {
+      (*w).phys_cursor_type = cursor_type;                            // C 2325
+      window_bits! (phys_cursor_on_p, w, true);                       // C 2326
+
+      if glyph_row_bits! (exact_window_width_line_p, glyph_row)       // C 2328
+	  && (if glyph_row_bits! (reversed_p, glyph_row)              // C 2329
+	      { (*w).phys_cursor.hpos < 0 }                           // C 2330
+	      else
+	      { (*w).phys_cursor.hpos >= (*glyph_row).used[TEXT_AREA as usize] as c_int })   // C 2331
+	{
+	  glyph_row_bits! (cursor_in_fringe_p, glyph_row, true);          // C 2333
+	  draw_fringe_bitmap (w, glyph_row,                          // C 2334
+			      glyph_row_bits! (reversed_p, glyph_row) as c_int);
+	}
+      else
+	{
+	  match cursor_type                                             // C 2338
+	    {
+	      HOLLOW_BOX_CURSOR =>                                      // C 2340
+		{ haiku_draw_hollow_cursor (w, glyph_row); }             // C 2341
+	      FILLED_BOX_CURSOR =>                                      // C 2344
+		{ draw_phys_cursor_glyph (w, glyph_row, DRAW_CURSOR); }  // C 2345
+	      BAR_CURSOR =>                                             // C 2348
+		{ haiku_draw_bar_cursor (w, glyph_row, cursor_width, BAR_CURSOR); }   // C 2349
+	      HBAR_CURSOR =>                                            // C 2352
+		{ haiku_draw_bar_cursor (w, glyph_row, cursor_width, HBAR_CURSOR); }  // C 2353
+	      NO_CURSOR =>                                              // C 2356
+		{ (*w).phys_cursor_width = 0; }                          // C 2357
+	      _ =>                                                      // C 2360
+		{ emacs_abort (); }                                      // C 2361
+	    }
+	}
+    }
+}
+
+/* C 2367-2381.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_show_hourglass (f: *mut frame)
+{
+  if FRAME_TOOLTIP_P (f)                                              // C 2370
+      || haiku_output_bits! (hourglass_p, FRAME_OUTPUT_DATA! (f))     // C 2371
+    { return; }                                                       // C 2372
+
+  block_input ();                                                     // C 2374
+  haiku_output_bits! (hourglass_p, FRAME_OUTPUT_DATA! (f), 1);         // C 2375
+
+  if ! FRAME_HAIKU_VIEW! (f).is_null ()                               // C 2377
+    { BView_set_view_cursor (FRAME_HAIKU_VIEW! (f),                    // C 2378
+			     (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output))
+			       .hourglass_cursor); }                  // C 2379
+  unblock_input ();                                                   // C 2380
+}
+
+/* C 2383-2397.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_hide_hourglass (f: *mut frame)
+{
+  if FRAME_TOOLTIP_P (f)                                              // C 2386
+      || ! haiku_output_bits! (hourglass_p, FRAME_OUTPUT_DATA! (f))   // C 2387
+    { return; }                                                       // C 2388
+
+  block_input ();                                                     // C 2390
+  haiku_output_bits! (hourglass_p, FRAME_OUTPUT_DATA! (f), 0);         // C 2391
+
+  if ! FRAME_HAIKU_VIEW! (f).is_null ()                               // C 2393
+    { BView_set_view_cursor (FRAME_HAIKU_VIEW! (f),                    // C 2394
+			     (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output))
+			       .current_cursor); }                    // C 2395
+  unblock_input ();                                                   // C 2396
 }
