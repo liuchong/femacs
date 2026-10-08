@@ -7,17 +7,28 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**4,500 lines**), which carries **C 1-3206** - P-86 ④'s first twenty
-> slices of this file - with every `#if`'s arms both carried.  **C 3139-3170 (the
-> `redisplay_interface` object) is the one range inside that prefix a slice has deliberately left
-> for its own round**: it is the ABI round Owed 1 names, and its row below says so.
+> `femacs/src/haikuterm.rs` (**4,725 lines**), which carries **C 1-3206** - P-86 ④'s first
+> twenty-two slices of this file - with every `#if`'s arms both carried, **plus one block lifted out
+> of order**: `haiku_clear_under_internal_border` (C 4571-4618) is written at this file's foot
+> because the C 3140-3170 object's twenty-first entry (C 3162) names it, and an object cannot
+> reference a name that does not exist yet.  C 3140-3170 itself - slice 20's standing deferral,
+> half discharged by slice 21's ABI change - **landed in slice 22**; there is no longer a deferred
+> range inside the prefix.
 >
-> **The two ranges the prefix's table splits.**  Twenty slices have covered C 1-3206 except C
-> 3140-3170, which the `## Slice 20` section records as this ledger's standing deferral.
+> **The one range slice 22 lifted out of order.**  C 4571-4618 stands outside the prefix and outside
+> C's own reading order in the file; its row below says why, and the two rows around it (3207-4570,
+> 4619-4898) record the ranges it was taken from.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Slice 22 is the object, plus one out-of-order block (2026-10-08).**  Its C range is C
+> 3140-3170 - the object slice 20 deferred and slice 21 half discharged - and its twenty-first entry
+> is the one name that forced a second block into the round: C 4571-4618's
+> `haiku_clear_under_internal_border`, written at this file's foot.  The round also carries the
+> unit-local copy of dispextern.h 3069-3196's `struct redisplay_interface` and the seven `xdisp.c`
+> prototypes the table names.
 >
 > **Slice 21 has no C range of its own.**  It is the ABI round's first half: the seventeen
 > function-pointer hooks the C 3140-3170 object names were given C's own ABI
@@ -29,9 +40,9 @@
 > `static void` and C 3206 the closing brace of the item before it, so the slice is **C 3171-3206**
 > - the blank line C 3171, `haiku_make_fullscreen_consistent` (C 3173-3192) and
 > `haiku_flush_dirty_back_buffer_on` (C 3194-3206) - **skipping C 3140-3170 on purpose** (the
-> `redisplay_interface` object, whose named-field literal and seventeen `transmute`d entries are a
-> round of their own; its range row below is the deferral's record).  The next definition is
-> `haiku_clear_under_internal_border` (C 3208).
+> `redisplay_interface` object, whose named-field literal was a round of its own - slice 22).  The
+> range after C 3171-3206 is **C 3207-4570**, still owed; the definition this slice expected to
+> reach next, `haiku_clear_under_internal_border`, is C 4572 and slice 22 landed it out of order.
 >
 > **Why 3138 and not 3140 (slice 19).**  C 3140 opens the `redisplay_interface` table's definition
 > and C 3138 the closing brace of the item before it, so the slice is **C 3092-3138** - the blank
@@ -233,9 +244,11 @@ the pre-flight below sets it as well.
 | 2981-3077 | the C 2982-2987 comment block, `haiku_mouse_position` (C 2988-3061; C 3004-3008 the first `FOR_EACH_FRAME`, C 3017-3024 the selected/any-frame fallbacks, C 3031-3056 the view arm with `BView_get_mouse`/`remember_mouse_glyph`/the two `XSETINT`s) and `haiku_flush` (C 3063-3077; C 3068 the dirty/flip test, C 3073 the `FRAME_COMPLETE_P` write, C 3075-3076 the flush) | file gate (slice 17) |
 | 3078-3091 | `haiku_define_frame_cursor` (C 3080-3091; C 3082 the tooltip guard, C 3086-3088 the three-part test and the cursor set, C 3090 the `current_cursor` store) | file gate (slice 18) |
 | 3092-3138 | `haiku_default_font_parameter` (C 3093-3138; C 3096 the display info, C 3097-3101 the two-argument read and the `Qunbound` fold, C 3103-3115 the system-font and resource fallbacks, C 3117-3134 the four-name loop, C 3136-3137 the recorder) | file gate (slice 19) |
-| 3139-3170 | **the `redisplay_interface` object** (C 3140-3170): deferred by slice 20, and **half discharged by slice 21**, which gave the seventeen functions the object names their C function-pointer ABI (`unsafe extern "C" fn`); what is left is the object itself - C's initializer is positional and Rust has none, so the port writes a named-field literal (C's 28 entries are the record's 28 fields, in C's order), `None` for C's three `NULL`s, and the `pgtkterm.rs` 5412-5480 object's two decisions (Deviation 47 of that lane) for the seventeen entries whose C parameters the mirror types `*mut c_void` - **and the record's own copy, since `include/dispextern.rs`'s is behind `dispextern_face_records` (this unit's arm set does not carry it)** | **deferred (next round)** |
+| 3139-3170 | **the `redisplay_interface` object** (C 3140-3170): deferred by slice 20 and half discharged by slice 21 (the seventeen named functions got C's function-pointer ABI), **landed by slice 22** - the unit-local copy of dispextern.h 3069-3196's record (behind `dispextern_face_records` in the mirror, so the unit carries C's record: 28 fields, 224/8, measured against `docs/baseline/redisplay_interface-layout.tsv`), the seven `xdisp.c` prototypes declared at the use site, and C's positional initializer written as a named-field literal in C's own order (C's 28 entries are the record's 28 fields; the three `NULL`s are `None`; **every other entry is `Some (name)` with nothing converted**, because this record spells C's pointee types - the deviation from `pgtkterm.rs` 5412-5480's seventeen `transmute`s is recorded in the slice section) | file gate (slice 22) |
 | 3171-3206 | `haiku_make_fullscreen_consistent` (C 3173-3192; C 3180-3189 the five-way fold, C 3191 the store) and `haiku_flush_dirty_back_buffer_on` (C 3194-3206; C 3197-3202 the four guards) | file gate (slice 20) |
-| 3207-4898 | **the remainder of the file** (C 3208 `haiku_clear_under_internal_border` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3207-4570 | **the remainder of the file up to the last block slice 22 took out of order**: `haiku_wait_for_event` (C 3210-3240) onward; C 4148 the `#if 0` block | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4571-4618 | `haiku_clear_under_internal_border` (C 4571-4618, non-`static`) | file gate (slice 22, **out of order**: the C 3140-3170 object's twenty-first entry (C 3162) names this function, so the object cannot be written before it exists - the row above and the row below are the ranges it was lifted out of) |
+| 4619-4898 | **the rest of the file** (C 4621 `mark_haiku_display` onward; C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference |
 
 ## Evidence
 
@@ -429,6 +442,27 @@ mirror lines need), `cargo test`, `extract-abi --all`.
 14. **`--check` is no longer vacuous for this file** (P-86 ⑩): the port has `fn`s, so
     `empty_unbuilt` (extract-abi 1362) does not exempt it and the full comparison - bodies,
     invented symbols, the line count - is what ④ reports.
+15. **The `redisplay_interface` table (C 3140-3170) is a named-field literal, and it is the *one*
+    thing in this file whose text is not C's.**  Three parts, all in slice 22: ⑴ the unit-local
+    copy of the record (dispextern.h 3069-3196 - `include/dispextern.rs`'s copy is behind
+    `dispextern_face_records`, the wall of 5 and of slice 15's copy), which is the *same* record
+    `src/haikufns.rs` 1331-1380 already carries, written with C's own pointee types instead of
+    that copy's `*mut c_void` (the reason: this unit's reader is the object, whose entries are this
+    file's functions; with `*mut c_void` the same object would need seventeen `transmute`s - the
+    `pgtkterm.rs` 5412-5480 reading); ⑵ the seven `xdisp.c` prototypes (dispextern.h 3636-3639,
+    3641-3648, 3689), declared at the use site because no mirror carries them (`include/dispextern.rs`
+    names them as owed, `src/pgtkterm.rs` 5375-5395 is the precedent); ⑶ the object, C's 28
+    positional entries as 28 named fields in C's order, C's three `NULL`s as `None`, and
+    `frame_parm_handlers` as the address of another unit's `haiku_frame_parm_handlers`
+    (haikuterm.h 235, defined at `src/haikufns.rs` 4094).  Measured readings: 224/8 with
+    `draw_fringe_bitmap`@104 and `default_font_parameter`@216, asserted at the record.
+16. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
+    object's twenty-first entry (C 3162) names it, and a Rust item cannot reference a name that
+    does not exist, so the block sits at this file's foot and the range table carries the three
+    rows (`3207-4570`, `4571-4618`, `4619-4898`) that keep the table ascending and gapless.  This
+    is the second device this file uses for C's own reading order (the first is the per-slice
+    preamble): nothing is reordered *within* a landed range, and the out-of-order block is a whole
+    item.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
@@ -464,9 +498,10 @@ mirror lines need), `cargo test`, `extract-abi --all`.
    `include/systime.rs`'s `HAIKU` constant) - measured here, owned there.
 7. The P-87 scan for the two mirror lines Deviations 4 changed: `tools/check-all-units.sh`
    (expected `83 unit(s), 0 failure(s)`) - **not run by this lane** and not claimed.
-8. This ledger's remainder: C 1045-4898, whose first definition is `haiku_draw_string_box`
-   (C 1046-1106); its conditions are C 1330's
-   `#ifdef GCC_LINT`, C 4148's `#if 0`, C 4512's `ASSIGN_CURSOR` and C 4772/4895's `USE_BE_CAIRO`.
+8. This ledger's remainder: **C 3207-4570** and **C 4619-4898** - the ranges slice 22's
+   out-of-order block sits between - whose first definition is `haiku_wait_for_event` (C 3210-3240)
+   and whose last is `syms_of_haikuterm` (C 4824-4898); the conditions still ahead are C 4148's
+   `#if 0`, C 4512's `ASSIGN_CURSOR` and C 4772/4895's `USE_BE_CAIRO`.
 
 
 ## Slice 2 (2026-10-08, status 4.078 - the integrator sets the round number): C 1045-1198
@@ -1828,3 +1863,76 @@ as deferred in the range table.
   compiles none of this file, and this lane does not link.  What is measured is that the ABI change
   leaves the arm's reading exactly where it was, which is what a change no caller uses yet should
   do.
+
+## Slice 22 (2026-10-08, status 4.098 - the integrator sets the round number): C 3140-3170, plus C 4571-4618 out of order
+
+**What this round is.**  Two things, and the second exists only because of the first:
+
+1. **C 3140-3170** - `static struct redisplay_interface haiku_redisplay_interface = { … }`, the
+   object slice 20 deferred and slice 21 gave its entries C's own function-pointer ABI.  It needs
+   three pieces the unit did not have: the **record's own copy**
+   (dispextern.h 3069-3196; `include/dispextern.rs` carries it behind
+   `feature = "dispextern_face_records"`, off in every configuration today, so the unit carries
+   C's record - the wall slice 3's `face`, slice 15's `draw_fringe_bitmap_params` and the
+   `src/haikufns.rs` 1331-1380 copy of *this* record all hit), the **seven `xdisp.c` prototypes**
+   the table names (no mirror carries any of them), and the object itself.
+2. **C 4571-4618** - `haiku_clear_under_internal_border`, **out of order**, because the object's
+   twenty-first entry (C 3162) names it.  Nothing else in the table needed a later definition:
+   `haiku_clear_frame_area` is C 248-262 (slice 1) and every other name is either a definition the
+   port already carries or one of the seven externs.  Its C range is the one row outside the
+   prefix; the table splits what was C 3207-4898 into `3207-4570` / `4571-4618` / `4619-4898`.
+
+**C's initializer, and where the port's object deviates (`## Deviations`, new item 15).**  C writes
+28 positional entries; Rust has no positional field initialization, so the port writes a
+**named-field literal**, and the record's 28 fields are C's 28 entries in C's order (measured:
+`docs/baseline/redisplay_interface-layout.tsv`'s `ns_cocoa` arm - `sizeof` 224, align 8,
+`draw_fringe_bitmap`@104 … `default_font_parameter`@216), so every value lands in C's own slot.
+C's three `NULL`s (`update_window_begin` C 3149, `update_window_end` C 3150, `shift glyphs for
+insert` C 3166) are `None`, and the first entry is `haikuterm.h` 235's `haiku_frame_parm_handlers` -
+defined by *another* unit (`src/haikufns.rs` 4094), reached here through the mirror's
+pointer-sized declaration (`include/haikuterm.rs` 334).  **The other 25 entries are
+`Some (name)` with nothing converted.**  That is the round's one deliberate difference from the
+port's first object of this record, `src/pgtkterm.rs` 5412-5480 (that lane's Deviation 47): that
+lane needed seventeen `transmute`s only because its record comes from the mirror, which types the
+`struct window *`/`struct frame *` slots `*mut c_void`; this record is the unit's own copy, so it
+spells C's own pointee types (measured, too: dispextern.h 3115's `flush_display` slot is
+`void (*) (struct frame *)`, offset 72 - a `*mut window` reading there would have been wrong), and
+an item's type *is* the field's type.  The only untyped pointee left is `struct it` (C 3076),
+which this unit has no record for (P-72 rule 3).
+
+**Evidence ① - the arm-reach pre-flight (`xtask probe`, P-86 ③).**  Two runs, and a control:
+
+- **before** (the HEAD revision at `femacs/src/haikuterm.rs`, materialized as a sibling file of the
+  same directory so its `include!`s resolve): `exit 1`, **35 errors, 6 warnings**, every error in a
+  mirror (`include/character.rs`, `include/buffer.rs`, `include/window.rs`, `include/frame.rs`,
+  `include/termhooks.rs`, `include/haikuterm.rs`'s `haiku_output_bits` ×4, `include/systime.rs`'s
+  `E0080`), **0 located in the unit's own text**;
+- **after** (the round's text): **the same reading, byte for byte** - `diff` of the two normalized
+  outputs is **0 lines**.  That is the reading this round claims: the object, the record and the
+  seven declarations type-check, and nothing else in the arm moved;
+- **control (P-86 ⑦).**  Changing one entry's type (`produce_glyphs: Some (haiku_flush)`) moves the
+  reading to **36 errors** with one located at `_root.rs` (the object's line), which proves the
+  harness *does* type-check the new object's entries and that "35 errors, none in our text" is a
+  reading and not a silence.  Reverted, re-run, back to 35 - the run count is 3 probes, not 2.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 22 → 21 rows.**  The row that went
+away is `missing function haiku_clear_under_internal_border`; the 21 that remain are 20
+`missing function` (the C 3207-4570 and C 4619-4898 remainder) plus `missing macro ASSIGN_CURSOR`
+(C 4512).  Neither the record, the object, nor the seven use-site declarations is a `--check` row
+(C's initializer is neither a function nor a macro), which is why the ledger's range table carries
+them.
+
+**Owed (this slice's additions).**
+
+- `docs/ports/line-drift-tolerance.tsv`'s `haikuterm` row: the file is now **4,725 of 4,898 C
+  lines (96.5%)**, and the row's placeholder (`0.69`) is the integrator's to re-derive.
+- The P-86 file's coverage is now **C 1-3206 and C 4571-4618**; the owed ranges are named above.
+- Nothing else: no mirror file is touched, and no `--check` row was added.
+
+**Not claimed (this slice).**
+
+- **No runtime evidence**: no Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file (every item is behind `have_haiku`), and this lane does not link.  No
+  entry of the table is called, no frame's internal border is drawn, and the object is not handed
+  to `create_terminal` (C 4412, still in the owed range) - what is measured is the type-checker's
+  reading on both sides of the change plus a control that proves it is reading the new text.

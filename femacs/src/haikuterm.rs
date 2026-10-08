@@ -4450,16 +4450,178 @@ unsafe extern "C" {
   pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
 }
 
+/* dispextern.h 3069-3196's `struct redisplay_interface`: `include/dispextern.rs` carries the
+   record behind `feature = "dispextern_face_records"` (off in every configuration today), so the
+   unit carries C's record itself - the `src/haikufns.rs` 1331-1380 copy of the same record, with
+   one difference: that copy types the `struct window *`/`struct frame *` slots `*mut c_void`
+   because it only reads the record's offsets, while this unit's reader is the object below, whose
+   entries are *this file's own functions* and whose types are therefore the *field's*; C's own
+   prototype text names the pointees, so this copy does too, and no entry needs a conversion.
+   `struct it` (C 3076) is the one pointee the unit has no record for, so it keeps the
+   pointer-sized stand-in (P-72 rule 3) and the use-site declaration below spells it that way.
+   C's initializer has 28 entries *inside* this record's `HAVE_WINDOW_SYSTEM` arm, which is also
+   the proof that the arm is the live one for a Haiku build: `configure.ac` 7518 defines
+   `HAVE_WINDOW_SYSTEM` and 3106-3110 `AC_DEFINE`s `HAVE_HAIKU` for the same `HAVE_BE_APP=yes`.
+   Every field is one pointer wide, so the arm's fifteen hooks add 120 bytes *after*
+   `fix_overlapping_area` and shift nothing above it (measured at 224/8).  */
+#[cfg (feature = "have_haiku")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct redisplay_interface
+{
+  pub frame_parm_handlers: *mut c_void,                  // C 3072, offset 0
+  pub produce_glyphs: Option<unsafe extern "C" fn (it: *mut c_void)>,  // C 3076, offset 8
+  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+						 string: *mut glyph, area: glyph_row_area,
+						 len: c_int)>,                    // C 3080-3082, offset 16
+  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+						  start: *mut glyph, area: glyph_row_area,
+						  len: c_int)>,                   // C 3083-3085, offset 24
+  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+						      area: glyph_row_area, x: c_int)>,  // C 3089-3090, offset 32
+  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut window, run: *mut run)>,  // C 3094, offset 40
+  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut window, desired_row: *mut glyph_row)>,  // C 3099-3100, offset 48
+  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut window)>,  // C 3104, offset 56
+  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut window, cursor_on_p: bool,
+							   mouse_face_overwritten_p: bool)>,  // C 3111-3112, offset 64
+  pub flush_display: Option<unsafe extern "C" fn (f: *mut frame)>,  // C 3115, offset 72
+  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut window)>,  // C 3118, offset 80
+  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut frame,
+							left: *mut c_int, right: *mut c_int)>,  // C 3122-3123, offset 88
+  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+							 area: glyph_row_area, overlaps: c_int)>,  // C 3128-3129, offset 96
+  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+						       p: *mut draw_fringe_bitmap_params)>,  // C 3134-3135, offset 104
+  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort,
+							 h: c_int, wd: c_int)>,  // C 3138-3139, offset 112
+  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,  // C 3140, offset 120
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,  // C 3144, offset 128
+  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,  // C 3147, offset 136
+  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut frame, cursor: Emacs_Cursor)>,  // C 3150, offset 144
+  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut frame, x: c_int, y: c_int,
+						     width: c_int, height: c_int)>,  // C 3153-3154, offset 152
+  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut frame)>,  // C 3159, offset 160
+  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut window, glyph_row: *mut glyph_row,
+						       x: c_int, y: c_int,
+						       cursor_type: text_cursor_kinds,
+						       cursor_width: c_int, on_p: bool,
+						       active_p: bool)>,  // C 3165-3169, offset 168
+  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut window, x: c_int,
+								y_0: c_int, y_1: c_int)>,  // C 3172-3173, offset 176
+  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut window, x_0: c_int, x_1: c_int,
+							y_0: c_int, y_1: c_int)>,  // C 3176-3177, offset 184
+  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut frame, x: c_int, y: c_int,
+							    width: c_int, height: c_int,
+							    shift_by: c_int)>,  // C 3182-3184, offset 192
+  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut frame)>,  // C 3187, offset 200
+  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut frame)>,  // C 3190, offset 208
+  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut frame, parms: Lisp_Object)>,  // C 3194, offset 216
+}
+/* C 3131-3195's fifteen `HAVE_WINDOW_SYSTEM` members are appended after `fix_overlapping_area`:
+   `draw_fringe_bitmap`@104 … `default_font_parameter`@216, `sizeof` 224, align 8 - the
+   `docs/baseline/redisplay_interface-layout.tsv` `ns_cocoa` arm, which is this record's.  */
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 224);
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (core::mem::align_of::<redisplay_interface> () == 8);
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, flush_display) == 72);
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, draw_fringe_bitmap) == 104);
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, clear_under_internal_border) == 160);
+#[cfg (feature = "have_haiku")]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, default_font_parameter) == 216);
+
+/* C: dispextern.h 3636-3638: `extern void gui_get_glyph_overhangs (struct glyph *, struct frame *,
+   int *, int *);` - C 3153's entry.  dispextern.h 3639: `extern void gui_produce_glyphs (struct
+   it *);` - C 3143.  dispextern.h 3641-3642 / 3643-3644: `extern void gui_write_glyphs (struct
+   window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int);` and the
+   `gui_insert_glyphs` pair - C 3144/3145.  dispextern.h 3645-3646: `extern void
+   gui_clear_end_of_line (struct window *, struct glyph_row *, enum glyph_row_area, int);` -
+   C 3146.  dispextern.h 3647-3648: `extern void gui_fix_overlapping_area (struct window *, struct
+   glyph_row *, enum glyph_row_area, int);` - C 3154.  dispextern.h 3689: `extern void
+   gui_clear_window_mouse_face (struct window *);` - C 3152.  These seven are `xdisp.c`'s
+   definitions and **no mirror carries them** (`include/dispextern.rs` names them as owed to the
+   integrator), so the unit declares them at the use site, as `src/pgtkterm.rs` 5375-5395 does for
+   its own table; `struct it` is the one pointee this unit has no record for, so that parameter
+   keeps the pointer-sized stand-in (P-72 rule 3).  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame, left: *mut c_int,
+				  right: *mut c_int);
+  pub fn gui_produce_glyphs (it: *mut c_void);
+  pub fn gui_write_glyphs (w: *mut window, row: *mut glyph_row, string: *mut glyph,
+			   area: glyph_row_area, len: c_int);
+  pub fn gui_insert_glyphs (w: *mut window, row: *mut glyph_row, start: *mut glyph,
+			    area: glyph_row_area, len: c_int);
+  pub fn gui_clear_end_of_line (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+				x: c_int);
+  pub fn gui_fix_overlapping_area (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+				   overlaps: c_int);
+  pub fn gui_clear_window_mouse_face (w: *mut window);
+}
+
+/* C 3139-3170: `static struct redisplay_interface haiku_redisplay_interface = { … }` - the window
+   system's interface table.  C's initializer is **positional** and Rust has none, so the port
+   writes a named-field literal whose names are the record's (the copy just above); C has exactly
+   **28 entries** and the record exactly **28 fields, in the same order**, so every value lands in
+   C's own slot and nothing is left to C's implicit zeroing.  C's three `NULL`s are `None`
+   (C 3149, C 3150 and C 3166), the first entry is `haikuterm.h` 235's `haiku_frame_parm_handlers` -
+   an object the *other* unit defines (`src/haikufns.rs` 4094) and this unit reaches through the
+   mirror's pointer-sized declaration (`include/haikuterm.rs` 334) - and **every other entry is
+   `Some (name)` with nothing converted**, because the record above spells C's own parameter types
+   and an item's type is therefore the field's type.  That is where this table deviates from
+   `src/pgtkterm.rs` 5412-5480, the port's first object of this record (Deviation 47 of that lane):
+   *that* lane's same seventeen-ish entries need `transmute`s only because its record comes from
+   the mirror, which types the `struct window *`/`struct frame *` slots `*mut c_void`; measured
+   here, `flush_display` (C 3151) is the one entry the mirror's spelling would have got *wrong*
+   anyway - dispextern.h 3115's slot takes `struct frame *`, not `struct window *`.
+   Two of the twenty-five named entries have their C text outside the ported prefix:
+   `haiku_clear_frame_area` (C 248-262, slice 1) and `haiku_clear_under_internal_border` (C 4571-
+   4618), which is landed out of order at this file's end for exactly this object's sake.  */
+// C 3140-3170.
+#[cfg (feature = "have_haiku")]
+static mut haiku_redisplay_interface: redisplay_interface =
+  redisplay_interface {
+    frame_parm_handlers: &raw mut haiku_frame_parm_handlers as *mut c_void,  // C 3142
+    produce_glyphs: Some (gui_produce_glyphs),                          // C 3143
+    write_glyphs: Some (gui_write_glyphs),                              // C 3144
+    insert_glyphs: Some (gui_insert_glyphs),                            // C 3145
+    clear_end_of_line: Some (gui_clear_end_of_line),                    // C 3146
+    scroll_run_hook: Some (haiku_scroll_run),                           // C 3147
+    after_update_window_line_hook: Some (haiku_after_update_window_line),  // C 3148
+    update_window_begin_hook: None,                                     // C 3149 (`NULL`)
+    update_window_end_hook: None,                                       // C 3150 (`NULL`)
+    flush_display: Some (haiku_flush),                                  // C 3151
+    clear_window_mouse_face: Some (gui_clear_window_mouse_face),        // C 3152
+    get_glyph_overhangs: Some (gui_get_glyph_overhangs),                // C 3153
+    fix_overlapping_area: Some (gui_fix_overlapping_area),              // C 3154
+    draw_fringe_bitmap: Some (haiku_draw_fringe_bitmap),                // C 3155
+    define_fringe_bitmap: Some (haiku_define_fringe_bitmap),            // C 3156
+    destroy_fringe_bitmap: Some (haiku_destroy_fringe_bitmap),          // C 3157
+    compute_glyph_string_overhangs: Some (haiku_compute_glyph_string_overhangs),  // C 3158
+    draw_glyph_string: Some (haiku_draw_glyph_string),                  // C 3159
+    define_frame_cursor: Some (haiku_define_frame_cursor),              // C 3160
+    clear_frame_area: Some (haiku_clear_frame_area),                    // C 3161
+    clear_under_internal_border: Some (haiku_clear_under_internal_border),  // C 3162
+    draw_window_cursor: Some (haiku_draw_window_cursor),                // C 3163
+    draw_vertical_window_border: Some (haiku_draw_vertical_window_border),  // C 3164
+    draw_window_divider: Some (haiku_draw_window_divider),              // C 3165
+    shift_glyphs_for_insert: None,                                      // C 3166 (`NULL`)
+    show_hourglass: Some (haiku_show_hourglass),                        // C 3167
+    hide_hourglass: Some (haiku_hide_hourglass),                        // C 3168
+    default_font_parameter: Some (haiku_default_font_parameter),         // C 3169
+  };
+
+
 /* C 3171-3206: `haiku_make_fullscreen_consistent` (C 3173-3192) and
-   `haiku_flush_dirty_back_buffer_on` (C 3194-3206).  The next first definition is C 3208's
-   `haiku_clear_under_internal_border`.  **The C 3140-3170 `redisplay_interface` table is not in
-   this slice** (the ledger's range table carries it as the ABI round): C's initializer is
-   positional, so its 28 entries must be written as a named-field literal in C's order, and the
-   seventeen entries whose C parameters the mirror types `*mut c_void` need the conversion the
-   `pgtkterm.rs` 5412-5480 object's own note records (Deviation 47 of that lane: `Some (name)`
-   where the declaration already has the field's type, a `transmute` where it does not, `None` for
-   C's three `NULL`s).  `FRAME_COMPLETE_P (f)` (C 3201) is the mirror's one-argument reader (its
-   write arm is the two-argument form this file uses at C 1537).  */
+   `haiku_flush_dirty_back_buffer_on` (C 3194-3206).  The C 3140-3170 `redisplay_interface` table
+   now stands above this comment (slice 22), so the file returns to C's own order here; the next
+   block after these two is the **out-of-order** C 4572 one at the end of the file (there is no
+   C 3208 item to fall through to: the prefix's next range is C 3207-4570, still owed).
+   `FRAME_COMPLETE_P (f)` (C 3201) is the mirror's one-argument reader (its write arm is the
+   two-argument form this file uses at C 1537).  */
 
 /* C 3173-3192.  */
 #[cfg (feature = "have_haiku")]
@@ -4497,4 +4659,67 @@ unsafe fn haiku_flush_dirty_back_buffer_on (f: *mut frame)
     { return; }                                                       // C 3203
 
   haiku_flip_buffers (f);                                             // C 3205
+}
+
+/* C 4571-4618: `haiku_clear_under_internal_border` - **landed out of order** (the ledger's C range
+   table records the row and the gap around it): the `haiku_redisplay_interface` object's
+   twenty-first entry (C 3162) names this function, and an object cannot reference a name that does
+   not exist yet, so C 4571-4618 is written here instead of waiting for the prefix to reach it;
+   C 3207-4570 and C 4619-4898 stay owed.  C's `FRAME_INTERNAL_BORDER_WIDTH`/`FRAME_PIXEL_*`/
+   `FRAME_*_MARGIN_HEIGHT`/`FRAME_PARENT_FRAME` are `include/frame.rs`'s readers, and the
+   `if (… && FRAME_FACE_CACHE (f))` guard is the port's `! … .is_null ()` on this file's own
+   `FRAME_FACE_CACHE` (C 1379).  `haikuterm.h` 236 declares this one, so the unit's definition
+   shadows the mirror's `haikuterm_decls` row (PORTING.md 0.1-10/P-21).  */
+// C 4572-4618.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn haiku_clear_under_internal_border (f: *mut frame)
+{
+  if FRAME_INTERNAL_BORDER_WIDTH (f) > 0                              // C 4574
+      /* This is needed because tooltip frames set up the internal
+	 border before init_frame_faces.  */                         // C 4575-4576
+      && ! FRAME_FACE_CACHE (f).is_null ()                            // C 4577
+    {
+      let border: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);            // C 4579
+      let width: c_int = FRAME_PIXEL_WIDTH (f);                       // C 4580
+      let height: c_int = FRAME_PIXEL_HEIGHT (f);                     // C 4581
+      let margin: c_int = FRAME_TOP_MARGIN_HEIGHT (f);                // C 4582
+      let bottom_margin: c_int = FRAME_BOTTOM_MARGIN_HEIGHT (f);      // C 4583
+      let face_id: c_int = if ! FRAME_PARENT_FRAME (f).is_null ()     // C 4584
+	{ if ! NILP (Vface_remapping_alist)                          // C 4585
+	    { lookup_basic_face (std::ptr::null_mut (), f,            // C 4586
+				 CHILD_FRAME_BORDER_FACE_ID) }       // C 4587
+	  else
+	    { CHILD_FRAME_BORDER_FACE_ID } }                         // C 4588
+	else
+	{ if ! NILP (Vface_remapping_alist)                          // C 4589
+	    { lookup_basic_face (std::ptr::null_mut (), f,            // C 4590
+				 INTERNAL_BORDER_FACE_ID) }          // C 4591
+	  else
+	    { INTERNAL_BORDER_FACE_ID } };                           // C 4592
+      let face: *mut face = FACE_FROM_ID_OR_NULL (f, face_id);        // C 4593
+      let view: *mut c_void = FRAME_HAIKU_DRAWABLE! (f);              // C 4594
+
+      block_input ();                                                 // C 4596
+      BView_draw_lock (view, true, 0, 0, FRAME_PIXEL_WIDTH (f),       // C 4597
+		       FRAME_PIXEL_HEIGHT (f));                     // C 4598
+      BView_StartClip (view);                                         // C 4599
+      BView_ClipToRect (view, 0, 0, FRAME_PIXEL_WIDTH (f),            // C 4600
+			FRAME_PIXEL_HEIGHT (f));                    // C 4601
+
+      if ! face.is_null ()                                            // C 4603
+	{ BView_SetHighColor (view, (*face).background as uint32_t); }  // C 4604
+      else
+	{ BView_SetHighColor (view, FRAME_BACKGROUND_PIXEL (f) as uint32_t); }  // C 4606
+
+      BView_FillRectangle (view, 0, margin, width, border);           // C 4608
+      BView_FillRectangle (view, 0, 0, border, height);               // C 4609
+      BView_FillRectangle (view, 0, margin, width, border);           // C 4610
+      BView_FillRectangle (view, width - border, 0, border, height);  // C 4611
+      BView_FillRectangle (view, 0, height - bottom_margin - border,  // C 4612
+			   width, border);                          // C 4613
+      BView_EndClip (view);                                           // C 4614
+      BView_draw_unlock (view);                                       // C 4615
+      unblock_input ();                                               // C 4616
+    }
 }
