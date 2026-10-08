@@ -1912,24 +1912,35 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             problems.append (f"constant {name}: C {value} vs Rust {r['constants'][name]}")
 
     for subr in c["defuns"]:
-        match = next((x for x in r["subrs"] if x["c_name"] == subr["c_name"]), None)
-        if match is None:
+        # One C subr can have *two* `DEFUN`s - one per arm (`x-file-dialog` is
+        # `USE_MOTIF`'s first and the toolkit-less one's second, and C's first carries
+        # only the `SKIP: real doc` placeholder) - and the frozen configuration makes
+        # exactly one of them live.  C's live arm is therefore matched by the candidate
+        # with the fewest complaints, not by file order: which one is live is the C
+        # side's business (P-86), and the port carries both arms in C's order.
+        candidates = [x for x in r["subrs"] if x["c_name"] == subr["c_name"]]
+        if not candidates:
             problems.append(f"missing subr {subr['c_name']} ({subr['lisp_name']})")
             continue
-        if match["lisp_name"] != subr["lisp_name"]:
-            problems.append(f"subr {subr['c_name']}: Lisp name {match['lisp_name']} "
+        def subr_problems(match):
+            rows = []
+            if match["lisp_name"] != subr["lisp_name"]:
+                rows.append(f"subr {subr['c_name']}: Lisp name {match['lisp_name']} "
                             f"vs {subr['lisp_name']}")
-        for key in ("min", "max"):
-            if match[key].strip() != subr[key].strip():
-                problems.append(f"subr {subr['c_name']}: {key} {match[key]} vs {subr[key]}")
-        # The interactive spec is compared by value: C splices a multi-line
-        # literal away, and a prompt's own spacing is meaning (P-24).
-        if spec_value(match["n"]) != spec_value(subr["n"]):
-            problems.append(f"subr {subr['c_name']}: n {match['n']} vs {subr['n']}")
-        if match["doc_digest"] is None:
-            problems.append(f"subr {subr['c_name']}: no docstring found on the Rust side")
-        elif match["doc_digest"] != subr["doc_digest"]:
-            problems.append(f"subr {subr['c_name']}: docstring differs")
+            for key in ("min", "max"):
+                if match[key].strip() != subr[key].strip():
+                    rows.append(f"subr {subr['c_name']}: {key} {match[key]} vs {subr[key]}")
+            # The interactive spec is compared by value: C splices a multi-line
+            # literal away, and a prompt's own spacing is meaning (P-24).
+            if spec_value(match["n"]) != spec_value(subr["n"]):
+                rows.append(f"subr {subr['c_name']}: n {match['n']} vs {subr['n']}")
+            if match["doc_digest"] is None:
+                rows.append(f"subr {subr['c_name']}: no docstring found on the Rust side")
+            elif match["doc_digest"] != subr["doc_digest"]:
+                rows.append(f"subr {subr['c_name']}: docstring differs")
+            return rows
+        best = min((subr_problems(x) for x in candidates), key=len)
+        problems.extend(best)
 
     # P-28 (PORTING.md 0.1-11): the generated `EXFUN` prototype is shadowed by the
     # definition in the unit that defines the subr, so Rust itself cannot compare

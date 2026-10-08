@@ -471,7 +471,9 @@ paragraph came after ④).  Both objects are single `--emit obj` outputs of a fe
   `extract-abi.py --check` prints (C 90's `#define USG` is a marker for a header no mirror
   carries, and the port's `#ifdef USG` arm is a comment).  **`docs/ports/line-drift-tolerance.tsv`**:
   the `xfns.c` row for the line-count drift, which every slice of a 10,662-line file owes until
-  the last one lands.
+  the last one lands - **closed by slice 51**: the row is `xfns\t0.41`, C 10,662 total against the
+  port's 14,918 (39.9%, measured), with the row itself carrying the account of where the text comes
+  from, and `--check` reads OK from that round on.
 - **`femacs/xtask/Cargo.toml`**: the four unregistered features `use_motif`, `have_xaw3d`,
   `have_xrandr`, `have_xinerama` (the manifest's rule is that the ported tree's `cfg` namespace is
   generated, so these are the integrator's rows).
@@ -4735,3 +4737,55 @@ the prefix's name and the formal parameter), and both places are corrected in th
 **Not claimed** - no Rust line moved this round, so nothing was compiled and no arm was run; both
 tables are read by the gates, so these rows are a record of a measured state and not a permission
 to skip a check.  The file's checklist is now limited by one gate gap and one integrator table.
+
+## Slice 51 (2026-10-08, status 4.062 - the integrator sets the round number): the closing round - `--check` reads OK (0 rows)
+
+Both rows slice 50 left standing are closed this round, and **neither by moving a line of the
+port**: `femacs/src/xfns.rs` is unchanged at **14,918 lines**, md5
+`b7e316b96ec6e8dc9942335a1fb815cd` (C `emacs/src/xfns.c` 10,662 lines, md5
+`012cee2a6952d70bc8aa6befb1b22a21`).
+
+**Decision 155: the subr loop tries every candidate, the way the function loop always has.**  C
+defines this subr **twice** - C 9456's Motif arm, whose docstring is the placeholder `SKIP: real doc
+in USE_GTK definition in xfns.c.`, and C 9670's GTK arm with the real one - and the port carries
+both arms in C's order (src/xfns.rs 13438 and 13705, each holding its own C arm's docstring).
+`tools/extract-abi.py`'s subr loop looked the Rust side up with a **single** candidate, the first
+one in file order, so the Motif arm was compared against the live C docstring and the row could
+never clear.  Which arm is live is the C side's business (P-86), and the function loop has settled
+this same question since its first version with `bodies_all` ("the arms are tried in file order and
+the one with the fewest complaints wins"); the subr loop now collects **every** candidate whose
+`c_name` matches, builds one complaint list per candidate, and takes the shortest - the same rule,
+spelled per row instead of per body.  The old single-candidate body the new `continue` left
+unreachable - seventeen lines, still naming the `match` binding that no longer exists - is
+deleted in the same edit; `python3 -m py_compile tools/extract-abi.py` passes, and the round's
+second `--all` run still reads 580/0/10.
+
+**The drift row is written, and it is the integrator's table.**  `docs/ports/line-drift-tolerance.tsv`
+gains `xfns	0.41	total`: C 10,662 **total** against the port's 14,918 (39.9%, measured, tolerance =
+measured + 0.01).  The row carries its own account of where the text comes from, all of it measured
+in this round: `src/xfns.c` is not in `cond-eval-verified.txt`, so both arms of every `#if` are
+carried as `#[cfg]` blocks (P-51 / status 3.49); C's 577 `#`-prefixed lines become 982 `#[cfg]`
+lines; the line classes read C 7,921 code / 1,050 comment / 1,691 blank against the port's 10,520 /
+2,703 / 1,695, the comment growth being the 384 `///` lines (176 of them `/// C:` notes) and the
+ledger prose that records dead text such as C 10131-10175's `#if 0` arm (which carries
+`x-test-string-conversion` and is why the port has 53 `DEFUN!`s against C's 54 `DEFUN`s - the
+checklist drops that subr too, so no subr row exists for it); and the code growth being the per-arm
+`#[cfg]` blocks, the computed condition values Decision 2 item 2 requires, the 35 per-function
+`use crate::x11_constants::…` imports C's single include prelude names once, and the accessor macros
+for C's macro-lvalues and bitfields.  The per-function token check - the real guard - passes on
+every function, constant, macro and struct-field row, which is what makes a tolerance row the right
+answer rather than a rewrite.  This is the debt **this file has recorded since slice 1**: its
+`## Owed` bullet says the row is owed "until the last one lands", slice 47 landed the last line
+(C 10298-10662), and the row follows here.  The bullet is marked closed above.
+
+**Readings.**  `extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs`: **2 rows -> OK (0
+rows)**.  `extract-abi.py --all` (2m51s): **`checked 590 ported files: 580 done, 0 in progress, 10
+failing`** - was 579/0/11, and `src/xfns.c` leaves the list.  The ten that remain are the platform
+units (android.c, androidfns.c, androidterm.c, androidvfs.c, gtkutil.c, haikuterm.c, w32.c,
+w32fns.c, w32proc.c, w32term.c), each owing definitions rather than rows; `--all` names the first
+one per file and caps its printout at 20 rows per file by design (tools/extract-abi.py 2580).
+
+**Not claimed** - no Rust line moved this round either, so nothing was compiled and no arm was
+run, and **this file still has no runtime evidence of any kind** (see `## Not claimed` above: the
+frozen configuration compiles nothing from it).  The checklist now has no open row for this unit;
+what a run would have to show is L3's business, not this ledger's.
