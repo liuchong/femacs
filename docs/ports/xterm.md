@@ -459,6 +459,19 @@ already runs (the two frame fields, `clear_mouse_face`, the help-event test, and
 twenty-one arms read a zero delta and the five `have_xinput2` arms carry its rows - which is the
 gate slice 123 landed, measured from the other side.
 
+
+  Slice 125 (C 22643-22915, Decision 137) opens `case XI_Motion:` - the largest `XI_*` arm - and
+lands its head and its `HAVE_XINPUT2_1` scroll-valuator block: the two device lookups and the two
+early `goto XI_OTHER`s, then the valuator walk (the `XIMaskIsSet` test, `x_get_scroll_valuator_delta`,
+the scroll-bar frame lookup, `real_x`/`real_y`, the wheel and touch-end events with their
+`modifiers` and device, and the `HAVE_XWIDGETS` arm that hands the event to `xwidget_scroll` or
+`xwidget_motion_notify`).  Because that block is `HAVE_XINPUT2_1` text - and its `HAVE_XWIDGETS`
+corners need `HAVE_XWIDGETS` - the probe set grows to **twenty-three arms** with `XI21` and
+`XI21W`, which are the two configurations that compile it.  **Twenty-one arms read a zero delta** -
+the sixteen without `have_xinput2` are kept out by C 22240's gate, and the five that have it
+compile the head but not the block (the head's names all resolve); the block's twenty-three
+rows land in the two new arms.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5837,6 +5850,53 @@ expected direction once the file starts carrying records the X11 headers would s
   `HAVE_XWIDGETS` block (C 22561-22575) - the limit the ledger records at 7153 and 2918.
 * **What `--check` reads.**  Three rows, the long row's token list **unchanged at 74** - this arm
   moves none of its tokens.  The unit is **35,638 lines** (+174) against C's 33,125.
+
+### 137. Slice 125 (C 22643-22915): `XI_Motion`'s head and its `HAVE_XINPUT2_1` valuator block, and two more arms
+
+* **What it lands.**  `case XI_Motion:`'s head (C 22643-22675: `device`/`source`, the
+  `HAVE_XINPUT2_1` locals, the fake `XMotionEvent`, the three Motif message records, the two
+  lookups and the two `goto XI_OTHER`s - the NULL device and `XIPointerEmulated`) and the
+  `HAVE_XINPUT2_1` block (C 22676-22915: the valuator walk with `x_get_scroll_valuator_delta`,
+  the scroll-bar frame lookup and its `USE_MOTIF || !USE_TOOLKIT_SCROLL_BARS` arm, `real_x`/
+  `real_y`, the `HAVE_XWIDGETS` early out, the wheel/touch-end events, and the `HAVE_XWIDGETS`
+  hand-off to `xwidget_scroll`/`xwidget_motion_notify`).  C 22917-23295 - the position test, the
+  Motif motion copy and the mouse-face/drag tail - is the next slice.
+* **Two more arms, because the block is `HAVE_XINPUT2_1` text.**  `XI21` (`have_xinput2` +
+  `have_xinput2_1` + `have_xinput2_2`) compiles the walk; `XI21W` adds `have_xwidgets` for the two
+  `#ifdef HAVE_XWIDGETS` corners.  Neither feature was in the twenty-one-arm set, so the block
+  would otherwise have been carried text no reading compiles (the limit 7153/2918 records).  The
+  probe set is twenty-three arms from this slice on; both new arms were measured on **both** sides.
+* **C's `for` with two `continue`s.**  C's `for (int i = 0; i < states->mask_len * 8; i++)` runs
+  its step on `continue`, so the port writes a `while` whose step (`i += 1`) follows a labelled
+  `'body:` block and C's two `continue`s as `break 'body` (PORTING.md 2.2, the
+  `overlay_arrow_in_current_buffer_p` shape); no plain `break` sits in that loop, so the loop needs
+  no label of its own.
+* **C's `#ifdef HAVE_XWIDGETS` around an `if`/`else` pair becomes an early out.**  C 22817-22840
+  wraps the wheel-event body in `if (xv) { … } else {`; the guarded path always leaves through
+  C 22836's `goto XI_OTHER`, so the port writes it as `if !xv.is_null () { …; break 'xi_other; }`
+  and lets the body stand unconditional - the same shape the `XI_Leave` arm's `HAVE_XWIDGETS` block
+  takes when C gives it a plain body.
+* **Five port-side shapes the probe taught.**  C's `inev.ie.kind =` writes are the mirror's
+  `input_event_bits!` calls (the `input_event` models `kind` as a bitfield - the
+  `DEICONIFY_EVENT` site's shape), so both of this arm's kinds take that spelling; the two
+  `modifiers` writes carry `as c_uint` (the mirror types `modifiers` `c_uint` while
+  `down_modifier`/`up_modifier` are `c_int` - `x_x_to_emacs_modifiers`' KeyPress site is the
+  precedent); `window_from_coordinates`' prototype takes `f as *mut c_void` (window.rs 309); the
+  drag test compares against `x_dnd_recursion_depth as EMACS_INT` (the file's three existing
+  sites); and `(*XWINDOW (window)).pixel_height` needs the explicit deref because a raw pointer
+  does not auto-deref for field access, while `FRAME_PIXEL_HEIGHT (f)` takes none.  **One shape is
+  new to the file**: `#[cfg]` on a bare *assignment* is `E0658` ("attributes on expressions are
+  experimental"), so the Motif scroll-bar assignment is wrapped in a block - every other cfg'd
+  statement in this switch is an `if` or a block.
+* **The rows, by class.**  `XI21` +23 errors and `XI21W` +24/+1, all of them owed vocabulary:
+  `lrint` ×10 and `fabs` ×8 (C 22702-22801's arithmetic), `XIValuatorState` ×1 (C 22647),
+  `XIPointerEmulated` ×1 (C 22672), `XIMaskIsSet` ×1 (C 22689), `DBL_MAX` ×1 (C 22712), and
+  `xi_scroll_valuator_t.horizontal` ×1 in `XI21` / ×2 in `XI21W` (the mirror carries that member as
+  a comment - C 332-424's bitfield - the class this unit's `xi_populate_scroll_valuator` already
+  touches).  `XI21W` also gains one `unnecessary parentheses around function argument` warning:
+  C 22829-22830's own parentheses around `xv_total_x == 0.0 && xv_total_y == 0.0`, kept.
+* **What `--check` reads.**  Three rows, the long row's token list **unchanged at 74**.  The unit
+  is **35,923 lines** (+285) against C's 33,125.
 
 ## Evidence
 
@@ -11833,3 +11893,61 @@ port's copy of that header's constants has not been built yet).
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the twenty-one arm compiles (both sides), the `--check` row's token
 count and this ledger.
+### Slice 125's readings (C 22643-22915), as landed and measured (2026-10-08)
+
+`case XI_Motion:`'s head and its `HAVE_XINPUT2_1` valuator block, with the two arms that compile it.
+
+| arm | baseline | slice 125 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1176 / 83 | **1176 / 83** | **0 / 0** |
+| U `A +use_toolkit_scroll_bars` | 1188 / 83 | **1188 / 83** | **0 / 0** |
+| UT `U +use_x_toolkit` | 1191 / 82 | **1191 / 82** | **0 / 0** |
+| UM `UT +use_motif` | 1199 / 82 | **1199 / 82** | **0 / 0** |
+| UG `U +use_gtk` | 1215 / 84 | **1215 / 84** | **0 / 0** |
+| UGX `UG +have_xinput2` | 1346 / 87 | **1346 / 87** | **0 / 0** |
+| AE `A +enable_checking` | 1208 / 82 | **1208 / 82** | **0 / 0** |
+| AI `A +have_x_i18n` | 1203 / 83 | **1203 / 83** | **0 / 0** |
+| AIU `AI +use_gtk` | 1285 / 83 | **1285 / 83** | **0 / 0** |
+| AIUX `AIU +have_xinput2` | 1420 / 86 | **1420 / 86** | **0 / 0** |
+| AX `A +have_xdbe` | 1186 / 83 | **1186 / 83** | **0 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1265 / 83 | **1265 / 83** | **0 / 0** |
+| AG3X `AG3 +have_xinput2` | 1380 / 86 | **1380 / 86** | **0 / 0** |
+| AXF `A +have_xfixes` | 1186 / 83 | **1186 / 83** | **0 / 0** |
+| AXPM `A +have_xpm` | 1177 / 83 | **1177 / 83** | **0 / 0** |
+| AXKB `A +have_xkb` | 1217 / 83 | **1217 / 83** | **0 / 0** |
+| AXR `A +have_xrandr` | 1182 / 83 | **1182 / 83** | **0 / 0** |
+| AX11 `A +have_x11` | 1160 / 83 | **1160 / 83** | **0 / 0** |
+| AUX `A +use_xcb` | 1259 / 81 | **1259 / 81** | **0 / 0** |
+| XI2 `A +have_xinput2` | 1292 / 86 | **1292 / 86** | **0 / 0** |
+| UMI2 `UM +have_xinput2` | 1356 / 85 | **1356 / 85** | **0 / 0** |
+| XI21 `XI2 +have_xinput2_1 +have_xinput2_2 (new)` | 1326 / 87 | **1349 / 87** | **+23 / 0** |
+| XI21W `XI21 +have_xwidgets (new)` | 1355 / 86 | **1379 / 87** | **+24 / +1** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`6598c572`, slice 124) and
+the twenty-one arms it shares with the slice-124 table reproduce that column to the digit; the
+two new arms' baseline is their own measurement of HEAD.  The slice's file md5 is
+`753eda884169ae047b64b61058d2151e` (35,923 lines against C's 33,125).
+
+**Twenty-one arms read a zero delta, and that is the reading.**  The sixteen without
+`have_xinput2` are kept out by C 22240's `#ifdef` (slice 123's gate, measured again from this
+side); the five arms that *do* have `have_xinput2` compile the arm's head but neither the
+`HAVE_XINPUT2_1` block nor the `XIPointerEmulated` test (C 22671's `HAVE_XINPUT2_2`), and the
+head itself adds no row there - the names it uses (`xi_device_from_id`, `xev`'s members, the
+`XMotionEvent` and the three Motif records) all resolve.  The block's rows land in the two new
+arms only:
+
+| arriving rows | arms | C sites |
+| --- | --- | --- |
+| `lrint` +10, `fabs` +8 | `XI21`, `XI21W` | C 22702-22801 - the valuator arithmetic and the frame-position fallbacks |
+| `XIValuatorState` +1 | `XI21`, `XI21W` | C 22647 - the record `<X11/extensions/XInput2.h>` owns |
+| `XIPointerEmulated` +1 | `XI21`, `XI21W` | C 22672 - XI2.h's mode family's sibling |
+| `XIMaskIsSet` +1 | `XI21`, `XI21W` | C 22689 - the macro xmenu.rs 755 and xwidget.rs 5548 carry for their own units |
+| `DBL_MAX` +1 | `XI21`, `XI21W` | C 22712 - `<float.h>`'s |
+| `xi_scroll_valuator_t.horizontal` +1 (`XI21`) / +2 (`XI21W`) | the two new arms | C 22806, and C 22767 with `HAVE_XWIDGETS` - the member the mirror carries as a comment (the bitfield class) |
+| `unnecessary parentheses around function argument` +1 (warning) | `XI21W` only | C 22829-22830's own parentheses, kept |
+
+The `--check` row keeps its three lines and its token list stays at **74**.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the twenty-three arm compiles (both sides), the `--check` row's
+token count and this ledger.

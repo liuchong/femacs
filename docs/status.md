@@ -17536,3 +17536,38 @@
      `build/probes/xterm/`、`/tmp/s124/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十一臂编译（两侧）、`--check` 的 token 数与台账。
      下一片从 `XI_Motion`（C 22643）起。
+
+- **4.043 `src/xterm.c` round 101（xterm lane，slice 125）：`XI_Motion` 的头与 `HAVE_XINPUT2_1` 的 scroll-valuator 块落地，探针臂 21 → **23**（2026-10-08）**：
+  ① **本片落的文本**：`case XI_Motion:`（C 22643-23295，653 C 行——本文件最大的 `XI_*` 臂）的**头**（C 22643-22675：`device`/`source`、
+     `HAVE_XINPUT2_1` 的四个局部、假的 `XMotionEvent`、三个 Motif 报文记录、两次查找与两次 `goto XI_OTHER`：设备为 NULL 与 `XIPointerEmulated`）
+     与 **`HAVE_XINPUT2_1` 块**（C 22676-22915：valuator 走查、`x_get_scroll_valuator_delta`、滚动条帧查找与其
+     `USE_MOTIF || !USE_TOOLKIT_SCROLL_BARS` 支、`real_x`/`real_y`、`HAVE_XWIDGETS` 的提前退出、wheel/touch-end 事件、
+     以及把事件交给 `xwidget_scroll`/`xwidget_motion_notify` 的 `HAVE_XWIDGETS` 段）。C 22917-23295 是下片。
+  ② **两个新臂**：`XI21`（`have_xinput2` + `have_xinput2_1` + `have_xinput2_2`）编译这条走查，`XI21W` 再加 `have_xwidgets` 覆盖两个 `#ifdef HAVE_XWIDGETS` 角落。
+     这两个特性此前不在二十一个臂里，否则整块就是"没有臂编译的 carried text"（台账 7153/2918 的同类界限）。**两个新臂两侧都在本修订测**。
+  ③ **C 的 `for` 带两处 `continue`**：端口落成 `while` + 步进（`i += 1`）放在带标号的 `'body:` 块之后，C 的两处 `continue` 即 `break 'body`
+     （PORTING.md 2.2，`overlay_arrow_in_current_buffer_p` 的形状）；该循环里没有普通 `break`，所以循环自身不需要标号。
+  ④ **C 把 `if (xv) { … } else { … }` 包在 `#ifdef HAVE_XWIDGETS` 里**：被守护的那条路必然经 C 22836 的 `goto XI_OTHER` 离开，
+     所以端口落成提前退出 `if !xv.is_null () { …; break 'xi_other; }`，其后是不带条件的本体。
+  ⑤ **探针教出来的五个端口侧形状**：C 的 `inev.ie.kind =` 落成镜像的 `input_event_bits!`（`input_event` 把 `kind` 建模成位域，`DEICONIFY_EVENT` 同形）；
+     两处 `modifiers` 写带 `as c_uint`（镜像把 `modifiers` 记成 `c_uint`，而 `down_modifier`/`up_modifier` 是 `c_int`，KeyPress 臂是既有先例）；
+     `window_from_coordinates` 的形参要 `f as *mut c_void`（window.rs 309）；拖拽测试比的是 `x_dnd_recursion_depth as EMACS_INT`（本文件既有三处）；
+     `(*XWINDOW (window)).pixel_height` 必须显式解引用（裸指针不自动解引用），而 `FRAME_PIXEL_HEIGHT (f)` 不需要转写。
+     **一处本文件首次出现**：`#[cfg]` 挂在**裸赋值语句**上是 `E0658`（attributes on expressions are experimental），所以 Motif 滚动条那句落成块包裹——
+     这条 switch 里其它 cfg 过的语句都是 `if` 或块。
+  ⑥ **行的来路（按类）**：`XI21` +23、`XI21W` +24/+1，全是欠账词汇：`lrint` ×10、`fabs` ×8（C 22702-22801 的算术）、`XIValuatorState` ×1（C 22647）、
+     `XIPointerEmulated` ×1（C 22672）、`XIMaskIsSet` ×1（C 22689；xmenu.rs 755 与 xwidget.rs 5548 只在各自单元里有）、`DBL_MAX` ×1（C 22712）、
+     `xi_scroll_valuator_t.horizontal` ×1（XI21）/×2（XI21W，C 22806 与 C 22767；镜像把该成员记成注释——位域类，本单元 `xi_populate_scroll_valuator` 早就在碰）；
+     `XI21W` 另多一条 `unnecessary parentheses around function argument` 警告——C 22829-22830 自己的括号，照抄不改。
+  ⑦ **"二十一个臂读零增量"本身就是读数**：没有 `have_xinput2` 的十六个被 C 22240 的 `#ifdef` 挡在外面；有 `have_xinput2` 的五个臂编译了本臂的**头**
+     却不编译块（C 22671 的 `HAVE_XINPUT2_2` 也不满足），而头本身在那里**一行都不加**——它用的名字（`xi_device_from_id`、`xev` 的成员、`XMotionEvent`、
+     三个 Motif 记录）全都解析得开。块的 23 行只落在两个新臂里。
+  ⑧ **读数（两侧都在本修订测）**：⑴ **二十三臂表**（baseline = HEAD `6598c572`，与 slice 124 台账共享的二十一个臂逐位相同）：
+     二十一个臂全 **0/0**（A 1176/83、U 1188/83、UT 1191/82、UM 1199/82、UG 1215/84、UGX 1346/87、AE 1208/82、AI 1203/83、AIU 1285/83、
+     AIUX 1420/86、AX 1186/83、AG3 1265/83、AG3X 1380/86、AXF 1186/83、AXPM 1177/83、AXKB 1217/83、AXR 1182/83、AX11 1160/83、
+     AUX 1259/81、XI2 1292/86、UMI2 1356/85），**XI21 1326/87 → 1349/87（+23/0）**、**XI21W 1355/86 → 1379/87（+24/+1）**。
+     ⑵ **`--check`** 仍三行，长行 token 清单 **74 不变**；单元 **35,923 行**（+285），文件 md5 `753eda884169ae047b64b61058d2151e`。
+  ⑨ **预算与清理**：本片 rustc **约 52 发**（23 臂 × 2 轮 + 首发与几轮定点复测；每次 15-24 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s125/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十三臂编译（两侧）、`--check` 的 token 数与台账。
+     下一片是 `XI_Motion` 的剩余部分（C 22917-23295）。

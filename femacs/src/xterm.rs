@@ -34706,6 +34706,291 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		          break 'xi_other;                                    // C 22640 (`goto XI_OTHER`)
 		        }
 
+		      /* C 22643's `case XI_Motion:` - the largest `XI_*` arm (C 22643-23295, 653 C lines):
+			 the scroll-valuator walk under `HAVE_XINPUT2_1`, the wheel and touch-end events, the
+			 Motif motion copy, the drag-and-drop bookkeeping and the mouse-face tail.  This slice
+			 lands its head and the valuator block (C 22643-22915); C 22917-23295 follows.  */
+		      XI_Motion =>
+		        {
+		          let mut device: *mut xi_device_t;                   // C 22645
+		          let mut source: *mut xi_device_t;                   // C 22645
+		          /* C 22646-22651's `#ifdef HAVE_XINPUT2_1` declarations.  */
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_1"))]
+		          let mut states: *mut XIValuatorState;               // C 22647
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_1"))]
+		          let mut values: *mut c_double;                      // C 22648
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_1"))]
+		          let mut found_valuator: bool = false;               // C 22649
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_1"))]
+		          let mut other_valuators_found: bool = false;        // C 22650
+		          /* "A fake XMotionEvent for x_note_mouse_movement."  */
+		          let mut ev: XMotionEvent = std::mem::zeroed ();     // C 22653
+		          let mut lmsg: xm_top_level_leave_message = std::mem::zeroed ();  // C 22654
+		          let mut emsg: xm_top_level_enter_message = std::mem::zeroed ();  // C 22655
+		          let mut dmsg: xm_drag_motion_message = std::mem::zeroed ();  // C 22656
+		          let mut dnd_state: c_uint;                          // C 22657
+
+		          source = xi_device_from_id (dpyinfo, (*xev).sourceid);  // C 22659
+
+		          /* C 22661-22664.  */
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_1"))]
+		          {
+		            states = &raw mut (*xev).valuators;               // C 22662
+		            values = (*states).values;                        // C 22663
+		          }
+
+		          device = xi_device_from_id (dpyinfo, (*xev).deviceid);  // C 22666
+
+		          if device.is_null ()                                // C 22668
+		            { break 'xi_other; }                              // C 22669 (`goto XI_OTHER`)
+
+		          /* C 22671-22674's `#ifdef HAVE_XINPUT2_2`.  */
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_2"))]
+		          if ((*xev).flags & XIPointerEmulated) != 0          // C 22672
+		            { break 'xi_other; }                              // C 22673 (`goto XI_OTHER`)
+
+		          /* C 22676-22915's `#ifdef HAVE_XINPUT2_1`: the scroll-valuator walk.  C's own note points
+		             at `x_cache_xi_devices` for how XInput 2 reports wheel movement.  */
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_1"))]
+		          {
+		            /* C 22677-22681's `#ifdef HAVE_XWIDGETS` declarations.  */
+#[cfg (feature = "have_xwidgets")]
+		            let mut xv: *mut xwidget_view = xwidget_view_from_window ((*xev).event);  // C 22678
+#[cfg (feature = "have_xwidgets")]
+		            let mut xv_total_x: c_double = 0.0;               // C 22679
+#[cfg (feature = "have_xwidgets")]
+		            let mut xv_total_y: c_double = 0.0;               // C 22680
+		            let mut total_x: c_double = 0.0;                  // C 22682
+		            let mut total_y: c_double = 0.0;                  // C 22683
+
+		            let mut real_x: c_int;                            // C 22685
+		            let mut real_y: c_int;
+
+		            let mut i: c_int = 0;                             // C 22687's `for (int i = 0; i < states->mask_len * 8; i++)`
+		            while i < (*states).mask_len * 8
+		              {
+		              'body: {
+		                if XIMaskIsSet ((*states).mask, i)            // C 22689
+		                  {
+		                  let mut val: *mut xi_scroll_valuator_t;     // C 22691
+		                  let mut delta: c_double;                    // C 22692
+		                  let mut scroll_unit: c_double;              // C 22692
+		                  let mut scroll_height: c_int;               // C 22693
+		                  let mut window: Lisp_Object;                // C 22694
+		                  let mut bar: *mut scroll_bar;               // C 22695
+
+		                  bar = std::ptr::null_mut ();                // C 22697
+
+		                  /* "See the comment on top of x_cache_xi_devices for more details on how scroll wheel
+		                     movement is reported on XInput 2."  */
+		                  delta = x_get_scroll_valuator_delta (dpyinfo, device, i, *values,  // C 22702-22703
+		                    &raw mut val);
+		                  values = values.offset (1);                 // C 22704 (`values++`)
+
+		                  if val.is_null ()                           // C 22706
+		                    {
+		                    other_valuators_found = true;             // C 22708
+		                    break 'body;                              // C 22709 (`continue`)
+		                    }
+
+		                  if delta != DBL_MAX                         // C 22712
+		                    {
+		                    if f.is_null ()                           // C 22714
+		                      {
+		                      /* C's one name has two shapes with complementary gates - the split the `XI_Enter`
+		                         arm's C 22400 site records.  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		                      { f = x_any_window_to_frame (dpyinfo, (*xev).event); }  // C 22716
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+		                      { f = x_any_window_to_frame! (dpyinfo, (*xev).event); }  // C 22716
+
+		                      if f.is_null ()                         // C 22718
+		                        {
+		                        /* C 22720-22729's `#if defined USE_MOTIF || !defined USE_TOOLKIT_SCROLL_BARS`,
+		                           including the `if (!f) goto XI_OTHER;` its `#endif` wraps.  */
+#[cfg (any (feature = "use_motif", not (feature = "use_toolkit_scroll_bars")))]
+		                        { bar = x_window_to_scroll_bar ((*dpyinfo).display, (*xev).event, 2); }  // C 22721-22722
+#[cfg (any (feature = "use_motif", not (feature = "use_toolkit_scroll_bars")))]
+		                        if !bar.is_null ()                    // C 22724
+		                          { f = WINDOW_XFRAME! (XWINDOW ((*bar).window)); }  // C 22725
+#[cfg (any (feature = "use_motif", not (feature = "use_toolkit_scroll_bars")))]
+		                        if f.is_null ()                       // C 22727
+		                          { break 'xi_other; }                // C 22729 (`goto XI_OTHER`)
+		                        }
+		                      }
+
+		                    /* C 22733-22736's `#ifdef USE_GTK`.  */
+#[cfg (feature = "use_gtk")]
+		                    if !f.is_null () && xg_event_is_for_scrollbar (f, event, true)  // C 22734
+		                      { *finish = X_EVENT_DROP; }             // C 22735
+
+		                    if FRAME_X_WINDOW! (f) != (*xev).event    // C 22738
+		                      {
+		                      if bar.is_null ()                       // C 22740
+		                        { bar = x_window_to_scroll_bar ((*dpyinfo).display, (*xev).event, 2); }  // C 22741
+
+		                      /* "If this is a scroll bar, compute the actual position directly to avoid an extra
+		                         roundtrip."  */
+
+		                      if !bar.is_null ()                      // C 22747
+		                        {
+		                        real_x = lrint ((*xev).event_x + (*bar).left) as c_int;  // C 22749
+		                        real_y = lrint ((*xev).event_y + (*bar).top) as c_int;  // C 22750
+		                        }
+		                      else
+		                        {
+		                        x_translate_coordinates (f, lrint ((*xev).root_x) as c_int,  // C 22753-22756
+		                          lrint ((*xev).root_y) as c_int, &raw mut real_x,
+		                          &raw mut real_y);
+		                        }
+		                      }
+		                    else
+		                      {
+		                      real_x = lrint ((*xev).event_x) as c_int;  // C 22760
+		                      real_y = lrint ((*xev).event_y) as c_int;  // C 22761
+		                      }
+
+		                    /* C 22764-22775's `HAVE_XWIDGETS` guard: C wraps the body below in `if (xv) { … } else
+		                       {`, and that path always leaves through `goto XI_OTHER`, so the port spells it as an
+		                       early out.  */
+#[cfg (feature = "have_xwidgets")]
+		                    if !xv.is_null ()                         // C 22765
+		                      {
+		                      if (*val).horizontal                    // C 22767
+		                        { xv_total_x += delta; }              // C 22768
+		                      else
+		                        { xv_total_y += delta; }              // C 22770
+
+		                      found_valuator = true;                  // C 22772
+		                      break 'body;                            // C 22773 (`continue`)
+		                      }
+
+		                    if delta == 0.0                           // C 22777
+		                      { found_valuator = true; }              // C 22778
+
+		                    if signbit! (delta) != signbit! ((*val).emacs_value)  // C 22780
+		                      { (*val).emacs_value = 0.0; }           // C 22781
+
+		                    (*val).emacs_value += delta;              // C 22783
+
+		                    if mwheel_coalesce_scroll_events          // C 22785
+		                      && (fabs ((*val).emacs_value) < 1.0)    // C 22786
+		                      && (fabs (delta) > 0.0)                 // C 22787
+		                      { break 'body; }                        // C 22788 (`continue`)
+
+		                window = window_from_coordinates (f as *mut c_void, real_x, real_y,  // C 22790-22791
+		                  std::ptr::null_mut (),
+		                      false, false, false);
+
+		                    if WINDOWP (window)                       // C 22793
+		                  { scroll_height = (*XWINDOW (window)).pixel_height; }  // C 22794
+		                    else
+		                      /* "EVENT_X and EVENT_Y can be outside the frame if F holds the input grab, so fall
+		                         back to the height of the frame instead."  */
+		                  { scroll_height = FRAME_PIXEL_HEIGHT (f); }  // C 22799
+
+		                    scroll_unit = pow (scroll_height as c_double, 2.0 / 3.0);  // C 22801
+
+		                    if NUMBERP (Vx_scroll_event_delta_factor)  // C 22803
+		                      { scroll_unit *= XFLOATINT (Vx_scroll_event_delta_factor); }  // C 22804
+
+		                    if (*val).horizontal                      // C 22806
+		                      { total_x += (*val).emacs_value * scroll_unit; }  // C 22807
+		                    else
+		                      { total_y += (*val).emacs_value * scroll_unit; }  // C 22809
+
+		                    found_valuator = true;                    // C 22811
+		                    (*val).emacs_value = 0.0;                 // C 22812
+		                    }
+		                  }
+		              }
+		              i += 1;                                         // C 22687's step
+		              }
+
+		            /* C 22817-22840's `HAVE_XWIDGETS` guard again: the `else` branch is C's own body, and
+		               the guarded path ends in `goto XI_OTHER` too.  */
+#[cfg (feature = "have_xwidgets")]
+		            if !xv.is_null ()                                 // C 22818
+		              {
+		              let mut state: c_uint;                          // C 22820
+
+		              state = xi_convert_event_state (xev);           // C 22822
+		              x_display_set_last_user_time (dpyinfo, (*xev).time,  // C 22823-22824
+		                (*xev).send_event != 0, true);
+
+		              if found_valuator                               // C 22826
+		                { xwidget_scroll (xv, (*xev).event_x, (*xev).event_y, -xv_total_x, -xv_total_y,  // C 22827-22830
+		                  state, (*xev).time, (xv_total_x == 0.0 && xv_total_y == 0.0)); }
+		              else
+		                { xwidget_motion_notify (xv, (*xev).event_x, (*xev).event_y, (*xev).root_x,  // C 22832-22834
+		                  (*xev).root_y, state, (*xev).time); }
+
+		              break 'xi_other;                                // C 22836 (`goto XI_OTHER`)
+		              }
+
+		            if found_valuator                                 // C 22841
+		              {
+		              x_display_set_last_user_time (dpyinfo, (*xev).time,  // C 22843-22844
+		                (*xev).send_event != 0, true);
+
+		              /* C 22847-22859's `#if defined USE_GTK && !defined HAVE_GTK3`, with C's own note on
+		                 scroll-bar windows under GTK+ 2.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+		              if (*xev).child != None as Window               // C 22856
+		                && (*xev).child != FRAME_X_WINDOW! (f)        // C 22857
+		                { break 'xi_other; }                          // C 22858 (`goto XI_OTHER`)
+
+		              /* "If this happened during a drag-and-drop operation, don't send an event.  We only
+		                 have to set the user time."  */
+		              if x_dnd_in_progress                            // C 22864
+		                /* "If another master device moved the pointer, we should put a wheel event on the
+		                   keyboard buffer as usual.  It will be run once the drag-and-drop operation
+		                   completes."  */
+		                && (*xev).deviceid == x_dnd_pointer_device    // C 22870
+		                && (command_loop_level + minibuf_level  // C 22871-22872
+		                    <= x_dnd_recursion_depth as EMACS_INT)
+		                && dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)  // C 22873
+		                { break 'xi_other; }                          // C 22874 (`goto XI_OTHER`)
+
+		              if fabs (total_x) > 0.0 || fabs (total_y) > 0.0  // C 22876
+		                {
+		                input_event_bits! (kind, &raw mut inev.ie,     // C 22878-22879
+		                  if fabs (total_y) >= fabs (total_x)
+		                  { WHEEL_EVENT } else { HORIZ_WHEEL_EVENT });
+		                inev.ie.timestamp = (*xev).time;              // C 22880
+
+		                XSETINT! (inev.ie.x, lrint (real_x) as EMACS_INT);  // C 22882
+		                XSETINT! (inev.ie.y, lrint (real_y) as EMACS_INT);  // C 22883
+		                XSETFRAME! (inev.ie.frame_or_window, f);      // C 22884
+
+		                inev.ie.modifiers                             // C 22886-22888
+		                  = (if signbit! (if fabs (total_y) >= fabs (total_x)
+		                                  { total_y } else { total_x })
+		                     { down_modifier } else { up_modifier }) as c_uint;
+		                inev.ie.modifiers                             // C 22889-22891
+		                  |= x_x_to_emacs_modifiers (dpyinfo, (*xev).mods.effective) as c_uint;
+		                inev.ie.arg = list3 (Qnil (), make_float (total_x), make_float (total_y));  // C 22892-22894
+		                }
+		              else
+		                {
+		                input_event_bits! (kind, &raw mut inev.ie,   // C 22898
+		                  TOUCH_END_EVENT);
+		                inev.ie.timestamp = (*xev).time;              // C 22899
+
+		                XSETINT! (inev.ie.x, lrint (real_x) as EMACS_INT);  // C 22901
+		                XSETINT! (inev.ie.y, lrint (real_y) as EMACS_INT);  // C 22902
+		                XSETFRAME! (inev.ie.frame_or_window, f);      // C 22903
+		                }
+
+		              if !source.is_null () && !NILP ((*source).name)  // C 22906
+		                { inev.ie.device = (*source).name; }          // C 22907
+
+		              if !other_valuators_found                       // C 22909
+		                { break 'xi_other; }                          // C 22910 (`goto XI_OTHER`)
+		              }
+		          }
+		        }
+
 		      _ => {}
 		    }
 
