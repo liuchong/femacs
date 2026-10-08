@@ -427,6 +427,16 @@ order gives them, before the `_ => {}` C's switch has no `default` for, and C 25
 bare-SDK class; the two `x_display_info` fields the prologue reads exist only in the
 `have_xinput2` arms, which is why the frame's reading is +17 in sixteen arms and +15 in three.
 
+
+  Slice 122 (C 22294-22336, Decision 134) lands the frame's first `XI_*` arm - `XI_FocusIn`: the
+`focusin` cast from `xi_event`, the `x_any_window_to_frame` lookup, GTK's conditionally-wrapped
+deiconify block (the four frame writes and `DEICONIFY_EVENT`) and the `xi_focus_handle_for_device`
+call C 22332 makes before its `goto XI_OTHER`.  C's `#if` at C 22294 runs to C 22347 and covers the
+two focus arms, so the pair is carried on **each arm** (the file's first cfg'd match arm); the
+`#ifdef USE_GTK` around the deiconify *condition* becomes the `focus_in_laxly` computed value
+(Decision 2 item 2, the core `FocusIn` case's `focus_more_laxly` shape), and C 22334's
+`goto XI_OTHER` is the first `break 'xi_other`, which retires the frame's `unused label` warning.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5690,6 +5700,35 @@ expected direction once the file starts carrying records the X11 headers would s
   (the same order the `xi_*` helpers the earlier slices needed already follow).
 * **What `--check` reads.**  Two rows, the long row's token list staying at **76**.  The unit is
   **35,260 lines** against C's 33,125, file md5 `90a35b0f5b83eac73cd7f437ea4cb3ed`.
+
+### 134. Slice 122 (C 22294-22336): the `XI_FocusIn` arm, and C's gate measured by the arms
+
+* **What it lands.**  `case XI_FocusIn:` (C 22295-22335) - the first arm inside the `GenericEvent`
+  frame's inner `switch`: the `focusin` declaration and its cast from `xi_event` (C 22297-22299),
+  the `x_any_window_to_frame` lookup (C 22300), GTK's conditionally wrapped deiconify block (C
+  22302-22330: `f = any`, `FRAME_ICONIFIED_P`, the four frame writes and `DEICONIFY_EVENT`), the
+  `xi_focus_handle_for_device` call (C 22332) and C's `goto XI_OTHER` (C 22334).
+* **C's `#if` gates each arm it covers.**  C 22294's `#if !defined USE_X_TOOLKIT && (!defined
+  USE_GTK || defined HAVE_GTK3)` runs to C 22347, so it covers `XI_FocusIn` *and* `XI_FocusOut`;
+  the port therefore puts the pair on **each arm** rather than around a block - this file's first
+  cfg'd match arm.  The arms measure that gate: the arm's four rows appear in the thirteen arms
+  that compile it and in **none** of the six C's condition excludes (`UT`/`UM` by `USE_X_TOOLKIT`,
+  `UG`/`UGX`/`AIU`/`AIUX` by `USE_GTK` without `HAVE_GTK3`).
+* **`#ifdef USE_GTK` around a condition, again.**  C 22302-22319's `#ifdef` wraps *the condition* of
+  the deiconify test (C 22317-22318) while C 22320's block runs unconditionally where the header
+  drops it, so the port computes `focus_in_laxly` once with a cfg pair - Decision 2 item 2's shape,
+  the one the core `FocusIn` case already read for `focus_more_laxly` (C 20822-20838).
+* **The label gets its first user.**  C 22334's `goto XI_OTHER` is the port's `break 'xi_other`, so
+  the `'xi_other` block slice 121 left behind as an `unused label` warning is used from this slice
+  on: the warning count drops by one in every arm that compiles the arm.
+* **Two call-site classes.**  `x_any_window_to_frame` is C's function in the `USE_X_TOOLKIT ||
+  USE_GTK` arm and C's macro in the other, so the call splits on `use_gtk` - the enclosing arm
+  already excludes `use_x_toolkit` - which is the shape Decision 69 settled for the earlier site.
+  And `xi_focus_handle_for_device` (C 13462) is this file's *own* definition still ahead, so the
+  call lands first and its row is a `cannot find function` (the item Decision 133 named).
+* **What `--check` reads.**  Still three rows - the `handle_one_xevent` long row's **76** tokens
+  unchanged, the `x_get_wm_check_window` row and the `memset` family row - so the arm adds no
+  inventory row of its own.  The unit is **35,310 lines** (+50) against C's 33,125.
 
 ## Evidence
 
@@ -11517,6 +11556,55 @@ file's own definitions the port's comment at 24376 already names as "still ahead
 `XGetEventData`/`XFreeEventData` calls are the bare-SDK class, and the `XI_*` arms will call the
 `xi_*` six, whose rows this slice's readings do not yet carry.  They are the next work the lane owes
 *outside* the switch, after the `XI_*` arms.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
+ledger.
+
+### Slice 122's readings (C 22294-22336), as landed and measured (2026-10-08)
+
+The `XI_FocusIn` arm - the `GenericEvent` frame's first `XI_*` arm.
+
+| arm | baseline | slice 122 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1193 / 84 | **1197 / 83** | **+4 / -1** |
+| U `A +use_toolkit_scroll_bars` | 1205 / 84 | **1209 / 83** | **+4 / -1** |
+| UT `U +use_x_toolkit` | 1208 / 83 | **1208 / 83** | **0 / 0** |
+| UM `UT +use_motif` | 1216 / 83 | **1216 / 83** | **0 / 0** |
+| UG `U +use_gtk` | 1232 / 85 | **1232 / 85** | **0 / 0** |
+| UGX `UG +have_xinput2` | 1335 / 87 | **1335 / 87** | **0 / 0** |
+| AE `A +enable_checking` | 1225 / 83 | **1229 / 82** | **+4 / -1** |
+| AI `A +have_x_i18n` | 1220 / 84 | **1224 / 83** | **+4 / -1** |
+| AIU `AI +use_gtk` | 1302 / 84 | **1302 / 84** | **0 / 0** |
+| AIUX `AIU +have_xinput2` | 1409 / 86 | **1409 / 86** | **0 / 0** |
+| AX `A +have_xdbe` | 1203 / 84 | **1207 / 83** | **+4 / -1** |
+| AG3 `A +use_gtk +have_gtk3` | 1282 / 84 | **1286 / 83** | **+4 / -1** |
+| AG3X `AG3 +have_xinput2` | 1360 / 86 | **1364 / 85** | **+4 / -1** |
+| AXF `A +have_xfixes` | 1203 / 84 | **1207 / 83** | **+4 / -1** |
+| AXPM `A +have_xpm` | 1194 / 84 | **1198 / 83** | **+4 / -1** |
+| AXKB `A +have_xkb` | 1234 / 84 | **1238 / 83** | **+4 / -1** |
+| AXR `A +have_xrandr` | 1199 / 84 | **1203 / 83** | **+4 / -1** |
+| AX11 `A +have_x11` | 1177 / 84 | **1181 / 83** | **+4 / -1** |
+| AUX `A +use_xcb` | 1276 / 82 | **1280 / 81** | **+4 / -1** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`83187cec`, slice 121) with
+its own `_root.rs` re-materialised per arm - the nineteen baseline numbers reproduce the ledger's
+slice-121 column to the digit - and the slice's file md5 is
+`c29df126f7dca75c4c7e287240bfdfb9` (35,310 lines against C's 33,125).
+
+**The `of which`, by row class:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `cannot find type XIFocusInEvent` **+2** | the **thirteen** that compile the arm | C 22297, C 22299 - the bare-XInput2 type class |
+| `no field has_been_visible` **+1** | the thirteen | C 22326 - the owed `x_output` member (ten sites already carried the same row) |
+| `cannot find function xi_focus_handle_for_device` **+1** | the thirteen | C 22332 - this file's own definition, still ahead |
+| **nothing at all** | the **six** C's gate (C 22294) excludes | the arm is not compiled: `UT`/`UM` by `USE_X_TOOLKIT`, `UG`/`UGX`/`AIU`/`AIUX` by `USE_GTK` without `HAVE_GTK3` |
+
+The warning column drops by one in the thirteen arms: the `'xi_other` block's `unused label`
+warning, which slice 121 recorded as the frame's own, is gone now that an arm breaks into it
+(the file still carries two `unused label` warnings elsewhere; the baseline read three).  The
+`--check` row keeps its three lines and the long row's token list stays **76**.
 
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this

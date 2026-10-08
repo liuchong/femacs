@@ -17446,3 +17446,27 @@
      `build/probes/xterm/`、`/tmp/s121/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
      下一片从 `XI_FocusIn`（C 22295）起，按 C 的标签顺序逐臂推进。
+
+- **4.040 `src/xterm.c` round 98（xterm lane，slice 122）：`XI_FocusIn` 落地（C 22294-22336，43 C 行）——`GenericEvent` 内层 `switch` 的第一条 `XI_*` 臂，C 的整块 `#if` 逐臂落成 cfg 对（2026-10-08）**：
+  ① **本片落的文本**：`case XI_FocusIn:` 的整个臂——`focusin` 的声明与 C 22299 的转换、C 22300 的 `x_any_window_to_frame` 查帧、
+     GTK 那条被 `#ifdef` 包住条件的去图标化块（C 22321-22330：`f = any`、`FRAME_ICONIFIED_P`、四次帧写入与 `DEICONIFY_EVENT`）、
+     C 22332 的 `xi_focus_handle_for_device` 调用，以及 C 22334 的 `goto XI_OTHER`。
+  ② **C 22294 的 `#if` 覆盖到 C 22347**（`XI_FocusIn` 与下片的 `XI_FocusOut` 都在里面），所以端口把条件对挂在**每个臂**上
+     （本文件第一次在 match 臂上挂 cfg），而不是包住一段。十九臂实测正好把 C 的这个条件量了出来：本臂的四行只出现在**编译它的 13 个臂**，
+     C 排除的**六个**（`UT`/`UM` 因 `USE_X_TOOLKIT`，`UG`/`UGX`/`AIU`/`AIUX` 因 `USE_GTK` 而没有 `HAVE_GTK3`）**一行都没有**。
+  ③ **`#ifdef USE_GTK` 又一次包着"条件"**（C 22302-22319）：端口按 Decision 2 第 2 条算一次 `focus_in_laxly`，
+     与核心 `FocusIn` 用例的 `focus_more_laxly`（C 20822-20838）同形。
+  ④ **`'xi_other` 标号第一次被用**：C 22334 的 `goto XI_OTHER` 落成 `break 'xi_other`，slice 121 记为"本片自己的" `unused label`
+     警告在每个编译本臂的臂里少一条（文件另有两处 `unused label` 在别处，baseline 读数是三条）。
+  ⑤ **两处调用点、两类**：`x_any_window_to_frame` 按 `use_gtk` 分叉（C 12344 的函数 / C 12486 的宏，Decision 69 的形状）；
+     `xi_focus_handle_for_device`（C 13462）是本文件自己的定义、仍在后面，先落调用 ⇒ 一行 `cannot find function`（Decision 133 已点名的欠账）。
+  ⑥ **读数（两侧都在本修订测）**：⑴ **十九臂表**（baseline = HEAD `83187cec`，十九个数字与 slice 121 台账逐位相同）：
+     A 1193/84 → **1197/83**、U 1205/84 → **1209/83**、UT 1208/83 → **1208/83**、UM 1216/83 → **1216/83**、UG 1232/85 → **1232/85**、
+     UGX 1335/87 → **1335/87**、AE 1225/83 → **1229/82**、AI 1220/84 → **1224/83**、AIU 1302/84 → **1302/84**、AIUX 1409/86 → **1409/86**、
+     AX 1203/84 → **1207/83**、AG3 1282/84 → **1286/83**、AG3X 1360/86 → **1364/85**、AXF 1203/84 → **1207/83**、AXPM 1194/84 → **1198/83**、
+     AXKB 1234/84 → **1238/83**、AXR 1199/84 → **1203/83**、AX11 1177/84 → **1181/83**、AUX 1276/82 → **1280/81**。
+     ⑵ **`--check`** 仍三行（`handle_one_xevent` 长行 token **76** 不变），单元 **35,310 行**（+50），文件 md5 `c29df126f7dca75c4c7e287240bfdfb9`。
+  ⑦ **预算与清理**：本片 rustc **约 39 发**（19 臂 × 2 轮 + 首发；每次 15-21 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s122/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
+     下一片从 `XI_FocusOut`（C 22337）起。

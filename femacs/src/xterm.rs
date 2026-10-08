@@ -34328,6 +34328,56 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		{
 		  match (*event).xcookie.evtype
 		    {
+		      /* "XI focus events aren't employed under X toolkit or GTK+ 2.x because
+			 created by these two toolkits are incompatible with input extension focus events."  */
+		      /* C 22294's gate runs to C 22347 and covers the two focus arms, so each of
+			 them carries the pair itself - the shape the slice-116 cases already use.  */
+#[cfg (all (not (feature = "use_x_toolkit"),
+	    any (not (feature = "use_gtk"), feature = "have_gtk3")))]
+		      XI_FocusIn =>
+		        {
+		          let focusin: *mut XIFocusInEvent;                   // C 22297
+
+		          focusin = xi_event as *mut XIFocusInEvent;          // C 22299
+		          /* C's one name has two shapes with complementary gates (C 12344's function for
+			     USE_X_TOOLKIT || USE_GTK, C 12486's macro for the rest), so the call is split the
+			     same way - the shape this file's 25745-25754 site carries.  */
+		          #[cfg (feature = "use_gtk")]
+		          { any = x_any_window_to_frame (dpyinfo, (*focusin).event); }  // C 22300
+		          #[cfg (not (feature = "use_gtk"))]
+		          { any = x_any_window_to_frame! (dpyinfo, (*focusin).event); }  // C 22300
+
+		          /* C 22302-22319's conditional wraps the *condition* (C 22317-22318), and C 22320's
+			     block runs unconditionally where the header drops it - so the port computes the
+			     condition once, the cfg-computed shape Decision 2 item 2 spells.  */
+		          let focus_in_laxly: bool = true;                    // C 22320's `#else` reading
+		          #[cfg (feature = "use_gtk")]
+		          let focus_in_laxly: bool
+		            = EQ (x_set_frame_visibility_more_laxly, Qfocus_in ())  // C 22317
+		              || EQ (x_set_frame_visibility_more_laxly, Qt ());  // C 22318
+
+		          /* "Some WMs (e.g. Mutter in Gnome Shell), don't unmap minimized/iconified windows;
+			     thus, for those WMs we won't get a MapNotify when unminimizing/deiconifying.  Check
+			     here if we are deiconizing a window (Bug42655)."  "The option
+			     x_set_frame_visibility_more_laxly enables overriding the default behavior
+			     (Bug#49955, Bug#53298)."  */
+		          if focus_in_laxly
+		            {
+		              f = any;                                        // C 22321
+		              if !f.is_null () && FRAME_ICONIFIED_P (f)       // C 22322
+		                {
+		                  SET_FRAME_VISIBLE! (f, 1);                  // C 22324
+		                  SET_FRAME_ICONIFIED (f, false as c_int);    // C 22325
+		                  (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;  // C 22326
+		                  input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);  // C 22327
+		                  XSETFRAME! (inev.ie.frame_or_window, f);    // C 22328
+		                }
+		            }
+
+		          xi_focus_handle_for_device (dpyinfo, any, xi_event);  // C 22332
+
+		          break 'xi_other;                                    // C 22334 (`goto XI_OTHER`)
+		        }
 		      _ => {}
 		    }
 
