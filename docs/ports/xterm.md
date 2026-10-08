@@ -574,6 +574,16 @@ arm the port's `_` has stood in for since slice 121.  Three XI 2.4 event types j
 vocabulary (XI2.h 217-219), and the lane gains an arm, `XI24` (`XI2 + have_xinput2_4`), because
 nothing in this lane turned that macro on before.
 
+Slice 137 (C 25217-25267, Decision 149) opens the outer switch's `default:` - the arm the port's
+`_` had been standing in for - and lands its first C range, the `#ifdef HAVE_XKB` block: the
+`supports_xkb`/`xkb_event_type` test, the `XkbEvent` cast, the `XkbNewKeyboardNotify`/`XkbMapNotify`
+branch with `XkbRefreshKeyboardMapping` and the two-way `xkb_desc` repair (`XkbGetUpdatedMap` +
+`XkbGetNames`, or `XkbFreeKeyboard`/`NULL`, or `XkbGetMap` + `XkbGetNames`), then
+`x_find_modifier_meanings` and the `XkbStateNotify` `else if` that records `mods | ptr_buttons` in
+`x_dnd_keyboard_state`.  C's `default:` body still owes C 25268-25557 (up to the `HAVE_XFIXES`
+block), and the `break 'switch` after the arm is C's own `break` at C 25587, falling out of the
+switch towards the `OTHER:` block the port carries as the shared tail.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6459,6 +6469,45 @@ expected direction once the file starts carrying records the X11 headers would s
   no arm of this lane turned `have_xinput2_4` on before.  The next slice takes C 25215's outer
   `default:` and the rest of `handle_one_xevent` (C 25215-25811); C 25195-25213's `xi_done_keysym:`
   and `XI_OTHER:` tails are already landed as Decision 142.
+
+### 149. Slice 137 (C 25217-25267): the outer `default:` opens - the `HAVE_XKB` block
+
+* **What it lands.**  The outer switch's `default:` label (C 25217) - the port's `_ => {}` arm with a
+  `break 'switch` stand-in since slice 121 - now opens a body, and C 25218-25267 (the
+  `#ifdef HAVE_XKB` block) is its first slice: the `supports_xkb`/`xkb_event_type` test, the
+  `XkbEvent` cast, the `XkbNewKeyboardNotify`/`XkbMapNotify` pair with `XkbRefreshKeyboardMapping`,
+  the two-way `xkb_desc` repair (`XkbGetUpdatedMap` + `XkbGetNames` on the update path,
+  `XkbFreeKeyboard`/`NULL` on the failure path, `XkbGetMap` + `XkbGetNames` on the fresh path),
+  `x_find_modifier_meanings`, and the `else if` that records `XkbStateNotify`'s `mods |
+  ptr_buttons` in `x_dnd_keyboard_state`.
+* **Where the body ends.**  C's `default:` body runs to C 25557 (the `HAVE_XFIXES` block's `#endif`)
+  and *falls into* C 25558's `OTHER:` label.  The port carries that label as the switch's shared
+  tail after the `match` (Decision 126), so the `break 'switch` that follows the arm is C's own
+  `break` at C 25587.  The rest of the body (C 25268-25557) is owed, and the arm's own comment says
+  so - this is the first slice of a body that will land one C range at a time.
+* **The rows are the XKB vocabulary's absence, not new classes.**  The 24 error rows are `XkbEvent`
+  x2, the five entry points (`XkbRefreshKeyboardMapping`, `XkbGetUpdatedMap`, `XkbGetNames` x2,
+  `XkbGetMap`, `XkbFreeKeyboard`), the ten constants (`XkbKeySymsMask` x2, `XkbKeyTypesMask` x2,
+  `XkbModifierMapMask` x2, `XkbVirtualModsMask` x2, `XkbAllNamesMask` x2, `XkbAllComponentsMask`,
+  `XkbUseCoreKbd`, `XkbNewKeyboardNotify`, `XkbMapNotify`, `XkbStateNotify`) and one more
+  `no field r#type` on the `XEvent` stand-in (C 25220).  `<X11/XKBlib.h>` is an owed header the
+  `## Owed` list already names, the baseline already carries one row per mask and five for
+  `XkbUseCoreKbd` (the C 31476-31489 sites of `x_term_init`), and this file's 24617 note says the XKB
+  vocabulary "stays bare" until that header lands - so this slice adds *mentions* of a registered
+  class, and two new *names* of it (`XkbRefreshKeyboardMapping`, `XkbGetUpdatedMap`).
+* **C's own parentheses are kept, and they are the three new warnings.**  C groups the two mask
+  expressions and the `x_dnd_keyboard_state` value itself (`(XkbKeySymsMask | …)`,
+  `(xkbevent->state.mods | xkbevent->state.ptr_buttons)`); rustc reads all three as
+  `unnecessary parentheses` - two around function arguments (C 25232-25235, C 25249-25252) and one
+  around an assigned value (C 25264-25265).  They are kept because the text is C's, the `xrealloc`
+  precedent of the slice-92 reading.
+* **What `--check` reads.**  Two rows, unchanged: the long `handle_one_xevent` row's token list is
+  **69 -> 69** and `x_get_wm_check_window does not mention false` stays.  The unit is **38,438
+  lines** (+60), md5 `215cbb29dd2298ddc9e66d5622177a61`.
+* **Not claimed.**  No runtime evidence: the frozen configuration compiles none of this file, so no
+  XKB event was ever classified, no keyboard map was refreshed and `x_find_modifier_meanings` was
+  never called.  The readings are the two arms below (`AXKB` is the lane's existing arm for
+  `have_xkb`).  The next slice takes C 25268 onwards, the `HAVE_XSHAPE` block.
 
 ## Evidence
 
@@ -12941,4 +12990,31 @@ block, and `XI21W`/`XI_Motion` have compiled the former since slice 125).  **No 
 either arm** (A 83, XI24 89, XI24W 88 on both sides), and nothing shrank.
 
 **Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
+per-arm message diff and `--check`'s two rows with its token list (69 -> 69).
+
+### Slice 137's readings (C 25217-25267), as landed and measured (2026-10-08)
+
+The outer `default:`'s first slice, the `HAVE_XKB` block.  Two arms, both sides, one probe root per
+side - the `_` arm is compiled by every arm, and the XKB text inside it sits behind `have_xkb`, so
+`AXKB` (`A + have_xkb`, the arm the lane already had) is the one that reads it.
+
+| arm | baseline | slice 137 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| AXKB `A +have_xkb` | 1215 / 83 | **1239 / 86** | **+24 / +3** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`eca943b8`, slice 136).
+
+| grew | of which |
+| --- | --- |
+| the 24 error rows | `XkbEvent` x2 (C 25222's annotation and cast), the five entry points (`XkbRefreshKeyboardMapping` C 25227, `XkbGetUpdatedMap` C 25231, `XkbGetNames` C 25237 and C 25256, `XkbGetMap` C 25248, `XkbFreeKeyboard` C 25241), the ten constants (`XkbKeySymsMask` x2, `XkbKeyTypesMask` x2, `XkbModifierMapMask` x2, `XkbVirtualModsMask` x2, `XkbAllNamesMask` x2, `XkbAllComponentsMask`, `XkbUseCoreKbd`, `XkbNewKeyboardNotify`, `XkbMapNotify`, `XkbStateNotify`) and one `no field r#type` on the `XEvent` stand-in (C 25220) |
+| the 3 warning rows | `unnecessary parentheses` x3 - around the two mask arguments (C 25232-25235, C 25249-25252) and around the assigned `x_dnd_keyboard_state` value (C 25264-25265) - C's own grouping, kept (the `xrealloc` precedent) |
+
+**Every row is a registered class.**  The XKB vocabulary is the one `## Owed` already names
+(`<X11/XKBlib.h>`), the baseline already reads one row per mask and five for `XkbUseCoreKbd`, and the
+mirror's 24617 note says those names "stay bare"; the `E0609` row is the `XEvent` stand-in's owed
+`r#type` member, the class the function's own doc comment records.  Nothing shrank, and no existing
+row moved.
+
+**Not claimed**: no runtime evidence; the readings are the two arm compiles (both sides), the
 per-arm message diff and `--check`'s two rows with its token list (69 -> 69).

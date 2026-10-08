@@ -37432,12 +37432,72 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	    }
 
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
-		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
-		  _ => {}
+		     the item's `///` block above - and C's no-case path is the `_` arm's body below,
+		     whose first C range (C 25217-25267, the `HAVE_XKB` arm) this round lands.  */
+		  _ =>
+		    {
+		      /* C 25217's `default:` - C's no-case path.  Its body runs to C 25557 (the
+		         `HAVE_XFIXES` block's `#endif`) and then falls into C 25558's `OTHER:` label,
+		         which the port carries as the switch's shared tail below, so C's own `break`
+		         at C 25587 is the `break 'switch` after the match.  The rest of the body
+		         (C 25268-25557) is still owed.  */
+#[cfg (feature = "have_xkb")]
+		      {
+			/* C 25218-25267's `#ifdef HAVE_XKB`.  */
+			if (*dpyinfo).supports_xkb                                    // C 25219
+			  && (*event).r#type == (*dpyinfo).xkb_event_type             // C 25220
+			  {
+			    let xkbevent: *mut XkbEvent = event as *mut XkbEvent;     // C 25222
+
+			    if (*xkbevent).any.xkb_type == XkbNewKeyboardNotify       // C 25224
+			      || (*xkbevent).any.xkb_type == XkbMapNotify             // C 25225
+			      {
+			        XkbRefreshKeyboardMapping (&raw mut (*xkbevent).map); // C 25227
+
+			        if !(*dpyinfo).xkb_desc.is_null ()                    // C 25229
+			          {
+			            if XkbGetUpdatedMap ((*dpyinfo).display,          // C 25231-25236
+			              ( XkbKeySymsMask
+			                | XkbKeyTypesMask
+			                | XkbModifierMapMask
+			                | XkbVirtualModsMask),
+			              (*dpyinfo).xkb_desc) == Success
+			              { XkbGetNames ((*dpyinfo).display, XkbAllNamesMask, // C 25237-25238
+			                (*dpyinfo).xkb_desc); }
+			            else
+			              {
+			                XkbFreeKeyboard ((*dpyinfo).xkb_desc,         // C 25241-25242
+			                  XkbAllComponentsMask, True);
+			                (*dpyinfo).xkb_desc = std::ptr::null_mut ();  // C 25243
+			              }
+			          }
+			        else
+			          {
+			            (*dpyinfo).xkb_desc = XkbGetMap ((*dpyinfo).display, // C 25248-25253
+			              ( XkbKeySymsMask
+			                | XkbKeyTypesMask
+			                | XkbModifierMapMask
+			                | XkbVirtualModsMask),
+			              XkbUseCoreKbd);
+
+			            if !(*dpyinfo).xkb_desc.is_null ()                // C 25255
+			              { XkbGetNames ((*dpyinfo).display, XkbAllNamesMask, // C 25256-25257
+			                (*dpyinfo).xkb_desc); }
+			          }
+
+			        x_find_modifier_meanings (dpyinfo);                   // C 25260
+			      }
+			    else if x_dnd_in_progress                                 // C 25262
+			      && (*xkbevent).any.xkb_type == XkbStateNotify           // C 25263
+			      { x_dnd_keyboard_state = ((*xkbevent).state.mods        // C 25264-25265
+			        | (*xkbevent).state.ptr_buttons); }
+			  }
+		      }
+		    }
       }
-		    /* C's `default:` arm is not landed yet and this stand-in is what C's switch's
-		       no-case path does (C 25190-25191's inner `default` is the other one); an arm that
-		       merely ends lands here too.  */
+		    /* C's `default:` body lands above one C range at a time; this stand-in is what C's
+		       switch does once that body has run (C's fall-out of the switch reaches the
+		       `OTHER:` block below), and an arm that merely ends lands here too.  */
 		    break 'switch;
 		  }
 		  /* C 20686-20703: the `done_keysym:` tail, Decision 142's hoist.  C writes it inside
