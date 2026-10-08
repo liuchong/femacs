@@ -11705,7 +11705,7 @@ C 22240's gate, the `XI_FocusOut` and `XI_Enter` arms, and two more arms.
 the thirteen arms it shares with the slice-122 table reproduce that column to the digit (the
 sixteen non-XI2 arms are the ones the gate moves).  The two new arms' baseline column is their
 own measurement of HEAD.  The slice's file md5 is
-`d311ad50bf9f1aeeaecdb52619f8f68d` (35,464 lines against C's 33,125).
+`6f64b635a04d2b16c6f9a99a10d22ac7` (35,464 lines against C's 33,125).
 
 **The gate's half of the delta, by class (measured against the baseline's own class list):**
 
