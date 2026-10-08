@@ -31361,8 +31361,18 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	 in this labelled block, which makes all three of C's jumps expressible: `break 'switch` is
 	 C's `goto OTHER` (it lands on the block below, and is how a jump from *inside* an arm is
 	 spelled), `break 'other` is C's `break` (it leaves the switch's block and lands on
-	 `done:`), and an arm that merely ends is C's own fall-out into `OTHER:`.  */
+	 `done:`), and an arm that merely ends is C's own fall-out into `OTHER:`.
+	 The second label is Decision 142's.  C's `done_keysym:` label (C 20686) sits *inside* the
+	 `case KeyPress:` body, but eight of that arm's statements and the `xi_done_keysym:` block's
+	 `goto` (C 25208) reach it from places Rust cannot jump from, so the label's block is
+	 hoisted here - around the `match` - and its text follows that block, below.  Every `goto
+	 done_keysym` is therefore `break 'keysym` (it leaves this block and lands on that text,
+	 skipping the `OTHER:` block the way C does), the `case KeyPress:` arm's own fall-out into
+	 the label is spelled `break 'keysym` at the arm's end, and an arm that merely ends leaves
+	 the match for the `break 'switch` below, which is C's `goto OTHER`.  (The `match`'s body
+	 keeps the indentation it was landed with; only the frame moved.)  */
       'switch: {
+	  'keysym: {
 		match (*event).r#type                                             // C 18949
 		{
 		  /* C 19473-19486: `case SelectionNotify:`.  The toolkit and GTK arms look the event's
@@ -32349,7 +32359,6 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			      core::mem::size_of_val (&compose_status));
 		    }
 
-		  'keysym: {                                                   // C 20686's `done_keysym:`
 		    /* C 20330-20362's `#ifdef HAVE_X_I18N` pair, whose `else` (C 20363) is the shared
 		       body below: with an XIC the Xmb path runs and does not fall through, without one
 		       (or with a null XIC) C reaches the body, which is written once here.  */
@@ -32707,28 +32716,11 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			{ break 'other; }                                   // C 20683
 		    }
 
-		    /* C 20687-20695: the `done_keysym:` tail.  C writes it after the label, outside
-		       its own `if (f != 0)`; here it closes the label's block, and its `if (f)`
-		       (C 20688) is the test this block already stands inside.  */
-		    #[cfg (feature = "have_x_i18n")]
-		    if !f.is_null ()                                        // C 20688
-		      {
-			let w: *mut window = XWINDOW ((*f).selected_window);  // C 20690
-			xic_set_preeditarea (w, (*w).cursor.x, (*w).cursor.y);  // C 20691
-
-			if !FRAME_XIC! (f).is_null ()                       // C 20693
-			  && FRAME_XIC_STYLE! (f) & XIMStatusArea != 0
-			  { xic_set_statusarea (f); }                       // C 20694
-		      }
-		  }
 		}
 
-	      /* C 20697-20703: "Don't dispatch this event since XtDispatchEvent calls XFilterEvent,
-		 and two calls in a row may freeze the client."  */
-#[cfg (feature = "have_x_i18n")]
-	      { break 'other; }                                             // C 20700
-#[cfg (not (feature = "have_x_i18n"))]
-	      { break 'switch; }                                            // C 20702
+	      /* C 20684-20686's fall-out into the `done_keysym:` label.  The label is hoisted to
+		 the frame (Decision 142), so C's fall-out is spelled as the jump to it.  */
+	      break 'keysym;
 	    }
 
 	  /* C 20705-20714: `case KeyRelease:`.  */
@@ -36288,20 +36280,67 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		          xkey.keycode = (*xev).detail as c_uint;            // C 24168
 		          xkey.same_screen = True;                           // C 24169
 		        }
-		      _ => {}
+		      /* C 25190-25191's inner `default: goto XI_OTHER;` - the stand-in until that arm
+			 lands, and the reason no arm falls into the block below.  */
+		      _ => { break 'xi_other; }
 		    }
 
-		  /* C 25210-25213's `XI_OTHER:` label: the free and C's `goto OTHER`.  */
-		  if must_free_data                                             // C 25211
-		    { XFreeEventData ((*dpyinfo).display, &raw mut (*event).xcookie); }  // C 25212
-		  break 'switch;                                                // C 25213 (`goto OTHER`)
+		  /* C 25195-25209's `xi_done_keysym:` block (Decision 142).  C writes it after the
+		     inner switch, inside the `GenericEvent` case; the XI arms' `goto xi_done_keysym`
+		     is "leave the arm", which lands here, and its `goto done_keysym` (C 25208) is the
+		     `break 'keysym` that reaches the frame's tail.  */
+#[cfg (feature = "have_x_i18n")]
+		  if !f.is_null ()                                              // C 25197
+		    {
+		      let w: *mut window = XWINDOW ((*f).selected_window);      // C 25199
+		      xic_set_preeditarea (w, (*w).cursor.x, (*w).cursor.y);    // C 25200
+
+		      if !FRAME_XIC! (f).is_null ()                             // C 25202
+			&& FRAME_XIC_STYLE! (f) & XIMStatusArea != 0
+			{ xic_set_statusarea (f); }                             // C 25203
+		    }
+		  if must_free_data                                             // C 25206
+		    { XFreeEventData ((*dpyinfo).display, &raw mut (*event).xcookie); }  // C 25207
+		  break 'keysym;                                                // C 25208 (`goto done_keysym`)
 		}
+		/* C 25210-25213's `XI_OTHER:` label: the free and C's `goto OTHER`.  It stands
+		   *outside* the `'xi_other` block (Decision 142: slice 121 had it inside, where
+		   `break 'xi_other` - C's `goto XI_OTHER` - skipped it and C 25212's
+		   `XFreeEventData` never ran).  */
+		if must_free_data                                               // C 25211
+		  { XFreeEventData ((*dpyinfo).display, &raw mut (*event).xcookie); }  // C 25212
+		break 'switch;                                                  // C 25213 (`goto OTHER`)
 	    }
 
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
 		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
 		  _ => {}
       }
+		    /* C's `default:` arm is not landed yet and this stand-in is what C's switch's
+		       no-case path does (C 25190-25191's inner `default` is the other one); an arm that
+		       merely ends lands here too.  */
+		    break 'switch;
+		  }
+		  /* C 20686-20703: the `done_keysym:` tail, Decision 142's hoist.  C writes it inside
+		     the `case KeyPress:` body; here it is what the `'keysym` block above falls into, so
+		     the eight `break 'keysym` sites, that arm's own fall-out and the `xi_done_keysym:`
+		     block's `goto done_keysym` all run it, and its two exits are C's `break` and
+		     `goto OTHER`.  */
+#[cfg (feature = "have_x_i18n")]
+		  if !f.is_null ()                                        // C 20688
+		    {
+		      let w: *mut window = XWINDOW ((*f).selected_window);  // C 20690
+		      xic_set_preeditarea (w, (*w).cursor.x, (*w).cursor.y);  // C 20691
+		      if !FRAME_XIC! (f).is_null ()                       // C 20693
+			&& FRAME_XIC_STYLE! (f) & XIMStatusArea != 0
+			{ xic_set_statusarea (f); }                       // C 20694
+		    }
+		  /* C 20697-20703: "Don't dispatch this event since XtDispatchEvent calls XFilterEvent,
+		     and two calls in a row may freeze the client."  */
+#[cfg (feature = "have_x_i18n")]
+		  { break 'other; }                                       // C 20700
+#[cfg (not (feature = "have_x_i18n"))]
+		  { break 'switch; }                                      // C 20702
 	}
 
       /* C 25558-25587: the `OTHER:` label's block.  C writes it *inside* the `GenericEvent`

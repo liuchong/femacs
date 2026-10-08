@@ -17731,3 +17731,24 @@
   ⑧ **预算与清理**：本片 rustc 约 **30 发**（首发归因、逐轮定点复测、11 臂 × 两侧、两次修正复测；每次 17-24 秒，单文件 `--emit=metadata`），
      无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s129`。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片按 C 顺序进入 C 24171-24569（输入法过滤、三条换算路径与 `inev` 构造）。
+
+- **4.049 `src/xterm.c` round 106（xterm lane，slice 130）：`done_keysym`/`xi_done_keysym` 的框架修复（Decision 142，无 C 行区间）（2026-10-08）**：
+  ① **为什么要先改框架**：`XI_KeyPress` 余下部分（C 24171-24569，下一片）有 **10 处 `goto xi_done_keysym`**，`XI_KeyRelease` 还有更多；C 的 `xi_done_keysym:` 标签块（C 25195-25209）
+     在内层 `switch` 之后、`GenericEvent` case 之内，其最后一句是 `goto done_keysym`（C 25208）——**跳进 `case KeyPress:` 正文里自己的标签**（C 20686）。Rust 不能跨臂跳，所以框架必须先动；
+     本片只落框架，下一片就纯粹是转写。
+  ② **三个移动**：⑴ C 20686-20703 的尾巴**搬出 `case KeyPress:` 臂**，成为包住外层 `match` 的 `'keysym` 块（放在 `'switch` 标签与 `OTHER:` 块之间）；
+     该臂原有的八处 `break 'keysym` 拼写不变、现在落到这里；该臂"落进标签"的那条路在其末尾拼成 `break 'keysym`；`match` 之后新增 `break 'switch`，
+     承载 no-case 路径（C 的 `default:` 臂还没落，仍是 `_` stand-in）与任何"自然结束"的臂。⑵ C 25195-25209 的 `xi_done_keysym:` 块落在 `GenericEvent` 臂末尾
+     （内层 `match` 之后、`XI_OTHER` 块之前），它的 `goto done_keysym` 就是 `break 'keysym`。⑶ C 25210-25213 的 `XI_OTHER:` 块**搬到 `'xi_other` 块之外**：
+     `break 'xi_other` 是本端口的 `goto XI_OTHER`，而标签块的结束位置正是 `break` 落地处——**slice 121 把文本放在块内，等于那次跳转把它跳过、C 25212 的
+     `XFreeEventData` 从来没跑过**（本轮修掉）。内层 `_ => {}` 改成 `_ => { break 'xi_other; }`，即 C 25190-25191 的 `default: goto XI_OTHER;`。
+  ③ **`match` 正文没有重新缩进**：只搬框架——给 4,900 行的 `match` 再包一层会让整块重排，所以它的正文保持落地时的缩进，框架注释里写明。
+  ④ **读数（五臂，两侧都在本修订测，同一根 `_root.rs`；baseline = HEAD `7b3f26c8`）**：A 1174/83 → **1174/83**（0/0：框架在普通臂里不可见）、
+     XI2 1324/87 → **1326/87**、ULI2 1412/86 → **1414/86**、XI21W 1405/88 → **1407/88**（各 +2）、AIUX 1449/87 → **1453/87**（+4）。
+     所有 `have_xinput2` 臂的 +2 是新 `xi_done_keysym` 块的 `if (must_free_data) XFreeEventData (...)`（`no field xcookie` 与 `XFreeEventData`，`XI_OTHER` 块早已登记的两类）；
+     AIUX 多出的 2 行是它的 `have_x_i18n` preedit 对（`xic_set_preeditarea`、`xic_set_statusarea`）。**warning 一个臂都没动。**
+  ⑤ **台账**：`docs/ports/xterm.md` 加 Decision **142** 与 `### Slice 130's readings`；`--check` 仍三行，长行 token 清单 **73 不变**，
+     `family memset` 行仍 *4 vs 3*；单元 **37,259 行**（框架 +39），md5 `0ea735da2a033c6cca625b4f439a945f`。
+  ⑥ **未声称**：**新跳转没有任何臂走到**（调用点下一片才落），所以本片读数只证明框架在各臂**编得过**，不证明路径跑得通；全 lane 依旧没有运行证据。
+  ⑦ **预算与清理**：本片 rustc 约 **12 发**（框架两版 × 五臂两侧 + `--check`；每次 17-24 秒，单文件 `--emit=metadata`），无全盘/大内存扫描；
+     收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s130`。下一片 C 24171-24569（输入法过滤、三条换算路径与 `inev` 构造）。

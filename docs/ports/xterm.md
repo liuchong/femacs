@@ -515,6 +515,15 @@ Xlib's own typedef of the `XKeyEvent` record this file already declares.  The la
 grows from twenty-three arms to twenty-five: `UL` and `ULI2` carry `use_lucid`, the one gate no
 arm had, and `ULI2` is what compiles C 24089-24108's menu-dispatch copy.
 
+Slice 130 (no C range: Decision 142) is the frame the rest of `XI_KeyPress` needs.  C's
+`done_keysym:` label (C 20686) sits *inside* the `case KeyPress:` body, but eight of that arm's
+statements and the `xi_done_keysym:` block's `goto` (C 25208) reach it, and Rust cannot jump into
+another arm - so the label's text is hoisted out of the arm into a `'keysym` block that wraps the
+outer `match` (Decision 126's `OTHER:` hoist shape), the `xi_done_keysym:` block itself (C
+25195-25209) lands at the end of the `GenericEvent` arm, and the `XI_OTHER:` block moves *outside*
+the `'xi_other` block, which is where C's `goto XI_OTHER` has to land and where slice 121's
+placement had `break 'xi_other` skip it.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6127,6 +6136,46 @@ expected direction once the file starts carrying records the X11 headers would s
   delivered.  The readings are the nine arms of the table below plus the two new ones (all on both
   sides), the per-arm message diff, and `--check`.  The next slice takes C 24171-24569 (the
   input-method filter, the three translation paths and the `inev` C builds).
+
+### 142. Slice 130 (no C range): the `done_keysym`/`xi_done_keysym` frame
+
+* **What it changes, and why it is not a C range.**  The rest of `case XI_KeyPress:` (C 24171-24569,
+  the next slice) has ten `goto xi_done_keysym` statements, and `case XI_KeyRelease:` has more.
+  C's `xi_done_keysym:` block (C 25195-25209) sits after the inner `switch`, inside the
+  `GenericEvent` case, and its last statement is `goto done_keysym` (C 25208) - a jump into the
+  `case KeyPress:` body's own label, C 20686.  Rust cannot express either jump across arms, so the
+  frame has to move first; this slice lands the frame alone, so that the next one is transcription.
+* **Three moves.**  (1) C 20686-20703's tail leaves the `case KeyPress:` arm and becomes the text
+  of a new `'keysym` block that wraps the outer `match`, placed between the `'switch` label and the
+  `OTHER:` block; the arm's eight `break 'keysym` sites keep their spelling and now land there, the
+  arm's own fall-out into the label is spelled `break 'keysym` at its end, and a new `break
+  'switch` after the `match` carries the no-case path (C's `default:` arm is still a stand-in) as
+  well as any arm that merely ends.  (2) C 25195-25209's `xi_done_keysym:` block lands at the end
+  of the `GenericEvent` arm - after the inner `match`, before the `XI_OTHER` block - and its
+  `goto done_keysym` is the `break 'keysym` that reaches the hoisted tail.  (3) C 25210-25213's
+  `XI_OTHER:` block moves *outside* the `'xi_other` block: `break 'xi_other` is this port's
+  `goto XI_OTHER`, and a label's block ends where a `break` lands, so with the text inside (slice
+  121's placement) the jump skipped it and C 25212's `XFreeEventData` never ran.  The inner
+  `_ => {}` stand-in becomes `_ => { break 'xi_other; }`, which is C 25190-25191's
+  `default: goto XI_OTHER;`.
+* **The `match`'s body was not re-indented.**  Only the frame moved: wrapping the 4,900-line
+  `match` in one more block would have re-indented all of it, so its body keeps the indentation it
+  was landed with and the frame's comment says so.
+* **Readings.**  Five arms, both sides, one probe root per side; baseline is HEAD (`7b3f26c8`,
+  slice 129): A 1174/83 -> **1174/83** (0/0 - the frame is invisible in a plain arm), XI2 1324/87
+  -> **1326/87**, ULI2 1412/86 -> **1414/86**, XI21W 1405/88 -> **1407/88** (+2 each) and AIUX
+  1449/87 -> **1453/87** (+4).  The two rows every `have_xinput2` arm gains are the new
+  `xi_done_keysym` block's `if (must_free_data) XFreeEventData (...)` (`no field xcookie` and
+  `XFreeEventData`, the classes the `XI_OTHER` block already carries) and the two more AIUX gains
+  are its `have_x_i18n` preedit pair (`xic_set_preeditarea`, `xic_set_statusarea`, which resolve;
+  `XWINDOW`/`FRAME_XIC` do too).  No warning moved in any arm.
+* **What `--check` reads.**  The same three rows, the long row's token list still **73**, the
+  `family memset` row still *4 vs 3*.  The unit is **37,259 lines** (+39 of frame), md5
+  `0ea735da2a033c6cca625b4f439a945f`.
+* **Not claimed.**  No arm exercises the new jumps yet - the sites land with C 24171-24569 - so the
+  readings prove the frame *compiles* in every arm, not that a path runs; and there is no runtime
+  evidence, as everywhere in this lane.  The next slice takes C 24171-24569 with the labels in
+  place.
 
 ## Evidence
 
@@ -12394,3 +12443,25 @@ own control and `ULI2`'s +25 is C 24089-24111's block, which no earlier round co
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the eleven arm compiles (both sides), the per-arm message diff and the
 `--check` row's token count and memset family.
+
+### Slice 130's readings (the frame repair), as landed and measured (2026-10-08)
+
+The `done_keysym:`/`xi_done_keysym:` frame (Decision 142), with no C range of its own.  Five arms,
+both sides, one probe root per side.
+
+| arm | baseline | slice 130 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| XI2 `A +have_xinput2` | 1324 / 87 | **1326 / 87** | **+2 / 0** |
+| ULI2 `A +use_x_toolkit +use_lucid +have_xinput2` | 1412 / 86 | **1414 / 86** | **+2 / 0** |
+| XI21W `XI2 +have_xinput2_1 +have_xinput2_2 +have_xwidgets` | 1405 / 88 | **1407 / 88** | **+2 / 0** |
+| AIUX `XI2 +have_x_i18n +use_gtk` | 1449 / 87 | **1453 / 87** | **+4 / 0** |
+
+**Both sides were measured in this revision** and the baselines reproduce slice 129's slice column
+to the digit.  The `+2` is the new `xi_done_keysym` block's free (`no field xcookie`,
+`XFreeEventData`); AIUX's two more are its `have_x_i18n` preedit pair
+(`xic_set_preeditarea`, `xic_set_statusarea`).  The plain arm reads a zero delta: the whole frame
+change is inside the `have_xinput2` gate or inside `'switch`'s own label structure.
+
+**Not claimed**: no jump is exercised yet (the sites land next slice), so this reading is a
+compilability statement; no runtime evidence.
