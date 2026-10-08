@@ -3852,3 +3852,75 @@ unsafe fn haiku_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole
   wset_horizontal_scroll_bar (w, barobj);                              // C 2743
   unblock_input ();                                                    // C 2744
 }
+
+/* C 2746-2803: `haiku_set_vertical_scroll_bar` (C 2747-2803) - the vertical twin of slice 13's
+   horizontal function, with `WINDOW_SCROLL_BAR_AREA_X`/`_WIDTH` in place of the Y/height pair and
+   this file's own C 455-495 `haiku_set_scroll_bar_thumb` (already landed at slice 1) in place of
+   the horizontal one.  The next first definition is C 2805's `haiku_draw_fringe_bitmap`.  */
+
+/* C 2747-2803.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+					 position: c_int)
+{
+  let mut barobj: Lisp_Object;                                         // C 2750
+  let mut bar: *mut scroll_bar;                                        // C 2751
+  let mut top: c_int;                                                  // C 2752
+  let mut height: c_int;
+  let mut left: c_int;
+  let mut width: c_int;
+  /* C 2753 declares the two outputs of C 2759's `window_box` with no initialiser and C 2759 hands
+     the callee their addresses, so the port zero-initialises them (PORTING.md 1.5).  */
+  let mut window_y: c_int = 0;
+  let mut window_height: c_int = 0;
+  let view: *mut c_void;                                               // C 2754
+
+  eassert! (WINDOW_HAS_VERTICAL_SCROLL_BAR! (w));                       // C 2756
+
+  /* Get window dimensions.  */                                       // C 2758
+  window_box (w, ANY_AREA, std::ptr::null_mut (), &raw mut window_y,    // C 2759
+	      std::ptr::null_mut (), &raw mut window_height);
+  top = window_y;                                                      // C 2760
+  height = window_height;                                              // C 2761
+
+  /* Compute the left edge and the width of the scroll bar area.  */   // C 2763
+  left = WINDOW_SCROLL_BAR_AREA_X! (w);                                // C 2764
+  width = WINDOW_SCROLL_BAR_AREA_WIDTH! (w);                           // C 2765
+
+  view = FRAME_HAIKU_DRAWABLE! (WINDOW_XFRAME! (w));                     // C 2767
+
+  block_input ();                                                       // C 2769
+  if NILP ((*w).vertical_scroll_bar)                                   // C 2770
+    {
+      bar = haiku_scroll_bar_create (w, left, top, width, height, false);   // C 2772
+      (*bar).position = position;                                      // C 2773
+      (*bar).total = whole;                                            // C 2774
+    }
+  else
+    {
+      bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                   // C 2778
+
+      if (*bar).left != left || (*bar).top != top                      // C 2780
+	  || (*bar).width != width || (*bar).height != height          // C 2781
+	{
+	  BView_forget_scroll_bar (view, (*bar).left, (*bar).top,          // C 2783
+				   (*bar).width, (*bar).height);        // C 2784
+	  BView_move_frame ((*bar).scroll_bar, left, top,                  // C 2785
+			    left + width - 1, top + height - 1);        // C 2786
+	  BView_publish_scroll_bar (view, left, top, width, height);       // C 2787
+
+	  (*bar).left = left;                                              // C 2789
+	  (*bar).top = top;                                                // C 2790
+	  (*bar).width = width;                                            // C 2791
+	  (*bar).height = height;                                          // C 2792
+	}
+    }
+
+  haiku_set_scroll_bar_thumb (bar, portion, position, whole);          // C 2796
+  (*bar).position = position;                                          // C 2797
+  (*bar).total = whole;                                                // C 2798
+
+  XSETVECTOR! (barobj, bar);                                           // C 2800
+  wset_vertical_scroll_bar (w, barobj);                                // C 2801
+  unblock_input ();                                                    // C 2802
+}
