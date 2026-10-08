@@ -3579,3 +3579,148 @@ unsafe fn haiku_draw_window_divider (w: *mut window, x0: c_int, x1: c_int,
   BView_EndClip (view);                                                 // C 2520
   BView_draw_unlock (view);                                             // C 2521
 }
+
+/* C 2523-2645: `haiku_condemn_scroll_bars` (C 2524-2544), `haiku_redeem_scroll_bar`
+   (C 2546-2620, whose C 2564 `goto horizontal` is the labelled block below) and
+   `haiku_judge_scroll_bars` (C 2622-2645).  The next first definition is C 2647's
+   `haiku_scroll_bar_create`.  Every name these three call is a mirror's or this file's own:
+   `FRAME_SCROLL_BARS`/`FRAME_CONDEMNED_SCROLL_BARS`/`fset_*` (include/frame.rs), `XSCROLL_BAR!`
+   (include/haikuterm.rs 390), `WINDOW_HAS_*_SCROLL_BAR!` (include/window.rs 691/...),
+   `XSETVECTOR!` (include/lisp.rs) and `haiku_scroll_bar_remove` (the mirror's
+   haikuterm_decls block, 470).  */
+
+/* C 2524-2544.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_condemn_scroll_bars (frame: *mut frame)
+{
+  if ! NILP (FRAME_SCROLL_BARS (frame))                               // C 2527
+    {
+      if ! NILP (FRAME_CONDEMNED_SCROLL_BARS (frame))                  // C 2529
+	{
+	  /* Prepend scrollbars to already condemned ones.  */         // C 2531
+	  let mut last: Lisp_Object = FRAME_SCROLL_BARS (frame);       // C 2532
+
+	  while ! NILP ((*XSCROLL_BAR! (last)).next)                   // C 2534
+	    { last = (*XSCROLL_BAR! (last)).next; }                    // C 2535
+
+	  (*XSCROLL_BAR! (last)).next = FRAME_CONDEMNED_SCROLL_BARS (frame);   // C 2537
+	  (*XSCROLL_BAR! (FRAME_CONDEMNED_SCROLL_BARS (frame))).prev = last;   // C 2538
+	}
+
+      fset_condemned_scroll_bars (frame, FRAME_SCROLL_BARS (frame));    // C 2541
+      fset_scroll_bars (frame, Qnil ());                               // C 2542
+    }
+}
+
+/* C 2546-2620.  C 2564's `goto horizontal` is a `break 'horizontal` out of the labelled block
+   C 2553-2585, whose end is C's `horizontal:` label.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_redeem_scroll_bar (w: *mut window)
+{
+  let mut bar: *mut scroll_bar;                                       // C 2549
+  let mut barobj: Lisp_Object;                                        // C 2550
+  let mut f: *mut frame;                                              // C 2551
+
+  'horizontal: {
+    if ! NILP ((*w).vertical_scroll_bar)                               // C 2553
+	&& WINDOW_HAS_VERTICAL_SCROLL_BAR! (w)
+      {
+	bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                  // C 2555
+	/* Unlink it from the condemned list.  */                      // C 2556
+	f = XFRAME (WINDOW_FRAME! (w));                                 // C 2557
+	if NILP ((*bar).prev)                                           // C 2558
+	  {
+	    /* If the prev pointer is nil, it must be the first in one of
+	       the lists.  */                                          // C 2560-2561
+	    if EQ (FRAME_SCROLL_BARS (f), (*w).vertical_scroll_bar)      // C 2562
+	      /* It's not condemned.  Everything's fine.  */           // C 2563
+	      { break 'horizontal; }                                    // C 2564
+	    else if EQ (FRAME_CONDEMNED_SCROLL_BARS (f),                // C 2565
+			(*w).vertical_scroll_bar)                       // C 2566
+	      { fset_condemned_scroll_bars (f, (*bar).next); }          // C 2567
+	    else
+	      /* If its prev pointer is nil, it must be at the front of
+		 one or the other!  */                                  // C 2569-2570
+	      { emacs_abort (); }                                       // C 2571
+	  }
+	else
+	  { (*XSCROLL_BAR! ((*bar).prev)).next = (*bar).next; }         // C 2574
+
+	if ! NILP ((*bar).next)                                         // C 2576
+	  { (*XSCROLL_BAR! ((*bar).next)).prev = (*bar).prev; }         // C 2577
+
+	(*bar).next = FRAME_SCROLL_BARS (f);                            // C 2579
+	(*bar).prev = Qnil ();                                          // C 2580
+	XSETVECTOR! (barobj, bar);                                      // C 2581
+	fset_scroll_bars (f, barobj);                                   // C 2582
+	if ! NILP ((*bar).next)                                         // C 2583
+	  { XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }     // C 2584
+      }
+  }
+
+  /* horizontal: */                                                   // C 2586
+  if ! NILP ((*w).horizontal_scroll_bar)                              // C 2587
+      && WINDOW_HAS_HORIZONTAL_SCROLL_BAR (w)
+    {
+      bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                 // C 2589
+      /* Unlink it from the condemned list.  */                       // C 2590
+      f = XFRAME (WINDOW_FRAME! (w));                                  // C 2591
+      if NILP ((*bar).prev)                                            // C 2592
+	{
+	  /* If the prev pointer is nil, it must be the first in one of
+	     the lists.  */                                             // C 2594-2595
+	  if EQ (FRAME_SCROLL_BARS (f), (*w).horizontal_scroll_bar)       // C 2596
+	    /* It's not condemned.  Everything's fine.  */              // C 2597
+	    { return; }                                                  // C 2598
+	  else if EQ (FRAME_CONDEMNED_SCROLL_BARS (f),                   // C 2599
+		      (*w).horizontal_scroll_bar)                        // C 2600
+	    { fset_condemned_scroll_bars (f, (*bar).next); }             // C 2601
+	  else
+	    /* If its prev pointer is nil, it must be at the front of
+	       one or the other!  */                                    // C 2603-2604
+	    { emacs_abort (); }                                          // C 2605
+	}
+      else
+	{ (*XSCROLL_BAR! ((*bar).prev)).next = (*bar).next; }            // C 2608
+
+      if ! NILP ((*bar).next)                                           // C 2610
+	{ (*XSCROLL_BAR! ((*bar).next)).prev = (*bar).prev; }            // C 2611
+
+      (*bar).next = FRAME_SCROLL_BARS (f);                              // C 2613
+      (*bar).prev = Qnil ();                                            // C 2614
+      XSETVECTOR! (barobj, bar);                                        // C 2615
+      fset_scroll_bars (f, barobj);                                     // C 2616
+      if ! NILP ((*bar).next)                                           // C 2617
+	{ XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }        // C 2618
+    }
+}
+
+/* C 2622-2645.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_judge_scroll_bars (f: *mut frame)
+{
+  let mut bar: Lisp_Object;                                            // C 2625
+  let mut next: Lisp_Object;
+
+  bar = FRAME_CONDEMNED_SCROLL_BARS (f);                               // C 2627
+
+  /* Clear out the condemned list now so we won't try to process any
+     more events on the hapless scroll bars.  */                     // C 2629-2630
+  fset_condemned_scroll_bars (f, Qnil ());                             // C 2631
+
+  while ! NILP (bar)                                                   // C 2633
+    {
+      let mut b: *mut scroll_bar = XSCROLL_BAR! (bar);                  // C 2635
+
+      haiku_scroll_bar_remove (b);                                      // C 2637
+
+      next = (*b).next;                                                 // C 2639
+      /* C 2640's chained assignment `b->next = b->prev = Qnil;`.  */
+      (*b).next = Qnil ();
+      (*b).prev = Qnil ();
+      bar = next;                                                       // C 2633's step
+    }
+
+  /* Now there should be no references to the condemned scroll bars,
+     and they should get garbage-collected.  */                      // C 2643-2644
+}

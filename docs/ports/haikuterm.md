@@ -7,12 +7,19 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**3,583 lines**), which carries **C 1-2522** - P-86 ④'s first eleven
+> `femacs/src/haikuterm.rs` (**3,734 lines**), which carries **C 1-2645** - P-86 ④'s first twelve
 > slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 2645 and not 2647 (slice 12).**  C 2647 is `haiku_scroll_bar_create`'s `static struct
+> scroll_bar *` and C 2645 the closing brace of the item before it, so the slice is **C 2523-2645**
+> - the blank line C 2523 and the three items `haiku_condemn_scroll_bars` (C 2524-2544),
+> `haiku_redeem_scroll_bar` (C 2546-2620, C 2564's `goto horizontal` included) and
+> `haiku_judge_scroll_bars` (C 2622-2645).  The next definition is `haiku_scroll_bar_create`
+> (C 2647).
 >
 > **Why 2522 and not 2524 (slice 11).**  C 2524 is `haiku_condemn_scroll_bars`'s `static void` and
 > C 2522 the closing brace of the item before it, so the slice is **C 2398-2522** - the blank line
@@ -162,7 +169,8 @@ the pre-flight below sets it as well.
 | 2075-2219 | `haiku_after_update_window_line` (C 2076-2129; C 2087-2093 the two comma-expression conditions, C 2100-2126 the two face arms), `haiku_set_window_size` (C 2131-2167; C 2140 `XSETFRAME`, C 2144 `want_fullscreen`, C 2148 `configury_done`, C 2162 `haiku_wait_for_event`) and `haiku_draw_hollow_cursor` (C 2169-2219; C 2183-2188 the phys-cursor pair, C 2198-2200 the R2L shift, C 2205-2218 the clip/pen/rectangle) | file gate (slice 9) |
 | 2220-2397 | `haiku_draw_bar_cursor` (C 2221-2316; C 2238-2240 the out-of-bounds return, C 2245-2249 the image arm, C 2260-2263 the colour choice, C 2270-2288 the BAR arm, C 2289-2311 the HBAR arm), `haiku_draw_window_cursor` (C 2318-2365; C 2326 the `phys_cursor_on_p` write, C 2328-2334 the fringe arm, C 2338-2362 the five-arm dispatch), `haiku_show_hourglass` (C 2367-2381) and `haiku_hide_hourglass` (C 2383-2397) | file gate (slice 10) |
 | 2398-2522 | `haiku_compute_glyph_string_overhangs` (C 2399-2428; C 2402-2404 the two arms, C 2411 the `text_extents` slot, C 2415-2417 the `composition_gstring_width` call, C 2419-2426 the four overhang folds), `haiku_draw_vertical_window_border` (C 2430-2446), `haiku_set_scroll_bar_default_width` (C 2448-2458) and `haiku_set_scroll_bar_default_height` (C 2460-2470) with their three `FRAME_CONFIG_SCROLL_BAR_*` writes, and `haiku_draw_window_divider` (C 2472-2522; C 2476-2487 the three face lookups and colours, C 2493-2519 the three arms) | file gate (slice 11) |
-| 2523-4898 | **the remainder of the file** (C 2524 `haiku_condemn_scroll_bars` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 2523-2645 | `haiku_condemn_scroll_bars` (C 2524-2544; C 2534-2535 the walk, C 2537-2538 the prepend), `haiku_redeem_scroll_bar` (C 2546-2620; C 2553-2585 the vertical half with C 2564's `goto horizontal`, C 2586-2619 the horizontal half) and `haiku_judge_scroll_bars` (C 2622-2645; C 2633's `for` head, C 2640's chained assignment) | file gate (slice 12) |
+| 2646-4898 | **the remainder of the file** (C 2647 `haiku_scroll_bar_create` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1179,3 +1187,58 @@ remainder.
   asked for.**  What is measured is the arm's type-checking and the text/token gates.
 - The five mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 2523-4898 text this file has not reached.
+
+## Slice 12 (2026-10-08, status 4.088 - the integrator sets the round number): C 2523-2645
+
+**The slice's text.**  The blank line C 2523 and the three items `haiku_condemn_scroll_bars`
+(C 2524-2544), `haiku_redeem_scroll_bar` (C 2546-2620) and `haiku_judge_scroll_bars` (C 2622-2645).
+Port line count **3,583 -> 3,734** (+151).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Two runs of slice 2's command,
+arm set `have_haiku` + `have_window_system`:
+
+- **Run 1: `exit 1`, 5 primary errors, 1 in the unit's own text** - `WINDOW_HAS_HORIZONTAL_SCROLL_BAR`
+  is the mirror's **function** (include/window.rs 472, whose body is `false` on this target), not a
+  `!`-macro like its vertical sibling (window.rs 691) - so the two spellings differ in one word and
+  the probe is what separates them (the `pgtkterm.rs` 6374 reading of the same member).
+- **Run 2 (final revision): `exit 1`, 5 primary errors among 34 error-prefixed lines, every one in
+  a mirror** - the same five slices 5-11 read.  **The unit's own text has no primary error**,
+  4 warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 38 rows -> 35.**  The three closed
+are the `missing function` rows for the three items this slice lands; one new row appeared and is
+discharged: **`function haiku_redeem_scroll_bar does not mention goto`** (C 2564's `goto horizontal`
+is the port's `break 'horizontal` out of a labelled block, PORTING.md 2.2) - a
+`docs/ports/macro-body-notes.tsv` row with its reason.  The 35 that remain are 34 `missing
+function` rows plus `missing macro ASSIGN_CURSOR`, all inside the C 2646-4898 remainder.
+
+### Deviations (this slice)
+
+1. **C 2564's `goto horizontal` is `break 'horizontal`**, and the block C 2553-2585 opens carries the
+   label: the jump leaves exactly the statements C's label is after, so the port wraps the vertical
+   half in `'horizontal: { … }` and the horizontal half follows it (the `androidfns.rs`
+   `android_toggle_visible_pointer` reading of the same shape; the `goto` token is registered in
+   `docs/ports/macro-body-notes.tsv` rather than planted in the body).
+2. **C 2640's chained assignment `b->next = b->prev = Qnil;`** is the two stores C performs, in
+   C's order (slice 1's Deviation 10 rule for the three earlier chained assignments).
+3. **C 2633's `for (; ! NILP (bar); bar = next)`** is the `while` with C's step at the foot, and
+   `next`/`b` keep C's scopes (the loop's `b` is declared inside the body, as C declares it).
+4. **The four `XSCROLL_BAR! (…)->next`/`->prev` walks** go through the mirror's macro
+   (include/haikuterm.rs 390) on C's `Lisp_Object` values, and the four `XSETVECTOR!` calls are the
+   mirror's (include/lisp.rs) - no cast is needed anywhere in this slice.
+
+### Owed (this slice's additions)
+
+- **Nothing new**: the one `--check` row is discharged in `docs/ports/macro-body-notes.tsv`
+  (Evidence ②), the line-drift row is unchanged (C 4898 vs Rust 3,734 is 23.8%, inside the
+  `haikuterm` row's 0.69), no mirror file is touched, and the `redisplay_interface` table's
+  function-pointer ABI (Owed 1 of slice 11) is unchanged.
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no scroll bar was condemned, redeemed
+  or judged, and no `haiku_scroll_bar_remove` was called.**  What is measured is the arm's
+  type-checking and the text/token gates.
+- The five mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 2646-4898 text this file has not reached.
