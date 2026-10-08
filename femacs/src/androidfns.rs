@@ -2756,3 +2756,143 @@ unsafe fn android_create_tip_frame (dpyinfo: *mut android_display_info,
   /* Discard the unwind_protect.  */                              // C 2167
   return unbind_to (count, frame);                                // C 2168
 }
+
+/* C 2171-2296: the two tooltip helpers still inside C 1912's `#ifndef ANDROID_STUBIFY` -
+   `android_hide_tip` (C 2171-2218) and `compute_tip_xy` (C 2220-2294) - and that block's own
+   `#endif` at C 2296.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_hide_tip (delete: bool) -> Lisp_Object
+{                                                              // C 2171-2218
+  if !NILP (tip_timer)                                            // C 2174
+    {
+      calln! (Qcancel_timer (), tip_timer);                       // C 2176
+      tip_timer = Qnil ();                                        // C 2177
+    }
+
+  if NILP (tip_frame)                                             // C 2180
+      || (!delete
+	  && !NILP (tip_frame)
+	  && FRAME_LIVE_P (XFRAME (tip_frame))
+	  && !FRAME_VISIBLE_P (XFRAME (tip_frame)))
+    { return Qnil (); }                                           // C 2185
+  else
+    {
+      let mut was_open: Lisp_Object = Qnil ();                    // C 2188
+
+      let count: specpdl_ref = SPECPDL_INDEX ();                  // C 2190
+      specbind (Qinhibit_redisplay (), Qt ());                    // C 2191
+      specbind (Qinhibit_quit (), Qt ());                         // C 2192
+
+      if !NILP (tip_frame)                                        // C 2194
+	{
+	  let f: *mut frame = XFRAME (tip_frame);                 // C 2196
+
+	  if FRAME_LIVE_P (f)                                     // C 2198
+	    {
+	      if delete                                           // C 2200
+		{
+		  delete_frame (tip_frame, Qnil ());              // C 2202
+		  tip_frame = Qnil ();                            // C 2203
+		}
+	      else
+		{ android_make_frame_invisible (XFRAME (tip_frame)); }   // C 2206
+
+	      was_open = Qt ();                                   // C 2208
+	    }
+	  else
+	    { tip_frame = Qnil (); }                              // C 2211
+	}
+      else
+	{ tip_frame = Qnil (); }                                  // C 2214
+
+      return unbind_to (count, was_open);                         // C 2216
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn compute_tip_xy (f: *mut frame, parms: Lisp_Object, dx: Lisp_Object,
+			  dy: Lisp_Object, width: c_int, height: c_int,
+			  root_x: *mut c_int, root_y: *mut c_int)
+{                                                              // C 2220-2294
+  let mut left: Lisp_Object;                                      // C 2225
+  let mut top: Lisp_Object;
+  let mut right: Lisp_Object;
+  let mut bottom: Lisp_Object;
+  let mut min_x: c_int;                                           // C 2226
+  let mut min_y: c_int;
+  let mut max_x: c_int;
+  let mut max_y: c_int = -1;
+  let mut window: android_window;                                 // C 2227
+  let mut mouse_frame: *mut frame;                                // C 2228
+
+  /* Initialize these values in case there is no mouse frame.  */   // C 2230
+  *root_x = 0;                                                    // C 2231
+  *root_y = 0;                                                    // C 2232
+
+  /* User-specified position?  */                                 // C 2234
+  left = CDR (Fassq (Qleft (), parms));                           // C 2235
+  top  = CDR (Fassq (Qtop (), parms));                            // C 2236
+  right = CDR (Fassq (Qright (), parms));                         // C 2237
+  bottom = CDR (Fassq (Qbottom (), parms));                       // C 2238
+
+  /* Move the tooltip window where the mouse pointer was last seen.
+     Resize and show it.  */                                      // C 2240-2241
+  if (!FIXNUMP (left) && !FIXNUMP (right))                         // C 2242
+      || (!FIXNUMP (top) && !FIXNUMP (bottom))                     // C 2243
+    {
+      /* C's `x_display_list->last_mouse_motion_frame` truth test is a pointer test here.  */
+      if !(*x_display_list).last_mouse_motion_frame.is_null ()     // C 2245
+	{
+	  *root_x = (*x_display_list).last_mouse_motion_x;          // C 2247
+	  *root_y = (*x_display_list).last_mouse_motion_y;          // C 2248
+	  mouse_frame = (*x_display_list).last_mouse_motion_frame;   // C 2249
+	  window = FRAME_ANDROID_WINDOW! (mouse_frame);             // C 2250
+
+	  /* Translate the coordinates to the screen.  */           // C 2252
+	  android_translate_coordinates (window, *root_x, *root_y,  // C 2253
+					 root_x, root_y);
+	}
+    }
+
+  min_x = 0;                                                      // C 2258
+  min_y = 0;                                                      // C 2259
+  max_x = android_get_screen_width ();                            // C 2260
+  max_y = android_get_screen_height ();                           // C 2261
+
+  /* Every assignment below narrows C's `EMACS_INT` (the `XFIXNUM` call) into the `int` lvalue the
+     C statement stores it in, which the port spells `as c_int`.  */
+  if FIXNUMP (top)                                                // C 2263
+    { *root_y = XFIXNUM (top) as c_int; }                         // C 2264
+  else if FIXNUMP (bottom)                                        // C 2265
+    { *root_y = XFIXNUM (bottom) as c_int - height; }             // C 2266
+  else if (*root_y + XFIXNUM (dy) as c_int) <= min_y              // C 2267
+    { *root_y = min_y; } /* Can happen for negative dy */         // C 2268
+  else if (*root_y + XFIXNUM (dy) as c_int + height) <= max_y     // C 2269
+    /* It fits below the pointer */
+    { *root_y += XFIXNUM (dy) as c_int; }                         // C 2271
+  else if (height + XFIXNUM (dy) as c_int + min_y) <= *root_y     // C 2272
+    /* It fits above the pointer.  */
+    { *root_y -= height + XFIXNUM (dy) as c_int; }                // C 2274
+  else
+    /* Put it on the top.  */
+    { *root_y = min_y; }                                          // C 2277
+
+  if FIXNUMP (left)                                               // C 2279
+    { *root_x = XFIXNUM (left) as c_int; }                        // C 2280
+  else if FIXNUMP (right)                                         // C 2281
+    { *root_x = XFIXNUM (right) as c_int - width; }               // C 2282
+  else if (*root_x + XFIXNUM (dx) as c_int) <= min_x              // C 2283
+    { *root_x = 0; } /* Can happen for negative dx */             // C 2284
+  else if (*root_x + XFIXNUM (dx) as c_int + width) <= max_x      // C 2285
+    /* It fits to the right of the pointer.  */
+    { *root_x += XFIXNUM (dx) as c_int; }                         // C 2287
+  else if (width + XFIXNUM (dx) as c_int + min_x) <= *root_x      // C 2288
+    /* It fits to the left of the pointer.  */
+    { *root_x -= width + XFIXNUM (dx) as c_int; }                 // C 2290
+  else
+    /* Put it left justified on the screen -- it ought to fit that way.  */
+    { *root_x = min_x; }                                          // C 2293
+}
+
+/* C 2296: the `#endif` of C 1912's `#ifndef ANDROID_STUBIFY` block.  */
