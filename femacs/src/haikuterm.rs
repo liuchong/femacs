@@ -3924,3 +3924,159 @@ unsafe fn haiku_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: 
   wset_vertical_scroll_bar (w, barobj);                                // C 2801
   unblock_input ();                                                    // C 2802
 }
+
+/* `struct draw_fringe_bitmap_params` (dispextern.h 2215-2240) is this slice's other use-site
+   record (P-72 rule 3/P-80): `include/dispextern.rs`'s copy and its two readers are behind
+   `dispextern_face_records`, which this unit's arm set does not carry, so the copy stands here -
+   the `xterm.rs` 9295-9345 one, whose measured offsets (64/8, `flags`@52, `face`@56) are the same
+   record's.  `max_used_fringe_bitmap`'s (dispextern.h 3710) and `gui_define_fringe_bitmap`'s
+   (3711) declarations are in the mirror's gated block now that `xterm.rs`'s Owed round owns them,
+   so the unit names them here too (P-72 rule 4).  */
+#[cfg (feature = "have_haiku")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct draw_fringe_bitmap_params
+{
+  pub which: c_int,                 // offset 0
+  pub bits: *mut c_ushort,          // offset 8
+  pub wd: c_int,                    // offset 16
+  pub h: c_int,                     // offset 20
+  pub dh: c_int,                    // offset 24
+  pub x: c_int,                     // offset 28
+  pub y: c_int,                     // offset 32
+  pub bx: c_int,                    // offset 36
+  pub nx: c_int,                    // offset 40
+  pub by: c_int,                    // offset 44
+  pub ny: c_int,                    // offset 48
+  /// C 2230-2231's two `bool_bf : 1` members, stored as one byte (PORTING.md 1.3/P-80).
+  pub flags: u8,                    // offset 52
+  pub face: *mut face,              // offset 56
+}
+#[cfg (feature = "have_haiku")]
+const _: () = {
+  core::assert! (std::mem::size_of::<draw_fringe_bitmap_params> () == 64);
+  core::assert! (std::mem::align_of::<draw_fringe_bitmap_params> () == 8);
+  core::assert! (std::mem::offset_of! (draw_fringe_bitmap_params, flags) == 52);
+  core::assert! (std::mem::offset_of! (draw_fringe_bitmap_params, face) == 56);
+};
+/// C: `bool_bf cursor_p : 1;` (dispextern.h 2230) - bit 0 of the byte at 52.
+#[cfg (feature = "have_haiku")]
+pub const DRAW_FRINGE_BITMAP_CURSOR_P: u8 = 1 << 0;
+/// C: `bool_bf overlay_p : 1;` (dispextern.h 2231) - bit 1 of the byte at 52.
+#[cfg (feature = "have_haiku")]
+pub const DRAW_FRINGE_BITMAP_OVERLAY_P: u8 = 1 << 1;
+#[cfg (feature = "have_haiku")]
+#[inline(always)]
+pub fn get_cursor_p (p: *const draw_fringe_bitmap_params) -> bool
+{ unsafe { ((*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P) != 0 } }
+#[cfg (feature = "have_haiku")]
+#[inline(always)]
+pub fn get_overlay_p (p: *const draw_fringe_bitmap_params) -> bool
+{ unsafe { ((*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P) != 0 } }
+/// C: dispextern.h 3710: `extern int max_used_fringe_bitmap;` (defined by `src/fringe.c` 497).
+/// C: dispextern.h 3711: `void gui_define_fringe_bitmap (struct frame *, int);` (xdisp.c)
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub static mut max_used_fringe_bitmap: c_int;
+  pub fn gui_define_fringe_bitmap (f: *mut frame, which: c_int);
+}
+
+/* C 2804-2892: `haiku_draw_fringe_bitmap` (C 2805-2892).  The next first definition is C 2894's
+   `haiku_define_fringe_bitmap`.  `p`'s two `bool_bf` members are the mirror's readers
+   (`get_overlay_p`/`get_cursor_p`, include/dispextern.rs 3124/3137), `row`'s `stipple_p` is
+   `glyph_row_bits!`'s, `fringe_bmps`/`max_fringe_bmp` are this file's own C 55/58 statics,
+   `max_used_fringe_bitmap` (include/dispextern.rs 2930) and `gui_define_fringe_bitmap` are
+   mirrors', and `haiku_get_bitmap_rec`/`haiku_update_bitmap_rec`/`haiku_clip_to_row` are slices
+   1-2 of this file.  */
+
+/* C 2805-2892.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
+				    p: *mut draw_fringe_bitmap_params)
+{
+  let face: *mut face;                                                // C 2809
+  let f: *mut frame;                                                  // C 2810
+  let mut rec: *mut haiku_bitmap_record;                              // C 2811
+  let mut view: *mut c_void;                                          // C 2812
+  let mut bitmap: *mut c_void;
+  let mut col: uint32_t;                                              // C 2813
+
+  f = XFRAME (WINDOW_FRAME! (w));                                     // C 2815
+  view = FRAME_HAIKU_DRAWABLE! (f);                                   // C 2816
+  face = (*p).face;                                                   // C 2817
+
+  block_input ();                                                     // C 2819
+  BView_draw_lock (view, true, 0, 0, 0, 0);                           // C 2820
+  BView_StartClip (view);                                             // C 2821
+
+  if (*p).wd != 0 && (*p).h != 0                                      // C 2823
+    { BView_invalidate_region (view, (*p).x, (*p).y, (*p).wd, (*p).h); }   // C 2824
+
+  haiku_clip_to_row (w, row, ANY_AREA);                               // C 2826
+
+  if (*p).bx >= 0 && ! get_overlay_p (p)                              // C 2828
+    {
+      BView_invalidate_region (view, (*p).bx, (*p).by, (*p).nx, (*p).ny);   // C 2830
+
+      if (*face).stipple == 0                                         // C 2832
+	{
+	  BView_SetHighColor (view, (*face).background as uint32_t);     // C 2834
+	  BView_FillRectangle (view, (*p).bx, (*p).by, (*p).nx, (*p).ny);   // C 2835
+	}
+      else
+	{
+	  rec = haiku_get_bitmap_rec (f, (*face).stipple);                // C 2839
+	  haiku_update_bitmap_rec (rec, (*face).foreground as uint32_t,   // C 2840
+				   (*face).background as uint32_t);     // C 2841
+
+	  BView_StartClip (view);                                        // C 2843
+	  haiku_clip_to_row (w, row, ANY_AREA);                          // C 2844
+	  BView_ClipToRect (view, (*p).bx, (*p).by, (*p).nx, (*p).ny);    // C 2845
+	  BView_DrawBitmapTiled (view, (*rec).img, 0, 0, -1, -1,          // C 2846
+				 0, 0, FRAME_PIXEL_WIDTH (f),            // C 2847
+				 FRAME_PIXEL_HEIGHT (f));                // C 2848
+	  BView_EndClip (view);                                          // C 2849
+
+	  glyph_row_bits! (stipple_p, row, true);                        // C 2851
+	}
+    }
+
+  if (*p).which != 0                                                  // C 2855
+      && (*p).which < max_fringe_bmp                                 // C 2856
+      && (*p).which < max_used_fringe_bitmap                         // C 2857
+    {
+      bitmap = *fringe_bmps.offset ((*p).which as isize);             // C 2859
+
+      if bitmap.is_null ()                                            // C 2861
+	{
+	  /* This fringe bitmap is known to fringe.c, but lacks the
+	     BBitmap which shadows that bitmap.  This is typical to
+	     define-fringe-bitmap being called when the selected frame
+	     was not a GUI frame, for example, when packages that
+	     define fringe bitmaps are loaded by a daemon Emacs.
+	     Create the missing pattern now.  */                       // C 2863-2868
+	  gui_define_fringe_bitmap (WINDOW_XFRAME! (w), (*p).which);      // C 2869
+	  bitmap = *fringe_bmps.offset ((*p).which as isize);             // C 2870
+	}
+
+      if ! get_cursor_p (p)                                           // C 2873
+	{ col = (*face).foreground as uint32_t; }                     // C 2874
+      else if get_overlay_p (p)                                       // C 2875
+	{ col = (*face).background as uint32_t; }                     // C 2876
+      else
+	{ col = FRAME_CURSOR_COLOR! (XFRAME (WINDOW_FRAME! (w))).pixel as uint32_t; }   // C 2878
+
+      if ! get_overlay_p (p)                                          // C 2880
+	{
+	  BView_SetHighColor (view, (*face).background as uint32_t);      // C 2882
+	  BView_FillRectangle (view, (*p).x, (*p).y, (*p).wd, (*p).h);     // C 2883
+	}
+
+      BView_SetLowColor (view, col);                                  // C 2886
+      BView_DrawBitmapWithEraseOp (view, bitmap, (*p).x, (*p).y,       // C 2887
+				   (*p).wd, (*p).h);
+    }
+  BView_EndClip (view);                                               // C 2889
+  BView_draw_unlock (view);                                           // C 2890
+  unblock_input ();                                                   // C 2891
+}
