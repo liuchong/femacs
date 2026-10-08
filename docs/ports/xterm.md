@@ -436,6 +436,19 @@ two focus arms, so the pair is carried on **each arm** (the file's first cfg'd m
 (Decision 2 item 2, the core `FocusIn` case's `focus_more_laxly` shape), and C 22334's
 `goto XI_OTHER` is the first `break 'xi_other`, which retires the frame's `unused label` warning.
 
+
+  Slice 123 (C 22240-22459, Decision 135) does three things in one round.  First it lands C 22240's
+`#ifdef HAVE_XINPUT2`, which C wraps around the whole `GenericEvent` case: the arm now carries
+`have_xinput2`, so the sixteen non-XI2 arms stop compiling a frame C does not compile there, and the
+region C 22241-25215 (the `default:`/`xi_done_keysym:` blocks and `XI_OTHER:` still to come) is
+gated where C gates it.  Then it lands the frame's second and third arms - `XI_FocusOut` (C
+22337-22346, the other arm inside C 22294's `#if`) and `XI_Enter` (C 22349-22459: the core
+`XMotionEvent` built from the XI fields, the Motif core-event copy, the focus-handle call, the
+`HAVE_XINPUT2_1` scroll-valuator reset, the `HAVE_XWIDGETS` crossing test and the mouse-movement
+tail).  Finally the probe set grows to **twenty-one arms** with `XI2` (plain X + XI2) and `UMI2`
+(Motif + XI2), which are the configurations the two new arms' plain-X branch and Motif block are
+written for - without them those branches would be carried text no reading compiles.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5728,6 +5741,58 @@ expected direction once the file starts carrying records the X11 headers would s
 * **What `--check` reads.**  Still three rows - the `handle_one_xevent` long row's **76** tokens
   unchanged, the `x_get_wm_check_window` row and the `memset` family row - so the arm adds no
   inventory row of its own.  The unit is **35,310 lines** (+50) against C's 33,125.
+
+### 135. Slice 123 (C 22240-22459): C 22240's `HAVE_XINPUT2` gate, `XI_FocusOut`, `XI_Enter`, and two more arms
+
+* **C 22240's `#ifdef HAVE_XINPUT2` now gates the frame.**  The region runs C 22241-25215 (its
+  `#endif` sits after C 25195-25209's `xi_done_keysym:` block), so the `GenericEvent` arm carries
+  `have_xinput2` and everything the `match` below it holds - the arms landed so far and the ones
+  still to land - is compiled exactly where C compiles it.  The move is *measured*: the frame's
+  seventeen rows retire in the sixteen arms without `have_xinput2` (`xcookie` -6, `xgeneric` -1,
+  `XIEvent` -3, `XIDeviceEvent` -2, `XGetEventData` -1, `XFreeEventData` -2, `supports_xi2` -1,
+  `xi2_opcode` -1), and in the thirteen of them where slice 122's arm also compiled its own four
+  rows retire too (`XIFocusInEvent` -2, `has_been_visible` -1, `xi_focus_handle_for_device` -1),
+  which is the -21 those arms read; `unused label` retires in the four arms whose label was left
+  unused (`UT`, `UG`, `AIU`, `UMI2`).  No arm gains a row from the gate.
+* **`XI_FocusOut` is C 22294's other arm.**  C 22347's `#endif` closes the pair, so the arm carries
+  the same `#[cfg]` as slice 122's, and its body is C's four statements (the cast, the lookup, the
+  focus-handle call and `goto XI_OTHER` as `break 'xi_other`).
+* **`XI_Enter` carries five inner gates.**  C's `#ifdef USE_MOTIF` block (C 22367-22387, the
+  seventeen `copy.xcrossing` writes Motif's menu bars need, through C 18898-18903's own
+  `use_copy`/`copy` declarations) becomes `use_motif`; the one focus-handle call (C 22394-22397) the
+  focus arms' pair; the `x_any_window_to_frame` call (C 22400) the *definitions'* own split
+  (`use_x_toolkit`/`use_gtk` call the function, the rest the macro - Decision 69's shape, here
+  without an enclosing `#if` to narrow it); `#ifdef HAVE_XINPUT2_1` (C 22402-22418, the xfwm4
+  scroll-valuator note) `all (have_xinput2, have_xinput2_1)`; `#ifdef HAVE_XWIDGETS` (C 22420-22433,
+  C's own `xwidget_view` local name) `have_xwidgets`; and `#ifdef USE_GTK` (C 22451-22457) `use_gtk`.
+  **Two of those blocks no arm compiles** - `HAVE_XINPUT2_1` and `HAVE_XWIDGETS` - which is the limit
+  the ledger already records for that class (7153's "no `have_xwidgets`, no `use_xcb`", 2918's
+  "carried text that no reading compiles"); they are carried text here for the same reason.
+* **Two more arms, because the new arms have branches that would otherwise be invisible.**  `XI2`
+  (plain X + XI2) compiles the `not (use_gtk)` half of both name-splits and the arm outside a
+  toolkit; `UMI2` (Motif + XI2) compiles the `#ifdef USE_MOTIF` copy - measured: `UMI2` arrives with
+  +17 `no field xcrossing` and +6 `lrint` that no other arm can see.  The probe set is twenty-one
+  arms from this slice on; both new arms were measured on *both* sides in this revision.
+* **The XInput2 records have no home this unit can see - named, with the numbers, not invented.**
+  In every XI2 arm the family reads `cannot find type` / `cannot find value`: `XIEvent` (3),
+  `XIDeviceEvent` (2), `XIEnterEvent` (2, and one more at `xi_compute_root_window_offset_enter`),
+  `XIEventMask`, `XIButtonState`, `XIDeviceInfo` and the `XI_*`/`XIMaskLen`/`XISetMask` constants.
+  The port *owns* some of them elsewhere - `src/xmenu.rs` 730's `XIDeviceEvent`, `src/xwidget.rs`
+  2695's `XIEnterEvent` (with 2697-2722's `XIAddData`/`XIButtonState`), `src/xfns.rs` 5790-5835's
+  measured constants block - but this unit imports none of them, and the xwidget.rs copies are gated
+  `use_gtk` + `have_gtk3` (that unit's own path), which is not C's gate for a header record.  This
+  slice does **not** widen those gates or invent members: `XInput2.h` is absent from this machine, so
+  the four members C's XI_Enter reads that the port's record does not carry (`event`, `child`,
+  `deviceid`, `sourceid` - C 22355/22376/22417/22356) cannot be laid out here; `XI2proto.h`
+  1006-1039's `xXIEnterEvent` has all four, which is where a later slice can start.
+* **Two owed names the arm touches.**  `lrint` (`<math.h>`) is unresolved in this unit - two sites
+  here, four more in the Motif copy - and `hourglass_p` is the owed `x_output` member the core
+  `EnterNotify` case already reads.  C's own extra parentheses around `(enter->time + …)` are kept
+  (C 22442), so the line carries Rust's `unnecessary parentheses` warning, the shape the core case's
+  C 20788 already has.
+* **What `--check` reads.**  Three rows, and the long row's token list goes **76 -> 74**
+  (`root_x`/`root_y` retire: the Motif copy mentions them).  The unit is **35,464 lines** (+154)
+  against C's 33,125.
 
 ## Evidence
 
@@ -11608,3 +11673,66 @@ warning, which slice 121 recorded as the frame's own, is gone now that an arm br
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
 ledger.
+### Slice 123's readings (C 22240-22459), as landed and measured (2026-10-08)
+
+C 22240's gate, the `XI_FocusOut` and `XI_Enter` arms, and two more arms.
+
+| arm | baseline | slice 123 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1197 / 83 | **1176 / 83** | **-21 / 0** |
+| U `A +use_toolkit_scroll_bars` | 1209 / 83 | **1188 / 83** | **-21 / 0** |
+| UT `U +use_x_toolkit` | 1208 / 83 | **1191 / 82** | **-17 / -1** |
+| UM `UT +use_motif` | 1216 / 83 | **1199 / 82** | **-17 / -1** |
+| UG `U +use_gtk` | 1232 / 85 | **1215 / 84** | **-17 / -1** |
+| UGX `UG +have_xinput2` | 1335 / 87 | **1340 / 87** | **+5 / 0** |
+| AE `A +enable_checking` | 1229 / 82 | **1208 / 82** | **-21 / 0** |
+| AI `A +have_x_i18n` | 1224 / 83 | **1203 / 83** | **-21 / 0** |
+| AIU `AI +use_gtk` | 1302 / 84 | **1285 / 83** | **-17 / -1** |
+| AIUX `AIU +have_xinput2` | 1409 / 86 | **1414 / 86** | **+5 / 0** |
+| AX `A +have_xdbe` | 1207 / 83 | **1186 / 83** | **-21 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1286 / 83 | **1265 / 83** | **-21 / 0** |
+| AG3X `AG3 +have_xinput2` | 1364 / 85 | **1373 / 86** | **+9 / +1** |
+| AXF `A +have_xfixes` | 1207 / 83 | **1186 / 83** | **-21 / 0** |
+| AXPM `A +have_xpm` | 1198 / 83 | **1177 / 83** | **-21 / 0** |
+| AXKB `A +have_xkb` | 1238 / 83 | **1217 / 83** | **-21 / 0** |
+| AXR `A +have_xrandr` | 1203 / 83 | **1182 / 83** | **-21 / 0** |
+| AX11 `A +have_x11` | 1181 / 83 | **1160 / 83** | **-21 / 0** |
+| AUX `A +use_xcb` | 1280 / 81 | **1259 / 81** | **-21 / 0** |
+| XI2 `A +have_xinput2 (new)` | 1278 / 85 | **1287 / 86** | **+9 / +1** |
+| UMI2 `UM +have_xinput2 (new)` | 1303 / 85 | **1329 / 85** | **+26 / 0** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`0eae6dc1`, slice 122) and
+the thirteen arms it shares with the slice-122 table reproduce that column to the digit (the
+sixteen non-XI2 arms are the ones the gate moves).  The two new arms' baseline column is their
+own measurement of HEAD.  The slice's file md5 is
+`d311ad50bf9f1aeeaecdb52619f8f68d` (35,464 lines against C's 33,125).
+
+**The gate's half of the delta, by class (measured against the baseline's own class list):**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `xcookie` -6, `xgeneric` -1, `XIEvent` -3, `XIDeviceEvent` -2, `XGetEventData` -1, `XFreeEventData` -2, `supports_xi2` -1, `xi2_opcode` -1 | the **sixteen** arms without `have_xinput2` | C 22243-22287 and C 25211-25212 - the frame the gate removes |
+| `XIFocusInEvent` -2, `has_been_visible` -1, `xi_focus_handle_for_device` -1 | the **thirteen** of them where slice 122's arm also compiled | C 22297-22332 - slice 122's own rows |
+| `unused label` -1 (warning) | `UT`, `UG`, `AIU`, `UMI2` | the `'xi_other` label, which those arms no longer carry |
+
+**The arms' half, by arm class:**
+
+| arriving rows | arms | C sites |
+| --- | --- | --- |
+| `XIFocusOutEvent` +2, `XIEnterEvent` +2, `xi_focus_handle_for_device` +2, `lrint` +2, `hourglass_p` +1, plus one `unnecessary parentheses` warning | `XI2`, `AG3X` | C 22339/22341, C 22351, C 22343/C 22396, C 22358-22359, C 22449, C 22442 |
+| `XIEnterEvent` +2, `lrint` +2, `hourglass_p` +1 (the `unused label` warning retires) | `UGX`, `AIUX` | the same sites, C 22343/22396 excluded by C 22394's `#if` |
+| `XIEnterEvent` +2, `lrint` +6, `hourglass_p` +1, `xcrossing` +17 (the `unused label` warning retires) | `UMI2` | the Enter arm plus C 22370-22386's seventeen Motif copy writes |
+
+Four of those classes are C's owed names, not the slice's mistakes: `XIEnterEvent` has no home
+this unit can see (Decision 135), `lrint` is `<math.h>`'s, `hourglass_p` is the owed `x_output`
+member and the seventeen `copy.xcrossing` members are the owed `XEvent` member class.  The
+`unnecessary parentheses` warning is C 22442's own parentheses, kept.
+
+**Carried text no arm compiles in this slice**: the `HAVE_XINPUT2_1` reset (C 22402-22418) and
+the `HAVE_XWIDGETS` crossing test (C 22420-22433) - the limit the ledger records at 7153 and
+2918 for that class.  The `--check` row keeps its three lines and the long row's token list goes
+**76 -> 74**.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the twenty-one arm compiles (both sides), the `--check` row's token
+count and this ledger.

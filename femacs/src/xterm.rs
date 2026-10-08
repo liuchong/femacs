@@ -34275,11 +34275,15 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	    }
 
 	  /* C 22241-22294 and C 25210-25213: the `GenericEvent` frame - the XI2 prologue and the
-	     inner `switch`'s shared `XI_OTHER:` tail.  The `XI_*` arms land one per slice inside the
+	     inner `switch`'s shared `XI_OTHER:` tail.  C 22240's `#ifdef HAVE_XINPUT2` gates the whole
+	     case - the region runs to C 25215, past C 25195-25209's `xi_done_keysym:` block - so the
+	     arm, and every arm the `match` carries, is compiled only where the input extension is.
+	     The `XI_*` arms land one per slice inside the
 	     `match` (C's own label order), and the 975 C lines C 22241-25215 writes are the lane's
 	     largest single case.  C's `xcookie`/`xgeneric` are owed `XEvent` members, and the
 	     XInput2 types and entry points (`XIEvent`, `XIDeviceEvent`, `XGetEventData`, ...) are
 	     Decision 15's bare-SDK class.  */
+#[cfg (feature = "have_xinput2")]
 	  GenericEvent =>
 	    {
 	      if !(*dpyinfo).supports_xi2                                     // C 22243
@@ -34378,6 +34382,156 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 
 		          break 'xi_other;                                    // C 22334 (`goto XI_OTHER`)
 		        }
+		      /* C 22337's `case XI_FocusOut:` - the second arm inside C 22294's `#if`, so the same
+			   pair gates it (C 22347's `#endif` closes both).  */
+#[cfg (all (not (feature = "use_x_toolkit"),
+	    any (not (feature = "use_gtk"), feature = "have_gtk3")))]
+		      XI_FocusOut =>
+		        {
+		          let focusout: *mut XIFocusOutEvent;                 // C 22339
+
+		          focusout = xi_event as *mut XIFocusOutEvent;        // C 22341
+		          /* C's one name has two shapes with complementary gates here too - the split the arm
+			     above records.  */
+		          #[cfg (feature = "use_gtk")]
+		          { any = x_any_window_to_frame (dpyinfo, (*focusout).event); }  // C 22342
+		          #[cfg (not (feature = "use_gtk"))]
+		          { any = x_any_window_to_frame! (dpyinfo, (*focusout).event); }  // C 22342
+		          xi_focus_handle_for_device (dpyinfo, any, xi_event);  // C 22343
+
+		          break 'xi_other;                                    // C 22345 (`goto XI_OTHER`)
+		        }
+
+		      /* C 22349's `case XI_Enter:` - the crossing-shaped XI event: it builds a core `XMotionEvent`
+			   from the XI fields, runs it through the same mouse-movement path the core `EnterNotify`
+			   case above uses, and copies the event into C's `copy` for Motif's menu bars.  */
+		      XI_Enter =>
+		        {
+		          let enter: *mut XIEnterEvent = xi_event as *mut XIEnterEvent;  // C 22351
+		          /* C 22352's `XMotionEvent ev;` has no initial value; the port zeroes the local it then
+			     fills in, the `XEvent next_event` shape above.  */
+		          let mut ev: XMotionEvent = std::mem::zeroed ();     // C 22352
+		          let mut source: *mut xi_device_t;                   // C 22353
+
+		          any = x_top_window_to_frame (dpyinfo, (*enter).event);  // C 22355
+		          source = xi_device_from_id (dpyinfo, (*enter).sourceid);  // C 22356
+
+		          ev.x = lrint ((*enter).event_x) as c_int;           // C 22358
+		          ev.y = lrint ((*enter).event_y) as c_int;           // C 22359
+		          ev.window = (*enter).event;                         // C 22360
+		          ev.time = (*enter).time;                            // C 22361
+		          ev.send_event = (*enter).send_event;                // C 22362
+
+		          x_display_set_last_user_time (dpyinfo, (*enter).time,  // C 22364
+		            (*enter).send_event != 0, false);                 // C 22365
+
+		          /* C 22367-22387's `#ifdef USE_MOTIF`: the core-event copy Motif's menu bars need, written
+			     through C 18898-18903's own `use_copy`/`copy` declarations.  */
+#[cfg (feature = "use_motif")]
+		          {
+		            use_copy = true;                                  // C 22368
+
+		            copy.xcrossing.r#type = EnterNotify;              // C 22370
+		            copy.xcrossing.serial = (*enter).serial;          // C 22371
+		            copy.xcrossing.send_event = (*enter).send_event;  // C 22372
+		            copy.xcrossing.display = (*dpyinfo).display;      // C 22373
+		            copy.xcrossing.window = (*enter).event;           // C 22374
+		            copy.xcrossing.root = (*enter).root;              // C 22375
+		            copy.xcrossing.subwindow = (*enter).child;        // C 22376
+		            copy.xcrossing.time = (*enter).time;              // C 22377
+		            copy.xcrossing.x = lrint ((*enter).event_x) as c_int;  // C 22378
+		            copy.xcrossing.y = lrint ((*enter).event_y) as c_int;  // C 22379
+		            copy.xcrossing.x_root = lrint ((*enter).root_x) as c_int;  // C 22380
+		            copy.xcrossing.y_root = lrint ((*enter).root_y) as c_int;  // C 22381
+		            copy.xcrossing.mode = (*enter).mode;              // C 22382
+		            copy.xcrossing.detail = (*enter).detail;          // C 22383
+		            copy.xcrossing.focus = (*enter).focus;            // C 22384
+		            copy.xcrossing.state = 0;                         // C 22385
+		            copy.xcrossing.same_screen = True;                // C 22386
+		          }
+
+		          /* "There is no need to handle entry/exit events for passive focus from non-top
+			     windows at all, since they are an inferiors of the frame's top window, which will get
+			     virtual events."  */
+
+		          /* C 22394-22397's `#if` gates this one call: the same pair the focus arms carry.  */
+#[cfg (all (not (feature = "use_x_toolkit"),
+	    any (not (feature = "use_gtk"), feature = "have_gtk3")))]
+		          if !any.is_null ()                                  // C 22395
+		            { xi_focus_handle_for_device (dpyinfo, any, xi_event); }  // C 22396
+
+		          /* C 22399-22400: C's one name again, this time with the definitions' own gates (no
+			     enclosing `#if` excludes the toolkits here).  */
+		          #[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		          if any.is_null ()                                   // C 22399
+		            { any = x_any_window_to_frame (dpyinfo, (*enter).event); }  // C 22400
+		          #[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+		          if any.is_null ()                                   // C 22399
+		            { any = x_any_window_to_frame! (dpyinfo, (*enter).event); }  // C 22400
+
+		          /* C 22402-22418's `#ifdef HAVE_XINPUT2_1`: "xfwm4 selects for button events on the
+			     frame window, resulting in passive grabs being generated along with the delivery of
+			     emulated button events; this then interferes with scrolling, since device valuators will
+			     constantly be reset as the crossing events related to those grabs arrive.  The only way to
+			     remedy this is to never reset scroll valuators on a grab-related crossing event.
+			     (bug#57476)"  */
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_1"))]
+		          if (*enter).mode != XINotifyUngrab                  // C 22412
+		            && (*enter).mode != XINotifyGrab                  // C 22413
+		            && (*enter).mode != XINotifyPassiveGrab           // C 22414
+		            && (*enter).mode != XINotifyPassiveUngrab         // C 22415
+		            {
+		              xi_reset_scroll_valuators_for_device_id (dpyinfo, (*enter).deviceid);  // C 22416-22417
+		            }
+
+		          /* C 22420-22433's `HAVE_XWIDGETS` block - the pair the core `LeaveNotify` case above
+			     carries, with C's own local name.  */
+#[cfg (feature = "have_xwidgets")]
+		          {
+		            let mut xwidget_view: *mut xwidget_view;          // C 22422
+
+		            xwidget_view = xwidget_view_from_window ((*enter).event);  // C 22424
+
+		            if !xwidget_view.is_null ()                       // C 22426
+		              {
+		                xwidget_motion_or_crossing (xwidget_view, event);  // C 22428
+
+		                break 'xi_other;                              // C 22430 (`goto XI_OTHER`)
+		              }
+		          }
+
+		          f = any;                                            // C 22435
+
+		          if !f.is_null () && (*enter).event == FRAME_X_WINDOW! (f)  // C 22437
+		            { xi_compute_root_window_offset_enter (f, enter); }  // C 22438
+
+		          if !f.is_null () && x_mouse_click_focus_ignore_position  // C 22440
+		            {
+		              ignore_next_mouse_click_timeout = ((*enter).time  // C 22442
+		                + x_mouse_click_focus_ignore_time);
+		              mouse_click_timeout_display = dpyinfo;          // C 22444
+		            }
+
+		          /* "EnterNotify counts as mouse movement, so update things that depend on mouse
+			     position."  */
+		          if !f.is_null ()                                    // C 22449
+		            && !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).hourglass_p
+		            {
+		              x_note_mouse_movement (f, &raw const ev,        // C 22450
+		                if source.is_null () { Qnil () } else { (*source).name });
+		            }
+		          /* C 22451-22457's `#ifdef USE_GTK`: "We may get an EnterNotify on the buttons in the
+			     toolbar.  In that case we moved out of any highlighted area and need to note this."  */
+		          #[cfg (feature = "use_gtk")]
+		          if f.is_null ()                                     // C 22454
+		            && !(*dpyinfo).last_mouse_glyph_frame.is_null ()
+		            {
+		              x_note_mouse_movement ((*dpyinfo).last_mouse_glyph_frame, &raw const ev,  // C 22455
+		                if source.is_null () { Qnil () } else { (*source).name });  // C 22456
+		            }
+		          break 'xi_other;                                    // C 22458 (`goto XI_OTHER`)
+		        }
+
 		      _ => {}
 		    }
 

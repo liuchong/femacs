@@ -17470,3 +17470,40 @@
      `build/probes/xterm/`、`/tmp/s122/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
      下一片从 `XI_FocusOut`（C 22337）起。
+
+- **4.041 `src/xterm.c` round 99（xterm lane，slice 123）：C 22240 的 `#ifdef HAVE_XINPUT2` 落成臂上的 cfg，`XI_FocusOut` 与 `XI_Enter` 落地，探针臂 19 → **21**（2026-10-08）**：
+  ① **C 22240 的闸门落地**：`case GenericEvent:` 整块（区域到 C 25215，`#endif` 在 C 25195-25209 的 `xi_done_keysym:` 之后）
+     在 C 里是 `#ifdef HAVE_XINPUT2`，端口此前把该臂编译进全部十九个臂。本片把它落成 `#[cfg (feature = "have_xinput2")]`：
+     十六个非 XI2 臂不再编译 C 在那里根本不编译的一整块，区域里（含尚未落地的 `default:`/`xi_done_keysym:`/`XI_OTHER:`）与 C 同门。
+  ② **闸门的效果是被量出来的**：十六个非 XI2 臂各退掉该框架的十七行（`xcookie` -6、`xgeneric` -1、`XIEvent` -3、
+     `XIDeviceEvent` -2、`XGetEventData` -1、`XFreeEventData` -2、`supports_xi2` -1、`xi2_opcode` -1），其中十三个再退掉 slice 122 自己那四行
+     （`XIFocusInEvent` -2、`has_been_visible` -1、`xi_focus_handle_for_device` -1）⇒ 那些臂读 **-21**；`unused label` 在四个"标号还在但没人用"的臂里退掉。**没有任何臂因为这道门而增加一行**。
+  ③ **两条臂**：`XI_FocusOut`（C 22337-22346，C 22294 那对 `#if` 的另一半，与 slice 122 同 cfg）；`XI_Enter`（C 22349-22459）——
+     用 XI 字段搭出核心 `XMotionEvent`、Motif 的核心事件拷贝（C 22367-22387 的十七处 `copy.xcrossing` 写入，走 C 18898-18903 自己的 `use_copy`/`copy`）、
+     焦点处理调用、`HAVE_XINPUT2_1` 的 scroll-valuator 复位、`HAVE_XWIDGETS` 的 crossing 测试与鼠标移动尾。
+     内层六个门按 C 逐条落：`use_motif`、焦点调用那对 `#if`、`x_any_window_to_frame` 的**定义门**分叉（Decision 69 的形状）、
+     `all (have_xinput2, have_xinput2_1)`、`have_xwidgets`、`use_gtk`。**其中两处（HAVE_XINPUT2_1、HAVE_XWIDGETS）没有任何臂编译它们**——
+     这是台账 7153/2918 早已记下的同类界限（"carried text that no reading compiles"），本片照记不冒充。
+  ④ **探针臂 19 → 21**：新增 `XI2`（纯 X + XI2）与 `UMI2`（Motif + XI2）——前者编译两条臂里 `not (use_gtk)` 的那半与不受工具包约束的臂，
+     后者编译 `#ifdef USE_MOTIF` 的拷贝块（实测：`UMI2` 独有 +17 `no field xcrossing` 与 +6 `lrint`）。两个新臂**两侧都在本修订测**。
+  ⑤ **点名的欠账（不发明）**：XInput2 那族记录在本单元里**没有能看见的落点**——每个 XI2 臂都读 `cannot find type/value`：
+     `XIEvent` 3、`XIDeviceEvent` 2、`XIEnterEvent` 2（另加 `xi_compute_root_window_offset_enter` 一处）、`XIEventMask`、`XIButtonState`、
+     `XIDeviceInfo` 与 `XI_*`/`XIMaskLen`/`XISetMask` 常量。端口**别处**有它们的定义（`src/xmenu.rs` 730 的 `XIDeviceEvent`、
+     `src/xwidget.rs` 2695 的 `XIEnterEvent` 与 2697-2722 的 `XIAddData`/`XIButtonState`、`src/xfns.rs` 5790-5835 的实测常量块），
+     但本单元一个都没 import，且 xwidget.rs 那两份的门是 `use_gtk` + `have_gtk3`（那个单元自己的路径），不是 C 给头文件记录的门。
+     本片**不改别人的门、不发明字段**：本机没有 `XInput2.h`，C 的 XI_Enter 读的四个端口记录里没有的成员（`event`/`child`/`deviceid`/`sourceid`）
+     无法在此排版；`XI2proto.h` 1006-1039 的 `xXIEnterEvent` 四个都有，是后续片可以起步的证据。
+  ⑥ **两个欠名**：`lrint`（`<math.h>`）在本单元未解析（本片 2 处，Motif 拷贝再 4 处）；`hourglass_p` 是核心 `EnterNotify` 早已读的 `x_output` 欠成员。
+     C 22442 自己的多余括号照抄（于是那一行带 Rust 的 `unnecessary parentheses` 警告，与核心用例 C 20788 同形）。
+  ⑦ **读数（两侧都在本修订测）**：⑴ **二十一臂表**（baseline = HEAD `0eae6dc1`，与 slice 122 台账共享的十三个臂逐位相同）：
+     A 1197/83 → **1176/83**、U 1209/83 → **1188/83**、UT 1208/83 → **1191/82**、UM 1216/83 → **1199/82**、UG 1232/85 → **1215/84**、
+     UGX 1335/87 → **1340/87**、AE 1229/82 → **1208/82**、AI 1224/83 → **1203/83**、AIU 1302/84 → **1285/83**、AIUX 1409/86 → **1414/86**、
+     AX 1207/83 → **1186/83**、AG3 1286/83 → **1265/83**、AG3X 1364/85 → **1373/86**、AXF 1207/83 → **1186/83**、AXPM 1198/83 → **1177/83**、
+     AXKB 1238/83 → **1217/83**、AXR 1203/83 → **1182/83**、AX11 1181/83 → **1160/83**、AUX 1280/81 → **1259/81**、
+     **XI2 1278/85 → 1287/86**（新臂）、**UMI2 1303/85 → 1329/85**（新臂）。
+     ⑵ **`--check`** 仍三行，**长行 token 清单 76 → 74**（`root_x`/`root_y` 退役：Motif 拷贝提到了它们）；单元 **35,464 行**（+154），
+     文件 md5 `d311ad50bf9f1aeeaecdb52619f8f68d`。
+  ⑧ **预算与清理**：本片 rustc **约 43 发**（21 臂 × 2 轮 + 首发；每次 15-21 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s123/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十一臂编译（两侧）、`--check` 的 token 数与台账。
+     下一片从 `XI_Leave`（C 22461）起。
