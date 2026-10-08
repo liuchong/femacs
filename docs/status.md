@@ -17787,3 +17787,28 @@
   ⑧ **预算与清理**：本片 rustc 约 **26 发**（首发+builds 修复 4 轮 × 5 臂 + 基线 4 臂 + `rustfmt --check` 复核；每次 17-24 秒，单文件 `--emit=metadata`），
      无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s131`。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片从 C 24571 起（`XI_RawKeyPress` 的 GTK2 专用臂）。
+
+- **4.051 `src/xterm.c` round 108（xterm lane，slice 132）：`XI_RawKeyPress`/`XI_KeyRelease`/`XI_PropertyEvent`（C 24570-24645）落地，`--check` 的 memset 家族行退休（2026-10-08）**：
+  ① **本片落的文本**：C 24570 的 `#if defined USE_GTK && !defined HAVE_GTK3` 与 `XI_RawKeyPress`（C 24571-24583：`XIRawEvent` 转型与三处
+     `pending_keystroke_*` 写入，C 的注释说明它是 GTK+ 2.x 上把核心键盘事件归属到扩展设备的唯一办法）；`XI_KeyRelease`（C 24585-24642：
+     C 24586 自己的门包住正文、`XKeyPressedEvent xkey` 拷贝（type 用 `KeyRelease`）、四处 `lrint` 坐标、`xi_convert_button_state`、
+     以及 `USE_LUCID` 拆开的过滤对）；`XI_PropertyEvent`（C 24644-24645，两行臂）。
+  ② **C 24621 是笔误，端口写 C 的本意**：C 写作 `f = x_any_window_to_frame (xkey->event);`——对**值**用了 `->`、成员名是 Xlib 的 `XKeyEvent`
+     没有的 `event`（应是 `window`）、且漏了 `dpyinfo` 实参。参照的任何配置都编不到这个分支（它要 GTK 2 且无 `HAVE_X_I18N` 且无 `USE_LUCID`），
+     本 lane 的 `UGX`/`AG3X` 臂却编得到，所以端口写 `x_any_window_to_frame (dpyinfo, xkey.window as c_int)`——第二个实参的转型用本文件
+     C 15184 那个站点自己的拼法（本文件 25840）——并在代码注释与台账里登记这条偏离。
+  ③ **C 的一处过滤调用写了两遍**：C 自己的 `#ifdef USE_LUCID` 让它在 Lucid 下多嵌一层（`if (!popup_activated ()) { ... }`），并且 Lucid 的 `else` 分支
+     是一条关于 Lucid 菜单栏的注释；不带 Lucid 时该调用在正文一层。两份拷贝带同样的 `have_x_i18n`/`use_gtk` 拆分，就是 XI_FocusIn 臂
+     `x_any_window_to_frame` 的形状（Decision 2 item 2）。
+  ④ **memset 家族行退休**：`extract-abi.py --check` 从 slice 110 到 131 一直读 *"family memset: the C body uses it 4 time(s), the port 3"*；
+     本臂的 `memset (&raw mut xkey, 0, size_of_val (&xkey))` 是端口的第四处，C 的四处与端口至此一致，该行消失——`--check` 现在**两行**
+     （长 `handle_one_xevent` 行，token 清单仍 **71**；以及 `x_get_wm_check_window does not mention false`）。
+  ⑤ **读数（六臂，两侧都在本修订测，同一根 `_root.rs`；baseline = HEAD `db15bf67`）**：A 1174/83 → **1174/83**（0/0）、XI2 1329/88 → **1329/88**（0/0，
+     两条臂的门都不含无工具链的臂）、UGX 1383/89 → **1390/89**（+7：4 处 `lrint` + `xg_filter_key` + `XIRawEvent`×2）、
+     AIUX 1457/87 → **1463/87**（+6：4 处 `lrint` + `XIRawEvent`×2，过滤调用解析）、AG3X 1427/88 → **1432/88**（+5：4 处 `lrint` + `xg_filter_key`，
+     有 `have_gtk3` 所以没有 `XI_RawKeyPress`）、ULI2 1417/87 → **1421/87**（+4：只有 4 处 `lrint`，Lucid 臂的过滤调用挂在 `have_x_i18n` 下）。
+     新增行全在已登记类（`lrint`、`XIRawEvent` 是 Decision 15 的裸 XInput2 名、`xg_filter_key` 是第三支过滤形状已读的 GTK 过滤），**warning 一个臂都没动**。
+  ⑥ **台账**：`docs/ports/xterm.md` 加 Decision **144** 与 `### Slice 132's readings`；单元 **37,757 行**（+93），md5 `86ee9b58ebd5aa985ba1e0f0c24ef65b`。
+  ⑦ **预算与清理**：本片 rustc 约 **22 发**（六臂首发 + 两轮定点修复复测 + 基线四臂 + `rustfmt --check` 复核；每次 17-24 秒，单文件 `--emit=metadata`），
+     无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s132`、`/tmp/f132.rs`。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片从 C 24647 起（`XI_HierarchyChanged`，其真身也不短）。

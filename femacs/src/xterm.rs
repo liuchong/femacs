@@ -36685,6 +36685,99 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 
 		      break 'xi_other;                                        // C 24567 (`goto XI_OTHER`)
 		        }
+		      /* C 24570's `#if defined USE_GTK && !defined HAVE_GTK3` gates this arm and nothing
+			 else; C's comment above the body says why it exists.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+		      XI_RawKeyPress =>
+		        {
+		          let mut raw_event: *mut XIRawEvent = xi_event as *mut XIRawEvent;  // C 24573
+
+		          /* "This is the only way to attribute core keyboard events generated on
+			     GTK+ 2.x to the extension device that generated them."  */
+		          (*dpyinfo).pending_keystroke_time = (*raw_event).time;      // C 24578
+		          (*dpyinfo).pending_keystroke_source = (*raw_event).sourceid;  // C 24579
+		          (*dpyinfo).pending_keystroke_time_special_p = true;         // C 24580
+		          break 'xi_other;                                           // C 24581 (`goto XI_OTHER`)
+		        }
+
+		      /* C 24585's `case XI_KeyRelease:`.  C's own gate (C 24586's `#if defined
+			 HAVE_X_I18N || defined USE_GTK || defined USE_LUCID`) wraps the body only -
+			 C 24642's `goto XI_OTHER` is outside it, so the arm jumps either way.  */
+		      XI_KeyRelease =>
+		        {
+#[cfg (any (feature = "have_x_i18n", feature = "use_gtk", feature = "use_lucid"))]
+		          {
+		            let mut xkey: XKeyPressedEvent;                    // C 24588
+
+		            memset (&raw mut xkey as *mut c_void, 0, core::mem::size_of_val (&xkey));  // C 24590
+
+		            xkey.r#type = KeyRelease;                          // C 24592
+		            xkey.serial = (*xev).serial;                       // C 24593
+		            xkey.send_event = (*xev).send_event;               // C 24594
+		            xkey.display = (*dpyinfo).display;                 // C 24595
+		            xkey.window = (*xev).event;                        // C 24596
+		            xkey.root = (*xev).root;                           // C 24597
+		            xkey.subwindow = (*xev).child;                     // C 24598
+		            xkey.time = (*xev).time;                           // C 24599
+		            xkey.state = xi_convert_event_keyboard_state (xev);  // C 24600
+		            xkey.x = lrint ((*xev).event_x) as c_int;          // C 24601
+		            xkey.y = lrint ((*xev).event_y) as c_int;          // C 24602
+		            xkey.x_root = lrint ((*xev).root_x) as c_int;      // C 24603
+		            xkey.y_root = lrint ((*xev).root_y) as c_int;      // C 24604
+
+		            /* "Some input methods react differently depending on the buttons that are
+			       pressed."  */
+		            xi_convert_button_state (&raw mut (*xev).buttons,  // C 24608
+					     &raw mut xkey.state);
+
+		            xkey.keycode = (*xev).detail as c_uint;            // C 24610
+		            xkey.same_screen = True;                           // C 24611
+
+		            /* C 24613-24638's `#ifdef USE_LUCID` pair.  C's one filter call is written
+			       twice here because C's own `#ifdef` moves it a level deeper under
+			       Lucid - the shape the XI_FocusIn arm's `x_any_window_to_frame` call
+			       carries (Decision 2 item 2).  */
+#[cfg (feature = "use_lucid")]
+		            if popup_activated () == 0                         // C 24614
+		              {
+#[cfg (feature = "have_x_i18n")]
+		                if x_filter_event (dpyinfo, &raw mut xkey as *mut XEvent) != 0  // C 24618
+		                  { *finish = X_EVENT_DROP; }                  // C 24619
+		              }
+		            else
+		              {
+		                /* C 24630-24636's `else` arm is C's comment: "the Lucid menu bar pops
+			           down upon any key release event, so we don't dispatch these events
+			           at all, which doesn't seem to be the right solution" - the two
+			           statements below it (`use_copy = true;` and `copy.xkey = xkey;`)
+			           are commented out in C and stay comments here.  */
+		              }
+#[cfg (not (feature = "use_lucid"))]
+		            {
+#[cfg (feature = "have_x_i18n")]
+		              if x_filter_event (dpyinfo, &raw mut xkey as *mut XEvent) != 0  // C 24618
+		                { *finish = X_EVENT_DROP; }                    // C 24619
+#[cfg (all (not (feature = "have_x_i18n"), feature = "use_gtk"))]
+		              {
+		                /* C 24621 writes `x_any_window_to_frame (xkey->event);` - the `->` is a
+			           typo for `.` on a value, the member is Xlib's `window` (the record
+			           has no `event`), and `dpyinfo` is missing.  No configuration the
+			           reference builds selects this branch (it needs GTK 2 without X_I18N
+			           and without Lucid); this lane's `UGX`/`AG3X` arms do, so the port
+			           writes the call C means and the deviation is recorded.  */
+		                f = x_any_window_to_frame (dpyinfo, xkey.window as c_int);  // C 24621
+		                if !f.is_null () && xg_filter_key (f, event) != 0  // C 24623
+		                  { *finish = X_EVENT_DROP; }                  // C 24624
+		              }
+		            }
+		          }
+		          break 'xi_other;                                     // C 24642 (`goto XI_OTHER`)
+		        }
+
+		      /* C 24644's `case XI_PropertyEvent:` - a two-line arm.  */
+		      XI_PropertyEvent =>
+		        { break 'xi_other; }                                   // C 24645 (`goto XI_OTHER`)
+
 		      /* C 25190-25191's inner `default: goto XI_OTHER;` - the stand-in until that arm
 			 lands, and the reason no arm falls into the block below.  */
 		      _ => { break 'xi_other; }

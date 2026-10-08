@@ -534,6 +534,13 @@ that slice 115's rendering of the same chain in the core `KeyPress` arm had drop
 20536-20547's terms, which the `--check` row had been flagging as `iscursorkey` and
 `ismiscfunctionkey` all along; both are restored here.
 
+Slice 132 (C 24570-24645, Decision 144) takes the three small arms after `XI_KeyPress`:
+`XI_RawKeyPress` (C 24571-24583, gated on C's `USE_GTK && !HAVE_GTK3`), `XI_KeyRelease`
+(C 24585-24642, the `xkey`-copy and filter pair C gates on `HAVE_X_I18N || USE_GTK || USE_LUCID`)
+and `XI_PropertyEvent` (C 24644-24645, a two-line arm).  The slice also retires the `--check`
+row's memset family: the port's fourth `memset` lands here, so C's four call sites and the port's
+now agree and that row drops out of `--check` (three rows -> two).
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6238,6 +6245,38 @@ expected direction once the file starts carrying records the X11 headers would s
   delivered.  The readings are the five arms of the table below (both sides), the per-arm message
   diff and `--check`'s token count.  The next slice takes C 24571 onwards (`XI_RawKeyPress`, the
   GTK2-only arm).
+
+### 144. Slice 132 (C 24570-24645): `XI_RawKeyPress`, `XI_KeyRelease` and `XI_PropertyEvent`
+
+* **What it lands.**  C 24570's `#if defined USE_GTK && !defined HAVE_GTK3` and `XI_RawKeyPress`
+  (C 24571-24583: the `XIRawEvent` cast and the three `pending_keystroke_*` writes C's comment
+  explains - "the only way to attribute core keyboard events generated on GTK+ 2.x to the
+  extension device that generated them"); `XI_KeyRelease` (C 24585-24642: C's own gate at C 24586
+  wraps the body, the `XKeyPressedEvent xkey` copy with `KeyRelease` for its type, the four
+  `lrint` coordinates, `xi_convert_button_state`, and the `USE_LUCID`-split filter pair);
+  `XI_PropertyEvent` (C 24644-24645).
+* **C 24621 is a typo, and the port writes the call C means.**  C's line reads
+  `f = x_any_window_to_frame (xkey->event);` - a `->` on a value, a member (`event`) Xlib's
+  `XKeyEvent` does not have (it is `window`), and no `dpyinfo` argument.  No configuration the
+  reference builds selects that branch (it needs GTK 2 without `HAVE_X_I18N` and without
+  `USE_LUCID`); this lane's `UGX` and `AG3X` arms do, so the port writes
+  `x_any_window_to_frame (dpyinfo, xkey.window as c_int)` - the second argument's cast is the
+  spelling this file's own C 15184 site uses (this file 25840) - and the deviation is recorded
+  here and in the code's comment.
+* **C's one filter call is written twice, because C's own `#ifdef USE_LUCID` moves it.**  With
+  Lucid the call is nested one level deeper (`if (!popup_activated ()) { ... }`) and C's `else` arm
+  is a comment about the Lucid menu bar; without it the call stands at the body's level.  The two
+  copies carry the same `have_x_i18n`/`use_gtk` split the core arm's chain uses, which is the
+  XI_FocusIn arm's `x_any_window_to_frame` shape (Decision 2 item 2).
+* **The memset family row retires.**  `extract-abi.py --check` read *"family memset: the C body
+  uses it 4 time(s), the port 3"* from slice 110 to 131; this arm's
+  `memset (&raw mut xkey, 0, size_of_val (&xkey))` is the port's fourth, so the row drops and
+  `--check` reads **two rows** (the long `handle_one_xevent` row with its token list still **71**,
+  and `x_get_wm_check_window does not mention false`).  The unit is **37,757 lines** (+93) against
+  C's 33,125, md5 `86ee9b58ebd5aa985ba1e0f0c24ef65b`.
+* **Not claimed.**  No runtime evidence, as everywhere in this lane; the readings are the six arms
+  of the table below (both sides) and `--check`'s two rows.  The next slice takes C 24647 onwards
+  (`XI_HierarchyChanged`).
 
 ## Evidence
 
@@ -12560,3 +12599,35 @@ adding any.
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the five arm compiles (both sides), the per-arm message diff and
 `--check`'s token list (73 -> 71).
+
+### Slice 132's readings (C 24570-24645), as landed and measured (2026-10-08)
+
+`XI_RawKeyPress`, `XI_KeyRelease` and `XI_PropertyEvent` - the three arms between `XI_KeyPress` and
+`XI_HierarchyChanged`.  Six arms, both sides, one probe root per side.
+
+| arm | baseline | slice 132 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| XI2 `A +have_xinput2` | 1329 / 88 | **1329 / 88** | **0 / 0** |
+| UGX `XI2 +use_toolkit_scroll_bars +use_gtk` | 1383 / 89 | **1390 / 89** | **+7 / 0** |
+| AIUX `XI2 +have_x_i18n +use_gtk` | 1457 / 87 | **1463 / 87** | **+6 / 0** |
+| AG3X `XI2 +use_gtk +have_gtk3` | 1427 / 88 | **1432 / 88** | **+5 / 0** |
+| ULI2 `A +use_x_toolkit +use_lucid +have_xinput2` | 1417 / 87 | **1421 / 87** | **+4 / 0** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`db15bf67`, slice 131).  The
+plain arm and `XI2` read a zero delta: `XI_RawKeyPress` is gated on C's `USE_GTK && !HAVE_GTK3`
+and `XI_KeyRelease`'s body on `HAVE_X_I18N || USE_GTK || USE_LUCID`, so neither compiles in an arm
+with no toolkit.
+
+| arm | grew | of which |
+| --- | --- | --- |
+| UGX / AG3X | +7 / +5 | four `lrint` (C 24601-24604), `xg_filter_key` (C 24623); UGX adds `XIRawEvent` twice (C 24573's declaration and its cast - the arm carries `XI_RawKeyPress`) |
+| AIUX | +6 | the four `lrint` and the `XIRawEvent` pair; its filter call resolves (`x_filter_event`) |
+| ULI2 | +4 | the four `lrint` - the Lucid arm's filter call is `have_x_i18n`-gated, so nothing else compiles |
+
+**Every row is a registered class**: `lrint` is `<math.h>`'s, `XIRawEvent` is Decision 15's bare
+XInput2 name (the `XIDeviceEvent` precedent) and `xg_filter_key` is the GTK filter the third
+filter shape already reads.  No warning moved in any arm.
+
+**Not claimed**: no runtime evidence; the readings are the six arm compiles (both sides), the
+per-arm message diff and `--check`'s two rows (the memset family retired here).
