@@ -1015,6 +1015,21 @@ pub const XIAcceptTouch: c_int = 6;            // XI2.h 103
 pub const XIRejectTouch: c_int = 7;            // XI2.h 104
 #[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XIMasterPointer: c_int = 1;          // XI2.h 134
+/// XI2.h 163 and 208-211: the touch family's four event types - `XI_TouchBegin` is the one
+/// slice 134's arm already matches on - and the `flags` bit C 24993 tests.  `xfns.rs` 5820-5826
+/// carries the same four numbers for `setup_xi_event_mask`.  `XITouchPendingEnd`'s number is
+/// XI2.h's own text: it is not re-measured this round because this machine carries no
+/// `<X11/extensions/XInput2.h>` (the `## Owed` note's absent SDKs).
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_TouchBegin: c_int = 18;           // XI2.h 208
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_TouchUpdate: c_int = 19;          // XI2.h 209
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_TouchEnd: c_int = 20;             // XI2.h 210
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_TouchOwnership: c_int = 21;       // XI2.h 211
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XITouchPendingEnd: c_int = 1 << 16;  // XI2.h 163
 /// C's `<X11/extensions/XInput2.h>` 181-184: `#define XISetMask(ptr, event) (((unsigned char*)
 /// (ptr))[(event)>>3] |= (1 << ((event) & 7)))`, `#define XIMaskIsSet(ptr, event)
 /// (((unsigned char*)(ptr))[(event)>>3] & (1 << ((event) & 7)))` and
@@ -37118,6 +37133,182 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 
 		          break 'xi_other;                                     // C 24949 (`goto XI_OTHER`)
 		        }
+		      /* C 24952-24977's `XI_TouchOwnership`.  C names the arm's `XITouchOwnershipEvent *`
+		         `event`, which shadows the `XEvent *` the case frame carries for the length of this
+		         block (C 25206's `event->xcookie` is outside it).  */
+#[cfg (feature = "have_xinput2_2")]
+		      XI_TouchOwnership =>
+		        {
+		          let mut device: *mut xi_device_t;                    // C 24954
+		          let mut touchpoint: *mut xi_touch_point_t;           // C 24955
+		          let mut event: *mut XITouchOwnershipEvent;           // C 24956
+
+		          /* "All grabbing clients have decided to reject ownership
+		             of this touch sequence."  */
+
+		          event = xi_event as *mut XITouchOwnershipEvent;      // C 24961
+		          device = xi_device_from_id (dpyinfo, (*event).deviceid); // C 24962
+
+		          if device.is_null () || (*device).r#use == XIMasterPointer // C 24964
+		            { break 'xi_other; }                               // C 24965 (`goto XI_OTHER`)
+
+		          touchpoint = xi_find_touch_point (device, (*event).touchid); // C 24967
+
+		          if touchpoint.is_null ()                             // C 24969
+		            { break 'xi_other; }                               // C 24970 (`goto XI_OTHER`)
+
+		          /* "As a result, Emacs should complete whatever editing
+		             operations result from this touch sequence."  */
+		          (*touchpoint).ownership = xi_touch_ownership::TOUCH_OWNERSHIP_SELF; // C 24974
+
+		          break 'xi_other;                                     // C 24976 (`goto XI_OTHER`)
+		        }
+
+		      /* C 24979-25046's `XI_TouchUpdate`: the `flags` gate, the two device lookups, the
+		         position-change test and the `TOUCHSCREEN_UPDATE_EVENT` construction.  */
+#[cfg (feature = "have_xinput2_2")]
+		      XI_TouchUpdate =>
+		        {
+		          let mut device: *mut xi_device_t;                    // C 24981
+		          let mut source: *mut xi_device_t;
+		          let mut touchpoint: *mut xi_touch_point_t;           // C 24982
+		          let mut arg: Lisp_Object = Qnil ();                  // C 24983
+
+		          /* "If flags & TouchPendingEnd, the touch sequence has already ended, but some
+		             grabbing clients remain undecided as to whether they will obtain ownership of the
+		             touch sequence.  Wait for them to make their decision, resulting in TouchOwnership
+		             and TouchEnd events being sent."  */
+
+		          if ((*xev).flags & XITouchPendingEnd) != 0           // C 24993
+		            { break 'xi_other; }                               // C 24994 (`goto XI_OTHER`)
+
+		          device = xi_device_from_id (dpyinfo, (*xev).deviceid); // C 24996
+		          source = xi_device_from_id (dpyinfo, (*xev).sourceid); // C 24997
+		          x_display_set_last_user_time (dpyinfo, (*xev).time,  // C 24998-24999
+		          			(*xev).send_event != 0, true);
+
+		          /* "Don't process touch sequences from this device if it's a master pointer.  Touch
+		             sequences aren't canceled by the X server if a slave device is detached, and master
+		             pointers may also represent dependent touch devices."  */
+
+		          if device.is_null () || (*device).r#use == XIMasterPointer // C 25007
+		            { break 'xi_other; }                               // C 25008 (`goto XI_OTHER`)
+
+		          touchpoint = xi_find_touch_point (device, (*xev).detail); // C 25010
+
+		          if touchpoint.is_null ()                             // C 25012
+		            /* "Don't send this event if nothing has changed either."  */
+		            || ((*touchpoint).x as EMACS_INT == lrint ((*xev).event_x) // C 25015
+		                && (*touchpoint).y as EMACS_INT == lrint ((*xev).event_y)) // C 25016
+		            { break 'xi_other; }                               // C 25017 (`goto XI_OTHER`)
+
+		          (*touchpoint).x = lrint ((*xev).event_x) as c_int;   // C 25019
+		          (*touchpoint).y = lrint ((*xev).event_y) as c_int;   // C 25020
+
+		          f = x_window_to_frame (dpyinfo, (*xev).event);       // C 25022
+
+		          if !f.is_null () && (*device).direct_p               // C 25024
+		            {
+		              input_event_bits! (kind, &raw mut inev.ie, TOUCHSCREEN_UPDATE_EVENT); // C 25026
+		              inev.ie.timestamp = (*xev).time;                 // C 25027
+		              XSETFRAME! (inev.ie.frame_or_window, f);         // C 25028
+
+		              /* C 25030-25037's `for`: its init is the assignment below and its step the last
+		                 line of the body (this body has no `continue`) - the `xi_unlink_touch_point`
+		                 shape.  */
+		              touchpoint = (*device).touchpoints;              // C 25030
+		              while !touchpoint.is_null ()                     // C 25031
+		                {
+		                  if (*touchpoint).frame == f                  // C 25033
+		                  { arg = Fcons (list3i ((*touchpoint).x as EMACS_INT, // C 25034-25036
+		                  			   (*touchpoint).y as EMACS_INT,
+		                  			   (*touchpoint).local_detail),
+		                  			  arg); }
+		                  touchpoint = (*touchpoint).next;             // C 25031 (step)
+		                }
+
+		              if !source.is_null ()                            // C 25039
+		                { inev.ie.device = (*source).name; }           // C 25040
+
+		              inev.ie.arg = arg;                               // C 25042
+		            }
+
+		          break 'xi_other;                                     // C 25045 (`goto XI_OTHER`)
+		        }
+
+		      /* C 25048-25120's `XI_TouchEnd`: the unlink, the `TOUCHSCREEN_END_EVENT` and, with
+		         `HAVE_EXT_TOOL_BAR` off, the tool-bar release.  */
+#[cfg (feature = "have_xinput2_2")]
+		      XI_TouchEnd =>
+		        {
+		          let mut device: *mut xi_device_t;                    // C 25050
+		          let mut source: *mut xi_device_t;
+		          let mut state: c_int;                                // C 25051
+		          let mut local_detail: EMACS_INT;                     // C 25052
+
+		          device = xi_device_from_id (dpyinfo, (*xev).deviceid); // C 25054
+		          source = xi_device_from_id (dpyinfo, (*xev).sourceid); // C 25055
+		          x_display_set_last_user_time (dpyinfo, (*xev).time,  // C 25056-25057
+		          			(*xev).send_event != 0, true);
+
+		          /* "Don't process touch sequences from this device if it's a master pointer.  Touch
+		             sequences aren't canceled by the X server if a slave device is detached, and master
+		             pointers may also represent dependent touch devices."  */
+
+		          if device.is_null () || (*device).r#use == XIMasterPointer // C 25065
+		            { break 'xi_other; }                               // C 25066 (`goto XI_OTHER`)
+
+		          state = xi_unlink_touch_point ((*xev).detail, device, // C 25068-25069
+		          			  &raw mut local_detail);
+
+		          if state != 0                                        // C 25071
+		            {
+		              f = x_window_to_frame (dpyinfo, (*xev).event);   // C 25073
+
+		              if !f.is_null () && (*device).direct_p           // C 25075
+		                {
+		                  input_event_bits! (kind, &raw mut inev.ie, TOUCHSCREEN_END_EVENT); // C 25077
+		                  inev.ie.timestamp = (*xev).time;             // C 25078
+		                  inev.ie.modifiers = (state != 2) as c_uint;  // C 25079
+
+		                  XSETFRAME! (inev.ie.frame_or_window, f);     // C 25081
+		                  XSETINT! (inev.ie.x, lrint ((*xev).event_x) as EMACS_INT); // C 25082
+		                  XSETINT! (inev.ie.y, lrint ((*xev).event_y) as EMACS_INT); // C 25083
+		                  XSETINT! (inev.ie.arg, local_detail);        // C 25084
+
+		                  if !source.is_null ()                        // C 25086
+		                    { inev.ie.device = (*source).name; }       // C 25087
+		                }
+		            }
+
+		          /* C 25091-25116's `#ifndef HAVE_EXT_TOOL_BAR`: "Now see if the touchpoint was
+		             previously on the tool bar.  If it was, release the tool bar."  */
+#[cfg (not (feature = "have_ext_tool_bar"))]
+		          {
+		            if f.is_null ()                                    // C 25095
+		              { f = x_window_to_frame (dpyinfo, (*xev).event); } // C 25096
+
+		            if !f.is_null ()                                   // C 25098
+		            && (*FRAME_OUTPUT_DATA! (f)).tool_bar_touch_id == (*xev).detail // C 25098-25099
+		            {
+		              if (*f).last_tool_bar_item != -1                 // C 25101
+		              { handle_tool_bar_click_with_device (f, (*xev).event_x, // C 25102-25107
+		              			  (*xev).event_y, false, 0,
+		              			  if !source.is_null () { (*source).name } else { Qnil () }); }
+
+		              /* "Cancel any outstanding mouse highlight."  */
+		              note_mouse_highlight (f, -1, -1);                // C 25110
+		              x_flush_dirty_back_buffer_on (f);                // C 25111
+
+		              /* "Now clear the tool bar device."  */
+		              (*FRAME_OUTPUT_DATA! (f)).tool_bar_touch_device = 0; // C 25114
+		            }
+		          }
+
+		          break 'xi_other;                                     // C 25118 (`goto XI_OTHER`)
+		        }
+
+
 
 		      /* C 25190-25191's inner `default: goto XI_OTHER;` - the stand-in until that arm
 			 lands, and the reason no arm falls into the block below.  */

@@ -558,6 +558,14 @@ simulates a tool-bar click and leaves through `goto XI_OTHER`), the accept/rejec
 `XIMasterPointer`, XI2.h 103-104 and 134), and `--check`'s token list goes 70 -> 69: the port now
 mentions `frame_output_data`.
 
+Slice 135 (C 24952-25120, Decision 147) closes the `HAVE_XINPUT2_2` span with its three remaining
+arms - `XI_TouchOwnership` (C's ownership hand-off), `XI_TouchUpdate` (the `XITouchPendingEnd` gate,
+the position-change test and the `TOUCHSCREEN_UPDATE_EVENT` build with its `device->touchpoints`
+walk) and `XI_TouchEnd` (the `xi_unlink_touch_point` state, the `TOUCHSCREEN_END_EVENT` and the
+`#ifndef HAVE_EXT_TOOL_BAR` tool-bar release).  Four touch event types and one `flags` bit join the
+unit's XI2 vocabulary (XI2.h 163 and 208-211), and `--check` still reads its two rows: the long
+`handle_one_xevent` row's token list stays 69.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6363,6 +6371,49 @@ expected direction once the file starts carrying records the X11 headers would s
 * **Not claimed.**  No runtime evidence, as everywhere in this lane; the readings are the three arms
   of the table below (both sides, and only the two `have_xinput2_2` arms can compile the arm at all)
   and `--check`'s two rows.  The next slice takes C 24952 onwards (`XI_TouchOwnership`).
+
+### 147. Slice 135 (C 24952-25120): the three touch arms `XI_TouchOwnership`, `XI_TouchUpdate`, `XI_TouchEnd`
+
+* **What it lands.**  C 24952-25120 - the three arms C 24776's `#ifdef HAVE_XINPUT2_2` still covers,
+  up to C 25121's `#endif`:
+  * `XI_TouchOwnership` (C 24952-24977): the device and touch-point lookups, C's master-pointer
+    guard, and `touchpoint->ownership = TOUCH_OWNERSHIP_SELF`, which is what C 24972-24973's comment
+    ("Emacs should complete whatever editing operations result from this touch sequence") names.
+  * `XI_TouchUpdate` (C 24979-25046): the `xev->flags & XITouchPendingEnd` gate, the two device
+    lookups with their user-time pair, the master-pointer guard, the `xi_find_touch_point`
+    position-change test (C 25012-25017), the two `lrint` writes back (C 25019-25020), and the
+    `TOUCHSCREEN_UPDATE_EVENT` build - `timestamp`, `XSETFRAME`, the `device->touchpoints` walk that
+    `Fcons`es a `list3i` per point whose `frame` is `f`, `source->name` and `inev.ie.arg = arg`.
+  * `XI_TouchEnd` (C 25048-25120): `xi_unlink_touch_point`'s state (the 1/2 return C 25079 turns into
+    `inev.ie.modifiers`), the `TOUCHSCREEN_END_EVENT` build, and the `#ifndef HAVE_EXT_TOOL_BAR`
+    block that releases a tool bar the sequence began on - `handle_tool_bar_click_with_device` with
+    C's `source ? source->name : Qnil`, the `note_mouse_highlight`/`x_flush_dirty_back_buffer_on`
+    pair and the `tool_bar_touch_device = 0` clear.
+* **C's `for` is the `xi_unlink_touch_point` shape.**  C 25030-25037 reads its init in the `for`
+  header and its step in the increment; the port writes the init before the `while` and the step as
+  the body's last statement (this file 6317-6354's precedent), which is the same text whenever the
+  body has no `continue` - this one has none.
+* **One new C name, and the four event types its arms match on.**  `XITouchPendingEnd` (XI2.h 163,
+  `1 << 16`) is C 24993's `flags` test.  The touch event types (`XI_TouchBegin` 18, `XI_TouchUpdate`
+  19, `XI_TouchEnd` 20, `XI_TouchOwnership` 21 - XI2.h 208-211, the numbers `xfns.rs` 5820-5826
+  carries for `setup_xi_event_mask`) join the unit's block with it; `XI_TouchBegin` is the name slice
+  134's arm already spells.  `<X11/extensions/XInput2.h>` is not on this machine (the `## Owed`
+  note's absent SDKs), so `XITouchPendingEnd`'s value is carried as the header's own text rather
+  than re-measured this round, and the ledger says so at the row.
+* **C's `int`-against-`long` comparison is spelled as C widens it.**  C 25015-25016 compares
+  `touchpoint->x` (`int`) with `lrint (...)` (`long`); C converts the *field* up, so the port writes
+  `(*touchpoint).x as EMACS_INT == lrint (...)` - the widening the arm's `XSETINT!` rows already
+  spell - rather than truncating the `lrint` result down to `c_int` (the assignment at C 25019-25020
+  is the narrowing direction, and there the port writes `as c_int`).
+* **What `--check` reads.**  Two rows, unchanged: the long `handle_one_xevent` row's token list is
+  **69 -> 69** (this slice spells no name the row lists and retires none) and
+  `x_get_wm_check_window does not mention false` stays.  The unit is **38,289 lines** (+191), md5
+  `afcb6572061d275d8e694831f4698ab3`.
+* **Not claimed.**  No runtime evidence: the frozen configuration compiles none of this file, so no
+  touch point was linked or unlinked and no `TouchOwnership`, `TouchUpdate` or `TouchEnd` event was
+  ever delivered.  The readings are the three arms below, both sides.  The next slice takes C 25123
+  onwards (`XI_GesturePinchBegin`/`XI_GesturePinchUpdate`/`XI_GesturePinchEnd` under
+  `HAVE_XINPUT2_4`, then C 25191's inner `default:` and C 25195's `xi_done_keysym:` tail).
 
 ## Evidence
 
@@ -12777,3 +12828,40 @@ No warning moved in any arm.
 
 **Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
 per-arm message diff and `--check`'s token list (70 -> 69).
+
+### Slice 135's readings (C 24952-25120), as landed and measured (2026-10-08)
+
+`XI_TouchOwnership`, `XI_TouchUpdate` and `XI_TouchEnd`.  Three arms, both sides, one probe root per
+side - all three arms sit inside C 24776's `HAVE_XINPUT2_2` gate, so only the lane's two
+`have_xinput2_2` arms can compile them at all.
+
+| arm | baseline | slice 135 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| XI21 `XI2 +have_xinput2_1 +have_xinput2_2` | 1399 / 90 | **1412 / 90** | **+13 / 0** |
+| XI21W `XI21 +have_xwidgets` | 1433 / 90 | **1446 / 90** | **+13 / 0** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`f6928fe7`, slice 134), and the
+plain arm reads a zero delta because the arms are inside the gate.
+
+| grew | of which |
+| --- | --- |
+| the thirteen rows of both arms | `lrint` x6 (C 25015, C 25016, C 25019, C 25020, C 25082, C 25083), `XITouchOwnershipEvent` x2 (C 24956's declaration and C 24961's cast), `xi_touch_ownership` (C 24974, in its module-path shape), `handle_tool_bar_click_with_device` (C 25102), `no field last_tool_bar_item` on `frame` (C 25101) and `no field tool_bar_touch_id` / `tool_bar_touch_device` on `*mut c_void` (C 25098-25099, C 25114) |
+
+**Every row is a registered class.**  `lrint` is `<math.h>`'s (slice 134's row at C 24915-24916,
++6 more sites here); `XITouchOwnershipEvent` is Decision 15's bare XInput2 type (the
+`XIRawEvent`/`XIHierarchyEvent` class of slices 132-133); `xi_touch_ownership` is that same class in
+its *module-path* shape (`E0433`) - the baseline already carries the row at C 6379, so this slice adds
+a use, not a class.  `handle_tool_bar_click_with_device` is `dispextern.h` 3672's prototype the mirror
+does not carry (slices 128 and 134's row), `last_tool_bar_item` is the `frame.h` member behind
+`have_window_system` (`frame.rs` 190; the slice-119/128 class), and the two `FRAME_OUTPUT_DATA` reads
+and writes are the `no field` class in slice 134's *macro type* shape (this arm has no toolkit, so
+`FRAME_OUTPUT_DATA!` is a `*mut c_void`).  **No warning moved in any arm.**
+
+**The message-level diff is keyed by message and source text, not by line number**: the slice inserts
+191 lines, so an absolute-line comparison would report every row below the insertion as moved.  With
+that key the two `have_xinput2_2` arms read exactly the +13 rows above and nothing else, and the
+plain arm reads nothing at all.
+
+**Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
+per-arm message diff and `--check`'s two rows with its token list (69 -> 69).

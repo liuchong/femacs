@@ -17866,3 +17866,19 @@
   ⑦ **预算与清理**：本片 rustc 约 **9 发**（三臂首发 + 2 处修复后复测 + 基线 2 臂 + `rustfmt --check` 复核；每次 17-24 秒，单文件 `--emit=metadata`），
      无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s134`、`/tmp/f134.rs`、`/tmp/s134.py`。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片从 C 24952 起（`XI_TouchOwnership`）。
+- **4.054 `src/xterm.c` round 111（xterm lane，slice 135）：`HAVE_XINPUT2_2` 那一段的三个余下臂 —— `XI_TouchOwnership`/`XI_TouchUpdate`/`XI_TouchEnd`（C 24952-25120）落地，`--check` 的 token 清单 69 → 69（2026-10-08）**：
+  ① **本片落的文本**：C 24952-25120 整段（C 24776 的 `#ifdef HAVE_XINPUT2_2` 到 C 25121 的 `#endif` 之间余下的三臂）——`XI_TouchOwnership`（两个查找、master-pointer 守卫、`TOUCH_OWNERSHIP_SELF` 写回，C 24952-24977）、
+     `XI_TouchUpdate`（`flags & XITouchPendingEnd` 门、两个设备查找与用户时间对、master-pointer 守卫、`xi_find_touch_point` 的"位置未变"测试 C 25012-25017、两个 `lrint` 写回 C 25019-25020、
+     `TOUCHSCREEN_UPDATE_EVENT` 的构造与 `device->touchpoints` 走查（逐点 `Fcons (list3i (…), arg)`）、`source->name` 与 `inev.ie.arg`，C 24979-25046）、
+     `XI_TouchEnd`（`xi_unlink_touch_point` 的状态（1/2 即 C 25079 写进 `inev.ie.modifiers` 的那个），`TOUCHSCREEN_END_EVENT` 的构造，以及 `#ifndef HAVE_EXT_TOOL_BAR` 的工具栏释放：
+     `handle_tool_bar_click_with_device` 带 C 的 `source ? source->name : Qnil`、`note_mouse_highlight`/`x_flush_dirty_back_buffer_on` 对与 `tool_bar_touch_device = 0`，C 25048-25120）。
+  ② **一个新名字与它四个事件类型**：`XITouchPendingEnd`（XI2.h 163，`1 << 16`）是 C 24993 的 `flags` 测试；四个 touch 事件类型（`XI_TouchBegin` 18、`XI_TouchUpdate` 19、`XI_TouchEnd` 20、`XI_TouchOwnership` 21——XI2.h 208-211，即 `xfns.rs` 5820-5826 为 `setup_xi_event_mask` 携带的同一批数）随本片并入本单元词表，
+     其中 `XI_TouchBegin` 是 slice 134 的臂早已拼出的名字。`<X11/extensions/XInput2.h>` **本机没有**（`## Owed` 的那条缺 SDK），所以 `XITouchPendingEnd` 的取值按头文件自己的文本携带、**本轮未复测**，行上写明这一点。
+  ③ **C 的 `int` 对 `long` 比较按 C 的方向写**：C 25015-25016 拿 `touchpoint->x`（`int`）比 `lrint (…)`（`long`），C 把**字段**往上转，所以端口写 `(*touchpoint).x as EMACS_INT == lrint (…)`（本臂 `XSETINT!` 行既有拼法），而不是把 `lrint` 的结果截成 `c_int`；C 25019-25020 的赋值才是窄化方向，那里写 `as c_int`。
+  ④ **读数（三臂，两侧都在本修订测，同一根 `_root.rs`；baseline = HEAD `f6928fe7`，slice 134）**：A 1174/83 → **1174/83**（0/0，三臂都在 C 24776 的门内）、XI21 1399/90 → **1412/90**（+13/0）、XI21W 1433/90 → **1446/90**（+13/0）。
+     +13 行构成：`lrint`×6（C 25015、C 25016、C 25019、C 25020、C 25082、C 25083）、`XITouchOwnershipEvent`×2（C 24956 声明与 C 24961 转型）、`xi_touch_ownership`（C 24974，**模块路径**形状的 E0433——baseline 里 C 6379 早有同一行，本片加的是**用点**不是类）、
+     `handle_tool_bar_click_with_device`（C 25102）、`no field last_tool_bar_item` on `frame`（C 25101，`have_window_system` 门后的 `frame.h` 成员）、`no field tool_bar_touch_id`/`tool_bar_touch_device` on `*mut c_void`（C 25098-25099 与 C 25114，slice 134 的宏类型形状）。**三个臂一个 warning 都没动。**
+  ⑤ **消息级 diff 的键**：本片插入 191 行，绝对行号比较会把插入点以下每一行都读成"搬走"；改用**消息 + 源码行文本**作键后，两个 `have_xinput2_2` 臂读到的正好是上面 +13 行、别无其它，A 臂 0 行。
+  ⑥ **台账与门**：`docs/ports/xterm.md` 加 Decision **147** 与 `### Slice 135's readings`（并在顶部叙事补 slice 135 段）；`--check` **两行**，长行 token 清单 **69 → 69**（本片既没点名清单里的名字、也没收掉任何一行）；单元 **38,289 行**（+191），md5 `afcb6572061d275d8e694831f4698ab3`。十门结果见本轮提交前的读数（全绿）。
+  ⑦ **预算与清理**：本片 rustc 探针 **6 发**（基线 A/XI21/XI21W 3 + 新文本 3，全部单文件 `--emit=metadata`，每次 17-24 秒）、`rustfmt --check` **4 发**（首版被一条丢了 `///` 前缀的文档注释续行打断 1 发，修好后 3 发）、`extract-abi --check` **3 发**；无全盘/大内存扫描；收尾删 `build/probes/xterm`、`build/femacs/units`、`/tmp/s135`。
+     **未声称**：无运行证据——本 lane 不链接，没有一次 touch 点被 link/unlink、没有一个 `TouchOwnership`/`TouchUpdate`/`TouchEnd` 事件到过。下一片从 C 25123 起（`HAVE_XINPUT2_4` 下的 `XI_GesturePinchBegin`/`XI_GesturePinchUpdate`/`XI_GesturePinchEnd`，随后是 C 25191 的内层 `default:` 与 C 25195 的 `xi_done_keysym:` 尾巴）。
