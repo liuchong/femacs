@@ -6567,6 +6567,58 @@ expected direction once the file starts carrying records the X11 headers would s
   repaired by this block.  The next slice takes C 25485 onwards (the `HAVE_XRANDR && !USE_GTK`
   block).
 
+Slice 139 (C 25485-25557, Decision 151) closes the outer `default:` body: the
+`HAVE_XRANDR && !USE_GTK` block (the Randr event test, `XRRUpdateConfiguration`, the
+`XRRScreenChangeNotifyEvent` screen-dimension copy, the `MONITORS_CHANGED_EVENT` build with
+`XSETTERMINAL` and the two `last_monitor_attributes_list` comparisons, and the `goto OTHER` when an
+event is already queued) and the `HAVE_XFIXES` block (`x_handle_selection_monitor_event` and
+C 25556's forced `X_EVENT_DROP`).  With that, every C range of `handle_one_xevent` **except one** is
+transcribed: the switch's first `case`, `ClientMessage` (C 18951-19472, the 522-line XDND/Motif
+state machine Decision 122 named as a slice of its own), is still unwritten - and it is exactly the
+vocabulary `--check`'s long row lists (`x_handle_dnd_message`, `new_x`/`new_y`,
+`x_kill_gs_process`, the `xatom_*`/`x_dnd_*`/`xm_drag_*` families), which is why
+`extract-abi.py --all` keeps reading this file as the one **WIP** (2 differences) and its ledger
+box stays unticked.
+
+### 151. Slice 139 (C 25485-25557): the `HAVE_XRANDR` and `HAVE_XFIXES` blocks - and what `--check` still names is the arm that is missing
+
+* **What it lands.**  The `default:` body's last two blocks: C 25485-25546's
+  `#if defined HAVE_XRANDR && !defined USE_GTK` (the `xrandr_supported_p` +
+  `RRScreenChangeNotify`/`RRNotify` guard, `XRRUpdateConfiguration` on the screen-change event, the
+  `XRRScreenChangeNotifyEvent` copy into `screen_width`/`screen_height`/`screen_mm_*` when the
+  notification is for this root window, C 25517's `timestamp = 0` fallback, C 25519's
+  `x_find_monitors_changed_event` early `goto OTHER`, the `MONITORS_CHANGED_EVENT` build with
+  `XSETTERMINAL`, the `Fx_display_monitor_attributes_list` / `Fequal` comparison that clears the
+  kind, the `last_monitor_attributes_list` write, the `x_dnd_monitors` update and the
+  `x_dnd_update_tooltip_now` call) and C 25547-25557's `#ifdef HAVE_XFIXES`
+  (`xfixes_supported_p` + `xfixes_event_base + XFixesSelectionNotify` +
+  `x_handle_selection_monitor_event`, whose body is C 25556's unconditional
+  `*finish = X_EVENT_DROP`).
+* **No new arms.**  This lane already had both: `AXR` (`A + have_xrandr`) and `AXF`
+  (`A + have_xfixes`, added by the 2026-10-06 round for exactly this block - its `## Owed` item 4
+  records that `<X11/extensions/Xfixes.h>` is missing on this machine and that the arm is what
+  reads the text).
+* **The file's remaining C range is now one arm, and `--check`'s long row is its vocabulary.**
+  `python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` still reads two
+  rows, and the long one (`function handle_one_xevent does not mention <69 tokens>`) is **not** a
+  debt spread over the function: it is the switch's first `case`, `ClientMessage`
+  (C 18951-19472), which no slice has landed (Decision 122 records it as "a slice of its own").
+  Measured this round: the port's `// C NNNN` anchors jump from C 18951 straight to C 19475, and
+  the arm's own vocabulary is zero in the port (`x_handle_dnd_message` 0, `new_x` 0, `new_y` 0,
+  `x_kill_gs_process` 0), while the row's remaining names are C's `case`/`default`/`goto`/
+  `fallthrough` labels and the folded integer values the arm's XDND code carries.  The ledger's box
+  for `handle_one_xevent` therefore **stays unticked**, and `extract-abi.py --all` reads this file as
+  the tree's one `WIP  src/xterm.c -> femacs/src/xterm.rs (2 differences, ... has unchecked boxes)`
+  among `checked 590 ported files: 578 done, 1 in progress, 11 failing`.
+* **What `--check` reads beyond that row.**  The second row is unchanged
+  (`x_get_wm_check_window does not mention false`), and the long row's token list is **69 -> 69** -
+  this slice spells none of the arm's names and retires none.  The unit is **38,744 lines** (+71),
+  md5 `7f625bd4a0817e18010699e7bdcc0402`.
+* **Not claimed.**  No runtime evidence: the frozen configuration compiles none of this file, so no
+  Randr event was classified, no monitor list was compared and no XFixes selection notification was
+  dropped.  The next slice is `ClientMessage` itself (C 18951-19472), which is what closes both the
+  function and the file.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -7773,6 +7825,14 @@ and no display was opened; the remaining `E0425` rows are unresolved names, not 
 
 
 ## Owed by the integrator (nothing here is claimed as done)
+
+**6. `handle_one_xevent`'s first `case`, `ClientMessage` (C 18951-19472).**  Slice 139 closes the
+outer `default:` body, and the one C range of the function still unwritten is this 522-line
+XDND/Motif state machine (Decision 122 recorded it as a slice of its own).  It is the whole of
+`--check`'s long row - `x_handle_dnd_message`, `new_x`/`new_y`, `x_kill_gs_process`, the
+`xatom_*`/`x_dnd_*`/`xm_drag_*` families - and the reason `extract-abi.py --all` reads this file
+as the tree's one WIP with 2 differences.  Until it lands the ledger's box stays unticked; that
+is a reading, not a stub.
 
 **5. The XShape arms' X11 entry points** (2026-10-08, Decision 150): slice 138's two arms read
 `XPending`, `XNextEvent`, `XPutBackEvent`, `XShapeGetRectangles`, `ShapeNotify` and the two
@@ -13117,3 +13177,33 @@ slice.
 
 **Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
 per-arm message diff and `--check`'s two rows with its token list (69 -> 69).
+
+### Slice 139's readings (C 25485-25557), as landed and measured (2026-10-08)
+
+The `HAVE_XRANDR && !USE_GTK` and `HAVE_XFIXES` blocks, read by the lane's existing `AXR` and `AXF`
+arms (no new arm this round).  Three arms, both sides, one probe root per side; the plain arm is the
+control.
+
+| arm | baseline | slice 139 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| AXR `A +have_xrandr` | 1180 / 83 | **1191 / 83** | **+11 / 0** |
+| AXF `A +have_xfixes` | 1184 / 83 | **1186 / 83** | **+2 / 0** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`2d2c153c`, slice 138).
+
+| grew | of which |
+| --- | --- |
+| AXR's 11 rows | `RRScreenChangeNotify` x3 (C 25488, C 25497, C 25501), `RRNotify` (C 25490), `XRRScreenChangeNotifyEvent` x2 (C 25494's annotation and C 25503's cast), `XRRUpdateConfiguration` (C 25498) and `no field r#type` on the `XEvent` stand-in x4 (C 25487, C 25489, C 25496, C 25500) |
+| AXF's 2 rows | `XFixesSelectionNotify` (C 25549-25550) and one more `no field r#type` (C 25549) |
+
+**Every row is a registered class.**  The six Randr names (`RRScreenChangeNotify`, `RRNotify`,
+`XRRScreenChangeNotifyEvent`, `XRRUpdateConfiguration`) and `XFixesSelectionNotify` are X11 SDK
+names whose headers have no mirror in this tree - `<X11/extensions/Xfixes.h>` is `## Owed` item 4's
+missing header, and the Randr side is the same shape - and the `E0609` rows are the `XEvent`
+stand-in's owed `r#type` member (the class every arm of this switch has carried since slice 106).
+**No warning moved in any arm** (83 everywhere), and nothing shrank.
+
+**Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
+per-arm message diff and `--check`'s two rows (whose long row is the still-unwritten `ClientMessage`
+arm's vocabulary - Decision 151).

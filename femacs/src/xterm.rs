@@ -37728,6 +37728,77 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			      }
 			  }
 		      }
+
+			/* C 25485-25546's `#if defined HAVE_XRANDR && !defined USE_GTK`.  */
+#[cfg (all (feature = "have_xrandr", not (feature = "use_gtk")))]
+		      {
+			if (*dpyinfo).xrandr_supported_p                              // C 25486
+			  && ((*event).r#type == ((*dpyinfo).xrandr_event_base + RRScreenChangeNotify) // C 25487-25488
+			    || (*event).r#type == ((*dpyinfo).xrandr_event_base + RRNotify)) // C 25489-25490
+			  {
+			    let timestamp: Time;                                      // C 25492
+			    let current_monitors: Lisp_Object;                        // C 25493
+			    let notify: *mut XRRScreenChangeNotifyEvent;              // C 25494
+			    
+			    if (*event).r#type == (*dpyinfo).xrandr_event_base + RRScreenChangeNotify // C 25496-25497
+			      { XRRUpdateConfiguration (event); }                     // C 25498
+			    
+			    if (*event).r#type == (*dpyinfo).xrandr_event_base + RRScreenChangeNotify // C 25500-25501
+			      {
+			        notify = event as *mut XRRScreenChangeNotifyEvent;    // C 25503
+			        timestamp = (*notify).timestamp;                      // C 25504
+			        
+			        /* "Don't set screen dimensions if the notification is for a different screen."  */
+			        if (*notify).root == (*dpyinfo).root_window           // C 25508
+			          {
+			            (*dpyinfo).screen_width = (*notify).width;        // C 25510
+			            (*dpyinfo).screen_height = (*notify).height;      // C 25511
+			            (*dpyinfo).screen_mm_width = (*notify).mwidth;    // C 25512
+			            (*dpyinfo).screen_mm_height = (*notify).mheight;  // C 25513
+			          }
+			      }
+			      else
+			        { timestamp = 0; }                                    // C 25517
+			    
+			    if x_find_monitors_changed_event (dpyinfo)                // C 25519
+			      /* "Don't store a MONITORS_CHANGED_EVENT if there is already an undelivered event
+			         on the queue."  */
+			      { break 'switch; }                                      // C 25522 (`goto OTHER`)
+			    
+			    input_event_bits! (kind, &raw mut inev.ie, MONITORS_CHANGED_EVENT); // C 25524
+			    inev.ie.timestamp = timestamp;                            // C 25525
+			    XSETTERMINAL! (inev.ie.arg, (*dpyinfo).terminal);         // C 25526
+			    
+			    /* "Also don't do anything if the monitor configuration didn't really change."  */
+			    
+			    current_monitors                                          // C 25531-25532
+			      = Fx_display_monitor_attributes_list (inev.ie.arg);
+			    
+			    if !NILP (Fequal (current_monitors,                       // C 25534-25535
+			      (*dpyinfo).last_monitor_attributes_list))
+			      { input_event_bits! (kind, &raw mut inev.ie, NO_EVENT); } // C 25536
+			    
+			    (*dpyinfo).last_monitor_attributes_list = current_monitors; // C 25538
+			    
+			    if x_dnd_in_progress && x_dnd_update_tooltip              // C 25540
+			      { x_dnd_monitors = current_monitors; }                  // C 25541
+			    
+			    if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT // C 25543
+			      { x_dnd_update_tooltip_now (); }                        // C 25544
+			  }
+		      }
+			
+			/* C 25547-25557's `#ifdef HAVE_XFIXES`.  */
+#[cfg (feature = "have_xfixes")]
+		      {
+			if (*dpyinfo).xfixes_supported_p                              // C 25548
+			  && (*event).r#type == (*dpyinfo).xfixes_event_base + XFixesSelectionNotify // C 25549-25550
+			  && x_handle_selection_monitor_event (dpyinfo, event)        // C 25551
+			  /* "GTK 3 crashes if an XFixesSelectionNotify arrives with a window other than the root
+			     window, because it wants to know the screen in order to determine the compositing
+			     manager selection name.  (bug#58584)"  */
+			  { *finish = X_EVENT_DROP; }                                 // C 25556
+		      }
 		    }
       }
 		    /* C's `default:` body lands above one C range at a time; this stand-in is what C's
