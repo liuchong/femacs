@@ -17507,3 +17507,32 @@
      `build/probes/xterm/`、`/tmp/s123/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十一臂编译（两侧）、`--check` 的 token 数与台账。
      下一片从 `XI_Leave`（C 22461）起。
+
+- **4.042 `src/xterm.c` round 100（xterm lane，slice 124）：`XI_Leave` 落地（C 22461-22641），C 22240 那道门第一次从反侧被量出来（2026-10-08）**：
+  ① **本片落的文本**：`case XI_Leave:` 的整条臂——`XILeaveEvent`/`xi_device_t` 与两次查找（C 22463-22483）、`xi_report_motion_window_clear`（C 22485-22486，
+     即 Decision 133 点名的六个 `xi_*` 定义之一）、`USE_X_TOOLKIT` 的 popup-grab 测试（C 22493-22498）、`USE_MOTIF` 的核心事件拷贝（C 22500-22520，
+     与 `XI_Enter` 同一批十七处写入，首成员是 `LeaveNotify`）、`HAVE_XINPUT2_1` 的 valuator 复位（C 22540-22556）、`x_display_set_last_user_time`、
+     `HAVE_XWIDGETS` 块（C 22561-22575，只有这条臂写 `*finish = X_EVENT_DROP`）、焦点处理那对（C 22577-22580）、
+     C 自己的 `#ifndef USE_X_TOOLKIT`/`#else` 分叉（C 22582-22591，Xt 臂的兜底就是 C 的两步），以及与核心 `LeaveNotify` **共用**的尾（C 22593-22639）。
+  ② **尾沿用核心用例已经落地的写法**：两个帧字段、`clear_mouse_face`、`hlinfo->mouse_face_mouse_frame`、带 `gui_mouse_grabbed` 与 `Qdrag_source`/`Qdropping`
+     的 help-event 测试、GTK 的 `else if`（落成核心用例用的 `f.is_null () && …` 形状）——只有 XI 成员与 `xi_compute_root_window_offset_enter` 是本臂自己的。
+  ③ **那道门第一次从反侧被量到**：二十一个臂里**十六个读零增量**（C 22240 的 `ifdef` 把它们挡在外面），五个 `have_xinput2` 臂承载全臂的行：
+     `XI2` +5、`UGX`/`AIUX` +6、`AG3X` +7、`UMI2` +27。
+  ④ **行的来路（按类）**：`XILeaveEvent` +2（C 22463/22466，Decision 135 点名的"记录没有本单元能看见的落点"）、`xi_report_motion_window_clear` +1（C 22486）
+     在每个编译本臂的臂里；`lrint` 在 `UGX`/`AIUX`/`AG3X` +2（GTK 的 `ev` 构造，C 22471-22472）、在 `UMI2` +4（再加 Motif 拷贝的 C 22511-22514）、在 `XI2` 为 0
+     （那里既无 GTK 也无 Motif）；`xi_focus_handle_for_device` +1 只在 `AG3X` 与 `XI2`（C 22577 那对只放行 GTK 3 与无工具包构建，GTK 2 不放）；
+     `UMI2` 独见十七处 `copy.xcrossing`（C 22503-22519）与两个 XInput2 mode 常量（C 22495-22496）；每个臂还各多一处核心 `LeaveNotify` 早就在 C 22608 携带的
+     `E0308`（镜像把 `Mouse_HLInfo.mouse_face_mouse_frame` 记成 `*mut c_void`，而 C 用它和 `struct frame *` 比较——不是本片引入的类）。
+  ⑤ **点名不冒充**：`XINotifyUngrab`/`XINotifyPassiveUngrab` 是 Decision 135 点名的 XInput2 常量词汇在本片的**第一批"非 carried"用点**（XI2.h 49-54 有六个实测值，
+     端口还没有那块头文件记录）；`HAVE_XINPUT2_1`（C 22540-22556）与 `HAVE_XWIDGETS`（C 22561-22575）两处仍是**没有臂编译的 carried text**（台账 7153/2918 的同类界限）。
+  ⑥ **读数（两侧都在本修订测）**：⑴ **二十一臂表**（baseline = HEAD `e72ff801`，二十一个数字与 slice 123 台账逐位相同）：
+     A 1176/83 → **1176/83**、U 1188/83 → **1188/83**、UT 1191/82 → **1191/82**、UM 1199/82 → **1199/82**、UG 1215/84 → **1215/84**、
+     UGX 1340/87 → **1346/87**、AE 1208/82 → **1208/82**、AI 1203/83 → **1203/83**、AIU 1285/83 → **1285/83**、AIUX 1414/86 → **1420/86**、
+     AX 1186/83 → **1186/83**、AG3 1265/83 → **1265/83**、AG3X 1373/86 → **1380/86**、AXF 1186/83 → **1186/83**、AXPM 1177/83 → **1177/83**、
+     AXKB 1217/83 → **1217/83**、AXR 1182/83 → **1182/83**、AX11 1160/83 → **1160/83**、AUX 1259/81 → **1259/81**、
+     XI2 1287/86 → **1292/86**、UMI2 1329/85 → **1356/85**。
+     ⑵ **`--check`** 仍三行，长行 token 清单 **74 不变**（本臂没动它任何一个 token）；单元 **35,638 行**（+174），文件 md5 `bea89a5164a8c7db5839ee7de3b36542`。
+  ⑦ **预算与清理**：本片 rustc **约 43 发**（21 臂 × 2 轮 + 首发/复测；每次 15-21 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s124/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过；读数只有二十一臂编译（两侧）、`--check` 的 token 数与台账。
+     下一片从 `XI_Motion`（C 22643）起。

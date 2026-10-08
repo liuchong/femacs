@@ -449,6 +449,16 @@ tail).  Finally the probe set grows to **twenty-one arms** with `XI2` (plain X +
 (Motif + XI2), which are the configurations the two new arms' plain-X branch and Motif block are
 written for - without them those branches would be carried text no reading compiles.
 
+
+  Slice 124 (C 22461-22641, Decision 136) lands `case XI_Leave:` - the frame's third `XI_*` arm.
+It writes the frame and device lookups, `xi_report_motion_window_clear`'s call, the Xt popup-grab
+test, the Motif core-event copy, the `HAVE_XINPUT2_1` valuator reset and the `HAVE_XWIDGETS` block
+whose `*finish = X_EVENT_DROP` no other arm writes, then the tail the core `LeaveNotify` case above
+already runs (the two frame fields, `clear_mouse_face`, the help-event test, and
+`xi_compute_root_window_offset_enter`).  The arm sits inside C 22240's gate, so sixteen of the
+twenty-one arms read a zero delta and the five `have_xinput2` arms carry its rows - which is the
+gate slice 123 landed, measured from the other side.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5793,6 +5803,40 @@ expected direction once the file starts carrying records the X11 headers would s
 * **What `--check` reads.**  Three rows, and the long row's token list goes **76 -> 74**
   (`root_x`/`root_y` retire: the Motif copy mentions them).  The unit is **35,464 lines** (+154)
   against C's 33,125.
+
+### 136. Slice 124 (C 22461-22641): `XI_Leave`, and the gate read from the other side
+
+* **What it lands.**  `case XI_Leave:` with C's own gates: `XILeaveEvent`/`xi_device_t` and the two
+  lookups (C 22463-22483), `xi_report_motion_window_clear` (C 22485-22486, one of Decision 133's
+  six owed `xi_*` definitions), the `USE_X_TOOLKIT` popup-grab test (C 22493-22498), the
+  `USE_MOTIF` core-event copy - the same seventeen writes the `XI_Enter` arm makes, with
+  `LeaveNotify` first (C 22500-22520) - the `HAVE_XINPUT2_1` reset (C 22540-22556), the
+  `x_display_set_last_user_time` call, the `HAVE_XWIDGETS` block (C 22561-22575), the focus-handle
+  pair (C 22577-22580), C's `#ifndef USE_X_TOOLKIT`/`#else` split for `f` (C 22582-22591, the Xt
+  arm's fallback being C's own two steps) and the tail C shares with the core `LeaveNotify` case
+  (C 22593-22639).
+* **The tail is the core case's, already landed.**  The two frame fields, `clear_mouse_face`,
+  `hlinfo->mouse_face_mouse_frame`, the help-event test with `gui_mouse_grabbed` and
+  `Qdrag_source`/`Qdropping`, and the GTK `else if` (written as the `f.is_null () && …` shape the
+  core case uses) all take this file's existing spellings; only the XI members and
+  `xi_compute_root_window_offset_enter` are this arm's own.
+* **The gate is measured from the other side.**  Sixteen of the twenty-one arms read a **zero
+  delta** because C 22240's `ifdef` keeps the arm out of them, and the five `have_xinput2` arms
+  carry its rows: `XI2` +5, `UGX`/`AIUX` +6, `AG3X` +7, `UMI2` +27.
+* **The rows, by class.**  `XILeaveEvent` +2 (C 22463/22466 - the type has no home this unit can
+  see, Decision 135's debt) and `xi_report_motion_window_clear` +1 (C 22486) in every arm that
+  compiles it; `lrint` +2 in `UGX`/`AIUX`/`AG3X` (the GTK `ev` build, C 22471-22472), +4 in `UMI2`
+  (those two and the Motif copy's C 22511-22514) and none in `XI2` (no GTK and no Motif there);
+  `xi_focus_handle_for_device` +1 in `AG3X` and `XI2` only (the pair at C 22577 admits GTK 3 and
+  no-toolkit builds, not GTK 2); `UMI2` alone sees the seventeen `copy.xcrossing` members (C
+  22503-22519) and the two XInput2 mode constants the popup test reads (C 22495-22496); and every
+  arm gains one more instance of the `E0308` the core `LeaveNotify` case already carries at C
+  22608's comparison (`Mouse_HLInfo.mouse_face_mouse_frame` is `*mut c_void` in the mirror while C
+  compares it against `struct frame *` - a mirror row this arm does not introduce).
+* **Carried text no arm compiles**: the `HAVE_XINPUT2_1` reset (C 22540-22556) and the
+  `HAVE_XWIDGETS` block (C 22561-22575) - the limit the ledger records at 7153 and 2918.
+* **What `--check` reads.**  Three rows, the long row's token list **unchanged at 74** - this arm
+  moves none of its tokens.  The unit is **35,638 lines** (+174) against C's 33,125.
 
 ## Evidence
 
@@ -11732,6 +11776,59 @@ member and the seventeen `copy.xcrossing` members are the owed `XEvent` member c
 the `HAVE_XWIDGETS` crossing test (C 22420-22433) - the limit the ledger records at 7153 and
 2918 for that class.  The `--check` row keeps its three lines and the long row's token list goes
 **76 -> 74**.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
+delivered; the readings are the twenty-one arm compiles (both sides), the `--check` row's token
+count and this ledger.
+### Slice 124's readings (C 22461-22641), as landed and measured (2026-10-08)
+
+`case XI_Leave:` - the arm C 22240's gate keeps out of sixteen of the twenty-one arms.
+
+| arm | baseline | slice 124 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1176 / 83 | **1176 / 83** | **0 / 0** |
+| U `A +use_toolkit_scroll_bars` | 1188 / 83 | **1188 / 83** | **0 / 0** |
+| UT `U +use_x_toolkit` | 1191 / 82 | **1191 / 82** | **0 / 0** |
+| UM `UT +use_motif` | 1199 / 82 | **1199 / 82** | **0 / 0** |
+| UG `U +use_gtk` | 1215 / 84 | **1215 / 84** | **0 / 0** |
+| UGX `UG +have_xinput2` | 1340 / 87 | **1346 / 87** | **+6 / 0** |
+| AE `A +enable_checking` | 1208 / 82 | **1208 / 82** | **0 / 0** |
+| AI `A +have_x_i18n` | 1203 / 83 | **1203 / 83** | **0 / 0** |
+| AIU `AI +use_gtk` | 1285 / 83 | **1285 / 83** | **0 / 0** |
+| AIUX `AIU +have_xinput2` | 1414 / 86 | **1420 / 86** | **+6 / 0** |
+| AX `A +have_xdbe` | 1186 / 83 | **1186 / 83** | **0 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1265 / 83 | **1265 / 83** | **0 / 0** |
+| AG3X `AG3 +have_xinput2` | 1373 / 86 | **1380 / 86** | **+7 / 0** |
+| AXF `A +have_xfixes` | 1186 / 83 | **1186 / 83** | **0 / 0** |
+| AXPM `A +have_xpm` | 1177 / 83 | **1177 / 83** | **0 / 0** |
+| AXKB `A +have_xkb` | 1217 / 83 | **1217 / 83** | **0 / 0** |
+| AXR `A +have_xrandr` | 1182 / 83 | **1182 / 83** | **0 / 0** |
+| AX11 `A +have_x11` | 1160 / 83 | **1160 / 83** | **0 / 0** |
+| AUX `A +use_xcb` | 1259 / 81 | **1259 / 81** | **0 / 0** |
+| XI2 `A +have_xinput2` | 1287 / 86 | **1292 / 86** | **+5 / 0** |
+| UMI2 `UM +have_xinput2` | 1329 / 85 | **1356 / 85** | **+27 / 0** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`e72ff801`, slice 123) and
+its twenty-one numbers reproduce the slice-123 table's column to the digit.  The slice's file
+md5 is `bea89a5164a8c7db5839ee7de3b36542` (35,638 lines against C's 33,125).
+
+**The rows, by class and by arm:**
+
+| arriving rows | arms | C sites |
+| --- | --- | --- |
+| `XILeaveEvent` +2, `xi_report_motion_window_clear` +1, one more instance of the `E0308` `f == (*hlinfo).mouse_face_mouse_frame` comparison | every arm that compiles the arm | C 22463/22466, C 22486, C 22608 (the class the core `LeaveNotify` case carries) |
+| `lrint` +2 | `UGX`, `AIUX`, `AG3X` | C 22471-22472, the GTK `ev` build |
+| `lrint` +4, `xcrossing` +17, `XINotifyUngrab` +1, `XINotifyPassiveUngrab` +1 | `UMI2` | C 22511-22514 (the Motif copy) and C 22503-22519's seventeen members, C 22495-22496's two mode constants |
+| `xi_focus_handle_for_device` +1 | `XI2`, `AG3X` | C 22579, under the pair at C 22577 (GTK 3 and no-toolkit builds, not GTK 2) |
+| **nothing at all** | the **sixteen** arms without `have_xinput2` | the arm is not compiled - C 22240's gate, measured |
+
+`XINotifyUngrab`/`XINotifyPassiveUngrab` are this slice's first *non-carried* sites of the
+XInput2 constant vocabulary Decision 135 named (XI2.h 49-54 carries the six measured values; the
+port's copy of that header's constants has not been built yet).
+
+**Carried text no arm compiles**: the `HAVE_XINPUT2_1` valuator reset (C 22540-22556) and the
+`HAVE_XWIDGETS` block (C 22561-22575, the `*finish = X_EVENT_DROP` no other arm writes).  The
+`--check` row keeps its three lines and its token list stays at **74**.
 
 **Not claimed**: no runtime evidence - this lane does not link, and no generic event was ever
 delivered; the readings are the twenty-one arm compiles (both sides), the `--check` row's token
