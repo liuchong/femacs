@@ -19,6 +19,12 @@
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
 >
+> **Slice 21 has no C range of its own.**  It is the ABI round's first half: the seventeen
+> function-pointer hooks the C 3140-3170 object names were given C's own ABI
+> (`unsafe fn` -> `unsafe extern "C" fn`), which is a change *inside* already-landed text, so the
+> table above is unchanged and the deferral row records what is left (the object and the record's
+> copy).  The round's own section is at this file's foot.
+>
 > **Why 3206 and not 3208 (slice 20).**  C 3208 is `haiku_clear_under_internal_border`'s
 > `static void` and C 3206 the closing brace of the item before it, so the slice is **C 3171-3206**
 > - the blank line C 3171, `haiku_make_fullscreen_consistent` (C 3173-3192) and
@@ -227,7 +233,7 @@ the pre-flight below sets it as well.
 | 2981-3077 | the C 2982-2987 comment block, `haiku_mouse_position` (C 2988-3061; C 3004-3008 the first `FOR_EACH_FRAME`, C 3017-3024 the selected/any-frame fallbacks, C 3031-3056 the view arm with `BView_get_mouse`/`remember_mouse_glyph`/the two `XSETINT`s) and `haiku_flush` (C 3063-3077; C 3068 the dirty/flip test, C 3073 the `FRAME_COMPLETE_P` write, C 3075-3076 the flush) | file gate (slice 17) |
 | 3078-3091 | `haiku_define_frame_cursor` (C 3080-3091; C 3082 the tooltip guard, C 3086-3088 the three-part test and the cursor set, C 3090 the `current_cursor` store) | file gate (slice 18) |
 | 3092-3138 | `haiku_default_font_parameter` (C 3093-3138; C 3096 the display info, C 3097-3101 the two-argument read and the `Qunbound` fold, C 3103-3115 the system-font and resource fallbacks, C 3117-3134 the four-name loop, C 3136-3137 the recorder) | file gate (slice 19) |
-| 3139-3170 | **the `redisplay_interface` object** (C 3140-3170): the ABI round Owed 1 names, deferred by slice 20 - C's initializer is positional and Rust has none, so the port writes a named-field literal (C's 28 entries are the record's 28 fields, in C's order), `None` for C's three `NULL`s, and the `pgtkterm.rs` 5412-5480 object's two decisions (Deviation 47 of that lane) for the seventeen entries whose C parameters the mirror types `*mut c_void` | **deferred (next round)** |
+| 3139-3170 | **the `redisplay_interface` object** (C 3140-3170): deferred by slice 20, and **half discharged by slice 21**, which gave the seventeen functions the object names their C function-pointer ABI (`unsafe extern "C" fn`); what is left is the object itself - C's initializer is positional and Rust has none, so the port writes a named-field literal (C's 28 entries are the record's 28 fields, in C's order), `None` for C's three `NULL`s, and the `pgtkterm.rs` 5412-5480 object's two decisions (Deviation 47 of that lane) for the seventeen entries whose C parameters the mirror types `*mut c_void` - **and the record's own copy, since `include/dispextern.rs`'s is behind `dispextern_face_records` (this unit's arm set does not carry it)** | **deferred (next round)** |
 | 3171-3206 | `haiku_make_fullscreen_consistent` (C 3173-3192; C 3180-3189 the five-way fold, C 3191 the store) and `haiku_flush_dirty_back_buffer_on` (C 3194-3206; C 3197-3202 the four guards) | file gate (slice 20) |
 | 3207-4898 | **the remainder of the file** (C 3208 `haiku_clear_under_internal_border` onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
@@ -1776,3 +1782,49 @@ is not a function or a macro, so only the range table carries it).
   text/token gates.
 - The six mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 3207-4898 text this file has not reached.
+
+## Slice 21 (2026-10-08, status 4.097 - the integrator sets the round number): the ABI half, no new C range
+
+**What this round is.**  Not a C range but a change inside already-landed text: the **seventeen**
+functions the C 3140-3170 `redisplay_interface` object names were changed from `unsafe fn` (Rust
+ABI) to **`unsafe extern "C" fn`** (C's own function-pointer ABI), which is what that object's
+`Option<unsafe extern "C" fn (…)>` fields need.  `haiku_clear_frame_area` was already in that form
+(slice 1 wrote it so, for this same reason), and `haiku_mouse_position` - the eighteenth function
+in the debt, whose referrer is `terminal->mouse_position_hook` (C 4431) rather than the table - was
+converted with them.  The port's line count is unchanged (**4,500**: the same lines, a longer
+keyword).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  **One run**: `exit 1`, 6
+primary errors among 34 error-prefixed lines, **every one in a mirror** - **exactly the reading
+slice 20 took before the change**, which is the point: an ABI change that nothing calls yet is
+invisible to the type-checker, so the round's evidence is that the reading did *not* move, plus the
+`grep` that counts the converted definitions (**30** `unsafe extern "C" fn haiku_*` definitions in
+the file now - the 17 of this round, slice 1's `haiku_clear_frame_area`, and the eleven
+`get_keysym_name`-class ABI definitions of earlier slices).
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 22 rows, unchanged.**  A signature
+change moves no token the comparison reads (the bodies are untouched), so the reading is the slice-20
+one - 21 `missing function` rows plus `missing macro ASSIGN_CURSOR`.
+
+**Why the rest of the ABI round waits.**  The object itself needs (a) a unit-local copy of
+`struct redisplay_interface`, because `include/dispextern.rs`'s is behind
+`dispextern_face_records` and this unit's arm set does not carry it (the same wall slice 3's
+Deviation 1 and slice 15's Deviation 1 hit for `face` and `draw_fringe_bitmap_params`), and (b) the
+28-entry named-field literal with seventeen `transmute`s (the `pgtkterm.rs` 5412-5480 object's two
+decisions).  Both are the next round's text; nothing here is a stub - the seventeen functions are
+complete definitions whose *ABI* is now C's, and the object that references them is still recorded
+as deferred in the range table.
+
+**Owed (this slice's additions).**
+
+- The object and the record's copy (above) - the deferral the range table already carries, now with
+  its ABI half discharged.
+- Nothing else: no `--check` row moved, the line-drift row is unchanged (C 4898 vs Rust 4,500 is
+  8.1%), and no mirror file is touched.
+
+**Not claimed (this slice).**
+
+- **No runtime evidence**: no Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link.  What is measured is that the ABI change
+  leaves the arm's reading exactly where it was, which is what a change no caller uses yet should
+  do.

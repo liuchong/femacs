@@ -2831,7 +2831,7 @@ unsafe fn haiku_draw_image_glyph_string (s: *mut glyph_string)
 
 /* C 1904-2074.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_draw_glyph_string (s: *mut glyph_string)
+unsafe extern "C" fn haiku_draw_glyph_string (s: *mut glyph_string)
 {
   let view: *mut c_void = FRAME_HAIKU_DRAWABLE! ((*s).f);              // C 1907
   let face: *mut face = GS_FACE! (s);                                 // C 1908
@@ -3064,7 +3064,7 @@ unsafe extern "C" {
 
 /* C 2076-2129.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
+unsafe extern "C" fn haiku_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
 {
   eassert! (! w.is_null ());                                          // C 2080
   let f: *mut frame;                                                  // C 2081
@@ -3352,7 +3352,7 @@ unsafe fn haiku_draw_bar_cursor (w: *mut window, row: *mut glyph_row,
 
 /* C 2318-2365.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
+unsafe extern "C" fn haiku_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
 				    x: c_int, y: c_int, cursor_type: text_cursor_kinds,
 				    cursor_width: c_int, on_p: bool, active_p: bool)
 {
@@ -3395,7 +3395,7 @@ unsafe fn haiku_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
 
 /* C 2367-2381.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_show_hourglass (f: *mut frame)
+unsafe extern "C" fn haiku_show_hourglass (f: *mut frame)
 {
   if FRAME_TOOLTIP_P (f)                                              // C 2370
       || haiku_output_bits! (hourglass_p, FRAME_OUTPUT_DATA! (f))     // C 2371
@@ -3413,7 +3413,7 @@ unsafe fn haiku_show_hourglass (f: *mut frame)
 
 /* C 2383-2397.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_hide_hourglass (f: *mut frame)
+unsafe extern "C" fn haiku_hide_hourglass (f: *mut frame)
 {
   if FRAME_TOOLTIP_P (f)                                              // C 2386
       || ! haiku_output_bits! (hourglass_p, FRAME_OUTPUT_DATA! (f))   // C 2387
@@ -3454,7 +3454,7 @@ macro_rules! FRAME_CONFIG_SCROLL_BAR_LINES {
 
 /* C 2399-2428.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_compute_glyph_string_overhangs (s: *mut glyph_string)
+unsafe extern "C" fn haiku_compute_glyph_string_overhangs (s: *mut glyph_string)
 {
   if (*s).cmp.is_null ()                                              // C 2402
       && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH        // C 2403
@@ -3491,7 +3491,7 @@ unsafe fn haiku_compute_glyph_string_overhangs (s: *mut glyph_string)
 
 /* C 2430-2446.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_draw_vertical_window_border (w: *mut window, x: c_int, y_0: c_int, y_1: c_int)
+unsafe extern "C" fn haiku_draw_vertical_window_border (w: *mut window, x: c_int, y_0: c_int, y_1: c_int)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                     // C 2434
   let face: *mut face;                                                // C 2435
@@ -3540,7 +3540,7 @@ unsafe fn haiku_set_scroll_bar_default_height (f: *mut frame)
 
 /* C 2472-2522.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_draw_window_divider (w: *mut window, x0: c_int, x1: c_int,
+unsafe extern "C" fn haiku_draw_window_divider (w: *mut window, x0: c_int, x1: c_int,
 				     y0: c_int, y1: c_int)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                      // C 2475
@@ -3999,7 +3999,7 @@ unsafe extern "C" {
 
 /* C 2805-2892.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
+unsafe extern "C" fn haiku_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
 				    p: *mut draw_fringe_bitmap_params)
 {
   let face: *mut face;                                                // C 2809
@@ -4109,7 +4109,7 @@ unsafe extern "C" {
 
 /* C 2894-2915.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_define_fringe_bitmap (which: c_int, bits: *mut c_ushort,
+unsafe extern "C" fn haiku_define_fringe_bitmap (which: c_int, bits: *mut c_ushort,
 				      h: c_int, wd: c_int)
 {
   if which >= max_fringe_bmp                                          // C 2898
@@ -4142,7 +4142,7 @@ unsafe fn haiku_define_fringe_bitmap (which: c_int, bits: *mut c_ushort,
 
 /* C 2917-2926.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_destroy_fringe_bitmap (which: c_int)
+unsafe extern "C" fn haiku_destroy_fringe_bitmap (which: c_int)
 {
   if which >= max_fringe_bmp                                          // C 2920
     { return; }                                                       // C 2921
@@ -4154,7 +4154,7 @@ unsafe fn haiku_destroy_fringe_bitmap (which: c_int)
 
 /* C 2928-2980.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_scroll_run (w: *mut window, run: *mut run)
+unsafe extern "C" fn haiku_scroll_run (w: *mut window, run: *mut run)
 {
   let f: *mut frame = XFRAME ((*w).frame);                            // C 2931
   let view: *mut c_void = FRAME_HAIKU_DRAWABLE! (f);                   // C 2932
@@ -4225,7 +4225,7 @@ unsafe fn haiku_scroll_run (w: *mut window, run: *mut run)
 
 /* C 2988-3061.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_mouse_position (fp: *mut *mut frame, insist: c_int,
+unsafe extern "C" fn haiku_mouse_position (fp: *mut *mut frame, insist: c_int,
 				bar_window: *mut Lisp_Object,
 				part: *mut scroll_bar_part, x: *mut Lisp_Object,
 				y: *mut Lisp_Object, timestamp: *mut Time)
@@ -4315,7 +4315,7 @@ unsafe fn haiku_mouse_position (fp: *mut *mut frame, insist: c_int,
 
 /* C 3063-3077.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_flush (f: *mut frame)
+unsafe extern "C" fn haiku_flush (f: *mut frame)
 {
   /* This is needed for tooltip frames to work properly with double
      buffering.  */                                                   // C 3066-3067
@@ -4346,7 +4346,7 @@ macro_rules! pointer_invisible {
 
 /* C 3080-3091.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+unsafe extern "C" fn haiku_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
 {
   if FRAME_TOOLTIP_P (f)                                              // C 3082
     { return; }                                                       // C 3083
@@ -4394,7 +4394,7 @@ unsafe extern "C" {
 
 /* C 3093-3138.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_default_font_parameter (f: *mut frame, parms: Lisp_Object)
+unsafe extern "C" fn haiku_default_font_parameter (f: *mut frame, parms: Lisp_Object)
 {
   let dpyinfo: *mut haiku_display_info = FRAME_DISPLAY_INFO! (f);      // C 3096
   let mut font_param: Lisp_Object                                      // C 3097-3098
