@@ -22570,6 +22570,18 @@ macro_rules! frame_bits {
     { ((*$f).bits1 >> FRAME_AUTO_LOWER_SHIFT & 1) != 0 };
 }
 
+/* frame.h 526's `new_size_p` is a `bool_bf : 1` in the frame record's second bit group, beside
+   the other `bits2` members; `include/frame.rs` defines its accessors inside its own unit's module,
+   which this one does not import, so the pair this slice reads stands here (the
+   `src/dispnew.rs` 488 shape, body-identical).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! new_size_p {
+  ($f:expr) => { (*$f).bits2 >> FRAME_NEW_SIZE_P_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => {
+    (*$f).bits2 = if $v { (*$f).bits2 | (1u32 << FRAME_NEW_SIZE_P_SHIFT) }
+      else { (*$f).bits2 & !(1u32 << FRAME_NEW_SIZE_P_SHIFT) } };
+}
+
 /// C 11924-11949: `static void x_frame_highlight (struct frame *f)` - C's `static`, so a plain
 /// `unsafe fn` (PORTING.md 0.2).  `gui_update_cursor` is dispextern.h 3693's prototype, which no
 /// mirror this unit reaches carries, so the body declares it (P-88's use-site shape, the
@@ -31054,6 +31066,21 @@ unsafe extern "C" {
   pub fn popup_activated () -> c_int;
 }
 
+/* C 21587's `xg_frame_resized` is gtkutil.h 162's `extern void xg_frame_resized (struct frame *f,
+   int width, int height);` - the definition is `src/gtkutil.rs`'s (the `src/pgtkterm.rs` 7473
+   row is the same declaration for its own unit), so it stands at this use site (P-88 1).  C
+   21658's `gtk_widget_get_mapped` is gtk/gtkwidget.h's
+   `gboolean gtk_widget_get_mapped (GtkWidget *widget);`, which `include/gtk.rs` does not carry
+   (the 103 rows it does are read there), so this unit declares it the way it declares
+   `gtk_range_get_adjustment` (this file's 26172 block).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  /// C: gtkutil.h 162: `extern void xg_frame_resized (struct frame *f, int width, int height);`
+  pub fn xg_frame_resized (f: *mut frame, width: c_int, height: c_int);
+  /// C: gtk/gtkwidget.h: `gboolean gtk_widget_get_mapped (GtkWidget *widget);`
+  pub fn gtk_widget_get_mapped (widget: *mut GtkWidget) -> gboolean;
+}
+
 /// C 18866-25632: `handle_one_xevent (struct x_display_info *dpyinfo, XEvent *event, int *finish,
 /// struct input_event *hold_quit)` - `static int` (C 18875), so a plain `unsafe fn`, and the
 /// file's largest function.  **Slice 110 lands its prologue and its tail** (C 18866-18949 and
@@ -33253,6 +33280,426 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			break 'switch;                                                 // C 21340
 		}
 		
+	  /* C 21343-21727: `case ConfigureNotify:`.  The pair of event-coalescing loops, the root
+   window's RandR/no-toolkit screen-size pair, the Xdnd toplevel refresh, the GTK3 toolkit
+   scroll-bar block, the XDBE/cairo/opaque-region blocks, GTK's `(f = any)` chain, and the
+   frame block that ends in C 21726's `goto OTHER` - this arm's `break 'switch`.  C's
+   `configureEvent`/`next_event` are the prologue's own locals (C 18895/18896).  */
+	  ConfigureNotify =>
+	    {
+	      /* "An opaque move can generate a stream of events as the window
+   is dragged around.  If the connection round trip time isn't
+   really short, they may come faster than we can respond to
+   them, given the multiple queries we can do to check window
+   manager state, translate coordinates, etc.
+ 
+   "So if this ConfigureNotify is immediately followed by another
+   for the same window, use the info from the latest update, and
+   consider the events all handled."  */
+	      /* "Opaque resize may be trickier; ConfigureNotify events are
+   mixed with Expose events for multiple windows."  */
+	      configureEvent = *event;                                              // C 21356
+	      while XPending ((*dpyinfo).display) != 0                             // C 21357
+		{
+		  XNextEvent ((*dpyinfo).display, &raw mut next_event);              // C 21359
+		  if next_event.r#type != ConfigureNotify                            // C 21360
+		    || next_event.xconfigure.window != (*event).xconfigure.window    // C 21361
+		    /* "Skipping events with different sizes can lead to a
+       mispositioned mode line at initial window creation.  Only
+       drop window motion events for now."  */
+		    || next_event.xconfigure.width != (*event).xconfigure.width      // C 21365
+		    || next_event.xconfigure.height != (*event).xconfigure.height    // C 21366
+		    {
+		      XPutBackEvent ((*dpyinfo).display, &raw mut next_event);        // C 21368
+		      break;
+		    }
+		  else
+		    { configureEvent = next_event; }                                 // C 21372
+		}
+	      
+	      /* "If we get a ConfigureNotify for the root window, this means
+   the dimensions of the screen it's on changed."  */
+	      if configureEvent.xconfigure.window == (*dpyinfo).root_window       // C 21378
+		{
+		  /* C 21380-21410's `#ifdef HAVE_XRANDR` / `#elif !defined USE_GTK` pair: C's two
+     alternative bodies at one position (not an `#else` chain), so each stands behind
+     its own `#[cfg]`.  */
+		#[cfg (feature = "have_xrandr")]
+		  {
+		    /* "This function is OK to call even if the X server doesn't
+       support RandR."  */
+		    XRRUpdateConfiguration (&raw mut configureEvent);                 // C 21383
+		  }
+		#[cfg (not (any (feature = "have_xrandr", feature = "use_gtk")))]
+		  {
+		    /* "Catch screen size changes even if RandR is not available
+       on the client.  GTK does this internally."  */
+		    if configureEvent.xconfigure.width != (*dpyinfo).screen_width     // C 21388
+		      || configureEvent.xconfigure.height != (*dpyinfo).screen_height  // C 21389
+		      {
+		        /* "Also avoid storing duplicate events here, since
+           Fx_display_monitor_attributes_list will return the
+           same information for both invocations of the
+           hook."  */
+		        if !x_find_monitors_changed_event (dpyinfo)                   // C 21395
+		          {
+		            input_event_bits! (kind, &raw mut inev.ie, MONITORS_CHANGED_EVENT);  // C 21397
+		            XSETTERMINAL! (inev.ie.arg, (*dpyinfo).terminal);         // C 21398
+		
+		            /* "Store this event now since inev.ie.type could be set to
+               MOVE_FRAME_EVENT later."  */
+		            kbd_buffer_store_event (&raw mut inev.ie as *mut c_void);  // C 21402
+		            input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);     // C 21403
+		          }
+		
+		        /* "Also update the position of the drag-and-drop tooltip."  */
+		        x_dnd_update_tooltip_now ();                                  // C 21408
+		      }
+		  }
+		
+		  (*dpyinfo).screen_width = configureEvent.xconfigure.width;         // C 21412
+		  (*dpyinfo).screen_height = configureEvent.xconfigure.height;       // C 21413
+		}
+	      
+	      if x_dnd_in_progress                                               // C 21416
+	        && x_dnd_use_toplevels
+	        && dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)                  // C 21417
+		{
+		  let mut rc: c_int;                                             // C 21419
+		  let mut dest_x: c_int;
+		  let mut dest_y: c_int;
+		  let mut child: Window;                                        // C 21420
+		  let mut tem: *mut x_client_list_window;                       // C 21421
+		  let mut last: *mut x_client_list_window = std::ptr::null_mut ();
+		
+		  /* C 21423's `for (tem = x_dnd_toplevels; tem; last = tem, tem = tem->next)` - the
+     increment stands at the body's end (the shape slice 112's two loops keep).  */
+		  tem = x_dnd_toplevels;
+		  while !tem.is_null ()
+		  {
+		    /* "Not completely right, since the parent could be unmapped, but good enough."  */
+		  
+		    if (*tem).window == configureEvent.xconfigure.window            // C 21428
+		      {
+		        x_catch_errors ((*dpyinfo).display);                        // C 21430
+		        rc = (XTranslateCoordinates ((*dpyinfo).display,             // C 21431
+		  				   configureEvent.xconfigure.window,      // C 21432
+		  				   (*dpyinfo).root_window,                // C 21433
+		  				   -configureEvent.xconfigure.border_width,  // C 21434
+		  				   -configureEvent.xconfigure.border_width,  // C 21435
+		  				   &raw mut dest_x, &raw mut dest_y, &raw mut child) != 0  // C 21436
+		  	    && !x_had_errors_p ((*dpyinfo).display)) as c_int;      // C 21437
+		        x_uncatch_errors_after_check ();                            // C 21438
+		  
+		        if rc != 0                                                  // C 21440
+		  	{
+		  	  (*tem).x = dest_x;                                      // C 21442
+		  	  (*tem).y = dest_y;                                      // C 21443
+		  	  (*tem).width = (configureEvent.xconfigure.width           // C 21444
+		  			  + configureEvent.xconfigure.border_width);  // C 21445
+		  	  (*tem).height = (configureEvent.xconfigure.height         // C 21446
+		  			   + configureEvent.xconfigure.border_width);  // C 21447
+		  	}
+		        else
+		  	{
+		  	  /* "The window was probably destroyed, so get rid
+	     of it."  */
+		  
+		  	  if last.is_null ()                                      // C 21454
+		  	    { x_dnd_toplevels = (*tem).next; }                    // C 21455
+		  	  else
+		  	    { (*last).next = (*tem).next; }                       // C 21457
+		  
+		  	  /* C 21459-21464's `#ifdef HAVE_XSHAPE` block.  */
+		  #[cfg (feature = "have_xshape")]
+		  	  {
+		  	    if (*tem).n_input_rects != -1                         // C 21460
+		  	      { xfree ((*tem).input_rects as *mut c_void); }      // C 21461
+		  	    if (*tem).n_bounding_rects != -1                      // C 21462
+		  	      { xfree ((*tem).bounding_rects as *mut c_void); }   // C 21463
+		  	  }
+		  	  xfree (tem as *mut c_void);                             // C 21465
+		  	}
+		  
+		        break;                                                    // C 21468
+		      }
+		    last = tem;
+		    tem = (*tem).next;
+		  }
+		}
+	      /* C 21473-21511's `#if defined HAVE_GTK3 && defined USE_TOOLKIT_SCROLL_BARS` block.  */
+	      #[cfg (all (feature = "have_gtk3", feature = "use_toolkit_scroll_bars"))]
+		{
+		  let bar: *mut scroll_bar                                     // C 21474
+		    = x_window_to_scroll_bar ((*dpyinfo).display,
+					      configureEvent.xconfigure.window, 2);  // C 21475
+
+		  /* "There is really no other way to make GTK scroll bars fit
+		     in the dimensions we want them to."  */
+		  if !bar.is_null ()                                           // C 21479
+		    {
+		      /* "Skip all the pending configure events, not just the
+			 ones where window motion occurred."  */
+		      while XPending ((*dpyinfo).display) != 0                 // C 21483
+			{
+			  XNextEvent ((*dpyinfo).display, &raw mut next_event);  // C 21485
+			  if next_event.r#type != ConfigureNotify                // C 21486
+			    || next_event.xconfigure.window != (*event).xconfigure.window  // C 21487
+			    {
+			      XPutBackEvent ((*dpyinfo).display, &raw mut next_event);  // C 21489
+			      break;
+			    }
+			  else
+			    { configureEvent = next_event; }                     // C 21493
+			}
+
+		      if configureEvent.xconfigure.width != max ((*bar).width, 1)  // C 21496
+			|| configureEvent.xconfigure.height != max ((*bar).height, 1)  // C 21497
+			{
+			  XResizeWindow ((*dpyinfo).display, (*bar).x_window,     // C 21499
+					 max ((*bar).width, 1) as c_uint,             // C 21500
+					 max ((*bar).height, 1) as c_uint);
+			  x_flush (WINDOW_XFRAME! (XWINDOW ((*bar).window)));    // C 21501
+			}
+
+		      /* C 21504-21507's `#ifdef HAVE_XDBE` block.  */
+		      #[cfg (feature = "have_xdbe")]
+		      if !f.is_null () && FRAME_X_DOUBLE_BUFFERED_P! (f)      // C 21505
+			{ x_drop_xrender_surfaces (f); }                       // C 21506
+
+		      break 'switch;                                         // C 21509 (`goto OTHER`)
+		    }
+		}
+
+	      /* "XXX: it is strictly only necessary to provide the edit window
+		 to many of the statements below which only modify or invalidate
+		 resources assigned there.  Most conditionals that alternate
+		 between `f' and `any' could ideally be removed."  */
+	      f = x_top_window_to_frame (dpyinfo, configureEvent.xconfigure.window);  // C 21517
+
+	      /* "This means we can no longer be certain of the root window
+		 coordinates of any's edit window."  */
+	      if !any.is_null ()                                           // C 21521
+		{ (*( (*any).output_data.x as *mut x_output )).window_offset_certain_p = false; }  // C 21522
+
+	      /* "Unfortunately, we need to call x_drop_xrender_surfaces for
+		 _all_ ConfigureNotify events, otherwise we miss some and
+		 flicker.  Don't try to optimize these calls by looking only
+		 for size changes: that's not sufficient.  We miss some
+		 surface invalidations and flicker."  */
+	      /* C 21529-21540's `#ifdef HAVE_XDBE` block.  */
+	      #[cfg (feature = "have_xdbe")]
+		{
+		  /* C 21531-21536's `#if defined USE_GTK || defined USE_X_TOOLKIT`: the block
+		     declares its own `f` (C shadows the outer one), which the port writes the same
+		     way.  */
+		  #[cfg (any (feature = "use_gtk", feature = "use_x_toolkit"))]
+		  let f: *mut frame = x_window_to_frame (dpyinfo, configureEvent.xconfigure.window);  // C 21534-21535
+		  if !f.is_null () && FRAME_X_DOUBLE_BUFFERED_P! (f)           // C 21537
+		    { x_drop_xrender_surfaces (f); }                         // C 21538
+		}
+
+	      /* C 21541-21549's `#if defined USE_CAIRO && !defined USE_GTK` block.  */
+	      #[cfg (all (feature = "use_cairo", not (feature = "use_gtk")))]
+	      if !f.is_null ()                                             // C 21542
+		{ x_cr_update_surface_desired_size (f, configureEvent.xconfigure.width,  // C 21543
+						    configureEvent.xconfigure.height); }  // C 21544
+	      else if !any.is_null ()                                      // C 21545
+		&& configureEvent.xconfigure.window == FRAME_X_WINDOW! (any)
+		{ x_cr_update_surface_desired_size (any,                     // C 21546
+						    configureEvent.xconfigure.width,    // C 21547
+						    configureEvent.xconfigure.height); }  // C 21548
+
+	      /* C 21551-21564's `#if !defined USE_X_TOOLKIT && !defined USE_GTK` block.  */
+	      /* "Make the new size of the frame its opaque region.  This is a
+		 region describing areas of the window which are always
+		 guaranteed to be completely opaque and can be treated as such
+		 by the compositor.  It is set to the width and height of the
+		 only window in no-toolkit builds when `alpha_background' is
+		 not set, and is cleared otherwise."  */
+	      #[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+	      if !f.is_null ()                                             // C 21560
+		|| (!any.is_null () && configureEvent.xconfigure.window
+				== FRAME_OUTER_WINDOW! (any))                     // C 21561
+		{ x_update_opaque_region (if f.is_null () { any } else { f },  // C 21562
+					  &raw mut configureEvent); }
+
+	      /* C 21566-21596's `#ifdef USE_GTK` block.  */
+	      #[cfg (feature = "use_gtk")]
+		{
+		  /* C 21567-21569's `(f = any)` is an assignment inside the condition: C evaluates
+		     `!f` first and assigns `any` whatever it is, so the port writes the assignment as
+		     its own statement and keeps the rest of the chain (Decision 2 item 2).  */
+		  if f.is_null ()                                              // C 21567
+		    { f = any; }                                               // C 21568
+		  if !f.is_null ()                                             // C 21568
+		    && configureEvent.xconfigure.window == FRAME_X_WINDOW! (f)  // C 21569
+		    && (FRAME_VISIBLE_P (f)                                    // C 21570
+			|| !(configureEvent.xconfigure.width <= 1               // C 21571
+			     && configureEvent.xconfigure.height <= 1))          // C 21572
+		    {
+		      if CONSP (frame_size_history)                            // C 21575
+			{
+			  frame_size_history_extra (f, build_string (c"ConfigureNotify".as_ptr ()),  // C 21576-21577
+						    FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f),  // C 21578
+						    configureEvent.xconfigure.width,                // C 21579
+						    configureEvent.xconfigure.height,               // C 21580
+						    (*f).new_width, (*f).new_height);               // C 21581
+			}
+
+		      /* C 21583-21586's `#ifdef HAVE_XDBE` block.  */
+		      #[cfg (feature = "have_xdbe")]
+		      if FRAME_X_DOUBLE_BUFFERED_P! (f)                       // C 21584
+			{ x_drop_xrender_surfaces (f); }                        // C 21585
+		      xg_frame_resized (f, configureEvent.xconfigure.width,   // C 21587
+					configureEvent.xconfigure.height);       // C 21588
+		      /* C 21589-21592's `#ifdef USE_CAIRO` block.  */
+		      #[cfg (feature = "use_cairo")]
+		      x_cr_update_surface_desired_size (f, configureEvent.xconfigure.width,  // C 21590
+							configureEvent.xconfigure.height);  // C 21591
+		      x_update_opaque_region (f, &raw mut configureEvent);     // C 21593
+		      f = std::ptr::null_mut ();                               // C 21594
+		    }
+		}
+	      if !f.is_null ()                                             // C 21597
+		&& (FRAME_VISIBLE_P (f)                                    // C 21598
+		    || !(configureEvent.xconfigure.width <= 1              // C 21599
+			 && configureEvent.xconfigure.height <= 1))        // C 21600
+		{
+		  /* C 21601-21605's `#ifdef USE_GTK` wraps a *condition*, not a body: "For GTK+ don't
+		     call x_net_wm_state for the scroll bar window.  (Bug#24963, Bug#25887)".  The port
+		     computes it once (Decision 2 item 2).  */
+		  #[cfg (feature = "use_gtk")]
+		  let net_wm_state_p: bool
+		    = configureEvent.xconfigure.window == FRAME_X_WINDOW! (f);  // C 21604
+		  #[cfg (not (feature = "use_gtk"))]
+		  let net_wm_state_p: bool = true;                             // C 21606's unguarded call
+		  if net_wm_state_p
+		    { x_net_wm_state (f, configureEvent.xconfigure.window); }  // C 21606
+
+		  /* C 21608-21619's `#if defined USE_X_TOOLKIT || defined USE_GTK` block: "Tip frames
+		     are pure X window, set size for them."  */
+		  #[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		  if FRAME_TOOLTIP_P (f)                                       // C 21610
+		    {
+		      if FRAME_PIXEL_HEIGHT (f) != configureEvent.xconfigure.height  // C 21612
+			|| FRAME_PIXEL_WIDTH (f) != configureEvent.xconfigure.width    // C 21613
+			{ SET_FRAME_GARBAGED! (f); }                           // C 21614
+
+		      /* C 21616-21617 write `FRAME_PIXEL_HEIGHT (f)`/`FRAME_PIXEL_WIDTH (f)`: C's macros
+			 are lvalues there, so the port writes the field they expand to.  */
+		      (*f).pixel_height = configureEvent.xconfigure.height;    // C 21616
+		      (*f).pixel_width = configureEvent.xconfigure.width;      // C 21617
+		    }
+
+		  /* C 21621-21652's `#ifndef USE_X_TOOLKIT` + `#ifndef USE_GTK` block.  */
+		  /* "In the toolkit version, change_frame_size is called by the code that handles
+		     resizing of the EmacsFrame widget."  and "Even if the number of character rows and
+		     columns has not changed, the font size may have changed, so we need to check the
+		     pixel dimensions as well."  */
+		  #[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+		  {
+		    let width: c_int = configureEvent.xconfigure.width;        // C 21623
+		    let height: c_int = configureEvent.xconfigure.height;      // C 21624
+
+		    if CONSP (frame_size_history)                              // C 21626
+		      {
+			frame_size_history_extra (f, build_string (c"ConfigureNotify".as_ptr ()),  // C 21627-21628
+						  FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f),  // C 21629
+						  width, height, (*f).new_width, (*f).new_height);  // C 21630
+		      }
+
+		    if width != FRAME_PIXEL_WIDTH (f)                          // C 21640
+		      || height != FRAME_PIXEL_HEIGHT (f)                      // C 21641
+		      || (new_size_p! (f)                                      // C 21642
+			  && (((*f).new_width >= 0 && width != (*f).new_width)  // C 21643
+			      || ((*f).new_height >= 0 && height != (*f).new_height)))  // C 21644
+		      {
+			change_frame_size (f, width, height, false, true, false);  // C 21646
+			x_clear_under_internal_border (f);                     // C 21647
+			SET_FRAME_GARBAGED! (f);                               // C 21648
+			cancel_mouse_face (f);                                 // C 21649
+		      }
+		  }
+
+		  /* C 21654-21659's `#ifdef USE_GTK` wraps a *condition*: "GTK creates windows but
+		     doesn't map them.  Only get real positions when mapped."  Computed once (Decision 2
+		     item 2).  */
+		  #[cfg (feature = "use_gtk")]
+		  let position_ok: bool
+		    = !FRAME_GTK_OUTER_WIDGET! (f).is_null ()                 // C 21657
+		      && gtk_widget_get_mapped (FRAME_GTK_OUTER_WIDGET! (f)) != 0;  // C 21658
+		  #[cfg (not (feature = "use_gtk"))]
+		  let position_ok: bool = true;                               // C 21660's unguarded block
+		  if position_ok
+		    {
+		      let old_left: c_int = (*f).left_pos;                     // C 21661
+		      let old_top: c_int = (*f).top_pos;                       // C 21662
+		      let mut frame: Lisp_Object;                              // C 21663
+
+		      XSETFRAME! (frame, f);                                   // C 21665
+
+		      if FRAME_PARENT_FRAME (f).is_null ()                     // C 21667
+			{ x_real_positions (f, &raw mut (*f).left_pos, &raw mut (*f).top_pos); }  // C 21668
+		      else
+			{
+			  let mut root: Window;                                  // C 21671
+			  let mut dummy_uint: c_uint;                            // C 21672
+
+			  XGetGeometry (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),  // C 21674
+					&raw mut root, &raw mut (*f).left_pos, &raw mut (*f).top_pos,  // C 21675
+					&raw mut dummy_uint, &raw mut dummy_uint,      // C 21676
+					&raw mut dummy_uint, &raw mut dummy_uint);
+			}
+
+		      if !FRAME_TOOLTIP_P (f)                                  // C 21679
+			&& (old_left != (*f).left_pos || old_top != (*f).top_pos)  // C 21680
+			{
+			  input_event_bits! (kind, &raw mut inev.ie, MOVE_FRAME_EVENT);  // C 21682
+			  XSETFRAME! (inev.ie.frame_or_window, f);             // C 21683
+			}
+		    }
+
+		  /* C 21688-21697's `#ifdef HAVE_X_I18N` block.  */
+		  #[cfg (feature = "have_x_i18n")]
+		  if !f.is_null ()                                             // C 21689
+		    {
+		      if !FRAME_XIC! (f).is_null ()                            // C 21691
+			&& FRAME_XIC_STYLE! (f) & XIMStatusArea != 0           // C 21691
+			{ xic_set_statusarea (f); }                            // C 21692
+
+		      let w: *mut window = XWINDOW ((*f).selected_window);      // C 21694
+		      xic_set_preeditarea (w, (*w).cursor.x, (*w).cursor.y);    // C 21695
+		    }
+
+		  /* C 21699-21719's `#ifdef HAVE_XINPUT2` block.  */
+		  #[cfg (feature = "have_xinput2")]
+		  if !f.is_null () && (*dpyinfo).supports_xi2                // C 21700
+		    {
+		      let hlinfo: *mut Mouse_HLInfo;                         // C 21702
+
+		      /* "The input extension doesn't report motion events when the part of the window
+			 below the pointer changes.  To avoid outdated information from keeping i.e.
+			 mouse-highlight at the wrong position after the frame is moved or resized, reset
+			 the mouse highlight and last_mouse_motion_frame."  */
+
+		      if (*dpyinfo).last_mouse_motion_frame == f               // C 21711
+			{ (*dpyinfo).last_mouse_motion_frame = std::ptr::null_mut (); }  // C 21712
+
+		      hlinfo = MOUSE_HL_INFO! (f);                             // C 21714
+
+		      if (*hlinfo).mouse_face_mouse_frame == f                 // C 21716
+			{ reset_mouse_highlight (hlinfo); }                    // C 21717
+		    }
+
+		}
+
+	      if x_dnd_in_progress                                         // C 21723
+		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)            // C 21724
+		{ x_dnd_update_state (dpyinfo, (*dpyinfo).last_user_time); }  // C 21725
+	      break 'switch;                                               // C 21726
+
+	    }
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
 		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
 		  _ => {}

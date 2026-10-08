@@ -17302,3 +17302,48 @@
      `build/probes/xterm/`、`/tmp/s117/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，motion 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
      剩余十三个 `case` 体，下一片从 `ConfigureNotify`（C 21343）起。
+
+- **4.036 `src/xterm.c` round 94（xterm lane，slice 118）：`ConfigureNotify` 落地（C 21343-21727，385 C 行）——两处"包在条件上的 `#ifdef`"、两处 C 的 lvalue、两处使用点声明（2026-10-08）**：
+  ① **本片落的文本**：`case ConfigureNotify:`——第一对事件合并循环（C 21356-21373：`next_event` 照 C 的成员文本读，
+     不是同窗口同尺寸的 configure 就 `XPutBackEvent` 放回）、根窗口块（C 21378-21414：C 的 `HAVE_XRANDR` / `#elif !defined USE_GTK`
+     两支、`MONITORS_CHANGED_EVENT` 入队与 `x_dnd_update_tooltip_now`）、Xdnd toplevel 遍历（C 21416-21471：
+     `XTranslateCoordinates` + `x_had_errors_p`、条目刷新、死条目摘链与它的 `HAVE_XSHAPE` 释放）、GTK 滚动条块（C 21473-21511）、
+     `x_top_window_to_frame` 与 `window_offset_certain_p` 复位、`HAVE_XDBE` 失效块（含 C 自己的影子 `f`）、cairo 与 opaque-region 块、
+     GTK 的 `(f = any)` 链（C 21566-21596）、frame 块（C 21597-21721：`x_net_wm_state`、tooltip 尺寸、无工具包臂的 `change_frame_size`、
+     位置/MOVE_FRAME_EVENT 块、XIC 一对、XInput2 的鼠标高亮复位）与 C 21723-21726 的 `x_dnd_update_state` + 本臂 `goto OTHER`。
+  ② **两处 `#ifdef` 包的是"条件"而不是"体"**：C 21601-21605 把 `#ifdef USE_GTK` 包在 `x_net_wm_state` 那个 `if` **外面**
+     （GTK 下加守卫、其余无条件），C 21654-21659 同样包住位置块的 `gtk_widget_get_mapped` 条件。Rust 的属性**不能加在条件项上**，
+     两处各算一次（`net_wm_state_p` / `position_ok`，Decision 2 第 2 条）。C 21567-21569 的 `(f = any)` 是同一形状的另一面：
+     C 在条件**里**赋值（`any` 是 NULL 也照赋），端口把赋值写成独立语句、保留条件链其余部分。
+  ③ **本片新增的两个访问器与两条使用点声明**：C 21642 读 `frame->new_size_p`（`struct frame` 第二组位域），
+     `include/frame.rs` 的访问器在别的单元模块里、本单元不 import，所以按本文件既有的 `frame_bits!`/`mouse_face_hidden!` 形状
+     加一份单元级 `new_size_p!`（`src/dispnew.rs` 488 的体，逐字同形）；C 21587 的 `xg_frame_resized`（gtkutil.h 162）与
+     C 21658 的 `gtk_widget_get_mapped`（gtk/gtkwidget.h，不在 `include/gtk.rs` 的 103 行里）放在使用点（P-88 ①）。
+  ④ **C 的两处 lvalue 与一处隐式转换**：C 21616-21617 通过 `FRAME_PIXEL_HEIGHT (f)`/`FRAME_PIXEL_WIDTH (f)` 赋值，而 C 的宏
+     展开就是 `f->pixel_height`/`f->pixel_width`，端口按字段写（本端口的 `FRAME_PIXEL_*` 是函数，函数不是 lvalue）；
+     C 21522 的 `FRAME_X_OUTPUT (any)->window_offset_certain_p` 走裸 `output_data.x` 指针并带本文件 24801 站点那处转型；
+     C 21402 的 `kbd_buffer_store_event (&inev.ie)` 带声明要的 `*mut c_void`（`src/gtkutil.rs` 2013 的形状）。
+  ⑤ **首写读出的两处**：`kbd_buffer_store_event` 的实参要与 `*mut c_void` 对齐（首写漏了转型，回来 1 条 `E0308`）；
+     `FRAME_X_OUTPUT!` 在本单元展开成 `(*f).output_data.x`（`*mut c_void`），所以 C 那句要按 24801 的写法显式转到 `*mut x_output`
+     （首写漏了，回来 1 条 `E0609`）。
+  ⑥ **读数（两侧都在本修订测）**：⑴ **十九臂表**（baseline = HEAD `3636a28d`，十九个数字与 slice 117 台账逐位相同）：
+     A 1054/80 → **1086/82**（+32/+2）、U 1065/80 → **1097/82**、UT 1060/79 → **1093/81**、UM 1065/79 → **1098/81**、
+     UG 1077/81 → **1117/83**、UGX 1181/83 → **1222/85**、AE 1086/79 → **1118/81**、AI 1079/80 → **1113/82**、
+     AIU 1146/80 → **1188/82**、AIUX 1254/82 → **1297/84**、AX 1064/80 → **1096/82**、AG3 1128/80 → **1168/82**、
+     AG3X 1207/82 → **1248/84**、AXF 1064/80 → **1096/82**、AXPM 1055/80 → **1087/82**、AXKB 1095/80 → **1127/82**、
+     AXR 1061/80 → **1092/82**（+31/+2）、AX11 1038/80 → **1070/82**、AUX 1137/78 → **1169/80**。
+     ⑵ 按类点名（增量）：`no field xconfigure` **+26/+27/+33/+24**（plain 臂 26；toolkit 滚动条块再读一次 ⇒ 27；
+     GTK 臂含 `(f = any)` 链的六处 ⇒ 33；`AXR` 不编译 `#elif` 块的两处 ⇒ 24）、`no field r#type` **+1**（C 21360）、
+     五个裸 Xlib 名各 **+1**（`XPending`/`XNextEvent`/`XPutBackEvent`/`XTranslateCoordinates`/`XGetGeometry`；其中
+     `XPutBackEvent` 是本片新进这一类）、`XRRUpdateConfiguration` **+1**（AXR）、GTK 臂的 `FRAME_X_WINDOW! (f)` **+1**
+     （`GDK_WINDOW_XWINDOW`/`cannot find macro GDK_WINDOW_XID`）、i18n 臂的 `xic_set_preeditarea`/`xic_set_statusarea` **各 +1**、
+     三个 XInput2 臂的 `mismatched types` **+1**（C 21716：镜像是欠账的 `void *`，与 slice 116 的 C 20942 同一类）。
+     ⑶ **警告列每臂 +2**，两行都是本臂自己的：C 21444-21447 保留的 C 括号（`unnecessary parentheses around assigned value`）。
+     ⑷ **`--check`** 仍 2 行，长行的 token 清单 **168 → 143**；单元 **34,622 行**（C 33,125，**长 1,497 行 / +4.52%**），
+     文件 md5 `acc84b74531976cf66fd7fe36220b4c7`。
+  ⑦ **没有任何臂编译的照录文本（点名，P-86 的形状）**：`HAVE_GTK3 && USE_TOOLKIT_SCROLL_BARS` 块（C 21473-21511——没有臂同时设两者）、
+     两个 `USE_CAIRO` 块（C 21541-21549、C 21589-21592——没有臂设 `use_cairo`）、`HAVE_XSHAPE` 释放（C 21459-21464——没有臂设 `have_xshape`）。
+  ⑧ **预算与清理**：本片 rustc 编译 **约 45 发**（19 臂 × 2 轮 + 定点复测；每次 12-21 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s118/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，configure 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
+     剩余十二个 `case` 体，下一片从 `ButtonRelease`（C 21728）起。

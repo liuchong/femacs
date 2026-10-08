@@ -385,6 +385,18 @@ are retired: the five help-echo objects the slice-110 tail has read since it lan
 `popup_activated`, which this round also makes C's `int` in every declaration the unit carries
 (the four call sites that answered it with a bare test now carry C's own comparison).
 
+  Slice 118 (C 21343-21727, Decision 130) lands `ConfigureNotify` - 385 C lines, the switch's second
+largest case.  Its event-coalescing pair of loops (C 21356-21373, and the GTK scroll-bar one at C
+21483-21494) drop stale configure events; its root-window half is C's `HAVE_XRANDR` /
+`#elif !defined USE_GTK` pair (the `MONITORS_CHANGED_EVENT` store, `x_dnd_update_tooltip_now`);
+its Xdnd half walks `x_dnd_toplevels` with `XTranslateCoordinates`, refreshing each entry and
+dropping the dead ones; the GTK scroll-bar block, the XDBE/cairo/opaque-region blocks and GTK's
+`(f = any)` chain follow; and the frame block ends in C 21726's `goto OTHER`.  Two `#ifdef`s C
+wraps around a *condition* rather than a body (C 21601-21605's GTK scroll-bar test and C
+21654-21659's `gtk_widget_get_mapped` guard) become computed values (Decision 2 item 2), C
+21567-21569's `(f = any)` keeps C's side effect, and the round adds the per-unit `new_size_p!`
+accessor C 21642 reads and the two use-site declarations C 21587/C 21658 call.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5512,6 +5524,49 @@ expected direction once the file starts carrying records the X11 headers would s
 * **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **250 -> 168**.
   The unit is **34,176 lines** against C's 33,125 (**1,051 lines longer, +3.17%**), file md5
   `3852704629b6e966b4597d5c5e2263c1`.
+
+### 130. Slice 118 (C 21343-21727): `ConfigureNotify`, the coalescing loops, and two conditions C writes around conditions
+
+* **What it lands.**  `case ConfigureNotify:` (C 21343-21727), each line with its own `// C NNNN`
+  comment: the first coalescing loop (C 21356-21373, which reads `next_event` through C's own
+  member text and `XPutBackEvent`s anything that is not a same-size configure for the same
+  window), the root-window block (C 21378-21414: C's `HAVE_XRANDR` / `#elif !defined USE_GTK`
+  pair, the `MONITORS_CHANGED_EVENT` store behind `x_find_monitors_changed_event`, and
+  `x_dnd_update_tooltip_now`), the Xdnd toplevel walk (C 21416-21471: `XTranslateCoordinates`
+  with `x_had_errors_p`, the entry refresh, and the dead-entry unlink with its `HAVE_XSHAPE`
+  frees), the GTK scroll-bar block (C 21473-21511), `x_top_window_to_frame` and the
+  `window_offset_certain_p` reset, the `HAVE_XDBE` invalidation block (with C's own shadowing
+  `f`), the cairo and opaque-region blocks, GTK's `(f = any)` chain (C 21566-21596), the frame
+  block (C 21597-21721: `x_net_wm_state`, the tooltip sizing, the no-toolkit `change_frame_size`
+  arm, the position/MOVE_FRAME_EVENT block, the XIC pair and the XInput2 mouse-highlight reset)
+  and C 21723-21726's `x_dnd_update_state` with the arm's `goto OTHER`.
+* **Two `#ifdef`s that wrap a *condition*.**  C 21601-21605 puts an `#ifdef USE_GTK` *around the
+  `if`* whose body is `x_net_wm_state` (so the call is guarded under GTK and unconditional
+  otherwise), and C 21654-21659 does the same around the position block's condition
+  (`gtk_widget_get_mapped`).  Rust has no attribute for a condition term, so each becomes a value
+  computed once - `net_wm_state_p` and `position_ok`, with one `#[cfg]` arm per C arm (Decision 2
+  item 2).  C 21567-21569's `(f = any)` is the same shape's other side: C assigns `f` *inside*
+  the condition (even when `any` is NULL), so the port writes the assignment as its own statement
+  and keeps the rest of the chain.
+* **Two accessors and two declarations this round adds.**  C 21642 reads `frame->new_size_p`, a
+  `bool_bf` in `struct frame`'s second bit group; `include/frame.rs` defines its accessors inside
+  a module this unit does not import, so the per-unit `new_size_p!` stands beside the file's
+  `frame_bits!`/`mouse_face_hidden!` pair (the `src/dispnew.rs` 488 body, body-identical).  C
+  21587's `xg_frame_resized` (gtkutil.h 162) and C 21658's `gtk_widget_get_mapped`
+  (gtk/gtkwidget.h - not among `include/gtk.rs`'s 103 rows) stand at the use site (P-88 1).
+* **C writes lvalues the port spells as fields.**  C 21616-21617 assign through
+  `FRAME_PIXEL_HEIGHT (f)` / `FRAME_PIXEL_WIDTH (f)`, which are C macros expanding to
+  `f->pixel_height` / `f->pixel_width`; the port writes the fields the macros expand to (the
+  port's `FRAME_PIXEL_*` are functions, and a function is no lvalue).  C 21522's
+  `FRAME_X_OUTPUT (any)->window_offset_certain_p` goes through the bare `output_data.x` pointer
+  with the cast this file's 24801 site writes, and C 21402's `kbd_buffer_store_event (&inev.ie)`
+  carries the `*mut c_void` cast its port declaration wants (the `src/gtkutil.rs` 2013 shape).
+* **Carried text no arm compiles.**  The `HAVE_GTK3 && USE_TOOLKIT_SCROLL_BARS` block (no arm sets
+  both), the two `USE_CAIRO` blocks (no arm sets `use_cairo`) and the `HAVE_XSHAPE` frees (no arm
+  sets `have_xshape`) are written as C wrote them and no arm reads them; the readings name them.
+* **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **168 -> 143**.
+  The unit is **34,622 lines** against C's 33,125 (**1,497 lines longer, +4.52%**), file md5
+  `acc84b74531976cf66fd7fe36220b4c7`.
 
 ## Evidence
 
@@ -11118,5 +11173,61 @@ function's parameter named the type, so its body had never been type-checked).  
 file's own and pre-existing (23 rows in the baseline).
 
 **Not claimed**: no runtime evidence - this lane does not link, and no motion event was ever
+delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
+ledger.
+
+### Slice 118's readings (C 21343-21727), as landed and measured (2026-10-08)
+
+`ConfigureNotify`.  Twelve `case` bodies remain.
+
+| arm | baseline | slice 118 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1054 / 80 | **1086 / 82** | **+32 / +2** |
+| U `A +use_toolkit_scroll_bars` | 1065 / 80 | **1097 / 82** | **+32 / +2** |
+| UT `U +use_x_toolkit` | 1060 / 79 | **1093 / 81** | **+33 / +2** |
+| UM `UT +use_motif` | 1065 / 79 | **1098 / 81** | **+33 / +2** |
+| UG `U +use_gtk` | 1077 / 81 | **1117 / 83** | **+40 / +2** |
+| UGX `UG +have_xinput2` | 1181 / 83 | **1222 / 85** | **+41 / +2** |
+| AE `A +enable_checking` | 1086 / 79 | **1118 / 81** | **+32 / +2** |
+| AI `A +have_x_i18n` | 1079 / 80 | **1113 / 82** | **+34 / +2** |
+| AIU `AI +use_gtk` | 1146 / 80 | **1188 / 82** | **+42 / +2** |
+| AIUX `AIU +have_xinput2` | 1254 / 82 | **1297 / 84** | **+43 / +2** |
+| AX `A +have_xdbe` | 1064 / 80 | **1096 / 82** | **+32 / +2** |
+| AG3 `A +use_gtk +have_gtk3` | 1128 / 80 | **1168 / 82** | **+40 / +2** |
+| AG3X `AG3 +have_xinput2` | 1207 / 82 | **1248 / 84** | **+41 / +2** |
+| AXF `A +have_xfixes` | 1064 / 80 | **1096 / 82** | **+32 / +2** |
+| AXPM `A +have_xpm` | 1055 / 80 | **1087 / 82** | **+32 / +2** |
+| AXKB `A +have_xkb` | 1095 / 80 | **1127 / 82** | **+32 / +2** |
+| AXR `A +have_xrandr` | 1061 / 80 | **1092 / 82** | **+31 / +2** |
+| AX11 `A +have_x11` | 1038 / 80 | **1070 / 82** | **+32 / +2** |
+| AUX `A +use_xcb` | 1137 / 78 | **1169 / 80** | **+32 / +2** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`3636a28d`, slice 117) with its
+own `_root.rs` re-materialised per arm - the nineteen baseline numbers reproduce the ledger's
+slice-117 column to the digit - and the slice's file md5 is
+`acc84b74531976cf66fd7fe36220b4c7` (34,622 lines against C's 33,125).
+
+**The `of which`, by arm class:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `no field xconfigure` **+26 / +27 / +33 / +24** | +26 in the plain arms, +27 where the toolkit scroll-bar block compiles (it reads the field once more), +33 in the GTK arms (the `(f = any)` chain's six reads with them), +24 in `AXR` (the `HAVE_XRANDR` arm does not compile the `#elif` block's two) | the forty-seven C lines this arm reads the member at, C 21361, 21365, 21366, 21378, 21388, 21389, 21412, 21413, 21428, 21432, 21434, 21435, 21444-21447, 21475, 21487, 21496, 21497, 21517, 21534-21535, 21543-21545, 21547, 21548, 21560, 21569, 21571, 21572, 21579, 21580, 21587, 21588, 21590, 21591, 21599, 21600, 21604, 21606, 21612, 21613, 21616, 21617, 21623, 21624 |
+| `no field r#type` **+1** | every arm | C 21360 (C 21486's twin is inside the block no arm compiles) |
+| `XPending` / `XNextEvent` / `XPutBackEvent` / `XTranslateCoordinates` / `XGetGeometry` **+1 each** | every arm | C 21357, 21359, 21368, 21431, 21674 - the bare Xlib class (`XPutBackEvent` is this slice's new name in it) |
+| `XRRUpdateConfiguration` **+1** | `AXR` | C 21383 - the bare Xlib class's Xrandr spelling |
+| `GDK_WINDOW_XWINDOW` **+1** (`UG`, `UGX`, `AIU`) / `cannot find macro GDK_WINDOW_XID` **+1** (`AG3`, `AG3X`) | the GTK arms | C 21569's `FRAME_X_WINDOW! (f)`, the registered GTK-macro class |
+| `xic_set_preeditarea` / `xic_set_statusarea` **+1 each** | `AI`, `AIU`, `AIUX` | C 21692, C 21695 - the same two names slice 115's KeyPress arm already owes |
+| `mismatched types` **+1** | the three XInput2 arms | C 21716's `(*hlinfo).mouse_face_mouse_frame == f`, where the mirror's member is the owed `void *` (the class slice 116's C 20942 row carries) |
+
+The warning column moves **+2 in every arm**, and both rows are this arm's own: `unnecessary
+parentheses around assigned value` at C 21444-21447, where C's parentheses around the two
+`width`/`height` sums are kept (the class slice 116's C 20788 row already counts).
+
+**Carried text no arm compiles** (named, P-86's shape): the `HAVE_GTK3 && USE_TOOLKIT_SCROLL_BARS`
+block (C 21473-21511 - no arm sets both), the two `USE_CAIRO` blocks (C 21541-21549 and C
+21589-21592 - no arm sets `use_cairo`), and the `HAVE_XSHAPE` frees (C 21459-21464 - no arm sets
+`have_xshape`).
+
+**Not claimed**: no runtime evidence - this lane does not link, and no configure event was ever
 delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
 ledger.
