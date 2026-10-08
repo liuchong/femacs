@@ -4359,3 +4359,86 @@ unsafe fn haiku_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
   (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).current_cursor     // C 3090
     = cursor;
 }
+
+/* C 3092-3138: `haiku_default_font_parameter` (C 3093-3138).  The next first definition is the
+   C 3140-3170 `redisplay_interface` table.  Four names this function calls, plus `enum
+   resource_types` and its `RES_TYPE_STRING`, are declared at the use site below because no mirror
+   carries them - the `androidfns.rs` 129-183 copies of the same five; each declaration's own
+   `/// C:` note carries its reference line.  */
+
+/// C: dispextern.h 3983: `enum resource_types { RES_TYPE_NUMBER, RES_TYPE_FLOAT, RES_TYPE_BOOLEAN,
+/// RES_TYPE_STRING, RES_TYPE_SYMBOL, RES_TYPE_BOOLEAN_NUMBER };` - C's enum ABI is `c_int`
+/// (PORTING.md 1.3); the unit names the member C 3098/3115/3137 pass.
+#[cfg (feature = "have_haiku")]
+pub type resource_types = c_int;
+#[cfg (feature = "have_haiku")]
+pub const RES_TYPE_STRING: resource_types = 3;          // C 3987
+
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  /// C: dispextern.h 3994: `extern Lisp_Object gui_display_get_arg (Display_Info *, Lisp_Object,
+  /// Lisp_Object, const char *, const char *, enum resource_types);`
+  pub fn gui_display_get_arg (dpyinfo: *mut Display_Info, alist: Lisp_Object, param: Lisp_Object,
+			      name: *const c_char, x_name: *const c_char,
+			      r#type: resource_types) -> Lisp_Object;
+  /// C: dispextern.h 4001: `extern Lisp_Object gui_default_parameter (struct frame *, Lisp_Object,
+  /// Lisp_Object, Lisp_Object, const char *, const char *, enum resource_types);`
+  pub fn gui_default_parameter (f: *mut frame, alist: Lisp_Object, prop: Lisp_Object,
+				deflt: Lisp_Object, name: *const c_char, x_name: *const c_char,
+				r#type: resource_types) -> Lisp_Object;
+  /// C: font.h 897: `extern Lisp_Object font_open_by_spec (struct frame *, Lisp_Object);`
+  pub fn font_open_by_spec (f: *mut frame, spec: Lisp_Object) -> Lisp_Object;
+  /// C: font.h 883: `extern Lisp_Object font_open_by_name (struct frame *f, Lisp_Object name);`
+  pub fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object;
+}
+
+/* C 3093-3138.  */
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_default_font_parameter (f: *mut frame, parms: Lisp_Object)
+{
+  let dpyinfo: *mut haiku_display_info = FRAME_DISPLAY_INFO! (f);      // C 3096
+  let mut font_param: Lisp_Object                                      // C 3097-3098
+    = gui_display_get_arg (dpyinfo, parms, Qfont (), std::ptr::null (), std::ptr::null (),
+			   RES_TYPE_STRING);
+  let mut font: Lisp_Object = Qnil ();                                 // C 3099
+  if BASE_EQ (font_param, Qunbound ())                                 // C 3100
+    { font_param = Qnil (); }                                         // C 3101
+
+  if NILP (font_param)                                                 // C 3103
+    /* System font should take precedence over X resources.  We
+       suggest this regardless of font-use-system-font because .emacs
+       may not have been read yet.  Returning a font-spec is Haiku
+       specific behavior.  */                                         // C 3104-3107
+    { font = font_open_by_spec (f, Ffont_get_system_font ()); }        // C 3108
+
+  if NILP (font)                                                       // C 3110
+    { font = if ! NILP (font_param) { font_param }                     // C 3112
+	     else { gui_display_get_arg (dpyinfo, parms, Qfont (),     // C 3113
+					 c"font".as_ptr (), c"Font".as_ptr (),
+					 RES_TYPE_STRING) }; }         // C 3115
+
+  if ! FONTP (font) && ! STRINGP (font)                                // C 3117
+    {
+      /* C 3119-3122's compound literal `(const char *[]) { … , NULL }`, kept as C's four-entry
+	 array (the fourth entry is C's `NULL`).  */
+      let names: [*const c_char; 4] = [c"monospace-12".as_ptr (),      // C 3119
+				       c"Noto Sans Mono-12".as_ptr (),   // C 3120
+				       c"Source Code Pro-12".as_ptr (),  // C 3121
+				       std::ptr::null ()];               // C 3122
+      let mut i: c_int;                                                // C 3123
+
+      i = 0;                                                           // C 3125
+      while ! names[i as usize].is_null ()                             // C 3125
+	{
+	  font = font_open_by_name (f, build_unibyte_string (names[i as usize]));   // C 3127-3128
+	  if ! NILP (font)                                              // C 3129
+	    { break; }                                                  // C 3130
+	  i += 1;                                                       // C 3125's step
+	}
+      if NILP (font)                                                   // C 3132
+	{ error (c"No suitable font was found".as_ptr ()); }           // C 3133
+    }
+
+  gui_default_parameter (f, parms, Qfont (), font, c"font".as_ptr (),   // C 3136
+			 c"Font".as_ptr (), RES_TYPE_STRING);          // C 3137
+}

@@ -7,12 +7,17 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**4,361 lines**), which carries **C 1-3091** - P-86 ④'s first
-> eighteen slices of this file - with every `#if`'s arms both carried.
+> `femacs/src/haikuterm.rs` (**4,445 lines**), which carries **C 1-3138** - P-86 ④'s first
+> nineteen slices of this file - with every `#if`'s arms both carried.
 >
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Why 3138 and not 3140 (slice 19).**  C 3140 opens the `redisplay_interface` table's definition
+> and C 3138 the closing brace of the item before it, so the slice is **C 3092-3138** - the blank
+> line C 3092 and `haiku_default_font_parameter` (C 3093-3138).  The next definition is the table
+> itself (C 3140-3170), which is the ABI round Owed 1 names.
 >
 > **Why 3091 and not 3093 (slice 18).**  C 3093 is `haiku_default_font_parameter`'s `static void`
 > and C 3091 the closing brace of the item before it, so the slice is **C 3078-3091** - the blank
@@ -208,7 +213,8 @@ the pre-flight below sets it as well.
 | 2893-2980 | `haiku_define_fringe_bitmap` (C 2894-2915; C 2898-2907 the grow, C 2910-2913 the `BBitmap_*` pair), `haiku_destroy_fringe_bitmap` (C 2917-2926) and `haiku_scroll_run` (C 2928-2980; C 2934 `window_box`, C 2936-2938 the three y values, C 2940-2967 the up/down folds, C 2969-2977 the copy) | file gate (slice 16) |
 | 2981-3077 | the C 2982-2987 comment block, `haiku_mouse_position` (C 2988-3061; C 3004-3008 the first `FOR_EACH_FRAME`, C 3017-3024 the selected/any-frame fallbacks, C 3031-3056 the view arm with `BView_get_mouse`/`remember_mouse_glyph`/the two `XSETINT`s) and `haiku_flush` (C 3063-3077; C 3068 the dirty/flip test, C 3073 the `FRAME_COMPLETE_P` write, C 3075-3076 the flush) | file gate (slice 17) |
 | 3078-3091 | `haiku_define_frame_cursor` (C 3080-3091; C 3082 the tooltip guard, C 3086-3088 the three-part test and the cursor set, C 3090 the `current_cursor` store) | file gate (slice 18) |
-| 3092-4898 | **the remainder of the file** (C 3093 `haiku_default_font_parameter` onward, the C 3140-3170 `redisplay_interface` table included; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3092-3138 | `haiku_default_font_parameter` (C 3093-3138; C 3096 the display info, C 3097-3101 the two-argument read and the `Qunbound` fold, C 3103-3115 the system-font and resource fallbacks, C 3117-3134 the four-name loop, C 3136-3137 the recorder) | file gate (slice 19) |
+| 3139-4898 | **the remainder of the file** (the C 3140-3170 `redisplay_interface` table onward; C 4148 the `#if 0` block, C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1633,3 +1639,65 @@ remainder.
   arm's type-checking and the text/token gates.
 - The six mirror errors are not this slice's text, and the `--check` rows that remain are the
   C 3092-4898 text this file has not reached.
+
+## Slice 19 (2026-10-08, status 4.095 - the integrator sets the round number): C 3092-3138
+
+**The slice's text.**  The blank line C 3092 and `haiku_default_font_parameter` (C 3093-3138).  Port
+line count **4,361 -> 4,445** (+84, of which ~45 lines are the four use-site declarations and the
+`resource_types` copy Deviation 1 describes).
+
+**Evidence ① - the arm flip's substitute (`xtask probe`, P-86 ③).**  Two runs of slice 2's command,
+arm set `have_haiku` + `have_window_system`:
+
+- **Run 1: `exit 1`, 6 primary errors, every one in a mirror** - the unit's own text was clean on
+  the first run (the slice's only new local names are the four declarations and the enum copy).
+  One `--check` row appeared: **`function haiku_default_font_parameter does not mention
+  haiku_display_info`**, because C 3096's `struct haiku_display_info *dpyinfo` was written with the
+  mirror's `Display_Info` alias (Deviation 2).
+- **Run 2 (final revision): `exit 1`, 6 primary errors among 34 error-prefixed lines, every one in a
+  mirror** - the same six slices 17/18 read.  **The unit's own text has no primary error**, 4
+  warnings.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 25 rows -> 24.**  The one closed is
+`haiku_default_font_parameter`'s `missing function` row, and **the row run 1 produced was discharged
+by Deviation 2 rather than by a `macro-body-notes.tsv` entry** - the port can keep C's own tag there.
+The 24 that remain are 23 `missing function` rows plus `missing macro ASSIGN_CURSOR`, all inside the
+C 3139-4898 remainder.
+
+### Deviations (this slice)
+
+1. **Five names are declared at the use site** (P-72 rule 4, the `androidfns.rs` 129-183 copies of
+   the same five): `gui_display_get_arg` (dispextern.h 3994), `gui_default_parameter` (4001),
+   `font_open_by_spec` (font.h 897), `font_open_by_name` (font.h 883) and the `resource_types` enum
+   with its `RES_TYPE_STRING` member (dispextern.h 3983-3992), because no mirror carries any of
+   them.
+2. **C 3096's `struct haiku_display_info *dpyinfo` keeps C's own tag** (`*mut haiku_display_info`,
+   the record this unit's own `x_display_list` static is typed with) rather than the mirror's
+   `Display_Info` alias the first draft used: that spelling makes `haiku_display_info` a token of
+   the body (so the `--check` row run 1 reported is discharged instead of registered) and it is the
+   same record either way (`Disply_Info` is `dispextern_unit_names::x_display_info`, whose arm is
+   this tag).
+3. **C 3119-3122's compound literal `(const char *[]) { … , NULL }`** is C's four-entry array as a
+   Rust array of `*const c_char` whose fourth element is C's `NULL`, and C 3125's
+   `for (i = 0; names[i]; i++)` is the `while ! names[i].is_null ()` with the increment at the foot
+   and the `break` C 3130 writes.
+4. **C 3112's `!NILP (font_param) ? font_param : …`** is the port's `if`/`else` expression (Rust has
+   no ternary), in C's order; C 3097-3098's `NULL, NULL` arguments are `std::ptr::null ()` (the
+   prototype's `*const c_char`).
+
+### Owed (this slice's additions)
+
+- **The ABI round is the very next item** (Owed 1 of slice 11, sized at eighteen functions by slice
+  18's reading): C 3140-3170's table is `haiku_frame_parm_handlers` plus seventeen of this file's
+  functions.
+- Nothing else: the line-drift row is unchanged (C 4898 vs Rust 4,445 is 9.3%, inside the
+  `haikuterm` row's 0.69) and no mirror file is touched.
+
+### Not claimed (this slice)
+
+- **No runtime evidence.**  No Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link: **no font parameter was read or
+  recorded, no system font was opened and no candidate name was tried.**  What is measured is the
+  arm's type-checking and the text/token gates.
+- The six mirror errors are not this slice's text, and the `--check` rows that remain are the
+  C 3139-4898 text this file has not reached.
