@@ -549,6 +549,15 @@ on `!USE_X_TOOLKIT && (!USE_GTK || HAVE_GTK3)`.  The four `XIHierarchyInfo.flags
 unit's XI2 vocabulary (XI2.h 115-118), and `--check`'s token list goes 71 -> 70: the port now
 mentions `x_uncatch_errors`.
 
+Slice 134 (C 24776-24950, Decision 146) lands the first `HAVE_XINPUT2_2` arm, `XI_TouchBegin`: the
+master-pointer guard, the `xi_find_touch_point` duplicate check, the GTK3 menubar/toolbar
+intersection block, the `#ifndef HAVE_EXT_TOOL_BAR` direct-touch tool-bar block (whose
+`window_from_coordinates` / `note_mouse_highlight` / `handle_tool_bar_click_with_device` sequence
+simulates a tool-bar click and leaves through `goto XI_OTHER`), the accept/reject chain and the GTK3
+`else` hack.  Three XI2 values join the unit's vocabulary (`XIAcceptTouch`, `XIRejectTouch`,
+`XIMasterPointer`, XI2.h 103-104 and 134), and `--check`'s token list goes 70 -> 69: the port now
+mentions `frame_output_data`.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6318,6 +6327,42 @@ expected direction once the file starts carrying records the X11 headers would s
 * **Not claimed.**  No runtime evidence, as everywhere in this lane; the readings are the six arms
   of the table below (both sides) and `--check`'s two rows.  The next slice takes C 24776 onwards
   (`XI_TouchBegin` under `HAVE_XINPUT2_2`).
+
+### 146. Slice 134 (C 24776-24950): `XI_TouchBegin`, the first `HAVE_XINPUT2_2` arm
+
+* **What it lands.**  C 24776's `#ifdef HAVE_XINPUT2_2` and the whole arm: the six locals (C
+  24779-24781), the two device lookups and the user-time pair (C 24782-24785), C's master-pointer
+  guard and its comment (C 24787-24794), the `xi_find_touch_point` duplicate check (C 24796-24797),
+  the `x_window_to_frame`/`xi_compute_root_window_offset` pair (C 24799-24804), the `HAVE_GTK3`
+  menubar/toolbar test with `xg_event_is_for_menubar`, `xg_get_scale` and `gtk_widget_intersect`
+  (C 24806-24822), the `#ifndef HAVE_EXT_TOOL_BAR` tool-bar block (C 24824-24889:
+  `WINDOWP`/`WINDOW_TOTAL_LINES`, `window_from_coordinates`, the `tool_bar_p` assignment,
+  `note_mouse_highlight`, the `last_mouse_glyph` memset and frame write,
+  `handle_tool_bar_click_with_device`, the front-buffer flush, the two
+  `FRAME_OUTPUT_DATA` writes and the early `goto XI_OTHER`), the accept/reject chain (C 24891-24933:
+  `XIAcceptTouch`, `xi_link_touch_point`, the `TOUCHSCREEN_BEGIN_EVENT` build with its
+  `XSETINT`/`XSETFRAME` writes, and the `#ifndef HAVE_GTK3` reject arm) and the `HAVE_GTK3` `else`
+  hack (C 24935-24947).
+* **Three XI2 values join the unit's block.**  `XIAcceptTouch` (6) and `XIRejectTouch` (7) are what
+  C 24903/24930 pass to `XIAllowTouchEvents` (XI2.h 103-104), and `XIMasterPointer` (1, XI2.h 134)
+  is what C 24793 compares `device->use` against - the name this file's 17902 site already reads
+  without a declaration, so the row it carried is closed rather than duplicated.
+* **C's `#ifndef HAVE_GTK3` `else if` is a computed value.**  C 24925-24933 turns the reject arm from
+  an `else if` of C 24893's `if` into the `if`'s own `else` when GTK 3 is on; Rust has no `#[cfg]`
+  on an `else`, so the port computes the first branch's outcome (`touch_handled`, the
+  `did_xkb`/`in_hl_window` shape of Decision 2 item 2) and tests it in the cfg'd second `if`.
+* **Two spellings the first measurement corrected.**  `window_from_coordinates` takes
+  `*mut c_void` and a nullable fourth argument in this port (the C 22035 spelling at this file
+  34158), so the call is `window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (),
+  true, true, true)`; and `x_had_errors_p` returns `bool`, so C 24905's `!x_had_errors_p (...)` stays
+  a plain negation (the first pass wrote `== 0` and the reading caught the `E0308`).
+* **What `--check` reads.**  Two rows, and the long `handle_one_xevent` row's token list goes
+  **70 -> 69**: `frame_output_data` retires, because this arm's two writes spell
+  `FRAME_OUTPUT_DATA!`.  The unit is **38,098 lines** (+190), md5
+  `0f69af7df63c57d37e01438c578bd0b2`.
+* **Not claimed.**  No runtime evidence, as everywhere in this lane; the readings are the three arms
+  of the table below (both sides, and only the two `have_xinput2_2` arms can compile the arm at all)
+  and `--check`'s two rows.  The next slice takes C 24952 onwards (`XI_TouchOwnership`).
 
 ## Evidence
 
@@ -12703,3 +12748,32 @@ other warning moved in any arm.
 
 **Not claimed**: no runtime evidence; the readings are the six arm compiles (both sides), the
 per-arm message diff, `--check`'s two rows and its token list (71 -> 70).
+
+### Slice 134's readings (C 24776-24950), as landed and measured (2026-10-08)
+
+`XI_TouchBegin`.  Three arms, both sides, one probe root per side - the arm is gated on C 24776's
+`HAVE_XINPUT2_2`, so only two of the lane's arms can compile it at all.
+
+| arm | baseline | slice 134 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| XI21 `XI2 +have_xinput2_1 +have_xinput2_2` | 1389 / 90 | **1399 / 90** | **+10 / 0** |
+| XI21W `XI21 +have_xwidgets` | 1423 / 90 | **1433 / 90** | **+10 / 0** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`9f5109b8`, slice 133).  The
+plain arm reads a zero delta (the arm is inside the gate).
+
+| grew | of which |
+| --- | --- |
+| the ten rows of both arms | `no field tool_bar_window` x3 (C 24828, C 24829, C 24843 - the `frame.h` member behind `have_window_system`, the slice-119/128 class), `lrint` x2 (C 24915-24916), `XIAllowTouchEvents` x2 (C 24900, C 24929), `handle_tool_bar_click_with_device` (C 24870) and `no field tool_bar_touch_device` / `no field tool_bar_touch_id` on `*mut c_void` (C 24882-24884) |
+
+**Every row is a registered class.**  `XIAllowTouchEvents` is the owed XInput2 entry point,
+`handle_tool_bar_click_with_device` is `dispextern.h` 3672's prototype the mirror does not carry
+(the slice-128 reading's row), and the two `FRAME_OUTPUT_DATA` writes are the
+`no field` class in a *macro type* shape: the mirror carries both members (`include/xterm.rs`
+999/1001) but in an arm with no toolkit `FRAME_OUTPUT_DATA!` casts its frame to `*mut c_void`, so
+the member access is the row - the same shape the w32/pgtk mirrors' `explicit_parent` reads carry.
+No warning moved in any arm.
+
+**Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
+per-arm message diff and `--check`'s token list (70 -> 69).

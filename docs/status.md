@@ -17840,3 +17840,29 @@
   ⑥ **预算与清理**：本片 rustc 约 **20 发**（六臂首发 + 3 处修复后 3 臂复测 + 基线六臂 + `rustfmt --check` 复核；每次 17-24 秒，单文件 `--emit=metadata`），
      无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s133`、`/tmp/f133.rs`、`/tmp/s133arms.py`。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片从 C 24776 起（`HAVE_XINPUT2_2` 下的 `XI_TouchBegin`）。
+
+- **4.053 `src/xterm.c` round 110（xterm lane，slice 134）：第一个 `HAVE_XINPUT2_2` 臂 `XI_TouchBegin`（C 24776-24950）落地，token 清单 70 → 69（2026-10-08）**：
+  ① **本片落的文本**：C 24776 的 `#ifdef HAVE_XINPUT2_2` 与整条臂——六个局部量（C 24779-24781）、两个设备查找与用户时间对（C 24782-24785）、
+     master-pointer 守卫及其注释（C 24787-24794）、`xi_find_touch_point` 的重复检查（C 24796-24797）、`x_window_to_frame`/`xi_compute_root_window_offset`（C 24799-24804）、
+     `HAVE_GTK3` 的菜单栏/工具栏判定（`xg_event_is_for_menubar`、`xg_get_scale`、`gtk_widget_intersect`，C 24806-24822）、
+     `#ifndef HAVE_EXT_TOOL_BAR` 的工具栏块（C 24824-24889：`WINDOWP`/`WINDOW_TOTAL_LINES`、`window_from_coordinates`、`tool_bar_p` 赋值、
+     `note_mouse_highlight`、`last_mouse_glyph` 的 memset 与帧写入、`handle_tool_bar_click_with_device`、前端缓冲刷新、两处 `FRAME_OUTPUT_DATA` 写入与提前 `goto XI_OTHER`）、
+     accept/reject 链（C 24891-24933：`XIAcceptTouch`、`xi_link_touch_point`、`TOUCHSCREEN_BEGIN_EVENT` 的构造与 `XSETINT`/`XSETFRAME` 写入、`#ifndef HAVE_GTK3` 的 reject 支）
+     与 GTK3 的 `else` hack（C 24935-24947）。
+  ② **三个 XI2 值并入本单元词表**：`XIAcceptTouch`(6)、`XIRejectTouch`(7)（C 24903/24930 传给 `XIAllowTouchEvents`，XI2.h 103-104）与 `XIMasterPointer`(1)（C 24793 与 `device->use` 比较，XI2.h 134）——
+     后者本文件 17902 早已在无声明的情况下读它，声明落地是**收掉那行**而不是再添一行。
+  ③ **C 的 `#ifndef HAVE_GTK3` `else if` 写成计算值**：C 24925-24933 让 reject 支在 GTK3 打开时从 C 24893 那个 `if` 的 `else if` 变成它的 `else`；
+     Rust 不能给 `else` 挂 `#[cfg]`，所以端口把第一支的结果算成 `touch_handled`（Decision 2 item 2 的 `did_xkb`/`in_hl_window` 形状）并在 cfg 过的第二个 `if` 里测它。
+  ④ **首次读数修掉两处拼写**：`window_from_coordinates` 在本端口取 `*mut c_void` 且第 4 个实参可空（本文件 34158 的 C 22035 拼法），
+     故写作 `window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (), true, true, true)`；`x_had_errors_p` 返回 `bool`，
+     所以 C 24905 的 `!x_had_errors_p (...)` 保持普通取反（首版写成 `== 0`，读数当场报 `E0308`）。
+  ⑤ **读数（三臂，两侧都在本修订测，同一根 `_root.rs`；baseline = HEAD `9f5109b8`）**：A 1174/83 → **1174/83**（0/0，臂在门内）、
+     XI21 1389/90 → **1399/90**（+10/0）、XI21W 1423/90 → **1433/90**（+10/0）。+10 行构成：`no field tool_bar_window`×3（C 24828/24829/24843，
+     `have_window_system` 门后的 `frame.h` 成员，slice 119/128 的同一类）、`lrint`×2（C 24915-24916）、`XIAllowTouchEvents`×2（C 24900/24929）、
+     `handle_tool_bar_click_with_device`（C 24870）、以及 `no field tool_bar_touch_device`/`tool_bar_touch_id` on `*mut c_void`（C 24882-24884）。
+     **warning 一个臂都没动。**
+  ⑥ **台账与门**：`docs/ports/xterm.md` 加 Decision **146** 与 `### Slice 134's readings`；`--check` 仍**两行**，长行 token 清单 **70 → 69**
+     （`frame_output_data` 退休——本臂两处写入拼的是 `FRAME_OUTPUT_DATA!`）；单元 **38,098 行**（+190），md5 `0f69af7df63c57d37e01438c578bd0b2`。
+  ⑦ **预算与清理**：本片 rustc 约 **9 发**（三臂首发 + 2 处修复后复测 + 基线 2 臂 + `rustfmt --check` 复核；每次 17-24 秒，单文件 `--emit=metadata`），
+     无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s134`、`/tmp/f134.rs`、`/tmp/s134.py`。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片从 C 24952 起（`XI_TouchOwnership`）。

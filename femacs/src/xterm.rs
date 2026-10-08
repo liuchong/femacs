@@ -1007,6 +1007,14 @@ pub const XISlaveDetached: c_int = 1 << 5;     // XI2.h 116
 pub const XIDeviceEnabled: c_int = 1 << 6;     // XI2.h 117
 #[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XIDeviceDisabled: c_int = 1 << 7;    // XI2.h 118
+/// XI2.h 103-104 and 134: the touch accept/reject modes C 24903/24930 passes and the
+/// `r#use` value C 24793 compares against (`XIMasterPointer` is 1, `XISlavePointer` 3).
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XIAcceptTouch: c_int = 6;            // XI2.h 103
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XIRejectTouch: c_int = 7;            // XI2.h 104
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XIMasterPointer: c_int = 1;          // XI2.h 134
 /// C's `<X11/extensions/XInput2.h>` 181-184: `#define XISetMask(ptr, event) (((unsigned char*)
 /// (ptr))[(event)>>3] |= (1 << ((event) & 7)))`, `#define XIMaskIsSet(ptr, event)
 /// (((unsigned char*)(ptr))[(event)>>3] & (1 << ((event) & 7)))` and
@@ -36927,6 +36935,188 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		          /* "Now handle the event by retrieving scroll valuators and touch info."  */
 		          xi_handle_device_changed (dpyinfo, device, device_changed);  // C 24772
 		          break 'xi_other;                                     // C 24773 (`goto XI_OTHER`)
+		        }
+
+		      /* C 24776's `#ifdef HAVE_XINPUT2_2` gates this arm; it is the first of the
+			 touch arms.  */
+#[cfg (feature = "have_xinput2_2")]
+		      XI_TouchBegin =>
+		        {
+		          let mut device: *mut xi_device_t;                    // C 24779
+		          let mut source: *mut xi_device_t;
+		          let mut menu_bar_p: bool = false;                    // C 24780
+		          let mut tool_bar_p: bool = false;
+		          let mut local_detail: EMACS_INT;                     // C 24781
+		          device = xi_device_from_id (dpyinfo, (*xev).deviceid);  // C 24782
+		          source = xi_device_from_id (dpyinfo, (*xev).sourceid);  // C 24783
+		          x_display_set_last_user_time (dpyinfo, (*xev).time,  // C 24784-24785
+						(*xev).send_event != 0, true);
+
+		          /* "Don't process touch sequences from this device if it's a master
+			     pointer.  Touch sequences aren't canceled by the X server if a slave
+			     device is detached, and master pointers may also represent dependent
+			     touch devices."  */
+
+		          if device.is_null () || (*device).r#use == XIMasterPointer  // C 24793
+		            { break 'xi_other; }                                   // C 24794 (`goto XI_OTHER`)
+
+		          if !xi_find_touch_point (device, (*xev).detail).is_null ()  // C 24796
+		            { emacs_abort (); }                                    // C 24797
+
+		          f = x_window_to_frame (dpyinfo, (*xev).event);           // C 24799
+
+		          /* "See the comment above x_compute_root_window_offset for why this
+			     optimization is performed."  */
+		          if !f.is_null ()                                         // C 24801
+		            { xi_compute_root_window_offset (f, xev); }            // C 24804
+
+		          /* C 24806-24822's `#ifdef HAVE_GTK3`.  */
+#[cfg (feature = "have_gtk3")]
+		          {
+		            menu_bar_p = !f.is_null ()                             // C 24807-24808
+		              && !(*FRAME_X_OUTPUT! (f)).menubar_widget.is_null ()
+		              && xg_event_is_for_menubar (f, event);
+		            if !f.is_null () && !(*FRAME_X_OUTPUT! (f)).toolbar_widget.is_null ()  // C 24809
+		              {
+		                let scale: c_int = xg_get_scale (f);               // C 24811
+
+		                let mut test_rect: GdkRectangle = std::mem::zeroed ();  // C 24813
+		                test_rect.x = ((*xev).event_x / scale as c_double) as c_int;  // C 24814
+		                test_rect.y = ((*xev).event_y / scale as c_double) as c_int;  // C 24815
+		                test_rect.width = 1;                               // C 24816
+		                test_rect.height = 1;                              // C 24817
+
+		                tool_bar_p = gtk_widget_intersect ((*FRAME_X_OUTPUT! (f)).toolbar_widget,  // C 24819-24820
+							   &raw const test_rect, std::ptr::null_mut ());
+		              }
+		          }
+
+		          /* C 24824-24889's `#ifndef HAVE_EXT_TOOL_BAR`: "Is this a touch from a
+			     direct touch device that is in the tool-bar?"  */
+#[cfg (not (feature = "have_ext_tool_bar"))]
+		          {
+		            if (*device).direct_p                                  // C 24827
+		              && WINDOWP ((*f).tool_bar_window)                    // C 24828
+		              && WINDOW_TOTAL_LINES (XWINDOW ((*f).tool_bar_window)) != 0  // C 24829
+		              {
+		                let mut window: Lisp_Object;                       // C 24831
+		                let x: c_int = (*xev).event_x as c_int;            // C 24832
+		                let y: c_int = (*xev).event_y as c_int;            // C 24833
+
+		                window = window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (),  // C 24835
+					       true, true, true);
+		                /* "Ignore button release events if the mouse wasn't previously
+			           pressed on the tool bar.  We do this because otherwise selecting
+			           some text with the mouse and then releasing it on the tool bar
+			           doesn't stop selecting text, since the tool bar eats the button
+			           up event."  */
+		                tool_bar_p = EQ (window, (*f).tool_bar_window);    // C 24843
+
+		                /* "If this touch has started in the tool bar, do not send it to
+			           Lisp.  Instead, simulate a tool bar click, releasing it once it
+			           goes away."  */
+
+		                if tool_bar_p                                 // C 24849
+		                  {
+		                    /* "Call note_mouse_highlight on the tool bar item.  Otherwise,
+			               get_tool_bar_item will return 1.  This is not necessary when
+			               mouse-highlight is nil."  */
+
+		                    if !NILP (Vmouse_highlight)               // C 24858
+		                      {
+		                        note_mouse_highlight (f, x, y);      // C 24860
+
+		                        /* "Always allow future mouse motion to update the mouse
+			                   highlight, no matter where it is."  */
+		                        memset (&raw mut (*dpyinfo).last_mouse_glyph as *mut c_void, 0,  // C 24865-24866
+						core::mem::size_of_val (&(*dpyinfo).last_mouse_glyph));
+		                        (*dpyinfo).last_mouse_glyph_frame = f;  // C 24867
+		                      }
+
+		                    handle_tool_bar_click_with_device (f, x, y, true, 0,  // C 24870-24872
+						       if !source.is_null () { (*source).name } else { Qt () });
+
+		                    /* "Flush any changes made by that to the front buffer."  */
+		                    x_flush_dirty_back_buffer_on (f);         // C 24876
+
+		                    /* "Record the device and the touch ID on the frame.  That way,
+			               Emacs knows when to dismiss the tool bar click later."  */
+
+		                    (*FRAME_OUTPUT_DATA! (f)).tool_bar_touch_device  // C 24882-24883
+		                      = (*device).device_id;
+		                    (*FRAME_OUTPUT_DATA! (f)).tool_bar_touch_id = (*xev).detail;  // C 24884
+
+		                    break 'xi_other;                          // C 24886 (`goto XI_OTHER`)
+		                  }
+		              }
+		          }
+
+		          /* C 24925-24933's `#ifndef HAVE_GTK3` turns C's `else if` into the `else` of
+			     the branch above only when GTK 3 is off, so the port computes that
+			     branch's outcome and tests it (Decision 2 item 2's computed-value
+			     shape, the `did_xkb`/`in_hl_window` precedent).  */
+		          let mut touch_handled: bool = false;
+
+		          if !menu_bar_p && !tool_bar_p                          // C 24891
+		            {
+		              if !f.is_null () && (*device).direct_p             // C 24893
+		                {
+		                  *finish = X_EVENT_DROP;                        // C 24895
+
+		                  x_catch_errors ((*dpyinfo).display);           // C 24897
+
+		                  if x_input_grab_touch_events                   // C 24899
+		                    { XIAllowTouchEvents ((*dpyinfo).display,     // C 24900-24903
+						  (*xev).deviceid,
+						  (*xev).detail, (*xev).event,
+						  XIAcceptTouch); }
+
+		                  if !x_had_errors_p ((*dpyinfo).display)         // C 24905
+		                    {
+		                      local_detail                               // C 24907-24910
+		                        = xi_link_touch_point (device, (*xev).detail,
+						       (*xev).event_x,
+						       (*xev).event_y, f);
+
+		                      input_event_bits! (kind, &raw mut inev.ie, TOUCHSCREEN_BEGIN_EVENT);  // C 24912
+		                      inev.ie.timestamp = (*xev).time;           // C 24913
+		                      XSETFRAME! (inev.ie.frame_or_window, f);   // C 24914
+		                      XSETINT! (inev.ie.x, lrint ((*xev).event_x) as EMACS_INT);  // C 24915
+		                      XSETINT! (inev.ie.y, lrint ((*xev).event_y) as EMACS_INT);  // C 24916
+		                      XSETINT! (inev.ie.arg, local_detail);      // C 24917
+
+		                      if !source.is_null ()                      // C 24919
+		                        { inev.ie.device = (*source).name; }     // C 24920
+		                    }
+
+		                  x_uncatch_errors ();                           // C 24923
+		                  touch_handled = true;
+		                }
+#[cfg (not (feature = "have_gtk3"))]
+		              if !touch_handled && x_input_grab_touch_events   // C 24926
+		                {
+		                  x_ignore_errors_for_next_request (dpyinfo, 0);  // C 24928
+		                  XIAllowTouchEvents ((*dpyinfo).display, (*xev).deviceid,  // C 24929-24930
+					      (*xev).detail, (*xev).event, XIRejectTouch);
+		                  x_stop_ignoring_errors (dpyinfo);              // C 24931
+		                }
+		            }
+		          else
+		            {
+		              /* C 24937-24946's `#ifdef HAVE_GTK3`.  */
+#[cfg (feature = "have_gtk3")]
+		              {
+		                let was_waiting_for_input: bool = waiting_for_input! ();  // C 24938
+		                /* "This hack was adopted from the NS port.  Whether or not it is
+			           actually safe is a different story altogether."  */
+		                if waiting_for_input! ()                   // C 24942
+		                  { waiting_for_input! () = false; }       // C 24943
+		                set_frame_menubar (f, true);               // C 24944
+		                waiting_for_input! () = was_waiting_for_input;  // C 24945
+		              }
+		            }
+
+		          break 'xi_other;                                     // C 24949 (`goto XI_OTHER`)
 		        }
 
 		      /* C 25190-25191's inner `default: goto XI_OTHER;` - the stand-in until that arm
