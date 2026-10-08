@@ -541,6 +541,14 @@ and `XI_PropertyEvent` (C 24644-24645, a two-line arm).  The slice also retires 
 row's memset family: the port's fourth `memset` lands here, so C's four call sites and the port's
 now agree and that row drops out of `--check` (three rows -> two).
 
+Slice 133 (C 24647-24774, Decision 145) lands `XI_HierarchyChanged` and `XI_DeviceChanged`: the
+loop over `XIHierarchyEvent.info` with its three flag branches (`XIDeviceEnabled`,
+`XIDeviceDisabled`, the `XISlaveDetached`/`XISlaveAttached` pair), the `xi_disable_devices` flush,
+the `XIQueryDevice`/`XIFreeDeviceInfo` pairs, and the `xi_handle_focus_change` recomputation C gates
+on `!USE_X_TOOLKIT && (!USE_GTK || HAVE_GTK3)`.  The four `XIHierarchyInfo.flags` values join the
+unit's XI2 vocabulary (XI2.h 115-118), and `--check`'s token list goes 71 -> 70: the port now
+mentions `x_uncatch_errors`.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6277,6 +6285,39 @@ expected direction once the file starts carrying records the X11 headers would s
 * **Not claimed.**  No runtime evidence, as everywhere in this lane; the readings are the six arms
   of the table below (both sides) and `--check`'s two rows.  The next slice takes C 24647 onwards
   (`XI_HierarchyChanged`).
+
+### 145. Slice 133 (C 24647-24774): `XI_HierarchyChanged` and `XI_DeviceChanged`
+
+* **What it lands.**  C 24647-24754's `XI_HierarchyChanged` (the three locals, the
+  `SAFE_NALLOCA` for `disabled`, the `for` over `hev->info`, the `XIDeviceEnabled` branch with its
+  early `xi_disable_devices` flush, the duplicate-device check with `XIQueryDevice`/`xrealloc`/
+  `xi_populate_device_from_info`/`XIFreeDeviceInfo`, the `XIDeviceDisabled` branch's
+  `disabled[n_disabled++]` and the detached/attached branch's `use`/`attachment` update, the
+  trailing flush and C's gated `xi_handle_focus_change`) and C 24756-24774's `XI_DeviceChanged`
+  (the `XIDeviceChangedEvent` cast, the device lookup, the `!device` exit and
+  `xi_handle_device_changed`).  The four `flags` values this arm tests - `XISlaveAttached`,
+  `XISlaveDetached`, `XIDeviceEnabled`, `XIDeviceDisabled` - join the unit's XI2 block
+  (XI2.h 115-118, measured on this machine's header).
+* **Between the first measurement and the last: three transcription slips the readings caught.**
+  The first pass read `E0658` *ergonomic clones are experimental* on `(*device).use = (*info).use;`
+  - `use` is a Rust keyword, and this file's own spelling is `r#use` (line 6010's
+  `(*xi_device).r#use = (*device).r#use;`) - plus `E0608` (a raw pointer takes no subscript:
+  `*disabled.offset (n_disabled as isize) = ...` is this file's shape) and `E0277` (the
+  `size_of_val * num_devices` product needs one width before its `as usize`).  The reading that
+  caught them is in this slice's evidence, and the arm's numbers below are the corrected ones.
+* **The `xrealloc` pre-increment.**  C 24698-24700's `(sizeof *dpyinfo->devices
+  * ++dpyinfo->num_devices)` is the `x_cache_xi_devices` shape (this file 6135): the port writes
+  the increment as its own statement above the call, so the value C passes is the count the
+  increment makes.
+* **What `--check` reads.**  Two rows - the long `handle_one_xevent` row, whose token list goes
+  **71 -> 70** (the port now mentions `x_uncatch_errors`, which this arm calls), and
+  `x_get_wm_check_window does not mention false`.  The unit's line-count drift (14.4% against C's
+  33,125) is inside the row `docs/ports/line-drift-tolerance.tsv` already carries for `xterm`
+  (0.20, appended at slice 116), so no drift row appears; the unit is **37,908 lines** (+151), md5
+  `087bc71268f1b2b1d3e9df1b8106252b`.
+* **Not claimed.**  No runtime evidence, as everywhere in this lane; the readings are the six arms
+  of the table below (both sides) and `--check`'s two rows.  The next slice takes C 24776 onwards
+  (`XI_TouchBegin` under `HAVE_XINPUT2_2`).
 
 ## Evidence
 
@@ -12631,3 +12672,34 @@ filter shape already reads.  No warning moved in any arm.
 
 **Not claimed**: no runtime evidence; the readings are the six arm compiles (both sides), the
 per-arm message diff and `--check`'s two rows (the memset family retired here).
+
+### Slice 133's readings (C 24647-24774), as landed and measured (2026-10-08)
+
+`XI_HierarchyChanged` and `XI_DeviceChanged`.  Six arms, both sides, one probe root per side.
+
+| arm | baseline | slice 133 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| XI2 `A +have_xinput2` | 1329 / 88 | **1342 / 89** | **+13 / +1** |
+| UGX `XI2 +use_toolkit_scroll_bars +use_gtk` | 1390 / 89 | **1402 / 90** | **+12 / +1** |
+| AIUX `XI2 +have_x_i18n +use_gtk` | 1463 / 87 | **1475 / 88** | **+12 / +1** |
+| XI21W `XI2 +have_xinput2_1 +have_xinput2_2 +have_xwidgets` | 1410 / 89 | **1423 / 90** | **+13 / +1** |
+| ULI2 `A +use_x_toolkit +use_lucid +have_xinput2` | 1421 / 87 | **1433 / 88** | **+12 / +1** |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`a8a3d3e9`, slice 132).  The
+plain arm reads a zero delta (the arms are inside C 22240's gate).
+
+| grew | of which |
+| --- | --- |
+| the thirteen rows of the `XI2`/`XI21W` column | `XIHierarchyEvent` x2 (C 24649's declaration and C 24656's cast), `XIDeviceChangedEvent` x2 (C 24758/C 24761), `XIQueryDevice` x2 (C 24690, C 24718), `XIFreeDeviceInfo` x2 (C 24708, C 24735), `xi_disable_devices` x2 (C 24669, C 24742), `XIDeviceInfo` (C 24650), `xi_handle_focus_change` (C 24750) and `xi_handle_device_changed` (C 24772) |
+| the twelve of `UGX`/`AIUX`/`ULI2` | the same list less `xi_handle_focus_change`: C 24744's gate (`!USE_X_TOOLKIT && (!USE_GTK || HAVE_GTK3)`) is closed in those three arms, so C 24749-24750 is not compiled there |
+| the one warning | C's own parentheses around the `xrealloc` size expression (C 24698-24700); this file keeps C's grouping, the `unnecessary parentheses around function argument` reading the lane already carries elsewhere |
+
+**Every error row is a registered class**: the four XInput2 types are Decision 15's bare names, the
+four entry points (`XIQueryDevice`, `XIFreeDeviceInfo`, `xi_disable_devices`,
+`xi_handle_device_changed`) and `xi_handle_focus_change` are the owed `xi_*` family (this file
+already calls `xi_handle_focus_change` at 24520 in a function that is text no arm compiles).  No
+other warning moved in any arm.
+
+**Not claimed**: no runtime evidence; the readings are the six arm compiles (both sides), the
+per-arm message diff, `--check`'s two rows and its token list (71 -> 70).

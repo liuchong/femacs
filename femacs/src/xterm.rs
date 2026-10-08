@@ -998,6 +998,15 @@ pub const XI_PropertyEvent: c_int = 12;        // XI2.h 202
 pub const XI_RawKeyPress: c_int = 13;          // XI2.h 203
 #[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XI_LASTEVENT: c_int = 32;            // XI2.h 223 = XI_GestureSwipeEnd (222)
+/// XI2.h 115-118: the four `XIHierarchyInfo.flags` bits C 24662-24714 tests.
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XISlaveAttached: c_int = 1 << 4;     // XI2.h 115
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XISlaveDetached: c_int = 1 << 5;     // XI2.h 116
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XIDeviceEnabled: c_int = 1 << 6;     // XI2.h 117
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XIDeviceDisabled: c_int = 1 << 7;    // XI2.h 118
 /// C's `<X11/extensions/XInput2.h>` 181-184: `#define XISetMask(ptr, event) (((unsigned char*)
 /// (ptr))[(event)>>3] |= (1 << ((event) & 7)))`, `#define XIMaskIsSet(ptr, event)
 /// (((unsigned char*)(ptr))[(event)>>3] & (1 << ((event) & 7)))` and
@@ -36777,6 +36786,148 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		      /* C 24644's `case XI_PropertyEvent:` - a two-line arm.  */
 		      XI_PropertyEvent =>
 		        { break 'xi_other; }                                   // C 24645 (`goto XI_OTHER`)
+
+		      /* C 24647's `case XI_HierarchyChanged:`.  C's `#if !defined USE_X_TOOLKIT &&
+			 (!defined USE_GTK || defined HAVE_GTK3)` (C 24653) guards `any_changed` and the
+			 focus recomputation that closes the arm.  */
+		      XI_HierarchyChanged =>
+		        {
+		          let mut hev: *mut XIHierarchyEvent;                 // C 24649
+		          let mut info: *mut XIDeviceInfo;                    // C 24650
+		          let mut i: c_int;                                   // C 24651
+		          let mut ndevices: c_int;
+		          let mut n_disabled: c_int;
+		          let mut disabled: *mut c_int;
+		          let mut device: *mut xi_device_t;                   // C 24652
+		          /* C 24653-24655's gate.  */
+#[cfg (all (not (feature = "use_x_toolkit"),
+	    any (not (feature = "use_gtk"), feature = "have_gtk3")))]
+		          let mut any_changed: bool = false;                  // C 24654
+		          hev = xi_event as *mut XIHierarchyEvent;            // C 24656
+		          SAFE_NALLOCA! (sa_avail, disabled, 1, (*hev).num_info);  // C 24657
+		          n_disabled = 0;                                     // C 24658
+
+		          i = 0;                                              // C 24660
+		          while i < (*hev).num_info                           // C 24660
+		            {
+		              if (*hev).info[i as usize].flags & XIDeviceEnabled != 0  // C 24662
+		                {
+		                  /* "Handle all disabled devices now, to prevent things happening
+			             out-of-order later."  */
+
+		                  if n_disabled != 0                          // C 24667
+		                    {
+		                      xi_disable_devices (dpyinfo, disabled, n_disabled);  // C 24669
+		                      n_disabled = 0;                         // C 24670
+
+		                      /* C 24673-24676: "This flag really just means that disabled
+			                 devices were handled early and should be used in
+			                 conjunction with n_disabled."  */
+#[cfg (all (not (feature = "use_x_toolkit"),
+	    any (not (feature = "use_gtk"), feature = "have_gtk3")))]
+		                      { any_changed = true; }                 // C 24676
+		                    }
+
+		                  /* "Under unknown circumstances, multiple XIDeviceEnabled events
+			             are sent at once, causing the device to be duplicated.  Check
+			             that the device doesn't exist before adding it."  */
+
+		                  if xi_device_from_id (dpyinfo, (*hev).info[i as usize].deviceid).is_null ()  // C 24686-24687
+		                    {
+		                      x_catch_errors ((*dpyinfo).display);    // C 24689
+		                      info = XIQueryDevice ((*dpyinfo).display,  // C 24690-24692
+						    (*hev).info[i as usize].deviceid,
+						    &raw mut ndevices);
+		                      x_uncatch_errors ();                    // C 24693
+
+		                      if !info.is_null () && (*info).enabled != 0  // C 24695
+		                        {
+		                          /* C 24698-24700's `sizeof *dpyinfo->devices
+			                     * ++dpyinfo->num_devices`: C's inline pre-increment is
+			                     the statement above the call (the value C passes is the
+			                     count the increment makes - the `x_cache_xi_devices`
+			                     shape at this file 6135).  */
+		                          (*dpyinfo).num_devices += 1;
+		                          (*dpyinfo).devices
+			                    = xrealloc ((*dpyinfo).devices as *mut c_void,
+						(core::mem::size_of_val (&(*dpyinfo).devices)
+						 * ((*dpyinfo).num_devices as usize))) as *mut xi_device_t;
+		                          memset ((*dpyinfo).devices.offset (((*dpyinfo).num_devices - 1) as isize) as *mut c_void, 0,  // C 24701-24702
+					  core::mem::size_of_val (&(*dpyinfo).devices));
+		                          device = (*dpyinfo).devices.offset (((*dpyinfo).num_devices - 1) as isize);  // C 24703
+		                          xi_populate_device_from_info (dpyinfo, device, info);  // C 24704
+		                        }
+
+		                      if !info.is_null ()                    // C 24707
+		                        { XIFreeDeviceInfo (info); }         // C 24708
+		                    }
+		                }
+		              else if (*hev).info[i as usize].flags & XIDeviceDisabled != 0  // C 24711
+		                {
+		                  /* C 24712's `disabled[n_disabled++]`: the post-increment is the
+			             statement C's subscript performs it in.  */
+		                  *disabled.offset (n_disabled as isize) = (*hev).info[i as usize].deviceid;
+		                  n_disabled += 1;
+		                }
+		              else if (*hev).info[i as usize].flags & XISlaveDetached != 0  // C 24713
+		                || (*hev).info[i as usize].flags & XISlaveAttached != 0  // C 24714
+		                {
+		                  device = xi_device_from_id (dpyinfo, (*hev).info[i as usize].deviceid);  // C 24716
+		                  x_catch_errors ((*dpyinfo).display);      // C 24717
+		                  info = XIQueryDevice ((*dpyinfo).display, (*hev).info[i as usize].deviceid,  // C 24718-24719
+						&raw mut ndevices);
+		                  x_uncatch_errors ();                      // C 24720
+
+		                  if !info.is_null ()                       // C 24722
+		                    {
+		                      if !device.is_null ()                 // C 24724
+		                        {
+		                          (*device).r#use = (*info).r#use;  // C 24726
+		                          (*device).attachment = (*info).attachment;  // C 24727
+		                        }
+
+		                      /* "device could have been disabled by now.  But instead of
+			                 removing it immediately, wait for XIDeviceDisabled, or
+			                 internal state could be left inconsistent."  */
+
+		                      XIFreeDeviceInfo (info);              // C 24735
+		                    }
+		                }
+		              i += 1;                                       // C 24660
+		            }
+
+		          /* "Delete all devices that were disabled by this event."  */
+		          xi_disable_devices (dpyinfo, disabled, n_disabled);  // C 24742
+
+		          /* C 24745-24748's gate: "If the device hierarchy has been changed, recompute
+			     focus.  This might seem like a micro-optimization but it actually keeps the
+			     focus from changing in some cases where it would be undesierable."  */
+#[cfg (all (not (feature = "use_x_toolkit"),
+	    any (not (feature = "use_gtk"), feature = "have_gtk3")))]
+		          if any_changed || n_disabled != 0                    // C 24749
+		            { xi_handle_focus_change (dpyinfo); }               // C 24750
+
+		          break 'xi_other;                                     // C 24753 (`goto XI_OTHER`)
+		        }
+
+		      /* C 24756's `case XI_DeviceChanged:`.  */
+		      XI_DeviceChanged =>
+		        {
+		          let mut device_changed: *mut XIDeviceChangedEvent;    // C 24758
+		          let mut device: *mut xi_device_t;                     // C 24759
+
+		          device_changed = xi_event as *mut XIDeviceChangedEvent;  // C 24761
+		          device = xi_device_from_id (dpyinfo, (*device_changed).deviceid);  // C 24762
+
+		          /* "If the device isn't enabled, then stop handling this event.  A
+			     HierarchyChanged event will be sent if it is enabled afterwards."  */
+		          if device.is_null ()                                 // C 24767
+		            { break 'xi_other; }                               // C 24768 (`goto XI_OTHER`)
+
+		          /* "Now handle the event by retrieving scroll valuators and touch info."  */
+		          xi_handle_device_changed (dpyinfo, device, device_changed);  // C 24772
+		          break 'xi_other;                                     // C 24773 (`goto XI_OTHER`)
+		        }
 
 		      /* C 25190-25191's inner `default: goto XI_OTHER;` - the stand-in until that arm
 			 lands, and the reason no arm falls into the block below.  */

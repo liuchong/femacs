@@ -17812,3 +17812,31 @@
   ⑦ **预算与清理**：本片 rustc 约 **22 发**（六臂首发 + 两轮定点修复复测 + 基线四臂 + `rustfmt --check` 复核；每次 17-24 秒，单文件 `--emit=metadata`），
      无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s132`、`/tmp/f132.rs`。
      **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片从 C 24647 起（`XI_HierarchyChanged`，其真身也不短）。
+
+- **4.052 `src/xterm.c` round 109（xterm lane，slice 133）：`XI_HierarchyChanged` 与 `XI_DeviceChanged`（C 24647-24774）落地，`--check` token 清单 71 → 70（2026-10-08）**：
+  ① **本片落的文本**：`XI_HierarchyChanged`（C 24647-24754：三个局部量、`disabled` 的 `SAFE_NALLOCA`、对 `hev->info` 的循环、
+     `XIDeviceEnabled` 支及其提前的 `xi_disable_devices` 冲刷、重复设备检查里的 `XIQueryDevice`/`xrealloc`/`xi_populate_device_from_info`/`XIFreeDeviceInfo`、
+     `XIDeviceDisabled` 支的 `disabled[n_disabled++]`、detached/attached 支的 `use`/`attachment` 更新、收尾冲刷与 C 在 `!USE_X_TOOLKIT && (!USE_GTK || HAVE_GTK3)`
+     门下的 `xi_handle_focus_change`）与 `XI_DeviceChanged`（C 24756-24774：`XIDeviceChangedEvent` 转型、设备查找、`!device` 出口、
+     `xi_handle_device_changed`）。本臂测的四个 `flags` 值（`XISlaveAttached`/`XISlaveDetached`/`XIDeviceEnabled`/`XIDeviceDisabled`）并入本单元 XI2 词表
+     （XI2.h 115-118，本机头文件实测）。
+  ② **两侧读数之间修掉三处转写失误（读数当场抓到的）**：首测在 `(*device).use = (*info).use;` 上读 `E0658 ergonomic clones are experimental`——
+     `use` 是 Rust 关键字，本文件自己的拼法是 `r#use`（6010 行 `(*xi_device).r#use = (*device).r#use;`）；另有 `E0608`（裸指针不能用下标：
+     `*disabled.offset (n_disabled as isize) = ...` 才是本文件形状）与 `E0277`（`size_of_val * num_devices` 的乘积要先统一宽度再 `as usize`）。
+     证据就在本片读数里，下表数字是修正后的。
+  ③ **`xrealloc` 的前置自增**：C 24698-24700 的 `(sizeof *dpyinfo->devices * ++dpyinfo->num_devices)` 是 `x_cache_xi_devices`（本文件 6135）的形状——
+     端口把自增写成调用之上的一条语句，C 传的值就是自增后的计数。
+  ④ **读数（六臂，两侧都在本修订测，同一根 `_root.rs`；baseline = HEAD `a8a3d3e9`）**：A 1174/83 → **1174/83**（0/0，臂在 C 22240 门内）、
+     XI2 1329/88 → **1342/89**（+13/+1）、UGX 1390/89 → **1402/90**（+12/+1）、AIUX 1463/87 → **1475/88**（+12/+1）、
+     XI21W 1410/89 → **1423/90**（+13/+1）、ULI2 1421/87 → **1433/88**（+12/+1）。
+     +13 行是：`XIHierarchyEvent`×2（C 24649 声明与 C 24656 转型）、`XIDeviceChangedEvent`×2（C 24758/24761）、`XIQueryDevice`×2（C 24690/24718）、
+     `XIFreeDeviceInfo`×2（C 24708/24735）、`xi_disable_devices`×2（C 24669/24742）、`XIDeviceInfo`（C 24650）、`xi_handle_focus_change`（C 24750）、
+     `xi_handle_device_changed`（C 24772）；UGX/AIUX/ULI2 少的那 1 行正是 `xi_handle_focus_change`（C 24744 的门在带工具链/GTK2 的臂里是关的 ⇒ C 24749-24750 不编译）。
+     唯一 warning 是 C 自己在 `xrealloc` 尺寸表达式外写的括号（本文件保留 C 的分组，这条读数 lane 里已有先例）。所有错误行都在已登记类（四个 XInput2 类型是 Decision 15 的裸名，
+     四个入口点与 `xi_handle_focus_change` 是欠账的 `xi_*` 家族——本文件 24520 早已调用 `xi_handle_focus_change`，那段文本任何臂都不编译）。
+  ⑤ **台账与门**：`docs/ports/xterm.md` 加 Decision **145** 与 `### Slice 133's readings`；`--check` **两行**，长行 token 清单 **71 → 70**
+     （端口现在提到 `x_uncatch_errors`——本臂调用它），行数漂移 14.4% 落在 `docs/ports/line-drift-tolerance.tsv` 早已为 `xterm` 声明的 0.20 行内（slice 116 追加），
+     所以没有漂移行；单元 **37,908 行**（+151），md5 `087bc71268f1b2b1d3e9df1b8106252b`。
+  ⑥ **预算与清理**：本片 rustc 约 **20 发**（六臂首发 + 3 处修复后 3 臂复测 + 基线六臂 + `rustfmt --check` 复核；每次 17-24 秒，单文件 `--emit=metadata`），
+     无全盘/大内存扫描；收尾删 `build/probes/xterm`、`/tmp/xterm-probe`、`/tmp/s133`、`/tmp/f133.rs`、`/tmp/s133arms.py`。
+     **未声称**：无运行证据——本 lane 不链接，generic 事件一次也没到过。下一片从 C 24776 起（`HAVE_XINPUT2_2` 下的 `XI_TouchBegin`）。
