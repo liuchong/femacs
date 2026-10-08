@@ -2223,3 +2223,110 @@ DEFUN! ("android-frame-edges", Fandroid_frame_edges, Sandroid_frame_edges,
   return Qnil ();                                                  // C 1702
   }
 });
+
+/* C 1705-1800: `android_frame_list_z_order` under C 1706's `#ifndef ANDROID_STUBIFY` (C 1706-1743),
+   the `DEFUN` that calls it (C 1745-1778) and `android_frame_restack` under C 1780's
+   `#ifndef ANDROID_STUBIFY` (C 1780-1800, C's `#endif /* !ANDROID_STUBIFY */`).  */
+
+/* C 1706's `#ifndef ANDROID_STUBIFY` around the static helper; the `#endif` is C 1743.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_frame_list_z_order (dpyinfo: *mut android_display_info,
+				      window: android_window) -> Lisp_Object
+{                                                              // C 1708-1741
+  /* C 1712-1714 declare these five with no initialiser; C 1719 fills the four out parameters
+     and C 1722 assigns `i`, so the port zero-initialises the four (PORTING.md 1.5, the same
+     reading slice 3's probe gave).  */
+  let mut root: android_window = 0;                               // C 1712
+  let mut parent: android_window = 0;
+  let mut children: *mut android_window = std::ptr::null_mut ();
+  let mut nchildren: c_uint = 0;                                  // C 1713
+  let mut i: c_ulong;                                             // C 1714
+  let mut frames: Lisp_Object;                                    // C 1715
+
+  frames = Qnil ();                                               // C 1717
+
+  /* C tests the `int` result as a truth value; Rust needs the comparison (PROBE reading: the
+     bare form is `E0308`, expected `bool`).  */
+  if android_query_tree (window, &raw mut root, &raw mut parent,   // C 1719
+			 &raw mut children, &raw mut nchildren) != 0
+    {
+      /* C's `for (i = 0; i < nchildren; i++)` is the while-with-its-increment-at-the-end the
+	 mirror's `FOR_EACH_FRAME!` documents (`docs/ports/macro-body-notes.tsv`); the body has no
+	 `continue`, so the increment still runs exactly where C's does.  */
+      i = 0;                                                      // C 1722
+      while i < nchildren as c_ulong
+	{
+	  let mut frame: Lisp_Object;                             // C 1724
+	  let mut tail: Lisp_Object;
+
+	  FOR_EACH_FRAME! (tail, frame, {                         // C 1726
+	      let cf: *mut frame = XFRAME (frame);                // C 1728
+
+	      if FRAME_ANDROID_P (cf)                             // C 1730
+		  && FRAME_ANDROID_WINDOW! (cf) == *children.offset (i as isize)   // C 1731
+		{ frames = Fcons (frame, frames); }               // C 1732
+	  });
+	  i += 1;
+	}
+
+      if ! children.is_null ()                                    // C 1736
+	{ xfree (children as *mut c_void); }                      // C 1737
+    }
+
+  return frames;                                                  // C 1740
+}
+
+/* C 1745-1778.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-frame-list-z-order", Fandroid_frame_list_z_order,
+	 Sandroid_frame_list_z_order,
+	 0, 1, 0,
+	 doc: "Return list of Emacs's frames, in Z (stacking) order.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be either a frame or a display name (a string).  If\nomitted or nil, that stands for the selected frame's display.  Return\nnil if TERMINAL contains no Emacs frame.\n\nAs a special case, if TERMINAL is non-nil and specifies a live frame,\nreturn the child frames of that frame in Z (stacking) order.\n\nFrames are listed from topmost (first) to bottommost (last).\n\nOn Android, the order of the frames returned is undefined unless\nTERMINAL is a frame.  ",
+	 (terminal: Lisp_Object),
+	 {
+  /* C 1762-1764: `#ifdef ANDROID_STUBIFY`.  */
+  #[cfg (not (feature = "not_android_stubify"))]
+  {
+    error (c"Android cross-compilation stub called!".as_ptr ());  // C 1763
+    return Qnil ();                                               // C 1764
+  }
+
+  /* C 1765-1777: the `#else` arm.  */
+  #[cfg (feature = "not_android_stubify")]
+  {
+  let mut dpyinfo: *mut android_display_info;                     // C 1766
+  let mut window: android_window;                                 // C 1767
+
+  dpyinfo = check_android_display_info (terminal);                // C 1769
+
+  if FRAMEP (terminal) && FRAME_LIVE_P (XFRAME (terminal))         // C 1771
+    { window = FRAME_ANDROID_WINDOW! (XFRAME (terminal)); }        // C 1772
+  else
+    { window = (*dpyinfo).root_window; }                           // C 1774
+
+  return android_frame_list_z_order (dpyinfo, window);             // C 1776
+  }
+});
+
+/* C 1780's `#ifndef ANDROID_STUBIFY` around `android_frame_restack`; C's own `#endif` marker for
+   that block sits at C 1800, and its trailing comment names the negated macro.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_frame_restack (f1: *mut frame, f2: *mut frame, above_flag: bool)
+{                                                              // C 1782-1798
+  let mut window1: android_window;                                // C 1786
+  let mut wc: android_window_changes = std::mem::zeroed ();       // C 1787
+  let mut mask: c_ulong;                                          // C 1788
+
+  window1 = FRAME_ANDROID_WINDOW! (f1);                           // C 1790
+  wc.sibling = FRAME_ANDROID_WINDOW! (f2);                        // C 1791
+  wc.stack_mode = if above_flag { ANDROID_ABOVE } else { ANDROID_BELOW };   // C 1792
+  /* C's `mask` is `unsigned long` and the two constants are `enum android_wc_value_mask` (an
+     `int`), so C widens at this assignment and narrows again at C 1796's call; the two casts are
+     those two conversions spelled out.  */
+  mask = (ANDROID_CW_SIBLING | ANDROID_CW_STACK_MODE) as c_ulong;  // C 1793
+
+  block_input ();                                                 // C 1795
+  android_reconfigure_wm_window (window1, mask as android_wc_value_mask,   // C 1796
+				 &raw mut wc);
+  unblock_input ();                                               // C 1797
+}

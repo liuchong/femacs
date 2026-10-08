@@ -7,8 +7,8 @@
 > checkbox sections cannot be coverage evidence (P-86 ②).  What follows is P-86 ②'s substitute: the
 > **C line-range table**, the `## Evidence` readings and the `## Deviations`.
 > Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), **slice 2 = C
-> 1216-1489** (1,994 Rust lines) and **slice 3 = C 1490-1704** (2,225 Rust lines), both arms of
-> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines) and **slice 4 = C
+> 1705-1800** (2,332 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -108,7 +108,10 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 1490-1624 | C 1491's `#ifndef ANDROID_STUBIFY` plus `frame_geometry` (C 1510-1512 the early return, C 1520-1553 the parent / no-parent split, C 1585-1621 the attribute list) | real arm |
 | 1625-1675 | C 1626's `DEFUN ("android-frame-geometry")`: C 1669-1671 the stub arm, C 1672-1674 the real one | file gate, both sub-arms |
 | 1676-1704 | C 1677's `DEFUN ("android-frame-edges")`: C 1696-1700 the real arm **first** (`#ifndef`), C 1701-1703 the stub one | file gate, both sub-arms |
-| 1705-3797 | not ported: the file's remaining 2,093 lines (C 1706's `#ifndef ANDROID_STUBIFY` and `android_frame_list_z_order` onward) | not ported |
+| 1705-1743 | C 1706's `#ifndef ANDROID_STUBIFY` plus `android_frame_list_z_order` (C 1722-1734 the child walk, C 1736-1737 the `xfree`) | real arm |
+| 1744-1778 | C 1745's `DEFUN ("android-frame-list-z-order")`: C 1762-1764 the stub arm, C 1765-1777 the real one | file gate, both sub-arms |
+| 1779-1800 | C 1780's `#ifndef ANDROID_STUBIFY` plus `android_frame_restack` (C 1790-1793 the four writes, C 1796 the reconfigure call) and C's own `#endif` at 1800 | real arm |
+| 1801-3797 | not ported: the file's remaining 1,997 lines (C 1802's `DEFUN ("android-frame-restack")` onward - the rest of the z-order family, the tooltips, the GC and colour helpers, the terminal hooks and `syms_of_androidfns`) | not ported |
 
 ## Evidence
 
@@ -505,4 +508,71 @@ conditions, 0 unknown, 0 disagreements [VERIFIED]`; `python3 tools/check-dead-fi
 - **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
   compiles nothing from this file (P-86 ③⑵): no frame was created, no geometry was queried, no
   attribute list was built.
+- The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
+
+## Slice 4 (2026-10-08, status 4.065 - the integrator sets the round number): C 1705-1800
+
+**The slice's text.**  `android_frame_list_z_order` under C 1706's `#ifndef ANDROID_STUBIFY`
+(C 1706-1743: the `android_query_tree` call, the per-child `FOR_EACH_FRAME` walk that compares
+`FRAME_ANDROID_WINDOW (cf)` with `children[i]`, and the `xfree`), `Fandroid_frame_list_z_order`
+(C 1745-1778, C's stub/real pair) and `android_frame_restack` under C 1780's `#ifndef
+ANDROID_STUBIFY` (C 1780-1800).  Port line count **2,225 -> 2,332** (+107).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**
+The first run of this arm set found the slice's three real errors, both of them in this slice's new
+text: `E0308` at `_root.rs` 2250 (`android_query_tree`'s `int` result used as a Rust condition) and
+`E0308` at 2323 plus the call at 2326 (`mask` is `c_ulong` locally, `ANDROID_CW_SIBLING |
+ANDROID_CW_STACK_MODE` is `c_int`, and the mirror's `android_reconfigure_wm_window` takes
+`android_wc_value_mask` = `c_int`).  With the condition spelled `!= 0` and the two C conversions cast
+(C's widening at C 1793 and C's narrowing at C 1796), the re-run reads **exit 1, exactly 4
+`error[E0609]` rows** - unchanged, still slice 1's class (`_root.rs` 707/708's `tool_bar_window`
+pair, 797/798's `tab_bar_window` pair) and **0 in this slice's text**.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings** (the same
+thirteen `include/android.rs` FFI-safety warnings as slices 2 and 3): the `DEFUN`'s stub arm
+compiles.
+
+**Evidence ③ - arm set C = A + `have_window_system`.**  **exit 0, 0 errors, 12 warnings**: the three
+new items compile against the mirror's `androidgui_decls` prototypes (`android_query_tree`,
+`android_reconfigure_wm_window`), `include/androidgui.rs`'s `android_window_changes` /
+`ANDROID_ABOVE` / `ANDROID_BELOW` / the two `ANDROID_CW_*` masks, `include/lisp.rs`'s `xfree` and
+`include/frame.rs`'s `FRAMEP` / `FRAME_LIVE_P` / `XFRAME`.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **91 rows -> 88**: the three
+closed are **1 `missing subr`** (16 -> 15: `Fandroid_frame_list_z_order`) and **2 `missing
+function`** (22 -> 20: `android_frame_list_z_order`, `android_frame_restack`).  The drift row now
+reads **`C 3797 vs Rust 2332` (38.6%)**, from 41.4%.
+
+### Deviations (this slice)
+
+1. **Two C conversions spelled out** (the probe's two `E0308` classes, Evidence ①): C 1719's
+   `if (android_query_tree (…))` becomes `!= 0` (Rust conditions are `bool`), and C 1793/1796's
+   `unsigned long mask` widening from the two `enum android_wc_value_mask` constants and narrowing
+   back at the call become `as c_ulong` / `as android_wc_value_mask`.
+2. **Four more out-parameter locals are zero-initialised** (PORTING.md 1.5): C 1712-1713's
+   `android_window root, parent, *children` and `unsigned int nchildren`, filled by C 1719's
+   `android_query_tree`.
+3. **`android_frame_restack`'s C parameter `above_flag` keeps its name and `bool` type**, and C's
+   ternary picks the `enum android_stack_mode` member as an `if` expression (C 1792).
+4. **C's `for (i = 0; i < nchildren; i++)` (C 1722) is a `while` with the increment at the body's
+   end** - the shape the mirror's `FOR_EACH_FRAME!` documents and `android_default_font_parameter`
+   already uses in this file; the body has no `continue`, so the increment runs exactly where C's
+   does (the loop-bound comparison is `i < nchildren as c_ulong`, C's `unsigned long` against
+   `unsigned int`).
+5. **One nested `FOR_EACH_FRAME!` inside that `while`** (C 1726-1733): the inner macro's list/tail
+   locals are C 1724's two `Lisp_Object`s, and the child's window is compared with
+   `*children.offset (i as isize)` (the `alloc.rs` 464 spelling of C's `children[i]`).
+
+### Owed (this slice's additions)
+
+- **The file's remainder**: C 1801-3797 - the rest of the z-order family (`android_frame_restack`'s
+  callers and C 1830's `android_frame_list_z_order`-adjacent helpers), the tooltips, the GC and
+  colour helpers, the terminal hooks and `syms_of_androidfns`.
+- Nothing new for the mirrors: every name this slice reaches is already declared by
+  `include/androidgui.rs`, `include/lisp.rs` or `include/frame.rs`.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no window tree was queried, no frame was restacked.
 - The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
