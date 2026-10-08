@@ -4181,3 +4181,131 @@ pub static mut android_frame_parm_handlers: [frame_parm_handler; 51] =
     Some (gui_set_borders_respect_alpha_background),   // C 3193
     None,                                              // C 3194
   ];
+
+/* C 3196-3357: the four battery/storage `DEFUN`s (C 3201-3309), `android_set_preeditarea`
+   (C 3318-3337), `android-recreate-activity` (C 3343-3355) and C 3357's
+   `#endif /* !ANDROID_STUBIFY */`, which closes the block C 2666 opened.  The items after it are
+   outside the `ANDROID_STUBIFY` pair, so the next slice starts at C 3361.  */
+
+/* C 3201-3239.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-query-battery", Fandroid_query_battery, Sandroid_query_battery,
+	0, 0, 0,
+	doc: "Perform a query for battery information.\nValue is nil upon failure, or a list of the form:\n\n  (CAPACITY CHARGE-COUNTER CURRENT-AVERAGE CURRENT-NOW STATUS\n   REMAINING PLUGGED TEMP)\n\nwhere REMAINING, CURRENT-AVERAGE, and CURRENT-NOW are undefined prior\nto Android 5.0.\n\nSee the documentation at\n\n  https://developer.android.com/reference/android/os/BatteryManager\n\nfor more details about these values.  ",
+	(),
+	{
+  let mut state: android_battery_state = std::mem::zeroed ();      // C 3219
+
+  /* Make sure the Android libraries have been initialized.  */     // C 3221
+
+  if !android_init_gui                                             // C 3223
+    { return Qnil (); }                                            // C 3224
+
+  /* Perform the query.  */                                        // C 3226
+
+  if android_query_battery (&raw mut state) != 0                    // C 3228
+    { return Qnil (); }                                            // C 3229
+
+  /* C's seven `make_int`/`make_fixnum` arguments: the mirror types every member `intmax_t`, so
+     only the five `make_fixnum` ones need C's implicit narrowing spelled.  */
+  return list! (make_int (state.capacity),                         // C 3231
+		make_fixnum (state.charge_counter as EMACS_INT),   // C 3232
+		make_int (state.current_average),                  // C 3233
+		make_int (state.current_now),                      // C 3234
+		make_fixnum (state.status as EMACS_INT),           // C 3235
+		make_int (state.remaining),                        // C 3236
+		make_fixnum (state.plugged as EMACS_INT),          // C 3237
+		make_fixnum (state.temperature as EMACS_INT));     // C 3238
+});
+
+/* C 3245-3265.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-request-directory-access", Fandroid_request_directory_access,
+	 Sandroid_request_directory_access,
+	 0, 0, "",
+	 doc: "Request access to a directory within external storage.\nOn Android 5.0 and later, prompt for a directory within external or\napplication storage, and grant access to it; some of these directories\ncannot be accessed through the regular `/sdcard' filesystem.\n\nIf access to the directory is granted, it will eventually appear\nwithin the directory `/content/storage'.  ",
+	 (),
+	 {
+  if android_get_current_api_level () < 21                         // C 3256
+    /* C's two adjacent literals concatenate into one.  */
+    { error (c"Emacs can only access application storage on Android 5.0 and later".as_ptr ()); }   // C 3257-3258
+
+  if !android_init_gui                                             // C 3260
+    { return Qnil (); }                                            // C 3261
+
+  android_request_directory_access ();                             // C 3263
+  return Qnil ();                                                  // C 3264
+});
+
+/* C 3271-3291.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-external-storage-available-p", Fandroid_external_storage_available_p,
+	 Sandroid_external_storage_available_p,
+	 0, 0, 0,
+	 doc: "Return non-nil if Emacs is entitled to access external storage.\nReturn nil if the requisite permissions for external storage access\nhave not been granted to Emacs, t otherwise.  Such permissions can be\nrequested by means of the `android-request-storage-access'\ncommand.\n\nExternal storage on Android encompasses the `/sdcard' and\n`/storage/emulated' directories, access to which is denied to programs\nabsent these permissions.  ",
+	 (),
+	 {
+  /* Implement a rather undependable fallback when no GUI is
+     available.  */                                                // C 3285-3286
+  if !android_init_gui                                             // C 3287
+    { return Ffile_accessible_directory_p (build_string (c"/sdcard".as_ptr ())); }   // C 3288
+
+  return if android_external_storage_available_p () { Qt () } else { Qnil () };   // C 3290
+});
+
+/* C 3293-3309.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-request-storage-access", Fandroid_request_storage_access,
+	 Sandroid_request_storage_access,
+	 0, 0, "",
+	 doc: "Request permissions to access external storage.\n\nReturn nil regardless of whether access permissions are granted or not,\nimmediately after displaying the permissions request dialog.\n\nUse `android-external-storage-available-p' (which see) to verify\nwhether Emacs has actually received such access permissions.  ",
+	 (),
+	 {
+  if !android_init_gui                                             // C 3304
+    { return Qnil (); }                                            // C 3305
+
+  android_request_storage_access ();                               // C 3307
+  return Qnil ();                                                  // C 3308
+});
+
+/* C 3318-3337.  C's is a non-`static` `void` definition, so the port carries `#[unsafe(no_mangle)]`
+   and C's ABI (PORTING.md 0.2).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_preeditarea (w: *mut window, mut x: c_int, mut y: c_int)
+{
+  let mut f: *mut frame;                                           // C 3321
+
+  f = WINDOW_XFRAME! (w);                                          // C 3323
+
+  /* Convert the window coordinates to the frame's coordinate
+     space.  */                                                    // C 3325-3326
+  x = (WINDOW_TO_FRAME_PIXEL_X! (w, x)                             // C 3327
+       + WINDOW_LEFT_FRINGE_WIDTH! (w)                             // C 3328
+       + WINDOW_LEFT_MARGIN_WIDTH! (w));                           // C 3329
+  y = WINDOW_TO_FRAME_PIXEL_Y! (w, y);                             // C 3330
+
+  /* Note that calculating the baseline is too hard, so the bottom of
+     the cursor is used instead.  */                               // C 3332-3333
+  /* C passes its `int` coordinates to a call whose parameters are `jfloat` (the mirror's `f32`),
+     so the four conversions are spelled (the header's own `androidgui.h` 840 line).  */
+  android_update_cursor_anchor_info (FRAME_ANDROID_WINDOW! (f), (x) as f32,   // C 3334
+				     (y) as f32, ((y) + (*w).phys_cursor_height) as f32,   // C 3335
+				     ((y) + (*w).phys_cursor_height) as f32);   // C 3336
+}
+
+/* C 3343-3355.  */
+#[cfg (feature = "have_android")]
+DEFUN! ("android-recreate-activity", Fandroid_recreate_activity, Sandroid_recreate_activity,
+	0, 0, "",
+	doc: "Recreate the activity attached to the current frame.\nThis function exists for debugging purposes and is of no interest to\nusers.  ",
+	(),
+	{
+  let mut f: *mut frame;                                           // C 3350
+
+  f = decode_window_system_frame (Qnil ());                        // C 3352
+  android_recreate_activity (FRAME_ANDROID_WINDOW! (f));           // C 3353
+  return Qnil ();                                                  // C 3354
+});
+
+/* C 3357: the `#endif /* !ANDROID_STUBIFY */` that closes C 2666's block.  */

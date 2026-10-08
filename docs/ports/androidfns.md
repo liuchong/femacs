@@ -12,8 +12,8 @@
 > 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines), **slice 8 = C
 > 2295-2583** (3,313 Rust lines), **slice 9 = C 2584-2662** (3,416 Rust lines), **slice 10 = C
 > 2663-2832** (3,615 Rust lines), **slice 11 = C 2833-2972** (3,826 Rust lines), **slice 12 = C
-> 2973-3063** (3,951 Rust lines) and **slice 13 = C 3064-3195** (4,183 Rust lines), both arms of
-> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 2973-3063** (3,951 Rust lines), **slice 13 = C 3064-3195** (4,183 Rust lines) and **slice 14 = C
+> 3196-3357** (4,311 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -148,7 +148,13 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 3117-3128 | `android_set_no_focus_on_map` (C 3122-3127) | real arm |
 | 3129-3140 | `android_set_no_accept_focus` (C 3134-3139) | real arm |
 | 3141-3195 | C 3142's `frame_parm_handler android_frame_parm_handlers[]` (C 3144-3194's fifty-one entries) | real arm |
-| 3196-3797 | not ported: the file's remaining 602 lines (C 3199's "Battery information support" comment and C 3201's `DEFUN ("android-query-battery")` onward) | not ported |
+| 3196-3239 | C 3199's "Battery information support" comment and C 3201's `DEFUN ("android-query-battery")` (C 3223-3224 the init test, C 3228-3229 the query, C 3231-3238 the eight-element list) | file gate |
+| 3240-3265 | C 3243's "SAF directory access management" comment and C 3245's `DEFUN ("android-request-directory-access")` (C 3256-3258 the API-level test with C's concatenated literal) | file gate |
+| 3266-3291 | C 3269's "storage permissions" comment and C 3271's `DEFUN ("android-external-storage-available-p")` (C 3285-3288 the no-GUI fallback, C 3290 the test) | file gate |
+| 3292-3309 | C 3293's `DEFUN ("android-request-storage-access")` | file gate |
+| 3310-3337 | C 3313-3316's comments and `android_set_preeditarea` (C 3323 the frame, C 3325-3330 the coordinate conversion, C 3332-3336 the anchor call) | real arm |
+| 3338-3357 | C 3341's "Debugging" comment, C 3343's `DEFUN ("android-recreate-activity")` and C 3357's `#endif /* !ANDROID_STUBIFY */` | file gate / gate marker |
+| 3358-3797 | not ported: the file's remaining 440 lines (C 3361's `#ifndef ANDROID_STUBIFY` with `syms_of_androidfns_for_pdumper` at C 3363-3577, then C 3579's `syms_of_androidfns` with its registrations) | not ported |
 
 ## Evidence
 
@@ -1198,3 +1204,64 @@ closed are **3 `missing function`** (6 -> 3: `android_set_alpha`, `android_set_n
   entry of the handler table has been called.
 - The six `E0609` rows of arm set A are not this slice's (four are slice 1's and two are slice
   11's); this slice adds none.
+
+## Slice 14 (2026-10-08, status 4.075 - the integrator sets the round number): C 3196-3357
+
+**The slice's text.**  The four battery/storage `DEFUN`s (`android-query-battery` C 3201-3239,
+`android-request-directory-access` C 3245-3265, `android-external-storage-available-p` C
+3271-3291, `android-request-storage-access` C 3293-3309), `android_set_preeditarea` (C 3318-3337),
+`android-recreate-activity` (C 3343-3355) and C 3357's `#endif /* !ANDROID_STUBIFY */`, which
+closes the block C 2666 opened.  Port line count **4,183 -> 4,311** (+128).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**  The
+first run read **9 errors**: one `E0308` in this slice's text - `android_update_cursor_anchor_info`
+takes four `jfloat` parameters (the mirror's `f32`) and C hands it `int` coordinates, so the four
+conversions are now spelled (`as f32`; androidgui.h 840) - plus **8 `E0609` rows: slice 1's four,
+slice 11's two `menu_bar_window` reads and this slice's two `w->phys_cursor_height` reads, which
+`include/window.rs` 154-157 gates on `have_window_system`** (the same class; they compile in arm
+set C).  After the cast the reading is **exit 1, exactly 8 `E0609` rows, all of one class**.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings**.  **Evidence
+③ - arm set C = A + `have_window_system`:** **exit 0, 0 errors, 13 warnings** - every line this
+slice adds is inside it.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **43 rows -> 37**: the six closed
+are **5 `missing subr`** (5 -> 0: the five `DEFUN`s above) and **1 `missing function`** (3 -> 2:
+`android_set_preeditarea`).  The drift stays inside the file's tolerance row (+13.5% against the
+0.35 the integrator table now carries).  What remains is 35 `missing defsubr` - the
+`syms_of_androidfns` registrations - and 2 `missing function` (`syms_of_androidfns_for_pdumper`
+and `syms_of_androidfns`).
+
+### Deviations (this slice)
+
+1. **The four `jfloat` conversions** of Evidence ①: C's `int` coordinates to the call's `float`
+   parameters, spelled `as f32` (C's own header spells the parameter `float`; the mirror keeps
+   `f32`).
+2. **`android_set_preeditarea` carries `#[unsafe(no_mangle)]` and C's ABI**: C's definition is
+   non-`static` (`void android_set_preeditarea (…)`), so the port exports it (PORTING.md 0.2).
+3. **`android_query_battery`'s five `make_fixnum` arguments narrow with `as EMACS_INT`**: the
+   mirror types every battery member `intmax_t`, so only C's `make_fixnum` conversions need
+   spelling (the three `make_int` ones do not).
+4. **C's concatenated literal at C 3257-3258** is one byte string in the port
+   (`c"Emacs can only access application storage on Android 5.0 and later"`).
+5. **The two `#if false` blocks C 3591-3594 and 3651-3654 are outside this slice** (they sit in
+   `syms_of_androidfns`), and C 3357's `#endif` is carried as the comment this unit writes for
+   gate markers.
+6. **`w->phys_cursor_height`'s two reads join the arm reading's `E0609` class** (Evidence ①) - the
+   field's gate is the mirror's, and the port does not invent a substitute for a struct field.
+
+### Owed (this slice's additions)
+
+- **`include/window.rs`**: `phys_cursor_height` (154-157) is behind `have_window_system`, so this
+  unit's two reads join the six sites already recorded for the same reason.
+- **The file's remainder**: C 3358-3797 (440 lines) - `syms_of_androidfns_for_pdumper` (C
+  3363-3577) and `syms_of_androidfns` (C 3579-3797), which is where the 35 `missing defsubr` rows
+  close.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no battery was queried, no permission was requested,
+  no activity was recreated, no preedit area was reported.
+- The eight `E0609` rows of arm set A are not this slice's alone (four are slice 1's, two are
+  slice 11's, two are this slice's); all eight compile in arm set C.
