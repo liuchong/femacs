@@ -584,6 +584,16 @@ branch with `XkbRefreshKeyboardMapping` and the two-way `xkb_desc` repair (`XkbG
 block), and the `break 'switch` after the arm is C's own `break` at C 25587, falling out of the
 switch towards the `OTHER:` block the port carries as the shared tail.
 
+Slice 138 (C 25268-25484, Decision 150) lands the whole `HAVE_XSHAPE` block - the `xshape_supported_p`
++ `ShapeNotify` guard, the `XShapeEvent` cast, the `XPending` loop that re-aims `xse` at a later
+ShapeNotify for the same window, and the `x_dnd_toplevels` walk that recomputes each toplevel's
+bounding and input rects in both branches (the XCB one and the `XShapeGetRectangles` one, including
+C 25426's ungated `#ifdef ShapeInput` block) - and adds this lane's **two arms for it**: `AXS` =
+`A + have_xshape` and `AXSX` = `A + use_xcb + have_xshape + have_xcb_shape +
+have_xcb_shape_input_rects`.  Compiling that text for the first time also read twelve rows of the
+port's own making in `x_dnd_compute_toplevels` (`(*tem).bounding_rects.offset (0).width` needed one
+more dereference, two `xfree` calls needed their `*mut c_void`), and all twelve are fixed here.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -6509,6 +6519,51 @@ expected direction once the file starts carrying records the X11 headers would s
   never called.  The readings are the two arms below (`AXKB` is the lane's existing arm for
   `have_xkb`).  The next slice takes C 25268 onwards, the `HAVE_XSHAPE` block.
 
+### 150. Slice 138 (C 25268-25484): the `HAVE_XSHAPE` block, two new arms, and the repair they forced
+
+* **What it lands.**  The whole `#ifdef HAVE_XSHAPE` block: the `xshape_supported_p` and
+  `ShapeNotify` guard, the `#ifndef USE_GTK` `XEvent xevent`, the `XShapeEvent *xse` cast, the
+  `XPending` loop (which re-aims `xse` at any later ShapeNotify for the same window and puts every
+  other event back), and the `x_dnd_toplevels` walk that recomputes the toplevel's bounding and
+  input rects - both branches (C 25325-25403's `HAVE_XCB_SHAPE && HAVE_XCB_SHAPE_INPUT_RECTS` one and
+  C 25404-25451's `XShapeGetRectangles` one, whose C 25426 `#ifdef ShapeInput` block is carried
+  without a gate because the port's `x11_constants` defines that selector - the C 3461 precedent) -
+  then C 25454's two common-case collapses and C 25480's `break`.
+* **Two new arms, because nothing in this lane had ever compiled this text.**  `AXS` =
+  `A + have_xshape` (reads the `XShapeGetRectangles` branch) and `AXSX` = `A + use_xcb +
+  have_xshape + have_xcb_shape + have_xcb_shape_input_rects` (reads the XCB branch, which needs
+  `use_xcb` because `xcb_connection`, the cookie/reply/iterator records and the four XCB entry
+  points all sit behind that feature in `include/xlib.rs` 869-932).  The six XCB locals of the new
+  text take that mirror's own types (`xcb_shape_get_rectangles_cookie_t`,
+  `*mut xcb_shape_get_rectangles_reply_t`, `xcb_rectangle_iterator_t`,
+  `*mut xcb_generic_error_t`), not the `*mut c_void` placeholder the 2026-10-05 round used.
+* **The repair the new arms forced on `x_dnd_compute_toplevels` (C 3431-3520's text).**  The
+  `have_xshape` arm compiles that function's XShape text for the first time, and it read twelve rows
+  that are the port's own defects rather than owed names: `(*tem).bounding_rects.offset (0).width`
+  and its seven siblings (the `offset` result is `*mut XRectangle`, so C's
+  `tem->bounding_rects[0].width` needs one more dereference) and two `xfree` calls whose
+  `*mut XRectangle` never matched `xfree`'s `*mut c_void`.  All twelve are fixed this round:
+  `(*((*tem).bounding_rects.offset (N))).field` at the twelve sites and `as *mut c_void` at the two
+  `xfree`s.  The six rows the repair retires are in the readings below.
+* **C's `int16_t` against `int` is spelled as C widens it.**  C 25471-25474 compare
+  `tem->bounding_rects[0].width` (C's `short` inside `XRectangle`) with `tem->width` (an `int`); the
+  first pass wrote the comparison bare and the reading caught six `E0308`s (four on width/height, two
+  on x/y), so the port writes `… .width as c_int == (*tem).width` - C's own promotion, the same
+  spelling the `XI_TouchUpdate` arm's `as EMACS_INT` uses in the other direction.
+* **The two `shapeconst.h` names this function has to import.**  `ShapeBounding` and `ShapeInput`
+  live in `crate::x11_constants` (`include/xlib.rs` 304 and 306) and every function that names them
+  imports them itself (`x_dnd_compute_toplevels` 3143's line is the precedent), so the non-XCB
+  branch opens with `use crate::x11_constants::{ShapeBounding, ShapeInput};`.  `ShapeNotify` is not
+  in that module (it is the extension's own event name, and the module carries only `ShapeNotifyMask`),
+  so it stays a bare name in the arm's readings.
+* **What `--check` reads.**  Two rows, unchanged: the long `handle_one_xevent` row's token list is
+  **69 -> 69** and `x_get_wm_check_window does not mention false` stays.  The unit is **38,673
+  lines** (+235), md5 `59645405b0847c078079cc365c597e35`.
+* **Not claimed.**  No runtime evidence: the frozen configuration compiles none of this file, so no
+  ShapeNotify was ever classified, no rect list was ever fetched and no toplevel entry was ever
+  repaired by this block.  The next slice takes C 25485 onwards (the `HAVE_XRANDR && !USE_GTK`
+  block).
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -7715,6 +7770,14 @@ and no display was opened; the remaining `E0425` rows are unresolved names, not 
 
 
 ## Owed by the integrator (nothing here is claimed as done)
+
+**5. The XShape arms' X11 entry points** (2026-10-08, Decision 150): slice 138's two arms read
+`XPending`, `XNextEvent`, `XPutBackEvent`, `XShapeGetRectangles`, `ShapeNotify` and the two
+`XCB_SHAPE_SK_*` selectors as unresolved names, and `ShapeInput`/`ShapeBounding` only after the
+function imports them from `crate::x11_constants`.  `<X11/Xlib.h>` is on this machine
+(`/opt/homebrew/include/X11`, per item 0's note) but `<X11/extensions/shape.h>` is not, and none
+of the seven has a mirror row here: the two `E0425` families stay until a shape header and the
+Xlib entry-point declarations land.  This item is the reading, not a claim.
 
 **0. Three third-party SDKs are missing from this machine, and slices 70-74 are where that shows:
 `<Xm/ScrollBar.h>` (Motif), libXt's headers, and gtk-3.0.**  libXt is the largest of the three: the
@@ -13017,4 +13080,37 @@ mirror's 24617 note says those names "stay bare"; the `E0609` row is the `XEvent
 row moved.
 
 **Not claimed**: no runtime evidence; the readings are the two arm compiles (both sides), the
+per-arm message diff and `--check`'s two rows with its token list (69 -> 69).
+
+### Slice 138's readings (C 25268-25484), as landed and measured (2026-10-08)
+
+The `HAVE_XSHAPE` block, read by **two new arms**: `AXS` = `A + have_xshape` (the
+`XShapeGetRectangles` branch) and `AXSX` = `A + use_xcb + have_xshape + have_xcb_shape +
+have_xcb_shape_input_rects` (the XCB branch).  Three arms, both sides, one probe root per side; the
+plain arm is the control.
+
+| arm | baseline | slice 138 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1174 / 83 | **1174 / 83** | **0 / 0** |
+| AXS `A +have_xshape` (new) | 1186 / 85 | **1193 / 85** | **+7 / 0** (13 grown, 6 retired) |
+| AXSX `A +use_xcb +have_xshape +have_xcb_shape +have_xcb_shape_input_rects` (new) | 1312 / 83 | **1311 / 83** | **-1 / 0** (15 grown, 16 retired) |
+
+**Both sides were measured in this revision**; the baseline is HEAD (`d9b5f5e8`, slice 137).
+
+| grew | of which |
+| --- | --- |
+| AXS's 13 rows | `XShapeEvent` x4 (C 25277 x2 - the annotation and the cast - C 25302 and C 25303's casts), `ShapeNotify` x2 (C 25270, C 25301), `no field r#type` on the `XEvent` stand-in x2 (C 25270, C 25301), the three owed Xlib entry points (`XPending` C 25297, `XNextEvent` C 25299, `XPutBackEvent` C 25306) and `XShapeGetRectangles` x2 (C 25406, C 25432) |
+| AXSX's 15 rows | the same 13, plus `XCB_SHAPE_SK_BOUNDING` (C 25328) and `XCB_SHAPE_SK_INPUT` (C 25335) - the two XCB shape-kind constants the mirror does not carry - and two `no field border_width` on `*mut c_void` (C 25473/25474 of `x_dnd_compute_toplevels`, where the repair moved the row onto `geometry_reply`'s placeholder typing) |
+| retired | **AXS: 6** - `xfree ((*last).input_rects)` and `(*last).bounding_rects` (C 3409/3411) and the four `(*tem).bounding_rects.offset (0).field` reads (C 3505-3524).  **AXSX: 16** - those six, the eight rect-walk writes of the XCB branch (C 3461-3520's `bounding_rects`/`input_rects` x4 each) and the two `border_width` rows in their old shape |
+
+**Every grown row is a registered class**: `XShapeEvent` is Decision 15's bare X11 type,
+`ShapeNotify` / `XPending` / `XNextEvent` / `XPutBackEvent` / `XShapeGetRectangles` /
+`XCB_SHAPE_SK_*` are X11 SDK names whose headers have no mirror in this tree (the eleven
+`<X11/...>` includes the ledger lists at 1369-1373; `## Owed` item 5 now files the request), and
+the `E0609` rows are the `XEvent` stand-in's owed members and the placeholder-typed
+`geometry_reply` of the older round.  **No warning moved in any arm** (A 83,
+AXS 85, AXSX 83 on both sides), and the retired rows are the port's own defects, fixed in this
+slice.
+
+**Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
 per-arm message diff and `--check`'s two rows with its token list (69 -> 69).

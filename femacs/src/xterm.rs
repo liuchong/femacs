@@ -3089,9 +3089,9 @@ unsafe fn x_dnd_free_toplevels (display_alive: bool)
       #[cfg (feature = "have_xshape")]
       {
 	if (*last).n_input_rects != -1
-	  { xfree ((*last).input_rects); }
+	  { xfree ((*last).input_rects as *mut c_void); }
 	if (*last).n_bounding_rects != -1
-	  { xfree ((*last).bounding_rects); }
+	  { xfree ((*last).bounding_rects as *mut c_void); }
       }
 
       xfree (last as *mut c_void);
@@ -3583,13 +3583,13 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 
 		      while bounding_rect_iterator.rem != 0
 			{
-			  (*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize).x
+			  (*((*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize))).x
 			    = (*bounding_rect_iterator.data).x;
-			  (*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize).y
+			  (*((*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize))).y
 			    = (*bounding_rect_iterator.data).y;
-			  (*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize).width
+			  (*((*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize))).width
 			    = (*bounding_rect_iterator.data).width;
-			  (*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize).height
+			  (*((*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize))).height
 			    = (*bounding_rect_iterator.data).height;
 
 			  (*tem).n_bounding_rects += 1;
@@ -3624,13 +3624,13 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 
 			  while input_rect_iterator.rem != 0
 			    {
-			      (*tem).input_rects.offset ((*tem).n_input_rects as isize).x
+			      (*((*tem).input_rects.offset ((*tem).n_input_rects as isize))).x
 				= (*input_rect_iterator.data).x;
-			      (*tem).input_rects.offset ((*tem).n_input_rects as isize).y
+			      (*((*tem).input_rects.offset ((*tem).n_input_rects as isize))).y
 				= (*input_rect_iterator.data).y;
-			      (*tem).input_rects.offset ((*tem).n_input_rects as isize).width
+			      (*((*tem).input_rects.offset ((*tem).n_input_rects as isize))).width
 				= (*input_rect_iterator.data).width;
-			      (*tem).input_rects.offset ((*tem).n_input_rects as isize).height
+			      (*((*tem).input_rects.offset ((*tem).n_input_rects as isize))).height
 				= (*input_rect_iterator.data).height;
 
 			      (*tem).n_input_rects += 1;
@@ -3693,19 +3693,19 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 	    #[cfg (not (feature = "use_xcb"))]
 	    let dims_ok = (*tem).n_input_rects == -1
 	      && (*tem).n_bounding_rects == 1
-	      && (*tem).bounding_rects.offset (0).width == attrs.width + attrs.border_width
-	      && (*tem).bounding_rects.offset (0).height == attrs.height + attrs.border_width
-	      && (*tem).bounding_rects.offset (0).x == -attrs.border_width
-	      && (*tem).bounding_rects.offset (0).y == -attrs.border_width;
+	      && (*((*tem).bounding_rects.offset (0))).width == attrs.width + attrs.border_width
+	      && (*((*tem).bounding_rects.offset (0))).height == attrs.height + attrs.border_width
+	      && (*((*tem).bounding_rects.offset (0))).x == -attrs.border_width
+	      && (*((*tem).bounding_rects.offset (0))).y == -attrs.border_width;
 	    #[cfg (feature = "use_xcb")]
 	    let dims_ok = (*tem).n_input_rects == -1
 	      && (*tem).n_bounding_rects == 1
-	      && (*tem).bounding_rects.offset (0).width
+	      && (*((*tem).bounding_rects.offset (0))).width
 		 == (*geometry_reply).width + (*geometry_reply).border_width
-	      && (*tem).bounding_rects.offset (0).height
+	      && (*((*tem).bounding_rects.offset (0))).height
 		 == (*geometry_reply).height + (*geometry_reply).border_width
-	      && (*tem).bounding_rects.offset (0).x == -(*geometry_reply).border_width
-	      && (*tem).bounding_rects.offset (0).y == -(*geometry_reply).border_width;
+	      && (*((*tem).bounding_rects.offset (0))).x == -(*geometry_reply).border_width
+	      && (*((*tem).bounding_rects.offset (0))).y == -(*geometry_reply).border_width;
 
 	    if dims_ok
 	      {
@@ -37491,6 +37491,241 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			      && (*xkbevent).any.xkb_type == XkbStateNotify           // C 25263
 			      { x_dnd_keyboard_state = ((*xkbevent).state.mods        // C 25264-25265
 			        | (*xkbevent).state.ptr_buttons); }
+			  }
+		      }
+
+#[cfg (feature = "have_xshape")]
+		      {
+			/* C 25268-25484's `#ifdef HAVE_XSHAPE`: the drag-and-drop toplevel rects.  The XCB
+			   branch needs `use_xcb` as well, because `xcb_connection`, the cookie/reply/iterator
+			   records and the four entry points all sit behind that feature in `include/xlib.rs`
+			   (869-932); the six locals below take the mirror's own XCB types.  */
+			if (*dpyinfo).xshape_supported_p                              // C 25269
+			  && (*event).r#type == (*dpyinfo).xshape_event_base + ShapeNotify // C 25270
+			  && x_dnd_in_progress && x_dnd_use_toplevels                 // C 25271
+			  && dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)             // C 25272
+			  {
+			    /* C 25274-25276's `#ifndef USE_GTK`.  */
+#[cfg (not (feature = "use_gtk"))]
+			    let mut xevent: XEvent = std::mem::zeroed ();             // C 25275
+			    let xse: *mut XShapeEvent = event as *mut XShapeEvent;    // C 25277
+			    /* C 25278-25291's `#if defined HAVE_XCB_SHAPE && defined HAVE_XCB_SHAPE_INPUT_RECTS`.  */
+#[cfg (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects"))]
+			    let mut bounding_rect_cookie: xcb_shape_get_rectangles_cookie_t = std::mem::zeroed (); // C 25279
+#[cfg (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects"))]
+			    let mut bounding_rect_reply: *mut xcb_shape_get_rectangles_reply_t = std::ptr::null_mut (); // C 25280
+#[cfg (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects"))]
+			    let mut bounding_rect_iterator: xcb_rectangle_iterator_t = std::mem::zeroed (); // C 25281
+#[cfg (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects"))]
+			    let mut input_rect_cookie: xcb_shape_get_rectangles_cookie_t = std::mem::zeroed (); // C 25283
+#[cfg (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects"))]
+			    let mut input_rect_reply: *mut xcb_shape_get_rectangles_reply_t = std::ptr::null_mut (); // C 25284
+#[cfg (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects"))]
+			    let mut input_rect_iterator: xcb_rectangle_iterator_t = std::mem::zeroed (); // C 25285
+#[cfg (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects"))]
+			    let mut error: *mut xcb_generic_error_t = std::ptr::null_mut (); // C 25287
+#[cfg (not (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects")))]
+			    let mut rects: *mut XRectangle = std::ptr::null_mut ();   // C 25289
+#[cfg (not (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects")))]
+			    let mut rc: c_int = 0;                                    // C 25290
+#[cfg (not (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects")))]
+			    let mut ordering: c_int = 0;
+			    
+			    /* "Somehow this really interferes with GTK's own processing of ShapeNotify events.
+			       Not sure what GTK uses them for, but we cannot skip any of them here."  */
+			    /* C 25296-25310's `#ifndef USE_GTK`.  */
+#[cfg (not (feature = "use_gtk"))]
+			    {
+			      while XPending ((*dpyinfo).display) != 0                // C 25297
+			      {
+			        XNextEvent ((*dpyinfo).display, &raw mut xevent);     // C 25299
+			        
+			        if xevent.r#type == (*dpyinfo).xshape_event_base + ShapeNotify // C 25301
+			          && (*(&raw mut xevent as *mut XShapeEvent)).window == (*xse).window // C 25302
+			          { xse = &raw mut xevent as *mut XShapeEvent; }      // C 25303
+			        else
+			          {
+			            XPutBackEvent ((*dpyinfo).display, &raw mut xevent); // C 25306
+			            break;                                            // C 25307
+			          }
+			      }
+			    }
+			    
+			    /* C 25312-25313's `for`: the init is the assignment below and the step the last line of
+			       the body (this body has no `continue`).  */
+			    let mut tem: *mut x_client_list_window = x_dnd_toplevels; // C 25312
+			    while !tem.is_null ()                                     // C 25312
+			      {
+			        if (*tem).window == (*xse).window                     // C 25315
+			          {
+			            if (*tem).n_input_rects != -1                     // C 25317
+			              { xfree ((*tem).input_rects as *mut c_void); }  // C 25318
+			            if (*tem).n_bounding_rects != -1                  // C 25319
+			              { xfree ((*tem).bounding_rects as *mut c_void); } // C 25320
+			            
+			            (*tem).n_input_rects = -1;                        // C 25322
+			            (*tem).n_bounding_rects = -1;                     // C 25323
+			            
+			            /* C 25325-25403's `#if defined HAVE_XCB_SHAPE && defined HAVE_XCB_SHAPE_INPUT_RECTS`.  */
+#[cfg (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects"))]
+			            {
+			                bounding_rect_cookie = xcb_shape_get_rectangles ((*dpyinfo).xcb_connection, // C 25326-25328
+			                  (*xse).window as xcb_window_t,
+			                  XCB_SHAPE_SK_BOUNDING);
+			                if (*dpyinfo).xshape_major > 1                // C 25329
+			                  || ((*dpyinfo).xshape_major == 1            // C 25330
+			                      && (*dpyinfo).xshape_minor >= 1)        // C 25331
+			                  { input_rect_cookie = xcb_shape_get_rectangles ((*dpyinfo).xcb_connection, // C 25332-25335
+			                    (*xse).window as xcb_window_t,
+			                    XCB_SHAPE_SK_INPUT); }
+			                
+			                bounding_rect_reply = xcb_shape_get_rectangles_reply ((*dpyinfo).xcb_connection, // C 25337-25339
+			                  bounding_rect_cookie, &raw mut error);
+			                
+			                if !bounding_rect_reply.is_null ()            // C 25341
+			                  {
+			                    bounding_rect_iterator                    // C 25343-25344
+			                      = xcb_shape_get_rectangles_rectangles_iterator (bounding_rect_reply);
+			                    (*tem).n_bounding_rects = bounding_rect_iterator.rem + 1; // C 25345
+			                    (*tem).bounding_rects = xmalloc (         // C 25346-25347
+			                      ((*tem).n_bounding_rects * std::mem::size_of::<XRectangle> () as c_int) as usize)
+			                      as *mut XRectangle;
+			                    (*tem).n_bounding_rects = 0;              // C 25348
+			                    
+			                    while bounding_rect_iterator.rem != 0     // C 25350
+			                      {
+			                        (*((*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize))).x
+			                          = (*bounding_rect_iterator.data).x;
+			                        (*((*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize))).y
+			                          = (*bounding_rect_iterator.data).y;
+			                        (*((*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize))).width
+			                          = (*bounding_rect_iterator.data).width;
+			                        (*((*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize))).height
+			                          = (*bounding_rect_iterator.data).height;
+			                        (*tem).n_bounding_rects += 1;         // C 25361
+			                        xcb_rectangle_next (&raw mut bounding_rect_iterator); // C 25350 (step)
+			                      }
+			                    
+			                    free (bounding_rect_reply as *mut c_void); // C 25364
+			                  }
+			                  else
+			                    { free (error as *mut c_void); }          // C 25367
+			                
+			                if (*dpyinfo).xshape_major > 1                // C 25369
+			                  || ((*dpyinfo).xshape_major == 1            // C 25370
+			                      && (*dpyinfo).xshape_minor >= 1)        // C 25371
+			                  {
+			                    input_rect_reply = xcb_shape_get_rectangles_reply ((*dpyinfo).xcb_connection, // C 25373-25374
+			                      input_rect_cookie, &raw mut error);
+			                    
+			                    if !input_rect_reply.is_null ()           // C 25376
+			                      {
+			                        input_rect_iterator                   // C 25378-25379
+			                          = xcb_shape_get_rectangles_rectangles_iterator (input_rect_reply);
+			                        (*tem).n_input_rects = input_rect_iterator.rem + 1; // C 25380
+			                        (*tem).input_rects = xmalloc (        // C 25381-25382
+			                          ((*tem).n_input_rects * std::mem::size_of::<XRectangle> () as c_int) as usize)
+			                          as *mut XRectangle;
+			                        (*tem).n_input_rects = 0;             // C 25383
+			                        
+			                        while input_rect_iterator.rem != 0    // C 25385
+			                          {
+			                            (*((*tem).input_rects.offset ((*tem).n_input_rects as isize))).x
+			                              = (*input_rect_iterator.data).x;
+			                            (*((*tem).input_rects.offset ((*tem).n_input_rects as isize))).y
+			                              = (*input_rect_iterator.data).y;
+			                            (*((*tem).input_rects.offset ((*tem).n_input_rects as isize))).width
+			                              = (*input_rect_iterator.data).width;
+			                            (*((*tem).input_rects.offset ((*tem).n_input_rects as isize))).height
+			                              = (*input_rect_iterator.data).height;
+			                            (*tem).n_input_rects += 1;        // C 25396
+			                            xcb_rectangle_next (&raw mut input_rect_iterator); // C 25385 (step)
+			                          }
+			                        
+			                        free (input_rect_reply as *mut c_void); // C 25399
+			                      }
+			                      else
+			                        { free (error as *mut c_void); }      // C 25402
+			                    }
+			            }
+#[cfg (not (all (feature = "have_xcb_shape", feature = "have_xcb_shape_input_rects")))]
+			            {
+			                use crate::x11_constants::{ShapeBounding, ShapeInput};
+			                x_catch_errors ((*dpyinfo).display);          // C 25405
+			                rects = XShapeGetRectangles ((*dpyinfo).display, // C 25406-25409
+			                  (*xse).window,
+			                  ShapeBounding,
+			                  &raw mut count, &raw mut ordering);
+			                rc = x_had_errors_p ((*dpyinfo).display) as c_int; // C 25410
+			                x_uncatch_errors_after_check ();              // C 25411
+			                
+			                /* "Does XShapeGetRectangles allocate anything upon an error?"  */
+			                if rc == 0                                    // C 25415
+			                  {
+			                    (*tem).n_bounding_rects = count;          // C 25417
+			                    (*tem).bounding_rects = xmalloc (         // C 25418-25419
+			                      std::mem::size_of::<XRectangle> () * count as usize) as *mut XRectangle;
+			                    std::ptr::copy_nonoverlapping (rects, (*tem).bounding_rects, // C 25420-25421
+			                      count as usize);
+			                    
+			                    XFree (rects as *mut c_void);             // C 25423
+			                  }
+			                
+			                /* C 25426-25451's `#ifdef ShapeInput`: the port's `x11_constants` defines `ShapeInput`,
+			                   so the block is carried without a gate of its own (the C 3461 precedent).  */
+			                if (*dpyinfo).xshape_major > 1                // C 25427
+			                  || ((*dpyinfo).xshape_major == 1            // C 25428
+			                      && (*dpyinfo).xshape_minor >= 1)        // C 25429
+			                  {
+			                    x_catch_errors ((*dpyinfo).display);      // C 25431
+			                    rects = XShapeGetRectangles ((*dpyinfo).display, // C 25432-25434
+			                      (*xse).window, ShapeInput,
+			                      &raw mut count, &raw mut ordering);
+			                    rc = x_had_errors_p ((*dpyinfo).display) as c_int; // C 25435
+			                    x_uncatch_errors_after_check ();          // C 25436
+			                    
+			                    /* "Does XShapeGetRectangles allocate anything upon an error?"  */
+			                    if rc == 0                                // C 25440
+			                      {
+			                        (*tem).n_input_rects = count;         // C 25442
+			                        (*tem).input_rects = xmalloc (        // C 25443-25444
+			                          std::mem::size_of::<XRectangle> () * count as usize) as *mut XRectangle;
+			                        std::ptr::copy_nonoverlapping (rects, (*tem).input_rects, // C 25445-25446
+			                          count as usize);
+			                        
+			                        XFree (rects as *mut c_void);         // C 25448
+			                      }
+			                    }
+			            }
+			            
+			            /* "Handle the common case where the input shape equals the bounding shape."  */
+			            if (*tem).n_input_rects != -1                     // C 25457
+			              && (*tem).n_bounding_rects == (*tem).n_input_rects // C 25458
+			              && memcmp ((*tem).bounding_rects as *const c_void, // C 25459-25460
+			                (*tem).input_rects as *const c_void,
+			                ((*tem).n_input_rects as usize) * std::mem::size_of::<XRectangle> ()) == 0
+			              {
+			                xfree ((*tem).input_rects as *mut c_void);    // C 25462
+			                (*tem).n_input_rects = -1;                    // C 25463
+			              }
+			            
+			            /* "And the common case where there is no input rect and the bounding rect equals the
+			               window dimensions."  */
+			            if (*tem).n_input_rects == -1                     // C 25469
+			              && (*tem).n_bounding_rects == 1                 // C 25470
+			              && (*((*tem).bounding_rects.offset (0))).width as c_int == (*tem).width // C 25471
+			              && (*((*tem).bounding_rects.offset (0))).height as c_int == (*tem).height // C 25472
+			              && (*((*tem).bounding_rects.offset (0))).x as c_int == -(*tem).border_width // C 25473
+			              && (*((*tem).bounding_rects.offset (0))).y as c_int == -(*tem).border_width // C 25474
+			              {
+			                xfree ((*tem).bounding_rects as *mut c_void); // C 25476
+			                (*tem).n_bounding_rects = -1;                 // C 25477
+			              }
+			            
+			            break;                                            // C 25480
+			          }
+			        tem = (*tem).next;                                    // C 25313 (step)
+			      }
 			  }
 		      }
 		    }
