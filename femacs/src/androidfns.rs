@@ -2445,3 +2445,314 @@ DEFUN! ("x-display-list", Fx_display_list, Sx_display_list,
 		      result); }
   return result;                                                  // C 1909
 });
+
+/* C 1911-2170: `unwind_create_tip_frame` (C 1914-1925) and `android_create_tip_frame`
+   (C 1927-2169).  Both are inside C 1912's `#ifndef ANDROID_STUBIFY`, whose `#endif` is C 2296
+   (the tooltip helpers at C 2171-2295 are inside it too, and are the next slice).  The
+   body is C's tooltip-frame twin of `Fx_create_frame` (slice 1), so its spellings are this
+   file's own: the l-value frame macros as member paths (C 871's note above), the flag writers
+   through the file's `set_frame_flag1!`/`set_frame_flag2!`, and the zero initialisers
+   PORTING.md 1.5 asks for.  */
+
+/* frame.h 457's `bool_bf tooltip : 1;` sits under `#ifdef HAVE_WINDOW_SYSTEM`, and
+   `include/frame.rs` gates its shift constant the same way (596-603), so this unit's gate set
+   (`have_android` + `not_android_stubify`, without `have_window_system`) has no constant at all.
+   The write C 1968 makes is spelled with the number the Android arm reads (frame.rs 597's
+   `A: x11/pgtk/android/w32`, 30) under C's own name, so the copy retires itself when the mirror's
+   gate matches (the `FRAME_OVERRIDE_REDIRECT_FLAG_SHIFT` shape at line 271).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+           not (feature = "have_window_system")))]
+const FRAME_TOOLTIP_SHIFT: u32 = 30;
+/// C: frame.h 457: `bool_bf tooltip : 1;`  - A 1:30; B 1:31; C 1:30 (measured)
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! tooltip {
+  ($f:expr) => { (*$f).bits1 >> FRAME_TOOLTIP_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_TOOLTIP_SHIFT, $v) };
+}
+/// C: frame.h 402: `bool_bf wants_modeline : 1;`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! wants_modeline {
+  ($f:expr) => { (*$f).bits1 >> FRAME_WANTS_MODELINE_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_WANTS_MODELINE_SHIFT, $v) };
+}
+
+/* One more use-site declaration (P-72 rule 4): dispextern.h 2068's `extern bool face_change;` is
+   inside the mirror's `dispextern_unit_names` module (the `haikufns.rs` 856-858 note), so this
+   unit names it here under C's name.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 2068: `extern bool face_change;`
+  pub static mut face_change: bool;
+}
+
+/* C takes this helper's address for C 1954's `record_unwind_protect`, so it is
+   `unsafe extern "C" fn` (the `do_unwind_create_frame` shape the file's header names).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn unwind_create_tip_frame (frame: Lisp_Object)
+{                                                              // C 1914-1925
+  let mut deleted: Lisp_Object;                                   // C 1917
+
+  deleted = unwind_create_frame (frame);                          // C 1919
+  if EQ (deleted, Qt ())                                          // C 1920
+    {
+      /* C's `ANDROID_NONE` is `static const int` (androidgui.h 259) and `tip_window` is
+	 `android_window` (`intptr_t`), so C widens here.  */
+      tip_window = ANDROID_NONE as android_window;                // C 1922
+      tip_frame = Qnil ();                                        // C 1923
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_create_tip_frame (dpyinfo: *mut android_display_info,
+				    mut parms: Lisp_Object) -> Lisp_Object
+{                                                              // C 1927-2169
+  let mut f: *mut frame;                                          // C 1931
+  let mut frame: Lisp_Object;                                     // C 1932
+  let mut name: Lisp_Object;                                      // C 1933
+  let count: specpdl_ref = SPECPDL_INDEX ();                      // C 1934
+  let face_change_before: bool = face_change;                     // C 1935
+
+  if (*((*dpyinfo).terminal)).name.is_null ()                     // C 1937
+    { error (c"Terminal is not live, can't create new frames on it".as_ptr ()); }   // C 1938
+
+  parms = Fcopy_alist (parms);                                    // C 1940
+
+  /* Get the name of the frame to use for resource lookup.  */     // C 1942
+  name = gui_display_get_arg (dpyinfo, parms, Qname (),           // C 1943
+			      c"name".as_ptr (), c"Name".as_ptr (),
+			      RES_TYPE_STRING);
+  if !STRINGP (name)                                              // C 1945
+      && !BASE_EQ (name, Qunbound ())
+      && !NILP (name)
+    { error (c"Invalid frame name--not a string or nil".as_ptr ()); }   // C 1948
+
+  frame = Qnil ();                                                // C 1950
+  f = make_frame (false);                                         // C 1951
+  wants_modeline! (f, false);                                     // C 1952
+  XSETFRAME! (frame, f);                                          // C 1953
+  record_unwind_protect (Some (unwind_create_tip_frame), frame);   // C 1954
+
+  (*f).terminal = (*dpyinfo).terminal;                            // C 1956
+
+  /* By setting the output method, we're essentially saying that
+     the frame is live, as per FRAME_LIVE_P.  If we get a signal
+     from this point on, x_destroy_window might screw up reference
+     counts etc.  */                                              // C 1958-1961
+  output_method! (f, output_android);                             // C 1962
+  (*f).output_data.android = xzalloc (std::mem::size_of::<android_output> ());  // C 1963
+  /* C 1964: `FRAME_FONTSET (f) = -1;` - C's macro is an l-value and the mirror carries the read
+     arm only, so the write is C's own member path (the slice-1 note at line 1216).  */
+  (*((*f).output_data.android as *mut android_output)).fontset = -1;                  // C 1964
+  (*((*f).output_data.android as *mut android_output)).white_relief.pixel = (-1 as c_long) as c_ulong;   // C 1965
+  (*((*f).output_data.android as *mut android_output)).black_relief.pixel = (-1 as c_long) as c_ulong;   // C 1966
+
+  tooltip! (f, true);                                             // C 1968
+  fset_icon_name (f, Qnil ());                                    // C 1969
+  /* C 1970: `FRAME_DISPLAY_INFO (f) = dpyinfo;` - the same l-value case as C 1964.  */
+  (*((*f).output_data.android as *mut android_output)).display_info = dpyinfo;
+  (*((*f).output_data.android as *mut android_output)).parent_desc
+    = (*FRAME_DISPLAY_INFO! (f)).root_window;                     // C 1971
+
+  /* These colors will be set anyway later, but it's important
+     to get the color reference counts right, so initialize them!  */   // C 1973-1974
+  {
+    let black: Lisp_Object;                                       // C 1976
+
+    /* Function android_decode_color can signal an error.  Make sure
+       to initialize color slots so that we won't try to free colors
+       we haven't allocated.  */                                  // C 1978-1980
+    FRAME_FOREGROUND_PIXEL! (f) = (-1 as c_long) as c_ulong;      // C 1981
+    FRAME_BACKGROUND_PIXEL! (f) = (-1 as c_long) as c_ulong;      // C 1982
+    (*((*f).output_data.android as *mut android_output)).cursor_pixel = (-1 as c_long) as c_ulong;   // C 1983
+    (*((*f).output_data.android as *mut android_output)).cursor_foreground_pixel = (-1 as c_long) as c_ulong;   // C 1984
+    (*((*f).output_data.android as *mut android_output)).mouse_pixel = (-1 as c_long) as c_ulong;    // C 1985
+
+    black = build_string (c"black".as_ptr ());                    // C 1987
+    FRAME_FOREGROUND_PIXEL! (f)
+      = android_decode_color (f, black, BLACK_PIX_DEFAULT! (f));  // C 1988-1989
+    FRAME_BACKGROUND_PIXEL! (f)
+      = android_decode_color (f, black, BLACK_PIX_DEFAULT! (f));  // C 1990-1991
+    (*((*f).output_data.android as *mut android_output)).cursor_pixel
+      = android_decode_color (f, black, BLACK_PIX_DEFAULT! (f));  // C 1992-1993
+    (*((*f).output_data.android as *mut android_output)).cursor_foreground_pixel
+      = android_decode_color (f, black, BLACK_PIX_DEFAULT! (f));  // C 1994-1995
+    (*((*f).output_data.android as *mut android_output)).mouse_pixel
+      = android_decode_color (f, black, BLACK_PIX_DEFAULT! (f));  // C 1996-1997
+  }
+
+  /* Set the name; the functions to which we pass f expect the name to
+     be set.  */                                                  // C 2000-2001
+  if BASE_EQ (name, Qunbound ()) || NILP (name)                   // C 2002
+    { explicit_name! (f, false); }                                // C 2003
+  else
+    {
+      fset_name (f, name);                                        // C 2006
+      explicit_name! (f, true);                                   // C 2007
+      /* use the frame's title when getting resources for this frame.  */   // C 2008
+      specbind (Qx_resource_name (), name);                       // C 2009
+    }
+
+  register_font_driver (&raw mut androidfont_driver as *const c_void, f);        // C 2012
+  register_font_driver (&raw mut android_sfntfont_driver as *const c_void, f);   // C 2013
+
+  gui_default_parameter (f, parms, Qfont_backend (), Qnil (),     // C 2015
+			 c"fontBackend".as_ptr (), c"FontBackend".as_ptr (),
+			 RES_TYPE_STRING);
+
+  /* Extract the window parameters from the supplied values that are
+     needed to determine window geometry.  */                     // C 2018-2019
+  android_default_font_parameter (f, parms);                      // C 2020
+
+  gui_default_parameter (f, parms, Qborder_width (), make_fixnum (0),            // C 2022
+			 c"borderWidth".as_ptr (), c"BorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);
+
+  /* This defaults to 1 in order to match xterm.  We recognize either
+     internalBorderWidth or internalBorder (which is what xterm calls
+     it).  */                                                     // C 2025-2027
+  if NILP (Fassq (Qinternal_border_width (), parms))              // C 2028
+    {
+      let value: Lisp_Object;                                     // C 2030
+
+      value = gui_display_get_arg (dpyinfo, parms, Qinternal_border_width (),     // C 2032
+				   c"internalBorder".as_ptr (), c"internalBorder".as_ptr (),
+				   RES_TYPE_NUMBER);
+      if ! BASE_EQ (value, Qunbound ())                           // C 2035
+	{ parms = Fcons (Fcons (Qinternal_border_width (), value),   // C 2036
+			 parms); }
+    }
+
+  gui_default_parameter (f, parms, Qinternal_border_width (), make_fixnum (1),    // C 2040
+			 c"internalBorderWidth".as_ptr (), c"internalBorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);
+  gui_default_parameter (f, parms, Qright_divider_width (), make_fixnum (0),      // C 2043
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parms, Qbottom_divider_width (), make_fixnum (0),     // C 2045
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_NUMBER);
+
+  /* Also do the stuff which must be set before the window exists.  */             // C 2048
+  gui_default_parameter (f, parms, Qforeground_color (), build_string (c"black".as_ptr ()),   // C 2049
+			 c"foreground".as_ptr (), c"Foreground".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qbackground_color (), build_string (c"white".as_ptr ()),   // C 2051
+			 c"background".as_ptr (), c"Background".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qmouse_color (), build_string (c"black".as_ptr ()),        // C 2053
+			 c"pointerColor".as_ptr (), c"Foreground".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qcursor_color (), build_string (c"black".as_ptr ()),       // C 2055
+			 c"cursorColor".as_ptr (), c"Foreground".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qborder_color (), build_string (c"black".as_ptr ()),       // C 2057
+			 c"borderColor".as_ptr (), c"BorderColor".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qno_special_glyphs (), Qnil (),                            // C 2059
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_BOOLEAN);
+
+  {
+    let mut attrs: android_set_window_attributes = std::mem::zeroed ();   // C 2063
+    let mut mask: c_ulong;                                        // C 2064
+
+    block_input ();                                               // C 2066
+    mask = (ANDROID_CW_OVERRIDE_REDIRECT | ANDROID_CW_BACK_PIXEL) as c_ulong;   // C 2067
+
+    attrs.override_redirect = true;                               // C 2069
+    attrs.background_pixel = FRAME_BACKGROUND_PIXEL! (f);          // C 2070
+    /* C 2071-2076's `tip_window = FRAME_ANDROID_WINDOW (f) = android_create_window (…)` is a
+       chained assignment, and Rust's assignment is a statement, so the port writes C's two
+       stores, innermost first (the `dosfns.rs` 656-660 shape).  */
+    FRAME_ANDROID_WINDOW! (f)
+      = android_create_window ((*FRAME_DISPLAY_INFO! (f)).root_window,   // C 2073
+			       /* x, y, width, height, value-mask,
+				  attrs.  */                          // C 2074-2075
+			       0, 0, 1, 1, mask as android_window_value_mask, &raw mut attrs);
+    tip_window = FRAME_ANDROID_WINDOW! (f);                        // C 2071
+    unblock_input ();                                             // C 2077
+  }
+
+  /* Init faces before gui_default_parameter is called for the
+     scroll-bar-width parameter because otherwise we end up in
+     init_iterator with a null face cache, which should not happen.  */   // C 2080-2082
+  init_frame_faces (f);                                           // C 2083
+
+  gui_default_parameter (f, parms, Qinhibit_double_buffering (), Qnil (),         // C 2085
+			 c"inhibitDoubleBuffering".as_ptr (), c"InhibitDoubleBuffering".as_ptr (),
+			 RES_TYPE_BOOLEAN);
+
+  gui_figure_window_size (f, parms, false, false);                // C 2089
+
+  (*((*f).output_data.android as *mut android_output)).parent_desc
+    = (*FRAME_DISPLAY_INFO! (f)).root_window;                     // C 2091
+
+  android_make_gc (f);                                            // C 2093
+
+  gui_default_parameter (f, parms, Qauto_raise (), Qnil (),       // C 2095
+			 c"autoRaise".as_ptr (), c"AutoRaiseLower".as_ptr (), RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parms, Qauto_lower (), Qnil (),       // C 2097
+			 c"autoLower".as_ptr (), c"AutoRaiseLower".as_ptr (), RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parms, Qcursor_type (), Qbox (),      // C 2099
+			 c"cursorType".as_ptr (), c"CursorType".as_ptr (), RES_TYPE_SYMBOL);
+  gui_default_parameter (f, parms, Qalpha (), Qnil (),            // C 2101
+			 c"alpha".as_ptr (), c"Alpha".as_ptr (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parms, Qalpha_background (), Qnil (),  // C 2103
+			 c"alphaBackground".as_ptr (), c"AlphaBackground".as_ptr (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parms, Qborders_respect_alpha_background (), Qnil (),  // C 2105
+			 c"bordersRespectAlphaBackground".as_ptr (),
+			 c"BordersRespectAlphaBackground".as_ptr (), RES_TYPE_NUMBER);
+
+  /* Add `tooltip' frame parameter's default value. */             // C 2109
+  if NILP (Fframe_parameter (frame, Qtooltip ()))                 // C 2110
+    {
+      AUTO_FRAME_ARG! (arg, Qtooltip (), Qt ());                   // C 2112
+      Fmodify_frame_parameters (frame, arg);                       // C 2113
+    }
+
+  /* FIXME - can this be done in a similar way to normal frames?
+     https://lists.gnu.org/r/emacs-devel/2007-10/msg00641.html  */   // C 2116-2117
+
+  /* Set the `display-type' frame parameter before setting up faces. */          // C 2119
+  {
+    let mut disptype: Lisp_Object;                                // C 2121
+
+    disptype = Qcolor ();                                         // C 2123
+
+    if NILP (Fframe_parameter (frame, Qdisplay_type ()))          // C 2125
+      {
+	AUTO_FRAME_ARG! (arg, Qdisplay_type (), disptype);         // C 2127
+	Fmodify_frame_parameters (frame, arg);                     // C 2128
+      }
+  }
+
+  /* Set up faces after all frame parameters are known.  This call
+     also merges in face attributes specified for new frames.  */   // C 2132-2133
+  {
+    let bg: Lisp_Object = Fframe_parameter (frame, Qbackground_color ());   // C 2135
+
+    calln! (Qface_set_after_frame_default (), frame, Qnil ());     // C 2137
+
+    if !EQ (bg, Fframe_parameter (frame, Qbackground_color ()))    // C 2139
+      {
+	AUTO_FRAME_ARG! (arg, Qbackground_color (), bg);           // C 2141
+	Fmodify_frame_parameters (frame, arg);                     // C 2142
+      }
+  }
+
+  no_split! (f, true);                                            // C 2146
+
+  /* Now that the frame will be official, it counts as a reference to
+     its display and terminal.  */                                // C 2148-2149
+  (*(*f).terminal).reference_count += 1;                           // C 2150
+
+  /* It is now ok to make the frame official even if we get an error
+     below.  And the frame needs to be on Vframe_list or making it
+     visible won't work.  */                                      // C 2152-2154
+  Vframe_list = Fcons (frame, Vframe_list);                        // C 2155
+  can_set_window_size! (f, true);                                  // C 2156
+  adjust_frame_size (f, FRAME_TEXT_WIDTH (f), FRAME_TEXT_HEIGHT (f),   // C 2157
+		     0, true, Qtip_frame ());
+
+  /* Setting attributes of faces of the tooltip frame from resources
+     and similar will set face_change, which leads to the clearing of
+     all current matrices.  Since this isn't necessary here, avoid it
+     by resetting face_change to the value it had before we created
+     the tip frame.  */                                           // C 2160-2164
+  face_change = face_change_before;                               // C 2165
+
+  /* Discard the unwind_protect.  */                              // C 2167
+  return unbind_to (count, frame);                                // C 2168
+}

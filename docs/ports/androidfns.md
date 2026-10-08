@@ -8,8 +8,8 @@
 > **C line-range table**, the `## Evidence` readings and the `## Deviations`.
 > Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), **slice 2 = C
 > 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines), **slice 4 = C
-> 1705-1800** (2,332 Rust lines) and **slice 5 = C 1801-1910** (2,447 Rust lines), both arms of
-> every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
+> 1705-1800** (2,332 Rust lines), **slice 5 = C 1801-1910** (2,447 Rust lines) and **slice 6 = C
+> 1911-2170** (2,757 Rust lines), both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so the port is the empty
 > unit plus a note") was P-86 ①'s "not started" case; its measurements are still true and are still
 > where the file gate comes from.
 
@@ -117,7 +117,9 @@ before), covering C 1-3797.  `docs/port-map.md` 367 pairs only `src/androidfns.c
 | 1851-1862 | C 1852's `DEFUN ("android-set-mouse-absolute-pixel-position")` | file gate |
 | 1863-1895 | C 1864's `DEFUN ("android-get-connection")`: C 1873-1875 the stub arm, C 1876-1894 the real one (C 1881 the display list test, C 1887-1890 the three-way bit-depth read) | file gate, both sub-arms |
 | 1896-1910 | C 1897's `DEFUN ("x-display-list")` (C 1905-1907 the `name_list_element` walk) | file gate |
-| 1911-3797 | not ported: the file's remaining 1,887 lines (C 1912's `#ifndef ANDROID_STUBIFY` and the tooltip frame helpers onward) | not ported |
+| 1911-1925 | C 1912's `#ifndef ANDROID_STUBIFY` and `unwind_create_tip_frame` (the second helper whose address C takes) | real arm |
+| 1926-2169 | `android_create_tip_frame` (C 1927-2169: C 1942-1948 the name lookup, C 1950-1971 the frame setup, C 1973-1998 the colour initialisation, C 2000-2107 the parameter defaults, C 2109-2144 the `tooltip` and `display-type` parameters, C 2146-2168 the frame's officialisation) | real arm |
+| 2170-3797 | not ported: the file's remaining 1,628 lines (C 2170's blank and C 2171's `android_hide_tip` onward, all still inside C 1912's block until its `#endif` at 2296) | not ported |
 
 ## Evidence
 
@@ -640,4 +642,79 @@ Rust 2447` (35.6%)**, from 38.6%.
 - **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
   compiles nothing from this file (P-86 ③⑵): no frame was restacked, no connection was returned, no
   display list was walked.
+- The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
+
+## Slice 6 (2026-10-08, status 4.067 - the integrator sets the round number): C 1911-2170
+
+**The slice's text.**  `unwind_create_tip_frame` (C 1914-1925) and `android_create_tip_frame`
+(C 1927-2169) - C's tooltip-frame twin of `Fx_create_frame` (slice 1), so its spellings are this
+file's own: the l-value frame macros as member paths (C 1964/1970/1981-1997), the flag writers
+through the file's `set_frame_flag1!`, the `gui_default_parameter` chain, and the zero
+initialisers PORTING.md 1.5 asks for.  Port line count **2,447 -> 2,757** (+310).
+
+**Evidence ① - the arm flip (P-86 ③⑴), arm set A = `have_android` + `not_android_stubify`.**
+The first run found the slice's five real defects, all in the new text: two `E0425` "cannot find
+value `face_change`" at `_root.rs` 2501/2742 (dispextern.h 2068's declaration sits inside the
+mirror's `dispextern_unit_names` module), two `E0308` - `tip_window = ANDROID_NONE` (the constant
+is `c_int` and the local is `android_window` = `intptr_t`) and `record_unwind_protect (Some
+(unwind_create_tip_frame), …)` ("expected `"C" fn`, found `Rust` fn") - and then two `E0384`
+"cannot assign to immutable argument `parms`" (C 1940/2036 reassign the parameter).  With the
+use-site copy of `face_change`, the cast, `unsafe extern "C" fn` and `mut parms` in the signature
+(the `xfns.rs` 11718 spelling), the re-run reads **exit 1, exactly 4 `error[E0609]` rows** -
+unchanged, still slice 1's class and **0 in this slice's text**.
+
+**Evidence ② - arm set B = `have_android` alone.**  **exit 0, 0 errors, 13 warnings** (the same
+`include/android.rs` FFI-safety warnings as slices 2-5).
+
+**Evidence ③ - arm set C = A + `have_window_system`.**  **exit 0, 0 errors, 12 warnings**: the two
+new items compile with the mirror's own `FRAME_TOOLTIP_SHIFT` (so the unit's complement-gated copy
+retires itself in that arm).
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`).**  **83 rows -> 81**, the two closed
+being **2 `missing function`** (20 -> 18: `unwind_create_tip_frame`, `android_create_tip_frame`).
+The first run also read **`function android_create_tip_frame does not mention frame_fontset`**: C
+1964/1970/1981/1982/1988-1997 write `f->` fields through C's own macros, the mirror carries the
+read arms only, and the port writes C's member paths - so the body names neither the macros nor
+their tokens.  That is the class this tree already records twice (`x_create_tip_frame`'s row and
+this unit's own `Fx_create_frame` row in `docs/ports/macro-body-notes.tsv`), and the slice adds the
+third row for the same reason.  The drift row now reads **`C 3797 vs Rust 2757` (27.4%)**, from
+35.6%.
+
+### Deviations (this slice)
+
+1. **One more use-site declaration** (P-72 rule 4): dispextern.h 2068's `extern bool face_change;`
+   (the mirror has it inside `dispextern_unit_names`, the `haikufns.rs` 856-858 note).
+2. **`unwind_create_tip_frame` is `unsafe extern "C" fn`**, because C 1954 takes its address for
+   `record_unwind_protect` - the `do_unwind_create_frame` shape the file's header already names.
+3. **`mut parms: Lisp_Object` in the signature**: C 1940's `parms = Fcopy_alist (parms);` and C
+   2036's `parms = Fcons (…)` reassign the parameter (the `xfns.rs` 11718 spelling; the probe's two
+   `E0384` rows are what made it measured).
+4. **`tip_window = ANDROID_NONE as android_window;`** (C 1922): `ANDROID_NONE` is `static const int`
+   and the local is `android_window` = `intptr_t`, so C widens here.
+5. **A file-local `tooltip!` writer plus the complement-gated `FRAME_TOOLTIP_SHIFT`**: frame.h 457's
+   flag sits under `HAVE_WINDOW_SYSTEM`, the mirror gates its shift constant the same way, so this
+   unit's gate set has no constant; the unit supplies the Android arm's number (frame.rs 597) under
+   C's own name, retiring itself when the mirror's gate matches (the `FRAME_OVERRIDE_REDIRECT_FLAG_SHIFT`
+   shape at line 271).  `wants_modeline!` needs no copy: `FRAME_WANTS_MODELINE_SHIFT` is ungated.
+6. **C 2071-2076's chained assignment** `tip_window = FRAME_ANDROID_WINDOW (f) =
+   android_create_window (…)` becomes C's two stores, innermost first (Rust's assignment is a
+   statement; the `dosfns.rs` 656-660 shape), with the mask passed as
+   `mask as android_window_value_mask` (C's narrowing at the call).
+7. **One new `docs/ports/macro-body-notes.tsv` row** for the four tokens above (Evidence ④), and
+   the `arg` bindings C's `AUTO_FRAME_ARG` introduces are the mirror's `AUTO_FRAME_ARG!` shape
+   (`dispnew.rs` 8157).
+
+### Owed (this slice's additions)
+
+- **`include/dispextern.rs`**: `face_change` is module-local (`dispextern_unit_names`), so units
+  keep use-site copies (the third in the tree).
+- **The file's remainder**: C 2170-3797 (1,628 lines) - the tooltip helpers (`android_hide_tip`,
+  `android_create_tip_frame`'s callers), the remaining `DEFUN`s, the GC and colour helpers, the
+  terminal hooks and `syms_of_androidfns`.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind** - no Android toolchain here and the frozen configuration
+  compiles nothing from this file (P-86 ③⑵): no tooltip frame was created, no colour was decoded,
+  no font driver was registered.
 - The four `E0609` rows of arm set A are pre-existing (slice 1's sites), not this slice's.
