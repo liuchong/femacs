@@ -31081,6 +31081,30 @@ unsafe extern "C" {
   pub fn gtk_widget_get_mapped (widget: *mut GtkWidget) -> gboolean;
 }
 
+/* C 22143's `x_menubar_window_to_frame` is this file's own; the three names below are other
+   units' definitions whose headers this unit's graph does not carry in a glob-imported row:
+   dispextern.h 3667-3668's `handle_tab_bar_click` and dispextern.h 3669-3670's
+   `handle_tool_bar_click` (C 22040 and C 22063's calls; `src/frame.rs`/`src/xdisp.rs` own them)
+   and frame.h 1911's `frame_ancestor_p` (the C 21978 call).  They stand at this use site
+   (P-88 1, the `src/pgtkterm.rs` 8844 block is the same three for its own unit).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: dispextern.h 3667-3668: `extern Lisp_Object handle_tab_bar_click (struct frame *,
+  /// int, int, bool, int);`
+  pub fn handle_tab_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+			       modifiers: c_int) -> Lisp_Object;
+  /// C: dispextern.h 3669-3670: `extern void handle_tool_bar_click (struct frame *,
+  /// int, int, bool, int);`
+  pub fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+				modifiers: c_int);
+  /// C: frame.h 1911: `extern bool frame_ancestor_p (struct frame *af, struct frame *df);`
+  pub fn frame_ancestor_p (af: *mut frame, df: *mut frame) -> bool;
+  /// C: xterm.h 1013: `extern Lisp_Object tip_frame;` - C 21843-21846's four reads
+  /// (`src/xfns.rs` 11579 carries the definition; the `tip_window` row above is the same
+  /// header's line 1010).
+  pub static mut tip_frame: Lisp_Object;
+}
+
 /// C 18866-25632: `handle_one_xevent (struct x_display_info *dpyinfo, XEvent *event, int *finish,
 /// struct input_event *hold_quit)` - `static int` (C 18875), so a plain `unsafe fn`, and the
 /// file's largest function.  **Slice 110 lands its prologue and its tail** (C 18866-18949 and
@@ -31167,7 +31191,7 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   use crate::x11_constants::SelectionRequest;
   /* C 20715/20806/20853/20979's four case labels (this slice).  */
   use crate::x11_constants::{EnterNotify, FocusIn, FocusOut, LeaveNotify,
-			       MotionNotify};
+			       MotionNotify, ButtonPress, ButtonRelease};
   use crate::x11_constants::None;
   /* C 19579/19699's `PropertyDelete`, and the Xlib/Xatom names the toplevel scan and
      the opacity reader read (C 19597-19621, C 19709-19721).  */
@@ -33699,6 +33723,487 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		{ x_dnd_update_state (dpyinfo, (*dpyinfo).last_user_time); }  // C 21725
 	      break 'switch;                                               // C 21726
 
+	    }
+	  /* C 21728-22187: `case ButtonRelease:` / `case ButtonPress:` - one shared body, the switch's
+	     largest after `ClientMessage`.  The xwidget arm, the Xdnd press/release bookkeeping (with
+	     the Motif drop-start message), the coalesced click construction for the two bars, the GTK
+	     wheel arm, the focus steal, the scroll-bar arm and the Motif menu-bar arm all land here in
+	     C's order.  C's `event->xbutton` is the `XEvent` stand-in's owed member (the registered
+	     `no field` class), and `XButtonEvent` is the record `x_construct_mouse_click` takes.  */
+	  ButtonRelease | ButtonPress =>
+	    {
+	      if (*event).xbutton.r#type == ButtonPress                          // C 21731
+		{ x_display_set_last_user_time (dpyinfo, (*event).xbutton.time,     // C 21732
+						(*event).xbutton.send_event, true); }  // C 21733
+
+	      /* C 21735-21756's `#ifdef HAVE_XWIDGETS` block.  */
+	      #[cfg (feature = "have_xwidgets")]
+		{
+		  let mut xvw: *mut xwidget_view;                                  // C 21736
+
+		  xvw = xwidget_view_from_window ((*event).xbutton.window);        // C 21738
+
+		  if !xvw.is_null ()                                               // C 21740
+		    {
+		      xwidget_button (xvw, (*event).r#type == ButtonPress,          // C 21742
+				      (*event).xbutton.x, (*event).xbutton.y,          // C 21743
+				      (*event).xbutton.button as c_int,                // C 21744
+				      (*event).xbutton.state as c_int,                 // C 21744
+				      (*event).xbutton.time);                          // C 21745
+
+		      if !EQ (selected_window, (*xvw).w) && (*event).xbutton.button < 4  // C 21747
+			{
+			  input_event_bits! (kind, &raw mut inev.ie, SELECT_WINDOW_EVENT);  // C 21749
+			  inev.ie.frame_or_window = (*xvw).w;                          // C 21750
+			}
+
+		      *finish = X_EVENT_DROP;                                      // C 21753
+		      break 'switch;                                               // C 21754 (`goto OTHER`)
+		    }
+		}
+
+	      /* "If we decide we want to generate an event to be seen by the rest of Emacs, we
+		 put it here."  */
+	      let mut tab_bar_arg: Lisp_Object = Qnil ();                      // C 21759
+	      let mut tab_bar_p: bool = false;                                 // C 21760
+	      let mut tool_bar_p: bool = false;                                // C 21761
+	      let mut dnd_grab: bool = false;                                  // C 21762
+
+	      if x_dnd_in_progress                                             // C 21764
+		/* "Handle these events normally if the recursion level is higher
+		   than when the drag-and-drop operation was initiated.  This is so
+		   that mouse input works while we're in the debugger for, say,
+		   `x-dnd-movement-function`."  */
+		&& (command_loop_level + minibuf_level                         // C 21770
+		    <= x_dnd_recursion_depth as EMACS_INT)                     // C 21771
+		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)                 // C 21772
+		{
+		  f = mouse_or_wdesc_frame (dpyinfo, (*event).xbutton.window);    // C 21774
+
+		  if !f.is_null () && (*event).xbutton.window == FRAME_X_WINDOW! (f)  // C 21776
+		    { x_compute_root_window_offset (f, (*event).xbutton.x_root,   // C 21779
+							(*event).xbutton.y_root,     // C 21780
+							(*event).xbutton.x,          // C 21781
+							(*event).xbutton.y); }       // C 21782
+
+		  if (*event).r#type == ButtonPress                               // C 21784
+		    {
+		      x_display_set_last_user_time (dpyinfo, (*event).xbutton.time,  // C 21786
+						    (*event).xbutton.send_event, true);  // C 21787
+
+		      (*dpyinfo).grabbed |= 1 << (*event).xbutton.button;         // C 21789
+		      (*dpyinfo).last_mouse_frame = f;                            // C 21790
+
+		      if !f.is_null ()                                            // C 21792
+			{ (*f).last_tab_bar_item = -1; }                          // C 21793
+		      /* C 21794-21797's `#if ! defined (USE_GTK)` pair.  */
+		      #[cfg (not (feature = "use_gtk"))]
+		      if !f.is_null ()                                            // C 21795
+			{ (*f).last_tool_bar_item = -1; }                         // C 21796
+		    }
+		  else
+		    { (*dpyinfo).grabbed &= !(1 << (*event).xbutton.button); }    // C 21800
+		  if (*event).xbutton.r#type == ButtonPress                   // C 21802
+		    && x_dnd_last_seen_window != None as Window               // C 21803
+		    {
+		      if x_dnd_last_window_is_frame                           // C 21805
+			{ x_dnd_note_self_wheel (dpyinfo,                       // C 21806
+						 x_dnd_last_seen_window,            // C 21807
+						 (*event).xbutton.x_root as c_ushort,  // C 21808
+						 (*event).xbutton.y_root as c_ushort,  // C 21809
+						 (*event).xbutton.button as c_int,  // C 21810
+						 (*event).xbutton.state as c_uint,  // C 21811
+						 (*event).xbutton.time); }          // C 21812
+		      else if x_dnd_last_protocol_version != -1              // C 21813
+			{ x_dnd_send_position (x_dnd_frame,                    // C 21814
+					       x_dnd_last_seen_window,         // C 21815
+					       x_dnd_last_seen_toplevel,       // C 21816
+					       x_dnd_last_protocol_version,    // C 21817
+					       (*event).xbutton.x_root as c_ushort,  // C 21818
+					       (*event).xbutton.y_root as c_ushort,  // C 21819
+					       (*event).xbutton.time,          // C 21820
+					       x_dnd_wanted_action,            // C 21821
+					       (*event).xbutton.button as c_int,  // C 21822
+					       (*event).xbutton.state as c_uint); }  // C 21823
+
+		      break 'switch;                                         // C 21825 (`goto OTHER`)
+		    }
+
+		  if (*event).xbutton.r#type == ButtonRelease                 // C 21828
+		    {
+		      let mut i: c_int = 1;                                   // C 21830
+		      while i < 8
+			{
+			  if i != (*event).xbutton.button                       // C 21832
+			    && (*event).xbutton.state
+			       & ((Button1Mask as c_uint) << (i - 1)) != 0      // C 21833
+			    { dnd_grab = true; }                                // C 21834
+			  i += 1;
+			}
+
+		      if !dnd_grab                                            // C 21837
+			{
+			  x_dnd_end_window = x_dnd_last_seen_window;            // C 21839
+			  x_dnd_in_progress = false;                            // C 21840
+
+			  if x_dnd_update_tooltip                               // C 21842
+			    && FRAMEP (tip_frame)                               // C 21843
+			    && FRAME_LIVE_P (XFRAME (tip_frame))                // C 21844
+			    && (FRAME_X_DISPLAY! (XFRAME (tip_frame))           // C 21845
+				== FRAME_X_DISPLAY! (x_dnd_frame))              // C 21846
+			    { Fx_hide_tip (); }                                 // C 21847
+
+			  x_dnd_finish_frame = x_dnd_frame;                     // C 21849
+
+			  if x_dnd_last_seen_window != None as Window           // C 21851
+			    && x_dnd_last_window_is_frame                       // C 21852
+			    {
+			      x_dnd_waiting_for_finish = false;                 // C 21854
+			      x_dnd_note_self_drop (dpyinfo,                    // C 21855
+						    x_dnd_last_seen_window,     // C 21856
+						    (*event).xbutton.x_root as c_ushort,  // C 21857
+						    (*event).xbutton.y_root as c_ushort,  // C 21858
+						    (*event).xbutton.time);     // C 21859
+			    }
+			  else if x_dnd_last_seen_window != None as Window      // C 21861
+			    && x_dnd_last_protocol_version != -1                // C 21862
+			    {
+			      x_dnd_pending_finish_target = x_dnd_last_seen_toplevel;  // C 21864
+			      x_dnd_waiting_for_finish_proto = x_dnd_last_protocol_version;  // C 21865
+
+			      x_dnd_waiting_for_finish                          // C 21867
+				= x_dnd_do_drop (x_dnd_last_seen_window,        // C 21868
+						 x_dnd_last_seen_toplevel,      // C 21869
+						 x_dnd_last_protocol_version);  // C 21870
+			      x_dnd_finish_display = (*dpyinfo).display as *mut c_void;  // C 21871
+			    }
+			  else if x_dnd_last_seen_window != None as Window      // C 21873
+			    {
+			      let mut dmsg: xm_drop_start_message = std::mem::zeroed ();  // C 21875
+			      let mut drag_receiver_info: xm_drag_receiver_info
+				= std::mem::zeroed ();                          // C 21876
+
+			      if xm_read_drag_receiver_info (dpyinfo, x_dnd_last_seen_window,  // C 21878
+							     &raw mut drag_receiver_info) == 0  // C 21879
+				&& !x_dnd_disable_motif_protocol            // C 21880
+				&& drag_receiver_info.protocol_style as c_int != xm_drag_style::XM_DRAG_STYLE_NONE as c_int  // C 21881
+				&& (x_dnd_allow_current_frame               // C 21882
+				    || x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame))  // C 21883
+				{
+				  if !x_dnd_motif_setup_p                       // C 21885
+				    { xm_setup_drag_info (dpyinfo, x_dnd_frame); }  // C 21886
+
+				  if x_dnd_motif_setup_p                        // C 21888
+				    {
+				      dmsg = std::mem::zeroed ();               // C 21890 (C's `memset`)
+
+				      dmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 21892
+								     xm_drag_reason::XM_DRAG_REASON_DROP_START as c_int) as u8;  // C 21893
+				      dmsg.byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;  // C 21894
+				      dmsg.side_effects                             // C 21895
+					= XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (dpyinfo,  // C 21896
+								 x_dnd_wanted_action),      // C 21897
+						       xm_drop_site_status::XM_DROP_SITE_VALID as c_int,  // C 21898
+						       x_dnd_motif_operations as c_int,
+						       (if !x_dnd_xm_use_help     // C 21899
+							{ xm_drag_action::XM_DROP_ACTION_DROP as c_int }  // C 21900
+							else { xm_drag_action::XM_DROP_ACTION_DROP_HELP as c_int })) as u16;  // C 21901
+				      dmsg.timestamp = (*event).xbutton.time as u32;  // C 21902
+				      dmsg.x = (*event).xbutton.x_root as u16;      // C 21903
+				      dmsg.y = (*event).xbutton.y_root as u16;      // C 21904
+				      dmsg.index_atom = x_dnd_motif_atom as u32;    // C 21905
+				      dmsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;  // C 21906
+
+				      if XM_DRAG_STYLE_IS_DROP_ONLY! (drag_receiver_info.protocol_style as c_int) == false  // C 21908
+					{ x_dnd_send_xm_leave_for_drop (FRAME_DISPLAY_INFO! (x_dnd_frame),  // C 21909
+									x_dnd_frame, x_dnd_last_seen_window,  // C 21910
+									(*event).xbutton.time); }  // C 21911
+
+				      xm_send_drop_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 21913
+							    x_dnd_last_seen_window, &raw mut dmsg);  // C 21914
+
+				      x_dnd_waiting_for_finish = true;              // C 21916
+				      x_dnd_waiting_for_motif_finish_display = dpyinfo;  // C 21917
+				      x_dnd_waiting_for_motif_finish = 1;           // C 21918
+				      x_dnd_finish_display = (*dpyinfo).display as *mut c_void;  // C 21919
+				    }
+				}
+			      else
+				{ x_dnd_send_unsupported_drop (dpyinfo,             // C 21923
+							       (if x_dnd_last_seen_toplevel != None as Window  // C 21923-21925
+								{ x_dnd_last_seen_toplevel }
+								else { x_dnd_last_seen_window }),
+							       (*event).xbutton.x_root, (*event).xbutton.y_root,  // C 21926
+							       (*event).xbutton.time); }              // C 21927
+			    }
+			  else if x_dnd_last_seen_toplevel != None as Window      // C 21929
+			    { x_dnd_send_unsupported_drop (dpyinfo, x_dnd_last_seen_toplevel,  // C 21930
+							   (*event).xbutton.x_root,  // C 21931
+							   (*event).xbutton.y_root,  // C 21932
+							   (*event).xbutton.time); }  // C 21933
+
+			  x_dnd_last_protocol_version = -1;                     // C 21936
+			  x_dnd_last_motif_style = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;  // C 21937
+			  x_dnd_last_seen_window = None as Window;              // C 21938
+			  x_dnd_last_seen_toplevel = None as Window;            // C 21939
+			  x_dnd_last_window_is_frame = false;                   // C 21940
+			  x_dnd_frame = std::ptr::null_mut ();                  // C 21941
+			}
+		    }
+
+		  break 'switch;                                            // C 21945 (`goto OTHER`)
+		}
+
+	      if x_dnd_in_progress                                          // C 21948
+		&& (command_loop_level + minibuf_level                          // C 21949
+		    <= x_dnd_recursion_depth as EMACS_INT)                      // C 21950
+		{ break 'switch; }                                             // C 21951 (`goto OTHER`)
+
+	      compose_status = std::mem::zeroed ();                         // C 21953 (C's `memset`)
+	      (*dpyinfo).last_mouse_glyph_frame = std::ptr::null_mut ();    // C 21954
+
+	      f = mouse_or_wdesc_frame (dpyinfo, (*event).xbutton.window);  // C 21956
+
+	      if !f.is_null () && (*event).xbutton.window == FRAME_X_WINDOW! (f)  // C 21958
+		{ x_compute_root_window_offset (f, (*event).xbutton.x_root,    // C 21961
+						(*event).xbutton.y_root,              // C 21962
+						(*event).xbutton.x,                   // C 21963
+						(*event).xbutton.y); }                // C 21964
+	      if !f.is_null () && (*event).xbutton.r#type == ButtonPress    // C 21966
+		&& popup_activated () == 0                                    // C 21967
+		&& x_window_to_scroll_bar ((*event).xbutton.display,           // C 21968
+					   (*event).xbutton.window, 2).is_null ()  // C 21969
+		&& FRAME_NO_ACCEPT_FOCUS (f) == 0                             // C 21970
+		{
+		  /* "When clicking into a child frame or when clicking into a
+		     parent frame with the child frame selected and
+		     `no-accept-focus' is not set, select the clicked frame."  */
+		  let hf: *mut frame = (*dpyinfo).highlight_frame;              // C 21976
+
+		  if !FRAME_PARENT_FRAME (f).is_null ()                         // C 21978
+		    || (!hf.is_null () && frame_ancestor_p (f, hf))            // C 21978
+		    {
+		      x_ignore_errors_for_next_request (dpyinfo, 0);            // C 21980
+		      XSetInputFocus (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),  // C 21981
+				      RevertToParent, (*event).xbutton.time);     // C 21982
+		      x_stop_ignoring_errors (dpyinfo);                         // C 21983
+
+		      if !FRAME_PARENT_FRAME (f).is_null ()                     // C 21985
+			{ XRaiseWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f)); }  // C 21986
+		    }
+		}
+
+	      /* C 21990-22024's `#ifdef USE_GTK` block.  */
+	      #[cfg (feature = "use_gtk")]
+		{
+		  if f.is_null ()                                             // C 21991
+		    {
+		      f = x_any_window_to_frame (dpyinfo, (*event).xbutton.window);  // C 21993
+
+		      if (*event).xbutton.button > 3                          // C 21995
+			&& (*event).xbutton.button < 8                        // C 21996
+			&& !f.is_null ()                                      // C 21997
+			{
+			  if ignore_next_mouse_click_timeout != 0              // C 21999
+			    && dpyinfo == mouse_click_timeout_display          // C 22000
+			    {
+			      if (*event).r#type == ButtonPress                // C 22002
+				&& (*event).xbutton.time > ignore_next_mouse_click_timeout  // C 22003
+				{
+				  ignore_next_mouse_click_timeout = 0;             // C 22005
+				  x_construct_mouse_click (&raw mut inev.ie, &raw const (*event).xbutton,  // C 22006
+							   f, false);             // C 22007
+				}
+			      if (*event).r#type == ButtonRelease              // C 22009
+				{ ignore_next_mouse_click_timeout = 0; }        // C 22010
+			    }
+			  else
+			    { x_construct_mouse_click (&raw mut inev.ie, &raw const (*event).xbutton,  // C 22013
+						       f, false); }
+
+			  *finish = X_EVENT_DROP;                              // C 22015
+			  break 'switch;                                       // C 22016 (`goto OTHER`)
+			}
+		      else
+			{ f = std::ptr::null_mut (); }                        // C 22019
+		    }
+
+		  if !f.is_null () && xg_event_is_for_scrollbar (f, event, false)  // C 22022
+		    { f = std::ptr::null_mut (); }                            // C 22023
+		}
+
+	      if !f.is_null ()                                             // C 22025
+		{
+		  /* "Is this in the tab-bar?"  */
+		  if WINDOWP ((*f).tab_bar_window)                             // C 22028
+		    && WINDOW_TOTAL_LINES (XWINDOW ((*f).tab_bar_window)) != 0  // C 22029
+		    {
+		      let mut window: Lisp_Object;                             // C 22031
+		      let x: c_int = (*event).xbutton.x;                       // C 22032
+		      let y: c_int = (*event).xbutton.y;                       // C 22033
+
+		      window = window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (), true, true, true);  // C 22035
+		      tab_bar_p = EQ (window, (*f).tab_bar_window);            // C 22036
+
+		      if tab_bar_p                                             // C 22038
+			{
+			  tab_bar_arg = handle_tab_bar_click (f, x, y,           // C 22040-22041
+							      (*event).xbutton.r#type == ButtonPress,  // C 22041
+							      x_x_to_emacs_modifiers (dpyinfo, (*event).xbutton.state as c_int));  // C 22042
+			  x_flush_dirty_back_buffer_on (f);                      // C 22043
+			}
+		    }
+
+		  /* C 22047-22069's `#if !defined (USE_GTK)` block.  */
+		  #[cfg (not (feature = "use_gtk"))]
+		  if WINDOWP ((*f).tool_bar_window)                           // C 22049
+		    && WINDOW_TOTAL_LINES (XWINDOW ((*f).tool_bar_window)) != 0  // C 22050
+		    {
+		      let mut window: Lisp_Object;                             // C 22052
+		      let x: c_int = (*event).xbutton.x;                       // C 22053
+		      let y: c_int = (*event).xbutton.y;                       // C 22054
+
+		      window = window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (), true, true, true);  // C 22056
+		      tool_bar_p = EQ (window, (*f).tool_bar_window)           // C 22057
+			&& ((*event).xbutton.r#type != ButtonRelease           // C 22058
+			    || (*f).last_tool_bar_item != -1);                 // C 22059
+
+		      if tool_bar_p && (*event).xbutton.button < 4             // C 22061
+			{
+			  handle_tool_bar_click (f, x, y,                         // C 22063-22064
+						 (*event).xbutton.r#type == ButtonPress,  // C 22064
+						 x_x_to_emacs_modifiers (dpyinfo, (*event).xbutton.state as c_int));  // C 22065
+			  x_flush_dirty_back_buffer_on (f);                       // C 22066
+			}
+		    }
+
+		  /* C 22072-22074's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` wraps a
+		     *condition* around the block below, so it is computed once (Decision 2 item 2).  */
+		  #[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		  let click_ok: bool = popup_activated () == 0;                // C 22073
+		  #[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+		  let click_ok: bool = true;                                   // C's unguarded block
+		  if !(tab_bar_p && NILP (tab_bar_arg)) && !tool_bar_p         // C 22071
+		    && click_ok                                                // C 22073
+		    {
+		      if ignore_next_mouse_click_timeout != 0                  // C 22076
+			&& dpyinfo == mouse_click_timeout_display              // C 22077
+			{
+			  if (*event).r#type == ButtonPress                       // C 22079
+			    && (*event).xbutton.time > ignore_next_mouse_click_timeout  // C 22080
+			    {
+			      ignore_next_mouse_click_timeout = 0;                // C 22082
+			      x_construct_mouse_click (&raw mut inev.ie, &raw const (*event).xbutton,  // C 22083
+						       f, false);                 // C 22084
+			    }
+			  if (*event).r#type == ButtonRelease                     // C 22086
+			    { ignore_next_mouse_click_timeout = 0; }              // C 22087
+			}
+		      else
+			{ x_construct_mouse_click (&raw mut inev.ie, &raw const (*event).xbutton,  // C 22090
+						   f, false); }                     // C 22091
+
+		      if !NILP (tab_bar_arg)                                  // C 22093
+			{ inev.ie.arg = tab_bar_arg; }                        // C 22094
+		    }
+
+		  if FRAME_X_EMBEDDED_P (f)                                   // C 22097
+		    && FRAME_NO_ACCEPT_FOCUS (f) == 0                         // C 22098
+		    { xembed_send_message (f, (*event).xbutton.time,           // C 22099
+					   xembed_message::XEMBED_REQUEST_FOCUS, 0, 0, 0); }  // C 22100
+		}
+	      else
+		{
+		  let bar: *mut scroll_bar                                    // C 22104
+		    = x_window_to_scroll_bar ((*event).xbutton.display,        // C 22105
+					      (*event).xbutton.window, 2);  // C 22106
+
+		  /* C 22108-22119's `#ifdef USE_TOOLKIT_SCROLL_BARS` pair: "Make the
+		     \"Ctrl-Mouse-2 splits window\" work for toolkit scroll bars."  */
+		  #[cfg (feature = "use_toolkit_scroll_bars")]
+		  if !bar.is_null () && (*event).xbutton.state & ControlMask as c_uint != 0  // C 22111
+		    {
+		      x_scroll_bar_handle_click (bar, event, &raw mut inev.ie, Qnil ());  // C 22113
+		      *finish = X_EVENT_DROP;                                 // C 22114
+		    }
+		  #[cfg (not (feature = "use_toolkit_scroll_bars"))]
+		  if !bar.is_null ()                                          // C 22117
+		    { x_scroll_bar_handle_click (bar, event, &raw mut inev.ie, Qnil ()); }  // C 22118
+		}
+
+	      if (*event).r#type == ButtonPress                           // C 22122
+		{
+		  (*dpyinfo).grabbed |= 1 << (*event).xbutton.button;         // C 22124
+		  (*dpyinfo).last_mouse_frame = f;                            // C 22125
+		  if !f.is_null () && !tab_bar_p                              // C 22126
+		    { (*f).last_tab_bar_item = -1; }                          // C 22127
+		  /* C 22128-22131's `#if ! defined (USE_GTK)` pair.  */
+		  #[cfg (not (feature = "use_gtk"))]
+		  if !f.is_null () && !tool_bar_p                             // C 22129
+		    { (*f).last_tool_bar_item = -1; }                         // C 22130
+		}
+	      else
+		{ (*dpyinfo).grabbed &= !(1 << (*event).xbutton.button); }    // C 22134
+
+	      /* "Ignore any mouse motion that happened before this event;
+		 any subsequent mouse-movement Emacs events should reflect
+		 only motion after the ButtonPress/Release."  */
+	      if !f.is_null ()                                            // C 22139
+		{ frame_bits! (mouse_moved, f, false); }                    // C 22140
+
+	      /* C 22142-22184's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` block.  */
+	      #[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		{
+		  f = x_menubar_window_to_frame (dpyinfo, event);             // C 22143
+		  /* "For a down-event in the menu bar, don't pass it to Xt or
+		     GTK right away.  Instead, save it and pass it to Xt or GTK
+		     from kbd_buffer_get_event.  That way, we can run some Lisp
+		     code first."  */
+		  /* C 22149-22152's `#ifdef USE_GTK` adds one term to the condition
+		     below, so the term is computed (Decision 2 item 2).  */
+		  #[cfg (feature = "use_gtk")]
+		  let gt_column_p: bool = (*event).xbutton.button < 3;         // C 22151
+		  #[cfg (not (feature = "use_gtk"))]
+		  let gt_column_p: bool = true;
+		  if popup_activated () == 0                                  // C 22148
+		    && gt_column_p                                            // C 22151
+		    && !f.is_null () && (*event).r#type == ButtonPress        // C 22153
+		    /* "Verify the event is really within the menu bar and not just sent to it due to
+		       grabbing."  */
+		    && (*event).xbutton.x >= 0                                // C 22156
+		    && (*event).xbutton.x < FRAME_PIXEL_WIDTH (f)             // C 22157
+		    && (*event).xbutton.y >= 0                                // C 22158
+		    && (*event).xbutton.y < FRAME_MENUBAR_HEIGHT (f)          // C 22159
+		    && (*event).xbutton.same_screen != 0                      // C 22160
+		    {
+		      /* C 22162-22180's `#ifdef USE_MOTIF` pair wraps a *guard* around the block
+			 below (not a body), so it is computed once (Decision 2 item 2).  */
+		      #[cfg (feature = "use_motif")]
+		      let cascade_p: bool = {
+			let widget: Widget = XtWindowToWidget ((*dpyinfo).display,  // C 22165
+							       (*event).xbutton.window);  // C 22166
+
+			!widget.is_null () && XmIsCascadeButton (widget) != 0  // C 22168
+			  && XtIsSensitive (widget) != 0                     // C 22169
+		      };
+		      #[cfg (not (feature = "use_motif"))]
+		      let cascade_p: bool = true;
+		      if cascade_p
+			{
+			  if (*( (*f).output_data.x as *mut x_output )).saved_menu_event.is_null ()  // C 22172
+			    { (*( (*f).output_data.x as *mut x_output )).saved_menu_event
+				= xmalloc (std::mem::size_of::<XEvent> ()) as *mut XEvent; }  // C 22173
+			  *(*( (*f).output_data.x as *mut x_output )).saved_menu_event = *event;  // C 22174
+			  input_event_bits! (kind, &raw mut inev.ie, MENU_BAR_ACTIVATE_EVENT);  // C 22175
+			  XSETFRAME! (inev.ie.frame_or_window, f);                // C 22176
+			  *finish = X_EVENT_DROP;                                 // C 22177
+			}
+		    }
+		  else
+		    { break 'switch; }                                        // C 22183 (`goto OTHER`)
+		}
+
+	      break 'other;                                               // C 22186
 	    }
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
 		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */

@@ -17347,3 +17347,46 @@
      `build/probes/xterm/`、`/tmp/s118/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，configure 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
      剩余十二个 `case` 体，下一片从 `ButtonRelease`（C 21728）起。
+
+- **4.037 `src/xterm.c` round 95（xterm lane，slice 119）：`ButtonRelease`/`ButtonPress` 共享体落地（C 21728-22187，460 C 行）——三处"包在条件/守卫上的 `#ifdef`"、一条镜像行修好、一条行数容差入表（2026-10-08）**：
+  ① **本片落的文本**：xwidget 臂（C 21735-21756）、四个局部（C 21759-21762）、Xdnd 按下/抬起块（C 21764-21946：
+     `dpyinfo->grabbed` 位、`x_dnd_note_self_wheel`/`x_dnd_send_position`、`dnd_grab` 的掩码遍历、tooltip 关闭、
+     `x_dnd_do_drop`、Motif 的 drop-start 消息逐字段组装、以及整段复位）、两处递归层级 bail-out、抢焦点块（C 21966-21988）、
+     GTK 滚轮臂（C 21990-22024）、tab-bar/tool-bar 点击对（C 22025-22069）、合并点击构造（C 22071-22095）、xembed 请求
+     （C 22097-22100）、滚动条臂（C 22102-22120）、第二处 `grabbed` 更新、`mouse_moved` 复位、Motif 菜单栏臂（C 22142-22184）
+     与 C 22186 的 `break`（按本文件的 switch 框架写 `break 'other`）。
+  ② **三处 `#ifdef` 包的是"条件/守卫"**：C 22072-22074 把 `popup_activated` 包在点击块外、C 22149-22152 给菜单栏条件加 GTK 一项、
+     C 22162-22180 把 Motif 的 cascade 测试包在体上。Rust 没有对应的属性，三处各算一次（`click_ok`/`gt_column_p`/`cascade_p`，
+     Decision 2 第 2 条），每个 C 臂一条 `#[cfg]`。
+  ③ **一条镜像行修好（带理由）**：`include/xwidget.rs` 309 原本写成
+     `xwidget_button (xv, xbutton_p, button, x, y, state, time)`，而 C 的 xwidget.h 217-218 与本端口自己的定义
+     （`src/xwidget.rs` 3163：`(view, down_p, x, y, button, …)`）都把 `button` 放在第五位。参数全是 `c_int`，ABI 抓不到
+     按那一行写的调用者（C 21742-21745 的调用就是本片的），现已按 C 的顺序改写。
+  ④ **本片新增的四条使用点声明**：`handle_tab_bar_click`/`handle_tool_bar_click`（dispextern.h 3667-3670）、
+     `frame_ancestor_p`（frame.h 1911）、`tip_frame`（xterm.h 1013——它**退掉 4 条** `cannot find value`）。
+     本臂自身的类是被欠账的 `event->xbutton` 成员（86 个 C 行读它）与两个 bar 的 `frame` 成员；
+     `ButtonPress`/`ButtonRelease` 加入 handle_one_xevent 自己的 import 表，C 21881/C 21908 的 `protocol_style` 比较带上 C 的 `u8→int` 加宽。
+  ⑤ **读数（两侧都在本修订测）**：⑴ **十九臂表**（baseline = HEAD `5d7ee2d2`，十九个数字与 slice 118 台账逐位相同）：
+     A 1086/82 → **1168/83**（+82/+1）、U 1097/82 → **1180/83**、UT 1093/81 → **1183/82**、UM 1098/81 → **1191/82**、
+     UG 1117/83 → **1207/84**、UGX 1222/85 → **1312/86**、AE 1118/81 → **1200/82**、AI 1113/82 → **1195/83**、
+     AIU 1188/82 → **1277/83**、AIUX 1297/84 → **1386/85**、AX 1096/82 → **1178/83**、AG3 1168/82 → **1257/83**、
+     AG3X 1248/84 → **1337/85**、AXF 1096/82 → **1178/83**、AXPM 1087/82 → **1169/83**、AXKB 1127/82 → **1209/83**、
+     AXR 1092/82 → **1174/83**、AX11 1070/82 → **1152/83**、AUX 1169/80 → **1251/81**。
+     ⑵ 按类点名（增量）：`no field xbutton` **+68/+69/+74/+75**（plain 臂 68；toolkit 滚动条块编译的臂 69；GTK 臂含
+     C 21993-22023 的读 74；`AIU` 的 i18n 再 +1）、`no field r#type` **+4/+5/+7**、`no field tab_bar_window` **+3**（每臂）、
+     `no field tool_bar_window`/`last_tool_bar_item` **各 +3**（13 个非 GTK 臂）、`Button1Mask`/`RevertToParent`/`XSetInputFocus`/
+     `XRaiseWindow`/`FRAME_X_EMBEDDED_P` **各 +1**（每臂）、`FRAME_MENUBAR_HEIGHT` **+1**（8 个工具包臂）、
+     GTK 臂的 `FRAME_X_WINDOW!` 展开 **+3**（`GDK_WINDOW_XWINDOW`/`cannot find macro GDK_WINDOW_XID`）、
+     `XmIsCascadeButton`/`XtIsSensitive` **各 +1**（UM）、**退掉** `cannot find value tip_frame` **-4**（每臂）。
+     ⑶ **警告列每臂 +1**：C 21923-21925 自己的括号（`unnecessary parentheses around function argument`）。
+     ⑷ **`--check` 仍 2 行**，长行的 token 清单 **143 → 91**；单元 **35,127 行**（C 33,125），文件 md5 `e4a6b4daab43711d34f5b6f7c5550bc1`。
+  ⑥ **本片第一次撞上行数漂移门并如实入表**：`extract-abi --check` 多出一行读数
+     `line count drifted 6.0%: C 33125 vs Rust 35127`——本文件的最后一件正是 switch 的 `case` 体，Rust 侧一行比 C 一行更密
+     （每个 C 行一条 `// C NNNN`、C 的 `#ifdef` 形状要 `#[cfg]` 对、欠账成员各占一行、还要本文件自己的位域/宏）。
+     `docs/ports/line-drift-tolerance.tsv` 新增 `xterm 0.20 total` 行，理由里带**实测**依据（slice 116 之后落的三具体：
+     1,191 C 行 → +1,399 Rust 行，约 1.17 行/C 行；剩余 12 具体是 C 22188-25595，完成时约 39,100 行 ≈ 18%）。
+     这是**读数**而不是豁免：最后一段落地时要重测（可收紧）。每函数 token 检查（真正的判据）不受影响。
+  ⑦ **预算与清理**：本片 rustc 编译 **约 64 发**（19 臂 × 3 轮 + 定点复测；每次 12-21 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s119/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，按钮事件一次也没到过；读数只有十九臂编译、`--check` 的行与 token 数、容差表与台账。
+     剩余十二个 `case` 体，下一片从 `CirculateNotify`（C 22188）起。

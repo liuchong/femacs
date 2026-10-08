@@ -306,8 +306,8 @@ pub mod xwidget_decls {
     /// C 217-218: `extern void xwidget_button (struct xwidget_view *, bool, int, int, int, int,
     /// Time);`
     #[cfg (feature = "have_x_windows")]
-    pub fn xwidget_button (xv: *mut xwidget_view, xbutton_p: bool, button: c_int, x: c_int,
-                           y: c_int, state: c_int, time: Time);
+    pub fn xwidget_button (xv: *mut xwidget_view, xbutton_p: bool, x: c_int, y: c_int,
+                           button: c_int, state: c_int, time: Time);
     /// C 219-220: `extern void xwidget_motion_or_crossing (struct xwidget_view *,
     /// const XEvent *);`
     #[cfg (feature = "have_x_windows")]

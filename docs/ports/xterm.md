@@ -397,6 +397,17 @@ wraps around a *condition* rather than a body (C 21601-21605's GTK scroll-bar te
 21567-21569's `(f = any)` keeps C's side effect, and the round adds the per-unit `new_size_p!`
 accessor C 21642 reads and the two use-site declarations C 21587/C 21658 call.
 
+  Slice 119 (C 21728-22187, Decision 131) lands the shared `ButtonRelease`/`ButtonPress` body - 460 C
+lines, the switch's largest after `ClientMessage`.  The xwidget arm, the Xdnd press/release
+bookkeeping (the coalesced click construction, `dnd_grab`'s mask walk, the drop-start message C
+writes through `xm_drop_start_message`, and the whole reset tail), the focus steal behind
+`FRAME_NO_ACCEPT_FOCUS`, GTK's wheel arm, the tab-bar/tool-bar click pair, the scroll-bar arm and
+the Motif menu-bar arm (`saved_menu_event` + `MENU_BAR_ACTIVATE_EVENT`) all land in C's order.  Two
+more `#ifdef`s C wraps around a *condition* (C 22072-22074's `popup_activated` guard and C
+22149-22152's GTK button term) and one it wraps around a *guard* (C 22162-22180's Motif cascade
+test) become computed values, and the round repairs the `xwidget_button` row in
+`include/xwidget.rs`, whose parameter order had `button` where C's header puts `x`.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5567,6 +5578,44 @@ expected direction once the file starts carrying records the X11 headers would s
 * **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **168 -> 143**.
   The unit is **34,622 lines** against C's 33,125 (**1,497 lines longer, +4.52%**), file md5
   `acc84b74531976cf66fd7fe36220b4c7`.
+
+### 131. Slice 119 (C 21728-22187): the shared `ButtonRelease`/`ButtonPress` body, and a mirror row repaired
+
+* **What it lands.**  `case ButtonRelease:` and `case ButtonPress:` (C 21728-22187, one body), each
+  line with its own `// C NNNN` comment: the xwidget arm (C 21735-21756), the four locals C 21759-21762
+  (which C's slice-118 arm framed for it), the Xdnd press/release block (C 21764-21946: the
+  `dpyinfo->grabbed` bit updates, `x_dnd_note_self_wheel`/`x_dnd_send_position`,
+  `dnd_grab`'s mask walk, the tooltip hide, `x_dnd_do_drop`, the Motif drop-start message C writes
+  field by field, and the whole reset tail), the two recursion-level bail-outs, the focus steal
+  (C 21966-21988), GTK's wheel arm (C 21990-22024), the tab-bar/tool-bar click pair (C 22025-22069),
+  the coalesced `ignore_next_mouse_click_timeout` construction (C 22071-22095), the xembed request
+  (C 22097-22100), the scroll-bar arm (C 22102-22120), the second `grabbed` update, the
+  `mouse_moved` reset, the Motif menu-bar arm (C 22142-22184) and C 22186's `break`.
+* **Three more `#ifdef`s C writes around conditions or guards.**  C 22072-22074 wraps
+  `popup_activated` around the click block, C 22149-22152 adds the GTK button term to the menubar
+  test, and C 22162-22180 wraps the Motif cascade test around the body - Rust has no attribute for a
+  condition or a guard term, so each becomes a value computed once (`click_ok`, `gt_column_p`,
+  `cascade_p`), with one `#[cfg]` arm per C arm (Decision 2 item 2).
+* **A mirror row repaired, with the reason.**  `include/xwidget.rs` 309 declared
+  `xwidget_button (xv, xbutton_p, button, x, y, state, time)`, while C's xwidget.h 217-218 and the
+  port's own definition (`src/xwidget.rs` 3163, `xwidget_button (view, down_p, x, y, button, …)`)
+  put `button` fifth.  All the parameters are `c_int`, so the ABI cannot catch a caller written
+  against the row - C 21742-21745's call is this slice's - and the row now reads in C's order.  The
+  `XmIsCascadeButton`/`XtIsSensitive` pair the Motif arm reads is the bare Xt/Motif class, like the
+  file's `XmIsScrollBar`/`XtIsSubclass` pair.
+* **What the round declares.**  Three uses-site declarations close rows this body reads:
+  `handle_tab_bar_click` and `handle_tool_bar_click` (dispextern.h 3667-3670), `frame_ancestor_p`
+  (frame.h 1911) and `tip_frame` (xterm.h 1013, which retires four `cannot find value` rows).  The
+  arm's own class is the owed `event->xbutton` member (eighty-six C lines read it) and the two
+  `frame` members the bars read; `ButtonPress`/`ButtonRelease` join handle_one_xevent's own import
+  list, and C 21881/C 21908's `protocol_style` comparisons carry C's `u8`-to-`int` widening.
+* **A line-count row arrives and is declared.**  The `--check` gained the reading `line count
+  drifted 6.0%: C 33125 vs Rust 35127`, and `docs/ports/line-drift-tolerance.tsv` now carries
+  `xterm 0.20 total` with the measured basis (1.17 Rust lines per C line across the three bodies
+  landed since slice 116; the finished file is projected at ~39,100 lines, ~18%).  It is a reading
+  and is re-measured when the last body lands.
+* **What `--check` reads.**  Two rows again, the long row's token list going **143 -> 91**.  The unit
+  is **35,127 lines** against C's 33,125, file md5 `e4a6b4daab43711d34f5b6f7c5550bc1`.
 
 ## Evidence
 
@@ -11229,5 +11278,66 @@ block (C 21473-21511 - no arm sets both), the two `USE_CAIRO` blocks (C 21541-21
 `have_xshape`).
 
 **Not claimed**: no runtime evidence - this lane does not link, and no configure event was ever
+delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
+ledger.
+
+### Slice 119's readings (C 21728-22187), as landed and measured (2026-10-08)
+
+`ButtonRelease` and `ButtonPress` (one body).  Twelve `case` bodies remain.
+
+| arm | baseline | slice 119 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1086 / 82 | **1168 / 83** | **+82 / +1** |
+| U `A +use_toolkit_scroll_bars` | 1097 / 82 | **1180 / 83** | **+83 / +1** |
+| UT `U +use_x_toolkit` | 1093 / 81 | **1183 / 82** | **+90 / +1** |
+| UM `UT +use_motif` | 1098 / 81 | **1191 / 82** | **+93 / +1** |
+| UG `U +use_gtk` | 1117 / 83 | **1207 / 84** | **+90 / +1** |
+| UGX `UG +have_xinput2` | 1222 / 85 | **1312 / 86** | **+90 / +1** |
+| AE `A +enable_checking` | 1118 / 81 | **1200 / 82** | **+82 / +1** |
+| AI `A +have_x_i18n` | 1113 / 82 | **1195 / 83** | **+82 / +1** |
+| AIU `AI +use_gtk` | 1188 / 82 | **1277 / 83** | **+89 / +1** |
+| AIUX `AIU +have_xinput2` | 1297 / 84 | **1386 / 85** | **+89 / +1** |
+| AX `A +have_xdbe` | 1096 / 82 | **1178 / 83** | **+82 / +1** |
+| AG3 `A +use_gtk +have_gtk3` | 1168 / 82 | **1257 / 83** | **+89 / +1** |
+| AG3X `AG3 +have_xinput2` | 1248 / 84 | **1337 / 85** | **+89 / +1** |
+| AXF `A +have_xfixes` | 1096 / 82 | **1178 / 83** | **+82 / +1** |
+| AXPM `A +have_xpm` | 1087 / 82 | **1169 / 83** | **+82 / +1** |
+| AXKB `A +have_xkb` | 1127 / 82 | **1209 / 83** | **+82 / +1** |
+| AXR `A +have_xrandr` | 1092 / 82 | **1174 / 83** | **+82 / +1** |
+| AX11 `A +have_x11` | 1070 / 82 | **1152 / 83** | **+82 / +1** |
+| AUX `A +use_xcb` | 1169 / 80 | **1251 / 81** | **+82 / +1** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`5d7ee2d2`, slice 118) with its
+own `_root.rs` re-materialised per arm - the nineteen baseline numbers reproduce the ledger's
+slice-118 column to the digit - and the slice's file md5 is
+`e4a6b4daab43711d34f5b6f7c5550bc1` (35,127 lines against C's 33,125).
+
+**The `of which`, by arm class:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `no field xbutton` **+68 / +69 / +74 / +75** | +68 in the plain arms, +69 where the toolkit scroll-bar block compiles, +74 in the GTK arms (C 21993-22023's own reads), +75 where `AIU`'s i18n pair adds its two | the eighty-six C lines this body reads `event->xbutton` at (C 21731-22166), each with C's own member text |
+| `no field r#type` **+4 / +5 / +7** | +4 in the plain arms, +5 with the toolkit arm's C 22153, +7 in the GTK arms | C 21731, 21742, 21784, 21802, 21828, 21966, 22002, 22009, 22041, 22058, 22064, 22079, 22086, 22122, 22153 |
+| `no field tab_bar_window` / `tool_bar_window` / `last_tool_bar_item` **+3 each** | every arm for the tab-bar one; the other two in the thirteen arms without `use_gtk` (C's `#if ! defined (USE_GTK)` pair) | C 22028/22029, 22036, 22040 (tab bar) and C 22049/22050, 22057, 22059, 22063 (tool bar), C 21793, 21796, 22127, 22130 |
+| `Button1Mask` / `RevertToParent` / `XSetInputFocus` / `XRaiseWindow` / `FRAME_X_EMBEDDED_P` **+1 each** | every arm | C 21833, C 21982, C 21981, C 21986, C 22097 - the bare Xlib/Xt class and frame.h's macro |
+| `FRAME_MENUBAR_HEIGHT` **+1** | the eight toolkit/GTK arms | C 22159 (the block C guards with `USE_X_TOOLKIT \|\| USE_GTK`) |
+| `GDK_WINDOW_XWINDOW` **+3** (`UG`, `UGX`, `AIU`, `AIUX`) / `cannot find macro GDK_WINDOW_XID` **+3** (`AG3`, `AG3X`) | the GTK arms | C 21993, 22022 and 22143's own `FRAME_X_WINDOW!`/menubar expansions |
+| `XmIsCascadeButton` / `XtIsSensitive` **+1 each** | `UM` | C 22168, C 22169 - the Motif pair (no Motif tree on this machine) |
+| `cannot find value tip_frame` **-4** | every arm | retired by the use-site declaration of xterm.h 1013 (C 21843-21846's four reads) |
+
+The warning column moves **+1 in every arm**: `unnecessary parentheses around function argument`
+at C 21923-21925, where C's own parentheses around the `x_dnd_send_unsupported_drop` conditional
+argument are kept (this file's standing class for C's parentheses).
+
+**A line-count row arrives and is declared.**  `extract-abi --check` gained its third reading this
+round: `line count drifted 6.0%: C 33125 vs Rust 35127`, because this file's last item - the
+switch's `case` bodies - expands C's dense text (an arm plus a `// C NNNN` comment per C line,
+`#[cfg]` pairs for C's `#ifdef` shapes, the owed members' own lines, and the accessor macros).
+`docs/ports/line-drift-tolerance.tsv` carries the row now: `xterm 0.20`, `total`, with the measured
+basis (the three bodies landed since slice 116 cost +1,399 Rust lines for 1,191 C lines, 1.17 per C
+line; the twelve bodies still to land are C 22188-25595, so the finished file is ~39,100 lines,
+~18%).  The row is a reading, not a waiver: it is re-measured when the last body lands.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no button event was ever
 delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
 ledger.
