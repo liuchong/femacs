@@ -6538,13 +6538,16 @@ expected direction once the file starts carrying records the X11 headers would s
   `*mut xcb_shape_get_rectangles_reply_t`, `xcb_rectangle_iterator_t`,
   `*mut xcb_generic_error_t`), not the `*mut c_void` placeholder the 2026-10-05 round used.
 * **The repair the new arms forced on `x_dnd_compute_toplevels` (C 3431-3520's text).**  The
-  `have_xshape` arm compiles that function's XShape text for the first time, and it read twelve rows
-  that are the port's own defects rather than owed names: `(*tem).bounding_rects.offset (0).width`
+  `have_xshape` arm compiles that function's XShape text for the first time, and it read rows that
+  are the port's own defects rather than owed names (six of them in `AXS`, sixteen in `AXSX`):
+  `(*tem).bounding_rects.offset (0).width`
   and its seven siblings (the `offset` result is `*mut XRectangle`, so C's
   `tem->bounding_rects[0].width` needs one more dereference) and two `xfree` calls whose
-  `*mut XRectangle` never matched `xfree`'s `*mut c_void`.  All twelve are fixed this round:
-  `(*((*tem).bounding_rects.offset (N))).field` at the twelve sites and `as *mut c_void` at the two
-  `xfree`s.  The six rows the repair retires are in the readings below.
+  `*mut XRectangle` never matched `xfree`'s `*mut c_void`.  **Eighteen sites** are fixed this round -
+  sixteen of them the missing dereference (`(*((*tem).bounding_rects.offset (N))).field`, four in
+  the `offset (0)` comparisons of each `dims_ok` variant and four in each of the two rect walks) and
+  two the missing cast - and what each arm retires is in the readings below (six rows in `AXS`
+  because the `use_xcb` half of that text is not compiled there, sixteen in `AXSX`).
 * **C's `int16_t` against `int` is spelled as C widens it.**  C 25471-25474 compare
   `tem->bounding_rects[0].width` (C's `short` inside `XRectangle`) with `tem->width` (an `int`); the
   first pass wrote the comparison bare and the reading caught six `E0308`s (four on width/height, two
