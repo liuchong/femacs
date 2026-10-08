@@ -113,6 +113,11 @@ pub mod x11_constants {
   /// `event->xmotion` record the slice reads; `src/xwidget.rs` 2801 declares the same
   /// value for its own unit).
   pub const MotionNotify: c_int = 6;
+  /// X11/X.h 662: `#define MappingModifier 0` - C 22215's case label (the `MappingNotify`
+  /// arm's inner switch).
+  pub const MappingModifier: c_int = 0;
+  /// X11/X.h 663: `#define MappingKeyboard 1` - C 22218's case label.
+  pub const MappingKeyboard: c_int = 1;
   /// X11/X.h 186: `#define EnterNotify 7` - an event type the focus machinery dispatches on
   /// (measured against this target's header, the `spikes` probe in the slice-59 reading).
   pub const EnterNotify: c_int = 7;

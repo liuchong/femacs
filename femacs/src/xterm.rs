@@ -31191,7 +31191,8 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   use crate::x11_constants::SelectionRequest;
   /* C 20715/20806/20853/20979's four case labels (this slice).  */
   use crate::x11_constants::{EnterNotify, FocusIn, FocusOut, LeaveNotify,
-			       MotionNotify, ButtonPress, ButtonRelease};
+			       MotionNotify, ButtonPress, ButtonRelease,
+			       MappingModifier, MappingKeyboard};
   use crate::x11_constants::None;
   /* C 19579/19699's `PropertyDelete`, and the Xlib/Xatom names the toplevel scan and
      the opacity reader read (C 19597-19621, C 19709-19721).  */
@@ -34205,6 +34206,74 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 
 	      break 'other;                                               // C 22186
 	    }
+	  /* C 22188-22238: the five small arms between the button body and the `GenericEvent` block -
+	     `CirculateNotify`, `CirculateRequest`, `VisibilityNotify`, `MappingNotify` and
+	     `DestroyNotify`, 51 C lines in C's order.  C's `xvisibility`/`xmapping`/`xdestroywindow`
+	     records are owed `XEvent` members (the registered `no field` class).  */
+	  CirculateNotify =>
+	    {
+	      /* "When _NET_WM_CLIENT_LIST stacking is being used, changes in that property are
+		 watched for, and it's not necessary to update the state in response to ordinary
+		 window substructure events."  */
+	      if x_dnd_in_progress                                       // C 22189
+		&& !x_dnd_use_toplevels                                  // C 22194
+		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)           // C 22195
+		{ x_dnd_update_state (dpyinfo, (*dpyinfo).last_user_time); }  // C 22196
+	      break 'switch;                                             // C 22197 (`goto OTHER`)
+	    }
+
+	  CirculateRequest =>
+	    {
+	      break 'switch;                                             // C 22200 (`goto OTHER`)
+	    }
+
+	  VisibilityNotify =>
+	    {
+	      f = x_top_window_to_frame (dpyinfo, (*event).xvisibility.window);  // C 22203
+
+	      if !f.is_null ()                                           // C 22205
+		{ (*( (*f).output_data.x as *mut x_output )).visibility_state
+		    = (*event).xvisibility.state; }                         // C 22206
+
+	      break 'switch;                                             // C 22208 (`goto OTHER`)
+	    }
+
+	  MappingNotify =>
+	    {
+	      /* "Someone has changed the keyboard mapping - update the local cache."  */
+	      /* C 22213-22220's `switch` and its `FALLTHROUGH` are the port's or-pattern and one
+		 shared stage (PORTING.md 2.2, the `x_fill_underline` shape): `MappingModifier` runs
+		 C 22216 first, and both labels reach C 22219.  C's switch has no `default`, so the
+		 unmatched requests change nothing.  */
+	      match (*event).xmapping.request
+		{
+		  MappingModifier | MappingKeyboard =>
+		    {
+		      if (*event).xmapping.request == MappingModifier       // C 22215
+			{ x_find_modifier_meanings (dpyinfo); }             // C 22216
+		      XRefreshKeyboardMapping (&raw mut (*event).xmapping);  // C 22219
+		    }
+		  _ => {}
+		}
+	      break 'switch;                                             // C 22221 (`goto OTHER`)
+	    }
+
+	  DestroyNotify =>
+	    {
+	      if (*event).xdestroywindow.window == (*dpyinfo).net_supported_window  // C 22224-22225
+		{ (*dpyinfo).net_supported_window = None as Window; }      // C 22226
+
+	      if (*event).xdestroywindow.window == (*dpyinfo).motif_drag_window  // C 22228-22229
+		/* "We get DestroyNotify events for the drag window because
+		   x_special_window_exists_p selects for structure notification.
+		   The drag window is not supposed to go away but not all clients
+		   obey that requirement when setting the drag window property."  */
+		{ (*dpyinfo).motif_drag_window = None as Window; }         // C 22235
+
+	      xft_settings_event (dpyinfo as *mut c_void, event as *const c_void);  // C 22237
+	      break 'other;                                              // C 22238 (C's `break`)
+	    }
+
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
 		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
 		  _ => {}

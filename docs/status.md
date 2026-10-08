@@ -17390,3 +17390,30 @@
      `build/probes/xterm/`、`/tmp/s119/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，按钮事件一次也没到过；读数只有十九臂编译、`--check` 的行与 token 数、容差表与台账。
      剩余十二个 `case` 体，下一片从 `CirculateNotify`（C 22188）起。
+
+- **4.038 `src/xterm.c` round 96（xterm lane，slice 120）：五个小 case 落地（C 22188-22238，51 C 行）——`MappingNotify` 的 `FALLTHROUGH` 落成 or-pattern + 共享阶段（2026-10-08）**：
+  ① **本片落的文本**：`CirculateNotify`（C 22188-22197：xdnd 状态更新落在 C 的"普通窗口 substructure 事件"条件之后）、
+     `CirculateRequest`（C 22199-22200）、`VisibilityNotify`（C 22202-22208：`x_output` 的 `visibility_state`，走本文件 24801 站点
+     那处裸 `output_data.x` 转型）、`MappingNotify`（C 22210-22221：键盘映射缓存更新）、`DestroyNotify`（C 22223-22238：
+     两个特殊窗口字段清零 + C 22237 的 `xft_settings_event` 调用 + C 22238 自己的 `break`）。四处 `goto OTHER` 都是 `break 'switch`，
+     C 22238 的 `break` 是 `break 'other`。
+  ② **`MappingNotify` 的内层 `switch` 与 `FALLTHROUGH`**：C 22213-22220 按 `event->xmapping.request` 分派，`MappingModifier` 先跑
+     `x_find_modifier_meanings`，然后**贯穿**进 `MappingKeyboard` 的体（`XRefreshKeyboardMapping`）。端口把两个标签写成一条 or-pattern
+     + 一个共享阶段（PORTING.md 2.2，本文件 12571 的 `x_fill_underline` 形状），所以 C 22219 只写一次、`MappingModifier` 的判定放在其中；
+     C 的 switch 没有 `default`，未匹配的 request 什么都不做（`_ => {}`）。
+  ③ **两个 `X.h` 常量进镜像**：`MappingModifier`（X.h 662）与 `MappingKeyboard`（X.h 663）按事件类型兄弟常量的写法进
+     `include/xlib.rs` 的 `x11_constants`（slice 115 的 keysym 轮是先例）。
+  ④ **读数（两侧都在本修订测）**：⑴ **十九臂表**（baseline = HEAD `99289682`，十九个数字与 slice 119 台账逐位相同）：
+     十九个臂**一律 +8/+0**——A 1168/83 → **1176/83**、U 1180/83 → **1188/83**、UT 1183/82 → **1191/82**、UM 1191/82 → **1199/82**、
+     UG 1207/84 → **1215/84**、UGX 1312/86 → **1320/86**、AE 1200/82 → **1208/82**、AI 1195/83 → **1203/83**、AIU 1277/83 → **1285/83**、
+     AIUX 1386/85 → **1394/85**、AX 1178/83 → **1186/83**、AG3 1257/83 → **1265/83**、AG3X 1337/85 → **1345/85**、AXF 1178/83 → **1186/83**、
+     AXPM 1169/83 → **1177/83**、AXKB 1209/83 → **1217/83**、AXR 1174/83 → **1182/83**、AX11 1152/83 → **1160/83**、AUX 1251/81 → **1259/81**。
+     ⑵ 按类点名（每臂同四行，合计正好 +8）：`no field xmapping` **+3**（C 22213、22218、22219）、`no field xvisibility` **+2**
+     （C 22203、22206）、`no field xdestroywindow` **+2**（C 22224、22228）、`cannot find function XRefreshKeyboardMapping` **+1**
+     （C 22219，裸 Xlib 类）。五个 case 都不带 `#ifdef`，所以臂间没有任何移动；警告列不动。
+     ⑶ **`--check`** 仍 2 行（行数漂移门由 slice 119 入表的 `xterm 0.20 total` 容差行吸收），长行 token 清单 **91 → 76**；
+     单元 **35,196 行**（C 33,125），文件 md5 `d83b5c28628a5020375938da62f91e62`。
+  ⑤ **预算与清理**：本片 rustc 编译 **约 45 发**（19 臂 × 2 轮 + 定点复测；每次 14-21 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s120/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，这五个事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
+     剩余七个 `case` 体（`GenericEvent` 一族与 `ClientMessage`），下一片从 `GenericEvent`（C 22240）起。

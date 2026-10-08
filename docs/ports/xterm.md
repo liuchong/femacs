@@ -408,6 +408,15 @@ more `#ifdef`s C wraps around a *condition* (C 22072-22074's `popup_activated` g
 test) become computed values, and the round repairs the `xwidget_button` row in
 `include/xwidget.rs`, whose parameter order had `button` where C's header puts `x`.
 
+  Slice 120 (C 22188-22238, Decision 132) lands the five small arms between the button body and the
+`GenericEvent` block - `CirculateNotify`, `CirculateRequest`, `VisibilityNotify`, `MappingNotify`
+and `DestroyNotify`, 51 C lines.  `CirculateNotify`'s `x_dnd_update_state` sits behind the
+"ordinary window substructure events" test, `VisibilityNotify` writes `x_output`'s
+`visibility_state`, `MappingNotify`'s inner `switch` and its `FALLTHROUGH` become an or-pattern
+with one shared stage (C 22219 is written once), and `DestroyNotify` clears the two special-window
+fields before its `xft_settings_event` call and C's own `break`.  The two `X.h` labels the inner
+switch reads join `x11_constants`.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5616,6 +5625,32 @@ expected direction once the file starts carrying records the X11 headers would s
   and is re-measured when the last body lands.
 * **What `--check` reads.**  Two rows again, the long row's token list going **143 -> 91**.  The unit
   is **35,127 lines** against C's 33,125, file md5 `e4a6b4daab43711d34f5b6f7c5550bc1`.
+
+### 132. Slice 120 (C 22188-22238): the five small arms, and `MappingNotify`'s `FALLTHROUGH`
+
+* **What it lands.**  `case CirculateNotify:` (C 22188-22197), `case CirculateRequest:`
+  (C 22199-22200), `case VisibilityNotify:` (C 22202-22208), `case MappingNotify:`
+  (C 22210-22221) and `case DestroyNotify:` (C 22223-22238), each line with its own `// C NNNN`
+  comment: the Xdnd state update behind C's "ordinary window substructure events" test (C
+  22189-22196), the four `goto OTHER` sites (`break 'switch`), `x_output`'s `visibility_state`
+  (through the bare `output_data.x` pointer this file's 24801 site casts), the keyboard-mapping
+  cache update, and `DestroyNotify`'s two special-window clears with C 22237's
+  `xft_settings_event` call and C 22238's own `break` (`break 'other`).
+* **`MappingNotify`'s inner `switch` and its `FALLTHROUGH`.**  C 22213-22220 switches on
+  `event->xmapping.request`, runs `x_find_modifier_meanings` for `MappingModifier` and *falls
+  through* into `MappingKeyboard`'s body (`XRefreshKeyboardMapping`).  The port writes the two
+  labels as one or-pattern with a shared stage (PORTING.md 2.2, the `x_fill_underline` shape this
+  file already uses at 12571), so C 22219 stands once and the `MappingModifier` test sits inside
+  it; C's switch has no `default`, so the unmatched requests change nothing (`_ => {}`).
+* **Two `X.h` labels join the mirror.**  `MappingModifier` (X.h 662) and `MappingKeyboard`
+  (X.h 663) are declared in `include/xlib.rs`'s `x11_constants` beside their event-type siblings,
+  which is where this unit reads the labels from (slice 115's keysym round is the precedent).
+* **The arm's whole class is the owed members.**  `xvisibility` (2 reads), `xmapping` (3) and
+  `xdestroywindow` (2) are `XEvent` members the stand-in does not carry; `XRefreshKeyboardMapping`
+  (C 22219) is the bare Xlib class.  Eight rows in every arm, and nothing moves between arms
+  because none of the five cases carries an `#ifdef`.
+* **What `--check` reads.**  Two rows, the long row's token list going **91 -> 76**.  The unit is
+  **35,196 lines** against C's 33,125, file md5 `d83b5c28628a5020375938da62f91e62`.
 
 ## Evidence
 
@@ -11339,5 +11374,54 @@ line; the twelve bodies still to land are C 22188-25595, so the finished file is
 ~18%).  The row is a reading, not a waiver: it is re-measured when the last body lands.
 
 **Not claimed**: no runtime evidence - this lane does not link, and no button event was ever
+delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
+ledger.
+
+### Slice 120's readings (C 22188-22238), as landed and measured (2026-10-08)
+
+`CirculateNotify`, `CirculateRequest`, `VisibilityNotify`, `MappingNotify` and `DestroyNotify`.
+Seven `case` bodies remain.
+
+| arm | baseline | slice 120 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1168 / 83 | **1176 / 83** | **+8 / 0** |
+| U `A +use_toolkit_scroll_bars` | 1180 / 83 | **1188 / 83** | **+8 / 0** |
+| UT `U +use_x_toolkit` | 1183 / 82 | **1191 / 82** | **+8 / 0** |
+| UM `UT +use_motif` | 1191 / 82 | **1199 / 82** | **+8 / 0** |
+| UG `U +use_gtk` | 1207 / 84 | **1215 / 84** | **+8 / 0** |
+| UGX `UG +have_xinput2` | 1312 / 86 | **1320 / 86** | **+8 / 0** |
+| AE `A +enable_checking` | 1200 / 82 | **1208 / 82** | **+8 / 0** |
+| AI `A +have_x_i18n` | 1195 / 83 | **1203 / 83** | **+8 / 0** |
+| AIU `AI +use_gtk` | 1277 / 83 | **1285 / 83** | **+8 / 0** |
+| AIUX `AIU +have_xinput2` | 1386 / 85 | **1394 / 85** | **+8 / 0** |
+| AX `A +have_xdbe` | 1178 / 83 | **1186 / 83** | **+8 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1257 / 83 | **1265 / 83** | **+8 / 0** |
+| AG3X `AG3 +have_xinput2` | 1337 / 85 | **1345 / 85** | **+8 / 0** |
+| AXF `A +have_xfixes` | 1178 / 83 | **1186 / 83** | **+8 / 0** |
+| AXPM `A +have_xpm` | 1169 / 83 | **1177 / 83** | **+8 / 0** |
+| AXKB `A +have_xkb` | 1209 / 83 | **1217 / 83** | **+8 / 0** |
+| AXR `A +have_xrandr` | 1174 / 83 | **1182 / 83** | **+8 / 0** |
+| AX11 `A +have_x11` | 1152 / 83 | **1160 / 83** | **+8 / 0** |
+| AUX `A +use_xcb` | 1251 / 81 | **1259 / 81** | **+8 / 0** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`99289682`, slice 119) with its
+own `_root.rs` re-materialised per arm - the nineteen baseline numbers reproduce the ledger's
+slice-119 column to the digit - and the slice's file md5 is
+`d83b5c28628a5020375938da62f91e62`.
+
+**The `of which`, by arm class** (the same four rows in every arm; the five arms carry no `#ifdef`,
+so nothing moves between arms):
+
+| rows | C sites |
+| --- | --- |
+| `no field xmapping` **+3** | C 22213, 22218 (the two labels), 22219 (the call's argument) |
+| `no field xvisibility` **+2** | C 22203, 22206 |
+| `no field xdestroywindow` **+2** | C 22224, 22228 |
+| `cannot find function XRefreshKeyboardMapping` **+1** | C 22219 - the bare Xlib class |
+
+The warning column does not move in any arm, and the `--check` row keeps its two lines with the long
+row's token list going **91 -> 76**.
+
+**Not claimed**: no runtime evidence - this lane does not link, and none of the five events was ever
 delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
 ledger.
