@@ -8,8 +8,8 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**1,738 lines**, md5 `0830c3bf72ab610a22af39a2e6082ce2`), carrying
-> **C 1-1229** - P-86 ④'s first three slices of this file - with both arms of every `#if` carried.
+> `femacs/src/androidvfs.rs` (**1,839 lines**, md5 `d01fcf9077879dd8dfaa46c939c3301b`), carrying
+> **C 1-1287** - P-86 ④'s first four slices of this file - with both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
 > build, so the port is the empty unit plus a note that names the gate"): P-86 ① rules that a
@@ -88,7 +88,8 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 974-995 | `android_unix_opendir` (C 990-992 the three function-table assignments) | file gate |
 | 996-1022 | the asset-directory comment block (C 999-1002), C 1004-1011's three file-scope objects (`directory_tree` - whose single definition the include graph already answers, Owed 6 - plus `directory_tree_size` and `asset_manager`) and `android_extract_long` (C 1013-1022) | file gate (slice 2) |
 | 1024-1229 | the `android_scan_directory_tree` comment (C 1024-1034), the function itself (C 1036-1202 - C's `again`/`false_positive`/`fail` labels as the port's labelled `loop`, labelled block and labelled block) and `android_is_directory` (C 1204-1229) | file gate (slice 3); C 1230 is a blank line |
-| 1231-7950 | **the remainder** - `android_init_assets` (C 1236) through C 7950: the asset tree walkers, the afs/android_* vnode families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1231-1287 | the `android_init_assets` comment (C 1231-1233) and the function itself (C 1235-1287; C 1262-1278's `OLD_ANDROID_ASSETS` arm pair, C 1282/1285's two JNI calls) | file gate (slice 4); C 1288 is a blank line |
+| 1289-7950 | **the remainder** - the asset-to-fd conversion (`android_hack_asset_fd_fallback` at C 1301) through C 7950: the afs/android_* vnode families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -448,3 +449,54 @@ The whole-file line-count row now reads 78.1%.
 - `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
   disagreements [NOT VERIFIED]` (slice 2's owed item; the five `STAT_TIMESPEC` rows are C
   1980/2162/4346/7323/7820, all past this slice).
+
+## Slice 4 (2026-10-08, status 4.108 - the integrator sets the round number): C 1230-1287
+
+**What this round is.**  `android_init_assets` (C 1235-1287, with C 1231-1233's comment) - the
+function that binds the Java asset manager to the native side, opens `directory-tree` itself and
+checks its magic.  Port: 1,738 -> 1,839 lines.
+
+**The round's arm work, written before the probe this time** (the slice-3 lesson): C's two arms get
+this function's five `<android/asset_manager.h>` names from two different places - the `#else` arm
+from C 51's `android-asset.h` mirror, whose emulation *defines* `AAssetManager_fromJava`,
+`AAssetManager_open`, `AAsset_getBuffer`, `AAsset_getLength` and `AASSET_MODE_BUFFER`
+(`include/android-asset.rs` 136/138/257/565/587), and the `>= 9` arm directly from the NDK's header,
+which has no mirror - so the unit declares all five under `#[cfg (feature = "android_api_ge_9")]`
+(Deviation 17).  C 1262-1278's `#if !OLD_ANDROID_ASSETS` arm pair is the same feature's two arms,
+each carrying its own magic check (`"EMACS"`/5 bytes and `"EMACS____"`/9 bytes) with C's
+`__android_log_print (ANDROID_LOG_FATAL, …)` and `emacs_abort ()`.
+
+**Evidence ① - both arms read `exit 0`.**  The probe with the else arm and with
+`--cfg 'feature="android_api_ge_9"'`: **`exit 0`, 0 errors, 4 warnings each**.  Three real defects
+came out of the two first drafts, and the arms found them in turn: a unit-local
+`pub type off_t = i64;` was `E0428 the name \`off_t\` is defined multiple times` in the `>= 9` arm
+(C 32's `sys_types.in.rs` edge already carries it - so the declaration is *not* written, and the
+comment says why); and C 1285's `((*env)->ExceptionCheck (env))` used as a condition is the port's
+`… != 0`, because the JNI entry returns `jboolean` (a `u8`) - the `E0308 expected bool, found u8`
+that the else arm reported first.  Both fixes are the same class this ledger already records:
+C's implicit conversions written out.
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error into the new
+function's local list moves the `>= 9` arm to `exit 1` with the error named once; reverted and
+re-run: `exit 0`.  Three probes for the round, each about one second.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 174 → 173 rows**, the retired row
+being `missing function android_init_assets`, **and no new spelling row**: the body's tokens match
+C's (the `"directory-tree"`/`"EMACS"`/`"EMACS____"` literals, `AASSET_MODE_BUFFER`, the two JNI
+calls and both magic arms are all compared).  The whole-file line-count row now reads 76.9%.
+
+**Deviation (this slice's addition).**
+
+17. **Five names are arm-dependent for the same reason two were in slice 3** (Evidence ①).  C 47-48
+    is the `>= 9` arm's include of the NDK's asset-manager headers and C 51 is the `#else` arm's
+    include of `android-asset.h`; a name only the `#else` mirror carries must therefore be declared
+    by the unit for the other arm, and a name only the NDK header carries has to be declared by the
+    unit anyway (P-88 ① - no mirror exists for an NDK header).  The rule this lane follows from here
+    on: **for every name this file takes from `<android/asset_manager.h>`, ask which arm carries
+    it**, because the answer decides whether the unit declares it and under which `#[cfg]`.
+
+**Owed (this slice's additions).**
+
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: 1,839 of 7,950 C lines (23.1%).
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5 disagreements
+  [NOT VERIFIED]` (slice 2's owed item; the five rows are all past this slice).

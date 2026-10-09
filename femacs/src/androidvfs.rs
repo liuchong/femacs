@@ -1422,9 +1422,10 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 1231-7950: the remainder of the file.  Slice 3 ends at C 1229 (`android_is_directory`'s
-   closing brace); the next live item is C 1236's `android_init_assets`, and `extract-abi.py
-   --check`'s remaining `missing …` list is exactly that text.  */
+/* C 1289-7950: the remainder of the file.  Slice 4 ends at C 1287 (`android_init_assets`'s
+   closing brace); the next item is C 1291's "Asset-to-file descriptor conversion" comment and its
+   first definition, C 1301's `android_hack_asset_fd_fallback`, and `extract-abi.py --check`'s
+   remaining `missing …` list is exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -1735,4 +1736,104 @@ unsafe fn android_is_directory (dir: *const c_char) -> bool
   #[cfg (not (feature = "android_api_ge_9"))]                            // C 1223: C's `#else`
   return dir.offset (-10) >= directory_tree as *const c_char             // C 1226
 	 && *dir.offset (-10) == b'/' as c_char;                         // C 1227
+}
+
+/* Initialize asset retrieval.  ENV should be a JNI environment for
+   the Emacs thread, and MANAGER should be a local reference to a Java
+   asset manager object created for the Emacs service context.  */     // C 1231-1233
+
+/* The five `<android/asset_manager.h>` entries this function calls, **for the `>= 9` arm only**:
+   that arm reaches the NDK's header directly (C 47-48) and it has no mirror in this tree, while the
+   `#else` arm gets all five from C 51's `android-asset.h` mirror (`include/android-asset.rs`
+   136/138/257/565/587 - that arm's emulation *defines* the four functions, this arm's header
+   declares them).  Measured: the arm that lacks them reads `E0425` at each call (the slice-3
+   lesson, applied before writing this time).  */
+/* The four's return types are the NDK header's own; `off_t` is already in scope from C 32's
+   `sys_types.in.rs` edge (`femacs/lib/include/sys_types.in.rs`), so it is not re-declared here
+   (measured: a local alias is `E0428 the name \`off_t\` is defined multiple times`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg (feature = "android_api_ge_9")]
+unsafe extern "C" {
+  /// C: `AAssetManager *AAssetManager_fromJava (JNIEnv *env, jobject assetManager);`
+  pub fn AAssetManager_fromJava (env: *mut JNIEnv, java_manager: jobject) -> *mut AAssetManager;
+  /// C: `AAsset *AAssetManager_open (AAssetManager *mgr, const char *filename, int mode);`
+  pub fn AAssetManager_open (manager: *mut AAssetManager, c_name: *const c_char, mode: c_int)
+			     -> *mut AAsset;
+  /// C: `const void *AAsset_getBuffer (AAsset *asset);`
+  pub fn AAsset_getBuffer (asset: *mut AAsset) -> *const c_void;
+  /// C: `off_t AAsset_getLength (AAsset *asset);`
+  pub fn AAsset_getLength (asset: *mut AAsset) -> off_t;
+}
+/// C 171-176's anonymous enum in `<android/asset_manager.h>`: `AASSET_MODE_BUFFER == 1` (the
+/// `#else` arm's `include/android-asset.rs` 136 carries the same value; measured with this
+/// machine's NDK clang, the `src/android.rs` 135 table's reading).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg (feature = "android_api_ge_9")]
+pub const AASSET_MODE_BUFFER: c_int = 1;
+/// C 1249's priority: `<android/log.h>`'s `ANDROID_LOG_FATAL == 7` (the measured value
+/// `src/android.rs` 141-143 records).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ANDROID_LOG_FATAL: c_int = 7;
+
+// C 1235-1287.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_assets (env: *mut JNIEnv, manager: jobject)
+{
+  let mut asset: *mut AAsset;                                           // C 1238
+
+  /* Set the asset manager.  */                                         // C 1240
+  asset_manager = AAssetManager_fromJava (env, manager);                // C 1241
+
+  /* Initialize the directory tree.  */                                 // C 1243
+  asset = AAssetManager_open (asset_manager, c"directory-tree".as_ptr (),   // C 1244
+			      AASSET_MODE_BUFFER);                      // C 1245
+
+  if asset.is_null ()                                                   // C 1247
+    {
+      let __func__: *const c_char = c"android_init_assets".as_ptr ();    // C 1249
+      __android_log_print (ANDROID_LOG_FATAL, __func__,                 // C 1249
+			   c"Failed to open directory tree".as_ptr ());  // C 1250
+      emacs_abort ();                                                   // C 1251
+    }
+
+  directory_tree = AAsset_getBuffer (asset) as *const c_char;            // C 1254
+
+  if directory_tree.is_null ()                                          // C 1256
+    { emacs_abort (); }                                                 // C 1257
+
+  /* Now figure out how big the directory tree is, and compare the
+     first few bytes.  */                                              // C 1259-1260
+  directory_tree_size = AAsset_getLength (asset) as size_t;             // C 1261
+  #[cfg (feature = "android_api_ge_9")]                                  // C 1262: C's `#if !OLD_ANDROID_ASSETS`
+  {
+    if directory_tree_size < 5                                          // C 1263
+	|| memcmp (directory_tree as *const c_void, c"EMACS".as_ptr () as *const c_void, 5) != 0   // C 1264
+      {
+	let __func__: *const c_char = c"android_init_assets".as_ptr ();  // C 1266
+	__android_log_print (ANDROID_LOG_FATAL, __func__,                // C 1266
+			     c"Directory tree has bad magic".as_ptr ());  // C 1267
+	emacs_abort ();                                                  // C 1268
+      }
+  }
+  #[cfg (not (feature = "android_api_ge_9"))]                            // C 1270: C's `#else`
+  {
+    if directory_tree_size < 9                                           // C 1271
+	|| memcmp (directory_tree as *const c_void, c"EMACS____".as_ptr () as *const c_void, 9) != 0   // C 1272
+      {
+	let __func__: *const c_char = c"android_init_assets".as_ptr ();  // C 1274
+	__android_log_print (ANDROID_LOG_FATAL, __func__,                // C 1274
+			     c"Directory tree has bad magic".as_ptr ());  // C 1275
+	emacs_abort ();                                                  // C 1276
+      }
+  }
+
+  /* Hold a VM reference to the asset manager to prevent the native
+     object from being deleted.  */                                    // C 1280-1281
+  ((*(*env)).NewGlobalRef.unwrap ()) (env, manager);                     // C 1282
+
+  /* Abort if there's no more memory for the global reference.  */       // C 1284
+  if ((*(*env)).ExceptionCheck.unwrap ()) (env) != 0                     // C 1285 (C's implicit
+									//  bool test: the JNI entry returns
+									//  `jboolean`, a `u8`)
+    { abort (); }                                                       // C 1286
 }
