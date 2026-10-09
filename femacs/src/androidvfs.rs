@@ -1422,9 +1422,9 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 1024-7950: the remainder of the file.  Slice 2 ends at C 1022 (`android_extract_long`'s
-   closing brace); the next live item is C 1036's `android_scan_directory_tree` (under C 1024-1034's
-   comment), and `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
+/* C 1231-7950: the remainder of the file.  Slice 3 ends at C 1229 (`android_is_directory`'s
+   closing brace); the next live item is C 1236's `android_init_assets`, and `extract-abi.py
+   --check`'s remaining `missing …` list is exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -1444,6 +1444,16 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
 /* The size of the directory tree.  */                                   // C 1007
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 static mut directory_tree_size: size_t = 0;                             // C 1008
+
+/* C 47's `<android/asset_manager.h>` 70-77 spells the manager's opaque tag, which the `>= 9` arm
+   needs and the `#else` arm gets from `android-asset.h`'s mirror instead (`include/android-asset.rs`
+   104 has that arm's `AAssetManager`; this arm's C 47-48 headers have no mirror at all).  Measured:
+   without it the `>= 9` arm's reading is `E0425 cannot find type \`AAssetManager\`` here - which is
+   the gap the round's two-arm probing found.  */
+/// C: struct AAssetManager;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg (feature = "android_api_ge_9")]
+pub enum AAssetManager {}
 
 /* The asset manager being used.  */                                     // C 1010
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -1467,4 +1477,262 @@ unsafe fn android_extract_long (pointer: *const c_char) -> c_uint
   memcpy (&raw mut number as *mut c_void, pointer as *const c_void,     // C 1020
 	  std::mem::size_of_val (&number));
   return number;                                                        // C 1021
+}
+
+/* Scan to the file FILE in the asset directory tree.  Return a
+   pointer to the end of that file (immediately before any children)
+   in the directory tree, or NULL if that file does not exist.
+
+   If returning non-NULL, also return the offset to the end of the
+   last subdirectory or file in *LIMIT_RETURN.  LIMIT_RETURN may be
+   NULL.
+
+   FILE must have less than 11 levels of nesting.  If it ends with a
+   trailing slash, then NULL will be returned if it is not actually a
+   directory.  */                                                       // C 1024-1034
+
+/* `<android/log.h>`'s one entry this file calls (C 1170) and the priority it passes: the header has
+   no mirror in this tree (slice 1's `<dlfcn.h>`… comment names it), and the number is the NDK's
+   measured enum (`src/android.rs` 135-143 measured `ANDROID_LOG_WARN == 5` with this machine's
+   NDK clang), so both stand at their use site (P-88 ①).  */
+/// C: `int __android_log_print (int prio, const char *tag, const char *fmt, ...);` (log.h 112)
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub fn __android_log_print (prio: c_int, tag: *const c_char, fmt: *const c_char, ...)
+			      -> c_int;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ANDROID_LOG_WARN: c_int = 5;
+
+/* C 1005's tentative definition, **for the `>= 9` arm only**: that arm's C 47-48 includes the
+   NDK's asset-manager headers instead of `android-asset.h`, so the object the `#else` arm gets
+   from the mirror (`include/android-asset.rs` 61) has no other definition there - in C the two
+   lines are one object, and this is C's own structure, one definition per arm.  (The `#else`
+   arm must not carry it: that would be `E0428`, measured in slice 2.)  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg (feature = "android_api_ge_9")]
+static mut directory_tree: *const c_char = std::ptr::null ();
+
+// C 1036-1202.  C's three labels are the port's three jumps (PORTING.md 2.2): `fail` (C 1199) is
+// the forward cleanup path, so the body is a labelled block whose end falls into C's label text;
+// `again` (C 1106) is a *backward* jump, so it is a labelled `loop` that repeats; and
+// `false_positive` (C 1176) is the tail of one token's iteration, reached by the no-match
+// fall-through and by C 1126's jump, so the matched path sits in a labelled block that
+// `break 'matched` leaves.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_scan_directory_tree (file: *const c_char, limit_return: *mut size_t)
+				       -> *const c_char
+{
+  let mut token: *mut c_char;                                           // C 1039
+  let mut saveptr: *mut c_char;
+  let mut copy: *mut c_char;
+  let mut start: *mut c_char;
+  let mut max: *mut c_char;
+  let mut limit: *mut c_char;
+  let mut token_length: size_t = 0;                                     // C 1040
+  let mut ntokens: size_t = 0;
+  let mut i: size_t = 0;
+  let mut len: size_t = 0;
+  let mut tokens: [*mut c_char; 20] = [std::ptr::null_mut (); 20];      // C 1041
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 1043
+
+  'fail: {
+  /* Skip past the 5 or 9 byte header.  */                              // C 1045
+  #[cfg (feature = "android_api_ge_9")]                                 // C 1046: C's `#if !OLD_ANDROID_ASSETS`
+  { start = (directory_tree as *mut c_char).offset (5); }               // C 1047
+  #[cfg (not (feature = "android_api_ge_9"))]                           // C 1048: C's `#else`
+  { start = (directory_tree as *mut c_char).offset (9); }               // C 1049
+
+  /* Figure out the current limit.  */                                  // C 1052
+  limit = (directory_tree as *mut c_char).offset (directory_tree_size as isize);   // C 1053
+
+  /* Now, split `file' into tokens, with the delimiter being the file
+     name separator.  Look for the file and seek past it.  Create a copy
+     of FILE for the enjoyment of `strtok_r'.  */                       // C 1055-1057
+
+  ntokens = 0;                                                          // C 1059
+  saveptr = std::ptr::null_mut ();                                      // C 1060
+  len = strlen (file) + 1;                                              // C 1061
+  copy = SAFE_ALLOCA! (sa_avail, len) as *mut c_char;                   // C 1062
+  memcpy (copy as *mut c_void, file as *const c_void, len);             // C 1063
+  memset (&raw mut tokens as *mut c_void, 0, std::mem::size_of_val (&tokens));   // C 1064
+
+  while { token = strtok_r (copy, c"/".as_ptr (), &raw mut saveptr);    // C 1066
+	  ! token.is_null () }
+    {
+      copy = std::ptr::null_mut ();                                     // C 1068
+
+      /* Make sure ntokens is within bounds.  */                        // C 1070
+      if ntokens == countof! (tokens)                                   // C 1071
+	{ break 'fail; }                                                // C 1072
+
+      len = strlen (token) + 1;                                         // C 1074
+      tokens[ntokens as usize] = SAFE_ALLOCA! (sa_avail, len) as *mut c_char;   // C 1075
+      memcpy (tokens[ntokens as usize] as *mut c_void, token as *const c_void, len);   // C 1076
+      ntokens += 1;                                                     // C 1077
+    }
+
+  /* If there are no tokens, just return the start of the directory
+     tree.  */                                                          // C 1080-1081
+
+  if ntokens == 0                                                       // C 1083
+    {
+      SAFE_FREE! (sa_count);                                            // C 1085
+
+      /* Return the size of the directory tree as the limit.
+         Do not subtract the initial header bytes, as the limit
+         is an offset from the start of the file.  */                  // C 1087-1089
+
+      if ! limit_return.is_null ()                                      // C 1091
+	{ *limit_return = directory_tree_size; }                        // C 1092
+
+      return start;                                                     // C 1094
+    }
+
+  /* Loop through tokens, indexing the directory tree each time.  */    // C 1097
+
+  i = 0;                                                                // C 1099 (the `for` init)
+  while i < ntokens
+    {
+      /* C's `continue` (C 1146) jumps to the `for`'s increment, which runs at the body's end, so
+	 the body is a labelled block and `break 'continue_;` leaves it - the `src/androidterm.rs`
+	 275-290 shape.  */
+      'continue_: {
+      token = tokens[i as usize];                                       // C 1101
+
+      /* Figure out how many bytes to compare.  */                      // C 1103
+      token_length = strlen (token);                                    // C 1104
+
+      'again: loop                                                      // C 1106
+	{
+	  /* If this would be past the directory, return NULL.  */      // C 1108
+	  if start.offset (token_length as isize) > limit               // C 1109
+	    { break 'fail; }                                            // C 1110
+
+	  /* Now compare the file name.  */                             // C 1112
+	  if memcmp (start as *const c_void, token as *const c_void, token_length) == 0   // C 1113
+	    {
+	      /* They probably match.  Find the NULL byte.  It must be
+		 either one byte past start + token_length, with the last
+		 byte a trailing slash (indicating that it is a directory),
+		 or just start + token_length.  Return 4 or 8 bytes past the
+		 next NULL byte.  */                                    // C 1115-1119
+
+	      'matched: {
+	      max = memchr (start as *const c_void, 0, limit.offset_from (start) as usize) as *mut c_char;   // C 1121
+
+	      if max != start.offset (token_length as isize)            // C 1123
+		  && ! (max == start.offset (token_length as isize + 1)   // C 1124
+			&& *max.offset (-1) == b'/' as c_char)          // C 1125
+		{ break 'matched; }                                     // C 1126
+
+	      /* Return it if it exists and is in range, and this is the
+		 last token.  Otherwise, set it as start and the limit as
+		 start + the offset and continue the loop.  */          // C 1128-1130
+
+	      if ! max.is_null ()                                       // C 1132
+		  && max.offset ((if OLD_ANDROID_ASSETS != 0 { 9 } else { 5 }) as isize) <= limit
+		{
+		  if i < ntokens - 1                                    // C 1134
+		    {
+		      start = max.offset ((if OLD_ANDROID_ASSETS != 0 { 9 } else { 5 }) as isize);   // C 1136
+		      limit = ((directory_tree as *mut c_char)           // C 1137
+			       .offset (android_extract_long (max.offset ((if OLD_ANDROID_ASSETS != 0 { 5 } else { 1 }) as isize)) as isize));   // C 1138-1139
+
+		      /* Make sure limit is still in range.  */         // C 1141
+		      if limit > (directory_tree as *mut c_char).offset (directory_tree_size as isize)   // C 1142
+			  || start > (directory_tree as *mut c_char).offset (directory_tree_size as isize)   // C 1143
+			{ break 'fail; }                                // C 1144
+
+		      break 'continue_;                                 // C 1146
+		    }
+
+		  /* Now see if max is not a directory and file is.  If
+		     file is a directory, then return NULL.  */         // C 1149-1150
+		  if *max.offset (-1) != b'/' as c_char                 // C 1151
+		      && *file.offset (strlen (file) as isize - 1) == b'/' as c_char
+		    { max = std::ptr::null_mut (); }                    // C 1152
+		  else
+		    {
+		      /* Figure out the limit.  */                      // C 1155
+		      if ! limit_return.is_null ()                      // C 1156
+			{
+			  *limit_return                                 // C 1157
+			    = android_extract_long (max.offset ((if OLD_ANDROID_ASSETS != 0 { 5 } else { 1 }) as isize)) as size_t;   // C 1158-1159
+			}
+
+		      /* Go to the end of this file.  */                // C 1161
+		      max = max.offset ((if OLD_ANDROID_ASSETS != 0 { 9 } else { 5 }) as isize);   // C 1162
+		    }
+
+		  SAFE_FREE! (sa_count);                                // C 1165
+		  return max;                                           // C 1166
+		}
+
+	      /* Return NULL otherwise.  */                             // C 1169
+	      let __func__: *const c_char = c"android_scan_directory_tree".as_ptr ();   // C 1170
+	      __android_log_print (ANDROID_LOG_WARN, __func__,          // C 1170
+				   c"could not scan to end of directory tree".as_ptr (),
+				   c": %s".as_ptr (), file);            // C 1171-1172
+	      break 'fail;                                              // C 1173
+	      }
+	    }
+
+	  /* No match was found.  Set start to the next sibling and try
+	     again.  */                                                 // C 1178-1179
+
+	  start = memchr (start as *const c_void, 0, limit.offset_from (start) as usize) as *mut c_char;   // C 1181
+
+	  if start.is_null ()                                           // C 1183
+	      || start.offset ((if OLD_ANDROID_ASSETS != 0 { 9 } else { 5 }) as isize) > limit
+	    { break 'fail; }                                            // C 1184
+
+	  start = (directory_tree as *mut c_char)                       // C 1186
+	    .offset (android_extract_long (start.offset ((if OLD_ANDROID_ASSETS != 0 { 5 } else { 1 }) as isize)) as isize);   // C 1187-1188
+
+	  /* Make sure start is still in bounds.  */                    // C 1190
+
+	  if start > limit                                              // C 1192
+	    { break 'fail; }                                            // C 1193
+
+	  /* Continue the loop.  */                                     // C 1195
+	  /* C 1196's `goto again` is this `loop`'s own repeat.  */
+	}
+      }
+      i += 1;                                                           // C 1099's `++i`
+    }
+  }
+
+  /* C 1199's `fail:` */
+  SAFE_FREE! (sa_count);                                                // C 1200
+  return std::ptr::null ();                                             // C 1201
+}
+
+/* Return whether or not the directory tree entry DIR is a
+   directory.
+
+   DIR should be a value returned by
+   `android_scan_directory_tree'.  */                                   // C 1204-1208
+
+// C 1210-1229.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_is_directory (dir: *const c_char) -> bool
+{
+  /* If the directory is the directory tree, then it is a
+     directory.  */                                                     // C 1213-1214
+  if dir == (directory_tree as *const c_char)                            // C 1215
+	     .offset ((if OLD_ANDROID_ASSETS != 0 { 9 } else { 5 }) as isize)
+    { return true; }                                                    // C 1216
+
+  /* Otherwise, look 5 bytes behind.  If it is `/', then it is a
+     directory.  */                                                     // C 1219-1220
+  #[cfg (feature = "android_api_ge_9")]                                  // C 1218: C's `#if !OLD_ANDROID_ASSETS`
+  return dir.offset (-6) >= directory_tree as *const c_char              // C 1221
+	 && *dir.offset (-6) == b'/' as c_char;                          // C 1222
+  /* Otherwise, look 9 bytes behind.  If it is `/', then it is a
+     directory.  */                                                     // C 1224-1225
+  #[cfg (not (feature = "android_api_ge_9"))]                            // C 1223: C's `#else`
+  return dir.offset (-10) >= directory_tree as *const c_char             // C 1226
+	 && *dir.offset (-10) == b'/' as c_char;                         // C 1227
 }

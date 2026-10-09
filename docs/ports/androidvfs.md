@@ -8,8 +8,8 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**1,470 lines**, md5 `6e75122465238830eb1ae7c506662692`), carrying
-> **C 1-1022** - P-86 ④'s first two slices of this file - with both arms of every `#if` carried.
+> `femacs/src/androidvfs.rs` (**1,738 lines**, md5 `0830c3bf72ab610a22af39a2e6082ce2`), carrying
+> **C 1-1229** - P-86 ④'s first three slices of this file - with both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
 > build, so the port is the empty unit plus a note that names the gate"): P-86 ① rules that a
@@ -87,7 +87,8 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 965-973 | `android_unix_dirfd` | file gate |
 | 974-995 | `android_unix_opendir` (C 990-992 the three function-table assignments) | file gate |
 | 996-1022 | the asset-directory comment block (C 999-1002), C 1004-1011's three file-scope objects (`directory_tree` - whose single definition the include graph already answers, Owed 6 - plus `directory_tree_size` and `asset_manager`) and `android_extract_long` (C 1013-1022) | file gate (slice 2) |
-| 1024-7950 | **the remainder** - `android_scan_directory_tree` (C 1036) through C 7950: the asset tree, the afs/android_* vnode families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1024-1229 | the `android_scan_directory_tree` comment (C 1024-1034), the function itself (C 1036-1202 - C's `again`/`false_positive`/`fail` labels as the port's labelled `loop`, labelled block and labelled block) and `android_is_directory` (C 1204-1229) | file gate (slice 3); C 1230 is a blank line |
+| 1231-7950 | **the remainder** - `android_init_assets` (C 1236) through C 7950: the asset tree walkers, the afs/android_* vnode families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -361,7 +362,7 @@ whole-file line-count row now reads 81.5%.
 
 **Deviation (this slice's addition).**
 
-14. **`directory_tree`'s single definition is the mirror's** (above).  The unit records it as a
+14. **`directory_tree`'s single definition is the mirror's - in C's `#else` arm, and only there** (above, and see 15).  The unit records it as a
     comment at C 1004-1005 rather than a definition, because the port's one-spelling rule
     (P-26/`check-mirror-dupes`) resolves the C header's tentative definition to the mirror that
     carries it; the alternative - a unit-local definition - is `E0428` (measured).  The same rule
@@ -381,3 +382,69 @@ whole-file line-count row now reads 81.5%.
   (`docs/baseline/config/darwin-arm64.macros.tsv`) does not carry the configuration header that
   defines `STAT_TIMESPEC`; the mirror round that owns `docs/baseline/config/` owns the row.
 - Nothing else: no mirror file is touched, and the round adds no `--check` row.
+
+## Slice 3 (2026-10-08, status 4.107 - the integrator sets the round number): C 1024-1229
+
+**What this round is.**  The asset tree's two readers: `android_scan_directory_tree` (C 1036-1202,
+with C 1024-1034's comment) - the function that walks the `directory-tree` file, and whose three C
+labels are this slice's control-flow work - and `android_is_directory` (C 1210-1229), which is the
+arm pair C 1218/1223 spells.  Port: 1,470 -> 1,738 lines.
+
+**The labels** (PORTING.md 2.2, and `docs/ports/macro-body-notes.tsv`'s new row): C 1106's `again:`
+is a *backward* jump, so it is a labelled `loop` whose own end is C 1196's `goto again`; C 1199's
+`fail:` is the forward cleanup path, so the body is a labelled block and every `goto fail` is
+`break 'fail` while C's label text (C 1200-1201) follows the block, reached by the fall-through as
+in C; and C 1176's `false_positive:` is one token's iteration tail, reached by the no-match
+fall-through *and* by C 1126's jump, so the matched path sits in a labelled block (C 1121-1173) that
+`break 'matched` leaves.  C's `continue` (C 1146) goes to the `for`'s increment, which Rust's
+`while` runs at the body's end, so the body is a labelled block and the jump is
+`break 'continue_;` - the `src/androidterm.rs` 275-290 shape, cited there.  C's three
+`OLD_ANDROID_ASSETS` ternaries are the port's `if OLD_ANDROID_ASSETS != 0 { 9 } else { 5 }` (the
+constant is `include`'s two-armed `pub const`, slice 1's C 49/52), and C's `#if !OLD_ANDROID_ASSETS`
+arms (C 1046/1218) are the `android_api_ge_9` feature's two arms.
+
+**Evidence ① - both arms read `exit 0`, and the second arm is what found this round's repair.**
+`cargo run -q -p xtask -- probe src/androidvfs.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'` and the same with
+`--cfg 'feature="android_api_ge_9"'`: **`exit 0`, 0 errors, 7 warnings each** - the unit and its
+include graph type-check under *both* arms of the file's own `#if`.  The first (else-arm) reading
+alone was clean too, which is the point: **the `>= 9` arm is what exposed a gap slice 2 had left** -
+in that arm C 47-48 includes the NDK's asset-manager headers *instead of* `android-asset.h`, so the
+mirror that carries `directory_tree` and `AAssetManager` is not in the graph at all, and the arm
+read `E0425 cannot find value directory_tree` at eight sites plus one for the type.  The repair is
+C's own structure, one definition per arm: `directory_tree`'s tentative definition and
+`pub enum AAssetManager {}` are declared **under `android_api_ge_9` only** (Deviation 15).  This is
+the first round in this file whose readings were taken on both arms; slice 2's single-arm reading is
+why the gap survived a round.
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error into the new
+function's local list moves the `>= 9` arm to `exit 1` with the error named once; reverted and
+re-run: `exit 0` again.  Four probes for the round (two arms, twice), each about one second.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 176 → 174 rows.**  Two
+`missing function` rows retired (`android_scan_directory_tree`, `android_is_directory`) and the one
+new spelling row (`false_positive,goto`) was discharged by the note file, so the reading is 174.
+The whole-file line-count row now reads 78.1%.
+
+**Deviations (this slice's additions).**
+
+15. **Two names are arm-dependent because C's own include arms are** (Evidence ①).  C 1005's
+    `static const char *directory_tree;` and C 47's opaque `struct AAssetManager` exist in the
+    `#else` arm through `android-asset.h`'s mirror; in the `>= 9` arm that header is not included
+    (C 47-48 reaches the NDK's), so the unit carries both under `#[cfg (feature = "android_api_ge_9")]`
+    and only there - the `#else` arm must *not* carry the object, which is slice 2's measured
+    `E0428`.  C's text is unconditional because in C both arms see one object; the port's two arms
+    need one definition each, which is what C's own preprocessor produces.
+16. **The lane now reads both arms of every `#if` it touches**, because this round proved a
+    single-arm reading can be silent about a real gap (Evidence ①).  The three `#if`s of this file
+    are: the file gate's pair, C 46's `android_api_ge_9`, and C 49/52's `OLD_ANDROID_ASSETS` value
+    (which is that feature's other face).
+
+**Owed (this slice's additions).**
+
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: the file is now 1,738 of 7,950 C
+  lines (21.9%), still above the ten-percent threshold; the integrator's `--write-pending` re-run
+  drops the row.
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item; the five `STAT_TIMESPEC` rows are C
+  1980/2162/4346/7323/7820, all past this slice).
