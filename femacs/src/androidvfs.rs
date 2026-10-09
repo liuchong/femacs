@@ -1422,8 +1422,49 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 996-7950: the remainder of the file.  Slice 1 ends at C 995 (`android_unix_opendir`'s
-   closing brace); the next live items are C 1005/1008/1011's three file-scope objects
-   (`directory_tree`, `directory_tree_size`, `asset_manager`) and the next live *definition* is
-   C 1016's `android_extract_long`.  `docs/ports/androidvfs.md`'s C line-range table carries the
-   boundary, and `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
+/* C 1024-7950: the remainder of the file.  Slice 2 ends at C 1022 (`android_extract_long`'s
+   closing brace); the next live item is C 1036's `android_scan_directory_tree` (under C 1024-1034's
+   comment), and `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
+
+/* Asset directory handling functions.  ``directory-tree'' is a file in
+   the root of the assets directory describing its contents.
+
+   See lib-src/asset-directory-tool for more details.  */               // C 999-1002
+
+/* The Android directory tree.  */                                       // C 1004
+/* C 1005's `static const char *directory_tree;` is a **tentative definition**, and the object it
+   declares is the one C's own header already defines: `android-asset.h` 26 carries
+   `static const char *directory_tree;` and this unit includes that header (C 51).  So the mirror
+   owns the object (`include/android-asset.rs` 61, whose own comment says exactly that) and the
+   port's rule of one spelling per construct keeps this line out of the unit - measured: a second
+   definition here is `E0428 the name \`directory_tree\` is defined multiple times`.  C's own
+   `directory_tree_size` (C 1008) and `asset_manager` (C 1011) are *not* in the header, so they are
+   the unit's.  */
+
+/* The size of the directory tree.  */                                   // C 1007
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut directory_tree_size: size_t = 0;                             // C 1008
+
+/* The asset manager being used.  */                                     // C 1010
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut asset_manager: *mut AAssetManager = std::ptr::null_mut ();    // C 1011
+
+/* Read an unaligned (32-bit) long from the address POINTER.  */         // C 1013
+
+/* C 1013's comment is the function's contract: the asset tree stores 32-bit lengths unaligned, so
+   the port keeps C's own `memcpy` rather than a `ptr::read_unaligned` (PORTING.md 3.3 binds the
+   libc call instead of replacing it, and this unit's C 1048 call is the same shape), with
+   `sizeof number` as `std::mem::size_of_val (&number)` - the `c_uint` local is what fixes the
+   read's width, as C's own `sizeof` operand does.  */
+// C 1015-1022.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_extract_long (pointer: *const c_char) -> c_uint
+{
+  let mut number: c_uint = 0;                                           // C 1018 (PORTING.md 1.5:
+									//  its address is handed
+									//  to C 1020)
+
+  memcpy (&raw mut number as *mut c_void, pointer as *const c_void,     // C 1020
+	  std::mem::size_of_val (&number));
+  return number;                                                        // C 1021
+}

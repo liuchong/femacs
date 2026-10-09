@@ -8,7 +8,8 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (1,429 lines), both arms of every `#if` carried.
+> `femacs/src/androidvfs.rs` (**1,470 lines**, md5 `6e75122465238830eb1ae7c506662692`), carrying
+> **C 1-1022** - P-86 ④'s first two slices of this file - with both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
 > build, so the port is the empty unit plus a note that names the gate"): P-86 ① rules that a
@@ -85,7 +86,8 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 955-964 | `android_unix_closedir` | file gate |
 | 965-973 | `android_unix_dirfd` | file gate |
 | 974-995 | `android_unix_opendir` (C 990-992 the three function-table assignments) | file gate |
-| 996-7950 | **the remainder** — from C 996's blank through C 7950: the asset tree (`android_extract_long` at C 1016 is the next live definition, then `android_scan_directory_tree`, `android_is_directory`, `android_init_assets`, the ashmem/asset-fd machinery), the AFS vnode type, the `/content` and SAF vnode types, `android_vfs_init` and the `Android_*` entry points | not this slice |
+| 996-1022 | the asset-directory comment block (C 999-1002), C 1004-1011's three file-scope objects (`directory_tree` - whose single definition the include graph already answers, Owed 6 - plus `directory_tree_size` and `asset_manager`) and `android_extract_long` (C 1013-1022) | file gate (slice 2) |
+| 1024-7950 | **the remainder** - `android_scan_directory_tree` (C 1036) through C 7950: the asset tree, the afs/android_* vnode families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -298,10 +300,15 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
 5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
    **stale** (C 995 carried = 12.5% of 7,950, above the ten-percent threshold); the integrator's
    `--write-pending` re-run drops it.
-6. **The boundary's first object is answered by the include graph.**  C 1005's `directory_tree` is
-   not reported missing because C 51's arm reaches `include/android-asset.rs`, which declares it —
-   slice 2 must not read that as "already ported", and must resolve the object's single definition
-   with that mirror (the same P-89 edge).
+6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
+   and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
+   arm reaches `include/android-asset.rs`, which already carries the object (`android-asset.h` 26's
+   `static const char *directory_tree;` is a *tentative definition* in a header, so both the
+   header's and the .c's line are the same object in C).  Slice 2 therefore keeps the definition
+   out of the unit - measured: a second one is `E0428 the name \`directory_tree\` is defined
+   multiple times`, anchored at `include/android-asset.rs` 61 and the unit's own line.  C's other
+   two objects in that block (`directory_tree_size`, `asset_manager`) are *not* in the header and
+   are the unit's.  (This is the round's Deviation 14.)
 
 ## Not claimed
 
@@ -309,8 +316,68 @@ Every line of this slice sits behind gates the frozen configuration leaves false
 object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMethodID`, no
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no vnode was ever created, named, opened or
 closed.  The two arm readings (②a/②b) are compile-level: they prove the unit's text and its
-include graph type-check and emit an object under each arm, not that any of it behaves.  C 996-7950
-is **unported**; `extract-abi.py --check`'s 178 `missing …` lines and the 82.0% whole-file drift
+include graph type-check and emit an object under each arm, not that any of it behaves.  C 1024-7950
+is **unported**; `extract-abi.py --check`'s 176 `missing …` lines and the 81.5% whole-file drift
 are that boundary, not defects.  The two `does not mention` lines are the recorded reading of
 `switch`/`goto` (Owed 4).  This ledger claims no runtime evidence, no Android device or emulator
 run, and no artifact beyond the two objects named in ② and the empty object of ①.
+
+## Slice 2 (2026-10-08, status 4.106 - the integrator sets the round number): C 996-1022
+
+**What this round is.**  The head of the asset tree: C 999-1002's comment block ("``directory-tree''
+is a file in the root of the assets directory … See lib-src/asset-directory-tool"), C 1004-1011's
+three file-scope objects, C 1013's comment and **`android_extract_long` (C 1015-1022)** - the
+32-bit unaligned reader the whole tree format stands on.  Port: 1,429 -> 1,470 lines.
+
+**The one object this round did *not* write, and why that is the correct reading** (Deviation 14,
+and the discharge of Owed 6): C 1005's `static const char *directory_tree;` is a **tentative
+definition**, and the object it names is already C's own header's - `android-asset.h` 26 carries
+`static const char *directory_tree;` and this unit includes that header at C 51, so in C the two
+lines are one object.  The mirror `include/android-asset.rs` 61 carries it (its comment says
+"a tentative definition, i.e. a null pointer"), so the unit keeps it out - **measured**: writing it
+here is `E0428 the name \`directory_tree\` is defined multiple times`, anchored at that mirror line
+and at the unit's.  C's other two objects in the same block are *not* in the header and are the
+unit's: `directory_tree_size` (C 1008) and `asset_manager` (C 1011).
+
+**Evidence ① - the arm reading is `exit 0`, before and after (the strongest class in the tree).**
+`cargo run -q -p xtask -- probe src/androidvfs.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'` → **`exit 0`, 0 errors, 5
+warnings** - the same reading HEAD had, and the same one slice 1's ②a/②b recorded.  This is the
+reading that makes this file the lane to work in: the unit *and* its include graph type-check
+completely, so **anything wrong in new text is reported**, and there is no mirror-error noise to
+read around (the survey recorded as status 4.105 put this unit in the top tier while `w32proc`'s arm
+set never even reaches type-checking).
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error into this slice's
+body (`let injected_control: c_int = c"x".as_ptr ();` beside C 1018's local) moves the reading to
+**`exit 1` with exactly one error**, `injected_control` named once; reverted and re-run: `exit 0`
+again.  Two probes for the round, each ≈1 s, single file.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 179 → 176 rows.**  The three rows
+that retired are `missing function android_extract_long` and the two `missing file-scope object`
+rows for `directory_tree_size` and `asset_manager`; `directory_tree` was never a row (the mirror
+answers it - Owed 6's reading).  The 176 that remain are the C 1024-7950 remainder, and the
+whole-file line-count row now reads 81.5%.
+
+**Deviation (this slice's addition).**
+
+14. **`directory_tree`'s single definition is the mirror's** (above).  The unit records it as a
+    comment at C 1004-1005 rather than a definition, because the port's one-spelling rule
+    (P-26/`check-mirror-dupes`) resolves the C header's tentative definition to the mirror that
+    carries it; the alternative - a unit-local definition - is `E0428` (measured).  The same rule
+    will meet C 1024-7950's other shared objects, so it is written down here rather than at each
+    site.
+
+**Owed (this slice's additions).**
+
+- Owed 6 (**discharged**): the boundary's first object is the include graph's, and the round that
+  crosses the boundary must resolve it with that mirror - done, with the measurement.
+- **`tools/check-cond-eval.py src/androidvfs.c` reads `14 conditions, 0 unknown, 5 disagreements
+  [NOT VERIFIED]` (exit 1)** - five `STAT_TIMESPEC` rows at C 1980/2162/4346/7323/7820.  All five
+  are outside this slice, and the tool reads only the reference file, so the reading is
+  pre-existing and not this round's; slice 1's ledger did not record it and this round does, because
+  "the ten gates are green" would otherwise be an over-claim for this file.  The clang column says
+  `True` for all five where the evaluator says `False`, i.e. the table
+  (`docs/baseline/config/darwin-arm64.macros.tsv`) does not carry the configuration header that
+  defines `STAT_TIMESPEC`; the mirror round that owns `docs/baseline/config/` owns the row.
+- Nothing else: no mirror file is touched, and the round adds no `--check` row.
