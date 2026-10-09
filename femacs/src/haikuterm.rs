@@ -4661,6 +4661,90 @@ unsafe fn haiku_flush_dirty_back_buffer_on (f: *mut frame)
   haiku_flip_buffers (f);                                             // C 3205
 }
 
+/* C 3207-3240: the blank line C 3207, C's own comment block C 3208-3209 and
+   `haiku_wait_for_event` (C 3211-3240) - the file's next definition after C 3171-3206.
+   **Non-`static` in C** (`void haiku_wait_for_event (struct frame *f, int type)`), so the port
+   carries `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2); `haikuterm.h`'s
+   declaration is the mirror's `haikuterm_decls` row (`include/haikuterm.rs` 485), which this
+   definition shadows (PORTING.md 0.1-10/P-21).  This is the first item of the file to need Haiku
+   SDK names of its own, and `<OS.h>` is not on this machine, so all four carry the standing
+   `UNVERIFIED` mark (`PORTING.md` P-88 ①/②) - the `src/haiku_io.rs` 44-74 shape, which declares
+   the same SDK's calls and the same `B_OK` for the same reason.  The C body's own conversions are
+   C's: `interrupt_input_blocked` and `pending_signals` are `blockinput.rs`/`lisp.rs`, and C's
+   `wait_for_objects (&info, 1) < B_OK` compares the `status_t` the SDK's call returns.  */
+
+/* C: `<OS.h>`'s `struct object_wait_info`, the record C 3214 declares and C 3218-3220 fill in:
+   `struct object_wait_info { int32 object; uint16 type; uint16 events; };` - the header has no
+   mirror and is not on this machine, so the copy stands here with the SDK's own documented members
+   (P-88 ①/②, the `src/haiku.rs` 55-61 scalar block's reading of `<kernel/OS.h>`).
+   `int32` is `haiku_support.rs` 39's alias of the same header's scalar; C's `uint16` is 16 bits, so
+   the two flag members take `u16` (PORTING.md 1.1).  */
+#[cfg (feature = "have_haiku")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct object_wait_info
+{
+  pub object: int32,                    // offset 0
+  pub r#type: u16,                      // offset 4
+  pub events: u16,                      // offset 6
+}
+/// C: `status_t wait_for_objects (object_wait_info *infos, int numInfos);   [<OS.h>; UNVERIFIED
+/// here]` - C 3229's call, and the reason the record above must exist.
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn wait_for_objects (infos: *mut object_wait_info, num_infos: c_int) -> status_t;
+}
+/// C: `#define B_EVENT_READ 0x0001` (`<OS.h>`; UNVERIFIED here - the value is the SDK's own
+/// documented one, the mark `src/haiku_io.rs` 68-74 uses for `B_OK`/`B_TIMEOUT`).
+#[cfg (feature = "have_haiku")]
+pub const B_EVENT_READ: u16 = 0x0001;
+/// C: `#define B_OBJECT_TYPE_PORT 2` (`<OS.h>`; UNVERIFIED here).
+#[cfg (feature = "have_haiku")]
+pub const B_OBJECT_TYPE_PORT: u16 = 2;
+/// C: `#define B_OK 0` (`<OS.h>`; UNVERIFIED here - the same value and the same mark as
+/// `src/haiku_io.rs` 68-70's copy, which this unit cannot reach: every ported unit is its own
+/// translation unit).
+#[cfg (feature = "have_haiku")]
+pub const B_OK: status_t = 0;
+
+/* N.B. that support for TYPE must be explicitly added to
+   haiku_read_socket.  */                                             // C 3208-3209
+
+/* C 3211-3240.  */
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn haiku_wait_for_event (f: *mut frame, r#type: c_int)
+{
+  let mut input_blocked_to: c_int;                                    // C 3213
+  let mut info: object_wait_info = core::mem::zeroed ();              // C 3214 (PORTING.md 1.5: its
+								      // address is handed to C 3229)
+  let depth: specpdl_ref;                                             // C 3215
+
+  input_blocked_to = interrupt_input_blocked;                         // C 3217
+  info.object = port_application_to_emacs;                            // C 3218
+  info.r#type = B_OBJECT_TYPE_PORT;                                   // C 3219
+  info.events = B_EVENT_READ;                                         // C 3220
+
+  depth = SPECPDL_INDEX ();                                           // C 3222
+  specbind (Qinhibit_quit (), Qt ());                                 // C 3223
+
+  (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).wait_for_event_type = r#type;   // C 3225
+
+  while (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).wait_for_event_type == r#type  // C 3227
+    {
+      if wait_for_objects (&raw mut info, 1) < B_OK                   // C 3229
+	{ continue; }                                                 // C 3230
+
+      pending_signals = true;                                         // C 3232
+      /* This will call the read_socket_hook.  */                     // C 3233
+      totally_unblock_input ();                                       // C 3234
+      interrupt_input_blocked = input_blocked_to;                     // C 3235
+      info.events = B_EVENT_READ;                                     // C 3236
+    }
+
+  unbind_to (depth, Qnil ());                                         // C 3239
+}
+
 /* C 4571-4618: `haiku_clear_under_internal_border` - **landed out of order** (the ledger's C range
    table records the row and the gap around it): the `haiku_redisplay_interface` object's
    twenty-first entry (C 3162) names this function, and an object cannot reference a name that does

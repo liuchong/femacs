@@ -7,13 +7,13 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**4,725 lines**), which carries **C 1-3206** - P-86 ④'s first
-> twenty-two slices of this file - with every `#if`'s arms both carried, **plus one block lifted out
-> of order**: `haiku_clear_under_internal_border` (C 4571-4618) is written at this file's foot
+> `femacs/src/haikuterm.rs` (**4,809 lines**), which carries **C 1-3240** - P-86 ④'s first
+> twenty-three slices of this file - with every `#if`'s arms both carried, **plus one block lifted
+> out of order**: `haiku_clear_under_internal_border` (C 4571-4618) is written at this file's foot
 > because the C 3140-3170 object's twenty-first entry (C 3162) names it, and an object cannot
 > reference a name that does not exist yet.  C 3140-3170 itself - slice 20's standing deferral,
 > half discharged by slice 21's ABI change - **landed in slice 22**; there is no longer a deferred
-> range inside the prefix.
+> range inside the prefix, and the owed ranges are now **C 3241-4570** and **C 4619-4898**.
 >
 > **The one range slice 22 lifted out of order.**  C 4571-4618 stands outside the prefix and outside
 > C's own reading order in the file; its row below says why, and the two rows around it (3207-4570,
@@ -22,6 +22,13 @@
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Slice 23 takes the file past C 3206 (2026-10-08).**  Its C range is **C 3207-3240** -
+> `haiku_wait_for_event` (C 3211-3240), non-`static`, under C's own comment block (C 3208-3209) -
+> and it is the first item of this file to need Haiku SDK names of its own (`<OS.h>`'s
+> `object_wait_info`, `wait_for_objects`, `B_EVENT_READ`, `B_OBJECT_TYPE_PORT`, `B_OK`), all five
+> carried with the standing `UNVERIFIED` mark the `src/haiku_io.rs` 44-74 block uses for the same
+> SDK, because `<OS.h>` is not on this machine.
 >
 > **Slice 22 is the object, plus one out-of-order block (2026-10-08).**  Its C range is C
 > 3140-3170 - the object slice 20 deferred and slice 21 half discharged - and its twenty-first entry
@@ -246,7 +253,8 @@ the pre-flight below sets it as well.
 | 3092-3138 | `haiku_default_font_parameter` (C 3093-3138; C 3096 the display info, C 3097-3101 the two-argument read and the `Qunbound` fold, C 3103-3115 the system-font and resource fallbacks, C 3117-3134 the four-name loop, C 3136-3137 the recorder) | file gate (slice 19) |
 | 3139-3170 | **the `redisplay_interface` object** (C 3140-3170): deferred by slice 20 and half discharged by slice 21 (the seventeen named functions got C's function-pointer ABI), **landed by slice 22** - the unit-local copy of dispextern.h 3069-3196's record (behind `dispextern_face_records` in the mirror, so the unit carries C's record: 28 fields, 224/8, measured against `docs/baseline/redisplay_interface-layout.tsv`), the seven `xdisp.c` prototypes declared at the use site, and C's positional initializer written as a named-field literal in C's own order (C's 28 entries are the record's 28 fields; the three `NULL`s are `None`; **every other entry is `Some (name)` with nothing converted**, because this record spells C's pointee types - the deviation from `pgtkterm.rs` 5412-5480's seventeen `transmute`s is recorded in the slice section) | file gate (slice 22) |
 | 3171-3206 | `haiku_make_fullscreen_consistent` (C 3173-3192; C 3180-3189 the five-way fold, C 3191 the store) and `haiku_flush_dirty_back_buffer_on` (C 3194-3206; C 3197-3202 the four guards) | file gate (slice 20) |
-| 3207-4570 | **the remainder of the file up to the last block slice 22 took out of order**: `haiku_wait_for_event` (C 3210-3240) onward; C 4148 the `#if 0` block | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3207-3240 | `haiku_wait_for_event` (C 3211-3240) under C's own comment block (C 3208-3209); non-`static`, so the port carries `#[unsafe(no_mangle)] pub unsafe extern "C" fn` | file gate (slice 23) |
+| 3241-4570 | **the rest of this half of the file**: `haiku_read_socket` (C 3242-4213) onward; C 4148 the `#if 0` block | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 4571-4618 | `haiku_clear_under_internal_border` (C 4571-4618, non-`static`) | file gate (slice 22, **out of order**: the C 3140-3170 object's twenty-first entry (C 3162) names this function, so the object cannot be written before it exists - the row above and the row below are the ranges it was lifted out of) |
 | 4619-4898 | **the rest of the file** (C 4621 `mark_haiku_display` onward; C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference |
 
@@ -456,7 +464,24 @@ mirror lines need), `cargo test`, `extract-abi --all`.
     `frame_parm_handlers` as the address of another unit's `haiku_frame_parm_handlers`
     (haikuterm.h 235, defined at `src/haikufns.rs` 4094).  Measured readings: 224/8 with
     `draw_fringe_bitmap`@104 and `default_font_parameter`@216, asserted at the record.
-16. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
+16. **Haiku SDK names are use-site declarations with the `UNVERIFIED` mark** (P-88 ①/②; slice 23
+    is the first item of this file that needs any).  C 3214's `struct object_wait_info` is the
+    SDK's record - `<OS.h>`, which is not on this machine and has no mirror - so the unit carries
+    the copy with the SDK's documented members (`int32 object; uint16 type; uint16 events;`,
+    measured 8/4 at the record), the same reading `src/haiku.rs` 55-61 already carries for that
+    header's scalars (`int32`/`status_t`/`bigtime_t`); `wait_for_objects` (C 3229), `B_EVENT_READ`
+    (C 3220/3236), `B_OBJECT_TYPE_PORT` (C 3219) and `B_OK` (C 3229) are declared beside it with
+    the same mark and the same one-line `/// C:` note.  `B_OK` is the one name that already exists
+    elsewhere in the tree - `src/haiku_io.rs` 68-70 carries the same `pub const B_OK: status_t = 0`
+    for the same SDK - and the unit re-declares it rather than reaching for it, because every
+    ported unit is its own translation unit (a Rust `use` across units is a *construction* C does
+    not have; PORTING.md 0.1-10's shadowing rule is the same shape).
+17. **C's parameter named `type` is `r#type`** (C 3211 and its five uses): `type` is a Rust
+    keyword, so the raw identifier is the port's spelling of C's own token (the `src/xterm.rs`
+    convention for the same collision).  Measured: `extract-abi.py --check` reports **no spelling
+    row** for it, so the raw form reads as C's token and no `docs/ports/macro-body-notes.tsv` row
+    is owed.
+18. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
     object's twenty-first entry (C 3162) names it, and a Rust item cannot reference a name that
     does not exist, so the block sits at this file's foot and the range table carries the three
     rows (`3207-4570`, `4571-4618`, `4619-4898`) that keep the table ascending and gapless.  This
@@ -498,10 +523,11 @@ mirror lines need), `cargo test`, `extract-abi --all`.
    `include/systime.rs`'s `HAIKU` constant) - measured here, owned there.
 7. The P-87 scan for the two mirror lines Deviations 4 changed: `tools/check-all-units.sh`
    (expected `83 unit(s), 0 failure(s)`) - **not run by this lane** and not claimed.
-8. This ledger's remainder: **C 3207-4570** and **C 4619-4898** - the ranges slice 22's
-   out-of-order block sits between - whose first definition is `haiku_wait_for_event` (C 3210-3240)
-   and whose last is `syms_of_haikuterm` (C 4824-4898); the conditions still ahead are C 4148's
-   `#if 0`, C 4512's `ASSIGN_CURSOR` and C 4772/4895's `USE_BE_CAIRO`.
+8. This ledger's remainder: **C 3241-4570** and **C 4619-4898** - the ranges slice 22's
+   out-of-order block sits between - whose first definition is `haiku_read_socket` (C 3242-4213,
+   1,972 lines: the largest single item in the file) and whose last is `syms_of_haikuterm`
+   (C 4824-4898); the conditions still ahead are C 4148's `#if 0`, C 4512's `ASSIGN_CURSOR` and
+   C 4772/4895's `USE_BE_CAIRO`.
 
 
 ## Slice 2 (2026-10-08, status 4.078 - the integrator sets the round number): C 1045-1198
@@ -1936,3 +1962,62 @@ them.
   entry of the table is called, no frame's internal border is drawn, and the object is not handed
   to `create_terminal` (C 4412, still in the owed range) - what is measured is the type-checker's
   reading on both sides of the change plus a control that proves it is reading the new text.
+
+## Slice 23 (2026-10-08, status 4.099 - the integrator sets the round number): C 3207-3240
+
+**What this round is.**  The file's next definition after slice 20's C 3171-3206: the blank line
+C 3207, C's own comment block C 3208-3209 ("N.B. that support for TYPE must be explicitly added to
+haiku_read_socket") and **`haiku_wait_for_event` (C 3211-3240)** - non-`static` in C, so the port
+carries `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, and `haikuterm.h`'s declaration is the
+mirror's `haikuterm_decls` row (`include/haikuterm.rs` 485) which this definition shadows
+(PORTING.md 0.1-10/P-21).
+
+**The item's five C statements, each cited.**  C 3217 the `interrupt_input_blocked` read, C 3218-3220
+the three `info` stores, C 3222-3223 the `SPECPDL_INDEX`/`specbind (Qinhibit_quit, Qt)` pair,
+C 3225 the `wait_for_event_type` store, C 3227-3237 the `while` with C 3229's `wait_for_objects`
+test and C 3230's `continue` - and C 3239's `unbind_to (depth, Qnil ())`.  The `while`'s body is
+C's own order: `pending_signals = true`, `totally_unblock_input ()` (the comment C 3233 carries),
+`interrupt_input_blocked = input_blocked_to`, `info.events = B_EVENT_READ`.
+
+**It is the first item of this file to need Haiku SDK names of its own** (`## Deviations` 16):
+`<OS.h>` is not on this machine and has no mirror, so the record (`object_wait_info`, with its
+measured 8/4 layout) and the four names (`wait_for_objects`, `B_EVENT_READ`, `B_OBJECT_TYPE_PORT`,
+`B_OK`) are declared at the use site with the standing `UNVERIFIED` mark the `src/haiku_io.rs`
+44-74 block already carries for the same SDK.  `B_OK` is the one name that exists elsewhere in the
+tree (`src/haiku_io.rs` 68-70) and is re-declared here rather than reached for, because every
+ported unit is its own translation unit.  C's parameter named `type` is `r#type` (Deviation 17),
+and the `--check` reading says the raw form reads as C's own token (no spelling row).
+
+**Evidence ① - the arm-reach pre-flight (`xtask probe`, P-86 ③).**  One run of this round's text:
+`exit 1`, **35 errors and 7 warnings**, of which **every one of the 35 errors is in a mirror** -
+`include/character.rs` (6 `eassume`), `include/buffer.rs` (11), `include/window.rs` (4),
+`include/frame.rs` (3), `include/termhooks.rs` (2), `include/haikuterm.rs`'s `haiku_output_bits`
+(4 `E0308`), `include/systime.rs` (1 `E0080`) - and **0 are located in this unit's own text**.
+That is the same 35 errors slice 22 measured at the same arm set, so the new item type-checks and
+the arm did not otherwise move.  The warning count moves 6 -> 7: the new one is
+`_root.rs:4697 unused doc comment` ("rustdoc does not generate documentation for extern blocks"),
+i.e. the `/// C:` note above this item's `unsafe extern "C" {` - **a class this file already
+carries twice at HEAD** (`_root.rs` 3990 and 4106, the same `/// C:`-before-extern-block shape)
+and the tree 39 times; kept for that consistency and recorded here rather than hidden.
+
+**Evidence ② - the file's own gate (`extract-abi.py --check`): 21 -> 20 rows.**  The retired row is
+`missing function haiku_wait_for_event`; the 20 that remain are 19 `missing function` in the
+C 3241-4570 and C 4619-4898 remainder plus `missing macro ASSIGN_CURSOR` (C 4512).  The line-count
+row is **gone**: with 4,809 of 4,898 C lines the drift no longer trips, which is the first round in
+which that reading is silent.
+
+**Owed (this slice's additions).**
+
+- `docs/ports/line-drift-tolerance.tsv`'s `haikuterm` row: the file is now **4,809 of 4,898 C
+  lines (98.2%)**; the row's placeholder is the integrator's to re-derive.
+- The five SDK declarations (Deviation 16) stay `UNVERIFIED` until a Haiku SDK is available - that
+  is the class's standing condition, not an action item.
+- Nothing else: no mirror file is touched and no `--check` row was added.
+
+**Not claimed (this slice).**
+
+- **No runtime evidence**: no Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file (every item is behind `have_haiku`), and this lane does not link.  No
+  event is waited for, `port_application_to_emacs` is never read, and C 3234's
+  `totally_unblock_input` never runs.  What is measured is the type-checker's reading at the arm set
+  plus the token comparison, and the two readings agree that the item is complete and C's own.
