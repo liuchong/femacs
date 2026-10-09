@@ -482,7 +482,7 @@ unsafe fn haiku_coords_from_parent (f: *mut frame, x: *mut c_int, y: *mut c_int)
 }
 
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_toolkit_position (f: *mut frame, x: c_int, y: c_int,
+unsafe extern "C" fn haiku_toolkit_position (f: *mut frame, x: c_int, y: c_int,
 				  menu_bar_p: *mut bool, tool_bar_p: *mut bool)  // C 105-112
 {
   if ! (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).menubar.is_null ()
@@ -2363,7 +2363,7 @@ unsafe fn haiku_clip_to_row (w: *mut window, row: *mut glyph_row,
 
 /* C 1532-1538.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_update_begin (f: *mut frame)
+unsafe extern "C" fn haiku_update_begin (f: *mut frame)
 {
   /* Mark the frame as incomplete so it is not flushed upon handling
      input.  */                                                      // C 1535-1536
@@ -2372,7 +2372,7 @@ unsafe fn haiku_update_begin (f: *mut frame)
 
 /* C 1540-1545.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_update_end (f: *mut frame)
+unsafe extern "C" fn haiku_update_end (f: *mut frame)
 {
   set_mouse_face_defer (MOUSE_HL_INFO! (f), false);                    // C 1543
   BWindow_Flush (FRAME_HAIKU_WINDOW! (f));                             // C 1544
@@ -3135,7 +3135,7 @@ unsafe extern "C" fn haiku_after_update_window_line (w: *mut window, desired_row
 
 /* C 2131-2167.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_set_window_size (f: *mut frame, change_gravity: bool,
+unsafe extern "C" fn haiku_set_window_size (f: *mut frame, change_gravity: bool,
 				 width: c_int, height: c_int)
 {
   /* C 2135 declares `frame` with no initialiser and C 2140 hands the callee its address, so the
@@ -3517,7 +3517,7 @@ unsafe extern "C" fn haiku_draw_vertical_window_border (w: *mut window, x: c_int
 
 /* C 2448-2458.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_set_scroll_bar_default_width (f: *mut frame)
+unsafe extern "C" fn haiku_set_scroll_bar_default_width (f: *mut frame)
 {
   let mut unit: c_int;                                                 // C 2451
   let mut size: c_int;
@@ -3531,7 +3531,7 @@ unsafe fn haiku_set_scroll_bar_default_width (f: *mut frame)
 
 /* C 2460-2470.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_set_scroll_bar_default_height (f: *mut frame)
+unsafe extern "C" fn haiku_set_scroll_bar_default_height (f: *mut frame)
 {
   let mut height: c_int;                                                // C 2463
   let mut size: c_int;
@@ -3612,7 +3612,7 @@ unsafe extern "C" fn haiku_draw_window_divider (w: *mut window, x0: c_int, x1: c
 
 /* C 2524-2544.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_condemn_scroll_bars (frame: *mut frame)
+unsafe extern "C" fn haiku_condemn_scroll_bars (frame: *mut frame)
 {
   if ! NILP (FRAME_SCROLL_BARS (frame))                               // C 2527
     {
@@ -3636,7 +3636,7 @@ unsafe fn haiku_condemn_scroll_bars (frame: *mut frame)
 /* C 2546-2620.  C 2564's `goto horizontal` is a `break 'horizontal` out of the labelled block
    C 2553-2585, whose end is C's `horizontal:` label.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_redeem_scroll_bar (w: *mut window)
+unsafe extern "C" fn haiku_redeem_scroll_bar (w: *mut window)
 {
   let mut bar: *mut scroll_bar;                                       // C 2549
   let mut barobj: Lisp_Object;                                        // C 2550
@@ -3718,7 +3718,7 @@ unsafe fn haiku_redeem_scroll_bar (w: *mut window)
 
 /* C 2622-2645.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_judge_scroll_bars (f: *mut frame)
+unsafe extern "C" fn haiku_judge_scroll_bars (f: *mut frame)
 {
   let mut bar: Lisp_Object;                                            // C 2625
   let mut next: Lisp_Object;
@@ -3807,7 +3807,7 @@ unsafe fn haiku_scroll_bar_create (w: *mut window, left: c_int, top: c_int,
 
 /* C 2692-2745.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+unsafe extern "C" fn haiku_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
 					   position: c_int)
 {
   let mut barobj: Lisp_Object;                                         // C 2695
@@ -3876,7 +3876,7 @@ unsafe fn haiku_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole
 
 /* C 2747-2803.  */
 #[cfg (feature = "have_haiku")]
-unsafe fn haiku_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+unsafe extern "C" fn haiku_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
 					 position: c_int)
 {
   let mut barobj: Lisp_Object;                                         // C 2750
@@ -6206,6 +6206,289 @@ unsafe extern "C" fn haiku_fullscreen (f: *mut frame)
 
   haiku_update_size_hints (f);                                        // C 4403
   haiku_make_fullscreen_consistent (f);                               // C 4404
+}
+
+/* C 4406-4569: the file's last three items before the out-of-order block - `haiku_create_terminal`
+   (C 4407-4460), `haiku_term_init` (C 4461-4556) and `put_xrm_resource` (C 4558-4569).  **This is
+   the item the C 3140-3170 object was written for**: C 4412 hands `&haiku_redisplay_interface` to
+   `create_terminal`, and C 4418-4456 installs the thirty-nine terminal hooks - the eleven of them
+   this unit defines itself are the eleven slice 26 converted to `unsafe extern "C" fn` in the same
+   round (the slice-21 ABI rule, now applied to a referrer that *uses* the addresses rather than to
+   the table).  */
+
+/* C's hook assignments: termhooks.h degrades `struct frame *`/`struct window *` parameters to
+   `*mut c_void` (P-72 rule 3, the mirror cannot name those types), while the definitions keep C's
+   pointer - the conversion is C's own implicit one and the ABI does not depend on the pointee.
+   The `src/pgtkterm.rs` 7027-7036 copy of this helper, body-identical.  */
+#[cfg (feature = "have_haiku")]
+macro_rules! hook {
+  ($target:ty, $f:expr) => { unsafe {
+    let p: *const c_void = $f as *const c_void;
+    std::mem::transmute::<*const c_void, Option<$target>> (p) } };
+}
+
+/* C: termhooks.h 964: `extern struct terminal *create_terminal (enum output_method, struct
+   redisplay_interface *);` - the C 4412 call (`src/terminal.rs` 366 defines it; the
+   `src/pgtkterm.rs` 7038-7043 copy of this declaration is the same one).
+   C: keyboard.h 477: `extern KBOARD *allocate_kboard (Lisp_Object);` - C 4416.
+   C: dispextern.h 3708: `void gui_init_fringe (struct redisplay_interface *);` - C 4510, whose
+   argument is `terminal->rif` (the mirror types that field `*mut c_void`, `include/termhooks.rs`
+   230), so the declaration takes the pointer untyped (the `src/pgtkterm.rs` 10260 spelling).
+   C: haiku_support.h 620: `extern void *be_create_cursor_from_id (int);` - C 4513's sixteen uses
+   (the `src/haikufns.rs` 328-330 copy; `enum haiku_cursor`'s members are this unit's
+   `CURSOR_ID_*`, `include/haiku_support.rs` 61-...).
+   C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);` -
+   the declaration keeps C's shape: the `...` parameter *is* the list (PORTING.md P-04).  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn create_terminal (r#type: output_method, rif: *mut c_void) -> *mut terminal;
+  pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+  pub fn gui_init_fringe (rif: *mut c_void);
+  pub fn be_create_cursor_from_id (id: c_int) -> *mut c_void;
+  pub fn fatal (msgid: *const c_char, ...) -> !;
+}
+
+// C 4407-4460.
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_create_terminal (dpyinfo: *mut haiku_display_info) -> *mut terminal
+{
+  let terminal: *mut terminal;                                        // C 4410
+
+  terminal = create_terminal (output_haiku,                               // C 4412
+			      &raw mut haiku_redisplay_interface as *mut c_void);
+
+  (*terminal).display_info.haiku = dpyinfo as *mut c_void;            // C 4414 (the union member is
+								      //  `void *`, P-72 rule 3)
+  (*dpyinfo).terminal = terminal;                                     // C 4415
+  (*terminal).kboard = allocate_kboard (Qhaiku ()) as *mut c_void;     // C 4416
+
+  (*terminal).iconify_frame_hook                                      // C 4418
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_iconify_frame);
+  (*terminal).focus_frame_hook                                        // C 4419
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), haiku_focus_frame);
+  (*terminal).ring_bell_hook                                          // C 4420
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_beep);
+  (*terminal).popup_dialog_hook                                       // C 4421
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object) -> Lisp_Object,
+	     haiku_popup_dialog);
+  (*terminal).frame_visible_invisible_hook                            // C 4422
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), haiku_set_frame_visible_invisible);
+  (*terminal).set_frame_offset_hook                                   // C 4423
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int), haiku_set_offset);
+  (*terminal).delete_terminal_hook                                    // C 4424
+    = hook! (unsafe extern "C" fn (*mut terminal), haiku_delete_terminal);
+  (*terminal).get_string_resource_hook                                // C 4425
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *const c_char) -> *const c_char,
+	     haiku_get_string_resource);
+  (*terminal).set_new_font_hook                                       // C 4426
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, c_int) -> Lisp_Object,
+	     haiku_new_font);
+  (*terminal).defined_color_hook                                      // C 4427
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *mut Emacs_Color, bool, bool)
+			     -> bool, haiku_defined_color);
+  (*terminal).set_window_size_hook                                    // C 4428
+    = hook! (unsafe extern "C" fn (*mut c_void, bool, c_int, c_int), haiku_set_window_size);
+  (*terminal).read_socket_hook                                        // C 4429
+    = hook! (unsafe extern "C" fn (*mut terminal, *mut input_event) -> c_int, haiku_read_socket);
+  (*terminal).implicit_set_name_hook                                  // C 4430
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object), haiku_implicitly_set_name);
+  (*terminal).mouse_position_hook                                     // C 4431
+    = hook! (unsafe extern "C" fn (*mut *mut c_void, c_int, *mut Lisp_Object,
+				   *mut scroll_bar_part, *mut Lisp_Object, *mut Lisp_Object,
+				   *mut Time), haiku_mouse_position);
+  (*terminal).delete_frame_hook                                       // C 4432
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_delete_window);
+  (*terminal).frame_up_to_date_hook                                   // C 4433
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_frame_up_to_date);
+  (*terminal).buffer_flipping_unblocked_hook                          // C 4434
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_buffer_flipping_unblocked_hook);
+  (*terminal).clear_frame_hook                                        // C 4435
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_clear_frame);
+  (*terminal).change_tab_bar_height_hook                              // C 4436
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), haiku_change_tab_bar_height);
+  (*terminal).change_tool_bar_height_hook                             // C 4437
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), haiku_change_tool_bar_height);
+  (*terminal).set_vertical_scroll_bar_hook                            // C 4438
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int), haiku_set_vertical_scroll_bar);
+  (*terminal).set_horizontal_scroll_bar_hook                          // C 4439
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int),
+	     haiku_set_horizontal_scroll_bar);
+  (*terminal).set_scroll_bar_default_height_hook                      // C 4440
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_set_scroll_bar_default_height);
+  (*terminal).set_scroll_bar_default_width_hook                       // C 4441
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_set_scroll_bar_default_width);
+  (*terminal).judge_scroll_bars_hook                                  // C 4442
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_judge_scroll_bars);
+  (*terminal).condemn_scroll_bars_hook                                // C 4443
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_condemn_scroll_bars);
+  (*terminal).redeem_scroll_bar_hook                                  // C 4444
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_redeem_scroll_bar);
+  (*terminal).update_begin_hook                                       // C 4445
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_update_begin);
+  (*terminal).update_end_hook                                         // C 4446
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_update_end);
+  (*terminal).frame_rehighlight_hook                                  // C 4447
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_frame_rehighlight);
+  (*terminal).query_frame_background_color                            // C 4448
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color),
+	     haiku_query_frame_background_color);
+  /* The field carries termhooks.h 849-853's own condition, not C's unconditional text: without
+     the window system the member does not exist (the `src/pgtkterm.rs` 7172-7174 / Deviation 60
+     spelling of the same pair - the attribute needs a *statement*, and an attribute on an
+     expression is `E0658`, measured in this round's first probe).  */
+  #[cfg (feature = "have_window_system")]
+  { (*terminal).free_pixmap                                           // C 4449
+      = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void), haiku_free_pixmap); }
+  (*terminal).frame_raise_lower_hook                                  // C 4450
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), haiku_frame_raise_lower);
+  (*terminal).menu_show_hook                                          // C 4451
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int, Lisp_Object,
+				   *mut *const c_char) -> Lisp_Object, haiku_menu_show);
+  (*terminal).toggle_invisible_pointer_hook                           // C 4452
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), haiku_toggle_invisible_pointer);
+  (*terminal).fullscreen_hook                                         // C 4453
+    = hook! (unsafe extern "C" fn (*mut c_void), haiku_fullscreen);
+  (*terminal).toolkit_position_hook                                   // C 4454
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, *mut bool, *mut bool),
+	     haiku_toolkit_position);
+  /* The same rule as `free_pixmap`: termhooks.h 719-722's `#ifdef HAVE_EXT_MENU_BAR`, which
+     `lisp.h` 3931-3934 defines for the Haiku window system.  */
+  #[cfg (feature = "have_ext_menu_bar")]
+  { (*terminal).activate_menubar_hook                                 // C 4455
+      = hook! (unsafe extern "C" fn (*mut c_void), haiku_activate_menubar); }
+  (*terminal).get_focus_frame                                         // C 4456
+    = hook! (unsafe extern "C" fn (*mut c_void) -> Lisp_Object, haiku_get_focus_frame);
+
+  return terminal;                                                    // C 4458
+}
+
+// C 4461-4556.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn haiku_term_init () -> *mut haiku_display_info
+{
+  let mut dpyinfo: *mut haiku_display_info;                            // C 4464
+  let terminal: *mut terminal;                                        // C 4465
+  let mut color_file: Lisp_Object;                                    // C 4466
+  let mut color_map: Lisp_Object;
+  let mut system_name: Lisp_Object;
+  let mut nbytes: ptrdiff_t;                                          // C 4467
+  let mut name_buffer: *mut c_void;                                   // C 4468
+
+  block_input ();                                                     // C 4470
+
+  Fset_input_interrupt_mode (Qt ());                                  // C 4472
+  baud_rate = 19200;                                                  // C 4473
+  dpyinfo = xzalloc (core::mem::size_of::<haiku_display_info> ()) as *mut haiku_display_info;  // C 4474
+  haiku_io_init ();                                                   // C 4475
+
+  if port_application_to_emacs < B_OK                                 // C 4477
+      || port_emacs_to_session_manager < B_OK                         // C 4478
+    { emacs_abort (); }                                               // C 4479
+
+  color_file = Fexpand_file_name (build_string (c"rgb.txt".as_ptr ()),   // C 4481
+				  Fsymbol_value (Qdata_directory ()));   // C 4482
+  color_map = Fx_load_color_file (color_file);                        // C 4483
+
+  if NILP (color_map)                                                 // C 4485
+    { fatal (c"Could not read %s.\n".as_ptr (), SDATA (color_file)); }   // C 4486
+
+  (*dpyinfo).color_map = color_map;                                   // C 4488
+  (*dpyinfo).display = BApplication_setup ();                         // C 4489
+  (*dpyinfo).next = x_display_list;                                   // C 4490
+  (*dpyinfo).n_planes = be_get_display_planes ();                     // C 4491
+  be_get_display_resolution (&raw mut (*dpyinfo).resx, &raw mut (*dpyinfo).resy);  // C 4492
+
+  x_display_list = dpyinfo;                                            // C 4494
+
+  terminal = haiku_create_terminal (dpyinfo);                          // C 4496
+  if current_kboard == initial_kboard                                 // C 4497
+    { current_kboard = (*terminal).kboard as *mut kboard; }            // C 4498
+
+  let kb: *mut kboard = (*terminal).kboard as *mut kboard;             // C 4500
+  (*kb).reference_count += 1;                                          // C 4500
+  /* Never delete haiku displays -- there can only ever be one,
+     anyhow.  */                                                     // C 4501-4502
+  (*terminal).reference_count += 1;                                    // C 4503
+  (*terminal).name = xstrdup (c"be".as_ptr ());                        // C 4504
+
+  (*dpyinfo).name_list_element = Fcons (build_string (c"be".as_ptr ()), Qnil ());  // C 4506
+  (*dpyinfo).smallest_font_height = 1;                                 // C 4507
+  (*dpyinfo).smallest_char_width = 1;                                  // C 4508
+
+  gui_init_fringe ((*terminal).rif);                                   // C 4510
+
+  /* C 4512-4530: `#define ASSIGN_CURSOR(cursor, cursor_id)
+     (dpyinfo->cursor = be_create_cursor_from_id (cursor_id))` and its sixteen uses.  The port
+     keeps C's macro - a function-local `macro_rules!`, which is where C's own `#define` sits in
+     the function - so that the macro's *name* and its two parameter names stay in the text; the
+     member name travels as the `$cursor:ident` argument at each call, which is also what P-80's
+     rule asks (a C member name may not hide inside a Rust macro *name*).  */
+  macro_rules! ASSIGN_CURSOR {
+    ($cursor:ident, $cursor_id:expr) => {
+      (*dpyinfo).$cursor = be_create_cursor_from_id ($cursor_id) as Emacs_Cursor };
+  }
+  ASSIGN_CURSOR! (text_cursor, CURSOR_ID_I_BEAM);                      // C 4514
+  ASSIGN_CURSOR! (nontext_cursor, CURSOR_ID_SYSTEM_DEFAULT);           // C 4515
+  ASSIGN_CURSOR! (modeline_cursor, CURSOR_ID_CONTEXT_MENU);            // C 4516
+  ASSIGN_CURSOR! (hand_cursor, CURSOR_ID_GRAB);                        // C 4517
+  ASSIGN_CURSOR! (hourglass_cursor, CURSOR_ID_PROGRESS);               // C 4518
+  ASSIGN_CURSOR! (horizontal_drag_cursor, CURSOR_ID_RESIZE_EAST_WEST);  // C 4519
+  ASSIGN_CURSOR! (vertical_drag_cursor, CURSOR_ID_RESIZE_NORTH_SOUTH);  // C 4520
+  ASSIGN_CURSOR! (left_edge_cursor, CURSOR_ID_RESIZE_WEST);            // C 4521
+  ASSIGN_CURSOR! (top_left_corner_cursor, CURSOR_ID_RESIZE_NORTH_WEST);  // C 4522
+  ASSIGN_CURSOR! (top_edge_cursor, CURSOR_ID_RESIZE_NORTH);            // C 4523
+  ASSIGN_CURSOR! (top_right_corner_cursor, CURSOR_ID_RESIZE_NORTH_EAST);  // C 4524
+  ASSIGN_CURSOR! (right_edge_cursor, CURSOR_ID_RESIZE_EAST);           // C 4525
+  ASSIGN_CURSOR! (bottom_right_corner_cursor, CURSOR_ID_RESIZE_SOUTH_EAST);  // C 4526
+  ASSIGN_CURSOR! (bottom_edge_cursor, CURSOR_ID_RESIZE_SOUTH);         // C 4527
+  ASSIGN_CURSOR! (bottom_left_corner_cursor, CURSOR_ID_RESIZE_SOUTH_WEST);  // C 4528
+  ASSIGN_CURSOR! (no_cursor, CURSOR_ID_NO_CURSOR);                     // C 4529
+
+  system_name = Fsystem_name ();                                      // C 4532
+
+  if STRINGP (system_name)                                            // C 4534
+    {
+      nbytes = (std::mem::size_of::<[c_char; 10]> ()                     // C 4536 (`sizeof "GNU Emacs"`
+		+ std::mem::size_of::<[c_char; 5]> ()) as ptrdiff_t;     //  + `sizeof " at "`)
+      {                                                                 // C 4538
+	let nbytes_ = nbytes.overflowing_add (SBYTES (system_name) as ptrdiff_t);
+	nbytes = nbytes_.0;
+	if nbytes_.1
+	  { memory_full_up (); }                                        // C 4539
+      }
+
+      name_buffer = sa_stack_alloc (nbytes as usize) as *mut c_void;     // C 4541 (PORTING.md P-05's
+									//  `alloca` alias)
+      sprintf (name_buffer as *mut c_char, c"%s%s%s".as_ptr (), c"GNU Emacs".as_ptr (),   // C 4542
+	       c" at ".as_ptr (), SDATA (system_name));                  // C 4543
+      (*dpyinfo).default_name = build_string (name_buffer as *const c_char);   // C 4544
+    }
+  else
+    { (*dpyinfo).default_name = build_string (c"GNU Emacs".as_ptr ()); }   // C 4547
+
+  haiku_start_watching_selections ();                                 // C 4549
+
+  /* Start listening for font configuration changes.  */              // C 4551
+  be_listen_font_settings ();                                         // C 4552
+  unblock_input ();                                                   // C 4553
+
+  return dpyinfo;                                                     // C 4555
+}
+
+// C 4558-4569.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn put_xrm_resource (name: Lisp_Object, val: Lisp_Object)
+{
+  eassert! (STRINGP (name));                                          // C 4561
+  eassert! (STRINGP (val) || NILP (val));                             // C 4562
+
+  let lval: Lisp_Object = assoc_no_quit (name, rdb);                  // C 4564
+  if ! NILP (lval)                                                    // C 4565
+    { Fsetcdr (lval, val); }                                          // C 4566
+  else
+    { rdb = Fcons (Fcons (name, val), rdb); }                         // C 4568
 }
 
 /* C 4571-4618: `haiku_clear_under_internal_border` - **landed out of order** (the ledger's C range

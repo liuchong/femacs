@@ -7,14 +7,14 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**6,272 lines**), which carries **C 1-4405** - P-86 ④'s first
-> twenty-five slices of this file, the last of them the eight items C 4213-4405
+> `femacs/src/haikuterm.rs` (**6,555 lines**), which carries **C 1-4569** - P-86 ④'s first
+> twenty-six slices of this file, the last of them the three items C 4406-4569
 > - with every `#if`'s arms both carried, **plus one block lifted out of order**:
 > `haiku_clear_under_internal_border` (C 4571-4618) is written at this file's foot because the
 > C 3140-3170 object's twenty-first entry (C 3162) names it, and an object cannot reference a name
 > that does not exist yet.  C 3140-3170 itself - slice 20's standing deferral, half discharged by
 > slice 21's ABI change - **landed in slice 22**; there is no longer a deferred range inside the
-> prefix, and the owed ranges are now **C 4406-4570** and **C 4619-4898**.
+> prefix, and the owed range is now **C 4619-4898** alone.
 >
 > **The one range slice 22 lifted out of order.**  C 4571-4618 stands outside the prefix and outside
 > C's own reading order in the file; its row below says why, and the two rows around it (3207-4570,
@@ -23,6 +23,14 @@
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Slice 26 finishes the file's own order (2026-10-08).**  Its C range is **C 4406-4569** -
+> `haiku_create_terminal`, `haiku_term_init` and `put_xrm_resource` - and it is the round the
+> C 3140-3170 object was written for: C 4412 hands it to `create_terminal` and the thirty-nine
+> hook assignments follow.  The eleven unit-defined hooks among them were still Rust-ABI
+> `unsafe fn`s, so the round converts them with the same rule slice 21 used for the table
+> (Deviations 27-28); after this round only **C 4619-4898** (the out-of-order block's tail:
+> `mark_haiku_display`, the two `USE_BE_CAIRO` blocks, `syms_of_haikuterm`) is owed.
 >
 > **Slice 25 closes the gap before `haiku_create_terminal` (2026-10-08).**  Its C range is
 > **C 4213-4405**, the eight items C puts between `haiku_read_socket` and the terminal constructor:
@@ -273,9 +281,9 @@ the pre-flight below sets it as well.
 | 3207-3240 | `haiku_wait_for_event` (C 3211-3240) under C's own comment block (C 3208-3209); non-`static`, so the port carries `#[unsafe(no_mangle)] pub unsafe extern "C" fn` | file gate (slice 23) |
 | 3241-4212 | **`haiku_read_socket`** (C 3242-4212, 1,971 lines - the largest single item in the file; `static int`, so the port defines it `unsafe extern "C" fn` because C 4429 hands its address to `terminal->read_socket_hook`); C's own 27-case `switch (type)` (C 3276-4162) is the port's `match` in a labelled block, C 4148 the `#if 0` block inside the `NOTIFICATION_CLICK_EVENT` arm | file gate (slice 24) |
 | 4213-4405 | **the eight items between `haiku_read_socket` and `haiku_create_terminal`**: `haiku_get_focus_frame` (C 4214-4227), `haiku_frame_rehighlight` (C 4229-4233), `haiku_delete_window` (C 4235-4240), `haiku_free_pixmap` (C 4242-4246), `haiku_flash` (C 4248-4341, the round's only plain `unsafe fn`), `haiku_beep` (C 4343-4358), `haiku_toggle_invisible_pointer` (C 4360-4374) and `haiku_fullscreen` (C 4376-4405); the other seven are `unsafe extern "C" fn` because C 4418-4456 hands their addresses to `struct terminal`'s hooks | file gate (slice 25) |
-| 4406-4570 | **the rest of this half of the file**: `haiku_create_terminal` (C 4407-4460), `haiku_term_init` (C 4462-4557) and `put_xrm_resource` (C 4559-4569) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4406-4569 | **the file's last three items before the out-of-order block**: `haiku_create_terminal` (C 4407-4460 - the item that hands the C 3140-3170 object to `create_terminal` at C 4412 and installs the thirty-nine terminal hooks at C 4418-4456), `haiku_term_init` (C 4461-4556, non-`static`, with C 4512-4530's `ASSIGN_CURSOR` macro kept as a function-local `macro_rules!` and its sixteen calls) and `put_xrm_resource` (C 4558-4569, non-`static`) | file gate (slice 26); C 4570 is the blank line before the next row |
 | 4571-4618 | `haiku_clear_under_internal_border` (C 4571-4618, non-`static`) | file gate (slice 22, **out of order**: the C 3140-3170 object's twenty-first entry (C 3162) names this function, so the object cannot be written before it exists - the row above and the row below are the ranges it was lifted out of) |
-| 4619-4898 | **the rest of the file** (C 4621 `mark_haiku_display` onward; C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference |
+| 4619-4898 | **the rest of the file** (C 4621 `mark_haiku_display` onward; C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -566,7 +574,41 @@ mirror lines need), `cargo test`, `extract-abi --all`.
     class slice 23 opened.  **The `object_wait_info` record, `B_EVENT_READ` and
     `B_OBJECT_TYPE_PORT` are *not* re-declared**: slice 23 already carries them at this file's top,
     and a second copy would be `E0428`.
-26. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
+27. **Eleven hooks this unit defines become `unsafe extern "C" fn`** (the slice-21 rule, this time
+    for a referrer that *uses* the addresses): `haiku_set_window_size` (C 4428),
+    `haiku_set_vertical_scroll_bar` (4438), `haiku_set_horizontal_scroll_bar` (4439),
+    `haiku_set_scroll_bar_default_height` (4440), `haiku_set_scroll_bar_default_width` (4441),
+    `haiku_judge_scroll_bars` (4442), `haiku_condemn_scroll_bars` (4443),
+    `haiku_redeem_scroll_bar` (4444), `haiku_update_begin` (4445), `haiku_update_end` (4446) and
+    `haiku_toolkit_position` (4454).  Every other name in the thirty-nine assignments is either a
+    definition this unit already had in that form or a mirror declaration (`include/haikuterm.rs`'s
+    `haikuterm_decls`), so the conversion touched exactly these eleven - measured: the arm probe's
+    reading is unchanged by it (the same 34, none of them here).
+28. **The round's mechanical devices, and the five declarations behind them.**  The `hook!` cast is
+    the `src/pgtkterm.rs` 7027-7036 copy (termhooks.h degrades `struct frame *`/`struct window *` to
+    `*mut c_void`, P-72 rule 3, and the ABI does not depend on the pointee).  **Two of the
+    thirty-nine lines carry the field's condition rather than C's text** - `free_pixmap`
+    (termhooks.h 849-853's `#ifdef HAVE_WINDOW_SYSTEM`) and `activate_menubar_hook` (719-722's
+    `#ifdef HAVE_EXT_MENU_BAR`, which `lisp.h` 3931-3934 defines for the Haiku window system) -
+    written as braced statements, because an attribute on a bare expression is `E0658` (measured in
+    this round's first probe).  `terminal->display_info.haiku` is C's union member, so the store is
+    `dpyinfo as *mut c_void`; `terminal->kboard` is `*mut c_void` in the mirror, so C 4498's
+    `current_kboard` store and C 4500's reference-count bump go through the `*mut kboard` cast the
+    sibling `src/pgtkterm.rs` 7189/7191 uses.  The five use-site declarations are termhooks.h
+    964's `create_terminal`, keyboard.h 477's `allocate_kboard`, dispextern.h 3708's
+    `gui_init_fringe` (its argument is `terminal->rif`, `*mut c_void`), haiku_support.h 620's
+    `be_create_cursor_from_id` (the `src/haikufns.rs` 328-330 copy) and lisp.h 5371's `fatal`
+    (whose `...` parameter *is* the list, PORTING.md P-04).
+29. **C's `ASSIGN_CURSOR` macro is kept - as a function-local `macro_rules!`.**  C 4512-4530 is a
+    `#define` inside `haiku_term_init`; the port writes it where C's preprocessor sits (a
+    `macro_rules!` in the same function block) and calls it sixteen times with C's own arguments, so
+    the macro's name *and* its two parameter names stay in the text and the member name travels as
+    the `$cursor:ident` argument - which is what P-80 asks (a C member name may not hide inside a
+    Rust macro *name*).  Measured: the first draft spelled the sixteen assignments out, and the gate
+    reported `haiku_term_init does not mention alloca, assign_cursor, cursor, cursor_id` **plus** a
+    file-level `missing macro ASSIGN_CURSOR` row; keeping C's macro retires both, leaving only
+    `alloca` for `docs/ports/macro-body-notes.tsv` (the stack pool, PORTING.md P-05).
+30. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
     object's twenty-first entry (C 3162) names it, and a Rust item cannot reference a name that
     does not exist, so the block sits at this file's foot and the range table carries the three
     rows (`3207-4570`, `4571-4618`, `4619-4898`) that keep the table ascending and gapless.  This
@@ -611,11 +653,10 @@ mirror lines need), `cargo test`, `extract-abi --all`.
    `include/systime.rs`'s `HAIKU` constant) - measured here, owned there.
 7. The P-87 scan for the two mirror lines Deviations 4 changed: `tools/check-all-units.sh`
    (expected `83 unit(s), 0 failure(s)`) - **not run by this lane** and not claimed.
-8. This ledger's remainder: **C 4406-4570** and **C 4619-4898** - the ranges slice 22's
-   out-of-order block sits between - whose first definition is `haiku_create_terminal` (C 4407,
-   the item that hands the C 3140-3170 object to `create_terminal` at C 4412 and every hook at
-   C 4418-4456) and whose last is `syms_of_haikuterm` (C 4824-4898); the conditions still ahead
-   are C 4512's `ASSIGN_CURSOR` and C 4772/4895's `USE_BE_CAIRO`.
+8. This ledger's remainder: **C 4619-4898**, the tail after slice 22's out-of-order block -
+   `mark_haiku_display` (C 4621), the two `USE_BE_CAIRO` blocks (C 4772-4793, C 4895-4897) and
+   `syms_of_haikuterm` (C 4824-4898).  Slice 26 landed C 4406-4569, so the only rows left in the
+   C range table are that tail and the out-of-order block itself.
 
 
 ## Slice 2 (2026-10-08, status 4.078 - the integrator sets the round number): C 1045-1198
@@ -2276,3 +2317,84 @@ nothing this round.
   rectangle is inverted, no fullscreen mode is set, and `haiku_flash`'s wait loop never runs.  What
   is measured is the type-checker's reading on both sides of the change plus a control that proves
   it reads the new text, and the token comparison that proves the eight bodies are C's.
+
+## Slice 26 (2026-10-08, status 4.102 - the integrator sets the round number): C 4406-4569
+
+**What this round is.**  The file's last three items in C's own order - and the round the
+C 3140-3170 object was written for: `haiku_create_terminal` (C 4407-4460), which hands
+`&haiku_redisplay_interface` to `create_terminal` at C 4412 and installs the thirty-nine terminal
+hooks at C 4418-4456; `haiku_term_init` (C 4461-4556, non-`static`); and `put_xrm_resource`
+(C 4558-4569, non-`static`).  After this round the only text left in the file is the tail after the
+out-of-order block: **C 4619-4898**.
+
+**The ABI half of the round.**  Eleven hooks the unit itself defines were still Rust-ABI
+`unsafe fn`s, and C 4418-4456 takes their addresses: `haiku_set_window_size`,
+`haiku_set_vertical_scroll_bar`, `haiku_set_horizontal_scroll_bar`,
+`haiku_set_scroll_bar_default_height`, `haiku_set_scroll_bar_default_width`,
+`haiku_judge_scroll_bars`, `haiku_condemn_scroll_bars`, `haiku_redeem_scroll_bar`,
+`haiku_update_begin`, `haiku_update_end` and `haiku_toolkit_position` (Deviation 27).  The other
+twenty-eight assignments name definitions that already had C's ABI (slice 21's conversion and the
+slices that landed `haiku_read_socket`, `haiku_mouse_position`, `haiku_beep`,
+`haiku_toggle_invisible_pointer`, `haiku_fullscreen`, `haiku_get_focus_frame`,
+`haiku_frame_rehighlight`, `haiku_delete_window`, `haiku_free_pixmap`) or mirror declarations
+(`include/haikuterm.rs`'s `haikuterm_decls`: `haiku_iconify_frame`, `haiku_focus_frame`? no -
+`haiku_focus_frame` is this file's, C 542 - `haiku_popup_dialog`,
+`haiku_set_frame_visible_invisible`, `haiku_set_offset`, `haiku_change_tab_bar_height`,
+`haiku_change_tool_bar_height`, `haiku_menu_show`, `haiku_activate_menubar`).
+
+**Devices and declarations** (Deviations 28-29): the `hook!` cast (the `src/pgtkterm.rs`
+7027-7036 copy); two lines carrying the *field's* condition instead of C's text
+(`free_pixmap`'s `have_window_system`, `activate_menubar_hook`'s `have_ext_menu_bar`), written as
+braced statements because an attribute on a bare expression is `E0658` - measured; the union-member
+store `dpyinfo as *mut c_void`; the two `*mut kboard` casts the sibling unit uses; five use-site
+declarations (`create_terminal`, `allocate_kboard`, `gui_init_fringe`, `be_create_cursor_from_id`,
+`fatal`); and **C's `ASSIGN_CURSOR` macro kept as a function-local `macro_rules!`** with its
+sixteen calls written as C's own lines.  C 4541's `alloca (nbytes)` is `sa_stack_alloc`
+(PORTING.md P-05), and C's `sizeof "GNU Emacs" + sizeof " at "` is
+`std::mem::size_of::<[c_char; 10]> () + std::mem::size_of::<[c_char; 5]> ()` (the tree's spelling of
+`sizeof "literal"`).
+
+**Why the macro is kept.**  The first draft spelled the sixteen cursor assignments out, and the gate
+answered with **two** rows: `haiku_term_init does not mention alloca, assign_cursor, cursor,
+cursor_id` *and* the file-level `missing macro ASSIGN_CURSOR`.  Keeping C's macro - defined where
+C's `#define` sits, inside the function - retires both, and it is the shape P-80 asks for (the
+member name travels as the macro's `$cursor:ident` *argument*, so it stays in the text).  The one
+token left is `alloca`, which `docs/ports/macro-body-notes.tsv` now carries for this function.
+
+**Evidence ① - the arm-reach pre-flight (`xtask probe`, P-86 ③), five runs.**  The first draft
+measured four real defects at once: the two `E0658`s above, `E0308` on the union-member store,
+`E0609`/`E0606` on the `*mut KBOARD` spelling of the kboard cast, and `E0609 no field
+activate_menubar_hook` for the un-cfg'd line.  After those, one more run to move `KBOARD` to
+`kboard` (the sibling unit's spelling).  **The final reading: `exit 1`, 34 primary errors and
+7 warnings - the same 34 slices 24 and 25 closed with, every one in a mirror and 0 in this unit's
+own text**, mirror files and line numbers included; so the round neither breaks the arm nor
+discharges a mirror row (one round of it - the two `eassert`s inside `put_xrm_resource` and the
+eleven ABI conversions - is invisible to the type-checker, which is the point).
+
+**Evidence ② - the positive control (P-86 ⑦).**  A deliberate error injected at `haiku_term_init`'s
+first local moves the reading to **35 with `injected_control` present once**; reverted and re-run,
+back to 34.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 11 → 7 rows.**  Three
+`missing function` rows retired (`haiku_create_terminal`, `haiku_term_init`, `put_xrm_resource`)
+**and the file's `missing macro ASSIGN_CURSOR` row retired with them** (the function-local macro of
+Deviation 29); the one new spelling row (`alloca`) was discharged by the note file.  The 7 that
+remain are 7 `missing function` in **C 4619-4898** - `haiku_calc_absolute_position`,
+`haiku_merge_cursor_foreground`, `haiku_scroll_bar_remove`, `haiku_set_offset`,
+`haiku_translate_transform`, `mark_haiku_display`, `syms_of_haikuterm` - i.e. the tail, which is the
+next round's own range.
+
+**Owed (this slice's additions).**
+
+- `docs/ports/line-drift-tolerance.tsv`'s `haikuterm` row: the file is now **6,555 Rust lines for
+  4,898 C lines**; the row's placeholder is the integrator's to re-derive when the file closes.
+- Nothing else: no mirror file is touched (the `hook!` helper and the `ASSIGN_CURSOR` macro are the
+  unit's own), the mirror-dupes ratchet is unchanged, and the `macro-body-notes` row is recorded.
+
+**Not claimed (this slice).**
+
+- **No runtime evidence**: no Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link.  No terminal is created, no display info
+  is allocated, no cursor is created, no `rgb.txt` is read and no resource is recorded.  What is
+  measured is the type-checker's reading on both sides of the change plus a control that proves it
+  reads the new text, and the token comparison that proves the three bodies are C's.
