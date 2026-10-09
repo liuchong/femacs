@@ -3031,12 +3031,20 @@ unsafe extern "C" fn haiku_draw_glyph_string (s: *mut glyph_string)
    `f->want_fullscreen` (frame.h 460) has the mirror's unit/shift/mask constants and no accessor,
    so the unit reads the field itself (the `haikufns.rs` 1313-1321 copy of that same member).  */
 
-/// C: frame.h 460: `ENUM_BF (fullscreen_type) want_fullscreen : 4;` - read at C 2144.
+/// C: frame.h 460: `ENUM_BF (fullscreen_type) want_fullscreen : 4;` - read at C 2144 and
+/// **written at C 4096/4098** (`f->want_fullscreen = …;`), so the macro carries C's read and its
+/// masked write on `bits2` - the `src/pgtkterm.rs` 6462-6470 pair, which this unit's read arm was
+/// already one half of (the writer arm was added when C 4096 of the `haiku_read_socket` round
+/// needed it; measured: with the read-only macro the two assignments were
+/// `no rules expected \`,\``).
 #[cfg (feature = "have_haiku")]
 macro_rules! want_fullscreen {
   ($f:expr) => {
     frame_field ($f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT,
 		 FRAME_WANT_FULLSCREEN_MASK) as fullscreen_type };
+  ($f:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & !(FRAME_WANT_FULLSCREEN_MASK << FRAME_WANT_FULLSCREEN_SHIFT))
+		  | (((($v) as u32) & FRAME_WANT_FULLSCREEN_MASK) << FRAME_WANT_FULLSCREEN_SHIFT) };
 }
 
 /* C: window.h 1186: `struct glyph *get_phys_cursor_glyph (struct window *w);`
@@ -4743,6 +4751,1201 @@ pub unsafe extern "C" fn haiku_wait_for_event (f: *mut frame, r#type: c_int)
     }
 
   unbind_to (depth, Qnil ());                                         // C 3239
+}
+
+/* C 3242-4212: `haiku_read_socket` (C 3242-4212, `static int`, 1,971 lines) - **the largest single
+   item in this file**, and the one whose address C hands to `terminal->read_socket_hook`
+   (C 4429), so the port defines it `unsafe extern "C" fn` (C's own function-pointer ABI; the
+   slice-21 rule, which this item joins).  C's body is one `while` around a 27-case
+   `switch (type)`; the port keeps C's shape with a `match` inside a labelled block, because C's
+   two exits differ: `continue` leaves the *loop* (the port keeps the bare keyword, which in Rust
+   names the enclosing `while` through a labelled block) and `break` leaves the *switch* (the port
+   writes `break 'switch`, the `src/haikuselect.rs` 421-500 shape, whose note cites
+   `src/keyboard.rs` 4632 as the first reading of it).  Three of C's cases fall through into the
+   next (`BUTTON_UP` into `BUTTON_DOWN`'s body, `MENU_BAR_OPEN` into `MENU_BAR_CLOSE`, and
+   `NOTIFICATION_CLICK_EVENT` into the `KEY_UP`/`DUMMY_EVENT` arm), which the port's `A | B =>`
+   arms spell.  C 3257's `alloca (200)` is the port's stack pool (PORTING.md P-05's documented
+   `alloca` -> `sa_stack_alloc` alias, `docs/ports/font.md` 315; the `src/msdos.rs` 4825 precedent
+   for the same `void *buf = alloca (N)` shape).  */
+
+/* termhooks.h 373-412's `enum event_kind kind : 16` shares `input_event`'s first word with
+   `part : 16` (PORTING.md 1.3/P-80), and `include/termhooks.rs` carries no accessor for it
+   (`EVENT_INIT` is what it does carry), so the unit brings its own - the `src/androidterm.rs`
+   198-210 copy, body-identical, whose note names `androidselect.rs` 136-143 as the origin.
+   C writes `inev.kind = X;` at twenty-four places in this item, and the read arm is what
+   C 3383's `ev.code` test would need if a case ever read it back.  */
+#[cfg (feature = "have_haiku")]
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+		 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
+}
+
+/* frame.h 331-341's flag run: `f->new_size_p` is a `bool_bf : 1` member and C *writes* it in this
+   item (no - it reads it at C 3329; the write is `dispnew.rs`'s).  `include/frame.rs` 1038/1353
+   carry `FRAME_PIXEL_WIDTH`/`FRAME_COLUMN_WIDTH` as *functions* (read-only), and C assigns to
+   `FRAME_PIXEL_WIDTH (f)` at C 3311-3312, so this unit brings the two-arm forms it needs, the
+   same shape its own `FRAME_COLUMN_WIDTH!`/`FRAME_LINE_HEIGHT!` (C 707-712) already carry.  */
+#[cfg (feature = "have_haiku")]
+macro_rules! FRAME_PIXEL_WIDTH {
+  ($f:expr) => { (*$f).pixel_width };
+  ($f:expr, $v:expr) => { (*$f).pixel_width = $v };
+}
+#[cfg (feature = "have_haiku")]
+macro_rules! FRAME_PIXEL_HEIGHT {
+  ($f:expr) => { (*$f).pixel_height };
+  ($f:expr, $v:expr) => { (*$f).pixel_height = $v };
+}
+/// frame.h 526 (`new_size_p`).  `frame.rs` defines this accessor for its own unit, which this
+/// unit does not include, so the one this unit reads is repeated here - the `src/dispnew.rs`
+/// 486-492 copy, whose `FRAME_NEW_SIZE_P_SHIFT` is the mirror's measured position.
+#[cfg (feature = "have_haiku")]
+macro_rules! new_size_p {
+  ($f:expr) => { (*$f).bits2 >> FRAME_NEW_SIZE_P_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => {
+    (*$f).bits2 = if $v { (*$f).bits2 | (1u32 << FRAME_NEW_SIZE_P_SHIFT) }
+      else { (*$f).bits2 & !(1u32 << FRAME_NEW_SIZE_P_SHIFT) } };
+}
+
+/* C: dispextern.h 3924: `void change_frame_size (struct frame *, int, int, bool, bool, bool);`
+   (C 3333's call; `src/dispnew.rs` 7512 defines it, and no mirror in this unit's graph declares
+   it, so the unit declares it here - P-72 rule 4).  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
+			    pretend: bool, delay: bool, safe: bool);
+}
+
+/* The nine prototypes this item calls that neither a mirror in this unit's graph nor the unit
+   itself declares yet (P-72 rule 4, each with C's own header and line): dispextern.h 3571-3572's
+   two scroll-bar setters (C 3919/3921), 3675's `expose_frame` (C 3349/3772), 3688's
+   `note_mouse_highlight` (C 3565), 3690's `cancel_mouse_face` (C 3335), 3691's `clear_mouse_face`
+   (C 3371/3474/3486/3557), 3668's `handle_tab_bar_click` and 3670's `handle_tool_bar_click`
+   (C 3663/3683), and keyboard.h 513's `gen_help_event` (C 4198/4205).  **`remember_mouse_glyph`
+   (C 3566) and `gui_mouse_grabbed` (C 3461/3515) are *not* declared here**: this unit's own
+   preamble already carries both (dispextern.h 3586 at this file's line 4107 and 4006 at line 204),
+   and a second copy would be `E0428` - measured in this round's first probe, which is how the
+   duplicates were found.  `math.h`'s `powf`/`fabsf` (C 3961-3965) join the three the unit already
+   declares at its head.  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  /// C: dispextern.h 3571: `void set_vertical_scroll_bar (struct window *);` (window.c)
+  pub fn set_vertical_scroll_bar (w: *mut window);
+  /// C: dispextern.h 3572: `void set_horizontal_scroll_bar (struct window *);` (window.c)
+  pub fn set_horizontal_scroll_bar (w: *mut window);
+  /// C: dispextern.h 3675: `extern void expose_frame (struct frame *, int, int, int, int);`
+  pub fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
+  /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
+  pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
+  /// C: dispextern.h 3690: `extern void cancel_mouse_face (struct frame *);`
+  pub fn cancel_mouse_face (f: *mut frame);
+  /// C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);`
+  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+  /// C: dispextern.h 3668: `extern Lisp_Object handle_tab_bar_click (struct frame *, int, int,
+  /// bool, int);`
+  pub fn handle_tab_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+			       modifiers: c_int) -> Lisp_Object;
+  /// C: dispextern.h 3670: `extern void handle_tool_bar_click (struct frame *, int, int, bool,
+  /// int);`
+  pub fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+				modifiers: c_int);
+  /// C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
+  /// Lisp_Object, ptrdiff_t);`
+  pub fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
+			 object: Lisp_Object, pos: ptrdiff_t);
+  /// C: math.h: `float powf (float, float);`
+  fn powf (x: f32, y: f32) -> f32;
+  /// C: math.h: `float fabsf (float);`
+  fn fabsf (x: f32) -> f32;
+}
+
+/* `Mouse_HLInfo`'s third flag bit (`dispextern.h` 3023's `bool_bf mouse_face_hidden : 1`, mask
+   `include/dispextern.rs` 2139's `MOUSE_FACE_HIDDEN`).  The mirror carries the mask, the
+   `mouse_face_defer` pair and no accessor for this bit, and C 3364/3372/3471/3473/3552/3556 read
+   and write the member, so the unit names the pair - the `src/pgtkterm.rs` 7764-7773 copy, whose
+   own note points at `src/msdos.rs` 3440-3445 for the same macro.  */
+#[cfg (feature = "have_haiku")]
+macro_rules! mouse_face_hidden {
+  ($h:expr) => { (*$h).bits & MOUSE_FACE_HIDDEN != 0 };
+  ($h:expr, $v:expr) => {
+    (*$h).bits = if ($v) as c_int != 0 { (*$h).bits | MOUSE_FACE_HIDDEN }
+		 else { (*$h).bits & ! MOUSE_FACE_HIDDEN } };
+}
+
+/* frame.h 1086-1087's `FRAME_MENU_BAR_LINES`/`FRAME_MENU_BAR_HEIGHT` are *functions* in the
+   mirror (read-only) and C 4007-4009 assigns to both, so this unit brings the two write arms it
+   needs - the same shape as its own `FRAME_PIXEL_WIDTH!` above.  (This citation is the round's
+   one `check-citations` finding: the macros are at frame.h 1086-1087, not 1049-1069, which is
+   `FRAME_EXTERNAL_MENU_BAR`'s block just above them - the gate caught the guessed pair.)  */
+#[cfg (feature = "have_haiku")]
+macro_rules! FRAME_MENU_BAR_HEIGHT {
+  ($f:expr) => { (*$f).menu_bar_height };
+  ($f:expr, $v:expr) => { (*$f).menu_bar_height = $v };
+}
+#[cfg (feature = "have_haiku")]
+macro_rules! FRAME_MENU_BAR_LINES {
+  ($f:expr) => { (*$f).menu_bar_lines };
+  ($f:expr, $v:expr) => { (*$f).menu_bar_lines = $v };
+}
+
+/* C 4068's `find_and_call_menu_selection` (menu.h 41-42) and C 4171/4181's `system_time` - the
+   latter is **not in the reference tree at all** (it is the Haiku SDK's own clock, in
+   microseconds, which is why C divides by 1000), so it carries the standing `UNVERIFIED` mark
+   the `src/haiku_io.rs` 44-74 block uses for the same header's calls and values.  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  /// C: src/menu.h 41-42: `extern void find_and_call_menu_selection (struct frame *, int,
+  /// Lisp_Object, void *);` - `src/pgtkmenu.rs` 135-137 carries the same use-site copy.
+  pub fn find_and_call_menu_selection (f: *mut frame, items: c_int, vector: Lisp_Object,
+				       client_data: *mut c_void);
+  /// C: `bigtime_t system_time (void);   [<OS.h>; UNVERIFIED here]`
+  pub fn system_time () -> bigtime_t;
+}
+
+// C 3242-4212.
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" fn haiku_read_socket (terminal: *mut terminal, hold_quit: *mut input_event)
+					-> c_int
+{
+  let mut message_count: c_int;                                       // C 3245
+  let mut buf: *mut c_void;                                           // C 3246
+  let mut b_size: ssize_t = 0;                                       // C 3247 (PORTING.md
+								      //  1.5: its
+								      //  address is
+								      //  handed to
+								      //  C 3260)
+  let mut button_or_motion_p: c_int;                                  // C 3248
+  let mut do_help: c_int;
+  let mut r#type: haiku_event_type = 0;                               // C 3249 (same rule: its
+								      //  address is handed to C 3274)
+  let mut inev: input_event = core::mem::zeroed ();                   // C 3250 (PORTING.md 1.5: both
+  let mut inev2: input_event = core::mem::zeroed ();                  //  records are filled by C 3266)
+  let mut mouse_frame: *mut frame;                                    // C 3251
+
+  message_count = 0;                                                  // C 3253
+  button_or_motion_p = 0;                                             // C 3254
+  do_help = 0;                                                        // C 3255
+
+  buf = sa_stack_alloc (200) as *mut c_void;                          // C 3257
+
+  block_input ();                                                     // C 3259
+  haiku_read_size (&raw mut b_size, false);                           // C 3260
+  /* C 3261's `while (b_size >= 0)`: the loop carries a label because the `switch` below is the
+     port's labelled block, and a `continue` that jumps out of a labelled block must name its
+     target (measured: the first probe of this round reported `E0695 unlabeled \`continue\`
+     inside of a labeled block` at every one of the twenty-nine sites - the `src/image.rs` 6735
+     `continue 'loop_` and `src/xterm.rs` 11024 `continue 'start` shape).  */
+  'read_socket: while b_size >= 0                                       // C 3261
+    {
+      if b_size > 200                                                  // C 3263
+	{ emacs_abort (); }                                            // C 3264
+
+      EVENT_INIT (&raw mut inev);                                      // C 3266
+      EVENT_INIT (&raw mut inev2);                                     // C 3267
+      input_event_bits! (kind, &raw mut inev, NO_EVENT);               // C 3268
+      input_event_bits! (kind, &raw mut inev2, NO_EVENT);              // C 3269
+      inev.arg = Qnil ();                                              // C 3270
+      inev2.arg = Qnil ();                                             // C 3271
+
+      button_or_motion_p = 0;                                          // C 3273
+      haiku_read (&raw mut r#type, buf, b_size);                       // C 3274
+
+      /* C 3276-4211: the 27-case `switch (type)` - `break` leaves the switch (the labelled
+	 block) and `continue` leaves the `while` (C's own two exits, kept as the two Rust
+	 keywords).  */
+      'switch: {
+      match r#type
+	{
+	  QUIT_REQUESTED =>                                            // C 3278
+	    {
+	      let b: *mut haiku_quit_requested_event = buf as *mut haiku_quit_requested_event;  // C 3280
+	      let f: *mut frame = haiku_window_to_frame ((*b).window); // C 3281
+
+	      if f.is_null ()                                          // C 3283
+		{ continue 'read_socket; }                                          // C 3284
+
+	      input_event_bits! (kind, &raw mut inev, DELETE_WINDOW_EVENT);  // C 3286
+	      XSETFRAME! (inev.frame_or_window, f);                    // C 3287
+	      break 'switch;                                           // C 3288
+	    }
+	  FRAME_RESIZED =>                                             // C 3290
+	    {
+	      let b: *mut haiku_resize_event = buf as *mut haiku_resize_event;  // C 3292
+	      let f: *mut frame = haiku_window_to_frame ((*b).window); // C 3293
+
+	      if f.is_null ()                                          // C 3295
+		{ continue 'read_socket; }                                          // C 3296
+
+	      let width: c_int = lrint ((*b).width as c_double) as c_int;    // C 3298
+	      let height: c_int = lrint ((*b).height as c_double) as c_int;  // C 3299
+
+	      if (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).wait_for_event_type  // C 3301-3302
+		  == FRAME_RESIZED
+		{ (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).wait_for_event_type = -1; }  // C 3303
+
+	      if FRAME_TOOLTIP_P (f)                                   // C 3305
+		{
+		  if FRAME_PIXEL_WIDTH! (f) != width                   // C 3307
+		      || FRAME_PIXEL_HEIGHT! (f) != height             // C 3308
+		    { SET_FRAME_GARBAGED! (f); }                       // C 3309
+
+		  FRAME_PIXEL_WIDTH! (f, width);                       // C 3311
+		  FRAME_PIXEL_HEIGHT! (f, height);                     // C 3312
+
+		  haiku_clear_under_internal_border (f);               // C 3314
+
+		  /* Flush the frame and flip buffers here.  It is
+		     necessary for tooltips displayed inside menus, as
+		     redisplay cannot happen.  */                     // C 3316-3318
+		  haiku_flush (f);                                     // C 3319
+		  continue 'read_socket;                                            // C 3320
+		}
+
+	      BView_draw_lock (FRAME_HAIKU_DRAWABLE! (f), false, 0, 0, 0, 0);   // C 3323
+	      BView_resize_to (FRAME_HAIKU_DRAWABLE! (f), width, height);      // C 3324
+	      BView_draw_unlock (FRAME_HAIKU_DRAWABLE! (f));                   // C 3325
+
+	      if width != FRAME_PIXEL_WIDTH! (f)                       // C 3327
+		  || height != FRAME_PIXEL_HEIGHT! (f)                 // C 3328
+		  || (new_size_p! (f)                                  // C 3329
+		      && (((*f).new_width >= 0 && width != (*f).new_width)     // C 3330
+			  || ((*f).new_height >= 0 && height != (*f).new_height)))   // C 3331
+		{
+		  change_frame_size (f, width, height, false, true, false);    // C 3333
+		  SET_FRAME_GARBAGED! (f);                             // C 3334
+		  cancel_mouse_face (f);                               // C 3335
+		  haiku_clear_under_internal_border (f);               // C 3336
+		}
+
+	      break 'switch;                                           // C 3339
+	    }
+	  FRAME_EXPOSED =>                                             // C 3341
+	    {
+	      let b: *mut haiku_expose_event = buf as *mut haiku_expose_event;  // C 3343
+	      let f: *mut frame = haiku_window_to_frame ((*b).window); // C 3344
+
+	      if f.is_null ()                                          // C 3346
+		{ continue 'read_socket; }                                          // C 3347
+
+	      expose_frame (f, (*b).x, (*b).y, (*b).width, (*b).height);      // C 3349
+	      haiku_clear_under_internal_border (f);                   // C 3350
+	      break 'switch;                                           // C 3351
+	    }
+	  KEY_DOWN =>                                                  // C 3353
+	    {
+	      let b: *mut haiku_key_event = buf as *mut haiku_key_event;      // C 3355
+	      let hlinfo: *mut Mouse_HLInfo
+		= &raw mut (*(x_display_list)).mouse_highlight;        // C 3356
+	      let f: *mut frame = haiku_window_to_frame ((*b).window); // C 3357
+
+	      if f.is_null ()                                          // C 3359
+		{ continue 'read_socket; }                                          // C 3360
+
+	      /* If mouse-highlight is an integer, input clears out
+		 mouse highlighting.  */                           // C 3362-3363
+	      if ! mouse_face_hidden! (hlinfo) && FIXNUMP (Vmouse_highlight)   // C 3364
+		  && (f.is_null ()                                     // C 3365
+		      || (! EQ ((*f).tool_bar_window, (*hlinfo).mouse_face_window)  // C 3366
+			  && ! EQ ((*f).tab_bar_window, (*hlinfo).mouse_face_window)))  // C 3367
+		{
+		  mouse_frame = (*hlinfo).mouse_face_mouse_frame           // C 3369
+		    as *mut frame;
+
+		  clear_mouse_face (hlinfo);                           // C 3371
+		  mouse_face_hidden! (hlinfo, true);                    // C 3372
+
+		  if ! mouse_frame.is_null ()                          // C 3374
+		    { haiku_flush_dirty_back_buffer_on (mouse_frame); } // C 3375
+		}
+
+	      inev.code = if (*b).keysym != 0 { (*b).keysym } else { (*b).multibyte_char };  // C 3378
+
+	      if (*b).keysym != 0                                      // C 3380
+		{ input_event_bits! (kind, &raw mut inev, NON_ASCII_KEYSTROKE_EVENT); }  // C 3381
+	      else
+		{ input_event_bits! (kind, &raw mut inev,                   // C 3383-3384
+				     if inev.code > 127
+				       { MULTIBYTE_CHAR_KEYSTROKE_EVENT }
+				     else { ASCII_KEYSTROKE_EVENT }); }
+
+	      inev.timestamp = ((*b).time / 1000) as Time;             // C 3386
+	      inev.modifiers = (haiku_modifiers_to_emacs ((*b).modifiers) as EMACS_INT   // C 3387
+				| (extra_keyboard_modifiers                  // C 3388
+				   & (meta_modifier                           // C 3389
+				      | hyper_modifier                        // C 3390
+				      | ctrl_modifier                         // C 3391
+				      | alt_modifier                          // C 3392
+				      | shift_modifier) as EMACS_INT)) as c_uint;  // C 3393
+
+	      XSETFRAME! (inev.frame_or_window, f);                    // C 3395
+	      break 'switch;                                           // C 3396
+	    }
+	  ACTIVATION =>                                                // C 3398
+	    {
+	      let b: *mut haiku_activation_event = buf as *mut haiku_activation_event;  // C 3400
+	      let f: *mut frame = haiku_window_to_frame ((*b).window); // C 3401
+
+	      if f.is_null ()                                          // C 3403
+		{ continue 'read_socket; }                                          // C 3404
+
+	      if (((*x_display_list).focus_event_frame != f && (*b).activated_p != 0)      // C 3406
+		  || ((*x_display_list).focus_event_frame == f && (*b).activated_p == 0))     // C 3407
+		{
+		  haiku_new_focus_frame (if (*b).activated_p != 0 { f } else { std::ptr::null_mut () });  // C 3409
+		  if (*b).activated_p != 0                             // C 3410
+		    { (*x_display_list).focus_event_frame = f; }       // C 3411
+		  else
+		    { (*x_display_list).focus_event_frame = std::ptr::null_mut (); }   // C 3413
+		  input_event_bits! (kind, &raw mut inev,              // C 3414
+				     if (*b).activated_p != 0 { FOCUS_IN_EVENT }
+				     else { FOCUS_OUT_EVENT });
+		  XSETFRAME! (inev.frame_or_window, f);                // C 3415
+		}
+
+	      break 'switch;                                           // C 3418
+	    }
+	  MENU_BAR_LEFT =>                                             // C 3420
+	    {
+	      let b: *mut haiku_menu_bar_left_event = buf as *mut haiku_menu_bar_left_event;  // C 3422
+	      let f: *mut frame = haiku_window_to_frame ((*b).window); // C 3423
+
+	      if f.is_null ()                                          // C 3425
+		{ continue 'read_socket; }                                          // C 3426
+
+	      if (*b).y > 0 && (*b).y <= FRAME_PIXEL_HEIGHT! (f)       // C 3428
+		  && (*b).x > 0 && (*b).x <= FRAME_PIXEL_WIDTH! (f)    // C 3429
+		{ break 'switch; }                                     // C 3430
+
+	      if auto_lower! (f) && popup_activated_p == 0             // C 3432
+		{ haiku_frame_raise_lower (f, false); }                // C 3433
+
+	      break 'switch;                                           // C 3435
+	    }
+	  MOUSE_MOTION =>                                              // C 3437
+	    {
+	      let b: *mut haiku_mouse_motion_event = buf as *mut haiku_mouse_motion_event;  // C 3439
+	      let f: *mut frame = haiku_mouse_or_wdesc_frame ((*b).window, true);  // C 3440
+	      let hlinfo: *mut Mouse_HLInfo
+		= &raw mut (*(x_display_list)).mouse_highlight;        // C 3441
+	      let mut frame: Lisp_Object;                              // C 3442
+
+	      if f.is_null ()                                          // C 3444
+		{ continue 'read_socket; }                                          // C 3445
+
+	      if FRAME_TOOLTIP_P (f)                                   // C 3447
+		{
+		  /* Dismiss the tooltip if the mouse moves onto a
+		     tooltip frame (except when drag-and-drop is in
+		     progress and we are trying to move the tooltip
+		     along with the mouse pointer).  FIXME: for some
+		     reason we don't get leave notification events for
+		     this.  */                                        // C 3449-3454
+
+		  if any_help_event_p                                    // C 3456
+		      && ! (be_drag_and_drop_in_progress ()              // C 3457
+			    && haiku_dnd_follow_tooltip)                 // C 3458
+		      && ! ((EQ (track_mouse, Qdrag_source ())           // C 3459
+			      || EQ (track_mouse, Qdropping ()))         // C 3460
+			     && gui_mouse_grabbed (x_display_list))      // C 3461
+		    { do_help = -1; }                                  // C 3462
+		  break 'switch;                                       // C 3463
+		}
+
+	      XSETFRAME! (frame, f);                                   // C 3466
+
+	      (*x_display_list).last_mouse_movement_time = ((*b).time / 1000) as Time;  // C 3468
+	      button_or_motion_p = 1;                                  // C 3469
+
+	      if mouse_face_hidden! (hlinfo)                           // C 3471
+		{
+		  mouse_face_hidden! (hlinfo, false);                   // C 3473
+		  clear_mouse_face (hlinfo);                            // C 3474
+		  haiku_flush_dirty_back_buffer_on (f);                 // C 3475
+		}
+
+	      if (*b).just_exited_p                                    // C 3478
+		{
+		  let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);   // C 3480
+
+		  if f as *mut c_void == (*hlinfo).mouse_face_mouse_frame   // C 3482
+		    {
+		      /* If we move outside the frame, then we're
+			 certainly no longer on any text in the frame.  */  // C 3484-3485
+		      clear_mouse_face (hlinfo);                        // C 3486
+		      (*hlinfo).mouse_face_mouse_frame = std::ptr::null_mut ();  // C 3487
+
+		      haiku_flush_dirty_back_buffer_on (f);             // C 3489
+		    }
+
+		  if (*x_display_list).last_mouse_glyph_frame == f     // C 3492
+		    { (*x_display_list).last_mouse_glyph_frame = std::ptr::null_mut (); }  // C 3493
+
+		  if auto_lower! (f) && popup_activated_p == 0          // C 3495
+		      /* Don't do this if the mouse entered a scroll bar.  */   // C 3496
+		      && ! BView_inside_scroll_bar (FRAME_HAIKU_VIEW! (f), // C 3497
+						    (*b).x, (*b).y)    // C 3498
+		    {
+		      /* If we're leaving towards the menu bar, don't
+			 auto-lower here, and wait for a exit
+			 notification from the menu bar instead.  */   // C 3500-3502
+		      if (*b).x > FRAME_PIXEL_WIDTH! (f)                // C 3503
+			  || (*b).y >= FRAME_MENU_BAR_HEIGHT (f)        // C 3504
+			  || (*b).x < 0                                 // C 3505
+			  || (*b).y < 0                                 // C 3506
+			{ haiku_frame_raise_lower (f, false); }         // C 3507
+		    }
+
+		  haiku_new_focus_frame ((*x_display_list).focused_frame);  // C 3510
+
+		  if any_help_event_p                                   // C 3512
+		      && ! ((EQ (track_mouse, Qdrag_source ())           // C 3513
+			      || EQ (track_mouse, Qdropping ()))         // C 3514
+			     && gui_mouse_grabbed (x_display_list))      // C 3515
+		    { do_help = -1; }                                   // C 3516
+		}
+	      else
+		{
+		  let dpyinfo: *mut haiku_display_info = FRAME_DISPLAY_INFO! (f);  // C 3520
+		  let r: haiku_rect = (*dpyinfo).last_mouse_glyph;      // C 3521
+
+		  /* For an unknown reason Haiku sends phantom motion events when a
+		     tooltip frame is visible.  FIXME */               // C 3523-3524
+		  if FRAMEP (tip_frame)                                 // C 3525
+		      && FRAME_LIVE_P (XFRAME (tip_frame))              // C 3526
+		      && FRAME_VISIBLE_P (XFRAME (tip_frame))           // C 3527
+		      && f == (*dpyinfo).last_mouse_motion_frame        // C 3528
+		      && (*b).x == (*dpyinfo).last_mouse_motion_x       // C 3529
+		      && (*b).y == (*dpyinfo).last_mouse_motion_y       // C 3530
+		    { continue 'read_socket; }                                      // C 3531
+
+		  (*dpyinfo).last_mouse_motion_x = (*b).x;              // C 3533
+		  (*dpyinfo).last_mouse_motion_y = (*b).y;              // C 3534
+		  (*dpyinfo).last_mouse_motion_frame = f;               // C 3535
+
+		  dispextern_unit_names::previous_help_echo_string = dispextern_unit_names::help_echo_string;         // C 3537
+		  dispextern_unit_names::help_echo_string = Qnil ();                           // C 3538
+
+		  /* A crossing event might be sent out-of-order with
+		     regard to motion events from other windows, such as
+		     when the mouse pointer rapidly moves from an
+		     undecorated child frame to its parent.  This can
+		     cause a failure to clear the mouse face on the
+		     former if an event for the latter is read by Emacs
+		     first and ends up showing the mouse face there.
+
+		     Work around the problem by clearing the mouse face
+		     now if it is currently shown on a different
+		     frame.  */                                        // C 3540-3550
+
+		  if mouse_face_hidden! (hlinfo)                         // C 3552
+		      || (f as *mut c_void != (*hlinfo).mouse_face_mouse_frame   // C 3553
+			  && ! NILP ((*hlinfo).mouse_face_window))      // C 3554
+		    {
+		      mouse_face_hidden! (hlinfo, false);                // C 3556
+		      clear_mouse_face (hlinfo);                        // C 3557
+		    }
+
+		  if (*dpyinfo).last_mouse_glyph_frame != f             // C 3560
+		      || (*b).x < r.x || (*b).x >= r.x + r.width        // C 3561
+		      || (*b).y < r.y || (*b).y >= r.y + r.height       // C 3562
+		    {
+		      mouse_moved! (f, true);                           // C 3564
+		      note_mouse_highlight (f, (*b).x, (*b).y);         // C 3565
+		      remember_mouse_glyph (f, (*b).x, (*b).y,          // C 3566
+					    &raw mut (*(FRAME_DISPLAY_INFO! (f))).last_mouse_glyph);  // C 3567
+		      (*dpyinfo).last_mouse_glyph_frame = f;            // C 3568
+		    }
+		  else
+		    { dispextern_unit_names::help_echo_string = dispextern_unit_names::previous_help_echo_string; }   // C 3571
+
+		  if ! NILP (Vmouse_autoselect_window)                  // C 3573
+		    {
+		      let window: Lisp_Object
+			= window_from_coordinates (f as *mut c_void, (*b).x, (*b).y,   // C 3575
+					   std::ptr::null_mut (), false, false, false);
+
+		      if WINDOWP (window)                               // C 3577
+			  && ! EQ (window, last_mouse_window)           // C 3578
+			  && ! EQ (window, selected_window)             // C 3579
+			  && popup_activated_p == 0                     // C 3580
+			  && ! MINI_WINDOW_P (XWINDOW (selected_window))  // C 3581
+			  && (! NILP (focus_follows_mouse)              // C 3582
+			      || f == SELECTED_FRAME ())                // C 3583
+			{
+			  input_event_bits! (kind, &raw mut inev2, SELECT_WINDOW_EVENT);  // C 3585
+			  inev2.frame_or_window = window;               // C 3586
+			}
+
+		      last_mouse_window = window;                       // C 3589
+		    }
+
+		  if auto_raise! (f)                                    // C 3592
+		    {
+		      if ! BWindow_is_active (FRAME_HAIKU_WINDOW! (f))  // C 3594
+			{ haiku_frame_raise_lower (f, true); }          // C 3595
+		    }
+
+		  if ! NILP (dispextern_unit_names::help_echo_string)                          // C 3598
+		      || ! NILP (dispextern_unit_names::previous_help_echo_string)             // C 3599
+		    { do_help = 1; }                                    // C 3600
+
+		  if (*b).dnd_message                                   // C 3602
+		    {
+		      /* It doesn't make sense to show tooltips when
+			 another program is dragging stuff over us.  */   // C 3604-3605
+
+		      if any_help_event_p || do_help != 0               // C 3607
+			{ do_help = -1; }                               // C 3608
+
+		      if ! be_drag_and_drop_in_progress ()              // C 3610
+			{
+			  input_event_bits! (kind, &raw mut inev, DRAG_N_DROP_EVENT);  // C 3612
+			  inev.arg = Qlambda ();                        // C 3613
+
+			  XSETINT! (inev.x, (*b).x as isize);           // C 3615
+			  XSETINT! (inev.y, (*b).y as isize);           // C 3616
+			  XSETFRAME! (inev.frame_or_window, f);         // C 3617
+			}
+		      else
+			{ haiku_note_drag_motion (); }                  // C 3620
+
+		      break 'switch;                                    // C 3622
+		    }
+		}
+
+	      if FRAME_DIRTY_P! (f)                                     // C 3626
+		{ haiku_flush_dirty_back_buffer_on (f); }               // C 3627
+	      break 'switch;                                            // C 3628
+	    }
+	  BUTTON_UP | BUTTON_DOWN =>                                    // C 3630-3631
+	    {
+	      let b: *mut haiku_button_event = buf as *mut haiku_button_event;  // C 3633
+	      let f: *mut frame = haiku_mouse_or_wdesc_frame ((*b).window, false);  // C 3634
+	      let mut tab_bar_arg: Lisp_Object = Qnil ();               // C 3635 (PORTING.md 1.5: its
+									//  address is not taken; C's own
+									//  initialiser is the port's)
+	      let mut tab_bar_p: c_int = 0;                             // C 3636
+	      let mut tool_bar_p: c_int = 0;
+	      let mut up_okay_p: bool = false;                          // C 3637
+	      let bar: *mut scroll_bar;                                 // C 3638
+
+	      if popup_activated_p != 0 || f.is_null ()                 // C 3640
+		{ continue 'read_socket; }                                           // C 3641
+
+	      inev.modifiers = haiku_modifiers_to_emacs ((*b).modifiers) as c_uint;  // C 3643
+	      bar = haiku_scroll_bar_from_widget ((*b).scroll_bar, (*b).window);  // C 3644
+
+	      (*x_display_list).last_mouse_glyph_frame = std::ptr::null_mut ();  // C 3646
+	      (*x_display_list).last_mouse_movement_time = ((*b).time / 1000) as Time;  // C 3647
+	      button_or_motion_p = 1;                                   // C 3648
+
+	      /* Is this in the tab-bar?  */                            // C 3650
+	      if WINDOWP ((*f).tab_bar_window)                          // C 3651
+		  && WINDOW_TOTAL_LINES (XWINDOW ((*f).tab_bar_window)) != 0    // C 3652
+		{
+		  let mut window: Lisp_Object;                          // C 3654
+		  let x: c_int = (*b).x;                                // C 3655
+		  let y: c_int = (*b).y;                                // C 3656
+
+		  window = window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (),   // C 3658
+						    true, true, true);
+		  tab_bar_p = EQ (window, (*f).tab_bar_window) as c_int;   // C 3659
+
+		  if tab_bar_p != 0                                     // C 3661
+		    {
+		      tab_bar_arg = handle_tab_bar_click                // C 3663-3664
+			(f, x, y, r#type == BUTTON_DOWN, inev.modifiers as c_int);
+		      haiku_flush_dirty_back_buffer_on (f);             // C 3665
+		    }
+		}
+
+	      if WINDOWP ((*f).tool_bar_window)                         // C 3669
+		  && WINDOW_TOTAL_LINES (XWINDOW ((*f).tool_bar_window)) != 0    // C 3670
+		{
+		  let mut window: Lisp_Object;                          // C 3672
+		  let x: c_int = (*b).x;                                // C 3673
+		  let y: c_int = (*b).y;                                // C 3674
+
+		  window = window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (),   // C 3676
+						    true, true, true);
+		  tool_bar_p = (EQ (window, (*f).tool_bar_window)        // C 3677
+				&& (r#type != BUTTON_UP                  // C 3678
+				    || (*f).last_tool_bar_item != -1)) as c_int;   // C 3679
+
+		  if tool_bar_p != 0                                    // C 3681
+		    {
+		      handle_tool_bar_click                             // C 3683-3684
+			(f, x, y, r#type == BUTTON_DOWN, inev.modifiers as c_int);
+		      haiku_flush_dirty_back_buffer_on (f);             // C 3685
+		    }
+		}
+
+	      if r#type == BUTTON_UP                                  // C 3689
+		{
+		  inev.modifiers |= up_modifier as c_uint;              // C 3691
+		  up_okay_p = ((*x_display_list).grabbed & (1 << (*b).btn_no)) != 0;  // C 3692
+		  (*x_display_list).grabbed &= ! (1 << (*b).btn_no);     // C 3693
+		}
+	      else
+		{
+		  up_okay_p = true;                                     // C 3697
+		  inev.modifiers |= down_modifier as c_uint;            // C 3698
+		  (*x_display_list).last_mouse_frame = f;               // C 3699
+		  (*x_display_list).grabbed |= (1 << (*b).btn_no);       // C 3700
+		  if ! f.is_null () && tab_bar_p == 0                   // C 3701
+		    { (*f).last_tab_bar_item = -1; }                    // C 3702
+		  if ! f.is_null () && tool_bar_p == 0                  // C 3703
+		    { (*f).last_tool_bar_item = -1; }                   // C 3704
+		}
+
+	      if ! bar.is_null ()                                       // C 3707
+		{
+		  input_event_bits! (kind, &raw mut inev,                // C 3709-3711
+				     if ((*bar).horizontal)
+				       { HORIZONTAL_SCROLL_BAR_CLICK_EVENT }
+				     else { SCROLL_BAR_CLICK_EVENT });
+		  input_event_bits! (part, &raw mut inev,                // C 3712-3714
+				     if ((*bar).horizontal)
+				       { scroll_bar_horizontal_handle }
+				     else { scroll_bar_handle });
+		}
+	      else if up_okay_p                                        // C 3716
+		       && ! (tab_bar_p != 0 && NILP (tab_bar_arg))      // C 3717
+		       && tool_bar_p == 0                               // C 3718
+		{ input_event_bits! (kind, &raw mut inev, MOUSE_CLICK_EVENT); }  // C 3719
+
+	      inev.arg = tab_bar_arg;                                   // C 3721
+	      inev.code = (*b).btn_no as c_uint;                        // C 3722
+
+	      mouse_moved! (f, false);                                  // C 3724
+
+	      if ! bar.is_null ()                                       // C 3726
+		{
+		  if (*bar).horizontal                             // C 3728
+		    {
+		      XSETINT! (inev.x, std::cmp::min (std::cmp::max (0, (*b).x - (*bar).left),   // C 3730
+						       (*bar).width) as isize);   // C 3731
+		      XSETINT! (inev.y, (*bar).width as isize);         // C 3732
+		    }
+		  else
+		    {
+		      XSETINT! (inev.x, std::cmp::min (std::cmp::max (0, (*b).y - (*bar).top),    // C 3736
+						       (*bar).height) as isize);  // C 3737
+		      XSETINT! (inev.y, (*bar).height as isize);        // C 3738
+		    }
+
+		  inev.frame_or_window = (*bar).window;                 // C 3741
+		}
+	      else
+		{
+		  XSETINT! (inev.x, (*b).x as isize);                   // C 3745
+		  XSETINT! (inev.y, (*b).y as isize);                   // C 3746
+		  XSETFRAME! (inev.frame_or_window, f);                 // C 3747
+		}
+
+	      break 'switch;                                            // C 3750
+	    }
+	  ICONIFICATION =>                                             // C 3752
+	    {
+	      let b: *mut haiku_iconification_event = buf as *mut haiku_iconification_event;  // C 3754
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 3755
+
+	      if f.is_null ()                                          // C 3757
+		{ continue 'read_socket; }                                          // C 3758
+
+	      if (*b).iconified_p == 0                                 // C 3760
+		{
+		  SET_FRAME_VISIBLE! (f, 1);                           // C 3762
+		  SET_FRAME_ICONIFIED (f, 0);                          // C 3763
+		  input_event_bits! (kind, &raw mut inev, DEICONIFY_EVENT);  // C 3764
+
+		  /* Haiku doesn't expose frames on deiconification, but
+		     if we are double-buffered, the previous screen
+		     contents should have been preserved. */           // C 3766-3768
+		  if EmacsView_double_buffered_p (FRAME_HAIKU_VIEW! (f)) == 0   // C 3769
+		    {
+		      SET_FRAME_GARBAGED! (f);                         // C 3771
+		      expose_frame (f, 0, 0, 0, 0);                    // C 3772
+		    }
+		}
+	      else
+		{
+		  SET_FRAME_VISIBLE! (f, 0);                           // C 3777
+		  SET_FRAME_ICONIFIED (f, 1);                          // C 3778
+		  input_event_bits! (kind, &raw mut inev, ICONIFY_EVENT);  // C 3779
+		}
+
+	      XSETFRAME! (inev.frame_or_window, f);                    // C 3782
+	      break 'switch;                                           // C 3783
+	    }
+	  MOVE_EVENT =>                                                // C 3785
+	    {
+	      let b: *mut haiku_move_event = buf as *mut haiku_move_event;  // C 3787
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 3788
+	      let mut top: c_int;                                      // C 3789
+	      let mut left: c_int;
+	      let mut p: *mut frame;                                   // C 3790
+
+	      if f.is_null ()                                          // C 3792
+		{ continue 'read_socket; }                                          // C 3793
+
+	      (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).frame_x = (*b).x;  // C 3795
+	      (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).frame_y = (*b).y;  // C 3796
+
+	      if ! FRAME_PARENT_FRAME (f).is_null ()                   // C 3798
+		{ haiku_coords_from_parent (f, &raw mut (*b).x, &raw mut (*b).y); }  // C 3799
+
+	      left = (*b).x - (*b).decorator_width;                    // C 3801
+	      top = (*b).y - (*b).decorator_height;                    // C 3802
+
+	      if left != (*f).left_pos || top != (*f).top_pos          // C 3804
+		{
+		  input_event_bits! (kind, &raw mut inev, MOVE_FRAME_EVENT);  // C 3806
+
+		  XSETINT! (inev.x, left as isize);                    // C 3808
+		  XSETINT! (inev.y, top as isize);                     // C 3809
+
+		  (*f).left_pos = left;                                // C 3811
+		  (*f).top_pos = top;                                  // C 3812
+
+		  p = FRAME_PARENT_FRAME (f);                          // C 3814
+
+		  if ! p.is_null ()                                    // C 3816
+		    { EmacsWindow_move_weak_child (FRAME_HAIKU_WINDOW! (p),  // C 3817
+						   (*b).window, left, top); }  // C 3818
+
+		  XSETFRAME! (inev.frame_or_window, f);                // C 3820
+		}
+
+	      haiku_make_fullscreen_consistent (f);                    // C 3823
+	      break 'switch;                                           // C 3824
+	    }
+	  SCROLL_BAR_VALUE_EVENT =>                                    // C 3826
+	    {
+	      let b: *mut haiku_scroll_bar_value_event
+		= buf as *mut haiku_scroll_bar_value_event;            // C 3828
+	      let bar: *mut scroll_bar                              // C 3829-3830
+		= haiku_scroll_bar_from_widget ((*b).scroll_bar, (*b).window);
+	      let mut portion: c_int;                                 // C 3831
+	      let mut whole: c_int;
+
+	      if bar.is_null ()                                        // C 3833
+		{ continue 'read_socket; }                                          // C 3834
+
+	      let w: *mut window = XWINDOW ((*bar).window);            // C 3836
+
+	      if (*bar).update != -1                                   // C 3838
+		{
+		  (*bar).update = -1;                                 // C 3840
+		  break 'switch;                                       // C 3841
+		}
+
+	      if (*bar).position != (*b).position                      // C 3844
+		{
+		  input_event_bits! (kind, &raw mut inev,              // C 3846-3848
+				     if (*bar).horizontal
+				       { HORIZONTAL_SCROLL_BAR_CLICK_EVENT }
+				     else { SCROLL_BAR_CLICK_EVENT });
+		  input_event_bits! (part, &raw mut inev,              // C 3849-3851
+				     if (*bar).horizontal
+				       { scroll_bar_horizontal_handle }
+				     else { scroll_bar_handle });
+
+		  if (*bar).horizontal                            // C 3853
+		    {
+		      portion = ((*bar).total as f32                   // C 3855-3856
+				 * ((*b).position as f32 / BE_SB_MAX as f32)) as c_int;
+		      whole = ((*bar).total as f32                     // C 3857-3859
+			       * ((BE_SB_MAX - (*bar).page_size) as f32 / BE_SB_MAX as f32)) as c_int;
+		      portion = std::cmp::min (portion, whole);        // C 3860
+		    }
+		  else
+		    {
+		      whole = BE_SB_MAX - (*bar).page_size;            // C 3864
+		      portion = std::cmp::min ((*b).position, whole);  // C 3865
+		    }
+
+		  XSETINT! (inev.x, portion as isize);                 // C 3868
+		  XSETINT! (inev.y, whole as isize);                   // C 3869
+		  XSETWINDOW! (inev.frame_or_window, w);               // C 3870
+		}
+	      break 'switch;                                           // C 3872
+	    }
+	  SCROLL_BAR_PART_EVENT =>                                     // C 3874
+	    {
+	      let b: *mut haiku_scroll_bar_part_event
+		= buf as *mut haiku_scroll_bar_part_event;             // C 3876
+	      let bar: *mut scroll_bar                              // C 3877-3878
+		= haiku_scroll_bar_from_widget ((*b).scroll_bar, (*b).window);
+
+	      if bar.is_null ()                                        // C 3880
+		{ continue 'read_socket; }                                          // C 3881
+
+	      input_event_bits! (kind, &raw mut inev,                  // C 3883-3884
+				 if (*bar).horizontal
+				   { HORIZONTAL_SCROLL_BAR_CLICK_EVENT }
+				 else { SCROLL_BAR_CLICK_EVENT });
+
+	      (*bar).dragging = 0;                                     // C 3886
+
+	      /* C 3888-3900's inner `switch (b->part)`: its two `break`s leave the inner switch,
+		 which is what a `match` arm already does - no label is needed, and the outer
+		 `break 'switch` below is C 3906's.  */
+	      match (*b).part
+		{
+		  HAIKU_SCROLL_BAR_UP_BUTTON =>                        // C 3890
+		    {
+		      input_event_bits! (part, &raw mut inev,          // C 3891-3893
+					 if (*bar).horizontal
+					   { scroll_bar_left_arrow }
+					 else { scroll_bar_up_arrow });
+		    }
+		  HAIKU_SCROLL_BAR_DOWN_BUTTON =>                      // C 3895
+		    {
+		      input_event_bits! (part, &raw mut inev,          // C 3896-3898
+					 if (*bar).horizontal
+					   { scroll_bar_right_arrow }
+					 else { scroll_bar_down_arrow });
+		    }
+		  _ => {}
+		}
+
+	      XSETINT! (inev.x, 0);                                    // C 3902
+	      XSETINT! (inev.y, 0);                                    // C 3903
+	      inev.frame_or_window = (*bar).window;                    // C 3904
+
+	      break 'switch;                                           // C 3906
+	    }
+	  SCROLL_BAR_DRAG_EVENT =>                                     // C 3908
+	    {
+	      let b: *mut haiku_scroll_bar_drag_event
+		= buf as *mut haiku_scroll_bar_drag_event;             // C 3910
+	      let bar: *mut scroll_bar                              // C 3911-3912
+		= haiku_scroll_bar_from_widget ((*b).scroll_bar, (*b).window);
+
+	      if bar.is_null ()                                        // C 3914
+		{ continue 'read_socket; }                                          // C 3915
+
+	      (*bar).dragging = (*b).dragging_p;                       // C 3917
+	      if (*b).dragging_p == 0 && (*bar).horizontal        // C 3918
+		{ set_horizontal_scroll_bar (XWINDOW ((*bar).window)); }  // C 3919
+	      else if (*b).dragging_p == 0                             // C 3920
+		{ set_vertical_scroll_bar (XWINDOW ((*bar).window)); }  // C 3921
+	      break 'switch;                                           // C 3922
+	    }
+	  WHEEL_MOVE_EVENT =>                                          // C 3924
+	    {
+	      let b: *mut haiku_wheel_move_event = buf as *mut haiku_wheel_move_event;  // C 3926
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 3927
+	      let mut x: c_int = 0;                                    // C 3928 (PORTING.md 1.5: its
+							      //  address is handed to C 3935)
+	      let mut y: c_int = 0;
+	      let mut scroll_width: c_int;
+	      let mut scroll_height: c_int;
+	      let mut wheel_window: Lisp_Object;                       // C 3930
+	      /* C 3929's function-local `static float px = 0.0f, py = 0.0f;` - the two
+		 accumulators persist across calls exactly as C's do (the unit's own
+		 function-local `static mut` shape, `src/haikuterm.rs` 449).  */
+	      static mut px: f32 = 0.0f32;                             // C 3929
+	      static mut py: f32 = 0.0f32;
+
+	      if f.is_null ()                                          // C 3932
+		{ continue 'read_socket; }                                          // C 3933
+
+	      BView_get_mouse (FRAME_HAIKU_VIEW! (f), &raw mut x, &raw mut y);  // C 3935
+
+	      wheel_window = window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (),  // C 3937
+						      false, false, false);
+
+	      if NILP (wheel_window)                                   // C 3939
+		{
+		  scroll_width = FRAME_PIXEL_WIDTH! (f);                 // C 3941
+		  scroll_height = FRAME_PIXEL_HEIGHT! (f);               // C 3942
+		}
+	      else
+		{
+		  scroll_width = (*XWINDOW (wheel_window)).pixel_width;   // C 3946
+		  scroll_height = (*XWINDOW (wheel_window)).pixel_height; // C 3947
+		}
+
+	      inev.modifiers = haiku_modifiers_to_emacs ((*b).modifiers) as c_uint;  // C 3950
+
+	      inev2.modifiers = inev.modifiers;                        // C 3952
+
+	      if signbit! (px) != signbit! ((*b).delta_x)              // C 3954
+		{ px = 0.0f32; }                                       // C 3955
+
+	      if signbit! (py) != signbit! ((*b).delta_y)              // C 3957
+		{ py = 0.0f32; }                                       // C 3958
+
+	      px += ((*b).delta_x                                      // C 3960-3961
+		     * powf (scroll_width as f32, 2.0f32 / 3.0f32));
+	      py += ((*b).delta_y                                      // C 3962-3963
+		     * powf (scroll_height as f32, 2.0f32 / 3.0f32));
+
+	      if fabsf (py) >= FRAME_LINE_HEIGHT (f) as f32            // C 3965
+		  || fabsf (px) >= FRAME_COLUMN_WIDTH (f) as f32       // C 3966
+		  || ! mwheel_coalesce_scroll_events                // C 3967
+		{
+		  input_event_bits! (kind, &raw mut inev,              // C 3969-3971
+				     if fabsf (px) > fabsf (py) { HORIZ_WHEEL_EVENT }
+				     else { WHEEL_EVENT });
+		  inev.code = 0;                                       // C 3972
+
+		  XSETINT! (inev.x, x as isize);                       // C 3974
+		  XSETINT! (inev.y, y as isize);                       // C 3975
+		  inev.arg = list3 (Qnil (), make_float (-px as c_double),   // C 3976-3977
+				    make_float (-py as c_double));
+		  XSETFRAME! (inev.frame_or_window, f);                // C 3978
+
+		  inev.modifiers |= (if signbit! (                      // C 3980-3983
+					       if input_event_bits! (kind, &raw mut inev)
+						  == HORIZ_WHEEL_EVENT { px } else { py })
+				       { up_modifier } else { down_modifier }) as c_uint;
+		  py = 0.0f32;                                         // C 3984
+		  px = 0.0f32;                                         // C 3985
+
+		  if be_drag_and_drop_in_progress ()                   // C 3987
+		    { haiku_note_drag_wheel (&raw mut inev); }         // C 3988
+		}
+
+	      break 'switch;                                           // C 3991
+	    }
+	  MENU_BAR_RESIZE =>                                           // C 3993
+	    {
+	      let b: *mut haiku_menu_bar_resize_event
+		= buf as *mut haiku_menu_bar_resize_event;             // C 3995
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 3996
+
+	      if f.is_null () || ! FRAME_EXTERNAL_MENU_BAR (f)         // C 3998
+		{ continue 'read_socket; }                                          // C 3999
+
+	      if (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).wait_for_event_type  // C 4001-4002
+		  == MENU_BAR_RESIZE
+		{ (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).wait_for_event_type = -1; }  // C 4003
+
+	      let old_height: c_int = FRAME_MENU_BAR_HEIGHT! (f);      // C 4005
+
+	      FRAME_MENU_BAR_HEIGHT! (f, (*b).height);                 // C 4007
+	      FRAME_MENU_BAR_LINES! (f,                                // C 4008-4009
+				     ((*b).height + FRAME_LINE_HEIGHT (f)) / FRAME_LINE_HEIGHT (f));
+
+	      if old_height != (*b).height                             // C 4011
+		{
+		  adjust_frame_size (f, -1, -1, 3, true, Qmenu_bar_lines ());  // C 4013
+		  haiku_clear_under_internal_border (f);               // C 4014
+		}
+	      break 'switch;                                           // C 4016
+	    }
+	  MENU_BAR_CLICK =>                                            // C 4018
+	    {
+	      let b: *mut haiku_menu_bar_click_event = buf as *mut haiku_menu_bar_click_event;  // C 4020
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 4021
+
+	      if f.is_null () || ! FRAME_EXTERNAL_MENU_BAR (f)         // C 4023
+		{ continue 'read_socket; }                                          // C 4024
+
+	      if (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).saved_menu_event.is_null ()  // C 4026
+		{
+		  (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).saved_menu_event   // C 4027
+		    = xmalloc (core::mem::size_of::<haiku_menu_bar_click_event> ()) as *mut haiku_menu_bar_click_event;
+		}
+	      *(*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).saved_menu_event = *b;  // C 4028
+	      input_event_bits! (kind, &raw mut inev, MENU_BAR_ACTIVATE_EVENT);  // C 4029
+	      XSETFRAME! (inev.frame_or_window, f);                    // C 4030
+	      break 'switch;                                           // C 4031
+	    }
+	  MENU_BAR_OPEN | MENU_BAR_CLOSE =>                            // C 4033-4034
+	    {
+	      let b: *mut haiku_menu_bar_state_event = buf as *mut haiku_menu_bar_state_event;  // C 4036
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 4037
+
+	      if f.is_null () || ! FRAME_EXTERNAL_MENU_BAR (f)         // C 4039
+		{ continue 'read_socket; }                                          // C 4040
+
+	      if r#type == MENU_BAR_OPEN                               // C 4042
+		{
+		  haiku_output_bits! (menu_bar_open_p, FRAME_OUTPUT_DATA! (f), 1);  // C 4044
+		  popup_activated_p += 1;                              // C 4045
+		}
+	      else
+		{
+		  if popup_activated_p == 0                            // C 4049
+		    { emacs_abort (); }                                // C 4050
+
+		  if haiku_output_bits! (menu_bar_open_p, FRAME_OUTPUT_DATA! (f))   // C 4052
+		    {
+		      haiku_output_bits! (menu_bar_open_p, FRAME_OUTPUT_DATA! (f), 0);  // C 4054
+		      popup_activated_p -= 1;                          // C 4055
+		    }
+		}
+	      break 'switch;                                           // C 4058
+	    }
+	  MENU_BAR_SELECT_EVENT =>                                     // C 4060
+	    {
+	      let b: *mut haiku_menu_bar_select_event = buf as *mut haiku_menu_bar_select_event;  // C 4062
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 4063
+
+	      if f.is_null () || ! FRAME_EXTERNAL_MENU_BAR (f)         // C 4065
+		{ continue 'read_socket; }                                          // C 4066
+
+	      find_and_call_menu_selection (f, (*f).menu_bar_items_used,   // C 4068
+					    (*f).menu_bar_vector, (*b).ptr);   // C 4069
+	      break 'switch;                                           // C 4070
+	    }
+	  MENU_BAR_HELP_EVENT =>                                       // C 4072
+	    {
+	      let b: *mut haiku_menu_bar_help_event = buf as *mut haiku_menu_bar_help_event;  // C 4074
+
+	      if popup_activated_p == 0                                // C 4076
+		{ continue 'read_socket; }                                          // C 4077
+
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 4079
+	      if f.is_null () || ! FRAME_EXTERNAL_MENU_BAR (f)         // C 4080
+		  || ! haiku_output_bits! (menu_bar_open_p, FRAME_OUTPUT_DATA! (f))  // C 4081
+		{ continue 'read_socket; }                                          // C 4082
+
+	      run_menu_bar_help_event (f, (*b).mb_idx);                // C 4084
+	      break 'switch;                                           // C 4085
+	    }
+	  ZOOM_EVENT =>                                                // C 4087
+	    {
+	      let b: *mut haiku_zoom_event = buf as *mut haiku_zoom_event;  // C 4089
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 4090
+
+	      if f.is_null ()                                          // C 4092
+		{ continue 'read_socket; }                                          // C 4093
+
+	      if (*b).fullscreen_mode == FULLSCREEN_MODE_MAXIMIZED     // C 4095
+		{ want_fullscreen! (f, FULLSCREEN_NONE); }             // C 4096
+	      else
+		{ want_fullscreen! (f, FULLSCREEN_MAXIMIZED); }        // C 4098
+
+	      (*(FRAME_TERMINAL! (f))).fullscreen_hook.unwrap () (f as *mut c_void);   // C 4100
+	      break 'switch;                                           // C 4101
+	    }
+	  DRAG_AND_DROP_EVENT =>                                       // C 4103
+	    {
+	      let b: *mut haiku_drag_and_drop_event = buf as *mut haiku_drag_and_drop_event;  // C 4105
+	      let f: *mut frame = haiku_window_to_frame ((*b).window);  // C 4106
+
+	      if f.is_null ()                                          // C 4108
+		{
+		  BMessage_delete ((*b).message);                      // C 4110
+		  continue 'read_socket;                                            // C 4111
+		}
+
+	      input_event_bits! (kind, &raw mut inev, DRAG_N_DROP_EVENT);  // C 4114
+	      inev.arg = haiku_message_to_lisp ((*b).message);         // C 4115
+
+	      XSETINT! (inev.x, (*b).x as isize);                      // C 4117
+	      XSETINT! (inev.y, (*b).y as isize);                      // C 4118
+	      XSETFRAME! (inev.frame_or_window, f);                    // C 4119
+
+	      BMessage_delete ((*b).message);                          // C 4121
+	      break 'switch;                                           // C 4122
+	    }
+	  SCREEN_CHANGED_EVENT =>                                      // C 4124
+	    {
+	      let b: *mut haiku_screen_changed_event = buf as *mut haiku_screen_changed_event;  // C 4126
+
+	      input_event_bits! (kind, &raw mut inev, MONITORS_CHANGED_EVENT);  // C 4128
+	      XSETTERMINAL! (inev.arg, (*x_display_list).terminal);    // C 4129
+	      inev.timestamp = ((*b).when / 1000) as Time;             // C 4130
+	      break 'switch;                                           // C 4131
+	    }
+	  CLIPBOARD_CHANGED_EVENT =>                                   // C 4133
+	    {
+	      be_handle_clipboard_changed_message ();                  // C 4134
+	      break 'switch;                                           // C 4135
+	    }
+	  APP_QUIT_REQUESTED_EVENT =>                                  // C 4136
+	    {
+	      input_event_bits! (kind, &raw mut inev, SAVE_SESSION_EVENT);  // C 4137
+	      inev.arg = Qt ();                                        // C 4138
+	      break 'switch;                                           // C 4139
+	    }
+	  FONT_CHANGE_EVENT =>                                         // C 4140
+	    {
+	      /* This generates CONFIG_CHANGED_EVENTs, which are then
+		 handled in Lisp.  */                              // C 4141-4142
+	      haiku_handle_font_change_event (buf as *mut haiku_font_change_event, &raw mut inev);     // C 4143
+	      break 'switch;                                           // C 4144
+	    }
+
+	  NOTIFICATION_CLICK_EVENT | KEY_UP | DUMMY_EVENT =>           // C 4146, 4158, 4159
+	    {
+	      /* This code doesn't function, but the why is unknown.  */  // C 4147
+	      /* C 4148-4156 is `#if 0`: the frozen table leaves the condition false, and the port
+		 carries the dead arm as this record rather than as text (P-08's rule for a dead
+		 arm; the ledger's range table names C 4148 as the block).  */
+	      break 'switch;                                           // C 4161
+	    }
+	  _ => {}                                                      // C 4160 (`default: break;`)
+	}
+      }
+
+      haiku_read_size (&raw mut b_size, false);                        // C 4164
+
+      if input_event_bits! (kind, &raw mut inev) != NO_EVENT           // C 4166
+	{
+	  if input_event_bits! (kind, &raw mut inev) != HELP_EVENT     // C 4168
+	      && inev.timestamp == 0
+	    {
+	      inev.timestamp = (if button_or_motion_p != 0              // C 4169-4170
+				  { (*x_display_list).last_mouse_movement_time }
+				else { (system_time () / 1000) as Time });  // C 4171
+	    }
+	  kbd_buffer_store_event_hold (&raw mut inev, hold_quit);        // C 4172
+	  message_count += 1;                                            // C 4173
+	}
+
+      if input_event_bits! (kind, &raw mut inev2) != NO_EVENT          // C 4176
+	{
+	  if input_event_bits! (kind, &raw mut inev2) != HELP_EVENT    // C 4178 (C's own test reads
+	      && inev.timestamp == 0                                   //  `inev`, not `inev2` - kept
+	    {                                                          //  verbatim)
+	      inev2.timestamp = (if button_or_motion_p != 0              // C 4179-4180
+				   { (*x_display_list).last_mouse_movement_time }
+				 else { (system_time () / 1000) as Time });  // C 4181
+	    }
+	  kbd_buffer_store_event_hold (&raw mut inev2, hold_quit);       // C 4182
+	  message_count += 1;                                            // C 4183
+	}
+    }
+
+  if do_help != 0 && ! (hold_quit != std::ptr::null_mut ()           // C 4187
+			&& input_event_bits! (kind, hold_quit) != NO_EVENT)
+    {
+      let mut help_frame: Lisp_Object = Qnil ();                     // C 4189
+
+      if ! (*x_display_list).last_mouse_frame.is_null ()             // C 4191
+	{
+	  XSETFRAME! (help_frame,                                    // C 4192-4193
+		      (*x_display_list).last_mouse_frame);
+	}
+
+      if do_help > 0                                                 // C 4195
+	{
+	  any_help_event_p = true;                                   // C 4197
+	  gen_help_event (dispextern_unit_names::help_echo_string, help_frame,              // C 4198-4200
+			  dispextern_unit_names::help_echo_window, dispextern_unit_names::help_echo_object,
+			  dispextern_unit_names::help_echo_pos);
+	}
+      else
+	{
+	  dispextern_unit_names::help_echo_string = Qnil ();                                // C 4204
+	  gen_help_event (Qnil (), help_frame, Qnil (), Qnil (), 0);  // C 4205
+	}
+    }
+
+  unblock_input ();                                                 // C 4209
+
+  return message_count;                                             // C 4211
 }
 
 /* C 4571-4618: `haiku_clear_under_internal_border` - **landed out of order** (the ledger's C range

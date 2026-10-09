@@ -7,13 +7,14 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**4,809 lines**), which carries **C 1-3240** - P-86 ④'s first
-> twenty-three slices of this file - with every `#if`'s arms both carried, **plus one block lifted
-> out of order**: `haiku_clear_under_internal_border` (C 4571-4618) is written at this file's foot
-> because the C 3140-3170 object's twenty-first entry (C 3162) names it, and an object cannot
-> reference a name that does not exist yet.  C 3140-3170 itself - slice 20's standing deferral,
-> half discharged by slice 21's ABI change - **landed in slice 22**; there is no longer a deferred
-> range inside the prefix, and the owed ranges are now **C 3241-4570** and **C 4619-4898**.
+> `femacs/src/haikuterm.rs` (**6,010 lines**), which carries **C 1-4212** - P-86 ④'s first
+> twenty-four slices of this file, the last of them `haiku_read_socket` (C 3242-4212, 1,971 C lines)
+> - with every `#if`'s arms both carried, **plus one block lifted out of order**:
+> `haiku_clear_under_internal_border` (C 4571-4618) is written at this file's foot because the
+> C 3140-3170 object's twenty-first entry (C 3162) names it, and an object cannot reference a name
+> that does not exist yet.  C 3140-3170 itself - slice 20's standing deferral, half discharged by
+> slice 21's ABI change - **landed in slice 22**; there is no longer a deferred range inside the
+> prefix, and the owed ranges are now **C 4213-4570** and **C 4619-4898**.
 >
 > **The one range slice 22 lifted out of order.**  C 4571-4618 stands outside the prefix and outside
 > C's own reading order in the file; its row below says why, and the two rows around it (3207-4570,
@@ -22,6 +23,15 @@
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Slice 24 is the file's biggest item (2026-10-08).**  Its C range is **C 3241-4212** -
+> `haiku_read_socket`, `static int`, 1,971 lines, the 27-case `switch (type)` that
+> `haiku_wait_for_event`'s comment (C 3208-3209) points at.  C's `break` leaves the switch and its
+> `continue` leaves the `while`, which the port spells `break 'switch` on a labelled block and
+> `continue 'read_socket` on the labelled loop (`E0695` is what the first draft measured); C's
+> three fall-through label pairs are `A | B =>` arms.  It is also the round that added the two
+> `xdisp.c` scroll-bar setters, `system_time` and the rest of the use-site declarations the item
+> needs, and the three unit macros its bodies read or write through.
 >
 > **Slice 23 takes the file past C 3206 (2026-10-08).**  Its C range is **C 3207-3240** -
 > `haiku_wait_for_event` (C 3211-3240), non-`static`, under C's own comment block (C 3208-3209) -
@@ -254,7 +264,8 @@ the pre-flight below sets it as well.
 | 3139-3170 | **the `redisplay_interface` object** (C 3140-3170): deferred by slice 20 and half discharged by slice 21 (the seventeen named functions got C's function-pointer ABI), **landed by slice 22** - the unit-local copy of dispextern.h 3069-3196's record (behind `dispextern_face_records` in the mirror, so the unit carries C's record: 28 fields, 224/8, measured against `docs/baseline/redisplay_interface-layout.tsv`), the seven `xdisp.c` prototypes declared at the use site, and C's positional initializer written as a named-field literal in C's own order (C's 28 entries are the record's 28 fields; the three `NULL`s are `None`; **every other entry is `Some (name)` with nothing converted**, because this record spells C's pointee types - the deviation from `pgtkterm.rs` 5412-5480's seventeen `transmute`s is recorded in the slice section) | file gate (slice 22) |
 | 3171-3206 | `haiku_make_fullscreen_consistent` (C 3173-3192; C 3180-3189 the five-way fold, C 3191 the store) and `haiku_flush_dirty_back_buffer_on` (C 3194-3206; C 3197-3202 the four guards) | file gate (slice 20) |
 | 3207-3240 | `haiku_wait_for_event` (C 3211-3240) under C's own comment block (C 3208-3209); non-`static`, so the port carries `#[unsafe(no_mangle)] pub unsafe extern "C" fn` | file gate (slice 23) |
-| 3241-4570 | **the rest of this half of the file**: `haiku_read_socket` (C 3242-4213) onward; C 4148 the `#if 0` block | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3241-4212 | **`haiku_read_socket`** (C 3242-4212, 1,971 lines - the largest single item in the file; `static int`, so the port defines it `unsafe extern "C" fn` because C 4429 hands its address to `terminal->read_socket_hook`); C's own 27-case `switch (type)` (C 3276-4162) is the port's `match` in a labelled block, C 4148 the `#if 0` block inside the `NOTIFICATION_CLICK_EVENT` arm | file gate (slice 24) |
+| 4213-4570 | **the rest of this half of the file**: `haiku_get_focus_frame` (C 4215) through `put_xrm_resource` (C 4559-4569) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 4571-4618 | `haiku_clear_under_internal_border` (C 4571-4618, non-`static`) | file gate (slice 22, **out of order**: the C 3140-3170 object's twenty-first entry (C 3162) names this function, so the object cannot be written before it exists - the row above and the row below are the ranges it was lifted out of) |
 | 4619-4898 | **the rest of the file** (C 4621 `mark_haiku_display` onward; C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference |
 
@@ -481,7 +492,54 @@ mirror lines need), `cargo test`, `extract-abi --all`.
     convention for the same collision).  Measured: `extract-abi.py --check` reports **no spelling
     row** for it, so the raw form reads as C's token and no `docs/ports/macro-body-notes.tsv` row
     is owed.
-18. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
+19. **C's `switch` inside C's `while` is a `match` inside a labelled block, and the loop takes a
+    label of its own** (the round's one structural spelling, and it was measured).  C 3276's
+    `switch (type)` is the port's labelled block `'switch: { match … }` (the `src/haikuselect.rs`
+    421-500 shape, whose note cites `src/keyboard.rs` 4632): C's `break` - which leaves the switch -
+    is `break 'switch`, and C's `continue` - which leaves the `while` - stays the keyword.  The
+    first draft was rejected by the type-checker at **every one of the twenty-nine `continue`
+    sites**: `E0695 unlabeled \`continue\` inside of a labeled block` (a `break`/`continue` that
+    jumps out of a labelled block must name its target), so the loop C 3261 is
+    `'read_socket: while b_size >= 0` and every site is `continue 'read_socket;` - the
+    `src/image.rs` 6735 `continue 'loop_` / `src/xterm.rs` 11024 `continue 'start` family, which is
+    how the rest of the port spells a jump out of a labelled block.  C's three fall-through label
+    pairs (`BUTTON_UP`/`BUTTON_DOWN` at C 3630-3631, `MENU_BAR_OPEN`/`MENU_BAR_CLOSE` at
+    C 4033-4034, `NOTIFICATION_CLICK_EVENT`/`KEY_UP`/`DUMMY_EVENT` into `default:` at
+    C 4146-4161) are single `A | B =>` arms, and the inner `switch (b->part)` (C 3888-3900) is a
+    plain `match` - its two `break`s leave the inner switch, which an arm's own end already does.
+20. **Ten use-site declarations this item needs, and the one mirror row its `note_mouse_highlight`
+    discharged** (P-72 rule 4; the ledger's `## Evidence` ③ is the reading).  dispextern.h
+    3571-3572's two scroll-bar setters, 3675's `expose_frame`, 3688's `note_mouse_highlight`,
+    3690's `cancel_mouse_face`, 3691's `clear_mouse_face`, 3668's `handle_tab_bar_click`, 3670's
+    `handle_tool_bar_click`, keyboard.h 513's `gen_help_event`, menu.h 41-42's
+    `find_and_call_menu_selection` (the `src/pgtkmenu.rs` 135-137 copy), math.h's `powf`/`fabsf`,
+    and `<OS.h>`'s `system_time` with the standing `UNVERIFIED` mark - which is **not in the
+    reference tree at all** (it is the SDK's own clock, in microseconds, which is why C 4171/4181
+    divide by 1000).  **`remember_mouse_glyph` and `gui_mouse_grabbed` are deliberately *not*
+    declared**: this unit's preamble already carries both (dispextern.h 3586 at this file's line
+    4107 and 4006 at line 204), and the first draft's second copies were `E0428` twice - measured.
+    The one visible side effect of the new declarations is a *retirement*: the arm probe's
+    `cannot find function note_mouse_highlight` row (a mirror error at `include/frame.rs` 1734) is
+    gone, because a use-site declaration in the crate root also satisfies the mirror's own body.
+21. **Four unit-local macros, three of them new and one extended.**  New: `input_event_bits!`
+    (`kind`/`part` of `struct input_event`'s first word - the `src/androidterm.rs` 198-210 copy,
+    since `include/termhooks.rs` carries `EVENT_INIT` and no accessor for those two bit fields),
+    `mouse_face_hidden!` (the `src/pgtkterm.rs` 7764-7773 copy), `FRAME_PIXEL_WIDTH!`/
+    `FRAME_PIXEL_HEIGHT!` and `FRAME_MENU_BAR_HEIGHT!`/`FRAME_MENU_BAR_LINES!` (the mirror carries
+    all four as *read-only functions* and C 3311-3312/4007-4009 assigns to them - the same device
+    the unit's own `FRAME_COLUMN_WIDTH!`/`FRAME_LINE_HEIGHT!` already use).  Extended:
+    `want_fullscreen!` gained the writer arm C 4096/4098 needs (the `src/pgtkterm.rs` 6462-6470
+    pair, which this unit's read arm was already one half of; measured: with the read-only macro
+    both assignments were `no rules expected \`,\``).
+22. **The five `help_echo_*` objects are reached through their module path.**  `dispextern.h`
+    3608-3616's `help_echo_string`, `help_echo_window`, `help_echo_object`,
+    `previous_help_echo_string` and `help_echo_pos` are carried by `include/dispextern.rs`
+    3998-4006 **inside its `dispextern_unit_names` module**, which is not glob-imported (the
+    `src/dosfns.rs` 800-817 convention for the same module), so the ten sites of C 3537/3538/3571/
+    3598/3599/4198-4205 read `dispextern_unit_names::help_echo_string` and friends.  No second
+    declaration is added: a copy would be the `check-mirror-dupes` class the module note at
+    `include/dispextern.rs` 4048-4056 already records for other names.
+23. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
     object's twenty-first entry (C 3162) names it, and a Rust item cannot reference a name that
     does not exist, so the block sits at this file's foot and the range table carries the three
     rows (`3207-4570`, `4571-4618`, `4619-4898`) that keep the table ascending and gapless.  This
@@ -500,7 +558,10 @@ mirror lines need), `cargo test`, `extract-abi --all`.
    appended (`0.69`, basis `total`, with slice 2's measured 62.9% and the note that a half-ported
    file's row is the placeholder the table's header describes, to be re-derived when C 4898 is
    reached).
-3. `docs/ports/macro-body-notes.tsv`: **discharged** - the four rows of Deviations 8/9/11 landed
+3. `docs/ports/macro-body-notes.tsv`: **discharged, and slice 24 added one row** -
+   `haiku_read_socket` → `alloca,case,default,float` (the stack pool, the 27-case `switch` and C
+   3929's `static float px, py`), which is what turned this round's `--check` reading into
+   `19 rows` rather than `19 + 1`.  Otherwise - the four rows of Deviations 8/9/11 landed
    with slice 1's round (`haiku_fill_underline` → `switch,case,default,break,fallthrough`,
    `haiku_focus_frame`/`haiku_new_focus_frame` → `1`, `haiku_implicitly_set_name` → `0`,
    `haiku_draw_underwave` → `float`), and slice 2 added the two this file still owed:
@@ -523,11 +584,12 @@ mirror lines need), `cargo test`, `extract-abi --all`.
    `include/systime.rs`'s `HAIKU` constant) - measured here, owned there.
 7. The P-87 scan for the two mirror lines Deviations 4 changed: `tools/check-all-units.sh`
    (expected `83 unit(s), 0 failure(s)`) - **not run by this lane** and not claimed.
-8. This ledger's remainder: **C 3241-4570** and **C 4619-4898** - the ranges slice 22's
-   out-of-order block sits between - whose first definition is `haiku_read_socket` (C 3242-4213,
-   1,972 lines: the largest single item in the file) and whose last is `syms_of_haikuterm`
-   (C 4824-4898); the conditions still ahead are C 4148's `#if 0`, C 4512's `ASSIGN_CURSOR` and
-   C 4772/4895's `USE_BE_CAIRO`.
+8. This ledger's remainder: **C 4213-4570** and **C 4619-4898** - the ranges slice 22's
+   out-of-order block sits between - whose first definition is `haiku_get_focus_frame` (C 4215)
+   and whose last is `syms_of_haikuterm` (C 4824-4898); the conditions still ahead are C 4512's
+   `ASSIGN_CURSOR` and C 4772/4895's `USE_BE_CAIRO` (C 4148's `#if 0` is inside the
+   `haiku_read_socket` arm slice 24 landed, and is carried as the record its `## Slice 24`
+   section names).
 
 
 ## Slice 2 (2026-10-08, status 4.078 - the integrator sets the round number): C 1045-1198
@@ -2021,3 +2083,101 @@ which that reading is silent.
   event is waited for, `port_application_to_emacs` is never read, and C 3234's
   `totally_unblock_input` never runs.  What is measured is the type-checker's reading at the arm set
   plus the token comparison, and the two readings agree that the item is complete and C's own.
+
+## Slice 24 (2026-10-08, status 4.100 - the integrator sets the round number): C 3241-4212
+
+**What this round is.**  **`haiku_read_socket` (C 3242-4212)** - the file's largest single item,
+1,971 C lines, and the one `haiku_wait_for_event`'s comment (C 3208-3209) and C's own
+`terminal->read_socket_hook` assignment (C 4429, still in the owed range) both point at.  It is
+`static int` in C, so the port defines it `unsafe extern "C" fn` with C's own function-pointer ABI
+(the slice-21 rule, which this item joins for C 4429's sake; C 3244's `terminal` parameter and
+C 3243's `hold_quit` are the two the terminal hook's field type spells).
+
+**Its shape.**  One `while (b_size >= 0)` (C 3261) around a 27-case `switch (type)` (C 3276-4162),
+then C 4164's second `haiku_read_size`, the two `kbd_buffer_store_event_hold` blocks (C 4166-4184)
+and the `do_help` epilogue (C 4187-4207).  The port keeps C's two exits distinct (Deviation 19):
+the `switch` is a `match` in the labelled block `'switch:`, the `while` carries
+`'read_socket:`, and so C's `break` is `break 'switch` while C's `continue` stays a `continue` -
+with the label, because `E0695` is what the draft without it measured at all twenty-nine sites.
+C's three fall-through label pairs are `A | B =>` arms and the inner `switch (b->part)`
+(C 3888-3900) is a plain `match`.  **C's own bug is kept**: C 4178's `inev2` branch tests
+`!inev.timestamp` where the sibling three lines below test `inev2` - carried verbatim, with the
+note at the site, because a port that fixes it would differ from the reference.
+
+**What it needed, in one list** (all recorded in `## Deviations`): twelve use-site declarations
+(nine dispextern.h/keyboard.h/menu.h prototypes, `math.h`'s `powf`/`fabsf` and `<OS.h>`'s
+`system_time`, the last one `UNVERIFIED`) and **not** the two the preamble already carried
+(`remember_mouse_glyph`, `gui_mouse_grabbed` - the duplicate pair was `E0428`, measured);
+three new unit macros (`input_event_bits!`, `mouse_face_hidden!`, and the two-arm
+`FRAME_PIXEL_WIDTH!`/`FRAME_PIXEL_HEIGHT!` + `FRAME_MENU_BAR_HEIGHT!`/`FRAME_MENU_BAR_LINES!`
+writers) plus one extension (`want_fullscreen!`'s write arm, C 4096/4098); the five `help_echo_*`
+objects through their module path; and C 3929's two function-local `static float`s as
+`static mut px: f32`/`py: f32`.  C 3257's `alloca (200)` is `sa_stack_alloc (200)` (PORTING.md
+P-05's documented alias), and four C locals whose address is handed to a callee are zero-initialised
+and named (PORTING.md 1.5: `b_size`, `r#type`, and C 3928's `x`/`y` - `E0381` four times in the
+run before the fixes).
+
+**Evidence ① - the arm-reach pre-flight (`xtask probe`, P-86 ③), five runs.**  In order:
+the assembled draft (`106 errors`, of which the first two were the `FRAME_MENU_BAR_*` macros
+missing from an over-eager patch), then four fix rounds - `E0695` ×29, the `Mouse_HLInfo`
+`mouse_face_hidden` bit and the three `haiku_frame_raise_lower` arguments, `Vmouse_highlight`
+being a *static*, `Time` being `i64` on this arm, `window_from_coordinates`' mirror-typed first
+parameter, `(*bar).horizontal` being a `bool`, and the four `E0381` locals - and the **final
+reading: `exit 1`, 34 primary errors and 7 warnings, every primary span in a mirror and 0 in this
+unit's own text**, with the mirror files and line numbers byte-identical to slice 23's reading
+(`character.rs` ×9, `buffer.rs` ×11, `window.rs` ×4, `frame.rs` ×3, `termhooks.rs` ×2,
+`haikuterm.rs`'s `haiku_output_bits` ×4, `systime.rs`'s `E0080` ×1).
+
+**Evidence ② - the same reading on HEAD, and the difference it makes.**  HEAD's
+`femacs/src/haikuterm.rs` was materialized as a sibling file of the same directory (so its
+`include!`s resolve identically) and probed with the same arm set: **35 primary errors**.  The
+diff of the two normalized outputs is **109 lines**, all of them line-number shifts inside
+`_root.rs` plus **one retired error**: `cannot find function note_mouse_highlight` (the mirror
+error at `include/frame.rs` 1734) is gone, because this round's use-site declaration also
+satisfies the mirror's own body.  35 → 34, nothing added, one mirror row discharged.
+
+**Evidence ③ - the positive control (P-86 ⑦).**  Injecting one deliberate error into the new text
+(`let injected_control: c_int = c"x".as_ptr ();` at the function's head) moves the reading to
+**35 primary errors with `injected_control` present once**, i.e. the harness type-checks the new
+body and "0 in our own text" is a reading rather than a silence.  Reverted and re-run: back to 34.
+That is six probes for the round in total, each ≈1-3 s, single file.
+
+**Evidence ④ - the file's own gate (`extract-abi.py --check`): 20 → 19 rows.**  The row that went
+away is `missing function haiku_read_socket`; the 19 that remain are 18 `missing function` in the
+C 4213-4570 and C 4619-4898 remainder plus `missing macro ASSIGN_CURSOR` (C 4512).  The check also
+produced **one new spelling row** - `haiku_read_socket does not mention alloca, case, default,
+float` - which is `docs/ports/macro-body-notes.tsv`'s job: the row is added (the stack pool, the
+27-case `switch`, C 3929's two `static float`s), and the reading is clean afterwards.  The
+line-count drift row stays silent (6,010 of 4,898 C lines is past the tolerance's concern).
+
+**Evidence ⑤ - the ten gates, and the one that went red.**  `check-declarations`,
+`check-own-voice`, `check-mirror-dupes` (17 duplicate declarations, 17 ratchet rows, 0 failures),
+`check-port-lines` (0 under ten percent), `check-verbatim` (6 trees, 4,604 files, 0 failures),
+`check-verbatim-declarations`, `check-ledger-ticks` (238 ledgers bound, 0 failures),
+`check-carried` and `check-dead-file-coverage` (145 ledgers bound, 0 failures) are green, and
+`check-cond-eval.py src/haikuterm.c` reads `5 conditions, 0 unknown, 0 disagreements`.
+**`check-citations` reported 1 drift** - `femacs/src/haikuterm.rs` cited
+`frame.h 1049-1069` for `FRAME_MENU_BAR_HEIGHT`/`_LINES` when they are **frame.h 1086-1087**
+(1049-1069 is `FRAME_EXTERNAL_MENU_BAR`'s block just above them).  Fixed in the same round and
+re-read: `0 drift, 0 range`.  That is the second round in a row where a guessed header/line pair
+for a *new* use-site declaration was the gate's catch (slice 20's `store_frame_param` was the
+first).
+
+**Owed (this slice's additions).**
+
+- `docs/ports/line-drift-tolerance.tsv`'s `haikuterm` row: the file is now **6,010 Rust lines for
+  4,898 C lines**; the row's placeholder is the integrator's to re-derive when the file closes.
+- The P-87 scan is not owed by this round: no mirror file is touched (`femacs/src/haikuterm.rs`
+  is a unit, not a mirror) - but **one unit-level macro changed** (`want_fullscreen!` gained its
+  write arm), and that is a change to code the unit's own already-landed slices read, so the
+  integrator's `check-all-units.sh` reading covers it.
+- Nothing else: no `--check` row was added, and the mirror-dupes ratchet is unchanged.
+
+**Not claimed (this slice).**
+
+- **No runtime evidence**: there is no Haiku SDK and no Haiku toolchain on this machine, the frozen
+  configuration compiles none of this file (every item is behind `have_haiku`), and this lane does
+  not link.  No event is read, no `switch` arm runs, `port_application_to_emacs` is never read,
+  `kbd_buffer_store_event_hold` is never called, and the two function-local `px`/`py` accumulators
+  never advance.  What is measured is the type-checker's reading on both sides of the change plus a
+  control that proves it reads the new text, and the token comparison that proves the body is C's.
