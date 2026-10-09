@@ -5,9 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**1550 lines**, 66,415 bytes, md5
-> `e7f0a31a5072265f75da9d7199ba66c1`), carrying **C 1-912** - P-86 ④'s first slice of this file -
-> with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**1705 lines**, md5 `9273c963a96d3fcf1bbc5c28e6aed089`), carrying
+> **C 1-1039** - P-86 ④'s first two slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -115,7 +114,8 @@ which `check-dead-file-coverage.py` requires):
 | 749-805 | `getitimer` | file gate (C's `__int64`; Deviations 8) |
 | 807-894 | `setitimer` | file gate (C's `__int64`; Deviations 8) |
 | 896-912 | `alarm` (this slice's last definition) | file gate; C 899-911 both arms (`have_setitimer`) |
-| 913-4903 | **the remainder of the file** - the C 914-962 wait-object banner through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the wait-object thread pool, `sys_spawnve` (C 2725), `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 913-1039 | the C 914-962 wait-object overview comment, C 968-971's four `WFO_*` constants, C 975-978's two `typedef`s and their two `extern` objects, C 981-1034's three records (`wait_objects_context`/`wait_objects_pool`/`wait_objects_info`) and C 1038-1039's two statics | file gate (slice 2); C 1040 is a blank line and C 1041-1050's comment belongs to C 1051's `wait_objects_thread`, which is the next row's first item |
+| 1041-4903 | **the remainder of the file** - `wait_objects_thread` (C 1051) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the wait-object thread pool, `sys_spawnve` (C 2725), `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -337,3 +337,67 @@ The three mirror rows this slice asked for are not one job:
 * `stdlib.rs`'s `exit` - the "no mirror carries it yet" class; P-90's seventh half (3.449) is what
   keeps the 26 in-unit declarations across a dozen files lawful, and moving them into a mirror is one
   deliberate move-back round, not a row this file can add on its own.
+
+## Slice 2 (2026-10-08, status 4.104 - the integrator sets the round number): C 913-1039
+
+**What this round is.**  The wait-object support's *declarations*, which C puts after `alarm` and
+before its first function: the C 914-962 overview comment (the manual 32-thread pool, why the system
+pool is not used, and the 2048-object ceiling), C 964-971's four `WFO_*` constants, C 973-978's two
+`typedef`s with their two `extern` objects, C 981-1034's three records (`wait_objects_context`,
+`wait_objects_pool`, `wait_objects_info`), and C 1036-1039's two statics.  Port: 1,550 -> 1,705
+lines.  Every item keeps its field-by-field C comment, and the two records' arrays carry C's own
+bounds (`wocs[32]`, `hs[64]`).  The next row's first item is `wait_objects_thread` (C 1051), whose
+own C 1041-1050 comment goes with it.
+
+**Evidence ① - the arm reading, and what it does *not* prove (the round's most important
+finding).**  `cargo run -q -p xtask -- probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"'
+--cfg 'feature="have_langinfo_codeset"'` → **exit 1, 37 errors, 0 anchored in this unit**, and HEAD's
+revision (materialized as a sibling file of the same directory, same arm set) reads **the same 37**
+- the diff of the two normalized outputs is **0 lines**, so this round moves the reading in neither
+direction.  **But the 37 errors are 27 `E0428` + 9 `E0425` + 1 `compile_error!`: every one is a
+*name-resolution* error, which means rustc never reaches type-checking in this probe.**  Measured,
+three injected controls: a deliberate `E0308` in a **`pub const`** initialiser of this slice does not
+appear; the same `E0308` inside a **slice-1 function body** (`alarm`) does not appear either; a
+`compile_error!` under the *same* `#[cfg (feature = "windowsnt")]` **does** fire.  So at this arm set
+the reading is a **parse-and-expand** reading: it proves the text is parsed, that the gate is
+evaluated (the `compile_error!` firing is the proof the items are reached), and that no *resolution*
+error is anchored here - it does **not** prove that any body in this file type-checks.  That is
+recorded as the lane's owed item 8 below, because it is the one thing standing between this file and
+the evidence the haiku lane could produce.
+
+**Evidence ② - the frozen reading is unchanged too.**  The frozen configuration compiles none of
+this file (every item is behind `windowsnt`), so `build-tu src/w32proc.c` still writes the 336-byte
+P-08 object; this round did not run it (slice 1's Evidence ① is the standing reading, and nothing in
+this round touches the include graph).
+
+**Deviations (this slice's additions).**
+
+34. **`PCWSTR` and `HRESULT` stand at the use site** (P-72 rule 4, and P-88 ①'s `UNVERIFIED` class
+    for a `<windows.h>` name on this machine): `typedef const wchar_t *PCWSTR;` is `*const u16` and
+    `typedef long HRESULT;` is `c_long`, both declared beside the two `typedef`s that spell them
+    (C 976).  No mirror in this unit's graph carries either, which is why they are here rather than
+    in `include/w32common.rs`.
+35. **The two `typedef`s and their objects are *this* file's text, and the port keeps them here**
+    (C 973-978), even though `src/systhread.rs` 717-730 already carries the same two aliases and
+    objects for `systhread.c`'s own declaration of them (C's comment at C 973-974 says they "are
+    already defined in w32fns.c").  Two units spelling the same alias is what C's own headers do
+    once per translation unit; what a unit may *not* do is repeat a declaration a **mirror** in its
+    graph carries, and `systhread.rs` is a unit (`tools/check-mirror-dupes.py` reads mirrors).
+36. **`WFO_MAX_WAIT` is `w32_system_names::FD_SETSIZE`** - C's `#define WFO_MAX_WAIT FD_SETSIZE`
+    (C 971) takes the name from `<winsock2.h>`, and `include/w32.rs` 94 carries it inside its
+    `#[cfg (feature = "windowsnt")] pub mod w32_system_names`, which is not glob-imported, so the
+    constant is spelled with that path (the `src/dosfns.rs` 800-817 convention for a module-scoped
+    name).
+
+**Owed (this slice's additions).**
+
+8. **The w32 arm set's probe cannot type-check** (Evidence ①).  The 36 resolution errors are the
+   mirror-header clashes slice 1's Evidence ② already named (`lib/include/signal.rs` against
+   `nt/inc/include/ms-w32.rs` and the unit's MinGW-runtime section; `nt/inc/include/unistd.rs`
+   against `lib/include/fcntl.in.rs`; `include/w32term.rs`'s own unspelled names; the two
+   `compile_error!`-class rows).  **Until that class is discharged, no slice of this file can show
+   more than a parse-and-expand reading**, and the controls in Evidence ① are how a reader can tell
+   the two readings apart rather than trust the count.  This is the integrator's mirror round
+   (P-87's scan follows it); the lane records it here because it is now the file's largest evidence
+   gap.

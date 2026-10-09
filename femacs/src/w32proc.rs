@@ -1535,3 +1535,171 @@ pub unsafe extern "C" fn alarm (seconds: c_int) -> c_int
     return seconds;
   }
 }
+
+/* Here's an overview of how support for waiting more than 64 objects
+   on MS-Windows.
+
+   As noted in the MS documentation, WaitForMultipleObjects can wait on
+   a maximum of MAXIMUM_WAIT_OBJECTS (64) objects.  Due to this
+   limitation, earlier versions of Emacs (at least 30) could only
+   support up to 32 subprocesses or network connections.
+
+   The documentation suggests using multiple threads or a thread pool to
+   wait on a larger number of objects.  With Windows 2000, Microsoft has
+   added new thread pooling functions to make thread creation,
+   destruction, and general management easier:
+
+   . https://jacobfilipp.com/MSJ/pooling.html
+
+   Thread pools implement waiting by calling WaitForMultipleObjects or
+   relying on completion ports (Windows 8 or above) in their internal
+   threads, as The Old New Thing said:
+
+   . https://devblogs.microsoft.com/oldnewthing/20081117-00/?p=20183
+   . https://devblogs.microsoft.com/oldnewthing/20220406-00/?p=106434
+
+   However, since the system thread pool in versions prior to Windows 7
+   does not support adjusting thread stack sizes by calling
+   SetThreadpoolStackInformation, using a large number of threads may
+   consume a lot of address space.  This can have a significant impact on
+   the limited 2GB address space available on 32-bit systems.  To avoid
+   this issue on Windows Vista and earlier systems and make the code as
+   generic as possible, a simple waiting thread pool is manually
+   implemented here.
+
+   The waiting thread pool contains a maximum of 32 threads, with each
+   thread capable of waiting on up to 63 objects (one object is reserved
+   for communication with the main thread).  Combined with the main
+   thread's WaitForMultipleObjects call, this implementation supports
+   waiting on a maximum of 2048 objects.  Since Windows only supports
+   creating subprocesses using 'pipe method, this allows Emacs to create
+   a maximum of approximately 1024 subprocesses.  This limit is close to
+   the number of subprocesses that can be created using the 'pty method
+   on Linux when the default FD_SETSIZE is 1024.
+
+   Once created, the threads do not exit after finish waiting; instead,
+   they enter an infinite loop, waiting for an event to trigger and
+   begin their WaitForMultipleObjects tasks, thereby eliminating the
+   additional time and power consumption associated with frequently
+   creating and destroying threads.  If a thread is not triggered after a
+   certain number of sys_select calls, it can be terminated to free up
+   resources.  */                                                     // C 914-962
+
+/* The values returned by WaitForMultipleObjects, WAIT_ABANDONED_0
+   (0x80) and WAIT_TIMEOUT (0x102), are less than 2048 (0x800), so
+   define new constants to replace them.  'WFO' prefix stands for
+   'WaitForObjects'.  */                                              // C 964-967
+/// C 968: `#define WFO_ABANDONED 0x10000`
+#[cfg (feature = "windowsnt")]
+pub const WFO_ABANDONED: DWORD = 0x10000;
+/// C 969: `#define WFO_TIMEOUT   0x20002`
+#[cfg (feature = "windowsnt")]
+pub const WFO_TIMEOUT: DWORD = 0x20002;
+/// C 970: `#define WFO_FAILED    0xfffff`
+#[cfg (feature = "windowsnt")]
+pub const WFO_FAILED: DWORD = 0xfffff;
+/// C 971: `#define WFO_MAX_WAIT  FD_SETSIZE` - `FD_SETSIZE` is `include/w32.rs` 94's 2048, which
+/// is what this file's overview comment (C 954) names.
+#[cfg (feature = "windowsnt")]
+pub const WFO_MAX_WAIT: c_int = w32_system_names::FD_SETSIZE;
+
+/* When debugging, use SetThreadDescription to provide additional
+   debugging information.  They are already defined in w32fns.c.  */  // C 973-974
+/// C 975: `typedef BOOL (WINAPI *IsDebuggerPresent_Proc) (void);` - the `src/systhread.rs`
+/// 717-721 spelling of the same two typedefs (that unit ports `systhread.c`, which declares them
+/// too); `PCWSTR`/`HRESULT` are declared at the use site below because no mirror in this unit's
+/// graph carries them (P-72 rule 4).
+#[cfg (feature = "windowsnt")]
+pub type IsDebuggerPresent_Proc = Option<unsafe extern "system" fn () -> BOOL>;
+/// C 976: `typedef HRESULT (WINAPI *SetThreadDescription_Proc) (HANDLE, PCWSTR);`
+#[cfg (feature = "windowsnt")]
+pub type SetThreadDescription_Proc = Option<unsafe extern "system" fn (thread: HANDLE,
+								      description: PCWSTR) -> HRESULT>;
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  /// C 977: `extern IsDebuggerPresent_Proc is_debugger_present;`
+  pub static mut is_debugger_present: IsDebuggerPresent_Proc;
+  /// C 978: `extern SetThreadDescription_Proc set_thread_description;`
+  pub static mut set_thread_description: SetThreadDescription_Proc;
+}
+
+/* Structure for waiting thread's context.  */                        // C 980
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct wait_objects_context
+{
+  /* Handle to the thread itself.  */                                 // C 983
+  pub thread: HANDLE,                     // C 984
+  /* Handle to an event object that is signaled by the main thread
+     to tell thread start waiting.  */                                // C 985-986
+  pub wait_start: HANDLE,                 // C 987
+  /* Handle to an event object that is signaled when this thread is not
+     used for a period of time, it tells thread to quit.  */          // C 988-989
+  pub wait_quit: HANDLE,                  // C 990
+  /* Handle to an event object that is signaled when wokrer thread is
+     ready to call WaitForMultipleObjects on the given objects.  */    // C 991-992
+  pub wait_ready: HANDLE,                 // C 993
+  /* pHandles and nCount are part of the WaitForMultipleObjects
+     parameters, specifying the array of objects to wait on and the
+     number of objects.  bWaitAll and dwMilliseconds are not needed.  */   // C 994-996
+  pub pHandles: *mut HANDLE,              // C 997
+  pub nCount: c_int,                      // C 998
+  /* The return value of the thread's call to WaitForMultipleObjects.  */   // C 999
+  pub result: DWORD,                      // C 1000
+  /* Used to store GetLastError value of failed wait.  */              // C 1001
+  pub errcode: DWORD,                     // C 1002
+  /* The thread's wait count.  */                                      // C 1003
+  pub call_count: c_int,                  // C 1004
+}
+
+/* Structure for the waiting thread pool  */                           // C 1007
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct wait_objects_pool
+{
+  /* An array for the context of each worker thread.  */               // C 1010
+  pub wocs: [wait_objects_context; 32],   // C 1011
+  /* The number of the current threads for waiting.  */                // C 1012
+  pub count: c_int,                       // C 1013
+  /* times of waiting in main thread.  */                              // C 1014
+  pub main_thread_waits: c_int,           // C 1015
+  /* The event handle that signals the worker thread's timeout.  */     // C 1016
+  pub timeout_event: HANDLE,              // C 1017
+  /* The flag that indicates whether the thread pool is initialized.  */   // C 1018
+  pub init_flag: c_int,                   // C 1019
+}
+
+/* Structure for information about the grouping of waits.  */          // C 1022
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct wait_objects_info
+{
+  /* An array of handles used as parameters for WaitForMultipleObjects
+     in the main thread, which includes event handles wait_ready
+     signaled by the worker threads, as well as any possible remaining
+     wait objects.  */                                                 // C 1025-1028
+  pub hs: [HANDLE; 64],                   // C 1029
+  /* The number of threads to be used.  */                             // C 1030
+  pub nt: c_int,                          // C 1031
+  /* The number of handles the main thread needs to wait for.  */       // C 1032
+  pub nh: c_int,                          // C 1033
+}
+
+/* Declare wait_pool and wait_info as static variables to avoid
+   unnecessary stack allocation.  */                                  // C 1036-1037
+#[cfg (feature = "windowsnt")]
+static mut wait_pool: wait_objects_pool = unsafe { core::mem::zeroed () };
+#[cfg (feature = "windowsnt")]
+static mut wait_info: wait_objects_info = unsafe { core::mem::zeroed () };
+
+/* C 50's `<windows.h>` names this file takes from `winnt.h`: `PCWSTR`, the `wchar_t *` the C 976
+   typedef spells, and `HRESULT`, the `long` it returns.  No mirror in this unit's graph carries
+   either (the unit's own `<windows.h>` section names the scalars it needs, this pair among them
+   being new here), so both stand at the use site with the `UNVERIFIED` mark the acquisition note
+   gives every Windows name on this machine (P-88 ①).  */
+/// C: `typedef const wchar_t *PCWSTR;   [<winnt.h>; UNVERIFIED here]`
+#[cfg (feature = "windowsnt")]
+pub type PCWSTR = *const u16;
+/// C: `typedef long HRESULT;   [<winnt.h>; UNVERIFIED here]`
+#[cfg (feature = "windowsnt")]
+pub type HRESULT = c_long;
