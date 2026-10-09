@@ -7,14 +7,14 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**6,010 lines**), which carries **C 1-4212** - P-86 ④'s first
-> twenty-four slices of this file, the last of them `haiku_read_socket` (C 3242-4212, 1,971 C lines)
+> `femacs/src/haikuterm.rs` (**6,272 lines**), which carries **C 1-4405** - P-86 ④'s first
+> twenty-five slices of this file, the last of them the eight items C 4213-4405
 > - with every `#if`'s arms both carried, **plus one block lifted out of order**:
 > `haiku_clear_under_internal_border` (C 4571-4618) is written at this file's foot because the
 > C 3140-3170 object's twenty-first entry (C 3162) names it, and an object cannot reference a name
 > that does not exist yet.  C 3140-3170 itself - slice 20's standing deferral, half discharged by
 > slice 21's ABI change - **landed in slice 22**; there is no longer a deferred range inside the
-> prefix, and the owed ranges are now **C 4213-4570** and **C 4619-4898**.
+> prefix, and the owed ranges are now **C 4406-4570** and **C 4619-4898**.
 >
 > **The one range slice 22 lifted out of order.**  C 4571-4618 stands outside the prefix and outside
 > C's own reading order in the file; its row below says why, and the two rows around it (3207-4570,
@@ -23,6 +23,13 @@
 > **Why 1044 and not 1000 (slice 1).**  C 1000 is inside `haiku_draw_text_decoration`
 > (C 887-1044); the nearest whole-item boundaries are this item's `}` at C 1044 (44 lines past
 > 1000) and the previous item's `}` at C 885 (115 lines short), so the slice is **C 1-1044**.
+>
+> **Slice 25 closes the gap before `haiku_create_terminal` (2026-10-08).**  Its C range is
+> **C 4213-4405**, the eight items C puts between `haiku_read_socket` and the terminal constructor:
+> seven of them are `unsafe extern "C" fn` because C 4418-4456 hands the other seven addresses to
+> `struct terminal`'s hooks (the slice-21 conversion rule), and `haiku_flash` alone stays a plain
+> `unsafe fn` (C 4352 reaches it by call).  The round also shadows the mirror's `flush_frame!`
+> (Deviation 24) and adds three use-site declarations, two of them SDK names.
 >
 > **Slice 24 is the file's biggest item (2026-10-08).**  Its C range is **C 3241-4212** -
 > `haiku_read_socket`, `static int`, 1,971 lines, the 27-case `switch (type)` that
@@ -265,7 +272,8 @@ the pre-flight below sets it as well.
 | 3171-3206 | `haiku_make_fullscreen_consistent` (C 3173-3192; C 3180-3189 the five-way fold, C 3191 the store) and `haiku_flush_dirty_back_buffer_on` (C 3194-3206; C 3197-3202 the four guards) | file gate (slice 20) |
 | 3207-3240 | `haiku_wait_for_event` (C 3211-3240) under C's own comment block (C 3208-3209); non-`static`, so the port carries `#[unsafe(no_mangle)] pub unsafe extern "C" fn` | file gate (slice 23) |
 | 3241-4212 | **`haiku_read_socket`** (C 3242-4212, 1,971 lines - the largest single item in the file; `static int`, so the port defines it `unsafe extern "C" fn` because C 4429 hands its address to `terminal->read_socket_hook`); C's own 27-case `switch (type)` (C 3276-4162) is the port's `match` in a labelled block, C 4148 the `#if 0` block inside the `NOTIFICATION_CLICK_EVENT` arm | file gate (slice 24) |
-| 4213-4570 | **the rest of this half of the file**: `haiku_get_focus_frame` (C 4215) through `put_xrm_resource` (C 4559-4569) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4213-4405 | **the eight items between `haiku_read_socket` and `haiku_create_terminal`**: `haiku_get_focus_frame` (C 4214-4227), `haiku_frame_rehighlight` (C 4229-4233), `haiku_delete_window` (C 4235-4240), `haiku_free_pixmap` (C 4242-4246), `haiku_flash` (C 4248-4341, the round's only plain `unsafe fn`), `haiku_beep` (C 4343-4358), `haiku_toggle_invisible_pointer` (C 4360-4374) and `haiku_fullscreen` (C 4376-4405); the other seven are `unsafe extern "C" fn` because C 4418-4456 hands their addresses to `struct terminal`'s hooks | file gate (slice 25) |
+| 4406-4570 | **the rest of this half of the file**: `haiku_create_terminal` (C 4407-4460), `haiku_term_init` (C 4462-4557) and `put_xrm_resource` (C 4559-4569) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 4571-4618 | `haiku_clear_under_internal_border` (C 4571-4618, non-`static`) | file gate (slice 22, **out of order**: the C 3140-3170 object's twenty-first entry (C 3162) names this function, so the object cannot be written before it exists - the row above and the row below are the ranges it was lifted out of) |
 | 4619-4898 | **the rest of the file** (C 4621 `mark_haiku_display` onward; C 4512 `ASSIGN_CURSOR`, C 4772/4895 the two `USE_BE_CAIRO` blocks) | not in this slice: recorded so the table covers the reference |
 
@@ -539,7 +547,26 @@ mirror lines need), `cargo test`, `extract-abi --all`.
     3598/3599/4198-4205 read `dispextern_unit_names::help_echo_string` and friends.  No second
     declaration is added: a copy would be the `check-mirror-dupes` class the module note at
     `include/dispextern.rs` 4048-4056 already records for other names.
-23. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
+24. **This unit shadows the mirror's `flush_frame!`, with one cast less than its sibling.**  That
+    macro (`include/frame.rs` 1909-1920) spells C's INLINE frame.h 1914-1921, and its body casts
+    `FRAME_RIF! ($f)` to `*mut redisplay_interface` but then passes `$f as *mut c_void` - which the
+    `redisplay_interface` in *this* unit does not accept: slice 22's copy spells C's own pointee
+    types (dispextern.h 3115's `void (*) (struct frame *)`), so the port needs C's own call,
+    `(…flush_display.unwrap ()) ($f)`.  The unit therefore shadows the macro with
+    `src/haikufns.rs` 2045-2057's body minus that cast.  Measured both ways: the mirror's macro is
+    two `E0308`s at `include/termhooks.rs` 437 (`expected *mut redisplay_interface, found *mut
+    c_void`) anchored at this unit's two call sites, and carrying the sibling's cast over is two
+    `E0308`s the other way (`expected *mut frame, found *mut c_void`) - so the mirror's macro is
+    usable by a unit whose copy types the hook `*mut c_void` and not by this one.  The mirror gap
+    (`FRAME_RIF!`'s field is `*mut c_void`, `include/termhooks.rs` 230) is the integrator's.
+25. **Three use-site declarations, two of them `<OS.h>`'s** (P-72 rule 4): frame.h 1504's
+    `check_window_system` (C 4238; the `src/fontset.rs` 106 copy), lisp.h 5095's
+    `detect_input_pending` (C 4299), and the SDK's `wait_for_objects_etc` + `B_ABSOLUTE_TIMEOUT`
+    with the standing `UNVERIFIED` mark (C 4306) - the latter two are why this item joins the
+    class slice 23 opened.  **The `object_wait_info` record, `B_EVENT_READ` and
+    `B_OBJECT_TYPE_PORT` are *not* re-declared**: slice 23 already carries them at this file's top,
+    and a second copy would be `E0428`.
+26. **C 4571-4618 is landed out of order** (`haiku_clear_under_internal_border`, non-`static`): the
     object's twenty-first entry (C 3162) names it, and a Rust item cannot reference a name that
     does not exist, so the block sits at this file's foot and the range table carries the three
     rows (`3207-4570`, `4571-4618`, `4619-4898`) that keep the table ascending and gapless.  This
@@ -584,12 +611,11 @@ mirror lines need), `cargo test`, `extract-abi --all`.
    `include/systime.rs`'s `HAIKU` constant) - measured here, owned there.
 7. The P-87 scan for the two mirror lines Deviations 4 changed: `tools/check-all-units.sh`
    (expected `83 unit(s), 0 failure(s)`) - **not run by this lane** and not claimed.
-8. This ledger's remainder: **C 4213-4570** and **C 4619-4898** - the ranges slice 22's
-   out-of-order block sits between - whose first definition is `haiku_get_focus_frame` (C 4215)
-   and whose last is `syms_of_haikuterm` (C 4824-4898); the conditions still ahead are C 4512's
-   `ASSIGN_CURSOR` and C 4772/4895's `USE_BE_CAIRO` (C 4148's `#if 0` is inside the
-   `haiku_read_socket` arm slice 24 landed, and is carried as the record its `## Slice 24`
-   section names).
+8. This ledger's remainder: **C 4406-4570** and **C 4619-4898** - the ranges slice 22's
+   out-of-order block sits between - whose first definition is `haiku_create_terminal` (C 4407,
+   the item that hands the C 3140-3170 object to `create_terminal` at C 4412 and every hook at
+   C 4418-4456) and whose last is `syms_of_haikuterm` (C 4824-4898); the conditions still ahead
+   are C 4512's `ASSIGN_CURSOR` and C 4772/4895's `USE_BE_CAIRO`.
 
 
 ## Slice 2 (2026-10-08, status 4.078 - the integrator sets the round number): C 1045-1198
@@ -2181,3 +2207,72 @@ first).
   `kbd_buffer_store_event_hold` is never called, and the two function-local `px`/`py` accumulators
   never advance.  What is measured is the type-checker's reading on both sides of the change plus a
   control that proves it reads the new text, and the token comparison that proves the body is C's.
+
+## Slice 25 (2026-10-08, status 4.101 - the integrator sets the round number): C 4213-4405
+
+**What this round is.**  The eight items C leaves between `haiku_read_socket` (slice 24) and
+`haiku_create_terminal` (still owed): `haiku_get_focus_frame` (C 4214-4227), `haiku_frame_rehighlight`
+(C 4229-4233), `haiku_delete_window` (C 4235-4240), `haiku_free_pixmap` (C 4242-4246),
+`haiku_flash` (C 4248-4341), `haiku_beep` (C 4343-4358), `haiku_toggle_invisible_pointer`
+(C 4360-4374) and `haiku_fullscreen` (C 4376-4405).
+
+**Seven of the eight take C's function-pointer ABI** (`unsafe extern "C" fn`) and `haiku_flash`
+alone stays a plain `unsafe fn`: C 4418-4456 assigns the other seven into `struct terminal`'s hook
+fields - `ring_bell_hook`, `delete_frame_hook`, `frame_rehighlight_hook`, `free_pixmap`,
+`toggle_invisible_pointer_hook`, `fullscreen_hook` and `get_focus_frame`, each
+`Option<unsafe extern "C" fn …>` in `include/termhooks.rs` - while `haiku_flash` is reached only by
+C 4352's call from `haiku_beep`.  This is the slice-21 conversion rule applied to an item that
+lands *with* its referrer rather than before it, and the first slice in this file where the two
+halves are in the same round.
+
+**The round's other work** (`## Deviations` 24-25): the unit shadows the mirror's `flush_frame!`
+(C 4292/4338), because that macro passes `$f as *mut c_void` and *this* unit's
+`redisplay_interface` spells C's own pointee types (slice 22's copy) - the sibling
+`src/haikufns.rs` 2045-2057 shadow, minus that cast; three use-site declarations
+(`check_window_system` frame.h 1504, `detect_input_pending` lisp.h 5095, and `<OS.h>`'s
+`wait_for_objects_etc` + `B_ABSOLUTE_TIMEOUT` with the `UNVERIFIED` mark); and **no** re-declaration
+of `object_wait_info`/`B_EVENT_READ`/`B_OBJECT_TYPE_PORT` (slice 23 carries them - a second copy
+would be `E0428`).  `haiku_flash`'s `object_wait_info info` is zero-initialised for C 4306's sake
+(PORTING.md 1.5), and C's `else` + single statement (C 4285-4288, C 4331-4334) is a braced block.
+
+**Evidence ① - the arm-reach pre-flight (`xtask probe`, P-86 ③), four runs.**  The draft was clean
+except for two `EmacsView_double_buffered_p` comparisons (the SDK predicate returns `int`, so
+C 4294/4339 need `!= 0` - the same shape slice 24's C 3769 took), then the two `flush_frame!`
+errors described above, then the cast question in the shadow macro (one more run each way).  **The
+final reading on the assembled unit: `exit 1`, 34 primary errors and 7 warnings - the same 34 that
+slice 24 closed with, every one in a mirror and 0 in this unit's own text**, mirror files and line
+numbers included.  So the round adds no error in either direction: it neither breaks the arm nor
+discharges a mirror row.
+
+**Evidence ② - the positive control (P-86 ⑦).**  One deliberate error injected into the new text
+(`let injected_control: c_int = c"x".as_ptr ();` at C 4252's local) moves the reading to **35 with
+`injected_control` present once**; reverted, re-run, back to 34.  Five probes for the round in
+total, each 1-2 s, one file.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 19 → 11 rows.**  Eight
+`missing function` rows retired (`haiku_get_focus_frame`, `haiku_frame_rehighlight`,
+`haiku_delete_window`, `haiku_free_pixmap`, `haiku_flash`, `haiku_beep`,
+`haiku_toggle_invisible_pointer`, `haiku_fullscreen`); the 11 that remain are 10 `missing function`
+in the C 4406-4570 and C 4619-4898 remainder plus `missing macro ASSIGN_CURSOR` (C 4512).  **No new
+spelling row** - all eight bodies match C's tokens, so `docs/ports/macro-body-notes.tsv` gains
+nothing this round.
+
+**Owed (this slice's additions).**
+
+- The mirror gap the round measured and worked around: `include/frame.rs` 1909-1920's
+  `flush_frame!` cannot be used by a unit whose `redisplay_interface` types `flush_display`'s
+  parameter `*mut frame` (its body casts `FRAME_RIF!` but passes `$f as *mut c_void`), and
+  `include/termhooks.rs` 230 types `terminal.rif` as `*mut c_void`.  Two units in this lane now
+  shadow the macro with two different bodies; the integrator's mirror round owns the pair.
+- `docs/ports/line-drift-tolerance.tsv`'s `haikuterm` row: the file is now **6,272 Rust lines for
+  4,898 C lines**; the row's placeholder is the integrator's to re-derive when the file closes.
+- Nothing else: no mirror file is touched (the shadow macro is the unit's own), and the
+  mirror-dupes ratchet is unchanged.
+
+**Not claimed (this slice).**
+
+- **No runtime evidence**: no Haiku SDK and no Haiku toolchain here, the frozen configuration
+  compiles none of this file, and this lane does not link.  No frame is raised, no bell rings, no
+  rectangle is inverted, no fullscreen mode is set, and `haiku_flash`'s wait loop never runs.  What
+  is measured is the type-checker's reading on both sides of the change plus a control that proves
+  it reads the new text, and the token comparison that proves the eight bodies are C's.

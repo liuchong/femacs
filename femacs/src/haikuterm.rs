@@ -5948,6 +5948,266 @@ unsafe extern "C" fn haiku_read_socket (terminal: *mut terminal, hold_quit: *mut
   return message_count;                                             // C 4211
 }
 
+/* C 4213-4405: the eight items between `haiku_read_socket` and `haiku_create_terminal` -
+   `haiku_get_focus_frame` (C 4214-4227), `haiku_frame_rehighlight` (C 4229-4233),
+   `haiku_delete_window` (C 4235-4240), `haiku_free_pixmap` (C 4242-4246), `haiku_flash`
+   (C 4248-4341), `haiku_beep` (C 4343-4358), `haiku_toggle_invisible_pointer` (C 4360-4374) and
+   `haiku_fullscreen` (C 4376-4405).  **Seven of the eight are `unsafe extern "C" fn`** and
+   `haiku_flash` alone is a plain `unsafe fn`, because C 4418-4456 hands the other seven addresses
+   to `struct terminal`'s hook fields (`ring_bell_hook`, `delete_frame_hook`,
+   `frame_rehighlight_hook`, `free_pixmap`, `toggle_invisible_pointer_hook`, `fullscreen_hook`,
+   `get_focus_frame`; `include/termhooks.rs` 242/332/333/275/278/273 carry them as
+   `Option<unsafe extern "C" fn …>`) - the slice-21 conversion rule, and `haiku_flash` is reached
+   only by C 4352's call.  The next first definition after this block is C 4407's
+   `haiku_create_terminal`.  */
+
+/// C: frame.h 1914-1921: `INLINE void flush_frame (struct frame *f)` - the mirror
+/// `include/frame.rs` 1909's macro spells `FRAME_RIF` without the `*mut c_void` cast this unit's
+/// `FRAME_RIF!` needs (`terminal.rif` is `*mut c_void`, `include/termhooks.rs` 230), so the unit
+/// shadows it with C's own body - the `src/haikufns.rs` 2045-2057 copy of the same decision, made
+/// for the same reason in this same lane (measured: `flush_frame!` from the mirror is two
+/// `E0308`s at `include/termhooks.rs` 437, `expected *mut redisplay_interface, found *mut
+/// c_void`, both anchored at this unit's two call sites C 4292 and C 4338).  **One cast less than
+/// the `haikufns.rs` copy**: that unit's `redisplay_interface` types the hook `*mut c_void`, while
+/// slice 22's copy in *this* unit spells C's own pointee types (dispextern.h 3115), so the call
+/// passes `$f` unchanged - measured: carrying the cast over was two `E0308`s the other way
+/// (`expected *mut frame, found *mut c_void`).
+#[cfg (feature = "have_haiku")]
+macro_rules! flush_frame {
+  ($f:expr) => {
+    {
+      let rif: *mut redisplay_interface = FRAME_RIF! ($f) as *mut redisplay_interface;
+      if !rif.is_null () && (*rif).flush_display.is_some ()
+	{ ((*rif).flush_display.unwrap ()) ($f); }
+    }
+  };
+}
+
+/* C: frame.h 1504: `extern WINDOW_SYSTEM_RETURN void check_window_system (struct frame *);`
+   (C 4238's call; `src/fontset.rs` 106 and `src/androidmenu.rs` 92 carry the same use-site copy).
+   C: lisp.h 5095: `extern bool detect_input_pending (void);` (C 4299's loop condition).
+   `<OS.h>`'s `wait_for_objects_etc` and `B_ABSOLUTE_TIMEOUT` (C 4306) are the SDK's own and carry
+   the standing `UNVERIFIED` mark, as `src/haiku_io.rs` 44-74 does for the same header's calls and
+   values; the `object_wait_info` record, `B_EVENT_READ` and `B_OBJECT_TYPE_PORT` this item also
+   uses are the ones this unit declared for C 3214 (slice 23), so they are **not** repeated.  */
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" {
+  pub fn check_window_system (f: *mut frame);
+  pub fn detect_input_pending () -> bool;
+  /// C: `status_t wait_for_objects_etc (object_wait_info *infos, int numInfos, uint32 flags,
+  /// bigtime_t timeout);   [<OS.h>; UNVERIFIED here]`
+  pub fn wait_for_objects_etc (infos: *mut object_wait_info, num_infos: c_int, flags: c_uint,
+			       timeout: bigtime_t) -> status_t;
+}
+/// C: `#define B_ABSOLUTE_TIMEOUT 4` (`<OS.h>`; UNVERIFIED here - the value is the SDK's own
+/// documented one).
+#[cfg (feature = "have_haiku")]
+pub const B_ABSOLUTE_TIMEOUT: c_uint = 4;
+
+// C 4214-4227.
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" fn haiku_get_focus_frame (f: *mut frame) -> Lisp_Object
+{
+  let mut lisp_focus: Lisp_Object;                                    // C 4217
+  let focus: *mut frame;                                              // C 4218
+
+  focus = (*FRAME_DISPLAY_INFO! (f)).focused_frame;                   // C 4220
+
+  if focus.is_null ()                                                 // C 4222
+    { return Qnil (); }                                               // C 4223
+
+  XSETFRAME! (lisp_focus, focus);                                     // C 4225
+  return lisp_focus;                                                  // C 4226
+}
+
+// C 4229-4233.  C's parameter name is `frame`, which the port keeps (the type `frame` and the
+// value `frame` live in Rust's two namespaces).
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" fn haiku_frame_rehighlight (frame: *mut frame)
+{
+  haiku_rehighlight ();                                               // C 4232
+}
+
+// C 4235-4240.
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" fn haiku_delete_window (f: *mut frame)
+{
+  check_window_system (f);                                            // C 4238
+  haiku_free_frame_resources (f);                                     // C 4239
+}
+
+// C 4242-4246.
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" fn haiku_free_pixmap (f: *mut frame, pixmap: Emacs_Pixmap)
+{
+  BBitmap_free (pixmap);                                              // C 4245
+}
+
+// C 4248-4341.
+#[cfg (feature = "have_haiku")]
+unsafe fn haiku_flash (f: *mut frame)
+{
+  /* Get the height not including a menu bar widget.  */               // C 4251
+  let height: c_int = FRAME_PIXEL_HEIGHT! (f);                        // C 4252
+  /* Height of each line to flash.  */                                // C 4253
+  let flash_height: c_int = FRAME_LINE_HEIGHT (f);                    // C 4254
+  /* These will be the left and right margins of the rectangles.  */  // C 4255
+  let flash_left: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);            // C 4256
+  let flash_right: c_int = FRAME_PIXEL_WIDTH! (f) - FRAME_INTERNAL_BORDER_WIDTH (f);  // C 4257
+  let width: c_int = flash_right - flash_left;                        // C 4258
+  let view: *mut c_void = FRAME_HAIKU_DRAWABLE! (f);                  // C 4259
+  let mut info: object_wait_info = core::mem::zeroed ();              // C 4260 (PORTING.md 1.5: its
+								      //  address is handed to C 4306)
+  let mut wakeup: bigtime_t;                                          // C 4261
+
+  info.object = port_application_to_emacs;                            // C 4263
+  info.r#type = B_OBJECT_TYPE_PORT;                                   // C 4264
+  info.events = B_EVENT_READ;                                         // C 4265
+  wakeup = system_time () + 150000;                                   // C 4266
+
+  BView_draw_lock (view, true, 0, 0, FRAME_PIXEL_WIDTH! (f),          // C 4268
+		   FRAME_PIXEL_HEIGHT! (f));                            // C 4269
+  BView_StartClip (view);                                             // C 4270
+  /* If window is tall, flash top and bottom line.  */                // C 4271
+  if height > 3 * FRAME_LINE_HEIGHT (f)                               // C 4272
+    {
+      BView_InvertRect (view, flash_left,                             // C 4274
+			(FRAME_INTERNAL_BORDER_WIDTH (f)              // C 4275
+			 + FRAME_TOP_MARGIN_HEIGHT (f)),              // C 4276
+			width, flash_height);                         // C 4277
+
+      BView_InvertRect (view, flash_left,                             // C 4279
+			(height - flash_height                        // C 4280
+			 - FRAME_INTERNAL_BORDER_WIDTH (f)            // C 4281
+			 - FRAME_BOTTOM_MARGIN_HEIGHT (f)),           // C 4282
+			width, flash_height);                         // C 4283
+    }
+  else
+    /* If it is short, flash it all.  */                              // C 4286
+    { BView_InvertRect (view, flash_left, FRAME_INTERNAL_BORDER_WIDTH (f),   // C 4287
+			width, height - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)); }  // C 4288
+  BView_EndClip (view);                                               // C 4289
+  BView_draw_unlock (view);                                           // C 4290
+
+  flush_frame! (f);                                                   // C 4292
+
+  if EmacsView_double_buffered_p (view) != 0                          // C 4294
+    { haiku_flip_buffers (f); }                                       // C 4295
+
+  /* Keep waiting until past the time wakeup or any input gets
+     available.  */                                                   // C 4297-4298
+  while ! detect_input_pending ()                                     // C 4299
+    {
+      /* Break if result would not be positive.  */                   // C 4301
+      if wakeup < system_time ()                                      // C 4302
+	{ break; }                                                    // C 4303
+
+      /* Try to wait that long--but we might wake up sooner.  */      // C 4305
+      wait_for_objects_etc (&raw mut info, 1, B_ABSOLUTE_TIMEOUT, wakeup);  // C 4306
+
+      if info.events & B_EVENT_READ != 0                              // C 4308
+	{ break; }                                                    // C 4309
+
+      info.events = B_EVENT_READ;                                     // C 4311
+    }
+
+  BView_draw_lock (view, true, 0, 0, FRAME_PIXEL_WIDTH! (f),          // C 4314
+		   FRAME_PIXEL_HEIGHT! (f));                            // C 4315
+  BView_StartClip (view);                                             // C 4316
+  /* If window is tall, flash top and bottom line.  */                // C 4317
+  if height > 3 * FRAME_LINE_HEIGHT (f)                               // C 4318
+    {
+      BView_InvertRect (view, flash_left,                             // C 4320
+			(FRAME_INTERNAL_BORDER_WIDTH (f)              // C 4321
+			 + FRAME_TOP_MARGIN_HEIGHT (f)),              // C 4322
+			width, flash_height);                         // C 4323
+
+      BView_InvertRect (view, flash_left,                             // C 4325
+			(height - flash_height                        // C 4326
+			 - FRAME_INTERNAL_BORDER_WIDTH (f)            // C 4327
+			 - FRAME_BOTTOM_MARGIN_HEIGHT (f)),           // C 4328
+			width, flash_height);                         // C 4329
+    }
+  else
+    /* If it is short, flash it all.  */                              // C 4332
+    { BView_InvertRect (view, flash_left, FRAME_INTERNAL_BORDER_WIDTH (f),   // C 4333
+			width, height - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)); }  // C 4334
+  BView_EndClip (view);                                               // C 4335
+  BView_draw_unlock (view);                                           // C 4336
+
+  flush_frame! (f);                                                   // C 4338
+  if EmacsView_double_buffered_p (view) != 0                          // C 4339
+    { haiku_flip_buffers (f); }                                       // C 4340
+}
+
+// C 4343-4358.
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" fn haiku_beep (f: *mut frame)
+{
+  if visible_bell                                                    // C 4346
+    {
+      let view: *mut c_void = FRAME_HAIKU_VIEW! (f);                  // C 4348
+      if ! view.is_null ()                                            // C 4349
+	{
+	  block_input ();                                              // C 4351
+	  haiku_flash (f);                                             // C 4352
+	  unblock_input ();                                            // C 4353
+	}
+    }
+  else
+    { haiku_ring_bell (); }                                           // C 4357
+}
+
+// C 4360-4374.
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" fn haiku_toggle_invisible_pointer (f: *mut frame, invisible_p: bool)
+{
+  let view: *mut c_void = FRAME_HAIKU_VIEW! (f);                      // C 4363
+
+  if ! view.is_null () && ! FRAME_TOOLTIP_P (f)                       // C 4365
+    {
+      block_input ();                                                 // C 4367
+      BView_set_view_cursor (view, if invisible_p                     // C 4368
+			       { (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).no_cursor }  // C 4369
+			     else
+			       { (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).current_cursor });  // C 4370
+      pointer_invisible! (f, invisible_p);                            // C 4371
+      unblock_input ();                                               // C 4372
+    }
+}
+
+// C 4376-4405.
+#[cfg (feature = "have_haiku")]
+unsafe extern "C" fn haiku_fullscreen (f: *mut frame)
+{
+  let mut mode: haiku_fullscreen_mode;                                // C 4379
+
+  /* When FRAME_OUTPUT_DATA (f)->configury_done is false, the frame is
+     being created, and its regular width and height have not yet been
+     set.  This function will be called again by haiku_create_frame,
+     so do nothing.  */                                               // C 4381-4384
+  if ! (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).configury_done   // C 4385
+    { return; }                                                       // C 4386
+
+  if want_fullscreen! (f) == FULLSCREEN_MAXIMIZED                     // C 4388
+    { mode = FULLSCREEN_MODE_MAXIMIZED; }                             // C 4389
+  else if want_fullscreen! (f) == FULLSCREEN_BOTH                     // C 4390
+    { mode = FULLSCREEN_MODE_BOTH; }                                  // C 4391
+  else if want_fullscreen! (f) == FULLSCREEN_WIDTH                    // C 4392
+    { mode = FULLSCREEN_MODE_WIDTH; }                                 // C 4393
+  else if want_fullscreen! (f) == FULLSCREEN_HEIGHT                   // C 4394
+    { mode = FULLSCREEN_MODE_HEIGHT; }                                // C 4395
+  else
+    { mode = FULLSCREEN_MODE_NONE; }                                  // C 4397
+
+  want_fullscreen! (f, FULLSCREEN_NONE);                              // C 4399
+  be_set_window_fullscreen_mode (FRAME_HAIKU_WINDOW! (f), mode);      // C 4400
+  (*(FRAME_OUTPUT_DATA! (f) as *mut haiku_output)).fullscreen_mode = mode;  // C 4401
+
+  haiku_update_size_hints (f);                                        // C 4403
+  haiku_make_fullscreen_consistent (f);                               // C 4404
+}
+
 /* C 4571-4618: `haiku_clear_under_internal_border` - **landed out of order** (the ledger's C range
    table records the row and the gap around it): the `haiku_redisplay_interface` object's
    twenty-first entry (C 3162) names this function, and an object cannot reference a name that does
