@@ -18366,3 +18366,8 @@
   ④ **台账与门**：`docs/ports/w32proc.md` 头部改成 **C 1-1039（1,705 行，新 md5）**、C 范围表把原 `913-4903` 一行拆成 `913-1039`（本片）与 `1041-4903`（余项）、加 Slice 2 段（含上面那条"分阶段读数"的完整对照）、`## Deviations` 加 34-36、Owed 加第 8 条（**该臂集探针到不了类型检查**，是镜像头文件冲突那一类的后果）；`check-dead-file-coverage.py` **145 账 / 0 失败**；十门全绿。
   ⑤ **预算与清理**：`xtask probe` **4 发 + 4 个注入对照**（单文件、每次 <1 秒）、`extract-abi --check` 1 发、`check-dead-file-coverage` 4 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；本片**不碰任何镜像文件**；收尾删 `/tmp/wp-s2.rs`、`/tmp/wp-probe*.txt`、`/tmp/wp-keep2.rs`、`/tmp/wph.txt`、`/tmp/wpn.txt`、`/tmp/wp-ctl*.txt`、`/tmp/cfgtest.rs`、`/tmp/cfgtest.rlib`、`femacs/src/w32proc_head2.rs`、`/tmp/w32proc-lane`、`build/probes/w32proc`。
      **未声称**：无类型检查证据（见②），更无运行证据——本机没有 Windows 也没有 mingw 工具链，冻结配置不编此文件，本 lane 不链接：线程池没有创建过、事件句柄没有被等过、`WaitForMultipleObjects` 一次也没被调用。**本文件未收口**：还剩 C 1041-4903；**下一步**要么继续切片（读数仍会是解析级），要么先做那条 Owed 8 的镜像轮，让这个 lane 的证据回到类型级。
+
+- **4.105 平台 lane 的臂集读数普查（不落代码，只记录读数；用来决定下一片落在哪个 lane）**：同一轮里对四个平台的单元各发一次 `xtask probe`（各自的臂集、单文件、每次 1-2 秒），据此把"证据等级"分成三档（2026-10-08）：
+  ① **`src/androidvfs.rs`（臂集 `have_android` + `not_android_stubify`）：`exit=0`**——单元连同它的 include 图**整体通过编译**。这是树里平台单元能达到的最强读数：此后任何注入的错误都会**立刻**显形，"本单元 0 条"不再是弱读数，而是"整套类型检查通过"。
+  ② **`src/android.rs`：1 条 `E0609`**、**`src/androidterm.rs`：3 条（2 × `E0609` + 1 × `E0425`）**——两处都**进到了类型检查阶段**（`E0609` 是类型级错误），只差零星几条镜像差错；第三档才是 `src/w32proc.rs`：**37 条全是解析阶段（27 × `E0428` + 9 × `E0425`）**，探针**到不了**类型检查（4.104 的 Owed 8，三个注入对照测出来的）。
+  ③ **对下一步的影响**：w32 系（`w32proc`/`w32term`/`w32fns`/`w32`）在镜像头文件冲突那一类被清掉之前，其切片只能给出**解析级**证据；而 **android 系（尤其 `androidvfs`）能给类型级证据**，所以下一片改落在 `androidvfs.c`（台账 `docs/ports/androidvfs.md` 指明下一项是 C 1016 的 `android_extract_long`），把"最强读数"的 lane 先往前推；w32 系的 Owed 8 仍归集成者的镜像轮。
