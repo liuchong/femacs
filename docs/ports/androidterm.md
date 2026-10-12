@@ -7,7 +7,7 @@
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
 > readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**2,265 lines**, md5
-> `3550492c0b353b73c32d2ac67137dbda`), carrying **C 1-3067**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> `b9cd85972476070d9279f6f815d11d6d`), carrying **C 1-3357**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -18,8 +18,8 @@
 > `android_handle_ime_event`.  **The next live definition is `handle_one_android_event` (C 836-1892),
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
-> which leaves C 3067-7117** (the next whole-item boundary is `android_compute_glyph_string_overhangs`,
-> C 3068).
+> which leaves C 3359-7117** (the next whole-item boundary is `android_alloc_lighter_color`,
+> C 3360).
 
 ## Gate mapping
 
@@ -136,7 +136,17 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 2990-3030 | C 2990-2992's comment and `android_set_glyph_string_gc` | real arm (slice 5) |
 | 3033-3045 | C 3033-3034's comment and `android_set_glyph_string_clipping` | real arm (slice 5) |
 | 3048-3065 | C 3048-3050's comment and `android_set_glyph_string_clipping_exactly` (C 3062's degraded-array store) | real arm (slice 5) |
-| 3067-7117 | **the remainder of the file** - from C 3067's comment above `android_compute_glyph_string_overhangs` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3067-3096 | C 3067's comment and `android_compute_glyph_string_overhangs` | real arm (slice 6) |
+| 3098-3103 | `android_clear_glyph_string_rect` | real arm (slice 6) |
+| 3105-3141 | `android_draw_glyph_string_background` | real arm (slice 6) |
+| 3143-3158 | `android_fill_triangle` | real arm (slice 6) |
+| 3160-3169 | `android_make_point` | real arm (slice 6) |
+| 3171-3186 | `android_inside_rect_p` | real arm (slice 6) |
+| 3188-3199 | `android_clear_point` | real arm (slice 6) |
+| 3201-3319 | `android_draw_relief_rect` | real arm (slice 6) |
+| 3321-3355 | `android_draw_box_rect` | real arm (slice 6) |
+| 3357-3357 | `#define HIGHLIGHT_COLOR_DARK_BOOST_LIMIT 48000` | real arm (slice 6: the inventory's `missing macro`/`missing constant` pair) |
+| 3359-7117 | **the remainder of the file** - from C 3359's `static bool` above `android_alloc_lighter_color` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -169,7 +179,8 @@ revision (3,640 Rust lines), with the five gates the real configuration has -
     mirror's window-system numbering region (`include/frame.rs` 757-759's mask pair covers
     `want_fullscreen`, and `new_size_p`'s unit is not numbered there yet).  These are Owed 5's round,
     narrowed from a whole region to two fields.
-  * `android_notify_conversion` (C 1761) - the one surviving forward reference (C 2098).
+  * `android_notify_conversion` (C 1761) - the one surviving forward reference (defined at C 6635-6648,
+    its own address taken by C 6657's interface array).
 
   The narrower reading's "window-system gap" rows (`frame.tool_bar_window` 7 sites,
   `frame.tab_bar_window` 4, `frame.last_tool_bar_item` 3, `frame.conversion` 2, `frame.new_size_p`,
@@ -331,10 +342,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 2652-7117.**  Slice 4 wrote C 2240-2648 (the wait/size/position
-   group and the frame-teardown group), so the next slice's rows must replace this table's last row;
-   its first item is C 2652's `/* RIF functions.  */` and its first definition `android_scroll_run`
-   (C 2655).  C 1761's `android_notify_conversion` (C 2098) is the only forward reference left.
+1. **The remainder of the file: C 3359-7117.**  Slice 6 wrote C 3068-3357 (the glyph-string drawing
+   helpers and the relief constant), so the next slice's rows must replace this table's last row; its
+   first definition is `android_alloc_lighter_color` (C 3360).  C 1761's `android_notify_conversion`
+   (C 6636) is still the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
@@ -492,7 +503,7 @@ events, the configuration-changed pair, and the shared `OTHER:` tail.
      each is carried (`(*f).tool_bar_window`, `(*f).new_size_p`, `f->conversion.batch_edit_*`), so
      these are Owed 5's mirror round, not port choices.
    - **2 forward references**: C 458's `android_frame_rehighlight` (C 2127) and C 1761's
-     `android_notify_conversion` (C 2098) - the named-blocker class slice 1 recorded, now with the
+     `android_notify_conversion` (C 6636) - the named-blocker class slice 1 recorded, now with the
      second call site added.
    No other error: the 140-error first reading of the fresh text (below) is fully discharged.
 2. **The 11 mirror-vs-unit spellings this slice's text needed** (each named in Deviations/Owed 9-12):
@@ -574,7 +585,7 @@ cursor pair (`android_frame_highlight`/`_unhighlight`) and `android_frame_rehigh
    and constants the frozen mirror does not carry** (`frame.tool_bar_window` 7 sites,
    `frame.tab_bar_window` 4, `frame.last_tool_bar_item` 3, `frame.conversion` 2, `frame.new_size_p`
    1, `frame.want_fullscreen` 1 and `FULLSCREEN_BOTH` 1), and **1 is the surviving forward
-   reference** (C 1761's `android_notify_conversion`, C 2098).  **Slice 1's and slice 2's
+   reference** (C 1761's `android_notify_conversion`, C 6636).  **Slice 1's and slice 2's
    `android_frame_rehighlight` `E0425` is gone**: this slice defines it (C 2127), which is the first
    of the two forward-reference rows this ledger has carried since slice 1.
 2. **Five reads the first draft needed to converge, each a mirror-vs-C spelling** (all recorded in
@@ -629,7 +640,7 @@ their public wrappers, `android_calc_absolute_position` and `android_set_offset`
    `have_window_system` gap** (`frame.tool_bar_window` 7, `frame.tab_bar_window` 4,
    `frame.last_tool_bar_item` 3, `frame.conversion` 2, `frame.want_fullscreen` 1,
    `frame.new_size_p` 1, `FULLSCREEN_BOTH` 1 and now `font.baseline_offset` 1) and **1 is the
-   surviving forward reference** (C 1761's `android_notify_conversion`, C 2098).  The first draft's
+   surviving forward reference** (C 1761's `android_notify_conversion`, C 6636).  The first draft's
    other reads were the unit's own and are all discharged: fifteen `is_null ()` tests on
    `android_cursor` members (`android_cursor` is an integer handle, `include/androidgui.rs` 59, so C's
    truth test is `!= 0`), the three `c_uint` width/height arguments of `android_resize_window`/
@@ -701,3 +712,44 @@ clipping setters.
 - **C 2732's and C 1941's `FRAME_ANDROID_COMPLETE_P (f) = true;`** are the mask writes the mirror's
   comment prescribes, and C 2907/2942/2953/2973/2987/3001/3022's `s->gc` writes take the mirror's
   `*mut c_void` GC field (P-72 rule 3).
+
+## 2026-10-12: slice 6 (C 3068-3357) - the glyph-string drawing helpers
+
+`android_compute_glyph_string_overhangs`, `android_clear_glyph_string_rect`,
+`android_draw_glyph_string_background`, the two geometry helpers (`android_fill_triangle`,
+`android_make_point`) with `android_inside_rect_p` and `android_clear_point`,
+`android_draw_relief_rect` and `android_draw_box_rect`, and C 3357's
+`HIGHLIGHT_COLOR_DARK_BOOST_LIMIT`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The first draft's 16 own readings were the widened-`c_short` overhang arithmetic
+   (`font_metrics`/`composition` members are `c_short` in the mirrors and C's `int` members here),
+   the `c_uint` width/height arguments of `android_fill_rectangle`/`android_draw_rectangle`
+   (`include/androidgui.rs` 938/946) and the two `font->driver->text_extents`/`composition_gstring_*`
+   spellings (`src/xterm.rs` 9704-9736's device).
+2. **Inventory**: 11 rows -> **7** - the `missing macro`/`missing constant` pair is **discharged** by
+   C 3357's constant, the `missing function` rows fall by the eight this slice lands, and what stands
+   is C 6635-6648's `android_notify_conversion` (still the one forward reference), C 5044-7117's
+   remaining items and the five file-scope objects.  The line-count row reads **44.2%** (C 7,117
+   against the port's 3,966).
+3. No new `does not mention` row appeared for this slice: the two `FONT_*` macros, the four
+   `glyph_string_bits!` members, `glyph_bits!`'s `type`, and `android_draw_relief_rect`'s four
+   `if`/`else` pairs all keep C's token set.
+
+### Deviations this slice adds
+
+- **`composition_gstring_from_id`/`composition_gstring_width`** are the mirror's declarations (the
+  `composite_decls` glob import at `include/composite.rs` 411-471, reached through C 34's `coding.h`
+  edge): the first draft repeated them at the use site and `tools/check-mirror-dupes.py` named both
+  as duplicates, which is the gate that keeps one declaration per name (P-26).  The width call
+  passes `&raw mut metrics as *mut c_void` because the mirror's declaration takes the metrics untyped
+  (`include/composite.rs` 433-436, `src/xterm.rs` 9729-9731).
+- **C's `s->first_glyph->type`** is `glyph_bits! (type, (*(*s).first_glyph))`, and
+  `s->background_filled_p`/`stippled_p`/`font_not_found_p`/`extends_to_end_of_line_p` the mirror's
+  `glyph_string_bits!` arms.
+- **The `?:` in C 3087-3094** are the port's `if`/`else` expressions with the `as c_int` promotions
+  the record's `c_short` members need, and C 3177/3179-3181's rectangle subscripting is the
+  `.offset (i as isize)` form with the same promotions.

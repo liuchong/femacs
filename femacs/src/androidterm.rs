@@ -1069,7 +1069,8 @@ unsafe fn android_handle_ime_event (event: *mut android_event, f: *mut frame)   
 /* C 831-834: C 831-832's form feed and blank, C 833's `/* Forward declaration.  */` and C 834's
    `static void android_notify_conversion (unsigned long);`.  Rust needs no forward declaration for
    a definition later in the same unit (PORTING.md 10.10), so this slice carries the comment and no
-   item - which leaves the call at C 1761 an `E0425` until C 2098's definition lands: the named
+   item - which leaves the call at C 1761 an `E0425` until C 6635-6648's definition lands (its own
+   address is taken by C 6657's `textconv_interface` array): the named
    blocker class the ledger already records for C 458's `android_frame_rehighlight`.  */
 
 /* `Mouse_HLInfo`'s third flag bit (`dispextern.h` 3023's `bool_bf mouse_face_hidden : 1`, mask
@@ -3638,3 +3639,328 @@ unsafe fn android_set_glyph_string_clipping_exactly (src: *mut glyph_string,
   (*dst).num_clips = 1;                                                 // C 3063
   android_set_clip_rectangles ((*dst).gc as *mut android_gc, 0, 0, &raw mut r, 1);   // C 3064
 }
+
+/* C 3068-3357: the glyph-string drawing helpers - the overhang computation, the background fill,
+   the relief/box helpers with their two local geometry helpers, and the relief colour constant.
+   `composition_gstring_from_id`/`composition_gstring_width` come from the mirror's
+   `composite_decls` glob import (`include/composite.rs` 411-471, reached through C 34's coding.h
+   edge), so they stay bare here - the `src/xterm.rs` 9727-9731 device, and
+   `tools/check-mirror-dupes.py` is what asks for that (one declaration per name, in the mirror).  */
+
+/* C 3068-3096.  `static`; only called (C 4312).  `s->first_glyph->type` is the glyph record's
+   bitfield run read through the mirror's `glyph_bits!`, and the two `font->driver->text_extents`
+   calls are the unwrapped function-pointer field of the mirror's `font_driver`
+   (`include/font.rs` 134 keeps `driver` untyped, P-72 rule 3; the `src/xterm.rs` 9704-9736
+   device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_compute_glyph_string_overhangs (s: *mut glyph_string)
+{
+  if ((*s).cmp).is_null ()                                             // C 3070
+      && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH        // C 3071
+	  || glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH)   // C 3072
+    {
+      let mut metrics: font_metrics = std::mem::zeroed ();              // C 3074
+
+      if glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH          // C 3076
+	{
+	  let font: *mut font = (*s).font;                               // C 3078
+	  ((*((*font).driver as *const font_driver)).text_extents.unwrap ())   // C 3079
+	    (font, (*s).char2b, (*s).nchars, &raw mut metrics);
+	}
+      else
+	{
+	  let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);   // C 3083
+
+	  composition_gstring_width (gstring, (*s).cmp_from as ptrdiff_t,   // C 3085
+				     (*s).cmp_to as ptrdiff_t,
+				     &raw mut metrics as *mut c_void);
+	}
+      (*s).right_overhang = if metrics.rbearing > metrics.width        // C 3087
+	{ (metrics.rbearing - metrics.width) as c_int } else { 0 };     // C 3088
+      (*s).left_overhang = if metrics.lbearing < 0                     // C 3089
+	{ (- metrics.lbearing) as c_int } else { 0 }; 
+    }
+  else if ! ((*s).cmp).is_null ()                                       // C 3091
+    {
+      (*s).right_overhang = ((*( (*s).cmp as *mut composition )).rbearing    // C 3093
+	- (*( (*s).cmp as *mut composition )).pixel_width) as c_int; 
+(*s).left_overhang = (- (*( (*s).cmp as *mut composition )).lbearing) as c_int; // C 3094
+    }
+}
+
+/* C 3098-3103.  `static`; only called (C 3135).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_clear_glyph_string_rect (s: *mut glyph_string, x: c_int, y: c_int,
+					   w: c_int, h: c_int)
+{
+  android_clear_rectangle ((*s).f, (*s).gc as *mut android_gc, x, y, w, h);   // C 3102
+}
+
+/* C 3105-3141.  `static`; only called (C 2999/4308).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_glyph_string_background (s: *mut glyph_string, force_p: bool)
+{
+  /* Nothing to do if background has already been drawn or if it
+     shouldn't be drawn in the first place.  */                        // C 3108-3109
+  if ! glyph_string_bits! (background_filled_p, (*s))                   // C 3110
+    {
+      let box_line_width: c_int = max ((*( (*s).face as *mut face )).box_horizontal_line_width, 0);   // C 3112
+
+      if glyph_string_bits! (stippled_p, (*s))                          // C 3114
+	{
+	  /* Fill background with a stipple pattern.  */                // C 3116
+	  android_set_fill_style ((*s).gc as *mut android_gc, ANDROID_FILL_OPAQUE_STIPPLED);   // C 3117
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc,   // C 3118
+				  (*s).x, (*s).y + box_line_width,     // C 3119
+				  (*s).background_width as c_uint,     // C 3120
+				  ((*s).height - 2 * box_line_width) as c_uint); // C 3121
+	  android_set_fill_style ((*s).gc as *mut android_gc, ANDROID_FILL_SOLID);   // C 3122
+	  glyph_string_bits! (background_filled_p, (*s), true);            // C 3123
+	}
+      else if FONT_HEIGHT! ((*s).font) < (*s).height - 2 * box_line_width   // C 3125
+	       /* When xdisp.c ignores FONT_HEIGHT, we cannot trust
+		  font dimensions, since the actual glyphs might be
+		  much smaller.  So in that case we always clear the
+		  rectangle with background color.  */                 // C 3126-3129
+	       || FONT_TOO_HIGH! ((*s).font)                           // C 3130
+	       || glyph_string_bits! (font_not_found_p, (*s))          // C 3131
+	       || glyph_string_bits! (extends_to_end_of_line_p, (*s))   // C 3132
+	       || force_p                                              // C 3133
+	{
+	  android_clear_glyph_string_rect (s, (*s).x, (*s).y + box_line_width,   // C 3135
+					   (*s).background_width,      // C 3136
+					   (*s).height - 2 * box_line_width);   // C 3137
+	  glyph_string_bits! (background_filled_p, (*s), true);            // C 3138
+	}
+    }
+}
+
+/* C 3143-3158.  `static`; only called (C 3257/3264).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_fill_triangle (f: *mut frame, gc: *mut android_gc,
+				 point1: android_point, point2: android_point,
+				 point3: android_point)
+{
+  let mut abc: [android_point; 3] = std::mem::zeroed ();                // C 3149
+
+  abc[0] = point1;                                                      // C 3151
+  abc[1] = point2;                                                      // C 3152
+  abc[2] = point3;                                                      // C 3153
+
+  android_fill_polygon (FRAME_ANDROID_DRAWABLE! (f),                    // C 3155
+			gc, abc.as_mut_ptr (), 3, ANDROID_CONVEX,      // C 3156
+			ANDROID_COORD_MODE_ORIGIN);                   // C 3157
+}
+
+/* C 3160-3169.  `static`; only called (C 3258-3268).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_make_point (x: c_int, y: c_int) -> android_point
+{
+  let mut pt: android_point = std::mem::zeroed ();                      // C 3163
+
+  pt.x = x;                                                             // C 3165
+  pt.y = y;                                                             // C 3166
+
+  return pt;                                                            // C 3168
+}
+
+/* C 3171-3186.  `static`; only called (C 3300-3313).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_inside_rect_p (rects: *mut android_rectangle, nrects: c_int, x: c_int,
+				 y: c_int) -> bool
+{
+  let mut i: c_int;                                                     // C 3175
+
+  i = 0;                                                                // C 3177
+  while i < nrects
+    {
+      if x >= (*rects.offset (i as isize)).x as c_int                   // C 3179
+	  && y >= (*rects.offset (i as isize)).y as c_int               // C 3179
+	  && x < ((*rects.offset (i as isize)).x + (*rects.offset (i as isize)).width as c_int)   // C 3180
+	  && y < ((*rects.offset (i as isize)).y + (*rects.offset (i as isize)).height as c_int)   // C 3181
+	{ return true; }                                                // C 3182
+      i += 1;                                                           // C 3177 (the `for` step)
+    }
+
+  return false;                                                         // C 3185
+}
+
+/* C 3188-3199.  `static`; only called (C 3302-3314).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_clear_point (f: *mut frame, gc: *mut android_gc, x: c_int, y: c_int)
+{
+  let mut xgcv: android_gc_values = std::mem::zeroed ();                // C 3192
+
+  android_get_gc_values (gc, ANDROID_GC_BACKGROUND | ANDROID_GC_FOREGROUND,   // C 3194
+			 &raw mut xgcv);                               // C 3195
+  android_set_foreground (gc, xgcv.background);                          // C 3196
+  android_draw_point (FRAME_ANDROID_DRAWABLE! (f), gc, x, y);             // C 3197
+  android_set_foreground (gc, xgcv.foreground);                          // C 3198
+}
+
+/* C 3201-3319.  `static`; only called (C 3510).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_relief_rect (f: *mut frame, left_x: c_int, top_y: c_int,
+				    right_x: c_int, bottom_y: c_int, hwidth: c_int,
+				    vwidth: c_int, raised_p: bool, top_p: bool,
+				    bot_p: bool, left_p: bool, right_p: bool,
+				    clip_rect: *mut android_rectangle)
+{
+  let mut gc: *mut android_gc;                                          // C 3207
+  let mut white_gc: *mut android_gc;
+  let mut black_gc: *mut android_gc;
+  let mut normal_gc: *mut android_gc;
+  let mut drawable: android_drawable;                                   // C 3208
+
+  /* This code is more complicated than it has to be, because of two
+     minor hacks to make the boxes look nicer: (i) if width > 1, draw
+     the outermost line using the black relief.  (ii) Omit the four
+     corner pixels.  */                                                 // C 3210-3213
+
+  white_gc = (*( (*f).output_data.android as *mut android_output )).white_relief.gc;   // C 3215
+  black_gc = (*( (*f).output_data.android as *mut android_output )).black_relief.gc;   // C 3216
+  normal_gc = (*( (*f).output_data.android as *mut android_output )).normal_gc;   // C 3217
+
+  drawable = FRAME_ANDROID_DRAWABLE! (f);                               // C 3219
+
+  android_set_clip_rectangles (white_gc, 0, 0, clip_rect, 1);            // C 3221
+  android_set_clip_rectangles (black_gc, 0, 0, clip_rect, 1);            // C 3222
+
+  if raised_p                                                           // C 3224
+    { gc = white_gc; }                                                  // C 3225
+  else
+    { gc = black_gc; }                                                  // C 3227
+
+  /* Draw lines.  */                                                    // C 3229
+
+  if top_p                                                              // C 3231
+    { android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, left_x, top_y,   // C 3232
+			      (right_x - left_x + 1) as c_uint, hwidth as c_uint); } // C 3233
+
+  if left_p                                                             // C 3235
+    { android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, left_x, top_y,   // C 3236
+			      vwidth as c_uint, (bottom_y - top_y + 1) as c_uint); } // C 3237
+
+  if raised_p                                                           // C 3239
+    { gc = black_gc; }                                                  // C 3240
+  else
+    { gc = white_gc; }                                                  // C 3242
+
+  if bot_p                                                              // C 3244
+    { android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, left_x,   // C 3245
+			      bottom_y - hwidth + 1,                    // C 3246
+			      (right_x - left_x + 1) as c_uint, hwidth as c_uint); } // C 3247
+
+  if right_p                                                            // C 3249
+    { android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc,          // C 3250
+			      right_x - vwidth + 1,                     // C 3251
+			      top_y, vwidth as c_uint, (bottom_y - top_y + 1) as c_uint); } // C 3252
+
+  /* Draw corners.  */                                                  // C 3254
+
+  if bot_p && left_p                                                    // C 3256
+    { android_fill_triangle (f, if raised_p { white_gc } else { black_gc },   // C 3257
+			     android_make_point (left_x, bottom_y - hwidth),   // C 3258
+			     android_make_point (left_x + vwidth,       // C 3259
+						 bottom_y - hwidth),   // C 3260
+			     android_make_point (left_x, bottom_y)); }   // C 3261
+
+  if top_p && right_p                                                   // C 3263
+    { android_fill_triangle (f, if raised_p { white_gc } else { black_gc },   // C 3264
+			     android_make_point (right_x - vwidth, top_y),   // C 3265
+			     android_make_point (right_x, top_y),       // C 3266
+			     android_make_point (right_x - vwidth,      // C 3267
+						 top_y + hwidth)); }   // C 3268
+
+  /* Draw outer line.  */                                               // C 3270
+
+  if top_p && left_p && bot_p && right_p                                // C 3272
+      && hwidth > 1 && vwidth > 1                                       // C 3273
+    { android_draw_rectangle (FRAME_ANDROID_DRAWABLE! (f),               // C 3274
+			      black_gc, left_x, top_y,                  // C 3275
+			      (right_x - left_x) as c_uint, (bottom_y - top_y) as c_uint); } // C 3276
+  else
+    {
+      if top_p && hwidth > 1                                            // C 3279
+	{ android_draw_line (drawable, black_gc, left_x, top_y,          // C 3280
+			     right_x + 1, top_y); }                    // C 3281
+
+      if bot_p && hwidth > 1                                            // C 3283
+	{ android_draw_line (drawable, black_gc, left_x, bottom_y,       // C 3284
+			     right_x + 1, bottom_y); }                 // C 3285
+
+      if left_p && vwidth > 1                                           // C 3287
+	{ android_draw_line (drawable, black_gc, left_x, top_y,          // C 3288
+			     left_x, bottom_y + 1); }                  // C 3289
+
+      if right_p && vwidth > 1                                          // C 3291
+	{ android_draw_line (drawable, black_gc, right_x, top_y,         // C 3292
+			     right_x, bottom_y + 1); }                 // C 3293
+    }
+
+  /* Erase corners.  */                                                 // C 3296
+
+  if hwidth > 1 && vwidth > 1                                           // C 3298
+    {
+      if left_p && top_p && android_inside_rect_p (clip_rect, 1,       // C 3300
+						   left_x, top_y)      // C 3301
+	{ android_clear_point (f, normal_gc, left_x, top_y); }          // C 3302
+
+      if left_p && bot_p && android_inside_rect_p (clip_rect, 1,       // C 3304
+						   left_x, bottom_y)   // C 3305
+	{ android_clear_point (f, normal_gc, left_x, bottom_y); }       // C 3306
+
+      if right_p && top_p && android_inside_rect_p (clip_rect, 1,      // C 3308
+						    right_x, top_y)    // C 3309
+	{ android_clear_point (f, normal_gc, right_x, top_y); }         // C 3310
+
+      if right_p && bot_p && android_inside_rect_p (clip_rect, 1,      // C 3312
+						    right_x, bottom_y)   // C 3313
+	{ android_clear_point (f, normal_gc, right_x, bottom_y); }      // C 3314
+    }
+
+  android_reset_clip_rectangles (f, white_gc);                          // C 3317
+  android_reset_clip_rectangles (f, black_gc);                          // C 3318
+}
+
+/* C 3321-3355.  `static`; only called (C 3514).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_box_rect (s: *mut glyph_string,
+				 left_x: c_int, top_y: c_int, right_x: c_int, bottom_y: c_int,
+				 hwidth: c_int, vwidth: c_int, left_p: bool, right_p: bool,
+				 clip_rect: *mut android_rectangle)
+{
+  let mut xgcv: android_gc_values = std::mem::zeroed ();                // C 3327
+
+  android_get_gc_values ((*s).gc as *mut android_gc, ANDROID_GC_FOREGROUND, &raw mut xgcv);   // C 3329
+  android_set_foreground ((*s).gc as *mut android_gc, (*( (*s).face as *mut face )).box_color);   // C 3330
+  android_set_clip_rectangles ((*s).gc as *mut android_gc, 0, 0, clip_rect, 1);   // C 3331
+
+  /* Top.  */                                                           // C 3333
+  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc, left_x,   // C 3334
+			  top_y, (right_x - left_x + 1) as c_uint, hwidth as c_uint); // C 3335
+
+  /* Left.  */                                                          // C 3337
+  if left_p                                                             // C 3338
+    { android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc, left_x,   // C 3339
+			      top_y, vwidth as c_uint, (bottom_y - top_y + 1) as c_uint); } // C 3340
+
+  /* Bottom.  */                                                        // C 3342
+  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc, left_x,   // C 3343
+			  bottom_y - hwidth + 1, (right_x - left_x + 1) as c_uint, // C 3344
+			  hwidth as c_uint);                            // C 3345
+
+  /* Right.  */                                                         // C 3347
+  if right_p                                                            // C 3348
+    { android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc,   // C 3349
+			      right_x - vwidth + 1, top_y, vwidth as c_uint, // C 3350
+			      (bottom_y - top_y + 1) as c_uint); }      // C 3351
+
+  android_set_foreground ((*s).gc as *mut android_gc, xgcv.foreground);   // C 3353
+  android_reset_clip_rectangles ((*s).f, (*s).gc as *mut android_gc);     // C 3354
+}
+
+/* C 3357: `#define HIGHLIGHT_COLOR_DARK_BOOST_LIMIT 48000` - C's `int` constant (the missing
+   `missing macro`/`missing constant` pair of the inventory row).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const HIGHLIGHT_COLOR_DARK_BOOST_LIMIT: c_int = 48000;              // C 3357
