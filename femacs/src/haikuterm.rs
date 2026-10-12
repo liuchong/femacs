@@ -6459,11 +6459,16 @@ pub unsafe extern "C" fn haiku_term_init () -> *mut haiku_display_info
   ASSIGN_CURSOR! (bottom_left_corner_cursor, CURSOR_ID_RESIZE_SOUTH_WEST);  // C 4528
   ASSIGN_CURSOR! (no_cursor, CURSOR_ID_NO_CURSOR);                     // C 4529
 
+  /* C 4536/4542/4547's `"<PACKAGE_NAME>"` is the placeholder form of the name *this* program
+     calls itself: PORTING.md 0.1-19's name half (status 3.433/3.599) puts this repository's own
+     name in a default display name, and `src/androidfns.rs` 1277 (`fset_name`'s default) and
+     `src/xterm.rs` 20484 (C 31017's `title[]`) carry the same substitution.  C 4536's `sizeof`
+     keeps the reference's size, as `src/xterm.rs` 20095's note puts it for its own pair.  */
   system_name = Fsystem_name ();                                      // C 4532
 
   if STRINGP (system_name)                                            // C 4534
     {
-      nbytes = (std::mem::size_of::<[c_char; 10]> ()                     // C 4536 (`sizeof "GNU Emacs"`
+      nbytes = (std::mem::size_of::<[c_char; 10]> ()                     // C 4536 (`sizeof "<PACKAGE_NAME>"`
 		+ std::mem::size_of::<[c_char; 5]> ()) as ptrdiff_t;     //  + `sizeof " at "`)
       {                                                                 // C 4538
 	let nbytes_ = nbytes.overflowing_add (SBYTES (system_name) as ptrdiff_t);
@@ -6474,12 +6479,12 @@ pub unsafe extern "C" fn haiku_term_init () -> *mut haiku_display_info
 
       name_buffer = sa_stack_alloc (nbytes as usize) as *mut c_void;     // C 4541 (PORTING.md P-05's
 									//  `alloca` alias)
-      sprintf (name_buffer as *mut c_char, c"%s%s%s".as_ptr (), c"GNU Emacs".as_ptr (),   // C 4542
+      sprintf (name_buffer as *mut c_char, c"%s%s%s".as_ptr (), c"femacs".as_ptr (),   // C 4542
 	       c" at ".as_ptr (), SDATA (system_name));                  // C 4543
       (*dpyinfo).default_name = build_string (name_buffer as *const c_char);   // C 4544
     }
   else
-    { (*dpyinfo).default_name = build_string (c"GNU Emacs".as_ptr ()); }   // C 4547
+    { (*dpyinfo).default_name = build_string (c"femacs".as_ptr ()); }   // C 4547
 
   haiku_start_watching_selections ();                                 // C 4549
 

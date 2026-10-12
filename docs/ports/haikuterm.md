@@ -653,6 +653,14 @@ mirror lines need), `cargo test`, `extract-abi --all`.
     is the second device this file uses for C's own reading order (the first is the per-slice
     preamble): nothing is reordered *within* a landed range, and the out-of-order block is a whole
     item.
+35. **C 4536/4542/4547's default display name carries this repository's own name, not the
+    reference's.**  A default display name is what *this* program calls itself, so PORTING.md
+    0.1-19's name half applies (status 3.433/3.599): C's `"<PACKAGE_NAME>"` is written `c"femacs"`
+    at both sites, exactly as `src/androidfns.rs` 1277 (`fset_name`'s default, C androidfns.c 921)
+    and `src/xterm.rs` 20484 (C 31017's `title[]`) already carry it, and C 4536's `sizeof` keeps
+    the reference's size (the `src/xterm.rs` 20095 note's rule for its own pair).  Round 28 below
+    is what found it: `tools/check-declarations.py` read the two sites as unregistered literals,
+    because slices 26/27 never registered or substituted them.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
@@ -2390,9 +2398,12 @@ store `dpyinfo as *mut c_void`; the two `*mut kboard` casts the sibling unit use
 declarations (`create_terminal`, `allocate_kboard`, `gui_init_fringe`, `be_create_cursor_from_id`,
 `fatal`); and **C's `ASSIGN_CURSOR` macro kept as a function-local `macro_rules!`** with its
 sixteen calls written as C's own lines.  C 4541's `alloca (nbytes)` is `sa_stack_alloc`
-(PORTING.md P-05), and C's `sizeof "GNU Emacs" + sizeof " at "` is
+(PORTING.md P-05), and C's `sizeof "<PACKAGE_NAME>" + sizeof " at "` is
 `std::mem::size_of::<[c_char; 10]> () + std::mem::size_of::<[c_char; 5]> ()` (the tree's spelling of
-`sizeof "literal"`).
+`sizeof "literal"`, with the reference's own size kept).  C 4542/4547's `"<PACKAGE_NAME>"` itself is
+the *default display name* PORTING.md 0.1-19's name half names - this repository's own name goes
+there, as it does in `src/androidfns.rs` 1277 and `src/xterm.rs` 20484 - which is what round 28
+below carries.
 
 **Why the macro is kept.**  The first draft spelled the sixteen cursor assignments out, and the gate
 answered with **two** rows: `haiku_term_init does not mention alloca, assign_cursor, cursor,
@@ -2508,3 +2519,59 @@ reference) and `check-citations` (676 files scanned, 0 drift, 0 range) are green
   closure *is* is: every C line covered by the range table, `--check` reading `OK`, two arm readings
   (the default set and the `be_cairo` flip) each with 0 errors in this unit's own text, a control
   proving the harness reads the new text, and the ten gates green.
+
+## Round 28 (2026-10-08, status 4.110 - the integrator sets the round number): no new C range - C 4536/4542/4547's default display name, and the gate the closure round left red
+
+**What this round is.**  No C line changes hands: the range table still covers C 1-4898 and
+`--check` still reads `OK`.  What changes is one class of text - the *default display name* C
+4536/4542/4547 build - and the reason it changes now is a gate reading that slices 26/27 recorded as
+green.
+
+**Evidence ① - the gate was red at HEAD, and the closure round's claim was an over-claim.**
+`python3 tools/check-declarations.py` read, before this round's edit, **20 declaration sites
+(2 forbidden, 18 allowed literals), 4 failures**, naming all four: the `literal` at C 4542, the
+`literal` at C 4547 (neither registered in `docs/baseline/declarations-allowlist.tsv`), the `title`
+in this unit's C 4536 comment, and the `title` in this ledger's own Slice 26 prose.  The text landed
+in slice 26 (C 4406-4569); slice 27's `## Slice 27` section reads "the ten gates green" without
+printing this gate's number, and the reading above is the one it should have printed.  The tree's
+own expectation is visible in the file: 18 sites, 18 allowlist rows.
+
+**Evidence ② - the fix is the name rule's placeholder half, not an allowlist row.**  A *default
+display name* is what this program calls itself, so PORTING.md 0.1-19's name half applies (status
+3.433/3.599) and this repository's own name goes there.  Two done units already carry exactly this
+substitution, both reading `OK`: `src/androidfns.rs` 1277 (`fset_name`'s default, C androidfns.c
+921) and `src/xterm.rs` 20484 (C 31017's `title[]`, whose 20095 note states the rule).  So C
+4542/4547 are written `c"femacs"`, both comments quote the placeholder form
+(`sizeof "<PACKAGE_NAME>"`), and C 4536's `sizeof` keeps the reference's size (10; the
+`src/xterm.rs` 20095 rule for its own pair).  After the edit the gate reads **18 declaration sites
+(0 forbidden, 18 allowed literals), 0 failures**.  No allowlist row is added: a row registers a
+product-name literal this repository has decided *not* to carry, and this literal is the class the
+rule substitutes rather than keeps.
+
+**Evidence ③ - the file's own gate does not move.**  `python3 tools/extract-abi.py --check
+emacs/src/haikuterm.c femacs/src/haikuterm.rs` still reads **`OK`** (no `missing …` row, no spelling
+row): the checker compares the item inventory and the registered body tokens, not the *contents* of a
+string literal, which is why the substitution adds nothing - measured, and the same reason
+`src/xterm.rs` reads `OK` with its own substitution in place.
+
+**Evidence ④ - the arm reading does not move either.**  `xtask probe` with `have_haiku` +
+`have_window_system`: **`exit 1`, `aborting due to 34 previous errors; 7 warnings emitted`** - the
+same 34/7 slices 24-27 record, and the errors are their registered classes (the `#[cfg
+(enable_checking)]` `eassert`/`eassume` family this probe does not enable, the mirror's
+`haiku_output_bits!` `E0308` pair, the `HAIKU_WIDGET` assertion's `E0080`).  A string literal cannot
+move a type checker's reading, so "34/7 unchanged" is the reading this change should produce, and it
+is the one measured.
+
+**Evidence ⑤ - the ten gates after the fix.**  `check-declarations` **18 declaration sites
+(0 forbidden, 18 allowed literals), 0 failures**; `check-own-voice` **0**; `check-mirror-dupes`
+**17/17/0**; `check-port-lines` **0 file(s) under ten percent / 0 ratchet row(s) / 0 stale**;
+`check-ledger-ticks` **238/0**; `check-carried` **11/11/4/0**; `check-verbatim` **6 trees / 4,604
+files / 8,463 sanctioned lines / 0 failures**; `check-verbatim-declarations` **734 candidates /
+0 failures**; `check-dead-file-coverage` **145/0**; `check-citations` **676 files / 0 drift /
+0 range / 2,556 external / 36 allowed / 0 stale**.
+
+**Not claimed.**  No runtime evidence, and none is possible on this machine (no Haiku SDK, no Haiku
+toolchain, the frozen configuration compiles none of this file).  The substitution *is* a deliberate
+difference from the reference at run time: a frame this port creates on that toolkit names itself
+`femacs` where the reference names itself the reference.  That is the name rule's own consequence,
+it is the only behavioural one this round has, and no frame was created here to observe it.
