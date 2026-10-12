@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**5,592 lines**, md5
-> `747fb9d9664403ce4d02c22c969b19c7`), carrying **C 1-4646**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**5,691 lines**, md5
+> `94f1ced785b8a2d4814c2d0edb5c51e0`), carrying **C 1-4718**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -19,8 +19,8 @@
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
-the redisplay interface's dispatcher is past this
-> slice, C 4649's `android_define_frame_cursor`).
+the next whole-item boundary is
+> `android_draw_hollow_cursor`, C 4721).
 
 ## Gate mapping
 
@@ -164,7 +164,10 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 4208-4239 | C 4208-4210's comment and `android_draw_dash` | real arm (slice 10) |
 | 4241-4280 | C 4241-4243's comment and `android_fill_underline` (C 4268's `FALLTHROUGH`) | real arm (slice 10) |
 | 4282-4646 | C 4282's `static void` and `android_draw_glyph_string` (C 4338-4379's `switch`, the underline/overline/strike-through arithmetic, C 4568's `FRAME_ANDROID_WINDOW`) | real arm (slice 11) |
-| 4648-7117 | **the remainder of the file** - from C 4648's `static void` above `android_define_frame_cursor` (C 4649) to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4648-4657 | C 4648's `static void` and `android_define_frame_cursor` | real arm (slice 12) |
+| 4659-4665 | `android_clear_frame_area` | real arm (slice 12) |
+| 4667-4718 | C 4667's non-`static` `void` and `android_clear_under_internal_border` (C 4677-4685's nested `?:`) | real arm (slice 12) |
+| 4720-7117 | **the remainder of the file** - from C 4720's `static void` above `android_draw_hollow_cursor` (C 4721) to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -360,10 +363,9 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 4648-7117.**  Slice 11 wrote C 4282-4646 (the redisplay
-   interface's dispatcher), so the next slice's rows must replace this table's last row; its first
-   definition is `android_define_frame_cursor` (C 4649), the first of the redisplay interface's
-   callbacks after the dispatcher.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 4720-7117.**  Slice 12 wrote C 4648-4718 (the cursor callback,
+   the area clear and the internal-border clear), so the next slice's rows must replace this table's
+   last row; its first definition is `android_draw_hollow_cursor` (C 4721).  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -483,6 +485,12 @@ slice's basis).  All 116 are in the owed list below.
    `src/xfaces.c`'s).  This unit's include graph reaches dispextern.h's window-system-facing names
    but not that one, so it stands at its use site (P-72 rule 4) - the Owed 23 family.
 
+26. **One use-site declaration and one module path** (slice 12): `lookup_basic_face`
+   (dispextern.h 3813, `src/xfaces.c`'s) stands at its use site (the Owed 23/25 family), and
+   `FACE_FROM_ID_OR_NULL` (frame.h 1656, an `INLINE` function of the frame mirror's
+   `frame_face_accessors` module) is reached through that module's path - the `src/fontset.rs`
+   1956 and `src/dispnew.rs` 4021 forms of the same two names.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -498,8 +506,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-4646 is now ported** (slices 4-11,
-each with its own Evidence section below); C 4648-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-4718 is now ported** (slices 4-12,
+each with its own Evidence section below); C 4720-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -990,3 +998,39 @@ member points at.
 - **`font_for_underline_metrics`** is declared at the use site (Owed 25) and every bitmap
   `bool_bf` member goes through its accessor (`for_overlaps`, `background_filled_p`,
   `stippled_p`, and the row's `mode_line_p`/`tab_line_p`/`stipple_p`).
+
+## 2026-10-12: slice 12 (C 4648-4718) - the cursor callback and the two clears
+
+`android_define_frame_cursor`, `android_clear_frame_area` and
+`android_clear_under_internal_border`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The first draft's own readings were `lookup_basic_face`'s and `FACE_FROM_ID_OR_NULL`'s absence
+   from this unit's include glob (the first a use-site declaration, the second the frame mirror's
+   `frame_face_accessors::` path - Owed 26).
+2. **One `does not mention` row appeared and was discharged in this commit**:
+   `android_define_frame_cursor` → `android,output_data` (C 4652-4653/4656's
+   `f->output_data.android->…` are the port's `(*x).…` with
+   `x = FRAME_ANDROID_OUTPUT! (f) as *mut android_output`, so the two tokens sit behind that
+   macro's name) - the row of `docs/ports/macro-body-notes.tsv`, the
+   `pgtk_toggle_invisible_pointer` row's shape.
+3. **Inventory**: 36 rows -> **33** - the three `missing function` rows this slice lands retire, and
+   what stands is the file's 27 remaining definitions (25 live ones past this slice, plus
+   `android_notify_conversion` and `syms_of_androidterm`), the five file-scope objects, and the
+   line-count row, which reads **20.0%** (C 7,117 against the port's 5,691).
+
+### Deviations this slice adds
+
+- **`android_clear_under_internal_border`** is C's one non-`static` definition of this slice and no
+  address is taken: `#[unsafe(no_mangle)]` with the C ABI (PORTING.md 0.2, the
+  `android_show_hourglass` shape).
+- **C 4677-4685's nested `?:`** is the port's nested `if`/`else` in C's order (the
+  `src/haikuterm.rs` 6877-6892 reading of the same C text) with `Vface_remapping_alist`, the
+  use-site `lookup_basic_face` and `frame_face_accessors::FACE_FROM_ID_OR_NULL` (Owed 26).
+- **The four `android_fill_rectangle`/`android_clear_area` argument lists** carry C's `int`
+  geometry as `as c_uint` (the mirror's prototypes take `c_uint` widths and heights), and
+  `Emacs_Cursor` is the cursor handle of the Android mirror (`include/androidgui.rs` 60,
+  `include/androidterm.rs` 283).

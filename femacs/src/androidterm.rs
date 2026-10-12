@@ -5590,3 +5590,102 @@ unsafe fn android_draw_glyph_string (s: *mut glyph_string)
       && ! glyph_row_bits! (stipple_p, (*s).row)                        // C 4644
     { glyph_row_bits! (stipple_p, (*s).row, glyph_string_bits! (stippled_p, (*s))); }   // C 4645
 }
+
+/* One name this text needs is not in the frozen mirrors' glob, so it stands at its use site
+   below (P-72 rule 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3813: `int lookup_basic_face (struct window *, struct frame *, int);`
+  /// (xfaces.c)
+  pub fn lookup_basic_face (w: *mut window, f: *mut frame, face_id: c_int) -> c_int;
+}
+
+/* C 4648-4657: `android_define_frame_cursor`.  `static`; the redisplay interface's
+   `define_frame_cursor` member points at it (C 5016).  `f->pointer_invisible` is the frame's own
+   folded `bool_bf` (this unit's `pointer_invisible!`), and `Emacs_Cursor` is the cursor handle the
+   mirror's `android_output.current_cursor` field carries (`include/androidterm.rs` 283).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+{
+  let x: *mut android_output = FRAME_ANDROID_OUTPUT! (f) as *mut android_output;
+
+  if ! pointer_invisible! (f)                                          // C 4651
+      && ! (*x).hourglass                                              // C 4652
+      && (*x).current_cursor != cursor                                 // C 4653
+    { android_define_cursor (FRAME_ANDROID_WINDOW! (f), cursor); }     // C 4654
+
+  (*x).current_cursor = cursor;                                        // C 4656
+}
+
+/* C 4659-4665: `android_clear_frame_area`.  `static`; the redisplay interface's
+   `clear_frame_area` member points at it (C 5017).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_clear_frame_area (f: *mut frame, x: c_int, y: c_int,
+				    width: c_int, height: c_int)
+{
+  android_clear_area (FRAME_ANDROID_DRAWABLE! (f),                     // C 4663
+		      x, y, width as c_uint, height as c_uint);        // C 4664
+}
+
+/* C 4667-4718: `android_clear_under_internal_border`.  Non-`static` in C and no address is
+   taken: `#[unsafe(no_mangle)]` with the C ABI (PORTING.md 0.2).  C 4677-4685's nested `?:` is
+   the port's nested `if`/`else` (the `src/haikuterm.rs` 6877-6892 reading of the same text), and
+   `Vface_remapping_alist` is the globals mirror's and `FACE_FROM_ID_OR_NULL` the frame mirror's own
+   module path.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+unsafe extern "C" fn android_clear_under_internal_border (f: *mut frame)
+{
+  if FRAME_INTERNAL_BORDER_WIDTH (f) > 0                               // C 4670
+    {
+      let border: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);             // C 4672
+      let width: c_int = FRAME_PIXEL_WIDTH (f);                        // C 4673
+      let height: c_int = FRAME_PIXEL_HEIGHT (f);                      // C 4674
+      let margin: c_int = FRAME_TOP_MARGIN_HEIGHT (f);                 // C 4675
+      let bottom_margin: c_int = FRAME_BOTTOM_MARGIN_HEIGHT (f);       // C 4676
+      let face_id: c_int = if ! FRAME_PARENT_FRAME (f).is_null ()      // C 4677
+	{ if ! NILP (Vface_remapping_alist)                            // C 4678
+	    { lookup_basic_face (std::ptr::null_mut (), f,             // C 4679
+				 CHILD_FRAME_BORDER_FACE_ID) }         // C 4680
+	  else
+	    { CHILD_FRAME_BORDER_FACE_ID } }                           // C 4681
+	else
+	{ if ! NILP (Vface_remapping_alist)                            // C 4682
+	    { lookup_basic_face (std::ptr::null_mut (), f,             // C 4683
+				 INTERNAL_BORDER_FACE_ID) }            // C 4684
+	  else
+	    { INTERNAL_BORDER_FACE_ID } };                             // C 4685
+      let face: *mut face = frame_face_accessors::FACE_FROM_ID_OR_NULL (f, face_id);   // C 4686
+
+      if ! face.is_null ()                                             // C 4688
+	{
+	  let color: c_ulong = (*face).background;                      // C 4690
+	  let gc: *mut android_gc
+	    = (*( (*f).output_data.android as *mut android_output )).normal_gc;   // C 4691
+
+	  android_set_foreground (gc, color);                           // C 4693
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, 0, margin,   // C 4694
+				  width as c_uint, border as c_uint);   // C 4695
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, 0, 0,   // C 4696
+				  border as c_uint, height as c_uint);   // C 4697
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, width - border,   // C 4698
+				  0, border as c_uint, height as c_uint);   // C 4699
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, 0,   // C 4700
+				  height - bottom_margin - border,      // C 4701
+				  width as c_uint, border as c_uint);   // C 4702
+	  android_set_foreground (gc, FRAME_FOREGROUND_PIXEL (f));      // C 4703
+	}
+      else
+	{
+	  android_clear_area (FRAME_ANDROID_DRAWABLE! (f), 0, 0,        // C 4707
+			      border as c_uint, height as c_uint);      // C 4708
+	  android_clear_area (FRAME_ANDROID_DRAWABLE! (f), 0,           // C 4709
+			      margin, width as c_uint, border as c_uint);   // C 4710
+	  android_clear_area (FRAME_ANDROID_DRAWABLE! (f), width - border,   // C 4711
+			      0, border as c_uint, height as c_uint);   // C 4712
+	  android_clear_area (FRAME_ANDROID_DRAWABLE! (f), 0,          // C 4713
+			      height - bottom_margin - border,         // C 4714
+			      width as c_uint, border as c_uint);      // C 4715
+	}
+    }
+}
