@@ -54,11 +54,19 @@
 > conversion - and `notifyPixelsChanged`), together with C 63's `<android/bitmap.h>` stand-in
 > (the record in a module of its own, the three functions and the format constant; the NDK
 > header has no mirror), so **3,002 C lines are carried** (in a 3,372-line port, md5
-> `7446c34def4b9afe48efa82b51cbf4e7`) **except that one hole**.  **The next live definition is
-> C 3011's `NATIVE_NAME (queryPointerBitmap)`**, the first of the three deadlock-prevention
-> entries C 3006-3008's forward declarations name; the table's last row is the remainder
-> (C 3003-7594) and slices 3-11's own readings are in the dated sections at the end of this
-> file.
+> `7446c34def4b9afe48efa82b51cbf4e7`) **except that one hole**.  **Slice 12 (C 3003-3008 and C 3034-3071, 2026-10-12)** carries C 3004's comment with
+> C 3006-3008's three `static void` prototypes, the system-thread comment and
+> `NATIVE_NAME (setupSystemThread)` (C 3041-3063, whose `(void)` parameter list the port keeps),
+> the `#pragma` pop region of C 3065-3069 and C 3070-3071's blank and form feed - **except
+> C 3010-3032**, the three one-line deadlock-prevention entries, which are a **blocked row**
+> (their callees are the C 7047/7067/7092 definitions, which the port has not reached; C
+> resolves that through its own forward declarations at C 3006-3008, a Rust crate at compile
+> time - see Owed 13).  The slice also adds the `bionic_signal` module that carries the Android
+> arm's `<signal.h>` values for C 3053/3058.  So **3,010 C lines are carried** (in a 3,451-line
+> port, md5 `d7a4542a5633462822fd3741f69f0634`) **except that hole and that blocked row**.  **The
+> next live definition is C 3084's `android_destroy_handle`**; the table's last row is the
+> remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
+> this file.
 
 ## Gate mapping
 
@@ -220,7 +228,13 @@ no `window.h`).
 | 2890-2983 | `NATIVE_NAME (blitRect)` (C 2895-2897's five declarations, C 2903-2904's two `memset`s, C 2928/2955's two `goto`s and C 2939-2953's four clipping tests) | real arm (slice 11) |
 | 2984 | the blank | real arm (slice 11) |
 | 2985-3002 | `NATIVE_NAME (notifyPixelsChanged)` | real arm (slice 11) |
-| 3003-7594 | **the remainder** - from C 3003's blank and C 3004's `/* Forward declarations of deadlock prevention functions.  */` (C 3006-3008's three `static` prototypes, C 3010's `JNIEXPORT void JNICALL`, C 3011's `NATIVE_NAME (queryPointerBitmap)`, **the next live definition**) through C 7594's `#endif`: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
+| 3003-3008 | C 3003's blank, C 3004's comment and C 3006-3008's three `static void` forward declarations (`android_begin_query`, `android_end_query`, `android_answer_query_spin`) | real arm (slice 12; a forward declaration has no Rust item) |
+| 3010-3032 | `NATIVE_NAME (beginSynchronous)`, `endSynchronous` and `answerQuerySpin` | **blocked** (Owed 13: their three callees are C 7047/7067/7092, not carried yet - C's link-time forward declarations are a Rust compile-time dependency) |
+| 3034-3040 | C 3034's form feed, the blank and C 3036-3039's system-thread comment | real arm (slice 12) |
+| 3041-3063 | `NATIVE_NAME (setupSystemThread)` (C's own `(void)` parameter list; C 3053/3058 read the `bionic_signal` values) | real arm (slice 12) |
+| 3065-3069 | the `#pragma clang diagnostic pop` / `#else` / `#pragma GCC diagnostic pop` / `#endif` region | real arm (slice 12; recorded - a pragma has no Rust counterpart) |
+| 3070-3071 | the blank and C 3071's form feed | real arm (slice 12) |
+| 3072-7594 | **the remainder** - from C 3072's blank and C 3073-3079's `/* Java functions called by C. … */` comment (C 3084's `android_destroy_handle`, **the next live definition**) through C 7594's `#endif`: the rest of the JNI entry points, the deadlock-prevention machinery at C 6880-7096 (which unblocks the C 3010-3032 row), the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -569,6 +583,16 @@ readings exist only with `android_api_lt_21` selected.
    moves need `tools/check-all-units.sh` (P-87): until they land, this unit's declarations are the
    only definitions in play.
 
+13. **The deadlock-prevention machinery (C 6880-7096) unblocks the C 3010-3032 row.**  Slice 12's
+   three one-line entries call `android_begin_query` (C 7067), `android_end_query` (C 7092) and
+   `android_answer_query_spin` (C 7047), whose bodies read `android_servicing_query` (C 6886),
+   `android_query_function` (C 6889) and `android_query_context` (C 6892) - the two `missing
+   file-scope object` rows `--check` prints - and call `android_check_query` (C 6942) and
+   `android_answer_query` (C 7016).  C links through C 3006-3008's forward declarations; a Rust
+   crate needs the definitions first, so the machinery slice carries C 6880-7096 **and** then
+   C 3010-3032 (the `PORTING.md` §8 `__atomic_*` device is already in the tree:
+   `femacs/src/androidterm.rs` 6163/8057).
+
 12. **The `android_lock_bitmap` call sites (C 3954/4460/4468/4482 and the definition at C 5601) will
    need the tag spelling slice 11's record settled.**  C's `android_lock_bitmap` (declared in
    `src/android.h`, mirror `femacs/src/include/android.rs` 269) takes the *opaque* `<android/bitmap.h>`
@@ -595,12 +619,14 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-11's C lines (C 1038-2084, C 2194-2253,
-C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888 and C 2890-3002) are
-carried; the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) plus
-C 3003-7594, and `extract-abi.py --check`'s remaining `- missing …` list (115 `missing function`
-rows, the two file-scope objects and the thirty-seven `invented exported symbol` rows of
-Owed 9) and the 55.6% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`getline`, no event, no `select`.  Slices 2-12's C lines (C 1038-2084, C 2194-2253,
+C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002 and
+C 3003-3008 + C 3034-3071) are carried; the **unported** part is C 2086-2192 (blocked on P-05's
+`alloca` decision), C 3010-3032 (blocked on Owed 13's machinery) plus C 3072-7594, and
+`extract-abi.py --check`'s remaining `- missing …` list (115 `missing function` rows, the two
+file-scope objects - `android_servicing_query` and `android_query_context`, both of Owed 13's
+machinery - and the thirty-eight `invented exported symbol` rows of Owed 9) and the 54.6% drift
+are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -977,3 +1003,46 @@ against the port's 3,372).
 - **`notifyPixelsChanged` returns `void`** in C, so the port's item is `-> ()` (there is no `jlong`),
   and its `data` local is C-uninitialised, zeroed at the declaration with C 2991 marked - C 2991 sits
   *after* the prologue and the port keeps that order.
+
+## 2026-10-12: slice 12 (C 3003-3008 and C 3034-3071) - the system-thread entry and the pragma pop
+
+`NATIVE_NAME (setupSystemThread)` and everything around it up to C 3071, with C 3010-3032 recorded
+as a blocked row.
+
+### Evidence (this slice's readings)
+
+**㉑ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **third** probe: the first read five errors - two at the new
+`bionic_signal` module's `c_int` (a module does not inherit the crate root's `use std::ffi::{…}`, so
+the two constants are spelled through `core::ffi`, the `limits.in.rs` 53-57 device) and three at the
+C 3010-3032 entries, whose callees the port has not carried - and the second read 0 errors after
+both were addressed (the module fixed, the three entries recorded instead of carried).
+
+**㉒ The checklist reading.**  `extract-abi.py --check`: the `missing function` count is
+**unchanged at 115** (`setupSystemThread` is a `NATIVE_NAME` definition - the Owed 9 class
+⑫/⑭/⑯/⑱/⑳ record), the one new **`invented exported symbol`** row brings that count to **38**,
+there are **0 `does not mention`**, **0 `missing macro`** and **0 `missing constant`**, the
+line-count row reads **54.6%** (C 7,594 against the port's 3,451), and the two `missing file-scope
+object` rows (`android_servicing_query`, `android_query_context`) are now *named* by Owed 13 as the
+machinery's.
+
+### Deviations this slice adds
+
+- **C 3010-3032 is recorded, not carried** (the blocked row): the three entries' callees are
+  C 7047/7067/7092, which the port has not reached.  C's own forward declarations at C 3006-3008
+  resolve that at link time; a Rust crate resolves it at compile time, so the entries wait for the
+  machinery slice (Owed 13).  The comment that carries C 3004's note says so at the site.
+- **C 3042's `(void)` parameter list is kept**: Java passes the usual `JNIEnv *`/`jobject` pair and
+  C's definition names neither, so this port's item takes none either (its export name still carries
+  the name the JVM looks up).
+- **C 3053/3058 read two Android-arm `<signal.h>` values**, and the frozen `lib/include/signal.rs`
+  mirror (the Darwin header) carries the frozen target's numbers instead: `SIGBUS` 10 against
+  bionic's 7 and `SIG_BLOCK` 1 against bionic's 0 (both measured on this machine's NDK 29.0.14206865
+  with `clang --target=aarch64-linux-android24 -dM -E -include signal.h`; `SIGSEGV` is 11 on both, so
+  the mirror's own name is used for it).  The two Android values live in this unit's `bionic_signal`
+  module - a module-local declaration is a different scope, so the mirror's `SIGBUS`/`SIG_BLOCK` and
+  the Android arm's values can both exist (the slice 11 `android_bitmap` device; the mirror round of
+  Owed 6/7 removes it).
+- **`pthread_sigmask (...) != 0`** is the port's spelling of C's `if (pthread_sigmask (…))` (the
+  `android.rs` 655 shape), and the log call is the `__func__` device of slice 5
+  (`let __func__: *const c_char = c"setupSystemThread".as_ptr ();`) with `strerror (*errno ())`.

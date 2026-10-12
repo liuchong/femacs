@@ -3370,3 +3370,82 @@ pub unsafe extern "C" fn notifyPixelsChanged (env: *mut JNIEnv, object: jobject,
 
   AndroidBitmap_unlockPixels (env, bitmap);                            // C 3001
 }
+
+/* C 3003-3008: the blank, C 3004's `/* Forward declarations of deadlock prevention functions.  */`
+   and C 3006-3008's three `static void` prototypes (`android_begin_query`, `android_end_query`,
+   `android_answer_query_spin`).  A Rust item needs no forward declaration - one crate sees the
+   whole file, so the three definitions live further down it - the `android_run_select_thread`
+   device of C 339 in this same unit.  */
+
+/* C 3010-3032: the three one-line deadlock-prevention entries Java calls on the UI thread -
+   `NATIVE_NAME (beginSynchronous)`, `endSynchronous` and `answerQuerySpin`, each C's `JNIEXPORT
+   void JNICALL` with a one-call body (`android_begin_query ()` / `android_end_query ()` /
+   `android_answer_query_spin ()`).  **Recorded, not carried**: those three callees are the
+   definitions at C 7067/7092/7047, and the port has not reached them yet (they sit in the
+   deadlock-prevention machinery around C 6880-7096, together with the file-scope objects
+   `android_servicing_query`/`android_query_function`/`android_query_context`).  C resolves the
+   dependency at link time through C 3006-3008's forward declarations; a Rust crate resolves it at
+   compile time, so these three entries cannot be carried before the machinery - the ledger's
+   range table records the range as a blocked row and the machinery slice carries both.  */
+
+/* C 3034-3040: C 3034's form feed, the blank and C 3036-3039's comment `/* System thread setup.
+   Android doesn't always block signals Emacs is interested in ...  */`.  */
+
+/* C 3041-3063: `NATIVE_NAME (setupSystemThread)`.  C's own definition takes `(void)`: Java passes
+   the usual two arguments and C names neither, so this port's item takes none either.  The two
+   constants the body reads are the Android arm's `<signal.h>` values, which is why they are
+   spelled through `bionic_signal` below (C 3053/3058).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_setupSystemThread")]
+pub unsafe extern "C" fn setupSystemThread ()
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 3044
+
+  let mut sigset: sigset_t = std::mem::zeroed ();                       // C 3046 (PORTING.md 1.5)
+
+  /* Block everything except for SIGSEGV and SIGBUS; those two are
+     used by the runtime.  */                                           // C 3048-3049
+
+  sigfillset (&raw mut sigset);                                         // C 3051
+  sigdelset (&raw mut sigset, SIGSEGV);                                 // C 3052
+  sigdelset (&raw mut sigset, bionic_signal::SIGBUS);                   // C 3053 (bionic 7, below)
+
+  /* Save the signal mask that was previously used.  It will be
+     restored in `initEmacs'.  */                                       // C 3055-3056
+
+  if pthread_sigmask (bionic_signal::SIG_BLOCK, &raw mut sigset,
+		      &raw mut startup_signal_mask) != 0                    // C 3058 (bionic 0, below)
+    {
+      let __func__: *const c_char = c"setupSystemThread".as_ptr ();
+      __android_log_print (ANDROID_LOG_WARN, __func__,                  // C 3059
+			   c"pthread_sigmask: %s".as_ptr (),
+			   strerror (*errno ()));                               // C 3060
+    }
+  else
+    { signal_mask_changed_p = true; }                                   // C 3062
+}
+
+/* C 3065-3069: the `#pragma clang diagnostic pop` / `#else` / `#pragma GCC diagnostic pop` /
+   `#endif` region that closes the pair C 1453-1459 opened.  A pragma has no Rust counterpart and
+   the port emits none either way (the process.rs 340 / timefns.rs 79-81 precedent; C 1453-1459's
+   row in this ledger is the same reading).  */
+
+/* C 3070-3071: the blank and C 3071's form feed.  */
+
+/* The two names below are the Android arm's `<signal.h>` values, which the frozen
+   `lib/include/signal.rs` mirror (the Darwin header) cannot carry: it has `SIGBUS` 10 and
+   `SIG_BLOCK` 1, the frozen target's numbers, while bionic has 7 and 0.  They are measured on this
+   machine's NDK 29.0.14206865
+   (`clang --target=aarch64-linux-android24 -dM -E -include signal.h`: `#define SIGBUS 7`,
+   `#define SIG_BLOCK 0`), and `SIGSEGV` is 11 on both, so the mirror's own name is used for it.
+   A module of its own because `include!` is textual and the mirror already puts `SIGBUS`/`SIG_BLOCK`
+   in the crate root - a module-local declaration is a different scope, so the Android arm's value
+   and the frozen arm's value can both exist (the `android_bitmap` device of slice 11; the mirror
+   round that gives `include/signal.rs` its bionic arm removes this module).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub mod bionic_signal {
+  /// bionic `<signal.h>`: `#define SIGBUS 7` (the frozen mirror's Darwin `SIGBUS` is 10).
+  pub const SIGBUS: core::ffi::c_int = 7;
+  /// bionic `<signal.h>`: `#define SIG_BLOCK 0` (the frozen mirror's Darwin `SIG_BLOCK` is 1).
+  pub const SIG_BLOCK: core::ffi::c_int = 0;
+}
