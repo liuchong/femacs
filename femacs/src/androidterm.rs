@@ -3147,3 +3147,494 @@ unsafe extern "C" fn android_delete_terminal (terminal: *mut terminal)
 {
   error (c"Cannot terminate connection to Android display server".as_ptr ());   // C 2647
 }
+
+/* C 2652-3067: the redisplay-interface group C 2652 calls "RIF functions" - the scroll, the
+   window-line hook, the flush, the three clipping helpers, the fringe bitmap, and the glyph-string
+   GC/clipping setters.  Three names this text needs are not in the frozen mirrors, so they stand at
+   their use sites below (P-72 rule 4), and `window.h` 339-351's `pseudo_window_p` needs the
+   per-unit accessor pair the four sibling window-system units carry (the `src/androidfns.rs`
+   2953-2962 shape, which has the write arm only; this unit reads the member too).  */
+/* The five records and the two `draw_fringe_bitmap_params` accessors this slice's text names live
+   in `include/dispextern.rs` 2800-3684's `pub mod dispextern_unit_names` (behind
+   `dispextern_face_records`), which no glob import brings into this unit - the `src/abi_shim.rs`
+   2047 note's device.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+use dispextern_unit_names::{draw_fringe_bitmap_params, get_cursor_p, get_overlay_p};
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! window_bits {
+  (pseudo_window_p, $w:expr) => { window_bit ($w, WINDOW_PSEUDO_WINDOW_P_SHIFT) };
+  (pseudo_window_p, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }
+        else { (*($w)).bits & !(1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }; };
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3574-3575: `void window_box (struct window *, enum glyph_row_area,
+  /// int *, int *, int *, int *);`
+  pub fn window_box (w: *mut window, area: glyph_row_area, x: *mut c_int, y: *mut c_int,
+		     width: *mut c_int, height: *mut c_int);
+  /// C: dispextern.h 3657: `extern void gui_clear_cursor (struct window *);` (xdisp.c)
+  pub fn gui_clear_cursor (w: *mut window);
+  /// C: dispextern.h 3810: `void prepare_face_for_display (struct frame *, struct face *);`
+  pub fn prepare_face_for_display (f: *mut frame, face: *mut face);
+  /// C: dispextern.h 3661-3662: `extern int get_glyph_string_clip_rects (struct glyph_string *,
+  /// NativeRectangle *, int);` - `NativeRectangle` is this unit's `android_rectangle`
+  /// (androidgui.h 218; the mirror's own note, `include/dispextern.rs` 1733-1741).
+  pub fn get_glyph_string_clip_rects (s: *mut glyph_string, nr: *mut android_rectangle,
+				      max: c_int) -> c_int;
+}
+
+/* C 2654-2711.  `static`, and C 6672 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_scroll_run (w: *mut window, run: *mut run)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 2657
+  let mut x: c_int = 0;                                                 // C 2658
+  let mut y: c_int = 0;
+  let mut width: c_int = 0;
+  let mut height: c_int = 0;
+  let mut from_y: c_int = 0;
+  let mut to_y: c_int = 0;
+  let mut bottom_y: c_int = 0;
+
+  /* Get frame-relative bounding box of the text display area of W,
+     without mode lines.  Include in this box the left and right
+     fringe of W.  */                                                   // C 2660-2662
+  window_box (w, ANY_AREA, &raw mut x, &raw mut y, &raw mut width, &raw mut height);   // C 2663
+
+  from_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).current_y);              // C 2665
+  to_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).desired_y);                // C 2666
+  bottom_y = y + height;                                                // C 2667
+
+  if to_y < from_y                                                     // C 2669
+    {
+      /* Scrolling up.  Make sure we don't copy part of the mode
+	 line at the bottom.  */                                        // C 2671-2672
+      if from_y + (*run).height > bottom_y                             // C 2673
+	{ height = bottom_y - from_y; }                                // C 2674
+      else
+	{ height = (*run).height; }                                    // C 2676
+
+      /* Don't draw over the display parts above if destination is off
+         the top of the current window.  */                           // C 2678-2679
+      if to_y < y                                                      // C 2680
+	{
+	  let d: c_int = y - to_y;                                      // C 2682
+	  height -= d;                                                  // C 2683
+	  to_y += d;                                                    // C 2684
+	  from_y += d;                                                  // C 2685
+	}
+    }
+  else
+    {
+      /* Scrolling down.  Make sure we don't copy over the mode line.
+	 at the bottom.  */                                            // C 2690-2691
+      if to_y + (*run).height > bottom_y                               // C 2692
+	{ height = bottom_y - to_y; }                                  // C 2693
+      else
+	{ height = (*run).height; }                                    // C 2695
+    }
+
+  block_input ();                                                       // C 2698
+
+  /* Cursor off.  Will be switched on again in gui_update_window_end.  */   // C 2700
+  gui_clear_cursor (w);                                                 // C 2701
+
+  /* To avoid sequence point problems, make sure to only call
+     FRAME_ANDROID_DRAWABLE once.  */                                  // C 2703-2704
+  android_copy_area (FRAME_ANDROID_DRAWABLE! (f),                       // C 2705
+		     FRAME_ANDROID_WINDOW! (f),                        // C 2706
+		     (*( (*f).output_data.android as *mut android_output )).normal_gc,   // C 2707
+		     x, from_y, width as c_uint, height as c_uint, x, to_y);   // C 2708
+
+  unblock_input ();                                                     // C 2710
+}
+
+/* C 2713-2720.  `static`, and C 6673 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_after_update_window_line (w: *mut window,
+						       desired_row: *mut glyph_row)
+{
+  eassert! (! w.is_null ());                                            // C 2716
+
+  if ! glyph_row_bits! (mode_line_p, desired_row)                       // C 2718
+      && ! window_bits! (pseudo_window_p, w)                            // C 2718
+    { glyph_row_bits! (redraw_fringe_bitmaps_p, desired_row, true); }    // C 2719
+}
+
+/* C 2722-2734.  `static`, and C 6676 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_flip_and_flush (f: *mut frame)
+{
+  block_input ();                                                       // C 2725
+
+  if FRAME_ANDROID_NEED_BUFFER_FLIP! (f)                                // C 2727
+    { show_back_buffer (f); }                                          // C 2728
+
+  /* The frame is complete again as its contents were just
+     flushed.  */                                                      // C 2730-2731
+  (*( (*f).output_data.android as *mut android_output )).bits |= ANDROID_OUTPUT_COMPLETE;   // C 2732
+  unblock_input ();                                                     // C 2733
+}
+
+/* C 2736-2749.  `static`; called from C 3102, so a plain Rust-ABI item.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_clear_rectangle (f: *mut frame, gc: *mut android_gc, x: c_int,
+				   y: c_int, width: c_int, height: c_int)
+{
+  let mut xgcv: android_gc_values = std::mem::zeroed ();                // C 2740
+
+  android_get_gc_values (gc, (ANDROID_GC_BACKGROUND                    // C 2742
+			      | ANDROID_GC_FOREGROUND),                // C 2743
+			 &raw mut xgcv);                               // C 2744
+  android_set_foreground (gc, xgcv.background);                        // C 2745
+  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc,             // C 2746
+			  x, y, width as c_uint, height as c_uint);    // C 2747
+  android_set_foreground (gc, xgcv.foreground);                        // C 2748
+}
+
+/* C 2751-2755.  `static`; called from C 2894/3317/3318.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_reset_clip_rectangles (f: *mut frame, gc: *mut android_gc)
+{
+  android_set_clip_mask (gc, ANDROID_NONE as android_pixmap);                            // C 2754
+}
+
+/* C 2757-2777.  `static`; called from C 2789/4762/4820.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_clip_to_row (w: *mut window, row: *mut glyph_row,
+			       area: glyph_row_area, gc: *mut android_gc,
+			       rect_return: *mut android_rectangle)
+{
+  let mut clip_rect: android_rectangle = std::mem::zeroed ();           // C 2762
+  let mut window_x: c_int = 0;                                         // C 2763
+  let mut window_y: c_int = 0;
+  let mut window_width: c_int = 0;
+
+  window_box (w, area, &raw mut window_x, &raw mut window_y, &raw mut window_width,
+	      std::ptr::null_mut ());                                   // C 2765
+
+  clip_rect.x = window_x;                                              // C 2767
+  clip_rect.y = WINDOW_TO_FRAME_PIXEL_Y! (w, max (0, (*row).y)) as c_int;   // C 2768
+  clip_rect.y = max (clip_rect.y, window_y) as c_int;                   // C 2769
+  clip_rect.width = window_width as c_uint;                             // C 2770
+  clip_rect.height = (*row).visible_height as c_uint;                   // C 2771
+
+  android_set_clip_rectangles (gc, 0, 0, &raw mut clip_rect, 1);        // C 2773
+
+  if ! rect_return.is_null ()                                          // C 2775
+    { *rect_return = clip_rect; }                                      // C 2776
+}
+
+/* C 2779-2895.  `static`, and C 6680 takes its address.  C's `undo_clip:` label is the port's
+   labelled block (`break 'undo_clip` at C 2844), and `p->overlay_p`/`p->cursor_p` are the mirror's
+   `get_overlay_p`/`get_cursor_p` accessors (the `src/xterm.rs` 8761-8784 device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
+						 p: *mut draw_fringe_bitmap_params)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 2783
+  let gc: *mut android_gc = (*( (*f).output_data.android as *mut android_output )).normal_gc;   // C 2784
+  let face: *mut face = (*p).face;                                      // C 2785
+  let mut clip_rect: android_rectangle = std::mem::zeroed ();           // C 2786
+
+  /* Must clip because of partially visible lines.  */                   // C 2788
+  android_clip_to_row (w, row, ANY_AREA, gc, &raw mut clip_rect);        // C 2789
+
+  if (*p).bx >= 0 && ! get_overlay_p (p)                               // C 2791
+    {
+      /* In case the same realized face is used for fringes and for
+	 something displayed in the text (e.g. face `region' on
+	 mono-displays, the fill style may have been changed to
+	 ANDROID_FILL_SOLID in
+	 android_draw_glyph_string_background.  */                      // C 2793-2797
+      if (*face).stipple != 0                                          // C 2798
+	{
+	  android_set_fill_style ((*face).gc as *mut android_gc, ANDROID_FILL_OPAQUE_STIPPLED);   // C 2800
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), (*face).gc as *mut android_gc,   // C 2801
+				  (*p).bx, (*p).by, (*p).nx as c_uint, (*p).ny as c_uint);   // C 2802
+	  android_set_fill_style ((*face).gc as *mut android_gc, ANDROID_FILL_SOLID);   // C 2803
+
+	  glyph_row_bits! (stipple_p, row, true);                       // C 2805
+	}
+      else
+	{
+	  android_set_background ((*face).gc as *mut android_gc, (*face).background);   // C 2809
+	  android_clear_rectangle (f, (*face).gc as *mut android_gc, (*p).bx, (*p).by, (*p).nx, (*p).ny);   // C 2810
+	  android_set_foreground ((*face).gc as *mut android_gc, (*face).foreground);   // C 2811
+	}
+    }
+
+  'undo_clip: {
+  if (*p).which != 0                                                   // C 2815
+    {
+      let mut drawable: android_drawable;                               // C 2817
+      let mut bits: *mut c_char;
+      let mut pixmap: android_pixmap;                                   // C 2819
+      let mut clipmask: android_pixmap;
+      let mut gcv: android_gc_values = std::mem::zeroed ();             // C 2820
+      let mut background: c_ulong = 0;                                  // C 2821
+      let mut cursor_pixel: c_ulong = 0;
+      let mut depth: c_int = 0;                                         // C 2822
+      let mut image_rect: android_rectangle = std::mem::zeroed ();      // C 2823
+      let mut dest: android_rectangle = std::mem::zeroed ();
+      let mut px: c_int = 0;                                            // C 2824
+      let mut py: c_int = 0;
+      let mut pwidth: c_int = 0;
+      let mut pheight: c_int = 0;
+
+      drawable = FRAME_ANDROID_DRAWABLE! (f);                           // C 2826
+      clipmask = ANDROID_NONE as android_pixmap;                                          // C 2827
+      background = (*face).background;                                  // C 2828
+      cursor_pixel = (*( (*f).output_data.android as *mut android_output )).cursor_pixel;   // C 2829
+      depth = (*FRAME_DISPLAY_INFO! (f)).n_image_planes;                 // C 2830
+
+      /* Intersect the destination rectangle with that of the row.
+	 Setting a clip mask overrides the clip rectangles provided by
+	 android_clip_to_row, so clipping must be performed by
+	 hand.  */                                                      // C 2832-2835
+
+      image_rect.x = (*p).x;                                            // C 2837
+      image_rect.y = (*p).y;                                            // C 2838
+      image_rect.width = (*p).wd as c_uint;                             // C 2839
+      image_rect.height = (*p).h as c_uint;                             // C 2840
+
+      if ! gui_intersect_rectangles (&raw const clip_rect as *const Emacs_Rectangle,
+				&raw const image_rect as *const Emacs_Rectangle,
+				&raw mut dest as *mut Emacs_Rectangle)   // C 2842
+	/* The entire destination rectangle falls outside the row.  */    // C 2843
+	{ break 'undo_clip; }                                            // C 2844
+
+      /* Extrapolate the source rectangle from the difference between
+	 the destination and image rectangles.  */                      // C 2846-2847
+
+      px = dest.x - image_rect.x;                                       // C 2849
+      py = dest.y - image_rect.y;                                       // C 2850
+      pwidth = dest.width as c_int;                                     // C 2851
+      pheight = dest.height as c_int;                                   // C 2852
+
+      if (*p).wd > 8                                                    // C 2854
+	{ bits = ((*p).bits.offset ((*p).dh as isize)) as *mut c_char; }   // C 2855
+      else
+	{ bits = ((*p).bits as *mut c_char).offset ((*p).dh as isize); }   // C 2857
+
+      pixmap = android_create_pixmap_from_bitmap_data (bits, (*p).wd as c_uint,
+						       (*p).h as c_uint,   // C 2859
+						       (if get_cursor_p (p)   // C 2860
+							  { if get_overlay_p (p)   // C 2861
+							      { (*face).background }   // C 2862
+							    else { cursor_pixel } }   // C 2863
+							else { (*face).foreground }),   // C 2864
+						       background, depth as c_uint);   // C 2865
+
+      if get_overlay_p (p)                                             // C 2867
+	{
+	  clipmask = android_create_pixmap_from_bitmap_data (bits, (*p).wd as c_uint,
+							      (*p).h as c_uint,   // C 2869
+							     1, 0, 1);   // C 2870
+
+	  gcv.clip_mask = clipmask;                                      // C 2872
+	  gcv.clip_x_origin = (*p).x;                                    // C 2873
+	  gcv.clip_y_origin = (*p).y;                                    // C 2874
+	  android_change_gc (gc, (ANDROID_GC_CLIP_MASK                   // C 2875
+				  | ANDROID_GC_CLIP_X_ORIGIN             // C 2876
+				  | ANDROID_GC_CLIP_Y_ORIGIN),           // C 2877
+			     &raw mut gcv);                              // C 2878
+	}
+
+      android_copy_area (pixmap, drawable, gc, px, py,                   // C 2881
+			 pwidth as c_uint, pheight as c_uint, dest.x, dest.y);   // C 2882
+      android_free_pixmap (pixmap);                                     // C 2883
+
+      if get_overlay_p (p)                                             // C 2885
+	{
+	  gcv.clip_mask = ANDROID_NONE as android_pixmap;                                  // C 2887
+	  android_change_gc (gc, ANDROID_GC_CLIP_MASK, &raw mut gcv);     // C 2888
+	  android_free_pixmap (clipmask);                                // C 2889
+	}
+    }
+  }
+
+  /* undo_clip: */
+  android_reset_clip_rectangles (f, gc);                                // C 2894
+}
+
+/* Set S->gc to a suitable GC for drawing glyph string S in cursor
+   face.  */                                                            // C 2897-2898
+
+/* C 2900-2944.  `static`; only called (C 3011).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_cursor_gc (s: *mut glyph_string)
+{
+  if (*s).font == FRAME_FONT! ((*s).f)                                  // C 2903
+      && (*( (*s).face as *mut face )).background == FRAME_BACKGROUND_PIXEL ((*s).f)   // C 2904
+      && (*( (*s).face as *mut face )).foreground == FRAME_FOREGROUND_PIXEL ((*s).f)   // C 2905
+      && ((*s).cmp).is_null ()                                          // C 2906
+    { (*s).gc = (*( (*(*s).f).output_data.android as *mut android_output )).cursor_gc as *mut c_void; }   // C 2907
+  else
+    {
+      /* Cursor on non-default face: must merge.  */                    // C 2910
+      let mut xgcv: android_gc_values = std::mem::zeroed ();            // C 2911
+      let mut mask: android_gc_value_mask;                                           // C 2912
+
+      xgcv.background = (*( (*(*s).f).output_data.android as *mut android_output )).cursor_pixel;   // C 2914
+      xgcv.foreground = (*( (*s).face as *mut face )).background;        // C 2915
+
+      /* If the glyph would be invisible, try a different foreground.  */   // C 2917
+      if xgcv.foreground == xgcv.background                             // C 2918
+	{ xgcv.foreground = (*( (*s).face as *mut face )).foreground; }   // C 2919
+      if xgcv.foreground == xgcv.background                             // C 2920
+	{ xgcv.foreground = (*( (*(*s).f).output_data.android as *mut android_output )).cursor_foreground_pixel; }   // C 2921
+      if xgcv.foreground == xgcv.background                             // C 2922
+	{ xgcv.foreground = (*( (*s).face as *mut face )).foreground; }   // C 2923
+
+      /* Make sure the cursor is distinct from text in this face.  */    // C 2925
+      if xgcv.background == (*( (*s).face as *mut face )).background     // C 2926
+	  && xgcv.foreground == (*( (*s).face as *mut face )).foreground   // C 2927
+	{
+	  xgcv.background = (*( (*s).face as *mut face )).foreground;      // C 2929
+	  xgcv.foreground = (*( (*s).face as *mut face )).background;      // C 2930
+	}
+
+      mask = ANDROID_GC_FOREGROUND | ANDROID_GC_BACKGROUND;   // C 2933
+
+      if ! (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc.is_null ()   // C 2935
+	{ android_change_gc ((*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc,   // C 2936
+			     mask, &raw mut xgcv); }                     // C 2937
+      else
+	{ (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc              // C 2939
+	    = android_create_gc (mask, &raw mut xgcv); }                 // C 2940
+
+      (*s).gc = (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc as *mut c_void;   // C 2942
+    }
+}
+
+/* Set up S->gc of glyph string S for drawing text in mouse face.  */    // C 2947
+
+/* C 2949-2977.  `static`; only called (C 3016).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_mouse_face_gc (s: *mut glyph_string)
+{
+  if (*s).font == (*( (*s).face as *mut face )).font as *mut font      // C 2952
+    { (*s).gc = (*( (*s).face as *mut face )).gc; }                     // C 2953
+  else
+    {
+      /* Otherwise construct scratch_cursor_gc with values from FACE
+	 except for FONT.  */                                          // C 2956-2957
+      let mut xgcv: android_gc_values = std::mem::zeroed ();            // C 2958
+      let mut mask: android_gc_value_mask;                                           // C 2959
+
+      xgcv.background = (*( (*s).face as *mut face )).background;        // C 2961
+      xgcv.foreground = (*( (*s).face as *mut face )).foreground;        // C 2962
+
+      mask = ANDROID_GC_FOREGROUND | ANDROID_GC_BACKGROUND;   // C 2964
+
+      if ! (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc.is_null ()   // C 2966
+	{ android_change_gc ((*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc,   // C 2967
+			     mask, &raw mut xgcv); }                     // C 2968
+      else
+	{ (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc              // C 2970
+	    = android_create_gc (mask, &raw mut xgcv); }                 // C 2971
+
+      (*s).gc = (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc as *mut c_void;   // C 2973
+    }
+
+  eassert! (! (*s).gc.is_null ());                                      // C 2976
+}
+
+/* Set S->gc of glyph string S to a GC suitable for drawing a mode line.
+   Faces to use in the mode line have already been computed when the
+   matrix was built, so there isn't much to do, here.  */                // C 2980-2982
+
+/* C 2984-2988.  `static`; only called (C 3006).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_mode_line_face_gc (s: *mut glyph_string)
+{
+  (*s).gc = (*( (*s).face as *mut face )).gc;                           // C 2987
+}
+
+/* Set S->gc of glyph string S for drawing that glyph string.  Set
+   S->stippled_p to a non-zero value if the face of S has a stipple
+   pattern.  */                                                         // C 2990-2992
+
+/* C 2994-3030.  `static`; only called (C 4300/4311/4596).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_glyph_string_gc (s: *mut glyph_string)
+{
+  prepare_face_for_display ((*s).f, (*s).face as *mut face);            // C 2997
+
+  if (*s).hl == DRAW_NORMAL_TEXT                                       // C 2999
+    {
+      (*s).gc = (*( (*s).face as *mut face )).gc;                       // C 3001
+      glyph_string_bits! (stippled_p, (*s), (*( (*s).face as *mut face )).stipple != 0);   // C 3002
+    }
+  else if (*s).hl == DRAW_INVERSE_VIDEO                                // C 3004
+    {
+      android_set_mode_line_face_gc (s);                                // C 3006
+      glyph_string_bits! (stippled_p, (*s), (*( (*s).face as *mut face )).stipple != 0);   // C 3007
+    }
+  else if (*s).hl == DRAW_CURSOR                                       // C 3009
+    {
+      android_set_cursor_gc (s);                                        // C 3011
+      glyph_string_bits! (stippled_p, (*s), false);                     // C 3012
+    }
+  else if (*s).hl == DRAW_MOUSE_FACE                                   // C 3014
+    {
+      android_set_mouse_face_gc (s);                                    // C 3016
+      glyph_string_bits! (stippled_p, (*s), (*( (*s).face as *mut face )).stipple != 0);   // C 3017
+    }
+  else if (*s).hl == DRAW_IMAGE_RAISED                                 // C 3019
+	   || (*s).hl == DRAW_IMAGE_SUNKEN                              // C 3020
+    {
+      (*s).gc = (*( (*s).face as *mut face )).gc;                       // C 3022
+      glyph_string_bits! (stippled_p, (*s), (*( (*s).face as *mut face )).stipple != 0);   // C 3023
+    }
+  else
+    { emacs_abort (); }                                                // C 3026
+
+  /* GC must have been set.  */                                         // C 3028
+  eassert! (! (*s).gc.is_null ());                                      // C 3029
+}
+
+/* Set clipping for output of glyph string S.  S may be part of a mode
+   line or menu if we don't have X toolkit support.  */                  // C 3033-3034
+
+/* C 3036-3045.  `static`; only called (C 3790/4301/4321).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_glyph_string_clipping (s: *mut glyph_string)
+{
+  /* C 3039's `struct android_rectangle *r = s->clip;` reads the array through the degraded
+     `NativeRectangle` pointer - the `src/xterm.rs` 9687-9696 device.  */
+  let r: *mut android_rectangle = &raw mut (*s).clip as *mut [c_int; 2] as *mut android_rectangle;   // C 3039
+  let n: c_int = get_glyph_string_clip_rects (s, r, 2);                 // C 3040
+
+  if n > 0                                                             // C 3042
+    { android_set_clip_rectangles ((*s).gc as *mut android_gc, 0, 0, r, n); }   // C 3043
+  (*s).num_clips = n;                                                  // C 3044
+}
+
+/* Set SRC's clipping for output of glyph string DST.  This is called
+   when we are drawing DST's left_overhang or right_overhang only in
+   the area of SRC.  */                                                  // C 3048-3050
+
+/* C 3052-3065.  `static`; only called (C 4334/4597).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_glyph_string_clipping_exactly (src: *mut glyph_string,
+						     dst: *mut glyph_string)
+{
+  let mut r: android_rectangle = std::mem::zeroed ();                   // C 3056
+
+  r.x = (*src).x;                                                       // C 3058
+  r.width = (*src).width as c_uint;                                     // C 3059
+  r.y = (*src).y;                                                       // C 3060
+  r.height = (*src).height as c_uint;                                   // C 3061
+  /* C 3062's `dst->clip[0] = r;` stores an `android_rectangle` through the array: `NativeRectangle`
+     is `Emacs_Rectangle` on Android (androidgui.h 218) while the mirror keeps the fallback
+     `int [2]` (`include/dispextern.rs` 1732-1741, whose note names the integrator's call), so this
+     is the `src/xterm.rs` 9695-9696 device.  */
+  *((&raw mut (*dst).clip) as *mut android_rectangle).add (0) = r;       // C 3062
+  (*dst).num_clips = 1;                                                 // C 3063
+  android_set_clip_rectangles ((*dst).gc as *mut android_gc, 0, 0, &raw mut r, 1);   // C 3064
+}

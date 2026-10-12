@@ -7,7 +7,7 @@
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
 > readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**2,265 lines**, md5
-> `9dc6b6df719d5d6e529c711bb60ac150`), carrying **C 1-2648**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> `3550492c0b353b73c32d2ac67137dbda`), carrying **C 1-3067**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -18,7 +18,8 @@
 > `android_handle_ime_event`.  **The next live definition is `handle_one_android_event` (C 836-1892),
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
-> which leaves C 2652-7117** (the next whole-item boundary is `android_scroll_run`, C 2655).
+> which leaves C 3067-7117** (the next whole-item boundary is `android_compute_glyph_string_overhangs`,
+> C 3068).
 
 ## Gate mapping
 
@@ -122,7 +123,20 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 2542-2634 | `android_free_frame_resources` (the fifteen cursor tests and the two relief GCs) | real arm (slice 4) |
 | 2636-2642 | `android_delete_frame` | real arm (slice 4) |
 | 2644-2648 | `android_delete_terminal` | real arm (slice 4) |
-| 2652-7117 | **the remainder of the file** - from C 2652's `/* RIF functions.  */` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 2652-2711 | C 2652's `/* RIF functions.  */` and `android_scroll_run` | real arm (slice 5) |
+| 2713-2720 | `android_after_update_window_line` | real arm (slice 5) |
+| 2722-2734 | `android_flip_and_flush` (C 2732's folded-member write) | real arm (slice 5) |
+| 2736-2749 | `android_clear_rectangle` | real arm (slice 5) |
+| 2751-2755 | `android_reset_clip_rectangles` | real arm (slice 5) |
+| 2757-2777 | `android_clip_to_row` | real arm (slice 5) |
+| 2779-2895 | `android_draw_fringe_bitmap` (C 2844's `goto undo_clip`, C 2860-2885's `p->cursor_p`/`p->overlay_p`) | real arm (slice 5) |
+| 2897-2944 | C 2897-2898's comment and `android_set_cursor_gc` | real arm (slice 5) |
+| 2946-2977 | C 2947's comment and `android_set_mouse_face_gc` | real arm (slice 5) |
+| 2980-2988 | C 2980-2982's comment and `android_set_mode_line_face_gc` | real arm (slice 5) |
+| 2990-3030 | C 2990-2992's comment and `android_set_glyph_string_gc` | real arm (slice 5) |
+| 3033-3045 | C 3033-3034's comment and `android_set_glyph_string_clipping` | real arm (slice 5) |
+| 3048-3065 | C 3048-3050's comment and `android_set_glyph_string_clipping_exactly` (C 3062's degraded-array store) | real arm (slice 5) |
+| 3067-7117 | **the remainder of the file** - from C 3067's comment above `android_compute_glyph_string_overhangs` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -139,6 +153,30 @@ written without Rust's syntax (`else` without a block, five `?:` in the two modi
 the second on the ten `match` arms whose statements were not braced; runs 3, 4 and 5 are the
 336-byte reading after each round of unit fixes, run 5 being the final revision - runs 3 and 4
 differ from it only in comment text.)
+
+**② The arm flip (P-86 ③⑴; the file gate, the sub-gate and the three conditions of the Gate
+mapping table).**  *Slice 5 corrected this reading's configuration.*  Slices 1-4 ran the flip with
+the file gate and the sub-gate only (`--cfg 'feature="have_android"' --cfg
+'feature="not_android_stubify"'`), which is a configuration **this file can never be built in**: the
+Gate mapping table's third and fourth rows say every Android configuration also has
+`HAVE_WINDOW_SYSTEM` (configure.ac 7518) and `HAVE_TEXT_CONVERSION` (7523).  Measured on the C 1-3067
+revision (3,640 Rust lines), with the five gates the real configuration has -
+`have_android`, `not_android_stubify`, `have_window_system`, `have_text_conversion` and
+`dispextern_face_records` (the last is the mirror's own arm for the five records C 2159-3200 declares,
+`include/dispextern.rs` 2790-2800) - the unit reads **exit 1, 3 errors**:
+
+  * `frame.want_fullscreen` (C 2214) and `frame.new_size_p` (C 907) - two members of the frame
+    mirror's window-system numbering region (`include/frame.rs` 757-759's mask pair covers
+    `want_fullscreen`, and `new_size_p`'s unit is not numbered there yet).  These are Owed 5's round,
+    narrowed from a whole region to two fields.
+  * `android_notify_conversion` (C 1761) - the one surviving forward reference (C 2098).
+
+  The narrower reading's "window-system gap" rows (`frame.tool_bar_window` 7 sites,
+  `frame.tab_bar_window` 4, `frame.last_tool_bar_item` 3, `frame.conversion` 2, `frame.new_size_p`,
+  `frame.want_fullscreen`, `FULLSCREEN_BOTH`, `font.baseline_offset`) are **retired by this
+  measurement**: every one of those names exists in the configuration the file is built in, and the
+  rows measured the mirror's *frozen* arm instead.  The unit's own text needed no change for that -
+  it already spells C's names - which is the reading P-86 ⑦ asks for.
 
 **② The arm flip (P-86 ③⑴; the file gate plus the sub-gate).**
 `cargo run -q -p xtask -- probe src/androidterm.rs /tmp/aterm-lane/arm.o --crate-type lib --emit obj
@@ -307,11 +345,15 @@ slice's basis).  All 116 are in the owed list below.
    `mouse_face_defer` and `need_cursor_updates` rows for the two direct `bool_bf` accesses (C 332,
    C 707-708), the `switch`/`case`/`default`/`break` rows for C 502, 722 and 744, and the
    `android_frame_rehighlight` row (the call is C's, the definition is past the slice).
-5. **The mirror round that blocks the Android arm reading (②).**  `include/frame.rs`'s
-   window-system region needs the flag numbering and the HAVE_ANDROID arm of `MOUSE_HL_INFO`
-   (frame.h 1023-1039); `include/dispextern.rs`'s `have_window_system` half is what C 519/543/545
-   and C 350 name.  Both are other lanes' in-flight mirrors and the change needs
-   `tools/check-all-units.sh` (P-87), so it is not touched here.
+5. **The mirror round that still blocks the Android arm reading (②, corrected by slice 5).**  With
+   the five gates the real configuration has, the only members missing are `frame.want_fullscreen`
+   (C 2214) and `frame.new_size_p` (C 907): `include/frame.rs` carries `FRAME_WANT_FULLSCREEN_MASK`
+   (its 757-759) behind `have_window_system` and no accessor pair, and `new_size_p`'s `bool_bf` unit is
+   not numbered in that region yet.  The rest of what this item used to name (the `tool_bar_window`/
+   `tab_bar_window`/`last_tool_bar_item` fields, `conversion`, `FULLSCREEN_BOTH`,
+   `font.baseline_offset`) is **retired**: those names exist in the Android configuration and the
+   rows that reported them came from the narrow gate set (see ②, Owed 19).  The change is inside
+   `include/frame.rs` and needs `tools/check-all-units.sh` (P-87), so it is not touched here.
 6. The eight use-site declarations (Deviations, second bullet) belong in
    `lisp.rs`/`coding.rs`/`dispextern.rs`/`androidgui.rs` (P-88 ⑤); `struct redisplay_interface`
    belongs in `dispextern.rs`/`termhooks.rs` with its offset re-measured; the
@@ -377,6 +419,23 @@ slice's basis).  All 116 are in the owed list below.
 18. **The window-system gap widens again**: `font.baseline_offset` (C 2499) is behind
    `feature = "have_window_system"` in `include/font.rs` 108-121, so this slice adds a twentieth
    named blocker of that class (Owed 15 is the frame-side half).
+19. **The reading's gate set** (slice 5, and the reason it is an owed item rather than a footnote):
+   every `probe`/`build-tu` reading of this unit from now on carries the five gates of ② -
+   `have_android`, `not_android_stubify`, `have_window_system`, `have_text_conversion`,
+   `dispextern_face_records`.  Slices 1-4's rows in this ledger that name a `have_window_system`
+   member or a `HAVE_TEXT_CONVERSION` field are superseded by that measurement; the Deviations that
+   describe *port text* (the folded-bit masks, the labelled blocks, the use-site declarations) stand
+   unchanged.
+20. `docs/ports/include-androidterm.md`: the mirror's own line 36-40 note ("a TU that needs them
+   must have the mirror in its own list ... the port will need the same `cfg` on dispextern.rs's
+   alias when that target is frozen") is the mirror-side half of Owed 19; that file's ledger is where
+   the five-feature set should be recorded for the other mirror readers.
+21. **Two records reach this unit by module path** (slice 5): `draw_fringe_bitmap_params` and the
+   `get_cursor_p`/`get_overlay_p` pair live in `include/dispextern.rs` 2800-3684's
+   `pub mod dispextern_unit_names`, so the unit writes `use dispextern_unit_names::{...}` rather than
+   carrying the copies `src/xterm.rs` 9292-9450 keeps (that unit is compiled with the file gate only).
+   If the module's records are ever moved to the top level, this `use` line goes with them.
+
 ### Not claimed
 
 Every line of this file is behind gates the frozen configuration leaves false: ① is an empty object,
@@ -602,3 +661,43 @@ their public wrappers, `android_calc_absolute_position` and `android_set_offset`
 - **C 2254-2256's `make_timespec` arithmetic** keeps C's three `1e9` factors and the `(long int)`
   cast (`c_long`), and C 2275's `android_select (0, NULL, NULL, NULL, &tmo)` the three null pointers
   and the `&tmo` out-parameter.
+
+## 2026-10-12: slice 5 (C 2652-3067) - the redisplay interface's drawing helpers
+
+`android_scroll_run` and its clipping/GC companions: `android_after_update_window_line`,
+`android_flip_and_flush`, `android_clear_rectangle`, `android_reset_clip_rectangles`,
+`android_clip_to_row`, `android_draw_fringe_bitmap`, the five glyph-string GC setters and the two
+clipping setters.
+
+### Evidence (this slice's own readings)
+
+1. **The corrected arm flip** (the paragraph inserted at ② above): with the five gates the real
+   Android configuration has, the unit reads **exit 1, 3 errors** - `frame.want_fullscreen`,
+   `frame.new_size_p` (Owed 5) and `android_notify_conversion` (the forward reference).  The first
+   draft's own reads (19 of them, all discharged in this commit) were: the frame mirror's frozen-arm
+   fields the narrow gate set made visible, `android_cursor`/`android_pixmap`'s integer handles
+   (`ANDROID_NONE`'s casts), the `c_uint` dimensions of `android_create_pixmap_from_bitmap_data` and
+   `android_copy_area`, `android_gc_value_mask`'s type, the `Emacs_Rectangle` pointers
+   `gui_intersect_rectangles` wants, and the degraded-array `clip` cast.
+2. **Three `does not mention` rows appeared and were discharged in this commit**: `android_flip_and_flush`
+   → `frame_android_complete_p,true` (the folded-member write), `android_draw_fringe_bitmap` →
+   `cursor_p,goto,overlay_p` (the accessors and C 2844's label) and `android_set_mouse_face_gc` → `0`
+   (C's null pointer constant).
+3. **Inventory**: 25 rows -> **11** - the `missing function` rows for C 3067-7117's items fall by the
+   thirteen this slice lands, the `missing macro`/`missing constant` pair and the five
+   `missing file-scope object` rows stand, and the line-count row reads **48.9%** (C 7,117 against
+   the port's 3,640).
+
+### Deviations this slice adds
+
+- **`window_bits!`** (the unit's, for `pseudo_window_p`, read and write arms) - the four sibling
+  window-system units' macro, which `src/androidfns.rs` 2955-2962 carries with the write arm only.
+- **`glyph_row_bits!`** comes from the mirror (`include/dispextern.rs` 1114-1215) for
+  `mode_line_p`/`redraw_fringe_bitmaps_p`/`stipple_p`, and **`glyph_string_bits!`** for `stippled_p`;
+  `draw_fringe_bitmap_params`'s two bits are the mirror's `get_cursor_p`/`get_overlay_p` (Owed 21).
+- **C 3062's `dst->clip[0] = r;`** is the `NativeRectangle` degraded-array store: `android_rectangle`
+  through the mirror's `[c_int; 2]` field, written as the `src/xterm.rs` 9695-9696 cast with C's line
+  kept (the mirror's own note at 1733-1741 records why the type is not its Android answer).
+- **C 2732's and C 1941's `FRAME_ANDROID_COMPLETE_P (f) = true;`** are the mask writes the mirror's
+  comment prescribes, and C 2907/2942/2953/2973/2987/3001/3022's `s->gc` writes take the mirror's
+  `*mut c_void` GC field (P-72 rule 3).
