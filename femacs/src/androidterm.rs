@@ -6172,3 +6172,232 @@ unsafe fn android_copy_java_string (env: *mut JNIEnv, string: jstring, length: *
   ((*(*env)).ReleaseStringChars.unwrap ()) (env, string, java);         // C 5103
   return buffer;                                                        // C 5104
 }
+
+/* C 5107-5293: the seven uniform input-method entry points Java calls on the UI thread -
+   `beginBatchEdit`, `endBatchEdit`, `commitCompletion`, `commitText`, `deleteSurroundingText`,
+   `finishComposingText` and `replaceText`.  Every one of them is C's `JNIEXPORT void JNICALL
+   NATIVE_NAME (name) (...)`; the paste is written at each definition site as this project's own
+   class name, `Java_org_femacs_EmacsNative_<name>` (the `src/android.rs` 1655-1663 device,
+   PORTING.md 0.1-19's name half / status 3.503), and C's `JNI_STACK_ALIGNMENT_PROLOGUE;` is the
+   mirror's `JNI_STACK_ALIGNMENT_PROLOGUE! ()` (`include/android.rs` 211).  C's `union android_event
+   event;` is `std::mem::zeroed ()` (PORTING.md 1.5, the C 1907 site in this unit), `++event_serial`
+   and `++edit_counter` are the two-statement form (C's `event_serial`/`edit_counter` are the
+   file-scope objects of the previous slice and `android.h` 254), and `event.ime.window`'s
+   `android_window` is `jlong`'s width.  */
+
+/* C 5107-5126: `NATIVE_NAME (beginBatchEdit)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_beginBatchEdit")]
+pub unsafe extern "C" fn beginBatchEdit (env: *mut JNIEnv, object: jobject, window: jlong)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5110
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5112 (PORTING.md 1.5)
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                                // C 5114
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5115 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5116
+  event.ime.operation = ANDROID_IME_START_BATCH_EDIT;                   // C 5117
+  event.ime.start = 0;                                                  // C 5118
+  event.ime.end = 0;                                                    // C 5119
+  event.ime.length = 0;                                                 // C 5120
+  event.ime.position = 0;                                               // C 5121
+  event.ime.text = std::ptr::null_mut ();                               // C 5122
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5123 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5125
+}
+
+/* C 5128-5147: `NATIVE_NAME (endBatchEdit)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_endBatchEdit")]
+pub unsafe extern "C" fn endBatchEdit (env: *mut JNIEnv, object: jobject, window: jlong)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5131
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5133 (PORTING.md 1.5)
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                                // C 5135
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5136 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5137
+  event.ime.operation = ANDROID_IME_END_BATCH_EDIT;                     // C 5138
+  event.ime.start = 0;                                                  // C 5139
+  event.ime.end = 0;                                                    // C 5140
+  event.ime.length = 0;                                                 // C 5141
+  event.ime.position = 0;                                               // C 5142
+  event.ime.text = std::ptr::null_mut ();                               // C 5143
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5144 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5146
+}
+
+/* C 5149-5181: `NATIVE_NAME (commitCompletion)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_commitCompletion")]
+pub unsafe extern "C" fn commitCompletion (env: *mut JNIEnv, object: jobject, window: jlong,
+					   completion_text: jstring, position: jint)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5153
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5155 (PORTING.md 1.5)
+  let mut text: *mut c_ushort;                                          // C 5156
+  let mut length: size_t = 0;                                           // C 5157
+
+  /* First, obtain a copy of the Java string.  */                        // C 5159
+  text = android_copy_java_string (env, completion_text, &raw mut length);   // C 5160
+
+  if text.is_null ()                                                    // C 5162
+    { return; }                                                         // C 5163
+
+  /* Next, populate the event.  Events will always eventually be
+     delivered on Android, so handle_one_android_event can be relied
+     on to free text.  */                                               // C 5165-5167
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                                // C 5169
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5170 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5171
+  event.ime.operation = ANDROID_IME_COMMIT_TEXT;                        // C 5172
+  event.ime.start = 0;                                                  // C 5173
+  event.ime.end = 0;                                                    // C 5174
+  event.ime.length = min (length, PTRDIFF_MAX as size_t);               // C 5175
+  event.ime.position = position as ptrdiff_t;                           // C 5176
+  event.ime.text = text;                                                // C 5177
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5178 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5180
+}
+
+/* C 5183-5215: `NATIVE_NAME (commitText)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_commitText")]
+pub unsafe extern "C" fn commitText (env: *mut JNIEnv, object: jobject, window: jlong,
+				     commit_text: jstring, position: jint)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5187
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5189 (PORTING.md 1.5)
+  let mut text: *mut c_ushort;                                          // C 5190
+  let mut length: size_t = 0;                                           // C 5191
+
+  /* First, obtain a copy of the Java string.  */                        // C 5193
+  text = android_copy_java_string (env, commit_text, &raw mut length);   // C 5194
+
+  if text.is_null ()                                                    // C 5196
+    { return; }                                                         // C 5197
+
+  /* Next, populate the event.  Events will always eventually be
+     delivered on Android, so handle_one_android_event can be relied
+     on to free text.  */                                               // C 5199-5201
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                                // C 5203
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5204 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5205
+  event.ime.operation = ANDROID_IME_COMMIT_TEXT;                        // C 5206
+  event.ime.start = 0;                                                  // C 5207
+  event.ime.end = 0;                                                    // C 5208
+  event.ime.length = min (length, PTRDIFF_MAX as size_t);               // C 5209
+  event.ime.position = position as ptrdiff_t;                           // C 5210
+  event.ime.text = text;                                                // C 5211
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5212 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5214
+}
+
+/* C 5217-5238: `NATIVE_NAME (deleteSurroundingText)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_deleteSurroundingText")]
+pub unsafe extern "C" fn deleteSurroundingText (env: *mut JNIEnv, object: jobject,
+						window: jlong, left_length: jint,
+						right_length: jint)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5222
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5224 (PORTING.md 1.5)
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                                // C 5226
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5227 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5228
+  event.ime.operation = ANDROID_IME_DELETE_SURROUNDING_TEXT;            // C 5229
+  event.ime.start = left_length as ptrdiff_t;                           // C 5230
+  event.ime.end = right_length as ptrdiff_t;                            // C 5231
+  event.ime.length = 0;                                                 // C 5232
+  event.ime.position = 0;                                               // C 5233
+  event.ime.text = std::ptr::null_mut ();                               // C 5234
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5235 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5237
+}
+
+/* C 5240-5260: `NATIVE_NAME (finishComposingText)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_finishComposingText")]
+pub unsafe extern "C" fn finishComposingText (env: *mut JNIEnv, object: jobject, window: jlong)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5244
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5246 (PORTING.md 1.5)
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                                // C 5248
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5249 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5250
+  event.ime.operation = ANDROID_IME_FINISH_COMPOSING_TEXT;              // C 5251
+  event.ime.start = 0;                                                  // C 5252
+  event.ime.end = 0;                                                    // C 5253
+  event.ime.length = 0;                                                 // C 5254
+  event.ime.position = 0;                                               // C 5255
+  event.ime.text = std::ptr::null_mut ();                               // C 5256
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5257 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5259
+}
+
+/* C 5262-5293: `NATIVE_NAME (replaceText)`.  C reuses the parameter name `text` for the copied
+   buffer (`jobject text` at C 5264, `unsigned short *text` at C 5270), so the port shadows the
+   parameter with the `let text: *mut c_ushort` below - one name, C's two roles.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_replaceText")]
+pub unsafe extern "C" fn replaceText (env: *mut JNIEnv, object: jobject, window: jlong,
+				      start: jint, end: jint, text: jobject,
+				      new_cursor_position: c_int, attribute: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5267
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5269 (PORTING.md 1.5)
+  let mut length: size_t = 0;                                           // C 5270 (the `&raw mut` place)
+
+  /* First, obtain a copy of the Java string.  */                        // C 5272
+  let text: *mut c_ushort = android_copy_java_string (env, text, &raw mut length);   // C 5273
+
+  if text.is_null ()                                                    // C 5275
+    { return; }                                                         // C 5276
+
+  /* Next, populate the event with the information in this function's
+     arguments.  */                                                     // C 5278-5279
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                                // C 5281
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5282 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5283
+  event.ime.operation = ANDROID_IME_REPLACE_TEXT;                       // C 5284
+  event.ime.start = start as ptrdiff_t + 1;                             // C 5285
+  event.ime.end = end as ptrdiff_t + 1;                                 // C 5286
+  event.ime.length = length;                                            // C 5287
+  event.ime.position = new_cursor_position as ptrdiff_t;                // C 5288
+  event.ime.text = text;                                                // C 5289
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5290 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5292
+}

@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,174 lines**, md5
-> `8fa26ee7001db1d2ed7d24892189484e`), carrying **C 1-5105**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,403 lines**, md5
+> `a6c9a500804ac954ed7d47d5762c644f`), carrying **C 1-5293**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -19,8 +19,8 @@
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
-the next group is the input-method
-> group's JNI entries, whose first definition is `NATIVE_NAME (beginBatchEdit)` at C 5108.
+the next definition is
+> `android_perform_conversion_query` (C 5316), and the file's tail is the text-conversion group.
 
 ## Gate mapping
 
@@ -178,7 +178,14 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 5042-5072 | C 5042's `static void` and `android_sync_edit` (C 5048/5065's `__atomic_load_n` pair) | real arm (slice 14) |
 | 5074-5076 | the "Return a copy of the specified Java string" note | real arm (slice 14) |
 | 5078-5105 | C 5078's `static unsigned short *` and `android_copy_java_string` (three `(*env)->…` calls) | real arm (slice 14) |
-| 5107-7117 | **the remainder of the file** - from C 5107's `JNIEXPORT void JNICALL` above `NATIVE_NAME (beginBatchEdit)` (C 5108) through the input-method group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5107-5126 | C 5107's `JNIEXPORT void JNICALL` and `NATIVE_NAME (beginBatchEdit)` | real arm (slice 15) |
+| 5128-5147 | `NATIVE_NAME (endBatchEdit)` | real arm (slice 15) |
+| 5149-5181 | `NATIVE_NAME (commitCompletion)` | real arm (slice 15) |
+| 5183-5215 | `NATIVE_NAME (commitText)` | real arm (slice 15) |
+| 5217-5238 | `NATIVE_NAME (deleteSurroundingText)` | real arm (slice 15) |
+| 5240-5260 | `NATIVE_NAME (finishComposingText)` | real arm (slice 15) |
+| 5262-5293 | `NATIVE_NAME (replaceText)` (C's `text` parameter reused as the buffer) | real arm (slice 15) |
+| 5295-7117 | **the remainder of the file** - from C 5295's comment above `struct android_conversion_query_context` through the text-conversion group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -374,10 +381,11 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 5107-7117.**  Slice 14 wrote C 5012-5105 (the pragma pair, the
-   three file-scope objects and the two helpers), so the next slice's rows must replace this
-   table's last row; its first definition is `NATIVE_NAME (beginBatchEdit)` (C 5108), the first of
-   the JNI entry points, and the group runs to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 5295-7117.**  Slice 15 wrote C 5107-5293 (the seven
+   event-posting entry points), so the next slice's rows must replace this table's last row; the
+   remainder opens with `struct android_conversion_query_context` (C 5297) and its first definition
+   is `android_perform_conversion_query` (C 5316) - the text-conversion group, which ends at
+   `syms_of_androidterm`.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -523,6 +531,20 @@ slice's basis).  All 116 are in the owed list below.
    the object without the atomic builtin, which the port keeps exactly as C writes it and records
    here; when C 6635-6648 lands, `__atomic_store_n` joins the helper set.
 
+29. **Seven `invented exported symbol` rows** (slice 15) - the class `docs/ports/androidvfs.md`
+   Owed 10 measured, now met by this file: C's `NATIVE_NAME` (`android.h` 344) is a *function-like*
+   macro, so the seven `Java_org_gnu_emacs_EmacsNative_<name>` symbols the port exports as
+   `Java_org_femacs_EmacsNative_<name>` never enter `extract-abi.py`'s `c_exported` set (its rename
+   reader at 2389-2390 reads object-like `#define X Y` pairs only), and `androidterm.o` is not in
+   the frozen build, so `reference_object_symbols` cannot answer either.  No port text can discharge
+   them: the export names are this project's own (`PORTING.md` 0.1-19's name half / status 3.503),
+   which is what `PORT_ONLY_EXPORTS` (`extract-abi.py` 1828) exists for.  Until the tool grows a
+   function-like expansion or a tsv for the class, this unit's `--check`/`--all` line stays `FAIL`
+   with these rows and no `missing …` row of its own; this file has **22** `NATIVE_NAME` definitions
+   in all (measured: C 5108, 5129, 5150, 5184, 5218, 5241, 5263, 5429, 5473, 5517, 5552, 5574, 5652,
+   5690, 5742, 5947, 6059, 6089, 6111, 6140, 6348, 6359), so the remaining fifteen will add their
+   rows as the tail's slices land.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -538,8 +560,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-5105 is now ported** (slices 4-14,
-each with its own Evidence section below); C 5107-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-5293 is now ported** (slices 4-15,
+each with its own Evidence section below); C 5295-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1152,3 +1174,43 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
 - **`(*env)->Method (env, …)`** is `((*(*env)).Method.unwrap ()) (env, …)`: `JNIEnv` is the NDK
   mirror's `*const JNINativeInterface` (`include/jni.rs` 118), so C's `(*env)->` is the double
   dereference and the vtable entry an `Option` (the `src/android.rs` 1683 device).
+
+## 2026-10-12: slice 15 (C 5107-5293) - the seven event-posting entry points
+
+`NATIVE_NAME (beginBatchEdit)`, `endBatchEdit`, `commitCompletion`, `commitText`,
+`deleteSurroundingText`, `finishComposingText` and `replaceText`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   This slice's own readings were the union member's Rust keyword (`android_ime_event.type` is the
+   mirror's `r#type`, dispextern/androidgui's `type` field - the `android_event.r#type` spelling the
+   unit already uses) and the three `size_t length` places (`&raw mut` needs an initialised local).
+2. **Seven `invented exported symbol` rows appeared** - the class Owed 29 records (the
+   `docs/ports/androidvfs.md` Owed 10 reading: the checker cannot expand C's function-like
+   `NATIVE_NAME`).  They are not a port defect and no port text can discharge them; this unit's
+   `--check` line therefore stays `FAIL` with these rows, exactly as that ledger's Owed 10 says the
+   `android*` units' lines will.
+3. **Inventory**: 25 rows -> **32** - the seven `missing function` rows of this slice retire (20
+   stand: the tail's 18 definitions plus `android_notify_conversion` and `syms_of_androidterm`), the
+   two file-scope objects and the line-count row stand, and the seven export rows are new; the
+   line-count row reads **10.0%** (C 7,117 against the port's 6,403).
+
+### Deviations this slice adds
+
+- **`NATIVE_NAME (name)`** is written at each definition site as
+  `#[unsafe(export_name = "Java_org_femacs_EmacsNative_<name>")]` (the `src/android.rs` 1655-1663
+  device; Owed 29), and `JNI_STACK_ALIGNMENT_PROLOGUE;` is the mirror's
+  `JNI_STACK_ALIGNMENT_PROLOGUE! ()`.
+- **C's `++event_serial` / `++edit_counter`** are the two-statement form (`event_serial += 1;` then
+  the assignment, with C's conversion to `c_ulong` spelled `as c_ulong`), because Rust has no
+  pre-increment expression - the `last_glyph = g++` class this file's seventh slice records.
+- **`event.ime.r#type`** keeps C's token through Rust's raw identifier, and `event.ime.window`'s
+  `android_window` takes `jlong`'s value with the explicit `as android_window` (C's implicit
+  conversion; both are 64 bits on this target).
+- **`min (length, PTRDIFF_MAX)`** is `min (length, PTRDIFF_MAX as size_t)` (the mirror's `length` is
+  `size_t`), and the three `size_t length` locals start at 0 for their `&raw mut` places.
+- **C 5263's `replaceText` reuses the parameter name `text`** for the copied `unsigned short *`
+  (C 5264's `jobject text`, C 5270's `unsigned short *text`): the port keeps C's one name by
+  shadowing the parameter with the `let text: *mut c_ushort` at C 5273's call.
