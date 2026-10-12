@@ -20,3 +20,4 @@ char *	*mut c_char
 PROMOTED_MODE_T	PROMOTED_MODE_T
 void *	*mut c_void	lib/fcntl.c's pointer-argument arm reads `va_arg (arg, void *)`; Rust's pointer to c_void
 Lisp_Object	Lisp_Object	src/alloc.c's cons_listn reads `va_arg (ap, Lisp_Object)`, whose port spelling is the same name
+jobject	jobject	androidvfs.c 3132/3189's `va_arg (ap, jobject)` reads (the two SAF checkers' local-reference arguments; the port's `ap.next_arg::<jobject> ()` answers for the same C type, so the spelling is the C name's)

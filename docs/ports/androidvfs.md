@@ -8,11 +8,10 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**3,758 lines**, md5 `a5b93935e39efb93f60726104fc1ed7a`), carrying
-> **C 1-2946 except four deferred items** (C 2520-2537's `content_vfs_ops`, C 2549-2639's
-> `android_content_name`, C 2887-2906's `android_content_initial` - one clique - and, for the next
-> round, C 2956-3206's four URI/SAF helpers) - P-86 ④'s first nine slices of this file - with both
-> arms of every `#if` carried.  Slice 8 carries the one item in the unit that sits out of C's order
+> `femacs/src/androidvfs.rs` (**4,129 lines**, md5 `c9ad866aa2bd1275b416aa0c40c53df1`), carrying
+> **C 1-3195 except one deferred clique** (C 2520-2537's `content_vfs_ops`, C 2549-2639's
+> `android_content_name` and C 2887-2906's `android_content_initial`, which the round that reaches
+> C 3577 closes) - P-86 ④'s first ten slices of this file - with both arms of every `#if` carried.  Slice 8 carries the one item in the unit that sits out of C's order
 > (`afs_vfs_ops`, C 1682-1699, at the file's foot; Deviation 21).
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
@@ -108,7 +107,12 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 2641-2885 | the fifteen content functions (`android_content_open` … `android_content_get_directory_name`) with their comments | file gate (slice 9) |
 | 2887-2906 | **deferred with the object**: `android_content_initial` | it names `content_vfs_ops` |
 | 2908-2946 | C 2908-2916/2942-2946's `#pragma` pair (a record), C 2918's comment and `displayNameHash` (C 2920-2940, the JNI entry point) | file gate (slice 9) |
-| 2948-7950 | **the remainder**, opening with C 2948-2954's comment on `android_get_content_name` (the next round's first item) - C 2956's `android_get_content_name` through C 7950: the four URI/SAF helpers, the authority/SAF families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2948-3034 | C 2948-2954's comment and `android_get_content_name` (C 2956-3034, C's `goto no_checksum` as the port's labelled block) | file gate (slice 10) |
+| 3036-3066 | C 3036-3039's comment and `android_check_content_access` (C 3041-3066) | file gate (slice 10) |
+| 3068-3070 | C 3069's form feed and the comment `/* Functions shared by authority and SAF nodes.  */` | file gate (slice 10) |
+| 3072-3164 | C 3072-3093's doc comment and `android_saf_exception_check` (C 3095-3164, variadic) | file gate (slice 10) |
+| 3166-3195 | C 3166-3169's comment and `android_saf_check_nonnull` (C 3171-3195, variadic) | file gate (slice 10) |
+| 3197-7950 | **the remainder** - C 3199's comment on the authority family through C 7950: the authority/SAF families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -319,7 +323,7 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    `android_unix_name` → `goto`.  Both lines print in `--check` today and every other token of both
    bodies is present.
 5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
-   **stale** (**3,758** C lines carried = 47.3% of 7,950, above the ten-percent threshold; slice 1's
+   **stale** (**4,129** C lines carried = 51.9% of 7,950, above the ten-percent threshold; slice 1's
    original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
 6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
    and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
@@ -338,10 +342,10 @@ object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMe
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
 /`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
 readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
-type-check and emit an object under each arm, not that any of it behaves.  C 2956-7950 is
-**unported** (as are the three deferred items above, whose rows are in the same list):
-`extract-abi.py --check` reads **133** rows across that boundary (131 `missing …`, the whole-file
-drift row, which now reads **52.7%**, and the `displayNameHash` `invented exported symbol` row
+type-check and emit an object under each arm, not that any of it behaves.  C 3197-7950 is
+**unported** (as is the deferred clique above, whose rows are in the same list):
+`extract-abi.py --check` reads **129** rows across that boundary (127 `missing …`, the whole-file
+drift row, which now reads **48.1%**, and the `displayNameHash` `invented exported symbol` row
 below), and those rows are the boundary, not defects.  The `invented exported symbol` row is the
 extractor's blind spot for `NATIVE_NAME` (`docs/ports/android.md` 432/462 records the same three
 rows for `android.rs`): the reference's symbol name is *pasted* by the macro (android.h 344), so no
@@ -884,3 +888,66 @@ called from Java.  What the round's evidence *is*: both arms' `exit 0`, one cont
 harness reads this text, `--check` 149 -> 133 with the row set diffed, the measured layout, and the
 ten gates.  **This file is not finished**: C 2956-7950 remains (the next item is C 2956's
 `android_get_content_name`).
+
+## Slice 10 (2026-10-08, status 4.115 - the integrator sets the round number): C 2948-3195 (the two URI helpers and the two variadic SAF checkers)
+
+**What this round is.**  `android_get_content_name` (C 2956-3034, C's `goto no_checksum` as the
+port's labelled block), `android_check_content_access` (C 3041-3066),
+`android_saf_exception_check` (C 3095-3164) and `android_saf_check_nonnull` (C 3171-3195) with their
+comments.  Port: **3,758 -> 4,129 lines**.
+
+**Evidence ① - both arms read `exit 0`**: 0 errors; 8 warnings in the else arm and 13 in the `>= 9`
+arm (one more each than the previous round, and the else arm's list was printed and diffed: the extra
+one is the FFI-safety note for the new `android_emacs_service` declaration, i.e. ``\`extern\` block
+uses type \`_jmethodID\`, which is not FFI-safe``).  Two real defects came out of the first drafts:
+⑴ `unsafe fn … (…, ...)` is ``\`...\` is not supported for non-extern functions`` - a variadic
+*definition* has to be `extern "C"` (the `lib/fcntl.rs` 142 precedent), which is also C's own ABI
+here; ⑵ `CallNonvirtualBooleanMethod (…, read, write)` is `E0617 can't pass \`u8\` to variadic
+function`, because C's own call promotes the two `jboolean`s to `int` - the port writes
+`(read as c_int)` / `(write as c_int)`, the slice-5 `open` call's class.
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error next to C 2967's
+`strchr` call moves the else arm to `exit 1` with `injected_control` named once; reverted, the arm
+reads `exit 0` and the file's md5 returns to the header's.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 133 -> 129 rows, diffed**: four
+`missing function` rows retire (`android_get_content_name`, `android_check_content_access`,
+`android_saf_exception_check`, `android_saf_check_nonnull`); eight rows appeared - four
+`does not mention` rows and four `va-arg` rows - and **all eight are discharged in this same
+commit**: the four body rows are written into `docs/ports/macro-body-notes.tsv` (the
+`android_get_content_name` `goto` row, the `android_check_content_access`
+`android_delete_local_ref` row, and the two checkers' `android_delete_local_ref,va_end,va_list,
+va_start` rows) and the four `va-arg` rows by one `jobject` row in `docs/ports/va-arg-types.tsv`.
+The whole-file line-count row moves 52.7% -> **48.1%** (C 7,950 against 4,129 Rust lines).
+
+**Deviations (this slice's additions).**
+
+24. **A variadic C definition is an `extern "C"` Rust function, and its `va_arg` reads are
+    `next_arg::<T> ()`** (Evidence ①): C's `va_list ap; va_start (ap, n); … va_end (ap);` has no port
+    counterpart, the `...` parameter *is* the list, and the sole read's C type (`jobject`) is
+    recorded in `docs/ports/va-arg-types.tsv` (the `fcntl` rule, P-04).  C calls both checkers
+    directly, so their ABI is chosen by the variadic definition rather than by the address-taken
+    rule - a case the `android_unix_vnode` rule does not cover.
+25. **The Java-side service table and five more names stand at the use site** (P-72 rule 4): the
+    `android.h` mirror `include/android.rs` carries `android_java_env` (321), `emacs_service` (331),
+    `service_class` (334), `android_exception_check` (129), `android_exception_check_1` (130) and
+    `struct android_emacs_service` (275-319), but the edge that would put it in this unit's graph is
+    Owed 2 (its `android_vdir` stand-in is deleted when that edge lands), so this round declares all
+    six - the struct with C's own 42 fields and its measured 336-byte layout - and the declaration
+    retires with the mirror edge.
+
+**Owed (this slice's additions).**
+
+- The deferred clique (C 2520-2537, C 2549-2639, C 2887-2906) is still the round that reaches
+  C 3577's first item.
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **4,129** of 7,950 C lines (51.9%).
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item).
+
+**Not claimed (this slice).**  No runtime evidence, and none is possible here: no Android device, no
+emulator, and this unit is not in the frozen configuration.  No content URI was built, no JNI
+exception was checked, and the two checkers have never been called with an argument list.  What the
+round's evidence *is*: both arms' `exit 0`, one control proving the harness reads this text,
+`--check` 133 -> 129 with all eight new rows discharged in-commit, the measured layout, and the ten
+gates.  **This file is not finished**: C 3197-7950 remains (the next item is C 3199's comment on the
+authority family and C 3208's `struct android_authority_vnode`).

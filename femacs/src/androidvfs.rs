@@ -1422,12 +1422,9 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 2956-7950: the remainder of the file, plus the six items slice 9 defers: C 2520-2537's
-   `content_vfs_ops`, C 2549-2639's `android_content_name`, C 2887-2906's `android_content_initial`
-   (one clique - the object names `android_content_name`, and `android_content_name`'s own
-   `content_vnodes[]` names three functions C defines at C 3577/3603/4219), C 2956-3039's
-   `android_get_content_name`, C 3041-3093's `android_check_content_access` and C 3095-3206's two
-   variadic SAF checkers (all four are first called by the authority family, C 3314 onward), and
+/* C 3199-7950: the remainder of the file, plus the three items slice 9 deferred (C 2520-2537's
+   `content_vfs_ops`, C 2549-2639's `android_content_name` and C 2887-2906's
+   `android_content_initial` - the clique the round that reaches C 3577 closes), and
    `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
@@ -3755,4 +3752,378 @@ pub unsafe extern "C" fn displayNameHash (env: *mut JNIEnv, object: jobject,
 unsafe extern "C" {
   /// C: lisp.h 4247: `extern void hexbuf_digest (char *, void const *, int);`
   pub fn hexbuf_digest (buf: *mut c_char, data: *const c_void, size: c_int);
+}
+
+/* C 3048-3060's names: android.h 321/331/334's three globals, android.h 129/130's two exception
+   checks and lisp.h 4432's `memory_full`.  None of them is in this unit's include graph - the
+   `android.h` mirror `include/android.rs` carries all of them, but the edge that would put it
+   here is Owed 2 (its `android_vdir` stand-in is deleted when the edge lands) - so each stands at
+   its use site (P-72 rule 4, the `android_cache_dir` / `emacs_installation_time` class).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: android.h 321: `extern JNIEnv *android_java_env;`
+  pub static mut android_java_env: *mut JNIEnv;
+  /// C: android.h 331: `extern jobject emacs_service;`
+  pub static mut emacs_service: jobject;
+  /// C: android.h 334: `extern struct android_emacs_service service_class;`
+  pub static mut service_class: android_emacs_service;
+  /// C: android.h 129: `extern void android_exception_check (void);`
+  pub fn android_exception_check ();
+  /// C: android.h 130: `extern void android_exception_check_1 (jobject);`
+  pub fn android_exception_check_1 (arg0: jobject);
+  /// C: lisp.h 4432: `extern AVOID memory_full (size_t);`
+  pub fn memory_full (size: size_t) -> !;
+}
+/* C 275-319's `struct android_emacs_service`, whose text is `include/android.rs` 121-167's - the
+   mirror that is not in this unit's graph (the note above).  Declared here at the use site for the
+   same reason, and this declaration retires with the mirror edge (Owed 2).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_emacs_service
+{
+  pub class: jclass,                                                   // C: android.h 275
+  pub fill_rectangle: jmethodID,
+  pub fill_polygon: jmethodID,
+  pub draw_rectangle: jmethodID,
+  pub draw_line: jmethodID,
+  pub draw_point: jmethodID,
+  pub ring_bell: jmethodID,
+  pub query_tree: jmethodID,
+  pub get_screen_width: jmethodID,
+  pub get_screen_height: jmethodID,
+  pub detect_mouse: jmethodID,
+  pub detect_keyboard: jmethodID,
+  pub name_keysym: jmethodID,
+  pub browse_url: jmethodID,
+  pub restart_emacs: jmethodID,
+  pub update_ic: jmethodID,
+  pub reset_ic: jmethodID,
+  pub open_content_uri: jmethodID,
+  pub check_content_uri: jmethodID,
+  pub query_battery: jmethodID,
+  pub update_extracted_text: jmethodID,
+  pub update_cursor_anchor_info: jmethodID,
+  pub get_document_authorities: jmethodID,
+  pub request_directory_access: jmethodID,
+  pub get_document_trees: jmethodID,
+  pub document_id_from_name: jmethodID,
+  pub get_tree_uri: jmethodID,
+  pub stat_document: jmethodID,
+  pub access_document: jmethodID,
+  pub open_document_directory: jmethodID,
+  pub read_directory_entry: jmethodID,
+  pub open_document: jmethodID,
+  pub create_document: jmethodID,
+  pub create_directory: jmethodID,
+  pub delete_document: jmethodID,
+  pub rename_document: jmethodID,
+  pub move_document: jmethodID,
+  pub valid_authority: jmethodID,
+  pub external_storage_available: jmethodID,
+  pub request_storage_access: jmethodID,
+  pub cancel_notification: jmethodID,
+  pub relinquish_uri_rights: jmethodID,
+}
+/* Measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`,
+   `--target=aarch64-linux-android24`): 42 eight-byte words, i.e. 336 bytes, the last field at 328
+   (`jclass` and `jmethodID` are both 8 bytes there).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_emacs_service> () == 336);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_emacs_service, class) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_emacs_service, check_content_uri) == 144);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_emacs_service, relinquish_uri_rights)
+					    == 328);
+
+/* C 2956-3034: `static char *android_get_content_name (const char *filename, bool
+   with_checksum)`.  C's `goto no_checksum` (C 2985) and the `no_checksum:` label at C 3022 become
+   one labelled block (PORTING.md 2.2).  C calls it directly (C 3314/3316), never through a
+   pointer, so it stays a Rust-ABI `unsafe fn` (the `android_unix_vnode` rule).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_get_content_name (filename: *const c_char, with_checksum: bool) -> *mut c_char
+{
+  let mut fill: *mut c_char;                                           // C 2959
+  let mut buffer: *mut c_char;                                         // C 2959
+  let mut length: size_t;                                              // C 2960
+  let mut checksum: [c_char; 9] = [0; 9];                              // C 2961
+  let mut new_checksum: [c_char; 9] = [0; 9];                          // C 2961
+  let mut block: [c_char; MD5_DIGEST_SIZE as usize] = [0; MD5_DIGEST_SIZE as usize];   // C 2961
+  let mut p2: *const c_char;                                           // C 2962
+  let mut p1: *const c_char;                                           // C 2962
+
+  /* C leaves `fill`, `buffer`, `length`, `p2` and `p1` uninitialised (PORTING.md 1.5); each is
+     assigned before its first read on every path that reads it.  */
+  fill = std::ptr::null_mut ();
+  buffer = std::ptr::null_mut ();
+  length = 0;
+  p2 = std::ptr::null ();
+  p1 = std::ptr::null ();
+
+  /* Make sure FILENAME isn't obviously invalid: it must contain an
+     authority name and a file name component.  */                     // C 2964-2965
+
+  fill = strchr (filename, b'/' as c_int);                             // C 2967
+  if fill.is_null () || *(fill.offset (1)) == 0                        // C 2968
+    {
+      *errno () = ENOENT;                                              // C 2970
+      return std::ptr::null_mut ();                                    // C 2971
+    }
+
+  /* FILENAME must also not be a directory.  Accessing content
+     provider directories is not supported by this interface.  */      // C 2974-2975
+
+  length = strlen (filename);                                          // C 2977
+  if *filename.offset (length as isize) == b'/' as c_char              // C 2978
+    {
+      *errno () = ENOTDIR;                                             // C 2980
+      return std::ptr::null_mut ();                                    // C 2981
+    }
+
+  'no_checksum: {
+  if ! with_checksum                                                   // C 2984
+    { break 'no_checksum; }                                            // C 2985
+
+  /* Content file names hold two components providing a display name and
+     a short checksum that protects against files being opened under
+     display names besides those provided in the content file name at
+     the time of generation.  */                                      // C 2987-2990
+
+  p1 = strrchr (filename, b'/' as c_int);                              // C 2992
+  p2 = memrchr (filename as *const c_void, b'/' as c_int,             // C 2993
+		p1.offset_from (filename) as usize) as *const c_char;  // C 2993
+
+  /* If the name be excessively short or the checksum of an invalid
+     length, return.  */                                               // C 2995-2996
+  if p2.is_null () || p1.offset_from (p2) != 9                         // C 2997
+    {
+      *errno () = ENOENT;                                              // C 2999
+      return std::ptr::null_mut ();                                    // C 3000
+    }
+
+  /* Copy the checksum into CHECKSUM.  */                              // C 3003
+  memcpy (&raw mut checksum as *mut c_void, p2.offset (1) as *const c_void, 8);   // C 3004
+  checksum[8] = 0;                                                     // C 3005 (C's chained
+  new_checksum[8] = 0;                                                 // C 3005  assignment, split)
+
+  /* Hash this string and store 8 bytes of the resulting digest into
+     new_checksum.  */                                                 // C 3007-3008
+  md5_buffer (p1.offset (1), strlen (p1.offset (1)) as usize,          // C 3009
+	      &raw mut block as *mut c_void);                          // C 3009
+  hexbuf_digest (&raw mut new_checksum as *mut c_char,                 // C 3010
+		 &raw mut block as *const c_void, 4);                  // C 3010
+
+  /* Compare both checksums.  */                                       // C 3012
+  if strcmp (&raw const new_checksum as *const c_char,                 // C 3013
+	     &raw const checksum as *const c_char) != 0               // C 3013
+    {
+      *errno () = ENOENT;                                              // C 3015
+      return std::ptr::null_mut ();                                    // C 3016
+    }
+
+  /* Remove the checksum and file display name from the URI.  */       // C 3019
+  length = p2.offset_from (filename) as size_t;                        // C 3020
+  }
+
+  /* no_checksum: */
+  if length > INT_MAX as usize                                          // C 3023
+    {
+      *errno () = ENOMEM;                                              // C 3025
+      return std::ptr::null_mut ();                                    // C 3026
+    }
+
+  /* Prefix FILENAME with content:// and return the buffer containing
+     that URI.  */                                                     // C 3029-3030
+  buffer = xmalloc (std::mem::size_of::<[c_char; 11]> () + length + 1) as *mut c_char;   // C 3031
+  sprintf (buffer, c"content://%.*s".as_ptr (), length as c_int, filename);   // C 3032
+  return buffer;                                                       // C 3033
+}
+
+/* Return whether or not the specified URI is an accessible content
+   URI.  MODE specifies what to check.
+
+   URI must be a string in the JVM's extended UTF-8 format.  */         // C 3036-3039
+
+/* C 3041-3066.  C calls it directly (C 3525), never through a pointer, so it stays a Rust-ABI
+   `unsafe fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_check_content_access (uri: *const c_char, mode: c_int) -> bool
+{
+  let mut string: jobject;                                             // C 3044
+  let mut rc: jboolean;                                                // C 3045
+  let mut read: jboolean;                                              // C 3045
+  let mut write: jboolean;                                             // C 3045
+  let mut method: jmethodID;                                           // C 3046
+
+  /* C leaves `string`, `rc`, `read`, `write` and `method` uninitialised (PORTING.md 1.5); each is
+     assigned before its first read.  */
+  string = std::ptr::null_mut ();
+  rc = 0;
+  read = 0;
+  write = 0;
+  method = std::ptr::null_mut ();
+
+  string = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env, uri);   // C 3048
+  android_exception_check ();                                          // C 3049
+
+  /* Establish what is being checked.  Checking for read access is
+     identical to checking if the file exists.  */                     // C 3051-3052
+
+  read = ((mode & R_OK) != 0 || mode == F_OK) as jboolean;             // C 3054
+  write = ((mode & W_OK) != 0) as jboolean;                            // C 3055
+  method = service_class.check_content_uri;                            // C 3056
+
+  rc = ((*(*android_java_env)).CallNonvirtualBooleanMethod.unwrap ())   // C 3058
+    (android_java_env,                                                 // C 3058
+     emacs_service,                                                    // C 3059
+     service_class.class,                                              // C 3060
+     method, string, (read as c_int),                                  // C 3061 (C's own
+									//  variadic promotion of
+									//  `jboolean` to `int`)
+     (write as c_int));                                                // C 3062
+  android_exception_check_1 (string);                                  // C 3063
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, string);   // C 3064
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  return rc != 0;                                                      // C 3065
+}
+
+/* C 3068-3070: C 3069's form feed and the comment `/* Functions shared by authority and SAF
+   nodes.  */`.  */
+
+/* Check for JNI exceptions, clear them, and set errno accordingly.
+   Also, free each of the N local references given as arguments if an
+   exception takes place.
+
+   Value is 1 if an exception has taken place, 0 otherwise.
+
+   If the exception thrown derives from FileNotFoundException, set
+   errno to ENOENT.
+
+   If the exception thrown derives from SecurityException, set errno
+   to EACCES.
+
+   If the exception thrown derives from OperationCanceledException,
+   set errno to EINTR.
+
+   If the exception thrown derives from UnsupportedOperationException,
+   set errno to ENOSYS.
+
+   If the exception thrown derives from OutOfMemoryException, call
+   `memory_full'.
+
+   If the exception thrown is anything else, set errno to EIO.  */     // C 3072-3093
+
+/* C 3095-3164.  C's `va_list ap; va_start (ap, n); … va_end (ap);` has no port counterpart: the
+   `...` parameter *is* the list and the one `va_arg (ap, jobject)` read is `ap.next_arg::<jobject>
+   ()` (P-04, the `lib/fcntl.rs` 142 precedent, whose `jobject` row is in
+   `docs/ports/va-arg-types.tsv`).  C calls it directly (C 3377 onward), never through a pointer -
+   but a variadic *definition* is `extern "C"` in Rust (measured: `unsafe fn … (…, ...)` is
+   `\`...\` is not supported for non-extern functions`), which is also C's own ABI here.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_exception_check (mut n: c_int, mut ap: ...) -> c_int
+{
+  let mut exception: jthrowable;                                       // C 3098
+  let mut env: *mut JNIEnv;                                            // C 3099
+  let mut new_errno: c_int;                                            // C 3101
+
+  env = android_java_env;                                              // C 3103
+
+  /* First, check for an exception.  */                                // C 3106
+
+  if ((*(*env)).ExceptionCheck.unwrap ()) (env) == 0                   // C 3108
+    {
+      /* No exception has taken place.  Return 0.  */                  // C 3110
+      return 0;                                                        // C 3112
+    }
+
+  /* Print the exception.  */                                          // C 3115
+  ((*(*env)).ExceptionDescribe.unwrap ()) (env);                       // C 3116
+
+  exception = ((*(*env)).ExceptionOccurred.unwrap ()) (env);           // C 3118
+
+  if exception.is_null ()                                              // C 3120
+    /* JNI couldn't return a local reference to the exception.  */
+    { memory_full (0); }                                               // C 3122
+
+  /* Clear the exception, making it safe to subsequently call other
+     JNI functions.  */                                                // C 3124-3125
+  ((*(*env)).ExceptionClear.unwrap ()) (env);                          // C 3126
+
+  /* Delete each of the N arguments.  */                               // C 3128
+
+  while n > 0
+    {
+      let reference: jobject = ap.next_arg::<jobject> ();              // C 3132
+      ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, reference);   // C 3132
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+      n -= 1;                                                          // C 3133
+    }
+
+  /* Now set errno or signal memory_full as required.  */               // C 3136
+
+  if ((*(*env)).IsInstanceOf.unwrap ()) (env, exception as jobject,    // C 3138
+					 file_not_found_exception) != 0   // C 3139
+    { new_errno = ENOENT; }                                            // C 3140
+  else if ((*(*env)).IsInstanceOf.unwrap ()) (env, exception as jobject,   // C 3141
+					      security_exception) != 0   // C 3142
+    { new_errno = EACCES; }                                            // C 3143
+  else if ((*(*env)).IsInstanceOf.unwrap ()) (env, exception as jobject,   // C 3144
+					      operation_canceled_exception) != 0   // C 3145
+    { new_errno = EINTR; }                                             // C 3146
+  else if ((*(*env)).IsInstanceOf.unwrap ()) (env, exception as jobject,   // C 3147
+					      unsupported_operation_exception) != 0   // C 3148
+    { new_errno = ENOSYS; }                                            // C 3149
+  else if ((*(*env)).IsInstanceOf.unwrap ()) (env, exception as jobject,   // C 3150
+					      out_of_memory_error) != 0   // C 3151
+    {
+      ((*(*env)).DeleteLocalRef.unwrap ()) (env, exception as jobject);   // C 3153
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+      memory_full (0);                                                 // C 3154
+    }
+  else
+    { new_errno = EIO; }                                               // C 3157
+
+  /* expression is still a local reference! */
+  ((*(*env)).DeleteLocalRef.unwrap ()) (env, exception as jobject);    // C 3160
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  *errno () = new_errno;                                               // C 3161
+  return 1;                                                            // C 3163
+}
+
+/* Verify that OBJECT is non-NULL.  If NULL, free each of the N local
+   references given as arguments, and clear exceptions.
+
+   Value is 1 if it be NULL, 0 otherwise.  */                          // C 3166-3169
+
+/* C 3171-3195.  The same variadic shape as the checker above; C calls it directly (C 4311
+   onward), never through a pointer.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_check_nonnull (object: *const c_void, mut n: c_int,
+						  mut ap: ...) -> c_int
+{
+  if ! object.is_null ()                                               // C 3176
+    { return 0; }                                                      // C 3177
+
+  /* Clear the active exception, making it safe to subsequently call
+     other JNI functions.  */                                          // C 3181-3182
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 3183
+
+  /* Delete each of the N arguments.  */                               // C 3185
+
+  while n > 0
+    {
+      let reference: jobject = ap.next_arg::<jobject> ();              // C 3189
+      ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, reference);   // C 3189
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+      n -= 1;                                                          // C 3190
+    }
+
+  return 1;                                                            // C 3194
 }
