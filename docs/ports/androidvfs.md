@@ -8,10 +8,12 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**3,364 lines**, md5 `74e8b3e74c5a7ee0ef7c3bfa9f66ecc4`), carrying
-> **C 1-2466** - P-86 ④'s first eight slices of this file, which close the whole asset-VFS family -
-> with both arms of every `#if` carried.  Slice 8 carries the one item in the unit that sits out of
-> C's order (`afs_vfs_ops`, C 1682-1699, at the file's foot; Deviation 21).
+> `femacs/src/androidvfs.rs` (**3,758 lines**, md5 `a5b93935e39efb93f60726104fc1ed7a`), carrying
+> **C 1-2946 except four deferred items** (C 2520-2537's `content_vfs_ops`, C 2549-2639's
+> `android_content_name`, C 2887-2906's `android_content_initial` - one clique - and, for the next
+> round, C 2956-3206's four URI/SAF helpers) - P-86 ④'s first nine slices of this file - with both
+> arms of every `#if` carried.  Slice 8 carries the one item in the unit that sits out of C's order
+> (`afs_vfs_ops`, C 1682-1699, at the file's foot; Deviation 21).
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
 > build, so the port is the empty unit plus a note that names the gate"): P-86 ① rules that a
@@ -99,7 +101,14 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 1707-1844 | `android_afs_name` (C 1708-1820, with C 1708's declaration comment) and `android_afs_initial` (C 1826-1843, with C 1822-1824's comment) | file gate (slice 8) |
 | 1845-1870 | `android_close_on_exec` (C 1848-1870, with C 1845-1846's comment) | file gate (slice 7) |
 | 1871-2466 | the rest of the asset family: `android_afs_open` (C 1872-2003) through `android_afs_get_directory_name` (C 2454-2466), with C 2449-2452's comment | file gate (slice 8); C 2467-2469 are blank |
-| 2470-7950 | **the remainder** - `struct android_content_vdir` (C 2470) through C 7950: the content/authority/SAF families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2470-2519 | `struct android_content_vdir` (C 2470-2484), C 2486-2488's three forward declarations, C 2490-2500's comment on the content meta-interface and C 2502-2518's twelve more (Rust needs no text for any forward declaration) | file gate (slice 9) |
+| 2520-2537 | **deferred to the round that reaches C 3577**: `content_vfs_ops` | deferral, Deviation 23 (its `android_content_name` names C 3577/3603/4219's three initial functions) |
+| 2539-2548 | `content_directory_contents` (C 2541-2544) and `all_content_vdirs` (C 2547) | file gate (slice 9) |
+| 2549-2639 | **deferred with the object**: `android_content_name` | the same deferral and the same reason |
+| 2641-2885 | the fifteen content functions (`android_content_open` … `android_content_get_directory_name`) with their comments | file gate (slice 9) |
+| 2887-2906 | **deferred with the object**: `android_content_initial` | it names `content_vfs_ops` |
+| 2908-2946 | C 2908-2916/2942-2946's `#pragma` pair (a record), C 2918's comment and `displayNameHash` (C 2920-2940, the JNI entry point) | file gate (slice 9) |
+| 2948-7950 | **the remainder**, opening with C 2948-2954's comment on `android_get_content_name` (the next round's first item) - C 2956's `android_get_content_name` through C 7950: the four URI/SAF helpers, the authority/SAF families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -310,7 +319,7 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    `android_unix_name` → `goto`.  Both lines print in `--check` today and every other token of both
    bodies is present.
 5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
-   **stale** (**3,364** C lines carried = 42.3% of 7,950, above the ten-percent threshold; slice 1's
+   **stale** (**3,758** C lines carried = 47.3% of 7,950, above the ten-percent threshold; slice 1's
    original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
 6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
    and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
@@ -329,9 +338,14 @@ object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMe
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
 /`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
 readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
-type-check and emit an object under each arm, not that any of it behaves.  C 2470-7950 is
-**unported**: `extract-abi.py --check` reads **149** rows across that boundary (148 `missing …` plus
-the whole-file drift row, which now reads **57.7%**), and those rows are the boundary, not defects.  Owed 4's `does not mention` rows are written in `docs/ports/macro-body-notes.tsv` now,
+type-check and emit an object under each arm, not that any of it behaves.  C 2956-7950 is
+**unported** (as are the three deferred items above, whose rows are in the same list):
+`extract-abi.py --check` reads **133** rows across that boundary (131 `missing …`, the whole-file
+drift row, which now reads **52.7%**, and the `displayNameHash` `invented exported symbol` row
+below), and those rows are the boundary, not defects.  The `invented exported symbol` row is the
+extractor's blind spot for `NATIVE_NAME` (`docs/ports/android.md` 432/462 records the same three
+rows for `android.rs`): the reference's symbol name is *pasted* by the macro (android.h 344), so no
+non-static function of either name exists to compare against.  Owed 4's `does not mention` rows are written in `docs/ports/macro-body-notes.tsv` now,
 which is why none of them prints.  This ledger claims no runtime evidence, no Android device or
 emulator run, and no artifact beyond the objects the slices' arm readings name.
 
@@ -816,3 +830,57 @@ never been called through.  What the round's evidence *is*: both arms' `exit 0`,
 the harness reads this text, `--check` 167 -> 149 with the row set diffed, the measured layouts and
 constants, and the ten gates.  **This file is not finished**: C 2470-7950 remains (the next item is
 C 2470's `struct android_content_vdir`).
+
+## Slice 9 (2026-10-08, status 4.114 - the integrator sets the round number): C 2470-2946 except the three deferred items (the content family's 15 functions and the JNI entry point)
+
+**What this round is.**  `struct android_content_vdir` (C 2470-2484) with its measured layout, C's
+declarations (C 2486-2518, no Rust text), the meta-interface comment (C 2490-2500),
+`content_directory_contents` and `all_content_vdirs` (C 2539-2548), the fifteen content functions
+(`android_content_open` … `android_content_get_directory_name`, C 2641-2885), the `#pragma` region
+carried as a record (C 2908-2916/2942-2946) and `displayNameHash` (C 2920-2940, the JNI entry point
+whose symbol `NATIVE_NAME` pastes).  Port: **3,364 -> 3,758 lines**.
+
+**Evidence ① - both arms read `exit 0`**: 0 errors, 7 warnings in the else arm and 12 in the `>= 9`
+arm (the same counts as the previous round).  One real defect came out of the first draft:
+`&raw mut content_directory_contents as *mut *const c_char.offset (…)` is `E0689` ("cast cannot be
+followed by a method call"), so the cast is parenthesised before the `.offset`.
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error next to C 2768's
+`dir = …` moves the else arm to `exit 1` with `injected_control` named once; reverted, the arm reads
+`exit 0` and the file's md5 returns to the header's.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 149 -> 133 rows, diffed**: sixteen
+`missing function android_content_*` rows and `missing file-scope object all_content_vdirs` retire,
+**one row appears** - `fn displayNameHash carries #[unsafe(no_mangle)] and exports
+`Java_org_femacs_EmacsNative_displayNameHash`, but the reference does not define a non-static
+function of either name (invented exported symbol)` - which is the class `docs/ports/android.md`
+432/462 already records three times for `android.rs` (the `NATIVE_NAME` paste, the same Owed 9 blind
+spot there), and the whole-file line-count row moves 57.7% -> **52.7%**.
+
+**Deviation (this slice's addition).**
+
+23. **The content object, `android_content_name` and `android_content_initial` are one clique and are
+    deferred together** (Deviation 20/21's rule, applied one family later): `content_vfs_ops` names
+    `android_content_name`; `android_content_name`'s function-scope `content_vnodes[]` names
+    `android_authority_initial` (C 3577), `android_authority_initial_name` (C 3603) and
+    `android_saf_root_initial` (C 4219); and `android_content_initial` names `content_vfs_ops`.  So
+    the three land in the round that reaches C 3577, with the object at that round's foot, and this
+    round's text records where C's text would be.  The three rows in the range table are `deferred`.
+
+**Owed (this slice's additions).**
+
+- The three deferred ranges (C 2520-2537, C 2549-2639, C 2887-2906) plus C 2956-3206's four helpers
+  (`android_get_content_name`, `android_check_content_access`, `android_saf_exception_check`,
+  `android_saf_check_nonnull`) are the next round's first items - the four are deferrable to it
+  because the content family never calls them (their first callers are C 3314 onward).
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **3,758** of 7,950 C lines (47.3%).
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item).
+
+**Not claimed (this slice).**  No runtime evidence, and none is possible here: no Android device, no
+emulator, and this unit is not in the frozen configuration.  No content vnode was created, no
+directory stream was opened, `all_content_vdirs` is still null, and `displayNameHash` has never been
+called from Java.  What the round's evidence *is*: both arms' `exit 0`, one control proving the
+harness reads this text, `--check` 149 -> 133 with the row set diffed, the measured layout, and the
+ten gates.  **This file is not finished**: C 2956-7950 remains (the next item is C 2956's
+`android_get_content_name`).

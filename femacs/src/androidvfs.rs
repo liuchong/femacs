@@ -1422,9 +1422,12 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 2468-7950: the remainder of the file.  This round closes the asset-VFS family (C 1615-2466,
-   whose one out-of-order item - `afs_vfs_ops`, C 1682-1699 - sits at this file's foot for the
-   reason Deviation 21 records); the next item is C 2470's `struct android_content_vdir`, and
+/* C 2956-7950: the remainder of the file, plus the six items slice 9 defers: C 2520-2537's
+   `content_vfs_ops`, C 2549-2639's `android_content_name`, C 2887-2906's `android_content_initial`
+   (one clique - the object names `android_content_name`, and `android_content_name`'s own
+   `content_vnodes[]` names three functions C defines at C 3577/3603/4219), C 2956-3039's
+   `android_get_content_name`, C 3041-3093's `android_check_content_access` and C 3095-3206's two
+   variadic SAF checkers (all four are first called by the authority family, C 3314 onward), and
    `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
@@ -3362,3 +3365,394 @@ static mut afs_vfs_ops: android_vops = android_vops
     readlink: Some (android_afs_readlink),
     opendir: Some (android_afs_opendir),
   };
+
+/* C 2470-2484: `struct android_content_vdir'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_content_vdir
+{
+  /* The directory function table.  */
+  pub vdir: android_vdir,                                              // C 2473
+
+  /* The next directory stream in `all_content_vdirs'.  */
+  pub next: *mut android_content_vdir,                                 // C 2476
+
+  /* Pointer to the next file to return.  */
+  pub next_name: *mut *const c_char,                                   // C 2479
+
+  /* Temporary file descriptor used to identify this directory to
+     at-funcs, or -1.  */
+  pub fd: c_int,                                                       // C 2483
+}
+/* Measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`,
+   `--target=aarch64-linux-android24`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_content_vdir> () == 48);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_content_vdir, vdir) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_content_vdir, next) == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_content_vdir, next_name) == 32);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_content_vdir, fd) == 40);
+
+/* C 2486-2488 (`android_authority_initial`, `android_authority_initial_name`,
+   `android_saf_root_initial`), C 2502-2518 (the twelve `android_content_*` functions) and C
+   2490-2500's comment on the content meta-interface: C's forward declarations, for which Rust
+   needs no text (PORTING.md 10.10).  The three functions C 2486-2488 names are the authority and
+   SAF families' (C 3577/3603/4219).  */
+
+/* C 2520-2537 - `content_vfs_ops` - is **deferred with `android_content_name`**
+   (Deviation 23): the object names `android_content_name`, and `android_content_name`'s own
+   function-scope `content_vnodes[]` names C 3577/3603/4219's three initial functions, so the
+   object, that function and those three land together in the round that reaches C 3577.  */
+
+/* Table of directories contained within a top-level vnode.  */         // C 2539
+
+/* C 2541-2544: `static const char *content_directory_contents[] = { … }`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut content_directory_contents: [*const c_char; 3] =
+  [ c"storage".as_ptr (), c"by-authority".as_ptr (), c"by-authority-named".as_ptr () ];   // C 2543
+
+/* Chain consisting of all open content directory streams.  */          // C 2546
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut all_content_vdirs: *mut android_content_vdir = std::ptr::null_mut ();   // C 2547
+
+/* C 2549-2639 - `android_content_name` - is **deferred** (see the note above C 2520): it is an
+   `unsafe extern "C" fn`, because C takes its address at C 2524.  */
+
+/* C 2641-2649.  Its address is taken at C 2525, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_open (vnode: *mut android_vnode, flags: c_int,
+					   mode: mode_t, asset_p: bool, fd: *mut c_int,
+					   asset: *mut *mut AAsset) -> c_int
+{
+  /* Don't allow opening this special directory.  */                    // C 2646
+  *errno () = ENOSYS;                                                  // C 2647
+  return -1;                                                           // C 2648
+}
+
+/* C 2651-2659.  Its address is taken at C 2526.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_close (vnode: *mut android_vnode)
+{
+  let mut save_errno: c_int;                                           // C 2654
+
+  save_errno = *errno ();                                              // C 2656
+  xfree (vnode as *mut c_void);                                        // C 2657
+  *errno () = save_errno;                                              // C 2658
+}
+
+/* C 2661-2666.  Its address is taken at C 2527.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_unlink (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = ENOSYS;                                                  // C 2664
+  return -1;                                                           // C 2665
+}
+
+/* C 2668-2673.  Its address is taken at C 2528.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_symlink (target: *const c_char,
+					     vnode: *mut android_vnode) -> c_int
+{
+  *errno () = ENOSYS;                                                  // C 2671
+  return -1;                                                           // C 2672
+}
+
+/* C 2675-2680.  Its address is taken at C 2529.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_rmdir (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = ENOSYS;                                                  // C 2678
+  return -1;                                                           // C 2679
+}
+
+/* C 2682-2699.  Its address is taken at C 2530.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_rename (src: *mut android_vnode, dst: *mut android_vnode,
+					     keep_existing: bool) -> c_int
+{
+  if (*src).r#type != (*dst).r#type                                    // C 2687
+    {
+      /* If the types of both vnodes differ, complain that they're on
+	 two different filesystems (which is correct from a abstract
+	 viewpoint.)  */                                               // C 2689-2691
+      *errno () = EXDEV;                                               // C 2692
+      return -1;                                                       // C 2693
+    }
+
+  /* Otherwise, return ENOSYS.  */                                     // C 2696
+  *errno () = ENOSYS;                                                  // C 2697
+  return -1;                                                           // C 2698
+}
+
+/* C 2701-2713.  Its address is taken at C 2531.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_stat (vnode: *mut android_vnode, statb: *mut stat,
+					   flags: c_int) -> c_int
+{
+  memset (statb as *mut c_void, 0, std::mem::size_of::<stat> ());      // C 2705
+
+  (*statb).st_uid = getuid ();                                         // C 2707
+  (*statb).st_gid = getgid ();                                         // C 2708
+  (*statb).st_ino = 0;                                                 // C 2709
+  (*statb).st_dev = -2;                                                // C 2710
+  (*statb).st_mode = S_IFDIR | S_IRUSR | S_IXUSR;                      // C 2711
+  return 0;                                                            // C 2712
+}
+
+/* C 2715-2736.  Its address is taken at C 2532.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_access (vnode: *mut android_vnode, mode: c_int) -> c_int
+{
+  /* Validate MODE.  */                                                // C 2718
+
+  if mode != F_OK && (mode & (W_OK | X_OK | R_OK)) == 0                 // C 2720
+    {
+      *errno () = EINVAL;                                              // C 2722
+      return -1;                                                       // C 2723
+    }
+
+  /* Return EROFS if the caller is trying to check for write access to
+     this vnode.  */                                                   // C 2726-2727
+
+  if mode != F_OK && (mode & (W_OK | X_OK)) != 0                        // C 2729
+    {
+      *errno () = EROFS;                                               // C 2731
+      return -1;                                                       // C 2732
+    }
+
+  return 0;                                                            // C 2735
+}
+
+/* C 2738-2743.  Its address is taken at C 2533.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_mkdir (vnode: *mut android_vnode, mode: mode_t) -> c_int
+{
+  *errno () = EEXIST;                                                  // C 2741
+  return -1;                                                           // C 2742
+}
+
+/* C 2745-2751.  Its address is taken at C 2534.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_chmod (vnode: *mut android_vnode, mode: mode_t,
+					    flags: c_int) -> c_int
+{
+  *errno () = EACCES;                                                  // C 2749
+  return -1;                                                           // C 2750
+}
+
+/* C 2753-2759.  Its address is taken at C 2535.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_readlink (vnode: *mut android_vnode, buffer: *mut c_char,
+					       size: size_t) -> ssize_t
+{
+  *errno () = EINVAL;                                                  // C 2757
+  return -1;                                                           // C 2758
+}
+
+/* C 2761-2786.  The same shape as `android_afs_readdir`'s static (`static struct dirent dirent;`)
+   and the same `*mut c_void` cast at the one assignment (C 2843).  Its address is taken there, so
+   it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_readdir (vdir: *mut android_vdir) -> *mut dirent
+{
+  static mut dirent: dirent =
+    dirent { d_ino: 0, d_off: 0, d_reclen: 0, d_type: 0, d_name: [0; 256] };   // C 2764
+  let mut dir: *mut android_content_vdir;                              // C 2765
+  let mut name: *const c_char;                                         // C 2766
+
+  dir = vdir as *mut android_content_vdir;                             // C 2768
+
+  /* There are no more files to be read.  */                            // C 2770
+  if (*dir).next_name == (&raw mut content_directory_contents as *mut *const c_char)
+      .offset (countof! (content_directory_contents) as isize)         // C 2771-2772
+    { return std::ptr::null_mut (); }                                  // C 2773
+
+  /* Get the next child.  */                                           // C 2775
+  name = *(*dir).next_name;                                            // C 2776
+  (*dir).next_name = (*dir).next_name.offset (1);                      // C 2776
+
+  /* Now, fill in the dirent with the name.  */                         // C 2778
+  memset (&raw mut dirent as *mut c_void, 0, std::mem::size_of::<dirent> ());   // C 2779
+  dirent.d_ino = 0;                                                    // C 2780
+  dirent.d_off = 0;                                                    // C 2781
+  dirent.d_reclen = std::mem::size_of::<dirent> () as c_ushort;        // C 2782
+  dirent.d_type = DT_DIR as c_uchar;                                   // C 2783
+  strcpy (dirent.d_name.as_mut_ptr (), name);                          // C 2784
+  return &raw mut dirent;                                              // C 2785
+}
+
+/* C 2788-2812.  Its address is taken at C 2844; the `for (next = …; (tem = *next);)` loop is the
+   load-then-test pair (`android_afs_closedir`'s shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_closedir (vdir: *mut android_vdir)
+{
+  let mut dir: *mut android_content_vdir;                              // C 2791
+  let mut next: *mut *mut android_content_vdir;                        // C 2791
+  let mut tem: *mut android_content_vdir;                              // C 2791
+
+  dir = vdir as *mut android_content_vdir;                             // C 2793
+
+  /* If the ``directory file descriptor'' has been opened, close
+     it.  */                                                           // C 2795-2796
+
+  if (*dir).fd != -1                                                   // C 2798
+    { close ((*dir).fd); }                                             // C 2799
+
+  /* Now unlink this directory.  */                                    // C 2801
+
+  next = &raw mut all_content_vdirs;                                   // C 2803
+  loop
+    {
+      tem = *next;                                                     // C 2803
+      if tem.is_null ()
+	{ break; }
+      if tem == dir                                                    // C 2805
+	{ *next = (*dir).next; }                                       // C 2806
+      else
+	{ next = &raw mut (**next).next; }                             // C 2808
+    }
+
+  xfree (dir as *mut c_void);                                          // C 2811
+}
+
+/* C 2814-2833.  Its address is taken at C 2845.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_dirfd (vdir: *mut android_vdir) -> c_int
+{
+  let mut dir: *mut android_content_vdir;                              // C 2817
+
+  dir = vdir as *mut android_content_vdir;                             // C 2819
+
+  /* Since `android_content_opendir' tries to avoid opening a file
+     descriptor if readdir isn't called, dirfd can fail if open fails.
+
+     open sets errno to a set of errors different from what POSIX
+     stipulates for dirfd, but for ease of implementation the open
+     errors are used instead.  */                                      // C 2821-2826
+
+  if (*dir).fd >= 0                                                    // C 2828
+    { return (*dir).fd; }                                              // C 2829
+
+  (*dir).fd = open (c"/dev/null".as_ptr (), O_RDONLY | O_CLOEXEC);     // C 2831
+  return (*dir).fd;                                                    // C 2832
+}
+
+/* C 2835-2867.  Its address is taken at C 2536, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_opendir (vnode: *mut android_vnode) -> *mut android_vdir
+{
+  let mut dir: *mut android_content_vdir;                              // C 2838
+  let mut api: c_int;                                                  // C 2839
+
+  /* C leaves `dir` and `api` uninitialised (PORTING.md 1.5); both are assigned before any read.  */
+  dir = std::ptr::null_mut ();
+  api = 0;
+
+  /* Allocate the virtual directory.  */                               // C 2841
+  dir = xmalloc (std::mem::size_of::<android_content_vdir> ()) as *mut android_content_vdir;   // C 2842
+  (*dir).vdir.readdir
+    = Some (std::mem::transmute::<unsafe extern "C" fn (*mut android_vdir) -> *mut dirent,
+				  unsafe extern "C" fn (*mut android_vdir) -> *mut c_void>
+	    (android_content_readdir));                                // C 2843
+  (*dir).vdir.closedir = Some (android_content_closedir);              // C 2844
+  (*dir).vdir.dirfd = Some (android_content_dirfd);                    // C 2845
+  (*dir).fd = -1;                                                      // C 2846
+
+  /* Fill in the directory contents.  */                               // C 2848
+  (*dir).next_name = &raw mut content_directory_contents as *mut *const c_char;   // C 2849
+  api = android_get_current_api_level ();                              // C 2850
+
+  /* Android 4.4 and earlier don't support /content/storage.  */        // C 2852
+
+  if api < 21                                                          // C 2854
+    { (*dir).next_name = (*dir).next_name.offset (1); }                // C 2855
+
+  /* Android 4.3 and earlier don't support /content/by-authority.  */   // C 2857
+
+  if api < 19                                                          // C 2859
+    { (*dir).next_name = (*dir).next_name.offset (2); }                // C 2860
+
+  /* Link this stream onto the list of all content directory
+     streams.  */                                                      // C 2862-2863
+  (*dir).next = all_content_vdirs;                                     // C 2864
+  all_content_vdirs = dir;                                             // C 2865
+  return &raw mut (*dir).vdir;                                         // C 2866
+}
+
+/* Return the file name corresponding to DIRFD if it is a
+   ``directory'' file descriptor returned by `android_content_dirfd'
+   or NULL otherwise.  */                                              // C 2869-2871
+
+/* C 2873-2885.  C calls it directly (C 7354's sibling), never through a pointer, so it stays a
+   Rust-ABI `unsafe fn`; its `for (dir = …; dir; dir = dir->next)` is the load-then-test pair.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_content_get_directory_name (dirfd: c_int) -> *mut c_char
+{
+  let mut dir: *mut android_content_vdir;                              // C 2876
+
+  dir = all_content_vdirs;                                             // C 2878
+  while ! dir.is_null ()
+    {
+      if (*dir).fd == dirfd && dirfd != -1                             // C 2880
+	{ return c"/content".as_ptr () as *mut c_char; }               // C 2881
+      dir = (*dir).next;                                               // C 2878
+    }
+
+  return std::ptr::null_mut ();                                        // C 2884
+}
+
+/* C 2887-2906 - `android_content_initial` - is **deferred** with the object and
+   `android_content_name` (the note above C 2520); it is an `unsafe extern "C" fn`, because C takes
+   its address at C 6634's sibling table.  */
+
+/* C 2908-2916 and C 2942-2946: C 2909's form feed, the `#ifdef __clang__` / `#pragma clang
+   diagnostic push` / `#pragma … ignored "-Wmissing-prototypes"` / `#else` / `#pragma GCC …` /
+   `#endif` pair and its pop.  A pragma has no Rust counterpart and the port emits none either way
+   (the android.rs 1650-1655 precedent).  */
+
+/* Content URI management functions.  */                                // C 2918
+
+/* C 2920-2940: `JNIEXPORT jstring JNICALL NATIVE_NAME (displayNameHash) (JNIEnv *env, jobject
+   object, jbyteArray display_name)`.  `NATIVE_NAME` pastes the symbol name (android.h 344), so
+   the port exports its own class's name, `Java_org_femacs_EmacsNative_displayNameHash`
+   (PORTING.md 0.1-19's name half / status 3.503, the macro's row in
+   `docs/ports/excluded-macros.txt`); `JNIEXPORT`/`JNICALL` have no Rust text.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_displayNameHash")]
+pub unsafe extern "C" fn displayNameHash (env: *mut JNIEnv, object: jobject,
+					  display_name: jbyteArray) -> jstring
+{
+  let mut checksum: [c_char; 9] = [0; 9];                              // C 2924
+  let mut block: [c_char; MD5_DIGEST_SIZE as usize] = [0; MD5_DIGEST_SIZE as usize];   // C 2924
+  let mut data: *mut jbyte;                                            // C 2925
+
+  data = ((*(*env)).GetByteArrayElements.unwrap ()) (env, display_name,   // C 2927
+						     std::ptr::null_mut ());   // C 2927
+  if data.is_null ()                                                   // C 2928
+    { return std::ptr::null_mut (); }                                  // C 2929
+
+  /* Hash the buffer.  */                                              // C 2931
+  md5_buffer (data as *const c_char,                                   // C 2932
+	      ((*(*env)).GetArrayLength.unwrap ()) (env, display_name) as usize,   // C 2932
+	      &raw mut block as *mut c_void);                          // C 2933
+  ((*(*env)).ReleaseByteArrayElements.unwrap ()) (env, display_name, data, JNI_ABORT);   // C 2934
+
+  /* Generate the digest string.  */                                   // C 2936
+  hexbuf_digest (&raw mut checksum as *mut c_char,                     // C 2937
+		 &raw mut block as *const c_void, 4);                  // C 2937
+  checksum[8] = 0;                                                     // C 2938
+  return ((*(*env)).NewStringUTF.unwrap ()) (env, &raw const checksum as *const c_char);   // C 2939
+}
+
+/* C 51's `lisp.h` 4247 declares `hexbuf_digest` and the `lisp.rs` mirror does not carry it
+   (the android.rs 1386-1392 declaration, this unit's own copy under its gate).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: lisp.h 4247: `extern void hexbuf_digest (char *, void const *, int);`
+  pub fn hexbuf_digest (buf: *mut c_char, data: *const c_void, size: c_int);
+}
