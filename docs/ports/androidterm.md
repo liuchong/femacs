@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,178 lines**, md5
-> `8795edd2e11ba577d84bcaf6914ef4fe`), carrying **C 1-5893**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,366 lines**, md5
+> `368cece7e94e25ba253f9075769c44e1`), carrying **C 1-6054**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -20,7 +20,7 @@
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
 the next definition is
-> `android_build_extracted_text`, C 5909.
+> `NATIVE_NAME (getSelectedText)`, C 6059.
 
 ## Gate mapping
 
@@ -203,7 +203,9 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 5862-5870 | C 5862-5863's comment and `struct android_extracted_text_request_class` | real arm (slice 19) |
 | 5872-5886 | C 5872-5873's comment and `struct android_extracted_text_class` | real arm (slice 19) |
 | 5888-5893 | the two comments and the file-scope objects `request_class`, `text_class` | real arm (slice 19) |
-| 5895-7117 | **the remainder of the file** - from C 5895's comment above `android_build_extracted_text` (C 5909) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5895-5944 | C 5895-5906's comment and `android_build_extracted_text` | real arm (slice 20) |
+| 5946-6054 | C 5946's `JNIEXPORT jobject JNICALL` and `NATIVE_NAME (getExtractedText)` (the two class-initialisation blocks) | real arm (slice 20) |
+| 6056-7117 | **the remainder of the file** - from C 6056's blank and form-feed lines through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -399,11 +401,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 5895-7117.**  Slice 19 wrote C 5741-5893 (the context-menu
-   entry, the extracted-text request and the two class records with their file-scope objects), so
-   the next slice's rows must replace this table's last row; its first definition is
-   `android_build_extracted_text` (C 5909), and the group runs through the rest of the input-method
-   and text-conversion entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 6056-7117.**  Slice 20 wrote C 5895-6054 (the extracted-text
+   builder and `getExtractedText`), so the next slice's rows must replace this table's last row; its
+   first definition is `NATIVE_NAME (getSelectedText)` (C 6059), and the group runs through the rest
+   of the input-method and text-conversion entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -605,8 +606,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-5893 is now ported** (slices 4-19,
-each with its own Evidence section below); C 5895-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-6054 is now ported** (slices 4-20,
+each with its own Evidence section below); C 6056-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1421,3 +1422,35 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
 - **C 5857-5859's three `FRAME_ANDROID_OUTPUT (f)->…` writes** keep C's repetition of the macro
   through the unit's own accessor (`*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)`), the
   C 707-708 device of this unit.
+
+## 2026-10-12: slice 20 (C 5895-6054) - the extracted-text builder and `getExtractedText`
+
+`android_build_extracted_text` and `NATIVE_NAME (getExtractedText)`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The slice's own reading was C's adjacent string literals: C 5963-5964 and 5981-5982 write the two
+   class names as two pieces, and Rust has no compile-time concatenation, so the port writes one
+   literal each (the C text's pieces are quoted in the unit's comment).
+2. **Inventory**: 16 `missing function` rows -> **15** (`android_build_extracted_text` retires), the
+   file-scope section stays empty, the export rows rise to **16** (`getExtractedText`, Owed 29), no
+   new `does not mention` row, and the line-count row stays retired.
+3. **`TYPE_MAXIMUM!`** joins slice 17's `TYPE_MINIMUM!` as the unit's second one-line macro for a
+   `lib/intprops.h` name no mirror carries (the `src/androidmenu.rs` 335 copy).
+
+### Deviations this slice adds
+
+- **C's `min (x, TYPE_MAXIMUM (jint))`** is `min (x, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint`: the
+  comparison is C's `ptrdiff_t` promotion and the `jint` narrowing is the conversion the
+  `SetIntField` prototype performs (PORTING.md 1.2).
+- **C 5923/6033's `NewObject`** is the vtable's variadic entry called through its `…` parameter (the
+  NDK mirror's `Option<unsafe extern "C" fn (*mut JNIEnv, jclass, jmethodID, ...)>`).
+- **C 5985-5987's chained assignment** (`class = text_class.class = NewGlobalRef (…)`) is two
+  statements in C's order: the inner assignment reads `text_class.class` once, then the outer copies
+  the same value.
+- **C 5930/6040's `mark_active ? 2 : 0`** is the port's `if … { 2 } else { 0 }`, and the string
+  literals `"hintMaxChars"`/`"I"`/… are C's own `c"…"` literals.
+- **`android_java_env`** is the `android.h` mirror's `static mut` (its 234, C 321) read once into
+  `env` exactly where C reads it.

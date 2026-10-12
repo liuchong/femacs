@@ -7176,3 +7176,191 @@ static mut text_class: android_extracted_text_class =                  // C 5893
     start_offset: std::ptr::null_mut (),
     text: std::ptr::null_mut (),
   };
+
+/* C 5895-6054: the extracted-text builder and the `getExtractedText` entry point.  C's
+   `TYPE_MAXIMUM (jint)` (C 5934/5936/5941 and 6044/6046/6051) is `lib/intprops.h`'s macro and no
+   mirror carries it, so the unit names it beside slice 17's `TYPE_MINIMUM!` (the
+   `src/androidmenu.rs` 335 / `src/androidselect.rs` 113 copies); the two Java string literals C
+   writes as adjacent pieces (C 5963-5964 and 5981-5982) are one literal each here, since C's
+   concatenation happens before the compiler sees a string.  */
+
+/* <intprops.h> 68-69: `# define TYPE_MAXIMUM(t) ...` (the `TYPE_MINIMUM` twin of slice 17).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }
+
+/* Return an ExtractedText object corresponding to the extracted text
+   TEXT.  START is a character position describing the offset of the
+   first character in TEXT.  START_OFFSET is the offset of the lesser
+   of point or mark relative to START, and END_OFFSET is that of the
+   greater of point or mark relative to START.  MARK_ACTIVE specifies
+   whether or not the mark is currently active.
+
+   Assume that request_class and text_class have already been
+   initialized.
+
+   Value is NULL if an error occurs; the exception is not cleared,
+   else a local reference to the ExtractedText object.  */            // C 5895-5906
+
+/* C 5908-5944.  `static`; called from C 6514.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_build_extracted_text (text: jstring, start: ptrdiff_t,
+					start_offset: ptrdiff_t,
+					end_offset: ptrdiff_t, mark_active: bool) -> jobject
+{
+  let env: *mut JNIEnv;                                                 // C 5913
+  let mut object: jobject;                                              // C 5914
+
+  env = android_java_env;                                               // C 5916
+
+  /* Return NULL if the class has not yet been obtained.  */             // C 5918
+  if text_class.class.is_null ()                                        // C 5919
+    { return std::ptr::null_mut (); }                                   // C 5920
+
+  /* Create an ExtractedText object containing this information.  */     // C 5922
+  object = ((*(*env)).NewObject.unwrap ()) (env, text_class.class,      // C 5923
+					    text_class.constructor);    // C 5924
+  if object.is_null ()                                                  // C 5925
+    { return std::ptr::null_mut (); }                                   // C 5926
+
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.flags,     // C 5928
+				     /* ExtractedText.FLAG_SELECTING */
+				     if mark_active { 2 } else { 0 });  // C 5930
+
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.partial_start_offset, -1);   // C 5931
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.partial_end_offset, -1);   // C 5932
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.selection_start,   // C 5933
+				     min (start_offset, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint);   // C 5934
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.selection_end,   // C 5935
+				     min (end_offset, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint);   // C 5936
+
+  /* Subtract 1 from start: point indices in Emacs start from 1, but
+     Android expects 0.  */                                            // C 5938-5939
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.start_offset,   // C 5940
+				     min (start - 1, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint);   // C 5941
+  ((*(*env)).SetObjectField.unwrap ()) (env, object, text_class.text, text);   // C 5942
+  return object;                                                        // C 5943
+}
+
+/* C 5946-6054: `NATIVE_NAME (getExtractedText)`.  C's `jobject ignored_object` parameter is
+   kept - C 5947 never reads it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getExtractedText")]
+pub unsafe extern "C" fn getExtractedText (env: *mut JNIEnv, ignored_object: jobject,
+					   window: jlong, request: jobject,
+					   flags: jint) -> jobject
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5951
+
+  let mut context: android_get_extracted_text_context = std::mem::zeroed ();   // C 5953
+  let mut string: jstring;                                              // C 5954
+  let mut class: jclass;                                                // C 5955
+  let mut object: jobject;                                              // C 5956
+
+  /* Initialize both classes if necessary.  */                           // C 5958
+
+  if ! request_class.initialized                                         // C 5960
+    {
+      /* C 5963-5964's adjacent literals are one literal here: Rust has no compile-time
+	 concatenation, and C's happens before the compiler sees a string.  */
+      class
+	= ((*(*env)).FindClass.unwrap ()) (env, c"android/view/inputmethod/ExtractedTextRequest".as_ptr ()) as jclass;   // C 5963-5964
+      eassert! (! class.is_null ());                                      // C 5965
+
+      request_class.hint_max_chars
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"hintMaxChars".as_ptr (),   // C 5968
+					    c"I".as_ptr ());
+      eassert! (! request_class.hint_max_chars.is_null ());               // C 5969
+
+      request_class.token
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"token".as_ptr (),   // C 5972
+					    c"I".as_ptr ());
+      eassert! (! request_class.token.is_null ());                        // C 5973
+
+      request_class.initialized = true;                                   // C 5975
+    }
+
+  if text_class.class.is_null ()                                        // C 5978
+    {
+      text_class.class
+	= ((*(*env)).FindClass.unwrap ()) (env, c"android/view/inputmethod/ExtractedText".as_ptr ()) as jclass;   // C 5981-5982
+      eassert! (! text_class.class.is_null ());                           // C 5983
+
+      text_class.class
+	= ((*(*env)).NewGlobalRef.unwrap ()) (env, text_class.class);     // C 5987
+      class = text_class.class;                                           // C 5986
+      eassert! (! text_class.class.is_null ());                           // C 5988
+
+      text_class.flags
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"flags".as_ptr (),   // C 5991
+					    c"I".as_ptr ());
+      text_class.partial_start_offset
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"partialStartOffset".as_ptr (),   // C 5993
+					    c"I".as_ptr ());
+      text_class.partial_end_offset
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"partialEndOffset".as_ptr (),   // C 5995
+					    c"I".as_ptr ());
+      text_class.selection_start
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"selectionStart".as_ptr (),   // C 5997
+					    c"I".as_ptr ());
+      text_class.selection_end
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"selectionEnd".as_ptr (),   // C 5999
+					    c"I".as_ptr ());
+      text_class.start_offset
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"startOffset".as_ptr (),   // C 6001
+					    c"I".as_ptr ());
+      text_class.text
+	= ((*(*env)).GetFieldID.unwrap ()) (env, class, c"text".as_ptr (),   // C 6003
+					    c"Ljava/lang/CharSequence;".as_ptr ());
+      text_class.constructor
+	= ((*(*env)).GetMethodID.unwrap ()) (env, class, c"<init>".as_ptr (),   // C 6005
+					     c"()V".as_ptr ());
+    }
+
+  context.hint_max_chars
+    = ((*(*env)).GetIntField.unwrap ()) (env, request, request_class.hint_max_chars);   // C 6009
+  context.token
+    = ((*(*env)).GetIntField.unwrap ()) (env, request, request_class.token);   // C 6011
+  context.flags = flags;                                                // C 6012
+  context.text = std::ptr::null_mut ();                                 // C 6013
+  context.window = window as android_window;                            // C 6014
+
+  android_sync_edit ();                                                 // C 6016
+  if android_run_in_emacs_thread (Some (android_get_extracted_text),    // C 6017
+				  &raw mut context as *mut c_void) != 0   // C 6018
+    { return std::ptr::null_mut (); }                                   // C 6019
+
+  if context.text.is_null ()                                            // C 6021
+    { return std::ptr::null_mut (); }                                   // C 6022
+
+  /* Encode the returned text.  */                                      // C 6024
+  string = android_text_to_string (env, context.text, context.length,   // C 6025
+				   context.bytes);                      // C 6026
+  free (context.text as *mut c_void);                                   // C 6027
+
+  if string.is_null ()                                                  // C 6029
+    { return std::ptr::null_mut (); }                                   // C 6030
+
+  /* Create an ExtractedText object containing this information.  */     // C 6032
+  object = ((*(*env)).NewObject.unwrap ()) (env, text_class.class,      // C 6033
+					    text_class.constructor);    // C 6034
+  if object.is_null ()                                                  // C 6035
+    { return std::ptr::null_mut (); }                                   // C 6036
+
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.flags,     // C 6038
+				     /* ExtractedText.FLAG_SELECTING */
+				     if context.mark_active { 2 } else { 0 });   // C 6040
+
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.partial_start_offset, -1);   // C 6041
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.partial_end_offset, -1);   // C 6042
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.selection_start,   // C 6043
+				     min (context.start_offset, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint);   // C 6044
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.selection_end,   // C 6045
+				     min (context.end_offset, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint);   // C 6046
+
+  /* Subtract 1 from start: point indices in Emacs start from 1, but
+     Android expects 0.  */                                            // C 6048-6049
+  ((*(*env)).SetIntField.unwrap ()) (env, object, text_class.start_offset,   // C 6050
+				     min (context.start - 1, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint);   // C 6051
+  ((*(*env)).SetObjectField.unwrap ()) (env, object, text_class.text, string);   // C 6052
+  return object;                                                        // C 6053
+}
