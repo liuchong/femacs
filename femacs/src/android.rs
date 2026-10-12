@@ -2803,3 +2803,135 @@ pub unsafe extern "C" fn sendTouchMove (env: *mut JNIEnv, object: jobject, windo
   android_write_event (&raw mut event);                                 // C 2546
   return event_serial as jlong;                                         // C 2547
 }
+
+/* C 2550-2572: `NATIVE_NAME (sendWheel)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendWheel")]
+pub unsafe extern "C" fn sendWheel (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong, state: jint,
+					 x_delta: f32, y_delta: f32) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2556
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2558 (PORTING.md 1.5)
+
+  event.wheel.r#type = ANDROID_WHEEL;                                   // C 2560
+  event_serial += 1;
+  event.wheel.serial = event_serial as c_ulong;                         // C 2561 (the `++event_serial`)
+  event.wheel.window = window as android_window;                        // C 2562
+  event.wheel.x = x;                                                    // C 2563
+  event.wheel.y = y;                                                    // C 2564
+  event.wheel.time = time as c_ulong;                                   // C 2565
+  event.wheel.state = state;                                            // C 2566
+  event.wheel.x_delta = x_delta as f64;                                 // C 2567
+  event.wheel.y_delta = y_delta as f64;                                 // C 2568
+
+  android_write_event (&raw mut event);                                 // C 2570
+  return event_serial as jlong;                                         // C 2571
+}
+
+/* C 2574-2588: `NATIVE_NAME (sendIconified)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendIconified")]
+pub unsafe extern "C" fn sendIconified (env: *mut JNIEnv, object: jobject, window: jlong) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2578
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2580 (PORTING.md 1.5)
+
+  event.iconified.r#type = ANDROID_ICONIFIED;                           // C 2582
+  event_serial += 1;
+  event.iconified.serial = event_serial as c_ulong;                     // C 2583 (the `++event_serial`)
+  event.iconified.window = window as android_window;                    // C 2584
+
+  android_write_event (&raw mut event);                                 // C 2586
+  return event_serial as jlong;                                         // C 2587
+}
+
+/* C 2590-2604: `NATIVE_NAME (sendDeiconified)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendDeiconified")]
+pub unsafe extern "C" fn sendDeiconified (env: *mut JNIEnv, object: jobject, window: jlong) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2594
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2596 (PORTING.md 1.5)
+
+  event.iconified.r#type = ANDROID_DEICONIFIED;                         // C 2598
+  event_serial += 1;
+  event.iconified.serial = event_serial as c_ulong;                     // C 2599 (the `++event_serial`)
+  event.iconified.window = window as android_window;                    // C 2600
+
+  android_write_event (&raw mut event);                                 // C 2602
+  return event_serial as jlong;                                         // C 2603
+}
+
+/* C 2606-2623: `NATIVE_NAME (sendContextMenu)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendContextMenu")]
+pub unsafe extern "C" fn sendContextMenu (env: *mut JNIEnv, object: jobject, window: jlong,
+					 menu_event_id: jint,
+					 menu_event_serial: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2611
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2613 (PORTING.md 1.5)
+
+  event.menu.r#type = ANDROID_CONTEXT_MENU;                             // C 2615
+  event_serial += 1;
+  event.menu.serial = event_serial as c_ulong;                          // C 2616 (the `++event_serial`)
+  event.menu.window = window as android_window;                         // C 2617
+  event.menu.menu_event_id = menu_event_id;                             // C 2618
+  event.menu.menu_event_serial = menu_event_serial;                     // C 2619
+
+  android_write_event (&raw mut event);                                 // C 2621
+  return event_serial as jlong;                                         // C 2622
+}
+
+/* C 2625-2644: `NATIVE_NAME (sendExpose)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendExpose")]
+pub unsafe extern "C" fn sendExpose (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 width: jint, height: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2630
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2632 (PORTING.md 1.5)
+
+  event.xexpose.r#type = ANDROID_EXPOSE;                                // C 2634
+  event_serial += 1;
+  event.xexpose.serial = event_serial as c_ulong;                       // C 2635 (the `++event_serial`)
+  event.xexpose.window = window as android_window;                      // C 2636
+  event.xexpose.x = x;                                                  // C 2637
+  event.xexpose.y = y;                                                  // C 2638
+  event.xexpose.width = width;                                          // C 2639
+  event.xexpose.height = height;                                        // C 2640
+
+  android_write_event (&raw mut event);                                 // C 2642
+  return event_serial as jlong;                                         // C 2643
+}
+
+/* C 2646-2664: `NATIVE_NAME (sendDndDrag)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendDndDrag")]
+pub unsafe extern "C" fn sendDndDrag (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2650
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2652 (PORTING.md 1.5)
+
+  event.dnd.r#type = ANDROID_DND_DRAG_EVENT;                            // C 2654
+  event_serial += 1;
+  event.dnd.serial = event_serial as c_ulong;                           // C 2655 (the `++event_serial`)
+  event.dnd.window = window as android_window;                          // C 2656
+  event.dnd.x = x;                                                      // C 2657
+  event.dnd.y = y;                                                      // C 2658
+  event.dnd.uri_or_string = std::ptr::null_mut ();                      // C 2659
+  event.dnd.length = 0;                                                 // C 2660
+
+  android_write_event (&raw mut event);                                 // C 2662
+  return event_serial as jlong;                                         // C 2663
+}

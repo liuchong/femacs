@@ -34,9 +34,14 @@
 > 2,586-line port, md5 `4fa71db2a4a2b8069e16efc2ef01b2d2`) **except that one hole**.  **Slice 7 (C 2358-2548, 2026-10-12)** now carries the nine event posters (`sendWindowAction`,
 > `sendEnterNotify`, `sendLeaveNotify`, `sendMotionNotify`, `sendButtonPress`, `sendButtonRelease`,
 > `sendTouchDown`, `sendTouchUp` and `sendTouchMove`), so **2,548 C lines are carried** (in a
-> 2,805-line port, md5 `bc92b9af3301974e08e0fd81c8fa0036`) **except that one hole**.  **The next
-> live definition is C 2551's `NATIVE_NAME (sendWheel)`**; the table's last row is the remainder
-> (C 2549-7594) and slices 3-7's own readings are in the dated sections at the end of this file.
+> 2,805-line port, md5 `bc92b9af3301974e08e0fd81c8fa0036`) **except that one hole**.  **Slice 8 (C 2550-2664, 2026-10-12)** now carries the six remaining simple posters
+> (`sendWheel`, `sendIconified`, `sendDeiconified`, `sendContextMenu`, `sendExpose` and
+> `sendDndDrag`), so **2,664 C lines are carried** (in a 2,937-line port, md5
+> `bee6b42baa2e49f25a367a87d3d9531b`) **except that one hole**.  **The next live definition is
+> C 2667's `NATIVE_NAME (sendDndUri)`**, the first of the two JNI string entries (C 2666-2706 and
+> C 2708-2748; its `jchar`/`jsize` locals and the `JNIEnv` function-table reads are the pair's own
+> work); the table's last row is the remainder (C 2665-7594) and slices 3-8's own readings are in
+> the dated sections at the end of this file.
 
 ## Gate mapping
 
@@ -170,7 +175,18 @@ no `window.h`).
 | 2504-2525 | `NATIVE_NAME (sendTouchUp)` | real arm (slice 7) |
 | 2526 | the blank | real arm (slice 7) |
 | 2527-2548 | `NATIVE_NAME (sendTouchMove)` | real arm (slice 7) |
-| 2549-7594 | **the remainder** - from C 2549's blank and C 2550's `JNIEXPORT jlong JNICALL` (C 2551's `NATIVE_NAME (sendWheel)`, **the next live definition**) through C 7594's `#endif`: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
+| 2550-2572 | `NATIVE_NAME (sendWheel)` (C 2567-2568's `float`-into-`double` pair) | real arm (slice 8) |
+| 2573 | the blank | real arm (slice 8) |
+| 2574-2588 | `NATIVE_NAME (sendIconified)` | real arm (slice 8) |
+| 2589 | the blank | real arm (slice 8) |
+| 2590-2604 | `NATIVE_NAME (sendDeiconified)` | real arm (slice 8) |
+| 2605 | the blank | real arm (slice 8) |
+| 2606-2623 | `NATIVE_NAME (sendContextMenu)` | real arm (slice 8) |
+| 2624 | the blank | real arm (slice 8) |
+| 2625-2644 | `NATIVE_NAME (sendExpose)` | real arm (slice 8) |
+| 2645 | the blank | real arm (slice 8) |
+| 2646-2664 | `NATIVE_NAME (sendDndDrag)` | real arm (slice 8) |
+| 2665-7594 | **the remainder** - from C 2665's blank and C 2666's `JNIEXPORT jlong JNICALL` (C 2667's `NATIVE_NAME (sendDndUri)`, **the next live definition**) through C 7594's `#endif`: the two JNI string entries, the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -533,11 +549,12 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-7's C lines (C 1038-2084, C 2194-2253,
-C 2255-2356 and C 2358-2548) are carried; the **unported** part is C 2086-2192 (blocked on P-05's
-`alloca` decision) plus C 2549-7594, and `extract-abi.py --check`'s remaining `- missing …`
-list (115 `missing function` rows, the two file-scope objects and the twenty-one `invented exported
-symbol` rows of Owed 9) and the 63.1% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`getline`, no event, no `select`.  Slices 2-8's C lines (C 1038-2084, C 2194-2253,
+C 2255-2356, C 2358-2548 and C 2550-2664) are carried; the **unported** part is C 2086-2192
+(blocked on P-05's `alloca` decision) plus C 2665-7594, and `extract-abi.py --check`'s
+remaining `- missing …` list (115 `missing function` rows, the two file-scope objects and the
+twenty-seven `invented exported symbol` rows of Owed 9) and the 61.3% drift are that
+boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -755,3 +772,33 @@ bring that count to **21**, the two `missing file-scope object` rows stand, ther
   `as c_ulong`/`as android_window`/`as c_uint` conversions are C's own promotions into the record's
   member types.  All nine return the value they stored (none has C 2355's `return ++event_serial;`
   shape, which is the previous slice's).
+
+## 2026-10-12: slice 8 (C 2550-2664) - the six remaining simple posters
+
+`NATIVE_NAME (sendWheel)`, `sendIconified`, `sendDeiconified`, `sendContextMenu`, `sendExpose` and
+`sendDndDrag`.
+
+### Evidence (this slice's readings)
+
+**⑬ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **first** probe: the six union members (`wheel`, `iconified` - written by
+two of the six - `menu`, `xexpose`, `dnd`), the `jfloat`-into-`double` pair of C 2567-2568 and the
+`null_mut ()`/`0` pair of C 2659-2660 all read correctly.
+
+**⑭ The checklist reading.**  `extract-abi.py --check`: the `missing function` count is
+**unchanged at 115** (the same Owed 9 reason ⑫ records - all six are `NATIVE_NAME` definitions);
+the six new **`invented exported symbol`** rows bring that count to **27**, the two `missing
+file-scope object` rows stand, there is **0 `does not mention`**, and the line-count row reads
+**61.3%** (C 7,594 against the port's 2,937).
+
+### Deviations this slice adds
+
+- **C 2567-2568's `float`-into-`double` pair** is the one conversion this slice adds: the JNI
+  parameters are `jfloat` and `android_wheel_event`'s members are `double` (`androidgui.h`'s wheel
+  record, mirror `femacs/src/include/androidgui.rs` 545-546), so the port writes
+  `x_delta as f64`/`y_delta as f64` - C's own default argument promotion.
+- **C 2659-2660's `NULL`/`0` pair** is `std::ptr::null_mut ()` and `0` in the `dnd` member (the
+  `*mut c_ushort`/`size_t` pair), the spelling the unit's own C 145-158 declarations already use.
+- **`sendIconified`/`sendDeiconified` write the same `iconified` union member** with the two
+  different types (C 2582/2598), exactly as C does - the member is one record, the two entries
+  differ only in the type constant.
