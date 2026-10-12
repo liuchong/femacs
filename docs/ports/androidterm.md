@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**8,435 lines**, md5
-> `8116fb9fd7b90a0f79296bad56d12f50`), carrying **C 1-6787**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**8,566 lines**, md5
+> `102cee76f752bd65e28386097bfe88f4`), carrying **C 1-6874**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -227,7 +227,8 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 6698-6705 | C 6700's `void` and `frame_set_mouse_pixel_position` (C's body is the comment alone) | real arm (slice 26) |
 | 6707-6718 | C 6707-6708's `char *`/`get_keysym_name` (C 6712-6716's `#ifndef` pair, C 6710's function-scope `static`) | real arm (slice 26) |
 | 6720-6787 | C 6722-6723's comment and `android_create_terminal` (C 6739-6780's ~34 hook assignments, C 6782-6784's `#else` arm) | real arm (slice 27) |
-| 6789-7117 | **the remainder of the file** - from C 6789-6790's comment above `android_term_init` (C 6793) through `android_set_build_fingerprint` (C 6882), `syms_of_androidterm` (C 6992), `mark_androidterm` (C 7113) and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6789-6874 | C 6789-6790's comment and `android_term_init` (C 6822-6828 and 6863-6866's `#ifndef` pairs) | real arm (slice 28) |
+| 6876-7117 | **the remainder of the file** - from C 6878-6879's comment above `android_set_build_fingerprint` (C 6882) through `syms_of_androidterm` (C 6992), `mark_androidterm` (C 7113) and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -426,12 +427,11 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 6789-7117.**  Slice 27 wrote C 6720-6787
-   (`android_create_terminal` and its ~34 hook assignments - the functions C names are this
-   file's **slice-1** definitions, not androidfns.c's), so four `missing function` rows stand:
-   `android_term_init` (C 6793), `android_set_build_fingerprint` (C 6882),
-   `syms_of_androidterm` (C 6992) and `mark_androidterm` (C 7113), plus the two `#pragma` pops at
-   the file's tail.
+1. **The remainder of the file: C 6876-7117.**  Slice 28 wrote C 6789-6874
+   (`android_term_init`), so three `missing function` rows stand:
+   `android_set_build_fingerprint` (C 6882), `syms_of_androidterm` (C 6992) and
+   `mark_androidterm` (C 7113), plus the two `#pragma` pops at the file's tail - one more slice
+   closes `src/androidterm.c`.
 2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21, tolerance `0.10`) and
    **re-measured at slice 23** (a newer row, tolerance `0.12`, governs - the table is append-only
    and the newest row per stem wins): C 7,117 against the port's 7,832 is +10.0%, so the 0.10 row
@@ -584,10 +584,11 @@ slice's basis).  All 116 are in the owed list below.
 
 29. **Seven `invented exported symbol` rows** (slice 15) - the class `docs/ports/androidvfs.md`
    Owed 10 measured, now met by this file: C's `NATIVE_NAME` (`android.h` 344) is a *function-like*
-   macro, so the seven `Java_org_gnu_emacs_EmacsNative_<name>` symbols the port exports as
-   `Java_org_femacs_EmacsNative_<name>` never enter `extract-abi.py`'s `c_exported` set (its rename
-   reader at 2389-2390 reads object-like `#define X Y` pairs only), and `androidterm.o` is not in
-   the frozen build, so `reference_object_symbols` cannot answer either.  No port text can discharge
+   macro that pastes the reference's own Java package prefix onto each entry's name, so the seven
+   symbols the port exports under its own class name never enter `extract-abi.py`'s `c_exported`
+   set (its rename reader at 2389-2390 reads object-like `#define X Y` pairs only), and
+   `androidterm.o` is not in the frozen build, so `reference_object_symbols` cannot answer
+   either.  No port text can discharge
    them: the export names are this project's own (`PORTING.md` 0.1-19's name half / status 3.503),
    which is what `PORT_ONLY_EXPORTS` (`extract-abi.py` 1828) exists for.  Until the tool grows a
    function-like expansion or a tsv for the class, this unit's `--check`/`--all` line stays `FAIL`
@@ -663,6 +664,19 @@ slice's basis).  All 116 are in the owed list below.
    so the port needs no hook declarations at all and the note was wrong about the file, not about
    the mirror.
 
+36. **`android_term_init`'s four names and two statics** (slice 28).  `allocate_kboard`
+   (keyboard.h 477) and `fatal` (lisp.h 5371 - the `...` parameter *is* the list, PORTING.md P-04)
+   stand at their use sites, `sem_init` joins the unit's `<semaphore.h>` block, and **`KVAR`**
+   (keyboard.h 38's token-pasting macro, which `include/keyboard.rs` 10 records as having no Rust
+   text) is a one-arm unit-local macro for the single field this file reads
+   (`Vinput_decode_map_`) - the `src/window.rs` 6106 / `src/haikufns.rs` 1299 device.  C 6838/6841's
+   two `static char const` arrays are `[u8; N]` statics holding C's own bytes (spelled as Rust byte
+   string literals), because such a literal is `&[u8; N]` and `c_char` is `i8` on this target; every
+   use casts with `as *const c_char`.  The bytes are C's (the `x_id_name` X11 sees), so the port
+   transcribes them and the occurrence is registered in
+   `docs/baseline/declarations-allowlist.tsv`, whose `literal` class is the one that expects them;
+   the name itself is deliberately not written in this ledger.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -678,8 +692,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-6787 is now ported** (slices 4-27,
-each with its own Evidence section below); C 6789-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-6874 is now ported** (slices 4-28,
+each with its own Evidence section below); C 6876-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1772,3 +1786,35 @@ The `#endif` that closes C 47's arm, `static struct redisplay_interface android_
   prototype takes.
 - **C 6737-6784's `#ifndef ANDROID_STUBIFY` pair** carries both arms (`android_stubify` is this
   unit's name for C's macro), with C 6783's `emacs_abort ()` in the stub arm.
+
+## 2026-10-12: slice 28 (C 6789-6874) - `android_term_init`
+
+`android_term_init`, the third-from-last definition of the file.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 2 errors** - the two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`, Owed 5), unchanged.  The slice's three readings were the
+   mirror's untyped `terminal.kboard` (`*mut c_void`, so C 6801/6802 need the two casts), the
+   byte-string statics' element type (`[u8; N]`, not `[c_char; N]`), and `KVAR`'s absence
+   (Owed 36).
+2. **Inventory**: `missing function` 4 -> **3** (`android_term_init` retires;
+   `android_set_build_fingerprint`, `syms_of_androidterm` and `mark_androidterm` stand), the export
+   rows stay 22, the file-scope section stays empty, no `does not mention` row, and the tolerance
+   row moved to `0.23` (measured at +20.4%) - its fifth move.
+3. **C 6838's `title` array** holds C's own product-name literal and stays: it is the text X11
+   sees in `x_id_name`, and `check-declarations`' `literal` class is the one that *expects* it (the
+   port's own headers carry no product-name claim).  The occurrence is registered in
+   `docs/baseline/declarations-allowlist.tsv` in this commit, and Owed 36 records the spelling
+   choice for the two `static char const` arrays - this ledger does not repeat the name (that gate
+   scans ledgers too).
+
+### Deviations this slice adds
+
+- **`allocate_kboard`/`fatal`/`sem_init`** stand at their use sites (Owed 36), and **`KVAR!`** is
+  the unit's one-arm token-paste replacement for `Vinput_decode_map`.
+- **C 6799's `xzalloc (sizeof *dpyinfo)`** is `xzalloc (std::mem::size_of::<android_display_info> ())`
+  with the `as *mut android_display_info` cast, and C 6845/6851's `xmalloc` the same shape.
+- **C 6843's `ckd_add`** is the P-15 `ckd_add`/`overflowing_add` pair
+  (`docs/ports/token-aliases.tsv` 13, the C 662 site of this unit), and C 6846-6847's `sprintf`
+  keeps C's `"%s%s%s"` with the three pointer arguments.

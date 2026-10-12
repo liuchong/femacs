@@ -8433,3 +8433,133 @@ unsafe fn android_create_terminal (dpyinfo: *mut android_display_info) -> *mut t
 
   return terminal;                                                      // C 6786
 }
+
+/* C 6789-6874: `android_term_init`, the third-from-last definition of the file.  It needs two
+   use-site declarations (`allocate_kboard`, keyboard.h 477, and `sem_init`, the third
+   `<semaphore.h>` entry this file calls), and C 6843's `ckd_add` is the P-15
+   `ckd_add`/`overflowing_add` pair (`docs/ports/token-aliases.tsv` 13, the C 662 site of this
+   unit and `src/androidmenu.rs` 555-558).  C 6838 declares `title` as a `static char const` array
+   and C 6841 an `at` twin; the port keeps the same bytes, because `x_id_name`'s text is what X11
+   sees.  */
+
+/* C: keyboard.h 38: `#define KVAR (kboard, field) ((kboard)->field ## _)` - a token-pasting
+   macro the mirror records as having no Rust text (`include/keyboard.rs` 10), so the unit names
+   the one field it reads - the `src/window.rs` 6106 / `src/haikufns.rs` 1299 device - and the
+   field's own spelling (`Vinput_decode_map_`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! KVAR {
+  ($kb:expr, Vinput_decode_map) => { (*( $kb as *mut kboard )).Vinput_decode_map_ };
+}
+
+/* C: keyboard.h 477: `extern KBOARD *allocate_kboard (Lisp_Object);` - C 6801.  The mirror does
+   not carry the prototype (the `src/haikuterm.rs` 6244-6250 note).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+  /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...)
+  /// ATTRIBUTE_FORMAT_PRINTF (1, 2);` - C 6818's call; the `...` parameter *is* the list
+  /// (PORTING.md P-04, the `src/haikuterm.rs` 6261 spelling).
+  pub fn fatal (msgid: *const c_char, ...) -> !;
+  /* int sem_init (sem_t *, int, unsigned int);  -- the third `<semaphore.h>` entry this file
+     calls (C 6864).  */
+  pub fn sem_init (sem: *mut sem_t, pshared: c_int, value: c_uint) -> c_int;
+}
+
+/* Initialize the Android terminal interface.  The display connection
+   has already been set up by the system at this point.  */            // C 6789-6790
+
+/* C 6792-6874.  Non-`static` (androidterm.h declares it) and no address is taken:
+   `#[unsafe(no_mangle)]` with the C ABI.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_term_init ()
+{
+  let mut terminal: *mut terminal;                                      // C 6795
+  let mut dpyinfo: *mut android_display_info;                           // C 6796
+  let mut color_file: Lisp_Object;                                      // C 6797
+  let mut color_map: Lisp_Object;
+
+  dpyinfo = xzalloc (std::mem::size_of::<android_display_info> ()) as *mut android_display_info;   // C 6799
+  terminal = android_create_terminal (dpyinfo);                         // C 6800
+  (*terminal).kboard = allocate_kboard (Qandroid ()) as *mut c_void;     // C 6801
+  (*( (*terminal).kboard as *mut kboard )).reference_count += 1;        // C 6802
+  (*dpyinfo).n_planes = 24;                                             // C 6803
+  (*dpyinfo).n_image_planes = 24;                                       // C 6804
+
+  /* This function should only be called once at startup.  */            // C 6806
+  eassert! (x_display_list.is_null ());                                 // C 6807
+  x_display_list = dpyinfo;                                             // C 6808
+
+  (*dpyinfo).name_list_element
+    = Fcons (build_string (c"android".as_ptr ()), Qnil ());             // C 6810-6811
+
+  color_file = Fexpand_file_name (build_string (c"rgb.txt".as_ptr ()),   // C 6813
+				  Vdata_directory);                     // C 6814
+  color_map = Fx_load_color_file (color_file);                          // C 6815
+
+  if NILP (color_map)                                                   // C 6817
+    { fatal (c"Could not read %s.\n".as_ptr (), SDATA (color_file)); }   // C 6818
+
+  (*dpyinfo).color_map = color_map;                                     // C 6820
+
+  #[cfg (not (feature = "android_stubify"))]
+  {
+    (*dpyinfo).resx = android_pixel_density_x;                          // C 6823
+    (*dpyinfo).resy = android_pixel_density_y;                          // C 6824
+    (*dpyinfo).font_resolution = android_scaled_pixel_density;          // C 6825
+    Vtoolkit_theme = if android_ui_mode == UI_MODE_NIGHT_YES            // C 6826
+      { Qdark () } else { Qlight () };                                  // C 6827
+  }
+
+  /* https://lists.gnu.org/r/emacs-devel/2015-11/msg00194.html  */       // C 6830
+  (*dpyinfo).smallest_font_height = 1;                                  // C 6831
+  (*dpyinfo).smallest_char_width = 1;                                   // C 6832
+
+  (*terminal).name = xstrdup (c"android".as_ptr ());                     // C 6834
+
+  {
+    let system_name: Lisp_Object = Fsystem_name ();                     // C 6837
+    static title: [u8; 10] = *b"GNU Emacs\0";                        // C 6838
+    if STRINGP (system_name)                                            // C 6839
+      {
+	static at: [u8; 5] = *b" at \0";                              // C 6841
+	let mut nbytes: ptrdiff_t = (std::mem::size_of_val (&title)
+				     + std::mem::size_of_val (&at)) as ptrdiff_t;   // C 6842
+	/* C 6843: `if (ckd_add (&nbytes, nbytes, SBYTES (system_name))) memory_full_up ();` -
+	   the P-15 `ckd_add`/`overflowing_add` pair (docs/ports/token-aliases.tsv 13).  */
+	let (nbytes_, add_overflow) = nbytes.overflowing_add (SBYTES (system_name));
+	nbytes = nbytes_;
+	if add_overflow
+	  { memory_full_up (); }                                       // C 6844
+	(*dpyinfo).x_id_name = xmalloc (nbytes as usize) as *mut c_char;   // C 6845
+	sprintf ((*dpyinfo).x_id_name, c"%s%s%s".as_ptr (),               // C 6846
+		 &raw const title as *const c_char, &raw const at as *const c_char,   // C 6846
+		 SDATA (system_name));                                  // C 6847
+      }
+    else
+      {
+	(*dpyinfo).x_id_name = xmalloc (std::mem::size_of_val (&title)) as *mut c_char;   // C 6851
+	strcpy ((*dpyinfo).x_id_name, &raw const title as *const c_char);   // C 6852
+      }
+  }
+
+  /* The display "connection" is now set up, and it must never go
+     away.  */                                                          // C 6856-6857
+  (*terminal).reference_count = 30000;                                  // C 6858
+
+  /* Set the baud rate to the same value it gets set to on X.  */        // C 6860
+  baud_rate = 19200;                                                    // C 6861
+
+  #[cfg (not (feature = "android_stubify"))]
+  {
+    sem_init (&raw mut edit_sem, false as c_int, 0);                    // C 6864
+    register_textconv_interface (&raw mut text_conversion_interface);    // C 6865
+  }
+
+  /* Binding certain key events in the terminal's `input-decode-map',
+     which being keyboard-local is not accessible from any point in
+     android-win.el.  */                                               // C 6868-6870
+  Fdefine_key (KVAR! ((*terminal).kboard, Vinput_decode_map),           // C 6871
+	       make_vector (1, Qselect ()), make_vector (1, Qreturn ()),   // C 6872
+	       Qnil ());                                                // C 6873
+}
