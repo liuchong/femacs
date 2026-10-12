@@ -8,8 +8,8 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**7,219 lines**, md5 `94449d31ea84ecb8493b4a98bbe9e537`), carrying
-> **C 1-6200 except the deferred items below** (C 2520-2537's `content_vfs_ops`, C 2549-2639's
+> `femacs/src/androidvfs.rs` (**7,480 lines**, md5 `66f4e31f66c041c81634a5bbd64b97c5`), carrying
+> **C 1-6500 except the deferred items below** (C 2520-2537's `content_vfs_ops`, C 2549-2639's
 > `android_content_name`, C 2887-2906's `android_content_initial`, C 3688-3705's `saf_root_vfs_ops`,
 > C 3748-3848's `android_saf_root_name` and C 4209-4229's `android_saf_root_initial` - one
 > dependency chain that the round reaching C 5773 closes, Deviation 23/27 - plus, this round,
@@ -164,8 +164,15 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 5952-6106 | `android_saf_file_open` (C 5952-6106) | file gate (slice 17) |
 | 6108-6131 | `android_saf_file_unlink` (C 6108-6117), `_rmdir` (C 6119-6124) and `_opendir` (C 6126-6131) | file gate (slice 17) |
 | 6133-6170 | C 6133-6138's comment and `android_close_parcel_fd` (C 6140-6170) | file gate (slice 17) |
-| 6172-6200 | C 6172-6181's form feed and comment on the SAF ``new'' vnodes, C 6183's `#define android_saf_new_vnode android_saf_tree_vnode` (**deferred with that family**: the port's `type` alias) and C 6185-6200's twelve forward declarations (no Rust text) | file gate (slice 17); Deviation 31 |
-| 6202-7950 | **the remainder** - `saf_new_vfs_ops` (C 6204) through C 7950: the SAF ``new'' family, the root family, the android_* wrappers, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 6172-6200 | C 6172-6181's form feed and comment on the SAF ``new'' vnodes, C 6183's `#define android_saf_new_vnode android_saf_tree_vnode` (the port's `type` alias) and C 6185-6200's twelve forward declarations (no Rust text) | file gate (slice 18) |
+| 6202-6219 | **deferred with `android_saf_new_mkdir`**: `saf_new_vfs_ops` | deferral, Deviation 32 (they name each other through `saf_tree_vfs_ops`) |
+| 6221-6247 | `android_saf_new_name` (C 6221-6247) | file gate (slice 18) |
+| 6249-6339 | `android_saf_new_open` (C 6249-6339, which transforms the vnode into a file vnode and calls through its own `open`) | file gate (slice 18) |
+| 6341-6388 | `android_saf_new_unlink` (C 6341-6346), `_symlink` (C 6348-6353), `_rmdir` (C 6355-6360), `_rename` (C 6362-6369), `_stat` (C 6371-6377) and `_access` (C 6379-6388) | file gate (slice 18) |
+| 6390-6477 | **deferred**: `android_saf_new_mkdir` | its C 6475 writes `vp->vnode.ops = &saf_tree_vfs_ops` |
+| 6479-6500 | `android_saf_new_chmod` (C 6479-6485), `_readlink` (C 6487-6493) and `_opendir` (C 6495-6500) | file gate (slice 18) |
+| 6502-6505 | C 6503's form feed and the comment on SAF/Emacs synchronization | file gate (slice 18) |
+| 6507-7950 | **the remainder** - the semaphore C 6508 declares through C 7950: the synchronization half, the root family, the android_* wrappers, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -376,7 +383,7 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    `android_unix_name` → `goto`.  Both lines print in `--check` today and every other token of both
    bodies is present.
 5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
-   **stale** (**7,219** C lines carried = 90.8% of 7,950, above the ten-percent threshold; slice 1's
+   **stale** (**7,480** C lines carried = 94.1% of 7,950, above the ten-percent threshold; slice 1's
    original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
 6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
    and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
@@ -395,10 +402,10 @@ object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMe
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
 /`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
 readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
-type-check and emit an object under each arm, not that any of it behaves.  C 6202-7950 is
+type-check and emit an object under each arm, not that any of it behaves.  C 6507-7950 is
 **unported** (as are the deferred items above, whose rows are in the same list):
-`extract-abi.py --check` reads **63** rows across that boundary (61 `missing …`, the whole-file
-drift row, which now reads **9.2%**, and the `displayNameHash` `invented exported symbol` row
+`extract-abi.py --check` reads **52** rows across that boundary (50 `missing …`, the whole-file
+drift row, which now reads **5.9%**, and the `displayNameHash` `invented exported symbol` row
 below), and those rows are the boundary, not defects.  The `invented exported symbol` row is the
 extractor's blind spot for `NATIVE_NAME` (`docs/ports/android.md` 432/462 records the same three
 rows for `android.rs`): the reference's symbol name is *pasted* by the macro (android.h 344), so no
@@ -1362,3 +1369,54 @@ arms' `exit 0` on the first draft, one control proving the harness reads this te
 71 -> 63 with the new row discharged in-commit, the measured layout, and the ten gates.  **This file
 is not finished**: C 6202-7950 remains (the next item is C 6204's `saf_new_vfs_ops` and C 6222's
 `android_saf_new_name`).
+
+## Slice 18 (2026-10-08, status 4.123 - the integrator sets the round number): C 6172-6500 (the SAF ``new'' family, minus the one member the closure round holds)
+
+**What this round is.**  The SAF ``new'' vnodes' comment (C 6174-6181), C 6183's
+`#define android_saf_new_vnode android_saf_tree_vnode` alias as a Rust `type` alias, and eleven of
+the family's twelve members: `android_saf_new_name` (C 6221-6247), `_open` (C 6249-6339, which
+transforms the vnode into a file vnode and calls through its own `open`), `_unlink` (C 6341-6346),
+`_symlink` (C 6348-6353), `_rmdir` (C 6355-6360), `_rename` (C 6362-6369), `_stat` (C 6371-6377),
+`_access` (C 6379-6388), `_chmod` (C 6479-6485), `_readlink` (C 6487-6493) and `_opendir`
+(C 6495-6500).  Port: **7,219 -> 7,480 lines**.
+
+**Evidence ① - both arms read `exit 0` on the first draft**: 0 errors; 8 warnings in the else arm and
+13 in the `>= 9` arm - the same two counts the previous eight rounds read.
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error next to C 6270's
+`vp = …` moves the else arm to `exit 1` with `injected_control` named once; reverted, the arm reads
+`exit 0` and the file's md5 returns to the header's.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 63 -> 52 rows, diffed**: eleven
+`missing function android_saf_new_*` rows retire; one `does not mention` row appears
+(`android_saf_new_open` → `android_delete_local_ref`) and is discharged in this same commit.  The
+whole-file line-count row moves 9.2% -> **5.9%** (C 7,950 against 7,480 Rust lines).
+
+**Deviation (this slice's addition).**
+
+32. **The SAF ``new'' vector and its `mkdir` member are held back one round, and they are what the
+    closure round needs most.**  `saf_new_vfs_ops` (C 6204-6219) names `android_saf_new_mkdir`
+    (C 6390-6477), and that function's C 6475 writes `vp->vnode.ops = &saf_tree_vfs_ops`; that object
+    in turn names `android_saf_tree_name` (C 4897), which names `saf_file_vfs_ops` and
+    `saf_new_vfs_ops`.  The loop closes *through* the round that writes all of them, so this round
+    lands everything that is not on the cycle and leaves the two objects plus `android_saf_new_mkdir`
+    to the closure round - which is also where the six-item chain and
+    `android_saf_tree_from_name`/`android_saf_tree_name` land.
+
+**Owed (this slice's additions).**
+
+- The closure round's set is now explicit: `saf_new_vfs_ops` (C 6204), `android_saf_new_mkdir`
+  (C 6390), `saf_tree_vfs_ops` (C 4752), `android_saf_tree_name` (C 4897), `android_saf_tree_from_name`
+  (C 5761), `saf_root_vfs_ops` (C 3688), `android_saf_root_name` (C 3748),
+  `android_saf_root_initial` (C 4209), `content_vfs_ops` (C 2520), `android_content_name` (C 2549)
+  and `android_content_initial` (C 2887).
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **7,480** of 7,950 C lines (94.1%).
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item).
+
+**Not claimed (this slice).**  No runtime evidence, and none is possible here: no Android device, no
+emulator, and this unit is not in the frozen configuration.  No document was created, no vnode was
+transformed, and the ``new'' vector has never been called through.  What the round's evidence *is*:
+both arms' `exit 0` on the first draft, one control proving the harness reads this text, `--check`
+63 -> 52 with the new row discharged in-commit, and the ten gates.  **This file is not finished**: C
+6507-7950 remains (the next item is C 6508's `saf_completion_sem`).

@@ -18541,3 +18541,13 @@
   ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **7,219 行 / 新 md5**、C 范围表把余项行拆成九行、`## Not claimed` 改成 63 行 / 9.2%、常设 Owed 5 改成 90.8%、文件尾加 `## Slice 17` 段；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
   ⑦ 预算与清理：`xtask probe` **2 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 5 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep17.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
      **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有 parcel 描述符被打开、没有建立全局引用、`open_parcel_fds` 仍为空。**本文件未收口**：还剩 C 6202-7950（下一项 C 6204 的 `saf_new_vfs_ops` 与 C 6222 的 `android_saf_new_name`）。
+
+- **4.123 `src/androidvfs.c` round 18（androidvfs lane，slice 18）：C 6172-6500 落地——SAF "new" 家族（除一项）；端口 7,219 → 7,480 行（2026-10-08）**：
+  ① 本片落的文本：SAF “new” vnode 的注释（C 6174-6181）、C 6183 的 `#define android_saf_new_vnode android_saf_tree_vnode` 别名（端口 `pub type`），以及十二个成员里的十一个：`android_saf_new_name`、`_open`（C 6249-6339，把自己转成 file vnode 并经自身 `open` 调出去）、`_unlink`/`_symlink`/`_rmdir`/`_rename`/`_stat`/`_access`、`_chmod`/`_readlink`/`_opendir`。
+  ② 臂读数：**两臂各 `exit 0`，第一稿即过**；warning 8（else）/13（`>= 9`），与前八轮逐项相同。
+  ③ 对照（P-86 ⑦）：在 C 6270 的 `vp = …` 旁注入故意错误 → else 臂 `exit 1`、`injected_control` 点名一次；撤回后 `exit 0`、md5 回到 `66f4e31f66c041c81634a5bbd64b97c5`。
+  ④ `--check`：**63 → 52 行且行集 diff 过**——十一条 `missing function android_saf_new_*` 退役，一条 `does not mention`（`android_saf_new_open` 的 `android_delete_local_ref`）出现并**在同一次提交里清掉**；行数漂移 9.2% → **5.9%**。
+  ⑤ **Deviation 32**：`saf_new_vfs_ops`（C 6204）点名 `android_saf_new_mkdir`（C 6390），而后者的 C 6475 写 `vp->vnode.ops = &saf_tree_vfs_ops`——该对象又点名 `android_saf_tree_name`（C 4897），后者再点名 `saf_file_vfs_ops`/`saf_new_vfs_ops`；环只能由“同时写下全部三者”的那一轮打开，故本片把不在环上的都落下来，把这两个对象 + `android_saf_new_mkdir` 留给收口轮。
+  ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **7,480 行 / 新 md5**、C 范围表把余项行拆成十行、`## Not claimed` 改成 52 行 / 5.9%、常设 Owed 5 改成 94.1%、文件尾加 `## Slice 18` 段（并写明收口轮的十一项清单）；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
+  ⑦ 预算与清理：`xtask probe` **2 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 5 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep18.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
+     **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有文档被创建、没有 vnode 被转换、“new” 向量从未被调用穿过。**本文件未收口**：还剩 C 6507-7950（下一项 C 6508 的 `saf_completion_sem`）。

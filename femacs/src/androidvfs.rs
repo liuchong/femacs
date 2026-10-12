@@ -7217,3 +7217,264 @@ unsafe fn android_close_parcel_fd (fd: c_int) -> bool
    `#define android_saf_new_vnode android_saf_tree_vnode` alias (whose port spelling is a `type`
    alias, and which stands with that family's round) and C 6185-6200's twelve forward declarations
    (no Rust text).  This round carries the comment; the alias and the family land together.  */
+
+/* SAF ``new'' vnodes.  These nodes share their data structures
+   with tree and file vnodes, but represent files that don't actually
+   exist within a directory.  In them, the document ID represents not
+   the file designated by the vnode itself, but rather its parent
+   directory.
+
+   The only vops defined serve to create directories or files, at
+   which point the vnode becomes invalid.  */                          // C 6174-6181
+
+/* C 6183: `#define android_saf_new_vnode android_saf_tree_vnode`, the SAF file alias's twin
+   (C 5871-5874), written as a Rust `type` alias with the family that uses it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type android_saf_new_vnode = android_saf_tree_vnode;
+
+/* C 6202: the comment `/* Vector of VFS operations associated with SAF new VFS nodes.  */`.  */
+
+/* C 6204-6219 - `saf_new_vfs_ops` - is **deferred to the round that can land it whole**
+   (Deviation 32): it names `android_saf_new_mkdir` (C 6390), and that function's C 6475 writes
+   `vp->vnode.ops = &saf_tree_vfs_ops` - so the two objects and the closure round's own items form
+   one circular set that lands together.  */
+
+/* C 6221-6247.  Its address is taken at C 6206, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_name (vnode: *mut android_vnode, name: *mut c_char,
+					   length: size_t) -> *mut android_vnode
+{
+  let mut vp: *mut android_saf_new_vnode;                              // C 6225
+
+  /* C leaves `vp` uninitialised (PORTING.md 1.5); it is assigned before any read.  */
+  vp = std::ptr::null_mut ();
+
+  /* If LENGTH is empty, make a copy of this vnode and return it.  */    // C 6227
+
+  if length < 1                                                        // C 6229
+    {
+      vp = xmalloc (std::mem::size_of::<android_saf_new_vnode> ()) as *mut android_saf_new_vnode;   // C 6231
+      memcpy (vp as *mut c_void, vnode as *const c_void,               // C 6232
+	      std::mem::size_of::<android_saf_new_vnode> ());          // C 6232
+
+      /* Duplicate the information contained within VNODE.  */          // C 6234
+
+      (*vp).tree_uri = xstrdup ((*vp).tree_uri) as *const c_char;       // C 6236
+      (*vp).tree_id = xstrdup ((*vp).tree_id);                          // C 6237
+      (*vp).name = xstrdup ((*vp).name);                                // C 6238
+      (*vp).document_id = xstrdup ((*vp).name);                         // C 6239
+
+      return &raw mut (*vp).vnode;                                      // C 6241
+    }
+
+  /* A nonexistent vnode has no children of its own.  */                // C 6244
+  *errno () = ENOTDIR;                                                  // C 6245
+  return std::ptr::null_mut ();                                         // C 6246
+}
+
+/* C 6249-6339.  Its address is taken at C 6207.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_open (vnode: *mut android_vnode, flags: c_int,
+					   mode: mode_t, asset_p: bool, fd_return: *mut c_int,
+					   asset: *mut *mut AAsset) -> c_int
+{
+  let mut vp: *mut android_saf_new_vnode;                              // C 6254
+  let mut end: *mut c_char;                                            // C 6255
+  let mut name: jstring;                                               // C 6256
+  let mut id: jstring;                                                 // C 6256
+  let mut uri: jstring;                                                // C 6256
+  let mut new_id: jstring;                                             // C 6256
+  let mut new_doc_id: *const c_char;                                   // C 6257
+  let mut method: jmethodID;                                           // C 6258
+
+  /* C leaves every local uninitialised (PORTING.md 1.5); each is assigned before its first read on
+     the path that reads it.  */
+  vp = std::ptr::null_mut ();
+  end = std::ptr::null_mut ();
+  name = std::ptr::null_mut ();
+  id = std::ptr::null_mut ();
+  uri = std::ptr::null_mut ();
+  new_id = std::ptr::null_mut ();
+  new_doc_id = std::ptr::null ();
+  method = std::ptr::null_mut ();
+
+  /* If creating a file wasn't intended, return ENOENT.  */             // C 6260
+
+  if (flags & O_CREAT) == 0                                            // C 6262
+    {
+      *errno () = ENOENT;                                              // C 6264
+      return -1;                                                       // C 6265
+    }
+
+  /* If vp->name indicates that it's a directory, return ENOENT.  */    // C 6268
+
+  vp = vnode as *mut android_saf_new_vnode;                            // C 6270
+  end = strrchr ((*vp).name, b'/' as c_int);                           // C 6271
+
+  /* VP->name must contain at least one directory separator.  */        // C 6273
+  eassert! (! end.is_null ());                                         // C 6274
+
+  if *end.offset (1) == 0                                              // C 6276
+    {
+      *errno () = ENOENT;                                              // C 6278
+      return -1;                                                       // C 6279
+    }
+
+  /* Otherwise, try to create a new document.  First, build strings
+     for the name, ID and document URI.  */                            // C 6282-6283
+
+  name = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 6285
+							  end.offset (1));   // C 6286
+  android_exception_check ();                                          // C 6287
+  id = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 6288
+							(*vp).document_id);   // C 6289
+  android_exception_check_1 (name);                                    // C 6290
+  uri = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 6291
+							 (*vp).tree_uri);   // C 6292
+  android_exception_check_2 (name, id);                                // C 6293
+
+  /* Next, try to create a new document and retrieve its ID.  */        // C 6295
+
+  method = service_class.create_document;                              // C 6297
+  new_id = ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())   // C 6298
+    (android_java_env,                                                 // C 6298
+     emacs_service,                                                    // C 6299
+     service_class.class,                                              // C 6300
+     method, uri, id,                                                  // C 6301
+     name);                                                            // C 6302
+
+  if android_saf_exception_check (3, name, id, uri) != 0               // C 6304
+    { return -1; }                                                     // C 6305
+
+  /* Delete unused local references.  */                               // C 6307
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, name);   // C 6308
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, id);   // C 6309
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, uri);   // C 6310
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  if new_id.is_null ()                                                 // C 6312
+    {
+      /* The file couldn't be created for some reason.  */             // C 6314
+      *errno () = EIO;                                                 // C 6315
+      return -1;                                                       // C 6316
+    }
+
+  /* Now, free VP->document_id and replace it with the service
+     document ID.  */                                                  // C 6319-6320
+
+  new_doc_id = ((*(*android_java_env)).GetStringUTFChars.unwrap ())    // C 6322
+    (android_java_env,                                                 // C 6322
+     new_id, std::ptr::null_mut ());                                   // C 6323
+  android_exception_check_nonnull (new_doc_id as *mut c_void, new_id);   // C 6324
+
+  xfree ((*vp).document_id as *mut c_void);                            // C 6326
+  (*vp).document_id = xstrdup (new_doc_id);                            // C 6327
+
+  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ())             // C 6329
+    (android_java_env,                                                 // C 6329
+     new_id, new_doc_id);                                              // C 6330
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, new_id);   // C 6331
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* Finally, transform this vnode into a file vnode and call its
+     `open' function.  */                                              // C 6333-6334
+  (*vp).vnode.r#type = ANDROID_VNODE_SAF_FILE as c_short;              // C 6335
+  (*vp).vnode.ops = &raw mut saf_file_vfs_ops;                         // C 6336
+  return ((*(*vnode).ops).open).unwrap () (vnode, flags, mode, asset_p,   // C 6337
+					   fd_return, asset);          // C 6338
+}
+
+/* C 6341-6346.  Its address is taken at C 6209.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_unlink (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = ENOENT;                                                  // C 6344
+  return -1;                                                           // C 6345
+}
+
+/* C 6348-6353.  Its address is taken at C 6210.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_symlink (target: *const c_char,
+					      vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EPERM;                                                   // C 6351
+  return -1;                                                           // C 6352
+}
+
+/* C 6355-6360.  Its address is taken at C 6211.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_rmdir (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = ENOENT;                                                  // C 6358
+  return -1;                                                           // C 6359
+}
+
+/* C 6362-6369.  Its address is taken at C 6212.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_rename (src: *mut android_vnode, dst: *mut android_vnode,
+					     keep_existing: bool) -> c_int
+{
+  *errno () = ENOENT;                                                  // C 6367
+  return -1;                                                           // C 6368
+}
+
+/* C 6371-6377.  Its address is taken at C 6213.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_stat (vnode: *mut android_vnode, statb: *mut stat,
+					   flags: c_int) -> c_int
+{
+  *errno () = ENOENT;                                                  // C 6375
+  return -1;                                                           // C 6376
+}
+
+/* C 6379-6388.  Its address is taken at C 6214.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_access (vnode: *mut android_vnode, mode: c_int) -> c_int
+{
+  if mode != F_OK && (mode & (W_OK | X_OK | R_OK)) == 0                 // C 6382
+    { *errno () = EINVAL; }                                            // C 6383
+  else
+    { *errno () = ENOENT; }                                            // C 6385
+
+  return -1;                                                           // C 6387
+}
+
+/* C 6390-6477 - `android_saf_new_mkdir` - is **deferred with the two vectors** (Deviation 32): its
+   C 6475 writes `vp->vnode.ops = &saf_tree_vfs_ops`.  C calls it through `saf_new_vfs_ops` (C 6215)
+   and, as that entry, its ABI is C's.  */
+
+/* C 6479-6485.  Its address is taken at C 6216.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_chmod (vnode: *mut android_vnode, mode: mode_t,
+					    flags: c_int) -> c_int
+{
+  *errno () = ENOENT;                                                  // C 6483
+  return -1;                                                           // C 6484
+}
+
+/* C 6487-6493.  Its address is taken at C 6217.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_readlink (vnode: *mut android_vnode, buffer: *mut c_char,
+					       size: size_t) -> ssize_t
+{
+  *errno () = ENOENT;                                                  // C 6491
+  return -1;                                                           // C 6492
+}
+
+/* C 6495-6500.  Its address is taken at C 6218.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_opendir (vnode: *mut android_vnode) -> *mut android_vdir
+{
+  *errno () = ENOENT;                                                  // C 6498
+  return std::ptr::null_mut ();                                        // C 6499
+}
+
+/* C 6502-6505: C 6503's form feed and the comment `/* Synchronization between SAF and Emacs.
+   Consult EmacsSafThread.java for more details.  */`.  It and the semaphore C 6508 declares belong
+   to the next slice.  */
