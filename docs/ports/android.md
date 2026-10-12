@@ -37,11 +37,13 @@
 > 2,805-line port, md5 `bc92b9af3301974e08e0fd81c8fa0036`) **except that one hole**.  **Slice 8 (C 2550-2664, 2026-10-12)** now carries the six remaining simple posters
 > (`sendWheel`, `sendIconified`, `sendDeiconified`, `sendContextMenu`, `sendExpose` and
 > `sendDndDrag`), so **2,664 C lines are carried** (in a 2,937-line port, md5
-> `bee6b42baa2e49f25a367a87d3d9531b`) **except that one hole**.  **The next live definition is
-> C 2667's `NATIVE_NAME (sendDndUri)`**, the first of the two JNI string entries (C 2666-2706 and
-> C 2708-2748; its `jchar`/`jsize` locals and the `JNIEnv` function-table reads are the pair's own
-> work); the table's last row is the remainder (C 2665-7594) and slices 3-8's own readings are in
-> the dated sections at the end of this file.
+> `bee6b42baa2e49f25a367a87d3d9531b`) **except that one hole**.  **Slice 9 (C 2666-2748, 2026-10-12)** now carries the two JNI string entries
+> (`sendDndUri` and `sendDndText` - `GetStringLength`, `malloc`, `GetStringChars`, the two
+> `return 0;` out-of-memory arms, `memcpy` and `ReleaseStringChars`), so **2,748 C lines are
+> carried** (in a 3,031-line port, md5 `8ceee47bd50c34840acff69c85dead30`) **except that one
+> hole**.  **The next live definition is C 2751's `NATIVE_NAME (sendNotificationDeleted)`**, the
+> first of the three tag-carrying notification entries; the table's last row is the remainder
+> (C 2749-7594) and slices 3-9's own readings are in the dated sections at the end of this file.
 
 ## Gate mapping
 
@@ -186,7 +188,10 @@ no `window.h`).
 | 2625-2644 | `NATIVE_NAME (sendExpose)` | real arm (slice 8) |
 | 2645 | the blank | real arm (slice 8) |
 | 2646-2664 | `NATIVE_NAME (sendDndDrag)` | real arm (slice 8) |
-| 2665-7594 | **the remainder** - from C 2665's blank and C 2666's `JNIEXPORT jlong JNICALL` (C 2667's `NATIVE_NAME (sendDndUri)`, **the next live definition**) through C 7594's `#endif`: the two JNI string entries, the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
+| 2666-2706 | `NATIVE_NAME (sendDndUri)` (the `GetStringLength`/`malloc`/`GetStringChars`/`memcpy`/`ReleaseStringChars` chain and its two `return 0;` arms) | real arm (slice 9) |
+| 2707 | the blank | real arm (slice 9) |
+| 2708-2748 | `NATIVE_NAME (sendDndText)` (the same chain, `ANDROID_DND_TEXT_EVENT`) | real arm (slice 9) |
+| 2749-7594 | **the remainder** - from C 2749's blank and C 2750's `JNIEXPORT jlong JNICALL` (C 2751's `NATIVE_NAME (sendNotificationDeleted)`, **the next live definition**) through C 7594's `#endif`: the notification entries, the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -549,12 +554,12 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-8's C lines (C 1038-2084, C 2194-2253,
-C 2255-2356, C 2358-2548 and C 2550-2664) are carried; the **unported** part is C 2086-2192
-(blocked on P-05's `alloca` decision) plus C 2665-7594, and `extract-abi.py --check`'s
-remaining `- missing …` list (115 `missing function` rows, the two file-scope objects and the
-twenty-seven `invented exported symbol` rows of Owed 9) and the 61.3% drift are that
-boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`getline`, no event, no `select`.  Slices 2-9's C lines (C 1038-2084, C 2194-2253,
+C 2255-2356, C 2358-2548, C 2550-2664 and C 2666-2748) are carried; the **unported** part is
+C 2086-2192 (blocked on P-05's `alloca` decision) plus C 2749-7594, and
+`extract-abi.py --check`'s remaining `- missing …` list (115 `missing function` rows, the two
+file-scope objects and the twenty-nine `invented exported symbol` rows of Owed 9) and the
+60.1% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -802,3 +807,40 @@ file-scope object` rows stand, there is **0 `does not mention`**, and the line-c
 - **`sendIconified`/`sendDeiconified` write the same `iconified` union member** with the two
   different types (C 2582/2598), exactly as C does - the member is one record, the two entries
   differ only in the type constant.
+
+## 2026-10-12: slice 9 (C 2666-2748) - the two JNI string entries
+
+`NATIVE_NAME (sendDndUri)` and `NATIVE_NAME (sendDndText)`.
+
+### Evidence (this slice's readings)
+
+**⑮ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **first** probe: the three `JNIEnv` function-table reads through the
+mirror's `Option<unsafe extern "C" fn …>` members (`include/jni.rs` 302-304), the
+`jsize`-into-`size_t` pair of the two `malloc` calls, the `*mut c_ushort` local and the two
+`return 0;` arms all read correctly.
+
+**⑯ The checklist reading.**  `extract-abi.py --check`: the `missing function` count is
+**unchanged at 115** (the same Owed 9 reason ⑫/⑭ record), the two new **`invented exported
+symbol`** rows bring that count to **29**, the two `missing file-scope object` rows stand, there is
+**0 `does not mention`**, and the line-count row reads **60.1%** (C 7,594 against the port's
+3,031).
+
+### Deviations this slice adds
+
+- **C's `(*env)->Method (env, …)` is the port's `((*(*env)).Method.unwrap ()) (env, …)`** - the
+  `JNIEnv` is the NDK mirror's `*const JNINativeInterface` and the table's entries are `Option`
+  fields (`include/jni.rs` 302-304), the shape `femacs/src/androidterm.rs` 6228/6234/6251 already
+  carries for the same three members.  The `*mut JNIEnv` parameter C declares is the mirror's own
+  pointer, so no cast is needed at the call.
+- **C 2685/2727's `malloc (length * sizeof *buffer)`** is
+  `malloc (length as usize * std::mem::size_of::<c_ushort> ()) as *mut c_ushort`: the `jsize`
+  operand takes C's own conversion to `size_t`, and the `*mut c_void` result C relies on implicitly
+  is spelled out (the androidterm.rs 6229 device).
+- **C's two inner comments are carried verbatim** with their C line markers: `/* Out of memory.  */`
+  (C 2687/2729) and the two-line JVM note (C 2694-2695/2736-2737), the androidvfs.rs 7138 shape.
+- **C 2698/2740's `memcpy`** writes both conversions out (`as *mut c_void` / `as *const c_void`)
+  and C's `length * sizeof *buffer` becomes the same `usize` product as the `malloc` above.
+- **The two functions are textually identical apart from the type constants**
+  (`ANDROID_DND_URI_EVENT`/`ANDROID_DND_TEXT_EVENT`), and the port keeps them as two full
+  definitions rather than a shared helper - C has two definitions, so the port does.

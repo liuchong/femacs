@@ -2935,3 +2935,97 @@ pub unsafe extern "C" fn sendDndDrag (env: *mut JNIEnv, object: jobject, window:
   android_write_event (&raw mut event);                                 // C 2662
   return event_serial as jlong;                                         // C 2663
 }
+
+/* C 2666-2706: `NATIVE_NAME (sendDndUri)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendDndUri")]
+pub unsafe extern "C" fn sendDndUri (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 string: jstring) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2671
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2673 (PORTING.md 1.5)
+  let characters: *const jchar;                                         // C 2674
+  let mut length: jsize;                                                // C 2675
+  let mut buffer: *mut c_ushort;                                        // C 2676
+
+  event.dnd.r#type = ANDROID_DND_URI_EVENT;                             // C 2678
+  event_serial += 1;
+  event.dnd.serial = event_serial as c_ulong;                           // C 2679 (the `++event_serial`)
+  event.dnd.window = window as android_window;                          // C 2680
+  event.dnd.x = x;                                                      // C 2681
+  event.dnd.y = y;                                                      // C 2682
+
+  length = ((*(*env)).GetStringLength.unwrap ()) (env, string);         // C 2684
+  buffer = malloc (length as usize * std::mem::size_of::<c_ushort> ()) as *mut c_ushort; // C 2685
+
+  /* Out of memory.  */                                                 // C 2687
+  if buffer.is_null ()                                                  // C 2688
+    { return 0; }                                                       // C 2689
+
+  characters = ((*(*env)).GetStringChars.unwrap ()) (env, string,       // C 2691
+					       std::ptr::null_mut ());
+
+  if characters.is_null ()                                              // C 2693
+    /* The JVM has run out of memory; return and let the out of memory
+       error take its course.  */                                       // C 2694-2695
+    { return 0; }                                                       // C 2696
+
+  memcpy (buffer as *mut c_void, characters as *const c_void,           // C 2698
+					       length as usize * std::mem::size_of::<c_ushort> ());
+  ((*(*env)).ReleaseStringChars.unwrap ()) (env, string, characters);   // C 2699
+
+  event.dnd.uri_or_string = buffer;                                     // C 2701
+  event.dnd.length = length as size_t;                                  // C 2702
+
+  android_write_event (&raw mut event);                                 // C 2704
+  return event_serial as jlong;                                         // C 2705
+}
+
+/* C 2708-2748: `NATIVE_NAME (sendDndText)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendDndText")]
+pub unsafe extern "C" fn sendDndText (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 string: jstring) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2713
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2715 (PORTING.md 1.5)
+  let characters: *const jchar;                                         // C 2716
+  let mut length: jsize;                                                // C 2717
+  let mut buffer: *mut c_ushort;                                        // C 2718
+
+  event.dnd.r#type = ANDROID_DND_TEXT_EVENT;                            // C 2720
+  event_serial += 1;
+  event.dnd.serial = event_serial as c_ulong;                           // C 2721 (the `++event_serial`)
+  event.dnd.window = window as android_window;                          // C 2722
+  event.dnd.x = x;                                                      // C 2723
+  event.dnd.y = y;                                                      // C 2724
+
+  length = ((*(*env)).GetStringLength.unwrap ()) (env, string);         // C 2726
+  buffer = malloc (length as usize * std::mem::size_of::<c_ushort> ()) as *mut c_ushort; // C 2727
+
+  /* Out of memory.  */                                                 // C 2729
+  if buffer.is_null ()                                                  // C 2730
+    { return 0; }                                                       // C 2731
+
+  characters = ((*(*env)).GetStringChars.unwrap ()) (env, string,       // C 2733
+					       std::ptr::null_mut ());
+
+  if characters.is_null ()                                              // C 2735
+    /* The JVM has run out of memory; return and let the out of memory
+       error take its course.  */                                       // C 2736-2737
+    { return 0; }                                                       // C 2738
+
+  memcpy (buffer as *mut c_void, characters as *const c_void,           // C 2740
+					       length as usize * std::mem::size_of::<c_ushort> ());
+  ((*(*env)).ReleaseStringChars.unwrap ()) (env, string, characters);   // C 2741
+
+  event.dnd.uri_or_string = buffer;                                     // C 2743
+  event.dnd.length = length as size_t;                                  // C 2744
+
+  android_write_event (&raw mut event);                                 // C 2746
+  return event_serial as jlong;                                         // C 2747
+}
