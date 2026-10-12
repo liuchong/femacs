@@ -1065,3 +1065,1201 @@ unsafe fn android_handle_ime_event (event: *mut android_event, f: *mut frame)   
     _ => {}
     }
 }
+
+/* C 831-834: C 831-832's form feed and blank, C 833's `/* Forward declaration.  */` and C 834's
+   `static void android_notify_conversion (unsigned long);`.  Rust needs no forward declaration for
+   a definition later in the same unit (PORTING.md 10.10), so this slice carries the comment and no
+   item - which leaves the call at C 1761 an `E0425` until C 2098's definition lands: the named
+   blocker class the ledger already records for C 458's `android_frame_rehighlight`.  */
+
+/* `Mouse_HLInfo`'s third flag bit (`dispextern.h` 3023's `bool_bf mouse_face_hidden : 1`, mask
+   `include/dispextern.rs` 2139's `MOUSE_FACE_HIDDEN`).  The mirror carries the mask and the
+   `mouse_face_defer` pair, and no accessor for this bit; C 959/967/1170/1172 read and write the
+   member, so the unit names the pair - the `src/xterm.rs` 31036-31046 copy (whose own note points
+   at `src/haikuterm.rs` 4884-4893 and `src/pgtkterm.rs` for the same macro).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! mouse_face_hidden {
+  ($h:expr) => { (*$h).bits & MOUSE_FACE_HIDDEN != 0 };
+  ($h:expr, $v:expr) => {
+    (*$h).bits = if ($v) as c_int != 0 { (*$h).bits | MOUSE_FACE_HIDDEN }
+		 else { (*$h).bits & ! MOUSE_FACE_HIDDEN } };
+}
+
+/* The eleven names of this slice's body that no mirror in this unit's include graph carries.  Each
+   stands at its use site with C's prototype in a `/// C:` line (P-72 rule 4/P-88 ①), the
+   `android_seq_filter`-style device slice 1 used for its own eight.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: frame.h 1515-1516: `extern void frame_size_history_extra (struct frame *, Lisp_Object,
+  /// int, int, int, int, int, int);`
+  pub fn frame_size_history_extra (f: *mut frame, parameter: Lisp_Object,
+				   a: c_int, b: c_int, c: c_int, d: c_int,
+				   e: c_int, g: c_int);
+  /// C: frame.h 1911: `extern bool frame_ancestor_p (struct frame *af, struct frame *df);`
+  pub fn frame_ancestor_p (a: *mut frame, b: *mut frame) -> bool;
+  /// C: dispextern.h 3675: `extern void expose_frame (struct frame *, int, int, int, int);`
+  pub fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
+  /// C: dispextern.h 3668-3669: `extern Lisp_Object handle_tab_bar_click (struct frame *,
+  /// int, int, bool, int);`
+  pub fn handle_tab_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+			       modifiers: c_int) -> Lisp_Object;
+  /// C: dispextern.h 3670-3671: `extern void handle_tool_bar_click (struct frame *,
+  /// int, int, bool, int);`
+  pub fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+				modifiers: c_int);
+  /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
+  /// (slice 1 carries this one; repeated here for this slice's C 1491/1575 calls.)
+  /// C: dispextern.h 3690: `extern void cancel_mouse_face (struct frame *);`
+  pub fn cancel_mouse_face (f: *mut frame);
+  /// C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);`
+  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+  /// C: dispextern.h 3924: `void change_frame_size (struct frame *, int, int, bool, bool, bool);`
+  pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
+			    pretend: bool, delay: bool, safe: bool);
+  /// C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
+  /// Lisp_Object, ptrdiff_t);`
+  pub fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
+			 object: Lisp_Object, pos: ptrdiff_t);
+  /// C: coding.h 737: `extern Lisp_Object from_unicode_buffer (const wchar_t *wstr);`
+  pub fn from_unicode_buffer (wstr: *const wchar_t) -> Lisp_Object;
+  /// C: `<math.h>`: `double fabs (double);`
+  pub fn fabs (x: c_double) -> c_double;
+}
+
+/* dispextern.h 3614-3616's five objects (`keyboard.c` defines all five), which the mirror declares
+   inside a module no glob import brings into this unit - the `src/xterm.rs` 31179-31192 device.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3614: `extern Lisp_Object help_echo_string, help_echo_window;`
+  pub static mut help_echo_string: Lisp_Object;
+  pub static mut help_echo_window: Lisp_Object;
+  /// C: dispextern.h 3615: `extern Lisp_Object help_echo_object, previous_help_echo_string;`
+  pub static mut help_echo_object: Lisp_Object;
+  pub static mut previous_help_echo_string: Lisp_Object;
+  /// C: dispextern.h 3616: `extern ptrdiff_t help_echo_pos;`
+  pub static mut help_echo_pos: ptrdiff_t;
+}
+
+/* C 836-848's declarations and C 836-1892's `handle_one_android_event`, the file's largest
+   function.  C takes no address of it, so it stays a Rust-ABI `unsafe fn` (PORTING.md 1.4); it is
+   `static` in C, hence no `no_mangle`.  C's `switch (event->type)` (C 870) is a `match`, and C's
+   `OTHER:` label (C 1860) - which is also where every `break` out of that switch lands, since the
+   label's statement immediately follows it - is the labelled block `'other`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn handle_one_android_event (dpyinfo: *mut android_display_info,
+				    event: *mut android_event, finish: *mut c_int,
+				    hold_quit: *mut input_event) -> c_int
+{
+  /* C leaves every one of these uninitialised (PORTING.md 1.5): each is assigned before any path
+     that reads it.  */
+  let mut configureEvent: android_event = std::mem::zeroed ();          // C 841
+  let mut f: *mut frame = std::ptr::null_mut ();                        // C 842
+  let mut any: *mut frame = std::ptr::null_mut ();
+  let mut mouse_frame: *mut frame = std::ptr::null_mut ();
+  let mut hlinfo: *mut Mouse_HLInfo = std::ptr::null_mut ();            // C 843
+  let mut inev: buffered_input_event = std::mem::zeroed ();             // C 844
+  let mut modifiers: c_int = 0;                                         // C 845
+  let mut count: c_int = 0;
+  let mut do_help: c_int = 0;
+  let mut touchpoint: *mut android_touch_point = std::ptr::null_mut (); // C 846
+  let mut last: *mut *mut android_touch_point = std::ptr::null_mut ();
+  let mut window: Lisp_Object = Qnil ();                                // C 847
+  let mut scroll_height: c_int = 0;                                     // C 848
+  let mut scroll_unit: f64 = 0.0;                                       // C 849
+  let mut keysym: c_int = 0;                                            // C 850
+  let mut nchars: ptrdiff_t = 0;                                        // C 851
+  let mut i: ptrdiff_t = 0;
+  let mut w: *mut window = std::ptr::null_mut ();                       // C 852
+
+  /* C 853's `static struct android_compose_status compose_status;` is a *function-local* static:
+     one object for the life of the process, zero-initialised, and the port keeps C's own storage
+     class by writing a function-local `static mut` (PORTING.md 1.6).  */
+  static mut compose_status: android_compose_status = android_compose_status { accent: 0, chars_matched: 0 };
+
+  /* It is okay for this to not resemble handle_one_xevent so much.
+     Differences in event handling code are much less nasty than
+     stuble differences in the graphics code.  */                       // C 855-857
+
+  count = 0;                                                           // C 859 (C's chained
+  do_help = count;                                                     //  `do_help = count = 0;`)
+  hlinfo = &raw mut (*dpyinfo).mouse_highlight;                         // C 860
+  *finish = ANDROID_EVENT_NORMAL;                                       // C 861
+  any = android_window_to_frame (dpyinfo, (*event).xany.window);        // C 862
+  nchars = 0;                                                           // C 863
+
+  if ! any.is_null () && (*any).wait_event_type == (*event).r#type     // C 865
+    { (*any).wait_event_type = 0; }                                    // C 866
+									//  (Indicates we got it.)
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 868
+
+  'other: {
+  match (*event).r#type                                                // C 870
+    {
+    ANDROID_CONFIGURE_NOTIFY =>
+      {
+	configureEvent = *event;                                       // C 873
+
+	f = android_window_to_frame (dpyinfo,                           // C 875
+				     configureEvent.xconfigure.window);   // C 876
+
+	if f.is_null ()                                                // C 878
+	  { break 'other; }                                            // C 879 (C's `goto OTHER`)
+
+	if FRAME_TOOLTIP_P (f)                                         // C 881
+	  {
+	    if FRAME_PIXEL_HEIGHT (f) != configureEvent.xconfigure.height   // C 883
+		|| FRAME_PIXEL_WIDTH (f) != configureEvent.xconfigure.width     // C 884
+	      { SET_FRAME_GARBAGED! (f); }                              // C 885
+
+	    /* C: `FRAME_PIXEL_HEIGHT (f) = …;`/`FRAME_PIXEL_WIDTH (f) = …;` - the mirror's two
+	       accessors are `fn`s (frame.rs 1036/1038), so C's l-value use is the field write
+	       (`src/xterm.rs` 34289-34290 is the same pair of statements).  */
+	    (*f).pixel_height = configureEvent.xconfigure.height;      // C 887
+	    (*f).pixel_width = configureEvent.xconfigure.width;        // C 888
+	  }
+
+	let width: c_int = configureEvent.xconfigure.width;            // C 891
+	let height: c_int = configureEvent.xconfigure.height;          // C 892
+
+	if CONSP (frame_size_history)                                 // C 894
+	  { frame_size_history_extra (f, build_string (c"ConfigureNotify".as_ptr ()),   // C 895
+				      FRAME_PIXEL_WIDTH (f),           // C 896
+				      FRAME_PIXEL_HEIGHT (f),          // C 897
+				      width, height, (*f).new_width,   // C 898
+				      (*f).new_height); }              // C 899
+
+	/* Even if the number of character rows and columns has
+	   not changed, the font size may have changed, so we need
+	   to check the pixel dimensions as well.  */                  // C 901-903
+
+	if width != FRAME_PIXEL_WIDTH (f)                              // C 905
+	    || height != FRAME_PIXEL_HEIGHT (f)                        // C 906
+	    || ((*f).new_size_p                                       // C 907
+		&& (((*f).new_width >= 0 && width != (*f).new_width)   // C 908
+		    || ((*f).new_height >= 0 && height != (*f).new_height)))   // C 909
+	  {
+	    change_frame_size (f, width, height, false, true, false);  // C 911
+	    android_clear_under_internal_border (f);                   // C 912
+	    SET_FRAME_GARBAGED! (f);                                    // C 913
+	    cancel_mouse_face (f);                                     // C 914
+	  }
+
+	/* Now change the left and top position of this window.  */     // C 917
+
+	{
+	  let old_left: c_int = (*f).left_pos;                         // C 920
+	  let old_top: c_int = (*f).top_pos;                           // C 921
+	  let mut frame: Lisp_Object = Qnil ();                        // C 922
+
+	  XSETFRAME! (frame, f);                                       // C 924
+
+	  {
+	    let mut root: android_window = 0;                          // C 927
+	    let mut dummy_uint: c_uint = 0;                            // C 928
+
+	    android_get_geometry (FRAME_ANDROID_WINDOW! (f),           // C 930
+				  &raw mut root, &raw mut (*f).left_pos, &raw mut (*f).top_pos,   // C 931
+				  &raw mut dummy_uint, &raw mut dummy_uint,   // C 932
+				  &raw mut dummy_uint);                        // C 933
+	  }
+
+	  if ! FRAME_TOOLTIP_P (f)                                     // C 936
+	      && (old_left != (*f).left_pos || old_top != (*f).top_pos)   // C 937
+	    {
+	      input_event_bits! (kind, &raw mut inev.ie, MOVE_FRAME_EVENT);   // C 939
+	      XSETFRAME! (inev.ie.frame_or_window, f);                 // C 940
+	    }
+
+	  if ! f.is_null ()                                            // C 943
+	      && (*(FRAME_OUTPUT_DATA! (f) as *mut android_output)).bits
+	      & ANDROID_OUTPUT_NEED_CURSOR_UPDATES != 0              // C 943
+	    {
+	      w = XWINDOW ((*f).selected_window);                      // C 945
+	      android_set_preeditarea (w as *mut c_void, (*w).cursor.x, (*w).cursor.y);   // C 946
+	    }
+	}
+
+	break 'other;                                                  // C 950 (C's `goto OTHER`)
+      }
+
+    ANDROID_KEY_PRESS =>
+      {
+	/* Set f to any.  There are no ``outer windows'' on Android.  */   // C 954
+	f = any;                                                       // C 955
+
+	/* If mouse-highlight is an integer, input clears out
+	   mouse highlighting.  */                                     // C 957-958
+	if ! mouse_face_hidden! (hlinfo) && FIXNUMP (Vmouse_highlight)   // C 959
+	    && (any.is_null ()                                         // C 960
+		|| (! EQ ((*any).tool_bar_window, (*hlinfo).mouse_face_window)   // C 961
+		    && ! EQ ((*any).tab_bar_window, (*hlinfo).mouse_face_window)))   // C 962
+	  {
+	    mouse_frame = (*hlinfo).mouse_face_mouse_frame as *mut frame;   // C 964
+
+	    clear_mouse_face (hlinfo);                                 // C 966
+	    mouse_face_hidden! (hlinfo, true);                       // C 967
+
+	    if ! mouse_frame.is_null ()                                // C 969
+	      { android_flush_dirty_back_buffer_on (mouse_frame); }    // C 970
+	  }
+
+	if f.is_null ()                                                // C 973
+	  { break 'other; }                                            // C 974 (C's `goto OTHER`)
+
+	if (*event).xkey.counter > 0                                   // C 976
+	  /* This event was generated by `performEditorAction'.  Make
+	     sure it is processed before any subsequent edits.  */     // C 977-978
+	  { textconv_barrier (f, (*event).xkey.counter); }             // C 979
+
+	let mut copy_buffer: [wchar_t; 512] = [0; 512];                // C 981
+	let mut copy_bufptr: *mut wchar_t = copy_buffer.as_mut_ptr ();  // C 982
+	let copy_bufsiz: c_int = 512;                                  // C 983
+
+	(*event).xkey.state                                            // C 985
+	  |= android_emacs_to_android_modifiers (dpyinfo,              // C 986
+						 extra_keyboard_modifiers as intmax_t) as c_uint;   // C 987
+	modifiers = (*event).xkey.state as c_int;                               // C 988
+
+	/* In case Meta is ComposeCharacter, clear its status.  According
+	   to Markus Ehrnsperger
+	   Markus.Ehrnsperger@lehrstuhl-bross.physik.uni-muenchen.de this
+	   enables ComposeCharacter to work whether or not it is combined
+	   with Meta.  */                                              // C 990-994
+	if modifiers & ANDROID_ALT_MASK != 0                           // C 995
+	  { memset (&raw mut compose_status as *mut c_void, 0, std::mem::size_of::<android_compose_status> ()); }   // C 996
+
+	/* Common for all keysym input events.  */                     // C 998
+	XSETFRAME! (inev.ie.frame_or_window, any);                     // C 999
+	inev.ie.modifiers                                              // C 1000
+	  = android_android_to_emacs_modifiers (dpyinfo, modifiers) as c_uint;   // C 1001
+	inev.ie.timestamp = (*event).xkey.time as u64;                 // C 1002
+
+	keysym = (*event).xkey.keycode as c_int;                                // C 1004
+
+	/* C 1110's `done_keysym:` label sits after C 1108's `goto done_keysym`, and every jump to it
+	   starts inside the C 1006-1050 block, so the port's labelled block opens here and its tail
+	   (the label's own statements, C 1115-1121) follows the block.  */
+	'done_keysym: {
+	  {
+	    let mut status_return: android_lookup_status = 0;          // C 1007
+
+	    nchars = android_wc_lookup_string (&raw mut (*event).xkey, copy_bufptr,   // C 1009
+					       copy_bufsiz, &raw mut keysym,   // C 1010
+					       &raw mut status_return,    // C 1011
+					       &raw mut compose_status) as ptrdiff_t;  // C 1012
+
+	    /* android_lookup_string can't be called twice, so there's no
+	       way to recover from buffer overflow.  */                // C 1014-1015
+	    if status_return == ANDROID_BUFFER_OVERFLOW                // C 1016
+	      { break 'done_keysym; }                                  // C 1017 (C's `goto done_keysym`)
+	    else if status_return == ANDROID_LOOKUP_NONE               // C 1018
+	      {
+		/* Don't skip preedit text events.  */                 // C 1020
+		if (*event).xkey.keycode != u32::MAX                   // C 1021 (C's `(uint32_t) -1`)
+		  { break 'done_keysym; }                              // C 1022
+	      }
+	    else if status_return == ANDROID_LOOKUP_CHARS              // C 1024
+	      { keysym = ANDROID_NO_SYMBOL; }                          // C 1025
+	    else if status_return != ANDROID_LOOKUP_KEYSYM             // C 1026
+		     && status_return != ANDROID_LOOKUP_BOTH           // C 1027
+	      { emacs_abort (); }                                      // C 1028
+
+	    /* Deal with pre-edit text events.  On Android, these are
+	       simply encoded as events with associated strings and a
+	       keycode set to ``-1''.  */                             // C 1030-1032
+
+	    if (*event).xkey.keycode == u32::MAX                       // C 1034 (C's `(uint32_t) -1`)
+	      {
+		input_event_bits! (kind, &raw mut inev.ie, PREEDIT_TEXT_EVENT);   // C 1036
+		inev.ie.arg = Qnil ();                                 // C 1037
+
+		/* If text was looked up, decode it and make it the
+		   preedit text.  */                                   // C 1039-1040
+
+		if status_return == ANDROID_LOOKUP_CHARS && nchars != 0   // C 1042
+		  {
+		    *copy_bufptr.offset (nchars) = 0;                   // C 1044
+		    inev.ie.arg = from_unicode_buffer (copy_bufptr);    // C 1045
+		  }
+
+		break 'done_keysym;                                    // C 1048
+	      }
+	  }
+
+	  /* If a compose sequence is in progress, we break here.
+	     Otherwise, chars_matched is always 0.  */                 // C 1052-1053
+	  if compose_status.chars_matched > 0 && nchars == 0           // C 1054
+	    { break 'other; }                                          // C 1055 (C's `break` out of the switch)
+
+	  memset (&raw mut compose_status as *mut c_void, 0, std::mem::size_of::<android_compose_status> ());   // C 1057
+
+	  if nchars == 1 && *copy_bufptr >= 32                         // C 1059
+	    {
+	      /* Deal with characters.  */                             // C 1061
+
+	      if *copy_bufptr < 128                                    // C 1063
+		{ input_event_bits! (kind, &raw mut inev.ie, ASCII_KEYSTROKE_EVENT); }   // C 1064
+	      else
+		{ input_event_bits! (kind, &raw mut inev.ie, MULTIBYTE_CHAR_KEYSTROKE_EVENT); }   // C 1066
+
+	      inev.ie.code = *copy_bufptr as c_uint;                   // C 1068
+	    }
+	  else if nchars < 2 && keysym != 0                            // C 1070
+	    {
+	      /* If the key is a modifier key, just return.  */        // C 1072
+	      if ANDROID_IS_MODIFIER_KEY! (keysym)                     // C 1073
+		{ break 'done_keysym; }                                // C 1074
+
+	      /* Next, deal with special ``characters'' by giving the
+		 keycode to keyboard.c.  */                            // C 1076-1077
+	      input_event_bits! (kind, &raw mut inev.ie, NON_ASCII_KEYSTROKE_EVENT);   // C 1078
+	      inev.ie.code = keysym as c_uint;                         // C 1079
+	    }
+	  else
+	    {
+	      /* Finally, deal with strings.  */                       // C 1083
+
+	      i = 0;                                                   // C 1085
+	      while i < nchars                                       // C 1085
+		{
+		  input_event_bits! (kind, &raw mut inev.ie,           // C 1087
+				     if SINGLE_BYTE_CHAR_P (*copy_bufptr.offset (i) as intmax_t)   // C 1087
+				       { ASCII_KEYSTROKE_EVENT }       // C 1088
+				     else { MULTIBYTE_CHAR_KEYSTROKE_EVENT });   // C 1089
+		  inev.ie.code = *copy_bufptr.offset (i) as c_uint;    // C 1090
+
+		  /* If the character is actually '\n', then change this
+		     to RET.  */                                       // C 1092-1093
+
+		  if *copy_bufptr.offset (i) == b'\n' as wchar_t       // C 1095
+		    {
+		      input_event_bits! (kind, &raw mut inev.ie, NON_ASCII_KEYSTROKE_EVENT);   // C 1097
+		      inev.ie.code = 66;                               // C 1098
+		    }
+
+		  kbd_buffer_store_buffered_event (&raw mut inev, hold_quit);   // C 1101
+		  i += 1;                                              // C 1085 (the `for` step)
+		}
+
+	      count += nchars as c_int;                                // C 1104
+	      input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);    // C 1105 (Already stored above.)
+	    }
+
+	  break 'done_keysym;                                          // C 1108 (C's `goto done_keysym`)
+	}
+
+	/* Now proceed to tell the input method the current position of
+	   the cursor, if required.  */                               // C 1112-1113
+
+	if ! f.is_null ()                                              // C 1115
+	    && (*(FRAME_OUTPUT_DATA! (f) as *mut android_output)).bits
+	      & ANDROID_OUTPUT_NEED_CURSOR_UPDATES != 0              // C 1115
+	  {
+	    w = XWINDOW ((*f).selected_window);                        // C 1117
+	    android_set_preeditarea (w as *mut c_void, (*w).cursor.x, (*w).cursor.y);   // C 1118
+	  }
+
+	break 'other;                                                  // C 1121
+      }
+
+    ANDROID_FOCUS_IN | ANDROID_FOCUS_OUT =>
+      {
+	android_detect_focus_change (dpyinfo, any, event, &raw mut inev.ie);   // C 1125
+	break 'other;                                                  // C 1126
+      }
+
+    /* C's `case ANDROID_WINDOW_ACTION` (C 1128) falls through into `case ANDROID_ENTER_NOTIFY`
+       (C 1158) - its block has no `break` - so the two arms share one `match` arm and both bodies
+       stand in C's order.  */                                        // C 1158
+    ANDROID_WINDOW_ACTION | ANDROID_ENTER_NOTIFY =>
+      {
+	/* This is a special event sent by android_run_in_emacs_thread
+	   used to make Android run stuff.  */                        // C 1130-1131
+
+	if (*event).xaction.window == 0 && (*event).xaction.action == 0   // C 1133
+	  /* Don't run queries here, as it may run inside editor
+	     commands, which can expose an inconsistent view of buffer
+	     contents to the input method during command execution.
+
+	     Instead, wait for Emacs to return to `android_select'.  */   // C 1134-1138
+	  { break 'other; }                                            // C 1139
+
+	f = any;                                                       // C 1141
+
+	if (*event).xaction.action == 0                                // C 1143
+	  {
+	    /* Action 0 either means that a window has been destroyed
+	       and its associated frame should be as well.  */         // C 1145-1146
+
+	    if (*event).xaction.window != 0                            // C 1148
+	      {
+		if f.is_null ()                                        // C 1150
+		  { break 'other; }                                    // C 1151
+
+		input_event_bits! (kind, &raw mut inev.ie, DELETE_WINDOW_EVENT);   // C 1153
+		XSETFRAME! (inev.ie.frame_or_window, f);               // C 1154
+	      }
+	  }
+
+	/* (C 1158's `case ANDROID_ENTER_NOTIFY:`, which control reaches by falling through.)  */
+	f = any;                                                       // C 1159
+
+	if ! f.is_null ()                                              // C 1161
+	  { android_note_mouse_movement (f, &raw mut (*event).xmotion); }   // C 1162
+	break 'other;                                                  // C 1163
+      }
+
+    ANDROID_MOTION_NOTIFY =>
+      {
+	previous_help_echo_string = help_echo_string;                  // C 1167
+	help_echo_string = Qnil ();                                    // C 1168
+
+	if mouse_face_hidden! (hlinfo)                                 // C 1170
+	  {
+	    mouse_face_hidden! (hlinfo, false);                       // C 1172
+	    clear_mouse_face (hlinfo);                                 // C 1173
+	  }
+
+	f = any;                                                       // C 1176
+
+	if ! f.is_null ()                                              // C 1178
+	  {
+	    /* Maybe generate a SELECT_WINDOW_EVENT for
+	       `mouse-autoselect-window' but don't let popup menus
+	       interfere with this (Bug#1261).  */                     // C 1180-1182
+	    if ! NILP (Vmouse_autoselect_window)                       // C 1183
+		&& popup_activated () == 0                                // C 1184
+		/* Don't switch if we're currently in the minibuffer.
+		   This tries to work around problems where the
+		   minibuffer gets unselected unexpectedly, and where
+		   you then have to move your mouse all the way down to
+		   the minibuffer to select it.  */                    // C 1185-1189
+		&& ! MINI_WINDOW_P (XWINDOW (selected_window))         // C 1190
+		/* With `focus-follows-mouse' non-nil create an event
+		   also when the target window is on another frame.  */   // C 1191-1192
+		&& (f == XFRAME (selected_frame)                       // C 1193
+		    || ! NILP (focus_follows_mouse))                   // C 1194
+	      {
+		let window: Lisp_Object                                // C 1196
+		  = window_from_coordinates (f as *mut c_void, (*event).xmotion.x,    // C 1197
+					     (*event).xmotion.y, std::ptr::null_mut (),    // C 1198
+					     false, false, false);     // C 1199
+
+		/* A window will be autoselected only when it is not
+		   selected now and the last mouse movement event was
+		   not in it.  The remainder of the code is a bit vague
+		   wrt what a "window" is.  For immediate autoselection,
+		   the window is usually the entire window but for GTK
+		   where the scroll bars don't count.  For delayed
+		   autoselection the window is usually the window's text
+		   area including the margins.  */                     // C 1201-1208
+		if WINDOWP (window)                                    // C 1209
+		    && ! EQ (window, last_mouse_window)                // C 1210
+		    && ! EQ (window, selected_window)                  // C 1211
+		  {
+		    input_event_bits! (kind, &raw mut inev.ie, SELECT_WINDOW_EVENT);   // C 1213
+		    inev.ie.frame_or_window = window;                  // C 1214
+		  }
+
+		/* Remember the last window where we saw the mouse.  */   // C 1217
+		last_mouse_window = window;                            // C 1218
+	      }
+
+	    if ! android_note_mouse_movement (f, &raw mut (*event).xmotion)   // C 1221
+	      { help_echo_string = previous_help_echo_string; }        // C 1222
+	  }
+
+	/* If the contents of the global variable help_echo_string
+	   has changed, generate a HELP_EVENT.  */                     // C 1225-1226
+	if ! NILP (help_echo_string)                                   // C 1227
+	    || ! NILP (previous_help_echo_string)                      // C 1228
+	  { do_help = 1; }                                             // C 1229
+
+	if ! f.is_null ()                                              // C 1231
+	  { android_flush_dirty_back_buffer_on (f); }                  // C 1232
+
+	break 'other;                                                  // C 1234
+      }
+
+    ANDROID_LEAVE_NOTIFY =>
+      {
+	f = any;                                                       // C 1237
+
+	if ! f.is_null ()                                              // C 1239
+	  {
+	    /* Now clear dpyinfo->last_mouse_motion_frame, or
+	       gui_redo_mouse_highlight will end up highlighting the
+	       last known position of the mouse if a tooltip frame is
+	       later unmapped.  */                                     // C 1241-1244
+
+	    if f == (*dpyinfo).last_mouse_motion_frame                 // C 1246
+	      { (*dpyinfo).last_mouse_motion_frame = std::ptr::null_mut (); }   // C 1247
+
+	    /* Something similar applies to
+	       dpyinfo->last_mouse_glyph_frame.  */                    // C 1249-1250
+	    if f == (*dpyinfo).last_mouse_glyph_frame                  // C 1251
+	      { (*dpyinfo).last_mouse_glyph_frame = std::ptr::null_mut (); }   // C 1252
+
+	    if f == (*hlinfo).mouse_face_mouse_frame as *mut frame          // C 1254
+	      {
+		/* If we move outside the frame, then we're
+		   certainly no longer on any text in the frame.  */   // C 1256-1257
+		clear_mouse_face (hlinfo);                             // C 1258
+		(*hlinfo).mouse_face_mouse_frame = std::ptr::null_mut ();   // C 1259
+		android_flush_dirty_back_buffer_on (f);                // C 1260
+	      }
+
+	    /* Generate a nil HELP_EVENT to cancel a help-echo.
+	       Do it only if there's something to cancel.
+	       Otherwise, the startup message is cleared when
+	       the mouse leaves the frame.  */                        // C 1263-1266
+	    if any_help_event_p                                        // C 1267
+		/* But never if `mouse-drag-and-drop-region' is in
+		   progress, since that results in the tooltip being
+		   dismissed when the mouse moves on top.  */          // C 1268-1270
+		&& !((EQ (track_mouse, Qdrag_source ())                 // C 1271
+		      || EQ (track_mouse, Qdropping ()))               // C 1272
+		     && gui_mouse_grabbed (dpyinfo))                   // C 1273
+	      { do_help = -1; }                                        // C 1274
+	  }
+
+	break 'other;                                                  // C 1277
+      }
+
+    ANDROID_EXPOSE =>
+      {
+	f = any;                                                       // C 1281
+
+	if ! f.is_null ()                                              // C 1283
+	  {
+	    if ! FRAME_VISIBLE_P (f)                                   // C 1285
+	      {
+		(*( (*f).output_data.android as *mut android_output )).bits |= ANDROID_OUTPUT_HAS_BEEN_VISIBLE;   // C 1287 (C's `has_been_visible = true;`)
+		SET_FRAME_GARBAGED! (f);                                // C 1288
+	      }
+
+	    if ! FRAME_GARBAGED_P (f)                                  // C 1291
+	      {
+		expose_frame (f, (*event).xexpose.x, (*event).xexpose.y,   // C 1293
+			      (*event).xexpose.width, (*event).xexpose.height);   // C 1294
+
+		/* Do not display the back buffer if F is yet being
+		   updated, as this might trigger premature bitmap
+		   reconfiguration.  */                                // C 1296-1298
+		if FRAME_ANDROID_COMPLETE_P! (f)                        // C 1299
+		  { show_back_buffer (f); }                            // C 1300
+	      }
+	  }
+
+	break 'other;                                                  // C 1304
+      }
+
+    ANDROID_BUTTON_PRESS | ANDROID_BUTTON_RELEASE =>
+      {
+	/* If we decide we want to generate an event to be seen
+	   by the rest of Emacs, we put it here.  */                   // C 1308-1309
+
+	f = any;                                                       // C 1311
+
+	let mut tab_bar_arg: Lisp_Object = Qnil ();                    // C 1313
+	let mut tab_bar_p: bool = false;                               // C 1314
+	let mut tool_bar_p: bool = false;                              // C 1315
+
+	(*dpyinfo).last_mouse_glyph_frame = std::ptr::null_mut ();     // C 1317
+
+	f = mouse_or_wdesc_frame (dpyinfo, (*event).xbutton.window as c_int);   // C 1319
+
+	if ! f.is_null ()                                              // C 1321
+	    && (*event).xbutton.r#type == ANDROID_BUTTON_PRESS         // C 1321
+	    && popup_activated () == 0                                // C 1322
+	    /* && !x_window_to_scroll_bar (event->xbutton.display, */   // C 1323
+	    /* 			      event->xbutton.window, 2) */   // C 1324
+	    && FRAME_NO_ACCEPT_FOCUS (f) == 0                           // C 1325
+	  {
+	    /* When clicking into a child frame or when clicking
+	       into a parent frame with the child frame selected and
+	       `no-accept-focus' is not set, select the clicked
+	       frame.  */                                              // C 1327-1330
+	    let hf: *mut frame = (*dpyinfo).highlight_frame;           // C 1331
+
+	    if ! FRAME_PARENT_FRAME (f).is_null ()                      // C 1333
+		|| (! hf.is_null () && frame_ancestor_p (f, hf))        // C 1333
+	      {
+		android_set_input_focus (FRAME_ANDROID_WINDOW! (f),    // C 1335
+					 (*event).xbutton.time);       // C 1336
+
+		if ! FRAME_PARENT_FRAME (f).is_null ()                  // C 1338
+		  { android_raise_window (FRAME_ANDROID_WINDOW! (f)); }   // C 1339
+	      }
+	  }
+
+	if ! f.is_null ()                                              // C 1343
+	  {
+	    /* Is this in the tab-bar?  */                             // C 1345
+	    if WINDOWP ((*f).tab_bar_window)                           // C 1346
+		&& WINDOW_TOTAL_LINES (XWINDOW ((*f).tab_bar_window)) != 0   // C 1347
+	      {
+		let mut window: Lisp_Object = Qnil ();                 // C 1349
+		let x: c_int = (*event).xbutton.x;                     // C 1350
+		let y: c_int = (*event).xbutton.y;                     // C 1351
+
+		window = window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (), true, true, true);   // C 1353
+		tab_bar_p = EQ (window, (*f).tab_bar_window);          // C 1354
+
+		if tab_bar_p                                           // C 1356
+		  {
+		    tab_bar_arg = handle_tab_bar_click                // C 1358
+		      (f, x, y, ((*event).xbutton.r#type             // C 1359
+				 == ANDROID_BUTTON_PRESS),             // C 1360
+		       android_android_to_emacs_modifiers (dpyinfo,   // C 1361
+							   (*event).xbutton.state as c_int));   // C 1362
+		    android_flush_dirty_back_buffer_on (f);            // C 1363
+		  }
+	      }
+
+	    /* Is this in the tool-bar?  */                            // C 1367
+	    if WINDOWP ((*f).tool_bar_window)                          // C 1368
+		&& WINDOW_TOTAL_LINES (XWINDOW ((*f).tool_bar_window)) != 0   // C 1369
+	      {
+		let mut window: Lisp_Object = Qnil ();                 // C 1371
+		let x: c_int = (*event).xbutton.x;                     // C 1372
+		let y: c_int = (*event).xbutton.y;                     // C 1373
+
+		window = window_from_coordinates (f as *mut c_void, x, y, std::ptr::null_mut (), true, true, true);   // C 1375
+		tool_bar_p = (EQ (window, (*f).tool_bar_window)        // C 1376
+			      && (((*event).xbutton.r#type             // C 1377
+				   != ANDROID_BUTTON_RELEASE)          // C 1378
+				  || (*f).last_tool_bar_item != -1));   // C 1379
+
+		if tool_bar_p && (*event).xbutton.button < 4           // C 1381
+		  {
+		    handle_tool_bar_click                              // C 1383
+		      (f, x, y, ((*event).xbutton.r#type               // C 1384
+				 == ANDROID_BUTTON_PRESS),             // C 1385
+		       android_android_to_emacs_modifiers (dpyinfo,   // C 1386
+							   (*event).xbutton.state as c_int));   // C 1387
+		    android_flush_dirty_back_buffer_on (f);            // C 1388
+		  }
+	      }
+
+	    if !(tab_bar_p && NILP (tab_bar_arg)) && ! tool_bar_p      // C 1392
+	      {
+		if popup_activated () == 0                            // C 1393
+		  {
+		    android_construct_mouse_click (&raw mut inev.ie, &raw mut (*event).xbutton, f);   // C 1395
+
+		    if ! NILP (tab_bar_arg)                            // C 1397
+		      { inev.ie.arg = tab_bar_arg; }                   // C 1398
+		  }
+	      }
+	  }
+
+	if (*event).r#type == ANDROID_BUTTON_PRESS                     // C 1402
+	  {
+	    (*dpyinfo).grabbed |= 1 << (*event).xbutton.button;        // C 1404
+	    (*dpyinfo).last_mouse_frame = f;                           // C 1405
+	    if ! f.is_null () && ! tab_bar_p                           // C 1406
+	      { (*f).last_tab_bar_item = -1; }                         // C 1407
+	    if ! f.is_null () && ! tool_bar_p                          // C 1408
+	      { (*f).last_tool_bar_item = -1; }                        // C 1409
+	  }
+	else
+	  { (*dpyinfo).grabbed &= ! (1 << (*event).xbutton.button); }   // C 1412
+
+	/* Ignore any mouse motion that happened before this event;
+	   any subsequent mouse-movement Emacs events should reflect
+	   only motion after the ButtonPress/Release.  */              // C 1414-1416
+	if ! f.is_null ()                                              // C 1417
+	  { mouse_moved! (f, false); }                                 // C 1418
+
+	break 'other;                                                  // C 1420
+      }
+
+    /* Touch events.  The events here don't parallel X so much.  */   // C 1422
+    ANDROID_TOUCH_DOWN =>
+      {
+	if any.is_null ()                                              // C 1425
+	  { break 'other; }                                            // C 1426
+
+	/* This event is sent when a tool is put on the screen.  X and Y
+	   are the location of the finger, and pointer_id identifies the
+	   tool for as long as it is still held down.  First, see if the
+	   touch point already exists and can be reused (this shouldn't
+	   happen, but be safe.)  */                                   // C 1428-1432
+
+	touchpoint = android_find_tool (any, (*event).touch.pointer_id as c_int);   // C 1434
+
+	if ! touchpoint.is_null ()                                     // C 1436
+	  {
+	    /* Simply update the tool position and send an update.  */   // C 1438
+	    (*touchpoint).x = (*event).touch.x;                        // C 1439
+	    (*touchpoint).y = (*event).touch.y;                        // C 1440
+	    android_update_tools (any, &raw mut inev.ie);              // C 1441
+	    inev.ie.timestamp = (*event).touch.time as u64;            // C 1442
+
+	    break 'other;                                              // C 1444
+	  }
+
+	/* Otherwise, link a new touchpoint onto the output's list of
+	   pressed tools.  */                                          // C 1447-1448
+
+	touchpoint = xmalloc (std::mem::size_of::<android_touch_point> ()) as *mut android_touch_point;   // C 1450
+	(*touchpoint).tool_id = (*event).touch.pointer_id as c_int;    // C 1451
+	(*touchpoint).x = (*event).touch.x;                            // C 1452
+	(*touchpoint).y = (*event).touch.y;                            // C 1453
+	(*touchpoint).next = (*(FRAME_OUTPUT_DATA! (any) as *mut android_output)).touch_points;   // C 1454
+	(*touchpoint).tool_bar_p = false;                              // C 1455
+	(*(FRAME_OUTPUT_DATA! (any) as *mut android_output)).touch_points = touchpoint;   // C 1456
+
+	/* Figure out whether or not the tool was pressed on the tool
+	   bar.  Note that the code which runs when it was is more or
+	   less an abuse of the mouse highlight machinery, but it works
+	   well enough in practice.  */                                // C 1458-1461
+
+	if WINDOWP ((*any).tool_bar_window)                            // C 1463
+	    && WINDOW_TOTAL_LINES (XWINDOW ((*any).tool_bar_window)) != 0   // C 1464
+	  {
+	    let mut window: Lisp_Object = Qnil ();                     // C 1466
+	    let x: c_int = (*event).touch.x;                           // C 1467
+	    let y: c_int = (*event).touch.y;                           // C 1468
+
+	    window = window_from_coordinates (any as *mut c_void, x, y, std::ptr::null_mut (), true,      // C 1470
+					      true, true);             // C 1471
+
+	    /* If this touch has started in the tool bar, do not
+	       send it to Lisp.  Instead, simulate a tool bar
+	       click, releasing it once it goes away.  */              // C 1473-1475
+
+	    if EQ (window, (*any).tool_bar_window)                     // C 1477
+	      {
+		/* Call note_mouse_highlight on the tool bar
+		   item.  Otherwise, get_tool_bar_item will
+		   return 1.
+
+		   This is not necessary when mouse-highlight is
+		   nil.  */                                            // C 1479-1484
+
+		if ! NILP (Vmouse_highlight)                           // C 1486
+		  {
+		    /* Clear the pointer invisible flag to always make
+		       note_mouse_highlight do its thing.  */          // C 1488-1489
+		    pointer_invisible! (any, false);                   // C 1490
+		    note_mouse_highlight (any, x, y);                  // C 1491
+
+		    /* Always allow future mouse motion to
+		       update the mouse highlight, no matter
+		       where it is.  */                               // C 1493-1495
+		    memset (&raw mut (*dpyinfo).last_mouse_glyph as *mut c_void, 0,   // C 1496
+			    std::mem::size_of_val (&(*dpyinfo).last_mouse_glyph));   // C 1497
+		    (*dpyinfo).last_mouse_glyph_frame = any;           // C 1498
+		  }
+
+		handle_tool_bar_click (any, x, y, true, 0);            // C 1501
+
+		/* Flush any changes made by that to the front
+		   buffer.  */                                         // C 1503-1504
+		android_flush_dirty_back_buffer_on (any);              // C 1505
+
+		/* Mark the touch point as being grabbed by the tool
+		   bar.  */                                            // C 1507-1508
+		(*touchpoint).tool_bar_p = true;                       // C 1509
+		break 'other;                                          // C 1510
+	      }
+	  }
+
+	/* Now generate the Emacs event.  */                            // C 1514
+	input_event_bits! (kind, &raw mut inev.ie, TOUCHSCREEN_BEGIN_EVENT);   // C 1515
+	inev.ie.timestamp = (*event).touch.time as u64;                // C 1516
+	XSETFRAME! (inev.ie.frame_or_window, any);                     // C 1517
+	XSETINT! (inev.ie.x, (*event).touch.x as isize);   // C 1518
+	XSETINT! (inev.ie.y, (*event).touch.y as isize);   // C 1519
+	XSETINT! (inev.ie.arg, (*event).touch.pointer_id as isize);   // C 1520
+
+	break 'other;                                                  // C 1522
+      }
+
+    ANDROID_TOUCH_MOVE =>
+      {
+	if any.is_null ()                                              // C 1526
+	  { break 'other; }                                            // C 1527
+
+	/* Look for the tool that moved.  */                            // C 1529
+
+	touchpoint = android_find_tool (any, (*event).touch.pointer_id as c_int);   // C 1531
+
+	/* If it doesn't exist or has been grabbed by the tool bar, skip
+	   processing this event.  */                                  // C 1533-1534
+
+	if touchpoint.is_null () || (*touchpoint).tool_bar_p           // C 1536
+	  { break 'other; }                                            // C 1537
+
+	/* Otherwise, update the position and send the update event.  */   // C 1539
+
+	(*touchpoint).x = (*event).touch.x;                            // C 1541
+	(*touchpoint).y = (*event).touch.y;                            // C 1542
+	android_update_tools (any, &raw mut inev.ie);                  // C 1543
+	inev.ie.timestamp = (*event).touch.time as u64;                // C 1544
+
+	break 'other;                                                  // C 1546
+      }
+
+    ANDROID_TOUCH_UP =>
+      {
+	if any.is_null ()                                              // C 1550
+	  { break 'other; }                                            // C 1551
+
+	/* Now find and unlink the tool in question.  */                // C 1553
+
+	last = &raw mut (*(FRAME_OUTPUT_DATA! (any) as *mut android_output)).touch_points;   // C 1555
+	loop
+	  {
+	    touchpoint = *last;                                        // C 1556
+	    if touchpoint.is_null ()
+	      { break; }
+	    if (*touchpoint).tool_id == (*event).touch.pointer_id as c_int   // C 1558
+	      {
+		*last = (*touchpoint).next;                            // C 1560
+
+		if (*touchpoint).tool_bar_p                            // C 1562
+		  {
+		    xfree (touchpoint as *mut c_void);                 // C 1564
+
+		    /* Do what is necessary to release the tool bar and
+		       possibly trigger a click.  */                   // C 1566-1567
+
+		    if (*any).last_tool_bar_item != -1                 // C 1569
+		      {
+			handle_tool_bar_click (any, (*event).touch.x,   // C 1570
+					       (*event).touch.y, false,   // C 1571
+					       0);                      // C 1572
+		      }
+
+		    /* Cancel any outstanding mouse highlight.  */     // C 1574
+		    note_mouse_highlight (any, -1, -1);                // C 1575
+		    android_flush_dirty_back_buffer_on (any);          // C 1576
+
+		    break 'other;                                      // C 1578
+		  }
+
+		/* The tool was unlinked.  Free it and generate the
+		   appropriate Emacs event (assuming that it was not
+		   grabbed by the tool bar).  */                      // C 1581-1583
+		xfree (touchpoint as *mut c_void);                     // C 1584
+
+		input_event_bits! (kind, &raw mut inev.ie, TOUCHSCREEN_END_EVENT);   // C 1586
+		inev.ie.timestamp = (*event).touch.time as u64;        // C 1587
+
+		/* Report whether the sequence has been canceled.  */   // C 1589
+
+		if (*event).touch.flags & ANDROID_TOUCH_SEQUENCE_CANCELED != 0   // C 1591
+		  { inev.ie.modifiers = 1; }                           // C 1592
+
+		XSETFRAME! (inev.ie.frame_or_window, any);             // C 1594
+		XSETINT! (inev.ie.x, (*event).touch.x as isize);   // C 1595
+		XSETINT! (inev.ie.y, (*event).touch.y as isize);   // C 1596
+		XSETINT! (inev.ie.arg, (*event).touch.pointer_id as isize);   // C 1597
+
+		/* Break out of the loop.  */                          // C 1599
+		break 'other;                                          // C 1600
+	      }
+	    else
+	      { last = &raw mut (*touchpoint).next; }                  // C 1603
+	  }
+
+	/* No touch point was found.  This shouldn't happen.  */        // C 1606
+	break 'other;                                                  // C 1607
+      }
+
+    /* Wheel motion.  The events here don't parallel X because
+       Android doesn't have scroll valuators.  */                    // C 1609-1610
+
+    ANDROID_WHEEL =>
+      {
+	if any.is_null ()                                              // C 1614
+	  { break 'other; }                                            // C 1615
+
+	if fabs ((*event).wheel.x_delta) > 0.0                         // C 1617
+	    || fabs ((*event).wheel.y_delta) > 0.0                     // C 1618
+	  {
+	    if mwheel_coalesce_scroll_events                           // C 1620
+	      {
+		if signbit! ((*event).wheel.x_delta)                    // C 1622
+		    != signbit! (wheel_event_x)                         // C 1623
+		  { wheel_event_x = 0.0; }                             // C 1624
+
+		if signbit! ((*event).wheel.y_delta)                    // C 1626
+		    != signbit! (wheel_event_y)                         // C 1627
+		  { wheel_event_y = 0.0; }                             // C 1628
+
+		/* Tally up deltas until one of them exceeds 1.0.  */   // C 1630
+		wheel_event_x += (*event).wheel.x_delta;               // C 1631
+		wheel_event_y += (*event).wheel.y_delta;               // C 1632
+
+		if fabs (wheel_event_x) < 1.0                          // C 1634
+		    && fabs (wheel_event_y) < 1.0                      // C 1635
+		  { break 'other; }                                    // C 1636
+	      }
+	    else
+	      {
+		/* Use the deltas in the event.  */                    // C 1640
+		wheel_event_x = (*event).wheel.x_delta;                // C 1641
+		wheel_event_y = (*event).wheel.y_delta;                // C 1642
+	      }
+
+	    /* Determine what kind of event to send.  */               // C 1645
+	    input_event_bits! (kind, &raw mut inev.ie,                 // C 1646
+			       if fabs (wheel_event_y)                 // C 1646
+				  >= fabs (wheel_event_x)              // C 1647
+				 { WHEEL_EVENT } else { HORIZ_WHEEL_EVENT });   // C 1648
+	    inev.ie.timestamp = (*event).wheel.time as u64;            // C 1649
+
+	    /* Set the event coordinates.  */                          // C 1651
+	    XSETINT! (inev.ie.x, (*event).wheel.x as isize);   // C 1652
+	    XSETINT! (inev.ie.y, (*event).wheel.y as isize);   // C 1653
+
+	    /* Set the frame.  */                                      // C 1655
+	    XSETFRAME! (inev.ie.frame_or_window, any);                 // C 1656
+
+	    /* Figure out the scroll direction.  */                    // C 1658
+	    inev.ie.modifiers = (if signbit! (if fabs (wheel_event_x)   // C 1659
+					       >= fabs (wheel_event_y)   // C 1660
+					      { wheel_event_x }        // C 1661
+					    else { wheel_event_y })    // C 1662
+				 { down_modifier as c_uint } else { up_modifier as c_uint });   // C 1663
+
+	    /* Figure out how much to scale the deltas by.  */         // C 1665
+	    window = window_from_coordinates (any as *mut c_void, (*event).wheel.x,   // C 1666
+					      (*event).wheel.y, std::ptr::null_mut (),   // C 1667
+					      false, false, false);    // C 1668
+
+	    if WINDOWP (window)                                        // C 1670
+	      { scroll_height = (*XWINDOW (window)).pixel_height; }    // C 1671
+	    else
+	      /* EVENT_X and EVENT_Y can be outside the
+		 frame if F holds the input grab, so fall
+		 back to the height of the frame instead.  */          // C 1673-1675
+	      { scroll_height = FRAME_PIXEL_HEIGHT (any); }            // C 1676
+
+	    scroll_unit = pow (scroll_height as f64, 2.0 / 3.0);       // C 1678
+
+	    /* Add the keyboard modifiers.  */                         // C 1680
+	    inev.ie.modifiers                                          // C 1681
+	      |= android_android_to_emacs_modifiers (dpyinfo,          // C 1682
+						     (*event).wheel.state as c_int) as c_uint;   // C 1683
+
+	    /* Finally include the scroll deltas.  */                  // C 1685
+	    inev.ie.arg = list3 (Qnil (),                              // C 1686
+				 make_float (wheel_event_x              // C 1687
+					     * scroll_unit),           // C 1688
+				 make_float (wheel_event_y              // C 1689
+					     * scroll_unit));          // C 1690
+
+	    wheel_event_x = 0.0;                                       // C 1692
+	    wheel_event_y = 0.0;                                       // C 1693
+	  }
+
+	break 'other;                                                  // C 1696
+      }
+
+    /* Iconification.  This is vastly simpler than on X.  */           // C 1698
+    ANDROID_ICONIFIED =>
+      {
+	if any.is_null ()                                              // C 1701
+	  { break 'other; }                                            // C 1702
+
+	if FRAME_ICONIFIED_P (any)                                     // C 1704
+	  { break 'other; }                                            // C 1705
+
+	SET_FRAME_VISIBLE! (any, false);                                // C 1707
+	SET_FRAME_ICONIFIED (any, 1);                                  // C 1708
+
+	input_event_bits! (kind, &raw mut inev.ie, ICONIFY_EVENT);      // C 1710
+	XSETFRAME! (inev.ie.frame_or_window, any);                     // C 1711
+	break 'other;                                                  // C 1712
+      }
+
+    ANDROID_DEICONIFIED =>
+      {
+	if any.is_null ()                                              // C 1716
+	  { break 'other; }                                            // C 1717
+
+	if ! FRAME_ICONIFIED_P (any)                                   // C 1719
+	  { break 'other; }                                            // C 1720
+
+	SET_FRAME_VISIBLE! (any, true);                                 // C 1722
+	SET_FRAME_ICONIFIED (any, 0);                                  // C 1723
+
+	input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);    // C 1725
+	XSETFRAME! (inev.ie.frame_or_window, any);                     // C 1726
+	break 'other;                                                  // C 1727
+      }
+
+    /* Context menu handling.  */                                      // C 1729
+    ANDROID_CONTEXT_MENU =>
+      {
+	if (*dpyinfo).menu_event_id == -1                              // C 1732
+	    /* Previously displayed popup menus might generate events
+	       after dismissal, which might interfere.
+	       `current_menu_serial' is always set to an identifier
+	       identifying the last context menu to be displayed.  */   // C 1733-1736
+	    && (*event).menu.menu_event_serial as c_uint == current_menu_serial   // C 1737
+	  { (*dpyinfo).menu_event_id = (*event).menu.menu_event_id; }   // C 1738
+
+	break 'other;                                                  // C 1740
+      }
+
+    /* Input method events.  textconv.c functions are called here to
+       queue events, which are then executed in a safe context
+       inside keyboard.c.  */                                         // C 1742-1744
+    ANDROID_INPUT_METHOD =>
+      {
+	if any.is_null ()                                              // C 1747
+	  {
+	    /* Free any text allocated for this event.  */             // C 1749
+	    xfree ((*event).ime.text as *mut c_void);                  // C 1750
+
+	    /* If edits associated with this event haven't been
+	       processed yet, signal their completion to avoid delays
+	       the next time a call to `android_sync_edit' is made.
+
+	       If events for a deleted frame are interleaved with events
+	       for another frame, the edit counter may be prematurely
+	       incremented before edits associated with the other frames
+	       are processed.  This is not a problem in practice.  */   // C 1752-1759
+
+	    android_notify_conversion ((*event).ime.counter);          // C 1761
+	  }
+	else
+	  { android_handle_ime_event (event, any); }                   // C 1764
+
+	break 'other;                                                  // C 1766
+      }
+
+    ANDROID_DND_DRAG_EVENT =>
+      {
+	if any.is_null ()                                              // C 1770
+	  { break 'other; }                                            // C 1771
+
+	/* Generate a drag and drop event to convey its position.  */   // C 1773
+	input_event_bits! (kind, &raw mut inev.ie, DRAG_N_DROP_EVENT);   // C 1774
+	XSETFRAME! (inev.ie.frame_or_window, any);                     // C 1775
+	inev.ie.timestamp = ANDROID_CURRENT_TIME as u64;               // C 1776
+	XSETINT! (inev.ie.x, (*event).dnd.x as isize);   // C 1777
+	XSETINT! (inev.ie.y, (*event).dnd.y as isize);   // C 1778
+	inev.ie.arg = Fcons (inev.ie.x, inev.ie.y);                    // C 1779
+	break 'other;                                                  // C 1780
+      }
+
+    ANDROID_DND_URI_EVENT | ANDROID_DND_TEXT_EVENT =>
+      {
+	if any.is_null ()                                              // C 1785
+	  {
+	    free ((*event).dnd.uri_or_string as *mut c_void);          // C 1787
+	    break 'other;                                              // C 1788
+	  }
+
+	/* An item was dropped over ANY, and is a file in the form of a
+	   content or file URI or a string to be inserted.  Generate an
+	   event with this information.  */                            // C 1791-1793
+
+	input_event_bits! (kind, &raw mut inev.ie, DRAG_N_DROP_EVENT);   // C 1795
+	XSETFRAME! (inev.ie.frame_or_window, any);                     // C 1796
+	inev.ie.timestamp = ANDROID_CURRENT_TIME as u64;               // C 1797
+	XSETINT! (inev.ie.x, (*event).dnd.x as isize);   // C 1798
+	XSETINT! (inev.ie.y, (*event).dnd.y as isize);   // C 1799
+	inev.ie.arg = Fcons (if (*event).r#type == ANDROID_DND_TEXT_EVENT   // C 1800
+			       { Qtext () } else { Quri () },          // C 1801
+			     android_decode_utf16 ((*event).dnd.uri_or_string,   // C 1802
+						   (*event).dnd.length));   // C 1803
+	free ((*event).dnd.uri_or_string as *mut c_void);              // C 1804
+	break 'other;                                                  // C 1805
+      }
+
+    ANDROID_NOTIFICATION_DELETED | ANDROID_NOTIFICATION_ACTION =>
+      {
+	if (*event).notification.r#type == ANDROID_NOTIFICATION_DELETED   // C 1810
+	  { android_notification_deleted (&raw mut (*event).notification as *mut c_void, &raw mut inev.ie); }   // C 1811
+	else
+	  {
+	    let mut action: Lisp_Object = Qnil ();                     // C 1814
+
+	    action = android_decode_utf16 ((*event).notification.action,   // C 1816
+					   (*event).notification.length);   // C 1817
+	    android_notification_action (&raw mut (*event).notification as *mut c_void, &raw mut inev.ie,   // C 1818
+					 action);                      // C 1819
+	  }
+
+	/* Free dynamically allocated data.  */                        // C 1822
+	free ((*event).notification.tag as *mut c_void);               // C 1823
+	free ((*event).notification.action as *mut c_void);            // C 1824
+	break 'other;                                                  // C 1825
+      }
+
+    ANDROID_CONFIGURATION_CHANGED =>
+      {
+	if (*event).config.detail == ANDROID_PIXEL_DENSITY_CHANGED     // C 1829
+	  {
+	    /* Update the display configuration from the event.  */    // C 1831
+	    (*dpyinfo).resx = (*event).config.u.pixel_density.dpi_x;   // C 1832
+	    (*dpyinfo).resy = (*event).config.u.pixel_density.dpi_y;   // C 1833
+	    (*dpyinfo).font_resolution                                // C 1834
+	      = (*event).config.u.pixel_density.dpi_scaled;            // C 1835
+	    /* C 1836-1841's `#if notdef` block (the `__android_log_print` trace) is dead text in
+	       every configuration, so it is recorded in the ledger and not transcribed (the slice-1
+	       `#if false` rule).  */
+	    input_event_bits! (kind, &raw mut inev.ie, CONFIG_CHANGED_EVENT);   // C 1842
+	    inev.ie.frame_or_window = XCAR ((*dpyinfo).name_list_element);   // C 1843
+	    inev.ie.arg = Qfont_render ();                             // C 1844
+	  }
+	else if (*event).config.detail == ANDROID_UI_MODE_CHANGED      // C 1846
+	  {
+	    android_ui_mode = (*event).config.u.ui_mode;                 // C 1848
+	    input_event_bits! (kind, &raw mut inev.ie, TOOLKIT_THEME_CHANGED_EVENT);   // C 1849
+	    inev.ie.arg = if android_ui_mode == UI_MODE_NIGHT_YES      // C 1850
+			    { Qdark () } else { Qlight () };           // C 1851
+	  }
+
+	break 'other;                                                  // C 1854
+      }
+
+    _ => { break 'other; }                                             // C 1856-1857
+    }
+  }
+
+  /* OTHER: */
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT            // C 1861
+    {
+      kbd_buffer_store_buffered_event (&raw mut inev, hold_quit);      // C 1863
+      count += 1;                                                      // C 1864
+    }
+
+  if do_help != 0                                                      // C 1867
+      && !(! hold_quit.is_null () && (*hold_quit).bits != NO_EVENT as u32)    // C 1868
+    {
+      let mut frame: Lisp_Object;                                      // C 1870
+
+      if ! f.is_null ()                                                // C 1872
+	{ XSETFRAME! (frame, f); }                                     // C 1873
+      else
+	{ frame = Qnil (); }                                           // C 1875
+									// C 1870 (C leaves `frame`
+									//  uninitialised; every path
+									//  assigns it)
+
+      if do_help > 0                                                   // C 1877
+	{
+	  any_help_event_p = true;                                     // C 1879
+	  gen_help_event (help_echo_string, frame, help_echo_window,   // C 1880
+			  help_echo_object, help_echo_pos);            // C 1881
+	}
+      else
+	{
+	  help_echo_string = Qnil ();                                  // C 1885
+	  gen_help_event (Qnil (), frame, Qnil (), Qnil (), 0);        // C 1886
+	}
+      count += 1;                                                      // C 1888
+    }
+
+  return count;                                                        // C 1891
+}

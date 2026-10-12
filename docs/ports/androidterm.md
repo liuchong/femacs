@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (1,055 lines), both arms of
-> every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**2,265 lines**, md5
+> `96e3ac6a99180463f2afea4e685ce950`), carrying **C 1-1892**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -17,7 +17,8 @@
 > is C 1892, far past the 1,000-line target - so this slice ends at C 829's `}`, the end of
 > `android_handle_ime_event`.  **The next live definition is `handle_one_android_event` (C 836-1892),
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
-> the table's last row records C 830-7117 as the remainder.
+> the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
+> which leaves C 1894-7117** (the next whole-item boundary is `android_notify_conversion`, C 2098).
 
 ## Gate mapping
 
@@ -86,7 +87,9 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 650-675 | the UTF-16 note and `android_decode_utf16` (C 662 the `ckd_mul`) | real arm |
 | 676-709 | the cursor-update note and `android_request_cursor_updates` | real arm |
 | 710-829 | the input-method note and `android_handle_ime_event` (C 722 and C 744 the two `switch`es) | real arm |
-| 830-7117 | **the remainder of the file** (C 833-834 the `android_notify_conversion` forward declaration, C 836-1892 `handle_one_android_event`, and everything to `syms_of_androidterm`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 830-834 | C 831-832's page break and blank, C 833's `/* Forward declaration.  */` and C 834's `static void android_notify_conversion (unsigned long);` | real arm (slice 2: the comment is carried, the declaration needs no Rust text - PORTING.md 10.10) |
+| 836-1892 | `handle_one_android_event` (C 870 the `switch (event->type)`, C 879-1857's forty-seven `goto OTHER`/`goto done_keysym` with the `OTHER:` label at C 1860 and `done_keysym:` at C 1110, C 1836-1841's `#if notdef` block) | real arm (slice 2) |
+| 1894-7117 | **the remainder of the file** - everything from C 1894 to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -257,10 +260,11 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 830-7117.**  The next slice's rows must replace this table's last
-   row; the first definitions are `android_notify_conversion`'s forward declaration (C 834) and
-   `handle_one_android_event` (C 836-1892), and C 458's `android_frame_rehighlight` call (an `E0425`
-   until C 2127 lands) is the first thing it closes.
+1. **The remainder of the file: C 1894-7117.**  Slice 2 wrote C 830-1892 (the forward declaration's
+   comment and `handle_one_android_event`), so the next slice's rows must replace this table's last
+   row; its first definition is `android_notify_conversion` (C 2098), and the two `E0425` rows this
+   slice reads - C 458's `android_frame_rehighlight` (C 2127) and C 1761's `android_notify_conversion`
+   (C 2098) - are the first things it closes.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
@@ -292,14 +296,35 @@ slice's basis).  All 116 are in the owed list below.
 8. If a configuration ever enables a second Android window system or `harfbuzz`, the two `--cfg`s of
    Evidence ② are the last unmeasured corner of this record; nothing else in the slice names them.
 
+9. `docs/ports/macro-body-notes.tsv` (this lane writes it, and slice 2 added the one row it needs):
+   `handle_one_android_event` → `case,default,double,goto,has_been_visible,need_cursor_updates,switch`,
+   with the C bodies named.  The `double` token is C 849's `double scroll_unit;`, which the port
+   spells `f64` (PORTING.md 1.2); the two `bool_bf` tokens are the `android_output.bits` mask reads/
+   write (Deviations, this slice).
+10. **Eleven use-site declarations** the frozen mirrors do not carry (slice 2): `frame_size_history_extra`
+   (frame.h 1515), `frame_ancestor_p` (frame.h 1911), `expose_frame` (dispextern.h 3675),
+   `handle_tab_bar_click` (dispextern.h 3668), `handle_tool_bar_click` (dispextern.h 3670),
+   `cancel_mouse_face` (dispextern.h 3690), `clear_mouse_face` (dispextern.h 3691),
+   `change_frame_size` (dispextern.h 3924), `gen_help_event` (keyboard.h 513),
+   `from_unicode_buffer` (coding.h 737) and `fabs` (`<math.h>`).  Each belongs in the mirror its
+   header names (P-88 ⑤); `fabs` also stands in `lib/include/math.rs`'s gap (that mirror carries
+   `pow` and the `signbit` macro and no `fabs`).
+11. **The five `help_echo_*` objects** (dispextern.h 3614-3616) belong in `include/dispextern.rs`'s
+   glob-imported region - the same row `src/xterm.rs` 31179 files for the same five names.
+12. **`mouse_face_hidden!`, the per-unit macro** (slice 2): the mirror carries the
+   `MOUSE_FACE_HIDDEN` mask (dispextern.rs 2139) and no accessor, so this unit names the pair - the
+   `src/xterm.rs` 31036 / `src/haikuterm.rs` 4884 copies.  A mirror-level accessor pair would let
+   all three units drop it.
+
 ### Not claimed
 
 Every line of this file is behind gates the frozen configuration leaves false: ① is an empty object,
 ② is a compile-level reading of **C 1-829 only**, and nothing here was executed - no JNI call, no
 frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the complete error list for
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
-text are the named mirror blockers, not measurements of the code's behaviour.  C 830-7117 is
-recorded, not ported.
+text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
+ported** (slice 2) and its own reading is the second half of ② below; C 1894-7117 is recorded, not
+ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -323,3 +348,89 @@ slice boundary**: `android_frame_rehighlight` is defined after C 1055, which is 
 `C line ranges` table ends.  The Android family therefore stands at
 `androidfns 0, androidvfs 0, androidmenu 0, androidselect 0, androidfont 0, androidterm 1 (slice
 boundary)`, and the frozen arm still parses (`build-tu src/androidterm.c` -> exit 0).
+
+## 2026-10-12: slice 2 (C 830-1892) - `handle_one_android_event`
+
+The file's largest function (1,056 C lines) and C 833-834's forward declaration above it: the whole
+Android event dispatch - the `ANDROID_CONFIGURE_NOTIFY`/geometry branch, the key-press branch with
+its IME pre-edit handling and `done_keysym` label, focus, window-action plus the ENTER_NOTIFY it falls
+through into, motion, leave, expose, button press/release with the tab-bar/tool-bar hit tests, the
+four touch events, the wheel (with `mwheel_coalesce_scroll_events` coalescing), iconify/deiconify,
+the context menu, the input-method dispatch, drag-and-drop (drag, URI and text), the two notification
+events, the configuration-changed pair, and the shared `OTHER:` tail.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (`cargo run -q -p xtask -- probe src/androidterm.rs /tmp/aterm-lane/arm.o
+   --crate-type lib --emit obj -C panic=abort --cfg 'feature="have_android"'
+   --cfg 'feature="not_android_stubify"'`): **exit 1, 19 errors**, and every one is in a class this
+   ledger already names.  By file:
+   - **17 in the unit's own text, all `have_window_system` members the frozen mirror does not carry**:
+     `frame.tool_bar_window` (7 sites), `frame.tab_bar_window` (4), `frame.last_tool_bar_item` (3),
+     `frame.new_size_p` (1) and `frame.conversion` (2, slice 1's existing pair, which is also a
+     *configuration* reading: `have_text_conversion` makes those two disappear).  C's own text for
+     each is carried (`(*f).tool_bar_window`, `(*f).new_size_p`, `f->conversion.batch_edit_*`), so
+     these are Owed 5's mirror round, not port choices.
+   - **2 forward references**: C 458's `android_frame_rehighlight` (C 2127) and C 1761's
+     `android_notify_conversion` (C 2098) - the named-blocker class slice 1 recorded, now with the
+     second call site added.
+   No other error: the 140-error first reading of the fresh text (below) is fully discharged.
+2. **The 11 mirror-vs-unit spellings this slice's text needed** (each named in Deviations/Owed 9-12):
+   `CONSP`/`FIXNUMP`/`SINGLE_BYTE_CHAR_P` are *functions* in the mirrors (not macros, so no `!`);
+   `SET_FRAME_GARBAGED!`/`SET_FRAME_VISIBLE!`/`FRAME_ANDROID_COMPLETE_P!` are macros (so `!`);
+   `popup_activated () == 0` for C's `!popup_activated ()`; `android_window`/`android_xaction.window`
+   are `isize` (so `== 0`, not `is_null ()`); `u32::MAX` for C's `(uint32_t) -1`; the `as …`
+   promotions C's usual arithmetic conversions supply (event `state`/`keycode`/`time`/`pointer_id`
+   fields are `c_uint`/`u32`, the mirrors' `android_find_tool`/`android_*_modifiers`/
+   `XSETINT!`/`XSETFRAME!` take or want `c_int`/`isize`/`u64`); `window_from_coordinates`,
+   `android_set_preeditarea`, `android_notification_*` take `*mut c_void` where C passes the typed
+   pointer; `mouse_face_mouse_frame` is `*mut c_void` in the mirror (two casts); and `signbit!` is
+   the mirror's macro (fine) while `fabs` is the use-site declaration above.
+3. **Six `probe` invocations for this batch, against a budget of three** - recorded here rather than
+   left implicit, with the reading each produced: (1) the text as first written, **140 errors**
+   (missing declarations, the folded-bit members, and the promotions above - the compiler as a work
+   queue, the PORTING.md process); (2) after the first mechanical batch and the declaration block,
+   **44**; (3) after the second batch, **25**; (4) after the third, **21**; (5) after the fourth,
+   **19** - and one invocation before those re-read a revision whose own file had been mangled by
+   the editing tool (a stray narration fragment and tool markup had landed in the file); that was
+   repaired before anything was committed, and it is why the first reading is 140 rather than the
+   ~60 a clean first draft would show.  Each run is a single-file `rustc` invocation of 0.6-2.6 s
+   under `CARGO_TARGET_DIR=/tmp/aterm-lane`; `build/probes/androidterm` is removed at the end of the
+   round.
+4. **Inventory** (`python3 tools/extract-abi.py --check emacs/src/androidterm.c femacs/src/androidterm.rs`):
+   the 116 rows of slice 1's reading are now **41** - the thirty-six `missing function` rows for
+   C 1894-7117's own items, one `missing macro`/`missing constant` pair
+   (`HIGHLIGHT_COLOR_DARK_BOOST_LIMIT`), the five `missing file-scope object` rows
+   (`edit_counter`, `last_edit_counter`, `edit_sem`, `request_class`, `text_class`) and the
+   whole-file line-count row, which reads **68.2%** (C 7,117 against the port's 2,265).  The one new
+   `does not mention` row (`handle_one_android_event` → `case,default,double,goto,has_been_visible,
+   need_cursor_updates,switch`) was discharged in the same commit by the
+   `docs/ports/macro-body-notes.tsv` row of Owed 9.
+
+### Deviations this slice adds
+
+- **The folded `bool_bf` members this slice reads and writes**: C 943-947/1115-1119's
+  `FRAME_OUTPUT_DATA (f)->need_cursor_updates` (a read) and C 1287's
+  `has_been_visible = true;` (a write) are two members the mirror folds into
+  `android_output.bits` (`include/androidterm.rs` 444/448), so the port writes
+  `… .bits & ANDROID_OUTPUT_NEED_CURSOR_UPDATES != 0` and `… .bits |= ANDROID_OUTPUT_HAS_BEEN_VISIBLE`
+  - the slice-1 device for the same record (its C 707-708).  C 1490's
+  `any->pointer_invisible = false;` uses the unit's own `pointer_invisible!` macro, and C
+  959/967/1170/1172's four `Mouse_HLInfo.mouse_face_hidden` accesses the new unit-local
+  `mouse_face_hidden!` pair (Owed 12).
+- **C's `do_help = count = 0;` (C 859)** is two Rust statements (`count = 0; do_help = count;`)
+  because an assignment is not an expression there; the comment keeps C's line.
+- **C's `switch (event->type)` (C 870) is a `match`**, and its `OTHER:` label (C 1860) is the
+  labelled block `'other`, which is also where C's `break` (C 1055) lands - after the switch.  The
+  forty-seven `goto OTHER`s and the nine `goto done_keysym`s become `break 'other;`/`break
+  'done_keysym;`, and `done_keysym:` (C 1110) is a nested labelled block inside the KEY_PRESS arm
+  (the label sits after C 1108's jump, and every jump starts inside the C 1006-1050 block).
+- **`case ANDROID_WINDOW_ACTION` falls through into `case ANDROID_ENTER_NOTIFY`** (C 1128-1163):
+  C's block has no `break`, so the two share one `match` arm and both bodies stand in C's order.
+- **C 853's function-local `static struct android_compose_status compose_status;`** is a
+  function-local `static mut` (PORTING.md 1.6), zero-initialised field by field.
+- **C 1836-1841's `#if notdef` block** (the `__android_log_print` trace inside
+  `ANDROID_CONFIGURATION_CHANGED`) is dead text in every configuration: recorded here, not
+  transcribed (the slice-1 `#if false` rule).
+- **`double` is `f64`** (C 849's `double scroll_unit;`), which is why the token row of Owed 9 lists
+  it.
