@@ -1422,15 +1422,14 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 4897-7950: the remainder of the file, plus the six items this lane still defers:
-   C 2520-2537's `content_vfs_ops`, C 2549-2639's `android_content_name` and C 2887-2906's
-   `android_content_initial` (one clique), C 3688-3705's `saf_root_vfs_ops`, C 3748-3848's
-   `android_saf_root_name` (it calls `android_saf_tree_from_name`, C 5773) and C 4209-4229's
-   `android_saf_root_initial` (it calls `android_saf_root_name`).  The six close together in the
-   round that reaches C 5773: `content_vnodes[]` needs `android_saf_root_initial`, and that needs
-   `android_saf_root_name`, and that needs `android_saf_tree_from_name` - so the whole dependency
-   chain lands with the SAF tree family.  `extract-abi.py --check`'s remaining `missing …` list is
-   exactly that text.  */
+/* C 6507-7950: the remainder of the file - the SAF thread's synchronization half, the root family,
+   the android_* wrappers, `android_vfs_ops` and `syms_of_androidvfs`.  **This round closed every
+   deferral this lane had accumulated**: the six-item chain (the content trio C 2520-2537 /
+   C 2549-2639 / C 2887-2906 and the SAF root trio C 3688-3705 / C 3748-3848 / C 4209-4229) plus
+   `saf_tree_vfs_ops` (C 4752-4769), `android_saf_tree_name` (C 4897-5112),
+   `android_saf_tree_from_name` (C 5761-5846), `saf_new_vfs_ops` (C 6204-6219) and
+   `android_saf_new_mkdir` (C 6390-6477) are all written, so the unit now carries C 1-6500 without
+   a gap.  `extract-abi.py --check`'s remaining `missing …` list is exactly the text below.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -3410,10 +3409,27 @@ const _: () = core::assert! (core::mem::offset_of! (android_content_vdir, fd) ==
    needs no text (PORTING.md 10.10).  The three functions C 2486-2488 names are the authority and
    SAF families' (C 3577/3603/4219).  */
 
-/* C 2520-2537 - `content_vfs_ops` - is **deferred with `android_content_name`**
-   (Deviation 23): the object names `android_content_name`, and `android_content_name`'s own
-   function-scope `content_vnodes[]` names C 3577/3603/4219's three initial functions, so the
-   object, that function and those three land together in the round that reaches C 3577.  */
+/* Vector of VFS operations associated with the content VFS node.  */    // C 2520
+
+/* C 2522-2537: `static struct android_vops content_vfs_ops = { … }`.  The object the deferral note
+   used to stand for (Deviation 23's clique, closed by the SAF root family's round).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut content_vfs_ops: android_vops = android_vops
+  {
+    name: Some (android_content_name),
+    open: Some (android_content_open),
+    close: Some (android_content_close),
+    unlink: Some (android_content_unlink),
+    symlink: Some (android_content_symlink),
+    rmdir: Some (android_content_rmdir),
+    rename: Some (android_content_rename),
+    stat: Some (android_content_stat),
+    access: Some (android_content_access),
+    mkdir: Some (android_content_mkdir),
+    chmod: Some (android_content_chmod),
+    readlink: Some (android_content_readlink),
+    opendir: Some (android_content_opendir),
+  };
 
 /* Table of directories contained within a top-level vnode.  */         // C 2539
 
@@ -3426,8 +3442,128 @@ static mut content_directory_contents: [*const c_char; 3] =
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 static mut all_content_vdirs: *mut android_content_vdir = std::ptr::null_mut ();   // C 2547
 
-/* C 2549-2639 - `android_content_name` - is **deferred** (see the note above C 2520): it is an
-   `unsafe extern "C" fn`, because C takes its address at C 2524.  */
+/* C 2549-2639.  Its address is taken at C 2524, so it is an `unsafe extern "C" fn`; the
+   function-scope `content_vnodes[]` C 2560-2564 declares is a `static mut` array here, and its
+   three `initial` entries are the three functions the deferral note (Deviation 23) named.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_name (mut vnode: *mut android_vnode, mut name: *mut c_char,
+					   mut length: size_t) -> *mut android_vnode
+{
+  let mut remainder: *mut c_char;                                      // C 2553
+  let mut vp: *mut android_vnode;                                      // C 2554
+  let mut component_end: *mut c_char;                                  // C 2555
+  let mut special: *mut android_special_vnode;                         // C 2556
+  let mut i: size_t;                                                   // C 2557
+  let mut api: c_int;                                                  // C 2558
+
+  static mut content_vnodes: [android_special_vnode; 3] =
+    [
+      android_special_vnode { name: c"storage".as_ptr (), length: 7,
+			      initial: Some (android_saf_root_initial),
+			      special_coding_system: std::ptr::null_mut () },   // C 2561
+      android_special_vnode { name: c"by-authority".as_ptr (), length: 12,
+			      initial: Some (android_authority_initial),
+			      special_coding_system: std::ptr::null_mut () },   // C 2562
+      android_special_vnode { name: c"by-authority-named".as_ptr (), length: 18,
+			      initial: Some (android_authority_initial_name),
+			      special_coding_system: std::ptr::null_mut () },   // C 2563
+    ];
+
+  /* C leaves `remainder`, `vp`, `component_end`, `special`, `i` and `api` uninitialised
+     (PORTING.md 1.5); each is assigned before its first read on the path that reads it.  */
+  remainder = std::ptr::null_mut ();
+  vp = std::ptr::null_mut ();
+  component_end = std::ptr::null_mut ();
+  special = std::ptr::null_mut ();
+  i = 0;
+  api = 0;
+
+  'parent_vnode: {
+    /* Canonicalize NAME.  */                                          // C 2566
+    remainder = android_vfs_canonicalize_name (name, &raw mut length); // C 2567
+
+    /* If remainder is set, it's a name relative to the root vnode.  */   // C 2569
+    if ! remainder.is_null ()                                          // C 2570
+      { break 'parent_vnode; }                                         // C 2571
+
+    /* If LENGTH is empty or NAME is a single directory separator,
+       return a copy of this vnode.  */                               // C 2573-2574
+
+    if length < 1 || (*name == b'/' as c_char && length == 1)          // C 2576
+      {
+	vp = xmalloc (std::mem::size_of::<android_vnode> ()) as *mut android_vnode;   // C 2578
+	memcpy (vp as *mut c_void, vnode as *const c_void,             // C 2579
+		std::mem::size_of::<android_vnode> ());                // C 2579
+	return vp;                                                     // C 2580
+      }
+
+    api = android_get_current_api_level ();                            // C 2583
+
+    /* If NAME starts with a directory separator, move it past that.  */   // C 2585
+
+    if *name == b'/' as c_char                                         // C 2587
+      { name = name.offset (1); length -= 1; }                         // C 2588
+
+    /* Look for the first directory separator.  */                     // C 2590
+    component_end = strchr (name, b'/' as c_int);                      // C 2591
+
+    /* If not there, use name + length.  */                            // C 2593
+
+    if component_end.is_null ()                                        // C 2595
+      { component_end = name.offset (length as isize); }               // C 2596
+    else
+      /* Move past the separator character.  */
+      { component_end = component_end.offset (1); }                    // C 2599
+
+    /* Now, find out if the first component is a special vnode; if so,
+       call its root lookup function with the rest of NAME there.  What is
+       more, content files are inaccessible in the absence of a GUI.  */   // C 2601-2603
+
+    if api < 19 || ! android_init_gui                                  // C 2605
+      { i = 3; }                                                       // C 2606
+    else if api < 21                                                   // C 2607
+      { i = 1; }                                                       // C 2608
+    else
+      { i = 0; }                                                       // C 2610
+
+    while i < countof! (content_vnodes)                                // C 2612
+      {
+	special = &raw mut content_vnodes[i as usize];                 // C 2614
+
+	if component_end.offset_from (name) == (*special).length as isize   // C 2616
+	    && memcmp ((*special).name as *const c_void, name as *const c_void,   // C 2617
+		       (*special).length) == 0
+	  {
+	    return ((*special).initial).unwrap () (component_end,      // C 2618
+						   length - (*special).length);   // C 2619
+	  }
+
+	/* Detect the case where a special is named with a trailing
+	   directory separator.  */                                    // C 2621-2622
+
+	if component_end.offset_from (name) == (*special).length as isize + 1   // C 2624
+	    && memcmp ((*special).name as *const c_void, name as *const c_void,   // C 2625
+		       (*special).length) == 0
+	    && *name.offset (((*special).length) as isize) == b'/' as c_char   // C 2626
+	  /* Make sure to include the directory separator.  */
+	  {
+	    return ((*special).initial).unwrap () (component_end.offset (-1),   // C 2628
+						   length - (*special).length);   // C 2629
+	  }
+
+	i += 1;                                                        // C 2612
+      }
+
+    *errno () = ENOENT;                                                // C 2632
+    return std::ptr::null_mut ();                                      // C 2633
+  }
+
+  /* parent_vnode: */
+  /* The parent of this vnode is always the root filesystem.  */        // C 2636
+  vp = &raw mut root_vnode.vnode;                                      // C 2637
+  return ((*(*vnode).ops).name).unwrap () (vnode, remainder,           // C 2638
+					   strlen (remainder));        // C 2638
+}
 
 /* C 2641-2649.  Its address is taken at C 2525, so it is an `unsafe extern "C" fn`.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -3712,9 +3848,28 @@ unsafe fn android_content_get_directory_name (dirfd: c_int) -> *mut c_char
   return std::ptr::null_mut ();                                        // C 2884
 }
 
-/* C 2887-2906 - `android_content_initial` - is **deferred** with the object and
-   `android_content_name` (the note above C 2520); it is an `unsafe extern "C" fn`, because C takes
-   its address at C 6634's sibling table.  */
+/* C 2887-2906.  C takes its address at C 6634's sibling table, so it is an `unsafe extern "C"
+   fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_content_initial (name: *mut c_char, length: size_t)
+					      -> *mut android_vnode
+{
+  let mut temp: android_vnode;                                         // C 2894
+
+  /* C leaves `temp` uninitialised (PORTING.md 1.5).  */
+  temp = unsafe { std::mem::zeroed () };
+
+  /* Create a temporary vnode at the root of the asset file
+     system.  */                                                       // C 2896-2897
+
+  temp.ops = &raw mut content_vfs_ops;                                 // C 2899
+  temp.r#type = ANDROID_VNODE_CONTENT as c_short;                      // C 2900
+  temp.flags = 0;                                                      // C 2901
+
+  /* Try to name this vnode.  If NAME is empty, it will be duplicated
+     instead.  */                                                      // C 2903-2904
+  return android_content_name (&raw mut temp, name, length);           // C 2905
+}
 
 /* C 2908-2916 and C 2942-2946: C 2909's form feed, the `#ifdef __clang__` / `#pragma clang
    diagnostic push` / `#pragma … ignored "-Wmissing-prototypes"` / `#else` / `#pragma GCC …` /
@@ -4713,8 +4868,27 @@ const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vdir, fd) =
 /* C 3670-3686: C's twelve forward declarations of this file's own `static` functions
    (`android_saf_root_name` … `android_saf_root_opendir`); no Rust text (PORTING.md 10.10).  */
 
-/* C 3688-3705 - `saf_root_vfs_ops` - is **deferred** (see the six-item note above): it names
-   `android_saf_root_name` (C 3748), which the round that reaches C 5773 lands.  */
+/* Vector of VFS operations associated with the SAF root VFS node.  */   // C 3688
+
+/* C 3690-3705: `static struct android_vops saf_root_vfs_ops = { … }` - the third of the deferred
+   cliques' objects (Deviation 27), closed by this round.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut saf_root_vfs_ops: android_vops = android_vops
+  {
+    name: Some (android_saf_root_name),
+    open: Some (android_saf_root_open),
+    close: Some (android_saf_root_close),
+    unlink: Some (android_saf_root_unlink),
+    symlink: Some (android_saf_root_symlink),
+    rmdir: Some (android_saf_root_rmdir),
+    rename: Some (android_saf_root_rename),
+    stat: Some (android_saf_root_stat),
+    access: Some (android_saf_root_access),
+    mkdir: Some (android_saf_root_mkdir),
+    chmod: Some (android_saf_root_chmod),
+    readlink: Some (android_saf_root_readlink),
+    opendir: Some (android_saf_root_opendir),
+  };
 
 /* Chain containing all SAF root directories.  */                       // C 3707
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -4770,8 +4944,126 @@ unsafe fn android_saf_valid_authority_p (authority: *const c_char) -> bool
   return valid != 0;                                                   // C 3745
 }
 
-/* C 3748-3848 - `android_saf_root_name` - is **deferred** (the six-item note above); it is an
-   `unsafe extern "C" fn`, because C takes its address at C 3692.  */
+/* C 3748-3848.  C's `goto parent_vnode` (C 3762) and the `parent_vnode:` label at C 3831 become
+   one labelled block (PORTING.md 2.2, the `android_unix_name` family).  Its address is taken at
+   C 3692, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_name (mut vnode: *mut android_vnode, mut name: *mut c_char,
+					    mut length: size_t) -> *mut android_vnode
+{
+  let mut remainder: *mut c_char;                                      // C 3752
+  let mut component_end: *mut c_char;                                  // C 3752
+  let mut vp: *mut android_saf_root_vnode;                             // C 3753
+  let mut new: *mut android_vnode;                                     // C 3754
+  let mut component: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];   // C 3755
+
+  /* C leaves `remainder`, `component_end`, `vp` and `new` uninitialised (PORTING.md 1.5); each is
+     assigned before its first read on the path that reads it.  */
+  remainder = std::ptr::null_mut ();
+  component_end = std::ptr::null_mut ();
+  vp = std::ptr::null_mut ();
+  new = std::ptr::null_mut ();
+
+  'parent_vnode: {
+    /* Canonicalize NAME.  */                                          // C 3757
+    remainder = android_vfs_canonicalize_name (name, &raw mut length); // C 3758
+
+    /* If remainder is set, it's a name relative to the root vnode.  */   // C 3760
+    if ! remainder.is_null ()                                          // C 3761
+      { break 'parent_vnode; }                                         // C 3762
+
+    /* If LENGTH is empty or NAME is a single directory separator,
+       return a copy of this vnode.  */                               // C 3764-3765
+
+    if length < 1 || (*name == b'/' as c_char && length == 1)          // C 3767
+      {
+	vp = xmalloc (std::mem::size_of::<android_saf_root_vnode> ()) as *mut android_saf_root_vnode;   // C 3769
+	memcpy (vp as *mut c_void, vnode as *const c_void,             // C 3770
+		std::mem::size_of::<android_saf_root_vnode> ());       // C 3770
+
+	if ! (*vp).authority.is_null ()                                // C 3772
+	  { (*vp).authority = xstrdup ((*vp).authority); }              // C 3773
+
+	return &raw mut (*vp).vnode;                                   // C 3775
+      }
+
+    vp = vnode as *mut android_saf_root_vnode;                         // C 3778
+
+    /* If NAME starts with a directory separator, move it past that.  */   // C 3780
+
+    if *name == b'/' as c_char                                         // C 3782
+      { name = name.offset (1); length -= 1; }                         // C 3783
+
+    /* Look for the first directory separator.  */                     // C 3785
+    component_end = strchr (name, b'/' as c_int);                      // C 3786
+
+    /* If not there, use name + length.  */                            // C 3788
+
+    if component_end.is_null ()                                        // C 3790
+      { component_end = name.offset (length as isize); }               // C 3791
+
+    if component_end.offset_from (name) >= PATH_MAX as isize          // C 3793
+      {
+	*errno () = ENAMETOOLONG;                                      // C 3795
+	return std::ptr::null_mut ();                                  // C 3796
+      }
+
+    /* Copy the component over.  */                                    // C 3799
+
+    memcpy (component.as_mut_ptr () as *mut c_void, name as *const c_void,   // C 3800
+	    component_end.offset_from (name) as usize);                // C 3800
+    component[component_end.offset_from (name) as usize] = 0;          // C 3801
+
+    /* Create a SAF document vnode for this tree if it represents an
+       authority.  */                                                  // C 3803-3804
+
+    if ! (*vp).authority.is_null ()                                    // C 3806
+      {
+	return android_saf_tree_from_name (component_end, component.as_mut_ptr (),   // C 3807
+					   (*vp).authority);           // C 3808
+      }
+
+    /* Create the vnode.  */                                           // C 3810
+    vp = xmalloc (std::mem::size_of::<android_saf_root_vnode> ()) as *mut android_saf_root_vnode;   // C 3811
+    (*vp).vnode.ops = &raw mut saf_root_vfs_ops;                       // C 3812
+    (*vp).vnode.r#type = ANDROID_VNODE_SAF_ROOT as c_short;            // C 3813
+    (*vp).vnode.flags = 0;                                             // C 3814
+    (*vp).authority = xstrdup (component.as_mut_ptr ());               // C 3815
+
+    /* If there is more of this component to be named, name it through
+       the new vnode.  */                                              // C 3817-3818
+
+    if component_end != name.offset (length as isize)                  // C 3820
+      {
+	new = ((*(*vp).vnode.ops).name).unwrap () (&raw mut (*vp).vnode,   // C 3822
+						   component_end,      // C 3822
+						   length - (component_end.offset_from (name) as size_t));   // C 3823
+	((*(*vp).vnode.ops).close).unwrap () (&raw mut (*vp).vnode);   // C 3824
+
+	return new;                                                    // C 3826
+      }
+
+    return &raw mut (*vp).vnode;                                       // C 3829
+  }
+
+  /* parent_vnode: */
+  vp = vnode as *mut android_saf_root_vnode;                           // C 3832
+
+  /* .. was encountered and the parent couldn't be found through
+     stripping off preceding components.
+
+     Find the parent vnode and name the rest of NAME starting from
+     there.  */                                                        // C 3834-3838
+
+  if (*vp).authority.is_null ()                                        // C 3840
+    /* Look this file name up relative to the root of the contents
+       directory.  */
+    { return android_content_initial (remainder, strlen (remainder)); }   // C 3843
+  else
+    /* Look this file name up relative to the root of the storage
+       directory.  */
+    { return android_saf_root_initial (remainder, strlen (remainder)); }   // C 3847
+}
 
 /* C 3850-3860.  Its address is taken at C 3693.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -5193,9 +5485,24 @@ unsafe extern "C" fn android_saf_root_opendir (vnode: *mut android_vnode) -> *mu
   return &raw mut (*dir).vdir;                                         // C 4206
 }
 
-/* C 4209-4229 - `android_saf_root_initial` - is **deferred** (the six-item note above): it calls
-   `android_saf_root_name`, and it is an `unsafe extern "C" fn` (C takes its address at the
-   `android_vfs_entries` table).  */
+/* C 4209-4229.  C takes its address at the `android_vfs_entries` table, so it is an
+   `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_initial (name: *mut c_char, length: size_t)
+					       -> *mut android_vnode
+{
+  let mut temp: android_saf_root_vnode;                                // C 4221
+
+  /* C leaves `temp` uninitialised (PORTING.md 1.5).  */
+  temp = unsafe { std::mem::zeroed () };
+
+  temp.vnode.ops = &raw mut saf_root_vfs_ops;                          // C 4223
+  temp.vnode.r#type = ANDROID_VNODE_SAF_ROOT as c_short;               // C 4224
+  temp.vnode.flags = 0;                                                // C 4225
+  temp.authority = std::ptr::null_mut ();                              // C 4226
+
+  return android_saf_root_name (&raw mut temp.vnode, name, length);    // C 4228
+}
 
 /* Return any open SAF root directory stream for which dirfd has
    returned the file descriptor DIRFD.  Return NULL otherwise.  */     // C 4231-4232
@@ -5642,9 +5949,8 @@ unsafe fn android_saf_rename_document (uri: *const c_char, doc_id: *const c_char
   return 0;                                                            // C 4571
 }
 
-/* C 4574-4677 - `android_saf_move_document` - is **deferred** with the SAF tree family: it calls
-   C 4806's `android_document_id_from_name`, whose forward declaration C writes at C 4499-4501.
-   C calls it directly (C 4720's sibling), never through a pointer.  */
+/* C 4574-4677's `android_saf_move_document` was landed in slice 14 and stands at this file's
+   foot (it was written there while its callee C 4806 was still unported).  */
 
 /* C 4499's and this round's three remaining names: android.h 131-133's `android_exception_check_2`
    / `_3` / `_4`, declared at the use site like their `_1` sibling (the `android.h` mirror is not in
@@ -5894,8 +6200,27 @@ const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vdir, fd) =
 /* C 4734-4750: C's twelve forward declarations of this file's own `static` functions
    (`android_saf_tree_name` … `android_saf_tree_opendir`); no Rust text (PORTING.md 10.10).  */
 
-/* C 4752-4769 - `saf_tree_vfs_ops` - is **deferred** (the note above C 4897): it names
-   `android_saf_tree_name` (C 4898) and the eleven members after it.  */
+/* Vector of VFS operations associated with SAF tree VFS nodes.  */    // C 4752
+
+/* C 4754-4769: `static struct android_vops saf_tree_vfs_ops = { … }` - the last of the deferred
+   objects (Deviation 29/30/32), closed by this round.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut saf_tree_vfs_ops: android_vops = android_vops
+  {
+    name: Some (android_saf_tree_name),
+    open: Some (android_saf_tree_open),
+    close: Some (android_saf_tree_close),
+    unlink: Some (android_saf_tree_unlink),
+    symlink: Some (android_saf_tree_symlink),
+    rmdir: Some (android_saf_tree_rmdir),
+    rename: Some (android_saf_tree_rename),
+    stat: Some (android_saf_tree_stat),
+    access: Some (android_saf_tree_access),
+    mkdir: Some (android_saf_tree_mkdir),
+    chmod: Some (android_saf_tree_chmod),
+    readlink: Some (android_saf_tree_readlink),
+    opendir: Some (android_saf_tree_opendir),
+  };
 
 /* C 4771-4777: C's two more operation vectors, `saf_file_vfs_ops` and `saf_new_vfs_ops`, under
    their own comments (`/* Vector of VFS operations associated with SAF file VFS nodes.  Defined
@@ -6804,9 +7129,102 @@ unsafe extern "C" fn android_saf_tree_opendir (vnode: *mut android_vnode) -> *mu
   return &raw mut (*dir).vdir;                                         // C 5758
 }
 
-/* C 5761-5846 - `android_saf_tree_from_name` - is **deferred** (the note above C 4897): its C 5833
-   writes `root.vnode.ops = &saf_tree_vfs_ops`, and that object is one of the items waiting on the
-   file/new families' vectors.  C calls it directly (C 3807), never through a pointer.  */
+/* C 5761-5846.  C calls it directly (C 3807), never through a pointer, so it stays a Rust-ABI
+   `unsafe fn`; the C 5833 store it makes is what held it back until this round (Deviation 30).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_saf_tree_from_name (name: *mut c_char, tree: *const c_char,
+				      authority: *const c_char) -> *mut android_vnode
+{
+  let mut root: android_saf_tree_vnode;                                // C 5776
+  let mut tree_string: jobject;                                        // C 5777
+  let mut authority_string: jobject;                                   // C 5777
+  let mut result: jobject;                                             // C 5777
+  let mut method: jmethodID;                                           // C 5778
+  let mut uri: *const c_char;                                          // C 5779
+  let mut vp: *mut android_vnode;                                      // C 5780
+
+  /* C leaves every local uninitialised (PORTING.md 1.5); each is assigned before its first read on
+     the path that reads it.  */
+  root = unsafe { std::mem::zeroed () };
+  tree_string = std::ptr::null_mut ();
+  authority_string = std::ptr::null_mut ();
+  result = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+  uri = std::ptr::null ();
+  vp = std::ptr::null_mut ();
+
+  /* It's not a given that NAME and TREE are actually in the modified
+     UTF-8 format used by the JVM to encode strings, and the JVM
+     aborts when encountering a string that is not.  Make sure they
+     are valid before continuing.  */                                  // C 5782-5785
+
+  if android_verify_jni_string (name) != 0                             // C 5787
+      || android_verify_jni_string (authority) != 0                    // C 5788
+    {
+      *errno () = ENOENT;                                              // C 5790
+      return std::ptr::null_mut ();                                    // C 5791
+    }
+
+  tree_string = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 5794
+								 tree);   // C 5795
+  android_exception_check ();                                          // C 5796
+
+  authority_string
+    = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 5799
+						       authority);     // C 5800
+  android_exception_check_1 (tree_string);                             // C 5801
+
+  /* Now create the URI and detect if Emacs has the rights to access
+     it.  */                                                           // C 5803-5804
+
+  method = service_class.get_tree_uri;                                 // C 5806
+  result
+    = ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())    // C 5808
+    (android_java_env,                                                 // C 5808
+     emacs_service,                                                    // C 5809
+     service_class.class,                                              // C 5810
+     method, tree_string,                                              // C 5811
+     authority_string);                                                // C 5812
+  android_exception_check_2 (tree_string, authority_string);           // C 5813
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, tree_string);   // C 5814
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, authority_string);   // C 5815
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* If it doesn't, return NULL and set errno to ENOENT.  */            // C 5817
+
+  if result.is_null ()                                                 // C 5819
+    {
+      *errno () = ENOENT;                                              // C 5821
+      return std::ptr::null_mut ();                                    // C 5822
+    }
+
+  /* Otherwise, decode this string.  */                                // C 5825
+  uri = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env, result,   // C 5826
+							      std::ptr::null_mut ());   // C 5827
+  android_exception_check_nonnull (uri as *mut c_void, result);        // C 5828
+
+  /* Fill in root.tree_uri with values that represent the root of this
+     document tree.  */                                                // C 5830-5831
+
+  root.vnode.ops = &raw mut saf_tree_vfs_ops;                          // C 5833
+  root.vnode.r#type = ANDROID_VNODE_SAF_TREE as c_short;               // C 5834
+  root.vnode.flags = 0;                                                // C 5835
+  root.tree_uri = uri;                                                 // C 5836
+  root.tree_id = tree as *mut c_char;                                  // C 5837
+  root.document_id = std::ptr::null_mut ();                            // C 5838
+  root.name = c"/".as_ptr () as *mut c_char;                           // C 5839
+
+  vp = ((*(root.vnode.ops)).name).unwrap () (&raw mut root.vnode, name, strlen (name));   // C 5841
+  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ()) (android_java_env,   // C 5842
+							    result, uri);   // C 5843
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, result);   // C 5844
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  return vp;                                                           // C 5845
+}
 
 /* Return any open SAF tree directory stream for which dirfd has
    returned the file descriptor DIRFD.  Return NULL otherwise.  */     // C 5848-5849
@@ -7234,10 +7652,27 @@ pub type android_saf_new_vnode = android_saf_tree_vnode;
 
 /* C 6202: the comment `/* Vector of VFS operations associated with SAF new VFS nodes.  */`.  */
 
-/* C 6204-6219 - `saf_new_vfs_ops` - is **deferred to the round that can land it whole**
-   (Deviation 32): it names `android_saf_new_mkdir` (C 6390), and that function's C 6475 writes
-   `vp->vnode.ops = &saf_tree_vfs_ops` - so the two objects and the closure round's own items form
-   one circular set that lands together.  */
+/* Vector of VFS operations associated with SAF new VFS nodes.  */     // C 6202
+
+/* C 6204-6219: `static struct android_vops saf_new_vfs_ops = { … }` - the vector C 4777 declared as
+   a tentative definition, written here with its initialiser (Deviation 32's cycle is closed).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut saf_new_vfs_ops: android_vops = android_vops
+  {
+    name: Some (android_saf_new_name),
+    open: Some (android_saf_new_open),
+    close: Some (android_saf_tree_close),
+    unlink: Some (android_saf_new_unlink),
+    symlink: Some (android_saf_new_symlink),
+    rmdir: Some (android_saf_new_rmdir),
+    rename: Some (android_saf_new_rename),
+    stat: Some (android_saf_new_stat),
+    access: Some (android_saf_new_access),
+    mkdir: Some (android_saf_new_mkdir),
+    chmod: Some (android_saf_new_chmod),
+    readlink: Some (android_saf_new_readlink),
+    opendir: Some (android_saf_new_opendir),
+  };
 
 /* C 6221-6247.  Its address is taken at C 6206, so it is an `unsafe extern "C" fn`.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -7445,9 +7880,121 @@ unsafe extern "C" fn android_saf_new_access (vnode: *mut android_vnode, mode: c_
   return -1;                                                           // C 6387
 }
 
-/* C 6390-6477 - `android_saf_new_mkdir` - is **deferred with the two vectors** (Deviation 32): its
-   C 6475 writes `vp->vnode.ops = &saf_tree_vfs_ops`.  C calls it through `saf_new_vfs_ops` (C 6215)
-   and, as that entry, its ABI is C's.  */
+/* C 6390-6477.  Its address is taken at C 6215, so it is an `unsafe extern "C" fn`; the C 6475
+   store is what held it back until this round (Deviation 32).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_new_mkdir (vnode: *mut android_vnode, mode: mode_t) -> c_int
+{
+  let mut vp: *mut android_saf_new_vnode;                              // C 6393
+  let mut name: jstring;                                               // C 6394
+  let mut id: jstring;                                                 // C 6394
+  let mut uri: jstring;                                                // C 6394
+  let mut new_id: jstring;                                             // C 6394
+  let mut method: jmethodID;                                           // C 6395
+  let mut new_doc_id: *const c_char;                                   // C 6396
+  let mut end: *mut c_char;                                            // C 6397
+
+  /* C leaves every local uninitialised (PORTING.md 1.5); each is assigned before its first read on
+     the path that reads it.  */
+  vp = std::ptr::null_mut ();
+  name = std::ptr::null_mut ();
+  id = std::ptr::null_mut ();
+  uri = std::ptr::null_mut ();
+  new_id = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+  new_doc_id = std::ptr::null ();
+  end = std::ptr::null_mut ();
+
+  vp = vnode as *mut android_saf_tree_vnode;                           // C 6399
+
+  /* Find the last component of vp->name.  */                          // C 6401
+  end = strrchr ((*vp).name, b'/' as c_int);                           // C 6402
+
+  /* VP->name must contain at least one directory separator.  */        // C 6404
+  eassert! (! end.is_null ());                                         // C 6405
+
+  if *end.offset (1) == 0                                              // C 6407
+    {
+      /* There's a trailing directory separator.  Search
+	 backwards.  */                                                // C 6409-6410
+
+      end = end.offset (-1);                                           // C 6412
+      while end != (*vp).name && *end != b'/' as c_char                // C 6413
+	{ end = end.offset (-1); }                                     // C 6414
+
+      /* vp->name[0] is always a directory separator.  */
+      eassert! (*end == b'/' as c_char);                               // C 6417
+    }
+
+  /* Otherwise, try to create a new document.  First, build strings
+     for the name, ID and document URI.  */                            // C 6420-6421
+
+  name = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 6423
+							  end.offset (1));   // C 6424
+  android_exception_check ();                                          // C 6425
+  id = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 6426
+							(*vp).document_id);   // C 6427
+  android_exception_check_1 (name);                                    // C 6428
+  uri = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 6429
+							 (*vp).tree_uri);   // C 6430
+  android_exception_check_2 (name, id);                                // C 6431
+
+  /* Next, try to create a new document and retrieve its ID.  */        // C 6433
+
+  method = service_class.create_directory;                             // C 6435
+  new_id = ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())   // C 6436
+    (android_java_env,                                                 // C 6436
+     emacs_service,                                                    // C 6437
+     service_class.class,                                              // C 6438
+     method, uri, id,                                                  // C 6439
+     name);                                                            // C 6440
+
+  if android_saf_exception_check (3, name, id, uri) != 0               // C 6442
+    { return -1; }                                                     // C 6443
+
+  /* Delete unused local references.  */                               // C 6445
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, name);   // C 6446
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, id);   // C 6447
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, uri);   // C 6448
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  if new_id.is_null ()                                                 // C 6450
+    {
+      /* The file couldn't be created for some reason.  */             // C 6452
+      *errno () = EIO;                                                 // C 6453
+      return -1;                                                       // C 6454
+    }
+
+  /* Now, free VP->document_id and replace it with the service
+     document ID.  */                                                  // C 6457-6458
+
+  new_doc_id = ((*(*android_java_env)).GetStringUTFChars.unwrap ())    // C 6460
+    (android_java_env,                                                 // C 6460
+     new_id, std::ptr::null_mut ());                                   // C 6461
+
+  if android_saf_check_nonnull (new_doc_id as *const c_void, 3, name, id, uri) != 0   // C 6463
+    { return -1; }                                                     // C 6464
+
+  xfree ((*vp).document_id as *mut c_void);                            // C 6466
+  (*vp).document_id = xstrdup (new_doc_id);                            // C 6467
+
+  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ())             // C 6469
+    (android_java_env,                                                 // C 6469
+     new_id, new_doc_id);                                              // C 6470
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, new_id);   // C 6471
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* Finally, transform this vnode into a directory vnode.  */         // C 6473
+  (*vp).vnode.r#type = ANDROID_VNODE_SAF_TREE as c_short;              // C 6474
+  (*vp).vnode.ops = &raw mut saf_tree_vfs_ops;                         // C 6475
+  return 0;                                                            // C 6476
+}
 
 /* C 6479-6485.  Its address is taken at C 6216.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -7478,3 +8025,247 @@ unsafe extern "C" fn android_saf_new_opendir (vnode: *mut android_vnode) -> *mut
 /* C 6502-6505: C 6503's form feed and the comment `/* Synchronization between SAF and Emacs.
    Consult EmacsSafThread.java for more details.  */`.  It and the semaphore C 6508 declares belong
    to the next slice.  */
+
+/* C 4897-5112.  C's `goto parent_vnode` (C 4914) and the `parent_vnode:` label at C 5031 become one
+   labelled block (PORTING.md 2.2); its address is taken at C 4756, so it is an
+   `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_name (mut vnode: *mut android_vnode, mut name: *mut c_char,
+					    mut length: size_t) -> *mut android_vnode
+{
+  let mut remainder: *mut c_char;                                      // C 4901
+  let mut rc: c_int;                                                   // C 4902
+  let mut vp: *mut android_saf_tree_vnode;                             // C 4903
+  let mut new: *mut android_saf_tree_vnode;                            // C 4903
+  let mut vp_length: size_t;                                           // C 4904
+  let mut filename: *mut c_char;                                       // C 4905
+  let mut fill: *mut c_char;                                           // C 4905
+  let mut doc_id: *mut c_char;                                         // C 4905
+  let mut end: *mut c_char;                                            // C 4905
+  let mut root: android_saf_root_vnode;                                // C 4906
+  let mut tree: android_saf_tree_vnode;                                // C 4907
+
+  /* C leaves every local uninitialised (PORTING.md 1.5); each is assigned before its first read on
+     the path that reads it.  */
+  remainder = std::ptr::null_mut ();
+  rc = 0;
+  vp = std::ptr::null_mut ();
+  new = std::ptr::null_mut ();
+  vp_length = 0;
+  filename = std::ptr::null_mut ();
+  fill = std::ptr::null_mut ();
+  doc_id = std::ptr::null_mut ();
+  end = std::ptr::null_mut ();
+  root = unsafe { std::mem::zeroed () };
+  tree = unsafe { std::mem::zeroed () };
+
+  'parent_vnode: {
+    /* Canonicalize NAME.  */                                          // C 4909
+    remainder = android_vfs_canonicalize_name (name, &raw mut length); // C 4910
+
+    /* If remainder is set, it's a name relative to the root vnode.  */   // C 4912
+    if ! remainder.is_null ()                                          // C 4913
+      { break 'parent_vnode; }                                         // C 4914
+
+    /* If LENGTH is empty or NAME is a single directory separator,
+       return a copy of this vnode.  */                               // C 4916-4917
+
+    if length < 1 || (*name == b'/' as c_char && length == 1)          // C 4919
+      {
+	vp = xmalloc (std::mem::size_of::<android_saf_tree_vnode> ()) as *mut android_saf_tree_vnode;   // C 4921
+	memcpy (vp as *mut c_void, vnode as *const c_void,             // C 4922
+		std::mem::size_of::<android_saf_tree_vnode> ());       // C 4922
+
+	/* Duplicate the information contained within VNODE.  */        // C 4924
+
+	(*vp).tree_uri = xstrdup ((*vp).tree_uri) as *const c_char;    // C 4926
+	(*vp).tree_id = xstrdup ((*vp).tree_id);                       // C 4927
+	(*vp).name = xstrdup ((*vp).name);                             // C 4928
+
+	if ! (*vp).document_id.is_null ()                              // C 4930
+	  { (*vp).document_id = xstrdup ((*vp).name); }                // C 4931
+
+	return &raw mut (*vp).vnode;                                   // C 4933
+      }
+
+    /* Now, search for the document ID of the file designated by NAME
+       relative to this vnode.  */                                    // C 4936-4937
+
+    vp = vnode as *mut android_saf_tree_vnode;                         // C 4939
+    vp_length = strlen ((*vp).name);                                   // C 4940
+
+    /* If NAME starts with a directory separator, move it past that.  */   // C 4942
+
+    if *name == b'/' as c_char                                         // C 4944
+      { name = name.offset (1); length -= 1; }                         // C 4945
+
+    /* Concatenate VP->name with NAME.  Leave one byte at the end for an
+       extra trailing directory separator.  */                        // C 4947-4948
+
+    filename = xmalloc (vp_length + length + 2) as *mut c_char;        // C 4950
+    fill = stpcpy (filename, (*vp).name);                              // C 4951
+    fill = stpcpy (fill, name);                                        // C 4952
+
+    /* And search for a document ID in the result.  */                 // C 4954
+    rc = android_document_id_from_name ((*vp).tree_uri, name,          // C 4955
+					&raw mut doc_id);              // C 4956
+
+    if rc < 0                                                          // C 4958
+      {
+	if rc == -2                                                    // C 4960
+	  {
+	    /* This is a vnode representing a nonexistent file in a real
+	       directory, so create a vnode whose sole use is to create
+	       the file.  */                                          // C 4962-4964
+
+	    new = xmalloc (std::mem::size_of::<android_saf_tree_vnode> ()) as *mut android_saf_tree_vnode;   // C 4966
+	    (*new).vnode.ops = &raw mut saf_new_vfs_ops;               // C 4967
+	    (*new).vnode.r#type = ANDROID_VNODE_SAF_NEW as c_short;    // C 4968
+	    (*new).vnode.flags = 0;                                    // C 4969
+
+	    /* Here, doc_id is actually the ID of the penultimate
+	       component in NAME.  */                                 // C 4971-4972
+
+	    (*new).document_id = doc_id;                               // C 4974
+	    (*new).tree_uri = xstrdup ((*vp).tree_uri) as *const c_char;   // C 4975
+	    (*new).tree_id = xstrdup ((*vp).tree_id);                  // C 4976
+	    (*new).name = filename;                                    // C 4977
+	    return &raw mut (*new).vnode;                              // C 4978
+	  }
+
+	/* The document ID can't be found.  */                          // C 4981
+	xfree (filename as *mut c_void);                               // C 4982
+	return std::ptr::null_mut ();                                  // C 4983
+      }
+
+    if rc == 0                                                         // C 4986
+      {
+	/* rc set to 0 means that NAME is a regular file.  Detect if
+           NAME is supposed to be a directory; if it is, set errno to
+           ENODIR.  */                                                 // C 4988-4990
+
+	if *name.offset ((length - 1) as isize) == b'/' as c_char      // C 4992
+	  {
+	    xfree (filename as *mut c_void);                           // C 4994
+	    xfree (doc_id as *mut c_void);                             // C 4995
+	    *errno () = ENOTDIR;                                       // C 4996
+	    return std::ptr::null_mut ();                              // C 4997
+	  }
+      }
+
+    /* So this is either a directory or really a file.  Fortunately,
+       directory and file vnodes share everything in common except for a
+       few file operations, so create a new directory vnode with the new
+       file name and return it.  */                                   // C 5001-5004
+
+    new = xmalloc (std::mem::size_of::<android_saf_tree_vnode> ()) as *mut android_saf_tree_vnode;   // C 5006
+    (*new).vnode.ops = if rc != 0 { &raw mut saf_tree_vfs_ops }        // C 5007
+		       else { &raw mut saf_file_vfs_ops };             // C 5008
+    (*new).vnode.r#type = if rc != 0 { ANDROID_VNODE_SAF_TREE }        // C 5009
+			  else { ANDROID_VNODE_SAF_FILE } as c_short;  // C 5010
+    (*new).vnode.flags = 0;                                            // C 5011
+
+    if rc != 0                                                         // C 5013
+      {
+	/* If fill[-1] is not a directory separator character, append
+	   one to the end of filename.  */                             // C 5015-5016
+
+	if *fill.offset (-1) != b'/' as c_char                         // C 5018
+	  {
+	    *fill = b'/' as c_char;                                    // C 5020
+	    fill = fill.offset (1);                                    // C 5020
+	    *fill   = 0;                                               // C 5021
+	  }
+      }
+
+    (*new).document_id = doc_id;                                       // C 5025
+    (*new).tree_uri = xstrdup ((*vp).tree_uri) as *const c_char;       // C 5026
+    (*new).tree_id = xstrdup ((*vp).tree_id);                          // C 5027
+    (*new).name = filename;                                            // C 5028
+    return &raw mut (*new).vnode;                                      // C 5029
+  }
+
+  /* parent_vnode: */
+  vp = vnode as *mut android_saf_tree_vnode;                           // C 5032
+
+  /* .. was encountered and the parent couldn't be found through
+     stripping off preceding components.
+
+     Find the parent vnode and name the rest of NAME starting from
+     there.  */                                                        // C 5034-5038
+
+  if (*vp).document_id.is_null ()                                      // C 5040
+    {
+      /* VP->document_id is NULL, meaning this is the root of this
+	 directory tree.  The parent vnode is an SAF root vnode with
+	 VP->tree_uri's authority.  */                                 // C 5042-5044
+
+      root.vnode.ops = &raw mut saf_root_vfs_ops;                      // C 5046
+      root.vnode.r#type = ANDROID_VNODE_SAF_ROOT as c_short;           // C 5047
+      root.vnode.flags = 0;                                            // C 5048
+
+      /* Derive the authority from the URI.  */                        // C 5050
+
+      fill = (*vp).tree_uri as *mut c_char;                            // C 5052
+
+      if strncmp (fill, c"content://".as_ptr (), 10) != 0              // C 5054
+	{ emacs_abort (); }                                            // C 5055
+
+      /* Skip the content header.  */
+      fill = fill.offset ((std::mem::size_of::<[c_char; 11]> () - 1) as isize);   // C 5058
+
+      /* The authority segment of the URI is between here and the
+	 next slash.  */                                               // C 5060-5061
+
+      end = strchr (fill, b'/' as c_int);                              // C 5063
+
+      if end.is_null ()                                                // C 5065
+	{ emacs_abort (); }                                            // C 5066
+
+      root.authority = xmalloc ((end.offset_from (fill) + 1) as usize) as *mut c_char;   // C 5068
+      memcpy (root.authority as *mut c_void, fill as *const c_void,    // C 5069
+	      end.offset_from (fill) as usize);                        // C 5069
+      *root.authority.offset (end.offset_from (fill) as isize) = 0;    // C 5070
+
+      /* Now search using this vnode.  */                              // C 5072
+      vnode = ((*(root.vnode.ops)).name).unwrap () (&raw mut root.vnode,   // C 5073
+						     remainder,        // C 5073
+						     strlen (remainder));   // C 5074
+      xfree (root.authority as *mut c_void);                           // C 5075
+      return vnode;                                                    // C 5076
+    }
+
+  /* Otherwise, strip off the last directory component.  */             // C 5079
+
+  fill = strrchr ((*vp).name, b'/' as c_int);                          // C 5081
+  if fill.is_null ()                                                   // C 5082
+    { emacs_abort (); }                                                // C 5083
+
+  /* Create a new vnode at the top of the directory tree, and search
+     for remainder from there.  */                                     // C 5085-5086
+
+  tree.vnode.ops = &raw mut saf_tree_vfs_ops;                          // C 5088
+  tree.vnode.r#type = ANDROID_VNODE_SAF_TREE as c_short;               // C 5089
+  tree.vnode.flags = 0;                                                // C 5090
+  tree.document_id = std::ptr::null_mut ();                            // C 5091
+  tree.name = c"/".as_ptr () as *mut c_char;                           // C 5092
+  tree.tree_uri = (*vp).tree_uri;                                      // C 5093
+  tree.tree_id = (*vp).tree_id;                                        // C 5094
+
+  length   = strlen (remainder.offset ((*remainder == b'/' as c_char) as isize));   // C 5096
+  filename = xmalloc ((fill.offset_from ((*vp).name) + length as isize + 2) as usize) as *mut c_char;   // C 5097
+  fill = mempcpy (filename as *mut c_void, (*vp).name as *const c_void,   // C 5098
+		  /* Include the separator character (*FILL) within
+		     this copy.  */
+		  (fill.offset_from ((*vp).name) + 1) as usize) as *mut c_char;   // C 5101
+  /* Skip a leading separator in REMAINDER.  */
+  strcpy (fill, remainder.offset ((*remainder == b'/' as c_char) as isize));   // C 5103
+
+  /* Use this filename to find a vnode relative to the start of this
+     tree.  */                                                         // C 5105-5106
+
+  vnode = android_saf_tree_name (&raw mut tree.vnode, filename,        // C 5108
+				 strlen (filename));                   // C 5109
+  xfree (filename as *mut c_void);                                     // C 5110
+  return vnode;                                                        // C 5111
+}
