@@ -8311,6 +8311,8 @@ unsafe extern "C" {
   pub fn sem_wait (sem: *mut sem_t) -> c_int;
   /// C: `<semaphore.h>`: `int sem_post (sem_t *sem);`
   pub fn sem_post (sem: *mut sem_t) -> c_int;
+  /// C: `<semaphore.h>`: `int sem_init (sem_t *sem, int pshared, unsigned int value);`
+  pub fn sem_init (sem: *mut sem_t, pshared: c_int, value: c_uint) -> c_int;
 }
 
 /* C 6510-6516 and C 6573-6577: the `#ifdef __clang__` / `#pragma clang diagnostic push/ignored`
@@ -8727,4 +8729,198 @@ unsafe extern "C" fn android_root_opendir (vnode: *mut android_vnode) -> *mut an
   root_fd_references += 1;                                             // C 6849
 
   return &raw mut (*dir).vdir;                                         // C 6851
+}
+
+/* File system lookup.  */                                              // C 6856
+
+/* Look up the vnode that designates NAME, a file name that is at least
+   N bytes, converting between different file name coding systems as
+   necessary.
+
+   NAME may be either an absolute file name or a name relative to the
+   current working directory.  It must not be longer than EMACS_PATH_MAX
+   bytes.
+
+   Value is NULL upon failure with errno set accordingly, or the
+   vnode.  */                                                          // C 6858-6867
+
+/* C 6869-6936.  C calls it directly (C 6949's `android_vfs_init` is its neighbour), never through a
+   pointer, so it stays a Rust-ABI `unsafe fn`; C's `switch (c)` with `case '/'` and `default` is
+   the port's `match` (PORTING.md 2.2's switch device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_name_file (mut name: *const c_char) -> *mut android_vnode
+{
+  let mut buffer: [c_char; EMACS_PATH_MAX as usize + 1] = [0; EMACS_PATH_MAX as usize + 1];   // C 6872
+  let mut head: *mut c_char;                                           // C 6872
+  let mut end: *const c_char;                                          // C 6873
+  let mut len: size_t;                                                 // C 6874
+  let mut nslash: c_int;                                               // C 6875
+  let mut c: c_int;                                                    // C 6875
+  let mut vp: *mut android_vnode;                                      // C 6876
+
+  /* C leaves `head`, `end`, `len`, `nslash`, `c` and `vp` uninitialised (PORTING.md 1.5); each is
+     assigned before its first read on the path that reads it.  */
+  head = std::ptr::null_mut ();
+  end = std::ptr::null ();
+  len = 0;
+  nslash = 0;
+  c = 0;
+  vp = std::ptr::null_mut ();
+
+  len = strlen (name);                                                 // C 6878
+  if len > EMACS_PATH_MAX as usize                                      // C 6879
+    {
+      *errno () = ENAMETOOLONG;                                        // C 6881
+      return std::ptr::null_mut ();                                    // C 6882
+    }
+
+  /* Now, try to ``normalize'' the file name by removing consecutive
+     slash characters while copying it to BUFFER.  */                  // C 6885-6886
+
+  head = buffer.as_mut_ptr ();                                         // C 6888
+  nslash = 0;                                                          // C 6889
+  end = name.offset (len as isize);                                    // C 6890
+  while name < end                                                      // C 6890
+    {
+      c = *name as c_int;                                              // C 6892
+
+      match c                                                          // C 6894
+	{
+	  x if x == b'/' as c_int =>                                   // C 6896
+	    {
+	      /* This is a directory separator character.  Two consecutive
+		 separator characters should be replaced by a single
+		 character; more than three in a row means that the
+		 section of the file name before the last slash character
+		 should be discarded.  */                              // C 6897-6901
+
+	      if nslash == 0                                           // C 6903
+		{ *head = b'/' as c_char; head = head.offset (1); }    // C 6904
+
+	      nslash += 1;                                             // C 6906
+
+	      if nslash >= 3                                           // C 6908
+		/* Return to the root directory.  */
+		{                                                      // C 6910
+		  head = buffer.as_mut_ptr ();
+		  *head = b'/' as c_char;
+		  head = head.offset (1);
+		  nslash = 0;
+		}
+	    }
+
+	  _ =>                                                         // C 6913
+	    {
+	      /* Otherwise, copy the file name over.  */               // C 6914
+	      nslash = 0;                                              // C 6915
+	      *head = *name;                                           // C 6916
+	      head = head.offset (1);
+	    }
+	}
+
+      name = name.offset (1);                                          // C 6890
+    }
+
+  /* Terminate the file name.  */                                       // C 6921
+  *head = 0;                                                           // C 6922
+
+  /* If HEAD is a relative file name, it can't reside inside the
+     virtual mounts; create a Unix vnode instead.  */                  // C 6924-6925
+
+  if head == buffer.as_mut_ptr () || buffer[0] != b'/' as c_char       // C 6927
+    { return android_unix_vnode (buffer.as_mut_ptr ()); }              // C 6928
+
+  /* Start looking from the root vnode.  */                             // C 6930
+  vp = &raw mut root_vnode.vnode;                                      // C 6931
+
+  /* If buffer is empty, this will create a duplicate of the root
+     vnode.  */
+  return ((*(*vp).ops).name).unwrap () (vp, buffer.as_mut_ptr ().offset (1),   // C 6935
+					head.offset_from (buffer.as_mut_ptr ()) as usize - 1);   // C 6935
+}
+
+/* Initialize the virtual filesystem layer.  Load the directory tree
+   from the given asset MANAGER (which should be a local reference
+   within ENV) that will be used to access assets in the future, and
+   create the root vnode.
+
+   ENV should be a JNI environment valid for future calls to VFS
+   functions.  */                                                      // C 6940-6946
+
+/* C 6948-7018.  C's non-static definition is an exported symbol, so the port keeps its name with
+   `#[unsafe(no_mangle)]` (PORTING.md 10.13).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_vfs_init (env: *mut JNIEnv, manager: jobject)
+{
+  let mut old: jclass;                                                 // C 6951
+
+  /* C leaves `old` uninitialised (PORTING.md 1.5); it is assigned before any read.  */
+  old = std::ptr::null_mut ();
+
+  android_init_assets (env, manager);                                  // C 6953
+
+  /* Create the root vnode, which is used to locate all other
+     vnodes.  */                                                       // C 6955-6956
+  root_vnode.vnode.ops = &raw mut root_vfs_ops;                        // C 6957
+  root_vnode.vnode.r#type = ANDROID_VNODE_UNIX as c_short;             // C 6958
+  root_vnode.vnode.flags = 0;                                          // C 6959
+  root_vnode.name_length = 1;                                          // C 6960
+  root_vnode.name = c"/".as_ptr () as *mut c_char;                     // C 6961
+
+  /* Initialize some required classes.  */                              // C 6963
+  java_string_class = ((*(*env)).FindClass.unwrap ()) (env, c"java/lang/String".as_ptr ());   // C 6964
+  eassert! (! java_string_class.is_null ());                           // C 6965
+
+  old = java_string_class;                                             // C 6967
+  java_string_class = ((*(*env)).NewGlobalRef.unwrap ()) (env,         // C 6968
+							 java_string_class) as jclass;   // C 6969
+  eassert! (! java_string_class.is_null ());                           // C 6970
+  ((*(*env)).DeleteLocalRef.unwrap ()) (env, old);                     // C 6971
+
+  if android_get_current_api_level () < 19                             // C 6973
+    { return; }                                                        // C 6974
+
+  /* Initialize each of the exception classes used by
+     `android_saf_exception_check'.  */                                // C 6976-6977
+
+  old = ((*(*env)).FindClass.unwrap ()) (env, c"java/io/FileNotFoundException".as_ptr ());   // C 6979
+  file_not_found_exception = ((*(*env)).NewGlobalRef.unwrap ()) (env, old);   // C 6980
+  ((*(*env)).DeleteLocalRef.unwrap ()) (env, old);                     // C 6981
+  eassert! (! file_not_found_exception.is_null ());                    // C 6982
+
+  old = ((*(*env)).FindClass.unwrap ()) (env, c"java/lang/SecurityException".as_ptr ());   // C 6984
+  security_exception = ((*(*env)).NewGlobalRef.unwrap ()) (env, old);  // C 6985
+  ((*(*env)).DeleteLocalRef.unwrap ()) (env, old);                     // C 6986
+  eassert! (! security_exception.is_null ());                          // C 6987
+
+  old = ((*(*env)).FindClass.unwrap ()) (env, c"android/os/OperationCanceledException".as_ptr ());   // C 6989
+  operation_canceled_exception = ((*(*env)).NewGlobalRef.unwrap ()) (env, old);   // C 6990
+  ((*(*env)).DeleteLocalRef.unwrap ()) (env, old);                     // C 6991
+  eassert! (! operation_canceled_exception.is_null ());                // C 6992
+
+  old = ((*(*env)).FindClass.unwrap ()) (env, c"java/lang/UnsupportedOperationException".as_ptr ());   // C 6994
+  unsupported_operation_exception = ((*(*env)).NewGlobalRef.unwrap ()) (env, old);   // C 6995
+  ((*(*env)).DeleteLocalRef.unwrap ()) (env, old);                     // C 6996
+  eassert! (! unsupported_operation_exception.is_null ());             // C 6997
+
+  old = ((*(*env)).FindClass.unwrap ()) (env, c"java/lang/OutOfMemoryError".as_ptr ());   // C 6999
+  out_of_memory_error = ((*(*env)).NewGlobalRef.unwrap ()) (env, old);   // C 7000
+  ((*(*env)).DeleteLocalRef.unwrap ()) (env, old);                     // C 7001
+  eassert! (! out_of_memory_error.is_null ());                         // C 7002
+
+  /* And initialize those used on Android 5.0 and later.  */            // C 7004
+
+  if android_get_current_api_level () < 21                             // C 7006
+    { return; }                                                        // C 7007
+
+  android_init_cursor_class (env);                                     // C 7009
+  android_init_entry_class (env);                                      // C 7010
+  android_init_fd_class (env);                                         // C 7011
+
+  /* Initialize the semaphore used to wait for SAF operations to
+     complete.  */                                                     // C 7013-7014
+
+  if sem_init (&raw mut saf_completion_sem, 0, 0) < 0                  // C 7016
+    { emacs_abort (); }                                                // C 7017
 }

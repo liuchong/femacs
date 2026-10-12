@@ -8,8 +8,8 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**8,730 lines**, md5 `008cbad12db6977b0658cedb6138d1e1`), carrying
-> **C 1-6852** (slice 19 closed every deferral this lane had accumulated) (C 2520-2537's `content_vfs_ops`, C 2549-2639's
+> `femacs/src/androidvfs.rs` (**8,926 lines**, md5 `b4f6b3a9b74e98c6181e1e589a965c99`), carrying
+> **C 1-7083** (slice 19 closed every deferral this lane had accumulated) (C 2520-2537's `content_vfs_ops`, C 2549-2639's
 > `android_content_name`, C 2887-2906's `android_content_initial`, C 3688-3705's `saf_root_vfs_ops`,
 > C 3748-3848's `android_saf_root_name` and C 4209-4229's `android_saf_root_initial` - one
 > dependency chain that the round reaching C 5773 closes, Deviation 23/27 - plus, this round,
@@ -188,7 +188,10 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 6791-6811 | `android_root_closedir` (C 6791-6811, with C's post-decrement pair) | file gate (slice 20) |
 | 6813-6818 | `android_root_dirfd` (C 6813-6818) | file gate (slice 20) |
 | 6820-6852 | `android_root_opendir` (C 6820-6852) | file gate (slice 20) |
-| 6854-7950 | **the remainder** - C 6854's form feed and the file-system lookup comment through C 7950: `android_name_file`, `android_vfs_init`, the android_* wrappers, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 6854-6856 | C 6855's form feed and the comment `/* File system lookup.  */` | file gate (slice 21) |
+| 6858-6936 | C 6858-6867's comment and `android_name_file` (C 6869-6936, C's `switch (c)` as the port's `match`) | file gate (slice 21) |
+| 6938-7083 | C 6940-6946's comment, `android_vfs_init` (C 6948-7018, the file's first non-static definition) and C 7020-7083's eleven-drawback comment | file gate (slice 21) |
+| 7085-7950 | **the remainder** - C 7085-7089's comment through C 7950: the `android_*` wrapper functions, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -399,7 +402,7 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    `android_unix_name` → `goto`.  Both lines print in `--check` today and every other token of both
    bodies is present.
 5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
-   **stale** (**8,730** C lines carried = 109.8% of 7,950, above the ten-percent threshold; slice 1's
+   **stale** (**8,926** C lines carried = 112.3% of 7,950, above the ten-percent threshold; slice 1's
    original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
 6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
    and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
@@ -418,12 +421,11 @@ object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMe
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
 /`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
 readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
-type-check and emit an object under each arm, not that any of it behaves.  C 6854-7950 is
-**unported**: `extract-abi.py --check` reads **37** rows across that boundary (31 `missing …`, five
-`invented exported symbol` rows - the `NATIVE_NAME` paste class that `docs/ports/android.md` 432/462
-records for `android.rs`, now including this file's four entries - and the whole-file line-count
-row, which is back at **9.8%** because the port now carries more lines than the reference:
-8,730 against 7,950), and those rows are the boundary, not defects.
+type-check and emit an object under each arm, not that any of it behaves.  C 7085-7950 is
+**unported**: `extract-abi.py --check` reads **35** rows across that boundary (29 `missing …`, the
+five `invented exported symbol` rows - the `NATIVE_NAME` paste class - and the whole-file line-count
+row, which now reads **12.3%**: the port carries 8,926 lines against the reference's 7,950), and
+those rows are the boundary, not defects.
 
 ## Slice 2 (2026-10-08, status 4.106 - the integrator sets the round number): C 996-1022
 
@@ -1550,3 +1552,48 @@ second entry's `LISPSYM_INITIALLY` constant was never read.  What the round's ev
 arms' `exit 0`, one control proving the harness reads this text, `--check` 43 -> 37 with the two
 alias rows discharged in-commit, the measured layouts, and the ten gates.  **This file is not
 finished**: C 6854-7950 remains (the next item is C 6869's `android_name_file`).
+
+## Slice 21 (2026-10-08, status 4.126 - the integrator sets the round number): C 6854-7083 (the file-system lookup, and the file's first exported definition)
+
+**What this round is.**  `android_name_file` (C 6869-6936, the name normalizer that turns a file
+name into a vnode, with C's `switch (c)` over the separator character) and `android_vfs_init`
+(C 6948-7018, which loads the asset directory tree, builds the root vnode and creates the nine
+global references the rest of the file uses), with their comments and C 7020-7083's eleven-drawback
+comment.  Port: **8,730 -> 8,926 lines**.
+
+**Evidence ① - both arms read `exit 0`**: 0 errors; 8 warnings in the else arm and 13 in the `>= 9`
+arm - the same two counts the previous eleven rounds read.  Two real defects came out of the first
+drafts, both of the kind this ledger keeps recording: `sem_init` (C 7016) needed its use-site
+declaration beside the `sem_wait`/`sem_post` pair, and `android_name_file`'s `name` parameter is
+advanced by the loop (C 6890's `++name`), so the binding must be `mut` (`E0384`).
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error next to C 6888's
+`head = buffer;` moves the else arm to `exit 1` with `injected_control` named once; reverted, the
+arm reads `exit 0` and the file's md5 returns to the header's.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 37 -> 35 rows, diffed**: two
+`missing function` rows retire (`android_name_file`, `android_vfs_init`); one `does not mention` row
+appears (`android_name_file` → `break,case,default,switch`, the switch class) and is discharged in
+this same commit by a row in `docs/ports/macro-body-notes.tsv`; the whole-file line-count row moves
+9.8% -> **12.3%**.
+
+**Note (not a deviation).**  `android_vfs_init` is the first definition in this file that C
+*exports*: it was `void android_vfs_init (JNIEnv *, jobject)` and the port writes it with
+`#[unsafe(no_mangle)]`, which is why the checker reads it as a ported function rather than as an
+`invented exported symbol` (its non-`static` counterpart exists in the reference).  The four
+`NATIVE_NAME` pastes of the previous round remain the opposite case.
+
+**Owed (this slice's additions).**
+
+- `docs/baseline/port-lines-pending.tsv` (Owed 5): this file's row is stale and reads far over
+  100% - **8,926** Rust lines against 7,950 C lines; the integrator's `--write-pending` re-run drops
+  it.
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item).
+
+**Not claimed (this slice).**  No runtime evidence, and none is possible here: no Android device, no
+emulator, and this unit is not in the frozen configuration.  No vnode was looked up, no asset tree
+was loaded, no global reference was made, and the semaphore was never initialized.  What the round's
+evidence *is*: both arms' `exit 0`, one control proving the harness reads this text, `--check`
+37 -> 35 with the new row discharged in-commit, and the ten gates.  **This file is not finished**: C
+7085-7950 remains (the next item is C 7091's `android_open`).

@@ -18571,3 +18571,13 @@
   ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **8,730 行 / 新 md5**、C 范围表把余项行拆成十七行、`## Not claimed` 改成 37 行并写明行数行回到 9.8% 的原因、常设 Owed 5 改成 109.8%、文件尾加 `## Slice 20` 段；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
   ⑦ 预算与清理：`xtask probe` **5 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 6 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep20.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
      **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：信号量从未被 post/wait、四个 JNI 入口从未被 Java 调用、没有 root 目录被打开、`special_vnodes` 第二项的 `LISPSYM_INITIALLY` 常量从未被读出。**本文件未收口**：还剩 C 6854-7950（下一项 C 6869 的 `android_name_file`）。
+
+- **4.126 `src/androidvfs.c` round 21（androidvfs lane，slice 21）：C 6854-7083 落地——文件系统查找与本文件第一个导出定义；端口 8,730 → 8,926 行（2026-10-08）**：
+  ① 本片落的文本：`android_name_file`（C 6869-6936，把文件名归一化成 vnode，C 的 `switch (c)` 写成 `match`）与 `android_vfs_init`（C 6948-7018：装载资产树、建 root vnode、建九个全局引用），含各自注释与 C 7020-7083 的“十一条缺陷”长注释。
+  ② 臂读数：**两臂各 `exit 0`、0 error**；warning 8（else）/13（`>= 9`），与前十一轮逐项相同。两处真缺陷仍是本台账记过的类：`sem_init`（C 7016）要在 `sem_wait`/`sem_post` 旁补使用点声明；`android_name_file` 的 `name` 形参在循环里前移（C 6890 的 `++name`），绑定必须 `mut`（`E0384`）。
+  ③ 对照（P-86 ⑦）：在 C 6888 的 `head = buffer;` 旁注入故意错误 → else 臂 `exit 1`、`injected_control` 点名一次；撤回后 `exit 0`、md5 回到 `b4f6b3a9b74e98c6181e1e589a965c99`。
+  ④ `--check`：**37 → 35 行且行集 diff 过**——两条 `missing function` 退役（`android_name_file`、`android_vfs_init`）；一条 `does not mention`（`android_name_file` 的 `break,case,default,switch`）出现并**在同一次提交里清掉**；整文件行数行 9.8% → **12.3%**。
+  ⑤ **一处值得记的事实（不是偏离）**：`android_vfs_init` 是本文件**第一个 C 导出**的定义（C 里是 `void android_vfs_init (JNIEnv *, jobject)`），端口写 `#[unsafe(no_mangle)]`——所以检查器把它读成“已复刻的函数”，而不是像上一轮四个 `NATIVE_NAME` 粘贴名那样报 `invented exported symbol`。
+  ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **8,926 行 / 新 md5**、C 范围表把余项行拆成四行、`## Not claimed` 改成 35 行、常设 Owed 5 改成 112.3%、文件尾加 `## Slice 21` 段；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
+  ⑦ 预算与清理：`xtask probe` **3 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 6 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep21.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
+     **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有一个 vnode 被查到、资产树没被装载、没有全局引用被建、信号量从未被初始化。**本文件未收口**：还剩 C 7085-7950（下一项 C 7091 的 `android_open`）。
