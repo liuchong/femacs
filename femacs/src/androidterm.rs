@@ -3998,6 +3998,7 @@ macro_rules! face_bits {
   (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
   (use_box_color_for_shadows_p, $f:expr) =>
     { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
+  (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
 }
 
 /// C: dispextern.h 3860-3863: `#define IMAGE_BACKGROUND(img, f, ximg)` `((img)->background_valid`
@@ -4528,4 +4529,395 @@ unsafe fn android_draw_image_glyph_string (s: *mut glyph_string)
       || (*s).hl == DRAW_IMAGE_RAISED                                   // C 3794
       || (*s).hl == DRAW_IMAGE_SUNKEN                                   // C 3795
     { android_draw_image_relief (s); }                                  // C 3796
+}
+
+/* C 3799-4123: the stretch, scale, underwave and the two glyph-string foregrounds.  Three names
+   this text needs are not in the frozen mirrors, so they stand at their use sites below (P-72
+   rule 4), and `face->overstrike` needs one more arm of this unit's `face_bits!` (with C's own bit
+   position).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3579: `int window_box_left (struct window *, enum glyph_row_area);`
+  pub fn window_box_left (w: *mut window, area: glyph_row_area) -> c_int;
+  /// C: dispextern.h 3580: `int window_box_left_offset (struct window *, enum glyph_row_area);`
+  pub fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
+  /// C: dispextern.h 3692: `extern bool cursor_in_mouse_face_p (struct window *w);` (xdisp.c)
+  pub fn cursor_in_mouse_face_p (w: *mut window) -> bool;
+}
+
+/// C: dispextern.h 1893-1935: `bool_bf overstrike : 1;` - the bit `android_draw_glyph_string_foreground`
+/// reads (the `src/xterm.rs` 9850 value; the mirror keeps the run's `bits` unit).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_OVERSTRIKE: u32 = 1 << 21;
+
+/* C 3799-3911.  `static`; only called (C 4586).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_stretch_glyph_string (s: *mut glyph_string)
+{
+  eassert! (glyph_bits! (type, (*(*s).first_glyph)) == STRETCH_GLYPH);   // C 3802
+
+  if (*s).hl == DRAW_CURSOR && ! x_stretch_cursor_p                     // C 3804
+    {
+      /* If `x-stretch-cursor' is nil, don't draw a block cursor as
+	 wide as the stretch glyph.  */                                // C 3806-3807
+      let mut width: c_int;                                             // C 3808
+      let mut background_width: c_int = (*s).background_width;
+      let mut x: c_int = (*s).x;                                        // C 3809
+
+      if ! glyph_row_bits! (reversed_p, (*s).row)                       // C 3811
+	{
+	  let left_x: c_int = window_box_left_offset ((*s).w, TEXT_AREA);   // C 3813
+
+	  if x < left_x                                                    // C 3815
+	    {
+	      background_width -= left_x - x;                             // C 3817
+	      x = left_x;                                                 // C 3818
+	    }
+	}
+      else
+	{
+	  /* In R2L rows, draw the cursor on the right edge of the
+	     stretch glyph.  */                                         // C 3823-3824
+	  let right_x: c_int = window_box_right ((*s).w, TEXT_AREA);       // C 3825
+
+	  if x + background_width > right_x                                // C 3827
+	    { background_width -= x - right_x; }                          // C 3828
+	  x += background_width;                                          // C 3829
+	}
+      width = min (FRAME_COLUMN_WIDTH ((*s).f), background_width);      // C 3831
+      if glyph_row_bits! (reversed_p, (*s).row)                         // C 3832
+	{ x -= width; }                                                  // C 3833
+
+      /* Draw cursor.  */                                               // C 3835
+      android_draw_glyph_string_bg_rect (s, x, (*s).y, width, (*s).height);   // C 3836
+
+      /* Clear rest using the GC of the original non-cursor face.  */    // C 3838
+      if width < background_width                                       // C 3839
+	{
+	  let y: c_int = (*s).y;                                        // C 3841
+	  let w: c_int = background_width - width;                      // C 3842
+	  let h: c_int = (*s).height;
+	  let mut r: android_rectangle = std::mem::zeroed ();            // C 3843
+	  let mut gc: *mut android_gc;                                   // C 3844
+
+	  if ! glyph_row_bits! (reversed_p, (*s).row)                    // C 3846
+	    { x += width; }                                             // C 3847
+	  else
+	    { x = (*s).x; }                                             // C 3849
+	  if glyph_row_bits! (mouse_face_p, (*s).row)                    // C 3850
+	      && cursor_in_mouse_face_p ((*s).w)                        // C 3851
+	    {
+	      android_set_mouse_face_gc (s);                            // C 3853
+	      gc = (*s).gc as *mut android_gc;                          // C 3854
+	    }
+	  else
+	    { gc = (*( (*s).face as *mut face )).gc as *mut android_gc; }   // C 3857
+
+	  get_glyph_string_clip_rect (s, &raw mut r as *mut c_void);     // C 3859
+	  android_set_clip_rectangles (gc, 0, 0, &raw mut r, 1);          // C 3860
+
+	  if (*( (*s).face as *mut face )).stipple != 0                   // C 3862
+	    {
+	      /* Fill background with a stipple pattern.  */             // C 3864
+	      android_set_fill_style (gc, ANDROID_FILL_OPAQUE_STIPPLED);   // C 3865
+	      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f),   // C 3866
+				      gc, x, y, w as c_uint, h as c_uint);   // C 3867
+	      android_set_fill_style (gc, ANDROID_FILL_SOLID);           // C 3868
+
+	      glyph_row_bits! (stipple_p, (*s).row, true);               // C 3870
+	    }
+	  else
+	    {
+	      let mut xgcv: android_gc_values = std::mem::zeroed ();      // C 3874
+	      android_get_gc_values (gc, (ANDROID_GC_FOREGROUND           // C 3875
+					  | ANDROID_GC_BACKGROUND),       // C 3876
+				     &raw mut xgcv);                      // C 3877
+	      android_set_foreground (gc, xgcv.background);              // C 3878
+	      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f),   // C 3879
+				      gc, x, y, w as c_uint, h as c_uint);   // C 3880
+	      android_set_foreground (gc, xgcv.foreground);              // C 3881
+	    }
+
+	  android_reset_clip_rectangles ((*s).f, gc);                     // C 3884
+	}
+    }
+  else if ! glyph_string_bits! (background_filled_p, (*s))               // C 3887
+    {
+      let mut background_width: c_int = (*s).background_width;         // C 3889
+      let mut x: c_int = (*s).x;                                       // C 3890
+      let text_left_x: c_int = window_box_left ((*s).w, TEXT_AREA);
+
+      /* Don't draw into left fringe or scrollbar area except for
+         header line and mode line.  */                                // C 3892-3893
+      if (*s).area == TEXT_AREA                                        // C 3894
+	  && x < text_left_x && ! glyph_row_bits! (mode_line_p, (*s).row)   // C 3895
+	{
+	  background_width -= text_left_x - x;                          // C 3897
+	  x = text_left_x;                                              // C 3898
+	}
+
+      if ! glyph_row_bits! (stipple_p, (*s).row)                       // C 3901
+	{ glyph_row_bits! (stipple_p, (*s).row, glyph_string_bits! (stippled_p, (*s))); }   // C 3902
+
+      if background_width > 0                                          // C 3904
+	{ android_draw_glyph_string_bg_rect (s, x, (*s).y,             // C 3905
+					     background_width,         // C 3906
+					     (*s).height); }           // C 3907
+    }
+
+  glyph_string_bits! (background_filled_p, (*s), true);                  // C 3910
+}
+
+/* C 3913-3926.  `static`; only called (C 3933).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_get_scale_factor (scale_x: *mut c_int, scale_y: *mut c_int)
+{
+  /* This is 96 everywhere else, but 160 on Android.  */                 // C 3916
+  let base_res: c_int = 160;                                            // C 3917
+
+  *scale_x = 1;                                                         // C 3919
+  *scale_y = 1;
+  eassert! (! x_display_list.is_null ());                                // C 3920
+
+  if (*x_display_list).resx > base_res as f64                           // C 3922
+    { *scale_x = floor ((*x_display_list).resx / base_res as f64) as c_int; }   // C 3923
+  if (*x_display_list).resy > base_res as f64                           // C 3924
+    { *scale_y = floor ((*x_display_list).resy / base_res as f64) as c_int; }   // C 3925
+}
+
+/* C 3928-3987.  `static`; only called (C 4521).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_underwave (s: *mut glyph_string, decoration_width: c_int)
+{
+  /* C leaves these two uninitialised until `android_get_scale_factor` writes them; the port
+     gives them a value because `&raw mut` needs an initialised place (the `haikuterm.rs` 1287-1288
+     and `w32term.rs` 1007-1008 shape).  */
+  let mut scale_x: c_int = 0;                                           // C 3931
+  let mut scale_y: c_int = 0;
+
+  android_get_scale_factor (&raw mut scale_x, &raw mut scale_y);         // C 3933
+
+  let wave_height: c_int = 3 * scale_y;                                 // C 3935
+  let wave_length: c_int = 2 * scale_x;
+
+  let mut dx: c_int;                                                    // C 3937
+  let mut dy: c_int;
+  let mut x0: c_int;
+  let mut y0: c_int;
+  let mut width: c_int;
+  let mut x1: c_int;
+  let mut y1: c_int;
+  let mut x2: c_int;
+  let mut y2: c_int;
+  let mut xmax: c_int;
+  let mut odd: bool;                                                    // C 3938
+  let mut wave_clip: android_rectangle = std::mem::zeroed ();           // C 3939
+  let mut string_clip: android_rectangle = std::mem::zeroed ();
+  let mut final_clip: android_rectangle = std::mem::zeroed ();
+
+  dx = wave_length;                                                     // C 3941
+  dy = wave_height - 1;                                                 // C 3942
+  x0 = (*s).x;                                                          // C 3943
+  y0 = (*s).ybase + wave_height / 2;                                    // C 3944
+  width = decoration_width;                                             // C 3945
+  xmax = x0 + width;                                                    // C 3946
+
+  /* Find and set clipping rectangle */                                  // C 3948
+
+  wave_clip.x = x0;                                                     // C 3950
+  wave_clip.y = y0;                                                     // C 3951
+  wave_clip.width = width as c_uint;                                    // C 3952
+  wave_clip.height = wave_height as c_uint;                             // C 3953
+  get_glyph_string_clip_rect (s, &raw mut string_clip as *mut c_void);   // C 3954
+
+  if ! gui_intersect_rectangles (&raw const wave_clip as *const Emacs_Rectangle,   // C 3956
+				 &raw const string_clip as *const Emacs_Rectangle,
+				 &raw mut final_clip as *mut Emacs_Rectangle)
+    { return; }                                                         // C 3957
+
+  android_set_clip_rectangles ((*s).gc as *mut android_gc, 0, 0, &raw mut final_clip, 1);   // C 3959
+
+  /* Draw the waves */                                                  // C 3961
+
+  x1 = x0 - (x0 % dx);                                                  // C 3963
+  x2 = x1 + dx;                                                         // C 3964
+  odd = ((x1 / dx) & 1) != 0;                                           // C 3965
+  y1 = y0;                                                              // C 3966
+  y2 = y0;
+
+  if odd                                                                // C 3968
+    { y1 += dy; }                                                       // C 3969
+  else
+    { y2 += dy; }                                                       // C 3971
+
+  if INT_MAX - dx < xmax                                                // C 3973
+    { emacs_abort (); }                                                 // C 3974
+
+  while x1 <= xmax                                                      // C 3976
+    {
+      android_draw_line (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc,   // C 3978
+			 x1, y1, x2, y2);                               // C 3979
+      x1 = x2; y1 = y2;                                                 // C 3980
+      x2 += dx; y2 = y0 + odd as c_int * dy;                            // C 3981
+      odd = ! odd;                                                      // C 3982
+    }
+
+  /* Restore previous clipping rectangle(s) */                          // C 3985
+  android_set_clip_rectangles ((*s).gc as *mut android_gc, 0, 0,        // C 3986
+			       &raw mut (*s).clip as *mut [c_int; 2] as *mut android_rectangle,   // C 3986
+			       (*s).num_clips);
+}
+
+/* C 3989-4034.  `static`; only called (C 4516).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut i: c_int;                                                     // C 3992
+  let mut x: c_int;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */                           // C 3994-3995
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX            // C 3996
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))             // C 3997
+    { x = (*s).x + max ((*( (*s).face as *mut face )).box_vertical_line_width, 0); }   // C 3998
+  else
+    { x = (*s).x; }                                                     // C 4000
+
+  /* Draw characters of S as rectangles if S's font could not be
+     loaded.  */                                                       // C 4002-4003
+  if glyph_string_bits! (font_not_found_p, (*s))                        // C 4004
+    {
+      i = 0;                                                            // C 4006
+      while i < (*s).nchars
+	{
+	  let g: *mut glyph = (*s).first_glyph.offset (i as isize);      // C 4008
+	  android_draw_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f),     // C 4009
+				  (*s).gc as *mut android_gc, x, (*s).y,   // C 4010
+				  ((*g).pixel_width - 1) as c_uint,     // C 4011
+				  ((*s).height - 1) as c_uint);         // C 4012
+	  x += (*g).pixel_width as c_int;                               // C 4013
+	  i += 1;                                                       // C 4006 (the `for` step)
+	}
+    }
+  else
+    {
+      let font: *mut font = (*s).font;                                  // C 4018
+      let mut boff: c_int = (*font).baseline_offset;                    // C 4019
+      let y: c_int;                                                     // C 4020
+
+      if (*font).vertical_centering                                      // C 4022
+	{ boff = VCENTER_BASELINE_OFFSET! (font, (*s).f) - boff; }      // C 4023
+
+      y = (*s).ybase - boff;                                            // C 4025
+      if glyph_string_bits! (for_overlaps, (*s)) != 0                   // C 4026
+	  || (glyph_string_bits! (background_filled_p, (*s)) && (*s).hl != DRAW_CURSOR)   // C 4027
+	{ ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, 0, (*s).nchars as c_int, x, y, false); }   // C 4028
+      else
+	{ ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, 0, (*s).nchars as c_int, x, y, true); }   // C 4030
+      if face_bits! (overstrike, (*s).face as *mut face)                // C 4031
+	{ ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, 0, (*s).nchars as c_int, x + 1, y, false); }   // C 4032
+    }
+}
+
+/* C 4036-4123.  `static`; only called (C 4519).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_composite_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut i: c_int;                                                     // C 4039
+  let mut j: c_int;
+  let mut x: c_int;
+  let font: *mut font = (*s).font;                                      // C 4040
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */                           // C 4042-4043
+  if ! (*s).face.is_null ()                                             // C 4044
+      && face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX        // C 4044
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))             // C 4045
+    { x = (*s).x + max ((*( (*s).face as *mut face )).box_vertical_line_width, 0); }   // C 4046
+  else
+    { x = (*s).x; }                                                     // C 4048
+
+  /* S is a glyph string for a composition.  S->cmp_from is the index
+     of the first character drawn for glyphs of this composition.
+     S->cmp_from == 0 means we are drawing the very first character of
+     this composition.  */                                              // C 4050-4053
+
+  /* Draw a rectangle for the composition if the font for the very
+     first character of the composition could not be loaded.  */       // C 4055-4056
+  if glyph_string_bits! (font_not_found_p, (*s))                        // C 4057
+    {
+      if (*s).cmp_from == 0                                             // C 4059
+	{ android_draw_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f),     // C 4060
+				  (*s).gc as *mut android_gc, x, (*s).y,   // C 4061
+				  ((*s).width - 1) as c_uint, ((*s).height - 1) as c_uint); }   // C 4062
+    }
+  else if ! glyph_u_cmp_bits! (automatic, (*s).first_glyph)             // C 4064
+    {
+      let y: c_int = (*s).ybase;                                        // C 4066
+
+      i = 0;                                                            // C 4068
+      j = (*s).cmp_from;
+      while i < (*s).nchars
+	{
+	  /* TAB in a composition means display glyphs with
+	     padding space on the left or right.  */                    // C 4069-4070
+	  if COMPOSITION_GLYPH ((*s).cmp as *mut composition, j as ptrdiff_t) != b'\t' as isize   // C 4071
+	    {
+	      let xx: c_int = x + (*( (*s).cmp as *mut composition )).offsets.offset ((j * 2) as isize) as c_int;   // C 4073
+	      let yy: c_int = y - (*( (*s).cmp as *mut composition )).offsets.offset ((j * 2 + 1) as isize) as c_int;   // C 4074
+
+	      ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, j, j + 1, xx, yy, false);   // C 4076
+	      if face_bits! (overstrike, (*s).face as *mut face)        // C 4077
+		{ ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, j, j + 1, xx + 1, yy, false); }   // C 4078
+	    }
+	  i += 1;                                                       // C 4068 (the two-part `for` step)
+	  j += 1;
+	}
+    }
+  else
+    {
+      let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);   // C 4083
+      let mut glyph: Lisp_Object;                                       // C 4084
+      let y: c_int = (*s).ybase;                                        // C 4085
+      let mut width: c_int = 0;                                         // C 4086
+
+      i = (*s).cmp_from;                                                // C 4088
+      j = (*s).cmp_from;
+      while i < (*s).cmp_to
+	{
+	  glyph = LGSTRING_GLYPH (gstring, i as ptrdiff_t);              // C 4090
+	  if NILP (LGLYPH_ADJUSTMENT (glyph))                            // C 4091
+	    { width += LGLYPH_WIDTH (glyph) as c_int; }                  // C 4092
+	  else
+	    {
+	      let mut xoff: c_int;                                       // C 4095
+	      let mut yoff: c_int;
+	      let mut wadjust: c_int;
+
+	      if j < i                                                   // C 4097
+		{
+		  ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, j, i, x, y, false);   // C 4099
+		  if face_bits! (overstrike, (*s).face as *mut face)     // C 4100
+		    { ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, j, i, x + 1, y, false); }   // C 4101
+		  x += width;                                            // C 4102
+		}
+	      xoff = LGLYPH_XOFF (glyph) as c_int;                        // C 4104
+	      yoff = LGLYPH_YOFF (glyph) as c_int;                        // C 4105
+	      wadjust = LGLYPH_WADJUST (glyph) as c_int;                  // C 4106
+	      ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, i, i + 1, x + xoff, y + yoff, false);   // C 4107
+	      if face_bits! (overstrike, (*s).face as *mut face)          // C 4108
+		{ ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, i, i + 1, x + xoff + 1, y + yoff, false); }   // C 4109-4110
+	      x += wadjust;                                              // C 4111
+	      j = i + 1;                                                 // C 4112
+	      width = 0;                                                 // C 4113
+	    }
+	  i += 1;                                                         // C 4088 (the `for` step)
+	}
+      if j < i                                                           // C 4116
+	{
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, j, i, x, y, false);   // C 4118
+	  if face_bits! (overstrike, (*s).face as *mut face)              // C 4119
+	    { ((*((*font).driver as *const font_driver)).draw.unwrap ()) (s, j, i, x + 1, y, false); }   // C 4120
+	}
+    }
 }
