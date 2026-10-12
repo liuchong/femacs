@@ -99,8 +99,9 @@ include!("../lib/include/md5.rs");              // C 36: `#include <md5.h>`
    that C's *definition* of the same struct (this file's C 114-126) cannot coexist with in one
    translation unit (measured: `E0428`).  P-70 puts the stand-in's removal in the same commit as
    the definition's landing, in that mirror; the mirror is another lane's file, so this unit
-   carries the android.h name its own text uses and the ledger owes the move (P-88 ①/P-72 ③).
-   The name is exactly one: the record `fd_class` is an object of.  */
+   carries the android.h names its own text uses and the ledger owes the move (P-88 ①/P-72 ③).
+   The names are three: the record `fd_class` is an object of (C 58-64), `android_fd_or_asset`
+   (C 175-182) and `android_build_jstring` (C 128).  */
 /* C 40's two `include!` edges stand at C's own line, before C 41's and before C 46-53's: the
    materializer marks a file as included at its *first* textual reach regardless of the `#[cfg]`
    on that edge (PORTING.md P-89), and C 51's `android-asset.h` mirror includes `jni.rs` itself -
@@ -124,6 +125,36 @@ pub struct android_parcel_file_descriptor_class
 }
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (core::mem::size_of::<android_parcel_file_descriptor_class> () == 32);
+
+/* `struct android_fd_or_asset` (`android.h` 175-182 of C 40's chain).  C defines it in android.h,
+   whose mirror this unit does not include (the C 40 note above), so the unit carries the
+   definition - the `android_parcel_file_descriptor_class` device right above.  Measured with the
+   NDK's clang (`-Xclang -fdump-record-layouts`, `--target=aarch64-linux-android24`): 16 bytes,
+   `asset` at 8 (the number `docs/ports/lread.md` 240 records for the same struct).  */
+// C 175-182.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_fd_or_asset
+{
+  /* The file descriptor.  */
+  pub fd: c_int,
+
+  /* The asset.  If set, FD is not a real file descriptor.  */
+  pub asset: *mut c_void,
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_fd_or_asset> () == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_fd_or_asset, asset) == 8);
+
+/* `android.h` 128's `jstring android_build_jstring (const char *)`, the one other android.h name
+   C 7929 uses (`android_get_current_api_level` stands at its own use site, C 1985 above).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: android.h 128: `extern jstring android_build_jstring (const char *);`
+  pub fn android_build_jstring (arg0: *const c_char) -> jstring;
+}
 
 /* C 46-53's `#if __ANDROID_API__ >= 9` chain.  Both arms are carried: the real one includes the
    NDK's `<android/asset_manager.h>`/`<android/asset_manager_jni.h>` (no mirror in this tree, so
@@ -1423,13 +1454,12 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
 }
 
 /* C 6507-7950: the remainder of the file - the SAF thread's synchronization half, the root family,
-   the android_* wrappers, `android_vfs_ops` and `syms_of_androidvfs`.  **This round closed every
-   deferral this lane had accumulated**: the six-item chain (the content trio C 2520-2537 /
-   C 2549-2639 / C 2887-2906 and the SAF root trio C 3688-3705 / C 3748-3848 / C 4209-4229) plus
-   `saf_tree_vfs_ops` (C 4752-4769), `android_saf_tree_name` (C 4897-5112),
-   `android_saf_tree_from_name` (C 5761-5846), `saf_new_vfs_ops` (C 6204-6219) and
-   `android_saf_new_mkdir` (C 6390-6477) are all written, so the unit now carries C 1-6500 without
-   a gap.  `extract-abi.py --check`'s remaining `missing …` list is exactly the text below.  */
+   the system-call wrappers, the asset interface, the directory-listing emulation and
+   `syms_of_androidvfs`.  **The slice that closed this file (slice 22) wrote C 7085-7950, so the
+   unit now carries all of C 1-7950**: no function, subr or object of the reference is missing, and
+   `extract-abi.py --check` reads only the five `NATIVE_NAME` paste rows (C has no non-static
+   definition of `displayNameHash`/`ftruncate`/`saf*`, which the four JNI entries and one
+   `ftruncate` entry export by their Java names) and the whole-file line-count row.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -8924,3 +8954,1050 @@ pub unsafe extern "C" fn android_vfs_init (env: *mut JNIEnv, manager: jobject)
   if sem_init (&raw mut saf_completion_sem, 0, 0) < 0                  // C 7016
     { emacs_abort (); }                                                // C 7017
 }
+/* Open the VFS node designated by NAME, taking into account FLAGS and
+   MODE, both of which mean the same as they do in a call to `open'.
+
+   Value is -1 upon failure with errno set accordingly, and a file
+   descriptor otherwise.  */                                          // C 7085-7089
+
+/* C 7091-7109.  C's non-static definition is an exported symbol, so the port keeps its name with
+   `#[unsafe(no_mangle)]` (PORTING.md 10.13).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_open (name: *const c_char, flags: c_int, mode: mode_t) -> c_int
+{
+  let mut vp: *mut android_vnode;                                      // C 7094
+  /* C leaves `fd` and `rc` uninitialised (PORTING.md 1.5): `fd` is the `open' method's out
+     parameter (C 7100) and `rc` is assigned before it is read.  */
+  let mut fd: c_int = 0;                                               // C 7095
+  let mut rc: c_int = 0;
+
+  vp = android_name_file (name);                                       // C 7097
+  if vp.is_null ()                                                     // C 7098
+    { return -1; }                                                     // C 7099
+
+  rc = ((*(*vp).ops).open).unwrap () (vp, flags, mode, false,          // C 7101
+				      &raw mut fd, std::ptr::null_mut ());
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7102
+
+  if rc < 0                                                            // C 7104
+    { return -1; }                                                     // C 7105
+
+  /* If rc is 1, then an asset file descriptor has been returned.
+     This is impossible, so assert that it doesn't transpire.  */      // C 7107-7108
+  assert! (rc != 1);                                                   // C 7109
+  return fd;                                                           // C 7110
+}
+
+/* Unlink the VFS node designated by the specified FILE.
+   Value is -1 upon failure with errno set, and 0 otherwise.  */       // C 7113-7114
+
+/* C 7117-7129.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_unlink (name: *const c_char) -> c_int
+{
+  let mut vp: *mut android_vnode;                                      // C 7119
+  let mut rc: c_int = 0;                                               // C 7120
+
+  vp = android_name_file (name);                                       // C 7122
+  if vp.is_null ()                                                     // C 7123
+    { return -1; }                                                     // C 7124
+
+  rc = ((*(*vp).ops).unlink).unwrap () (vp);                           // C 7126
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7127
+  return rc;                                                           // C 7128
+}
+
+/* Symlink the VFS node designated by LINKPATH to TARGET.
+   Value is -1 upon failure with errno set, and 0 otherwise.  */       // C 7131-7132
+
+/* C 7135-7147.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_symlink (target: *const c_char, linkpath: *const c_char) -> c_int
+{
+  let mut vp: *mut android_vnode;                                      // C 7137
+  let mut rc: c_int = 0;                                               // C 7138
+
+  vp = android_name_file (linkpath);                                   // C 7140
+  if vp.is_null ()                                                     // C 7141
+    { return -1; }                                                     // C 7142
+
+  rc = ((*(*vp).ops).symlink).unwrap () (target, vp);                  // C 7144
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7145
+  return rc;                                                           // C 7146
+}
+
+/* Remove the empty directory at the VFS node designated by NAME.
+   Value is -1 upon failure with errno set, and 0 otherwise.  */       // C 7149-7150
+
+/* C 7153-7165.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_rmdir (name: *const c_char) -> c_int
+{
+  let mut vp: *mut android_vnode;                                      // C 7155
+  let mut rc: c_int = 0;                                               // C 7156
+
+  vp = android_name_file (name);                                       // C 7158
+  if vp.is_null ()                                                     // C 7159
+    { return -1; }                                                     // C 7160
+
+  rc = ((*(*vp).ops).rmdir).unwrap () (vp);                            // C 7162
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7163
+  return rc;                                                           // C 7164
+}
+
+/* Create a directory at the VFS node designated by NAME and the given
+   access MODE.  Value is -1 upon failure with errno set, 0
+   otherwise.  */                                                      // C 7167-7169
+
+/* C 7172-7184.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_mkdir (name: *const c_char, mode: mode_t) -> c_int
+{
+  let mut vp: *mut android_vnode;                                      // C 7174
+  let mut rc: c_int = 0;                                               // C 7175
+
+  vp = android_name_file (name);                                       // C 7177
+  if vp.is_null ()                                                     // C 7178
+    { return -1; }                                                     // C 7179
+
+  rc = ((*(*vp).ops).mkdir).unwrap () (vp, mode);                      // C 7181
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7182
+  return rc;                                                           // C 7183
+}
+
+/* Rename the vnode designated by SRC to the vnode designated by DST.
+   If DST already exists, return -1 and set errno to EEXIST.
+
+   SRCFD and DSTFD should be AT_FDCWD, or else value is -1 and errno
+   is ENOSYS.
+
+   If the filesystem or vnodes containing either DST or SRC does not
+   support rename operations that also check for a preexisting
+   destination, return -1 and set errno to ENOSYS.
+
+   Otherwise, value and errno are identical to that of Unix
+   `rename' with the same arguments.  */                               // C 7186-7197
+
+/* C 7199-7235.  C's `error1:` label's statement is the port's labelled-block tail, and the two
+   `goto`s are `break`s out of the enclosing labelled blocks (the `android_saf_tree_rename`
+   device, slice 15): `goto error` skips the `error1` close, `goto error1` runs it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_renameat_noreplace (srcfd: c_int, src: *const c_char,
+						     dstfd: c_int, dst: *const c_char)
+  -> c_int
+{
+  let mut vp: *mut android_vnode;                                      // C 7203
+  let mut vdst: *mut android_vnode;                                    // C 7203
+  let mut rc: c_int = 0;                                               // C 7204
+
+  if srcfd != AT_FDCWD || dstfd != AT_FDCWD                            // C 7206
+    {
+      *errno () = ENOSYS;                                              // C 7208
+      return -1;                                                       // C 7209
+    }
+
+  /* Find vnodes for both src and dst.  */                             // C 7212
+
+  'error1: {
+    vp = android_name_file (src);                                      // C 7214
+    if vp.is_null ()                                                   // C 7215
+      { break 'error1; }                                               // C 7216 (C's `goto error`)
+
+    'error: {
+      vdst = android_name_file (dst);                                  // C 7218
+      if vdst.is_null ()                                               // C 7219
+	{ break 'error; }                                              // C 7220 (C's `goto error1`)
+
+      /* Now try to rename vp to vdst.  */                             // C 7222
+      rc = ((*(*vp).ops).rename).unwrap () (vp, vdst, true);           // C 7223
+      ((*(*vp).ops).close).unwrap () (vp);                             // C 7224
+      ((*(*vdst).ops).close).unwrap () (vdst);                         // C 7225
+      return rc;                                                       // C 7226
+    }
+
+    /* error1: */
+    ((*(*vp).ops).close).unwrap () (vp);                               // C 7229
+  }
+
+  /* error: */
+  return -1;                                                           // C 7231
+}
+
+/* Like `android_renameat_noreplace', but don't check for DST's
+   existence and don't accept placeholder SRCFD and DSTFD
+   arguments.  */                                                      // C 7234-7236
+
+/* C 7238-7263.  The two `goto`s are the `android_renameat_noreplace` pair's (C 7239-7263).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_rename (src: *const c_char, dst: *const c_char) -> c_int
+{
+  let mut vp: *mut android_vnode;                                      // C 7241
+  let mut vdst: *mut android_vnode;                                    // C 7241
+  let mut rc: c_int = 0;                                               // C 7242
+
+  /* Find vnodes for both src and dst.  */                             // C 7244
+
+  'error1: {
+    vp = android_name_file (src);                                      // C 7246
+    if vp.is_null ()                                                   // C 7247
+      { break 'error1; }                                               // C 7248 (C's `goto error`)
+
+    'error: {
+      vdst = android_name_file (dst);                                  // C 7250
+      if vdst.is_null ()                                               // C 7251
+	{ break 'error; }                                              // C 7252 (C's `goto error1`)
+
+      /* Now try to rename vp to vdst.  */                             // C 7254
+      rc = ((*(*vp).ops).rename).unwrap () (vp, vdst, false);          // C 7255
+      ((*(*vp).ops).close).unwrap () (vp);                             // C 7256
+      ((*(*vdst).ops).close).unwrap () (vdst);                         // C 7257
+      return rc;                                                       // C 7258
+    }
+
+    /* error1: */
+    ((*(*vp).ops).close).unwrap () (vp);                               // C 7261
+  }
+
+  /* error: */
+  return -1;                                                           // C 7263
+}
+
+/* fstat, fstatat, faccessat, close/fclose etc.  These functions are
+   somewhat tricky to wrap: they (at least partially) operate on file
+   descriptors, which sometimes provide a base directory for the
+   filesystem operations they perform.  VFS nodes aren't mapped to
+   file descriptors opened through them, which makes this troublesome.
+
+   openat is not wrapped at all; uses are defined out when Emacs is
+   being built for Android.  The other functions fall back to directly
+   making Unix system calls when their base directory arguments are
+   not AT_FDCWD and no directory stream returned from
+   `android_opendir' ever returned that file descriptor, which is
+   enough to satisfy Emacs's current requirements for those functions
+   when a directory file descriptor is supplied.
+
+   fclose and close are finally wrapped because they need to erase
+   information used to link file descriptors with file statistics from
+   their origins; fstat is also wrapped to take this information into
+   account, so that it can return correct file statistics for asset
+   directory files.  */                                                // C 7268-7286
+
+/* Like fstat.  However, look up the asset corresponding to the file
+   descriptor.  If it exists, return the right information.  */        // C 7288-7289
+
+/* C 7292-7334.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_fstat (fd: c_int, statb: *mut stat) -> c_int
+{
+  let mut tem: *mut android_afs_open_fd;                               // C 7294
+  let mut parcel_fd: *mut android_parcel_fd;                           // C 7295
+  let mut rc: c_int = 0;                                               // C 7296
+
+  tem = afs_file_descriptors;                                          // C 7298
+  while ! tem.is_null ()                                               // C 7298
+    {
+      if (*tem).fd == fd                                               // C 7300
+	{
+	  memcpy (statb as *mut c_void,                                  // C 7302
+		  &raw const (*tem).statb as *const c_void,              // C 7302
+		  std::mem::size_of::<stat> ());                         // C 7302
+	  return 0;                                                      // C 7303
+	}
+      tem = (*tem).next;                                               // C 7298 (the `for` step)
+    }
+
+  rc = fstat (fd, statb);                                              // C 7307
+
+  /* Now look for a matching parcel file descriptor and use its
+     mtime if available.  */                                           // C 7309-7310
+
+  parcel_fd = open_parcel_fds;                                         // C 7312
+  while ! parcel_fd.is_null ()                                         // C 7313
+    {
+      if (*parcel_fd).fd == fd                                         // C 7315
+	/* Set STATB->st_dev to a negative device number, signifying
+	   that it's contained within a content provider.  */          // C 7316-7317
+	{ (*statb).st_dev = -4; }                                      // C 7318
+
+      if (*parcel_fd).fd == fd                                         // C 7320
+	  && timespec_valid_p ((*parcel_fd).mtime)                     // C 7321
+	{
+	  /* C 7322-7324's `#ifdef STAT_TIMESPEC` pair: the live arm is `STAT_TIMESPEC (statb,
+	     st_mtim)`, lib/stat-time.h 61's `##`-composed member name (the `android_afs_open` note),
+	     and the `#else` arm's `st_mtime`/`st_mtime_nsec` are the gnulib override's fields the
+	     mirror does not carry, so that arm is carried as a record (Deviation 22's Owed item).  */
+	  #[cfg (feature = "stat_timespec")]
+	  { (*statb).st_mtimespec = (*parcel_fd).mtime; }              // C 7324
+	  #[cfg (not (feature = "stat_timespec"))]
+	  {
+	    /* C 7328-7329:
+		 statb->st_mtime = parcel_fd->mtime.tv_sec;
+		 statb->st_mtime_nsec = parcel_fd->mtime.tv_nsec;  */
+	  }
+	  break;                                                       // C 7329
+	}
+      parcel_fd = (*parcel_fd).next;                                   // C 7313 (the `for` step)
+    }
+
+  return rc;                                                           // C 7333
+}
+
+/* If DIRFD is a file descriptor returned by `android_readdir' for a
+   non-Unix file stream, return FILENAME relative to the file name of
+   the directory represented by that stream within BUFFER, a buffer
+   SIZE bytes long.
+
+   Value is 0 if a file name is returned, 1 otherwise.  */             // C 7336-7341
+
+/* C 7343-7413.  C's five early returns stand as they are: the five lookups are tried in C's
+   order and the last one is the `1` that says "not a VFS directory stream".  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_fstatat_1 (dirfd: c_int, filename: *const c_char,
+					buffer: *mut c_char, size: size_t) -> c_int
+{
+  let mut dir_name: *mut c_char;                                       // C 7347
+  let mut vdir: *mut android_saf_root_vdir;                            // C 7348
+  let mut vdir1: *mut android_saf_tree_vdir;                           // C 7349
+
+  /* Now establish whether DIRFD is a file descriptor corresponding to
+     an open asset directory stream.  */                               // C 7351-7352
+
+  dir_name = android_afs_get_directory_name (dirfd);                   // C 7354
+
+  if ! dir_name.is_null ()                                             // C 7356
+    {
+      /* Look for PATHNAME relative to this directory within an asset
+	 vnode.  */                                                     // C 7358-7359
+      snprintf (buffer, size, c"/assets%s%s".as_ptr (),                // C 7360
+		dir_name, filename);                                   // C 7360
+      return 0;                                                        // C 7362
+    }
+
+  /* Do the same, but for /content directories instead.  */             // C 7365
+
+  dir_name = android_content_get_directory_name (dirfd);               // C 7367
+
+  if ! dir_name.is_null ()                                             // C 7369
+    {
+      /* Look for PATHNAME relative to this directory within an asset
+	 vnode.  */                                                     // C 7358-7359
+      snprintf (buffer, size, c"%s/%s".as_ptr (),                      // C 7373
+		dir_name, filename);                                   // C 7373
+      return 0;                                                        // C 7375
+    }
+
+  /* And for /content/storage.  */                                     // C 7378
+
+  vdir = android_saf_root_get_directory (dirfd);                       // C 7380
+
+  if ! vdir.is_null ()                                                 // C 7382
+    {
+      if ! (*vdir).authority.is_null ()                                // C 7384
+	{
+	  snprintf (buffer, size, c"/content/storage/%s/%s".as_ptr (),   // C 7385
+		    (*vdir).authority, filename);                        // C 7386
+	}
+      else
+	{
+	  snprintf (buffer, size, c"/content/storage/%s".as_ptr (),      // C 7388
+		    filename);                                           // C 7389
+	}
+
+      return 0;                                                        // C 7391
+    }
+
+  /* /content/storage/foo/... */                                       // C 7394
+
+  vdir1 = android_saf_tree_get_directory (dirfd);                      // C 7396
+
+  if ! vdir1.is_null ()                                                // C 7398
+    {
+      snprintf (buffer, size, c"%s%s".as_ptr (), (*vdir1).name,        // C 7400
+		filename);                                             // C 7400
+      return 0;                                                        // C 7401
+    }
+
+  /* /foo... */                                                        // C 7404
+
+  if root_fd >= 0 && dirfd == root_fd                                  // C 7406
+    {
+      snprintf (buffer, size, c"/%s".as_ptr (), filename);             // C 7408
+      return 0;                                                        // C 7409
+    }
+
+  return 1;                                                            // C 7412
+}
+
+/* If DIRFD is AT_FDCWD or a file descriptor returned by
+   `android_dirfd', or PATHNAME is an absolute file name, return the
+   file status of the VFS node designated by PATHNAME relative to the
+   VFS node corresponding to DIRFD, or relative to the current working
+   directory if DIRFD is AT_FDCWD.
+
+   Otherwise, call `fstatat' with DIRFD, PATHNAME, STATBUF and
+   FLAGS.  */                                                          // C 7415-7422
+
+/* C 7424-7462.  C's `vfs:` label's statements follow the labelled block, and the two `goto vfs`s
+   are `break 'vfs`s out of it (the slice-15 device); C's third arm returns the system call.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_fstatat (dirfd: c_int, mut pathname: *const c_char,
+					  statbuf: *mut stat, flags: c_int) -> c_int
+{
+  let mut buffer: [c_char; EMACS_PATH_MAX as usize + 1]                // C 7428
+    = [0; EMACS_PATH_MAX as usize + 1];
+  let mut vp: *mut android_vnode;                                      // C 7429
+  let mut rc: c_int = 0;                                               // C 7430
+
+  /* Emacs uses AT_SYMLINK_NOFOLLOW, but fortunately (?) DIRFD is
+     never known to Emacs or AT_FDCWD when it originates from a VFS
+     node representing a filesystem that supports symlinks.  */        // C 7432-7434
+
+  'vfs: {
+    if dirfd == AT_FDCWD || *pathname == b'/' as c_char               // C 7436
+      { break 'vfs; }                                                  // C 7437
+
+    /* Now establish whether DIRFD is a file descriptor corresponding to
+       an open VFS directory stream.  */                              // C 7439-7440
+
+    if android_fstatat_1 (dirfd, pathname, buffer.as_mut_ptr (),       // C 7442
+			  EMACS_PATH_MAX as usize + 1) == 0            // C 7442
+      {
+	pathname = buffer.as_mut_ptr ();                               // C 7444
+	break 'vfs;                                                    // C 7445
+      }
+
+    /* Fall back to fstatat.  */                                       // C 7448
+    return fstatat (dirfd, pathname, statbuf, flags);                  // C 7449
+  }
+
+  /* vfs: */
+  vp = android_name_file (pathname);                                   // C 7452
+  if vp.is_null ()                                                     // C 7453
+    { return -1; }                                                     // C 7454
+
+  rc = ((*(*vp).ops).stat).unwrap () (vp, statbuf, flags);             // C 7456
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7457
+  return rc;                                                           // C 7458
+}
+
+/* Like `android_fstatat', but check file accessibility instead of
+   status.  */                                                         // C 7461-7462
+
+/* C 7464-7502.  The `vfs:` pair is `android_fstatat`'s.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_faccessat (dirfd: c_int, mut pathname: *const c_char,
+					    mode: c_int, flags: c_int) -> c_int
+{
+  let mut buffer: [c_char; EMACS_PATH_MAX as usize + 1]                // C 7468
+    = [0; EMACS_PATH_MAX as usize + 1];
+  let mut vp: *mut android_vnode;                                      // C 7469
+  let mut rc: c_int = 0;                                               // C 7470
+
+  /* Emacs uses AT_SYMLINK_NOFOLLOW, but fortunately (?) DIRFD is
+     never known to Emacs or AT_FDCWD when it originates from a VFS
+     node representing a filesystem that supports symlinks.  */        // C 7472-7474
+
+  'vfs: {
+    if dirfd == AT_FDCWD || *pathname == b'/' as c_char               // C 7476
+      { break 'vfs; }                                                  // C 7477
+
+    /* Now establish whether DIRFD is a file descriptor corresponding to
+       an open VFS directory stream.  */                              // C 7479-7480
+
+    if android_fstatat_1 (dirfd, pathname, buffer.as_mut_ptr (),       // C 7482
+			  EMACS_PATH_MAX as usize + 1) == 0            // C 7482
+      {
+	pathname = buffer.as_mut_ptr ();                               // C 7484
+	break 'vfs;                                                    // C 7485
+      }
+
+    /* Fall back to faccessat.  */                                     // C 7488
+    return faccessat (dirfd, pathname, mode, flags);                   // C 7489
+  }
+
+  /* vfs: */
+  vp = android_name_file (pathname);                                   // C 7492
+  if vp.is_null ()                                                     // C 7493
+    { return -1; }                                                     // C 7494
+
+  rc = ((*(*vp).ops).access).unwrap () (vp, mode);                     // C 7496
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7497
+  return rc;                                                           // C 7498
+}
+
+/* Like `android_fstatat', but set file modes instead of
+   checking file status and respect FLAGS.  */                         // C 7501-7502
+
+/* C 7504-7538.  The `vfs:` pair is `android_fstatat`'s; this one has no AT_SYMLINK_NOFOLLOW
+   note in C.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_fchmodat (dirfd: c_int, mut pathname: *const c_char,
+					   mode: mode_t, flags: c_int) -> c_int
+{
+  let mut buffer: [c_char; EMACS_PATH_MAX as usize + 1]                // C 7508
+    = [0; EMACS_PATH_MAX as usize + 1];
+  let mut vp: *mut android_vnode;                                      // C 7509
+  let mut rc: c_int = 0;                                               // C 7510
+
+  'vfs: {
+    if dirfd == AT_FDCWD || *pathname == b'/' as c_char               // C 7512
+      { break 'vfs; }                                                  // C 7513
+
+    /* Now establish whether DIRFD is a file descriptor corresponding to
+       an open VFS directory stream.  */                              // C 7515-7516
+
+    if android_fstatat_1 (dirfd, pathname, buffer.as_mut_ptr (),       // C 7518
+			  EMACS_PATH_MAX as usize + 1) == 0            // C 7518
+      {
+	pathname = buffer.as_mut_ptr ();                               // C 7520
+	break 'vfs;                                                    // C 7521
+      }
+
+    /* Fall back to fchmodat.  */                                      // C 7524
+    return fchmodat (dirfd, pathname, mode, flags);                    // C 7525
+  }
+
+  /* vfs: */
+  vp = android_name_file (pathname);                                   // C 7528
+  if vp.is_null ()                                                     // C 7529
+    { return -1; }                                                     // C 7530
+
+  rc = ((*(*vp).ops).chmod).unwrap () (vp, mode, flags);               // C 7532
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7533
+  return rc;                                                           // C 7534
+}
+
+/* Like `android_fstatat', but return the target of any symbolic link
+   at PATHNAME instead of checking file status.  */                    // C 7537-7538
+
+/* C 7540-7571.  The `vfs:` pair is `android_fstatat`'s; `rc` is `ssize_t` here.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_readlinkat (dirfd: c_int, mut pathname: *const c_char,
+					     buf: *mut c_char, bufsiz: size_t) -> ssize_t
+{
+  let mut buffer: [c_char; EMACS_PATH_MAX as usize + 1]                // C 7544
+    = [0; EMACS_PATH_MAX as usize + 1];
+  let mut vp: *mut android_vnode;                                      // C 7545
+  let mut rc: ssize_t = 0;                                             // C 7546
+
+  'vfs: {
+    if dirfd == AT_FDCWD || *pathname == b'/' as c_char               // C 7548
+      { break 'vfs; }                                                  // C 7549
+
+    /* Now establish whether DIRFD is a file descriptor corresponding to
+       an open VFS directory stream.  */                              // C 7551-7552
+
+    if android_fstatat_1 (dirfd, pathname, buffer.as_mut_ptr (),       // C 7554
+			  EMACS_PATH_MAX as usize + 1) == 0            // C 7554
+      {
+	pathname = buffer.as_mut_ptr ();                               // C 7556
+	break 'vfs;                                                    // C 7557
+      }
+
+    /* Fall back to readlinkat.  */                                    // C 7560
+    return readlinkat (dirfd, pathname, buf, bufsiz);                  // C 7561
+  }
+
+  /* vfs: */
+  vp = android_name_file (pathname);                                   // C 7564
+  if vp.is_null ()                                                     // C 7565
+    { return -1; }                                                     // C 7566
+
+  rc = ((*(*vp).ops).readlink).unwrap () (vp, buf, bufsiz);            // C 7568
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7569
+  return rc;                                                           // C 7570
+}
+
+/* Like `fdopen', but if FD is a parcel file descriptor, ``detach'' it
+   from the original.
+
+   This is necessary because ownership over parcel file descriptors is
+   retained by the ParcelFileDescriptor objects that return them,
+   while file streams also require ownership over file descriptors
+   they are created on behalf of.
+
+   Detaching the parcel file descriptor linked to FD consequently
+   prevents the owner from being notified when it is eventually
+   closed, but for now that hasn't been demonstrated to be problematic
+   yet, as Emacs doesn't write to file streams.  */                    // C 7573-7584
+
+/* C 7586-7617.  The `for (next = &…; (tem = *next);)` loop is
+   `android_close_parcel_fd`'s device (C 6140-6170), and the `fdopen` at C 7617 is the one name of
+   this slice no mirror carries: `lib/include/stdio.rs` has `fclose`/`fileno` but not `fdopen`
+   (the gnulib template `lib/include/stdio.in.rs` 247-248 has it, and no unit reaches that file),
+   so the declaration stands at its use site (P-88 ①, the `atol` shape of `androidfns.rs`
+   4325-4344).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<stdio.h>` 517: `FILE *fdopen (int fd, const char *mode);`
+  pub fn fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE
+{
+  let mut tem: *mut android_parcel_fd;                                 // C 7589
+  let mut next: *mut *mut android_parcel_fd;                           // C 7589
+  let mut temp: *mut android_parcel_fd;                                // C 7589
+  let mut new_fd: c_int = 0;                                           // C 7590
+
+  next = &raw mut open_parcel_fds;                                     // C 7592
+  loop
+    {
+      tem = *next;                                                     // C 7589
+      if tem.is_null ()                                                // C 7592
+	{ break; }
+
+      if (*tem).fd == fd                                               // C 7594
+	{
+	  new_fd
+	    = ((*(*android_java_env)).CallIntMethod.unwrap ())             // C 7597
+	    (android_java_env,                                             // C 7598
+	     (*tem).descriptor,                                            // C 7598
+	     fd_class.detach_fd);                                          // C 7599
+	  temp = (*tem).next;                                              // C 7600
+	  xfree (tem as *mut c_void);                                      // C 7601
+	  *next = temp;                                                    // C 7602
+	  android_exception_check ();                                      // C 7603
+
+	  /* Assert that FD (returned from `getFd') is identical to
+	     the file descriptor returned by `detachFd'.  */           // C 7605-7606
+
+	  if fd != new_fd                                                  // C 7608
+	    { emacs_abort (); }                                            // C 7609
+
+	  break;                                                           // C 7611
+	}
+      else
+	{ next = &raw mut (**next).next; }                             // C 7614
+    }
+
+  return fdopen (fd, mode);                                            // C 7617
+}
+
+/* Like close.  However, remove the file descriptor from the asset
+   table as well.  */                                                  // C 7620-7621
+
+/* C 7624-7646.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_close (fd: c_int) -> c_int
+{
+  let mut tem: *mut android_afs_open_fd;                               // C 7626
+  let mut next: *mut *mut android_afs_open_fd;                         // C 7626
+  let mut temp: *mut android_afs_open_fd;                              // C 7626
+
+  if android_close_parcel_fd (fd)                                      // C 7628
+    { return 0; }                                                      // C 7629
+
+  next = &raw mut afs_file_descriptors;                                // C 7631
+  loop
+    {
+      tem = *next;                                                     // C 7631
+      if tem.is_null ()                                                // C 7631
+	{ break; }
+
+      if (*tem).fd == fd                                               // C 7633
+	{
+	  temp = (*tem).next;                                          // C 7635
+	  xfree (tem as *mut c_void);                                  // C 7636
+	  *next = temp;                                                // C 7637
+
+	  break;                                                       // C 7639
+	}
+      else
+	{ next = &raw mut (**next).next; }                             // C 7642
+    }
+
+  return close (fd);                                                   // C 7645
+}
+
+/* Like fclose.  However, remove any information associated with
+   FILE's file descriptor from the asset table as well.  */            // C 7648-7649
+
+/* C 7651-7678.  C's `skip:` label's statement follows the labelled block, and `goto skip` is
+   `break 'skip` out of it (the slice-15 device); C's `xfree (*next)` at 7669 is C's own text -
+   the `android_close` sibling right below frees `tem` instead.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_fclose (stream: *mut FILE) -> c_int
+{
+  let mut fd: c_int;                                                   // C 7654
+  let mut tem: *mut android_afs_open_fd;                               // C 7655
+  let mut next: *mut *mut android_afs_open_fd;                         // C 7655
+  let mut temp: *mut android_afs_open_fd;                              // C 7655
+
+  fd = fileno (stream);                                                // C 7657
+
+  'skip: {
+    if fd == -1                                                         // C 7659
+      { break 'skip; }                                                  // C 7660 (C's `goto skip`)
+
+    next = &raw mut afs_file_descriptors;                               // C 7662
+    loop
+      {
+	tem = *next;                                                   // C 7662
+	if tem.is_null ()                                              // C 7662
+	  { break; }
+
+	if (*tem).fd == fd                                             // C 7664
+	  {
+	    temp = (*tem).next;                                        // C 7666
+	    xfree (*next as *mut c_void);                              // C 7667
+	    *next = temp;                                              // C 7668
+
+	    break;                                                     // C 7670
+	  }
+	else
+	  { next = &raw mut (**next).next; }                           // C 7673
+      }
+  }
+
+  /* skip: */
+  return fclose (stream);                                              // C 7677
+}
+
+/* External asset management interface.  By using functions here
+   to read and write from files, Emacs can avoid opening a
+   shared memory file descriptor for each ``asset'' file.  */          // C 7682-7684
+
+/* Like android_open.  However, return a structure that can
+   either directly hold an AAsset or a file descriptor.
+
+   Value is the structure upon success.  Upon failure, value
+   consists of an uninitialized file descriptor, but its asset
+   field is set to -1, and errno is set accordingly.  */               // C 7686-7691
+
+/* C 7693-7737.  C's `failure:` label sits inside the `rc < 0` arm and is also the target of the
+   `goto failure` above it, so the arm's test is `break 'failure` and C's three statements follow
+   the labelled block (the slice-15 device); `struct android_fd_or_asset` itself is C 170-177's,
+   carried by `include/android.rs` 69-79.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_open_asset (filename: *const c_char, oflag: c_int,
+					     mode: mode_t) -> android_fd_or_asset
+{
+  /* C leaves `fd` uninitialised (PORTING.md 1.5): every path assigns the two fields or returns
+     from the label statements below.  */
+  let mut fd: android_fd_or_asset = std::mem::zeroed ();               // C 7695
+  /* C leaves `asset` uninitialised (PORTING.md 1.5): the `open` method's second out parameter
+     (C 7706) fills it when an asset is returned, and only that path reads it.  */
+  let mut asset: *mut AAsset = std::ptr::null_mut ();                  // C 7697
+  let mut rc: c_int = 0;                                               // C 7698
+  let mut vp: *mut android_vnode;                                      // C 7699
+
+  'failure: {
+    /* Now name this file.  */                                          // C 7701
+    vp = android_name_file (filename);                                 // C 7702
+    if vp.is_null ()                                                   // C 7703
+      { break 'failure; }                                              // C 7704
+
+    rc = ((*(*vp).ops).open).unwrap () (vp, oflag, mode, true,         // C 7706
+					&raw mut fd.fd, &raw mut asset);   // C 7706
+    ((*(*vp).ops).close).unwrap () (vp);                               // C 7708
+
+    /* Upon failure, return fd with its asset field set to (void *)
+       -1.  */                                                         // C 7710-7711
+
+    if rc < 0                                                          // C 7713
+      { break 'failure; }                                              // C 7715 (the `failure:` label, C 7715)
+
+    if rc == 1                                                         // C 7721
+      {
+	/* An asset file was returned.  Return the structure containing
+	   an asset.  */                                               // C 7723-7724
+	fd.asset = asset as *mut c_void;                               // C 7725
+	fd.fd = -1;                                                    // C 7726
+	return fd;                                                     // C 7727
+      }
+
+    /* Otherwise, a file descriptor has been returned.  Set fd.asset to
+       NULL, signifying that it is a file descriptor.  */             // C 7730-7731
+    fd.asset = std::ptr::null_mut ();                                  // C 7732
+    return fd;                                                         // C 7733
+  }
+
+  /* failure: */
+  fd.asset = (-1 as isize) as *mut c_void;                             // C 7716
+  fd.fd = -1;                                                          // C 7717
+  return fd;                                                           // C 7718
+}
+
+/* Like android_close.  However, it takes a ``file descriptor''
+   opened using android_open_asset.  */                                // C 7736-7737
+
+/* C 7740-7747.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_close_asset (asset: android_fd_or_asset) -> c_int
+{
+  if asset.asset.is_null ()                                            // C 7742
+    { return android_close (asset.fd); }                               // C 7743
+
+  AAsset_close (asset.asset as *mut AAsset);                           // C 7745
+  return 0;                                                            // C 7746
+}
+
+/* Like `emacs_read_quit'.  However, it handles file descriptors
+   opened using `android_open_asset' as well.  */                      // C 7749-7750
+
+/* C 7753-7762.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_asset_read_quit (asset: android_fd_or_asset,
+						  buffer: *mut c_void, size: size_t) -> ssize_t
+{
+  if asset.asset.is_null ()                                            // C 7756
+    { return emacs_read_quit (asset.fd, buffer, size as ptrdiff_t) as ssize_t; }   // C 7757
+
+  /* It doesn't seem possible to quit from inside AAsset_read,
+     sadly.  */                                                         // C 7759-7760
+  return AAsset_read (asset.asset as *mut AAsset, buffer, size) as ssize_t;   // C 7761
+}
+
+/* Like `read'.  However, it handles file descriptors opened
+   using `android_open_asset' as well.  */                             // C 7764-7765
+
+/* C 7768-7777.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_asset_read (asset: android_fd_or_asset,
+					     buffer: *mut c_void, size: size_t) -> ssize_t
+{
+  if asset.asset.is_null ()                                            // C 7771
+    { return read (asset.fd, buffer, size); }                          // C 7772
+
+  /* It doesn't seem possible to quit from inside AAsset_read,
+     sadly.  */                                                         // C 7759-7760
+  return AAsset_read (asset.asset as *mut AAsset, buffer, size) as ssize_t;   // C 7776
+}
+
+/* Like `lseek', but it handles ``file descriptors'' opened with
+   android_open_asset.  */                                             // C 7779-7780
+
+/* C 7782-7792.  The `AAsset_seek` declaration below is the `>= 9` arm's: the arm's NDK header
+   declares it (asset_manager.h), and the `#else` arm's mirror defines it
+   (`include/android-asset.rs` 619) - the `android_api_ge_9` split `AAsset_read`/`AAsset_close`
+   already carry (the slice-4 rule).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg (feature = "android_api_ge_9")]
+unsafe extern "C" {
+  /// C: `off_t AAsset_seek (AAsset *asset, off_t off, int whence);`
+  pub fn AAsset_seek (asset: *mut AAsset, off: off_t, whence: c_int) -> off_t;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_asset_lseek (asset: android_fd_or_asset, off: off_t,
+					      whence: c_int) -> off_t
+{
+  if asset.asset.is_null ()                                            // C 7786
+    { return lseek (asset.fd, off, whence); }                          // C 7787
+
+  return AAsset_seek (asset.asset as *mut AAsset, off, whence);        // C 7789
+}
+
+/* Like `fstat'.  */                                                    // C 7792
+
+/* C 7795-7833.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_asset_fstat (asset: android_fd_or_asset,
+					      statb: *mut stat) -> c_int
+{
+  if asset.asset.is_null ()                                            // C 7798
+    { return android_fstat (asset.fd, statb); }                        // C 7799
+
+  /* Clear statb.  */                                                  // C 7801
+  memset (statb as *mut c_void, 0, std::mem::size_of::<stat> ());      // C 7802
+
+  /* Set the mode.  */                                                 // C 7804
+  (*statb).st_mode = S_IFREG | S_IRUSR | S_IRGRP | S_IROTH;            // C 7805
+
+  /* Concoct a nonexistent device and an inode number.  */             // C 7807
+  (*statb).st_dev = -1;                                                // C 7808
+  (*statb).st_ino = 0;                                                 // C 7809
+
+  /* Owned by root.  */                                                // C 7811
+  (*statb).st_uid = 0;                                                 // C 7812
+  (*statb).st_gid = 0;                                                 // C 7813
+
+  /* If the installation date can be ascertained, return that as the
+     file's modification time.  */                                    // C 7815-7816
+
+  if timespec_valid_p (emacs_installation_time)                        // C 7818
+    {
+      /* C 7819-7823's `#ifdef STAT_TIMESPEC` pair: the live arm is `STAT_TIMESPEC (statb,
+	 st_mtim)`, lib/stat-time.h 61's `##`-composed member name (the `android_afs_open` note),
+	 and the `#else` arm's two statements are the gnulib override's fields the mirror does not
+	 carry, so that arm is carried as a record (Deviation 22's Owed item), including C 7820-7821's
+	 comment on the NDK r10b headers.  */
+      #[cfg (feature = "stat_timespec")]
+      { (*statb).st_mtimespec = emacs_installation_time; }             // C 7821 (`STAT_TIMESPEC
+								       //  (statb, st_mtim)`)
+      #[cfg (not (feature = "stat_timespec"))]
+      {
+	/* C 7820-7821's comment and C 7826-7827:
+	     /* Headers supplied by the NDK r10b contain a `struct stat'
+		without POSIX fields for nano-second timestamps.  */
+	     statb->st_mtime = emacs_installation_time.tv_sec;
+	     statb->st_mtime_nsec = emacs_installation_time.tv_nsec;  */
+      }
+    }
+
+  /* Size of the file.  */                                             // C 7830
+  (*statb).st_size = AAsset_getLength (asset.asset as *mut AAsset) as off_t;    // C 7831
+  return 0;                                                            // C 7832
+}
+
+/* Directory listing emulation.  */                                     // C 7837
+
+/* Open a directory stream from the VFS node designated by NAME.
+   Value is NULL upon failure with errno set accordingly.  `errno' may
+   be set to EINTR.
+
+   The directory stream returned holds local references to JNI objects
+   and shouldn't be used after the current local reference frame is
+   popped.  */                                                         // C 7839-7845
+
+/* C 7847-7861.  C returns `struct dirent *`, and `struct android_vdir`'s `readdir` member keeps
+   the untyped pointer (P-55), so `android_readdir` below does too.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_opendir (name: *const c_char) -> *mut android_vdir
+{
+  let mut vp: *mut android_vnode;                                      // C 7850
+  let mut dir: *mut android_vdir;                                      // C 7851
+
+  vp = android_name_file (name);                                       // C 7853
+  if vp.is_null ()                                                     // C 7854
+    { return std::ptr::null_mut (); }                                  // C 7855
+
+  dir = ((*(*vp).ops).opendir).unwrap () (vp);                         // C 7857
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7858
+  return dir;                                                          // C 7859
+}
+
+/* Like dirfd.  However, value is not a real directory file descriptor
+   if DIR is an asset directory.  */                                  // C 7862-7863
+
+/* C 7866-7869.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_dirfd (dirp: *mut android_vdir) -> c_int
+{
+  return ((*dirp).dirfd).unwrap () (dirp);                             // C 7868
+}
+
+/* Like readdir, but for VFS directory streams instead.  */             // C 7870
+
+/* C 7874-7877.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_readdir (dirp: *mut android_vdir) -> *mut c_void
+{
+  return ((*dirp).readdir).unwrap () (dirp);                           // C 7876
+}
+
+/* Like closedir, but for VFS directory streams instead.  */            // C 7878
+
+/* C 7882-7885.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_closedir (dirp: *mut android_vdir)
+{
+  return ((*dirp).closedir).unwrap () (dirp);                          // C 7884
+}
+
+/* C 7889-7941.  The `DEFUN` is `include/lisp.rs` 3380's macro (the record and the
+   `#[unsafe(no_mangle)]` definition together, exactly as C's `DEFUN` writes the `union
+   Aligned_Lisp_Subr` and the function); `Qandroid_jni` is already the symbol
+   `include/globals.rs` 1102 indexes, so C 7947's `DEFSYM` is the macro's registration of it.  */
+DEFUN! ("android-relinquish-directory-access", Fandroid_relinquish_directory_access,
+	Sandroid_relinquish_directory_access, 1, 1,
+	"DDirectory: ",
+	doc: "Relinquish access to the provided directory.\nDIRECTORY must be the toplevel directory of an open SAF volume (i.e., a\nfile under /content/storage), or one of its inferiors.  Once the command\ncompletes, the SAF directory holding this directory will vanish, but no\nfiles will be removed.",
+	(file: Lisp_Object),
+	{
+  let mut vp: *mut android_vnode;                                      // C 7900
+  let mut saf_tree: *mut android_saf_tree_vnode;                       // C 7901
+  let mut string: jstring;                                             // C 7902
+  let mut method: jmethodID;                                           // C 7903
+
+  /* C leaves all four uninitialised (PORTING.md 1.5): every path that reads one assigns it
+     first.  */
+  vp = std::ptr::null_mut ();
+  saf_tree = std::ptr::null_mut ();
+  string = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  /* C assigns to its `file` parameter (C 7912), so the port rebinds it mutable (the
+     `editfns.rs` 1372 device).  */
+  let mut file: Lisp_Object = file;
+
+  if android_get_current_api_level () < 21                             // C 7905
+    {
+      error (c"Emacs can only access or relinquish application storage on Android 5.0 and later".as_ptr ());   // C 7906-7907
+    }
+
+  if ! android_init_gui                                                // C 7909
+    { return Qnil (); }                                                // C 7910
+
+  file = ENCODE_FILE (Fexpand_file_name (file, Qnil ()));              // C 7912
+
+  if ! NILP (calln! (Qfile_remote_p (), file))                         // C 7914
+    { signal_error (c"Cannot relinquish access to remote file".as_ptr (), file); }   // C 7915
+
+  vp = android_name_file (SSDATA (file));                              // C 7917
+
+  if vp.is_null ()                                                     // C 7919
+    { report_file_error (c"Relinquishing directory".as_ptr (), file); }   // C 7920
+
+  if (*vp).r#type != ANDROID_VNODE_SAF_TREE as c_short                // C 7922
+    {
+      ((*(*vp).ops).close).unwrap () (vp);                             // C 7924
+      signal_error (c"Access to this directory cannot be relinquished".as_ptr (), file);   // C 7925
+    }
+
+  saf_tree = vp as *mut android_saf_tree_vnode;                        // C 7929
+  string   = android_build_jstring ((*saf_tree).tree_uri);             // C 7930
+  method   = service_class.relinquish_uri_rights;                      // C 7931
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())          // C 7932
+    (android_java_env,                                                 // C 7932
+     emacs_service,                                                    // C 7933
+     service_class.class,                                              // C 7934
+     method, string);                                                  // C 7935
+  ((*(*vp).ops).close).unwrap () (vp);                                 // C 7936
+  android_exception_check_1 (string);                                  // C 7937
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, string);   // C 7938
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  return Qnil ();                                                      // C 7939
+});
+
+/* C 7944-7950: the file's last item.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_androidvfs ()
+{
+  DEFSYM! (Qandroid_jni, "android-jni");                               // C 7947
+
+  defsubr (&raw mut Sandroid_relinquish_directory_access);             // C 7949
+}
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-# emacs/src/androidvfs.c (7,950 lines) — slice 1: C 1-995
+# emacs/src/androidvfs.c (7,950 lines) — slice 22: C 7085-7950, which carries the file whole
 
 > **P-86's largest unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 2647-2648 adds `androidvfs.o` to `ANDROID_OBJ` only in the really-Android branch
@@ -8,8 +8,10 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**8,926 lines**, md5 `b4f6b3a9b74e98c6181e1e589a965c99`), carrying
-> **C 1-7083** (slice 19 closed every deferral this lane had accumulated) (C 2520-2537's `content_vfs_ops`, C 2549-2639's
+> `femacs/src/androidvfs.rs` (**10,003 lines**, md5 `59b89e4dc18a05780c2921eede0f4d96`), carrying
+> **C 1-7950** — the file is ported whole; slice 22 wrote C 7085-7950, so `extract-abi.py --check`
+> has no `missing …` row left for this unit.  Slice 19 had closed every deferral this lane had
+> accumulated (C 2520-2537's `content_vfs_ops`, C 2549-2639's
 > `android_content_name`, C 2887-2906's `android_content_initial`, C 3688-3705's `saf_root_vfs_ops`,
 > C 3748-3848's `android_saf_root_name` and C 4209-4229's `android_saf_root_initial` - one
 > dependency chain that the round reaching C 5773 closes, Deviation 23/27 - plus, this round,
@@ -191,9 +193,36 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 6854-6856 | C 6855's form feed and the comment `/* File system lookup.  */` | file gate (slice 21) |
 | 6858-6936 | C 6858-6867's comment and `android_name_file` (C 6869-6936, C's `switch (c)` as the port's `match`) | file gate (slice 21) |
 | 6938-7083 | C 6940-6946's comment, `android_vfs_init` (C 6948-7018, the file's first non-static definition) and C 7020-7083's eleven-drawback comment | file gate (slice 21) |
-| 7085-7950 | **the remainder** - C 7085-7089's comment through C 7950: the `android_*` wrapper functions, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 7085-7110 | C 7085-7089's comment and `android_open` (C 7091-7109) | file gate (slice 22) |
+| 7111-7131 | C 7111-7113's comment and `android_unlink` (C 7116-7129) | file gate (slice 22) |
+| 7132-7147 | C 7129-7130's comment and `android_symlink` (C 7134-7147) | file gate (slice 22) |
+| 7148-7165 | C 7147-7148's comment and `android_rmdir` (C 7152-7165) | file gate (slice 22) |
+| 7166-7184 | C 7165-7167's comment and `android_mkdir` (C 7171-7184) | file gate (slice 22) |
+| 7185-7232 | C 7186-7197's comment and `android_renameat_noreplace` (C 7199-7232, C's `error1:`/`error:` labels) | file gate (slice 22) |
+| 7233-7263 | C 7234-7236's comment and `android_rename` (C 7238-7263) | file gate (slice 22) |
+| 7264-7334 | C 7266-7286's fd-wrapper banner, C 7288-7289's comment and `android_fstat` (C 7291-7334, the `#ifdef STAT_TIMESPEC` pair) | file gate (slice 22) |
+| 7335-7413 | C 7336-7341's comment and `android_fstatat_1` (C 7343-7413, the five directory-stream lookups) | file gate (slice 22) |
+| 7414-7462 | C 7415-7422's comment and `android_fstatat` (C 7424-7462, C's `vfs:` label) | file gate (slice 22) |
+| 7463-7502 | C 7464-7465's comment and `android_faccessat` (C 7465-7502) | file gate (slice 22) |
+| 7503-7538 | C 7504-7505's comment and `android_fchmodat` (C 7504-7538) | file gate (slice 22) |
+| 7539-7572 | C 7540-7541's comment and `android_readlinkat` (C 7540-7572) | file gate (slice 22) |
+| 7573-7617 | C 7574-7584's comment and `android_fdopen` (C 7586-7617, the first `for (next = &…)` loop) | file gate (slice 22) |
+| 7618-7646 | C 7619-7620's comment and `android_close` (C 7623-7646) | file gate (slice 22) |
+| 7647-7678 | C 7648-7650's comment and `android_fclose` (C 7651-7678, C's `skip:` label) | file gate (slice 22) |
+| 7679-7734 | C 7680-7685's asset-interface banner, C 7687-7694's comment and `android_open_asset` (C 7693-7734, C's `failure:` label) | file gate (slice 22) |
+| 7735-7747 | C 7736-7737's comment and `android_close_asset` (C 7739-7747) | file gate (slice 22) |
+| 7748-7762 | C 7749-7750's comment and `android_asset_read_quit` (C 7752-7762) | file gate (slice 22) |
+| 7763-7777 | C 7764-7765's comment and `android_asset_read` (C 7767-7777) | file gate (slice 22) |
+| 7778-7790 | C 7779-7780's comment and `android_asset_lseek` (C 7782-7790) | file gate (slice 22) |
+| 7791-7833 | C 7792's comment and `android_asset_fstat` (C 7794-7833, the second `#ifdef STAT_TIMESPEC` pair) | file gate (slice 22) |
+| 7834-7860 | C 7837's banner comment, C 7839-7845's comment and `android_opendir` (C 7847-7860) | file gate (slice 22) |
+| 7861-7869 | C 7862-7863's comment and `android_dirfd` (C 7865-7869) | file gate (slice 22) |
+| 7870-7877 | C 7871's comment and `android_readdir` (C 7873-7877) | file gate (slice 22) |
+| 7878-7885 | C 7879's comment and `android_closedir` (C 7881-7885) | file gate (slice 22) |
+| 7886-7940 | C 7889-7940's `DEFUN ("android-relinquish-directory-access", …)` | file gate (slice 22) |
+| 7941-7950 | `syms_of_androidvfs` (C 7944-7950, the file's last item) | file gate (slice 22) |
 
-The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
+The seventy-two rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
 `tools/check-dead-file-coverage.py`'s per-line classification finds no non-blank line without a
 row.
@@ -401,9 +430,10 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    `android_vfs_canonicalize_name` → `case,default,switch` and its `goto` (Deviation 5-6), and
    `android_unix_name` → `goto`.  Both lines print in `--check` today and every other token of both
    bodies is present.
-5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
-   **stale** (**8,926** C lines carried = 112.3% of 7,950, above the ten-percent threshold; slice 1's
-   original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
+5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is still
+   **stale** and now reads **10,003** port lines = 125.8% of 7,950 (above the ten-percent threshold;
+   slice 1's original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
+   With slice 22 the file is *complete*, so the row can be dropped outright rather than re-derived.
 6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
    and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
    arm reaches `include/android-asset.rs`, which already carries the object (`android-asset.h` 26's
@@ -414,6 +444,23 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    two objects in that block (`directory_tree_size`, `asset_manager`) are *not* in the header and
    are the unit's.  (This is the round's Deviation 14.)
 
+
+7. **Three `android.h` names the unit now defines or declares itself** (slice 22): `struct
+   android_fd_or_asset` (`android.h` 175-182, defined in the unit from slice 22 on) and
+   `android_build_jstring` (`android.h` 128, declared at its use site), on top of
+   `android_get_current_api_level` (`android.h` 148, the slice-2 use site).  All three have a home
+   in the mirror `include/android.rs`, which this unit cannot include while that mirror carries C
+   164's `struct android_vdir` stand-in (Owed 2).  When Owed 2 is discharged in that mirror, this
+   unit's three items should move there and the unit should include the mirror - the same
+   same-commit rule (P-70/P-72 ③).
+8. `docs/ports/include-android.md` (another lane's row): the mirror's C 175-182 record and the
+   `fdopen` note below are the two measurements slice 22 took from this unit.
+9. `lib/include/stdio.rs` (another lane's file): `fdopen` (`FILE *fdopen (int, const char *)`) is
+   the one `<stdio.h>` name this unit needs that the mirror does not carry - it exists only in the
+   gnulib *template* `lib/include/stdio.in.rs` 247-248, which no unit reaches - so slice 22 declared
+   it at its use site (the `atol`/`getline` shape, `androidfns.rs` 4325-4344).  Adding it to the
+   mirror would let that use-site block go.
+
 ## Not claimed
 
 Every line of this slice sits behind gates the frozen configuration leaves false: ① is an empty
@@ -421,11 +468,16 @@ object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMe
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
 /`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
 readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
-type-check and emit an object under each arm, not that any of it behaves.  C 7085-7950 is
-**unported**: `extract-abi.py --check` reads **35** rows across that boundary (29 `missing …`, the
-five `invented exported symbol` rows - the `NATIVE_NAME` paste class - and the whole-file line-count
-row, which now reads **12.3%**: the port carries 8,926 lines against the reference's 7,950), and
-those rows are the boundary, not defects.
+type-check and emit an object under each arm, not that any of it behaves.  **No range of the file is
+unported any more** (slice 22 wrote C 7085-7950): `extract-abi.py --check` now reads **6** rows, and
+none is a `missing …` row - the five `invented exported symbol` rows are the `NATIVE_NAME` paste
+class (C has no non-`static` definition of `displayNameHash`, `ftruncate`, `safSync`,
+`safSyncAndReadInput` or `safPostRequest`; the port exports the Java-facing names with
+`#[unsafe(export_name = "Java_org_femacs_EmacsNative_…")]` because the JNI dispatcher looks the
+stripped native name up by that spelling), and the sixth is the whole-file line-count row, which now
+reads **25.8%**: the port carries 10,003 lines against the reference's 7,950, and this unit's port is
+longer than its reference by construction (every `// C NNNN` note, every `#[cfg]` gate and every
+explicit local initialisation is a line C does not have).  Those six rows are readings, not defects.
 
 ## Slice 2 (2026-10-08, status 4.106 - the integrator sets the round number): C 996-1022
 
@@ -1597,3 +1649,67 @@ was loaded, no global reference was made, and the semaphore was never initialize
 evidence *is*: both arms' `exit 0`, one control proving the harness reads this text, `--check`
 37 -> 35 with the new row discharged in-commit, and the ten gates.  **This file is not finished**: C
 7085-7950 remains (the next item is C 7091's `android_open`).
+
+## Slice 22 (2026-10-12, status 4.127 - the integrator sets the round number): C 7085-7950, the file closes
+
+The last range of the file: the `android_*` wrappers over the VFS operations (`android_open`,
+`android_unlink`, `android_symlink`, `android_rmdir`, `android_mkdir`,
+`android_renameat_noreplace`, `android_rename`), the file-descriptor family
+(`android_fstat`, the `static` `android_fstatat_1`, `android_fstatat`, `android_faccessat`,
+`android_fchmodat`, `android_readlinkat`, `android_fdopen`, `android_close`, `android_fclose`),
+the external asset interface (`android_open_asset`, `android_close_asset`,
+`android_asset_read_quit`, `android_asset_read`, `android_asset_lseek`, `android_asset_fstat`), the
+directory-listing emulation (`android_opendir`, `android_dirfd`, `android_readdir`,
+`android_closedir`), the `DEFUN` for `android-relinquish-directory-access` and the file's
+`syms_of_androidvfs`.
+
+### Evidence (arm readings and the check's rows)
+
+1. **Both arms compile**: `exit 0`, **0 errors**; warnings **8** (the `#else` arm) and **14** (the
+   `android_api_ge_9` arm) - the `#else` reading is the eleven previous rounds' 8 exactly, and the
+   `>= 9` reading is 13 plus the arm's new `AAsset_seek` declaration (a sixth "`extern` block uses
+   type `AAsset`, which is not FFI-safe" note).  Two real defects were found and fixed this round:
+   C's `if (vdir->authority) snprintf (…); else snprintf (…);` needs braces on both branches
+   (`expected '{', found 'snprintf'`), and `android_open_asset`'s `AAsset *asset;` is read after the
+   out-parameter call (`E0381`), so it is zero-initialised (PORTING.md 1.5).
+2. `extract-abi.py --check`: **35 rows -> 6**, and **no `missing …` row remains** - the eighteen
+   `missing function`, one `missing subr`, one `missing defsubr` and the nine others retired.  Eleven
+   new `does not mention …` rows appeared and were discharged **in this same commit** (eleven
+   `docs/ports/macro-body-notes.tsv` rows: `goto` for the seven functions with C's labels -
+   `android_renameat_noreplace`, `android_rename`, `android_fstatat`, `android_faccessat`,
+   `android_fchmodat`, `android_readlinkat`, `android_fclose`, `android_open_asset` - the six
+   `STAT_TIMESPEC` tokens for `android_fstat` and `android_asset_fstat`, and
+   `android_delete_local_ref` for `Fandroid_relinquish_directory_access`).  The six survivors are the
+   five `invented exported symbol` rows (the `NATIVE_NAME` paste class, in the file since slice 9) and
+   the whole-file line-count row, which came back up to **25.8%** (10,003 against 7,950) now that the
+   port is longer than its reference everywhere.
+3. **The unit's own three android.h names**: the file cannot include `include/android.rs` (Owed 2),
+   so slice 22 carries `struct android_fd_or_asset` (`android.h` 175-182, with the `size_of == 16` /
+   `offset_of … asset == 8` asserts) and declares `android_build_jstring` (`android.h` 128) at its
+   use site, on top of the slice-2 `android_get_current_api_level` (`android.h` 148).  Owed 7 names
+   the move.
+4. **`fdopen`**: the one `<stdio.h>` name of this range no mirror carries
+   (`lib/include/stdio.rs` has `fclose`/`fileno`; `fdopen` lives only in the gnulib template
+   `lib/include/stdio.in.rs` 247-248, which no unit reaches) - declared at its use site with the
+   `<stdio.h>` citation, and Owed 9 names the mirror row that would retire it.
+5. **Two `#ifdef STAT_TIMESPEC` pairs** (C 7322-7328 in `android_fstat`, C 7820-7827 in
+   `android_asset_fstat`): both are the `android_afs_open` device - the live arm reads the mirror's
+   `st_mtimespec` (lib/stat-time.h 61 composes `st_mtim`'s member name, which Rust cannot do), and the
+   `#else` arm's `st_mtime`/`st_mtime_nsec` are the gnulib override's fields the mirror lacks, so
+   that arm is carried as a record (Deviation 22's Owed item).
+6. **The file's first `DEFUN`**: `DEFUN!` (`include/lisp.rs` 3380) supplies both C's
+   `union Aligned_Lisp_Subr Sandroid_relinquish_directory_access` and the `#[unsafe(no_mangle)]`
+   definition, so C 7949's `defsubr (&Sandroid_relinquish_directory_access)` is the port's
+   `defsubr (&raw mut …)`; `Qandroid_jni` was already the symbol `include/globals.rs` 1102 indexes.
+   C's two statement assignments are the `let mut file: Lisp_Object = file;` rebind
+   (`editfns.rs` 1372's device), because C assigns to its `file` parameter at C 7912.
+
+### Not claimed
+
+`extract-abi.py --check` is a token-level reading, and both arm readings are compile-level: they say
+the unit's text and its include graph type-check and emit an object under each arm.  **Nothing in
+C 7085-7950 was executed**: no `open`/`unlink`/`symlink`/`mkdir`/`rename`/`stat`/`fstatat`/
+`faccessat`/`chmod`/`readlink` was dispatched to a vnode, no file descriptor was wrapped, no
+`AAsset` was read or sought, no directory stream was opened or read, no `defsubr` ran, and
+`syms_of_androidvfs` was never called.  The frozen configuration compiles nothing here at all (the
+head note), and this lane never links.
