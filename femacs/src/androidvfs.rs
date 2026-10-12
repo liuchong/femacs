@@ -1422,9 +1422,10 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 3199-7950: the remainder of the file, plus the three items slice 9 deferred (C 2520-2537's
+/* C 3615-7950: the remainder of the file, plus the three items slice 9 deferred (C 2520-2537's
    `content_vfs_ops`, C 2549-2639's `android_content_name` and C 2887-2906's
-   `android_content_initial` - the clique the round that reaches C 3577 closes), and
+   `android_content_initial` - one clique, and it closes at C 4219's `android_saf_root_initial`,
+   the last of the three initial functions `android_content_name`'s `content_vnodes[]` names), and
    `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
@@ -4126,4 +4127,488 @@ unsafe extern "C" fn android_saf_check_nonnull (object: *const c_void, mut n: c_
     }
 
   return 1;                                                            // C 3194
+}
+
+/* Content authority-based vnode implementation.
+
+   /content/by-authority is a simple vnode implementation that converts
+   components to content:// URIs.
+
+   It does not canonicalize file names by removing parent directory
+   separators, as these characters can appear in legitimate content
+   file names.  */                                                      // C 3199-3206
+
+/* C 3208-3216: `struct android_authority_vnode'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_authority_vnode
+{
+  /* The vnode data itself.  */
+  pub vnode: android_vnode,                                            // C 3211
+
+  /* URI associated with this vnode, or NULL if this is the root of
+     the content authority tree.  */
+  pub uri: *mut c_char,                                                // C 3215
+}
+/* Measured with the NDK's clang (the `android_afs_vnode` shape: 16 + 0 + 8).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_authority_vnode> () == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_authority_vnode, vnode) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_authority_vnode, uri) == 16);
+
+/* C 3218-3234: C's twelve forward declarations of this file's own `static` functions
+   (`android_authority_name` … `android_authority_opendir`); Rust needs no text for them
+   (PORTING.md 10.10).  */
+
+/* C 3236's comment `/* Vector of VFS operations associated with the content VFS node.  */`.  */
+
+/* C 3238-3253 - `authority_vfs_ops` - sits at this file's foot (Deviation 26): its text names the
+   twelve functions C defines at C 3256-3561, and Rust has no forward declaration (PORTING.md
+   10.10, the P-91 class `afs_vfs_ops`'s Deviation 21 records).  */
+
+/* C 3255-3335.  C's `goto no_entry` (C 3308) and `error:` (C 3333) become one labelled block with
+   the `error:` path written out after it (PORTING.md 2.2, the `android_unix_name` family).  Its
+   address is taken at C 3240, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_name (vnode: *mut android_vnode, mut name: *mut c_char,
+					     mut length: size_t) -> *mut android_vnode
+{
+  let mut vp: *mut android_authority_vnode;                            // C 3259
+  let mut uri_name: *mut c_char;                                       // C 3260
+
+  /* C leaves `vp` and `uri_name` uninitialised (PORTING.md 1.5); `vp` is assigned before any read
+     and `uri_name` only on the path that reads it.  */
+  vp = std::ptr::null_mut ();
+  uri_name = std::ptr::null_mut ();
+
+  if ! android_init_gui                                              // C 3262
+    {
+      *errno () = EIO;                                                 // C 3264
+      return std::ptr::null_mut ();                                    // C 3265
+    }
+
+  /* If NAME is empty or consists of a single directory separator
+     _and_ VP->uri is NULL, return a copy of VNODE.  */                // C 3268-3269
+
+  vp = vnode as *mut android_authority_vnode;                          // C 3271
+
+  'no_entry: {
+    if length < 1
+	|| (*name == b'/' as c_char && length == 1 && (*vp).uri.is_null ())   // C 3273
+      {
+	vp = xmalloc (std::mem::size_of::<android_authority_vnode> ()) as *mut android_authority_vnode;   // C 3275
+	memcpy (vp as *mut c_void, vnode as *const c_void,             // C 3276
+		std::mem::size_of::<android_authority_vnode> ());      // C 3276
+
+	if ! (*vp).uri.is_null ()                                      // C 3278
+	  { (*vp).uri = xstrdup ((*vp).uri); }                         // C 3279
+
+	return &raw mut (*vp).vnode;                                   // C 3281
+      }
+
+    /* Else, if VP->uri is NULL, then it is the root of the by-authority
+       tree.  If NAME starts with a directory separator character,
+       remove it.  */                                                  // C 3284-3286
+
+    if (*vp).uri.is_null ()                                            // C 3288
+      {
+	if *name == b'/' as c_char                                     // C 3290
+	  { name = name.offset (1); length -= 1; }                     // C 3291
+
+	/* If the provided URI is a directory, return NULL and set errno
+	   to ENOTDIR.  Content files are never directories.  */       // C 3293-3294
+
+	if *name.offset ((length - 1) as isize) == b'/' as c_char      // C 3296
+	  {
+	    *errno () = ENOTDIR;                                       // C 3298
+	    return std::ptr::null_mut ();                              // C 3299
+	  }
+
+	/* If the URI is not a valid JNI string, return immediately.  This
+	   should not be possible, since /content file names are encoded
+	   into JNI strings at the naming stage; the check is performed
+	   only out of an abundance of caution.  */                    // C 3302-3305
+
+	if android_verify_jni_string (name) != 0                       // C 3307
+	  { break 'no_entry; }                                         // C 3308 (goto no_entry)
+
+	if (*vp).vnode.r#type == ANDROID_VNODE_CONTENT_AUTHORITY_NAMED as c_short   // C 3310
+	  /* This indicates that the two trailing components of NAME
+	     provide a checksum and a file display name, to be verified,
+	     then excluded from the content URI.  */
+	  { uri_name = android_get_content_name (name, true); }        // C 3314
+	else
+	  { uri_name = android_get_content_name (name, false); }       // C 3316
+
+	if uri_name.is_null ()                                         // C 3318
+	  { return std::ptr::null_mut (); }                            // C 3319 (goto error)
+
+	/* Now fill in the vnode.  */                                   // C 3321
+	vp = xmalloc (std::mem::size_of::<android_authority_vnode> ()) as *mut android_authority_vnode;   // C 3322
+	(*vp).vnode.ops = &raw mut authority_vfs_ops;                  // C 3323
+	(*vp).vnode.r#type = ANDROID_VNODE_CONTENT_AUTHORITY as c_short;   // C 3324
+	(*vp).vnode.flags = 0;                                         // C 3325
+	(*vp).uri = uri_name;                                          // C 3326
+	return &raw mut (*vp).vnode;                                   // C 3327
+      }
+  }
+
+  /* Content files can't have children.  */
+  /* no_entry: */
+  *errno () = ENOENT;                                                  // C 3332
+  /* error: */
+  return std::ptr::null_mut ();                                        // C 3334
+}
+
+/* C 3337-3395.  Its address is taken at C 3241.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_open (vnode: *mut android_vnode, flags: c_int,
+					     mode: mode_t, asset_p: bool, fd_return: *mut c_int,
+					     asset: *mut *mut AAsset) -> c_int
+{
+  let mut vp: *mut android_authority_vnode;                            // C 3342
+  let mut string: jobject;                                             // C 3343
+  let mut fd: c_int;                                                   // C 3344
+  let mut env: *mut JNIEnv;                                            // C 3345
+
+  /* C leaves all four uninitialised (PORTING.md 1.5); each is assigned before its first read.  */
+  vp = std::ptr::null_mut ();
+  string = std::ptr::null_mut ();
+  fd = 0;
+  env = std::ptr::null_mut ();
+
+  vp = vnode as *mut android_authority_vnode;                          // C 3347
+
+  if (*vp).uri.is_null ()                                              // C 3349
+    {
+      /* This is the `by-authority' directory itself, which can't be
+	 opened.  */                                                   // C 3351-3352
+      *errno () = ENOSYS;                                              // C 3353
+      return -1;                                                       // C 3354
+    }
+
+  /* Save the JNI environment within `env', to make wrapping
+     subsequent lines referencing CallNonvirtualIntMethod
+     feasible.  */                                                     // C 3357-3359
+  env = android_java_env;                                              // C 3360
+
+  /* Allocate a JNI string to hold VP->uri.  */                         // C 3362
+  string = ((*(*env)).NewStringUTF.unwrap ()) (env, (*vp).uri);        // C 3363
+  android_exception_check ();                                          // C 3364
+
+  /* Try to open the file descriptor.  */                              // C 3366
+  fd = ((*(*env)).CallNonvirtualIntMethod.unwrap ()) (env, emacs_service,   // C 3367
+						      service_class.class,      // C 3368
+						      service_class.open_content_uri,   // C 3369
+						      string,               // C 3370
+						      (((mode as c_int) & O_WRONLY) != 0
+						       || ((mode as c_int) & O_RDWR) != 0) as c_int,   // C 3371-3373
+						      (!(((mode as c_int) & O_WRONLY) != 0)) as c_int,   // C 3374
+						      ((((mode as c_int) & O_TRUNC) != 0)) as c_int);   // C 3375-3376
+  if android_saf_exception_check (1, string) != 0                      // C 3377
+    { return -1; }                                                     // C 3378
+  ((*(*env)).DeleteLocalRef.unwrap ()) (env, string);                  // C 3379 (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  /* If fd is -1, just assume that the file does not exist,
+     and return -1 with errno set to ENOENT.  */                       // C 3381-3382
+
+  if fd == -1                                                          // C 3384
+    {
+      *errno () = ENOENT;                                              // C 3386
+      return -1;                                                       // C 3387
+    }
+
+  if ((mode as c_int) & O_CLOEXEC) != 0                                // C 3390 (C promotes
+									//  the `mode_t`)
+    { android_close_on_exec (fd); }                                    // C 3391
+
+  *fd_return = fd;                                                     // C 3393
+  return 0;                                                            // C 3394
+}
+
+/* C 3397-3408.  Its address is taken at C 3242.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_close (vnode: *mut android_vnode)
+{
+  let mut vp: *mut android_authority_vnode;                            // C 3400
+  let mut save_errno: c_int;                                           // C 3401
+
+  vp = vnode as *mut android_authority_vnode;                          // C 3403
+  save_errno = *errno ();                                              // C 3404
+  xfree ((*vp).uri as *mut c_void);                                    // C 3405
+  xfree (vp as *mut c_void);                                           // C 3406
+  *errno () = save_errno;                                              // C 3407
+}
+
+/* C 3410-3415.  Its address is taken at C 3243.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_unlink (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EROFS;                                                   // C 3413
+  return -1;                                                           // C 3414
+}
+
+/* C 3417-3423.  Its address is taken at C 3244.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_symlink (target: *const c_char,
+						vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EROFS;                                                   // C 3421
+  return -1;                                                           // C 3422
+}
+
+/* C 3425-3430.  Its address is taken at C 3245.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_rmdir (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EROFS;                                                   // C 3428
+  return -1;                                                           // C 3429
+}
+
+/* C 3432-3449.  Its address is taken at C 3246.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_rename (src: *mut android_vnode, dst: *mut android_vnode,
+					       keep_existing: bool) -> c_int
+{
+  if (*src).r#type != (*dst).r#type                                    // C 3437
+    {
+      /* If the types of both vnodes differ, complain that they're on
+	 two different filesystems (which is correct from a abstract
+	 viewpoint.)  */                                               // C 3439-3441
+      *errno () = EXDEV;                                               // C 3442
+      return -1;                                                       // C 3443
+    }
+
+  /* Otherwise, return ENOSYS.  */                                     // C 3446
+  *errno () = ENOSYS;                                                  // C 3447
+  return -1;                                                           // C 3448
+}
+
+/* C 3451-3494.  Its address is taken at C 3247.  C 3475 calls through the vnode's own operation
+   vector (the `android_afs_name` 1819 call's second site in this file).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_stat (vnode: *mut android_vnode, statb: *mut stat,
+					     flags: c_int) -> c_int
+{
+  let mut rc: c_int;                                                   // C 3455
+  let mut fd: c_int;                                                   // C 3455
+  let mut save_errno: c_int;                                           // C 3455
+  let mut vp: *mut android_authority_vnode;                            // C 3456
+
+  /* C leaves `rc`, `fd`, `save_errno` and `vp` uninitialised (PORTING.md 1.5); `vp` is assigned
+     before any read and the other three only on the path that first assigns them.  */
+  rc = 0;
+  fd = 0;
+  save_errno = 0;
+  vp = std::ptr::null_mut ();
+
+  /* If this is a vnode representing `by-authority', return some
+     information about this directory.  */                             // C 3458-3459
+
+  vp = vnode as *mut android_authority_vnode;                          // C 3461
+
+  if (*vp).uri.is_null ()                                              // C 3463
+    {
+      memset (statb as *mut c_void, 0, std::mem::size_of::<stat> ());  // C 3465
+      (*statb).st_uid = getuid ();                                     // C 3466
+      (*statb).st_gid = getgid ();                                     // C 3467
+      (*statb).st_ino = 0;                                             // C 3468
+      (*statb).st_dev = -3;                                            // C 3469
+      (*statb).st_mode = S_IFDIR | S_IRUSR;                            // C 3470
+      return 0;                                                        // C 3471
+    }
+
+  /* Try to open the file and call fstat.  */                          // C 3474
+  rc = ((*(*vnode).ops).open).unwrap () (vnode, O_RDONLY, 0, false,    // C 3475
+					 &raw mut fd, std::ptr::null_mut ());   // C 3475
+
+  if rc < 0                                                            // C 3477
+    { return -1; }                                                     // C 3478
+
+  /* If rc is 1, then an asset file descriptor has been returned.
+     This is impossible, so assert that it doesn't transpire.  */      // C 3480-3481
+  assert! (rc != 1);                                                   // C 3482
+
+  /* Now, try to stat the file.  */                                    // C 3484
+  rc = fstat (fd, statb);                                              // C 3485
+  save_errno = *errno ();                                              // C 3486
+
+  /* Close the file descriptor.  */                                    // C 3488
+  close (fd);                                                          // C 3489
+
+  /* Restore errno.  */                                                // C 3491
+  *errno () = save_errno;                                              // C 3492
+  return rc;                                                           // C 3493
+}
+
+/* C 3496-3527.  Its address is taken at C 3248.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_access (vnode: *mut android_vnode, mode: c_int) -> c_int
+{
+  let mut vp: *mut android_authority_vnode;                            // C 3499
+
+  vp = vnode as *mut android_authority_vnode;                          // C 3501
+
+  /* Validate MODE.  */                                                // C 3503
+
+  if mode != F_OK && (mode & (W_OK | X_OK | R_OK)) == 0                 // C 3505
+    {
+      *errno () = EINVAL;                                              // C 3507
+      return -1;                                                       // C 3508
+    }
+
+  if (*vp).uri.is_null ()                                              // C 3511
+    {
+      /* Return EACCES if the caller is trying to check for write
+	 access to `by-authority'.  */                                 // C 3513-3514
+
+      if mode != F_OK && (mode & (W_OK | X_OK)) != 0                   // C 3516
+	{
+	  *errno () = EACCES;                                          // C 3518
+	  return -1;                                                   // C 3519
+	}
+
+      return 0;                                                        // C 3522
+    }
+
+  return if android_check_content_access ((*vp).uri, mode)             // C 3525
+    { 0 } else { -1 };                                                 // C 3526
+}
+
+/* C 3529-3534.  Its address is taken at C 3249.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_mkdir (vnode: *mut android_vnode, mode: mode_t) -> c_int
+{
+  *errno () = EACCES;                                                  // C 3532
+  return -1;                                                           // C 3533
+}
+
+/* C 3536-3542.  Its address is taken at C 3250.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_chmod (vnode: *mut android_vnode, mode: mode_t,
+					      flags: c_int) -> c_int
+{
+  *errno () = EACCES;                                                  // C 3540
+  return -1;                                                           // C 3541
+}
+
+/* C 3544-3550.  Its address is taken at C 3251.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_readlink (vnode: *mut android_vnode, buffer: *mut c_char,
+						 size: size_t) -> ssize_t
+{
+  *errno () = EINVAL;                                                  // C 3548
+  return -1;                                                           // C 3549
+}
+
+/* C 3552-3561.  Its address is taken at C 3252.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_opendir (vnode: *mut android_vnode) -> *mut android_vdir
+{
+  let mut vp: *mut android_authority_vnode;                            // C 3555
+
+  /* Forbid listing the `by-authority' directory.  */                   // C 3557
+  vp = vnode as *mut android_authority_vnode;                          // C 3558
+  *errno () = if ! (*vp).uri.is_null () { ENOTDIR } else { EACCES };   // C 3559
+  return std::ptr::null_mut ();                                        // C 3560
+}
+
+/* Find the vnode designated by NAME relative to the root of the
+   by-authority directory.
+
+   If NAME is empty or a single leading separator character, return
+   a vnode representing the by-authority directory itself.
+
+   Otherwise, represent the remainder of NAME as a URI (without
+   normalizing it) and return a vnode corresponding to that.
+
+   Value may also be NULL with errno set if the designated vnode is
+   not available, such as when Android windowing has not been
+   initialized.  */                                                    // C 3563-3574
+
+/* C 3576-3587.  C takes its address at C 6634's sibling table, so it is an `unsafe extern "C"
+   fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_initial (name: *mut c_char, length: size_t)
+						-> *mut android_vnode
+{
+  let mut temp: android_authority_vnode;                               // C 3579
+
+  /* C leaves `temp` uninitialised (PORTING.md 1.5).  */
+  temp = unsafe { std::mem::zeroed () };
+
+  temp.vnode.ops = &raw mut authority_vfs_ops;                         // C 3581
+  temp.vnode.r#type = ANDROID_VNODE_CONTENT_AUTHORITY as c_short;      // C 3582
+  temp.vnode.flags = 0;                                                // C 3583
+  temp.uri = std::ptr::null_mut ();                                    // C 3584
+
+  return android_authority_name (&raw mut temp.vnode, name, length);   // C 3586
+}
+
+/* Find the vnode designated by NAME relative to the root of the
+   by-authority-named directory.
+
+   If NAME is empty or a single leading separator character, return
+   a vnode representing the by-authority directory itself.
+
+   Otherwise, represent the remainder of NAME as a URI (without
+   normalizing it) and return a vnode corresponding to that.
+
+   Value may also be NULL with errno set if the designated vnode is
+   not available, such as when Android windowing has not been
+   initialized.  */                                                    // C 3589-3600
+
+/* C 3602-3613.  The `_name` twin of the function above.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_authority_initial_name (name: *mut c_char, length: size_t)
+						     -> *mut android_vnode
+{
+  let mut temp: android_authority_vnode;                               // C 3605
+
+  /* C leaves `temp` uninitialised (PORTING.md 1.5).  */
+  temp = unsafe { std::mem::zeroed () };
+
+  temp.vnode.ops = &raw mut authority_vfs_ops;                         // C 3607
+  temp.vnode.r#type = ANDROID_VNODE_CONTENT_AUTHORITY_NAMED as c_short;   // C 3608
+  temp.vnode.flags = 0;                                                // C 3609
+  temp.uri = std::ptr::null_mut ();                                    // C 3610
+
+  return android_authority_name (&raw mut temp.vnode, name, length);   // C 3612
+}
+
+/* C 3238-3253: `static struct android_vops authority_vfs_ops = { … }`.  **Out of C's order, at
+   this file's foot** (Deviation 26): the object names the twelve `android_authority_*` functions
+   C defines at C 3256-3561, Rust has no forward declaration (PORTING.md 10.10, the P-91 class),
+   so the object's text moves to the end of the round that lands the last of them - the
+   `afs_vfs_ops` device (Deviation 21).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut authority_vfs_ops: android_vops = android_vops
+  {
+    name: Some (android_authority_name),
+    open: Some (android_authority_open),
+    close: Some (android_authority_close),
+    unlink: Some (android_authority_unlink),
+    symlink: Some (android_authority_symlink),
+    rmdir: Some (android_authority_rmdir),
+    rename: Some (android_authority_rename),
+    stat: Some (android_authority_stat),
+    access: Some (android_authority_access),
+    mkdir: Some (android_authority_mkdir),
+    chmod: Some (android_authority_chmod),
+    readlink: Some (android_authority_readlink),
+    opendir: Some (android_authority_opendir),
+  };
+
+/* C 3262/3307's two remaining names for this round: android.h 45's `android_init_gui` and
+   android.h 126's `android_verify_jni_string`, declared at the use site for the same reason the
+   slice-10 block records (the `android.h` mirror is not in this unit's include graph).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: android.h 45: `extern bool android_init_gui;`
+  pub static mut android_init_gui: bool;
+  /// C: android.h 126: `extern int android_verify_jni_string (const char *);`
+  pub fn android_verify_jni_string (arg0: *const c_char) -> c_int;
 }
