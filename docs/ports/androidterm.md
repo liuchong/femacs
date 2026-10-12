@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,950 lines**, md5
-> `80cb11c843cefa80afa18b26cce545ea`), carrying **C 1-5739**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,178 lines**, md5
+> `8795edd2e11ba577d84bcaf6914ef4fe`), carrying **C 1-5893**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -20,7 +20,7 @@
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
 the next definition is
-> `NATIVE_NAME (performContextMenuAction)`, C 5742.
+> `android_build_extracted_text`, C 5909.
 
 ## Gate mapping
 
@@ -197,7 +197,13 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 5610-5649 | C 5610-5611's comment and `android_get_selection` (C 5634's `window_point`, C 5635's `ephemeral_last_point`, C 5643/5645's `BVAR`) | real arm (slice 18) |
 | 5651-5687 | C 5651's `JNIEXPORT jintArray JNICALL` and `NATIVE_NAME (getSelection)` | real arm (slice 18) |
 | 5689-5739 | `NATIVE_NAME (performEditorAction)` (the two events C 5707-5738 builds) | real arm (slice 18) |
-| 5741-7117 | **the remainder of the file** - from C 5741's `JNIEXPORT void JNICALL` above `NATIVE_NAME (performContextMenuAction)` (C 5742) through the rest of the input-method group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5741-5796 | C 5741's `JNIEXPORT void JNICALL` and `NATIVE_NAME (performContextMenuAction)` (C 5753-5784's `switch`) | real arm (slice 19) |
+| 5798-5827 | C 5800's "Text extraction" note and `struct android_get_extracted_text_context` | real arm (slice 19) |
+| 5829-5860 | C 5829-5830's comment and `android_get_extracted_text` | real arm (slice 19) |
+| 5862-5870 | C 5862-5863's comment and `struct android_extracted_text_request_class` | real arm (slice 19) |
+| 5872-5886 | C 5872-5873's comment and `struct android_extracted_text_class` | real arm (slice 19) |
+| 5888-5893 | the two comments and the file-scope objects `request_class`, `text_class` | real arm (slice 19) |
+| 5895-7117 | **the remainder of the file** - from C 5895's comment above `android_build_extracted_text` (C 5909) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -393,10 +399,11 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 5741-7117.**  Slice 18 wrote C 5573-5739 (the selection group
-   and `performEditorAction`), so the next slice's rows must replace this table's last row; its
-   first definition is `NATIVE_NAME (performContextMenuAction)` (C 5742), and the group runs through
-   the rest of the input-method entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 5895-7117.**  Slice 19 wrote C 5741-5893 (the context-menu
+   entry, the extracted-text request and the two class records with their file-scope objects), so
+   the next slice's rows must replace this table's last row; its first definition is
+   `android_build_extracted_text` (C 5909), and the group runs through the rest of the input-method
+   and text-conversion entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -573,6 +580,16 @@ slice's basis).  All 116 are in the owed list below.
    360 for that unit's record).  The mirror round that adds the field lets this unit's macro go;
    `src/textconv.rs`'s `## Owed` 6 asks for the same thing.
 
+32. **Two records' layout numbers and one arm's order** (slice 19).  The three records this slice
+   adds carry derived asserts (Owed 30's class) - `android_get_extracted_text_context` (80 bytes:
+   three `int`s, a pointer, six `ptrdiff_t`s, the window and a `bool`), the two JNI class records
+   (24 and 72 bytes) - and the slice's probe **type-checked every number**, so these three are
+   compiler-checked derivations rather than C-probe measurements; the C-side route stays
+   `tools/gen-layout-fields.py`.  C 5753-5784's `switch (action)` writes `default: return;` between
+   `case 2` and `case 3`; the port keeps the same six labels and moves the `_` arm last, because
+   Rust rejects any arm after `_` - the one arm-order deviation of this file, and the statement set
+   of every arm is C's own.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -588,8 +605,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-5739 is now ported** (slices 4-18,
-each with its own Evidence section below); C 5741-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-5893 is now ported** (slices 4-19,
+each with its own Evidence section below); C 5895-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1365,3 +1382,42 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
   (`(min (…) as c_uint).wrapping_sub (1) as jint`).
 - **The selection record's three numbers** are derived (Owed 30's class), and C 5691's unused
   `int action` parameter of `performEditorAction` is kept - C never reads it.
+
+## 2026-10-12: slice 19 (C 5741-5893) - the context-menu entry, the extracted-text request and the two class records
+
+`NATIVE_NAME (performContextMenuAction)`, `struct android_get_extracted_text_context`,
+`android_get_extracted_text`, `struct android_extracted_text_request_class`,
+`struct android_extracted_text_class` and the two file-scope objects `request_class`,
+`text_class`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The slice's own reading was `min`'s one type: C 5848's `min (request->hint_max_chars, 600)` is a
+   `c_int` min whose result is converted at the call, so the port writes `min (…) as ptrdiff_t`.
+2. **The last two `missing file-scope object` rows are gone**: `request_class` and `text_class` land
+   in this slice, so the checklist's file-scope section is empty for the first time (the line-count
+   row retired in slice 18); `android_get_extracted_text` retires the one `missing function` row of
+   this slice (16 stand), and the entry adds one export row (15 in all, Owed 29).
+3. **Every derived layout number passed the probe**: the three records' asserts (80, 24 and 72 bytes
+   with their offsets) are type-checked by the arm probe, which makes them compiler-checked
+   derivations - Owed 32 records the distinction from a C-probe measurement.
+4. **No new `does not mention` row**: C 5755-5756's comment, the six `case` comments and
+   C 5853-5855's `GET_EXTRACTED_TEXT_MONITOR` note are carried, and C's own tokens (`65536 + 1`,
+   `277`, `ANDROID_KEY_PRESS`, `get_extracted_text`, the six `&request->…` addresses) are all
+   present.
+
+### Deviations this slice adds
+
+- **C 5770's `default: return;`** is the `_` arm moved last (Owed 32); C's six labels, their
+  keycode assignments and the event build that follows keep C's order and text.
+- **`event.xkey.keycode = key`** takes `key as c_uint` (C's `int`-to-`unsigned int` conversion,
+  PORTING.md 1.2).
+- **The three records** are `#[repr(C)]` with derived-then-probe-checked asserts (Owed 30/32), and
+  the two file-scope objects are `static mut` with the same `#[cfg]` pair the slice-1 objects use
+  (`any_help_event_p`/`wheel_event_x`), zero-valued at the null pointers C's tentative definitions
+  leave.
+- **C 5857-5859's three `FRAME_ANDROID_OUTPUT (f)->…` writes** keep C's repetition of the macro
+  through the unit's own accessor (`*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)`), the
+  C 707-708 device of this unit.

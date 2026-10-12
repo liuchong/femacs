@@ -6948,3 +6948,231 @@ pub unsafe extern "C" fn performEditorAction (env: *mut JNIEnv, object: jobject,
 
   android_write_event (&raw mut event);                                 // C 5738
 }
+
+/* C 5741-5893: `performContextMenuAction`, the extracted-text request context and its worker
+   (`android_get_extracted_text`), plus the two JNI class records and their file-scope objects
+   (`request_class`, `text_class` - the last two `missing file-scope object` rows of this file's
+   checklist).  C 5741's `switch (action)` keeps its six labels; C 5770's `default: return;` is
+   the `_` arm, moved last because Rust rejects arms after `_` (recorded in the ledger), and the
+   three records' layout numbers are derived (Owed 30's class) - the probe checks them.  */
+
+/* C 5741-5796: `NATIVE_NAME (performContextMenuAction)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_performContextMenuAction")]
+pub unsafe extern "C" fn performContextMenuAction (env: *mut JNIEnv, object: jobject,
+						   window: jlong, action: c_int)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5745
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5747 (PORTING.md 1.5)
+  let mut key: c_int;                                                   // C 5748
+
+  /* Note that ACTION is determined in EmacsInputConnection, and as
+     such they are not actual resource IDs.  */                        // C 5750-5751
+
+  match action                                                          // C 5753
+    {
+      /* The subsequent three keycodes are addressed by
+	 android_get_keysym_name rather than in keyboard.c.  */         // C 5755-5756
+
+      0 => /* android.R.id.selectAll */                                 // C 5758
+	{ key = 65536 + 1; }                                            // C 5759
+
+      1 => /* android.R.id.startSelectingText */                        // C 5762
+	{ key = 65536 + 2; }                                            // C 5763
+
+      2 => /* android.R.id.stopSelectingText */                         // C 5766
+	{ key = 65536 + 3; }                                            // C 5767
+
+      3 => /* android.R.id.cut */                                       // C 5773
+	{ key = 277; }                                                  // C 5774
+
+      4 => /* android.R.id.copy */                                      // C 5777
+	{ key = 278; }                                                  // C 5778
+
+      5 => /* android.R.id.paste */                                     // C 5781
+	{ key = 279; }                                                  // C 5782
+
+      _ =>                                                              // C 5770 (C's `default:`)
+	{ return; }                                                     // C 5771
+    }
+
+  event.xkey.r#type = ANDROID_KEY_PRESS;                                // C 5786
+  event_serial += 1;
+  event.xkey.serial = event_serial as c_ulong;                          // C 5787 (the `++event_serial`)
+  event.xkey.window = window as android_window;                         // C 5788
+  event.xkey.time = 0;                                                  // C 5789
+  event.xkey.state = 0;                                                 // C 5790
+  event.xkey.keycode = key as c_uint;                                   // C 5791
+  event.xkey.unicode_char = 0;                                          // C 5792
+  edit_counter += 1;
+  event.xkey.counter = edit_counter;                                    // C 5793 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5795
+}
+
+/* Text extraction.  */                                                 // C 5800
+
+/* C 5802-5827: `struct android_get_extracted_text_context`, the extracted-text request.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_get_extracted_text_context
+{
+  /* The parameters of the request.  */
+  pub hint_max_chars: c_int,                                            // C 5805
+
+  /* Token for the request.  */
+  pub token: c_int,                                                     // C 5808
+
+  /* Flags associated with the request.  */
+  pub flags: c_int,                                                     // C 5811
+
+  /* The returned text, or NULL.  */
+  pub text: *mut c_char,                                                // C 5814
+
+  /* The size of that text in characters and bytes.  */
+  pub length: ptrdiff_t,                                                // C 5817
+  pub bytes: ptrdiff_t,
+
+  /* Offsets into that text.  */
+  pub start: ptrdiff_t,                                                 // C 5820
+  pub start_offset: ptrdiff_t,
+  pub end_offset: ptrdiff_t,
+
+  /* The window.  */
+  pub window: android_window,                                           // C 5823
+
+  /* Whether or not the mark is active.  */
+  pub mark_active: bool,                                                // C 5826
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, hint_max_chars) == 0);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, token) == 4);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, flags) == 8);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, text) == 16);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, length) == 24);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, bytes) == 32);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, start) == 40);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, start_offset) == 48);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, end_offset) == 56);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, window) == 64);
+  core::assert! (std::mem::offset_of! (android_get_extracted_text_context, mark_active) == 72);
+  core::assert! (std::mem::size_of::<android_get_extracted_text_context> () == 80);
+};
+
+/* Return the extracted text in the extracted text context specified
+   by DATA.  Save its flags and token into its frame's state.  */      // C 5829-5830
+
+/* C 5832-5860.  `static` and the *address is taken* (C 6017), so `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_get_extracted_text (data: *mut c_void)
+{
+  let mut request: *mut android_get_extracted_text_context;             // C 5835
+  let mut f: *mut frame;                                                // C 5836
+
+  request = data as *mut android_get_extracted_text_context;            // C 5838
+
+  /* Find the frame associated with the window.  */                      // C 5840
+  f = android_window_to_frame (std::ptr::null_mut (), (*request).window);   // C 5841
+
+  if f.is_null ()                                                       // C 5843
+    { return; }                                                         // C 5844
+
+  /* Now get the extracted text.  */                                    // C 5846
+  (*request).text
+    = get_extracted_text (f, min ((*request).hint_max_chars, 600) as ptrdiff_t,   // C 5848
+			  &raw mut (*request).start, &raw mut (*request).start_offset,   // C 5849
+			  &raw mut (*request).end_offset, &raw mut (*request).length,   // C 5850
+			  &raw mut (*request).bytes, &raw mut (*request).mark_active);   // C 5851
+
+  /* See if request->flags & GET_EXTRACTED_TEXT_MONITOR.  If so, then
+     the input method has asked to monitor changes to the extracted
+     text until the next IM context reset.  */                          // C 5853-5855
+
+  (*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)).extracted_text_flags = (*request).flags;   // C 5857
+  (*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)).extracted_text_token = (*request).token;   // C 5858
+  (*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)).extracted_text_hint = (*request).hint_max_chars;   // C 5859
+}
+
+/* Structure describing the `ExtractedTextRequest' class.
+   Valid only on the UI thread.  */                                   // C 5862-5863
+
+/* C 5865-5870: `struct android_extracted_text_request_class`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_extracted_text_request_class
+{
+  pub initialized: bool,                                                // C 5867
+  pub hint_max_chars: jfieldID,                                         // C 5868
+  pub token: jfieldID,                                                  // C 5869
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::offset_of! (android_extracted_text_request_class, initialized) == 0);
+  core::assert! (std::mem::offset_of! (android_extracted_text_request_class, hint_max_chars) == 8);
+  core::assert! (std::mem::offset_of! (android_extracted_text_request_class, token) == 16);
+  core::assert! (std::mem::size_of::<android_extracted_text_request_class> () == 24);
+};
+
+/* Structure describing the `ExtractedText' class.
+   Valid only on the UI thread.  */                                   // C 5872-5873
+
+/* C 5875-5886: `struct android_extracted_text_class`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_extracted_text_class
+{
+  pub class: jclass,                                                    // C 5877
+  pub constructor: jmethodID,                                           // C 5878
+  pub flags: jfieldID,                                                  // C 5879
+  pub partial_start_offset: jfieldID,                                   // C 5880
+  pub partial_end_offset: jfieldID,                                     // C 5881
+  pub selection_start: jfieldID,                                        // C 5882
+  pub selection_end: jfieldID,                                          // C 5883
+  pub start_offset: jfieldID,                                           // C 5884
+  pub text: jfieldID,                                                   // C 5885
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, class) == 0);
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, constructor) == 8);
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, flags) == 16);
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, partial_start_offset) == 24);
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, partial_end_offset) == 32);
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, selection_start) == 40);
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, selection_end) == 48);
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, start_offset) == 56);
+  core::assert! (std::mem::offset_of! (android_extracted_text_class, text) == 64);
+  core::assert! (std::mem::size_of::<android_extracted_text_class> () == 72);
+};
+
+/* Fields and methods associated with the `ExtractedTextRequest'
+   class.  */                                                          // C 5888-5889
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut request_class: android_extracted_text_request_class =        // C 5890
+  android_extracted_text_request_class
+  {
+    initialized: false,
+    hint_max_chars: std::ptr::null_mut (),
+    token: std::ptr::null_mut (),
+  };
+
+/* Fields and methods associated with the `ExtractedText' class.  */    // C 5892
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut text_class: android_extracted_text_class =                  // C 5893
+  android_extracted_text_class
+  {
+    class: std::ptr::null_mut (),
+    constructor: std::ptr::null_mut (),
+    flags: std::ptr::null_mut (),
+    partial_start_offset: std::ptr::null_mut (),
+    partial_end_offset: std::ptr::null_mut (),
+    selection_start: std::ptr::null_mut (),
+    selection_end: std::ptr::null_mut (),
+    start_offset: std::ptr::null_mut (),
+    text: std::ptr::null_mut (),
+  };
