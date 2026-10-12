@@ -2584,3 +2584,222 @@ pub unsafe extern "C" fn sendFocusOut (env: *mut JNIEnv, object: jobject, window
   event_serial += 1;
   return event_serial as jlong;                                         // C 2355 (the `++event_serial`)
 }
+
+/* C 2358-2373: `NATIVE_NAME (sendWindowAction)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendWindowAction")]
+pub unsafe extern "C" fn sendWindowAction (env: *mut JNIEnv, object: jobject, window: jlong,
+					 action: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2362
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2364 (PORTING.md 1.5)
+
+  event.xaction.r#type = ANDROID_WINDOW_ACTION;                         // C 2366
+  event_serial += 1;
+  event.xaction.serial = event_serial as c_ulong;                       // C 2367 (the `++event_serial`)
+  event.xaction.window = window as android_window;                      // C 2368
+  event.xaction.action = action as c_uint;                              // C 2369
+
+  android_write_event (&raw mut event);                                 // C 2371
+  return event_serial as jlong;                                         // C 2372
+}
+
+/* C 2375-2393: `NATIVE_NAME (sendEnterNotify)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendEnterNotify")]
+pub unsafe extern "C" fn sendEnterNotify (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2380
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2382 (PORTING.md 1.5)
+
+  event.xcrossing.r#type = ANDROID_ENTER_NOTIFY;                        // C 2384
+  event_serial += 1;
+  event.xcrossing.serial = event_serial as c_ulong;                     // C 2385 (the `++event_serial`)
+  event.xcrossing.window = window as android_window;                    // C 2386
+  event.xcrossing.x = x;                                                // C 2387
+  event.xcrossing.y = y;                                                // C 2388
+  event.xcrossing.time = time as c_ulong;                               // C 2389
+
+  android_write_event (&raw mut event);                                 // C 2391
+  return event_serial as jlong;                                         // C 2392
+}
+
+/* C 2395-2413: `NATIVE_NAME (sendLeaveNotify)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendLeaveNotify")]
+pub unsafe extern "C" fn sendLeaveNotify (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2400
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2402 (PORTING.md 1.5)
+
+  event.xcrossing.r#type = ANDROID_LEAVE_NOTIFY;                        // C 2404
+  event_serial += 1;
+  event.xcrossing.serial = event_serial as c_ulong;                     // C 2405 (the `++event_serial`)
+  event.xcrossing.window = window as android_window;                    // C 2406
+  event.xcrossing.x = x;                                                // C 2407
+  event.xcrossing.y = y;                                                // C 2408
+  event.xcrossing.time = time as c_ulong;                               // C 2409
+
+  android_write_event (&raw mut event);                                 // C 2411
+  return event_serial as jlong;                                         // C 2412
+}
+
+/* C 2415-2433: `NATIVE_NAME (sendMotionNotify)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendMotionNotify")]
+pub unsafe extern "C" fn sendMotionNotify (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2420
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2422 (PORTING.md 1.5)
+
+  event.xmotion.r#type = ANDROID_MOTION_NOTIFY;                         // C 2424
+  event_serial += 1;
+  event.xmotion.serial = event_serial as c_ulong;                       // C 2425 (the `++event_serial`)
+  event.xmotion.window = window as android_window;                      // C 2426
+  event.xmotion.x = x;                                                  // C 2427
+  event.xmotion.y = y;                                                  // C 2428
+  event.xmotion.time = time as c_ulong;                                 // C 2429
+
+  android_write_event (&raw mut event);                                 // C 2431
+  return event_serial as jlong;                                         // C 2432
+}
+
+/* C 2435-2456: `NATIVE_NAME (sendButtonPress)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendButtonPress")]
+pub unsafe extern "C" fn sendButtonPress (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong, state: jint,
+					 button: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2441
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2443 (PORTING.md 1.5)
+
+  event.xbutton.r#type = ANDROID_BUTTON_PRESS;                          // C 2445
+  event_serial += 1;
+  event.xbutton.serial = event_serial as c_ulong;                       // C 2446 (the `++event_serial`)
+  event.xbutton.window = window as android_window;                      // C 2447
+  event.xbutton.x = x;                                                  // C 2448
+  event.xbutton.y = y;                                                  // C 2449
+  event.xbutton.time = time as c_ulong;                                 // C 2450
+  event.xbutton.state = state as c_uint;                                // C 2451
+  event.xbutton.button = button as c_uint;                              // C 2452
+
+  android_write_event (&raw mut event);                                 // C 2454
+  return event_serial as jlong;                                         // C 2455
+}
+
+/* C 2458-2479: `NATIVE_NAME (sendButtonRelease)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendButtonRelease")]
+pub unsafe extern "C" fn sendButtonRelease (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong, state: jint,
+					 button: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2464
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2466 (PORTING.md 1.5)
+
+  event.xbutton.r#type = ANDROID_BUTTON_RELEASE;                        // C 2468
+  event_serial += 1;
+  event.xbutton.serial = event_serial as c_ulong;                       // C 2469 (the `++event_serial`)
+  event.xbutton.window = window as android_window;                      // C 2470
+  event.xbutton.x = x;                                                  // C 2471
+  event.xbutton.y = y;                                                  // C 2472
+  event.xbutton.time = time as c_ulong;                                 // C 2473
+  event.xbutton.state = state as c_uint;                                // C 2474
+  event.xbutton.button = button as c_uint;                              // C 2475
+
+  android_write_event (&raw mut event);                                 // C 2477
+  return event_serial as jlong;                                         // C 2478
+}
+
+/* C 2481-2502: `NATIVE_NAME (sendTouchDown)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendTouchDown")]
+pub unsafe extern "C" fn sendTouchDown (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong, pointer_id: jint,
+					 flags: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2487
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2489 (PORTING.md 1.5)
+
+  event.touch.r#type = ANDROID_TOUCH_DOWN;                              // C 2491
+  event_serial += 1;
+  event.touch.serial = event_serial as c_ulong;                         // C 2492 (the `++event_serial`)
+  event.touch.window = window as android_window;                        // C 2493
+  event.touch.x = x;                                                    // C 2494
+  event.touch.y = y;                                                    // C 2495
+  event.touch.time = time as c_ulong;                                   // C 2496
+  event.touch.pointer_id = pointer_id as c_uint;                        // C 2497
+  event.touch.flags = flags;                                            // C 2498
+
+  android_write_event (&raw mut event);                                 // C 2500
+  return event_serial as jlong;                                         // C 2501
+}
+
+/* C 2504-2525: `NATIVE_NAME (sendTouchUp)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendTouchUp")]
+pub unsafe extern "C" fn sendTouchUp (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong, pointer_id: jint,
+					 flags: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2510
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2512 (PORTING.md 1.5)
+
+  event.touch.r#type = ANDROID_TOUCH_UP;                                // C 2514
+  event_serial += 1;
+  event.touch.serial = event_serial as c_ulong;                         // C 2515 (the `++event_serial`)
+  event.touch.window = window as android_window;                        // C 2516
+  event.touch.x = x;                                                    // C 2517
+  event.touch.y = y;                                                    // C 2518
+  event.touch.time = time as c_ulong;                                   // C 2519
+  event.touch.pointer_id = pointer_id as c_uint;                        // C 2520
+  event.touch.flags = flags;                                            // C 2521
+
+  android_write_event (&raw mut event);                                 // C 2523
+  return event_serial as jlong;                                         // C 2524
+}
+
+/* C 2527-2548: `NATIVE_NAME (sendTouchMove)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendTouchMove")]
+pub unsafe extern "C" fn sendTouchMove (env: *mut JNIEnv, object: jobject, window: jlong,
+					 x: jint, y: jint,
+					 time: jlong, pointer_id: jint,
+					 flags: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2533
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2535 (PORTING.md 1.5)
+
+  event.touch.r#type = ANDROID_TOUCH_MOVE;                              // C 2537
+  event_serial += 1;
+  event.touch.serial = event_serial as c_ulong;                         // C 2538 (the `++event_serial`)
+  event.touch.window = window as android_window;                        // C 2539
+  event.touch.x = x;                                                    // C 2540
+  event.touch.y = y;                                                    // C 2541
+  event.touch.time = time as c_ulong;                                   // C 2542
+  event.touch.pointer_id = pointer_id as c_uint;                        // C 2543
+  event.touch.flags = flags;                                            // C 2544
+
+  android_write_event (&raw mut event);                                 // C 2546
+  return event_serial as jlong;                                         // C 2547
+}
