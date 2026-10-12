@@ -1422,10 +1422,10 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 1613-7950: the remainder of the file.  Slice 6 ends at C 1611 (`android_hack_asset_fd`'s
-   closing brace); the next item is C 1615's "``Asset file system'' vnode implementation" banner and
-   the forward declarations under it, and `extract-abi.py --check`'s remaining `missing …` list is
-   exactly that text.  */
+/* C 1874-7950: the remainder of the file, plus the three items slice 7 defers (C 1682-1699's
+   `afs_vfs_ops`, and C 1708-1843's `android_afs_name`/`android_afs_initial` - the object names
+   twelve functions C defines at C 1873-2900 and Rust cannot forward-declare, while two of those
+   functions name the object, so the three land together in the round that reaches C 1873).  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -2278,4 +2278,162 @@ unsafe fn android_hack_asset_fd (asset: *mut AAsset) -> c_int
   /* Return anyway even if munmap fails.  */                             // C 1606
   munmap (mem as *mut c_void, size);                                     // C 1607
   return fd;                                                             // C 1608
+}
+
+/* ``Asset file system'' vnode implementation.  These vnodes map to
+   asset files within the application package, provided by the Android
+   ``asset manager''.  */                                              // C 1615-1617
+
+/* C 1619-1629: `struct android_afs_vnode'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_afs_vnode
+{
+  /* The vnode data itself.  */
+  pub vnode: android_vnode,                                            // C 1622
+
+  /* Length of the name without a trailing null byte.  */
+  pub name_length: size_t,                                             // C 1625
+
+  /* Name of the vnode.  */
+  pub name: *mut c_char,                                               // C 1628
+}
+/* Measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`,
+   `--target=aarch64-linux-android24`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_afs_vnode> () == 32);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vnode, vnode) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vnode, name_length) == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vnode, name) == 24);
+
+/* C 1631-1650: `struct android_afs_vdir'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_afs_vdir
+{
+  /* The directory function table.  */
+  pub vdir: android_vdir,                                              // C 1634
+
+  /* The next directory stream in `all_afs_vdirs'.  */
+  pub next: *mut android_afs_vdir,                                     // C 1637
+
+  /* Pointer to the directory in directory_tree.  */
+  pub asset_dir: *mut c_char,                                          // C 1640
+
+  /* And the end of the files in asset_dir.  */
+  pub asset_limit: *mut c_char,                                        // C 1643
+
+  /* Path to the directory relative to /.  */
+  pub asset_file: *mut c_char,                                         // C 1646
+
+  /* File descriptor representing this directory stream, or NULL.  */
+  pub fd: c_int,                                                       // C 1649
+}
+/* Measured with the NDK's clang (the three above).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_afs_vdir> () == 64);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vdir, vdir) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vdir, next) == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vdir, asset_dir) == 32);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vdir, asset_limit) == 40);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vdir, asset_file) == 48);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_vdir, fd) == 56);
+
+/* C 1652-1662: `struct android_afs_open_fd'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_afs_open_fd
+{
+  /* The next table entry.  */
+  pub next: *mut android_afs_open_fd,                                  // C 1655
+
+  /* The open file descriptor.  */
+  pub fd: c_int,                                                       // C 1658
+
+  /* The stat buffer associated with this entry.  */
+  pub statb: stat,                                                     // C 1661
+}
+/* Measured with the NDK's clang (the three above).  This struct embeds the *mirror's* `stat`,
+   which models the frozen target: the NDK's own `struct stat` is 128 bytes on
+   `aarch64-linux-android24` (measured), while `lib/include/sys_stat.in.rs` 108 asserts 144 and the
+   port has only that one type - so the Rust layout here is 16 + 144 = 160, and the C-side number
+   this file's fields come from is recorded in this note (the C 1471-1611 `AAsset_getLength`
+   situation's shape: the field offsets the reference's `struct stat` gives are unchanged for the
+   three members before it).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_afs_open_fd> () == 160);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_open_fd, next) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_open_fd, fd) == 8);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_afs_open_fd, statb) == 16);
+
+/* C 1664-1680: C's twelve forward declarations of this file's own `static` functions
+   (`android_afs_name` … `android_afs_opendir`).  Rust needs no forward declaration for a function
+   defined later in the same unit (PORTING.md 10.10), so this block has no text.  */
+
+/* C 1682-1699 - `static struct android_vops afs_vfs_ops = { … }`, the twelve-entry operation
+   vector - is **deferred to the round that reaches C 1873**, and the deferral is not a choice:
+   the object names twelve functions C defines at C 1873-2900, Rust has no forward declaration
+   (PORTING.md 10.10, the P-91 class), and two of the twelve (`android_afs_name` at C 1740,
+   `android_afs_initial` at C 1834) name the object in return - so the object and the twelve
+   functions are one dependency clique that has to land in a single round, with the object's text
+   moved to that round's foot (the haikuterm slice-22 out-of-order device, its Deviation 34).
+   C 1708-1843 (`android_afs_name`/`android_afs_initial`) is deferred with it for that reason.
+   The ledger's C range table carries the three deferred rows.  */
+
+/* Chain consisting of all open asset directory streams.  */             // C 1701
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut all_afs_vdirs: *mut android_afs_vdir = std::ptr::null_mut ();   // C 1702
+
+/* List linking open file descriptors to asset information.  This
+   assumes Emacs does not use dup on regular files.  */                 // C 1704-1705
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut afs_file_descriptors: *mut android_afs_open_fd = std::ptr::null_mut ();   // C 1706
+
+/* Make FD close-on-exec.  If any system call fails, do not abort, but
+   log a warning to the system log.  */                                // C 1845-1846
+
+/* C 1848-1870.  C calls it directly (C 1952/3391), never through a pointer, so it stays a
+   Rust-ABI `unsafe fn` (the `android_unix_vnode` rule).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_close_on_exec (fd: c_int)
+{
+  let mut flags: c_int;                                                // C 1851
+  let mut rc: c_int;                                                   // C 1851
+
+  flags = fcntl (fd, F_GETFD);                                         // C 1853
+
+  if flags < 0                                                         // C 1855
+    {
+      let __func__: *const c_char = c"android_close_on_exec".as_ptr ();   // C 1857
+      __android_log_print (ANDROID_LOG_WARN, __func__,                 // C 1857
+			   c"fcntl: %s".as_ptr (),                     // C 1858
+			   strerror (*errno ()));                      // C 1858
+      return;                                                          // C 1859
+    }
+
+  rc = fcntl (fd, F_SETFD, flags | O_CLOEXEC);                         // C 1862
+
+  if rc < 0                                                            // C 1864
+    {
+      let __func__: *const c_char = c"android_close_on_exec".as_ptr ();   // C 1866
+      __android_log_print (ANDROID_LOG_WARN, __func__,                 // C 1866
+			   c"fcntl: %s".as_ptr (),                     // C 1867
+			   strerror (*errno ()));                      // C 1867
+      return;                                                          // C 1868
+    }
 }

@@ -8,8 +8,11 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**2,281 lines**, md5 `81447da3a382109c830a74d26e5af290`), carrying
-> **C 1-1611** - P-86 ④'s first six slices of this file - with both arms of every `#if` carried.
+> `femacs/src/androidvfs.rs` (**2,439 lines**, md5 `2887d43a6100b9b58e3b2cc39406f`), carrying
+> **C 1-1870 except two ranges slice 7 defers** (C 1682-1699's `afs_vfs_ops` and C 1708-1843's
+> `android_afs_name`/`android_afs_initial` - one dependency clique the P-91 class forces together;
+> see the range table and Deviation 20) - P-86 ④'s first seven slices of this file - with both arms
+> of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
 > build, so the port is the empty unit plus a note that names the gate"): P-86 ① rules that a
@@ -91,7 +94,12 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 1231-1287 | the `android_init_assets` comment (C 1231-1233) and the function itself (C 1235-1287; C 1262-1278's `OLD_ANDROID_ASSETS` arm pair, C 1282/1285's two JNI calls) | file gate (slice 4); C 1288 is a blank line |
 | 1289-1355 | the asset-to-fd section's opening (C 1291) and `asharedmemory_create` (C 1295), then `android_hack_asset_fd_fallback` (C 1301-1355; C 1352's `fail:` as the port's labelled block) | file gate (slice 5); C 1356 is a blank line |
 | 1357-1611 | the ashmem pair - `android_detect_ashmem` (C 1363-1465, with C 1357-1361's comment) and `android_hack_asset_fd` (C 1470-1611, with C 1467-1468's comment) | file gate (slice 6); C 1612 is a blank line |
-| 1613-7950 | **the remainder** - the asset-VFS banner (C 1615) through C 7950: the afs/android_* vnode families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1613-1680 | the asset-VFS banner (C 1615-1617), the three structs (`android_afs_vnode` C 1619-1629, `android_afs_vdir` C 1631-1650, `android_afs_open_fd` C 1652-1662) and C's twelve forward declarations (C 1664-1680, which Rust needs no text for) | file gate (slice 7) |
+| 1681-1700 | **deferred to the round that reaches C 1873**: C 1682-1699's `afs_vfs_ops`, the twelve-entry operation vector | deferral, Deviation 20 (the object names twelve functions Rust cannot forward-declare, and two of them name it back) |
+| 1701-1706 | the two file-scope objects `all_afs_vdirs` (C 1702) and `afs_file_descriptors` (C 1706) | file gate (slice 7) |
+| 1707-1844 | **deferred with the object**: C 1708-1843's `android_afs_name` and `android_afs_initial` | the same deferral and the same reason (both name `afs_vfs_ops`) |
+| 1845-1870 | `android_close_on_exec` (C 1848-1870, with C 1845-1846's comment) | file gate (slice 7) |
+| 1871-7950 | **the remainder** - `android_afs_open` (C 1873) through C 7950: the rest of the afs family, the android_* families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -302,8 +310,8 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    `android_unix_name` → `goto`.  Both lines print in `--check` today and every other token of both
    bodies is present.
 5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
-   **stale** (C 995 carried = 12.5% of 7,950, above the ten-percent threshold); the integrator's
-   `--write-pending` re-run drops it.
+   **stale** (**2,439** C lines carried = 30.7% of 7,950, above the ten-percent threshold; slice 1's
+   original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
 6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
    and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
    arm reaches `include/android-asset.rs`, which already carries the object (`android-asset.h` 26's
@@ -321,10 +329,10 @@ object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMe
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
 /`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
 readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
-type-check and emit an object under each arm, not that any of it behaves.  C 1613-7950 is
-**unported**: `extract-abi.py --check` reads **170** rows across that boundary (169 `missing …`
-plus the whole-file drift row, which now reads **71.3%**), and those rows are the boundary, not
-defects.  Owed 4's `does not mention` rows are written in `docs/ports/macro-body-notes.tsv` now,
+type-check and emit an object under each arm, not that any of it behaves.  C 1874-7950 is
+**unported** (as are the two deferred ranges above): `extract-abi.py --check` reads **167** rows
+across that boundary (166 `missing …` plus the whole-file drift row, which now reads **69.3%**),
+and those rows are the boundary, not defects.  Owed 4's `does not mention` rows are written in `docs/ports/macro-body-notes.tsv` now,
 which is why none of them prints.  This ledger claims no runtime evidence, no Android device or
 emulator run, and no artifact beyond the objects the slices' arm readings name.
 
@@ -574,7 +582,7 @@ that reading is recorded there, and this round's own text contributes none of th
 
 **Owed (this slice's additions).**
 
-- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **2,281** of 7,950 C lines (28.7%).
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **1,966** of 7,950 C lines (24.7%).
 - `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
   disagreements [NOT VERIFIED]` (slice 2's owed item; the five rows are all past this slice).
 
@@ -667,3 +675,72 @@ What the round's evidence *is*: both arms' `exit 0`, one control proving the har
 text, `--check` 172 -> 170 with no new row, the measured NDK constants, and the ten gates.
 **This file is not finished**: C 1613-7950 remains (the next item is C 1615's asset-VFS banner and
 the forward declarations under it).
+
+## Slice 7 (2026-10-08, status 4.112 - the integrator sets the round number): C 1613-1680, C 1701-1706 and C 1845-1870
+
+**What this round is.**  The asset-VFS banner (C 1615-1617), its three structs - `android_afs_vnode`
+(C 1619-1629), `android_afs_vdir` (C 1631-1650) and `android_afs_open_fd` (C 1652-1662) - C's twelve
+forward declarations (C 1664-1680, which Rust needs no text for), the two file-scope objects
+`all_afs_vdirs` (C 1702) and `afs_file_descriptors` (C 1706), and `android_close_on_exec`
+(C 1848-1870, with C 1845-1846's comment).  Port: **2,281 -> 2,439 lines**.
+
+**What this round defers, and why it is not a choice (Deviation 20).**  `afs_vfs_ops` (C 1682-1699)
+names twelve functions C defines at C 1873-2900; Rust has no forward declaration (PORTING.md 10.10,
+the P-91 class), while two of those twelve - `android_afs_name` (C 1740) and `android_afs_initial`
+(C 1834) - name the object in return.  The three are one dependency clique, so the object's text has
+to move to the foot of the round that reaches C 1873 (the haikuterm slice-22 out-of-order device,
+its Deviation 34), and this round cannot land any of them: measured, a first draft that carried the
+object read `E0425 cannot find value \`android_afs_open\`` (and eleven more, one per entry) in
+**both** arms.  The range table carries the two deferred rows, and the unit records the deferral
+where C's text would be.
+
+**Evidence ① - both arms read `exit 0`.**  The probe with the else arm and with
+`--cfg 'feature="android_api_ge_9"'`: **`exit 0`, 0 errors**, 7 warnings in the else arm and 11 in
+the `>= 9` arm - the same two counts the previous two rounds read, so this round's text (which
+includes one new private function) adds no warning.  One real defect came out of the first draft:
+`android_afs_open_fd` embeds the *mirror's* `stat`, which models the frozen target - the NDK's own
+`struct stat` is 128 bytes on `aarch64-linux-android24` (measured with this machine's clang), while
+`lib/include/sys_stat.in.rs` 108 asserts 144 and the port carries only that one type, so the
+assertion this round writes is **160** (16 + 144) and the 128 is recorded in the note beside it.
+The other assertions are the measurements the NDK's clang gives directly: `android_afs_vnode` 32
+(vnode 0, name_length 16, name 24), `android_afs_vdir` 64 (vdir 0, next 24, asset_dir 32,
+asset_limit 40, asset_file 48, fd 56), `android_afs_open_fd` (next 0, fd 8, statb 16).
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error next to C 1853's
+`fcntl` call moves the else arm to **`exit 1`, `aborting due to 1 previous error`**, with
+`injected_control` named **once**; reverted, the same arm reads `exit 0` again and the file's md5
+returns to the header's `2887d43a6100b9b58e3b2cc39406f`.  Three probes this round, each about a
+second.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 170 -> 167 rows, and the row set was
+*diffed*, not eyeballed**: the three retired rows are `missing function android_close_on_exec`,
+`missing file-scope object afs_file_descriptors` and `missing file-scope object all_afs_vdirs`, **no
+row appears**, and the whole-file line-count row moves 71.3% -> **69.3%** (C 7,950 against 2,439 Rust
+lines).  The three structs are rows in neither reading (this file's checklist reports functions,
+subrs, macros, file-scope objects and the line count).
+
+**Deviation (this slice's addition).**
+
+20. **One dependency clique is deferred as a whole** (Evidence ①, and the note where the object's
+    text would be): `afs_vfs_ops` + `android_afs_name` + `android_afs_initial` cannot be split
+    across rounds, because Rust has no forward declaration and the references run both ways.  The
+    rule this lane follows from here on: **before writing an object whose initialiser names
+    functions C defines later, ask whether those functions name the object back** - if they do, the
+    object's text moves to the foot of the round that lands the last of them, and the range table
+    carries a `deferred` row naming the reason.  (The alternative the tree already rejects is an
+    `Option` full of `None`s: a stub.)
+
+**Owed (this slice's additions).**
+
+- The two deferred ranges (C 1682-1699, C 1708-1843) are the next round's first items.
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **2,439** of 7,950 C lines (30.7%).
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item; the five rows are all past this slice).
+
+**Not claimed (this slice).**  No runtime evidence, and none is possible here: no Android device, no
+emulator, and this unit is not in the frozen configuration.  No vnode of this family was ever
+created, named, opened or closed, and `all_afs_vdirs`/`afs_file_descriptors` are still null pointers.
+What the round's evidence *is*: both arms' `exit 0`, one control proving the harness reads this text,
+`--check` 170 -> 167 with the retiring rows named, the measured layouts, and the ten gates.  **This
+file is not finished**: C 1871-7950 remains (the next item is C 1873's `android_afs_open`), and that
+round opens with the two deferred ranges.
