@@ -41,9 +41,17 @@
 > (`sendDndUri` and `sendDndText` - `GetStringLength`, `malloc`, `GetStringChars`, the two
 > `return 0;` out-of-memory arms, `memcpy` and `ReleaseStringChars`), so **2,748 C lines are
 > carried** (in a 3,031-line port, md5 `8ceee47bd50c34840acff69c85dead30`) **except that one
-> hole**.  **The next live definition is C 2751's `NATIVE_NAME (sendNotificationDeleted)`**, the
-> first of the three tag-carrying notification entries; the table's last row is the remainder
-> (C 2749-7594) and slices 3-9's own readings are in the dated sections at the end of this file.
+> hole**.  **Slice 10 (C 2750-2888, 2026-10-12)** now carries the two notification entries
+> (`sendNotificationDeleted` and `sendNotificationAction` - the `GetStringUTFChars`/`strdup`/
+> `ReleaseStringUTFChars` prologue both share, then `GetStringLength`/`malloc`/`GetStringChars`/
+> `memcpy`/`ReleaseStringChars` and the `xfree` arm), `sendConfigurationChanged` (C 2844's
+> `switch` becomes the port's `match`), and the three one-line answers
+> (`shouldForwardMultimediaButtons`, `getQuitKeycode` - which has no prologue in C - and
+> `shouldForwardCtrlSpace`), so **2,888 C lines are carried** (in a 3,193-line port, md5
+> `eac24a21a96111d4bc4898ebffde02b1`) **except that one hole**.  **The next live definition is
+> C 2891's `NATIVE_NAME (blitRect)`**, the first of the two `AndroidBitmapInfo` blitters; the
+> table's last row is the remainder (C 2889-7594) and slices 3-10's own readings are in the
+> dated sections at the end of this file.
 
 ## Gate mapping
 
@@ -191,7 +199,18 @@ no `window.h`).
 | 2666-2706 | `NATIVE_NAME (sendDndUri)` (the `GetStringLength`/`malloc`/`GetStringChars`/`memcpy`/`ReleaseStringChars` chain and its two `return 0;` arms) | real arm (slice 9) |
 | 2707 | the blank | real arm (slice 9) |
 | 2708-2748 | `NATIVE_NAME (sendDndText)` (the same chain, `ANDROID_DND_TEXT_EVENT`) | real arm (slice 9) |
-| 2749-7594 | **the remainder** - from C 2749's blank and C 2750's `JNIEXPORT jlong JNICALL` (C 2751's `NATIVE_NAME (sendNotificationDeleted)`, **the next live definition**) through C 7594's `#endif`: the notification entries, the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
+| 2750-2779 | `NATIVE_NAME (sendNotificationDeleted)` (the `strdup`/`ReleaseStringUTFChars` pair and its two `return 0;` arms) | real arm (slice 10) |
+| 2780 | the blank | real arm (slice 10) |
+| 2781-2827 | `NATIVE_NAME (sendNotificationAction)` (the same `tag` prologue, then the `action` string's `malloc`/`memcpy` chain and the `xfree` arm) | real arm (slice 10) |
+| 2828 | the blank | real arm (slice 10) |
+| 2829-2862 | `NATIVE_NAME (sendConfigurationChanged)` (C 2844's `switch (detail)` with C 2846/2852's labels and C 2856's `default`) | real arm (slice 10) |
+| 2863 | the blank | real arm (slice 10) |
+| 2864-2873 | `NATIVE_NAME (shouldForwardMultimediaButtons)` | real arm (slice 10) |
+| 2874 | the blank | real arm (slice 10) |
+| 2875-2880 | `NATIVE_NAME (getQuitKeycode)` (no `JNI_STACK_ALIGNMENT_PROLOGUE` - C has none here) | real arm (slice 10) |
+| 2881 | the blank | real arm (slice 10) |
+| 2882-2888 | `NATIVE_NAME (shouldForwardCtrlSpace)` | real arm (slice 10) |
+| 2889-7594 | **the remainder** - from C 2889's blank and C 2890's `JNIEXPORT void JNICALL` (C 2891's `NATIVE_NAME (blitRect)`, **the next live definition**) through C 7594's `#endif`: the two bitmap blitters, the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -554,12 +573,12 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-9's C lines (C 1038-2084, C 2194-2253,
-C 2255-2356, C 2358-2548, C 2550-2664 and C 2666-2748) are carried; the **unported** part is
-C 2086-2192 (blocked on P-05's `alloca` decision) plus C 2749-7594, and
+`getline`, no event, no `select`.  Slices 2-10's C lines (C 1038-2084, C 2194-2253,
+C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748 and C 2750-2888) are carried; the
+**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) plus C 2889-7594, and
 `extract-abi.py --check`'s remaining `- missing …` list (115 `missing function` rows, the two
-file-scope objects and the twenty-nine `invented exported symbol` rows of Owed 9) and the
-60.1% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+file-scope objects and the thirty-five `invented exported symbol` rows of Owed 9) and the
+58.0% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -844,3 +863,45 @@ symbol`** rows bring that count to **29**, the two `missing file-scope object` r
 - **The two functions are textually identical apart from the type constants**
   (`ANDROID_DND_URI_EVENT`/`ANDROID_DND_TEXT_EVENT`), and the port keeps them as two full
   definitions rather than a shared helper - C has two definitions, so the port does.
+
+## 2026-10-12: slice 10 (C 2750-2888) - the notification, configuration and query entries
+
+`NATIVE_NAME (sendNotificationDeleted)`, `sendNotificationAction`, `sendConfigurationChanged`,
+`shouldForwardMultimediaButtons`, `getQuitKeycode` and `shouldForwardCtrlSpace`.
+
+### Evidence (this slice's readings)
+
+**⑰ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **second** probe.  The first read one `E0428` (`strdup` defined twice):
+this slice's own declaration was a duplicate - the unit *already* declares `strdup` in its later
+declaration block (the "`string.in.rs` 194-199 keeps only the dead `_strdup` redirect" note), so the
+extra block was removed and nothing else changed.  With that, the `GetStringUTFChars`/
+`ReleaseStringUTFChars` pair, the `const void *characters` local that C's two `GetString*` calls
+share, the configuration `match` and the three `jboolean`/`jint` returns all read correctly.
+
+**⑱ The checklist reading.**  `extract-abi.py --check`: the `missing function` count is
+**unchanged at 115** (all six are `NATIVE_NAME` definitions - the Owed 9 class ⑫/⑭/⑯ record), the
+six new **`invented exported symbol`** rows bring that count to **35**, the two `missing
+file-scope object` rows stand, there is **0 `does not mention`** (C 2844's `switch` loses the four
+tokens the macro-body-notes rows of `android_write_event`/`android_detect_focus_change` record for
+plain functions, but this entry is a `NATIVE_NAME` definition and therefore not in the extractor's
+`ci.functions` - the same blindness that keeps its row count unchanged), and the line-count row
+reads **58.0%** (C 7,594 against the port's 3,193).
+
+### Deviations this slice adds
+
+- **C 2844's `switch (detail)` is the port's `match`**, with C's two labels and its `default` kept
+  in C's order and an explanatory comment above it (the `android_detect_focus_change` shape,
+  `femacs/src/androidterm.rs` 782-790); the four tokens `switch`/`case`/`default`/`break` have no
+  Rust counterpart, and C 2845/2850/2854/2858's braces and jumps have no line of their own.
+- **C 2788's `const void *characters`** is the one local C reuses for both `GetStringUTFChars`
+  (`*const c_char`) and `GetStringChars` (`*const jchar`), so the port writes the two conversions
+  out at the call sites (`as *const c_void`, then `as *const c_char`/`as *const jchar` where C's
+  implicit `void *` conversion did the work) instead of splitting the local.
+- **C 2808's `malloc` has no null check** and the port adds none - C 2809's `GetStringChars` is the
+  first test C makes, and the `xfree` arm at C 2811-2817 is the only cleanup path.
+- **C 2757/2788's `characters` and C 2789's `length`** keep C's declaration order inside the
+  function (locals first, then the event writes), and `getQuitKeycode` is the slice's one entry
+  without `JNI_STACK_ALIGNMENT_PROLOGUE` because C has none there.
+- **`return !x;` on a `bool`** is `(! x) as jboolean` (the `androidvfs.rs` 4170 shape), and C 2879's
+  `(jint) android_quit_keycode` is `android_quit_keycode as jint` (`EMACS_INT` -> `jint`).

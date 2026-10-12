@@ -3029,3 +3029,165 @@ pub unsafe extern "C" fn sendDndText (env: *mut JNIEnv, object: jobject, window:
   android_write_event (&raw mut event);                                 // C 2746
   return event_serial as jlong;                                         // C 2747
 }
+
+/* C 2750-2779: `NATIVE_NAME (sendNotificationDeleted)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendNotificationDeleted")]
+pub unsafe extern "C" fn sendNotificationDeleted (env: *mut JNIEnv, object: jobject,
+					 tag: jstring) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2754
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2756 (PORTING.md 1.5)
+  let characters: *const c_char;                                        // C 2757
+
+  event.notification.r#type = ANDROID_NOTIFICATION_DELETED;             // C 2759
+  event_serial += 1;
+  event.notification.serial = event_serial as c_ulong;                  // C 2760 (the `++event_serial`)
+  event.notification.window = ANDROID_NONE as android_window;           // C 2761
+
+  /* TAG is guaranteed to be an ASCII string, of which the JNI character
+     encoding is a superset.  */                                        // C 2763-2764
+  characters = ((*(*env)).GetStringUTFChars.unwrap ()) (env, tag, std::ptr::null_mut ()); // C 2765
+  if characters.is_null ()                                              // C 2766
+    { return 0; }                                                       // C 2767
+
+  event.notification.tag = strdup (characters);                         // C 2769
+  ((*(*env)).ReleaseStringUTFChars.unwrap ()) (env, tag, characters);   // C 2770
+  if event.notification.tag.is_null ()                                  // C 2771
+    { return 0; }                                                       // C 2772
+
+  event.notification.action = std::ptr::null_mut ();                    // C 2774
+  event.notification.length = 0;                                        // C 2775
+
+  android_write_event (&raw mut event);                                 // C 2777
+  return event_serial as jlong;                                         // C 2778
+}
+
+/* C 2781-2827: `NATIVE_NAME (sendNotificationAction)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendNotificationAction")]
+pub unsafe extern "C" fn sendNotificationAction (env: *mut JNIEnv, object: jobject,
+					 tag: jstring, action: jstring) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2785
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2787 (PORTING.md 1.5)
+  let mut characters: *const c_void;                                    // C 2788
+  let mut length: jsize;                                                // C 2789
+  let mut buffer: *mut c_ushort;                                        // C 2790
+
+  event.notification.r#type = ANDROID_NOTIFICATION_ACTION;              // C 2792
+  event_serial += 1;
+  event.notification.serial = event_serial as c_ulong;                  // C 2793 (the `++event_serial`)
+  event.notification.window = ANDROID_NONE as android_window;           // C 2794
+
+  /* TAG is guaranteed to be an ASCII string, of which the JNI character
+     encoding is a superset.  */                                        // C 2796-2797
+  characters = ((*(*env)).GetStringUTFChars.unwrap ()) (env, tag,       // C 2798
+					       std::ptr::null_mut ()) as *const c_void;
+  if characters.is_null ()                                              // C 2799
+    { return 0; }                                                       // C 2800
+
+  event.notification.tag = strdup (characters as *const c_char);        // C 2802
+  ((*(*env)).ReleaseStringUTFChars.unwrap ()) (env, tag, characters as *const c_char); // C 2803
+  if event.notification.tag.is_null ()                                  // C 2804
+    { return 0; }                                                       // C 2805
+
+  length = ((*(*env)).GetStringLength.unwrap ()) (env, action);         // C 2807
+  buffer = malloc (length as usize * std::mem::size_of::<c_ushort> ()) as *mut c_ushort; // C 2808
+  characters = ((*(*env)).GetStringChars.unwrap ()) (env, action,       // C 2809
+					       std::ptr::null_mut ()) as *const c_void;
+
+  if characters.is_null ()                                              // C 2811
+    {                                                                   // C 2812
+      /* The JVM has run out of memory; return and let the out of memory
+	 error take its course.  */                                            // C 2813-2814
+      xfree (event.notification.tag as *mut c_void);                    // C 2815
+      return 0;                                                         // C 2816
+    }                                                                   // C 2817
+
+  memcpy (buffer as *mut c_void, characters, length as usize * std::mem::size_of::<c_ushort> ()); // C 2819
+  ((*(*env)).ReleaseStringChars.unwrap ()) (env, action, characters as *const jchar); // C 2820
+
+  event.notification.action = buffer;                                   // C 2822
+  event.notification.length = length as size_t;                         // C 2823
+
+  android_write_event (&raw mut event);                                 // C 2825
+  return event_serial as jlong;                                         // C 2826
+}
+
+/* C 2829-2862: `NATIVE_NAME (sendConfigurationChanged)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendConfigurationChanged")]
+pub unsafe extern "C" fn sendConfigurationChanged (env: *mut JNIEnv, object: jobject,
+					 detail: c_int, dpi_x: jfloat,
+					 dpi_y: jfloat, dpi_scaled: jfloat,
+					 ui_mode: c_int) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2835
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2837 (PORTING.md 1.5)
+
+  event.config.r#type = ANDROID_CONFIGURATION_CHANGED;                  // C 2839
+  event_serial += 1;
+  event.config.serial = event_serial as c_ulong;                        // C 2840 (the `++event_serial`)
+  event.config.window = ANDROID_NONE as android_window;                 // C 2841
+  event.config.detail = detail;                                         // C 2842
+
+  /* C 2844's `switch (detail)`, with its two `case` labels, the `break` that ends each and
+     its `default`, becomes the `match` below (PORTING.md 2.2, the macro-body-notes row);
+     Rust has no `switch`/`case`/`default`/`break`, so C 2845's and 2858's braces and the two
+     `break;` lines have no line of their own here.  */
+  match detail                                                          // C 2844
+    {
+      ANDROID_PIXEL_DENSITY_CHANGED =>                                  // C 2846
+	{
+	  event.config.u.pixel_density.dpi_x = dpi_x as f64;                   // C 2847
+	  event.config.u.pixel_density.dpi_y = dpi_y as f64;                   // C 2848
+	  event.config.u.pixel_density.dpi_scaled = dpi_scaled as f64;         // C 2849
+	}
+
+      ANDROID_UI_MODE_CHANGED =>                                        // C 2852
+	{ event.config.u.ui_mode = ui_mode; }                                  // C 2853
+
+      _ =>                                                              // C 2856 (C's `default:`)
+	{ emacs_abort (); }                                                    // C 2857
+    }
+
+  android_write_event (&raw mut event);                                 // C 2860
+  return event_serial as jlong;                                         // C 2861
+}
+
+/* C 2864-2873: `NATIVE_NAME (shouldForwardMultimediaButtons)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_shouldForwardMultimediaButtons")]
+pub unsafe extern "C" fn shouldForwardMultimediaButtons (env: *mut JNIEnv,
+					 object: jobject) -> jboolean
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2868
+
+  /* Yes, android_pass_multimedia_buttons_to_system is being
+     read from the UI thread.  */                                       // C 2870-2871
+  return (! android_pass_multimedia_buttons_to_system) as jboolean;     // C 2872
+}
+
+/* C 2875-2880: `NATIVE_NAME (getQuitKeycode)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getQuitKeycode")]
+pub unsafe extern "C" fn getQuitKeycode (env: *mut JNIEnv, object: jobject) -> jint
+{
+  /* Likewise.  */                                                      // C 2878
+  return android_quit_keycode as jint;                                  // C 2879
+}
+
+/* C 2882-2888: `NATIVE_NAME (shouldForwardCtrlSpace)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_shouldForwardCtrlSpace")]
+pub unsafe extern "C" fn shouldForwardCtrlSpace (env: *mut JNIEnv, object: jobject)
+					 -> jboolean
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2886
+
+  return (! android_intercept_control_space) as jboolean;               // C 2887
+}
