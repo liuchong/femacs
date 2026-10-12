@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**8,119 lines**, md5
-> `5efaa05ba9963c23ca4f5217244c0e6a`), carrying **C 1-6658**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**8,323 lines**, md5
+> `922d4cf3a98fabecf3ef91a65408cd2a`), carrying **C 1-6718**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -222,7 +222,11 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 6624-6631 | C 6624-6625's comment and `android_compose_region_changed` | real arm (slice 25) |
 | 6633-6648 | C 6633's comment and `android_notify_conversion` (the file's last forward reference) | real arm (slice 25) |
 | 6650-6658 | C 6650's comment and `text_conversion_interface` | real arm (slice 25) |
-| 6660-7117 | **the remainder of the file** - from C 6660's blank lines and C 6662's `#endif /* !ANDROID_STUBIFY */` through `android_redisplay_interface` (C 6664), the stub arm's text, `mark_androidterm` (C 7113) and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6660-6662 | C 6660's blank lines and C 6662's `#endif /* !ANDROID_STUBIFY */` (text; the arm C 47 opened) | real arm (slice 26) |
+| 6664-6696 | C 6664's `static` and the `android_redisplay_interface` table (C 6666-6695's `#ifndef` arm) | real arm (slice 26) |
+| 6698-6705 | C 6700's `void` and `frame_set_mouse_pixel_position` (C's body is the comment alone) | real arm (slice 26) |
+| 6707-6718 | C 6707-6708's `char *`/`get_keysym_name` (C 6712-6716's `#ifndef` pair, C 6710's function-scope `static`) | real arm (slice 26) |
+| 6720-7117 | **the remainder of the file** - from C 6722-6723's comment above `android_create_terminal` (C 6726) through `android_term_init` (C 6793), `android_set_build_fingerprint` (C 6882), `syms_of_androidterm` (C 6992), `mark_androidterm` (C 7113) and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -421,13 +425,13 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 6660-7117.**  Slice 25 wrote C 6546-6658 (the four
-   text-conversion callbacks and their interface record) - which **retires the file's last forward
-   reference**, so the arm probe now reads **2 errors** (the two frame-mirror fields, Owed 5) for
-   the first time since slice 1.  The remainder opens with C 6660's blank lines and C 6662's
-   `#endif /* !ANDROID_STUBIFY */`, and its first definition is the `android_redisplay_interface`
-   record (C 6664-6685, whose members are the functions of slices 3-13); after it come the stub
-   arm's text, `mark_androidterm` (C 7113) and the two `#pragma` pops (C 7110-7116).
+1. **The remainder of the file: C 6720-7117.**  Slice 26 wrote C 6660-6718 (the arm's `#endif`,
+   the `android_redisplay_interface` table, `frame_set_mouse_pixel_position` and
+   `get_keysym_name`), so five `missing function` rows stand: `android_create_terminal`
+   (C 6726), `android_term_init` (C 6793), `android_set_build_fingerprint` (C 6882),
+   `syms_of_androidterm` (C 6992) and `mark_androidterm` (C 7113) - the first two need the
+   ~28 `terminal`-hook declarations C 6739-6780 names (they live in androidfns.c and no mirror
+   carries them yet), which is the next slice's block.
 2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21, tolerance `0.10`) and
    **re-measured at slice 23** (a newer row, tolerance `0.12`, governs - the table is append-only
    and the newest row per stem wins): C 7,117 against the port's 7,832 is +10.0%, so the 0.10 row
@@ -661,8 +665,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-6658 is now ported** (slices 4-25,
-each with its own Evidence section below); C 6660-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-6718 is now ported** (slices 4-26,
+each with its own Evidence section below); C 6720-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1682,3 +1686,47 @@ ported` row for one round (it sat between that slice's two blocks).
   appends), and C 6608's flags write goes through the unit's own `FRAME_ANDROID_OUTPUT` accessor.
 - **C 6636's `unsigned long counter`** is `c_ulong` (the mirror's record field), and C 6640's plain
   `last_edit_counter < counter` read is transcribed as C writes it (the mixing Owed 28 records).
+
+## 2026-10-12: slice 26 (C 6660-6718) - the redisplay-interface table and two terminal-side entries
+
+The `#endif` that closes C 47's arm, `static struct redisplay_interface android_redisplay_interface`,
+`frame_set_mouse_pixel_position` and `get_keysym_name`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 2 errors** - the two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`, Owed 5); this slice's three readings were the table's type
+   choices (below).
+2. **The table forced three decisions, and the compiler measured each**:
+   (a) the mirror keeps `redisplay_interface` inside `dispextern_unit_names` with the
+   `struct window *`/`struct frame *` slots degraded to `*mut c_void`, so using it would have needed
+   **fifteen `transmute`s** - the `src/pgtkterm.rs` 5412-5480 device.  The port instead **grew its
+   own local copy** (slice 1 had declared the first two members) to the whole record with C's own
+   parameter types, the `src/haikuterm.rs` 4485-4554 device, whose ledger note argues the same
+   trade; the four offsets and the 224-byte size are asserted.
+   (b) `frame_parm_handler` (dispextern.h 3063) and the seven `gui_*` entries (3636-3648, 3689) are
+   names **no mirror carries**, so the alias and their declarations stand at the use site (the
+   `src/haikufns.rs` 216-225 and `src/haikuterm.rs` 4555-4583 blocks).
+   (c) seven functions this table now points at were still plain `unsafe fn` (`android_scroll_run`
+   and friends were declared when their address was *not* taken): the compiler's
+   `expected "C" fn, found "Rust" fn` list named exactly them, so each became
+   `unsafe extern "C" fn` - the C-ABI rule for an address-taken item, applied here to
+   `android_compute_glyph_string_overhangs`, `android_draw_glyph_string`,
+   `android_define_frame_cursor`, `android_clear_frame_area`, `android_draw_window_cursor`,
+   `android_draw_vertical_window_border` and `android_draw_window_divider`.
+3. **Inventory**: `missing function` 7 -> **5** (`frame_set_mouse_pixel_position` and
+   `get_keysym_name` retire; the five that stand are the file's last definitions), the export rows
+   stay 22, the file-scope section stays empty, and no new `does not mention` row appeared.
+4. **The tolerance row moved again**: C 7,117 against the port's 8,323 is **16.9%**, past slice
+   25's `0.16`, so a newer `0.19` row was appended (Owed 2's rule; this is its fourth move).
+
+### Deviations this slice adds
+
+- **`frame_set_mouse_pixel_position`** is C's empty body - the comment alone, no stub - and both it
+  and `get_keysym_name` are non-`static`, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`.
+- **`get_keysym_name`'s `static char buffer[64]`** is a function-local `static mut`
+  (`src/android.rs` 1201's shape) and its `#ifndef ANDROID_STUBIFY` pair carries both arms under
+  `android_stubify`.
+- **The table's positional initializer** is the port's named fields in the mirror's order, with
+  C 6674/6675/6681/6682/6691's `NULL`s as `None` and `frame_parm_handlers` as
+  `&raw mut android_frame_parm_handlers as *mut c_void` (C's array decays; the field is untyped).

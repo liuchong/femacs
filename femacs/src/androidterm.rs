@@ -108,22 +108,80 @@ include!("../lib/include/limits.in.rs");              // lisp.h 33's `#include <
 #[cfg (feature = "have_android")]
 include!("../lib/include/sys_select.rs");             // `fd_set`/`FD_ZERO`/`pselect` (C 199-251)
 
-/* `struct redisplay_interface` - dispextern.h 3069-3196 - has no mirror (`include/termhooks.rs`
-   181/219 degrades `rif` to `*mut c_void`), and `include/frame.rs` 1193-1200's `flush_frame!`
-   body names the type, so a unit that calls C's `flush_frame (f)` declares it at the use site
-   (P-72 rule 4, the `minibuf.rs` 652-668 shape: the ten members C declares before `flush_display`
-   are all pointers, so the prefix is an opaque pointer array and the one offset that matters is
-   pinned).  `docs/ports/androidterm.md` records the gap.  */
+/* `struct redisplay_interface` - dispextern.h 3069-3196.  The mirror carries the record inside
+   its `dispextern_unit_names` module with the `struct window *`/`struct frame *` slots degraded to
+   `*mut c_void` (its own comments say so), and this unit's table (C 6664-6696) needs C's own
+   parameter types: the port therefore keeps a **local copy** with C's types - the
+   `src/haikuterm.rs` 4485-4554 device, whose ledger note records exactly this trade against
+   `src/pgtkterm.rs` 5412-5480's fifteen `transmute`s - and the four numbers pin the members this
+   file reads (`flush_display` 72, `draw_fringe_bitmap` 104, `clear_under_internal_border` 160,
+   `default_font_parameter` 216, `sizeof` 224).  `struct it` has no record in this unit, so C's
+   `struct it *` keeps the pointer-sized stand-in (P-72 rule 3, the haikuterm copy's choice).
+   Slice 1 declared only the first two members here (the prefix array and `flush_display`);
+   slice 26 grew the copy to the whole record.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 #[repr(C)]
 pub struct redisplay_interface
 {
-  _prefix: [*mut c_void; 9],
-  pub flush_display: Option<unsafe extern "C" fn (f: *mut frame)>,
+  pub frame_parm_handlers: *mut c_void,                  // C 3072, offset 0
+  pub produce_glyphs: Option<unsafe extern "C" fn (it: *mut c_void)>,  // C 3076, offset 8
+  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+						 string: *mut glyph, area: glyph_row_area,
+						 len: c_int)>,                    // C 3080-3082, offset 16
+  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+						  start: *mut glyph, area: glyph_row_area,
+						  len: c_int)>,                   // C 3083-3085, offset 24
+  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+						      area: glyph_row_area, x: c_int)>,  // C 3089-3090, offset 32
+  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut window, run: *mut run)>,  // C 3094, offset 40
+  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut window, desired_row: *mut glyph_row)>,  // C 3099-3100, offset 48
+  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut window)>,  // C 3104, offset 56
+  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut window, cursor_on_p: bool,
+							   mouse_face_overwritten_p: bool)>,  // C 3111-3112, offset 64
+  pub flush_display: Option<unsafe extern "C" fn (f: *mut frame)>,  // C 3115, offset 72
+  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut window)>,  // C 3118, offset 80
+  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut frame,
+							left: *mut c_int, right: *mut c_int)>,  // C 3122-3123, offset 88
+  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+							 area: glyph_row_area, overlaps: c_int)>,  // C 3128-3129, offset 96
+  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+						       p: *mut draw_fringe_bitmap_params)>,  // C 3134-3135, offset 104
+  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort,
+							 h: c_int, wd: c_int)>,  // C 3138-3139, offset 112
+  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,  // C 3140, offset 120
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,  // C 3144, offset 128
+  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,  // C 3147, offset 136
+  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut frame, cursor: Emacs_Cursor)>,  // C 3150, offset 144
+  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut frame, x: c_int, y: c_int,
+						     width: c_int, height: c_int)>,  // C 3153-3154, offset 152
+  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut frame)>,  // C 3159, offset 160
+  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut window, glyph_row: *mut glyph_row,
+						       x: c_int, y: c_int,
+						       cursor_type: text_cursor_kinds,
+						       cursor_width: c_int, on_p: bool,
+						       active_p: bool)>,  // C 3165-3169, offset 168
+  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut window, x: c_int,
+								y_0: c_int, y_1: c_int)>,  // C 3172-3173, offset 176
+  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut window, x_0: c_int, x_1: c_int,
+							y_0: c_int, y_1: c_int)>,  // C 3176-3177, offset 184
+  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut frame, x: c_int, y: c_int,
+							    width: c_int, height: c_int,
+							    shift_by: c_int)>,  // C 3182-3184, offset 192
+  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut frame)>,  // C 3187, offset 200
+  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut frame)>,  // C 3190, offset 208
+  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut frame, parms: Lisp_Object)>,  // C 3194, offset 216
 }
+/* C 3131-3195's fifteen `HAVE_WINDOW_SYSTEM` members are appended after `fix_overlapping_area`:
+   `draw_fringe_bitmap`@104 … `default_font_parameter`@216, `sizeof` 224, align 8 - the
+   `docs/baseline/redisplay_interface-layout.tsv` arm this record's.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = {
+  assert! (std::mem::size_of::<redisplay_interface> () == 224);
+  assert! (std::mem::align_of::<redisplay_interface> () == 8);
   assert! (std::mem::offset_of! (redisplay_interface, flush_display) == 72);
+  assert! (std::mem::offset_of! (redisplay_interface, draw_fringe_bitmap) == 104);
+  assert! (std::mem::offset_of! (redisplay_interface, clear_under_internal_border) == 160);
+  assert! (std::mem::offset_of! (redisplay_interface, default_font_parameter) == 216);
 };
 
 /* C 353/408's `flush_frame (f)`.  C's is frame.h 1914-1921's inline and `include/frame.rs`
@@ -3660,7 +3718,10 @@ unsafe fn android_set_glyph_string_clipping_exactly (src: *mut glyph_string,
    (`include/font.rs` 134 keeps `driver` untyped, P-72 rule 3; the `src/xterm.rs` 9704-9736
    device).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_compute_glyph_string_overhangs (s: *mut glyph_string)
+/* C 6664-6696's table takes this function's address, so the port declares it
+   `unsafe extern "C" fn` - the C-ABI rule for an address-taken item (slice 14-onward's
+   `android_sync_edit` shape).  */
+unsafe extern "C" fn android_compute_glyph_string_overhangs (s: *mut glyph_string)
 {
   if ((*s).cmp).is_null ()                                             // C 3070
       && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH        // C 3071
@@ -5184,7 +5245,10 @@ unsafe extern "C" {
    C's conversions and wraps; C 4568's `FRAME_ANDROID_WINDOW` (against 4576's
    `FRAME_ANDROID_DRAWABLE`) is carried exactly as C writes it.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_draw_glyph_string (s: *mut glyph_string)
+/* C 6664-6696's table takes this function's address, so the port declares it
+   `unsafe extern "C" fn` - the C-ABI rule for an address-taken item (slice 14-onward's
+   `android_sync_edit` shape).  */
+unsafe extern "C" fn android_draw_glyph_string (s: *mut glyph_string)
 {
   let face: *mut face = (*s).face as *mut face;
   let mut relief_drawn_p: bool = false;                                 // C 4285
@@ -5612,7 +5676,10 @@ unsafe extern "C" {
    folded `bool_bf` (this unit's `pointer_invisible!`), and `Emacs_Cursor` is the cursor handle the
    mirror's `android_output.current_cursor` field carries (`include/androidterm.rs` 283).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+/* C 6664-6696's table takes this function's address, so the port declares it
+   `unsafe extern "C" fn` - the C-ABI rule for an address-taken item (slice 14-onward's
+   `android_sync_edit` shape).  */
+unsafe extern "C" fn android_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
 {
   let x: *mut android_output = FRAME_ANDROID_OUTPUT! (f) as *mut android_output;
 
@@ -5627,7 +5694,10 @@ unsafe fn android_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
 /* C 4659-4665: `android_clear_frame_area`.  `static`; the redisplay interface's
    `clear_frame_area` member points at it (C 5017).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_clear_frame_area (f: *mut frame, x: c_int, y: c_int,
+/* C 6664-6696's table takes this function's address, so the port declares it
+   `unsafe extern "C" fn` - the C-ABI rule for an address-taken item (slice 14-onward's
+   `android_sync_edit` shape).  */
+unsafe extern "C" fn android_clear_frame_area (f: *mut frame, x: c_int, y: c_int,
 				    width: c_int, height: c_int)
 {
   android_clear_area (FRAME_ANDROID_DRAWABLE! (f),                     // C 4663
@@ -5894,7 +5964,10 @@ unsafe fn android_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut widt
    `FRAME_OUTPUT_DATA (f)->need_cursor_updates` is the folded bit the unit reads with its mask
    (P-80, the C 707-708 device).  `active_p` has no reader in C's body.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
+/* C 6664-6696's table takes this function's address, so the port declares it
+   `unsafe extern "C" fn` - the C-ABI rule for an address-taken item (slice 14-onward's
+   `android_sync_edit` shape).  */
+unsafe extern "C" fn android_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
 				      x: c_int, y: c_int, cursor_type: text_cursor_kinds,
 				      cursor_width: c_int, on_p: bool, active_p: bool)
 {
@@ -5955,7 +6028,10 @@ unsafe fn android_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
 /* C 4929-4943: `android_draw_vertical_window_border`.  `static`; the redisplay interface's
    `draw_vertical_window_border` member points at it (C 5019).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
+/* C 6664-6696's table takes this function's address, so the port declares it
+   `unsafe extern "C" fn` - the C-ABI rule for an address-taken item (slice 14-onward's
+   `android_sync_edit` shape).  */
+unsafe extern "C" fn android_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 4932
   let face: *mut face;                                                  // C 4933
@@ -5976,7 +6052,10 @@ unsafe fn android_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_i
    `draw_window_divider` member points at it (C 5020).  C's three `?:` are the port's
    `if`/`else` expressions.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe fn android_draw_window_divider (w: *mut window, x0: c_int, x1: c_int,
+/* C 6664-6696's table takes this function's address, so the port declares it
+   `unsafe extern "C" fn` - the C-ABI rule for an address-taken item (slice 14-onward's
+   `android_sync_edit` shape).  */
+unsafe extern "C" fn android_draw_window_divider (w: *mut window, x0: c_int, x1: c_int,
 				       y0: c_int, y1: c_int)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 4948
@@ -8117,3 +8196,128 @@ static mut text_conversion_interface: textconv_interface =                  // C
     compose_region_changed: Some (android_compose_region_changed),      // C 6656
     notify_conversion: Some (android_notify_conversion),                // C 6657
   };
+
+/* C 6660-6718: the end of C 47's `#ifndef ANDROID_STUBIFY` arm, the redisplay-interface table, and
+   the two small terminal-side entry points (`frame_set_mouse_pixel_position`, `get_keysym_name`).
+   The table's type is the mirror's full record
+   (`dispextern_unit_names::redisplay_interface`, dispextern.h 3069-3196, its 26 fields in C's
+   order), and its first entry needs one use-site declaration: C's `android_frame_parm_handlers[]`
+   is defined in androidfns.c 3142 and declared in androidterm.h 398.  */
+
+/* `frame_parm_handler` and the seven `gui_*` entries C 6667-6679's table names and **no mirror
+   carries**: dispextern.h 3063's typedef is the element type of C's
+   `android_frame_parm_handlers[]` (the `src/haikufns.rs` 218-225 alias), and dispextern.h
+   3636-3648/3689 declare the seven `xdisp.c` definitions (the `src/haikuterm.rs` 4555-4583
+   block, same citations).  */
+/// C: dispextern.h 3063: `typedef void (*frame_parm_handler) (struct frame *, Lisp_Object,
+/// Lisp_Object);`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+type frame_parm_handler =
+  Option<unsafe extern "C" fn (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object)>;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3636-3638: `extern void gui_get_glyph_overhangs (struct glyph *,
+  /// struct frame *, int *, int *);` - C 6678's entry.
+  pub fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame, left: *mut c_int,
+				  right: *mut c_int);
+  /// C: dispextern.h 3639: `extern void gui_produce_glyphs (struct it *);` - C 6668's entry.
+  pub fn gui_produce_glyphs (it: *mut c_void);
+  /// C: dispextern.h 3641-3642: `extern void gui_write_glyphs (struct window *,
+  /// struct glyph_row *, struct glyph *, enum glyph_row_area, int);` - C 6669's entry.
+  pub fn gui_write_glyphs (w: *mut window, row: *mut glyph_row, string: *mut glyph,
+			   area: glyph_row_area, len: c_int);
+  /// C: dispextern.h 3643-3644: the `gui_insert_glyphs` pair - C 6670's entry.
+  pub fn gui_insert_glyphs (w: *mut window, row: *mut glyph_row, start: *mut glyph,
+			    area: glyph_row_area, len: c_int);
+  /// C: dispextern.h 3645-3646: `extern void gui_clear_end_of_line (struct window *,
+  /// struct glyph_row *, enum glyph_row_area, int);` - C 6671's entry.
+  pub fn gui_clear_end_of_line (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+				x: c_int);
+  /// C: dispextern.h 3647-3648: `extern void gui_fix_overlapping_area (struct window *,
+  /// struct glyph_row *, enum glyph_row_area, int);` - C 6679's entry.
+  pub fn gui_fix_overlapping_area (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+				   overlaps: c_int);
+  /// C: dispextern.h 3689: `extern void gui_clear_window_mouse_face (struct window *);` -
+  /// C 6677's entry.
+  pub fn gui_clear_window_mouse_face (w: *mut window);
+}
+
+/* C 47's real arm ends here.  */
+/* C 6662: `#endif /* !ANDROID_STUBIFY */` - the closing half of the include-region's gate; every
+   item below this line is at file scope, and the file's two `#ifdef ANDROID_STUBIFY` arms are
+   C 6782-6784 and C 6884-6885 (both carried as text).  */
+
+/* C: androidterm.h 398: `extern frame_parm_handler android_frame_parm_handlers[];` - the table C
+   *defines* in androidfns.c 3142-3195 (51 entries, measured: 51 `,`-terminated entries between the
+   braces), the `src/pgtkterm.rs` 5396-5409 device.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub static mut android_frame_parm_handlers: [frame_parm_handler; 51];
+}
+
+/* C 6664-6696.  A `static` record at file scope; C's positional initializer is the port's named
+   fields in the mirror's order (offsets 0-200), and C's `#ifndef ANDROID_STUBIFY` arm is the
+   whole list (the `#else` arm is the empty initializer C 6695's `#endif` leaves).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut android_redisplay_interface: redisplay_interface =
+  redisplay_interface
+  {
+    frame_parm_handlers: &raw mut android_frame_parm_handlers as *mut c_void,   // C 6667
+    produce_glyphs: Some (gui_produce_glyphs),                          // C 6668
+    write_glyphs: Some (gui_write_glyphs),                              // C 6669
+    insert_glyphs: Some (gui_insert_glyphs),                            // C 6670
+    clear_end_of_line: Some (gui_clear_end_of_line),                    // C 6671
+    scroll_run_hook: Some (android_scroll_run),                         // C 6672
+    after_update_window_line_hook: Some (android_after_update_window_line),   // C 6673
+    update_window_begin_hook: None,                                     // C 6674 (`NULL`)
+    update_window_end_hook: None,                                       // C 6675 (`NULL`)
+    flush_display: Some (android_flip_and_flush),                       // C 6676
+    clear_window_mouse_face: Some (gui_clear_window_mouse_face),        // C 6677
+    get_glyph_overhangs: Some (gui_get_glyph_overhangs),                // C 6678
+    fix_overlapping_area: Some (gui_fix_overlapping_area),              // C 6679
+    draw_fringe_bitmap: Some (android_draw_fringe_bitmap),              // C 6680
+    define_fringe_bitmap: None,                                         // C 6681 (`NULL`)
+    destroy_fringe_bitmap: None,                                        // C 6682 (`NULL`)
+    compute_glyph_string_overhangs: Some (android_compute_glyph_string_overhangs),   // C 6683
+    draw_glyph_string: Some (android_draw_glyph_string),                // C 6684
+    define_frame_cursor: Some (android_define_frame_cursor),            // C 6685
+    clear_frame_area: Some (android_clear_frame_area),                  // C 6686
+    clear_under_internal_border: Some (android_clear_under_internal_border),   // C 6687
+    draw_window_cursor: Some (android_draw_window_cursor),              // C 6688
+    draw_vertical_window_border: Some (android_draw_vertical_window_border),   // C 6689
+    draw_window_divider: Some (android_draw_window_divider),            // C 6690
+    shift_glyphs_for_insert: None,                                      // C 6691 (`NULL`)
+    show_hourglass: Some (android_show_hourglass),                      // C 6692
+    hide_hourglass: Some (android_hide_hourglass),                      // C 6693
+    default_font_parameter: Some (android_default_font_parameter),       // C 6694
+  };
+
+/* C 6700-6705: `frame_set_mouse_pixel_position`.  Non-`static` (termhooks.h declares it) and no
+   address is taken: `#[unsafe(no_mangle)]` with the C ABI; C's body is the comment alone, which is
+   why the port's body is the same comment and nothing else.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_mouse_pixel_position (f: *mut frame, pix_x: c_int, pix_y: c_int)
+{
+  /* This cannot be implemented on Android, and as such is left
+     blank.  */                                                        // C 6703-6704
+}
+
+/* C 6707-6718: `get_keysym_name`.  Non-`static` and no address is taken.  C's function-scope
+   `static char buffer[64]` is a function-local `static mut` (the `src/android.rs` 1201 shape), and
+   C 6712-6716's `#ifndef ANDROID_STUBIFY` pair carries both arms.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_keysym_name (keysym: c_int) -> *mut c_char
+{
+  static mut buffer: [c_char; 64] = [0; 64];                            // C 6710
+
+  #[cfg (not (feature = "android_stubify"))]
+  {
+    android_get_keysym_name (keysym, &raw mut buffer as *mut c_char, 64);   // C 6713
+  }
+  #[cfg (feature = "android_stubify")]
+  { emacs_abort (); }                                                   // C 6715
+
+  return &raw mut buffer as *mut c_char;                                // C 6717
+}
