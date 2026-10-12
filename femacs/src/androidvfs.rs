@@ -8269,3 +8269,462 @@ unsafe extern "C" fn android_saf_tree_name (mut vnode: *mut android_vnode, mut n
   xfree (filename as *mut c_void);                                     // C 5110
   return vnode;                                                        // C 5111
 }
+
+/* C 6521's `JNI_STACK_ALIGNMENT_PROLOGUE`: android.h 352-359's macro, which the `android.h` mirror
+   carries (`include/android.rs` 211, whose body is the no-op this port's `i386` arm is on this
+   target).  This unit does not include that mirror, so the name stands here at the use site
+   (P-72 rule 4; the `TYPE_MAXIMUM`/`assert` declarations are the same device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! JNI_STACK_ALIGNMENT_PROLOGUE {
+  () => { { let _ = 0; } };
+}
+
+/* C 6532's `ANDROID_LOG_VERBOSE`: the NDK's log priority, one below `ANDROID_LOG_DEBUG`; the four
+   values this file now names are the NDK enum this machine's headers give (measured: `VERBOSE` 2,
+   `WARN` 5, `ERROR` 6, `FATAL` 7 - the slice-5/6 rows measured the other three).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ANDROID_LOG_VERBOSE: c_int = 2;
+
+/* C 6525/6528/6547's two names and C 6657's third: lisp.h 3880's `process_pending_signals` and
+   coding.h 689's `code_convert_string` - neither is in a mirror this unit includes - so both stand
+   at the use site (P-72 rule 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: lisp.h 3880: `extern void process_pending_signals (void);`
+  pub fn process_pending_signals ();
+  /// C: coding.h 689: `extern Lisp_Object code_convert_string (Lisp_Object, Lisp_Object, Lisp_Object, bool, bool, bool);`
+  pub fn code_convert_string (arg0: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object,
+			      arg3: bool, arg4: bool, arg5: bool) -> Lisp_Object;
+}
+
+/* Semaphore posted upon the completion of an SAF operation.  */         // C 6507
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut saf_completion_sem: sem_t = 0;                              // C 6508
+
+/* C 6507-6508's `<semaphore.h>` entries: the unit's head note lists that header as mirrorless and
+   names these calls as C 6508's, so the type and the two calls stand at the use site (P-88 ①).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type sem_t = c_int;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<semaphore.h>`: `int sem_wait (sem_t *sem);`
+  pub fn sem_wait (sem: *mut sem_t) -> c_int;
+  /// C: `<semaphore.h>`: `int sem_post (sem_t *sem);`
+  pub fn sem_post (sem: *mut sem_t) -> c_int;
+}
+
+/* C 6510-6516 and C 6573-6577: the `#ifdef __clang__` / `#pragma clang diagnostic push/ignored`
+   / `#else` / `#pragma GCC …` / `#endif` pair around the four JNI entries, and its pop.  A pragma
+   has no Rust counterpart and the port emits none either way (the android.rs 1650-1655
+   precedent).  */
+
+/* C 6518-6539: `JNIEXPORT jint JNICALL NATIVE_NAME (safSyncAndReadInput) (JNIEnv *env, jobject
+   object)`.  `NATIVE_NAME` pastes the symbol name (android.h 344), so the port exports its own
+   class's name (PORTING.md 0.1-19's name half / status 3.503).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_safSyncAndReadInput")]
+pub unsafe extern "C" fn safSyncAndReadInput (env: *mut JNIEnv, object: jobject) -> jint
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                    // C 6521
+
+  while sem_wait (&raw mut saf_completion_sem) < 0                     // C 6523
+    {
+      if input_blocked_p ()                                            // C 6525
+	{ continue; }                                                  // C 6526
+
+      process_pending_signals ();                                      // C 6528
+
+      if ! NILP (Vquit_flag)                                           // C 6530
+	{
+	  __android_log_print (ANDROID_LOG_VERBOSE, c"safSyncAndReadInput".as_ptr (),   // C 6532
+			       c"quitting from IO operation".as_ptr ());   // C 6533
+	  return 1;                                                    // C 6534
+	}
+    }
+
+  return 0;                                                            // C 6538
+}
+
+/* C 6541-6548: `JNIEXPORT void JNICALL NATIVE_NAME (safSync) (JNIEnv *env, jobject object)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_safSync")]
+pub unsafe extern "C" fn safSync (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                    // C 6544
+
+  while sem_wait (&raw mut saf_completion_sem) < 0                     // C 6546
+    { process_pending_signals (); }                                    // C 6547
+}
+
+/* C 6550-6556: `JNIEXPORT void JNICALL NATIVE_NAME (safPostRequest) (JNIEnv *env, jobject
+   object)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_safPostRequest")]
+pub unsafe extern "C" fn safPostRequest (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                    // C 6553
+
+  sem_post (&raw mut saf_completion_sem);                              // C 6555
+}
+
+/* C 6558-6571: `JNIEXPORT jboolean JNICALL NATIVE_NAME (ftruncate) (JNIEnv *env, jobject object,
+   jint fd)`.  The pasted name is C's `ftruncate`, which this unit also declares at the crate root
+   for the system entry C 6563 calls - so the definition stands in a module of its own (the
+   `lib/fcntl.rs` 213-222 device) and the system call is reached as `crate::ftruncate`.  */
+mod androidvfs_jni_ftruncate {
+  use super::*;
+
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  #[unsafe(export_name = "Java_org_femacs_EmacsNative_ftruncate")]
+  pub unsafe extern "C" fn ftruncate (env: *mut JNIEnv, object: jobject, fd: jint) -> jboolean
+  {
+    JNI_STACK_ALIGNMENT_PROLOGUE! ();                                  // C 6561
+
+    if crate::ftruncate (fd, 0) < 0                                    // C 6563
+      { return 0; }                                                    // C 6564
+
+    /* Reset the file pointer.  */                                     // C 6566
+    if crate::lseek (fd, 0, SEEK_SET) < 0                              // C 6567
+      { return 0; }                                                    // C 6568
+
+    return 1;                                                          // C 6570
+  }
+}
+
+/* C 6579-6585: C 6580's form feed and the comment on the root vnode.  */
+
+/* C 6587-6597: `struct android_root_vdir'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_root_vdir
+{
+  /* The directory function table.  */
+  pub vdir: android_vdir,                                              // C 6590
+
+  /* The directory stream, or NULL if it could not be opened.  */
+  pub directory: *mut DIR,                                             // C 6593
+
+  /* Index of the next directory to return in `special_vnodes'.  */
+  pub index: c_int,                                                    // C 6596
+}
+/* Measured with the NDK's clang (the two vdir structs' shape: 24 + 8 + 4 padded to 40).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_root_vdir> () == 40);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_root_vdir, vdir) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_root_vdir, directory) == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_root_vdir, index) == 32);
+
+/* File descriptor for instances of the foregoing structure when the
+   true root is unavailable.  */                                       // C 6599-6600
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut root_fd: c_int = -1;                                        // C 6601
+
+/* Number of open instances referencing this file descriptor.  */       // C 6603
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut root_fd_references: ptrdiff_t = 0;                          // C 6604
+
+/* C 6606-6608: C's two forward declarations of `android_root_name` and `android_root_opendir`; no
+   Rust text (PORTING.md 10.10).  */
+
+/* Vector of VFS operations associated with Unix root filesystem VFS
+   nodes.  */                                                          // C 6610-6611
+
+/* C 6613-6628: `static struct android_vops root_vfs_ops = { … }`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut root_vfs_ops: android_vops = android_vops
+  {
+    name: Some (android_root_name),
+    open: Some (android_unix_open),
+    close: Some (android_unix_close),
+    unlink: Some (android_unix_unlink),
+    symlink: Some (android_unix_symlink),
+    rmdir: Some (android_unix_rmdir),
+    rename: Some (android_unix_rename),
+    stat: Some (android_unix_stat),
+    access: Some (android_unix_access),
+    mkdir: Some (android_unix_mkdir),
+    chmod: Some (android_unix_chmod),
+    readlink: Some (android_unix_readlink),
+    opendir: Some (android_root_opendir),
+  };
+
+/* Array of special named vnodes.  */                                   // C 6630
+
+/* C 6632-6637: `static struct android_special_vnode special_vnodes[] = { … }`.  C 6636's
+   `LISPSYM_INITIALLY (Qandroid_jni)` is the mirror's macro, which is not a `const fn`, so the port
+   writes the same constant expression over the generated `iQandroid_jni` index (the androidfont.rs
+   1288 device, lisp.rs 3211).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut special_vnodes: [android_special_vnode; 2] =
+  [
+    android_special_vnode { name: c"assets".as_ptr (), length: 6,
+			    initial: Some (android_afs_initial),
+			    special_coding_system: std::ptr::null_mut () },   // C 6634
+    android_special_vnode { name: c"content".as_ptr (), length: 7,
+			    initial: Some (android_content_initial),
+			    special_coding_system: ((iQandroid_jni
+						     * core::mem::size_of::<Lisp_Symbol> ()) as EMACS_UINT
+						    + Lisp_Type::Lisp_Symbol as EMACS_UINT)
+						   as Lisp_Object as *mut Lisp_X },   // C 6636
+  ];
+
+/* Convert the file name NAME from Emacs's internal character encoding
+   to CODING, and return a Lisp string with the data so produced.
+
+   Calling this function creates an implicit assumption that
+   `file-name-coding-system' is compatible with `utf-8-emacs', which is
+   not unacceptable as users with cause to modify
+   file-name-coding-system should be aware and prepared for adverse
+   consequences affecting files stored on different filesystems,
+   including virtual ones.  */                                         // C 6639-6647
+
+/* C 6649-6659.  C calls it directly (C 6703/6733), never through a pointer, so it stays a Rust-ABI
+   `unsafe fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_vfs_convert_name (name: *const c_char, coding: Lisp_Object) -> Lisp_Object
+{
+  let mut name1: Lisp_Object;                                          // C 6652
+
+  /* C leaves `name1` uninitialised (PORTING.md 1.5); it is assigned before any read.  */
+  name1 = std::ptr::null_mut ();
+
+  /* Convert the contents of the buffer after BUFFER_END from the file
+     name coding system to special->special_coding_system.  */          // C 6654-6655
+  name1 = build_string (name);                                         // C 6656
+  name1 = code_convert_string (name1, coding, Qt (), true, true, true);   // C 6657
+  return name1;                                                        // C 6658
+}
+
+/* C 6661-6766.  Its address is taken at C 6615, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_root_name (vnode: *mut android_vnode, mut name: *mut c_char,
+					mut length: size_t) -> *mut android_vnode
+{
+  let mut component_end: *mut c_char;                                  // C 6665
+  let mut special: *mut android_special_vnode;                         // C 6666
+  let mut i: size_t;                                                   // C 6667
+  let mut file_name: Lisp_Object;                                      // C 6668
+  let mut vp: *mut android_vnode;                                      // C 6669
+  let mut unix_vp: *mut android_unix_vnode;                            // C 6670
+
+  /* C leaves every local uninitialised (PORTING.md 1.5); each is assigned before its first read on
+     the path that reads it.  */
+  component_end = std::ptr::null_mut ();
+  special = std::ptr::null_mut ();
+  i = 0;
+  file_name = std::ptr::null_mut ();
+  vp = std::ptr::null_mut ();
+  unix_vp = std::ptr::null_mut ();
+
+  /* Skip any leading separator in NAME.  */                            // C 6672
+
+  if *name == b'/' as c_char                                           // C 6674
+    { name = name.offset (1); length -= 1; }                           // C 6675
+
+  /* Look for the first directory separator.  */                        // C 6677
+  component_end = strchr (name, b'/' as c_int);                        // C 6678
+
+  /* If not there, use name + length.  */                               // C 6680
+
+  if component_end.is_null ()                                          // C 6682
+    { component_end = name.offset (length as isize); }                 // C 6683
+  else
+    /* Move past the separator character.  */
+    { component_end = component_end.offset (1); }                      // C 6686
+
+  /* Now, find out if the first component is a special vnode; if so,
+     call its root lookup function with the rest of NAME there.  */     // C 6688-6689
+
+  i = 0;                                                               // C 6691
+  while i < countof! (special_vnodes)                                  // C 6691
+    {
+      special = &raw mut special_vnodes[i as usize];                   // C 6693
+
+      if component_end.offset_from (name) == (*special).length as isize   // C 6695
+	  && memcmp ((*special).name as *const c_void, name as *const c_void,   // C 6696
+		     (*special).length) == 0
+	{
+	  if ! NILP ((*special).special_coding_system as Lisp_Object)    // C 6698
+	    {
+	      let mut sa_avail: ptrdiff_t = 0;                           // C 6700 (`USE_SAFE_ALLOCA`)
+	      let mut sa_count: ptrdiff_t = 0;
+
+	      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+
+	      file_name
+		= android_vfs_convert_name (component_end,               // C 6703
+					    (*special).special_coding_system as Lisp_Object);   // C 6704
+
+	      /* Allocate a buffer and copy file_name into the same.  */   // C 6706
+	      length = (SBYTES (file_name) + 1) as size_t;               // C 6707
+	      name = SAFE_ALLOCA! (sa_avail, length) as *mut c_char;     // C 6708
+
+	      /* Copy the trailing NULL byte also.  */
+	      memcpy (name as *mut c_void, SDATA (file_name) as *const c_void, length);   // C 6711
+	      vp = ((*special).initial).unwrap () (name, length - 1);    // C 6712
+	      SAFE_FREE! (sa_count);                                     // C 6713
+	      return vp;                                                 // C 6714
+	    }
+
+	  return ((*special).initial).unwrap () (component_end,          // C 6717
+						 length - (*special).length);   // C 6718
+	}
+
+      /* Detect the case where a special is named with a trailing
+	 directory separator.  */                                     // C 6721-6722
+
+      if component_end.offset_from (name) == (*special).length as isize + 1   // C 6724
+	  && memcmp ((*special).name as *const c_void, name as *const c_void,   // C 6725
+		     (*special).length) == 0
+	  && *name.offset (((*special).length) as isize) == b'/' as c_char   // C 6726
+	{
+	  if ! NILP ((*special).special_coding_system as Lisp_Object)    // C 6728
+	    {
+	      let mut sa_avail: ptrdiff_t = 0;                           // C 6730 (`USE_SAFE_ALLOCA`)
+	      let mut sa_count: ptrdiff_t = 0;
+
+	      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+
+	      file_name
+		= android_vfs_convert_name (component_end.offset (-1),   // C 6733
+					    (*special).special_coding_system as Lisp_Object);   // C 6734
+
+	      /* Allocate a buffer and copy file_name into the same.  */   // C 6736
+	      length = (SBYTES (file_name) + 1) as size_t;               // C 6737
+	      name = SAFE_ALLOCA! (sa_avail, length) as *mut c_char;     // C 6738
+
+	      /* Copy the trailing NULL byte also.  */
+	      memcpy (name as *mut c_void, SDATA (file_name) as *const c_void, length);   // C 6741
+	      vp = ((*special).initial).unwrap () (name, length - 1);    // C 6742
+	      SAFE_FREE! (sa_count);                                     // C 6743
+	      return vp;                                                 // C 6744
+	    }
+
+	  /* Make sure to include the directory separator.  */
+	  return ((*special).initial).unwrap () (component_end.offset (-1),   // C 6748
+						 length - (*special).length);   // C 6749
+	}
+
+      i += 1;                                                          // C 6691
+    }
+
+  /* Otherwise, continue searching for a vnode normally, but duplicate
+     the vnode manually if length is 0, as `android_unix_name' resets
+     the vnode operation vector in copies.  */                          // C 6753-6755
+
+  if length == 0                                                       // C 6757
+    {
+      unix_vp = xmalloc (std::mem::size_of::<android_unix_vnode> ()) as *mut android_unix_vnode;   // C 6759
+      memcpy (unix_vp as *mut c_void, vnode as *const c_void,          // C 6760
+	      std::mem::size_of::<android_unix_vnode> ());             // C 6760
+      (*unix_vp).name = xstrdup ((*unix_vp).name);                     // C 6761
+      return &raw mut (*unix_vp).vnode;                                // C 6762
+    }
+
+  return android_unix_name (vnode, name, length);                      // C 6765
+}
+
+/* C 6768-6789.  Its address is taken at C 6837; C's `static struct dirent dirent, *p;` is a
+   function-scope `static mut` pair here.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_root_readdir (vdir: *mut android_vdir) -> *mut dirent
+{
+  let mut dir: *mut android_root_vdir;                                 // C 6771
+  static mut dirent: dirent =
+    dirent { d_ino: 0, d_off: 0, d_reclen: 0, d_type: 0, d_name: [0; 256] };   // C 6772
+  static mut p: *mut dirent = std::ptr::null_mut ();                   // C 6772
+
+  dir = vdir as *mut android_root_vdir;                                // C 6774
+  p   = if ! (*dir).directory.is_null ()                               // C 6775
+    { readdir ((*dir).directory) as *mut dirent } else { std::ptr::null_mut () };   // C 6775
+
+  if ! p.is_null () || (*dir).index >= countof! (special_vnodes) as c_int   // C 6777
+    { return p; }                                                      // C 6778
+
+  dirent.d_ino = 0;                                                    // C 6780
+  dirent.d_off = 0;                                                    // C 6781
+  dirent.d_reclen = std::mem::size_of::<dirent> () as c_ushort;        // C 6782
+  dirent.d_type = DT_DIR as c_uchar;                                   // C 6783
+
+  /* No element in special_vnode must overflow dirent.d_name.  */      // C 6785
+  strcpy (dirent.d_name.as_mut_ptr (),                                // C 6786
+	  special_vnodes[(*dir).index as usize].name);                 // C 6787
+  (*dir).index += 1;                                                   // C 6787 (C's post-increment)
+  return &raw mut dirent;                                              // C 6788
+}
+
+/* C 6791-6811.  Its address is taken at C 6838; the `for`-less `if (root_fd_references--) ;` pair is
+   C's post-decrement written out.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_root_closedir (vdir: *mut android_vdir)
+{
+  let mut dir: *mut android_root_vdir;                                 // C 6794
+
+  dir = vdir as *mut android_root_vdir;                                // C 6796
+
+  if ! (*dir).directory.is_null ()                                     // C 6798
+    { closedir ((*dir).directory); }                                   // C 6799
+
+  let root_fd_references_ = root_fd_references;                        // C 6801 (the post-decrement's
+  root_fd_references -= 1;                                             // C 6801  read)
+  if root_fd_references_ != 0
+    { }                                                                // C 6802
+  else
+    {
+      /* Close root_fd, for which no references remain.  */            // C 6805
+      close (root_fd);                                                 // C 6806
+      root_fd = -1;                                                    // C 6807
+    }
+
+  xfree (vdir as *mut c_void);                                         // C 6810
+}
+
+/* C 6813-6818.  Its address is taken at C 6839.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_root_dirfd (vdir: *mut android_vdir) -> c_int
+{
+  eassert! (root_fd != -1);                                            // C 6816
+  return root_fd;                                                      // C 6817
+}
+
+/* C 6820-6852.  Its address is taken at C 6627.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_root_opendir (vnode: *mut android_vnode) -> *mut android_vdir
+{
+  let mut vp: *mut android_unix_vnode;                                 // C 6823
+  let mut dir: *mut android_root_vdir;                                 // C 6824
+  let mut directory: *mut DIR;                                         // C 6825
+
+  /* Try to opendir the vnode.  */                                     // C 6827
+  vp = vnode as *mut android_unix_vnode;                               // C 6828
+
+  directory = opendir ((*vp).name);                                    // C 6830
+
+  /* Proceed with the remaining code if directory is nil, in which event
+     directory functions will simply forgo listing files inside the real
+     root directory.  */                                               // C 6832-6834
+
+  dir = xmalloc (std::mem::size_of::<android_root_vdir> ()) as *mut android_root_vdir;   // C 6836
+  (*dir).vdir.readdir
+    = Some (std::mem::transmute::<unsafe extern "C" fn (*mut android_vdir) -> *mut dirent,
+				  unsafe extern "C" fn (*mut android_vdir) -> *mut c_void>
+	    (android_root_readdir));                                   // C 6837
+  (*dir).vdir.closedir = Some (android_root_closedir);                 // C 6838
+  (*dir).vdir.dirfd = Some (android_root_dirfd);                       // C 6839
+  (*dir).directory = directory;                                        // C 6840
+  (*dir).index = 0;                                                    // C 6841
+
+  /* Allocate a temporary file descriptor for this ersatz root.  This is
+     required regardless of the value of DIRECTORY, as android_fstatat
+     and co. will not defer to the VFS layer if a directory file
+     descriptor is not known to be special.  */                        // C 6843-6846
+  if root_fd < 0                                                       // C 6847
+    { root_fd = open (c"/dev/null".as_ptr (), O_RDONLY | O_CLOEXEC); }   // C 6848
+  root_fd_references += 1;                                             // C 6849
+
+  return &raw mut (*dir).vdir;                                         // C 6851
+}
