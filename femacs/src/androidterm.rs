@@ -6401,3 +6401,170 @@ pub unsafe extern "C" fn replaceText (env: *mut JNIEnv, object: jobject, window:
 
   android_write_event (&raw mut event);                                 // C 5292
 }
+
+/* C 5295-5307: `struct android_conversion_query_context`, the record the text-conversion
+   query callbacks carry.  Its layout follows from the mirror's measured
+   `textconv_callback_struct` (`include/textconv.rs` 144-150: 48 bytes, align 8) with
+   `#[repr(C)]`; the four numbers below are derived from that measurement and are recorded as
+   derived in this unit's ledger (the C probe route for a unit-local record is
+   `tools/gen-layout-fields.py`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_conversion_query_context
+{
+  /* The conversion request.  */
+  pub query: textconv_callback_struct,                                 // C 5300
+
+  /* The window the request is being made on.  */
+  pub window: android_window,                                          // C 5303
+
+  /* Whether or not the request was successful.  */
+  pub success: bool,                                                   // C 5306
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::offset_of! (android_conversion_query_context, query) == 0);
+  core::assert! (std::mem::offset_of! (android_conversion_query_context, window) == 48);
+  core::assert! (std::mem::offset_of! (android_conversion_query_context, success) == 56);
+  core::assert! (std::mem::size_of::<android_conversion_query_context> () == 64);
+};
+
+/* Obtain the text from the frame whose window is that specified in
+   DATA using the text conversion query specified there.
+
+   Set ((struct android_conversion_query_context *) DATA)->success on
+   success.  */                                                       // C 5309-5313
+
+/* C 5315-5335.  `static` and the *address is taken* (C 5449/5493 pass it to
+   `android_run_in_emacs_thread`), so `unsafe extern "C" fn` - the `android_show_hourglass` shape
+   of this unit.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_perform_conversion_query (data: *mut c_void)
+{
+  let mut context: *mut android_conversion_query_context;               // C 5318
+  let mut f: *mut frame;                                                // C 5319
+
+  context = data as *mut android_conversion_query_context;              // C 5321
+
+  /* Find the frame associated with the window.  */                      // C 5323
+  f = android_window_to_frame (std::ptr::null_mut (), (*context).window);   // C 5324
+
+  if f.is_null ()                                                       // C 5326
+    { return; }                                                         // C 5327
+
+  textconv_query (f, &raw mut (*context).query, 0);                     // C 5329
+
+  /* context->query.text will have been set even if textconv_query
+     returns 1.  */                                                     // C 5331-5332
+
+  (*context).success = true;                                            // C 5334
+}
+
+/* Convert a string in BUFFER, containing N characters in Emacs's
+   internal multibyte encoding, to a Java string utilizing the
+   specified JNI environment ENV.
+
+   If N is equal to BYTES, then BUFFER holds unibyte or plain-ASCII
+   characters.  Otherwise, BUFFER holds multibyte characters.
+
+   Make sure N and BYTES are absolutely correct, or you are asking for
+   trouble.
+
+   Value is a jstring upon success, NULL otherwise.  Any exceptions
+   generated are not cleared.  */                                      // C 5337-5348
+
+/* C 5350-5426.  `static`; only called (C 5464/5508/6025/6081).  C's two
+   `ckd_mul (&size, n, sizeof *utf16)` sites are the P-15 `ckd_mul`/`overflowing_mul` pair
+   (docs/ports/token-aliases.tsv 13, the C 662 site of this unit), and C's two `while (n--)`
+   loops keep their body with the decrement as the step (C's `n` is not read inside the body).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_text_to_string (env: *mut JNIEnv, mut buffer: *mut c_char,
+				  mut n: ptrdiff_t, bytes: ptrdiff_t) -> jstring
+{
+  let mut utf16: *mut jchar;                                            // C 5354
+  let mut size: size_t = 0;                                             // C 5355
+  let mut index: size_t;
+  let mut string: jstring;                                             // C 5356
+  let mut encoded: c_int;                                               // C 5357
+
+  if n == bytes                                                         // C 5359
+    {
+      /* This buffer holds no multibyte characters.  */                 // C 5361
+
+      /* C 5363: `if (ckd_mul (&size, n, sizeof *utf16)) return NULL;` - the P-15
+	 `ckd_mul`/`overflowing_mul` pair (docs/ports/token-aliases.tsv 13).  */
+      let (size_, mul_overflow) = (n as size_t)
+	.overflowing_mul (std::mem::size_of::<jchar> ());
+      size = size_;
+      if mul_overflow
+	{ return std::ptr::null_mut (); }                              // C 5364
+
+      utf16 = malloc (size) as *mut jchar;                              // C 5366
+      index = 0;                                                        // C 5367
+
+      if utf16.is_null ()                                              // C 5369
+	{ return std::ptr::null_mut (); }                              // C 5370
+
+      while n != 0                                                      // C 5372 (the `n--` test)
+	{
+	  *utf16.offset (index as isize) = *buffer.offset (index as isize) as jchar;   // C 5374
+	  index += 1;                                                   // C 5375
+	  n -= 1;                                                       // C 5372 (the `n--` step)
+	}
+
+      string = ((*(*env)).NewString.unwrap ()) (env, utf16, bytes as jsize);   // C 5378
+      free (utf16 as *mut c_void);                                      // C 5379
+
+      return string;                                                    // C 5381
+    }
+
+  /* Allocate enough to hold N characters.  */                          // C 5384
+
+  /* C 5386: the same `ckd_mul` pair as C 5363.  */
+  let (size_, mul_overflow) = (n as size_t)
+    .overflowing_mul (std::mem::size_of::<jchar> ());
+  size = size_;
+  if mul_overflow
+    { return std::ptr::null_mut (); }                                  // C 5387
+
+  utf16 = malloc (size) as *mut jchar;                                 // C 5389
+  index = 0;                                                           // C 5390
+
+  if utf16.is_null ()                                                  // C 5392
+    { return std::ptr::null_mut (); }                                  // C 5393
+
+  while n != 0                                                         // C 5395 (the `n--` test)
+    {
+      eassert! (CHAR_HEAD_P (*buffer as c_int));                        // C 5397
+      encoded = STRING_CHAR (buffer as *mut u8 as *const u8);           // C 5398
+
+      /* Now establish how to save ENCODED into the string.
+	 Emacs operates on multibyte characters, not UTF-16 characters
+	 with surrogate pairs as Android does.
+
+	 However, character positions in Java are represented as
+	 character (rather than codepoint) indices into UTF-16
+	 strings, meaning that text positions reported to Android can
+	 become decoupled from their actual values if the text
+	 returned incorporates characters that must be encoded as
+	 surrogate pairs.
+
+	 The hack used by Emacs is to simply replace each multibyte
+	 character that doesn't fit in a jchar with the Unicode
+	 replacement character.  */                                  // C 5400-5413
+
+      if encoded >= 65536                                               // C 5415
+	{ encoded = 0xfffd; }                                          // C 5416
+
+      *utf16.offset (index as isize) = encoded as jchar;                // C 5418
+      index += 1;                                                       // C 5418 (the `index++`)
+      buffer = buffer.offset (BYTES_BY_CHAR_HEAD (*buffer as c_int) as isize);   // C 5419
+      n -= 1;                                                           // C 5395 (the `n--` step)
+    }
+
+  /* Create the string.  */                                            // C 5422
+  string = ((*(*env)).NewString.unwrap ()) (env, utf16, index as jsize);   // C 5423
+  free (utf16 as *mut c_void);                                         // C 5424
+  return string;                                                       // C 5425
+}

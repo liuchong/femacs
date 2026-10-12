@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,403 lines**, md5
-> `a6c9a500804ac954ed7d47d5762c644f`), carrying **C 1-5293**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,570 lines**, md5
+> `8c95b011d3c0a6a3802276025a1a116e`), carrying **C 1-5426**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -20,7 +20,7 @@
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
 the next definition is
-> `android_perform_conversion_query` (C 5316), and the file's tail is the text-conversion group.
+> `NATIVE_NAME (getTextAfterCursor)`, C 5429.
 
 ## Gate mapping
 
@@ -185,7 +185,10 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 5217-5238 | `NATIVE_NAME (deleteSurroundingText)` | real arm (slice 15) |
 | 5240-5260 | `NATIVE_NAME (finishComposingText)` | real arm (slice 15) |
 | 5262-5293 | `NATIVE_NAME (replaceText)` (C's `text` parameter reused as the buffer) | real arm (slice 15) |
-| 5295-7117 | **the remainder of the file** - from C 5295's comment above `struct android_conversion_query_context` through the text-conversion group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5295-5307 | C 5295's comment and `struct android_conversion_query_context` | real arm (slice 16) |
+| 5309-5335 | C 5309-5313's comment and `android_perform_conversion_query` | real arm (slice 16) |
+| 5337-5426 | C 5337-5348's comment and `android_text_to_string` (C's two `ckd_mul` sites and two `while (n--)` loops) | real arm (slice 16) |
+| 5428-7117 | **the remainder of the file** - from C 5428's `JNIEXPORT jstring JNICALL` above `NATIVE_NAME (getTextAfterCursor)` (C 5429) through the rest of the text-conversion group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -381,11 +384,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 5295-7117.**  Slice 15 wrote C 5107-5293 (the seven
-   event-posting entry points), so the next slice's rows must replace this table's last row; the
-   remainder opens with `struct android_conversion_query_context` (C 5297) and its first definition
-   is `android_perform_conversion_query` (C 5316) - the text-conversion group, which ends at
-   `syms_of_androidterm`.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 5428-7117.**  Slice 16 wrote C 5295-5426 (the query context,
+   the query callback and the string converter), so the next slice's rows must replace this table's
+   last row; its first definition is `NATIVE_NAME (getTextAfterCursor)` (C 5429), and the group runs
+   through the rest of the text-conversion entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -545,6 +547,15 @@ slice's basis).  All 116 are in the owed list below.
    5690, 5742, 5947, 6059, 6089, 6111, 6140, 6348, 6359), so the remaining fifteen will add their
    rows as the tail's slices land.
 
+30. **A unit-local record with derived layout numbers** (slice 16):
+   `struct android_conversion_query_context` (C 5297-5307) is the first record this unit defines
+   itself.  Its four asserts (`query` 0, `window` 48, `success` 56, size 64) are **derived** from
+   the mirror's measured `textconv_callback_struct` (`include/textconv.rs` 144-150: 48 bytes,
+   align 8) plus `#[repr(C)]`, not read off a C probe: the C-side measurement for a unit-local
+   record goes through `tools/gen-layout-fields.py`, which no lane has run for this one yet.  The
+   first column of the pair (the size) is a mirror measurement, so the derivation is forced; the
+   ledger records it as derived rather than measured until that tool runs.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -560,8 +571,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-5293 is now ported** (slices 4-15,
-each with its own Evidence section below); C 5295-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-5426 is now ported** (slices 4-16,
+each with its own Evidence section below); C 5428-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1214,3 +1225,43 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
 - **C 5263's `replaceText` reuses the parameter name `text`** for the copied `unsigned short *`
   (C 5264's `jobject text`, C 5270's `unsigned short *text`): the port keeps C's one name by
   shadowing the parameter with the `let text: *mut c_ushort` at C 5273's call.
+
+## 2026-10-12: slice 16 (C 5295-5426) - the query context, the query callback and the converter
+
+`struct android_conversion_query_context`, `android_perform_conversion_query` and
+`android_text_to_string`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   **The slice's first probe was its last**: the record's four layout asserts, the callback's
+   address-taken form (`unsafe extern "C" fn`), the two `ckd_mul` pairs, the two `while (n--)` loops,
+   `CHAR_HEAD_P`/`STRING_CHAR`/`BYTES_BY_CHAR_HEAD` (the character mirror's three plain functions)
+   and the two `NewString` vtable calls all read correctly on the first pass.
+2. **No new `does not mention` row**: the two comments C writes inside `android_text_to_string`
+   (C 5361's and C 5400-5413's fifteen lines) are carried, and C's own tokens
+   (`sizeof *utf16`, `ckd_mul`, `n--`, `index++`, `0xfffd`, `BYTES_BY_CHAR_HEAD`) are all present in
+   the ported text.
+3. **Inventory**: 32 rows -> **30** - the two `missing function` rows of this slice retire (18
+   stand: the tail's 16 definitions plus `android_notify_conversion` and `syms_of_androidterm`), the
+   two file-scope objects, the seven export rows (Owed 29) and the line-count row stand; the
+   line-count row reads **7.7%** (C 7,117 against the port's 6,570).
+
+### Deviations this slice adds
+
+- **The record's layout** is `#[repr(C)]` with four **derived** asserts (Owed 30), and its
+  `textconv_callback_struct` member is the mirror's (48 bytes, `include/textconv.rs` 144).
+- **`android_perform_conversion_query`'s address is taken** (C 5449/5493 pass it to
+  `android_run_in_emacs_thread`), so it is `unsafe extern "C" fn` - the `android_show_hourglass`
+  shape of this unit; `data` is cast to the record pointer C's implicit conversion performs.
+- **C's two `ckd_mul (&size, n, sizeof *utf16)`** are the P-15 `ckd_mul`/`overflowing_mul` pair
+  (docs/ports/token-aliases.tsv 13) with `size` a `size_t` here (the C 662 site of this unit had a
+  `ptrdiff_t`), and C's `sizeof *utf16` is `std::mem::size_of::<jchar> ()`.
+- **C's two `while (n--)` loops** keep their body and put the decrement at the end (C's `n` is never
+  read inside either body, so the two forms agree for every path of this function);
+  `utf16[index++] = encoded` is the value store plus `index += 1`, and `buffer += BYTES_BY_CHAR_HEAD (*buffer)`
+  the `buffer.offset (… as isize)` form.
+- **`(*env)->NewString (env, utf16, bytes)`** is `((*(*env)).NewString.unwrap ()) (env, utf16, bytes as jsize)`
+  (the NDK mirror's `*const jchar` third parameter and `jsize` count), and `malloc`/`free` are the
+  mirror's pair with the `as *mut jchar`/`as *mut c_void` casts C's implicit conversions perform.
