@@ -461,6 +461,19 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    it at its use site (the `atol`/`getline` shape, `androidfns.rs` 4325-4344).  Adding it to the
    mirror would let that use-site block go.
 
+10. **The five `invented exported symbol` rows cannot be discharged by port text**, and this unit is
+   where the class was measured: C's `NATIVE_NAME` (`android.h` 344,
+   `#define NATIVE_NAME(name) Java_org_gnu_emacs_EmacsNative_##name`) is a *function-like* macro, and
+   the checker's rename reader (`extract-abi.py` 2380-2390) only reads object-like `#define X Y`
+   pairs - so `Java_org_…_EmacsNative_displayNameHash` never enters its `c_exported` set, and
+   `androidvfs.o` is not in the frozen build (`reference_object_symbols` cannot answer either).
+   The port spells those five names with `#[unsafe(export_name = "Java_org_femacs_EmacsNative_…")]`
+   (the project rename, so C's own spelling is not available to match), which is the same class
+   `PORT_ONLY_EXPORTS` (`extract-abi.py` 1828) exists for.  Until the tool grows a function-like
+   expansion or a tsv for that class, this unit's `extract-abi.py --all` line stays `FAIL`
+   even though no `missing …` row is left; `src/android.c` (42 uses) and `src/androidterm.c` (22)
+   will meet the same five-row-per-file reading when their lanes run.
+
 ## Not claimed
 
 Every line of this slice sits behind gates the frozen configuration leaves false: ① is an empty
