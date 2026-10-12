@@ -6,8 +6,13 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**8,565 lines**, md5
-> `637a735d768c6f9b89fb756891b188a3`), carrying **C 1-6874**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**8,805 lines**, md5
+> `1863f11e9354ab5886e7700bde1cc713`), carrying **C 1-7117 - the whole file**; both arms of every
+> `#if` carried.  **The file is complete** (slice 29, 2026-10-12): no `missing function`,
+> `missing file-scope object`, `missing macro` or `missing constant` row stands, the arm probe
+> reads **2 errors** (the two frame-mirror window-system fields, Owed 5), and the only rows left in
+> `--check` are the 22 `invented exported symbol` ones of Owed 29 (C's function-like `NATIVE_NAME`
+> paste, which no port text can discharge).  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -228,7 +233,9 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 6707-6718 | C 6707-6708's `char *`/`get_keysym_name` (C 6712-6716's `#ifndef` pair, C 6710's function-scope `static`) | real arm (slice 26) |
 | 6720-6787 | C 6722-6723's comment and `android_create_terminal` (C 6739-6780's ~34 hook assignments, C 6782-6784's `#else` arm) | real arm (slice 27) |
 | 6789-6874 | C 6789-6790's comment and `android_term_init` (C 6822-6828 and 6863-6866's `#ifndef` pairs) | real arm (slice 28) |
-| 6876-7117 | **the remainder of the file** - from C 6878-6879's comment above `android_set_build_fingerprint` (C 6882) through `syms_of_androidterm` (C 6992), `mark_androidterm` (C 7113) and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6876-6989 | C 6878-6879's comment and `android_set_build_fingerprint` (C 6884-6888's `#ifdef ANDROID_STUBIFY` pair, the `goto fail` chain) | real arm (slice 29) |
+| 6991-7110 | C 6991-6992's `void` and `syms_of_androidterm` (the 30 registrations and their docstrings) | real arm (slice 29) |
+| 7112-7117 | C 7112's `void` and `mark_androidterm` - **the file's last definition** | real arm (slice 29) |
 
 ## Evidence
 
@@ -427,17 +434,15 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 6876-7117.**  Slice 28 wrote C 6789-6874
-   (`android_term_init`), so three `missing function` rows stand:
-   `android_set_build_fingerprint` (C 6882), `syms_of_androidterm` (C 6992) and
-   `mark_androidterm` (C 7113), plus the two `#pragma` pops at the file's tail - one more slice
-   closes `src/androidterm.c`.
-2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21, tolerance `0.10`) and
-   **re-measured at slice 23** (a newer row, tolerance `0.12`, governs - the table is append-only
-   and the newest row per stem wins): C 7,117 against the port's 7,832 is +10.0%, so the 0.10 row
-   had stopped covering the measurement; the row moves with the reading, not ahead of it.  This item
-   used to claim a `0.30` row that no round had ever appended.  Re-measure when the file
-   closes.
+1. **~~The remainder of the file~~ - discharged at slice 29: there is no remainder.**
+   `src/androidterm.c` is carried whole (C 1-7117) and the checklist has no `missing …` row of any
+   kind.  What was item 1 for twenty-eight rounds is now the closing reading, and the only rows the
+   file's `--check` still prints are Owed 29's 22 export rows (the tool gap).
+2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** and re-measured five times
+   (0.10 at slice 21, 0.12 at slice 23, 0.16 at slice 25, 0.19 at slice 26, 0.23 at slice 28, and
+   **0.27 at slice 29 - the closing reading**, C 7,117 against the port's 8,805, +23.7%).  The
+   newest row per stem governs, and this item's original claim (a `0.30` row) had never been
+   written by any round.
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
    three `stale` rows) and `docs/port-map.md`'s 11-line figure for this target are both stale now.
 4. `docs/ports/macro-body-notes.tsv`, the rows this slice's token sets need:
@@ -677,6 +682,17 @@ slice's basis).  All 116 are in the owed list below.
    `docs/baseline/declarations-allowlist.tsv`, whose `literal` class is the one that expects them;
    the name itself is deliberately not written in this ledger.
 
+37. **The closing slice's four devices** (slice 29).  (a) `syms_of_androidterm` uses the tree's
+   defvar macros, and **`DEFVAR_INT!` has no `doc:` rule** in the mirror
+   (`include/lisp.rs` 3520-3523 takes `($lname, $vname, $doc)` only, while `DEFVAR_LISP!`/
+   `DEFVAR_BOOL!` accept the label at 3483-3486/3539-3543): C's two `DEFVAR_INT` docstrings are
+   passed without the label.  (b) `mark_object` (lisp.h 4436) has only its `mark_objects` twin in
+   the mirror, so the one-argument form stands at this unit's use site (the `src/haikuterm.rs`
+   6519-6524 device).  (c) C 7094-7100's four `make_fixnum (x_modifier)` calls take `as isize`
+   (`make_fixnum`'s own width; the modifiers are `c_int`).  (d) C's docstrings are transcribed as
+   one string each with `\n` for C's line ends, two trailing spaces and all (the `src/alloc.rs`
+   2349 spelling); the `SKIP: real doc in xterm.c.` ones are C's own text too.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -692,8 +708,9 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-6874 is now ported** (slices 4-28,
-each with its own Evidence section below); C 6876-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-7117 is now ported** (slices 4-29,
+each with its own Evidence section below): with slice 29 the file is carried **whole**, both arms
+of every `#if` included, and nothing in it is merely recorded.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1818,3 +1835,35 @@ The `#endif` that closes C 47's arm, `static struct redisplay_interface android_
 - **C 6843's `ckd_add`** is the P-15 `ckd_add`/`overflowing_add` pair
   (`docs/ports/token-aliases.tsv` 13, the C 662 site of this unit), and C 6846-6847's `sprintf`
   keeps C's `"%s%s%s"` with the three pointer arguments.
+
+## 2026-10-12: slice 29 (C 6876-7117) - the closing round: `android_set_build_fingerprint`, `syms_of_androidterm`, `mark_androidterm`
+
+The file's last three definitions, and with them **`src/androidterm.c` is carried whole**.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 2 errors** - the two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`, Owed 5).  The slice's three readings were `goto fail`'s
+   labelled-block form (the `break 'fail` device), `DEFVAR_INT!`'s missing `doc:` rule (Owed 37),
+   and `mark_object`'s absence from the mirror (a use-site declaration).
+2. **The file's checklist is empty**: `missing function` 3 -> **0**, and `missing file-scope
+   object`, `missing macro` and `missing constant` were already 0 - so `--check` prints no
+   `missing …` row of any kind for this file for the first time.  What stands is Owed 29's 22
+   `invented exported symbol` rows (the tool gap), the `does not mention` row this slice discharged
+   in its own commit, and the line-count row the moved tolerance covers.
+3. **The tolerance row's closing reading**: C 7,117 against the port's 8,805 is **+23.7%**, so a
+   newer `0.27` row was appended (Owed 2's rule; its sixth and final move, with a note that the file
+   is complete).
+
+### Deviations this slice adds
+
+- **C 6900/6911/…/6968's eight `goto fail`s** are `break 'fail` inside the port's labelled block,
+  with C 6982's `fail:` arm after it (Owed 37, PORTING.md 2.2; the `macro-body-notes.tsv` row this
+  slice appends).
+- **C 6884-6988's `#ifdef ANDROID_STUBIFY` pair** carries both arms: the stub arm is the one
+  assignment of C 6885, the real arm the whole JNI body.
+- **C 7083's `pdumper_do_now_and_after_load (android_set_build_fingerprint)`** is
+  `Some (android_set_build_fingerprint)` (the mirror's `pdumper_hook` parameter), and C 6994/7109's
+  two `Fprovide` calls keep C's two arguments.
+- **C's docstrings** are one string each with `\n` (Owed 37), and the file's last line is
+  `mark_androidterm`'s close, exactly as C's is.

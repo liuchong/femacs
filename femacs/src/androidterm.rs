@@ -8563,3 +8563,243 @@ pub unsafe extern "C" fn android_term_init ()
 	       make_vector (1, Qselect ()), make_vector (1, Qreturn ()),   // C 6872
 	       Qnil ());                                                // C 6873
 }
+
+/* C 6876-7117: the file's last three definitions - `android_set_build_fingerprint`,
+   `syms_of_androidterm` and `mark_androidterm`.  The first is C's `goto fail` shape (the port's
+   labelled block, `break 'fail` at each jump - PORTING.md 2.2), and `syms_of_androidterm` is the
+   tree's defvar device (`DEFSYM!`/`DEFVAR_LISP!`/`DEFVAR_INT!`/`DEFVAR_BOOL!`, the
+   `include/lisp.rs` macros `src/androidfns.rs` 4579-4600 uses), with C's docstrings transcribed as
+   one string each (`\n` for C's line ends, the `src/alloc.rs` 2349 spelling).  */
+
+/* Set Vandroid_build_fingerprint to a reasonable value, and also
+   Vandroid_build_manufacturer.  */                                    // C 6878-6879
+
+/* C 6881-6989.  `static` and the *address is taken* (C 7083), so `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_set_build_fingerprint ()
+{
+  #[cfg (feature = "android_stubify")]
+  {
+    Vandroid_build_fingerprint = Qnil ();                               // C 6885
+  }
+  #[cfg (not (feature = "android_stubify"))]
+  {
+    let mut class: jclass;                                              // C 6887
+    let mut field: jfieldID;                                            // C 6888
+    let mut string: jobject;                                            // C 6889
+    let mut data: *const c_char;                                        // C 6890
+
+    'fail: {                                                            // C 6982 (C's `fail:` label)
+      /* Set class to NULL so freeing an uninitialized local ref can be
+	 avoided.  */                                                   // C 6892-6893
+      class = std::ptr::null_mut ();                                    // C 6894
+
+      /* Likewise for string.  */                                      // C 6896
+      string = std::ptr::null_mut ();                                   // C 6897
+
+      if ! android_init_gui                                             // C 6899
+	{ break 'fail; }                                                // C 6900 (C's `goto fail`)
+      else
+	{
+	  /* Obtain Build.FINGERPRINT.  Clear exceptions after each query;
+	     JNI can't find Build.FINGERPRINT on some systems.  */      // C 6903-6904
+
+	  class = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 6906
+							       c"android/os/Build".as_ptr ());   // C 6907
+	  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6908
+
+	  if class.is_null ()                                           // C 6910
+	    { break 'fail; }                                            // C 6911
+
+	  field = ((*(*android_java_env)).GetStaticFieldID.unwrap ()) (android_java_env,   // C 6913
+								       class,   // C 6914
+								       c"FINGERPRINT".as_ptr (),   // C 6915
+								       c"Ljava/lang/String;".as_ptr ());   // C 6916
+	  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6917
+
+	  if field.is_null ()                                           // C 6919
+	    { break 'fail; }                                            // C 6920
+
+	  string
+	    = ((*(*android_java_env)).GetStaticObjectField.unwrap ()) (android_java_env,   // C 6922-6923
+								       class, field);   // C 6924
+	  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6925
+
+	  if string.is_null ()                                          // C 6927
+	    { break 'fail; }                                            // C 6928
+
+	  data = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env,   // C 6930
+								       string, std::ptr::null_mut ());   // C 6931
+	  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6932
+
+	  if data.is_null ()                                            // C 6934
+	    { break 'fail; }                                            // C 6935
+
+	  Vandroid_build_fingerprint = build_string_from_utf8 (data);   // C 6937
+	  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ()) (android_java_env,   // C 6938
+								    string, data);   // C 6939
+
+	  /* Now retrieve Build.MANUFACTURER.  */                       // C 6941
+
+	  ANDROID_DELETE_LOCAL_REF! (string);                           // C 6943
+	  string = std::ptr::null_mut ();                               // C 6944
+
+	  field = ((*(*android_java_env)).GetStaticFieldID.unwrap ()) (android_java_env,   // C 6946
+								       class,   // C 6947
+								       c"MANUFACTURER".as_ptr (),   // C 6948
+								       c"Ljava/lang/String;".as_ptr ());   // C 6949
+	  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6950
+
+	  if field.is_null ()                                           // C 6952
+	    { break 'fail; }                                            // C 6953
+
+	  string
+	    = ((*(*android_java_env)).GetStaticObjectField.unwrap ()) (android_java_env,   // C 6955-6956
+								       class, field);   // C 6957
+	  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6958
+
+	  if string.is_null ()                                          // C 6960
+	    { break 'fail; }                                            // C 6961
+
+	  data = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env,   // C 6963
+								       string, std::ptr::null_mut ());   // C 6964
+	  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6965
+
+	  if data.is_null ()                                            // C 6967
+	    { break 'fail; }                                            // C 6968
+
+	  Vandroid_build_manufacturer = build_string_from_utf8 (data);   // C 6970
+	  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ()) (android_java_env,   // C 6971
+								    string, data);   // C 6972
+	}
+
+      if ! string.is_null ()                                            // C 6975
+	{ ANDROID_DELETE_LOCAL_REF! (string); }                         // C 6976
+
+      ANDROID_DELETE_LOCAL_REF! (class);                                // C 6978
+
+      return;                                                           // C 6980
+    }
+
+    /* C 6982's `fail:` arm runs the two cleanup statements and clears both variables.  */
+    if ! class.is_null ()                                               // C 6983
+      { ANDROID_DELETE_LOCAL_REF! (class); }                            // C 6984
+
+    Vandroid_build_fingerprint = Qnil ();                               // C 6986
+    Vandroid_build_manufacturer = Qnil ();                              // C 6987
+  }
+}
+
+/* C 6991-7110.  Non-`static` (androidterm.h declares it) and no address is taken:
+   `#[unsafe(no_mangle)]` with the C ABI.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_androidterm ()
+{
+  Fprovide (Qandroid (), Qnil ());                                      // C 6994
+
+  DEFVAR_LISP! (c"android-wait-for-event-timeout",                      // C 6996-6997
+		Vandroid_wait_for_event_timeout,                        // C 6997
+    doc: "How long to wait for Android events.\n\nEmacs will wait up to this many seconds to receive events after\nmaking changes which affect the state of the graphical interface.\nUnder some situations this can take an indefinite amount of time,\nso it is important to limit the wait.\n\nIf set to a non-float value, there will be no wait at all.  ");   // C 6998-7005
+  Vandroid_wait_for_event_timeout = make_float (0.1);                   // C 7006
+
+  DEFVAR_INT! (c"android-quit-keycode", android_quit_keycode,           // C 7008
+    "Keycode that signals quit when typed twice in rapid succession.\n\nThis is the key code of a key whose repeated activation should prompt\nEmacs to quit, enabling quitting on systems where a keyboard capable of\ntyping C-g is unavailable, when set to a key that does exist on the\ndevice.  Its value must be a keycode defined by the operating system,\nand defaults to 25 (KEYCODE_VOLUME_DOWN), though one of the following\nvalues might be desired on those devices where this default is also\nunavailable, or if another key must otherwise serve this function\ninstead:\n\n  - 4  (KEYCODE_BACK)\n  - 24 (KEYCODE_VOLUME_UP)  ");                                // C 7009-7021
+  android_quit_keycode = 25;                                            // C 7022
+
+  DEFVAR_BOOL! (c"x-use-underline-position-properties",                 // C 7024-7025
+		x_use_underline_position_properties,                    // C 7025
+     doc: "SKIP: real doc in xterm.c.  ");                              // C 7026
+  x_use_underline_position_properties = true;                           // C 7027
+  DEFSYM! (Qx_use_underline_position_properties,                        // C 7028
+	   "x-use-underline-position-properties");                      // C 7029
+
+  DEFVAR_BOOL! (c"x-underline-at-descent-line",                         // C 7031-7032
+		x_underline_at_descent_line,                            // C 7032
+     doc: "SKIP: real doc in xterm.c.  ");                              // C 7033
+  x_underline_at_descent_line = false;                                  // C 7034
+
+  DEFVAR_LISP! (c"android-build-fingerprint", Vandroid_build_fingerprint,   // C 7036
+    doc: "String identifying the device's OS version.\nThis is a string that uniquely identifies the version of Android\nEmacs is running on.  ");   // C 7037-7039
+  Vandroid_build_fingerprint = Qnil ();                                 // C 7040
+
+  DEFVAR_LISP! (c"android-build-manufacturer", Vandroid_build_manufacturer,   // C 7042
+    doc: "Name of the developer of the running version of Android.  ");   // C 7043
+  Vandroid_build_manufacturer = Qnil ();                                // C 7044
+
+  DEFVAR_INT! (c"android-display-planes", android_display_planes,        // C 7046
+    "Depth and visual class of the display.\nThis variable controls the visual class and depth of the display, which\ncannot be detected on Android.  The default value of 24, and values from\nthere to 8 represent a TrueColor display providing 24 planes, values\nbetween 8 and 1 StaticGray displays providing that many planes, and 1 or\nlower monochrome displays with a single plane.  Modifications to this\nvariable must be completed before the window system is initialized, in,\nfor instance, `early-init.el', or they will be of no effect.  ");   // C 7047-7054
+  android_display_planes = 24;                                          // C 7055
+
+  DEFVAR_LISP! (c"x-ctrl-keysym", Vx_ctrl_keysym,                       // C 7057-7058
+    doc: "SKIP: real doc in xterm.c.  ");                              // C 7058
+  Vx_ctrl_keysym = Qnil ();                                             // C 7059
+
+  DEFVAR_LISP! (c"x-alt-keysym", Vx_alt_keysym,                         // C 7061-7062
+    doc: "SKIP: real doc in xterm.c.  ");                              // C 7062
+  Vx_alt_keysym = Qnil ();                                              // C 7063
+
+  DEFVAR_LISP! (c"x-hyper-keysym", Vx_hyper_keysym,                     // C 7065-7066
+    doc: "SKIP: real doc in xterm.c.  ");                              // C 7066
+  Vx_hyper_keysym = Qnil ();                                            // C 7067
+
+  DEFVAR_LISP! (c"x-meta-keysym", Vx_meta_keysym,                       // C 7069-7070
+    doc: "SKIP: real doc in xterm.c.  ");                              // C 7070
+  Vx_meta_keysym = Qnil ();                                             // C 7071
+
+  DEFVAR_LISP! (c"x-super-keysym", Vx_super_keysym,                     // C 7073-7074
+    doc: "SKIP: real doc in xterm.c.  ");                              // C 7074
+  Vx_super_keysym = Qnil ();                                            // C 7075
+
+  /* Only defined so loadup.el loads scroll-bar.el.  */                  // C 7077
+  DEFVAR_LISP! (c"x-toolkit-scroll-bars", Vx_toolkit_scroll_bars,       // C 7078-7079
+    doc: "SKIP: real doc in xterm.c.  ");                              // C 7079
+  Vx_toolkit_scroll_bars = Qnil ();                                     // C 7080
+
+  /* Avoid dumping Vandroid_build_fingerprint.  */                       // C 7082
+  pdumper_do_now_and_after_load (Some (android_set_build_fingerprint));   // C 7083
+
+  DEFSYM! (Qx_underline_at_descent_line, "x-underline-at-descent-line");   // C 7085
+
+  /* Symbols defined for DND events.  */                                // C 7087
+  DEFSYM! (Quri, "uri");                                                // C 7088
+  DEFSYM! (Qtext, "text");                                              // C 7089
+
+  /* Symbols defined for modifier value reassignment.  */                // C 7091
+  DEFSYM! (Qmodifier_value, "modifier-value");                          // C 7092
+  DEFSYM! (Qctrl, "ctrl");                                              // C 7093
+  Fput (Qctrl (), Qmodifier_value (), make_fixnum (ctrl_modifier as isize));     // C 7094
+  DEFSYM! (Qalt, "alt");                                                // C 7095
+  Fput (Qalt (), Qmodifier_value (), make_fixnum (alt_modifier as isize));       // C 7096
+  DEFSYM! (Qmeta, "meta");                                              // C 7097
+  Fput (Qmeta (), Qmodifier_value (), make_fixnum (meta_modifier as isize));     // C 7098
+  DEFSYM! (Qsuper, "super");                                            // C 7099
+  Fput (Qsuper (), Qmodifier_value (), make_fixnum (super_modifier as isize));   // C 7100
+
+  /* Key symbols.  */                                                   // C 7102
+  DEFSYM! (Qselect, "select");                                          // C 7103
+  DEFSYM! (Qreturn, "return");                                          // C 7104
+
+  /* Display configuration updates.  */                                 // C 7106
+  DEFSYM! (Qfont_render, "font-render");                                // C 7107
+  DEFSYM! (Qdynamic_setting, "dynamic-setting");                        // C 7108
+  Fprovide (Qdynamic_setting (), Qnil ());                              // C 7109
+}
+
+/* C: lisp.h 4436: `extern void mark_object (Lisp_Object);` - C 7116's call; the mirror carries
+   only the `mark_objects` twin (lisp.rs 3969), so the unit names the one-argument form at its use
+   site (the `src/haikuterm.rs` 6519-6524 device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub fn mark_object (obj: Lisp_Object);
+}
+
+/* C 7112-7117: `mark_androidterm`, the file's last definition.  Non-`static` and no address is
+   taken: `#[unsafe(no_mangle)]` with the C ABI.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mark_androidterm ()
+{
+  if ! x_display_list.is_null ()                                        // C 7115
+    { mark_object ((*x_display_list).color_map); }                      // C 7116
+}
