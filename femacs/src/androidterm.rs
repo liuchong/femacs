@@ -6568,3 +6568,169 @@ unsafe fn android_text_to_string (env: *mut JNIEnv, mut buffer: *mut c_char,
   free (utf16 as *mut c_void);                                         // C 5424
   return string;                                                       // C 5425
 }
+
+/* C 5428-5571: four more input-method entry points - the two text retrievals
+   (`getTextAfterCursor`, `getTextBeforeCursor`) and the two composing setters
+   (`setComposingText`, `setComposingRegion`).  The retrievals are the first callers of this
+   unit's `android_conversion_query_context` (slice 16) and of `android_run_in_emacs_thread`
+   (C 5449's address-taken callback), and C 5482's `TYPE_MINIMUM (EMACS_INT)` is
+   `lib/intprops.h`'s macro, which no mirror carries: the tree's precedent is a one-line
+   unit-local macro (the `src/androidselect.rs` 115 and `src/dbusbind.rs` 782 copies).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
+
+/* C 5428-5470: `NATIVE_NAME (getTextAfterCursor)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getTextAfterCursor")]
+pub unsafe extern "C" fn getTextAfterCursor (env: *mut JNIEnv, object: jobject, window: jlong,
+					     length: jint, flags: jint) -> jstring
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5432
+
+  let mut context: android_conversion_query_context = std::mem::zeroed ();   // C 5434
+  let mut string: jstring;                                              // C 5435
+
+  /* First, set up the conversion query.  */                            // C 5437
+  context.query.position = EMACS_INT_MAX;                               // C 5438
+  context.query.direction = TEXTCONV_FORWARD_CHAR;                      // C 5439
+  context.query.factor = min (length, 65535) as c_ushort;               // C 5440
+  context.query.operation = TEXTCONV_RETRIEVAL;                         // C 5441
+
+  /* Next, set the rest of the context.  */                             // C 5443
+  context.window = window as android_window;                            // C 5444
+  context.success = false;                                              // C 5445
+
+  /* Now try to perform the query.  */                                  // C 5447
+  android_sync_edit ();                                                 // C 5448
+  if android_run_in_emacs_thread (Some (android_perform_conversion_query),   // C 5449
+				  &raw mut context as *mut c_void) != 0   // C 5450
+    { return std::ptr::null_mut (); }                                   // C 5451
+
+  if ! context.success                                                 // C 5453
+    { return std::ptr::null_mut (); }                                   // C 5454
+
+  /* context->query.text now contains the text in Emacs's internal
+     UTF-8 based encoding.
+
+     Convert it to Java's UTF-16 encoding, which is the same as
+     UTF-16, except that NULL bytes are encoded as surrogate pairs.
+
+     This assumes that `free' can free data allocated with xmalloc.  */   // C 5456-5462
+
+  string = android_text_to_string (env, context.query.text.text,        // C 5464
+				   context.query.text.length,           // C 5465
+				   context.query.text.bytes);           // C 5466
+  free (context.query.text.text as *mut c_void);                        // C 5467
+
+  return string;                                                        // C 5469
+}
+
+/* C 5472-5514: `NATIVE_NAME (getTextBeforeCursor)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getTextBeforeCursor")]
+pub unsafe extern "C" fn getTextBeforeCursor (env: *mut JNIEnv, object: jobject, window: jlong,
+					      length: jint, flags: jint) -> jstring
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5476
+
+  let mut context: android_conversion_query_context = std::mem::zeroed ();   // C 5478
+  let mut string: jstring;                                              // C 5479
+
+  /* First, set up the conversion query.  */                            // C 5481
+  context.query.position = TYPE_MINIMUM! (EMACS_INT);                   // C 5482
+  context.query.direction = TEXTCONV_BACKWARD_CHAR;                     // C 5483
+  context.query.factor = min (length, 65535) as c_ushort;               // C 5484
+  context.query.operation = TEXTCONV_RETRIEVAL;                         // C 5485
+
+  /* Next, set the rest of the context.  */                             // C 5487
+  context.window = window as android_window;                            // C 5488
+  context.success = false;                                              // C 5489
+
+  /* Now try to perform the query.  */                                  // C 5491
+  android_sync_edit ();                                                 // C 5492
+  if android_run_in_emacs_thread (Some (android_perform_conversion_query),   // C 5493
+				  &raw mut context as *mut c_void) != 0   // C 5494
+    { return std::ptr::null_mut (); }                                   // C 5495
+
+  if ! context.success                                                 // C 5497
+    { return std::ptr::null_mut (); }                                   // C 5498
+
+  /* context->query.text now contains the text in Emacs's internal
+     UTF-8 based encoding.
+
+     Convert it to Java's UTF-16 encoding, which is the same as
+     UTF-16, except that NULL bytes are encoded as surrogate pairs.
+
+     This assumes that `free' can free data allocated with xmalloc.  */   // C 5500-5506
+
+  string = android_text_to_string (env, context.query.text.text,        // C 5508
+				   context.query.text.length,           // C 5509
+				   context.query.text.bytes);           // C 5510
+  free (context.query.text.text as *mut c_void);                        // C 5511
+
+  return string;                                                        // C 5513
+}
+
+/* C 5516-5549: `NATIVE_NAME (setComposingText)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_setComposingText")]
+pub unsafe extern "C" fn setComposingText (env: *mut JNIEnv, object: jobject, window: jlong,
+					   composing_text: jstring, new_cursor_position: jint)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5521
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5523 (PORTING.md 1.5)
+  let mut text: *mut c_ushort;                                          // C 5524
+  let mut length: size_t = 0;                                           // C 5525 (the `&raw mut` place)
+
+  /* First, obtain a copy of the Java string.  */                        // C 5527
+  text = android_copy_java_string (env, composing_text, &raw mut length);   // C 5528
+
+  if text.is_null ()                                                    // C 5530
+    { return; }                                                         // C 5531
+
+  /* Next, populate the event.  Events will always eventually be
+     delivered on Android, so handle_one_android_event can be relied
+     on to free text.  */                                               // C 5533-5535
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                              // C 5537
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5538 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5539
+  event.ime.operation = ANDROID_IME_SET_COMPOSING_TEXT;                 // C 5540
+  event.ime.start = 0;                                                  // C 5541
+  event.ime.end = 0;                                                    // C 5542
+  event.ime.length = min (length, PTRDIFF_MAX as size_t);               // C 5543
+  event.ime.position = new_cursor_position as ptrdiff_t;                // C 5544
+  event.ime.text = text;                                                // C 5545
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5546 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5548
+}
+
+/* C 5551-5571: `NATIVE_NAME (setComposingRegion)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_setComposingRegion")]
+pub unsafe extern "C" fn setComposingRegion (env: *mut JNIEnv, object: jobject, window: jlong,
+					     start: jint, end: jint)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5555
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5557 (PORTING.md 1.5)
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                              // C 5559
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5560 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5561
+  event.ime.operation = ANDROID_IME_SET_COMPOSING_REGION;               // C 5562
+  event.ime.start = start as ptrdiff_t + 1;                             // C 5563
+  event.ime.end = end as ptrdiff_t + 1;                                 // C 5564
+  event.ime.length = 0;                                                 // C 5565
+  event.ime.position = 0;                                               // C 5566
+  event.ime.text = std::ptr::null_mut ();                               // C 5567
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5568 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5570
+}

@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,570 lines**, md5
-> `8c95b011d3c0a6a3802276025a1a116e`), carrying **C 1-5426**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,736 lines**, md5
+> `1eb0105a4abb23145d72cd4eaad08958`), carrying **C 1-5571**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -20,7 +20,7 @@
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
 the next definition is
-> `NATIVE_NAME (getTextAfterCursor)`, C 5429.
+> `NATIVE_NAME (setSelection)`, C 5574.
 
 ## Gate mapping
 
@@ -188,7 +188,11 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 5295-5307 | C 5295's comment and `struct android_conversion_query_context` | real arm (slice 16) |
 | 5309-5335 | C 5309-5313's comment and `android_perform_conversion_query` | real arm (slice 16) |
 | 5337-5426 | C 5337-5348's comment and `android_text_to_string` (C's two `ckd_mul` sites and two `while (n--)` loops) | real arm (slice 16) |
-| 5428-7117 | **the remainder of the file** - from C 5428's `JNIEXPORT jstring JNICALL` above `NATIVE_NAME (getTextAfterCursor)` (C 5429) through the rest of the text-conversion group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5428-5470 | C 5428's `JNIEXPORT jstring JNICALL` and `NATIVE_NAME (getTextAfterCursor)` | real arm (slice 17) |
+| 5472-5514 | `NATIVE_NAME (getTextBeforeCursor)` (C 5482's `TYPE_MINIMUM (EMACS_INT)`) | real arm (slice 17) |
+| 5516-5549 | `NATIVE_NAME (setComposingText)` | real arm (slice 17) |
+| 5551-5571 | `NATIVE_NAME (setComposingRegion)` | real arm (slice 17) |
+| 5573-7117 | **the remainder of the file** - from C 5573's `JNIEXPORT void JNICALL` above `NATIVE_NAME (setSelection)` (C 5574) through the rest of the input-method group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -384,10 +388,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 5428-7117.**  Slice 16 wrote C 5295-5426 (the query context,
-   the query callback and the string converter), so the next slice's rows must replace this table's
-   last row; its first definition is `NATIVE_NAME (getTextAfterCursor)` (C 5429), and the group runs
-   through the rest of the text-conversion entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 5573-7117.**  Slice 17 wrote C 5428-5571 (the two retrievals
+   and the two composing setters), so the next slice's rows must replace this table's last row; its
+   first definition is `NATIVE_NAME (setSelection)` (C 5574), and the group runs through the rest of
+   the input-method entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -571,8 +575,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-5426 is now ported** (slices 4-16,
-each with its own Evidence section below); C 5428-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-5571 is now ported** (slices 4-17,
+each with its own Evidence section below); C 5573-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1203,10 +1207,15 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
    `NATIVE_NAME`).  They are not a port defect and no port text can discharge them; this unit's
    `--check` line therefore stays `FAIL` with these rows, exactly as that ledger's Owed 10 says the
    `android*` units' lines will.
-3. **Inventory**: 25 rows -> **32** - the seven `missing function` rows of this slice retire (20
-   stand: the tail's 18 definitions plus `android_notify_conversion` and `syms_of_androidterm`), the
-   two file-scope objects and the line-count row stand, and the seven export rows are new; the
-   line-count row reads **10.0%** (C 7,117 against the port's 6,403).
+3. **Inventory**: 25 rows -> **32** - the seven export rows are new and the count rises by exactly
+   seven; **no `missing function` row changed**, because a `NATIVE_NAME (name)` definition never
+   enters the checker's inventory at all (measured by slice 17 with
+   `python3 tools/extract-abi.py emacs/src/androidterm.c`: `beginBatchEdit`, `replaceText`,
+   `commitText` and `getTextAfterCursor` are absent from that list while the file's plain
+   definitions are present).  The 20 `missing function` rows therefore stand unchanged, as do the
+   two file-scope objects and the line-count row, which reads **10.0%** (C 7,117 against the port's
+   6,403).  **This paragraph was corrected by slice 17**, whose own inventory reading is what
+   measured the class.
 
 ### Deviations this slice adds
 
@@ -1265,3 +1274,45 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
 - **`(*env)->NewString (env, utf16, bytes)`** is `((*(*env)).NewString.unwrap ()) (env, utf16, bytes as jsize)`
   (the NDK mirror's `*const jchar` third parameter and `jsize` count), and `malloc`/`free` are the
   mirror's pair with the `as *mut jchar`/`as *mut c_void` casts C's implicit conversions perform.
+
+## 2026-10-12: slice 17 (C 5428-5571) - the two retrievals and the two composing setters
+
+`NATIVE_NAME (getTextAfterCursor)`, `getTextBeforeCursor`, `setComposingText` and
+`setComposingRegion`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   This slice's own readings were the callback argument's two conversions at C 5449/5493
+   (`Some (android_perform_conversion_query)` for the mirror's `Option<unsafe extern "C" fn …>`
+   parameter, `&raw mut context as *mut c_void` for its untyped second one, and `!= 0` for C's
+   `if` on the returned `int`).
+2. **The inventory correction this slice measured - and the one it must record against slice 15**:
+   `python3 tools/extract-abi.py emacs/src/androidterm.c` shows that a `NATIVE_NAME (name)`
+   *definition* never enters the checker's function inventory (`beginBatchEdit`, `replaceText`,
+   `commitText`, `getTextAfterCursor` are all absent; the file's plain definitions are present).
+   Slice 15's Evidence ③ (and its `docs/status.md` entry) attributed seven retired `missing function`
+   rows to that slice; the row-count arithmetic it printed was right (25 -> 32) but the attribution
+   was wrong - those seven rows are the new export rows of Owed 29, and the `missing function` count
+   did not move.  This slice's rows are the same shape: the four new entries add four export rows.
+3. **Inventory**: 30 rows -> **34** - the four export rows of this slice are new (11 in all), the
+   **18 `missing function` rows stand unchanged** (the tail's 16 plain definitions plus
+   `android_notify_conversion` and `syms_of_androidterm` - the four entries of this slice never had
+   a row), as do the two file-scope objects; the line-count row reads **5.4%** (C 7,117 against the
+   port's 6,736).
+
+### Deviations this slice adds
+
+- **`TYPE_MINIMUM (EMACS_INT)`** (C 5482) is a unit-local one-line macro
+  (`TYPE_MINIMUM! ($t) => <$t>::MIN`), the `src/androidselect.rs` 115 / `src/dbusbind.rs` 782 copy,
+  because `lib/intprops.h` has no mirror.
+- **The two query contexts** are `std::mem::zeroed ()` records of slice 16's type (PORTING.md 1.5),
+  with C's four field writes in C's order and the `factor` narrowing (`min (length, 65535) as c_ushort`,
+  PORTING.md 1.2).
+- **C 5449/5493's callback argument** is `Some (android_perform_conversion_query)` with
+  `&raw mut context as *mut c_void`, and the `if` on its `int` result is `!= 0` (the frame's own
+  `int`-as-condition class).
+- **The two composing setters** keep slices 15's devices: the `++event_serial`/`++edit_counter`
+  two-statement form, `event.ime.r#type`, `min (length, PTRDIFF_MAX as size_t)`, and the two
+  `as ptrdiff_t` conversions of C's `jint` arguments.
