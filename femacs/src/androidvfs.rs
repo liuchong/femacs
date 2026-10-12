@@ -1422,9 +1422,10 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 1357-7950: the remainder of the file.  Slice 5 ends at C 1355 (`android_hack_asset_fd_fallback`'s
-   closing brace); the next item is C 1363's `android_detect_ashmem` under C 1357-1361's comment, and
-   `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
+/* C 1613-7950: the remainder of the file.  Slice 6 ends at C 1611 (`android_hack_asset_fd`'s
+   closing brace); the next item is C 1615's "``Asset file system'' vnode implementation" banner and
+   the forward declarations under it, and `extract-abi.py --check`'s remaining `missing …` list is
+   exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -1963,4 +1964,318 @@ unsafe fn android_hack_asset_fd_fallback (asset: *mut AAsset) -> c_int
   /* C 1352's `fail:` */
   close (fd);                                                           // C 1353
   return -1;                                                            // C 1354
+}
+
+/* C 1363-1365's function needs five names no mirror this unit includes carries: the `<dlfcn.h>`
+   pair C 1413/1567 names (whose two `RTLD_*` values the head's note already lists as this file's),
+   the `<sys/ioctl.h>` entry C 1387/1395/1509/1520 calls, the two `<linux/ashmem.h>` constants it
+   passes, and android.h 148's `android_get_current_api_level`, which C 1377 and C 1499 test.
+   Each stands at its use site (P-88 rule 1), the `femacs/exec/trace.rs` 503-513 and
+   `femacs/src/inotify.rs` 222 shapes.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<dlfcn.h>`: `void *dlsym (void *, const char *);`
+  pub fn dlsym (handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
+  /// C: `<sys/ioctl.h>`: `int ioctl (int, unsigned long, ...);`
+  pub fn ioctl (fd: c_int, request: c_ulong, ...) -> c_int;
+  /// C: android.h 148: `extern int android_get_current_api_level (void) __attribute__ ((pure));`
+  pub fn android_get_current_api_level () -> c_int;
+}
+/// C: `<dlfcn.h>`: `#define RTLD_DEFAULT ((void *) 0)` - measured 0 in bionic's header with this
+/// machine's NDK (the `exec/trace.rs` 508 precedent).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const RTLD_DEFAULT: *mut c_void = std::ptr::null_mut ();
+/// C: `<linux/ashmem.h>` 22: `#define ASHMEM_SET_NAME _IOW (__ASHMEMIOC, 1, char[ASHMEM_NAME_LEN])` -
+/// measured **0x41007701** with this machine's NDK 29.0.14206865 (its `clang`,
+/// `--target=aarch64-linux-android24`: `__ASHMEMIOC` is 0x77, `ASHMEM_NAME_LEN` 256, and `_IOW`
+/// packs `1U << 30 | sizeof << 16 | type << 8 | nr`).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ASHMEM_SET_NAME: c_ulong = 0x41007701;
+/// C: `<linux/ashmem.h>` 24: `#define ASHMEM_SET_SIZE _IOW (__ASHMEMIOC, 3, size_t)` - measured
+/// **0x40087703** (the same measurement; `size_t` is 8 bytes on the target it expands for).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ASHMEM_SET_SIZE: c_ulong = 0x40087703;
+
+/* Return whether or not shared memory file descriptors can also be
+   read from, and are thus suitable for creating asset files.
+
+   This does not work on some ancient Android systems running old
+   versions of the kernel.  */                                        // C 1357-1361
+
+// C 1363-1465.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_detect_ashmem () -> bool
+{
+  let mut fd: c_int;                                                   // C 1366
+  let mut rc: c_int;                                                   // C 1366
+  let mut mem: *mut c_void;                                            // C 1367
+  let mut test_buffer: [c_char; 10] = [0; 10];                         // C 1368
+
+  memcpy (&raw mut test_buffer as *mut c_void,                         // C 1370
+	  c"abcdefghi".as_ptr () as *const c_void, 10);                // C 1370
+
+  /* Create the file descriptor to be used for the test.  */            // C 1372
+
+  /* Android 28 and earlier let Emacs access /dev/ashmem directly, so
+     prefer that over using ASharedMemory.  */                         // C 1374-1375
+
+  if android_get_current_api_level () <= 28                            // C 1377
+    {
+      fd = open (c"/dev/ashmem".as_ptr (), O_RDWR);                     // C 1379
+
+      if fd < 0                                                        // C 1381
+	{ return false; }                                              // C 1382
+
+      /* An empty name means the memory area will exist until the file
+	 descriptor is closed, because no other process can
+	 attach.  */                                                   // C 1384-1386
+      rc = ioctl (fd, ASHMEM_SET_NAME, c"".as_ptr ());                  // C 1387
+
+      if rc < 0                                                        // C 1389
+	{
+	  close (fd);                                                  // C 1391
+	  return false;                                                // C 1392
+	}
+
+      rc = ioctl (fd, ASHMEM_SET_SIZE,                                 // C 1395
+		  std::mem::size_of_val (&test_buffer));               // C 1395
+
+      if rc < 0                                                        // C 1397
+	{
+	  close (fd);                                                  // C 1399
+	  return false;                                                // C 1400
+	}
+    }
+  else
+    {
+      /* On the other hand, SELinux restrictions on Android 29 and
+	 later require that Emacs use a system service to obtain
+	 shared memory.  Load this dynamically, as this service is not
+	 available on all versions of the NDK.  */                     // C 1405-1408
+
+      if asharedmemory_create.is_none ()                               // C 1410
+	{
+	  *((&raw mut asharedmemory_create) as *mut *mut c_void)       // C 1412
+	    = dlsym (RTLD_DEFAULT, c"ASharedMemory_create".as_ptr ()); // C 1413
+
+	  if asharedmemory_create.is_none ()                           // C 1415
+	    {
+	      let __func__: *const c_char = c"android_detect_ashmem".as_ptr ();   // C 1417
+	      __android_log_print (ANDROID_LOG_FATAL, __func__,        // C 1417
+				   c"dlsym: %s\n".as_ptr (),           // C 1418
+				   strerror (*errno ()));              // C 1419
+	      emacs_abort ();                                          // C 1420
+	    }
+	}
+
+      fd = (asharedmemory_create.unwrap ()) (c"".as_ptr (),            // C 1424
+					     std::mem::size_of_val (&test_buffer));   // C 1424
+
+      if fd < 0                                                        // C 1426
+	{ return false; }                                              // C 1427
+    }
+
+  /* Now map the resource and write the test contents.  */              // C 1430
+
+  mem = mmap (std::ptr::null_mut (), std::mem::size_of_val (&test_buffer), PROT_WRITE,
+	      MAP_SHARED, fd, 0);                                      // C 1432-1433
+  if mem == MAP_FAILED                                                 // C 1434
+    {
+      close (fd);                                                      // C 1436
+      return false;                                                    // C 1437
+    }
+
+  /* Copy over the test contents.  */                                   // C 1440
+  memcpy (mem, &raw const test_buffer as *const c_void,                // C 1442
+	  std::mem::size_of_val (&test_buffer));                       // C 1441
+
+  /* Return anyway even if munmap fails.  */                            // C 1443
+  munmap (mem, std::mem::size_of_val (&test_buffer));                  // C 1444
+
+  /* Try to read the content back into test_buffer.  If this does not
+     compare equal to the original string, or the read fails, then
+     ashmem descriptors are not readable on this system.  */           // C 1446-1448
+
+  if (read (fd, &raw mut test_buffer as *mut c_void,                   // C 1452
+	    std::mem::size_of_val (&test_buffer)) as i64               // C 1450
+      != std::mem::size_of_val (&test_buffer) as i64                   // C 1451
+      || memcmp (&raw const test_buffer as *const c_void,              // C 1452
+		 c"abcdefghi".as_ptr () as *const c_void,              // C 1452
+		 std::mem::size_of_val (&test_buffer)) != 0)           // C 1452
+    {
+      let __func__: *const c_char = c"android_detect_ashmem".as_ptr ();   // C 1454
+      __android_log_print (ANDROID_LOG_WARN, __func__,                 // C 1454
+			   concat! ("/dev/ashmem does not produce real",
+				    " temporary files on this system, so",
+				    " Emacs will fall back to creating",
+				    " unlinked temporary files.", "\0").as_ptr () as *const c_char);   // C 1455-1458
+      close (fd);                                                      // C 1459
+      return false;                                                    // C 1460
+    }
+
+  close (fd);                                                          // C 1463
+  return true;                                                         // C 1464
+}
+
+/* Get a file descriptor backed by a temporary in-memory file for the
+   given asset.  */                                                    // C 1467-1468
+
+// C 1470-1611.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_hack_asset_fd (asset: *mut AAsset) -> c_int
+{
+  /* C's `static bool` pair is zero-initialized in C, and a block-scoped `static mut` is where
+     those two objects live here (the `include/android-asset.rs` 61 tentative-definition rule's
+     other half: these two are the function's own, not a header's).  */
+  static mut ashmem_readable_p: bool = false;                          // C 1473
+  static mut ashmem_initialized: bool = false;                         // C 1474
+  let mut fd: c_int;                                                   // C 1475
+  let mut rc: c_int;                                                   // C 1475
+  let mut mem: *mut c_uchar;                                           // C 1476
+  let mut size: size_t;                                                // C 1477
+
+  /* The first time this function is called, try to determine whether
+     or not ashmem file descriptors can be read from.  */              // C 1479-1480
+
+  if !ashmem_initialized                                                // C 1482
+    { ashmem_readable_p = android_detect_ashmem (); }                  // C 1483-1484
+  ashmem_initialized = true;                                            // C 1485
+
+  /* If it isn't, fall back.  */                                        // C 1487
+
+  if !ashmem_readable_p                                                 // C 1489
+    { return android_hack_asset_fd_fallback (asset); }                  // C 1490
+
+  /* Assets must be small enough to fit in size_t, if off_t is
+     larger.  */                                                        // C 1492-1493
+  size = AAsset_getLength (asset) as size_t;                            // C 1494
+
+  /* Android 28 and earlier let Emacs access /dev/ashmem directly, so
+     prefer that over using ASharedMemory.  */                         // C 1496-1497
+
+  if android_get_current_api_level () <= 28                            // C 1499
+    {
+      fd = open (c"/dev/ashmem".as_ptr (), O_RDWR);                     // C 1501
+
+      if fd < 0                                                        // C 1503
+	{ return -1; }                                                 // C 1504
+
+      /* An empty name means the memory area will exist until the file
+	 descriptor is closed, because no other process can
+	 attach.  */                                                   // C 1506-1508
+      rc = ioctl (fd, ASHMEM_SET_NAME, c"".as_ptr ());                  // C 1509
+
+      if rc < 0                                                        // C 1511
+	{
+	  let __func__: *const c_char = c"android_hack_asset_fd".as_ptr ();   // C 1513
+	  __android_log_print (ANDROID_LOG_ERROR, __func__,              // C 1513
+			       c"ioctl ASHMEM_SET_NAME: %s".as_ptr (),   // C 1514
+			       strerror (*errno ()));                    // C 1515
+	  close (fd);                                                    // C 1516
+	  return -1;                                                     // C 1517
+	}
+
+      rc = ioctl (fd, ASHMEM_SET_SIZE, size);                            // C 1520
+
+      if rc < 0                                                        // C 1522
+	{
+	  let __func__: *const c_char = c"android_hack_asset_fd".as_ptr ();   // C 1524
+	  __android_log_print (ANDROID_LOG_ERROR, __func__,              // C 1524
+			       c"ioctl ASHMEM_SET_SIZE: %s".as_ptr (),   // C 1525
+			       strerror (*errno ()));                    // C 1526
+	  close (fd);                                                    // C 1527
+	  return -1;                                                     // C 1528
+	}
+
+      if size == 0                                                       // C 1531
+	{ return fd; }                                                   // C 1532
+
+      /* Now map the resource.  */                                      // C 1534
+      mem = mmap (std::ptr::null_mut (), size, PROT_WRITE,              // C 1535
+		  MAP_SHARED, fd, 0) as *mut c_uchar;                    // C 1535
+      if mem as *mut c_void == MAP_FAILED                                // C 1536
+	{
+	  let __func__: *const c_char = c"android_hack_asset_fd".as_ptr ();   // C 1538
+	  __android_log_print (ANDROID_LOG_ERROR, __func__,              // C 1538
+			       c"mmap: %s".as_ptr (),                    // C 1539
+			       strerror (*errno ()));                    // C 1539
+	  close (fd);                                                    // C 1540
+	  return -1;                                                     // C 1541
+	}
+
+      if AAsset_read (asset, mem as *mut c_void, size) as i64 != size as i64   // C 1544
+	{
+	  /* Too little was read.  Close the file descriptor and
+	     report an error.  */                                        // C 1546-1547
+	  let __func__: *const c_char = c"android_hack_asset_fd".as_ptr ();   // C 1548
+	  __android_log_print (ANDROID_LOG_ERROR, __func__,              // C 1548
+			       c"AAsset_read: %s".as_ptr (),             // C 1549
+			       strerror (*errno ()));                    // C 1549
+	  close (fd);                                                    // C 1550
+	  return -1;                                                     // C 1551
+	}
+
+      /* Return anyway even if munmap fails.  */                         // C 1553
+      munmap (mem as *mut c_void, size);                                 // C 1554
+      return fd;                                                         // C 1555
+    }
+
+  /* On the other hand, SELinux restrictions on Android 29 and later
+     require that Emacs use a system service to obtain shared memory.
+     Load this dynamically, as this service is not available on all
+     versions of the NDK.  */                                           // C 1557-1561
+
+  if asharedmemory_create.is_none ()                                    // C 1563
+    {
+      *((&raw mut asharedmemory_create) as *mut *mut c_void)            // C 1566
+	= dlsym (RTLD_DEFAULT, c"ASharedMemory_create".as_ptr ());      // C 1567
+
+      if asharedmemory_create.is_none ()                                // C 1569
+	{
+	  let __func__: *const c_char = c"android_hack_asset_fd".as_ptr ();   // C 1571
+	  __android_log_print (ANDROID_LOG_FATAL, __func__,                  // C 1571
+			       c"dlsym: %s\n".as_ptr (),                        // C 1572
+			       strerror (*errno ()));                           // C 1573
+	  emacs_abort ();                                                    // C 1574
+	}
+    }
+
+  fd = (asharedmemory_create.unwrap ()) (c"".as_ptr (), size);           // C 1578
+
+  if fd < 0                                                              // C 1580
+    {
+      let __func__: *const c_char = c"android_hack_asset_fd".as_ptr ();   // C 1582
+      __android_log_print (ANDROID_LOG_ERROR, __func__,                  // C 1582
+			   c"ASharedMemory_create: %s".as_ptr (),         // C 1583
+			   strerror (*errno ()));                        // C 1583
+      return -1;                                                         // C 1584
+    }
+
+  /* Now map the resource.  */                                           // C 1587
+  mem = mmap (std::ptr::null_mut (), size, PROT_WRITE, MAP_SHARED, fd, 0) as *mut c_uchar;   // C 1588
+  if mem as *mut c_void == MAP_FAILED                                    // C 1589
+    {
+      let __func__: *const c_char = c"android_hack_asset_fd".as_ptr ();   // C 1591
+      __android_log_print (ANDROID_LOG_ERROR, __func__,                  // C 1591
+			   c"mmap: %s".as_ptr (),                           // C 1592
+			   strerror (*errno ()));                           // C 1592
+      close (fd);                                                        // C 1593
+      return -1;                                                         // C 1594
+    }
+
+  if AAsset_read (asset, mem as *mut c_void, size) as i64 != size as i64  // C 1597
+    {
+      /* Too little was read.  Close the file descriptor and
+	 report an error.  */                                            // C 1599-1600
+      let __func__: *const c_char = c"android_hack_asset_fd".as_ptr ();   // C 1601
+      __android_log_print (ANDROID_LOG_ERROR, __func__,                  // C 1601
+			   c"AAsset_read: %s".as_ptr (),                 // C 1602
+			   strerror (*errno ()));                        // C 1602
+      close (fd);                                                        // C 1603
+      return -1;                                                         // C 1604
+    }
+
+  /* Return anyway even if munmap fails.  */                             // C 1606
+  munmap (mem as *mut c_void, size);                                     // C 1607
+  return fd;                                                             // C 1608
 }
