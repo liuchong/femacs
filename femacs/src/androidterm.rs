@@ -6042,3 +6042,133 @@ unsafe fn android_draw_window_divider (w: *mut window, x0: c_int, x1: c_int,
 			      x0, y0, (x1 - x0) as c_uint, (y1 - y0) as c_uint);   // C 5008
     }
 }
+
+/* C 5012-5020: the diagnostic-pragma pair around the input-method group.  C 5014-5016's
+   `#ifdef __clang__` arm and C 5018-5020's `#else` arm are text only - `#pragma clang
+   diagnostic push` / `#pragma clang diagnostic ignored "-Wmissing-prototypes"` and the `#pragma
+   GCC` twins - and the two matching pops are at the file's tail (C 7110-7116); Rust has no
+   counterpart for either (the `docs/ports/excluded-macros.txt` class), so the text is carried
+   here as C's own and the ledger records the pair.  */
+
+/* Input method related functions.  Some of these are called from Java
+   within the UI thread.  */                                          // C 5022-5023
+
+/* A counter used to decide when an editing request completes.  */     // C 5025
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut edit_counter: c_ulong = 0;                                 // C 5026
+
+/* The last counter known to have completed.  */                       // C 5028
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut last_edit_counter: c_ulong = 0;                            // C 5029
+
+/* Semaphore posted every time the counter increases.  */               // C 5031
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut edit_sem: sem_t = sem_t { __opaque: [0; 16] };              // C 5032
+
+/* Two declarations this group needs and no mirror carries: `<semaphore.h>` (C 24) is the NDK's
+   own header (PORTING.md P-49), so the type and the one function this slice calls stand here -
+   the `src/android.rs` 175-216 copy of bionic's `sem_t` (16 bytes, align 4) - and the two names
+   C 5048/5065 use are the GCC atomics builtin, which PORTING.md §6's rule ports as the same
+   object and the same memory order through `core::sync::atomic`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C, align(4))]
+pub struct sem_t { pub __opaque: [c_uchar; 16] }                 // bionic, sizeof 16 align 4
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /* int sem_timedwait (sem_t *, const struct timespec *);  */
+  pub fn sem_timedwait (sem: *mut sem_t, abs_timeout: *const timespec) -> c_int;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const __ATOMIC_SEQ_CST: core::sync::atomic::Ordering = core::sync::atomic::Ordering::SeqCst;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn __atomic_load_n (p: *const c_ulong, order: core::sync::atomic::Ordering) -> c_ulong
+{
+  (*(p as *const core::sync::atomic::AtomicU64)).load (order)         // C 5048-5049 / C 5065-5066
+}
+
+/* Try to synchronize with the UI thread, waiting a certain amount of
+   time for outstanding editing requests to complete.
+
+   Every time one of the text retrieval functions is called and an
+   editing request is made, Emacs gives the main thread approximately
+   100 ms to process it, in order to mostly keep the input method in
+   sync with the buffer contents.  */                                 // C 5034-5040
+
+/* C 5042-5072.  `static`; only called (C 5645/5661/5726).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_sync_edit ()
+{
+  let mut start: timespec;                                              // C 5045
+  let mut end: timespec;
+  let mut rem: timespec;
+  let mut counter: c_ulong;                                             // C 5046
+
+  counter = __atomic_load_n (&raw const last_edit_counter,             // C 5048
+			     __ATOMIC_SEQ_CST);                        // C 5049
+
+  if counter == edit_counter                                            // C 5051
+    { return; }                                                         // C 5052
+
+  start = current_timespec ();                                          // C 5054
+  end = timespec_add (start, make_timespec (0, 100000000));             // C 5055
+
+  while true                                                            // C 5057
+    {
+      rem = timespec_sub (end, current_timespec ());                    // C 5059
+
+      /* Timeout.  */                                                   // C 5061
+      if timespec_sign (rem) < 0                                        // C 5062
+	{ break; }                                                      // C 5063
+
+      if __atomic_load_n (&raw const last_edit_counter,                 // C 5065
+			  __ATOMIC_SEQ_CST)                             // C 5066
+	  == edit_counter                                               // C 5067
+	{ break; }                                                      // C 5068
+
+      sem_timedwait (&raw mut edit_sem, &raw const end);                 // C 5070
+    }
+}
+
+/* Return a copy of the specified Java string and its length in
+   *LENGTH.  Use the JNI environment ENV.  Value is NULL if copying
+   the string fails.  */                                               // C 5074-5076
+
+/* C 5078-5105.  `static`; called from the JNI group below.  C's `(*env)->Method (env, …)` is the
+   port's `((*(*env)).Method.unwrap ()) (env, …)` - `JNIEnv` is the NDK mirror's
+   `*const JNINativeInterface` (`include/jni.rs` 118) and the table's entries the
+   `src/android.rs` 1683 device.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_copy_java_string (env: *mut JNIEnv, string: jstring, length: *mut size_t)
+  -> *mut c_ushort
+{
+  let mut size: jsize;                                                  // C 5081
+  let mut i: jsize;
+  let java: *const jchar;                                               // C 5082
+  let mut buffer: *mut c_ushort;                                        // C 5083
+
+  size = ((*(*env)).GetStringLength.unwrap ()) (env, string);           // C 5085
+  buffer = malloc (size as usize * std::mem::size_of::<c_ushort> ()) as *mut c_ushort;   // C 5086
+
+  if buffer.is_null ()                                                  // C 5088
+    { return std::ptr::null_mut (); }                                   // C 5089
+
+  java = ((*(*env)).GetStringChars.unwrap ()) (env, string,             // C 5091
+					       std::ptr::null_mut ());
+
+  if java.is_null ()                                                    // C 5093
+    {
+      free (buffer as *mut c_void);                                     // C 5095
+      return std::ptr::null_mut ();                                     // C 5096
+    }
+
+  i = 0;                                                                // C 5099
+  while i < size
+    {
+      *buffer.offset (i as isize) = *java.offset (i as isize);          // C 5100
+      i += 1;                                                           // C 5099 (the `for` step)
+    }
+
+  *length = size as size_t;                                             // C 5102
+  ((*(*env)).ReleaseStringChars.unwrap ()) (env, string, java);         // C 5103
+  return buffer;                                                        // C 5104
+}

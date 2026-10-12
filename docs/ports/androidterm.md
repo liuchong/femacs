@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,044 lines**, md5
-> `4c0f6a449674d64f9cd90a3bca1fa289`), carrying **C 1-5010**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,174 lines**, md5
+> `8fa26ee7001db1d2ed7d24892189484e`), carrying **C 1-5105**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -19,9 +19,8 @@
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
-the next group is C 5012's
-> `#pragma` block and the input-method functions, whose first definition is `android_sync_edit`
-> (C 5043).
+the next group is the input-method
+> group's JNI entries, whose first definition is `NATIVE_NAME (beginBatchEdit)` at C 5108.
 
 ## Gate mapping
 
@@ -173,7 +172,13 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 4869-4927 | C 4869's `static void` and `android_draw_window_cursor` (C 4893-4917's `switch`) | real arm (slice 13) |
 | 4929-4943 | `android_draw_vertical_window_border` | real arm (slice 13) |
 | 4945-5010 | `android_draw_window_divider` | real arm (slice 13) |
-| 5012-7117 | **the remainder of the file** - from C 5012's blank line and the `#pragma` block (C 5014-5020) through the input-method group to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5012-5020 | the diagnostic-`#pragma` pair (`#ifdef __clang__` arm and its `#else` twin) | real arm (slice 14: text only, carried as C's own in the unit's comment) |
+| 5022-5032 | C 5022-5023's "Input method related functions" note and the three file-scope objects `edit_counter`, `last_edit_counter`, `edit_sem` | real arm (slice 14) |
+| 5034-5040 | the "Try to synchronize with the UI thread" note | real arm (slice 14) |
+| 5042-5072 | C 5042's `static void` and `android_sync_edit` (C 5048/5065's `__atomic_load_n` pair) | real arm (slice 14) |
+| 5074-5076 | the "Return a copy of the specified Java string" note | real arm (slice 14) |
+| 5078-5105 | C 5078's `static unsigned short *` and `android_copy_java_string` (three `(*env)->…` calls) | real arm (slice 14) |
+| 5107-7117 | **the remainder of the file** - from C 5107's `JNIEXPORT void JNICALL` above `NATIVE_NAME (beginBatchEdit)` (C 5108) through the input-method group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -369,10 +374,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 5012-7117.**  Slice 13 wrote C 4720-5010 (the cursor drawers and
-   the two divider callbacks), so the next slice's rows must replace this table's last row; the
-   remainder opens with C 5012's blank line, the `#pragma` block (C 5014-5020) and the input-method
-   comment, whose first definition is `android_sync_edit` (C 5043).  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 5107-7117.**  Slice 14 wrote C 5012-5105 (the pragma pair, the
+   three file-scope objects and the two helpers), so the next slice's rows must replace this
+   table's last row; its first definition is `NATIVE_NAME (beginBatchEdit)` (C 5108), the first of
+   the JNI entry points, and the group runs to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -506,6 +511,18 @@ slice's basis).  All 116 are in the owed list below.
    because the mirror numbers the run (`include/window.rs` 191) and carries no reader - the
    `src/pgtkterm.rs` 2875-2882 shape.
 
+28. **The JNI group's remaining platform names and the atomic object's mixing** (slice 14).  Two
+   declarations stand at their use sites because `<semaphore.h>` (C 24) is the NDK's own header and
+   has no mirror: bionic's `sem_t` (16 bytes, align 4 - the `src/android.rs` 175 copy) and
+   `sem_timedwait`; the group's later members will need `sem_post`/`sem_getvalue`
+   (C 6644/6647, still unported).  C 5048/5065's `__atomic_load_n (…, __ATOMIC_SEQ_CST)` is the
+   port's `__atomic_load_n` helper over `core::sync::atomic`, per PORTING.md §6 ("keep the object
+   and the memory order"); the same section's last sentence applies to this file's **mixing** -
+   C 5123-5736's twelve plain `++edit_counter` sites and C 6640's plain read of
+   `last_edit_counter` (`if (last_edit_counter < counter)`, with the seq-cst store at C 6641) touch
+   the object without the atomic builtin, which the port keeps exactly as C writes it and records
+   here; when C 6635-6648 lands, `__atomic_store_n` joins the helper set.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -521,8 +538,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-5010 is now ported** (slices 4-13,
-each with its own Evidence section below); C 5012-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-5105 is now ported** (slices 4-14,
+each with its own Evidence section below); C 5107-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1090,3 +1107,48 @@ member points at.
   and heights (the mirror's prototypes).
 - **`android_set_preeditarea`** is the mirror's declaration (`include/androidterm.rs` 570, the
   `*mut c_void` window parameter) - the same call the C 707/946/1118 sites in this unit already make.
+
+## 2026-10-12: slice 14 (C 5012-5105) - the pragma pair, the three counters and the two helpers
+
+The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` / `edit_sem`,
+`android_sync_edit` and `android_copy_java_string`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The slice's first reading was the last draft's own, so it converged on the first probe: the two
+   platform declarations (`sem_t`/`sem_timedwait`, Owed 28) and the atomic helper are the only new
+   names, and `malloc`/`free`, `timespec`, the four timespec helpers, `JNIEnv`/`jstring`/`jsize`/
+   `jchar` all resolve through this unit's include graph (C 23's `<stdlib.h>`, C 30's `android.h`
+   edge into `include/jni.rs`).
+2. **No new `does not mention` row**: the pragma text is carried as C's own comment, and
+   `android_sync_edit`'s body keeps C's `__atomic_load_n`/`__ATOMIC_SEQ_CST`/`sem_timedwait` tokens
+   while `android_copy_java_string`'s three calls keep the JNI names.
+3. **Inventory**: 28 rows -> **25** - the five `missing file-scope object` rows fall to **two**
+   (`request_class`, `text_class`, both past this slice at C 6745/6754) and the two `missing
+   function` rows of this slice retire; what stands is the file's 20 remaining definitions
+   (18 live ones past this slice, plus `android_notify_conversion` and `syms_of_androidterm`), the
+   two file-scope objects, and the line-count row, which reads **13.2%** (C 7,117 against the
+   port's 6,174).
+
+### Deviations this slice adds
+
+- **The `#pragma` pair** is C's text carried in a comment (C 5014-5020 for the push, C 7110-7116
+  for the two pops, which the tail's slice will name): Rust has no diagnostic-pragma counterpart,
+  and the pair is not a `#define`, so it is the ledger's record rather than an
+  `excluded-macros.txt` row.
+- **`sem_t`/`sem_timedwait`** stand at their use sites (Owed 28) with bionic's measured shape (the
+  `src/android.rs` 175-216 copy), and the three file-scope objects keep C's `static` linkage
+  (`static mut` + the unit's own `#[cfg]`, the `any_help_event_p`/`wheel_event_x` shape).
+- **C 5048/5065's `__atomic_load_n (&last_edit_counter, __ATOMIC_SEQ_CST)`** is the port's
+  `__atomic_load_n` helper (the pointer re-cast to `*const AtomicU64`, `Ordering::SeqCst`) with C's
+  two tokens preserved at the call sites - PORTING.md §6's rule, applied for the first time in this
+  tree; the object stays a plain `c_ulong` because C itself mixes the atomic and plain accesses
+  (Owed 28).
+- **C 5086's `malloc (size * sizeof *buffer)`** is `malloc (size as usize * std::mem::size_of::<c_ushort> ())`
+  with the `as *mut c_ushort` cast C's implicit conversion performs, and C 5095's `free (buffer)`
+  the `buffer as *mut c_void` the mirror's prototype takes.
+- **`(*env)->Method (env, …)`** is `((*(*env)).Method.unwrap ()) (env, …)`: `JNIEnv` is the NDK
+  mirror's `*const JNINativeInterface` (`include/jni.rs` 118), so C's `(*env)->` is the double
+  dereference and the vtable entry an `Option` (the `src/android.rs` 1683 device).
