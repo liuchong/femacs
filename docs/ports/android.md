@@ -48,10 +48,17 @@
 > `switch` becomes the port's `match`), and the three one-line answers
 > (`shouldForwardMultimediaButtons`, `getQuitKeycode` - which has no prologue in C - and
 > `shouldForwardCtrlSpace`), so **2,888 C lines are carried** (in a 3,193-line port, md5
-> `eac24a21a96111d4bc4898ebffde02b1`) **except that one hole**.  **The next live definition is
-> C 2891's `NATIVE_NAME (blitRect)`**, the first of the two `AndroidBitmapInfo` blitters; the
-> table's last row is the remainder (C 2889-7594) and slices 3-10's own readings are in the
-> dated sections at the end of this file.
+> `eac24a21a96111d4bc4898ebffde02b1`) **except that one hole**.  **Slice 11 (C 2890-3002, 2026-10-12)** now carries the two bitmap entries
+> (`blitRect` - C 2928/2955's `goto fail1`/`goto fail2` and the `fail2:`/`fail1:` labels become
+> two nested labelled blocks, and C 2939-2953's int-against-`uint32_t` tests spell C's own
+> conversion - and `notifyPixelsChanged`), together with C 63's `<android/bitmap.h>` stand-in
+> (the record in a module of its own, the three functions and the format constant; the NDK
+> header has no mirror), so **3,002 C lines are carried** (in a 3,372-line port, md5
+> `7446c34def4b9afe48efa82b51cbf4e7`) **except that one hole**.  **The next live definition is
+> C 3011's `NATIVE_NAME (queryPointerBitmap)`**, the first of the three deadlock-prevention
+> entries C 3006-3008's forward declarations name; the table's last row is the remainder
+> (C 3003-7594) and slices 3-11's own readings are in the dated sections at the end of this
+> file.
 
 ## Gate mapping
 
@@ -210,7 +217,10 @@ no `window.h`).
 | 2875-2880 | `NATIVE_NAME (getQuitKeycode)` (no `JNI_STACK_ALIGNMENT_PROLOGUE` - C has none here) | real arm (slice 10) |
 | 2881 | the blank | real arm (slice 10) |
 | 2882-2888 | `NATIVE_NAME (shouldForwardCtrlSpace)` | real arm (slice 10) |
-| 2889-7594 | **the remainder** - from C 2889's blank and C 2890's `JNIEXPORT void JNICALL` (C 2891's `NATIVE_NAME (blitRect)`, **the next live definition**) through C 7594's `#endif`: the two bitmap blitters, the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
+| 2890-2983 | `NATIVE_NAME (blitRect)` (C 2895-2897's five declarations, C 2903-2904's two `memset`s, C 2928/2955's two `goto`s and C 2939-2953's four clipping tests) | real arm (slice 11) |
+| 2984 | the blank | real arm (slice 11) |
+| 2985-3002 | `NATIVE_NAME (notifyPixelsChanged)` | real arm (slice 11) |
+| 3003-7594 | **the remainder** - from C 3003's blank and C 3004's `/* Forward declarations of deadlock prevention functions.  */` (C 3006-3008's three `static` prototypes, C 3010's `JNIEXPORT void JNICALL`, C 3011's `NATIVE_NAME (queryPointerBitmap)`, **the next live definition**) through C 7594's `#endif`: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -509,8 +519,11 @@ readings exist only with `android_api_lt_21` selected.
    why it is not touched here; until it lands the base config reads ②a and the unit's own body
    needs ④'s harness.
 7. The in-unit declarations of slice 1's Deviations belong in mirrors once those exist (P-88 ⑤): the
-   `<pthread.h>`/`<semaphore.h>` block, the `<signal.h>` extras, `gettid`/`kill` and the
-   `<android/log.h>` pair.  **`pipe2` is settled and stays where it is** (3.414): bionic's
+   `<pthread.h>`/`<semaphore.h>` block, the `<signal.h>` extras, `gettid`/`kill`, the
+   `<android/log.h>` pair and (slice 11) C 63's `<android/bitmap.h>` names - the three
+   functions, `ANDROID_BITMAP_FORMAT_RGBA_8888` and the `android_bitmap` module's record, which
+   is the same round `docs/ports/sfntfont-android.md` Owed 4b asks for (`femacs/src/include/android.rs`
+   44-46's opaque tag becomes the record and both units' copies go).  **`pipe2` is settled and stays where it is** (3.414): bionic's
    `<unistd.h>` declares it for this configuration, and `docs/baseline/mirror-dupes.tsv` now
    carries the ratchet row that says why the mirror's Darwin redirect and this declaration are two
    configurations' arms rather than a copied declaration.
@@ -556,6 +569,15 @@ readings exist only with `android_api_lt_21` selected.
    moves need `tools/check-all-units.sh` (P-87): until they land, this unit's declarations are the
    only definitions in play.
 
+12. **The `android_lock_bitmap` call sites (C 3954/4460/4468/4482 and the definition at C 5601) will
+   need the tag spelling slice 11's record settled.**  C's `android_lock_bitmap` (declared in
+   `src/android.h`, mirror `femacs/src/include/android.rs` 269) takes the *opaque* `<android/bitmap.h>`
+   tag pointer, while this unit now carries the five-member record in its own `android_bitmap`
+   module - so those sites must cast the record's pointer to the mirror's tag, the
+   `femacs/src/sfntfont-android.rs` 91/710 device (`type AndroidBitmapInfo_tag = AndroidBitmapInfo;`
+   plus `(&raw mut info) as *mut AndroidBitmapInfo_tag`).  Recorded as a *future* slice's wiring
+   rather than a defect: nothing in C 1-3002 calls `android_lock_bitmap`.
+
 11. **`NATIVE_NAME (initEmacs)` (C 2086-2192) and the SAFE_ALLOCA function (C 6020-6070) are
    blocked on P-05.**  PORTING.md §3.2 says the `alloca` device is not yet chosen (three candidates
    are to be compared in a spike with memory pressure, and **until one is chosen, files containing
@@ -573,12 +595,12 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-10's C lines (C 1038-2084, C 2194-2253,
-C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748 and C 2750-2888) are carried; the
-**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) plus C 2889-7594, and
-`extract-abi.py --check`'s remaining `- missing …` list (115 `missing function` rows, the two
-file-scope objects and the thirty-five `invented exported symbol` rows of Owed 9) and the
-58.0% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`getline`, no event, no `select`.  Slices 2-11's C lines (C 1038-2084, C 2194-2253,
+C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888 and C 2890-3002) are
+carried; the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) plus
+C 3003-7594, and `extract-abi.py --check`'s remaining `- missing …` list (115 `missing function`
+rows, the two file-scope objects and the thirty-seven `invented exported symbol` rows of
+Owed 9) and the 55.6% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -905,3 +927,53 @@ reads **58.0%** (C 7,594 against the port's 3,193).
   without `JNI_STACK_ALIGNMENT_PROLOGUE` because C has none there.
 - **`return !x;` on a `bool`** is `(! x) as jboolean` (the `androidvfs.rs` 4170 shape), and C 2879's
   `(jint) android_quit_keycode` is `android_quit_keycode as jint` (`EMACS_INT` -> `jint`).
+
+## 2026-10-12: slice 11 (C 2890-3002) - the two bitmap entries and C 63's header stand-in
+
+`NATIVE_NAME (blitRect)` and `NATIVE_NAME (notifyPixelsChanged)`.
+
+### Evidence (this slice's readings)
+
+**⑲ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **second** probe: the first read two `E0308` rows at C 2960-2961 (`void *`
+into `unsigned char *`, which C converts implicitly and the port now spells `as *mut c_uchar`); with
+those two casts the record, the three NDK functions, the two labelled blocks, the `MAX!`/`MIN!` pair
+and the `eassert!` all read correctly.
+
+**⑳ The checklist reading.**  `extract-abi.py --check`: the `missing function` count is
+**unchanged at 115** (both definitions are `NATIVE_NAME` entries - the Owed 9 class ⑫/⑭/⑯/⑱
+record; `notifyPixelsChanged` returns `void`, which does not change the inventory rule), the two new
+**`invented exported symbol`** rows bring that count to **37**, the two `missing file-scope object`
+rows stand, there is **0 `does not mention`**, **0 `missing macro`**, **0 `missing constant`** (the
+three NDK functions and `ANDROID_BITMAP_FORMAT_RGBA_8888` are declared under C's own names, so the
+checker's macro and constant sections stay empty), and the line-count row reads **55.6%** (C 7,594
+against the port's 3,372).
+
+### Deviations this slice adds
+
+- **C 63's `<android/bitmap.h>` has no mirror, so its names are declared in the unit** (the P-88
+  device the `<android/log.h>` block below uses; `femacs/src/sfntfont-android.rs` 69-88 is the
+  sibling unit's copy of it).  The five-member record lives in a module of its own
+  (`android_bitmap`) because `include/android.rs` 44-46 keeps C's tag opaque for
+  `android_lock_bitmap` and `include!` is textual - a module-local declaration is a different scope,
+  so both can exist; its measured layout is asserted (`sizeof` 20, offsets 0/4/8/12/16).
+- **C 2928-2929's `goto fail1`, C 2955-2956's `goto fail2` and the `fail2:`/`fail1:` labels at
+  C 2979/2981 become two nested labelled blocks** (PORTING.md 2.2, the `android_create_lib_link`
+  shape at 1599-1648): `break 'fail1` skips the destination unlock, `break 'fail2` leaves the inner
+  block for `AndroidBitmap_unlockPixels (env, dest)`, and C's fall-through from the `fail2:` line to
+  the `fail1:` line is the outer block's end.  The two label comments (`/* fail2: */`,
+  `/* fail1: */`) mark C's labels.
+- **C 2939-2953's four tests compare a `jint` against `uint32_t` members**, so the port spells C's
+  own usual-arithmetic conversion (`x1 as c_uint >= src_info.width`; the `xfont.rs` 465-466 /
+  `sfntfont-android.rs` 460 device) and converts the `MIN` results back (`as jint`), which is C's own
+  assignment conversion.
+- **C 2960-2961's `void *`-into-`unsigned char *` pair** is `as *mut c_uchar` (C's implicit
+  object-pointer conversion, spelled out), and C 2962-2965/2972-2973's pointer additions are
+  `wrapping_offset` (the `sfntfont-android.rs` 424-425/470-471 device) with C's arithmetic kept.
+- **C 2895-2897's five declarations** are zero-initialised by PORTING.md 1.5 and C's own
+  C 2903-2904 `memset` pair is carried as statements (the `androidterm.rs` 609-611 double-zeroing
+  shape); **C 2974's `y1++`** is the step statement with its marker (`androidterm.rs` 6247's
+  `i += 1;` shape).
+- **`notifyPixelsChanged` returns `void`** in C, so the port's item is `-> ()` (there is no `jlong`),
+  and its `data` local is C-uninitialised, zeroed at the declaration with C 2991 marked - C 2991 sits
+  *after* the prologue and the port keeps that order.

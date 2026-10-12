@@ -127,8 +127,51 @@ pub static mut android_init_gui: bool = false;                 // C 59 (tentativ
    real arm only - `all (feature = "have_android", feature = "not_android_stubify")` - and the
    ledger's remainder row names C 7519 as the stub arm still owed.  */
 
-/* C 63: `#include <android/bitmap.h>` - names nothing in this slice (`android_lock_bitmap` is C
-   2649 and past it; the `AndroidBitmapInfo` the mirror uses stays opaque there).  */
+/* C 63: `#include <android/bitmap.h>` - the NDK's own header, not part of the reference tree, so
+   it has no mirror and the names this file's two bitmap entry points use are declared here (P-88,
+   the `<android/log.h>` block below is the same device and `femacs/src/sfntfont-android.rs` 69-88
+   is the sibling unit's copy of it).  The record is declared in a module of its own because the
+   sibling's `include/android.rs` 44-46 keeps `<android/bitmap.h>`'s tag opaque (`android_lock_bitmap`
+   names it only through a pointer) and `include!` is textual: a module-local declaration is a
+   different scope, so the mirror's tag and C's five members can both exist.  Measured on this
+   machine's NDK 29.0.14206865
+   (`toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/android/bitmap.h`): `sizeof` 20,
+   offsets 0/4/8/12/16, `ANDROID_BITMAP_FORMAT_RGBA_8888` 1 (bitmap.h 108) and the three functions
+   at bitmap.h 139/172/181.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ANDROID_BITMAP_FORMAT_RGBA_8888: c_int = 1;                  // bitmap.h 108
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /* int AndroidBitmap_getInfo (JNIEnv *, jobject, AndroidBitmapInfo *);  */
+  pub fn AndroidBitmap_getInfo (env: *mut JNIEnv, jbitmap: jobject,
+                                info: *mut android_bitmap::AndroidBitmapInfo) -> c_int;
+  /* int AndroidBitmap_lockPixels (JNIEnv *, jobject, void **);  */
+  pub fn AndroidBitmap_lockPixels (env: *mut JNIEnv, jbitmap: jobject,
+                                   addr_ptr: *mut *mut c_void) -> c_int;
+  /* int AndroidBitmap_unlockPixels (JNIEnv *, jobject);  */
+  pub fn AndroidBitmap_unlockPixels (env: *mut JNIEnv, jbitmap: jobject) -> c_int;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub mod android_bitmap {
+  /* bitmap.h 99-118.  */
+  #[repr(C)]
+  #[derive(Clone, Copy)]
+  pub struct AndroidBitmapInfo
+  {
+    pub width: u32, pub height: u32, pub stride: u32, pub format: i32, pub flags: u32,
+  }
+}
+/* The record's measured layout (the NDK above; the sibling unit's `android_bitmap` module is the
+   same five members).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::size_of::<android_bitmap::AndroidBitmapInfo> () == 20);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::offset_of! (android_bitmap::AndroidBitmapInfo, width) == 0
+                             && std::mem::offset_of! (android_bitmap::AndroidBitmapInfo, height) == 4
+                             && std::mem::offset_of! (android_bitmap::AndroidBitmapInfo, stride) == 8
+                             && std::mem::offset_of! (android_bitmap::AndroidBitmapInfo, format) == 12
+                             && std::mem::offset_of! (android_bitmap::AndroidBitmapInfo, flags) == 16);
+
 
 /* C 64: `#include <android/log.h>` - the NDK's own header, not part of the reference tree, so it
    has no mirror and the four names the two arms of this slice use are declared here (P-88).  The
@@ -3190,4 +3233,140 @@ pub unsafe extern "C" fn shouldForwardCtrlSpace (env: *mut JNIEnv, object: jobje
   JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2886
 
   return (! android_intercept_control_space) as jboolean;               // C 2887
+}
+
+/* C 2890-2983: `NATIVE_NAME (blitRect)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_blitRect")]
+pub unsafe extern "C" fn blitRect (env: *mut JNIEnv, object: jobject,
+				   src: jobject, dest: jobject,
+				   mut x1: jint, mut y1: jint, mut x2: jint, mut y2: jint)
+{
+  let mut src_info: android_bitmap::AndroidBitmapInfo = std::mem::zeroed ();   // C 2895 (PORTING.md 1.5)
+  let mut dest_info: android_bitmap::AndroidBitmapInfo = std::mem::zeroed ();  // C 2895 (PORTING.md 1.5)
+  let mut src_data_1: *mut c_uchar = std::ptr::null_mut ();   // C 2896 (uninitialised; PORTING.md 1.5)
+  let mut dest_data_1: *mut c_uchar = std::ptr::null_mut ();  // C 2896 (uninitialised; PORTING.md 1.5)
+  let mut src_data: *mut c_void = std::ptr::null_mut ();      // C 2897 (uninitialised; PORTING.md 1.5)
+  let mut dest_data: *mut c_void = std::ptr::null_mut ();     // C 2897 (uninitialised; PORTING.md 1.5)
+
+  /* N.B. that X2 and Y2 represent the pixel past the edge of the
+     rectangle; thus, the width is x2 - x1 and the height is y2 -
+     y1.  */                                                           // C 2899-2901
+
+  memset (&raw mut src_info as *mut c_void, 0,
+	 std::mem::size_of::<android_bitmap::AndroidBitmapInfo> ());          // C 2903
+  memset (&raw mut dest_info as *mut c_void, 0,
+	 std::mem::size_of::<android_bitmap::AndroidBitmapInfo> ());          // C 2904
+  AndroidBitmap_getInfo (env, src, &raw mut src_info);                 // C 2905
+  AndroidBitmap_getInfo (env, dest, &raw mut dest_info);               // C 2906
+
+  /* If the stride is 0 after a call to `getInfo', assume it
+     failed.  */                                                       // C 2908-2909
+
+  if src_info.stride == 0 || dest_info.stride == 0                     // C 2911
+    { return; }                                                        // C 2912
+
+  /* If formats differ, abort.  */                                     // C 2914
+  eassert! (src_info.format == dest_info.format                        // C 2915
+	    && src_info.format == ANDROID_BITMAP_FORMAT_RGBA_8888);       // C 2916
+
+  /* Lock the image data.  */                                          // C 2918
+  src_data = std::ptr::null_mut ();                                    // C 2919
+  AndroidBitmap_lockPixels (env, src, &raw mut src_data);              // C 2920
+
+  if src_data.is_null ()                                               // C 2922
+    { return; }                                                        // C 2923
+
+  dest_data = std::ptr::null_mut ();                                   // C 2925
+  AndroidBitmap_lockPixels (env, dest, &raw mut dest_data);            // C 2926
+
+  /* C 2928-2929's `goto fail1`, C 2955-2956's `goto fail2` and the `fail2:`/`fail1:` labels at
+     C 2979/2981 become the two nested labelled blocks below (PORTING.md 2.2, the
+     android_create_lib_link shape): `goto fail1` is `break 'fail1` (past the destination
+     unlock, straight to C's `fail1:` tail) and `goto fail2` is `break 'fail2` (out of the inner
+     block, to `AndroidBitmap_unlockPixels (env, dest)`); C's fall-through from the `fail2:`
+     line to the `fail1:` line is the outer block's end.  */
+
+  'fail1: {
+    if dest_data.is_null ()                                            // C 2928
+      { break 'fail1; }                                                // C 2929 (C's `goto fail1`)
+
+    /* Now clip the rectangle to the bounds of the source and
+       destination bitmap.  */                                         // C 2931-2932
+
+    x1 = MAX! (x1, 0);                                                 // C 2934
+    y1 = MAX! (y1, 0);                                                 // C 2935
+    x2 = MAX! (x2, 0);                                                 // C 2936
+    y2 = MAX! (y2, 0);                                                 // C 2937
+
+    if x1 as c_uint >= src_info.width                                  // C 2939 (C's int-to-unsigned conversion)
+      || x1 as c_uint >= dest_info.width                               // C 2940
+      { x1 = MIN! (dest_info.width - 1, src_info.width - 1) as jint; }  // C 2941
+
+    if x2 as c_uint > src_info.width                                   // C 2943
+      || x2 as c_uint > dest_info.width                                // C 2944
+      { x2 = MIN! (src_info.width, dest_info.width) as jint; }         // C 2945
+
+    if y1 as c_uint >= src_info.height                                 // C 2947
+      || y1 as c_uint >= dest_info.height                              // C 2948
+      { y1 = MIN! (dest_info.height - 1, src_info.height - 1) as jint; }  // C 2949
+
+    if y2 as c_uint > src_info.height                                  // C 2951
+      || y2 as c_uint > dest_info.height                               // C 2952
+      { y2 = MIN! (src_info.height, dest_info.height) as jint; }       // C 2953
+
+    'fail2: {
+      if x1 >= x2 || y1 >= y2                                          // C 2955
+	{ break 'fail2; }                                              // C 2956 (C's `goto fail2`)
+
+      /* Determine the address of the first line to copy.  */          // C 2958
+
+      src_data_1 = src_data as *mut c_uchar;                           // C 2960
+      dest_data_1 = dest_data as *mut c_uchar;                         // C 2961
+      src_data_1 = src_data_1.wrapping_offset ((x1 * 4) as isize);     // C 2962
+      src_data_1 = src_data_1.wrapping_offset ((y1 * src_info.stride as jint) as isize);  // C 2963
+      dest_data_1 = dest_data_1.wrapping_offset ((x1 * 4) as isize);   // C 2964
+      dest_data_1 = dest_data_1.wrapping_offset ((y1 * dest_info.stride as jint) as isize);  // C 2965
+
+      /* Start copying each line.  */                                  // C 2967
+
+      while y1 != y2                                                   // C 2969
+	{
+	  memcpy (dest_data_1 as *mut c_void, src_data_1 as *const c_void,
+		  ((x2 - x1) * 4) as size_t);                          // C 2971
+	  src_data_1 = src_data_1.wrapping_offset (src_info.stride as isize);   // C 2972
+	  dest_data_1 = dest_data_1.wrapping_offset (dest_info.stride as isize);  // C 2973
+	  y1 += 1;                                                     // C 2974 (the `y1++`)
+	}
+    }
+
+    /* Complete the copy and unlock the bitmap.  */                    // C 2977
+
+    /* fail2: */
+    AndroidBitmap_unlockPixels (env, dest);                            // C 2980
+  }
+
+  /* fail1: */
+  AndroidBitmap_unlockPixels (env, src);                               // C 2982
+}
+
+/* C 2985-3002: `NATIVE_NAME (notifyPixelsChanged)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_notifyPixelsChanged")]
+pub unsafe extern "C" fn notifyPixelsChanged (env: *mut JNIEnv, object: jobject,
+					      bitmap: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                    // C 2989
+
+  let mut data: *mut c_void = std::ptr::null_mut ();                   // C 2991 (uninitialised; PORTING.md 1.5)
+
+  /* Lock and unlock the bitmap.  This calls
+     SkBitmap->notifyPixelsChanged.  */                               // C 2993-2994
+
+  if AndroidBitmap_lockPixels (env, bitmap, &raw mut data) < 0         // C 2996
+    /* The return value is less than 0 if an error occurs.
+       Good luck finding this in the documentation.  */                // C 2997-2998
+    { return; }                                                        // C 2999
+
+  AndroidBitmap_unlockPixels (env, bitmap);                            // C 3001
 }
