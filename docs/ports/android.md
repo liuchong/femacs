@@ -22,9 +22,14 @@
 > 2026-10-12) continues in the same unit**: it carries the first three class tables -
 > `android_init_graphics_point`, `android_init_emacs_drawable` and `android_init_emacs_window`
 > (C 1930-1992's twenty-four `FIND_METHOD` calls) - so **1,992 C lines are carried in total** (in a
-> 2,257-line port, md5 `90f0d173d3405e3d759a3dc1316a0fe0`) and **the next live definition is
-> C 1995's `android_init_emacs_cursor`**.  The table's last row is "the remainder" (C 1994-7594);
-> slice 3's own readings are in the dated section at the end of this file.
+> 2,257-line port, md5 `90f0d173d3405e3d759a3dc1316a0fe0`).  **Slice 4 (C 1994-2084,
+> 2026-10-12) continues in the same unit**: it carries `android_init_emacs_cursor`,
+> `android_init_key_character_map` (the one that fetches a **static** method) and
+> `android_init_emacs_handle` (one `FIND_METHOD` call plus a direct `GetFieldID`), so **2,084 C lines
+> are carried in total** (in a 2,364-line port, md5 `d45d03d43f27071044051616a0f356f0`) and **the
+> next live definition is C 2087's `NATIVE_NAME (initEmacs)`**.  The table's last row is "the
+> remainder" (C 2086-7594); slices 3-4's own readings are in the dated sections at the end of this
+> file.
 
 ## Gate mapping
 
@@ -117,7 +122,13 @@ no `window.h`).
 | 1929 | the blank | real arm (slice 3) |
 | 1930-1992 | `android_init_emacs_window` (C 1949-1954 the same device, **twenty-four** calls, C 1991 its `#undef`) | real arm (slice 3) |
 | 1993 | the blank | real arm (slice 3) |
-| 1994-7594 | **the remainder** - from C 1994's blank and C 1995's `android_init_emacs_cursor` (**the next live definition**) through C 7594's `#endif`: the four other `android_init_*` class tables, `NATIVE_NAME (initEmacs)` and the rest of the JNI entry points, the two `__aarch64__` NEON regions (C 4064-4431) and C 7519's `#else` stub arm | not this slice |
+| 1994-2022 | `android_init_emacs_cursor` (C 2013-2018 the function-local `#define FIND_METHOD`, one call, C 2021 its `#undef`) | real arm (slice 4) |
+| 2023 | the blank | real arm (slice 4) |
+| 2024-2048 | `android_init_key_character_map` (C 2043-2047 fetches a **static** method, so no `FIND_METHOD` macro) | real arm (slice 4) |
+| 2049 | the blank | real arm (slice 4) |
+| 2050-2084 | `android_init_emacs_handle` (C 2069-2074 the same device, one call, C 2077 its `#undef`, C 2079-2083 a direct `GetFieldID`) | real arm (slice 4) |
+| 2085 | the blank | real arm (slice 4) |
+| 2086-7594 | **the remainder** - from C 2086's `JNIEXPORT void JNICALL` (C 2087's `NATIVE_NAME (initEmacs)`, **the next live definition**) through C 7594's `#endif`: `initEmacs` and the rest of the JNI entry points, the two `__aarch64__` NEON regions (C 4064-4431) and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -469,9 +480,9 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-3's C lines (C 1038-1992) are carried; the **unported**
-part is C 1994-7594, and `extract-abi --check`'s remaining `- missing …` list (120 `missing
-function` rows and the two file-scope objects) and the 70.3% drift are that boundary, not
+`getline`, no event, no `select`.  Slices 2-4's C lines (C 1038-2084) are carried; the
+**unported** part is C 2086-7594, and `extract-abi --check`'s remaining `- missing …` list (117
+`missing function` rows and the two file-scope objects) and the 68.9% drift are that boundary, not
 defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
@@ -554,3 +565,38 @@ class), **0 `missing macro`**, **0 `missing constant`**, **0 `does not mention`*
   C casts are identity conversions and only `old as jobject` is written.
 - **C 1930-1992's twenty-four calls** keep C's order, including the `damage_rect` one whose comment
   (C 1982-1985) explains why the ID comes from `EmacsWindow`.
+
+## 2026-10-12: slice 4 (C 1994-2084) - cursor, key character map and handle tables
+
+`android_init_emacs_cursor` (C 1994-2022), `android_init_key_character_map` (2024-2048) and
+`android_init_emacs_handle` (2050-2084).
+
+### Evidence (this slice's readings)
+
+**⑤ The arm flip of this slice.**  The same three-`--cfg` command ③ uses:
+
+```
+cd femacs && CARGO_TARGET_DIR=/tmp/android-lane cargo run -q -p xtask -- probe src/android.rs \
+  /tmp/android-lane/arm.o --crate-type lib --emit obj -C panic=abort \
+  --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"' \
+  --cfg 'feature="android_api_lt_21"'
+```
+
+→ **exit 0, 0 errors**, on the slice's **first** probe: the two new `FIND_METHOD` macros, the one
+`GetStaticMethodID` call of C 2043-2046 and the `GetFieldID` of C 2079-2082 all read correctly.
+
+**⑥ The checklist reading.**  `extract-abi.py --check`: **117 `missing function`** rows (down from
+120 - the three tables retire), the same **2 `missing file-scope object`** rows, **3 `invented
+exported symbol`** rows (Owed 9's class), **0 `does not mention`**, and the line-count row at
+**68.9%** (C 7,594 against the port's 2,364).
+
+### Deviations this slice adds
+
+- **C 2024-2048 is the one class table without a `FIND_METHOD` macro**: it fetches a *static*
+  method (`GetStaticMethodID`, C 2043-2046) in one statement pair, so the port writes it directly
+  rather than through the macro.
+- **C 2050-2084 mixes both devices**: one macro call (`destroy_handle`) and then a direct
+  `GetFieldID` for the `handle` field (C 2079-2082), which the port keeps in C's order.
+- **The `org/femacs/` rename** covers this slice's two `org/gnu/emacs/` class names
+  (`EmacsCursor` at C 2001, `EmacsHandleObject` at C 2057); C 2031's `android/view/KeyCharacterMap`
+  is an Android platform class and keeps its name.

@@ -2255,3 +2255,110 @@ unsafe fn android_init_emacs_window ()
   FIND_METHOD! (set_wm_name, c"setWmName".as_ptr (),                     // C 1990
 		c"(Ljava/lang/String;)V".as_ptr ());
 }
+
+/* C 1994-2084: three more class tables - `android_init_emacs_cursor` (C 1995-2022),
+   `android_init_key_character_map` (2024-2048, the one that fetches a **static** method instead of
+   a `FIND_METHOD` macro) and `android_init_emacs_handle` (2050-2084, one macro call plus a direct
+   `GetFieldID`).  The `org/femacs/` rename applies to C 2001/2057's class names.  */
+
+/* C 1994-2022: `android_init_emacs_cursor`.  `static`; only called (C 6097).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_emacs_cursor ()
+{
+  let mut old: jclass;                                                  // C 1997
+
+  cursor_class.class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 1999-2000
+						    c"org/femacs/EmacsCursor".as_ptr ());   // C 2001
+  eassert! (! cursor_class.class.is_null ());                            // C 2002
+
+  old = cursor_class.class;                                             // C 2004
+  cursor_class.class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 2005-2007
+						       old as jobject);
+  ANDROID_DELETE_LOCAL_REF! (old);                                      // C 2008
+
+  if cursor_class.class.is_null ()                                      // C 2010
+    { emacs_abort (); }                                                 // C 2011
+
+  /* C 2013-2018's `#define FIND_METHOD …` and C 2021's `#undef`.  */
+  macro_rules! FIND_METHOD {
+    ($c_name:ident, $name:expr, $signature:expr) => {
+      cursor_class.$c_name
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,
+							  cursor_class.class,
+							  $name, $signature);
+      eassert! (! cursor_class.$c_name.is_null ());
+    };
+  }
+
+  FIND_METHOD! (constructor, c"<init>".as_ptr (), c"(I)V".as_ptr ());    // C 2020
+}
+
+/* C 2024-2048: `android_init_key_character_map`.  `static`; only called (C 6103).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_key_character_map ()
+{
+  let mut old: jclass;                                                  // C 2027
+
+  key_character_map_class.class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 2029-2030
+						    c"android/view/KeyCharacterMap".as_ptr ());   // C 2031
+  eassert! (! key_character_map_class.class.is_null ());                // C 2032
+
+  old = key_character_map_class.class;                                  // C 2034
+  key_character_map_class.class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 2035-2037
+						       old as jobject);
+  ANDROID_DELETE_LOCAL_REF! (old);                                      // C 2038
+
+  if key_character_map_class.class.is_null ()                           // C 2040
+    { emacs_abort (); }                                                 // C 2041
+
+  key_character_map_class.get_dead_char
+    = ((*(*android_java_env)).GetStaticMethodID.unwrap ()) (android_java_env,   // C 2043-2044
+							    key_character_map_class.class,   // C 2045
+							    c"getDeadChar".as_ptr (),   // C 2046
+							    c"(II)I".as_ptr ());   // C 2046
+  eassert! (! key_character_map_class.get_dead_char.is_null ());        // C 2047
+}
+
+/* C 2050-2084: `android_init_emacs_handle`.  `static`; only called (C 6109).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_emacs_handle ()
+{
+  let mut old: jclass;                                                  // C 2053
+
+  handle_class.class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 2055-2056
+						    c"org/femacs/EmacsHandleObject".as_ptr ());   // C 2057
+  eassert! (! handle_class.class.is_null ());                            // C 2058
+
+  old = handle_class.class;                                             // C 2060
+  handle_class.class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 2061-2063
+						       old as jobject);
+  ANDROID_DELETE_LOCAL_REF! (old);                                      // C 2064
+
+  if handle_class.class.is_null ()                                      // C 2066
+    { emacs_abort (); }                                                 // C 2067
+
+  /* C 2069-2074's `#define FIND_METHOD …` and C 2077's `#undef`.  */
+  macro_rules! FIND_METHOD {
+    ($c_name:ident, $name:expr, $signature:expr) => {
+      handle_class.$c_name
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,
+							  handle_class.class,
+							  $name, $signature);
+      eassert! (! handle_class.$c_name.is_null ());
+    };
+  }
+
+  FIND_METHOD! (destroy_handle, c"destroyHandle".as_ptr (), c"()V".as_ptr ());   // C 2076
+
+  handle_class.handle
+    = ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 2079-2080
+						     handle_class.class,   // C 2081
+						     c"handle".as_ptr (), c"J".as_ptr ());   // C 2082
+  eassert! (! handle_class.handle.is_null ());                           // C 2083
+}
