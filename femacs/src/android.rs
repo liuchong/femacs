@@ -2362,3 +2362,103 @@ unsafe fn android_init_emacs_handle ()
 						     c"handle".as_ptr (), c"J".as_ptr ());   // C 2082
   eassert! (! handle_class.handle.is_null ());                           // C 2083
 }
+
+/* C 2194-2253: six small definitions of the JNI entry-point group - the two log/one-line entries
+   (`emacsAbort`, `quit`), the shutdown pair and the low-memory pair.  Each `NATIVE_NAME (x)`
+   becomes `#[unsafe(export_name = "Java_org_femacs_EmacsNative_x")]` (the unit's device), and the
+   two `static` workers whose address C 2232/2252 takes are `unsafe extern "C" fn` items.
+   **C 2086-2192's `NATIVE_NAME (initEmacs)` is deliberately not in this slice**: it calls bare
+   `alloca` (C 2108/2121) and PORTING.md §3.2 forbids porting such a function before P-05's
+   `alloca` spike picks the device - the table records that row and this slice resumes at C 2194.  */
+
+/* C: lisp.h 5145: `extern void shut_down_emacs (int, Lisp_Object);` - C 2224's call; the mirror does
+   not carry the prototype.  C: lisp.h 4477: `extern void garbage_collect (void);` - C 2244's call.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: lisp.h 5145: `extern void shut_down_emacs (int, Lisp_Object);` (emacs.c).
+  pub fn shut_down_emacs (no_rip: c_int, stuff: Lisp_Object);
+  /// C: lisp.h 4477: `extern void garbage_collect (void);` (alloc.c).
+  pub fn garbage_collect ();
+}
+
+/* C 61-62's `<android/log.h>`: the three levels the unit already carries are measured, and
+   `ANDROID_LOG_VERBOSE` is the next one down in the NDK's enum (UNKNOWN 0, DEFAULT 1, VERBOSE 2,
+   DEBUG 3, INFO 4, WARN 5, ERROR 6, FATAL 7, SILENT 8 - `ANDROID_LOG_INFO == 4` and
+   `ANDROID_LOG_FATAL == 7` are the unit's own measurements, so VERBOSE is `2`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ANDROID_LOG_VERBOSE: c_int = 2;
+
+/* C 2194-2200: `NATIVE_NAME (emacsAbort)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_emacsAbort")]
+pub unsafe extern "C" fn emacsAbort (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2197
+
+  emacs_abort ();                                                       // C 2199
+}
+
+/* C 2202-2214: `NATIVE_NAME (quit)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_quit")]
+pub unsafe extern "C" fn quit (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2205
+
+  let __func__: *const c_char = c"quit".as_ptr ();                       // C's `__func__`
+  __android_log_print (ANDROID_LOG_VERBOSE, __func__,                   // C 2207
+		       c"Sending SIGIO and setting Vquit_flag".as_ptr ());   // C 2208
+
+  /* Raise sigio to interrupt anything that could be reading
+     input.  */                                                        // C 2210-2211
+  Vquit_flag = Qt ();                                                   // C 2212
+  kill (getpid (), SIGIO);                                              // C 2213
+}
+
+/* Call shut_down_emacs subsequent to a call to the service's
+   onDestroy callback.  CLOSURE is ignored.  */                        // C 2216-2217
+
+/* C 2219-2225.  `static` and the *address is taken* (C 2232), so `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_shut_down_emacs (closure: *mut c_void)
+{
+  let __func__: *const c_char = c"android_shut_down_emacs".as_ptr ();     // C's `__func__`
+  __android_log_print (ANDROID_LOG_INFO, __func__,                      // C 2222
+		       c"The Emacs service is being shut down".as_ptr ());   // C 2223
+  shut_down_emacs (0, Qnil ());                                         // C 2224
+}
+
+/* C 2227-2233: `NATIVE_NAME (shutDownEmacs)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_shutDownEmacs")]
+pub unsafe extern "C" fn shutDownEmacs (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2230
+
+  android_run_in_emacs_thread (Some (android_shut_down_emacs),          // C 2232
+			       std::ptr::null_mut ());
+}
+
+/* Carry out garbage collection and clear all image caches on the
+   Android terminal.  Called when the system has depleted most of its
+   memory and desires that background processes release unused
+   core.  */                                                           // C 2235-2238
+
+/* C 2240-2245.  `static` and the *address is taken* (C 2252), so `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_on_low_memory (closure: *mut c_void)
+{
+  Fclear_image_cache (Qt (), Qnil ());                                  // C 2243
+  garbage_collect ();                                                   // C 2244
+}
+
+/* C 2247-2253: `NATIVE_NAME (onLowMemory)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_onLowMemory")]
+pub unsafe extern "C" fn onLowMemory (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2250
+
+  android_run_in_emacs_thread (Some (android_on_low_memory),            // C 2252
+			       std::ptr::null_mut ());
+}

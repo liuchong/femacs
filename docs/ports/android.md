@@ -26,10 +26,16 @@
 > 2026-10-12) continues in the same unit**: it carries `android_init_emacs_cursor`,
 > `android_init_key_character_map` (the one that fetches a **static** method) and
 > `android_init_emacs_handle` (one `FIND_METHOD` call plus a direct `GetFieldID`), so **2,084 C lines
-> are carried in total** (in a 2,364-line port, md5 `d45d03d43f27071044051616a0f356f0`) and **the
-> next live definition is C 2087's `NATIVE_NAME (initEmacs)`**.  The table's last row is "the
-> remainder" (C 2086-7594); slices 3-4's own readings are in the dated sections at the end of this
-> file.
+> are carried in total** (in a 2,364-line port, md5 `d45d03d43f27071044051616a0f356f0`).  **Slice 5
+> (C 2194-2253, 2026-10-12) continues in the same unit**: it carries the six small entries
+> `emacsAbort`, `quit`, `android_shut_down_emacs`, `shutDownEmacs`, `android_on_low_memory` and
+> `onLowMemory`, so **2,253 C lines are carried** (in a 2,464-line port, md5
+> `2ceea5560363f830766ac7801ee41431`) **except the 107-line hole C 2086-2192**:
+> `NATIVE_NAME (initEmacs)` calls bare `alloca` (C 2108/2121) and PORTING.md §3.2 forbids porting
+> such a function before P-05's `alloca` spike picks the device, so its row is recorded as
+> **blocked** and the table resumes at C 2194.  **The next live definition is C 2256's
+> `NATIVE_NAME (sendConfigureNotify)`**; the table's last row is the remainder (C 2255-7594) and
+> slices 3-5's own readings are in the dated sections at the end of this file.
 
 ## Gate mapping
 
@@ -128,7 +134,16 @@ no `window.h`).
 | 2049 | the blank | real arm (slice 4) |
 | 2050-2084 | `android_init_emacs_handle` (C 2069-2074 the same device, one call, C 2077 its `#undef`, C 2079-2083 a direct `GetFieldID`) | real arm (slice 4) |
 | 2085 | the blank | real arm (slice 4) |
-| 2086-7594 | **the remainder** - from C 2086's `JNIEXPORT void JNICALL` (C 2087's `NATIVE_NAME (initEmacs)`, **the next live definition**) through C 7594's `#endif`: `initEmacs` and the rest of the JNI entry points, the two `__aarch64__` NEON regions (C 4064-4431) and C 7519's `#else` stub arm | not this slice |
+| 2086-2192 | `NATIVE_NAME (initEmacs)` - **blocked, not ported**: it calls bare `alloca` (C 2108/2121) and PORTING.md §3.2 forbids porting such a function before P-05's spike picks the device (Owed 11) | **blocked** (slice 5 records it here rather than writing it) |
+| 2193 | the blank | real arm (slice 5) |
+| 2194-2200 | `NATIVE_NAME (emacsAbort)` | real arm (slice 5) |
+| 2201 | the blank | real arm (slice 5) |
+| 2202-2214 | `NATIVE_NAME (quit)` | real arm (slice 5) |
+| 2216-2225 | C 2216-2217's comment and `android_shut_down_emacs` | real arm (slice 5) |
+| 2227-2233 | `NATIVE_NAME (shutDownEmacs)` | real arm (slice 5) |
+| 2235-2245 | C 2235-2238's comment and `android_on_low_memory` | real arm (slice 5) |
+| 2247-2253 | `NATIVE_NAME (onLowMemory)` | real arm (slice 5) |
+| 2255-7594 | **the remainder** - from C 2255's `JNIEXPORT jlong JNICALL` (C 2256's `NATIVE_NAME (sendConfigureNotify)`, **the next live definition**) through C 7594's `#endif`: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -474,16 +489,28 @@ readings exist only with `android_api_lt_21` selected.
    moves need `tools/check-all-units.sh` (P-87): until they land, this unit's declarations are the
    only definitions in play.
 
+11. **`NATIVE_NAME (initEmacs)` (C 2086-2192) and the SAFE_ALLOCA function (C 6020-6070) are
+   blocked on P-05.**  PORTING.md §3.2 says the `alloca` device is not yet chosen (three candidates
+   are to be compared in a spike with memory pressure, and **until one is chosen, files containing
+   `alloca` must not be ported in bulk**), and both definitions use it - `initEmacs` at C 2108/2121
+   (bare `alloca`, *inside a loop* at C 2121, which §3.2 says needs a per-point special case) and
+   the other at C 6031/6064 (`USE_SAFE_ALLOCA` + `SAFE_ALLOCA`).  The whole rest of the file (5,340 C
+   lines) is `alloca`-free, so this is a two-function blocker, not a file-wide one: the range table
+   records both rows and the slices step over them (the `android_update_selection` shape of
+   `docs/ports/androidterm.md`).  When the spike lands, the two rows are replaced by their slices'
+   rows.
+
 ### Not claimed
 
 Every line of all three slices is behind gates the frozen configuration leaves false: ① is an
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-4's C lines (C 1038-2084) are carried; the
-**unported** part is C 2086-7594, and `extract-abi --check`'s remaining `- missing …` list (117
-`missing function` rows and the two file-scope objects) and the 68.9% drift are that boundary, not
-defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`getline`, no event, no `select`.  Slices 2-5's C lines (C 1038-2084 and C 2194-2253) are
+carried; the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) plus
+C 2255-7594, and `extract-abi.py --check`'s remaining `- missing …` list (115 `missing function`
+rows, the two file-scope objects and the seven `invented exported symbol` rows of Owed 9) and the
+67.6% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -600,3 +627,36 @@ exported symbol`** rows (Owed 9's class), **0 `does not mention`**, and the line
 - **The `org/femacs/` rename** covers this slice's two `org/gnu/emacs/` class names
   (`EmacsCursor` at C 2001, `EmacsHandleObject` at C 2057); C 2031's `android/view/KeyCharacterMap`
   is an Android platform class and keeps its name.
+
+## 2026-10-12: slice 5 (C 2194-2253) - the shutdown and low-memory entries
+
+`NATIVE_NAME (emacsAbort)`, `NATIVE_NAME (quit)`, `android_shut_down_emacs`,
+`NATIVE_NAME (shutDownEmacs)`, `android_on_low_memory` and `NATIVE_NAME (onLowMemory)` - and the
+record of the one row this slice **steps over**.
+
+### Evidence (this slice's readings)
+
+**⑦ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors**
+after **two** probe runs: the first read `__func__`'s two uses (the unit's own device is a local
+`let __func__: *const c_char = c"name".as_ptr ();`, C 614/629's shape) and `Fclear_image_cache`'s
+two arguments (`Qt`/`Qnil` are *functions* in this tree, so C's bare `Qt` is `Qt ()`).
+
+**⑧ The checklist reading.**  `extract-abi.py --check`: **115 `missing function`** rows (down from
+117 - the two plain `static`s retire), the same **2 `missing file-scope object`** rows, **7
+`invented exported symbol`** rows (Owed 9's class - the four `NATIVE_NAME` entries of this slice add
+four, which is the **androidterm slice-15 finding** applying here too: a `NATIVE_NAME`-defined
+function never enters the checker's function inventory, so those four had no `missing function` row
+to retire), **0 `does not mention`**, and the line-count row at **67.6%** (C 7,594 against the
+port's 2,464).
+
+### Deviations this slice adds
+
+- **`__func__`** (C 2207/2222) is a local `let __func__: *const c_char = c"…".as_ptr ();` in each
+  function that logs, C's own `__func__` spelling kept (the unit's C 614/629 device).
+- **C 2232/2252's `android_run_in_emacs_thread (worker, NULL)`** is
+  `Some (worker)` + `std::ptr::null_mut ()`, and the two workers are `unsafe extern "C" fn`
+  because their address is taken.
+- **C 2243's `Fclear_image_cache (Qt, Qnil)`** is `Fclear_image_cache (Qt (), Qnil ())`: this tree
+  spells the two built-in symbols as functions (the `globals.rs` `Qnil`/`Qt` pair).
+- **`ANDROID_LOG_VERBOSE`** (C 2207) is added to the unit's measured NDK enum with the derivation
+  recorded (VERBOSE is two steps below INFO, whose value the unit already measured).
