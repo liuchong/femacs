@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,736 lines**, md5
-> `1eb0105a4abb23145d72cd4eaad08958`), carrying **C 1-5571**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**6,950 lines**, md5
+> `80cb11c843cefa80afa18b26cce545ea`), carrying **C 1-5739**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -20,7 +20,7 @@
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
 the next definition is
-> `NATIVE_NAME (setSelection)`, C 5574.
+> `NATIVE_NAME (performContextMenuAction)`, C 5742.
 
 ## Gate mapping
 
@@ -192,7 +192,12 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 5472-5514 | `NATIVE_NAME (getTextBeforeCursor)` (C 5482's `TYPE_MINIMUM (EMACS_INT)`) | real arm (slice 17) |
 | 5516-5549 | `NATIVE_NAME (setComposingText)` | real arm (slice 17) |
 | 5551-5571 | `NATIVE_NAME (setComposingRegion)` | real arm (slice 17) |
-| 5573-7117 | **the remainder of the file** - from C 5573's `JNIEXPORT void JNICALL` above `NATIVE_NAME (setSelection)` (C 5574) through the rest of the input-method group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5573-5596 | C 5573's `JNIEXPORT void JNICALL` and `NATIVE_NAME (setSelection)` | real arm (slice 18) |
+| 5598-5608 | C 5598's comment and `struct android_get_selection_context` | real arm (slice 18) |
+| 5610-5649 | C 5610-5611's comment and `android_get_selection` (C 5634's `window_point`, C 5635's `ephemeral_last_point`, C 5643/5645's `BVAR`) | real arm (slice 18) |
+| 5651-5687 | C 5651's `JNIEXPORT jintArray JNICALL` and `NATIVE_NAME (getSelection)` | real arm (slice 18) |
+| 5689-5739 | `NATIVE_NAME (performEditorAction)` (the two events C 5707-5738 builds) | real arm (slice 18) |
+| 5741-7117 | **the remainder of the file** - from C 5741's `JNIEXPORT void JNICALL` above `NATIVE_NAME (performContextMenuAction)` (C 5742) through the rest of the input-method group, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -388,10 +393,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 5573-7117.**  Slice 17 wrote C 5428-5571 (the two retrievals
-   and the two composing setters), so the next slice's rows must replace this table's last row; its
-   first definition is `NATIVE_NAME (setSelection)` (C 5574), and the group runs through the rest of
-   the input-method entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 5741-7117.**  Slice 18 wrote C 5573-5739 (the selection group
+   and `performEditorAction`), so the next slice's rows must replace this table's last row; its
+   first definition is `NATIVE_NAME (performContextMenuAction)` (C 5742), and the group runs through
+   the rest of the input-method entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -560,6 +565,14 @@ slice's basis).  All 116 are in the owed list below.
    first column of the pair (the size) is a mirror measurement, so the derivation is forced; the
    ledger records it as derived rather than measured until that tool runs.
 
+31. **One window field the mirror still owes** (slice 18): C window.h 296-302's
+   `ptrdiff_t ephemeral_last_point;` (`#ifdef HAVE_TEXT_CONVERSION`, C 5635's write).
+   `include/window.rs` carries `last_point` (its 134) and records this one as owed (its 11), so the
+   port names it at its single use site as the `ptrdiff_t` that follows `last_point` in C's record -
+   the `src/textconv.rs` 335-347 macro, whose Evidence 2 measured the two adjacent members (352 and
+   360 for that unit's record).  The mirror round that adds the field lets this unit's macro go;
+   `src/textconv.rs`'s `## Owed` 6 asks for the same thing.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -575,8 +588,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-5571 is now ported** (slices 4-17,
-each with its own Evidence section below); C 5573-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-5739 is now ported** (slices 4-18,
+each with its own Evidence section below); C 5741-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1316,3 +1329,39 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
 - **The two composing setters** keep slices 15's devices: the `++event_serial`/`++edit_counter`
   two-statement form, `event.ime.r#type`, `min (length, PTRDIFF_MAX as size_t)`, and the two
   `as ptrdiff_t` conversions of C's `jint` arguments.
+
+## 2026-10-12: slice 18 (C 5573-5739) - the selection group and performEditorAction
+
+`NATIVE_NAME (setSelection)`, `struct android_get_selection_context`, `android_get_selection`,
+`NATIVE_NAME (getSelection)` and `NATIVE_NAME (performEditorAction)`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   This slice's own reading was the one mirror gap it meets: `ephemeral_last_point` has no field in
+   `include/window.rs`, so the unit names it with a one-use macro (Owed 31, the
+   `src/textconv.rs` 335-347 device).
+2. **The line-count row has retired**: with C 7,117 against the port's 6,950 the drift is **2.3%**,
+   inside this ledger's `docs/ports/line-drift-tolerance.tsv` row (`androidterm` `0.30`), so
+   `extract-abi.py --check` no longer prints a line-count line at all - the first time this unit's
+   checklist has been free of that row.
+3. **Inventory**: 34 rows -> **35** - the three export rows of this slice are new (14 in all), the
+   `missing function` rows fall to **17** (`android_get_selection` retires; the tail's 15 plain
+   definitions plus `android_notify_conversion` and `syms_of_androidterm` stand), the two file-scope
+   objects stand, and no new `does not mention` row appeared.
+
+### Deviations this slice adds
+
+- **`w->ephemeral_last_point`** is the unit's `ephemeral_last_point! (w)` macro (Owed 31): the field
+  the mirror owes, named as the `ptrdiff_t` following `last_point`, the `src/textconv.rs` device.
+- **`BVAR (b, mark_active)`/`BVAR (b, mark)`** are `BVAR! (b, mark_active_)`/`BVAR! (b, mark_)` (the
+  buffer mirror's two field spellings), `window_point` is reached through
+  `window_fn_decls::window_point` (the `include/window.rs` 302 module, the
+  `frame_face_accessors::` device of the twelfth slice), and `marker_position` is the
+  `lisp.rs` `other_units` declaration.
+- **C 5673-5676's two position conversions** keep C's arithmetic exactly: the `ptrdiff_t` result is
+  converted to `unsigned int`, then 1 is subtracted with wrapping, then narrowed to `jint`
+  (`(min (…) as c_uint).wrapping_sub (1) as jint`).
+- **The selection record's three numbers** are derived (Owed 30's class), and C 5691's unused
+  `int action` parameter of `performEditorAction` is kept - C never reads it.

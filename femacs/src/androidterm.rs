@@ -6734,3 +6734,217 @@ pub unsafe extern "C" fn setComposingRegion (env: *mut JNIEnv, object: jobject, 
 
   android_write_event (&raw mut event);                                 // C 5570
 }
+
+/* One field this text needs and the mirror still owes: C window.h 296-302's
+   `ptrdiff_t ephemeral_last_point;` (`#ifdef HAVE_TEXT_CONVERSION`).  `include/window.rs` carries
+   `last_point` (its 134) and records `ephemeral_last_point` as an owed field (its 11), so the port
+   names it at its one use site as the `ptrdiff_t` that follows `last_point` in C's record - the
+   `src/textconv.rs` 335-347 device, whose Evidence 2 measured the two adjacent members at offsets
+   352 and 360 for that unit's window record.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! ephemeral_last_point {
+  ($w:expr) => { *(&raw mut (*$w).last_point).add (1) };
+}
+
+/* C 5573-5739: five more input-method/selection entry points - `setSelection`, the
+   `getSelection` group (`struct android_get_selection_context`, its worker
+   `android_get_selection` and the JNI wrapper) and `performEditorAction`.  C 5630's
+   `w->ephemeral_last_point`/`w->last_mark`, C 5643-5645's `BVAR (b, mark_active)`/`BVAR (b, mark)`
+   and C 5645's `marker_position` are the mirrors' (the buffer fields are spelled with the
+   trailing underscore the mirror uses: `mark_active_`/`mark_`), C 5634's `window_point` lives in
+   `include/window.rs`'s `window_fn_decls` module, and C 5600-5608's record gets the same derived
+   asserts as slice 16's (the `android_window` member, two `ptrdiff_t`s - Owed 30's class).  */
+
+/* C 5573-5596: `NATIVE_NAME (setSelection)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_setSelection")]
+pub unsafe extern "C" fn setSelection (env: *mut JNIEnv, object: jobject, window: jlong,
+				       start: jint, end: jint)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5577
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5579 (PORTING.md 1.5)
+
+  /* While IMEs want access to the entire selection, Emacs only
+     supports setting the point.  */                                   // C 5581-5582
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                              // C 5584
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5585 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5586
+  event.ime.operation = ANDROID_IME_SET_POINT;                          // C 5587
+  event.ime.start = start as ptrdiff_t + 1;                             // C 5588
+  event.ime.end = end as ptrdiff_t + 1;                                 // C 5589
+  event.ime.length = 0;                                                 // C 5590
+  event.ime.position = start as ptrdiff_t;                              // C 5591
+  event.ime.text = std::ptr::null_mut ();                               // C 5592
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5593 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5595
+}
+
+/* C 5598-5608: `struct android_get_selection_context`, the record the selection worker
+   carries.  The three numbers are derived from the mirror's `android_window` (`isize`) and two
+   `ptrdiff_t` members with `#[repr(C)]` - Owed 30's class.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_get_selection_context
+{
+  /* The window in question.  */
+  pub window: android_window,                                          // C 5603
+
+  /* The position of the window's point when it was last
+     redisplayed, and its last mark if active.  */
+  pub point: ptrdiff_t,                                                // C 5607
+  pub mark: ptrdiff_t,
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::offset_of! (android_get_selection_context, window) == 0);
+  core::assert! (std::mem::offset_of! (android_get_selection_context, point) == 8);
+  core::assert! (std::mem::offset_of! (android_get_selection_context, mark) == 16);
+  core::assert! (std::mem::size_of::<android_get_selection_context> () == 24);
+};
+
+/* Function run on the main thread by `getSelection'.
+   Place the character position of point in PT.  */                     // C 5610-5611
+
+/* C 5613-5649.  `static` and the *address is taken* (C 5663), so `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_get_selection (data: *mut c_void)
+{
+  let mut context: *mut android_get_selection_context;                  // C 5616
+  let mut f: *mut frame;                                                // C 5617
+  let mut w: *mut window;                                               // C 5618
+  let mut b: *mut buffer;                                               // C 5619
+
+  context = data as *mut android_get_selection_context;                 // C 5621
+
+  /* Look up the associated frame and its selected window.  */           // C 5623
+  f = android_window_to_frame (std::ptr::null_mut (), (*context).window);   // C 5624
+
+  if f.is_null ()                                                       // C 5626
+    { (*context).point = -1; }                                          // C 5627
+  else
+    {
+      w = XWINDOW ((*f).selected_window);                               // C 5630
+
+      /* Return W's point as it is now.  Then, set
+	 W->ephemeral_last_point to match the current point.  */        // C 5632-5633
+      (*context).point = window_fn_decls::window_point (w);             // C 5634
+      ephemeral_last_point! (w) = (*context).point;                     // C 5635
+
+      /* Default context->mark to w->last_point too.  */                // C 5637
+      (*context).mark = (*context).point;                               // C 5638
+
+      /* If the mark is active, then set it properly.  Also, adjust
+	 w->last_mark to match.  */                                     // C 5640-5641
+      b = XBUFFER ((*w).contents);                                      // C 5642
+      if ! NILP (BVAR! (b, mark_active_))                               // C 5643
+	{
+	  (*context).mark = marker_position (BVAR! (b, mark_));           // C 5645
+	  (*w).last_mark = (*context).mark;                               // C 5646
+	}
+    }
+}
+
+/* C 5651-5687: `NATIVE_NAME (getSelection)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getSelection")]
+pub unsafe extern "C" fn getSelection (env: *mut JNIEnv, object: jobject, window: jlong)
+  -> jintArray
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5654
+
+  let mut context: android_get_selection_context = std::mem::zeroed ();   // C 5656
+  let mut array: jintArray;                                             // C 5657
+  let mut contents: [jint; 2] = [0; 2];                                 // C 5658
+
+  context.window = window as android_window;                            // C 5660
+
+  android_sync_edit ();                                                 // C 5662
+  if android_run_in_emacs_thread (Some (android_get_selection),         // C 5663
+				  &raw mut context as *mut c_void) != 0   // C 5664
+    { return std::ptr::null_mut (); }                                   // C 5665
+
+  if context.point == -1                                                // C 5667
+    { return std::ptr::null_mut (); }                                   // C 5668
+
+  /* Wraparound actually makes more sense than truncation; at least
+     editing will sort of work.  Convert the positions to start from
+     index 0, as that is what Android expects.  */                      // C 5670-5672
+  contents[0] = (min (context.point, context.mark) as c_uint).wrapping_sub (1) as jint;   // C 5673-5674
+  contents[1] = (max (context.point, context.mark) as c_uint).wrapping_sub (1) as jint;   // C 5675-5676
+
+  /* Now create the array.  */                                          // C 5678
+  array = ((*(*env)).NewIntArray.unwrap ()) (env, 2);                   // C 5679
+
+  if array.is_null ()                                                   // C 5681
+    { return std::ptr::null_mut (); }                                   // C 5682
+
+  /* Set its contents.  */                                              // C 5684
+  ((*(*env)).SetIntArrayRegion.unwrap ()) (env, array, 0, 2,            // C 5685
+					   contents.as_ptr ());
+  return array;                                                         // C 5686
+}
+
+/* C 5689-5739: `NATIVE_NAME (performEditorAction)`.  C's unused `int action` parameter is kept
+   (C 5691 never reads it).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_performEditorAction")]
+pub unsafe extern "C" fn performEditorAction (env: *mut JNIEnv, object: jobject, window: jlong,
+					      action: c_int)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 5693
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 5695 (PORTING.md 1.5)
+
+  /* It's a good idea to call `android_sync_edit' before sending the
+     key event.  Otherwise, if RET causes the current window to be
+     changed, any text previously committed might end up in the newly
+     selected window.  */                                               // C 5697-5700
+
+  android_sync_edit ();                                                 // C 5702
+
+  /* Undocumented behavior: performEditorAction is apparently expected
+     to finish composing any text.  */                                  // C 5704-5705
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                              // C 5707
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 5708 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 5709
+  event.ime.operation = ANDROID_IME_FINISH_COMPOSING_TEXT;              // C 5710
+  event.ime.start = 0;                                                  // C 5711
+  event.ime.end = 0;                                                    // C 5712
+
+  /* This value of `length' means that the input method should receive
+     an update containing the new conversion region.  */                // C 5714-5715
+
+  event.ime.length = 1;                                                 // C 5717
+  event.ime.position = 0;                                               // C 5718
+  event.ime.text = std::ptr::null_mut ();                               // C 5719
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 5720 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5722
+
+  /* Finally, send the return key press.  `counter' is set; this means
+     that a text conversion barrier will be generated once the event
+     is read, which will cause subsequent edits to wait until the
+     edits associated with this key press complete.  */                 // C 5724-5727
+
+  event.xkey.r#type = ANDROID_KEY_PRESS;                                // C 5729
+  event_serial += 1;
+  event.xkey.serial = event_serial as c_ulong;                          // C 5730 (the `++event_serial`)
+  event.xkey.window = window as android_window;                         // C 5731
+  event.xkey.time = 0;                                                  // C 5732
+  event.xkey.state = 0;                                                 // C 5733
+  event.xkey.keycode = 66;                                              // C 5734
+  event.xkey.unicode_char = 0;                                          // C 5735
+  edit_counter += 1;
+  event.xkey.counter = edit_counter;                                    // C 5736 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 5738
+}
