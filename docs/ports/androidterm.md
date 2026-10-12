@@ -7,7 +7,7 @@
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
 > readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**2,265 lines**, md5
-> `671c3e61d696806a7494a7705dafcc5e`), carrying **C 1-2238**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> `9dc6b6df719d5d6e529c711bb60ac150`), carrying **C 1-2648**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -18,7 +18,7 @@
 > `android_handle_ime_event`.  **The next live definition is `handle_one_android_event` (C 836-1892),
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
-> which leaves C 2240-7117** (the next whole-item boundary is `android_wait_for_event`, C 2241).
+> which leaves C 2652-7117** (the next whole-item boundary is `android_scroll_run`, C 2655).
 
 ## Gate mapping
 
@@ -108,7 +108,21 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 2195-2202 | `android_make_frame_visible_invisible` | real arm (slice 3) |
 | 2204-2231 | `android_fullscreen_hook` (C 2214's `f->want_fullscreen == FULLSCREEN_BOTH`) | real arm (slice 3) |
 | 2233-2238 | `android_iconify_frame` | real arm (slice 3) |
-| 2240-7117 | **the remainder of the file** - everything from C 2240 to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 2240-2280 | `android_wait_for_event` (C 2259 the `while (f->wait_event_type)` loop) | real arm (slice 4) |
+| 2282-2315 | `android_set_window_size_1` (C 2298/2305 the two `frame_size_history_extra` calls) | real arm (slice 4) |
+| 2317-2338 | `android_set_window_size` | real arm (slice 4) |
+| 2340-2358 | `android_set_window_size_and_position_1` | real arm (slice 4) |
+| 2360-2380 | `android_set_window_size_and_position` | real arm (slice 4) |
+| 2382-2455 | C 2382-2383's note and `android_calc_absolute_position` (C 2404/2431 the `has_been_visible` reads) | real arm (slice 4) |
+| 2457-2476 | `android_set_offset` | real arm (slice 4) |
+| 2478-2482 | `android_set_alpha` (an empty body in C too) | real arm (slice 4) |
+| 2484-2528 | `android_new_font` (C 2499 the window-system `baseline_offset`) | real arm (slice 4) |
+| 2530-2534 | `android_bitmap_icon` | real arm (slice 4) |
+| 2536-2540 | `android_free_pixmap_hook` | real arm (slice 4) |
+| 2542-2634 | `android_free_frame_resources` (the fifteen cursor tests and the two relief GCs) | real arm (slice 4) |
+| 2636-2642 | `android_delete_frame` | real arm (slice 4) |
+| 2644-2648 | `android_delete_terminal` | real arm (slice 4) |
+| 2652-7117 | **the remainder of the file** - from C 2652's `/* RIF functions.  */` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -279,12 +293,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 2240-7117.**  Slice 3 wrote C 1894-2238 (the frame, terminal and
-   redisplay-interface callbacks), so the next slice's rows must replace this table's last row; its
-   first definition is `android_wait_for_event` (C 2241).  Slice 3 **closed** the first of the two
-   `E0425` forward references this ledger carried: `android_frame_rehighlight` is defined at C 2127,
-   so slice 1's C 458 call and slice 2's C 1141/1221/1232 calls resolve; only C 1761's
-   `android_notify_conversion` (C 2098) is left.
+1. **The remainder of the file: C 2652-7117.**  Slice 4 wrote C 2240-2648 (the wait/size/position
+   group and the frame-teardown group), so the next slice's rows must replace this table's last row;
+   its first item is C 2652's `/* RIF functions.  */` and its first definition `android_scroll_run`
+   (C 2655).  C 1761's `android_notify_conversion` (C 2098) is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
@@ -351,6 +363,20 @@ slice's basis).  All 116 are in the owed list below.
    (its 757-759's mask pair and its 63's constant), so the frozen reading has three more named
    blockers.  `docs/ports/include-frame.md`'s round is where the numbering for the Android
    window-system configuration belongs.
+16. **Five more use-site declarations** (slice 4): `adjust_frame_size` (frame.h 1511-1512),
+   `do_pending_window_change` (dispextern.h 3923), `get_font_ascent_descent` (dispextern.h 3631),
+   `free_frame_faces` (dispextern.h 3822) and `fontset_from_font` (fontset.h 39).  The last one is
+   also a *module* case: the mirror keeps it in `fontset_decls` (`include/fontset.rs` 53-69) and this
+   unit's include graph does not reach that file, so the declaration stands here instead of the
+   path (Owed 14's alternative).
+17. **Four frame.h accessors C writes** (slice 4) need a write arm the mirror does not carry
+   (`include/frame.rs` has the getters): `FRAME_COLUMN_WIDTH`, `FRAME_LINE_HEIGHT`,
+   `FRAME_TAB_BAR_HEIGHT` and `FRAME_CONFIG_SCROLL_BAR_COLS`.  Slice 4 carries the four two-arm
+   per-unit macros (`src/xterm.rs` 15127-15145's shape); the mirror round that gives every unit one
+   spelling is `docs/ports/include-frame.md`'s.
+18. **The window-system gap widens again**: `font.baseline_offset` (C 2499) is behind
+   `feature = "have_window_system"` in `include/font.rs` 108-121, so this slice adds a twentieth
+   named blocker of that class (Owed 15 is the frame-side half).
 ### Not claimed
 
 Every line of this file is behind gates the frozen configuration leaves false: ① is an empty object,
@@ -530,3 +556,49 @@ cursor pair (`android_frame_highlight`/`_unhighlight`) and `android_frame_rehigh
 - **C 2026-2029's luminance fold** keeps C's four `double` operands (`color->red * 0.299` …) with the
   `as f64` promotions Rust requires, and C 2017-2021's 30/59/11 fold keeps C's integer arithmetic
   with `c_ulong` operands for the `>>`/compare.
+
+## 2026-10-12: slice 4 (C 2240-2648) - the wait, size, position and teardown groups
+
+`android_wait_for_event` (the timeout loop over `android_select`), the two `_1` sizing helpers with
+their public wrappers, `android_calc_absolute_position` and `android_set_offset`, the empty
+`android_set_alpha`, `android_new_font`, `android_bitmap_icon`, `android_free_pixmap_hook`,
+`android_free_frame_resources`, `android_delete_frame` and `android_delete_terminal`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip**: **exit 1, 21 errors**, every one in a class this ledger names - **20 are the
+   `have_window_system` gap** (`frame.tool_bar_window` 7, `frame.tab_bar_window` 4,
+   `frame.last_tool_bar_item` 3, `frame.conversion` 2, `frame.want_fullscreen` 1,
+   `frame.new_size_p` 1, `FULLSCREEN_BOTH` 1 and now `font.baseline_offset` 1) and **1 is the
+   surviving forward reference** (C 1761's `android_notify_conversion`, C 2098).  The first draft's
+   other reads were the unit's own and are all discharged: fifteen `is_null ()` tests on
+   `android_cursor` members (`android_cursor` is an integer handle, `include/androidgui.rs` 59, so C's
+   truth test is `!= 0`), the three `c_uint` width/height arguments of `android_resize_window`/
+   `android_move_resize_window` (`include/androidgui.rs` 960/933), and `fontset_from_font` (Owed 16).
+2. **Four `does not mention` rows appeared and were discharged in this commit**: `android_wait_for_event`
+   → `double` (the port's `f64`), the two sizing helpers → `0` (C's `0` for the prototype's `bool`),
+   and `android_calc_absolute_position` → `has_been_visible` (the folded-mask write).
+3. **Inventory**: 34 rows -> **25** - the `missing function` rows for C 2652-7117's items fall by the
+   fourteen this slice lands, the `missing macro`/`missing constant` pair and the five
+   `missing file-scope object` rows stand, and the line-count row reads **55.8%** (C 7,117 against
+   the port's 3,149).
+4. **The first draft's five readings** are recorded in Deviations (the cursor test, the two
+   width/height type pairs, the nested `FRAME_*` accessor writes and the two module-path
+   alternatives), with the two-arm macro block the write sites need.
+
+### Deviations this slice adds
+
+- **`android_cursor` is an integer handle** (`android_handle`, `include/androidgui.rs` 59): C's
+  fifteen `f->output_data.android->text_cursor` … truth tests are `!= 0` in the port, the same shape
+  the file's `FRAME_ANDROID_WINDOW (f) != 0` tests use.
+- **The four frame.h accessors C writes** are the unit's two-arm macros (Owed 17); the three
+  `FRAME_FONT`/`FRAME_FONTSET`/`FRAME_BASELINE_OFFSET` writes need no macro of their own, because
+  `include/androidterm.rs` 483-493's bodies are place expressions.
+- **`android_resize_window`/`android_move_resize_window`** take `c_uint` sizes while their x/y
+  arguments are `c_int` (`include/androidgui.rs` 933/960), so the port casts exactly the two width
+  and height arguments C's own prototype promotes.
+- **`fontset_from_font`** is declared at its use site rather than reached by the mirror's module path
+  (Owed 16), because this unit's include graph does not carry `include/fontset.rs`.
+- **C 2254-2256's `make_timespec` arithmetic** keeps C's three `1e9` factors and the `(long int)`
+  cast (`c_long`), and C 2275's `android_select (0, NULL, NULL, NULL, &tmo)` the three null pointers
+  and the `&tmo` out-parameter.

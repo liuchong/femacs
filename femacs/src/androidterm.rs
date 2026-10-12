@@ -2671,3 +2671,479 @@ pub unsafe extern "C" fn android_iconify_frame (f: *mut frame)
   /* This really doesn't work on Android.  */                            // C 2236
   error (c"Can't notify window manager of iconification".as_ptr ());    // C 2237
 }
+
+/* C 2240-2648: the wait/size/position group and the frame-teardown group.  Four names this text
+   needs are not in the frozen mirrors, so they stand at their use sites below (P-72 rule 4), and
+   four frame.h accessors C *writes* need the write arm the mirror does not carry, so the unit
+   carries the two-arm macros - the `src/xterm.rs` 15127-15145 shape.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_COLUMN_WIDTH {
+  ($f:expr) => { FRAME_COLUMN_WIDTH ($f) };
+  ($f:expr, $v:expr) => { (*$f).column_width = $v };
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_LINE_HEIGHT {
+  ($f:expr) => { FRAME_LINE_HEIGHT ($f) };
+  ($f:expr, $v:expr) => { (*$f).line_height = $v };
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_TAB_BAR_HEIGHT {
+  ($f:expr) => { FRAME_TAB_BAR_HEIGHT ($f) };
+  ($f:expr, $v:expr) => { (*$f).tab_bar_height = $v };
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_COLS {
+  ($f:expr) => { FRAME_CONFIG_SCROLL_BAR_COLS ($f) };
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_cols = $v };
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: frame.h 1511-1512: `extern void adjust_frame_size (struct frame *, int, int, int, bool,
+  /// Lisp_Object);`
+  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
+			    inhibit: c_int, pretend: bool, parameter: Lisp_Object);
+  /// C: dispextern.h 3923: `void do_pending_window_change (bool);`
+  pub fn do_pending_window_change (safe: bool);
+  /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *, int *);`
+  pub fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
+  /// C: dispextern.h 3822: `void free_frame_faces (struct frame *);`
+  pub fn free_frame_faces (f: *mut frame);
+  /// C: fontset.h 39: `extern int fontset_from_font (Lisp_Object);`
+  pub fn fontset_from_font (font_object: Lisp_Object) -> c_int;
+}
+
+/* C 2240-2280.  `static` and only called (C 2296/2351), so a plain Rust-ABI item.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_wait_for_event (f: *mut frame, eventtype: c_int)
+{
+  if ! FLOATP (Vandroid_wait_for_event_timeout)                       // C 2243
+    { return; }                                                       // C 2244
+
+  let level: c_int = interrupt_input_blocked;                          // C 2246
+  let mut tmo: timespec = std::mem::zeroed ();                         // C 2247
+  let mut tmo_at: timespec = std::mem::zeroed ();
+  let mut time_now: timespec = std::mem::zeroed ();
+
+  (*f).wait_event_type = eventtype;                                    // C 2249
+
+  /* Default timeout is 0.1 second.  Hopefully not noticeable.  */       // C 2251
+  let timeout: f64 = XFLOAT_DATA (Vandroid_wait_for_event_timeout);     // C 2252
+  let timeout_seconds: time_t = timeout as time_t;                     // C 2253
+  tmo = make_timespec (timeout_seconds,                                // C 2254
+		       ((timeout - timeout_seconds as f64)             // C 2255
+			* 1000.0 * 1000.0 * 1000.0) as c_long);        // C 2256
+  tmo_at = timespec_add (current_timespec (), tmo);                    // C 2257
+
+  while (*f).wait_event_type != 0                                      // C 2259
+    {
+      pending_signals = true;                                          // C 2261
+      totally_unblock_input ();                                        // C 2262
+      /* android_read_socket is called after unblock.  */               // C 2263
+      block_input ();                                                  // C 2264
+      interrupt_input_blocked = level;                                 // C 2265
+
+      if (*f).wait_event_type == 0                                     // C 2267
+	{ break; }                                                     // C 2268
+
+      time_now = current_timespec ();                                  // C 2270
+      if timespec_cmp (tmo_at, time_now) < 0                           // C 2271
+	{ break; }                                                     // C 2272
+
+      tmo = timespec_sub (tmo_at, time_now);                           // C 2274
+      if android_select (0, std::ptr::null_mut (), std::ptr::null_mut (),   // C 2275
+			 std::ptr::null_mut (), &raw mut tmo) == 0     // C 2275
+	{ break; }                                                     // C 2276 (Timeout)
+    }
+
+  (*f).wait_event_type = 0;                                            // C 2279
+}
+
+/* C 2282-2315.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_window_size_1 (f: *mut frame, change_gravity: bool,
+				     width: c_int, height: c_int)
+{
+  if change_gravity                                                    // C 2286
+    { (*f).win_gravity = NorthWestGravity; }                           // C 2287
+
+  android_resize_window (FRAME_ANDROID_WINDOW! (f), width as c_uint,   // C 2289
+			 height as c_uint);                            // C 2290
+
+  SET_FRAME_GARBAGED! (f);                                             // C 2292
+
+  if FRAME_VISIBLE_P (f)                                               // C 2294
+    {
+      android_wait_for_event (f, ANDROID_CONFIGURE_NOTIFY);            // C 2296
+
+      if CONSP (frame_size_history)                                    // C 2298
+	{ frame_size_history_extra (f, build_string (c"set_window_size_1 visible".as_ptr ()),   // C 2299
+				    FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f),   // C 2300
+				    width, height, (*f).new_width, (*f).new_height); }   // C 2301
+    }
+  else
+    {
+      if CONSP (frame_size_history)                                    // C 2305
+	{ frame_size_history_extra (f, build_string (c"set_window_size_1 invisible".as_ptr ()),   // C 2306
+				    FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f),   // C 2308
+				    width, height, (*f).new_width, (*f).new_height); }   // C 2309
+
+      adjust_frame_size (f, FRAME_PIXEL_TO_TEXT_WIDTH (f, width),      // C 2311
+			 FRAME_PIXEL_TO_TEXT_HEIGHT (f, height),       // C 2312
+			 5, false, Qx_set_window_size_1 ());           // C 2313
+    }
+}
+
+/* C 2317-2338.  Non-`static` in C and C 6762 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_window_size (f: *mut frame, change_gravity: bool,
+						  width: c_int, height: c_int)
+{
+  block_input ();                                                       // C 2321
+
+  android_set_window_size_1 (f, change_gravity, width, height);          // C 2323
+  android_clear_under_internal_border (f);                              // C 2324
+
+  /* If cursor was outside the new size, mark it as off.  */             // C 2326
+  mark_window_cursors_off (XWINDOW ((*f).root_window));                 // C 2327
+
+  /* Clear out any recollection of where the mouse highlighting was,
+     since it might be in a place that's outside the new frame size.
+     Actually checking whether it is outside is a pain in the neck,
+     so don't try--just let the highlighting be done afresh with new size.  */   // C 2329-2332
+  cancel_mouse_face (f);                                                // C 2333
+
+  unblock_input ();                                                     // C 2335
+
+  do_pending_window_change (false);                                     // C 2337
+}
+
+/* C 2340-2358.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_window_size_and_position_1 (f: *mut frame, width: c_int, height: c_int)
+{
+  let x: c_int = (*f).left_pos;                                         // C 2343
+  let y: c_int = (*f).top_pos;                                          // C 2344
+
+  android_move_resize_window (FRAME_ANDROID_WINDOW! (f), x, y,   // C 2346
+				    width as c_uint, height as c_uint);        // C 2346
+
+  SET_FRAME_GARBAGED! (f);                                             // C 2348
+
+  if FRAME_VISIBLE_P (f)                                               // C 2350
+    { android_wait_for_event (f, ANDROID_CONFIGURE_NOTIFY); }           // C 2351
+  else
+    /* Call adjust_frame_size right.  It might be tempting to clear out
+       f->new_width and f->new_height here.  */                        // C 2353-2354
+    { adjust_frame_size (f, FRAME_PIXEL_TO_TEXT_WIDTH (f, width),      // C 2355
+			 FRAME_PIXEL_TO_TEXT_HEIGHT (f, height),       // C 2356
+			 5, false, Qx_set_window_size_1 ()); }         // C 2357
+}
+
+/* C 2360-2380.  Non-`static` in C and C 6764 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_window_size_and_position (f: *mut frame, width: c_int,
+							       height: c_int)
+{
+  block_input ();                                                       // C 2363
+
+  android_set_window_size_and_position_1 (f, width, height);             // C 2365
+  android_clear_under_internal_border (f);                              // C 2366
+
+  /* If cursor was outside the new size, mark it as off.  */             // C 2368
+  mark_window_cursors_off (XWINDOW (FRAME_ROOT_WINDOW (f)));            // C 2369
+
+  /* Clear out any recollection of where the mouse highlighting was,
+     since it might be in a place that's outside the new frame size.
+     Actually checking whether it is outside is a pain in the neck,
+     so don't try--just let the highlighting be done afresh with new size.  */   // C 2371-2374
+  cancel_mouse_face (f);                                                // C 2375
+
+  unblock_input ();                                                     // C 2377
+
+  do_pending_window_change (false);                                     // C 2379
+}
+
+/* Calculate the absolute position in frame F
+   from its current recorded position values and gravity.  */         // C 2382-2383
+
+/* C 2385-2455.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_calc_absolute_position (f: *mut frame)
+{
+  let flags: c_int = (*f).size_hint_flags;                              // C 2388
+  let p: *mut frame = FRAME_PARENT_FRAME (f);                           // C 2389
+
+  /* We have nothing to do if the current position
+     is already for the top-left corner.  */                            // C 2391-2392
+  if !((flags & XNegative != 0) || (flags & YNegative != 0))            // C 2393
+    { return; }                                                         // C 2394
+
+  /* Treat negative positions as relative to the leftmost bottommost
+     position that fits on the screen.  */                              // C 2396-2397
+  if flags & XNegative != 0                                             // C 2398
+    {
+      let mut width: c_int = FRAME_PIXEL_WIDTH (f);                     // C 2400
+
+      /* A frame that has been visible at least once should have outer
+	 edges.  */                                                     // C 2402-2403
+      if (*( (*f).output_data.android as *mut android_output )).bits    // C 2404
+	  & ANDROID_OUTPUT_HAS_BEEN_VISIBLE != 0                        // C 2404 (C's `has_been_visible`)
+	  && p.is_null ()
+	{
+	  let mut frame: Lisp_Object = Qnil ();                         // C 2406
+	  let mut edges: Lisp_Object = Qnil ();                         // C 2407
+
+	  XSETFRAME! (frame, f);                                        // C 2409
+	  edges = Fandroid_frame_edges (frame, Qouter_edges ());         // C 2410
+	  if ! NILP (edges)                                             // C 2411
+	    { width = (XFIXNUM (Fnth (make_fixnum (2), edges))          // C 2412
+		       - XFIXNUM (Fnth (make_fixnum (0), edges))) as c_int; }   // C 2413
+	}
+
+      if ! p.is_null ()                                                // C 2416
+	{ (*f).left_pos = (FRAME_PIXEL_WIDTH (p) - width - 2 * (*f).border_width   // C 2417
+			   + (*f).left_pos); }                          // C 2418
+      else
+	/* Not that this is of much significance, for Android programs
+	   cannot position their windows at absolute positions in the
+	   screen.  */                                                  // C 2420-2422
+	{ (*f).left_pos = (android_get_screen_width () - width + (*f).left_pos); }   // C 2423
+    }
+
+  if flags & YNegative != 0                                             // C 2427
+    {
+      let mut height: c_int = FRAME_PIXEL_HEIGHT (f);                   // C 2429
+
+      if (*( (*f).output_data.android as *mut android_output )).bits    // C 2431
+	  & ANDROID_OUTPUT_HAS_BEEN_VISIBLE != 0                        // C 2431
+	  && p.is_null ()
+	{
+	  let mut frame: Lisp_Object = Qnil ();                         // C 2433
+	  let mut edges: Lisp_Object = Qnil ();                         // C 2434
+
+	  XSETFRAME! (frame, f);                                        // C 2436
+	  if NILP (edges)                                               // C 2437
+	    { edges = Fandroid_frame_edges (frame, Qouter_edges ()); }  // C 2438
+	  if ! NILP (edges)                                             // C 2439
+	    { height = (XFIXNUM (Fnth (make_fixnum (3), edges))         // C 2440
+			- XFIXNUM (Fnth (make_fixnum (1), edges))) as c_int; }   // C 2441
+	}
+
+      if ! p.is_null ()                                                // C 2444
+	{ (*f).top_pos = (FRAME_PIXEL_HEIGHT (p) - height - 2 * (*f).border_width   // C 2445
+			  + (*f).top_pos); }                           // C 2446
+      else
+	{ (*f).top_pos = (android_get_screen_height () - height + (*f).top_pos); }   // C 2448
+  }
+
+  /* The left_pos and top_pos
+     are now relative to the top and left screen edges,
+     so the flags should correspond.  */                               // C 2451-2453
+  (*f).size_hint_flags &= !(XNegative | YNegative);                     // C 2454
+}
+
+/* C 2457-2476.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity: c_int)
+{
+  if change_gravity > 0                                                // C 2461
+    {
+      (*f).top_pos = yoff;                                            // C 2463
+      (*f).left_pos = xoff;                                           // C 2464
+      (*f).size_hint_flags &= !(XNegative | YNegative);                 // C 2465
+      if xoff < 0                                                     // C 2466
+	{ (*f).size_hint_flags |= XNegative; }                        // C 2467
+      if yoff < 0                                                     // C 2468
+	{ (*f).size_hint_flags |= YNegative; }                        // C 2469
+      (*f).win_gravity = NorthWestGravity;                            // C 2470
+    }
+
+  android_calc_absolute_position (f);                                  // C 2473
+  android_move_window (FRAME_ANDROID_WINDOW! (f), (*f).left_pos,        // C 2474
+		       (*f).top_pos);                                  // C 2475
+}
+
+/* C 2478-2482.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_set_alpha (f: *mut frame)
+{
+  /* Not supported on Android.  */                                       // C 2481
+}
+
+/* C 2484-2528.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_new_font (f: *mut frame, font_object: Lisp_Object, mut fontset: c_int)
+    -> Lisp_Object
+{
+  let font: *mut font = XFONT_OBJECT (font_object);                     // C 2487
+  let mut unit: c_int = 0;                                             // C 2488
+  let mut font_ascent: c_int = 0;
+  let mut font_descent: c_int = 0;
+
+  if fontset < 0                                                       // C 2490
+    { fontset = fontset_from_font (font_object); }                     // C 2491
+  FRAME_FONTSET! (f) = fontset;                                        // C 2492
+  if FRAME_FONT! (f) == font                                           // C 2493
+    /* This font is already set in frame F.  There's nothing more to
+       do.  */                                                         // C 2494-2495
+    { return font_object; }                                            // C 2496
+
+  FRAME_FONT! (f) = font;                                              // C 2498
+  FRAME_BASELINE_OFFSET! (f) = (*font).baseline_offset;                 // C 2499
+  FRAME_COLUMN_WIDTH! (f, (*font).average_width);                       // C 2500
+  get_font_ascent_descent (font, &raw mut font_ascent, &raw mut font_descent);   // C 2501
+  FRAME_LINE_HEIGHT! (f, font_ascent + font_descent);                   // C 2502
+
+  /* We could use a more elaborate calculation here.  */                // C 2504
+  FRAME_TAB_BAR_HEIGHT! (f, FRAME_TAB_BAR_LINES (f) * FRAME_LINE_HEIGHT (f));   // C 2505
+
+  /* Compute character columns occupied by scrollbar.
+
+     Don't do things differently for non-toolkit scrollbars
+     (Bug#17163).  */                                                  // C 2507-2510
+  unit = FRAME_COLUMN_WIDTH (f);                                       // C 2511
+  if FRAME_CONFIG_SCROLL_BAR_WIDTH (f) > 0                             // C 2512
+    { FRAME_CONFIG_SCROLL_BAR_COLS! (f, (FRAME_CONFIG_SCROLL_BAR_WIDTH (f) + unit - 1) / unit); }   // C 2513-2514
+  else
+    { FRAME_CONFIG_SCROLL_BAR_COLS! (f, (14 + unit - 1) / unit); }      // C 2516
+
+  /* Don't change the size of a tip frame; there's no point in doing it
+     because it's done in Fx_show_tip, and it leads to problems because
+     the tip frame has no widget.  */                                  // C 2519-2521
+  if FRAME_ANDROID_WINDOW! (f) != 0 && ! FRAME_TOOLTIP_P (f)            // C 2522
+    { adjust_frame_size (f, FRAME_COLS (f) * FRAME_COLUMN_WIDTH (f),   // C 2523
+			 FRAME_LINES (f) * FRAME_LINE_HEIGHT (f), 3,   // C 2524
+			 false, Qfont ()); }                           // C 2525
+
+  return font_object;                                                  // C 2527
+}
+
+/* C 2530-2534.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_bitmap_icon (f: *mut frame, file: Lisp_Object) -> bool
+{
+  return false;                                                        // C 2533
+}
+
+/* C 2536-2540.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_free_pixmap_hook (f: *mut frame, pixmap: Emacs_Pixmap)
+{
+  android_free_pixmap (pixmap);                                        // C 2539
+}
+
+/* C 2542-2634.  Non-`static` in C and no address is taken in this file.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_free_frame_resources (f: *mut frame)
+{
+  let mut dpyinfo: *mut android_display_info;                           // C 2545
+  let mut hlinfo: *mut Mouse_HLInfo;                                    // C 2546
+  let mut last: *mut android_touch_point;                               // C 2547
+  let mut next: *mut android_touch_point;
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 2549
+  hlinfo = &raw mut (*dpyinfo).mouse_highlight;                         // C 2550
+
+  block_input ();                                                       // C 2552
+  free_frame_faces (f);                                                 // C 2553
+
+  /* FRAME_ANDROID_WINDOW can be 0 if frame creation failed.  */         // C 2555
+  if FRAME_ANDROID_WINDOW! (f) != 0                                     // C 2556
+    { android_destroy_window (FRAME_ANDROID_WINDOW! (f)); }             // C 2557
+
+  android_free_gcs (f);                                                 // C 2559
+
+  /* Free cursors.  */                                                  // C 2561
+  if (*( (*f).output_data.android as *mut android_output )).text_cursor != 0   // C 2562
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).text_cursor); }   // C 2563
+  if (*( (*f).output_data.android as *mut android_output )).nontext_cursor != 0   // C 2564
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).nontext_cursor); }   // C 2565
+  if (*( (*f).output_data.android as *mut android_output )).modeline_cursor != 0   // C 2566
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).modeline_cursor); }   // C 2567
+  if (*( (*f).output_data.android as *mut android_output )).hand_cursor != 0   // C 2568
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).hand_cursor); }   // C 2569
+  if (*( (*f).output_data.android as *mut android_output )).hourglass_cursor != 0   // C 2570
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).hourglass_cursor); }   // C 2571
+  if (*( (*f).output_data.android as *mut android_output )).horizontal_drag_cursor != 0   // C 2572
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).horizontal_drag_cursor); }   // C 2573
+  if (*( (*f).output_data.android as *mut android_output )).vertical_drag_cursor != 0   // C 2574
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).vertical_drag_cursor); }   // C 2575
+  if (*( (*f).output_data.android as *mut android_output )).left_edge_cursor != 0   // C 2576
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).left_edge_cursor); }   // C 2577
+  if (*( (*f).output_data.android as *mut android_output )).top_left_corner_cursor != 0   // C 2578
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).top_left_corner_cursor); }   // C 2579
+  if (*( (*f).output_data.android as *mut android_output )).top_edge_cursor != 0   // C 2580
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).top_edge_cursor); }   // C 2581
+  if (*( (*f).output_data.android as *mut android_output )).top_right_corner_cursor != 0   // C 2582
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).top_right_corner_cursor); }   // C 2583
+  if (*( (*f).output_data.android as *mut android_output )).right_edge_cursor != 0   // C 2584
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).right_edge_cursor); }   // C 2585
+  if (*( (*f).output_data.android as *mut android_output )).bottom_right_corner_cursor != 0   // C 2586
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).bottom_right_corner_cursor); }   // C 2587
+  if (*( (*f).output_data.android as *mut android_output )).bottom_edge_cursor != 0   // C 2588
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).bottom_edge_cursor); }   // C 2589
+  if (*( (*f).output_data.android as *mut android_output )).bottom_left_corner_cursor != 0   // C 2590
+    { android_free_cursor ((*( (*f).output_data.android as *mut android_output )).bottom_left_corner_cursor); }   // C 2591
+
+  /* Free extra GCs allocated by android_setup_relief_colors.  */        // C 2593
+  if ! (*( (*f).output_data.android as *mut android_output )).white_relief.gc.is_null ()   // C 2594
+    {
+      android_free_gc ((*( (*f).output_data.android as *mut android_output )).white_relief.gc);   // C 2596
+      (*( (*f).output_data.android as *mut android_output )).white_relief.gc = std::ptr::null_mut ();   // C 2597
+    }
+  if ! (*( (*f).output_data.android as *mut android_output )).black_relief.gc.is_null ()   // C 2599
+    {
+      android_free_gc ((*( (*f).output_data.android as *mut android_output )).black_relief.gc);   // C 2601
+      (*( (*f).output_data.android as *mut android_output )).black_relief.gc = std::ptr::null_mut ();   // C 2602
+    }
+
+  if f == (*dpyinfo).focus_frame                                      // C 2605
+    { (*dpyinfo).focus_frame = std::ptr::null_mut (); }                 // C 2606
+  if f == (*dpyinfo).x_focus_event_frame                              // C 2607
+    { (*dpyinfo).x_focus_event_frame = std::ptr::null_mut (); }         // C 2608
+  if f == (*dpyinfo).highlight_frame                                  // C 2609
+    { (*dpyinfo).highlight_frame = std::ptr::null_mut (); }             // C 2610
+  if f == (*hlinfo).mouse_face_mouse_frame as *mut frame                // C 2611
+    { reset_mouse_highlight (hlinfo); }                                 // C 2612
+
+  /* These two need to be freed now that they are used to compute the
+     mouse position, I think.  */                                      // C 2614-2615
+  if f == (*dpyinfo).last_mouse_motion_frame                          // C 2616
+    { (*dpyinfo).last_mouse_motion_frame = std::ptr::null_mut (); }     // C 2617
+  if f == (*dpyinfo).last_mouse_frame                                 // C 2618
+    { (*dpyinfo).last_mouse_frame = std::ptr::null_mut (); }            // C 2619
+
+  /* Free all tool presses currently active on this frame.  */           // C 2621
+  next = (*(FRAME_OUTPUT_DATA! (f) as *mut android_output)).touch_points;   // C 2622
+  while ! next.is_null ()                                               // C 2623
+    {
+      last = next;                                                      // C 2625
+      next = (*next).next;                                              // C 2626
+      xfree (last as *mut c_void);                                      // C 2627
+    }
+
+  /* Clear this in case unblock_input reads events.  */                  // C 2630
+  (*(FRAME_OUTPUT_DATA! (f) as *mut android_output)).touch_points = std::ptr::null_mut ();   // C 2631
+
+  unblock_input ();                                                     // C 2633
+}
+
+/* C 2636-2642.  `static`, and C 6779 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_delete_frame (f: *mut frame)
+{
+  android_free_frame_resources (f);                                     // C 2639
+  xfree ((*f).output_data.android);                                     // C 2640
+  (*f).output_data.android = std::ptr::null_mut ();                      // C 2641
+}
+
+/* C 2644-2648.  `static`, and C 6780 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_delete_terminal (terminal: *mut terminal)
+{
+  error (c"Cannot terminate connection to Android display server".as_ptr ());   // C 2647
+}
