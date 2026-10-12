@@ -1422,10 +1422,9 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 1289-7950: the remainder of the file.  Slice 4 ends at C 1287 (`android_init_assets`'s
-   closing brace); the next item is C 1291's "Asset-to-file descriptor conversion" comment and its
-   first definition, C 1301's `android_hack_asset_fd_fallback`, and `extract-abi.py --check`'s
-   remaining `missing …` list is exactly that text.  */
+/* C 1357-7950: the remainder of the file.  Slice 5 ends at C 1355 (`android_hack_asset_fd_fallback`'s
+   closing brace); the next item is C 1363's `android_detect_ashmem` under C 1357-1361's comment, and
+   `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -1836,4 +1835,132 @@ unsafe fn android_init_assets (env: *mut JNIEnv, manager: jobject)
 									//  bool test: the JNI entry returns
 									//  `jboolean`, a `u8`)
     { abort (); }                                                       // C 1286
+}
+
+/* Asset-to-file descriptor conversion.  */                            // C 1291
+
+/* Pointer to the `ASharedMemory_create' function which is loaded
+   dynamically.  */                                                    // C 1293-1294
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut asharedmemory_create: Option<unsafe extern "C" fn (name: *const c_char,
+							      size: size_t) -> c_int> = None;   // C 1295
+
+/* The `<sys/mman.h>` and `<dlfcn.h>` names this function and the next use, none of which has a
+   mirror in this tree (slice 1's head lists both headers as mirrorless): the two calls keep
+   `src/pdumper.rs` 104-112's declarations, the three constants are the frozen target's
+   (`MAP_FAILED` as `(void *) -1`, `src/pdumper.rs` 186; `PROT_WRITE` 0x02, `src/gmalloc.rs` 573,
+   here the Linux/Android value the NDK's own `<sys/mman.h>` gives).  `android_cache_dir` is C's
+   `android.h` 49 object: `include/android.rs` 227 carries it, but that mirror is not in this
+   unit's include graph (its own head says which `android.h` edges this file takes), so the
+   declaration stands here (P-72 rule 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `void *mmap (void *, size_t, int, int, int, off_t);`
+  pub fn mmap (addr: *mut c_void, len: size_t, prot: c_int, flags: c_int, fd: c_int,
+	       offset: off_t) -> *mut c_void;
+  /// C: `int munmap (void *, size_t);`
+  pub fn munmap (addr: *mut c_void, len: size_t) -> c_int;
+}
+/// C: `<sys/mman.h>`: `#define PROT_WRITE 0x2`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const PROT_WRITE: c_int = 0x2;
+/// C: `<sys/mman.h>`: `#define MAP_SHARED 0x01`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const MAP_SHARED: c_int = 0x01;
+/// C: `<sys/mman.h>`: `#define MAP_FAILED ((void *) -1)`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const MAP_FAILED: *mut c_void = usize::MAX as *mut c_void;
+/// C: android.h 49: `extern char *android_cache_dir;`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub static mut android_cache_dir: *mut c_char;
+}
+/// C 1344's priority: `<android/log.h>`'s `ANDROID_LOG_ERROR == 6` - C 1263/1273's `WARN`/`FATAL`
+/// neighbours are already declared above, and all four values are the NDK enum this machine's
+/// headers give (measured: `NDK 25.2.9519653`'s `android/log.h` 73-90 numbers `INFO` 4, `WARN` 5,
+/// `ERROR` 6, `FATAL` 7).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ANDROID_LOG_ERROR: c_int = 6;
+/* C 1340's `AAsset_read`: the `#else` arm's mirror defines it (with the emulation's own body,
+   `include/android-asset.rs` 613), the `>= 9` arm's NDK header declares it (asset_manager.h 131,
+   measured) - so the declaration stands under that arm, the slice-4 rule.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg (feature = "android_api_ge_9")]
+unsafe extern "C" {
+  /// C: `int AAsset_read (AAsset *asset, void *buf, size_t count);`
+  pub fn AAsset_read (asset: *mut AAsset, buffer: *mut c_void, count: size_t) -> c_int;
+}
+
+/* Do the same as android_hack_asset_fd, but use an unlinked temporary
+   file to cater to old Android kernels where ashmem files are not
+   readable.  */                                                       // C 1297-1299
+
+// C 1301-1355.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_hack_asset_fd_fallback (asset: *mut AAsset) -> c_int
+{
+  let mut fd: c_int;                                                    // C 1304
+  let mut filename: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];   // C 1305
+  let mut size: size_t;                                                 // C 1306
+  let mut mem: *mut c_void;                                             // C 1307
+
+  'fail: {
+
+  /* Assets must be small enough to fit in size_t, if off_t is
+     larger.  */                                                        // C 1309-1310
+  size = AAsset_getLength (asset) as size_t;                            // C 1311 (the mirror takes
+									// C's `off_t` back as `c_long`, the NDK's
+									// as `off_t`; both are 64-bit here)
+
+  /* Get an unlinked file descriptor from a file in the cache
+     directory, which is guaranteed to only be written to by Emacs.
+     Creating an ashmem file descriptor and reading from it doesn't
+     work on these old Android versions.  */                            // C 1313-1316
+
+  snprintf (&raw mut filename as *mut c_char, PATH_MAX as usize,          // C 1318
+	    c"%s/temp~unlinked.%d".as_ptr (),                            // C 1318
+	    android_cache_dir, getpid ());                               // C 1319
+  fd = open (&raw mut filename as *const c_char,                         // C 1320
+	     O_CREAT | O_RDWR | O_TRUNC,                                 // C 1320
+	     (S_IRUSR | S_IWUSR) as c_int);                               // C 1321 (C's own variadic
+									//  promotion of `mode_t` to
+									//  `int`, the C 1190 call's spelling)
+
+  if fd < 0                                                             // C 1323
+    { return -1; }                                                      // C 1324
+
+  if unlink (&raw mut filename as *const c_char) != 0 && *errno () != ENOENT   // C 1326
+    { break 'fail; }                                                     // C 1327
+
+  if ftruncate (fd, size as off_t) != 0                                  // C 1329
+    { break 'fail; }                                                     // C 1330
+
+  mem = mmap (std::ptr::null_mut (), size, PROT_WRITE, MAP_SHARED, fd, 0);   // C 1332
+  if mem == MAP_FAILED                                                   // C 1333
+    {
+      let __func__: *const c_char = c"android_hack_asset_fd_fallback".as_ptr ();   // C 1335
+      __android_log_print (ANDROID_LOG_ERROR, __func__,                  // C 1335
+			   c"mmap: %s".as_ptr (),                        // C 1336
+			   strerror (*errno ()));                        // C 1336
+      break 'fail;                                                       // C 1337
+    }
+
+  if AAsset_read (asset, mem, size) as i64 != size as i64                // C 1340
+    {
+      /* Too little was read.  Close the file descriptor and
+	 report an error.  */                                           // C 1342-1343
+      let __func__: *const c_char = c"android_hack_asset_fd_fallback".as_ptr ();   // C 1344
+      __android_log_print (ANDROID_LOG_ERROR, __func__,                  // C 1344
+			   c"AAsset_read: %s".as_ptr (),                 // C 1345
+			   strerror (*errno ()));                        // C 1345
+      break 'fail;                                                       // C 1346
+    }
+
+  munmap (mem, size);                                                   // C 1349
+  return fd;                                                            // C 1350
+  }
+
+  /* C 1352's `fail:` */
+  close (fd);                                                           // C 1353
+  return -1;                                                            // C 1354
 }

@@ -8,8 +8,8 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**1,839 lines**, md5 `d01fcf9077879dd8dfaa46c939c3301b`), carrying
-> **C 1-1287** - P-86 ④'s first four slices of this file - with both arms of every `#if` carried.
+> `femacs/src/androidvfs.rs` (**1,966 lines**, md5 `8f0cf10d34c562e574a0c0eb127a2a13`), carrying
+> **C 1-1355** - P-86 ④'s first five slices of this file - with both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
 > build, so the port is the empty unit plus a note that names the gate"): P-86 ① rules that a
@@ -89,7 +89,8 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 996-1022 | the asset-directory comment block (C 999-1002), C 1004-1011's three file-scope objects (`directory_tree` - whose single definition the include graph already answers, Owed 6 - plus `directory_tree_size` and `asset_manager`) and `android_extract_long` (C 1013-1022) | file gate (slice 2) |
 | 1024-1229 | the `android_scan_directory_tree` comment (C 1024-1034), the function itself (C 1036-1202 - C's `again`/`false_positive`/`fail` labels as the port's labelled `loop`, labelled block and labelled block) and `android_is_directory` (C 1204-1229) | file gate (slice 3); C 1230 is a blank line |
 | 1231-1287 | the `android_init_assets` comment (C 1231-1233) and the function itself (C 1235-1287; C 1262-1278's `OLD_ANDROID_ASSETS` arm pair, C 1282/1285's two JNI calls) | file gate (slice 4); C 1288 is a blank line |
-| 1289-7950 | **the remainder** - the asset-to-fd conversion (`android_hack_asset_fd_fallback` at C 1301) through C 7950: the afs/android_* vnode families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1289-1355 | the asset-to-fd section's opening (C 1291) and `asharedmemory_create` (C 1295), then `android_hack_asset_fd_fallback` (C 1301-1355; C 1352's `fail:` as the port's labelled block) | file gate (slice 5); C 1356 is a blank line |
+| 1357-7950 | **the remainder** - `android_detect_ashmem` (C 1363) through C 7950: the ashmem/`mmap` pair, the afs/android_* vnode families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -316,13 +317,15 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
 
 Every line of this slice sits behind gates the frozen configuration leaves false: ① is an empty
 object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMethodID`, no
-`opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no vnode was ever created, named, opened or
-closed.  The two arm readings (②a/②b) are compile-level: they prove the unit's text and its
-include graph type-check and emit an object under each arm, not that any of it behaves.  C 1024-7950
-is **unported**; `extract-abi.py --check`'s 176 `missing …` lines and the 81.5% whole-file drift
-are that boundary, not defects.  The two `does not mention` lines are the recorded reading of
-`switch`/`goto` (Owed 4).  This ledger claims no runtime evidence, no Android device or emulator
-run, and no artifact beyond the two objects named in ② and the empty object of ①.
+`opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
+/`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
+readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
+type-check and emit an object under each arm, not that any of it behaves.  C 1357-7950 is
+**unported**: `extract-abi.py --check` reads **172** rows across that boundary (171 `missing …`
+plus the whole-file drift row, which now reads **75.3%**), and those rows are the boundary, not
+defects.  Owed 4's `does not mention` rows are written in `docs/ports/macro-body-notes.tsv` now,
+which is why none of them prints.  This ledger claims no runtime evidence, no Android device or
+emulator run, and no artifact beyond the objects the slices' arm readings name.
 
 ## Slice 2 (2026-10-08, status 4.106 - the integrator sets the round number): C 996-1022
 
@@ -500,3 +503,85 @@ calls and both magic arms are all compared).  The whole-file line-count row now 
 - `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: 1,839 of 7,950 C lines (23.1%).
 - `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5 disagreements
   [NOT VERIFIED]` (slice 2's owed item; the five rows are all past this slice).
+
+## Slice 5 (2026-10-08, status 4.109 - the integrator sets the round number): C 1289-1355
+
+**What this round is.**  The asset-to-file-descriptor section's head - C 1291's one-line banner, C
+1293-1294's comment and C 1295's `asharedmemory_create` pointer - and
+`android_hack_asset_fd_fallback` (C 1301-1355), the unlinked-temporary-file fallback for the old
+kernels where an ashmem descriptor cannot be read back; C 1352's `fail:` label becomes the port's
+labelled block.  C 1297-1299's comment is carried.  Port: **1,839 -> 1,966 lines**.
+
+**The round's arm work, written before the probe** (Deviation 16's rule, Deviation 17's applied once
+more): C 1340's `AAsset_read` is the seventh name of that header family, and the two arms carry it
+in two different places - the `#else` arm through `include/android-asset.rs` 613's emulation, the
+`>= 9` arm through the NDK's `<android/asset_manager.h>`, which has no mirror (P-88 ①) - so the
+unit declares it **under `#[cfg (feature = "android_api_ge_9")]` alone**, and both arms were probed
+with that declaration in place.  The five remaining names have no arm at all and are declared once:
+`mmap`/`munmap` (the `src/pdumper.rs` 104-112 shape), `PROT_WRITE` 0x2 (the Linux value,
+`src/gmalloc.rs` 573), `MAP_SHARED` 0x01, `MAP_FAILED` (as `usize::MAX as *mut c_void`, the
+`(void *) -1` of `src/pdumper.rs` 186), `android_cache_dir` (C's `android.h` 49 - `include/
+android.rs` 227 carries it, but that mirror is not in this unit's include graph, P-72 rule 4), and
+`ANDROID_LOG_ERROR` (**6**, measured from this machine's NDK 25.2.9519653 `android/log.h` 73-90;
+the `WARN` 5 / `FATAL` 7 neighbours are already declared above).
+
+**Evidence ① - both arms read `exit 0`.**  The probe without a second flag: **`exit 0`, 0 errors,
+7 warnings**; with `--cfg 'feature="android_api_ge_9"'`: **`exit 0`, 0 errors, 11 warnings** -
+diffed, the four extra ones are `extern block uses type \`AAsset\`, which is not FFI-safe`, one per
+`AAsset*` declaration the `>= 9` arm carries (this round's `AAsset_read` is the fourth).  Both readings are the unit's text
+plus its include graph type-checking - the strongest class this tree has for a file no target
+compiles.  Two real defects came out of the first draft, one per arm: ⑴ the labelled block must
+*enclose* C 1327/1330/1337/1346's break sites (C's label text follows the block; a first draft that
+put the block first and the label after it read `E0425 cannot find value \`fd\`` at the `break`
+sites); ⑵ C 1320's `open` is variadic and C promotes its `mode_t` argument, so the port writes
+`(S_IRUSR | S_IWUSR) as c_int` - without the cast the call reads `E0617 can't pass `u32` to
+variadic C function` (C androidvfs.c 1190's own `open` call is spelled the same way).
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error next to C 1304's
+local declaration moves the `>= 9` arm to **`exit 1`, `aborting due to 1 previous error`**, with
+`injected_control` named **once**; reverted, the same arm reads `exit 0` again and the file's md5
+returns to the header's `8f0cf10d34c562e574a0c0eb127a2a13`.  Three probes this round, each about a
+second.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 173 -> 172 rows**, the retired row
+being `missing function android_hack_asset_fd_fallback`.  **No new spelling row appeared**: the
+round's own `goto` row (`androidvfs.c 1327/1330/1337/1346`'s four `goto fail` and C 1352's `fail:`
+against the port's labelled block) is registered in `docs/ports/macro-body-notes.tsv` in the same
+commit - every other token of the body (`AAsset_getLength`/`AAsset_read`, `snprintf`'s format and
+arguments, `open`'s three flags, `unlink`/`ftruncate`/`mmap`/`munmap`/`close`, `errno`/`ENOENT`,
+`MAP_FAILED`/`PROT_WRITE`/`MAP_SHARED`, both `__android_log_print` calls) is compared and matches.
+The whole-file line-count row now reads **75.3%** (C 7,950 against 1,966 Rust lines).
+
+**Evidence ④ - the ten gates, and one of them was red at HEAD.**  Nine read as they did last round
+(`check-own-voice` 0, `check-mirror-dupes` 17/17/0, `check-port-lines` 0/0/0/0, `check-ledger-ticks`
+238/0, `check-carried` 11/11/4/0, `check-verbatim` 6 trees/4,604 files/0, `check-verbatim-
+declarations` 0, `check-dead-file-coverage` 145/0, `check-citations` 676/0/0/2,556/36/0), but
+`check-declarations` read **20 declaration sites (2 forbidden, 18 allowed literals), 4 failures** -
+all four in **another unit** (`femacs/src/haikuterm.rs`'s C 4536/4542/4547 text and the matching
+ledger line), committed state this slice does not touch.  The integrator fixed that as round 4.110;
+that reading is recorded there, and this round's own text contributes none of the four.
+
+**Deviation (this slice's addition).**
+
+18. **C's `fail:` label is a labelled *block* here, and the block encloses the jump sites** (Evidence
+    ①).  `c`-level `goto fail` sites at C 1327/1330/1337/1346 all jump *forward* to C 1352's label,
+    which sits after the function's main body; the port spells that as `'fail: { ... }` with
+    `break 'fail;` at the four sites and the label's own statements after the block - the shape
+    PORTING.md 2.2 records and the `android_unix_name` / `android_scan_directory_tree` rows already
+    carry (their note rows are the same class).  Written the other way round (block first, C's
+    label's text after it) the `break` sites lose their target and read `E0425`.
+
+**Owed (this slice's additions).**
+
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **1,966** of 7,950 C lines (24.7%).
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item; the five rows are all past this slice).
+
+**Not claimed (this slice).**  No runtime evidence, and none is possible here: no Android device, no
+emulator, and this unit is not in the frozen configuration.  C 1340's `AAsset_read` was never
+called, no temporary file was created or unlinked, nothing was mapped, and the section's
+`asharedmemory_create` pointer is still `None` (its loader is C 1363's `android_detect_ashmem` and
+later).  What the round's evidence *is*: both arms' `exit 0`, one control proving the harness reads
+this text, `--check` 173 -> 172 with no new row, and the nine gates plus the haikuterm-attributed
+red one named above.  **This file is not finished**: C 1357-7950 remains (the next item is C 1363's
+`android_detect_ashmem`, C 1357-1361's comment).
