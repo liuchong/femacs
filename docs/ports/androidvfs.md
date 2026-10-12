@@ -8,14 +8,17 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**6,040 lines**, md5 `f1754104b1701f15e569d537315478fc`), carrying
-> **C 1-4895 except six deferred items** (C 2520-2537's `content_vfs_ops`, C 2549-2639's
+> `femacs/src/androidvfs.rs` (**6,517 lines**, md5 `2e685d2a343fc5ba09ef5ac4bfa6c9b7`), carrying
+> **C 1-5529 except the deferred items below** (C 2520-2537's `content_vfs_ops`, C 2549-2639's
 > `android_content_name`, C 2887-2906's `android_content_initial`, C 3688-3705's `saf_root_vfs_ops`,
 > C 3748-3848's `android_saf_root_name` and C 4209-4229's `android_saf_root_initial` - one
 > dependency chain that the round reaching C 5773 closes, Deviation 23/27 - plus, this round,
-> C 4752-4769's `saf_tree_vfs_ops`) - P-86 ④'s first fourteen slices of this file - with both arms of
-> every `#if` carried.  The unit holds two items out of C's order (both at the file's foot:
-> `afs_vfs_ops`, Deviation 21, and `authority_vfs_ops`, Deviation 26).  Slice 8 carries the one item in the unit that sits out of C's order
+> C 4752-4769's `saf_tree_vfs_ops`, C 4897-5112's `android_saf_tree_name` - which also needs the two
+> tentative vectors C 4771-4777 declares, `saf_file_vfs_ops`/`saf_new_vfs_ops`, whose initialisers
+> are in the pages after C 5531 - and C 5773-5846's `android_saf_tree_from_name`) - P-86 ④'s first
+> fifteen slices of this file - with both arms of every `#if` carried.  The unit holds two items out
+> of C's order (both at the file's foot: `afs_vfs_ops`, Deviation 21, and `authority_vfs_ops`,
+> Deviation 26).  Slice 8 carries the one item in the unit that sits out of C's order
 > (`afs_vfs_ops`, C 1682-1699, at the file's foot; Deviation 21).
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
@@ -138,11 +141,16 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 4574-4677 | `android_saf_move_document` (C 4584-4677, C's `switch (rc)` as the port's `match`) with C 4574-4582's doc comment | file gate (slice 14) |
 | 4679-4732 | C 4681-4685's comment, `struct android_saf_tree_vnode` (C 4687-4712) and `struct android_saf_tree_vdir` (C 4714-4732) | file gate (slice 14) |
 | 4734-4750 | C 4734-4750's twelve forward declarations (no Rust text) | file gate (slice 14) |
-| 4752-4769 | **deferred to the round that reaches C 5480**: `saf_tree_vfs_ops` | deferral, Deviation 29 (it names `android_saf_tree_name` and the eleven members after it) |
+| 4752-4769 | **deferred to the round that reaches C 5686** (and to the file/new families' vectors, which `android_saf_tree_name` also names): `saf_tree_vfs_ops` | deferral, Deviation 29/30 (it names `android_saf_tree_name`, which needs `saf_file_vfs_ops`/`saf_new_vfs_ops`) |
 | 4771-4777 | C 4771-4777's two tentative vector declarations, `saf_file_vfs_ops` and `saf_new_vfs_ops`, under their own comments (both are defined in the pages after this one) | file gate (slice 14); Deviation 29 |
 | 4779-4780 | `all_saf_tree_vdirs` (C 4780) with C 4779's comment | file gate (slice 14) |
 | 4782-4895 | C 4782-4803's doc comment and `android_document_id_from_name` (C 4805-4895) | file gate (slice 14) |
-| 4897-7950 | **the remainder** - `android_saf_tree_name` (C 4898) through C 7950: the rest of the SAF tree/file/new families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4897-5112 | **deferred to the file/new families' round**: `android_saf_tree_name` | deferral, Deviation 30 (it names `saf_new_vfs_ops` and `saf_file_vfs_ops`, whose initialisers are in those pages) |
+| 5114-5173 | `android_saf_tree_open` (C 5114-5122), `close` (C 5124-5139), `unlink` (C 5141-5146), `symlink` (C 5148-5153) and `rmdir` (C 5155-5173) | file gate (slice 15) |
+| 5175-5403 | `android_saf_tree_rename` (C 5176-5403, C's five `goto error` sites and the `error:` label as the port's labelled block inside the second case) | file gate (slice 15) |
+| 5405-5471 | `android_saf_tree_stat` (C 5405-5415), `access` (C 5417-5434), `mkdir` (C 5436-5443), `chmod` (C 5445-5461) and `readlink` (C 5463-5471) | file gate (slice 15) |
+| 5473-5529 | C 5473-5477's comment and `android_saf_tree_opendir_1` (C 5479-5529) | file gate (slice 15) |
+| 5531-7950 | **the remainder** - `android_saf_tree_readdir` (C 5531) through C 7950: the rest of the SAF tree family, the file/new families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -353,7 +361,7 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    `android_unix_name` → `goto`.  Both lines print in `--check` today and every other token of both
    bodies is present.
 5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
-   **stale** (**6,040** C lines carried = 76.0% of 7,950, above the ten-percent threshold; slice 1's
+   **stale** (**6,517** C lines carried = 82.0% of 7,950, above the ten-percent threshold; slice 1's
    original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
 6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
    and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
@@ -372,10 +380,10 @@ object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMe
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
 /`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
 readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
-type-check and emit an object under each arm, not that any of it behaves.  C 4897-7950 is
-**unported** (as are the seven deferred items above, whose rows are in the same list):
-`extract-abi.py --check` reads **88** rows across that boundary (86 `missing …`, the whole-file
-drift row, which now reads **24.0%**, and the `displayNameHash` `invented exported symbol` row
+type-check and emit an object under each arm, not that any of it behaves.  C 5531-7950 is
+**unported** (as are the deferred items above, whose rows are in the same list):
+`extract-abi.py --check` reads **76** rows across that boundary (74 `missing …`, the whole-file
+drift row, which now reads **18.0%**, and the `displayNameHash` `invented exported symbol` row
 below), and those rows are the boundary, not defects.  The `invented exported symbol` row is the
 extractor's blind spot for `NATIVE_NAME` (`docs/ports/android.md` 432/462 records the same three
 rows for `android.rs`): the reference's symbol name is *pasted* by the macro (android.h 344), so no
@@ -1190,3 +1198,59 @@ document was moved, and `all_saf_tree_vdirs` is still null.  What the round's ev
 arms' `exit 0` on the first draft, one control proving the harness reads this text, `--check`
 91 -> 88 with both new rows discharged in-commit, the measured layouts, and the ten gates.  **This
 file is not finished**: C 4897-7950 remains (the next item is C 4898's `android_saf_tree_name`).
+
+## Slice 15 (2026-10-08, status 4.120 - the integrator sets the round number): C 5114-5529 (the SAF tree members except `name`, and the Cursor opener)
+
+**What this round is.**  The twelve SAF tree members that do not name the deferred vectors -
+`android_saf_tree_open` (C 5114-5122), `close` (C 5124-5139), `unlink` (C 5141-5146), `symlink`
+(C 5148-5153), `rmdir` (C 5155-5173), `rename` (C 5176-5403, the round's largest item, with C's five
+`goto error` sites and the `error:` label), `stat` (C 5405-5415), `access` (C 5417-5434), `mkdir`
+(C 5436-5443), `chmod` (C 5445-5461), `readlink` (C 5463-5471) and `opendir_1` (C 5479-5529).  Port:
+**6,040 -> 6,517 lines**.
+
+**Evidence ① - both arms read `exit 0`**: 0 errors; 8 warnings in the else arm and 13 in the `>= 9`
+arm - the same two counts the previous five rounds read, so this round's text adds no warning.  One
+real defect came out of the first draft, and it was a *control-flow* one rather than a type error:
+`android_saf_tree_rename`'s `error:` label is inside C's second case, and the label's two statements
+(`xfree (dst_id); return 1;`) sit after the four `goto error` sites - a first draft that put the
+whole `if` inside one labelled block left the error path falling through into the simple-rename tail
+instead.  The repair is the shape this ledger records (a labelled block *inside* the case, with the
+label's statements after it), and measured: the two arms stayed at 8/13 warnings, so the reading did
+not move while the text did.
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error next to C 5196's
+`vp = …` moves the else arm to `exit 1` with `injected_control` named once; reverted, the arm reads
+`exit 0` and the file's md5 returns to the header's.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 88 -> 76 rows, diffed**: twelve
+`missing function android_saf_tree_*` rows retire; two `does not mention` rows appear
+(`android_saf_tree_opendir_1` → `android_delete_local_ref`, and `android_saf_tree_rename` →
+`case,default,goto,switch`) and both are discharged in this same commit by rows in
+`docs/ports/macro-body-notes.tsv`.  The whole-file line-count row moves 24.0% -> **18.0%** (C 7,950
+against 6,517 Rust lines).
+
+**Deviation (this slice's addition).**
+
+30. **`android_saf_tree_name` waits for the file/new families, so the earlier target was one page
+    short.**  C 4967/5007 name `saf_new_vfs_ops` and `saf_file_vfs_ops`, the two *tentative* vectors
+    C 4771-4777 declares; a Rust `static` needs its initialiser where it is written, so those two
+    objects can only be defined in the rounds that write the file and ``new'' families' own
+    functions - which means `android_saf_tree_name` (and `saf_tree_vfs_ops`, whose last member is
+    C 5686's `android_saf_tree_opendir`) land there rather than with this round.  The two `deferred`
+    rows say so, and the earlier row's C 5480 is corrected to C 5686.
+
+**Owed (this slice's additions).**
+
+- The deferred set is now: the six-item chain (closing at C 5773), `saf_tree_vfs_ops` (C 5686),
+  `android_saf_tree_name` (C 4897-5112) and `android_saf_tree_from_name` (C 5773-5846) - the last two
+  with the file/new families' vectors.
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **6,517** of 7,950 C lines (82.0%).
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item).
+
+**Not claimed (this slice).**  No runtime evidence, and none is possible here: no Android device, no
+emulator, and this unit is not in the frozen configuration.  No document was renamed or deleted, no
+cursor was opened, and `all_saf_tree_vdirs` is still null.  What the round's evidence *is*: both arms'
+`exit 0`, one control proving the harness reads this text, `--check` 88 -> 76 with both new rows
+discharged in-commit, and the ten gates.  **This file is not finished**: C 5531-7950 remains (the next
+item is C 5531's `android_saf_tree_readdir`).

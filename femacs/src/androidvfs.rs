@@ -6038,3 +6038,480 @@ unsafe fn android_document_id_from_name (tree_uri: *const c_char, name: *const c
 									//  ANDROID_DELETE_LOCAL_REF)
   return rc;                                                           // C 4894
 }
+
+/* C 5114-5122.  Its address is taken at C 4756.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_open (vnode: *mut android_vnode, flags: c_int,
+					    mode: mode_t, asset_p: bool, fd: *mut c_int,
+					    asset: *mut *mut AAsset) -> c_int
+{
+  /* Don't allow opening this special directory.  */                    // C 5119
+  *errno () = ENOSYS;                                                  // C 5120
+  return -1;                                                           // C 5121
+}
+
+/* C 5124-5139.  Its address is taken at C 4757.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_close (vnode: *mut android_vnode)
+{
+  let mut vp: *mut android_saf_tree_vnode;                             // C 5127
+  let mut save_errno: c_int;                                           // C 5128
+
+  vp = vnode as *mut android_saf_tree_vnode;                           // C 5130
+
+  save_errno = *errno ();                                              // C 5132
+  xfree ((*vp).tree_uri as *mut c_void);                               // C 5133
+  xfree ((*vp).tree_id as *mut c_void);                                // C 5134
+  xfree ((*vp).name as *mut c_void);                                   // C 5135
+  xfree ((*vp).document_id as *mut c_void);                            // C 5136
+  xfree (vp as *mut c_void);                                           // C 5137
+  *errno () = save_errno;                                              // C 5138
+}
+
+/* C 5141-5146.  Its address is taken at C 4758.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_unlink (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EISDIR;                                                  // C 5144
+  return -1;                                                           // C 5145
+}
+
+/* C 5148-5153.  Its address is taken at C 4759.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_symlink (target: *const c_char,
+					       vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EPERM;                                                   // C 5151
+  return -1;                                                           // C 5152
+}
+
+/* C 5155-5173.  Its address is taken at C 4760.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_rmdir (vnode: *mut android_vnode) -> c_int
+{
+  let mut vp: *mut android_saf_tree_vnode;                             // C 5158
+
+  vp = vnode as *mut android_saf_tree_vnode;                           // C 5160
+
+  /* Don't allow deleting the root directory.  */                       // C 5162
+
+  if (*vp).document_id.is_null ()                                      // C 5164
+    {
+      *errno () = EROFS;                                               // C 5166
+      return -1;                                                       // C 5167
+    }
+
+  return android_saf_delete_document ((*vp).tree_uri,                  // C 5170
+				      (*vp).document_id,               // C 5171
+				      (*vp).name);                     // C 5172
+}
+
+/* C 5175-5403.  Its address is taken at C 4762.  C's four `goto error` sites and the `error:`
+   label at C 5374 become one labelled block with the label's two statements after it
+   (PORTING.md 2.2, the `android_unix_name` family).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_rename (src: *mut android_vnode, dst: *mut android_vnode,
+					      keep_existing: bool) -> c_int
+{
+  let mut last: *mut c_char;                                           // C 5180
+  let mut dst_last: *mut c_char;                                       // C 5180
+  let mut vp: *mut android_saf_tree_vnode;                             // C 5181
+  let mut vdst: *mut android_saf_tree_vnode;                           // C 5181
+  let mut path: [c_char; EMACS_PATH_MAX as usize] = [0; EMACS_PATH_MAX as usize];   // C 5182
+  let mut path1: [c_char; EMACS_PATH_MAX as usize] = [0; EMACS_PATH_MAX as usize];   // C 5182
+  let mut fill: *mut c_char;                                           // C 5183
+  let mut dst_id: *mut c_char;                                         // C 5183
+  let mut rc: c_int;                                                   // C 5184
+
+  /* C leaves `last`, `dst_last`, `fill`, `dst_id` and `rc` uninitialised (PORTING.md 1.5); each is
+     assigned before its first read on the path that reads it.  */
+  last = std::ptr::null_mut ();
+  dst_last = std::ptr::null_mut ();
+  vp = std::ptr::null_mut ();
+  vdst = std::ptr::null_mut ();
+  fill = std::ptr::null_mut ();
+  dst_id = std::ptr::null_mut ();
+  rc = 0;
+
+  /* If dst isn't a tree, file or new vnode, return EXDEV.  */          // C 5186
+
+  if (*dst).r#type != ANDROID_VNODE_SAF_TREE as c_short                // C 5188
+      && (*dst).r#type != ANDROID_VNODE_SAF_FILE as c_short            // C 5189
+      && (*dst).r#type != ANDROID_VNODE_SAF_NEW as c_short             // C 5190
+    {
+      *errno () = EXDEV;                                               // C 5192
+      return -1;                                                       // C 5193
+    }
+
+  vp = src as *mut android_saf_tree_vnode;                             // C 5196
+  vdst = dst as *mut android_saf_tree_vnode;                           // C 5197
+
+  /* if vp and vdst refer to different tree URIs, return EXDEV.  */     // C 5199
+
+  if strcmp ((*vp).tree_uri, (*vdst).tree_uri) != 0                    // C 5201
+    {
+      *errno () = EXDEV;                                               // C 5203
+      return -1;                                                       // C 5204
+    }
+
+  /* If `keep_existing' and the destination vnode designates an
+     existing file, return EEXIST.  */                                 // C 5207-5208
+
+  if keep_existing && (*dst).r#type != ANDROID_VNODE_SAF_NEW as c_short   // C 5210
+    {
+      *errno () = EEXIST;                                              // C 5212
+      return -1;                                                       // C 5213
+    }
+
+  /* Unix `rename' maps to two Android content provider operations.
+     The first case is a simple rename, where src and dst are both
+     located within the same directory.  Compare the file names of
+     both up to the component before the last.  */                     // C 5216-5219
+
+  last = strrchr ((*vp).name, b'/' as c_int);                          // C 5221
+  eassert! (! last.is_null ());                                        // C 5222
+
+  if *last.offset (1) == 0                                             // C 5224
+    {
+      if last == (*vp).name                                           // C 5226
+	{
+	  /* This means the caller is trying to rename the root
+	     directory of the tree.  */                                // C 5228-5229
+	  *errno () = EROFS;                                           // C 5230
+	  return -1;                                                   // C 5231
+	}
+
+      /* The name is terminated by a trailing directory separator.
+         Search backwards for the preceding directory separator.  */   // C 5234-5235
+      last = memrchr ((*vp).name as *const c_void, b'/' as c_int,     // C 5236
+		      last.offset_from ((*vp).name) as usize) as *mut c_char;   // C 5236
+      eassert! (! last.is_null ());                                    // C 5237
+    }
+
+  /* Find the end of the second-to-last component in vdst's name.  */   // C 5240
+
+  dst_last = strrchr ((*vdst).name, b'/' as c_int);                    // C 5242
+  eassert! (! dst_last.is_null ());                                    // C 5243
+
+  if *dst_last.offset (1) == 0                                         // C 5245
+    {
+      if dst_last == (*vdst).name                                      // C 5247
+	{
+	  /* Forbid overwriting the root of the tree either.  */       // C 5249
+	  *errno () = EROFS;                                           // C 5250
+	  return -1;                                                   // C 5251
+	}
+
+      dst_last = memrchr ((*vdst).name as *const c_void, b'/' as c_int,   // C 5254
+			  dst_last.offset_from ((*vdst).name) as usize) as *mut c_char;   // C 5254
+      eassert! (! dst_last.is_null ());                                // C 5255
+    }
+
+  if dst_last.offset_from ((*vdst).name) != last.offset_from ((*vp).name)   // C 5258
+      || memcmp ((*vp).name as *const c_void, (*vdst).name as *const c_void,   // C 5259
+		 last.offset_from ((*vp).name) as usize) != 0          // C 5259
+    {
+      'error: {
+      /* The second case is where the file must be moved from one
+         directory to the other, and possibly then recreated under a
+         new name.  */                                                 // C 5261-5263
+
+      /* The names of the source and destination directories will have
+	 to be copied to path.  */                                     // C 5265-5266
+
+      if last.offset_from ((*vp).name) >= EMACS_PATH_MAX as isize       // C 5268
+	  || dst_last.offset_from ((*vdst).name) >= EMACS_PATH_MAX as isize   // C 5269
+	{
+	  *errno () = ENAMETOOLONG;                                     // C 5271
+	  return -1;                                                   // C 5272
+	}
+
+      fill = mempcpy (path.as_mut_ptr () as *mut c_void, (*vp).name as *const c_void,   // C 5275
+		      last.offset_from ((*vp).name) as usize) as *mut c_char;   // C 5275
+      *fill = 0;                                                        // C 5276
+
+      /* If vdst doesn't already exist, its document_id field is
+	 already the name of its parent directory.  */                 // C 5278-5279
+
+      if (*dst).r#type == ANDROID_VNODE_SAF_NEW as c_short              // C 5281
+	{
+	  /* First, move the document.  This will update
+	     VP->document_id if it changes.  */                        // C 5283-5284
+
+	  if android_saf_move_document ((*vp).tree_uri,                 // C 5286
+					&raw mut (*vp).document_id,     // C 5287
+					path.as_mut_ptr (),             // C 5288
+					(*vdst).document_id) != 0       // C 5289
+	    { return -1; }                                             // C 5290
+
+	  fill = mempcpy (path.as_mut_ptr () as *mut c_void, (*vdst).name as *const c_void,   // C 5292
+			  dst_last.offset_from ((*vdst).name) as usize) as *mut c_char;   // C 5292
+	  *fill = 0;                                                    // C 5293
+
+	  /* Next, rename the document, if its display name differs
+	     from that of the source.  */                              // C 5295-5296
+
+	  if strcmp (dst_last.offset (1), last.offset (1)) != 0         // C 5298
+	      /* By now vp->document_id is already in the destination
+		 directory.  */
+	      && android_saf_rename_document ((*vp).tree_uri,           // C 5301
+					      (*vp).document_id,        // C 5302
+					      path.as_mut_ptr (),       // C 5303
+					      dst_last.offset (1)) != 0   // C 5304
+	    { return -1; }                                              // C 5305
+
+	  return 0;                                                     // C 5307
+	}
+
+      /* Retrieve the ID designating the destination document's parent
+	 directory.  */                                                // C 5310-5311
+
+      fill = mempcpy (path1.as_mut_ptr () as *mut c_void, (*vdst).name as *const c_void,   // C 5313
+		      dst_last.offset_from ((*vdst).name) as usize) as *mut c_char;   // C 5313
+      *fill = 0;                                                       // C 5314
+
+      rc = android_document_id_from_name ((*vp).tree_uri,              // C 5316
+					  path1.as_mut_ptr (),         // C 5317
+					  &raw mut dst_id);            // C 5317
+
+      if rc != 1                                                       // C 5319
+	{
+	  /* This file is either not a directory or nonexistent.  */    // C 5321
+
+	  match rc                                                      // C 5323
+	    {
+	      0 =>                                                      // C 5325
+		{
+		  *errno () = ENOTDIR;                                  // C 5326
+		  break 'error;                                         // C 5327 (goto error)
+		}
+
+	      -1 =>                                                     // C 5329
+		{
+		  /* dst_id is not set here, as the penultimate component
+		     also couldn't be located.  */                     // C 5330-5331
+		  *errno () = ENOENT;                                   // C 5332
+		  return -1;                                            // C 5333
+		}
+
+	      -2 =>                                                     // C 5335
+		{
+		  *errno () = ENOENT;                                   // C 5336
+		  break 'error;                                         // C 5337 (goto error)
+		}
+
+	      _ =>                                                      // C 5339
+		{
+		  emacs_abort ();                                       // C 5340
+		}
+	    }
+	}
+
+      /* vdst already exists, so it needs to be deleted first.  */      // C 5344
+
+      if android_saf_delete_document ((*vdst).tree_uri,                 // C 5346
+				      (*vdst).document_id,              // C 5347
+				      (*vdst).name) != 0                // C 5348
+	{ break 'error; }                                               // C 5349 (goto error)
+
+      /* First, move the document.  This will update
+	 VP->document_id if it changes.  */                             // C 5351-5352
+
+      if android_saf_move_document ((*vp).tree_uri,                     // C 5354
+				    &raw mut (*vp).document_id,         // C 5355
+				    path.as_mut_ptr (), dst_id) != 0    // C 5356
+	{ break 'error; }                                               // C 5357 (goto error)
+
+      /* Next, rename the document, if its display name differs from
+	 that of the source.  */                                        // C 5359-5360
+
+      if strcmp (dst_last.offset (1), last.offset (1)) != 0             // C 5362
+	  /* By now vp->document_id is already in the destination
+	     directory.  */
+	  && android_saf_rename_document ((*vp).tree_uri,               // C 5365
+					  (*vp).document_id,            // C 5366
+					  path1.as_mut_ptr (),          // C 5367
+					  dst_last.offset (1)) != 0     // C 5368
+	{ break 'error; }                                               // C 5369 (goto error)
+
+      xfree (dst_id as *mut c_void);                                    // C 5371
+      return 0;                                                         // C 5372
+      }
+
+      /* error: */
+      xfree (dst_id as *mut c_void);                                    // C 5375
+      return 1;                                                         // C 5376
+    }
+
+  /* Otherwise, do this simple rename.  The name of the parent
+     directory is required, as it provides the directory whose entries
+     will be modified.  */                                              // C 5379-5381
+
+  if last.offset_from ((*vp).name) >= EMACS_PATH_MAX as isize           // C 5383
+    {
+      *errno () = ENAMETOOLONG;                                         // C 5385
+      return -1;                                                        // C 5386
+    }
+
+  /* If the destination document exists, delete it.  */                 // C 5389
+
+  if (*dst).r#type != ANDROID_VNODE_SAF_NEW as c_short                  // C 5391
+      && android_saf_delete_document ((*vdst).tree_uri,                 // C 5392
+				      (*vdst).document_id,              // C 5393
+				      (*vdst).name) != 0                // C 5394
+    { return -1; }                                                      // C 5395
+
+  fill = mempcpy (path.as_mut_ptr () as *mut c_void, (*vp).name as *const c_void,   // C 5397
+		  last.offset_from ((*vp).name) as usize) as *mut c_char;   // C 5397
+  *fill = 0;                                                            // C 5398
+  return android_saf_rename_document ((*vp).tree_uri,                   // C 5399
+				      (*vp).document_id,                // C 5400
+				      path.as_mut_ptr (),               // C 5401
+				      dst_last.offset (1));             // C 5402
+}
+
+/* C 5405-5415.  Its address is taken at C 4763.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_stat (vnode: *mut android_vnode, statb: *mut stat,
+					    flags: c_int) -> c_int
+{
+  let mut vp: *mut android_saf_tree_vnode;                             // C 5409
+
+  vp = vnode as *mut android_saf_tree_vnode;                           // C 5411
+
+  return android_saf_stat ((*vp).tree_uri, (*vp).document_id,          // C 5413
+			   statb, false);                               // C 5414
+}
+
+/* C 5417-5434.  Its address is taken at C 4764.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_access (vnode: *mut android_vnode, mode: c_int) -> c_int
+{
+  let mut vp: *mut android_saf_tree_vnode;                             // C 5420
+
+  vp = vnode as *mut android_saf_tree_vnode;                           // C 5422
+
+  /* Validate MODE.  */                                                // C 5424
+
+  if mode != F_OK && (mode & (W_OK | X_OK | R_OK)) == 0                 // C 5426
+    {
+      *errno () = EINVAL;                                              // C 5428
+      return -1;                                                       // C 5429
+    }
+
+  return android_saf_access ((*vp).tree_uri, (*vp).document_id,        // C 5432
+			     (mode & W_OK) != 0);                      // C 5433
+}
+
+/* C 5436-5443.  Its address is taken at C 4765.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_mkdir (vnode: *mut android_vnode, mode: mode_t) -> c_int
+{
+  /* Since tree vnodes represent files that already exist, return
+     EEXIST.  */                                                        // C 5439-5440
+  *errno () = EEXIST;                                                  // C 5441
+  return -1;                                                           // C 5442
+}
+
+/* C 5445-5461.  Its address is taken at C 4766.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_chmod (vnode: *mut android_vnode, mode: mode_t,
+					     flags: c_int) -> c_int
+{
+  /* Return EACCESS should MODE contain unusual bits besides the
+     standard file access permissions.  */                             // C 5449-5450
+
+  if (mode as c_int) & !0o777 != 0                                     // C 5452
+    {
+      *errno () = EACCES;                                              // C 5454
+      return -1;                                                       // C 5455
+    }
+
+  /* Otherwise, no further action is necessary, as SAF nodes already
+     pretend to be S_IRUSR | S_IWUSR.  */                              // C 5458-5459
+  return 0;                                                            // C 5460
+}
+
+/* C 5463-5471.  Its address is taken at C 4767.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_readlink (vnode: *mut android_vnode, buffer: *mut c_char,
+						size: size_t) -> ssize_t
+{
+  /* Return EINVAL.  Symlinks aren't exposed to clients by the
+     SAF.  */                                                           // C 5467-5468
+  *errno () = EINVAL;                                                  // C 5469
+  return -1;                                                           // C 5470
+}
+
+/* Open a database Cursor containing each directory entry within the
+   supplied SAF tree vnode VP.
+
+   Value is NULL upon failure with errno set to a suitable value, a
+   local reference to the Cursor object otherwise.  */                  // C 5473-5477
+
+/* C 5479-5529.  C calls it directly (C 5745), never through a pointer, so it stays a Rust-ABI
+   `unsafe fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_saf_tree_opendir_1 (vp: *mut android_saf_tree_vnode) -> jobject
+{
+  let mut uri: jobject;                                                // C 5482
+  let mut id: jobject;                                                 // C 5482
+  let mut cursor: jobject;                                             // C 5482
+  let mut method: jmethodID;                                           // C 5483
+
+  /* C leaves all four uninitialised (PORTING.md 1.5); each is assigned before its first read.  */
+  uri = std::ptr::null_mut ();
+  id = std::ptr::null_mut ();
+  cursor = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  if inside_saf_critical_section                                       // C 5485
+    {
+      *errno () = EIO;                                                 // C 5487
+      return std::ptr::null_mut ();                                    // C 5488
+    }
+
+  /* Build strings for both URI and ID.  */                             // C 5491
+  uri = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 5492
+							 (*vp).tree_uri);   // C 5493
+  android_exception_check ();                                          // C 5494
+
+  if ! (*vp).document_id.is_null ()                                    // C 5496
+    {
+      id = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 5498
+							    (*vp).document_id);   // C 5499
+      android_exception_check_1 (uri);                                 // C 5500
+    }
+  else
+    { id = std::ptr::null_mut (); }                                    // C 5503
+
+  /* Try to open the cursor.  */                                       // C 5505
+  method = service_class.open_document_directory;                      // C 5506
+  inside_saf_critical_section = true;                                  // C 5507
+  cursor
+    = ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())    // C 5509
+    (android_java_env,                                                 // C 5509
+     emacs_service,                                                    // C 5510
+     service_class.class,                                              // C 5511
+     method, uri, id);                                                 // C 5512
+  inside_saf_critical_section = false;                                 // C 5513
+
+  if ! id.is_null ()                                                   // C 5515
+    {
+      if android_saf_exception_check (2, id, uri) != 0                 // C 5517
+	{ return std::ptr::null_mut (); }                              // C 5518
+
+      ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, id);   // C 5520
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+    }
+  else if android_saf_exception_check (1, uri) != 0                    // C 5522
+    { return std::ptr::null_mut (); }                                  // C 5523
+
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, uri);   // C 5525
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* Return the resulting cursor.  */                                  // C 5527
+  return cursor;                                                       // C 5528
+}
