@@ -18531,3 +18531,13 @@
   ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **6,846 行 / 新 md5**、C 范围表把余项行拆成八行、`## Not claimed` 改成 71 行 / 13.9%、常设 Owed 5 改成 86.1%、文件尾加 `## Slice 16` 段；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
   ⑦ 预算与清理：`xtask probe` **2 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 5 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep16.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
      **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有目录项从 Cursor 读出、没有编码系统被建立、`all_saf_tree_vdirs` 仍为空。**本文件未收口**：还剩 C 5878-7950（下一项 C 5878 的 `struct android_parcel_fd`）。
+
+- **4.122 `src/androidvfs.c` round 17（androidvfs lane，slice 17）：C 5876-6200 落地——SAF file 家族与第一个暂定向量的初始值；端口 6,846 → 7,219 行（2026-10-08）**：
+  ① 本片落的文本：`struct android_parcel_fd`（C 5878-5892，量到 40；next/descriptor/mtime/fd = 0/8/16/32）、C 的五条前向声明（无文本）、**`saf_file_vfs_ops`（C 5902-5919）——C 4773 那个暂定定义的对象，本轮写上初始值**、`open_parcel_fds`（C 5922）、C 5871-5874 的 `#define android_saf_file_vnode android_saf_tree_vnode` 别名（端口 `pub type`）、`android_saf_file_name`、本片最大项 `android_saf_file_open`（C 5952-6106：三处 `jboolean` 访问模式折叠、`NewGlobalRef` 与其 `EMFILE` 失败臂、`get_stat_mtime`/`invalid_timespec` 的 mtime 探测）、`_unlink`/`_rmdir`/`_opendir` 与 `android_close_parcel_fd`（C 6140-6170）。
+  ② 臂读数：**两臂各 `exit 0`，第一稿即过**；warning 8（else）/13（`>= 9`），与前七轮逐项相同。
+  ③ 对照（P-86 ⑦）：在 C 5982 的 `vp = …` 旁注入故意错误 → else 臂 `exit 1`、`injected_control` 点名一次；撤回后 `exit 0`、md5 回到 `94449d31ea84ecb8493b4a98bbe9e537`。
+  ④ `--check`：**71 → 63 行且行集 diff 过**——七条 `missing` 退役（`open_parcel_fds`、`saf_file_vfs_ops`、`android_close_parcel_fd` 与五个 `android_saf_file_*`），一条 `does not mention`（`android_saf_file_open` 的 `android_delete_local_ref`）出现并**在同一次提交里清掉**；行数漂移 13.9% → **9.2%**。
+  ⑤ **Deviation 31**：C 5902 的 `saf_file_vfs_ops` 初始值就写在 C 的位置（其十三个成员——本族五个 + SAF tree 族八个——在本轮末都已在单元里），这与 `afs_vfs_ops`/`authority_vfs_ops` 因依赖团被移到文件尾部（Deviation 21/26）不同；C 6183 的 `#define android_saf_new_vnode` 别名与 `saf_new_vfs_ops`（C 6204）留到下一轮。
+  ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **7,219 行 / 新 md5**、C 范围表把余项行拆成九行、`## Not claimed` 改成 63 行 / 9.2%、常设 Owed 5 改成 90.8%、文件尾加 `## Slice 17` 段；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
+  ⑦ 预算与清理：`xtask probe` **2 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 5 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep17.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
+     **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有 parcel 描述符被打开、没有建立全局引用、`open_parcel_fds` 仍为空。**本文件未收口**：还剩 C 6202-7950（下一项 C 6204 的 `saf_new_vfs_ops` 与 C 6222 的 `android_saf_new_name`）。

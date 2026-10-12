@@ -6844,3 +6844,376 @@ unsafe extern "C" {
   /// C: `<stdio.h>`: `int asprintf (char **, const char *, ...);`
   pub fn asprintf (arg0: *mut *mut c_char, arg1: *const c_char, ...) -> c_int;
 }
+
+/* Structure describing an open ParcelFileDescriptor.  */               // C 5876
+
+/* C 5878-5892: `struct android_parcel_fd'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_parcel_fd
+{
+  /* The next open parcel file descriptor.  */
+  pub next: *mut android_parcel_fd,                                    // C 5881
+
+  /* Global reference to this parcel file descriptor.  */
+  pub descriptor: jobject,                                             // C 5884
+
+  /* The modification time of this parcel file descriptor, or
+     `invalid_timespec'.  */
+  pub mtime: timespec,                                                 // C 5888
+
+  /* The file descriptor itself.  */
+  pub fd: c_int,                                                       // C 5891
+}
+/* Measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`,
+   `--target=aarch64-linux-android24`; `struct timespec` is 16 bytes there).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_parcel_fd> () == 40);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_parcel_fd, next) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_parcel_fd, descriptor) == 8);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_parcel_fd, mtime) == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_parcel_fd, fd) == 32);
+
+/* C 5894-5900: C's five forward declarations of the SAF file members; no Rust text
+   (PORTING.md 10.10).  */
+
+/* Vector of VFS operations associated with SAF tree VFS nodes.  */     // C 5902
+
+/* C 5904-5919: `static struct android_vops saf_file_vfs_ops = { … }` - the object C 4773 declares
+   as a tentative definition, whose initialiser is here.  Its thirteen members are half the SAF file
+   family's and half the SAF tree family's, and both are in this unit by the time this object is
+   written, so - unlike `afs_vfs_ops`/`authority_vfs_ops` - it needs no out-of-order landing.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut saf_file_vfs_ops: android_vops = android_vops
+  {
+    name: Some (android_saf_file_name),
+    open: Some (android_saf_file_open),
+    close: Some (android_saf_tree_close),
+    unlink: Some (android_saf_file_unlink),
+    symlink: Some (android_saf_tree_symlink),
+    rmdir: Some (android_saf_file_rmdir),
+    rename: Some (android_saf_tree_rename),
+    stat: Some (android_saf_tree_stat),
+    access: Some (android_saf_tree_access),
+    mkdir: Some (android_saf_tree_mkdir),
+    chmod: Some (android_saf_tree_chmod),
+    readlink: Some (android_saf_tree_readlink),
+    opendir: Some (android_saf_file_opendir),
+  };
+
+/* Chain of all parcel file descriptors currently open.  */             // C 5921
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut open_parcel_fds: *mut android_parcel_fd = std::ptr::null_mut ();   // C 5922
+
+/* C 5871-5874: C's `/* Define `struct android_saf_file_vnode' to be identical to a file vnode.  */
+   #define android_saf_file_vnode android_saf_tree_vnode`.  The alias is a Rust `type` alias
+   (PORTING.md 1.3), and it stands here with the family that uses it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type android_saf_file_vnode = android_saf_tree_vnode;
+
+/* C 5924-5950.  Its address is taken at C 5906, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_file_name (vnode: *mut android_vnode, name: *mut c_char,
+					    length: size_t) -> *mut android_vnode
+{
+  let mut vp: *mut android_saf_file_vnode;                             // C 5928
+
+  /* C leaves `vp` uninitialised (PORTING.md 1.5); it is assigned before any read.  */
+  vp = std::ptr::null_mut ();
+
+  /* If LENGTH is empty, make a copy of this vnode and return it.  */    // C 5930
+
+  if length < 1                                                        // C 5932
+    {
+      vp = xmalloc (std::mem::size_of::<android_saf_file_vnode> ()) as *mut android_saf_file_vnode;   // C 5934
+      memcpy (vp as *mut c_void, vnode as *const c_void,               // C 5935
+	      std::mem::size_of::<android_saf_file_vnode> ());         // C 5935
+
+      /* Duplicate the information contained within VNODE.  */          // C 5937
+
+      (*vp).tree_uri = xstrdup ((*vp).tree_uri) as *const c_char;       // C 5939
+      (*vp).tree_id = xstrdup ((*vp).tree_id);                          // C 5940
+      (*vp).name = xstrdup ((*vp).name);                                // C 5941
+      (*vp).document_id = xstrdup ((*vp).name);                         // C 5942
+
+      return &raw mut (*vp).vnode;                                      // C 5944
+    }
+
+  /* A file vnode has no children of its own.  */                       // C 5947
+  *errno () = ENOTDIR;                                                  // C 5948
+  return std::ptr::null_mut ();                                         // C 5949
+}
+
+/* C 5952-6106.  Its address is taken at C 5907.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_file_open (vnode: *mut android_vnode, flags: c_int,
+					    mode: mode_t, asset_p: bool, fd_return: *mut c_int,
+					    asset: *mut *mut AAsset) -> c_int
+{
+  let mut vp: *mut android_saf_file_vnode;                             // C 5957
+  let mut uri: jobject;                                                // C 5958
+  let mut id: jobject;                                                 // C 5958
+  let mut descriptor: jobject;                                         // C 5958
+  let mut method: jmethodID;                                           // C 5959
+  let mut read: jboolean;                                              // C 5960
+  let mut trunc: jboolean;                                             // C 5960
+  let mut write: jboolean;                                             // C 5960
+  let mut fd: jint;                                                    // C 5961
+  let mut info: *mut android_parcel_fd;                                // C 5962
+  let mut statb: stat;                                                 // C 5963
+
+  /* C leaves every local uninitialised (PORTING.md 1.5); each is assigned before its first read on
+     the path that reads it.  */
+  vp = std::ptr::null_mut ();
+  uri = std::ptr::null_mut ();
+  id = std::ptr::null_mut ();
+  descriptor = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+  read = 0;
+  trunc = 0;
+  write = 0;
+  fd = 0;
+  info = std::ptr::null_mut ();
+  statb = unsafe { std::mem::zeroed () };
+
+  if inside_saf_critical_section                                       // C 5965
+    {
+      *errno () = EIO;                                                 // C 5967
+      return -1;                                                       // C 5968
+    }
+
+  /* O_APPEND isn't supported as a consequence of Android content
+     providers defaulting to truncating the file.  */                  // C 5971-5972
+
+  if (flags & O_APPEND) != 0                                           // C 5974
+    {
+      *errno () = EOPNOTSUPP;                                          // C 5976
+      return -1;                                                       // C 5977
+    }
+
+  /* Build strings for both the URI and ID.  */                         // C 5980
+
+  vp = vnode as *mut android_saf_file_vnode;                           // C 5982
+  uri = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 5983
+							 (*vp).tree_uri);   // C 5984
+  android_exception_check ();                                          // C 5985
+  id = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 5986
+							(*vp).document_id);   // C 5987
+  android_exception_check_1 (uri);                                     // C 5988
+
+  /* Open a parcel file descriptor according to flags.  Documentation
+     for the SAF openDocument operation is scant and seldom helpful.
+     From observations made, it is clear that their file access modes
+     are inconsistently implemented, and that at least:
+
+       r   = either an FIFO or a real file, without truncation.
+       w   = either an FIFO or a real file, with OR without truncation.
+       wt  = either an FIFO or a real file, with truncation.
+       rw  = a real file, without truncation.
+       rwt = a real file, with truncation.
+
+     This diverges from the self-contradicting documentation, where
+     openDocument says nothing about truncation, and openFile mentions
+     that w can elect not to truncate and programs which rely on
+     truncation should use wt.
+
+     Since Emacs is prepared to handle FIFOs within fileio.c, simply
+     specify the straightforward relationship between FLAGS and the
+     file access modes listed above.  */                              // C 5990-6008
+
+  method = service_class.open_document;                                // C 6010
+  read = 0;                                                            // C 6011
+  trunc = 0;                                                           // C 6011
+  write = 0;                                                           // C 6011
+
+  if (flags & O_RDWR) == O_RDWR || (flags & O_WRONLY) != 0             // C 6013
+    { write = 1; }                                                     // C 6014
+
+  if (flags & O_TRUNC) != 0                                            // C 6016
+    { trunc = 1; }                                                     // C 6017
+
+  if (flags & O_RDWR) == O_RDWR || write == 0                          // C 6019
+    { read = 1; }                                                      // C 6020
+
+  inside_saf_critical_section = true;                                  // C 6022
+  descriptor
+    = ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())    // C 6024
+    (android_java_env,                                                 // C 6024
+     emacs_service,                                                    // C 6025
+     service_class.class,                                              // C 6026
+     method, uri, id,                                                  // C 6027
+     (read) as c_int, (write) as c_int, (trunc) as c_int);             // C 6028 (C's variadic
+									//  promotion of the three
+									//  `jboolean`s)
+  inside_saf_critical_section = false;                                 // C 6029
+
+  if android_saf_exception_check (2, uri, id) != 0                     // C 6031
+    { return -1; }                                                     // C 6032
+
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, uri);   // C 6034
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, id);   // C 6035
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  if descriptor.is_null ()                                             // C 6037
+    {
+      /* Assume that permission has been denied if DESCRIPTOR cannot
+	 be opened.  */                                                // C 6039-6040
+      *errno () = EPERM;                                               // C 6041
+      return -1;                                                       // C 6042
+    }
+
+  /* Allocate a record for this file descriptor.  Parcel file
+     descriptors should be closed using their own `close' function,
+     which takes care of notifying the source that it has been
+     closed.  */                                                       // C 6045-6048
+  info = xmalloc (std::mem::size_of::<android_parcel_fd> ()) as *mut android_parcel_fd;   // C 6049
+
+  /* Now obtain the file descriptor.  */                               // C 6051
+  fd = ((*(*android_java_env)).CallIntMethod.unwrap ()) (android_java_env,   // C 6052
+							 descriptor,   // C 6053
+							 fd_class.get_fd);   // C 6054
+  android_exception_check_1 (descriptor);                              // C 6055
+
+  /* Create a global reference to descriptor.  */                      // C 6057
+  (*info).descriptor
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 6059
+						       descriptor);    // C 6060
+
+  if (*info).descriptor.is_null ()                                     // C 6062
+    {
+      /* If the global reference can't be created, delete
+	 descriptor.  */                                               // C 6064-6065
+      ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6066
+      ((*(*android_java_env)).CallVoidMethod.unwrap ()) (android_java_env,   // C 6067
+							 descriptor,   // C 6068
+							 fd_class.close);   // C 6069
+      ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6070
+      ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, descriptor);   // C 6071
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+      /* Free INFO.  */                                               // C 6073
+      xfree (info as *mut c_void);                                    // C 6074
+
+      /* Set errno to EMFILE and return.  */                          // C 6076
+      *errno () = EMFILE;                                             // C 6077
+      return -1;                                                      // C 6078
+    }
+
+  /* Delete the local ref to DESCRIPTOR.  */                           // C 6081
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, descriptor);   // C 6082
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* Try to retrieve the modification time of this file from the
+     content provider.
+
+     Refrain from introducing the file status into the file status
+     cache if FLAGS & O_RDWR or FLAGS & O_WRONLY: the cached file
+     status will contain a size and modification time inconsistent
+     with the result of any modifications that later transpire.  */   // C 6084-6090
+
+  if android_saf_stat ((*vp).tree_uri, (*vp).document_id,             // C 6092
+		       &raw mut statb, write != 0) == 0                // C 6093
+    { (*info).mtime = get_stat_mtime (&raw mut statb); }              // C 6094
+  else
+    { (*info).mtime = invalid_timespec (); }                          // C 6096
+
+  /* Set info->fd and chain it onto the list.  */                      // C 6098
+  (*info).fd = fd;                                                     // C 6099
+  (*info).next = open_parcel_fds;                                      // C 6100
+  open_parcel_fds = info;                                              // C 6101
+
+  /* Return the file descriptor.  */                                   // C 6103
+  *fd_return = fd;                                                     // C 6104
+  return 0;                                                            // C 6105
+}
+
+/* C 6108-6117.  Its address is taken at C 5909.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_file_unlink (vnode: *mut android_vnode) -> c_int
+{
+  let mut vp: *mut android_saf_file_vnode;                             // C 6111
+
+  vp = vnode as *mut android_saf_file_vnode;                           // C 6113
+  return android_saf_delete_document ((*vp).tree_uri,                  // C 6114
+				      (*vp).document_id,               // C 6115
+				      (*vp).name);                     // C 6116
+}
+
+/* C 6119-6124.  Its address is taken at C 5911.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_file_rmdir (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = ENOTDIR;                                                 // C 6122
+  return -1;                                                           // C 6123
+}
+
+/* C 6126-6131.  Its address is taken at C 5918.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_file_opendir (vnode: *mut android_vnode) -> *mut android_vdir
+{
+  *errno () = ENOTDIR;                                                 // C 6129
+  return std::ptr::null_mut ();                                        // C 6130
+}
+
+/* Close FD if it's a parcel file descriptor and return true.
+   If FD isn't, return false.
+
+   Such file descriptors need to be closed using a function
+   written in Java, to tell the sender that it has been
+   closed.  */                                                         // C 6133-6138
+
+/* C 6140-6170.  C calls it directly (C 7624/7660), never through a pointer, so it stays a Rust-ABI
+   `unsafe fn`; the `for (next = …; (tem = *next);)` loop is the load-then-test pair, and C's
+   `else` step is the same device the closedir loops use.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_close_parcel_fd (fd: c_int) -> bool
+{
+  let mut tem: *mut android_parcel_fd;                                 // C 6143
+  let mut next: *mut *mut android_parcel_fd;                           // C 6143
+  let mut temp: *mut android_parcel_fd;                                // C 6143
+
+  next = &raw mut open_parcel_fds;                                     // C 6145
+  loop
+    {
+      tem = *next;                                                     // C 6145
+      if tem.is_null ()
+	{ break; }
+      if (*tem).fd == fd                                               // C 6147
+	{
+	  ((*(*android_java_env)).CallVoidMethod.unwrap ()) (android_java_env,   // C 6149
+							     (*tem).descriptor,   // C 6150
+							     fd_class.close);   // C 6151
+
+	  /* Ignore exceptions for the same reason EINTR errors from
+	     `close' should be ignored.  */                            // C 6153-6154
+	  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 6155
+	  ((*(*android_java_env)).DeleteGlobalRef.unwrap ()) (android_java_env,   // C 6156
+							      (*tem).descriptor);   // C 6157
+
+	  temp = (*tem).next;                                          // C 6159
+	  xfree (tem as *mut c_void);                                  // C 6160
+	  *next = temp;                                                // C 6161
+
+	  return true;                                                 // C 6163
+	}
+      else
+	{ next = &raw mut (**next).next; }                             // C 6166
+    }
+
+  return false;                                                        // C 6169
+}
+
+/* C 6172-6200: C 6173's form feed, C 6174-6181's comment on the SAF ``new'' vnodes, C 6183's
+   `#define android_saf_new_vnode android_saf_tree_vnode` alias (whose port spelling is a `type`
+   alias, and which stands with that family's round) and C 6185-6200's twelve forward declarations
+   (no Rust text).  This round carries the comment; the alias and the family land together.  */
