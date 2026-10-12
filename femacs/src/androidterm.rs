@@ -3168,6 +3168,13 @@ macro_rules! window_bits {
   (pseudo_window_p, $w:expr, $value:expr) =>
     { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }
         else { (*($w)).bits & !(1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }; };
+  /* C 4881's `w->phys_cursor_on_p = true;` - the mirror numbers the run
+     (`include/window.rs` 191) and carries no reader, so the unit names the two arms
+     (the `src/haikuterm.rs` 3377-3400 and `src/pgtkterm.rs` 2875-2882 shape).  */
+  (phys_cursor_on_p, $w:expr) => { window_bit ($w, WINDOW_PHYS_CURSOR_ON_P_SHIFT) };
+  (phys_cursor_on_p, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_PHYS_CURSOR_ON_P_SHIFT) }
+        else { (*($w)).bits & !(1u32 << WINDOW_PHYS_CURSOR_ON_P_SHIFT) }; };
 }
 
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -5687,5 +5694,351 @@ unsafe extern "C" fn android_clear_under_internal_border (f: *mut frame)
 			      height - bottom_margin - border,         // C 4714
 			      width as c_uint, border as c_uint);      // C 4715
 	}
+    }
+}
+
+/* Four names this text needs are not in the frozen mirrors, so they stand at their use sites
+   below (P-72 rule 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: window.h 1186: `struct glyph *get_phys_cursor_glyph (struct window *w);` (xdisp.c)
+  pub fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph;
+  /// C: dispextern.h 3652-3653: `extern void get_phys_cursor_geometry (struct window *,
+  /// struct glyph_row *, struct glyph *, int *, int *, int *);` (xdisp.c)
+  pub fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row, glyph: *mut glyph,
+				   x: *mut c_int, y: *mut c_int, h: *mut c_int);
+  /// C: dispextern.h 3649-3651: `extern void draw_phys_cursor_glyph (struct window *,
+  /// struct glyph_row *, enum draw_glyphs_face);` (xdisp.c)
+  pub fn draw_phys_cursor_glyph (w: *mut window, row: *mut glyph_row, draw: draw_glyphs_face);
+  /// C: dispextern.h 3703: `void draw_fringe_bitmap (struct window *, struct glyph_row *,
+  /// int);` (fringe.c)
+  pub fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row, left_p: c_int);
+}
+
+/* C 4720-4765: `android_draw_hollow_cursor`.  `static`; the redisplay interface's
+   `draw_hollow_cursor` member points at it (C 5015).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 4723
+  let dpyinfo: *mut android_display_info = FRAME_DISPLAY_INFO! (f);      // C 4724
+  /* C 4725 leaves `x`, `y` and `h` to `get_phys_cursor_geometry`'s writes through their
+     addresses, so the port gives them a value (the eighth slice's `scale_x` device).  */
+  let mut x: c_int = 0;                                                 // C 4725
+  let mut y: c_int = 0;
+  let mut wd: c_int;
+  let mut h: c_int = 0;
+  let mut xgcv: android_gc_values = std::mem::zeroed ();                 // C 4726
+  let mut cursor_glyph: *mut glyph;                                     // C 4727
+  let gc: *mut android_gc;                                              // C 4728
+
+  /* Get the glyph the cursor is on.  If we can't tell because
+     the current matrix is invalid or such, give up.  */               // C 4730-4731
+  cursor_glyph = get_phys_cursor_glyph (w);                             // C 4732
+  if cursor_glyph.is_null ()                                            // C 4733
+    { return; }                                                         // C 4734
+
+  /* Compute frame-relative coordinates for phys cursor.  */            // C 4736
+  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut x, &raw mut y, &raw mut h);   // C 4737
+  wd = (*w).phys_cursor_width - 1;                                      // C 4738
+
+  /* The foreground of cursor_gc is typically the same as the normal
+     background color, which can cause the cursor box to be invisible.  */   // C 4740-4741
+  xgcv.foreground = (*((*f).output_data.android as *mut android_output)).cursor_pixel;   // C 4742
+  if ! (*dpyinfo).scratch_cursor_gc.is_null ()                          // C 4743
+    {
+      android_change_gc ((*dpyinfo).scratch_cursor_gc,                  // C 4744
+			 ANDROID_GC_FOREGROUND, &raw mut xgcv);         // C 4745
+    }
+  else
+    {
+      (*dpyinfo).scratch_cursor_gc
+	= android_create_gc (ANDROID_GC_FOREGROUND, &raw mut xgcv);     // C 4747-4748
+    }
+  gc = (*dpyinfo).scratch_cursor_gc;                                    // C 4749
+
+  /* When on R2L character, show cursor at the right edge of the
+     glyph, unless the cursor box is as wide as the glyph or wider
+     (the latter happens when x-stretch-cursor is non-nil).  */         // C 4751-4753
+  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0           // C 4754
+      && (*cursor_glyph).pixel_width as c_int > wd                     // C 4755
+    {
+      x += (*cursor_glyph).pixel_width as c_int - wd;                   // C 4757
+      if wd > 0                                                         // C 4758
+	{ wd -= 1; }                                                    // C 4759
+    }
+  /* Set clipping, draw the rectangle, and reset clipping again.  */    // C 4761
+  android_clip_to_row (w, row, TEXT_AREA, gc, std::ptr::null_mut ());   // C 4762
+  android_draw_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, x, y,        // C 4763
+			  wd as c_uint, (h - 1) as c_uint);
+  android_reset_clip_rectangles (f, gc);                                // C 4764
+}
+
+/* C 4767-4867: `android_draw_bar_cursor`.  `static`; only called (C 4904/4908).  C 4798's
+   `unsigned long mask` is the port's `c_ulong` with C's own narrowing at `android_change_gc`
+   and `android_create_gc`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut width: c_int,
+				   kind: text_cursor_kinds)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 4771
+  let mut cursor_glyph: *mut glyph;                                     // C 4772
+  let mut cursor_start_y: c_int;                                        // C 4773
+
+  /* If cursor is out of bounds, don't draw garbage.  This can happen
+     in mini-buffer windows when switching between echo area glyphs
+     and mini-buffer.  */                                               // C 4775-4777
+  cursor_glyph = get_phys_cursor_glyph (w);                             // C 4778
+  if cursor_glyph.is_null ()                                            // C 4779
+    { return; }                                                         // C 4780
+
+  /* Experimental avoidance of cursor on xwidget.  */                    // C 4782
+  if glyph_bits! (type, (*cursor_glyph)) == XWIDGET_GLYPH               // C 4783
+    { return; }                                                         // C 4784
+
+  /* If on an image, draw like a normal cursor.  That's usually better
+     visible than drawing a bar, esp. if the image is large so that
+     the bar might not be in the window.  */                            // C 4786-4788
+  if glyph_bits! (type, (*cursor_glyph)) == IMAGE_GLYPH                 // C 4789
+    {
+      let mut r: *mut glyph_row;                                        // C 4791
+      r = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix,     // C 4792
+			(*w).phys_cursor.vpos);
+      draw_phys_cursor_glyph (w, r, DRAW_CURSOR);                       // C 4793
+    }
+  else
+    {
+      let mut gc: *mut android_gc
+	= (*FRAME_DISPLAY_INFO! (f)).scratch_cursor_gc;                 // C 4797
+      let mask: c_ulong
+	= (ANDROID_GC_FOREGROUND | ANDROID_GC_BACKGROUND) as c_ulong;   // C 4798
+      let face: *mut face
+	= frame_face_accessors::FACE_FROM_ID (f, glyph_bits! (face_id, (*cursor_glyph)));   // C 4799
+      let mut xgcv: android_gc_values = std::mem::zeroed ();            // C 4800
+
+      /* If the glyph's background equals the color we normally draw
+	 the bars cursor in, the bar cursor in its normal color is
+	 invisible.  Use the glyph's foreground color instead in this
+	 case, on the assumption that the glyph's colors are chosen so
+	 that the glyph is legible.  */                                 // C 4802-4806
+      if (*face).background
+	 == (*((*f).output_data.android as *mut android_output)).cursor_pixel   // C 4807
+	{ xgcv.background = (*face).foreground;                          // C 4808
+	  xgcv.foreground = (*face).foreground; }
+      else
+	{ xgcv.background = (*((*f).output_data.android as *mut android_output)).cursor_pixel;   // C 4810
+	  xgcv.foreground = (*((*f).output_data.android as *mut android_output)).cursor_pixel; }
+
+      if ! gc.is_null ()                                                // C 4812
+	{ android_change_gc (gc, mask as android_gc_value_mask, &raw mut xgcv); }   // C 4813
+      else
+	{
+	  gc = android_create_gc (mask as android_gc_value_mask, &raw mut xgcv);   // C 4816
+	  (*FRAME_DISPLAY_INFO! (f)).scratch_cursor_gc = gc;            // C 4817
+	}
+
+      android_clip_to_row (w, row, TEXT_AREA, gc, std::ptr::null_mut ());   // C 4820
+
+      if kind == BAR_CURSOR                                             // C 4822
+	{
+	  let mut x: c_int = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);   // C 4824
+
+	  if width < 0                                                      // C 4826
+	    { width = FRAME_CURSOR_WIDTH (f); }                            // C 4827
+	  width = min ((*cursor_glyph).pixel_width as c_int, width);        // C 4828
+
+	  (*w).phys_cursor_width = width;                                  // C 4830
+
+	  /* If the character under cursor is R2L, draw the bar cursor
+	     on the right of its glyph, rather than on the left.  */     // C 4832-4833
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0      // C 4834
+	    { x += (*cursor_glyph).pixel_width as c_int - width; }         // C 4835
+
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, x,     // C 4837
+				  WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y),   // C 4838
+				  width as c_uint, (*row).height as c_uint);   // C 4839
+	}
+      else /* HBAR_CURSOR */                                            // C 4841
+	{
+	  let mut dummy_x: c_int = 0;                                     // C 4843
+	  let mut dummy_y: c_int = 0;
+	  let mut dummy_h: c_int = 0;
+	  let mut x: c_int = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);   // C 4844
+
+	  if width < 0                                                      // C 4846
+	    { width = (*row).height; }                                     // C 4847
+
+	  width = min ((*row).height, width);                              // C 4849
+
+	  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut dummy_x,   // C 4851
+				    &raw mut dummy_y, &raw mut dummy_h);   // C 4852
+
+	  cursor_start_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y   // C 4854
+						     + (*row).height - width);   // C 4855
+
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0      // C 4857
+	      && (*cursor_glyph).pixel_width as c_int > (*w).phys_cursor_width - 1   // C 4858
+	    { x += (*cursor_glyph).pixel_width as c_int - (*w).phys_cursor_width + 1; }   // C 4859
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f), gc, x,     // C 4860
+				  cursor_start_y,                        // C 4861
+				  ((*w).phys_cursor_width - 1) as c_uint, width as c_uint);   // C 4862
+	}
+
+      android_reset_clip_rectangles (f, gc);                            // C 4865
+    }
+}
+
+/* C 4869-4927: `android_draw_window_cursor`.  `static`; the redisplay interface's
+   `draw_window_cursor` member points at it (C 5018).  C's `switch` is the port's `match`;
+   `w->phys_cursor_on_p` is the arm this slice adds to the unit's `window_bits!`, and
+   `FRAME_OUTPUT_DATA (f)->need_cursor_updates` is the folded bit the unit reads with its mask
+   (P-80, the C 707-708 device).  `active_p` has no reader in C's body.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
+				      x: c_int, y: c_int, cursor_type: text_cursor_kinds,
+				      cursor_width: c_int, on_p: bool, active_p: bool)
+{
+  let f: *mut frame;                                                    // C 4874
+
+  let _ = active_p;
+  f = WINDOW_XFRAME! (w);                                               // C 4876
+
+  if on_p                                                               // C 4878
+    {
+      (*w).phys_cursor_type = cursor_type;                              // C 4880
+      window_bits! (phys_cursor_on_p, w, true);                         // C 4881
+
+      if glyph_row_bits! (exact_window_width_line_p, glyph_row)          // C 4883
+	  && (if glyph_row_bits! (reversed_p, glyph_row)                // C 4884
+	      { (*w).phys_cursor.hpos < 0 }                             // C 4885
+	      else
+	      { (*w).phys_cursor.hpos >= (*glyph_row).used[TEXT_AREA as usize] as c_int })   // C 4886
+	{
+	  glyph_row_bits! (cursor_in_fringe_p, glyph_row, true);          // C 4888
+	  draw_fringe_bitmap (w, glyph_row,                                // C 4889
+			      glyph_row_bits! (reversed_p, glyph_row) as c_int);
+	}
+      else
+	{
+	  match cursor_type                                              // C 4893
+	    {
+	    HOLLOW_BOX_CURSOR =>                                         // C 4895
+	      { android_draw_hollow_cursor (w, glyph_row); }             // C 4896
+
+	    FILLED_BOX_CURSOR =>                                         // C 4899
+	      { draw_phys_cursor_glyph (w, glyph_row, DRAW_CURSOR); }    // C 4900
+
+	    BAR_CURSOR =>                                                // C 4903
+	      { android_draw_bar_cursor (w, glyph_row, cursor_width, BAR_CURSOR); }   // C 4904
+
+	    HBAR_CURSOR =>                                               // C 4907
+	      { android_draw_bar_cursor (w, glyph_row, cursor_width, HBAR_CURSOR); }   // C 4908
+
+	    NO_CURSOR =>                                                 // C 4911
+	      { (*w).phys_cursor_width = 0; }                            // C 4912
+
+	    _ =>                                                         // C 4915
+	      { emacs_abort (); }                                        // C 4916
+	    }
+	}
+
+      /* Now proceed to tell the input method the current position of
+	 the cursor, if required.  */                                  // C 4920-4921
+
+      if (*(FRAME_OUTPUT_DATA! (f) as *mut android_output)).bits
+	  & ANDROID_OUTPUT_NEED_CURSOR_UPDATES != 0                      // C 4923
+	  && w == XWINDOW ((*f).selected_window)                         // C 4924
+	{ android_set_preeditarea (w as *mut c_void, x, y); }            // C 4925
+    }
+}
+
+/* C 4929-4943: `android_draw_vertical_window_border`.  `static`; the redisplay interface's
+   `draw_vertical_window_border` member points at it (C 5019).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 4932
+  let face: *mut face;                                                  // C 4933
+
+  face = frame_face_accessors::FACE_FROM_ID_OR_NULL (f, VERTICAL_BORDER_FACE_ID);   // C 4935
+  if ! face.is_null ()                                                  // C 4936
+    {
+      android_set_foreground ((*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4937
+			      (*face).foreground);                      // C 4938
+    }
+
+  android_draw_line (FRAME_ANDROID_DRAWABLE! (f),                       // C 4940
+		     (*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4941
+		     x, y0, x, y1);                                     // C 4942
+}
+
+/* C 4945-5010: `android_draw_window_divider`.  `static`; the redisplay interface's
+   `draw_window_divider` member points at it (C 5020).  C's three `?:` are the port's
+   `if`/`else` expressions.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_window_divider (w: *mut window, x0: c_int, x1: c_int,
+				       y0: c_int, y1: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 4948
+  let face: *mut face
+    = frame_face_accessors::FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FACE_ID);   // C 4949
+  let face_first: *mut face
+    = frame_face_accessors::FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID);   // C 4950-4951
+  let face_last: *mut face
+    = frame_face_accessors::FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_LAST_PIXEL_FACE_ID);   // C 4952-4953
+  let color: c_ulong = if ! face.is_null ()                             // C 4954
+    { (*face).foreground } else { FRAME_FOREGROUND_PIXEL (f) };
+  let color_first: c_ulong = if ! face_first.is_null ()                 // C 4955-4956
+    { (*face_first).foreground } else { FRAME_FOREGROUND_PIXEL (f) };
+  let color_last: c_ulong = if ! face_last.is_null ()                   // C 4958-4959
+    { (*face_last).foreground } else { FRAME_FOREGROUND_PIXEL (f) };
+
+  if (y1 - y0 > x1 - x0) && (x1 - x0 >= 3)                              // C 4962
+    /* A vertical divider, at least three pixels wide: Draw first and
+       last pixels differently.  */                                    // C 4963-4964
+    {
+      android_set_foreground ((*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4966
+			      color_first);                             // C 4967
+      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f),              // C 4968
+			      (*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4969
+			      x0, y0, 1 as c_uint, (y1 - y0) as c_uint);   // C 4970
+      android_set_foreground ((*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4971
+			      color);                                   // C 4972
+      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f),              // C 4973
+			      (*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4974
+			      x0 + 1, y0, (x1 - x0 - 2) as c_uint, (y1 - y0) as c_uint);   // C 4975
+      android_set_foreground ((*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4976
+			      color_last);                              // C 4977
+      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f),              // C 4978
+			      (*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4979
+			      x1 - 1, y0, 1 as c_uint, (y1 - y0) as c_uint);   // C 4980
+    }
+  else if (x1 - x0 > y1 - y0) && (y1 - y0 >= 3)                         // C 4982
+    /* A horizontal divider, at least three pixels high: Draw first
+       and last pixels differently.  */                                // C 4983-4984
+    {
+      android_set_foreground ((*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4986
+			      color_first);                             // C 4987
+      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f),              // C 4988
+			      (*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4989
+			      x0, y0, (x1 - x0) as c_uint, 1 as c_uint);   // C 4990
+      android_set_foreground ((*((*f).output_data.android as *mut android_output)).normal_gc, color);   // C 4991
+      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f),              // C 4992
+			      (*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4993
+			      x0, y0 + 1, (x1 - x0) as c_uint, (y1 - y0 - 2) as c_uint);   // C 4994
+      android_set_foreground ((*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4995
+			      color_last);                              // C 4996
+      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f),              // C 4997
+			      (*((*f).output_data.android as *mut android_output)).normal_gc,   // C 4998
+			      x0, y1 - 1, (x1 - x0) as c_uint, 1 as c_uint);   // C 4999
+    }
+  else
+    {
+      /* In any other case do not draw the first and last pixels
+	 differently.  */                                              // C 5003-5004
+      android_set_foreground ((*((*f).output_data.android as *mut android_output)).normal_gc, color);   // C 5005
+      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f),              // C 5006
+			      (*((*f).output_data.android as *mut android_output)).normal_gc,   // C 5007
+			      x0, y0, (x1 - x0) as c_uint, (y1 - y0) as c_uint);   // C 5008
     }
 }
