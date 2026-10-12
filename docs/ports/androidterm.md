@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**4,923 lines**, md5
-> `0e897fb60f47e84104267b6158642e85`), carrying **C 1-4123**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**5,126 lines**, md5
+> `6c3a2851b6ef8ff9ffb4932804b9dab2`), carrying **C 1-4280**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -19,7 +19,7 @@
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
-> `android_draw_glyphless_glyph_string_foreground`, C 4126).
+> `android_draw_glyph_string`, C 4283).
 
 ## Gate mapping
 
@@ -159,7 +159,10 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 3928-3987 | C 3928's comment and `android_draw_underwave` | real arm (slice 9) |
 | 3989-4034 | `android_draw_glyph_string_foreground` | real arm (slice 9) |
 | 4036-4123 | C 4036's comment and `android_draw_composite_glyph_string_foreground` | real arm (slice 9) |
-| 4125-7117 | **the remainder of the file** - from C 4125's `static void` above `android_draw_glyphless_glyph_string_foreground` (C 4126) to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4125-4206 | C 4125's `static void` and `android_draw_glyphless_glyph_string_foreground` | real arm (slice 10) |
+| 4208-4239 | C 4208-4210's comment and `android_draw_dash` | real arm (slice 10) |
+| 4241-4280 | C 4241-4243's comment and `android_fill_underline` (C 4268's `FALLTHROUGH`) | real arm (slice 10) |
+| 4282-7117 | **the remainder of the file** - from C 4282's `static void` above `android_draw_glyph_string` (C 4283) to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -355,10 +358,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 4125-7117.**  Slice 9 wrote C 3799-4123 (the stretch, the scale
-   factor, the underwave and the two glyph-string foregrounds), so the next slice's rows must replace
-   this table's last row; its first definition is `android_draw_glyphless_glyph_string_foreground`
-   (C 4126).  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 4282-7117.**  Slice 10 wrote C 4125-4280 (the glyphless
+   foreground, the dash and the underline fill), so the next slice's rows must replace this table's
+   last row; its first definition is `android_draw_glyph_string` (C 4283), the redisplay
+   interface's dispatcher.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -468,6 +471,12 @@ slice's basis).  All 116 are in the owed list below.
    own; a mirror-level accessor set (or the five records' move to the top level, Owed 21) is what
    would let them go.
 
+24. **The `glyphless_bits!` reader** (slice 10): the mirror keeps `glyph`'s `u.glyphless` run as one
+   `bits` unit with its four positions (`include/dispextern.rs` 474-481) and no reader, so this unit
+   names its own - the Owed 22 family, and the same finding `src/xterm.rs` 9899-9910,
+   `src/haikuterm.rs` 2071-2076, `src/pgtkterm.rs` 2253-2258, `src/w32font.rs` 1359-1364 and
+   `src/haikufont.rs` 1451-1456 each record for theirs.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -483,8 +492,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-4123 is now ported** (slices 4-9,
-each with its own Evidence section below); C 4125-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-4280 is now ported** (slices 4-10,
+each with its own Evidence section below); C 4282-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -884,3 +893,47 @@ clipping setters.
   `src/haikuterm.rs` 1287-1288 and `src/w32term.rs` 1007-1008 shape).
 - **The three promotions of this slice**: `(*g).pixel_width as c_int`, the `for_overlaps` reader's
   `!= 0`, and `b'\t' as isize` for C's `'\t'` against `COMPOSITION_GLYPH`'s `EMACS_INT`.
+
+## 2026-10-12: slice 10 (C 4125-4280) - the glyphless foreground, the dash and the underline
+
+`android_draw_glyphless_glyph_string_foreground`, `android_draw_dash` and
+`android_fill_underline`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The first draft's own readings were the pointer form the `glyphless_bits!` arms take (C's
+   `glyph->u.glyphless.*` reads pass the *pointer*, the `src/haikuterm.rs` 2100-2145 form, not the
+   place), `CHAR_TABLE_REF`'s `isize` index against the reader's `c_int` (`as isize`), and the
+   mirror's `Lisp_Char_Table.extras` being a zero-length flexible array member, so C 4164's
+   `->extras[0]` is the mirror's `FAM_ELEM! (…, 0)` (`include/lisp.rs` 1309-1322, the
+   `src/haikuterm.rs` 2130 form) rather than a subscript.
+2. **One `does not mention` row appeared and was discharged in this commit**:
+   `android_fill_underline` → `break,case,default,fallthrough,switch` (C 4254-4279's `switch` is
+   the port's `match`, C's three `break;` have no counterpart and C 4268's `FALLTHROUGH` is the
+   entry stage the two arms share) - the `android_fill_underline` row of
+   `docs/ports/macro-body-notes.tsv`, the `x_fill_underline`/`w32_fill_underline`/
+   `haiku_fill_underline`/`pgtk_fill_underline` rows' class.
+3. **Inventory**: 40 rows -> **37** - the three `missing function` rows this slice lands retire,
+   and what stands is the file's 31 remaining definitions (29 live ones past this slice, plus
+   `android_notify_conversion` and `syms_of_androidterm`), the five file-scope objects, and the
+   line-count row, which reads **28.0%** (C 7,117 against the port's 5,126).
+
+### Deviations this slice adds
+
+- **The `glyphless_bits!` reader** (Owed 24): C 4151-4174's five `glyph->u.glyphless.*` reads go
+  through the unit's own accessors, because the mirror keeps only the run's `bits` unit and the
+  four positions (`include/dispextern.rs` 474-481) - the `src/xterm.rs` 9899-9910 copy.
+- **C's `unsigned char2b[8]`** is the port's `[c_uint; 8]` (the implicit-`int` declaration the
+  `src/xterm.rs` 10220-10223 reading names) and C 4140/4205's `s->char2b = char2b` /
+  `s->char2b = NULL` are its `as_mut_ptr ()` decay and the port's null pointer (PORTING.md 1.2).
+- **C 4144-4148's `#ifdef GCC_LINT` pair** is carried as the two `#[cfg]`-selected constants with
+  `buf`'s length following the live one (`GCC_LINT` is 1 in the frozen table; both arms stand, the
+  `src/xterm.rs` 10230-10236 shape).
+- **C 4164's `XCHAR_TABLE (…)->extras[0]`** is `FAM_ELEM! ((*XCHAR_TABLE (…)).extras, 0)`: the
+  mirror's `extras` is the zero-length flexible array member of the C struct, so the subscript
+  would be an unconditional panic (the `include/lisp.rs` 1309-1322 reader).
+- **C 4221's `gc = s->gc;`** is `(*s).gc as *mut android_gc` (the mirror's `glyph_string.gc` is the
+  untyped `*mut c_void` field, the third slice's device) and `gcv` is zero-initialised before its
+  two fields are written and passed whole (PORTING.md 1.5).

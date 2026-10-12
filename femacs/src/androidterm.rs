@@ -4921,3 +4921,206 @@ unsafe fn android_draw_composite_glyph_string_foreground (s: *mut glyph_string)
 	}
     }
 }
+
+/* C 4125-4206: `android_draw_glyphless_glyph_string_foreground`.  C's `unsigned char2b[8]` is
+   an `unsigned int` array (the name C gives the implicit-`int` declaration, the `src/xterm.rs`
+   10220-10223 reading) and `s->char2b = char2b` its decay (`include/dispextern.rs` 1654's
+   `*mut c_uint`); C 4144-4148's `#ifdef GCC_LINT` pair is carried under that feature (`GCC_LINT`
+   is 1 in the frozen table, so the `= 1` arm is the live one); C 4151-4174's five
+   `glyph->u.glyphless.*` reads are the `glyphless_bits!` accessors named after the member - the
+   mirror keeps the run's `bits` unit (`include/dispextern.rs` 474-481) and no reader, so this
+   unit names its own (Owed 22's family).  */
+/// C: dispextern.h 626-632: `unsigned method : 2; bool_bf for_no_font : 1; unsigned len : 4;
+/// unsigned ch : 25;` - the four positions this function reads (the `src/xterm.rs` 9899-9910 copy).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! glyphless_bits {
+  (method, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_METHOD_SHIFT) & 0x3) as c_int };
+  (for_no_font, $g:expr) => { ((*$g).u.glyphless.bits & GLYPH_U_GLYPHLESS_FOR_NO_FONT) != 0 };
+  (len, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_LEN_SHIFT) & 0xf) as c_int };
+  (ch, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_CH_SHIFT) & 0x1ffffff) as c_int };
+}
+
+/* C 4125-4206.  `static`; only called (C 4516).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_glyphless_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut glyph: *mut glyph = (*s).first_glyph;                          // C 4128
+  let mut char2b: [c_uint; 8] = [0; 8];                                  // C 4129
+  let mut x: c_int;                                                      // C 4130
+  let mut i: c_int;
+  let mut j: c_int;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */                            // C 4132-4133
+  if ! (*s).face.is_null ()                                              // C 4134
+      && face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX         // C 4134
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))              // C 4135
+    { x = (*s).x + max ((*( (*s).face as *mut face )).box_vertical_line_width, 0); }   // C 4136
+  else
+    { x = (*s).x; }                                                      // C 4138
+
+  (*s).char2b = char2b.as_mut_ptr ();                                    // C 4140
+
+  i = 0;                                                                 // C 4142
+  while i < (*s).nchars
+    {
+      /* C 4144-4148's `#ifdef GCC_LINT` pair: the frozen table has `GCC_LINT` 1
+	 (docs/baseline/config 1162; conf_post.h 368 tests it), so the first arm is the text
+	 this target compiles and the `#else` arm is carried under `not gcc_lint`.  */
+      #[cfg (feature = "gcc_lint")]
+      const PACIFY_GCC_BUG_81401: c_int = 1;                             // C 4145
+      #[cfg (not (feature = "gcc_lint"))]
+      const PACIFY_GCC_BUG_81401: c_int = 0;                             // C 4147
+      let mut buf: [c_char; 7 + PACIFY_GCC_BUG_81401 as usize] =
+	[0; 7 + PACIFY_GCC_BUG_81401 as usize];                          // C 4149
+      let mut str: *mut c_char = std::ptr::null_mut ();                   // C 4150
+      let len: c_int = glyphless_bits! (len, glyph);                   // C 4151
+
+      if glyphless_bits! (method, glyph)
+	  == dispextern_unit_names::GLYPHLESS_DISPLAY_ACRONYM             // C 4153
+	{
+	  if len > 0                                                        // C 4155
+	      && CHAR_TABLE_P (Vglyphless_char_display)                     // C 4156
+	      && (CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (Vglyphless_char_display))
+		  >= 1)                                                     // C 4157-4158
+	    {
+	      let mut acronym: Lisp_Object
+		= if ! glyphless_bits! (for_no_font, glyph)               // C 4160-4161
+		  { CHAR_TABLE_REF (Vglyphless_char_display,
+				    glyphless_bits! (ch, glyph) as isize) }   // C 4162-4163
+		  else { FAM_ELEM! ((*XCHAR_TABLE (Vglyphless_char_display)).extras, 0) };   // C 4164
+	      if CONSP (acronym)                                             // C 4165
+		{ acronym = XCAR (acronym); }                                // C 4166
+	      if STRINGP (acronym)                                           // C 4167
+		{ str = SSDATA (acronym); }                                  // C 4168
+	    }
+	}
+      else if glyphless_bits! (method, glyph)
+	       == dispextern_unit_names::GLYPHLESS_DISPLAY_HEX_CODE        // C 4171
+	{
+	  let ch: c_uint = glyphless_bits! (ch, glyph) as c_uint;         // C 4173
+	  eassume! (ch as c_int <= MAX_CHAR);                                // C 4174
+	  sprintf (buf.as_mut_ptr (), c"%0*X".as_ptr (),                     // C 4175
+		   if ch < 0x10000 { 4 } else { 6 }, ch);
+	  str = buf.as_mut_ptr ();                                           // C 4176
+	}
+
+      if ! str.is_null ()                                                // C 4179
+	{
+	  let upper_len: c_int = (len + 1) / 2;                              // C 4181
+
+	  /* It is assured that all LEN characters in STR is ASCII.  */     // C 4183
+	  j = 0;                                                             // C 4184
+	  while j < len
+	    {
+	      char2b[j as usize]
+		= ((*((*(*s).font).driver as *const font_driver)).encode_char.unwrap ())
+		    ((*s).font, *str.offset (j as isize) as c_int) & 0xFFFF;   // C 4185
+	      j += 1;                                                        // C 4184 (the `for` step)
+	    }
+	  ((*((*(*s).font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, upper_len,                                                // C 4186
+	     x + (*glyph).slice.glyphless.upper_xoff as c_int,               // C 4187
+	     (*s).ybase + (*glyph).slice.glyphless.upper_yoff as c_int,      // C 4188
+	     false);                                                         // C 4189
+	  ((*((*(*s).font).driver as *const font_driver)).draw.unwrap ())
+	    (s, upper_len, len,                                              // C 4190
+	     x + (*glyph).slice.glyphless.lower_xoff as c_int,               // C 4191
+	     (*s).ybase + (*glyph).slice.glyphless.lower_yoff as c_int,      // C 4192
+	     false);                                                         // C 4193
+	}
+      if glyphless_bits! (method, glyph)
+	  != dispextern_unit_names::GLYPHLESS_DISPLAY_THIN_SPACE            // C 4195
+	{
+	  android_draw_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f),         // C 4196
+				  (*s).gc as *mut android_gc, x, (*s).ybase - (*glyph).ascent as c_int,   // C 4197
+				  ((*glyph).pixel_width - 1) as c_uint,          // C 4198
+				  ((*glyph).ascent + (*glyph).descent - 1) as c_uint);   // C 4199
+	}
+      x += (*glyph).pixel_width as c_int;                                 // C 4200
+      glyph = glyph.offset (1);                                           // C 4142 (the `for` step)
+      i += 1;
+   }
+
+  /* Defend against hypothetical bad code elsewhere that uses
+     s->char2b after this function returns.  */                          // C 4203-4204
+  (*s).char2b = std::ptr::null_mut ();                                    // C 4205
+}
+
+/* C 4208-4239: `android_draw_dash`.  C's `struct android_gc_values gcv` is written field by
+   field and passed whole, so it is zero-initialised first (PORTING.md 1.5, the `src/xterm.rs`
+   12645-12697 reading of the same function); C's `&gcv`/`&segment` are the port's `&raw mut`,
+   and the three `android_*` calls are the mirror's (`include/androidgui.rs` 928-948).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_dash (f: *mut frame, s: *mut glyph_string, width: c_int,
+			     mut segment: c_int, offset: c_int, thickness: c_int)
+{
+  let mut gcv: android_gc_values = std::mem::zeroed ();                  // C 4217 (PORTING.md 1.5)
+  let mut y_center: c_int;                                               // C 4218
+
+  /* Configure the GC, the dash pattern and a suitable offset.  */       // C 4220
+  let gc: *mut android_gc = (*s).gc as *mut android_gc;                  // C 4221
+
+  gcv.line_style = ANDROID_LINE_ON_OFF_DASH;                             // C 4223
+  gcv.line_width = thickness;                                            // C 4224
+  android_change_gc ((*s).gc as *mut android_gc, (ANDROID_GC_LINE_STYLE  // C 4225-4226
+						  | ANDROID_GC_LINE_WIDTH),
+		     &raw mut gcv);
+  android_set_dashes ((*s).gc as *mut android_gc, (*s).x, &raw mut segment, 1);   // C 4227
+
+  /* Offset the origin of the line by half the line width. */            // C 4229
+  y_center = (*s).ybase + offset + thickness / 2;                        // C 4230
+  android_draw_line (FRAME_ANDROID_WINDOW! (f), gc,                      // C 4231
+		     (*s).x, y_center, (*s).x + width, y_center);        // C 4232
+
+  /* Restore the initial line style.  */                                 // C 4234
+  gcv.line_style = ANDROID_LINE_SOLID;                                   // C 4235
+  gcv.line_width = 1;                                                    // C 4236
+  android_change_gc ((*s).gc as *mut android_gc, (ANDROID_GC_LINE_STYLE  // C 4237-4238
+						  | ANDROID_GC_LINE_WIDTH),
+		     &raw mut gcv);
+}
+
+/* C 4241-4280: `android_fill_underline`.  C's `switch` is the port's `match` and the
+   `FALLTHROUGH` (lib/attribute.h) from the DOTS arm into the DASHES one is the shared entry
+   stage the two arms carry (PORTING.md 2.2; the `macro-body-notes.tsv` row the `--check` gate
+   asks for is appended by this slice) - the `src/xterm.rs` 12700-12735 and `src/w32term.rs`
+   4083-4120 readings of the same function.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_fill_underline (f: *mut frame, s: *mut glyph_string,
+				  style: face_underline_type, position: c_int,
+				  decoration_width: c_int, thickness: c_int)
+{
+  let mut segment: c_int;                                                // C 4250
+
+  segment = thickness * 3;                                               // C 4252
+
+  match style
+    {
+      /* FACE_UNDERLINE_DOUBLE_LINE is treated identically to SINGLE, as
+	 the second line will be filled by another invocation of this
+	 function.  */                                                    // C 4256-4258
+      FACE_UNDERLINE_SINGLE | FACE_UNDERLINE_DOUBLE_LINE =>              // C 4259-4260
+	{
+	  android_fill_rectangle (FRAME_ANDROID_DRAWABLE! (f),           // C 4261
+				  (*s).gc as *mut android_gc, (*s).x, (*s).ybase + position,   // C 4262
+				  decoration_width as c_uint, thickness as c_uint);   // C 4263
+	}
+
+      FACE_UNDERLINE_DOTS | FACE_UNDERLINE_DASHES =>                     // C 4266-4270
+	{
+	  /* C's `FALLTHROUGH;` (C 4268) sends the DOTS arm on into the DASHES arm's
+	     body, so the one statement below is the entry stage both arms share.  */
+	  if style == FACE_UNDERLINE_DOTS                                // C 4266
+	    { segment = thickness; }                                     // C 4267
+	  android_draw_dash (f, s, decoration_width, segment, position,  // C 4271
+			     thickness);                                 // C 4272
+	}
+
+      FACE_NO_UNDERLINE | FACE_UNDERLINE_WAVE | _ =>                     // C 4275-4277
+	{ emacs_abort (); }                                              // C 4278
+    }
+}
