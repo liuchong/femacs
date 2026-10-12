@@ -3993,11 +3993,44 @@ pub const FACE_BOX_SHIFT: u32 = 0;
 pub const FACE_BOX_MASK: u32 = 0x3;
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const FACE_USE_BOX_COLOR_FOR_SHADOWS_P: u32 = 1 << 5;
+/* The eight members slice 11's `android_draw_glyph_string` reads and this unit had not named
+   yet, at the positions dispextern.h 1893-1935 gives them (the `src/xterm.rs` 9850-9869 row of
+   the same record; `include/dispextern.rs`'s own copy is behind `dispextern_face_records`, so
+   the mirror row is owed - P-26/P-80).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_UNDERLINE_SHIFT: u32 = 2;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_UNDERLINE_MASK: u32 = 0x7;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_OVERLINE_P: u32 = 1 << 6;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_STRIKE_THROUGH_P: u32 = 1 << 7;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_UNDERLINE_DEFAULTED_P: u32 = 1 << 10;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_OVERLINE_COLOR_DEFAULTED_P: u32 = 1 << 11;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P: u32 = 1 << 12;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_UNDERLINE_AT_DESCENT_LINE_P: u32 = 1 << 14;
+
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 macro_rules! face_bits {
   (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
+  (underline, $f:expr) =>
+    { (((*$f).bits & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT) as c_int };
   (use_box_color_for_shadows_p, $f:expr) =>
     { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
+  (overline_p, $f:expr) => { ((*$f).bits & FACE_OVERLINE_P) != 0 };
+  (strike_through_p, $f:expr) => { ((*$f).bits & FACE_STRIKE_THROUGH_P) != 0 };
+  (underline_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_UNDERLINE_DEFAULTED_P) != 0 };
+  (overline_color_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_OVERLINE_COLOR_DEFAULTED_P) != 0 };
+  (strike_through_color_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P) != 0 };
+  (underline_at_descent_line_p, $f:expr) =>
+    { ((*$f).bits & FACE_UNDERLINE_AT_DESCENT_LINE_P) != 0 };
   (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
 }
 
@@ -5123,4 +5156,437 @@ unsafe fn android_fill_underline (f: *mut frame, s: *mut glyph_string,
       FACE_NO_UNDERLINE | FACE_UNDERLINE_WAVE | _ =>                     // C 4275-4277
 	{ emacs_abort (); }                                              // C 4278
     }
+}
+
+/* One name this text needs is not in the frozen mirrors, so it stands at its use site below
+   (P-72 rule 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3638: `extern struct font *font_for_underline_metrics (struct glyph_string
+  /// *);` (xdisp.c)
+  pub fn font_for_underline_metrics (s: *mut glyph_string) -> *mut font;
+}
+
+/* C 4282-4646: `android_draw_glyph_string`.  The three walks C writes as `for` loops keep their
+   bodies and the port's `while` (the `src/xterm.rs` 12751-13163 and `src/haikuterm.rs` 1440-1560
+   readings of the same text); `switch (s->first_glyph->type)` is the port's `match` on the
+   mirror's `glyph_bits!` value with `emacs_abort` for `default:`, `s->first_glyph->u.cmp
+   .automatic` is `glyph_u_cmp_bits!`, and every `bool_bf` member (`for_overlaps`,
+   `background_filled_p`, the face's `underline*`/`overline*`/`strike_through*` family) goes
+   through its accessor.  The underline arithmetic keeps C's `unsigned long` locals and therefore
+   C's conversions and wraps; C 4568's `FRAME_ANDROID_WINDOW` (against 4576's
+   `FRAME_ANDROID_DRAWABLE`) is carried exactly as C writes it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_glyph_string (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+  let mut relief_drawn_p: bool = false;                                 // C 4285
+
+  /* If S draws into the background of its successors, draw the
+     background of the successors first so that S can draw into it.
+     This makes S->next use XDrawString instead of XDrawImageString.  */   // C 4287-4289
+  if ! (*s).next.is_null () && (*s).right_overhang != 0                 // C 4290
+      && glyph_string_bits! (for_overlaps, (*s)) == 0
+    {
+      let mut width: c_int;                                             // C 4292
+      let mut next: *mut glyph_string;                                  // C 4293
+
+      width = 0;                                                        // C 4295
+      next = (*s).next;
+      while ! next.is_null () && width < (*s).right_overhang
+	{
+	  if glyph_bits! (type, (*(*next).first_glyph)) != IMAGE_GLYPH     // C 4298
+	    {
+	      android_set_glyph_string_gc (next);                          // C 4300
+	      android_set_glyph_string_clipping (next);                    // C 4301
+	      if glyph_bits! (type, (*(*next).first_glyph)) == STRETCH_GLYPH   // C 4302
+		{ android_draw_stretch_glyph_string (next); }              // C 4303
+	      else
+		{ android_draw_glyph_string_background (next, true); }     // C 4305
+	      (*next).num_clips = 0;                                       // C 4306
+	    }
+	  width += (*next).width;                                          // C 4297 (the `for` step)
+	  next = (*next).next;
+	}
+    }
+
+  /* Set up S->gc, set clipping and draw S.  */                          // C 4310
+  android_set_glyph_string_gc (s);                                       // C 4311
+
+  /* Draw relief (if any) in advance for char/composition so that the
+     glyph string can be drawn over it.  */                             // C 4313-4314
+  if glyph_string_bits! (for_overlaps, (*s)) == 0                       // C 4315
+      && face_bits! (box, face) != FACE_NO_BOX                          // C 4316
+      && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH         // C 4317
+	  || glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH)   // C 4318
+
+    {
+      android_set_glyph_string_clipping (s);                            // C 4321
+      android_draw_glyph_string_background (s, true);                   // C 4322
+      android_draw_glyph_string_box (s);                                // C 4323
+      android_set_glyph_string_clipping (s);                            // C 4324
+      relief_drawn_p = true;                                            // C 4325
+    }
+  else if (*s).clip_head.is_null () /* draw_glyphs didn't specify a clip mask. */   // C 4327
+	   && (*s).clip_tail.is_null ()                                 // C 4328
+	   && ((! (*s).prev.is_null () && (*((*s).prev)).hl != (*s).hl   // C 4329
+		&& (*s).left_overhang != 0)
+	       || (! (*s).next.is_null () && (*((*s).next)).hl != (*s).hl   // C 4330
+		   && (*s).right_overhang != 0))
+    /* We must clip just this glyph.  left_overhang part has already
+       drawn when s->prev was drawn, and right_overhang part will be
+       drawn later when s->next is drawn. */                            // C 4331-4333
+    { android_set_glyph_string_clipping_exactly (s, s); }               // C 4334
+  else
+    { android_set_glyph_string_clipping (s); }                          // C 4336
+
+  match glyph_bits! (type, (*(*s).first_glyph))                         // C 4338
+    {
+      IMAGE_GLYPH =>                                                    // C 4340
+	{ android_draw_image_glyph_string (s); }                        // C 4341
+
+      XWIDGET_GLYPH =>                                                  // C 4344
+	{ emacs_abort (); }                                             // C 4345
+
+      STRETCH_GLYPH =>                                                  // C 4348
+	{ android_draw_stretch_glyph_string (s); }                      // C 4349
+
+      CHAR_GLYPH =>                                                     // C 4352
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0                // C 4353
+	    { glyph_string_bits! (background_filled_p, (*s), true); }    // C 4354
+	  else
+	    { android_draw_glyph_string_background (s, false); }         // C 4356
+	  android_draw_glyph_string_foreground (s);                      // C 4357
+	}
+
+      COMPOSITE_GLYPH =>                                                // C 4360
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0                // C 4361
+	      || ((*s).cmp_from > 0
+		  && ! glyph_u_cmp_bits! (automatic, (*s).first_glyph))    // C 4362
+	    { glyph_string_bits! (background_filled_p, (*s), true); }    // C 4363
+	  else
+	    { android_draw_glyph_string_background (s, true); }          // C 4365
+	  android_draw_composite_glyph_string_foreground (s);            // C 4366
+	}
+
+      GLYPHLESS_GLYPH =>                                                // C 4369
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0                // C 4370
+	    { glyph_string_bits! (background_filled_p, (*s), true); }    // C 4371
+	  else
+	    { android_draw_glyph_string_background (s, true); }          // C 4373
+	  android_draw_glyphless_glyph_string_foreground (s);            // C 4374
+	}
+
+      _ =>                                                              // C 4377
+	{ emacs_abort (); }                                             // C 4378
+    }
+
+  if glyph_string_bits! (for_overlaps, (*s)) == 0                       // C 4381
+    {
+      /* C leaves these four uninitialised until `window_box` writes them through their
+	 addresses; the port gives them a value because `&raw mut` needs an initialised place
+	 (the C 3931 `scale_x`/`scale_y` device above).  */
+      let mut area_x: c_int = 0;                                        // C 4383
+      let mut area_y: c_int = 0;
+      let mut area_width: c_int = 0;
+      let mut area_height: c_int = 0;
+      let mut area_max_x: c_int;                                        // C 4384
+      let mut decoration_width: c_int;
+
+      /* Prevent the underline from overwriting surrounding areas
+	 and the fringe.  */                                            // C 4386-4387
+      window_box ((*s).w, (*s).area, &raw mut area_x, &raw mut area_y,   // C 4388
+		  &raw mut area_width, &raw mut area_height);
+      area_max_x = area_x + area_width - 1;                             // C 4390
+
+      decoration_width = (*s).width;                                    // C 4392
+      if ! glyph_row_bits! (mode_line_p, (*s).row)                       // C 4393
+	  && ! glyph_row_bits! (tab_line_p, (*s).row)                    // C 4394
+	  && area_max_x < ((*s).x + decoration_width - 1)                // C 4395
+	{ decoration_width -= ((*s).x + decoration_width - 1) - area_max_x; }   // C 4396
+
+      /* Draw relief if not yet drawn.  */                              // C 4398
+      if ! relief_drawn_p && face_bits! (box, face) != FACE_NO_BOX       // C 4399
+	{ android_draw_glyph_string_box (s); }                          // C 4400
+
+      /* Draw underline.  */                                           // C 4402
+      if face_bits! (underline, face) != 0                              // C 4403
+	{
+	  if face_bits! (underline, face) == FACE_UNDERLINE_WAVE          // C 4405
+	    {
+	      if face_bits! (underline_defaulted_p, face)                 // C 4407
+		{ android_draw_underwave (s, decoration_width); }         // C 4408
+	      else
+		{
+		  let mut xgcv: android_gc_values = std::mem::zeroed ();    // C 4411
+		  android_get_gc_values ((*s).gc as *mut android_gc,       // C 4412
+					 ANDROID_GC_FOREGROUND, &raw mut xgcv);
+		  android_set_foreground ((*s).gc as *mut android_gc, (*face).underline_color);   // C 4413
+		  android_draw_underwave (s, decoration_width);           // C 4414
+		  android_set_foreground ((*s).gc as *mut android_gc, xgcv.foreground);   // C 4415
+		}
+	    }
+	  else if face_bits! (underline, face) >= FACE_UNDERLINE_SINGLE    // C 4418
+	    {
+	      let mut thickness: c_ulong;                                  // C 4420
+	      let mut position: c_ulong;
+
+	      if ! (*s).prev.is_null ()                                    // C 4422
+		  && (face_bits! (underline, (*((*s).prev)).face as *mut face)   // C 4423
+		      != FACE_UNDERLINE_WAVE
+		      && face_bits! (underline, (*((*s).prev)).face as *mut face)   // C 4424
+			 >= FACE_UNDERLINE_SINGLE)
+		  && (face_bits! (underline_at_descent_line_p,             // C 4425
+				  (*((*s).prev)).face as *mut face)
+		      == face_bits! (underline_at_descent_line_p, face))   // C 4426
+		  && ((*( (*((*s).prev)).face as *mut face )).underline_pixels_above_descent_line   // C 4427
+		      == (*face).underline_pixels_above_descent_line)      // C 4428
+		{
+		  /* We use the same underline style as the previous one.  */   // C 4430
+		  thickness = (*(*s).prev).underline_thickness as c_ulong;   // C 4431
+		  position = (*(*s).prev).underline_position as c_ulong;   // C 4432
+		}
+	      else
+		{
+		  let font: *mut font = font_for_underline_metrics (s);     // C 4436
+		  let mut minimum_offset: c_ulong;                          // C 4437
+		  let mut underline_at_descent_line: bool;                  // C 4438
+		  let mut use_underline_position_properties: bool;          // C 4439
+		  let mut val: Lisp_Object = (WINDOW_BUFFER_LOCAL_VALUE     // C 4440-4441
+					      (Qunderline_minimum_offset (), (*s).w));
+
+		  if FIXNUMP (val)                                          // C 4443
+		    { minimum_offset = max (0, XFIXNUM (val)) as c_ulong; }   // C 4444
+		  else
+		    { minimum_offset = 1; }                                 // C 4446
+
+		  val = (WINDOW_BUFFER_LOCAL_VALUE                          // C 4448-4449
+			 (Qx_underline_at_descent_line (), (*s).w));
+		  underline_at_descent_line
+		    = (! (NILP (val) || BASE_EQ (val, Qunbound ()))          // C 4451
+		       || face_bits! (underline_at_descent_line_p, face));   // C 4452
+
+		  val = (WINDOW_BUFFER_LOCAL_VALUE                          // C 4454-4455
+			 (Qx_use_underline_position_properties (), (*s).w));
+		  use_underline_position_properties
+		    = ! (NILP (val) || BASE_EQ (val, Qunbound ()));          // C 4457
+
+		  /* Get the underline thickness.  Default is 1 pixel.  */   // C 4459
+		  if ! font.is_null () && (*font).underline_thickness > 0    // C 4460
+		    { thickness = (*font).underline_thickness as c_ulong; }   // C 4461
+		  else
+		    { thickness = 1; }                                       // C 4463
+		  if underline_at_descent_line                              // C 4464
+		    {
+		      position = (((*s).height) as c_ulong).wrapping_sub (thickness)   // C 4465
+				 .wrapping_sub (((*s).ybase - (*s).y) as c_ulong)   // C 4466
+				 .wrapping_sub ((*face).underline_pixels_above_descent_line   // C 4467
+						as c_ulong);
+		    }
+		  else
+		    {
+		      /* Get the underline position.  This is the
+			 recommended vertical offset in pixels from
+			 the baseline to the top of the underline.
+			 This is a signed value according to the
+			 specs, and its default is
+
+			 ROUND ((maximum descent) / 2), with
+			 ROUND(x) = floor (x + 0.5)  */                  // C 4470-4477
+
+		      if use_underline_position_properties                  // C 4479
+			  && ! font.is_null () && (*font).underline_position >= 0   // C 4480
+			{ position = (*font).underline_position as c_ulong; }   // C 4481
+		      else if ! font.is_null ()                             // C 4482
+			{ position = (((*font).descent + 1) / 2) as c_ulong; }   // C 4483
+		      else
+			{ position = minimum_offset; }                      // C 4485
+		    }
+
+		  /* Ignore minimum_offset if the amount of pixels was
+		     explicitly specified.  */                              // C 4488-4489
+		  if (*face).underline_pixels_above_descent_line == 0       // C 4490
+		    { position = max (position as isize, minimum_offset as isize) as c_ulong; }   // C 4491
+		}
+	      /* Check the sanity of thickness and position.  We should
+		 avoid drawing underline out of the current line area.  */   // C 4493-4494
+	      if (((*s).y + (*s).height) as c_ulong)
+		  <= ((*s).ybase as c_ulong).wrapping_add (position)        // C 4495
+		{ position = (((*s).height - 1) - ((*s).ybase - (*s).y)) as c_ulong; }   // C 4496
+	      if (((*s).y + (*s).height) as c_ulong)
+		  < ((*s).ybase as c_ulong).wrapping_add (position).wrapping_add (thickness)   // C 4497
+		{
+		  thickness = (((*s).y + (*s).height) as c_ulong)         // C 4498
+			      .wrapping_sub ((*s).ybase as c_ulong + position);
+		}
+	      (*s).underline_thickness = thickness as c_int;              // C 4499
+	      (*s).underline_position = position as c_int;                // C 4500
+
+	      {
+		let mut xgcv: android_gc_values = std::mem::zeroed ();     // C 4503
+
+		if ! face_bits! (underline_defaulted_p, face)             // C 4505
+		  {
+		    android_get_gc_values ((*s).gc as *mut android_gc,     // C 4507
+					   ANDROID_GC_FOREGROUND, &raw mut xgcv);
+		    android_set_foreground ((*s).gc as *mut android_gc, (*face).underline_color);   // C 4508
+		  }
+
+		android_fill_underline ((*s).f, s, face_bits! (underline, face),   // C 4511
+					position as c_int, decoration_width,    // C 4512
+					thickness as c_int);                    // C 4513
+
+		/* Place a second underline above the first if this was
+		   requested in the face specification.  */               // C 4515-4516
+
+		if face_bits! (underline, face) == FACE_UNDERLINE_DOUBLE_LINE   // C 4518
+		  {
+		    /* Compute the position of the second underline.  */    // C 4520
+		    position = position.wrapping_sub (thickness).wrapping_sub (1);   // C 4521
+		    android_fill_underline ((*s).f, s, face_bits! (underline, face),   // C 4522
+					    position as c_int, decoration_width,   // C 4523
+					    thickness as c_int);        // C 4524
+		  }
+
+		if ! face_bits! (underline_defaulted_p, face)             // C 4527
+		  { android_set_foreground ((*s).gc as *mut android_gc, xgcv.foreground); }   // C 4528
+	      }
+	    }
+	}
+      /* Draw overline.  */                                            // C 4532
+      if face_bits! (overline_p, face)                                 // C 4533
+	{
+	  let dy: c_ulong = 0;                                              // C 4535
+	  let h: c_ulong = 1;
+
+	  if face_bits! (overline_color_defaulted_p, face)                 // C 4537
+	    {
+	      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f),     // C 4538
+				      (*s).gc as *mut android_gc, (*s).x,   // C 4539
+				      ((*s).y as c_ulong + dy) as c_int,
+				      decoration_width as c_uint, h as c_uint);   // C 4540
+	    }
+	  else
+	    {
+	      let mut xgcv: android_gc_values = std::mem::zeroed ();       // C 4543
+	      android_get_gc_values ((*s).gc as *mut android_gc,           // C 4544
+				     ANDROID_GC_FOREGROUND, &raw mut xgcv);
+	      android_set_foreground ((*s).gc as *mut android_gc, (*face).overline_color);   // C 4545
+	      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc,   // C 4546
+				      (*s).x, ((*s).y as c_ulong + dy) as c_int,   // C 4547
+				      decoration_width as c_uint, h as c_uint);
+	      android_set_foreground ((*s).gc as *mut android_gc, xgcv.foreground);   // C 4548
+	    }
+	}
+
+      /* Draw strike-through.  */                                      // C 4552
+      if face_bits! (strike_through_p, face)                            // C 4553
+	{
+	  /* Y-coordinate and height of the glyph string's first
+	     glyph.  We cannot use s->y and s->height because those
+	     could be larger if there are taller display elements
+	     (e.g., characters displayed with a larger font) in the
+	     same glyph row.  */                                          // C 4555-4559
+	  let glyph_y: c_int = (*s).ybase - (*((*s).first_glyph)).ascent as c_int;   // C 4560
+	  let glyph_height: c_int = (*((*s).first_glyph)).ascent as c_int   // C 4561
+				    + (*((*s).first_glyph)).descent as c_int;
+	  /* Strike-through width and offset from the glyph string's
+	     top edge.  */                                              // C 4562-4563
+	  let h: c_ulong = 1;                                              // C 4564
+	  let dy: c_ulong = ((glyph_height as c_ulong).wrapping_sub (h)) / 2;   // C 4565
+
+	  if face_bits! (strike_through_color_defaulted_p, face)           // C 4567
+	    {
+	      android_fill_rectangle (FRAME_ANDROID_WINDOW! ((*s).f),      // C 4568
+				      (*s).gc as *mut android_gc, (*s).x,   // C 4569
+				      ((glyph_y as c_ulong + dy) as c_int),
+				      (*s).width as c_uint, h as c_uint);   // C 4570
+	    }
+	  else
+	    {
+	      let mut xgcv: android_gc_values = std::mem::zeroed ();       // C 4573
+	      android_get_gc_values ((*s).gc as *mut android_gc,           // C 4574
+				     ANDROID_GC_FOREGROUND, &raw mut xgcv);
+	      android_set_foreground ((*s).gc as *mut android_gc, (*face).strike_through_color);   // C 4575
+	      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc,   // C 4576
+				      (*s).x, ((glyph_y as c_ulong + dy) as c_int),   // C 4577
+				      decoration_width as c_uint, h as c_uint);   // C 4578
+	      android_set_foreground ((*s).gc as *mut android_gc, xgcv.foreground);   // C 4579
+	    }
+	}
+
+      if ! (*s).prev.is_null ()                                        // C 4583
+	{
+	  let mut prev: *mut glyph_string;                                 // C 4585
+
+	  prev = (*s).prev;                                                // C 4587
+	  while ! prev.is_null ()
+	    {
+	      if (*prev).hl != (*s).hl                                    // C 4588
+		  && (*prev).x + (*prev).width + (*prev).right_overhang > (*s).x   // C 4589
+		{
+		  /* As prev was drawn while clipped to its own area, we
+		     must draw the right_overhang part using s->hl now.  */   // C 4591-4592
+		  let save: draw_glyphs_face = (*prev).hl;                 // C 4593
+
+		  (*prev).hl = (*s).hl;                                    // C 4595
+		  android_set_glyph_string_gc (prev);                      // C 4596
+		  android_set_glyph_string_clipping_exactly (s, prev);     // C 4597
+		  if glyph_bits! (type, (*(*prev).first_glyph)) == CHAR_GLYPH   // C 4598
+		    { android_draw_glyph_string_foreground (prev); }       // C 4599
+		  else
+		    { android_draw_composite_glyph_string_foreground (prev); }   // C 4601
+		  android_reset_clip_rectangles ((*prev).f, (*prev).gc as *mut android_gc);   // C 4602
+		  (*prev).hl = save;                                       // C 4603
+		  (*prev).num_clips = 0;                                   // C 4604
+		}
+	      prev = (*prev).prev;                                         // C 4587 (the `for` step)
+	    }
+	}
+
+      if ! (*s).next.is_null ()                                        // C 4608
+	{
+	  let mut next: *mut glyph_string;                                 // C 4610
+
+	  next = (*s).next;                                                // C 4612
+	  while ! next.is_null ()
+	    {
+	      if (*next).hl != (*s).hl                                    // C 4613
+		  && (*next).x - (*next).left_overhang < (*s).x + (*s).width   // C 4614
+		{
+		  /* As next will be drawn while clipped to its own area,
+		     we must draw the left_overhang part using s->hl now.  */   // C 4616-4617
+		  let save: draw_glyphs_face = (*next).hl;                 // C 4618
+
+		  (*next).hl = (*s).hl;                                    // C 4620
+		  android_set_glyph_string_gc (next);                      // C 4621
+		  android_set_glyph_string_clipping_exactly (s, next);     // C 4622
+		  if glyph_bits! (type, (*(*next).first_glyph)) == CHAR_GLYPH   // C 4623
+		    { android_draw_glyph_string_foreground (next); }       // C 4624
+		  else
+		    { android_draw_composite_glyph_string_foreground (next); }   // C 4626
+		  android_reset_clip_rectangles ((*next).f, (*next).gc as *mut android_gc);   // C 4627
+		  (*next).hl = save;                                       // C 4628
+		  (*next).num_clips = 0;                                   // C 4629
+		  (*next).clip_head = (*s).next;                           // C 4630
+		}
+	      next = (*next).next;                                         // C 4612 (the `for` step)
+	    }
+	}
+    }
+
+  /* Reset clipping.  */                                               // C 4635
+  android_reset_clip_rectangles ((*s).f, (*s).gc as *mut android_gc);   // C 4636
+  (*s).num_clips = 0;                                                   // C 4637
+
+  /* Set the stippled flag that tells redisplay whether or not a
+     stipple was actually draw.  */                                    // C 4639-4640
+
+  if glyph_bits! (type, (*(*s).first_glyph)) != STRETCH_GLYPH           // C 4642
+      && glyph_bits! (type, (*(*s).first_glyph)) != IMAGE_GLYPH         // C 4643
+      && ! glyph_row_bits! (stipple_p, (*s).row)                        // C 4644
+    { glyph_row_bits! (stipple_p, (*s).row, glyph_string_bits! (stippled_p, (*s))); }   // C 4645
 }

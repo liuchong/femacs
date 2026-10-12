@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**5,126 lines**, md5
-> `6c3a2851b6ef8ff9ffb4932804b9dab2`), carrying **C 1-4280**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**5,592 lines**, md5
+> `747fb9d9664403ce4d02c22c969b19c7`), carrying **C 1-4646**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -19,7 +19,8 @@
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
-> `android_draw_glyph_string`, C 4283).
+the redisplay interface's dispatcher is past this
+> slice, C 4649's `android_define_frame_cursor`).
 
 ## Gate mapping
 
@@ -162,7 +163,8 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 4125-4206 | C 4125's `static void` and `android_draw_glyphless_glyph_string_foreground` | real arm (slice 10) |
 | 4208-4239 | C 4208-4210's comment and `android_draw_dash` | real arm (slice 10) |
 | 4241-4280 | C 4241-4243's comment and `android_fill_underline` (C 4268's `FALLTHROUGH`) | real arm (slice 10) |
-| 4282-7117 | **the remainder of the file** - from C 4282's `static void` above `android_draw_glyph_string` (C 4283) to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4282-4646 | C 4282's `static void` and `android_draw_glyph_string` (C 4338-4379's `switch`, the underline/overline/strike-through arithmetic, C 4568's `FRAME_ANDROID_WINDOW`) | real arm (slice 11) |
+| 4648-7117 | **the remainder of the file** - from C 4648's `static void` above `android_define_frame_cursor` (C 4649) to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -358,10 +360,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 4282-7117.**  Slice 10 wrote C 4125-4280 (the glyphless
-   foreground, the dash and the underline fill), so the next slice's rows must replace this table's
-   last row; its first definition is `android_draw_glyph_string` (C 4283), the redisplay
-   interface's dispatcher.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 4648-7117.**  Slice 11 wrote C 4282-4646 (the redisplay
+   interface's dispatcher), so the next slice's rows must replace this table's last row; its first
+   definition is `android_define_frame_cursor` (C 4649), the first of the redisplay interface's
+   callbacks after the dispatcher.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
@@ -477,6 +479,10 @@ slice's basis).  All 116 are in the owed list below.
    `src/haikuterm.rs` 2071-2076, `src/pgtkterm.rs` 2253-2258, `src/w32font.rs` 1359-1364 and
    `src/haikufont.rs` 1451-1456 each record for theirs.
 
+25. **One use-site declaration** (slice 11): `font_for_underline_metrics` (dispextern.h 3638,
+   `src/xfaces.c`'s).  This unit's include graph reaches dispextern.h's window-system-facing names
+   but not that one, so it stands at its use site (P-72 rule 4) - the Owed 23 family.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -492,8 +498,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-4280 is now ported** (slices 4-10,
-each with its own Evidence section below); C 4282-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-4646 is now ported** (slices 4-11,
+each with its own Evidence section below); C 4648-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -937,3 +943,50 @@ clipping setters.
 - **C 4221's `gc = s->gc;`** is `(*s).gc as *mut android_gc` (the mirror's `glyph_string.gc` is the
   untyped `*mut c_void` field, the third slice's device) and `gcv` is zero-initialised before its
   two fields are written and passed whole (PORTING.md 1.5).
+
+## 2026-10-12: slice 11 (C 4282-4646) - the redisplay interface's dispatcher
+
+`android_draw_glyph_string`, the 366-line function the redisplay interface's `draw_glyph_string`
+member points at.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The first draft's own readings were `font_for_underline_metrics`'s absence from this unit's
+   include graph (a use-site declaration, Owed 25) and C 4383-4384's four `int` locals, which C
+   leaves uninitialised until `window_box` writes them through their addresses and the port must
+   give a value because `&raw mut` needs an initialised place (the C 3931 `scale_x`/`scale_y`
+   device of the ninth slice, both `src/w32term.rs` 1007-1008's shape).
+2. **One `does not mention` row appeared and was discharged in this commit**:
+   `android_draw_glyph_string` → `break,case,cmp,default,switch` (C 4338-4379's `switch` is the
+   port's `match`, C's six `break;` have no counterpart and C 4362's `u.cmp.automatic` is the
+   unit's `glyph_u_cmp_bits! (automatic, …)` name, which does not carry the standalone `cmp`) -
+   the `android_draw_glyph_string` row of `docs/ports/macro-body-notes.tsv`, the
+   `x_draw_glyph_string`/`pgtk_draw_glyph_string`/`haiku_draw_glyph_string` rows' class.
+3. **Inventory**: 37 rows -> **36** - the `missing function` row this slice lands retires, and what
+   stands is the file's 30 remaining definitions (28 live ones past this slice, plus
+   `android_notify_conversion` and `syms_of_androidterm`), the five file-scope objects, and the
+   line-count row, which reads **21.4%** (C 7,117 against the port's 5,592).
+
+### Deviations this slice adds
+
+- **`face_bits!` grows seven arms** (Owed 22's family): `underline` (C 4403-4518's seven-value
+  run), `underline_defaulted_p`, `overline_p`, `overline_color_defaulted_p`, `strike_through_p`,
+  `strike_through_color_defaulted_p` and `underline_at_descent_line_p`, with their eight bit
+  positions (dispextern.h 1893-1935; the `src/xterm.rs` 9850-9869 copies).
+- **C 4383-4384's four uninitialised `int` locals** are `let mut … = 0` here (the `&raw mut`
+  requirement above) and C 4392-4396's arithmetic keeps its `int` types.
+- **The underline arithmetic keeps C's `unsigned long` locals** (`thickness`, `position`,
+  `minimum_offset`, `dy`, `h`), so C 4465-4467/4495-4498/4521's conversions and wraps are the
+  port's `wrapping_sub`/`wrapping_add` chain and C 4491's `max` is the `max (… as isize) as c_ulong`
+  form (the `src/xterm.rs` 12965-12992 reading of the same statements).
+- **C 4568's `FRAME_ANDROID_WINDOW`** (against C 4576's `FRAME_ANDROID_DRAWABLE` for the same
+  rectangle) is carried exactly as C writes it: the two macros are the unit's own
+  (`android_term_output`-side accessors), so the difference is C's and not a port choice.
+- **`android_get_gc_values`/`android_set_foreground`** pair stands in for X's
+  `XGetGCValues`/`XSetForeground` at the three save/restore sites (C 4412-4415, 4507-4508/4528,
+  4544-4548, 4574-4579), with `xgcv` zero-initialised first (PORTING.md 1.5).
+- **`font_for_underline_metrics`** is declared at the use site (Owed 25) and every bitmap
+  `bool_bf` member goes through its accessor (`for_overlaps`, `background_filled_p`,
+  `stippled_p`, and the row's `mode_line_p`/`tab_line_p`/`stipple_p`).
