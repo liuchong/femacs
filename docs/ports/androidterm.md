@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,966 lines**, md5
-> `8cfe3043612bf8f80c42f39f64d3e024`), carrying **C 1-6544**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**8,119 lines**, md5
+> `5efaa05ba9963c23ca4f5217244c0e6a`), carrying **C 1-6658**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -217,7 +217,12 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 6419-6423 | the two diagnostic-`#pragma` pops (text only, carried as C's own) | real arm (slice 23) |
 | 6425-6531 | C 6427-6429's comment and `android_update_selection` (C 6519/6527's `ANDROID_DELETE_LOCAL_REF`) | real arm (slice 24, which replaced this row's `recorded` form) |
 | 6533-6544 | C 6533-6534's comment and `android_event_is_for_frame` | real arm (slice 23) |
-| 6546-7117 | **the remainder of the file** - from C 6546-6547's comment above `android_reset_conversion` (C 6550) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6546-6612 | C 6546-6547's comment and `android_reset_conversion` (C 6591-6601's `switch`) | real arm (slice 25) |
+| 6614-6622 | C 6614-6615's comment and `android_set_point` | real arm (slice 25) |
+| 6624-6631 | C 6624-6625's comment and `android_compose_region_changed` | real arm (slice 25) |
+| 6633-6648 | C 6633's comment and `android_notify_conversion` (the file's last forward reference) | real arm (slice 25) |
+| 6650-6658 | C 6650's comment and `text_conversion_interface` | real arm (slice 25) |
+| 6660-7117 | **the remainder of the file** - from C 6660's blank lines and C 6662's `#endif /* !ANDROID_STUBIFY */` through `android_redisplay_interface` (C 6664), the stub arm's text, `mark_androidterm` (C 7113) and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -416,14 +421,13 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 6546-7117.**  Slice 24 filled the hole slice 23 left
-   (`android_update_selection`, C 6425-6531, was a `recorded` row for one round and is now a real
-   one), so the only remaining range is the tail: its first definition is `android_reset_conversion`
-   (C 6550) and it runs through `android_notify_conversion` (C 6635-6648, the file's last forward
-   reference), the text-conversion interface record (C 6652-6658), `mark_androidterm` and
-   `syms_of_androidterm`, whose definition sits at C 6992; the tail's two
-   `#pragma` pops are C 7110-7116.  C 1761's `android_notify_conversion` (C 6635-6648)
-   is the only forward reference left.
+1. **The remainder of the file: C 6660-7117.**  Slice 25 wrote C 6546-6658 (the four
+   text-conversion callbacks and their interface record) - which **retires the file's last forward
+   reference**, so the arm probe now reads **2 errors** (the two frame-mirror fields, Owed 5) for
+   the first time since slice 1.  The remainder opens with C 6660's blank lines and C 6662's
+   `#endif /* !ANDROID_STUBIFY */`, and its first definition is the `android_redisplay_interface`
+   record (C 6664-6685, whose members are the functions of slices 3-13); after it come the stub
+   arm's text, `mark_androidterm` (C 7113) and the two `#pragma` pops (C 7110-7116).
 2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21, tolerance `0.10`) and
    **re-measured at slice 23** (a newer row, tolerance `0.12`, governs - the table is append-only
    and the newest row per stem wins): C 7,117 against the port's 7,832 is +10.0%, so the 0.10 row
@@ -570,7 +574,9 @@ slice's basis).  All 116 are in the owed list below.
    C 5123-5736's twelve plain `++edit_counter` sites and C 6640's plain read of
    `last_edit_counter` (`if (last_edit_counter < counter)`, with the seq-cst store at C 6641) touch
    the object without the atomic builtin, which the port keeps exactly as C writes it and records
-   here; when C 6635-6648 lands, `__atomic_store_n` joins the helper set.
+   here.  **Slice 25 completed the set**: `__atomic_store_n` joined `__atomic_load_n`, and
+   `sem_getvalue`/`sem_post` joined `sem_timedwait` (the three `<semaphore.h>` entries this file
+   calls).
 
 29. **Seven `invented exported symbol` rows** (slice 15) - the class `docs/ports/androidvfs.md`
    Owed 10 measured, now met by this file: C's `NATIVE_NAME` (`android.h` 344) is a *function-like*
@@ -655,8 +661,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-6544 is now ported** (slices 4-24,
-each with its own Evidence section below); C 6546-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-6658 is now ported** (slices 4-25,
+each with its own Evidence section below); C 6660-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1640,3 +1646,39 @@ ported` row for one round (it sat between that slice's two blocks).
   promotions.
 - **C 6475's `w->ephemeral_last_point`** is the unit's `ephemeral_last_point! (w)` macro (Owed 31),
   and C 6479's `BVAR (b, mark_active)` the mirror's `mark_active_` spelling.
+
+## 2026-10-12: slice 25 (C 6546-6658) - the four text-conversion callbacks and their interface record
+
+`android_reset_conversion`, `android_set_point`, `android_compose_region_changed`,
+**`android_notify_conversion`** and `text_conversion_interface`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm probe now reads 2 errors**: with `android_notify_conversion` (C 6635-6648) landed, the
+   third error the probe has carried since slice 1 - the file's last forward reference - is gone.
+   The two that remain are the frame-mirror window-system fields (`frame.want_fullscreen`,
+   `frame.new_size_p`, Owed 5).  This slice's own readings were the union access (C's `event` is a
+   value here, so `event.ime.operation`, not `(*event)`) and C 6638's `int sval` place.
+2. **Owed 28's helper set is complete**: `__atomic_store_n` joins slice 14's `__atomic_load_n`
+   (PORTING.md §6), and `sem_getvalue`/`sem_post` join `sem_timedwait` - the three
+   `<semaphore.h>` entries this file calls, all at their use sites because the NDK header has no
+   mirror.
+3. **Two checklist readings moved**: `missing function` 11 -> **7** (four callbacks retire; the
+   seven that stand are the redisplay-interface members and `syms_of_androidterm`, all past this
+   slice), the export rows stay 22, and this slice's `does not mention` row
+   (`android_reset_conversion`) was discharged in this commit.
+4. **The tolerance row moved again**: C 7,117 against the port's 8,119 is **14.1%**, past slice
+   23's `0.12`, so a newer `0.16` row was appended (Owed 2's rule).
+
+### Deviations this slice adds
+
+- **`text_conversion_interface.point_changed`** needs the cast the `src/pgtkterm.rs` 5450 row uses:
+  the mirror's field is typed `(*mut frame, *mut c_void, *mut c_void)` (its own `C 42-43` note), and
+  C's `android_set_point` takes `struct window *`/`struct buffer *`.
+- **C 6552-6556's locals** keep C's declarations (`mode` assigned in every branch, `event`
+  zero-initialised for PORTING.md 1.5), and C 6568-6571's `?:` is the port's `if`/`else` expression
+  with the same two `find_symbol_value (Qoverriding_text_conversion_style ())` calls.
+- **C 6591-6601's `switch`** is the port's `match` (the `macro-body-notes.tsv` row this slice
+  appends), and C 6608's flags write goes through the unit's own `FRAME_ANDROID_OUTPUT` accessor.
+- **C 6636's `unsigned long counter`** is `c_ulong` (the mirror's record field), and C 6640's plain
+  `last_edit_counter < counter` read is transcribed as C writes it (the mixing Owed 28 records).

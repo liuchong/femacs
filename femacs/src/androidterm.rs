@@ -7964,3 +7964,156 @@ unsafe fn android_update_selection (f: *mut frame, mut w: *mut window)
 	}
     }
 }
+
+/* C 6546-6658: the text-conversion group's four callbacks and the interface record they fill -
+   `android_reset_conversion`, `android_set_point`, `android_compose_region_changed`,
+   **`android_notify_conversion`** (C 6635-6648: the file's last forward reference, and the reason
+   the arm probe has carried three errors since slice 1) and `text_conversion_interface`
+   (C 6652-6658).  This slice also completes the two helper sets Owed 28 named: the atomic store
+   beside slice 14's load, and `sem_getvalue`/`sem_post` beside `sem_timedwait`.  */
+
+/* C 6636's `__atomic_store_n (&last_edit_counter, counter, __ATOMIC_SEQ_CST)` - the store half of
+   slice 14's helper (PORTING.md §6: the same object, the same memory order).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn __atomic_store_n (p: *mut c_ulong, v: c_ulong, order: core::sync::atomic::Ordering)
+{
+  (*(p as *mut core::sync::atomic::AtomicU64)).store (v, order)          // C 6641-6642
+}
+
+/* The two `<semaphore.h>` entries C 6644/6647 calls (the `sem_timedwait` declaration of slice 14
+   is above).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /* int sem_getvalue (sem_t *, int *);  */
+  pub fn sem_getvalue (sem: *mut sem_t, sval: *mut c_int) -> c_int;
+  /* int sem_post (sem_t *);  */
+  pub fn sem_post (sem: *mut sem_t) -> c_int;
+}
+
+/* Notice that the input method connection to F should be reset as a
+   result of a change to its contents.  */                           // C 6546-6547
+
+/* C 6549-6612.  `static` and the *address is taken* (C 6654), so `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_reset_conversion (f: *mut frame)
+{
+  let mut mode: android_ic_mode;                                        // C 6552
+  let mut w: *mut window;                                               // C 6553
+  let mut buffer: *mut buffer;                                          // C 6554
+  let mut style: Lisp_Object;                                           // C 6555
+  let mut event: android_event = std::mem::zeroed ();                   // C 6556 (PORTING.md 1.5)
+
+  /* Reset the input method.
+
+     Select an appropriate ``input mode'' based on whether or not the
+     minibuffer window is selected, which in turn affects if ``RET''
+     inserts a newline or sends an editor action Emacs transforms into
+     a key event (refer to `performEditorAction'.)  */                  // C 6558-6563
+
+  w = XWINDOW ((*f).selected_window);                                   // C 6565
+  buffer = XBUFFER (WINDOW_BUFFER (w));                                 // C 6566
+
+  style = if EQ (find_symbol_value (Qoverriding_text_conversion_style ()),   // C 6568
+		 Qlambda ())                                            // C 6569
+    { BVAR! (buffer, text_conversion_style_) }                          // C 6570
+    else { find_symbol_value (Qoverriding_text_conversion_style ()) };   // C 6571
+
+  if NILP (style) || conversion_disabled_p ()                           // C 6573
+    { mode = ANDROID_IC_MODE_NULL; }                                    // C 6574
+  else if EQ (style, Qpassword ())                                      // C 6575
+    { mode = ANDROID_IC_MODE_PASSWORD; }                                // C 6576
+  else if EQ (style, Qaction ()) || EQ ((*f).selected_window,           // C 6577
+						(*f).minibuffer_window)   // C 6578
+    { mode = ANDROID_IC_MODE_ACTION; }                                  // C 6579
+  else
+    { mode = ANDROID_IC_MODE_TEXT; }                                    // C 6581
+
+  /* Remove any existing input method events that apply to FRAME from
+     the event queue.
+
+     There's a small window between this and the call to
+     android_reset_ic between which more events can be generated.  */   // C 6583-6587
+
+  while android_check_if_event (&raw mut event,                          // C 6589
+				Some (android_event_is_for_frame),      // C 6589
+				f as *mut c_void)                       // C 6589
+    {
+      /* C 6591-6601's `switch`: three labels share C's `xfree` body and `default:` is the
+	 empty arm (the `macro-body-notes.tsv` row this slice appends).  */
+      match event.ime.operation
+	{
+	  ANDROID_IME_COMMIT_TEXT
+	    | ANDROID_IME_FINISH_COMPOSING_TEXT                             // C 6593-6595
+	    | ANDROID_IME_SET_COMPOSING_TEXT =>
+	    { xfree (event.ime.text as *mut c_void); }                      // C 6596
+
+	  _ => {}                                                           // C 6599-6600
+	}
+    }
+
+  android_reset_ic (FRAME_ANDROID_WINDOW! (f), mode);                   // C 6604
+
+  /* Clear extracted text flags.  Since the IM has been reinitialized,
+     it should no longer be displaying extracted text.  */              // C 6606-6607
+  (*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)).extracted_text_flags = 0;   // C 6608
+
+  /* Move its selection to the specified position.  */                   // C 6610
+  android_update_selection (f, std::ptr::null_mut ());                  // C 6611
+}
+
+/* Notice that point has moved in the F's selected window's selected
+   buffer.  W is the window, and BUFFER is that buffer.  */            // C 6614-6615
+
+/* C 6617-6622.  `static` and the *address is taken* (C 6655), so `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_set_point (f: *mut frame, w: *mut window, buffer: *mut buffer)
+{
+  android_update_selection (f, w);                                      // C 6621
+}
+
+/* Notice that the composition region on F's old selected window has
+   changed.  */                                                       // C 6624-6625
+
+/* C 6627-6631.  `static` and the *address is taken* (C 6656).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_compose_region_changed (f: *mut frame)
+{
+  android_update_selection (f, XWINDOW ((*f).old_selected_window));     // C 6630
+}
+
+/* Notice that the text conversion has completed.  */                   // C 6633
+
+/* C 6635-6648.  `static` and the *address is taken* (C 6657) - and the file's last forward
+   reference, which the arm probe's third error named from slice 1 until this round.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_notify_conversion (counter: c_ulong)
+{
+  let mut sval: c_int = 0;                                              // C 6638 (the `&raw mut` place)
+
+  if last_edit_counter < counter                                        // C 6640
+    { __atomic_store_n (&raw mut last_edit_counter, counter,            // C 6641
+			__ATOMIC_SEQ_CST); }                            // C 6642
+
+  sem_getvalue (&raw mut edit_sem, &raw mut sval);                      // C 6644
+
+  if sval <= 0                                                          // C 6646
+    { sem_post (&raw mut edit_sem); }                                   // C 6647
+}
+
+/* Android text conversion interface.  */                                // C 6650
+
+/* C 6652-6658: the record itself.  `point_changed`'s mirror field is typed
+   `(*mut frame, *mut c_void, *mut c_void)` (the mirror's own `C 42-43` note), so assigning C's
+   `android_set_point (struct frame *, struct window *, struct buffer *)` needs the cast the
+   `src/pgtkterm.rs` 5450 redisplay-interface row uses.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut text_conversion_interface: textconv_interface =                  // C 6652
+  textconv_interface
+  {
+    reset: Some (android_reset_conversion),                             // C 6654
+    point_changed: Some (unsafe { core::mem::transmute::<*const (),
+			     unsafe extern "C" fn (*mut frame, *mut c_void, *mut c_void)> (
+			       android_set_point as *const ()) }),      // C 6655
+    compose_region_changed: Some (android_compose_region_changed),      // C 6656
+    notify_conversion: Some (android_notify_conversion),                // C 6657
+  };
