@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,727 lines**, md5
-> `8c6e9285899777313c15d9817578dfc2`), carrying **C 1-6356**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,832 lines**, md5
+> `8d49d70cedbe299e12c01f4a268d19ad`), carrying **C 1-6544**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -20,7 +20,7 @@
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
 the next definition is
-> `NATIVE_NAME (takeSnapshot)`, C 6359.
+> `android_reset_conversion`, C 6550.
 
 ## Gate mapping
 
@@ -213,7 +213,11 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 6194-6241 | C 6194-6195's comment and `android_get_surrounding_text` | real arm (slice 22) |
 | 6243-6345 | C 6243-6253's comment and `android_get_surrounding_text_internal` (C 6277's `#if __ANDROID_API__ < 31` pair, C 6266-6267's two function-scope `static`s) | real arm (slice 22) |
 | 6347-6356 | `NATIVE_NAME (getSurroundingText)` | real arm (slice 22) |
-| 6358-7117 | **the remainder of the file** - from C 6358's `JNIEXPORT jobject JNICALL` above `NATIVE_NAME (takeSnapshot)` (C 6359) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6358-6417 | C 6358's `JNIEXPORT jobject JNICALL` and `NATIVE_NAME (takeSnapshot)` (C 6385's `#if __ANDROID_API__ < 33` pair) | real arm (slice 23) |
+| 6419-6423 | the two diagnostic-`#pragma` pops (text only, carried as C's own) | real arm (slice 23) |
+| 6425-6531 | C 6427-6429's comment and `android_update_selection` | **recorded, not ported** (this slice's blocks sit on either side of it; the next slice replaces this row) |
+| 6533-6544 | C 6533-6534's comment and `android_event_is_for_frame` | real arm (slice 23) |
+| 6546-7117 | **the remainder of the file** - from C 6546-6547's comment above `android_reset_conversion` (C 6550) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -412,16 +416,18 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 6358-7117.**  Slice 22 wrote C 6165-6356 (the surrounding-text
-   context, its worker, the class-caching internal helper and the JNI wrapper), so the next slice's
-   rows must replace this table's last row; its first definition is `NATIVE_NAME (takeSnapshot)`
-   (C 6359), and the group runs through the rest of the input-method and text-conversion entries to
-   `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 6425-6531 and C 6546-7117.**  Slice 23 wrote C 6358-6417
+   (`takeSnapshot`), C 6419-6423 (the pragma pops) and C 6533-6544
+   (`android_event_is_for_frame`); the 107-line `android_update_selection` (C 6425-6531) sits
+   *between* two of this slice's blocks, so its row is recorded rather than written and the next
+   slice must replace both that row and the tail's - the table stays contiguous.  The tail's first
+   definition is `android_reset_conversion` (C 6550).  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
-2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21) - `androidterm`,
-   tolerance `0.10`, basis `total`, with the measured reason (C 7,117 vs the port's 7,490 at that
-   round).  This item used to claim a `0.30` row that no round had actually appended; the number
-   above is the one the table now carries, and the row is to be re-measured when the file
+2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21, tolerance `0.10`) and
+   **re-measured at slice 23** (a newer row, tolerance `0.12`, governs - the table is append-only
+   and the newest row per stem wins): C 7,117 against the port's 7,832 is +10.0%, so the 0.10 row
+   had stopped covering the measurement; the row moves with the reading, not ahead of it.  This item
+   used to claim a `0.30` row that no round had ever appended.  Re-measure when the file
    closes.
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
    three `stale` rows) and `docs/port-map.md`'s 11-line figure for this target are both stale now.
@@ -612,7 +618,9 @@ slice's basis).  All 116 are in the owed list below.
    frozen macro table leaves `__ANDROID_API__` undefined, so the reference's own preprocessor takes
    the first arm (an undefined identifier is 0 in `#if`) and the NDK mirror's measured target
    (`aarch64-linux-android24`, `include/jni.rs` 10-12) is API 24 as well - the second arm is P-51
-   dead text for now.  **`tools/feature-coverage.py --write` has not been re-run for it**: that
+   dead text for now.  **Slice 23's C 6385 (`__ANDROID_API__ < 33`) is the second member of the
+   family, `android_api_lt_33`**, carried the same way; both features are unregistered in the table
+   for the reason below.  **`tools/feature-coverage.py --write` has not been re-run for it**: that
    regeneration currently rewrites 125 lines of the table (58 deletions) because other lanes'
    features have drifted since its last run, so registering this one feature is left to whoever
    owns that pass (this slice reverted its own accidental write).  (b) C 6266-6267's two
@@ -637,8 +645,9 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-6356 is now ported** (slices 4-22,
-each with its own Evidence section below); C 6358-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-6417 and C 6533-6544 are now ported** (slices 4-23,
+each with its own Evidence section below), with `android_update_selection` (C 6425-6531) and
+C 6546-7117 recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1550,3 +1559,37 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
   three `(jint) min (…, TYPE_MAXIMUM (jint))` args as `min (…, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint`.
 - **C 6273-6275's class name** is one literal (Rust has no compile-time concatenation), and
   `MARKERP`/`marker_position` are the lisp mirror's and its `other_units` block's.
+
+## 2026-10-12: slice 23 (C 6358-6544) - takeSnapshot, the pragma pops and the frame test
+
+`NATIVE_NAME (takeSnapshot)`, the two diagnostic-`#pragma` pops and
+`android_event_is_for_frame`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The slice's own reading was C 6412's assignment to a *parameter* (`object`), which the port
+   shadows with a local of the same name.
+2. **The tolerance row moved with the measurement**: C 7,117 against the port's 7,832 is **+10.0%**,
+   so slice 21's `0.10` row stopped covering the reading and a newer `0.12` row was appended
+   (Owed 2's item, the `pgtkfns` rule: the row moves with the reading, not ahead of it).  The
+   line-count row is gone again after that append.
+3. **One row is recorded rather than written**: `android_update_selection` (C 6425-6531) sits
+   *between* this slice's blocks (the pragma pops end at C 6423 and `android_event_is_for_frame`
+   starts at C 6533), so the table keeps a `recorded, not ported` row for it and the next slice
+   replaces that row and the tail's.
+4. **Inventory**: `missing function` 13 -> **12** (`android_event_is_for_frame` retires), the export
+   rows rise to **22** (`takeSnapshot`, Owed 29), the file-scope section stays empty, and no new
+   `does not mention` row appeared.
+
+### Deviations this slice adds
+
+- **C 6385's `#if __ANDROID_API__ < 33`** is the second derived API-level feature,
+  `android_api_lt_33` (Owed 33), and C 6366-6367's two function-scope `static`s take the
+  function-local `static mut` shape slice 22 established.
+- **C 6412's assignment to the parameter `object`** is the shadowing local (C never reads the
+  parameter before overwriting it), and C 6415's `(jint) 0` is the port's `0 as jint`.
+- **C 6383-6384 and 6405-6406's class/method names** are one literal each (Rust has no compile-time
+  concatenation), and the two `#pragma` pops are C's own text in the unit's comment, exactly as
+  slice 14 carried the matching pushes.

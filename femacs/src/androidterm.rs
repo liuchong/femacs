@@ -7725,3 +7725,108 @@ pub unsafe extern "C" fn getSurroundingText (env: *mut JNIEnv, object: jobject,
 						after_length, std::ptr::null_mut (),   // C 6355
 						std::ptr::null_mut ());
 }
+
+/* C 6358-6544: `takeSnapshot` (the second `TextSnapshot` class cache), the two
+   diagnostic-`#pragma` pops that close slice 14's pair, and the tiny frame test
+   `android_event_is_for_frame`.  C 6385's `#if __ANDROID_API__ < 33` is the second API-level
+   derived feature of this unit (`android_api_lt_33`, slice 22's `android_api_lt_31` family), and
+   C 6366-6367's two function-scope `static`s take the same function-local `static mut` shape.  */
+
+/* C 6358-6417: `NATIVE_NAME (takeSnapshot)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_takeSnapshot")]
+pub unsafe extern "C" fn takeSnapshot (env: *mut JNIEnv, object: jobject, window: jlong)
+  -> jobject
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 6361
+
+  let mut text: jobject;                                                // C 6363
+  /* C 6364 leaves `start` and `end` to the callee's writes through their addresses (the
+     `scale_x` device of slices 8/12).  */
+  let mut start: ptrdiff_t = 0;                                         // C 6364
+  let mut end: ptrdiff_t = 0;
+
+  static mut class: jclass = std::ptr::null_mut ();                     // C 6366 (tentative, i.e. zero)
+  static mut constructor: jmethodID = std::ptr::null_mut ();            // C 6367
+
+  /* First, obtain the surrounding text and conversion region.  */        // C 6369
+  text = android_get_surrounding_text_internal (env, window, 600, 600,  // C 6370
+						&raw mut start, &raw mut end);   // C 6371
+
+  /* If that fails, return NULL.  */                                    // C 6373
+
+  if text.is_null ()                                                    // C 6375
+    { return std::ptr::null_mut (); }                                   // C 6376
+
+  /* Next, initialize the TextSnapshot class.  */                        // C 6378
+
+  if class.is_null ()                                                   // C 6380
+    {
+      class
+	= ((*(*env)).FindClass.unwrap ()) (env, c"android/view/inputmethod/TextSnapshot".as_ptr ()) as jclass;   // C 6382-6384
+      /* C 6385-6396's `#if __ANDROID_API__ < 33` pair: the same reading as slice 22's
+	 `android_api_lt_31` (the frozen table leaves `__ANDROID_API__` undefined, and the
+	 mirror's measured target is API 24).  */
+      #[cfg (feature = "android_api_lt_33")]
+      {
+	/* If CLASS cannot be found, the version of Android currently
+	   running is too old.  */                                    // C 6386-6387
+
+	if class.is_null ()                                            // C 6389
+	  {
+	    ((*(*env)).ExceptionClear.unwrap ()) (env);                 // C 6391
+	    return std::ptr::null_mut ();                              // C 6392
+	  }
+      }
+      #[cfg (not (feature = "android_api_lt_33"))]
+      { eassert! (! class.is_null ()); }                               // C 6395
+
+      class = ((*(*env)).NewGlobalRef.unwrap ()) (env, class) as jclass;   // C 6398
+      if class.is_null ()                                              // C 6399
+	/* Clear class to prevent a local reference from remaining in
+	   `class'.  */
+	{
+	  class = std::ptr::null_mut ();                                   // C 6402
+	  return class;
+	}
+
+      constructor = ((*(*env)).GetMethodID.unwrap ()) (env, class, c"<init>".as_ptr (),   // C 6404
+						      c"(Landroid/view/inputmethod/SurroundingText;III)V".as_ptr ());   // C 6405-6406
+      eassert! (! constructor.is_null ());                              // C 6407
+    }
+
+  /* Try to create a TextSnapshot object.  */                            // C 6410
+  eassert! (start <= end);                                              // C 6411
+  /* C 6412 assigns C's `jobject object` parameter (never read before this line), so the port
+     shadows the parameter with the local of the same name.  */
+  let object: jobject = ((*(*env)).NewObject.unwrap ()) (env, class, constructor, text,   // C 6412
+					    min (start, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint,   // C 6413
+					    min (end, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint,   // C 6414
+					    0 as jint);                     // C 6415
+  return object;                                                        // C 6416
+}
+
+/* C 6419-6423: the two `#pragma` pops that close the pair slice 14 carried.  C 6419-6420's
+   `#ifdef __clang__` arm is `#pragma clang diagnostic pop` and C 6422's `#else` arm the `#pragma
+   GCC` twin; Rust has no counterpart for either, so the text is C's own in this comment (the
+   `docs/ports/excluded-macros.txt` class, the C 5014-5020 push's other half).  */
+
+/* Tell the input method where the composing region and selection of
+   F's selected window is located.  W should be F's selected window;
+   if it is NULL, then F->selected_window is used in its place.  */    // C 6427-6429
+
+/* Return whether or not EVENT is an input method event destined for
+   the frame (struct frame *) ARG.  */                                 // C 6533-6534
+
+/* C 6536-6544.  `static` and the *address is taken* (the event-dispatch table), so
+   `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_event_is_for_frame (event: *mut android_event, arg: *mut c_void)
+  -> bool
+{
+  let mut f: *mut frame;                                                // C 6539
+
+  f = arg as *mut frame;                                                // C 6541
+  return (*event).r#type == ANDROID_INPUT_METHOD                        // C 6542
+    && (*event).ime.window == FRAME_ANDROID_WINDOW! (f);                // C 6543
+}
