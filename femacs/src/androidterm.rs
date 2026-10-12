@@ -8321,3 +8321,115 @@ pub unsafe extern "C" fn get_keysym_name (keysym: c_int) -> *mut c_char
 
   return &raw mut buffer as *mut c_char;                                // C 6717
 }
+
+/* C 6720-6787: `android_create_terminal`, the ~28 `terminal` hook assignments C 6739-6780 makes.
+   The `terminal` record is the mirror's and types every `struct frame *`/`struct window *` slot
+   `*mut c_void`, so each assignment goes through the tree's `hook!` macro - the
+   `src/pgtkterm.rs` 7032 / `src/haikuterm.rs` 6238 / `src/msdos.rs` 2586 device - whose target
+   type is the field's own.  */
+
+/* C: termhooks.h 964-965: `extern struct terminal *create_terminal (enum output_method,
+   struct redisplay_interface *);` - `src/terminal.rs` 366 defines it; no mirror carries the
+   prototype (the `src/haikuterm.rs` 6244-6246 note).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub fn create_terminal (output_method: output_method, rif: *mut c_void) -> *mut terminal;
+}
+
+/* The tree's hook-slot cast (the `src/pgtkterm.rs` 7032-7036 copy).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! hook {
+  ($target:ty, $f:expr) => { unsafe {
+    let p: *const c_void = $f as *const c_void;
+    std::mem::transmute::<*const c_void, Option<$target>> (p) } };
+}
+
+/* Create a struct terminal, initialize it with the Android specific
+   functions and make DISPLAY->TERMINAL point to it.  */              // C 6722-6723
+
+/* C 6725-6787.  `static`; only called (C 6800) - the address is not taken.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_create_terminal (dpyinfo: *mut android_display_info) -> *mut terminal
+{
+  let terminal: *mut terminal;                                          // C 6728
+
+  terminal = create_terminal (output_android,                           // C 6730
+			      &raw mut android_redisplay_interface as *mut c_void);   // C 6731
+  (*terminal).display_info.android = dpyinfo as *mut c_void;            // C 6732
+  (*dpyinfo).terminal = terminal;                                       // C 6733
+
+  /* kboard is initialized in android_term_init.  */                     // C 6735
+
+  #[cfg (not (feature = "android_stubify"))]
+  {
+    (*terminal).clear_frame_hook = hook! (unsafe extern "C" fn (*mut c_void), android_clear_frame);   // C 6739
+    (*terminal).ring_bell_hook = hook! (unsafe extern "C" fn (*mut c_void), android_ring_bell);   // C 6740
+    (*terminal).toggle_invisible_pointer_hook                           // C 6741-6742
+      = hook! (unsafe extern "C" fn (*mut c_void, bool), android_toggle_invisible_pointer);
+    (*terminal).update_begin_hook = hook! (unsafe extern "C" fn (*mut c_void), android_update_begin);   // C 6743
+    (*terminal).update_end_hook = hook! (unsafe extern "C" fn (*mut c_void), android_update_end);   // C 6744
+    (*terminal).read_socket_hook                                        // C 6745
+      = hook! (unsafe extern "C" fn (*mut terminal, *mut input_event) -> c_int, android_read_socket);
+    (*terminal).frame_up_to_date_hook                                   // C 6746
+      = hook! (unsafe extern "C" fn (*mut c_void), android_frame_up_to_date);
+    (*terminal).buffer_flipping_unblocked_hook                          // C 6747-6748
+      = hook! (unsafe extern "C" fn (*mut c_void), android_buffer_flipping_unblocked_hook);
+    (*terminal).defined_color_hook = hook! (unsafe extern "C" fn (*mut c_void, *const c_char,   // C 6749
+								  *mut Emacs_Color, bool, bool) -> bool,
+					    android_defined_color);
+    (*terminal).query_frame_background_color                            // C 6750-6751
+      = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color), android_query_frame_background_color);
+    (*terminal).query_colors                                            // C 6752
+      = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color, c_int), android_query_colors);
+    (*terminal).mouse_position_hook = hook! (unsafe extern "C" fn (*mut *mut c_void, c_int,   // C 6753
+								   *mut Lisp_Object, *mut scroll_bar_part,
+								   *mut Lisp_Object, *mut Lisp_Object,
+								   *mut Time), android_mouse_position);
+    (*terminal).get_focus_frame = hook! (unsafe extern "C" fn (*mut c_void) -> Lisp_Object,   // C 6754
+					 android_get_focus_frame);
+    (*terminal).focus_frame_hook = hook! (unsafe extern "C" fn (*mut c_void, bool), android_focus_frame);   // C 6755
+    (*terminal).frame_rehighlight_hook                                  // C 6756
+      = hook! (unsafe extern "C" fn (*mut c_void), android_frame_rehighlight_hook);
+    (*terminal).frame_raise_lower_hook                                  // C 6757
+      = hook! (unsafe extern "C" fn (*mut c_void, bool), android_frame_raise_lower);
+    (*terminal).frame_visible_invisible_hook                            // C 6758-6759
+      = hook! (unsafe extern "C" fn (*mut c_void, bool), android_make_frame_visible_invisible);
+    (*terminal).fullscreen_hook = hook! (unsafe extern "C" fn (*mut c_void), android_fullscreen_hook);   // C 6760
+    (*terminal).iconify_frame_hook = hook! (unsafe extern "C" fn (*mut c_void), android_iconify_frame);   // C 6761
+    (*terminal).set_window_size_hook                                    // C 6762
+      = hook! (unsafe extern "C" fn (*mut c_void, bool, c_int, c_int), android_set_window_size);
+    (*terminal).set_window_size_and_position_hook                       // C 6763-6764
+      = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), android_set_window_size_and_position);
+    (*terminal).set_frame_offset_hook                                   // C 6765
+      = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int), android_set_offset);
+    (*terminal).set_frame_alpha_hook = hook! (unsafe extern "C" fn (*mut c_void), android_set_alpha);   // C 6766
+    (*terminal).set_new_font_hook                                       // C 6767
+      = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, c_int) -> Lisp_Object, android_new_font);
+    (*terminal).set_bitmap_icon_hook                                    // C 6768
+      = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object) -> bool, android_bitmap_icon);
+    (*terminal).implicit_set_name_hook                                  // C 6769
+      = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object), android_implicitly_set_name);
+    (*terminal).menu_show_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int,   // C 6770
+							      Lisp_Object, *mut *const c_char) -> Lisp_Object,
+					android_menu_show);
+    (*terminal).popup_dialog_hook                                       // C 6771
+      = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object) -> Lisp_Object,
+	       android_popup_dialog);
+    (*terminal).change_tab_bar_height_hook                              // C 6772
+      = hook! (unsafe extern "C" fn (*mut c_void, c_int), android_change_tab_bar_height);
+    (*terminal).change_tool_bar_height_hook                             // C 6773
+      = hook! (unsafe extern "C" fn (*mut c_void, c_int), android_change_tool_bar_height);
+    (*terminal).set_scroll_bar_default_width_hook                       // C 6774-6775
+      = hook! (unsafe extern "C" fn (*mut c_void), android_set_scroll_bar_default_width);
+    (*terminal).set_scroll_bar_default_height_hook                      // C 6776-6777
+      = hook! (unsafe extern "C" fn (*mut c_void), android_set_scroll_bar_default_height);
+    (*terminal).free_pixmap = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void), android_free_pixmap_hook);   // C 6778
+    (*terminal).delete_frame_hook = hook! (unsafe extern "C" fn (*mut c_void), android_delete_frame);   // C 6779
+    (*terminal).delete_terminal_hook                                    // C 6780
+      = hook! (unsafe extern "C" fn (*mut terminal), android_delete_terminal);
+  }
+  #[cfg (feature = "android_stubify")]
+  { emacs_abort (); }                                                   // C 6783
+
+  return terminal;                                                      // C 6786
+}
