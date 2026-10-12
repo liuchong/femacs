@@ -62,8 +62,13 @@
 > (their callees are the C 7047/7067/7092 definitions, which the port has not reached; C
 > resolves that through its own forward declarations at C 3006-3008, a Rust crate at compile
 > time - see Owed 13).  The slice also adds the `bionic_signal` module that carries the Android
-> arm's `<signal.h>` values for C 3053/3058.  So **3,010 C lines are carried** (in a 3,451-line
-> port, md5 `d7a4542a5633462822fd3741f69f0634`) **except that hole and that blocked row**.  **The
+> arm's `<signal.h>` values for C 3053/3058.  So the carried prefix reaches **C 3071** (in a 3,451-line
+> port, md5 `d7a4542a5633462822fd3741f69f0634`) **except that hole and that blocked row**.  **Slice 13
+> (C 3010-3032 and C 6880-7096, 2026-10-12)** now carries the three one-line deadlock-prevention
+> entries (the blocked row of slice 12) **and** the machinery they call - the three file-scope
+> objects, the seven `__atomic_*`-using functions and the `__func__` log call - so the port
+> carries C 1-3071 (except C 2086-2192) **and** C 6880-7096: 3,179 C lines of 7,594 (in a
+> 3,716-line port, md5 `5123381876e0523241328379dd113639`).  **The
 > next live definition is C 3084's `android_destroy_handle`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
@@ -229,12 +234,14 @@ no `window.h`).
 | 2984 | the blank | real arm (slice 11) |
 | 2985-3002 | `NATIVE_NAME (notifyPixelsChanged)` | real arm (slice 11) |
 | 3003-3008 | C 3003's blank, C 3004's comment and C 3006-3008's three `static void` forward declarations (`android_begin_query`, `android_end_query`, `android_answer_query_spin`) | real arm (slice 12; a forward declaration has no Rust item) |
-| 3010-3032 | `NATIVE_NAME (beginSynchronous)`, `endSynchronous` and `answerQuerySpin` | **blocked** (Owed 13: their three callees are C 7047/7067/7092, not carried yet - C's link-time forward declarations are a Rust compile-time dependency) |
+| 3010-3032 | `NATIVE_NAME (beginSynchronous)`, `endSynchronous` and `answerQuerySpin` (unblocked by the C 6880-7096 region, carried in the same round) | real arm (slice 13) |
 | 3034-3040 | C 3034's form feed, the blank and C 3036-3039's system-thread comment | real arm (slice 12) |
 | 3041-3063 | `NATIVE_NAME (setupSystemThread)` (C's own `(void)` parameter list; C 3053/3058 read the `bionic_signal` values) | real arm (slice 12) |
 | 3065-3069 | the `#pragma clang diagnostic pop` / `#else` / `#pragma GCC diagnostic pop` / `#endif` region | real arm (slice 12; recorded - a pragma has no Rust counterpart) |
 | 3070-3071 | the blank and C 3071's form feed | real arm (slice 12) |
-| 3072-7594 | **the remainder** - from C 3072's blank and C 3073-3079's `/* Java functions called by C. … */` comment (C 3084's `android_destroy_handle`, **the next live definition**) through C 7594's `#endif`: the rest of the JNI entry points, the deadlock-prevention machinery at C 6880-7096 (which unblocks the C 3010-3032 row), the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
+| 3072-6879 | **the remainder, first part** - from C 3072's blank and C 3073-3079's `/* Java functions called by C. … */` comment (C 3084's `android_destroy_handle`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing and window helpers, and C 7519's `#else` stub arm | not this slice |
+| 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
+| 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -583,7 +590,7 @@ readings exist only with `android_api_lt_21` selected.
    moves need `tools/check-all-units.sh` (P-87): until they land, this unit's declarations are the
    only definitions in play.
 
-13. **The deadlock-prevention machinery (C 6880-7096) unblocks the C 3010-3032 row.**  Slice 12's
+13. ✅ **Settled by 4.166 (slice 13)** - the machinery (C 6880-7096) and the C 3010-3032 row landed together.  The original item:  Slice 12's
    three one-line entries call `android_begin_query` (C 7067), `android_end_query` (C 7092) and
    `android_answer_query_spin` (C 7047), whose bodies read `android_servicing_query` (C 6886),
    `android_query_function` (C 6889) and `android_query_context` (C 6892) - the two `missing
@@ -619,14 +626,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-12's C lines (C 1038-2084, C 2194-2253,
-C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002 and
-C 3003-3008 + C 3034-3071) are carried; the **unported** part is C 2086-2192 (blocked on P-05's
-`alloca` decision), C 3010-3032 (blocked on Owed 13's machinery) plus C 3072-7594, and
-`extract-abi.py --check`'s remaining `- missing …` list (115 `missing function` rows, the two
-file-scope objects - `android_servicing_query` and `android_query_context`, both of Owed 13's
-machinery - and the thirty-eight `invented exported symbol` rows of Owed 9) and the 54.6% drift
-are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`getline`, no event, no `select`.  Slices 2-13's C lines (C 1038-2084, C 2194-2253,
+C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
+C 3003-3008 + C 3010-3032 + C 3034-3071 and C 6880-7096) are carried; the **unported** part is
+C 2086-2192 (blocked on P-05's `alloca` decision) and C 3072-6879 + C 7097-7594, and
+`extract-abi.py --check`'s remaining `- missing …` list (108 `missing function` rows, **no
+file-scope object** - slice 12's two rows are definitions now - and the forty-one
+`invented exported symbol` rows of Owed 9) and the 51.1% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1046,3 +1052,52 @@ machinery's.
 - **`pthread_sigmask (...) != 0`** is the port's spelling of C's `if (pthread_sigmask (…))` (the
   `android.rs` 655 shape), and the log call is the `__func__` device of slice 5
   (`let __func__: *const c_char = c"setupSystemThread".as_ptr ();`) with `strerror (*errno ())`.
+
+## 2026-10-12: slice 13 (C 3010-3032 and C 6880-7096) - the deadlock-prevention machinery
+
+`NATIVE_NAME (beginSynchronous)`, `endSynchronous`, `answerQuerySpin`, and the machinery they call:
+the three file-scope objects, `android_before_select`, `android_check_query`,
+`android_check_query_urgent`, `android_answer_query`, `android_answer_query_spin`,
+`android_begin_query` and `android_end_query`.
+
+### Evidence (this slice's readings)
+
+**㉓ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **second** probe: the first read one `E0308` at C 7074-7075 - the
+`__atomic_exchange_n` helper returned the one-byte view's `c_uchar` where C's builtin returns the
+*object's* type (`char old`) - so the helper set was retyped to C's `c_char` values with the view
+kept as a byte; with that, the three entries, the seven functions, the four helpers and the two
+`while`/`.is_none ()` devices all read correctly.
+
+**㉔ The checklist reading.**  `extract-abi.py --check`: `missing function` **115 → 108** - the
+seven machinery definitions retire (a C `static` definition counts; the rule reads the port's
+`r["bodies"]`) - **`missing file-scope object` 2 → 0**, the *first* empty reading this file has had
+(`android_servicing_query` and `android_query_context` are definitions now), the three new
+**`invented exported symbol`** rows bring that count to **41**, there are **0 `does not mention`**,
+**0 `missing macro`** and **0 `missing constant`**, and the line-count row reads **51.1%**
+(C 7,594 against the port's 3,716).
+
+### Deviations this slice adds
+
+- **The `__atomic_*` builtins are the port's byte-width helpers over the same objects** (PORTING.md
+  §8: the same object, the same memory order through `core::sync::atomic`); C's builtins are
+  type-generic and this file applies them to a `char` and a `bool`, both one byte, so
+  `load_n`/`store_n`/`exchange_n`/`clear` are one byte wide with **C's `c_char` values** on the
+  outside (the view is `AtomicU8`) and each use site spells out the pointer it hands them
+  (`&raw mut android_urgent_query as *mut c_uchar`).  The three memory orders C names
+  (`__ATOMIC_ACQUIRE`/`RELEASE`/`ACQ_REL`) are kept under C's own names as `Ordering` constants (the
+  `androidterm.rs` 6163/8057 pair is the same device for its two `c_ulong` objects).
+- **C's function-pointer objects are `Option<unsafe extern "C" fn (*mut c_void)>`** with `None` as
+  the zero (`android_query_function`), a call is `(proc.unwrap ()) (closure)` (the `androidterm.rs`
+  6228 shape), C's `if (!proc)` is `if proc.is_none ()` (the `vm-limit.rs` 157 shape) and C 7081's
+  `eassert (android_query_function != NULL)` is `eassert! (! android_query_function.is_none ())`.
+- **C 7051's `while (!(n = __atomic_load_n (…, __ATOMIC_ACQUIRE)))` is the block-condition `while`**
+  (`while { n = __atomic_load_n (…) as c_int; n == 0 }`; the `androidvfs.rs` 1596 / `buffer.rs` 763
+  shape), with C's `char`-into-`int` promotion spelled out; `eassert (!n)` is `eassert! (n == 0)`.
+- **The three non-`static` definitions carry `#[unsafe(no_mangle)]`** (`android_before_select`,
+  `android_check_query`, `android_check_query_urgent` - the mirror declares all three at
+  `include/android.rs` 316-318, and a definition is not a mirror duplicate), while the four C
+  `static` ones stay plain `unsafe fn` (none has its address taken).
+- **C 7016/7067/7092's `static` functions are called from C 3015/3023/3031 and C 7082**, which is
+  what makes this round's two regions one slice: the entries could not be carried before the
+  machinery (Owed 13, now settled).

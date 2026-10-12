@@ -3377,16 +3377,42 @@ pub unsafe extern "C" fn notifyPixelsChanged (env: *mut JNIEnv, object: jobject,
    whole file, so the three definitions live further down it - the `android_run_select_thread`
    device of C 339 in this same unit.  */
 
-/* C 3010-3032: the three one-line deadlock-prevention entries Java calls on the UI thread -
-   `NATIVE_NAME (beginSynchronous)`, `endSynchronous` and `answerQuerySpin`, each C's `JNIEXPORT
-   void JNICALL` with a one-call body (`android_begin_query ()` / `android_end_query ()` /
-   `android_answer_query_spin ()`).  **Recorded, not carried**: those three callees are the
-   definitions at C 7067/7092/7047, and the port has not reached them yet (they sit in the
-   deadlock-prevention machinery around C 6880-7096, together with the file-scope objects
-   `android_servicing_query`/`android_query_function`/`android_query_context`).  C resolves the
-   dependency at link time through C 3006-3008's forward declarations; a Rust crate resolves it at
-   compile time, so these three entries cannot be carried before the machinery - the ledger's
-   range table records the range as a blocked row and the machinery slice carries both.  */
+/* C 3010-3032: the three one-line deadlock-prevention entries Java calls on the UI thread - each is
+   C's `JNIEXPORT void JNICALL NATIVE_NAME (name) (JNIEnv *env, jobject object)` with a one-call
+   body.  Their callees are the definitions at C 7067/7092/7047, carried by the C 6880-7096 region
+   at the end of this file in the same round: C resolves the dependency through C 3006-3008's
+   forward declarations at link time, a Rust crate at compile time, so the machinery had to land
+   first (the ledger's Owed 13).  */
+
+/* C 3010-3016: `NATIVE_NAME (beginSynchronous)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_beginSynchronous")]
+pub unsafe extern "C" fn beginSynchronous (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 3013
+
+  android_begin_query ();                                               // C 3015
+}
+
+/* C 3018-3024: `NATIVE_NAME (endSynchronous)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_endSynchronous")]
+pub unsafe extern "C" fn endSynchronous (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 3021
+
+  android_end_query ();                                                 // C 3023
+}
+
+/* C 3026-3032: `NATIVE_NAME (answerQuerySpin)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_answerQuerySpin")]
+pub unsafe extern "C" fn answerQuerySpin (env: *mut JNIEnv, object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 3029
+
+  android_answer_query_spin ();                                         // C 3031
+}
 
 /* C 3034-3040: C 3034's form feed, the blank and C 3036-3039's comment `/* System thread setup.
    Android doesn't always block signals Emacs is interested in ...  */`.  */
@@ -3448,4 +3474,243 @@ pub mod bionic_signal {
   pub const SIGBUS: core::ffi::c_int = 7;
   /// bionic `<signal.h>`: `#define SIG_BLOCK 0` (the frozen mirror's Darwin `SIG_BLOCK` is 1).
   pub const SIG_BLOCK: core::ffi::c_int = 0;
+}
+
+/* C 6880-6881: the form feed and the blank.  */
+
+/* C 6882-6892: the deadlock-protection comment is C 6894-6919's; the three file-scope objects it
+   describes come first - C's `static char android_servicing_query;`, `static void
+   (*android_query_function) (void *);` and `static void *android_query_context;`, all tentative
+   definitions, i.e. zero (PORTING.md 1.5).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut android_servicing_query: c_char = 0;                       // C 6886 (tentative, i.e. zero)
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut android_query_function: Option<unsafe extern "C" fn (*mut c_void)> = None;   // C 6889 (tentative)
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut android_query_context: *mut c_void = std::ptr::null_mut ();   // C 6892 (tentative)
+
+/* C 6894-6919: the `/* Deadlock protection. … */` comment (thirteen paragraphs of the file's own
+   prose).  */
+
+/* C 6931 and the eight sites below use the `__atomic_*` builtins (PORTING.md §8/§6: the same
+   object and the same memory order through `core::sync::atomic`).  C's builtins are type-generic;
+   in this file they are applied to `char android_servicing_query` and `bool android_urgent_query`,
+   both one byte wide, so these helpers are the one-byte width (values in C's own `char`
+   type, the view as a byte) and each use site spells out the
+   pointer it hands them (the `femacs/src/androidterm.rs` 6163/8057 pair is the same device for its
+   two `c_ulong` objects).  `__atomic_clear`'s C value is the zero of the object's type, i.e. 0.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const __ATOMIC_ACQUIRE: core::sync::atomic::Ordering = core::sync::atomic::Ordering::Acquire;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const __ATOMIC_RELEASE: core::sync::atomic::Ordering = core::sync::atomic::Ordering::Release;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const __ATOMIC_ACQ_REL: core::sync::atomic::Ordering = core::sync::atomic::Ordering::AcqRel;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn __atomic_load_n (p: *const c_uchar, order: core::sync::atomic::Ordering) -> c_char
+{
+  (*(p as *const core::sync::atomic::AtomicU8)).load (order) as c_char
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn __atomic_store_n (p: *mut c_uchar, v: c_char, order: core::sync::atomic::Ordering)
+{
+  (*(p as *mut core::sync::atomic::AtomicU8)).store (v as c_uchar, order)
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn __atomic_exchange_n (p: *mut c_uchar, v: c_char,
+			       order: core::sync::atomic::Ordering) -> c_char
+{
+  (*(p as *mut core::sync::atomic::AtomicU8)).swap (v as c_uchar, order) as c_char
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn __atomic_clear (p: *mut c_uchar, order: core::sync::atomic::Ordering)
+{
+  (*(p as *mut core::sync::atomic::AtomicU8)).store (0, order)
+}
+
+/* C 6921-6936: `android_before_select` (non-`static`, so `#[unsafe(no_mangle)]`: the mirror
+   declares it at `include/android.rs` 316 and C's own `void android_before_select (void)` is the
+   definition that matches, PORTING.md 0.2).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_before_select ()                     // C 6925-6936
+{
+  /* Since Emacs is reading keyboard input again, signify that queries
+     from input methods are no longer ``urgent''.  */                 // C 6928-6929
+
+  __atomic_clear (&raw mut android_urgent_query as *mut c_uchar,
+		  __ATOMIC_RELEASE);                                   // C 6931
+
+  /* Check for and run anything the UI thread wants to run on the main
+     thread.  */                                                      // C 6933-6934
+
+  android_check_query ();                                              // C 6935
+}
+
+/* C 6938-6967: `android_check_query` (non-`static`; the mirror declares it at
+   `include/android.rs` 317).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_check_query ()                       // C 6941-6967
+{
+  let mut proc: Option<unsafe extern "C" fn (*mut c_void)>;                // C 6944
+  let mut closure: *mut c_void;                                            // C 6945
+
+  /* C leaves both uninitialised (PORTING.md 1.5).  */
+  proc = None;
+  closure = std::ptr::null_mut ();
+
+  if __atomic_load_n (&raw const android_servicing_query as *const c_uchar,
+		      __ATOMIC_ACQUIRE) == 0                          // C 6947
+    { return; }                                                             // C 6948
+
+  /* First, load the procedure and closure.  */                              // C 6950
+  closure = android_query_context;                                          // C 6951
+  proc = android_query_function;                                            // C 6952
+
+  if proc.is_none ()                                                        // C 6954
+    { return; }                                                             // C 6955
+
+  (proc.unwrap ()) (closure);                                               // C 6957
+
+  /* Finish the query.  */                                                  // C 6959
+  android_query_context = std::ptr::null_mut ();                            // C 6960
+  android_query_function = None;                                            // C 6961
+  __atomic_store_n (&raw mut android_servicing_query as *mut c_uchar, 0,
+		    __ATOMIC_RELEASE);                                 // C 6962
+  __atomic_clear (&raw mut android_urgent_query as *mut c_uchar,
+		  __ATOMIC_RELEASE);                                   // C 6963
+
+  /* Signal completion.  */                                                 // C 6965
+  sem_post (&raw mut android_query_sem);                                    // C 6966
+}
+
+/* C 6969-7009: `android_check_query_urgent` (non-`static`; the mirror declares it at
+   `include/android.rs` 318).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_check_query_urgent ()                // C 6976-7009
+{
+  let mut proc: Option<unsafe extern "C" fn (*mut c_void)>;            // C 6979
+  let mut closure: *mut c_void;                                        // C 6980
+
+  /* C leaves both uninitialised (PORTING.md 1.5).  */
+  proc = None;
+  closure = std::ptr::null_mut ();
+
+  if __atomic_load_n (&raw const android_urgent_query as *const c_uchar,
+		      __ATOMIC_ACQUIRE) == 0                          // C 6982
+    { return; }                                                        // C 6983
+
+  let __func__: *const c_char = c"android_check_query_urgent".as_ptr ();
+  __android_log_print (ANDROID_LOG_VERBOSE, __func__,                  // C 6985
+		       c"Responding to urgent query...".as_ptr ());            // C 6986
+
+  if __atomic_load_n (&raw const android_servicing_query as *const c_uchar,
+		      __ATOMIC_ACQUIRE) == 0                          // C 6988
+    { return; }                                                        // C 6989
+
+  /* First, load the procedure and closure.  */                          // C 6991
+  closure = android_query_context;                                      // C 6992
+  proc = android_query_function;                                        // C 6993
+
+  if proc.is_none ()                                                    // C 6995
+    { return; }                                                         // C 6996
+
+  (proc.unwrap ()) (closure);                                           // C 6998
+
+  /* Finish the query.  Don't clear `android_urgent_query'; instead,
+     do that the next time Emacs enters the keyboard loop.  */         // C 7000-7001
+
+  android_query_context = std::ptr::null_mut ();                        // C 7003
+  android_query_function = None;                                        // C 7004
+  __atomic_store_n (&raw mut android_servicing_query as *mut c_uchar, 0,
+		    __ATOMIC_RELEASE);                                 // C 7005
+
+  /* Signal completion.  */                                             // C 7007
+  sem_post (&raw mut android_query_sem);                                // C 7008
+}
+
+/* C 7011-7041: `android_answer_query` (C's `static void`; only called from C 7082).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_answer_query ()                                     // C 7015-7041
+{
+  let mut proc: Option<unsafe extern "C" fn (*mut c_void)>;            // C 7018
+  let mut closure: *mut c_void;                                        // C 7019
+
+  /* C leaves both uninitialised (PORTING.md 1.5).  */
+  proc = None;
+  closure = std::ptr::null_mut ();
+
+  eassert! (__atomic_load_n (&raw const android_servicing_query as *const c_uchar,
+			     __ATOMIC_ACQUIRE) == 1);                  // C 7021-7023
+
+  /* First, load the procedure and closure.  */                          // C 7025
+  closure = android_query_context;                                      // C 7026
+  proc = android_query_function;                                        // C 7027
+
+  if proc.is_none ()                                                    // C 7029
+    { return; }                                                         // C 7030
+
+  (proc.unwrap ()) (closure);                                           // C 7032
+
+  /* Finish the query.  */                                              // C 7034
+  android_query_context = std::ptr::null_mut ();                        // C 7035
+  android_query_function = None;                                        // C 7036
+  __atomic_clear (&raw mut android_urgent_query as *mut c_uchar,
+		  __ATOMIC_RELEASE);                                   // C 7037
+
+  /* Signal completion.  */                                             // C 7039
+  sem_post (&raw mut android_query_sem);                                // C 7040
+}
+
+/* C 7043-7058: `android_answer_query_spin` (C's `static void`; called from C 3031).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_answer_query_spin ()                                // C 7046-7058
+{
+  let mut n: c_int;                                                    // C 7049
+
+  n = 0;                                                               // (C leaves `n` uninitialised; PORTING.md 1.5)
+
+  while { n = __atomic_load_n (&raw const android_servicing_query as *const c_uchar,
+			       __ATOMIC_ACQUIRE) as c_int; n == 0 }         // C 7051-7052
+    { eassert! (n == 0); }                                             // C 7053
+
+  /* Note that this function is supposed to be called before
+     `android_begin_query' starts, so clear the service flag.  */     // C 7055-7056
+  android_check_query ();                                              // C 7057
+}
+
+/* C 7060-7086: `android_begin_query` (C's `static void`; called from C 3015).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_begin_query ()                                      // C 7066-7086
+{
+  let mut old: c_char;                                                 // C 7069
+
+  old = 0;                                                             // (C leaves `old` uninitialised; PORTING.md 1.5)
+
+  /* Load the previous value of `android_servicing_query' and then set
+     it to 2.  */                                                     // C 7071-7072
+
+  old = __atomic_exchange_n (&raw mut android_servicing_query as *mut c_uchar,
+			     2, __ATOMIC_ACQ_REL);                         // C 7074-7075
+
+  /* See if a query was previously in progress.  */                    // C 7077
+  if old == 1                                                          // C 7078
+    {
+      /* Answer the query that is currently being made.  */            // C 7080
+      eassert! (! android_query_function.is_none ());                  // C 7081
+      android_answer_query ();                                         // C 7082
+    }
+
+  /* `android_servicing_query' is now 2.  */                            // C 7085
+}
+
+/* C 7088-7096: `android_end_query` (C's `static void`; called from C 3023).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_end_query ()                                        // C 7091-7096
+{
+  __atomic_store_n (&raw mut android_servicing_query as *mut c_uchar, 0,
+		    __ATOMIC_RELEASE);                                 // C 7094
+  __atomic_clear (&raw mut android_urgent_query as *mut c_uchar,
+		  __ATOMIC_RELEASE);                                   // C 7095
 }
