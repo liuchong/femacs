@@ -2489,6 +2489,10 @@ unsafe extern "C" {
 pub const DT_DIR: c_int = 4;
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const DT_REG: c_int = 8;
+/// C 5617's `DT_UNKNOWN`: the same header's `d_type` value for "not known", measured 0 with this
+/// machine's NDK (the block above's note).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const DT_UNKNOWN: c_int = 0;
 
 /* C 1978/2160's `emacs_installation_time`: android.h 338's `extern struct timespec
    emacs_installation_time;`.  `include/android.rs` 238 carries it, but that mirror is not in
@@ -6514,4 +6518,329 @@ unsafe fn android_saf_tree_opendir_1 (vp: *mut android_saf_tree_vnode) -> jobjec
 
   /* Return the resulting cursor.  */                                  // C 5527
   return cursor;                                                       // C 5528
+}
+
+/* C 5531-5626.  Its address is taken at C 5700, so it is an `unsafe extern "C" fn`.  C 5594's
+   `coding.mode |= CODING_MODE_LAST_BLOCK` is the mirror's bitfield write (the `femacs/src/
+   callproc.rs` 998-1001 spelling: the `coding_system` bitfields are a `bits` word the port packs
+   with the shift/mask constants, PORTING.md 1.3).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_readdir (vdir: *mut android_vdir) -> *mut dirent
+{
+  let mut dir: *mut android_saf_tree_vdir;                             // C 5534
+  static mut dirent: *mut dirent = std::ptr::null_mut ();              // C 5535
+  let mut entry: jobject;                                              // C 5536
+  let mut d_name: jobject;                                             // C 5536
+  let mut d_type: jint;                                                // C 5537
+  let mut method: jmethodID;                                           // C 5538
+  let mut length: size_t;                                              // C 5539
+  let mut size: size_t;                                                // C 5539
+  let mut chars: *const c_char;                                        // C 5540
+  let mut coding: coding_system;                                       // C 5541
+
+  /* C leaves everything but `dir` uninitialised (PORTING.md 1.5); each is assigned before its
+     first read on the path that reads it.  */
+  entry = std::ptr::null_mut ();
+  d_name = std::ptr::null_mut ();
+  d_type = 0;
+  method = std::ptr::null_mut ();
+  length = 0;
+  size = 0;
+  chars = std::ptr::null ();
+  coding = unsafe { std::mem::zeroed () };
+
+  dir = vdir as *mut android_saf_tree_vdir;                            // C 5543
+
+  /* Try to read one entry from the cursor.  */                         // C 5545
+  method = service_class.read_directory_entry;                         // C 5546
+  entry
+    = ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())    // C 5548
+    (android_java_env,                                                 // C 5548
+     emacs_service,                                                    // C 5549
+     service_class.class,                                              // C 5550
+     method, (*dir).cursor);                                           // C 5551
+  android_exception_check ();                                          // C 5552
+
+  /* If ENTRY is NULL, we're at the end of the directory.  */           // C 5554
+
+  if entry.is_null ()                                                  // C 5556
+    {
+      xfree (entry as *mut c_void);                                    // C 5558
+      entry = std::ptr::null_mut ();                                   // C 5559
+      return std::ptr::null_mut ();                                    // C 5560
+    }
+
+  /* Load both fields from ENTRY.  */                                   // C 5563
+  d_name = ((*(*android_java_env)).GetObjectField.unwrap ()) (android_java_env, entry,   // C 5564
+							      entry_class.d_name);   // C 5565
+  if d_name.is_null ()                                                 // C 5566
+    {
+      /* If an error transpires, d_name is set to NULL.  */            // C 5568
+      ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 5569
+      ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, entry);   // C 5570
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+      /* XXX: what would be a better error indication? */              // C 5572
+      *errno () = EIO;                                                 // C 5573
+      return std::ptr::null_mut ();                                    // C 5574
+    }
+
+  /* d_type is 1 if this is a directory, and 0 if it's a regular
+     file.  */                                                         // C 5577-5578
+  d_type = ((*(*android_java_env)).GetIntField.unwrap ()) (android_java_env, entry,   // C 5579
+							   entry_class.d_type);   // C 5580
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, entry);   // C 5581
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* Copy the name of the directory over.  */                           // C 5583
+  chars = ((*(*android_java_env)).GetStringUTFChars.unwrap ())         // C 5584
+    (android_java_env,                                                 // C 5584
+     d_name as jstring,                                                // C 5585
+     std::ptr::null_mut ());                                           // C 5586
+  android_exception_check_nonnull (chars as *mut c_void, d_name);      // C 5587
+
+  /* Decode this JNI string into utf-8-emacs; see
+     android_vfs_convert_name for considerations regarding coding
+     systems.  */                                                      // C 5589-5591
+  length = strlen (chars);                                             // C 5592
+  setup_coding_system (Qandroid_jni (), &raw mut coding);              // C 5593
+  coding.bits = (coding.bits & ! (CODING_SYSTEM_MODE_MASK << CODING_SYSTEM_MODE_SHIFT))
+    | ((CODING_MODE_LAST_BLOCK as u32) << CODING_SYSTEM_MODE_SHIFT);   // C 5594
+  coding.source = chars as *const u8;                                  // C 5595
+  coding.dst_bytes = 0;                                                // C 5596
+  coding.destination = std::ptr::null_mut ();                          // C 5597
+  decode_coding_object (&raw mut coding, Qnil (), 0, 0, length as ptrdiff_t,   // C 5598
+			length as ptrdiff_t, Qnil ());                 // C 5598
+
+  /* Release the string data and the local reference to STRING.  */     // C 5600
+  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ())             // C 5601
+    (android_java_env,                                                 // C 5601
+     d_name as jstring,                                                // C 5602
+     chars);                                                           // C 5603
+
+  /* Resize dirent to accommodate the decoded text.  */                 // C 5605
+  size   = std::mem::offset_of! (dirent, d_name) + 1 + coding.produced as usize;   // C 5606
+  dirent = xrealloc (dirent as *mut c_void, size) as *mut dirent;      // C 5607
+
+  /* Clear dirent.  */                                                 // C 5609
+  memset (dirent as *mut c_void, 0, size);                             // C 5610
+
+  /* Fill in the generic directory information and copy the string
+     over.  */                                                         // C 5612-5613
+  (*dirent).d_ino = 0;                                                 // C 5614
+  (*dirent).d_off = 0;                                                 // C 5615
+  (*dirent).d_reclen = size as c_ushort;                               // C 5616
+  (*dirent).d_type = if d_type != 0 { DT_DIR } else { DT_UNKNOWN } as c_uchar;   // C 5617
+  memcpy ((*dirent).d_name.as_mut_ptr () as *mut c_void,               // C 5618
+	  coding.destination as *const c_void, coding.produced as usize);   // C 5618
+  (*dirent).d_name[coding.produced as usize] = 0;                      // C 5619
+
+  /* Free the coding system destination buffer.  */                     // C 5621
+  xfree (coding.destination as *mut c_void);                           // C 5622
+
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, d_name);   // C 5624
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  return dirent;                                                       // C 5625
+}
+
+/* C 5628-5662.  Its address is taken at C 5701; the `for (next = …; (tem = *next);)` loop is the
+   load-then-test pair.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_closedir (vdir: *mut android_vdir)
+{
+  let mut dir: *mut android_saf_tree_vdir;                             // C 5631
+  let mut next: *mut *mut android_saf_tree_vdir;                       // C 5631
+  let mut tem: *mut android_saf_tree_vdir;                             // C 5631
+
+  dir = vdir as *mut android_saf_tree_vdir;                            // C 5633
+
+  /* dir->name is allocated by asprintf, which uses regular
+     malloc.  */                                                       // C 5635-5636
+  free ((*dir).name as *mut c_void);                                   // C 5637
+
+  /* Yes, DIR->cursor is a local reference.  */                         // C 5639
+  ((*(*android_java_env)).CallVoidMethod.unwrap ()) (android_java_env,   // C 5640
+						     (*dir).cursor,    // C 5641
+						     cursor_class.close);   // C 5642
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 5643
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, (*dir).cursor);   // C 5644
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* If the ``directory file descriptor'' has been opened, close
+     it.  */                                                           // C 5646-5647
+  if (*dir).fd != -1                                                   // C 5648
+    { close ((*dir).fd); }                                             // C 5649
+
+  /* Now unlink this directory.  */                                    // C 5651
+
+  next = &raw mut all_saf_tree_vdirs;                                  // C 5653
+  loop
+    {
+      tem = *next;                                                     // C 5653
+      if tem.is_null ()
+	{ break; }
+      if tem == dir                                                    // C 5655
+	{ *next = (*dir).next; }                                       // C 5656
+      else
+	{ next = &raw mut (**next).next; }                             // C 5658
+    }
+
+  xfree (dir as *mut c_void);                                          // C 5661
+}
+
+/* C 5664-5685.  Its address is taken at C 5702.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_dirfd (vdir: *mut android_vdir) -> c_int
+{
+  let mut dir: *mut android_saf_tree_vdir;                             // C 5667
+
+  dir = vdir as *mut android_saf_tree_vdir;                            // C 5669
+
+  /* Since `android_saf_tree_opendir' tries to avoid opening a file
+     descriptor if readdir isn't called, dirfd can fail if open fails.
+
+     open sets errno to a set of errors different from what POSIX
+     stipulates for dirfd, but for ease of implementation the open
+     errors are used instead.  */                                      // C 5671-5676
+
+  if (*dir).fd >= 0                                                    // C 5678
+    { return (*dir).fd; }                                              // C 5679
+
+  (*dir).fd = open (c"/dev/null".as_ptr (), O_RDONLY | O_CLOEXEC);     // C 5681
+  return (*dir).fd;                                                    // C 5682
+}
+
+/* C 5686-5759.  Its address is taken at C 4768, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_tree_opendir (vnode: *mut android_vnode) -> *mut android_vdir
+{
+  let mut vp: *mut android_saf_tree_vnode;                             // C 5688
+  let mut dir: *mut android_saf_tree_vdir;                             // C 5689
+  let mut fill: *mut c_char;                                           // C 5690
+  let mut end: *mut c_char;                                            // C 5690
+  let mut cursor: jobject;                                             // C 5691
+  let mut component: [c_char; EMACS_PATH_MAX as usize] = [0; EMACS_PATH_MAX as usize];   // C 5692
+
+  /* C leaves `vp`, `dir`, `fill`, `end` and `cursor` uninitialised (PORTING.md 1.5); each is
+     assigned before its first read on the path that reads it.  */
+  vp = std::ptr::null_mut ();
+  dir = std::ptr::null_mut ();
+  fill = std::ptr::null_mut ();
+  end = std::ptr::null_mut ();
+  cursor = std::ptr::null_mut ();
+
+  vp = vnode as *mut android_saf_tree_vnode;                           // C 5694
+
+  /* First, fill the directory stream with the right functions and
+     file name.  */                                                    // C 5696-5697
+
+  dir = xmalloc (std::mem::size_of::<android_saf_tree_vdir> ()) as *mut android_saf_tree_vdir;   // C 5699
+  (*dir).vdir.readdir
+    = Some (std::mem::transmute::<unsafe extern "C" fn (*mut android_vdir) -> *mut dirent,
+				  unsafe extern "C" fn (*mut android_vdir) -> *mut c_void>
+	    (android_saf_tree_readdir));                               // C 5700
+  (*dir).vdir.closedir = Some (android_saf_tree_closedir);             // C 5701
+  (*dir).vdir.dirfd = Some (android_saf_tree_dirfd);                   // C 5702
+
+  /* Derive the authority from the URI.  */                             // C 5704
+
+  fill = (*vp).tree_uri as *mut c_char;                                // C 5706
+
+  if strncmp (fill, c"content://".as_ptr (), 10) != 0                  // C 5708
+    { emacs_abort (); }                                                // C 5709
+
+  /* Skip the content header.  */
+  fill = fill.offset ((std::mem::size_of::<[c_char; 11]> () - 1) as isize);   // C 5712
+
+  /* The authority segment of the URI is between here and the
+     next slash.  */                                                   // C 5714-5715
+
+  end = strchr (fill, b'/' as c_int);                                  // C 5717
+
+  if end.is_null ()                                                    // C 5719
+    { emacs_abort (); }                                                // C 5720
+
+  if end.offset_from (fill) >= EMACS_PATH_MAX as isize                 // C 5722
+    {
+      *errno () = ENAMETOOLONG;                                        // C 5724
+      xfree (dir as *mut c_void);                                      // C 5725
+      return std::ptr::null_mut ();                                    // C 5726
+    }
+
+  /* Copy the authority over.  */                                      // C 5729
+
+  memcpy (component.as_mut_ptr () as *mut c_void, fill as *const c_void,   // C 5731
+	  end.offset_from (fill) as usize);                            // C 5731
+  component[end.offset_from (fill) as usize] = 0;                      // C 5732
+
+  if asprintf (&raw mut (*dir).name, c"/content/storage/%s/%s%s".as_ptr (),   // C 5734
+	       component.as_mut_ptr (), (*vp).tree_id, (*vp).name) < 0    // C 5735
+    {
+      /* Out of memory.  */                                            // C 5737
+      xfree (dir as *mut c_void);                                      // C 5738
+      memory_full (0);                                                 // C 5739
+    }
+
+  /* Now open a cursor that iterates through each file in this
+     directory.  */                                                    // C 5742-5743
+
+  cursor = android_saf_tree_opendir_1 (vp);                            // C 5745
+
+  if cursor.is_null ()                                                 // C 5747
+    {
+      xfree ((*dir).name as *mut c_void);                              // C 5749
+      xfree (dir as *mut c_void);                                      // C 5750
+      return std::ptr::null_mut ();                                    // C 5751
+    }
+
+  (*dir).cursor = cursor;                                              // C 5754
+  (*dir).fd = -1;                                                      // C 5755
+  (*dir).next = all_saf_tree_vdirs;                                    // C 5756
+  all_saf_tree_vdirs = dir;                                            // C 5757
+  return &raw mut (*dir).vdir;                                         // C 5758
+}
+
+/* C 5761-5846 - `android_saf_tree_from_name` - is **deferred** (the note above C 4897): its C 5833
+   writes `root.vnode.ops = &saf_tree_vfs_ops`, and that object is one of the items waiting on the
+   file/new families' vectors.  C calls it directly (C 3807), never through a pointer.  */
+
+/* Return any open SAF tree directory stream for which dirfd has
+   returned the file descriptor DIRFD.  Return NULL otherwise.  */     // C 5848-5849
+
+/* C 5851-5863.  C calls it directly (C 7380's sibling), never through a pointer, so it stays a
+   Rust-ABI `unsafe fn`; the `for (dir = …; dir; dir = dir->next)` loop is the load-then-test pair.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_saf_tree_get_directory (dirfd: c_int) -> *mut android_saf_tree_vdir
+{
+  let mut dir: *mut android_saf_tree_vdir;                             // C 5854
+
+  dir = all_saf_tree_vdirs;                                            // C 5856
+  while ! dir.is_null ()
+    {
+      if (*dir).fd == dirfd && dirfd != -1                             // C 5858
+	{ return dir; }                                                // C 5859
+      dir = (*dir).next;                                               // C 5856
+    }
+
+  return std::ptr::null_mut ();                                        // C 5862
+}
+
+/* C 5865-5874: C 5866's form feed, the comment `/* SAF file vnode.  …  */` and C 5871-5872's
+   comment with the alias definition `#define android_saf_file_vnode android_saf_tree_vnode`.  The
+   alias is the port's `type` alias (PORTING.md 1.3; the two structs are the same in C), and it
+   stands with the SAF file family.  */
+
+/* C 5541's `setup_coding_system` (coding.h 686) and C 5734's `asprintf`, whose declarations this
+   unit does not carry (coding.h's is another unit's function and `<stdio.h>`'s is the gnulib
+   entry `lib/include/stdio.rs` does not bring in), so both stand at the use site (P-72 rule 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
+  pub fn setup_coding_system (arg0: Lisp_Object, arg1: *mut coding_system);
+  /// C: `<stdio.h>`: `int asprintf (char **, const char *, ...);`
+  pub fn asprintf (arg0: *mut *mut c_char, arg1: *const c_char, ...) -> c_int;
 }

@@ -18521,3 +18521,13 @@
   ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **6,517 行 / 新 md5**、C 范围表把余项行拆成七行、`## Not claimed` 改成 76 行 / 18.0%、常设 Owed 5 改成 82.0%、文件尾加 `## Slice 15` 段；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
   ⑦ 预算与清理：`xtask probe` **3 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 5 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep15.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
      **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有文档被改名或删除、没有 cursor 被打开、`all_saf_tree_vdirs` 仍为空。**本文件未收口**：还剩 C 5531-7950（下一项 C 5531 的 `android_saf_tree_readdir`）。
+
+- **4.121 `src/androidvfs.c` round 16（androidvfs lane，slice 16）：C 5531-5863 落地——SAF tree 的目录流与流查找；端口 6,517 → 6,846 行（2026-10-08）**：
+  ① 本片落的文本：`android_saf_tree_readdir`（C 5531-5626，含 C 5594 的 `coding.mode |= CODING_MODE_LAST_BLOCK` 写成镜像的位域写入、C 5589-5598 的 `decode_coding_object` 链）、`closedir`（C 5628-5662）、`dirfd`（C 5664-5685）、`opendir`（C 5686-5759，含 `asprintf`）与 `android_saf_tree_get_directory`（C 5851-5863），加本片新增的 use-site 声明（`setup_coding_system` coding.h 686、`asprintf`）与 `DT_UNKNOWN`（实测 0）。
+  ② 臂读数：**两臂各 `exit 0`，第一稿即过**；warning 8（else）/13（`>= 9`），与前六轮逐项相同。
+  ③ 对照（P-86 ⑦）：在 C 5543 的 `dir = …` 旁注入故意错误 → else 臂 `exit 1`、`injected_control` 点名一次；撤回后 `exit 0`、md5 回到 `afae291101285f74351890cb67c9ac0e`。
+  ④ `--check`：**76 → 71 行且行集 diff 过**——五条 `missing function android_saf_tree_*`（readdir/closedir/dirfd/opendir/get_directory）退役，两条 `does not mention` 出现并**在同一次提交里清掉**；行数漂移 18.0% → **13.9%**。
+  ⑤ 本片新增一 deferred 项：`android_saf_tree_from_name`（C 5761-5846，其 C 5833 点名 `saf_tree_vfs_ops`）；C 5865-5876 的别名 `#define android_saf_file_vnode android_saf_tree_vnode` 与 SAF file 家族同轮落地（端口写法是 `type` 别名）。deferred 集合计仍是“六项链 + `saf_tree_vfs_ops`/`android_saf_tree_name`/`android_saf_tree_from_name`”，全部在写 file/new 家族函数（两个暂定向量的初始值）那几轮收口。
+  ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **6,846 行 / 新 md5**、C 范围表把余项行拆成八行、`## Not claimed` 改成 71 行 / 13.9%、常设 Owed 5 改成 86.1%、文件尾加 `## Slice 16` 段；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
+  ⑦ 预算与清理：`xtask probe` **2 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 5 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep16.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
+     **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有目录项从 Cursor 读出、没有编码系统被建立、`all_saf_tree_vdirs` 仍为空。**本文件未收口**：还剩 C 5878-7950（下一项 C 5878 的 `struct android_parcel_fd`）。
