@@ -3964,3 +3964,323 @@ unsafe fn android_draw_box_rect (s: *mut glyph_string,
    `missing macro`/`missing constant` pair of the inventory row).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const HIGHLIGHT_COLOR_DARK_BOOST_LIMIT: c_int = 48000;              // C 3357
+
+/* C 3360-3580: the relief-colour group (the lighter-colour allocator, the two relief setters and
+   the box/bg-rect drawing helpers).  Five names this text needs are not in the frozen mirrors - two
+   declarations and three per-unit macro families (the `src/xterm.rs` 9860-9897 / `src/haikuterm.rs`
+   27-245 copies).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3581: `int window_box_right (struct window *, enum glyph_row_area);`
+  pub fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int;
+  /// C: dispextern.h 3769-3770: `RGB_PIXEL_COLOR image_background (struct image *,
+  /// struct frame *, Emacs_Pixmap);` - `RGB_PIXEL_COLOR` is dispextern.h's `unsigned long`.
+  pub fn image_background (img: *mut image, f: *mut frame, ximg: Emacs_Pixmap) -> c_ulong;
+  /// C: dispextern.h 3771-3772: `int image_background_transparent (struct image *,
+  /// struct frame *, Emacs_Pixmap);`
+  pub fn image_background_transparent (img: *mut image, f: *mut frame, mask: Emacs_Pixmap) -> c_int;
+}
+
+/* `struct face`'s bit-field run (dispextern.h 1893-1935, `include/dispextern.rs` 2259-2266 keeps it
+   in one `bits` unit): C reads `face->box` and `face->use_box_color_for_shadows_p` here, and no
+   mirror carries their accessors, so the unit names them - the `src/xterm.rs` 9871-9879 copy.  */
+/// C: dispextern.h 1893-1913: `ENUM_BF (face_box_type) box : 2;` … `bool_bf
+/// use_box_color_for_shadows_p : 1;` - the two positions this slice reads (the `src/xterm.rs`
+/// 9844-9849 copies; the mirror keeps the run's `bits` unit, `include/dispextern.rs` 2259-2266).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_BOX_SHIFT: u32 = 0;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_BOX_MASK: u32 = 0x3;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const FACE_USE_BOX_COLOR_FOR_SHADOWS_P: u32 = 1 << 5;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! face_bits {
+  (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
+  (use_box_color_for_shadows_p, $f:expr) =>
+    { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
+}
+
+/// C: dispextern.h 3860-3863: `#define IMAGE_BACKGROUND(img, f, ximg)` `((img)->background_valid`
+/// `? (img)->background` `: image_background (img, f, ximg))`, and 3869-3872's
+/// `IMAGE_BACKGROUND_TRANSPARENT` twin reading `(img)->background_transparent_valid`.  The mirror
+/// keeps the four validity masks of the record's bit unit (`include/dispextern.rs` 2566-2574) and
+/// not the two macros, so the unit carries them - the `src/haikuterm.rs` 227-244 shape, with the
+/// two `image_background*` declarations above.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! IMAGE_BACKGROUND {
+  ($img:expr, $f:expr, $ximg:expr) =>
+    {
+      (if (*$img).bits & IMAGE_BACKGROUND_VALID_MASK != 0
+	 { (*$img).background }
+       else
+	 { image_background ($img, $f, $ximg) })
+    };
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! IMAGE_BACKGROUND_TRANSPARENT {
+  ($img:expr, $f:expr, $mask:expr) =>
+    {
+      (if (*$img).bits & IMAGE_BACKGROUND_TRANSPARENT_VALID_MASK != 0
+	 { ((*$img).bits >> IMAGE_BACKGROUND_TRANSPARENT_SHIFT & 1) as c_int }
+       else
+	 { image_background_transparent ($img, $f, $mask) })
+    };
+}
+
+/* `struct glyph`'s `u.cmp` run (dispextern.h 1425-1430, `include/dispextern.rs` 452-455 keeps
+   `automatic : 1` and `id : 31` in one `bits`): C 3518/3525 read both - the `src/xterm.rs`
+   9894-9897 copy.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! glyph_u_cmp_bits {
+  (automatic, $g:expr) => { (((*$g).u.cmp.bits & GLYPH_U_CMP_AUTOMATIC) != 0) };
+  (id, $g:expr) => { (((*$g).u.cmp.bits >> GLYPH_U_CMP_ID_SHIFT) as ptrdiff_t) };
+}
+
+/* C 3359-3426.  `static bool`; only called (C 3438/3455? no - the two `android_setup_relief_color`
+   callers pass it by name; the address is not taken), so a plain Rust-ABI item.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_alloc_lighter_color (f: *mut frame, pixel: *mut c_ulong,
+				       factor: f64, delta: c_int) -> bool
+{
+  let mut color: Emacs_Color = std::mem::zeroed ();                     // C 3363
+  let mut new: Emacs_Color = std::mem::zeroed ();
+  let mut bright: c_long;                                               // C 3364
+  let mut success_p: bool;                                              // C 3365
+
+  /* Get RGB color values.  */                                          // C 3367
+  color.pixel = *pixel;                                                 // C 3368
+  android_query_colors (f, &raw mut color, 1);                          // C 3369
+
+  /* Change RGB values by specified FACTOR.  Avoid overflow!  */         // C 3371
+  eassert! (factor >= 0.0);                                             // C 3372
+  new.red = min (0xffff, (factor * color.red as f64) as c_int) as c_ushort;   // C 3373
+  new.green = min (0xffff, (factor * color.green as f64) as c_int) as c_ushort;   // C 3374
+  new.blue = min (0xffff, (factor * color.blue as f64) as c_int) as c_ushort;   // C 3375
+
+  /* Calculate brightness of COLOR.  */                                 // C 3377
+  bright = (2 * color.red as c_long + 3 * color.green as c_long      // C 3378
+	    + color.blue as c_long) / 6;
+
+  /* We only boost colors that are darker than
+     HIGHLIGHT_COLOR_DARK_BOOST_LIMIT.  */                             // C 3380-3381
+  if bright < HIGHLIGHT_COLOR_DARK_BOOST_LIMIT as c_long               // C 3382
+    /* Make an additive adjustment to NEW, because it's dark enough so
+       that scaling by FACTOR alone isn't enough.  */                  // C 3383-3384
+    {
+      /* How far below the limit this color is (0 - 1, 1 being darker).  */   // C 3386
+      let dimness: f64 = 1.0 - bright as f64 / HIGHLIGHT_COLOR_DARK_BOOST_LIMIT as f64;   // C 3387
+      /* The additive adjustment.  */                                   // C 3388
+      let min_delta: c_int = (delta as f64 * dimness * factor / 2.0) as c_int;   // C 3389
+
+      if factor < 1.0                                                 // C 3391
+	{
+	  new.red = max (0, new.red as c_int - min_delta) as c_ushort;   // C 3393
+	  new.green = max (0, new.green as c_int - min_delta) as c_ushort;   // C 3394
+	  new.blue = max (0, new.blue as c_int - min_delta) as c_ushort;   // C 3395
+	}
+      else
+	{
+	  new.red = min (0xffff, min_delta + new.red as c_int) as c_ushort;   // C 3399
+	  new.green = min (0xffff, min_delta + new.green as c_int) as c_ushort;   // C 3400
+	  new.blue = min (0xffff, min_delta + new.blue as c_int) as c_ushort;   // C 3401
+	}
+    }
+
+  /* Try to allocate the color.  */                                     // C 3405
+  success_p = android_alloc_nearest_color (f, &raw mut new);            // C 3406
+
+  if success_p                                                         // C 3408
+    {
+      if new.pixel == *pixel                                           // C 3410
+	{
+	  /* If we end up with the same color as before, try adding
+	     delta to the RGB values.  */                              // C 3412-3413
+	  new.red = min (0xffff, delta + color.red as c_int) as c_ushort;   // C 3414
+	  new.green = min (0xffff, delta + color.green as c_int) as c_ushort;   // C 3415
+	  new.blue = min (0xffff, delta + color.blue as c_int) as c_ushort;   // C 3416
+	  success_p = android_alloc_nearest_color (f, &raw mut new);      // C 3417
+	}
+      else
+	{ success_p = true; }                                          // C 3420
+
+      *pixel = new.pixel;                                              // C 3422
+    }
+
+  return success_p;                                                     // C 3425
+}
+
+/* Set up the foreground color for drawing relief lines of glyph
+   string S.  RELIEF is a pointer to a struct relief containing the GC
+   with which lines will be drawn.  Use a color that is FACTOR or
+   DELTA lighter or darker than the relief's background which is found
+   in S->f->output_data.android->relief_background.  If such a color
+   cannot be allocated, use DEFAULT_PIXEL, instead.  */                 // C 3428-3433
+
+/* C 3435-3462.  `static`; only called (C 3493/3495).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_setup_relief_color (f: *mut frame, relief: *mut relief,
+				      factor: f64, delta: c_int,
+				      default_pixel: c_ulong)
+{
+  let mut xgcv: android_gc_values = std::mem::zeroed ();                // C 3440
+  let di: *mut android_output = (*f).output_data.android as *mut android_output;   // C 3441
+  let mask: c_ulong = ANDROID_GC_FOREGROUND as c_ulong;                 // C 3442
+  let mut pixel: c_ulong;                                               // C 3443
+  let background: c_ulong = (*di).relief_background;                    // C 3444
+  let dpyinfo: *mut android_display_info = FRAME_DISPLAY_INFO! (f);     // C 3445
+
+  if ! (*relief).gc.is_null ()                                    // C 3447
+      && (*relief).pixel != (-1 as c_long) as c_ulong               // C 3447
+    { (*relief).pixel = (-1 as c_long) as c_ulong; }                                          // C 3448
+
+  /* Allocate new color.  */                                            // C 3450
+  xgcv.foreground = default_pixel;                                      // C 3451
+  pixel = background;                                                   // C 3452
+
+  if (*dpyinfo).n_planes != 1                                          // C 3454
+      && android_alloc_lighter_color (f, &raw mut pixel, factor, delta)   // C 3455
+    { xgcv.foreground = pixel; (*relief).pixel = pixel; }                // C 3456
+
+  if (*relief).gc.is_null ()                                            // C 3458
+    { (*relief).gc = android_create_gc (mask as android_gc_value_mask, &raw mut xgcv); }   // C 3459
+  else
+    { android_change_gc ((*relief).gc, mask as android_gc_value_mask, &raw mut xgcv); }   // C 3461
+}
+
+/* Set up colors for the relief lines around glyph string S.  */         // C 3464
+
+/* C 3466-3498.  `static`; only called (C 3559).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_setup_relief_colors (s: *mut glyph_string)
+{
+  let mut di: *mut android_output;                                      // C 3469
+  let mut color: c_ulong;                                               // C 3470
+
+  di = (*(*s).f).output_data.android as *mut android_output;            // C 3472
+
+  if face_bits! (use_box_color_for_shadows_p, (*s).face as *mut face)   // C 3474
+    { color = (*( (*s).face as *mut face )).box_color; }                // C 3475
+  else if glyph_bits! (type, (*(*s).first_glyph)) == IMAGE_GLYPH        // C 3476
+	   && !(*( (*s).img )).pixmap.is_null ()                        // C 3477
+	   && IMAGE_BACKGROUND_TRANSPARENT! ((*s).img, (*s).f, 0) == 0   // C 3478
+    { color = IMAGE_BACKGROUND! ((*s).img, (*s).f, 0); }   // C 3479
+  else
+    {
+      let mut xgcv: android_gc_values = std::mem::zeroed ();            // C 3482
+
+      /* Get the background color of the face.  */                      // C 3484
+      android_get_gc_values ((*s).gc as *mut android_gc, ANDROID_GC_BACKGROUND, &raw mut xgcv);   // C 3485
+      color = xgcv.background;                                          // C 3486
+    }
+
+  if (*di).white_relief.gc.is_null ()                                   // C 3489
+      || color != (*di).relief_background                               // C 3490
+    {
+      (*di).relief_background = color;                                  // C 3492
+      android_setup_relief_color ((*s).f, &raw mut (*di).white_relief, 1.2, 0x8000,   // C 3493
+				  WHITE_PIX_DEFAULT! ((*s).f));         // C 3494
+      android_setup_relief_color ((*s).f, &raw mut (*di).black_relief, 0.6, 0x4000,   // C 3495
+				  BLACK_PIX_DEFAULT! ((*s).f));         // C 3496
+    }
+}
+
+/* C 3500-3564.  `static`; only called (C 4589).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_glyph_string_box (s: *mut glyph_string)
+{
+  let mut hwidth: c_int = 0;                                            // C 3503
+  let mut vwidth: c_int = 0;
+  let mut left_x: c_int = 0;
+  let mut right_x: c_int = 0;
+  let mut top_y: c_int = 0;
+  let mut bottom_y: c_int = 0;
+  let mut last_x: c_int = 0;
+  let mut raised_p: bool = false;                                       // C 3504
+  let mut left_p: bool = false;
+  let mut right_p: bool = false;
+  let mut last_glyph: *mut glyph;                                       // C 3505
+  let mut clip_rect: android_rectangle = std::mem::zeroed ();           // C 3506
+
+  last_x = if glyph_row_bits! (full_width_p, (*s).row)                  // C 3508
+	      && ! window_bits! (pseudo_window_p, (*s).w)               // C 3508
+	     { WINDOW_RIGHT_EDGE_X! ((*s).w) }                          // C 3509
+	   else { window_box_right ((*s).w, (*s).area) };               // C 3510
+
+  /* The glyph that may have a right box line.  For static
+     compositions and images, the right-box flag is on the first glyph
+     of the glyph string; for other types it's on the last glyph.  */   // C 3512-3514
+  if ! (*s).cmp.is_null () || ! (*s).img.is_null ()                     // C 3515
+    { last_glyph = (*s).first_glyph; }                                  // C 3516
+  else if glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH    // C 3517
+	   && glyph_u_cmp_bits! (automatic, (*s).first_glyph)        // C 3518
+    {
+      /* For automatic compositions, we need to look up the last glyph
+	 in the composition.  */                                        // C 3520-3521
+      let end: *mut glyph = (*((*s).row)).glyphs[(*s).area as usize]    // C 3522
+	.offset ((*((*s).row)).used[(*s).area as usize] as isize);
+      let mut g: *mut glyph = (*s).first_glyph;                         // C 3523
+      last_glyph = g;                                                   // C 3524
+      g = g.offset (1);                                                 // C 3524 (the `g++`)
+      while g < end                                                     // C 3525
+	    && glyph_u_cmp_bits! (automatic, g)                        // C 3525
+	    && glyph_u_cmp_bits! (id, g) == (*s).cmp_id                // C 3525
+	    && (*g).slice.cmp.to < (*s).cmp_to                        // C 3526
+	{
+	  last_glyph = g;                                               // C 3527 (the `last_glyph =
+									//  g++`)
+	  g = g.offset (1);                                             // C 3527
+	}
+    }
+  else
+    { last_glyph = (*s).first_glyph.offset ((*s).nchars as isize - 1); }   // C 3531
+
+  vwidth = eabs! ((*( (*s).face as *mut face )).box_vertical_line_width);   // C 3533
+  hwidth = eabs! ((*( (*s).face as *mut face )).box_horizontal_line_width);   // C 3534
+  raised_p = face_bits! (box, (*s).face as *mut face) == FACE_RAISED_BOX;   // C 3535
+  left_x = (*s).x;                                                      // C 3536
+  right_x = if glyph_row_bits! (full_width_p, (*s).row)                 // C 3537
+	       && glyph_string_bits! (extends_to_end_of_line_p, (*s))   // C 3537
+	      { last_x - 1 }                                            // C 3538
+	    else { min (last_x, (*s).x + (*s).background_width) - 1 };   // C 3539
+  top_y = (*s).y;                                                       // C 3540
+  bottom_y = top_y + (*s).height - 1;                                   // C 3541
+
+  left_p = glyph_bits! (left_box_line_p, (*(*s).first_glyph))           // C 3543
+	   || ((*s).hl == DRAW_MOUSE_FACE                               // C 3544
+	       && ((*s).prev.is_null ()                                 // C 3545
+		   || (*(*s).prev).hl != (*s).hl));                     // C 3546
+  right_p = glyph_bits! (right_box_line_p, (*last_glyph))               // C 3547
+	    || ((*s).hl == DRAW_MOUSE_FACE                              // C 3548
+		&& ((*s).next.is_null ()                                // C 3549
+		    || (*(*s).next).hl != (*s).hl));                    // C 3550
+
+  get_glyph_string_clip_rect (s, &raw mut clip_rect as *mut c_void);                   // C 3552
+
+  if face_bits! (box, (*s).face as *mut face) == FACE_SIMPLE_BOX   // C 3554
+    { android_draw_box_rect (s, left_x, top_y, right_x, bottom_y, hwidth,   // C 3555
+			     vwidth, left_p, right_p, &raw mut clip_rect); }   // C 3556
+  else
+    {
+      android_setup_relief_colors (s);                                  // C 3559
+      android_draw_relief_rect ((*s).f, left_x, top_y, right_x, bottom_y, hwidth,   // C 3560
+				vwidth, raised_p, true, true, left_p, right_p,   // C 3561
+				&raw mut clip_rect);                        // C 3562
+    }
+}
+
+/* C 3566-3580.  `static`; only called (C 3796/4327/4350).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_glyph_string_bg_rect (s: *mut glyph_string, x: c_int, y: c_int,
+					     w: c_int, h: c_int)
+{
+  if glyph_string_bits! (stippled_p, (*s))                              // C 3570
+    {
+      /* Fill background with a stipple pattern.  */                    // C 3572
+      android_set_fill_style ((*s).gc as *mut android_gc, ANDROID_FILL_OPAQUE_STIPPLED);   // C 3573
+      android_fill_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc, x,   // C 3574
+			      y, w as c_uint, h as c_uint);             // C 3575
+      android_set_fill_style ((*s).gc as *mut android_gc, ANDROID_FILL_SOLID);   // C 3576
+    }
+  else
+    { android_clear_glyph_string_rect (s, x, y, w, h); }                // C 3579
+}

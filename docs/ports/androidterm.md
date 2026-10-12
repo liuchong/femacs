@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**2,265 lines**, md5
-> `b9cd85972476070d9279f6f815d11d6d`), carrying **C 1-3357**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**4,286 lines**, md5
+> `709ed81a99a0426152de47cdfb8e7600`), carrying **C 1-3357**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -18,8 +18,8 @@
 > `android_handle_ime_event`.  **The next live definition is `handle_one_android_event` (C 836-1892),
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
-> which leaves C 3359-7117** (the next whole-item boundary is `android_alloc_lighter_color`,
-> C 3360).
+> which leaves C 3582-7117** (the next whole-item boundary is `android_draw_image_relief`,
+> C 3583).
 
 ## Gate mapping
 
@@ -146,7 +146,12 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 3201-3319 | `android_draw_relief_rect` | real arm (slice 6) |
 | 3321-3355 | `android_draw_box_rect` | real arm (slice 6) |
 | 3357-3357 | `#define HIGHLIGHT_COLOR_DARK_BOOST_LIMIT 48000` | real arm (slice 6: the inventory's `missing macro`/`missing constant` pair) |
-| 3359-7117 | **the remainder of the file** - from C 3359's `static bool` above `android_alloc_lighter_color` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3359-3426 | C 3359's `static bool` and `android_alloc_lighter_color` | real arm (slice 7) |
+| 3428-3462 | C 3428-3433's comment and `android_setup_relief_color` | real arm (slice 7) |
+| 3464-3498 | C 3464's comment and `android_setup_relief_colors` | real arm (slice 7) |
+| 3500-3564 | `android_draw_glyph_string_box` (C 3522-3528 the automatic-composition walk) | real arm (slice 7) |
+| 3566-3580 | `android_draw_glyph_string_bg_rect` | real arm (slice 7) |
+| 3582-7117 | **the remainder of the file** - from C 3582's `static void` above `android_draw_image_relief` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -342,10 +347,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 3359-7117.**  Slice 6 wrote C 3068-3357 (the glyph-string drawing
-   helpers and the relief constant), so the next slice's rows must replace this table's last row; its
-   first definition is `android_alloc_lighter_color` (C 3360).  C 1761's `android_notify_conversion`
-   (C 6636) is still the only forward reference left.
+1. **The remainder of the file: C 3582-7117.**  Slice 7 wrote C 3360-3580 (the relief-colour group
+   and the box/bg-rect helpers), so the next slice's rows must replace this table's last row; its
+   first definition is `android_draw_image_relief` (C 3583).  C 1761's `android_notify_conversion`
+   (C 6635-6648) is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
@@ -446,6 +451,13 @@ slice's basis).  All 116 are in the owed list below.
    `pub mod dispextern_unit_names`, so the unit writes `use dispextern_unit_names::{...}` rather than
    carrying the copies `src/xterm.rs` 9292-9450 keeps (that unit is compiled with the file gate only).
    If the module's records are ever moved to the top level, this `use` line goes with them.
+
+22. **Three per-unit macro families** (slice 7): `face_bits!` (with C's two bit positions as
+   constants), `IMAGE_BACKGROUND`/`IMAGE_BACKGROUND_TRANSPARENT` and `glyph_u_cmp_bits!`.  The mirror
+   carries the storage units and the masks and no readers, so `src/xterm.rs` 9844-9897,
+   `src/haikuterm.rs` 227-244, `src/pgtkterm.rs`, `src/term.rs` and now this unit each spell their
+   own; a mirror-level accessor set (or the five records' move to the top level, Owed 21) is what
+   would let them go.
 
 ### Not claimed
 
@@ -753,3 +765,37 @@ clipping setters.
 - **The `?:` in C 3087-3094** are the port's `if`/`else` expressions with the `as c_int` promotions
   the record's `c_short` members need, and C 3177/3179-3181's rectangle subscripting is the
   `.offset (i as isize)` form with the same promotions.
+
+## 2026-10-12: slice 7 (C 3360-3580) - the relief-colour group
+
+`android_alloc_lighter_color`, `android_setup_relief_color`, `android_setup_relief_colors`,
+`android_draw_glyph_string_box` and `android_draw_glyph_string_bg_rect`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields and
+   the same forward reference.  The first draft's own readings were the three per-unit macro families
+   this slice needed (`face_bits!` for `box`/`use_box_color_for_shadows_p` with their two constants,
+   `IMAGE_BACKGROUND`/`IMAGE_BACKGROUND_TRANSPARENT`, `glyph_u_cmp_bits!` for `u.cmp.automatic`/`id` -
+   the `src/xterm.rs` 9844-9897 and `src/haikuterm.rs` 227-244 copies), the pointer-vs-value split of
+   the mirror's `glyph_bits!`/`glyph_bool_p` arms, the `c_ulong` `-1` sentinel of
+   `relief->pixel`, and `get_glyph_string_clip_rect`'s `*mut c_void` second parameter.
+2. **Two `does not mention` rows appeared and were discharged in this commit**:
+   `android_alloc_lighter_color` → `double` (the port's `f64`) and `android_setup_relief_color` → `0`
+   (C's null pointer constant for `relief->gc`).
+3. **Inventory**: 7 rows -> **5** - the `missing function` rows fall by the five this slice lands,
+   the five file-scope objects stand, and the line-count row reads **39.8%** (C 7,117 against the
+   port's 4,283).
+
+### Deviations this slice adds
+
+- **The three per-unit macro families** (Owed 22): the mirror keeps `struct face`'s bit unit, the
+  `IMAGE_BACKGROUND_*` masks and `glyph`'s `u.cmp` unit, and not their readers, so each unit that
+  reads them names its own - this unit's copies cite the `src/xterm.rs`/`src/haikuterm.rs` precedents.
+- **`image_background`/`image_background_transparent`** are declared at the use site (dispextern.h
+  3769-3772) and take `Emacs_Pixmap`, which is an integer handle here, so C 3478/3479's `0` stays `0`.
+- **C 3447/3448/3456's `-1` sentinel** for `relief->pixel` (a `c_ulong`) is the
+  `(-1 as c_long) as c_ulong` cast the `src/xterm.rs` 11220-11223 pair uses.
+- **C 3508-3531's ternary and the `for` walk over automatic compositions** keep C's order: the
+  `last_glyph = g++` step is the two-statement form, and `g->u.cmp.id == s->cmp_id` is the
+  `glyph_u_cmp_bits!` read widened to `ptrdiff_t`.

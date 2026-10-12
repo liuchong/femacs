@@ -18635,3 +18635,12 @@
   ⑤ 台账与门：`docs/ports/androidterm.md` 头部改成 **3,966 行 / md5 `b521b369…` / 携带 C 1-3357**，C 范围表拆成 **10 行并重铺**（余项改为 **C 3359-7117**，下一项 `android_alloc_lighter_color` C 3360）、Owed 1 更新、文尾加 slice 6 段；`check-dead-file-coverage` **99 行覆盖 7,117 行 / 0 失败**；十门全 0 失败。
   ⑥ 预算与清理：`xtask probe` **4 发**（19 → 19 → 5 → 3 的收敛；两次 19 分别是首读与我脚本被空白不匹配打断的空转），每次单文件 `rustc` 0.7-1.7 秒；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/aterm-lane`、`/tmp/aterm-slice6.rs`、`/tmp/aterm-arm*.txt`、`build/probes/androidterm`。
      **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有 overhang 被计算、没有背景被填充、没有三角形/矩形/点被画、没有 relief 颜色被取；3 条 error 是具名镜像缺口与前向引用的编译级读数。
+
+- **4.133 `src/androidterm.c` round 7（androidterm lane，slice 7）：C 3360-3580 落地——relief 颜色组与 box/bg-rect 助手；端口 3,966 → 4286 行（2026-10-12）**：
+  ① 本片落的文本：`android_alloc_lighter_color`（C 3359-3426，含亮度提升与两次 `android_alloc_nearest_color` 重试）、`android_setup_relief_color`（3435-3462）、`android_setup_relief_colors`（3466-3498）、`android_draw_glyph_string_box`（3500-3564，含 C 3522-3528 的自动合成遍历）与 `android_draw_glyph_string_bg_rect`（3566-3580）。
+  ② 臂读数（五个 gate）：**exit 1、仅 3 error**——仍是 `frame.want_fullscreen`、`frame.new_size_p`（镜像窗口系统编号缺口）与 `android_notify_conversion`（仅存前向引用）。首读 19 条自家读数全部清掉：本片需要的**三套单元内宏**（`face_bits!` 的 `box`/`use_box_color_for_shadows_p` 及其两个常量、`IMAGE_BACKGROUND`/`IMAGE_BACKGROUND_TRANSPARENT`、`glyph_u_cmp_bits!` 的 `automatic`/`id`）、镜像 `glyph_bits!`/`glyph_bool_p` 指针/取值两种臂的区分、`relief->pixel` 的 `c_ulong` `-1` 哨兵、以及 `get_glyph_string_clip_rect` 的 `*mut c_void` 第二参数。
+  ③ `--check`：**7 → 5 行**（本片落地的五个函数退役）；行数行 44.3% → **39.8%**；新出现两条 `does not mention`（`android_alloc_lighter_color`→`double`、`android_setup_relief_color`→`0`）并在**同一次提交里**用两行 `macro-body-notes.tsv` 清掉。
+  ④ 本片新增偏离：三套单元内宏（镜像只有存储单元与掩码、没有读取器）；`image_background`/`image_background_transparent` 在 use site 声明且第三参数是整数句柄（`Emacs_Pixmap`）；`-1` 哨兵写成 `(-1 as c_long) as c_ulong`；C 3508-3531 的 `?:` 与 `last_glyph = g++` 走两语句形式。**Owed 22** 记录这三套宏的镜像级归宿。
+  ⑤ 台账与门：`docs/ports/androidterm.md` 头部改成 **4286 行 / md5 `709ed81a…` / 携带 C 1-3580**，C 范围表拆成 **5 行并重铺**（余项改为 **C 3582-7117**，下一项 `android_draw_image_relief` C 3583）、Owed 22、Not claimed 更新、文尾加 slice 7 段；`check-dead-file-coverage` 覆盖 7,117 行 / 0 失败；十门全 0 失败。
+  ⑥ 预算与清理：`xtask probe` **3 发**（22 → 22 → 3 的收敛，中间一次是脚本空白不匹配导致的空转），每次单文件 `rustc` 0.7-1.9 秒；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/aterm-lane`、`/tmp/aterm-slice7.rs`、`/tmp/aterm-arm*.txt`、`build/probes/androidterm`。
+     **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有颜色被提亮/分配、没有 relief GC 被建/改、没有 box 或背景矩形被画；3 条 error 是具名镜像缺口与前向引用的编译级读数。
