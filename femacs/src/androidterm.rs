@@ -7488,3 +7488,240 @@ pub unsafe extern "C" fn clearInputFlags (env: *mut JNIEnv, object: jobject, win
 
   android_write_event (&raw mut event);                                 // C 6162
 }
+
+/* C 6165-6356: the surrounding-text group - its context record, the worker,
+   `android_get_surrounding_text_internal` (the `SurroundingText` class cache) and the JNI wrapper.
+   Two devices are new here: C 6277's `#if __ANDROID_API__ < 31` is the derived feature
+   `android_api_lt_31` (the `android_api_lt_21`/`android_api_le_30` family of
+   `docs/baseline/feature-coverage.tsv`), and C 6266-6267's two function-scope `static`s are
+   function-local `static mut`s (the `src/android.rs` 1201 / `src/androidselect.rs` 561 shape).  */
+
+/* Context for a call to `getSurroundingText'.  */                      // C 6167
+
+/* C 6169-6192: `struct android_get_surrounding_text_context`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_get_surrounding_text_context
+{
+  /* Number of characters before the region to return.  */
+  pub before_length: c_int,                                             // C 6172
+
+  /* Number of characters after the region to return.  */
+  pub after_length: c_int,                                              // C 6175
+
+  /* The returned text, or NULL.  */
+  pub text: *mut c_char,                                                // C 6178
+
+  /* The size of that text in characters and bytes.  */
+  pub length: ptrdiff_t,                                                // C 6181
+  pub bytes: ptrdiff_t,
+
+  /* Offsets into that text.  */
+  pub offset: ptrdiff_t,                                                // C 6184
+  pub start: ptrdiff_t,
+  pub end: ptrdiff_t,
+
+  /* The start and end indices of the conversion region.
+     -1 if it does not exist.  */
+  pub conversion_start: ptrdiff_t,                                      // C 6188
+  pub conversion_end: ptrdiff_t,
+
+  /* The window.  */
+  pub window: android_window,                                           // C 6191
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, before_length) == 0);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, after_length) == 4);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, text) == 8);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, length) == 16);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, bytes) == 24);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, offset) == 32);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, start) == 40);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, end) == 48);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, conversion_start) == 56);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, conversion_end) == 64);
+  core::assert! (std::mem::offset_of! (android_get_surrounding_text_context, window) == 72);
+  core::assert! (std::mem::size_of::<android_get_surrounding_text_context> () == 80);
+};
+
+/* Return the surrounding text in the surrounding text context
+   specified by DATA.  */                                              // C 6194-6195
+
+/* C 6197-6241.  `static` and the *address is taken* (C 6308), so `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_get_surrounding_text (data: *mut c_void)
+{
+  let mut request: *mut android_get_surrounding_text_context;           // C 6200
+  let mut f: *mut frame;                                                // C 6201
+  let mut temp: ptrdiff_t;                                              // C 6202
+
+  request = data as *mut android_get_surrounding_text_context;          // C 6204
+
+  /* Find the frame associated with the window.  */                      // C 6206
+  f = android_window_to_frame (std::ptr::null_mut (), (*request).window);   // C 6207
+
+  if f.is_null ()                                                       // C 6209
+    { return; }                                                         // C 6210
+
+  /* Now get the surrounding text.  */                                  // C 6212
+  (*request).text
+    = get_surrounding_text (f, (*request).before_length as ptrdiff_t,   // C 6214
+			    (*request).after_length as ptrdiff_t, &raw mut (*request).length,   // C 6215
+			    &raw mut (*request).bytes, &raw mut (*request).offset,   // C 6216
+			    &raw mut (*request).start, &raw mut (*request).end);   // C 6217
+
+  /* Sort request->start and request->end for compatibility with some
+     bad input methods.  */                                             // C 6219-6220
+
+  if (*request).end < (*request).start                                  // C 6222
+    {
+      temp = (*request).start;                                          // C 6224
+      (*request).start = (*request).end;                                // C 6225
+      (*request).end = temp;                                            // C 6226
+    }
+
+  /* Retrieve the conversion region.  */                                // C 6229
+
+  (*request).conversion_start = -1;                                     // C 6231
+  (*request).conversion_end = -1;                                       // C 6232
+
+  if MARKERP ((*f).conversion.compose_region_start)                     // C 6234
+    {
+      (*request).conversion_start
+	= marker_position ((*f).conversion.compose_region_start) - 1;   // C 6237
+      (*request).conversion_end
+	= marker_position ((*f).conversion.compose_region_end) - 1;     // C 6239
+    }
+}
+
+/* Return a local reference to a `SurroundingText' object describing
+   WINDOW's surrounding text.  ENV should be a valid JNI environment
+   for the current thread.
+
+   BEFORE_LENGTH and AFTER_LENGTH specify the number of characters
+   around point and mark to return.
+
+   Return the conversion region (or -1) in *CONVERSION_START and
+   *CONVERSION_END if non-NULL.
+
+   Value is the object upon success, else NULL.  */                    // C 6243-6253
+
+/* C 6255-6345.  `static`; called from C 6354 and the snapshot entry.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_get_surrounding_text_internal (env: *mut JNIEnv, window: jlong,
+						 before_length: jint,
+						 after_length: jint,
+						 conversion_start: *mut ptrdiff_t,
+						 conversion_end: *mut ptrdiff_t)
+  -> jobject
+{
+  let mut context: android_get_surrounding_text_context = std::mem::zeroed ();   // C 6262
+  let mut string: jstring;                                              // C 6263
+  let mut object: jobject;                                              // C 6264
+
+  static mut class: jclass = std::ptr::null_mut ();                     // C 6266 (tentative, i.e. zero)
+  static mut constructor: jmethodID = std::ptr::null_mut ();            // C 6267
+
+  /* Initialize CLASS if it has not yet been initialized.  */            // C 6269
+
+  if class.is_null ()                                                   // C 6271
+    {
+      class
+	= ((*(*env)).FindClass.unwrap ()) (env, c"android/view/inputmethod/SurroundingText".as_ptr ()) as jclass;   // C 6273-6275
+
+      /* C 6277-6288's `#if __ANDROID_API__ < 31` pair: the frozen macro table leaves
+	 `__ANDROID_API__` undefined, so the reference's own preprocessor takes the first arm
+	 (an undefined identifier is 0 in `#if`), and the mirror's measured target is API 24 -
+	 the port carries the first arm under the derived feature `android_api_lt_31` and the
+	 second under its negation (P-51).  */
+      #[cfg (feature = "android_api_lt_31")]
+      {
+	/* If CLASS cannot be found, the version of Android currently
+	   running is too old.  */                                    // C 6278-6279
+
+	if class.is_null ()                                            // C 6281
+	  {
+	    ((*(*env)).ExceptionClear.unwrap ()) (env);                 // C 6283
+	    return std::ptr::null_mut ();                              // C 6284
+	  }
+      }
+      #[cfg (not (feature = "android_api_lt_31"))]
+      { eassert! (! class.is_null ()); }                               // C 6287
+
+      class = ((*(*env)).NewGlobalRef.unwrap ()) (env, class) as jclass;   // C 6290
+      if class.is_null ()                                              // C 6291
+	/* Clear class to prevent a local reference from remaining in
+	   `class'.  */
+	{
+	  class = std::ptr::null_mut ();                                   // C 6294
+	  return class;
+	}
+
+      /* Now look for its constructor.  */                             // C 6296
+      constructor = ((*(*env)).GetMethodID.unwrap ()) (env, class, c"<init>".as_ptr (),   // C 6297
+						      c"(Ljava/lang/CharSequence;III)V".as_ptr ());   // C 6298
+      eassert! (! constructor.is_null ());                              // C 6299
+    }
+
+  context.before_length = before_length;                                // C 6302
+  context.after_length = after_length;                                  // C 6303
+  context.window = window as android_window;                            // C 6304
+  context.text = std::ptr::null_mut ();                                 // C 6305
+
+  android_sync_edit ();                                                 // C 6307
+  if android_run_in_emacs_thread (Some (android_get_surrounding_text),   // C 6308
+				  &raw mut context as *mut c_void) != 0   // C 6309
+    { return std::ptr::null_mut (); }                                   // C 6310
+
+  if context.text.is_null ()                                            // C 6312
+    { return std::ptr::null_mut (); }                                   // C 6313
+
+  /* Encode the returned text.  */                                      // C 6315
+  string = android_text_to_string (env, context.text, context.length,   // C 6316
+				   context.bytes);                      // C 6317
+  free (context.text as *mut c_void);                                   // C 6318
+
+  if string.is_null ()                                                  // C 6320
+    { return std::ptr::null_mut (); }                                   // C 6321
+
+  /* Create an SurroundingText object containing this information.  */    // C 6323
+  object = ((*(*env)).NewObject.unwrap ()) (env, class, constructor, string,   // C 6324
+					    min (context.start,          // C 6325
+						 TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint,   // C 6326
+					    min (context.end,            // C 6327
+						 TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint,   // C 6328
+					    /* Adjust point offsets to fit into
+					       Android's 0-based indexing. */
+					    min (context.offset - 1,     // C 6331
+						 TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint);   // C 6332
+  if object.is_null ()                                                  // C 6333
+    { return std::ptr::null_mut (); }                                   // C 6334
+
+  /* Now return the conversion region if that was requested.  */          // C 6336
+
+  if ! conversion_start.is_null ()                                      // C 6338
+    {
+      *conversion_start = context.conversion_start;                     // C 6340
+      /* C 6341 assigns `context.conversion_start` to `*conversion_end` as well (C's own text,
+	 copied verbatim here - the port does not correct it).  */
+      *conversion_end = context.conversion_start;
+    }
+
+  return object;                                                        // C 6344
+}
+
+/* C 6347-6356: `NATIVE_NAME (getSurroundingText)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getSurroundingText")]
+pub unsafe extern "C" fn getSurroundingText (env: *mut JNIEnv, object: jobject,
+					     window: jlong, before_length: jint,
+					     after_length: jint, flags: jint) -> jobject
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 6352
+
+  return android_get_surrounding_text_internal (env, window, before_length,   // C 6354
+						after_length, std::ptr::null_mut (),   // C 6355
+						std::ptr::null_mut ());
+}

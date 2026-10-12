@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,490 lines**, md5
-> `4a2d66230a8614dc8825eadc5f9dd5bb`), carrying **C 1-6163**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,727 lines**, md5
+> `8c6e9285899777313c15d9817578dfc2`), carrying **C 1-6356**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -20,7 +20,7 @@
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
 the next definition is
-> `android_get_surrounding_text`, C 6198.
+> `NATIVE_NAME (takeSnapshot)`, C 6359.
 
 ## Gate mapping
 
@@ -209,7 +209,11 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 6088-6108 | `NATIVE_NAME (requestSelectionUpdate)` | real arm (slice 21) |
 | 6110-6133 | `NATIVE_NAME (requestCursorUpdates)` (C 6124's `mode` narrowing, C 6130's plain `0`) | real arm (slice 21) |
 | 6135-6163 | C 6135-6137's comment and `NATIVE_NAME (clearInputFlags)` | real arm (slice 21) |
-| 6165-7117 | **the remainder of the file** - from C 6165's blank and form-feed lines and the surrounding-text context (C 6169) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6165-6192 | C 6167's comment and `struct android_get_surrounding_text_context` | real arm (slice 22) |
+| 6194-6241 | C 6194-6195's comment and `android_get_surrounding_text` | real arm (slice 22) |
+| 6243-6345 | C 6243-6253's comment and `android_get_surrounding_text_internal` (C 6277's `#if __ANDROID_API__ < 31` pair, C 6266-6267's two function-scope `static`s) | real arm (slice 22) |
+| 6347-6356 | `NATIVE_NAME (getSurroundingText)` | real arm (slice 22) |
+| 6358-7117 | **the remainder of the file** - from C 6358's `JNIEXPORT jobject JNICALL` above `NATIVE_NAME (takeSnapshot)` (C 6359) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -408,11 +412,11 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 6165-7117.**  Slice 21 wrote C 6056-6163 (the selected-text
-   entry and the three flag/request entries), so the next slice's rows must replace this table's
-   last row; the remainder opens with `struct android_get_surrounding_text_context` (C 6169) and
-   its first definition is `android_get_surrounding_text` (C 6198), running through the rest of the
-   input-method and text-conversion entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 6358-7117.**  Slice 22 wrote C 6165-6356 (the surrounding-text
+   context, its worker, the class-caching internal helper and the JNI wrapper), so the next slice's
+   rows must replace this table's last row; its first definition is `NATIVE_NAME (takeSnapshot)`
+   (C 6359), and the group runs through the rest of the input-method and text-conversion entries to
+   `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21) - `androidterm`,
    tolerance `0.10`, basis `total`, with the measured reason (C 7,117 vs the port's 7,490 at that
@@ -602,6 +606,22 @@ slice's basis).  All 116 are in the owed list below.
    Rust rejects any arm after `_` - the one arm-order deviation of this file, and the statement set
    of every arm is C's own.
 
+33. **Two new devices of slice 22, and one C quirk kept verbatim.**  (a) C 6277's
+   `#if __ANDROID_API__ < 31` is carried as the derived feature **`android_api_lt_31`** (the
+   `android_api_lt_21`/`android_api_le_30` family of `docs/baseline/feature-coverage.tsv`); the
+   frozen macro table leaves `__ANDROID_API__` undefined, so the reference's own preprocessor takes
+   the first arm (an undefined identifier is 0 in `#if`) and the NDK mirror's measured target
+   (`aarch64-linux-android24`, `include/jni.rs` 10-12) is API 24 as well - the second arm is P-51
+   dead text for now.  **`tools/feature-coverage.py --write` has not been re-run for it**: that
+   regeneration currently rewrites 125 lines of the table (58 deletions) because other lanes'
+   features have drifted since its last run, so registering this one feature is left to whoever
+   owns that pass (this slice reverted its own accidental write).  (b) C 6266-6267's two
+   function-scope `static`s are function-local `static mut`s (the `src/android.rs` 1201 /
+   `src/androidselect.rs` 561 shape).  (c) **C 6341 assigns `context.conversion_start` to
+   `*conversion_end`** (an upstream copy-paste: `*conversion_end` should take
+   `context.conversion_end`); the port transcribes C's statement as it stands and this item is the
+   record, not a defect of the port.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -617,8 +637,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-6163 is now ported** (slices 4-21,
-each with its own Evidence section below); C 6165-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-6356 is now ported** (slices 4-22,
+each with its own Evidence section below); C 6358-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1496,3 +1516,37 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
   counter, as C's comment says.
 - **C 6067's `context.hint_max_chars = -1;`** is the same `c_int` literal, and
   `context.text = NULL` the port's null pointer (PORTING.md 1.2).
+
+## 2026-10-12: slice 22 (C 6165-6356) - the surrounding-text group
+
+`struct android_get_surrounding_text_context`, `android_get_surrounding_text`,
+`android_get_surrounding_text_internal` and `NATIVE_NAME (getSurroundingText)`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The slice's own reading was the two `c_int` length fields at C 6214-6215: the callee's parameters
+   are `ptrdiff_t`, so C's implicit conversion is the port's `as ptrdiff_t`.
+2. **Two records and one class cache**: the record's twelve offsets and its 80-byte size are derived
+   and probe-checked (Owed 30/32's class); C 6266-6267's two function-scope `static`s are
+   function-local `static mut`s (Owed 33); and C 6277's API-level `#if` pair is the new derived
+   feature `android_api_lt_31`, whose registration in `docs/baseline/feature-coverage.tsv` is owed
+   (Owed 33, with the measurement that the regeneration is 125 lines of unrelated drift today).
+3. **Inventory**: the two `missing function` rows of this slice retire (**13** stand), the export
+   rows rise to **21** (`getSurroundingText`, Owed 29), the file-scope section stays empty, no new
+   `does not mention` row, and the line-count row is absent (the tolerance row written at slice 21
+   covers the 5.2% drift).
+
+### Deviations this slice adds
+
+- **C 6341's `*conversion_end = context.conversion_start;`** is transcribed exactly (Owed 33's (c)):
+  the upstream statement's argument is a copy-paste, and the port records it rather than correcting
+  it.
+- **C 6294's `return (class = NULL);`** is two statements in C's order - the assignment to the
+  function-local `static mut`, then `return class;` - and C 6290's `class = NewGlobalRef (…)` is the
+  same shape as slice 20's.
+- **C 6324's `NewObject` with four arguments** goes through the vtable's variadic entry, with the
+  three `(jint) min (…, TYPE_MAXIMUM (jint))` args as `min (…, TYPE_MAXIMUM! (jint) as ptrdiff_t) as jint`.
+- **C 6273-6275's class name** is one literal (Rust has no compile-time concatenation), and
+  `MARKERP`/`marker_position` are the lisp mirror's and its `other_units` block's.
