@@ -7364,3 +7364,127 @@ pub unsafe extern "C" fn getExtractedText (env: *mut JNIEnv, ignored_object: job
   ((*(*env)).SetObjectField.unwrap ()) (env, object, text_class.text, string);   // C 6052
   return object;                                                        // C 6053
 }
+
+/* C 6056-6163: four more input-method entry points - `getSelectedText`, the two request
+   entries (`requestSelectionUpdate`, `requestCursorUpdates`) and `clearInputFlags`.  The first
+   reuses slice 19's extracted-text context and slice 16's converter, and the three event
+   entries are the uniform build-then-`android_write_event` shape of slices 15/17 (with C 6124's
+   `mode` narrowing to the record's `size_t` length and C 6130's plain `0` counter).  */
+
+/* C 6058-6086: `NATIVE_NAME (getSelectedText)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getSelectedText")]
+pub unsafe extern "C" fn getSelectedText (env: *mut JNIEnv, object: jobject, window: jlong)
+  -> jstring
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 6062
+
+  let mut context: android_get_extracted_text_context = std::mem::zeroed ();   // C 6064
+  let mut string: jstring;                                              // C 6065
+
+  context.hint_max_chars = -1;                                          // C 6067
+  context.token = 0;                                                    // C 6068
+  context.text = std::ptr::null_mut ();                                 // C 6069
+  context.window = window as android_window;                            // C 6070
+
+  android_sync_edit ();                                                 // C 6072
+  if android_run_in_emacs_thread (Some (android_get_extracted_text),    // C 6073
+				  &raw mut context as *mut c_void) != 0   // C 6074
+    { return std::ptr::null_mut (); }                                   // C 6075
+
+  if context.text.is_null ()                                            // C 6077
+    { return std::ptr::null_mut (); }                                   // C 6078
+
+  /* Encode the returned text.  */                                      // C 6080
+  string = android_text_to_string (env, context.text, context.length,   // C 6081
+				   context.bytes);                      // C 6082
+  free (context.text as *mut c_void);                                   // C 6083
+
+  return string;                                                        // C 6085
+}
+
+/* C 6088-6108: `NATIVE_NAME (requestSelectionUpdate)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_requestSelectionUpdate")]
+pub unsafe extern "C" fn requestSelectionUpdate (env: *mut JNIEnv, object: jobject, window: jlong)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 6092
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 6094 (PORTING.md 1.5)
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                              // C 6096
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 6097 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 6098
+  event.ime.operation = ANDROID_IME_REQUEST_SELECTION_UPDATE;           // C 6099
+  event.ime.start = 0;                                                  // C 6100
+  event.ime.end = 0;                                                    // C 6101
+  event.ime.length = 0;                                                 // C 6102
+  event.ime.position = 0;                                               // C 6103
+  event.ime.text = std::ptr::null_mut ();                               // C 6104
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 6105 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 6107
+}
+
+/* C 6110-6133: `NATIVE_NAME (requestCursorUpdates)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_requestCursorUpdates")]
+pub unsafe extern "C" fn requestCursorUpdates (env: *mut JNIEnv, object: jobject, window: jlong,
+					       mode: jint)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 6114
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 6116 (PORTING.md 1.5)
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                              // C 6118
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 6119 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 6120
+  event.ime.operation = ANDROID_IME_REQUEST_CURSOR_UPDATES;             // C 6121
+  event.ime.start = 0;                                                  // C 6122
+  event.ime.end = 0;                                                    // C 6123
+  event.ime.length = mode as size_t;                                    // C 6124
+  event.ime.position = 0;                                               // C 6125
+  event.ime.text = std::ptr::null_mut ();                               // C 6126
+
+  /* Since this does not affect the state of the buffer text, there is
+     no need to apply synchronization to this event.  */                // C 6128-6129
+  event.ime.counter = 0;                                                // C 6130
+
+  android_write_event (&raw mut event);                                 // C 6132
+}
+
+/* Notice that a new input method connection has been initialized and
+   clear cursor update requests, extracted text requests, and the
+   composing region.  */                                               // C 6135-6137
+
+/* C 6139-6163: `NATIVE_NAME (clearInputFlags)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_clearInputFlags")]
+pub unsafe extern "C" fn clearInputFlags (env: *mut JNIEnv, object: jobject, window: jlong)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 6143
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 6145 (PORTING.md 1.5)
+
+  event.ime.r#type = ANDROID_INPUT_METHOD;                              // C 6147
+  event_serial += 1;
+  event.ime.serial = event_serial as c_ulong;                           // C 6148 (the `++event_serial`)
+  event.ime.window = window as android_window;                          // C 6149
+  event.ime.operation = ANDROID_IME_FINISH_COMPOSING_TEXT;              // C 6150
+  event.ime.start = 0;                                                  // C 6151
+  event.ime.end = 0;                                                    // C 6152
+
+  /* This value of `length' means that updates to the cursor position
+     and extracted text should not be reported anymore.  */             // C 6154-6155
+
+  event.ime.length = 2;                                                 // C 6157
+  event.ime.position = 0;                                               // C 6158
+  event.ime.text = std::ptr::null_mut ();                               // C 6159
+  edit_counter += 1;
+  event.ime.counter = edit_counter;                                     // C 6160 (the `++edit_counter`)
+
+  android_write_event (&raw mut event);                                 // C 6162
+}

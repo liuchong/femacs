@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,366 lines**, md5
-> `368cece7e94e25ba253f9075769c44e1`), carrying **C 1-6054**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,490 lines**, md5
+> `4a2d66230a8614dc8825eadc5f9dd5bb`), carrying **C 1-6163**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -20,7 +20,7 @@
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
 > which leaves C 3799-7117** (the next whole-item boundary is
 the next definition is
-> `NATIVE_NAME (getSelectedText)`, C 6059.
+> `android_get_surrounding_text`, C 6198.
 
 ## Gate mapping
 
@@ -205,7 +205,11 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 5888-5893 | the two comments and the file-scope objects `request_class`, `text_class` | real arm (slice 19) |
 | 5895-5944 | C 5895-5906's comment and `android_build_extracted_text` | real arm (slice 20) |
 | 5946-6054 | C 5946's `JNIEXPORT jobject JNICALL` and `NATIVE_NAME (getExtractedText)` (the two class-initialisation blocks) | real arm (slice 20) |
-| 6056-7117 | **the remainder of the file** - from C 6056's blank and form-feed lines through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6056-6086 | C 6058's `JNIEXPORT jstring JNICALL` and `NATIVE_NAME (getSelectedText)` | real arm (slice 21) |
+| 6088-6108 | `NATIVE_NAME (requestSelectionUpdate)` | real arm (slice 21) |
+| 6110-6133 | `NATIVE_NAME (requestCursorUpdates)` (C 6124's `mode` narrowing, C 6130's plain `0`) | real arm (slice 21) |
+| 6135-6163 | C 6135-6137's comment and `NATIVE_NAME (clearInputFlags)` | real arm (slice 21) |
+| 6165-7117 | **the remainder of the file** - from C 6165's blank and form-feed lines and the surrounding-text context (C 6169) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` and the two `#pragma` pops | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -396,18 +400,25 @@ slice's basis).  All 116 are in the owed list below.
   in the redisplay interface's array.  The rest stay plain `unsafe fn` (PORTING.md 1.4).
 - **Line count.**  C 829 vs the port's 1,055 (+27.3%): the per-item file-gate `#[cfg]`s, the
   use-site declarations and their comments, Rust's brace-only lines for C's one-line `if`/`while`
-  bodies, the `as …` promotions and the C-line comments.  A
-  `docs/ports/line-drift-tolerance.tsv` row (stem `androidterm`, basis `total`) is owed.
+  bodies, the `as …` promotions and the C-line comments.  The
+  `docs/ports/line-drift-tolerance.tsv` row this note asked for was **written at slice 21**
+  (stem `androidterm`, tolerance `0.10`, basis `total`), with the measured reading of that round;
+  until then the file had no row, so the rule's default 5% governed - which is why the line-count
+  row vanished at slices 18-20 (3.5%) and came back at slice 21 (5.2%).
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 6056-7117.**  Slice 20 wrote C 5895-6054 (the extracted-text
-   builder and `getExtractedText`), so the next slice's rows must replace this table's last row; its
-   first definition is `NATIVE_NAME (getSelectedText)` (C 6059), and the group runs through the rest
-   of the input-method and text-conversion entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 6165-7117.**  Slice 21 wrote C 6056-6163 (the selected-text
+   entry and the three flag/request entries), so the next slice's rows must replace this table's
+   last row; the remainder opens with `struct android_get_surrounding_text_context` (C 6169) and
+   its first definition is `android_get_surrounding_text` (C 6198), running through the rest of the
+   input-method and text-conversion entries to `syms_of_androidterm` at the file's tail.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
-2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
-   from the Deviations above (C 829 vs the port's 1,055).
+2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21) - `androidterm`,
+   tolerance `0.10`, basis `total`, with the measured reason (C 7,117 vs the port's 7,490 at that
+   round).  This item used to claim a `0.30` row that no round had actually appended; the number
+   above is the one the table now carries, and the row is to be re-measured when the file
+   closes.
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
    three `stale` rows) and `docs/port-map.md`'s 11-line figure for this target are both stale now.
 4. `docs/ports/macro-body-notes.tsv`, the rows this slice's token sets need:
@@ -606,8 +617,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-6054 is now ported** (slices 4-20,
-each with its own Evidence section below); C 6056-7117 is recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-6163 is now ported** (slices 4-21,
+each with its own Evidence section below); C 6165-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1361,9 +1372,10 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
    `include/window.rs`, so the unit names it with a one-use macro (Owed 31, the
    `src/textconv.rs` 335-347 device).
 2. **The line-count row has retired**: with C 7,117 against the port's 6,950 the drift is **2.3%**,
-   inside this ledger's `docs/ports/line-drift-tolerance.tsv` row (`androidterm` `0.30`), so
-   `extract-abi.py --check` no longer prints a line-count line at all - the first time this unit's
-   checklist has been free of that row.
+   inside the rule's **default 5%** - this unit had no `docs/ports/line-drift-tolerance.tsv` row at
+   the time (the row this ledger's Deviations note asked for was only appended at slice 21), so
+   `extract-abi.py --check` printed no line-count line at all for the first time.  **Corrected
+   here**: the earlier text credited a `0.30` row, which no round had written.
 3. **Inventory**: 34 rows -> **35** - the three export rows of this slice are new (14 in all), the
    `missing function` rows fall to **17** (`android_get_selection` retires; the tail's 15 plain
    definitions plus `android_notify_conversion` and `syms_of_androidterm` stand), the two file-scope
@@ -1454,3 +1466,33 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
   literals `"hintMaxChars"`/`"I"`/… are C's own `c"…"` literals.
 - **`android_java_env`** is the `android.h` mirror's `static mut` (its 234, C 321) read once into
   `env` exactly where C reads it.
+
+## 2026-10-12: slice 21 (C 6056-6163) - the selected-text entry and the three request/flag entries
+
+`NATIVE_NAME (getSelectedText)`, `requestSelectionUpdate`, `requestCursorUpdates` and
+`clearInputFlags`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The slice's first probe was its last: the four entries reuse slice 19's extracted-text context,
+   slice 16's converter and the event shape of slices 15/17, so no new name was needed.
+2. **The line-count row is back, and this round is what measures why**: with C 7,117 against the
+   port's 7,490 the drift is **5.2%**, above the rule's **default 5%** - so
+   `docs/ports/line-drift-tolerance.tsv` now carries the `androidterm` row this ledger's Deviations
+   note asked for (tolerance `0.10`, basis `total`, the measured reading and its composition in the
+   reason column), and `--check` prints no line-count line again.  The three earlier places that
+   credited a `0.30` row (this ledger's Deviations note and Owed 2, and slice 18's Evidence ②) are
+   corrected in this commit: no round had appended such a row.
+3. **Inventory**: the four entries add four export rows (**20** in all, Owed 29), the
+   `missing function` rows stay at 15, the file-scope section stays empty, and no new
+   `does not mention` row appeared.
+
+### Deviations this slice adds
+
+- **C 6124's `event.ime.length = mode;`** is `mode as size_t` (C's `jint`-to-`size_t` conversion),
+  and C 6130's `event.ime.counter = 0;` is the plain `0` - this entry deliberately skips the
+  counter, as C's comment says.
+- **C 6067's `context.hint_max_chars = -1;`** is the same `c_int` literal, and
+  `context.text = NULL` the port's null pointer (PORTING.md 1.2).
