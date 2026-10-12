@@ -2263,3 +2263,411 @@ unsafe fn handle_one_android_event (dpyinfo: *mut android_display_info,
 
   return count;                                                        // C 1891
 }
+
+/* C 1894-2238: the run of frame, terminal and redisplay-interface callbacks that follows the event
+   dispatcher - the event reader, the buffer-flipping pair, the four colour helpers, the
+   focus/highlight hooks, the visibility hooks and the iconification hook.  Four names this text
+   needs are not in the frozen mirrors, so they stand at their use sites below (P-72 rule 4/P-88 ①).
+   Which item is `#[unsafe(no_mangle)]` and which is an `unsafe extern "C" fn` follows C's linkage
+   and the addresses `syms_of_androidterm` (C 6745-6761) and the interface arrays take.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3656: `extern void gui_update_cursor (struct frame *, bool);`
+  pub fn gui_update_cursor (f: *mut frame, on_p: bool);
+  /// C: dispextern.h 3798-3799: `bool parse_color_spec (const char *,
+  /// unsigned short *, unsigned short *, unsigned short *);`
+  pub fn parse_color_spec (spec: *const c_char, r: *mut c_ushort, g: *mut c_ushort,
+			   b: *mut c_ushort) -> bool;
+  /// C: dispextern.h 3839: `void gamma_correct (struct frame *, XColor *);` - `XColor` is this
+  /// tree's `Emacs_Color` (dispextern.h 22-64's X-like record, `include/dispextern.rs` 25).
+  pub fn gamma_correct (f: *mut frame, color: *mut Emacs_Color);
+  /// C: lisp.h 5117: `extern void store_frame_param (struct frame *, Lisp_Object, Lisp_Object);`
+  /// (`src/androidfns.rs` 103-104 declares the same header line for the same unit family.)
+  pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
+}
+
+/* C 1894-1927.  `static` in C and C 6745 takes its address, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_read_socket (terminal: *mut terminal,
+					  hold_quit: *mut input_event) -> c_int
+{
+  let mut count: c_int = 0;                                             // C 1898
+  let mut dpyinfo: *mut android_display_info;                           // C 1899
+
+  dpyinfo = (*terminal).display_info.android as *mut android_display_info;   // C 1901
+
+  block_input ();                                                       // C 1903
+  while android_pending () != 0                                         // C 1904
+    {
+      let mut finish: c_int = 0;                                        // C 1906
+      let mut event: android_event = std::mem::zeroed ();               // C 1907
+
+      android_next_event (&raw mut event);                              // C 1909
+      count += handle_one_android_event (dpyinfo, &raw mut event, &raw mut finish,   // C 1910
+					 hold_quit);                    // C 1911
+
+      if finish == ANDROID_EVENT_GOTO_OUT                               // C 1913
+	{ break; }                                                      // C 1914
+    }
+  unblock_input ();                                                     // C 1916
+
+  /* If the focus was just given to an auto-raising frame, raise it
+     now.  */                                                           // C 1918-1919
+  if ! (*dpyinfo).pending_autoraise_frame.is_null ()                    // C 1920
+    {
+      android_raise_frame ((*dpyinfo).pending_autoraise_frame);          // C 1922
+      (*dpyinfo).pending_autoraise_frame = std::ptr::null_mut ();        // C 1923
+    }
+
+  return count;                                                         // C 1926
+}
+
+/* C 1929-1946.  `static`, and C 6746 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_frame_up_to_date (f: *mut frame)
+{
+  eassert! (FRAME_ANDROID_P (f));                                       // C 1932
+  block_input ();                                                       // C 1933
+  FRAME_MOUSE_UPDATE! (f);                                              // C 1934
+
+  if ! buffer_flipping_blocked_p ()                                     // C 1936
+      && FRAME_ANDROID_NEED_BUFFER_FLIP! (f)                            // C 1937
+    { show_back_buffer (f); }                                          // C 1938
+
+  /* The frame is now complete, as its contents have been drawn.  */     // C 1940
+  /* C 1941's `FRAME_ANDROID_COMPLETE_P (f) = true;` is an l-value use of the folded member: the
+     mirror's macro is a read (include/androidterm.rs 474-479) and its own comment says a writer
+     site spells `bits |= MASK` (the `cm.rs` convention, status 3.516).  */
+  (*( (*f).output_data.android as *mut android_output )).bits |= ANDROID_OUTPUT_COMPLETE;   // C 1941
+
+  /* Shrink the scanline buffer used by the font backend.  */            // C 1943
+  sfntfont_android_shrink_scanline_buffer ();                           // C 1944
+  unblock_input ();                                                     // C 1945
+}
+
+/* C 1948-1957.  `static`, and C 6748 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_buffer_flipping_unblocked_hook (f: *mut frame)
+{
+  block_input ();                                                       // C 1951
+
+  if FRAME_ANDROID_NEED_BUFFER_FLIP! (f)                                // C 1953
+    { show_back_buffer (f); }                                          // C 1954
+
+  unblock_input ();                                                     // C 1956
+}
+
+/* C 1959-1968.  `static`, and C 6751 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_query_frame_background_color (f: *mut frame,
+							   bgcolor: *mut Emacs_Color)
+{
+  let mut background: c_ulong;                                          // C 1962
+
+  background = FRAME_BACKGROUND_PIXEL (f);                              // C 1964
+  (*bgcolor).pixel = background;                                        // C 1965
+
+  android_query_colors (f, bgcolor, 1);                                 // C 1967
+}
+
+/* C 1970-2004.  Non-`static` in C and no address is taken: `#[unsafe(no_mangle)]` with the C ABI
+   the mirror's declaration uses (`include/androidterm.rs` 584).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_parse_color (f: *mut frame, color_name: *const c_char,
+					      color: *mut Emacs_Color) -> c_int
+{
+  let mut r: c_ushort = 0;                                              // C 1974
+  let mut g: c_ushort = 0;
+  let mut b: c_ushort = 0;
+  let mut tem: Lisp_Object = Qnil ();                                   // C 1975
+  let mut tem1: Lisp_Object = Qnil ();
+  let mut lisp_color: c_ulong = 0;                                      // C 1976
+
+  if parse_color_spec (color_name, &raw mut r, &raw mut g, &raw mut b)   // C 1978
+    {
+      (*color).red = r;                                                 // C 1980
+      (*color).green = g;                                               // C 1981
+      (*color).blue = b;                                                // C 1982
+
+      return 1;                                                         // C 1984
+    }
+
+  tem = (*x_display_list).color_map;                                    // C 1987
+  while CONSP (tem)                                                     // C 1988
+    {
+      tem1 = XCAR (tem);                                                // C 1990
+
+      if CONSP (tem1)                                                   // C 1992
+	  && dispextern_externs::xstrcasecmp (SSDATA (XCAR (tem1)), color_name) == 0        // C 1993
+	{
+	  lisp_color = XFIXNUM (XCDR (tem1)) as c_ulong;                 // C 1995
+	  (*color).red = (RED_FROM_ULONG! (lisp_color) * 257) as c_ushort;   // C 1996
+	  (*color).green = (GREEN_FROM_ULONG! (lisp_color) * 257) as c_ushort;   // C 1997
+	  (*color).blue = (BLUE_FROM_ULONG! (lisp_color) * 257) as c_ushort;   // C 1998
+	  return 1;                                                     // C 1999
+	}
+      tem = XCDR (tem);                                                 // C 1988 (the `for` step)
+    }
+
+  return 0;                                                             // C 2003
+}
+
+/* C 2006-2038.  Non-`static` in C and no address is taken.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_alloc_nearest_color (f: *mut frame,
+						      color: *mut Emacs_Color) -> bool
+{
+  let mut ntsc: c_uint;                                                 // C 2009
+
+  gamma_correct (f, color);                                             // C 2011
+
+  if (*FRAME_DISPLAY_INFO! (f)).n_planes == 1                           // C 2013
+    {
+      /* Black and white.  I think this is the luminance formula applied
+	 by the X server on generic monochrome framebuffers.  */        // C 2015-2016
+      (*color).pixel = (if ((((30 * (*color).red as c_ulong)        // C 2017
+			      + (59 * (*color).green as c_ulong)        // C 2018
+			      + (11 * (*color).blue as c_ulong)) >> 8)  // C 2019
+			     >= (((1 << 8) - 1) * 50))                  // C 2020
+			 { 0xffffff } else { 0 }) as c_ulong;           // C 2021
+    }
+  else if (*FRAME_DISPLAY_INFO! (f)).n_planes <= 8                      // C 2023
+    {
+      /* 256 grays.  */                                                 // C 2025
+      ntsc = min (255, ((((*color).red as f64 * 0.299              // C 2026
+			   + (*color).green as f64 * 0.587            // C 2027
+			   + (*color).blue as f64 * 0.114)            // C 2028
+			  / 256.0) as c_uint));                       // C 2029
+      (*color).pixel = RGB_TO_ULONG! (ntsc as c_ulong, ntsc as c_ulong,   // C 2030
+				      ntsc as c_ulong);                    // C 2030
+    }
+  else
+    { (*color).pixel = RGB_TO_ULONG! (((*color).red / 256) as c_ulong,   // C 2033
+				      ((*color).green / 256) as c_ulong,   // C 2034
+				      ((*color).blue / 256) as c_ulong); }   // C 2035
+
+  return true;                                                          // C 2037
+}
+
+/* C 2040-2051.  Non-`static` in C and C 6752 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_query_colors (f: *mut frame, colors: *mut Emacs_Color,
+					       ncolors: c_int)
+{
+  let mut i: c_int;                                                     // C 2043
+
+  i = 0;                                                                // C 2045
+  while i < ncolors
+    {
+      (*colors.offset (i as isize)).red = (RED_FROM_ULONG! ((*colors.offset (i as isize)).pixel) * 257) as c_ushort;   // C 2047
+      (*colors.offset (i as isize)).green = (GREEN_FROM_ULONG! ((*colors.offset (i as isize)).pixel) * 257) as c_ushort;   // C 2048
+      (*colors.offset (i as isize)).blue = (BLUE_FROM_ULONG! ((*colors.offset (i as isize)).pixel) * 257) as c_ushort;   // C 2049
+      i += 1;                                                           // C 2045 (the `for` step)
+    }
+}
+
+/* C 2053-2085.  `static`, and C 6753 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_mouse_position (fp: *mut *mut frame, insist: c_int,
+					     bar_window: *mut Lisp_Object,
+					     part: *mut scroll_bar_part, x: *mut Lisp_Object,
+					     y: *mut Lisp_Object, timestamp: *mut Time)
+{
+  let mut tail: Lisp_Object = Qnil ();                                  // C 2059
+  let mut frame: Lisp_Object = Qnil ();
+  let mut dpyinfo: *mut android_display_info;                           // C 2060
+
+  dpyinfo = FRAME_DISPLAY_INFO! (*fp);                                  // C 2062
+
+  /* This is the best implementation possible on Android, where the
+     system doesn't let Emacs obtain any information about the mouse
+     pointer at all.  */                                                // C 2064-2066
+
+  if ! (*dpyinfo).last_mouse_motion_frame.is_null ()                    // C 2068
+    {
+      *fp = (*dpyinfo).last_mouse_motion_frame;                         // C 2070
+      *timestamp = (*dpyinfo).last_mouse_movement_time;                 // C 2071
+      *x = make_fixnum ((*dpyinfo).last_mouse_motion_x as EMACS_INT);   // C 2072
+      *y = make_fixnum ((*dpyinfo).last_mouse_motion_y as EMACS_INT);   // C 2073
+      *bar_window = Qnil ();                                            // C 2074
+      *part = scroll_bar_nowhere;                                       // C 2075
+
+      FOR_EACH_FRAME! (tail, frame, {                                 // C 2077
+	  if FRAME_ANDROID_P (XFRAME (frame))                           // C 2079
+	    { mouse_moved! (XFRAME (frame), false); }                   // C 2080
+	});
+
+      mouse_moved! ((*dpyinfo).last_mouse_motion_frame, false);         // C 2083
+    }
+}
+
+/* C 2087-2100.  `static`, and C 6754 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_get_focus_frame (f: *mut frame) -> Lisp_Object
+{
+  let mut lisp_focus: Lisp_Object = Qnil ();                            // C 2090
+  let mut focus: *mut frame;                                            // C 2091
+
+  focus = (*FRAME_DISPLAY_INFO! (f)).focus_frame;                       // C 2093
+
+  if focus.is_null ()                                                   // C 2095
+    { return Qnil (); }                                                 // C 2096
+
+  XSETFRAME! (lisp_focus, focus);                                       // C 2098
+  return lisp_focus;                                                    // C 2099
+}
+
+/* C 2102-2109.  `static`, and C 6755 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_focus_frame (f: *mut frame, noactivate: bool)
+{
+  /* Set the input focus to the frame's window.  The system only lets
+     this work on child frames.  */                                     // C 2105-2106
+  android_set_input_focus (FRAME_ANDROID_WINDOW! (f),                   // C 2107
+			   ANDROID_CURRENT_TIME as u64);                 // C 2108
+}
+
+/* The two procedures below only have to update the cursor on Android,
+   as there are no window borders there.  */                           // C 2111-2112
+
+/* C 2114-2118.  `static`; only called (C 2152/2154), so a plain Rust-ABI item.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_frame_highlight (f: *mut frame)
+{
+  gui_update_cursor (f, true);                                          // C 2117
+}
+
+/* C 2120-2124.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_frame_unhighlight (f: *mut frame)
+{
+  gui_update_cursor (f, true);                                          // C 2123
+}
+
+/* C 2126-2156.  `static`; only called (C 2161), so a plain Rust-ABI item.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_frame_rehighlight (dpyinfo: *mut android_display_info)
+{
+  let mut old_highlight: *mut frame;                                    // C 2129
+
+  old_highlight = (*dpyinfo).highlight_frame;                           // C 2131
+
+  if ! (*dpyinfo).focus_frame.is_null ()                                // C 2133
+    {
+      (*dpyinfo).highlight_frame                                        // C 2135
+	= (if FRAMEP (FRAME_FOCUS_FRAME ((*dpyinfo).focus_frame))       // C 2136
+	     { XFRAME (FRAME_FOCUS_FRAME ((*dpyinfo).focus_frame)) }    // C 2137
+	   else { (*dpyinfo).focus_frame });                            // C 2138
+      if ! FRAME_LIVE_P ((*dpyinfo).highlight_frame)                    // C 2139
+	{
+	  fset_focus_frame ((*dpyinfo).focus_frame, Qnil ());           // C 2141
+	  (*dpyinfo).highlight_frame = (*dpyinfo).focus_frame;          // C 2142
+	}
+    }
+  else
+    { (*dpyinfo).highlight_frame = std::ptr::null_mut (); }             // C 2146
+
+  if (*dpyinfo).highlight_frame != old_highlight                        // C 2148
+    {
+      /* This is not yet required on Android.  */                       // C 2150
+      if ! old_highlight.is_null ()                                     // C 2151
+	{ android_frame_unhighlight (old_highlight); }                  // C 2152
+      if ! (*dpyinfo).highlight_frame.is_null ()                        // C 2153
+	{ android_frame_highlight ((*dpyinfo).highlight_frame); }        // C 2154
+    }
+}
+
+/* C 2158-2162.  `static`, and C 6756 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_frame_rehighlight_hook (f: *mut frame)
+{
+  android_frame_rehighlight (FRAME_DISPLAY_INFO! (f));                  // C 2161
+}
+
+/* C 2164-2171.  `static`, and C 6757 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_frame_raise_lower (f: *mut frame, raise_flag: bool)
+{
+  if raise_flag                                                         // C 2167
+    { android_raise_frame (f); }                                       // C 2168
+  else
+    { android_lower_frame (f); }                                       // C 2170
+}
+
+/* C 2173-2180.  Non-`static` in C and no address is taken.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_make_frame_visible (f: *mut frame)
+{
+  android_map_window (FRAME_ANDROID_WINDOW! (f));                       // C 2176
+
+  SET_FRAME_VISIBLE! (f, true);                                         // C 2178
+  SET_FRAME_ICONIFIED (f, 0);                                          // C 2179
+}
+
+/* C 2182-2193.  Non-`static` in C and no address is taken.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_make_frame_invisible (f: *mut frame)
+{
+  /* Don't keep the highlight on an invisible frame.  */                 // C 2185
+  if (*FRAME_DISPLAY_INFO! (f)).highlight_frame == f                    // C 2186
+    { (*FRAME_DISPLAY_INFO! (f)).highlight_frame = std::ptr::null_mut (); }   // C 2187
+
+  android_unmap_window (FRAME_ANDROID_WINDOW! (f));                     // C 2189
+
+  SET_FRAME_VISIBLE! (f, false);                                        // C 2191
+  SET_FRAME_ICONIFIED (f, 0);                                          // C 2192
+}
+
+/* C 2195-2202.  `static`, and C 6759 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_make_frame_visible_invisible (f: *mut frame, visible: bool)
+{
+  if visible                                                            // C 2198
+    { android_make_frame_visible (f); }                                // C 2199
+  else
+    { android_make_frame_invisible (f); }                              // C 2201
+}
+
+/* C 2204-2231.  `static`, and C 6760 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_fullscreen_hook (f: *mut frame)
+{
+  let mut wanted: Lisp_Object = Qnil ();                                // C 2207
+
+  if ! FRAME_PARENT_FRAME (f).is_null ()                                // C 2209
+    {
+      /* Explicitly setting fullscreen is not supported on older
+	 Android versions.  */                                         // C 2211-2212
+
+      wanted = (if (*f).want_fullscreen == FULLSCREEN_BOTH            // C 2214
+		  { Qfullscreen () } else { Qmaximized () });          // C 2215
+
+      if android_set_fullscreen (FRAME_ANDROID_WINDOW! (f),            // C 2217
+				 EQ (wanted, Qfullscreen ())) != 0     // C 2218
+	{ store_frame_param (f, Qfullscreen (), Qmaximized ()); }      // C 2219
+      else
+	{ store_frame_param (f, Qfullscreen (), wanted); }             // C 2221
+    }
+  else
+    {
+      store_frame_param (f, Qfullscreen (), Qnil ());                  // C 2225
+
+      /* If this is a child frame, don't keep it fullscreen
+	 anymore.  */                                                 // C 2227-2228
+      android_set_fullscreen (FRAME_ANDROID_WINDOW! (f), false);       // C 2229
+    }
+}
+
+/* C 2233-2238.  Non-`static` in C and C 6761 takes its address.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_iconify_frame (f: *mut frame)
+{
+  /* This really doesn't work on Android.  */                            // C 2236
+  error (c"Can't notify window manager of iconification".as_ptr ());    // C 2237
+}

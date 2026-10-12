@@ -7,7 +7,7 @@
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
 > readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**2,265 lines**, md5
-> `96e3ac6a99180463f2afea4e685ce950`), carrying **C 1-1892**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> `671c3e61d696806a7494a7705dafcc5e`), carrying **C 1-2238**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -18,7 +18,7 @@
 > `android_handle_ime_event`.  **The next live definition is `handle_one_android_event` (C 836-1892),
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
-> which leaves C 1894-7117** (the next whole-item boundary is `android_notify_conversion`, C 2098).
+> which leaves C 2240-7117** (the next whole-item boundary is `android_wait_for_event`, C 2241).
 
 ## Gate mapping
 
@@ -89,7 +89,26 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 710-829 | the input-method note and `android_handle_ime_event` (C 722 and C 744 the two `switch`es) | real arm |
 | 830-834 | C 831-832's page break and blank, C 833's `/* Forward declaration.  */` and C 834's `static void android_notify_conversion (unsigned long);` | real arm (slice 2: the comment is carried, the declaration needs no Rust text - PORTING.md 10.10) |
 | 836-1892 | `handle_one_android_event` (C 870 the `switch (event->type)`, C 879-1857's forty-seven `goto OTHER`/`goto done_keysym` with the `OTHER:` label at C 1860 and `done_keysym:` at C 1110, C 1836-1841's `#if notdef` block) | real arm (slice 2) |
-| 1894-7117 | **the remainder of the file** - everything from C 1894 to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1894-1927 | `android_read_socket` (C 1904 the `while (android_pending ())` loop) | real arm (slice 3) |
+| 1929-1946 | `android_frame_up_to_date` (C 1941's `FRAME_ANDROID_COMPLETE_P (f) = true;`) | real arm (slice 3) |
+| 1948-1957 | `android_buffer_flipping_unblocked_hook` | real arm (slice 3) |
+| 1959-1968 | `android_query_frame_background_color` | real arm (slice 3) |
+| 1970-2004 | `android_parse_color` (C 1988 the `for (; CONSP (tem); tem = XCDR (tem))`) | real arm (slice 3) |
+| 2006-2038 | `android_alloc_nearest_color` (C 2017-2021 and C 2026-2029 the two luminance folds) | real arm (slice 3) |
+| 2040-2051 | `android_query_colors` | real arm (slice 3) |
+| 2053-2085 | `android_mouse_position` (C 2077 the `FOR_EACH_FRAME`) | real arm (slice 3) |
+| 2087-2100 | `android_get_focus_frame` | real arm (slice 3) |
+| 2102-2109 | `android_focus_frame` | real arm (slice 3) |
+| 2111-2124 | C 2111-2112's note and the two cursor procedures `android_frame_highlight`/`_unhighlight` | real arm (slice 3) |
+| 2126-2156 | `android_frame_rehighlight` | real arm (slice 3) |
+| 2158-2162 | `android_frame_rehighlight_hook` | real arm (slice 3) |
+| 2164-2171 | `android_frame_raise_lower` | real arm (slice 3) |
+| 2173-2180 | `android_make_frame_visible` | real arm (slice 3) |
+| 2182-2193 | `android_make_frame_invisible` | real arm (slice 3) |
+| 2195-2202 | `android_make_frame_visible_invisible` | real arm (slice 3) |
+| 2204-2231 | `android_fullscreen_hook` (C 2214's `f->want_fullscreen == FULLSCREEN_BOTH`) | real arm (slice 3) |
+| 2233-2238 | `android_iconify_frame` | real arm (slice 3) |
+| 2240-7117 | **the remainder of the file** - everything from C 2240 to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -260,11 +279,12 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 1894-7117.**  Slice 2 wrote C 830-1892 (the forward declaration's
-   comment and `handle_one_android_event`), so the next slice's rows must replace this table's last
-   row; its first definition is `android_notify_conversion` (C 2098), and the two `E0425` rows this
-   slice reads - C 458's `android_frame_rehighlight` (C 2127) and C 1761's `android_notify_conversion`
-   (C 2098) - are the first things it closes.
+1. **The remainder of the file: C 2240-7117.**  Slice 3 wrote C 1894-2238 (the frame, terminal and
+   redisplay-interface callbacks), so the next slice's rows must replace this table's last row; its
+   first definition is `android_wait_for_event` (C 2241).  Slice 3 **closed** the first of the two
+   `E0425` forward references this ledger carried: `android_frame_rehighlight` is defined at C 2127,
+   so slice 1's C 458 call and slice 2's C 1141/1221/1232 calls resolve; only C 1761's
+   `android_notify_conversion` (C 2098) is left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
@@ -316,6 +336,21 @@ slice's basis).  All 116 are in the owed list below.
    `src/xterm.rs` 31036 / `src/haikuterm.rs` 4884 copies.  A mirror-level accessor pair would let
    all three units drop it.
 
+13. **Four more use-site declarations** (slice 3): `gui_update_cursor` (dispextern.h 3656),
+   `parse_color_spec` (dispextern.h 3798-3799), `gamma_correct` (dispextern.h 3839 - the definition
+   is `src/androidfns.rs` 481's, and this unit's is the declaration side) and `store_frame_param`
+   (lisp.h 5117).  Each belongs in the mirror its header names (P-88 ⑤).
+14. **`xstrcasecmp` reaches this unit by path** (`dispextern_externs::xstrcasecmp`, the
+   `src/dosfns.rs` 791 device), because the mirror keeps the header's `INLINE` definition in
+   `dispextern.rs` 2642-2652's module rather than in the glob-imported region; the alternative
+   (`src/fontset.rs` 108's fourth copy of the declaration, or `src/font.rs` 298's third definition)
+   is what P-26's one-declaration rule is for, and this unit takes neither.
+15. **The `have_window_system` gap this slice widens**: `android_fullscreen_hook` (C 2214) is the
+   second place in this unit that reads `f->want_fullscreen` and the first that names
+   `FULLSCREEN_BOTH` - `include/frame.rs` carries both behind `feature = "have_window_system"`
+   (its 757-759's mask pair and its 63's constant), so the frozen reading has three more named
+   blockers.  `docs/ports/include-frame.md`'s round is where the numbering for the Android
+   window-system configuration belongs.
 ### Not claimed
 
 Every line of this file is behind gates the frozen configuration leaves false: ① is an empty object,
@@ -323,8 +358,8 @@ Every line of this file is behind gates the frozen configuration leaves false: �
 frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the complete error list for
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
-ported** (slice 2) and its own reading is the second half of ② below; C 1894-7117 is recorded, not
-ported.
+ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
+(slice 3) and its own reading is the third half of ② below; C 2240-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -434,3 +469,64 @@ events, the configuration-changed pair, and the shared `OTHER:` tail.
   transcribed (the slice-1 `#if false` rule).
 - **`double` is `f64`** (C 849's `double scroll_unit;`), which is why the token row of Owed 9 lists
   it.
+
+## 2026-10-12: slice 3 (C 1894-2238) - the frame, terminal and redisplay-interface callbacks
+
+The run of callbacks after the event dispatcher: `android_read_socket` (the event loop that calls
+`handle_one_android_event` and the auto-raise tail), `android_frame_up_to_date` and
+`android_buffer_flipping_unblocked_hook` (the buffer-flip pair), `android_query_frame_background_color`,
+the three colour helpers (`android_parse_color`, `android_alloc_nearest_color`, `android_query_colors`),
+`android_mouse_position`, the focus group (`android_get_focus_frame`, `android_focus_frame`), the
+cursor pair (`android_frame_highlight`/`_unhighlight`) and `android_frame_rehighlight` with its hook,
+`android_frame_raise_lower`, the three visibility hooks, `android_fullscreen_hook` and
+`android_iconify_frame`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (`probe src/androidterm.rs /tmp/aterm-lane/arm.o --crate-type lib --emit obj
+   -C panic=abort --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'`): **exit 1,
+   20 errors**, every one in a class this ledger names - **19 are the `have_window_system` members
+   and constants the frozen mirror does not carry** (`frame.tool_bar_window` 7 sites,
+   `frame.tab_bar_window` 4, `frame.last_tool_bar_item` 3, `frame.conversion` 2, `frame.new_size_p`
+   1, `frame.want_fullscreen` 1 and `FULLSCREEN_BOTH` 1), and **1 is the surviving forward
+   reference** (C 1761's `android_notify_conversion`, C 2098).  **Slice 1's and slice 2's
+   `android_frame_rehighlight` `E0425` is gone**: this slice defines it (C 2127), which is the first
+   of the two forward-reference rows this ledger has carried since slice 1.
+2. **Five reads the first draft needed to converge, each a mirror-vs-C spelling** (all recorded in
+   Deviations): `FOR_EACH_FRAME!` takes the body as its third argument (`FOR_EACH_FRAME! (tail,
+   frame, { … })`, the `src/androidfns.rs` 1948 form) rather than C's following block; `min` is
+   lisp.h 71-72's macro, which the mirror spells as the generic function `min` (`include/lisp.rs`
+   3158), not gnulib's `MIN!`; `RGB_TO_ULONG!` needs `c_ulong` operands (the `src/haikufns.rs` 897
+   device); `android_set_fullscreen` returns `c_int`, so C's `if (…)` is `if (…) != 0`; and
+   `xstrcasecmp` is reached by path (Owed 14).
+3. **Three `does not mention` rows appeared and were discharged in this commit** by three
+   `docs/ports/macro-body-notes.tsv` rows: `android_frame_up_to_date` → `frame_android_complete_p,
+   true` (the folded-member write), `android_frame_rehighlight` → `0` (C's null constant), and
+   `android_make_frame_visible` → `false` (the mirror's `SET_FRAME_ICONIFIED` takes `c_int`).
+4. **Inventory** (`extract-abi.py --check`): 41 rows -> **34** - the `missing function` rows for
+   C 2240-7117's items fall by the nineteen this slice lands, the `missing macro`/`missing constant`
+   pair and the five `missing file-scope object` rows stand - the macro/constant at C 3357
+   (`HIGHLIGHT_COLOR_DARK_BOOST_LIMIT`) and the objects at C 5026/5029/5032 (`edit_counter`,
+   `last_edit_counter`, `edit_sem`) and C 5890/5893 (`request_class`, `text_class`) - and the
+   line-count row reads **62.4%** (C 7,117 against the port's 2,673).
+
+### Deviations this slice adds
+
+- **C's linkage plus the addresses C takes decide each item's shape**: `#[unsafe(no_mangle)] pub
+  unsafe extern "C" fn` for the four non-`static` definitions (`android_parse_color`,
+  `android_alloc_nearest_color`, `android_query_colors`, `android_make_frame_visible`,
+  `android_make_frame_invisible`, `android_iconify_frame` - the mirror declares them in its
+  `androidterm_decls` module, `include/androidterm.rs` 578-587); `unsafe extern "C" fn` for the
+  fourteen `static` ones whose address C 6745-6761's hook assignments take; and a plain Rust-ABI
+  `unsafe fn` for `android_frame_highlight`/`_unhighlight`/`android_frame_rehighlight`, which C only
+  calls (C 2152/2154/2161).
+- **C 1941's `FRAME_ANDROID_COMPLETE_P (f) = true;`** is an l-value use of a folded member, so the
+  port writes the mask write the mirror's own comment prescribes (`bits |= ANDROID_OUTPUT_COMPLETE`,
+  the `cm.rs` convention) with C's line kept.
+- **`FOR_EACH_FRAME` (C 2077)** is the mirror's three-argument macro, so C's trailing block is its
+  third argument.
+- **C 1988's `for (; CONSP (tem); tem = XCDR (tem))`** is the `while` + trailing step the port's
+  iterator rule uses, and C 2045's `for (i = 0; i < ncolors; ++i)` the same shape.
+- **C 2026-2029's luminance fold** keeps C's four `double` operands (`color->red * 0.299` …) with the
+  `as f64` promotions Rust requires, and C 2017-2021's 30/59/11 fold keeps C's integer arithmetic
+  with `c_ulong` operands for the `>>`/compare.
