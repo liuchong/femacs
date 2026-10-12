@@ -4284,3 +4284,248 @@ unsafe fn android_draw_glyph_string_bg_rect (s: *mut glyph_string, x: c_int, y: 
   else
     { android_clear_glyph_string_rect (s, x, y, w, h); }                // C 3579
 }
+
+/* C 3582-3797: the three image-drawing helpers.  `image_ascent` is the one name this text needs
+   that no mirror reaches, so it stands at its use site below (P-72 rule 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: dispextern.h 3774: `int image_ascent (struct image *, struct face *, struct glyph_slice *);`
+  pub fn image_ascent (img: *mut image, face: *mut face, slice: *mut glyph_slice) -> c_int;
+}
+
+/* C 3582-3670.  `static`; only called (C 3796).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_image_relief (s: *mut glyph_string)
+{
+  let mut x1: c_int;                                                    // C 3585
+  let mut y1: c_int;
+  let mut thick: c_int;
+  let mut raised_p: bool;                                               // C 3586
+  let mut top_p: bool;
+  let mut bot_p: bool;
+  let mut left_p: bool;
+  let mut right_p: bool;
+  let mut extra_x: c_int;                                               // C 3587
+  let mut extra_y: c_int;
+  let mut r: android_rectangle = std::mem::zeroed ();                   // C 3588
+  let mut x: c_int = (*s).x;                                            // C 3589
+  let mut y: c_int = (*s).ybase - image_ascent ((*s).img, (*s).face as *mut face,   // C 3590
+						&raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */                                           // C 3592-3593
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX            // C 3594
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))             // C 3595
+      && glyph_slice_bits! (x, (*s).slice) as c_int == 0                                             // C 3596
+    { x += max ((*( (*s).face as *mut face )).box_vertical_line_width, 0); }   // C 3597
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */                                               // C 3599-3600
+  if glyph_slice_bits! (x, (*s).slice) as c_int == 0                                                 // C 3601
+    { x += (*( (*s).img )).hmargin; }                                   // C 3602
+  if glyph_slice_bits! (y, (*s).slice) as c_int == 0                                                 // C 3603
+    { y += (*( (*s).img )).vmargin; }                                   // C 3604
+
+  if (*s).hl == DRAW_IMAGE_SUNKEN                                       // C 3606
+      || (*s).hl == DRAW_IMAGE_RAISED                                  // C 3607
+    {
+      if (*( (*s).face as *mut face )).id == TAB_BAR_FACE_ID           // C 3609
+	{ thick = if tab_bar_button_relief < 0                         // C 3610
+		    { DEFAULT_TAB_BAR_BUTTON_RELIEF } else { min (tab_bar_button_relief as c_int, 1000000) }; }   // C 3611-3612
+      else
+	{ thick = if tool_bar_button_relief < 0                        // C 3614
+		    { DEFAULT_TOOL_BAR_BUTTON_RELIEF } else { min (tool_bar_button_relief as c_int, 1000000) }; }   // C 3615-3616
+      raised_p = (*s).hl == DRAW_IMAGE_RAISED;                          // C 3617
+    }
+  else
+    {
+      thick = eabs! ((*( (*s).img )).relief);                           // C 3621
+      raised_p = (*( (*s).img )).relief > 0;                            // C 3622
+    }
+
+  x1 = x + glyph_slice_bits! (width, (*s).slice) as c_int - 1;                                        // C 3625
+  y1 = y + glyph_slice_bits! (height, (*s).slice) as c_int - 1;                                       // C 3626
+
+  extra_x = 0;                                                          // C 3628
+  extra_y = 0;
+  if (*( (*s).face as *mut face )).id == TAB_BAR_FACE_ID                // C 3629
+    {
+      if CONSP (Vtab_bar_button_margin)                                 // C 3631
+	  && FIXNUMP (XCAR (Vtab_bar_button_margin))                    // C 3632
+	  && FIXNUMP (XCDR (Vtab_bar_button_margin))                    // C 3633
+	{
+	  extra_x = XFIXNUM (XCAR (Vtab_bar_button_margin)) as c_int - thick;   // C 3635
+	  extra_y = XFIXNUM (XCDR (Vtab_bar_button_margin)) as c_int - thick;   // C 3636
+	}
+      else if FIXNUMP (Vtab_bar_button_margin)                          // C 3638
+	{ extra_x = XFIXNUM (Vtab_bar_button_margin) as c_int - thick;   // C 3639
+	  extra_y = extra_x; }
+    }
+
+  if (*( (*s).face as *mut face )).id == TOOL_BAR_FACE_ID               // C 3642
+    {
+      if CONSP (Vtool_bar_button_margin)                                // C 3644
+	  && FIXNUMP (XCAR (Vtool_bar_button_margin))                   // C 3645
+	  && FIXNUMP (XCDR (Vtool_bar_button_margin))                   // C 3646
+	{
+	  extra_x = XFIXNUM (XCAR (Vtool_bar_button_margin)) as c_int;   // C 3648
+	  extra_y = XFIXNUM (XCDR (Vtool_bar_button_margin)) as c_int;   // C 3649
+	}
+      else if FIXNUMP (Vtool_bar_button_margin)                         // C 3651
+	{ extra_x = XFIXNUM (Vtool_bar_button_margin) as c_int;          // C 3652
+	  extra_y = extra_x; }
+    }
+
+  top_p = false;                                                        // C 3655
+  bot_p = false;
+  left_p = false;
+  right_p = false;
+
+  if glyph_slice_bits! (x, (*s).slice) as c_int == 0                                                 // C 3657
+    { x -= thick + extra_x; left_p = true; }                           // C 3658
+  if glyph_slice_bits! (y, (*s).slice) as c_int == 0                                                 // C 3659
+    { y -= thick + extra_y; top_p = true; }                            // C 3660
+  if glyph_slice_bits! (x, (*s).slice) as c_int + glyph_slice_bits! (width, (*s).slice) as c_int == (*( (*s).img )).width          // C 3661
+    { x1 += thick + extra_x; right_p = true; }                         // C 3662
+  if glyph_slice_bits! (y, (*s).slice) as c_int + glyph_slice_bits! (height, (*s).slice) as c_int == (*( (*s).img )).height        // C 3663
+    { y1 += thick + extra_y; bot_p = true; }                           // C 3664
+
+  android_setup_relief_colors (s);                                      // C 3666
+  get_glyph_string_clip_rect (s, &raw mut r as *mut c_void);            // C 3667
+  android_draw_relief_rect ((*s).f, x, y, x1, y1, thick, thick, raised_p,   // C 3668
+			    top_p, bot_p, left_p, right_p, &raw mut r);   // C 3669
+}
+
+/* C 3672-3740.  `static`; only called (C 3789).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_image_foreground (s: *mut glyph_string)
+{
+  let mut x: c_int = (*s).x;                                            // C 3675
+  let mut y: c_int = (*s).ybase - image_ascent ((*s).img, (*s).face as *mut face,   // C 3676
+						&raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */                                           // C 3678-3679
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX            // C 3680
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))             // C 3681
+      && glyph_slice_bits! (x, (*s).slice) as c_int == 0                                             // C 3682
+    { x += max ((*( (*s).face as *mut face )).box_vertical_line_width, 0); }   // C 3683
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */                                               // C 3685-3686
+  if glyph_slice_bits! (x, (*s).slice) as c_int == 0                                                 // C 3687
+    { x += (*( (*s).img )).hmargin; }                                   // C 3688
+  if glyph_slice_bits! (y, (*s).slice) as c_int == 0                                                 // C 3689
+    { y += (*( (*s).img )).vmargin; }                                   // C 3690
+
+  if ! (*( (*s).img )).pixmap.is_null ()                                // C 3692
+    {
+      let mask: c_ulong = (ANDROID_GC_CLIP_MASK                        // C 3694
+			   | ANDROID_GC_CLIP_X_ORIGIN                  // C 3695
+			   | ANDROID_GC_CLIP_Y_ORIGIN                  // C 3696
+			   | ANDROID_GC_FUNCTION) as c_ulong;          // C 3697
+      let mut xgcv: android_gc_values = std::mem::zeroed ();            // C 3698
+      let mut clip_rect: android_rectangle = std::mem::zeroed ();       // C 3699
+      let mut image_rect: android_rectangle = std::mem::zeroed ();
+      let mut r: android_rectangle = std::mem::zeroed ();
+
+      xgcv.clip_mask = (*( (*s).img )).mask as android_pixmap;          // C 3701
+      xgcv.clip_x_origin = x - glyph_slice_bits! (x, (*s).slice) as c_int;                            // C 3702
+      xgcv.clip_y_origin = y - glyph_slice_bits! (y, (*s).slice) as c_int;                            // C 3703
+      xgcv.function = ANDROID_GC_COPY;                                  // C 3704
+      android_change_gc ((*s).gc as *mut android_gc, mask as android_gc_value_mask, &raw mut xgcv);   // C 3705
+
+      get_glyph_string_clip_rect (s, &raw mut clip_rect as *mut c_void);   // C 3707
+      image_rect.x = x;                                                 // C 3708
+      image_rect.y = y;                                                 // C 3709
+      image_rect.width = glyph_slice_bits! (width, (*s).slice) as c_int as c_uint;                    // C 3710
+      image_rect.height = glyph_slice_bits! (height, (*s).slice) as c_int as c_uint;                  // C 3711
+
+      if gui_intersect_rectangles (&raw const clip_rect as *const Emacs_Rectangle,   // C 3713
+				   &raw const image_rect as *const Emacs_Rectangle,
+				   &raw mut r as *mut Emacs_Rectangle)
+	{ android_copy_area ((*( (*s).img )).pixmap as android_drawable,   // C 3714
+			     FRAME_ANDROID_DRAWABLE! ((*s).f),          // C 3715
+			     (*s).gc as *mut android_gc, glyph_slice_bits! (x, (*s).slice) as c_int + r.x - x,   // C 3716
+			     glyph_slice_bits! (y, (*s).slice) as c_int + r.y - y,                    // C 3717
+			     r.width, r.height, r.x, r.y); }            // C 3718
+
+      /* When the image has a mask, we can expect that at least part
+	 of a mouse highlight or a block cursor will be visible.  If
+	 the image doesn't have a mask, make a block cursor visible by
+	 drawing a rectangle around the image.  I believe it's looking
+	 better if we do nothing here for mouse-face.  */               // C 3720-3724
+      if (*s).hl == DRAW_CURSOR && (*( (*s).img )).mask.is_null ()      // C 3725
+	{
+	  let relief: c_int = eabs! ((*( (*s).img )).relief);            // C 3727
+	  android_draw_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc,   // C 3728
+				  x - relief, y - relief,               // C 3729
+				  (glyph_slice_bits! (width, (*s).slice) as c_int + relief * 2 - 1) as c_uint,   // C 3730
+				  (glyph_slice_bits! (height, (*s).slice) as c_int + relief * 2 - 1) as c_uint);   // C 3731
+	}
+
+      android_set_clip_mask ((*s).gc as *mut android_gc, ANDROID_NONE as android_pixmap);   // C 3734
+    }
+  else
+    /* Draw a rectangle if image could not be loaded.  */                // C 3737
+    { android_draw_rectangle (FRAME_ANDROID_DRAWABLE! ((*s).f), (*s).gc as *mut android_gc, x, y,   // C 3738
+			      (glyph_slice_bits! (width, (*s).slice) as c_int - 1) as c_uint, (glyph_slice_bits! (height, (*s).slice) as c_int - 1) as c_uint); }   // C 3739
+}
+
+/* C 3742-3797.  `static`; only called (C 4582).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_draw_image_glyph_string (s: *mut glyph_string)
+{
+  let box_line_hwidth: c_int = max ((*( (*s).face as *mut face )).box_vertical_line_width, 0);   // C 3745
+  let box_line_vwidth: c_int = max ((*( (*s).face as *mut face )).box_horizontal_line_width, 0);   // C 3746
+  let mut height: c_int;                                                // C 3747
+
+  height = (*s).height;                                                 // C 3749
+  if glyph_slice_bits! (y, (*s).slice) as c_int == 0                                                  // C 3750
+    { height -= box_line_vwidth; }                                      // C 3751
+  if glyph_slice_bits! (y, (*s).slice) as c_int + glyph_slice_bits! (height, (*s).slice) as c_int >= (*( (*s).img )).height         // C 3752
+    { height -= box_line_vwidth; }                                      // C 3753
+
+  /* Fill background with face under the image.  Do it only if row is
+     taller than image or if image has a clip mask to reduce
+     flickering.  */                                                    // C 3755-3757
+  glyph_string_bits! (stippled_p, (*s), (*( (*s).face as *mut face )).stipple != 0);   // C 3758
+  if height > glyph_slice_bits! (height, (*s).slice) as c_int                                        // C 3759
+      || (*( (*s).img )).hmargin != 0                                   // C 3760
+      || (*( (*s).img )).vmargin != 0                                   // C 3761
+      || ! (*( (*s).img )).mask.is_null ()                              // C 3762
+      || (*( (*s).img )).pixmap.is_null ()                              // C 3763
+      || (*s).width != (*s).background_width                            // C 3764
+    {
+      if glyph_string_bits! (stippled_p, (*s))                          // C 3766
+	{ glyph_row_bits! (stipple_p, (*s).row, true); }                 // C 3767
+
+      let mut x: c_int = (*s).x;                                        // C 3769
+      let mut y: c_int = (*s).y;                                        // C 3770
+      let mut width: c_int = (*s).background_width;                     // C 3771
+
+      if glyph_bits! (left_box_line_p, (*(*s).first_glyph))             // C 3773
+	  && glyph_slice_bits! (x, (*s).slice) as c_int == 0                                         // C 3774
+	{
+	  x += box_line_hwidth;                                         // C 3776
+	  width -= box_line_hwidth;                                     // C 3777
+	}
+
+      if glyph_slice_bits! (y, (*s).slice) as c_int == 0                                             // C 3780
+	{ y += box_line_vwidth; }                                      // C 3781
+
+      android_draw_glyph_string_bg_rect (s, x, y, width, height);        // C 3783
+
+      glyph_string_bits! (background_filled_p, (*s), true);              // C 3785
+    }
+
+  /* Draw the foreground.  */                                           // C 3788
+  android_draw_image_foreground (s);                                    // C 3789
+  android_set_glyph_string_clipping (s);                                // C 3790
+
+  /* If we must draw a relief around the image, do it.  */                // C 3792
+  if (*( (*s).img )).relief != 0                                        // C 3793
+      || (*s).hl == DRAW_IMAGE_RAISED                                   // C 3794
+      || (*s).hl == DRAW_IMAGE_SUNKEN                                   // C 3795
+    { android_draw_image_relief (s); }                                  // C 3796
+}

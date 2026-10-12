@@ -18644,3 +18644,12 @@
   ⑤ 台账与门：`docs/ports/androidterm.md` 头部改成 **4286 行 / md5 `709ed81a…` / 携带 C 1-3580**，C 范围表拆成 **5 行并重铺**（余项改为 **C 3582-7117**，下一项 `android_draw_image_relief` C 3583）、Owed 22、Not claimed 更新、文尾加 slice 7 段；`check-dead-file-coverage` 覆盖 7,117 行 / 0 失败；十门全 0 失败。
   ⑥ 预算与清理：`xtask probe` **3 发**（22 → 22 → 3 的收敛，中间一次是脚本空白不匹配导致的空转），每次单文件 `rustc` 0.7-1.9 秒；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/aterm-lane`、`/tmp/aterm-slice7.rs`、`/tmp/aterm-arm*.txt`、`build/probes/androidterm`。
      **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有颜色被提亮/分配、没有 relief GC 被建/改、没有 box 或背景矩形被画；3 条 error 是具名镜像缺口与前向引用的编译级读数。
+
+- **4.134 `src/androidterm.c` round 8（androidterm lane，slice 8）：C 3582-3797 落地——图像绘制三件套；端口 4,286 → 4,531 行（2026-10-12）**：
+  ① 本片落的文本：`android_draw_image_relief`（C 3582-3670，含 C 3657-3664 的四条逗号语句）、`android_draw_image_foreground`（3672-3740）、`android_draw_image_glyph_string`（3742-3797）。
+  ② 臂读数（五个 gate）：**exit 1、仅 3 error**——仍是 `frame.want_fullscreen`、`frame.new_size_p`（镜像窗口系统编号缺口）与 `android_notify_conversion`（仅存前向引用）。首读 35 条自家读数全部清掉：镜像把 `glyph_slice` 的四个 `unsigned : 16` 成员折进 `bits [0]/[1]`，故本片 30 处读改写为 `glyph_slice_bits! (x|y|width|height, (*s).slice) as c_int`（`include/dispextern.rs` 338-349/605-611）；两个 `EMACS_INT` Lisp 变量 `tab_bar_button_relief`/`tool_bar_button_relief` 在 `min` 里需要同一类型（补 `as c_int`）；以及图像记录 `mask`/`pixmap` 到 `android_pixmap`/`android_drawable`/`*mut c_void` 的显式转换。
+  ③ `--check`：**5 → 5 行**（本片三条 `missing function` 退役，`image_ascent` 改为 use site 声明）；行数行 39.8% → **36.3%**；本片**没有**新的 `does not mention`。
+  ④ 本片新增偏离：`glyph_slice` 四成员走镜像访问器（无符号位域，无需符号扩展）；C 3657-3664 的逗号语句与 C 3628/3655 的链式赋值拆成两条语句；`image_ascent` 在 use site 声明（dispextern.h 3774，本片唯一无镜像的名字）。
+  ⑤ 台账与门：`docs/ports/androidterm.md` 头部改成 **4,531 行 / md5 `7c30f1bb…` / 携带 C 1-3797**，C 范围表拆成 **3 行并重铺**（余项改为 **C 3799-7117**，下一项 `android_draw_stretch_glyph_string` C 3800）、Owed 1 更新、文尾加 slice 8 段；`check-dead-file-coverage` 覆盖 7,117 行 / 0 失败；十门全 0 失败。
+  ⑥ 预算与清理：`xtask probe` **3 发**（37 → 26 → 5 → 3 的收敛），每次单文件 `rustc` 0.7-1.3 秒；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/aterm-lane`、`/tmp/aterm-slice8.rs`、`/tmp/aterm-arm*.txt`、`build/probes/androidterm`。
+     **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有图像被绘制、没有 relief 边框被画、没有 clip mask 被设；3 条 error 是具名镜像缺口与前向引用的编译级读数。

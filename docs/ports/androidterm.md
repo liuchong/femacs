@@ -18,8 +18,8 @@
 > `android_handle_ime_event`.  **The next live definition is `handle_one_android_event` (C 836-1892),
 > with its forward declaration `static void android_notify_conversion (unsigned long);` at C 834**;
 > the table's last row recorded C 830-7117 as the remainder; **slice 2 has replaced it with C 830-1892,
-> which leaves C 3582-7117** (the next whole-item boundary is `android_draw_image_relief`,
-> C 3583).
+> which leaves C 3799-7117** (the next whole-item boundary is `android_draw_stretch_glyph_string`,
+> C 3800).
 
 ## Gate mapping
 
@@ -151,7 +151,10 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 3464-3498 | C 3464's comment and `android_setup_relief_colors` | real arm (slice 7) |
 | 3500-3564 | `android_draw_glyph_string_box` (C 3522-3528 the automatic-composition walk) | real arm (slice 7) |
 | 3566-3580 | `android_draw_glyph_string_bg_rect` | real arm (slice 7) |
-| 3582-7117 | **the remainder of the file** - from C 3582's `static void` above `android_draw_image_relief` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3582-3670 | C 3582's `static void` and `android_draw_image_relief` (C 3657-3664's four comma statements) | real arm (slice 8) |
+| 3672-3740 | `android_draw_image_foreground` | real arm (slice 8) |
+| 3742-3797 | `android_draw_image_glyph_string` | real arm (slice 8) |
+| 3799-7117 | **the remainder of the file** - from C 3799's `static void` above `android_draw_stretch_glyph_string` to `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -347,10 +350,10 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 3582-7117.**  Slice 7 wrote C 3360-3580 (the relief-colour group
-   and the box/bg-rect helpers), so the next slice's rows must replace this table's last row; its
-   first definition is `android_draw_image_relief` (C 3583).  C 1761's `android_notify_conversion`
-   (C 6635-6648) is the only forward reference left.
+1. **The remainder of the file: C 3799-7117.**  Slice 8 wrote C 3582-3797 (the three image-drawing
+   helpers), so the next slice's rows must replace this table's last row; its first definition is
+   `android_draw_stretch_glyph_string` (C 3800).  C 1761's `android_notify_conversion` (C 6635-6648)
+   is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `androidterm` `0.30` `total`, with the reason
    from the Deviations above (C 829 vs the port's 1,055).
 3. `tools/check-port-lines.py --write-pending`: the `src/androidterm.c` ratchet row (one of the
@@ -799,3 +802,33 @@ clipping setters.
 - **C 3508-3531's ternary and the `for` walk over automatic compositions** keep C's order: the
   `last_glyph = g++` step is the two-statement form, and `g->u.cmp.id == s->cmp_id` is the
   `glyph_u_cmp_bits!` read widened to `ptrdiff_t`.
+
+## 2026-10-12: slice 8 (C 3582-3797) - the image-drawing helpers
+
+`android_draw_image_relief`, `android_draw_image_foreground` and `android_draw_image_glyph_string`.
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields and
+   the same forward reference.  The first draft's own readings were the mirror's `glyph_slice`
+   accessor (C's four `unsigned : 16` members are `bits [0]`/`bits [1]` with `glyph_slice_bits!`'s
+   arms, `include/dispextern.rs` 338-349/605-611 - thirty reads in this slice), the two
+   `EMACS_INT` Lisp variables `tab_bar_button_relief`/`tool_bar_button_relief` (`min`'s two arguments
+   need one type), and the `*mut c_void`/`android_pixmap`/`android_drawable` casts of the image
+   record's `mask`/`pixmap`.
+2. **No new `does not mention` row**: the two `TAB_BAR_FACE_ID`/`TOOL_BAR_FACE_ID` branches, the eight
+   `XFIXNUM (XCAR …)` reads and the four comma statements of C 3657-3664 all keep C's token set.
+3. **Inventory**: 5 rows -> **5** (this slice's three `missing function` rows retire and
+   `image_ascent`'s declaration is at the use site); the five file-scope objects stand, and the
+   line-count row reads **36.3%** (C 7,117 against the port's 4,531).
+
+### Deviations this slice adds
+
+- **`glyph_slice`'s four members** are the mirror's `glyph_slice_bits! (x|y|width|height, slice)` reads
+  with `as c_int` (`include/dispextern.rs` 605-611; C's members are the mirror's own comment's
+  "four `unsigned : 16`", so no sign extension is involved), and the `glyph_slice` pointer
+  `image_ascent` takes is C's own `&s->slice`.
+- **C 3657-3664's four comma statements** (`x -= thick + extra_x, left_p = true;`) are two statements
+  each in C's order, and C 3628/3655's chained assignments are the same split.
+- **`image_ascent`** is declared at the use site (dispextern.h 3774) - the one name of this slice no
+  mirror reaches.
