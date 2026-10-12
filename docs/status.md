@@ -18501,3 +18501,13 @@
   ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **5,658 行 / 新 md5**（写明“C 1-4572 减七项 deferred”）、C 范围表把余项行拆成七行、`## Not claimed` 改成 91 行 / 28.8%、常设 Owed 5 改成 71.2%、文件尾加 `## Slice 13` 段（Deviation 28）；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
   ⑦ 预算与清理：`xtask probe` **4 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 5 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep13.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
      **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有文档状态被取回、没有文档被删除或改名、`inside_saf_critical_section` 从未被真实 SAF 操作置位。**本文件未收口**：还剩 C 4679-7950（下一项是 C 4681 的注释与 C 4687 的 `struct android_saf_tree_vnode`）。
+
+- **4.119 `src/androidvfs.c` round 14（androidvfs lane，slice 14）：C 4574-4895 落地——把 slice 13 推迟的 `android_saf_move_document` 收掉，加 SAF tree 两个结构体与 document-ID 查询；端口 5,658 → 6,040 行（2026-10-08）**：
+  ① 本片落的文本：`android_saf_move_document`（C 4584-4677，C 的 `switch (rc)` 写成 `match`；它调用的 C 4806 `android_document_id_from_name` 正是本片同轮落地的）、`struct android_saf_tree_vnode`（C 4687-4712，量到 48；vnode/tree_uri/tree_id/document_id/name = 0/16/24/32/40）、`struct android_saf_tree_vdir`（C 4714-4732，量到 56；vdir/next/name/cursor/fd = 0/24/32/40/48）、C 的十二条前向声明（无文本）、C 4771-4777 的**两个暂定向量声明**（`saf_file_vfs_ops`/`saf_new_vfs_ops`，各自带注释）、`all_saf_tree_vdirs`、`android_document_id_from_name`（C 4805-4895）。
+  ② 臂读数：**两臂各 `exit 0`、0 error**，且**第一稿即通过、无需修复**；warning 8（else）/13（`>= 9`），与前四轮逐项相同。
+  ③ 对照（P-86 ⑦）：在 C 4621 的 `id = *doc_id;` 旁注入故意错误 → else 臂 `exit 1`、`injected_control` 点名一次；撤回后 `exit 0`、md5 回到 `f1754104b1701f15e569d537315478fc`。
+  ④ `--check`：**91 → 88 行且行集 diff 过**——三条 `missing` 退役（`all_saf_tree_vdirs`/`android_document_id_from_name`/`android_saf_move_document`），两条 `does not mention` 出现并**在同一次提交里清掉**；行数漂移 28.8% → **24.0%**。
+  ⑤ **Deviation 29**：C 4771-4777 的两个“暂定定义”向量按注释记录、在其初始值所在处（后续家族）落地（Rust 的 `static` 必须在声明处给初始值）；`saf_tree_vfs_ops`（C 4752-4769）点名 C 4898 起的十二个函数，故按 P-91 装置在“走到 C 5480 的那一轮”落尾部。至此本 lane 共欠 7 项 deferred（六项链 + `saf_tree_vfs_ops`）。
+  ⑥ 台账与门：`docs/ports/androidvfs.md` 头部改成 **6,040 行 / 新 md5**（写明“C 1-4895 减六项链 + `saf_tree_vfs_ops`”）、C 范围表把两行改成八行、`## Not claimed` 改成 88 行 / 24.0%、常设 Owed 5 改成 76.0%、文件尾加 `## Slice 14` 段；`check-dead-file-coverage` **145 账 / 0 失败**；十门其余与上一轮逐项相同。
+  ⑦ 预算与清理：`xtask probe` **2 发 + 对照 1 发**（单文件、每次 ≈1 秒）、`extract-abi --check` 5 发、十门一轮；**零 `build-tu`、零 `--all`、零全盘扫描、零大内存任务**；收尾删 `/tmp/av-keep14.rs`、`/tmp/androidvfs-lane`、`build/probes/androidvfs`。
+     **未声称**：无运行证据（无设备/模拟器，冻结配置不编此文件，本 lane 不链接）：没有 document ID 被查过、没有文档被移动、`all_saf_tree_vdirs` 仍为空。**本文件未收口**：还剩 C 4897-7950（下一项是 C 4898 的 `android_saf_tree_name`）。

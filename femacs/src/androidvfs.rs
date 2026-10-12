@@ -1422,9 +1422,7 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 4681-7950: the remainder of the file, plus the six items this lane still defers plus
-   `android_saf_move_document` (C 4574-4677, which calls `android_document_id_from_name`, C 4806).
-   The rest of the old note stands:
+/* C 4897-7950: the remainder of the file, plus the six items this lane still defers:
    C 2520-2537's `content_vfs_ops`, C 2549-2639's `android_content_name` and C 2887-2906's
    `android_content_initial` (one clique), C 3688-3705's `saf_root_vfs_ops`, C 3748-3848's
    `android_saf_root_name` (it calls `android_saf_tree_from_name`, C 5773) and C 4209-4229's
@@ -5655,4 +5653,388 @@ unsafe extern "C" {
   pub fn android_exception_check_3 (arg0: jobject, arg1: jobject, arg2: jobject);
   /// C: android.h 133: `extern void android_exception_check_4 (jobject, jobject, jobject, jobject);`
   pub fn android_exception_check_4 (arg0: jobject, arg1: jobject, arg2: jobject, arg3: jobject);
+}
+
+/* Move the document designated by *DOC_ID from the directory under
+   DIR_NAME to the directory designated by DST_ID.  All three
+   directories are located within the tree identified by the given
+   URI.
+
+   If the document's ID changes as a result of the movement, free
+   *DOC_ID and store the new document ID within.
+
+   Value is 0 upon success, -1 otherwise with errno set.  */            // C 4574-4582
+
+/* C 4584-4677.  C calls it directly (C 5300), never through a pointer.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_saf_move_document (uri: *const c_char, doc_id: *mut *mut c_char,
+				     dir_name: *const c_char, dst_id: *const c_char) -> c_int
+{
+  let mut src_id: *mut c_char;                                         // C 4588
+  let mut id: *mut c_char;                                             // C 4588
+  let mut uri1: jobject;                                               // C 4589
+  let mut doc_id1: jobject;                                            // C 4589
+  let mut dir_name1: jobject;                                          // C 4589
+  let mut dst_id1: jobject;                                            // C 4589
+  let mut src_id1: jobject;                                            // C 4589
+  let mut result: jstring;                                             // C 4590
+  let mut method: jmethodID;                                           // C 4591
+  let mut rc: c_int;                                                   // C 4592
+  let mut new_id: *const c_char;                                       // C 4593
+
+  /* C leaves every one of them uninitialised (PORTING.md 1.5); each is assigned before its first
+     read on the path that reads it.  */
+  src_id = std::ptr::null_mut ();
+  id = std::ptr::null_mut ();
+  uri1 = std::ptr::null_mut ();
+  doc_id1 = std::ptr::null_mut ();
+  dir_name1 = std::ptr::null_mut ();
+  dst_id1 = std::ptr::null_mut ();
+  src_id1 = std::ptr::null_mut ();
+  result = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+  rc = 0;
+  new_id = std::ptr::null ();
+
+  /* Obtain the name of the source directory.  */                       // C 4595
+  src_id = std::ptr::null_mut ();                                      // C 4596
+  rc = android_document_id_from_name (uri, dir_name, &raw mut src_id); // C 4597
+
+  if rc != 1                                                           // C 4599
+    {
+      /* This file is either not a directory or nonexistent.  */       // C 4601
+      xfree (src_id as *mut c_void);                                   // C 4602
+
+      match rc                                                         // C 4604
+	{
+	  0 =>                                                         // C 4606
+	    {
+	      *errno () = ENOTDIR;                                     // C 4607
+	      return -1;                                               // C 4608
+	    }
+
+	  -1 | -2 =>                                                   // C 4610-4611
+	    {
+	      *errno () = ENOENT;                                      // C 4612
+	      return -1;                                               // C 4613
+	    }
+
+	  _ =>                                                         // C 4615
+	    {
+	      emacs_abort ();                                          // C 4616
+	    }
+	}
+    }
+
+  /* Build Java strings for all five arguments.  */                     // C 4620
+  id = *doc_id;                                                        // C 4621
+  uri1 = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env, uri);   // C 4622
+  android_exception_check ();                                          // C 4623
+  doc_id1 = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env, id);   // C 4624
+  android_exception_check_1 (uri1);                                    // C 4625
+  dir_name1 = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env, dir_name);   // C 4626
+  android_exception_check_2 (doc_id1, uri1);                           // C 4627
+  dst_id1 = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env, dst_id);   // C 4628
+  android_exception_check_3 (dir_name1, doc_id1, uri1);                // C 4629
+  src_id1 = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env, src_id);   // C 4630
+  xfree (src_id as *mut c_void);                                       // C 4631
+  android_exception_check_4 (dst_id1, dir_name1, doc_id1, uri1);       // C 4632
+
+  /* Do the rename.  */                                                // C 4634
+  method = service_class.move_document;                                // C 4635
+  result
+    = ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())    // C 4637
+    (android_java_env,                                                 // C 4637
+     emacs_service,                                                    // C 4638
+     service_class.class,                                              // C 4639
+     method, uri1,                                                     // C 4640
+     doc_id1, dir_name1,                                               // C 4641
+     dst_id1, src_id1);                                                // C 4642
+  if android_saf_exception_check (5, src_id1, dst_id1, dir_name1,      // C 4643
+				  doc_id1, uri1) != 0                  // C 4644
+    {
+      /* Substitute EXDEV for ENOSYS, so callers fall back on
+	 delete-then-copy.  */                                         // C 4646-4647
+
+      if *errno () == ENOSYS                                           // C 4649
+	{ *errno () = EXDEV; }                                         // C 4650
+
+      return -1;                                                       // C 4652
+    }
+
+  /* Delete unused local references.  */                               // C 4655
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, src_id1);   // C 4656
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, dst_id1);   // C 4657
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, dir_name1);   // C 4658
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, doc_id1);   // C 4659
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, uri1);   // C 4660
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  if ! result.is_null ()                                               // C 4662
+    {
+      /* The document ID changed.  Free id and replace *DOC_ID with
+	 the new ID.  */                                               // C 4664-4665
+      xfree (id as *mut c_void);                                       // C 4666
+      new_id = ((*(*android_java_env)).GetStringUTFChars.unwrap ())    // C 4667
+	(android_java_env,                                             // C 4667
+	 result, std::ptr::null_mut ());                               // C 4668
+      android_exception_check_nonnull (new_id as *mut c_void, result);   // C 4669
+      *doc_id = xstrdup (new_id);                                      // C 4670
+      ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ()) (android_java_env, result,   // C 4671
+								new_id); // C 4672
+      ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, result);   // C 4673
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+    }
+
+  return 0;                                                            // C 4676
+}
+
+/* SAF directory vnode.  A file within a SAF directory tree is
+   identified by the URI of the directory tree itself, an opaque
+   ``file identifier'' value, and a display name.  This information is
+   recorded in each vnode representing either a directory or a file
+   itself.  */                                                         // C 4681-4685
+
+/* C 4687-4712: `struct android_saf_tree_vnode'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_saf_tree_vnode
+{
+  /* The vnode data itself.  */
+  pub vnode: android_vnode,                                            // C 4690
+
+  /* The URI of the directory tree represented.  This is Java string
+     data in ``modified UTF format'', which is essentially a modified
+     UTF-8 format capable of storing NULL bytes while also utilizing
+     NULL termination.  */
+  pub tree_uri: *const c_char,                                         // C 4696
+
+  /* The ID of the document tree designated by TREE_URI.  */
+  pub tree_id: *mut c_char,                                            // C 4699
+
+  /* The document ID of the directory represented, or NULL if this is
+     the root directory of the tree.  Since file and new vnodes don't
+     represent the root directory, this field is always set in
+     them.  */
+  pub document_id: *mut c_char,                                        // C 4705
+
+  /* The file name of this tree vnode.  This is a ``path'' to the
+     file, where each directory component consists of the display name
+     of a directory leading up to a file within, terminated with a
+     directory separator character.  */
+  pub name: *mut c_char,                                               // C 4711
+}
+/* Measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`,
+   `--target=aarch64-linux-android24`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_saf_tree_vnode> () == 48);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vnode, vnode) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vnode, tree_uri) == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vnode, tree_id) == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vnode, document_id) == 32);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vnode, name) == 40);
+
+/* C 4714-4732: `struct android_saf_tree_vdir'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_saf_tree_vdir
+{
+  /* The virtual directory stream function table.  */
+  pub vdir: android_vdir,                                              // C 4717
+
+  /* The next directory in `all_saf_tree_vdirs'.  */
+  pub next: *mut android_saf_tree_vdir,                                // C 4720
+
+  /* Name of this directory relative to the root file system.  */
+  pub name: *mut c_char,                                               // C 4723
+
+  /* Local reference to the cursor representing the directory
+     stream.  */
+  pub cursor: jobject,                                                 // C 4727
+
+  /* The ``directory'' file descriptor used to identify this directory
+     stream, or -1.  */
+  pub fd: c_int,                                                       // C 4731
+}
+/* Measured with the NDK's clang (the `android_saf_root_vdir` shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_saf_tree_vdir> () == 56);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vdir, vdir) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vdir, next) == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vdir, name) == 32);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vdir, cursor) == 40);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_tree_vdir, fd) == 48);
+
+/* C 4734-4750: C's twelve forward declarations of this file's own `static` functions
+   (`android_saf_tree_name` … `android_saf_tree_opendir`); no Rust text (PORTING.md 10.10).  */
+
+/* C 4752-4769 - `saf_tree_vfs_ops` - is **deferred** (the note above C 4897): it names
+   `android_saf_tree_name` (C 4898) and the eleven members after it.  */
+
+/* C 4771-4777: C's two more operation vectors, `saf_file_vfs_ops` and `saf_new_vfs_ops`, under
+   their own comments (`/* Vector of VFS operations associated with SAF file VFS nodes.  Defined
+   later in the next page.  */` and the ``new'' twin): two file-scope objects C defines in the
+   pages after this one, which this lane lands with those families.  */
+
+/* Chain of all open SAF directory streams.  */                         // C 4779
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut all_saf_tree_vdirs: *mut android_saf_tree_vdir = std::ptr::null_mut ();   // C 4780
+
+/* Find the document ID of the file within TREE_URI designated by
+   NAME.
+
+   NAME is a ``file name'' comprised of the display names of
+   individual files.  Each constituent component prior to the last
+   must name a directory file within TREE_URI.
+
+   If NAME is not correct for the Java ``modified UTF-8'' coding
+   system, return -1 and set errno to ENOENT.
+
+   Upon success, return 0 or 1 (contingent upon whether or not the
+   last component within NAME is a directory) and place the document
+   ID of the named file in ID.
+
+   If the designated file doesn't exist, but the penultimate component
+   within NAME does and is also a directory, return -2 and place the
+   document ID of that directory within *ID.
+
+   If the designated file can't be located, return -1 and set errno
+   accordingly.  The reasons for which a file can't be located are not
+   all immediately obvious: quitting, for example, can cause document
+   ID lookup to be canceled.  */                                       // C 4782-4803
+
+/* C 4805-4895.  C calls it directly (C 4597/5251 and the file family), never through a pointer.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_document_id_from_name (tree_uri: *const c_char, name: *const c_char,
+					 id: *mut *mut c_char) -> c_int
+{
+  let mut result: jobjectArray;                                        // C 4809
+  let mut uri: jstring;                                                // C 4810
+  let mut java_name: jbyteArray;                                       // C 4811
+  let mut rc: jint;                                                    // C 4812
+  let mut method: jmethodID;                                           // C 4813
+  let mut doc_id: *const c_char;                                       // C 4814
+
+  /* C leaves all six uninitialised (PORTING.md 1.5); each is assigned before its first read.  */
+  result = std::ptr::null_mut ();
+  uri = std::ptr::null_mut ();
+  java_name = std::ptr::null_mut ();
+  rc = 0;
+  method = std::ptr::null_mut ();
+  doc_id = std::ptr::null ();
+
+  /* Verify the format of NAME.  Don't allow creating files that
+     contain characters that can't be encoded in Java.  */             // C 4816-4817
+
+  if android_verify_jni_string (name) != 0                             // C 4819
+    {
+      *errno () = ENOENT;                                              // C 4821
+      return -1;                                                       // C 4822
+    }
+
+  /* Now guarantee that it is safe to call
+     `document_id_from_name'.  */                                      // C 4825-4826
+
+  if inside_saf_critical_section                                       // C 4828
+    {
+      *errno () = EIO;                                                 // C 4830
+      return -1;                                                       // C 4831
+    }
+
+  /* First, create the array that will hold the result.  */             // C 4834
+  result = ((*(*android_java_env)).NewObjectArray.unwrap ()) (android_java_env, 1,   // C 4835
+							      java_string_class,   // C 4836
+							      std::ptr::null_mut ());   // C 4837
+  android_exception_check ();                                          // C 4838
+
+  /* Next, create the string for the tree URI and name.  */             // C 4840
+  java_name = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 4841
+							       name);  // C 4842
+  android_exception_check_1 (result);                                  // C 4843
+  uri = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env, tree_uri);   // C 4844
+  android_exception_check_2 (result, java_name);                       // C 4845
+
+  /* Now, call documentIdFromName.  This will synchronize with the SAF
+     thread, so make sure reentrant calls don't happen.  */            // C 4847-4848
+  method = service_class.document_id_from_name;                        // C 4849
+  inside_saf_critical_section = true;                                  // C 4850
+  rc = ((*(*android_java_env)).CallNonvirtualIntMethod.unwrap ())      // C 4851
+    (android_java_env,                                                 // C 4851
+     emacs_service,                                                    // C 4852
+     service_class.class,                                              // C 4853
+     method,                                                           // C 4854
+     uri, java_name,                                                   // C 4855
+     result);                                                          // C 4856
+  inside_saf_critical_section = false;                                 // C 4857
+
+  if android_saf_exception_check (3, result, uri, java_name) != 0      // C 4859
+    { return -1; }                                                     // C 4860
+
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, uri);   // C 4862
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, java_name);   // C 4863
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* If rc indicates failure, don't try to copy from result.  */        // C 4865
+
+  if rc == -1                                                          // C 4867
+    {
+      ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, result);   // C 4869
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+      *errno () = ENOENT;                                              // C 4870
+      return -1;                                                       // C 4871
+    }
+
+  eassert! (rc == -2 || rc >= 0);                                      // C 4874
+
+  /* Otherwise, obtain the contents of the string returned in Java
+     ``UTF-8'' encoding.  */                                           // C 4876-4877
+  uri = ((*(*android_java_env)).GetObjectArrayElement.unwrap ()) (android_java_env,   // C 4878
+								  result, 0) as jstring;   // C 4879
+  android_exception_check_nonnull (uri as *mut c_void, result);        // C 4880
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, result);   // C 4881
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  doc_id = ((*(*android_java_env)).GetStringUTFChars.unwrap ())        // C 4883
+    (android_java_env,                                                 // C 4883
+     uri, std::ptr::null_mut ());                                      // C 4884
+  android_exception_check_nonnull (doc_id as *mut c_void, uri);        // C 4885
+
+  /* Make *ID its copy.  */                                            // C 4887
+  *id = xstrdup (doc_id);                                              // C 4888
+
+  /* And release it.  */                                               // C 4890
+  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ())             // C 4891
+    (android_java_env,                                                 // C 4891
+     uri, doc_id);                                                     // C 4892
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, uri);   // C 4893
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  return rc;                                                           // C 4894
 }
