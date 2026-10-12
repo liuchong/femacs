@@ -27,15 +27,13 @@
 > `android_init_key_character_map` (the one that fetches a **static** method) and
 > `android_init_emacs_handle` (one `FIND_METHOD` call plus a direct `GetFieldID`), so **2,084 C lines
 > are carried in total** (in a 2,364-line port, md5 `d45d03d43f27071044051616a0f356f0`).  **Slice 5
-> (C 2194-2253, 2026-10-12) continues in the same unit**: it carries the six small entries
-> `emacsAbort`, `quit`, `android_shut_down_emacs`, `shutDownEmacs`, `android_on_low_memory` and
-> `onLowMemory`, so **2,253 C lines are carried** (in a 2,464-line port, md5
-> `2ceea5560363f830766ac7801ee41431`) **except the 107-line hole C 2086-2192**:
-> `NATIVE_NAME (initEmacs)` calls bare `alloca` (C 2108/2121) and PORTING.md §3.2 forbids porting
-> such a function before P-05's `alloca` spike picks the device, so its row is recorded as
-> **blocked** and the table resumes at C 2194.  **The next live definition is C 2256's
-> `NATIVE_NAME (sendConfigureNotify)`**; the table's last row is the remainder (C 2255-7594) and
-> slices 3-5's own readings are in the dated sections at the end of this file.
+> (C 2194-2253) added the six small shutdown/low-memory entries** (in a 2,464-line port), **except
+> the 107-line hole C 2086-2192** (`initEmacs`'s `alloca`, Owed 11).  **Slice 6 (C 2255-2356,
+> 2026-10-12)** now carries the five uniform event posters `sendConfigureNotify`, `sendKeyPress`,
+> `sendKeyRelease`, `sendFocusIn` and `sendFocusOut`, so **2,356 C lines are carried** (in a
+> 2,586-line port, md5 `4fa71db2a4a2b8069e16efc2ef01b2d2`) **except that one hole**.  **The next live
+> definition is C 2359's `NATIVE_NAME (sendWindowAction)`**; the table's last row is the remainder
+> (C 2358-7594) and slices 3-6's own readings are in the dated sections at the end of this file.
 
 ## Gate mapping
 
@@ -143,7 +141,16 @@ no `window.h`).
 | 2227-2233 | `NATIVE_NAME (shutDownEmacs)` | real arm (slice 5) |
 | 2235-2245 | C 2235-2238's comment and `android_on_low_memory` | real arm (slice 5) |
 | 2247-2253 | `NATIVE_NAME (onLowMemory)` | real arm (slice 5) |
-| 2255-7594 | **the remainder** - from C 2255's `JNIEXPORT jlong JNICALL` (C 2256's `NATIVE_NAME (sendConfigureNotify)`, **the next live definition**) through C 7594's `#endif`: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
+| 2255-2276 | `NATIVE_NAME (sendConfigureNotify)` | real arm (slice 6) |
+| 2277 | the blank | real arm (slice 6) |
+| 2278-2299 | `NATIVE_NAME (sendKeyPress)` | real arm (slice 6) |
+| 2300 | the blank | real arm (slice 6) |
+| 2301-2322 | `NATIVE_NAME (sendKeyRelease)` | real arm (slice 6) |
+| 2323 | the blank | real arm (slice 6) |
+| 2324-2339 | `NATIVE_NAME (sendFocusIn)` | real arm (slice 6) |
+| 2340 | the blank | real arm (slice 6) |
+| 2341-2356 | `NATIVE_NAME (sendFocusOut)` (C 2355's `return ++event_serial;`) | real arm (slice 6) |
+| 2358-7594 | **the remainder** - from C 2358's `JNIEXPORT jlong JNICALL` (C 2359's `NATIVE_NAME (sendWindowAction)`, **the next live definition**) through C 7594's `#endif`: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the non-JNI helpers, and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -506,11 +513,11 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-5's C lines (C 1038-2084 and C 2194-2253) are
-carried; the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) plus
-C 2255-7594, and `extract-abi.py --check`'s remaining `- missing …` list (115 `missing function`
-rows, the two file-scope objects and the seven `invented exported symbol` rows of Owed 9) and the
-67.6% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`getline`, no event, no `select`.  Slices 2-6's C lines (C 1038-2084, C 2194-2253 and
+C 2255-2356) are carried; the **unported** part is C 2086-2192 (blocked on P-05's `alloca`
+decision) plus C 2358-7594, and `extract-abi.py --check`'s remaining `- missing …` list (115
+`missing function` rows, the two file-scope objects and the twelve `invented exported symbol` rows
+of Owed 9) and the 65.9% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -660,3 +667,34 @@ port's 2,464).
   spells the two built-in symbols as functions (the `globals.rs` `Qnil`/`Qt` pair).
 - **`ANDROID_LOG_VERBOSE`** (C 2207) is added to the unit's measured NDK enum with the derivation
   recorded (VERBOSE is two steps below INFO, whose value the unit already measured).
+
+## 2026-10-12: slice 6 (C 2255-2356) - the five event posters
+
+`NATIVE_NAME (sendConfigureNotify)`, `sendKeyPress`, `sendKeyRelease`, `sendFocusIn` and
+`sendFocusOut`.
+
+### Evidence (this slice's readings)
+
+**⑨ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors**, on
+the slice's **first** probe: the three union arms (`xconfigure`, `xkey`, `xfocus`), the seven field
+types C's `jlong`/`jint` arguments narrow into, and the `event_serial` arithmetic all read
+correctly.
+
+**⑩ The checklist reading.**  `extract-abi.py --check`: the `missing function` count is
+**unchanged at 115** - all five definitions are `NATIVE_NAME` entries, and (the androidterm
+slice-15 finding, recorded here in Owed 9's note) a `NATIVE_NAME`-defined function never enters the
+checker's inventory, so it has no row to retire; the five new **`invented exported symbol`** rows
+bring that count to **12**, the two `missing file-scope object` rows stand, there is **0
+`does not mention`**, and the line-count row reads **65.9%** (C 7,594 against the port's 2,586).
+
+### Deviations this slice adds
+
+- **The five events are `std::mem::zeroed ()` then written field by field** (PORTING.md 1.5, C's
+  `union android_event event;`), with the union member's Rust spelling `xconfigure.r#type` for C's
+  `.type`.
+- **C 2266-2272/2289-2295/…/2350-2352's `++event_serial`** is the two-statement form (the `c_uint`
+  write, then the read), and the `as c_ulong`/`as android_window`/`as android_time`/`as c_uint`
+  conversions are C's own promotions into the record's member types.
+- **C 2355's `return ++event_serial;`** is the same two statements with the return last, so the
+  returned value is the incremented serial (unlike the four others, which return the value they
+  stored).

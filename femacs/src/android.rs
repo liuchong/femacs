@@ -2462,3 +2462,125 @@ pub unsafe extern "C" fn onLowMemory (env: *mut JNIEnv, object: jobject)
   android_run_in_emacs_thread (Some (android_on_low_memory),            // C 2252
 			       std::ptr::null_mut ());
 }
+
+/* C 2255-2356: five uniform event posters - `sendConfigureNotify`, `sendKeyPress`,
+   `sendKeyRelease`, `sendFocusIn` and `sendFocusOut`.  Each builds the same `union android_event`
+   C's way (zero-initialised, then field by field, PORTING.md 1.5), posts it with
+   `android_write_event` and returns the serial; C 2355's `return ++event_serial;` is the
+   two-statement form of the pre-increment (the `event_serial` write then the read).  */
+
+/* C 2255-2276: `NATIVE_NAME (sendConfigureNotify)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendConfigureNotify")]
+pub unsafe extern "C" fn sendConfigureNotify (env: *mut JNIEnv, object: jobject, window: jlong,
+					      time: jlong, x: jint, y: jint, width: jint,
+					      height: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2261
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2263 (PORTING.md 1.5)
+
+  event.xconfigure.r#type = ANDROID_CONFIGURE_NOTIFY;                   // C 2265
+  event_serial += 1;
+  event.xconfigure.serial = event_serial as c_ulong;                    // C 2266 (the `++event_serial`)
+  event.xconfigure.window = window as android_window;                   // C 2267
+  event.xconfigure.time = time as android_time;                         // C 2268
+  event.xconfigure.x = x;                                               // C 2269
+  event.xconfigure.y = y;                                               // C 2270
+  event.xconfigure.width = width;                                       // C 2271
+  event.xconfigure.height = height;                                     // C 2272
+
+  android_write_event (&raw mut event);                                 // C 2274
+  return event_serial as jlong;                                         // C 2275
+}
+
+/* C 2278-2299: `NATIVE_NAME (sendKeyPress)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendKeyPress")]
+pub unsafe extern "C" fn sendKeyPress (env: *mut JNIEnv, object: jobject, window: jlong,
+				       time: jlong, state: jint, keycode: jint,
+				       unicode_char: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2284
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2286 (PORTING.md 1.5)
+
+  event.xkey.r#type = ANDROID_KEY_PRESS;                                // C 2288
+  event_serial += 1;
+  event.xkey.serial = event_serial as c_ulong;                          // C 2289 (the `++event_serial`)
+  event.xkey.window = window as android_window;                         // C 2290
+  event.xkey.time = time as android_time;                               // C 2291
+  event.xkey.state = state as c_uint;                                   // C 2292
+  event.xkey.keycode = keycode as c_uint;                               // C 2293
+  event.xkey.unicode_char = unicode_char as c_uint;                     // C 2294
+  event.xkey.counter = 0;                                               // C 2295
+
+  android_write_event (&raw mut event);                                 // C 2297
+  return event_serial as jlong;                                         // C 2298
+}
+
+/* C 2301-2322: `NATIVE_NAME (sendKeyRelease)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendKeyRelease")]
+pub unsafe extern "C" fn sendKeyRelease (env: *mut JNIEnv, object: jobject, window: jlong,
+					 time: jlong, state: jint, keycode: jint,
+					 unicode_char: jint) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2307
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2309 (PORTING.md 1.5)
+
+  event.xkey.r#type = ANDROID_KEY_RELEASE;                              // C 2311
+  event_serial += 1;
+  event.xkey.serial = event_serial as c_ulong;                          // C 2312 (the `++event_serial`)
+  event.xkey.window = window as android_window;                         // C 2313
+  event.xkey.time = time as android_time;                               // C 2314
+  event.xkey.state = state as c_uint;                                   // C 2315
+  event.xkey.keycode = keycode as c_uint;                               // C 2316
+  event.xkey.unicode_char = unicode_char as c_uint;                     // C 2317
+  event.xkey.counter = 0;                                               // C 2318
+
+  android_write_event (&raw mut event);                                 // C 2320
+  return event_serial as jlong;                                         // C 2321
+}
+
+/* C 2324-2339: `NATIVE_NAME (sendFocusIn)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendFocusIn")]
+pub unsafe extern "C" fn sendFocusIn (env: *mut JNIEnv, object: jobject, window: jlong,
+				      time: jlong) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2328
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2330 (PORTING.md 1.5)
+
+  event.xfocus.r#type = ANDROID_FOCUS_IN;                               // C 2332
+  event_serial += 1;
+  event.xfocus.serial = event_serial as c_ulong;                        // C 2333 (the `++event_serial`)
+  event.xfocus.window = window as android_window;                       // C 2334
+  event.xfocus.time = time as android_time;                             // C 2335
+
+  android_write_event (&raw mut event);                                 // C 2337
+  return event_serial as jlong;                                         // C 2338
+}
+
+/* C 2341-2356: `NATIVE_NAME (sendFocusOut)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_sendFocusOut")]
+pub unsafe extern "C" fn sendFocusOut (env: *mut JNIEnv, object: jobject, window: jlong,
+				       time: jlong) -> jlong
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2345
+
+  let mut event: android_event = std::mem::zeroed ();                   // C 2347 (PORTING.md 1.5)
+
+  event.xfocus.r#type = ANDROID_FOCUS_OUT;                              // C 2349
+  event_serial += 1;
+  event.xfocus.serial = event_serial as c_ulong;                        // C 2350 (the `++event_serial`)
+  event.xfocus.window = window as android_window;                       // C 2351
+  event.xfocus.time = time as android_time;                             // C 2352
+
+  android_write_event (&raw mut event);                                 // C 2354
+  event_serial += 1;
+  return event_serial as jlong;                                         // C 2355 (the `++event_serial`)
+}
