@@ -1422,11 +1422,15 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 3615-7950: the remainder of the file, plus the three items slice 9 deferred (C 2520-2537's
-   `content_vfs_ops`, C 2549-2639's `android_content_name` and C 2887-2906's
-   `android_content_initial` - one clique, and it closes at C 4219's `android_saf_root_initial`,
-   the last of the three initial functions `android_content_name`'s `content_vnodes[]` names), and
-   `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
+/* C 4248-7950: the remainder of the file, plus the five items this lane still defers:
+   C 2520-2537's `content_vfs_ops`, C 2549-2639's `android_content_name` and C 2887-2906's
+   `android_content_initial` (one clique), C 3688-3705's `saf_root_vfs_ops`, C 3748-3848's
+   `android_saf_root_name` (it calls `android_saf_tree_from_name`, C 5773) and C 4209-4229's
+   `android_saf_root_initial` (it calls `android_saf_root_name`).  The six close together in the
+   round that reaches C 5773: `content_vnodes[]` needs `android_saf_root_initial`, and that needs
+   `android_saf_root_name`, and that needs `android_saf_tree_from_name` - so the whole dependency
+   chain lands with the SAF tree family.  `extract-abi.py --check`'s remaining `missing …` list is
+   exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -3772,6 +3776,8 @@ unsafe extern "C" {
   pub fn android_exception_check ();
   /// C: android.h 130: `extern void android_exception_check_1 (jobject);`
   pub fn android_exception_check_1 (arg0: jobject);
+  /// C: android.h 138: `extern void android_exception_check_nonnull (void *, jobject);`
+  pub fn android_exception_check_nonnull (arg0: *mut c_void, arg1: jobject);
   /// C: lisp.h 4432: `extern AVOID memory_full (size_t);`
   pub fn memory_full (size: size_t) -> !;
 }
@@ -4611,4 +4617,599 @@ unsafe extern "C" {
   pub static mut android_init_gui: bool;
   /// C: android.h 126: `extern int android_verify_jni_string (const char *);`
   pub fn android_verify_jni_string (arg0: *const c_char) -> c_int;
+}
+
+/* SAF ``root'' vnode implementation.
+
+   The Storage Access Framework is a system service that manages a
+   registry of document providers, which are a type of file system
+   server.
+
+   Normally, document providers can only provide individual files
+   through preestablished ``content URIs''.  Android 5.0 and later add
+   to that ``tree URIs'', which designate entire file system trees.
+
+   Authorization to access document trees and content URIs is granted
+   transiently by default when an Intent is received, but Emacs can
+   also receive persistent authorization for a given document tree.
+
+   /content/storage returns a list of directories, each representing a
+   single authority providing at least one tree URI Emacs holds
+   persistent authorization for.
+
+   Each one of those directories then contains one document tree that
+   Emacs is authorized to access.  */                                   // C 3617-3636
+
+/* C 3638-3646: `struct android_saf_root_vnode'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_saf_root_vnode
+{
+  /* The vnode data.  */
+  pub vnode: android_vnode,                                            // C 3641
+
+  /* The name of the document authority this directory represents, or
+     NULL.  */
+  pub authority: *mut c_char,                                          // C 3645
+}
+/* Measured with the NDK's clang (the `android_authority_vnode` shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_saf_root_vnode> () == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vnode, vnode) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vnode, authority) == 16);
+
+/* C 3648-3668: `struct android_saf_root_vdir'.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct android_saf_root_vdir
+{
+  /* The directory stream function table.  */
+  pub vdir: android_vdir,                                              // C 3651
+
+  /* The next directory stream in `all_saf_root_vdirs'.  */
+  pub next: *mut android_saf_root_vdir,                                // C 3654
+
+  /* Array of strings, one for each directory to return.  */
+  pub array: jobjectArray,                                             // C 3657
+
+  /* Name of the authority this directory lists, or NULL.  */
+  pub authority: *mut c_char,                                          // C 3660
+
+  /* Length of that array, and the current within it.  */
+  pub length: jsize,                                                   // C 3663
+  pub i: jsize,                                                        // C 3663
+
+  /* ``Directory'' file descriptor associated with this stream, or
+     -1.  */
+  pub fd: c_int,                                                       // C 3667
+}
+/* Measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`,
+   `--target=aarch64-linux-android24`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<android_saf_root_vdir> () == 64);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vdir, vdir) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vdir, next) == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vdir, array) == 32);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vdir, authority) == 40);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vdir, length) == 48);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vdir, i) == 52);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (android_saf_root_vdir, fd) == 56);
+
+/* C 3670-3686: C's twelve forward declarations of this file's own `static` functions
+   (`android_saf_root_name` … `android_saf_root_opendir`); no Rust text (PORTING.md 10.10).  */
+
+/* C 3688-3705 - `saf_root_vfs_ops` - is **deferred** (see the six-item note above): it names
+   `android_saf_root_name` (C 3748), which the round that reaches C 5773 lands.  */
+
+/* Chain containing all SAF root directories.  */                       // C 3707
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut all_saf_root_vdirs: *mut android_saf_root_vdir = std::ptr::null_mut ();   // C 3708
+
+/* C 3710-3712: C's `static struct android_vnode *android_saf_tree_from_name (char *, const char *,
+   const char *);` under the comment `/* Defined in the next page.  */` - a forward declaration for
+   a function C defines at C 5773, which is one of the six deferred items this lane still owes.
+   Rust needs no text for it here (PORTING.md 10.10).  */
+
+/* Ascertain and return whether or not AUTHORITY designates a content
+   provider offering at least one directory tree accessible to
+   Emacs.  */                                                           // C 3714-3716
+
+/* C 3718-3746.  C calls it directly (C 3920/3966), never through a pointer, so it stays a Rust-ABI
+   `unsafe fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_saf_valid_authority_p (authority: *const c_char) -> bool
+{
+  let mut string: jobject;                                             // C 3721
+  let mut valid: jboolean;                                             // C 3722
+  let mut method: jmethodID;                                           // C 3723
+
+  /* C leaves `string`, `valid` and `method` uninitialised (PORTING.md 1.5); each is assigned
+     before its first read.  */
+  string = std::ptr::null_mut ();
+  valid = 0;
+  method = std::ptr::null_mut ();
+
+  /* Make certain AUTHORITY can actually be represented as a Java
+     string.  */                                                       // C 3725-3726
+
+  if android_verify_jni_string (authority) != 0                        // C 3728
+    { return false; }                                                  // C 3729
+
+  /* Build a string containing AUTHORITY.  */                           // C 3731
+
+  string = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 3733
+							    authority);    // C 3734
+  android_exception_check ();                                          // C 3735
+
+  method = service_class.valid_authority;                              // C 3737
+  valid
+    = ((*(*android_java_env)).CallNonvirtualBooleanMethod.unwrap ())   // C 3739
+    (android_java_env,                                                 // C 3739
+     emacs_service,                                                    // C 3740
+     service_class.class,                                              // C 3741
+     method, string);                                                  // C 3742
+  android_exception_check_1 (string);                                  // C 3743
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, string);   // C 3744
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  return valid != 0;                                                   // C 3745
+}
+
+/* C 3748-3848 - `android_saf_root_name` - is **deferred** (the six-item note above); it is an
+   `unsafe extern "C" fn`, because C takes its address at C 3692.  */
+
+/* C 3850-3860.  Its address is taken at C 3693.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_open (vnode: *mut android_vnode, flags: c_int,
+					    mode: mode_t, asset_p: bool, fd_return: *mut c_int,
+					    asset: *mut *mut AAsset) -> c_int
+{
+  /* /content/storage or one of its authority children cannot be
+     opened, as they are virtual directories.  */                      // C 3855-3856
+
+  *errno () = ENOSYS;                                                  // C 3858
+  return -1;                                                           // C 3859
+}
+
+/* C 3862-3873.  Its address is taken at C 3694.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_close (vnode: *mut android_vnode)
+{
+  let mut vp: *mut android_saf_root_vnode;                             // C 3865
+  let mut save_errno: c_int;                                           // C 3866
+
+  vp = vnode as *mut android_saf_root_vnode;                           // C 3868
+  save_errno = *errno ();                                              // C 3869
+  xfree ((*vp).authority as *mut c_void);                              // C 3870
+  xfree (vp as *mut c_void);                                           // C 3871
+  *errno () = save_errno;                                              // C 3872
+}
+
+/* C 3875-3880.  Its address is taken at C 3695.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_unlink (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EROFS;                                                   // C 3878
+  return -1;                                                           // C 3879
+}
+
+/* C 3882-3888.  Its address is taken at C 3696.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_symlink (target: *const c_char,
+					       vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EROFS;                                                   // C 3886
+  return -1;                                                           // C 3887
+}
+
+/* C 3890-3895.  Its address is taken at C 3697.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_rmdir (vnode: *mut android_vnode) -> c_int
+{
+  *errno () = EROFS;                                                   // C 3893
+  return -1;                                                           // C 3894
+}
+
+/* C 3897-3904.  Its address is taken at C 3698.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_rename (src: *mut android_vnode, dst: *mut android_vnode,
+					      keep_existing: bool) -> c_int
+{
+  *errno () = EROFS;                                                   // C 3902
+  return -1;                                                           // C 3903
+}
+
+/* C 3906-3935.  Its address is taken at C 3699.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_stat (vnode: *mut android_vnode, statb: *mut stat,
+					    flags: c_int) -> c_int
+{
+  let mut vp: *mut android_saf_root_vnode;                             // C 3910
+
+  /* Verify that the authority actually exists and return ENOENT
+     otherwise, lest `locate-dominating-file' & co call an operation
+     that doesn't require listing URIs under this authority, such as
+     access.  */                                                        // C 3912-3915
+
+  vp = vnode as *mut android_saf_root_vnode;                           // C 3917
+
+  if ! (*vp).authority.is_null ()                                      // C 3919
+      && ! android_saf_valid_authority_p ((*vp).authority)             // C 3920
+    {
+      *errno () = ENOENT;                                              // C 3922
+      return -1;                                                       // C 3923
+    }
+
+  /* Make up some imaginary statistics for this vnode.  */              // C 3926
+
+  memset (statb as *mut c_void, 0, std::mem::size_of::<stat> ());      // C 3928
+  (*statb).st_uid = getuid ();                                         // C 3929
+  (*statb).st_gid = getgid ();                                         // C 3930
+  (*statb).st_ino = 0;                                                 // C 3931
+  (*statb).st_dev = -4;                                                // C 3932
+  (*statb).st_mode = S_IFDIR | S_IRUSR | S_IXUSR;                      // C 3933
+  return 0;                                                            // C 3934
+}
+
+/* C 3937-3973.  Its address is taken at C 3700.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_access (vnode: *mut android_vnode, mode: c_int) -> c_int
+{
+  let mut vp: *mut android_saf_root_vnode;                             // C 3940
+
+  /* Validate MODE.  */                                                // C 3942
+
+  if mode != F_OK && (mode & (W_OK | X_OK | R_OK)) == 0                 // C 3944
+    {
+      *errno () = EINVAL;                                              // C 3946
+      return -1;                                                       // C 3947
+    }
+
+  /* Now, don't allow writing or executing this directory.  */          // C 3950
+
+  if mode != F_OK && (mode & (W_OK | X_OK)) != 0                        // C 3952
+    {
+      *errno () = EROFS;                                               // C 3954
+      return -1;                                                       // C 3955
+    }
+
+  /* Verify that the authority actually exists and return ENOENT
+     otherwise, lest `locate-dominating-file' & co call an operation
+     that doesn't require listing URIs under this authority, such as
+     access.  */                                                        // C 3958-3961
+
+  vp = vnode as *mut android_saf_root_vnode;                           // C 3963
+
+  if ! (*vp).authority.is_null ()                                      // C 3965
+      && ! android_saf_valid_authority_p ((*vp).authority)             // C 3966
+    {
+      *errno () = ENOENT;                                              // C 3968
+      return -1;                                                       // C 3969
+    }
+
+  return 0;                                                            // C 3972
+}
+
+/* C 3975-3980.  Its address is taken at C 3701.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_mkdir (vnode: *mut android_vnode, mode: mode_t) -> c_int
+{
+  *errno () = EROFS;                                                   // C 3978
+  return -1;                                                           // C 3979
+}
+
+/* C 3982-3988.  Its address is taken at C 3702.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_chmod (vnode: *mut android_vnode, mode: mode_t,
+					     flags: c_int) -> c_int
+{
+  *errno () = EACCES;                                                  // C 3986
+  return -1;                                                           // C 3987
+}
+
+/* C 3990-3996.  Its address is taken at C 3703.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_readlink (vnode: *mut android_vnode, buffer: *mut c_char,
+						size: size_t) -> ssize_t
+{
+  *errno () = EINVAL;                                                  // C 3994
+  return -1;                                                           // C 3995
+}
+
+/* C 3998-4049.  C's `static struct dirent *dirent;` is a function-scope `static mut` pointer here
+   (it is allocated by `xrealloc` and freed at the end of the stream, which is why C's declaration
+   is a pointer and not a struct).  Its address is taken at C 4159, so it is an
+   `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_readdir (vdir: *mut android_vdir) -> *mut dirent
+{
+  static mut dirent: *mut dirent = std::ptr::null_mut ();              // C 4001
+  let mut string: jobject;                                             // C 4002
+  let mut chars: *const c_char;                                        // C 4003
+  let mut length: size_t;                                              // C 4004
+  let mut size: size_t;                                                // C 4004
+  let mut dir: *mut android_saf_root_vdir;                             // C 4005
+
+  /* C leaves `string`, `chars`, `length` and `size` uninitialised (PORTING.md 1.5); each is
+     assigned before its first read.  */
+  string = std::ptr::null_mut ();
+  chars = std::ptr::null ();
+  length = 0;
+  size = 0;
+
+  dir = vdir as *mut android_saf_root_vdir;                            // C 4007
+
+  if (*dir).i == (*dir).length                                         // C 4009
+    {
+      /* At the end of the stream.  Free dirent and return NULL.  */   // C 4011
+
+      xfree (dirent as *mut c_void);                                   // C 4013
+      dirent = std::ptr::null_mut ();                                  // C 4014
+      return std::ptr::null_mut ();                                    // C 4015
+    }
+
+  /* Get this string.  */                                              // C 4018
+  string = ((*(*android_java_env)).GetObjectArrayElement.unwrap ())    // C 4019
+    (android_java_env,                                                 // C 4019
+     (*dir).array, (*dir).i);                                          // C 4020
+  (*dir).i += 1;                                                       // C 4020 (C's post-increment)
+  android_exception_check ();                                          // C 4021
+  chars = ((*(*android_java_env)).GetStringUTFChars.unwrap ())         // C 4022
+    (android_java_env,                                                 // C 4022
+     string as jstring,                                                 // C 4023
+     std::ptr::null_mut ());                                           // C 4024
+  android_exception_check_nonnull (chars as *mut c_void, string);      // C 4025
+
+  /* Figure out how large it is, and then resize dirent to fit--this
+     string is always ASCII.  */                                       // C 4027-4028
+  length = strlen (chars) + 1;                                         // C 4029
+  size   = std::mem::offset_of! (dirent, d_name) + length;             // C 4030
+  dirent = xrealloc (dirent as *mut c_void, size) as *mut dirent;      // C 4031
+
+  /* Clear dirent.  */                                                 // C 4033
+  memset (dirent as *mut c_void, 0, size);                             // C 4034
+
+  /* Fill in the generic directory information and copy the string
+     over.  */                                                         // C 4036-4037
+  (*dirent).d_ino = 0;                                                 // C 4038
+  (*dirent).d_off = 0;                                                 // C 4039
+  (*dirent).d_reclen = size as c_ushort;                               // C 4040
+  (*dirent).d_type = DT_DIR as c_uchar;                                // C 4041
+  strcpy ((*dirent).d_name.as_mut_ptr (), chars);                      // C 4042
+
+  /* Release the string data and the local reference to STRING.  */     // C 4044
+  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ())             // C 4045
+    (android_java_env,                                                 // C 4045
+     string as jstring, chars);                                        // C 4046
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, string);   // C 4047
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+  return dirent;                                                       // C 4048
+}
+
+/* C 4051-4082.  Its address is taken at C 4160; the `for (next = …; (tem = *next);)` loop is the
+   load-then-test pair (`android_afs_closedir`'s shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_closedir (vdir: *mut android_vdir)
+{
+  let mut dir: *mut android_saf_root_vdir;                             // C 4054
+  let mut next: *mut *mut android_saf_root_vdir;                       // C 4054
+  let mut tem: *mut android_saf_root_vdir;                             // C 4054
+
+  dir = vdir as *mut android_saf_root_vdir;                            // C 4056
+
+  /* If the ``directory file descriptor'' has been opened, close
+     it.  */                                                           // C 4058-4059
+
+  if (*dir).fd != -1                                                   // C 4061
+    { close ((*dir).fd); }                                             // C 4062
+
+  /* Delete the local reference to the file name array.  */             // C 4064
+  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, (*dir).array);   // C 4065
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+  /* Free the authority name if set.  */                               // C 4067
+  xfree ((*dir).authority as *mut c_void);                             // C 4068
+
+  /* Now unlink this directory.  */                                    // C 4070
+
+  next = &raw mut all_saf_root_vdirs;                                  // C 4072
+  loop
+    {
+      tem = *next;                                                     // C 4072
+      if tem.is_null ()
+	{ break; }
+      if tem == dir                                                    // C 4074
+	{ *next = (*dir).next; }                                       // C 4075
+      else
+	{ next = &raw mut (**next).next; }                             // C 4077
+    }
+
+  /* Free the directory itself.  */                                    // C 4080
+  xfree (dir as *mut c_void);                                          // C 4081
+}
+
+/* C 4084-4103.  Its address is taken at C 4161.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_dirfd (vdir: *mut android_vdir) -> c_int
+{
+  let mut dir: *mut android_saf_root_vdir;                             // C 4087
+
+  dir = vdir as *mut android_saf_root_vdir;                            // C 4089
+
+  /* Since `android_saf_root_opendir' tries to avoid opening a file
+     descriptor if readdir isn't called, dirfd can fail if open fails.
+
+     open sets errno to a set of errors different from what POSIX
+     stipulates for dirfd, but for ease of implementation the open
+     errors are used instead.  */                                      // C 4091-4096
+
+  if (*dir).fd >= 0                                                    // C 4098
+    { return (*dir).fd; }                                              // C 4099
+
+  (*dir).fd = open (c"/dev/null".as_ptr (), O_RDONLY | O_CLOEXEC);     // C 4101
+  return (*dir).fd;                                                    // C 4102
+}
+
+/* C 4105-4207.  Its address is taken at C 3704, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_saf_root_opendir (vnode: *mut android_vnode) -> *mut android_vdir
+{
+  let mut vp: *mut android_saf_root_vnode;                             // C 4108
+  let mut array: jobjectArray;                                         // C 4109
+  let mut method: jmethodID;                                           // C 4110
+  let mut authority: jstring;                                          // C 4111
+  let mut dir: *mut android_saf_root_vdir;                             // C 4112
+  let mut length: size_t;                                              // C 4113
+
+  /* C leaves all six uninitialised (PORTING.md 1.5); each is assigned before its first read on the
+     path that reads it.  */
+  vp = std::ptr::null_mut ();
+  array = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+  authority = std::ptr::null_mut ();
+  dir = std::ptr::null_mut ();
+  length = 0;
+
+  vp = vnode as *mut android_saf_root_vnode;                           // C 4115
+
+  if ! (*vp).authority.is_null ()                                      // C 4117
+    {
+      /* Build a string containing the authority.  */                  // C 4119
+      length = strlen ((*vp).authority);                               // C 4120
+      authority = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 4121
+								   (*vp).authority);   // C 4122
+      android_exception_check ();                                      // C 4123
+
+      /* Acquire a list of every tree provided by this authority.  */   // C 4125
+
+      method = service_class.get_document_trees;                       // C 4127
+      array
+	= ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())   // C 4129
+	(android_java_env,                                             // C 4129
+	 emacs_service,                                                // C 4130
+	 service_class.class,                                          // C 4131
+	 method, authority);                                           // C 4132
+      android_exception_check_1 (authority);                           // C 4133
+      ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, authority);   // C 4134
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+
+      /* Ascertain the length of the array.  If it is empty or NULL,
+         return ENOENT.  */                                            // C 4136-4137
+
+      if array.is_null ()                                              // C 4139
+	{
+	  *errno () = ENOENT;                                          // C 4141
+	  return std::ptr::null_mut ();                                // C 4142
+	}
+
+      length = ((*(*android_java_env)).GetArrayLength.unwrap ()) (android_java_env, array) as size_t;   // C 4145
+
+      if length == 0                                                   // C 4147
+	{
+	  ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, array);   // C 4149
+									//  (C's
+									//  ANDROID_DELETE_LOCAL_REF)
+	  *errno () = ENOENT;                                          // C 4150
+	  return std::ptr::null_mut ();                                // C 4151
+	}
+
+      /* Now allocate the directory stream.  It will retain a local
+	 reference to the array, and should thus only be used within the
+	 same JNI local reference frame.  */                           // C 4154-4156
+
+      dir = xmalloc (std::mem::size_of::<android_saf_root_vdir> ()) as *mut android_saf_root_vdir;   // C 4158
+      (*dir).vdir.readdir
+	= Some (std::mem::transmute::<unsafe extern "C" fn (*mut android_vdir) -> *mut dirent,
+				      unsafe extern "C" fn (*mut android_vdir) -> *mut c_void>
+		(android_saf_root_readdir));                           // C 4159
+      (*dir).vdir.closedir = Some (android_saf_root_closedir);         // C 4160
+      (*dir).vdir.dirfd = Some (android_saf_root_dirfd);               // C 4161
+      (*dir).fd = -1;                                                  // C 4162
+      (*dir).array = array;                                            // C 4163
+      (*dir).length = length as jsize;                                 // C 4164
+      (*dir).i = 0;                                                    // C 4165
+      (*dir).authority = xstrdup ((*vp).authority);                    // C 4166
+
+      /* Link this stream onto the list of all SAF root directory
+	 streams.  */                                                  // C 4168-4169
+      (*dir).next = all_saf_root_vdirs;                                // C 4170
+      all_saf_root_vdirs = dir;                                        // C 4171
+      return &raw mut (*dir).vdir;                                     // C 4172
+    }
+
+  /* Acquire a list of every document authority.  */                    // C 4175
+
+  method = service_class.get_document_authorities;                     // C 4177
+  array = ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())   // C 4178
+    (android_java_env,                                                 // C 4178
+     emacs_service,                                                    // C 4179
+     service_class.class,                                              // C 4180
+     method);                                                          // C 4181
+  android_exception_check ();                                          // C 4182
+
+  if array.is_null ()                                                  // C 4184
+    { emacs_abort (); }                                                // C 4185
+
+  /* Now allocate the directory stream.  It will retain a local
+     reference to the array, and should thus only be used within the
+     same JNI local reference frame.  */                               // C 4187-4189
+
+  dir = xmalloc (std::mem::size_of::<android_saf_root_vdir> ()) as *mut android_saf_root_vdir;   // C 4191
+  (*dir).vdir.readdir
+    = Some (std::mem::transmute::<unsafe extern "C" fn (*mut android_vdir) -> *mut dirent,
+				  unsafe extern "C" fn (*mut android_vdir) -> *mut c_void>
+	    (android_saf_root_readdir));                               // C 4192
+  (*dir).vdir.closedir = Some (android_saf_root_closedir);             // C 4193
+  (*dir).vdir.dirfd = Some (android_saf_root_dirfd);                   // C 4194
+  (*dir).fd = -1;                                                      // C 4195
+  (*dir).array = array;                                                // C 4196
+  (*dir).length = ((*(*android_java_env)).GetArrayLength.unwrap ()) (android_java_env,   // C 4197
+								     array) as jsize;   // C 4198
+  (*dir).i = 0;                                                        // C 4199
+  (*dir).authority = std::ptr::null_mut ();                            // C 4200
+
+  /* Link this stream onto the list of all SAF root directory
+     streams.  */                                                      // C 4202-4203
+  (*dir).next = all_saf_root_vdirs;                                    // C 4204
+  all_saf_root_vdirs = dir;                                            // C 4205
+  return &raw mut (*dir).vdir;                                         // C 4206
+}
+
+/* C 4209-4229 - `android_saf_root_initial` - is **deferred** (the six-item note above): it calls
+   `android_saf_root_name`, and it is an `unsafe extern "C" fn` (C takes its address at the
+   `android_vfs_entries` table).  */
+
+/* Return any open SAF root directory stream for which dirfd has
+   returned the file descriptor DIRFD.  Return NULL otherwise.  */     // C 4231-4232
+
+/* C 4234-4246.  C calls it directly (C 7380), never through a pointer, so it stays a Rust-ABI
+   `unsafe fn`; the `for (dir = …; dir; dir = dir->next)` loop is the load-then-test pair.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_saf_root_get_directory (dirfd: c_int) -> *mut android_saf_root_vdir
+{
+  let mut dir: *mut android_saf_root_vdir;                             // C 4237
+
+  dir = all_saf_root_vdirs;                                            // C 4239
+  while ! dir.is_null ()
+    {
+      if (*dir).fd == dirfd && dirfd != -1                             // C 4241
+	{ return dir; }                                                // C 4242
+      dir = (*dir).next;                                               // C 4239
+    }
+
+  return std::ptr::null_mut ();                                        // C 4245
 }
