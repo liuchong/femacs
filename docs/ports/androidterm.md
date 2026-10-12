@@ -6,8 +6,8 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,832 lines**, md5
-> `8d49d70cedbe299e12c01f4a268d19ad`), carrying **C 1-6544**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
+> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**7,966 lines**, md5
+> `8cfe3043612bf8f80c42f39f64d3e024`), carrying **C 1-6544**; both arms of every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
 > still where the *file gate* comes from; what changed is the conclusion drawn from them.
@@ -215,7 +215,7 @@ riding on the unit's table", but today it does).  A contiguous table over C 1-71
 | 6347-6356 | `NATIVE_NAME (getSurroundingText)` | real arm (slice 22) |
 | 6358-6417 | C 6358's `JNIEXPORT jobject JNICALL` and `NATIVE_NAME (takeSnapshot)` (C 6385's `#if __ANDROID_API__ < 33` pair) | real arm (slice 23) |
 | 6419-6423 | the two diagnostic-`#pragma` pops (text only, carried as C's own) | real arm (slice 23) |
-| 6425-6531 | C 6427-6429's comment and `android_update_selection` | **recorded, not ported** (this slice's blocks sit on either side of it; the next slice replaces this row) |
+| 6425-6531 | C 6427-6429's comment and `android_update_selection` (C 6519/6527's `ANDROID_DELETE_LOCAL_REF`) | real arm (slice 24, which replaced this row's `recorded` form) |
 | 6533-6544 | C 6533-6534's comment and `android_event_is_for_frame` | real arm (slice 23) |
 | 6546-7117 | **the remainder of the file** - from C 6546-6547's comment above `android_reset_conversion` (C 6550) through the rest of the input-method and text-conversion groups, `android_notify_conversion`, `syms_of_androidterm` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
@@ -416,12 +416,13 @@ slice's basis).  All 116 are in the owed list below.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **The remainder of the file: C 6425-6531 and C 6546-7117.**  Slice 23 wrote C 6358-6417
-   (`takeSnapshot`), C 6419-6423 (the pragma pops) and C 6533-6544
-   (`android_event_is_for_frame`); the 107-line `android_update_selection` (C 6425-6531) sits
-   *between* two of this slice's blocks, so its row is recorded rather than written and the next
-   slice must replace both that row and the tail's - the table stays contiguous.  The tail's first
-   definition is `android_reset_conversion` (C 6550).  C 1761's `android_notify_conversion` (C 6635-6648)
+1. **The remainder of the file: C 6546-7117.**  Slice 24 filled the hole slice 23 left
+   (`android_update_selection`, C 6425-6531, was a `recorded` row for one round and is now a real
+   one), so the only remaining range is the tail: its first definition is `android_reset_conversion`
+   (C 6550) and it runs through `android_notify_conversion` (C 6635-6648, the file's last forward
+   reference), the text-conversion interface record (C 6652-6658), `mark_androidterm` and
+   `syms_of_androidterm`, whose definition sits at C 6992; the tail's two
+   `#pragma` pops are C 7110-7116.  C 1761's `android_notify_conversion` (C 6635-6648)
    is the only forward reference left.
 2. `docs/ports/line-drift-tolerance.tsv`: the row is **written** (slice 21, tolerance `0.10`) and
    **re-measured at slice 23** (a newer row, tolerance `0.12`, governs - the table is append-only
@@ -630,6 +631,15 @@ slice's basis).  All 116 are in the owed list below.
    `context.conversion_end`); the port transcribes C's statement as it stands and this item is the
    record, not a defect of the port.
 
+34. **`ANDROID_DELETE_LOCAL_REF`, and the one invocation difference it forces** (slice 24).  C
+   android.h 340-342 defines the macro over a `<jni.h>` vtable entry; `include/android.rs` 197-199
+   records that its mirror carries no Rust text for it, so the unit names it once - the
+   `src/android.rs` 1426-1428 macro - and calls it as `ANDROID_DELETE_LOCAL_REF! (ref)`.  The `!`
+   is Rust's macro-invocation punctuation and the only text difference from C's
+   `ANDROID_DELETE_LOCAL_REF (ref)` at C 6519/6527; the per-function token check sees the same name
+   either way.  A mirror-level macro (or the vtable entry as a plain `unsafe fn`) would let the
+   punctuation go - the same shape as Owed 26's `frame_face_accessors::` path.
+
 23. **Three use-site declarations** (slice 9): `window_box_left` (dispextern.h 3579),
    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692, defined in `src/xdisp.c`).
    This unit's include graph reaches none of them, so they stand at their use sites (P-72 rule 4) -
@@ -645,9 +655,8 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  **C 830-1892 is now
 ported** (slice 2) and its own reading is the second half of ② below; **C 1894-2238 is now ported**
-(slice 3) and its own reading is the third half of ② below; **C 2240-6417 and C 6533-6544 are now ported** (slices 4-23,
-each with its own Evidence section below), with `android_update_selection` (C 6425-6531) and
-C 6546-7117 recorded, not ported.
+(slice 3) and its own reading is the third half of ② below; **C 2240-6544 is now ported** (slices 4-24,
+each with its own Evidence section below); C 6546-7117 is recorded, not ported.
 
 ## 2026-10-05: the four folded-bit writer sites (3.516)
 
@@ -1593,3 +1602,41 @@ The diagnostic-`#pragma` pair (text only), `edit_counter` / `last_edit_counter` 
 - **C 6383-6384 and 6405-6406's class/method names** are one literal each (Rust has no compile-time
   concatenation), and the two `#pragma` pops are C's own text in the unit's comment, exactly as
   slice 14 carried the matching pushes.
+
+## 2026-10-12: slice 24 (C 6425-6531) - `android_update_selection`
+
+`android_update_selection`, the 107-line function slice 23's table carried as a `recorded, not
+ported` row for one round (it sat between that slice's two blocks).
+
+### Evidence (this slice's own readings)
+
+1. **The arm flip** (the five gates of ②): **exit 1, 3 errors** - the same two frame-mirror fields
+   (`want_fullscreen`, `new_size_p`) and the same forward reference (`android_notify_conversion`).
+   The slice's own reading was C 6519/6527's macro invocation: the mirror describes
+   `ANDROID_DELETE_LOCAL_REF` but carries no Rust text for it, so the unit's own macro (the
+   `src/android.rs` 1426 copy) is called with Rust's `!` (Owed 34).
+2. **The recorded row is now a real row**: `android_update_selection` retires from the checklist
+   (`missing function` 12 -> **11**), so the table's C 6425-6531 row changes from `recorded, not
+   ported` to `real arm (slice 24)` and the only remaining range is the tail (C 6546-7117) - the
+   table stays contiguous over C 1-7117 with the port's coverage C 1-6544.
+3. **No new `does not mention` row**: every name of C's body (`get_conversion_field`, `MARKERP`,
+   `marker_position`, `ephemeral_last_point`, `BVAR`, `android_update_ic`,
+   `android_exception_check(_1)`, `android_build_extracted_text`,
+   `android_update_extracted_text`, `xfree`, `ANDROID_DELETE_LOCAL_REF`) is present in the ported
+   text or through the unit's own accessors.
+4. **The line-count row stays absent**: C 7,117 against the port's 7,966 is **11.9%**, inside the
+   `0.12` tolerance row slice 23 appended (the row is 3 tenths of a point from its next
+   re-measurement, which the ledger's Owed 2 still asks for at close).
+
+### Deviations this slice adds
+
+- **`ANDROID_DELETE_LOCAL_REF! (…)`** is the unit's macro with Rust's invocation punctuation
+  (Owed 34); the macro body is C 340-342's one call through `android_java_env`.
+- **C 6434-6442's locals the callees write through their addresses** start at 0
+  (`field_start`/`field_end`, `start_offset`/`end_offset`, `length`/`bytes`, `mark_active`), the
+  device of slices 8/12/20.
+- **C 6459's `end = start = -1;`** and C 6462's comma statement are two statements in C's order,
+  and C 6475-6484's nested `min`/`max` chain keeps C's shape with the `TYPE_MAXIMUM! (jint) as ptrdiff_t`
+  promotions.
+- **C 6475's `w->ephemeral_last_point`** is the unit's `ephemeral_last_point! (w)` macro (Owed 31),
+  and C 6479's `BVAR (b, mark_active)` the mirror's `mark_active_` spelling.

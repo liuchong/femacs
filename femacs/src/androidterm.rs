@@ -7830,3 +7830,137 @@ unsafe extern "C" fn android_event_is_for_frame (event: *mut android_event, arg:
   return (*event).r#type == ANDROID_INPUT_METHOD                        // C 6542
     && (*event).ime.window == FRAME_ANDROID_WINDOW! (f);                // C 6543
 }
+
+/* C 6425-6531: `android_update_selection`, the 107-line function the table has carried as a
+   `recorded, not ported` row since slice 23 (it sits between that slice's blocks).  One name the
+   mirror describes but cannot carry is named here: C 340-342's `ANDROID_DELETE_LOCAL_REF`
+   (`include/android.rs` 197-199 records that it reads a `<jni.h>` vtable entry with no Rust text),
+   so the unit spells it as the `src/android.rs` 1427 macro.  */
+
+/* C: android.h 340-342: `#define ANDROID_DELETE_LOCAL_REF(ref) ((*android_java_env)->DeleteLocalRef
+   (android_java_env, ref))` - the `src/android.rs` 1427 copy.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! ANDROID_DELETE_LOCAL_REF {
+  ($r:expr) => { ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, $r) };
+}
+
+/* Tell the input method where the composing region and selection of
+   F's selected window is located.  W should be F's selected window;
+   if it is NULL, then F->selected_window is used in its place.  */    // C 6427-6429
+
+/* C 6431-6531.  `static`; called from slice 1's `android_change_...` paths (C 2015/2038/2085/2114)
+   and the frame's redisplay callbacks.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_update_selection (f: *mut frame, mut w: *mut window)
+{
+  /* C 6434-6442's locals that the callees write through their addresses start at 0 (the
+     `field_start`/`field_end` pair of C 6445 is the same device).  */
+  let mut start: ptrdiff_t = 0;                                         // C 6434
+  let mut end: ptrdiff_t = 0;
+  let mut point: ptrdiff_t;
+  let mut mark: ptrdiff_t;
+  let mut start_offset: ptrdiff_t = 0;                                  // C 6434-6435
+  let mut end_offset: ptrdiff_t = 0;
+  let mut length: ptrdiff_t = 0;
+  let mut bytes: ptrdiff_t = 0;
+  let mut b: *mut buffer;                                               // C 6436
+  let mut hint: c_int;                                                  // C 6437
+  let mut token: c_int;
+  let mut text: *mut c_char;                                            // C 6438
+  let mut extracted: jobject;                                           // C 6439
+  let mut string: jstring;                                              // C 6440
+  let mut mark_active: bool = false;                                    // C 6441
+  let mut field_start: ptrdiff_t = 0;                                   // C 6442
+  let mut field_end: ptrdiff_t = 0;
+
+  /* Offset these values by the start offset of the field.  */           // C 6444
+  get_conversion_field (f, &raw mut field_start, &raw mut field_end);    // C 6445
+
+  if MARKERP ((*f).conversion.compose_region_start)                     // C 6447
+    {
+      eassert! (MARKERP ((*f).conversion.compose_region_end));           // C 6449
+
+      /* Indexing in android starts from 0 instead of 1.  */            // C 6451
+      start = marker_position ((*f).conversion.compose_region_start);   // C 6452
+      end = marker_position ((*f).conversion.compose_region_end);       // C 6453
+
+      /* Offset and detect underflow.  */                              // C 6455
+      start = max (start, field_start) - field_start;                   // C 6456
+      end = min (end, field_end) - field_start;                         // C 6457
+      if end < 0 || start < 0                                            // C 6458
+	{
+	  start = -1;                                                      // C 6459
+	  end = -1;
+	}
+    }
+  else
+    { start = -1; end = -1; }                                           // C 6462
+
+  /* Now constrain START and END to the maximum size of a Java
+     integer.  */                                                      // C 6464-6465
+  start = min (start, TYPE_MAXIMUM! (jint) as ptrdiff_t);               // C 6466
+  end = min (end, TYPE_MAXIMUM! (jint) as ptrdiff_t);                   // C 6467
+
+  if w.is_null ()                                                       // C 6469
+    { w = XWINDOW ((*f).selected_window); }                            // C 6470
+
+  /* Figure out where the point and mark are.  If the mark is not
+     active, then point is set to equal mark.  */                      // C 6472-6473
+  b = XBUFFER ((*w).contents);                                          // C 6474
+  point = min (min (max (ephemeral_last_point! (w),                     // C 6475
+			 field_start),
+		    field_end) - field_start,
+	       TYPE_MAXIMUM! (jint) as ptrdiff_t);                      // C 6478
+  mark = if ! NILP (BVAR! (b, mark_active_))                            // C 6479
+	    && (*w).last_mark != -1                                     // C 6480
+    { min (min (max ((*w).last_mark, field_start),                      // C 6481
+	       field_end) - field_start,
+	   TYPE_MAXIMUM! (jint) as ptrdiff_t) }                         // C 6483
+    else { point };                                                     // C 6484
+
+  /* Send the update.  Android doesn't employ a concept of "point" and
+     "mark"; instead, it only has a selection, where the start of the
+     selection is less than or equal to the end, and the region is
+     "active" when those two values differ.  The indices will have been
+     converted from 1-based Emacs indices to 0-based Android ones.  */   // C 6486-6490
+  android_update_ic (FRAME_ANDROID_WINDOW! (f), min (point, mark),      // C 6491
+		     max (point, mark), start, end);                    // C 6492
+
+  /* Update the extracted text as well, if the input method has asked
+     for updates.  1 is InputConnection.GET_EXTRACTED_TEXT_MONITOR.  */   // C 6494-6495
+
+  if (*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)).extracted_text_flags & 1 != 0   // C 6497
+    {
+      hint = (*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)).extracted_text_hint;   // C 6499
+      token = (*(FRAME_ANDROID_OUTPUT! (f) as *mut android_output)).extracted_text_token;   // C 6500
+      text = get_extracted_text (f, min (hint, 600) as ptrdiff_t, &raw mut start,   // C 6501
+				 &raw mut start_offset, &raw mut end_offset,   // C 6502
+				 &raw mut length, &raw mut bytes, &raw mut mark_active);   // C 6503
+
+      if ! text.is_null ()                                              // C 6505
+	{
+	  /* Make a string out of the extracted text.  */               // C 6507
+	  string = android_text_to_string (android_java_env,            // C 6508
+					   text, length, bytes);        // C 6509
+	  xfree (text as *mut c_void);                                  // C 6510
+	  android_exception_check ();                                   // C 6511
+
+	  /* Make extracted text out of that string.  */                // C 6513
+	  extracted = android_build_extracted_text (string, start,       // C 6514
+						    start_offset,       // C 6515
+						    end_offset,         // C 6516
+						    mark_active);       // C 6517
+	  android_exception_check_1 (string);                           // C 6518
+	  ANDROID_DELETE_LOCAL_REF! (string);                            // C 6519
+
+	  if ! extracted.is_null ()                                     // C 6521
+	    {
+	      /* extracted is now an associated ExtractedText object.
+		 Perform the update.  */                              // C 6523-6524
+	      android_update_extracted_text (FRAME_ANDROID_WINDOW! (f),   // C 6525
+					     extracted as *mut c_void, token);   // C 6526
+	      ANDROID_DELETE_LOCAL_REF! (extracted);                     // C 6527
+	    }
+	}
+    }
+}
