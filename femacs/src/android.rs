@@ -2111,3 +2111,147 @@ unsafe fn android_init_emacs_pixmap ()
    (initEmacs)` and the rest of the JNI entry points, the two `__aarch64__` NEON regions
    (C 4064-4431) and C 7519's `#else` stub arm (`ANDROID_STUBIFY`).  The ledger's last range
    row names it.  */
+
+/* C 1870-1898: `android_init_graphics_point`.  `static`; only called (C 6079), so a plain
+   `unsafe fn`.  C 1889-1894's `#define FIND_METHOD …` and C 1897's `#undef` are the port's
+   in-function `macro_rules!` (the `android_init_emacs_pixmap` device of slice 2), and every
+   `org/gnu/emacs/` in C's class names and signatures is this project's `org/femacs/`
+   (PORTING.md 0.1-19's name half, the `android.rs` 1426-1428 rename).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_graphics_point ()
+{
+  let mut old: jclass;                                                  // C 1873
+
+  point_class.class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 1875-1876
+						    c"android/graphics/Point".as_ptr ());   // C 1877
+  eassert! (! point_class.class.is_null ());                            // C 1878
+
+  old = point_class.class;                                              // C 1880
+  point_class.class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 1881-1883
+						       old as jobject);
+  ANDROID_DELETE_LOCAL_REF! (old);                                      // C 1884
+
+  if point_class.class.is_null ()                                       // C 1886
+    { emacs_abort (); }                                                 // C 1887
+
+  /* C 1889-1894's `#define FIND_METHOD …` and C 1897's `#undef`.  */
+  macro_rules! FIND_METHOD {
+    ($c_name:ident, $name:expr, $signature:expr) => {
+      point_class.$c_name
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,
+							  point_class.class,
+							  $name, $signature);
+      eassert! (! point_class.$c_name.is_null ());
+    };
+  }
+
+  FIND_METHOD! (constructor, c"<init>".as_ptr (), c"(II)V".as_ptr ());   // C 1896
+}
+
+/* C 1900-1928: `android_init_emacs_drawable`.  `static`; only called (C 6084).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_emacs_drawable ()
+{
+  let mut old: jclass;                                                  // C 1903
+
+  drawable_class.class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 1905-1906
+						    c"org/femacs/EmacsDrawable".as_ptr ());   // C 1907
+  eassert! (! drawable_class.class.is_null ());                         // C 1908
+
+  old = drawable_class.class;                                           // C 1910
+  drawable_class.class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 1911-1913
+						       old as jobject);
+  ANDROID_DELETE_LOCAL_REF! (old);                                      // C 1914
+
+  if drawable_class.class.is_null ()                                    // C 1916
+    { emacs_abort (); }                                                 // C 1917
+
+  /* C 1919-1924's `#define FIND_METHOD …` and C 1927's `#undef`.  */
+  macro_rules! FIND_METHOD {
+    ($c_name:ident, $name:expr, $signature:expr) => {
+      drawable_class.$c_name
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,
+							  drawable_class.class,
+							  $name, $signature);
+      eassert! (! drawable_class.$c_name.is_null ());
+    };
+  }
+
+  FIND_METHOD! (get_bitmap, c"getBitmap".as_ptr (),                     // C 1926
+		c"()Landroid/graphics/Bitmap;".as_ptr ());
+}
+
+/* C 1930-1992: `android_init_emacs_window`.  `static`; only called (C 6091).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_emacs_window ()
+{
+  let mut old: jclass;                                                  // C 1933
+
+  window_class.class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 1935-1936
+						    c"org/femacs/EmacsWindow".as_ptr ());   // C 1937
+  eassert! (! window_class.class.is_null ());                           // C 1938
+
+  old = window_class.class;                                             // C 1940
+  window_class.class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 1941-1943
+						       old as jobject);
+  ANDROID_DELETE_LOCAL_REF! (old);                                      // C 1944
+
+  if window_class.class.is_null ()                                      // C 1946
+    { emacs_abort (); }                                                 // C 1947
+
+  /* C 1949-1954's `#define FIND_METHOD …` and C 1991's `#undef`.  */
+  macro_rules! FIND_METHOD {
+    ($c_name:ident, $name:expr, $signature:expr) => {
+      window_class.$c_name
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,
+							  window_class.class,
+							  $name, $signature);
+      eassert! (! window_class.$c_name.is_null ());
+    };
+  }
+
+  FIND_METHOD! (swap_buffers, c"swapBuffers".as_ptr (), c"()V".as_ptr ());   // C 1956
+  FIND_METHOD! (toggle_on_screen_keyboard,                              // C 1957-1958
+		c"toggleOnScreenKeyboard".as_ptr (), c"(Z)V".as_ptr ());
+  FIND_METHOD! (lookup_string, c"lookupString".as_ptr (),                // C 1959
+		c"(I)Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (set_fullscreen, c"setFullscreen".as_ptr (), c"(Z)V".as_ptr ());   // C 1960
+  FIND_METHOD! (change_window_background, c"changeWindowBackground".as_ptr (),   // C 1961-1962
+		c"(I)V".as_ptr ());
+  FIND_METHOD! (reparent_to, c"reparentTo".as_ptr (),                    // C 1963-1964
+		c"(Lorg/femacs/EmacsWindow;II)V".as_ptr ());
+  FIND_METHOD! (map_window, c"mapWindow".as_ptr (), c"()V".as_ptr ());   // C 1965
+  FIND_METHOD! (unmap_window, c"unmapWindow".as_ptr (), c"()V".as_ptr ());   // C 1966
+  FIND_METHOD! (resize_window, c"resizeWindow".as_ptr (), c"(II)V".as_ptr ());   // C 1967
+  FIND_METHOD! (move_window, c"moveWindow".as_ptr (), c"(II)V".as_ptr ());   // C 1968
+  FIND_METHOD! (move_resize_window, c"moveResizeWindow".as_ptr (), c"(IIII)V".as_ptr ());   // C 1969
+  FIND_METHOD! (make_input_focus, c"makeInputFocus".as_ptr (), c"(J)V".as_ptr ());   // C 1970
+  FIND_METHOD! (raise, c"raise".as_ptr (), c"()V".as_ptr ());            // C 1971
+  FIND_METHOD! (lower, c"lower".as_ptr (), c"()V".as_ptr ());            // C 1972
+  FIND_METHOD! (reconfigure, c"reconfigure".as_ptr (),                   // C 1973
+		c"(Lorg/femacs/EmacsWindow;I)V".as_ptr ());
+  FIND_METHOD! (get_window_geometry, c"getWindowGeometry".as_ptr (),     // C 1974-1975
+		c"()[I".as_ptr ());
+  FIND_METHOD! (translate_coordinates, c"translateCoordinates".as_ptr (),   // C 1976-1977
+		c"(II)[I".as_ptr ());
+  FIND_METHOD! (set_dont_focus_on_map, c"setDontFocusOnMap".as_ptr (), c"(Z)V".as_ptr ());   // C 1978
+  FIND_METHOD! (set_dont_accept_focus, c"setDontAcceptFocus".as_ptr (), c"(Z)V".as_ptr ());   // C 1979
+  FIND_METHOD! (define_cursor, c"defineCursor".as_ptr (),                // C 1980-1981
+		c"(Lorg/femacs/EmacsCursor;)V".as_ptr ());
+  /* In spite of the declaration of this function being located within
+     EmacsDrawable, the ID of the `damage_rect' method is retrieved
+     from EmacsWindow, which avoids virtual function dispatch within
+     android_damage_window.  */                                        // C 1982-1985
+  FIND_METHOD! (damage_rect, c"damageRect".as_ptr (), c"(IIII)V".as_ptr ());   // C 1986
+  FIND_METHOD! (recreate_activity, c"recreateActivity".as_ptr (), c"()V".as_ptr ());   // C 1987
+  FIND_METHOD! (clear_window, c"clearWindow".as_ptr (), c"()V".as_ptr ());   // C 1988
+  FIND_METHOD! (clear_area, c"clearArea".as_ptr (), c"(IIII)V".as_ptr ());   // C 1989
+  FIND_METHOD! (set_wm_name, c"setWmName".as_ptr (),                     // C 1990
+		c"(Ljava/lang/String;)V".as_ptr ());
+}

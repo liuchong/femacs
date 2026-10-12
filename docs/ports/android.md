@@ -18,8 +18,13 @@
 > `android_get_home_directory`, `android_proc_name`, `android_create_lib_link`, the three
 > `NATIVE_NAME` entry points (`getFingerprint`, `setEmacsParams`, `getProcName`),
 > `android_init_emacs_service` and `android_init_emacs_pixmap`, so 1,869 C lines of the
-> 7,594-line unit are carried here in total (in a 2,103-line port) and **the next live definition is C 1871's
-> `android_init_graphics_point`**.  The table's last row is "the remainder" (C 1870-7594).
+> 7,594-line unit were carried by slice 2 (in a 2,103-line port).  **Slice 3 (C 1870-1992,
+> 2026-10-12) continues in the same unit**: it carries the first three class tables -
+> `android_init_graphics_point`, `android_init_emacs_drawable` and `android_init_emacs_window`
+> (C 1930-1992's twenty-four `FIND_METHOD` calls) - so **1,992 C lines are carried in total** (in a
+> 2,257-line port, md5 `90f0d173d3405e3d759a3dc1316a0fe0`) and **the next live definition is
+> C 1995's `android_init_emacs_cursor`**.  The table's last row is "the remainder" (C 1994-7594);
+> slice 3's own readings are in the dated section at the end of this file.
 
 ## Gate mapping
 
@@ -106,7 +111,13 @@ no `window.h`).
 | 1838 | the blank | real arm |
 | 1839-1868 | `android_init_emacs_pixmap` (C 1839-1868; C 1858-1863 the function-local `#define FIND_METHOD`, one call, and C 1867 its `#undef`) | real arm |
 | 1869 | the blank before the next live definition | real arm |
-| 1870-7594 | **the remainder** - from C 1870's `static void` (C 1871's `android_init_graphics_point`, **the next live definition**) through C 7594's `#endif`: the seven other `android_init_*` class tables, `NATIVE_NAME (initEmacs)` and the rest of the JNI entry points, the two `__aarch64__` NEON regions (C 4064-4431) and C 7519's `#else` stub arm | not this slice |
+| 1870-1898 | `android_init_graphics_point` (C 1889-1894 the function-local `#define FIND_METHOD`, one call, and C 1897 its `#undef`) | real arm (slice 3) |
+| 1899 | the blank | real arm (slice 3) |
+| 1900-1928 | `android_init_emacs_drawable` (C 1919-1924 the same device, one call, C 1927 its `#undef`) | real arm (slice 3) |
+| 1929 | the blank | real arm (slice 3) |
+| 1930-1992 | `android_init_emacs_window` (C 1949-1954 the same device, **twenty-four** calls, C 1991 its `#undef`) | real arm (slice 3) |
+| 1993 | the blank | real arm (slice 3) |
+| 1994-7594 | **the remainder** - from C 1994's blank and C 1995's `android_init_emacs_cursor` (**the next live definition**) through C 7594's `#endif`: the four other `android_init_*` class tables, `NATIVE_NAME (initEmacs)` and the rest of the JNI entry points, the two `__aarch64__` NEON regions (C 4064-4431) and C 7519's `#else` stub arm | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -454,12 +465,14 @@ readings exist only with `android_api_lt_21` selected.
 
 ### Not claimed
 
-Every line of both slices is behind gates the frozen configuration leaves false: ① is an empty
-object, the arm readings (②a/②b) are compile-level, and **nothing here was executed** - no thread,
+Every line of all three slices is behind gates the frozen configuration leaves false: ① is an
+empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
+executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slice 2's C lines (C 1038-1869) are carried; the **unported**
-part is C 1870-7594, and `extract-abi --check`'s remaining `- missing …` list and the 72.3% drift
-are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`getline`, no event, no `select`.  Slices 2-3's C lines (C 1038-1992) are carried; the **unported**
+part is C 1994-7594, and `extract-abi --check`'s remaining `- missing …` list (120 `missing
+function` rows and the two file-scope objects) and the 70.3% drift are that boundary, not
+defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -496,3 +509,48 @@ The macro is what the Android side tells a user with a bug, so it now spells thi
 issue page (PORTING.md 0.1-19's ninth half, which replaces the 3.433 boundary recorded above for
 this one constant).  The Kotlin target's own message moved with it; the frozen configuration's
 measured address stays in `docs/baseline/config/`.
+
+## 2026-10-12: slice 3 (C 1870-1992) - the first three class tables
+
+`android_init_graphics_point` (C 1870-1898), `android_init_emacs_drawable` (1900-1928) and
+`android_init_emacs_window` (1930-1992).
+
+### Evidence (this slice's readings)
+
+**③ The arm flip of this slice.**  The same three-`--cfg` command ②b uses
+(`have_android`, `not_android_stubify`, `android_api_lt_21`):
+
+```
+cd femacs && CARGO_TARGET_DIR=/tmp/android-lane cargo run -q -p xtask -- probe src/android.rs \
+  /tmp/android-lane/arm.o --crate-type lib --emit obj -C panic=abort \
+  --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"' \
+  --cfg 'feature="android_api_lt_21"'
+```
+
+→ **exit 0, 0 errors, 11 warnings emitted**, and this slice's text needed **one** probe run
+(the limit for a slice is three): the three tables' `FIND_METHOD` macros, the `NewGlobalRef` pair
+and the twenty-six method names all read correctly on the first pass.  The warnings are the unit's
+existing set (`android_vdir`/`_jmethodID`/`AndroidBitmapInfo` FFI-safety notes and the two
+`suspicious definition of the runtime read/write symbol` lines ②b already records).
+
+**④ The checklist reading.**  `extract-abi.py --check` on this revision: **120 `missing function`**
+rows (down from 123 - the three tables retire), **2 `missing file-scope object`**
+(`android_servicing_query`, `android_query_context`), **3 `invented exported symbol`** (Owed 9's
+class), **0 `missing macro`**, **0 `missing constant`**, **0 `does not mention`** and the
+**70.3%** line-count row (C 7,594 against the port's 2,257, inside this unit's
+`docs/ports/line-drift-tolerance.tsv` row).
+
+### Deviations this slice adds
+
+- **The three `FIND_METHOD` macros** are in-function `macro_rules!` declarations with the field
+  name as `$c_name:ident` (the `android_init_emacs_pixmap` device of slice 2, C 1858-1863/1867);
+  C's `#undef` is the macro's scope ending, and C's two-statement body (the assignment and the
+  `eassert`) is the macro's two statements.
+- **The `org/femacs/` rename** applies to this slice's two class names and three signature strings
+  (`org/femacs/EmacsDrawable`, `org/femacs/EmacsWindow`, and the `Lorg/femacs/EmacsWindow;`/
+  `Lorg/femacs/EmacsCursor;` parameters of C 1964/1973/1981), the 2026-10-05 section's rule.
+- **C 1881-1883's `(jclass) NewGlobalRef (…, (jobject) old)`** needs no cast text in Rust: the
+  mirror's `jclass` and `jobject` are the same `*mut c_void` (`include/jni.rs` 49-50), so the two
+  C casts are identity conversions and only `old as jobject` is written.
+- **C 1930-1992's twenty-four calls** keep C's order, including the `damage_rect` one whose comment
+  (C 1982-1985) explains why the ID comes from `EmacsWindow`.
