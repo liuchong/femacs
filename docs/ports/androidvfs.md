@@ -8,11 +8,10 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**2,439 lines**, md5 `2887d43a6100b9b58e3b2cc39406f`), carrying
-> **C 1-1870 except two ranges slice 7 defers** (C 1682-1699's `afs_vfs_ops` and C 1708-1843's
-> `android_afs_name`/`android_afs_initial` - one dependency clique the P-91 class forces together;
-> see the range table and Deviation 20) - P-86 ④'s first seven slices of this file - with both arms
-> of every `#if` carried.
+> `femacs/src/androidvfs.rs` (**3,364 lines**, md5 `74e8b3e74c5a7ee0ef7c3bfa9f66ecc4`), carrying
+> **C 1-2466** - P-86 ④'s first eight slices of this file, which close the whole asset-VFS family -
+> with both arms of every `#if` carried.  Slice 8 carries the one item in the unit that sits out of
+> C's order (`afs_vfs_ops`, C 1682-1699, at the file's foot; Deviation 21).
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
 > build, so the port is the empty unit plus a note that names the gate"): P-86 ① rules that a
@@ -95,11 +94,12 @@ does *not* take 2647-2648).  This file's only other `#if` is the API-level pair 
 | 1289-1355 | the asset-to-fd section's opening (C 1291) and `asharedmemory_create` (C 1295), then `android_hack_asset_fd_fallback` (C 1301-1355; C 1352's `fail:` as the port's labelled block) | file gate (slice 5); C 1356 is a blank line |
 | 1357-1611 | the ashmem pair - `android_detect_ashmem` (C 1363-1465, with C 1357-1361's comment) and `android_hack_asset_fd` (C 1470-1611, with C 1467-1468's comment) | file gate (slice 6); C 1612 is a blank line |
 | 1613-1680 | the asset-VFS banner (C 1615-1617), the three structs (`android_afs_vnode` C 1619-1629, `android_afs_vdir` C 1631-1650, `android_afs_open_fd` C 1652-1662) and C's twelve forward declarations (C 1664-1680, which Rust needs no text for) | file gate (slice 7) |
-| 1681-1700 | **deferred to the round that reaches C 1873**: C 1682-1699's `afs_vfs_ops`, the twelve-entry operation vector | deferral, Deviation 20 (the object names twelve functions Rust cannot forward-declare, and two of them name it back) |
+| 1681-1700 | `afs_vfs_ops` (C 1682-1699), the thirteen-entry operation vector - **landed at this file's foot, out of C's order** | file gate (slice 8); Deviation 21 (the P-91 clique) |
 | 1701-1706 | the two file-scope objects `all_afs_vdirs` (C 1702) and `afs_file_descriptors` (C 1706) | file gate (slice 7) |
-| 1707-1844 | **deferred with the object**: C 1708-1843's `android_afs_name` and `android_afs_initial` | the same deferral and the same reason (both name `afs_vfs_ops`) |
+| 1707-1844 | `android_afs_name` (C 1708-1820, with C 1708's declaration comment) and `android_afs_initial` (C 1826-1843, with C 1822-1824's comment) | file gate (slice 8) |
 | 1845-1870 | `android_close_on_exec` (C 1848-1870, with C 1845-1846's comment) | file gate (slice 7) |
-| 1871-7950 | **the remainder** - `android_afs_open` (C 1873) through C 7950: the rest of the afs family, the android_* families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1871-2466 | the rest of the asset family: `android_afs_open` (C 1872-2003) through `android_afs_get_directory_name` (C 2454-2466), with C 2449-2452's comment | file gate (slice 8); C 2467-2469 are blank |
+| 2470-7950 | **the remainder** - `struct android_content_vdir` (C 2470) through C 7950: the content/authority/SAF families, `android_vfs_ops` and `syms_of_androidvfs` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 The forty rows tile C 1-7950 **contiguously** (blank lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 7950, the reference's last line, so
@@ -310,7 +310,7 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    `android_unix_name` → `goto`.  Both lines print in `--check` today and every other token of both
    bodies is present.
 5. `docs/baseline/port-lines-pending.tsv` (not in this lane's writable set): this file's row is now
-   **stale** (**2,439** C lines carried = 30.7% of 7,950, above the ten-percent threshold; slice 1's
+   **stale** (**3,364** C lines carried = 42.3% of 7,950, above the ten-percent threshold; slice 1's
    original reading was C 995 = 12.5%); the integrator's `--write-pending` re-run drops it.
 6. **The boundary's first object is answered by the include graph** - **discharged by slice 2**,
    and the answer is the mirror: C 1005's `directory_tree` is not reported missing because C 51's
@@ -329,10 +329,9 @@ object, and **nothing here was executed** — no JNI call, no `FindClass`/`GetMe
 `opendir`/`readdir`/`fstatat`/`rename`/`symlink`, no asset was read, no `open`/`unlink`/`ftruncate`
 /`mmap`/`munmap` was called, and no vnode was ever created, named, opened or closed.  The arm
 readings (slice 5's Evidence ①) are compile-level: they prove the unit's text and its include graph
-type-check and emit an object under each arm, not that any of it behaves.  C 1874-7950 is
-**unported** (as are the two deferred ranges above): `extract-abi.py --check` reads **167** rows
-across that boundary (166 `missing …` plus the whole-file drift row, which now reads **69.3%**),
-and those rows are the boundary, not defects.  Owed 4's `does not mention` rows are written in `docs/ports/macro-body-notes.tsv` now,
+type-check and emit an object under each arm, not that any of it behaves.  C 2470-7950 is
+**unported**: `extract-abi.py --check` reads **149** rows across that boundary (148 `missing …` plus
+the whole-file drift row, which now reads **57.7%**), and those rows are the boundary, not defects.  Owed 4's `does not mention` rows are written in `docs/ports/macro-body-notes.tsv` now,
 which is why none of them prints.  This ledger claims no runtime evidence, no Android device or
 emulator run, and no artifact beyond the objects the slices' arm readings name.
 
@@ -744,3 +743,76 @@ What the round's evidence *is*: both arms' `exit 0`, one control proving the har
 `--check` 170 -> 167 with the retiring rows named, the measured layouts, and the ten gates.  **This
 file is not finished**: C 1871-7950 remains (the next item is C 1873's `android_afs_open`), and that
 round opens with the two deferred ranges.
+
+## Slice 8 (2026-10-08, status 4.113 - the integrator sets the round number): C 1708-2466 plus C 1682-1699 at the foot (the asset-VFS family closes)
+
+**What this round is.**  The whole asset-VFS family, i.e. the eighteen items C 1708-2466 -
+`android_afs_name`, `android_afs_initial`, `android_afs_open`, `android_afs_close`,
+`android_afs_unlink`, `android_afs_symlink`, `android_afs_rmdir`, `android_afs_rename`,
+`android_afs_stat`, `android_afs_access`, `android_afs_mkdir`, `android_afs_chmod`,
+`android_afs_readlink`, `android_afs_readdir`, `android_afs_closedir`, `android_afs_dirfd`,
+`android_afs_opendir`, `android_afs_get_directory_name` - with `afs_vfs_ops` (C 1682-1699) at the
+file's foot.  Port: **2,439 -> 3,364 lines** (925 lines this round).
+
+**Evidence ① - both arms read `exit 0`.**  `exit 0`, 0 errors; 7 warnings in the else arm and 12 in
+the `>= 9` arm (one more than the previous round, and diffed: the extra one is the FFI-safety note
+for the new `AAsset_close` declaration, so there are now five - one per `AAsset*` name that arm
+carries).  Five real defects came out of the first drafts: the `for (next = &all_afs_vdirs; (tem =
+*next);)` loop's step is `&raw mut (**next).next` (a `*mut *mut T` does not auto-deref for a field
+read - `E0609`), the `readdir` member is the mirror's untyped `*mut c_void` so the assignment needs
+`std::mem::transmute` (`E0605` forbids the `as` cast between function-pointer types; the
+`femacs/src/sysdep.rs` 2873 spelling), `DT_DIR`/`DT_REG` are not in `lib/include/dirent.rs`
+(declared at the use site, measured 4/8 with this machine's NDK), and `AAsset_close` is the ninth
+name of the arm-split `<android/asset_manager.h>` family, so the `>= 9` arm declares it (arm B alone
+read `E0425` for it - the arm work the slice-4/5 Deviations 17/18 describe, done before the probe
+for the five names this round needs: `AASSET_MODE_STREAMING`, `AAsset_close`, `DT_DIR`, `DT_REG`,
+`emacs_installation_time`).
+
+**Evidence ② - the positive control (P-86 ⑦).**  Injecting one deliberate error next to C 1883's
+`vp = …` moves the else arm to `exit 1` with `injected_control` named once; reverted, the arm reads
+`exit 0` and the file's md5 returns to the header's.
+
+**Evidence ③ - the file's own gate (`extract-abi.py --check`): 167 -> 149 rows, diffed**: the
+eighteen `missing function android_afs_*` rows retire, three `does not mention` rows appeared and
+are now discharged by `docs/ports/macro-body-notes.tsv` (the `goto`/labelled-block rows for
+`android_afs_name` and `android_afs_stat`, and the `#ifdef STAT_TIMESPEC` pair's six tokens for
+`android_afs_open`/`android_afs_stat`), and the whole-file line-count row moves 69.3% -> **57.7%**
+(C 7,950 against 3,364 Rust lines).
+
+**Deviations (this slice's additions).**
+
+21. **`afs_vfs_ops`'s text sits out of C's order, at the unit's foot** (the P-91 clique Deviation 20
+    named): the object's initialiser names thirteen functions C defines after it, and two of them
+    (`android_afs_name` C 1740, `android_afs_initial` C 1834) name the object back, so the three
+    land in one round with the object moved to the round's end - the haikuterm slice-22 device
+    (its Deviation 34).  Nothing is reordered *within* a landed range.
+22. **Three classes of name the mirrors do not carry are declared where they are used**: `struct
+    dirent` (`lib/include/dirent.rs` 6 says "not mirrored yet - no ported unit reads its fields";
+    this file is the first, so the struct and its measured layout stand here), `DT_DIR`/`DT_REG`
+    (the same mirror keeps only gnulib's `_GL_DT_NOTDIR`), and `emacs_installation_time` (android.h
+    338; `include/android.rs` 238 carries it, but that mirror is not in this unit's include graph).
+    Plus the `#ifdef STAT_TIMESPEC` pair's treatment: the live arm reads the mirror's `st_mtimespec`
+    (`STAT_TIMESPEC (st, st_mtim)` is `stat-time.h` 61's `##`-composed member name), and the `#else`
+    arm is **carried as a record**, because its `st_mtime_nsec` exists in no mirror - the Owed item
+    below names the mirror change that would let it be transcribed.
+
+**Owed (this slice's additions).**
+
+- **`lib/include/sys_stat.in.rs` needs the gnulib `stat.h` override's nanosecond fields** (at least
+  `st_mtime_nsec` under the C condition that names it) for C 1985-1986 and C 2167-2168's arms to be
+  transcribed rather than recorded; the two records are the only text this file does not carry.
+- The new cfg feature `stat_timespec` (C's `STAT_TIMESPEC`, live on this target) is not in
+  `docs/baseline/feature-coverage.tsv`; the integrator's `--write` re-run adds it (the
+  `android_api_ge_9` item's class, Owed 1).
+- `docs/baseline/port-lines-pending.tsv` (Owed 5) stays stale: **3,364** of 7,950 C lines (42.3%).
+- `tools/check-cond-eval.py src/androidvfs.c` still reads `14 conditions, 0 unknown, 5
+  disagreements [NOT VERIFIED]` (slice 2's owed item; two of the five rows - C 1980 and C 2162 - are
+  now *inside* the ported prefix and are this round's Deviation 22).
+
+**Not claimed (this slice).**  No runtime evidence, and none is possible here: no Android device, no
+emulator, and this unit is not in the frozen configuration.  No asset was opened, no directory
+stream was created, `afs_file_descriptors`/`all_afs_vdirs` are still null, and `afs_vfs_ops` has
+never been called through.  What the round's evidence *is*: both arms' `exit 0`, one control proving
+the harness reads this text, `--check` 167 -> 149 with the row set diffed, the measured layouts and
+constants, and the ten gates.  **This file is not finished**: C 2470-7950 remains (the next item is
+C 2470's `struct android_content_vdir`).

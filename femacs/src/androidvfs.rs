@@ -1422,10 +1422,10 @@ unsafe extern "C" fn android_unix_opendir (vnode: *mut android_vnode) -> *mut an
   return &raw mut (*dir).vdir;
 }
 
-/* C 1874-7950: the remainder of the file, plus the three items slice 7 defers (C 1682-1699's
-   `afs_vfs_ops`, and C 1708-1843's `android_afs_name`/`android_afs_initial` - the object names
-   twelve functions C defines at C 1873-2900 and Rust cannot forward-declare, while two of those
-   functions name the object, so the three land together in the round that reaches C 1873).  */
+/* C 2468-7950: the remainder of the file.  This round closes the asset-VFS family (C 1615-2466,
+   whose one out-of-order item - `afs_vfs_ops`, C 1682-1699 - sits at this file's foot for the
+   reason Deviation 21 records); the next item is C 2470's `struct android_content_vdir`, and
+   `extract-abi.py --check`'s remaining `missing …` list is exactly that text.  */
 
 /* Asset directory handling functions.  ``directory-tree'' is a file in
    the root of the assets directory describing its contents.
@@ -2385,16 +2385,6 @@ const _: () = core::assert! (core::mem::offset_of! (android_afs_open_fd, statb) 
    (`android_afs_name` … `android_afs_opendir`).  Rust needs no forward declaration for a function
    defined later in the same unit (PORTING.md 10.10), so this block has no text.  */
 
-/* C 1682-1699 - `static struct android_vops afs_vfs_ops = { … }`, the twelve-entry operation
-   vector - is **deferred to the round that reaches C 1873**, and the deferral is not a choice:
-   the object names twelve functions C defines at C 1873-2900, Rust has no forward declaration
-   (PORTING.md 10.10, the P-91 class), and two of the twelve (`android_afs_name` at C 1740,
-   `android_afs_initial` at C 1834) name the object in return - so the object and the twelve
-   functions are one dependency clique that has to land in a single round, with the object's text
-   moved to that round's foot (the haikuterm slice-22 out-of-order device, its Deviation 34).
-   C 1708-1843 (`android_afs_name`/`android_afs_initial`) is deferred with it for that reason.
-   The ledger's C range table carries the three deferred rows.  */
-
 /* Chain consisting of all open asset directory streams.  */             // C 1701
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 static mut all_afs_vdirs: *mut android_afs_vdir = std::ptr::null_mut ();   // C 1702
@@ -2437,3 +2427,938 @@ unsafe fn android_close_on_exec (fd: c_int)
       return;                                                          // C 1868
     }
 }
+
+/* `<dirent.h>`'s `struct dirent`, which the mirror does not carry (`lib/include/dirent.rs` 6: "not
+   mirrored yet - no ported unit reads its fields"; this file is the first that does, at C
+   2300-2336).  Declared here at the use site (P-88 ①), and measured with the NDK's clang
+   (`-Xclang -fdump-record-layouts-complete`, `--target=aarch64-linux-android24`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct dirent
+{
+  pub d_ino: u64,                                                      // C: `ino_t d_ino`
+  pub d_off: i64,                                                      // C: `off64_t d_off`
+  pub d_reclen: c_ushort,                                              // C: `unsigned short`
+  pub d_type: c_uchar,                                                 // C: `unsigned char`
+  pub d_name: [c_char; 256],                                           // C: `char d_name[256]`
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<dirent> () == 280);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (dirent, d_ino) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (dirent, d_off) == 8);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (dirent, d_reclen) == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (dirent, d_type) == 18);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (dirent, d_name) == 19);
+
+/* C 1903/2134's `AASSET_MODE_STREAMING`: the eighth name of the `<android/asset_manager.h>`
+   family, and here the arm question again answers "the `>= 9` arm alone" - the `#else` arm's
+   mirror defines it (`include/android-asset.rs` 135), the NDK's header declares it (measured).  */
+/* The constant stands under the `>= 9` arm alone: no extern block is needed, because `#define`d
+   names have no linkage (the slice-4 five and slice-5's `AAsset_read` were declarations; this one
+   is a constant, so the arm's whole text is the constant).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg (feature = "android_api_ge_9")]
+/// C: `<android/asset_manager.h>`: `#define AASSET_MODE_STREAMING 0` (the mirror's 135 has the
+/// same value; measured from this machine's NDK 29.0.14206865).
+pub const AASSET_MODE_STREAMING: c_int = 0;
+/* C 1943/1993/2153's `AAsset_close`: the same arm split again - the `#else` arm's mirror defines it
+   (`include/android-asset.rs` 385), the `>= 9` arm's NDK header declares it (measured).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg (feature = "android_api_ge_9")]
+unsafe extern "C" {
+  /// C: `<android/asset_manager.h>`: `void AAsset_close (AAsset *asset);`
+  pub fn AAsset_close (asset: *mut AAsset);
+}
+
+/* C 2323/2325's `DT_DIR`/`DT_REG`: `<dirent.h>`'s `d_type` values, which `lib/include/dirent.rs`
+   does not carry (it keeps the opaque `DIR` and gnulib's `_GL_DT_NOTDIR` only).  Declared at the
+   use site (P-88 ①), and measured with this machine's NDK 29.0.14206865: `DT_UNKNOWN` 0,
+   `DT_DIR` 4, `DT_REG` 8 (the values `lib/include/dirent.in.rs` 87/89 records for the template).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const DT_DIR: c_int = 4;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const DT_REG: c_int = 8;
+
+/* C 1978/2160's `emacs_installation_time`: android.h 338's `extern struct timespec
+   emacs_installation_time;`.  `include/android.rs` 238 carries it, but that mirror is not in
+   this unit's include graph (the slice-5 `android_cache_dir` case), so the declaration stands
+   here (P-72 rule 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: android.h 338: `extern struct timespec emacs_installation_time;`
+  pub static mut emacs_installation_time: timespec;
+}
+
+/* C 1708: `static struct android_vnode *android_afs_name (struct android_vnode *vnode, char
+   *name, size_t length)`.  C's `goto parent_vnode` (C 1725) and the `parent_vnode:` label at
+   C 1772 become one labelled block (PORTING.md 2.2), the `android_unix_name` shape above.  C 1819
+   calls through the vnode's own operation vector, the port's first such call (the
+   `femacs/src/androidfns.rs` 2943 `.unwrap () (…)` spelling).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_name (mut vnode: *mut android_vnode, name: *mut c_char,
+				       mut length: size_t) -> *mut android_vnode
+{
+  let mut j: size_t;                                                   // C 1712
+  let mut remainder: *mut c_char;                                      // C 1713
+  let mut fill: *mut c_char;                                           // C 1713
+  let mut vp: *mut android_afs_vnode;                                  // C 1714
+  let mut input: *mut android_afs_vnode;                               // C 1714
+  let mut temp: android_afs_vnode;                                     // C 1715
+
+  /* C leaves `vp` and `temp` uninitialised (PORTING.md 1.5); `input`, `fill`, `remainder` and `j`
+     are assigned before any use on every path.  */
+  j = 0;
+  remainder = std::ptr::null_mut ();
+  fill = std::ptr::null_mut ();
+  vp = std::ptr::null_mut ();
+  input = std::ptr::null_mut ();
+  temp = unsafe { std::mem::zeroed () };
+
+  'parent_vnode: {
+    input = vnode as *mut android_afs_vnode;                           // C 1717
+
+    /* Canonicalize NAME.  */                                          // C 1719
+    remainder = android_vfs_canonicalize_name (name, &raw mut length); // C 1720
+
+    /* If remainder is set, it's a name relative to the parent
+       vnode.  */                                                      // C 1722-1723
+    if ! remainder.is_null ()                                          // C 1724
+      { break 'parent_vnode; }                                         // C 1725
+
+    /* Allocate a new vnode.  */                                       // C 1727
+    vp = xmalloc (std::mem::size_of::<android_afs_vnode> ()) as *mut android_afs_vnode;   // C 1728
+
+    /* See the specified name is empty.  */                            // C 1730
+
+    if length < 1                                                      // C 1732
+      {
+	memcpy (vp as *mut c_void, vnode as *const c_void,             // C 1734
+		std::mem::size_of::<android_afs_vnode> ());            // C 1734
+	(*vp).name = xstrdup ((*vp).name);                             // C 1735
+	return &raw mut (*vp).vnode;                                   // C 1736
+      }
+
+    /* Recompute length.  */                                           // C 1739
+    (*vp).vnode.ops = &raw mut afs_vfs_ops;                            // C 1740
+    (*vp).vnode.r#type = ANDROID_VNODE_AFS as c_short;                 // C 1741
+    (*vp).vnode.flags = 0;                                             // C 1742
+
+    /* Generate the new name of the vnode.  Remove any trailing slash
+       from vp->name.  */                                              // C 1744-1745
+
+    (*vp).name_length = (*input).name_length + length;                 // C 1747
+    (*vp).name = xmalloc ((*vp).name_length + 2) as *mut c_char;       // C 1748
+
+    /* Copy the parent name over.  */                                  // C 1750
+    fill = mempcpy ((*vp).name as *mut c_void,                         // C 1751
+		    (*input).name as *const c_void,
+		    (*input).name_length) as *mut c_char;              // C 1751
+
+    /* Check if it contains a trailing slash.  input->name cannot be
+       empty, as the root vnode's name is `/'.  */                     // C 1753-1754
+
+    if *fill.offset (-1) != b'/' as c_char && *name != b'/' as c_char // C 1756
+      /* If not, append a trailing slash and adjust vp->name_length
+	 correspondingly.  */
+      { *fill = b'/' as c_char; fill = fill.offset (1); (*vp).name_length += 1; }   // C 1759
+    else if *fill.offset (-1) == b'/' as c_char && *name == b'/' as c_char   // C 1760
+      /* If name has a leading slash and fill does too, move fill
+	 backwards so that name's slash will override that of fill.  */
+      { fill = fill.offset (-1); (*vp).name_length -= 1; }             // C 1763
+
+    /* Now copy NAME.  */                                              // C 1765
+    fill = mempcpy (fill as *mut c_void, name as *const c_void,        // C 1766
+		    length) as *mut c_char;                            // C 1766
+
+    /* And NULL terminate fill.  */                                    // C 1768
+    *fill = 0;                                                         // C 1769
+    return &raw mut (*vp).vnode;                                       // C 1770
+  }
+
+  /* parent_vnode: */
+  /* .. was encountered and the parent couldn't be found through
+     stripping off preceding components.
+
+     Find the parent vnode and name the rest of NAME starting from
+     there.  */                                                        // C 1772-1777
+
+  if (*input).name_length == 1                                         // C 1779
+    /* This is the vnode representing the /assets directory... */
+    { vnode = &raw mut root_vnode.vnode; }                             // C 1781
+  else
+    {
+      /* Create a temporary asset vnode within the parent and use it
+	 instead.  First, establish the length of vp->name before its
+	 last component.  */                                           // C 1783-1786
+
+      j = (*input).name_length - 1;                                    // C 1788
+      while j != 0
+	{
+	  if *(*input).name.offset ((j - 1) as isize) == b'/' as c_char   // C 1790
+	    { break; }
+	  j -= 1;                                                      // C 1788
+	}
+
+      /* There must be at least one leading directory separator in an
+	 asset vnode's `name' field.  */                              // C 1794-1795
+
+      if j == 0                                                        // C 1797
+	{ abort (); }                                                  // C 1798
+
+      /* j is now the length of the string minus the size of its last
+	 component.  Create a temporary vnode with that as its
+	 name.  */                                                     // C 1800-1802
+
+      temp.vnode.ops = &raw mut afs_vfs_ops;                           // C 1804
+      temp.vnode.r#type = ANDROID_VNODE_AFS as c_short;                // C 1805
+      temp.vnode.flags = 0;                                            // C 1806
+      temp.name_length = j;                                            // C 1807
+      temp.name = xmalloc (j + 1) as *mut c_char;                      // C 1808
+      fill = mempcpy (temp.name as *mut c_void, (*input).name as *const c_void,   // C 1809
+		      j) as *mut c_char;                               // C 1809
+      *fill = 0;                                                       // C 1810
+
+      /* Search for the remainder of NAME relative to its parent.  */   // C 1812
+      vnode = android_afs_name (&raw mut temp.vnode, remainder,        // C 1813
+				strlen (remainder));                   // C 1814
+      xfree (temp.name as *mut c_void);                                // C 1815
+      return vnode;                                                    // C 1816
+    }
+
+  return ((*(*vnode).ops).name).unwrap () (vnode, remainder,           // C 1819
+					   strlen (remainder));        // C 1819
+}
+
+/* Find the vnode designated by the normalized NAME relative to the
+   root of the asset file system.  NAME may be modified, and must be
+   LENGTH bytes long, excluding its terminating NULL byte.  */          // C 1822-1824
+
+/* C 1826-1843.  C takes its address at C 6634 (`android_vfs_entries'), so it is an
+   `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_initial (name: *mut c_char, length: size_t) -> *mut android_vnode
+{
+  let mut temp: android_afs_vnode;                                     // C 1829
+
+  /* C leaves `temp` uninitialised (PORTING.md 1.5).  */
+  temp = unsafe { std::mem::zeroed () };
+
+  /* Create a temporary vnode at the root of the asset file
+     system.  */                                                       // C 1831-1832
+
+  temp.vnode.ops = &raw mut afs_vfs_ops;                               // C 1834
+  temp.vnode.r#type = ANDROID_VNODE_AFS as c_short;                    // C 1835
+  temp.vnode.flags = 0;                                                // C 1836
+  temp.name_length = 1;                                                // C 1837
+  temp.name = c"/".as_ptr () as *mut c_char;                           // C 1838
+
+  /* Try to name this vnode.  If NAME is empty, it will be duplicated
+     instead.  */                                                      // C 1840-1841
+  return android_afs_name (&raw mut temp.vnode, name, length);         // C 1842
+}
+
+/* C 1872-2003.  Its address is taken at C 1686, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_open (vnode: *mut android_vnode, flags: c_int,
+				       mode: mode_t, asset_p: bool, fd_return: *mut c_int,
+				       asset_return: *mut *mut AAsset) -> c_int
+{
+  let mut asset: *mut AAsset;                                          // C 1877
+  let mut vp: *mut android_afs_vnode;                                  // C 1878
+  let mut asset_dir: *const c_char;                                    // C 1879
+  let mut fd: c_int;                                                   // C 1880
+  let mut info: *mut android_afs_open_fd;                              // C 1881
+
+  /* C leaves `asset`, `vp`, `asset_dir`, `fd` and `info` uninitialised (PORTING.md 1.5); every
+     one of them is assigned before its first read on every path.  */
+  asset = std::ptr::null_mut ();
+  vp = std::ptr::null_mut ();
+  asset_dir = std::ptr::null ();
+  fd = 0;
+  info = std::ptr::null_mut ();
+
+  vp = vnode as *mut android_afs_vnode;                                // C 1883
+
+  /* Return suitable error indications for unsupported file
+     operations.  */                                                   // C 1885-1886
+
+  if (flags & O_WRONLY) != 0 || (flags & O_RDWR) != 0                  // C 1888
+    {
+      *errno () = EROFS;                                               // C 1890
+      return -1;                                                       // C 1891
+    }
+
+  if (flags & O_DIRECTORY) != 0                                        // C 1894
+    {
+      *errno () = ENOSYS;                                              // C 1896
+      return -1;                                                       // C 1897
+    }
+
+  /* Now try to open this asset.  Asset manager APIs expect there to
+     be no trailing directory separator.  */                           // C 1900-1901
+  asset = AAssetManager_open (asset_manager, (*vp).name.offset (1),    // C 1902
+			      AASSET_MODE_STREAMING);                  // C 1903
+
+  /* If it can't be opened, return an error indication.  */             // C 1905
+
+  if asset.is_null ()                                                  // C 1907
+    {
+      /* Scan the directory tree for this file.  */                    // C 1909
+      asset_dir = android_scan_directory_tree ((*vp).name, std::ptr::null_mut ());   // C 1910
+
+      /* Default errno to ENOTENT.  */                                 // C 1912
+      *errno () = ENOENT;                                              // C 1913
+
+      /* Maybe the caller wants to open a directory vnode as a
+	 file?  */                                                     // C 1915-1916
+
+      if ! asset_dir.is_null () && android_is_directory (asset_dir)    // C 1918
+	/* In that case, set errno to ENOSYS.  */
+	{ *errno () = ENOSYS; }                                        // C 1920
+
+      return -1;                                                       // C 1922
+    }
+
+  /* An asset has been opened.  If the caller wants a file descriptor,
+     a temporary one must be created and the file contents read
+     inside.  */                                                       // C 1925-1927
+
+  if ! asset_p                                                         // C 1929
+    {
+      /* Create a shared memory file descriptor containing the asset
+	 contents.
+
+         The documentation misleads people into thinking that
+         AAsset_openFileDescriptor does precisely this.  However, it
+         instead returns an offset into any uncompressed assets in the
+         ZIP archive.  This cannot be found in its documentation.  */  // C 1931-1937
+
+      fd = android_hack_asset_fd (asset);                              // C 1939
+
+      if fd == -1                                                      // C 1941
+	{
+	  AAsset_close (asset);                                        // C 1943
+	  *errno () = EIO;                                             // C 1944
+	  return -1;                                                   // C 1945
+	}
+
+      /* If O_CLOEXEC is specified, make the file descriptor close on
+	 exec too.  */                                                 // C 1948-1949
+
+      if (flags & O_CLOEXEC) != 0                                      // C 1951
+	{ android_close_on_exec (fd); }                                // C 1952
+
+      /* Keep a record linking ``hacked'' file descriptors with
+	 their file status.  */                                        // C 1954-1955
+      info = xzalloc (std::mem::size_of::<android_afs_open_fd> ()) as *mut android_afs_open_fd;   // C 1956
+      (*info).fd = fd;                                                 // C 1957
+      (*info).next = afs_file_descriptors;                             // C 1958
+
+      /* Fill in some information that will be reported to
+	 callers of android_fstat, among others.  */                   // C 1960-1961
+      (*info).statb.st_mode = S_IFREG | S_IRUSR | S_IRGRP | S_IROTH;   // C 1962
+
+      /* Owned by root.  */                                            // C 1964
+      (*info).statb.st_uid = 0;                                        // C 1965
+      (*info).statb.st_gid = 0;                                        // C 1966
+
+      /* Concoct a nonexistent device and an inode number.  */         // C 1968
+      (*info).statb.st_dev = -1;                                       // C 1969
+      (*info).statb.st_ino = 0;                                        // C 1970
+
+      /* Size of the file.  */                                         // C 1972
+      (*info).statb.st_size = AAsset_getLength (asset) as off_t;       // C 1973
+
+      /* If the installation date can be ascertained, return that as
+	 the file's modification time.  */                            // C 1975-1976
+
+      /* C 1980-1987's `#ifdef STAT_TIMESPEC` pair.  `STAT_TIMESPEC (st, st_mtim)` is
+	 lib/stat-time.h 61's `(st)->st_xtim##espec` - a member name the macro composes from its
+	 argument, which Rust cannot do (the `STAT_TIMESPEC` row in `docs/ports/excluded-macros.txt`),
+	 so the live arm reads the mirror's member directly.  The `#else` arm names gnulib
+	 `stat.h`'s override fields: the mirror carries `st_mtime` under `no_windows_stat_timespec`
+	 but has no `st_mtime_nsec` at all, so that arm is **carried as a record** (the haikuterm
+	 Deviation 1 device) and the gap is an Owed item.  */
+      if timespec_valid_p (emacs_installation_time)                    // C 1978
+	{
+	  #[cfg (feature = "stat_timespec")]
+	  { (*info).statb.st_mtimespec = emacs_installation_time; }    // C 1981 (`STAT_TIMESPEC
+								       //  (&info->statb, st_mtim)`)
+	  #[cfg (not (feature = "stat_timespec"))]
+	  {
+	    /* C 1985-1986:
+	         info->statb.st_mtime = emacs_installation_time.tv_sec;
+	         info->statb.st_mtime_nsec = emacs_installation_time.tv_nsec;  */
+	  }
+	}
+
+      /* Chain info onto afs_file_descriptors.  */                     // C 1990
+      afs_file_descriptors = info;                                     // C 1991
+
+      AAsset_close (asset);                                            // C 1993
+
+      /* Return the file descriptor.  */                               // C 1995
+      *fd_return = fd;                                                 // C 1996
+      return 0;                                                        // C 1997
+    }
+
+  /* Return the asset itself.  */                                      // C 2000
+  *asset_return = asset;                                               // C 2001
+  return 1;                                                            // C 2002
+}
+
+/* C 2005-2016.  Its address is taken at C 1687, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_close (vnode: *mut android_vnode)
+{
+  let mut vp: *mut android_afs_vnode;                                  // C 2008
+  let mut save_errno: c_int;                                           // C 2009
+
+  save_errno = *errno ();                                              // C 2011
+  vp = vnode as *mut android_afs_vnode;                                // C 2012
+  xfree ((*vp).name as *mut c_void);                                   // C 2013
+  xfree (vp as *mut c_void);                                           // C 2014
+  *errno () = save_errno;                                              // C 2015
+}
+
+/* C 2018-2036.  Its address is taken at C 1688.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_unlink (vnode: *mut android_vnode) -> c_int
+{
+  let mut dir: *const c_char;                                          // C 2021
+  let mut vp: *mut android_afs_vnode;                                  // C 2022
+
+  /* If the vnode already exists, return EROFS.  Else, return
+     ENOENT.  */                                                       // C 2024-2025
+
+  vp = vnode as *mut android_afs_vnode;                                // C 2027
+  dir = android_scan_directory_tree ((*vp).name, std::ptr::null_mut ());   // C 2028
+
+  if ! dir.is_null ()                                                  // C 2030
+    { *errno () = EROFS; }                                             // C 2031
+  else
+    { *errno () = ENOENT; }                                            // C 2033
+
+  return -1;                                                           // C 2035
+}
+
+/* C 2038-2056.  Its address is taken at C 1689.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_symlink (linkname: *const c_char,
+					  vnode: *mut android_vnode) -> c_int
+{
+  let mut vp: *mut android_afs_vnode;                                  // C 2041
+
+  /* If this vnode already exists, return EEXIST.  */                   // C 2043
+  vp = vnode as *mut android_afs_vnode;                                // C 2044
+
+  if ! android_scan_directory_tree ((*vp).name, std::ptr::null_mut ()).is_null ()   // C 2046
+    {
+      *errno () = EEXIST;                                              // C 2048
+      return -1;                                                       // C 2049
+    }
+
+  /* Symlinks aren't supported on this (read-only) ``file system'',
+     so return -1 with EROFS.  */                                      // C 2052-2053
+  *errno () = EROFS;                                                   // C 2054
+  return -1;                                                           // C 2055
+}
+
+/* C 2058-2078.  Its address is taken at C 1690.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_rmdir (vnode: *mut android_vnode) -> c_int
+{
+  let mut dir: *const c_char;                                          // C 2061
+  let mut vp: *mut android_afs_vnode;                                  // C 2062
+
+  /* If the vnode already exists and is a directory, return EROFS.
+     Else, return ENOTDIR or ENOENT.  */                               // C 2064-2065
+
+  vp = vnode as *mut android_afs_vnode;                                // C 2067
+  dir = android_scan_directory_tree ((*vp).name, std::ptr::null_mut ());   // C 2068
+
+  if ! dir.is_null () && android_is_directory (dir)                    // C 2070
+    { *errno () = EROFS; }                                             // C 2071
+  else if ! dir.is_null ()                                             // C 2072
+    { *errno () = ENOTDIR; }                                           // C 2073
+  else
+    { *errno () = ENOENT; }                                            // C 2075
+
+  return -1;                                                           // C 2077
+}
+
+/* C 2080-2092.  Its address is taken at C 1691.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_rename (src: *mut android_vnode, dst: *mut android_vnode,
+					 keep_existing: bool) -> c_int
+{
+  /* If src and dst are different kinds of vnodes, return EXDEV.
+     Else, return EROFS.  */                                           // C 2084-2085
+
+  *errno () = EROFS;                                                   // C 2087
+  if (*src).r#type != (*dst).r#type                                    // C 2088
+    { *errno () = EXDEV; }                                             // C 2089
+
+  return -1;                                                           // C 2091
+}
+
+/* C 2094-2173.  Its address is taken at C 1692.  C's `goto set_file_times` (C 2129) and the
+   `set_file_times:` label at C 2155 become one labelled block (PORTING.md 2.2).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_stat (vnode: *mut android_vnode, statb: *mut stat,
+				       flags: c_int) -> c_int
+{
+  let mut dir: *const c_char;                                          // C 2098
+  let mut vp: *mut android_afs_vnode;                                  // C 2099
+  let mut asset_desc: *mut AAsset;                                     // C 2100
+
+  /* C leaves `dir`, `vp` and `asset_desc` uninitialised (PORTING.md 1.5); `dir` and `vp` are
+     assigned before any read, and `asset_desc` is read only on the path that assigns it.  */
+  dir = std::ptr::null ();
+  vp = std::ptr::null_mut ();
+  asset_desc = std::ptr::null_mut ();
+
+  /* Scan for the vnode to see whether or not it exists.  */            // C 2102
+
+  vp = vnode as *mut android_afs_vnode;                                // C 2104
+  dir = android_scan_directory_tree ((*vp).name, std::ptr::null_mut ());   // C 2105
+
+  'set_file_times: {
+  if dir.is_null ()                                                    // C 2107
+    {
+      /* Return ENOENT; whether the lookup failed because directory
+	 components within vp->path weren't really directories is not
+	 important to Emacs's error reporting.  */                     // C 2109-2111
+      *errno () = ENOENT;                                              // C 2112
+      return -1;                                                       // C 2113
+    }
+
+  if android_is_directory (dir)                                        // C 2116
+    {
+      memset (statb as *mut c_void, 0, std::mem::size_of::<stat> ());  // C 2118
+
+      /* Fill in the stat buffer.  */                                  // C 2120
+      (*statb).st_mode = S_IFDIR | S_IRUSR | S_IRGRP | S_IROTH;        // C 2121
+
+      /* Grant search permissions as well.  */                         // C 2123
+      (*statb).st_mode |= S_IXUSR | S_IXGRP | S_IXOTH;                 // C 2124
+
+      /* Concoct a nonexistent device and an inode number.  */         // C 2126
+      (*statb).st_dev = -1;                                            // C 2127
+      (*statb).st_ino = 0;                                             // C 2128
+      break 'set_file_times;                                           // C 2129
+    }
+
+  /* AASSET_MODE_STREAMING is fastest here.  */                         // C 2132
+  asset_desc = AAssetManager_open (asset_manager, (*vp).name.offset (1),   // C 2133
+				   AASSET_MODE_STREAMING);             // C 2134
+
+  if asset_desc.is_null ()                                             // C 2136
+    {
+      /* If the asset exists in the directory tree but can't be
+	 located by the asset manager, report OOM.  */                 // C 2138-2139
+      *errno () = ENOMEM;                                              // C 2140
+      return 1;                                                        // C 2141
+    }
+
+  memset (statb as *mut c_void, 0, std::mem::size_of::<stat> ());      // C 2144
+
+  /* Fill in the stat buffer.  */                                      // C 2146
+  (*statb).st_mode = S_IFREG | S_IRUSR | S_IRGRP | S_IROTH;            // C 2147
+  (*statb).st_dev = -1;                                                // C 2148
+  (*statb).st_ino = 0;                                                 // C 2149
+  (*statb).st_size = AAsset_getLength (asset_desc) as off_t;           // C 2150
+
+  /* Close the asset.  */                                              // C 2152
+  AAsset_close (asset_desc);                                           // C 2153
+  }
+
+  /* C 2162-2169's `#ifdef STAT_TIMESPEC` pair: the same two arms as `android_afs_open`'s, the
+     live one reading the mirror's member and the `#else` one carried as a record (Deviation 22
+     and the Owed item it names).  */
+
+  /* If the installation date can be ascertained, return that as the
+     file's modification time.  */                                    // C 2157-2158
+
+  if timespec_valid_p (emacs_installation_time)                        // C 2160
+    {
+      #[cfg (feature = "stat_timespec")]
+      { (*statb).st_mtimespec = emacs_installation_time; }             // C 2163 (`STAT_TIMESPEC
+								       //  (statb, st_mtim)`)
+      #[cfg (not (feature = "stat_timespec"))]
+      {
+	/* C 2167-2168:
+	     statb->st_mtime = emacs_installation_time.tv_sec;
+	     statb->st_mtime_nsec = emacs_installation_time.tv_nsec;  */
+      }
+    }
+
+  return 0;                                                            // C 2172
+}
+
+/* C 2175-2219.  Its address is taken at C 1693.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_access (vnode: *mut android_vnode, mode: c_int) -> c_int
+{
+  let mut dir: *const c_char;                                          // C 2178
+  let mut vp: *mut android_afs_vnode;                                  // C 2179
+
+  /* Validate MODE.  */                                                // C 2181
+
+  if mode != F_OK && (mode & (W_OK | X_OK | R_OK)) == 0                 // C 2183
+    {
+      *errno () = EINVAL;                                              // C 2185
+      return -1;                                                       // C 2186
+    }
+
+  /* Scan for the vnode to see whether or not it exists.  */            // C 2188
+
+  vp = vnode as *mut android_afs_vnode;                                // C 2191
+  dir = android_scan_directory_tree ((*vp).name, std::ptr::null_mut ());   // C 2192
+
+  if ! dir.is_null ()                                                  // C 2194
+    {
+      /* It exists.  If MODE contains W_OK or X_OK, return
+	 EACCESS.  */                                                  // C 2196-2197
+
+      if (mode & (W_OK | X_OK)) != 0                                   // C 2199
+	{
+	  *errno () = EACCES;                                          // C 2201
+	  return -1;                                                   // C 2202
+	}
+
+      /* If vp->name is a directory and DIR isn't, return ENOTDIR.  */   // C 2205
+
+      if *(*vp).name.offset ((*vp).name_length as isize) == b'/' as c_char   // C 2207
+	  && ! android_is_directory (dir)                              // C 2208
+	{
+	  *errno () = ENOTDIR;                                         // C 2210
+	  return -1;                                                   // C 2211
+	}
+
+      return 0;                                                        // C 2214
+    }
+
+  *errno () = ENOENT;                                                  // C 2217
+  return -1;                                                           // C 2218
+}
+
+/* C 2221-2238.  Its address is taken at C 1694.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_mkdir (vnode: *mut android_vnode, mode: mode_t) -> c_int
+{
+  let mut vp: *mut android_afs_vnode;                                  // C 2224
+  let mut dir: *const c_char;                                          // C 2225
+
+  /* If the vnode already exists, return EEXIST in lieu of EROFS.  */   // C 2227
+
+  vp = vnode as *mut android_afs_vnode;                                // C 2229
+  dir = android_scan_directory_tree ((*vp).name, std::ptr::null_mut ());   // C 2230
+
+  if ! dir.is_null ()                                                  // C 2232
+    { *errno () = EEXIST; }                                            // C 2233
+  else
+    { *errno () = EROFS; }                                             // C 2235
+
+  return -1;                                                           // C 2237
+}
+
+/* C 2240-2246.  Its address is taken at C 1695; the body is C's two statements, so this is the
+   one member whose whole text fits on the declaration.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_chmod (vnode: *mut android_vnode, mode: mode_t,
+					flags: c_int) -> c_int
+{
+  *errno () = EROFS;                                                   // C 2244
+  return -1;                                                           // C 2245
+}
+
+/* C 2248-2268.  Its address is taken at C 1696.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_readlink (vnode: *mut android_vnode, buffer: *mut c_char,
+					   size: size_t) -> ssize_t
+{
+  let mut vp: *mut android_afs_vnode;                                  // C 2252
+  let mut dir: *const c_char;                                          // C 2253
+
+  vp = vnode as *mut android_afs_vnode;                                // C 2255
+  dir = android_scan_directory_tree ((*vp).name, std::ptr::null_mut ());   // C 2256
+
+  /* As there are no symlinks in /assets, just return -1 with errno
+     set to a reasonable value contingent upon whether VP->name
+     actually exists.  */                                              // C 2258-2260
+
+  if ! dir.is_null ()                                                  // C 2262
+    { *errno () = EINVAL; }                                            // C 2263
+  else
+    { *errno () = ENOENT; }                                            // C 2265
+
+  return -1;                                                           // C 2267
+}
+
+/* C 2270-2337.  C's `static struct dirent dirent;` is a function-scope `static mut` here, zero
+   initialised as C initialises it.  C returns `struct dirent *`, while `struct android_vdir`'s
+   `readdir` member is the mirror's untyped `*mut c_void` (`lib/include/dirent.rs` 6's reason), so
+   the cast sits at the one assignment (`android_afs_opendir`, C 2421) rather than here.  Its
+   address is taken there, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_readdir (vdir: *mut android_vdir) -> *mut dirent
+{
+  static mut dirent: dirent =
+    dirent { d_ino: 0, d_off: 0, d_reclen: 0, d_type: 0, d_name: [0; 256] };   // C 2273
+  let mut last: *const c_char;                                         // C 2274
+  let mut dir: *mut android_afs_vdir;                                  // C 2275
+
+  dir = vdir as *mut android_afs_vdir;                                 // C 2277
+
+  /* There are no more files to read.  */                               // C 2279
+  if (*dir).asset_dir >= (*dir).asset_limit                            // C 2280
+    { return std::ptr::null_mut (); }                                  // C 2281
+
+  /* Otherwise, scan forward looking for the next NULL byte.  */        // C 2283
+  last = memchr ((*dir).asset_dir as *const c_void, 0,                 // C 2284
+		  (*dir).asset_limit.offset_from ((*dir).asset_dir) as usize) as *const c_char;   // C 2285
+
+  /* No more NULL bytes remain.  */                                     // C 2287
+  if last.is_null ()                                                   // C 2288
+    { return std::ptr::null_mut (); }                                  // C 2289
+
+  /* Forward last past the NULL byte.  */                               // C 2291
+  last = last.offset (1);                                              // C 2292
+
+  /* Make sure it is still within the directory tree.  */               // C 2294
+  if last >= (directory_tree as *const c_char).offset (directory_tree_size as isize)   // C 2295
+    { return std::ptr::null_mut (); }                                  // C 2296
+
+  /* Now, fill in the dirent with the name.  */                         // C 2298
+  memset (&raw mut dirent as *mut c_void, 0, std::mem::size_of::<dirent> ());   // C 2299
+  dirent.d_ino = 0;                                                    // C 2300
+  dirent.d_off = 0;                                                    // C 2301
+  dirent.d_reclen = std::mem::size_of::<dirent> () as c_ushort;        // C 2302
+
+  /* Note that dir->asset_dir is actually a NULL terminated
+     string.  */                                                       // C 2304-2305
+  memcpy (dirent.d_name.as_mut_ptr () as *mut c_void,                  // C 2306
+	  (*dir).asset_dir as *const c_void,                           // C 2306
+	  MIN! (std::mem::size_of_val (&dirent.d_name),                // C 2307
+		last.offset_from ((*dir).asset_dir) as usize));        // C 2308
+  dirent.d_name[std::mem::size_of_val (&dirent.d_name) - 1] = 0;       // C 2309
+
+  /* Strip off the trailing slash, if any.  */                          // C 2311
+  if dirent.d_name[MIN! (std::mem::size_of_val (&dirent.d_name),       // C 2312-2314
+			 last.offset_from ((*dir).asset_dir) as usize) - 2] == b'/' as c_char
+    {
+      dirent.d_name[MIN! (std::mem::size_of_val (&dirent.d_name),      // C 2315-2317
+			  last.offset_from ((*dir).asset_dir) as usize) - 2] = 0;
+    }
+
+  /* If this is not a directory, return DT_REG.  Otherwise, return
+     DT_DIR.  */                                                       // C 2319-2320
+
+  if last.offset (-2) >= directory_tree as *const c_char               // C 2322
+      && *last.offset (-2) == b'/' as c_char                           // C 2322
+    { dirent.d_type = DT_DIR as c_uchar; }                             // C 2323
+  else
+    { dirent.d_type = DT_REG as c_uchar; }                             // C 2325
+
+  /* Forward dir->asset_dir to the file past last.  */                  // C 2327
+  #[cfg (not (feature = "old_android_assets"))]
+  {                                                                    // C 2328
+    (*dir).asset_dir = (directory_tree as *mut c_char)                 // C 2329
+      .offset (android_extract_long (last) as isize);                  // C 2330
+  }
+  #[cfg (feature = "old_android_assets")]
+  {                                                                    // C 2331
+    (*dir).asset_dir = (directory_tree as *mut c_char)                 // C 2332
+      .offset (android_extract_long (last.offset (4)) as isize);       // C 2333
+  }
+
+  return &raw mut dirent;                                              // C 2336
+}
+
+/* C 2339-2367.  Its address is taken at C 2422, so it is an `unsafe extern "C" fn`.  C's
+   `for (next = &all_afs_vdirs; (tem = *next);)` is the load-then-test pair below (the assignment
+   in the loop's condition is `loop { tem = *next; if tem.is_null () { break; } … }`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_closedir (vdir: *mut android_vdir)
+{
+  let mut dir: *mut android_afs_vdir;                                  // C 2342
+  let mut next: *mut *mut android_afs_vdir;                            // C 2342
+  let mut tem: *mut android_afs_vdir;                                  // C 2342
+
+  dir = vdir as *mut android_afs_vdir;                                 // C 2344
+
+  /* If the ``directory file descriptor'' has been opened, close
+     it.  */                                                           // C 2346-2347
+
+  if (*dir).fd != -1                                                   // C 2349
+    { close ((*dir).fd); }                                             // C 2350
+
+  xfree ((*dir).asset_file as *mut c_void);                            // C 2352
+
+  /* Now unlink this directory.  */                                    // C 2354
+
+  next = &raw mut all_afs_vdirs;                                       // C 2356
+  loop
+    {
+      tem = *next;                                                     // C 2356
+      if tem.is_null ()
+	{ break; }
+      if tem == dir                                                    // C 2358
+	{ *next = (*dir).next; }                                       // C 2359
+      else
+	{ next = &raw mut (**next).next; }                             // C 2361
+    }
+
+  /* Free the directory itself.  */                                    // C 2364
+
+  xfree (dir as *mut c_void);                                          // C 2366
+}
+
+/* C 2369-2388.  Its address is taken at C 2423.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_dirfd (vdir: *mut android_vdir) -> c_int
+{
+  let mut dir: *mut android_afs_vdir;                                  // C 2372
+
+  dir = vdir as *mut android_afs_vdir;                                 // C 2374
+
+  /* Since `android_afs_opendir' tries to avoid opening a file
+     descriptor if readdir isn't called, dirfd can fail if open fails.
+
+     open sets errno to a set of errors different from what POSIX
+     stipulates for dirfd, but for ease of implementation the open
+     errors are used instead.  */                                      // C 2376-2381
+
+  if (*dir).fd >= 0                                                    // C 2383
+    { return (*dir).fd; }                                              // C 2384
+
+  (*dir).fd = open (c"/dev/null".as_ptr (), O_RDONLY | O_CLOEXEC);     // C 2386
+  return (*dir).fd;                                                    // C 2387
+}
+
+/* C 2390-2447.  Its address is taken at C 1698, so it is an `unsafe extern "C" fn`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_afs_opendir (vnode: *mut android_vnode) -> *mut android_vdir
+{
+  let mut asset_dir: *mut c_char;                                      // C 2393
+  let mut dir: *mut android_afs_vdir;                                  // C 2394
+  let mut vp: *mut android_afs_vnode;                                  // C 2395
+  let mut limit: size_t;                                               // C 2396
+
+  /* C leaves `asset_dir`, `dir`, `vp` and `limit` uninitialised (PORTING.md 1.5); each is
+     assigned before its first read on every path that reads it.  */
+  asset_dir = std::ptr::null_mut ();
+  dir = std::ptr::null_mut ();
+  vp = std::ptr::null_mut ();
+  limit = 0;
+
+  vp = vnode as *mut android_afs_vnode;                                // C 2398
+
+  /* Scan for the asset directory by vp->name.  */                      // C 2400
+
+  asset_dir
+    = android_scan_directory_tree ((*vp).name, &raw mut limit) as *mut c_char;   // C 2402-2403
+
+  if asset_dir.is_null ()                                              // C 2405
+    {
+      *errno () = ENOENT;                                              // C 2407
+      return std::ptr::null_mut ();                                    // C 2408
+    }
+
+  /* Verify that asset_dir is indeed a directory.  */                   // C 2411
+
+  if ! android_is_directory (asset_dir)                                // C 2413
+    {
+      *errno () = ENOTDIR;                                             // C 2415
+      return std::ptr::null_mut ();                                    // C 2416
+    }
+
+  /* Fill in the directory stream.  */                                  // C 2419
+  dir = xmalloc (std::mem::size_of::<android_afs_vdir> ()) as *mut android_afs_vdir;   // C 2420
+  (*dir).vdir.readdir
+    = Some (std::mem::transmute::<unsafe extern "C" fn (*mut android_vdir) -> *mut dirent,
+				  unsafe extern "C" fn (*mut android_vdir) -> *mut c_void>
+	    (android_afs_readdir));                                    // C 2421
+  (*dir).vdir.closedir = Some (android_afs_closedir);                  // C 2422
+  (*dir).vdir.dirfd = Some (android_afs_dirfd);                        // C 2423
+  (*dir).asset_dir = asset_dir;                                        // C 2424
+  (*dir).asset_limit = (directory_tree as *mut c_char).offset (limit as isize);   // C 2425
+  (*dir).fd = -1;                                                      // C 2426
+  (*dir).asset_file = xzalloc ((*vp).name_length + 2) as *mut c_char;  // C 2427
+  strcpy ((*dir).asset_file, (*vp).name);                              // C 2428
+
+  /* Make sure dir->asset_file is terminated with /.  */                // C 2430
+  if *(*dir).asset_file.offset (((*vp).name_length - 1) as isize) != b'/' as c_char   // C 2431
+    { *(*dir).asset_file.offset ((*vp).name_length as isize) = b'/' as c_char; }   // C 2432
+
+  /* Make sure dir->asset_limit is within bounds.  It is a limit,
+     and as such can be exactly one byte past directory_tree.  */      // C 2434-2435
+  if (*dir).asset_limit > (directory_tree as *mut c_char).offset (directory_tree_size as isize)   // C 2436
+    {
+      xfree ((*dir).asset_file as *mut c_void);                        // C 2438
+      xfree (dir as *mut c_void);                                      // C 2439
+      *errno () = EACCES;                                              // C 2440
+      return std::ptr::null_mut ();                                    // C 2441
+    }
+
+  (*dir).next = all_afs_vdirs;                                         // C 2444
+  all_afs_vdirs = dir;                                                 // C 2445
+  return &raw mut (*dir).vdir;                                         // C 2446
+}
+
+/* Return the file name corresponding to DIRFD if it is a
+   ``directory'' file descriptor returned by `android_afs_dirfd' or
+   NULL otherwise.  These file names are relative to the `/assets'
+   directory, but with a leading separator character.  */              // C 2449-2452
+
+/* C 2454-2466.  C calls it directly (C 7354), never through a pointer, so it stays a Rust-ABI
+   `unsafe fn` (the `android_unix_vnode` rule).  Its `for (dir = …; dir; dir = dir->next)` is the
+   load-then-test pair below.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_afs_get_directory_name (dirfd: c_int) -> *mut c_char
+{
+  let mut dir: *mut android_afs_vdir;                                  // C 2457
+
+  dir = all_afs_vdirs;                                                 // C 2459
+  while ! dir.is_null ()
+    {
+      if (*dir).fd == dirfd && dirfd != -1                             // C 2461
+	{ return (*dir).asset_file; }                                  // C 2462
+      dir = (*dir).next;                                               // C 2459
+    }
+
+  return std::ptr::null_mut ();                                        // C 2465
+}
+
+/* C 1682-1699: `static struct android_vops afs_vfs_ops = { … }`, the asset family's operation
+   vector.  C's initialiser is positional; Rust spells the same members in C's order with their
+   names (the `unix_vfs_ops` shape).  **This object sits at the foot of the unit, out of C's
+   order** (Deviation 21): its text names thirteen functions C defines after it (C 1708-2454),
+   Rust has no forward declaration (PORTING.md 10.10, the P-91 class), and two of those functions
+   name the object in return (C 1740 and C 1834) - so the object and the thirteen are one
+   dependency clique that has to land in one round, with the object's text moved to the round's
+   end (the haikuterm slice-22 out-of-order device, its Deviation 34).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut afs_vfs_ops: android_vops = android_vops
+  {
+    name: Some (android_afs_name),
+    open: Some (android_afs_open),
+    close: Some (android_afs_close),
+    unlink: Some (android_afs_unlink),
+    symlink: Some (android_afs_symlink),
+    rmdir: Some (android_afs_rmdir),
+    rename: Some (android_afs_rename),
+    stat: Some (android_afs_stat),
+    access: Some (android_afs_access),
+    mkdir: Some (android_afs_mkdir),
+    chmod: Some (android_afs_chmod),
+    readlink: Some (android_afs_readlink),
+    opendir: Some (android_afs_opendir),
+  };
