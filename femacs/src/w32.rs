@@ -8834,3 +8834,445 @@ pub unsafe extern "C" fn sys_umask (mode: c_int) -> c_int               // C 608
 
   return retval;                                                        // C 6106
 }                                                                       // C 6107
+
+/* C 6108-6117: C 6108-6109's blank and form feed, C 6110's "Symlink-related functions."
+   banner, C 6111-6116's two `#ifndef` guards (the `SDDL_REVISION_1` device) and C 6117's
+   blank.  The names this slice first uses are declared here (P-88, `UNVERIFIED`): the
+   `<config.h>` macro `IS_ANY_SEP` (`configure.ac` 6496/6506, both branches cited),
+   `<winbase.h>`'s `SE_BACKUP_NAME` and `DeviceIoControl`, `<winioctl.h>`'s
+   `MAXIMUM_REPARSE_DATA_BUFFER_SIZE`, `<winnt.h>`'s `IO_REPARSE_TAG_SYMLINK` and the five
+   `<winerror.h>` codes of C 6206-6232/6453-6463.  C 6252's `static int is_symlink` and
+   C 6331's `ssize_t readlink` are this slice's two other definitions, and `readlink`'s
+   C 6432 uses P-05's `sa_stack_alloc` for C's bare `alloca`.  */
+/* Symlink-related functions.  */                                       // C 6110
+/* C 6111-6116: two `#ifndef` guards - the `SDDL_REVISION_1` device (C 168-172): "we define
+   them by hand if not already defined", so the constant carries C's value and no `cfg`.
+   C: #ifndef SYMBOLIC_LINK_FLAG_DIRECTORY
+   C: #define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
+   C: #endif
+   C: #ifndef SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
+   C: #define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x2
+   C: #endif  */
+#[cfg (feature = "windowsnt")]
+pub const SYMBOLIC_LINK_FLAG_DIRECTORY: DWORD = 0x1;
+#[cfg (feature = "windowsnt")]
+pub const SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE: DWORD = 0x2;
+/// C: configure.ac 6496: `#define IS_ANY_SEP(_c_) (IS_DIRECTORY_SEP (_c_) || IS_DEVICE_SEP (_c_))`
+/// C: configure.ac 6506: `#define IS_ANY_SEP(_c_) (IS_DIRECTORY_SEP (_c_))` (the frozen target)
+#[cfg (feature = "windowsnt")]
+macro_rules! IS_ANY_SEP {
+  ($c:expr) => { (IS_DIRECTORY_SEP! ($c) || IS_DEVICE_SEP! ($c)) };
+}
+/// C: #define SE_BACKUP_NAME TEXT("SeBackupPrivilege")  (`<winbase.h>`; the `unicode` arm is
+/// owed as for `SE_CREATE_SYMBOLIC_LINK_NAME`, whose section above records why the constant is
+/// the ANSI text)
+#[cfg (feature = "windowsnt")]
+pub const SE_BACKUP_NAME: &core::ffi::CStr = c"SeBackupPrivilege";
+/// C: #define MAXIMUM_REPARSE_DATA_BUFFER_SIZE (16 * 1024)  (`<winioctl.h>`)
+#[cfg (feature = "windowsnt")]
+pub const MAXIMUM_REPARSE_DATA_BUFFER_SIZE: DWORD = 16 * 1024;
+/// C: #define IO_REPARSE_TAG_SYMLINK 0xA000000C  (`<winnt.h>`/`<winioctl.h>`)
+#[cfg (feature = "windowsnt")]
+pub const IO_REPARSE_TAG_SYMLINK: DWORD = 0xA000000C;
+/// C: #define ERROR_FILE_EXISTS 80L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_FILE_EXISTS: DWORD = 80;
+/// C: #define ERROR_INVALID_REPARSE_DATA 4392L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_INVALID_REPARSE_DATA: DWORD = 4392;
+/// C: #define ERROR_DIRECTORY 267L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_DIRECTORY: DWORD = 267;
+/// C: #define ERROR_NOT_ALL_ASSIGNED 1300L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_NOT_ALL_ASSIGNED: DWORD = 1300;
+/// C: #define ERROR_DISK_FULL 112L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_DISK_FULL: DWORD = 112;
+/// C: WINBASEAPI BOOL WINAPI DeviceIoControl (HANDLE, DWORD, LPVOID, DWORD, LPVOID, DWORD,
+/// C:   LPDWORD, LPOVERLAPPED);  C 6410 passes `NULL` for the `LPOVERLAPPED`, so the port
+/// declares that parameter `*mut c_void` (P-72 rc 3: a pointer to a record the unit never
+/// names).
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn DeviceIoControl (hDevice: HANDLE, dwIoControlCode: DWORD, lpInBuffer: *mut c_void,
+			  nInBufferSize: DWORD, lpOutBuffer: *mut c_void, nOutBufferSize: DWORD,
+			  lpBytesReturned: *mut DWORD, lpOverlapped: *mut c_void) -> BOOL;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn symlink (filename: *const c_char, linkname: *const c_char) -> c_int // C 6118
+{                                                                       // C 6120
+  let mut linkfn: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 6121
+  let mut tgtfn: *mut c_char;                                           // C 6121
+  /* The SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE flag is           // C 6122
+     supported from Windows 10 build 14972.  It is only supported if    // C 6123
+     Developer Mode is enabled, and is ignored if it isn't.  */         // C 6124
+  let mut flags: DWORD =                                                // C 6125
+    if (os_subtype == OS_SUBTYPE_NT                                     // C 6126 (C's outer paren pair)
+	&& (w32_major_version > 10                                             // C 6127
+	    || (w32_major_version == 10 && w32_build_number >= 14972)))        // C 6128
+	{ SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE } else { 0 };           // C 6129 (C's ternary)
+  let mut dir_access: c_int;                                            // C 6130 (C's `int dir_access`)
+  let mut filename_ends_in_slash: c_int;                                // C 6130
+
+  /* C leaves `tgtfn`, `dir_access` and `filename_ends_in_slash` uninitialised
+     (PORTING.md 1.5).  */
+  tgtfn = std::ptr::null_mut ();
+  dir_access = 0;
+  filename_ends_in_slash = 0;
+
+  /* Diagnostics follows Posix as much as possible.  */                 // C 6132
+  if filename.is_null () || linkname.is_null ()                         // C 6133 (C's `== NULL`)
+    {                                                                   // C 6134
+      *errno () = EFAULT;                                               // C 6135
+      return -1;                                                        // C 6136
+    }                                                                   // C 6137
+  if *filename == 0                                                     // C 6138 (C's `!*filename`)
+    {                                                                   // C 6139
+      *errno () = ENOENT;                                               // C 6140
+      return -1;                                                        // C 6141
+    }                                                                   // C 6142
+  if strlen (filename) > MAX_UTF8_PATH as usize || strlen (linkname) > MAX_UTF8_PATH as usize // C 6143 (C's `size_t` comparisons)
+    {                                                                   // C 6144
+      *errno () = ENAMETOOLONG;                                         // C 6145
+      return -1;                                                        // C 6146
+    }                                                                   // C 6147
+
+  strcpy (linkfn.as_mut_ptr (), map_w32_filename (linkname, std::ptr::null_mut ())); // C 6149
+  if (volume_info.flags & FILE_SUPPORTS_REPARSE_POINTS) == 0            // C 6150
+    {                                                                   // C 6151
+      *errno () = EPERM;                                                // C 6152
+      return -1;                                                        // C 6153
+    }                                                                   // C 6154
+
+  /* Note: since empty FILENAME was already rejected, we can safely     // C 6156
+     refer to FILENAME[1].  */                                          // C 6157
+  if ! (IS_DIRECTORY_SEP! (*filename as c_int) || IS_DEVICE_SEP! (*filename.offset (1) as c_int)) // C 6158 (the macros return `bool`)
+    {                                                                   // C 6159
+      /* Non-absolute FILENAME is understood as being relative to       // C 6160
+	 LINKNAME's directory.  We need to prepend that directory to           // C 6161
+	 FILENAME to get correct results from faccessat below, since           // C 6162
+	 otherwise it will interpret FILENAME relative to the                  // C 6163
+	 directory where the Emacs process runs.  Note that                    // C 6164
+	 make-symbolic-link always makes sure LINKNAME is a fully              // C 6165
+	 expanded file name.  */                                               // C 6166
+      let mut tem: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 6167
+      let mut p: *mut c_char = linkfn.as_mut_ptr ().offset (strlen (linkfn.as_ptr ()) as isize); // C 6168
+
+      while p > linkfn.as_mut_ptr () && ! IS_ANY_SEP! (*p.offset (-1) as c_int) // C 6170-6171 (C's `p[-1]`)
+	{ p = p.offset (-1); }                                                 // C 6171
+      if p > linkfn.as_mut_ptr ()                                       // C 6172
+	{ strncpy (tem.as_mut_ptr (), linkfn.as_mut_ptr (), p.offset_from (linkfn.as_mut_ptr ()) as usize); } // C 6173
+      strcpy (tem.as_mut_ptr ().offset (p.offset_from (linkfn.as_mut_ptr ())), filename); // C 6174
+      dir_access = faccessat (AT_FDCWD, tem.as_ptr (), D_OK, AT_EACCESS); // C 6175
+    }                                                                   // C 6176
+  else                                                                  // C 6177
+    { dir_access = faccessat (AT_FDCWD, filename, D_OK, AT_EACCESS); }  // C 6178
+
+  /* Since Windows distinguishes between symlinks to directories and    // C 6180
+     to files, we provide a kludgy feature: if FILENAME doesn't         // C 6181
+     exist, but ends in a slash, we create a symlink to directory.  If  // C 6182
+     FILENAME exists and is a directory, we always create a symlink to  // C 6183
+     directory.  */                                                     // C 6184
+  filename_ends_in_slash = IS_DIRECTORY_SEP! (*filename.offset ((strlen (filename) - 1) as isize) as c_int) as c_int; // C 6185 (the `bool` store)
+  if dir_access == 0 || filename_ends_in_slash != 0                     // C 6186
+    { flags |= SYMBOLIC_LINK_FLAG_DIRECTORY; }                          // C 6187
+
+  tgtfn = map_w32_filename (filename, std::ptr::null_mut ()) as *mut c_char; // C 6189 (C's `(char *)` cast)
+  if filename_ends_in_slash != 0                                        // C 6190
+	{ *tgtfn.offset ((strlen (tgtfn) - 1) as isize) = 0; }                 // C 6191 (C's `'\0'`)
+
+  *errno () = 0;                                                        // C 6193
+  if create_symbolic_link (linkfn.as_mut_ptr (), tgtfn, flags) == 0     // C 6194 (C's `!`; the callee is a `BOOLEAN`)
+    {                                                                   // C 6195
+      /* ENOSYS is set by create_symbolic_link, when it detects that    // C 6196
+	 the OS doesn't support the CreateSymbolicLink API.  */                // C 6197
+      if *errno () != ENOSYS                                            // C 6198
+	{                                                                      // C 6199
+	  let w32err: DWORD = GetLastError ();                                 // C 6200
+
+	  match w32err                                                         // C 6202 (C's `switch`)
+		{
+	      /* ERROR_SUCCESS is sometimes returned when LINKFN and           // C 6204
+		 TGTFN point to the same file name, go figure.  */                    // C 6205
+		  ERROR_SUCCESS |                                                     // C 6206
+		  ERROR_FILE_EXISTS =>                                                // C 6207
+		    { *errno () = EEXIST; }                                           // C 6208
+		  ERROR_ACCESS_DENIED =>                                              // C 6210
+		    { *errno () = EACCES; }                                           // C 6211
+		  ERROR_FILE_NOT_FOUND |                                              // C 6213
+		  ERROR_PATH_NOT_FOUND |                                              // C 6214
+		  ERROR_BAD_NETPATH |                                                 // C 6215
+		  ERROR_INVALID_REPARSE_DATA =>                                       // C 6216
+		    { *errno () = ENOENT; }                                           // C 6217
+		  ERROR_DIRECTORY =>                                                  // C 6219
+		    { *errno () = EISDIR; }                                           // C 6220
+		  ERROR_PRIVILEGE_NOT_HELD |                                          // C 6222
+		  ERROR_NOT_ALL_ASSIGNED =>                                           // C 6223
+		    { *errno () = EPERM; }                                            // C 6224
+		  ERROR_DISK_FULL =>                                                  // C 6226
+		    { *errno () = ENOSPC; }                                           // C 6227
+		  _ => /* default: */                                                 // C 6229
+		    { *errno () = EINVAL; }                                           // C 6230
+		}
+	}                                                                      // C 6233
+      return -1;                                                        // C 6234
+    }                                                                   // C 6235
+  return 0;                                                             // C 6236
+}                                                                       // C 6237
+
+/* A quick inexpensive test of whether FILENAME identifies a file that  // C 6239
+   is a symlink.  Returns non-zero if it is, zero otherwise.  FILENAME  // C 6240
+   must already be in the normalized form returned by                   // C 6241
+   map_w32_filename.  If the symlink is to a directory, the             // C 6242
+   FILE_ATTRIBUTE_DIRECTORY bit will be set in the return value.        // C 6243
+
+   Note: for repeated operations on many files, it is best to test      // C 6245
+   whether the underlying volume actually supports symlinks, by         // C 6246
+   testing the FILE_SUPPORTS_REPARSE_POINTS bit in volume's flags, and  // C 6247
+   avoid the call to this function if it doesn't.  That's because the   // C 6248
+   call to GetFileAttributes takes a non-negligible time, especially    // C 6249
+   on non-local or removable filesystems.  See stat_worker for an       // C 6250
+   example of how to do that.  */                                       // C 6251
+#[cfg (feature = "windowsnt")]
+unsafe fn is_symlink (filename: *const c_char) -> c_int                 // C 6252 (C's `static int`)
+{                                                                       // C 6254
+  let mut attrs: DWORD;                                                 // C 6255
+  let mut filename_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6256 (C's `wchar_t`)
+  let mut filename_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6257
+  let mut wfdw: WIN32_FIND_DATAW;                                       // C 6258
+  let mut wfda: WIN32_FIND_DATAA;                                       // C 6259
+  let mut fh: HANDLE;                                                   // C 6260
+  let mut attrs_mean_symlink: c_int;                                    // C 6261
+
+  /* C leaves `attrs`, `wfdw`, `wfda`, `fh` and `attrs_mean_symlink` uninitialised
+     (PORTING.md 1.5).  */
+  attrs = 0;
+  wfdw = std::mem::zeroed ();
+  wfda = std::mem::zeroed ();
+  fh = std::ptr::null_mut ();
+  attrs_mean_symlink = 0;
+
+  if w32_unicode_filenames                                              // C 6263
+    {                                                                   // C 6264
+      filename_to_utf16 (filename, filename_w.as_mut_ptr ());           // C 6265
+      attrs = GetFileAttributesW (filename_w.as_ptr ());                // C 6266
+    }                                                                   // C 6267
+  else                                                                  // C 6268
+    {                                                                   // C 6269
+      filename_to_ansi (filename, filename_a.as_mut_ptr ());            // C 6270
+      attrs = GetFileAttributesA (filename_a.as_ptr ());                // C 6271
+    }                                                                   // C 6272
+  if attrs == -1 as DWORD                                               // C 6273 (C's `-1`)
+    {                                                                   // C 6274
+      let w32err: DWORD = GetLastError ();                              // C 6275
+
+      match w32err                                                      // C 6277
+	{
+	  ERROR_BAD_NETPATH =>	/* network share, can't be a symlink */         // C 6279
+	    {}                                                                 // C 6280 (C's `break;`)
+	  ERROR_ACCESS_DENIED =>                                               // C 6281
+	    { *errno () = EACCES; }                                            // C 6282
+	  ERROR_FILE_NOT_FOUND |                                               // C 6284
+	  ERROR_PATH_NOT_FOUND |                                               // C 6285
+	  _ => /* default: */                                                  // C 6286
+	    { *errno () = ENOENT; }                                            // C 6287
+	}
+      return 0;                                                         // C 6290
+    }                                                                   // C 6291
+  if (attrs & FILE_ATTRIBUTE_REPARSE_POINT) == 0                        // C 6292
+    { return 0; }                                                       // C 6293
+  logon_network_drive (filename);                                       // C 6294
+  if w32_unicode_filenames                                              // C 6295
+    {                                                                   // C 6296
+      fh = FindFirstFileW (filename_w.as_ptr (), (&raw mut wfdw));      // C 6297
+      attrs_mean_symlink =                                              // C 6298
+	((wfdw.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0           // C 6299
+	 && (wfdw.dwReserved0 & IO_REPARSE_TAG_SYMLINK) == IO_REPARSE_TAG_SYMLINK) as c_int; // C 6300
+      if attrs_mean_symlink != 0                                        // C 6301
+	{ attrs_mean_symlink |= (wfdw.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) as c_int; } // C 6302
+    }                                                                   // C 6303
+  else if ! _mbspbrk (filename_a.as_ptr () as *const c_uchar, c"?".as_ptr () as *const c_uchar).is_null () // C 6304 (C's `_mbspbrk (filename_a, "?")`)
+    {                                                                   // C 6305
+      /* filename_to_ansi failed to convert the file name.  */          // C 6306
+      *errno () = ENOENT;                                               // C 6307
+      return 0;                                                         // C 6308
+    }                                                                   // C 6309
+  else                                                                  // C 6310
+    {                                                                   // C 6311
+      fh = FindFirstFileA (filename_a.as_ptr (), (&raw mut wfda));      // C 6312
+      attrs_mean_symlink =                                              // C 6313
+	((wfda.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0           // C 6314
+	 && (wfda.dwReserved0 & IO_REPARSE_TAG_SYMLINK) == IO_REPARSE_TAG_SYMLINK) as c_int; // C 6315
+      if attrs_mean_symlink != 0                                        // C 6316
+	{ attrs_mean_symlink |= (wfda.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) as c_int; } // C 6317
+    }                                                                   // C 6318
+  if fh == INVALID_HANDLE_VALUE                                         // C 6319
+    { return 0; }                                                       // C 6320
+  FindClose (fh);                                                       // C 6321
+  return attrs_mean_symlink;                                            // C 6322
+}                                                                       // C 6323
+
+/* If NAME identifies a symbolic link, copy into BUF the file name of   // C 6325
+   the symlink's target.  Copy at most BUF_SIZE bytes, and do NOT       // C 6326
+   null-terminate the target name, even if it fits.  Return the number  // C 6327
+   of bytes copied, or -1 if NAME is not a symlink or any error was     // C 6328
+   encountered while resolving it.  The file name copied into BUF is    // C 6329
+   encoded in the current ANSI codepage.  */                            // C 6330
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn readlink (name: *const c_char, buf: *mut c_char, buf_size: usize) -> ssize_t // C 6331 (C's `const char *`/`size_t`)
+{                                                                       // C 6333
+  let mut path: *const c_char;                                          // C 6334
+  let mut privs: TOKEN_PRIVILEGES;                                      // C 6335
+  let mut restore_privs: c_int = 0;                                     // C 6336
+  let mut sh: HANDLE;                                                   // C 6337
+  let mut retval: ssize_t;                                              // C 6338
+  let mut resolved: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 6339
+
+  /* C leaves `path`, `privs`, `sh` and `retval` uninitialised (PORTING.md 1.5).  */
+  path = std::ptr::null ();
+  privs = std::mem::zeroed ();
+  sh = std::ptr::null_mut ();
+  retval = 0;
+
+  if name.is_null ()                                                    // C 6341 (C's `== NULL`)
+    {                                                                   // C 6342
+      *errno () = EFAULT;                                               // C 6343
+      return -1;                                                        // C 6344
+    }                                                                   // C 6345
+  if *name == 0                                                         // C 6346 (C's `!*name`)
+    {                                                                   // C 6347
+      *errno () = ENOENT;                                               // C 6348
+      return -1;                                                        // C 6349
+    }                                                                   // C 6350
+
+  path = map_w32_filename (name, std::ptr::null_mut ());                // C 6352
+
+  if strlen (path) > MAX_UTF8_PATH as usize                             // C 6354 (C's `size_t` comparison)
+    {                                                                   // C 6355
+      *errno () = ENAMETOOLONG;                                         // C 6356
+      return -1;                                                        // C 6357
+    }                                                                   // C 6358
+
+  *errno () = 0;                                                        // C 6360
+  if is_windows_9x () == TRUE                                           // C 6361
+      || (volume_info.flags & FILE_SUPPORTS_REPARSE_POINTS) == 0        // C 6362
+      || is_symlink (path) == 0                                         // C 6363 (C's `!is_symlink (path)`)
+    {                                                                   // C 6364
+      if *errno () == 0                                                 // C 6365 (C's `!errno`)
+	{ *errno () = EINVAL; }	/* not a symlink */                            // C 6366
+      return -1;                                                        // C 6367
+    }                                                                   // C 6368
+
+  /* Done with simple tests, now we're in for some _real_ work.  */     // C 6370
+  if enable_privilege (SE_BACKUP_NAME.as_ptr (), TRUE, (&raw mut privs)) != 0 // C 6371 (C's truth test)
+    { restore_privs = 1; }                                              // C 6372
+  /* Implementation note: From here and onward, don't return early,     // C 6373
+     since that will fail to restore the original set of privileges of  // C 6374
+     the calling thread.  */                                            // C 6375
+
+  retval = -1;	/* not too optimistic, are we? */                        // C 6377
+
+  /* Note: In the next call to CreateFile, we use zero as the 2nd       // C 6379
+     argument because, when the symlink is a hidden/system file,        // C 6380
+     e.g. 'C:\Users\All Users', GENERIC_READ fails with                 // C 6381
+     ERROR_ACCESS_DENIED.  Zero seems to work just fine, both for file  // C 6382
+     and directory symlinks.  */                                        // C 6383
+  if w32_unicode_filenames                                              // C 6384
+    {                                                                   // C 6385
+      let mut path_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6386 (C's `wchar_t`)
+
+      filename_to_utf16 (path, path_w.as_mut_ptr ());                   // C 6388
+      sh = CreateFileW (path_w.as_ptr (), 0, 0, std::ptr::null_mut (), OPEN_EXISTING, // C 6389
+			FILE_FLAG_OPEN_REPARSE_POINT                                         // C 6390
+			| FILE_FLAG_BACKUP_SEMANTICS,                                        // C 6391
+			std::ptr::null_mut ());                                              // C 6392
+    }                                                                   // C 6393
+  else                                                                  // C 6394
+    {                                                                   // C 6395
+      let mut path_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6396
+
+      filename_to_ansi (path, path_a.as_mut_ptr ());                    // C 6398
+      sh = CreateFileA (path_a.as_ptr (), 0, 0, std::ptr::null_mut (), OPEN_EXISTING, // C 6399
+			FILE_FLAG_OPEN_REPARSE_POINT                                         // C 6400
+			| FILE_FLAG_BACKUP_SEMANTICS,                                        // C 6401
+			std::ptr::null_mut ());                                              // C 6402
+    }                                                                   // C 6403
+  if sh != INVALID_HANDLE_VALUE                                         // C 6404
+    {                                                                   // C 6405
+      let mut reparse_buf: [BYTE; MAXIMUM_REPARSE_DATA_BUFFER_SIZE as usize] = [0; MAXIMUM_REPARSE_DATA_BUFFER_SIZE as usize]; // C 6406
+      let mut reparse_data: *mut REPARSE_DATA_BUFFER = reparse_buf.as_mut_ptr () as *mut REPARSE_DATA_BUFFER; // C 6407 (C's `&reparse_buf[0]` cast)
+      let mut retbytes: DWORD;                                          // C 6408
+
+      /* C leaves `retbytes` uninitialised (PORTING.md 1.5).  */
+      retbytes = 0;
+
+      if DeviceIoControl (sh, FSCTL_GET_REPARSE_POINT, std::ptr::null_mut (), 0, // C 6410
+			    reparse_buf.as_mut_ptr () as *mut c_void, MAXIMUM_REPARSE_DATA_BUFFER_SIZE, // C 6411
+			    (&raw mut retbytes), std::ptr::null_mut ()) == 0                 // C 6412 (C's `!`)
+	{ *errno () = EIO; }                                                   // C 6413
+      else if (*reparse_data).ReparseTag != IO_REPARSE_TAG_SYMLINK      // C 6414
+	{ *errno () = EINVAL; }                                                // C 6415
+      else                                                              // C 6416
+	{                                                                      // C 6417
+	  /* Copy the link target name, in wide characters, from               // C 6418
+	     reparse_data, then convert it to multibyte encoding in            // C 6419
+	     the current locale's codepage.  */                                // C 6420
+	  let mut lwname: *mut WCHAR;                                          // C 6421
+	  let mut lname_size: size_t;                                          // C 6422
+	  let lwname_len: USHORT =                                             // C 6423
+	    (*reparse_data).SymbolicLinkReparseBuffer.PrintNameLength;         // C 6424
+	  let lwname_src: *mut WCHAR =                                         // C 6425
+	    (*reparse_data).SymbolicLinkReparseBuffer.PathBuffer.as_mut_ptr () // C 6426
+	    .offset (((*reparse_data).SymbolicLinkReparseBuffer.PrintNameOffset // C 6427
+		      / core::mem::size_of::<WCHAR> ()) as isize);                    // C 6427
+	  let mut size_to_copy: size_t = buf_size;                             // C 6428
+
+  /* C leaves `lwname` and `lname_size` uninitialised (PORTING.md 1.5).  */
+  lwname = std::ptr::null_mut ();
+  lname_size = 0;
+
+	  /* According to MSDN, PrintNameLength does not include the           // C 6430
+	     terminating null character.  */                                   // C 6431
+	  lwname = sa_stack_alloc (((lwname_len + 1) as usize) * core::mem::size_of::<WCHAR> ()) as *mut WCHAR; // C 6432 (C's bare `alloca`; P-05's device)
+	  memcpy (lwname as *mut c_void, lwname_src as *const c_void, lwname_len as usize); // C 6433
+	  *lwname.offset ((lwname_len as usize / core::mem::size_of::<WCHAR> ()) as isize) = 0; /* null-terminate */ // C 6434
+	  filename_from_utf16 (lwname, resolved.as_mut_ptr ());                // C 6435
+	  dostounix_filename (resolved.as_mut_ptr ());                         // C 6436
+	  lname_size = strlen (resolved.as_ptr ()) + 1;                        // C 6437
+	  if lname_size <= buf_size                                            // C 6438
+	    { size_to_copy = lname_size; }                                     // C 6439
+	  memcpy (buf as *mut c_void, resolved.as_ptr () as *const c_void, size_to_copy); // C 6440
+	  /* Success!  */                                                      // C 6441
+	  retval = size_to_copy as ssize_t;                                    // C 6442 (the `size_t`-into-`ssize_t` store)
+	}                                                                      // C 6443
+      CloseHandle (sh);                                                 // C 6444
+    }                                                                   // C 6445
+  else                                                                  // C 6446
+    {                                                                   // C 6447
+      /* CreateFile failed.  */                                         // C 6448
+      let w32err2: DWORD = GetLastError ();                             // C 6449
+
+      match w32err2                                                     // C 6451
+	{
+	  ERROR_FILE_NOT_FOUND |                                               // C 6453
+	  ERROR_PATH_NOT_FOUND =>                                              // C 6454
+	    { *errno () = ENOENT; }                                            // C 6455
+	  ERROR_ACCESS_DENIED |                                                // C 6457
+	  ERROR_TOO_MANY_OPEN_FILES =>                                         // C 6458
+	    { *errno () = EACCES; }                                            // C 6459
+	  _ => /* default: */                                                  // C 6461
+	    { *errno () = EPERM; }                                             // C 6462
+	}
+    }                                                                   // C 6465
+  if restore_privs != 0                                                 // C 6466 (C's truth test)
+    {                                                                   // C 6467
+      restore_privilege ((&raw mut privs));                             // C 6468
+      revert_to_self ();                                                // C 6469
+    }                                                                   // C 6470
+
+  return retval;                                                        // C 6472
+}                                                                       // C 6473

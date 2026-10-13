@@ -36,7 +36,13 @@ pub type ssize_t = c_long;
 /* C declares `chmod` in both <unistd.h> and <sys/stat.h>; the port keeps one declaration per
    name (PORTING.md 0.1-3), so it lives in sys_stat.in.rs and is *not* repeated here.  */
 unsafe extern "C" {
+  /* **`readlink` and `symlink` are two names `src/w32.c` defines** (C 6331 and 6118), so -
+     like the `getwd`/`getppid`/`getgid`/`getegid`/`fchown` rows above - they are gated out of
+     the `windowsnt` arm: a declaration at this scope is an `E0428` against those definitions
+     (`docs/ports/w32.md` Owed 17 measured the two rows).  */
+  #[cfg (not (feature = "windowsnt"))]
   pub fn readlink (file: *const c_char, buf: *mut c_char, bufsize: usize) -> ssize_t;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn symlink (contents: *const c_char, name: *const c_char) -> c_int;
   pub fn readlinkat (fd: c_int, file: *const c_char, buf: *mut c_char, bufsize: usize)
     -> ssize_t;

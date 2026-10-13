@@ -270,3 +270,19 @@ $ python3 tools/check-verbatim.py
 $ python3 tools/check-globals.py
 check-globals: 283 units, 0 DEFVAR_* variables without a definition in their own unit
 ```
+
+## 2026-10-13: `readlink`/`symlink` join the `windowsnt` arm's gates (w32.c's Owed 17)
+
+`src/w32.c` defines `readlink` (C 6331) and `symlink` (C 6118) for the Windows arm - the symlink
+trio the lane carried as its fourteenth slice - and this header declares both at this scope (lines
+39 and 40), so each declaration was an `E0428` against its definition.  Both now carry
+`#[cfg (not (feature = "windowsnt"))]`, joining the `getwd`/`getppid`/`getgid`/`getegid`/`fchown`
+rows this mirror already gates (the device status 3.483 and `docs/ports/pop.md` Owed 7 record).
+
+Evidence: `femacs/src/w32.rs`'s `windowsnt` probe read **125 error lines / 150 located sites**
+with the two declarations live; after the gate it reads **123 / 148**, and the two `E0428` rows are
+gone.  The frozen probe is unchanged (**exit 0**, **336-byte** empty object) and this mirror's own
+`python3 tools/extract-abi.py --check emacs/lib/unistd.in.h femacs/lib/include/unistd.in.rs` still
+reads **OK**.  `readlinkat` (declared on line 41) is deliberately **not** gated yet: `w32.c`'s own
+`readlinkat` is C 6475, the next slice's first definition, and this lane gates only what a slice
+has measured.
