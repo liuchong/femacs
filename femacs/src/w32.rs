@@ -12281,3 +12281,30 @@ pub unsafe extern "C" fn sys_getservbyname (name: *const c_char, proto: *const c
     { set_errno (); }                                                   // C 8349
   return serv;                                                          // C 8350
 }                                                                       // C 8351
+
+/* C 8352's blank and C 8353-8372's `sys_getpeername`: the same shape as `sys_bind`/`sys_connect`
+   (slice 26) - the `winsock_lib` guard storing `ENETDOWN`, `check_errno`, the `flags & FILE_SOCKET`
+   test, the `pfn_getpeername` call through `SOCK_HANDLE` and the two `SOCKET_ERROR` exits.  Every
+   name it uses is already in scope; the three locals are C's own parameters.  */
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_getpeername (s: c_int, addr: *mut sockaddr, namelen: *mut c_int) -> c_int // C 8353
+{                                                                       // C 8355
+  if winsock_lib.is_null ()                                             // C 8356 (C's `== NULL`)
+    {                                                                   // C 8357
+      *errno () = ENETDOWN;                                             // C 8358
+      return SOCKET_ERROR;                                              // C 8359
+    }                                                                   // C 8360
+
+  check_errno ();                                                       // C 8362
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8363 (C's truth test)
+    {                                                                   // C 8364
+      let rc: c_int = pfn_getpeername.unwrap () (SOCK_HANDLE! (s), addr, namelen); // C 8365 (C's call-through)
+      if rc == SOCKET_ERROR                                             // C 8366
+	{ set_errno (); }                                                      // C 8367
+      return rc;                                                        // C 8368
+    }                                                                   // C 8369
+  *errno () = ENOTSOCK;                                                 // C 8370
+  return SOCKET_ERROR;                                                  // C 8371
+}                                                                       // C 8372
