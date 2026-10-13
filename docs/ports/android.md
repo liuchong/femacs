@@ -90,13 +90,14 @@
 > `android_create_pixmap_from_bitmap_data` (3934-4027 - C 3965's `switch`, C 3943's five-member
 > record and C 3954's `android_lock_bitmap` through the `AndroidBitmapInfo_tag` alias, Owed 12's
 > device, plus the `ANDROID_BITMAP_FORMAT_A_8` constant the C 63 stand-in gains),
-> `android_set_clip_mask` (4029-4036), `android_set_fill_style` (4038-4046) **and, carried
-> early, `android_create_pixmap` (4734-4747)** - that second region exists because C 3951 calls
-> it and the mirror does not declare it (the C 3421 lesson of slices 13 and 16).  So the port
-> carries C 1-4046 (except C 2086-2192), C 4734-4747 and C 6880-7096: 4,170 C lines of 7,594 (in
-> a 4,954-line port, md5 `5d7650f1b584a42df5b6dfae3d50b863`).  **The
-> next live definition is C 4069's `android_neon_mask_line`**, the first of the four
-> `__aarch64__` NEON regions (C 4064-4431); the table's last row is the
+> `android_set_clip_mask` (4029-4036), `android_set_fill_style` (4038-4046) and, carried early,
+> `android_create_pixmap` (4734-4747).  **Slice 20 (C 4047-4136, 2026-10-12)** carries the blit
+> typedef (C 4056-4060) and the **first** of this file's four `__aarch64__` NEON regions
+> (C 4064-4136: `android_neon_mask_line`, whose `core::arch::aarch64` ACLE calls keep C's names
+> and whose backward `goto again` is the port's labelled loop) - so the port carries C 1-4136
+> (except C 2086-2192), C 4734-4747 and C 6880-7096: 4,260 C lines of 7,594 (in a 5,081-line
+> port, md5 `065318780aa88fe0f89e952a66d13e03`).  **The
+> next live definition is C 4151's `android_blit_copy`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -316,7 +317,13 @@ no `window.h`).
 | 4029-4036 | `android_set_clip_mask` | real arm (slice 19) |
 | 4037 | the blank | real arm (slice 19) |
 | 4038-4046 | `android_set_fill_style` | real arm (slice 19) |
-| 4047-4733 | **the remainder, first part (a)** - from C 4047's blank, C 4048's form feed, C 4050-4054's two comments and C 4056-4060's `typedef void (*android_blit_func) (…)` through C 4733's blank: the four `__aarch64__` NEON regions (C 4064-4431), the blit helpers and the entries up to `android_create_pixmap` | not this slice |
+| 4047-4060 | C 4047's blank, C 4048's form feed, C 4050-4054's two comments and C 4056-4060's `typedef void (*android_blit_func) (…)` | real arm (slice 20; the typedef is the file gate's) |
+| 4061-4063 | the blank, C 4062's form feed and the blank | real arm (slice 20) |
+| 4064 | `#ifdef __aarch64__` (the first of the four NEON regions) | `feature = "aarch64"` (slice 20) |
+| 4066-4068 | C 4066-4067's comment and the blank | `feature = "aarch64"` (slice 20) |
+| 4069-4134 | `android_neon_mask_line` (C 4085's `again:` label and C 4121's `goto again`) | `feature = "aarch64"` (slice 20) |
+| 4136 | `#endif /* __aarch64__ */` | `feature = "aarch64"` (slice 20) |
+| 4137-4733 | **the remainder, first part (a)** - from C 4137's blank, C 4138's form feed and C 4140-4148's comment (C 4151's `android_blit_copy`, **the next live definition**) through C 4733's blank: the remaining three `__aarch64__` regions (C 4165/C 4429 and the ones below), the blit helpers and the entries up to `android_create_pixmap` | not this slice |
 | 4734-4747 | `android_create_pixmap` (**carried early**: C 3951 calls it and the mirror does not declare it) | real arm (slice 19) |
 | 4748-6879 | **the remainder, first part (b)** - from C 4748's blank and C 4749-4750's `/* Notice that a query … */`-class comment (`android_set_ts_origin`, the next entry in file order) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
@@ -705,13 +712,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-19's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-20's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-4046, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 4047-4733 +
-C 4748-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (81
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-4136, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 4137-4733 +
+C 4748-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (80
 `missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 34.8% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`invented exported symbol` rows of Owed 9) and the 33.1% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1440,3 +1447,66 @@ from_bitmap_data does not mention break, case, default, switch` - was recorded a
 - **C 4734-4747 is carried early** (it sits inside the remainder): C 3951 calls it and the mirror
   does not declare it, so a Rust crate needs the definition first - the C 3421 lesson of slices 13
   and 16, recorded as this slice's second region in the range table.
+
+## 2026-10-12: slice 20 (C 4047-4136) - the blit typedef and the first NEON region
+
+`typedef void (*android_blit_func) (…)` and `android_neon_mask_line`.
+
+### Evidence (this slice's readings)
+
+**㊲ The arm flip of this slice - read twice, because this is the lane's first `aarch64` region.**
+The `aarch64`-gated text is invisible to the lane's three-`--cfg` command, so the slice was probed
+with a **fourth** cfg, `--cfg 'feature="aarch64"'` (the `sfntfont-android.rs` lane's own reading for
+its NEON region), and then re-probed with the **three-cfg baseline**:
+
+- `… --cfg 'feature="aarch64"'` → **exit 0, 0 errors, 11 warnings** on the slice's **second** run:
+  the first read one `E0425` (`c_schar` is not in the unit's prelude, so C 4129's
+  `(signed char *)` is `*mut core::ffi::c_schar`, the `limits.in.rs` 53-57 device), and with that the
+  eleven ACLE calls, the four vector types and the two `vreinterpret` sites all read correctly.
+  This host is `arm64`, so `core::arch::aarch64` exists and the region really compiles.
+- the three-cfg baseline → **exit 0, 0 errors** as well: with `aarch64` off the region is absent and
+  nothing else moved.
+
+**㊳ The gate round caught the slice's own mistake, first.**  The first ten-gate run failed
+`check-dead-file-coverage` twice: `docs/ports/android.md: range 4734-4747 does not follow the
+previous one`.  The cause was this slice's own range-table edit - it *added* a `4734-4747` row while
+slice 19's row for the same range was still there, so the table had two rows for it.  Removing the
+duplicate (keeping slice 19's) restores the contiguity the gate reads, and the re-run is `0
+failure(s)`: "a table with duplicates is caught, not tolerated" - the `src/android.h` coverage the
+gate derives from this table is what made it visible.
+
+**㊴ The checklist reading.**  `extract-abi.py --check`: `missing function` **81 → 80** (the one
+definition this slice carries), **`missing file-scope object` 0** (eighth round at empty),
+**`invented exported symbol` 41** unchanged, **0 `missing macro`**, **0 `missing constant`**, and the
+line-count row reads **33.1%** (C 7,594 against the port's 5,081).  The slice's `does not mention`
+finding - `android_neon_mask_line does not mention goto` - was recorded as the row
+**`android_neon_mask_line\tgoto\t…`** in `docs/ports/macro-body-notes.tsv` (the label's own name
+`again` *is* present as the port's loop label, which is why only `goto` needed the row), and the
+reading is back to **0**.
+
+### Deviations this slice adds
+
+- **C 4056-4060's `typedef void (*android_blit_func) (…)` is
+  `Option<unsafe extern "C" fn (…) -> ()>` - written without the arrow, since the return type is
+  `()`** (the `dbusbind.rs` 181-193 / `decompress.rs` 98-102 device); its three
+  `AndroidBitmapInfo *` parameters are this unit's five-member record.
+- **`core::arch::aarch64` supplies the ACLE names** (`vld1q_u32`, `vmovl_s8`, `vbicq_u32`, …), so the
+  calls keep C's names (the `sfntfont-android.rs` 321-325 device); `<arm_neon.h>` itself is the C 70-72
+  comment the ledger's gate table already records.
+- **C 4075's `int32x4_t low, high;` are declared `uint32x4_t` here.**  C assigns the results of
+  `vreinterpretq_u32_s32` to them and then passes them to `vbicq_u32`/`vandq_u32`, whose parameters
+  are `uint32x4_t` - i.e. the declared type is one C's lax vector conversions let it ignore.  The
+  port declares the type the values actually have and keeps C 4100-4101's calls exactly as written.
+- **C 4095's `vmovl_s8 (vld1_u8 (mask))` spells its implicit conversion**:
+  `vmovl_s8 (vreinterpret_s8_u8 (vld1_u8 (mask)))` - ACLE's own reinterpret intrinsic is how Rust
+  converts between the two eight-byte views C's header accepts silently.
+- **C 4085's backward `goto again` is a labelled loop** (`'again: loop` with `continue 'again`, the
+  `alloc.rs` 7278 / `bidi.rs` 2210 shape) and C's fall out of the `if (n)` body when the condition
+  fails is that loop's `break`; the notes row above records the keyword.
+- **C 4079's `rem = n & 7, n &= ~7;` is two statements** (C's comma operator has no Rust
+  counterpart), and **C 4129/4132's `((signed char *) mask)[i]` / `~(n)` arithmetic** is
+  `*(mask as *mut core::ffi::c_schar).offset (…) as c_int` and `! (n as c_uint)` (Rust's `!` is the
+  integer complement, as in slice 16's `mask &= ! ANDROID_GC_DASH_LIST`).
+- **C's pointer arithmetic (`src + 4`, `dst += 8`, `mask += 8`, `src[i]`)** is
+  `.offset (…)`/`*ptr.offset (…)` (slice 17's `E0608`), which is why the three pointer parameters and
+  `n` are `mut`.

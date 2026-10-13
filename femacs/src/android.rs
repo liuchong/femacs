@@ -4952,3 +4952,130 @@ pub unsafe extern "C" fn android_create_pixmap (width: c_uint, height: c_uint,
   return android_globalize_reference (object);                          // C 4746
 }
 
+/* C 4047-4060: C 4047's blank, C 4048's form feed, the blank, C 4050-4052's `/* Pixmap bit blit
+   implementation. … */` comment, the blank, C 4054's `/* Function called to actually perform the
+   copy.  */` comment, the blank and C 4056-4060's `typedef void (*android_blit_func) (…)`.  A
+   function-pointer type is `Option<unsafe extern "C" fn (…) -> …>` in the port (the `dbusbind.rs`
+   181-193 / `decompress.rs` 98-102 device; the return type is `()`, so there is no arrow), and its
+   three `AndroidBitmapInfo *` parameters are this unit's five-member record (the C 63 stand-in).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type android_blit_func = Option<unsafe extern "C" fn (c_int, c_int, c_int, c_int, c_int, c_int,
+							   *mut android_gc,
+							   *mut c_uchar,
+							   *mut android_bitmap::AndroidBitmapInfo,
+							   *mut c_uchar,
+							   *mut android_bitmap::AndroidBitmapInfo,
+							   *mut c_uchar,
+							   *mut android_bitmap::AndroidBitmapInfo)>;
+
+/* C 4061-4063: the blank, C 4062's form feed and the blank.  */
+
+/* C 4064: `#ifdef __aarch64__` … C 4136: `#endif /* __aarch64__ */` - the first of this file's
+   four NEON regions (the ledger's `aarch64` gate).  `core::arch::aarch64` carries the ACLE names
+   C's `<arm_neon.h>` defines, so the calls keep C's names (the `femacs/src/sfntfont-android.rs`
+   321-325 device); C 4073-4075's four vector locals are declared with the type their values have
+   (see the deviations).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "aarch64"))]
+use core::arch::aarch64::*;
+
+/* C 4066-4068: C 4066-4067's comment `/* Copy N pixels from SRC to DST, using MASK as a depth 1
+   clip mask.  */` and the blank.  */
+
+/* C 4069-4134: `android_neon_mask_line` (C's `static void`; the address C 4470 passes to the blit
+   dispatcher).  C 4085's `again:` label with C 4121's `goto again` is a **backward** jump, so the
+   port makes it a labelled loop (`continue 'again`; the `alloc.rs` 7278 / `bidi.rs` 2210 shape) and
+   C's fall out of the `if (n)` body when the condition fails is that loop's `break`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "aarch64"))]
+unsafe fn android_neon_mask_line (mut src: *mut c_uint, mut dst: *mut c_uint,
+				  mut mask: *mut c_uchar, mut n: c_int)   // C 4069-4134
+{
+  let mut src_low: uint32x4_t;                                          // C 4073
+  let mut src_high: uint32x4_t;                                         // C 4073
+  let mut dst_low: uint32x4_t;                                          // C 4073
+  let mut dst_high: uint32x4_t;                                         // C 4073
+  let mut vmask: int16x8_t;                                             // C 4074
+  let mut ext_mask_low: int32x4_t;                                      // C 4075
+  let mut ext_mask_high: int32x4_t;                                     // C 4075
+  let mut low: uint32x4_t;                                              // C 4075 (C's `int32x4_t`, see the deviations)
+  let mut high: uint32x4_t;                                             // C 4075 (C's `int32x4_t`, see the deviations)
+  let mut rem: c_int;                                                   // C 4076
+  let mut i: c_int;                                                     // C 4076
+
+  /* C leaves the ten locals uninitialised (PORTING.md 1.5).  */
+  src_low = std::mem::zeroed ();
+  src_high = std::mem::zeroed ();
+  dst_low = std::mem::zeroed ();
+  dst_high = std::mem::zeroed ();
+  vmask = std::mem::zeroed ();
+  ext_mask_low = std::mem::zeroed ();
+  ext_mask_high = std::mem::zeroed ();
+  low = std::mem::zeroed ();
+  high = std::mem::zeroed ();
+  rem = 0;
+  i = 0;
+
+  /* Calculate the remainder.  */                                       // C 4078
+  rem = n & 7; n &= ! 7;                                                // C 4079 (C's comma expression, split)
+
+  /* Process eight pixels at a time.  */                                // C 4081
+
+  if n != 0                                                             // C 4083
+    {
+      'again: loop                                                      // C 4085 (C's `again:` label)
+	{
+	  /* Load the low and high four pixels from the source.  */    // C 4086
+	  src_low = vld1q_u32 (src);                                    // C 4087
+	  src_high = vld1q_u32 (src.offset (4));                        // C 4088
+
+	  /* Do the same with the destination.  */                     // C 4090
+	  dst_low = vld1q_u32 (dst);                                    // C 4091
+	  dst_high = vld1q_u32 (dst.offset (4));                        // C 4092
+
+	  /* Load and sign extend the mask.  */                        // C 4094
+	  vmask = vmovl_s8 (vreinterpret_s8_u8 (vld1_u8 (mask)));       // C 4095
+	  ext_mask_low = vmovl_s16 (vget_low_s16 (vmask));              // C 4096
+	  ext_mask_high = vmovl_s16 (vget_high_s16 (vmask));            // C 4097
+
+	  /* Reinterpret the mask.  */                                 // C 4099
+	  low = vreinterpretq_u32_s32 (ext_mask_low);                   // C 4100
+	  high = vreinterpretq_u32_s32 (ext_mask_high);                 // C 4101
+
+	  /* Apply the mask.  */                                       // C 4103
+	  dst_low = vbicq_u32 (dst_low, low);                           // C 4104
+	  src_low = vandq_u32 (src_low, low);                           // C 4105
+	  dst_high = vbicq_u32 (dst_high, high);                        // C 4106
+	  src_high = vandq_u32 (src_high, high);                        // C 4107
+
+	  /* Write the result after combining both masked vectors.  */ // C 4109
+	  vst1q_u32 (dst, vorrq_u32 (dst_low, src_low));                // C 4110
+	  vst1q_u32 (dst.offset (4), vorrq_u32 (dst_high, src_high));   // C 4111
+
+	  /* Adjust src, dst and mask.  */                             // C 4113
+	  dst = dst.offset (8);                                         // C 4114
+	  src = src.offset (8);                                         // C 4115
+	  mask = mask.offset (8);                                       // C 4116
+
+	  /* See if this loop should continue.  */                     // C 4118
+	  n -= 8;                                                      // C 4119
+	  if n > 0                                                      // C 4120
+	    { continue 'again; }                                        // C 4121 (C's `goto again`)
+	  else
+	    { break; }                                                  // (C's fall out of the `if (n)` body)
+	}
+    }
+
+  /* Process the remaining pixels.  */                                  // C 4124
+
+  for i in 0..rem                                                       // C 4126
+    {
+      /* Sign extend the mask.  */                                      // C 4128
+      n = *(mask as *mut core::ffi::c_schar).offset (i as isize) as c_int;   // C 4129
+
+      /* Combine src and dst.  */                                       // C 4131
+      *dst.offset (i as isize) = *src.offset (i as isize) & n as c_uint
+	| (*dst.offset (i as isize) & ! (n as c_uint));             // C 4132
+    }
+}
+
+/* C 4136's `#endif /* __aarch64__ */`.  */
+
