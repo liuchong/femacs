@@ -15777,3 +15777,42 @@ pub unsafe extern "C" fn w32_relocate (mut epath_dir: *const c_char) -> *const c
     }                                                                   // C 10825
   return epath_dir;                                                     // C 10826
 }                                                                       // C 10827
+
+
+/* C 10829's blank, C 10829-10834's comment (C's own text) and C 10835-10858's `w32_my_exename` -
+   the executable's own name, with the reparse-point arm that resolves a symlinked binary.  C 10838's
+   `static char exename[MAX_PATH]` is a function-local `static mut` (the file's device) and C 10853's
+   test compares the pointer `chase_symlinks` returns with the array's own address.  Nothing new is
+   declared: `GetModuleFileNameA`, `get_volume_info`, `volume_info`/`FILE_SUPPORTS_REPARSE_POINTS`,
+   `filename_from_ansi`/`filename_to_ansi` and `chase_symlinks` are all in scope.  **C 10860-10897's
+   `realpath` is deliberately not in this slice**: `include/w32.rs` 458 already declares that name
+   under `#[cfg (feature = "windowsnt")]`, so defining it here would be an `E0428` and a
+   `check-mirror-dupes.py` failure; the declaration must be re-gated to `not (feature =
+   "windowsnt")` first (Owed 16's precedent for the five `sys_stat.in.rs` names).  Owed 52.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_my_exename () -> *mut c_char               // C 10835-10836
+{                                                                       // C 10837
+  static mut exename: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 10838
+  if GetModuleFileNameA (std::ptr::null_mut (), exename.as_mut_ptr (),  // C 10839
+			MAX_PATH as DWORD) == 0
+    { return std::ptr::null_mut (); }                                   // C 10840 (C's `!` and `NULL`)
+  /* The caller expects us to resolve all possible symlinks in the      // C 10841
+     last component of exename, i.e. if the executable itself is a      // C 10842
+     symlink to a file in another directory.  */                        // C 10843
+  if get_volume_info (exename.as_mut_ptr (), std::ptr::null_mut ()) != 0 // C 10844 (C's truth test)
+      && (volume_info.flags & FILE_SUPPORTS_REPARSE_POINTS) != 0        // C 10845
+    {                                                                   // C 10846
+      /* chase_symlinks wants its argument in UTF-8.  */                // C 10847
+      let mut exename_utf8: [c_char; MAX_UTF8_PATH as usize]            // C 10848
+	= [0; MAX_UTF8_PATH as usize];
+      filename_from_ansi (exename.as_ptr (), exename_utf8.as_mut_ptr ()); // C 10849
+
+      /* If EXENAME is a symlink, replace it with its target.  */       // C 10851
+      let mut tgt: *mut c_char = chase_symlinks (exename_utf8.as_ptr ()); // C 10852
+      if tgt != exename_utf8.as_ptr ()                                  // C 10853 (C's pointer-identity test)
+	{ filename_to_ansi (tgt, exename.as_mut_ptr ()); }                     // C 10854
+    }                                                                   // C 10855
+
+  return exename.as_mut_ptr ();                                         // C 10857
+}                                                                       // C 10858
