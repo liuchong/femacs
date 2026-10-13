@@ -11841,3 +11841,203 @@ pub unsafe extern "C" fn sys_socket (af: c_int, r#type: c_int, protocol: c_int) 
   set_errno ();                                                         // C 8090
   return -1;                                                            // C 8091
 }                                                                       // C 8092
+
+
+/* C 8093's blank and C 8094's `/* Convert a SOCKET to a file descriptor.  */`.  This slice is
+   the first reader of `src/w32.h` 74-113's `child_process`, which the `include/w32.rs` mirror
+   *defers* (its note 34-42: C 100's `PROCESS_INFORMATION` and C 110-111's two `OVERLAPPED`
+   records are members **by value** and come from `<windows.h>`, which has no mirror), so the
+   unit spells the record and those three - exactly the way it spells the four SDK records of
+   Deviations 18 (C 420/430's blocks) and the slice-20 socket types: documented layouts, every
+   one of them `UNVERIFIED` (P-88, Owed 27).  C's per-member prose (w32.h 76-112) is not
+   carried, as in the mirror's own deferred note; C's member names, order and types are.  */
+/* Convert a SOCKET to a file descriptor.  */
+/// C: w32.h 74: `typedef struct _child_process`
+/// C: typedef struct _PROCESS_INFORMATION { HANDLE hProcess; HANDLE hThread; DWORD dwProcessId;
+/// C: DWORD dwThreadId; } PROCESS_INFORMATION;  (`<winbase.h>`; 24 bytes)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct PROCESS_INFORMATION
+{
+  pub hProcess: HANDLE,
+  pub hThread: HANDLE,
+  pub dwProcessId: DWORD,
+  pub dwThreadId: DWORD,
+}
+/// C: typedef struct _OVERLAPPED { ULONG_PTR Internal; ULONG_PTR InternalHigh;
+/// C: union { struct { DWORD Offset; DWORD OffsetHigh; }; PVOID Pointer; }; HANDLE hEvent; }
+/// C: OVERLAPPED;  (`<winbase.h>`; 32 bytes.  C 99-100's union and its inner struct are
+/// anonymous, so the port names them after the container (P-67): `OVERLAPPED_inner` and
+/// `OVERLAPPED_offset`.)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct OVERLAPPED
+{
+  pub Internal: ULONG_PTR,
+  pub InternalHigh: ULONG_PTR,
+  pub inner: OVERLAPPED_inner,
+  pub hEvent: HANDLE,
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub union OVERLAPPED_inner
+{
+  pub offset: OVERLAPPED_offset,
+  pub Pointer: *mut c_void,
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct OVERLAPPED_offset
+{
+  pub Offset: DWORD,
+  pub OffsetHigh: DWORD,
+}
+/// C: w32.h 78: `int                 fd;`  (C's eleven members, in C's order: `fd`, `pid`,
+/// C: `char_avail`, `char_consumed`, `thrd`, `hwnd`, `procinfo`, `status`, `errcode`, `chr`,
+/// C: `ovl_read`, `ovl_write`; C's `volatile` has no ABI effect on this target.)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct _child_process
+{
+  pub fd: c_int,
+  pub pid: c_int,
+  pub char_avail: HANDLE,
+  pub char_consumed: HANDLE,
+  pub thrd: HANDLE,
+  pub hwnd: *mut c_void,
+  pub procinfo: PROCESS_INFORMATION,
+  pub status: c_int,
+  pub errcode: c_int,
+  pub chr: c_char,
+  pub ovl_read: OVERLAPPED,
+  pub ovl_write: OVERLAPPED,
+}
+#[cfg (feature = "windowsnt")]
+pub type child_process = _child_process;
+
+/// C: #define DUPLICATE_SAME_ACCESS 0x00000002  (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const DUPLICATE_SAME_ACCESS: DWORD = 0x00000002;
+/// C: #define FIONBIO 0x8004667e  (`<winsock2.h>`; `_IOW ('f', 126, u_long)` on this SDK)
+#[cfg (feature = "windowsnt")]
+pub const FIONBIO: c_long = 0x8004667e;
+/// C: #define _O_RDWR 0x0002  (the CRT's `<fcntl.h>`; the underscore spelling, not gnulib's)
+#[cfg (feature = "windowsnt")]
+pub const _O_RDWR: c_int = 0x0002;
+/// C: WINBASEAPI BOOL WINAPI DuplicateHandle (HANDLE, HANDLE, HANDLE, LPHANDLE, DWORD, BOOL, DWORD);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn DuplicateHandle (hSourceProcessHandle: HANDLE, hSourceHandle: HANDLE,
+                          hTargetProcessHandle: HANDLE, lpTargetHandle: *mut HANDLE,
+                          dwDesiredAccess: DWORD, bInheritHandle: BOOL,
+                          dwOptions: DWORD) -> BOOL;
+}
+
+/// C: int _close (int);  (the CRT's `<io.h>`; the `lib/include/unistd.in.rs` copy of the name is
+/// its `windows`-arm gnulib rename, so for this arm the name is the including unit's)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _close (fd: c_int) -> c_int;
+}
+
+/* Although under NT 3.5 _open_osfhandle will accept a socket           // C 8101
+   handle, if opened with SO_OPENTYPE == SO_SYNCHRONOUS_NONALERT,       // C 8102
+   that does not work under NT 3.1.  However, we can get the same       // C 8103
+   effect by using a backdoor function to replace an existing           // C 8104
+   descriptor handle with the one we want. */                           // C 8105
+
+/* allocate a file descriptor (with appropriate flags) */               // C 8107
+
+#[cfg (feature = "windowsnt")]
+unsafe fn socket_to_fd (s: SOCKET) -> c_int                             // C 8095 (C's `static int` + `socket_to_fd (SOCKET s)`)
+{                                                                       // C 8097
+  let mut fd: c_int;                                                    // C 8098
+  let mut cp: *mut child_process;                                       // C 8099
+
+  /* C leaves `fd` and `cp` uninitialised (PORTING.md 1.5).  */
+  fd = 0;
+  cp = std::ptr::null_mut ();
+
+  fd = _open (c"NUL:".as_ptr (), _O_RDWR);                              // C 8108
+  if fd >= 0                                                            // C 8109
+    {                                                                   // C 8110
+      /* Make a non-inheritable copy of the socket handle.  Note        // C 8111
+	 that it is possible that sockets aren't actually kernel               // C 8112
+	 handles, which appears to be the case on Windows 9x when              // C 8113
+	 the MS Proxy winsock client is installed.  */                         // C 8114
+      {                                                                 // C 8115 (C's nested block)
+	/* Apparently there is a bug in NT 3.51 with some service              // C 8116
+	   packs, which prevents using DuplicateHandle to make a               // C 8117
+	   socket handle non-inheritable (causes WSACleanup to                 // C 8118
+	   hang).  The work-around is to use SetHandleInformation              // C 8119
+	   instead if it is available and implemented. */                      // C 8120
+	if pfn_SetHandleInformation.is_some ()                                 // C 8121 (C's truth test)
+	  {                                                                    // C 8122
+	    pfn_SetHandleInformation.unwrap () (s as HANDLE, HANDLE_FLAG_INHERIT, 0); // C 8123 (C's cast + call-through)
+	  }                                                                    // C 8124
+	else                                                                   // C 8125
+	  {                                                                    // C 8126
+	    let parent: HANDLE = GetCurrentProcess ();                         // C 8127
+	    let mut new_s: HANDLE = INVALID_HANDLE_VALUE;                      // C 8128 (C's `= INVALID_HANDLE_VALUE`)
+
+	    if DuplicateHandle (parent,                                        // C 8130
+				s as HANDLE,                                                        // C 8131 (C's cast)
+				parent,                                                             // C 8132
+				&mut new_s,                                                         // C 8133
+				0,                                                                  // C 8134
+				FALSE,                                                              // C 8135
+				DUPLICATE_SAME_ACCESS) != 0                                         // C 8136 (C's truth test)
+	      {                                                                // C 8137
+		/* It is possible that DuplicateHandle succeeds even                  // C 8138
+		   though the socket wasn't really a kernel handle,                   // C 8139
+		   because a real handle has the same value.  So                      // C 8140
+		   test whether the new handle really is a socket.  */                // C 8141
+		let mut nonblocking: c_ulong = 0;                                     // C 8142 (C's `unsigned long`)
+		if pfn_ioctlsocket.unwrap () (new_s as SOCKET, FIONBIO, &mut nonblocking) == 0 // C 8143 (C's call-through)
+		  {                                                                   // C 8144
+		    pfn_closesocket.unwrap () (s);                                    // C 8145 (C's call-through)
+		    s = new_s as SOCKET;                                              // C 8146 (C's cast)
+		  }                                                                   // C 8147
+		else                                                                  // C 8148
+		  {                                                                   // C 8149
+		    CloseHandle (new_s);                                              // C 8150
+		  }                                                                   // C 8151
+	      }                                                                // C 8152
+	  }                                                                    // C 8153
+      }                                                                 // C 8154
+      eassert! (fd < MAXDESC);                                          // C 8155
+      fd_info[fd as usize].hnd = s as HANDLE;                           // C 8156 (C's cast)
+
+      /* set our own internal flags */                                  // C 8158
+      fd_info[fd as usize].flags = (FILE_SOCKET | FILE_BINARY | FILE_READ | FILE_WRITE) as c_uint; // C 8159
+
+      cp = new_child () as *mut child_process;                          // C 8161 (the mirror's `*mut c_void` return)
+      if ! cp.is_null ()                                                // C 8162 (C's truth test)
+	{                                                                      // C 8163
+	  (*cp).fd = fd;                                                       // C 8164
+	  (*cp).status = STATUS_READ_ACKNOWLEDGED;                             // C 8165
+
+	  /* attach child_process to fd_info */                                // C 8167
+	  if ! fd_info[fd as usize].cp.is_null ()                              // C 8168 (C's `!= NULL`)
+	    {                                                                  // C 8169
+	      DebPrint! (("sys_socket: fd_info[%d] apparently in use!\n", fd)); // C 8170
+	      emacs_abort ();                                                  // C 8171
+	    }                                                                  // C 8172
+
+	  fd_info[fd as usize].cp = cp as *mut c_void;                         // C 8174 (the mirror's `*mut c_void` depth)
+
+	  /* success! */                                                       // C 8176
+	  winsock_inuse += 1;                                                  // C 8177 (C's `winsock_inuse++`)
+	  return fd;                                                           // C 8178
+	}                                                                      // C 8179
+
+      /* clean up */                                                    // C 8181
+      _close (fd);                                                      // C 8182
+    }                                                                   // C 8183
+  else                                                                  // C 8184
+    {
+      pfn_closesocket.unwrap () (s);                                    // C 8185 (C's call-through)
+    }
+  *errno () = EMFILE;                                                   // C 8186
+  return -1;                                                            // C 8187
+}                                                                       // C 8188
