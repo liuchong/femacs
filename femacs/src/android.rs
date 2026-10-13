@@ -3714,3 +3714,85 @@ unsafe fn android_end_query ()                                        // C 7091-
   __atomic_clear (&raw mut android_urgent_query as *mut c_uchar,
 		  __ATOMIC_RELEASE);                                   // C 7095
 }
+
+/* C 3072-3083: C 3072's blank, C 3073-3079's `/* Java functions called by C. … */` comment, the
+   blank and C 3081-3082's `/* Destroy the specified handle and mark it as free on the Java side
+   as well.  */` comment.  */
+
+/* C 3084-3120: `android_destroy_handle` (C's `static void`; called from C 4851 and C 5868).  C's
+   three function-local `static` objects are Rust's function-local `static mut` (the `android_select`
+   device at 1244 of this unit).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_destroy_handle (handle: android_handle)            // C 3084-3120
+{
+  static mut old: jclass = std::ptr::null_mut ();                      // C 3087 (tentative, i.e. zero)
+  static mut class: jclass = std::ptr::null_mut ();                    // C 3087 (tentative, i.e. zero)
+  static mut method: jmethodID = std::ptr::null_mut ();                // C 3088 (tentative, i.e. zero)
+
+  if class.is_null ()                                                  // C 3090
+    {
+      class
+	= ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 3092-3093
+							c"org/femacs/EmacsHandleObject".as_ptr ());   // C 3094
+      eassert! (! class.is_null ());                                   // C 3095
+
+      method
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,   // C 3097-3098
+							class,
+							c"destroyHandle".as_ptr (),
+							c"()V".as_ptr ());                          // C 3099
+      eassert! (! method.is_null ());                                  // C 3100
+
+      old = class;                                                     // C 3102
+      class
+	= ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 3103-3105
+							class as jobject);
+      android_exception_check_1 (old);                                 // C 3106
+      ANDROID_DELETE_LOCAL_REF! (old);                                 // C 3107
+    }
+
+  ((*(*android_java_env)).CallVoidMethod.unwrap ()) (android_java_env,   // C 3110
+						     handle as jobject,                // C 3110
+						     method);                          // C 3111
+
+  /* Just clear any exception thrown.  If destroying the handle
+     fails from an out-of-memory error, then Emacs loses some
+     resources, but that is not as big deal as signaling.  */         // C 3113-3115
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 3116
+
+  /* Delete the global reference regardless of any error.  */          // C 3118
+  ((*(*android_java_env)).DeleteGlobalRef.unwrap ()) (android_java_env,   // C 3119
+						      handle as jobject);
+}
+
+/* C 3122-3143: `android_change_window_attributes` (non-`static`; the mirror declares it at
+   `include/android.rs` 305).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_change_window_attributes (handle: android_window,
+							   value_mask: android_window_value_mask,
+							   attrs: *mut android_set_window_attributes)   // C 3122-3143
+{
+  let mut method: jmethodID;                                           // C 3127
+  let mut window: jobject;                                             // C 3128
+  let mut pixel: jint;                                                 // C 3129
+
+  /* C leaves all three uninitialised (PORTING.md 1.5).  */
+  method = std::ptr::null_mut ();
+  window = std::ptr::null_mut ();
+  pixel = 0;
+
+  window = android_resolve_handle (handle);                            // C 3131
+
+  if value_mask & ANDROID_CW_BACK_PIXEL != 0                           // C 3133
+    {
+      method = window_class.change_window_background;                  // C 3135
+      pixel = (*attrs).background_pixel as jint;                       // C 3136
+      ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())      // C 3137
+	(android_java_env,                                            // C 3138
+	 window,                                                     // C 3139
+	 window_class.class,                                         // C 3140
+	 method, pixel);
+      android_exception_check ();                                      // C 3141
+    }
+}

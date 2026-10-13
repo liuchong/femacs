@@ -68,8 +68,12 @@
 > entries (the blocked row of slice 12) **and** the machinery they call - the three file-scope
 > objects, the seven `__atomic_*`-using functions and the `__func__` log call - so the port
 > carries C 1-3071 (except C 2086-2192) **and** C 6880-7096: 3,179 C lines of 7,594 (in a
-> 3,716-line port, md5 `5123381876e0523241328379dd113639`).  **The
-> next live definition is C 3084's `android_destroy_handle`**; the table's last row is the
+> 3,716-line port, md5 `5123381876e0523241328379dd113639`).  **Slice 14 (C 3072-3143, 2026-10-12)** now carries the remainder's first text -
+> `android_destroy_handle` (C 3084-3120, with C's three function-local `static` objects) and
+> `android_change_window_attributes` (C 3122-3143) - so the port carries C 1-3071 (except
+> C 2086-2192), C 3072-3143 **and** C 6880-7096: 3,251 C lines of 7,594 (in a 3,798-line port,
+> md5 `9d25efd96b44593c4d2eb95eac016679`).  **The
+> next live definition is C 3149's `android_globalize_reference`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -239,7 +243,11 @@ no `window.h`).
 | 3041-3063 | `NATIVE_NAME (setupSystemThread)` (C's own `(void)` parameter list; C 3053/3058 read the `bionic_signal` values) | real arm (slice 12) |
 | 3065-3069 | the `#pragma clang diagnostic pop` / `#else` / `#pragma GCC diagnostic pop` / `#endif` region | real arm (slice 12; recorded - a pragma has no Rust counterpart) |
 | 3070-3071 | the blank and C 3071's form feed | real arm (slice 12) |
-| 3072-6879 | **the remainder, first part** - from C 3072's blank and C 3073-3079's `/* Java functions called by C. … */` comment (C 3084's `android_destroy_handle`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing and window helpers, and C 7519's `#else` stub arm | not this slice |
+| 3072-3083 | C 3072's blank, C 3073-3079's `/* Java functions called by C. … */` comment, the blank and C 3081-3082's comment | real arm (slice 14) |
+| 3084-3120 | `android_destroy_handle` (C's three function-local `static` objects, C 3092-3107's `FindClass`/`GetMethodID`/`NewGlobalRef` chain and C 3110-3119's three calls) | real arm (slice 14) |
+| 3121 | the blank | real arm (slice 14) |
+| 3122-3143 | `android_change_window_attributes` (C 3133's `ANDROID_CW_BACK_PIXEL` test) | real arm (slice 14) |
+| 3144-6879 | **the remainder, first part** - from C 3144's blank and C 3145-3147's `/* Return a reference to the local reference HANDLE … */` comment (C 3149's `android_globalize_reference`, **the next live definition**) through C 6878's closing brace and C 6879's blank: `android_create_window` and the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing and window helpers, and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -626,13 +634,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-13's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-14's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071 and C 6880-7096) are carried; the **unported** part is
-C 2086-2192 (blocked on P-05's `alloca` decision) and C 3072-6879 + C 7097-7594, and
-`extract-abi.py --check`'s remaining `- missing …` list (108 `missing function` rows, **no
-file-scope object** - slice 12's two rows are definitions now - and the forty-one
-`invented exported symbol` rows of Owed 9) and the 51.1% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-3143 and C 6880-7096) are carried; the
+**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 3144-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing …` list (106 `missing
+function` rows, **no file-scope object** and the forty-one `invented exported symbol` rows of
+Owed 9) and the 50.0% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1101,3 +1109,41 @@ seven machinery definitions retire (a C `static` definition counts; the rule rea
 - **C 7016/7067/7092's `static` functions are called from C 3015/3023/3031 and C 7082**, which is
   what makes this round's two regions one slice: the entries could not be carried before the
   machinery (Owed 13, now settled).
+
+## 2026-10-12: slice 14 (C 3072-3143) - the handle teardown and the window-attribute entry
+
+`android_destroy_handle` and `android_change_window_attributes` - the first text of the remainder's
+first part.
+
+### Evidence (this slice's readings)
+
+**㉕ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **first** probe: the three function-local `static mut` objects, the
+`FindClass`/`GetMethodID`/`NewGlobalRef` chain through the `JNIEnv` table's `Option` members, the
+three calls of C 3110-3119 and the `ANDROID_CW_BACK_PIXEL` test all read correctly.
+
+**㉖ The checklist reading.**  `extract-abi.py --check`: `missing function` **108 → 106** (the two
+definitions this slice carries; both are non-`NATIVE_NAME`, so no `invented exported symbol` row is
+added and that count stays at **41**), **`missing file-scope object` 0** (unchanged - the empty
+reading now holds for two rounds), there are **0 `does not mention`**, **0 `missing macro`** and
+**0 `missing constant`**, and the line-count row reads **50.0%** (C 7,594 against the port's 3,798).
+
+### Deviations this slice adds
+
+- **C 3087-3088's three function-local `static` objects** are Rust's function-local `static mut`
+  (the `android_select` device at this unit's 1244): `old`/`class` are `jclass` null pointers and
+  `method` a null `jmethodID`, each marked as C's tentative definition.
+- **C 3092-3099's two-line assignments** keep C's split (`class\n\t= …`), and C 3094's
+  `"org/gnu/emacs/EmacsHandleObject"` is this project's own package
+  (`c"org/femacs/EmacsHandleObject"`, the 2026-10-05 rename rule this lane's earlier slices record).
+- **C 3110-3111's `(jobject) handle` and C 3105's `(jobject) class`** are `as jobject` (the mirror's
+  `jclass` and `jobject` are both `*mut c_void`, so the cast is C's own widening spelled out), and
+  the `ANDROID_DELETE_LOCAL_REF` macro is this unit's own `ANDROID_DELETE_LOCAL_REF!` (defined at
+  1469-1471, the `android_init_emacs_cursor` shape).
+- **C 3127-3129's three locals are zero-initialised** (PORTING.md 1.5) with C's declarations marked,
+  `android_resolve_handle (handle)` is the mirror's inline function for C's `#define`
+  (`include/android.rs` 175-181), and C 3133's `value_mask & ANDROID_CW_BACK_PIXEL` is
+  `value_mask & ANDROID_CW_BACK_PIXEL != 0` (C's integer test, the port's spelling for a `c_int`
+  mask).
+- **C 3137-3140's five-argument `CallNonvirtualVoidMethod`** is the `Option`-member call with the
+  same argument order and lines.
