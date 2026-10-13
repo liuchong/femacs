@@ -427,7 +427,10 @@ unsafe extern "system" {
 /// the slice uses through a pointer is therefore spelled as the pointer C's text spells (PORTING.md
 /// 0.1-2's incomplete-type rule), with the SDK's own line above it:
 /// C: typedef struct _PROCESS_MEMORY_COUNTERS { DWORD cb; DWORD PageFaultCount; …; } PROCESS_MEMORY_COUNTERS, *PPROCESS_MEMORY_COUNTERS;
-/// C: typedef struct tagPROCESSENTRY32 { DWORD dwSize; DWORD cntUsage; …; } PROCESSENTRY32, *LPPROCESSENTRY32;
+/// C: typedef struct tagPROCESSENTRY32 { DWORD dwSize; DWORD cntUsage; DWORD th32ProcessID;
+/// C:   ULONG_PTR th32DefaultHeapID; DWORD th32ModuleID; DWORD cntThreads;
+/// C:   DWORD th32ParentProcessID; LONG pcPriClassBase; DWORD dwFlags;
+/// C:   CHAR szExeFile[MAX_PATH]; } PROCESSENTRY32, *LPPROCESSENTRY32;
 /// C: typedef struct _IP_ADAPTER_INFO { … } IP_ADAPTER_INFO, *PIP_ADAPTER_INFO;
 /// C: typedef struct _IP_ADAPTER_ADDRESSES_LH { … } IP_ADAPTER_ADDRESSES, *PIP_ADAPTER_ADDRESSES;
 /// C: typedef enum _SE_OBJECT_TYPE { SE_UNKNOWN_OBJECT_TYPE = 0, … } SE_OBJECT_TYPE;
@@ -436,8 +439,33 @@ unsafe extern "system" {
 /// C: typedef enum _SECURITY_IMPERSONATION_LEVEL { SecurityAnonymous, … } SECURITY_IMPERSONATION_LEVEL;
 #[cfg (feature = "windowsnt")]
 pub type PPROCESS_MEMORY_COUNTERS = *mut c_void;
+/* Slice 18's `list_system_processes` (C 7296-7305) reads `dwSize` and `th32ProcessID` of a
+   `PROCESSENTRY32` *by value*, so the record itself - until then carried as the pointer alias the
+   P-72 ③ rule allows - is spelled here with C's member names and order (P-88, `UNVERIFIED`: the
+   SDK's `<tlhelp32.h>` is not in the reference tree), and the alias now names it as C's does.  */
+/// `ULONG_PTR` is pointer-sized; `w32term.rs` 175 spells it `usize` (PORTING.md 1.1's handle
+/// rule), and this record's fourth member is the unit's first use of it.  C: `typedef ULONG_PTR
+/// unsigned long;` is how `w32term.rs` quotes the SDK there.
 #[cfg (feature = "windowsnt")]
-pub type LPPROCESSENTRY32 = *mut c_void;
+pub type ULONG_PTR = usize;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PROCESSENTRY32
+{
+  pub dwSize: DWORD,
+  pub cntUsage: DWORD,
+  pub th32ProcessID: DWORD,
+  pub th32DefaultHeapID: ULONG_PTR,
+  pub th32ModuleID: DWORD,
+  pub cntThreads: DWORD,
+  pub th32ParentProcessID: DWORD,
+  pub pcPriClassBase: LONG,
+  pub dwFlags: DWORD,
+  pub szExeFile: [c_char; MAX_PATH as usize],
+}
+#[cfg (feature = "windowsnt")]
+pub type LPPROCESSENTRY32 = *mut PROCESSENTRY32;
 #[cfg (feature = "windowsnt")]
 pub type PIP_ADAPTER_INFO = *mut c_void;
 #[cfg (feature = "windowsnt")]
@@ -10154,3 +10182,277 @@ unsafe extern "system" fn revert_to_self () -> BOOL                     // C 716
     }                                                                   // C 7184
   return s_pfn_Revert_To_Self.unwrap () ();                             // C 7185 (C's call-through)
 }                                                                       // C 7186
+
+/* C 7187-7192: C 7187's blank, C 7188-7191's `static BOOL WINAPI get_process_memory_info`
+   declaration (carried as the doc lines below, the slice-17 device) and C 7192's `{`.  This
+   slice carries the process/memory probe group the C 7046 banner introduces: the four WINAPI
+   proxies C 7188-7284 (`get_process_memory_info`, `get_process_working_set_size`,
+   `global_memory_status`, `global_memory_status_ex`), C 7286's `list_system_processes` (the
+   unit's first `PROCESSENTRY32` *by value* - the record is spelled at C 430's block above),
+   C 7315's `enable_privilege` and C 7352's `restore_privilege` - the two helpers whose calls
+   have been unresolved names since slice 16 - and C 7373's `ltime` with C 7382's
+   `U64_TO_LISP_TIME` macro (one of the four `missing macro` rows).  The names this slice first
+   uses are declared here (P-88, `UNVERIFIED`): `<tlhelp32.h>`'s `TH32CS_SNAPPROCESS`,
+   `<winnt.h>`'s `TOKEN_ADJUST_PRIVILEGES`/`SE_PRIVILEGE_ENABLED`/`SecurityImpersonation`,
+   `<winerror.h>`'s `ERROR_NO_TOKEN`, and `<securitybaseapi.h>`'s `AdjustTokenPrivileges`,
+   `LookupPrivilegeValue` and `GetCurrentThread`.  */
+/// C: #define TH32CS_SNAPPROCESS 0x00000002  (`<tlhelp32.h>`)
+#[cfg (feature = "windowsnt")]
+pub const TH32CS_SNAPPROCESS: DWORD = 0x00000002;
+/// C: #define TOKEN_ADJUST_PRIVILEGES (0x0020)  (`<winnt.h>`; `TOKEN_QUERY` is C 1815's)
+#[cfg (feature = "windowsnt")]
+pub const TOKEN_ADJUST_PRIVILEGES: DWORD = 0x0020;
+/// C: #define SE_PRIVILEGE_ENABLED (0x00000002L)  (`<winnt.h>`)
+#[cfg (feature = "windowsnt")]
+pub const SE_PRIVILEGE_ENABLED: DWORD = 0x00000002;
+/// C: typedef enum _SECURITY_IMPERSONATION_LEVEL { SecurityAnonymous, SecurityIdentification,
+/// C:   SecurityImpersonation, SecurityDelegation } SECURITY_IMPERSONATION_LEVEL;  C 7331
+/// names the third member, so it is declared at its first use (the SDK enums above are
+/// carried as `c_int` aliases, and this one's members are the three that follow).
+#[cfg (feature = "windowsnt")]
+pub const SecurityImpersonation: SECURITY_IMPERSONATION_LEVEL = 2;
+/// C: #define ERROR_NO_TOKEN 1008L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_NO_TOKEN: DWORD = 1008;
+/// C: WINBASEAPI BOOL WINAPI AdjustTokenPrivileges (HANDLE TokenHandle, BOOL DisableAllPrivileges,
+/// C:   PTOKEN_PRIVILEGES NewState, DWORD BufferLength, PTOKEN_PRIVILEGES PreviousState,
+/// C:   PDWORD ReturnLength);
+/// C: WINADVAPI BOOL WINAPI LookupPrivilegeValueA (LPCSTR lpSystemName, LPCSTR lpName, PLUID lpLuid);
+/// C: WINBASEAPI HANDLE WINAPI GetCurrentThread (VOID);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn AdjustTokenPrivileges (TokenHandle: HANDLE, DisableAllPrivileges: BOOL,
+				NewState: *mut TOKEN_PRIVILEGES, BufferLength: DWORD,
+				PreviousState: *mut TOKEN_PRIVILEGES, ReturnLength: PDWORD) -> BOOL;
+  pub fn LookupPrivilegeValueA (lpSystemName: LPCSTR, lpName: LPCSTR, lpLuid: *mut LUID) -> BOOL;
+  pub fn GetCurrentThread () -> HANDLE;
+}
+
+/// C: static BOOL WINAPI
+/// C: get_process_memory_info (HANDLE h_proc,
+/// C: 			 PPROCESS_MEMORY_COUNTERS mem_counters,
+/// C: 			 DWORD bufsize)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn get_process_memory_info (h_proc: HANDLE,      // C 7188
+					       mem_counters: PPROCESS_MEMORY_COUNTERS,                     // C 7190
+					       bufsize: DWORD) -> BOOL                                     // C 7191
+{                                                                       // C 7192
+  static mut s_pfn_Get_Process_Memory_Info: GetProcessMemoryInfo_Proc = None; // C 7193 (C's function-local `static … = NULL`)
+  let mut hm_psapi: HMODULE = std::ptr::null_mut ();                    // C 7194 (C's `= NULL`)
+  if is_windows_9x () == TRUE                                           // C 7195
+    {                                                                   // C 7196
+      return FALSE;                                                     // C 7197
+    }                                                                   // C 7198
+  if g_b_init_get_process_memory_info == 0                              // C 7199
+    {                                                                   // C 7200
+      g_b_init_get_process_memory_info = 1;                             // C 7201
+      hm_psapi = LoadLibrary (c"Psapi.dll".as_ptr ());                  // C 7202
+      if ! hm_psapi.is_null ()                                          // C 7203 (C's truth test)
+	{
+	  s_pfn_Get_Process_Memory_Info = std::mem::transmute::<VOIDFNPTR, GetProcessMemoryInfo_Proc> // C 7204
+	    (get_proc_addr (hm_psapi, c"GetProcessMemoryInfo".as_ptr ()));     // C 7205
+	}
+    }                                                                   // C 7206
+  if s_pfn_Get_Process_Memory_Info.is_none ()                           // C 7207 (C's `== NULL`)
+    {                                                                   // C 7208
+      return FALSE;                                                     // C 7209
+    }                                                                   // C 7210
+  return (s_pfn_Get_Process_Memory_Info.unwrap ()) (h_proc, mem_counters, bufsize); // C 7211 (C's call-through)
+}                                                                       // C 7212
+
+/// C: static BOOL WINAPI
+/// C: get_process_working_set_size (HANDLE h_proc,
+/// C: 			      PSIZE_T minrss,
+/// C: 			      PSIZE_T maxrss)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn get_process_working_set_size (h_proc: HANDLE, // C 7214
+						      minrss: *mut SIZE_T,                                        // C 7216 (C's `PSIZE_T`, the 1060 typedef's own spelling)
+						      maxrss: *mut SIZE_T) -> BOOL                                // C 7217
+{                                                                       // C 7218
+  static mut s_pfn_Get_Process_Working_Set_Size: GetProcessWorkingSetSize_Proc = None; // C 7219-7220 (C's wrapped function-local `static … = NULL`)
+
+  if is_windows_9x () == TRUE                                           // C 7222
+    {                                                                   // C 7223
+      return FALSE;                                                     // C 7224
+    }                                                                   // C 7225
+  if g_b_init_get_process_working_set_size == 0                         // C 7226
+    {                                                                   // C 7227
+      g_b_init_get_process_working_set_size = 1;                        // C 7228
+      s_pfn_Get_Process_Working_Set_Size = std::mem::transmute::<VOIDFNPTR, GetProcessWorkingSetSize_Proc> // C 7229
+	(get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()),           // C 7230
+			c"GetProcessWorkingSetSize".as_ptr ()));                             // C 7231
+    }                                                                   // C 7232
+  if s_pfn_Get_Process_Working_Set_Size.is_none ()                      // C 7233 (C's `== NULL`)
+    {                                                                   // C 7234
+      return FALSE;                                                     // C 7235
+    }                                                                   // C 7236
+  return (s_pfn_Get_Process_Working_Set_Size.unwrap ()) (h_proc, minrss, maxrss); // C 7237 (C's call-through)
+}                                                                       // C 7238
+
+/// C: static BOOL WINAPI
+/// C: global_memory_status (MEMORYSTATUS *buf)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn global_memory_status (buf: LPMEMORYSTATUS) -> BOOL // C 7240
+{                                                                       // C 7242
+  static mut s_pfn_Global_Memory_Status: GlobalMemoryStatus_Proc = None; // C 7243 (C's function-local `static … = NULL`)
+
+  if is_windows_9x () == TRUE                                           // C 7245
+    {                                                                   // C 7246
+      return FALSE;                                                     // C 7247
+    }                                                                   // C 7248
+  if g_b_init_global_memory_status == 0                                 // C 7249
+    {                                                                   // C 7250
+      g_b_init_global_memory_status = 1;                                // C 7251
+      s_pfn_Global_Memory_Status = std::mem::transmute::<VOIDFNPTR, GlobalMemoryStatus_Proc> // C 7252
+	(get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()),           // C 7253
+			c"GlobalMemoryStatus".as_ptr ()));                                   // C 7254
+    }                                                                   // C 7255
+  if s_pfn_Global_Memory_Status.is_none ()                              // C 7256 (C's `== NULL`)
+    {                                                                   // C 7257
+      return FALSE;                                                     // C 7258
+    }                                                                   // C 7259
+  return (s_pfn_Global_Memory_Status.unwrap ()) (buf);                  // C 7260 (C's call-through)
+}                                                                       // C 7261
+
+/// C: static BOOL WINAPI
+/// C: global_memory_status_ex (MEMORY_STATUS_EX *buf)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn global_memory_status_ex (buf: *mut MEMORY_STATUS_EX) -> BOOL // C 7263
+{                                                                       // C 7265
+  static mut s_pfn_Global_Memory_Status_Ex: GlobalMemoryStatusEx_Proc = None; // C 7266 (C's function-local `static … = NULL`)
+
+  if is_windows_9x () == TRUE                                           // C 7268
+    {                                                                   // C 7269
+      return FALSE;                                                     // C 7270
+    }                                                                   // C 7271
+  if g_b_init_global_memory_status_ex == 0                              // C 7272
+    {                                                                   // C 7273
+      g_b_init_global_memory_status_ex = 1;                             // C 7274
+      s_pfn_Global_Memory_Status_Ex = std::mem::transmute::<VOIDFNPTR, GlobalMemoryStatusEx_Proc> // C 7275
+	(get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()),           // C 7276
+			c"GlobalMemoryStatusEx".as_ptr ()));                                 // C 7277
+    }                                                                   // C 7278
+  if s_pfn_Global_Memory_Status_Ex.is_none ()                           // C 7279 (C's `== NULL`)
+    {                                                                   // C 7280
+      return FALSE;                                                     // C 7281
+    }                                                                   // C 7282
+  return (s_pfn_Global_Memory_Status_Ex.unwrap ()) (buf);               // C 7283 (C's call-through)
+}                                                                       // C 7284
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn list_system_processes () -> Lisp_Object        // C 7286
+{                                                                       // C 7288
+  let mut proclist: Lisp_Object = Qnil ();                              // C 7289 (C's `= Qnil`)
+  let mut h_snapshot: HANDLE;                                           // C 7290
+
+  /* C leaves `h_snapshot` uninitialised (PORTING.md 1.5).  */
+  h_snapshot = std::ptr::null_mut ();
+
+  h_snapshot = create_toolhelp32_snapshot (TH32CS_SNAPPROCESS, 0);      // C 7292
+
+  if h_snapshot != INVALID_HANDLE_VALUE                                 // C 7294
+    {                                                                   // C 7295
+      let mut proc_entry: PROCESSENTRY32;                               // C 7296
+      let mut proc_id: DWORD;                                           // C 7297
+      let mut res: BOOL;                                                // C 7298
+
+      /* C leaves the three uninitialised (PORTING.md 1.5).  */
+      proc_entry = std::mem::zeroed ();
+      proc_id = 0;
+      res = 0;
+
+      proc_entry.dwSize = core::mem::size_of::<PROCESSENTRY32> () as DWORD; // C 7300 (C's `sizeof (PROCESSENTRY32)`)
+      /* C 7301-7302's `for (res = process32_first (…); res; res = process32_next (…))` is the
+	 port's `while` with the loop-carried assignments (the `w32_cached_id` device).  */
+      res = process32_first (h_snapshot, (&raw mut proc_entry));        // C 7301
+      while res != 0                                                    // C 7301 (C's `res` condition)
+	{
+	  proc_id = proc_entry.th32ProcessID;                                  // C 7304
+	  proclist = Fcons (INT_TO_INTEGER (proc_id as EMACS_INT), proclist);  // C 7305 (C's `INT_TO_INTEGER (proc_id)`)
+	  res = process32_next  (h_snapshot, (&raw mut proc_entry));           // C 7302
+	}
+
+      CloseHandle (h_snapshot);                                         // C 7308
+      proclist = Fnreverse (proclist);                                  // C 7309
+    }                                                                   // C 7310
+
+  return proclist;                                                      // C 7312
+}                                                                       // C 7313
+
+#[cfg (feature = "windowsnt")]
+unsafe fn enable_privilege (priv_name: LPCTSTR, enable_p: BOOL, old_priv: *mut TOKEN_PRIVILEGES) -> c_int // C 7315 (C's `static int`)
+{                                                                       // C 7317
+  let mut r#priv: TOKEN_PRIVILEGES;                                     // C 7318
+  let mut priv_size: DWORD = core::mem::size_of_val (&r#priv) as DWORD; // C 7319 (C's `sizeof (r#priv)`)
+  let mut opriv_size: DWORD = core::mem::size_of_val (&*old_priv) as DWORD; // C 7320 (C's `sizeof (*old_priv)`)
+  let mut h_token: HANDLE = std::ptr::null_mut ();                      // C 7321 (C's `= NULL`)
+  let mut h_thread: HANDLE = GetCurrentThread ();                       // C 7322
+  let mut ret_val: c_int = 0;                                           // C 7323
+  let mut res: BOOL;                                                    // C 7324
+
+  /* C leaves `r#priv` and `res` uninitialised (PORTING.md 1.5).  */
+  r#priv = std::mem::zeroed ();
+  res = 0;
+
+  res = open_thread_token (h_thread,                                    // C 7326
+			   TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES,                            // C 7327
+			   FALSE, (&raw mut h_token));                                       // C 7328
+  if res == 0 && GetLastError () == ERROR_NO_TOKEN                      // C 7329 (C's `!res`)
+    {                                                                   // C 7330
+      if impersonate_self (SecurityImpersonation) != 0                  // C 7331 (C's truth test)
+	  { res = open_thread_token (h_thread,                                 // C 7332
+				   TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES,                           // C 7333
+				   FALSE, (&raw mut h_token)); }                                    // C 7334
+    }                                                                   // C 7335
+  if res != 0                                                           // C 7336 (C's truth test)
+    {                                                                   // C 7337
+      r#priv.PrivilegeCount = 1;                                        // C 7338
+      r#priv.Privileges[0].Attributes = if enable_p != 0 { SE_PRIVILEGE_ENABLED } else { 0 }; // C 7339 (C's ternary)
+      LookupPrivilegeValueA (std::ptr::null (), priv_name, (&raw mut r#priv.Privileges[0].Luid)); // C 7340 (C's `LookupPrivilegeValue (NULL, …)`)
+      if AdjustTokenPrivileges (h_token, FALSE, (&raw mut r#priv), priv_size, // C 7341
+				 old_priv, (&raw mut opriv_size)) != 0                              // C 7342
+	  && GetLastError () != ERROR_NOT_ALL_ASSIGNED                         // C 7343
+	{ ret_val = 1; }                                                       // C 7344
+    }                                                                   // C 7345
+  if ! h_token.is_null ()                                               // C 7346 (C's truth test)
+    { CloseHandle (h_token); }                                          // C 7347
+
+  return ret_val;                                                       // C 7349
+}                                                                       // C 7350
+
+#[cfg (feature = "windowsnt")]
+unsafe fn restore_privilege (r#priv: *mut TOKEN_PRIVILEGES) -> c_int    // C 7352 (C's `static int`)
+{                                                                       // C 7354
+  let mut priv_size: DWORD = core::mem::size_of_val (&*r#priv) as DWORD; // C 7355 (C's `sizeof (*r#priv)`)
+  let mut h_token: HANDLE = std::ptr::null_mut ();                      // C 7356 (C's `= NULL`)
+  let mut ret_val: c_int = 0;                                           // C 7357
+
+  if open_thread_token (GetCurrentThread (),                            // C 7359
+			 TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES,                              // C 7360
+			 FALSE, (&raw mut h_token)) != 0                                     // C 7361 (C's truth test)
+    {                                                                   // C 7362
+      if AdjustTokenPrivileges (h_token, FALSE, r#priv, priv_size, std::ptr::null_mut (), std::ptr::null_mut ()) != 0 // C 7363 (C's `&&` first half; C passes NULL twice)
+	  && GetLastError () != ERROR_NOT_ALL_ASSIGNED                         // C 7364
+	{ ret_val = 1; }                                                       // C 7365
+    }                                                                   // C 7366
+  if ! h_token.is_null ()                                               // C 7367 (C's truth test)
+    { CloseHandle (h_token); }                                          // C 7368
+
+  return ret_val;                                                       // C 7370
+}                                                                       // C 7371
+
+#[cfg (feature = "windowsnt")]
+unsafe fn ltime (time_100ns: ULONGLONG) -> Lisp_Object                  // C 7373 (C's `static Lisp_Object`)
+{                                                                       // C 7375
+  let time_sec: ULONGLONG = time_100ns / 10000000;                      // C 7376
+  let subsec: c_int = (time_100ns % 10000000) as c_int;                 // C 7377 (C's `int subsec`)
+  return list4i ((time_sec >> 16) as EMACS_INT, (time_sec & 0xffff) as EMACS_INT, // C 7378 (the `EMACS_INT` stores)
+		  (subsec / 10) as EMACS_INT, (subsec % 10 * 100000) as EMACS_INT);   // C 7379
+}                                                                       // C 7380
+
+/// C: #define U64_TO_LISP_TIME(time) ltime (time)
+#[cfg (feature = "windowsnt")]
+macro_rules! U64_TO_LISP_TIME {
+  ($time:expr) => { ltime ($time) };
+}
