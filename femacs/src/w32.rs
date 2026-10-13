@@ -13055,3 +13055,178 @@ pub unsafe extern "C" fn pipe2 (phandles: *mut c_int, pipe2_flags: c_int) -> c_i
 
   return rc;                                                            // C 8922
 }                                                                       // C 8923
+
+
+/* C 8924's blank, C 8925-8927's comment (C's own text) and C 8928-9035's `_sys_read_ahead` - the
+  blocking one-byte read `sys_select` is built on: the two guards (C 8934-8935, C 8939-8940), the
+  pipe/serial/socket arm split (C 8953/8978/9013) with C 8955's `_read`, C 8965-8976's
+  `w32_pipe_read_delay` sleep/yield pair, C 8980-9012's overlapped serial read and C 9015-9026's
+  temporary `FILE_NDELAY` dance around `pfn_recv`, then C 9029-9034's status pair.  The names are
+  declared in-unit (P-88, `UNVERIFIED`, Owed 38): `<winbase.h>`'s `COMMTIMEOUTS`, its
+  `GetCommTimeouts`/`SetCommTimeouts`/`ReadFile`/`GetOverlappedResult` prototypes, `<winerror.h>`'s
+  `ERROR_IO_PENDING` and the CRT's `_read`; `w32_pipe_read_delay` is the `include/globals.rs` 7164
+  row, `FILE_SERIAL` `w32.h`'s mirror (its 260), `OVERLAPPED` slice 25's own record and
+  `pfn_recv`/`pfn_ioctlsocket` slice 20's statics.  */
+/// C: typedef struct _COMMTIMEOUTS { DWORD ReadIntervalTimeout; DWORD ReadTotalTimeoutMultiplier;
+/// C: DWORD ReadTotalTimeoutConstant; DWORD WriteTotalTimeoutMultiplier; DWORD WriteTotalTimeoutConstant; }
+/// C: COMMTIMEOUTS;  (`<winbase.h>`; 20 bytes)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct COMMTIMEOUTS
+{
+  pub ReadIntervalTimeout: DWORD,
+  pub ReadTotalTimeoutMultiplier: DWORD,
+  pub ReadTotalTimeoutConstant: DWORD,
+  pub WriteTotalTimeoutMultiplier: DWORD,
+  pub WriteTotalTimeoutConstant: DWORD,
+}
+/// C: #define ERROR_IO_PENDING 997  (`<winerror.h>`)
+#[cfg (feature = "windowsnt")]
+pub const ERROR_IO_PENDING: DWORD = 997;
+/// C: WINBASEAPI BOOL WINAPI GetCommTimeouts (HANDLE hFile, LPCOMMTIMEOUTS lpCommTimeouts);
+/// C: WINBASEAPI BOOL WINAPI SetCommTimeouts (HANDLE hFile, LPCOMMTIMEOUTS lpCommTimeouts);
+/// C: WINBASEAPI BOOL WINAPI ReadFile (HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
+/// C: WINBASEAPI BOOL WINAPI GetOverlappedResult (HANDLE, LPOVERLAPPED, LPDWORD, BOOL);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetCommTimeouts (hFile: HANDLE, lpCommTimeouts: *mut COMMTIMEOUTS) -> BOOL;
+  pub fn SetCommTimeouts (hFile: HANDLE, lpCommTimeouts: *mut COMMTIMEOUTS) -> BOOL;
+  pub fn ReadFile (hFile: HANDLE, lpBuffer: *mut c_void, nNumberOfBytesToRead: DWORD,
+                   lpNumberOfBytesRead: *mut DWORD, lpOverlapped: *mut OVERLAPPED) -> BOOL;
+  pub fn GetOverlappedResult (hFile: HANDLE, lpOverlapped: *mut OVERLAPPED,
+                              lpNumberOfBytesTransferred: *mut DWORD, bWait: BOOL) -> BOOL;
+}
+/// C: int _read (int fd, void *buf, unsigned int count);  (`<io.h>`)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _read (fd: c_int, buf: *mut c_void, count: c_uint) -> c_int;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn _sys_read_ahead (fd: c_int) -> c_int           // C 8928
+{                                                                       // C 8930
+  let mut cp: *mut child_process;                                       // C 8931
+  let mut rc: c_int = 0;                                                // C 8932 (C's `int rc = 0;`)
+
+  /* C leaves `cp` uninitialised (PORTING.md 1.5).  */
+  cp = std::ptr::null_mut ();
+
+  if fd < 0 || fd >= MAXDESC                                            // C 8934
+    { return STATUS_READ_ERROR; }                                       // C 8935
+
+  cp = fd_info[fd as usize].cp as *mut child_process;                   // C 8937
+
+  if cp.is_null () || (*cp).fd != fd || (*cp).status != STATUS_READ_READY // C 8939
+    { return STATUS_READ_ERROR; }                                       // C 8940
+
+  if (fd_info[fd as usize].flags & (FILE_PIPE | FILE_SERIAL | FILE_SOCKET) as c_uint) == 0 // C 8942
+      || (fd_info[fd as usize].flags & FILE_READ as c_uint) == 0        // C 8943
+    {                                                                   // C 8944
+      DebPrint! (("_sys_read_ahead: internal error: fd %d is not a pipe, serial port, or socket!\n", fd)); // C 8945
+      emacs_abort ();                                                   // C 8946
+    }                                                                   // C 8947
+
+  if (fd_info[fd as usize].flags & FILE_CONNECT as c_uint) != 0         // C 8949
+    { DebPrint! (("_sys_read_ahead: read requested from fd %d, which waits for async connect!\n", fd)); } // C 8950
+  (*cp).status = STATUS_READ_IN_PROGRESS;                               // C 8951
+
+  if (fd_info[fd as usize].flags & FILE_PIPE as c_uint) != 0            // C 8953
+    {                                                                   // C 8954
+      rc = _read (fd, &raw mut (*cp).chr as *mut c_void,                // C 8955 (C's `sizeof (char)`)
+		   core::mem::size_of::<c_char> () as c_uint);
+
+      /* Optionally give subprocess time to buffer some more output     // C 8957
+	 for us before reporting that input is available; we may need          // C 8958
+	 this because Windows 9X connects DOS programs to pipes by             // C 8959
+	 making the pipe appear to be the normal console stdout -- as          // C 8960
+	 a result most DOS programs will write to stdout without               // C 8961
+	 buffering, i.e., one character at a time.  Even some W32              // C 8962
+	 programs do this -- "dir" in a command shell on NT is very            // C 8963
+	 slow if we don't do this.  */                                         // C 8964
+      if rc > 0                                                         // C 8965
+	{                                                                      // C 8966
+	  let mut wait: c_int = w32_pipe_read_delay as c_int;                  // C 8967 (C's `int wait = …`)
+
+	  if wait > 0                                                          // C 8969
+	    { Sleep (wait as DWORD); }                                         // C 8970 (C's int-to-`DWORD`)
+	  else if wait < 0                                                     // C 8971
+	    {                                                                  // C 8971
+	      loop                                                             // C 8972 (C's `while (++wait <= 0)`, whose increment runs first)
+		{
+		  wait += 1;                                                          // C 8972 (the `++wait`)
+		  if ! (wait <= 0) { break; }                                         // C 8972
+		  /* Yield remainder of our time slice, effectively giving a          // C 8973
+		     temporary priority boost to the child process. */                // C 8974
+		  Sleep (0);                                                          // C 8975
+		}
+	    }                                                                  // C 8976
+	}                                                                      // C 8977
+    }                                                                   // C 8977
+  else if (fd_info[fd as usize].flags & FILE_SERIAL as c_uint) != 0     // C 8978
+    {                                                                   // C 8979
+      let hnd: HANDLE = fd_info[fd as usize].hnd;                       // C 8980
+      let ovl: *mut OVERLAPPED                                          // C 8981
+	= &raw mut (*(fd_info[fd as usize].cp as *mut child_process)).ovl_read; // C 8981
+      let mut ct: COMMTIMEOUTS;                                         // C 8982
+
+      /* C leaves `ct` uninitialised (PORTING.md 1.5).  */
+      ct = COMMTIMEOUTS { ReadIntervalTimeout: 0, ReadTotalTimeoutMultiplier: 0, // C 8983 (C's blank)
+			  ReadTotalTimeoutConstant: 0, WriteTotalTimeoutMultiplier: 0,
+			  WriteTotalTimeoutConstant: 0 };
+
+      /* Configure timeouts for blocking read.  */                      // C 8984
+      if GetCommTimeouts (hnd, &raw mut ct) == 0                        // C 8985 (C's truth test)
+	{                                                                      // C 8986
+	  (*cp).status = STATUS_READ_ERROR;                                    // C 8987
+	  return STATUS_READ_ERROR;                                            // C 8988
+	}                                                                      // C 8989
+      ct.ReadIntervalTimeout = 0;                                       // C 8990
+      ct.ReadTotalTimeoutMultiplier = 0;                                // C 8991
+      ct.ReadTotalTimeoutConstant = 0;                                  // C 8992
+      if SetCommTimeouts (hnd, &raw mut ct) == 0                        // C 8993
+	{                                                                      // C 8994
+	  (*cp).status = STATUS_READ_ERROR;                                    // C 8995
+	  return STATUS_READ_ERROR;                                            // C 8996
+	}                                                                      // C 8997
+
+      if ReadFile (hnd, &raw mut (*cp).chr as *mut c_void,              // C 8999 (C's `sizeof (char)` and `(DWORD*) &rc` casts)
+		   core::mem::size_of::<c_char> () as DWORD,
+		   (&raw mut rc) as *mut DWORD, ovl) == 0
+	{                                                                      // C 9000
+	  if GetLastError () != ERROR_IO_PENDING                               // C 9001
+	    {                                                                  // C 9002
+	      (*cp).status = STATUS_READ_ERROR;                                // C 9003
+	      return STATUS_READ_ERROR;                                        // C 9004
+	    }                                                                  // C 9005
+	  if GetOverlappedResult (hnd, ovl, (&raw mut rc) as *mut DWORD, TRUE) == 0 // C 9006 (C's `(DWORD*) &rc` and `TRUE`)
+	    {                                                                  // C 9007
+	      (*cp).status = STATUS_READ_ERROR;                                // C 9008
+	      return STATUS_READ_ERROR;                                        // C 9009
+	    }                                                                  // C 9010
+	}                                                                      // C 9011
+    }                                                                   // C 9012
+  else if (fd_info[fd as usize].flags & FILE_SOCKET as c_uint) != 0     // C 9013
+    {                                                                   // C 9014
+      let mut nblock: c_ulong = 0;                                      // C 9015 (C's `unsigned long`)
+      /* We always want this to block, so temporarily disable NDELAY.  */ // C 9016
+      if (fd_info[fd as usize].flags & FILE_NDELAY as c_uint) != 0      // C 9017
+	{ pfn_ioctlsocket.unwrap () (SOCK_HANDLE! (fd), FIONBIO, &mut nblock); } // C 9018 (C's call-through)
+
+      rc = pfn_recv.unwrap () (SOCK_HANDLE! (fd), &raw mut (*cp).chr,   // C 9020 (C's call-through and `sizeof (char)`)
+			       core::mem::size_of::<c_char> () as c_int, 0);
+
+      if (fd_info[fd as usize].flags & FILE_NDELAY as c_uint) != 0      // C 9022
+	{                                                                      // C 9023
+	  nblock = 1;                                                          // C 9024
+	  pfn_ioctlsocket.unwrap () (SOCK_HANDLE! (fd), FIONBIO, &mut nblock); // C 9025
+	}                                                                      // C 9026
+    }                                                                   // C 9027
+
+  if rc == core::mem::size_of::<c_char> () as c_int                     // C 9029 (C's `sizeof (char)`)
+    { (*cp).status = STATUS_READ_SUCCEEDED; }                           // C 9030
+  else                                                                  // C 9031
+    { (*cp).status = STATUS_READ_FAILED; }                              // C 9032
+
+  return (*cp).status;                                                  // C 9034
+}                                                                       // C 9035
