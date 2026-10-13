@@ -12308,3 +12308,149 @@ pub unsafe extern "C" fn sys_getpeername (s: c_int, addr: *mut sockaddr, namelen
   *errno () = ENOTSOCK;                                                 // C 8370
   return SOCKET_ERROR;                                                  // C 8371
 }                                                                       // C 8372
+
+
+/* C 8373's blank and C 8374-8464's `sys_getaddrinfo` - one piece (its body holds C's single `else`
+   block, so no cut inside it keeps the braces balanced).  The five names it needs are spelled
+   here, all `UNVERIFIED` (P-88, Owed 32): `<winsock2.h>`'s `SOCK_DGRAM` (2), `in_addr` and
+   `sockaddr_in` (C 8395/8412-8420 read them by value), `xzalloc` (C 8423; `xalloc.h`'s name - the
+   port's `lib/include/xalloc.rs` mirror is not in this unit's include graph); `strtoul` (C 8416) is
+   the `stdlib.in.rs` mirror's own declaration - the arm reading's first run of this slice measured one
+   `E0428` for an in-unit copy of it, so the unit does not re-spell it.  C 8431/8433's `h_addr` is `<netdb.h>`'s
+   `#define h_addr h_addr_list[0]`, so the port writes `*(*host_info).h_addr_list`.  `WSAEINVAL`
+   (C 8400) and `WSAHOST_NOT_FOUND` (C 8403/8418/8441) are slices 22/23's, and
+   `sys_getservbyname`/`sys_gethostbyname`/`sys_inet_addr`/`sys_htons` slices 27/29's.  */
+/// C: #define SOCK_DGRAM 2  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const SOCK_DGRAM: c_int = 2;
+/// C: typedef struct in_addr { u_long s_addr; } in_addr;  (`<winsock2.h>`; 4 bytes)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct in_addr
+{
+  pub s_addr: u_long,
+}
+/// C: typedef struct sockaddr_in { short sin_family; u_short sin_port; struct in_addr sin_addr;
+/// C: char sin_zero[8]; } sockaddr_in;  (`<winsock2.h>`; 16 bytes)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct sockaddr_in
+{
+  pub sin_family: c_short,
+  pub sin_port: u_short,
+  pub sin_addr: in_addr,
+  pub sin_zero: [c_char; 8],
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_getaddrinfo (node: *const c_char, service: *const c_char, // C 8374
+                                          hints: *const addrinfo, res: *mut *mut addrinfo) -> c_int // C 8375
+{                                                                       // C 8377
+  let mut rc: c_int;                                                    // C 8379
+
+  /* C leaves `rc` uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+
+  if winsock_lib.is_null ()                                             // C 8380 (C's `== NULL`)
+    {                                                                   // C 8381
+      *errno () = ENETDOWN;                                             // C 8382
+      return SOCKET_ERROR;                                              // C 8383
+    }                                                                   // C 8384
+
+  check_errno ();                                                       // C 8386
+  if pfn_getaddrinfo.is_some ()                                         // C 8387 (C's truth test)
+    { rc = pfn_getaddrinfo.unwrap () (node, service, hints, res); }     // C 8388 (C's call-through)
+  else                                                                  // C 8389
+    {                                                                   // C 8390
+      let mut port: c_int = 0;                                          // C 8391 (C's `int port = 0;`)
+      let mut host_info: *mut hostent;                                  // C 8392
+      /// C: struct gai_storage { struct addrinfo addrinfo; struct sockaddr_in sockaddr_in; };
+      /// (C 8393-8396; the record has no tag, so the type takes the variable's name - P-67 - and
+      /// the unit spells it where C declares it, in the block's own scope.)
+      #[repr(C)]
+      struct gai_storage
+      {
+	addrinfo: addrinfo,                                                    // C 8394
+	sockaddr_in: sockaddr_in,                                              // C 8395
+      }
+      let mut gai_storage: *mut gai_storage;                            // C 8396
+
+      /* C leaves `host_info` and `gai_storage` uninitialised (PORTING.md 1.5).  */
+      host_info = std::ptr::null_mut ();
+      gai_storage = std::ptr::null_mut ();
+
+      /* We don't (yet) support any flags, as Emacs doesn't need that.  */ // C 8398
+      if ! hints.is_null () && (*hints).ai_flags != 0                   // C 8399
+	{ return WSAEINVAL; }                                                  // C 8400
+      /* NODE cannot be NULL, since process.c has fallbacks for that.  */ // C 8401
+      if node.is_null ()                                                // C 8402 (C's `!node`)
+	{ return WSAHOST_NOT_FOUND; }                                          // C 8403
+
+      if ! service.is_null ()                                           // C 8405
+	{                                                                      // C 8406
+	  let protocol: *const c_char = if ! hints.is_null () && (*hints).ai_socktype == SOCK_DGRAM // C 8407-8408 (C's ternary)
+	    { c"udp".as_ptr () } else { c"tcp".as_ptr () };                    // C 8408
+	  let mut srv: *mut servent = sys_getservbyname (service, protocol);   // C 8409
+
+	  if ! srv.is_null ()                                                  // C 8410
+	    { port = (*srv).s_port as c_int; }                                 // C 8411 (C's `short`-to-`int`)
+	  else if *service >= b'0' as c_char && *service <= b'9' as c_char     // C 8412
+	    {                                                                  // C 8413
+	      let mut endp: *mut c_char;                                       // C 8414
+
+	      /* C leaves `endp` uninitialised (PORTING.md 1.5).  */
+	      endp = std::ptr::null_mut ();
+
+	      port = strtoul (service, &raw mut endp, 10) as c_int;            // C 8416 (C's `unsigned long`-to-`int`)
+	      if *endp != 0 || port > 65536                                    // C 8417 (C's truth test)
+		{ return WSAHOST_NOT_FOUND; }                                         // C 8418
+	      port = sys_htons (port as u_short) as c_int;                     // C 8419 (C's `(unsigned short)` and the widening store)
+	    }                                                                  // C 8420
+	  else                                                                 // C 8421
+	    { return WSAHOST_NOT_FOUND; }                                      // C 8422
+	}                                                                      // C 8423
+
+      gai_storage = xzalloc (core::mem::size_of::<gai_storage> ()) as *mut gai_storage; // C 8424 (C's `sizeof *gai_storage`)
+      (*gai_storage).sockaddr_in.sin_port = port as u_short;            // C 8425 (C's `int`-to-`u_short`)
+      host_info = sys_gethostbyname (node);                             // C 8426
+      if ! host_info.is_null ()                                         // C 8427
+	{                                                                      // C 8428
+	  memcpy (&raw mut (*gai_storage).sockaddr_in.sin_addr as *mut c_void, // C 8429
+		  *(*host_info).h_addr_list as *const c_void,                         // C 8431 (C's `h_addr` macro; C 8430 is the continuation)
+		  (*host_info).h_length as usize);                                    // C 8432 (C's `short`-to-`size_t`)
+	  (*gai_storage).sockaddr_in.sin_family = (*host_info).h_addrtype;     // C 8433
+	}                                                                      // C 8434
+      else                                                              // C 8435
+	{                                                                      // C 8436
+	  /* Attempt to interpret host as numeric inet address.  */            // C 8437
+	  let mut numeric_addr: c_ulong = sys_inet_addr (node);                // C 8438
+
+	  if numeric_addr == -1i32 as c_ulong                                  // C 8439 (C's `-1` against a 32-bit `unsigned long`)
+	    {                                                                  // C 8440
+	      free (gai_storage as *mut c_void);                               // C 8441
+	      return WSAHOST_NOT_FOUND;                                        // C 8442
+	    }                                                                  // C 8443
+
+	  memcpy (&raw mut (*gai_storage).sockaddr_in.sin_addr as *mut c_void, // C 8444
+		  &raw const numeric_addr as *const c_void,                           // C 8445
+		  core::mem::size_of_val (&(*gai_storage).sockaddr_in.sin_addr));     // C 8446 (C's `sizeof (…)`)
+	  (*gai_storage).sockaddr_in.sin_family                                // C 8447
+	    = if ! hints.is_null () { (*hints).ai_family as c_short } else { 0 }; // C 8447 (C's ternary)
+	}                                                                      // C 8448
+
+      (*gai_storage).addrinfo.ai_addr = &raw mut (*gai_storage).sockaddr_in as *mut sockaddr; // C 8450-8451 (C's cast)
+      (*gai_storage).addrinfo.ai_addrlen = core::mem::size_of_val (&(*gai_storage).sockaddr_in); // C 8452
+      (*gai_storage).addrinfo.ai_protocol                               // C 8453
+	= if ! hints.is_null () { (*hints).ai_protocol } else { 0 };           // C 8453 (C's ternary)
+      (*gai_storage).addrinfo.ai_socktype                               // C 8454
+	= if ! hints.is_null () { (*hints).ai_socktype } else { 0 };           // C 8454 (C's ternary)
+      (*gai_storage).addrinfo.ai_family = (*gai_storage).sockaddr_in.sin_family as c_int; // C 8455 (C's `short`-to-`int`)
+      (*gai_storage).addrinfo.ai_next = std::ptr::null_mut ();          // C 8456 (C's `NULL`)
+
+      *res = &raw mut (*gai_storage).addrinfo;                          // C 8458
+      rc = 0;                                                           // C 8459
+    }                                                                   // C 8460
+
+  return rc;                                                            // C 8463
+}                                                                       // C 8464
