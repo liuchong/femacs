@@ -5079,3 +5079,441 @@ unsafe fn android_neon_mask_line (mut src: *mut c_uint, mut dst: *mut c_uint,
 
 /* C 4136's `#endif /* __aarch64__ */`.  */
 
+/* C 4137-4150: C 4137's blank, C 4138's form feed, the blank, C 4140-4148's comment and C 4150's
+   `static void`.  */
+
+/* C 4151-4439: `android_blit_copy` (C's `static void`; C 4541 takes its address into an
+   `android_blit_func`, so the item is an `unsafe extern "C" fn` - the androidterm.rs header's
+   "whose address C takes" class).  C 4163-4165's `#ifndef __aarch64__ int j;` is the
+   `not (feature = "aarch64")` local and C 4418-4431 is that condition's two arms.  C 4190-4250's
+   `ckd_mul`/`ckd_add` chains are P-15's spelling (the wrapped value and the flag; the
+   `image.rs` 6618-6622 / `androidselect.rs` 750-757 device), and C 4327-4331's four-operand `||`
+   chain is written as C's short-circuit leaves it, with one `return` per overflow.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_blit_copy (src_x: c_int, mut src_y: c_int, mut width: c_int,
+					 mut height: c_int, dst_x: c_int, mut dst_y: c_int,
+					 gc: *mut android_gc,
+					 src: *mut c_uchar, src_info: *mut android_bitmap::AndroidBitmapInfo,
+					 dst: *mut c_uchar, dst_info: *mut android_bitmap::AndroidBitmapInfo,
+					 mut mask: *mut c_uchar, mask_info: *mut android_bitmap::AndroidBitmapInfo)
+                                                                        // C 4151-4439
+{
+  let mut start: uintptr_t;                                             // C 4157
+  let mut end: uintptr_t;
+  let mut mask_offset: c_int;                                           // C 4158
+  let mut pixel: size_t;                                                // C 4159
+  let mut offset: size_t;
+  let mut offset1: size_t;
+  let mut src_current: *mut c_uchar;                                    // C 4160
+  let mut dst_current: *mut c_uchar;
+  let mut mask_current: *mut c_uchar;                                   // C 4161
+  let mut overflow: bool;                                               // C 4162 (C's `int` flag, only ever 0/1)
+  let mut temp: c_int;                                                  // C 4162
+  let mut i: c_int;
+/* C 4163-4165's `#ifndef __aarch64__ int j;` has no declaration of its own: its only user
+     is C 4419-4428's `for (j = 0; ...)` loop, which the port writes as a range (the slice 17/18
+     device), and that loop sits inside the same gate.  */
+  let mut backwards: bool;                                              // C 4166
+  let mut long_src: *mut c_uint;                                        // C 4167
+  let mut long_dst: *mut c_uint;
+
+  /* C leaves the locals uninitialised (PORTING.md 1.5).  */
+  start = 0;
+  end = 0;
+  mask_offset = 0;
+  pixel = 0;
+  offset = 0;
+  offset1 = 0;
+  src_current = std::ptr::null_mut ();
+  dst_current = std::ptr::null_mut ();
+  mask_current = std::ptr::null_mut ();
+  overflow = false;
+  temp = 0;
+  i = 0;
+  backwards = false;
+  long_src = std::ptr::null_mut ();
+  long_dst = std::ptr::null_mut ();
+
+  /* Assert that the specified coordinates are within bounds.  */       // C 4169
+  eassert! (src_x >= 0 && src_y >= 0                                    // C 4170
+					     && dst_x >= 0 && dst_y >= 0);                                 // C 4171
+  eassert! (src_x + width <= (*src_info).width as c_int);               // C 4172
+  eassert! (src_y + height <= (*src_info).height as c_int);             // C 4173
+  eassert! (dst_x + width <= (*dst_info).width as c_int);               // C 4174
+  eassert! (dst_y + height <= (*dst_info).height as c_int);             // C 4175
+
+  /* Now check that each bitmap has the correct format.  */             // C 4177
+  eassert! ((*src_info).format == (*dst_info).format                    // C 4178
+					     && (*src_info).format == ANDROID_BITMAP_FORMAT_RGBA_8888); // C 4179
+  pixel = std::mem::size_of::<c_uint> () as size_t;                     // C 4180
+
+  /* Android doesn't have A1 bitmaps, so A8 is used to represent        // C 4182
+     packed bitmaps of depth 1.  */                                     // C 4183
+  eassert! (mask.is_null () || (*mask_info).format                      // C 4184
+	    == ANDROID_BITMAP_FORMAT_A_8);
+
+  /* Calculate the address of the first pixel of the first row to be    // C 4186
+     copied in both src and dst.  Compare them to determine the         // C 4187
+     direction in which the copy is to take place.  */                  // C 4188
+
+  /* C 4190-4193's four `ckd_*` calls (P-15's spelling).  */
+  let (ckd_start, ckd_over) = (src_y as uintptr_t).overflowing_mul      // C 4190
+	((*src_info).stride as uintptr_t);
+  start = ckd_start;
+  overflow = ckd_over;
+  let (ckd_end, ckd_over) = (src_x as uintptr_t).overflowing_mul        // C 4191
+	(pixel as uintptr_t);
+  end = ckd_end;
+  overflow |= ckd_over;
+  let (ckd_start, ckd_over) = end.overflowing_add (start);              // C 4192
+  start = ckd_start;
+  overflow |= ckd_over;
+  let (ckd_start, ckd_over) =                                           // C 4193
+	(src as uintptr_t).overflowing_add (start);
+  start = ckd_start;
+  overflow |= ckd_over;
+
+  if overflow                                                           // C 4195
+    { return; }                                                         // C 4196
+
+  src_current = start as *mut c_uchar;                                  // C 4198
+
+  /* C 4200-4203, the same four calls for the destination.  */
+  let (ckd_start, ckd_over) = (dst_y as uintptr_t).overflowing_mul      // C 4200
+	((*dst_info).stride as uintptr_t);
+  start = ckd_start;
+  overflow = ckd_over;
+  let (ckd_end, ckd_over) = (dst_x as uintptr_t).overflowing_mul        // C 4201
+	(pixel as uintptr_t);
+  end = ckd_end;
+  overflow |= ckd_over;
+  let (ckd_start, ckd_over) = end.overflowing_add (start);              // C 4202
+  start = ckd_start;
+  overflow |= ckd_over;
+  let (ckd_start, ckd_over) =                                           // C 4203
+	(dst as uintptr_t).overflowing_add (start);
+  start = ckd_start;
+  overflow |= ckd_over;
+
+  if overflow                                                           // C 4205
+    { return; }                                                         // C 4206
+
+  dst_current = start as *mut c_uchar;                                  // C 4208
+  backwards = false;                                                    // C 4209
+
+  /* Now see if copying should proceed from the bottom up.  */          // C 4211
+
+  if src == dst && dst_current >= src_current                           // C 4213
+    {
+      backwards = true;                                                 // C 4215
+
+      /* Walk src and dst from bottom to top, in order to avoid         // C 4217
+	 overlap.  Calculate the coordinate of the last pixel of the           // C 4218
+	 last row in both src and dst.  */                                     // C 4219
+
+      /* C 4221-4222's `overflow = ckd_mul (&start, src_y + height - 1, src_info->stride);`.  */
+      let (ckd_start, ckd_over)
+	= ((src_y + height - 1) as uintptr_t).overflowing_mul
+	  ((*src_info).stride as uintptr_t);
+      start = ckd_start;
+      overflow = ckd_over;
+
+      if ! mask.is_null ()                                              // C 4224
+	/* If a mask is set, put the pointers before the end of the
+	   row.  */                                                            // C 4225-4226
+	{
+          /* C 4227's `overflow |= ckd_mul (&end, src_x + width - 1, pixel);`.  */
+          let (ckd_end, ckd_over)
+	    = ((src_x + width - 1) as uintptr_t).overflowing_mul
+	      (pixel as uintptr_t);
+          end = ckd_end;
+          overflow |= ckd_over;
+	}
+      else                                                              // C 4228
+	{ end = (src_x as size_t * pixel) as uintptr_t; }                  // C 4229
+
+      /* C 4231-4232's two `ckd_add` calls.  */
+      let (ckd_start, ckd_over) = start.overflowing_add (end);
+      start = ckd_start;
+      overflow |= ckd_over;
+      let (ckd_start, ckd_over)
+	= (src as uintptr_t).overflowing_add (start);
+      start = ckd_start;
+      overflow |= ckd_over;
+
+      if overflow                                                       // C 4234
+	{ return; }                                                            // C 4235
+
+      src_current = start as *mut c_uchar;                              // C 4237
+
+      /* C 4239-4240's `overflow = ckd_mul (&start, dst_y + height - 1, dst_info->stride);`.  */
+      let (ckd_start, ckd_over)
+	= ((dst_y + height - 1) as uintptr_t).overflowing_mul
+	  ((*dst_info).stride as uintptr_t);
+      start = ckd_start;
+      overflow = ckd_over;
+
+      if ! mask.is_null ()                                              // C 4242
+	/* If a mask is set, put the pointers before the end of the
+	   row.  */                                                            // C 4243-4244
+	{
+          /* C 4245's `overflow |= ckd_mul (&end, dst_x + width - 1, pixel);`.  */
+          let (ckd_end, ckd_over)
+	    = ((dst_x + width - 1) as uintptr_t).overflowing_mul
+	      (pixel as uintptr_t);
+          end = ckd_end;
+          overflow |= ckd_over;
+	}
+      else                                                              // C 4246
+	{ end = (dst_x as size_t * pixel) as uintptr_t; }                  // C 4247
+
+      /* C 4249-4250's two `ckd_add` calls.  */
+      let (ckd_start, ckd_over) = start.overflowing_add (end);
+      start = ckd_start;
+      overflow |= ckd_over;
+      let (ckd_start, ckd_over)
+	= (dst as uintptr_t).overflowing_add (start);
+      start = ckd_start;
+      overflow |= ckd_over;
+
+      if overflow                                                       // C 4252
+	{ return; }                                                            // C 4253
+
+      dst_current = start as *mut c_uchar;                              // C 4255
+    }                                                                   // C 4256
+
+  if mask.is_null ()                                                    // C 4258
+    {
+      /* Change the direction of the copy depending on how SRC and DST  // C 4260
+	 overlap.  */                                                          // C 4261
+
+      for i in 0..height                                             // C 4263
+	{
+	  memmove (dst_current as *mut c_void, src_current as *const c_void,   // C 4265
+		   width as usize * pixel);                                           // C 4266
+
+	  if backwards                                                         // C 4268
+	    {
+	      /* Proceed to the last row.  */                                  // C 4270
+	      src_current
+		= src_current.wrapping_offset (-((*src_info).stride as isize));   // C 4271
+	      dst_current
+		= dst_current.wrapping_offset (-((*dst_info).stride as isize));   // C 4272
+	    }
+	  else                                                                 // C 4274
+	    {
+	      /* Proceed to the next row.  */                                  // C 4276
+	      src_current
+		= src_current.wrapping_offset ((*src_info).stride as isize);      // C 4277
+	      dst_current
+		= dst_current.wrapping_offset ((*dst_info).stride as isize);      // C 4278
+	    }
+	}
+    }                                                                     // C 4281
+  else                                                                  // C 4282
+    {
+      /* Adjust the source and destination Y.  The start is MAX         // C 4284
+         (dst_y, gc->clip_y_origin); the difference between that value  // C 4285
+         and dst_y is the offset to apply to src_y. */                  // C 4286
+
+      temp    = dst_y;                                                  // C 4288
+      dst_y   = MAX! (dst_y, (*gc).clip_y_origin);                      // C 4289
+      src_y  += dst_y - temp;                                           // C 4290
+      height -= dst_y - temp;                                           // C 4291
+
+      /* Verify that the bounds are correct.  */                        // C 4293
+      eassert! (dst_y + height                                          // C 4294
+		<= (*gc).clip_y_origin                                                // C 4295
+		   + (*mask_info).height as c_int);
+      eassert! (dst_y >= (*gc).clip_y_origin);                          // C 4296
+
+      /* There is a mask.  For each scan line... */                     // C 4298
+
+      if backwards                                                      // C 4300
+	{
+	  /* Calculate the number of pixels at the end of the                  // C 4302
+	     mask.  */                                                         // C 4303
+
+	  mask_offset  = dst_x + width;                                        // C 4305
+	  /* C 4306's `mask_offset -= mask_info->width + gc->clip_x_origin;` - C's arithmetic is
+	     in `unsigned int`, so the port keeps it there and converts back.  */
+	  mask_offset -= ((*mask_info).width
+			  + (*gc).clip_x_origin as c_uint) as c_int;
+
+	  if mask_offset < 0                                                   // C 4308
+	    { mask_offset = 0; }                                               // C 4309
+
+	  /* Calculate the last column of the mask that will be                // C 4311
+	     consulted.  */                                                    // C 4312
+
+	  temp = dst_x - (*gc).clip_x_origin;                                  // C 4314
+	  /* C 4315-4316's `temp += MIN (mask_info->width - temp, width - mask_offset);` (the two
+	     subtractions C does in `unsigned int`).  */
+	  temp += MIN! ((*mask_info).width.wrapping_sub (temp as c_uint),
+			(width - mask_offset) as c_uint) as c_int;
+
+	  if temp < 0                                                          // C 4318
+	    { return; }                                                        // C 4319
+
+	  /* Now calculate the last row of the mask that will be               // C 4321
+	     consulted.  */                                                    // C 4322
+	  i = dst_y - (*gc).clip_y_origin + height;                            // C 4323
+
+	  /* Turn both into offsets.  */                                       // C 4325
+
+	  /* C 4327-4331's four-operand `||` chain, written as C's short-circuit leaves it (the
+	     `image.rs` 9622-9628 device): each call runs only when the previous ones reported no
+	     overflow, and the first overflow returns.  */
+	  let (ckd_offset, ckd_over)
+	    = (temp as size_t).overflowing_mul (pixel);                   // C 4327
+	  offset = ckd_offset;
+	  if ckd_over
+	    { return; }
+	  let (ckd_offset1, ckd_over)
+	    = (i as size_t).overflowing_mul ((*mask_info).stride as size_t);   // C 4328
+	  offset1 = ckd_offset1;
+	  if ckd_over
+	    { return; }
+	  let (ckd_offset, ckd_over) = offset.overflowing_add (offset1);   // C 4329
+	  offset = ckd_offset;
+	  if ckd_over
+	    { return; }
+	  let (ckd_start, ckd_over)
+	    = (mask as uintptr_t).overflowing_add (offset);               // C 4330
+	  start = ckd_start;
+	  if ckd_over
+	    { return; }
+
+	  if height <= 0                                                       // C 4333
+	    { return; }                                                        // C 4334
+
+	  mask_current = start as *mut c_uchar;                                // C 4336
+	  mask = mask_current;
+
+	  while { let old = height; height -= 1; old != 0 }              // C 4338 (C's `while (height--)`)
+	    {
+	      /* Skip backwards past the end of the mask.  */                  // C 4340
+
+	      long_src
+		= src_current.wrapping_offset (-((mask_offset as usize)
+					       .wrapping_mul (pixel) as isize)) as *mut c_uint;   // C 4342
+	      long_dst
+		= dst_current.wrapping_offset (-((mask_offset as usize)
+					       .wrapping_mul (pixel) as isize)) as *mut c_uint;   // C 4343
+	      mask = mask_current;                                       // C 4344
+
+	      /* For each pixel covered by the mask... */                      // C 4346
+	      temp = MIN! ((*mask_info).width.wrapping_sub (temp as c_uint),
+			   (width - mask_offset) as c_uint) as c_int;      // C 4347
+	      while { let old = temp; temp -= 1; old != 0 }              // C 4348 (C's `while (temp--)`)
+		{
+		  /* Copy the destination it to the source, masked by                 // C 4350
+		     the mask.  */                                                    // C 4351
+
+		  /* Sign extend the mask.  */                                        // C 4353
+		  i = *(mask as *mut core::ffi::c_schar) as c_int;       // C 4354 (C's `mask--` is the step below)
+		  mask = mask.wrapping_offset (-1);
+
+		  /* Apply the mask.  */                                              // C 4356
+		  *long_dst = (*long_src & i as c_uint)
+		    | (*long_dst & ! (i as c_uint));                    // C 4357
+
+		  long_dst = long_dst.wrapping_offset (-1);                  // C 4359
+		  long_src = long_src.wrapping_offset (-1);                  // C 4360
+		}
+
+	      /* Return to the last row.  */                                   // C 4363
+	      src_current
+		= src_current.wrapping_offset (-((*src_info).stride as isize));   // C 4364
+	      dst_current
+		= dst_current.wrapping_offset (-((*dst_info).stride as isize));   // C 4365
+	      mask_current
+		= mask_current.wrapping_offset (-((*mask_info).stride as isize));   // C 4366
+	    }
+	}
+      else                                                              // C 4369
+	{
+	  /* Calculate the first column of the mask that will be               // C 4371
+	     consulted.  */                                                    // C 4372
+
+	  mask_offset = dst_x - (*gc).clip_x_origin;                           // C 4374
+
+	  /* Adjust the mask by that much.  */                                 // C 4376
+
+	  if mask_offset > 0                                                   // C 4378
+	    { mask = mask.wrapping_offset (mask_offset as isize); }            // C 4379
+	  else
+	    {
+	      /* Offset src and dst by the mask offset.  */                    // C 4382
+	      src_current
+		= src_current.wrapping_offset (((-mask_offset) as usize)
+					      .wrapping_mul (pixel) as isize);      // C 4383
+	      dst_current
+		= dst_current.wrapping_offset (((-mask_offset) as usize)
+					      .wrapping_mul (pixel) as isize);      // C 4384
+	      width += mask_offset;                                            // C 4385
+	    }
+
+	  /* Make sure it's not out of bounds.  */                             // C 4388
+
+	  eassert! (dst_y - (*gc).clip_y_origin >= 0);                         // C 4390
+	  /* C 4391-4392's `(dst_y - gc->clip_y_origin) + height > mask_info->height`: the
+	     comparison is in `unsigned int` on C's side.  */
+	  if ((dst_y - (*gc).clip_y_origin + height) as c_uint
+		> (*mask_info).height
+	      || width <= 0)                                            // C 4392
+	    { return; }
+
+	  /* Now move mask to the position of the first row.  */               // C 4395
+
+	  /* C 4397-4398's `mask += ((dst_y - gc->clip_y_origin) * mask_info->stride);` (the product
+	     in `unsigned int`, as C's conversion gives it).  */
+	  mask = mask.wrapping_offset (((dst_y - (*gc).clip_y_origin) as c_uint)
+				       .wrapping_mul ((*mask_info).stride) as isize);
+
+	  /* Determine how many bytes need to be copied.  */                   // C 4400
+
+	  if mask_offset > 0                                                   // C 4402
+	    { temp = MIN! ((*mask_info).width.wrapping_sub (mask_offset as c_uint),
+			   width as c_uint) as c_int; }                 // C 4403
+	  else                                                                 // C 4404
+	    { temp = MIN! ((*mask_info).width, width as c_uint) as c_int; }   // C 4405
+
+	  if temp <= 0 || height <= 0                                          // C 4407
+	    { return; }                                                        // C 4408
+
+	  /* Copy bytes according to the mask.  */                             // C 4410
+
+	  while { let old = height; height -= 1; old != 0 }              // C 4412 (C's `while (height--)`)
+	    {
+	      long_src = src_current as *mut c_uint;                           // C 4414
+	      long_dst = dst_current as *mut c_uint;                           // C 4415
+	      mask_current = mask;                                             // C 4416
+
+	      /* C 4418's `#ifndef __aarch64__` arm and C 4429-4431's `#else` arm.  */
+	      #[cfg (not (feature = "aarch64"))]
+	      for j in 0..temp                                          // C 4419
+		{
+		  /* Sign extend the mask.  */                                        // C 4421
+		  i = *(mask_current as *mut core::ffi::c_schar) as c_int;   // C 4422 (C's `mask_current++` is the step below)
+		  mask_current = mask_current.wrapping_offset (1);
+
+		  /* Apply the mask.  */                                              // C 4424
+		  *long_dst = (*long_src & i as c_uint)
+		    | (*long_dst & ! (i as c_uint));                    // C 4425
+		  long_dst = long_dst.wrapping_offset (1);                   // C 4426
+		  long_src = long_src.wrapping_offset (1);                   // C 4427
+		}
+	      #[cfg (feature = "aarch64")]
+	      android_neon_mask_line (long_src, long_dst, mask, temp);   // C 4430 	      android_neon_mask_line (long_src, long_dst, mask, temp);   // C 4430
+
+	      src_current
+		= src_current.wrapping_offset ((*src_info).stride as isize);   // C 4433
+	      dst_current
+		= dst_current.wrapping_offset ((*dst_info).stride as isize);   // C 4434
+	      mask
+		= mask.wrapping_offset ((*mask_info).stride as isize);         // C 4435
+	    }
+	}
+    }
+}
