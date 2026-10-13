@@ -12107,3 +12107,59 @@ pub unsafe extern "C" fn sys_connect (s: c_int, name: *const sockaddr, namelen: 
   *errno () = ENOTSOCK;                                                 // C 8238
   return SOCKET_ERROR;                                                  // C 8239
 }                                                                       // C 8240
+
+
+/* C 8241's blank and C 8242-8274's five one-line wrappers: `sys_htons`/`sys_ntohs` (C 8242-8254),
+   `sys_htonl`/`sys_ntohl` (C 8255-8267) and `sys_inet_addr` (C 8269-8274).  Each is one C
+   ternary over `winsock_lib` (`P ? pfn_X (arg) : arg`), written `return if … { … } else { … };`
+   (the C 6619 site's device, whose marker names C's ternary).  `INADDR_NONE`
+   (`<winsock2.h>`'s `0xffffffff`) is declared in-unit (P-88, `UNVERIFIED`, Owed 29); C's
+   `unsigned long` return is slice 20's `pfn_inet_addr` spelling (`c_ulong`), and `u_short`/
+   `u_long` are this unit's own type aliases (C 7760-7781's block).  */
+/// C: #define INADDR_NONE 0xffffffff  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const INADDR_NONE: c_ulong = 0xffffffff;
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_htons (hostshort: u_short) -> u_short      // C 8242
+{                                                                       // C 8244
+  return if ! winsock_lib.is_null ()                                    // C 8245 (C's ternary)
+    { pfn_htons.unwrap () (hostshort) }                                 // C 8246 (C's call-through)
+    else { hostshort };                                                 // C 8246
+}                                                                       // C 8247
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_ntohs (netshort: u_short) -> u_short       // C 8249
+{                                                                       // C 8251
+  return if ! winsock_lib.is_null ()                                    // C 8252 (C's ternary)
+    { pfn_ntohs.unwrap () (netshort) }                                  // C 8253 (C's call-through)
+    else { netshort };                                                  // C 8253
+}                                                                       // C 8254
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_htonl (hostlong: u_long) -> u_long         // C 8255
+{                                                                       // C 8257
+  return if ! winsock_lib.is_null ()                                    // C 8258 (C's ternary)
+    { pfn_htonl.unwrap () (hostlong) }                                  // C 8259 (C's call-through)
+    else { hostlong };                                                  // C 8259
+}                                                                       // C 8260
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_ntohl (netlong: u_long) -> u_long          // C 8262
+{                                                                       // C 8264
+  return if ! winsock_lib.is_null ()                                    // C 8265 (C's ternary)
+    { pfn_ntohl.unwrap () (netlong) }                                   // C 8266 (C's call-through)
+    else { netlong };                                                   // C 8266
+}                                                                       // C 8267
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_inet_addr (cp: *const c_char) -> c_ulong   // C 8269
+{                                                                       // C 8271
+  return if ! winsock_lib.is_null ()                                    // C 8272 (C's ternary)
+    { pfn_inet_addr.unwrap () (cp) }                                    // C 8273 (C's call-through)
+    else { INADDR_NONE };                                               // C 8273
+}                                                                       // C 8274
