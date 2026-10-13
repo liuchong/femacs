@@ -11237,3 +11237,171 @@ static mut pfn_SetHandleInformation: Option<unsafe extern "system" fn (HANDLE, D
 /// C: #endif
 #[cfg (feature = "windowsnt")]
 pub const HANDLE_FLAG_INHERIT: DWORD = 1;
+
+/* C 7807-7814: C 7807's blank, C 7808-7810's `extern HANDLE winsock_lib;` / `HANDLE
+   winsock_lib;` pair and C 7810's `static int winsock_inuse;`, C 7812's prototype (dropped
+   per PORTING.md 0.1-12, its line carried here) and C 7814-7815's `BOOL` + `term_winsock`.
+   This slice carries `term_winsock` (7814-7832), `init_winsock` (7834-7927, with C 7852-7887's
+   `LOAD_PROC` macro and C 7921's `fail:` label) and the two file-scope objects C 7809/7810
+   define - two of this file's six `missing file-scope object` rows.  The names this slice
+   first uses are declared here (P-88, `UNVERIFIED`): `<winsock2.h>`'s `WSAENETDOWN` (the
+   `nt/inc/sys/include/socket.rs` 135 `ENETDOWN` row already *uses* it and says that header "has
+   no mirror") and `<kernel32.h>`'s `FreeLibrary`.  `release_listen_threads` (C 7819) is
+   `src/w32.h` 173's declaration, i.e. the in-scope `include/w32.rs` mirror.  */
+/// C: extern void release_listen_threads (void);  [src/w32.h 173]
+/// C: #define WSAENETDOWN 10050  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENETDOWN: c_int = 10050;
+/// C: WINBASEAPI BOOL WINAPI FreeLibrary (HMODULE hLibModule);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn FreeLibrary (hLibModule: HMODULE) -> BOOL;
+}
+
+/// C 7852-7854: `#define LOAD_PROC(fn) if ((pfn_##fn = (void *) get_proc_addr (winsock_lib,
+/// #fn)) == NULL) goto fail;` - `do { … } while` is a block expression (PORTING.md 2.1), and C's
+/// `##fn`/`#fn` token pasting has no Rust spelling, so the call sites pass the pasted field (the
+/// `LOAD_DLL_FN!` device of `decompress.rs` 237, whose doc comment records the same rule).  C's
+/// `goto fail` is `break 'fail` - the label's block is `init_winsock`'s own below.
+#[cfg (feature = "windowsnt")]
+macro_rules! LOAD_PROC {
+  ($label:lifetime, $pfn:ident, $name:expr) => {
+    {
+      $pfn = std::mem::transmute::<VOIDFNPTR, _> (get_proc_addr (winsock_lib, $name.as_ptr ()));
+      if $pfn.is_none () { break $label; }
+    }
+  };
+}
+
+/* C 7808-7809's `extern`-then-define pair is one item (PORTING.md 0.1-12), and C spells the
+   definition without `static`, so it is exported.  */
+/// C: HANDLE winsock_lib;  (C 7808's `extern` + C 7809's definition)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut winsock_lib: HANDLE = std::ptr::null_mut ();
+/// C: static int winsock_inuse;
+#[cfg (feature = "windowsnt")]
+static mut winsock_inuse: c_int = 0;                                    // C 7810 (C's tentative `static int`)
+
+/* C 7812: `BOOL term_winsock (void);` - C's own forward declaration of the function right
+   below; the port needs no item for it (PORTING.md 0.1-12), so the line is carried here.  */
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn term_winsock () -> BOOL                        // C 7814
+{                                                                       // C 7816
+  if ! winsock_lib.is_null () && winsock_inuse == 0                     // C 7817 (C's two tests)
+    {                                                                   // C 7818
+      release_listen_threads ();                                        // C 7819
+      /* Not sure what would cause WSAENETDOWN, or even if it can happen // C 7820
+	 after WSAStartup returns successfully, but it seems reasonable        // C 7821
+	 to allow unloading winsock anyway in that case. */                    // C 7822
+      if pfn_WSACleanup.unwrap () () == 0                               // C 7823 (C's call-through)
+	  || pfn_WSAGetLastError.unwrap () () == WSAENETDOWN                   // C 7824 (C's `||` continuation)
+	{                                                                      // C 7825
+	  if FreeLibrary (winsock_lib) != 0                                    // C 7826 (C's truth test)
+	  { winsock_lib = std::ptr::null_mut (); }                             // C 7827 (C's `= NULL`)
+	  return TRUE;                                                         // C 7828
+	}                                                                      // C 7829
+    }                                                                   // C 7830
+  return FALSE;                                                         // C 7831
+}                                                                       // C 7832
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn init_winsock (load_now: c_int) -> BOOL         // C 7834
+{                                                                       // C 7836
+  let mut winsockData: WSADATA;                                         // C 7837
+
+  /* C leaves it uninitialised (PORTING.md 1.5).  */
+  winsockData = std::mem::zeroed ();
+
+  if ! winsock_lib.is_null ()                                           // C 7839 (C's `!= NULL`)
+    { return TRUE; }                                                    // C 7840
+
+  pfn_SetHandleInformation                                              // C 7842
+    = std::mem::transmute::<VOIDFNPTR, _> (get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()), // C 7843
+					     c"SetHandleInformation".as_ptr ()));                          // C 7844
+
+  winsock_lib = LoadLibrary (c"Ws2_32.dll".as_ptr ());                  // C 7846 (C's quoted name)
+
+  if ! winsock_lib.is_null ()                                           // C 7848 (C's `!= NULL`)
+    {                                                                   // C 7849
+      /* dynamically link to socket functions  */                       // C 7850
+
+      /* C 7856-7886's thirty `LOAD_PROC` invocations - each passes the pasted `pfn_##fn` field
+	 and C's `#fn` string, and `break 'fail` stands in for the macro's `goto fail`.  The block
+	 below is C 7921's `fail:` label's body reached from them.  */
+      'fail: {                                                          // C 7852-7924 (the device)
+	LOAD_PROC! ('fail, pfn_WSAStartup, c"WSAStartup");                     // C 7856
+	LOAD_PROC! ('fail, pfn_WSASetLastError, c"WSASetLastError");           // C 7857
+	LOAD_PROC! ('fail, pfn_WSAGetLastError, c"WSAGetLastError");           // C 7858
+	LOAD_PROC! ('fail, pfn_WSAEventSelect, c"WSAEventSelect");             // C 7859
+	LOAD_PROC! ('fail, pfn_WSAEnumNetworkEvents, c"WSAEnumNetworkEvents"); // C 7860
+	LOAD_PROC! ('fail, pfn_WSACreateEvent, c"WSACreateEvent");             // C 7861
+	LOAD_PROC! ('fail, pfn_WSACloseEvent, c"WSACloseEvent");               // C 7862
+	LOAD_PROC! ('fail, pfn_socket, c"socket");                             // C 7863
+	LOAD_PROC! ('fail, pfn_bind, c"bind");                                 // C 7864
+	LOAD_PROC! ('fail, pfn_connect, c"connect");                           // C 7865
+	LOAD_PROC! ('fail, pfn_ioctlsocket, c"ioctlsocket");                   // C 7866
+	LOAD_PROC! ('fail, pfn_recv, c"recv");                                 // C 7867
+	LOAD_PROC! ('fail, pfn_send, c"send");                                 // C 7868
+	LOAD_PROC! ('fail, pfn_closesocket, c"closesocket");                   // C 7869
+	LOAD_PROC! ('fail, pfn_shutdown, c"shutdown");                         // C 7870
+	LOAD_PROC! ('fail, pfn_htons, c"htons");                               // C 7871
+	LOAD_PROC! ('fail, pfn_ntohs, c"ntohs");                               // C 7872
+	LOAD_PROC! ('fail, pfn_htonl, c"htonl");                               // C 7873
+	LOAD_PROC! ('fail, pfn_ntohl, c"ntohl");                               // C 7874
+	LOAD_PROC! ('fail, pfn_inet_addr, c"inet_addr");                       // C 7875
+	LOAD_PROC! ('fail, pfn_gethostname, c"gethostname");                   // C 7876
+	LOAD_PROC! ('fail, pfn_gethostbyname, c"gethostbyname");               // C 7877
+	LOAD_PROC! ('fail, pfn_getservbyname, c"getservbyname");               // C 7878
+	LOAD_PROC! ('fail, pfn_getpeername, c"getpeername");                   // C 7879
+	LOAD_PROC! ('fail, pfn_WSACleanup, c"WSACleanup");                     // C 7880
+	LOAD_PROC! ('fail, pfn_setsockopt, c"setsockopt");                     // C 7881
+	LOAD_PROC! ('fail, pfn_listen, c"listen");                             // C 7882
+	LOAD_PROC! ('fail, pfn_getsockname, c"getsockname");                   // C 7883
+	LOAD_PROC! ('fail, pfn_accept, c"accept");                             // C 7884
+	LOAD_PROC! ('fail, pfn_recvfrom, c"recvfrom");                         // C 7885
+	LOAD_PROC! ('fail, pfn_sendto, c"sendto");                             // C 7886
+
+	/* Try loading functions not available before XP.  */                  // C 7889
+	pfn_getaddrinfo = std::mem::transmute::<VOIDFNPTR, _> (get_proc_addr (winsock_lib, c"getaddrinfo".as_ptr ())); // C 7890
+	pfn_freeaddrinfo = std::mem::transmute::<VOIDFNPTR, _> (get_proc_addr (winsock_lib, c"freeaddrinfo".as_ptr ())); // C 7891
+      /* Paranoia: these two functions should go together, so if one    // C 7892
+	 is absent, we cannot use the other.  */                               // C 7893
+	if pfn_getaddrinfo.is_none ()                                          // C 7894 (C's `== NULL`)
+	  { pfn_freeaddrinfo = None; }
+	else if pfn_freeaddrinfo.is_none ()                                    // C 7896
+	  { pfn_getaddrinfo = None; }
+
+	/* specify version 1.1 of winsock */                                   // C 7899
+	if pfn_WSAStartup.unwrap () (0x101, (&raw mut winsockData)) == 0       // C 7900 (C's call-through)
+	  {
+	    if winsockData.wVersion != 0x101                                   // C 7902
+	      { break 'fail; }                                                 // C 7903 (C's `goto fail`)
+
+	    if load_now == 0                                                   // C 7905 (C's `!load_now`)
+	      {
+	      /* Report that winsock exists and is usable, but leave           // C 7907
+		 socket functions disabled.  I am assuming that calling               // C 7908
+		 WSAStartup does not require any network interaction,                 // C 7909
+		 and in particular does not cause or require a dial-up                // C 7910
+		 connection to be established. */                                     // C 7911
+		pfn_WSACleanup.unwrap () ();                                          // C 7913
+		FreeLibrary (winsock_lib);                                            // C 7914
+		winsock_lib = std::ptr::null_mut ();                                  // C 7915 (C's `= NULL`)
+	      }
+	    winsock_inuse = 0;                                                 // C 7917
+	    return TRUE;                                                       // C 7918
+	  }
+
+	/* C 7921-7923's `fail:` label body: reached by the thirty `LOAD_PROC` breaks and by the
+	   fall-through of C 7900's `if` (when `pfn_WSAStartup` returns non-zero).  */
+	FreeLibrary (winsock_lib);                                             // C 7922
+	winsock_lib = std::ptr::null_mut ();                                   // C 7923 (C's `= NULL`)
+      }
+    }                                                                   // C 7924
+
+  return FALSE;                                                         // C 7926
+}                                                                       // C 7927
