@@ -11405,3 +11405,89 @@ pub unsafe extern "C" fn init_winsock (load_now: c_int) -> BOOL         // C 783
 
   return FALSE;                                                         // C 7926
 }                                                                       // C 7927
+
+
+/* C 7928-7929's two blanks and C 7930's `int h_errno = 0;`: the definition of the file-scope
+   object the `nt/inc/sys/include/socket.rs` 232 `h_errno` row declares (a definition shadows a
+   glob-imported declaration, PORTING.md 0.1-10), and C does not spell it `static`, so it is
+   exported.  The `WSAE*` names C 7948-7957's `switch` tests are the `<winsock2.h>` family that
+   the socket.rs mirror says has "no mirror" (its 105/149 rows `EWOULDBLOCK`/`ENOTCONN` already
+   *use* two of them); `ENOTEMPTY` is `<errno.h>`'s, which the `lib/include/errno.rs` mirror does
+   not carry and `nt/inc/sys/socket.h` 263 leaves commented out.  Every value here is
+   `UNVERIFIED` (P-88): this host has no Windows SDK to measure them with - Owed 24.  */
+/// C: #define WSAEACCES 10013  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEACCES: c_int = 10013;
+/// C: #define WSAEBADF 10009  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEBADF: c_int = 10009;
+/// C: #define WSAEFAULT 10014  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEFAULT: c_int = 10014;
+/// C: #define WSAEINTR 10004  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEINTR: c_int = 10004;
+/// C: #define WSAEINVAL 10022  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEINVAL: c_int = 10022;
+/// C: #define WSAEMFILE 10024  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEMFILE: c_int = 10024;
+/// C: #define WSAENAMETOOLONG 10063  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENAMETOOLONG: c_int = 10063;
+/// C: #define WSAENOTEMPTY 10066  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENOTEMPTY: c_int = 10066;
+/// C: #define WSAEWOULDBLOCK 10035  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEWOULDBLOCK: c_int = 10035;
+/// C: #define WSAENOTCONN 10057  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENOTCONN: c_int = 10057;
+/// C: #define ENOTEMPTY 41  (`<errno.h>`, the CRT's own)
+#[cfg (feature = "windowsnt")]
+pub const ENOTEMPTY: c_int = 41;
+/// C: int h_errno = 0;
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut h_errno: c_int = 0;                                      // C 7930
+
+/* Function to map winsock error codes to errno codes for those errno   // C 7932
+   code defined in errno.h (errno values not defined by errno.h are     // C 7933
+   already in nt/inc/sys/socket.h).  */                                 // C 7934
+
+#[cfg (feature = "windowsnt")]
+unsafe fn set_errno ()                                                  // C 7935 (C's `static void` + `set_errno (void)`)
+{                                                                       // C 7937
+  let mut wsa_err: c_int;                                               // C 7938
+                                                                        // C 7939
+  h_errno = 0;                                                          // C 7940
+  if winsock_lib.is_null ()                                             // C 7941 (C's `== NULL`)
+    { wsa_err = EINVAL; }                                               // C 7942
+  else                                                                  // C 7943
+    { wsa_err = pfn_WSAGetLastError.unwrap () (); }                     // C 7944 (C's call-through)
+                                                                        // C 7945
+  match wsa_err                                                         // C 7946
+    {                                                                   // C 7947
+    WSAEACCES => { *errno () = EACCES; }                                // C 7948
+    WSAEBADF => { *errno () = EBADF; }                                  // C 7949
+    WSAEFAULT => { *errno () = EFAULT; }                                // C 7950
+    WSAEINTR => { *errno () = EINTR; }                                  // C 7951
+    WSAEINVAL => { *errno () = EINVAL; }                                // C 7952
+    WSAEMFILE => { *errno () = EMFILE; }                                // C 7953
+    WSAENAMETOOLONG => { *errno () = ENAMETOOLONG; }                    // C 7954
+    WSAENOTEMPTY => { *errno () = ENOTEMPTY; }                          // C 7955
+    WSAEWOULDBLOCK => { *errno () = EWOULDBLOCK; }                      // C 7956
+    WSAENOTCONN => { *errno () = ENOTCONN; }                            // C 7957
+    _ => { *errno () = wsa_err; }                                       // C 7958 (C's `default`)
+    }                                                                   // C 7959
+}                                                                       // C 7960
+
+#[cfg (feature = "windowsnt")]
+unsafe fn check_errno ()                                                // C 7962 (C's `static void` + `check_errno (void)`)
+{                                                                       // C 7964
+  h_errno = 0;                                                          // C 7965
+  if ! winsock_lib.is_null ()                                           // C 7966 (C's `!= NULL`)
+    { pfn_WSASetLastError.unwrap () (0); }                              // C 7967 (C's call-through)
+}                                                                       // C 7968
