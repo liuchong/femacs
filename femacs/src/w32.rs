@@ -12753,3 +12753,142 @@ pub unsafe extern "C" fn fcntl (s: c_int, cmd: c_int, options: c_int) -> c_int /
   *errno () = ENOTSOCK;                                                 // C 8705
   return SOCKET_ERROR;                                                  // C 8706
 }                                                                       // C 8707
+
+
+/* C 8708's blank, C 8710-8711's `Shadow main io functions` comment (C's own text) and C 8713-8821's
+  `sys_close` - the descriptor teardown, and the first function to walk the child record: C 8726-8740
+  read `fd_info[fd].cp` and the thread's two flags, C 8742-8780's `CHILD_ACTIVE` arm scans `MAXDESC`
+  for a second user of the record and then shuts the socket down (`pfn_shutdown`, `pfn_closesocket`,
+  `winsock_inuse--`), and C 8787-8810's second arm decides between `_close` and leaving
+  `FILE_DONT_CLOSE` for the reader thread.  `STILL_ACTIVE` and `GetExitCodeThread` (`<winbase.h>`)
+  are declared in-unit (P-88, `UNVERIFIED`, Owed 35); `CHILD_ACTIVE`/`delete_child`/
+  `STATUS_READ_IN_PROGRESS` are the `w32.h` mirror's rows, `FILE_DONT_CLOSE` its 261 and the
+  `child_process` record slice 25's own spelling.  */
+/* Shadow main io functions: we need to handle pipes and sockets more
+   intelligently.  */
+/// C: #define STILL_ACTIVE 0x00000103  (`<winbase.h>`; 259)
+#[cfg (feature = "windowsnt")]
+pub const STILL_ACTIVE: DWORD = 0x00000103;
+/// C: WINBASEAPI BOOL WINAPI GetExitCodeThread (HANDLE hThread, LPDWORD lpExitCode);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetExitCodeThread (hThread: HANDLE, lpExitCode: *mut DWORD) -> BOOL;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_close (fd: c_int) -> c_int                 // C 8713
+{                                                                       // C 8715
+  let mut rc: c_int = -1;                                               // C 8716 (C's `int rc = -1;`)
+  let mut reader_thread_exited: bool = false;                           // C 8717 (C's `bool … = false;`)
+  let mut reader_thread_reading: bool = false;                          // C 8718
+
+  if fd < 0                                                             // C 8720
+    {                                                                   // C 8721
+      *errno () = EBADF;                                                // C 8722
+      return -1;                                                        // C 8723
+    }                                                                   // C 8724
+
+  if fd < MAXDESC && ! fd_info[fd as usize].cp.is_null ()               // C 8726 (C's truth test)
+    {                                                                   // C 8727
+      let cp: *mut child_process = fd_info[fd as usize].cp as *mut child_process; // C 8728 (the mirror's `*mut c_void` depth)
+      let mut thrd_status: DWORD = STILL_ACTIVE;                        // C 8729
+
+      /* Thread handle will be NULL if we already called delete_child.  */ // C 8731
+      if !(*cp).thrd.is_null ()                                         // C 8732 (C's `!= NULL`)
+	  && GetExitCodeThread ((*cp).thrd, &raw mut thrd_status) != 0         // C 8733 (C's truth test)
+	  && thrd_status != STILL_ACTIVE                                       // C 8734
+	{ reader_thread_exited = true; }                                       // C 8735
+
+      if !(*cp).thrd.is_null () && (*cp).status == STATUS_READ_IN_PROGRESS // C 8737
+	{ reader_thread_reading = true; }                                      // C 8738
+
+      fd_info[fd as usize].cp = std::ptr::null_mut ();                  // C 8740 (C's `= NULL`)
+
+      if CHILD_ACTIVE! (cp)                                             // C 8742 (the mirror's macro)
+	{                                                                      // C 8743
+	  /* if last descriptor to active child_process then cleanup */        // C 8744
+	  let mut i: c_int;                                                    // C 8745
+
+	  /* C leaves `i` uninitialised (PORTING.md 1.5).  */
+	  i = 0;                                                               // C 8746
+	  while i < MAXDESC                                                    // C 8746
+	    {                                                                  // C 8747
+	      if i == fd                                                       // C 8748
+		{                                                                     // C 8749
+		  i += 1;                                                             // C 8748 (C's `continue` plus the `for`'s increment)
+		  continue;
+		}
+	      if fd_info[i as usize].cp == cp as *mut c_void                   // C 8750
+		{ break; }                                                            // C 8751
+	      i += 1;                                                          // C 8746 (the for's increment)
+	    }                                                                  // C 8752
+	  if i == MAXDESC                                                      // C 8753
+	    {                                                                  // C 8754
+	      if (fd_info[fd as usize].flags & FILE_SOCKET as c_uint) != 0     // C 8755
+		{                                                                     // C 8756
+		  if winsock_lib.is_null () { emacs_abort (); }                       // C 8757 (C's one-line `if`)
+
+		  pfn_shutdown.unwrap () (SOCK_HANDLE! (fd), 2);                      // C 8759 (C's call-through)
+		  rc = pfn_closesocket.unwrap () (SOCK_HANDLE! (fd));                 // C 8760
+
+		  winsock_inuse -= 1;                                                 // C 8762 (C's `winsock_inuse--` and its comment)
+		}                                                                     // C 8763
+	      /* If the process handle is NULL, it's either a socket           // C 8764
+		 or serial connection, or a subprocess that was                       // C 8765
+		 already reaped by reap_subprocess, but whose                         // C 8766
+		 resources were not yet freed, because its output was                 // C 8767
+		 not fully read yet by the time it was reaped.  (This                 // C 8768
+		 usually happens with async subprocesses whose output                 // C 8769
+		 is being read by Emacs.)  Otherwise, this process was                // C 8770
+		 not reaped yet, so we set its FD to a negative value                 // C 8771
+		 to make sure sys_select will eventually get to                       // C 8772
+		 calling the SIGCHLD handler for it, which will then                  // C 8773
+		 invoke waitpid and reap_subprocess.  */                              // C 8774
+	      if (*cp).procinfo.hProcess.is_null ()                            // C 8775
+		{ delete_child (cp as *mut c_void); }                                 // C 8776
+	      else                                                             // C 8777
+		{ (*cp).fd = -1; }                                                    // C 8778
+	    }                                                                  // C 8779
+	}                                                                      // C 8780
+    }                                                                   // C 8781
+
+  /* Note that sockets do not need special treatment here (at least on  // C 8783
+     NT and Windows 95 using the standard tcp/ip stacks) - it appears that // C 8784
+     closesocket is equivalent to CloseHandle, which is to be expected  // C 8785
+     because socket handles are fully fledged kernel handles. */        // C 8786
+  if fd < MAXDESC                                                       // C 8787
+    {                                                                   // C 8788
+      if (((fd_info[fd as usize].flags & FILE_DONT_CLOSE as c_uint) == 0 // C 8789
+	   /* Don't attempt to close a descriptor while reader thread is       // C 8790
+	      stuck in _sys_read_ahead attempting to read from it, as          // C 8791
+	      that will hang Emacs.  */                                        // C 8792
+	   && !(((fd_info[fd as usize].flags & (FILE_PIPE | FILE_READ) as c_uint) // C 8793
+		 == (FILE_PIPE | FILE_READ) as c_uint)                                // C 8794
+		&& reader_thread_reading))                                            // C 8795
+	  /* If the reader thread already exited, close the descriptor,        // C 8796
+	     since otherwise no one will close it, and we will be              // C 8797
+	     leaking descriptors.  */                                          // C 8798
+	  || reader_thread_exited)                                             // C 8799
+	{                                                                      // C 8800
+	  fd_info[fd as usize].flags = 0;                                      // C 8801
+	  rc = _close (fd);                                                    // C 8802
+	}                                                                      // C 8803
+      else                                                              // C 8804
+	{                                                                      // C 8805
+	  /* We don't close here descriptors open by pipe processes            // C 8806
+	     for reading from the pipe when the reader thread might            // C 8807
+	     still be running, since that thread might be stuck in             // C 8808
+	     _sys_read_ahead, and then we will hang here.  If the              // C 8809
+	     reader thread exits normally, it will close the                   // C 8810
+	     descriptor; otherwise we will leave a zombie thread               // C 8811
+	     hanging around.  */                                               // C 8812
+	  rc = 0;                                                              // C 8813
+	  /* Leave the flag set for the reader thread to close the             // C 8814
+	     descriptor.  */                                                   // C 8815
+	  fd_info[fd as usize].flags = FILE_DONT_CLOSE as c_uint;              // C 8816
+	}                                                                      // C 8817
+    }                                                                   // C 8818
+
+  return rc;                                                            // C 8820
+}                                                                       // C 8821
