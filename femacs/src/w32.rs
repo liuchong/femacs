@@ -13951,3 +13951,368 @@ pub unsafe extern "C" fn sys_write (fd: c_int, mut buffer: *const c_void, mut co
   SAFE_FREE! (sa_count);                                                // C 9571 (the mirror's macro)
   return nchars;                                                        // C 9572
 }                                                                       // C 9573
+
+
+/* C 9574's blank, C 9575's form feed and C 9576-9579's two comments (C's own text), then C 9580-9821's
+   `network_interface_get_info` - the lane's largest piece (242 C lines): the `IP_ADAPTER_INFO`
+   re-try protocol, C 9605's winsock load with its `goto done`, the `for` walk over the adapter list
+   with C 9615-9618's name table, C 9619-9629's inline enum and C 9631-9681's type switch, C 9682-9694's
+   name/address build, C 9695-9773's two result arms (the `hwaddr` vector and its `flags` list, the
+   `net_mask`/`bcast_addr` pair), and C 9776-9815's synthesized loopback interface; C 9818's `done:`
+   label is the tail of the labelled block (`'done`) whose `break 'done` is C 9606's `goto`.  The
+   record chain and the constants are spelled in-unit (P-88, `UNVERIFIED`, Owed 43), because the
+   unit's `PIP_ADAPTER_INFO` is `*mut c_void` (port line 494 - the record is deferred to a pointer);
+   `get_adapters_info` (port line 2917) is called with `ainfo as PIP_ADAPTER_INFO`, while `XVECTOR`
+   (`include/lisp.rs` 1008), `SSDATA`, `intern`/`build_string`/`Fcons`/`make_fixnum`/`Qnil`/`NILP`,
+   `sprintf`, `sockaddr_in`/`INADDR_NONE`/`sys_inet_addr`, `init_winsock`/`winsock_lib` and
+   `xmalloc`/`xrealloc`/`xfree` are already in scope; `strstr` turned out **not** to be (the
+  `<string.h>` mirror has no such declaration for this arm), so it is declared here too.  */
+/* Emulation of SIOCGIFCONF and getifaddrs, see process.c.  */
+/* Return information about network interface IFNAME, or about all
+   interfaces (if IFNAME is nil).  */
+/// C: #define MAX_ADAPTER_NAME_LENGTH 256  and `#define MAX_ADAPTER_DESCRIPTION_LENGTH 128`,
+/// C: `#define MAX_ADAPTER_ADDRESS_LENGTH 8`  (`<iptypes.h>`)
+/// C: typedef struct { char String[4 * 4]; } IP_ADDRESS_STRING;
+/// C: typedef struct _IP_ADDR_STRING { struct _IP_ADDR_STRING *Next; IP_ADDRESS_STRING
+/// C: IpAddress; IP_ADDRESS_STRING IpMask; DWORD Context; } IP_ADDR_STRING;
+/// C: typedef struct _IP_ADAPTER_INFO { struct _IP_ADAPTER_INFO *Next; DWORD ComboIndex;
+/// C: char AdapterName[MAX_ADAPTER_NAME_LENGTH + 4]; char
+/// C: Description[MAX_ADAPTER_DESCRIPTION_LENGTH + 4]; UINT AddressLength; BYTE Address[8];
+/// C: UINT Index; UINT Type; UINT DhcpEnabled; IP_ADDR_STRING *CurrentIpAddress;
+/// C: IP_ADDR_STRING IpAddressList; IP_ADDR_STRING GatewayList; IP_ADDR_STRING DhcpServer;
+/// C: BOOL HaveWins; IP_ADDR_STRING PrimaryWinsServer; IP_ADDR_STRING SecondaryWinsServer;
+/// C: time_t LeaseObtained; time_t LeaseExpires; } IP_ADAPTER_INFO;  (`<iptypes.h>`; every
+/// C: layout value `UNVERIFIED`)
+#[cfg (feature = "windowsnt")]
+pub const MAX_ADAPTER_NAME_LENGTH: usize = 256;
+#[cfg (feature = "windowsnt")]
+pub const MAX_ADAPTER_DESCRIPTION_LENGTH: usize = 128;
+#[cfg (feature = "windowsnt")]
+pub const MAX_ADAPTER_ADDRESS_LENGTH: usize = 8;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IP_ADDRESS_STRING
+{
+  pub String: [c_char; 4 * 4],
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IP_ADDR_STRING
+{
+  pub Next: *mut IP_ADDR_STRING,
+  pub IpAddress: IP_ADDRESS_STRING,
+  pub IpMask: IP_ADDRESS_STRING,
+  pub Context: DWORD,
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IP_ADAPTER_INFO
+{
+  pub Next: *mut IP_ADAPTER_INFO,
+  pub ComboIndex: DWORD,
+  pub AdapterName: [c_char; MAX_ADAPTER_NAME_LENGTH + 4],
+  pub Description: [c_char; MAX_ADAPTER_DESCRIPTION_LENGTH + 4],
+  pub AddressLength: c_uint,
+  pub Address: [c_uchar; MAX_ADAPTER_ADDRESS_LENGTH],
+  pub Index: c_uint,
+  pub Type: c_uint,
+  pub DhcpEnabled: c_uint,
+  pub CurrentIpAddress: *mut IP_ADDR_STRING,
+  pub IpAddressList: IP_ADDR_STRING,
+  pub GatewayList: IP_ADDR_STRING,
+  pub DhcpServer: IP_ADDR_STRING,
+  pub HaveWins: BOOL,
+  pub PrimaryWinsServer: IP_ADDR_STRING,
+  pub SecondaryWinsServer: IP_ADDR_STRING,
+  pub LeaseObtained: time_t,
+  pub LeaseExpires: time_t,
+}
+/// C: #define AF_INET 2  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const AF_INET: c_int = 2;
+/// C: #define ERROR_BUFFER_OVERFLOW 111  (`<winerror.h>`)
+#[cfg (feature = "windowsnt")]
+pub const ERROR_BUFFER_OVERFLOW: DWORD = 111;
+/// C: the `<ipifcons.h>` interface types C 9633-9667 names.
+#[cfg (feature = "windowsnt")]
+pub const MIB_IF_TYPE_ETHERNET: c_uint = 6;
+#[cfg (feature = "windowsnt")]
+pub const MIB_IF_TYPE_TOKENRING: c_uint = 9;
+#[cfg (feature = "windowsnt")]
+pub const MIB_IF_TYPE_FDDI: c_uint = 15;
+#[cfg (feature = "windowsnt")]
+pub const MIB_IF_TYPE_PPP: c_uint = 23;
+#[cfg (feature = "windowsnt")]
+pub const MIB_IF_TYPE_LOOPBACK: c_uint = 24;
+#[cfg (feature = "windowsnt")]
+pub const MIB_IF_TYPE_SLIP: c_uint = 28;
+#[cfg (feature = "windowsnt")]
+pub const IF_TYPE_IEEE80211: c_uint = 71;
+/// C: char *strstr (const char *, const char *);  (the CRT's; the port's `<string.h>` mirror does
+/// C: not declare it for this arm)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn network_interface_get_info (ifname: Lisp_Object) -> Lisp_Object // C 9580
+{                                                                       // C 9582
+  let mut ainfo_len: ULONG = core::mem::size_of::<IP_ADAPTER_INFO> () as ULONG; // C 9583 (C's `sizeof` and `ULONG`)
+  let mut adapter: *mut IP_ADAPTER_INFO;                                // C 9584
+  let mut ainfo: *mut IP_ADAPTER_INFO                                   // C 9584
+    = xmalloc (ainfo_len as usize) as *mut IP_ADAPTER_INFO;
+  let mut retval: DWORD = get_adapters_info (ainfo as PIP_ADAPTER_INFO, &raw mut ainfo_len); // C 9585
+  let mut res: Lisp_Object = Qnil ();                                   // C 9586 (C's `= Qnil`)
+
+  /* C leaves `adapter` uninitialised (PORTING.md 1.5).  */
+  adapter = std::ptr::null_mut ();
+
+  if retval == ERROR_BUFFER_OVERFLOW                                    // C 9588
+    {                                                                   // C 9589
+      ainfo = xrealloc (ainfo as *mut c_void, ainfo_len as usize) as *mut IP_ADAPTER_INFO; // C 9590
+      retval = get_adapters_info (ainfo as PIP_ADAPTER_INFO, &raw mut ainfo_len); // C 9591
+    }                                                                   // C 9592
+
+  'done: {                                                              // C 9606's `goto done` target (C 9818)
+  if retval == ERROR_SUCCESS                                            // C 9594
+    {                                                                   // C 9595
+      let mut eth_count: c_int = 0; let mut tr_count: c_int = 0;        // C 9596
+      let mut fddi_count: c_int = 0; let mut ppp_count: c_int = 0;
+      let mut sl_count: c_int = 0; let mut wlan_count: c_int = 0;       // C 9597
+      let mut lo_count: c_int = 0; let mut ifx_count: c_int = 0;
+      let mut if_num: c_int;                                            // C 9598
+      let mut sa: sockaddr_in;                                          // C 9599
+
+      /* C leaves `if_num` and `sa` uninitialised (PORTING.md 1.5).  */
+      if_num = 0;
+      sa = sockaddr_in { sin_family: 0, sin_port: 0, sin_addr: in_addr { s_addr: 0 }, // C 9599
+                        sin_zero: [0; 8] };
+
+      /* For the below, we need some winsock functions, so make sure    // C 9601
+	 the winsock DLL is loaded.  If we cannot successfully load            // C 9602
+	 it, they will have no use of the information we provide,              // C 9603
+	 anyway, so punt.  */                                                  // C 9604
+      if winsock_lib.is_null () && init_winsock (1) == 0                // C 9605 (C's `!winsock_lib && !init_winsock (1)`)
+	{ break 'done; }                                                       // C 9606 (C's `goto done`)
+
+      adapter = ainfo;                                                  // C 9608
+      while ! adapter.is_null ()                                        // C 9608
+	{                                                                      // C 9609
+	  let mut namebuf: [c_char; MAX_ADAPTER_NAME_LENGTH + 4]               // C 9610 (C's `MAX_ADAPTER_NAME_LENGTH + 4`)
+	    = [0; MAX_ADAPTER_NAME_LENGTH + 4];
+	  let mut ip_addr: u_long;                                             // C 9611
+	  /* Present Unix-compatible interface names, instead of the           // C 9612
+	     Windows names, which are really GUIDs not readable by             // C 9613
+	     humans.  */                                                       // C 9614
+	  let ifmt: [*const c_char; 8] = [c"eth%d".as_ptr (), c"tr%d".as_ptr (), // C 9615-9618
+				     c"fddi%d".as_ptr (), c"ppp%d".as_ptr (),
+				     c"sl%d".as_ptr (), c"wlan%d".as_ptr (),
+				     c"lo".as_ptr (), c"ifx%d".as_ptr ()];
+	  const NONE: c_int = -1;                                              // C 9619-9629 (C's inline enum)
+	  const ETHERNET: c_int = 0;
+	  const TOKENRING: c_int = 1;
+	  const FDDI: c_int = 2;
+	  const PPP: c_int = 3;
+	  const SLIP: c_int = 4;
+	  const WLAN: c_int = 5;
+	  const LOOPBACK: c_int = 6;
+	  const OTHER_IF: c_int = 7;
+	  let mut ifmt_idx: c_int;                                             // C 9629
+
+	  /* C leaves `ip_addr` and `ifmt_idx` uninitialised (PORTING.md 1.5).  */
+	  ip_addr = 0;
+	  ifmt_idx = 0;
+
+	  match (*adapter).Type                                                // C 9631
+	    {                                                                  // C 9632
+	      MIB_IF_TYPE_ETHERNET =>                                          // C 9633
+		{                                                                     // C 9634
+		  /* Windows before Vista reports wireless adapters as                // C 9634
+		     Ethernet.  Work around by looking at the Description             // C 9635
+		     string.  */                                                      // C 9636
+		  if ! strstr ((*adapter).Description.as_ptr (), c"Wireless ".as_ptr ()).is_null () // C 9637 (C's truth test)
+		    {                                                                 // C 9638
+		      ifmt_idx = WLAN;                                                // C 9639
+		      if_num = wlan_count; wlan_count += 1;                           // C 9640 (C's `wlan_count++`)
+		    }
+		  else                                                                // C 9642
+		    {                                                                 // C 9643
+		      ifmt_idx = ETHERNET;                                            // C 9644
+		      if_num = eth_count; eth_count += 1;                             // C 9645
+		    }                                                                 // C 9646
+		}                                                                     // C 9647 (C's `break;`)
+	      MIB_IF_TYPE_TOKENRING =>                                         // C 9648
+		{ ifmt_idx = TOKENRING; if_num = tr_count; tr_count += 1; }
+	      MIB_IF_TYPE_FDDI =>                                              // C 9652
+		{ ifmt_idx = FDDI; if_num = fddi_count; fddi_count += 1; }
+	      MIB_IF_TYPE_PPP =>                                               // C 9656
+		{ ifmt_idx = PPP; if_num = ppp_count; ppp_count += 1; }
+	      MIB_IF_TYPE_SLIP =>                                              // C 9660
+		{ ifmt_idx = SLIP; if_num = sl_count; sl_count += 1; }
+	      IF_TYPE_IEEE80211 =>                                             // C 9664
+		{ ifmt_idx = WLAN; if_num = wlan_count; wlan_count += 1; }
+	      MIB_IF_TYPE_LOOPBACK =>                                          // C 9668
+		{                                                                     // C 9669
+		  if lo_count < 0                                                     // C 9669
+		    {                                                                 // C 9670
+		      ifmt_idx = LOOPBACK;                                            // C 9671
+		      if_num = lo_count; lo_count += 1;                               // C 9672
+		    }                                                                 // C 9673
+		  else                                                                // C 9674
+		    { ifmt_idx = NONE; }                                              // C 9675
+		}                                                                     // C 9676
+	      _ =>                                                             // C 9677 (C's `default:`)
+		{ ifmt_idx = OTHER_IF; if_num = ifx_count; ifx_count += 1; }          // C 9678-9679
+	    }                                                                  // C 9681
+	  if ifmt_idx == NONE                                                  // C 9682
+	    {                                                                  // C 9682
+	      adapter = (*adapter).Next;                                       // C 9682 (C's `continue` plus the `for`'s increment)
+	      continue;
+	    }
+	  sprintf (namebuf.as_mut_ptr (), *ifmt.offset (ifmt_idx as isize), if_num); // C 9684 (C's runtime format)
+
+	  sa.sin_family = AF_INET as c_short;                                  // C 9686 (C's int-to-`short`)
+	  ip_addr = sys_inet_addr ((*adapter).IpAddressList.IpAddress.String.as_ptr ()); // C 9687
+	  if ip_addr == INADDR_NONE                                            // C 9688
+	    {                                                                  // C 9689
+	      /* Bogus address, skip this interface.  */                       // C 9690
+	      adapter = (*adapter).Next;                                       // C 9691 (C's `continue` plus the increment)
+	      continue;
+	    }
+	  sa.sin_addr.s_addr = ip_addr;                                        // C 9693
+	  sa.sin_port = 0;                                                     // C 9694
+	  if NILP (ifname)                                                     // C 9695
+	    { res = Fcons (Fcons (build_string (namebuf.as_ptr ()),            // C 9696-9697
+			   conv_sockaddr_to_lisp (&raw mut sa as *mut sockaddr,
+						  core::mem::size_of::<sockaddr> () as c_int)),
+			   res); }
+	  else if strcmp (namebuf.as_ptr (), SSDATA (ifname)) == 0             // C 9700
+	    {                                                                  // C 9701
+	      let mut hwaddr: Lisp_Object = Fmake_vector (make_fixnum (6), Qnil ()); // C 9702
+	      let p: *mut Lisp_Vector = XVECTOR (hwaddr);                      // C 9703
+	      let mut flags: Lisp_Object = Qnil ();                            // C 9704
+	      let mut n: c_int;                                                // C 9705
+	      let mut net_mask: u_long;                                        // C 9706
+
+	      /* C leaves `n` and `net_mask` uninitialised (PORTING.md 1.5).  */
+	      n = 0;
+	      net_mask = 0;
+
+	      /* Flags.  We guess most of them by type, since the              // C 9708
+		 Windows flags are different and hard to get by.  */                  // C 9709
+	      flags = Fcons (intern (c"up".as_ptr ()), flags);                 // C 9710
+	      if ifmt_idx == ETHERNET || ifmt_idx == WLAN                      // C 9711
+		{                                                                     // C 9712
+		  flags = Fcons (intern (c"broadcast".as_ptr ()), flags);             // C 9713
+		  flags = Fcons (intern (c"multicast".as_ptr ()), flags);             // C 9714
+		}                                                                     // C 9715
+	      flags = Fcons (intern (c"running".as_ptr ()), flags);            // C 9716
+	      if ifmt_idx == PPP                                               // C 9717
+		{                                                                     // C 9718
+		  flags = Fcons (intern (c"pointopoint".as_ptr ()), flags);           // C 9719
+		  flags = Fcons (intern (c"noarp".as_ptr ()), flags);                 // C 9720
+		}                                                                     // C 9721
+	      if (*adapter).HaveWins != 0                                      // C 9722 (C's truth test)
+		{ flags = Fcons (intern (c"WINS".as_ptr ()), flags); }                // C 9723
+	      if (*adapter).DhcpEnabled != 0                                   // C 9724
+		{ flags = Fcons (intern (c"dynamic".as_ptr ()), flags); }             // C 9725
+
+	      res = Fcons (flags, res);                                        // C 9727
+
+	      /* Hardware address and its family.  */                          // C 9729
+	      n = 0;                                                           // C 9730
+	      while n < (*adapter).AddressLength as c_int                      // C 9730
+		{                                                                     // C 9730
+		  (*p).contents[n as usize] = make_fixnum ((*adapter).Address[n as usize] as EMACS_INT); // C 9731
+		  n += 1;                                                             // C 9730 (the for's increment)
+		}
+	      /* Windows does not support AF_LINK or AF_PACKET family          // C 9732
+		 of addresses.  Use an arbitrary family number that is                // C 9733
+		 identical to what GNU/Linux returns.  */                             // C 9734
+	      res = Fcons (Fcons (make_fixnum (1), hwaddr), res);              // C 9735
+
+	      /* Network mask.  */                                             // C 9737
+	      sa.sin_family = AF_INET as c_short;                              // C 9738
+	      net_mask = sys_inet_addr ((*adapter).IpAddressList.IpMask.String.as_ptr ()); // C 9739
+	      if net_mask != INADDR_NONE                                       // C 9740
+		{                                                                     // C 9741
+		  sa.sin_addr.s_addr = net_mask;                                      // C 9742
+		  sa.sin_port = 0;                                                    // C 9743
+		  res = Fcons (conv_sockaddr_to_lisp (&raw mut sa as *mut sockaddr,   // C 9744-9745
+						      core::mem::size_of::<sockaddr> () as c_int),
+			       res); }
+	      else                                                             // C 9748
+		{ res = Fcons (Qnil (), res); }                                       // C 9749
+
+	      sa.sin_family = AF_INET as c_short;                              // C 9751
+	      if ip_addr != INADDR_NONE                                        // C 9752
+		{                                                                     // C 9753
+		  /* Broadcast address is only reported by                            // C 9754
+		     GetAdaptersAddresses, which is of limited                        // C 9755
+		     availability.  Generate it on our own.  */                       // C 9756
+		  let bcast_addr: u_long = (ip_addr & net_mask) | ! net_mask;         // C 9757 (C's `~` is Rust's `!`)
+
+		  sa.sin_addr.s_addr = bcast_addr;                                    // C 9759
+		  sa.sin_port = 0;                                                    // C 9760
+		  res = Fcons (conv_sockaddr_to_lisp (&raw mut sa as *mut sockaddr,   // C 9761-9762
+						      core::mem::size_of::<sockaddr> () as c_int),
+			       res);
+
+		  /* IP address.  */                                                  // C 9765
+		  sa.sin_addr.s_addr = ip_addr;                                       // C 9766
+		  sa.sin_port = 0;                                                    // C 9767
+		  res = Fcons (conv_sockaddr_to_lisp (&raw mut sa as *mut sockaddr,   // C 9768-9769
+						      core::mem::size_of::<sockaddr> () as c_int),
+			       res);
+		}                                                                     // C 9771
+	      else                                                             // C 9772
+		{ res = Fcons (Qnil (), Fcons (Qnil (), res)); }                      // C 9773
+	    }                                                                  // C 9774
+	  adapter = (*adapter).Next;                                           // C 9608 (the for's increment)
+	}                                                                      // C 9609
+      /* GetAdaptersInfo is documented to not report loopback           // C 9776
+	 interfaces, so we generate one out of thin air.  */                   // C 9777
+      if lo_count == 0                                                  // C 9778 (C's `!lo_count`)
+	{                                                                      // C 9779
+	  sa.sin_family = AF_INET as c_short;                                  // C 9780
+	  sa.sin_port = 0;                                                     // C 9781
+	  if NILP (ifname)                                                     // C 9782
+	    {                                                                  // C 9783
+	      sa.sin_addr.s_addr = sys_inet_addr (c"127.0.0.1".as_ptr ());     // C 9784
+	      res = Fcons (Fcons (build_string (c"lo".as_ptr ()),              // C 9785-9786
+			   conv_sockaddr_to_lisp (&raw mut sa as *mut sockaddr,
+						  core::mem::size_of::<sockaddr> () as c_int)),
+			   res);
+	    }                                                                  // C 9789
+	  else if strcmp (SSDATA (ifname), c"lo".as_ptr ()) == 0               // C 9790
+	    {                                                                  // C 9791
+	      res = Fcons (Fcons (intern (c"running".as_ptr ()),               // C 9792
+			   Fcons (intern (c"loopback".as_ptr ()),                            // C 9793
+				  Fcons (intern (c"up".as_ptr ()), Qnil ()))), Qnil ());            // C 9794
+	      /* 772 is what 3 different GNU/Linux systems report for          // C 9795
+		 the loopback interface.  */                                          // C 9796
+	      res = Fcons (Fcons (make_fixnum (772),                           // C 9797
+			   Fmake_vector (make_fixnum (6), make_fixnum (0))),                 // C 9798-9799
+			   res);
+	      sa.sin_addr.s_addr = sys_inet_addr (c"255.0.0.0".as_ptr ());     // C 9801
+	      res = Fcons (conv_sockaddr_to_lisp (&raw mut sa as *mut sockaddr, // C 9802-9803
+						  core::mem::size_of::<sockaddr> () as c_int),
+			   res);
+	      sa.sin_addr.s_addr = sys_inet_addr (c"0.0.0.0".as_ptr ());       // C 9805
+	      res = Fcons (conv_sockaddr_to_lisp (&raw mut sa as *mut sockaddr, // C 9806-9807
+						  core::mem::size_of::<sockaddr> () as c_int),
+			   res);
+	      sa.sin_addr.s_addr = sys_inet_addr (c"127.0.0.1".as_ptr ());     // C 9809
+	      res = Fcons (conv_sockaddr_to_lisp (&raw mut sa as *mut sockaddr, // C 9810-9811
+						  core::mem::size_of::<sockaddr> () as c_int),
+			   res);
+	    }                                                                  // C 9813
+	}                                                                      // C 9815
+    }                                                                   // C 9816
+  }                                                                     // the labelled block wraps C 9594-9816
+
+  xfree (ainfo as *mut c_void);                                         // C 9819 (C's `done:` body)
+  return res;                                                           // C 9820
+}                                                                       // C 9821
