@@ -9812,3 +9812,345 @@ pub unsafe extern "C" fn acl_errno_valid (errnum: c_int) -> bool        // C 689
 	{ return true; }                                                       // C 6901
     }
 }                                                                       // C 6903
+
+/* C 6904-6915: C 6904-6905's blank and form feed, C 6906-6909's `careadlinkat` banner
+   (carried verbatim) and C 6910-6914's signature - whose parameter list is the
+   `lib/include/careadlinkat.rs` declaration's to the letter (that mirror is in the C 277
+   include list, and a definition *shadows* the mirror's glob-imported declaration instead of
+   colliding with it - PORTING.md 0.1-10, the `timespec_decls` reading - so this entry point
+   needs no mirror gate, unlike slice 13-16's five).  The five names this slice first uses are
+   declared here (P-88, `UNVERIFIED`):
+   `<winbase.h>`'s `CopyFileW`/`CopyFileA`, `SetFileAttributesW`/`SetFileAttributesA` and
+   `SetLastError`, and `<winerror.h>`'s `ERROR_ENCRYPTION_FAILED`.  The rest of the slice is
+   `w32_copy_file` (C 6936-7043), C 7045-7049's two banners and the five WINAPI proxy
+   wrappers C 7051-7186 holds (`create_toolhelp32_snapshot`, `process32_first`/`_next`,
+   `open_thread_token`, `impersonate_self`, `revert_to_self`) - all of them the `LOAD_DLL_FN!`
+   shape slice 1's `open_process_token` established.  */
+/// C: WINBASEAPI BOOL WINAPI CopyFileW (LPCWSTR, LPCWSTR, BOOL);
+/// C: WINBASEAPI BOOL WINAPI CopyFileA (LPCSTR, LPCSTR, BOOL);
+/// C: WINBASEAPI BOOL WINAPI SetFileAttributesW (LPCWSTR, DWORD);
+/// C: WINBASEAPI BOOL WINAPI SetFileAttributesA (LPCSTR, DWORD);
+/// C: WINBASEAPI void WINAPI SetLastError (DWORD dwErrCode);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn CopyFileW (lpExistingFileName: LPCWSTR, lpNewFileName: LPCWSTR,
+		    bFailIfExists: BOOL) -> BOOL;
+  pub fn CopyFileA (lpExistingFileName: LPCSTR, lpNewFileName: LPCSTR,
+		    bFailIfExists: BOOL) -> BOOL;
+  pub fn SetFileAttributesW (lpFileName: LPCWSTR, dwFileAttributes: DWORD) -> BOOL;
+  pub fn SetFileAttributesA (lpFileName: LPCSTR, dwFileAttributes: DWORD) -> BOOL;
+  pub fn SetLastError (dwErrCode: DWORD);
+}
+/// C: #define ERROR_ENCRYPTION_FAILED 6000L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_ENCRYPTION_FAILED: DWORD = 6000;
+
+/* MS-Windows version of careadlinkat (cf. ../lib/careadlinkat.c).  We  // C 6906
+   have a fixed max size for file names, so we don't need the kind of   // C 6907
+   alloc/malloc/realloc dance the gnulib version does.  We also don't   // C 6908
+   support FD-relative symlinks.  */                                    // C 6909
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn careadlinkat (fd: c_int, filename: *const c_char, // C 6910
+				    buffer: *mut c_char, buffer_size: size_t,                       // C 6911
+				    alloc: *const allocator,                                        // C 6913
+				    preadlinkat: Option<unsafe extern "C" fn (c_int, *const c_char, // C 6914
+							     *mut c_char, size_t)                                        // C 6914
+							  -> ssize_t>)                                                   // C 6914
+  -> *mut c_char                                                        // C 6910
+{                                                                       // C 6915
+  let mut linkname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 6916
+  let mut link_size: ssize_t;                                           // C 6917
+
+  /* C leaves `link_size` uninitialised (PORTING.md 1.5).  */
+  link_size = 0;
+
+  link_size = (preadlinkat.unwrap ()) (fd, filename, linkname.as_mut_ptr (), core::mem::size_of_val (&linkname)); // C 6919 (C's call-through)
+
+  if link_size > 0                                                      // C 6921
+    {                                                                   // C 6922
+      let mut retval: *mut c_char = buffer;                             // C 6923
+
+      *linkname.as_mut_ptr ().offset (link_size as isize) = 0;          // C 6925 (C's `linkname[link_size++] = '\0'`)
+      link_size += 1;                                                   // C 6925 (C's post-increment)
+      if link_size > buffer_size as ssize_t                             // C 6926 (C's `size_t` comparison)
+	{
+    /* C 6927 selects the allocator with a ternary over two **function pointers**
+       (`alloc ? alloc->allocate : xmalloc`); the port names the selection in a local of
+       the mirror's field type and calls it the same way C does - blindly.  */
+	  let allocate: Option<unsafe extern "C" fn (usize) -> *mut c_void> =  // C 6927
+	    if alloc.is_null () { Some (xmalloc) } else { (*alloc).allocate }; // C 6927
+	  retval = (allocate.unwrap ()) (link_size as usize) as *mut c_char;   // C 6927 (C's call)
+	}
+      if ! retval.is_null ()                                            // C 6928 (C's truth test)
+	{ memcpy (retval as *mut c_void, linkname.as_ptr () as *const c_void, link_size as usize); } // C 6929
+
+      return retval;                                                    // C 6931
+    }                                                                   // C 6932
+  return std::ptr::null_mut ();                                         // C 6933 (C's `NULL`)
+}                                                                       // C 6934
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_copy_file (from: *const c_char, to: *const c_char, // C 6936
+				   mut keep_time: c_int, mut preserve_ownership: c_int, copy_acls: c_int) -> c_int // C 6937
+{                                                                       // C 6939
+  let mut acl: acl_t = std::ptr::null_mut ();                           // C 6940 (C's `= NULL`)
+  let mut copy_result: BOOL;                                            // C 6941
+  let mut from_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6942 (C's `wchar_t`)
+  let mut to_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6942
+  let mut from_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6943
+  let mut to_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];   // C 6943
+
+  /* C leaves `copy_result` uninitialised (PORTING.md 1.5).  */
+  copy_result = 0;
+
+  /* We ignore preserve_ownership for now.  */                          // C 6945
+  preserve_ownership = preserve_ownership;                              // C 6946 (C's unused-parameter silencer; the binding is `mut` for it)
+
+  if copy_acls != 0                                                     // C 6948 (C's truth test)
+    {                                                                   // C 6949
+      acl = acl_get_file (from, ACL_TYPE_ACCESS);                       // C 6950
+      if acl.is_null () && acl_errno_valid (*errno ())                  // C 6951 (C's `== NULL && acl_errno_valid (errno)`)
+	{ return -2; }
+    }                                                                   // C 6953
+  if w32_unicode_filenames                                              // C 6954
+    {                                                                   // C 6955
+      filename_to_utf16 (from, from_w.as_mut_ptr ());                   // C 6956
+      filename_to_utf16 (to, to_w.as_mut_ptr ());                       // C 6957
+      copy_result = CopyFileW (from_w.as_ptr (), to_w.as_ptr (), FALSE); // C 6958
+    }                                                                   // C 6959
+  else                                                                  // C 6960
+    {                                                                   // C 6961
+      filename_to_ansi (from, from_a.as_mut_ptr ());                    // C 6962
+      filename_to_ansi (to, to_a.as_mut_ptr ());                        // C 6963
+      copy_result = CopyFileA (from_a.as_ptr (), to_a.as_ptr (), FALSE); // C 6964
+    }                                                                   // C 6965
+  if copy_result == 0                                                   // C 6966 (C's `!copy_result`)
+    {                                                                   // C 6967
+      /* CopyFile doesn't set errno when it fails.  By far the most     // C 6968
+	 "popular" reason is that the target is read-only.  */                 // C 6969
+      let err: DWORD = GetLastError ();                                 // C 6970
+
+      match err                                                         // C 6972
+	{
+	  ERROR_FILE_NOT_FOUND =>                                              // C 6974
+	    { *errno () = ENOENT; }                                            // C 6975
+	  ERROR_ACCESS_DENIED =>                                               // C 6977
+	    { *errno () = EACCES; }                                            // C 6978
+	  ERROR_ENCRYPTION_FAILED =>                                           // C 6980
+	    { *errno () = EIO; }                                               // C 6981
+	  _ => /* default: */                                                  // C 6983
+	    { *errno () = EPERM; }                                             // C 6984
+	}
+
+      if ! acl.is_null ()                                               // C 6988 (C's truth test)
+	{ acl_free (acl); }                                                    // C 6989
+      return -1;                                                        // C 6990
+    }                                                                   // C 6991
+  /* CopyFile retains the timestamp by default.  However, see           // C 6992
+     "Community Additions" for CopyFile: it sounds like that is not     // C 6993
+     entirely true.  Testing on Windows XP confirms that modified time  // C 6994
+     is copied, but creation and last-access times are not.             // C 6995
+     FIXME?  */                                                         // C 6996
+  else if keep_time == 0                                                // C 6997 (C's `!keep_time`)
+    {                                                                   // C 6998
+      let mut tnow: [timespec; 2] = std::mem::zeroed ();                // C 6999
+      let mut attributes: DWORD;                                        // C 7000
+
+      /* C leaves `attributes` uninitialised (PORTING.md 1.5).  */
+      attributes = 0;
+
+      /* C 7002's chained `tnow[0] = tnow[1] = current_timespec ();` calls the function once.  */
+      let ts: timespec = current_timespec ();                           // C 7002 (the single call)
+      tnow[0] = ts; tnow[1] = ts;                                       // C 7002
+      if w32_unicode_filenames                                          // C 7003
+	{
+	  /* Ensure file is writable while its times are set.  */              // C 7005
+	  attributes = GetFileAttributesW (to_w.as_ptr ());                    // C 7006
+	  SetFileAttributesW (to_w.as_ptr (), attributes & ! FILE_ATTRIBUTE_READONLY); // C 7007 (C's `~`)
+	  if utimensat (AT_FDCWD, to, tnow.as_mut_ptr (), 0) != 0              // C 7008 (C's truth test)
+	    {
+	      /* Restore original attributes.  */                              // C 7010
+	      SetFileAttributesW (to_w.as_ptr (), attributes);                 // C 7011
+	      if ! acl.is_null ()                                              // C 7012
+		{ acl_free (acl); }                                                   // C 7013
+	      return -3;                                                       // C 7014
+	    }
+	  /* Restore original attributes.  */                                  // C 7016
+	  SetFileAttributesW (to_w.as_ptr (), attributes);                     // C 7017
+	}
+	else                                                                   // C 7019
+	  {
+	    attributes = GetFileAttributesA (to_a.as_ptr ());                  // C 7021
+	    SetFileAttributesA (to_a.as_ptr (), attributes & ! FILE_ATTRIBUTE_READONLY); // C 7022 (C's `~`)
+	    if utimensat (AT_FDCWD, to, tnow.as_mut_ptr (), 0) != 0            // C 7023
+	      {
+		SetFileAttributesA (to_a.as_ptr (), attributes);                      // C 7025
+		if ! acl.is_null ()                                                   // C 7026
+		  { acl_free (acl); }                                                 // C 7027
+		return -3;                                                            // C 7028
+	      }
+	    SetFileAttributesA (to_a.as_ptr (), attributes);                   // C 7030
+	  }
+    }                                                                   // C 7032
+  if ! acl.is_null ()                                                   // C 7033 (C's `!= NULL`)
+    {                                                                   // C 7034
+      let fail: bool =                                                  // C 7035
+	acl_set_file (to, ACL_TYPE_ACCESS, acl) != 0;                          // C 7036
+      acl_free (acl);                                                   // C 7037
+      if fail && acl_errno_valid (*errno ())                            // C 7038 (C's `&& acl_errno_valid (errno)`)
+	{ return -4; }                                                         // C 7039
+    }                                                                   // C 7040
+
+  return 0;                                                             // C 7042
+}                                                                       // C 7043
+
+
+/* Support for browsing other processes and their attributes.  See      // C 7046
+   process.c for the Lisp bindings.  */                                 // C 7047
+
+/* Helper wrapper functions.  */                                        // C 7049
+/// C: static HANDLE WINAPI
+/// C: create_toolhelp32_snapshot (DWORD Flags, DWORD Ignored)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn create_toolhelp32_snapshot (Flags: DWORD, Ignored: DWORD) -> HANDLE // C 7051
+{                                                                       // C 7053
+  static mut s_pfn_Create_Toolhelp32_Snapshot: CreateToolhelp32Snapshot_Proc = None; // C 7054 (C's function-local `static … = NULL`)
+
+  if g_b_init_create_toolhelp32_snapshot == 0                           // C 7056
+    {                                                                   // C 7057
+      g_b_init_create_toolhelp32_snapshot = 1;                          // C 7058
+      s_pfn_Create_Toolhelp32_Snapshot = std::mem::transmute::<VOIDFNPTR, CreateToolhelp32Snapshot_Proc> // C 7059
+	(get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()),           // C 7060
+			c"CreateToolhelp32Snapshot".as_ptr ()));                             // C 7061
+    }                                                                   // C 7062
+  if s_pfn_Create_Toolhelp32_Snapshot.is_none ()                        // C 7063 (C's `== NULL`)
+    {                                                                   // C 7064
+      return INVALID_HANDLE_VALUE;                                      // C 7065
+    }                                                                   // C 7066
+  return (s_pfn_Create_Toolhelp32_Snapshot.unwrap ()) (Flags, Ignored); // C 7067 (C's call-through)
+}                                                                       // C 7068
+
+/// C: static BOOL WINAPI
+/// C: process32_first (HANDLE hSnapshot, LPPROCESSENTRY32 lppe)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn process32_first (hSnapshot: HANDLE, lppe: LPPROCESSENTRY32) -> BOOL // C 7070
+{                                                                       // C 7072
+  static mut s_pfn_Process32_First: Process32First_Proc = None;         // C 7073 (C's function-local `static … = NULL`)
+
+  if g_b_init_process32_first == 0                                      // C 7075
+    {                                                                   // C 7076
+      g_b_init_process32_first = 1;                                     // C 7077
+      s_pfn_Process32_First = std::mem::transmute::<VOIDFNPTR, Process32First_Proc> // C 7078
+	(get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()),           // C 7079
+			c"Process32First".as_ptr ()));                                       // C 7080
+    }                                                                   // C 7081
+  if s_pfn_Process32_First.is_none ()                                   // C 7082 (C's `== NULL`)
+    {                                                                   // C 7083
+      return FALSE;                                                     // C 7084
+    }                                                                   // C 7085
+  return (s_pfn_Process32_First.unwrap ()) (hSnapshot, lppe);           // C 7086 (C's call-through)
+}                                                                       // C 7087
+
+/// C: static BOOL WINAPI
+/// C: process32_next (HANDLE hSnapshot, LPPROCESSENTRY32 lppe)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn process32_next (hSnapshot: HANDLE, lppe: LPPROCESSENTRY32) -> BOOL // C 7089
+{                                                                       // C 7091
+  static mut s_pfn_Process32_Next: Process32Next_Proc = None;           // C 7092 (C's function-local `static … = NULL`)
+
+  if g_b_init_process32_next == 0                                       // C 7094
+    {                                                                   // C 7095
+      g_b_init_process32_next = 1;                                      // C 7096
+      s_pfn_Process32_Next = std::mem::transmute::<VOIDFNPTR, Process32Next_Proc> // C 7097
+	(get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()),           // C 7098
+			c"Process32Next".as_ptr ()));                                        // C 7099
+    }                                                                   // C 7100
+  if s_pfn_Process32_Next.is_none ()                                    // C 7101 (C's `== NULL`)
+    {                                                                   // C 7102
+      return FALSE;                                                     // C 7103
+    }                                                                   // C 7104
+  return (s_pfn_Process32_Next.unwrap ()) (hSnapshot, lppe);            // C 7105 (C's call-through)
+}                                                                       // C 7106
+
+/// C: static BOOL WINAPI
+/// C: open_thread_token (HANDLE ThreadHandle,
+/// C: 		   DWORD DesiredAccess,
+/// C: 		   BOOL OpenAsSelf,
+/// C: 		   PHANDLE TokenHandle)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn open_thread_token (ThreadHandle: HANDLE, DesiredAccess: DWORD, // C 7108
+				      OpenAsSelf: BOOL, TokenHandle: PHANDLE) -> BOOL               // C 7110
+{                                                                       // C 7113
+  static mut s_pfn_Open_Thread_Token: OpenThreadToken_Proc = None;      // C 7114 (C's function-local `static … = NULL`)
+  let mut hm_advapi32: HMODULE = std::ptr::null_mut ();                 // C 7115 (C's `= NULL`)
+  if is_windows_9x () == TRUE                                           // C 7116
+    {                                                                   // C 7117
+      SetLastError (ERROR_NOT_SUPPORTED);                               // C 7118
+      return FALSE;                                                     // C 7119
+    }                                                                   // C 7120
+  if g_b_init_open_thread_token == 0                                    // C 7121
+    {                                                                   // C 7122
+      g_b_init_open_thread_token = 1;                                   // C 7123
+      hm_advapi32 = LoadLibrary (c"Advapi32.dll".as_ptr ());            // C 7124
+      s_pfn_Open_Thread_Token = std::mem::transmute::<VOIDFNPTR, OpenThreadToken_Proc> // C 7125
+        (get_proc_addr (hm_advapi32, c"OpenThreadToken".as_ptr ()));    // C 7126
+    }                                                                   // C 7127
+  if s_pfn_Open_Thread_Token.is_none ()                                 // C 7128 (C's `== NULL`)
+    {                                                                   // C 7129
+      SetLastError (ERROR_NOT_SUPPORTED);                               // C 7130
+      return FALSE;                                                     // C 7131
+    }                                                                   // C 7132
+  return (s_pfn_Open_Thread_Token.unwrap ()) (ThreadHandle, DesiredAccess, OpenAsSelf, TokenHandle); // C 7133-7139 (C's call-through)
+}                                                                       // C 7140
+
+/// C: static BOOL WINAPI
+/// C: impersonate_self (SECURITY_IMPERSONATION_LEVEL ImpersonationLevel)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn impersonate_self (ImpersonationLevel: SECURITY_IMPERSONATION_LEVEL) -> BOOL // C 7142
+{                                                                       // C 7144
+  static mut s_pfn_Impersonate_Self: ImpersonateSelf_Proc = None;       // C 7145 (C's function-local `static … = NULL`)
+  let mut hm_advapi32: HMODULE = std::ptr::null_mut ();                 // C 7146 (C's `= NULL`)
+  if is_windows_9x () == TRUE                                           // C 7147
+    {                                                                   // C 7148
+      return FALSE;                                                     // C 7149
+    }                                                                   // C 7150
+  if g_b_init_impersonate_self == 0                                     // C 7151
+    {                                                                   // C 7152
+      g_b_init_impersonate_self = 1;                                    // C 7153
+      hm_advapi32 = LoadLibrary (c"Advapi32.dll".as_ptr ());            // C 7154
+      s_pfn_Impersonate_Self = std::mem::transmute::<VOIDFNPTR, ImpersonateSelf_Proc> // C 7155
+        (get_proc_addr (hm_advapi32, c"ImpersonateSelf".as_ptr ()));    // C 7156
+    }                                                                   // C 7157
+  if s_pfn_Impersonate_Self.is_none ()                                  // C 7158 (C's `== NULL`)
+    {                                                                   // C 7159
+      return FALSE;                                                     // C 7160
+    }                                                                   // C 7161
+  return s_pfn_Impersonate_Self.unwrap () (ImpersonationLevel);         // C 7162 (C's call-through)
+}                                                                       // C 7163
+
+/// C: static BOOL WINAPI
+/// C: revert_to_self (void)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn revert_to_self () -> BOOL                     // C 7165
+{                                                                       // C 7167
+  static mut s_pfn_Revert_To_Self: RevertToSelf_Proc = None;            // C 7168 (C's function-local `static … = NULL`)
+  let mut hm_advapi32: HMODULE = std::ptr::null_mut ();                 // C 7169 (C's `= NULL`)
+  if is_windows_9x () == TRUE                                           // C 7170
+    {                                                                   // C 7171
+      return FALSE;                                                     // C 7172
+    }                                                                   // C 7173
+  if g_b_init_revert_to_self == 0                                       // C 7174
+    {                                                                   // C 7175
+      g_b_init_revert_to_self = 1;                                      // C 7176
+      hm_advapi32 = LoadLibrary (c"Advapi32.dll".as_ptr ());            // C 7177
+      s_pfn_Revert_To_Self = std::mem::transmute::<VOIDFNPTR, RevertToSelf_Proc> // C 7178
+        (get_proc_addr (hm_advapi32, c"RevertToSelf".as_ptr ()));       // C 7179
+    }                                                                   // C 7180
+  if s_pfn_Revert_To_Self.is_none ()                                    // C 7181 (C's `== NULL`)
+    {                                                                   // C 7182
+      return FALSE;                                                     // C 7183
+    }                                                                   // C 7184
+  return s_pfn_Revert_To_Self.unwrap () ();                             // C 7185 (C's call-through)
+}                                                                       // C 7186
