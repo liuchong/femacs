@@ -14394,3 +14394,349 @@ unsafe fn address_prefix_match (family: c_int, address: *mut sockaddr,  // C 982
 
   return true;                                                          // C 9854
 }                                                                       // C 9855
+
+
+/* C 9856's blank and C 9857-10093's `network_interface_list` - slice 43's non-static sibling (237 C
+   lines) and the last of the interface block: `IP_ADAPTER_ADDRESSES` with its unicast/prefix walks,
+   C 9914-9967's `IfType` switch (with C 9920-9933's `filename_from_utf16` + `strstr` arm), the
+   per-address loop of C 9971-10089 (the `DECLARE_POINTER_ALIAS` reads, `conv_sockaddr_to_lisp`,
+   C 10020-10083's `full` arm with the `w32_major_version` test, the `#if _WIN32_WINNT >= 0x0600`
+   pair, `address_prefix_match` (this slice's neighbour) and the mask/broadcast loop).  The record
+   chain (`SOCKET_ADDRESS`, `IP_ADAPTER_UNICAST_ADDRESS`, `IP_ADAPTER_PREFIX`, `IP_ADAPTER_ADDRESSES`),
+   the seven `IF_TYPE_*` values and the `win32_winnt_ge_0600` feature are new; every item carries
+   `#[cfg (feature = "windowsnt")]` (slice 43's lesson), C's `match` parameter is `r#match` (the
+   reserved-keyword device), and `DECLARE_POINTER_ALIAS (n, T, v)` is the `let n: *mut T = v as *mut T;`
+   form.  */
+/// C: #define IF_TYPE_ETHERNET_CSMACD 6, `#define IF_TYPE_ISO88025_TOKENRING 9`,
+/// C: `#define IF_TYPE_FDDI 15`, `#define IF_TYPE_PPP 23`, `#define IF_TYPE_SOFTWARE_LOOPBACK 24`,
+/// C: `#define IF_TYPE_SLIP 28`, `#define IF_TYPE_TUNNEL 131`  (`<ipifcons.h>`)
+#[cfg (feature = "windowsnt")]
+pub const IF_TYPE_ETHERNET_CSMACD: c_uint = 6;
+#[cfg (feature = "windowsnt")]
+pub const IF_TYPE_ISO88025_TOKENRING: c_uint = 9;
+#[cfg (feature = "windowsnt")]
+pub const IF_TYPE_FDDI: c_uint = 15;
+#[cfg (feature = "windowsnt")]
+pub const IF_TYPE_PPP: c_uint = 23;
+#[cfg (feature = "windowsnt")]
+pub const IF_TYPE_SOFTWARE_LOOPBACK: c_uint = 24;
+#[cfg (feature = "windowsnt")]
+pub const IF_TYPE_SLIP: c_uint = 28;
+#[cfg (feature = "windowsnt")]
+pub const IF_TYPE_TUNNEL: c_uint = 131;
+/// C: typedef struct _SOCKET_ADDRESS { LPSOCKADDR lpSockaddr; INT iSockaddrLength; } SOCKET_ADDRESS;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct SOCKET_ADDRESS
+{
+  pub lpSockaddr: *mut sockaddr,
+  pub iSockaddrLength: c_int,
+}
+/// C: typedef struct _IP_ADAPTER_UNICAST_ADDRESS { … } IP_ADAPTER_UNICAST_ADDRESS;  (`<iptypes.h>`;
+/// C: only the members this file reads are carried, in C's order: `Next`, `Address`, `PrefixOrigin`,
+/// C: `SuffixOrigin`, `DadState`, `ValidLifetime`, `PreferredLifetime`, `LeaseLifetime`,
+/// C: `OnLinkPrefixLength`; the omitted tail is recorded in Owed 45)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IP_ADAPTER_UNICAST_ADDRESS
+{
+  pub Next: *mut IP_ADAPTER_UNICAST_ADDRESS,
+  pub Address: SOCKET_ADDRESS,
+  pub PrefixOrigin: c_uint,
+  pub SuffixOrigin: c_uint,
+  pub DadState: c_uint,
+  pub ValidLifetime: ULONG,
+  pub PreferredLifetime: ULONG,
+  pub LeaseLifetime: ULONG,
+  pub OnLinkPrefixLength: UINT8,
+}
+/// C: typedef struct _IP_ADAPTER_PREFIX { … } IP_ADAPTER_PREFIX;  (`<iptypes.h>`; C reads `Next`,
+/// C: `Address` and `PrefixLength`)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IP_ADAPTER_PREFIX
+{
+  pub Next: *mut IP_ADAPTER_PREFIX,
+  pub Address: SOCKET_ADDRESS,
+  pub PrefixLength: ULONG,
+}
+/// C: typedef struct _IP_ADAPTER_ADDRESSES { … } IP_ADAPTER_ADDRESSES;  (`<iptypes.h>`; C reads
+/// C: `Next`, `IfType`, `Description`, `FirstUnicastAddress` and `FirstPrefix`; the omitted head is
+/// C: recorded in Owed 45)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IP_ADAPTER_ADDRESSES
+{
+  pub Next: *mut IP_ADAPTER_ADDRESSES,
+  pub IfType: c_uint,
+  pub Description: *mut c_ushort,
+  pub FirstUnicastAddress: *mut IP_ADAPTER_UNICAST_ADDRESS,
+  pub FirstPrefix: *mut IP_ADAPTER_PREFIX,
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn network_interface_list (full: bool, r#match: c_ushort) -> Lisp_Object // C 9857 (C's `match`, a Rust keyword)
+{                                                                       // C 9859
+  let mut ainfo_len: ULONG = core::mem::size_of::<IP_ADAPTER_ADDRESSES> () as ULONG; // C 9860 (C's `sizeof`)
+  let family: ULONG = r#match as ULONG;                                 // C 9861 (C's `ULONG family = match;`)
+  let mut adapter: *mut IP_ADAPTER_ADDRESSES;                           // C 9862
+  let mut ainfo: *mut IP_ADAPTER_ADDRESSES                              // C 9862
+    = xmalloc (ainfo_len as usize) as *mut IP_ADAPTER_ADDRESSES;
+  let mut retval: DWORD = get_adapters_addresses (family, ainfo as PIP_ADAPTER_ADDRESSES, // C 9863
+						      &raw mut ainfo_len);
+  let mut res: Lisp_Object = Qnil ();                                   // C 9864 (C's `= Qnil`)
+
+  /* C leaves `adapter` uninitialised (PORTING.md 1.5).  */
+  adapter = std::ptr::null_mut ();
+
+  if retval == ERROR_BUFFER_OVERFLOW                                    // C 9866
+    {                                                                   // C 9867
+      ainfo = xrealloc (ainfo as *mut c_void, ainfo_len as usize) as *mut IP_ADAPTER_ADDRESSES; // C 9868
+      retval = get_adapters_addresses (family, ainfo as PIP_ADAPTER_ADDRESSES, // C 9869
+				       &raw mut ainfo_len);
+    }                                                                   // C 9870
+
+  if retval != ERROR_SUCCESS                                            // C 9872
+    {                                                                   // C 9873
+      xfree (ainfo as *mut c_void);                                     // C 9874
+      return res;                                                       // C 9875
+    }                                                                   // C 9876
+
+  /* For the below, we need some winsock functions, so make sure        // C 9878
+     the winsock DLL is loaded.  If we cannot successfully load         // C 9879
+     it, they will have no use of the information we provide,           // C 9880
+     anyway, so punt.  */                                               // C 9881
+  if winsock_lib.is_null () && init_winsock (1) == 0                    // C 9882 (C's `!winsock_lib && !init_winsock (1)`)
+    { return res; }                                                     // C 9883
+
+  let mut eth_count: c_int = 0; let mut tr_count: c_int = 0;            // C 9885
+  let mut fddi_count: c_int = 0; let mut ppp_count: c_int = 0;
+  let mut sl_count: c_int = 0; let mut wlan_count: c_int = 0;           // C 9886
+  let mut lo_count: c_int = 0; let mut ifx_count: c_int = 0;
+  let mut tnl_count: c_int = 0;                                         // C 9887
+  let mut if_num: c_int;                                                // C 9888
+  let mut namebuf: [c_char; MAX_ADAPTER_NAME_LENGTH + 4]                // C 9889
+    = [0; MAX_ADAPTER_NAME_LENGTH + 4];
+  let ifmt: [*const c_char; 9] = [c"eth%d".as_ptr (), c"tr%d".as_ptr (), // C 9890-9893
+				 c"fddi%d".as_ptr (), c"ppp%d".as_ptr (),
+				 c"sl%d".as_ptr (), c"wlan%d".as_ptr (),
+				 c"lo%d".as_ptr (), c"ifx%d".as_ptr (),
+				 c"tunnel%d".as_ptr ()];
+  const NONE: c_int = -1;                                               // C 9894-9905 (C's inline enum)
+  const ETHERNET: c_int = 0;
+  const TOKENRING: c_int = 1;
+  const FDDI: c_int = 2;
+  const PPP: c_int = 3;
+  const SLIP: c_int = 4;
+  const WLAN: c_int = 5;
+  const LOOPBACK: c_int = 6;
+  const OTHER_IF: c_int = 7;
+  const TUNNEL: c_int = 8;
+  let mut ifmt_idx: c_int;                                              // C 9905
+
+  /* C leaves `if_num` and `ifmt_idx` uninitialised (PORTING.md 1.5).  */
+  if_num = 0;
+  ifmt_idx = 0;
+
+  adapter = ainfo;                                                      // C 9907
+  while ! adapter.is_null ()                                            // C 9907
+    {                                                                   // C 9908
+      /* Present Unix-compatible interface names, instead of the        // C 9910
+	 Windows names, which are really GUIDs not readable by                 // C 9911
+	 humans.  */                                                           // C 9912
+      match (*adapter).IfType                                           // C 9914
+	{                                                                      // C 9915
+	  IF_TYPE_ETHERNET_CSMACD =>                                           // C 9916
+	    {                                                                  // C 9917
+	      /* Windows before Vista reports wireless adapters as             // C 9917
+		 Ethernet.  Work around by looking at the Description                 // C 9918
+		 string.  */                                                          // C 9919
+	      let mut description: [c_char; MAX_UTF8_PATH as usize]            // C 9921
+		= [0; MAX_UTF8_PATH as usize];
+
+	      if filename_from_utf16 ((*adapter).Description, description.as_mut_ptr ()) == 0 // C 9922
+		  && ! strstr (description.as_ptr (), c"Wireless ".as_ptr ()).is_null () // C 9923
+		{                                                                     // C 9924
+		  ifmt_idx = WLAN;                                                    // C 9925
+		  if_num = wlan_count; wlan_count += 1;                               // C 9926
+		}                                                                     // C 9927
+	      else                                                             // C 9928
+		{                                                                     // C 9929
+		  ifmt_idx = ETHERNET;                                                // C 9930
+		  if_num = eth_count; eth_count += 1;                                 // C 9931
+		}                                                                     // C 9932
+	    }                                                                  // C 9933
+	  IF_TYPE_ISO88025_TOKENRING =>                                        // C 9935
+	    { ifmt_idx = TOKENRING; if_num = tr_count; tr_count += 1; }
+	  IF_TYPE_FDDI =>                                                      // C 9939
+	    { ifmt_idx = FDDI; if_num = fddi_count; fddi_count += 1; }
+	  IF_TYPE_PPP =>                                                       // C 9943
+	    { ifmt_idx = PPP; if_num = ppp_count; ppp_count += 1; }
+	  IF_TYPE_SLIP =>                                                      // C 9947
+	    { ifmt_idx = SLIP; if_num = sl_count; sl_count += 1; }
+	  IF_TYPE_IEEE80211 =>                                                 // C 9951
+	    { ifmt_idx = WLAN; if_num = wlan_count; wlan_count += 1; }
+	  IF_TYPE_SOFTWARE_LOOPBACK =>                                         // C 9955
+	    { ifmt_idx = LOOPBACK; if_num = lo_count; lo_count += 1; }
+	  IF_TYPE_TUNNEL =>                                                    // C 9959
+	    { ifmt_idx = TUNNEL; if_num = tnl_count; tnl_count += 1; }
+	  _ =>                                                                 // C 9963 (C's `default:`)
+	    { ifmt_idx = OTHER_IF; if_num = ifx_count; ifx_count += 1; }       // C 9964-9965
+	}                                                                      // C 9967
+      sprintf (namebuf.as_mut_ptr (), *ifmt.offset (ifmt_idx as isize), if_num); // C 9968 (C's runtime format)
+
+      let mut address: *mut IP_ADAPTER_UNICAST_ADDRESS;                 // C 9970
+      address = (*adapter).FirstUnicastAddress;                         // C 9971
+      while ! address.is_null ()                                        // C 9971
+	{                                                                      // C 9972
+	  let mut len: c_int;                                                  // C 9973
+	  let mut addr_len: c_int;                                             // C 9974
+	  let mut maskp: *mut u32;                                             // C 9975 (C's `uint32_t *maskp`)
+	  let mut addrp: *mut u32;                                             // C 9976
+	  let mut elt: Lisp_Object = Qnil ();                                  // C 9977 (C's `= Qnil`)
+	  let ifa_addr: *mut sockaddr = (*address).Address.lpSockaddr;         // C 9978
+
+	  /* C leaves `len`, `addr_len`, `maskp` and `addrp` uninitialised (PORTING.md 1.5).  */
+	  len = 0;
+	  addr_len = 0;
+	  maskp = std::ptr::null_mut ();
+	  addrp = std::ptr::null_mut ();
+
+	  if ifa_addr.is_null ()                                               // C 9980
+	    {                                                                  // C 9980
+	      address = (*address).Next;                                       // C 9981 (C's `continue` plus the for's increment)
+	      continue;
+	    }
+	  if r#match != 0 && (*ifa_addr).sa_family != r#match                  // C 9982
+	    {                                                                  // C 9983
+	      address = (*address).Next;                                       // C 9983 (C's `continue` plus the increment)
+	      continue;
+	    }
+
+	  let mut ipv4: sockaddr_in;                                           // C 9985
+	  let mut ipv6: sockaddr_in6;                                          // C 9987 (C's `#ifdef AF_INET6` arm; the name is defined in-unit since slice 44)
+	  let mut sin: *mut sockaddr;                                          // C 9989
+
+	  /* C leaves `ipv4`, `ipv6` and `sin` uninitialised (PORTING.md 1.5).  */
+	  ipv4 = sockaddr_in { sin_family: 0, sin_port: 0, sin_addr: in_addr { s_addr: 0 }, sin_zero: [0; 8] };
+	  ipv6 = sockaddr_in6 { sin6_family: 0, sin6_port: 0, sin6_flowinfo: 0,
+			        sin6_addr: in6_addr { Byte: [0; 16] }, sin6_scope_id: 0 };
+	  sin = std::ptr::null_mut ();
+
+	  if (*ifa_addr).sa_family as c_int == AF_INET                         // C 9991
+	    {                                                                  // C 9992
+	      ipv4.sin_family = AF_INET as c_short;                            // C 9993
+	      ipv4.sin_port = 0;                                               // C 9994
+	      let sin_in: *mut sockaddr_in = ifa_addr as *mut sockaddr_in;     // C 9995 (C's `DECLARE_POINTER_ALIAS`)
+	      addrp = &raw mut (*sin_in).sin_addr as *mut u32;                 // C 9996
+	      maskp = &raw mut ipv4.sin_addr as *mut u32;                      // C 9997
+	      sin = &raw mut ipv4 as *mut sockaddr;                            // C 9998
+	      len = core::mem::size_of::<sockaddr_in> () as c_int;             // C 9999 (C's `sizeof`)
+	      addr_len = 1;                                                    // C 10000
+	    }                                                                  // C 10001
+	  else if (*ifa_addr).sa_family as c_int == AF_INET6                   // C 10003
+	    {                                                                  // C 10004
+	      ipv6.sin6_family = AF_INET6 as c_short;                          // C 10005
+	      ipv6.sin6_port = 0;                                              // C 10006
+	      let sin_in6: *mut sockaddr_in6 = ifa_addr as *mut sockaddr_in6;  // C 10007 (C's `DECLARE_POINTER_ALIAS`)
+	      addrp = &raw mut (*sin_in6).sin6_addr as *mut u32;               // C 10008
+	      maskp = &raw mut ipv6.sin6_addr as *mut u32;                     // C 10009
+	      sin = &raw mut ipv6 as *mut sockaddr;                            // C 10010
+	      len = core::mem::size_of::<sockaddr_in6> () as c_int;            // C 10011
+	      addr_len = 4;                                                    // C 10012
+	    }                                                                  // C 10013
+	  else                                                                 // C 10015
+	    {                                                                  // C 10015
+	      address = (*address).Next;                                       // C 10016 (C's `continue` plus the increment)
+	      continue;
+	    }
+
+	  let addr: Lisp_Object = conv_sockaddr_to_lisp (ifa_addr, len);       // C 10018
+
+	  if full                                                              // C 10020
+	    {                                                                  // C 10021
+	      /* GetAdaptersAddress returns information in network             // C 10022
+		 byte order, so convert from host to network order                    // C 10023
+		 when generating the netmask.  */                                     // C 10024
+	      let mut i: c_int;                                                // C 10025
+	      let mut numbits: ULONG;                                          // C 10026
+
+	      /* C leaves `i` and `numbits` uninitialised (PORTING.md 1.5).  */
+	      i = 0;
+	      numbits = 0;
+
+	      if w32_major_version >= 6                                        // C 10027 (C's `/* Vista or later */`)
+		{                                                                     // C 10028
+		  #[cfg (feature = "win32_winnt_ge_0600")]                            // C 10029 (C's `#if _WIN32_WINNT >= 0x0600`)
+		  { numbits = (*address).OnLinkPrefixLength as ULONG; }               // C 10030
+		  #[cfg (not (feature = "win32_winnt_ge_0600"))]                      // C 10031 (C's `#else`)
+		  {                                                                   // C 10032
+		    /* Kludge alert!  OnLinkPrefixLength is only defined              // C 10032
+		       when compiling for Vista and later.  */                        // C 10033
+		    numbits = *((&raw mut (*address).LeaseLifetime as *mut UINT8).offset (8)) as ULONG; // C 10034 (C's `*(UINT8 *) (&address->LeaseLifetime + 1)`)
+		  }                                                                   // C 10035
+		}                                                                     // C 10036
+	      else                                                             // C 10037 (C's `/* Windows XP */`)
+		{                                                                     // C 10038
+		  let mut prefix: *mut IP_ADAPTER_PREFIX = (*adapter).FirstPrefix;    // C 10039
+		  numbits = 0;                                                        // C 10040
+		  while ! prefix.is_null ()                                           // C 10041
+		    {                                                                 // C 10042
+		      /* We want the longest matching prefix.  */                     // C 10043
+		      if (((*(*prefix).Address.lpSockaddr).sa_family as c_int          // C 10044
+			    == (*ifa_addr).sa_family as c_int)                               // C 10045
+			  && ((*prefix).PrefixLength > numbits)                              // C 10046
+			  && address_prefix_match ((*ifa_addr).sa_family as c_int,           // C 10047
+						   ifa_addr,
+						   (*prefix).Address.lpSockaddr,                                  // C 10049
+						   (*prefix).PrefixLength))                                       // C 10050
+			{ numbits = (*prefix).PrefixLength; }                                // C 10051
+		      prefix = (*prefix).Next;                                        // C 10041 (the for's increment)
+		    }                                                                 // C 10052
+		  if numbits == 0                                                     // C 10053 (C's `!numbits`)
+		    { numbits = if (*ifa_addr).sa_family as c_int == AF_INET6 { 128 } else { 32 }; } // C 10054 (C's ternary)
+		}                                                                     // C 10055
+	      i = 0;                                                           // C 10056
+	      while i < addr_len                                               // C 10056
+		{                                                                     // C 10057
+		  if numbits >= 32                                                    // C 10058
+		    {                                                                 // C 10059
+		      *maskp.offset (i as isize) = ! 0u32;                            // C 10060 (C's `-1U` as a `uint32_t` store)
+		      numbits -= 32;                                                  // C 10061
+		    }                                                                 // C 10062
+		  else if numbits != 0                                                // C 10063 (C's truth test)
+		    {                                                                 // C 10064
+		      *maskp.offset (i as isize) = sys_htonl ((! 0u32) << (32 - numbits) as u32); // C 10065 (C's `sys_htonl (-1U << (32 - numbits))`)
+		      numbits = 0;                                                    // C 10066
+		    }                                                                 // C 10067
+		  else                                                                // C 10068
+		    {                                                                 // C 10069
+		      *maskp.offset (i as isize) = 0;                                 // C 10070
+		    }                                                                 // C 10071
+		  i += 1;                                                             // C 10056 (the for's increment)
+		}                                                                     // C 10072
+	      elt = Fcons (conv_sockaddr_to_lisp (sin, len), elt);             // C 10073
+	      let mut mask: u32;                                               // C 10074 (C's `uint32_t mask`)
+	      i = 0;                                                           // C 10075
+	      while i < addr_len                                               // C 10075
+		{                                                                     // C 10076
+		  mask = *maskp.offset (i as isize);                                  // C 10077
+		  *maskp.offset (i as isize) = (*addrp.offset (i as isize) & mask) | ! mask; // C 10078
+		  i += 1;                                                             // C 10075 (the for's increment)
+		}                                                                     // C 10080
+	      elt = Fcons (conv_sockaddr_to_lisp (sin, len), elt);             // C 10081
+	      elt = Fcons (addr, elt);                                         // C 10082
+	    }                                                                  // C 10083
+	  else                                                                 // C 10084
+	    {                                                                  // C 10085
+	      elt = addr;                                                      // C 10086
+	    }                                                                  // C 10087
+	  res = Fcons (Fcons (build_string (namebuf.as_ptr ()), elt), res);    // C 10088
+	  address = (*address).Next;                                           // C 9971 (the for's increment)
+	}                                                                      // C 9972
+      adapter = (*adapter).Next;                                        // C 9907 (the for's increment)
+    }                                                                   // C 9908
+  xfree (ainfo as *mut c_void);                                         // C 10091
+  return res;                                                           // C 10092
+}                                                                       // C 10093

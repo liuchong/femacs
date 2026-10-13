@@ -797,7 +797,7 @@ connect_network_socket	declare_pointer_alias	PORTING.md 5.1: `DECLARE_POINTER_AL
 connect_network_socket	goto,retry_connect	PORTING.md 2.2: C's `retry_connect:` label and `goto retry_connect` live in the `WINDOWSNT` arm (dead here) and are the port's `#[cfg]`-gated labelled block
 connect_network_socket	socket	the file's own `#define socket(…)` renames C's `socket` to `process_socket` (the preprocessor decides the name), so the port's call is `process_socket`
 connect_network_socket	uninit	PORTING.md 1.5: C's `ptrdiff_t addrlen UNINIT;` (an empty macro) is the port's zero-initialised `addrlen`
-network_interface_list	declare_pointer_alias,uint32_t	see conv_sockaddr_to_lisp
+network_interface_list	break,case,declare_pointer_alias,default,switch,uint32_t	see conv_sockaddr_to_lisp; w32.c 9914-9967's `IfType` dispatch is the port's `match` (C's labels and order, C's `default:` as the `_` arm, and C 9894-9905's inline enum - this function's `TUNNEL = 8` included - as the block's own `const`s, P-57's family), so `switch`/`case`/`default` cannot reappear and C's ten `break;` statements have no counterpart
 network_interface_info	declare_pointer_alias	see conv_sockaddr_to_lisp
 network_interface_info	socket	see connect_network_socket (the file's own `#define socket`)
 network_interface_info	have_getifaddrs,have_struct_ifreq_ifr_addr,have_struct_ifreq_ifr_netmask	PORTING.md 5.1: these are tokens of C's `#if` condition text, which has no Rust counterpart (`HAVE_GETIFADDRS` is a config.h entry the port reads through `#[cfg]`/direct code)
