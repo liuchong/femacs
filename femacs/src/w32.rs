@@ -6328,3 +6328,274 @@ unsafe fn access_attrs (file: *const c_char) -> DWORD
 
   return attrs;                                                               /* C 4172 */
 }
+/* C 4174-4176: C 4174's blank, C 4175's `/* Emulate faccessat(2).  */` and C 4176's `int`.  */
+/* C 4177-4246: `faccessat`.  The `<winnt.h>` reparse point pair C 4218/4219 first names are
+   declared here (the P-88 device this lane uses for the SDK's own macros; no Windows SDK or
+   mingw toolchain is on this machine, so the values carry the ledger's `UNVERIFIED` marking),
+   and C 4223/4228 call `chase_symlinks`, whose C 808 prototype the port has no item for yet -
+   the definition is past this slice, the `ltime` class the ledger's Deviations 4 records.  */
+#[cfg (feature = "windowsnt")]
+/// C 4191-4204/4248-4253: `IS_DEVICE_SEP` - the same generated `<config.h>` family `IS_DIRECTORY_SEP`
+/// comes from (`configure.ac` 6494's Windows branch, `((_c_) == ':')`; the frozen `build/emacs-ref/src/config.h`
+/// 2094 carries the Darwin branch's `0`).
+/// C: configure.ac 6494: `#define IS_DEVICE_SEP(_c_) ((_c_) == ':')`
+/// C: build/emacs-ref/src/config.h 2094: `#define IS_DEVICE_SEP(_c_) 0` (the frozen target)
+macro_rules! IS_DEVICE_SEP {
+  ($c:expr) => { (($c) == b':' as c_int) };
+}
+#[cfg (feature = "windowsnt")]
+
+#[cfg (feature = "windowsnt")]
+/// C: #define FILE_ATTRIBUTE_REPARSE_POINT 0x00000400
+pub const FILE_ATTRIBUTE_REPARSE_POINT: DWORD = 0x00000400;
+#[cfg (feature = "windowsnt")]
+/// C: #define FILE_SUPPORTS_REPARSE_POINTS 0x00040000 (`<winnt.h>`'s volume flag)
+pub const FILE_SUPPORTS_REPARSE_POINTS: DWORD = 0x00040000;
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn faccessat (dirfd: c_int, path: *const c_char, mode: c_int, // C 4177
+				    flags: c_int)
+  -> c_int
+{
+  let mut attributes: DWORD;                                            // C 4179
+  let mut fullname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 4180
+
+  /* C leaves `attributes` uninitialised (PORTING.md 1.5); C 4180's array starts zeroed.  */
+  attributes = 0;
+
+  /* Rely on a hack: an open directory is modeled as file descriptor 0, // C 4182
+     and its actual file name is stored in dir_pathname by opendir.     // C 4183
+     This is good enough for the current usage in Emacs, but is fragile.  */ // C 4184
+  if dirfd != AT_FDCWD                                                  // C 4185
+      && ! (IS_DIRECTORY_SEP! (*path as c_int)                          // C 4186
+	   || IS_DEVICE_SEP! (*path.offset (1) as c_int))                      // C 4187
+    {
+      let mut lastc: c_char = *dir_pathname.offset ((strlen (dir_pathname) - 1) as isize); // C 4189
+
+      if (_snprintf ((&raw mut fullname) as *mut c_char,                 // C 4191
+		   core::mem::size_of_val (&fullname),
+		   c"%s%s%s".as_ptr (),                                               // C 4191
+		   dir_pathname,                                                      // C 4192
+		   if IS_DIRECTORY_SEP! (lastc as c_int) { c"".as_ptr () } else { c"/".as_ptr () }, // C 4192
+		   path)                                                              // C 4192
+	  < 0)                                                                 // C 4193
+	{
+	  *errno () = ENAMETOOLONG;                                            // C 4195
+	  return -1;                                                           // C 4196
+	}
+      path = (&raw mut fullname) as *const c_char;                      // C 4198 (C's array decay)
+    }
+
+  /* When dired.c calls us with F_OK and a trailing slash, it actually  // C 4201
+     wants to know whether PATH is a directory.  */                     // C 4202
+  if IS_DIRECTORY_SEP! (*path.offset ((strlen (path) - 1) as isize) as c_int) && mode == F_OK // C 4203
+    { mode |= D_OK; }                                                   // C 4204
+
+  /* MSVCRT implementation of 'access' doesn't recognize D_OK, and its  // C 4206
+     newer versions blow up when passed D_OK.  */                       // C 4207
+  path = map_w32_filename (path, std::ptr::null_mut ());                // C 4208
+
+  attributes = access_attrs (path);                                     // C 4210
+  if attributes == -1 as DWORD                                          // C 4211 (C's `-1` against the DWORD)
+    { return -1; } /* PATH doesn't exist or is inaccessible */
+
+  /* If the last element of PATH is a symlink, we need to resolve it    // C 4214
+     to get the attributes of its target file.  Note: any symlinks in   // C 4215
+     PATH elements other than the last one are transparently resolved   // C 4216
+     by GetFileAttributes below.  */                                    // C 4217
+  let not_a_symlink: c_int = ((attributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0) as c_int; // C 4218
+  if (volume_info.flags & FILE_SUPPORTS_REPARSE_POINTS) != 0            // C 4219
+      && (flags & AT_SYMLINK_NOFOLLOW) == 0                             // C 4220
+      && not_a_symlink == 0                                             // C 4221 (C's `!not_a_symlink`)
+    {
+      path = chase_symlinks (path);                                     // C 4223
+      attributes = access_attrs (path);                                 // C 4224
+      if attributes == -1 as DWORD                                      // C 4225
+	{ return -1; }                                                         // C 4226
+    }
+
+  if ((mode & X_OK) != 0                                                 // C 4229
+      && ! (is_exec (path) != 0 || (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)) // C 4230
+    {
+      *errno () = EACCES;                                               // C 4232
+      return -1;                                                        // C 4233
+    }
+  if ((mode & W_OK) != 0 && (attributes & FILE_ATTRIBUTE_READONLY) != 0)  // C 4235
+    {
+      *errno () = EACCES;                                               // C 4237
+      return -1;                                                        // C 4238
+    }
+  if ((mode & D_OK) != 0 && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0) // C 4240
+    {
+      *errno () = EACCES;                                               // C 4242
+      return -1;                                                        // C 4243
+    }
+  return 0;                                                             // C 4245
+}
+/* C 4248-4339: C 4248-4253's comment, C 4254's `int` and `w32_accessible_directory_p`.  The
+   three `<winerror.h>` names and `<errno.h>`'s `ENODEV` this slice first names are declared
+   here (the P-88 device; the SDK values carry the ledger's `UNVERIFIED` marking).  */
+#[cfg (feature = "windowsnt")]
+/// C: #define ERROR_NO_MORE_FILES 18L
+pub const ERROR_NO_MORE_FILES: DWORD = 18;
+#[cfg (feature = "windowsnt")]
+/// C: #define ERROR_NO_MORE_ITEMS 259L
+pub const ERROR_NO_MORE_ITEMS: DWORD = 259;
+#[cfg (feature = "windowsnt")]
+/// <errno.h>: `#define ENODEV 19` (`lib/include/errno.rs` does not carry it).
+pub const ENODEV: c_int = 19;
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_accessible_directory_p (dirname: *const c_char, dirlen: ptrdiff_t) // C 4254
+  -> c_int
+{
+  let mut pattern: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 4257
+  let last_slash: bool = dirlen > 0                                     // C 4258
+	&& IS_DIRECTORY_SEP! (*dirname.offset ((dirlen - 1) as isize) as c_int);
+  let mut dh: HANDLE;                                                   // C 4259
+
+  /* C leaves `dh` uninitialised (PORTING.md 1.5) and zeroes nothing: C 4257's array is
+     written by C 4280's `strcpy` before any read.  */
+  dh = std::ptr::null_mut ();
+
+  /* Network volumes need a different reading method.  */               // C 4261
+  if is_unc_volume (dirname) != 0                                       // C 4262 (C's `is_unc_volume (…)` test)
+    {
+      let mut read_result: *mut c_void = std::ptr::null_mut ();         // C 4264
+      let mut fnw: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4265
+      let mut fna: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4266
+
+      dh = open_unc_volume (dirname);                                   // C 4268
+      if dh != INVALID_HANDLE_VALUE                                     // C 4269
+	{
+	  read_result = read_unc_volume (dh, fnw.as_mut_ptr (), fna.as_mut_ptr (), // C 4271
+				  MAX_PATH);
+	  close_unc_volume (dh);                                               // C 4272
+	}
+      /* Treat empty volumes as accessible.  */                         // C 4274
+      return (read_result != std::ptr::null_mut ()                      // C 4275
+	      || GetLastError () == ERROR_NO_MORE_ITEMS) as c_int;
+    }
+
+  /* Note: map_w32_filename makes sure DIRNAME is not longer than       // C 4278
+     MAX_UTF8_PATH.  */                                                 // C 4279
+  strcpy ((&raw mut pattern) as *mut c_char, map_w32_filename (dirname, std::ptr::null_mut ())); // C 4280
+
+  /* Note: No need to resolve symlinks in FILENAME, because FindFirst   // C 4282
+     opens the directory that is the target of a symlink.  */           // C 4283
+  if w32_unicode_filenames                                              // C 4284
+    {
+      let mut pat_w: [c_ushort; MAX_PATH as usize + 2] = [0; MAX_PATH as usize + 2]; // C 4286
+      let mut dfd_w: WIN32_FIND_DATAW = std::mem::zeroed ();            // C 4287
+
+      filename_to_utf16 ((&raw const pattern) as *const c_char, (&raw mut pat_w) as *mut c_ushort); // C 4289
+      if ! last_slash                                                   // C 4290
+	{ wcscat (pat_w.as_mut_ptr (), BACKSLASH_W.as_ptr ()); }               // C 4291 (C's `L"\\"`)
+      wcscat (pat_w.as_mut_ptr (), STAR_W.as_ptr ());                   // C 4292 (C's `L"*"`)
+      dh = FindFirstFileW ((&raw const pat_w) as LPCWSTR, (&raw mut dfd_w)); // C 4293
+    }
+  else                                                                  // C 4295
+    {
+      let mut pat_a: [c_char; MAX_PATH as usize + 2] = [0; MAX_PATH as usize + 2]; // C 4297
+      let mut dfd_a: WIN32_FIND_DATAA = std::mem::zeroed ();            // C 4298
+
+      filename_to_ansi ((&raw const pattern) as *const c_char, (&raw mut pat_a) as *mut c_char); // C 4300
+      if ! last_slash                                                   // C 4301
+	{ strcpy ((&raw mut pat_a) as *mut c_char, c"\\".as_ptr ()); }      // C 4302
+      strcat ((&raw mut pat_a) as *mut c_char, c"*".as_ptr ());         // C 4303
+      /* In case DIRNAME cannot be expressed in characters from the     // C 4304
+	 current ANSI codepage.  */                                            // C 4305
+      if ! _mbspbrk ((&raw const pat_a) as *const c_uchar, c"?".as_ptr () as *const c_uchar).is_null () // C 4306
+	{
+	  *errno () = ENOENT;                                                  // C 4308
+	  return 0;                                                            // C 4309
+	}
+      dh = FindFirstFileA ((&raw const pat_a) as LPCSTR, (&raw mut dfd_a)); // C 4311
+    }
+
+  if dh == INVALID_HANDLE_VALUE                                         // C 4314
+    {
+      let mut w32err: DWORD = GetLastError ();                          // C 4316
+
+      match w32err                                                      // C 4318
+	{
+	  ERROR_INVALID_NAME                                                   // C 4320
+	  | ERROR_BAD_PATHNAME                                                 // C 4321
+	  | ERROR_FILE_NOT_FOUND                                               // C 4322
+	  | ERROR_PATH_NOT_FOUND                                               // C 4323
+	  | ERROR_NO_MORE_FILES                                                // C 4324
+	  | ERROR_BAD_NETPATH =>                                               // C 4325
+	    { *errno () = ENOENT; }                                            // C 4326
+	  ERROR_NOT_READY =>                                                   // C 4328
+	    { *errno () = ENODEV; }                                            // C 4329
+	  _ =>                                                                 // C 4331
+	    { *errno () = EACCES; }                                            // C 4332
+	}
+    return 0;                                                           // C 4335
+    }
+  FindClose (dh);                                                       // C 4337
+  return 1;                                                             // C 4338
+}
+/* C 4341-4395: C 4341-4346's comment, C 4347's `static int` and `sys_access`.  C 4359 embeds an
+   assignment in its condition, and Rust has no such expression, so the port writes the two
+   statements C's one means (the same reading this slice gives C 4191's `_snprintf … < 0`).  */
+#[cfg (feature = "windowsnt")]
+unsafe fn sys_access (fname: *const c_char, mode: c_int) -> c_int       // C 4347
+{
+  let mut fname_copy: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4350
+  let mut p: *mut c_char;
+  let mut attributes: DWORD;                                            // C 4351
+
+  /* C leaves `p` and `attributes` uninitialised (PORTING.md 1.5).  */
+  p = std::ptr::null_mut ();
+  attributes = 0;
+
+  strcpy ((&raw mut fname_copy) as *mut c_char, fname);                 // C 4353
+  /* Do the equivalent of unixtodos_filename.  */                       // C 4354
+  p = (&raw mut fname_copy) as *mut c_char;                             // C 4355
+  while *p != 0                                                         // C 4355 (C's `for (p = fname_copy; *p; …)`)
+    {
+      if *p == b'/' as c_char                                           // C 4356
+	{ *p = b'\\' as c_char; }                                              // C 4357
+      p = CharNext (p);                                                 // C 4355 (the for's increment)
+    }
+
+  attributes = GetFileAttributesA ((&raw const fname_copy) as LPCSTR);  // C 4359
+  if attributes == -1 as DWORD                                          // C 4359 (C's `== -1`)
+    {
+      let mut w32err: DWORD = GetLastError ();                          // C 4361
+
+      match w32err                                                      // C 4363
+	{
+	  ERROR_INVALID_NAME                                                   // C 4365
+	  | ERROR_BAD_PATHNAME                                                 // C 4366
+	  | ERROR_FILE_NOT_FOUND                                               // C 4367
+	  | ERROR_BAD_NETPATH =>                                               // C 4368
+	    { *errno () = ENOENT; }                                            // C 4369
+	  _ =>                                                                 // C 4371
+	    { *errno () = EACCES; }                                            // C 4372
+	}
+      return -1;                                                        // C 4375
+    }
+  if ((mode & X_OK) != 0                                                 // C 4377
+      && ! (is_exec ((&raw const fname_copy) as *const c_char) != 0     // C 4378
+	   || (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0))                   // C 4379
+    {
+      *errno () = EACCES;                                               // C 4381
+      return -1;                                                        // C 4382
+    }
+  if ((mode & W_OK) != 0 && (attributes & FILE_ATTRIBUTE_READONLY) != 0)  // C 4384
+    {
+      *errno () = EACCES;                                               // C 4386
+      return -1;                                                        // C 4387
+    }
+  if ((mode & D_OK) != 0 && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0) // C 4389
+    {
+      *errno () = EACCES;                                               // C 4391
+      return -1;                                                        // C 4392
+    }
+  return 0;                                                             // C 4394
+}
+
+/* C 4396-4399: C 4396's blank and C 4397-4399's comment (the next item is C 4401's
+   `sys_rename`, past this slice).  */
