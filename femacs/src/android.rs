@@ -8613,3 +8613,332 @@ pub unsafe extern "C" fn android_reset_ic (window: android_window, mode: android
 
 /* C 7299-7304: C 7299's blank and C 7300-7303's comment (the next item is C 7305's
    `android_update_extracted_text`).  */
+/* C 7299-7304: C 7299's blank and C 7300-7303's comment.  */
+/* C 7305-7328: C 7305's `void` and android_update_extracted_text (C 7319-7325's comment about
+   `text` not being `jobject` sits inside the call, as C has it).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_update_extracted_text (window: android_window, text: *mut c_void, // C 7305
+							     token: c_int)
+{
+  let mut object: jobject;                                              // C 7309
+  let mut method: jmethodID;                                            // C 7310
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  object = android_resolve_handle (window);                             // C 7312
+  method = service_class.update_extracted_text;                         // C 7313
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 7315
+	(android_java_env,                                                     // C 7315
+	 emacs_service,                                                        // C 7316
+	 service_class.class,                                                  // C 7317
+	 method, object,                                                       // C 7318
+	 /* N.B. that text is                                             // C 7319
+	    not jobject,                                                   // C 7320
+	    because that type                                              // C 7321
+	    is not available                                               // C 7322
+	    in                                                             // C 7323
+	    androidgui.h.  */                                              // C 7324
+	 text as jobject,                                                      // C 7325
+	 token as jint);                                                       // C 7326
+  android_exception_check_1 (text as jobject);                          // C 7327
+}
+/* C 7338-7359: C 7330-7336's comment, C 7338's `void` and
+   android_update_cursor_anchor_info.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_update_cursor_anchor_info (window: android_window, x: f32, // C 7338
+							   y: f32, y_baseline: f32,
+							   y_bottom: f32)
+{
+  let mut object: jobject;                                              // C 7343
+  let mut method: jmethodID;                                            // C 7344
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  object = android_resolve_handle (window);                             // C 7346
+  method = service_class.update_cursor_anchor_info;                     // C 7347
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 7349
+	(android_java_env,                                                     // C 7349
+	 emacs_service,                                                        // C 7350
+	 service_class.class,                                                  // C 7351
+	 method,                                                               // C 7352
+	 object,                                                               // C 7353
+	 x as jfloat as c_double,                                              // C 7354 (C's default argument promotion)
+	 y as jfloat as c_double,                                              // C 7355 (C's default argument promotion)
+	 y_baseline as jfloat as c_double,                                     // C 7356 (C's default argument promotion)
+	 y_bottom as jfloat as c_double);                                      // C 7357 (C's default argument promotion)
+  android_exception_check ();                                           // C 7358
+}
+/* C 7361-7390: C 7362's form feed, C 7363's `/* Window decoration management functions.  */`,
+   C 7365-7369's comment, C 7371's `int` and android_set_fullscreen (C 7378's API-level test).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_fullscreen (window: android_window, fullscreen: bool) -> c_int // C 7371
+{
+  let mut object: jobject;                                              // C 7374
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+
+  /* Android 4.0 and earlier don't support fullscreen windows.  */      // C 7376
+
+  if android_api_level < 16                                             // C 7378
+    { return 1; }                                                       // C 7379
+
+  object = android_resolve_handle (window);                             // C 7381
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 7383
+	(android_java_env,                                                     // C 7383
+	 object,                                                               // C 7384
+	 window_class.class,                                                   // C 7385
+	 window_class.set_fullscreen,                                          // C 7386
+	 fullscreen as jboolean as c_uint);                                    // C 7387
+  android_exception_check ();                                           // C 7388
+  return 0;                                                             // C 7389
+}
+/* C 7392-7408: C 7393's form feed, C 7394's `/* Window cursor support.  */`, C 7396's
+   `android_cursor` and android_create_font_cursor.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_font_cursor (shape: android_cursor_shape) -> android_cursor // C 7396
+{
+  let mut object: jobject;                                              // C 7399
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+
+  /* Next, create the cursor.  */                                       // C 7401
+  object = ((*(*android_java_env)).NewObject.unwrap ()) (android_java_env, // C 7402
+						   cursor_class.class,                                            // C 7403
+						   cursor_class.constructor,                                      // C 7404
+						   shape as jint);                                                // C 7405
+  android_exception_check ();                                           // C 7406
+  return android_globalize_reference (object);                          // C 7407
+}
+/* C 7410-7425: android_define_cursor.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_define_cursor (window: android_window, cursor: android_cursor) // C 7410
+{
+  let mut window1: jobject;                                             // C 7413
+  let mut cursor1: jobject;
+  let mut method: jmethodID;                                            // C 7414
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5).  */
+  window1 = std::ptr::null_mut ();
+  cursor1 = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  window1 = android_resolve_handle (window);                            // C 7416
+  cursor1 = android_resolve_handle (cursor);                            // C 7417
+  method = window_class.define_cursor;                                  // C 7418
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 7420
+	(android_java_env,                                                     // C 7420
+	 window1,                                                              // C 7421
+	 window_class.class,                                                   // C 7422
+	 method, cursor1);                                                     // C 7423
+  android_exception_check ();                                           // C 7424
+}
+/* C 7427-7431: android_free_cursor.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_free_cursor (cursor: android_cursor)   // C 7427
+{
+  android_destroy_handle (cursor);                                      // C 7430
+}
+/* C 7433-7450: C 7434's form feed, C 7435-7441's `/* Process execution.  */` banner (C's own
+   nesting is an artefact of quoting it here) and C` comment and C
+   7443-7449's comment.  */
+/* C 7451-7515: C 7451's `int` and android_rewrite_spawn_argv.  C's four function-local statics
+   (C 7454-7456) become file-scope objects here, the `w32fns.rs` device the ledger records;
+   `access`/`R_OK`/`X_OK` are declared in-unit (the P-88 device; `R_OK` is 4 and `X_OK` 1,
+   measured in this machine's NDK 26.1.10909125 `unistd.h` 51-53) - the unit reaches both from
+   its own C 39 `#include <unistd.h>` (`lib/include/unistd.in.rs` 66/118/120), so this slice
+   declares neither - and C 7512's
+   `name_too_long:` label is the port's labelled block whose tail is the label's two
+   statements (the `androidmenu.rs` `'finish` shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+/* C 7454: `static const char **new_args;` - C's function-local static.  */
+static mut new_args: *mut *const c_char = std::ptr::null_mut ();
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+/* C 7455: `static size_t n_new_args;` - C's function-local static.  */
+static mut n_new_args: size_t = 0;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+/* C 7456's `static char exec1_name[PATH_MAX + 1], loader_name[PATH_MAX + 1];`.  */
+static mut exec1_name: [c_char; PATH_MAX as usize + 1] = [0; PATH_MAX as usize + 1];
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut loader_name: [c_char; PATH_MAX as usize + 1] = [0; PATH_MAX as usize + 1];
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_rewrite_spawn_argv (argv: *const *const *const c_char) -> c_int // C 7451
+{
+  let mut i: size_t;                                                    // C 7457
+  let mut nargs: size_t;
+  let mut n: c_int;                                                     // C 7458
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5).  */
+  i = 0;
+  nargs = 0;
+  n = 0;
+
+  /* This isn't required on Android 9 or earlier.  */                   // C 7460
+
+  if android_api_level < 29 || ! android_use_exec_loader                // C 7462
+    { return 0; }                                                       // C 7463
+
+  /* Get argv[0]; this should never be NULL.                            // C 7465
+     Then, verify that it exists and is executable.  */                 // C 7466
+
+  eassert! (! (*(*argv)).is_null ());                                   // C 7468
+  if access (*(*argv), R_OK | X_OK) != 0                                // C 7469
+    { return 1; }                                                       // C 7470
+
+  /* Count the number of arguments in *argv.  */                        // C 7472
+
+  nargs = 0;                                                            // C 7474
+  while ! (*(*argv).offset (nargs as isize)).is_null ()                 // C 7475
+    { nargs += 1; }                                                     // C 7476 (C's `++nargs`)
+
+  /* Allocate a buffer in which to save the rewritten argument          // C 7478
+     array.  */                                                         // C 7479
+  if n_new_args != nargs + 2                                            // C 7480
+    {
+      new_args = xrealloc (new_args as *mut c_void,                     // C 7482
+			   std::mem::size_of::<*const c_char> () * (nargs + 3)) as *mut *const c_char;
+      n_new_args = nargs + 2;                                           // C 7483
+    }
+
+  'name_too_long: {
+    /* Fill in the name of `libexec1.so'.  */                           // C 7486
+    n = snprintf ((&raw mut exec1_name) as *mut c_char, PATH_MAX as usize + 1, // C 7487
+		  c"%s/libexec1.so".as_ptr (),                                        // C 7487
+		  android_lib_dir);                                                   // C 7488
+    if n >= PATH_MAX as c_int                                           // C 7489 (C's own `int` comparison)
+	{ break 'name_too_long; }                                              // C 7490 (C's `goto name_too_long`)
+
+    /* And libloader.so.  */                                            // C 7492
+    n = snprintf ((&raw mut loader_name) as *mut c_char, PATH_MAX as usize + 1, // C 7493
+		  c"%s/libloader.so".as_ptr (),                                       // C 7493
+		  android_lib_dir);                                                   // C 7494
+    if n >= PATH_MAX as c_int                                           // C 7495 (C's own `int` comparison)
+	{ break 'name_too_long; }                                              // C 7496 (C's `goto name_too_long`)
+
+    /* Now fill in the first two arguments.  */                         // C 7498
+    *new_args.offset (0) = (&raw mut exec1_name) as *mut c_char;        // C 7499
+    *new_args.offset (1) = (&raw mut loader_name) as *mut c_char;       // C 7500
+
+    /* And insert the rest, including the trailing NULL.  */            // C 7502
+    for i in 0 .. nargs + 1                                             // C 7503
+      { *new_args.offset ((i + 2) as isize) = *(*argv).offset (i as isize); } // C 7504
+
+    /* Replace argv.  */                                                // C 7506
+    /* C's `*argv` pointee is non-const (`const char ***argv` makes only the string const), while
+       the mirror renders every level `*const`, so the store casts the pointer back for the one
+       write.  */
+    *(argv as *mut *const *const c_char) = new_args as *const *const c_char;  // C 7507
+
+    /* Return success.  */                                              // C 7509
+    return 0;                                                           // C 7510
+  }
+
+  /* name_too_long: */                                                  // C 7512
+  *errno () = ENAMETOOLONG;                                             // C 7513
+  return 0;                                                             // C 7514
+}
+/* C 7516-7522: C 7516's blank, C 7517's form feed, C 7518's blank, C 7519's
+   `#else /* ANDROID_STUBIFY */`, C 7520's blank, C 7521's
+   `/* X emulation functions for Android.  */` and C 7522's blank.  This is the file's second
+   arm: every entry below is compiled only under `not (feature = "not_android_stubify")`, and
+   each one aborts where the real arm above defines the entry (the ledger's Gate mapping row).  */
+/* C 7523-7529: android_create_gc.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_gc (mask: android_gc_value_mask,
+			   values: *mut android_gc_values) -> *mut android_gc // C 7523
+{
+  /* This function should never be called when building stubs.  */      // C 7527
+  emacs_abort ();                                                       // C 7528
+}
+/* C 7531-7536: android_free_gc.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_free_gc (gc: *mut android_gc)          // C 7531
+{
+  /* This function should never be called when building stubs.  */      // C 7534
+  emacs_abort ();                                                       // C 7536
+}
+/* C 7538-7543: android_create_image.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_image (depth: c_uint, format: android_image_format,
+			      data: *mut c_char, width: c_uint, height: c_uint) -> *mut android_image // C 7538
+{
+  emacs_abort ();                                                       // C 7542
+}
+/* C 7545-7549: android_destroy_image.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_destroy_image (ximg: *mut android_image) // C 7545
+{
+  emacs_abort ();                                                       // C 7549
+}
+/* C 7551-7556: android_put_pixel.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_put_pixel (ximg: *mut android_image, x: c_int, y: c_int,
+		   pixel: c_ulong) // C 7551
+{
+  emacs_abort ();                                                       // C 7555
+}
+/* C 7558-7562: android_get_pixel.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_pixel (ximg: *mut android_image, x: c_int, y: c_int) -> c_ulong // C 7558
+{
+  emacs_abort ();                                                       // C 7562
+}
+/* C 7564-7569: android_get_image.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_image (drawable: android_drawable,
+		   format: android_image_format) -> *mut android_image // C 7564
+{
+  emacs_abort ();                                                       // C 7568
+}
+/* C 7571-7576: android_put_image.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_put_image (pixmap: android_pixmap,
+		   image: *mut android_image) // C 7571
+{
+  emacs_abort ();                                                       // C 7575
+}
+/* C 7578-7584: android_project_image_bilinear.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_project_image_bilinear (image: *mut android_image,
+				out: *mut android_image,
+				transform: *mut android_transform) // C 7578
+{
+  emacs_abort ();                                                       // C 7582
+}
+/* C 7586-7592: android_project_image_nearest.  */
+#[cfg (all (feature = "have_android", not (feature = "not_android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_project_image_nearest (image: *mut android_image,
+			       out: *mut android_image,
+			       transform: *mut android_transform) // C 7586
+{
+  emacs_abort ();                                                       // C 7590
+}
+
+/* C 7594: `#endif /* !ANDROID_STUBIFY */` - the file's last line (the ledger's C-range table
+   ends here).  */

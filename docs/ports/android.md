@@ -178,9 +178,17 @@
 > entry that waits on `android_query_sem` with `sem_timedwait` and its two backward jumps),
 > `android_update_ic` (7246-7265) and `android_reset_ic` (7285-7298) - so the port carries C
 > 1-7298 except the two holes (C 2086-2192 and C 6021-6101) and C 6880-7096: **7,341 C lines of
-> 7,594 (96.7%)**.  The port is 8,615 lines, md5 `83260c82797912217ee2797a22d3e583`.  **The
-> next live definition is C 7305's `android_update_extracted_text`** (the input-method group),
-> and the last unported text after it is C 7519's `#else` stub arm.  The table's last row is the
+> 7,594 (96.7%)**.  The port was 8,615 lines, md5 `83260c82797912217ee2797a22d3e583`.  **Slice
+> 34 (C 7299-7594, 2026-10-12) closes the file**: `android_update_extracted_text` (7305-7328),
+> `android_update_cursor_anchor_info` (7338-7359), `android_set_fullscreen` (7371-7390), the
+> three cursor entries (`android_create_font_cursor` 7396-7408, `android_define_cursor`
+> 7410-7425, `android_free_cursor` 7427-7431), `android_rewrite_spawn_argv` (7451-7515) and
+> finally **C 7519's `#else` `ANDROID_STUBIFY` arm** (7519-7594, ten entries that abort where
+> the real arm defines them) - so the port now carries **every line of the file except the two
+> P-05 holes** (C 2086-2192 and C 6021-6101): **7,406 C lines of 7,594 (97.5%)**.  The port is
+> 8,944 lines, md5 `89345cc833ed4c3bdb6838a1e7fc02f2`.  **There is no next live definition in this file**; what
+> remains is the two `alloca` holes (Owed 11) and this lane's integration items.  The table's
+> last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -192,7 +200,7 @@
 | `HAVE_WINDOW_SYSTEM` (`configure.ac` 7518, on in every Android configuration - the frozen
 target's table has it undefined but builds no `android.o`) | `feature = "have_window_system"`; needed by C 4564/4570's two `gui_intersect_rectangles` calls, whose prototype is dispextern.h 3676 under C 3660-3674's `#ifdef HAVE_WINDOW_SYSTEM` (slice 22; the `sfntfont-android.rs` lane sets the same feature for its own call) | an Android configuration |
 | C 61 `#ifndef ANDROID_STUBIFY` … C 7518 (real JNI arm) | `all (feature = "have_android", feature = "not_android_stubify")` | Android, API calls real |
-| C 7519 `#else` … C 7594 `#endif` (the `ANDROID_STUBIFY` arm) | `all (feature = "have_android", not (feature = "not_android_stubify"))` | Android, API calls stubbed - **in the remainder, not this slice** |
+| C 7519 `#else` … C 7594 `#endif` (the `ANDROID_STUBIFY` arm) | `all (feature = "have_android", not (feature = "not_android_stubify"))` | Android, API calls stubbed - **carried (slice 34) and arm-flipped**: the `have_android`-only probe exits 0 with 0 errors, 11 warnings and a 1,560-byte object |
 | C 70 `#ifdef __aarch64__` … C 72 (the `<arm_neon.h>` include) | `feature = "aarch64"` (text-only here; the four NEON regions are C 4064-4431) | an aarch64 Android configuration |
 | C 176 `#ifdef THREADS_ENABLED` … C 181 (`android_jvm`) | `feature = "threads_enabled"` | threads on |
 | C 241 `#ifdef __i386__` … C 246 (`unused_pointer`) | `feature = "i386"` | an x86 Android configuration |
@@ -490,7 +498,13 @@ no `window.h`).
 | 7232-7245 | C 7233's form feed, C 7235's `/* Input method related functions.  */` and C 7237-7244's comment | real arm (slice 33) |
 | 7246-7265 | C 7246's `void` and `android_update_ic` (C 7260-7263's four `ptrdiff_t` arguments) | real arm (slice 33) |
 | 7266-7298 | C 7267-7283's comment, C 7285's `void` and `android_reset_ic` | real arm (slice 33) |
-| 7299-7594 | **the remainder, second part (b)** - from C 7299's blank and C 7300-7303's comment (C 7305's `android_update_extracted_text`, **the next live definition**) through C 7594's `#endif`: the rest of the input-method group, the window-decoration and cursor entries, C 7451's `android_rewrite_spawn_argv` and **C 7519's `#else` stub arm** | not this slice |
+| 7299-7304 | C 7299's blank and C 7300-7303's comment | real arm (slice 34) |
+| 7305-7328 | C 7305's `void` and `android_update_extracted_text` (C 7319-7324's comment about `text` not being `jobject`, C 7327's `android_exception_check_1`) | real arm (slice 34) |
+| 7329-7359 | C 7330-7336's comment, C 7338's `void` and `android_update_cursor_anchor_info` (C 7354-7357's four `jfloat` arguments) | real arm (slice 34) |
+| 7360-7390 | C 7361's form feed, C 7363's `/* Window decoration management functions.  */`, C 7365-7369's comment and `android_set_fullscreen` (C 7378's API-level test) | real arm (slice 34) |
+| 7391-7431 | C 7393's form feed, C 7394's `/* Window cursor support.  */` and the three cursor entries (`android_create_font_cursor`, `android_define_cursor`, `android_free_cursor`) | real arm (slice 34) |
+| 7432-7515 | C 7434's form feed, C 7435-7441's `/* Process execution.` banner, C 7443-7449's comment and `android_rewrite_spawn_argv` (C 7454-7456's four function-local statics, C 7487/7493's two `snprintf`s with C 7490/7496's jumps, C 7503-7504's loop and C 7512's label) | real arm (slice 34) |
+| 7516-7594 | C 7516's blank, C 7517's form feed, C 7519's `#else /* ANDROID_STUBIFY */` and the **stub arm's ten entries** (`android_create_gc`, `android_free_gc`, `android_create_image`, `android_destroy_image`, `android_put_pixel`, `android_get_pixel`, `android_get_image`, `android_put_image`, `android_project_image_bilinear`, `android_project_image_nearest`, each aborting), then C 7594's `#endif /* !ANDROID_STUBIFY */` - **the file's last line** | stub arm (slice 34) |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -875,19 +889,20 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built, no image transformed, no URL browsed, no battery queried, no query answered.  Slices 2-33's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built, no image transformed, no URL browsed, no battery queried, no query answered, no spawn rewritten, no stub abort.  Slices 2-34's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-7298, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 and C 6021-6101 (both blocked on P-05's `alloca` decision)
-and C 7299-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (8
-`missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-7515, C 4734-4747 and C 6880-7096) are carried, and
+the stub arm (C 7516-7594) is carried in its own cfg;
+the **unported** part is now only C 2086-2192 and C 6021-6101 (both blocked on P-05's `alloca`
+decision), and `extract-abi.py --check`'s remaining `- missing ...` list (1
+`missing function` row - `android_build_string` itself - **no file-scope object**, **no `does not mention`** and the forty-one
 `invented exported symbol` rows of Owed 9) are that boundary, not defects; the line-count row
-**is emitted at 13.4%** (C 7,594 against the port's 8,615): the port now exceeds the
+**is emitted at 17.8%** (C 7,594 against the port's 8,944): the port now exceeds the
 reference because every carried line adds its `// C NNNN` marker and its `#[cfg]`/comment
 frame, which is the same reading the earlier over-100% units carry.  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and every `does not mention`
 row is a recorded `macro-body-notes.tsv` row of Owed 8 - none of them is a port defect.  The `android_api_lt_21`
-configuration compiled to an object (②b, 97,840 bytes) and was not run; the pristine base-config arm
+configuration compiled to an object (②b, 100,800 bytes) and was not run; the pristine base-config arm
 still stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member (②a, Owed 6), so no
 object exists for it.
 
@@ -2297,3 +2312,61 @@ P-05 hole), the six entries of C 7299-7515 and the stub arm's own set.
   pointer/`Option` spelling (`std::ptr::null_mut ()`, `None`) from slice 13's own sites.
 - **C 7260-7263's four `(jint)` casts** are the port's `as jint` (C's narrowing of the
   `ptrdiff_t` arguments), and **C 7296's `(jint) mode`** likewise.
+
+## 2026-10-12: slice 34 (C 7299-7594) - the rest of the second part and the `ANDROID_STUBIFY` arm, closing the file
+
+`android_update_extracted_text`, `android_update_cursor_anchor_info`, `android_set_fullscreen`,
+`android_create_font_cursor`, `android_define_cursor`, `android_free_cursor`,
+`android_rewrite_spawn_argv` and the ten entries of C 7519's `#else` arm.
+
+### Evidence (this slice's readings)
+
+**⑤⑭ The arm flips of this slice.**  Three probes, all **exit 0, 0 errors, 11 warnings**: the
+three-`--cfg` arm, the five-`--cfg` arm (97,840/100,800-byte objects after this slice's repairs)
+and - for the first time in this lane - **the stub arm alone** (`--cfg
+'feature="have_android"'` without `not_android_stubify`), which compiles C 7519-7594 to a
+**1,560-byte object**.  The three-`--cfg` run needed **three** first-attempt repairs, each a real
+defect of the text: C 7454-7456's four *function-local* statics have no Rust counterpart inside a
+function, so they are file-scope objects here (the `w32fns.rs` device); `access`/`X_OK`/`R_OK`
+were declared in-unit although the unit's own C 39 `#include <unistd.h>` already carries them
+(`lib/include/unistd.in.rs` 66/118/120 - the `E0428`s that proved it); C 7354-7357's four `float`
+arguments are **variadic**, so C's default argument promotion applies (`as jfloat as c_double`);
+C 7489/7495 compare `int` against the mirror's `c_long PATH_MAX` (`PATH_MAX as c_int`, C's own
+comparison); and C 7507's store through `*argv` needs the mirror's over-`const` pointer cast back
+(C's `const char ***argv` leaves that pointee writable).
+
+**⑤⑮ The checklist reading.**  `extract-abi.py --check`: `missing function` **8 → 1** - the single
+remaining row is **`android_build_string` itself**, the P-05 `alloca` hole; **`missing file-scope
+object` 0** (twenty-second round at empty), **`invented exported symbol` 41** unchanged, and
+**`does not mention` 0 after this slice's `macro-body-notes.tsv` row** (C 7490/7496's two `goto`);
+the line-count row reads **17.8%** (C 7,594 against the port's 8,944).  With that, the file is
+carried except its two P-05 holes: **7,406 of 7,594 C lines (97.5%)**.
+
+### Deviations this slice adds
+
+- **C 7454-7456's four function-local statics** (`new_args`, `n_new_args`, `exec1_name`,
+  `loader_name`) are file-scope objects (`static mut`, the arrays `[c_char; PATH_MAX as usize +
+  1]`), because Rust has no function-local static; C 7457/7458's three locals stay in the
+  function.
+- **`access`, `R_OK` and `X_OK` are *not* declared in-unit** (unlike the `write_volatile`/
+  `sem_timedwait` devices): the unit's own `#include <unistd.h>` (C 39) reaches
+  `lib/include/unistd.in.rs`, which carries all three; the first attempt's in-unit copies were
+  `E0428`s and were removed.
+- **C 7354-7357's four `(jfloat)` casts** keep C's default argument promotion inside the
+  variadic call (`as jfloat as c_double`, the slice-29 `as jboolean as c_uint` device);
+  **C 7325's `(jobject) text`** and **C 7327's/7371's arguments** are the plain `as` casts.
+- **C 7371's `(jboolean) fullscreen`** is `fullscreen as jboolean as c_uint` (the same promotion),
+  and **C 7378's `android_api_level < 16`** is the unit's own `c_int` comparison.
+- **C 7489/7495's `n >= PATH_MAX`** is `n >= PATH_MAX as c_int` (C compares two `int`s; the
+  mirror's `PATH_MAX` is `c_long` - the `androidvfs.rs` 735 `PATH_MAX as c_int` device).
+- **C 7512's `name_too_long:` label** is the port's labelled block: C 7490/7496's jumps are
+  `break 'name_too_long`, the block carries the body that C 7507-7510 ends with `return 0`, and
+  the label's own two statements (C 7513-7514) follow the block (the `androidmenu.rs` `'finish`
+  shape).
+- **C 7507's `*argv = new_args`** needs one cast back to a writable pointer
+  (`*(argv as *mut *const *const c_char)`), because the mirror renders every level of C's
+  `const char ***argv` as `*const` while C leaves the outer pointee writable.
+- **C 7523-7592's ten stub entries** are `#[cfg (all (feature = "have_android", not (feature =
+  "not_android_stubify")))]` definitions whose bodies are the single `emacs_abort ()` call C
+  writes; the file-level `#![allow (dead_code, unused_variables, unreachable_code, …)]` covers
+  the unreachable tails (the entries return non-`()` types) and the unused parameters.
