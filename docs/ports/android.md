@@ -172,10 +172,15 @@
 > except the two holes (C 2086-2192 and C 6021-6101) and C 6880-7096: **6,921 C lines of 7,594
 > (91.1%)**.  **This round's count is the first that subtracts both holes**; the earlier rows'
 > arithmetic subtracted only the first one and added C 4734-4747, which the carried head
-> already contains (both conventions are visible in each row's own arithmetic).  The port is
-> 8,389 lines, md5 `fc7fe07fdd7fdcff6ae8992fe7d16d24`.  **The
-> next live definition is C 7105's `android_run_in_emacs_thread`** (the remainder's second
-> part, C 7097-7594, which also carries C 7519's `#else` stub arm).  The table's last row is the
+> already contains (both conventions are visible in each row's own arithmetic).  The port was
+> 8,389 lines, md5 `fc7fe07fdd7fdcff6ae8992fe7d16d24`.  **Slice 33 (C 7097-7298, 2026-10-12)**
+> opens the remainder's second part with `android_run_in_emacs_thread` (7109-7231, the one
+> entry that waits on `android_query_sem` with `sem_timedwait` and its two backward jumps),
+> `android_update_ic` (7246-7265) and `android_reset_ic` (7285-7298) - so the port carries C
+> 1-7298 except the two holes (C 2086-2192 and C 6021-6101) and C 6880-7096: **7,341 C lines of
+> 7,594 (96.7%)**.  The port is 8,615 lines, md5 `83260c82797912217ee2797a22d3e583`.  **The
+> next live definition is C 7305's `android_update_extracted_text`** (the input-method group),
+> and the last unported text after it is C 7519's `#else` stub arm.  The table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -480,7 +485,12 @@ no `window.h`).
 | 6842-6860 | C 6842's blank, C 6843-6844's comment and `android_request_storage_access` (C 6851's API-level test) | real arm (slice 32) |
 | 6861-6879 | C 6861's blank, C 6862-6863's comment, `android_recreate_activity` and C 6879's blank - **the real arm's last definition** (C 6880 starts slice 13's carried region) | real arm (slice 32) |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
-| 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
+| 7097-7108 | C 7097's blank, C 7098-7107's five-paragraph comment and C 7108's blank | real arm (slice 33) |
+| 7109-7231 | `android_run_in_emacs_thread` (C 7131-7133's `__atomic_compare_exchange_n`, C 7166's `again:` label with C 7172's `goto again`, C 7182-7183's urgent-query store, C 7185's `kill_again:` label with C 7214's `goto kill_again`, and C 7225-7228's final assert) | real arm (slice 33) |
+| 7232-7245 | C 7233's form feed, C 7235's `/* Input method related functions.  */` and C 7237-7244's comment | real arm (slice 33) |
+| 7246-7265 | C 7246's `void` and `android_update_ic` (C 7260-7263's four `ptrdiff_t` arguments) | real arm (slice 33) |
+| 7266-7298 | C 7267-7283's comment, C 7285's `void` and `android_reset_ic` | real arm (slice 33) |
+| 7299-7594 | **the remainder, second part (b)** - from C 7299's blank and C 7300-7303's comment (C 7305's `android_update_extracted_text`, **the next live definition**) through C 7594's `#endif`: the rest of the input-method group, the window-decoration and cursor entries, C 7451's `android_rewrite_spawn_argv` and **C 7519's `#else` stub arm** | not this slice |
 
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
@@ -865,19 +875,19 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built, no image transformed, no URL browsed, no battery queried.  Slices 2-32's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built, no image transformed, no URL browsed, no battery queried, no query answered.  Slices 2-33's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-6878, C 4734-4747 and C 6880-7096) are carried;
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-7298, C 4734-4747 and C 6880-7096) are carried;
 the **unported** part is C 2086-2192 and C 6021-6101 (both blocked on P-05's `alloca` decision)
-and C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (11
+and C 7299-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (8
 `missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
 `invented exported symbol` rows of Owed 9) are that boundary, not defects; the line-count row
-**is emitted at 10.5%** (C 7,594 against the port's 8,389): the port now exceeds the
+**is emitted at 13.4%** (C 7,594 against the port's 8,615): the port now exceeds the
 reference because every carried line adds its `// C NNNN` marker and its `#[cfg]`/comment
 frame, which is the same reading the earlier over-100% units carry.  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and every `does not mention`
 row is a recorded `macro-body-notes.tsv` row of Owed 8 - none of them is a port defect.  The `android_api_lt_21`
-configuration compiled to an object (②b, 94,336 bytes) and was not run; the pristine base-config arm
+configuration compiled to an object (②b, 97,840 bytes) and was not run; the pristine base-config arm
 still stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member (②a, Owed 6), so no
 object exists for it.
 
@@ -2242,3 +2252,48 @@ line-count row reads **10.5%** (C 7,594 against the port's 8,389).  The eleven n
   `android_api_level`** (defined since slice 1, `C 142`).
 - **C 6830/6851's `android_api_level <= 22`** tests are the port's own, and **C 6840's `jboolean`
   return** is `rc != 0` (the unit's `bool` device).
+
+## 2026-10-12: slice 33 (C 7097-7298) - the query round-trip and the two input-method entries
+
+`android_run_in_emacs_thread`, `android_update_ic` and `android_reset_ic` - the first text of the
+remainder's second part.
+
+### Evidence (this slice's readings)
+
+**⑤⑫ The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings** and both
+**passed on the first attempt**: the new `__atomic_compare_exchange_n` helper, the in-unit
+`sem_timedwait` declaration and the two labelled loops all compiled as written, and the eleven
+warnings are the unit's unchanged baseline.
+
+**⑤⑬ The checklist reading.**  `extract-abi.py --check`: `missing function` **11 → 8** (the three
+definitions this slice carries), **`missing file-scope object` 0** (twenty-first round at empty),
+**`invented exported symbol` 41** unchanged, and **`does not mention` 0 after this slice's
+`macro-body-notes.tsv` row** (C 7172/7214's `goto` and C 7182's `true`); the line-count row reads
+**13.4%** (C 7,594 against the port's 8,615).  The eight names left are `android_build_string` (the
+P-05 hole), the six entries of C 7299-7515 and the stub arm's own set.
+
+### Deviations this slice adds
+
+- **C 7172's `goto again` and C 7214's `goto kill_again`** are the port's two labelled loops
+  (`'again: loop` ... `continue 'again;` and the nested `'kill_again: loop` ... `continue
+  'kill_again;`), the unit's own C 4085 device; each fall-through is a `break '<label>`, because
+  C falls out of the labelled region into the code that follows it (the final `eassert` and
+  `return 0`).
+- **`__atomic_compare_exchange_n` is added to the unit's `__atomic_*` family** (3504-3537, the
+  one-byte width this file applies), and it writes the observed value back through `EXPECTED`
+  when the exchange fails, which is C's documented behaviour for the builtin.
+- **`sem_timedwait` and `ETIMEDOUT` are declared in-unit** (the P-88 device: `<semaphore.h>`'s
+  `sem_timedwait` is not in the unit's C 32-33 block, and `lib/include/errno.rs` does not carry
+  `ETIMEDOUT`); the value 110 is measured in this machine's NDK 26.1.10909125
+  `asm-generic/errno.h` 97.
+- **C 7182-7183's `__atomic_store_n (…, true, …)`** writes `1` into the one-byte object (the
+  family's own 3587 device), and **C 7118's `++event_serial`** is the two-statement form
+  (`event_serial += 1;` then the read) the unit's C 2266-era entries already use.
+- **C 7112's `union android_event event` and C 7115's `struct timespec timeout`** start zeroed
+  (Rust cannot partially initialise a value, PORTING.md 0.1-13), with C's own comment on the two
+  lines that C leaves uninitialised (`old`, `rc`).
+- **C 7119/7120's `event.xaction.window = 0` / `= 0`** infer their types from the union's fields,
+  and **C 7123/7135's `android_query_context = closure` / `= NULL`** keep the unit's
+  pointer/`Option` spelling (`std::ptr::null_mut ()`, `None`) from slice 13's own sites.
+- **C 7260-7263's four `(jint)` casts** are the port's `as jint` (C's narrowing of the
+  `ptrdiff_t` arguments), and **C 7296's `(jint) mode`** likewise.

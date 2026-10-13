@@ -8387,3 +8387,229 @@ pub unsafe extern "C" fn android_recreate_activity (window: android_window) // C
 
 /* C 6879: the blank that closes the real arm's last definition (C 6880 is the form feed that
    slice 13's carried region follows).  */
+/* C 7097-7108: C 7097's blank, C 7098-7107's five-paragraph comment and C 7108's blank.  */
+/* C 7109-7231: C 7109's `int` and android_run_in_emacs_thread.  C's two backward jumps (C
+   7172's `goto again` and C 7214's `goto kill_again`) are the port's labelled loops (the
+   unit's own `'again` device at 5024, C 4085's label), `__atomic_compare_exchange_n` joins the
+   unit's `__atomic_*` helper family (3504-3537) and `sem_timedwait`/`ETIMEDOUT` are declared
+   here (the P-88 device; `ETIMEDOUT` is 110, measured in this machine's NDK 26.1.10909125
+   `asm-generic/errno.h` 97).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `int sem_timedwait (sem_t *, const struct timespec *);`
+  pub fn sem_timedwait (sem: *mut sem_t, abs_timeout: *const timespec) -> c_int;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+/// <errno.h>: `#define ETIMEDOUT 110` (the same header C 25 includes; measured as above).
+pub const ETIMEDOUT: c_int = 110;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+/// C: `_Bool __atomic_compare_exchange_n (TYPE *ptr, TYPE *expected, TYPE desired, bool weak,
+/// int success, int failure)`, the one-byte width this file applies it at (the family above).
+unsafe fn __atomic_compare_exchange_n (p: *mut c_uchar, expected: *mut c_char,
+				       desired: c_char, weak: bool,
+				       success: core::sync::atomic::Ordering,
+				       failure: core::sync::atomic::Ordering)
+  -> bool
+{
+  let _ = weak;
+  match (*(p as *mut core::sync::atomic::AtomicU8))
+    .compare_exchange (*expected as c_uchar, desired as c_uchar, success, failure)
+    {
+      Ok (_) => true,
+      /* C writes the actual value back through EXPECTED when the exchange fails.  */
+      Err (actual) => { *expected = actual as c_char; false }
+    }
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_run_in_emacs_thread (proc: Option<unsafe extern "C" fn (*mut c_void)>, // C 7109
+						      closure: *mut c_void)
+  -> c_int
+{
+  let mut event: android_event = std::mem::zeroed ();                   // C 7112 (PORTING.md 1.5)
+  let mut old: c_char;                                                  // C 7113
+  let mut rc: c_int;                                                    // C 7114
+  let mut timeout: timespec = std::mem::zeroed ();                      // C 7115 (PORTING.md 1.5)
+
+  /* C leaves `old` and `rc` uninitialised (PORTING.md 1.5); `event` and `timeout` are zeroed
+     because Rust cannot partially initialise a value (PORTING.md 0.1-13).  */
+  old = 0;
+  rc = 0;
+
+  event.xaction.r#type = ANDROID_WINDOW_ACTION;                         // C 7117
+  event_serial += 1;                                                    // C 7118 (C's `++event_serial`)
+  event.xaction.serial = event_serial as c_ulong;                       // C 7118
+  event.xaction.window = 0;                                             // C 7119
+  event.xaction.action = 0;                                             // C 7120
+
+  /* Set android_query_function and android_query_context.  */          // C 7122
+  android_query_context = closure;                                      // C 7123
+  android_query_function = proc;                                        // C 7124
+
+  /* Don't allow deadlocks to happen; make sure the Emacs thread is     // C 7126
+     not waiting for something to be done (in that case,                // C 7127
+     `android_query_context' is 2.)  */                                 // C 7128
+
+  old = 0;                                                              // C 7130
+  if ! __atomic_compare_exchange_n (&raw mut android_servicing_query as *mut c_uchar, // C 7131
+				    (&raw mut old) as *mut c_char, 1, false,                        // C 7132
+				    __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)                             // C 7133
+    {                                                                   // C 7134
+      android_query_context = std::ptr::null_mut ();                    // C 7135
+      android_query_function = None;                                    // C 7136
+
+      /* The two variables above may still be non-NULL from the POV of  // C 7138
+	 the main thread, as no happens-before constraint is placed on         // C 7139
+         those stores wrt a future load from `android_servicing_query'.  */ // C 7140
+
+      return 1;                                                         // C 7142
+    }                                                                   // C 7143
+
+  /* Send a dummy event.  `android_check_query' will be called inside   // C 7145
+     wait_reading_process_output after the event arrives.               // C 7146
+                                                                        // C 7147
+     Otherwise, android_select will call `android_check_query' when next // C 7148
+     it is entered.  */                                                 // C 7149
+  android_write_event ((&raw mut event));                               // C 7150
+
+  /* Start waiting for the function to be executed.  First, wait two    // C 7152
+     seconds for the query to execute normally.  */                     // C 7153
+
+  timeout.tv_sec = 2;                                                   // C 7155
+  timeout.tv_nsec = 0;                                                  // C 7156
+  timeout = timespec_add (current_timespec (), timeout);                // C 7157
+
+  /* See if an urgent query was recently answered without entering the  // C 7159
+     keyboard loop in between.  When that happens, raise SIGIO to       // C 7160
+     continue processing queries as soon as possible.  */               // C 7161
+
+  if __atomic_load_n (&raw const android_urgent_query as *const c_uchar, // C 7163
+		      __ATOMIC_ACQUIRE) != 0
+    { kill (getpid (), SIGIO); }                                        // C 7164
+
+  'again: loop                                                          // C 7166 (C's `again:` label)
+    {
+      rc = sem_timedwait ((&raw mut android_query_sem), (&raw const timeout)); // C 7167
+
+      if rc < 0                                                         // C 7169
+	{
+	  if *errno () == EINTR                                                // C 7171
+	    { continue 'again; }                                               // C 7172 (C's `goto again`)
+
+	  eassert! (*errno () == ETIMEDOUT);                                   // C 7174
+
+	  let __func__: *const c_char = c"android_run_in_emacs_thread".as_ptr ();
+	  __android_log_print (ANDROID_LOG_VERBOSE, __func__,                  // C 7176
+			       concat! ("Timed out waiting for response",                    // C 7177
+					" from main thread...").as_ptr () as *const c_char);               // C 7178
+
+	  /* The query timed out.  At this point, set                          // C 7180
+	     `android_urgent_query' to true.  */                               // C 7181
+	  __atomic_store_n (&raw mut android_urgent_query as *mut c_uchar,     // C 7182
+			    1,                                                               // C 7182 (C's `true` into a one-byte object)
+			    __ATOMIC_RELEASE);                                               // C 7183
+
+	  'kill_again: loop                                                    // C 7185 (C's `kill_again:` label)
+	    {
+	      /* And raise SIGIO.  Now that the query is considered urgent,    // C 7187
+		 the main thread will reply while reading async input.                // C 7188
+                                                                        // C 7189
+		 Normally, the main thread waits for the keyboard loop to be          // C 7190
+		 entered before responding, in order to avoid responding with         // C 7191
+		 inaccurate results taken during command executioon.  */              // C 7192
+	      kill (getpid (), SIGIO);                                         // C 7193
+
+	      /* Wait for the query to complete.  `android_urgent_query' is    // C 7195
+		 only cleared by either `android_select' or                           // C 7196
+		 `android_check_query', so there's no need to worry about the         // C 7197
+		 flag being cleared before the query is processed.                    // C 7198
+                                                                        // C 7199
+		 Send SIGIO again periodically until the query is answered, on        // C 7200
+		 the off chance that SIGIO arrived too late to preempt a              // C 7201
+		 system call, but too early for it to return EINTR.  */               // C 7202
+
+	      timeout.tv_sec = 4;                                              // C 7204
+	      timeout.tv_nsec = 0;                                             // C 7205
+	      timeout = timespec_add (current_timespec (), timeout);           // C 7206
+
+	      while sem_timedwait ((&raw mut android_query_sem), (&raw const timeout)) < 0 // C 7208
+		{
+		  /* If waiting timed out, send SIGIO to the main thread              // C 7210
+		     again.  */                                                       // C 7211
+
+		  if *errno () == ETIMEDOUT                                           // C 7213
+		    { continue 'kill_again; }                                         // C 7214 (C's `goto kill_again`)
+
+		  /* Otherwise, continue waiting.  */                                 // C 7216
+		  eassert! (*errno () == EINTR);                                      // C 7217
+		}
+
+	      break 'kill_again;
+	    }
+	}
+
+      break 'again;
+    }
+
+  /* At this point, `android_servicing_query' should either be zero if  // C 7221
+     the query was answered or two if the main thread has started a     // C 7222
+     query.  */                                                         // C 7223
+
+  eassert! (__atomic_load_n (&raw const android_servicing_query as *const c_uchar, // C 7225
+			     __ATOMIC_ACQUIRE) == 0
+		    || (__atomic_load_n (&raw const android_servicing_query as *const c_uchar, // C 7227
+				__ATOMIC_ACQUIRE) == 2));                                           // C 7228
+
+  return 0;                                                             // C 7230
+}
+/* C 7232-7245: C 7233's form feed, C 7235's `/* Input method related functions.  */` and C
+   7237-7244's comment.  */
+/* C 7246-7265: C 7246's `void` and android_update_ic.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_update_ic (window: android_window, selection_start: ptrdiff_t, // C 7246
+					   selection_end: ptrdiff_t, composing_region_start: ptrdiff_t,
+					   composing_region_end: ptrdiff_t)
+{
+  let mut object: jobject;                                              // C 7251
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+
+  object = android_resolve_handle (window);                             // C 7253
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 7255
+	(android_java_env,                                                     // C 7255
+	 emacs_service,                                                        // C 7256
+	 service_class.class,                                                  // C 7257
+	 service_class.update_ic,                                              // C 7258
+	 object,                                                               // C 7259
+	 selection_start as jint,                                              // C 7260
+	 selection_end as jint,                                                // C 7261
+	 composing_region_start as jint,                                       // C 7262
+	 composing_region_end as jint);                                        // C 7263
+  android_exception_check ();                                           // C 7264
+}
+/* C 7266-7298: C 7267-7283's comment, C 7285's `void` and android_reset_ic.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_reset_ic (window: android_window, mode: android_ic_mode) // C 7285
+{
+  let mut object: jobject;                                              // C 7288
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+
+  object = android_resolve_handle (window);                             // C 7290
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 7292
+	(android_java_env,                                                     // C 7292
+	 emacs_service,                                                        // C 7293
+	 service_class.class,                                                  // C 7294
+	 service_class.reset_ic,                                               // C 7295
+	 object, mode as jint);                                                // C 7296
+  android_exception_check ();                                           // C 7297
+}
+
+/* C 7299-7304: C 7299's blank and C 7300-7303's comment (the next item is C 7305's
+   `android_update_extracted_text`).  */
