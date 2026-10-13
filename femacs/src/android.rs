@@ -6667,3 +6667,183 @@ pub unsafe extern "C" fn android_query_tree (handle: android_window,    // C 522
   ANDROID_DELETE_LOCAL_REF! (array);                                    // C 5278
   return 1;                                                             // C 5279
 }
+/* C 5281-5331: C 5281's blank, C 5282's `void` and `android_get_geometry`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_geometry (handle: android_window,  // C 5281-5331
+						  root_return: *mut android_window,
+						  x_return: *mut c_int, y_return: *mut c_int,
+						  width_return: *mut c_uint,
+						  height_return: *mut c_uint,
+						  border_width_return: *mut c_uint)
+{
+  let mut window: jobject;                                              // C 5290
+  let mut window_geometry: jarray;                                      // C 5291
+  let mut get_geometry: jmethodID;                                      // C 5292
+  let mut ints: *mut jint;                                              // C 5293
+
+  /* C leaves the four locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  window_geometry = std::ptr::null_mut ();
+  get_geometry = std::ptr::null_mut ();
+  ints = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5295
+  get_geometry = window_class.get_window_geometry;                      // C 5296
+
+  window_geometry
+	= ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())   // C 5299
+	    (android_java_env,                                                 // C 5299
+	     window,                                                           // C 5300
+	     window_class.class,                                               // C 5301
+	     get_geometry);                                                    // C 5302
+  android_exception_check ();                                           // C 5303
+
+  /* window_geometry is an array containing x, y, width and             // C 5305
+     height.  border_width is always 0 on Android.  */                  // C 5306
+  eassert! (((*(*android_java_env)).GetArrayLength.unwrap ()) (android_java_env, // C 5307
+								window_geometry)                                                // C 5308
+		   == 4);                                                             // C 5309
+
+  *root_return = 0;                                                     // C 5311
+  *border_width_return = 0;                                             // C 5312
+
+  ints
+	= ((*(*android_java_env)).GetIntArrayElements.unwrap ())   // C 5315
+	    (android_java_env,                                                 // C 5315
+	     window_geometry,                                                  // C 5316
+	     std::ptr::null_mut ());                                           // C 5317
+  android_exception_check_nonnull (ints as *mut c_void, window_geometry); // C 5318
+
+  *x_return = *ints.offset (0);                                         // C 5320
+  *y_return = *ints.offset (1);                                         // C 5321
+  *width_return = *ints.offset (2) as c_uint;                           // C 5322 (C's `jint`-into-`unsigned int`)
+  *height_return = *ints.offset (3) as c_uint;                          // C 5323
+
+  ((*(*android_java_env)).ReleaseIntArrayElements.unwrap ())            // C 5325
+	(android_java_env,                                                     // C 5326
+	 window_geometry,                                                      // C 5326
+	 ints, JNI_ABORT);                                                     // C 5327
+
+  /* Now free the local reference.  */                                  // C 5329
+  ANDROID_DELETE_LOCAL_REF! (window_geometry);                          // C 5330
+}
+
+/* C 5333-5351: `android_move_resize_window`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_move_resize_window (handle: android_window, x: c_int, // C 5333-5351
+							    y: c_int, width: c_uint, height: c_uint)
+{
+  let mut window: jobject;                                              // C 5337
+  let mut move_resize_window: jmethodID;                                // C 5338
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  move_resize_window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5340
+  move_resize_window = window_class.move_resize_window;                 // C 5341
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 5343
+	(android_java_env,
+	 window,                                                               // C 5344
+	 window_class.class,                                                   // C 5345
+	 move_resize_window,                                                   // C 5346
+	 x as jint, y as jint,                                                 // C 5347
+	 width as jint,                                                        // C 5348
+	 height as jint);                                                      // C 5349
+  android_exception_check ();                                           // C 5350
+}
+
+/* C 5353-5358: `android_map_raised` (two calls into this unit's own window entries).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_map_raised (window: android_window)    // C 5353-5358
+{
+  android_raise_window (window);                                        // C 5356
+  android_map_window (window);                                          // C 5357
+}
+
+/* C 5360-5400: C 5360's blank, C 5361's `void` and `android_translate_coordinates`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_translate_coordinates (src: android_window, x: c_int, // C 5360-5400
+							  y: c_int, root_x: *mut c_int, root_y: *mut c_int)
+{
+  let mut window: jobject;                                              // C 5364
+  let mut coordinates: jarray;                                          // C 5365
+  let mut method: jmethodID;                                            // C 5366
+  let mut ints: *mut jint;                                              // C 5367
+
+  /* C leaves the four locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  coordinates = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+  ints = std::ptr::null_mut ();
+
+  window = android_resolve_handle (src);                                // C 5369
+  method = window_class.translate_coordinates;                          // C 5370
+  coordinates
+	= ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())   // C 5372
+	    (android_java_env,                                                 // C 5372
+	     window,                                                           // C 5373
+	     window_class.class,                                               // C 5374
+	     method, x as jint,                                                // C 5375
+	     y as jint);                                                       // C 5376
+  android_exception_check ();                                           // C 5377
+
+  /* The array must contain two elements: X, Y translated to the root   // C 5379
+     window.  */                                                        // C 5380
+  eassert! (((*(*android_java_env)).GetArrayLength.unwrap ()) (android_java_env, // C 5381
+								coordinates)                                                    // C 5382
+		   == 2);                                                             // C 5383
+
+  /* Obtain the coordinates from the array.  */                         // C 5385
+  ints = ((*(*android_java_env)).GetIntArrayElements.unwrap ()) (android_java_env, // C 5386
+							   coordinates, std::ptr::null_mut ());                          // C 5387
+  android_exception_check_nonnull (ints as *mut c_void, coordinates);   // C 5388
+
+  *root_x = *ints.offset (0);                                           // C 5390
+  *root_y = *ints.offset (1);                                           // C 5391
+
+  /* Release the coordinates.  */                                       // C 5393
+  ((*(*android_java_env)).ReleaseIntArrayElements.unwrap ())            // C 5394
+	(android_java_env,                                                     // C 5394
+	 coordinates, ints,                                                    // C 5395
+	 JNI_ABORT);                                                           // C 5396
+
+  /* And free the local reference.  */                                  // C 5398
+  ANDROID_DELETE_LOCAL_REF! (coordinates);                              // C 5399
+}
+
+/* C 5402-5428: C 5402-5404's comment, C 5406's `static int` and `android_get_dead_char` (called
+   from C 5571 and the key conversion helpers below).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_get_dead_char (dchar: c_uint, c: c_uint, value: *mut c_uint) -> c_int // C 5402-5428
+{
+  let mut method: jmethodID;                                            // C 5410
+  let mut class: jclass;                                                // C 5411
+  let mut result: jint;                                                 // C 5412
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5).  */
+  method = std::ptr::null_mut ();
+  class = std::ptr::null_mut ();
+  result = 0;
+
+  /* Call getDeadChar.  */                                              // C 5414
+  class = key_character_map_class.class;                                // C 5415
+  method = key_character_map_class.get_dead_char;                       // C 5416
+  result = ((*(*android_java_env)).CallStaticIntMethod.unwrap ()) (android_java_env, // C 5417
+							     class, method,                                              // C 5418
+							     dchar as jint,                                              // C 5419
+							     c as jint);                                                 // C 5420
+
+  if result != 0                                                        // C 5422
+    {
+      *value = result as c_uint;                                        // C 5424 (C's `jint`-into-`unsigned int`)
+      return 0;                                                         // C 5425
+    }
+
+  return 1;                                                             // C 5428
+}
