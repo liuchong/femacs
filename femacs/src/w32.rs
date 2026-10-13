@@ -15816,3 +15816,107 @@ pub unsafe extern "C" fn w32_my_exename () -> *mut c_char               // C 108
 
   return exename.as_mut_ptr ();                                         // C 10857
 }                                                                       // C 10858
+
+
+/* C 10859's blank, C 10860-10897's `realpath` and C 10898's blank with C 10899-10938's
+   `get_console_font_size`.  `realpath` is the name **slice 52 deferred**: `include/w32.rs` 458 does
+   declare it, but `tools/check-mirror-dupes.py` reads *bodyless declarations* only (a `fn` with a
+   body is a definition, PORTING.md 0.1-10), so the definition is allowed and the mirror's
+   declaration is left alone - the collision it makes is one `E0428` in the arm reading (Owed 52,
+   now a measurement rather than a blocker: re-gating that declaration would strip the name from
+   *every other* unit's Windows arm, which is why the gate is there).  `get_console_font_size` is
+   C's `static void`, so a non-`pub` `unsafe fn`.  Nothing new is declared: the two `*_Proc` types,
+   `CONSOLE_FONT_INFO`/`COORD`, `g_b_init_get_console_font_size`, `GetFullPathNameW`/`A` and
+   `xstrdup` are all in scope.  */
+/* Emulate Posix 'realpath'.  This is needed in                         // C 10860
+   comp-el-to-eln-rel-filename.  */                                     // C 10861
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn realpath (file_name: *const c_char, resolved_name: *mut c_char) // C 10862-10863
+	-> *mut c_char
+{                                                                       // C 10864
+  let mut tgt: *mut c_char = chase_symlinks (file_name);                // C 10865
+  let mut target: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 10866
+
+  if tgt as *const c_char == file_name                                  // C 10868 (C's `tgt == file_name`, the pointer identity)
+    {                                                                   // C 10869
+      /* If FILE_NAME is not a symlink, chase_symlinks returns its      // C 10870
+	 argument, possibly not in canonical absolute form.  Make sure         // C 10871
+	 we return a canonical file name.  */                                  // C 10872
+      if w32_unicode_filenames                                          // C 10873
+	{                                                                      // C 10874
+	  let mut file_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 10875
+	  let mut tgt_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize];
+
+	  filename_to_utf16 (file_name, file_w.as_mut_ptr ());                 // C 10877
+	  if GetFullPathNameW (file_w.as_ptr (), MAX_PATH as DWORD,            // C 10878
+			  tgt_w.as_mut_ptr (), std::ptr::null_mut ()) == 0
+	    { return std::ptr::null_mut (); }                                  // C 10879 (C's `NULL`)
+	  filename_from_utf16 (tgt_w.as_ptr (), target.as_mut_ptr ());         // C 10880
+	}                                                                      // C 10881
+      else                                                              // C 10882
+	{                                                                      // C 10883
+	  let mut file_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 10884
+	  let mut tgt_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];
+
+	  filename_to_ansi (file_name, file_a.as_mut_ptr ());                  // C 10886
+	  if GetFullPathNameA (file_a.as_ptr (), MAX_PATH as DWORD,            // C 10887
+			  tgt_a.as_mut_ptr (), std::ptr::null_mut ()) == 0
+	    { return std::ptr::null_mut (); }                                  // C 10888 (C's `NULL`)
+	  filename_from_ansi (tgt_a.as_ptr (), target.as_mut_ptr ());          // C 10889
+	}                                                                      // C 10890
+      tgt = target.as_mut_ptr ();                                       // C 10891
+    }                                                                   // C 10892
+
+  if ! resolved_name.is_null ()                                         // C 10894 (C's truth test)
+    { return strcpy (resolved_name, tgt); }                             // C 10895
+  return xstrdup (tgt);                                                 // C 10896
+}                                                                       // C 10897
+
+/* C 10899-10938: `get_console_font_size` - C's `static void`, so a private `unsafe fn` (the lane's
+   standing check 5).  C 10902-10903's two file-scope `static`s are function-local here, and
+   C 10930-10931's call is the `.unwrap () (…)` form.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn get_console_font_size (hscreen: HANDLE, font_width: *mut c_int, // C 10899-10900
+			   font_height: *mut c_int)
+{                                                                       // C 10901
+  static mut s_pfn_Get_Current_Console_Font: GetCurrentConsoleFont_Proc = None; // C 10902
+  static mut s_pfn_Get_Console_Font_Size: GetConsoleFontSize_Proc = None; // C 10903
+
+  /* Default guessed values, for when we cannot obtain the actual ones.  */ // C 10905
+  *font_width = 8;                                                      // C 10906
+  *font_height = 12;                                                    // C 10907
+
+  if is_windows_9x () == 0                                              // C 10909 (C's `!`)
+    {                                                                   // C 10910
+      if g_b_init_get_console_font_size == 0                            // C 10911
+	{                                                                      // C 10912
+	  let hm_kernel32: HMODULE = LoadLibrary (c"Kernel32.dll".as_ptr ());  // C 10913
+	  if ! hm_kernel32.is_null ()                                          // C 10914 (C's truth test)
+	    {                                                                  // C 10915
+	      s_pfn_Get_Current_Console_Font                                   // C 10916
+		= std::mem::transmute::<VOIDFNPTR, GetCurrentConsoleFont_Proc>
+		    (get_proc_addr (hm_kernel32, c"GetCurrentConsoleFont".as_ptr ())); // C 10917
+	      s_pfn_Get_Console_Font_Size                                      // C 10918
+		= std::mem::transmute::<VOIDFNPTR, GetConsoleFontSize_Proc>
+		    (get_proc_addr (hm_kernel32, c"GetConsoleFontSize".as_ptr ()));   // C 10919
+	    }                                                                  // C 10920
+	  g_b_init_get_console_font_size = 1;                                  // C 10921
+	}                                                                      // C 10922
+    }                                                                   // C 10923
+  if s_pfn_Get_Current_Console_Font.is_some () && s_pfn_Get_Console_Font_Size.is_some () // C 10924 (C's two truth tests)
+    {                                                                   // C 10925
+      let mut font_info: CONSOLE_FONT_INFO = core::mem::zeroed ();      // C 10926 (C's uninitialised local, PORTING.md 1.5)
+
+      if (s_pfn_Get_Current_Console_Font.unwrap ()) (hscreen, FALSE,    // C 10928
+						   &raw mut font_info) != 0
+	{                                                                      // C 10929
+	  let font_size: COORD = (s_pfn_Get_Console_Font_Size.unwrap ()) (hscreen, // C 10930
+							 font_info.nFont);                                               // C 10931
+	  if font_size.X > 0                                                   // C 10932
+	    { *font_width = font_size.X as c_int; }                            // C 10933
+	  if font_size.Y > 0                                                   // C 10934
+	    { *font_height = font_size.Y as c_int; }                           // C 10935
+	}                                                                      // C 10936
+    }                                                                   // C 10937
+}                                                                       // C 10938
