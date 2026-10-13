@@ -14740,3 +14740,272 @@ pub unsafe extern "C" fn network_interface_list (full: bool, r#match: c_ushort) 
   xfree (ainfo as *mut c_void);                                         // C 10091
   return res;                                                           // C 10092
 }                                                                       // C 10093
+
+
+/* C 10094's blank and C 10095-10100's `network_interface_info` - the non-static two-line
+   wrapper, `w32-read-registry`'s sibling: C 10098's `CHECK_STRING` and C 10099's single call
+   are its whole body (`src/process.h` 308 declares it; `src/process.c` 4514 spells the same
+   declaration before its own definition).  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn network_interface_info (ifname: Lisp_Object) -> Lisp_Object // C 10095
+{                                                                       // C 10097
+  CHECK_STRING (ifname);                                                // C 10098
+  return network_interface_get_info (ifname);                           // C 10099
+}                                                                       // C 10100
+
+
+/* C 10101's blank, C 10102's form feed and C 10103's comment (C's own text), then C 10104-10309's
+   `w32_read_registry` - `w32-read-registry`'s workhorse and this lane's second two-hundred-line
+   function: C 10119-10150's UTF-16 first pass (`code_convert_string_norecord` / `Qutf_16le` and
+   the two slash mirrors), C 10151-10178's ANSI fallback (`Fcopy_sequence`, `ENCODE_SYSTEM` and the
+   `SSDATA` in-place slash mirror), C 10180's single `xzalloc (vsize)`, and C 10192-10304's `vtype`
+   `switch` (`REG_NONE`, `REG_DWORD`, `REG_QWORD`, `REG_BINARY`, `REG_SZ`, `REG_EXPAND_SZ`,
+   `REG_MULTI_SZ` and `default:`) written as `match`, so C's seven `break;` statements (10196,
+   10199, 10202, 10213, 10233, 10273, 10301) are dropped (a `break` outside a loop cannot stand in
+   an arm; no other statement changes).  `RegOpenKeyEx`/`RegQueryValueEx`/`RegCloseKey`, `KEY_READ`
+   and the five new `REG_*` values are this unit's in-place `<winreg.h>` items; `wcslen` is
+   `<wchar.h>`'s; `from_unicode` is `src/coding.c`'s cross-TU definition, declared in
+   `src/coding.h` 734 (`extern Lisp_Object from_unicode (Lisp_Object str);`) and absent from the
+   `include/coding.rs` mirror.  All of them are `UNVERIFIED` here.  */
+/* Workhorse for w32-read-registry, which see.  */
+/// C: #define KEY_READ (STANDARD_RIGHTS_READ | KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS |
+/// C: KEY_NOTIFY) & (~SYNCHRONIZE)  (`<winreg.h>`; 0x20019)
+/// C: #define REG_NONE 0, `#define REG_BINARY 3`, `#define REG_DWORD 4`,
+/// C: `#define REG_MULTI_SZ 7`, `#define REG_QWORD 11`  (`<winreg.h>`)
+#[cfg (feature = "windowsnt")]
+pub const KEY_READ: REGSAM = 0x20019;
+#[cfg (feature = "windowsnt")]
+pub const REG_NONE: DWORD = 0;
+#[cfg (feature = "windowsnt")]
+pub const REG_BINARY: DWORD = 3;
+#[cfg (feature = "windowsnt")]
+pub const REG_DWORD: DWORD = 4;
+#[cfg (feature = "windowsnt")]
+pub const REG_MULTI_SZ: DWORD = 7;
+#[cfg (feature = "windowsnt")]
+pub const REG_QWORD: DWORD = 11;
+/// C: LONG WINAPI RegOpenKeyExA (HKEY hKey, LPCSTR lpSubKey, DWORD ulOptions,
+/// C: REGSAM samDesired, PHKEY phkResult);
+/// C: LONG WINAPI RegQueryValueExA (HKEY hKey, LPCSTR lpValueName, LPDWORD lpReserved,
+/// C: LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
+/// C: LONG WINAPI RegCloseKey (HKEY hKey);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn RegOpenKeyEx (hKey: HKEY, lpSubKey: LPCSTR, ulOptions: DWORD,
+                       samDesired: REGSAM, phkResult: PHKEY) -> LONG;
+  pub fn RegQueryValueEx (hKey: HKEY, lpValueName: LPCSTR, lpReserved: LPDWORD,
+                          lpType: LPDWORD, lpData: LPBYTE, lpcbData: LPDWORD) -> LONG;
+  pub fn RegCloseKey (hKey: HKEY) -> LONG;
+}
+/// C: size_t wcslen (const wchar_t *s);  (`<wchar.h>`; the 16-bit `wchar_t`)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn wcslen (s: *const c_ushort) -> usize;
+}
+/// C: extern Lisp_Object from_unicode (Lisp_Object str);  (`src/coding.h` 734)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn from_unicode (str: Lisp_Object) -> Lisp_Object;
+}
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_read_registry (rootkey: HKEY, lkey: Lisp_Object, // C 10104
+  lname: Lisp_Object) -> Lisp_Object                                    // C 10105
+{                                                                       // C 10106
+  let mut hkey: HKEY = std::ptr::null_mut ();                           // C 10107 (C's `= NULL`)
+  let mut status: LONG;                                                 // C 10108
+  let mut vsize: DWORD; let mut vtype: DWORD;                           // C 10109
+  let mut pvalue: LPBYTE;                                               // C 10110
+  let mut val: Lisp_Object; let mut retval: Lisp_Object;                // C 10111
+  let mut key: *const c_char; let mut value_name: *const c_char = std::ptr::null (); // C 10112
+  /* The following sizes are according to size limitations              // C 10113
+     documented in MSDN.  */                                            // C 10114
+  let mut key_w: [c_ushort; 255 + 1] = [0; 255 + 1];                    // C 10115 (C's `wchar_t key_w[255+1]`)
+  let mut value_w: [c_ushort; 16 * 1024 + 1] = [0; 16 * 1024 + 1];      // C 10116 (C's `wchar_t value_w[16*1024+1]`)
+  let mut use_unicode: bool = is_windows_9x () == 0;                    // C 10117
+
+  if use_unicode                                                        // C 10119
+    {                                                                   // C 10120
+      let mut encoded_key: Lisp_Object; let mut encoded_vname: Lisp_Object; // C 10121
+
+      /* Convert input strings to UTF-16.  */                           // C 10123
+      encoded_key = code_convert_string_norecord (lkey, Qutf_16le (), 1); // C 10124
+      memcpy (key_w.as_mut_ptr () as *mut c_void, SSDATA (encoded_key) as *const c_void, SBYTES (encoded_key) as usize); // C 10125
+      /* wchar_t strings need to be terminated by 2 null bytes.  */     // C 10126
+      key_w[(SBYTES (encoded_key) / 2) as usize] = 0;                   // C 10127 (C's `L'\0'`)
+      encoded_vname = code_convert_string_norecord (lname, Qutf_16le (), 1); // C 10128
+      memcpy (value_w.as_mut_ptr () as *mut c_void, SSDATA (encoded_vname) as *const c_void, SBYTES (encoded_vname) as usize); // C 10129
+      value_w[(SBYTES (encoded_vname) / 2) as usize] = 0;               // C 10130 (C's `L'\0'`)
+
+      /* Mirror the slashes, if required.  */                           // C 10132
+      let mut i: c_int = 0;                                             // C 10133 (C's for's `int i = 0`)
+      while i < (SBYTES (encoded_key) / 2) as c_int                     // C 10133
+	{                                                                      // C 10134
+	  if key_w[i as usize] == 0x2f                                         // C 10135 (C's `L'/'`)
+	    { key_w[i as usize] = 0x5c; }                                      // C 10136 (C's `L'\\'`)
+	  i += 1;                                                              // C 10133 (the for's increment)
+	}                                                                      // C 10137
+      if ({ status = reg_open_key_ex_w (rootkey, key_w.as_mut_ptr (), 0, KEY_READ, &raw mut hkey); status }) == ERROR_NOT_SUPPORTED as LONG // C 10138-10139
+	  || ({ status = reg_query_value_ex_w (hkey, value_w.as_ptr (), std::ptr::null_mut (), std::ptr::null_mut (), std::ptr::null_mut (), &raw mut vsize); status }) == ERROR_NOT_SUPPORTED as LONG // C 10140-10141
+	  || status != ERROR_SUCCESS as LONG                                   // C 10142
+	{                                                                      // C 10143
+	  if ! hkey.is_null ()                                                 // C 10144 (C's truth test)
+	    { RegCloseKey (hkey); }                                            // C 10145
+	  if status != ERROR_NOT_SUPPORTED as LONG                             // C 10146
+	    { return Qnil (); }                                                // C 10147
+	  use_unicode = 0;                                                     // C 10148 (C's `/* fall back to non-Unicode calls */`)
+	}                                                                      // C 10149
+    }                                                                   // C 10150
+  if ! use_unicode                                                      // C 10151
+    {                                                                   // C 10152
+      /* Need to copy LKEY because we are going to modify it.  */       // C 10153
+      let mut local_lkey: Lisp_Object = Fcopy_sequence (lkey);          // C 10154
+
+      /* Mirror the slashes.  Note: this has to be done before          // C 10156
+	 encoding, because after encoding we cannot guarantee that a           // C 10157
+	 slash '/' always stands for itself, it could be part of some          // C 10158
+	 multibyte sequence.  */                                               // C 10159
+      let mut i: c_int = 0;                                             // C 10160 (C's for's `int i = 0`)
+      while i < SBYTES (local_lkey) as c_int                            // C 10160
+	{                                                                      // C 10161
+	  if *(SSDATA (local_lkey).offset (i as isize)) == b'/' as c_char      // C 10162
+	    { *(SSDATA (local_lkey).offset (i as isize)) = b'\\' as c_char; }  // C 10163
+	  i += 1;                                                              // C 10160 (the for's increment)
+	}                                                                      // C 10164
+
+      key = SSDATA (ENCODE_SYSTEM (local_lkey));                        // C 10166
+      value_name = SSDATA (ENCODE_SYSTEM (lname));                      // C 10167
+
+      if ({ status = RegOpenKeyEx (rootkey, key, 0, KEY_READ, &raw mut hkey); status }) != ERROR_SUCCESS as LONG // C 10169-10170
+	  || ({ status = RegQueryValueEx (hkey, value_name, std::ptr::null_mut (), std::ptr::null_mut (), std::ptr::null_mut (), &raw mut vsize); status }) != ERROR_SUCCESS as LONG // C 10171-10172
+	{                                                                      // C 10173
+	  if ! hkey.is_null ()                                                 // C 10174 (C's truth test)
+	    { RegCloseKey (hkey); }                                            // C 10175
+	  return Qnil ();                                                      // C 10176
+	}                                                                      // C 10177
+    }                                                                   // C 10178
+
+  pvalue = xzalloc (vsize as usize) as LPBYTE;                          // C 10180
+  if use_unicode                                                        // C 10181
+    { status = reg_query_value_ex_w (hkey, value_w.as_ptr (), std::ptr::null_mut (), &raw mut vtype, pvalue, &raw mut vsize); } // C 10182
+  else                                                                  // C 10183
+    { status = RegQueryValueEx (hkey, value_name, std::ptr::null_mut (), &raw mut vtype, pvalue, &raw mut vsize); } // C 10184
+  if status != ERROR_SUCCESS as LONG                                    // C 10185
+    {                                                                   // C 10186
+      xfree (pvalue as *mut c_void);                                    // C 10187
+      RegCloseKey (hkey);                                               // C 10188
+      return Qnil ();                                                   // C 10189
+    }                                                                   // C 10190
+
+  match vtype                                                           // C 10192
+    {                                                                   // C 10193
+      REG_NONE =>                                                       // C 10194
+	{ retval = Qt (); }                                                    // C 10195-10196 (C's assignment and `break;`)
+      REG_DWORD =>                                                      // C 10197
+	{ retval = INT_TO_INTEGER (*(pvalue as *mut DWORD) as EMACS_INT); }    // C 10198-10199 (C's `(DWORD *) pvalue` and `break;`)
+      REG_QWORD =>                                                      // C 10200
+	{ retval = INT_TO_INTEGER (*(pvalue as *mut c_longlong) as EMACS_INT); } // C 10201-10202 (C's `long long *` and `break;`)
+      REG_BINARY =>                                                     // C 10203
+	{                                                                      // C 10204
+	  let mut i: c_int;                                                    // C 10205
+	  let mut dbuf: *mut c_uchar = pvalue as *mut c_uchar;                 // C 10206
+
+	  val = make_uninit_vector (vsize as isize);                           // C 10208
+	  i = 0;                                                               // C 10209
+	  while i < vsize as c_int                                             // C 10209
+	    { ASET (val, i as isize, make_fixnum (*dbuf.offset (i as isize) as EMACS_INT)); } // C 10210
+
+	  retval = val;                                                        // C 10212-10213 (C's assignment and `break;`)
+	}                                                                      // C 10214
+      REG_SZ =>                                                         // C 10215
+	if use_unicode                                                         // C 10216
+	  {                                                                    // C 10217
+	    /* pvalue ends with 2 null bytes, but we need only one,            // C 10218
+	       and AUTO_STRING_WITH_LEN will add it.  */                       // C 10219
+	    if *(pvalue.offset ((vsize - 1) as isize)) == 0                    // C 10220 (C's `'\0'`)
+	      { vsize -= 2; }                                                  // C 10221
+	    AUTO_STRING_WITH_LEN! (sval, pvalue as *const c_char, vsize as ptrdiff_t); // C 10222
+	    retval = from_unicode (sval);                                      // C 10223
+	  }                                                                    // C 10224
+	else                                                                   // C 10225
+	  {                                                                    // C 10226
+	    /* Don't waste a byte on the terminating null character,           // C 10227
+	       since make_unibyte_string will add one anyway.  */              // C 10228
+	    if *(pvalue.offset ((vsize - 1) as isize)) == 0                    // C 10229 (C's `'\0'`)
+	      { vsize -= 1; }                                                  // C 10230 (C's `vsize--`)
+	    retval = DECODE_SYSTEM (make_unibyte_string (pvalue as *const c_char, vsize as ptrdiff_t)); // C 10231
+	  }                                                                    // C 10232
+      REG_EXPAND_SZ =>                                                  // C 10234
+	if use_unicode                                                         // C 10235
+	  {                                                                    // C 10236
+	    let mut expanded_w: [c_ushort; 32 * 1024] = [0; 32 * 1024];        // C 10237 (C's `wchar_t expanded_w[32*1024]`)
+	    let mut dsize: DWORD = core::mem::size_of::<[c_ushort; 32 * 1024]> () as DWORD / 2; // C 10238 (C's `sizeof (expanded_w) / 2`)
+	    let mut produced: DWORD = expand_environment_strings_w (pvalue as *mut c_ushort, expanded_w.as_mut_ptr (), dsize); // C 10239-10241
+	    if produced > 0 && produced < dsize                                // C 10242
+	      {                                                                // C 10243
+		AUTO_STRING_WITH_LEN! (sval, expanded_w.as_ptr () as *const c_char, (produced * 2 - 2) as ptrdiff_t); // C 10244-10245
+		retval = from_unicode (sval);                                         // C 10246
+	      }                                                                // C 10247
+	    else                                                               // C 10248
+	      {                                                                // C 10249
+		if *(pvalue.offset ((vsize - 1) as isize)) == 0                       // C 10250 (C's `'\0'`)
+		  { vsize -= 2; }                                                     // C 10251
+		AUTO_STRING_WITH_LEN! (sval, pvalue as *const c_char, vsize as ptrdiff_t); // C 10252
+		retval = from_unicode (sval);                                         // C 10253
+	      }                                                                // C 10254
+	  }                                                                    // C 10255
+	else                                                                   // C 10256
+	  {                                                                    // C 10257
+	    let mut expanded: [c_char; 32 * 1024] = [0; 32 * 1024];            // C 10258 (C's `char expanded[32*1024]` and its `/* size limitation according to MSDN */`)
+	    let mut produced: DWORD = ExpandEnvironmentStrings (pvalue as *const c_char, expanded.as_mut_ptr (), core::mem::size_of::<[c_char; 32 * 1024]> () as DWORD); // C 10259-10261
+	    if produced > 0 && produced < core::mem::size_of::<[c_char; 32 * 1024]> () as DWORD // C 10262
+	      { retval = make_unibyte_string (expanded.as_ptr (), (produced - 1) as ptrdiff_t); } // C 10263
+	    else                                                               // C 10264
+	      {                                                                // C 10265
+		if *(pvalue.offset ((vsize - 1) as isize)) == 0                       // C 10266 (C's `'\0'`)
+		  { vsize -= 1; }                                                     // C 10267 (C's `vsize--`)
+		retval = make_unibyte_string (pvalue as *const c_char, vsize as ptrdiff_t); // C 10268
+	      }                                                                // C 10269
+
+	    retval = DECODE_SYSTEM (retval);                                   // C 10271
+	  }                                                                    // C 10272
+      REG_MULTI_SZ =>                                                   // C 10274
+	{
+	if use_unicode                                                         // C 10275
+	  {                                                                    // C 10276
+	    let mut wp: *mut c_ushort = pvalue as *mut c_ushort;               // C 10277
+
+	    val = Qnil ();                                                     // C 10279
+	    loop {                                                             // C 10280 (C's `do {`)
+	      let mut wslen: usize = wcslen (wp);                              // C 10281
+	      AUTO_STRING_WITH_LEN! (sval, wp as *const c_char, wslen * 2);    // C 10282
+	      val = Fcons (from_unicode (sval), val);                          // C 10283
+	      wp = wp.offset ((wslen + 1) as isize);                           // C 10284
+	      if ! (*wp != 0) { break; }                                       // C 10285 (C's `while (*wp)`)
+	    }
+	  }                                                                    // C 10286
+	else                                                                   // C 10287
+	  {                                                                    // C 10288
+	    let mut p: *mut c_char = pvalue as *mut c_char;                    // C 10289
+
+	    val = Qnil ();                                                     // C 10291
+	    loop {                                                             // C 10292 (C's `do {`)
+	      let mut slen: usize = strlen (p);                                // C 10293
+
+	      val = Fcons (DECODE_SYSTEM (make_unibyte_string (p, slen as ptrdiff_t)), val); // C 10295
+	      p = p.offset ((slen + 1) as isize);                              // C 10296
+	      if ! (*p != 0) { break; }                                        // C 10297 (C's `while (*p)`)
+	    }
+	  }                                                                    // C 10298
+
+	retval = Fnreverse (val);                                              // C 10300-10301 (C's assignment and `break;`)
+	}
+      _ =>                                                              // C 10302 (C's `default:`)
+	{ error (c"Unsupported registry data type: %d".as_ptr (), vtype as c_int); } // C 10303
+    }                                                                   // C 10304
+
+  xfree (pvalue as *mut c_void);                                        // C 10306
+  RegCloseKey (hkey);                                                   // C 10307
+  return retval;                                                        // C 10308
+}                                                                       // C 10309
