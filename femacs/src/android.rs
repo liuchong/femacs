@@ -141,6 +141,8 @@ pub static mut android_init_gui: bool = false;                 // C 59 (tentativ
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const ANDROID_BITMAP_FORMAT_RGBA_8888: c_int = 1;                  // bitmap.h 108
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const ANDROID_BITMAP_FORMAT_A_8: c_int = 8;                       // bitmap.h 114
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
   /* int AndroidBitmap_getInfo (JNIEnv *, jobject, AndroidBitmapInfo *);  */
   pub fn AndroidBitmap_getInfo (env: *mut JNIEnv, jbitmap: jobject,
@@ -161,6 +163,13 @@ pub mod android_bitmap {
     pub width: u32, pub height: u32, pub stride: u32, pub format: i32, pub flags: u32,
   }
 }
+/* The mirror's opaque `<android/bitmap.h>` tag, which `android_lock_bitmap`'s declaration
+   names (`include/android.rs` 44-46 and 269): C's `AndroidBitmapInfo *` argument and this unit's
+   five-member record are the same type in C, so the call site casts the record's pointer to
+   this alias - the `femacs/src/sfntfont-android.rs` 91/710 device the ledger's Owed 12 names.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+type AndroidBitmapInfo_tag = AndroidBitmapInfo;
+
 /* The record's measured layout (the NDK above; the sibling unit's `android_bitmap` module is the
    same five members).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -4733,5 +4742,213 @@ pub unsafe extern "C" fn android_set_foreground (gc: *mut android_gc,
 
   gcv.foreground = foreground;                                          // C 3909
   android_change_gc (gc, ANDROID_GC_FOREGROUND, &raw mut gcv);          // C 3910
+}
+
+/* C 3912-3932: `android_fill_rectangle` (non-`static`; the toolkit's `fill_rectangle` hook).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_fill_rectangle (handle: android_drawable, gc: *mut android_gc,
+						 x: c_int, y: c_int, width: c_uint,
+						 height: c_uint)   // C 3912-3932
+{
+  let mut drawable: jobject;                                            // C 3918
+  let mut gcontext: jobject;                                            // C 3918
+
+  /* C leaves both uninitialised (PORTING.md 1.5).  */
+  drawable = std::ptr::null_mut ();
+  gcontext = std::ptr::null_mut ();
+
+  drawable = android_resolve_handle (handle);                           // C 3920
+  gcontext = android_resolve_handle ((*gc).gcontext);                   // C 3921
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 3923
+    (android_java_env,
+     emacs_service,
+     service_class.class,
+     service_class.fill_rectangle,
+     drawable,
+     gcontext,
+     x as jint, y as jint,                                              // C 3929
+     width as jint,                                                     // C 3930
+     height as jint);                                                   // C 3931
+}
+
+/* C 3934-4027: `android_create_pixmap_from_bitmap_data`.  C 3943's `AndroidBitmapInfo info` is
+   this unit's five-member record (the C 63 stand-in) and C 3954's `android_lock_bitmap` takes the
+   mirror's opaque tag, so the call casts through `AndroidBitmapInfo_tag` (the Owed 12 device).
+   C 3965's `switch (info.format)`, its two `case`s, the two `break`s and its `default` become the
+   `match` below (PORTING.md 2.2), which is what the `macro-body-notes` row for this function
+   records; C's two nested `for`s are the port's ranges, and C 3985/3988/3991/4006/4009/4012's
+   `data[...]`/`depth_24[...]`/`depth_8[...]` are `.offset (…)` (Rust's raw pointers have no
+   `Index`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_pixmap_from_bitmap_data (mut data: *mut c_char,
+								 width: c_uint,
+								 height: c_uint,
+								 mut foreground: c_ulong,
+								 mut background: c_ulong,
+								 depth: c_uint)
+  -> android_pixmap                                                     // C 3934-4027
+{
+  let mut pixmap: android_pixmap;                                       // C 3941
+  let mut object: jobject;                                              // C 3942
+  let mut info: android_bitmap::AndroidBitmapInfo;                      // C 3943
+  let mut depth_24: *mut c_uint;                                        // C 3944
+  let mut depth_8: *mut c_uchar;                                        // C 3945
+  let mut bitmap_data: *mut c_void;                                     // C 3946
+  let mut r: c_uint;                                                    // C 3948
+  let mut g: c_uint;                                                    // C 3948
+  let mut b: c_uint;                                                    // C 3948
+
+  /* C leaves the seven locals uninitialised (PORTING.md 1.5); C 3947's `x, y` are the loops'.  */
+  pixmap = 0;
+  object = std::ptr::null_mut ();
+  info = std::mem::zeroed ();
+  depth_24 = std::ptr::null_mut ();
+  depth_8 = std::ptr::null_mut ();
+  bitmap_data = std::ptr::null_mut ();
+  r = 0;
+  g = 0;
+  b = 0;
+
+  /* Create a pixmap with the right dimensions and depth.  */          // C 3950
+  pixmap = android_create_pixmap (width, height, depth as c_int);      // C 3951
+
+  /* Lock the bitmap data.  */                                         // C 3953
+  bitmap_data = android_lock_bitmap (pixmap,                           // C 3954
+				     (&raw mut info) as *mut AndroidBitmapInfo_tag,
+				     &raw mut object) as *mut c_void;
+
+  /* Merely return if locking the bitmap fails.  */                    // C 3956
+  if bitmap_data.is_null ()                                            // C 3957
+    { return pixmap; }                                                 // C 3958
+
+  eassert! (info.format == ANDROID_BITMAP_FORMAT_RGBA_8888              // C 3960
+	    || info.format == ANDROID_BITMAP_FORMAT_A_8);              // C 3961
+
+  /* Begin copying each line.  */                                      // C 3963
+
+  match info.format                                                    // C 3965
+    {
+      ANDROID_BITMAP_FORMAT_RGBA_8888 =>                               // C 3967
+	{
+	  /* Swizzle the pixels into ABGR format.  Android uses Skia's
+	     ``native color type'', which is ABGR.  This is despite the
+	     format being named ``ARGB'', and more confusingly
+	     `ANDROID_BITMAP_FORMAT_RGBA_8888' in bitmap.h.  */      // C 3969-3972
+
+	  r = background as c_uint & 0x00ff0000;                          // C 3974
+	  g = background as c_uint & 0x0000ff00;                          // C 3975
+	  b = background as c_uint & 0x000000ff;                          // C 3976
+	  background = (r >> 16 | g | b << 16 | 0xff000000) as c_ulong;   // C 3977
+	  r = foreground as c_uint & 0x00ff0000;                          // C 3978
+	  g = foreground as c_uint & 0x0000ff00;                          // C 3979
+	  b = foreground as c_uint & 0x000000ff;                          // C 3980
+	  foreground = (r >> 16 | g | b << 16 | 0xff000000) as c_ulong;   // C 3981
+
+	  for y in 0..height                                             // C 3983
+	    {
+	      depth_24 = (bitmap_data as *mut c_char)                     // C 3985
+		.offset ((y * info.stride) as isize) as *mut c_uint;
+
+	      for x in 0..width                                          // C 3987
+		{
+		  *depth_24.offset (x as isize)
+		    = (if *(data.offset ((x / 8) as isize)) as c_int   // C 3988
+			 & (1 << (x % 8)) != 0
+			 { foreground } else { background }) as c_uint;
+		}
+
+	      data = data.offset (((width + 7) / 8) as isize);           // C 3991
+	    }
+	}
+
+      ANDROID_BITMAP_FORMAT_A_8 =>                                     // C 3996
+	{
+	  /* 8-bit pixmaps are created, but in spite of that they are
+	     employed only to represent bitmaps.  */                 // C 3998-3999
+
+	  foreground = if foreground != 0 { 255 } else { 0 };             // C 4001
+	  background = if background != 0 { 255 } else { 0 };             // C 4002
+
+	  for y in 0..height                                             // C 4004
+	    {
+	      depth_8 = (bitmap_data as *mut c_char)                      // C 4006
+		.offset ((y * info.stride) as isize) as *mut c_uchar;
+
+	      for x in 0..width                                          // C 4008
+		{
+		  *depth_8.offset (x as isize)
+		    = (if *(data.offset ((x / 8) as isize)) as c_int   // C 4009
+			 & (1 << (x % 8)) != 0
+			 { foreground } else { background }) as c_uchar;
+		}
+
+	      data = data.offset (((width + 7) / 8) as isize);           // C 4012
+	    }
+	}
+
+      _ =>                                                             // C 4017 (C's `default:`)
+	{ emacs_abort (); }                                             // C 4018
+    }
+
+  /* Unlock the bitmap itself.  */                                      // C 4021
+  AndroidBitmap_unlockPixels (android_java_env, object);                // C 4022
+  ANDROID_DELETE_LOCAL_REF! (object);                                   // C 4023
+
+  /* Return the pixmap.  */                                            // C 4025
+  return pixmap;                                                        // C 4026
+}
+
+/* C 4029-4036: `android_set_clip_mask`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_clip_mask (gc: *mut android_gc,
+						pixmap: android_pixmap)   // C 4029-4036
+{
+  let mut gcv: android_gc_values;                                       // C 4032
+
+  gcv = std::mem::zeroed ();                                            // (C leaves `gcv` uninitialised; PORTING.md 1.5)
+
+  gcv.clip_mask = pixmap;                                               // C 4034
+  android_change_gc (gc, ANDROID_GC_CLIP_MASK, &raw mut gcv);           // C 4035
+}
+
+/* C 4038-4046: `android_set_fill_style`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_fill_style (gc: *mut android_gc,
+						fill_style: android_fill_style)   // C 4038-4046
+{
+  let mut gcv: android_gc_values;                                       // C 4042
+
+  gcv = std::mem::zeroed ();                                            // (C leaves `gcv` uninitialised; PORTING.md 1.5)
+
+  gcv.fill_style = fill_style;                                          // C 4044
+  android_change_gc (gc, ANDROID_GC_FILL_STYLE, &raw mut gcv);          // C 4045
+}
+
+/* C 4734-4747: `android_create_pixmap`.  **Carried early** (the file's order puts it far below):
+   C 3951 calls it and the mirror does not declare it, so a Rust crate needs the definition first -
+   the C 3421 / Owed 13 lesson of slices 13 and 16, recorded as a two-region slice in the ledger.
+   C's three `(jint)` casts of the `unsigned int` arguments are C's own narrowing.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_pixmap (width: c_uint, height: c_uint,
+						depth: c_int)
+  -> android_pixmap                                                    // C 4734-4747
+{
+  let mut object: jobject;                                              // C 4738
+
+  object = std::ptr::null_mut ();                                       // (C leaves `object` uninitialised; PORTING.md 1.5)
+
+  object = ((*(*android_java_env)).NewObject.unwrap ()) (android_java_env,   // C 4740
+							 pixmap_class.class,
+							 pixmap_class.constructor_mutable,
+							 width as jint, height as jint,      // C 4743
+							 depth as jint);                     // C 4744
+  android_exception_check ();                                           // C 4745
+  return android_globalize_reference (object);                          // C 4746
 }
 

@@ -82,13 +82,21 @@
 > carries `android_set_clip_rectangles` (3604-3680, the `NewObjectArray` and per-rectangle
 > `NewObject` loop plus C 3675-3679's C-side cache) and `android_set_dashes` (3682-3749, whose
 > C 3695 `goto set_offset` and C 3722 `static_assert` own one `macro-body-notes` row).  **Slice
-> 18 (C 3750-3911, 2026-10-12)** continues with the six window entries
-> (`android_reparent_window`, `clear_window`, `map_window`, `unmap_window`, `resize_window`,
-> `move_window`), `android_swap_buffers` (C 3857's loop over the swap records) and the two GC
-> entries `android_get_gc_values` (3868-3902) and `android_set_foreground` (3904-3911) - so the
-> port carries C 1-3911 (except C 2086-2192) **and** C 6880-7096: 4,021 C lines of 7,594 (in a
-> 4,737-line port, md5 `7488d6e336d9485aec7c0211dae5edfb`).  **The
-> next live definition is C 3914's `android_fill_rectangle`**; the table's last row is the
+> 18 (C 3750-3911, 2026-10-12)** carries the six window entries (`android_reparent_window`,
+> `clear_window`, `map_window`, `unmap_window`, `resize_window`, `move_window`),
+> `android_swap_buffers` (C 3857's loop over the swap records) and the two GC entries
+> `android_get_gc_values` (3868-3902) and `android_set_foreground` (3904-3911).  **Slice 19
+> (C 3912-4046 and C 4734-4747, 2026-10-12)** carries `android_fill_rectangle` (3914-3932),
+> `android_create_pixmap_from_bitmap_data` (3934-4027 - C 3965's `switch`, C 3943's five-member
+> record and C 3954's `android_lock_bitmap` through the `AndroidBitmapInfo_tag` alias, Owed 12's
+> device, plus the `ANDROID_BITMAP_FORMAT_A_8` constant the C 63 stand-in gains),
+> `android_set_clip_mask` (4029-4036), `android_set_fill_style` (4038-4046) **and, carried
+> early, `android_create_pixmap` (4734-4747)** - that second region exists because C 3951 calls
+> it and the mirror does not declare it (the C 3421 lesson of slices 13 and 16).  So the port
+> carries C 1-4046 (except C 2086-2192), C 4734-4747 and C 6880-7096: 4,170 C lines of 7,594 (in
+> a 4,954-line port, md5 `5d7650f1b584a42df5b6dfae3d50b863`).  **The
+> next live definition is C 4069's `android_neon_mask_line`**, the first of the four
+> `__aarch64__` NEON regions (C 4064-4431); the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -301,7 +309,16 @@ no `window.h`).
 | 3868-3902 | `android_get_gc_values` (C 3873-3897's eight mask arms and C 3899-3901's comment) | real arm (slice 18) |
 | 3903 | the blank | real arm (slice 18) |
 | 3904-3911 | `android_set_foreground` | real arm (slice 18) |
-| 3912-6879 | **the remainder, first part** - from C 3912's blank and C 3913's `void` (C 3914's `android_fill_rectangle`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
+| 3912-3932 | C 3912's blank, C 3913's `void` and `android_fill_rectangle` | real arm (slice 19) |
+| 3933 | the blank | real arm (slice 19) |
+| 3934-4027 | `android_create_pixmap_from_bitmap_data` (C 3965-4019's `switch`, C 3969-3972's swizzle comment, C 3983-3992 and C 4004-4013's two nested loops) | real arm (slice 19) |
+| 4028 | the blank | real arm (slice 19) |
+| 4029-4036 | `android_set_clip_mask` | real arm (slice 19) |
+| 4037 | the blank | real arm (slice 19) |
+| 4038-4046 | `android_set_fill_style` | real arm (slice 19) |
+| 4047-4733 | **the remainder, first part (a)** - from C 4047's blank, C 4048's form feed, C 4050-4054's two comments and C 4056-4060's `typedef void (*android_blit_func) (…)` through C 4733's blank: the four `__aarch64__` NEON regions (C 4064-4431), the blit helpers and the entries up to `android_create_pixmap` | not this slice |
+| 4734-4747 | `android_create_pixmap` (**carried early**: C 3951 calls it and the mirror does not declare it) | real arm (slice 19) |
+| 4748-6879 | **the remainder, first part (b)** - from C 4748's blank and C 4749-4750's `/* Notice that a query … */`-class comment (`android_set_ts_origin`, the next entry in file order) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -662,7 +679,7 @@ readings exist only with `android_api_lt_21` selected.
    C 3010-3032 (the `PORTING.md` §8 `__atomic_*` device is already in the tree:
    `femacs/src/androidterm.rs` 6163/8057).
 
-12. **The `android_lock_bitmap` call sites (C 3954/4460/4468/4482 and the definition at C 5601) will
+12. ✅ **Settled by 4.172 (slice 19)** - `android_create_pixmap_from_bitmap_data` is the first `android_lock_bitmap` caller and casts through `type AndroidBitmapInfo_tag = AndroidBitmapInfo` (the alias is beside the C 63 stand-in).  The original item: **The `android_lock_bitmap` call sites (C 3954/4460/4468/4482 and the definition at C 5601) will
    need the tag spelling slice 11's record settled.**  C's `android_lock_bitmap` (declared in
    `src/android.h`, mirror `femacs/src/include/android.rs` 269) takes the *opaque* `<android/bitmap.h>`
    tag pointer, while this unit now carries the five-member record in its own `android_bitmap`
@@ -688,13 +705,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-18's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-19's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-3911 and C 6880-7096) are carried; the
-**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 3912-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (86 `missing
-function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 37.6% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-4046, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 4047-4733 +
+C 4748-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (81
+`missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
+`invented exported symbol` rows of Owed 9) and the 34.8% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1374,3 +1391,52 @@ definitions this slice carries), **`missing file-scope object` 0** (sixth round 
   Rust needs a block).
 - **C 3899-3901's comment, which explains the fields the function does *not* retrieve**, is carried
   as the function's last statement-position comment, so its text stays inside `android_get_gc_values`.
+
+## 2026-10-12: slice 19 (C 3912-4046 and C 4734-4747) - the fill entry, the bitmap-data pixmap and the two GC setters
+
+`android_fill_rectangle`, `android_create_pixmap_from_bitmap_data`, `android_set_clip_mask`,
+`android_set_fill_style`, and `android_create_pixmap` carried early.
+
+### Evidence (this slice's readings)
+
+**㉟ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **third** probe: the first read four `E0308` rows (the two
+`android_pixmap`-returning definitions were written without their return type), the second one more
+(`android_lock_bitmap` returns `*mut c_uchar` and C's `void *bitmap_data` assignment is an implicit
+conversion the port spells `as *mut c_void`), and the third read 0 errors - the `match` over
+`info.format`, the `.offset (…)` element accesses and the two casts to `c_uint`/`c_uchar` all
+correct.
+
+**㊱ The checklist reading.**  `extract-abi.py --check`: `missing function` **86 → 81** (the five
+definitions this slice carries, `android_create_pixmap` among them), **`missing file-scope object`
+0** (seventh round at empty), **`invented exported symbol` 41** unchanged (none is a `NATIVE_NAME`
+definition), **0 `missing macro`**, **0 `missing constant`**, and the line-count row reads **34.8%**
+(C 7,594 against the port's 4,954).  The slice's `does not mention` finding - `android_create_pixmap_
+from_bitmap_data does not mention break, case, default, switch` - was recorded as the row
+**`android_create_pixmap_from_bitmap_data\tbreak,case,default,switch\t…`** in
+`docs/ports/macro-body-notes.tsv` (the `android_write_event` family), and the reading is back to
+**0**.
+
+### Deviations this slice adds
+
+- **C 3943's `AndroidBitmapInfo info` is this unit's five-member record** and **C 3954's
+  `android_lock_bitmap` argument casts through `type AndroidBitmapInfo_tag = AndroidBitmapInfo`** -
+  that alias is the mirror's *opaque* tag (`include/android.rs` 44-46), which is what the mirror's
+  declaration names; this closes Owed 12, and the alias sits beside the C 63 stand-in.
+- **The C 63 stand-in gains `ANDROID_BITMAP_FORMAT_A_8` (8, measured on the same NDK)**, which C 3961
+  and C 3996 read; the two constants are the only members of that enumeration this file uses.
+- **C 3965's `switch` is the port's `match`** with C's two labels and its `default` in C's order (the
+  slice 10 reading for `sendConfigurationChanged`), and the two `break`s have no line of their own -
+  the notes row above records the four tokens.
+- **C's `data[x / 8]`, `depth_24[x]` and `depth_8[x]` are `.offset (…)` accesses** (Rust's raw
+  pointers have no `Index`: slice 17's `E0608`), and **C's `data += (width + 7) / 8`** is
+  `data = data.offset (…)`, which is why the parameter is `mut data`.
+- **C's two ternaries (`(…) ? foreground : background`) are Rust `if`-expressions** (`androidterm.rs`
+  829 / `androidfns.rs` 3364 shape), each parenthesized before its `as c_uint` / `as c_uchar`
+  truncation (C's own assignment conversion into the `unsigned int *` / `unsigned char *` element).
+- **C's `foreground = (foreground ? 255 : 0);`** is `foreground = if foreground != 0 { 255 } else { 0 };`
+  (the same if-expression device), and C 3974-3981's swizzle keeps C's masking order with the
+  `c_ulong`-into-`c_uint` narrowing spelled out.
+- **C 4734-4747 is carried early** (it sits inside the remainder): C 3951 calls it and the mirror
+  does not declare it, so a Rust crate needs the definition first - the C 3421 lesson of slices 13
+  and 16, recorded as this slice's second region in the range table.
