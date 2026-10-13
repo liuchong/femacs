@@ -12041,3 +12041,69 @@ unsafe fn socket_to_fd (s: SOCKET) -> c_int                             // C 809
   *errno () = EMFILE;                                                   // C 8186
   return -1;                                                            // C 8187
 }                                                                       // C 8188
+
+
+/* C 8189's blank and C 8190-8191's `int` + `sys_bind`, then C 8211-8212's `sys_connect`.  Both
+   are the socket entry points' shape: the `winsock_lib` guard, `check_errno`, the `flags &
+   FILE_SOCKET` test, the `pfn_*` call through `SOCK_HANDLE` (this file's macro, slice 24) and
+   `set_errno` on `SOCKET_ERROR`.  `SOCKET_ERROR` (`<winsock2.h>`'s `-1`) is declared in-unit
+   (P-88, `UNVERIFIED`, Owed 28); `ENOTSOCK`/`EWOULDBLOCK`/`EINPROGRESS` are the socket
+   mirror's rows (C 149-172's renames) and `FILE_SOCKET`/`FILE_NDELAY`/`FILE_CONNECT` are
+   `w32.h` 130-142's flags, which the `include/w32.rs` mirror carries.  */
+/// C: #define SOCKET_ERROR (-1)  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const SOCKET_ERROR: c_int = -1;
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_bind (s: c_int, addr: *const sockaddr, namelen: c_int) -> c_int // C 8190
+{                                                                       // C 8192
+  if winsock_lib.is_null ()                                             // C 8193 (C's `== NULL`)
+    {                                                                   // C 8194
+      *errno () = ENOTSOCK;                                             // C 8195
+      return SOCKET_ERROR;                                              // C 8196
+    }                                                                   // C 8197
+
+  check_errno ();                                                       // C 8199
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8200 (C's truth test)
+    {                                                                   // C 8201
+      let rc: c_int = pfn_bind.unwrap () (SOCK_HANDLE! (s), addr, namelen); // C 8202 (C's call-through)
+      if rc == SOCKET_ERROR                                             // C 8203
+	{ set_errno (); }                                                      // C 8204
+      return rc;                                                        // C 8205
+    }                                                                   // C 8206
+  *errno () = ENOTSOCK;                                                 // C 8207
+  return SOCKET_ERROR;                                                  // C 8208
+}                                                                       // C 8209
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_connect (s: c_int, name: *const sockaddr, namelen: c_int) -> c_int // C 8211
+{                                                                       // C 8213
+  if winsock_lib.is_null ()                                             // C 8214 (C's `== NULL`)
+    {                                                                   // C 8215
+      *errno () = ENOTSOCK;                                             // C 8216
+      return SOCKET_ERROR;                                              // C 8217
+    }                                                                   // C 8218
+
+  check_errno ();                                                       // C 8220
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8221 (C's truth test)
+    {                                                                   // C 8222
+      let rc: c_int = pfn_connect.unwrap () (SOCK_HANDLE! (s), name, namelen); // C 8223 (C's call-through)
+      if rc == SOCKET_ERROR                                             // C 8224
+	{                                                                      // C 8225
+	  set_errno ();                                                        // C 8226
+	  /* If this is a non-blocking 'connect', set the bit in flags         // C 8227
+	     that will tell reader_thread to wait for connection               // C 8228
+	     before trying to read.  */                                        // C 8229
+	  if *errno () == EWOULDBLOCK && (fd_info[s as usize].flags & FILE_NDELAY as c_uint) != 0 // C 8230
+	    {                                                                  // C 8231
+	      *errno () = EINPROGRESS; /* that's what process.c expects */     // C 8232
+	      fd_info[s as usize].flags |= FILE_CONNECT as c_uint;             // C 8233
+	    }                                                                  // C 8234
+	}                                                                      // C 8235
+      return rc;                                                        // C 8236
+    }                                                                   // C 8237
+  *errno () = ENOTSOCK;                                                 // C 8238
+  return SOCKET_ERROR;                                                  // C 8239
+}                                                                       // C 8240
