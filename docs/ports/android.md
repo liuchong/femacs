@@ -78,13 +78,17 @@
 > 2026-10-12)** carries `android_init_emacs_gc_class` (C 3271-3366, the fifteen `GetFieldID`
 > calls C spells longhand), `android_create_gc` (3368-3409), `android_free_gc` (3411-3419) and
 > `android_change_gc` (3421-3601, the fourteen mask blocks and C 3592's dirty-marking call).
-> **Slice 17 (C 3602-3749, 2026-10-12)** continues with `android_set_clip_rectangles`
-> (3604-3680, the `NewObjectArray` and per-rectangle `NewObject` loop plus C 3675-3679's C-side
-> cache) and `android_set_dashes` (3682-3749, whose C 3695 `goto set_offset` and C 3722
-> `static_assert` own one `macro-body-notes` row) - so the port carries C 1-3749 (except
-> C 2086-2192) **and** C 6880-7096: 3,859 C lines of 7,594 (in a 4,516-line port, md5
-> `2314ee650c8ee580ed7c996a0776422a`).  **The
-> next live definition is C 3752's `android_reparent_window`**; the table's last row is the
+> **Slice 17 (C 3602-3749, 2026-10-12)**
+> carries `android_set_clip_rectangles` (3604-3680, the `NewObjectArray` and per-rectangle
+> `NewObject` loop plus C 3675-3679's C-side cache) and `android_set_dashes` (3682-3749, whose
+> C 3695 `goto set_offset` and C 3722 `static_assert` own one `macro-body-notes` row).  **Slice
+> 18 (C 3750-3911, 2026-10-12)** continues with the six window entries
+> (`android_reparent_window`, `clear_window`, `map_window`, `unmap_window`, `resize_window`,
+> `move_window`), `android_swap_buffers` (C 3857's loop over the swap records) and the two GC
+> entries `android_get_gc_values` (3868-3902) and `android_set_foreground` (3904-3911) - so the
+> port carries C 1-3911 (except C 2086-2192) **and** C 6880-7096: 4,021 C lines of 7,594 (in a
+> 4,737-line port, md5 `7488d6e336d9485aec7c0211dae5edfb`).  **The
+> next live definition is C 3914's `android_fill_rectangle`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -280,7 +284,24 @@ no `window.h`).
 | 3604-3680 | `android_set_clip_rectangles` (C 3624's `for` loop, C 3636-3638's comment, C 3661-3665's dirty-marking call and C 3675-3679's C-side cache) | real arm (slice 17) |
 | 3681 | the blank | real arm (slice 17) |
 | 3682-3749 | `android_set_dashes` (C 3695's `goto set_offset` with the label at C 3741, C 3722's `static_assert` and C 3738-3739's `if (array)` guard) | real arm (slice 17) |
-| 3750-6879 | **the remainder, first part** - from C 3750's blank and C 3751's `void` (C 3752's `android_reparent_window`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
+| 3750-3766 | C 3750's blank, C 3751's `void` and `android_reparent_window` | real arm (slice 18) |
+| 3767 | the blank | real arm (slice 18) |
+| 3768-3780 | `android_clear_window` | real arm (slice 18) |
+| 3781 | the blank | real arm (slice 18) |
+| 3782-3796 | `android_map_window` | real arm (slice 18) |
+| 3797 | the blank | real arm (slice 18) |
+| 3798-3812 | `android_unmap_window` | real arm (slice 18) |
+| 3813 | the blank | real arm (slice 18) |
+| 3814-3831 | `android_resize_window` (C's two `(jint)` casts of the `unsigned int` arguments) | real arm (slice 18) |
+| 3832 | the blank | real arm (slice 18) |
+| 3833-3848 | `android_move_window` | real arm (slice 18) |
+| 3849 | the blank | real arm (slice 18) |
+| 3850-3866 | `android_swap_buffers` (C 3857's loop and C 3859's `swap_info[i]`) | real arm (slice 18) |
+| 3867 | the blank | real arm (slice 18) |
+| 3868-3902 | `android_get_gc_values` (C 3873-3897's eight mask arms and C 3899-3901's comment) | real arm (slice 18) |
+| 3903 | the blank | real arm (slice 18) |
+| 3904-3911 | `android_set_foreground` | real arm (slice 18) |
+| 3912-6879 | **the remainder, first part** - from C 3912's blank and C 3913's `void` (C 3914's `android_fill_rectangle`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -667,13 +688,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-17's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-18's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-3749 and C 6880-7096) are carried; the
-**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 3750-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (95 `missing
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-3911 and C 6880-7096) are carried; the
+**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 3912-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (86 `missing
 function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 40.5% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`invented exported symbol` rows of Owed 9) and the 37.6% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1320,3 +1341,36 @@ back to **0**.
   both `*mut c_void`, so the cast is C's own widening), and **C 3665's `(jboolean) true`** in the
   variadic `CallNonvirtualVoidMethod` is `true as jboolean as c_uint` (C's default argument
   promotion; slice 15's C 3220 and slice 16's C 3598).
+
+## 2026-10-12: slice 18 (C 3750-3911) - the window entries, the swap loop and the two GC entries
+
+`android_reparent_window`, `android_clear_window`, `android_map_window`, `android_unmap_window`,
+`android_resize_window`, `android_move_window`, `android_swap_buffers`, `android_get_gc_values` and
+`android_set_foreground`.
+
+### Evidence (this slice's readings)
+
+**㉝ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **first** probe: the six `CallNonvirtualVoidMethod` entries, C 3857's
+loop over the swap records and C 3873-3897's eight mask arms all read correctly (the two devices the
+slice leans on - `for i in 0..n` and `(*ptr.offset (i as isize))` - were settled in slice 17).
+
+**㉞ The checklist reading.**  `extract-abi.py --check`: `missing function` **95 → 86** (the nine
+definitions this slice carries), **`missing file-scope object` 0** (sixth round at empty),
+**`invented exported symbol` 41** unchanged (none is a `NATIVE_NAME` definition), **0
+`does not mention`**, **0 `missing macro`**, **0 `missing constant`**, and the line-count row reads
+**37.6%** (C 7,594 against the port's 4,737).
+
+### Deviations this slice adds
+
+- **C's `(jint) x` / `(jint) y` / `(jint) width` / `(jint) height` casts are kept as `as jint`** even
+  where the port's parameter is already `c_int` (C's `jint` is `int`); C 3828-3829's two casts are
+  the ones that *do* narrow (`unsigned int` -> `jint`, C's own conversion).
+- **C 3857's `for (i = 0; i < num_windows; ++i)` is `for i in 0..num_windows`** and C 3859's
+  `swap_info[i].swap_window` is `(*swap_info.offset (i as isize)).swap_window` (the slice 17
+  devices; C 3855's `int i` has no declaration of its own).
+- **C 3874-3875's comment sits inside the first mask arm**, between the condition and its statement,
+  and the port keeps it there (C's arms after it have no braces either; the port adds them because
+  Rust needs a block).
+- **C 3899-3901's comment, which explains the fields the function does *not* retrieve**, is carried
+  as the function's last statement-position comment, so its text stays inside `android_get_gc_values`.

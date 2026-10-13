@@ -4514,3 +4514,224 @@ pub unsafe extern "C" fn android_set_dashes (gc: *mut android_gc, dash_offset: c
   (*gc).dash_offset = dash_offset;                                      // C 3748
 }
 
+/* C 3750-3766: `android_reparent_window`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_reparent_window (w: android_window,
+						  parent_handle: android_window,
+						  x: c_int, y: c_int)         // C 3750-3766
+{
+  let mut window: jobject;                                              // C 3755
+  let mut parent: jobject;                                              // C 3755
+  let mut method: jmethodID;                                            // C 3756
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  parent = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  window = android_resolve_handle (w);                                  // C 3758
+  parent = android_resolve_handle (parent_handle);                      // C 3759
+
+  method = window_class.reparent_to;                                    // C 3761
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 3762
+    (android_java_env, window,
+     window_class.class, method,
+     parent, x as jint, y as jint);                                     // C 3764
+  android_exception_check ();                                           // C 3765
+}
+
+/* C 3768-3780: `android_clear_window`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_clear_window (handle: android_window)   // C 3768-3780
+{
+  let mut window: jobject;                                              // C 3771
+
+  window = std::ptr::null_mut ();                                       // (C leaves `window` uninitialised; PORTING.md 1.5)
+
+  window = android_resolve_handle (handle);                             // C 3773
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 3775
+    (android_java_env,
+     window,
+     window_class.class,
+     window_class.clear_window);                                        // C 3778
+  android_exception_check ();                                           // C 3779
+}
+
+/* C 3782-3796: `android_map_window`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_map_window (handle: android_window)   // C 3782-3796
+{
+  let mut window: jobject;                                              // C 3785
+  let mut map_window: jmethodID;                                        // C 3786
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  map_window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 3788
+  map_window = window_class.map_window;                                 // C 3789
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 3791
+    (android_java_env,
+     window,
+     window_class.class,
+     map_window);                                                       // C 3794
+  android_exception_check ();                                           // C 3795
+}
+
+/* C 3798-3812: `android_unmap_window`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_unmap_window (handle: android_window)   // C 3798-3812
+{
+  let mut window: jobject;                                              // C 3801
+  let mut unmap_window: jmethodID;                                      // C 3802
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  unmap_window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 3804
+  unmap_window = window_class.unmap_window;                             // C 3805
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 3807
+    (android_java_env,
+     window,
+     window_class.class,
+     unmap_window);                                                     // C 3810
+  android_exception_check ();                                           // C 3811
+}
+
+/* C 3814-3831: `android_resize_window` (C's `unsigned int` width/height, cast to `jint` at the
+   call).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_resize_window (handle: android_window, width: c_uint,
+						height: c_uint)     // C 3814-3831
+{
+  let mut window: jobject;                                              // C 3818
+  let mut resize_window: jmethodID;                                     // C 3819
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  resize_window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 3821
+  resize_window = window_class.resize_window;                           // C 3822
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 3824
+    (android_java_env,
+     window,
+     window_class.class,
+     resize_window,
+     width as jint,                                                     // C 3828
+     height as jint);                                                   // C 3829
+  android_exception_check ();                                           // C 3830
+}
+
+/* C 3833-3848: `android_move_window`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_move_window (handle: android_window, x: c_int, y: c_int)   // C 3833-3848
+{
+  let mut window: jobject;                                              // C 3836
+  let mut move_window: jmethodID;                                       // C 3837
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  move_window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 3839
+  move_window = window_class.move_window;                               // C 3840
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 3842
+    (android_java_env,
+     window,
+     window_class.class,
+     move_window,
+     x as jint, y as jint);                                             // C 3846
+  android_exception_check ();                                           // C 3847
+}
+
+/* C 3850-3866: `android_swap_buffers`.  C 3857's `for (i = 0; i < num_windows; ++i)` is the port's
+   `for i in 0..num_windows` (the `sfntfont-android.rs` 723 device), so C 3855's `int i` has no
+   declaration of its own, and C 3859's `swap_info[i]` is `(*swap_info.offset (i as isize))` (the
+   raw pointer has no `Index`; the `androidterm.rs` 2524 device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_swap_buffers (swap_info: *mut android_swap_info,
+						  num_windows: c_int)   // C 3850-3866
+{
+  let mut window: jobject;                                              // C 3854
+
+  window = std::ptr::null_mut ();                                       // (C leaves `window` uninitialised; PORTING.md 1.5)
+
+  for i in 0..num_windows                                               // C 3857
+    {
+      window = android_resolve_handle ((*swap_info.offset (i as isize)).swap_window);   // C 3859
+      ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())       // C 3860
+	(android_java_env,
+	 window,
+	 window_class.class,
+	 window_class.swap_buffers);                            // C 3863
+      android_exception_check ();                                       // C 3864
+    }
+}
+
+/* C 3868-3902: `android_get_gc_values` (C's `if (mask & X)` chain, whose last arm carries the
+   three-line comment; the handle-carrying fields are the ones C 3899-3901 skip).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_gc_values (gc: *mut android_gc,
+						mask: android_gc_value_mask,
+						values: *mut android_gc_values)   // C 3868-3902
+{
+  if mask & ANDROID_GC_FOREGROUND != 0                                  // C 3873
+    /* GCs never have 32 bit colors, so we don't have to worry about
+       sign extension here.  */                                        // C 3874-3875
+    { (*values).foreground = (*gc).foreground; }                        // C 3876
+
+  if mask & ANDROID_GC_BACKGROUND != 0                                  // C 3878
+    { (*values).background = (*gc).background; }                        // C 3879
+
+  if mask & ANDROID_GC_FUNCTION != 0                                    // C 3881
+    { (*values).function = (*gc).function; }                            // C 3882
+
+  if mask & ANDROID_GC_CLIP_X_ORIGIN != 0                               // C 3884
+    { (*values).clip_x_origin = (*gc).clip_x_origin; }                  // C 3885
+
+  if mask & ANDROID_GC_CLIP_Y_ORIGIN != 0                               // C 3887
+    { (*values).clip_y_origin = (*gc).clip_y_origin; }                  // C 3888
+
+  if mask & ANDROID_GC_FILL_STYLE != 0                                  // C 3890
+    { (*values).fill_style = (*gc).fill_style; }                        // C 3891
+
+  if mask & ANDROID_GC_TILE_STIP_X_ORIGIN != 0                          // C 3893
+    { (*values).ts_x_origin = (*gc).ts_x_origin; }                      // C 3894
+
+  if mask & ANDROID_GC_TILE_STIP_Y_ORIGIN != 0                          // C 3896
+    { (*values).ts_y_origin = (*gc).ts_y_origin; }                      // C 3897
+
+  /* Fields involving handles are not used by Emacs, and thus not
+     implemented.  In addition, the size of GCClipMask and GCDashList is
+     not static, precluding their retrieval.  */                       // C 3899-3901
+}
+
+/* C 3904-3911: `android_set_foreground`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_foreground (gc: *mut android_gc,
+						 foreground: c_ulong)   // C 3904-3911
+{
+  let mut gcv: android_gc_values;                                       // C 3907
+
+  gcv = std::mem::zeroed ();                                            // (C leaves `gcv` uninitialised; PORTING.md 1.5)
+
+  gcv.foreground = foreground;                                          // C 3909
+  android_change_gc (gc, ANDROID_GC_FOREGROUND, &raw mut gcv);          // C 3910
+}
+
