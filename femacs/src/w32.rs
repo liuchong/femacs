@@ -11491,3 +11491,304 @@ unsafe fn check_errno ()                                                // C 796
   if ! winsock_lib.is_null ()                                           // C 7966 (C's `!= NULL`)
     { pfn_WSASetLastError.unwrap () (0); }                              // C 7967 (C's call-through)
 }                                                                       // C 7968
+
+
+/* C 7969's blank and C 7970's comment - C's own text.  The table below is C 7971-8044's
+   `static struct { int errnum; const char * msg; } _wsa_errlist[]`, whose 63 rows are C's
+   (C 7981/8019/8037/8042 are the initializer's blank lines).  Its `#ifdef WSAENOMORE` arm
+   (C 8024-8036) is eleven more rows: `<winsock2.h>` defines that family only from
+   `_WIN32_WINNT >= 0x0600` on, and C 141-143 leaves `_WIN32_WINNT` alone under `MINGW_W64`
+   ("MinGW64 defines this to a higher value in its system headers") while the non-MINGW_W64
+   arm pins it to 0x0400 - so both arms are live configurations and the rows carry the
+   `wsaenomore` feature (the C 140/141 `win32_winnt_lt_0500`/`mingw_w64` device).  Rust's
+   array length must be written, so it is the count under the same feature.  */
+/* Extend strerror to handle the winsock-specific error codes.  */
+
+/* The names this slice first uses are declared here (P-88, `UNVERIFIED`): the `<winsock2.h>`
+   `WSA*` family the socket mirror's own note assigns to its including unit (its rows 106-172
+   already *use* them, which is why they are unresolved names in the arm reading), and the
+   CRT's `_sys_nerr`/`sys_errlist` below `sys_strerror`'s comment.  The ten names slice 22
+   declared are not repeated.  */
+/// C: #define WSAEINPROGRESS 10036  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEINPROGRESS: c_int = 10036;
+/// C: #define WSAEALREADY 10037  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEALREADY: c_int = 10037;
+/// C: #define WSAENOTSOCK 10038  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENOTSOCK: c_int = 10038;
+/// C: #define WSAEDESTADDRREQ 10039  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEDESTADDRREQ: c_int = 10039;
+/// C: #define WSAEMSGSIZE 10040  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEMSGSIZE: c_int = 10040;
+/// C: #define WSAEPROTOTYPE 10041  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEPROTOTYPE: c_int = 10041;
+/// C: #define WSAENOPROTOOPT 10042  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENOPROTOOPT: c_int = 10042;
+/// C: #define WSAEPROTONOSUPPORT 10043  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEPROTONOSUPPORT: c_int = 10043;
+/// C: #define WSAESOCKTNOSUPPORT 10044  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAESOCKTNOSUPPORT: c_int = 10044;
+/// C: #define WSAEOPNOTSUPP 10045  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEOPNOTSUPP: c_int = 10045;
+/// C: #define WSAEPFNOSUPPORT 10046  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEPFNOSUPPORT: c_int = 10046;
+/// C: #define WSAEAFNOSUPPORT 10047  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEAFNOSUPPORT: c_int = 10047;
+/// C: #define WSAEADDRINUSE 10048  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEADDRINUSE: c_int = 10048;
+/// C: #define WSAEADDRNOTAVAIL 10049  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEADDRNOTAVAIL: c_int = 10049;
+/// C: #define WSAENETUNREACH 10051  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENETUNREACH: c_int = 10051;
+/// C: #define WSAENETRESET 10052  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENETRESET: c_int = 10052;
+/// C: #define WSAECONNABORTED 10053  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAECONNABORTED: c_int = 10053;
+/// C: #define WSAECONNRESET 10054  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAECONNRESET: c_int = 10054;
+/// C: #define WSAENOBUFS 10055  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAENOBUFS: c_int = 10055;
+/// C: #define WSAEISCONN 10056  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEISCONN: c_int = 10056;
+/// C: #define WSAESHUTDOWN 10058  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAESHUTDOWN: c_int = 10058;
+/// C: #define WSAETOOMANYREFS 10059  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAETOOMANYREFS: c_int = 10059;
+/// C: #define WSAETIMEDOUT 10060  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAETIMEDOUT: c_int = 10060;
+/// C: #define WSAECONNREFUSED 10061  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAECONNREFUSED: c_int = 10061;
+/// C: #define WSAELOOP 10062  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAELOOP: c_int = 10062;
+/// C: #define WSAEHOSTDOWN 10064  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEHOSTDOWN: c_int = 10064;
+/// C: #define WSAEHOSTUNREACH 10065  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEHOSTUNREACH: c_int = 10065;
+/// C: #define WSAEPROCLIM 10067  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEPROCLIM: c_int = 10067;
+/// C: #define WSAEUSERS 10068  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEUSERS: c_int = 10068;
+/// C: #define WSAEDQUOT 10069  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEDQUOT: c_int = 10069;
+/// C: #define WSAESTALE 10070  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAESTALE: c_int = 10070;
+/// C: #define WSAEREMOTE 10071  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEREMOTE: c_int = 10071;
+/// C: #define WSASYSNOTREADY 10091  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSASYSNOTREADY: c_int = 10091;
+/// C: #define WSAVERNOTSUPPORTED 10092  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAVERNOTSUPPORTED: c_int = 10092;
+/// C: #define WSANOTINITIALISED 10093  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSANOTINITIALISED: c_int = 10093;
+/// C: #define WSAEDISCON 10101  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAEDISCON: c_int = 10101;
+/// C: #define WSAHOST_NOT_FOUND 11001  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSAHOST_NOT_FOUND: c_int = 11001;
+/// C: #define WSATRY_AGAIN 11002  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSATRY_AGAIN: c_int = 11002;
+/// C: #define WSANO_RECOVERY 11003  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSANO_RECOVERY: c_int = 11003;
+/// C: #define WSANO_DATA 11004  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WSANO_DATA: c_int = 11004;
+
+/// C: #define WSAENOMORE 10202  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSAENOMORE: c_int = 10202;
+/// C: #define WSAECANCELLED 10103  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSAECANCELLED: c_int = 10103;
+/// C: #define WSAEINVALIDPROCTABLE 10104  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSAEINVALIDPROCTABLE: c_int = 10104;
+/// C: #define WSAEINVALIDPROVIDER 10105  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSAEINVALIDPROVIDER: c_int = 10105;
+/// C: #define WSAEPROVIDERFAILEDINIT 10106  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSAEPROVIDERFAILEDINIT: c_int = 10106;
+/// C: #define WSASYSCALLFAILURE 10107  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSASYSCALLFAILURE: c_int = 10107;
+/// C: #define WSASERVICE_NOT_FOUND 10108  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSASERVICE_NOT_FOUND: c_int = 10108;
+/// C: #define WSATYPE_NOT_FOUND 10109  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSATYPE_NOT_FOUND: c_int = 10109;
+/// C: #define WSA_E_NO_MORE 10110  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSA_E_NO_MORE: c_int = 10110;
+/// C: #define WSA_E_CANCELLED 10111  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSA_E_CANCELLED: c_int = 10111;
+/// C: #define WSAEREFUSED 10112  (`<winsock2.h>`, the `WSAENOMORE` arm)
+#[cfg (all (feature = "windowsnt", feature = "wsaenomore"))]
+pub const WSAEREFUSED: c_int = 10112;
+
+/* C 7971-7974: the element type and the array.  C's record has no tag and no typedef, so the
+   port names the type after the variable (P-67, the `w16select.rs` 268-280 device); Rust's
+   type and value namespaces keep `struct _wsa_errlist` and `static mut _wsa_errlist` apart.  */
+/// C: static struct { int errnum; const char * msg; } _wsa_errlist[];
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct _wsa_errlist
+{
+  pub errnum: c_int,
+  pub msg: *const c_char,
+}
+
+#[cfg (feature = "windowsnt")]
+static mut _wsa_errlist: [_wsa_errlist;
+                          if cfg! (feature = "wsaenomore") { 63 } else { 52 }] =
+  [
+    _wsa_errlist { errnum: WSAEINTR, msg: c"Interrupted function call".as_ptr () }, // C 7975
+    _wsa_errlist { errnum: WSAEBADF, msg: c"Bad file descriptor".as_ptr () }, // C 7976
+    _wsa_errlist { errnum: WSAEACCES, msg: c"Permission denied".as_ptr () }, // C 7977
+    _wsa_errlist { errnum: WSAEFAULT, msg: c"Bad address".as_ptr () },  // C 7978
+    _wsa_errlist { errnum: WSAEINVAL, msg: c"Invalid argument".as_ptr () }, // C 7979
+    _wsa_errlist { errnum: WSAEMFILE, msg: c"Too many open files".as_ptr () }, // C 7980
+    _wsa_errlist { errnum: WSAEWOULDBLOCK, msg: c"Resource temporarily unavailable".as_ptr () }, // C 7982
+    _wsa_errlist { errnum: WSAEINPROGRESS, msg: c"Operation now in progress".as_ptr () }, // C 7983
+    _wsa_errlist { errnum: WSAEALREADY, msg: c"Operation already in progress".as_ptr () }, // C 7984
+    _wsa_errlist { errnum: WSAENOTSOCK, msg: c"Socket operation on non-socket".as_ptr () }, // C 7985
+    _wsa_errlist { errnum: WSAEDESTADDRREQ, msg: c"Destination address required".as_ptr () }, // C 7986
+    _wsa_errlist { errnum: WSAEMSGSIZE, msg: c"Message too long".as_ptr () }, // C 7987
+    _wsa_errlist { errnum: WSAEPROTOTYPE, msg: c"Protocol wrong type for socket".as_ptr () }, // C 7988
+    _wsa_errlist { errnum: WSAENOPROTOOPT, msg: c"Bad protocol option".as_ptr () }, // C 7989
+    _wsa_errlist { errnum: WSAEPROTONOSUPPORT, msg: c"Protocol not supported".as_ptr () }, // C 7990
+    _wsa_errlist { errnum: WSAESOCKTNOSUPPORT, msg: c"Socket type not supported".as_ptr () }, // C 7991
+    _wsa_errlist { errnum: WSAEOPNOTSUPP, msg: c"Operation not supported".as_ptr () }, // C 7992
+    _wsa_errlist { errnum: WSAEPFNOSUPPORT, msg: c"Protocol family not supported".as_ptr () }, // C 7993
+    _wsa_errlist { errnum: WSAEAFNOSUPPORT, msg: c"Address family not supported by protocol family".as_ptr () }, // C 7994
+    _wsa_errlist { errnum: WSAEADDRINUSE, msg: c"Address already in use".as_ptr () }, // C 7995
+    _wsa_errlist { errnum: WSAEADDRNOTAVAIL, msg: c"Cannot assign requested address".as_ptr () }, // C 7996
+    _wsa_errlist { errnum: WSAENETDOWN, msg: c"Network is down".as_ptr () }, // C 7997
+    _wsa_errlist { errnum: WSAENETUNREACH, msg: c"Network is unreachable".as_ptr () }, // C 7998
+    _wsa_errlist { errnum: WSAENETRESET, msg: c"Network dropped connection on reset".as_ptr () }, // C 7999
+    _wsa_errlist { errnum: WSAECONNABORTED, msg: c"Software caused connection abort".as_ptr () }, // C 8000
+    _wsa_errlist { errnum: WSAECONNRESET, msg: c"Connection reset by peer".as_ptr () }, // C 8001
+    _wsa_errlist { errnum: WSAENOBUFS, msg: c"No buffer space available".as_ptr () }, // C 8002
+    _wsa_errlist { errnum: WSAEISCONN, msg: c"Socket is already connected".as_ptr () }, // C 8003
+    _wsa_errlist { errnum: WSAENOTCONN, msg: c"Socket is not connected".as_ptr () }, // C 8004
+    _wsa_errlist { errnum: WSAESHUTDOWN, msg: c"Cannot send after socket shutdown".as_ptr () }, // C 8005
+    _wsa_errlist { errnum: WSAETOOMANYREFS, msg: c"Too many references".as_ptr () },  /* not sure */ // C 8006
+    _wsa_errlist { errnum: WSAETIMEDOUT, msg: c"Connection timed out".as_ptr () }, // C 8007
+    _wsa_errlist { errnum: WSAECONNREFUSED, msg: c"Connection refused".as_ptr () }, // C 8008
+    _wsa_errlist { errnum: WSAELOOP, msg: c"Network loop".as_ptr () },  /* not sure */ // C 8009
+    _wsa_errlist { errnum: WSAENAMETOOLONG, msg: c"Name is too long".as_ptr () }, // C 8010
+    _wsa_errlist { errnum: WSAEHOSTDOWN, msg: c"Host is down".as_ptr () }, // C 8011
+    _wsa_errlist { errnum: WSAEHOSTUNREACH, msg: c"No route to host".as_ptr () }, // C 8012
+    _wsa_errlist { errnum: WSAENOTEMPTY, msg: c"Buffer not empty".as_ptr () },  /* not sure */ // C 8013
+    _wsa_errlist { errnum: WSAEPROCLIM, msg: c"Too many processes".as_ptr () }, // C 8014
+    _wsa_errlist { errnum: WSAEUSERS, msg: c"Too many users".as_ptr () },  /* not sure */ // C 8015
+    _wsa_errlist { errnum: WSAEDQUOT, msg: c"Double quote in host name".as_ptr () },  /* really not sure */ // C 8016
+    _wsa_errlist { errnum: WSAESTALE, msg: c"Data is stale".as_ptr () },  /* not sure */ // C 8017
+    _wsa_errlist { errnum: WSAEREMOTE, msg: c"Remote error".as_ptr () },  /* not sure */ // C 8018
+    _wsa_errlist { errnum: WSASYSNOTREADY, msg: c"Network subsystem is unavailable".as_ptr () }, // C 8020
+    _wsa_errlist { errnum: WSAVERNOTSUPPORTED, msg: c"WINSOCK.DLL version out of range".as_ptr () }, // C 8021
+    _wsa_errlist { errnum: WSANOTINITIALISED, msg: c"Winsock not initialized successfully".as_ptr () }, // C 8022
+    _wsa_errlist { errnum: WSAEDISCON, msg: c"Graceful shutdown in progress".as_ptr () }, // C 8023
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSAENOMORE, msg: c"No more operations allowed".as_ptr () },  /* not sure */ // C 8025
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSAECANCELLED, msg: c"Operation cancelled".as_ptr () },  /* not sure */ // C 8026
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSAEINVALIDPROCTABLE, msg: c"Invalid procedure table from service provider".as_ptr () }, // C 8027
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSAEINVALIDPROVIDER, msg: c"Invalid service provider version number".as_ptr () }, // C 8028
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSAEPROVIDERFAILEDINIT, msg: c"Unable to initialize a service provider".as_ptr () }, // C 8029
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSASYSCALLFAILURE, msg: c"System call failure".as_ptr () }, // C 8030
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSASERVICE_NOT_FOUND, msg: c"Service not found".as_ptr () },  /* not sure */ // C 8031
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSATYPE_NOT_FOUND, msg: c"Class type not found".as_ptr () }, // C 8032
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSA_E_NO_MORE, msg: c"No more resources available".as_ptr () },  /* really not sure */ // C 8033
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSA_E_CANCELLED, msg: c"Operation already cancelled".as_ptr () },  /* really not sure */ // C 8034
+#[cfg (feature = "wsaenomore")]
+    _wsa_errlist { errnum: WSAEREFUSED, msg: c"Operation refused".as_ptr () },  /* not sure */ // C 8035
+    _wsa_errlist { errnum: WSAHOST_NOT_FOUND, msg: c"Host not found".as_ptr () }, // C 8038
+    _wsa_errlist { errnum: WSATRY_AGAIN, msg: c"Authoritative host not found during name lookup".as_ptr () }, // C 8039
+    _wsa_errlist { errnum: WSANO_RECOVERY, msg: c"Non-recoverable error during name lookup".as_ptr () }, // C 8040
+    _wsa_errlist { errnum: WSANO_DATA, msg: c"Valid name, no data record of requested type".as_ptr () }, // C 8041
+    _wsa_errlist { errnum: -1, msg: std::ptr::null () },                // C 8043
+  ];
+
+/* C 8046-8061: `sys_strerror`.  C 8052/8053 read the CRT's own error table: `sys_nerr` is
+   ms-w32.h 460-462's rename and has a macro mirror (`sys_nerr! ()`), whose body names
+   `_sys_nerr` - so the unit declares the two names C's lines read (P-88, `UNVERIFIED`;
+   Owed 25), the first with the mirror's own spelling and the second with C's.  */
+/// C: extern int _sys_nerr;  (`<stdio.h>`; ms-w32.h 461 renames C's `sys_nerr` to it)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut _sys_nerr: c_int;
+}
+/// C: extern char *sys_errlist[];  (`<stdio.h>`)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut sys_errlist: [*mut c_char; 0];
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_strerror (error_no: c_int) -> *mut c_char  // C 8046
+{                                                                       // C 8048
+  let mut i: c_int;                                                     // C 8049
+  static mut unknown_msg: [c_char; 40] = [0; 40];                       // C 8050
+
+  if error_no >= 0 && error_no < sys_nerr! ()                           // C 8052
+    { return sys_errlist[error_no as usize]; }                          // C 8053
+
+  i = 0;                                                                // C 8055
+  while _wsa_errlist[i as usize].errnum >= 0                            // C 8055
+    {                                                                   // C 8055 (C's loop body)
+      if _wsa_errlist[i as usize].errnum == error_no                    // C 8056
+        { return _wsa_errlist[i as usize].msg as *mut c_char; }         // C 8057 (C's cast)
+      i += 1;                                                           // C 8055 (the for's increment)
+    }                                                                   // C 8058
+
+  sprintf (unknown_msg.as_mut_ptr (), c"Unidentified error: %d".as_ptr (), error_no); // C 8059
+  return unknown_msg.as_mut_ptr ();                                     // C 8060
+}                                                                       // C 8061
