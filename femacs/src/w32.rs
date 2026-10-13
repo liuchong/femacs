@@ -12892,3 +12892,83 @@ pub unsafe extern "C" fn sys_close (fd: c_int) -> c_int                 // C 871
 
   return rc;                                                            // C 8820
 }                                                                       // C 8821
+
+
+/* C 8822's blank and C 8823-8875's `sys_dup`/`sys_dup2` - the two descriptor duplicators, which is
+  what retires the one name this lane owed itself (`sys_dup`, called from C 8655 in slice 34): C 8828's
+  `_dup` and C 8868's `_dup2` are the CRT's, and both copy this unit's own `filedesc` record
+  (`fd_info[new_fd] = fd_info[fd]`, C 8832/8872).  The two CRT names are declared in-unit (P-88,
+  `UNVERIFIED`, Owed 36); `INVALID_HANDLE_VALUE` is C 1540's constant, `_get_osfhandle` the unit's own
+  C 8525 declaration and `sys_close` slice 35's definition.  */
+/// C: int _dup (int);  (`<io.h>`)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _dup (fd: c_int) -> c_int;
+}
+/// C: int _dup2 (int src, int dst);  (`<io.h>`; returns 0 on success)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _dup2 (src: c_int, dst: c_int) -> c_int;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_dup (fd: c_int) -> c_int                   // C 8823
+{                                                                       // C 8825
+  let mut new_fd: c_int;                                                // C 8826
+
+  /* C leaves `new_fd` uninitialised (PORTING.md 1.5).  */
+  new_fd = 0;
+
+  new_fd = _dup (fd);                                                   // C 8828
+  if new_fd >= 0 && new_fd < MAXDESC                                    // C 8829
+    {                                                                   // C 8830
+      /* duplicate our internal info as well */                         // C 8831
+      fd_info[new_fd as usize] = fd_info[fd as usize];                  // C 8832
+    }                                                                   // C 8833
+  return new_fd;                                                        // C 8834
+}                                                                       // C 8835
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_dup2 (src: c_int, dst: c_int) -> c_int     // C 8837
+{                                                                       // C 8839
+  let mut rc: c_int;                                                    // C 8840
+
+  /* C leaves `rc` uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+
+  if dst < 0 || dst >= MAXDESC                                          // C 8842
+    {                                                                   // C 8843
+      *errno () = EBADF;                                                // C 8844
+      return -1;                                                        // C 8845
+    }                                                                   // C 8846
+
+  /* MS _dup2 seems to have weird side effect when invoked with 2       // C 8848
+     identical arguments: an attempt to fclose the corresponding stdio  // C 8849
+     stream after that hangs (we do close standard streams in           // C 8850
+     init_ntproc).  Attempt to avoid that by not calling _dup2 that     // C 8851
+     way: if SRC is valid, we know that dup2 should be a no-op, so do   // C 8852
+     nothing and return DST.  */                                        // C 8853
+  if src == dst                                                         // C 8854
+    {                                                                   // C 8855
+      if _get_osfhandle (src) as HANDLE == INVALID_HANDLE_VALUE         // C 8856 (C's `(HANDLE)` cast)
+	{                                                                      // C 8857
+	  *errno () = EBADF;                                                   // C 8858
+	  return -1;                                                           // C 8859
+	}                                                                      // C 8860
+      return dst;                                                       // C 8861
+    }                                                                   // C 8862
+
+  /* Make sure we close the destination first if it's a pipe or socket.  */ // C 8864
+  if fd_info[dst as usize].flags != 0                                   // C 8865
+    { sys_close (dst); }                                                // C 8866
+
+  rc = _dup2 (src, dst);                                                // C 8868
+  if rc == 0                                                            // C 8869
+    {                                                                   // C 8870
+      /* Duplicate our internal info as well.  */                       // C 8871
+      fd_info[dst as usize] = fd_info[src as usize];                    // C 8872
+    }                                                                   // C 8873
+  return if rc == 0 { dst } else { rc };                                // C 8874 (C's ternary)
+}                                                                       // C 8875
