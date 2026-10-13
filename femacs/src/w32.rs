@@ -15552,3 +15552,81 @@ pub unsafe extern "C" fn init_ntproc (dumping: c_int)                   // C 105
     volume_cache = std::ptr::null_mut ();                               // C 10684 (C's `= NULL`)
   }                                                                     // C 10685
 }                                                                       // C 10686
+
+
+/* C 10687's blank, C 10688-10691's comment (C's own text), C 10693's `extern DWORD dwMainThreadId;`
+   - the lane's **last** `missing file-scope object` - and C 10695-10732's `shutdown_handler`, C's
+   `static BOOL WINAPI` (so a non-`pub` `unsafe extern "system" fn`).  The three `CTRL_*_EVENT`
+   values are `<wincon.h>`'s, `GetCurrentThreadId` is the SDK's, and `clear_message_stack`
+   (`src/lisp.h` 4381, defined by `src/xdisp.rs`) and `shut_down_emacs` (`src/lisp.h` 5145, defined
+   by `src/emacs.rs`) are declarations no mirror in this unit's graph carries - all `UNVERIFIED`
+   (Owed 50).  */
+/* shutdown_handler ensures that buffers' autosave files are up to      // C 10688
+   date when the user logs off, or the system shuts down.  It also      // C 10689
+   shuts down Emacs when we get killed by another Emacs process, in     // C 10690
+   which case we get the CTRL_CLOSE_EVENT.  */                          // C 10691
+/// C: extern DWORD dwMainThreadId;
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut dwMainThreadId: DWORD;
+}
+/// C 10699-10701: the three console-control events C's test names (`<wincon.h>`).
+/// C: #define CTRL_CLOSE_EVENT 2
+/// C: #define CTRL_LOGOFF_EVENT 5
+/// C: #define CTRL_SHUTDOWN_EVENT 6
+#[cfg (feature = "windowsnt")]
+pub const CTRL_CLOSE_EVENT: DWORD = 2;
+#[cfg (feature = "windowsnt")]
+pub const CTRL_LOGOFF_EVENT: DWORD = 5;
+#[cfg (feature = "windowsnt")]
+pub const CTRL_SHUTDOWN_EVENT: DWORD = 6;
+/// C: WINBASEAPI DWORD WINAPI GetCurrentThreadId (void);
+/// C: extern void clear_message_stack (void);  (`src/lisp.h` 4381; `src/xdisp.rs` defines it)
+/// C: extern void shut_down_emacs (int, Lisp_Object);  (`src/lisp.h` 5145; `src/emacs.rs` defines it)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetCurrentThreadId () -> DWORD;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn clear_message_stack ();
+  pub fn shut_down_emacs (no_rip: c_int, stuff: Lisp_Object);
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn shutdown_handler (r#type: DWORD) -> BOOL      // C 10695-10696 (C's `static BOOL WINAPI`)
+{                                                                       // C 10697
+  /* Ctrl-C and Ctrl-Break are already suppressed, so don't handle them.  */ // C 10698
+  if r#type == CTRL_CLOSE_EVENT                                         // C 10699 (C's `/* User closes console window.  */`)
+      || r#type == CTRL_LOGOFF_EVENT                                    // C 10700 (C's `/* User logs off.  */`)
+      || r#type == CTRL_SHUTDOWN_EVENT                                  // C 10701 (C's `/* User shutsdown.  */`)
+    {                                                                   // C 10702
+      if GetCurrentThreadId () == dwMainThreadId                        // C 10703
+	{                                                                      // C 10704
+	  /* If we are being shut down in noninteractive mode, we don't        // C 10705
+	     care about the message stack, so clear it to avoid abort in       // C 10706
+	     shut_down_emacs.  This happens when an noninteractive Emacs       // C 10707
+	     is invoked as a subprocess of Emacs, and the parent wants to      // C 10708
+	     kill us, e.g. because it's about to exit.  */                     // C 10709
+	  if noninteractive                                                    // C 10710
+	    { clear_message_stack (); }                                        // C 10711
+	  /* Shut down cleanly, making sure autosave files are up to date.  */ // C 10712
+	  shut_down_emacs (0, Qnil ());                                        // C 10713
+	}                                                                      // C 10714
+      else                                                              // C 10715
+	{                                                                      // C 10716
+	  /* This handler is run in a thread different from the main           // C 10717
+	     thread.  (This is the normal situation when we are killed         // C 10718
+	     by Emacs, for example, which sends us the WM_CLOSE                // C 10719
+	     message).  We cannot possibly call functions like                 // C 10720
+	     shut_down_emacs or clear_message_stack in that case,              // C 10721
+	     since the main (a.k.a. "Lisp") thread could be in the             // C 10722
+	     middle of some Lisp program.  So instead we arrange for           // C 10723
+	     maybe_quit to kill Emacs.  */                                     // C 10724
+	  Vquit_flag = Qkill_emacs ();                                         // C 10725
+	  Vinhibit_quit = Qnil ();                                             // C 10726
+	}                                                                      // C 10727
+    }                                                                   // C 10728
+
+  /* Allow other handlers to handle this signal.  */                    // C 10730
+  return FALSE;                                                         // C 10731
+}                                                                       // C 10732
