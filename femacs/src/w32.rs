@@ -12667,3 +12667,89 @@ pub unsafe extern "C" fn sys_sendto (s: c_int, buf: *const c_char, len: c_int, f
   *errno () = ENOTSOCK;                                                 // C 8642
   return SOCKET_ERROR;                                                  // C 8643
 }                                                                       // C 8644
+
+
+/* C 8645's blank, C 8646-8647's `Windows does not have an fcntl function` comment (C's own text)
+   and C 8648-8707's `fcntl` - this file's own `<fcntl.h>` emulation: C 8654-8655's
+   `F_DUPFD_CLOEXEC` shortcut to `sys_dup` (whose C definition is C 8824, past this slice, so the
+   name stays unresolved - the slice-24 `socket_to_fd` reading), the socket arm's `F_SETFL`/
+   `O_NONBLOCK` pair through `pfn_ioctlsocket`/`FIONBIO` with `FILE_NDELAY`, and the pipe arm's
+   `SetNamedPipeHandleState`/`PIPE_NOWAIT`.  `F_DUPFD_CLOEXEC`/`F_SETFL`/`O_NONBLOCK`/`F_GETFL`
+   are `lib/include/fcntl.in.rs`'s constants (in this unit's include graph, C 35), `FIONBIO` slice
+   25's and `FILE_SOCKET`/`FILE_PIPE`/`FILE_WRITE`/`FILE_NDELAY` `w32.h`'s; `PIPE_NOWAIT` and
+   `SetNamedPipeHandleState` (`<winbase.h>`) are declared in-unit (P-88, `UNVERIFIED`, Owed 34).  */
+/* Windows does not have an fcntl function.  Provide an implementation
+   good enough for Emacs.  */
+/// C: #define PIPE_NOWAIT 0x00000001  (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const PIPE_NOWAIT: DWORD = 0x00000001;
+/// C: WINBASEAPI BOOL WINAPI SetNamedPipeHandleState (HANDLE, LPDWORD, LPDWORD, LPDWORD);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn SetNamedPipeHandleState (hNamedPipe: HANDLE, lpMode: *mut DWORD,
+                                  lpMaxCollectionCount: *mut DWORD,
+                                  lpCollectDataTimeout: *mut DWORD) -> BOOL;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn fcntl (s: c_int, cmd: c_int, options: c_int) -> c_int // C 8648
+{                                                                       // C 8650
+  /* In the w32 Emacs port, fcntl (fd, F_DUPFD_CLOEXEC, fd1) is always  // C 8651
+     invoked in a context where fd1 is closed and all descriptors less  // C 8652
+     than fd1 are open, so sys_dup is an adequate implementation.  */   // C 8653
+  if cmd == F_DUPFD_CLOEXEC                                             // C 8654
+    { return sys_dup (s); }                                             // C 8655
+
+  check_errno ();                                                       // C 8657
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8658 (C's truth test)
+    {                                                                   // C 8659
+      if winsock_lib.is_null ()                                         // C 8660 (C's `== NULL`)
+	{                                                                      // C 8661
+	  *errno () = ENETDOWN;                                                // C 8662
+	  return -1;                                                           // C 8663
+	}                                                                      // C 8664
+
+      if cmd == F_SETFL && options == O_NONBLOCK                        // C 8666
+	{                                                                      // C 8667
+	  let mut nblock: c_ulong = 1;                                         // C 8668 (C's `unsigned long`)
+	  let rc: c_int = pfn_ioctlsocket.unwrap () (SOCK_HANDLE! (s), FIONBIO, &mut nblock); // C 8669 (C's call-through)
+	  if rc == SOCKET_ERROR                                                // C 8670
+	    { set_errno (); }                                                  // C 8671
+	  /* Keep track of the fact that we set this to non-blocking.  */      // C 8672
+	  fd_info[s as usize].flags |= FILE_NDELAY as c_uint;                  // C 8673
+	  return rc;                                                           // C 8674
+	}                                                                      // C 8675
+      else                                                              // C 8676
+	{                                                                      // C 8677
+	  *errno () = EINVAL;                                                  // C 8678
+	  return SOCKET_ERROR;                                                 // C 8679
+	}                                                                      // C 8680
+    }                                                                   // C 8681
+  else if (fd_info[s as usize].flags & (FILE_PIPE | FILE_WRITE) as c_uint) // C 8682 (C's two-line condition)
+	   == (FILE_PIPE | FILE_WRITE) as c_uint                               // C 8683
+    {                                                                   // C 8684
+      /* Force our writes to pipes be non-blocking.  */                 // C 8685
+      if cmd == F_SETFL && options == O_NONBLOCK                        // C 8686
+	{                                                                      // C 8687
+	  let h: HANDLE = _get_osfhandle (s) as HANDLE;                        // C 8688 (C's `(HANDLE)` cast)
+	  let mut pipe_mode: DWORD = PIPE_NOWAIT;                              // C 8689
+
+	  if SetNamedPipeHandleState (h, &raw mut pipe_mode, std::ptr::null_mut (), // C 8691 (C's truth test)
+				      std::ptr::null_mut ()) == 0                                   // C 8691 (C's two `NULL`s)
+	    {                                                                  // C 8692
+	      DebPrint! (("SetNamedPipeHandleState: %lu\n", GetLastError ())); // C 8693
+	      return SOCKET_ERROR;                                             // C 8694
+	    }                                                                  // C 8695
+	  fd_info[s as usize].flags |= FILE_NDELAY as c_uint;                  // C 8696
+	  return 0;                                                            // C 8697
+	}                                                                      // C 8698
+      else                                                              // C 8699
+	{                                                                      // C 8700
+	  *errno () = EINVAL;                                                  // C 8701
+	  return SOCKET_ERROR;                                                 // C 8702
+	}                                                                      // C 8703
+    }                                                                   // C 8704
+  *errno () = ENOTSOCK;                                                 // C 8705
+  return SOCKET_ERROR;                                                  // C 8706
+}                                                                       // C 8707
