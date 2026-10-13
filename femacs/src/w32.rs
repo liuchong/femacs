@@ -12972,3 +12972,86 @@ pub unsafe extern "C" fn sys_dup2 (src: c_int, dst: c_int) -> c_int     // C 883
     }                                                                   // C 8873
   return if rc == 0 { dst } else { rc };                                // C 8874 (C's ternary)
 }                                                                       // C 8875
+
+
+/* C 8876's blank and C 8877-8923's `pipe2` - the file's pipe constructor: C 8884's `eassert` on the
+  flag pair, C 8887-8888's Lisp-overridable buffer size, C 8894's CRT `_pipe` with
+  `_O_NOINHERIT | _O_BINARY`, C 8900-8911's `MAXDESC` overflow arm (both handles closed, set to -1,
+  `EMFILE`) and C 8913-8918's two `FILE_PIPE | …` flag stores.  C 8887's `w32_pipe_buffer_size` is
+  **another translation unit's object** (`src/w32proc.c` 4846/4851 defines it, no header in the
+  reference tree declares it - so w32.c reads it through the linker, a finding this ledger records),
+  and the names around it are declared in-unit (P-88, `UNVERIFIED`, Owed 37): `<limits.h>`'s
+  `O_NOINHERIT` (**not** `UINT_MAX`, which a mirror already declares - this slice's first arm
+  run measured one `E0428` for an in-unit copy, the slice-31 `strtoul` lesson again) (the very name `nt/inc/sys/socket.rs` 96's `O_CLOEXEC` row
+  waits on), `_O_BINARY` and `_pipe`.  `_O_NOINHERIT` is this unit's own C 6736 constant and
+  `O_BINARY`/`O_CLOEXEC` the fcntl mirror's.  */
+/// C: #define O_NOINHERIT 0x0080  (the CRT's; the name `nt/inc/sys/socket.rs` 96's `O_CLOEXEC` uses)
+#[cfg (feature = "windowsnt")]
+pub const O_NOINHERIT: c_int = 0x0080;
+/// C: #define _O_BINARY 0x8000  (`<fcntl.h>`, the CRT's own flag)
+#[cfg (feature = "windowsnt")]
+pub const _O_BINARY: c_int = 0x8000;
+/// C: extern unsigned int w32_pipe_buffer_size;  (defined by src/w32proc.c 4846/4851)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut w32_pipe_buffer_size: c_uint;
+}
+/// C: int _pipe (int *phandles, unsigned int psize, int textmode);  (`<io.h>`)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _pipe (phandles: *mut c_int, psize: c_uint, textmode: c_int) -> c_int;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pipe2 (phandles: *mut c_int, pipe2_flags: c_int) -> c_int // C 8877
+{                                                                       // C 8879
+  let mut rc: c_int;                                                    // C 8880
+  let mut flags: c_uint;                                                // C 8881 (C's `unsigned flags;`)
+  let mut pipe_size: c_uint = 0;                                        // C 8882 (C's `unsigned pipe_size = 0;`)
+
+  /* C leaves `rc` and `flags` uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+  flags = 0;
+
+  eassert! (pipe2_flags == (O_BINARY | O_CLOEXEC));                     // C 8884
+
+  /* Allow Lisp to override the default buffer size of the pipe.  */    // C 8886
+  if w32_pipe_buffer_size > 0 && w32_pipe_buffer_size < UINT_MAX        // C 8887
+    { pipe_size = w32_pipe_buffer_size; }                               // C 8888
+
+  /* make pipe handles non-inheritable; when we spawn a child, we       // C 8890
+     replace the relevant handle with an inheritable one.  Also put     // C 8891
+     pipes into binary mode; we will do text mode translation ourselves // C 8892
+     if required.  */                                                   // C 8893
+  rc = _pipe (phandles, pipe_size, _O_NOINHERIT | _O_BINARY);           // C 8894
+
+  if rc == 0                                                            // C 8896
+    {                                                                   // C 8897
+      /* Protect against overflow, since Windows can open more handles than // C 8898
+	 our fd_info array has room for.  */                                   // C 8899
+      if *phandles.offset (0) >= MAXDESC || *phandles.offset (1) >= MAXDESC // C 8900
+	{                                                                      // C 8901
+	  _close (*phandles.offset (0));                                       // C 8902
+	  _close (*phandles.offset (1));                                       // C 8903
+	  /* Since we close the handles, set them to -1, so as to              // C 8904
+	     avoid an assertion violation if the caller then tries to          // C 8905
+	     close the handle again (emacs_close will abort otherwise          // C 8906
+	     if errno is EBADF).  */                                           // C 8907
+	  *phandles.offset (0) = -1;                                           // C 8908 (C's `phandles[0] = phandles[1] = -1;`)
+	  *phandles.offset (1) = -1;
+	  *errno () = EMFILE;                                                  // C 8909
+	  rc = -1;                                                             // C 8910
+	}                                                                      // C 8911
+      else                                                              // C 8912
+	{                                                                      // C 8913
+	  flags = (FILE_PIPE | FILE_READ | FILE_BINARY) as c_uint;             // C 8914
+	  fd_info[*phandles.offset (0) as usize].flags = flags;                // C 8915
+
+	  flags = (FILE_PIPE | FILE_WRITE | FILE_BINARY) as c_uint;            // C 8917
+	  fd_info[*phandles.offset (1) as usize].flags = flags;                // C 8918
+	}                                                                      // C 8919
+    }                                                                   // C 8920
+
+  return rc;                                                            // C 8922
+}                                                                       // C 8923
