@@ -13494,7 +13494,7 @@ pub unsafe extern "C" fn sys_read (fd: c_int, mut buffer: *mut c_char, count: c_
 	    {                                                                  // C 9216
 	      PeekNamedPipe (_get_osfhandle (fd) as HANDLE, std::ptr::null_mut (), 0, // C 9217 (C's `(HANDLE)` cast and three `NULL`s)
 			     std::ptr::null_mut (), &raw mut waiting, std::ptr::null_mut ());
-	      to_read = core::cmp::min (waiting, count as DWORD) as c_int;     // C 9218 (C's `min` macro and `(DWORD) count` cast)
+	      to_read = min (waiting, count as DWORD) as c_int;     // C 9218 (C's `min` macro and `(DWORD) count` cast)
 
 	      if to_read > 0                                                   // C 9220
 		{ nchars += _read (fd, buffer as *mut c_void, to_read as c_uint); }   // C 9221
@@ -13631,3 +13631,16 @@ pub unsafe extern "C" fn sys_read (fd: c_int, mut buffer: *mut c_char, count: c_
 
   return nchars;                                                        // C 9346
 }                                                                       // C 9347
+
+
+/* C 9348's blank, C 9349's `/* From w32xfns.c */` (C's own text) and C 9350's `extern HANDLE
+   interrupt_handle;` - the object `src/w32xfns.c` defines and this file only reads (C 9412's
+   `wait_hnd[2] = { interrupt_handle, ovl->hEvent };`).  It is one of this file's three `missing
+   file-scope object` rows, and it is declared here as the extern C declares it, so `--check`
+   retires that row while the definition stays `w32xfns.rs`'s - Owed 41 records that half.  */
+/* From w32xfns.c */
+/// C: extern HANDLE interrupt_handle;
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut interrupt_handle: HANDLE;
+}
