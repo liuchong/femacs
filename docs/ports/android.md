@@ -103,10 +103,14 @@
 > dispatch with C 4541's `do_blit = android_blit_copy`, C 4538's `switch`, C's three
 > `goto fail`/`fail1`/`fail2` labels as nested labelled blocks, and C 4564/4570's two
 > `gui_intersect_rectangles` calls), `android_free_pixmap` (4612-4616) and
-> `android_set_background` (4618-4625) - so the port carries C 1-4625 (except C 2086-2192),
-> C 4734-4747 and C 6880-7096: **4,749 C lines of 7,594 (62.5%)**, in a 5,806-line port, md5
-> `39e1dd64cbe33d9d53513fbc6d3799a2`.  **The
-> next live definition is C 4628's `android_fill_polygon`**; the table's last row is the
+> `android_set_background` (4618-4625).  **Slice 23 (C 4626-4733, 2026-10-12)** carries the
+> four drawing entries - `android_fill_polygon` (4628-4667, whose `NewObjectArray` and
+> per-point `NewObject` loop mirror slice 17's clip-rectangle shape), `android_draw_rectangle`
+> (4669-4689), `android_draw_point` (4691-4710) and `android_draw_line` (4712-4732, the three
+> `ExceptionClear`-instead-of-`android_exception_check` entries) - so the port carries
+> C 1-4733 (except C 2086-2192), C 4734-4747 and C 6880-7096: **4,857 C lines of 7,594 (64.0%)**,
+> in a 5,956-line port, md5 `c1e98aa8c97476b9d264fe5f76a643df`.  **The
+> next live definition is C 4749's `android_set_ts_origin`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -339,7 +343,10 @@ no `window.h`).
 | 4440-4608 | C 4440-4442's two blanks and `void`, `android_copy_area` (C 4470/4485/4501/4534's four `goto`s, C 4538's `switch`, C 4564/4570's two `gui_intersect_rectangles` calls and C 4588-4591's damage test) | real arm (slice 22) |
 | 4609-4616 | C 4609's blank, C 4610's form feed, the blank and `android_free_pixmap` (C 4612-4616) | real arm (slice 22) |
 | 4617-4625 | the blank and `android_set_background` (C 4618-4625) | real arm (slice 22) |
-| 4626-4733 | **the remainder, first part (a)** - from C 4626's blank and C 4627's `void` (C 4628's `android_fill_polygon`, **the next live definition**) through C 4733's blank: `android_fill_polygon`, the mask-line helpers and the entries up to `android_create_pixmap` | not this slice |
+| 4626-4667 | C 4626-4627's blank and `void`, `android_fill_polygon` (C 4645's loop, C 4647-4652's per-point `NewObject` and C 4659-4666's service call and cleanup) | real arm (slice 23) |
+| 4668-4689 | the blank and `android_draw_rectangle` (C 4686-4688's comment and `ExceptionClear`) | real arm (slice 23) |
+| 4690-4710 | the blank and `android_draw_point` (the same `ExceptionClear` tail) | real arm (slice 23) |
+| 4711-4733 | the blank, `android_draw_line` (C 4712-4732) and C 4733's blank | real arm (slice 23) |
 | 4734-4747 | `android_create_pixmap` (**carried early**: C 3951 calls it and the mirror does not declare it) | real arm (slice 19) |
 | 4748-6879 | **the remainder, first part (b)** - from C 4748's blank and C 4749-4750's `/* Notice that a query … */`-class comment (`android_set_ts_origin`, the next entry in file order) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
@@ -728,13 +735,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-22's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-23's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-4625, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 4626-4733 +
-C 4748-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (76
-`missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 23.5% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-4733, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 4748-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (72 `missing
+function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
+`invented exported symbol` rows of Owed 9) and the 21.6% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1641,3 +1648,39 @@ reading is back to **0**.
   (C's chained assignment evaluates the right-hand side first), and the three
   `android_lock_bitmap` calls cast their record pointer through `AndroidBitmapInfo_tag` (the
   slice-19 device) and their result `as *mut c_void` (C's implicit conversion).
+
+## 2026-10-12: slice 23 (C 4626-4733) - the four drawing entries
+
+`android_fill_polygon`, `android_draw_rectangle`, `android_draw_point` and `android_draw_line`.
+
+### Evidence (this slice's readings)
+
+**㊹ The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings**: the lane's
+three-`--cfg` command and the five-`--cfg` set (adding `have_window_system` and `aarch64`).  The
+first attempt read a Rust **parse error** at the `SetObjectArrayElement` call - the generator that
+wrote this slice had duplicated one line's text (a helper bug, not a port error) - so the appended
+text was removed and re-appended from the corrected generator; the two readings above are the final
+ones.  C 4650-4651's `points[i]` device (`.offset (…)`) and C 4645's range loop read correctly on
+that same run.
+
+**㊺ The checklist reading.**  `extract-abi.py --check`: `missing function` **76 → 72** (the four
+definitions this slice carries), **`missing file-scope object` 0** (eleventh round at empty),
+**`invented exported symbol` 41** unchanged, **`does not mention` 0 with no notes row needed**, and
+the line-count row reads **21.6%** (C 7,594 against the port's 5,956).
+
+### Deviations this slice adds
+
+- **C 4634's `int i` has no declaration of its own**: its only user is C 4645's
+  `for (i = 0; i < npoints; ++i)`, which the port writes as `for i in 0..npoints` (the slice 17/18
+  device).
+- **C 4650-4651's `points[i].x` / `points[i].y` are `(*points.offset (i as isize)).x`** (Rust's raw
+  pointers have no `Index`: slice 17's `E0608`), and C's two `(jint)` casts of the record's members
+  are `as jint` (C's `jint` is `int`).
+- **C's `(jint) x` / `(jint) width` casts in the three draw entries are `as jint`** even where the
+  port's parameter is already `c_int`, and C's two `unsigned int` parameters keep their type (the
+  `as jint` is then a real narrowing, C's own conversion).
+- **`android_fill_polygon`'s `shape` and `mode` parameters are read by no statement of C's body**,
+  and the port keeps them (C's prototype has them; the crate allows the unused bindings).
+- **The three draw entries' tails are `ExceptionClear`, not `android_exception_check`** - C says so
+  in its own comment (C 4686-4687/4707-4708/4729-4730), and the port keeps the call and the comment
+  in that order.

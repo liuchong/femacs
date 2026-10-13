@@ -5804,3 +5804,153 @@ pub unsafe extern "C" fn android_set_background (gc: *mut android_gc,   // C 461
   gcv.background = background;                                          // C 4623
   android_change_gc (gc, ANDROID_GC_BACKGROUND, &raw mut gcv);          // C 4624
 }
+
+/* C 4626-4667: C 4626's blank, C 4627's `void` and `android_fill_polygon` (non-`static`; the
+   toolkit's `fill_polygon` hook).  C 4645's `for (i = 0; i < npoints; ++i)` is the port's range,
+   so C 4634's `int i` has no declaration of its own, and C 4650-4651's `points[i]` is
+   `(*points.offset (i as isize))` (Rust's raw pointer has no `Index`; slice 17's device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_fill_polygon (drawable: android_drawable, gc: *mut android_gc,
+						      points: *mut android_point, npoints: c_int,
+						      shape: android_shape, mode: android_coord_mode)
+                                                                     // C 4626-4667
+{
+  let mut array: jobjectArray;                                          // C 4632
+  let mut point: jobject;                                               // C 4633
+  let mut drawable_object: jobject;
+  let mut gcontext: jobject;
+
+  /* C leaves the four locals uninitialised (PORTING.md 1.5); C 4634's `int i` is the loop's,
+     and C's `shape`/`mode` are read by no statement of the body.  */
+  array = std::ptr::null_mut ();
+  point = std::ptr::null_mut ();
+  drawable_object = std::ptr::null_mut ();
+  gcontext = std::ptr::null_mut ();
+
+  drawable_object = android_resolve_handle (drawable);                  // C 4636
+  gcontext = android_resolve_handle ((*gc).gcontext);                   // C 4637
+
+  array = ((*(*android_java_env)).NewObjectArray.unwrap ()) (android_java_env, // C 4639
+						       npoints,                                                   // C 4640
+						       point_class.class,                                         // C 4641
+						       std::ptr::null_mut ());                                    // C 4642
+  android_exception_check ();                                           // C 4643
+
+  for i in 0..npoints                                                   // C 4645
+    {
+      point = ((*(*android_java_env)).NewObject.unwrap ()) (android_java_env, // C 4647
+						      point_class.class,                                          // C 4648
+						      point_class.constructor,                                    // C 4649
+						      (*points.offset (i as isize)).x as jint,                    // C 4650
+						      (*points.offset (i as isize)).y as jint);                   // C 4651
+      android_exception_check_1 (array);                                // C 4652
+
+      ((*(*android_java_env)).SetObjectArrayElement.unwrap ())          // C 4654
+	(android_java_env,                                                     // C 4655
+	 array, i, point);
+      ANDROID_DELETE_LOCAL_REF! (point);                                // C 4656
+    }
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 4659
+	(android_java_env,                                                     // C 4660
+	 emacs_service,                                                        // C 4661
+	 service_class.class,                                                  // C 4662
+	 service_class.fill_polygon,                                           // C 4663
+	 drawable_object,                                                      // C 4664
+	 gcontext, array);
+  android_exception_check_1 (array);                                    // C 4665
+  ANDROID_DELETE_LOCAL_REF! (array);                                    // C 4666
+}
+
+/* C 4669-4689: `android_draw_rectangle`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_draw_rectangle (handle: android_drawable, // C 4669-4689
+						      gc: *mut android_gc,
+						      x: c_int, y: c_int, width: c_uint, height: c_uint)
+{
+  let mut drawable: jobject;                                            // C 4673
+  let mut gcontext: jobject;
+
+  /* C leaves both uninitialised (PORTING.md 1.5).  */
+  drawable = std::ptr::null_mut ();
+  gcontext = std::ptr::null_mut ();
+
+  drawable = android_resolve_handle (handle);                           // C 4675
+  gcontext = android_resolve_handle ((*gc).gcontext);                   // C 4676
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 4678
+	(android_java_env,                                                     // C 4679
+	 emacs_service,                                                        // C 4680
+	 service_class.class,                                                  // C 4681
+	 service_class.draw_rectangle,                                         // C 4682
+	 drawable, gcontext,
+	 x as jint, y as jint,                                                 // C 4683
+	 width as jint, height as jint);                                       // C 4684
+
+  /* In lieu of android_exception_check, clear all exceptions after     // C 4686
+     calling this frequently called graphics operation.  */             // C 4687
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 4688
+}
+
+/* C 4691-4710: `android_draw_point`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_draw_point (handle: android_drawable,  // C 4691-4710
+						  gc: *mut android_gc,
+						  x: c_int, y: c_int)
+{
+  let mut drawable: jobject;                                            // C 4695
+  let mut gcontext: jobject;
+
+  /* C leaves both uninitialised (PORTING.md 1.5).  */
+  drawable = std::ptr::null_mut ();
+  gcontext = std::ptr::null_mut ();
+
+  drawable = android_resolve_handle (handle);                           // C 4697
+  gcontext = android_resolve_handle ((*gc).gcontext);                   // C 4698
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 4700
+	(android_java_env,                                                     // C 4701
+	 emacs_service,                                                        // C 4702
+	 service_class.class,                                                  // C 4703
+	 service_class.draw_point,                                             // C 4704
+	 drawable, gcontext,
+	 x as jint, y as jint);                                                // C 4705
+
+  /* In lieu of android_exception_check, clear all exceptions after     // C 4707
+     calling this frequently called graphics operation.  */             // C 4708
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 4709
+}
+
+/* C 4712-4732: `android_draw_line`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_draw_line (handle: android_drawable,   // C 4712-4732
+						 gc: *mut android_gc,
+						 x: c_int, y: c_int, x2: c_int, y2: c_int)
+{
+  let mut drawable: jobject;                                            // C 4716
+  let mut gcontext: jobject;
+
+  /* C leaves both uninitialised (PORTING.md 1.5).  */
+  drawable = std::ptr::null_mut ();
+  gcontext = std::ptr::null_mut ();
+
+  drawable = android_resolve_handle (handle);                           // C 4718
+  gcontext = android_resolve_handle ((*gc).gcontext);                   // C 4719
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 4721
+	(android_java_env,                                                     // C 4722
+	 emacs_service,                                                        // C 4723
+	 service_class.class,                                                  // C 4724
+	 service_class.draw_line,                                              // C 4725
+	 drawable, gcontext,
+	 x as jint, y as jint,                                                 // C 4726
+	 x2 as jint, y2 as jint);                                              // C 4727
+
+  /* In lieu of android_exception_check, clear all exceptions after     // C 4729
+     calling this frequently called graphics operation.  */             // C 4730
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 4731
+}
