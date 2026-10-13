@@ -75,13 +75,16 @@
 > whose C 3170 `static_assert` owns a `macro-body-notes` row), `android_create_window`
 > (C 3177-3225), `android_set_window_background` (3227-3235), `android_destroy_window`
 > (3237-3241) and `android_init_android_rect_class` (3243-3268).  **Slice 16 (C 3269-3601,
-> 2026-10-12)** continues with `android_init_emacs_gc_class` (C 3271-3366, the fifteen
-> `GetFieldID` calls C spells longhand), `android_create_gc` (3368-3409), `android_free_gc`
-> (3411-3419) and `android_change_gc` (3421-3601, the fourteen mask blocks and C 3592's
-> dirty-marking call) - so the port carries C 1-3601 (except C 2086-2192) **and** C 6880-7096:
-> 3,711 C lines of 7,594 (in a 4,334-line port, md5
-> `00c7890a22d88910abba9167226c2971`).  **The
-> next live definition is C 3604's `android_set_clip_rectangles`**; the table's last row is the
+> 2026-10-12)** carries `android_init_emacs_gc_class` (C 3271-3366, the fifteen `GetFieldID`
+> calls C spells longhand), `android_create_gc` (3368-3409), `android_free_gc` (3411-3419) and
+> `android_change_gc` (3421-3601, the fourteen mask blocks and C 3592's dirty-marking call).
+> **Slice 17 (C 3602-3749, 2026-10-12)** continues with `android_set_clip_rectangles`
+> (3604-3680, the `NewObjectArray` and per-rectangle `NewObject` loop plus C 3675-3679's C-side
+> cache) and `android_set_dashes` (3682-3749, whose C 3695 `goto set_offset` and C 3722
+> `static_assert` own one `macro-body-notes` row) - so the port carries C 1-3749 (except
+> C 2086-2192) **and** C 6880-7096: 3,859 C lines of 7,594 (in a 4,516-line port, md5
+> `2314ee650c8ee580ed7c996a0776422a`).  **The
+> next live definition is C 3752's `android_reparent_window`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -273,7 +276,11 @@ no `window.h`).
 | 3411-3419 | `android_free_gc` | real arm (slice 16) |
 | 3420 | the blank | real arm (slice 16) |
 | 3421-3601 | `android_change_gc` (C 3434-3590's fourteen mask blocks and C 3592-3600's dirty-marking call) | real arm (slice 16) |
-| 3602-6879 | **the remainder, first part** - from C 3602's blank and C 3603's `void` (C 3604's `android_set_clip_rectangles`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
+| 3602-3603 | C 3602's blank and C 3603's `void` | real arm (slice 17) |
+| 3604-3680 | `android_set_clip_rectangles` (C 3624's `for` loop, C 3636-3638's comment, C 3661-3665's dirty-marking call and C 3675-3679's C-side cache) | real arm (slice 17) |
+| 3681 | the blank | real arm (slice 17) |
+| 3682-3749 | `android_set_dashes` (C 3695's `goto set_offset` with the label at C 3741, C 3722's `static_assert` and C 3738-3739's `if (array)` guard) | real arm (slice 17) |
+| 3750-6879 | **the remainder, first part** - from C 3750's blank and C 3751's `void` (C 3752's `android_reparent_window`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -660,13 +667,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-16's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-17's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-3601 and C 6880-7096) are carried; the
-**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 3602-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (97 `missing
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-3749 and C 6880-7096) are carried; the
+**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 3750-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (95 `missing
 function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 42.9% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`invented exported symbol` rows of Owed 9) and the 40.5% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1270,3 +1277,46 @@ definitions this slice carries), **`missing file-scope object` 0** (fourth round
 - **`android_change_gc` is carried in this slice although C 3421 is past `android_create_gc`**: C
   3407 calls it and Rust resolves that at compile time, so the two regions are one slice (the C
   3010-3032 / Owed 13 lesson of slice 13).
+
+## 2026-10-12: slice 17 (C 3602-3749) - the clip-rectangle and dash entries
+
+`android_set_clip_rectangles` and `android_set_dashes`.
+
+### Evidence (this slice's readings)
+
+**㉛ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **fourth** probe.  Three classes of reading were fixed one at a time: the
+raw pointers of C 3629-3634/3721 cannot be indexed in Rust (`E0608`, so the port uses the
+`(*ptr.offset (i as isize)).field` device of `androidterm.rs` 2524/3845-3848); C's `int + unsigned
+int` sums of C 3631-3634 need the conversion spelled out (`E0277`/`E0308`); and C 3714's brace-less
+`else array = …` needs Rust braces (a parse error otherwise).
+
+**㉜ The checklist reading.**  `extract-abi.py --check`: `missing function` **97 → 95** (the two
+definitions this slice carries), **`missing file-scope object` 0** (fifth round at empty),
+**`invented exported symbol` 41** unchanged (neither is a `NATIVE_NAME` definition), **0
+`missing macro`**, **0 `missing constant`**, and the line-count row reads **40.5%** (C 7,594 against
+the port's 4,516).  The slice's `does not mention` finding - `android_set_dashes does not mention
+goto, static_assert` - was recorded the way the checker prescribes, as the row
+**`android_set_dashes\tgoto,static_assert\t…`** in `docs/ports/macro-body-notes.tsv` (the
+`android_create_lib_link` `goto` class and the `memclear` `static_assert` class), and the reading is
+back to **0**.
+
+### Deviations this slice adds
+
+- **C's `clip_rects[i]` / `gc->dashes[i]` / `dash_list[i]` are `(*ptr.offset (i as isize))`** - a
+  Rust raw pointer has no `Index` impl (measured: `E0608` on the first probe), so the port uses
+  `.offset (…)` plus a dereference (the `androidterm.rs` 2524 / 3845-3848 device).
+- **C 3624's `for (i = 0; i < n_clip_rects; ++i)` and C 3720's `for (i = 0; i < n; ++i)`** are the
+  port's `for i in 0..n_clip_rects` / `for i in 0..n` (the `sfntfont-android.rs` 723 device), so
+  C 3611/C 3686's `int i` has no declaration of its own.
+- **C 3631-3634's two sums are `int + unsigned int`** and the port spells C's own usual arithmetic
+  conversion (`(*clip_rects.offset (…)).x as c_uint + … .width`) before the `as jint` cast.
+- **C 3714's brace-less `else array = …;` carries Rust braces** (Rust's `else` takes a block) -
+  the `else { … }` shape slice 12 used for C's `else signal_mask_changed_p = true;`.
+- **C 3722's `static_assert`** is the in-body `const _: () = core::assert! (…)` (the `dispnew.rs`
+  6324-6325 shape) and C 3695's `goto set_offset` is `break 'set_offset` out of a labelled block
+  whose closing brace is C 3741's label - both recorded in the notes row above.
+- **C 3649's `(jobject) array`** is `array as jobject` (the mirror's `jobjectArray` and `jobject` are
+  both `*mut c_void`, so the cast is C's own widening), and **C 3665's `(jboolean) true`** in the
+  variadic `CallNonvirtualVoidMethod` is `true as jboolean as c_uint` (C's default argument
+  promotion; slice 15's C 3220 and slice 16's C 3598).

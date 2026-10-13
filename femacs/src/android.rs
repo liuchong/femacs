@@ -4332,3 +4332,185 @@ pub unsafe extern "C" fn android_change_gc (gc: *mut android_gc, mut mask: andro
       android_exception_check ();                                       // C 3599
     }
 }
+
+/* C 3602-3680: `android_set_clip_rectangles` (non-`static`; called from the toolkit's
+   `set_clip_rectangles` hook).  C 3624's `for (i = 0; i < n_clip_rects; ++i)` is the port's
+   `for i in 0..n_clip_rects` (the `sfntfont-android.rs` 723 / 883 device), so C 3611's `int i`
+   has no declaration of its own.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_clip_rectangles (gc: *mut android_gc, clip_x_origin: c_int,
+						      clip_y_origin: c_int,
+						      clip_rects: *mut android_rectangle,
+						      n_clip_rects: c_int)   // C 3602-3680
+{
+  let mut array: jobjectArray;                                          // C 3609
+  let mut rect: jobject;                                                // C 3610
+  let mut gcontext: jobject;                                            // C 3610
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5); C 3611's `int i` is the loop's.  */
+  array = std::ptr::null_mut ();
+  rect = std::ptr::null_mut ();
+  gcontext = std::ptr::null_mut ();
+
+  android_init_android_rect_class ();                                   // C 3613
+  android_init_emacs_gc_class ();                                       // C 3614
+
+  gcontext = android_resolve_handle ((*gc).gcontext);                   // C 3616
+
+  array = ((*(*android_java_env)).NewObjectArray.unwrap ()) (android_java_env,   // C 3618
+							     n_clip_rects,
+							     android_rect_class,
+							     std::ptr::null_mut ());   // C 3621
+  android_exception_check ();                                           // C 3622
+
+  for i in 0..n_clip_rects                                             // C 3624
+    {
+      rect = ((*(*android_java_env)).NewObject.unwrap ()) (android_java_env,   // C 3626
+							   android_rect_class,
+							   android_rect_constructor,
+							   (*clip_rects.offset (i as isize)).x as jint,   // C 3629
+							   (*clip_rects.offset (i as isize)).y as jint,   // C 3630
+							   ((*clip_rects.offset (i as isize)).x as c_uint
+							    + (*clip_rects.offset (i as isize)).width) as jint,   // C 3631-3632 (C's int-to-unsigned conversion)
+							   ((*clip_rects.offset (i as isize)).y as c_uint
+							    + (*clip_rects.offset (i as isize)).height) as jint);   // C 3633-3634 (C's int-to-unsigned conversion)
+
+      /* The meaning of this call is to check whether or not an
+	 allocation error happened, and to delete ARRAY and signal an
+	 out-of-memory error if that is the case.  */                 // C 3636-3638
+      android_exception_check_1 (array);                                // C 3639
+
+      ((*(*android_java_env)).SetObjectArrayElement.unwrap ())          // C 3641
+	(android_java_env,
+	 array, i, rect);                                        // C 3642
+      ANDROID_DELETE_LOCAL_REF! (rect);                                 // C 3643
+    }
+
+  ((*(*android_java_env)).SetObjectField.unwrap ()) (android_java_env,   // C 3646
+						     gcontext,
+						     emacs_gc_clip_rects,
+						     array as jobject);         // C 3649
+  ANDROID_DELETE_LOCAL_REF! (array);                                    // C 3650
+
+  ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3652
+						  gcontext,
+						  emacs_gc_clip_x_origin,
+						  clip_x_origin);                     // C 3655
+  ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3656
+						  gcontext,
+						  emacs_gc_clip_y_origin,
+						  clip_y_origin);                     // C 3659
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 3661
+    (android_java_env,
+     gcontext,
+     emacs_gc_class,
+     emacs_gc_mark_dirty,
+     true as jboolean as c_uint);                                       // C 3665 (C's default argument promotion)
+  android_exception_check ();                                           // C 3666
+
+  /* Cache the clip rectangles on the C side for
+     sfntfont-android.c.  */                                           // C 3668-3669
+  if ! (*gc).clip_rects.is_null ()                                      // C 3670
+    { xfree ((*gc).clip_rects as *mut c_void); }                        // C 3671
+
+  /* If gc->num_clip_rects is 0, then no drawing will be performed at
+     all.  */                                                          // C 3673-3674
+  (*gc).clip_rects = xmalloc (std::mem::size_of::<android_rectangle> ()   // C 3675
+			      * n_clip_rects as usize) as *mut android_rectangle;   // C 3676
+  (*gc).num_clip_rects = n_clip_rects;                                  // C 3677
+  memcpy ((*gc).clip_rects as *mut c_void, clip_rects as *const c_void,   // C 3678
+	  n_clip_rects as usize * std::mem::size_of::<android_rectangle> ());   // C 3679
+}
+
+/* C 3682-3749: `android_set_dashes` (non-`static`).  C 3695's `goto set_offset`, C 3738-3739's
+   `if (array)` guard and the `set_offset:` label at C 3741 become the labelled block below and the
+   tail after it (PORTING.md 2.2, the `android_create_lib_link` shape): `goto set_offset` is
+   `break 'set_offset`.  C 3722's `static_assert (sizeof (int) == sizeof (jint))` is the port's
+   in-body `const _: () = core::assert! (…)` (the `dispnew.rs` 6324-6325 shape) and owns a
+   `macro-body-notes` row, the `android_globalize_reference` device of slice 15.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_dashes (gc: *mut android_gc, dash_offset: c_int,
+					     dash_list: *mut c_int, n: c_int)   // C 3682-3749
+{
+  let mut array: jobject;                                               // C 3687
+  let mut gcontext: jobject;                                            // C 3687
+
+  /* C leaves both uninitialised (PORTING.md 1.5); C 3686's `int i` is the loop's.  */
+  array = std::ptr::null_mut ();
+  gcontext = std::ptr::null_mut ();
+
+  gcontext = android_resolve_handle ((*gc).gcontext);                   // C 3689
+
+  'set_offset: {
+    if n == (*gc).n_segments                                         // C 3691
+      && ((*gc).dashes.is_null ()                                    // C 3692
+	  || memcmp ((*gc).dashes as *const c_void, dash_list as *const c_void,   // C 3692-3693
+		     std::mem::size_of::<c_int> () * n as usize) == 0)   // C 3693
+      /* No change in the dash list.  */                             // C 3694
+      { break 'set_offset; }                                          // C 3695 (C's `goto set_offset`)
+
+    if n == 0                                                         // C 3697
+      {
+	/* Reset the dash list to its initial empty state.  */        // C 3699
+	xfree ((*gc).dashes as *mut c_void);                          // C 3700
+	(*gc).dashes = std::ptr::null_mut ();                         // C 3701
+	array = std::ptr::null_mut ();                                // C 3702
+      }
+    else
+      {
+	/* If the size of the array has not changed, it can be reused.  */   // C 3706
+
+	if n != (*gc).n_segments                                      // C 3708
+	  {
+	    (*gc).dashes = xrealloc ((*gc).dashes as *mut c_void,     // C 3710
+				     std::mem::size_of::<c_int> () * n as usize) as *mut c_int;
+	    array = ((*(*android_java_env)).NewIntArray.unwrap ())    // C 3711
+	      (android_java_env, n);
+	    android_exception_check ();                               // C 3712
+	  }
+	else
+	  { array = ((*(*android_java_env)).GetObjectField.unwrap ())   // C 3715
+	      (android_java_env,
+	       gcontext,
+	       emacs_gc_dashes); }                                    // C 3717
+
+	/* Copy the list of segments into both arrays.  */            // C 3719
+	for i in 0..n                                                 // C 3720
+	  { *(*gc).dashes.offset (i as isize) = *dash_list.offset (i as isize); }   // C 3721
+	const _: () = core::assert! (std::mem::size_of::<c_int> ()    // C 3722 (C's `static_assert`)
+			     == std::mem::size_of::<jint> ());
+	((*(*android_java_env)).SetIntArrayRegion.unwrap ())          // C 3723
+	  (android_java_env,
+	   array, 0, n,
+	   dash_list as *mut jint);                                    // C 3725
+      }
+
+    /* Replace the dash array in the GContext object if required.  */   // C 3728
+    if n != (*gc).n_segments                                          // C 3729
+      {
+	((*(*android_java_env)).SetObjectField.unwrap ())            // C 3731
+	  (android_java_env,
+	   gcontext,
+	   emacs_gc_dashes,
+	   array);                                                    // C 3734
+	(*gc).n_segments = n;                                         // C 3735
+      }
+
+    if ! array.is_null ()                                             // C 3738
+      { ANDROID_DELETE_LOCAL_REF! (array); }                          // C 3739
+  }
+
+  /* set_offset: */
+  /* And the offset.  */                                                // C 3742
+  if dash_offset != (*gc).dash_offset                                   // C 3743
+    { ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3744
+						    gcontext,
+						    emacs_gc_dash_offset,
+						    dash_offset);             // C 3747
+    }
+  (*gc).dash_offset = dash_offset;                                      // C 3748
+}
+
