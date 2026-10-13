@@ -9543,3 +9543,272 @@ pub unsafe extern "C" fn acl_free (ptr: *mut c_void) -> c_int           // C 667
   xfree (ptr);                                                          // C 6677
   return 0;                                                             // C 6678
 }                                                                       // C 6679
+
+/* C 6680-6694: C 6680's blank, C 6681's `acl_t` + C 6682's `acl_get_file` signature (whose
+   C 6697-6700 assigns to the `fname` parameter, so the port takes it `mut` - the
+   `stat_worker (mut path, …)` device) and C 6688-6693's locals.  The three names this slice
+   first uses are declared here (P-88, `UNVERIFIED`): `<winbase.h>`'s two privilege strings
+   (`SE_TAKE_OWNERSHIP_NAME`, `SE_RESTORE_NAME`; the `SE_BACKUP_NAME` device of slice 14, with
+   its owed `unicode` arm) and `<winerror.h>`'s `ERROR_INVALID_OWNER`.  C 6753's `acl_set_file`
+   and C 6891's `acl_errno_valid` (C's `bool`, the `symlinks_supported` reading) are the rest
+   of the slice.  */
+/// C: #define SE_TAKE_OWNERSHIP_NAME TEXT("SeTakeOwnershipPrivilege")  (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const SE_TAKE_OWNERSHIP_NAME: &core::ffi::CStr = c"SeTakeOwnershipPrivilege";
+/// C: #define SE_RESTORE_NAME TEXT("SeRestorePrivilege")  (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const SE_RESTORE_NAME: &core::ffi::CStr = c"SeRestorePrivilege";
+/// C: #define ERROR_INVALID_OWNER 1305L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_INVALID_OWNER: DWORD = 1305;
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn acl_get_file (mut fname: *const c_char, r#type: acl_type_t) -> acl_t // C 6681 (C's `acl_t`/`const char *`)
+{                                                                       // C 6683
+  let mut psd: PSECURITY_DESCRIPTOR = std::ptr::null_mut ();            // C 6684 (C's `= NULL`)
+  let mut filename: *const c_char;                                      // C 6685
+
+  /* C leaves `filename` uninitialised (PORTING.md 1.5).  */
+  filename = std::ptr::null ();
+
+  if r#type == ACL_TYPE_ACCESS                                          // C 6687
+    {                                                                   // C 6688
+      let mut sd_len: DWORD;                                            // C 6689 (C's `DWORD sd_len`)
+      let mut err: DWORD;                                               // C 6689
+      let mut si: SECURITY_INFORMATION =                                // C 6690
+	OWNER_SECURITY_INFORMATION |                                           // C 6691
+	GROUP_SECURITY_INFORMATION |                                           // C 6692
+	DACL_SECURITY_INFORMATION ;                                            // C 6693
+      let e: c_int = *errno ();                                         // C 6694 (C's `int e = errno;`)
+
+      /* C leaves `sd_len` and `err` uninitialised (PORTING.md 1.5).  */
+      sd_len = 0;
+      err = 0;
+
+      filename = map_w32_filename (fname, std::ptr::null_mut ());       // C 6696
+      if (volume_info.flags & FILE_SUPPORTS_REPARSE_POINTS) != 0        // C 6697
+	{ fname = chase_symlinks (filename); }                                 // C 6698
+      else                                                              // C 6699
+	{ fname = filename; }                                                  // C 6700
+
+      *errno () = 0;                                                    // C 6702
+      if get_file_security (fname, si, psd, 0, (&raw mut sd_len)) == 0  // C 6703 (C's `!`)
+	  && *errno () != ENOTSUP                                              // C 6704
+	{                                                                      // C 6705
+	  err = GetLastError ();                                               // C 6706
+	  if err == ERROR_INSUFFICIENT_BUFFER                                  // C 6707
+	    {                                                                  // C 6708
+	      psd = xmalloc (sd_len as usize);                                 // C 6709 (C's `void *` into `PSECURITY_DESCRIPTOR`)
+	      if get_file_security (fname, si, psd, sd_len, (&raw mut sd_len)) == 0 // C 6710 (C's `!`)
+		{                                                                     // C 6711
+		  xfree (psd);                                                        // C 6712
+		  err = GetLastError ();                                              // C 6713
+		  if err == ERROR_NOT_SUPPORTED                                       // C 6714
+		      || err == ERROR_ACCESS_DENIED                                   // C 6715
+		      || err == ERROR_INVALID_FUNCTION                                // C 6716
+		    { *errno () = ENOTSUP; }                                          // C 6717
+		  else if err == ERROR_FILE_NOT_FOUND                                 // C 6718
+			   || err == ERROR_PATH_NOT_FOUND                                    // C 6719
+			   || err == ERROR_INVALID_NAME                                      // C 6720
+		    { *errno () = ENOENT; }                                           // C 6721
+		  else                                                                // C 6722
+		    { *errno () = EIO; }                                              // C 6723
+		  psd = std::ptr::null_mut ();                                        // C 6724 (C's `psd = NULL;`)
+		}                                                                     // C 6725
+	    }                                                                  // C 6726
+	  else if (err == ERROR_FILE_NOT_FOUND                                 // C 6727 (C's outer paren pair)
+		   || err == ERROR_PATH_NOT_FOUND                                     // C 6728
+		   /* ERROR_INVALID_NAME is what we get if                            // C 6729
+		      w32-unicode-filenames is nil and the file cannot                // C 6730
+		      be encoded in the current ANSI codepage. */                     // C 6731
+		   || err == ERROR_INVALID_NAME)                                      // C 6732 (C's comment above is the ERR block)
+	    { *errno () = ENOENT; }                                            // C 6733
+	  else if (err == ERROR_NOT_SUPPORTED                                  // C 6734 (C's outer paren pair)
+		   /* ERROR_ACCESS_DENIED or ERROR_INVALID_FUNCTION is                // C 6735
+		      what we get for a volume mounted by WebDAV,                     // C 6736
+		      which evidently doesn't support ACLs.  */                       // C 6737
+		   || err == ERROR_ACCESS_DENIED                                      // C 6738
+		   || err == ERROR_INVALID_FUNCTION)                                  // C 6739
+	    { *errno () = ENOTSUP; }                                           // C 6740
+	  else                                                                 // C 6741
+	    { *errno () = EIO; }                                               // C 6742
+	}                                                                      // C 6743
+      else if *errno () == 0                                            // C 6744 (C's `!errno`)
+	{ *errno () = e; }                                                     // C 6745
+    }                                                                   // C 6746
+  else if r#type != ACL_TYPE_DEFAULT                                    // C 6747
+    { *errno () = EINVAL; }                                             // C 6748
+
+  return psd;                                                           // C 6750
+}                                                                       // C 6751
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn acl_set_file (mut fname: *const c_char, r#type: acl_type_t, acl: acl_t) -> c_int // C 6753 (C's `const char *`/`acl_type_t`/`acl_t`)
+{                                                                       // C 6755
+  let mut old1: TOKEN_PRIVILEGES;                                       // C 6756
+  let mut old2: TOKEN_PRIVILEGES;                                       // C 6756
+  let mut err: DWORD;                                                   // C 6757
+  let mut st: c_int = 0;                                                // C 6758 (C's `int st = 0, retval = -1;`)
+  let mut retval: c_int = -1;                                           // C 6758
+  let mut flags: SECURITY_INFORMATION = 0;                              // C 6759
+  let mut psidOwner: PSID;                                              // C 6760
+  let mut psidGroup: PSID;                                              // C 6760
+  let mut pacl: PACL;                                                   // C 6761
+  let mut dflt: BOOL;                                                   // C 6762
+  let mut dacl_present: BOOL;                                           // C 6763
+  let mut e: c_int;                                                     // C 6764
+  let mut filename: *const c_char;                                      // C 6765
+
+  /* C leaves these uninitialised (PORTING.md 1.5): the two `TOKEN_PRIVILEGES`, `err`,
+     `psidOwner`, `psidGroup`, `pacl`, `dflt`, `dacl_present`, `e` and `filename`.  */
+  old1 = std::mem::zeroed ();
+  old2 = std::mem::zeroed ();
+  err = 0;
+  psidOwner = std::ptr::null_mut ();
+  psidGroup = std::ptr::null_mut ();
+  pacl = std::ptr::null_mut ();
+  dflt = 0;
+  dacl_present = 0;
+  e = 0;
+  filename = std::ptr::null ();
+
+  if acl_valid (acl) != 0                                               // C 6767
+      || (r#type != ACL_TYPE_DEFAULT && r#type != ACL_TYPE_ACCESS)      // C 6768
+    {                                                                   // C 6769
+      *errno () = EINVAL;                                               // C 6770
+      return -1;                                                        // C 6771
+    }                                                                   // C 6772
+
+  if r#type == ACL_TYPE_DEFAULT                                         // C 6774
+    {                                                                   // C 6775
+      *errno () = ENOSYS;                                               // C 6776
+      return -1;                                                        // C 6777
+    }                                                                   // C 6778
+
+  filename = map_w32_filename (fname, std::ptr::null_mut ());           // C 6780
+  if (volume_info.flags & FILE_SUPPORTS_REPARSE_POINTS) != 0            // C 6781
+    { fname = chase_symlinks (filename); }                              // C 6782
+  else                                                                  // C 6783
+    { fname = filename; }                                               // C 6784
+
+  if get_security_descriptor_owner (acl, (&raw mut psidOwner), (&raw mut dflt)) != 0 // C 6786 (C's truth test)
+      && psidOwner != std::ptr::null_mut ()                             // C 6787 (C's `&& psidOwner`)
+    { flags |= OWNER_SECURITY_INFORMATION; }                            // C 6788
+  if get_security_descriptor_group (acl, (&raw mut psidGroup), (&raw mut dflt)) != 0 // C 6789
+      && psidGroup != std::ptr::null_mut ()                             // C 6790
+    { flags |= GROUP_SECURITY_INFORMATION; }                            // C 6791
+  if get_security_descriptor_dacl (acl, (&raw mut dacl_present), (&raw mut pacl), (&raw mut dflt)) != 0 // C 6792
+      && dacl_present != 0                                              // C 6793
+    { flags |= DACL_SECURITY_INFORMATION; }                             // C 6794
+  if flags == 0                                                         // C 6795 (C's `!flags`)
+    { return 0; }                                                       // C 6796
+
+  /* According to KB-245153, setting the owner will succeed if either:  // C 6798
+     (1) the caller is the user who will be the new owner, and has the  // C 6799
+         SE_TAKE_OWNERSHIP privilege, or                                // C 6800
+     (2) the caller has the SE_RESTORE privilege, in which case she can // C 6801
+         set any valid user or group as the owner                       // C 6802
+
+     We request below both SE_TAKE_OWNERSHIP and SE_RESTORE             // C 6804
+     privileges, and disregard any failures in obtaining them.  If      // C 6805
+     these privileges cannot be obtained, and do not already exist in   // C 6806
+     the calling thread's security token, this function could fail      // C 6807
+     with EPERM.  */                                                    // C 6808
+  if enable_privilege (SE_TAKE_OWNERSHIP_NAME.as_ptr (), TRUE, (&raw mut old1)) != 0 // C 6809 (C's truth test)
+    { st += 1; }                                                        // C 6810 (C's `st++`)
+  if enable_privilege (SE_RESTORE_NAME.as_ptr (), TRUE, (&raw mut old2)) != 0 // C 6811
+    { st += 1; }                                                        // C 6812 (C's `st++`)
+
+  e = *errno ();                                                        // C 6814 (C's `e = errno;` reads the location)
+  *errno () = 0;                                                        // C 6815
+  /* SetFileSecurity is deprecated by MS, and sometimes fails when      // C 6816
+     DACL inheritance is involved, but it seems to preserve ownership   // C 6817
+     better than SetNamedSecurityInfo, which is important e.g., in      // C 6818
+     copy-file.  */                                                     // C 6819
+  if set_file_security (fname, flags, acl) == 0                         // C 6820 (C's `!`)
+    {                                                                   // C 6821
+      err = GetLastError ();                                            // C 6822
+
+      if *errno () != ENOTSUP                                           // C 6824
+	{ err = set_named_security_info (fname, SE_FILE_OBJECT, flags,         // C 6825 (C's single statement)
+					 psidOwner, psidGroup, pacl, std::ptr::null_mut ()); }             // C 6826
+    }                                                                   // C 6827
+  else                                                                  // C 6828
+    { err = ERROR_SUCCESS; }                                            // C 6829
+  if err != ERROR_SUCCESS                                               // C 6830
+    {                                                                   // C 6831
+      if *errno () == ENOTSUP                                           // C 6832 (C's empty `;` statement)
+	{ }                                                                    // C 6833
+      else if err == ERROR_INVALID_OWNER                                // C 6834
+	       || err == ERROR_NOT_ALL_ASSIGNED                                // C 6835
+	       || err == ERROR_ACCESS_DENIED                                   // C 6836
+	{                                                                      // C 6837
+	  /* Maybe the requested ACL and the one the file already has          // C 6838
+	     are identical, in which case we can silently ignore the           // C 6839
+	     failure.  (And no, Windows doesn't.)  */                          // C 6840
+	  let current_acl: acl_t = acl_get_file (fname, ACL_TYPE_ACCESS);      // C 6841 (C's local inside the block)
+
+	  *errno () = EPERM;                                                   // C 6843
+	  if ! current_acl.is_null ()                                          // C 6844 (C's truth test)
+	    {                                                                  // C 6845
+	      let acl_from: *mut c_char = acl_to_text (current_acl, std::ptr::null_mut ()); // C 6846 (C's `char *acl_from`)
+	      let acl_to: *mut c_char = acl_to_text (acl, std::ptr::null_mut ()); // C 6847
+
+	      if ! acl_from.is_null () && ! acl_to.is_null () && xstrcasecmp (acl_from, acl_to) == 0 // C 6849 (C's two truth tests)
+		{                                                                     // C 6850
+		  retval = 0;                                                         // C 6851
+		  *errno () = e;                                                      // C 6852
+		}                                                                     // C 6853
+	      if ! acl_from.is_null ()                                         // C 6854 (C's truth test)
+		{ acl_free (acl_from as *mut c_void); }                               // C 6855 (C's `char *` into `void *`)
+	      if ! acl_to.is_null ()                                           // C 6856
+		{ acl_free (acl_to as *mut c_void); }                                 // C 6857
+	      acl_free (current_acl);                                          // C 6858
+	    }                                                                  // C 6859
+	}                                                                      // C 6860
+      else if (err == ERROR_FILE_NOT_FOUND                              // C 6861 (C's outer paren pair)
+	       || err == ERROR_PATH_NOT_FOUND                                  // C 6862
+	       /* ERROR_INVALID_NAME is what we get if                         // C 6863
+		  w32-unicode-filenames is nil and the file cannot be                 // C 6864
+		  encoded in the current ANSI codepage. */                            // C 6865
+	       || err == ERROR_INVALID_NAME)                                   // C 6866 (C's comment above is the ERR block)
+	{ *errno () = ENOENT; }                                                // C 6867
+      else                                                              // C 6868
+	{ *errno () = EACCES; }                                                // C 6869
+    }                                                                   // C 6870
+  else                                                                  // C 6871
+    {                                                                   // C 6872
+      retval = 0;                                                       // C 6873
+      *errno () = e;                                                    // C 6874
+    }                                                                   // C 6875
+
+  if st != 0                                                            // C 6877 (C's truth test)
+    {                                                                   // C 6878
+      if st >= 2                                                        // C 6879
+	{ restore_privilege ((&raw mut old2)); }                               // C 6880
+      restore_privilege ((&raw mut old1));                              // C 6881
+      revert_to_self ();                                                // C 6882
+    }                                                                   // C 6883
+
+  return retval;                                                        // C 6885
+}                                                                       // C 6886
+
+/* Return true if errno value ERRNUM indicates that ACLs are well       // C 6888
+   supported on this system.  ERRNUM should be an errno value obtained  // C 6889
+   after an ACL-related system call fails.  */                          // C 6890
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn acl_errno_valid (errnum: c_int) -> bool        // C 6891 (C's `bool`)
+{                                                                       // C 6893
+  match errnum                                                          // C 6894 (C's `switch`)
+    {
+      EBUSY |                                                           // C 6896
+      EINVAL |                                                          // C 6897
+      ENOTSUP =>                                                        // C 6898
+	{ return false; }                                                      // C 6899
+      _ => /* default: */                                               // C 6900
+	{ return true; }                                                       // C 6901
+    }
+}                                                                       // C 6903
