@@ -6185,3 +6185,306 @@ pub unsafe extern "C" fn android_get_pixel (ximg: *mut android_image, x: c_int, 
 
   emacs_abort ();                                                       // C 4904
 }
+/* C 4906-5040: C 4906's blank, C 4907's `struct android_image *` and `android_get_image`.
+   C's `memory_full` is declared in-unit (the `androidfont.rs` 105 device: lisp.h 4432 declares
+   it, alloc.c defines it).  C 4984's `switch (bitmap_info.format)` becomes the `match` below
+   (the ledger's notes row).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: lisp.h 4432: `extern AVOID memory_full (size_t);` (alloc.c defines it).
+  pub fn memory_full (size: size_t) -> !;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_image (handle: android_drawable,   // C 4906-5040
+						 format: android_image_format)
+  -> *mut android_image
+{
+  let mut drawable: jobject;                                            // C 4911
+  let mut bitmap: jobject;
+  let mut bitmap_info: android_bitmap::AndroidBitmapInfo;               // C 4912
+  let mut byte_size: size_t;                                            // C 4913
+  let mut data: *mut c_void;                                            // C 4914
+  let mut image: *mut android_image;                                    // C 4915
+  let mut data1: *mut c_uchar;                                          // C 4916
+  let mut data2: *mut c_uchar;
+
+  /* C leaves the eight locals uninitialised (PORTING.md 1.5); C 4917's `int i, x` are the
+     loops'.  */
+  drawable = std::ptr::null_mut ();
+  bitmap = std::ptr::null_mut ();
+  bitmap_info = std::mem::zeroed ();
+  byte_size = 0;
+  data = std::ptr::null_mut ();
+  image = std::ptr::null_mut ();
+  data1 = std::ptr::null_mut ();
+  data2 = std::ptr::null_mut ();
+
+  drawable = android_resolve_handle (handle);                           // C 4919
+
+  /* Look up the drawable and get the bitmap corresponding to it.       // C 4921
+     Then, lock the bitmap's bits.  */                                  // C 4922
+  bitmap = ((*(*android_java_env)).CallObjectMethod.unwrap ()) (android_java_env, // C 4923
+							  drawable,                                                      // C 4924
+							  drawable_class.get_bitmap);                                    // C 4925
+  android_exception_check ();                                           // C 4926
+
+  /* Clear the bitmap info structure.  */                               // C 4928
+  memset ((&raw mut bitmap_info) as *mut c_void, 0,                     // C 4929
+	  std::mem::size_of::<android_bitmap::AndroidBitmapInfo> ());
+
+  /* The NDK doc seems to imply this function can fail but doesn't say  // C 4931
+     what value it gives when it does! */                               // C 4932
+  AndroidBitmap_getInfo (android_java_env, bitmap,                      // C 4933
+			 &raw mut bitmap_info);
+
+  if bitmap_info.stride == 0                                            // C 4935
+    {
+      ANDROID_DELETE_LOCAL_REF! (bitmap);                               // C 4937
+      memory_full (0);                                                  // C 4938
+    }
+
+  /* Compute how big the image data will be.  Fail if it would be too   // C 4941
+     big.  */                                                           // C 4942
+
+  if bitmap_info.format != ANDROID_BITMAP_FORMAT_A_8                    // C 4944
+    {
+      /* C 4946's `ckd_mul (&byte_size, bitmap_info.stride, bitmap_info.height)` (P-15: the
+         wrapped product and the flag).  */
+      let (ckd_byte_size, ckd_over)
+	= (bitmap_info.stride as size_t).overflowing_mul (bitmap_info.height as size_t);
+      byte_size = ckd_byte_size;
+      if ckd_over
+	{
+	  ANDROID_DELETE_LOCAL_REF! (bitmap);                                  // C 4948
+	  memory_full_up ();                                                   // C 4949
+	}
+    }
+  else                                                                  // C 4952
+    /* This A8 image will be packed into A1 later on.  */               // C 4953
+	/* C 4954's `byte_size = (bitmap_info.width + 7) / 8;` (the `unsigned int` arithmetic
+	   widened to `size_t`).  */
+	{ byte_size = (((bitmap_info.width + 7) / 8) as size_t); }
+
+  /* Lock the image data.  Once again, the NDK documentation says the   // C 4956
+     call can fail, but does not say how to determine whether or not    // C 4957
+     it has failed, nor how the address is aligned.  */                 // C 4958
+  data = std::ptr::null_mut ();                                         // C 4959
+  AndroidBitmap_lockPixels (android_java_env, bitmap, &raw mut data);   // C 4960
+
+  if data.is_null ()                                                    // C 4962
+    {
+      /* Take a NULL pointer to mean that AndroidBitmap_lockPixels      // C 4964
+	 failed.  */                                                           // C 4965
+      ANDROID_DELETE_LOCAL_REF! (bitmap);                               // C 4966
+      memory_full (0);                                                  // C 4967
+    }
+
+  /* Copy the data into a new struct android_image.  */                 // C 4970
+  image = xmalloc (std::mem::size_of::<android_image> ()) as *mut android_image; // C 4971
+  (*image).width = bitmap_info.width as c_int;                          // C 4972 (C's `unsigned`-into-`int`)
+  (*image).height = bitmap_info.height as c_int;                        // C 4973
+  (*image).data = malloc (byte_size) as *mut c_char;                    // C 4974
+
+  if (*image).data.is_null ()                                           // C 4976
+    {
+      ANDROID_DELETE_LOCAL_REF! (bitmap);                               // C 4978
+      xfree (image as *mut c_void);                                     // C 4979
+      memory_full (byte_size);                                          // C 4980
+    }
+
+  /* Use the format of the bitmap to determine the image depth.  */     // C 4983
+  match bitmap_info.format                                              // C 4984
+    {
+      ANDROID_BITMAP_FORMAT_RGBA_8888 =>                                // C 4986
+	{
+	  (*image).depth = 24;                                                 // C 4987
+	  (*image).bits_per_pixel = 32;                                        // C 4988
+	}
+
+      /* A8 images are used by Emacs to represent bitmaps.  They have   // C 4991
+	 to be packed manually.  */                                            // C 4992
+      ANDROID_BITMAP_FORMAT_A_8 =>                                      // C 4993
+	{
+	  (*image).depth = 1;                                                  // C 4994
+	  (*image).bits_per_pixel = 1;                                         // C 4995
+	}
+
+      /* Other formats are currently not supported.  */                 // C 4998
+      _ =>                                                              // C 4999 (C's `default:`)
+	{ emacs_abort (); }                                                    // C 5000
+    }
+
+  (*image).format = format;                                             // C 5003
+
+  if (*image).depth == 24                                               // C 5005
+    {
+      (*image).bytes_per_line = bitmap_info.stride as c_int;            // C 5007
+
+      /* Copy the bitmap data over.  */                                 // C 5009
+      memcpy ((*image).data as *mut c_void, data, byte_size);           // C 5010
+    }
+  else                                                                  // C 5012
+    {
+      /* Pack the A8 image data into bits manually.  */                 // C 5014
+      (*image).bytes_per_line = (((*image).width + 7) / 8) as c_int;    // C 5015
+
+      data1 = (*image).data as *mut c_uchar;                            // C 5017
+      data2 = data as *mut c_uchar;                                     // C 5018
+
+      for i in 0..(*image).height                                       // C 5020
+	{
+	  for x in 0..(*image).width                                       // C 5022
+	    {
+	      /* Some bits in data1 might be initialized at this point,
+		 but they will all be set properly later.  */
+	      *data1.offset ((x / 8) as isize) = (if *data2.offset (x as isize) != 0
+					     { *(data1.offset ((x / 8) as isize))
+					       | ((1 << (x % 8)) as c_uchar) }
+					     else
+					     { *(data1.offset ((x / 8) as isize))
+					       & ! ((1 << (x % 8)) as c_uchar) });   // C 5026-5027
+	    }
+
+	  data1 = data1.offset ((*image).bytes_per_line as isize);             // C 5029
+	  data2 = data2.offset (bitmap_info.stride as isize);                  // C 5030
+	}
+    }
+
+  /* Unlock the bitmap pixels.  */                                      // C 5034
+  AndroidBitmap_unlockPixels (android_java_env, bitmap);                // C 5035
+
+  /* Delete the bitmap reference.  */                                   // C 5037
+  ANDROID_DELETE_LOCAL_REF! (bitmap);                                   // C 5038
+  return image;                                                         // C 5039
+}
+
+/* C 5042-5128: C 5042's blank, C 5043's `void` and `android_put_image`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_put_image (handle: android_pixmap,     // C 5042-5128
+						 image: *mut android_image)
+{
+  let mut drawable: jobject;                                            // C 5045
+  let mut bitmap: jobject;
+  let mut bitmap_info: android_bitmap::AndroidBitmapInfo;               // C 5046
+  let mut data: *mut c_void;                                            // C 5047
+  let mut data_1: *mut c_uchar;                                         // C 5048
+  let mut data_2: *mut c_uchar;
+
+  /* C leaves the six locals uninitialised (PORTING.md 1.5); C 5049's `int i, x` are the
+     loops'.  */
+  drawable = std::ptr::null_mut ();
+  bitmap = std::ptr::null_mut ();
+  bitmap_info = std::mem::zeroed ();
+  data = std::ptr::null_mut ();
+  data_1 = std::ptr::null_mut ();
+  data_2 = std::ptr::null_mut ();
+
+  drawable = android_resolve_handle (handle);                           // C 5051
+
+  /* Look up the drawable and get the bitmap corresponding to it.       // C 5053
+     Then, lock the bitmap's bits.  */                                  // C 5054
+  bitmap = ((*(*android_java_env)).CallObjectMethod.unwrap ()) (android_java_env, // C 5055
+							  drawable,                                                      // C 5056
+							  drawable_class.get_bitmap);                                    // C 5057
+  android_exception_check ();                                           // C 5058
+
+  /* Clear the bitmap info structure.  */                               // C 5060
+  memset ((&raw mut bitmap_info) as *mut c_void, 0,                     // C 5061
+	  std::mem::size_of::<android_bitmap::AndroidBitmapInfo> ());
+
+  /* The NDK doc seems to imply this function can fail but doesn't say  // C 5063
+     what value it gives when it does! */                               // C 5064
+  AndroidBitmap_getInfo (android_java_env, bitmap,                      // C 5065
+			 &raw mut bitmap_info);
+
+  if bitmap_info.stride == 0                                            // C 5067
+    {
+      ANDROID_DELETE_LOCAL_REF! (bitmap);                               // C 5069
+      memory_full (0);                                                  // C 5070
+    }
+
+  if bitmap_info.width as c_int != (*image).width                       // C 5073
+	|| bitmap_info.height as c_int != (*image).height
+    /* This is not yet supported.  */                                   // C 5075
+    { emacs_abort (); }                                                 // C 5076
+
+  /* Make sure the bitmap formats are compatible with each other.  */   // C 5078
+
+  if ((*image).depth == 24                                              // C 5080
+	&& bitmap_info.format != ANDROID_BITMAP_FORMAT_RGBA_8888)
+	|| ((*image).depth == 1
+	    && bitmap_info.format != ANDROID_BITMAP_FORMAT_A_8)
+    { emacs_abort (); }                                                 // C 5084
+
+  /* Lock the image data.  Once again, the NDK documentation says the   // C 5086
+     call can fail, but does not say how to determine whether or not    // C 5087
+     it has failed, nor how the address is aligned.  */                 // C 5088
+  data = std::ptr::null_mut ();                                         // C 5089
+  AndroidBitmap_lockPixels (android_java_env, bitmap, &raw mut data);   // C 5090
+
+  if data.is_null ()                                                    // C 5092
+    {
+      /* Take a NULL pointer to mean that AndroidBitmap_lockPixels      // C 5094
+	 failed.  */                                                           // C 5095
+      ANDROID_DELETE_LOCAL_REF! (bitmap);                               // C 5096
+      memory_full (0);                                                  // C 5097
+    }
+
+  data_1 = data as *mut c_uchar;                                        // C 5100
+  data_2 = (*image).data as *mut c_uchar;                               // C 5101
+
+  /* Copy the bitmap data over scanline-by-scanline.  */                // C 5103
+  for i in 0..(*image).height                                           // C 5104
+    {
+      if (*image).depth != 1                                            // C 5106
+	{ memcpy (data_1 as *mut c_void, data_2 as *const c_void,              // C 5107
+		  ((*image).width * ((*image).bits_per_pixel / 8)) as size_t); }
+      else                                                              // C 5109
+	{
+	  /* Android internally uses a 1 byte-per-pixel format for             // C 5111
+	     ALPHA_8 images.  Expand the image from the 1                      // C 5112
+	     bit-per-pixel X format correctly.  */                             // C 5113
+
+	  for x in 0..(*image).width                                  // C 5115
+	    {
+	      *data_1.offset (x as isize)
+		= (if ((*data_2.offset ((x / 8) as isize) as c_int)
+		      & (1 << (x % 8))) != 0 { 0xff } else { 0 }) as c_uchar;   // C 5116
+	    }
+	}
+
+      data_1 = data_1.offset (bitmap_info.stride as isize);             // C 5119
+      data_2 = data_2.offset ((*image).bytes_per_line as isize);        // C 5120
+    }
+
+  /* Unlock the bitmap pixels.  */                                      // C 5123
+  AndroidBitmap_unlockPixels (android_java_env, bitmap);                // C 5124
+
+  /* Delete the bitmap reference.  */                                   // C 5126
+  ANDROID_DELETE_LOCAL_REF! (bitmap);                                   // C 5127
+}
+
+/* C 5130-5145: C 5130's blank, C 5131's `void` and `android_bell`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_bell ()                                // C 5130-5145
+{
+  let mut duration: jint;                                               // C 5133
+
+  duration = 0;                                                 // (C leaves `duration` uninitialised; PORTING.md 1.5)
+
+  /* Restrict android_keyboard_bell_duration to values between 10 and   // C 5135
+     1000.  */                                                          // C 5136
+  duration = (MIN! (1000 as isize, MAX! (0 as isize,
+			     android_keyboard_bell_duration))) as jint;   // C 5137
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 5139
+	(android_java_env,                                                     // C 5140
+	 emacs_service,                                                        // C 5141
+	 service_class.class,                                                  // C 5142
+	 service_class.ring_bell,                                              // C 5143
+	 duration);                                                            // C 5143
+  android_exception_check ();                                           // C 5144
+}

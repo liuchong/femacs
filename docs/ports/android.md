@@ -108,14 +108,17 @@
 > per-point `NewObject` loop mirror slice 17's clip-rectangle shape), `android_draw_rectangle`
 > (4669-4689), `android_draw_point` (4691-4710) and `android_draw_line` (4712-4732, the three
 > `ExceptionClear`-instead-of-`android_exception_check` entries).  **Slice 24 (C 4748-4905,
-> 2026-10-12)** continues with `android_set_ts_origin` (4749-4759), `android_clear_area`
+> 2026-10-12)** carries `android_set_ts_origin` (4749-4759), `android_clear_area`
 > (4761-4775), `android_create_bitmap_from_data` (4777-4783), `android_create_image`
 > (4785-4819), `android_destroy_image` (4821-4830) and the two pixel accessors
 > `android_put_pixel` (4832-4873) and `android_get_pixel` (4875-4905, whose two `switch`es over
-> `ximg->depth` own the `macro-body-notes` rows of this slice) - so the port carries C 1-4905
-> (except C 2086-2192), C 4734-4747 and C 6880-7096: **5,029 C lines of 7,594 (66.2%)**, in a
-> 6,187-line port, md5 `32b45ea2814477ba91971270e9cbad85`.  **The
-> next live definition is C 4908's `android_get_image`**; the table's last row is the
+> `ximg->depth` own the `macro-body-notes` rows of this slice).  **Slice 25 (C 4906-5145,
+> 2026-10-12)** continues with `android_get_image` (4908-5040, whose A8 path packs bits by hand
+> and whose `switch (bitmap_info.format)` owns another notes row), `android_put_image`
+> (5042-5128) and `android_bell` (5130-5145) - so the port carries C 1-5145 (except
+> C 2086-2192), C 4734-4747 and C 6880-7096: **5,269 C lines of 7,594 (69.4%)**, in a
+> 6,490-line port, md5 `78da0b76b45d760d5973bbee6791c744`.  **The
+> next live definition is C 5148's `android_set_input_focus`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -360,7 +363,10 @@ no `window.h`).
 | 4820-4830 | the blank and `android_destroy_image` (C 4822-4830) | real arm (slice 24) |
 | 4831-4873 | the blank and `android_put_pixel` (C 4832-4873; its `switch` is one of this slice's two notes rows) | real arm (slice 24) |
 | 4874-4905 | the blank and `android_get_pixel` (C 4875-4905; the second notes row) | real arm (slice 24) |
-| 4906-6879 | **the remainder, first part (b)** - from C 4906's blank and C 4907's `struct android_image *` (C 4908's `android_get_image`, **the next live definition**) through C 6878's closing brace and C 6879's blank: `android_get_image` and the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
+| 4906-5040 | C 4906's blank, C 4907's `struct android_image *` and `android_get_image` (C 4919-4939's bitmap lookup, C 4946's `ckd_mul`, C 4984's `switch` and C 5020-5031's bit-packing loops) | real arm (slice 25) |
+| 5041-5128 | the blank, C 5042's `void` and `android_put_image` (C 5080-5084's two format tests and C 5104-5121's scanline loop) | real arm (slice 25) |
+| 5129-5145 | the blank and `android_bell` (C 5131-5145) | real arm (slice 25) |
+| 5146-6879 | **the remainder, first part (b)** - from C 5146's blank and C 5147's `void` (C 5148's `android_set_input_focus`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the window entries, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -747,13 +753,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-24's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-25's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-4905, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 4906-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (65 `missing
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-5145, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 5146-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (62 `missing
 function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 18.5% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`invented exported symbol` rows of Owed 9) and the 14.5% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1748,3 +1754,52 @@ back to **0**.
   is `return pixel as c_ulong;` (C's widening), and C 4889's `(*byte & (1 << x % 8)) ? 1 : 0` is the
   `if`-expression `if (*byte as c_int & (1 << (x % 8))) != 0 { 1 } else { 0 }` (the slice 19 device,
   with C's `char`-into-`int` promotion spelled out).
+
+## 2026-10-12: slice 25 (C 4906-5145) - the two image transfers and the bell
+
+`android_get_image`, `android_put_image` and `android_bell`.
+
+### Evidence (this slice's readings)
+
+**㊽ The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings**: the lane's
+three-`--cfg` command and the five-`--cfg` set.  Four attempts were needed, and each reading was a
+real defect of the text: C 5022/5115's **brace-less `for` plus one statement** needs Rust braces (two
+parse errors); C 4933/5065's `AndroidBitmap_getInfo` takes the **record itself** in this unit's own
+C 63 stand-in (only `android_lock_bitmap`'s mirror declaration wants the opaque tag), so the
+`AndroidBitmapInfo_tag` cast was wrong there; and C 5137's `MIN (1000, MAX (0,
+android_keyboard_bell_duration))` runs in **`EMACS_INT`** (`isize`) before the store narrows to
+`jint`.
+
+**㊾ The checklist reading.**  `extract-abi.py --check`: `missing function` **65 → 62** (the three
+definitions this slice carries), **`missing file-scope object` 0** (thirteenth round at empty),
+**`invented exported symbol` 41** unchanged, **0 `missing macro`**, **0 `missing constant`**, and the
+line-count row reads **14.5%** (C 7,594 against the port's 6,490).  The slice's `does not mention`
+finding - `android_get_image does not mention break, case, default, switch` - was recorded as the row
+**`android_get_image\tbreak,case,default,switch\t…`** in
+`docs/ports/macro-body-notes.tsv`, and the reading is back to **0**.
+
+### Deviations this slice adds
+
+- **`memory_full` is declared in-unit** (`unsafe extern "C" { pub fn memory_full (size: size_t) -> !; }`
+  with the `/// C: lisp.h 4432 …` note): lisp.h declares it and `alloc.rs` defines it, and the
+  `androidfont.rs` 105 device is where the port puts such declarations when the mirror lacks them.
+- **C 5022/5115's brace-less `for` … one `if`-expression statement** carry Rust braces (Rust's `for`
+  takes a block), with C's own comment riding inside the loop body where C has it.
+- **C 4933/5065's `AndroidBitmap_getInfo` passes `&raw mut bitmap_info`** (the unit's stand-in
+  declares the five-member record), while **C 4959-4960/5089-5090's `AndroidBitmap_lockPixels` passes
+  `&raw mut data`** - neither needs the `AndroidBitmapInfo_tag` cast that only
+  `android_lock_bitmap`'s mirror declaration wants (slice 19/22's device, applied per signature).
+- **C 4946's `ckd_mul (&byte_size, …)`** is P-15's pair (`let (ckd_byte_size, ckd_over) = …;
+  byte_size = ckd_byte_size; if ckd_over { … memory_full_up (); }`), C 4954's
+  `byte_size = (bitmap_info.width + 7) / 8` narrows/widens with `as size_t`, and C 5020/5104's
+  `for (i = 0; …)` loops are the port's ranges (so C 4917/5049's `int i, x` have no declarations of
+  their own).
+- **C 4972-4973/5007/5015/5073-5074's `unsigned int` fields into `int` members** carry `as c_int`
+  (C's own conversion), while C 4864-4867's (`xml`'s) equals in `android_put_pixel` keep their own
+  reading.
+- **C 5025-5027's and C 5116's ternaries are `if`-expressions** (slice 19's device), each
+  parenthesized before its `as c_uchar` truncation, and C's `*data1[x / 8]` style accesses are
+  `*.offset (…)` (slice 17's `E0608`).
+- **C 5137's `MIN (1000, MAX (0, android_keyboard_bell_duration))`** keeps C's `EMACS_INT`
+  arithmetic (`1000 as isize`, `0 as isize`) and narrows with `as jint` - the port's
+  `android_keyboard_bell_duration` is the `isize` global of `globals.rs`.
