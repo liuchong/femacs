@@ -113,12 +113,16 @@
 > (4785-4819), `android_destroy_image` (4821-4830) and the two pixel accessors
 > `android_put_pixel` (4832-4873) and `android_get_pixel` (4875-4905, whose two `switch`es over
 > `ximg->depth` own the `macro-body-notes` rows of this slice).  **Slice 25 (C 4906-5145,
-> 2026-10-12)** continues with `android_get_image` (4908-5040, whose A8 path packs bits by hand
-> and whose `switch (bitmap_info.format)` owns another notes row), `android_put_image`
-> (5042-5128) and `android_bell` (5130-5145) - so the port carries C 1-5145 (except
-> C 2086-2192), C 4734-4747 and C 6880-7096: **5,269 C lines of 7,594 (69.4%)**, in a
-> 6,490-line port, md5 `78da0b76b45d760d5973bbee6791c744`.  **The
-> next live definition is C 5148's `android_set_input_focus`**; the table's last row is the
+> 2026-10-12)** carries `android_get_image` (4908-5040, whose A8 path packs bits by hand and
+> whose `switch (bitmap_info.format)` owns another notes row), `android_put_image` (5042-5128)
+> and `android_bell` (5130-5145).  **Slice 26 (C 5146-5280, 2026-10-12)** continues with
+> `android_set_input_focus` (5148-5162), `android_raise_window` (5164-5178),
+> `android_lower_window` (5180-5194), `android_reconfigure_wm_window` (5196-5224) and
+> `android_query_tree` (5226-5280, the JNI array entry that allocates the children vector with
+> `xnmalloc` and releases the array with `JNI_ABORT`) - so the port carries C 1-5280 (except
+> C 2086-2192), C 4734-4747 and C 6880-7096: **5,404 C lines of 7,594 (71.2%)**, in a
+> 6,669-line port, md5 `fa5c08d0ff253e734dc4eaa161d562bd`.  **The
+> next live definition is C 5283's `android_get_geometry`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -366,7 +370,12 @@ no `window.h`).
 | 4906-5040 | C 4906's blank, C 4907's `struct android_image *` and `android_get_image` (C 4919-4939's bitmap lookup, C 4946's `ckd_mul`, C 4984's `switch` and C 5020-5031's bit-packing loops) | real arm (slice 25) |
 | 5041-5128 | the blank, C 5042's `void` and `android_put_image` (C 5080-5084's two format tests and C 5104-5121's scanline loop) | real arm (slice 25) |
 | 5129-5145 | the blank and `android_bell` (C 5131-5145) | real arm (slice 25) |
-| 5146-6879 | **the remainder, first part (b)** - from C 5146's blank and C 5147's `void` (C 5148's `android_set_input_focus`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the window entries, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
+| 5146-5162 | C 5146's blank, C 5147's `void` and `android_set_input_focus` | real arm (slice 26) |
+| 5163-5178 | the blank and `android_raise_window` | real arm (slice 26) |
+| 5179-5194 | the blank and `android_lower_window` | real arm (slice 26) |
+| 5195-5224 | the blank and `android_reconfigure_wm_window` (C 5205-5215's stack-mode tests) | real arm (slice 26) |
+| 5225-5280 | the blank, C 5226's `int` and `android_query_tree` (C 5251-5276's array calls and C 5263-5266's child loop) | real arm (slice 26) |
+| 5281-6879 | **the remainder, first part (b)** - from C 5281's blank and C 5282's `void` (C 5283's `android_get_geometry`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the window and geometry entries, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -753,13 +762,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-25's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-26's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-5145, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 5146-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (62 `missing
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-5280, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 5281-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (57 `missing
 function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 14.5% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`invented exported symbol` rows of Owed 9) and the 12.2% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1803,3 +1812,46 @@ finding - `android_get_image does not mention break, case, default, switch` - wa
 - **C 5137's `MIN (1000, MAX (0, android_keyboard_bell_duration))`** keeps C's `EMACS_INT`
   arithmetic (`1000 as isize`, `0 as isize`) and narrows with `as jint` - the port's
   `android_keyboard_bell_duration` is the `isize` global of `globals.rs`.
+
+## 2026-10-12: slice 26 (C 5146-5280) - the focus and stacking entries and the window tree
+
+`android_set_input_focus`, `android_raise_window`, `android_lower_window`,
+`android_reconfigure_wm_window` and `android_query_tree`.
+
+### Evidence (this slice's readings)
+
+**㊿ The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings**, and the
+three-`--cfg` run passed on the **first** attempt: the five call shapes, C 5205-5215's two
+`value_mask` tests and C 5251-5276's five `JNIEnv` array calls all read correctly.
+
+**⑤① The checklist reading.**  `extract-abi.py --check`: `missing function` **62 → 57** (the five
+definitions this slice carries), **`missing file-scope object` 0** (fourteenth round at empty),
+**`invented exported symbol` 41** unchanged, and **`does not mention` 0 with no notes row needed**;
+the line-count row reads **12.2%** (C 7,594 against the port's 6,669).
+
+### Deviations this slice adds
+
+- **C 5160's `(jlong) time`** is `time as jlong` (a real widening: C's `unsigned long` into the
+  `jlong` the variadic call promotes it to), while **C 5222's `(jint) values->stack_mode`** is
+  `(*values).stack_mode as jint` (C's `int` is `jint` here, so that cast is the identity spelled
+  out).
+- **C 5205's `!(value_mask & ANDROID_CW_STACK_MODE)`** is `value_mask & ANDROID_CW_STACK_MODE == 0`
+  (C's integer negation, the port's spelling for a `c_int` mask - Rust binds `&` tighter than `==`,
+  as C does).
+- **C 5227-5230's four out parameters** are `*mut android_window` / `*mut *mut android_window` /
+  `*mut c_uint`, and **C 5269/5270's stores convert `jlong` into `android_window`**
+  (`*parent_return = *longs.offset (0) as android_window`): C's `parent_return` and `longs` have the
+  same width and the assignment is an implicit conversion there.
+- **C 5233's `jsize nelements, i`**: `i` has no declaration of its own (C 5263's loop is the port's
+  `for i in 1..nelements`), and **C 5263-5266's brace-less `for` with its two-line comment takes
+  Rust braces** (slice 25's lesson) with the comment inside the loop body.
+- **C 5256's `xnmalloc (nelements - 1, sizeof *children)`** is
+  `xnmalloc ((nelements - 1) as isize, std::mem::size_of::<android_window> () as isize) as *mut android_window`
+  (the mirror's signature takes two `isize`s), and **C 5261's
+  `android_exception_check_nonnull (longs, array)`** is `(longs as *mut c_void, array)` (the
+  mirror's first parameter is the untyped pointer).
+- **C 5266's `children[i - 1] = longs[i]`** is `*children.offset ((i - 1) as isize) =
+  *longs.offset (i as isize) as android_window` (slice 17's raw-pointer device plus C's implicit
+  `jlong`-into-`intptr_t` conversion), and **C 5272's `nelements - 1`** narrows with `as c_uint`.
+- **C 5275-5276's `ReleaseLongArrayElements (…, JNI_ABORT)`** keeps the mirror's `JNI_ABORT`
+  constant (`include/jni.rs` 127) as C spells it.

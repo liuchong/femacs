@@ -6488,3 +6488,182 @@ pub unsafe extern "C" fn android_bell ()                                // C 513
 	 duration);                                                            // C 5143
   android_exception_check ();                                           // C 5144
 }
+/* C 5146-5162: android_set_input_focus.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_input_focus (handle: android_window, time: c_ulong) // C 5146-5162
+{
+  let mut window: jobject;                                              // C 5150
+  let mut make_input_focus: jmethodID;                                  // C 5151
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  make_input_focus = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5153
+  make_input_focus = window_class.make_input_focus;                     // C 5154
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 5156
+	(android_java_env,
+	 window,                                                               // C 5157
+	 window_class.class,                                                   // C 5158
+	 make_input_focus,                                                     // C 5159
+	 time as jlong);                                                       // C 5160 (C's `unsigned long`-into-`jlong`)
+  android_exception_check ();                                           // C 5161
+}
+/* C 5164-5178: android_raise_window.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_raise_window (handle: android_window)  // C 5164-5178
+{
+  let mut window: jobject;                                              // C 5167
+  let mut raise: jmethodID;                                             // C 5168
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  raise = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5170
+  raise = window_class.raise;                                           // C 5171
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 5173
+	(android_java_env,
+	 window,                                                               // C 5174
+	 window_class.class,                                                   // C 5175
+	 raise);                                                               // C 5176
+  android_exception_check ();                                           // C 5177
+}
+/* C 5180-5194: android_lower_window.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_lower_window (handle: android_window)  // C 5180-5194
+{
+  let mut window: jobject;                                              // C 5183
+  let mut lower: jmethodID;                                             // C 5184
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  lower = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5186
+  lower = window_class.lower;                                           // C 5187
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 5189
+	(android_java_env,
+	 window,                                                               // C 5190
+	 window_class.class,                                                   // C 5191
+	 lower);                                                               // C 5192
+  android_exception_check ();                                           // C 5193
+}
+/* C 5196-5224: android_reconfigure_wm_window.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_reconfigure_wm_window (handle: android_window,
+					       value_mask: android_wc_value_mask,
+					       values: *mut android_window_changes) // C 5196-5224
+{
+  let mut sibling: jobject;                                             // C 5201
+  let mut window: jobject;
+
+  /* C leaves both locals uninitialised (PORTING.md 1.5).  */
+  sibling = std::ptr::null_mut ();
+  window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5203
+
+  if value_mask & ANDROID_CW_STACK_MODE == 0                            // C 5205 (C's `!(…)`)
+    { return; }                                                         // C 5206
+
+  /* If value_mask & ANDROID_CW_SIBLING, place HANDLE above or below    // C 5208
+     values->sibling pursuant to values->stack_mode; else, reposition   // C 5209
+     it at the top or the bottom of its parent.  */                     // C 5210
+
+  sibling = std::ptr::null_mut ();                                      // C 5212
+
+  if value_mask & ANDROID_CW_SIBLING != 0                               // C 5214
+    { sibling = android_resolve_handle ((*values).sibling); }           // C 5215
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 5217
+	(android_java_env,
+	 window,                                                               // C 5218
+	 window_class.class,                                                   // C 5219
+	 window_class.reconfigure,                                             // C 5220
+	 sibling,                                                              // C 5221
+	 (*values).stack_mode as jint);                                        // C 5222 (C's `int`-into-`jint`)
+  android_exception_check ();                                           // C 5223
+}
+/* C 5226-5280: `android_query_tree`.  C 5233's `jsize nelements, i` - `i` has no declaration of
+   its own (C 5263's loop is the port's range), and C 5263-5266's brace-less `for` with its
+   two-line comment takes Rust braces.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_query_tree (handle: android_window,    // C 5226-5280
+					       root_return: *mut android_window,
+					       parent_return: *mut android_window,
+					       children_return: *mut *mut android_window,
+					       nchildren_return: *mut c_uint)
+  -> c_int
+{
+  let mut window: jobject;                                              // C 5232
+  let mut array: jobject;
+  let mut nelements: jsize;                                             // C 5233
+  let mut children: *mut android_window;                                // C 5234
+  let mut longs: *mut jlong;                                            // C 5235
+  let mut method: jmethodID;                                            // C 5236
+
+  /* C leaves the six locals uninitialised (PORTING.md 1.5).  */
+  window = std::ptr::null_mut ();
+  array = std::ptr::null_mut ();
+  nelements = 0;
+  children = std::ptr::null_mut ();
+  longs = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5238
+
+  /* window can be NULL, so this is a service method.  */               // C 5240
+  method = service_class.query_tree;                                    // C 5241
+  array
+	= ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ())   // C 5243
+	    (android_java_env,                                                 // C 5243
+	     emacs_service,                                                    // C 5244
+	     service_class.class,                                              // C 5245
+	     method, window);                                                  // C 5246
+  android_exception_check ();                                           // C 5247
+
+  /* The first element of the array is the parent window.  The rest     // C 5249
+     are the children.  */                                              // C 5250
+  nelements = ((*(*android_java_env)).GetArrayLength.unwrap ()) (android_java_env, // C 5251
+							     array);                                                     // C 5252
+  eassert! (nelements != 0);                                            // C 5253
+
+  /* Now fill in the children.  */                                      // C 5255
+  children = xnmalloc ((nelements - 1) as isize,                        // C 5256
+			 std::mem::size_of::<android_window> () as isize) as *mut android_window;
+
+  longs
+	= ((*(*android_java_env)).GetLongArrayElements.unwrap ())   // C 5258
+	    (android_java_env, array,                                          // C 5259
+	     std::ptr::null_mut ());                                           // C 5260
+  android_exception_check_nonnull (longs as *mut c_void, array);        // C 5261
+
+  for i in 1..nelements                                                 // C 5263
+	{
+	  /* Subtract one from the index into children, since the parent is    // C 5264
+	     not included.  */                                                 // C 5265
+	  *children.offset ((i - 1) as isize) = *longs.offset (i as isize) as android_window; // C 5266 (C's `jlong`-into-`android_window`)
+	}
+
+  /* Finally, return the parent and other values.  */                   // C 5268
+  *root_return = 0;                                                     // C 5269
+  *parent_return = *longs.offset (0) as android_window;                 // C 5270 (the same conversion)
+  *children_return = children;                                          // C 5271
+  *nchildren_return = (nelements - 1) as c_uint;                        // C 5272
+
+  /* Release the array contents.  */                                    // C 5274
+  ((*(*android_java_env)).ReleaseLongArrayElements.unwrap ()) (android_java_env, array, // C 5275
+							     longs, JNI_ABORT);                                          // C 5276
+
+  ANDROID_DELETE_LOCAL_REF! (array);                                    // C 5278
+  return 1;                                                             // C 5279
+}
