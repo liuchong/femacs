@@ -7405,3 +7405,186 @@ pub unsafe extern "C" fn sys_rename (old: *const c_char, new: *const c_char) -> 
 
 /* C 5014-5015: C 5014's blank and C 5015's `int` (the next item is C 5016's `sys_rmdir`, past
    this slice).  */
+/* C 5014-5016: C 5014's blank, C 5015's `int` and C 5016's signature.  */
+/* C 5016-5034: `sys_rmdir`.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_rmdir (path: *const c_char) -> c_int       // C 5016
+{
+  path = map_w32_filename (path, std::ptr::null_mut ());                // C 5018
+
+  if w32_unicode_filenames                                              // C 5020
+    {
+      let mut path_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 5022
+
+      filename_to_utf16 (path, path_w.as_mut_ptr ());                   // C 5024
+      return _wrmdir (path_w.as_mut_ptr ());                            // C 5025
+    }
+  else                                                                  // C 5027
+    {
+      let mut path_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 5029
+
+      filename_to_ansi (path, path_a.as_mut_ptr ());                    // C 5031
+      return _rmdir (path_a.as_mut_ptr ());                             // C 5032
+    }
+}
+/* C 5036-5078: C 5036's `int` and `sys_unlink` (C 5051/5068's `e = errno` save, C 5056/5071's
+   `is_symlink (path) & FILE_ATTRIBUTE_DIRECTORY` test, where C's `int` converts to the
+   `DWORD`).  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_unlink (path: *const c_char) -> c_int      // C 5036
+{
+  let mut rmstatus: c_int;                                              // C 5039
+  let mut e: c_int;
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rmstatus = 0;
+  e = 0;
+
+  path = map_w32_filename (path, std::ptr::null_mut ());                // C 5041
+
+  if w32_unicode_filenames                                              // C 5043
+    {
+      let mut path_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 5045
+
+      filename_to_utf16 (path, path_w.as_mut_ptr ());                   // C 5047
+      /* On Unix, unlink works without write permission.  */            // C 5048
+      _wchmod (path_w.as_mut_ptr (), 0o666);                            // C 5049 (C's `0666`)
+      rmstatus = _wunlink (path_w.as_mut_ptr ());                       // C 5050
+      e = *errno ();                                                    // C 5051
+      /* Symlinks to directories can only be deleted by _rmdir;         // C 5052
+	 _unlink returns EACCES.  */                                           // C 5053
+      if (rmstatus != 0                                                 // C 5054
+	  && *errno () == EACCES                                               // C 5055
+	  && ((is_symlink (path) as DWORD) & FILE_ATTRIBUTE_DIRECTORY) != 0)   // C 5056
+	{ rmstatus = _wrmdir (path_w.as_mut_ptr ()); }                         // C 5057
+	      else
+	{ *errno () = e; }                                                     // C 5059
+    }
+  else                                                                  // C 5061
+    {
+      let mut path_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 5063
+
+      filename_to_ansi (path, path_a.as_mut_ptr ());                    // C 5065
+      _chmod (path_a.as_mut_ptr (), 0o666);                             // C 5066 (C's `0666`)
+      rmstatus = _unlink (path_a.as_mut_ptr ());                        // C 5067
+      e = *errno ();                                                    // C 5068
+      if (rmstatus != 0                                                 // C 5069
+	  && *errno () == EACCES                                               // C 5070
+	  && ((is_symlink (path) as DWORD) & FILE_ATTRIBUTE_DIRECTORY) != 0)   // C 5071
+	{ rmstatus = _rmdir (path_a.as_mut_ptr ()); }                          // C 5072
+	      else
+	{ *errno () = e; }                                                     // C 5074
+    }
+
+  return rmstatus;                                                      // C 5077
+}
+/* C 5080-5090: the three file-scope statics and the `FILETIME_TO_U64` macro.  The SDK types this
+   group first names (`SYSTEMTIME`, `SystemTimeToFileTime`, `CompareFileTime`) are declared
+   below (P-88, `UNVERIFIED`), and C's `do { … } while (0)` macro is the port's block
+   (PORTING.md 2.1).  */
+#[cfg (feature = "windowsnt")]
+static mut utc_base_ft: FILETIME = unsafe { std::mem::zeroed () };   // C 5080 (tentative)
+#[cfg (feature = "windowsnt")]
+static mut utc_base: ULONGLONG = 0;  /* In 100ns units */           // C 5081 // C 5081
+#[cfg (feature = "windowsnt")]
+static mut init: c_int = 0;                                          // C 5082 // C 5082
+#[cfg (feature = "windowsnt")]
+/// C: typedef struct _SYSTEMTIME { WORD wYear; WORD wMonth; WORD wDayOfWeek; WORD wDay;
+/// C:   WORD wHour; WORD wMinute; WORD wSecond; WORD wMilliseconds; } SYSTEMTIME;
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SYSTEMTIME
+{
+  pub wYear: WORD,
+  pub wMonth: WORD,
+  pub wDayOfWeek: WORD,
+  pub wDay: WORD,
+  pub wHour: WORD,
+  pub wMinute: WORD,
+  pub wSecond: WORD,
+  pub wMilliseconds: WORD,
+}
+/// C: WINBASEAPI BOOL WINAPI SystemTimeToFileTime (const SYSTEMTIME *, LPFILETIME);
+/// C: WINBASEAPI LONG WINAPI CompareFileTime (const FILETIME *, const FILETIME *);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn SystemTimeToFileTime (lpSystemTime: *const SYSTEMTIME, lpFileTime: *mut FILETIME) -> BOOL;
+  pub fn CompareFileTime (lpFileTime1: *const FILETIME, lpFileTime2: *const FILETIME) -> LONG;
+}
+/// C 5084-5090's `#define FILETIME_TO_U64(result, ft) do { ULARGE_INTEGER uiTemp; … } while (0)`.
+macro_rules! FILETIME_TO_U64 {
+  ($result:expr, $ft:expr) =>
+    {
+      let mut uiTemp: ULARGE_INTEGER = unsafe { std::mem::zeroed () };
+      uiTemp.u.LowPart = ($ft).dwLowDateTime;
+      uiTemp.u.HighPart = ($ft).dwHighDateTime;
+      $result = uiTemp.QuadPart;
+    };
+}
+/* C 5092-5108: C 5092's `static void` and `initialize_utc_base`.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn initialize_utc_base ()                                        // C 5092
+{
+  let mut st: SYSTEMTIME = std::mem::zeroed ();                         // C 5096
+
+  /* Determine the delta between 1-Jan-1601 and 1-Jan-1970. */          // C 5095
+  st.wYear = 1970;                                                      // C 5098
+  st.wMonth = 1;                                                        // C 5099
+  st.wDay = 1;                                                          // C 5100
+  st.wHour = 0;                                                         // C 5101
+  st.wMinute = 0;                                                       // C 5102
+  st.wSecond = 0;                                                       // C 5103
+  st.wMilliseconds = 0;                                                 // C 5104
+
+  SystemTimeToFileTime ((&raw const st), (&raw mut utc_base_ft));       // C 5106
+  FILETIME_TO_U64! (utc_base, utc_base_ft);                             // C 5107
+}
+/* C 5110-5130: C 5110's `static time_t` and `convert_time`.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn convert_time (ft: FILETIME, time_nsec: *mut c_int) -> time_t  // C 5110
+{
+  let mut tmp: ULONGLONG;                                               // C 5113
+  let mut time_sec: time_t;                                             // C 5114
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  tmp = 0;
+  time_sec = 0;
+
+  if init == 0                                                          // C 5116
+    {
+      initialize_utc_base ();                                           // C 5118
+      init = 1;                                                         // C 5119
+    }
+
+  if CompareFileTime ((&raw const ft), (&raw const utc_base_ft)) < 0    // C 5122
+    { return 0; }                                                       // C 5123
+
+  FILETIME_TO_U64! (tmp, ft);                                           // C 5125
+  tmp -= utc_base;                                                      // C 5126
+  time_sec = (tmp / 10000000) as time_t;                                // C 5127 (C's `(time_t) (tmp / 10000000L)`)
+  *time_nsec = ((tmp - time_sec as ULONGLONG * 10000000) * 100) as c_int; // C 5128 (C's `int`-store)
+  return time_sec;                                                      // C 5129
+}
+/* C 5132-5148: C 5132's `static void` and `convert_from_timespec`.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn convert_from_timespec (time: timespec, pft: *mut FILETIME)    // C 5132
+{
+  let mut tmp: ULARGE_INTEGER = std::mem::zeroed ();                    // C 5135
+
+  if init == 0                                                          // C 5137
+    {
+      initialize_utc_base ();                                           // C 5139
+      init = 1;                                                         // C 5140
+    }
+
+  /* time in 100ns units since 1-Jan-1601 */                            // C 5143
+  tmp.QuadPart =                                                        // C 5144
+    time.tv_sec as ULONGLONG * 10000000 + time.tv_nsec as c_long / 100 + utc_base; // C 5145
+  (*pft).dwHighDateTime = tmp.u.HighPart;                               // C 5146
+  (*pft).dwLowDateTime = tmp.u.LowPart;                                 // C 5147
+}
+
+/* C 5150: the blank before C 5150's `static PSECURITY_DESCRIPTOR` (the next item is C 5150's
+   `get_file_security_desc_by_handle`, past this slice).  */
