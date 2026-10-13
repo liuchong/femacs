@@ -6599,3 +6599,190 @@ unsafe fn sys_access (fname: *const c_char, mode: c_int) -> c_int       // C 434
 
 /* C 4396-4399: C 4396's blank and C 4397-4399's comment (the next item is C 4401's
    `sys_rename`, past this slice).  */
+/* C 4396-4402: C 4396's blank, C 4397-4400's four-line comment, C 4401's blank and C 4402's
+   `int`.  */
+/* C 4403-4533: the six CRT shadowing wrappers.  The MSVC CRT names this slice first calls
+   (`_chdir`/`_wchdir`, `_chmod`/`_wchmod`, `_creat`/`_wcreat`, `_open`/`_wopen`, `_fdopen`) and
+   the three `<fcntl.h>` text/binary macros are declared here (the P-88 device this lane uses;
+   no Windows SDK or mingw toolchain is on this machine, so those values carry the ledger's
+   `UNVERIFIED` marking).  `O_RDONLY`/`O_WRONLY`/`O_RDWR`/`O_CREAT`/`O_TRUNC` come from the
+   unit's own C 35 `#include <fcntl.h>` (`lib/include/fcntl.in.rs`), whose values are the
+   frozen target's - the CRT's own numbers differ, which the ledger records.  */
+/// C: int _chdir (const char *);
+/// C: int _wchdir (const wchar_t *);
+/// C: int _chmod (const char *, int);
+/// C: int _wchmod (const wchar_t *, int);
+/// C: int _creat (const char *, int);
+/// C: int _wcreat (const wchar_t *, int);
+/// C: int _open (const char *, int, ...);
+/// C: int _wopen (const wchar_t *, int, ...);
+/// C: FILE *_fdopen (int, const char *);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _chdir (path: *const c_char) -> c_int;
+  pub fn _wchdir (path: *const c_ushort) -> c_int;
+  pub fn _chmod (path: *const c_char, mode: c_int) -> c_int;
+  pub fn _wchmod (path: *const c_ushort, mode: c_int) -> c_int;
+  pub fn _creat (path: *const c_char, mode: c_int) -> c_int;
+  pub fn _wcreat (path: *const c_ushort, mode: c_int) -> c_int;
+  pub fn _open (path: *const c_char, oflag: c_int, ...) -> c_int;
+  pub fn _wopen (path: *const c_ushort, oflag: c_int, ...) -> c_int;
+  pub fn _fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
+}
+#[cfg (feature = "windowsnt")]
+#[cfg (feature = "windowsnt")]
+#[cfg (feature = "windowsnt")]
+/// C: #define _O_NOINHERIT 0x0080
+pub const _O_NOINHERIT: c_int = 0x0080;
+/* C 4403-4422: `sys_chdir`.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_chdir (path: *const c_char) -> c_int       // C 4403
+{
+  path = map_w32_filename (path, std::ptr::null_mut ());                // C 4405
+  if w32_unicode_filenames                                              // C 4406
+    {
+      let mut newdir_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4408
+
+      if filename_to_utf16 (path, newdir_w.as_mut_ptr ()) == 0          // C 4410
+	{ return _wchdir (newdir_w.as_ptr ()); }                               // C 4411
+      return -1;                                                        // C 4412
+    }
+  else                                                                  // C 4414
+    {
+      let mut newdir_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4416
+
+      if filename_to_ansi (path, newdir_a.as_mut_ptr ()) == 0           // C 4418
+	{ return _chdir (newdir_a.as_ptr ()); }                                // C 4419
+      return -1;                                                        // C 4420
+    }
+}
+/* C 4424-4441: `static int` and `chmod_worker`.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn chmod_worker (path: *const c_char, mode: c_int) -> c_int      // C 4424
+{
+  if w32_unicode_filenames                                              // C 4427
+    {
+      let mut path_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4429
+
+      filename_to_utf16 (path, path_w.as_mut_ptr ());                   // C 4431
+      return _wchmod (path_w.as_ptr (), mode);                          // C 4432
+    }
+  else                                                                  // C 4434
+    {
+      let mut path_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4436
+
+      filename_to_ansi (path, path_a.as_mut_ptr ());                    // C 4438
+      return _chmod (path_a.as_ptr (), mode);                           // C 4439
+    }
+}
+/* C 4443-4448: `sys_chmod`.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_chmod (path: *const c_char, mode: c_int) -> c_int // C 4443
+{
+  path = chase_symlinks (map_w32_filename (path, std::ptr::null_mut ())); // C 4446
+  return chmod_worker (path, mode);                                     // C 4447
+}
+/* C 4450-4455: `lchmod`.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lchmod (path: *const c_char, mode: mode_t) -> c_int // C 4450
+{
+  path = map_w32_filename (path, std::ptr::null_mut ());                // C 4453
+  return chmod_worker (path, mode as c_int);                            // C 4454 (C's `mode_t`-into-`int`)
+}
+/* C 4457-4475: `sys_creat`.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_creat (path: *const c_char, mode: c_int) -> c_int // C 4457
+{
+  path = map_w32_filename (path, std::ptr::null_mut ());                // C 4460
+  if w32_unicode_filenames                                              // C 4461
+    {
+      let mut path_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4463
+
+      filename_to_utf16 (path, path_w.as_mut_ptr ());                   // C 4465
+      return _wcreat (path_w.as_ptr (), mode);                          // C 4466
+    }
+  else                                                                  // C 4468
+    {
+      let mut path_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4470
+
+      filename_to_ansi (path, path_a.as_mut_ptr ());                    // C 4472
+      return _creat (path_a.as_ptr (), mode);                           // C 4473
+    }
+}
+/* C 4477-4533: `sys_fopen`.  C 4496's `while (*++mode)` steps and tests in one operator, so the
+   port writes the step and the test as the loop's first two statements (the `image.rs` 11103
+   device); the `mode` parameter is mutated, hence `mut mode`.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_fopen (path: *const c_char, mut mode: *const c_char) -> *mut FILE // C 4477
+{
+  let mut fd: c_int;                                                    // C 4480
+  let mut oflag: c_int;                                                 // C 4481
+  let mode_save: *const c_char = mode;                                  // C 4482
+
+  /* C leaves `fd` and `oflag` uninitialised (PORTING.md 1.5).  */
+  fd = 0;
+  oflag = 0;
+
+  /* Force all file handles to be non-inheritable.  This is necessary to // C 4484
+     ensure child processes don't unwittingly inherit handles that might // C 4485
+     prevent future file access. */                                     // C 4486
+
+  if *mode == b'r' as c_char                                            // C 4488
+    { oflag = O_RDONLY; }                                               // C 4489
+  else if *mode == b'w' as c_char || *mode == b'a' as c_char            // C 4490
+    { oflag = O_WRONLY | O_CREAT | O_TRUNC; }                           // C 4491
+  else
+    { return std::ptr::null_mut (); }                                   // C 4493
+
+  /* Only do simplistic option parsing. */                              // C 4495
+  loop
+    {
+      mode = mode.offset (1);                                           // C 4496 (C's `*++mode` step)
+      if *mode == 0                                                     // C 4496 (C's `*++mode` test)
+	{ break; }
+      if *mode == b'+' as c_char                                        // C 4497
+	{
+	  oflag &= ! (O_RDONLY | O_WRONLY);                                    // C 4499
+	  oflag |= O_RDWR;                                                     // C 4500
+	}
+      else if *mode == b'b' as c_char                                   // C 4502
+	{
+	  oflag &= ! O_TEXT;                                                   // C 4504
+	  oflag |= O_BINARY;                                                   // C 4505
+	}
+      else if *mode == b't' as c_char                                   // C 4507
+	{
+	  oflag &= ! O_BINARY;                                                 // C 4509
+	  oflag |= O_TEXT;                                                     // C 4510
+	}
+      else { break; }                                                   // C 4512
+    }
+
+  path = map_w32_filename (path, std::ptr::null_mut ());                // C 4514
+  if w32_unicode_filenames                                              // C 4515
+    {
+      let mut path_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4517
+
+      filename_to_utf16 (path, path_w.as_mut_ptr ());                   // C 4519
+      fd = _wopen (path_w.as_mut_ptr (), oflag | _O_NOINHERIT, 0o644);  // C 4520
+    }
+  else                                                                  // C 4522
+    {
+      let mut path_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4524
+
+      filename_to_ansi (path, path_a.as_mut_ptr ());                    // C 4526
+      fd = _open (path_a.as_mut_ptr (), oflag | _O_NOINHERIT, 0o644);   // C 4527
+    }
+  if fd < 0                                                             // C 4529
+    { return std::ptr::null_mut (); }                                   // C 4530
+
+  return _fdopen (fd, mode_save);                                       // C 4532
+}
+
+/* C 4534-4536: C 4534's blank, C 4535's `/* This only works on NTFS volumes, but is useful to
+   have.  */` and C 4536's `int` (the next item is C 4537's `sys_link`, past this slice).  */
