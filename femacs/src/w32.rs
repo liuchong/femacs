@@ -13644,3 +13644,310 @@ pub unsafe extern "C" fn sys_read (fd: c_int, mut buffer: *mut c_char, count: c_
 unsafe extern "C" {
   pub static mut interrupt_handle: HANDLE;
 }
+
+
+/* C 9351's blank and C 9352-9573's `sys_write` - the lane's second 200-plus-line function: the
+  `fd < 0` guard, C 9364-9370's writable test, C 9372-9405's CRLF translation loop
+  (`SAFE_NALLOCA`, `_memccpy`, `next[-1]`), C 9408-9455's overlapped serial arm
+  (`WriteFile`/`ERROR_IO_PENDING`, `detect_input_pending`, `MsgWaitForMultipleObjects` vs
+  `WaitForMultipleObjects`, the `WAIT_OBJECT_0` switch with `PurgeComm`/`CancelIo`), C 9456-9506's
+  socket arm (`cp->errcode` shortcut, `FIONBIO`, `pfn_send`, `DebPrint`) and C 9507-9569's chunked
+  fallback (`GetNamedPipeInfo`, C 9534's ternary chunk, `_write`, the `ENOSPC`->`EAGAIN` arm).  The
+  names declared in-unit (P-88, `UNVERIFIED`, Owed 42) are `<winbase.h>`'s `WriteFile`,
+  `MsgWaitForMultipleObjects`, `WaitForMultipleObjects`, `PurgeComm`, `CancelIo`,
+  `GetNamedPipeInfo`, `QS_ALLINPUT`, `INFINITE`, `PURGE_TXABORT`/`PURGE_TXCLEAR`, the CRT's
+  `_write`/`_memccpy` and `keyboard.h`'s `detect_input_pending`; `USE_SAFE_ALLOCA`/`SAFE_NALLOCA`/
+  `SAFE_FREE`/`min` are the `include/lisp.rs` macros and function, `interrupt_handle` slice 41's
+  extern and the rest slices 20/25/33/38's.  */
+/// C: WINBASEAPI BOOL WINAPI WriteFile (HANDLE, LPCVOID, DWORD, LPDWORD, LPOVERLAPPED);
+/// C: DWORD WINAPI MsgWaitForMultipleObjects (DWORD, const HANDLE *, BOOL, DWORD, DWORD);
+/// C: DWORD WINAPI WaitForMultipleObjects (DWORD, const HANDLE *, BOOL, DWORD);
+/// C: BOOL WINAPI PurgeComm (HANDLE, DWORD);   BOOL WINAPI CancelIo (HANDLE);
+/// C: BOOL WINAPI GetNamedPipeInfo (HANDLE, LPDWORD, LPDWORD, LPDWORD, LPDWORD);
+#[cfg (feature = "windowsnt")]
+pub const INFINITE: DWORD = 0xFFFF_FFFF;
+#[cfg (feature = "windowsnt")]
+pub const QS_ALLINPUT: DWORD = 0x04FF;
+#[cfg (feature = "windowsnt")]
+pub const PURGE_TXABORT: DWORD = 0x0001;
+#[cfg (feature = "windowsnt")]
+pub const PURGE_TXCLEAR: DWORD = 0x0004;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn WriteFile (hFile: HANDLE, lpBuffer: *const c_void, nNumberOfBytesToWrite: DWORD,
+                    lpNumberOfBytesWritten: *mut DWORD, lpOverlapped: *mut OVERLAPPED) -> BOOL;
+  pub fn MsgWaitForMultipleObjects (nCount: DWORD, pHandles: *const HANDLE,
+                                    bWaitAll: BOOL, dwMilliseconds: DWORD,
+                                    dwWakeMask: DWORD) -> DWORD;
+  pub fn WaitForMultipleObjects (nCount: DWORD, pHandles: *const HANDLE,
+                                 bWaitAll: BOOL, dwMilliseconds: DWORD) -> DWORD;
+  pub fn PurgeComm (hFile: HANDLE, dwFlags: DWORD) -> BOOL;
+  pub fn CancelIo (hFile: HANDLE) -> BOOL;
+  pub fn GetNamedPipeInfo (hNamedPipe: HANDLE, lpFlags: *mut DWORD, lpOutBufferSize: *mut DWORD,
+                           lpInBufferSize: *mut DWORD, lpMaxInstances: *mut DWORD) -> BOOL;
+}
+/// C: int _write (int fd, const void *buf, unsigned int count);  (`<io.h>`)
+/// C: void *_memccpy (void *, const void *, int c, size_t count);  (`<string.h>`; the
+/// C: `string.in.rs` 108 note's `memccpy` rename)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _write (fd: c_int, buf: *const c_void, count: c_uint) -> c_int;
+  pub fn _memccpy (dest: *mut c_void, src: *const c_void, c: c_int, n: usize) -> *mut c_void;
+}
+/// C: extern bool detect_input_pending (void);  [keyboard.h 86]
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn detect_input_pending () -> bool;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_write (fd: c_int, mut buffer: *const c_void, mut count: c_uint) -> c_int // C 9352
+{                                                                       // C 9354
+  let mut nchars: c_int;                                                // C 9355
+  let mut sa_avail: ptrdiff_t = 0;                                      // C 9356 (C's `USE_SAFE_ALLOCA;`)
+  let mut sa_count: ptrdiff_t = 0;
+
+  /* C leaves `nchars` uninitialised (PORTING.md 1.5).  */
+  nchars = 0;
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 9356 (the mirror's macro)
+
+  if fd < 0                                                             // C 9358
+    {                                                                   // C 9359
+      *errno () = EBADF;                                                // C 9360
+      return -1;                                                        // C 9361
+    }                                                                   // C 9362
+
+  if fd < MAXDESC                                                       // C 9364
+      && (fd_info[fd as usize].flags & (FILE_PIPE | FILE_SOCKET | FILE_SERIAL) as c_uint) != 0
+    {                                                                   // C 9365
+      if (fd_info[fd as usize].flags & FILE_WRITE as c_uint) == 0       // C 9366
+	{                                                                      // C 9367
+	  *errno () = EBADF;                                                   // C 9368
+	  return -1;                                                           // C 9369
+	}                                                                      // C 9370
+
+      /* Perform text mode translation if required.  */                 // C 9372
+      if (fd_info[fd as usize].flags & FILE_BINARY as c_uint) == 0      // C 9373
+	{                                                                      // C 9374
+	  let mut tmpbuf: *mut c_char;                                         // C 9375
+	  let src: *const c_uchar = buffer as *const c_uchar;                  // C 9376 (C's `const unsigned char * src = buffer;`)
+	  let mut dst: *mut c_uchar;                                           // C 9377
+	  let mut nbytes: c_int = count as c_int;                              // C 9378 (C's `int nbytes = count;`)
+
+	  /* C leaves `tmpbuf` and `dst` uninitialised (PORTING.md 1.5).  */
+	  tmpbuf = std::ptr::null_mut ();
+	  dst = std::ptr::null_mut ();
+
+	  SAFE_NALLOCA! (sa_avail, tmpbuf, 2, count);                          // C 9380 (the mirror's macro)
+	  dst = tmpbuf as *mut c_uchar;                                        // C 9381 (C's `(unsigned char *)` cast)
+
+	  loop                                                                 // C 9383 (C's `while (1)`)
+	    {                                                                  // C 9384
+	      let mut next: *mut c_uchar;                                      // C 9385
+
+	      /* C leaves `next` uninitialised (PORTING.md 1.5).  */
+	      next = std::ptr::null_mut ();
+	      /* Copy next line or remaining bytes.  */                        // C 9386
+	      next = _memccpy (dst as *mut c_void, src as *const c_void, b'\n' as c_int, // C 9387
+			       nbytes as usize) as *mut c_uchar;
+	      if ! next.is_null ()                                             // C 9388 (C's truth test)
+		{                                                                     // C 9389
+		  /* Copied one line ending with '\n'.  */                            // C 9390
+		  let copied: c_int = (next as isize - dst as isize) as c_int;        // C 9391 (C's pointer difference)
+		  nbytes -= copied;                                                   // C 9392
+		  src = src.offset (copied as isize);                                 // C 9393 (C's `src += copied;`)
+		  /* Insert '\r' before '\n'.  */                                     // C 9394
+		  *next.offset (-1) = b'\r' as c_uchar;                               // C 9395 (C's `next[-1] = '\r';`)
+		  *next.offset (0) = b'\n' as c_uchar;                                // C 9396
+		  dst = next.offset (1);                                              // C 9397 (C's `dst = next + 1;`)
+		  count += 1;                                                         // C 9398 (C's `count++`)
+		}                                                                     // C 9399
+	      else                                                             // C 9400
+		/* Copied remaining partial line -> now finished.  */                 // C 9401
+		{ break; }                                                            // C 9402
+	    }                                                                  // C 9403
+	  buffer = tmpbuf as *const c_void;                                    // C 9404 (C's `buffer = tmpbuf;`)
+	}                                                                      // C 9405
+    }                                                                   // C 9406
+
+  if fd < MAXDESC                                                       // C 9408
+      && (fd_info[fd as usize].flags & FILE_SERIAL as c_uint) != 0
+    {                                                                   // C 9409
+      let hnd: HANDLE = _get_osfhandle (fd) as HANDLE;                  // C 9410 (C's `(HANDLE)` cast)
+      let ovl: *mut OVERLAPPED                                          // C 9411
+	= &raw mut (*(fd_info[fd as usize].cp as *mut child_process)).ovl_write;
+      let mut wait_hnd: [HANDLE; 2] = [interrupt_handle, (*ovl).hEvent]; // C 9412 (slice 41's extern object)
+      let mut active: DWORD = 0;                                        // C 9413
+
+      /* This is async (a.k.a. "overlapped") I/O, so the return value   // C 9415
+	 of FALSE from WriteFile means either an error or the output           // C 9416
+	 will be completed asynchronously (ERROR_IO_PENDING).  */              // C 9417
+      if WriteFile (hnd, buffer, count, (&raw mut nchars) as *mut DWORD, ovl) == 0 // C 9418 (C's truth test and `(DWORD*) &nchars` cast)
+	{                                                                      // C 9419
+	  if GetLastError () != ERROR_IO_PENDING                               // C 9420
+	    {                                                                  // C 9421
+	      *errno () = EIO;                                                 // C 9422
+	      nchars = -1;                                                     // C 9423
+	    }                                                                  // C 9424
+	  else                                                                 // C 9425
+	    {                                                                  // C 9426
+	      /* Wait for the write to complete, and watch C-g while           // C 9427
+		 at that.  */                                                         // C 9428
+	      if detect_input_pending ()                                       // C 9429
+		{                                                                     // C 9429
+		  active = MsgWaitForMultipleObjects (2, wait_hnd.as_mut_ptr () as *const HANDLE, // C 9430
+						      FALSE, INFINITE, QS_ALLINPUT);
+		}
+	      else                                                             // C 9432
+		{                                                                     // C 9432
+		  active = WaitForMultipleObjects (2, wait_hnd.as_mut_ptr () as *const HANDLE, // C 9433
+						   FALSE, INFINITE);
+		}
+	      match active                                                     // C 9434
+		{                                                                     // C 9435
+		  WAIT_OBJECT_0 =>                                                    // C 9436
+		    {                                                                 // C 9437
+		      /* User pressed C-g, cancel write, then leave.                  // C 9437
+			 Don't bother cleaning up as we may only get stuck                   // C 9438
+			 in buggy drivers.  */                                               // C 9439
+		      PurgeComm (hnd, (PURGE_TXABORT | PURGE_TXCLEAR) as DWORD);      // C 9440
+		      CancelIo (hnd);                                                 // C 9441
+		      *errno () = EIO;                                                // C 9442 (C's `/* Why not EINTR? */`)
+		      nchars = -1;                                                    // C 9443
+		    }                                                                 // C 9444 (C's `break;`)
+		  v if v == WAIT_OBJECT_0 + 1 =>                                                // C 9445
+		    {                                                                 // C 9445
+		      if GetOverlappedResult (hnd, ovl, (&raw mut nchars) as *mut DWORD, TRUE) == 0 // C 9446
+			{                                                                    // C 9447
+			  *errno () = EIO;                                                   // C 9448
+			  nchars = -1;                                                       // C 9449
+			}                                                                    // C 9450
+		    }                                                                 // C 9451 (C's `break;`)
+		  _ => {}
+		}                                                                     // C 9452
+	    }                                                                  // C 9453
+	}                                                                      // C 9454
+    }                                                                   // C 9455
+  else if fd < MAXDESC && (fd_info[fd as usize].flags & FILE_SOCKET as c_uint) != 0 // C 9456
+    {                                                                   // C 9457
+      let mut nblock: c_ulong = 0;                                      // C 9458 (C's `unsigned long`)
+      if winsock_lib.is_null () { emacs_abort (); }                     // C 9459 (C's one-line `if`)
+
+      let cp: *mut child_process = fd_info[fd as usize].cp as *mut child_process; // C 9461
+
+      /* If this is a non-blocking socket whose connection is in        // C 9463
+	 progress or terminated with an error already, return the              // C 9464
+	 proper error code to the caller. */                                   // C 9465
+      if ! cp.is_null () && (fd_info[fd as usize].flags & FILE_CONNECT as c_uint) != 0 // C 9466
+	{                                                                      // C 9467
+	  /* In case connection is in progress, ENOTCONN that would            // C 9468
+	     result from calling pfn_send is not what callers expect. */       // C 9469
+	  if (*cp).status != STATUS_CONNECT_FAILED                             // C 9470
+	    {                                                                  // C 9471
+	      *errno () = EWOULDBLOCK;                                         // C 9472
+	      return -1;                                                       // C 9473
+	    }                                                                  // C 9474
+	  /* In case connection failed, use the actual error code              // C 9475
+	     stashed by '_sys_wait_connect' in cp->errcode. */                 // C 9476
+	  else if (*cp).errcode != 0                                           // C 9477
+	    {                                                                  // C 9478
+	      pfn_WSASetLastError.unwrap () ((*cp).errcode);                   // C 9479 (C's call-through)
+	      set_errno ();                                                    // C 9480
+	      return -1;                                                       // C 9481
+	    }                                                                  // C 9482
+	}                                                                      // C 9483
+
+      /* TODO: implement select() properly so non-blocking I/O works. */ // C 9485
+      /* For now, make sure the write blocks.  */                       // C 9486
+      if (fd_info[fd as usize].flags & FILE_NDELAY as c_uint) != 0      // C 9487
+	{ pfn_ioctlsocket.unwrap () (SOCK_HANDLE! (fd), FIONBIO, &mut nblock); } // C 9488
+
+      nchars = pfn_send.unwrap () (SOCK_HANDLE! (fd), buffer as *const c_char, count as c_int, 0); // C 9490 (C's call-through)
+
+      if nchars == SOCKET_ERROR                                         // C 9492
+	{                                                                      // C 9493
+	  set_errno ();                                                        // C 9494
+	  DebPrint! (("sys_write.send failed with error %d on socket %ld\n",   // C 9495
+		      pfn_WSAGetLastError.unwrap () (), SOCK_HANDLE! (fd)));          // C 9496 (C's call-through)
+	}                                                                      // C 9497
+
+      /* Set the socket back to non-blocking if it was before,          // C 9499
+	 for other operations that support it.  */                             // C 9500
+      if (fd_info[fd as usize].flags & FILE_NDELAY as c_uint) != 0      // C 9501
+	{                                                                      // C 9502
+	  nblock = 1;                                                          // C 9503
+	  pfn_ioctlsocket.unwrap () (SOCK_HANDLE! (fd), FIONBIO, &mut nblock); // C 9504
+	}                                                                      // C 9505
+    }                                                                   // C 9506
+  else                                                                  // C 9507
+    {                                                                   // C 9508
+      /* Some networked filesystems don't like too large writes, so     // C 9509
+	 break them into smaller chunks.  See the Comments section of          // C 9510
+	 the MSDN documentation of WriteFile for details behind the            // C 9511
+	 choice of the value of CHUNK below.  See also the thread              // C 9512
+	 http://thread.gmane.org/gmane.comp.version-control.git/145294 [dead link] // C 9513
+	 in the git mailing list.  */                                          // C 9514
+      let p: *const c_uchar = buffer as *const c_uchar;                 // C 9515 (C's `const unsigned char *p = buffer;`)
+      let is_pipe: bool = fd < MAXDESC                                  // C 9516 (C's `const bool is_pipe = …`)
+	&& ((fd_info[fd as usize].flags & (FILE_PIPE | FILE_NDELAY) as c_uint) // C 9517
+	    == (FILE_PIPE | FILE_NDELAY) as c_uint);                           // C 9518
+      /* Some programs, notably Node.js's node.exe, seem to never       // C 9519
+	 completely empty the pipe, so writing more than the size of           // C 9520
+	 the pipe's buffer always returns ENOSPC, and we loop forever          // C 9521
+	 between send_process and here.  As a workaround, write no             // C 9522
+	 more than the pipe's buffer can hold.  */                             // C 9523
+      let mut pipe_buffer_size: DWORD;                                  // C 9524
+
+      /* C leaves `pipe_buffer_size` uninitialised (PORTING.md 1.5).  */
+      pipe_buffer_size = 0;
+      if is_pipe                                                        // C 9525
+	{                                                                      // C 9526
+	  if GetNamedPipeInfo (_get_osfhandle (fd) as HANDLE, std::ptr::null_mut (), // C 9527 (C's `(HANDLE)` cast and three `NULL`s)
+			      &raw mut pipe_buffer_size, std::ptr::null_mut (),              // C 9528
+			      std::ptr::null_mut ()) == 0
+	    {                                                                  // C 9529
+	      DebPrint! (("GetNamedPipeInfo: error %u\n", GetLastError ()));   // C 9530
+	      pipe_buffer_size = 4096;                                         // C 9531
+	    }                                                                  // C 9532
+	}                                                                      // C 9533
+      let chunk: c_uint = if is_pipe { pipe_buffer_size } else { 30 * 1024 * 1024 }; // C 9534 (C's ternaries)
+
+      nchars = 0;                                                       // C 9536
+      *errno () = 0;                                                    // C 9537
+      while count > 0                                                   // C 9538
+	{                                                                      // C 9539
+	  let this_chunk: c_uint = min (count, chunk);                         // C 9540 (the mirror's `min`)
+	  let n: c_int = _write (fd, p as *const c_void, this_chunk);          // C 9541
+
+	  if n > 0                                                             // C 9543
+	    { nchars += n; }                                                   // C 9544
+	  if n < 0                                                             // C 9545
+	    {                                                                  // C 9546
+	      /* When there's no buffer space in a pipe that is in the         // C 9547
+		 non-blocking mode, _write returns ENOSPC.  We return                 // C 9548
+		 EAGAIN instead, which should trigger the logic in                    // C 9549
+		 send_process that enters waiting loop and calls                      // C 9550
+		 wait_reading_process_output to allow process input to                // C 9551
+		 be accepted during the wait.  Those calls to                         // C 9552
+		 wait_reading_process_output allow sys_select to                      // C 9553
+		 notice when process input becomes available, thus                    // C 9554
+		 avoiding deadlock whereby each side of the pipe is                   // C 9555
+		 blocked on write, waiting for the other party to read                // C 9556
+		 its end of the pipe.  */                                             // C 9557
+	      if *errno () == ENOSPC && is_pipe                                // C 9558
+		{ *errno () = EAGAIN; }                                               // C 9559
+	      if nchars == 0                                                   // C 9560
+		{ nchars = -1; }                                                      // C 9561
+	      break;                                                           // C 9562
+	    }                                                                  // C 9563
+	  else if n < this_chunk as c_int                                      // C 9564
+	    { break; }                                                         // C 9565
+	  count -= n as c_uint;                                                // C 9566 (C's `count -= n;`)
+	  p = p.offset (n as isize);                                           // C 9567 (C's `p += n;`)
+	}                                                                      // C 9568
+    }                                                                   // C 9569
+
+  SAFE_FREE! (sa_count);                                                // C 9571 (the mirror's macro)
+  return nchars;                                                        // C 9572
+}                                                                       // C 9573
