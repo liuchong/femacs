@@ -7884,3 +7884,526 @@ pub static mut w32_stat_get_owner_group: c_int = 0;   // C 5360 (tentative, i.e.
    `alloca`**, whose port device is `sa_stack_alloc` (P-05, landed in `alloc.rs` on 2026-10-04;
    the `haikuterm.rs` 4947 / `editfns.rs` 2477 shape), and its C 5396/5402 use `strpbrk`/`strlen`
    (both reachable).  */
+
+/* C 5362-5368: C 5362-5365's four-line comment (carried verbatim below), C 5366's blank,
+   C 5367's `static int` and C 5368's signature.  The records and calls this slice first names
+   (`BY_HANDLE_FILE_INFORMATION`, `GetFileInformationByHandle`, `GetFileType` and its four type
+   values, `LocalFree`, `ERROR_INVALID_FUNCTION`, `FILE_FLAG_OPEN_REPARSE_POINT`, `READ_CONTROL`,
+   `S_IREAD`, `S_IWRITE`, `S_IEXEC`) are declared here (P-88, `UNVERIFIED`); C 5405's **bare
+   `alloca`** is P-05's landed device, `sa_stack_alloc` (the `haikuterm.rs` 4947 / `editfns.rs`
+   2477 shape).  **Control flow**: C 5467's `goto no_true_file_attributes` jumps into the `else`
+   arm's first statement and C 5575's fall-through leaves the if/else for the C 5735 tail, so
+   both arms sit in the labelled block `'plan_b`: C 5466's test is written inverted, and
+   `break 'plan_b` at C 5575 stands in for the fall-through (`## Deviations`).  */
+/* MSVC stat function can't cope with UNC names and has other bugs, so  // C 5362
+   replace it with our own.  This also allows us to calculate consistent // C 5363
+   inode values and owner/group without hacks in the main Emacs code,   // C 5364
+   and support file names encoded in UTF-8. */                          // C 5365
+
+/// C: typedef struct _BY_HANDLE_FILE_INFORMATION { DWORD dwFileAttributes;
+/// C:   FILETIME ftCreationTime; FILETIME ftLastAccessTime; FILETIME ftLastWriteTime;
+/// C:   DWORD dwVolumeSerialNumber; DWORD nFileSizeHigh; DWORD nFileSizeLow;
+/// C:   DWORD nNumberOfLinks; DWORD nFileIndexHigh; DWORD nFileIndexLow; } BY_HANDLE_FILE_INFORMATION;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct BY_HANDLE_FILE_INFORMATION
+{
+  pub dwFileAttributes: DWORD,
+  pub ftCreationTime: FILETIME,
+  pub ftLastAccessTime: FILETIME,
+  pub ftLastWriteTime: FILETIME,
+  pub dwVolumeSerialNumber: DWORD,
+  pub nFileSizeHigh: DWORD,
+  pub nFileSizeLow: DWORD,
+  pub nNumberOfLinks: DWORD,
+  pub nFileIndexHigh: DWORD,
+  pub nFileIndexLow: DWORD,
+}
+/// C: WINBASEAPI BOOL WINAPI GetFileInformationByHandle (HANDLE hFile,
+/// C:   LPBY_HANDLE_FILE_INFORMATION lpFileInformation);
+/// C: WINBASEAPI DWORD WINAPI GetFileType (HANDLE hFile);
+/// C: HLOCAL WINAPI LocalFree (HLOCAL hMem);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn GetFileInformationByHandle (hFile: HANDLE,
+				     lpFileInformation: *mut BY_HANDLE_FILE_INFORMATION) -> BOOL;
+  pub fn GetFileType (hFile: HANDLE) -> DWORD;
+  pub fn LocalFree (hMem: *mut c_void) -> *mut c_void;
+}
+/// C: #define FILE_TYPE_UNKNOWN 0x0000
+#[cfg (feature = "windowsnt")]
+pub const FILE_TYPE_UNKNOWN: DWORD = 0x0000;
+/// C: #define FILE_TYPE_DISK 0x0001
+#[cfg (feature = "windowsnt")]
+pub const FILE_TYPE_DISK: DWORD = 0x0001;
+/// C: #define FILE_TYPE_CHAR 0x0002
+#[cfg (feature = "windowsnt")]
+pub const FILE_TYPE_CHAR: DWORD = 0x0002;
+/// C: #define FILE_TYPE_PIPE 0x0003
+#[cfg (feature = "windowsnt")]
+pub const FILE_TYPE_PIPE: DWORD = 0x0003;
+/// C: #define ERROR_INVALID_FUNCTION 1L (`<winerror.h>`; C 5496's comment is where the C text
+/// names it)
+#[cfg (feature = "windowsnt")]
+pub const ERROR_INVALID_FUNCTION: DWORD = 1;
+/// C: #define FILE_FLAG_OPEN_REPARSE_POINT 0x00200000 (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const FILE_FLAG_OPEN_REPARSE_POINT: DWORD = 0x00200000;
+/// C: #define READ_CONTROL 0x00020000 (`<winnt.h>`, a standard access right)
+#[cfg (feature = "windowsnt")]
+pub const READ_CONTROL: DWORD = 0x00020000;
+/// C: #define S_IREAD 0x0100 (`<sys/stat.h>`; `nt/inc/sys/include/stat.rs` 44 mirrors it, and
+/// C:   C 5762/5766/5768 name the three)
+#[cfg (feature = "windowsnt")]
+pub const S_IREAD: c_int = 0x0100;
+/// C: #define S_IWRITE 0x0080
+#[cfg (feature = "windowsnt")]
+pub const S_IWRITE: c_int = 0x0080;
+/// C: #define S_IEXEC 0x0040
+#[cfg (feature = "windowsnt")]
+pub const S_IEXEC: c_int = 0x0040;
+
+#[cfg (feature = "windowsnt")]
+unsafe fn stat_worker (mut path: *const c_char, buf: *mut stat, follow_symlinks: c_int) -> c_int // C 5367
+{
+  let mut name: *mut c_char;                                            // C 5370
+  let mut save_name: *mut c_char;
+  let mut r: *mut c_char;
+  let mut wfd_w: WIN32_FIND_DATAW;                                      // C 5371
+  let mut wfd_a: WIN32_FIND_DATAA;                                      // C 5372
+  let mut fh: HANDLE;                                                   // C 5373
+  let mut fake_inode: c_ulonglong = 0;                                  // C 5374 (C's `unsigned __int64`)
+  let mut permission: c_int;                                            // C 5375
+  let mut len: c_int;                                                   // C 5376
+  let mut rootdir: c_int = FALSE;                                       // C 5377
+  let mut psd: PSECURITY_DESCRIPTOR = std::ptr::null_mut ();            // C 5378
+  let mut is_a_symlink: c_int = 0;                                      // C 5379
+  let mut file_flags: DWORD = FILE_FLAG_BACKUP_SEMANTICS;               // C 5380
+  let mut access_rights: DWORD = 0;                                     // C 5381
+  let mut fattrs: DWORD = 0;                                            // C 5382
+  let mut serialnum: DWORD = 0;
+  let mut fs_high: DWORD = 0;
+  let mut fs_low: DWORD = 0;
+  let mut nlinks: DWORD = 1;
+  let mut ctime: FILETIME;                                              // C 5383
+  let mut atime: FILETIME;
+  let mut wtime: FILETIME;
+  let mut name_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 5384
+  let mut name_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 5385
+
+  /* C 5370-5376 and C 5383 leave `name`, `save_name`, `r`, `wfd_w`, `wfd_a`, `fh`, `permission`,
+     `len`, `ctime`, `atime` and `wtime` uninitialised (PORTING.md 1.5).  */
+  name = std::ptr::null_mut ();
+  save_name = std::ptr::null_mut ();
+  r = std::ptr::null_mut ();
+  wfd_w = std::mem::zeroed ();
+  wfd_a = std::mem::zeroed ();
+  fh = std::ptr::null_mut ();
+  permission = 0;
+  len = 0;
+  ctime = std::mem::zeroed ();
+  atime = std::mem::zeroed ();
+  wtime = std::mem::zeroed ();
+
+  if path.is_null () || buf.is_null ()                                  // C 5387
+    {
+      *errno () = EFAULT;                                               // C 5389
+      return -1;                                                        // C 5390
+    }
+
+  save_name = map_w32_filename (path, (&raw mut path));                 // C 5393 (C's `(char *)` cast and `&path`)
+  name = save_name;
+  /* Must be valid filename, no wild cards or other invalid             // C 5394
+     characters.  */                                                    // C 5395
+  if ! strpbrk (name, c"*?|<>\"").is_null ()                            // C 5396
+    {
+      *errno () = ENOENT;                                               // C 5398
+      return -1;                                                        // C 5399
+    }
+
+  len = strlen (name) as c_int;                                         // C 5402
+  /* Allocate 1 extra byte so that we could append a slash to a root    // C 5403
+     directory, down below.  */                                         // C 5404
+  name = strcpy (sa_stack_alloc ((len + 2) as usize) as *mut c_char, name); // C 5405 (C's bare `alloca`; P-05's device, `sa_stack_alloc`)
+
+  /* Avoid a somewhat costly call to is_symlink if the filesystem       // C 5407
+     doesn't support symlinks.  */                                      // C 5408
+  if (volume_info.flags & FILE_SUPPORTS_REPARSE_POINTS) != 0            // C 5409
+    { is_a_symlink = is_symlink (name); }                               // C 5410
+
+  /* Plan A: Open the file and get all the necessary information via    // C 5412
+     the resulting handle.  This solves several issues in one blow:     // C 5413
+                                                                        // C 5414
+      . retrieves attributes for the target of a symlink, if needed     // C 5415
+      . gets attributes of root directories and symlinks pointing to    // C 5416
+        root directories, thus avoiding the need for special-casing     // C 5417
+        these and detecting them by examining the file-name format      // C 5418
+      . retrieves more accurate attributes (e.g., non-zero size for     // C 5419
+        some directories, esp. directories that are junction points)    // C 5420
+      . correctly resolves "c:/..", "/.." and similar file names        // C 5421
+      . avoids run-time penalties for 99% of use cases                  // C 5422
+                                                                        // C 5423
+     Plan A is always tried first, unless the user asked not to (but    // C 5424
+     if the file is a symlink and we need to follow links, we try Plan  // C 5425
+     A even if the user asked not to).                                  // C 5426
+                                                                        // C 5427
+     If Plan A fails, we go to Plan B (below), where various            // C 5428
+     potentially expensive techniques must be used to handle "special"  // C 5429
+     files such as UNC volumes etc.  */                                 // C 5430
+  /* C 5467's `goto no_true_file_attributes` and C 5575's fall-through: the port writes both arms
+     in the labelled block `'plan_b` (the `androidselect.rs` 414 `'fail` / PORTING.md 2.2 device).  */
+  'plan_b: {                                                            // C 5431-5577 (the device)
+  if (! (NILP (Vw32_get_true_file_attributes)                           // C 5431
+	 || (EQ (Vw32_get_true_file_attributes, Qlocal ()) && is_slow_fs (name) != 0)) // C 5432
+	 /* Following symlinks requires getting the info by handle.  */        // C 5433
+	 || (is_a_symlink != 0 && follow_symlinks != 0))                       // C 5434
+    {
+      let mut info: BY_HANDLE_FILE_INFORMATION;                         // C 5436
+
+      /* C leaves it uninitialised (PORTING.md 1.5).  */
+      info = std::mem::zeroed ();
+
+      if is_a_symlink != 0 && follow_symlinks == 0                      // C 5438
+	{ file_flags |= FILE_FLAG_OPEN_REPARSE_POINT; }                        // C 5439
+      /* READ_CONTROL access rights are required to get security info   // C 5440
+	 by handle.  But if the OS doesn't support security in the             // C 5441
+	 first place, we don't need to try.  */                                // C 5442
+      if is_windows_9x () != TRUE                                       // C 5443 (C's `TRUE`)
+	{ access_rights |= READ_CONTROL; }                                     // C 5444
+
+      if w32_unicode_filenames                                          // C 5446
+	{
+	  filename_to_utf16 (name, name_w.as_mut_ptr ());                      // C 5448
+	  fh = CreateFileW (name_w.as_ptr (), access_rights, 0, std::ptr::null_mut (), // C 5449
+			   OPEN_EXISTING, file_flags, std::ptr::null_mut ());                // C 5450
+	  /* If CreateFile fails with READ_CONTROL, try again with             // C 5451
+	     zero as access rights.  */                                        // C 5452
+	  if fh == INVALID_HANDLE_VALUE && access_rights != 0                  // C 5453
+	    { fh = CreateFileW (name_w.as_ptr (), 0, 0, std::ptr::null_mut (), OPEN_EXISTING, // C 5454
+			       file_flags, std::ptr::null_mut ()); }                         // C 5455
+	}
+      else                                                              // C 5457
+	{
+	  filename_to_ansi (name, name_a.as_mut_ptr ());                       // C 5459
+	  fh = CreateFileA (name_a.as_ptr (), access_rights, 0, std::ptr::null_mut (), // C 5460
+			   OPEN_EXISTING, file_flags, std::ptr::null_mut ());                // C 5461
+	  if fh == INVALID_HANDLE_VALUE && access_rights != 0                  // C 5462
+	    { fh = CreateFileA (name_a.as_ptr (), 0, 0, std::ptr::null_mut (), OPEN_EXISTING, // C 5463
+			       file_flags, std::ptr::null_mut ()); }                         // C 5464
+	}
+      if fh != INVALID_HANDLE_VALUE                                     // C 5466-5467 (C's test inverted; the `goto` is the fall into Plan B)
+	{
+      /* This is more accurate in terms of getting the correct number   // C 5469
+	 of links, but is quite slow (it is noticeable when Emacs is           // C 5470
+	 making a list of file name completions). */                           // C 5471
+	  if GetFileInformationByHandle (fh, (&raw mut info)) != 0             // C 5472
+	    {
+	      nlinks = info.nNumberOfLinks;                                    // C 5474
+	  /* Might as well use file index to fake inode values, but this       // C 5475
+	     is not guaranteed to be unique unless we keep a handle open       // C 5476
+	     all the time (even then there are situations where it is          // C 5477
+	     not unique).  Reputedly, there are at most 48 bits of info        // C 5478
+	     (on NTFS, presumably less on FAT). */                             // C 5479
+	      fake_inode = info.nFileIndexHigh as c_ulonglong;                 // C 5480
+	      fake_inode <<= 32;                                               // C 5481
+	      fake_inode += info.nFileIndexLow as c_ulonglong;                 // C 5482
+	      serialnum = info.dwVolumeSerialNumber;                           // C 5483
+	      fs_high = info.nFileSizeHigh;                                    // C 5484
+	      fs_low  = info.nFileSizeLow;                                     // C 5485
+	      ctime = info.ftCreationTime;                                     // C 5486
+	      atime = info.ftLastAccessTime;                                   // C 5487
+	      wtime = info.ftLastWriteTime;                                    // C 5488
+	      fattrs = info.dwFileAttributes;                                  // C 5489
+	    }
+	  else                                                                 // C 5491
+	    {
+	  /* We don't go to Plan B here, because it's not clear that           // C 5493
+	     it's a good idea.  The only known use case where                  // C 5494
+	     CreateFile succeeds, but GetFileInformationByHandle fails         // C 5495
+	     (with ERROR_INVALID_FUNCTION) is for character devices            // C 5496
+	     such as NUL, PRN, etc.  For these, switching to Plan B is         // C 5497
+	     a net loss, because we lose the character device                  // C 5498
+	     attribute returned by GetFileType below (FindFirstFile            // C 5499
+	     doesn't set that bit in the attributes), and the other            // C 5500
+	     fields don't make sense for character devices anyway.             // C 5501
+	     Emacs doesn't really care for non-file entities in the            // C 5502
+	     context of l?stat, so neither do we.  */                          // C 5503
+	      /* w32err is assigned so one could put a breakpoint here and     // C 5505
+		 examine its value, when GetFileInformationByHandle                   // C 5506
+		 fails. */                                                            // C 5507
+	      let mut w32err: DWORD = GetLastError ();                         // C 5508
+
+	      match w32err                                                     // C 5510 (C's `switch`; ARMDEVICE: the unmatched cases fall out)
+		{
+		  ERROR_FILE_NOT_FOUND => /* can this ever happen? */                 // C 5512
+		    {
+		      *errno () = ENOENT;                                             // C 5513
+		      return -1;                                                      // C 5514
+		    }
+		  _ => {}
+		}
+	    }
+
+      /* Test for a symlink before testing for a directory, since       // C 5518
+	 symlinks to directories have the directory bit set, but we            // C 5519
+	 don't want them to appear as directories.  */                         // C 5520
+	  if is_a_symlink != 0 && follow_symlinks == 0                         // C 5521
+	    { (*buf).st_mode = S_IFLNK as c_ushort; }                          // C 5522
+	  else if (fattrs & FILE_ATTRIBUTE_DIRECTORY) != 0                     // C 5523
+	    { (*buf).st_mode = S_IFDIR as c_ushort; }                          // C 5524
+	  else                                                                 // C 5525
+	    {
+	      let mut ftype: DWORD = GetFileType (fh);                         // C 5527
+
+	      match ftype                                                      // C 5529 (C's `switch`; C 5533/5536 `break`s are arm ends)
+		{
+		  FILE_TYPE_DISK =>                                                   // C 5531
+		    { (*buf).st_mode = S_IFREG as c_ushort; }                         // C 5532
+		  FILE_TYPE_PIPE =>                                                   // C 5534
+		    { (*buf).st_mode = S_IFIFO as c_ushort; }                         // C 5535
+		  FILE_TYPE_CHAR                                                      // C 5537
+		  | FILE_TYPE_UNKNOWN                                                 // C 5538
+		  | _ => /* default: */                                               // C 5539
+		    { (*buf).st_mode = S_IFCHR as c_ushort; }                         // C 5540
+		}
+	    }
+      /* We produce the fallback owner and group data, based on the     // C 5543
+	 current user that runs Emacs, in the following cases:                 // C 5544
+                                                                        // C 5545
+	  . caller didn't request owner and group info                         // C 5546
+	  . this is Windows 9X                                                 // C 5547
+	  . getting security by handle failed, and we need to produce          // C 5548
+	    information for the target of a symlink (this is better            // C 5549
+	    than producing a potentially misleading info about the             // C 5550
+	    symlink itself)                                                    // C 5551
+                                                                        // C 5552
+	 If getting security by handle fails, and we don't need to             // C 5553
+	 resolve symlinks, we try getting security by name.  */                // C 5554
+	  if w32_stat_get_owner_group == 0 || is_windows_9x () == TRUE         // C 5555 (C's `TRUE`)
+	    { get_file_owner_and_group (std::ptr::null_mut (), buf); }         // C 5556
+	  else                                                                 // C 5557
+	    {
+	      psd = get_file_security_desc_by_handle (fh);                     // C 5559
+	      if ! psd.is_null ()                                              // C 5560
+		{
+		  get_file_owner_and_group (psd, buf);                                // C 5562
+		  LocalFree (psd);                                                    // C 5563
+		}
+	      else if ! (is_a_symlink != 0 && follow_symlinks != 0)            // C 5565
+		{
+		  psd = get_file_security_desc_by_name (name);                        // C 5567
+		  get_file_owner_and_group (psd, buf);                                // C 5568
+		  xfree (psd);                                                        // C 5569
+		}
+	      else                                                             // C 5571
+		{ get_file_owner_and_group (std::ptr::null_mut (), buf); }            // C 5572
+	    }
+	  CloseHandle (fh);                                                    // C 5574
+	}   /* the device's brace: C's `if (fh == INVALID_HANDLE_VALUE) goto` has none.  */
+	break 'plan_b;                                                         // C 5575 (C's fall-through out of the if/else, to the C 5735 tail)
+    }                                                                   // C 5575
+
+  /* no_true_file_attributes: Plan B.  */                               // C 5577-5578 (C's `else` and its label)
+      /* Plan B: Either getting a handle on the file failed, or the     // C 5579
+	 caller explicitly asked us to not bother making this                  // C 5580
+	 information more accurate.                                            // C 5581
+                                                                        // C 5582
+	 Implementation note: In Plan B, we never bother to resolve            // C 5583
+	 symlinks, even if we got here because we tried Plan A and             // C 5584
+	 failed.  That's because, even if the caller asked for extra           // C 5585
+	 precision by setting Vw32_get_true_file_attributes to t,              // C 5586
+	 resolving symlinks requires acquiring a file handle to the            // C 5587
+	 symlink, which we already know will fail.  And if the user            // C 5588
+	 did not ask for extra precision, resolving symlinks will fly          // C 5589
+	 in the face of that request, since the user then wants the            // C 5590
+	 lightweight version of the code.  */                                  // C 5591
+  rootdir = (path >= save_name.offset (len as isize - 1)                // C 5592
+	     && (IS_DIRECTORY_SEP! (*path as c_int) || *path == 0)) as c_int;  // C 5593 (C's `*path == 0`)
+
+      /* If name is "c:/.." or "/.." then stat "c:/" or "/".  */        // C 5595
+  r = if IS_DEVICE_SEP! (*name.offset (1) as c_int) { name.offset (2) } else { name }; // C 5596 (C's ternary)
+  if (IS_DIRECTORY_SEP! (*r as c_int)                                   // C 5597
+	  && *r.offset (1) == b'.' as c_char && *r.offset (2) == b'.' as c_char // C 5598
+	  && *r.offset (3) == 0)                                               // C 5598 (C's `r[3] == '\0'`)
+	{ *r.offset (1) = 0; *r.offset (2) = 0; }                              // C 5599
+
+      /* Note: If NAME is a symlink to the root of a UNC volume         // C 5601
+	 (i.e. "\\SERVER"), we will not detect that here, and we will          // C 5602
+	 return data about the symlink as result of FindFirst below.           // C 5603
+	 This is unfortunate, but that marginal use case does not              // C 5604
+	 justify a call to chase_symlinks which would impose a penalty         // C 5605
+	 on all the other use cases.  (We get here for symlinks to             // C 5606
+	 roots of UNC volumes because CreateFile above fails for them,         // C 5607
+	 unlike with symlinks to root directories X:\ of drives.)  */          // C 5608
+  if is_unc_volume (name) != 0                                          // C 5609
+    {
+      fattrs = unc_volume_file_attributes (name);                       // C 5611
+      if fattrs == -1 as DWORD                                          // C 5612 (C's `-1` against the DWORD)
+	{ return -1; }                                                         // C 5613
+
+      ctime = utc_base_ft; atime = utc_base_ft; wtime = utc_base_ft;    // C 5615 (C's chain)
+    }
+  else if rootdir != 0                                                  // C 5617
+    {
+	  /* Make sure root directories end in a slash.  */                    // C 5619
+      if ! IS_DIRECTORY_SEP! (*name.offset (len as isize - 1) as c_int) // C 5620
+	{ strcpy (name.offset (len as isize), c"\\".as_ptr ()); }              // C 5621 (C's `strcpy (name + len, "\\")`)
+      if GetDriveType (name) < 2                                        // C 5622
+	{
+	  *errno () = ENOENT;                                                  // C 5624
+	  return -1;                                                           // C 5625
+	}
+
+      fattrs = FILE_ATTRIBUTE_DIRECTORY;                                // C 5628
+      ctime = utc_base_ft; atime = utc_base_ft; wtime = utc_base_ft;    // C 5629 (C's chain)
+    }
+  else                                                                  // C 5631
+    {
+      let mut have_wfd: c_int = -1;                                     // C 5633
+
+	  /* Make sure non-root directories do NOT end in a slash,             // C 5635
+	     otherwise FindFirstFile might fail.  */                           // C 5636
+      if IS_DIRECTORY_SEP! (*name.offset (len as isize - 1) as c_int)   // C 5637
+	{ *name.offset (len as isize - 1) = 0; }                               // C 5638
+
+	  /* (This is hacky, but helps when doing file completions on          // C 5640
+	     network drives.)  Optimize by using information available from    // C 5641
+	     active readdir if possible.  */                                   // C 5642
+      len = strlen (dir_pathname) as c_int;                             // C 5643
+      if IS_DIRECTORY_SEP! (*dir_pathname.offset (len as isize - 1) as c_int) // C 5644
+	{ len -= 1; }
+      if (dir_find_handle != INVALID_HANDLE_VALUE                       // C 5646
+	  && last_dir_find_data != -1                                          // C 5647
+	  && ! (is_a_symlink != 0 && follow_symlinks != 0)                     // C 5648
+	      /* The 2 file-name comparisons below support only ASCII          // C 5649
+		 characters, and will lose (compare not equal) when                   // C 5650
+		 the file names include non-ASCII characters that are                 // C 5651
+		 the same but for the case.  However, doing this                      // C 5652
+		 properly involves: (a) converting both file names to                 // C 5653
+		 UTF-16, (b) lower-casing both names using CharLowerW,                // C 5654
+		 and (c) comparing the results; this would be quite a                 // C 5655
+		 bit slower, whereas Plan B is for users who want                     // C 5656
+		 lightweight albeit inaccurate version of 'stat'.  */                 // C 5657
+	  && c_strncasecmp (save_name, dir_pathname.as_ptr (), len as usize) == 0 // C 5658
+	  && IS_DIRECTORY_SEP! (*name.offset (len as isize) as c_int)          // C 5659
+	  && xstrcasecmp (name.offset (len as isize + 1), (&raw mut dir_static.d_name) as *const c_char) == 0) // C 5660
+	{
+	  have_wfd = last_dir_find_data;                                       // C 5662
+	  /* This was the last entry returned by readdir.  */                  // C 5663
+	  if last_dir_find_data == DIR_FIND_DATA_W                             // C 5664
+	    { wfd_w = dir_find_data_w; }                                       // C 5665
+	  else
+	    { wfd_a = dir_find_data_a; }                                       // C 5667
+	}
+	      else                                                             // C 5669
+	{
+	  logon_network_drive (name);                                          // C 5671
+
+	  if w32_unicode_filenames                                             // C 5673
+	    {
+	      filename_to_utf16 (name, name_w.as_mut_ptr ());                  // C 5675
+	      fh = FindFirstFileW (name_w.as_ptr (), (&raw mut wfd_w));        // C 5676
+	      have_wfd = DIR_FIND_DATA_W;                                      // C 5677
+	    }
+	  else
+	    {
+	      filename_to_ansi (name, name_a.as_mut_ptr ());                   // C 5681
+		  /* If NAME includes characters not representable by                 // C 5682
+		     the current ANSI codepage, filename_to_ansi                      // C 5683
+		     usually replaces them with a '?'.  We don't want                 // C 5684
+		     to let FindFirstFileA interpret those as wildcards,              // C 5685
+		     and "succeed", returning us data from some random                // C 5686
+		     file in the same directory.  */                                  // C 5687
+	      if ! _mbspbrk (name_a.as_ptr () as *const c_uchar, c"?".as_ptr () as *const c_uchar).is_null () // C 5688
+		{ fh = INVALID_HANDLE_VALUE; }                                        // C 5689
+	      else
+		{ fh = FindFirstFileA (name_a.as_ptr (), (&raw mut wfd_a)); }         // C 5691
+	      have_wfd = DIR_FIND_DATA_A;                                      // C 5692
+	    }
+	  if fh == INVALID_HANDLE_VALUE                                        // C 5694
+	    {
+	      *errno () = ENOENT;                                              // C 5696
+	      return -1;                                                       // C 5697
+	    }
+	  FindClose (fh);                                                      // C 5699
+	}
+	  /* Note: if NAME is a symlink, the information we get from           // C 5701
+	     FindFirstFile is for the symlink, not its target.  */             // C 5702
+	  if have_wfd == DIR_FIND_DATA_W                                       // C 5703
+	    {
+	      fattrs = wfd_w.dwFileAttributes;                                 // C 5705
+	      ctime = wfd_w.ftCreationTime;                                    // C 5706
+	      atime = wfd_w.ftLastAccessTime;                                  // C 5707
+	      wtime = wfd_w.ftLastWriteTime;                                   // C 5708
+	      fs_high = wfd_w.nFileSizeHigh;                                   // C 5709
+	      fs_low = wfd_w.nFileSizeLow;                                     // C 5710
+	    }
+	  else                                                                 // C 5712
+	    {
+	      fattrs = wfd_a.dwFileAttributes;                                 // C 5714
+	      ctime = wfd_a.ftCreationTime;                                    // C 5715
+	      atime = wfd_a.ftLastAccessTime;                                  // C 5716
+	      wtime = wfd_a.ftLastWriteTime;                                   // C 5717
+	      fs_high = wfd_a.nFileSizeHigh;                                   // C 5718
+	      fs_low = wfd_a.nFileSizeLow;                                     // C 5719
+	    }
+	  fake_inode = 0;                                                      // C 5721
+	  nlinks = 1;                                                          // C 5722
+	  serialnum = volume_info.serialnum;                                   // C 5723
+	}
+      if is_a_symlink != 0 && follow_symlinks == 0                      // C 5725
+	{ (*buf).st_mode = S_IFLNK as c_ushort; }                              // C 5726
+      else if (fattrs & FILE_ATTRIBUTE_DIRECTORY) != 0                  // C 5727
+	{ (*buf).st_mode = S_IFDIR as c_ushort; }                              // C 5728
+      else                                                              // C 5729
+	{ (*buf).st_mode = S_IFREG as c_ushort; }                              // C 5730
+
+        get_file_owner_and_group (std::ptr::null_mut (), buf);          // C 5732
+  }                                                                     // C 5733 (C's `}` for the Plan B `else`; here it closes the `'plan_b` device)
+
+  (*buf).st_ino = fake_inode;                                           // C 5735
+
+  (*buf).st_dev = serialnum as dev_t;                                   // C 5737
+  (*buf).st_rdev = serialnum as dev_t;                                  // C 5738
+
+  (*buf).st_size = fs_high as c_ulonglong;                              // C 5740 (C's `off_t`/`st_size`)
+  (*buf).st_size <<= 32;                                                // C 5741
+  (*buf).st_size += fs_low as c_ulonglong;                              // C 5742
+  (*buf).st_nlink = nlinks as c_short;                                  // C 5743
+
+  /* Convert timestamps to Unix format. */                              // C 5745
+  (*buf).st_mtime = convert_time (wtime, (&raw mut (*buf).st_mtimensec)); // C 5746
+  (*buf).st_atime = convert_time (atime, (&raw mut (*buf).st_atimensec)); // C 5747
+  if (*buf).st_atime == 0                                               // C 5748
+    {
+      (*buf).st_atime = (*buf).st_mtime;                                // C 5750
+      (*buf).st_atimensec = (*buf).st_mtimensec;                        // C 5751
+    }
+  (*buf).st_ctime = convert_time (ctime, (&raw mut (*buf).st_ctimensec)); // C 5753
+  if (*buf).st_ctime == 0                                               // C 5754
+    {
+      (*buf).st_ctime = (*buf).st_mtime;                                // C 5756
+      (*buf).st_ctimensec = (*buf).st_mtimensec;                        // C 5757
+    }
+
+  /* determine rwx permissions */                                       // C 5760
+  if is_a_symlink != 0 && follow_symlinks == 0                          // C 5761
+    { permission = S_IREAD | S_IWRITE | S_IEXEC; } /* Posix expectations */ // C 5762
+  else                                                                  // C 5763
+    {
+      if (fattrs & FILE_ATTRIBUTE_READONLY) != 0                        // C 5765
+	{ permission = S_IREAD; }                                              // C 5766
+      else                                                              // C 5767
+	{ permission = S_IREAD | S_IWRITE; }                                   // C 5768
+
+      if (fattrs & FILE_ATTRIBUTE_DIRECTORY) != 0                       // C 5770
+	{ permission |= S_IEXEC; }                                             // C 5771
+      else if is_exec (name) != 0                                       // C 5772
+	{ permission |= S_IEXEC; }                                             // C 5773
+    }
+
+  (*buf).st_mode |= (permission | (permission >> 3) | (permission >> 6)) as c_ushort; // C 5776
+
+  return 0;                                                             // C 5778
+}                                                                       // C 5779
