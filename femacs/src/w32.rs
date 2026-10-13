@@ -15391,3 +15391,164 @@ pub unsafe extern "C" fn term_ntproc (ignored: c_int)                   // C 105
 
   w32_gdiplus_shutdown ();                                              // C 10561
 }                                                                       // C 10562
+
+
+/* C 10563's blank, C 10564-10686's `init_ntproc` - the file's third hundred-line function: C
+   10587-10655's `#ifdef _UCRT` pair (the `ucrt` feature `nt/cmdproxy.rs` 49 registered; both arms
+   carried), C 10660-10665's `!dumping` arm (`sigprocmask`, C 10664's `signal` - which `ms-w32.h`
+   252 defines as `sys_signal`, so the port calls that), C 10666's `init_timers ()` and C 10668-10685's
+   fixed-drive walk.  New in-unit items: `GetStdHandle` with its three `STD_*_HANDLE` arguments,
+   `SetHandleInformation` (the socket layer's `pfn_` twin is a different name) and `_open_osfhandle`
+   - all `UNVERIFIED` (Owed 49).  C 10671's mutable `char drive[] = "A:\\"` is the four-byte
+   array C's initialiser writes (`'A'`, `':'`, `'\\'`, NUL), which C 10680 increments in place.  */
+/// C 10594-10599: `GetStdHandle` and its three standard-handle arguments (`<winbase.h>`).
+/// C: WINBASEAPI HANDLE WINAPI GetStdHandle (DWORD nStdHandle);
+/// C: #define STD_INPUT_HANDLE ((DWORD)-10)
+/// C: #define STD_OUTPUT_HANDLE ((DWORD)-11)
+/// C: #define STD_ERROR_HANDLE ((DWORD)-12)
+/// C: WINBASEAPI BOOL WINAPI SetHandleInformation (HANDLE hObject, DWORD dwMask, DWORD dwFlags);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetStdHandle (nStdHandle: DWORD) -> HANDLE;
+  pub fn SetHandleInformation (hObject: HANDLE, dwMask: DWORD, dwFlags: DWORD) -> BOOL;
+}
+#[cfg (feature = "windowsnt")]
+pub const STD_INPUT_HANDLE: DWORD = -10i32 as DWORD;
+#[cfg (feature = "windowsnt")]
+pub const STD_OUTPUT_HANDLE: DWORD = -11i32 as DWORD;
+#[cfg (feature = "windowsnt")]
+pub const STD_ERROR_HANDLE: DWORD = -12i32 as DWORD;
+/// C 10639/10645/10651: `_open_osfhandle` - the CRT's `<io.h>` name (`intptr_t _open_osfhandle
+/// (intptr_t, int)`); no mirror in this unit's include graph carries it.
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _open_osfhandle (osfhandle: intptr_t, flags: c_int) -> c_int;
+}
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn init_ntproc (dumping: c_int)                   // C 10564-10565
+{                                                                       // C 10566
+  let mut initial_mask: sigset_t = 0;                                   // C 10567
+
+  /* Initialize the socket interface now if available and requested by  // C 10569
+     the user by defining PRELOAD_WINSOCK; otherwise loading will be    // C 10570
+     delayed until open-network-stream is called (w32-has-winsock can   // C 10571
+     also be used to dynamically load or reload winsock).               // C 10572
+
+     Conveniently, init_environment is called before us, so             // C 10574
+     PRELOAD_WINSOCK can be set in the registry. */                     // C 10575
+
+  /* Always initialize this correctly. */                               // C 10577
+  winsock_lib = std::ptr::null_mut ();                                  // C 10578 (C's `= NULL`)
+
+  if ! (getenv (c"PRELOAD_WINSOCK".as_ptr ()).is_null ())               // C 10580
+    { init_winsock (TRUE); }                                            // C 10581
+
+  /* Initial preparation for subprocess support: replace our standard   // C 10583
+     handles with non-inheritable versions. */                          // C 10584
+  {                                                                     // C 10585
+
+    #[cfg (feature = "ucrt")]                                           // C 10587 (C's `#ifdef _UCRT`)
+    {
+      /* The non-UCRT code below relies on MSVCRT-only behavior, whereby // C 10588
+	 _fdopen reuses the first unused FILE slot, whereas UCRT skips the     // C 10589
+	 first 3 slots, which correspond to stdin/stdout/stderr.  That         // C 10590
+	 makes it impossible in the UCRT build to open these 3 streams         // C 10591
+	 once they are closed.  So we use SetHandleInformation instead,        // C 10592
+	 which is available on all versions of Windows that have UCRT.  */     // C 10593
+      SetHandleInformation (GetStdHandle (STD_INPUT_HANDLE),            // C 10594
+			  HANDLE_FLAG_INHERIT, 0);                                           // C 10595
+      SetHandleInformation (GetStdHandle (STD_OUTPUT_HANDLE),           // C 10596
+			  HANDLE_FLAG_INHERIT, 0);                                           // C 10597
+      SetHandleInformation (GetStdHandle (STD_ERROR_HANDLE),            // C 10598
+			  HANDLE_FLAG_INHERIT, 0);                                           // C 10599
+    }
+    #[cfg (not (feature = "ucrt"))]                                     // C 10600 (C's `#else`)
+    {
+      let mut parent: HANDLE;                                           // C 10601
+      let mut stdin_save: HANDLE = INVALID_HANDLE_VALUE;                // C 10602
+      let mut stdout_save: HANDLE = INVALID_HANDLE_VALUE;               // C 10603
+      let mut stderr_save: HANDLE = INVALID_HANDLE_VALUE;               // C 10604
+
+      parent = GetCurrentProcess ();                                    // C 10606
+
+      /* Ignore errors when duplicating and closing; typically the      // C 10608
+	 handles will be invalid when running as a gui program.  */            // C 10609
+      DuplicateHandle (parent,                                          // C 10610
+		       GetStdHandle (STD_INPUT_HANDLE),                               // C 10611
+		       parent,                                                        // C 10612
+		       &raw mut stdin_save,                                           // C 10613
+		       0,                                                             // C 10614
+		       FALSE,                                                         // C 10615
+		       DUPLICATE_SAME_ACCESS);                                        // C 10616
+
+      DuplicateHandle (parent,                                          // C 10618
+		       GetStdHandle (STD_OUTPUT_HANDLE),                              // C 10619
+		       parent,                                                        // C 10620
+		       &raw mut stdout_save,                                          // C 10621
+		       0,                                                             // C 10622
+		       FALSE,                                                         // C 10623
+		       DUPLICATE_SAME_ACCESS);                                        // C 10624
+
+      DuplicateHandle (parent,                                          // C 10626
+		       GetStdHandle (STD_ERROR_HANDLE),                               // C 10627
+		       parent,                                                        // C 10628
+		       &raw mut stderr_save,                                          // C 10629
+		       0,                                                             // C 10630
+		       FALSE,                                                         // C 10631
+		       DUPLICATE_SAME_ACCESS);                                        // C 10632
+
+      fclose (stdin);                                                   // C 10634
+      fclose (stdout);                                                  // C 10635
+      fclose (stderr);                                                  // C 10636
+
+      if stdin_save != INVALID_HANDLE_VALUE                             // C 10638
+	{ _open_osfhandle (stdin_save as intptr_t, O_TEXT); }                  // C 10639
+      else                                                              // C 10640
+	{ _open (c"nul".as_ptr (), O_TEXT | O_NOINHERIT | O_RDONLY); }         // C 10641
+	_fdopen (0, c"r".as_ptr ());                                           // C 10642
+
+      if stdout_save != INVALID_HANDLE_VALUE                            // C 10644
+	{ _open_osfhandle (stdout_save as intptr_t, O_TEXT); }                 // C 10645
+      else                                                              // C 10646
+	{ _open (c"nul".as_ptr (), O_TEXT | O_NOINHERIT | O_WRONLY); }         // C 10647
+	_fdopen (1, c"w".as_ptr ());                                           // C 10648
+
+      if stderr_save != INVALID_HANDLE_VALUE                            // C 10650
+	{ _open_osfhandle (stderr_save as intptr_t, O_TEXT); }                 // C 10651
+      else                                                              // C 10652
+	{ _open (c"nul".as_ptr (), O_TEXT | O_NOINHERIT | O_WRONLY); }         // C 10653
+	_fdopen (2, c"w".as_ptr ());                                           // C 10654
+    }
+  }                                                                     // C 10585 (C's block close; C 10655's `#endif` closes the arm)
+
+  /* unfortunately, atexit depends on implementation of malloc */       // C 10658
+  /* atexit (term_ntproc); */                                           // C 10659
+  if dumping == 0                                                       // C 10660 (C's `!dumping`)
+    {                                                                   // C 10661
+      /* Make sure we start with all signals unblocked.  */             // C 10662
+      sigprocmask (SIG_SETMASK, &raw const initial_mask, std::ptr::null_mut ()); // C 10663
+      sys_signal (SIGABRT, Some (term_ntproc));                         // C 10664 (C's `signal`, which ms-w32.h 252 defines as `sys_signal`)
+    }                                                                   // C 10665
+  init_timers ();                                                       // C 10666
+
+  /* determine which drives are fixed, for GetCachedVolumeInformation */ // C 10668
+  {                                                                     // C 10669
+    /* GetDriveType must have trailing backslash. */                    // C 10670
+    let mut drive: [c_char; 4]                                          // C 10671 (C's `char drive[] = "A:\\"`)
+	= [b'A' as c_char, b':' as c_char, b'\\' as c_char, 0];
+
+    /* Loop over all possible drive letters */                          // C 10673
+    while *drive.as_ptr () <= b'Z' as c_char                            // C 10674
+    {                                                                   // C 10675
+      /* Record if this drive letter refers to a fixed drive. */        // C 10676
+      fixed_drives[DRIVE_INDEX! (*drive.as_ptr () as c_int) as usize]   // C 10677
+	= (GetDriveType (drive.as_ptr ()) == DRIVE_FIXED) as BOOL;             // C 10678
+
+      *drive.as_mut_ptr () += 1;                                        // C 10680 (C's `(*drive)++`)
+    }                                                                   // C 10681
+
+    /* Reset the volume info cache.  */                                 // C 10683
+    volume_cache = std::ptr::null_mut ();                               // C 10684 (C's `= NULL`)
+  }                                                                     // C 10685
+}                                                                       // C 10686
