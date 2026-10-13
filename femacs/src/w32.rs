@@ -7009,3 +7009,116 @@ pub unsafe extern "C" fn sys_mkdir (path: *const c_char, mode: mode_t) -> c_int 
 
 /* C 4674: the blank before C 4675's `int` (the next item is C 4675's `sys_open`, past this
    slice).  */
+/* C 4674-4675: C 4674's blank and C 4675's `int`.  */
+/* C 4675-4729: `sys_open`.  C 4676's `...` parameter and C 4680/4683-4684/4726's `va_list ap`
+   / `va_start` / `va_arg (ap, int)` / `va_end` are PORTING.md P-04's shape
+   (`docs/spikes/2026-10-02-variadics.md` 37: the `...` parameter *is* the list, so `va_start`
+   and `va_end` have no statement and the one read is `ap.next_arg::<c_int> ()`).  The two CRT
+   names and the SDK scalar this slice first spells are declared here (P-88, `UNVERIFIED`).  */
+/// C: #define _O_CREAT 0x0100 (the CRT's own value; the mirror's `O_CREAT` is the frozen target's)
+#[cfg (feature = "windowsnt")]
+pub const _O_CREAT: c_int = 0x0100;
+/// C: #define _O_EXCL 0x0200 (as above)
+#[cfg (feature = "windowsnt")]
+pub const _O_EXCL: c_int = 0x0200;
+/// C: #define INVALID_FILE_ATTRIBUTES ((DWORD) -1) (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const INVALID_FILE_ATTRIBUTES: DWORD = -1i32 as DWORD;
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_open (path: *const c_char, oflag: c_int, mut ap: ...) -> c_int // C 4675
+{
+  let mpath: *const c_char = map_w32_filename (path, std::ptr::null_mut ()); // C 4678
+  let mut res: c_int = -1;                                              // C 4679
+  let mut mode: c_int;                                                  // C 4681
+
+  /* C 4680's `va_list ap;` is the port's `...` parameter (P-04).  */
+  mode = ap.next_arg::<c_int> ();                                        // C 4684
+
+  if w32_unicode_filenames                                              // C 4686
+    {
+      let mut mpath_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4688
+
+      filename_to_utf16 (mpath, mpath_w.as_mut_ptr ());                 // C 4690
+      /* If possible, try to open file without _O_CREAT, to be able to  // C 4691
+	 write to existing hidden and system files.  Force all file            // C 4692
+	 handles to be non-inheritable. */                                     // C 4693
+      if (oflag & (_O_CREAT | _O_EXCL)) != (_O_CREAT | _O_EXCL)         // C 4694
+	{ res = _wopen (mpath_w.as_mut_ptr (), (oflag & ! _O_CREAT) | _O_NOINHERIT, mode); } // C 4695
+      if res < 0                                                        // C 4696
+	{ res = _wopen (mpath_w.as_mut_ptr (), oflag | _O_NOINHERIT, mode); }  // C 4697
+      if res < 0 && *errno () == EACCES                                 // C 4698
+	{
+	  let mut attributes: DWORD = GetFileAttributesW (mpath_w.as_ptr ());  // C 4700
+
+	  if (attributes != INVALID_FILE_ATTRIBUTES                            // C 4702
+	      && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)                 // C 4703
+	    { *errno () = EISDIR; }                                            // C 4704
+	}
+    }
+  else                                                                  // C 4707
+    {
+      let mut mpath_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4709
+
+      filename_to_ansi (mpath, mpath_a.as_mut_ptr ());                  // C 4711
+      if (oflag & (_O_CREAT | _O_EXCL)) != (_O_CREAT | _O_EXCL)         // C 4712
+	{ res = _open (mpath_a.as_mut_ptr (), (oflag & ! _O_CREAT) | _O_NOINHERIT, mode); } // C 4713
+      if res < 0                                                        // C 4714
+	{ res = _open (mpath_a.as_mut_ptr (), oflag | _O_NOINHERIT, mode); }   // C 4715
+      if res < 0 && *errno () == EACCES                                 // C 4716
+	{
+	  let mut attributes: DWORD = GetFileAttributesA (mpath_a.as_ptr ());  // C 4718
+
+	  if (attributes != INVALID_FILE_ATTRIBUTES                            // C 4720
+	      && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)                 // C 4721
+	    { *errno () = EISDIR; }                                            // C 4722
+	}
+    }
+
+  /* C 4726's `va_end (ap);` has no statement (P-04).  */               // C 4726
+
+  return res;                                                           // C 4728
+}
+
+/* C 4730-4754: C 4730's blank, C 4731-4732's
+   `/* This is not currently used, but might be needed again at some point; DO NOT DELETE!  */`
+   and C 4733's `#if 0` … C 4754's `#endif`: dead in every configuration, so the block is
+   **recorded, not carried** (the `android.c` 1124-1360 device).  */
+/* C 4756-4760: C 4756's `int` and `fchmod` (a body that is only C 4759's `return 0;`).  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn fchmod (fd: c_int, mode: mode_t) -> c_int      // C 4756
+{
+  return 0;                                                             // C 4759
+}
+/* C 4762-4782: C 4761's blank, C 4762's `int` and `fchmodat` (the same directory hack
+   `faccessat` uses, then C 4780-4781's two-way dispatch).  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn fchmodat (fd: c_int, path: *const c_char, mode: mode_t, flags: c_int) // C 4762
+  -> c_int
+{
+  let mut fullname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 4767
+
+  /* Rely on a hack: an open directory is modeled as file descriptor 0, // C 4765
+     as in fstatat.  FIXME: Add proper support for fchmodat.  */        // C 4766
+  if fd != AT_FDCWD                                                     // C 4769
+    {
+      if (_snprintf ((&raw mut fullname) as *mut c_char,                // C 4771
+		   core::mem::size_of_val (&fullname),
+		   c"%s/%s".as_ptr (),                                                // C 4771
+		   dir_pathname, path)                                                // C 4771
+	  < 0)                                                                 // C 4772
+	{
+	  *errno () = ENAMETOOLONG;                                            // C 4774
+	  return -1;                                                           // C 4775
+	}
+      path = (&raw mut fullname) as *const c_char;                      // C 4777
+    }
+
+  return                                                                // C 4780
+    if flags == AT_SYMLINK_NOFOLLOW { lchmod (path, mode) } else { sys_chmod (path, mode as c_int) }; // C 4781 (C's `mode_t`-into-`int` at the `sys_chmod` call)
+}
+
+/* C 4783-4784: C 4783's blank and C 4784's `int` (the next item is C 4785's
+   `sys_rename_replace`, past this slice).  */
