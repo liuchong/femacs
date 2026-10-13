@@ -7588,3 +7588,88 @@ unsafe fn convert_from_timespec (time: timespec, pft: *mut FILETIME)    // C 513
 
 /* C 5150: the blank before C 5150's `static PSECURITY_DESCRIPTOR` (the next item is C 5150's
    `get_file_security_desc_by_handle`, past this slice).  */
+/* C 5149-5151: C 5149's blank, C 5150's `static PSECURITY_DESCRIPTOR` and C 5151's signature.  */
+/* C 5150-5202: the three ACL entries.  The `<winnt.h>`/`<accctrl.h>` names they first use are
+   declared here (P-88, `UNVERIFIED`); `get_security_info`, `get_file_security`,
+   `get_sid_sub_authority_count` and `get_sid_sub_authority` are this unit's own C 700-830
+   wrappers (carried in slice 1), so their signatures are the port's own.  */
+/// C: #define OWNER_SECURITY_INFORMATION 0x00000001
+#[cfg (feature = "windowsnt")]
+pub const OWNER_SECURITY_INFORMATION: DWORD = 0x00000001;
+/// C: #define GROUP_SECURITY_INFORMATION 0x00000002
+#[cfg (feature = "windowsnt")]
+pub const GROUP_SECURITY_INFORMATION: DWORD = 0x00000002;
+/// C: typedef enum _SE_OBJECT_TYPE { SE_UNKNOWN_OBJECT_TYPE = 0, SE_FILE_OBJECT, … };
+#[cfg (feature = "windowsnt")]
+pub const SE_FILE_OBJECT: SE_OBJECT_TYPE = 1;
+/// C: #define ERROR_SUCCESS 0L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_SUCCESS: DWORD = 0;
+#[cfg (feature = "windowsnt")]
+unsafe fn get_file_security_desc_by_handle (h: HANDLE) -> PSECURITY_DESCRIPTOR // C 5150
+{
+  let mut psd: PSECURITY_DESCRIPTOR = std::ptr::null_mut ();            // C 5153
+  let mut err: DWORD;                                                   // C 5154
+  let mut si: SECURITY_INFORMATION = OWNER_SECURITY_INFORMATION         // C 5155
+    | GROUP_SECURITY_INFORMATION  /* | DACL_SECURITY_INFORMATION */ ;   // C 5156
+
+  /* C leaves `err` uninitialised (PORTING.md 1.5).  */
+  err = 0;
+
+  err = get_security_info (h, SE_FILE_OBJECT, si,                       // C 5158
+			   std::ptr::null_mut (), std::ptr::null_mut (),                     // C 5159
+			   std::ptr::null_mut (), std::ptr::null_mut (), (&raw mut psd));
+  if err != ERROR_SUCCESS                                               // C 5160
+    { return std::ptr::null_mut (); }                                   // C 5161
+
+  return psd;                                                           // C 5163
+}
+/* C 5166-5189: C 5166's `static PSECURITY_DESCRIPTOR` and `get_file_security_desc_by_name`.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn get_file_security_desc_by_name (fname: *const c_char) -> PSECURITY_DESCRIPTOR // C 5166
+{
+  let mut psd: PSECURITY_DESCRIPTOR = std::ptr::null_mut ();            // C 5169
+  let mut sd_len: DWORD;                                                // C 5170
+  let mut err: DWORD;
+  let mut si: SECURITY_INFORMATION = OWNER_SECURITY_INFORMATION         // C 5171
+    | GROUP_SECURITY_INFORMATION  /* | DACL_SECURITY_INFORMATION */ ;   // C 5172
+
+  /* C leaves `sd_len` and `err` uninitialised (PORTING.md 1.5).  */
+  sd_len = 0;
+  err = 0;
+
+  if get_file_security (fname, si, psd, 0, (&raw mut sd_len)) == 0      // C 5174
+    {
+      err = GetLastError ();                                            // C 5176
+      if err != ERROR_INSUFFICIENT_BUFFER                               // C 5177
+	{ return std::ptr::null_mut (); }                                      // C 5178
+    }
+
+  psd = xmalloc (sd_len as usize) as PSECURITY_DESCRIPTOR;              // C 5181 (C's `xmalloc (sd_len)`)
+  if get_file_security (fname, si, psd, sd_len, (&raw mut sd_len)) == 0 // C 5182
+    {
+      xfree (psd);                                                      // C 5184
+      return std::ptr::null_mut ();                                     // C 5185
+    }
+
+  return psd;                                                           // C 5188
+}
+/* C 5191-5202: C 5191's `static DWORD` and `get_rid`.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn get_rid (sid: PSID) -> DWORD                                  // C 5191
+{
+  let mut n_subauthorities: c_uint;                                     // C 5194
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  n_subauthorities = 0;
+
+  /* Use the last sub-authority value of the RID, the relative          // C 5196
+     portion of the SID, as user/group ID. */                           // C 5197
+  n_subauthorities = *get_sid_sub_authority_count (sid) as c_uint;      // C 5198 (C's `unsigned char`-into-`unsigned`)
+  if n_subauthorities < 1                                               // C 5199
+    { return 0; } /* the "World" RID */                                 // C 5200
+  return *get_sid_sub_authority (sid, n_subauthorities - 1);            // C 5201
+}
+
+/* C 5203-5204: C 5203's blank and C 5204's `/* Caching SID and account values for faster
+   lokup.  */` (the next item is C 5206's `struct w32_id`, past this slice).  */
