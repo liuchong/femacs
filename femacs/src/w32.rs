@@ -6786,3 +6786,226 @@ pub unsafe extern "C" fn sys_fopen (path: *const c_char, mut mode: *const c_char
 
 /* C 4534-4536: C 4534's blank, C 4535's `/* This only works on NTFS volumes, but is useful to
    have.  */` and C 4536's `int` (the next item is C 4537's `sys_link`, past this slice).  */
+/* C 4534-4536: C 4534's blank, C 4535's `/* This only works on NTFS volumes, but is useful to
+   have.  */` and C 4536's `int`.  */
+/* C 4537-4652: `sys_link`.  The `<winbase.h>`/`<winnt.h>` records and scalars this slice first
+   names are declared here (the P-88 device this lane uses; no Windows SDK or mingw toolchain is
+   on this machine, so all of them carry the ledger's `UNVERIFIED` marking), together with C
+   4577-4580's anonymous local struct and C 4594's `offsetof`.  */
+/// C: typedef struct _WIN32_STREAM_ID { DWORD dwStreamId; DWORD dwStreamAttributes;
+/// C:   LARGE_INTEGER Size; DWORD dwStreamNameSize; WCHAR cStreamName[ANYSIZE_ARRAY]; } WIN32_STREAM_ID;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WIN32_STREAM_ID
+{
+  pub dwStreamId: DWORD,
+  pub dwStreamAttributes: DWORD,
+  pub Size: LARGE_INTEGER,
+  pub dwStreamNameSize: DWORD,
+  pub cStreamName: [WCHAR; 1],                    /* C's `ANYSIZE_ARRAY` (1) array */
+}
+/* C 4577-4580: the anonymous local
+   `struct { WIN32_STREAM_ID wid; WCHAR wbuffer[MAX_PATH]; } data;` - Rust has no anonymous
+   struct, so the port names it (the `LARGE_INTEGER_u` device above).  */
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct w32_sys_link_data
+{
+  pub wid: WIN32_STREAM_ID,
+  pub wbuffer: [WCHAR; MAX_PATH as usize],         /* extra space for link name */
+}
+/// C: #define BACKUP_LINK 0x00000005 (`<winnt.h>`'s stream-ID list)
+#[cfg (feature = "windowsnt")]
+pub const BACKUP_LINK: DWORD = 0x00000005;
+/// C: #define OPEN_EXISTING 3 (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const OPEN_EXISTING: DWORD = 3;
+/// C: #define FILE_FLAG_BACKUP_SEMANTICS 0x02000000 (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const FILE_FLAG_BACKUP_SEMANTICS: DWORD = 0x02000000;
+/// C: #define ERROR_NOT_SAME_DEVICE 17L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_NOT_SAME_DEVICE: DWORD = 17;
+/// C: #define ERROR_TOO_MANY_LINKS 1142L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_TOO_MANY_LINKS: DWORD = 1142;
+/// <errno.h>: `#define EMLINK 31` (`lib/include/errno.rs` does not carry it).
+#[cfg (feature = "windowsnt")]
+pub const EMLINK: c_int = 31;
+/// C: WINBASEAPI HANDLE WINAPI CreateFileA (LPCSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+/// C: WINBASEAPI HANDLE WINAPI CreateFileW (LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+/// C: WINBASEAPI BOOL WINAPI BackupWrite (HANDLE, LPBYTE, DWORD, LPDWORD, BOOL, BOOL, LPVOID *);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn CreateFileA (lpFileName: LPCSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD,
+		      lpSecurityAttributes: LPVOID, dwCreationDisposition: DWORD,
+		      dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE) -> HANDLE;
+  pub fn CreateFileW (lpFileName: LPCWSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD,
+		      lpSecurityAttributes: LPVOID, dwCreationDisposition: DWORD,
+		      dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE) -> HANDLE;
+  pub fn BackupWrite (hFile: HANDLE, lpBuffer: LPBYTE, nNumberOfBytesToWrite: DWORD,
+		      lpNumberOfBytesWritten: LPDWORD, bAbort: BOOL, bProcessSecurity: BOOL,
+		      lpContext: *mut LPVOID) -> BOOL;
+}
+/// C 4659-4672: the two `<direct.h>` CRT names `sys_mkdir` calls.
+/// C: int _mkdir (const char *);
+/// C: int _wmkdir (const wchar_t *);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _mkdir (path: *const c_char) -> c_int;
+  pub fn _wmkdir (path: *const c_ushort) -> c_int;
+}
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_link (old: *const c_char, new: *const c_char) -> c_int // C 4537
+{
+  let mut fileh: HANDLE;                                                // C 4539
+  let mut result: c_int = -1;                                           // C 4540
+  let mut oldname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 4541
+  let mut newname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];
+  let mut oldname_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4542
+  let mut oldname_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4543
+
+  /* C leaves `fileh` uninitialised (PORTING.md 1.5); C 4540's `-1` and the arrays are C's own
+     initialisers.  */
+  fileh = std::ptr::null_mut ();
+
+  if old.is_null () || new.is_null ()                                   // C 4545
+    {
+      *errno () = ENOENT;                                               // C 4547
+      return -1;                                                        // C 4548
+    }
+
+  strcpy ((&raw mut oldname) as *mut c_char, map_w32_filename (old, std::ptr::null_mut ())); // C 4551
+  strcpy ((&raw mut newname) as *mut c_char, map_w32_filename (new, std::ptr::null_mut ())); // C 4552
+
+  if w32_unicode_filenames                                              // C 4554
+    {
+      filename_to_utf16 ((&raw const oldname) as *const c_char, oldname_w.as_mut_ptr ()); // C 4556
+      fileh = CreateFileW (oldname_w.as_ptr (), 0, 0, std::ptr::null_mut (), OPEN_EXISTING, // C 4557
+			   FILE_FLAG_BACKUP_SEMANTICS, std::ptr::null_mut ());               // C 4558
+    }
+  else                                                                  // C 4560
+    {
+      filename_to_ansi ((&raw const oldname) as *const c_char, oldname_a.as_mut_ptr ()); // C 4562
+      fileh = CreateFileA (oldname_a.as_ptr (), 0, 0, std::ptr::null_mut (), OPEN_EXISTING, // C 4563
+			   FILE_FLAG_BACKUP_SEMANTICS, std::ptr::null_mut ());               // C 4564
+    }
+  if fileh != INVALID_HANDLE_VALUE                                      // C 4566
+    {
+      let mut wlen: c_int;                                              // C 4568
+
+      /* C leaves `wlen` uninitialised (PORTING.md 1.5).  */
+      wlen = 0;
+
+      /* Confusingly, the "alternate" stream name field does not apply  // C 4570
+         when restoring a hard link, and instead contains the actual    // C 4571
+         stream data for the link (ie. the name of the link to create). // C 4572
+         The WIN32_STREAM_ID structure before the cStreamName field is  // C 4573
+         the stream header, which is then immediately followed by the   // C 4574
+         stream data.  */                                               // C 4575
+
+      let mut data: w32_sys_link_data = std::mem::zeroed ();            // C 4577-4580 (C's anonymous struct)
+
+      /* We used to pass MB_PRECOMPOSED as the 2nd arg here, but MSDN   // C 4582
+	 indicates that flag is unsupported for CP_UTF8, and OTOH says         // C 4583
+         it is the default anyway.  */                                  // C 4584
+      wlen = (pMultiByteToWideChar.unwrap ()) (CP_UTF8 as UINT,         // C 4585
+				        multiByteToWideCharFlags as c_ulong,
+				        newname.as_ptr (), -1,
+				        data.wid.cStreamName.as_mut_ptr (), MAX_PATH);              // C 4586
+      if wlen > 0                                                       // C 4587
+	{
+	  let mut context: LPVOID = std::ptr::null_mut ();                     // C 4589
+	  let mut wbytes: DWORD = 0;                                           // C 4590
+
+	  data.wid.dwStreamId = BACKUP_LINK;                                   // C 4592
+	  data.wid.dwStreamAttributes = 0;                                     // C 4593
+	  data.wid.Size.u.LowPart = (wlen as c_uint).wrapping_mul (std::mem::size_of::<WCHAR> () as c_uint); // C 4594 (C's `wlen * sizeof (WCHAR)`; the SDK's nameless inner struct is `u`)
+	  data.wid.Size.u.HighPart = 0;                                        // C 4595
+	  data.wid.dwStreamNameSize = 0;                                       // C 4596
+
+	  if (BackupWrite (fileh, (&raw mut data) as LPBYTE,                   // C 4598
+			  (core::mem::offset_of! (WIN32_STREAM_ID, cStreamName) as DWORD)    // C 4599
+			  .wrapping_add (data.wid.Size.u.LowPart),                           // C 4600
+			  (&raw mut wbytes), 0, 0, (&raw mut context)) != 0                  // C 4601
+	      && BackupWrite (fileh, std::ptr::null_mut (), 0, (&raw mut wbytes), 1, 0, // C 4602
+			  (&raw mut context)) != 0)
+	    {
+	      /* succeeded */                                                  // C 4604
+	      result = 0;                                                      // C 4605
+	    }
+	  else
+	    {
+	      let mut err: DWORD = GetLastError ();                            // C 4609
+	      let mut attributes: DWORD;                                       // C 4610
+
+	      /* C leaves `attributes` uninitialised (PORTING.md 1.5).  */
+	      attributes = 0;
+
+	      match err                                                        // C 4612
+		{
+		  ERROR_ACCESS_DENIED =>                                              // C 4614
+		    {
+		      /* This is what happens when OLDNAME is a directory,            // C 4615
+			 since Windows doesn't support hard links to                         // C 4616
+			 directories.  Posix says to set errno to EPERM in                   // C 4617
+			 that case.  */                                                      // C 4618
+		      if w32_unicode_filenames                                        // C 4619
+			{ attributes = GetFileAttributesW (oldname_w.as_ptr ()); }           // C 4620
+		      else
+			{ attributes = GetFileAttributesA (oldname_a.as_ptr ()); }           // C 4622
+		      if (attributes != -1 as DWORD                                    // C 4623
+			  && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)                    // C 4624
+			{ *errno () = EPERM; }                                               // C 4625
+		      else if (attributes == -1 as DWORD                               // C 4626
+			   && is_unc_volume ((&raw const oldname) as *const c_char) != 0     // C 4627
+			   && unc_volume_file_attributes ((&raw const oldname) as *const c_char) != -1 as DWORD) // C 4628
+			{ *errno () = EPERM; }                                               // C 4629
+		      else
+			{ *errno () = EACCES; }                                              // C 4631
+		    }
+		  ERROR_TOO_MANY_LINKS =>                                             // C 4633
+		    { *errno () = EMLINK; }                                           // C 4634
+		  ERROR_NOT_SAME_DEVICE =>                                            // C 4636
+		    { *errno () = EXDEV; }                                            // C 4637
+		  _ =>                                                                // C 4639
+		    { *errno () = EINVAL; }                                           // C 4640
+		}
+	    }
+	}
+
+      CloseHandle (fileh);                                              // C 4646
+    }
+  else                                                                  // C 4648
+    { *errno () = ENOENT; }                                             // C 4649
+
+  return result;                                                        // C 4651
+}
+/* C 4654-4673: C 4653's blank and `sys_mkdir` (C's `mode_t mode` is unused in the body).  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_mkdir (path: *const c_char, mode: mode_t) -> c_int // C 4654
+{
+  path = map_w32_filename (path, std::ptr::null_mut ());                // C 4657
+
+  if w32_unicode_filenames                                              // C 4659
+    {
+      let mut path_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4661
+
+      filename_to_utf16 (path, path_w.as_mut_ptr ());                   // C 4663
+      return _wmkdir (path_w.as_ptr ());                                // C 4664
+    }
+  else                                                                  // C 4666
+    {
+      let mut path_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4668
+
+      filename_to_ansi (path, path_a.as_mut_ptr ());                    // C 4670
+      return _mkdir (path_a.as_ptr ());                                 // C 4671
+    }
+}
+
+/* C 4674: the blank before C 4675's `int` (the next item is C 4675's `sys_open`, past this
+   slice).  */
