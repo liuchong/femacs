@@ -10967,3 +10967,273 @@ pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Ob
     { CloseHandle (h_proc); }                                           // C 7714
   return attrs;                                                         // C 7715
 }                                                                       // C 7716
+
+/* C 7717-7722: C 7717's blank, C 7718's `int` + C 7719-7720's `w32_memory_info` signature
+   and C 7722's first local.  This slice carries `w32_memory_info` (7718-7747), C 7749-7756's
+   winsock banner, C 7759-7803's thirty-three `pfn_*` function-pointer statics (whose `PASCAL`
+   calling convention is `extern "system"`, the unit's `*_Proc` device) and C 7804-7806's
+   `#ifndef HANDLE_FLAG_INHERIT` guard.  The socket types those declarations name are declared
+   here (P-88, `UNVERIFIED`) - `femacs/nt/inc/sys/include/socket.rs` (C 226) says so itself: it
+   spells `u_short`/`u_long`/`struct sockaddr`/`hostent`/`servent`/`addrinfo` the way C does and
+   assigns them to the including unit.  `sockaddr`/`hostent`/`servent`/`addrinfo`/`u_short`/
+   `u_long` are also six of the names the `windowsnt` probe has carried as unresolved since
+   slice 1 (the ledger's Owed 9), and `c_longlong` (three more rows, from the `nt/inc` mirrors'
+   `__int64` fields) is added to the `include/lisp.rs` import list, which every unit shares.  */
+/* `WORD` needs no declaration here: this unit's own SDK type block above already spells it
+   (`pub type WORD = c_ushort;`, C 227's `typedef unsigned short WORD;`).  */
+/// C: typedef UINT_PTR SOCKET;
+#[cfg (feature = "windowsnt")]
+pub type SOCKET = usize;
+/// C: typedef unsigned short u_short; typedef unsigned long u_long;  (`<winsock.h>`; `u_long`
+/// is the Windows 32-bit `unsigned long`, PORTING.md 1.1's width rule)
+#[cfg (feature = "windowsnt")]
+pub type u_short = c_ushort;
+#[cfg (feature = "windowsnt")]
+pub type u_long = u32;
+/// C: struct sockaddr { u_short sa_family; char sa_data[14]; };  (`<winsock.h>`)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sockaddr
+{
+  pub sa_family: u_short,
+  pub sa_data: [c_char; 14],
+}
+/// C: struct hostent { char *h_name; char **h_aliases; short h_addrtype; short h_length;
+/// C:   char **h_addr_list; };
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct hostent
+{
+  pub h_name: *mut c_char,
+  pub h_aliases: *mut *mut c_char,
+  pub h_addrtype: c_short,
+  pub h_length: c_short,
+  pub h_addr_list: *mut *mut c_char,
+}
+/// C: struct servent { char *s_name; char **s_aliases; short s_port; char *s_proto; };
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct servent
+{
+  pub s_name: *mut c_char,
+  pub s_aliases: *mut *mut c_char,
+  pub s_port: c_short,
+  pub s_proto: *mut c_char,
+}
+/// C: struct addrinfo { int ai_flags; int ai_family; int ai_socktype; int ai_protocol;
+/// C:   size_t ai_addrlen; char *ai_canonname; struct sockaddr *ai_addr;
+/// C:   struct addrinfo *ai_next; };
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct addrinfo
+{
+  pub ai_flags: c_int,
+  pub ai_family: c_int,
+  pub ai_socktype: c_int,
+  pub ai_protocol: c_int,
+  pub ai_addrlen: size_t,
+  pub ai_canonname: *mut c_char,
+  pub ai_addr: *mut sockaddr,
+  pub ai_next: *mut addrinfo,
+}
+/// C: typedef struct WSAData { WORD wVersion; WORD wHighVersion; char szDescription[257];
+/// C:   char szSystemStatus[129]; unsigned short iMaxSockets; unsigned short iMaxUdpDg;
+/// C:   char *lpVendorInfo; } WSADATA, *LPWSADATA;  (`<winsock2.h>`; C 7837 holds one by value)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WSADATA
+{
+  pub wVersion: WORD,
+  pub wHighVersion: WORD,
+  pub szDescription: [c_char; 257],
+  pub szSystemStatus: [c_char; 129],
+  pub iMaxSockets: c_ushort,
+  pub iMaxUdpDg: c_ushort,
+  pub lpVendorInfo: *mut c_char,
+}
+#[cfg (feature = "windowsnt")]
+pub type LPWSADATA = *mut WSADATA;
+/// C: #define FD_MAX_EVENTS 10  and `typedef struct _WSANETWORKEVENTS { long lNetworkEvents;
+/// C:   int iErrorCode[FD_MAX_EVENTS]; } WSANETWORKEVENTS, *LPWSANETWORKEVENTS;`
+#[cfg (feature = "windowsnt")]
+pub const FD_MAX_EVENTS: c_int = 10;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WSANETWORKEVENTS
+{
+  pub lNetworkEvents: c_long,
+  pub iErrorCode: [c_int; FD_MAX_EVENTS as usize],
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_memory_info (totalram: *mut c_ulonglong, freeram: *mut c_ulonglong, // C 7718
+				     totalswap: *mut c_ulonglong, freeswap: *mut c_ulonglong) -> c_int // C 7720
+{                                                                       // C 7721
+  let mut memst: MEMORYSTATUS;                                          // C 7722
+  let mut memstex: MEMORY_STATUS_EX;                                    // C 7723
+  memstex.dwLength = core::mem::size_of_val (&memstex) as DWORD;        // C 7724 (C's `sizeof (memstex)`)
+  /* Use GlobalMemoryStatusEx if available, as it can report more than  // C 7725
+     2GB of memory.  */                                                 // C 7726
+  if global_memory_status_ex ((&raw mut memstex)) != 0                  // C 7727 (C's truth test)
+    {                                                                   // C 7728
+      *totalram  = memstex.ullTotalPhys;                                // C 7729
+      *freeram   = memstex.ullAvailPhys;                                // C 7730
+      *totalswap = memstex.ullTotalPageFile;                            // C 7731
+      *freeswap  = memstex.ullAvailPageFile;                            // C 7732
+      return 0;                                                         // C 7733
+    }                                                                   // C 7734
+
+  memst.dwLength = core::mem::size_of_val (&memst) as DWORD;            // C 7736 (C's `sizeof (memst)`)
+  if global_memory_status ((&raw mut memst)) != 0                       // C 7737 (C's truth test)
+    {                                                                   // C 7738
+      *totalram = memst.dwTotalPhys;                                    // C 7739
+      *freeram   = memst.dwAvailPhys;                                   // C 7740
+      *totalswap = memst.dwTotalPageFile;                               // C 7741
+      *freeswap  = memst.dwAvailPageFile;                               // C 7742
+      return 0;                                                         // C 7743
+    }                                                                   // C 7744
+  else                                                                  // C 7745
+    { return -1; }                                                      // C 7746
+}                                                                       // C 7747
+
+
+/* Wrappers for  winsock functions to map between our file descriptors  // C 7750
+   and winsock's handles; also set h_errno for convenience.             // C 7751
+
+   To allow Emacs to run on systems which don't have winsock support    // C 7753
+   installed, we dynamically link to winsock on startup if present, and // C 7754
+   otherwise provide the minimum necessary functionality                // C 7755
+   (eg. gethostname). */                                                // C 7756
+
+/* function pointers for relevant socket functions */                   // C 7758
+/// C: static int (PASCAL *pfn_WSAStartup) (WORD wVersionRequired, LPWSADATA lpWSAData);
+#[cfg (feature = "windowsnt")]
+static mut pfn_WSAStartup: Option<unsafe extern "system" fn (WORD, LPWSADATA) -> c_int> = None;   // C 7759
+/// C: static void (PASCAL *pfn_WSASetLastError) (int iError);
+#[cfg (feature = "windowsnt")]
+static mut pfn_WSASetLastError: Option<unsafe extern "system" fn (c_int)> = None;   // C 7760
+/// C: static int (PASCAL *pfn_WSAGetLastError) (void);
+#[cfg (feature = "windowsnt")]
+static mut pfn_WSAGetLastError: Option<unsafe extern "system" fn () -> c_int> = None;   // C 7761
+/// C: static int (PASCAL *pfn_WSAEventSelect) (SOCKET s, HANDLE hEventObject, long lNetworkEvents);
+#[cfg (feature = "windowsnt")]
+static mut pfn_WSAEventSelect: Option<unsafe extern "system" fn (SOCKET, HANDLE, c_long) -> c_int> = None;   // C 7762
+/// C: static int (PASCAL *pfn_WSAEnumNetworkEvents) (SOCKET s, HANDLE hEventObject,
+/// C: 					WSANETWORKEVENTS *NetworkEvents);
+#[cfg (feature = "windowsnt")]
+static mut pfn_WSAEnumNetworkEvents: Option<unsafe extern "system" fn (SOCKET, HANDLE,   // C 7763
+						      *mut WSANETWORKEVENTS) -> c_int> = None;
+/// C: static HANDLE (PASCAL *pfn_WSACreateEvent) (void);
+#[cfg (feature = "windowsnt")]
+static mut pfn_WSACreateEvent: Option<unsafe extern "system" fn () -> HANDLE> = None;   // C 7766
+/// C: static int (PASCAL *pfn_WSACloseEvent) (HANDLE hEvent);
+#[cfg (feature = "windowsnt")]
+static mut pfn_WSACloseEvent: Option<unsafe extern "system" fn (HANDLE) -> c_int> = None;   // C 7767
+/// C: static int (PASCAL *pfn_socket) (int af, int type, int protocol);
+#[cfg (feature = "windowsnt")]
+static mut pfn_socket: Option<unsafe extern "system" fn (c_int, c_int, c_int) -> c_int> = None;   // C 7768
+/// C: static int (PASCAL *pfn_bind) (SOCKET s, const struct sockaddr *addr, int namelen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_bind: Option<unsafe extern "system" fn (SOCKET, *const sockaddr, c_int) -> c_int> = None;   // C 7769
+/// C: static int (PASCAL *pfn_connect) (SOCKET s, const struct sockaddr *addr, int namelen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_connect: Option<unsafe extern "system" fn (SOCKET, *const sockaddr, c_int) -> c_int> = None;   // C 7770
+/// C: static int (PASCAL *pfn_ioctlsocket) (SOCKET s, long cmd, u_long *argp);
+#[cfg (feature = "windowsnt")]
+static mut pfn_ioctlsocket: Option<unsafe extern "system" fn (SOCKET, c_long, *mut u_long) -> c_int> = None;   // C 7771
+/// C: static int (PASCAL *pfn_recv) (SOCKET s, char * buf, int len, int flags);
+#[cfg (feature = "windowsnt")]
+static mut pfn_recv: Option<unsafe extern "system" fn (SOCKET, *mut c_char, c_int, c_int) -> c_int> = None;   // C 7772
+/// C: static int (PASCAL *pfn_send) (SOCKET s, const char * buf, int len, int flags);
+#[cfg (feature = "windowsnt")]
+static mut pfn_send: Option<unsafe extern "system" fn (SOCKET, *const c_char, c_int, c_int) -> c_int> = None;   // C 7773
+/// C: static int (PASCAL *pfn_closesocket) (SOCKET s);
+#[cfg (feature = "windowsnt")]
+static mut pfn_closesocket: Option<unsafe extern "system" fn (SOCKET) -> c_int> = None;   // C 7774
+/// C: static int (PASCAL *pfn_shutdown) (SOCKET s, int how);
+#[cfg (feature = "windowsnt")]
+static mut pfn_shutdown: Option<unsafe extern "system" fn (SOCKET, c_int) -> c_int> = None;   // C 7775
+/// C: static int (PASCAL *pfn_WSACleanup) (void);
+#[cfg (feature = "windowsnt")]
+static mut pfn_WSACleanup: Option<unsafe extern "system" fn () -> c_int> = None;   // C 7776
+/// C: static u_short (PASCAL *pfn_htons) (u_short hostshort);
+#[cfg (feature = "windowsnt")]
+static mut pfn_htons: Option<unsafe extern "system" fn (u_short) -> u_short> = None;   // C 7778
+/// C: static u_short (PASCAL *pfn_ntohs) (u_short netshort);
+#[cfg (feature = "windowsnt")]
+static mut pfn_ntohs: Option<unsafe extern "system" fn (u_short) -> u_short> = None;   // C 7779
+/// C: static u_long (PASCAL *pfn_htonl) (u_long hostlong);
+#[cfg (feature = "windowsnt")]
+static mut pfn_htonl: Option<unsafe extern "system" fn (u_long) -> u_long> = None;   // C 7780
+/// C: static u_long (PASCAL *pfn_ntohl) (u_long netlong);
+#[cfg (feature = "windowsnt")]
+static mut pfn_ntohl: Option<unsafe extern "system" fn (u_long) -> u_long> = None;   // C 7781
+/// C: static unsigned long (PASCAL *pfn_inet_addr) (const char * cp);
+#[cfg (feature = "windowsnt")]
+static mut pfn_inet_addr: Option<unsafe extern "system" fn (*const c_char) -> c_ulong> = None;   // C 7782
+/// C: static int (PASCAL *pfn_gethostname) (char * name, int namelen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_gethostname: Option<unsafe extern "system" fn (*mut c_char, c_int) -> c_int> = None;   // C 7783
+/// C: static struct hostent * (PASCAL *pfn_gethostbyname) (const char * name);
+#[cfg (feature = "windowsnt")]
+static mut pfn_gethostbyname: Option<unsafe extern "system" fn (*const c_char) -> *mut hostent> = None;   // C 7784
+/// C: static struct servent * (PASCAL *pfn_getservbyname) (const char * name, const char * proto);
+#[cfg (feature = "windowsnt")]
+static mut pfn_getservbyname: Option<unsafe extern "system" fn (*const c_char, *const c_char) -> *mut servent> = None;   // C 7785
+/// C: static int (PASCAL *pfn_getpeername) (SOCKET s, struct sockaddr *addr, int * namelen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_getpeername: Option<unsafe extern "system" fn (SOCKET, *mut sockaddr, *mut c_int) -> c_int> = None;   // C 7786
+/// C: static int (PASCAL *pfn_setsockopt) (SOCKET s, int level, int optname,
+/// C: 			      const char * optval, int optlen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_setsockopt: Option<unsafe extern "system" fn (SOCKET, c_int, c_int,   // C 7787
+					      *const c_char, c_int) -> c_int> = None;
+/// C: static int (PASCAL *pfn_listen) (SOCKET s, int backlog);
+#[cfg (feature = "windowsnt")]
+static mut pfn_listen: Option<unsafe extern "system" fn (SOCKET, c_int) -> c_int> = None;   // C 7789
+/// C: static int (PASCAL *pfn_getsockname) (SOCKET s, struct sockaddr * name,
+/// C: 			       int * namelen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_getsockname: Option<unsafe extern "system" fn (SOCKET, *mut sockaddr,   // C 7790
+					      *mut c_int) -> c_int> = None;
+/// C: static SOCKET (PASCAL *pfn_accept) (SOCKET s, struct sockaddr * addr, int * addrlen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_accept: Option<unsafe extern "system" fn (SOCKET, *mut sockaddr, *mut c_int) -> SOCKET> = None;   // C 7792
+/// C: static int (PASCAL *pfn_recvfrom) (SOCKET s, char * buf, int len, int flags,
+/// C: 		       struct sockaddr * from, int * fromlen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_recvfrom: Option<unsafe extern "system" fn (SOCKET, *mut c_char, c_int, c_int,   // C 7793
+					      *mut sockaddr, *mut c_int) -> c_int> = None;
+/// C: static int (PASCAL *pfn_sendto) (SOCKET s, const char * buf, int len, int flags,
+/// C: 			  const struct sockaddr * to, int tolen);
+#[cfg (feature = "windowsnt")]
+static mut pfn_sendto: Option<unsafe extern "system" fn (SOCKET, *const c_char, c_int, c_int,   // C 7795
+				      *const sockaddr, c_int) -> c_int> = None;
+/// C: static int (PASCAL *pfn_getaddrinfo) (const char *, const char *,
+/// C: 			       const struct addrinfo *, struct addrinfo **);
+#[cfg (feature = "windowsnt")]
+static mut pfn_getaddrinfo: Option<unsafe extern "system" fn (*const c_char, *const c_char,   // C 7798
+					      *const addrinfo, *mut *mut addrinfo) -> c_int> = None;
+/// C: static void (PASCAL *pfn_freeaddrinfo) (struct addrinfo *);
+#[cfg (feature = "windowsnt")]
+static mut pfn_freeaddrinfo: Option<unsafe extern "system" fn (*mut addrinfo)> = None;   // C 7800
+/// C: /* SetHandleInformation is only needed to make sockets non-inheritable. */
+/* /* SetHandleInformation is only needed to make sockets non-inheritable. */  */
+/// C: static BOOL (WINAPI *pfn_SetHandleInformation) (HANDLE object, DWORD mask, DWORD flags);
+#[cfg (feature = "windowsnt")]
+static mut pfn_SetHandleInformation: Option<unsafe extern "system" fn (HANDLE, DWORD, DWORD) -> BOOL> = None;   // C 7803
+
+/* C 7804-7806: the `#ifndef HANDLE_FLAG_INHERIT` guard (the `SDDL_REVISION_1` device): the name
+   is also one of `w32.c`'s three remaining `missing macro` rows.  */
+/// C: #ifndef HANDLE_FLAG_INHERIT
+/// C: #define HANDLE_FLAG_INHERIT	1
+/// C: #endif
+#[cfg (feature = "windowsnt")]
+pub const HANDLE_FLAG_INHERIT: DWORD = 1;

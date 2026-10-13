@@ -11,7 +11,7 @@
 // Header mirrors are textually included (PORTING.md 0.1), so they carry no inner
 // attributes and no crate-relative paths; the including unit supplies both.
 
-use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulong,
+use std::ffi::{c_char, c_double, c_int, c_long, c_longlong, c_short, c_uchar, c_uint, c_ulong,
               c_ulonglong, c_ushort, c_void};
 
 // src/lisp.h 26 includes <stdbit.h>, ahead of <float.h> (31) and <inttypes.h> (32);
