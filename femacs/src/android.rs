@@ -6847,3 +6847,285 @@ unsafe fn android_get_dead_char (dchar: c_uint, c: c_uint, value: *mut c_uint) -
 
   return 1;                                                             // C 5428
 }
+/* C 5430-5441: C 5430's blank, C 5431-5439's comment, C 5440's blank and C 5441's `int`.  */
+/* C 5442-5588: `android_wc_lookup_string`.  C 5471's `goto dead_key` and C 5580's label become
+   the labelled block `'dead_key` (PORTING.md 2.2, the slice-11 `blitRect` shape): the jump is
+   `break 'dead_key`, and the label's four statements follow the block.  C 5557-5558's brace-less
+   `for` needs Rust braces and its index is read at C 5560, so the port keeps a `while`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_wc_lookup_string (event: *mut android_key_pressed_event, // C 5442
+						      buffer_return: *mut wchar_t, wchars_buffer: c_int,
+						      keysym_return: *mut c_int,
+						      status_return: *mut android_lookup_status,
+						      compose_status: *mut android_compose_status)
+  -> c_int
+{
+  let mut status: android_lookup_status;                                // C 5448
+  let mut rc: c_int;                                                    // C 5449
+  let mut window: jobject;                                              // C 5450
+  let mut string: jobject;
+  let mut characters: *const jchar;                                     // C 5451
+  let mut size: jsize;                                                  // C 5452
+  let mut i: size_t;                                                    // C 5453
+  let mut env: *mut JNIEnv;                                             // C 5454
+  let mut unicode_char: c_uint;                                         // C 5455
+
+  /* C leaves the nine locals uninitialised (PORTING.md 1.5).  */
+  status = 0;
+  rc = 0;
+  window = std::ptr::null_mut ();
+  string = std::ptr::null_mut ();
+  characters = std::ptr::null ();
+  size = 0;
+  i = 0;
+  env = std::ptr::null_mut ();
+  unicode_char = 0;
+
+  env = android_java_env;                                               // C 5457
+  status = ANDROID_LOOKUP_NONE;                                         // C 5458
+  rc = 0;                                                               // C 5459
+
+  /* See if an actual lookup has to be made.  Note that while           // C 5461
+     BUFFER_RETURN is wchar_t, the returned characters are always in    // C 5462
+     UCS.  */                                                           // C 5463
+
+  'dead_key: {
+    if (*event).unicode_char != -1i32 as c_uint                         // C 5465 (C's `(uint32_t) -1`)
+	{
+	  if (*event).unicode_char != 0                                        // C 5467
+	    {
+	      /* KeyCharacterMap.COMBINING_ACCENT.  */                         // C 5469
+	      if (*event).unicode_char & 0x80000000 != 0 && ! compose_status.is_null () // C 5470
+		{ break 'dead_key; }                                                  // C 5471 (C's `goto dead_key`)
+
+	      /* Remove combining accent bits.  */                             // C 5473
+	      unicode_char = (*event).unicode_char & ! 0x80000000;             // C 5474
+
+	      if wchars_buffer < 1                                             // C 5476
+		{
+		  *status_return = ANDROID_BUFFER_OVERFLOW;                           // C 5478
+		  return 0;                                                           // C 5479
+		}
+	      else                                                             // C 5481
+		{
+		  /* If COMPOSE_STATUS holds a diacritic mark unicode_char            // C 5483
+		     ought to be combined with, and this combination is               // C 5484
+		     valid, return the result alone with no keysym.  */               // C 5485
+
+		  if ! compose_status.is_null ()                                      // C 5487
+		      && (*compose_status).chars_matched != 0                         // C 5488
+		      && android_get_dead_char ((*compose_status).accent,             // C 5489
+					 unicode_char,
+					 &raw mut unicode_char) == 0                                       // C 5491
+		    {
+		      *buffer_return.offset (0) = unicode_char as wchar_t;            // C 5493
+		      *status_return = ANDROID_LOOKUP_CHARS;                          // C 5494
+		      (*compose_status).chars_matched = 0;                            // C 5495
+		      return 1;                                                       // C 5496
+		    }
+		  else if ! compose_status.is_null ()                                 // C 5498
+		      && (*compose_status).chars_matched != 0
+		    {
+		      /* If the combination is valid the compose status must          // C 5500
+			 be reset and no character returned.  */                             // C 5501
+		      (*compose_status).chars_matched = 0;                            // C 5502
+		      status = ANDROID_LOOKUP_NONE;                                   // C 5503
+		      return 0;                                                       // C 5504
+		    }
+
+		  *buffer_return.offset (0) = unicode_char as wchar_t;                // C 5507
+		  status = ANDROID_LOOKUP_CHARS;                                      // C 5508
+		  rc = 1;                                                             // C 5509
+		}
+	    }
+
+	  *keysym_return = (*event).keycode as c_int;                          // C 5513 (C's `unsigned int`-into-`int`) 
+
+	  if status == ANDROID_LOOKUP_CHARS                                    // C 5515
+	    { status = ANDROID_LOOKUP_BOTH; }                                  // C 5516
+	  else
+	    {
+	      status = ANDROID_LOOKUP_KEYSYM;                                  // C 5519
+	      rc = 0;                                                          // C 5520
+	    }
+
+	  /* Terminate any ongoing character composition after a key is        // C 5523
+	     registered.  */                                                   // C 5524
+	  if ! compose_status.is_null ()                                       // C 5525
+	      /* Provided that a modifier key is not the key being             // C 5526
+		 depressed.  */                                                       // C 5527
+	      && ! ANDROID_IS_MODIFIER_KEY! ((*event).keycode)                 // C 5528
+	    { (*compose_status).chars_matched = 0; }                           // C 5529
+	  *status_return = status;                                             // C 5530
+	  return rc;                                                           // C 5531
+	}
+
+    /* Now look up the window.  */                                      // C 5534
+    rc = 0;                                                             // C 5535
+
+    window = android_resolve_handle ((*event).window);                  // C 5537
+    string
+	= ((*(*env)).CallNonvirtualObjectMethod.unwrap ()) (env, window,    // C 5539
+							  window_class.class,                                            // C 5540
+							  window_class.lookup_string,                                    // C 5541
+							  (*event).serial as jint);                                      // C 5542 (C's `unsigned long`-into-`jint`)
+    android_exception_check ();                                         // C 5543
+
+    if string.is_null ()                                                // C 5545
+      { status = ANDROID_LOOKUP_NONE; }                                 // C 5546
+    else
+	{
+	  /* Now return this input method string.  */                          // C 5549
+	  characters = ((*(*env)).GetStringChars.unwrap ()) (env, string,      // C 5550
+						     std::ptr::null_mut ());
+	  android_exception_check_nonnull (characters as *mut c_void, string); // C 5551
+
+	  /* Establish the size of the string.  */                             // C 5553
+	  size = ((*(*env)).GetStringLength.unwrap ()) (env, string);          // C 5554
+
+	  /* Copy over the string data.  */                                    // C 5556
+	  /* C 5557-5558's `for (i = 0; i < MIN ((unsigned int) wchars_buffer, size); ++i)` with
+	     its brace-less body: the bound is C's `unsigned int` comparison and the index is read
+	     at C 5560, so the port keeps a `while`.  */
+	  i = 0;
+	  while i < MIN! (wchars_buffer as c_uint, size as c_uint) as usize
+	    {
+	      *buffer_return.offset (i as isize) = *characters.offset (i as isize) as wchar_t; // C 5558
+	      i += 1;                                                          // C 5557 (the `for` step)
+	    }
+
+	  if i < size as usize                                                 // C 5560 (C's `i < size`)
+	    { status = ANDROID_BUFFER_OVERFLOW; }                              // C 5561
+	  else
+	    { status = ANDROID_LOOKUP_CHARS; }                                 // C 5563
+
+	  /* Return the number of characters that should have been             // C 5565
+	     written.  */                                                      // C 5566
+
+	  if size > INT_MAX                                                    // C 5568
+	    { rc = INT_MAX; }                                                  // C 5569
+	  else
+	    { rc = size; }                                                     // C 5571
+
+	  ((*(*env)).ReleaseStringChars.unwrap ()) (env, string, characters);  // C 5573
+	  ANDROID_DELETE_LOCAL_REF! (string);                                  // C 5574 (C's `ANDROID_DELETE_LOCAL_REF (string)`)
+	}
+
+    *status_return = status;                                            // C 5577
+    return rc;                                                          // C 5578
+  }
+
+  /* dead_key: */                                                       // C 5580
+  /* event->unicode_char is a dead key, which are diacritic marks that  // C 5581
+     should not be directly inserted but instead be combined with a     // C 5582
+     subsequent character before insertion.  */                         // C 5583
+  *status_return = ANDROID_LOOKUP_NONE;                                 // C 5584
+  (*compose_status).chars_matched = 1;                                  // C 5585
+  (*compose_status).accent = (*event).unicode_char & ! 0x80000000;      // C 5586
+  return 0;                                                             // C 5587
+}
+
+/* C 5589-5600: C 5589's blank, C 5590's form feed, C 5591's blank, C 5592's
+   `/* Low level drawing primitives.  */`, C 5593's blank, C 5594-5598's comment, C 5599's blank
+   and C 5600's `unsigned char *`.  */
+/* C 5600-5652: `android_lock_bitmap`.  C 5602's parameter is the **record** in C, but the
+   mirror's declaration (`include/android.rs` 269) names the opaque `<android/bitmap.h>` tag,
+   so the port takes the mirror's tag and casts at C 5629/5631 (the `sfntfont-android.rs` 91/710
+   device the ledger's Owed 12 records); the three callers already cast (C 3954 and below).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_lock_bitmap (drawable: android_drawable, // C 5600
+					      bitmap_info: *mut AndroidBitmapInfo,
+					      bitmap_return: *mut jobject)
+  -> *mut c_uchar
+{
+  let mut object: jobject;                                              // C 5605
+  let mut bitmap: jobject;
+  let mut data: *mut c_void;                                            // C 5606
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+  bitmap = std::ptr::null_mut ();
+  data = std::ptr::null_mut ();
+
+  object = android_resolve_handle (drawable);                           // C 5608
+
+  /* Look up the drawable and get the bitmap corresponding to it.       // C 5610
+     Then, lock the bitmap's bits.  */                                  // C 5611
+  bitmap = ((*(*android_java_env)).CallObjectMethod.unwrap ()) (android_java_env, // C 5612
+							object,                                                          // C 5613
+							drawable_class.get_bitmap);                                      // C 5614
+  if bitmap.is_null ()                                                  // C 5615
+    {
+      /* Report any exception signaled.  */                             // C 5617
+      android_exception_check ();                                       // C 5618
+
+      /* If no exception was signaled, then NULL was returned as the    // C 5620
+	 bitmap does not presently exist due to window reconfiguration         // C 5621
+	 on the main thread.  */                                               // C 5622
+      return std::ptr::null_mut ();                                     // C 5623
+    }
+
+  memset (bitmap_info as *mut c_void, 0,                                // C 5626
+	  std::mem::size_of::<android_bitmap::AndroidBitmapInfo> ());          // C 5626
+
+  /* Get the bitmap info.  */                                           // C 5628
+  AndroidBitmap_getInfo (android_java_env, bitmap,                      // C 5629
+			 bitmap_info as *mut android_bitmap::AndroidBitmapInfo);
+
+  if ((*(bitmap_info as *mut android_bitmap::AndroidBitmapInfo)).stride) == 0 // C 5631
+    {
+      ANDROID_DELETE_LOCAL_REF! (bitmap);                               // C 5633
+      return std::ptr::null_mut ();                                     // C 5634
+    }
+
+  /* Now lock the image data.  */                                       // C 5637
+  data = std::ptr::null_mut ();                                         // C 5638
+  AndroidBitmap_lockPixels (android_java_env, bitmap, &raw mut data);   // C 5639
+
+  if data.is_null ()                                                    // C 5641
+    {
+      ANDROID_DELETE_LOCAL_REF! (bitmap);                               // C 5643
+      return std::ptr::null_mut ();                                     // C 5644
+    }
+
+  /* Give the bitmap to the caller.  */                                 // C 5647
+  *bitmap_return = bitmap;                                              // C 5648
+
+  /* The bitmap data is now locked.  */                                 // C 5650
+  return data as *mut c_uchar;                                          // C 5651 (C's `void *`-into-`unsigned char *`)
+}
+
+/* C 5653-5656: C 5653's blank, C 5654's `/* Damage the window HANDLE by the given damage
+   rectangle.  */`, C 5655's blank and C 5656's `void`.  */
+/* C 5656-5676: `android_damage_window`.  C 5671-5674's `damage->x + damage->width` is
+   `unsigned int` arithmetic in C (`int` converts to `unsigned int`), so the port spells the
+   conversion and keeps C's wrap with `wrapping_add` (the `dispnew.rs`/`pgtkterm.rs` device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_damage_window (handle: android_drawable, // C 5656
+						damage: *mut android_rectangle)
+{
+  let mut drawable: jobject;                                            // C 5660
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  drawable = std::ptr::null_mut ();
+
+  drawable = android_resolve_handle (handle);                           // C 5662
+
+  /* Post the damage to the drawable.  */                               // C 5664
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 5665
+	(android_java_env,                                                     // C 5665
+	 drawable,                                                             // C 5666
+	 window_class.class,                                                   // C 5667
+	 window_class.damage_rect,                                             // C 5668
+	 (*damage).x as jint,                                                  // C 5669
+	 (*damage).y as jint,                                                  // C 5670
+	 ((*damage).x as c_uint).wrapping_add ((*damage).width) as jint,       // C 5671-5672 (C's `(jint) (damage->x + damage->width)`)
+	 ((*damage).y as c_uint).wrapping_add ((*damage).height) as jint);     // C 5673-5674 (C's `(jint) (damage->y + damage->height)`)
+  android_exception_check ();                                           // C 5675
+}
+
+/* C 5677-5680: C 5677's blank, C 5678's form feed, C 5679's blank and C 5680's
+   `/* Other misc system routines.  */`.  */

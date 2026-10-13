@@ -125,8 +125,15 @@
 > JNI int-array entry) and `android_get_dead_char` (5406-5428, the `static` dead-key helper) -
 > so the port carries C 1-5428 (except C 2086-2192), C 4734-4747 and C 6880-7096: **5,552 C
 > lines of 7,594 (73.1%)**, in a 6,849-line port, md5
-> `9dc996e13b1cd6b0fd513e11222280fa`.  **The
-> next live definition is C 5442's `android_wc_lookup_string`**; the table's last row is the
+> `9dc996e13b1cd6b0fd513e11222280fa`.  **Slice 28 (C 5429-5676, 2026-10-12)** carries
+> `android_wc_lookup_string` (5442-5588: C 5471's `goto dead_key` and C 5580's label are the
+> port's `'dead_key` labelled block, and C 5557-5558's brace-less `for` is a `while`),
+> `android_lock_bitmap` (5600-5652: C 5602's parameter is C's record but the mirror's opaque
+> tag, so the port casts at C 5629/5631) and `android_damage_window` (5656-5676: C 5671-5674's
+> two `unsigned int` sums) - so the port carries C 1-5676 (except C 2086-2192), C 4734-4747 and
+> C 6880-7096: **5,800 C lines of 7,594 (76.4%)**, in a 7,131-line port, md5
+> `f1186b9765a95f58ce2f507f54625710`.  **The
+> next live definition is C 5682's `android_get_screen_width`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -384,7 +391,10 @@ no `window.h`).
 | 5352-5358 | the blank and `android_map_raised` | real arm (slice 27) |
 | 5359-5400 | the blank and `android_translate_coordinates` (the second int-array entry) | real arm (slice 27) |
 | 5401-5428 | C 5401's blank, C 5402-5404's comment and `android_get_dead_char` | real arm (slice 27) |
-| 5429-6879 | **the remainder, first part (b)** - from C 5429's blank and C 5431-5439's comment (C 5442's `android_wc_lookup_string`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the dead-key and lookup-string entries, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
+| 5429-5588 | C 5429's blank, C 5431-5439's comment and `android_wc_lookup_string` (C 5471's `goto dead_key` and C 5580's label become the `'dead_key` block; C 5557-5558's brace-less `for` becomes the port's `while`) | real arm (slice 28) |
+| 5589-5652 | C 5589's blank, C 5590's form feed, C 5592's `/* Low level drawing primitives.  */`, C 5594-5598's comment and `android_lock_bitmap` (C 5626's `memset`, C 5629's `AndroidBitmap_getInfo`, C 5631's `stride` read, C 5639's `AndroidBitmap_lockPixels`) | real arm (slice 28) |
+| 5653-5676 | C 5653's blank, C 5654's comment, C 5656's `void` and `android_damage_window` (C 5671-5674's two `unsigned int` sums) | real arm (slice 28) |
+| 5677-6879 | **the remainder, first part (b)** - from C 5677's blank and C 5678's form feed (C 5680's `/* Other misc system routines.  */` and C 5682's `android_get_screen_width`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the remaining system routines, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -771,16 +781,16 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-27's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`, no dead key, no bitmap lock.  Slices 2-28's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-5428, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 5429-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (52 `missing
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-5676, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 5677-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (49 `missing
 function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 9.8% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
-one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
-lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
-configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
+`invented exported symbol` rows of Owed 9) and the 6.1% drift are that boundary, not defects.  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
+one `check-declarations` failure is the allowlist row of Owed 10, and every `does not mention`
+row is a recorded `macro-body-notes.tsv` row of Owed 8 - none of them is a port defect.  The `android_api_lt_21`
+configuration compiled to an object (②b, 72,944 bytes) and was not run; the pristine base-config arm
 still stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member (②a, Owed 6), so no
 object exists for it.
 
@@ -1899,3 +1909,47 @@ the line-count row reads **9.8%** (C 7,594 against the port's 6,849).
 - **C 5406-5428's `android_get_dead_char` is `static`** and stays a plain `unsafe fn` (its address is
   never taken), returning `c_int` with C's two paths (`return 0` after storing the value, `return 1`
   otherwise).
+
+## 2026-10-12: slice 28 (C 5429-5676) - the lookup-string entry, the bitmap lock and the damage post
+
+`android_wc_lookup_string`, `android_lock_bitmap` and `android_damage_window`.
+
+### Evidence (this slice's readings)
+
+**⑤② The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings**, and the
+three-`--cfg` run passed on the **first** attempt: the `'dead_key` labelled block with its
+`break 'dead_key`, the `CallNonvirtualObjectMethod` lookup-string call with its `GetStringChars` /
+`GetStringLength` / `ReleaseStringChars` sequence, the two `AndroidBitmap_*` NDK calls and the
+`CallNonvirtualVoidMethod` damage post all read correctly.
+
+**⑤③ The checklist reading.**  `extract-abi.py --check`: `missing function` **52 → 49** (the three
+definitions this slice carries), **`missing file-scope object` 0** (sixteenth round at empty),
+**`invented exported symbol` 41** unchanged, and **`does not mention` 0 after this slice's
+`macro-body-notes.tsv` row** (C 5471's `goto dead_key`); the line-count row reads **6.1%** (C 7,594
+against the port's 7,131).
+
+### Deviations this slice adds
+
+- **C 5471's `goto dead_key` and C 5580's `dead_key:` label** become the port's `'dead_key: { … }`
+  labelled block whose jump is `break 'dead_key` (PORTING.md 2.2, the slice-11 `blitRect` shape),
+  and the label's four statements (C 5584-5587) follow the block; the notes row records the token.
+- **C 5557-5558's brace-less `for`, whose index C 5560 reads after the loop**, becomes the port's
+  `while` with an explicit `i = 0` and the `for` step as `i += 1;`, with C's own
+  `MIN ((unsigned int) wchars_buffer, size)` kept as `MIN!` and the index compared at C 5560's
+  `i < size` as `size as usize`.
+- **C 5470/5474/5586's `& ~0x80000000`** is the port's `& ! 0x80000000` and **C 5465's
+  `(uint32_t) -1`** is `-1i32 as c_uint` (C's own conversion, spelled).
+- **C 5513's `*keysym_return = event->keycode`** narrows with `as c_int` and **C 5542's
+  `(jint) event->serial`** with `as jint` (C's `unsigned int` / `unsigned long`-into-`int`).
+- **C 5550's `GetStringChars (…, NULL)`** keeps C's NULL as `std::ptr::null_mut ()`, **C 5551's
+  `android_exception_check_nonnull (characters, …)`** casts the first argument to the mirror's
+  `*mut c_void`, and **C 5574's `ANDROID_DELETE_LOCAL_REF (string)`** is the unit's own macro
+  (C 340's expansion, slice 1's device).
+- **C 5602's `AndroidBitmapInfo *` parameter takes the mirror's opaque tag** (`include/android.rs`
+  269), so C 5626's `memset`, C 5629's `AndroidBitmap_getInfo`, C 5631's `stride` read and C 5626's
+  `sizeof *bitmap_info` cast to the unit's five-member record
+  (`android_bitmap::AndroidBitmapInfo` - the Owed 12 device the three callers already use), and
+  **C 5651's `return data`** narrows with `as *mut c_uchar`.
+- **C 5671-5674's two `damage->x + damage->width` sums** are `unsigned int` arithmetic in C, so the
+  port spells the conversion (`(*damage).x as c_uint`) and keeps C's wrap with `wrapping_add`
+  (the `dispnew.rs` / `pgtkterm.rs` device), narrowing to `jint` afterwards.
