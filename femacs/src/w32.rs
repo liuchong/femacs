@@ -7673,3 +7673,167 @@ unsafe fn get_rid (sid: PSID) -> DWORD                                  // C 519
 
 /* C 5203-5204: C 5203's blank and C 5204's `/* Caching SID and account values for faster
    lokup.  */` (the next item is C 5206's `struct w32_id`, past this slice).  */
+/* C 5203-5213: C 5203's blank, C 5204's `/* Caching SID and account values for faster lokup.  */`,
+   C 5206-5211's `struct w32_id` (whose `sid` member is C's `FLEXIBLE_ARRAY_MEMBER` array, the
+   `comp.rs` 884 device) and C 5213's tentative pointer.  */
+/// C: struct w32_id { unsigned rid; struct w32_id *next; char name[GNLEN+1];
+/// C:   unsigned char sid[FLEXIBLE_ARRAY_MEMBER]; };
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct w32_id
+{
+  pub rid: c_uint,
+  pub next: *mut w32_id,
+  pub name: [c_char; GNLEN + 1],
+  pub sid: [c_uchar; 0],                   /* FLEXIBLE_ARRAY_MEMBER */
+}
+#[cfg (feature = "windowsnt")]
+static mut w32_idlist: *mut w32_id = std::ptr::null_mut ();  // C 5213 (tentative, i.e. NULL) // C 5213
+/* C 5215-5236: C 5215's `static int` and `w32_cached_id` (C 5220's two-initialiser `for` with its
+   `break` is the port's `while` plus the loop-carried assignments, C 5222's `(PSID)tail->sid`
+   cast being the flexible array's address).  */
+#[cfg (feature = "windowsnt")]
+unsafe fn w32_cached_id (sid: PSID, id: *mut c_uint, name: *mut c_char) -> c_int // C 5215
+{
+  let mut tail: *mut w32_id;                                            // C 5218
+  let mut found: *mut w32_id;
+
+  /* C leaves `tail` and `found` uninitialised (PORTING.md 1.5).  */
+  tail = std::ptr::null_mut ();
+  found = std::ptr::null_mut ();
+
+  found = std::ptr::null_mut ();                                        // C 5220
+  tail = w32_idlist;                                                    // C 5220
+  while ! tail.is_null ()                                               // C 5220
+    {
+      if equal_sid ((&raw mut (*tail).sid) as PSID, sid) != 0           // C 5222
+	{
+	  found = tail;                                                        // C 5224
+	  break;                                                               // C 5225
+	}
+      tail = (*tail).next;                                              // C 5220 (the for's increment)
+    }
+  if ! found.is_null ()                                                 // C 5228
+    {
+      *id = (*found).rid;                                               // C 5230
+      strcpy (name, (&raw const (*found).name) as *const c_char);       // C 5231
+      return 1;                                                         // C 5232
+    }
+  else                                                                  // C 5234
+    { return 0; }                                                       // C 5235
+}
+/* C 5238-5259: C 5238's `static void` and `w32_add_to_cache` (C 5249's `offsetof` is the port's
+   `core::mem::offset_of!`).  */
+#[cfg (feature = "windowsnt")]
+unsafe fn w32_add_to_cache (sid: PSID, id: c_uint, name: *mut c_char)   // C 5238
+{
+  let mut sid_len: DWORD;                                               // C 5241
+  let mut new_entry: *mut w32_id;                                       // C 5242
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  sid_len = 0;
+  new_entry = std::ptr::null_mut ();
+
+  /* We don't want to leave behind stale cache from when Emacs was      // C 5244
+     dumped.  */                                                        // C 5245
+  if initialized != 0                                                   // C 5246
+    {
+      sid_len = get_length_sid (sid);                                   // C 5248
+      new_entry = xmalloc (core::mem::offset_of! (w32_id, sid) + sid_len as usize) as *mut w32_id; // C 5249 (C's `offsetof (struct w32_id, sid) + sid_len`)
+      if ! new_entry.is_null ()                                         // C 5250
+	{
+	  (*new_entry).rid = id;                                               // C 5252
+	  strcpy ((&raw mut (*new_entry).name) as *mut c_char, name);          // C 5253
+	  copy_sid (sid_len, (&raw mut (*new_entry).sid) as PSID, sid);        // C 5254
+	  (*new_entry).next = w32_idlist;                                      // C 5255
+	  w32_idlist = new_entry;                                              // C 5256
+	}
+    }
+}
+/* C 5261-5262: the two object-like macros the next function switches on.  */
+/// C: #define UID 1
+#[cfg (feature = "windowsnt")]
+pub const UID: c_int = 1;
+/// C: #define GID 2
+#[cfg (feature = "windowsnt")]
+pub const GID: c_int = 2;
+/* C 5264-5300: C 5264's `static int` and `get_name_and_id`.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn get_name_and_id (psd: PSECURITY_DESCRIPTOR, id: *mut c_uint, nm: *mut c_char, // C 5264
+			what: c_int)
+  -> c_int
+{
+  let mut sid: PSID = std::ptr::null_mut ();                            // C 5267
+  let mut dflt: BOOL;                                                   // C 5268
+  let mut ignore: SID_NAME_USE = std::mem::zeroed ();                   // C 5269
+  let mut name: [c_char; UNLEN + 1] = [0; UNLEN + 1]; // C 5270
+  let mut name_len: DWORD = core::mem::size_of_val (&name) as DWORD;    // C 5271
+  let mut domain: [c_char; 1024] = [0; 1024];                           // C 5272
+  let mut domain_len: DWORD = core::mem::size_of_val (&domain) as DWORD; // C 5273
+  let mut use_dflt: c_int = 0;                                          // C 5274
+  let mut result: c_int;                                                // C 5275
+
+  /* C leaves `dflt` and `result` uninitialised (PORTING.md 1.5).  */
+  dflt = 0;
+  result = 0;
+
+  if what == UID                                                        // C 5277
+    { result = get_security_descriptor_owner (psd, (&raw mut sid), (&raw mut dflt)); } // C 5278
+  else if what == GID                                                   // C 5279
+    { result = get_security_descriptor_group (psd, (&raw mut sid), (&raw mut dflt)); } // C 5280
+  else
+    { result = 0; }                                                     // C 5282
+
+  if (result == 0 || is_valid_sid (sid) == 0)                           // C 5284
+    { use_dflt = 1; }                                                   // C 5285
+  else if w32_cached_id (sid, id, nm) == 0                              // C 5286
+    {
+      if (lookup_account_sid (std::ptr::null (), sid, name.as_mut_ptr (), (&raw mut name_len), // C 5288
+			   domain.as_mut_ptr (), (&raw mut domain_len), (&raw mut ignore)) == 0 // C 5289
+	  || name_len > (UNLEN + 1) as DWORD)                                    // C 5290
+	{ use_dflt = 1; }                                                      // C 5291
+	      else
+	{
+	  *id = get_rid (sid);                                                 // C 5294
+	  strcpy (nm, name.as_ptr ());                                         // C 5295
+	  w32_add_to_cache (sid, *id, name.as_mut_ptr ());                     // C 5296
+	}
+    }
+  return use_dflt;                                                      // C 5299
+}
+/* C 5302-5331: C 5302's `static void` and `get_file_owner_and_group`.  */
+#[cfg (feature = "windowsnt")]
+unsafe fn get_file_owner_and_group (psd: PSECURITY_DESCRIPTOR, st: *mut stat) // C 5302
+{
+  let mut dflt_usr: c_int = 0;                                          // C 5305
+  let mut dflt_grp: c_int = 0;
+
+  if psd.is_null ()                                                     // C 5307
+    {
+      dflt_usr = 1;                                                     // C 5309
+      dflt_grp = 1;                                                     // C 5310
+    }
+  else
+    {
+      if get_name_and_id (psd, (&raw mut (*st).st_uid), ((&raw mut (*st).st_uname) as *mut c_char), UID) != 0 // C 5314
+	{ dflt_usr = 1; }                                                      // C 5315
+      if get_name_and_id (psd, (&raw mut (*st).st_gid), ((&raw mut (*st).st_gname) as *mut c_char), GID) != 0 // C 5316
+	{ dflt_grp = 1; }                                                      // C 5317
+    }
+  /* Consider files to belong to current user/group, if we cannot get   // C 5319
+     more accurate information.  */                                     // C 5320
+  if dflt_usr != 0                                                      // C 5321
+    {
+      (*st).st_uid = dflt_passwd.pw_uid;                             // C 5323
+      strcpy (((&raw mut (*st).st_uname) as *mut c_char), dflt_passwd.pw_name); // C 5324
+    }
+  if dflt_grp != 0                                                      // C 5326
+    {
+      (*st).st_gid = dflt_passwd.pw_gid;                             // C 5328
+      strcpy (((&raw mut (*st).st_gname) as *mut c_char), dflt_group.gr_name); // C 5329
+    }
+}
+
+/* C 5333-5334: C 5333's `/* Return non-zero if NAME is a potentially slow filesystem.  */` and
+   C 5334's forward declaration (the next item is C 5336's `int`/`is_slow_fs`, past this
+   slice).  */
