@@ -153,9 +153,17 @@
 > pending exception and calls `memory_full (0)` after releasing the local references it was
 > given - so the port carries C 1-6405 (except C 2086-2192) and C 6021-6101 is the second
 > blocked hole (P-05's `alloca`), plus C 4734-4747 and C 6880-7096: **6,529 C lines of 7,594
-> (86.0%)**, in a 7,842-line port, md5 `781121799e9e9e5cd4952bfe0be83329`.  **The
-> next live definition is C 6414's `android_transform_coordinates`** (the first of the native
-> image transforms, `static`).  The table's last row is the
+> (86.0%)**, in a 7,842-line port, md5 `781121799e9e9e5cd4952bfe0be83329`.  **Slice 31 (C
+> 6406-6661, 2026-10-12)** carries the whole native image-transform group:
+> `android_transform_coordinates` (6414-6438, `static`), `android_four_corners_bilinear`
+> (6443-6484, `static`), `android_fetch_pixel_bilinear` (6490-6531, `static`),
+> `android_project_image_bilinear` (6538-6567), `android_fetch_pixel_nearest_24` (6571-6586,
+> `static`), `android_fetch_pixel_nearest_1` (6590-6602, `static`) and
+> `android_project_image_nearest` (6609-6661) - so the port carries C 1-6661 (except C
+> 2086-2192), plus C 4734-4747 and C 6880-7096: **6,785 C lines of 7,594 (89.3%)**, in an
+> 8,157-line port, md5 `5f620378284429643e8dd810e8738348`.  **The
+> next live definition is C 6674's `android_browse_url`** (the head of the
+> `/* Other miscellaneous functions.  */` group).  The table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -442,7 +450,15 @@ no `window.h`).
 | 6324-6363 | C 6325-6327's blank run and comment and `android_exception_check_6` (six guarded releases) | real arm (slice 30) |
 | 6364-6384 | C 6365-6372's comment and `android_exception_check_nonnull` (C 6377 tests OBJECT itself, which is why the guard is a plain null test) | real arm (slice 30) |
 | 6385-6405 | C 6386-6389's comment and `android_exception_check_nonnull_1` (two guarded releases) | real arm (slice 30) |
-| 6406-6879 | **the remainder, first part (c)** - from C 6406's blank and C 6407's form feed (C 6409's `/* Native image transforms.  */` and C 6414's `android_transform_coordinates`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the native image transforms, the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
+| 6406-6413 | C 6406's blank, C 6407's form feed, C 6409's `/* Native image transforms.  */` and C 6411-6413's comment | real arm (slice 31) |
+| 6414-6438 | `android_transform_coordinates` (C 6419-6434's matrix comment carried line for line, C 6436-6437's two affine expressions) | real arm (slice 31) |
+| 6439-6484 | C 6439's blank, C 6440-6441's comment and `android_four_corners_bilinear` (C 6452-6455's four distance terms, the red/green pair, C 6467-6471's five shifts and the blue/alpha pair) | real arm (slice 31) |
+| 6485-6531 | C 6485's blank, C 6486-6488's comment and `android_fetch_pixel_bilinear` (C 6501-6504's truncations, C 6507-6510's clamps, C 6518-6525's four `memcpy` fetches and C 6528-6530's interpolation call) | real arm (slice 31) |
+| 6532-6567 | C 6532's blank, C 6533-6536's comment and `android_project_image_bilinear` (the two nested loops with C 6556-6557's transform call and C 6563-6564's store) | real arm (slice 31) |
+| 6568-6586 | C 6568's blank, C 6569's comment and `android_fetch_pixel_nearest_24` | real arm (slice 31) |
+| 6587-6602 | C 6587's blank, C 6588's comment and `android_fetch_pixel_nearest_1` (C 6601's ternary bit test) | real arm (slice 31) |
+| 6603-6661 | C 6603's blank, C 6604-6607's comment and `android_project_image_nearest` (C 6619's depth test with the depth-1 loops and the bit set/clear pair, then the depth-24 pair) | real arm (slice 31) |
+| 6662-6879 | **the remainder, first part (d)** - from C 6662's blank, C 6663's form feed and C 6665's `/* Other miscellaneous functions.  */` (C 6674's `android_browse_url`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the miscellaneous system queries and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -829,18 +845,19 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built.  Slices 2-30's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built, no image transformed.  Slices 2-31's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-6405, C 4734-4747 and C 6880-7096) are carried;
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-6661, C 4734-4747 and C 6880-7096) are carried;
 the **unported** part is C 2086-2192 and C 6021-6101 (both blocked on P-05's `alloca` decision)
-and C 6406-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (25
+and C 6662-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (18
 `missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
 `invented exported symbol` rows of Owed 9) are that boundary, not defects; the line-count row
-is **below the checker's 5% report threshold** and is no longer emitted (C 7,594 against the
-port's 7,842, 3.3%).  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
+**is emitted again at 7.4%** (C 7,594 against the port's 8,157): the port now exceeds the
+reference because every carried line adds its `// C NNNN` marker and its `#[cfg]`/comment
+frame, which is the same reading the earlier over-100% units carry.  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and every `does not mention`
 row is a recorded `macro-body-notes.tsv` row of Owed 8 - none of them is a port defect.  The `android_api_lt_21`
-configuration compiled to an object (②b, 88,696 bytes) and was not run; the pristine base-config arm
+configuration compiled to an object (②b, 90,048 bytes) and was not run; the pristine base-config arm
 still stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member (②a, Owed 6), so no
 object exists for it.
 
@@ -2115,3 +2132,48 @@ port's 7,842, 3.3%).
   generator reads `emacs/src/android.c` and takes the line number of each C statement it
   mirrors), because the entries' signature widths differ and a fixed offset would have been
   wrong for four of the ten.
+
+## 2026-10-12: slice 31 (C 6406-6661) - the native image transforms
+
+`android_transform_coordinates`, `android_four_corners_bilinear`, `android_fetch_pixel_bilinear`,
+`android_project_image_bilinear`, `android_fetch_pixel_nearest_24`, `android_fetch_pixel_nearest_1`
+and `android_project_image_nearest`.
+
+### Evidence (this slice's readings)
+
+**⑤⑧ The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings** after **two**
+first-attempt repairs, and both repairs are real defects of the text: the unit has no `c_float` in
+scope (the mirror's `android_transform` fields are `f32`, so `*mut c_float`/`roundf`'s signature
+write `f32` - 4 x `E0425`), and C 6467-6470 shifts the four *parameters*, which Rust requires be
+`mut` bindings (4 x `E0384`).
+
+**⑤⑨ The checklist reading.**  `extract-abi.py --check`: `missing function` **25 → 18** (the seven
+definitions this slice carries, three of them `static` helpers), **`missing file-scope object` 0**
+(nineteenth round at empty), **`invented exported symbol` 41** unchanged, and **`does not mention` 0
+after this slice's three `macro-body-notes.tsv` rows**; the line-count row **is emitted again at
+7.4%** (C 7,594 against the port's 8,157) because the port now exceeds the reference - the
+reference is 7,594 C lines while the port carries its per-line markers and cfg frames.
+
+### Deviations this slice adds
+
+- **C's `unsigned int * int` operands** in `android_four_corners_bilinear` convert the `int` to
+  `unsigned int`, so each distance term is spelled `distixiy as c_uint` (C's own conversion);
+  C's plain `int` arithmetic (`distxy = distx * disty`, `distixiy = 256 * 256 - ...`) stays as
+  the port's plain operators.
+- **C 6415-6417's `float`** is the port's `f32` (the unit does not import `c_float`; the mirror's
+  `android_transform` fields are `f32`), and **C 6467-6470's `tl >>= 16` on parameters** makes
+  those four parameters `mut` bindings.
+- **C 6418's x/y and C 6543/6614's loop indices** have no declarations of their own where the
+  port writes a range loop (the slice-25 device), which is why the two project entries declare
+  four and five locals instead of six and seven.
+- **C 6436-6437's `transform->m1 * x`** casts the `int` operand (`x as f32`, C's own
+  conversion), and **C 6529-6530's `distx * 256`** is `(distx * 256.0) as c_int`.
+- **C 6501/6503's `(int) x`** is the port's `float_x as c_int`, **C 6579-6580/6597-6598's
+  `(int) roundf (x)`** is `roundf (float_x) as c_int`, and **`roundf` is declared in-unit**
+  (`<math.h>` has no mirror; the P-88 device, `strncpy`/`abort` above).
+- **C 6508-6525's pointer arithmetic** is the unit's `wrapping_offset` device and **its four
+  `memcpy` calls** are the unit's `memcpy (…, (&raw mut top_left) as *mut c_void, …,
+  std::mem::size_of::<c_uint> ())` shape (P-93's byte-count rule, the unit's own 6122 device).
+- **C 6601's ternary bit test** is the port's `if` expression, and **C 6636/6638's
+  `*byte |= (1 << x % 8)` / `*byte &= ~(1 << x % 8)`** are the unit's own 6101/6103 device
+  (`as c_char` on the shift and `!` for C's `~`).

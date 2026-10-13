@@ -7840,3 +7840,318 @@ pub unsafe extern "C" fn android_exception_check_nonnull_1 (object: *mut c_void,
 
 /* C 6406-6409: C 6406's blank, C 6407's form feed, C 6408's blank and C 6409's
    `/* Native image transforms.  */`.  */
+/* C 6406-6413: C 6406's blank, C 6407's form feed, C 6408's blank, C 6409's
+   `/* Native image transforms.  */`, C 6410's blank and C 6411-6413's two-line comment.  */
+/* C 6414-6438: `static void` and android_transform_coordinates (C 6419-6434's matrix comment,
+   called by both project entries below).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_transform_coordinates (x: c_int, y: c_int,            // C 6415
+				     transform: *mut android_transform,
+				     xout: *mut f32, yout: *mut f32)
+{
+  /* Apply the specified affine transformation.                         // C 6419
+  A transform looks like:                                               // C 6420
+                                                                        // C 6421
+  M1 M2 M3     X                                                        // C 6422
+  M4 M5 M6   * Y                                                        // C 6423
+                                                                        // C 6424
+  =                                                                     // C 6425
+                                                                        // C 6426
+  M1*X + M2*Y + M3*1 = X1                                               // C 6427
+  M4*X + M5*Y + M6*1 = Y1                                               // C 6428
+                                                                        // C 6429
+  (In most transforms, there is another row at the bottom for           // C 6430
+  mathematical reasons.  Since Z1 is always 1.0, the row is simply      // C 6431
+  implied to be 0 0 1, because 0 * x + 0 * y + 1 * 1 = 1.0.  See        // C 6432
+  the definition of matrix3x3 in image.c for some more explanations     // C 6433
+  about this.) */                                                       // C 6434
+
+  *xout = (*transform).m1 * x as f32 + (*transform).m2 * y as f32 + (*transform).m3; // C 6436
+  *yout = (*transform).m4 * x as f32 + (*transform).m5 * y as f32 + (*transform).m6; // C 6437
+}
+/* C 6440-6484: C 6440-6441's comment, C 6443's `static unsigned int` and
+   android_four_corners_bilinear (C 6452-6455's distance terms and the four
+   red/green/blue/alpha accumulations).  C's `unsigned int * int` operands convert the `int`
+   to `unsigned int` (mod 2^32), so the port spells `as c_uint` on each distance term.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_four_corners_bilinear (mut tl: c_uint, mut tr: c_uint,        // C 6444
+					     mut bl: c_uint, mut br: c_uint,
+					     distx: c_int, disty: c_int)
+  -> c_uint
+{
+  let mut distxy: c_int;                                                // C 6448
+  let mut distxiy: c_int;
+  let mut distixy: c_int;
+  let mut distixiy: c_int;
+  let mut f: u32;                                                       // C 6449
+  let mut r: u32;
+
+  /* C leaves the six locals uninitialised (PORTING.md 1.5).  */
+  distxy = 0;
+  distxiy = 0;
+  distixy = 0;
+  distixiy = 0;
+  f = 0;
+  r = 0;
+
+  distxy = distx * disty;                                               // C 6451
+  distxiy = (distx << 8) - distxy;                                      // C 6452
+  distixy = (disty << 8) - distxy;                                      // C 6453
+  distixiy = (256 * 256 - (disty << 8)                                  // C 6454
+	      - (distx << 8) + distxy);                                        // C 6455
+
+  /* Red */                                                             // C 6457
+  r = ((tl & 0x000000ff) * distixiy as c_uint + (tr & 0x000000ff) * distxiy as c_uint // C 6458
+       + (bl & 0x000000ff) * distixy as c_uint + (br & 0x000000ff) * distxy as c_uint); // C 6459
+
+  /* Green */                                                           // C 6461
+  f = ((tl & 0x0000ff00) * distixiy as c_uint + (tr & 0x0000ff00) * distxiy as c_uint // C 6462
+       + (bl & 0x0000ff00) * distixy as c_uint + (br & 0x0000ff00) * distxy as c_uint); // C 6463
+  r |= f & 0xff000000;                                                  // C 6464
+
+  /* Now do the upper two components.  */                               // C 6466
+  tl >>= 16;                                                            // C 6467
+  tr >>= 16;                                                            // C 6468
+  bl >>= 16;                                                            // C 6469
+  br >>= 16;                                                            // C 6470
+  r >>= 16;                                                             // C 6468
+
+  /* Blue */                                                            // C 6473
+  f = ((tl & 0x000000ff) * distixiy as c_uint + (tr & 0x000000ff) * distxiy as c_uint // C 6474
+       + (bl & 0x000000ff) * distixy as c_uint + (br & 0x000000ff) * distxy as c_uint); // C 6475
+  r |= f & 0x00ff0000;                                                  // C 6476
+
+  /* Alpha */                                                           // C 6478
+  f = ((tl & 0x0000ff00) * distixiy as c_uint + (tr & 0x0000ff00) * distxiy as c_uint // C 6462
+       + (bl & 0x0000ff00) * distixy as c_uint + (br & 0x0000ff00) * distxy as c_uint); // C 6463
+  r |= f & 0xff000000;                                                  // C 6481
+
+  return r;                                                             // C 6483
+}
+/* C 6486-6531: C 6486-6488's comment, C 6490's `static unsigned int` and
+   android_fetch_pixel_bilinear (C 6501-6504's truncations, C 6507-6510's clamps, C 6514-6515's
+   biases and C 6518-6525's four `memcpy` fetches).  `roundf` is declared below for the two
+   nearest entries (the P-88 device: `<math.h>` has no mirror).  */
+unsafe extern "C" {
+  /// C: `float roundf (float);` (`<math.h>`); the unit spells `float` as `f32`
+  pub fn roundf (x: f32) -> f32;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_fetch_pixel_bilinear (image: *mut android_image, float_x: f32, // C 6491
+					float_y: f32)
+  -> c_uint
+{
+  let mut x1: c_int;                                                    // C 6494
+  let mut y1: c_int;
+  let mut x2: c_int;
+  let mut y2: c_int;
+  let mut distx: f32;                                                   // C 6495
+  let mut disty: f32;
+  let mut top_left: c_uint;                                             // C 6496
+  let mut top_right: c_uint;
+  let mut bottom_left: c_uint;                                          // C 6497
+  let mut bottom_right: c_uint;
+  let mut word: *mut c_char;                                            // C 6498
+
+  /* C leaves the nine locals uninitialised (PORTING.md 1.5).  */
+  x1 = 0; y1 = 0; x2 = 0; y2 = 0;
+  distx = 0.0; disty = 0.0;
+  top_left = 0; top_right = 0; bottom_left = 0; bottom_right = 0;
+  word = std::ptr::null_mut ();
+
+  /* Compute the four closest corners to X and Y.  */                   // C 6500
+  x1 = float_x as c_int;                                                // C 6501
+  x2 = x1 + 1;                                                          // C 6502
+  y1 = float_y as c_int;                                                // C 6503
+  y2 = y1 + 1;                                                          // C 6504
+
+  /* Make sure all four corners are within range.  */                   // C 6506
+  x1 = MAX! (0, MIN! ((*image).width - 1, x1));                         // C 6507
+  y1 = MAX! (0, MIN! ((*image).height - 1, y1));                        // C 6508
+  x2 = MAX! (0, MIN! ((*image).width - 1, x2));                         // C 6509
+  y2 = MAX! (0, MIN! ((*image).height - 1, y2));                        // C 6510
+
+  /* Compute the X and Y biases.  These are numbers between 0f and      // C 6512
+     1f.  */                                                            // C 6513
+  distx = float_x - x1 as f32;                                          // C 6514
+  disty = float_y - y1 as f32;                                          // C 6515
+
+  /* Fetch the four closest pixels.  */                                 // C 6517
+  word = (*image).data                                                  // C 6518
+	.wrapping_offset ((y1 * (*image).bytes_per_line + x1 * 4) as isize);
+  memcpy ((&raw mut top_left) as *mut c_void, word as *const c_void,    // C 6519
+	  std::mem::size_of::<c_uint> ());
+  word = (*image).data                                                  // C 6520
+	.wrapping_offset ((y1 * (*image).bytes_per_line + x2 * 4) as isize);
+  memcpy ((&raw mut top_right) as *mut c_void, word as *const c_void,   // C 6521
+	  std::mem::size_of::<c_uint> ());
+  word = (*image).data                                                  // C 6522
+	.wrapping_offset ((y2 * (*image).bytes_per_line + x1 * 4) as isize);
+  memcpy ((&raw mut bottom_left) as *mut c_void, word as *const c_void, // C 6523
+	  std::mem::size_of::<c_uint> ());
+  word = (*image).data                                                  // C 6524
+	.wrapping_offset ((y2 * (*image).bytes_per_line + x2 * 4) as isize);
+  memcpy ((&raw mut bottom_right) as *mut c_void, word as *const c_void, // C 6525
+	  std::mem::size_of::<c_uint> ());
+
+  /* Do the interpolation.  */                                          // C 6527
+  return android_four_corners_bilinear (top_left, top_right, bottom_left, // C 6528
+					bottom_right, (distx * 256.0) as c_int,                            // C 6529
+					(disty * 256.0) as c_int);                                         // C 6530
+}
+/* C 6533-6567: C 6533-6536's comment, C 6538's `void` and
+   android_project_image_bilinear (C 6551-6566's two nested loops with C 6556-6557's transform
+   call and C 6563-6564's store).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_project_image_bilinear (image: *mut android_image, // C 6539
+							out: *mut android_image,
+							transform: *mut android_transform)
+{
+  let mut pixel: c_uint;                                                // C 6544
+  let mut xout: f32;                                                    // C 6545
+  let mut yout: f32;
+  let mut word: *mut c_char;                                            // C 6546
+
+  /* C leaves the four locals uninitialised (PORTING.md 1.5); C 6543's `x` and `y` are the
+     two loops', so the port declares neither (the slice-25 device).  */
+  pixel = 0; xout = 0.0; yout = 0.0; word = std::ptr::null_mut ();
+
+  /* Loop through each pixel in OUT.  Transform it by TRANSFORM, then   // C 6548
+     interpolate it to IMAGE, and place the result back in OUT.  */     // C 6549
+
+  for y in 0 .. (*out).height                                           // C 6551
+    {
+      for x in 0 .. (*out).width                                        // C 6553
+	{
+	  /* Transform the coordinates by TRANSFORM.  */                       // C 6555
+	  android_transform_coordinates (x, y, transform,                      // C 6556
+					 (&raw mut xout), (&raw mut yout));                                // C 6557
+
+	  /* Interpolate back to IMAGE.  */                                    // C 6559
+	  pixel = android_fetch_pixel_bilinear (image, xout, yout);            // C 6560
+
+	  /* Put the pixel back in OUT.  */                                    // C 6562
+	  word = (*out).data                                                   // C 6563
+		.wrapping_offset ((y * (*out).bytes_per_line + x * 4) as isize);
+	  memcpy (word as *mut c_void, (&raw const pixel) as *const c_void,    // C 6564
+		  std::mem::size_of::<c_uint> ());
+	}
+    }
+}
+/* C 6569-6586: C 6569's comment, C 6571's `static unsigned int` and
+   android_fetch_pixel_nearest_24.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_fetch_pixel_nearest_24 (image: *mut android_image, float_x: f32, // C 6572
+					  float_y: f32)
+  -> c_uint
+{
+  let mut x1: c_int;                                                    // C 6575
+  let mut y1: c_int;
+  let mut word: *mut c_char;                                            // C 6576
+  let mut pixel: c_uint;                                                // C 6577
+
+  /* C leaves the four locals uninitialised (PORTING.md 1.5).  */
+  x1 = 0; y1 = 0; word = std::ptr::null_mut (); pixel = 0;
+
+  x1 = MAX! (0, MIN! ((*image).width - 1, roundf (float_x) as c_int));  // C 6579
+  y1 = MAX! (0, MIN! ((*image).height - 1, roundf (float_y) as c_int)); // C 6580
+
+  word = (*image).data                                                  // C 6582
+	.wrapping_offset ((y1 * (*image).bytes_per_line + x1 * 4) as isize);
+  memcpy ((&raw mut pixel) as *mut c_void, word as *const c_void,       // C 6583
+	  std::mem::size_of::<c_uint> ());
+
+  return pixel;                                                         // C 6585
+}
+/* C 6588-6602: C 6588's comment, C 6590's `static unsigned int` and
+   android_fetch_pixel_nearest_1 (C 6601's ternary over the bit test, which the port writes as
+   an `if` expression, the unit's usual device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_fetch_pixel_nearest_1 (image: *mut android_image, float_x: f32, // C 6591
+					 float_y: f32)
+  -> c_uint
+{
+  let mut x1: c_int;                                                    // C 6594
+  let mut y1: c_int;
+  let mut byte: *mut c_char;                                            // C 6595
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5).  */
+  x1 = 0; y1 = 0; byte = std::ptr::null_mut ();
+
+  x1 = MAX! (0, MIN! ((*image).width - 1, roundf (float_x) as c_int));  // C 6597
+  y1 = MAX! (0, MIN! ((*image).height - 1, roundf (float_y) as c_int)); // C 6598
+
+  byte = (*image).data                                                  // C 6600
+	.wrapping_offset ((y1 * (*image).bytes_per_line) as isize);
+  return (if *byte.offset ((x1 / 8) as isize) as c_int & (1 << (x1 % 8)) != 0 // C 6601
+	       { 1 } else { 0 }) as c_uint;
+}
+/* C 6604-6661: C 6604-6607's comment, C 6609's `void` and android_project_image_nearest (C
+   6619's depth test with its own pair of loops for the depth-1 arm, then the depth-24 pair).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_project_image_nearest (image: *mut android_image, // C 6610
+						       out: *mut android_image,
+						       transform: *mut android_transform)
+{
+  let mut pixel: c_uint;                                                // C 6615
+  let mut xout: f32;                                                    // C 6616
+  let mut yout: f32;
+  let mut word: *mut c_char;                                            // C 6617
+  let mut byte: *mut c_char;
+
+  /* C leaves the five locals uninitialised (PORTING.md 1.5); C 6614's `x` and `y` are the
+     four loops', so the port declares neither (the slice-25 device).  */
+  pixel = 0; xout = 0.0; yout = 0.0;
+  word = std::ptr::null_mut (); byte = std::ptr::null_mut ();
+
+  if (*image).depth == 1                                                // C 6619
+    {
+      for y in 0 .. (*out).height                                       // C 6621
+	{
+	  for x in 0 .. (*out).width                                           // C 6623
+	    {
+	      /* Transform the coordinates by TRANSFORM.  */                   // C 6625
+	      android_transform_coordinates (x, y, transform,                  // C 6626
+					     (&raw mut xout), (&raw mut yout));                            // C 6627
+
+	      /* Interpolate back to IMAGE.  */                                // C 6629
+	      pixel = android_fetch_pixel_nearest_1 (image, xout, yout);       // C 6630
+
+	      /* Put the pixel back in OUT.  */                                // C 6632
+	      byte = (*out).data                                               // C 6633
+		.wrapping_offset ((y * (*out).bytes_per_line + x / 8) as isize);
+
+	      if pixel != 0                                                    // C 6635
+		{ *byte |= (1 << (x % 8)) as c_char; }                                // C 6636
+	      else
+		{ *byte &= ! ((1 << (x % 8)) as c_char); }                            // C 6638
+	    }
+	}
+
+      return;                                                           // C 6642
+    }
+
+  for y in 0 .. (*out).height                                           // C 6645
+    {
+      for x in 0 .. (*out).width                                        // C 6647
+	{
+	  /* Transform the coordinates by TRANSFORM.  */                       // C 6649
+	  android_transform_coordinates (x, y, transform,                      // C 6650
+					 (&raw mut xout), (&raw mut yout));                                // C 6651
+
+	  /* Interpolate back to IMAGE.  */                                    // C 6653
+	  pixel = android_fetch_pixel_nearest_24 (image, xout, yout);          // C 6654
+
+	  /* Put the pixel back in OUT.  */                                    // C 6656
+	  word = (*out).data                                                   // C 6657
+		.wrapping_offset ((y * (*out).bytes_per_line + x * 4) as isize);
+	  memcpy (word as *mut c_void, (&raw const pixel) as *const c_void,    // C 6658
+		  std::mem::size_of::<c_uint> ());
+	}
+    }
+}
+
+/* C 6663-6665: C 6663's form feed, C 6664's blank and C 6665's
+   `/* Other miscellaneous functions.  */`.  */
