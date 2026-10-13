@@ -11792,3 +11792,52 @@ pub unsafe extern "C" fn sys_strerror (error_no: c_int) -> *mut c_char  // C 804
   sprintf (unknown_msg.as_mut_ptr (), c"Unidentified error: %d".as_ptr (), error_no); // C 8059
   return unknown_msg.as_mut_ptr ();                                     // C 8060
 }                                                                       // C 8061
+
+
+/* C 8062's blank and C 8063-8065's `[andrewi 3-May-96]` note, carried as C's own text.  C 8067's
+   `SOCK_HANDLE` is this file's last `missing macro`: C's cast is Rust's `as SOCKET` and the
+   index is `as usize` into the `fd_info` array C 3300 defines and this unit already carries
+   (`femacs/src/w32.rs` 5355).  C 8069's prototype of `socket_to_fd` has no Rust item
+   (PORTING.md 0.1-12), so the name stays unresolved until the next slice defines it - the
+   slice-12 `is_symlink` reading.  `INVALID_SOCKET` (`<winsock2.h>`'s `(SOCKET) (~0)`) is
+   declared in-unit (P-88, `UNVERIFIED`, Owed 26), like `INVALID_HANDLE_VALUE` (C 1540).  */
+/* [andrewi 3-May-96] I've had conflicting results using both methods,
+   but I believe the method of keeping the socket handle separate (and
+   insuring it is not inheritable) is the correct one. */
+
+/// C: #define SOCK_HANDLE(fd) ((SOCKET) fd_info[fd].hnd)
+#[cfg (feature = "windowsnt")]
+macro_rules! SOCK_HANDLE { ($fd:expr) => { (fd_info[$fd as usize].hnd) as SOCKET }; }
+/// C: #define INVALID_SOCKET (SOCKET) (~0)  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const INVALID_SOCKET: SOCKET = -1isize as SOCKET;
+
+/* C 8069: `static int socket_to_fd (SOCKET s);` - C's own forward declaration of the function
+   right below; the port needs no item for it (PORTING.md 0.1-12), so the line is carried here.  */
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_socket (af: c_int, r#type: c_int, protocol: c_int) -> c_int // C 8071
+{                                                                       // C 8073
+  let mut s: SOCKET;                                                    // C 8074
+
+  /* C leaves `s` uninitialised (PORTING.md 1.5).  */
+  s = 0;
+
+  if winsock_lib.is_null ()                                             // C 8076 (C's `== NULL`)
+    {                                                                   // C 8077
+      *errno () = ENETDOWN;                                             // C 8078
+      return -1;                                                        // C 8079
+    }                                                                   // C 8080
+
+  check_errno ();                                                       // C 8082
+
+  /* call the real socket function */                                   // C 8084
+  s = pfn_socket.unwrap () (af, r#type, protocol) as SOCKET;            // C 8085 (C's call-through and widening)
+
+  if s != INVALID_SOCKET                                                // C 8087
+    { return socket_to_fd (s); }                                        // C 8088
+
+  set_errno ();                                                         // C 8090
+  return -1;                                                            // C 8091
+}                                                                       // C 8092
