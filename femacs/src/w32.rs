@@ -15226,3 +15226,168 @@ pub unsafe extern "C" fn w32_delayed_load (library_id: Lisp_Object) -> HMODULE /
 
   return dll_handle;                                                    // C 10459
 }                                                                       // C 10460
+
+
+/* C 10461's blank, C 10462's form feed, C 10463-10541's `check_windows_init_file`, C 10543-10544's
+   `w32fns.c` comment and `remove_w32_kbdhook` declaration (C's own text; the prototype is the
+   `include/w32term.rs` mirror's, so it is not re-spelled - the slice-31 lesson) and C 10545-10562's
+   `term_ntproc`.  New in-unit items: `HWND` (the `include/w32.rs` 27 reading: `void *`), the three
+   `MB_*` flags C 10532's `MessageBox` takes, that function's prototype (C spells the macro target)
+   and `openp` (`src/lisp.h` 4743, declared by this unit as `src/sound.rs` 155 does for its own) plus
+   the CRT's `abort` - all `UNVERIFIED` (Owed 48).  C's three `alloca` sites are PORTING.md P-05's
+   `sa_stack_alloc`, and C 10500-10509's eight adjacent literals are `concat!` (the `src/android.rs`
+   7466 reading).  */
+/// C 10529: `MessageBox`'s first parameter.
+/// C: typedef HANDLE HWND;
+#[cfg (feature = "windowsnt")]
+pub type HWND = *mut c_void;
+/// C 10529-10532: the three flags C's `MessageBox` call ors together (`<winuser.h>`).
+/// C: #define MB_OK 0x00000000
+/// C: #define MB_ICONEXCLAMATION 0x00000030
+/// C: #define MB_TASKMODAL 0x00002000
+#[cfg (feature = "windowsnt")]
+pub const MB_OK: UINT = 0x00000000;
+#[cfg (feature = "windowsnt")]
+pub const MB_ICONEXCLAMATION: UINT = 0x00000030;
+#[cfg (feature = "windowsnt")]
+pub const MB_TASKMODAL: UINT = 0x00002000;
+/// C: WINUSERAPI int WINAPI MessageBoxA (HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType);
+/// C: int abort (void);  (the CRT's `<stdlib.h>`; `lib/include/stdlib.in.rs` 176 carries a `fn abort`
+/// C: but that mirror is not in this unit's include graph, so the prototype is this unit's)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn MessageBox (hWnd: HWND, lpText: LPCSTR, lpCaption: LPCSTR, uType: UINT) -> c_int;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn abort () -> !;
+}
+/// C 10485-10487: `openp` - `src/lisp.h` 4743-4745 declares it; no mirror in this unit's graph
+/// carries the name, so it is declared here (the `src/sound.rs` 155 / `src/process.rs` 2693 shape).
+/// C: extern int openp (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object *, Lisp_Object, bool, bool,
+/// C:                   void **);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
+                storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
+                no_native: bool, platform: *mut *mut c_void) -> c_int;
+}
+/* A common indication that Emacs is not installed properly is when     // C 10466
+   it cannot find the Windows installation file.  If this file does     // C 10467
+   not exist in the expected place, tell the user.  */                  // C 10468
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn check_windows_init_file ()                     // C 10463-10464
+{                                                                       // C 10465
+  if ! noninteractive && ! inhibit_window_system                        // C 10470
+      /* Vload_path is not yet initialized when we are loading          // C 10471
+	 loadup.el.  */                                                        // C 10472
+      && NILP (Vpurify_flag)                                            // C 10473
+    {                                                                   // C 10474
+      let mut init_file: Lisp_Object;                                   // C 10475
+      let mut fd: c_int;                                                // C 10476
+
+      /* Implementation note: this function runs early during Emacs     // C 10478
+	 startup, before startup.el is run.  So Vload_path is still in         // C 10479
+	 its initial unibyte form, but it holds UTF-8 encoded file             // C 10480
+	 names, since init_callproc was already called.  So we do not          // C 10481
+	 need to ENCODE_FILE here, but we do need to convert the file          // C 10482
+	 names from UTF-8 to ANSI.  */                                         // C 10483
+      init_file = build_string (c"term/w32-win".as_ptr ());             // C 10484
+      fd =                                                              // C 10485
+	openp (Vload_path, init_file, Fget_load_suffixes (), std::ptr::null_mut (), // C 10486
+	       Qnil (), false, false, std::ptr::null_mut ());                  // C 10487 (C's two `0`s and two `NULL`s)
+      if fd < 0                                                         // C 10488
+	{                                                                      // C 10489
+	  let mut load_path_print: Lisp_Object = Fprin1_to_string (Vload_path, // C 10490
+							  Qnil (), Qnil ());                                             // C 10491
+	  let mut init_file_name: *mut c_char = SSDATA (init_file);            // C 10492
+	  let mut load_path: *mut c_char = SSDATA (load_path_print);           // C 10493
+	  let mut buffer: *mut c_char = sa_stack_alloc (1024                   // C 10494
+				 + strlen (init_file_name)                                          // C 10495
+				 + strlen (load_path)) as *mut c_char;                              // C 10496
+	  let mut msg: *mut c_char = buffer;                                   // C 10497
+	  let mut needed: c_int;                                               // C 10498
+
+	  sprintf (buffer,                                                     // C 10500
+		   concat! ("The Emacs Windows initialization file \"%s.el\" ",       // C 10501
+			    "could not be found in your Emacs installation.  ",              // C 10502
+			    "Emacs checked the following directories for this file:\n",      // C 10503
+			    "\n%s\n\n",                                                      // C 10504
+			    "When Emacs cannot find this file, it usually means that it ",   // C 10505
+			    "was not installed properly, or its distribution file was ",     // C 10506
+			    "not unpacked properly.\nSee the README.W32 file in the ",       // C 10507
+			    "top-level Emacs directory for more information.").as_ptr () as *const c_char, // C 10508
+		   init_file_name, load_path);                                        // C 10509 (C's two varargs)
+	  needed = (pMultiByteToWideChar.unwrap ()) (CP_UTF8 as UINT,          // C 10510
+					 multiByteToWideCharFlags as c_ulong,                              // C 10510 (C's `multiByteToWideCharFlags`)
+					 buffer, -1, core::ptr::null_mut (), 0);                           // C 10511
+	  if needed > 0                                                        // C 10512
+	    {                                                                  // C 10513
+	      let mut msg_w: *mut c_ushort = sa_stack_alloc (((needed + 1) as usize) // C 10514
+		* core::mem::size_of::<c_ushort> ()) as *mut c_ushort;
+
+	      (pMultiByteToWideChar.unwrap ()) (CP_UTF8 as UINT,               // C 10516
+					multiByteToWideCharFlags as c_ulong, buffer,                       // C 10516 (C's `buffer`)
+					-1, msg_w, needed);                                                // C 10517
+	      needed = (pWideCharToMultiByte.unwrap ()) (CP_ACP as UINT, 0, msg_w, -1, // C 10518
+					     core::ptr::null_mut (), 0, core::ptr::null (),                // C 10519
+					     core::ptr::null_mut ());                                      // C 10519 (C's four `NULL`s)
+	      if needed > 0                                                    // C 10520
+		{                                                                     // C 10521
+		  let mut msg_a: *mut c_char = sa_stack_alloc ((needed + 1) as usize) as *mut c_char; // C 10522
+
+		  (pWideCharToMultiByte.unwrap ()) (CP_ACP as UINT, 0, msg_w, -1, msg_a, needed, // C 10524
+					core::ptr::null (), core::ptr::null_mut ());                       // C 10525
+		  msg = msg_a;                                                        // C 10526
+		}                                                                     // C 10527
+	    }                                                                  // C 10528
+	  MessageBox (std::ptr::null_mut (),                                   // C 10529
+		      msg,                                                            // C 10530
+		      c"Emacs Abort Dialog".as_ptr (),                                // C 10531
+		      MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL);                     // C 10532
+	  /* Use the low-level system abort. */                                // C 10533
+	  abort ();                                                            // C 10534
+	}                                                                      // C 10535
+      else                                                              // C 10536
+	{                                                                      // C 10537
+	  _close (fd);                                                         // C 10538
+	}                                                                      // C 10539
+    }                                                                   // C 10540
+}                                                                       // C 10541
+
+/* from w32fns.c  */                                                    // C 10543
+/// C 10544: `extern void remove_w32_kbdhook (void);` - the `include/w32term.rs` mirror carries the
+/// prototype but that mirror is not in this unit's include graph (the arm probe reads the name as
+/// unresolved), and C declares it here too.
+/// C: extern void remove_w32_kbdhook (void);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn remove_w32_kbdhook ();
+}
+/// C 10561: `w32_gdiplus_shutdown` - `src/w32gui.h` 51 declares it
+/// (`extern void w32_gdiplus_shutdown (void);`); `w32.c` includes neither that header nor
+/// `w32term.h`, so both prototypes are spelled here (P-88 ①, the slice's own arm reading).
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn w32_gdiplus_shutdown ();
+}
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn term_ntproc (ignored: c_int)                   // C 10545-10546
+{                                                                       // C 10547
+  let _ = ignored;                                                      // C 10548 (C's `(void) ignored;`)
+
+  remove_w32_kbdhook ();                                                // C 10550
+
+  term_timers ();                                                       // C 10552
+
+  /* Shut down the socket interface if necessary.  */                   // C 10554
+  term_winsock ();                                                      // C 10555
+
+  term_w32select ();                                                    // C 10557
+  /* Exit all worker threads of sys_select if necessary.  */            // C 10558
+  free_wait_pool ();                                                    // C 10559
+
+  w32_gdiplus_shutdown ();                                              // C 10561
+}                                                                       // C 10562
