@@ -13230,3 +13230,140 @@ pub unsafe extern "C" fn _sys_read_ahead (fd: c_int) -> c_int           // C 892
 
   return (*cp).status;                                                  // C 9034
 }                                                                       // C 9035
+
+
+/* C 9036's blank and C 9037-9125's `_sys_wait_accept` + `_sys_wait_connect` - the two WSAEventSelect
+  waits `sys_select` sleeps on: each creates an event, selects `FD_ACCEPT`/`FD_CONNECT`, polls it with
+  C 9058-9063's `do { … } while (…)` (the P-95 device: `loop { … if ! (COND) { break; } }`), and the
+  connect one then reads `WSANETWORKEVENTS` to tell success from `STATUS_CONNECT_FAILED`.  The WSA
+  entry points are slice 20's `pfn_*` statics and `WSANETWORKEVENTS` slice 20's record; the names
+  declared in-unit (P-88, `UNVERIFIED`, Owed 39) are `<winsock2.h>`'s `FD_ACCEPT`/`FD_CONNECT`/
+  `FD_CONNECT_BIT` and `<winbase.h>`'s `WaitForSingleObject`, `WAIT_TIMEOUT` and `WAIT_OBJECT_0`.  */
+/// C: #define FD_ACCEPT 8  and `#define FD_CONNECT 16`  (`<winsock2.h>`; `1 << 3` and `1 << 4`)
+#[cfg (feature = "windowsnt")]
+pub const FD_ACCEPT: c_long = 8;
+#[cfg (feature = "windowsnt")]
+pub const FD_CONNECT: c_long = 16;
+/// C: #define FD_CONNECT_BIT 4  (`<winsock2.h>`; the `iErrorCode` index)
+#[cfg (feature = "windowsnt")]
+pub const FD_CONNECT_BIT: usize = 4;
+/// C: #define WAIT_TIMEOUT 0x00000102  and `#define WAIT_OBJECT_0 0x00000000`  (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const WAIT_TIMEOUT: DWORD = 0x00000102;
+#[cfg (feature = "windowsnt")]
+pub const WAIT_OBJECT_0: DWORD = 0;
+/// C: WINBASEAPI DWORD WINAPI WaitForSingleObject (HANDLE hHandle, DWORD dwMilliseconds);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn WaitForSingleObject (hHandle: HANDLE, dwMilliseconds: DWORD) -> DWORD;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn _sys_wait_accept (fd: c_int) -> c_int          // C 9037
+{                                                                       // C 9039
+  let mut hEv: HANDLE;                                                  // C 9040
+  let mut cp: *mut child_process;                                       // C 9041
+  let mut rc: c_int;                                                    // C 9042
+
+  /* C leaves `hEv`, `cp` and `rc` uninitialised (PORTING.md 1.5).  */
+  hEv = std::ptr::null_mut ();
+  cp = std::ptr::null_mut ();
+  rc = 0;
+
+  if fd < 0 || fd >= MAXDESC                                            // C 9044
+    { return STATUS_READ_ERROR; }                                       // C 9045
+
+  cp = fd_info[fd as usize].cp as *mut child_process;                   // C 9047
+
+  if cp.is_null () || (*cp).fd != fd || (*cp).status != STATUS_READ_READY // C 9049
+    { return STATUS_READ_ERROR; }                                       // C 9050
+
+  (*cp).status = STATUS_READ_FAILED;                                    // C 9052
+
+  hEv = pfn_WSACreateEvent.unwrap () ();                                // C 9054 (C's call-through)
+  rc = pfn_WSAEventSelect.unwrap () (SOCK_HANDLE! (fd), hEv, FD_ACCEPT); // C 9055 (C's call-through)
+  if rc != SOCKET_ERROR                                                 // C 9056
+    {                                                                   // C 9057
+      loop                                                              // C 9058 (C's `do … while (…)`, the P-95 device)
+	{
+	  rc = WaitForSingleObject (hEv, 500);                                 // C 9059
+	  Sleep (5);                                                           // C 9060
+	  if ! (rc == WAIT_TIMEOUT                                             // C 9061 (C's condition, tested after each body)
+		&& (*cp).status != STATUS_READ_ERROR                                  // C 9062
+		&& ! (*cp).char_avail.is_null ()) { break; }                          // C 9063
+	}
+      pfn_WSAEventSelect.unwrap () (SOCK_HANDLE! (fd), std::ptr::null_mut (), 0); // C 9064 (C's `NULL`)
+      if rc == WAIT_OBJECT_0                                            // C 9065
+	{ (*cp).status = STATUS_READ_SUCCEEDED; }                              // C 9066
+    }                                                                   // C 9067
+  pfn_WSACloseEvent.unwrap () (hEv);                                    // C 9068 (C's call-through)
+
+  return (*cp).status;                                                  // C 9070
+}                                                                       // C 9071
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn _sys_wait_connect (fd: c_int) -> c_int         // C 9073
+{                                                                       // C 9075
+  let mut hEv: HANDLE;                                                  // C 9076
+  let mut cp: *mut child_process;                                       // C 9077
+  let mut rc: c_int;                                                    // C 9078
+
+  /* C leaves `hEv`, `cp` and `rc` uninitialised (PORTING.md 1.5).  */
+  hEv = std::ptr::null_mut ();
+  cp = std::ptr::null_mut ();
+  rc = 0;
+
+  if fd < 0 || fd >= MAXDESC                                            // C 9080
+    { return STATUS_READ_ERROR; }                                       // C 9081
+
+  cp = fd_info[fd as usize].cp as *mut child_process;                   // C 9083
+  if cp.is_null () || (*cp).fd != fd || (*cp).status != STATUS_READ_READY // C 9084
+    { return STATUS_READ_ERROR; }                                       // C 9085
+
+  (*cp).status = STATUS_READ_FAILED;                                    // C 9087
+
+  hEv = pfn_WSACreateEvent.unwrap () ();                                // C 9089 (C's call-through)
+  rc = pfn_WSAEventSelect.unwrap () (SOCK_HANDLE! (fd), hEv, FD_CONNECT); // C 9090 (C's call-through)
+  if rc != SOCKET_ERROR                                                 // C 9091
+    {                                                                   // C 9092
+      loop                                                              // C 9093 (C's `do … while (…)`)
+	{
+	  rc = WaitForSingleObject (hEv, 500);                                 // C 9094
+	  Sleep (5);                                                           // C 9095
+	  if ! (rc == WAIT_TIMEOUT                                             // C 9096
+		&& (*cp).status != STATUS_READ_ERROR                                  // C 9097
+		&& ! (*cp).char_avail.is_null ()) { break; }                          // C 9098
+	}
+      if rc == WAIT_OBJECT_0                                            // C 9099
+	{                                                                      // C 9100
+	  /* We've got an event, but it could be a successful                  // C 9101
+	     connection, or it could be a failure.  Find out                   // C 9102
+	     which one is it.  */                                              // C 9103
+	  let mut events: WSANETWORKEVENTS;                                    // C 9104
+
+	  /* C leaves `events` uninitialised (PORTING.md 1.5).  */
+	  events = WSANETWORKEVENTS { lNetworkEvents: 0,                       // C 9105 (C's blank)
+				       iErrorCode: [0; FD_MAX_EVENTS as usize] };
+
+	  pfn_WSAEnumNetworkEvents.unwrap () (SOCK_HANDLE! (fd), hEv, &raw mut events); // C 9106 (C's call-through)
+	  if (events.lNetworkEvents & FD_CONNECT) != 0                         // C 9107
+	      && events.iErrorCode[FD_CONNECT_BIT] != 0                        // C 9108 (C's truth test)
+	    {                                                                  // C 9109
+	      (*cp).status = STATUS_CONNECT_FAILED;                            // C 9110
+	      (*cp).errcode = events.iErrorCode[FD_CONNECT_BIT];               // C 9111
+	    }                                                                  // C 9112
+	  else                                                                 // C 9113
+	    {                                                                  // C 9114
+	      (*cp).status = STATUS_READ_SUCCEEDED;                            // C 9115
+	      (*cp).errcode = 0;                                               // C 9116
+	    }                                                                  // C 9117
+	}                                                                      // C 9118
+      pfn_WSAEventSelect.unwrap () (SOCK_HANDLE! (fd), std::ptr::null_mut (), 0); // C 9119 (C's `NULL`)
+    }                                                                   // C 9120
+  else                                                                  // C 9121
+    { pfn_WSACloseEvent.unwrap () (hEv); }                              // C 9122 (C's call-through)
+
+  return (*cp).status;                                                  // C 9124
+}                                                                       // C 9125
