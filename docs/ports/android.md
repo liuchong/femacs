@@ -132,8 +132,22 @@
 > tag, so the port casts at C 5629/5631) and `android_damage_window` (5656-5676: C 5671-5674's
 > two `unsigned int` sums) - so the port carries C 1-5676 (except C 2086-2192), C 4734-4747 and
 > C 6880-7096: **5,800 C lines of 7,594 (76.4%)**, in a 7,131-line port, md5
-> `f1186b9765a95f58ce2f507f54625710`.  **The
-> next live definition is C 5682's `android_get_screen_width`**; the table's last row is the
+> `f1186b9765a95f58ce2f507f54625710`.  **Slice 29 (C 5677-6014, 2026-10-12)** carries the
+> fourteen items of the `/* Other misc system routines.  */` block: the four screen-size
+> answers (`android_get_screen_width`/`_height`, `android_get_mm_width`/`_height`), the mouse
+> and keyboard probes, `android_set_dont_focus_on_map`/`android_set_dont_accept_focus`,
+> `android_set_wm_name` (C 5822 reads `android_get_current_api_level`), the keysym-name entry
+> (5841's `switch` is the port's `match`, and C 5843/5848/5853's `case 65536 + N` are the
+> folded patterns 65537/65538/65539), `android_toggle_on_screen_keyboard`, `emacs_abort` (C
+> 5929's `volatile char *` store is `write_volatile`), the `static` predicate
+> `android_check_string` and `android_verify_jni_string` (C 5979/5984/5988/5993/6002's GCC
+> range cases are the port's `..=` patterns, and C 6000's `FALLTHROUGH` is an or-pattern arm) -
+> so the port carries C 1-6014 (except C 2086-2192), C 4734-4747 and C 6880-7096: **6,138 C
+> lines of 7,594 (80.8%)**, in a 7,568-line port, md5
+> `97aa7711b1295423054f032bb47779ed`.  **The
+> next live definition is C 6021's `android_build_string`**, which is blocked on P-05's
+> `alloca` decision (Owed 11; C 6064's `SAFE_ALLOCA`); the first unblocked item after it is C
+> 6107's `android_build_jstring`.  The table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -394,7 +408,22 @@ no `window.h`).
 | 5429-5588 | C 5429's blank, C 5431-5439's comment and `android_wc_lookup_string` (C 5471's `goto dead_key` and C 5580's label become the `'dead_key` block; C 5557-5558's brace-less `for` becomes the port's `while`) | real arm (slice 28) |
 | 5589-5652 | C 5589's blank, C 5590's form feed, C 5592's `/* Low level drawing primitives.  */`, C 5594-5598's comment and `android_lock_bitmap` (C 5626's `memset`, C 5629's `AndroidBitmap_getInfo`, C 5631's `stride` read, C 5639's `AndroidBitmap_lockPixels`) | real arm (slice 28) |
 | 5653-5676 | C 5653's blank, C 5654's comment, C 5656's `void` and `android_damage_window` (C 5671-5674's two `unsigned int` sums) | real arm (slice 28) |
-| 5677-6879 | **the remainder, first part (b)** - from C 5677's blank and C 5678's form feed (C 5680's `/* Other misc system routines.  */` and C 5682's `android_get_screen_width`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the remaining system routines, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
+| 5677-5681 | C 5677's blank, C 5678's form feed, C 5679's blank, C 5680's `/* Other misc system routines.  */` and C 5681's blank | real arm (slice 29) |
+| 5682-5696 | `android_get_screen_width` (C 5689's `CallNonvirtualIntMethod`) | real arm (slice 29) |
+| 5697-5712 | the blank and `android_get_screen_height` | real arm (slice 29) |
+| 5713-5728 | the blank and `android_get_mm_width` (C 5720 reads `get_screen_width`, C 5725 passes `true`) | real arm (slice 29) |
+| 5729-5744 | the blank and `android_get_mm_height` | real arm (slice 29) |
+| 5745-5759 | the blank and `android_detect_mouse` (C 5753's `CallNonvirtualBooleanMethod`) | real arm (slice 29) |
+| 5760-5774 | the blank and `android_detect_keyboard` | real arm (slice 29) |
+| 5775-5791 | the blank and `android_set_dont_focus_on_map` | real arm (slice 29) |
+| 5792-5808 | the blank and `android_set_dont_accept_focus` | real arm (slice 29) |
+| 5809-5829 | C 5809's blank, C 5810-5811's comment and `android_set_wm_name` (C 5822's API-level bail-out) | real arm (slice 29) |
+| 5830-5886 | the blank and `android_get_keysym_name` (C 5841's `switch`, the three `strncpy` arms, C 5861's lookup call and C 5875-5884's UTF-chars pair) | real arm (slice 29) |
+| 5887-5910 | C 5887's blank, C 5888-5892's comment and `android_toggle_on_screen_keyboard` | real arm (slice 29) |
+| 5911-5932 | C 5911's blank, C 5912's form feed, C 5914-5915's comment and `emacs_abort` (C 5922-5924's log call with C's adjacent literals, C 5929's NULL store, C 5931's `abort`) | real arm (slice 29) |
+| 5933-5951 | C 5933's blank, C 5934's form feed, C 5936-5937's comment and the `static` `android_check_string` (C 5944's `for`, C 5946's `SREF` test) | real arm (slice 29) |
+| 5952-6014 | C 5952's blank, C 5953-5965's comment and `android_verify_jni_string` (C 5977's `switch (*chars++ >> 4)`, the five range cases and C 6000's `FALLTHROUGH`) | real arm (slice 29) |
+| 6015-6879 | **the remainder, first part (b)** - from C 6015's blank and C 6016-6019's comment (C 6021's `android_build_string`, **blocked on P-05's `alloca` decision**: C 6031's `USE_SAFE_ALLOCA`, C 6064's `SAFE_ALLOCA`, C 6052/6075's `SAFE_FREE`, C 6084's `va_start` and C 6100's `memory_full`) through C 6878's closing brace and C 6879's blank: `android_build_jstring` (C 6107), the remaining system routines, the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -781,16 +810,18 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`, no dead key, no bitmap lock.  Slices 2-28's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size.  Slices 2-29's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-5676, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 5677-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (49 `missing
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-6014, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 6015-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (35 `missing
 function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 6.1% drift are that boundary, not defects.  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
+`invented exported symbol` rows of Owed 9) are that boundary, not defects; the line-count row
+is **below the checker's 5% report threshold** and is no longer emitted (C 7,594 against the
+port's 7,568, 0.3%).  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and every `does not mention`
 row is a recorded `macro-body-notes.tsv` row of Owed 8 - none of them is a port defect.  The `android_api_lt_21`
-configuration compiled to an object (②b, 72,944 bytes) and was not run; the pristine base-config arm
+configuration compiled to an object (②b, 78,144 bytes) and was not run; the pristine base-config arm
 still stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member (②a, Owed 6), so no
 object exists for it.
 
@@ -1953,3 +1984,72 @@ against the port's 7,131).
 - **C 5671-5674's two `damage->x + damage->width` sums** are `unsigned int` arithmetic in C, so the
   port spells the conversion (`(*damage).x as c_uint`) and keeps C's wrap with `wrapping_add`
   (the `dispnew.rs` / `pgtkterm.rs` device), narrowing to `jint` afterwards.
+
+## 2026-10-12: slice 29 (C 5677-6014) - the miscellaneous system routines, `emacs_abort` and the JNI string checker
+
+Fourteen items: `android_get_screen_width`, `android_get_screen_height`, `android_get_mm_width`,
+`android_get_mm_height`, `android_detect_mouse`, `android_detect_keyboard`,
+`android_set_dont_focus_on_map`, `android_set_dont_accept_focus`, `android_set_wm_name`,
+`android_get_keysym_name`, `android_toggle_on_screen_keyboard`, `emacs_abort`,
+`android_check_string` and `android_verify_jni_string`.
+
+### Evidence (this slice's readings)
+
+**⑤④ The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings**.  The
+first three-`--cfg` run reported **16 errors in four classes**, and every class is a real defect
+of the text, not a mirror gap: C 5843/5848/5853's `case 65536 + N` are C integer *constant
+expressions* and Rust patterns cannot spell them (3 x "expected a pattern, found an
+expression" ⇒ the folded values 65537/65538/65539); C 5979/5984/6002's GCC range cases are
+`...`, which is a hard error under this edition (3 x `E0783` ⇒ `..=`); the seven variadic JNI
+calls pass C's promoted `jboolean` (7 x `E0617` "can't pass `u8` to variadic function" ⇒
+`as jboolean as c_uint`, the device the unit's own C 3220 call site uses); and `concat!'s
+`&str` makes `.as_ptr ()` a `*const u8` (1 x `E0308` ⇒ `as *const c_char`, the unit's device at
+1798).  After those four repairs the second three-`--cfg` run and the five-`--cfg` run both
+passed.
+
+**⑤⑤ The checklist reading.**  `extract-abi.py --check`: `missing function` **49 → 35** — the
+fourteen names that left the list are exactly this slice's items (measured by running the same
+in-place check against `HEAD`'s port text under an in-tree scratch name, `comm` of the two
+sorted lists: 14 removed, 0 added) - **`missing file-scope object` 0** (seventeenth round at
+empty), **`invented exported symbol` 41** unchanged, and **`does not mention` 0 after this
+slice's two `macro-body-notes.tsv` rows**; the line-count row is **below the 5% threshold and
+no longer emitted** (C 7,594 against the port's 7,568, 0.3%).
+
+### Deviations this slice adds
+
+- **C 5841's `switch (keysym)` with its three `return`ing arms** is the port's `match`, and
+  **C 5843/5848/5853's `case 65536 + N`** are the folded patterns `65537`/`65538`/`65539` (a
+  Rust pattern cannot be an arithmetic expression); `_ => {}` is the arm C's `switch` has no
+  case for (PORTING.md 2.2).
+- **C 5977's `switch (*chars++ >> 4)`** is the port's load-then-step pair (`high = *chars;
+  chars = chars.add (1);`, the `image.rs` 11103 device) plus a `match` over `high >> 4`; the
+  `high` local C names no variable for is recorded here, and C's `unsigned char` cast is
+  `name as *const c_uchar`.
+- **C 5979-5982's `case 0 ... 7` arm** is the port's empty arm (C's `break` ends it),
+  **C 5979/5984/5993/6002's range cases** are the port's `..=` patterns, and **C 6000's
+  `FALLTHROUGH`** is the or-pattern arm whose `if high >> 4 == 0xe` re-tests the discriminant
+  for C 5997's own check (the `xterm.rs` 34917-34928 device).
+- **The seven variadic JNI calls carry C's default argument promotion** (`false as jboolean as
+  c_uint`, the unit's own C 3220 device, one comment on the first site).
+- **C 5844/5849/5854/5870/5879's `strncpy`** is one `<string.h>` name
+  `lib/include/string.rs` does not carry, so the unit declares it (the `androidvfs.rs` 266-272
+  P-88 device); **C's `size - 1`** is `size.wrapping_sub (1)` (C's `size_t` subtraction, the
+  `androidterm.rs` 5519 device) and **C's `name_return[size] = '\0'`** is
+  `*name_return.offset (size as isize)`.
+- **C 5931's `abort`** is the second `<stdlib.h>` name the unit declares (the `androidvfs.rs`
+  257-264 device), **C 5929's store through the `volatile char *`** is `write_volatile`, and
+  **C 5922-5924's two adjacent string literals** are `concat!` with `.as_ptr () as *const
+  c_char` (the unit's device at 1798); `__func__` is the unit's usual
+  `let __func__ = c"emacs_abort".as_ptr ()` local.
+- **`emacs_abort` is `-> !`** (sysdep.rs 3501 and `include/lisp.rs` 3838-3839), and the two
+  copies are mutually exclusive in C (C 2399's `#if !defined HAVE_NTGUI && !(defined
+  HAVE_ANDROID && !defined ANDROID_STUBIFY)`): **`docs/ports/sysdep.md` 219 records that
+  sysdep.rs's copy is ungated**, so the two `#[no_mangle]` definitions are a cross-unit
+  exclusivity item for the integration phase, not something this lane can settle.
+- **C 5944's `for (i = 0; i < SBYTES (text); ++i)`** becomes the port's range loop, so C
+  5942's `ptrdiff_t i` has no declaration of its own (the slice-25 device), and **C 5946's
+  `SREF (text, i)`** takes the mirror's `usize`.
+- **C 5822's `android_get_current_api_level () < 21`** calls the unported non-`static`
+  definition at C 6740 through the mirror's declaration (`include/android.rs` 292, reachable
+  because 324 glob-imports `android_decls`), which is why that name is *not* a `missing
+  function` row of this unit.

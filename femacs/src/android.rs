@@ -7129,3 +7129,440 @@ pub unsafe extern "C" fn android_damage_window (handle: android_drawable, // C 5
 
 /* C 5677-5680: C 5677's blank, C 5678's form feed, C 5679's blank and C 5680's
    `/* Other misc system routines.  */`.  */
+/* C 5677-5681: C 5677's blank, C 5678's form feed, C 5679's blank, C 5680's
+   `/* Other misc system routines.  */` and C 5681's blank.  */
+/* C 5682-5696: android_get_screen_width.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_screen_width () -> c_int           // C 5682
+{
+  let mut rc: c_int;                                                    // C 5685
+  let mut method: jmethodID;                                            // C 5686
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+  method = std::ptr::null_mut ();
+
+  method = service_class.get_screen_width;                              // C 5688
+  rc = ((*(*android_java_env)).CallNonvirtualIntMethod.unwrap ())       // C 5689
+	(android_java_env,                                                     // C 5689
+	 emacs_service,                                                        // C 5690
+	 service_class.class,                                                  // C 5691
+	 method,                                                               // C 5692
+	 false as jboolean as c_uint);                                                   // C 5693
+  android_exception_check ();                                           // C 5694
+  return rc;                                                            // C 5695
+}
+/* C 5697-5712: C 5697's blank and android_get_screen_height.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_screen_height () -> c_int          // C 5698
+{
+  let mut rc: c_int;                                                    // C 5701
+  let mut method: jmethodID;                                            // C 5702
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+  method = std::ptr::null_mut ();
+
+  method = service_class.get_screen_height;                             // C 5704
+  rc = ((*(*android_java_env)).CallNonvirtualIntMethod.unwrap ())       // C 5705
+	(android_java_env,                                                     // C 5705
+	 emacs_service,                                                        // C 5706
+	 service_class.class,                                                  // C 5707
+	 method,                                                               // C 5708
+	 false as jboolean as c_uint);                                                   // C 5709
+  android_exception_check ();                                           // C 5710
+  return rc;                                                            // C 5711
+}
+/* C 5713-5728: C 5713's blank and android_get_mm_width (C 5720 reads get_screen_width and
+   C 5725 passes `true`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_mm_width () -> c_int               // C 5714
+{
+  let mut rc: c_int;                                                    // C 5717
+  let mut method: jmethodID;                                            // C 5718
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+  method = std::ptr::null_mut ();
+
+  method = service_class.get_screen_width;                              // C 5720
+  rc = ((*(*android_java_env)).CallNonvirtualIntMethod.unwrap ())       // C 5721
+	(android_java_env,                                                     // C 5721
+	 emacs_service,                                                        // C 5722
+	 service_class.class,                                                  // C 5723
+	 method,                                                               // C 5724
+	 true as jboolean as c_uint);                                                    // C 5725
+  android_exception_check ();                                           // C 5726
+  return rc;                                                            // C 5727
+}
+/* C 5729-5744: C 5729's blank and android_get_mm_height.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_mm_height () -> c_int              // C 5730
+{
+  let mut rc: c_int;                                                    // C 5733
+  let mut method: jmethodID;                                            // C 5734
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+  method = std::ptr::null_mut ();
+
+  method = service_class.get_screen_height;                             // C 5736
+  rc = ((*(*android_java_env)).CallNonvirtualIntMethod.unwrap ())       // C 5737
+	(android_java_env,                                                     // C 5737
+	 emacs_service,                                                        // C 5738
+	 service_class.class,                                                  // C 5739
+	 method,                                                               // C 5740
+	 true as jboolean as c_uint);                                                    // C 5741
+  android_exception_check ();                                           // C 5742
+  return rc;                                                            // C 5743
+}
+/* C 5745-5759: C 5745's blank and android_detect_mouse.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_detect_mouse () -> bool                // C 5746
+{
+  let mut rc: bool;                                                     // C 5749
+  let mut method: jmethodID;                                            // C 5750
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rc = false;
+  method = std::ptr::null_mut ();
+
+  method = service_class.detect_mouse;                                  // C 5752
+  rc = ((*(*android_java_env)).CallNonvirtualBooleanMethod.unwrap ())   // C 5753
+	(android_java_env,                                                     // C 5753
+	 emacs_service,                                                        // C 5754
+	 service_class.class,                                                  // C 5755
+	 method)                                                               // C 5756
+	!= 0;                                                                  // C 5756 (C's `jboolean`-into-`bool`)
+  android_exception_check ();                                           // C 5757
+  return rc;                                                            // C 5758
+}
+/* C 5760-5774: C 5760's blank and android_detect_keyboard.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_detect_keyboard () -> bool             // C 5761
+{
+  let mut rc: bool;                                                     // C 5764
+  let mut method: jmethodID;                                            // C 5765
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rc = false;
+  method = std::ptr::null_mut ();
+
+  method = service_class.detect_keyboard;                               // C 5767
+  rc = ((*(*android_java_env)).CallNonvirtualBooleanMethod.unwrap ())   // C 5768
+	(android_java_env,                                                     // C 5768
+	 emacs_service,                                                        // C 5769
+	 service_class.class,                                                  // C 5770
+	 method)                                                               // C 5771
+	!= 0;                                                                  // C 5771 (C's `jboolean`-into-`bool`)
+  android_exception_check ();                                           // C 5772
+  return rc;                                                            // C 5773
+}
+/* C 5775-5791: C 5775's blank and android_set_dont_focus_on_map.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_dont_focus_on_map (handle: android_window, // C 5776
+						       no_focus_on_map: bool)
+{
+  let mut method: jmethodID;                                            // C 5780
+  let mut window: jobject;                                              // C 5781
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  method = std::ptr::null_mut ();
+  window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5783
+  method = window_class.set_dont_focus_on_map;                          // C 5784
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ()) (android_java_env, window, // C 5786
+						       window_class.class,                                        // C 5787
+						       method,                                                    // C 5788
+						       no_focus_on_map as jboolean as c_uint);                              // C 5789
+  android_exception_check ();                                           // C 5790
+}
+/* C 5792-5808: C 5792's blank and android_set_dont_accept_focus.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_dont_accept_focus (handle: android_window, // C 5793
+							no_accept_focus: bool)
+{
+  let mut method: jmethodID;                                            // C 5797
+  let mut window: jobject;                                              // C 5798
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  method = std::ptr::null_mut ();
+  window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5800
+  method = window_class.set_dont_accept_focus;                          // C 5801
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ()) (android_java_env, window, // C 5803
+							window_class.class,                                              // C 5804
+							method,                                                          // C 5805
+							no_accept_focus as jboolean as c_uint);                                    // C 5806
+  android_exception_check ();                                           // C 5807
+}
+/* C 5809-5829: C 5809's blank, C 5810-5811's
+   `/* Set the WM name of HANDLE to STRING, a Java string.  This name provides the task
+   description of activities that receive HANDLE.  */`, C 5812's blank and android_set_wm_name
+   (C 5822 reads android_get_current_api_level).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_wm_name (handle: android_window, name: jstring) // C 5813
+{
+  let mut method: jmethodID;                                            // C 5816
+  let mut window: jobject;                                              // C 5817
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  method = std::ptr::null_mut ();
+  window = std::ptr::null_mut ();
+
+  window = android_resolve_handle (handle);                             // C 5819
+  method = window_class.set_wm_name;                                    // C 5820
+
+  if android_get_current_api_level () < 21                              // C 5822
+    { return; }                                                         // C 5823
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ()) (android_java_env, window, // C 5825
+						       window_class.class, method,                                // C 5826
+						       name);                                                     // C 5827
+  android_exception_check ();                                           // C 5828
+}
+/* C 5830-5886: C 5830's blank, C 5831's `void` and android_get_keysym_name.  The three
+   `strncpy` calls are the one `<string.h>` name `lib/include/string.rs` does not carry (the
+   `androidvfs.rs` 266-272 device below).  C 5841's `switch (keysym)` with its three
+   `return`ing arms is the port's `match`; C's `size - 1` is `size_t`, so it is
+   `wrapping_sub (1)` (the `androidterm.rs` 5519 device), and C's `name_return[size]` write is
+   `*name_return.offset (size as isize)`.  */
+unsafe extern "C" {
+  /// C: `char *strncpy (char *dest, const char *src, size_t n);`
+  pub fn strncpy (dest: *mut c_char, src: *const c_char, n: usize) -> *mut c_char;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_keysym_name (keysym: c_int, name_return: *mut c_char, // C 5832
+							 size: size_t)
+{
+  let mut string: jobject;                                              // C 5834
+  let mut buffer: *const c_char;                                        // C 5835
+  let mut method: jmethodID;                                            // C 5836
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5).  */
+  string = std::ptr::null_mut ();
+  buffer = std::ptr::null ();
+  method = std::ptr::null_mut ();
+
+  /* These keysyms are special editor actions sent by the input         // C 5838
+     method.  */                                                        // C 5839
+
+  match keysym
+	{
+	  65537 =>                                                             // C 5843 (C's `65536 + 1`)
+		{
+		  strncpy (name_return, c"select-all".as_ptr (), size.wrapping_sub (1)); // C 5844
+		  *name_return.offset (size as isize) = 0;                            // C 5845 (C's `'\0'`)
+		  return;                                                             // C 5846
+		}
+
+	  65538 =>                                                             // C 5848 (C's `65536 + 2`)
+		{
+		  strncpy (name_return, c"start-selecting-text".as_ptr (), size.wrapping_sub (1)); // C 5849
+		  *name_return.offset (size as isize) = 0;                            // C 5850
+		  return;                                                             // C 5851
+		}
+
+	  65539 =>                                                             // C 5853 (C's `65536 + 3`)
+		{
+		  strncpy (name_return, c"stop-selecting-text".as_ptr (), size.wrapping_sub (1)); // C 5854
+		  *name_return.offset (size as isize) = 0;                            // C 5855
+		  return;                                                             // C 5856
+		}
+
+	  /* C's `switch` has no `default` (PORTING.md 2.2).  */
+	  _ => {}
+	}
+
+  method = service_class.name_keysym;                                   // C 5859
+  string                                                                // C 5860
+	= ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ()) (android_java_env, // C 5861
+							       emacs_service,                                            // C 5862
+							       service_class.class,                                      // C 5863
+							       method,                                                   // C 5864
+							       keysym as jint);                                          // C 5865
+  android_exception_check ();                                           // C 5866
+
+  if string.is_null ()                                                  // C 5868
+	{
+	  strncpy (name_return, c"stop-selecting-text".as_ptr (), size.wrapping_sub (1)); // C 5870
+	  *name_return.offset (size as isize) = 0;                             // C 5871
+	  return;                                                              // C 5872
+	}
+
+  buffer = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env, // C 5875
+							      string as jstring,                                         // C 5876
+							      std::ptr::null_mut ());                                    // C 5877
+  android_exception_check_nonnull (buffer as *mut c_void, string);      // C 5878
+  strncpy (name_return, buffer, size.wrapping_sub (1));                 // C 5879
+  *name_return.offset (size as isize) = 0;                              // C 5880
+
+  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ())              // C 5882
+	(android_java_env,                                                     // C 5882
+	 string as jstring,                                                    // C 5883
+	 buffer);                                                              // C 5884
+  ANDROID_DELETE_LOCAL_REF! (string);                                   // C 5885
+}
+/* C 5887-5910: C 5887's blank, C 5888-5892's comment, C 5893's blank and
+   android_toggle_on_screen_keyboard.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_toggle_on_screen_keyboard (window: android_window, show: bool) // C 5894
+{
+  let mut object: jobject;                                              // C 5897
+  let mut method: jmethodID;                                            // C 5898
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  object = android_resolve_handle (window);                             // C 5900
+  method = window_class.toggle_on_screen_keyboard;                      // C 5901
+
+  /* Now display the on screen keyboard.  */                            // C 5903
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ()) (android_java_env, object, // C 5904
+							     window_class.class,                                         // C 5905
+							     method, show as jboolean as c_uint);                                  // C 5906
+
+  /* Check for out of memory errors.  */                                // C 5908
+  android_exception_check ();                                           // C 5909
+}
+/* C 5911-5932: C 5911's blank, C 5912's form feed, C 5913's blank, C 5914-5915's
+   `/* emacs_abort implementation for Android.  This logs a stack trace.  */`, C 5916's blank,
+   C 5917's `void` and emacs_abort.  C 5931's `abort` is one `<stdlib.h>` name
+   `lib/include/stdlib.rs` does not carry (the `androidvfs.rs` 257-264 device).  C's
+   `volatile char *foo` is a volatile pointee, so C 5929's store is `write_volatile`
+   (`src/w32.rs` 1859).  `-> !` follows sysdep.rs 3501 and `include/lisp.rs` 3838-3839.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `_Noreturn void abort (void);`
+  pub fn abort () -> !;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn emacs_abort () -> !                            // C 5917
+{
+  let mut foo: *mut c_char;                                             // C 5920
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  foo = std::ptr::null_mut ();
+
+  let __func__: *const c_char = c"emacs_abort".as_ptr ();                 // C 5922 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_FATAL, __func__,                     // C 5922
+		       concat! ("emacs_abort called, please review the following",    // C 5923
+				" stack trace").as_ptr () as *const c_char);                                         // C 5924
+
+  /* Induce a NULL pointer dereference to make debuggerd generate a     // C 5926
+     tombstone.  */                                                     // C 5927
+  foo = std::ptr::null_mut ();                                          // C 5928
+  core::ptr::write_volatile (foo, 0);                                   // C 5929 (C's `'\0'`)
+
+  abort ();                                                             // C 5931
+}
+/* C 5933-5951: C 5933's blank, C 5934's form feed, C 5935's blank, C 5936-5937's
+   `/* Return whether or not TEXT, a string without multibyte characters, has no bytes with the
+   8th bit set.  */`, C 5938's blank, C 5939's `static bool` and android_check_string (called
+   from C 6039, in the remainder).  C 5944's `for (i = 0; i < SBYTES (text); ++i)` becomes the
+   port's range loop, so C 5942's `ptrdiff_t i` has no declaration of its own (the slice-25
+   device); C 5946's `SREF (text, i)` takes the mirror's `usize`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_check_string (text: Lisp_Object) -> bool              // C 5939
+{
+  for i in 0 .. SBYTES (text)                                           // C 5944
+    {
+      if SREF (text, i as usize) & 128 != 0                             // C 5946
+	{ return false; }                                                      // C 5947
+    }
+
+  return true;                                                          // C 5950
+}
+/* C 5952-6014: C 5952's blank, C 5953-5965's comment, C 5966's blank, C 5967's `int` and
+   android_verify_jni_string.  C 5977's `switch (*chars++ >> 4)` is the port's load-then-step
+   pair plus a `match` (the `image.rs` 11103 device); C 5979-5982's `case 0 ... 7` arm is the
+   empty arm C's `break` ends, and C 6000's `FALLTHROUGH` from `case 0xe` into
+   `case 0xc ... 0xd` is the or-pattern arm whose `if` re-tests the discriminant for C 5997's
+   own check (the `xterm.rs` 34917-34928 device).  C's `switch` has no `default`, and the
+   `_` arm is the port's (PORTING.md 2.2).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_verify_jni_string (name: *const c_char) -> c_int // C 5967
+{
+  let mut chars: *const c_uchar;                                        // C 5970
+  let mut high: c_uchar;                       /* C 5977's post-increment names no local */
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  chars = std::ptr::null ();
+  high = 0;
+
+  chars = name as *const c_uchar;                                       // C 5972
+  while *chars != 0                                                     // C 5973
+    {
+      /* Switch on the high 4 bits.  */                                 // C 5975
+
+      /* C 5977's `*chars++`: the load into `high` and the step are the two statements C's
+	 postfix operator performs.  */
+      high = *chars;
+      chars = chars.add (1);
+      match high >> 4                                                   // C 5977 (C's `*chars++ >> 4` as the `match` scrutinee)
+	{
+	  0 ..= 7 =>                                                           // C 5979
+		{
+		  /* The 8th bit is clean, so this is a regular C                     // C 5980
+		     character.  */                                                   // C 5981
+		}
+
+	  8 ..= 0xb =>                                                         // C 5984
+		{
+		  /* Invalid starting byte! */                                        // C 5985
+		  return 1;                                                           // C 5986
+		}
+
+	  0xf =>                                                               // C 5988
+		{
+		  /* The start of a four byte sequence.  These aren't allowed         // C 5989
+		     in Java.  */                                                     // C 5990
+		  return 1;                                                           // C 5991
+		}
+
+	  0xe | 0xc ..= 0xd =>                                                 // C 5993
+		{
+		  /* The start of a three byte sequence.  Verify that its             // C 5994
+		     continued.  */                                                   // C 5995
+
+		  /* C 6000's `FALLTHROUGH` sends C 5993's arm on into this one's tail.  */
+		  if high >> 4 == 0xe                                                 // C 5993
+		    {
+		      if (*chars & 0xc0) != 0x80                                      // C 5997
+			{ return 1; }                                                        // C 5998
+		      chars = chars.add (1);
+		    }
+
+		  /* The start of a two byte sequence.  Verify that the               // C 6003
+		     next byte exists and has its high bit set.  */                   // C 6004
+
+		  if (*chars & 0xc0) != 0x80                                          // C 6006
+		    { return 1; }                                                     // C 6007
+		  chars = chars.add (1);
+		}
+
+	  /* C's `switch` has no `default` (PORTING.md 2.2).  */
+	  _ => {}
+	}
+    }
+
+  return 0;                                                             // C 6013
+}
