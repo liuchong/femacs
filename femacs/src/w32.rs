@@ -12454,3 +12454,102 @@ pub unsafe extern "C" fn sys_getaddrinfo (node: *const c_char, service: *const c
 
   return rc;                                                            // C 8463
 }                                                                       // C 8464
+
+
+/* C 8465's blank and C 8466-8549's four wrappers: `sys_freeaddrinfo` (8466-8483, the
+   `pfn_freeaddrinfo`/`eassert`+`xfree` pair), `sys_shutdown` (8485-8504), `sys_setsockopt`
+   (8506-8526, with C 8519's `(const char *)` cast) and `sys_listen` (8528-8549, the only one that
+   also raises a flag - C 8544's `fd_info[s].flags |= FILE_LISTEN`).  Every name is in scope: the
+   four `pfn_*` are slice 20's statics, `FILE_LISTEN` is `w32.h`'s flag (the `include/w32.rs`
+   mirror, its 251 row), `xfree` the `<lisp.h>`-family call the file already makes (`as *mut
+   c_void`, C 2390's spelling), `eassert` the `include/lisp.rs` 392 macro and `SOCK_HANDLE`
+   slice 24's.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_freeaddrinfo (ai: *mut addrinfo)           // C 8466
+{                                                                       // C 8468
+  if winsock_lib.is_null ()                                             // C 8469 (C's `== NULL`)
+    {                                                                   // C 8470
+      *errno () = ENETDOWN;                                             // C 8471
+      return;                                                           // C 8472
+    }                                                                   // C 8473
+
+  check_errno ();                                                       // C 8475
+  if pfn_freeaddrinfo.is_some ()                                        // C 8476 (C's truth test)
+    { pfn_freeaddrinfo.unwrap () (ai); }                                // C 8477 (C's call-through)
+  else                                                                  // C 8478
+    {                                                                   // C 8479
+      eassert! ((*ai).ai_next.is_null ());                              // C 8480 (C's `== NULL`)
+      xfree (ai as *mut c_void);                                        // C 8481
+    }                                                                   // C 8482
+}                                                                       // C 8483
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_shutdown (s: c_int, how: c_int) -> c_int   // C 8485
+{                                                                       // C 8487
+  if winsock_lib.is_null ()                                             // C 8488 (C's `== NULL`)
+    {                                                                   // C 8489
+      *errno () = ENETDOWN;                                             // C 8490
+      return SOCKET_ERROR;                                              // C 8491
+    }                                                                   // C 8492
+
+  check_errno ();                                                       // C 8494
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8495 (C's truth test)
+    {                                                                   // C 8496
+      let rc: c_int = pfn_shutdown.unwrap () (SOCK_HANDLE! (s), how);   // C 8497 (C's call-through)
+      if rc == SOCKET_ERROR                                             // C 8498
+	{ set_errno (); }                                                      // C 8499
+      return rc;                                                        // C 8500
+    }                                                                   // C 8501
+  *errno () = ENOTSOCK;                                                 // C 8502
+  return SOCKET_ERROR;                                                  // C 8503
+}                                                                       // C 8504
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_setsockopt (s: c_int, level: c_int, optname: c_int, // C 8506
+                                        optval: *const c_void, optlen: c_int) -> c_int // C 8507
+{                                                                       // C 8508
+  if winsock_lib.is_null ()                                             // C 8509 (C's `== NULL`)
+    {                                                                   // C 8510
+      *errno () = ENETDOWN;                                             // C 8511
+      return SOCKET_ERROR;                                              // C 8512
+    }                                                                   // C 8513
+
+  check_errno ();                                                       // C 8515
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8516 (C's truth test)
+    {                                                                   // C 8517
+      let rc: c_int = pfn_setsockopt.unwrap () (SOCK_HANDLE! (s), level, optname, // C 8518 (C's call-through)
+					       optval as *const c_char, optlen);                           // C 8519 (C's `(const char *)` cast)
+      if rc == SOCKET_ERROR                                             // C 8520
+	{ set_errno (); }                                                      // C 8521
+      return rc;                                                        // C 8522
+    }                                                                   // C 8523
+  *errno () = ENOTSOCK;                                                 // C 8524
+  return SOCKET_ERROR;                                                  // C 8525
+}                                                                       // C 8526
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_listen (s: c_int, backlog: c_int) -> c_int // C 8528
+{                                                                       // C 8530
+  if winsock_lib.is_null ()                                             // C 8531 (C's `== NULL`)
+    {                                                                   // C 8532
+      *errno () = ENETDOWN;                                             // C 8533
+      return SOCKET_ERROR;                                              // C 8534
+    }                                                                   // C 8535
+
+  check_errno ();                                                       // C 8537
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8538 (C's truth test)
+    {                                                                   // C 8539
+      let rc: c_int = pfn_listen.unwrap () (SOCK_HANDLE! (s), backlog); // C 8540 (C's call-through)
+      if rc == SOCKET_ERROR                                             // C 8541
+	{ set_errno (); }                                                      // C 8542
+      else                                                              // C 8543
+	{ fd_info[s as usize].flags |= FILE_LISTEN as c_uint; }                // C 8544
+      return rc;                                                        // C 8545
+    }                                                                   // C 8546
+  *errno () = ENOTSOCK;                                                 // C 8547
+  return SOCKET_ERROR;                                                  // C 8548
+}                                                                       // C 8549
