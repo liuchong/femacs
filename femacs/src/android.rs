@@ -3961,3 +3961,374 @@ unsafe fn android_init_android_rect_class ()                          // C 3243-
   android_exception_check_1 (old);                                     // C 3266
   ANDROID_DELETE_LOCAL_REF! (old);                                     // C 3267
 }
+/* C 3269-3366: `android_init_emacs_gc_class` (C's `static void`; called from C 3375, 3431,
+   3614 and the GC group further down).  C spells the fifteen `GetFieldID` calls out longhand
+   (there is no macro in C 3303-3365), so the port does too.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_emacs_gc_class ()                        // C 3269-3366
+{
+  let mut old: jclass;                                                  // C 3273
+
+  old = std::ptr::null_mut ();                                     // (C leaves `old` uninitialised; PORTING.md 1.5) 
+
+  if ! emacs_gc_class.is_null ()                                   // C 3275 
+    /* Already initialized.  */                                    // C 3276 
+    { return; }                                                   // C 3277 
+
+  emacs_gc_class                                                        
+	= ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 3279-3280
+						    c"org/femacs/EmacsGC".as_ptr ());   // C 3281                 
+  eassert! (! emacs_gc_class.is_null ());                           // C 3282 
+
+  emacs_gc_constructor                                                  
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,   // C 3284-3285
+						      emacs_gc_class,                                             
+						      c"<init>".as_ptr (),                                        
+						      c"()V".as_ptr ());                  // C 3287               
+  eassert! (! emacs_gc_constructor.is_null ());                     // C 3288 
+
+  emacs_gc_mark_dirty                                                   
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,   // C 3290-3291
+						      emacs_gc_class,                                             
+						      c"markDirty".as_ptr (),                                     
+						      c"(Z)V".as_ptr ());                 // C 3293               
+  eassert! (! emacs_gc_mark_dirty.is_null ());                      // C 3294 
+
+  old = emacs_gc_class;                                             // C 3296 
+  emacs_gc_class                                                        
+	= ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 3297-3298
+							  emacs_gc_class as jobject) as jclass;   // C 3299              
+  android_exception_check_1 (old);                                  // C 3300 
+  ANDROID_DELETE_LOCAL_REF! (old);                                  // C 3301 
+
+  emacs_gc_foreground
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3303-3304
+						     emacs_gc_class,                                              
+						     c"foreground".as_ptr (),                                     
+						     c"I".as_ptr ());                                             
+  emacs_gc_background
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3307-3308
+						     emacs_gc_class,                                              
+						     c"background".as_ptr (),                                     
+						     c"I".as_ptr ());                                             
+  emacs_gc_function
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3311-3312
+						     emacs_gc_class,                                              
+						     c"function".as_ptr (),                                       
+						     c"I".as_ptr ());                                             
+  emacs_gc_clip_rects
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3315-3316
+						     emacs_gc_class,                                              
+						     c"clip_rects".as_ptr (),                                     
+						     c"[Landroid/graphics/Rect;".as_ptr ());                      
+  emacs_gc_clip_x_origin
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3320-3321
+						     emacs_gc_class,                                              
+						     c"clip_x_origin".as_ptr (),                                  
+						     c"I".as_ptr ());                                             
+  emacs_gc_clip_y_origin
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3324-3325
+						     emacs_gc_class,                                              
+						     c"clip_y_origin".as_ptr (),                                  
+						     c"I".as_ptr ());                                             
+  emacs_gc_stipple
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3328-3329
+						     emacs_gc_class,                                              
+						     c"stipple".as_ptr (),                                        
+						     c"Lorg/femacs/EmacsPixmap;".as_ptr ());                      
+  emacs_gc_clip_mask
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3333-3334
+						     emacs_gc_class,                                              
+						     c"clip_mask".as_ptr (),                                      
+						     c"Lorg/femacs/EmacsPixmap;".as_ptr ());                      
+  emacs_gc_fill_style
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3338-3339
+						     emacs_gc_class,                                              
+						     c"fill_style".as_ptr (),                                     
+						     c"I".as_ptr ());                                             
+  emacs_gc_ts_origin_x
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3342-3343
+						     emacs_gc_class,                                              
+						     c"ts_origin_x".as_ptr (),                                    
+						     c"I".as_ptr ());                                             
+  emacs_gc_ts_origin_y
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3346-3347
+						     emacs_gc_class,                                              
+						     c"ts_origin_y".as_ptr (),                                    
+						     c"I".as_ptr ());                                             
+  emacs_gc_line_style
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3350-3351
+						     emacs_gc_class,                                              
+						     c"line_style".as_ptr (),                                     
+						     c"I".as_ptr ());                                             
+  emacs_gc_line_width
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3354-3355
+						     emacs_gc_class,                                              
+						     c"line_width".as_ptr (),                                     
+						     c"I".as_ptr ());                                             
+  emacs_gc_dash_offset
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3358-3359
+						     emacs_gc_class,                                              
+						     c"dash_offset".as_ptr (),                                    
+						     c"I".as_ptr ());                                             
+  emacs_gc_dashes
+	= ((*(*android_java_env)).GetFieldID.unwrap ()) (android_java_env,   // C 3362-3363
+						     emacs_gc_class,                                              
+						     c"dashes".as_ptr (),                                         
+						     c"[I".as_ptr ());                                            
+}
+
+/* C 3368-3409: `android_create_gc`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_gc (mask: android_gc_value_mask,
+					    values: *mut android_gc_values)
+  -> *mut android_gc                                                    // C 3368-3409
+{
+  let mut gc: *mut android_gc;                                          // C 3372
+  let mut object: jobject;                                              // C 3373
+
+  /* C leaves both uninitialised (PORTING.md 1.5).  */
+  gc = std::ptr::null_mut ();
+  object = std::ptr::null_mut ();
+
+  android_init_emacs_gc_class ();                                       // C 3375
+
+  gc = xmalloc (std::mem::size_of::<android_gc> ()) as *mut android_gc;   // C 3377
+  (*gc).gcontext   = 0;                                                 // C 3378
+  (*gc).foreground = 0;                                                 // C 3379
+  (*gc).background = 0xffffff;                                          // C 3380
+  (*gc).clip_rects = std::ptr::null_mut ();                             // C 3381
+
+  /* This means to not apply any clipping.  */                           // C 3383
+  (*gc).num_clip_rects = -1;                                            // C 3384
+
+  /* Apply the other default values.  */                                // C 3386
+  (*gc).function = ANDROID_GC_COPY;                                     // C 3387
+  (*gc).fill_style = ANDROID_FILL_SOLID;                                // C 3388
+  (*gc).clip_x_origin = 0;                                              // C 3389
+  (*gc).clip_y_origin = 0;                                              // C 3390
+  (*gc).clip_mask = ANDROID_NONE as android_pixmap;                     // C 3391
+  (*gc).stipple = ANDROID_NONE as android_pixmap;                       // C 3392
+  (*gc).ts_x_origin = 0;                                                // C 3393
+  (*gc).ts_y_origin = 0;                                                // C 3394
+  (*gc).line_style = ANDROID_LINE_SOLID;                                // C 3395
+  (*gc).line_width = 0;                                                 // C 3396
+  (*gc).dash_offset = 0;                                                // C 3397
+  (*gc).dashes = std::ptr::null_mut ();                                 // C 3398
+  (*gc).n_segments = 0;                                                 // C 3399
+
+  object = ((*(*android_java_env)).NewObject.unwrap ()) (android_java_env,   // C 3401
+							 emacs_gc_class,
+							 emacs_gc_constructor);
+  android_exception_check ();                                           // C 3404
+
+  (*gc).gcontext = android_globalize_reference (object);                // C 3406
+  android_change_gc (gc, mask, values);                                 // C 3407
+  return gc;                                                            // C 3408
+}
+
+/* C 3411-3419: `android_free_gc`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_free_gc (gc: *mut android_gc)        // C 3411-3419
+{
+  android_destroy_handle ((*gc).gcontext);                              // C 3414
+
+  xfree ((*gc).dashes as *mut c_void);                                  // C 3416
+  xfree ((*gc).clip_rects as *mut c_void);                              // C 3417
+  xfree (gc as *mut c_void);                                            // C 3418
+}
+
+/* C 3421-3601: `android_change_gc` (non-`static`; called from C 3407 and the drawing helpers).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_change_gc (gc: *mut android_gc, mut mask: android_gc_value_mask,
+					    values: *mut android_gc_values)  // C 3421-3601
+{
+  let mut what: jobject;                                                // C 3426
+  let mut gcontext: jobject;                                            // C 3426
+  let mut array: jobject;                                               // C 3426
+  let mut clip_changed: jboolean;                                       // C 3427
+
+  /* C leaves the three pointers uninitialised (PORTING.md 1.5).  */
+  what = std::ptr::null_mut ();
+  gcontext = std::ptr::null_mut ();
+  array = std::ptr::null_mut ();
+
+  clip_changed = false as jboolean;                                     // C 3429 (C's `false`, PORTING.md 1.5)
+
+  android_init_emacs_gc_class ();                                       // C 3431
+  gcontext = android_resolve_handle ((*gc).gcontext);                   // C 3432
+
+  if mask & ANDROID_GC_FOREGROUND != 0                                  // C 3434
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3436-3437
+						      gcontext,
+						      emacs_gc_foreground,
+						      (*values).foreground as jint);      // C 3439
+      (*gc).foreground = (*values).foreground;                          // C 3440
+    }
+
+  if mask & ANDROID_GC_BACKGROUND != 0                                  // C 3443
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3445-3446
+						      gcontext,
+						      emacs_gc_background,
+						      (*values).background as jint);      // C 3448
+      (*gc).background = (*values).background;                          // C 3449
+    }
+
+  if mask & ANDROID_GC_FUNCTION != 0                                    // C 3452
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3454-3455
+						      gcontext,
+						      emacs_gc_function,
+						      (*values).function);                // C 3457
+      (*gc).function = (*values).function;                              // C 3458
+    }
+
+  if mask & ANDROID_GC_CLIP_X_ORIGIN != 0                               // C 3461
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3463-3464
+						      gcontext,
+						      emacs_gc_clip_x_origin,
+						      (*values).clip_x_origin);           // C 3466
+      (*gc).clip_x_origin = (*values).clip_x_origin;                    // C 3467
+      clip_changed = true as jboolean;                                 // C 3468 (C's `true`)
+    }
+
+  if mask & ANDROID_GC_CLIP_Y_ORIGIN != 0                               // C 3471
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3473-3474
+						      gcontext,
+						      emacs_gc_clip_y_origin,
+						      (*values).clip_y_origin);           // C 3476
+      (*gc).clip_y_origin = (*values).clip_y_origin;                    // C 3477
+      clip_changed = true as jboolean;                                 // C 3478 (C's `true`)
+    }
+
+  if mask & ANDROID_GC_CLIP_MASK != 0                                   // C 3481
+    {
+      what = android_resolve_handle ((*values).clip_mask);              // C 3483
+      ((*(*android_java_env)).SetObjectField.unwrap ()) (android_java_env,   // C 3484-3485
+							gcontext,
+							emacs_gc_clip_mask,
+							what);                          // C 3487
+      (*gc).clip_mask = (*values).clip_mask;                            // C 3488
+
+      /* Changing GCClipMask also clears the clip rectangles.  */       // C 3490
+      ((*(*android_java_env)).SetObjectField.unwrap ()) (android_java_env,   // C 3491-3492
+							gcontext,
+							emacs_gc_clip_rects,
+							std::ptr::null_mut ());         // C 3494
+
+      xfree ((*gc).clip_rects as *mut c_void);                          // C 3496
+      (*gc).clip_rects = std::ptr::null_mut ();                         // C 3497
+      (*gc).num_clip_rects = -1;                                        // C 3498
+      clip_changed = true as jboolean;                                 // C 3499 (C's `true`)
+    }
+
+  if mask & ANDROID_GC_STIPPLE != 0                                     // C 3502
+    {
+      what = android_resolve_handle ((*values).stipple);                // C 3504
+      ((*(*android_java_env)).SetObjectField.unwrap ()) (android_java_env,   // C 3505-3506
+							gcontext,
+							emacs_gc_stipple,
+							what);                          // C 3508
+      (*gc).stipple = (*values).stipple;                                // C 3509
+    }
+
+  if mask & ANDROID_GC_FILL_STYLE != 0                                  // C 3512
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3514-3515
+						      gcontext,
+						      emacs_gc_fill_style,
+						      (*values).fill_style);              // C 3517
+      (*gc).fill_style = (*values).fill_style;                          // C 3518
+    }
+
+  if mask & ANDROID_GC_TILE_STIP_X_ORIGIN != 0                          // C 3521
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3523-3524
+						      gcontext,
+						      emacs_gc_ts_origin_x,
+						      (*values).ts_x_origin);             // C 3526
+      (*gc).ts_x_origin = (*values).ts_x_origin;                        // C 3527
+    }
+
+  if mask & ANDROID_GC_TILE_STIP_Y_ORIGIN != 0                          // C 3530
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3532-3533
+						      gcontext,
+						      emacs_gc_ts_origin_y,
+						      (*values).ts_y_origin);             // C 3535
+      (*gc).ts_y_origin = (*values).ts_y_origin;                        // C 3536
+    }
+
+  if mask & ANDROID_GC_LINE_STYLE != 0                                  // C 3539
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3541-3542
+						      gcontext,
+						      emacs_gc_line_style,
+						      (*values).line_style);              // C 3544
+      (*gc).line_style = (*values).line_style;                          // C 3545
+    }
+
+  if mask & ANDROID_GC_LINE_WIDTH != 0                                  // C 3548
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3550-3551
+						      gcontext,
+						      emacs_gc_line_width,
+						      (*values).line_width);              // C 3553
+      (*gc).line_width = (*values).line_width;                          // C 3554
+    }
+
+  if mask & ANDROID_GC_DASH_OFFSET != 0                                 // C 3557
+    {
+      ((*(*android_java_env)).SetIntField.unwrap ()) (android_java_env,   // C 3559-3560
+						      gcontext,
+						      emacs_gc_dash_offset,
+						      (*values).dash_offset);             // C 3562
+      (*gc).dash_offset = (*values).dash_offset;                        // C 3563
+    }
+
+  if mask & ANDROID_GC_DASH_LIST != 0                                   // C 3566
+    {
+      /* Compare the new dash pattern with the old.  */                 // C 3568
+      if ! (*gc).dashes.is_null () && (*gc).n_segments == 1             // C 3569
+	  && *(*gc).dashes == (*values).dash                       // C 3570
+	/* If they be identical, nothing needs to change.  */          // C 3571
+	{ mask &= ! ANDROID_GC_DASH_LIST; }                           // C 3572
+      else
+	{
+	  if (*gc).n_segments != 1
+	    { (*gc).dashes = xrealloc ((*gc).dashes as *mut c_void,   // C 3575-3576
+				       std::mem::size_of::<c_int> ()) as *mut c_int; }
+	  (*gc).n_segments = 1;                                         // C 3577
+	  *(*gc).dashes = (*values).dash;                               // C 3578
+	  array = ((*(*android_java_env)).NewIntArray.unwrap ()) (android_java_env, 1);   // C 3579
+	  android_exception_check ();                                   // C 3580
+	  ((*(*android_java_env)).SetIntArrayRegion.unwrap ())          // C 3581
+	    (android_java_env,
+	     array, 0, 1,
+	     (&raw mut (*values).dash) as *mut jint);                   // C 3583
+	  ((*(*android_java_env)).SetObjectField.unwrap ()) (android_java_env,   // C 3584-3585
+							     gcontext,
+							     emacs_gc_dashes,
+							     array);                // C 3587
+	  ANDROID_DELETE_LOCAL_REF! (array);                            // C 3588
+	}
+    }
+
+  if mask != 0                                                          // C 3592
+    {
+      ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())       // C 3594
+	(android_java_env,
+	 gcontext,
+	 emacs_gc_class,
+	 emacs_gc_mark_dirty,
+	 clip_changed as jboolean as c_uint);                 // C 3598 (C's default argument promotion)
+      android_exception_check ();                                       // C 3599
+    }
+}
