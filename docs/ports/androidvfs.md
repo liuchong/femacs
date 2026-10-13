@@ -462,8 +462,9 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    mirror would let that use-site block go.
 
 10. **The five `invented exported symbol` rows cannot be discharged by port text**, and this unit is
-   where the class was measured: C's `NATIVE_NAME` (`android.h` 344,
-   `#define NATIVE_NAME(name) Java_org_gnu_emacs_EmacsNative_##name`) is a *function-like* macro, and
+   where the class was measured: C's `NATIVE_NAME` (`android.h` 344, whose body pastes
+   `Java_org_…_EmacsNative_` (the reference's own package, elided as this ledger's other rows do)
+   in front of its argument) is a *function-like* macro, and
    the checker's rename reader (`extract-abi.py` 2380-2390) only reads object-like `#define X Y`
    pairs - so `Java_org_…_EmacsNative_displayNameHash` never enters its `c_exported` set, and
    `androidvfs.o` is not in the frozen build (`reference_object_symbols` cannot answer either).
