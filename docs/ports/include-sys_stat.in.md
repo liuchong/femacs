@@ -188,3 +188,27 @@ error lines after the gate (**122** before), the frozen probe is unchanged (**ex
 `python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h femacs/lib/include/sys_stat.in.rs`
 still reads **OK**.
 
+
+## 2026-10-13: the `windowsnt` arm's five-name collision (w32.c's Owed 16)
+
+The same class as the 2026-10-12 section above, five names further on.  `src/w32.c` **defines**
+`stat`, `lstat`, `fstatat`, `fstat` and `utimensat` for the Windows arm (C 5782, 5788, 5794, 5826
+and 5946 - the file/stat emulations the lane carried as its thirteenth slice), and this header
+**declares** all five at this scope (lines 177, 178, 179, 181 and 204), so each declaration is an
+`E0428` against its definition.  The five now carry `#[cfg (not (feature = "windowsnt"))]` (the
+`femacs/lib/include/unistd.in.rs` 67 `getwd` device, as for `fchmod`/`fchmodat`/`faccessat`).
+
+Evidence: `femacs/src/w32.rs`'s `windowsnt` probe (with the five un-gated) read **128 error lines /
+155 located sites**; after the gate it reads **123 / 150** - exactly what the same probe reads on
+the slice-12 text, i.e. the five sites and nothing else.  The frozen probe is unchanged (**exit 0**,
+**336-byte** empty object), and this mirror's own
+`python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h femacs/lib/include/sys_stat.in.rs`
+still reads **OK** (`chmod`, `mkdir`/`mkdirat`, `mknod`/`mknodat`, `futimens` and `umask` stay
+ungated: no `w32.c` definition answers for them; `w32.c`'s `sys_umask` and `sys_mkdir` are
+different names).
+
+Trade-off, recorded rather than hidden: under `windowsnt` a unit that *calls* one of these five
+without defining it now gets the name from the CRT the same way C does, but it must declare it
+itself (or reach a mirror that is not this one); before the gate the same unit could not compile at
+all, because the declaration and the unit's own definition were an `E0428`.  No such unit exists in
+the tree yet - this lane is the only `windowsnt` reader.

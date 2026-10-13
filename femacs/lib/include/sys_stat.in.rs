@@ -173,11 +173,18 @@ pub const UTIME_OMIT: c_long = -2;
 
 unsafe extern "C" {
   /* C 511-530's `_GL_CXXALIAS_SYS (fstat, ...)` and the `stat`/`lstat` twins resolve to the
-     system entries in the frozen configuration (no `REPLACE_*` macro is nonzero).  */
+     system entries in the frozen configuration (no `REPLACE_*` macro is nonzero).  **All five of
+     them are also names `src/w32.c` defines** (C 5782/5788/5794/5826/5946), so - like the
+     `fchmod`/`fchmodat`/`faccessat` trio below - they are gated out of the `windowsnt` arm (the
+     `unistd.in.rs` 67 `getwd` device; `docs/ports/w32.md` Owed 16 measured five such rows).  */
+  #[cfg (not (feature = "windowsnt"))]
   pub fn stat (file: *const c_char, buf: *mut stat) -> c_int;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn lstat (file: *const c_char, buf: *mut stat) -> c_int;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn fstat (fd: c_int, buf: *mut stat) -> c_int;
   /* C 542-568's `fstatat`.  */
+  #[cfg (not (feature = "windowsnt"))]
   pub fn fstatat (fd: c_int, file: *const c_char, buf: *mut stat, flag: c_int) -> c_int;
   /* C 439-499's `chmod`, `fchmod` and `fchmodat` (the last one `_GL_ATTRIBUTE_NODISCARD`), and
      the `faccessat` below.  **The three whose `w32.c` counterparts are definitions** (`w32.c`
@@ -199,8 +206,10 @@ unsafe extern "C" {
   pub fn mkdirat (fd: c_int, file: *const c_char, mode: mode_t) -> c_int;
   pub fn mknod (file: *const c_char, mode: mode_t, dev: dev_t) -> c_int;
   pub fn mknodat (fd: c_int, file: *const c_char, mode: mode_t, dev: dev_t) -> c_int;
-  /* C 584-597's `futimens` and `utimensat`.  */
+  /* C 584-597's `futimens` and `utimensat`.  (`utimensat` is the fifth name `src/w32.c`
+     defines, C 5946; `futimens` is not.)  */
   pub fn futimens (fd: c_int, times: *const timespec) -> c_int;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn utimensat (fd: c_int, file: *const c_char, times: *const timespec, flag: c_int)
     -> c_int;
   /* `stat`'s mode-setting twin from the same header: `umask`.  */

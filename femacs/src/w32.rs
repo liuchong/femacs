@@ -8407,3 +8407,430 @@ unsafe fn stat_worker (mut path: *const c_char, buf: *mut stat, follow_symlinks:
 
   return 0;                                                             // C 5778
 }                                                                       // C 5779
+/* C 5781-5824: C 5782's `stat`, C 5788's `lstat`, C 5794's `fstatat` and C 5826's `fstat`
+   (with C 5823-5824's "Provide fstat and utimensat as well as stat for consistent handling of
+   file timestamps." comment carried verbatim).  The names this slice first uses are declared
+   here (P-88, `UNVERIFIED`): `<io.h>`'s `_get_osfhandle`/`_umask`, `<winbase.h>`'s
+   `SetFileTime` with `FILE_TYPE_REMOTE`, `FILE_WRITE_ATTRIBUTES` and the three `FILE_SHARE_*`
+   flags, `AT_EMPTY_PATH` (the `nt/inc/include/unistd.rs` 34 value; C 273's `"systime.h"` gives
+   the unit `current_timespec`, and the `<fcntl.h>` mirror gives `AT_FDCWD`/
+   `AT_SYMLINK_NOFOLLOW`), `ENFILE` (the CRT's errno), and `<winerror.h>`'s
+   `ERROR_DEV_NOT_EXIST`/`ERROR_TOO_MANY_OPEN_FILES`/`ERROR_SHARING_VIOLATION`.  C 5833-5855's
+   `switch`/`goto non_disk`/`non_disk:` label is the `lib-src/ntlib.rs` 1005/1029 device (the
+   same C body), and C 6278's `#if 0` region is dead text.  */
+/// C: intptr_t _get_osfhandle (int fd);  (`<io.h>`, the `sysdep.rs` 1063 spelling)
+/// C: int _umask (int pmode);  (`<io.h>`)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _get_osfhandle (fd: c_int) -> isize;
+  pub fn _umask (pmode: c_int) -> c_int;
+}
+/// C: WINBASEAPI BOOL WINAPI SetFileTime (HANDLE hFile, const FILETIME *lpCreationTime,
+/// C:   const FILETIME *lpLastAccessTime, const FILETIME *lpLastWriteTime);
+/// C: #define FILE_TYPE_REMOTE 0x8000 (`<winbase.h>`; the remote-drive bit)
+/// C: #define FILE_WRITE_ATTRIBUTES 0x00000100 / #define FILE_SHARE_READ 0x00000001
+/// C: #define FILE_SHARE_WRITE 0x00000002 / #define FILE_SHARE_DELETE 0x00000004 (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn SetFileTime (hFile: HANDLE, lpCreationTime: *const FILETIME,
+		      lpLastAccessTime: *const FILETIME, lpLastWriteTime: *const FILETIME) -> BOOL;
+}
+#[cfg (feature = "windowsnt")]
+pub const FILE_TYPE_REMOTE: DWORD = 0x8000;
+#[cfg (feature = "windowsnt")]
+pub const FILE_WRITE_ATTRIBUTES: DWORD = 0x00000100;
+#[cfg (feature = "windowsnt")]
+pub const FILE_SHARE_READ: DWORD = 0x00000001;
+#[cfg (feature = "windowsnt")]
+pub const FILE_SHARE_WRITE: DWORD = 0x00000002;
+#[cfg (feature = "windowsnt")]
+pub const FILE_SHARE_DELETE: DWORD = 0x00000004;
+/// C: #define AT_EMPTY_PATH 8192 (`<fcntl.h>`; `nt/inc/include/unistd.rs` 34 mirrors the CRT's
+/// C:   value, and C 5803 is where this unit names it)
+#[cfg (feature = "windowsnt")]
+pub const AT_EMPTY_PATH: c_int = 8192;
+/// C: #define ENFILE 23 (`<errno.h>`; C 6070 names it against `sys_stat`'s `EINVAL`)
+#[cfg (feature = "windowsnt")]
+pub const ENFILE: c_int = 23;
+/// C: #define ERROR_DEV_NOT_EXIST 55L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_DEV_NOT_EXIST: DWORD = 55;
+/// C: #define ERROR_TOO_MANY_OPEN_FILES 4L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_TOO_MANY_OPEN_FILES: DWORD = 4;
+/// C: #define ERROR_SHARING_VIOLATION 32L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_SHARING_VIOLATION: DWORD = 32;
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn stat (path: *const c_char, buf: *mut stat) -> c_int // C 5781
+{                                                                       // C 5783
+  return stat_worker (path, buf, 1);                                    // C 5784
+}                                                                       // C 5785
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lstat (path: *const c_char, buf: *mut stat) -> c_int // C 5787
+{                                                                       // C 5789
+  return stat_worker (path, buf, 0);                                    // C 5790
+}                                                                       // C 5791
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn fstatat (fd: c_int, name: *const c_char, st: *mut stat, flags: c_int) -> c_int // C 5793
+{                                                                       // C 5795
+  /* Rely on a hack: an open directory is modeled as file descriptor 0. // C 5796
+     This is good enough for the current usage in Emacs, but is fragile. // C 5797
+
+     FIXME: Add proper support for fdopendir, fstatat, readlinkat.      // C 5799
+     Gnulib does this and can serve as a model.  */                     // C 5800
+  let mut fullname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 5801
+
+  if (flags & AT_EMPTY_PATH) != 0 && name.is_null ()                    // C 5803 (C's parens)
+    { name = c"".as_ptr (); }                                           // C 5804 (C's `name = "";`)
+
+  if fd != AT_FDCWD                                                     // C 5806
+    {                                                                   // C 5807
+      let mut lastc: c_char = *dir_pathname.offset ((strlen (dir_pathname) - 1) as isize); // C 5808
+
+      if (_snprintf ((&raw mut fullname) as *mut c_char,                // C 5810
+		   core::mem::size_of_val (&fullname),
+		   c"%s%s%s".as_ptr (),
+		   dir_pathname.as_ptr (),                                            // C 5811
+		   if IS_DIRECTORY_SEP! (lastc as c_int) { c"".as_ptr () } else { c"/".as_ptr () }, name) // C 5811
+	  < 0)                                                                 // C 5812
+	{                                                                      // C 5813
+	  *errno () = ENAMETOOLONG;                                            // C 5814
+	  return -1;                                                           // C 5815
+	}                                                                      // C 5816
+      name = (&raw mut fullname) as *const c_char;                      // C 5817 (C's array decay)
+    }                                                                   // C 5818
+
+  return stat_worker (name, st, (! ((flags & AT_SYMLINK_NOFOLLOW) != 0)) as c_int); // C 5820 (C's `!` + the `as`-binding parens)
+}                                                                       // C 5821
+
+
+/* Provide fstat and utimensat as well as stat for consistent handling  // C 5823
+   of file timestamps. */                                               // C 5824
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn fstat (desc: c_int, buf: *mut stat) -> c_int   // C 5825
+{                                                                       // C 5827
+  let mut fh: HANDLE = _get_osfhandle (desc) as HANDLE;                 // C 5828
+  let mut info: BY_HANDLE_FILE_INFORMATION;                             // C 5829
+  let mut fake_inode: c_ulonglong;                                      // C 5830 (C's `unsigned __int64`)
+  let mut permission: c_int;                                            // C 5831
+
+  /* C leaves `info`, `fake_inode` and `permission` uninitialised (PORTING.md 1.5).  */
+  info = std::mem::zeroed ();
+  fake_inode = 0;
+  permission = 0;
+
+  /* C 5833-5855's `switch` and its `goto non_disk` (C 5845): the switch is this `match`, its
+     `break` (C 5842) is the end of the `FILE_TYPE_DISK` arm, and the `non_disk:` label's block
+     is the `if non_disk` tail below (the `lib-src/ntlib.rs` 1005/1029 device, same C body).  */
+  let mut non_disk: c_int = 0;
+  match GetFileType (fh) & ! FILE_TYPE_REMOTE                           // C 5833
+	{
+	  FILE_TYPE_DISK =>                                                    // C 5835
+	    {
+	      (*buf).st_mode = S_IFREG as c_ushort;                            // C 5836
+	      if GetFileInformationByHandle (fh, (&raw mut info)) == 0         // C 5837 (C's `!`)
+		{
+		  *errno () = EACCES;                                                 // C 5839
+		  return -1;                                                          // C 5840
+		}
+	    }
+	  FILE_TYPE_PIPE =>                                                    // C 5843
+	    {
+	      (*buf).st_mode = S_IFIFO as c_ushort;                            // C 5844
+	      non_disk = 1;                              /* C 5845's `goto non_disk;` */ // C 5845
+	    }
+	  FILE_TYPE_CHAR                                                       // C 5846
+	  | FILE_TYPE_UNKNOWN                                                  // C 5847
+	  | _ =>                                                               // C 5848 (C's `default:`)
+	    {
+	      (*buf).st_mode = S_IFCHR as c_ushort;                            // C 5849
+	      non_disk = 1;                              /* C 5850's `non_disk:` label */ // C 5850
+	    }
+	}
+  if non_disk != 0
+    {
+      memset ((&raw mut info) as *mut c_void, 0, core::mem::size_of_val (&info)); // C 5851 (C's `sizeof (info)`)
+      info.dwFileAttributes = 0;                                        // C 5852
+      info.ftCreationTime = utc_base_ft;                                // C 5853
+      info.ftLastAccessTime = utc_base_ft;                              // C 5854
+      info.ftLastWriteTime = utc_base_ft;                               // C 5855
+    }
+
+  if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0            // C 5858
+      { (*buf).st_mode = S_IFDIR as c_ushort; }                         // C 5859
+
+  (*buf).st_nlink = info.nNumberOfLinks as c_short;                     // C 5861 (the mirror's `st_nlink`)
+  /* Might as well use file index to fake inode values, but this        // C 5862
+     is not guaranteed to be unique unless we keep a handle open        // C 5863
+     all the time (even then there are situations where it is           // C 5864
+     not unique).  Reputedly, there are at most 48 bits of info         // C 5865
+     (on NTFS, presumably less on FAT). */                              // C 5866
+  fake_inode = info.nFileIndexHigh as c_ulonglong;                      // C 5867
+  fake_inode <<= 32;                                                    // C 5868
+  fake_inode += info.nFileIndexLow as c_ulonglong;                      // C 5869
+
+  /* MSVC defines _ino_t to be short; other libc's might not.  */       // C 5871
+  if core::mem::size_of_val (&(*buf).st_ino) == 2                       // C 5872 (C's `sizeof (buf->st_ino)`)
+    { (*buf).st_ino = fake_inode ^ (fake_inode >> 16); }                // C 5873
+  else                                                                  // C 5874
+    { (*buf).st_ino = fake_inode; }                                     // C 5875
+
+
+  /* If the caller so requested, get the true file owner and group.     // C 5877
+     Otherwise, consider the file to belong to the current user.  */    // C 5878
+  if w32_stat_get_owner_group == 0 || is_windows_9x () == TRUE          // C 5879 (C's `TRUE`)
+    { get_file_owner_and_group (std::ptr::null_mut (), buf); }          // C 5880
+  else                                                                  // C 5881
+    {                                                                   // C 5882
+      let mut psd: PSECURITY_DESCRIPTOR = std::ptr::null_mut ();        // C 5883
+
+      psd = get_file_security_desc_by_handle (fh);                      // C 5885
+      if ! psd.is_null ()                                               // C 5886
+	{
+	  get_file_owner_and_group (psd, buf);                                 // C 5888
+	  LocalFree (psd);                                                     // C 5889
+	}
+      else                                                              // C 5891
+	{ get_file_owner_and_group (std::ptr::null_mut (), buf); }             // C 5892
+    }                                                                   // C 5893
+
+  (*buf).st_dev = info.dwVolumeSerialNumber as dev_t;                   // C 5895
+  (*buf).st_rdev = info.dwVolumeSerialNumber as dev_t;                  // C 5896
+
+  (*buf).st_size = info.nFileSizeHigh as c_ulonglong;                   // C 5898 (C's `off_t`/`st_size`)
+  (*buf).st_size <<= 32;                                                // C 5899
+  (*buf).st_size += info.nFileSizeLow as c_ulonglong;                   // C 5900
+
+  /* Convert timestamps to Unix format. */                              // C 5902
+  (*buf).st_mtime = convert_time (info.ftLastWriteTime, (&raw mut (*buf).st_mtimensec)); // C 5903
+  (*buf).st_atime = convert_time (info.ftLastAccessTime, (&raw mut (*buf).st_atimensec)); // C 5904
+  if (*buf).st_atime == 0                                               // C 5905
+    {                                                                   // C 5906
+      (*buf).st_atime = (*buf).st_mtime;                                // C 5907
+      (*buf).st_atimensec = (*buf).st_mtimensec;                        // C 5908
+    }                                                                   // C 5909
+  (*buf).st_ctime = convert_time (info.ftCreationTime, (&raw mut (*buf).st_ctimensec)); // C 5910
+  if (*buf).st_ctime == 0                                               // C 5911
+    {                                                                   // C 5912
+      (*buf).st_ctime = (*buf).st_mtime;                                // C 5913
+      (*buf).st_ctimensec = (*buf).st_mtimensec;                        // C 5914
+    }                                                                   // C 5915
+
+
+  /* determine rwx permissions */                                       // C 5917
+  if (info.dwFileAttributes & FILE_ATTRIBUTE_READONLY) != 0             // C 5918
+    { permission = S_IREAD; }                                           // C 5919
+  else                                                                  // C 5920
+    { permission = S_IREAD | S_IWRITE; }                                // C 5921
+
+  if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0            // C 5923
+    { permission |= S_IEXEC; }                                          // C 5924
+  else                                                                  // C 5925
+    {                                                                   // C 5926
+      /* C 5927-5935's `#if 0` region is dead in every configuration and is carried as C's own
+	 text (the C 3390-3406 reading); C's `else` body is therefore empty.  */
+      /* C: #if 0 /* no way of knowing the filename */
+	 C:   char * p = strrchr (name, '.');
+	 C:   if (p != NULL &&
+	 C: 	  (xstrcasecmp (p, ".exe") == 0 ||
+	 C: 	   xstrcasecmp (p, ".com") == 0 ||
+	 C: 	   xstrcasecmp (p, ".bat") == 0 ||
+	 C: 	   xstrcasecmp (p, ".cmd") == 0))
+	 C: 	permission |= S_IEXEC;
+	 C: #endif
+	  */
+    }                                                                   // C 5936
+
+  (*buf).st_mode |= (permission | (permission >> 3) | (permission >> 6)) as c_ushort; // C 5938
+
+  return 0;                                                             // C 5940
+}                                                                       // C 5941
+
+/* Emulate utimensat.  */                                               // C 5943
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn utimensat (fd: c_int, name: *const c_char, times: *const timespec, flag: c_int) -> c_int // C 5945 (C's `times[2]` parameter; the array type would put a `;` before the body brace)
+{                                                                       // C 5947
+  let mut ltimes: [timespec; 2];                                        // C 5948
+  let mut fh: HANDLE;                                                   // C 5949
+  let mut mtime: FILETIME;                                              // C 5950
+  let mut atime: FILETIME;                                              // C 5951
+  let mut flags_and_attrs: DWORD = FILE_FLAG_BACKUP_SEMANTICS;          // C 5952
+
+  /* C leaves `ltimes`, `fh`, `mtime` and `atime` uninitialised (PORTING.md 1.5).  */
+  ltimes = std::mem::zeroed ();
+  fh = std::ptr::null_mut ();
+  mtime = std::mem::zeroed ();
+  atime = std::mem::zeroed ();
+
+  /* Rely on a hack: an open directory is modeled as file descriptor 0. // C 5954
+     This is good enough for the current usage in Emacs, but is fragile. // C 5955
+
+     FIXME: Add proper support for utimensat.                           // C 5957
+     Gnulib does this and can serve as a model.  */                     // C 5958
+  let mut fullname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 5959
+
+  if fd != AT_FDCWD                                                     // C 5961
+    {                                                                   // C 5962
+      let mut lastc: c_char = *dir_pathname.offset ((strlen (dir_pathname) - 1) as isize); // C 5963
+
+      if (_snprintf ((&raw mut fullname) as *mut c_char,                // C 5965
+		   core::mem::size_of_val (&fullname),
+		   c"%s%s%s".as_ptr (),
+		   dir_pathname.as_ptr (),                                            // C 5966
+		   if IS_DIRECTORY_SEP! (lastc as c_int) { c"".as_ptr () } else { c"/".as_ptr () }, name) // C 5966
+	  < 0)                                                                 // C 5967
+	{                                                                      // C 5968
+	  *errno () = ENAMETOOLONG;                                            // C 5969
+	  return -1;                                                           // C 5970
+	}                                                                      // C 5971
+      name = (&raw mut fullname) as *const c_char;                      // C 5972 (C's array decay)
+    }                                                                   // C 5973
+
+  if times.is_null ()                                                   // C 5975 (C's `times == NULL`)
+    {                                                                   // C 5976
+      memset ((&raw mut ltimes) as *mut c_void, 0, core::mem::size_of_val (&ltimes)); // C 5977
+      /* C 5978's chained `ltimes[0] = ltimes[1] = current_timespec ();` calls the function
+	 **once**; the port keeps that with one temporary.  */
+      let ts: timespec = current_timespec ();                           // C 5978 (the single call)
+      ltimes[0] = ts; ltimes[1] = ts;                                   // C 5978
+    }                                                                   // C 5979
+  else                                                                  // C 5980
+    {                                                                   // C 5981
+      if times[0].tv_nsec == UTIME_OMIT && times[1].tv_nsec == UTIME_OMIT // C 5982
+	{ return 0; }		/* nothing to do */                                     // C 5983 (C's single statement)
+      if ((times[0].tv_nsec != UTIME_NOW && times[0].tv_nsec != UTIME_OMIT // C 5984
+	   && ! (0 <= times[0].tv_nsec && times[0].tv_nsec < 1000000000))      // C 5985
+	  || (times[1].tv_nsec != UTIME_NOW && times[1].tv_nsec != UTIME_OMIT  // C 5986
+	      && ! (0 <= times[1].tv_nsec && times[1].tv_nsec < 1000000000)))  // C 5987
+	{                                                                      // C 5988
+	  *errno () = EINVAL;	/* reject invalid timespec values */             // C 5989
+	  return -1;                                                           // C 5990
+	}                                                                      // C 5991
+
+      memcpy ((&raw mut ltimes) as *mut c_void, times as *const c_void, core::mem::size_of_val (&ltimes)); // C 5993 (C's `sizeof (ltimes)`)
+      if ltimes[0].tv_nsec == UTIME_NOW                                 // C 5994
+	{ ltimes[0] = current_timespec (); }                                   // C 5995
+      if ltimes[1].tv_nsec == UTIME_NOW                                 // C 5996
+	{ ltimes[1] = current_timespec (); }                                   // C 5997
+    }                                                                   // C 5998
+
+  if flag == AT_SYMLINK_NOFOLLOW                                        // C 6000
+    { flags_and_attrs |= FILE_FLAG_OPEN_REPARSE_POINT; }                // C 6001
+  if w32_unicode_filenames                                              // C 6002
+    {                                                                   // C 6003
+      let mut name_utf16: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6004 (C's `wchar_t`)
+
+      if filename_to_utf16 (name, name_utf16.as_mut_ptr ()) != 0        // C 6006
+	{ return -1; }	/* errno set by filename_to_utf16 */                    // C 6007
+
+      /* Need write access to set times.  */                            // C 6009
+      fh = CreateFileW (name_utf16.as_ptr (), FILE_WRITE_ATTRIBUTES,    // C 6010
+			/* If NAME specifies a directory, FILE_SHARE_DELETE                  // C 6011
+			   allows other processes to delete files inside it,                 // C 6012
+			   while we have the directory open.  */                             // C 6013
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,              // C 6014
+			0, OPEN_EXISTING, flags_and_attrs, std::ptr::null_mut ());           // C 6015
+    }                                                                   // C 6016
+  else                                                                  // C 6017
+    {                                                                   // C 6018
+      let mut name_ansi: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6019
+
+      if filename_to_ansi (name, name_ansi.as_mut_ptr ()) != 0          // C 6021
+	{ return -1; }	/* errno set by filename_to_ansi */                     // C 6022
+
+      fh = CreateFileA (name_ansi.as_ptr (), FILE_WRITE_ATTRIBUTES,     // C 6024
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,              // C 6025
+			0, OPEN_EXISTING, flags_and_attrs, std::ptr::null_mut ());           // C 6026
+    }                                                                   // C 6027
+  if fh != INVALID_HANDLE_VALUE                                         // C 6028
+    {                                                                   // C 6029
+      let mut patime: *mut FILETIME;                                    // C 6030 (C's `FILETIME *patime, *pmtime;`)
+      let mut pmtime: *mut FILETIME;                                    // C 6030
+      if ltimes[0].tv_nsec == UTIME_OMIT                                // C 6031
+	{ patime = std::ptr::null_mut (); }                                    // C 6032
+      else                                                              // C 6033
+	{                                                                      // C 6034
+	  convert_from_timespec (ltimes[0], (&raw mut atime));                 // C 6035
+	  patime = (&raw mut atime);                                           // C 6036
+	}                                                                      // C 6037
+      if ltimes[1].tv_nsec == UTIME_OMIT                                // C 6038
+	{ pmtime = std::ptr::null_mut (); }                                    // C 6039
+      else                                                              // C 6040
+	{                                                                      // C 6041
+	  convert_from_timespec (ltimes[1], (&raw mut mtime));                 // C 6042
+	  pmtime = (&raw mut mtime);                                           // C 6043
+	}                                                                      // C 6044
+      if SetFileTime (fh, std::ptr::null (), patime, pmtime) == 0       // C 6045 (C's `!SetFileTime`)
+	{                                                                      // C 6046
+	  CloseHandle (fh);                                                    // C 6047
+	  *errno () = EACCES;                                                  // C 6048
+	  return -1;                                                           // C 6049
+	}                                                                      // C 6050
+      CloseHandle (fh);                                                 // C 6051
+    }                                                                   // C 6052
+  else                                                                  // C 6053
+    {                                                                   // C 6054
+      let err: DWORD = GetLastError ();                                 // C 6055
+
+      match err                                                         // C 6057 (C's `switch (err)`)
+	{
+	  ERROR_FILE_NOT_FOUND |                                               // C 6059
+	  ERROR_PATH_NOT_FOUND |                                               // C 6060
+	  ERROR_INVALID_DRIVE |                                                // C 6061
+	  ERROR_BAD_NETPATH |                                                  // C 6062
+	  ERROR_DEV_NOT_EXIST |                                                // C 6063
+	  /* ERROR_INVALID_NAME is the error CreateFile sets when the          // C 6064
+	     file name includes ?s, i.e. translation to ANSI failed.  */       // C 6065
+	  ERROR_INVALID_NAME =>                                                // C 6066
+	    { *errno () = ENOENT; }                                            // C 6067
+	  ERROR_TOO_MANY_OPEN_FILES =>                                         // C 6069
+	    { *errno () = ENFILE; }                                            // C 6070
+	  ERROR_ACCESS_DENIED |                                                // C 6072
+	  ERROR_SHARING_VIOLATION =>                                           // C 6073
+	    { *errno () = EACCES; }                                            // C 6074
+	  _ => /* default: */                                                  // C 6076
+	    { *errno () = EINVAL; }                                            // C 6077
+	}
+      return -1;                                                        // C 6080
+    }                                                                   // C 6081
+  return 0;                                                             // C 6082
+}                                                                       // C 6083
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_umask (mode: c_int) -> c_int               // C 6085
+{                                                                       // C 6087
+  static mut current_mask: c_int = 0;   /* C 6088's function-local `static int` (the C 569-586 device) */ // C 6088
+  let mut retval: c_int;                                                // C 6089 (C's `int retval`)
+  let mut arg: c_int = 0;                                               // C 6089
+
+  /* C leaves `retval` uninitialised (PORTING.md 1.5).  */
+  retval = 0;
+
+  /* The only bit we really support is the write bit.  Files are        // C 6091
+     always readable on MS-Windows, and the execute bit does not exist  // C 6092
+     at all.  */                                                        // C 6093
+  /* FIXME: if the GROUP and OTHER bits are reset, we should use ACLs   // C 6094
+     to prevent access by other users on NTFS.  */                      // C 6095
+  if (mode & S_IWRITE) != 0                                             // C 6096
+    { arg |= S_IWRITE; }                                                // C 6097
+
+  retval = _umask (arg);                                                // C 6099
+  /* Merge into the return value the bits they've set the last time,    // C 6100
+     which msvcrt.dll ignores and never returns.  Emacs insists on its  // C 6101
+     notion of mask being identical to what we return.  */              // C 6102
+  retval |= (current_mask & ! S_IWRITE);                                // C 6103 (C's `~`)
+  current_mask = mode;                                                  // C 6104
+
+  return retval;                                                        // C 6106
+}                                                                       // C 6107
