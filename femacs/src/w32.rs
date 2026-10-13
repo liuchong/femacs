@@ -15630,3 +15630,150 @@ unsafe extern "system" fn shutdown_handler (r#type: DWORD) -> BOOL      // C 106
   /* Allow other handlers to handle this signal.  */                    // C 10730
   return FALSE;                                                         // C 10731
 }                                                                       // C 10732
+
+
+/* C 10733's blank, C 10734-10735's comment (C's own text), C 10736-10793's `maybe_load_unicows_dll`
+   (the 9X arm's `LoadLibrary`/`get_proc_addr` pair against the NT arm's direct addresses) and
+   C 10795-10827's `w32_relocate` (a function-local `static char` C modifies in place).  New in-unit
+   items: `MB_ICONERROR`/`MB_SETFOREGROUND`/`IDOK` (C 10768-10769's flags and C 10772's return),
+   `MB_ERR_INVALID_CHARS` (`DWORD`, the flag C 10754/10789 stores), the two entry points whose
+   *address* the NT arm takes (declared with the exact `*_Proc` signature the mirror's `Option`
+   needs, so `Some (…)` coerces) and the CRT's `exit` - all `UNVERIFIED` (Owed 51).  */
+/// C 10762-10772: `MessageBox`'s two new flags and the `IDOK` return C's `switch` tests
+/// (`<winuser.h>`).
+/// C: #define MB_ICONERROR 0x00000010
+/// C: #define MB_SETFOREGROUND 0x00010000
+/// C: #define IDOK 1
+#[cfg (feature = "windowsnt")]
+pub const MB_ICONERROR: UINT = 0x00000010;
+#[cfg (feature = "windowsnt")]
+pub const MB_SETFOREGROUND: UINT = 0x00010000;
+#[cfg (feature = "windowsnt")]
+pub const IDOK: c_int = 1;
+/// C 10754/10789: `MB_ERR_INVALID_CHARS` - the flag C stores into `multiByteToWideCharFlags`
+/// (`DWORD`).
+/// C: #define MB_ERR_INVALID_CHARS 0x00000008
+#[cfg (feature = "windowsnt")]
+pub const MB_ERR_INVALID_CHARS: DWORD = 0x00000008;
+/// C 10783-10784: the two entry points the NT arm takes the *address* of, whose 9X twin
+/// `get_proc_addr` also loads by these names.  The signatures are written as the `include/w32.rs`
+/// 270-275 `*_Proc` types spell them (raw `c_uint`/`c_ulong`/`u16`), so `Some (…)` coerces.
+/// C: WINBASEAPI int WINAPI MultiByteToWideChar (UINT CodePage, DWORD dwFlags, LPCSTR lpMultiByteStr,
+/// C:   int cbMultiByte, LPWSTR lpWideCharStr, int cchWideChar);
+/// C: WINBASEAPI int WINAPI WideCharToMultiByte (UINT CodePage, DWORD dwFlags, LPCWSTR lpWideCharStr,
+/// C:   int cchWideChar, LPSTR lpMultiByteStr, int cbMultiByte, LPCSTR lpDefaultChar,
+/// C:   LPBOOL lpUsedDefaultChar);
+/// C: void exit (int status);  (the CRT's `<stdlib.h>`; the `stdlib.in.rs` template is not in this
+/// C: unit's include graph)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn MultiByteToWideChar (CodePage: c_uint, dwFlags: c_ulong, lpMultiByteStr: *const c_char,
+                              cbMultiByte: c_int, lpWideCharStr: *mut u16,
+                              cchWideChar: c_int) -> c_int;
+  pub fn WideCharToMultiByte (CodePage: c_uint, dwFlags: c_ulong, lpWideCharStr: *const u16,
+                              cchWideChar: c_int, lpMultiByteStr: *mut c_char,
+                              cbMultiByte: c_int, lpDefaultChar: *const c_char,
+                              lpUsedDefaultChar: *mut c_int) -> c_int;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn exit (status: c_int) -> !;
+}
+/* On Windows 9X, load UNICOWS.DLL and return its handle, or die.  On   // C 10734
+   NT, return a handle to GDI32.DLL.  */                                // C 10735
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn maybe_load_unicows_dll () -> HANDLE            // C 10736-10737
+{                                                                       // C 10738
+  if os_subtype == OS_SUBTYPE_9X                                        // C 10739
+    {                                                                   // C 10740
+      let ret: HANDLE = LoadLibrary (c"Unicows.dll".as_ptr ());         // C 10741
+      if ! ret.is_null ()                                               // C 10742 (C's truth test)
+	{                                                                      // C 10743
+	  /* These two functions are present on Windows 9X as stubs            // C 10744
+	     that always fail.  We need the real implementations from          // C 10745
+	     UNICOWS.DLL, so we must call these functions through              // C 10746
+	     pointers, and assign the correct addresses to these               // C 10747
+	     pointers at program startup (see emacs.c, which calls             // C 10748
+	     this function early on).  */                                      // C 10749
+	  pMultiByteToWideChar                                                 // C 10750
+	    = std::mem::transmute::<VOIDFNPTR, MultiByteToWideChar_Proc>
+		(get_proc_addr (ret, c"MultiByteToWideChar".as_ptr ()));              // C 10751
+	  pWideCharToMultiByte                                                 // C 10752
+	    = std::mem::transmute::<VOIDFNPTR, WideCharToMultiByte_Proc>
+		(get_proc_addr (ret, c"WideCharToMultiByte".as_ptr ()));              // C 10753
+	  multiByteToWideCharFlags = MB_ERR_INVALID_CHARS;                     // C 10754
+	  load_unicows_dll_for_w32fns (ret);                                   // C 10755
+	  return ret;                                                          // C 10756
+	}                                                                      // C 10757
+      else                                                              // C 10758
+	{                                                                      // C 10759
+	  let mut button: c_int;                                               // C 10760
+
+	  button = MessageBox (std::ptr::null_mut (),                          // C 10762
+			       concat! ("Emacs cannot load the UNICOWS.DLL library.\n",      // C 10763
+					"This library is essential for using Emacs\n",                     // C 10764
+					"on this system.  You need to install it.\n\n",                    // C 10765
+					"Emacs will exit when you click OK.") .as_ptr () as *const c_char, // C 10766
+			       c"Emacs cannot load UNICOWS.DLL".as_ptr (),                   // C 10767
+			       MB_ICONERROR | MB_TASKMODAL                                   // C 10768
+			       | MB_SETFOREGROUND | MB_OK);                                  // C 10769
+	  match button                                                         // C 10770
+	    {                                                                  // C 10771
+	      IDOK | _ =>                                                      // C 10772-10773 (C's `case IDOK:` and `default:` share this body)
+		{ exit (1); }                                                         // C 10774
+	    }                                                                  // C 10775
+	}                                                                      // C 10776
+    }                                                                   // C 10777
+  else                                                                  // C 10778
+    {                                                                   // C 10779
+      /* On NT family of Windows, these two functions are always        // C 10780
+	 linked in, so we just assign their addresses to the 2                 // C 10781
+	 pointers; no need for the LoadLibrary dance.  */                      // C 10782
+      pMultiByteToWideChar = Some (MultiByteToWideChar);                // C 10783 (C's bare function name)
+      pWideCharToMultiByte = Some (WideCharToMultiByte);                // C 10784 (C's bare function name)
+      /* On NT 4.0, though, MB_ERR_INVALID_CHARS is not supported.  */  // C 10785
+      if w32_major_version < 5                                          // C 10786
+        { multiByteToWideCharFlags = 0; }                               // C 10787
+      else                                                              // C 10788
+        { multiByteToWideCharFlags = MB_ERR_INVALID_CHARS; }            // C 10789
+      load_unicows_dll_for_w32fns (std::ptr::null_mut ());              // C 10790 (C's `NULL`)
+      return LoadLibrary (c"Gdi32.dll".as_ptr ());                      // C 10791
+    }                                                                   // C 10792
+}                                                                       // C 10793
+
+/* Relocate a directory specified by epaths.h, using the location of    // C 10795
+   our binary as an anchor.  Note: this runs early during startup, so   // C 10796
+   we cannot rely on the usual file-related facilities, and in          // C 10797
+   particular the argument is assumed to be a unibyte string in system  // C 10798
+   codepage encoding.  */                                               // C 10799
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_relocate (mut epath_dir: *const c_char) -> *const c_char // C 10800-10801
+{                                                                       // C 10802
+  if strncmp (epath_dir, c"%emacs_dir%/".as_ptr (), 12) == 0            // C 10803
+    {                                                                   // C 10804
+      static mut relocated_dir: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 10805
+
+      /* Replace "%emacs_dir%" with the parent of the directory where   // C 10807
+	 our binary lives.  Note that init_environment was not yet             // C 10808
+	 called, so we cannot rely on emacs_dir being set in the               // C 10809
+	 environment.  */                                                      // C 10810
+      if GetModuleFileNameA (std::ptr::null_mut (), relocated_dir.as_mut_ptr (), // C 10811
+			   MAX_PATH as DWORD) != 0
+	{                                                                      // C 10812
+	  let mut p: *mut c_char = _mbsrchr (relocated_dir.as_ptr (), b'\\' as c_uint); // C 10813
+
+	  if ! p.is_null ()                                                    // C 10815 (C's truth test)
+	    {                                                                  // C 10816
+	      *p = 0;                                                          // C 10817 (C's `'\\0'`)
+	      if ! ({ p = _mbsrchr (relocated_dir.as_ptr (), b'\\' as c_uint); p }).is_null () // C 10818 (C's assignment inside the condition)
+		{                                                                     // C 10819
+		  strcpy (p, epath_dir.offset (11));                                  // C 10820 (C's `epath_dir + 11`)
+		  epath_dir = relocated_dir.as_ptr ();                                // C 10821
+		}                                                                     // C 10822
+	    }                                                                  // C 10823
+	}                                                                      // C 10824
+    }                                                                   // C 10825
+  return epath_dir;                                                     // C 10826
+}                                                                       // C 10827
