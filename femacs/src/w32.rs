@@ -426,7 +426,11 @@ unsafe extern "system" {
 /// this pointer.  Every `<psapi.h>`/`<tlhelp32.h>`/`<iphlpapi.h>`/`<aclapi.h>`/`<sddl.h>` record
 /// the slice uses through a pointer is therefore spelled as the pointer C's text spells (PORTING.md
 /// 0.1-2's incomplete-type rule), with the SDK's own line above it:
-/// C: typedef struct _PROCESS_MEMORY_COUNTERS { DWORD cb; DWORD PageFaultCount; …; } PROCESS_MEMORY_COUNTERS, *PPROCESS_MEMORY_COUNTERS;
+/// C: typedef struct _PROCESS_MEMORY_COUNTERS { DWORD cb; DWORD PageFaultCount;
+/// C:   SIZE_T PeakWorkingSetSize; SIZE_T WorkingSetSize; SIZE_T QuotaPeakPagedPoolUsage;
+/// C:   SIZE_T QuotaPagedPoolUsage; SIZE_T QuotaPeakNonPagedPoolUsage;
+/// C:   SIZE_T QuotaNonPagedPoolUsage; SIZE_T PagefileUsage; SIZE_T PeakPagefileUsage; }
+/// C:   PROCESS_MEMORY_COUNTERS, *PPROCESS_MEMORY_COUNTERS;
 /// C: typedef struct tagPROCESSENTRY32 { DWORD dwSize; DWORD cntUsage; DWORD th32ProcessID;
 /// C:   ULONG_PTR th32DefaultHeapID; DWORD th32ModuleID; DWORD cntThreads;
 /// C:   DWORD th32ParentProcessID; LONG pcPriClassBase; DWORD dwFlags;
@@ -437,8 +441,28 @@ unsafe extern "system" {
 /// C: typedef enum _SID_NAME_USE { SidTypeUser = 1, … } SID_NAME_USE, *PSID_NAME_USE;
 /// C: typedef enum _TOKEN_INFORMATION_CLASS { TokenUser = 1, … } TOKEN_INFORMATION_CLASS;
 /// C: typedef enum _SECURITY_IMPERSONATION_LEVEL { SecurityAnonymous, … } SECURITY_IMPERSONATION_LEVEL;
+/* Slice 19's `system_process_attributes` holds a `PROCESS_MEMORY_COUNTERS` *by value* (C 7453)
+   and reads its `PageFaultCount`/`WorkingSetSize`, so - as with `PROCESSENTRY32` and
+   `MEMORYSTATUS` - the record is spelled here with C's member names and order (P-88,
+   `UNVERIFIED`) and the alias names it as C's does.  */
 #[cfg (feature = "windowsnt")]
-pub type PPROCESS_MEMORY_COUNTERS = *mut c_void;
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PROCESS_MEMORY_COUNTERS
+{
+  pub cb: DWORD,
+  pub PageFaultCount: DWORD,
+  pub PeakWorkingSetSize: SIZE_T,
+  pub WorkingSetSize: SIZE_T,
+  pub QuotaPeakPagedPoolUsage: SIZE_T,
+  pub QuotaPagedPoolUsage: SIZE_T,
+  pub QuotaPeakNonPagedPoolUsage: SIZE_T,
+  pub QuotaNonPagedPoolUsage: SIZE_T,
+  pub PagefileUsage: SIZE_T,
+  pub PeakPagefileUsage: SIZE_T,
+}
+#[cfg (feature = "windowsnt")]
+pub type PPROCESS_MEMORY_COUNTERS = *mut PROCESS_MEMORY_COUNTERS;
 /* Slice 18's `list_system_processes` (C 7296-7305) reads `dwSize` and `th32ProcessID` of a
    `PROCESSENTRY32` *by value*, so the record itself - until then carried as the pointer alias the
    P-72 ③ rule allows - is spelled here with C's member names and order (P-88, `UNVERIFIED`: the
@@ -540,9 +564,28 @@ pub type LPSYSTEM_INFO = *mut SYSTEM_INFO;
 /// C 376-381/488-491/503-506: the two further pointer typedefs the wrapper signatures name.
 /// `LPMEMORYSTATUS` is `<winbase.h>`'s `MEMORYSTATUS *`, used only as a pointer here (the P-72 ③
 /// reading: the record itself gets no Rust spelling), and `LPFILETIME` is `FILETIME *`.
-/// C: typedef struct _MEMORYSTATUS { DWORD dwLength; … } MEMORYSTATUS, *LPMEMORYSTATUS;
+/// C: typedef struct _MEMORYSTATUS { DWORD dwLength; DWORD dwMemoryLoad; SIZE_T dwTotalPhys;
+/// C:   SIZE_T dwAvailPhys; SIZE_T dwTotalPageFile; SIZE_T dwAvailPageFile; SIZE_T dwTotalVirtual;
+/// C:   SIZE_T dwAvailVirtual; } MEMORYSTATUS, *LPMEMORYSTATUS;
+/* Slice 19's `system_process_attributes` reads `dwTotalPhys` of a `MEMORYSTATUS` *by value*
+   (C 7656/7661), so - as with `PROCESSENTRY32` in slice 18 - the record itself is spelled here
+   (C's member names and order, P-88, `UNVERIFIED`) and the alias names it as C's does.  */
 #[cfg (feature = "windowsnt")]
-pub type LPMEMORYSTATUS = *mut c_void;
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MEMORYSTATUS
+{
+  pub dwLength: DWORD,
+  pub dwMemoryLoad: DWORD,
+  pub dwTotalPhys: SIZE_T,
+  pub dwAvailPhys: SIZE_T,
+  pub dwTotalPageFile: SIZE_T,
+  pub dwAvailPageFile: SIZE_T,
+  pub dwTotalVirtual: SIZE_T,
+  pub dwAvailVirtual: SIZE_T,
+}
+#[cfg (feature = "windowsnt")]
+pub type LPMEMORYSTATUS = *mut MEMORYSTATUS;
 #[cfg (feature = "windowsnt")]
 pub type LPFILETIME = *mut FILETIME;
 
@@ -642,6 +685,35 @@ pub struct _PROCESS_MEMORY_COUNTERS_EX
 pub type PROCESS_MEMORY_COUNTERS_EX = _PROCESS_MEMORY_COUNTERS_EX;
 #[cfg (all (feature = "windowsnt", feature = "win32_winnt_lt_0500",
            feature = "mingw32_w32api_lt_3_15"))]
+pub type PPROCESS_MEMORY_COUNTERS_EX = *mut PROCESS_MEMORY_COUNTERS_EX;
+
+/* C 140-159's typedef is the *older-SDK* arm; the `#else` is `<psapi.h>`'s own record, which
+   C 7454's `PROCESS_MEMORY_COUNTERS_EX mem_ex` reads by value (C 7667/7673/7682 use
+   `WorkingSetSize` and `PrivateUsage`).  The port spells that arm here, under C's own condition's
+   complement so the two copies never coexist (PORTING.md's one-definition-per-arm rule).  */
+#[cfg (all (feature = "windowsnt",
+           not (all (feature = "win32_winnt_lt_0500", feature = "mingw32_w32api_lt_3_15"))))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct _PROCESS_MEMORY_COUNTERS_EX
+{
+  pub cb: DWORD,
+  pub PageFaultCount: DWORD,
+  pub PeakWorkingSetSize: SIZE_T,
+  pub WorkingSetSize: SIZE_T,
+  pub QuotaPeakPagedPoolUsage: SIZE_T,
+  pub QuotaPagedPoolUsage: SIZE_T,
+  pub QuotaPeakNonPagedPoolUsage: SIZE_T,
+  pub QuotaNonPagedPoolUsage: SIZE_T,
+  pub PagefileUsage: SIZE_T,
+  pub PeakPagefileUsage: SIZE_T,
+  pub PrivateUsage: SIZE_T,
+}
+#[cfg (all (feature = "windowsnt",
+           not (all (feature = "win32_winnt_lt_0500", feature = "mingw32_w32api_lt_3_15"))))]
+pub type PROCESS_MEMORY_COUNTERS_EX = _PROCESS_MEMORY_COUNTERS_EX;
+#[cfg (all (feature = "windowsnt",
+           not (all (feature = "win32_winnt_lt_0500", feature = "mingw32_w32api_lt_3_15"))))]
 pub type PPROCESS_MEMORY_COUNTERS_EX = *mut PROCESS_MEMORY_COUNTERS_EX;
 
 // C 161-163: `#include <winioctl.h>` / `<aclapi.h>` / `<sddl.h>` - SDK headers with no file in the
@@ -10456,3 +10528,442 @@ unsafe fn ltime (time_100ns: ULONGLONG) -> Lisp_Object                  // C 737
 macro_rules! U64_TO_LISP_TIME {
   ($time:expr) => { ltime ($time) };
 }
+
+/* C 7383-7388: C 7383's blank, C 7384-7387's `static int process_times` declaration (the
+   doc lines below, the slice-17 device for carried *code* text) and C 7388's `{`.  This
+   slice carries `process_times` (7384-7432, the unit's first user of C 7382's
+   `U64_TO_LISP_TIME` macro) and C 7434's `system_process_attributes` (7434-7716, the
+   `process-attributes` entry point: C 7453-7457's records, C 7474-7503's snapshot walk,
+   C 7511-7526's `OpenProcess`/`SE_DEBUG_NAME` retry, C 7527-7604's token/ACL-group reads,
+   C 7605-7644's fallbacks, C 7657-7699's three memory probes and C 7701-7709's six
+   `process_times` attributes).  The two names this slice first uses are declared here (P-88,
+   `UNVERIFIED`): `<winnt.h>`'s `PROCESS_QUERY_INFORMATION` (C 1528 carries `PROCESS_VM_READ`
+   already) and `<winbase.h>`'s `SE_DEBUG_NAME` (the `&CStr` device of slice 14's
+   `SE_BACKUP_NAME`).  C 7456's `MEMORYSTATUS memst` is the second SDK record this lane has
+   had to spell (the C 513-517 block above), and `Vlocale_coding_system`/
+   `code_convert_string_norecord` come from C 274-275's includes.  */
+/// C: #define PROCESS_QUERY_INFORMATION (0x0400)  (`<winnt.h>`)
+#[cfg (feature = "windowsnt")]
+pub const PROCESS_QUERY_INFORMATION: DWORD = 0x0400;
+/// C: #define SE_DEBUG_NAME TEXT("SeDebugPrivilege")  (`<winbase.h>`; the `unicode` arm is
+/// owed as for the three `SE_*_NAME` constants above)
+#[cfg (feature = "windowsnt")]
+pub const SE_DEBUG_NAME: &core::ffi::CStr = c"SeDebugPrivilege";
+
+/// C: WINBASEAPI void WINAPI GetSystemTimeAsFileTime (LPFILETIME lpSystemTimeAsFileTime);
+/// (`LPFILETIME` is C 566's own alias; the entry point itself is `femacs/src/w32proc.rs`'s, so
+/// it is declared here for this unit's use - C 7398 is its first reader.
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetSystemTimeAsFileTime (lpSystemTimeAsFileTime: LPFILETIME);
+}
+
+/// C: static int
+/// C: process_times (HANDLE h_proc, Lisp_Object *ctime, Lisp_Object *etime,
+/// C: 	       Lisp_Object *stime, Lisp_Object *utime, Lisp_Object *ttime,
+/// C: 	       double *pcpu)
+#[cfg (feature = "windowsnt")]
+unsafe fn process_times (h_proc: HANDLE, ctime: *mut Lisp_Object, etime: *mut Lisp_Object, // C 7384
+			  stime: *mut Lisp_Object, utime: *mut Lisp_Object, ttime: *mut Lisp_Object, // C 7386
+			  pcpu: *mut c_double) -> c_int                                      // C 7387
+{                                                                       // C 7388
+  let mut ft_creation: FILETIME;                                        // C 7389
+  let mut ft_exit: FILETIME;                                            // C 7389
+  let mut ft_kernel: FILETIME;                                          // C 7389
+  let mut ft_user: FILETIME;                                            // C 7389
+  let mut ft_current: FILETIME;                                         // C 7389
+  let mut tem1: ULONGLONG;                                              // C 7390
+  let mut tem2: ULONGLONG;                                              // C 7390
+  let mut tem3: ULONGLONG;                                              // C 7390
+  let mut tem: ULONGLONG;                                               // C 7390
+
+  /* C leaves all nine uninitialised (PORTING.md 1.5).  */
+  ft_creation = std::mem::zeroed ();
+  ft_exit = std::mem::zeroed ();
+  ft_kernel = std::mem::zeroed ();
+  ft_user = std::mem::zeroed ();
+  ft_current = std::mem::zeroed ();
+  tem1 = 0;
+  tem2 = 0;
+  tem3 = 0;
+  tem = 0;
+
+  if h_proc.is_null ()                                                  // C 7392 (C's `!h_proc`)
+      || get_process_times_fn.is_none ()                                // C 7393 (C's `!get_process_times_fn`)
+      || (get_process_times_fn.unwrap ()) (h_proc, (&raw mut ft_creation), (&raw mut ft_exit), // C 7394
+				   (&raw mut ft_kernel), (&raw mut ft_user)) == 0                   // C 7395 (C's `!` of the call)
+    { return 0; }                                                       // C 7396
+
+  GetSystemTimeAsFileTime ((&raw mut ft_current));                      // C 7398
+
+  FILETIME_TO_U64! (tem1, ft_kernel);                                   // C 7400
+  *stime = U64_TO_LISP_TIME! (tem1);                                    // C 7401
+
+  FILETIME_TO_U64! (tem2, ft_user);                                     // C 7403
+  *utime = U64_TO_LISP_TIME! (tem2);                                    // C 7404
+
+  tem3 = tem1 + tem2;                                                   // C 7406
+  *ttime = U64_TO_LISP_TIME! (tem3);                                    // C 7407
+
+  FILETIME_TO_U64! (tem, ft_creation);                                  // C 7409
+  /* Process no 4 (System) returns zero creation time.  */              // C 7410
+  if tem != 0                                                           // C 7411 (C's `if (tem)`)
+    { tem -= utc_base; }                                                // C 7412
+  *ctime = U64_TO_LISP_TIME! (tem);                                     // C 7413
+
+  if tem != 0                                                           // C 7415 (C's `if (tem)`)
+    {                                                                   // C 7416
+      FILETIME_TO_U64! (tem3, ft_current);                              // C 7417
+      tem = (tem3 - utc_base) - tem;                                    // C 7418
+    }                                                                   // C 7419
+  *etime = U64_TO_LISP_TIME! (tem);                                     // C 7420
+
+  if tem != 0                                                           // C 7422 (C's `if (tem)`)
+    {                                                                   // C 7423
+      *pcpu = 100.0 * ((tem1 + tem2) as c_double) / (tem as c_double);  // C 7424 (C's `double` arithmetic)
+      if *pcpu > 100.0                                                  // C 7425 (C's `> 100`)
+	{ *pcpu = 100.0; }                                                     // C 7426
+    }                                                                   // C 7427
+  else                                                                  // C 7428
+    { *pcpu = 0.0; }                                                    // C 7429
+
+  return 1;                                                             // C 7431
+}                                                                       // C 7432
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object // C 7434
+{                                                                       // C 7436
+  let mut attrs: Lisp_Object = Qnil ();                                 // C 7437 (C's `= Qnil`)
+  let mut cmd_str: Lisp_Object;                                         // C 7438
+  let mut decoded_cmd: Lisp_Object;                                     // C 7438
+  let mut tem: Lisp_Object;                                             // C 7438
+  let mut h_snapshot: HANDLE;                                           // C 7439
+  let mut h_proc: HANDLE;                                               // C 7439
+  let mut proc_id: DWORD;                                               // C 7440
+  let mut found_proc: c_int = 0;                                        // C 7441
+  let mut uname: [c_char; UNLEN + 1] = [0; UNLEN + 1];                  // C 7442 (C's `UNLEN+1`/`GNLEN+1`/1025)
+  let mut gname: [c_char; GNLEN + 1] = [0; GNLEN + 1];                  // C 7442
+  let mut domain: [c_char; 1025] = [0; 1025];                           // C 7442
+  let mut ulength: DWORD = core::mem::size_of_val (&uname) as DWORD;    // C 7443 (C's three `sizeof`s)
+  let mut dlength: DWORD = core::mem::size_of_val (&domain) as DWORD;   // C 7443
+  let mut needed: DWORD;                                                // C 7443
+  let mut glength: DWORD = core::mem::size_of_val (&gname) as DWORD;    // C 7444
+  let mut token: HANDLE = std::ptr::null_mut ();                        // C 7445 (C's `= NULL`)
+  let mut user_type: SID_NAME_USE;                                      // C 7446
+  let mut buf: *mut c_uchar = std::ptr::null_mut ();                    // C 7447 (C's `= NULL`)
+  let mut blen: DWORD = 0;                                              // C 7448
+  let mut user_token: TOKEN_USER;                                       // C 7449
+  let mut group_token: TOKEN_PRIMARY_GROUP;                             // C 7450
+  let mut euid: c_uint;                                                 // C 7451 (C's `unsigned`)
+  let mut egid: c_uint;                                                 // C 7452
+  let mut mem: PROCESS_MEMORY_COUNTERS;                                 // C 7453
+  let mut mem_ex: PROCESS_MEMORY_COUNTERS_EX;                           // C 7454
+  let mut minrss: SIZE_T;                                               // C 7455
+  let mut maxrss: SIZE_T;                                               // C 7455
+  let mut memst: MEMORYSTATUS;                                          // C 7456
+  let mut memstex: MEMORY_STATUS_EX;                                    // C 7457
+  let mut totphys: c_double = 0.0;                                      // C 7458
+  let mut ctime: Lisp_Object;                                           // C 7459
+  let mut stime: Lisp_Object;                                           // C 7459
+  let mut utime: Lisp_Object;                                           // C 7459
+  let mut etime: Lisp_Object;                                           // C 7459
+  let mut ttime: Lisp_Object;                                           // C 7459
+  let mut pcpu: c_double;                                               // C 7460
+  let mut result: BOOL = FALSE;                                         // C 7461 (C's `= FALSE`)
+
+  /* C leaves these uninitialised (PORTING.md 1.5): `cmd_str`, `decoded_cmd`, `tem`,
+     `h_snapshot`, `h_proc`, `proc_id`, `needed`, `user_type`, `user_token`, `group_token`,
+     `euid`, `egid`, the five records, `minrss`, `maxrss`, `ctime`, `stime`, `utime`, `etime`,
+     `ttime` and `pcpu`.  */
+  cmd_str = std::ptr::null_mut ();
+  decoded_cmd = std::ptr::null_mut ();
+  tem = std::ptr::null_mut ();
+  h_snapshot = std::ptr::null_mut ();
+  h_proc = std::ptr::null_mut ();
+  proc_id = 0;
+  needed = 0;
+  user_type = 0;
+  user_token = std::mem::zeroed ();
+  group_token = std::mem::zeroed ();
+  euid = 0;
+  egid = 0;
+  mem = std::mem::zeroed ();
+  mem_ex = std::mem::zeroed ();
+  minrss = 0;
+  maxrss = 0;
+  memst = std::mem::zeroed ();
+  memstex = std::mem::zeroed ();
+  ctime = std::ptr::null_mut ();
+  stime = std::ptr::null_mut ();
+  utime = std::ptr::null_mut ();
+  etime = std::ptr::null_mut ();
+  ttime = std::ptr::null_mut ();
+  pcpu = 0.0;
+
+  CHECK_NUMBER (pid);                                                   // C 7463
+  proc_id = if FLOATP (pid) { XFLOAT_DATA (pid) as DWORD } else { XFIXNUM (pid) as DWORD }; // C 7464 (C's ternary; `FLOATP` is a `bool`)
+
+  h_snapshot = create_toolhelp32_snapshot (TH32CS_SNAPPROCESS, 0);      // C 7466
+
+  if h_snapshot != INVALID_HANDLE_VALUE                                 // C 7468
+    {                                                                   // C 7469
+      let mut pe: PROCESSENTRY32;                                       // C 7470
+      let mut res: BOOL;                                                // C 7471
+
+      /* C leaves both uninitialised (PORTING.md 1.5).  */
+      pe = std::mem::zeroed ();
+      res = 0;
+
+      pe.dwSize = core::mem::size_of::<PROCESSENTRY32> () as DWORD;     // C 7473 (C's `sizeof (PROCESSENTRY32)`)
+      /* C 7474-7475's two-assignment `for` (the `list_system_processes` device), with C's
+	 `break` at C 7501.  */
+      res = process32_first (h_snapshot, (&raw mut pe));                // C 7474
+      while res != 0                                                    // C 7474 (C's `res` condition)
+	{
+	  if proc_id == pe.th32ProcessID                                       // C 7477
+	    {
+	      if proc_id == 0                                                  // C 7479
+		{ decoded_cmd = build_string (c"Idle".as_ptr ()); }                   // C 7480 (C's `build_string ("Idle")`)
+	      else                                                             // C 7481
+		{                                                                     // C 7482
+		  /* Decode the command name from locale-specific                     // C 7483
+		     encoding.  */                                                    // C 7484
+		  cmd_str = build_unibyte_string (pe.szExeFile.as_ptr ());            // C 7485
+
+		  decoded_cmd =                                                       // C 7487
+		    code_convert_string_norecord (cmd_str,                            // C 7488
+					  Vlocale_coding_system, false);                                   // C 7489 (C's `0`)
+		}
+	      attrs = Fcons (Fcons (Qcomm (), decoded_cmd), attrs);            // C 7491 (the Q-symbol calls)
+	      attrs = Fcons (Fcons (Qppid (),                                  // C 7492
+				    INT_TO_INTEGER (pe.th32ParentProcessID as EMACS_INT)),          // C 7493
+			     attrs);                                                         // C 7494
+	      attrs = Fcons (Fcons (Qpri (), make_fixnum (pe.pcPriClassBase as EMACS_INT)), // C 7495
+			     attrs);                                                         // C 7496
+	      attrs = Fcons (Fcons (Qthcount (),                               // C 7497
+				    INT_TO_INTEGER (pe.cntThreads as EMACS_INT)),                   // C 7498
+			     attrs);                                                         // C 7499
+	      found_proc = 1;                                                  // C 7500
+	      break;                                                           // C 7501
+	    }
+	  res = process32_next  (h_snapshot, (&raw mut pe));                   // C 7475
+	}
+
+      CloseHandle (h_snapshot);                                         // C 7505
+    }                                                                   // C 7506
+
+  if found_proc == 0                                                    // C 7508 (C's `!found_proc`)
+    { return Qnil (); }                                                 // C 7509 (C's `return Qnil`)
+
+  h_proc = OpenProcess (PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,    // C 7511
+			FALSE, proc_id);                                                     // C 7512
+  /* If we were denied a handle to the process, try again after         // C 7513
+     enabling the SeDebugPrivilege in our process.  */                  // C 7514
+  if h_proc.is_null ()                                                  // C 7515 (C's `!h_proc`)
+    {                                                                   // C 7516
+      let mut priv_current: TOKEN_PRIVILEGES;                           // C 7517
+
+      /* C leaves it uninitialised (PORTING.md 1.5).  */
+      priv_current = std::mem::zeroed ();
+
+      if enable_privilege (SE_DEBUG_NAME.as_ptr (), TRUE, (&raw mut priv_current)) != 0 // C 7519 (C's truth test)
+	{
+	  h_proc = OpenProcess (PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,   // C 7521
+				FALSE, proc_id);                                                    // C 7522
+	  restore_privilege ((&raw mut priv_current));                         // C 7523
+	  revert_to_self ();                                                   // C 7524
+	}
+    }                                                                   // C 7526
+  if ! h_proc.is_null ()                                                // C 7527 (C's truth test)
+    {                                                                   // C 7528
+      result = open_process_token (h_proc, TOKEN_QUERY, (&raw mut token)); // C 7529
+      if result != 0                                                    // C 7530 (C's truth test)
+	{
+	  result = get_token_information (token, TokenUser, std::ptr::null_mut (), 0, (&raw mut blen)); // C 7532 (C's `NULL`)
+	  if result == 0 && GetLastError () == ERROR_INSUFFICIENT_BUFFER       // C 7533 (C's `!result`)
+	    {
+	      buf = xmalloc (blen as usize) as *mut c_uchar;                   // C 7535 (C's `void *` into `unsigned char *`)
+	      result = get_token_information (token, TokenUser,                // C 7536
+					      buf as LPVOID, blen, (&raw mut needed));                     // C 7537
+	      if result != 0                                                   // C 7538 (C's truth test)
+		{
+		  memcpy ((&raw mut user_token) as *mut c_void, buf as *const c_void, core::mem::size_of_val (&user_token)); // C 7540 (C's `sizeof (user_token)`)
+		  if w32_cached_id (user_token.User.Sid, (&raw mut euid), uname.as_mut_ptr ()) == 0 // C 7541 (C's `!`)
+		    {
+		      euid = get_rid (user_token.User.Sid);                           // C 7543
+		      result = lookup_account_sid (std::ptr::null_mut (), user_token.User.Sid, // C 7544
+						   uname.as_mut_ptr (), (&raw mut ulength),                       // C 7545
+						   domain.as_mut_ptr (), (&raw mut dlength),                      // C 7546
+						   (&raw mut user_type));                                         // C 7547
+		      if result != 0                                                  // C 7548 (C's truth test)
+			{ w32_add_to_cache (user_token.User.Sid, euid, uname.as_mut_ptr ()); } // C 7549
+		      else                                                            // C 7550
+			{                                                                    // C 7551
+			  strcpy (uname.as_mut_ptr (), c"unknown".as_ptr ());                // C 7552
+			  result = TRUE;                                                     // C 7553
+			}
+		    }
+		  ulength = strlen (uname.as_ptr ()) as DWORD;                        // C 7556
+		}
+	    }
+	}
+      if result != 0                                                    // C 7560 (C's truth test)
+	{
+	  /* Determine a reasonable euid and gid values.  */                   // C 7562
+	  if xstrcasecmp (c"administrator".as_ptr (), uname.as_mut_ptr ()) == 0 // C 7563 (C's quoted text)
+	    {
+	      euid = 500;	/* well-known Administrator uid */                   // C 7565
+	      egid = 513;	/* well-known None gid */                            // C 7566
+	    }
+	  else                                                                 // C 7568
+	    {
+	      /* Get group id and name.  */                                    // C 7570
+	      result = get_token_information (token, TokenPrimaryGroup,        // C 7571
+					      buf as LPVOID, blen, (&raw mut needed));                     // C 7572
+	      if result == 0 && GetLastError () == ERROR_INSUFFICIENT_BUFFER   // C 7573 (C's `!result`)
+		{
+		  buf = xrealloc (buf as *mut c_void,                                 // C 7575
+			  { blen = needed; blen } as usize) as *mut c_uchar;                 // C 7575 (C's `blen = needed` in the argument)
+		  result = get_token_information (token, TokenPrimaryGroup,           // C 7576
+					  buf as LPVOID, blen, (&raw mut needed));                         // C 7577
+		}
+	      if result != 0                                                   // C 7579 (C's truth test)
+		{
+		  memcpy ((&raw mut group_token) as *mut c_void, buf as *const c_void, core::mem::size_of_val (&group_token)); // C 7581 (C's `sizeof (group_token)`)
+		  if w32_cached_id (group_token.PrimaryGroup, (&raw mut egid), gname.as_mut_ptr ()) == 0 // C 7582 (C's `!`)
+		    {
+		      egid = get_rid (group_token.PrimaryGroup);                      // C 7584
+		      dlength = core::mem::size_of_val (&domain) as DWORD;            // C 7585 (C's `sizeof (domain)`)
+		      result =                                                        // C 7586
+			lookup_account_sid (std::ptr::null_mut (), group_token.PrimaryGroup, // C 7587
+					    gname.as_mut_ptr (), (&raw mut glength), std::ptr::null_mut (), // C 7588
+					    (&raw mut dlength), (&raw mut user_type));                     // C 7589
+		      if result != 0                                                  // C 7590 (C's truth test)
+			{ w32_add_to_cache (group_token.PrimaryGroup,                        // C 7591 (C's single statement)
+					    egid, gname.as_mut_ptr ()); }                                  // C 7592
+		      else                                                            // C 7593
+			{
+			  strcpy (gname.as_mut_ptr (), c"None".as_ptr ());                   // C 7595
+			  result = TRUE;                                                     // C 7596
+			}
+		    }
+		  glength = strlen (gname.as_ptr ()) as DWORD;                        // C 7599 (the `size_t`-into-`DWORD` store)
+		}
+	    }
+	}
+      xfree (buf as *mut c_void);                                       // C 7603 (C's `unsigned char *` into `void *`)
+    }                                                                   // C 7604
+  if result == 0                                                        // C 7605 (C's `!result`)
+    {                                                                   // C 7606
+      if is_windows_9x () == 0                                          // C 7607 (C's `!is_windows_9x ()`)
+	{
+	  /* We couldn't open the process token, presumably because of         // C 7609
+	     insufficient access rights.  Assume this process is run           // C 7610
+	     by the system.  */                                                // C 7611
+	  strcpy (uname.as_mut_ptr (), c"SYSTEM".as_ptr ());                   // C 7612
+	  strcpy (gname.as_mut_ptr (), c"None".as_ptr ());                     // C 7613
+	  euid = 18;	/* SYSTEM */                                              // C 7614
+	  egid = 513;	/* None */                                               // C 7615
+	  glength = strlen (gname.as_ptr ()) as DWORD;                         // C 7616
+	  ulength = strlen (uname.as_ptr ()) as DWORD;                         // C 7617
+	}
+      /* If we are running under Windows 9X, where security calls are   // C 7619
+	 not supported, we assume all processes are run by the current         // C 7620
+	 user.  */                                                             // C 7621
+      else if GetUserName (uname.as_mut_ptr (), (&raw mut ulength)) != 0 // C 7622 (C's truth test)
+	{
+	  if xstrcasecmp (c"administrator".as_ptr (), uname.as_mut_ptr ()) == 0 // C 7624
+	    { euid = 0; }                                                      // C 7625
+	  else                                                                 // C 7626
+	    { euid = 123; }                                                    // C 7627
+	  egid = euid;                                                         // C 7628
+	  strcpy (gname.as_mut_ptr (), c"None".as_ptr ());                     // C 7629
+	  glength = strlen (gname.as_ptr ()) as DWORD;                         // C 7630
+	  ulength = strlen (uname.as_ptr ()) as DWORD;                         // C 7631
+	}
+      else                                                              // C 7633
+	{
+	  euid = 123;                                                          // C 7635
+	  egid = 123;                                                          // C 7636
+	  strcpy (uname.as_mut_ptr (), c"administrator".as_ptr ());            // C 7637
+	  ulength = strlen (uname.as_ptr ()) as DWORD;                         // C 7638
+	  strcpy (gname.as_mut_ptr (), c"None".as_ptr ());                     // C 7639
+	  glength = strlen (gname.as_ptr ()) as DWORD;                         // C 7640
+	}
+      if ! token.is_null ()                                             // C 7642 (C's truth test)
+	{ CloseHandle (token); }                                               // C 7643
+    }                                                                   // C 7644
+
+  attrs = Fcons (Fcons (Qeuid (), INT_TO_INTEGER (euid as EMACS_INT)), attrs); // C 7646
+  tem = make_unibyte_string (uname.as_mut_ptr (), ulength as ptrdiff_t); // C 7647
+  attrs = Fcons (Fcons (Quser (),                                       // C 7648
+			 code_convert_string_norecord (tem, Vlocale_coding_system, false)),  // C 7649
+		 attrs);                                                              // C 7650
+  attrs = Fcons (Fcons (Qegid (), INT_TO_INTEGER (egid as EMACS_INT)), attrs); // C 7651
+  tem = make_unibyte_string (gname.as_mut_ptr (), glength as ptrdiff_t); // C 7652
+  attrs = Fcons (Fcons (Qgroup (),                                      // C 7653
+			 code_convert_string_norecord (tem, Vlocale_coding_system, false)),  // C 7654
+		 attrs);                                                              // C 7655
+
+  memstex.dwLength = core::mem::size_of_val (&memstex) as DWORD;        // C 7657 (C's `sizeof (memstex)`)
+  if global_memory_status_ex ((&raw mut memstex)) != 0                  // C 7658 (C's truth test)
+    { totphys = memstex.ullTotalPhys as c_double / 1024.0; }            // C 7659 (C's `double` division)
+  else if global_memory_status ((&raw mut memst)) != 0                  // C 7660 (C's truth test)
+    { totphys = memst.dwTotalPhys as c_double / 1024.0; }               // C 7661
+
+  if ! h_proc.is_null ()                                                // C 7663 (C's truth test)
+      && get_process_memory_info (h_proc, (&raw mut mem_ex) as PPROCESS_MEMORY_COUNTERS, // C 7664 (C's `(PROCESS_MEMORY_COUNTERS *)` cast)
+				  core::mem::size_of_val (&mem_ex) as DWORD) != 0                   // C 7665 (C's `sizeof (mem_ex)`)
+    {                                                                   // C 7666
+      let rss: SIZE_T = mem_ex.WorkingSetSize / 1024;                   // C 7667
+
+      attrs = Fcons (Fcons (Qmajflt (),                                 // C 7669
+			    INT_TO_INTEGER (mem_ex.PageFaultCount as EMACS_INT)),            // C 7670
+		     attrs);                                                          // C 7671
+      attrs = Fcons (Fcons (Qvsize (),                                  // C 7672
+			    INT_TO_INTEGER (mem_ex.PrivateUsage as usize / 1024) as Lisp_Object), // C 7673 (C's `INT_TO_INTEGER` of a `SIZE_T` division)
+		     attrs);                                                          // C 7674
+      attrs = Fcons (Fcons (Qrss (), INT_TO_INTEGER (rss as EMACS_INT)), attrs); // C 7675
+      if totphys != 0.0                                                 // C 7676 (C's `if (totphys)`)
+	{ attrs = Fcons (Fcons (Qpmem (), make_float (100.0 * rss as c_double / totphys)), attrs); } // C 7677
+    }                                                                   // C 7678
+  else if ! h_proc.is_null ()                                           // C 7679 (C's truth test)
+	   && get_process_memory_info (h_proc, (&raw mut mem) as PPROCESS_MEMORY_COUNTERS, // C 7680
+				      core::mem::size_of_val (&mem) as DWORD) != 0                  // C 7680 (C's `sizeof (mem)`)
+    {                                                                   // C 7681
+      let rss: SIZE_T = mem_ex.WorkingSetSize / 1024;                   // C 7682 (C reads `mem_ex` here - C's own text)
+
+      attrs = Fcons (Fcons (Qmajflt (),                                 // C 7684
+			    INT_TO_INTEGER (mem.PageFaultCount as EMACS_INT)),               // C 7685
+		     attrs);                                                          // C 7686
+      attrs = Fcons (Fcons (Qrss (), INT_TO_INTEGER (rss as EMACS_INT)), attrs); // C 7687
+      if totphys != 0.0                                                 // C 7688 (C's `if (totphys)`)
+	{ attrs = Fcons (Fcons (Qpmem (), make_float (100.0 * rss as c_double / totphys)), attrs); } // C 7689
+    }                                                                   // C 7690
+  else if ! h_proc.is_null ()                                           // C 7691 (C's truth test)
+	   && get_process_working_set_size (h_proc, (&raw mut minrss), (&raw mut maxrss)) != 0 // C 7692 (C's truth test)
+    {                                                                   // C 7693
+      let rss: DWORD = (maxrss / 1024) as DWORD;                        // C 7694 (C's `DWORD rss`)
+
+      attrs = Fcons (Fcons (Qrss (), INT_TO_INTEGER ((maxrss / 1024) as EMACS_INT)), attrs); // C 7696
+      if totphys != 0.0                                                 // C 7697 (C's `if (totphys)`)
+	{ attrs = Fcons (Fcons (Qpmem (), make_float (100.0 * rss as c_double / totphys)), attrs); } // C 7698
+    }                                                                   // C 7699
+
+  if process_times (h_proc, (&raw mut ctime), (&raw mut etime), (&raw mut stime), (&raw mut utime), (&raw mut ttime), (&raw mut pcpu)) != 0 // C 7701 (C's truth test)
+    {                                                                   // C 7702
+      attrs = Fcons (Fcons (Qutime (), utime), attrs);                  // C 7703
+      attrs = Fcons (Fcons (Qstime (), stime), attrs);                  // C 7704
+      attrs = Fcons (Fcons (Qtime (),  ttime), attrs);                  // C 7705
+      attrs = Fcons (Fcons (Qstart (), ctime), attrs);                  // C 7706
+      attrs = Fcons (Fcons (Qetime (), etime), attrs);                  // C 7707
+      attrs = Fcons (Fcons (Qpcpu (), make_float (pcpu)), attrs);       // C 7708
+    }                                                                   // C 7709
+
+  /* FIXME: Retrieve command line by walking the PEB of the process.  */ // C 7711
+
+  if ! h_proc.is_null ()                                                // C 7713 (C's truth test)
+    { CloseHandle (h_proc); }                                           // C 7714
+  return attrs;                                                         // C 7715
+}                                                                       // C 7716
