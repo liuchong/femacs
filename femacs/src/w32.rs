@@ -7837,3 +7837,50 @@ unsafe fn get_file_owner_and_group (psd: PSECURITY_DESCRIPTOR, st: *mut stat) //
 /* C 5333-5334: C 5333's `/* Return non-zero if NAME is a potentially slow filesystem.  */` and
    C 5334's forward declaration (the next item is C 5336's `int`/`is_slow_fs`, past this
    slice).  */
+/* C 5332-5336: C 5332's blank, C 5333's `/* Return non-zero if NAME is a potentially slow
+   filesystem.  */`, C 5334's prototype (`int is_slow_fs (const char *);` - the C 800-812
+   forward-declaration block device: the C line is carried here, the port needs no item) and
+   C 5336's `int`.  */
+/* C 5336-5355: `is_slow_fs`.  The two `<winbase.h>` drive types it first names are declared here
+   (P-88, `UNVERIFIED`).  */
+/// C: #define DRIVE_FIXED 3
+#[cfg (feature = "windowsnt")]
+pub const DRIVE_FIXED: UINT = 3;
+/// C: #define DRIVE_RAMDISK 6
+#[cfg (feature = "windowsnt")]
+pub const DRIVE_RAMDISK: UINT = 6;
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn is_slow_fs (name: *const c_char) -> c_int      // C 5336
+{
+  let mut drive_root: [c_char; 4] = [0; 4];                             // C 5339
+  let mut devtype: UINT;                                                // C 5340
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  devtype = 0;
+
+  if IS_DIRECTORY_SEP! (*name as c_int) && IS_DIRECTORY_SEP! (*name.offset (1) as c_int) // C 5342
+    { devtype = DRIVE_REMOTE; }   /* assume UNC name is remote */       // C 5343
+  else if ! (strlen (name) >= 2 && IS_DEVICE_SEP! (*name.offset (1) as c_int)) // C 5344
+    { devtype = GetDriveType (std::ptr::null ()); } /* use root of current drive */ // C 5345
+  else
+    {
+      /* GetDriveType needs the root directory of the drive.  */        // C 5348
+      strncpy ((&raw mut drive_root) as *mut c_char, name, 2);          // C 5349
+      drive_root[2] = b'\\' as c_char;                                  // C 5350
+      drive_root[3] = 0;                                                // C 5351 (C's `'\\0'`)
+      devtype = GetDriveType ((&raw mut drive_root) as *const c_char);  // C 5352
+    }
+  return (! (devtype == DRIVE_FIXED || devtype == DRIVE_RAMDISK)) as c_int; // C 5354
+}
+/* C 5357-5360: C 5357-5359's three-line comment and C 5360's tentative
+   `int w32_stat_get_owner_group;` - a non-`static` definition, so `#[unsafe(no_mangle)]`.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut w32_stat_get_owner_group: c_int = 0;   // C 5360 (tentative, i.e. zero) // C 5360
+
+/* C 5362-5365: C 5362-5365's four-line comment.  The next item is C 5367's `static int` and
+   `stat_worker` (C 5368-5780, 413 C lines) - the next slices carry it; its C 5405 uses **bare
+   `alloca`**, whose port device is `sa_stack_alloc` (P-05, landed in `alloc.rs` on 2026-10-04;
+   the `haikuterm.rs` 4947 / `editfns.rs` 2477 shape), and its C 5396/5402 use `strpbrk`/`strlen`
+   (both reachable).  */
