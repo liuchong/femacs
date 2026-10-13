@@ -15009,3 +15009,220 @@ pub unsafe extern "C" fn w32_read_registry (rootkey: HKEY, lkey: Lisp_Object, //
   RegCloseKey (hkey);                                                   // C 10307
   return retval;                                                        // C 10308
 }                                                                       // C 10309
+
+
+/* C 10310's blank, C 10311's form feed and C 10312-10316's `_dstbias` comment and guard (C's own
+   text), then C 10318-10334's `w32_fix_tzset`, C 10336-10348's `sys_localtime`, C 10350-10375's
+   `sys_clock` and C 10376-10460's second form feed, `w32_delayed_load` banner and body.  The
+   `_dstbias` declaration is the one C file-scope object this slice retires; `_daylight` (read at
+   C 10332 but declared nowhere in the reference), MSVCRT's `clock_t`/`CLOCKS_PER_SEC` and the CRT
+   `clock` prototype (C 75's `#undef clock` puts the CRT's name back in scope) are spelled in-unit,
+   as are the three W-form loader entry points and `make_specified_string` - all `UNVERIFIED`
+   (Owed 47).  */
+/* mingw.org's MinGW doesn't declare _dstbias.  MinGW64 defines it as a
+   macro.  */
+/// C: #ifndef _dstbias
+/// C: __MINGW_IMPORT int _dstbias;
+/// C: #endif
+/// C: extern int _daylight;  (`<time.h>`, MSVCRT's DST flag; the reference names it only at
+/// C: C 10332, so the declaration is this unit's - **UNVERIFIED**, Owed 47)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut _dstbias: c_int;
+  pub static mut _daylight: c_int;
+}
+/// `<time.h>` for this arm (MSVCRT): `typedef long clock_t;` and
+/// `#define CLOCKS_PER_SEC ((clock_t) 1000)`.  Both are documented facts this host cannot measure
+/// (P-88), like Owed 24-46's; **UNVERIFIED** (Owed 47).
+/// C: typedef long clock_t;
+/// C: #define CLOCKS_PER_SEC ((clock_t) 1000)
+#[cfg (feature = "windowsnt")]
+pub type clock_t = c_long;
+#[cfg (feature = "windowsnt")]
+pub const CLOCKS_PER_SEC: clock_t = 1000;
+/// C 10374: C 75's `#undef clock` puts the CRT's name back in scope, so this prototype comes from
+/// `<time.h>` (the `ms-w32.rs` 218 `macro_rules! clock` is not in this unit's scope).
+/// C: clock_t clock (void);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn clock () -> clock_t;
+}
+/// C 10414/10417/10428/10431/10451: the loader entry points `w32_delayed_load` calls.  The A forms
+/// are the loader block's - it spells the `LoadLibrary` macro's target as `LoadLibrary` and
+/// `GetModuleFileNameA` by its own name - while C 10428 names `LoadLibraryA` literally, so that
+/// spelling is declared here too (the same CRT symbol under C's other name).
+/// C: WINBASEAPI HMODULE WINAPI LoadLibraryA (LPCSTR lpLibFileName);
+/// C: WINBASEAPI HMODULE WINAPI LoadLibraryW (LPCWSTR lpLibFileName);
+/// C: WINBASEAPI DWORD WINAPI GetModuleFileNameW (HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
+/// C: WINBASEAPI BOOL WINAPI DisableThreadLibraryCalls (HMODULE hLibModule);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn LoadLibraryA (lpLibFileName: LPCSTR) -> HMODULE;
+  pub fn LoadLibraryW (lpLibFileName: LPCWSTR) -> HMODULE;
+  pub fn GetModuleFileNameW (hModule: HMODULE, lpFilename: LPWSTR, nSize: DWORD) -> DWORD;
+  pub fn DisableThreadLibraryCalls (hLibModule: HMODULE) -> BOOL;
+}
+/// C 10443: `make_specified_string` - `src/alloc.rs` defines it and `src/lisp.h` 4566-4568 declares
+/// it (`extern Lisp_Object make_specified_string (const char *, ptrdiff_t, ptrdiff_t, bool);`); the
+/// `include/lisp.rs` mirror does not carry it, so the prototype is this unit's (`src/pgtkfns.rs`
+/// 617's shape).
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
+                                multibyte: bool) -> Lisp_Object;
+}
+/* Fix a bug in MS implementation of 'tzset'.  This function should be
+   called immediately after 'tzset'.  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_fix_tzset ()                               // C 10320-10321
+{                                                                       // C 10322
+  let mut tz_env: *mut c_char = getenv (c"TZ".as_ptr ());               // C 10323
+
+  /* When TZ is defined in the environment, '_tzset' updates _daylight, // C 10325
+     but not _dstbias.  Then if we are switching from a timezone without // C 10326
+     DST to a timezone with DST, 'localtime' and friends will apply zero // C 10327
+     DST bias, which is incorrect. (When TZ is not defined, '_tzset'    // C 10328
+     does update _dstbias using values obtained from Windows API        // C 10329
+     GetTimeZoneInformation.)  Here we fix that blunder by detecting    // C 10330
+     this situation and forcing _dstbias to be 1 hour.  */              // C 10331
+  if ! tz_env.is_null () && _daylight != 0 && _dstbias == 0             // C 10332
+    { _dstbias = -3600; }                                               // C 10333
+}                                                                       // C 10334
+
+/* The Windows CRT functions are "optimized for speed", so they don't   // C 10336
+   check for timezone and DST changes if they were last called less     // C 10337
+   than 1 minute ago (see http://support.microsoft.com/kb/821231).  So  // C 10338
+   all Emacs features that repeatedly call time functions (e.g.,        // C 10339
+   display-time) are in real danger of missing timezone and DST         // C 10340
+   changes.  Calling tzset before each localtime call fixes that.  */   // C 10341
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_localtime (t: *const time_t) -> *mut tm    // C 10342-10343
+{                                                                       // C 10344
+  tzset ();                                                             // C 10345
+  w32_fix_tzset ();                                                     // C 10346
+  return localtime (t);                                                 // C 10347
+}                                                                       // C 10348
+
+/* The Windows CRT implementation of 'clock' doesn't really return CPU  // C 10350
+   time of the process (it returns the elapsed time since the process   // C 10351
+   started), so we provide a better emulation here, if possible.  */    // C 10352
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_clock () -> clock_t                        // C 10353-10354
+{                                                                       // C 10355
+  if get_process_times_fn.is_some ()                                    // C 10356
+    {                                                                   // C 10357
+      let mut create: FILETIME; let mut exit: FILETIME;                 // C 10358
+      let mut kernel: FILETIME; let mut user: FILETIME;
+      let proc: HANDLE = GetCurrentProcess ();                          // C 10359
+      if (get_process_times_fn.unwrap ()) (proc, &raw mut create, &raw mut exit, // C 10360
+                                           &raw mut kernel, &raw mut user) != 0
+	{                                                                      // C 10361
+	  let mut user_int: LARGE_INTEGER = core::mem::zeroed ();              // C 10362
+	  let mut kernel_int: LARGE_INTEGER = core::mem::zeroed ();
+	  let mut total: LARGE_INTEGER = core::mem::zeroed ();
+	  user_int.u.LowPart = user.dwLowDateTime;                             // C 10363
+	  user_int.u.HighPart = user.dwHighDateTime;                           // C 10364
+	  kernel_int.u.LowPart = kernel.dwLowDateTime;                         // C 10365
+	  kernel_int.u.HighPart = kernel.dwHighDateTime;                       // C 10366
+	  total.QuadPart = user_int.QuadPart + kernel_int.QuadPart;            // C 10367
+	  /* We could redefine CLOCKS_PER_SEC to provide a finer               // C 10368
+	     resolution, but with the basic 15.625 msec resolution of          // C 10369
+	     the Windows clock, it doesn't really sound worth the hassle.  */  // C 10370
+	  return total.QuadPart / (10000000 / CLOCKS_PER_SEC);                 // C 10371
+	}                                                                      // C 10372
+    }                                                                   // C 10373
+  return clock ();                                                      // C 10374
+}                                                                       // C 10375
+
+
+/* Try loading LIBRARY_ID from the file(s) specified in                 // C 10378
+   Vdynamic_library_alist.  If the library is loaded successfully,      // C 10379
+   return the handle of the DLL, and record the filename in the         // C 10380
+   property :loaded-from of LIBRARY_ID.  If the library could not be    // C 10381
+   found, or when it was already loaded (because the handle is not      // C 10382
+   recorded anywhere, and so is lost after use), return NULL.           // C 10383
+
+   We could also save the handle in :loaded-from, but currently         // C 10385
+   there's no use case for it.  */                                      // C 10386
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_delayed_load (library_id: Lisp_Object) -> HMODULE // C 10387-10388
+{                                                                       // C 10389
+  let mut dll_handle: HMODULE = std::ptr::null_mut ();                  // C 10390
+
+  CHECK_SYMBOL (library_id);                                            // C 10392
+
+  if CONSP (Vdynamic_library_alist)                                     // C 10394
+      && NILP (Fassq (library_id, Vlibrary_cache))                      // C 10395
+    {                                                                   // C 10396
+      let mut found: Lisp_Object = Qnil ();                             // C 10397
+      let mut dlls: Lisp_Object = Fassq (library_id, Vdynamic_library_alist); // C 10398
+
+      if CONSP (dlls)                                                   // C 10400
+	{                                                                      // C 10400 (C's un-braced `for`)
+	  dlls = XCDR (dlls);                                                  // C 10401 (the for's init)
+	  while CONSP (dlls)                                                   // C 10401
+	    {                                                                  // C 10402
+	      let mut dll: Lisp_Object = XCAR (dlls);                          // C 10403
+	      let mut name: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 10404
+	      let mut res: DWORD = ! 0u32;                                     // C 10405 (C's `-1`)
+
+	      CHECK_STRING (dll);                                              // C 10407
+	      dll = ENCODE_FILE (dll);                                         // C 10408
+	      if w32_unicode_filenames                                         // C 10409
+		{                                                                     // C 10410
+		  let mut name_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 10411 (C's `wchar_t name_w[MAX_PATH]`)
+
+		  filename_to_utf16 (SSDATA (dll), name_w.as_mut_ptr ());             // C 10413
+		  dll_handle = LoadLibraryW (name_w.as_ptr ());                       // C 10414
+		  if ! dll_handle.is_null ()                                          // C 10415 (C's truth test)
+		    {                                                                 // C 10416
+		      res = GetModuleFileNameW (dll_handle, name_w.as_mut_ptr (),     // C 10417
+					      core::mem::size_of_val (&name_w) as DWORD);                  // C 10418 (C's `sizeof (name_w)`)
+		      if res > 0                                                      // C 10419
+			{ filename_from_utf16 (name_w.as_ptr (), name.as_mut_ptr ()); }      // C 10420
+		    }                                                                 // C 10421
+		}                                                                     // C 10422
+	      else                                                             // C 10423
+		{                                                                     // C 10424
+		  let mut name_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 10425
+
+		  filename_to_ansi (SSDATA (dll), name_a.as_mut_ptr ());              // C 10427
+		  dll_handle = LoadLibraryA (name_a.as_ptr ());                       // C 10428
+		  if ! dll_handle.is_null ()                                          // C 10429 (C's truth test)
+		    {                                                                 // C 10430
+		      res = GetModuleFileNameA (dll_handle, name_a.as_mut_ptr (),     // C 10431
+					      core::mem::size_of_val (&name_a) as DWORD);                  // C 10432 (C's `sizeof (name_a)`)
+		      if res > 0                                                      // C 10433
+			{ filename_from_ansi (name_a.as_ptr (), name.as_mut_ptr ()); }       // C 10434
+		    }                                                                 // C 10435
+		}                                                                     // C 10436
+	      if ! dll_handle.is_null ()                                       // C 10437 (C's truth test)
+		{                                                                     // C 10438
+		  let mut len: ptrdiff_t = strlen (name.as_ptr ()) as ptrdiff_t;      // C 10439
+		  found = Fcons (dll,                                                 // C 10440
+				 if res > 0                                                         // C 10441 (C's `(res > 0)`)
+				   /* Possibly truncated */                                         // C 10442 (C's own text)
+				   { make_specified_string (name.as_mut_ptr (), -1, len, true) }    // C 10443
+				 else { Qnil () });                                                 // C 10444
+		  /* This prevents thread start and end notifications                 // C 10445
+		     from being sent to the DLL, for every thread we                  // C 10446
+		     start.  We don't need those notifications because                // C 10447
+		     threads we create never use any of these DLLs, only              // C 10448
+		     the main thread uses them.  This is supposed to                  // C 10449
+		     speed up thread creation.  */                                    // C 10450
+		  DisableThreadLibraryCalls (dll_handle);                             // C 10451
+		  break;                                                              // C 10452
+		}                                                                     // C 10453
+	      dlls = XCDR (dlls);                                              // C 10401 (the for's increment)
+	    }                                                                  // C 10454
+	}                                                                      // C 10400 (C's un-braced `for` close)
+
+      Fput (library_id, QCloaded_from (), found);                       // C 10456
+    }                                                                   // C 10457
+
+  return dll_handle;                                                    // C 10459
+}                                                                       // C 10460
