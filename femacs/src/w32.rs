@@ -13367,3 +13367,267 @@ pub unsafe extern "C" fn _sys_wait_connect (fd: c_int) -> c_int         // C 907
 
   return (*cp).status;                                                  // C 9124
 }                                                                       // C 9125
+
+
+/* C 9126's blank and C 9127-9347's `sys_read` - the lane's first 200-plus-line function: the two
+  guards (C 9135-9139, C 9145-9149), C 9153-9161's carried-CR arm, C 9163-9213's `child_process`
+  status dispatch (C 9183-9193's `#if 0` text is carried as C's own text), C 9215-9222's pipe arm
+  (`PeekNamedPipe` + `min` + `_read`), C 9223-9267's serial arm (the `ResetEvent (ovl->hEvent)` /
+  `ReadFile` / `GetOverlappedResult` chain slice 38 taught), C 9268-9315's socket arm (the
+  `STATUS_CONNECT_FAILED` shortcut through `cp->errcode`, `FIONREAD` and `pfn_recv`) and C 9317-9347's
+  fallbacks plus the CR/LF tail.  The three names declared in-unit (P-88, `UNVERIFIED`, Owed 40) are
+  `<winbase.h>`'s `PeekNamedPipe`, `MAXDWORD` and `<winsock2.h>`'s `FIONREAD`; `FILE_LAST_CR`/
+  `FILE_AT_EOF`/the FILE_* flags are the `w32.h` mirror's (its 254/255 rows), `crlf_to_lf` this
+  unit's own C 2537 definition, `ResetEvent` slice 33's name and `COMMTIMEOUTS`/`ReadFile`/
+  `ERROR_IO_PENDING`/`GetOverlappedResult` slice 38's.  */
+/// C: BOOL WINAPI PeekNamedPipe (HANDLE, LPVOID, DWORD, LPDWORD, LPDWORD, LPOVERLAPPED);
+#[cfg (feature = "windowsnt")]
+pub const MAXDWORD: DWORD = 0xFFFF_FFFF;
+/// C: #define FIONREAD 0x4004667F  (`<winsock2.h>`; `_IOR ('f', 127, u_long)`)
+#[cfg (feature = "windowsnt")]
+pub const FIONREAD: c_long = 0x4004667F;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn PeekNamedPipe (hNamedPipe: HANDLE, lpBuffer: *mut c_void,
+                        nBufferSize: DWORD, lpBytesRead: *mut DWORD,
+                        lpTotalBytesAvail: *mut DWORD, lpBytesLeftThisMessage: *mut DWORD) -> BOOL;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_read (fd: c_int, mut buffer: *mut c_char, count: c_uint) -> c_int // C 9127
+{                                                                       // C 9129
+  let mut nchars: c_int;                                                // C 9130
+  let mut to_read: c_int;                                               // C 9131
+  let mut waiting: DWORD;                                               // C 9132
+  let mut orig_buffer: *mut c_char = buffer;                            // C 9133 (C's `char * orig_buffer = buffer;`)
+
+  /* C leaves `nchars`, `to_read` and `waiting` uninitialised (PORTING.md 1.5).  */
+  nchars = 0;
+  to_read = 0;
+  waiting = 0;
+
+  if fd < 0                                                             // C 9135
+    {                                                                   // C 9136
+      *errno () = EBADF;                                                // C 9137
+      return -1;                                                        // C 9138
+    }                                                                   // C 9139
+
+  if fd < MAXDESC                                                       // C 9141
+      && (fd_info[fd as usize].flags & (FILE_PIPE | FILE_SOCKET | FILE_SERIAL) as c_uint) != 0
+    {                                                                   // C 9142
+      let cp: *mut child_process = fd_info[fd as usize].cp as *mut child_process; // C 9143
+
+      if (fd_info[fd as usize].flags & FILE_READ as c_uint) == 0        // C 9145
+	{                                                                      // C 9146
+	  *errno () = EBADF;                                                   // C 9147
+	  return -1;                                                           // C 9148
+	}                                                                      // C 9149
+
+      nchars = 0;                                                       // C 9151
+
+      /* re-read CR carried over from last read */                      // C 9153
+      if (fd_info[fd as usize].flags & FILE_LAST_CR as c_uint) != 0     // C 9154
+	{                                                                      // C 9155
+	  if (fd_info[fd as usize].flags & FILE_BINARY as c_uint) != 0 { emacs_abort (); } // C 9156 (C's one-line `if`)
+	  *buffer = 0x0d;                                                      // C 9157 (C's `*buffer++ = 0x0d;`)
+	  buffer = buffer.offset (1);
+	  count -= 1;                                                          // C 9158 (C's `count--`)
+	  nchars += 1;                                                         // C 9159 (C's `nchars++`)
+	  fd_info[fd as usize].flags &= ! (FILE_LAST_CR as c_uint);            // C 9160 (C's `&= ~FILE_LAST_CR`)
+	}                                                                      // C 9161
+
+      /* presence of a child_process structure means we are operating in // C 9163
+	 non-blocking mode - otherwise we just call _read directly.            // C 9164
+	 Note that the child_process structure might be missing because        // C 9165
+	 reap_subprocess has been called; in this case the pipe is             // C 9166
+	 already broken, so calling _read on it is okay. */                    // C 9167
+      if ! cp.is_null ()                                                // C 9168 (C's truth test)
+	{                                                                      // C 9169
+	  let current_status: c_int = (*cp).status;                            // C 9170
+
+	  match current_status                                                 // C 9172
+	    {                                                                  // C 9173
+	      STATUS_READ_FAILED | STATUS_READ_ERROR =>                        // C 9174-9175 (C's two labels share one body)
+		{                                                                     // C 9176
+		  /* report normal EOF if nothing in buffer */                        // C 9176
+		  if nchars <= 0                                                      // C 9177
+		    { fd_info[fd as usize].flags |= FILE_AT_EOF as c_uint; }          // C 9178
+		  return nchars;                                                      // C 9179
+		}
+	      STATUS_READ_READY | STATUS_READ_IN_PROGRESS =>                   // C 9181-9182
+		{                                                                     // C 9183
+		  /* C 9184-9192's `#if 0` block, carried as C's own text: */         // C 9183
+		  /* This happens all the time during GnuTLS handshake                // C 9184
+		     with the remote, evidently because GnuTLS waits for              // C 9185
+		     the read to complete by retrying the read operation              // C 9186
+		     upon EAGAIN.  So I'm disabling the DebPrint to avoid             // C 9187
+		     wasting cycles on something that is not a real                   // C 9188
+		     problem.  Enable if you need to debug something that             // C 9189
+		     bumps into this.  */                                             // C 9190
+		  /* DebPrint (("sys_read called when read is in progress %d\n",      // C 9191
+			 current_status)); */                                                // C 9192
+		  *errno () = EWOULDBLOCK;                                            // C 9194
+		  return -1;                                                          // C 9195
+		}
+	      STATUS_READ_SUCCEEDED =>                                         // C 9197
+		{                                                                     // C 9198
+		  /* consume read-ahead char */                                       // C 9198
+		  *buffer = (*cp).chr;                                                // C 9199 (C's `*buffer++ = cp->chr;`)
+		  buffer = buffer.offset (1);
+		  count -= 1;                                                         // C 9200 (C's `count--`)
+		  nchars += 1;                                                        // C 9201 (C's `nchars++`)
+		  (*cp).status = STATUS_READ_ACKNOWLEDGED;                            // C 9202
+		  ResetEvent ((*cp).char_avail);                                      // C 9203 (the C 8594 call-site device)
+		}
+	      STATUS_READ_ACKNOWLEDGED | STATUS_CONNECT_FAILED =>              // C 9205-9206 (C's shared `break;`)
+		{}
+	      _ =>                                                             // C 9209 (C's `default:`)
+		{                                                                     // C 9209
+		  DebPrint! (("sys_read: bad status %d\n", current_status));          // C 9210
+		  *errno () = EBADF;                                                  // C 9211
+		  return -1;                                                          // C 9212
+		}
+	    }                                                                  // C 9213
+
+	  if (fd_info[fd as usize].flags & FILE_PIPE as c_uint) != 0           // C 9215
+	    {                                                                  // C 9216
+	      PeekNamedPipe (_get_osfhandle (fd) as HANDLE, std::ptr::null_mut (), 0, // C 9217 (C's `(HANDLE)` cast and three `NULL`s)
+			     std::ptr::null_mut (), &raw mut waiting, std::ptr::null_mut ());
+	      to_read = core::cmp::min (waiting, count as DWORD) as c_int;     // C 9218 (C's `min` macro and `(DWORD) count` cast)
+
+	      if to_read > 0                                                   // C 9220
+		{ nchars += _read (fd, buffer as *mut c_void, to_read as c_uint); }   // C 9221
+	    }                                                                  // C 9222
+	  else if (fd_info[fd as usize].flags & FILE_SERIAL as c_uint) != 0    // C 9223
+	    {                                                                  // C 9224
+	      let hnd: HANDLE = fd_info[fd as usize].hnd;                      // C 9225
+	      let ovl: *mut OVERLAPPED                                         // C 9226
+		= &raw mut (*(fd_info[fd as usize].cp as *mut child_process)).ovl_read;
+	      let mut rc: c_int = 0;                                           // C 9227 (C's `int rc = 0;`)
+	      let mut ct: COMMTIMEOUTS;                                        // C 9228
+
+	      /* C leaves `ct` uninitialised (PORTING.md 1.5).  */
+	      ct = COMMTIMEOUTS { ReadIntervalTimeout: 0, ReadTotalTimeoutMultiplier: 0,
+				  ReadTotalTimeoutConstant: 0, WriteTotalTimeoutMultiplier: 0,
+				  WriteTotalTimeoutConstant: 0 };
+
+	      if count > 0                                                     // C 9230
+		{                                                                     // C 9231
+		  /* Configure timeouts for non-blocking read.  */                    // C 9232
+		  if GetCommTimeouts (hnd, &raw mut ct) == 0                          // C 9233 (C's truth test)
+		    {                                                                 // C 9234
+		      *errno () = EIO;                                                // C 9235
+		      return -1;                                                      // C 9236
+		    }                                                                 // C 9237
+		  ct.ReadIntervalTimeout = MAXDWORD;                                  // C 9238
+		  ct.ReadTotalTimeoutMultiplier = 0;                                  // C 9239
+		  ct.ReadTotalTimeoutConstant = 0;                                    // C 9240
+		  if SetCommTimeouts (hnd, &raw mut ct) == 0                          // C 9241
+		    {                                                                 // C 9242
+		      *errno () = EIO;                                                // C 9243
+		      return -1;                                                      // C 9244
+		    }                                                                 // C 9245
+
+		  if ResetEvent ((*ovl).hEvent) == 0                                  // C 9247 (C's truth test)
+		    {                                                                 // C 9248
+		      *errno () = EIO;                                                // C 9249
+		      return -1;                                                      // C 9250
+		    }                                                                 // C 9251
+		  if ReadFile (hnd, buffer as *mut c_void, count,                     // C 9252 (C's `(DWORD*) &rc` cast)
+			       (&raw mut rc) as *mut DWORD, ovl) == 0
+		    {                                                                 // C 9253
+		      if GetLastError () != ERROR_IO_PENDING                          // C 9254
+			{                                                                    // C 9255
+			  *errno () = EIO;                                                   // C 9256
+			  return -1;                                                         // C 9257
+			}                                                                    // C 9258
+		      if GetOverlappedResult (hnd, ovl, (&raw mut rc) as *mut DWORD, TRUE) == 0 // C 9259
+			{                                                                    // C 9260
+			  *errno () = EIO;                                                   // C 9261
+			  return -1;                                                         // C 9262
+			}                                                                    // C 9263
+		    }                                                                 // C 9264
+		  nchars += rc;                                                       // C 9265
+		}                                                                     // C 9266
+	    }                                                                  // C 9267
+	  else                                                                 // C 9268 (C's `else /* FILE_SOCKET */`)
+	    {                                                                  // C 9269
+	      if winsock_lib.is_null () { emacs_abort (); }                    // C 9270 (C's one-line `if`)
+
+	      /* When a non-blocking 'connect' call fails,                     // C 9272
+		 wait_reading_process_output detects this by calling                  // C 9273
+		 'getpeername', and then attempts to obtain the connection            // C 9274
+		 error code by trying to read 1 byte from the socket.  If             // C 9275
+		 we try to serve that read by calling 'recv' below, the               // C 9276
+		 error we get is a generic WSAENOTCONN, not the actual                // C 9277
+		 connection error.  So instead, we use the actual error               // C 9278
+		 code stashed by '_sys_wait_connect' in cp->errcode.                  // C 9279
+		 Alternatively, we could have used 'getsockopt', like on              // C 9280
+		 GNU/Linux, but: (a) I have no idea whether the winsock               // C 9281
+		 version could hang, as it does "on some systems" (see the            // C 9282
+		 comment in process.c); and (b) 'getsockopt' on Windows is            // C 9283
+		 documented to clear the socket error for the entire                  // C 9284
+		 process, which I'm not sure is TRT; FIXME.  */                       // C 9285
+	      if current_status == STATUS_CONNECT_FAILED                       // C 9286
+		  && (fd_info[fd as usize].flags & FILE_CONNECT as c_uint) != 0       // C 9287
+		  && (*cp).errcode != 0                                               // C 9288
+		{                                                                     // C 9289
+		  pfn_WSASetLastError.unwrap () ((*cp).errcode);                      // C 9290 (C's call-through)
+		  set_errno ();                                                       // C 9291
+		  return -1;                                                          // C 9292
+		}                                                                     // C 9293
+	      /* Do the equivalent of a non-blocking read.  */                 // C 9294
+	      pfn_ioctlsocket.unwrap () (SOCK_HANDLE! (fd), FIONREAD, &mut waiting); // C 9295 (C's call-through)
+	      if waiting == 0 && nchars == 0                                   // C 9296
+		{                                                                     // C 9297
+		  *errno () = EWOULDBLOCK;                                            // C 9298
+		  return -1;                                                          // C 9299
+		}                                                                     // C 9300
+
+	      if waiting != 0                                                  // C 9302 (C's truth test)
+		{                                                                     // C 9303
+		  /* always use binary mode for sockets */                            // C 9304
+		  let res: c_int = pfn_recv.unwrap () (SOCK_HANDLE! (fd), buffer, count as c_int, 0); // C 9305 (C's call-through)
+		  if res == SOCKET_ERROR                                              // C 9306
+		    {                                                                 // C 9307
+		      set_errno ();                                                   // C 9308
+		      DebPrint! (("sys_read.recv failed with error %d on socket %ld\n", // C 9309
+				  *errno (), SOCK_HANDLE! (fd)));                                   // C 9310 (C's `errno` read and `SOCK_HANDLE (fd)`)
+		      return -1;                                                      // C 9311
+		    }                                                                 // C 9312
+		  nchars += res;                                                      // C 9313
+		}                                                                     // C 9314
+	    }                                                                  // C 9315
+	}                                                                      // C 9316
+      else                                                              // C 9317
+	{                                                                      // C 9318
+	  let nread: c_int = _read (fd, buffer as *mut c_void, count);         // C 9319
+	  if nread >= 0                                                        // C 9320
+	    { nchars += nread; }                                               // C 9321
+	  else if nchars == 0                                                  // C 9322
+	    { nchars = nread; }                                                // C 9323
+	}                                                                      // C 9324
+
+      if nchars <= 0                                                    // C 9326
+	{ fd_info[fd as usize].flags |= FILE_AT_EOF as c_uint; }               // C 9327
+      /* Perform text mode translation if required.  */                 // C 9328
+      else if (fd_info[fd as usize].flags & FILE_BINARY as c_uint) == 0 // C 9329
+	{                                                                      // C 9330
+	  nchars = crlf_to_lf (nchars, orig_buffer);                           // C 9331
+	  /* If buffer contains only CR, return that.  To be absolutely        // C 9332
+	     sure we should attempt to read the next char, but in              // C 9333
+	     practice a CR to be followed by LF would not appear by            // C 9334
+	     itself in the buffer.  */                                         // C 9335
+	  if nchars > 1 && *orig_buffer.offset ((nchars - 1) as isize) == 0x0d // C 9336 (C's `orig_buffer[nchars - 1] == 0x0d`)
+	    {                                                                  // C 9337
+	      fd_info[fd as usize].flags |= FILE_LAST_CR as c_uint;            // C 9338
+	      nchars -= 1;                                                     // C 9339 (C's `nchars--`)
+	    }                                                                  // C 9340
+	}                                                                      // C 9341
+    }                                                                   // C 9342
+  else                                                                  // C 9343
+    { nchars = _read (fd, buffer as *mut c_void, count); }              // C 9344
+
+  return nchars;                                                        // C 9346
+}                                                                       // C 9347
