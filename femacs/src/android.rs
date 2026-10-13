@@ -8155,3 +8155,235 @@ pub unsafe extern "C" fn android_project_image_nearest (image: *mut android_imag
 
 /* C 6663-6665: C 6663's form feed, C 6664's blank and C 6665's
    `/* Other miscellaneous functions.  */`.  */
+/* C 6662-6673: C 6662's blank, C 6663's form feed, C 6664's blank, C 6665's
+   `/* Other miscellaneous functions.  */`, C 6666's blank and C 6667-6673's comment.  */
+/* C 6674-6712: android_browse_url, which calls the blocked `android_build_string` through the
+   mirror's declaration (`include/android.rs` 282) - the call compiles, only the definition is
+   owed (Owed 11).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_browse_url (url: Lisp_Object, send: Lisp_Object) -> Lisp_Object // C 6674
+{
+  let mut value: jobject;                                               // C 6677
+  let mut string: jobject;
+  let mut tem: Lisp_Object;                                             // C 6678
+  let mut buffer: *const c_char;                                        // C 6679
+
+  /* C leaves the four locals uninitialised (PORTING.md 1.5).  */
+  value = std::ptr::null_mut ();
+  string = std::ptr::null_mut ();
+  buffer = std::ptr::null ();
+
+  string = android_build_string (url, std::ptr::null_mut::<c_void> ()); // C 6681 (C's variadic NULL)
+  value                                                                 // C 6682
+	= ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ()) (android_java_env, // C 6683
+							       emacs_service,                                            // C 6684
+							       service_class.class,                                      // C 6685
+							       service_class.browse_url,                                 // C 6686
+							       string,                                                   // C 6687
+							       (! NILP (send)) as jboolean as c_uint);                   // C 6688 (C's `(jboolean) !NILP (send)` and its default argument promotion)
+  android_exception_check ();                                           // C 6689
+
+  ANDROID_DELETE_LOCAL_REF! (string);                                   // C 6691
+
+  /* If no string was returned, return Qnil.  */                        // C 6693
+  if value.is_null ()                                                   // C 6694
+    { return Qnil (); }                                                 // C 6695
+
+  buffer = ((*(*android_java_env)).GetStringUTFChars.unwrap ()) (android_java_env, // C 6697
+							   value as jstring,                                             // C 6698
+							   std::ptr::null_mut ());                                       // C 6699
+  android_exception_check_nonnull (buffer as *mut c_void, value);       // C 6700
+
+  /* Otherwise, build the string describing the error.  */              // C 6702
+  tem = build_unibyte_string (buffer);                                  // C 6703
+
+  ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ())              // C 6705
+	(android_java_env,                                                     // C 6705
+	 value as jstring,                                                     // C 6706
+	 buffer);                                                              // C 6707
+
+  /* And decode and return the same.  */                                // C 6709
+  ANDROID_DELETE_LOCAL_REF! (value);                                    // C 6710
+  return code_convert_string_norecord (tem, Qandroid_jni (), false);    // C 6711
+}
+/* C 6713-6730: C 6713's blank, C 6714-6716's comment, C 6718's `_Noreturn void` and
+   android_restart_emacs.  `exit` is declared in-unit (the P-88 device: `<stdlib.h>`'s name is
+   not in `lib/include/stdlib.rs`), and C's `_Noreturn` is the port's `-> !`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `_Noreturn void exit (int);`
+  pub fn exit (status: c_int) -> !;
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_restart_emacs () -> !                  // C 6718
+{
+  /* Try to call the Java side function.  Normally, this should call    // C 6721
+     System.exit to terminate this process.  */                         // C 6722
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 6723
+	(android_java_env,                                                     // C 6723
+	 emacs_service,                                                        // C 6724
+	 service_class.class,                                                  // C 6725
+	 service_class.restart_emacs);                                         // C 6726
+
+  /* Exit anyway, in case EmacsService did not do so.  */               // C 6728
+  exit (0);                                                             // C 6729
+}
+/* C 6731-6743: C 6731's blank, C 6732-6737's comment, C 6739's `int` and
+   android_get_current_api_level (C 6740's parenthesised declarator is C's "do not expand a
+   macro of this name" idiom; the port defines the plain name and the mirror declares it at
+   `include/android.rs` 292).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_current_api_level () -> c_int      // C 6739
+{
+  return android_api_level;                                             // C 6742
+}
+/* C 6744-6788: C 6744's blank, C 6745-6746's comment, C 6748's `int` and android_query_battery
+   (C 6756-6760's element fetch, the eight field stores and C 6782-6785's release/delete
+   pair).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_query_battery (status: *mut android_battery_state) -> c_int // C 6748
+{
+  let mut array: jlongArray;                                            // C 6751
+  let mut longs: *mut jlong;                                            // C 6752
+  let mut method: jmethodID;                                            // C 6753
+
+  /* C leaves the three locals uninitialised (PORTING.md 1.5).  */
+  array = std::ptr::null_mut ();
+  longs = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  method = service_class.query_battery;                                 // C 6755
+  array                                                                 // C 6756
+	= ((*(*android_java_env)).CallNonvirtualObjectMethod.unwrap ()) (android_java_env, // C 6757
+							       emacs_service,                                            // C 6758
+							       service_class.class,                                      // C 6759
+							       method);                                                  // C 6760
+  android_exception_check ();                                           // C 6761
+
+  /* A NULL return with no exception means that battery information     // C 6763
+     could not be obtained.  */                                         // C 6764
+
+  if array.is_null ()                                                   // C 6766
+    { return 1; }                                                       // C 6767
+
+  longs = ((*(*android_java_env)).GetLongArrayElements.unwrap ()) (android_java_env, // C 6769
+							     array, std::ptr::null_mut ());                              // C 6770
+  android_exception_check_nonnull (longs as *mut c_void, array);        // C 6771
+
+  (*status).capacity = *longs.offset (0);                               // C 6773
+  (*status).charge_counter = *longs.offset (1);                         // C 6774
+  (*status).current_average = *longs.offset (2);                        // C 6775
+  (*status).current_now = *longs.offset (3);                            // C 6776
+  (*status).status = *longs.offset (4) as c_int;                        // C 6777 (C's `long`-into-`int`)
+  (*status).remaining = *longs.offset (5);                              // C 6778
+  (*status).plugged = *longs.offset (6) as c_int;                       // C 6779 (C's `long`-into-`int`)
+  (*status).temperature = *longs.offset (7) as c_int;                   // C 6780 (C's `long`-into-`int`)
+
+  ((*(*android_java_env)).ReleaseLongArrayElements.unwrap ())           // C 6782
+	(android_java_env,                                                     // C 6782
+	 array, longs,                                                         // C 6783
+	 JNI_ABORT);                                                           // C 6784
+  ANDROID_DELETE_LOCAL_REF! (array);                                    // C 6785
+
+  return 0;                                                             // C 6787
+}
+/* C 6789-6809: C 6789's blank, C 6790-6793's comment, C 6795's `int` and
+   android_request_directory_access.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_request_directory_access () -> c_int   // C 6795
+{
+  let mut rc: jint;                                                     // C 6798
+  let mut method: jmethodID;                                            // C 6799
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+  method = std::ptr::null_mut ();
+
+  method = service_class.request_directory_access;                      // C 6801
+  rc = ((*(*android_java_env)).CallNonvirtualIntMethod.unwrap ())       // C 6802
+	(android_java_env,                                                     // C 6802
+	 emacs_service,                                                        // C 6803
+	 service_class.class,                                                  // C 6804
+	 method);                                                              // C 6805
+  android_exception_check ();                                           // C 6806
+
+  return rc;                                                            // C 6808
+}
+/* C 6810-6841: C 6810's blank, C 6811-6822's comment, C 6824's `bool` and
+   android_external_storage_available_p (C 6830's API-level test; the C `jboolean` return is
+   the port's `rc != 0`, this unit's own device).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_external_storage_available_p () -> bool // C 6824
+{
+  let mut rc: jboolean;                                                 // C 6827
+  let mut method: jmethodID;                                            // C 6828
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  rc = 0;
+  method = std::ptr::null_mut ();
+
+  if android_api_level <= 22                                            // C 6830
+    { return true; }                                                    // C 6831
+
+  method = service_class.external_storage_available;                    // C 6833
+  rc = ((*(*android_java_env)).CallNonvirtualBooleanMethod.unwrap ())   // C 6834
+	(android_java_env,                                                     // C 6834
+	 emacs_service,                                                        // C 6835
+	 service_class.class,                                                  // C 6836
+	 method);                                                              // C 6837
+  android_exception_check ();                                           // C 6838
+
+  return rc != 0;                                                       // C 6840 (C's `jboolean`-into-`bool`)
+}
+/* C 6842-6860: C 6842's blank, C 6843-6844's comment, C 6846's `void` and
+   android_request_storage_access.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_request_storage_access ()              // C 6846
+{
+  let mut method: jmethodID;                                            // C 6849
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  method = std::ptr::null_mut ();
+
+  if android_api_level <= 22                                            // C 6851
+    { return; }                                                         // C 6852
+
+  method = service_class.request_storage_access;                        // C 6854
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 6855
+	(android_java_env,                                                     // C 6855
+	 emacs_service,                                                        // C 6856
+	 service_class.class,                                                  // C 6857
+	 method);                                                              // C 6858
+  android_exception_check ();                                           // C 6859
+}
+/* C 6861-6878: C 6861's blank, C 6862-6863's comment, C 6865's `void` and
+   android_recreate_activity.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_recreate_activity (window: android_window) // C 6865
+{
+  let mut object: jobject;                                              // C 6868
+  let mut method: jmethodID;                                            // C 6869
+
+  /* C leaves the two locals uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+  method = std::ptr::null_mut ();
+
+  object = android_resolve_handle (window);                             // C 6871
+  method = window_class.recreate_activity;                              // C 6872
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ()) (android_java_env, object, // C 6874
+							 window_class.class,                                             // C 6875
+							 method);                                                        // C 6876
+  android_exception_check ();                                           // C 6877
+}
+
+/* C 6879: the blank that closes the real arm's last definition (C 6880 is the form feed that
+   slice 13's carried region follows).  */

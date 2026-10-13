@@ -161,9 +161,21 @@
 > `static`), `android_fetch_pixel_nearest_1` (6590-6602, `static`) and
 > `android_project_image_nearest` (6609-6661) - so the port carries C 1-6661 (except C
 > 2086-2192), plus C 4734-4747 and C 6880-7096: **6,785 C lines of 7,594 (89.3%)**, in an
-> 8,157-line port, md5 `5f620378284429643e8dd810e8738348`.  **The
-> next live definition is C 6674's `android_browse_url`** (the head of the
-> `/* Other miscellaneous functions.  */` group).  The table's last row is the
+> 8,157-line port, md5 `5f620378284429643e8dd810e8738348`.  **Slice 32 (C 6662-6878,
+> 2026-10-12)** carries the whole `/* Other miscellaneous functions.  */` group and so **closes
+> the remainder's first part**: `android_browse_url` (6674-6712, which calls the blocked
+> `android_build_string` through the mirror's declaration), `android_restart_emacs`
+> (6718-6730, `-> !`), `android_get_current_api_level` (6740-6743),
+> `android_query_battery` (6749-6788), `android_request_directory_access` (6796-6809),
+> `android_external_storage_available_p` (6825-6841), `android_request_storage_access`
+> (6847-6860) and `android_recreate_activity` (6866-6878) - so the port carries C 1-6878
+> except the two holes (C 2086-2192 and C 6021-6101) and C 6880-7096: **6,921 C lines of 7,594
+> (91.1%)**.  **This round's count is the first that subtracts both holes**; the earlier rows'
+> arithmetic subtracted only the first one and added C 4734-4747, which the carried head
+> already contains (both conventions are visible in each row's own arithmetic).  The port is
+> 8,389 lines, md5 `fc7fe07fdd7fdcff6ae8992fe7d16d24`.  **The
+> next live definition is C 7105's `android_run_in_emacs_thread`** (the remainder's second
+> part, C 7097-7594, which also carries C 7519's `#else` stub arm).  The table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -458,7 +470,15 @@ no `window.h`).
 | 6568-6586 | C 6568's blank, C 6569's comment and `android_fetch_pixel_nearest_24` | real arm (slice 31) |
 | 6587-6602 | C 6587's blank, C 6588's comment and `android_fetch_pixel_nearest_1` (C 6601's ternary bit test) | real arm (slice 31) |
 | 6603-6661 | C 6603's blank, C 6604-6607's comment and `android_project_image_nearest` (C 6619's depth test with the depth-1 loops and the bit set/clear pair, then the depth-24 pair) | real arm (slice 31) |
-| 6662-6879 | **the remainder, first part (d)** - from C 6662's blank, C 6663's form feed and C 6665's `/* Other miscellaneous functions.  */` (C 6674's `android_browse_url`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the miscellaneous system queries and C 7519's `#else` stub arm | not this slice |
+| 6662-6673 | C 6662's blank, C 6663's form feed, C 6665's `/* Other miscellaneous functions.  */`, C 6666's blank and C 6667-6673's comment | real arm (slice 32) |
+| 6674-6712 | `android_browse_url` (C 6681's variadic `android_build_string (url, NULL)`, C 6683-6688's lookup call, C 6697-6700's UTF-chars pair and C 6703/6711's two conversions) | real arm (slice 32) |
+| 6713-6730 | C 6713's blank, C 6714-6716's comment, C 6718's `_Noreturn void` and `android_restart_emacs` (C 6723-6726's call and C 6729's `exit (0)`) | real arm (slice 32) |
+| 6731-6743 | C 6731's blank, C 6732-6737's comment and `android_get_current_api_level` (C 6740's parenthesised declarator) | real arm (slice 32) |
+| 6744-6788 | C 6744's blank, C 6745-6746's comment and `android_query_battery` (C 6756-6760's array call, C 6769-6771's element fetch, the eight field stores and C 6782-6785's release/delete pair) | real arm (slice 32) |
+| 6789-6809 | C 6789's blank, C 6790-6793's comment and `android_request_directory_access` | real arm (slice 32) |
+| 6810-6841 | C 6810's blank, C 6811-6822's comment and `android_external_storage_available_p` (C 6830's API-level test) | real arm (slice 32) |
+| 6842-6860 | C 6842's blank, C 6843-6844's comment and `android_request_storage_access` (C 6851's API-level test) | real arm (slice 32) |
+| 6861-6879 | C 6861's blank, C 6862-6863's comment, `android_recreate_activity` and C 6879's blank - **the real arm's last definition** (C 6880 starts slice 13's carried region) | real arm (slice 32) |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -845,19 +865,19 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built, no image transformed.  Slices 2-31's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built, no image transformed, no URL browsed, no battery queried.  Slices 2-32's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-6661, C 4734-4747 and C 6880-7096) are carried;
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-6878, C 4734-4747 and C 6880-7096) are carried;
 the **unported** part is C 2086-2192 and C 6021-6101 (both blocked on P-05's `alloca` decision)
-and C 6662-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (18
+and C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (11
 `missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
 `invented exported symbol` rows of Owed 9) are that boundary, not defects; the line-count row
-**is emitted again at 7.4%** (C 7,594 against the port's 8,157): the port now exceeds the
+**is emitted at 10.5%** (C 7,594 against the port's 8,389): the port now exceeds the
 reference because every carried line adds its `// C NNNN` marker and its `#[cfg]`/comment
 frame, which is the same reading the earlier over-100% units carry.  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and every `does not mention`
 row is a recorded `macro-body-notes.tsv` row of Owed 8 - none of them is a port defect.  The `android_api_lt_21`
-configuration compiled to an object (②b, 90,048 bytes) and was not run; the pristine base-config arm
+configuration compiled to an object (②b, 94,336 bytes) and was not run; the pristine base-config arm
 still stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member (②a, Owed 6), so no
 object exists for it.
 
@@ -2177,3 +2197,48 @@ reference is 7,594 C lines while the port carries its per-line markers and cfg f
 - **C 6601's ternary bit test** is the port's `if` expression, and **C 6636/6638's
   `*byte |= (1 << x % 8)` / `*byte &= ~(1 << x % 8)`** are the unit's own 6101/6103 device
   (`as c_char` on the shift and `!` for C's `~`).
+
+## 2026-10-12: slice 32 (C 6662-6878) - the miscellaneous functions, closing the remainder's first part
+
+`android_browse_url`, `android_restart_emacs`, `android_get_current_api_level`,
+`android_query_battery`, `android_request_directory_access`, `android_external_storage_available_p`,
+`android_request_storage_access` and `android_recreate_activity` - the last live definitions of the
+`#ifndef ANDROID_STUBIFY` arm's first part.
+
+### Evidence (this slice's readings)
+
+**⑤⑩ The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings** after one
+first-attempt repair: C 6777/6779/6780 store a `jlong` into the mirror's `c_int` members
+(`android_battery_state.status`/`plugged`/`temperature` are `int` in C 225/234/237 while the other
+four are `intmax_t`), so the port spells C's own narrowing (`as c_int`, 3 x `E0308`).
+
+**⑤⑪ The checklist reading.**  `extract-abi.py --check`: `missing function` **18 → 11** (the seven
+definitions this slice carries; `android_get_current_api_level` was never on the list, see slice
+29's last deviation), **`missing file-scope object` 0** (twentieth round at empty), **`invented
+exported symbol` 41** unchanged, and **`does not mention` 0 with no notes row needed**; the
+line-count row reads **10.5%** (C 7,594 against the port's 8,389).  The eleven names left are
+`android_build_string` (the P-05 hole) and the ten entries of C 7097-7594.
+
+### Deviations this slice adds
+
+- **C 6681's `android_build_string (url, NULL)`** is a variadic call with a typed null
+  (`std::ptr::null_mut::<c_void> ()`) to the *blocked* definition, which the mirror declares
+  (`include/android.rs` 282) - the call compiles and only the definition is owed (Owed 11).
+- **C 6688's `(jboolean) !NILP (send)`** carries C's default argument promotion
+  (`(! NILP (send)) as jboolean as c_uint`, the slice-29 device).
+- **C 6694/6766's negated pointer tests** are the port's `is_null ()` forms, and C's brace-less
+  `return Qnil;`/`return 1;` take Rust braces.
+- **C 6697-6699/6705-6707's UTF-chars pair** keeps C's NULL as `std::ptr::null_mut ()` and casts
+  the `jstring` argument (`value as jstring`); the two `android_exception_check_nonnull` calls cast
+  their first argument to the mirror's untyped `*mut c_void`.
+- **C 6777/6779/6780's three stores** narrow with `as c_int` (C's `long`-into-`int`, this unit's
+  own device for the mirror's mixed member widths).
+- **C 6718's `_Noreturn void android_restart_emacs`** is the port's `-> !`, and **C 6729's `exit`**
+  is the third `<stdlib.h>` name the unit declares in-unit (the P-88 device, `abort`/`strncpy`
+  above).
+- **C 6740's `(android_get_current_api_level) (void)`** - the parenthesised declarator that stops
+  C's preprocessor from expanding a macro of that name - is the port's plain definition, which the
+  mirror declares at `include/android.rs` 292; **C 6742 returns the unit's own
+  `android_api_level`** (defined since slice 1, `C 142`).
+- **C 6830/6851's `android_api_level <= 22`** tests are the port's own, and **C 6840's `jboolean`
+  return** is `rc != 0` (the unit's `bool` device).
