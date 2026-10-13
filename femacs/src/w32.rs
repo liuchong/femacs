@@ -7122,3 +7122,286 @@ pub unsafe extern "C" fn fchmodat (fd: c_int, path: *const c_char, mode: mode_t,
 
 /* C 4783-4784: C 4783's blank and C 4784's `int` (the next item is C 4785's
    `sys_rename_replace`, past this slice).  */
+/* C 4783-4785: C 4783's blank, C 4784's `int` and C 4785's signature.  */
+/* C 4785-5007: `sys_rename_replace`.  The five CRT names it first calls and the one
+   `<winerror.h>` value are declared here (P-88, `UNVERIFIED`); C 4989/4997-5004's
+   `return_result:` label is the port's labelled block (the `androidmenu.rs` `'finish` shape:
+   C 4901/4913/4918/4921/4960/4972/4977/4980's forward jumps are `break 'return_result`), and
+   C 4813/4925/4984 call `is_symlink`, whose C 807 prototype the port has no item for yet (the
+   `ltime` class).  */
+/// C: int rename (const char *, const char *); (`w32.c` 60's `#undef rename` undoes
+/// `nt/inc/ms-w32.h` 223's `#define rename sys_rename`, so C's own calls are the CRT's.)
+/// C: int _wrename (const wchar_t *, const wchar_t *);
+/// C: int _rmdir (const char *);
+/// C: int _wrmdir (const wchar_t *);
+/// C: int _unlink (const char *);
+/// C: int _wunlink (const wchar_t *);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  /// `rename` itself: the unit's `<stdio.h>` reach does not carry it, so it is declared here
+  /// (P-88).
+  pub fn rename (old: *const c_char, new: *const c_char) -> c_int;
+  pub fn _wrename (old: *const c_ushort, new: *const c_ushort) -> c_int;
+  pub fn _rmdir (path: *const c_char) -> c_int;
+  pub fn _wrmdir (path: *const c_ushort) -> c_int;
+  pub fn _unlink (path: *const c_char) -> c_int;
+  pub fn _wunlink (path: *const c_ushort) -> c_int;
+}
+/// C: #define ERROR_PRIVILEGE_NOT_HELD 1314L
+#[cfg (feature = "windowsnt")]
+pub const ERROR_PRIVILEGE_NOT_HELD: DWORD = 1314;
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_rename_replace (mut oldname: *const c_char, mut newname: *const c_char, // C 4785
+						      force: BOOL)
+  -> c_int
+{
+  let mut result: BOOL;                                                 // C 4787
+  let mut temp: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 4788
+  let mut temp_a: [c_char; MAX_PATH as usize + 15] = [0; MAX_PATH as usize + 15];  /* "+ 15": pacify GCC */
+  let mut newname_dev: c_int;                                           // C 4789
+  let mut oldname_dev: c_int;                                           // C 4790
+  let mut have_temp_a: bool = false;                                    // C 4791
+  let mut oldname_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4792
+
+  /* C leaves `result`, `newname_dev` and `oldname_dev` uninitialised (PORTING.md 1.5).  */
+  result = 0;
+  newname_dev = 0;
+  oldname_dev = 0;
+
+  strcpy ((&raw mut temp) as *mut c_char, map_w32_filename (oldname, std::ptr::null_mut ())); // C 4807
+
+  /* 'rename' (which calls MoveFileW) renames the _target_ of the       // C 4809
+     symlink, which is different from Posix behavior and not what we    // C 4810
+     want here.  So in that case we pretend this is a cross-device move, // C 4811
+     for which Frename_file already has a workaround.  */               // C 4812
+  if is_symlink ((&raw const temp) as *const c_char) != 0               // C 4813
+    {
+      *errno () = EXDEV;                                                // C 4815
+      return -1;                                                        // C 4816
+    }
+  /* volume_info is set indirectly by map_w32_filename.  */             // C 4818
+  oldname_dev = volume_info.serialnum as c_int;                         // C 4819 (C's `DWORD`-into-`int`)
+
+  if os_subtype == OS_SUBTYPE_9X                                        // C 4821
+    {
+      let mut o: *mut c_char;                                           // C 4823
+      let mut p: *mut c_char;                                           // C 4824
+      let mut i: c_int = 0;                                             // C 4825
+
+      /* C leaves `o` and `p` uninitialised (PORTING.md 1.5).  */
+	  o = std::ptr::null_mut ();
+	  p = std::ptr::null_mut ();
+
+      oldname = map_w32_filename (oldname, std::ptr::null_mut ());      // C 4827
+      filename_to_ansi (oldname, oldname_a.as_mut_ptr ());              // C 4828
+      filename_to_ansi ((&raw const temp) as *const c_char, temp_a.as_mut_ptr ()); // C 4829
+      o = strrchr ((&raw mut oldname_a) as *mut c_char, b'\\' as c_int); // C 4830
+      if ! o.is_null ()                                                 // C 4830
+	{ o = o.offset (1); }                                                  // C 4831
+	      else
+	{ o = (&raw mut oldname_a) as *mut c_char; }                           // C 4833 (C's array decay)
+
+      p = strrchr ((&raw mut temp_a) as *mut c_char, b'\\' as c_int);   // C 4835
+      if ! p.is_null ()                                                 // C 4835
+	{ p = p.offset (1); }                                                  // C 4836
+	      else
+	{ p = (&raw mut temp_a) as *mut c_char; }                              // C 4838 (C's array decay)
+
+      loop                                                              // C 4840
+	{
+	  /* Force temp name to require a manufactured 8.3 alias - this        // C 4842
+	     seems to make the second rename work properly.  */                // C 4843
+	  sprintf (p, c"_.%s.%d".as_ptr (), o, i);                             // C 4844
+	  i += 1;                                                              // C 4845 (C's `i++`)
+	  result = rename ((&raw const oldname_a) as *const c_char, (&raw const temp_a) as *const c_char); // C 4846 (C's `rename`)
+
+	  /* This loop must surely terminate!  */                              // C 4848
+	  if ! (result < 0 && *errno () == EEXIST)                             // C 4849 (C's `while (result < 0 && errno == EEXIST)`)
+	    { break; }
+	}
+      if result < 0                                                     // C 4850
+	{ return -1; }                                                         // C 4851
+      have_temp_a = true;                                               // C 4852
+    }
+
+  /* If FORCE, emulate Unix behavior - newname is deleted if it already exists // C 4855
+     (at least if it is a file; don't do this for directories).         // C 4856
+                                                                        // C 4857
+     Since we mustn't do this if we are just changing the case of the   // C 4858
+     file name (we would end up deleting the file we are trying to      // C 4859
+     rename!), we let rename detect if the destination file already     // C 4860
+     exists - that way we avoid the possible pitfalls of trying to      // C 4861
+     determine ourselves whether two names really refer to the same     // C 4862
+     file, which is not always possible in the general case.  (Consider // C 4863
+     all the permutations of shared or subst'd drives, etc.)  */        // C 4864
+
+  newname = map_w32_filename (newname, std::ptr::null_mut ());          // C 4866
+
+  /* volume_info is set indirectly by map_w32_filename.  */             // C 4868
+  newname_dev = volume_info.serialnum as c_int;                         // C 4869 (C's `DWORD`-into-`int`)
+
+  'return_result: {                                                     // C 4989 (C's `return_result:` label; the jumps are `break 'return_result`)
+  if w32_unicode_filenames                                              // C 4871
+    {
+      let mut temp_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4873
+      let mut newname_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize];
+
+      filename_to_utf16 ((&raw const temp) as *const c_char, temp_w.as_mut_ptr ()); // C 4875
+      filename_to_utf16 (newname, newname_w.as_mut_ptr ());             // C 4876
+      result = _wrename (temp_w.as_mut_ptr (), newname_w.as_mut_ptr ()); // C 4877
+      if result < 0                                                     // C 4878
+	{
+	  let mut w32err: DWORD = GetLastError ();                             // C 4880
+
+	  if *errno () == EACCES                                               // C 4882
+	      && newname_dev != oldname_dev                                    // C 4883
+	    {
+	      let mut attributes: DWORD;                                       // C 4885
+	      /* The implementation of `rename' on Windows does not return     // C 4886
+		 errno = EXDEV when you are moving a directory to a                   // C 4887
+		 different storage device (ex. logical disk).  It returns             // C 4888
+		 EACCES instead.  So here we handle such situations and               // C 4889
+		 return EXDEV.  */                                                    // C 4890
+	      /* C leaves `attributes` uninitialised (PORTING.md 1.5).  */
+	      attributes = 0;
+	      attributes = GetFileAttributesW (temp_w.as_ptr ());              // C 4891
+	      if attributes != -1 as DWORD                                     // C 4891
+		  && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0                     // C 4892
+		{ *errno () = EXDEV; }                                                // C 4893
+	    }
+	  else if *errno () == EEXIST && force != 0                            // C 4895
+	    {
+	      let mut attributes_old: DWORD;                                   // C 4897
+	      let mut attributes_new: DWORD;                                   // C 4898
+
+	      /* C leaves the two uninitialised (PORTING.md 1.5).  */
+	      attributes_old = 0;
+	      attributes_new = 0;
+
+	      if _wchmod (newname_w.as_mut_ptr (), 0o666) != 0                 // C 4900 (C's `0666`)
+		{ break 'return_result; }                                             // C 4901 (C's `goto return_result`)
+	      attributes_old = GetFileAttributesW (temp_w.as_ptr ());          // C 4902
+	      attributes_new = GetFileAttributesW (newname_w.as_ptr ());       // C 4903
+	      if (attributes_old != -1 as DWORD && attributes_new != -1 as DWORD // C 4904
+		  && ((attributes_old & FILE_ATTRIBUTE_DIRECTORY)                     // C 4905
+		      != (attributes_new & FILE_ATTRIBUTE_DIRECTORY)))               // C 4906
+		{
+		  if (attributes_old & FILE_ATTRIBUTE_DIRECTORY) != 0                 // C 4908
+		    { *errno () = ENOTDIR; }                                          // C 4909
+		  else
+		    { *errno () = EISDIR; }                                           // C 4911
+		  result = -1;                                                        // C 4912
+		  break 'return_result;                                               // C 4913 (C's `goto return_result`)
+		}
+	      if (attributes_new & FILE_ATTRIBUTE_DIRECTORY) != 0              // C 4915
+		{
+		  if _wrmdir (newname_w.as_mut_ptr ()) != 0                           // C 4917
+		    { break 'return_result; }                                         // C 4918 (C's `goto return_result`)
+		}
+	      else if _wunlink (newname_w.as_mut_ptr ()) != 0                  // C 4920
+		{ break 'return_result; }                                             // C 4921 (C's `goto return_result`)
+	      result = _wrename (temp_w.as_mut_ptr (), newname_w.as_mut_ptr ()); // C 4922
+	    }
+	  else if w32err == ERROR_PRIVILEGE_NOT_HELD                           // C 4924
+		   && is_symlink ((&raw const temp) as *const c_char) != 0            // C 4925
+	    {
+	      /* This is Windows prohibiting the user from creating a          // C 4927
+		 symlink in another place, since that requires                        // C 4928
+		 privileges.  */                                                      // C 4929
+	      *errno () = EPERM;                                               // C 4930
+	    }
+	}
+    }
+  else                                                                  // C 4934
+    {
+      let mut newname_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 4936
+
+      if ! have_temp_a                                                  // C 4938
+	{ filename_to_ansi ((&raw const temp) as *const c_char, temp_a.as_mut_ptr ()); } // C 4939
+      filename_to_ansi (newname, newname_a.as_mut_ptr ());              // C 4940
+      result = rename ((&raw const temp_a) as *const c_char, (&raw const newname_a) as *const c_char); // C 4941 (C's `rename`)
+      if result < 0                                                     // C 4942
+	{
+	  let mut w32err: DWORD = GetLastError ();                             // C 4944
+
+	  if *errno () == EACCES                                               // C 4946
+	      && newname_dev != oldname_dev                                    // C 4947
+	    {
+	      let mut attributes: DWORD;                                       // C 4949
+	      /* C leaves `attributes` uninitialised (PORTING.md 1.5).  */
+	      attributes = 0;
+	      attributes = GetFileAttributesA (temp_a.as_ptr ());              // C 4950
+	      if attributes != -1 as DWORD                                     // C 4950
+		  && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0                     // C 4951
+		{ *errno () = EXDEV; }                                                // C 4952
+	    }
+	  else if *errno () == EEXIST && force != 0                            // C 4954
+	    {
+	      let mut attributes_old: DWORD;                                   // C 4956
+	      let mut attributes_new: DWORD;                                   // C 4957
+
+	      /* C leaves the two uninitialised (PORTING.md 1.5).  */
+	      attributes_old = 0;
+	      attributes_new = 0;
+
+	      if _chmod (newname_a.as_mut_ptr (), 0o666) != 0                  // C 4959 (C's `0666`)
+		{ break 'return_result; }                                             // C 4960 (C's `goto return_result`)
+	      attributes_old = GetFileAttributesA (temp_a.as_ptr ());          // C 4961
+	      attributes_new = GetFileAttributesA (newname_a.as_ptr ());       // C 4962
+	      if (attributes_old != -1 as DWORD && attributes_new != -1 as DWORD // C 4963
+		  && ((attributes_old & FILE_ATTRIBUTE_DIRECTORY)                     // C 4964
+		      != (attributes_new & FILE_ATTRIBUTE_DIRECTORY)))               // C 4965
+		{
+		  if (attributes_old & FILE_ATTRIBUTE_DIRECTORY) != 0                 // C 4967
+		    { *errno () = ENOTDIR; }                                          // C 4968
+		  else
+		    { *errno () = EISDIR; }                                           // C 4970
+		  result = -1;                                                        // C 4971
+		  break 'return_result;                                               // C 4972 (C's `goto return_result`)
+		}
+	      if (attributes_new & FILE_ATTRIBUTE_DIRECTORY) != 0              // C 4974
+		{
+		  if _rmdir (newname_a.as_mut_ptr ()) != 0                            // C 4976
+		    { break 'return_result; }                                         // C 4977 (C's `goto return_result`)
+		}
+	      else if _unlink (newname_a.as_mut_ptr ()) != 0                   // C 4979
+		{ break 'return_result; }                                             // C 4980 (C's `goto return_result`)
+	      result = rename ((&raw const temp_a) as *const c_char, (&raw const newname_a) as *const c_char); // C 4981
+	    }
+	  else if w32err == ERROR_PRIVILEGE_NOT_HELD                           // C 4983
+		   && is_symlink ((&raw const temp) as *const c_char) != 0            // C 4984
+	    { *errno () = EPERM; }                                             // C 4985
+	}
+    }
+  }
+
+  /* return_result: */                                                  // C 4989
+  /* This label is also invoked on failure, and on Windows 9X, restores // C 4990
+     the initial name of files that will have been renamed in           // C 4991
+     preparation for being moved.  It ought to be valid to rename temp_a // C 4992
+     to its previous name, just as it would, but for the failure, have  // C 4993
+     been renamed to the target.  */                                    // C 4994
+
+  if have_temp_a && result != 0                                         // C 4996
+    {
+      let mut save_errno: c_int = *errno ();                            // C 4998
+
+      /* XXX: what if a new file has replaced oldname_a in the          // C 5000
+	 meantime?  */                                                         // C 5001
+      rename ((&raw const temp_a) as *const c_char, (&raw const oldname_a) as *const c_char); // C 5002 (C's `rename`)
+      *errno () = save_errno;                                           // C 5003
+    }
+
+  return result;                                                        // C 5006
+}
+/* C 5009-5013: C 5009's `int` and `sys_rename` (C's `TRUE` is the `BOOL` `1`).  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_rename (old: *const c_char, new: *const c_char) -> c_int // C 5009
+{
+  return sys_rename_replace (old, new, 1);                              // C 5012 (C's `TRUE`)
+}
+
+/* C 5014-5015: C 5014's blank and C 5015's `int` (the next item is C 5016's `sys_rmdir`, past
+   this slice).  */
