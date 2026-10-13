@@ -12220,3 +12220,64 @@ pub unsafe extern "C" fn sys_gethostname (name: *mut c_char, namelen: c_int) -> 
   *name.offset (namelen as isize) = 0;                                  // C 8306 (C's `name[namelen] = '\0'`)
   return retval;                                                        // C 8307
 }                                                                       // C 8308
+
+
+/* C 8309's blank; C 8310-8333's `sys_gethostbyname` and C 8335-8351's `sys_getservbyname` - the
+   two name-lookup wrappers: the `winsock_lib` guards, the `pfn_*` call-throughs of slice 20's
+   statics, and `sys_gethostbyname`'s C 8314/8328/8331 `h_errno` saves and stores (this unit's own
+   C 7930 object, slice 22).  `NO_RECOVERY` (`<netdb.h>`'s 3 - no header in the reference tree
+   defines it) is declared in-unit (P-88, `UNVERIFIED`, Owed 31).  */
+/// C: #define NO_RECOVERY 3  (`<netdb.h>`)
+#[cfg (feature = "windowsnt")]
+pub const NO_RECOVERY: c_int = 3;
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_gethostbyname (name: *const c_char) -> *mut hostent // C 8310
+{                                                                       // C 8312
+  let mut host: *mut hostent;                                           // C 8313
+  let mut h_err: c_int = h_errno;                                       // C 8314 (this unit's own C 7930 object)
+
+  /* C leaves `host` uninitialised (PORTING.md 1.5).  */
+  host = std::ptr::null_mut ();
+
+  if winsock_lib.is_null ()                                             // C 8316 (C's `== NULL`)
+    {                                                                   // C 8317
+      h_errno = NO_RECOVERY;                                            // C 8318
+      *errno () = ENETDOWN;                                             // C 8319
+      return std::ptr::null_mut ();                                     // C 8320 (C's `NULL`)
+    }                                                                   // C 8321
+
+  check_errno ();                                                       // C 8323
+  host = pfn_gethostbyname.unwrap () (name);                            // C 8324 (C's call-through)
+  if host.is_null ()                                                    // C 8325 (C's `!host`)
+    {                                                                   // C 8326
+      set_errno ();                                                     // C 8327
+      h_errno = *errno ();                                              // C 8328 (C's `errno` read)
+    }                                                                   // C 8329
+  else                                                                  // C 8330
+    { h_errno = h_err; }                                                // C 8331
+  return host;                                                          // C 8332
+}                                                                       // C 8333
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_getservbyname (name: *const c_char, proto: *const c_char) -> *mut servent // C 8335
+{                                                                       // C 8337
+  let mut serv: *mut servent;                                           // C 8338
+
+  /* C leaves `serv` uninitialised (PORTING.md 1.5).  */
+  serv = std::ptr::null_mut ();
+
+  if winsock_lib.is_null ()                                             // C 8340 (C's `== NULL`)
+    {                                                                   // C 8341
+      *errno () = ENETDOWN;                                             // C 8342
+      return std::ptr::null_mut ();                                     // C 8343 (C's `NULL`)
+    }                                                                   // C 8344
+
+  check_errno ();                                                       // C 8346
+  serv = pfn_getservbyname.unwrap () (name, proto);                     // C 8347 (C's call-through)
+  if serv.is_null ()                                                    // C 8348 (C's `!serv`)
+    { set_errno (); }                                                   // C 8349
+  return serv;                                                          // C 8350
+}                                                                       // C 8351
