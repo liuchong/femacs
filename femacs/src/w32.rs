@@ -14056,8 +14056,7 @@ unsafe extern "C" {
 }
 
 #[cfg (feature = "windowsnt")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn network_interface_get_info (ifname: Lisp_Object) -> Lisp_Object // C 9580
+unsafe fn network_interface_get_info (ifname: Lisp_Object) -> Lisp_Object // C 9580
 {                                                                       // C 9582
   let mut ainfo_len: ULONG = core::mem::size_of::<IP_ADAPTER_INFO> () as ULONG; // C 9583 (C's `sizeof` and `ULONG`)
   let mut adapter: *mut IP_ADAPTER_INFO;                                // C 9584
@@ -14316,3 +14315,82 @@ pub unsafe extern "C" fn network_interface_get_info (ifname: Lisp_Object) -> Lis
   xfree (ainfo as *mut c_void);                                         // C 9819 (C's `done:` body)
   return res;                                                           // C 9820
 }                                                                       // C 9821
+
+
+/* C 9822's blank and C 9823-9855's `address_prefix_match` - the small static predicate
+   `network_interface_list` calls: C 9831's `AF_INET6` branch (the `sockaddr_in6` reads) against the
+   `sockaddr_in` one, C 9844-9848's byte loop, and C 9850-9852's partial-byte test.  The names
+   declared in-unit (P-88, `UNVERIFIED`, Owed 44) are `UINT8` (`unsigned char`; the unit's own
+   `BYTE` is the same width but C spells this one `UINT8`), `AF_INET6` (23), and the `in6_addr`
+   union with `sockaddr_in6` (28 bytes: `short`, `u_short`, `u_long`, 16-byte address, `u_long`);
+   `sockaddr_in` is slice 31's record and `sockaddr` slice 20's.  */
+/// C: typedef unsigned char UINT8;  (`<winsock2.h>`; the unit's `BYTE` is the same width)
+#[cfg (feature = "windowsnt")]
+pub type UINT8 = u8;
+/// C: #define AF_INET6 23  (`<winsock2.h>`)
+#[cfg (feature = "windowsnt")]
+pub const AF_INET6: c_int = 23;
+/// C: typedef struct in6_addr { union { u_char Byte[16]; u_short Word[8]; } u; } IN6_ADDR;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub union in6_addr
+{
+  pub Byte: [UINT8; 16],
+  pub Word: [c_ushort; 8],
+}
+/// C: typedef struct sockaddr_in6 { short sin6_family; u_short sin6_port; u_long sin6_flowinfo;
+/// C: struct in6_addr sin6_addr; u_long sin6_scope_id; } SOCKADDR_IN6;  (28 bytes)
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct sockaddr_in6
+{
+  pub sin6_family: c_short,
+  pub sin6_port: u_short,
+  pub sin6_flowinfo: u_long,
+  pub sin6_addr: in6_addr,
+  pub sin6_scope_id: u_long,
+}
+
+#[cfg (feature = "windowsnt")]
+unsafe fn address_prefix_match (family: c_int, address: *mut sockaddr,  // C 9823 (C's `static bool`)
+                              prefix_address: *mut sockaddr, prefix_len: ULONG) -> bool // C 9824
+{                                                                       // C 9826
+  let mut address_data: *mut UINT8;                                     // C 9827
+  let mut prefix_address_data: *mut UINT8;                              // C 9828
+  let mut i: c_int;                                                     // C 9829
+
+  /* C leaves `address_data`, `prefix_address_data` and `i` uninitialised (PORTING.md 1.5).  */
+  address_data = std::ptr::null_mut ();
+  prefix_address_data = std::ptr::null_mut ();
+  i = 0;
+
+  if family == AF_INET6                                                 // C 9831
+    {                                                                   // C 9832
+      address_data = &raw mut (*(address as *mut sockaddr_in6)).sin6_addr as *mut UINT8; // C 9833 (C's two casts)
+      prefix_address_data                                               // C 9834-9835
+	= &raw mut (*(prefix_address as *mut sockaddr_in6)).sin6_addr as *mut UINT8;
+    }                                                                   // C 9836
+  else                                                                  // C 9837
+    {                                                                   // C 9838
+      address_data = &raw mut (*(address as *mut sockaddr_in)).sin_addr as *mut UINT8; // C 9839
+      prefix_address_data                                               // C 9840-9841
+	= &raw mut (*(prefix_address as *mut sockaddr_in)).sin_addr as *mut UINT8;
+    }                                                                   // C 9842
+
+  i = 0;                                                                // C 9844
+  while i < ((prefix_len >> 3) as c_int)                                // C 9844 (C's `prefix_len >> 3`)
+    {                                                                   // C 9845
+      if *address_data.offset (i as isize) != *prefix_address_data.offset (i as isize) // C 9846
+	{ return false; }                                                      // C 9847
+      i += 1;                                                           // C 9844 (the for's increment)
+    }                                                                   // C 9848
+
+  if (prefix_len % 8) != 0                                              // C 9850
+    {                                                                   // C 9851
+      return (*prefix_address_data.offset (i as isize) as c_int)        // C 9851 (C's two-line return)
+	== ((*address_data.offset (i as isize) as c_int)                       // C 9852
+	    & (0xff << (8 - (prefix_len % 8) as c_int)));
+    }                                                                   // C 9853
+
+  return true;                                                          // C 9854
+}                                                                       // C 9855
