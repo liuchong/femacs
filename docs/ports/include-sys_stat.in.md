@@ -175,3 +175,16 @@ $ python3 tools/check-verbatim.py
 $ python3 tools/check-globals.py
 check-globals: 283 units, 0 DEFVAR_* variables without a definition in their own unit
 ```
+
+## 2026-10-12: the `windowsnt` arm's three-name collision (w32.c's Owed 14)
+
+`fchmod`, `fchmodat` and `faccessat` are three names this header *declares* and `src/w32.c`
+*defines* for the Windows arm (C 4757, 4763 and 4177).  A declaration at this scope is an
+`E0428` against those definitions, which the `windowsnt` probe of `femacs/src/w32.rs` measured
+as three located sites; the three now carry `#[cfg (not (feature = "windowsnt"))]` (the
+`femacs/lib/include/unistd.in.rs` 67 `getwd` device).  Evidence: the same probe reads **119**
+error lines after the gate (**122** before), the frozen probe is unchanged (**exit 0**,
+**336-byte** empty object), and this mirror's own
+`python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h femacs/lib/include/sys_stat.in.rs`
+still reads **OK**.
+

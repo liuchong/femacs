@@ -179,12 +179,20 @@ unsafe extern "C" {
   pub fn fstat (fd: c_int, buf: *mut stat) -> c_int;
   /* C 542-568's `fstatat`.  */
   pub fn fstatat (fd: c_int, file: *const c_char, buf: *mut stat, flag: c_int) -> c_int;
-  /* C 439-499's `chmod`, `fchmod` and `fchmodat` (the last one `_GL_ATTRIBUTE_NODISCARD`).  */
+  /* C 439-499's `chmod`, `fchmod` and `fchmodat` (the last one `_GL_ATTRIBUTE_NODISCARD`), and
+     the `faccessat` below.  **The three whose `w32.c` counterparts are definitions** (`w32.c`
+     4177/4757/4763 define `faccessat`, `fchmod` and `fchmodat` for the Windows arm) are gated
+     out of the `windowsnt` arm: C's own `<sys/stat.h>` there is `nt/inc/sys/stat.h`, and a
+     declaration at this scope is an `E0428` against those definitions (the `unistd.in.rs` 67
+     `getwd` device; `docs/ports/w32.md` Owed 14 measured 3 such rows before this gate).  */
   pub fn chmod (file: *const c_char, mode: mode_t) -> c_int;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn fchmod (fd: c_int, mode: mode_t) -> c_int;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn fchmodat (fd: c_int, file: *const c_char, mode: mode_t, flag: c_int) -> c_int;
   /* `faccessat` (declared by the same header; the `AT_EACCESS` arm is dead, `REPLACE_FACCESSAT`
      is zero).  */
+  #[cfg (not (feature = "windowsnt"))]
   pub fn faccessat (fd: c_int, file: *const c_char, mode: c_int, flag: c_int) -> c_int;
   /* `mkdir`/`mkdirat` and `mknod`/`mknodat`.  */
   pub fn mkdir (file: *const c_char, mode: mode_t) -> c_int;
