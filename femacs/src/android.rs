@@ -5954,3 +5954,234 @@ pub unsafe extern "C" fn android_draw_line (handle: android_drawable,   // C 471
      calling this frequently called graphics operation.  */             // C 4730
   ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 4731
 }
+/* C 4748-4759: C 4748's blank, C 4749's `void` and `android_set_ts_origin`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_ts_origin (gc: *mut android_gc, x: c_int, y: c_int) // C 4748-4759
+{
+  let mut gcv: android_gc_values;                                       // C 4752
+
+  gcv = std::mem::zeroed ();                                    // (C leaves `gcv` uninitialised; PORTING.md 1.5)
+
+  gcv.ts_x_origin = x;                                                  // C 4754
+  gcv.ts_y_origin = y;                                                  // C 4755
+  android_change_gc (gc, (ANDROID_GC_TILE_STIP_X_ORIGIN                 // C 4756
+			  | ANDROID_GC_TILE_STIP_Y_ORIGIN),                                  // C 4757
+		     &raw mut gcv);                                                   // C 4758
+}
+
+/* C 4761-4775: C 4761's blank, C 4762's `void` and `android_clear_area`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_clear_area (handle: android_window, x: c_int, y: c_int, // C 4761-4775
+					      width: c_uint, height: c_uint)
+{
+  let mut window: jobject;                                              // C 4765
+
+  window = std::ptr::null_mut ();                               // (C leaves `window` uninitialised; PORTING.md 1.5)
+
+  window = android_resolve_handle (handle);                             // C 4767
+
+  ((*(*android_java_env)).CallNonvirtualVoidMethod.unwrap ())           // C 4769
+	(android_java_env,                                                     // C 4770
+	 window,                                                               // C 4771
+	 window_class.class,                                                   // C 4772
+	 window_class.clear_area,                                              // C 4773
+	 x as jint, y as jint,
+	 width as jint, height as jint);                                       // C 4774
+}
+
+/* C 4777-4783: C 4777's blank, C 4778's `android_pixmap` and `android_create_bitmap_from_data`,
+   whose C 4781-4782 call is this unit's other `android_create_pixmap_from_bitmap_data` site
+   (`1`, `0`, `1` are C's foreground, background and depth arguments).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_bitmap_from_data (bits: *mut c_char, width: c_uint, // C 4777-4783
+							      height: c_uint)
+  -> android_pixmap
+{
+  return android_create_pixmap_from_bitmap_data (bits, width, height,   // C 4781
+						  1, 0, 1);                      // C 4782
+}
+
+/* C 4785-4819: C 4785's `struct android_image *` and `android_create_image`.  C 4796-4800 and
+   C 4807/4812 write `unsigned int` values into `int` fields, so the port spells those
+   conversions out (C's own implicit ones).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_image (depth: c_uint,           // C 4785-4819
+						 format: android_image_format,
+						 data: *mut c_char, width: c_uint, height: c_uint)
+  -> *mut android_image
+{
+  let mut image: *mut android_image;                                    // C 4789
+
+  image = std::ptr::null_mut ();                                // (C leaves `image` uninitialised; PORTING.md 1.5)
+
+  image = xmalloc (std::mem::size_of::<android_image> ()) as *mut android_image; // C 4791
+
+  /* Fill in the fields required by image.c.  N.B. that                 // C 4793
+     android_destroy_image ostensibly will free data, but image.c       // C 4794
+     mostly sets and frees data itself.  */                             // C 4795
+  (*image).width = width as c_int;                                      // C 4796 (C's `unsigned`-into-`int`)
+  (*image).height = height as c_int;                                    // C 4797
+  (*image).data = data;                                                 // C 4798
+  (*image).depth = depth as c_int;                                      // C 4799
+  (*image).format = format;                                             // C 4800
+
+  /* Now fill in the image dimensions.  There are only two depths       // C 4802
+     supported by this function.  */                                    // C 4803
+
+  if depth == 1                                                         // C 4805
+    {
+      (*image).bytes_per_line = ((width + 7) / 8) as c_int;             // C 4807
+      (*image).bits_per_pixel = 1;                                      // C 4808
+    }
+  else if depth == 24                                                   // C 4810
+    {
+      (*image).bytes_per_line = (width * 4) as c_int;                   // C 4812
+      (*image).bits_per_pixel = 32;                                     // C 4813
+    }
+  else                                                                  // C 4815
+    { emacs_abort (); }                                                 // C 4816
+
+  return image;                                                         // C 4818
+}
+
+/* C 4821-4830: C 4821's blank, C 4822's `void` and `android_destroy_image`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_destroy_image (ximg: *mut android_image) // C 4821-4830
+{
+  /* If XIMG->data is NULL, then it has already been freed by           // C 4824
+     image.c.  */                                                       // C 4825
+
+  if ! (*ximg).data.is_null ()                                          // C 4827
+    { xfree ((*ximg).data as *mut c_void); }                            // C 4828
+  xfree (ximg as *mut c_void);                                          // C 4829
+}
+
+/* C 4832-4873: `android_put_pixel`.  C 4845's `switch (ximg->depth)`, its two `case`s and the
+   two `break`s become the `match` below (the ledger's notes row), and C 4848/4858's
+   `ximg->data + y * …` pointer arithmetic is `.wrapping_offset (…)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_put_pixel (ximg: *mut android_image, x: c_int, y: c_int, // C 4832-4873
+					  mut pixel: c_ulong)
+{
+  let mut byte: *mut c_char;                                            // C 4836
+  let mut word: *mut c_char;
+  let mut r: c_uint;                                                    // C 4837
+  let mut g: c_uint;
+  let mut b: c_uint;
+  let mut pixel_int: c_uint;                                            // C 4838
+
+  /* C leaves the six locals uninitialised (PORTING.md 1.5).  */
+  byte = std::ptr::null_mut ();
+  word = std::ptr::null_mut ();
+  r = 0;
+  g = 0;
+  b = 0;
+  pixel_int = 0;
+
+  /* Ignore out-of-bounds accesses.  */                                 // C 4840
+
+  if x >= (*ximg).width || y >= (*ximg).height                          // C 4842
+	|| x < 0 || y < 0
+    { return; }                                                         // C 4843
+
+  match (*ximg).depth                                                   // C 4845
+    {
+      1 =>                                                              // C 4847
+	{
+	  byte = (*ximg).data
+	    .wrapping_offset ((y * (*ximg).bytes_per_line + x / 8) as isize);   // C 4848
+
+	  if pixel != 0                                                        // C 4850
+	    { *byte |= (1 << (x % 8)) as c_char; }                             // C 4851
+	  else
+	    { *byte &= ! ((1 << (x % 8)) as c_char); }                         // C 4853
+	}
+
+      24 =>                                                             // C 4856
+	{
+	  /* Unaligned accesses are problematic on Android devices.  */        // C 4857
+	  word = (*ximg).data
+	    .wrapping_offset ((y * (*ximg).bytes_per_line + x * 4) as isize);   // C 4858
+
+	  /* Swizzle the pixel into ABGR format.  Android uses Skia's          // C 4860
+	     ``native color type'', which is ABGR.  This is despite the        // C 4861
+	     format being named ``ARGB'', and more confusingly                 // C 4862
+	     `ANDROID_BITMAP_FORMAT_RGBA_8888' in bitmap.h.  */                // C 4863
+	  r = (pixel & 0x00ff0000) as c_uint;                                  // C 4864 (C's `unsigned long`-into-`unsigned int`)
+	  g = (pixel & 0x0000ff00) as c_uint;                                  // C 4865
+	  b = (pixel & 0x000000ff) as c_uint;                                  // C 4866
+	  pixel = ((r >> 16) | g | (b << 16) | 0xff000000) as c_ulong;         // C 4867 (C's widening back)
+
+	  pixel_int = pixel as c_uint;                                         // C 4869
+	  memcpy (word as *mut c_void, (&raw const pixel_int) as *const c_void, // C 4870
+		  std::mem::size_of::<c_uint> ());
+	}
+      /* C's `switch` has no `default`: an unmatched depth falls out of it to the function's
+	 end, which is this arm.  */
+      _ => {}
+    }
+}
+
+/* C 4875-4905: `android_get_pixel`.  Its `switch` is the same device as C 4845's, and its last
+   statement (`emacs_abort ()`) is C's code after the `switch`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_get_pixel (ximg: *mut android_image, x: c_int, y: c_int) // C 4875-4905
+  -> c_ulong
+{
+  let mut byte: *mut c_char;                                            // C 4878
+  let mut word: *mut c_char;
+  let mut pixel: c_uint;                                                // C 4879
+  let mut r: c_uint;
+  let mut g: c_uint;
+  let mut b: c_uint;
+
+  /* C leaves the six locals uninitialised (PORTING.md 1.5).  */
+  byte = std::ptr::null_mut ();
+  word = std::ptr::null_mut ();
+  pixel = 0;
+  r = 0;
+  g = 0;
+  b = 0;
+
+  if x >= (*ximg).width || y >= (*ximg).height                          // C 4881
+	|| x < 0 || y < 0
+    { return 0; }                                                       // C 4883
+
+  match (*ximg).depth                                                   // C 4885
+    {
+      1 =>                                                              // C 4887
+	{
+	  byte = (*ximg).data
+	    .wrapping_offset ((y * (*ximg).bytes_per_line + x / 8) as isize);   // C 4888
+	  return if (*byte as c_int & (1 << (x % 8))) != 0 { 1 } else { 0 };   // C 4889
+	}
+
+      24 =>                                                             // C 4891
+	{
+	  word = (*ximg).data
+	    .wrapping_offset ((y * (*ximg).bytes_per_line + x * 4) as isize);   // C 4892
+	  memcpy ((&raw mut pixel) as *mut c_void, word as *const c_void,      // C 4893
+		  std::mem::size_of::<c_uint> ());
+
+	  /* Convert the pixel back to RGB.  */                                // C 4895
+	  b = pixel & 0x00ff0000;                                              // C 4896
+	  g = pixel & 0x0000ff00;                                              // C 4897
+	  r = pixel & 0x000000ff;                                              // C 4898
+	  pixel = ((r << 16) | g | (b >> 16)) & ! 0xff000000;                  // C 4899
+
+	  return pixel as c_ulong;                                             // C 4901
+	}
+      /* C's `switch` has no `default`: an unmatched depth falls out of it to C 4904's
+	 `emacs_abort ()`, which is this arm plus the statement after the match.  */
+      _ => {}
+    }
+
+  emacs_abort ();                                                       // C 4904
+}
