@@ -12163,3 +12163,60 @@ pub unsafe extern "C" fn sys_inet_addr (cp: *const c_char) -> c_ulong   // C 826
     { pfn_inet_addr.unwrap () (cp) }                                    // C 8273 (C's call-through)
     else { INADDR_NONE };                                               // C 8273
 }                                                                       // C 8274
+
+
+/* C 8275's blank, C 8276-8277's `Wrapper for gethostname` comment (C's own text), and C 8278-8308's
+   `sys_gethostname`: the `winsock_lib` arm through slice 20's `pfn_gethostname`, the
+   `GetComputerNameA` arm C 8292 selects by `sizeof (sname)`, the `EFAULT` exit, and C 8303-8306's
+   UTF-8 conversion tail (`filename_from_ansi`, `strncpy`, the NUL store).  `MAX_COMPUTERNAME_LENGTH`
+   (`<winbase.h>`'s 15) and `GetComputerNameA` are declared in-unit (P-88, `UNVERIFIED`, Owed 30);
+   `MAX_UTF8_PATH` is the `ms-w32.h` mirror's 93 row and `filename_from_ansi` this unit's own
+   definition (C 833's block).  */
+/* Wrapper for gethostname.  Note: NAMELEN is the space available in
+   NAME excluding the terminating null.  */
+/// C: #define MAX_COMPUTERNAME_LENGTH 15  (`<winbase.h>`)
+#[cfg (feature = "windowsnt")]
+pub const MAX_COMPUTERNAME_LENGTH: c_int = 15;
+/// C: WINBASEAPI BOOL WINAPI GetComputerNameA (LPSTR lpBuffer, LPDWORD nSize);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetComputerNameA (lpBuffer: *mut c_char, nSize: *mut DWORD) -> BOOL;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_gethostname (name: *mut c_char, namelen: c_int) -> c_int // C 8278
+{                                                                       // C 8280
+  let mut retval: c_int;                                                // C 8281
+  let mut nlen: c_int = namelen;                                        // C 8282 (C's `int nlen = namelen;`)
+  let mut sname: [c_char; 256 + 1] = [0; 256 + 1];                      // C 8283 (C's `char sname[256+1]`)
+
+  /* C leaves `retval` uninitialised (PORTING.md 1.5).  */
+  retval = 0;
+
+  if ! winsock_lib.is_null ()                                           // C 8285 (C's `!= NULL`)
+    {                                                                   // C 8286
+      check_errno ();                                                   // C 8287
+      retval = pfn_gethostname.unwrap () (sname.as_mut_ptr (),          // C 8288 (C's call-through)
+					 core::mem::size_of_val (&sname) as c_int);                        // C 8288 (C's `sizeof (sname)`)
+      if retval == SOCKET_ERROR                                         // C 8289
+	{ set_errno (); }                                                      // C 8290
+    }                                                                   // C 8291
+  else if core::mem::size_of_val (&sname) > MAX_COMPUTERNAME_LENGTH as usize // C 8292 (C's `sizeof` and its int comparison)
+    { retval = (GetComputerNameA (sname.as_mut_ptr (),                  // C 8293 (C's `!` and `(DWORD *)` cast)
+				       &raw mut nlen as *mut DWORD) == 0) as c_int; }               // C 8293
+  else                                                                  // C 8294
+    {                                                                   // C 8295
+      retval = SOCKET_ERROR;                                            // C 8296
+      *errno () = EFAULT;                                               // C 8297
+    }                                                                   // C 8298
+  /* The rest of the code wants the name in UTF-8.  The host name is not // C 8299
+     a file name, but it's encoded in the ANSI codepage and its size    // C 8300
+     must be at most 256 characters.  So treating it as a file name     // C 8301
+     should be okay.  */                                                // C 8302
+  let mut hostname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 8303
+  filename_from_ansi (sname.as_mut_ptr (), hostname.as_mut_ptr ());     // C 8304
+  strncpy (name, hostname.as_mut_ptr (), namelen as usize);             // C 8305 (C's int-to-`size_t`)
+  *name.offset (namelen as isize) = 0;                                  // C 8306 (C's `name[namelen] = '\0'`)
+  return retval;                                                        // C 8307
+}                                                                       // C 8308
