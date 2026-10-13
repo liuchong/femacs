@@ -144,10 +144,18 @@
 > range cases are the port's `..=` patterns, and C 6000's `FALLTHROUGH` is an or-pattern arm) -
 > so the port carries C 1-6014 (except C 2086-2192), C 4734-4747 and C 6880-7096: **6,138 C
 > lines of 7,594 (80.8%)**, in a 7,568-line port, md5
-> `97aa7711b1295423054f032bb47779ed`.  **The
-> next live definition is C 6021's `android_build_string`**, which is blocked on P-05's
-> `alloca` decision (Owed 11; C 6064's `SAFE_ALLOCA`); the first unblocked item after it is C
-> 6107's `android_build_jstring`.  The table's last row is the
+> `97aa7711b1295423054f032bb47779ed`.  **Slice 30 (C 6103-6405, 2026-10-12)** steps over the
+> blocked `android_build_string` (C 6021-6101 stays Owed 11's hole) and carries
+> `android_build_jstring` (6107-6125) plus the whole exception-check family:
+> `android_exception_check` (6164-6177), `_1` through `_6` (6184/6206/6231/6260/6292/6329),
+> `android_exception_check_nonnull` (6374-6384) and `android_exception_check_nonnull_1`
+> (6391-6405), each of which logs through C's two adjacent literals, describes and clears the
+> pending exception and calls `memory_full (0)` after releasing the local references it was
+> given - so the port carries C 1-6405 (except C 2086-2192) and C 6021-6101 is the second
+> blocked hole (P-05's `alloca`), plus C 4734-4747 and C 6880-7096: **6,529 C lines of 7,594
+> (86.0%)**, in a 7,842-line port, md5 `781121799e9e9e5cd4952bfe0be83329`.  **The
+> next live definition is C 6414's `android_transform_coordinates`** (the first of the native
+> image transforms, `static`).  The table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -423,7 +431,18 @@ no `window.h`).
 | 5911-5932 | C 5911's blank, C 5912's form feed, C 5914-5915's comment and `emacs_abort` (C 5922-5924's log call with C's adjacent literals, C 5929's NULL store, C 5931's `abort`) | real arm (slice 29) |
 | 5933-5951 | C 5933's blank, C 5934's form feed, C 5936-5937's comment and the `static` `android_check_string` (C 5944's `for`, C 5946's `SREF` test) | real arm (slice 29) |
 | 5952-6014 | C 5952's blank, C 5953-5965's comment and `android_verify_jni_string` (C 5977's `switch (*chars++ >> 4)`, the five range cases and C 6000's `FALLTHROUGH`) | real arm (slice 29) |
-| 6015-6879 | **the remainder, first part (b)** - from C 6015's blank and C 6016-6019's comment (C 6021's `android_build_string`, **blocked on P-05's `alloca` decision**: C 6031's `USE_SAFE_ALLOCA`, C 6064's `SAFE_ALLOCA`, C 6052/6075's `SAFE_FREE`, C 6084's `va_start` and C 6100's `memory_full`) through C 6878's closing brace and C 6879's blank: `android_build_jstring` (C 6107), the remaining system routines, the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
+| 6015-6106 | **the blocked head, not ported**: C 6015's blank, C 6016-6019's comment and `android_build_string` (C 6021-6101, whose C 6031 `USE_SAFE_ALLOCA`, C 6064 `SAFE_ALLOCA`, C 6052/6075 `SAFE_FREE`, C 6084 `va_start` and C 6100 `memory_full` are the P-05 `alloca` decision's second consumer), then C 6103-6106's comment | **blocked** (Owed 11) |
+| 6107-6125 | the blank and `android_build_jstring` (C 6120's `NewStringUTF` with C's seven-line comment carried above it) | real arm (slice 30) |
+| 6126-6177 | C 6126's blank, C 6127's form feed, C 6129-6159's nine-paragraph comment on the family, C 6161-6162's comment and `android_exception_check` (C 6167's `likely` guard, C 6170-6172's log call, C 6174-6175's describe/clear pair, C 6176's `memory_full`) | real arm (slice 30) |
+| 6178-6201 | C 6178-6182's comment and `android_exception_check_1` (C 6197's guarded `ANDROID_DELETE_LOCAL_REF`) | real arm (slice 30) |
+| 6202-6226 | C 6203-6204's comment and `android_exception_check_2` (two guarded releases) | real arm (slice 30) |
+| 6227-6255 | C 6228-6229's comment and `android_exception_check_3` (three guarded releases) | real arm (slice 30) |
+| 6256-6287 | C 6257-6258's comment and `android_exception_check_4` (four guarded releases) | real arm (slice 30) |
+| 6288-6323 | C 6289-6290's comment and `android_exception_check_5` (five guarded releases) | real arm (slice 30) |
+| 6324-6363 | C 6325-6327's blank run and comment and `android_exception_check_6` (six guarded releases) | real arm (slice 30) |
+| 6364-6384 | C 6365-6372's comment and `android_exception_check_nonnull` (C 6377 tests OBJECT itself, which is why the guard is a plain null test) | real arm (slice 30) |
+| 6385-6405 | C 6386-6389's comment and `android_exception_check_nonnull_1` (two guarded releases) | real arm (slice 30) |
+| 6406-6879 | **the remainder, first part (c)** - from C 6406's blank and C 6407's form feed (C 6409's `/* Native image transforms.  */` and C 6414's `android_transform_coordinates`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the native image transforms, the remaining drawing helpers and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -810,18 +829,18 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size.  Slices 2-29's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`, no dead key, no bitmap lock, no keysym name, no screen size, no JNI exception handled, no Java string built.  Slices 2-30's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-6014, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 6015-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (35 `missing
-function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-6405, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 and C 6021-6101 (both blocked on P-05's `alloca` decision)
+and C 6406-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (25
+`missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
 `invented exported symbol` rows of Owed 9) are that boundary, not defects; the line-count row
 is **below the checker's 5% report threshold** and is no longer emitted (C 7,594 against the
-port's 7,568, 0.3%).  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
+port's 7,842, 3.3%).  The `invented exported symbol` rows are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and every `does not mention`
 row is a recorded `macro-body-notes.tsv` row of Owed 8 - none of them is a port defect.  The `android_api_lt_21`
-configuration compiled to an object (②b, 78,144 bytes) and was not run; the pristine base-config arm
+configuration compiled to an object (②b, 88,696 bytes) and was not run; the pristine base-config arm
 still stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member (②a, Owed 6), so no
 object exists for it.
 
@@ -2053,3 +2072,46 @@ no longer emitted** (C 7,594 against the port's 7,568, 0.3%).
   definition at C 6740 through the mirror's declaration (`include/android.rs` 292, reachable
   because 324 glob-imports `android_decls`), which is why that name is *not* a `missing
   function` row of this unit.
+
+## 2026-10-12: slice 30 (C 6103-6405) - the Java string builder and the ten exception-check entries
+
+`android_build_jstring` and the exception-check family: `android_exception_check`,
+`android_exception_check_1` through `_6`, `android_exception_check_nonnull` and
+`android_exception_check_nonnull_1`.  This slice **steps over** the blocked
+`android_build_string` (C 6021-6101, whose `SAFE_ALLOCA` is P-05's second consumer) rather than
+leaving the lane idle: Owed 11 already records that hole and C 6103 begins the next item.
+
+### Evidence (this slice's readings)
+
+**⑤⑥ The arm flip of this slice.**  Both probes **exit 0, 0 errors, 11 warnings** and both
+**passed on the first attempt**.  Eight of the ten names were already *called* inside this unit
+(C 4926/5135/5543/5618/5633/5642/5910 and the earlier slices), so this round is the first that
+compiles the calls and the definitions together; `android_build_jstring`'s `NewStringUTF` and
+the `concat!` log lines add nothing the unit had not already compiled.
+
+**⑤⑦ The checklist reading.**  `extract-abi.py --check`: `missing function` **35 → 25** (the ten
+definitions this slice carries; the second `comm` check of this lane is skipped this round - no
+name left or entered the list in the first slice-30 run and the count moves by exactly the
+number of carried definitions), **`missing file-scope object` 0** (eighteenth round at empty),
+**`invented exported symbol` 41** unchanged, and **`does not mention` 0 with no notes row
+needed** (the family's `likely`/`memory_full`/`ANDROID_DELETE_LOCAL_REF` all have Rust sites);
+the line-count row stays **below the 5% threshold and is not emitted** (C 7,594 against the
+port's 7,842, 3.3%).
+
+### Deviations this slice adds
+
+- **C 6167/6187/6209/.../6377/6395's `likely (!...ExceptionCheck (env))`** is the port's
+  `likely ((...) (android_java_env) == 0)` (the mirror's `likely` takes a `bool`, and C's `!` on
+  a `jboolean` is that comparison; `include/lisp.rs` 714 is the identity).
+- **C's brace-less `if (object) ANDROID_DELETE_LOCAL_REF (object);`** becomes
+  `if ! object.is_null () { ANDROID_DELETE_LOCAL_REF! (object); }` (Rust needs the braces; the
+  macro is the unit's own, C 340's expansion).
+- **C 6170-6172's two adjacent string literals per entry** are `concat!` with `.as_ptr () as
+  *const c_char` (the unit's device at 1798), and each entry's `__func__` is the unit's usual
+  `let __func__ = c"<name>".as_ptr ()` local.
+- **C 6377/6395's `object != NULL`** (a `void *`, not a JNI result) is
+  `object != std::ptr::null_mut ()`, and the argument keeps the mirror's untyped `*mut c_void`.
+- **The C-line markers of the family are derived from the reference text itself** (this slice's
+  generator reads `emacs/src/android.c` and takes the line number of each C statement it
+  mirrors), because the entries' signature widths differ and a fixed offset would have been
+  wrong for four of the ten.

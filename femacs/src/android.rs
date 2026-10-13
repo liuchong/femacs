@@ -7566,3 +7566,277 @@ pub unsafe extern "C" fn android_verify_jni_string (name: *const c_char) -> c_in
 
   return 0;                                                             // C 6013
 }
+/* C 6103-6106: C 6103-6105's `/* Do the same, except TEXT is constant string data in ASCII or
+   UTF-8 containing no characters outside the Basic Multilingual Plane.  */` and C 6106's
+   blank.  */
+/* C 6107-6125: android_build_jstring.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_build_jstring (text: *const c_char) -> jstring // C 6108
+{
+  let mut string: jstring;                                              // C 6110
+
+  /* C leaves the local uninitialised (PORTING.md 1.5).  */
+  string = std::ptr::null_mut ();
+
+  /* Note that Java expects this string to be in ``modified UTF         // C 6112
+  encoding'', which is actually UTF-8, except with NUL                  // C 6113
+  encoded as a two-byte sequence, and surrogate pairs encoded           // C 6114
+  in the three-byte extended encoding.  The only consequence            // C 6115
+  of passing an actual UTF-8 string is that NUL bytes and               // C 6116
+  characters requiring surrogate pairs cannot be represented,           // C 6117
+  which is not really of consequence.  */                               // C 6118
+
+  string = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env, // C 6120
+						      text);                                                      // C 6121
+  android_exception_check ();                                           // C 6122
+
+  return string;                                                        // C 6124
+}
+/* C 6127-6162: C 6127's form feed, C 6128's blank, C 6129-6159's nine-paragraph comment and
+   C 6161-6162's `/* Check for JNI exceptions and call memory_full in that situation.  */`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check ()                     // C 6164
+{
+  if likely (((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) == 0) // C 6167
+	{ return; }                                                            // C 6168
+
+  let __func__: *const c_char = c"android_exception_check".as_ptr ();    // C 6170 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6170
+		       concat! ("Possible out of memory error. ",                     // C 6171
+				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6172
+  /* Describe exactly what went wrong.  */                              // C 6173
+  ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6174
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6175
+  memory_full (0);                                                      // C 6176
+}
+/* C 6179-6182: C 6179's blank and C 6180-6182's `/* Check for JNI exceptions.  If there is one
+   such exception, clear it, then delete the local reference to OBJECT and call memory_full.
+   OBJECT can be NULL, which is a valid local reference to the Java null object.  */`.  */
+/* C 6184-6201: android_exception_check_1 (object).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check_1 (object: jobject)    // C 6184
+{
+  if likely (((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) == 0) // C 6187
+	{ return; }                                                            // C 6188
+
+  let __func__: *const c_char = c"android_exception_check_1".as_ptr ();    // C 6190 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6190
+		       concat! ("Possible out of memory error. ",                     // C 6191
+				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6192
+  /* Describe exactly what went wrong.  */                              // C 6193
+  ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6194
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6195
+
+  if ! object.is_null ()                                                // C 6197
+	{ ANDROID_DELETE_LOCAL_REF! (object); }                                // C 6198
+
+  memory_full (0);                                                      // C 6200
+}
+
+/* C 6203-6204: C 6203's blank and C 6204's `/* Like android_exception_check_1, except it takes
+   more than one local reference argument.  */`.  */
+/* C 6206-6226: android_exception_check_2 (object, object1).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check_2 (object: jobject, object1: jobject) // C 6206
+{
+  if likely (((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) == 0) // C 6209
+	{ return; }                                                            // C 6210
+
+  let __func__: *const c_char = c"android_exception_check_2".as_ptr ();    // C 6212 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6212
+		       concat! ("Possible out of memory error. ",                     // C 6213
+				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6214
+  /* Describe exactly what went wrong.  */                              // C 6215
+  ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6216
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6217
+
+  if ! object.is_null ()                                                // C 6219
+	{ ANDROID_DELETE_LOCAL_REF! (object); }                                // C 6220
+
+  if ! object1.is_null ()                                               // C 6222
+	{ ANDROID_DELETE_LOCAL_REF! (object1); }                               // C 6223
+
+  memory_full (0);                                                      // C 6225
+}
+
+/* C 6228-6229: C 6228's blank and C 6229's `/* Like android_exception_check_2, except it takes
+   more than two local reference arguments.  */`.  */
+/* C 6231-6255: android_exception_check_3 (object, object1, object2).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check_3 (object: jobject, object1: jobject, object2: jobject) // C 6231
+{
+  if likely (((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) == 0) // C 6235
+	{ return; }                                                            // C 6236
+
+  let __func__: *const c_char = c"android_exception_check_3".as_ptr ();    // C 6238 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6238
+		       concat! ("Possible out of memory error. ",                     // C 6239
+				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6240
+  /* Describe exactly what went wrong.  */                              // C 6241
+  ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6242
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6243
+
+  if ! object.is_null ()                                                // C 6245
+	{ ANDROID_DELETE_LOCAL_REF! (object); }                                // C 6246
+
+  if ! object1.is_null ()                                               // C 6248
+	{ ANDROID_DELETE_LOCAL_REF! (object1); }                               // C 6249
+
+  if ! object2.is_null ()                                               // C 6251
+	{ ANDROID_DELETE_LOCAL_REF! (object2); }                               // C 6252
+
+  memory_full (0);                                                      // C 6254
+}
+
+/* C 6257-6258: C 6257's blank and C 6258's `/* Like android_exception_check_3, except it takes
+   more than three local reference arguments.  */`.  */
+/* C 6260-6287: android_exception_check_4 (object, object1, object2, object3).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check_4 (object: jobject, object1: jobject, object2: jobject, object3: jobject) // C 6260
+{
+  if likely (((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) == 0) // C 6264
+	{ return; }                                                            // C 6265
+
+  let __func__: *const c_char = c"android_exception_check_4".as_ptr ();    // C 6267 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6267
+		       concat! ("Possible out of memory error. ",                     // C 6268
+				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6269
+  /* Describe exactly what went wrong.  */                              // C 6270
+  ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6271
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6272
+
+  if ! object.is_null ()                                                // C 6274
+	{ ANDROID_DELETE_LOCAL_REF! (object); }                                // C 6275
+
+  if ! object1.is_null ()                                               // C 6277
+	{ ANDROID_DELETE_LOCAL_REF! (object1); }                               // C 6278
+
+  if ! object2.is_null ()                                               // C 6280
+	{ ANDROID_DELETE_LOCAL_REF! (object2); }                               // C 6281
+
+  if ! object3.is_null ()                                               // C 6283
+	{ ANDROID_DELETE_LOCAL_REF! (object3); }                               // C 6284
+
+  memory_full (0);                                                      // C 6286
+}
+
+/* C 6289-6290: C 6289's blank and C 6290's `/* Like android_exception_check_4, except it takes
+   more than four local reference arguments.  */`.  */
+/* C 6292-6323: android_exception_check_5 (object, object1, object2, object3, object4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check_5 (object: jobject, object1: jobject, object2: jobject, object3: jobject, object4: jobject) // C 6292
+{
+  if likely (((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) == 0) // C 6297
+	{ return; }                                                            // C 6298
+
+  let __func__: *const c_char = c"android_exception_check_5".as_ptr ();    // C 6300 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6300
+		       concat! ("Possible out of memory error. ",                     // C 6301
+				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6302
+  /* Describe exactly what went wrong.  */                              // C 6303
+  ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6304
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6305
+
+  if ! object.is_null ()                                                // C 6307
+	{ ANDROID_DELETE_LOCAL_REF! (object); }                                // C 6308
+
+  if ! object1.is_null ()                                               // C 6310
+	{ ANDROID_DELETE_LOCAL_REF! (object1); }                               // C 6311
+
+  if ! object2.is_null ()                                               // C 6313
+	{ ANDROID_DELETE_LOCAL_REF! (object2); }                               // C 6314
+
+  if ! object3.is_null ()                                               // C 6316
+	{ ANDROID_DELETE_LOCAL_REF! (object3); }                               // C 6317
+
+  if ! object4.is_null ()                                               // C 6319
+	{ ANDROID_DELETE_LOCAL_REF! (object4); }                               // C 6320
+
+  memory_full (0);                                                      // C 6322
+}
+
+/* C 6325-6327: C 6325-6326's two blank lines and C 6327's `/* Like android_exception_check_5,
+   except it takes more than five local reference arguments.  */` (C writes two blanks here).  */
+/* C 6329-6363: android_exception_check_6 (object, object1, object2, object3, object4, object5).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check_6 (object: jobject, object1: jobject, object2: jobject, object3: jobject, object4: jobject, object5: jobject) // C 6329
+{
+  if likely (((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) == 0) // C 6334
+	{ return; }                                                            // C 6335
+
+  let __func__: *const c_char = c"android_exception_check_6".as_ptr ();    // C 6337 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6337
+		       concat! ("Possible out of memory error. ",                     // C 6338
+				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6339
+  /* Describe exactly what went wrong.  */                              // C 6340
+  ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6341
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6342
+
+  if ! object.is_null ()                                                // C 6344
+	{ ANDROID_DELETE_LOCAL_REF! (object); }                                // C 6345
+
+  if ! object1.is_null ()                                               // C 6347
+	{ ANDROID_DELETE_LOCAL_REF! (object1); }                               // C 6348
+
+  if ! object2.is_null ()                                               // C 6350
+	{ ANDROID_DELETE_LOCAL_REF! (object2); }                               // C 6351
+
+  if ! object3.is_null ()                                               // C 6353
+	{ ANDROID_DELETE_LOCAL_REF! (object3); }                               // C 6354
+
+  if ! object4.is_null ()                                               // C 6356
+	{ ANDROID_DELETE_LOCAL_REF! (object4); }                               // C 6357
+
+  if ! object5.is_null ()                                               // C 6359
+	{ ANDROID_DELETE_LOCAL_REF! (object5); }                               // C 6360
+
+  memory_full (0);                                                      // C 6362
+}
+
+/* C 6365-6372: C 6365's blank and C 6366-6372's `/* Check for JNI problems based on the value
+   of OBJECT.` ... `This function is useful when checking for errors from JNI functions that do
+   not set exceptions on failure, such as `GetIntArrayElements'.  */` comment.  */
+/* C 6374-6384: android_exception_check_nonnull (C 6377 tests OBJECT itself).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check_nonnull (object: *mut c_void, object1: jobject) // C 6374
+{
+  if likely (object != std::ptr::null_mut ())                           // C 6377
+	{ return; }                                                            // C 6378
+
+  if ! object1.is_null ()                                               // C 6380
+	{ ANDROID_DELETE_LOCAL_REF! (object1); }                               // C 6381
+
+  memory_full (0);                                                      // C 6383
+}
+
+/* C 6386-6389: C 6386's blank and C 6387-6389's `/* Check for JNI problems based on the value
+   of OBJECT.` ... `OBJECT1 and OBJECT2 mean the same as in `android_exception_check_2'.  */`.  */
+/* C 6391-6405: android_exception_check_nonnull_1.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_exception_check_nonnull_1 (object: *mut c_void, // C 6391
+							   object1: jobject, object2: jobject)
+{
+  if likely (object != std::ptr::null_mut ())                           // C 6395
+	{ return; }                                                            // C 6396
+
+  if ! object1.is_null ()                                               // C 6398
+	{ ANDROID_DELETE_LOCAL_REF! (object1); }                               // C 6399
+
+  if ! object2.is_null ()                                               // C 6401
+	{ ANDROID_DELETE_LOCAL_REF! (object2); }                               // C 6402
+
+  memory_full (0);                                                      // C 6404
+}
+
+/* C 6406-6409: C 6406's blank, C 6407's form feed, C 6408's blank and C 6409's
+   `/* Native image transforms.  */`.  */
