@@ -68,12 +68,16 @@
 > entries (the blocked row of slice 12) **and** the machinery they call - the three file-scope
 > objects, the seven `__atomic_*`-using functions and the `__func__` log call - so the port
 > carries C 1-3071 (except C 2086-2192) **and** C 6880-7096: 3,179 C lines of 7,594 (in a
-> 3,716-line port, md5 `5123381876e0523241328379dd113639`).  **Slice 14 (C 3072-3143, 2026-10-12)** now carries the remainder's first text -
+> 3,716-line port, md5 `5123381876e0523241328379dd113639`).  **Slice 14 (C 3072-3143, 2026-10-12)** carries the remainder's first text -
 > `android_destroy_handle` (C 3084-3120, with C's three function-local `static` objects) and
-> `android_change_window_attributes` (C 3122-3143) - so the port carries C 1-3071 (except
-> C 2086-2192), C 3072-3143 **and** C 6880-7096: 3,251 C lines of 7,594 (in a 3,798-line port,
-> md5 `9d25efd96b44593c4d2eb95eac016679`).  **The
-> next live definition is C 3149's `android_globalize_reference`**; the table's last row is the
+> `android_change_window_attributes` (C 3122-3143).  **Slice 15 (C 3144-3268, 2026-10-12)**
+> continues with `android_globalize_reference` (C 3149-3172, whose C 3163 uses
+> `__builtin_expect`, and whose C 3170 `static_assert` owns a `macro-body-notes` row),
+> `android_create_window` (C 3177-3225), `android_set_window_background` (3227-3235),
+> `android_destroy_window` (3237-3241) and `android_init_android_rect_class` (3243-3268) - so the
+> port carries C 1-3268 (except C 2086-2192) **and** C 6880-7096: 3,375 C lines of 7,594 (in a
+> 3,963-line port, md5 `d57c882cd695cb6a1f86bbe9a85e3d57`).  **The
+> next live definition is C 3271's `android_init_emacs_gc_class`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -247,7 +251,17 @@ no `window.h`).
 | 3084-3120 | `android_destroy_handle` (C's three function-local `static` objects, C 3092-3107's `FindClass`/`GetMethodID`/`NewGlobalRef` chain and C 3110-3119's three calls) | real arm (slice 14) |
 | 3121 | the blank | real arm (slice 14) |
 | 3122-3143 | `android_change_window_attributes` (C 3133's `ANDROID_CW_BACK_PIXEL` test) | real arm (slice 14) |
-| 3144-6879 | **the remainder, first part** - from C 3144's blank and C 3145-3147's `/* Return a reference to the local reference HANDLE … */` comment (C 3149's `android_globalize_reference`, **the next live definition**) through C 6878's closing brace and C 6879's blank: `android_create_window` and the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing and window helpers, and C 7519's `#else` stub arm | not this slice |
+| 3144-3148 | C 3144's blank, C 3145-3147's comment and the blank | real arm (slice 15) |
+| 3149-3172 | `android_globalize_reference` (C 3163's `__builtin_expect` and C 3170's `static_assert`) | real arm (slice 15) |
+| 3173-3176 | C 3173's blank, C 3174-3175's comment and the blank | real arm (slice 15) |
+| 3177-3225 | `android_create_window` (C 3183-3184's two function-local `static` objects, C 3199-3201's three-part constructor signature and C 3216-3220's variadic `NewObject`) | real arm (slice 15) |
+| 3226 | the blank | real arm (slice 15) |
+| 3227-3235 | `android_set_window_background` | real arm (slice 15) |
+| 3236 | the blank | real arm (slice 15) |
+| 3237-3241 | `android_destroy_window` | real arm (slice 15) |
+| 3242 | the blank | real arm (slice 15) |
+| 3243-3268 | `android_init_android_rect_class` (C 3260's `eassert` names `emacs_gc_constructor`, kept as C wrote it) | real arm (slice 15) |
+| 3269-6879 | **the remainder, first part** - from C 3269's blank and C 3270's `static void` (C 3271's `android_init_emacs_gc_class`, **the next live definition**) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the `android_*` drawing and window helpers, and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
 | 7097-7594 | **the remainder, second part** - from C 7097's blank and C 7098-7105's `/* Synchronously ask the Emacs thread … */` comment (`android_run_in_emacs_thread` and the tail of the file) through C 7594's `#endif` | not this slice |
 
@@ -556,7 +570,7 @@ readings exist only with `android_api_lt_21` selected.
    `<unistd.h>` declares it for this configuration, and `docs/baseline/mirror-dupes.tsv` now
    carries the ratchet row that says why the mirror's Darwin redirect and this declaration are two
    configurations' arms rather than a copied declaration.
-8. `docs/ports/macro-body-notes.tsv` (not in this lane's writable set): **two rows for slice 2**,
+8. `docs/ports/macro-body-notes.tsv`: **two rows for slice 2** (recorded here because the file was then another lane's; **slice 15 added its own row** - `android_globalize_reference` / `static_assert` - since the file is shared and that is the mechanism the checker reads):
    both of the recorded-deviation class the file exists for -
    `android_is_special_directory` → `case,switch` (C 1114-1119's `switch (*name)` with its two
    labels and no `default` becomes a `match`, so the three tokens have no counterpart) and
@@ -634,13 +648,14 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-14's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-15's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-3143 and C 6880-7096) are carried; the
-**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 3144-6879 +
-C 7097-7594, and `extract-abi.py --check`'s remaining `- missing …` list (106 `missing
-function` rows, **no file-scope object** and the forty-one `invented exported symbol` rows of
-Owed 9) and the 50.0% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-3268 and C 6880-7096) are carried; the
+**unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 3269-6879 +
+C 7097-7594, and `extract-abi.py --check`'s remaining `- missing …` list (101 `missing
+function` rows, **no file-scope object**, **no `does not mention`** - C 3170's `static_assert`
+owns the `macro-body-notes` row this slice added - and the forty-one `invented exported
+symbol` rows of Owed 9) and the 47.8% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1147,3 +1162,56 @@ reading now holds for two rounds), there are **0 `does not mention`**, **0 `miss
   mask).
 - **C 3137-3140's five-argument `CallNonvirtualVoidMethod`** is the `Option`-member call with the
   same argument order and lines.
+
+## 2026-10-12: slice 15 (C 3144-3268) - the reference globaliser, window creation and the Rect table
+
+`android_globalize_reference`, `android_create_window`, `android_set_window_background`,
+`android_destroy_window` and `android_init_android_rect_class`.
+
+### Evidence (this slice's readings)
+
+**㉗ The arm flip of this slice.**  The same three-`--cfg` command ③ uses → **exit 0, 0 errors, 11
+warnings**, on the slice's **third** probe.  The first read three errors - `__builtin_expect` was
+not yet defined in the unit, C 3212-3214's `&&` yields an `int` where the port's receiver is a
+`bool`, and C 3220's `(jboolean)` argument is a `u8` that a *variadic* call cannot take - and the
+second read 0 errors after the three were addressed (the in-unit branch-hint macro, `!= 0` on the
+mask, and `as jboolean as c_uint` for C's default argument promotion).
+
+**㉘ The checklist reading.**  `extract-abi.py --check`: `missing function` **106 → 101** (the five
+definitions this slice carries), **`missing file-scope object` 0** (third round at empty),
+**`invented exported symbol` 41** unchanged (none of the five is a `NATIVE_NAME` definition), **0
+`missing macro`**, **0 `missing constant`**, and the line-count row reads **47.8%** (C 7,594 against
+the port's 3,963).  The one reading that moved the wrong way was a `does not mention` row -
+`android_globalize_reference does not mention static_assert` - which the slice answered the way the
+checker prescribes: the row **`android_globalize_reference\tstatic_assert\t…`** was added to
+`docs/ports/macro-body-notes.tsv` (the `memclear` `static_assert` class: the C keyword has no
+counterpart token because the port writes `const _: () = core::assert! (…)`), and the reading is
+back to **0**.
+
+### Deviations this slice adds
+
+- **`__builtin_expect` is carried as the unit's own branch-hint macro** (PORTING.md 2.6 - the hint
+  itself has no Rust counterpart, which is what the `macro-body-notes` row above records), defined
+  just above its first use site the way this unit defines `ANDROID_DELETE_LOCAL_REF!`; the shape is
+  `femacs/lib/memmem.rs` 32-35, the other unit that carries the builtin.
+- **C 3170's in-body `static_assert`** is an in-body `const _: () = core::assert! (…)` (the
+  `dispnew.rs` 6324-6325 shape for the same statement) - and it is the reason the body's token count
+  needed the notes row.
+- **C 3212-3214's `&&` over the mask and the flag** becomes `(value_mask & ANDROID_CW_OVERRIDE_REDIRECT
+  != 0) && (*attrs).override_redirect` - C's `&&` yields an `int` and the port's receiver is a
+  `bool`, so each side is spelled as the truth test C's operator performs (Rust binds `&` tighter
+  than `!=`, as C does).
+- **C 3216-3220's `NewObject` is variadic**, so the `(jboolean)` argument is
+  `override_redirect as jboolean as c_uint` - C's own default argument promotion (the
+  `androidmenu.rs` 593-597 shape) - while the four `(jint)` arguments are `x as jint` … with the
+  cast kept even though the port's parameter is already `c_int` (C's `jint` is `int` here).
+- **C 3199-3201's three-part constructor signature** is one Rust literal
+  (`c"(Lorg/femacs/EmacsWindow;IIIIZ)V"`; C's adjacent-string concatenation has no Rust counterpart),
+  with the `org/gnu/emacs/` → `org/femacs/` rename in both the class name and the signature.
+- **C 3183-3184's two function-local `static` objects** are function-local `static mut` (the
+  `android_select` device), and C 3185-3187's five locals are zero-initialised with C's
+  declarations marked (PORTING.md 1.5).
+- **C 3260's `eassert (emacs_gc_constructor);` names the *GC* constructor, not
+  `android_rect_constructor`** - C's own expression in a function whose assignment two lines above
+  was to `android_rect_constructor`.  The port keeps C's text (1:1: the assertion's operand is what
+  C asserts) and records it here so no reviewer reads it as a port defect.

@@ -3796,3 +3796,168 @@ pub unsafe extern "C" fn android_change_window_attributes (handle: android_windo
       android_exception_check ();                                      // C 3141
     }
 }
+
+/* C 3163's `__builtin_expect (global == NULL, 0)` - PORTING.md 2.6: the builtin is kept as the
+   branch-hint helper the C spells, and the hint itself has no Rust counterpart (the deviation is
+   in the ledger's slice section).  The shape is `femacs/lib/memmem.rs` 32-35, the other unit that
+   carries this builtin; C's builtin is not a header macro, so the port defines it at its first use
+   site in the unit.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! __builtin_expect {
+  ($cond:expr, $expected:expr) => { $cond };
+}
+
+/* C 3144-3148: C 3144's blank, C 3145-3147's `/* Return a reference to the local reference HANDLE
+   suitable for indefinite retention and save its value into HANDLE, deleting HANDLE, or signal an
+   error if such a reference cannot be allocated.  */` comment and the blank.  */
+
+/* C 3149-3172: `android_globalize_reference` (C's `static android_handle`; called from C 3222 and
+   the asset-notification group further down).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_globalize_reference (handle: jobject) -> android_handle   // C 3149-3172
+{
+  let mut global: jobject;                                             // C 3152
+
+  global = std::ptr::null_mut ();                                      // (C leaves `global` uninitialised; PORTING.md 1.5)
+
+  /* Though Android 8.0 and later can support an unlimited number of
+     active local references, they remain inappropriate in threading
+     configurations for being local to the current thread.  */         // C 3154-3156
+
+  global = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 3158-3159
+							    handle);
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);   // C 3160
+  ANDROID_DELETE_LOCAL_REF! (handle);                                  // C 3161
+
+  if __builtin_expect! (global.is_null (), 0)                          // C 3163
+    { error (c"JNI global reference reserves exhausted".as_ptr ()); }   // C 3164
+
+  /* Save the value of this handle into HANDLE.  */                    // C 3166
+  ((*(*android_java_env)).SetLongField.unwrap ()) (android_java_env, global,   // C 3167
+						   handle_class.handle,
+						   global as jlong);                 // C 3169
+  const _: () = core::assert! (std::mem::size_of::<jlong> ()
+			       >= std::mem::size_of::<intptr_t> ());       // C 3170 (C's `static_assert`)
+  return global as intptr_t;                                           // C 3171
+}
+
+/* C 3173-3176: C 3173's blank, C 3174-3175's `/* Create a new window with the given width, height
+   and attributes.  */` comment and the blank.  */
+
+/* C 3177-3225: `android_create_window` (non-`static`; the mirror does not declare it - C's own
+   non-`static` definition is what backs `#[unsafe(no_mangle)]`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_create_window (parent: android_window, x: c_int, y: c_int,
+						width: c_int, height: c_int,
+						value_mask: android_window_value_mask,
+						attrs: *mut android_set_window_attributes)
+  -> android_window                                                    // C 3177-3225
+{
+  static mut class: jclass = std::ptr::null_mut ();                    // C 3183 (tentative, i.e. zero)
+  static mut constructor: jmethodID = std::ptr::null_mut ();           // C 3184 (tentative, i.e. zero)
+  let mut object: jobject;                                             // C 3185
+  let mut parent_object: jobject;                                      // C 3185
+  let mut old: jobject;                                                // C 3185
+  let mut window: android_window;                                      // C 3186
+  let mut override_redirect: bool;                                     // C 3187
+
+  /* C leaves the five locals uninitialised (PORTING.md 1.5).  */
+  object = std::ptr::null_mut ();
+  parent_object = std::ptr::null_mut ();
+  old = std::ptr::null_mut ();
+  window = 0;
+  override_redirect = false;
+
+  parent_object = android_resolve_handle (parent);                     // C 3189
+
+  if class.is_null ()                                                  // C 3192
+    {
+      class
+	= ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 3194-3195
+							c"org/femacs/EmacsWindow".as_ptr ());   // C 3195
+      eassert! (! class.is_null ());                                   // C 3196
+
+      constructor
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env, class,   // C 3198
+							  c"<init>".as_ptr (),
+							  c"(Lorg/femacs/EmacsWindow;IIIIZ)V".as_ptr ());   // C 3199-3201
+      eassert! (! constructor.is_null ());                             // C 3202
+
+      old = class;                                                     // C 3204
+      class = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env, class);   // C 3205
+      android_exception_check_1 (old);                                 // C 3206
+      ANDROID_DELETE_LOCAL_REF! (old);                                 // C 3207
+    }
+
+  /* N.B. that ANDROID_CW_OVERRIDE_REDIRECT can only be set at window
+     creation time.  */                                               // C 3210-3211
+  override_redirect = ((value_mask
+			& ANDROID_CW_OVERRIDE_REDIRECT
+			!= 0)
+		       && (*attrs).override_redirect);                   // C 3212-3214
+
+  object = ((*(*android_java_env)).NewObject.unwrap ()) (android_java_env, class,   // C 3216
+							 constructor, parent_object,
+							 x as jint, y as jint,              // C 3218
+							 width as jint, height as jint,    // C 3219
+							 override_redirect as jboolean as c_uint);   // C 3220 (C's default argument promotion)
+  android_exception_check ();                                          // C 3221
+  window = android_globalize_reference (object);                       // C 3222
+  android_change_window_attributes (window, value_mask, attrs);        // C 3223
+  return window;                                                       // C 3224
+}
+
+/* C 3227-3235: `android_set_window_background`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_window_background (window: android_window,
+							pixel: c_ulong)        // C 3227-3235
+{
+  let mut attrs: android_set_window_attributes;                        // C 3230
+
+  attrs = std::mem::zeroed ();                                         // (C leaves `attrs` uninitialised; PORTING.md 1.5)
+
+  attrs.background_pixel = pixel;                                      // C 3232
+  android_change_window_attributes (window, ANDROID_CW_BACK_PIXEL,     // C 3233
+				    &raw mut attrs);                           // C 3234
+}
+
+/* C 3237-3241: `android_destroy_window`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_destroy_window (window: android_window)   // C 3237-3241
+{
+  android_destroy_handle (window);                                     // C 3240
+}
+
+/* C 3243-3268: `android_init_android_rect_class` (C's `static void`; only called from C 6099).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_android_rect_class ()                          // C 3243-3268
+{
+  let mut old: jclass;                                                 // C 3246
+
+  old = std::ptr::null_mut ();                                         // (C leaves `old` uninitialised; PORTING.md 1.5)
+
+  if ! android_rect_class.is_null ()                                   // C 3248
+    /* Already initialized.  */                                        // C 3249
+    { return; }                                                        // C 3250
+
+  android_rect_class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,   // C 3252-3253
+						    c"android/graphics/Rect".as_ptr ());   // C 3254
+  eassert! (! android_rect_class.is_null ());                           // C 3255
+
+  android_rect_constructor
+    = ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env, android_rect_class,   // C 3257
+						      c"<init>".as_ptr (),
+						      c"(IIII)V".as_ptr ());                // C 3259
+  eassert! (! emacs_gc_constructor.is_null ());                        // C 3260 (C's own expression, kept as written)
+
+  old = android_rect_class;                                            // C 3262
+  android_rect_class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env,   // C 3263-3264
+						       android_rect_class as jobject) as jclass;   // C 3265
+  android_exception_check_1 (old);                                     // C 3266
+  ANDROID_DELETE_LOCAL_REF! (old);                                     // C 3267
+}
