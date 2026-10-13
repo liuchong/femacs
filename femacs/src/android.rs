@@ -5517,3 +5517,290 @@ unsafe extern "C" fn android_blit_copy (src_x: c_int, mut src_y: c_int, mut widt
 	}
     }
 }
+/* `dispextern.h`'s `gui_intersect_rectangles` and the record it takes, which C 4564-4570 call:
+   the prototype is dispextern.h 3676 under C 3660-3674's `#ifdef HAVE_WINDOW_SYSTEM` (an Android
+   configuration defines it - `configure.ac` 7518) and the record is C 44-75's
+   `#ifndef HAVE_WINDOW_SYSTEM` text, which `include/dispextern.rs` 4043-4049 mirrors - but that
+   mirror's own neighbours need `frame`/`window`/`font`, so pulling it into this unit drags those
+   in as well (measured: `E0425` on `android_display_info`, `frame`, `window`, `font`).  The port
+   therefore declares the two names here (the P-88 device the NDK headers, `<signal.h>` and
+   `strdup` use above; the mirror round that gives this unit the `dispextern.rs` edge removes
+   them).  The record's layout is asserted against dispextern.h's.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Emacs_Rectangle
+{
+  pub x: c_int,
+  pub y: c_int,
+  pub width: c_uint,
+  pub height: c_uint,
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::size_of::<Emacs_Rectangle> () == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::offset_of! (Emacs_Rectangle, x) == 0
+                             && std::mem::offset_of! (Emacs_Rectangle, y) == 4
+                             && std::mem::offset_of! (Emacs_Rectangle, width) == 8
+                             && std::mem::offset_of! (Emacs_Rectangle, height) == 12);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /* bool gui_intersect_rectangles (const Emacs_Rectangle *, const Emacs_Rectangle *,
+                                   Emacs_Rectangle *);  */
+  pub fn gui_intersect_rectangles (r1: *const Emacs_Rectangle, r2: *const Emacs_Rectangle,
+                                   out: *mut Emacs_Rectangle) -> bool;
+}
+
+/* C 4440-4608: `android_copy_area` (non-`static`; the toolkit's `copy_area` hook).  C's three
+   labels `fail` (C 4605), `fail1` (C 4599) and `fail2` (C 4593) with their fall-through become
+   three nested labelled blocks (PORTING.md 2.2, the `blitRect` shape of slice 11): `goto fail` is
+   `break 'fail`, `goto fail1` is `break 'fail1`, `goto fail2` is `break 'fail2`, and each label's
+   tail runs after its block closes - so C 4594-4598 runs before C 4600-4604, which runs before
+   C 4606-4607.  C 4538's `switch (gc->function)` becomes the `match` below (the ledger's notes
+   row) and C 4544-4547's commented-out case is carried as the comment it is.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_copy_area (src: android_drawable, dest: android_drawable,
+						   gc: *mut android_gc, src_x: c_int, src_y: c_int,
+						   mut width: c_uint, mut height: c_uint,
+						   dest_x: c_int, dest_y: c_int)   // C 4440-4608
+{
+  let mut src_object: jobject;                                          // C 4448
+  let mut dest_object: jobject;                                           let mut dest_object: jobject;
+  let mut mask: jobject;                                                  let mut mask: jobject;
+  let mut do_blit: android_blit_func;                                   // C 4449
+  let mut src_info: android_bitmap::AndroidBitmapInfo;                  // C 4450
+  let mut dest_info: android_bitmap::AndroidBitmapInfo;                   let mut dest_info: android_bitmap::AndroidBitmapInfo;
+  let mut mask_info: android_bitmap::AndroidBitmapInfo;                   let mut mask_info: android_bitmap::AndroidBitmapInfo;
+  let mut src_data: *mut c_void;                                        // C 4451
+  let mut dest_data: *mut c_void;                                         let mut dest_data: *mut c_void;
+  let mut mask_data: *mut c_void;                                         let mut mask_data: *mut c_void;
+  let mut n_clip_rects: c_int;                                          // C 4452
+  let mut flag: bool;                                                   // C 4453
+  let mut bounds: android_rectangle;                                    // C 4454
+  let mut rect: android_rectangle;                                        let mut rect: android_rectangle;
+  let mut temp: android_rectangle;                                        let mut temp: android_rectangle;
+  let mut clip_rectangles: *mut android_rectangle;                        let mut clip_rectangles: *mut android_rectangle;
+
+  /* C leaves the locals uninitialised (PORTING.md 1.5); C 4452's `int i` is the loop's.  */
+  src_object = std::ptr::null_mut ();
+  dest_object = std::ptr::null_mut ();
+  mask = std::ptr::null_mut ();
+  do_blit = None;
+  src_info = std::mem::zeroed ();
+  dest_info = std::mem::zeroed ();
+  mask_info = std::mem::zeroed ();
+  src_data = std::ptr::null_mut ();
+  dest_data = std::ptr::null_mut ();
+  mask_data = std::ptr::null_mut ();
+  n_clip_rects = 0;
+  flag = false;
+  bounds = std::mem::zeroed ();
+  rect = std::mem::zeroed ();
+  temp = std::mem::zeroed ();
+  clip_rectangles = std::ptr::null_mut ();
+
+  /* Perform the copy.  Loop over each clip rectangle, unless none are  // C 4456
+     set.  Also, obtain bitmaps for src and dst, and possibly the mask  // C 4457
+     as well if it is present.  */                                      // C 4458
+
+  src_data = android_lock_bitmap (src,
+				 (&raw mut src_info) as *mut AndroidBitmapInfo_tag,
+				 &raw mut src_object) as *mut c_void;                // C 4460
+  if src_data.is_null ()                                                // C 4461
+    { return; }                                                         // C 4462
+
+  mask = std::ptr::null_mut ();                                         // C 4464
+  mask_data = mask;
+
+  /* C 4466-4476's `if (src != dest)` with its `goto fail`.  */
+  'fail: {
+    if src != dest                                                     // C 4466
+	{
+	  dest_data = android_lock_bitmap (dest,
+					    (&raw mut dest_info) as *mut AndroidBitmapInfo_tag,
+					    &raw mut dest_object) as *mut c_void;   // C 4468
+	  if dest_data.is_null ()                                              // C 4469
+	    { break 'fail; }                                                   // C 4470 (C's `goto fail`)
+	}
+    else                                                               // C 4472
+	{
+	  dest_data = src_data;                                                // C 4474
+	  dest_info = src_info;                                                // C 4475
+	}
+
+    /* Obtain the bitmap for the mask if necessary.  */                 // C 4478
+
+    'fail1: {
+      if (*gc).clip_mask != 0                                           // C 4480
+	{
+	  mask_data = android_lock_bitmap ((*gc).clip_mask,
+					       (&raw mut mask_info) as *mut AndroidBitmapInfo_tag,
+					       &raw mut mask) as *mut c_void;      // C 4482
+	  if mask_data.is_null ()                                              // C 4484
+	    { break 'fail1; }                                                  // C 4485 (C's `goto fail1`)
+	}
+
+      /* Calculate the number of clip rectangles.  */                   // C 4488
+      n_clip_rects = (*gc).num_clip_rects;                              // C 4489
+
+      /* If n_clip_rects is -1, then no clipping is in effect.  Set rect // C 4491
+	 to the bounds of the destination.  */                                 // C 4492
+
+      flag = n_clip_rects == -1;                                        // C 4494
+      'fail2: {
+	if flag                                                                // C 4495
+	  {
+	    n_clip_rects = 1;                                                  // C 4497
+	    clip_rectangles = &raw mut rect;                                   // C 4498
+	  }
+	else if n_clip_rects == 0                                              // C 4500 (C's `!n_clip_rects`)
+	  { break 'fail2; }                                                    // C 4501 (C's `goto fail2`)
+	else                                                                   // C 4502
+	  { clip_rectangles = (*gc).clip_rects; }                              // C 4503
+
+	/* Set rect to the bounds of the destination.  */                      // C 4505
+
+	rect.x = 0;                                                            // C 4507
+	rect.y = 0;                                                            // C 4508
+	rect.width = dest_info.width;                                          // C 4509
+	rect.height = dest_info.height;                                        // C 4510
+
+	if ! mask_data.is_null ()                                              // C 4512
+	  {
+	    /* Clip width and height to that of the mask.  */                  // C 4514
+
+	    /* C 4516-4520's two mixed-type tests and subtractions (C's are `unsigned int`).  */
+	    if (src_x + width as c_int) as c_uint > mask_info.width   // C 4516
+	      { width = mask_info.width.wrapping_sub (src_x as c_uint) as c_uint; }   // C 4517
+
+	    if (src_y + height as c_int) as c_uint > mask_info.height   // C 4519
+	      { height = mask_info.height.wrapping_sub (src_y as c_uint) as c_uint; }   // C 4520
+	  }
+
+	/* Clip width and height to that of the source.  */                    // C 4523
+
+	if (src_x + width as c_int) as c_uint > src_info.width      // C 4525
+	  { width = src_info.width.wrapping_sub (src_x as c_uint) as c_uint; }   // C 4526
+
+	if (src_y + height as c_int) as c_uint > src_info.height    // C 4528
+	  { height = src_info.height.wrapping_sub (src_y as c_uint) as c_uint; }   // C 4529
+
+	/* Return if the copy is outside the source.  */                       // C 4531
+
+	if width as c_int <= 0 || height as c_int <= 0              // C 4533
+	  { break 'fail2; }
+
+	/* Look up the right function for the alu.  */                         // C 4536
+
+	/* C 4538's `switch (gc->function)`, its one `case`, the `break` that ends it and its
+	   `default` become the `match` below (PORTING.md 2.2); C 4544-4547's two commented-out
+	   lines and the four-line comment are carried as the comments they are.  */
+	match (*gc).function
+	  {
+	    ANDROID_GC_COPY =>                                                 // C 4540
+	      {
+		/* case ANDROID_GC_INVERT: */
+		/* do_blit = android_blit_invert; */
+		/* A GC with its operation set to ANDROID_GC_INVERT is never given
+		   to CopyArea.  */
+		/* C 4541's `do_blit = android_blit_copy;`: the port's `android_blit_func` is an
+		   `Option`, so the assignment wraps the item in `Some`.  */
+		do_blit = Some (android_blit_copy);
+	      }
+
+	    _ =>                                                               // C 4548 (C's `default:`)
+	      { emacs_abort (); }                                              // C 4549
+	  }
+
+	/* Load the bounds of the destination rectangle.  */                   // C 4552
+	bounds.x = dest_x;                                                     // C 4553
+	bounds.y = dest_y;                                                     // C 4554
+	bounds.width = width as c_uint;                                        // C 4555 (C's `int`-into-`unsigned`)
+	bounds.height = height as c_uint;                                      // C 4556
+
+	/* For each clip rectangle... */                                       // C 4558
+	for i in 0..n_clip_rects                                      // C 4559
+	  {
+	    /* Calculate its intersection with the destination                 // C 4561
+	       rectangle.  */                                                  // C 4562
+
+	    /* C 4564-4565's `gui_intersect_rectangles (&clip_rectangles[i], &bounds, &temp)`:
+	       the prototype's `Emacs_Rectangle *` is a different (same-shaped) struct from
+	       `android_rectangle`, and C's implicit conversion is spelled out.  */
+	    if ! gui_intersect_rectangles
+		 (clip_rectangles.offset (i as isize) as *const Emacs_Rectangle,
+		  (&raw const bounds) as *const Emacs_Rectangle,
+		  (&raw mut temp) as *mut Emacs_Rectangle)               // C 4565
+	      { continue; }                                                    // C 4566
+
+	    /* And that of the destination itself.  */                         // C 4568
+
+	    if ! flag && ! gui_intersect_rectangles                  // C 4570
+		 ((&raw const temp) as *const Emacs_Rectangle,
+		  (&raw const rect) as *const Emacs_Rectangle,
+		  (&raw mut temp) as *mut Emacs_Rectangle)
+	      { continue; }                                                    // C 4571
+
+	    /* Now perform the copy.  */                                       // C 4573
+	    (do_blit.unwrap ()) (src_x + temp.x as c_int - dest_x,   // C 4574 (C's `temp.x relative to src_x`)
+				 src_y + temp.y as c_int - dest_y,     // C 4575 (C's `temp.y relative to src_y`)
+				 temp.width as c_int,                  // C 4576 (C's `Width of area to copy.`)
+				 temp.height as c_int,                 // C 4577 (C's `Height of area to copy.`)
+				 temp.x as c_int, temp.y as c_int,     // C 4578 (C's `Coordinates to copy to.`)
+				 gc,                                   // C 4579 (C's `GC.`)
+				 src_data as *mut c_uchar, &raw mut src_info,          // C 4580 (C's `Source drawable.`)
+				 dest_data as *mut c_uchar, &raw mut dest_info,        // C 4581 (C's `Destination drawable.`)
+				 mask_data as *mut c_uchar, &raw mut mask_info);       // C 4582 (C's `Mask drawable.`)
+	  }
+
+	/* Now damage the destination drawable accordingly, should it be a     // C 4585
+	   window.  */                                                         // C 4586
+
+	if ((*(*android_java_env)).IsInstanceOf.unwrap ())           // C 4588
+	     (android_java_env, dest as jobject, window_class.class) != 0
+	  { android_damage_window (dest, &raw mut bounds); }                   // C 4591
+      }
+
+      /* fail2: */                                                      // C 4593
+      if ! mask.is_null ()                                              // C 4594
+	{
+	  AndroidBitmap_unlockPixels (android_java_env, mask);                 // C 4596
+	  ANDROID_DELETE_LOCAL_REF! (mask);                                    // C 4597
+	}
+    }
+
+    /* fail1: */                                                        // C 4599
+    if src != dest                                                      // C 4600
+      {
+	AndroidBitmap_unlockPixels (android_java_env, dest_object);            // C 4602
+	ANDROID_DELETE_LOCAL_REF! (dest_object);                               // C 4603
+      }
+  }
+
+  /* fail: */                                                           // C 4605
+  AndroidBitmap_unlockPixels (android_java_env, src_object);            // C 4606
+  ANDROID_DELETE_LOCAL_REF! (src_object);                               // C 4607
+}
+
+/* C 4610-4616: C 4610's form feed, the blank, C 4612's `void` and `android_free_pixmap`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_free_pixmap (pixmap: android_pixmap)   // C 4610-4616
+{
+  android_destroy_handle (pixmap);                                      // C 4615
+}
+
+/* C 4618-4625: `android_set_background`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_set_background (gc: *mut android_gc,   // C 4618
+						 background: c_ulong)                                             // C 4618-4625
+{
+  let mut gcv: android_gc_values;                                       // C 4621
+
+  gcv = std::mem::zeroed ();                                    // (C leaves `gcv` uninitialised; PORTING.md 1.5)   gcv = std::mem::zeroed ();                                    // (C leaves `gcv` uninitialised; PORTING.md 1.5)
+
+  gcv.background = background;                                          // C 4623
+  android_change_gc (gc, ANDROID_GC_BACKGROUND, &raw mut gcv);          // C 4624
+}

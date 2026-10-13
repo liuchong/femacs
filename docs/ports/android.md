@@ -98,10 +98,15 @@
 > 2026-10-12)** carries `android_blit_copy` - C 4151-4439, the file's largest single function so
 > far: C 4190-4250's `ckd_*` chains (P-15's spelling), C 4327-4331's four-operand `||` chain
 > written as C's short-circuit leaves it, and **both arms** of C 4418-4431 (the scalar
-> `#ifndef __aarch64__` loop and the `#else` call into slice 20's `android_neon_mask_line`) - so
-> the port carries C 1-4439 (except C 2086-2192), C 4734-4747 and C 6880-7096: **4,563 C lines
-> of 7,594 (60.1%)**, in a 5,519-line port, md5 `40a3d3d91b14ebc79681fe712a63dcc6`.  **The
-> next live definition is C 4443's `android_copy_area`**; the table's last row is the
+> `#ifndef __aarch64__` loop and the `#else` call into slice 20's `android_neon_mask_line`).
+> **Slice 22 (C 4440-4625, 2026-10-12)** carries `android_copy_area` (C 4443-4608 - the blit
+> dispatch with C 4541's `do_blit = android_blit_copy`, C 4538's `switch`, C's three
+> `goto fail`/`fail1`/`fail2` labels as nested labelled blocks, and C 4564/4570's two
+> `gui_intersect_rectangles` calls), `android_free_pixmap` (4612-4616) and
+> `android_set_background` (4618-4625) - so the port carries C 1-4625 (except C 2086-2192),
+> C 4734-4747 and C 6880-7096: **4,749 C lines of 7,594 (62.5%)**, in a 5,806-line port, md5
+> `39e1dd64cbe33d9d53513fbc6d3799a2`.  **The
+> next live definition is C 4628's `android_fill_polygon`**; the table's last row is the
 > remainder (C 3072-7594) and slices 3-12's own readings are in the dated sections at the end of
 > this file.
 
@@ -110,6 +115,8 @@
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
 | the file itself (`configure.ac` 2597-2598's `ANDROID_OBJ` - both Android branches, unlike `androidselect.o`, which 2648 adds only in the `REALLY_ANDROID` one) | `feature = "have_android"` (on every item and on C 22-55's include graph) | an Android configuration |
+| `HAVE_WINDOW_SYSTEM` (`configure.ac` 7518, on in every Android configuration - the frozen
+target's table has it undefined but builds no `android.o`) | `feature = "have_window_system"`; needed by C 4564/4570's two `gui_intersect_rectangles` calls, whose prototype is dispextern.h 3676 under C 3660-3674's `#ifdef HAVE_WINDOW_SYSTEM` (slice 22; the `sfntfont-android.rs` lane sets the same feature for its own call) | an Android configuration |
 | C 61 `#ifndef ANDROID_STUBIFY` … C 7518 (real JNI arm) | `all (feature = "have_android", feature = "not_android_stubify")` | Android, API calls real |
 | C 7519 `#else` … C 7594 `#endif` (the `ANDROID_STUBIFY` arm) | `all (feature = "have_android", not (feature = "not_android_stubify"))` | Android, API calls stubbed - **in the remainder, not this slice** |
 | C 70 `#ifdef __aarch64__` … C 72 (the `<arm_neon.h>` include) | `feature = "aarch64"` (text-only here; the four NEON regions are C 4064-4431) | an aarch64 Android configuration |
@@ -329,7 +336,10 @@ no `window.h`).
 | 4136 | `#endif /* __aarch64__ */` | `feature = "aarch64"` (slice 20) |
 | 4137-4150 | C 4137's blank, C 4138's form feed, the blank, C 4140-4148's comment and C 4150's `static void` | real arm (slice 21) |
 | 4151-4439 | `android_blit_copy` (C 4163-4165's `#ifndef __aarch64__ int j;`, C 4190-4250's `ckd_*` chains, C 4327-4331's four-operand `||` chain, C 4338/4348/4412's three `while (x--)` loops and C 4418-4431's two arms) | real arm (slice 21; C 4418-4431's arms are `not (feature = "aarch64")` / `feature = "aarch64"`) |
-| 4440-4733 | **the remainder, first part (a)** - from C 4440's blank, C 4441's blank and C 4442's `void` (C 4443's `android_copy_area`, **the next live definition**) through C 4733's blank: the blit dispatch, the mask-line helpers and the entries up to `android_create_pixmap` | not this slice |
+| 4440-4608 | C 4440-4442's two blanks and `void`, `android_copy_area` (C 4470/4485/4501/4534's four `goto`s, C 4538's `switch`, C 4564/4570's two `gui_intersect_rectangles` calls and C 4588-4591's damage test) | real arm (slice 22) |
+| 4609-4616 | C 4609's blank, C 4610's form feed, the blank and `android_free_pixmap` (C 4612-4616) | real arm (slice 22) |
+| 4617-4625 | the blank and `android_set_background` (C 4618-4625) | real arm (slice 22) |
+| 4626-4733 | **the remainder, first part (a)** - from C 4626's blank and C 4627's `void` (C 4628's `android_fill_polygon`, **the next live definition**) through C 4733's blank: `android_fill_polygon`, the mask-line helpers and the entries up to `android_create_pixmap` | not this slice |
 | 4734-4747 | `android_create_pixmap` (**carried early**: C 3951 calls it and the mirror does not declare it) | real arm (slice 19) |
 | 4748-6879 | **the remainder, first part (b)** - from C 4748's blank and C 4749-4750's `/* Notice that a query … */`-class comment (`android_set_ts_origin`, the next entry in file order) through C 6878's closing brace and C 6879's blank: the rest of the JNI entry points, the SAFE_ALLOCA function at C 6020-6070 (blocked on the same P-05 decision), the remaining `android_*` drawing helpers, and C 7519's `#else` stub arm | not this slice |
 | 6880-7096 | the deadlock-prevention machinery (the three file-scope objects, `android_before_select`, the two `android_check_query*` entries, the four `android_*_query` helpers) | real arm (slice 13) |
@@ -718,13 +728,13 @@ Every line of all three slices is behind gates the frozen configuration leaves f
 empty object, the arm readings (②a/②b and ③ below) are compile-level, and **nothing here was
 executed** - no thread,
 no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
-`getline`, no event, no `select`.  Slices 2-21's C lines (C 1038-2084, C 2194-2253,
+`getline`, no event, no `select`.  Slices 2-22's C lines (C 1038-2084, C 2194-2253,
 C 2255-2356, C 2358-2548, C 2550-2664, C 2666-2748, C 2750-2888, C 2890-3002,
-C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-4439, C 4734-4747 and C 6880-7096) are carried;
-the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 4440-4733 +
-C 4748-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (79
+C 3003-3008 + C 3010-3032 + C 3034-3071, C 3072-4625, C 4734-4747 and C 6880-7096) are carried;
+the **unported** part is C 2086-2192 (blocked on P-05's `alloca` decision) and C 4626-4733 +
+C 4748-6879 + C 7097-7594, and `extract-abi.py --check`'s remaining `- missing ...` list (76
 `missing function` rows, **no file-scope object**, **no `does not mention`** and the forty-one
-`invented exported symbol` rows of Owed 9) and the 27.3% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
+`invented exported symbol` rows of Owed 9) and the 23.5% drift are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
 one `check-declarations` failure is the allowlist row of Owed 10, and the two `does not mention`
 lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `android_api_lt_21`
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
@@ -1573,3 +1583,61 @@ through P-15's halves and the two arms' own tokens) is present in the port.  The
 - **C 4281's closing brace of the `if (!mask)` block is carried as its own line** (marked `// C 4281`)
   because Rust's `else` must follow the closed block - the one structural line C's `}` has and the
   first probe's `unclosed delimiter` was about.
+
+## 2026-10-12: slice 22 (C 4440-4625) - the copy area, the freed pixmap and the background setter
+
+`android_copy_area`, `android_free_pixmap` and `android_set_background`.
+
+### Evidence (this slice's readings)
+
+**㊷ The arm flip of this slice.**  Two probes, both **exit 0, 0 errors, 11 warnings**:
+
+- the lane's three-`--cfg` command (the reading every slice since 3 has used), and
+- the five-`--cfg` set that adds `have_window_system` and `aarch64` (the arm an Android
+  configuration really is: `configure.ac` 7518 defines `HAVE_WINDOW_SYSTEM` there, and C 4564/4570's
+  `gui_intersect_rectangles` prototype only exists under it - the `sfntfont-android.rs` lane records
+  the same feature in its own arm set).
+
+The first attempt read `E0425: cannot find type Emacs_Rectangle` and then, after the
+`include/dispextern.rs` edge was tried, `E0425` on `android_display_info`/`frame`/`window`/`font` -
+the mirror's own neighbours.  The reading that works is the P-88 in-unit declaration described in
+the deviations below, and it compiles under **both** cfg sets.
+
+**㊸ The checklist reading.**  `extract-abi.py --check`: `missing function` **79 → 76** (the three
+definitions this slice carries), **`missing file-scope object` 0** (tenth round at empty),
+**`invented exported symbol` 41** unchanged, **0 `missing macro`**, **0 `missing constant`**, and the
+line-count row reads **23.5%** (C 7,594 against the port's 5,806).  The slice's `does not mention`
+finding - `android_copy_area does not mention case, default, goto, switch` - was recorded as the row
+**`android_copy_area\tcase,default,goto,switch\t…`** in `docs/ports/macro-body-notes.tsv`, and the
+reading is back to **0**.
+
+### Deviations this slice adds
+
+- **C 4593/4599/4605's `fail2`/`fail1`/`fail` labels with their fall-through are three nested
+  labelled blocks** (PORTING.md 2.2, the slice-11 `blitRect` shape): `goto fail` is `break 'fail`,
+  `goto fail1` is `break 'fail1`, `goto fail2` is `break 'fail2`, and each label's tail runs after
+  its block closes - so C 4594-4598 runs before C 4600-4604, which runs before C 4606-4607.  C
+  4281's closing brace of the `else` block has its own line for the same reason as slice 21's.
+- **C 4541's `do_blit = android_blit_copy` is `do_blit = Some (android_blit_copy)`** (the port's
+  `android_blit_func` is an `Option`, and a Rust-ABI item cannot fill it) and C 4574's
+  `(*do_blit) (…)` is `(do_blit.unwrap ()) (…)` (the `androidterm.rs` 6228 / `dframe.rs` shape).
+- **C 4544-4547's commented-out `case ANDROID_GC_INVERT` / `do_blit = android_blit_invert;` block is
+  carried as the comment it is** inside the `match` arm, exactly as C has it inside the `switch`.
+- **C 4564/4570's `&clip_rectangles[i]` / `&bounds` / `&temp` / `&rect`** are cast to
+  `*const`/`*mut Emacs_Rectangle`: C's call passes `struct android_rectangle *` where the prototype
+  says `Emacs_Rectangle *` - two structurally identical but distinct C types, whose implicit
+  conversion the port spells out (the slice-11 `int`-into-`unsigned` device, one level up).
+- **`Emacs_Rectangle` and `gui_intersect_rectangles` are declared in this unit** (their prototype is
+  dispextern.h 3676 under C 3660-3674's `#ifdef HAVE_WINDOW_SYSTEM`, and this unit's include graph
+  does not reach `include/dispextern.rs`, whose own neighbours need `frame`/`window`/`font` - pulling
+  it in produced those `E0425`s, measured).  The record's layout is asserted (16 bytes, offsets
+  0/4/8/12); this is the P-88 device the NDK headers, `<signal.h>` and `strdup` already use, and the
+  mirror round that gives this unit the `dispextern.rs` edge removes the pair.
+- **C's `width`/`height` (`unsigned int` parameters) and their clipping arithmetic** are written in
+  C's own type at each site (C 4516-4529's four tests and subtractions use `as c_uint` /
+  `wrapping_sub (…) as c_uint`, and C 4533's `width <= 0` is `width as c_int <= 0`), and
+  **C 4555-4556's `int`-into-`unsigned int` record fields** are `as c_uint`.
+- **C 4412-4428's `mask_data = mask = NULL;`** is `mask = std::ptr::null_mut (); mask_data = mask;`
+  (C's chained assignment evaluates the right-hand side first), and the three
+  `android_lock_bitmap` calls cast their record pointer through `AndroidBitmapInfo_tag` (the
+  slice-19 device) and their result `as *mut c_void` (C's implicit conversion).
