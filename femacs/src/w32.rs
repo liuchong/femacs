@@ -12553,3 +12553,117 @@ pub unsafe extern "C" fn sys_listen (s: c_int, backlog: c_int) -> c_int // C 852
   *errno () = ENOTSOCK;                                                 // C 8547
   return SOCKET_ERROR;                                                  // C 8548
 }                                                                       // C 8549
+
+
+/* C 8550's blank and C 8551-8644's four wrappers: `sys_getsockname` (8551-8570, slice 30's shape),
+   `sys_accept` (8572-8600 - the only one that touches the child record: C 8582 tests `FILE_LISTEN`,
+   C 8593-8594 store `cp->status` and call `ResetEvent (cp->char_avail)`), `sys_recvfrom`
+   (8602-8622) and `sys_sendto` (8624-8644).  `ResetEvent` (`<winbase.h>`'s `BOOL WINAPI
+   ResetEvent (HANDLE)`) is declared in-unit (P-88, `UNVERIFIED`, Owed 33); `fd_info[s].cp` is the
+   mirror's `*mut c_void`, so C 8593-8594's two member reads go through slice 25's
+   `child_process` cast.  */
+/// C: WINBASEAPI BOOL WINAPI ResetEvent (HANDLE hEvent);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn ResetEvent (hEvent: HANDLE) -> BOOL;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_getsockname (s: c_int, name: *mut sockaddr, namelen: *mut c_int) -> c_int // C 8551
+{                                                                       // C 8553
+  if winsock_lib.is_null ()                                             // C 8554 (C's `== NULL`)
+    {                                                                   // C 8555
+      *errno () = ENETDOWN;                                             // C 8556
+      return SOCKET_ERROR;                                              // C 8557
+    }                                                                   // C 8558
+
+  check_errno ();                                                       // C 8560
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8561 (C's truth test)
+    {                                                                   // C 8562
+      let rc: c_int = pfn_getsockname.unwrap () (SOCK_HANDLE! (s), name, namelen); // C 8563 (C's call-through)
+      if rc == SOCKET_ERROR                                             // C 8564
+	{ set_errno (); }                                                      // C 8565
+      return rc;                                                        // C 8566
+    }                                                                   // C 8567
+  *errno () = ENOTSOCK;                                                 // C 8568
+  return SOCKET_ERROR;                                                  // C 8569
+}                                                                       // C 8570
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_accept (s: c_int, addr: *mut sockaddr, addrlen: *mut c_int) -> c_int // C 8572
+{                                                                       // C 8574
+  if winsock_lib.is_null ()                                             // C 8575 (C's `== NULL`)
+    {                                                                   // C 8576
+      *errno () = ENETDOWN;                                             // C 8577
+      return -1;                                                        // C 8578
+    }                                                                   // C 8579
+
+  check_errno ();                                                       // C 8581
+  if (fd_info[s as usize].flags & FILE_LISTEN as c_uint) != 0           // C 8582 (C's truth test)
+    {                                                                   // C 8583
+      let mut t: SOCKET = pfn_accept.unwrap () (SOCK_HANDLE! (s), addr, addrlen); // C 8584 (C's call-through)
+      let mut fd: c_int = -1;                                           // C 8585 (C's `int fd = -1;`)
+      if t == INVALID_SOCKET                                            // C 8586
+	{ set_errno (); }                                                      // C 8587
+      else                                                              // C 8588
+	{ fd = socket_to_fd (t); }                                             // C 8589
+
+      if fd >= 0                                                        // C 8591
+	{                                                                      // C 8592
+	  (*(fd_info[s as usize].cp as *mut child_process)).status             // C 8593
+	    = STATUS_READ_ACKNOWLEDGED;                                        // C 8593 (C's record store)
+	  ResetEvent ((*(fd_info[s as usize].cp as *mut child_process)).char_avail); // C 8594
+	}                                                                      // C 8595
+      return fd;                                                        // C 8596
+    }                                                                   // C 8597
+  *errno () = ENOTSOCK;                                                 // C 8598
+  return -1;                                                            // C 8599
+}                                                                       // C 8600
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_recvfrom (s: c_int, buf: *mut c_char, len: c_int, flags: c_int, // C 8602
+				       from: *mut sockaddr, fromlen: *mut c_int) -> c_int           // C 8603
+{                                                                       // C 8605
+  if winsock_lib.is_null ()                                             // C 8606 (C's `== NULL`)
+    {                                                                   // C 8607
+      *errno () = ENETDOWN;                                             // C 8608
+      return SOCKET_ERROR;                                              // C 8609
+    }                                                                   // C 8610
+
+  check_errno ();                                                       // C 8612
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8613 (C's truth test)
+    {                                                                   // C 8614
+      let rc: c_int = pfn_recvfrom.unwrap () (SOCK_HANDLE! (s), buf, len, flags, from, fromlen); // C 8615 (C's call-through)
+      if rc == SOCKET_ERROR                                             // C 8616
+	{ set_errno (); }                                                      // C 8617
+      return rc;                                                        // C 8618
+    }                                                                   // C 8619
+  *errno () = ENOTSOCK;                                                 // C 8620
+  return SOCKET_ERROR;                                                  // C 8621
+}                                                                       // C 8622
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_sendto (s: c_int, buf: *const c_char, len: c_int, flags: c_int, // C 8624
+				       to: *const sockaddr, tolen: c_int) -> c_int                  // C 8625
+{                                                                       // C 8627
+  if winsock_lib.is_null ()                                             // C 8628 (C's `== NULL`)
+    {                                                                   // C 8629
+      *errno () = ENETDOWN;                                             // C 8630
+      return SOCKET_ERROR;                                              // C 8631
+    }                                                                   // C 8632
+
+  check_errno ();                                                       // C 8634
+  if (fd_info[s as usize].flags & FILE_SOCKET as c_uint) != 0           // C 8635 (C's truth test)
+    {                                                                   // C 8636
+      let rc: c_int = pfn_sendto.unwrap () (SOCK_HANDLE! (s), buf, len, flags, to, tolen); // C 8637 (C's call-through)
+      if rc == SOCKET_ERROR                                             // C 8638
+	{ set_errno (); }                                                      // C 8639
+      return rc;                                                        // C 8640
+    }                                                                   // C 8641
+  *errno () = ENOTSOCK;                                                 // C 8642
+  return SOCKET_ERROR;                                                  // C 8643
+}                                                                       // C 8644
