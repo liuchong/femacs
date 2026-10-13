@@ -9276,3 +9276,270 @@ pub unsafe extern "C" fn readlink (name: *const c_char, buf: *mut c_char, buf_si
 
   return retval;                                                        // C 6472
 }                                                                       // C 6473
+
+/* C 6474-6497: C 6474's blank, C 6475's `ssize_t readlinkat` + C 6476-6477's signature,
+   C 6497's `chase_symlinks` banner comment (carried verbatim below) and C 6517's
+   `static char *`.  The two names this slice first uses are declared here (P-88,
+   `UNVERIFIED`): `<winbase.h>`'s `GetFullPathNameW`/`GetFullPathNameA` (C 6535/6544 pass
+   `NULL` for the `lpFilePart`, which is why that parameter is `*mut LPWSTR` and the call site
+   passes `std::ptr::null_mut ()`; P-72 rc 3 covers the other direction).  C 6520's
+   function-local `static char target[MAX_UTF8_PATH]` is a function-local `static mut` (the
+   `map_w32_filename` `shortname` device), and C 6551-6592's `do { … } while (…)` is PORTING.md
+   P-95's `loop { … if ! (…) { break; } }`.  C 6613-6614's form feed and "Posix ACL
+   emulation." banner and the four ACL entries that follow it are the rest of the slice.  */
+/// C: DWORD GetFullPathNameW (LPCWSTR lpFileName, DWORD nBufferLength,
+/// C:   LPWSTR lpBuffer, LPWSTR *lpFilePart);
+/// C: DWORD GetFullPathNameA (LPCSTR lpFileName, DWORD nBufferLength,
+/// C:   LPSTR lpBuffer, LPSTR *lpFilePart);
+/// C 206-222's five guards are inside C 174's `#if defined(MINGW_W64)` (the `#endif` at C
+/// 223 closes it), so `FSCTL_GET_REPARSE_POINT`, the record and `CTL_CODE` are this unit's own
+/// only under `mingw_w64`; C's other arm takes all of them from `<winioctl.h>`/`<ntifs.h>` -
+/// the SDK gap Owed 18 records, and the arm reading's three rows for this slice.
+/// C: #define DACL_SECURITY_INFORMATION 0x00000004  (`<winnt.h>`, the third of the four
+/// `SECURITY_INFORMATION` bits; `OWNER_`/`GROUP_` are slice 9's in-unit pair)
+#[cfg (feature = "windowsnt")]
+pub const DACL_SECURITY_INFORMATION: SECURITY_INFORMATION = 0x00000004;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetFullPathNameW (lpFileName: LPCWSTR, nBufferLength: DWORD, lpBuffer: LPWSTR,
+			  lpFilePart: *mut LPWSTR) -> DWORD;
+  pub fn GetFullPathNameA (lpFileName: LPCSTR, nBufferLength: DWORD, lpBuffer: LPSTR,
+			  lpFilePart: *mut LPSTR) -> DWORD;
+}
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn readlinkat (fd: c_int, name: *const c_char, buffer: *mut c_char, // C 6475
+				    buffer_size: usize) -> ssize_t                                  // C 6477
+{                                                                       // C 6478
+  /* Rely on a hack: an open directory is modeled as file descriptor 0, // C 6479
+     as in fstatat.  FIXME: Add proper support for readlinkat.  */      // C 6480
+  let mut fullname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 6481
+
+  if fd != AT_FDCWD                                                     // C 6483
+    {                                                                   // C 6484
+      if (_snprintf ((&raw mut fullname) as *mut c_char,                // C 6485
+		  core::mem::size_of_val (&fullname),
+		  c"%s/%s".as_ptr (),
+		  dir_pathname.as_ptr (), name)                                       // C 6485
+	  < 0)                                                                 // C 6486
+	{                                                                      // C 6487
+	  *errno () = ENAMETOOLONG;                                            // C 6488
+	  return -1;                                                           // C 6489
+	}                                                                      // C 6490
+      name = (&raw mut fullname) as *const c_char;                      // C 6491 (C's array decay)
+    }                                                                   // C 6492
+
+  return readlink (name, buffer, buffer_size);                          // C 6494
+}                                                                       // C 6495
+
+/* If FILE is a symlink, return its target (stored in a static          // C 6497
+   buffer); otherwise return FILE.                                      // C 6498
+
+   This function repeatedly resolves symlinks in the last component of  // C 6500
+   a chain of symlink file names, as in foo -> bar -> baz -> ...,       // C 6501
+   until it arrives at a file whose last component is not a symlink,    // C 6502
+   or some error occurs.  It returns the target of the last             // C 6503
+   successfully resolved symlink in the chain.  If it succeeds to       // C 6504
+   resolve even a single symlink, the value returned is an absolute     // C 6505
+   file name with backslashes (result of GetFullPathName).  By          // C 6506
+   contrast, if the original FILE is returned, it is unaltered.         // C 6507
+
+   Note: This function can set errno even if it succeeds.               // C 6509
+
+   Implementation note: we only resolve the last portion ("basename")   // C 6511
+   of the argument FILE and of each following file in the chain,        // C 6512
+   disregarding any possible symlinks in its leading directories.       // C 6513
+   This is because Windows system calls and library functions           // C 6514
+   transparently resolve symlinks in leading directories and return     // C 6515
+   correct information, as long as the basename is not a symlink.  */   // C 6516
+#[cfg (feature = "windowsnt")]
+unsafe fn chase_symlinks (file: *const c_char) -> *mut c_char           // C 6517 (C's `static char *`)
+{                                                                       // C 6519
+  static mut target: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];  /* C 6520 */
+  let mut link: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize]; // C 6521
+  let mut target_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6522 (C's `wchar_t`)
+  let mut link_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6522
+  let mut target_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6523
+  let mut link_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6523
+  let mut res: ssize_t;                                                 // C 6524
+  let mut link_len: ssize_t;                                            // C 6524
+  let mut loop_count: c_int = 0;                                        // C 6525
+
+  /* C leaves `res` and `link_len` uninitialised (PORTING.md 1.5).  */
+  res = 0;
+  link_len = 0;
+
+  if is_windows_9x () == TRUE || is_symlink (file) == 0                 // C 6527 (C's `!is_symlink (file)`)
+    { return file as *mut c_char; }                                     // C 6528 (C's `(char *)` cast)
+
+  if w32_unicode_filenames                                              // C 6530
+    {                                                                   // C 6531
+      let mut file_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6532 (C's `wchar_t`)
+
+      filename_to_utf16 (file, file_w.as_mut_ptr ());                   // C 6534
+      if GetFullPathNameW (file_w.as_ptr (), MAX_PATH as DWORD, link_w.as_mut_ptr (), std::ptr::null_mut ()) == 0 // C 6535
+	{ return file as *mut c_char; }                                        // C 6536
+      filename_from_utf16 (link_w.as_mut_ptr (), link.as_mut_ptr ());   // C 6537
+    }                                                                   // C 6538
+  else                                                                  // C 6539
+    {                                                                   // C 6540
+      let mut file_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize]; // C 6541
+
+      filename_to_ansi (file, file_a.as_mut_ptr ());                    // C 6543
+      if GetFullPathNameA (file_a.as_ptr (), MAX_PATH as DWORD, link_a.as_mut_ptr (), std::ptr::null_mut ()) == 0 // C 6544
+	{ return file as *mut c_char; }                                        // C 6545
+      filename_from_ansi (link_a.as_mut_ptr (), link.as_mut_ptr ());    // C 6546
+    }                                                                   // C 6547
+  link_len = strlen (link.as_ptr ()) as ssize_t;                        // C 6548 (C's `DWORD`-into-`ssize_t` store)
+
+  *target.as_mut_ptr () = 0;                                            // C 6550 (C's `target[0] = '\0';`)
+  /* C 6551's `do {` - P-95's device: the negation of C 6592's condition breaks the loop.  */
+  loop                                                                  // C 6551
+    {
+
+    /* Remove trailing slashes, as we want to resolve the last          // C 6553
+       non-trivial part of the link name.  */                           // C 6554
+    while link_len > 3 && IS_DIRECTORY_SEP! (*link.as_ptr ().offset (link_len - 1) as c_int) // C 6555
+      { link_len -= 1; *link.as_mut_ptr ().offset (link_len) = 0; }     // C 6556 (C's `link[link_len--] = '\0'`)
+
+    res = readlink (link.as_ptr (), target.as_mut_ptr (), MAX_UTF8_PATH as usize); // C 6558
+    if res > 0                                                          // C 6559
+      {                                                                 // C 6560
+	*target.as_mut_ptr ().offset (res as isize) = 0;                       // C 6561 (C's `'\0'`)
+	if ! (IS_DEVICE_SEP! (*target.as_ptr ().offset (1) as c_int)           // C 6562 (the macros return `bool`)
+	      || (IS_DIRECTORY_SEP! (*target.as_ptr () as c_int) && IS_DIRECTORY_SEP! (*target.as_ptr ().offset (1) as c_int))) // C 6563
+	  {
+	    /* Target is relative.  Append it to the directory part of         // C 6565
+	       the symlink, then copy the result back to target.  */           // C 6566
+	    let mut p: *mut c_char = link.as_mut_ptr ().offset (link_len as isize); // C 6567
+
+	    while p > link.as_mut_ptr () && ! IS_ANY_SEP! (*p.offset (-1) as c_int) // C 6569 (C's `p[-1]`)
+	      { p = p.offset (-1); }                                           // C 6570
+	    strcpy (p, target.as_ptr ());                                      // C 6571
+	    strcpy (target.as_mut_ptr (), link.as_ptr ());                     // C 6572
+	  }
+	/* Resolve any "." and ".." to get a fully-qualified file name         // C 6574
+	   in link[] again. */                                                 // C 6575
+	if w32_unicode_filenames                                               // C 6576
+	  {
+	    filename_to_utf16 (target.as_ptr (), target_w.as_mut_ptr ());      // C 6578
+	    link_len = GetFullPathNameW (target_w.as_ptr (), MAX_PATH as DWORD, link_w.as_mut_ptr (), std::ptr::null_mut ()) as ssize_t; // C 6579
+	    if link_len > 0                                                    // C 6580
+	      { filename_from_utf16 (link_w.as_mut_ptr (), link.as_mut_ptr ()); } // C 6581
+	  }
+	else                                                                   // C 6583
+	  {
+	    filename_to_ansi (target.as_ptr (), target_a.as_mut_ptr ());       // C 6585
+	    link_len = GetFullPathNameA (target_a.as_ptr (), MAX_PATH as DWORD, link_a.as_mut_ptr (), std::ptr::null_mut ()) as ssize_t; // C 6586
+	    if link_len > 0                                                    // C 6587
+	      { filename_from_ansi (link_a.as_mut_ptr (), link.as_mut_ptr ()); } // C 6588
+	  }
+	link_len = strlen (link.as_ptr ()) as ssize_t;                         // C 6590
+      }                                                                 // C 6591
+    if ! (res > 0 && link_len > 0                                       // C 6592 (C's do-while condition)
+	  && { loop_count += 1; loop_count <= 100 })                           // C 6592 (C's `++loop_count`)
+      { break; }
+    }                                                                   // C 6592
+
+  if loop_count > 100                                                   // C 6594
+    { *errno () = ELOOP; }                                              // C 6595
+
+  if *target.as_ptr () == 0 /* not a single call to readlink succeeded */ // C 6597 (C's `'\0'`)
+    { return file as *mut c_char; }                                     // C 6598 (C's `(char *)` cast)
+  return target.as_mut_ptr ();                                          // C 6599
+}                                                                       // C 6600
+
+/* Return non-zero if FILE's filesystem supports symlinks.  */          // C 6602
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn symlinks_supported (file: *const c_char) -> bool // C 6603 (C's `bool`)
+{                                                                       // C 6605
+  if is_windows_9x () != TRUE                                           // C 6606
+      && get_volume_info (file, std::ptr::null_mut ()) != 0             // C 6607 (C's truth test)
+      && (volume_info.flags & FILE_SUPPORTS_REPARSE_POINTS) != 0        // C 6608
+    { return true; }                                                    // C 6609
+  return false;                                                         // C 6610
+}                                                                       // C 6611
+
+/* Posix ACL emulation.  */                                             // C 6614
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn acl_valid (acl: acl_t) -> c_int                // C 6616
+{                                                                       // C 6618
+  return if is_valid_security_descriptor (acl) != 0 { 0 } else { -1 };  // C 6619 (C's ternary)
+}                                                                       // C 6620
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+/// C: `char * ATTRIBUTE_MALLOC` - the attribute is an allocator annotation, not part of the
+/// return type (the `image.rs` 5253 reading of PORTING.md 8).
+pub unsafe extern "C" fn acl_to_text (acl: acl_t, size: *mut ssize_t) -> *mut c_char // C 6622
+{                                                                       // C 6624
+  let mut str_acl: LPTSTR;                                              // C 6625
+  let mut flags: SECURITY_INFORMATION =                                 // C 6626
+    OWNER_SECURITY_INFORMATION |                                        // C 6627
+    GROUP_SECURITY_INFORMATION |                                        // C 6628
+    DACL_SECURITY_INFORMATION;                                          // C 6629
+  let mut retval: *mut c_char = std::ptr::null_mut ();                  // C 6630 (C's `= NULL`)
+  let mut local_size: ULONG;                                            // C 6631
+  let mut e: c_int = *errno ();                                         // C 6632 (C's `int e = errno;`)
+
+  /* C leaves `str_acl` and `local_size` uninitialised (PORTING.md 1.5).  */
+  str_acl = std::ptr::null_mut ();
+  local_size = 0;
+
+  *errno () = 0;                                                        // C 6634
+
+  if convert_sd_to_sddl (acl, SDDL_REVISION_1, flags, (&raw mut str_acl), (&raw mut local_size)) != 0 // C 6636 (C's truth test)
+    {                                                                   // C 6637
+      *errno () = e;                                                    // C 6638
+      /* We don't want to mix heaps, so we duplicate the string in our  // C 6639
+	 heap and free the one allocated by the API.  */                       // C 6640
+      retval = xstrdup (str_acl);                                       // C 6641
+      if ! size.is_null ()                                              // C 6642 (C's `if (size)`)
+	{ *size = local_size; }                                                // C 6643 (the `ULONG`-into-`ssize_t` store)
+      LocalFree (str_acl as *mut c_void);                               // C 6644 (C's `char *`-into-`HLOCAL`)
+    }                                                                   // C 6645
+  else if *errno () != ENOTSUP                                          // C 6646
+    { *errno () = EINVAL; }                                             // C 6647
+
+  return retval;                                                        // C 6649
+}                                                                       // C 6650
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn acl_from_text (acl_str: *const c_char) -> acl_t // C 6652
+{                                                                       // C 6654
+  let mut psd: PSECURITY_DESCRIPTOR;                                    // C 6655
+  let mut retval: PSECURITY_DESCRIPTOR = std::ptr::null_mut ();         // C 6655 (C's `= NULL`)
+  let mut sd_size: ULONG;                                               // C 6656
+  let mut e: c_int = *errno ();                                         // C 6657
+
+  /* C leaves `psd` and `sd_size` uninitialised (PORTING.md 1.5).  */
+  psd = std::ptr::null_mut ();
+  sd_size = 0;
+
+  *errno () = 0;                                                        // C 6659
+
+  if convert_sddl_to_sd (acl_str, SDDL_REVISION_1, (&raw mut psd), (&raw mut sd_size)) != 0 // C 6661 (C's truth test)
+    {                                                                   // C 6662
+      *errno () = e;                                                    // C 6663
+      retval = xmalloc (sd_size as usize);                              // C 6664 (C's `void *` into `PSECURITY_DESCRIPTOR`)
+      memcpy (retval, psd, sd_size as usize);                           // C 6665
+      LocalFree (psd);                                                  // C 6666
+    }                                                                   // C 6667
+  else if *errno () != ENOTSUP                                          // C 6668
+    { *errno () = EINVAL; }                                             // C 6669
+
+  return retval;                                                        // C 6671
+}                                                                       // C 6672
+
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn acl_free (ptr: *mut c_void) -> c_int           // C 6674
+{                                                                       // C 6676
+  xfree (ptr);                                                          // C 6677
+  return 0;                                                             // C 6678
+}                                                                       // C 6679

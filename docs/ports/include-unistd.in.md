@@ -286,3 +286,18 @@ gone.  The frozen probe is unchanged (**exit 0**, **336-byte** empty object) and
 reads **OK**.  `readlinkat` (declared on line 41) is deliberately **not** gated yet: `w32.c`'s own
 `readlinkat` is C 6475, the next slice's first definition, and this lane gates only what a slice
 has measured.
+
+## 2026-10-13 (later): `readlinkat` follows its two siblings out of the `windowsnt` arm (Owed 19)
+
+The third name the section above deliberately left live.  `src/w32.c` defines `readlinkat` at
+C 6475 - the lane's fifteenth slice - so the same `windowsnt` probe read one `E0428` for this
+header's line 41; it now carries `#[cfg (not (feature = "windowsnt"))]` like `readlink` and
+`symlink` above it.
+
+Evidence: the probe reads **123 error lines / 149 located sites** before the gate and **122 / 148**
+after (the slice-14 text reads 123 / 148), the frozen probe is unchanged (**exit 0**, **336-byte**
+empty object), and this mirror's own
+`python3 tools/extract-abi.py --check emacs/lib/unistd.in.h femacs/lib/include/unistd.in.rs` still
+reads **OK**.  All three of `C 6118`/`C 6331`/`C 6475`'s names are now gated; the remaining
+declarations of this header that `w32.c` might answer for will be gated the same way as their
+slices measure them.
