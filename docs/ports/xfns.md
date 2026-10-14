@@ -912,6 +912,13 @@ failures, `check-port-lines.py` 0 files under ten percent, `check-target-names.p
 - **`include/xterm.rs`**: `FRAME_MENUBAR_HEIGHT`'s body - `{ (void) ($f); 0 }` is C's cast written
   in Rust and cannot compile; C's `((void) f, 0)` evaluates `f` and yields `0`, so the body wants
   `{ let _ = &$f; 0 }` (or the argument bound once).  C 3289/3332 are the two call sites.
+  ✅ **Closed by status 4.342** (the gtkutil lane's twelfth slice): the `#else` arm keeps
+  this body under the narrower gate `all (have_x_windows, not (use_x_toolkit), not
+  (use_gtk))`, and the **live** arm (`#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`,
+  xterm.h 1461-1462) is added beside it, so every consumer reads C's
+  `((f)->output_data.x->menubar_height)` - which also removed the three `void` errors from
+  every gtkutil arm reading (arm A 30 -> 27, arm C 64 -> 61).  See
+  `docs/ports/xterm.md`'s status 4.342 section.
   Also the gating of `x_display_info.xim_callback_data: *mut xim_inst_t` (C's `#ifdef HAVE_X_I18N`
   member) against `struct xim_inst_t`'s own `have_x11r6_xim` gate - with `have_x_i18n` on and
   `have_x11r6_xim` off the field's type is undeclared (`E0425 xim_inst_t`); and this slice's

@@ -5524,3 +5524,135 @@ unsafe fn xg_update_submenu (submenu: *mut GtkWidget, f: *mut frame, val: *mut w
 
   newsub                                                                // C 4093
 }
+
+/* C 4096-4104's comment above `xg_modify_menubar_widgets`, carried as C's own text.  */
+/* C: /* Update the MENUBAR.
+   C:    F is the frame the menu bar belongs to.
+   C:    VAL describes the contents of the menu bar.
+   C:    If DEEP_P, rebuild all but the top level menu names in
+   C:    the MENUBAR.  If DEEP_P is zero, just rebuild the names in the menubar.
+   C:    SELECT_CB is the callback to use when a menu item is selected.
+   C:    DEACTIVATE_CB is the callback to use when a sub menu is not shown anymore.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.  */  */
+
+/// C 4105-4170: `void xg_modify_menubar_widgets (GtkWidget *menubar, struct frame *f,
+/// widget_value *val, bool deep_p, GCallback select_cb, GCallback deactivate_cb, GCallback
+/// highlight_cb)` - non-`static` (gtkutil.h 104 declares it and `xmenu.c` calls it), so
+/// `#[unsafe(no_mangle)]` with the C ABI.  C 4112's `list` is the mirror's
+/// `gtk_container_get_children` result and is written by the call below, hence the port's `mut`
+/// and its `&raw mut` at C 4118; C 4116's `g_object_get_data` result takes C's conversion;
+/// C 4132/4140's two `for` heads are the port's `while` with C's step at the loop's end
+/// (PORTING.md 2.2); C 4135/4137's two `= 0` locals are the null pointer and the null
+/// `GtkMenuItem *`; C 4142's `GTK_MENU_ITEM (iter->data)` is the mirror's cast over `GList`'s
+/// member; C 4143's label test is slice 8's `xg_item_label_same_p`; C 4145's
+/// `gtk_menu_item_get_submenu` and C 4150's recursive `xg_update_submenu` are slice 11's; and
+/// C 4160's `witem != 0` is the port's null check.
+/// C: void
+/// C: xg_modify_menubar_widgets (GtkWidget *menubar, struct frame *f,
+/// C: 			   widget_value *val, bool deep_p,
+/// C:                            GCallback select_cb, GCallback deactivate_cb,
+/// C: 			   GCallback highlight_cb)
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_modify_menubar_widgets (menubar: *mut GtkWidget, f: *mut frame,
+						    val: *mut widget_value, deep_p: bool,
+						    select_cb: GCallback,
+						    deactivate_cb: GCallback,
+						    highlight_cb: GCallback)
+{
+  let cl_data: *mut xg_menu_cb_data;                                    // C 4111
+  let mut list: *mut GList = gtk_container_get_children (GTK_CONTAINER! (menubar));   // C 4112
+
+  if list.is_null () { return; }                                        // C 4114
+
+  cl_data = g_object_get_data (G_OBJECT! (menubar), XG_FRAME_DATA)      // C 4116
+    as *mut xg_menu_cb_data;
+
+  xg_update_menubar (menubar, f, (&raw mut list), list, 0, (*val).contents,   // C 4118
+		     select_cb, deactivate_cb, highlight_cb, cl_data);    // C 4119
+
+  if deep_p                                                             // C 4121
+    {
+      let mut cur: *mut widget_value;                                   // C 4123
+
+      /* Update all sub menus.
+	 We must keep the submenus (GTK menu item widgets) since the
+	 X Window in the XEvent that activates the menu are those widgets.  */   // C 4125-4127
+
+      /* Update cl_data, menu_item things in F may have changed.  */     // C 4129
+      update_cl_data (cl_data, f, highlight_cb);                        // C 4130
+
+      cur = (*val).contents;                                            // C 4132
+      while ! cur.is_null ()                                            // C 4132
+	{
+	  let mut iter: *mut GList;                                      // C 4134
+	  let mut sub: *mut GtkWidget = std::ptr::null_mut ();           // C 4135
+	  let newsub: *mut GtkWidget;                                    // C 4136
+	  let mut witem: *mut GtkMenuItem = std::ptr::null_mut ();       // C 4137
+
+	  /* Find sub menu that corresponds to val and update it.  */    // C 4139
+	  iter = list;                                                   // C 4140
+	  while ! iter.is_null ()                                        // C 4140
+	    {
+	      witem = GTK_MENU_ITEM! ((*iter).data);                     // C 4142
+	      if xg_item_label_same_p (witem, (*cur).name)               // C 4143
+		{
+		  sub = gtk_menu_item_get_submenu (witem);               // C 4145
+		  break;                                                 // C 4146
+		}
+	      iter = g_list_next! (iter);                                // C 4140 (the `for` step)
+	    }
+
+	  newsub = xg_update_submenu (sub,                               // C 4150
+				      f,
+				      (*cur).contents,
+				      select_cb,
+				      deactivate_cb,
+				      highlight_cb,
+				      cl_data);                          // C 4156
+	  /* sub may still be NULL.  If we just updated non deep and added
+	     a new menu bar item, it has no sub menu yet.  So we set the
+	     newly created sub menu under witem.  */                     // C 4157-4159
+	  if newsub != sub && ! witem.is_null ()                         // C 4160
+	    {
+	      xg_set_screen (newsub, f);                                 // C 4162
+	      gtk_menu_item_set_submenu (witem, newsub);                 // C 4163
+	    }
+	  cur = (*cur).next;                                             // C 4132 (the `for` step)
+	}
+    }
+
+  g_list_free (list);                                                   // C 4168
+  gtk_widget_show_all (menubar);                                        // C 4169
+}
+
+
+/* C 4172-4174's comment above `menubar_map_cb`, carried as C's own text.  */
+/* C: /* Callback called when the menu bar W is mapped.
+   C:    Used to find the height of the menu bar if we didn't get it
+   C:    after showing the widget.  */  */
+
+/// C 4176-4188: `static void menubar_map_cb (GtkWidget *w, gpointer user_data)` - `static` in C,
+/// but C 4212 (the next slice) takes its address for `g_signal_connect`, so the port defines it
+/// `unsafe extern "C" fn`.  C 4179's uninitialised `GtkRequisition req` is the port's zeroed
+/// value (PORTING.md 1.5, the C 2410 shape), C 4180's `struct frame *f = user_data` is C's
+/// implicit conversion, C 4181's `NULL` is the null pointer and its `&req` the `&raw mut` form,
+/// C 4182's `xg_get_scale` is this file's own (C 281), C 4183/4185's `FRAME_MENUBAR_HEIGHT`
+/// is `include/xterm.rs` 1179-1198's macro - whose live arm this slice added, so the read and the
+/// write are the same place expression C's are.
+/// C: static void
+/// C: menubar_map_cb (GtkWidget *w, gpointer user_data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn menubar_map_cb (w: *mut GtkWidget, user_data: gpointer)
+{
+  let mut req: GtkRequisition = GtkRequisition { width: 0, height: 0 };   // C 4179
+  let f: *mut frame = user_data as *mut frame;                          // C 4180
+  gtk_widget_get_preferred_size (w, std::ptr::null_mut (), (&raw mut req));   // C 4181
+  req.height *= xg_get_scale (f);                                       // C 4182
+  if FRAME_MENUBAR_HEIGHT! (f) != req.height                            // C 4183
+    {
+      FRAME_MENUBAR_HEIGHT! (f) = req.height;                           // C 4185
+      /* C 4186's fifth argument is the `bool pretend` parameter, so C's `0` is the port's `false`.  */
+      adjust_frame_size (f, -1, -1, 2, false, Qmenu_bar_lines ());       // C 4186
+    }
+}

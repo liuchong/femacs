@@ -198,7 +198,8 @@
 | 3641-3831 | C 3641-3651's comment above `xg_update_menubar` and **`xg_update_menubar`** (C 3653-3830), plus C 3831's blank | file gate (`use_gtk`); the mirror gains `gtk_menu_shell_insert`, `gtk_label_set_text` and `g_object_notify` (C 3673/3763/3764); slice 9 below |
 | 3832-3962 | C 3832-3835's comment and **`xg_update_menu_item`** (C 3837-3945), C 3947's comment and `xg_update_toggle_item` (C 3949-3953), C 3955's comment and `xg_update_radio_item` (C 3957-3961), plus C 3962's blank | file gate (`use_gtk`); the mirror gains `GTK_IS_BOX` and `gtk_widget_get_sensitive` (C 3859/3915); slice 10 below |
 | 3963-4095 | C 3963-3973's comment above `xg_update_submenu` and **`xg_update_submenu`** (C 3975-4094 - the recursive submenu reconciler, C 4050 calling itself), plus C 4095's blank | file gate (`use_gtk`); the mirror gains `GTK_IS_SEPARATOR_MENU_ITEM`, `GTK_IS_CHECK_MENU_ITEM`, `GTK_IS_MENU_ITEM` and `gtk_menu_item_get_submenu`, and the unit carries `GTK_IS_RADIO_MENU_ITEM` (Owed 12); slice 11 below |
-| 4096-6753 | **the remainder** — from C 4096-4104's comment above `xg_modify_menubar_widgets` through C 6753: `xg_modify_menubar_widgets`, `menubar_map_cb`, `free_frame_menubar`, the scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 4096-4189 | C 4096-4104's comment and **`xg_modify_menubar_widgets`** (C 4105-4170, the menubar updater that calls `xg_update_menubar` first and then walks the sub menus when `deep_p`), C 4172-4174's comment and `menubar_map_cb` (C 4176-4188), plus C 4189's blank | file gate (`use_gtk`); `include/xterm.rs`'s `FRAME_MENUBAR_HEIGHT` gains its live arm and loses its uncompilable `void` body (this slice; see the round section); slice 12 below |
+| 4190-6753 | **the remainder** — from C 4190-4192's comment above `xg_update_frame_menubar` through C 6753: `xg_update_frame_menubar`, `free_frame_menubar`, the scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1523,3 +1524,64 @@ mirror's.
 **Not claimed.**  No arm was compiled against a real GTK tree, so the four prototypes this slice
 added to the mirror and the one macro it left in the unit are `UNVERIFIED`; the pgtk arm's reading
 is the probe's (Owed 17).
+
+## Slice 12 (2026-10-15, status 4.342): C 4096-4189 — the menubar updater and its map callback
+
+**What this slice is.**  C 4096-4104's comment and **`xg_modify_menubar_widgets`** (C 4105-4170 -
+the non-`static` entry point `xmenu.c` calls: it takes the menubar's live children, refreshes the
+top-level names through `xg_update_menubar`, and, when `deep_p`, walks every sub menu through
+`xg_update_submenu`), plus C 4172-4174's comment and **`menubar_map_cb`** (C 4176-4188 - the map
+handler that measures the menubar and resizes the frame).  Port: 5,526 -> **5,658 lines**; the
+table's last row splits at C 4189 - the next text is C 4190-4192's comment above
+`xg_update_frame_menubar`.
+
+**The mirror defect this slice fixed - and the two pre-existing arm errors it removes.**
+`menubar_map_cb` *writes* `FRAME_MENUBAR_HEIGHT (f)` (C 4185), and the mirror
+`include/xterm.rs` carried **only C's `#else` variant** of that macro (`#define
+FRAME_MENUBAR_HEIGHT(f) ((void) f, 0)`, xterm.h 1463-1464) with its body written as
+`{ (void) ($f); 0 }` - which is not Rust (`E0425 void`, the three errors every arm reading has
+carried since slice 2, and the reason `src/xfns.rs` 7033-7040 spells the same C line through
+`(*((*f).output_data.x as *mut x_output)).menubar_height`).  This slice closes both halves:
+
+- **the live arm is added** (`#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`, xterm.h
+  1461-1462) under `all (have_x_windows, any (use_x_toolkit, use_gtk))`, its body the pointer
+  read C writes; and
+- **the `#else` arm's gate narrows** to `all (have_x_windows, not (use_x_toolkit), not (use_gtk))`
+  and its body becomes `{ let _ = &$f; 0 }` - the same "evaluate `f`, yield `0`" C's cast says,
+  now in Rust.
+
+So C 4183's read and C 4185's write are **one** spelling each, as C writes them, in both the GTK
+and the pgtk arm - and the three `void` errors are gone from every arm (arm A 30 -> 27 `^error`
+matches, arm C 64 -> 61).  `docs/ports/xfns.md`'s Owed row for the body and its `src/xfns.rs`
+7033-7039 note both name this row; this round is the one that closes it, and that ledger carries
+the closure line.
+
+**Deviations this slice adds.**
+
+- **C 4186's `0` is the `bool pretend` parameter** of `adjust_frame_size` (frame.h 1511-1512), so
+  the port writes `false` there - the round's own arm reading caught it as `E0308` on the first
+  pass, which is why the line carries the note it does.
+- C 4118's `&list` is the port's `&raw mut list` (the parameter `list` is written by the callee),
+  C 4132/4140's two `for` heads are `while` loops with C's step at the end (PORTING.md 2.2),
+  C 4135/4137's two `= 0` locals are the null pointer and the null `GtkMenuItem *`, and C 4160's
+  `witem != 0` is the port's null check.
+- `adjust_frame_size` needs **no** new declaration here: the unit already carries it at its C 1280
+  use site (unit 497-500).  A first draft added a second one and the arm reading reported
+  `E0428` - recorded because it is the shape of that class of mistake.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings.**  Arm A: **27 `^error` matches (26 errors), none anchored in this
+   slice** - the three `void` errors of every earlier arm reading are gone; arm A plus
+   `gtk_check_version_ge_3_14`: the same 27.  Arm C (GTK2): **61, none here** (was 64); arm C
+   plus `have_freetype`: the same 61.  Arm B (and the same set plus `have_x_windows`): the dedupe
+   artifact.  The out-of-tree probe reads **10 `^error` matches, none in this slice**.
+3. **`extract-abi.py --check`** -> 77 -> **73 `- ` rows** (two retired: `xg_modify_menubar_widgets`
+   and `menubar_map_cb`; no new `does not mention` row was needed); the line-count row reads
+   **16.2%** (C 6,753 vs 5,658).
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK tree, so this slice's mirror change is
+evidenced by rustc's name resolution alone; the pgtk arm's reading is the probe's (Owed 17).

@@ -1176,10 +1176,25 @@ macro_rules! FRAME_OUTER_WINDOW {
 macro_rules! FRAME_OUTER_WINDOW {
   ($f:expr) => { FRAME_X_WINDOW! ($f) };
 }
-/// C: #define FRAME_MENUBAR_HEIGHT(f) ((void) f, 0)
+/// C 1461-1462: `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` ->
+/// `#define FRAME_MENUBAR_HEIGHT(f) ((f)->output_data.x->menubar_height)` - **the live arm**,
+/// which the `#else` variant below must not also define.  `output_data.x` is a `*mut c_void`
+/// (frame.h 38), so the body takes C's pointer cast (P-72 rule 3) - the use-site form
+/// `src/xfns.rs` 7040 already spells out for C 4265.
 #[cfg (feature = "have_x_windows")]
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
 macro_rules! FRAME_MENUBAR_HEIGHT {
-  ($f:expr) => { { (void) ($f); 0 } };
+  ($f:expr) => { (*((*$f).output_data.x as *mut x_output)).menubar_height };
+}
+/// C 1463-1464: `#else` / `#define FRAME_MENUBAR_HEIGHT(f) ((void) f, 0)` - C's `void` cast
+/// is the macro's only way to say "evaluate `f`, yield `0`", and Rust has no `void` value
+/// to cast to (`{ (void) ($f); 0 }` was a `E0425 void` in every arm); the port binds the
+/// argument to `_` instead, which is the same evaluation with the same result.
+#[cfg (feature = "have_x_windows")]
+#[cfg (not (feature = "use_x_toolkit"))]
+#[cfg (not (feature = "use_gtk"))]
+macro_rules! FRAME_MENUBAR_HEIGHT {
+  ($f:expr) => { { let _ = &$f; 0 } };
 }
 /// C 1467-1478: the font, toolbar and baseline accessors.
 /// C: #define FRAME_FONT(f) ((f)->output_data.x->font)

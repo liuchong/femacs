@@ -13443,3 +13443,34 @@ reads `579 done, 0 in progress, 11 failing` for the whole tree.
 
 **Not claimed**: no runtime evidence; the readings are the three arm compiles (both sides), the
 per-arm message diff, `--check`'s zero rows and `--all`'s tree-wide reading.
+
+### status 4.342 (the gtkutil twelfth-slice round this file took part in)
+
+`src/gtkutil.c`'s `menubar_map_cb` (C 4176-4188) is the round's consumer, and it needed the
+**live** `FRAME_MENUBAR_HEIGHT`: C 4183 reads and C 4185 writes `((f)->output_data.x->menubar_height)`
+(xterm.h 1461-1462, the `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` arm) while this mirror
+carried only C 1463-1464's `#else` variant - whose body, `{ (void) ($f); 0 }`, was C's cast written
+in Rust and could not compile at all (`E0425 void`, the three errors every gtkutil arm reading has
+carried since status 4.333's slice, and the reason `src/xfns.rs` 7033-7040 spells the same C line
+through the record's member).  This round lands both halves:
+
+| C | before | after |
+| --- | --- | --- |
+| xterm.h 1463-1464 (`#else`) | `have_x_windows`, body `{ (void) ($f); 0 }` | `all (have_x_windows, not (use_x_toolkit), not (use_gtk))`, body `{ let _ = &$f; 0 }` |
+| xterm.h 1461-1462 (live) | **absent** | `all (have_x_windows, any (use_x_toolkit, use_gtk))`, body `(*((*$f).output_data.x as *mut x_output)).menubar_height` |
+
+Both macro items are `macro_rules!`s over the same name, which is C's own two-armed shape; the two
+gates are complements, so no consumer sees both.  The live arm's cast is P-72 rule 3's use-site
+form, exactly what `src/xfns.rs` 7040 already spells.
+
+**Measured effect.**  `src/gtkutil.rs`'s arm A drops from 30 to **27** `^error` matches and arm C
+from 64 to **61** - the three `void` errors are gone - and this round's own text adds no anchor.
+`docs/ports/xfns.md`'s Owed row for that body names the same fix and now carries its closure line;
+`src/xfns.rs`'s slice-3 note (7033-7039) still describes what that slice did (the member spelling)
+because it is a dated reading of the round it belongs to.
+
+**Checks.**  The frozen `build-tu src/gtkutil.c` stays exit 0 with a 336-byte object;
+`python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet row(s),
+0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; `extract-abi.py --check emacs/src/xterm.h
+femacs/src/include/xterm.rs` is unaffected by this change (the macro inventory is the same name).
