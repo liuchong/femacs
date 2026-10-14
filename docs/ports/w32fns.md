@@ -241,7 +241,7 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 11585-12038 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`; C 11588's `globals_of_w32fns ()` is landed - slice 36 landed the callee first, P-91 ①) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 12042-12128 | C 12042's banner, C 12044-12049's guard and objects (`prev_exception_handler` under `not (cygwin)`, `except_code`/`except_addr` ungated), C 12051-12059's `_resetstkoflw_proc` and `resetstkoflw`, and C 12061-12128's `w32_reset_stack_overflow_guard`, `stack_overflow_handler` and `my_exception_handler` - slice 37 | file gate; the group's `#ifndef CYGWIN` arms are `not (cygwin)`, and the two `#ifdef _WIN64` pairs are `win64` / `not (win64)` |
 | 12130-12279 | **the remainder** (C 12130-12141's `CaptureStackBackTrace_proc` with `BACKTRACE_LIMIT_MAX`/`DEFAULT_IMAGE_BASE`, then C 12143-12159's `w32_backtrace` and C 12161-12279's `emacs_abort`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
-| 12283-12450 | **the remainder** (C 12283's `/* Initialization.  */`, C 12285-12292's comment and C 12293-12450's `globals_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 12283-12450 | C 12283's `/* Initialization.  */`, C 12285-12292's comment and C 12293-12450's `globals_of_w32fns` (the twenty-six lazy loads, the dark-mode probe, the four `DEFVAR`s and the three startup calls) - slice 38 | file gate; the group's `#ifndef CYGWIN` arms are `not (cygwin)`, and C 12365's arm is `windowsnt` |
 | 12452-12488 | C 12452's `#ifdef WINDOWSNT` with C 12454-12476's `load_unicows_dll_for_w32fns`, and C 12478's `#ifdef NTGUI_UNICODE` with C 12480-12488's `ntgui_encode_system` - slice 36, landed ahead of the C 11585-12450 text above it (P-91 ①: `syms_of_w32fns` calls `globals_of_w32fns` first) | `windowsnt` (nested) / `ntgui_unicode` (nested) |
 
 
@@ -3732,6 +3732,89 @@ line(s) between blocks need no row)**.
 - **Not claimed.**  No run evidence: no Windows/mingw toolchain, so no guard page is re-established,
   no stack overflow is recovered and no filter is installed; the readings are compile-level (42
   errors, none from this slice), the name sweep's, and the two offset assertions'.
+
+## Slice 38 (C 12283-12450)
+
+**Scope and the stop.**  C 12283's `/* Initialization.  */`, C 12285-12292's comment and
+`globals_of_w32fns` (C 12293-12450): the twenty-six lazy `get_proc_addr` loads, the dark-mode probe,
+the three exception objects slice 37 landed, the four `DEFVAR`s and C 12447/12449's two startup
+calls.  The stop is C 12452 (slice 36) - nothing of the file's own text is left between the two rows
+but the C 11585-12038 and C 12130-12279 remainders.  The function is the callee slice 36 landed the
+tail for (C 11588's `globals_of_w32fns ()` in `syms_of_w32fns`, P-91 ①); it carries the file gate
+alone, with `not (cygwin)` and `windowsnt` arms inside.
+
+**What the item carries.**  C 12296-12297's two module handles; C 12302-12314's six `user32_lib`
+loads with C 12298-12301's `TrackMouseEvent` comment; C 12315-12320's `#ifndef CYGWIN` pair;
+C 12321-12337's touch/gesture/flash trio (C 12324's sleep comment included); C 12339-12357's
+`imm32_lib` block with its seven IME entries; C 12359-12363's `hm_kernel32` pair; C 12365-12371's
+`#ifdef WINDOWSNT` pair; C 12373-12402's dark-mode gate (`LoadLibrary` of dwmapi/uxtheme,
+`w32_get_resource` over the Personalize key and C 12400-12401's `w32_darkmode = TRUE`); C 12404-12409's
+three exception objects; C 12411-12437's four `DEFVAR`s with their assignments; C 12439-12444's
+`w32_unicode_gui`/`after_deadkey` pair; and C 12447/12449's `InitCommonControls`/`syms_of_w32uniscribe`.
+
+**New surface.**  Four use-site declarations - `SetUnhandledExceptionFilter` (whose type is slice
+37's `LPTOP_LEVEL_EXCEPTION_FILTER`), `GetACP`, `_getmbcp` and `InitCommonControls` - because no
+mirror carries the rows (the slice-34 `redisplay_preserve_echo_area` device).  `GetModuleHandle`,
+`LoadLibrary`, `w32_get_resource`, the twenty-six pointer statics, the four Lisp variables and
+`syms_of_w32uniscribe` were all landed by earlier slices.
+
+**The mirror move (P-21/P-39).**  `include/w32term.rs` 1389 declared `globals_of_w32fns` at its crate
+root (C 918-919's `syms_of_w32fns`/`globals_of_w32fns` block), which a `have_ntgui` unit that defines
+it reads as `E0428` - measured here.  Both names moved into the existing `pub mod w32term_fns_decls`
+(the module that already holds `w32fns.c`'s three `w32_kbd_*` definitions, glob-imported at line
+1609), with their `/// C:` lines and a pointer comment at the old site; slice 39's `syms_of_w32fns`
+therefore needs no further move.  `docs/ports/include-w32term.md` records it.
+
+### Evidence (slice 38, the final revision: 17,952 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Four runs, all **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Four runs.  The first aborted early at **19**
+errors on the two `DEFVAR_INT!` invocations (`no rules expected ':'` - C's `doc:` label is accepted
+by `DEFVAR_BOOL!`'s second rule but not by `DEFVAR_INT!`; the port takes the docstring
+positionally).  The second read **43** - the standing **42** plus `E0428` for `globals_of_w32fns`
+against the mirror's crate-root declaration **and** a stale root (the macro error had aborted before
+the later items were checked).  After the mirror move the third run is **42**; **no error sits at or
+beyond `src/w32fns.rs` 17,682** (the largest is the pre-existing `must_be_updated_p` gap at 12,094).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 17,682-17,906: 52 capitalized
+identifiers, missing only `DEFVAR` (the `DEFVAR_INT!`/`DEFVAR_BOOL!` invocation name) and `Some`
+(the prelude variant) - the documented non-item classes; no unresolved item name.
+
+**④ `extract-abi.py --check`.**  **54 → 53** rows: `missing function globals_of_w32fns` retires.  The
+first reading added two rows, both answered: a token row
+(`function globals_of_w32fns does not mention flash_window_ex_fn, flashwindowex_proc,
+setgestureconfig_fn, setgestureconfig_proc` - the real defect this slice had: two of the twenty-six
+loads, C 12332-12337's `SetGestureConfig_fn`/`flash_window_ex_fn`, were missing from the assembled
+body, and the per-function token check found exactly the four tokens they carry; the pair is now in
+C's place between the sleep trio and the `imm32_lib` block) and a drift row (`line count drifted
+43.8%: C 12488 vs Rust 17952`), answered by a new `w32fns 0.45` row in
+`docs/ports/line-drift-tolerance.tsv` (the measured 43.8% + 0.01, superseding slice 37's `0.43`).
+The second reading has neither row.
+
+**⑤ The range table and the dead-file gate.**  The `12283-12450` remainder row becomes the slice's
+landed row; `check-dead-file-coverage.py` still reads **189 range row(s) cover src/w32fns.c (12488
+lines; 142 blank line(s) between blocks need no row)**.
+
+### Deviations (slice 38)
+
+- **C's `(Proc) get_proc_addr (...)` casts are three-line `transmute`s** whose target repeats the
+  pointer's own declared type (`Option<ImmGetCompositionString_Proc>`, `SystemParametersInfoW_Proc`,
+  …) - the `src/w32.rs` 2048-2049 device for a `VOIDFNPTR` load, C-named here because the
+  declaration and the assignment stand in one unit.
+- **C's `NULL` for `resetstkoflw` and for `w32_get_resource`'s third argument are `None`
+  / `core::ptr::null_mut ()`**, and C 12405's `except_addr = 0;` is `core::ptr::null_mut ()` - the
+  null-family count is unchanged.
+- **The two `DEFVAR_INT!` invocations take the docstring positionally** (C's `doc:` label has no
+  second rule in that macro), while the two `DEFVAR_BOOL!` ones keep C's label - the
+  `include/lisp.rs` 3540 note.
+- **C 12414/12422's `UINT`/`int` values into the `EMACS_INT` variables are `as EMACS_INT`** (C's own
+  implicit widening at that assignment).
+- **The mirror's two declarations moved with their `/// C:` lines** and a pointer comment at the old
+  site (P-21/P-39), which is what makes slice 39's `syms_of_w32fns` landable.
+- **Not claimed.**  No run evidence: no Windows toolchain, so no DLL is loaded, no code page is read
+  and no dark mode is probed; the readings are the compile-level ones above, the sweep's and the
+  token check's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

@@ -1385,8 +1385,9 @@ unsafe extern "C" {
   // `w32_release_paint_buffer`/`w32_flip_buffers_if_dirty` (C 911-912) are this header's own
   // unit's definitions: `w32term_fn_decls` below (E0428, P-21).
   pub fn syms_of_w32term ();
-  pub fn syms_of_w32fns ();
-  pub fn globals_of_w32fns ();
+  // `syms_of_w32fns`/`globals_of_w32fns` (C 918-919) are `src/w32fns.c`'s definitions:
+  // `w32term_fns_decls` below (E0428, P-21 - measured on the `w32fns` arm by that lane's slices
+  // 37/38).
   pub fn globals_of_w32notify ();
   pub fn syms_of_w32image ();
   pub fn globals_of_w32image ();
@@ -1596,6 +1597,12 @@ pub mod w32term_fns_decls {
     pub fn w32_kbd_patch_key (event: *mut c_void, cpId: c_int) -> c_int;
     pub fn w32_kbd_mods_to_emacs (mods: DWORD, key: WORD) -> c_int;
     pub fn w32_sys_ring_bell (f: *mut frame);
+    /// C 918-920: `extern void globals_of_w32fns (void);` - moved here by `src/w32fns.rs`'s
+    /// slices 37/38, which define it (E0428 at the crate root, P-21/P-39), the `w32_kbd_*` reading
+    /// above.  C 918-919's `syms_of_w32fns` is `src/w32fns.c`'s too and moves with it for the same
+    /// reason.
+    pub fn globals_of_w32fns ();
+    pub fn syms_of_w32fns ();
   }
 }
 #[cfg (feature = "windowsnt")]

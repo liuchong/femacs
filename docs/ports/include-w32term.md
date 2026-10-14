@@ -392,3 +392,25 @@ none for `w32_frame_parm_handlers`; `build-tu src/w32fns.c` -> exit 0, the objec
 `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
 `docs/ports/w32fns.md`'s `## Slice 35 (C 11522-11583)`.
+
+## `globals_of_w32fns`/`syms_of_w32fns` move into `w32term_fns_decls` (2026-10-14, w32fns slices 37-38)
+
+C 918-919's `extern void globals_of_w32fns (void); extern void syms_of_w32fns (void);` stood at this
+mirror's crate root (the `#[cfg (feature = "windowsnt")] unsafe extern "C"` block at line 1381) with
+seven other `syms_of_*`/`globals_of_*` prototypes.  `src/w32fns.c` **is** their definition, so
+w32fns slice 38's `#[unsafe(no_mangle)] pub unsafe extern "C" fn globals_of_w32fns` read
+`E0428 the name globals_of_w32fns is defined multiple times` on the arm probe - the same collision
+the 2026-10-05 section above describes for twenty-seven names and the 2026-10-14 section for
+`w32_frame_parm_handlers`.  Both names moved into the *existing* `pub mod w32term_fns_decls` (the
+module that already holds `src/w32fns.c`'s three `w32_kbd_*` definitions and is glob-imported at
+line 1609), each keeping its `/// C:` line, with a one-line pointer comment at the old site.  Moving
+`syms_of_w32fns` at the same time is deliberate: it is the same file's definition and the next
+slice lands it, so the mirror needs no second edit.
+
+**Evidence.**  `cd femacs && CARGO_TARGET_DIR=/tmp/w38lane cargo run -q -p xtask -- probe
+src/w32fns.rs /tmp/w38lane/x.rlib --crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"'
+--cfg 'feature="windowsnt"'` -> **43 errors / one `E0428` for `globals_of_w32fns` before, 42 after**;
+`build-tu src/w32fns.c` -> exit 0, the object 336 bytes;
+`python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
+`python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
+`docs/ports/w32fns.md`'s `## Slice 38 (C 12283-12450)`.

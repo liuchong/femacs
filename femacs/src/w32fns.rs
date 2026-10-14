@@ -17679,7 +17679,232 @@ pub const EXCEPTION_EXECUTE_HANDLER: LONG = 1;
 #[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
 pub const EXCEPTION_STACK_OVERFLOW: DWORD = 0xC00000FD;
 
-/* C 11585-12450's text is not in the port yet (the file's remainder), but C 10112's
+/* C 12283-12450: C 12283's `/* Initialization.  */`, C 12285-12292's comment and
+   C 12293-12450's `globals_of_w32fns` - the twenty-six `get_proc_addr` loads, the code-page
+   `DEFVAR`s, the dark-mode probe, the exception objects slice 37 landed and the three startup
+   calls.  C 11588's `globals_of_w32fns ()` (slice 39's `syms_of_w32fns`) is the other caller, which
+   is why slice 36 landed the file's tail first.  */
+
+/* Initialization.  */
+
+/*
+	globals_of_w32fns is used to initialize those global variables that
+	must always be initialized on startup even when the global variable
+	initialized is non zero (see the function main in emacs.c).
+	globals_of_w32fns is called from syms_of_w32fns when the global
+	variable initialized is 0 and directly from main when initialized
+	is non zero.
+ */
+
+/// C 12296/12297/12340/12359/12366/12383/12386's `GetModuleHandle`/`LoadLibrary` pair, and the four
+/// entry points C 12407-12447 calls.  `GetModuleHandle` and `LoadLibrary` are declared in the C 890
+/// block above; the four are use-site declarations because no mirror carries the rows - the
+/// `redisplay_preserve_echo_area` device (slice 34).
+/// C: LPTOP_LEVEL_EXCEPTION_FILTER WINAPI SetUnhandledExceptionFilter (LPTOP_LEVEL_EXCEPTION_FILTER);
+/// C: UINT WINAPI GetACP (void); int _getmbcp (void); void WINAPI InitCommonControls (void);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn SetUnhandledExceptionFilter (lpTopLevelExceptionFilter: LPTOP_LEVEL_EXCEPTION_FILTER)
+    -> LPTOP_LEVEL_EXCEPTION_FILTER;
+  pub fn GetACP () -> UINT;
+  pub fn _getmbcp () -> c_int;
+  pub fn InitCommonControls ();
+}
+
+/// C 12293-12450: `void globals_of_w32fns (void)` - C 12296-12297's two module handles, the
+/// twenty-six lazy loads in C's order (the five `user32_lib` monitor entry points, the two
+/// `#ifndef CYGWIN` ones, the touch/gesture/flash trio, the seven `imm32_lib` IME entries inside
+/// C 12339-12357's block, the two `hm_kernel32` ones, the `#ifdef WINDOWSNT` pair, and the dark-mode
+/// pair), C 12378-12402's version gate with `w32_get_resource`, C 12404-12409's three exception
+/// objects, the four `DEFVAR`s with their assignments, C 12439-12444's `w32_unicode_gui`/`after_deadkey`
+/// pair and C 12447/12449's two startup calls.  `c"..."` literals are the file's device for C's
+/// narrow strings, and `Some (...)` wraps the one function pointer C passes (the `lpfnWndProc`
+/// device at 3884).
+/// C: void
+/// C: globals_of_w32fns (void)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn globals_of_w32fns ()
+{
+  let user32_lib: HMODULE = GetModuleHandle (c"user32.dll".as_ptr ());      // C 12296
+  let kernel32_lib: HMODULE = GetModuleHandle (c"kernel32.dll".as_ptr ());  // C 12297
+  /*
+    TrackMouseEvent not available in all versions of Windows, so must load
+    it dynamically.  Do it once, here, instead of every time it is used.
+  */
+
+  track_mouse_event_fn                              // C 12302-12303
+    = core::mem::transmute::<VOIDFNPTR, Option<TrackMouseEvent_Proc>> (
+	get_proc_addr (user32_lib, c"TrackMouseEvent".as_ptr ()));
+
+
+  monitor_from_point_fn                             // C 12305-12306
+    = core::mem::transmute::<VOIDFNPTR, Option<MonitorFromPoint_Proc>> (
+	get_proc_addr (user32_lib, c"MonitorFromPoint".as_ptr ()));
+  get_monitor_info_fn                               // C 12307-12308
+    = core::mem::transmute::<VOIDFNPTR, Option<GetMonitorInfo_Proc>> (
+	get_proc_addr (user32_lib, c"GetMonitorInfoA".as_ptr ()));
+  monitor_from_window_fn                            // C 12309-12310
+    = core::mem::transmute::<VOIDFNPTR, Option<MonitorFromWindow_Proc>> (
+	get_proc_addr (user32_lib, c"MonitorFromWindow".as_ptr ()));
+  enum_display_monitors_fn                          // C 12311-12312
+    = core::mem::transmute::<VOIDFNPTR, Option<EnumDisplayMonitors_Proc>> (
+	get_proc_addr (user32_lib, c"EnumDisplayMonitors".as_ptr ()));
+  get_title_bar_info_fn                             // C 12313-12314
+    = core::mem::transmute::<VOIDFNPTR, Option<GetTitleBarInfo_Proc>> (
+	get_proc_addr (user32_lib, c"GetTitleBarInfo".as_ptr ()));
+
+  /* C 12315's `#ifndef CYGWIN` arm.  */
+  #[cfg (not (feature = "cygwin"))]
+  {
+  system_parameters_info_w_fn                       // C 12316-12317
+    = core::mem::transmute::<VOIDFNPTR, SystemParametersInfoW_Proc> (
+	get_proc_addr (user32_lib, c"SystemParametersInfoW".as_ptr ()));
+  get_last_input_info_fn                            // C 12318-12319
+    = core::mem::transmute::<VOIDFNPTR, GetLastInputInfo_Proc> (
+	get_proc_addr (user32_lib, c"GetLastInputInfo".as_ptr ()));
+  }
+
+  RegisterTouchWindow_fn                            // C 12321-12323
+    = core::mem::transmute::<VOIDFNPTR, Option<RegisterTouchWindow_proc>> (
+	get_proc_addr (user32_lib, c"RegisterTouchWindow".as_ptr ()));
+  SetThreadExecutionState_fn                        // C 12325-12327
+    = core::mem::transmute::<VOIDFNPTR, Option<SetThreadExecutionState_Proc>> (
+	get_proc_addr (kernel32_lib, c"SetThreadExecutionState".as_ptr ()));
+  RegisterSuspendResumeNotification_fn              // C 12328-12330
+    = core::mem::transmute::<VOIDFNPTR, Option<RegisterSuspendResumeNotification_Proc>> (
+	get_proc_addr (user32_lib, c"RegisterSuspendResumeNotification".as_ptr ()));
+
+  SetGestureConfig_fn                               // C 12332-12334
+    = core::mem::transmute::<VOIDFNPTR, Option<SetGestureConfig_proc>> (
+	get_proc_addr (user32_lib, c"SetGestureConfig".as_ptr ()));
+  flash_window_ex_fn                                // C 12335-12337
+    = core::mem::transmute::<VOIDFNPTR, Option<FlashWindowEx_Proc>> (
+	get_proc_addr (user32_lib, c"FlashWindowEx".as_ptr ()));
+  {
+    let imm32_lib: HMODULE = GetModuleHandle (c"imm32.dll".as_ptr ());    // C 12340
+  get_composition_string_fn                         // C 12341-12342
+    = core::mem::transmute::<VOIDFNPTR, Option<ImmGetCompositionString_Proc>> (
+	get_proc_addr (imm32_lib, c"ImmGetCompositionStringW".as_ptr ()));
+  get_ime_context_fn                                // C 12343-12344
+    = core::mem::transmute::<VOIDFNPTR, Option<ImmGetContext_Proc>> (
+	get_proc_addr (imm32_lib, c"ImmGetContext".as_ptr ()));
+  release_ime_context_fn                            // C 12345-12346
+    = core::mem::transmute::<VOIDFNPTR, Option<ImmReleaseContext_Proc>> (
+	get_proc_addr (imm32_lib, c"ImmReleaseContext".as_ptr ()));
+  set_ime_composition_window_fn                     // C 12347-12348
+    = core::mem::transmute::<VOIDFNPTR, Option<ImmSetCompositionWindow_Proc>> (
+	get_proc_addr (imm32_lib, c"ImmSetCompositionWindow".as_ptr ()));
+  get_ime_open_status_fn                            // C 12350-12351
+    = core::mem::transmute::<VOIDFNPTR, Option<ImmGetOpenStatus_Proc>> (
+	get_proc_addr (imm32_lib, c"ImmGetOpenStatus".as_ptr ()));
+  set_ime_open_status_fn                            // C 12352-12353
+    = core::mem::transmute::<VOIDFNPTR, Option<ImmSetOpenStatus_Proc>> (
+	get_proc_addr (imm32_lib, c"ImmSetOpenStatus".as_ptr ()));
+  set_ime_composition_font_fn                       // C 12355-12356
+    = core::mem::transmute::<VOIDFNPTR, Option<ImmSetCompositionFont_Proc>> (
+	get_proc_addr (imm32_lib, c"ImmSetCompositionFontW".as_ptr ()));
+  }
+
+  let hm_kernel32: HMODULE = GetModuleHandle (c"kernel32.dll".as_ptr ()); // C 12359
+  is_debugger_present                               // C 12360-12361
+    = core::mem::transmute::<VOIDFNPTR, Option<IsDebuggerPresent_Proc>> (
+	get_proc_addr (hm_kernel32, c"IsDebuggerPresent".as_ptr ()));
+  set_thread_description                            // C 12362-12363
+    = core::mem::transmute::<VOIDFNPTR, Option<SetThreadDescription_Proc>> (
+	get_proc_addr (hm_kernel32, c"SetThreadDescription".as_ptr ()));
+
+  /* C 12365's `#ifdef WINDOWSNT` arm.  */
+  #[cfg (feature = "windowsnt")]
+  {
+    let wtsapi32_lib: HMODULE = LoadLibrary (c"wtsapi32.dll".as_ptr ()); // C 12366
+  WTSRegisterSessionNotification_fn                 // C 12367-12368
+    = core::mem::transmute::<VOIDFNPTR, Option<WTSRegisterSessionNotification_Proc>> (
+	get_proc_addr (wtsapi32_lib, c"WTSRegisterSessionNotification".as_ptr ()));
+  WTSUnRegisterSessionNotification_fn               // C 12369-12370
+    = core::mem::transmute::<VOIDFNPTR, Option<WTSUnRegisterSessionNotification_Proc>> (
+	get_proc_addr (wtsapi32_lib, c"WTSUnRegisterSessionNotification".as_ptr ()));
+  }
+
+  /* Support OS dark mode on Windows 10 version 1809 and higher.
+     See `w32_applytheme' which uses appropriate APIs per version of Windows.
+     For future wretches who may need to understand Windows build numbers:
+     https://docs.microsoft.com/en-us/windows/release-health/release-information
+  */
+  if os_subtype == OS_SUBTYPE_NT
+      && w32_major_version >= 10 && w32_build_number >= 17763
+    {
+      /* Load dwmapi.dll and uxtheme.dll, which will be needed to set
+	 window themes.  */
+      let dwmapi_lib: HMODULE = LoadLibrary (c"dwmapi.dll".as_ptr ());     // C 12383
+  DwmSetWindowAttribute_fn                          // C 12384-12385
+    = core::mem::transmute::<VOIDFNPTR, Option<DwmSetWindowAttribute_Proc>> (
+	get_proc_addr (dwmapi_lib, c"DwmSetWindowAttribute".as_ptr ()));
+      let uxtheme_lib: HMODULE = LoadLibrary (c"uxtheme.dll".as_ptr ()); // C 12386
+  SetWindowTheme_fn                                 // C 12387-12388
+    = core::mem::transmute::<VOIDFNPTR, Option<SetWindowTheme_Proc>> (
+	get_proc_addr (uxtheme_lib, c"SetWindowTheme".as_ptr ()));
+
+      /* Check Windows Registry for system theme and set w32_darkmode.
+	 TODO: "Nice to have" would be to create a lisp setting (which
+	 defaults to this Windows Registry value), then read that lisp
+	 value here instead. This would allow the user to forcibly
+	 override the system theme (which is also user-configurable in
+	 Windows settings; see MS-Windows section in Emacs manual). */
+      let val: LPBYTE                                                    // C 12396-12399
+	= w32_get_resource (c"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize".as_ptr (),
+			    c"AppsUseLightTheme".as_ptr (),
+			    core::ptr::null_mut ());
+      if !val.is_null () && *val == 0                                    // C 12400
+	{ w32_darkmode = TRUE; }                                         // C 12401
+    }
+
+  except_code = 0;                                                       // C 12404
+  except_addr = core::ptr::null_mut ();                                  // C 12405
+  /* C 12406's `#ifndef CYGWIN` arm.  */
+  #[cfg (not (feature = "cygwin"))]
+  {
+    prev_exception_handler = SetUnhandledExceptionFilter (Some (my_exception_handler)); // C 12407
+    resetstkoflw = None;                                                 // C 12408
+  }
+
+  /* C's `DEFVAR_INT` invocation spells the docstring `doc: /* … */`; the port's `DEFVAR_INT!`
+     takes it positionally (the `DEFVAR_BOOL!` label rule of `include/lisp.rs` 3540 covers that
+     macro only).  */
+  DEFVAR_INT! (c"w32-ansi-code-page", w32_ansi_code_page,                // C 12411-12413
+	       "The ANSI code page used by the system.");
+  w32_ansi_code_page = GetACP () as EMACS_INT;                           // C 12414
+
+  /* C 12416's `#ifndef CYGWIN` arm.  */
+  #[cfg (not (feature = "cygwin"))]
+  {
+    DEFVAR_INT! (c"w32-multibyte-code-page", w32_multibyte_code_page,    // C 12417-12421
+		 "The current multibyte code page used by the system.\nA value of zero indicates that the single-byte code page is in use,\nsee `w32-ansi-code-page'.");
+    w32_multibyte_code_page = _getmbcp () as EMACS_INT;                  // C 12422
+  }
+
+  DEFVAR_BOOL! (c"w32-disable-double-buffering", w32_disable_double_buffering, // C 12425-12428
+		doc: "Completely disable double buffering.\nThis variable is used for debugging, and takes precedence over any\nvalue of the `inhibit-double-buffering' frame parameter.");
+  w32_disable_double_buffering = false;                                  // C 12429
+
+  DEFVAR_BOOL! (c"w32-follow-system-dark-mode", w32_follow_system_dark_mode, // C 12431-12436
+		doc: "Whether to follow the system's Dark mode on MS-Windows.\nIf this is nil, Emacs on MS-Windows will not follow the system's Dark\nmode as far as the appearance of title bars and scroll bars is\nconcerned, it will always use the default Light mode instead.\nChanging the value takes effect only for frames created after the change.");
+  w32_follow_system_dark_mode = true;                                    // C 12437
+
+  if os_subtype == OS_SUBTYPE_NT                                         // C 12439
+    { w32_unicode_gui = 1; }                                             // C 12440
+  else
+    { w32_unicode_gui = 0; }                                             // C 12442
+
+  after_deadkey = -1;                                                    // C 12444
+
+  /* MessageBox does not work without this when linked to comctl32.dll 6.0.  */
+  InitCommonControls ();                                                 // C 12447
+
+  syms_of_w32uniscribe ();                                               // C 12449
+}
+
+/* C 11585-12038 and C 12130-12279's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C
