@@ -2735,3 +2735,25 @@ macro_rules! GTK_IS_BOX {
 unsafe extern "C" {
   pub fn gtk_widget_get_sensitive (widget: *mut GtkWidget) -> gboolean;
 }
+
+/// C: gtk/gtkseparatormenuitem.h, gtk/gtkcheckmenuitem.h and gtk/gtkmenuitem.h: the three
+/// type-check macros C 4008/4013/4027 asks, each keeping the macro's name and its `gboolean`
+/// result as this mirror's `GTK_IS_*` family above does (`(! ($o).is_null ())`; the
+/// `G_TYPE_CHECK_INSTANCE_TYPE` chains are owed).  All three are fresh names, which is what lets
+/// them live here: `GTK_IS_RADIO_MENU_ITEM` - the fourth the same function asks (C 4005/4020) -
+/// is **not** here, because two units that `include!` this mirror already copy it
+/// (`src/pgtkmenu.rs` 234, `src/xmenu.rs` 784), so it stands in the consumer instead.
+macro_rules! GTK_IS_SEPARATOR_MENU_ITEM {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+macro_rules! GTK_IS_CHECK_MENU_ITEM {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+macro_rules! GTK_IS_MENU_ITEM {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+/// C: gtk/gtkmenuitem.h: `GtkWidget *gtk_menu_item_get_submenu (GtkMenuItem *menu_item);` -
+/// C 4038's read of the item's current submenu.  Fresh name; **UNVERIFIED**.
+unsafe extern "C" {
+  pub fn gtk_menu_item_get_submenu (menu_item: *mut GtkMenuItem) -> *mut GtkWidget;
+}

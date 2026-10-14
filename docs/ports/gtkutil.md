@@ -197,7 +197,8 @@
 | 3534-3640 | C 3534-3547's comment above `xg_create_widget`, **`xg_create_widget`** (C 3549-3597), `xg_get_menu_item_label` (C 3601-3606), `xg_item_label_same_p` (C 3610-3623) and `xg_destroy_widgets` (C 3627-3639), plus C 3640's blank | file gate (`use_gtk`); the mirror gains `gtk_label_get_label` (C 3605's read); slice 8 below |
 | 3641-3831 | C 3641-3651's comment above `xg_update_menubar` and **`xg_update_menubar`** (C 3653-3830), plus C 3831's blank | file gate (`use_gtk`); the mirror gains `gtk_menu_shell_insert`, `gtk_label_set_text` and `g_object_notify` (C 3673/3763/3764); slice 9 below |
 | 3832-3962 | C 3832-3835's comment and **`xg_update_menu_item`** (C 3837-3945), C 3947's comment and `xg_update_toggle_item` (C 3949-3953), C 3955's comment and `xg_update_radio_item` (C 3957-3961), plus C 3962's blank | file gate (`use_gtk`); the mirror gains `GTK_IS_BOX` and `gtk_widget_get_sensitive` (C 3859/3915); slice 10 below |
-| 3963-6753 | **the remainder** — from C 3963-3973's comment above `xg_update_submenu` through C 6753: `xg_update_submenu` (C 3975-4104), `xg_modify_menubar_widgets`, `menubar_map_cb`, `free_frame_menubar`, the scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 3963-4095 | C 3963-3973's comment above `xg_update_submenu` and **`xg_update_submenu`** (C 3975-4094 - the recursive submenu reconciler, C 4050 calling itself), plus C 4095's blank | file gate (`use_gtk`); the mirror gains `GTK_IS_SEPARATOR_MENU_ITEM`, `GTK_IS_CHECK_MENU_ITEM`, `GTK_IS_MENU_ITEM` and `gtk_menu_item_get_submenu`, and the unit carries `GTK_IS_RADIO_MENU_ITEM` (Owed 12); slice 11 below |
+| 4096-6753 | **the remainder** — from C 4096-4104's comment above `xg_modify_menubar_widgets` through C 6753: `xg_modify_menubar_widgets`, `menubar_map_cb`, `free_frame_menubar`, the scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -812,7 +813,18 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
     `Emacs_Cursor`, which is an `E0428` in that arm (the probe in the slice-7 section says
     how it was measured).  It belongs to those two mirrors, not to this unit.
 
-## Not claimed
+12. **`GTK_IS_RADIO_MENU_ITEM` cannot join the mirror's `GTK_IS_*` family** (added by slice
+    11).  `include/gtk.rs`'s family grew by three this round
+    (`GTK_IS_SEPARATOR_MENU_ITEM`, `GTK_IS_CHECK_MENU_ITEM`, `GTK_IS_MENU_ITEM`), but the
+    fourth macro `xg_update_submenu` asks is already copied by two units that `include!`
+    that mirror (`src/pgtkmenu.rs` 229-236 under `have_pgtk`, `src/xmenu.rs` 783-786 under
+    `have_x_windows`), so a mirror item would read `E0428` in whichever of them has the
+    feature on.  The unit therefore carries it (the shape Owed 10 records for the menu-item
+    names), and the round that consolidates the family deletes both units' copies and the
+    unit's.  The two bodies also disagree today - `src/xmenu.rs`'s returns `true` where
+    `src/pgtkmenu.rs`'s and this unit's spell the family's `(! ($o).is_null ())` - which is
+    the same reconciliation.
+
 
 - **Slice 2 (C 1297-2281) was executed nowhere.**  Same reading as slice 1's first bullet: no GTK
   tree to compile an arm against and no GTK target to run it on; Evidence ①S2 is a 336-byte empty
@@ -1455,3 +1467,59 @@ is slice 8's, `gtk_label_set_text` and `g_object_notify` are slice 9's, and
 
 **Not claimed.**  No arm was compiled against a real GTK tree, so the two prototypes this slice
 added are `UNVERIFIED`; the pgtk arm's reading is the probe's (Owed 17).
+
+## Slice 11 (2026-10-15, status 4.341): C 3963-4095 — `xg_update_submenu`
+
+**What this slice is.**  C 3963-3973's comment and **`xg_update_submenu`** (C 3975-4094, 120
+lines) - the recursive reconciler that walks a submenu's live children against a `widget_value`
+list, breaks at the first structural difference, tracks the first radio button of a group so a
+mismatch rebuilds the whole group, and hands any added tail to `create_menus`.  Port: 5,352 ->
+**5,526 lines**; the table's last row splits at C 4095 - the next text is C 4096-4104's comment
+above `xg_modify_menubar_widgets`.
+
+**The mirror this slice needed.**  `include/gtk.rs` gains the three type-check macros
+**`GTK_IS_SEPARATOR_MENU_ITEM`**, **`GTK_IS_CHECK_MENU_ITEM`** and **`GTK_IS_MENU_ITEM`** (each
+kept as that mirror's `GTK_IS_*` family keeps its four: a null test with the
+`G_TYPE_CHECK_INSTANCE_TYPE` chain owed) and **`gtk_menu_item_get_submenu`** (gtk/gtkmenuitem.h,
+C 4038's read).  All four are fresh names.  The function's **fourth** type-check macro,
+`GTK_IS_RADIO_MENU_ITEM`, could **not** go there - two units that `include!` the mirror already
+copy it - so it stands in the unit at the function's position (the general case is now **Owed 12**,
+which also records that `src/xmenu.rs`'s copy returns `true` where the other two spell the
+family's body).  Everything else was in place: `BUTTON_TYPE_NONE`/`BUTTON_TYPE_TOGGLE`/
+`BUTTON_TYPE_RADIO` are the lwlib mirror's, `xg_destroy_widgets` is slice 8's, the three updaters
+are slice 10's, `create_menus` is slice 7's, and `gtk_container_get_children`/`g_object_ref`/
+`gtk_widget_destroy`/`g_list_free`/`gtk_menu_item_set_submenu`/`GTK_WIDGET`/`GTK_MENU_ITEM` are the
+mirror's.
+
+**Deviations this slice adds.**
+
+- **C 3993/3995's two-part `for` head and step** (`cur = val, iter = list` and
+  `iter = g_list_next (iter), cur = cur->next`) are written at their own lines around the port's
+  `while` condition, so both stores happen in C's order (PORTING.md 2.2) - which matters here,
+  because every `break` leaves through them.
+- **C 4006's `first_radio = 0`** and C 4043/4084-4088's four `0` arguments are the port's null
+  pointers, which is why the function carries a `does not mention 0` row in
+  `macro-body-notes.tsv`.
+- C 3984-3988's five locals keep C's two initialisers (`list = 0`, `first_radio = 0`) as nulls and
+  its three uninitialised declarators as Rust declarators; C 3997's `GTK_WIDGET (iter->data)` is
+  the mirror's cast over `GList`'s `gpointer` member; C 4042's `g_object_ref` takes C's
+  `GObject *` through the port's `gpointer`; and the function is recursive and `static` like slices
+  7 and 9, so a plain `unsafe fn`.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings.**  Arm A: **30 errors, none anchored in this slice**; arm A plus
+   `gtk_check_version_ge_3_14`: **30, the same set**.  Arm C (GTK2): **64 errors, none here**;
+   arm C plus `have_freetype`: **64, the same set**.  Arm B (and the same set plus
+   `have_x_windows`): the dedupe artifact.  The out-of-tree probe reads **10 `^error` matches,
+   none in this slice**.
+3. **`extract-abi.py --check`** -> 77 -> **75 `- ` rows** (one retired: `xg_update_submenu`; one
+   new `does not mention 0` row recorded in `macro-body-notes.tsv`); the line-count row reads
+   **18.2%** (C 6,753 vs 5,526).
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK tree, so the four prototypes this slice
+added to the mirror and the one macro it left in the unit are `UNVERIFIED`; the pgtk arm's reading
+is the probe's (Owed 17).

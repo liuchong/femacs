@@ -5350,3 +5350,177 @@ unsafe fn xg_update_radio_item (val: *mut widget_value, w: *mut GtkWidget)
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM! (w),
 				  (*val).selected as gboolean);         // C 3960
 }
+
+/* ----------------------------------------------------------------------------------------------
+   The fourth type-check macro this slice's function asks.  GTK's `GTK_IS_RADIO_MENU_ITEM` cannot
+   go into `include/gtk.rs`'s `GTK_IS_*` family the way its three siblings below just did: two
+   units that `include!` that mirror already carry their own copy (`src/pgtkmenu.rs` 229-236 under
+   `have_pgtk`, `src/xmenu.rs` 783-786 under `have_x_windows`), so a mirror item would read
+   `E0428` in whichever of them has the feature on.  The body is `src/pgtkmenu.rs`'s, which is the
+   family's own spelling, and the real `G_TYPE_CHECK_INSTANCE_TYPE` test stays owed.
+   ---------------------------------------------------------------------------------------------- */
+/// C: gtk/gtkcheckmenuitem.h: `#define GTK_IS_RADIO_MENU_ITEM(obj) (G_TYPE_CHECK_INSTANCE_TYPE
+/// ((obj), GTK_TYPE_RADIO_MENU_ITEM))` - C 4005/4020's two tests in `xg_update_submenu`.
+/// **UNVERIFIED** (no GTK tree on this machine).
+#[cfg (feature = "use_gtk")]
+macro_rules! GTK_IS_RADIO_MENU_ITEM {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+
+/* C 3963-3973's comment above `xg_update_submenu`, carried as C's own text.  */
+/* C: /* Update the sub menu SUBMENU and all its children so it corresponds to VAL.
+   C:    SUBMENU may be NULL, in that case a new menu is created.
+   C:    F is the frame the menu bar belongs to.
+   C:    VAL describes the contents of the menu bar.
+   C:    SELECT_CB is the callback to use when a menu item is selected.
+   C:    DEACTIVATE_CB is the callback to use when a sub menu is not shown anymore.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.
+   C:    CL_DATA is the call back data to use for any newly created items.
+
+   C:    Returns the updated submenu widget, that is SUBMENU unless SUBMENU
+   C:    was NULL.  */  */
+
+/// C 3975-4094: `static GtkWidget *xg_update_submenu (GtkWidget *submenu, struct frame *f,
+/// widget_value *val, GCallback select_cb, GCallback deactivate_cb, GCallback highlight_cb,
+/// xg_menu_cb_data *cl_data)` - `static` and recursive (C 4050 calls itself), so a plain
+/// `unsafe fn` whose own name is in scope.  C 3984-3988's five locals are the port's nulls
+/// (`GList *list = 0`, `first_radio = 0`), C 3993's two-part initialiser and C 3995's two-part
+/// update are written at their own lines around the port's `while` (PORTING.md 2.2), C 3997's
+/// `GTK_WIDGET (iter->data)` is the mirror's cast over the `GList` member, C 4002-4006's radio
+/// tracking is C's own two tests with the port's null checks, C 4008/4013/4020/4027's four
+/// `GTK_IS_*` tests are the mirror's three plus the unit's `GTK_IS_RADIO_MENU_ITEM` above,
+/// C 4029/4038's `GTK_MENU_ITEM`/`gtk_menu_item_get_submenu` are the mirror's, C 4032's
+/// `BUTTON_TYPE_NONE` is the lwlib mirror's (as `BUTTON_TYPE_RADIO`/`BUTTON_TYPE_TOGGLE` are),
+/// C 4042's `g_object_ref` takes C's `GObject *` through the port's `gpointer`, C 4043's
+/// `gtk_menu_item_set_submenu (witem, NULL)` is the null pointer, and C 4068/4072-4073's
+/// destroy pair is slice 8's `xg_destroy_widgets`.
+/// C: static GtkWidget *
+/// C: xg_update_submenu (GtkWidget *submenu,
+/// C: 		   struct frame *f,
+/// C: 		   widget_value *val,
+/// C: 		   GCallback select_cb,
+/// C: 		   GCallback deactivate_cb,
+/// C: 		   GCallback highlight_cb,
+/// C: 		   xg_menu_cb_data *cl_data)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_update_submenu (submenu: *mut GtkWidget, f: *mut frame, val: *mut widget_value,
+			     select_cb: GCallback, deactivate_cb: GCallback,
+			     highlight_cb: GCallback, cl_data: *mut xg_menu_cb_data)
+  -> *mut GtkWidget
+{
+  let mut newsub: *mut GtkWidget = submenu;                             // C 3984
+  let mut list: *mut GList = std::ptr::null_mut ();                     // C 3985
+  let mut iter: *mut GList;                                             // C 3986
+  let mut cur: *mut widget_value;                                       // C 3987
+  let mut first_radio: *mut GList = std::ptr::null_mut ();              // C 3988
+
+  if ! submenu.is_null ()                                               // C 3990
+    { list = gtk_container_get_children (GTK_CONTAINER! (submenu)); }   // C 3991
+
+  cur = val;                                                            // C 3993
+  iter = list;                                                          // C 3993
+  while ! cur.is_null () && ! iter.is_null ()                           // C 3994
+    {
+      let w: *mut GtkWidget = GTK_WIDGET! ((*iter).data);               // C 3997
+
+      /* Remember first radio button in a group.  If we get a mismatch in
+	 a radio group we must rebuild the whole group so that the connections
+	 in GTK becomes correct.  */                                    // C 3999-4001
+      if (*cur).button_type == BUTTON_TYPE_RADIO
+	  && first_radio.is_null ()                                     // C 4002
+	{ first_radio = iter; }                                         // C 4003
+      else if (*cur).button_type != BUTTON_TYPE_RADIO                   // C 4004
+	       && ! GTK_IS_RADIO_MENU_ITEM! (w)                         // C 4005
+	{ first_radio = std::ptr::null_mut (); }                        // C 4006
+
+      if GTK_IS_SEPARATOR_MENU_ITEM! (w)                               // C 4008
+	{
+	  if ! menu_separator_name_p ((*cur).name)                      // C 4010
+	    { break; }                                                  // C 4011
+	}
+      else if GTK_IS_CHECK_MENU_ITEM! (w)                               // C 4013
+	{
+	  if (*cur).button_type != BUTTON_TYPE_TOGGLE                   // C 4015
+	    { break; }                                                  // C 4016
+	  xg_update_toggle_item (cur, w);                               // C 4017
+	  xg_update_menu_item (cur, w, select_cb, highlight_cb, cl_data);   // C 4018
+	}
+      else if GTK_IS_RADIO_MENU_ITEM! (w)                               // C 4020
+	{
+	  if (*cur).button_type != BUTTON_TYPE_RADIO                    // C 4022
+	    { break; }                                                  // C 4023
+	  xg_update_radio_item (cur, w);                                // C 4024
+	  xg_update_menu_item (cur, w, select_cb, highlight_cb, cl_data);   // C 4025
+	}
+      else if GTK_IS_MENU_ITEM! (w)                                     // C 4027
+	{
+	  let witem: *mut GtkMenuItem = GTK_MENU_ITEM! (w);              // C 4029
+	  let sub: *mut GtkWidget;                                      // C 4030
+
+	  if (*cur).button_type != BUTTON_TYPE_NONE                     // C 4032
+	      || menu_separator_name_p ((*cur).name)                    // C 4033
+	    { break; }                                                  // C 4034
+
+	  xg_update_menu_item (cur, w, select_cb, highlight_cb, cl_data);   // C 4036
+
+	  sub = gtk_menu_item_get_submenu (witem);                      // C 4038
+	  if ! sub.is_null () && (*cur).contents.is_null ()             // C 4039
+	    {
+	      /* Not a submenu anymore.  */                             // C 4041
+	      g_object_ref (G_OBJECT! (sub) as gpointer);               // C 4042
+	      gtk_menu_item_set_submenu (witem, std::ptr::null_mut ());  // C 4043
+	      gtk_widget_destroy (sub);                                 // C 4044
+	    }
+	  else if ! (*cur).contents.is_null ()                          // C 4046
+	    {
+	      let nsub: *mut GtkWidget;                                 // C 4048
+
+	      nsub = xg_update_submenu (sub, f, (*cur).contents,        // C 4050
+					select_cb, deactivate_cb,
+					highlight_cb, cl_data);         // C 4052
+
+	      /* If this item just became a submenu, we must set it.  */   // C 4054
+	      if nsub != sub                                             // C 4055
+		{ gtk_menu_item_set_submenu (witem, nsub); }            // C 4056
+	    }
+	}
+      else
+	{
+	  /* Structural difference.  Remove everything from here and down
+	     in SUBMENU.  */                                            // C 4061-4062
+	  break;                                                        // C 4063
+	}
+
+      iter = g_list_next! (iter);                                       // C 3995 (the `for` step)
+      cur = (*cur).next;                                                // C 3995 (the `for` step)
+    }
+
+  /* Remove widgets from first structural change.  */                   // C 4067
+  if ! iter.is_null ()                                                  // C 4068
+    {
+      /* If we are adding new menu items below, we must remove from
+	 first radio button so that radio groups become correct.  */    // C 4070-4071
+      if ! cur.is_null () && ! first_radio.is_null ()                   // C 4072
+	{ xg_destroy_widgets (first_radio); }
+      else { xg_destroy_widgets (iter); }                               // C 4073
+    }
+
+  if ! cur.is_null ()                                                   // C 4076
+    {
+      /* More items added.  Create them.  */                            // C 4078
+      newsub = create_menus (cur,                                       // C 4079
+			     f,
+			     select_cb,
+			     deactivate_cb,
+			     highlight_cb,
+			     false,                                     // C 4084
+			     false,                                     // C 4085
+			     submenu,                                   // C 4086
+			     cl_data,
+			     std::ptr::null ());                        // C 4088
+    }
+
+  if ! list.is_null () { g_list_free (list); }                          // C 4091
+
+  newsub                                                                // C 4093
+}

@@ -503,3 +503,27 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the tenth slice's text** under
 arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and the
 pgtk arm's out-of-tree probe reads 10 `^error` matches with none of them this slice's.
+
+### status 4.341 (the gtkutil eleventh-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_update_submenu` (C 3975-4094) is the round's consumer: this mirror gains the
+three type-check macros **`GTK_IS_SEPARATOR_MENU_ITEM`**, **`GTK_IS_CHECK_MENU_ITEM`** and
+**`GTK_IS_MENU_ITEM`** (each kept as the `GTK_IS_*` family above keeps its four: a null test, with
+the `G_TYPE_CHECK_INSTANCE_TYPE` chain owed) and **`gtk_menu_item_get_submenu`**
+(gtk/gtkmenuitem.h, C 4038).  All four read zero tree-wide before this round, so the mirror can
+take them.
+
+**One macro the round could not take, and the family's state after it.**  `GTK_IS_RADIO_MENU_ITEM`
+- the fourth the same function asks - is already copied by `src/pgtkmenu.rs` 229-236 (under
+`have_pgtk`) and `src/xmenu.rs` 783-786 (under `have_x_windows`), both of which `include!` this
+mirror, so a mirror item would be an `E0428` in whichever has its feature on; it stands in the
+consumer instead and the reconciliation is Owed 12 of `docs/ports/gtkutil.md` (which also notes
+that `src/xmenu.rs`'s body returns `true` while the other two spell the family's
+`(! ($o).is_null ())`).
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the eleventh slice's text**
+under arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and
+the pgtk arm's out-of-tree probe reads 10 `^error` matches with none of them this slice's.
