@@ -329,6 +329,7 @@ have_gnutls_x509_system_trust              = []  # HAVE_GNUTLS_X509_SYSTEM_TRUST
 have_gpm                                   = []  # HAVE_GPM
 have_gsettings                             = []  # HAVE_GSETTINGS (gtkutil.c 1462/1824/1927, the `HAVE_PGTK && HAVE_GSETTINGS` arms)
 have_gtk3                                  = []  # HAVE_GTK3
+have_gtk_file_selection_new                = []  # HAVE_GTK_FILE_SELECTION_NEW (src/gtkutil.c 2571/2739/2820, the GTK2 file-selection dialog)
 have_gtk_window_set_has_resize_grip        = []  # HAVE_GTK_WINDOW_SET_HAS_RESIZE_GRIP (gtkutil.c 1620)
 have_haiku                                 = []  # HAVE_HAIKU
 have_iff_automedia                         = []  # see femacs/src/process.rs:4544

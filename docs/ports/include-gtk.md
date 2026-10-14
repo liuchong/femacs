@@ -354,3 +354,32 @@ mirror") decides the direction, so the row stands in this mirror and both unit c
 in the same commit (each site keeps a comment naming the mirror and the edge that resolves it);
 `python3 tools/check-mirror-dupes.py` reads `16 duplicate declaration(s), 16 ratchet row(s),
 0 failure(s)` and `tools/check-all-units.sh` still reads `checked 83 unit(s), 0 failure(s)`.
+
+### status 4.334 (the gtkutil fourth-slice round this file took part in)
+
+`src/gtkutil.c`'s "File dialog functions" (C 2562-2843) is the round's consumer: this mirror gains
+**fifteen entry points** - `gtk_file_chooser_dialog_new` (C's variadic tail kept: C 2661-2666 pass
+four arguments plus `NULL`), `gtk_file_chooser_get_filename`,
+`gtk_file_chooser_set_extra_widget`, `gtk_file_chooser_set_current_folder`,
+`gtk_file_chooser_set_filename`, `gtk_file_chooser_set_current_name`,
+`gtk_file_chooser_set_local_only`, `gtk_check_button_new_with_label`,
+`gtk_toggle_button_get_active`, `gtk_toggle_button_set_active`, `gtk_check_version`,
+`g_signal_handlers_block_by_func`, `g_signal_handlers_unblock_by_func`, and - under the new
+`have_gtk_file_selection_new` feature - `gtk_file_selection_new`,
+`gtk_file_selection_set_filename`, `gtk_file_selection_get_filename` and
+`gtk_file_selection_hide_fileop_buttons`; **four records** (`GtkFileChooser`, `GtkToggleButton`,
+`GtkFileChooserDialog`, and `GtkFileSelection` carrying C 2780's one read member under that
+feature); **three checked-cast wrappers** (`GTK_FILE_CHOOSER`, `GTK_TOGGLE_BUTTON`,
+`GTK_FILE_SELECTION`); **`GtkFileChooserAction`** with its three action values and
+**`GTK_RESPONSE_OK`** - every value a placeholder and every prototype `UNVERIFIED`, as above.
+
+`gtk_misc_set_alignment`'s neighbour note applies here too: the GTK tree would measure the
+placeholders, and `GtkFileSelection.selection_entry`'s offset is the one member without one (the
+`GtkStyle` `bg`/`fg` class - **no number from memory**, P-88 (2)).
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings carry one anchor in the fourth slice's text (the
+`GParamSpec.name` read).  The consumer's ledger records all of it (`docs/ports/gtkutil.md`'s
+slice-4 section).

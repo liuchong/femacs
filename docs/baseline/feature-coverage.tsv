@@ -10,11 +10,11 @@ have_x_windows	3245	40	-	HAVE_X_WINDOWS
 have_ntgui	2709	24	-	-
 have_android	2483	37	-	-
 not_android_stubify	1895	12	-	-
-have_pgtk	1506	29	-	-
+have_pgtk	1505	29	-	-
 have_window_system	1489	35	-	-
-use_gtk	1359	17	-	-
+use_gtk	1369	17	-	-
 have_haiku	827	22	xtask dead-arms	-
-have_gtk3	719	9	-	-
+have_gtk3	722	9	-	-
 use_cairo	647	19	-	-
 use_x_toolkit	556	12	-	USE_X_TOOLKIT
 msdos	540	20	-	-
@@ -188,6 +188,7 @@ win32_vista	8	1	-	-
 arm	7	1	-	-
 freetype	7	2	-	-
 gnulib_openat2	7	1	-	-
+gtk_check_version_ge_3_14	7	3	-	-
 have_acl_extended_file	7	1	-	-
 have_acl_get_link_np	7	1	-	-
 have_ft_face_getcharvariantindex	7	3	-	-
@@ -218,6 +219,7 @@ have_acl_type_extended	6	1	-	-
 have_aclx_get	6	1	-	-
 have_decl_stpcpy	6	2	-	-
 have_getgroups	6	1	-	-
+have_gtk_file_selection_new	6	1	-	-
 have_jpeg	6	1	-	-
 have_png	6	1	-	-
 have_stpcpy	6	2	-	-
@@ -423,7 +425,7 @@ gnuc_prereq_3_2_glibc_has	2	1	-	-
 gnuc_prereq_4_3_glibc_has	2	1	-	-
 gnuc_prereq_4_6_defined_libc	2	1	-	-
 gnuc_prereq_4_9_glibc_has	2	1	-	-
-gtk_check_version_ge_3_14	2	1	-	-
+gtk_check_version_ge_3_12	2	1	-	-
 have_aclv_h	2	2	-	-
 have_dbus_message_set_allow_interactive_authorization	2	1	-	-
 have_dbus_watch_get_unix_fd	2	1	-	-

@@ -2232,6 +2232,9 @@ pub const GTK_ALIGN_CENTER: GtkAlign = 0;                       // placeholder, 
 /// GTK's enumeration is `GTK_RESPONSE_NONE = -1`, then the four standard responses, and this tree
 /// has no GTK header to read it from (`## Owed` 6).
 pub const GTK_RESPONSE_CANCEL: c_int = -6;                      // placeholder, not GTK's value
+/// C: gtk/gtkdialog.h: `GTK_RESPONSE_OK` (C 2837's `filesel_done` test in the file-dialog
+/// section).  Placeholder, the same class as the constant above.
+pub const GTK_RESPONSE_OK: c_int = -5;                          // placeholder, not GTK's value
 /// C: gtk/gtkdialog.h / gtk/gtkmisc.h / gtk/gtkbuildable.h: the three checked-cast wrappers
 /// C 2355/2365/2423 use, each keeping the macro's name and its result type (the GLib cast chains
 /// are owed, as above).
@@ -2292,4 +2295,135 @@ unsafe extern "C" {
   pub fn g_main_loop_run (loop_: *mut GMainLoop);
   pub fn g_main_loop_quit (loop_: *mut GMainLoop);
   pub fn g_main_loop_unref (loop_: *mut GMainLoop);
+}
+
+/* ----------------------------------------------------------------------------------------------
+   The file-dialog surface `src/gtkutil.c`'s "File dialog functions" section (C 2562-2843) reads
+   (status 4.334).  P-90 (2) puts every GTK name in this mirror rather than inline in the unit, so
+   the fifteen entry points, the four records, the three checked-cast wrappers and the four
+   enumeration values that section needs are declared here; the three GTK2 names its
+   `HAVE_GTK_FILE_SELECTION_NEW` arm uses carry that feature.  **No GTK tree exists on this
+   machine**, so every prototype is `UNVERIFIED`, every enum value is a placeholder and
+   `GtkFileSelection`'s one read member has no measured offset (P-88 (2): no numbers from memory);
+   the ledger's Owed names the GTK host that would measure them.
+   ---------------------------------------------------------------------------------------------- */
+
+/// C: gtk/gtkfilechooser.h: `typedef struct _GtkFileChooser GtkFileChooser;` - the pointee of
+/// `GTK_FILE_CHOOSER`.  **UNVERIFIED**.
+#[repr (C)]
+pub struct GtkFileChooser
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtktogglebutton.h: `typedef struct _GtkToggleButton GtkToggleButton;` - the pointee of
+/// `GTK_TOGGLE_BUTTON`.  **UNVERIFIED**.
+#[repr (C)]
+pub struct GtkToggleButton
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkfilechooserdialog.h: `typedef struct _GtkFileChooserDialog GtkFileChooserDialog;` -
+/// the class `gtk_file_chooser_dialog_new` returns (the port only ever holds it as a
+/// `*mut GtkWidget`).  **UNVERIFIED**.
+#[repr (C)]
+pub struct GtkFileChooserDialog
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkfileselection.h (GTK2's): `typedef struct _GtkFileSelection GtkFileSelection;` with
+/// C 2780's `GtkWidget *selection_entry` member.  The record is GTK2's, whose header is not on
+/// this machine, so the head is opaque and the one member the arm reads stands with no measured
+/// offset (**UNVERIFIED**, the `GtkStyle` `bg`/`fg` class of Owed 6).
+#[cfg (feature = "have_gtk_file_selection_new")]
+#[repr (C)]
+pub struct GtkFileSelection
+{
+  /// C 2780: `gtk_widget_set_sensitive (filesel->selection_entry, FALSE);`
+  pub selection_entry: *mut GtkWidget,
+}
+/// C: gtk/gtkfilechooser.h: `typedef enum { GTK_FILE_CHOOSER_ACTION_OPEN, GTK_FILE_CHOOSER_ACTION_SAVE,
+/// GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER, GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER }
+/// GtkFileChooserAction;` - C 2654/2659/2690/2725's four uses.  The values are **UNVERIFIED**
+/// placeholders (`## Owed` 6, the `GtkOrientation` row's class).
+pub type GtkFileChooserAction = c_int;
+/// C: gtk/gtkfilechooser.h: `GTK_FILE_CHOOSER_ACTION_OPEN` (C 2655's `mustmatch_p` arm).  Placeholder.
+pub const GTK_FILE_CHOOSER_ACTION_OPEN: GtkFileChooserAction = 0;    // placeholder, not GTK's value
+/// C: gtk/gtkfilechooser.h: `GTK_FILE_CHOOSER_ACTION_SAVE` (C 2656/2690/2725).  Placeholder.
+pub const GTK_FILE_CHOOSER_ACTION_SAVE: GtkFileChooserAction = 1;    // placeholder, not GTK's value
+/// C: gtk/gtkfilechooser.h: `GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER` (C 2659's `only_dir_p` arm).
+/// Placeholder.
+pub const GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER: GtkFileChooserAction = 2;   // placeholder
+/// C: gtk/gtkfilechooser.h: `GTK_FILE_CHOOSER`; gtk/gtktogglebutton.h: `GTK_TOGGLE_BUTTON`;
+/// gtk/gtkfileselection.h (GTK2's): `GTK_FILE_SELECTION`.  The three checked-cast wrappers
+/// C 2587/2596/2614/2618/2624/2667/2670/2673/2676/2703/2719/2723/2725/2730/2747/2772 use.
+macro_rules! GTK_FILE_CHOOSER {
+  ($o:expr) => { ($o) as *mut GtkFileChooser };
+}
+macro_rules! GTK_TOGGLE_BUTTON {
+  ($o:expr) => { ($o) as *mut GtkToggleButton };
+}
+#[cfg (feature = "have_gtk_file_selection_new")]
+macro_rules! GTK_FILE_SELECTION {
+  ($o:expr) => { ($o) as *mut GtkFileSelection };
+}
+/// C: gtk/gtkfilechooser.h, gtk/gtktogglebutton.h, gtk/gtkbutton.h, gtk/gtkmain.h and
+/// gobject/gsignal.h: the fifteen entry points C 2562-2843 calls.  Every prototype here is
+/// `UNVERIFIED`; `gtk_file_chooser_dialog_new` keeps C's variadic tail (`...`), which is how
+/// C 2661-2666's four arguments plus `NULL` reach it.
+/// C: gtk/gtkfilechooser.h: `GtkWidget *gtk_file_chooser_dialog_new (const gchar *title,
+/// C:   GtkWindow *parent, GtkFileChooserAction action, const gchar *first_button_text, ...);`
+/// C: gtk/gtkfilechooser.h: `gchar *gtk_file_chooser_get_filename (GtkFileChooser *chooser);`
+/// C: gtk/gtkfilechooser.h: `void gtk_file_chooser_set_extra_widget (GtkFileChooser *chooser,
+/// C:   GtkWidget *extra_widget);`
+/// C: gtk/gtkfilechooser.h: `gboolean gtk_file_chooser_set_current_folder (GtkFileChooser *chooser,
+/// C:   const gchar *filename);`
+/// C: gtk/gtkfilechooser.h: `gboolean gtk_file_chooser_set_filename (GtkFileChooser *chooser,
+/// C:   const gchar *filename);`
+/// C: gtk/gtkfilechooser.h: `void gtk_file_chooser_set_current_name (GtkFileChooser *chooser,
+/// C:   const gchar *name);`
+/// C: gtk/gtkfilechooser.h: `void gtk_file_chooser_set_local_only (GtkFileChooser *chooser,
+/// C:   gboolean local_only);`
+/// C: gtk/gtkbutton.h: `GtkWidget *gtk_check_button_new_with_label (const gchar *label);`
+/// C: gtk/gtktogglebutton.h: `gboolean gtk_toggle_button_get_active (GtkToggleButton *toggle_button);`
+/// C: gtk/gtktogglebutton.h: `void gtk_toggle_button_set_active (GtkToggleButton *toggle_button,
+/// C:   gboolean is_active);`
+/// C: gtk/gtkmain.h: `gboolean gtk_check_version (guint required_major, guint required_minor,
+/// C:   guint required_micro);`
+/// C: gobject/gsignal.h: `void g_signal_handlers_block_by_func (gpointer instance,
+/// C:   GCallback func, gpointer data);`
+/// C: gobject/gsignal.h: `void g_signal_handlers_unblock_by_func (gpointer instance,
+/// C:   GCallback func, gpointer data);`
+/// C: gtk/gtkfileselection.h (GTK2's): `GtkWidget *gtk_file_selection_new (const gchar *title);` /
+/// C:   `void gtk_file_selection_set_filename (GtkFileSelection *filesel, const gchar *filename);` /
+/// C:   `gchar *gtk_file_selection_get_filename (GtkFileSelection *filesel);` /
+/// C:   `void gtk_file_selection_hide_fileop_buttons (GtkFileSelection *filesel);`
+unsafe extern "C" {
+  pub fn gtk_file_chooser_dialog_new (title: *const gchar, parent: *mut GtkWindow,
+                                      action: GtkFileChooserAction,
+                                      first_button_text: *const gchar, ...) -> *mut GtkWidget;
+  pub fn gtk_file_chooser_get_filename (chooser: *mut GtkFileChooser) -> *mut gchar;
+  pub fn gtk_file_chooser_set_extra_widget (chooser: *mut GtkFileChooser,
+                                            extra_widget: *mut GtkWidget);
+  pub fn gtk_file_chooser_set_current_folder (chooser: *mut GtkFileChooser,
+                                              filename: *const gchar) -> gboolean;
+  pub fn gtk_file_chooser_set_filename (chooser: *mut GtkFileChooser,
+                                        filename: *const gchar) -> gboolean;
+  pub fn gtk_file_chooser_set_current_name (chooser: *mut GtkFileChooser, name: *const gchar);
+  pub fn gtk_file_chooser_set_local_only (chooser: *mut GtkFileChooser, local_only: gboolean);
+  pub fn gtk_check_button_new_with_label (label: *const gchar) -> *mut GtkWidget;
+  pub fn gtk_toggle_button_get_active (toggle_button: *mut GtkToggleButton) -> gboolean;
+  pub fn gtk_toggle_button_set_active (toggle_button: *mut GtkToggleButton, is_active: gboolean);
+  pub fn gtk_check_version (required_major: guint, required_minor: guint,
+                            required_micro: guint) -> gboolean;
+  pub fn g_signal_handlers_block_by_func (instance: gpointer, func: GCallback, data: gpointer);
+  pub fn g_signal_handlers_unblock_by_func (instance: gpointer, func: GCallback, data: gpointer);
+  #[cfg (feature = "have_gtk_file_selection_new")]
+  pub fn gtk_file_selection_new (title: *const gchar) -> *mut GtkWidget;
+  #[cfg (feature = "have_gtk_file_selection_new")]
+  pub fn gtk_file_selection_set_filename (filesel: *mut GtkFileSelection,
+                                          filename: *const gchar);
+  #[cfg (feature = "have_gtk_file_selection_new")]
+  pub fn gtk_file_selection_get_filename (filesel: *mut GtkFileSelection) -> *mut gchar;
+  #[cfg (feature = "have_gtk_file_selection_new")]
+  pub fn gtk_file_selection_hide_fileop_buttons (filesel: *mut GtkFileSelection);
 }

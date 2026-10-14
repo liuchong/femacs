@@ -3205,3 +3205,388 @@ unsafe fn xg_dialog_run (f: *mut frame, w: *mut GtkWidget) -> c_int
 
   dd.response                                                           // C 2559
 }
+
+/* C 2562's form feed and C 2563-2565's "File dialog functions" banner, carried as C's own text.  */
+/* C: /***********************************************************************
+   C:                       File dialog functions
+   C:  ***********************************************************************/  */
+
+/* C 2566's comment above `xg_uses_old_file_dialog`, carried as C's own text.  */
+/* C: /* Return true if the old file selection dialog is being used.  */  */
+
+/// C 2568-2576: `bool xg_uses_old_file_dialog (void)` - non-`static`, so `#[unsafe(no_mangle)]`
+/// with the C ABI; C 2571-2575's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` pair is the
+/// `have_gtk_file_selection_new` feature (registered by this slice), and C's `x_gtk_…` object is
+/// the Lisp `bool` `include/globals.rs` 7193 carries.
+/// C: bool
+/// C: xg_uses_old_file_dialog (void)
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_uses_old_file_dialog () -> bool
+{
+  /* C 2571's `#ifdef HAVE_GTK_FILE_SELECTION_NEW`.  */
+  #[cfg (feature = "have_gtk_file_selection_new")]
+  { return x_gtk_use_old_file_dialog; }                                // C 2572
+  #[cfg (not (feature = "have_gtk_file_selection_new"))]
+  { return false; }                                                    // C 2574
+}
+
+
+/// C 2579: `typedef char * (*xg_get_file_func) (GtkWidget *);` - the type the three
+/// `*func = …` stores below and C 2838's `(*func) (w)` call use.  The mirror's callback shape
+/// (`Option<unsafe extern "C" fn …>`, PORTING.md 1.4) is what the port's `xg_get_file_func` is.
+#[cfg (feature = "use_gtk")]
+pub type xg_get_file_func = Option<unsafe extern "C" fn (w: *mut GtkWidget) -> *mut c_char>;
+
+/* C 2581-2582's comment above `xg_get_file_name_from_chooser`, carried as C's own text.  */
+/* C: /* Return the selected file for file chooser dialog W.
+   C:    The returned string must be free:d.  */  */
+
+/// C 2584-2588: `static char *xg_get_file_name_from_chooser (GtkWidget *w)` - `static` in C, and
+/// C 2735 stores its address in the caller's `func`, so `unsafe extern "C" fn`.
+/// C: static char *
+/// C: xg_get_file_name_from_chooser (GtkWidget *w)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn xg_get_file_name_from_chooser (w: *mut GtkWidget) -> *mut c_char
+{
+  gtk_file_chooser_get_filename (GTK_FILE_CHOOSER! (w))                // C 2587
+}
+
+/* C 2590-2591's comment above `xg_toggle_visibility_cb`, carried as C's own text.  */
+/* C: /* Callback called when the "Show hidden files" toggle is pressed.
+   C:    WIDGET is the toggle widget, DATA is the file chooser dialog.  */  */
+
+/// C 2593-2600: `static void xg_toggle_visibility_cb (GtkWidget *widget, gpointer data)` - a
+/// callback C 2681's `g_signal_connect` takes the address of (through `G_CALLBACK`), so
+/// `unsafe extern "C" fn`; C's `&visible` is the port's `&raw mut visible` and C 2599's `!visible`
+/// is the port's `(visible == 0) as gboolean` (C's `!` on an int is 0/1).
+/// C: static void
+/// C: xg_toggle_visibility_cb (GtkWidget *widget, gpointer data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn xg_toggle_visibility_cb (widget: *mut GtkWidget, data: gpointer)
+{
+  let dialog: *mut GtkFileChooser = GTK_FILE_CHOOSER! (data);          // C 2596
+  let mut visible: gboolean = 0;                                       // C 2597
+  g_object_get (G_OBJECT! (dialog) as gpointer, c"show-hidden".as_ptr (),
+		&raw mut visible, std::ptr::null_mut::<c_void> ());    // C 2598
+  g_object_set (G_OBJECT! (dialog) as gpointer, c"show-hidden".as_ptr (),
+		(visible == 0) as gboolean,
+		std::ptr::null_mut::<c_void> ());                      // C 2599
+}
+
+
+/* C 2603-2607's comment above `xg_toggle_notify_cb`, carried as C's own text.  */
+/* C: /* Callback called when a property changes in a file chooser.
+   C:    GOBJECT is the file chooser dialog, ARG1 describes the property.
+   C:    USER_DATA is the toggle widget in the file chooser dialog.
+   C:    We use this to update the "Show hidden files" toggle when the user
+   C:    changes that property by right clicking in the file list.  */  */
+
+/// C 2609-2629: `static void xg_toggle_notify_cb (GObject *gobject, GParamSpec *arg1,
+/// gpointer user_data)` - C 2683 takes its address, so `unsafe extern "C" fn`; C 2620's
+/// `!!visible != !!toggle_on` is the port's two `!= 0` tests, and C 2622's `(gpointer) G_CALLBACK
+/// (…)` cast is the `GCallback`-to-`gpointer` transmute this file already uses (C 2344's device).
+/// C: static void
+/// C: xg_toggle_notify_cb (GObject *gobject, GParamSpec *arg1, gpointer user_data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn xg_toggle_notify_cb (gobject: *mut GObject, arg1: *mut GParamSpec,
+					 user_data: gpointer)
+{
+  if strcmp ((*arg1).name, c"show-hidden".as_ptr ()) == 0             // C 2612
+    {
+      let wtoggle: *mut GtkWidget = GTK_WIDGET! (user_data);           // C 2614
+      let mut visible: gboolean = 0;                                   // C 2615
+      let mut toggle_on: gboolean = 0;
+
+      g_object_get (G_OBJECT! (gobject) as gpointer, c"show-hidden".as_ptr (),
+		    &raw mut visible, std::ptr::null_mut::<c_void> ());   // C 2617
+      toggle_on = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON! (wtoggle));   // C 2618
+
+      if (visible != 0) != (toggle_on != 0)                            // C 2620
+	{
+	  let cb: gpointer
+	    = core::mem::transmute::<GCallback, gpointer> (
+		G_CALLBACK! (xg_toggle_visibility_cb));                // C 2622
+	  /* C 2623/2625 pass C's `gpointer cb` where the prototype takes a `GCallback`; the port
+	     transmutes the stored pointer back (C's own implicit conversion).  */
+	  g_signal_handlers_block_by_func (G_OBJECT! (wtoggle) as gpointer,
+					   core::mem::transmute::<gpointer, GCallback> (cb),
+					   gobject as gpointer);        // C 2623
+	  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON! (wtoggle), visible);   // C 2624
+	  g_signal_handlers_unblock_by_func (G_OBJECT! (wtoggle) as gpointer,
+					     core::mem::transmute::<gpointer, GCallback> (cb),
+					     gobject as gpointer);      // C 2625
+	}
+      x_gtk_show_hidden_files = visible != 0;                          // C 2627
+    }
+}
+
+/* C 2631-2640's comment above `xg_get_file_with_chooser`, carried as C's own text.  */
+/* C: /* Read a file name from the user using a file chooser dialog.
+   C:    F is the current frame.
+   C:    PROMPT is a prompt to show to the user.  May not be NULL.
+   C:    DEFAULT_FILENAME is a default selection to be displayed.  May be NULL.
+   C:    If MUSTMATCH_P, the returned file name must be an existing
+   C:    file.  (Actually, this only has cosmetic effects, the user can
+   C:    still enter a non-existing file.)  *FUNC is set to a function that
+   C:    can be used to retrieve the selected file name from the returned widget.
+
+   C:    Returns the created widget.  */  */
+
+/// C 2642-2737: `static GtkWidget *xg_get_file_with_chooser (struct frame *f, char *prompt,
+/// char *default_filename, bool mustmatch_p, bool only_dir_p, xg_get_file_func *func)` -
+/// `static` in C with one call site, so a plain `unsafe fn`; C 2649's 1024-byte `msgbuf` is the
+/// port's array, C 2652's `UNINIT` member is zeroed instead (PORTING.md 1.5), C 2654-2656 and
+/// C 2658's `action` is the mirror's enumeration, C 2687's `char *z = msgbuf` is the port's
+/// pointer into the array, and C 2735's `*func = …` stores the item through the caller's pointer.
+/// C: static GtkWidget *
+/// C: xg_get_file_with_chooser (struct frame *f,
+/// C: 			  char *prompt,
+/// C: 			  char *default_filename,
+/// C: 			  bool mustmatch_p, bool only_dir_p,
+/// C: 			  xg_get_file_func *func)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_get_file_with_chooser (f: *mut frame, prompt: *mut c_char,
+				    default_filename: *mut c_char,
+				    mustmatch_p: bool, only_dir_p: bool,
+				    func: *mut xg_get_file_func) -> *mut GtkWidget
+{
+  let mut msgbuf: [c_char; 1024] = [0; 1024];                           // C 2649
+
+  let filewin: *mut GtkWidget;                                         // C 2651
+  let wtoggle: *mut GtkWidget;
+  let wbox: *mut GtkWidget;
+  /* C leaves `wmessage` UNINIT (PORTING.md 1.5); C 2696 stores it under C 2685's guard, which is
+     exactly C 2701's guard, so the null is never read.  */
+  let mut wmessage: *mut GtkWidget = std::ptr::null_mut ();             // C 2652
+  let gwin: *mut GtkWindow = GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f));   // C 2653
+  let mut action: GtkFileChooserAction = if mustmatch_p                 // C 2654
+    { GTK_FILE_CHOOSER_ACTION_OPEN } else { GTK_FILE_CHOOSER_ACTION_SAVE };   // C 2655-2656
+
+  if only_dir_p                                                         // C 2658
+    { action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER; }                 // C 2659
+
+  filewin = gtk_file_chooser_dialog_new (prompt, gwin, action,          // C 2661-2662
+					 XG_TEXT_CANCEL! ().as_ptr (), GTK_RESPONSE_CANCEL,
+					 (if mustmatch_p || only_dir_p   // C 2663
+					  { XG_TEXT_OPEN! ().as_ptr () }
+					  else { XG_TEXT_OK! ().as_ptr () }),   // C 2664
+					 GTK_RESPONSE_OK,
+					 std::ptr::null_mut::<c_void> ());   // C 2666
+  gtk_file_chooser_set_local_only (GTK_FILE_CHOOSER! (filewin), TRUE);  // C 2667
+
+  wbox = gtk_box_new! (GTK_ORIENTATION_VERTICAL, 0);                    // C 2669
+  gtk_box_set_homogeneous (GTK_BOX! (wbox), FALSE);                     // C 2670
+  gtk_widget_show (wbox);                                               // C 2671
+  wtoggle = gtk_check_button_new_with_label (c"Show hidden files.".as_ptr ());   // C 2672
+
+  g_object_set (G_OBJECT! (filewin) as gpointer, c"show-hidden".as_ptr (),   // C 2674
+		x_gtk_show_hidden_files as gboolean,
+		std::ptr::null_mut::<c_void> ());
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON! (wtoggle),           // C 2676
+				x_gtk_show_hidden_files as gboolean);   // C 2677
+
+  gtk_widget_show (wtoggle);                                            // C 2679
+  g_signal_connect! (G_OBJECT! (wtoggle), c"clicked".as_ptr (),         // C 2680
+		     xg_toggle_visibility_cb, filewin as gpointer);     // C 2681
+  g_signal_connect! (G_OBJECT! (filewin), c"notify".as_ptr (),          // C 2682
+		     xg_toggle_notify_cb, wtoggle as gpointer);         // C 2683
+
+  if x_gtk_file_dialog_help_text                                        // C 2685
+    {
+      let mut z: *mut c_char = msgbuf.as_mut_ptr ();                     // C 2687
+      /* C 2688-2689's note, carried as C's own text at its position.  */
+      /* C: /* Gtk+ 2.10 has the file name text entry box integrated in the dialog.
+	 C:    Show the C-l help text only for versions < 2.10.  */  */
+      if gtk_check_version (2, 10, 0) != 0 && action != GTK_FILE_CHOOSER_ACTION_SAVE   // C 2690
+	{ z = stpcpy (z, c"\nType C-l to display a file name text entry box.\n".as_ptr ()); }   // C 2691
+      /* C 2692-2694's three literals are one string in C; the port writes the concatenation
+	 as one `c"…"` (the port has no adjacent-literal concatenation).  */
+      strcpy (z, c"\nIf you don't like this file selector, use the corresponding\nkey binding or customize use-file-dialog to turn it off.".as_ptr ());   // C 2692-2694
+
+      wmessage = gtk_label_new (msgbuf.as_ptr ());                       // C 2696
+      gtk_widget_show (wmessage);                                        // C 2697
+    }
+
+  gtk_box_pack_start (GTK_BOX! (wbox), wtoggle, FALSE, FALSE, 0);        // C 2700
+  if x_gtk_file_dialog_help_text                                         // C 2701
+    { gtk_box_pack_start (GTK_BOX! (wbox), wmessage, FALSE, FALSE, 0); }   // C 2702
+  gtk_file_chooser_set_extra_widget (GTK_FILE_CHOOSER! (filewin), wbox);   // C 2703
+
+  if !default_filename.is_null ()                                        // C 2705
+    {
+      let mut file: Lisp_Object;                                         // C 2707
+      let mut utf8_filename: *mut c_char;                                // C 2708
+
+      file = build_string (default_filename);                            // C 2710
+
+      /* C 2712-2713's note, carried as C's own text at its position.  */
+      /* C: /* File chooser does not understand ~/... in the file name.  It must be
+	 C:    an absolute name starting with /.  */  */
+      if *default_filename != b'/' as c_char                             // C 2714
+	{ file = Fexpand_file_name (file, Qnil ()); }                    // C 2715
+
+      utf8_filename = SSDATA (ENCODE_UTF_8 (file));                      // C 2717
+      if !NILP (Ffile_directory_p (file))                                // C 2718
+	{
+	  gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER! (filewin),   // C 2719
+					       utf8_filename);           // C 2720
+	}
+      else
+	{
+	  gtk_file_chooser_set_filename (GTK_FILE_CHOOSER! (filewin),      // C 2723
+					 utf8_filename);                 // C 2724
+	  if action == GTK_FILE_CHOOSER_ACTION_SAVE                        // C 2725
+	    {
+	      let mut cp: *mut c_char = strrchr (utf8_filename, b'/' as c_int);   // C 2727
+	      if !cp.is_null () { cp = cp.add (1); }                         // C 2728
+	      else { cp = utf8_filename; }                                   // C 2729
+	      gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER! (filewin), cp);   // C 2730
+	    }
+	}
+    }
+
+  *func = Some (xg_get_file_name_from_chooser);                          // C 2735
+  filewin                                                               // C 2736
+}
+
+/* C 2739's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` - the `have_gtk_file_selection_new` feature (the
+   same one C 2571's `xg_uses_old_file_dialog` pair carries).  */
+/* C 2741-2742's comment above `xg_get_file_name_from_selector`, carried as C's own text.  */
+/* C: /* Return the selected file for file selector dialog W.
+   C:    The returned string must be free:d.  */  */
+
+/// C 2744-2749: `static char *xg_get_file_name_from_selector (GtkWidget *w)` - `static` in C, and
+/// C 2784 stores its address, so `unsafe extern "C" fn`; C 2748's `xstrdup` is `include/lisp.rs`
+/// 4226's row.
+/// C: static char *
+/// C: xg_get_file_name_from_selector (GtkWidget *w)
+#[cfg (all (feature = "use_gtk", feature = "have_gtk_file_selection_new"))]
+unsafe extern "C" fn xg_get_file_name_from_selector (w: *mut GtkWidget) -> *mut c_char
+{
+  let filesel: *mut GtkFileSelection = GTK_FILE_SELECTION! (w);         // C 2747
+  xstrdup (gtk_file_selection_get_filename (filesel))                   // C 2748
+}
+
+/* C 2751-2759's comment above `xg_get_file_with_selection`, carried as C's own text.  */
+/* C: /* Create a file selection dialog.
+   C:    F is the current frame.
+   C:    PROMPT is a prompt to show to the user.  May not be NULL.
+   C:    DEFAULT_FILENAME is a default selection to be displayed.  May be NULL.
+   C:    If MUSTMATCH_P, the returned file name must be an existing
+   C:    file.  *FUNC is set to a function that can be used to retrieve the
+   C:    selected file name from the returned widget.
+
+   C:    Returns the created widget.  */  */
+
+/// C 2761-2787: `static GtkWidget *xg_get_file_with_selection (struct frame *f, char *prompt,
+/// char *default_filename, bool mustmatch_p, bool only_dir_p, xg_get_file_func *func)` -
+/// `static` in C with one call site (C 2823), so a plain `unsafe fn`; C 2775's single-statement
+/// `if` is the port's braced one, C 2780's `filesel->selection_entry` is the member the mirror
+/// names (its offset is UNVERIFIED, `## Owed` 6), and C 2784's `*func = …` stores the item.
+/// C: static GtkWidget *
+/// C: xg_get_file_with_selection (struct frame *f,
+/// C:                             char *prompt,
+/// C:                             char *default_filename,
+/// C:                             bool mustmatch_p, bool only_dir_p,
+/// C:                             xg_get_file_func *func)
+#[cfg (all (feature = "use_gtk", feature = "have_gtk_file_selection_new"))]
+unsafe fn xg_get_file_with_selection (f: *mut frame, prompt: *mut c_char,
+				      default_filename: *mut c_char,
+				      mustmatch_p: bool, only_dir_p: bool,
+				      func: *mut xg_get_file_func) -> *mut GtkWidget
+{
+  let filewin: *mut GtkWidget;                                          // C 2768
+  let filesel: *mut GtkFileSelection;                                   // C 2769
+
+  filewin = gtk_file_selection_new (prompt);                            // C 2771
+  filesel = GTK_FILE_SELECTION! (filewin);                              // C 2772
+
+  if !default_filename.is_null ()                                       // C 2774
+    { gtk_file_selection_set_filename (filesel, default_filename); }    // C 2775
+
+  if mustmatch_p                                                        // C 2777
+    {
+      /* C 2779's note, carried as C's own text at its position.  */
+      /* C: /* The selection_entry part of filesel is not documented.  */  */
+      gtk_widget_set_sensitive ((*filesel).selection_entry, FALSE);      // C 2780
+      gtk_file_selection_hide_fileop_buttons (filesel);                  // C 2781
+    }
+
+  *func = Some (xg_get_file_name_from_selector);                         // C 2784
+
+  filewin                                                               // C 2786
+}
+
+/* C 2790-2801's comment above `xg_get_file_name`, carried as C's own text.  */
+/* C: /* Read a file name from the user using a file dialog, either the old
+   C:    file selection dialog, or the new file chooser dialog.  Which to use
+   C:    depends on what the GTK version used has, and what the value of
+   C:    gtk-use-old-file-dialog.
+   C:    F is the current frame.
+   C:    PROMPT is a prompt to show to the user.  May not be NULL.
+   C:    DEFAULT_FILENAME is a default selection to be displayed.  May be NULL.
+   C:    If MUSTMATCH_P, the returned file name must be an existing
+   C:    file.
+
+   C:    Returns a file name or NULL if no file was selected.
+   C:    The returned string must be freed by the caller.  */  */
+
+/// C 2803-2842: `char *xg_get_file_name (struct frame *f, char *prompt, char *default_filename,
+/// bool mustmatch_p, bool only_dir_p)` - non-`static`, so `#[unsafe(no_mangle)]` with the C ABI.
+/// C 2815-2818's `#ifdef HAVE_PGTK` guard is the `have_pgtk` feature and C 2817's `error` is
+/// `include/lisp.rs` 3824's variadic; C 2820-2832's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` pair is
+/// the same feature as the two functions above; C 2810/2811's `0` are the port's null pointer and
+/// null string, C 2813's `func` is `None` until one of the two arms stores an item, and C 2838's
+/// `(*func) (w)` is the port's `(func.unwrap ()) (w)`.
+/// C: char *
+/// C: xg_get_file_name (struct frame *f,
+/// C:                   char *prompt,
+/// C:                   char *default_filename,
+/// C:                   bool mustmatch_p,
+/// C:                   bool only_dir_p)
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_get_file_name (f: *mut frame, prompt: *mut c_char,
+					   default_filename: *mut c_char,
+					   mustmatch_p: bool, only_dir_p: bool) -> *mut c_char
+{
+  let mut w: *mut GtkWidget = std::ptr::null_mut ();                    // C 2810
+  let mut fn_: *mut c_char = std::ptr::null_mut ();                     // C 2811
+  let mut filesel_done: c_int = 0;                                      // C 2812
+  let mut func: xg_get_file_func = None;                                // C 2813
+
+  /* C 2815's `#ifdef HAVE_PGTK`.  */
+  #[cfg (feature = "have_pgtk")]
+  { if FRAME_GTK_OUTER_WIDGET! (f).is_null ()                           // C 2816
+      { error (c"Can't open dialog from child frames".as_ptr ()); } }   // C 2817
+
+  /* C 2820's `#ifdef HAVE_GTK_FILE_SELECTION_NEW`.  */
+  #[cfg (feature = "have_gtk_file_selection_new")]
+  {
+    if xg_uses_old_file_dialog ()                                       // C 2822
+      {
+	w = xg_get_file_with_selection (f, prompt, default_filename,    // C 2823
+					mustmatch_p, only_dir_p, (&raw mut func));   // C 2824
+      }
+    else
+      {
+	w = xg_get_file_with_chooser (f, prompt, default_filename,      // C 2826
+				      mustmatch_p, only_dir_p, (&raw mut func));   // C 2827
+      }
+  }
+  #[cfg (not (feature = "have_gtk_file_selection_new"))]
+  {
+    w = xg_get_file_with_chooser (f, prompt, default_filename,          // C 2830
+				  mustmatch_p, only_dir_p, (&raw mut func));   // C 2831
+  }
+
+  gtk_widget_set_name (w, c"emacs-filedialog".as_ptr ());               // C 2834
+
+  filesel_done = xg_dialog_run (f, w);                                  // C 2836
+  if filesel_done == GTK_RESPONSE_OK                                    // C 2837
+    { fn_ = (func.unwrap ()) (w); }                                     // C 2838
+
+  gtk_widget_destroy (w);                                               // C 2840
+  fn_                                                                   // C 2841
+}

@@ -136,6 +136,7 @@
 | C 1833's `#ifdef HAVE_PGTK` (`xg_create_frame_outer_widgets`), C 1883's `#if ! GTK_CHECK_VERSION (3, 22, 0)` | `have_pgtk`; `not (gtk_check_version_ge_3_22)` | a pgtk build / a GTK < 3.22 build |
 | C 1954/1962's `#ifndef HAVE_PGTK` and C 1955's `#ifdef HAVE_XDBE` (`xg_free_frame_widgets`), C 2007's `#ifndef HAVE_PGTK` fold (`xg_wm_set_size_hint`) | `not (have_pgtk)`; `have_xdbe` | a GTK build with Xdbe / an X11-GTK build |
 | C 2124 `#ifdef USE_TOOLKIT_SCROLL_BARS` (`xg_set_background_color`) | `use_toolkit_scroll_bars` - **not registered** (Owed 9) | a build with toolkit scroll bars |
+| **slice 4 (C 2562-2843).** C 2571's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` (`xg_uses_old_file_dialog`), C 2739's same fold (the `xg_get_file_name_from_*`/`with_*` pair) and C 2820's (`xg_get_file_name`'s chooser choice) | `all (use_gtk, have_gtk_file_selection_new)` - registered by this slice | a GTK build whose headers still carry the old file-selection dialog (GTK2) |
 | C 2145's `#ifdef HAVE_PGTK` (`xg_set_undecorated`), C 2175/2190's `#ifndef HAVE_PGTK` / `#else` (`xg_frame_restack`, `xg_set_skip_taskbar`), C 2209/2229's `#ifdef HAVE_PGTK` (`xg_set_no_focus_on_map`, `xg_set_no_accept_focus`), C 2261's `#ifndef HAVE_PGTK` + C 2268's dead inner `#ifdef HAVE_PGTK` (`xg_set_frame_icon`) | `have_pgtk` / `not (have_pgtk)`; the two in-expression arm splits are arm choosers (`## Deviations` 17) | as above |
 
 ## C line ranges
@@ -188,7 +189,8 @@
 | 2139-2277 | the seven frame-parameter setters: `xg_set_undecorated` (C 2143-2156, C 2145's `#ifdef HAVE_PGTK`), `xg_frame_restack` (C 2162-2182, C 2175's pair), `xg_set_skip_taskbar` (C 2187-2202, C 2190's pair), `xg_set_no_focus_on_map` (C 2207-2222, C 2209's `#ifdef HAVE_PGTK`), `xg_set_no_accept_focus` (C 2226-2244, C 2229's), `xg_set_override_redirect` (C 2247-2259) and `xg_set_frame_icon` (C 2266-2277, under C 2261's `#ifndef HAVE_PGTK` with C 2268's dead `#ifdef HAVE_PGTK`) | file gate; `have_pgtk` / `not (have_pgtk)` |
 | 2278-2281 | C 2278's `#endif`, C 2279-2280's blanks and C 2281's form feed | file gate |
 | 2282-2561 | the "Dialog functions" banner (C 2282-2284) and the whole section: `get_dialog_title` (C 2288-2316), `dialog_delete_callback` (C 2329-2334), **`create_dialog`** (C 2343-2457; C 2363's `GTK_CHECK_VERSION (3, 12, 0)` and C 2419's `(3, 14, 0)` pairs), the `xg_dialog_data` record (C 2459-2465), `xg_dialog_response_cb` (C 2471-2479), `pop_down_dialog` (C 2484-2497), `xg_maybe_add_timer` (C 2502-2519) and `xg_dialog_run` (C 2526-2560, C 2561's blank) | file gate (`use_gtk`); `gtk_check_version_ge_3_12` / `_3_14` inside `create_dialog`; slice 3 below |
-| 2562-6753 | **the remainder** — from C 2562's form feed through C 6753: the file chooser half (`xg_get_file_name_from_chooser`, `xg_get_file_with_chooser`, `xg_get_file_with_selection`, `xg_get_file_name`), `xg_get_font` and the font machinery, the menu machinery (`make_cl_data`, `xg_mark_data`, `create_menus`, `xg_update_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 2562-2843 | the "File dialog functions" banner (C 2562-2565) and the whole section: `xg_uses_old_file_dialog` (C 2568-2576), the `xg_get_file_func` typedef (C 2579), `xg_get_file_name_from_chooser` (C 2584-2588), `xg_toggle_visibility_cb` (C 2593-2600), `xg_toggle_notify_cb` (C 2609-2629), **`xg_get_file_with_chooser`** (C 2642-2737), the `HAVE_GTK_FILE_SELECTION_NEW` pair `xg_get_file_name_from_selector` (C 2744-2749) and `xg_get_file_with_selection` (C 2761-2787), and `xg_get_file_name` (C 2803-2842) | file gate (`use_gtk`); `have_gtk_file_selection_new` for the middle pair; `have_pgtk` inside `xg_get_file_name`; slice 4 below |
+| 2844-6753 | **the remainder** — from C 2844's "GTK font chooser" banner through C 6753: `xg_font_filter` and the font machinery, the menu machinery (`make_cl_data`, `xg_mark_data`, `create_menus`, `xg_update_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -954,3 +956,67 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     slice's transcription, and the fix belongs to `femacs/xtask` (the dedupe should either keep the
     edge where its own cfg is on, or place the shared mirror's copy outside every gate); until then
     the file's arm-B reading is reported with this reason, as slice 3's section does.
+
+## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
+
+**What this slice is.**  The reference's "File dialog functions" section: `xg_uses_old_file_dialog`
+(C 2568-2576), the `xg_get_file_func` typedef (C 2579), `xg_get_file_name_from_chooser`
+(C 2584-2588), `xg_toggle_visibility_cb` (C 2593-2600), `xg_toggle_notify_cb` (C 2609-2629),
+**`xg_get_file_with_chooser`** (C 2642-2737), the `HAVE_GTK_FILE_SELECTION_NEW` pair
+(`xg_get_file_name_from_selector`, C 2744-2749, and `xg_get_file_with_selection`, C 2761-2787) and
+`xg_get_file_name` (C 2803-2842).  Port: 3,207 -> **3,592 lines**; the table's last row splits at
+C 2843 - the next live definition is C 2848's `xg_font_filter` (the font-chooser half).
+
+**The mirror this slice needed.**  `include/gtk.rs` gains the fifteen entry points
+(`gtk_file_chooser_dialog_new` with C's variadic tail, the six `gtk_file_chooser_*` calls,
+`gtk_check_button_new_with_label`, the two `gtk_toggle_button_*` calls, `gtk_check_version`, the
+two `g_signal_handlers_*_by_func` entries and, under the new feature, the four GTK2
+`gtk_file_selection_*` calls), the four records (`GtkFileChooser`, `GtkToggleButton`,
+`GtkFileChooserDialog` and - under `have_gtk_file_selection_new` - `GtkFileSelection` with C 2780's
+one read member), the three checked-cast wrappers (`GTK_FILE_CHOOSER`, `GTK_TOGGLE_BUTTON`,
+`GTK_FILE_SELECTION`), `GtkFileChooserAction` with its three values and `GTK_RESPONSE_OK`.  Every
+GTK/GLib prototype and value stays **UNVERIFIED** (no GTK tree here), and `GtkFileSelection`'s
+member has no measured offset (Owed 6's class).
+
+**The feature this slice registered.**  C 2571/2739/2820's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` had
+no name, so the tree could not spell the arm: `femacs/xtask/Cargo.toml` now carries
+`have_gtk_file_selection_new` (C's condition and its three sites in the comment) and
+`python3 tools/feature-coverage.py --write` re-recorded `docs/baseline/feature-coverage.tsv`
+(6 uses, one definition).  The gate table above gains its row.
+
+**Deviations this slice adds.**
+
+- **`GParamSpec` keeps its opaque head**, so C 2612's `arg1->name` read stands in the port's text
+  and the arm reports `no field name on type GParamSpec` - exactly the class C 798-800's
+  `gsty->bg[…]`/`fg[…]` reads carry for `GtkStyle` (Owed 6).  The member is *not* the record's
+  first (`GParamSpec` opens with its `GTypeInstance`), so inventing an offset would be a wrong
+  layout rather than a conservative one (P-88 (2)).
+- **C's `gpointer cb` reaches the prototype's `GCallback` parameter** by the
+  `core::mem::transmute::<gpointer, GCallback>` the file already uses for the reverse direction
+  (C 2344's device), and C 2620's `!!visible != !!toggle_on` is the port's
+  `(visible != 0) != (toggle_on != 0)` (C's `!!` on an int).
+- **C 2652's `UNINIT` declarator** is a zeroed local plus C's own guard (PORTING.md 1.5),
+  C 2692-2694's three adjacent literals are one `c"…"` (Rust has no adjacent-string
+  concatenation), and C 2491-like `x_gtk_…` Lisp booleans enter the variadic `g_object_set` and
+  `gtk_toggle_button_set_active` as `as gboolean` (C's `bool` promotion).
+- **`g_signal_connect!`'s data argument** needs C's implicit pointer conversion spelled out
+  (`filewin as gpointer`, `wtoggle as gpointer`), the same shape slice 2's sites use.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings.**  Arm A: **30 errors, 1 anchored in this slice** (the `GParamSpec.name`
+   read above).  Arm A plus `have_gtk_file_selection_new`: **30 errors, the same single anchor** -
+   the new arm adds no class.  Arm C (GTK2): **60 errors, 2 anchored here** (the same read plus
+   `GTK_ORIENTATION_VERTICAL`, Owed 6's GTK2 class).  Arm B: **647 errors, the materialiser's
+   dedupe artifact** (Owed 17) - the first anchors are in slice 2's text.
+3. **`extract-abi.py --check`** -> 116 -> **107 `- ` rows** (9 more functions retired); the two new
+   `does not mention` rows (`xg_uses_old_file_dialog`'s `0`, and `g_callback`/`uninit` in
+   `xg_get_file_with_chooser`) are recorded in `docs/ports/macro-body-notes.tsv`; the line-count
+   row reads **46.8%** (C 6,753 vs 3,592) - the file is open and its tolerance row lands with the
+   closing slice.
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled (no GTK tree on this machine); every GTK/GLib prototype and
+value this slice added is UNVERIFIED.
