@@ -14387,6 +14387,485 @@ DEFUN! ("w32-set-mouse-absolute-pixel-position", Fw32_set_mouse_absolute_pixel_p
   return Qnil ();
 });
 
+/* C 9755's `#ifdef WINDOWSNT` opens here and C 9890's `#endif` closes it; C 9893-9999 is the
+   second such block.  Both DEFUNs' `have_ntgui`-and-`windowsnt` gates below are that nesting.  */
+
+/// C 9756-9759: the two `GetDiskFreeSpaceEx` pointer types.  `get_proc_addr` (`w32common.h`
+/// 65-70) returns `VOIDFNPTR`, so each cast is the `transmute` the `w32menu.rs` loader uses.
+/// C: typedef BOOL (WINAPI *GetDiskFreeSpaceExW_Proc)
+/// C:   (LPCWSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
+/// C: typedef BOOL (WINAPI *GetDiskFreeSpaceExA_Proc)
+/// C:   (LPCSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type LPCSTR = *const c_char;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type GetDiskFreeSpaceExW_Proc
+  = Option<unsafe extern "system" fn (arg0: LPCWSTR, arg1: PULARGE_INTEGER, arg2: PULARGE_INTEGER,
+				      arg3: PULARGE_INTEGER) -> BOOL>;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type GetDiskFreeSpaceExA_Proc
+  = Option<unsafe extern "system" fn (arg0: LPCSTR, arg1: PULARGE_INTEGER, arg2: PULARGE_INTEGER,
+				      arg3: PULARGE_INTEGER) -> BOOL>;
+
+/// C 9840-9857's `LARGE_INTEGER` and C 9846-9848's `ULARGE_INTEGER` casts: the two `<winnt.h>`
+/// unions and their pointer, spelled as `src/w32.rs` 392-404 / 1391-1404 spells them (the same
+/// `QuadPart` member C reads, `LONGLONG`'s `i64`).
+/// C: typedef union _LARGE_INTEGER { struct { DWORD LowPart; LONG HighPart; } u;
+/// C:   LONGLONG QuadPart; } LARGE_INTEGER;
+/// C: typedef union _ULARGE_INTEGER { struct { DWORD LowPart; DWORD HighPart; } u;
+/// C:   ULONGLONG QuadPart; } ULARGE_INTEGER;
+/// C: typedef ULARGE_INTEGER *PULARGE_INTEGER;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct LARGE_INTEGER_u
+{
+  pub LowPart: DWORD,
+  pub HighPart: LONG,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union LARGE_INTEGER
+{
+  pub u: LARGE_INTEGER_u,
+  pub QuadPart: i64,                       /* C's `LONGLONG` (PORTING.md 1.1's `i64` row) */
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ULARGE_INTEGER_u
+{
+  pub LowPart: DWORD,
+  pub HighPart: DWORD,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union ULARGE_INTEGER
+{
+  pub u: ULARGE_INTEGER_u,
+  pub QuadPart: u64,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type PULARGE_INTEGER = *mut ULARGE_INTEGER;
+
+/// C 9866-9877's two `<fileapi.h>` entry points (the A/W pair C's `w32_unicode_filenames` test
+/// picks between).
+/// C: BOOL WINAPI GetDiskFreeSpaceW (LPCWSTR lpRootPathName, LPDWORD lpSectorsPerCluster,
+/// C: LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
+/// C: BOOL WINAPI GetDiskFreeSpaceA (LPCSTR lpRootPathName, …);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "system" {
+  pub fn GetDiskFreeSpaceW (lpRootPathName: LPCWSTR, lpSectorsPerCluster: LPDWORD,
+			    lpBytesPerSector: LPDWORD, lpNumberOfFreeClusters: LPDWORD,
+			    lpTotalNumberOfClusters: LPDWORD) -> BOOL;
+  pub fn GetDiskFreeSpaceA (lpRootPathName: LPCSTR, lpSectorsPerCluster: LPDWORD,
+			    lpBytesPerSector: LPDWORD, lpNumberOfFreeClusters: LPDWORD,
+			    lpTotalNumberOfClusters: LPDWORD) -> BOOL;
+}
+
+/// C 9761-9890: `file-system-info` - C 9765's two locals (and C 9768-9769's `filename`
+/// reassignment, so the port re-binds the parameter), C 9767-9769's `CHECK_STRING` /
+/// `Fexpand_file_name` / `ENCODE_FILE`, C 9773-9780's handler probe (`Ffind_file_name_handler`,
+/// `calln`, the `CONSP`-or-`NILP` early return and C 9779's `error`), C 9789-9797's dynamic probe
+/// for `GetDiskFreeSpaceExW`/`A` with `w32_unicode_filenames` choosing which pointer matters,
+/// C 9801-9804's three root-name buffers and C 9808-9829's two root-name forms (the drive-letter
+/// case and the UNC prefix walk with C's `do … while (*name)`), C 9831-9834's
+/// `filename_to_utf16`/`filename_to_ansi` choice, C 9836-9858's `LARGE_INTEGER` arm (`list3` of the
+/// three `QuadPart` doubles, C's own comment about the unsigned-to-double cast) and C 9859-9885's
+/// `GetDiskFreeSpaceW`/`A` arm with the three products.
+/// C: DEFUN ("file-system-info", Ffile_system_info, Sfile_system_info, 1, 1, 0,
+/// C:        doc: /* SKIP: Real doc in fileio.c.  */)
+/// C:   (Lisp_Object filename)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("file-system-info", Ffile_system_info, Sfile_system_info, 1, 1, 0,
+	doc: "SKIP: Real doc in fileio.c.",
+	(filename: Lisp_Object),
+	{
+  let mut filename = filename;
+  let mut encoded: Lisp_Object;
+  let mut value: Lisp_Object;
+
+  CHECK_STRING (filename);
+  filename = Fexpand_file_name (filename, Qnil ());
+  encoded = ENCODE_FILE (filename);
+
+  /* If the file name has special constructs in it,
+     call the corresponding file name handler.  */
+  let handler: Lisp_Object = Ffind_file_name_handler (encoded, Qfile_system_info ());
+  if ! NILP (handler)
+    {
+      value = calln! (handler, Qfile_system_info (), encoded);
+      if CONSP (value) || NILP (value)
+	{ return value; }
+      error (c"Invalid handler in `file-name-handler-alist'".as_ptr ());
+    }
+
+  value = Qnil ();
+
+  /* Determining the required information on Windows turns out, sadly,
+     to be more involved than one would hope.  The original Windows API
+     call for this will return bogus information on some systems, but we
+     must dynamically probe for the replacement api, since that was
+     added rather late on.  */
+  {
+    let hKernel: HMODULE = GetModuleHandle (c"kernel32".as_ptr ());
+    let pfn_GetDiskFreeSpaceExW: GetDiskFreeSpaceExW_Proc
+      = core::mem::transmute::<VOIDFNPTR, GetDiskFreeSpaceExW_Proc> (
+	  get_proc_addr (hKernel, c"GetDiskFreeSpaceExW".as_ptr ()));
+    let pfn_GetDiskFreeSpaceExA: GetDiskFreeSpaceExA_Proc
+      = core::mem::transmute::<VOIDFNPTR, GetDiskFreeSpaceExA_Proc> (
+	  get_proc_addr (hKernel, c"GetDiskFreeSpaceExA".as_ptr ()));
+    let have_pfn_GetDiskFreeSpaceEx: bool
+      = (w32_unicode_filenames && pfn_GetDiskFreeSpaceExW.is_some ())
+	|| (! w32_unicode_filenames && pfn_GetDiskFreeSpaceExA.is_some ());
+
+    /* On Windows, we may need to specify the root directory of the
+       volume holding FILENAME.  */
+    let mut rootname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];
+    let mut rootname_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize];
+    let mut rootname_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];
+    let mut name: *mut c_char = SSDATA (encoded) as *mut c_char;
+    let mut result: BOOL;
+
+    /* find the root name of the volume if given */
+    if c_isalpha (*name as c_int) && *name.offset (1) == b':' as c_char
+      {
+	rootname[0] = *name;
+	rootname[1] = *name.offset (1);
+	rootname[2] = b'\\' as c_char;
+	rootname[3] = 0;
+      }
+    else if IS_DIRECTORY_SEP! (*name) && IS_DIRECTORY_SEP! (*name.offset (1))
+      {
+	let mut str_: *mut c_char = rootname.as_mut_ptr ();
+	let mut slashes: c_int = 4;
+	loop
+	  {
+	    if IS_DIRECTORY_SEP! (*name) && { slashes -= 1; slashes == 0 }
+	      { break; }
+	    *str_ = *name;
+	    str_ = str_.add (1);
+	    name = name.add (1);
+	    if *name == 0
+	      { break; }
+	  }
+
+	*str_ = b'\\' as c_char;
+	str_ = str_.add (1);
+	*str_ = 0;
+      }
+
+    if w32_unicode_filenames
+      { filename_to_utf16 (rootname.as_ptr (), rootname_w.as_mut_ptr ()); }
+    else
+      { filename_to_ansi (rootname.as_ptr (), rootname_a.as_mut_ptr ()); }
+
+    if have_pfn_GetDiskFreeSpaceEx
+      {
+	/* Unsigned large integers cannot be cast to double, so
+	   use signed ones instead.  */
+	let mut availbytes: LARGE_INTEGER = core::mem::zeroed ();
+	let mut freebytes: LARGE_INTEGER = core::mem::zeroed ();
+	let mut totalbytes: LARGE_INTEGER = core::mem::zeroed ();
+
+	if w32_unicode_filenames
+	  { result = (pfn_GetDiskFreeSpaceExW.unwrap ())
+	      (rootname_w.as_ptr (),
+	       &raw mut availbytes as *mut ULARGE_INTEGER,
+	       &raw mut totalbytes as *mut ULARGE_INTEGER,
+	       &raw mut freebytes as *mut ULARGE_INTEGER); }
+	else
+	  { result = (pfn_GetDiskFreeSpaceExA.unwrap ())
+	      (rootname_a.as_ptr (),
+	       &raw mut availbytes as *mut ULARGE_INTEGER,
+	       &raw mut totalbytes as *mut ULARGE_INTEGER,
+	       &raw mut freebytes as *mut ULARGE_INTEGER); }
+	if result != 0
+	  {
+	    value = list3 (make_float (totalbytes.QuadPart as c_double),
+			   make_float (freebytes.QuadPart as c_double),
+			   make_float (availbytes.QuadPart as c_double));
+	  }
+      }
+    else
+      {
+	let mut sectors_per_cluster: DWORD;
+	let mut bytes_per_sector: DWORD;
+	let mut free_clusters: DWORD;
+	let mut total_clusters: DWORD;
+
+	if w32_unicode_filenames
+	  { result = GetDiskFreeSpaceW (rootname_w.as_ptr (),
+					&raw mut sectors_per_cluster,
+					&raw mut bytes_per_sector,
+					&raw mut free_clusters,
+					&raw mut total_clusters); }
+	else
+	  { result = GetDiskFreeSpaceA (rootname_a.as_ptr (),
+					&raw mut sectors_per_cluster,
+					&raw mut bytes_per_sector,
+					&raw mut free_clusters,
+					&raw mut total_clusters); }
+	if result != 0
+	  {
+	    value = list3 (make_float ((total_clusters as c_double)
+				       * (sectors_per_cluster as c_double)
+				       * (bytes_per_sector as c_double)),
+			   make_float ((free_clusters as c_double)
+				       * (sectors_per_cluster as c_double)
+				       * (bytes_per_sector as c_double)),
+			   make_float ((free_clusters as c_double)
+				       * (sectors_per_cluster as c_double)
+				       * (bytes_per_sector as c_double)));
+	  }
+      }
+  }
+
+  return value;
+});
+
+/* C 9893's second `#ifdef WINDOWSNT` block: the printer records and entry points
+   C 9901-9964 use.  */
+
+/// C 9901-9902's two records (`<winspool.h>`), whose field lists are corroborated against the
+/// Win32 metadata projection (`windows-sys` 0.52's `PRINTER_INFO_2A`/`2W`: the same twenty-one
+/// fields in the same order); their layouts are **unmeasured** here (no SDK on this machine), and
+/// `pDevMode`/`pSecurityDescriptor` are C's pointers to records this unit has no mirror of
+/// (PORTING.md P-72 rule ③), so they stay `*mut c_void`.
+/// C: typedef struct _PRINTER_INFO_2W { LPWSTR pServerName; LPWSTR pPrinterName;
+/// C: LPWSTR pShareName; LPWSTR pPortName; LPWSTR pDriverName; LPWSTR pComment;
+/// C: LPWSTR pLocation; LPDEVMODEW pDevMode; LPWSTR pSepFile; LPWSTR pPrintProcessor;
+/// C: LPWSTR pDatatype; LPWSTR pParameters; PSECURITY_DESCRIPTOR pSecurityDescriptor;
+/// C: DWORD Attributes; DWORD Priority; DWORD DefaultPriority; DWORD StartTime; DWORD UntilTime;
+/// C: DWORD Status; DWORD cJobs; DWORD AveragePPM; } PRINTER_INFO_2W, *PPRINTER_INFO_2W;
+/// C: typedef struct _PRINTER_INFO_2A { … same fields as LPSTR … } PRINTER_INFO_2A;
+/// C: #define PRINTER_ATTRIBUTE_SHARED 0x00000008
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const PRINTER_ATTRIBUTE_SHARED: DWORD = 0x00000008;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PRINTER_INFO_2W
+{
+  pub pServerName: LPWSTR,
+  pub pPrinterName: LPWSTR,
+  pub pShareName: LPWSTR,
+  pub pPortName: LPWSTR,
+  pub pDriverName: LPWSTR,
+  pub pComment: LPWSTR,
+  pub pLocation: LPWSTR,
+  pub pDevMode: *mut c_void,
+  pub pSepFile: LPWSTR,
+  pub pPrintProcessor: LPWSTR,
+  pub pDatatype: LPWSTR,
+  pub pParameters: LPWSTR,
+  pub pSecurityDescriptor: *mut c_void,
+  pub Attributes: DWORD,
+  pub Priority: DWORD,
+  pub DefaultPriority: DWORD,
+  pub StartTime: DWORD,
+  pub UntilTime: DWORD,
+  pub Status: DWORD,
+  pub cJobs: DWORD,
+  pub AveragePPM: DWORD,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PRINTER_INFO_2A
+{
+  pub pServerName: LPSTR,
+  pub pPrinterName: LPSTR,
+  pub pShareName: LPSTR,
+  pub pPortName: LPSTR,
+  pub pDriverName: LPSTR,
+  pub pComment: LPSTR,
+  pub pLocation: LPSTR,
+  pub pDevMode: *mut c_void,
+  pub pSepFile: LPSTR,
+  pub pPrintProcessor: LPSTR,
+  pub pDatatype: LPSTR,
+  pub pParameters: LPSTR,
+  pub pSecurityDescriptor: *mut c_void,
+  pub Attributes: DWORD,
+  pub Priority: DWORD,
+  pub DefaultPriority: DWORD,
+  pub StartTime: DWORD,
+  pub UntilTime: DWORD,
+  pub Status: DWORD,
+  pub cJobs: DWORD,
+  pub AveragePPM: DWORD,
+}
+
+/// C 9910's `GetProfileString` and C 9915's `OpenPrinter` are `<winbase.h>`/`<winspool.h>` macros
+/// whose un-suffixed names this build resolves to the **A** entry points: `pname_buf` is a `char`
+/// buffer at both sites, so a `W` call could not be written at all (the notes rows record the two
+/// token gaps).  C 9919-9964's `GetPrinterW`/`GetPrinterA`, `ClosePrinter` and the two `strtok`/
+/// `strncpy` (`<string.h>`) declarations follow.
+/// C: DWORD WINAPI GetProfileStringA (LPCSTR lpAppName, LPCSTR lpKeyName, LPCSTR lpDefault,
+/// C: LPSTR lpReturnedString, DWORD nSize);
+/// C: BOOL WINAPI OpenPrinterA (LPSTR pPrinterName, LPHANDLE phPrinter, LPPRINTER_DEFAULTSA pDefault);
+/// C: BOOL WINAPI GetPrinterW (HANDLE hPrinter, DWORD Level, LPBYTE pPrinter, DWORD cbBuf,
+/// C: LPDWORD pcbNeeded);
+/// C: BOOL WINAPI GetPrinterA (HANDLE hPrinter, DWORD Level, LPBYTE pPrinter, DWORD cbBuf,
+/// C: LPDWORD pcbNeeded);
+/// C: BOOL WINAPI ClosePrinter (HANDLE hPrinter);
+/// C: char *strtok (char *s, const char *delim);
+/// C: char *strncpy (char *dest, const char *src, size_t n);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "system" {
+  pub fn GetProfileStringA (lpAppName: LPCSTR, lpKeyName: LPCSTR, lpDefault: LPCSTR,
+			    lpReturnedString: LPSTR, nSize: DWORD) -> DWORD;
+  pub fn OpenPrinterA (pPrinterName: LPSTR, phPrinter: LPHANDLE,
+		       pDefault: *const c_void) -> BOOL;
+  pub fn GetPrinterW (hPrinter: HANDLE, Level: DWORD, pPrinter: LPBYTE, cbBuf: DWORD,
+		      pcbNeeded: LPDWORD) -> BOOL;
+  pub fn GetPrinterA (hPrinter: HANDLE, Level: DWORD, pPrinter: LPBYTE, cbBuf: DWORD,
+		      pcbNeeded: LPDWORD) -> BOOL;
+  pub fn ClosePrinter (hPrinter: HANDLE) -> BOOL;
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "C" {
+  pub fn strtok (s: *mut c_char, delim: *const c_char) -> *mut c_char;
+  pub fn strncpy (dest: *mut c_char, src: *const c_char, n: usize) -> *mut c_char;
+}
+
+/// C 9898: C's function-local `static char pname_buf[2 * MAX_UTF8_PATH + 3 - 1]`, which the file's
+/// standing reading moves to file scope with its initialiser (the `force_quit_count`/`coords`
+/// device).
+/// C: static char pname_buf[2 * MAX_UTF8_PATH + 3 - 1];
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut pname_buf: [c_char; (2 * MAX_UTF8_PATH + 3 - 1) as usize]
+  = [0; (2 * MAX_UTF8_PATH + 3 - 1) as usize];
+
+/// C 9893-9999: `default-printer-name` - C 9898's `pname_buf` above, C 9899-9905's locals
+/// (`ppi2w`/`ppi2a` are C's `NULL`-initialised pointers), C 9910-9911's `GetProfileString` probe
+/// and C 9913's `strtok`, C 9915-9916's `OpenPrinter`, C 9918-9926's `GetPrinterW`/`A` size probe
+/// (`w32_unicode_filenames && os_subtype != OS_SUBTYPE_9X`, C's own comment about unicows) and
+/// `dwNeeded` test, C 9928-9974's two arm bodies (`xmalloc`, the second `GetPrinter`, C's
+/// `Attributes & PRINTER_ATTRIBUTE_SHARED` + `pServerName` test with the shared/local split,
+/// `xfree` on failure), C 9976-9995's two name shapes (`snprintf` for the remote printer,
+/// `strncpy` + the `strtok` first-port cut for the local one, both ending in C's
+/// `pname_buf[sizeof (pname_buf) - 1] = '\0'`) and C 9997's
+/// `DECODE_FILE (build_unibyte_string (pname_buf))`.
+/// C: DEFUN ("default-printer-name", Fdefault_printer_name, Sdefault_printer_name,
+/// C:        0, 0, 0, doc: /* Return the name of Windows default printer device.  */)
+/// C:   (void)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("default-printer-name", Fdefault_printer_name, Sdefault_printer_name,
+	0, 0, 0,
+	doc: "Return the name of Windows default printer device.",
+	(),
+	{
+  let mut err: c_int;
+  let mut hPrn: HANDLE;
+  let mut ppi2w: *mut PRINTER_INFO_2W = core::ptr::null_mut ();
+  let mut ppi2a: *mut PRINTER_INFO_2A = core::ptr::null_mut ();
+  let mut dwNeeded: DWORD = 0;
+  let mut dwReturned: DWORD = 0;
+  let mut server_name: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];
+  let mut share_name: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];
+  let mut port_name: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];
+
+  /* Retrieve the default string from Win.ini (the registry).
+   * String will be in form "printername,drivername,portname".
+   * This is the most portable way to get the default printer. */
+  if GetProfileStringA (c"windows".as_ptr (), c"device".as_ptr (), c",,".as_ptr (),
+			pname_buf.as_mut_ptr (),
+			core::mem::size_of_val (&pname_buf) as DWORD) == 0
+    { return Qnil (); }
+  /* printername precedes first "," character */
+  strtok (pname_buf.as_mut_ptr (), c",".as_ptr ());
+  /* We want to know more than the printer name */
+  if OpenPrinterA (pname_buf.as_mut_ptr (), &raw mut hPrn, core::ptr::null ()) == 0
+    { return Qnil (); }
+  /* GetPrinterW is not supported by unicows.dll.  */
+  if w32_unicode_filenames && os_subtype != OS_SUBTYPE_9X
+    { GetPrinterW (hPrn, 2, core::ptr::null_mut (), 0, &raw mut dwNeeded); }
+  else
+    { GetPrinterA (hPrn, 2, core::ptr::null_mut (), 0, &raw mut dwNeeded); }
+  if dwNeeded == 0
+    {
+      ClosePrinter (hPrn);
+      return Qnil ();
+    }
+  /* Call GetPrinter again with big enough memory block.  */
+  if w32_unicode_filenames && os_subtype != OS_SUBTYPE_9X
+    {
+      /* Allocate memory for the PRINTER_INFO_2 struct.  */
+      ppi2w = xmalloc (dwNeeded as usize) as *mut PRINTER_INFO_2W;
+      err = GetPrinterW (hPrn, 2, ppi2w as LPBYTE, dwNeeded, &raw mut dwReturned) as c_int;
+      ClosePrinter (hPrn);
+      if err == 0
+	{
+	  xfree (ppi2w as *mut c_void);
+	  return Qnil ();
+	}
+
+      if (*ppi2w).Attributes & PRINTER_ATTRIBUTE_SHARED != 0
+	  && ! (*ppi2w).pServerName.is_null ()
+	{
+	  filename_from_utf16 ((*ppi2w).pServerName, server_name.as_mut_ptr ());
+	  filename_from_utf16 ((*ppi2w).pShareName, share_name.as_mut_ptr ());
+	}
+      else
+	{
+	  server_name[0] = 0;
+	  filename_from_utf16 ((*ppi2w).pPortName, port_name.as_mut_ptr ());
+	}
+    }
+  else
+    {
+      ppi2a = xmalloc (dwNeeded as usize) as *mut PRINTER_INFO_2A;
+      err = GetPrinterA (hPrn, 2, ppi2a as LPBYTE, dwNeeded, &raw mut dwReturned) as c_int;
+      ClosePrinter (hPrn);
+      if err == 0
+	{
+	  xfree (ppi2a as *mut c_void);
+	  return Qnil ();
+	}
+
+      if (*ppi2a).Attributes & PRINTER_ATTRIBUTE_SHARED != 0
+	  && ! (*ppi2a).pServerName.is_null ()
+	{
+	  filename_from_ansi ((*ppi2a).pServerName, server_name.as_mut_ptr ());
+	  filename_from_ansi ((*ppi2a).pShareName, share_name.as_mut_ptr ());
+	}
+      else
+	{
+	  server_name[0] = 0;
+	  filename_from_ansi ((*ppi2a).pPortName, port_name.as_mut_ptr ());
+	}
+    }
+
+  if server_name[0] != 0
+    {
+      /* a remote printer */
+      if server_name[0] == b'\\' as c_char
+	{ snprintf (pname_buf.as_mut_ptr (), core::mem::size_of_val (&pname_buf),
+		    c"%s\\%s".as_ptr (), server_name.as_ptr (), share_name.as_ptr ()); }
+      else
+	{ snprintf (pname_buf.as_mut_ptr (), core::mem::size_of_val (&pname_buf),
+		    c"\\\\%s\\%s".as_ptr (), server_name.as_ptr (),
+		    share_name.as_ptr ()); }
+      pname_buf[core::mem::size_of_val (&pname_buf) - 1] = 0;
+    }
+  else
+    {
+      /* a local printer */
+      strncpy (pname_buf.as_mut_ptr (), port_name.as_ptr (),
+	       core::mem::size_of_val (&pname_buf));
+      pname_buf[core::mem::size_of_val (&pname_buf) - 1] = 0;
+      /* `pPortName' can include several ports, delimited by ','.
+       * we only use the first one. */
+      strtok (pname_buf.as_mut_ptr (), c",".as_ptr ());
+    }
+
+  return DECODE_FILE (build_unibyte_string (pname_buf.as_ptr ()));
+});
+
 /* C 9754-10110's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").

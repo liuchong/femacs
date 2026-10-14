@@ -224,7 +224,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 9016-9145 | C 9016-9043's `lookup_vk_code` and C 9045-9145's `w32_parse_and_hook_hot_key` (with C 9101-9106's `#ifndef MOD_ALT` guard block carried as the four constants) - slice 20 | file gate |
 | 9147-9337 | C 9147's `w32-register-hot-key` `DEFUN` through C 9318-9337's `w32-window-exists-p` - the six hot-key/lock-key/window `DEFUN`s of slice 21 | file gate |
 | 9339-9752 | C 9339-9486's `w32-frame-geometry`, C 9488-9577's `w32-frame-edges`, C 9579-9607's `w32_frame_list_z_order`, C 9609-9633's `w32-frame-list-z-order`, C 9635-9674's `w32_frame_restack`, C 9676-9707's `w32-frame-restack` and C 9709-9752's mouse pair - slice 22 | file gate |
-| 9754-10110 | C 9754's `#ifdef WINDOWSNT` onward: the disk-free-space/pfn pointer block, the DDE block and the `w32_console_*` family | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 9755-9999 | C 9755-9890's `#ifdef WINDOWSNT` block with `file-system-info` (and C 9756-9759's two `GetDiskFreeSpaceEx` pointer types), then C 9893-9999's second block with `default-printer-name` - slice 23 | file gate (nested `windowsnt`) |
+| 10002-10110 | C 10002's `/* Equivalent of strerror for W32 error codes.  */` onward: `w32_strerror`, `w32_last_error`, `cache_system_info`, `w32_version_string` and the `EMACSDEBUG` `_DebPrint` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 10112-10138 | C 10112-10138's `w32_console_toggle_lock_key` - slice 21, landed **ahead of its C position** because C 9302 calls it and Rust has no declare-then-define pair inside one file (PORTING.md P-91 ①) | file gate |
 | 10140-12488 | **the remainder of the file** (C 10140's `w32_kbd_mods_to_emacs` onward: the console-modifier family, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
@@ -2500,6 +2501,107 @@ alone read two identifiers, missing only the S-name.
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no frame geometry is
   measured, no window is restacked, and the mouse cannot be moved; the arm reading is compile-level
   (42 errors, none from this slice) and the name sweep is a textual reading.
+
+## Slice 23 (C 9755-9999)
+
+**Scope and the stop.**  The file's two `#ifdef WINDOWSNT` blocks: C 9756-9759's two
+`GetDiskFreeSpaceEx` pointer types with `file-system-info` (C 9761-9890) under C 9755's `#ifdef`, and
+`default-printer-name` (C 9893-9999) under C 9893's.  The stop is C 10002's
+`/* Equivalent of strerror for W32 error codes.  */` comment (C 10000-10001 blank, C 9999's `#endif`
+is this slice's last line).  Both DEFUNs carry the nested gate
+`all (feature = "have_ntgui", feature = "windowsnt")` - the file gate plus C's `#ifdef WINDOWSNT`,
+which is not the frozen configuration's `HAVE_NTGUI`.
+
+**What the item carries.**  `file-system-info` is C 9765's two locals with C 9768's reassigned
+parameter (the port re-binds it), C 9767-9769's `CHECK_STRING`/`Fexpand_file_name`/`ENCODE_FILE`,
+C 9773-9780's handler probe (`Ffind_file_name_handler`, `calln!`, the `CONSP`-or-`NILP` early
+return, C 9779's `error`), C 9789-9797's dynamic `GetDiskFreeSpaceEx` probe (`get_proc_addr` +
+`transmute` from `VOIDFNPTR`, `w32_unicode_filenames` choosing which pointer matters), C 9801-9804's
+three root-name buffers, C 9808-9829's two root-name forms - the drive-letter case and the UNC walk
+whose C `do … while (*name)` the port writes as a `loop` with C's own two exits (C 9825's `while`
+condition and C 9821's `break`) - C 9831-9834's `filename_to_utf16`/`filename_to_ansi` choice,
+C 9836-9858's `LARGE_INTEGER` arm (three zero-initialised unions, the two `(ULARGE_INTEGER *)`
+casts spelled as C spells them, `list3` of the three `QuadPart` doubles, C's own comment about why
+the signed union is used) and C 9859-9885's `GetDiskFreeSpaceW`/`A` arm with the three products.
+`default-printer-name` is C 9898's function-local `static char pname_buf[…]` (moved to file scope
+with its initialiser, the `force_quit_count`/`coords` device), C 9899-9905's locals, C 9910's
+`GetProfileString` probe with C 9913's `strtok`, C 9915-9916's `OpenPrinter`, C 9918-9926's
+`GetPrinterW`/`A` size probe (`w32_unicode_filenames && os_subtype != OS_SUBTYPE_9X`, C's unicows
+comment) with the `dwNeeded` test, C 9928-9974's two arm bodies (`xmalloc`, the second `GetPrinter`,
+C's `Attributes & PRINTER_ATTRIBUTE_SHARED` + `pServerName` test and the shared/local split,
+`xfree` on failure), C 9976-9995's two name shapes (`snprintf` for the remote printer, `strncpy` +
+C's first-port `strtok` cut for the local one, both ending in C's
+`pname_buf[sizeof (pname_buf) - 1] = '\0'`) and C 9997's `DECODE_FILE (build_unibyte_string (…))`.
+
+**New surface.**  `LPCSTR` (C 9758's typedef; the unit had `LPCTSTR`/`LPWSTR`/`LPCWSTR` but not
+this one), the two `…_Proc` types, `LARGE_INTEGER`/`ULARGE_INTEGER` (spelled as `src/w32.rs` spells
+them) with `PULARGE_INTEGER`, `GetDiskFreeSpaceW`/`A`, then `PRINTER_ATTRIBUTE_SHARED`,
+`PRINTER_INFO_2W`/`PRINTER_INFO_2A` (twenty-one fields each), `GetProfileStringA`, `OpenPrinterA`,
+`GetPrinterW`/`GetPrinterA`, `ClosePrinter`, and in-unit `strtok`/`strncpy` declarations
+(`<string.h>`'s, the `src/image.rs` 8571 shape; `snprintf` is already `lib/include/stdio.rs`'s).
+
+### Evidence (slice 23, the final revision: 14,916 Rust lines)
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/w23lane cargo run -q -p xtask -- build-tu src/w32fns.c` →
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, the object **336 bytes**.  Two runs
+(the first text and the corrected one below).
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the count slices 16-22
+left (15 `E0428`, 1 `E0530`, 25 `E0609`, and the one deliberately-failing frame-flag probe), so this
+slice's 481 lines add no error and no member gap: no diagnostic sits at or beyond the slice's first
+line (`src/w32fns.rs` 14,390).  **The first probe run is what caught this slice's one real defect**:
+`LPBYTE` was declared here although the file already spells it at `src/w32fns.rs` 254, and rustc
+answered with a duplicate-definition error that *also* hid the standing 42-error reading (the run
+reported 18).  Removing the duplicate restored it; the second run is the reading above.  Two runs.
+
+**③ `extract-abi.py --check`.**  **123 → 121** rows: the two `missing subr` rows (`Ffile_system_info`,
+`Fdefault_printer_name`) retire and none is added.  Two token rows were found and cleared - `Ffile_system_info
+does not mention ularge_integer` was a *code* fix (the four casts are written `as *mut ULARGE_INTEGER`,
+which is C's own `(ULARGE_INTEGER *)` text, rather than through the `PULARGE_INTEGER` alias), and
+`Fdefault_printer_name does not mention 3` is the moved `pname_buf` bound, recorded in a notes row.
+Two `macro-body-notes.tsv` rows accompany the slice.  No `line count drifted` row: 14,916 Rust lines
+against 12,488 C lines (19.4%), inside the file's `w32fns 0.35 total` tolerance row.
+
+**④ The range table and the dead-file gate.**  The `9754-10110` remainder row splits into
+`9755-9999` (this slice) and `10002-10110` (the remainder); `check-dead-file-coverage.py` reads
+**174 range row(s) cover src/w32fns.c (12488 lines; 123 blank line(s) between blocks need no row)**,
+`0 failure(s)` (173 rows / 120 blanks before the split).
+
+**⑤ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 14,390-14,868: 64 capitalized
+identifiers, missing `Attributes`, `AveragePPM`, `DefaultPriority`, `Priority`, `StartTime`,
+`UntilTime`, `LowPart`, `HighPart`, `QuadPart`, `Level`, `Clone`, `Copy` and the two `S…` names -
+all four of the tool's documented non-item classes: a struct definition's *field* names, a
+declaration's parameter name (`Level`, the SDK's own spelling in `GetPrinterW`), `#[derive (Clone,
+Copy)]`'s arguments, and a `DEFUN!`'s macro-generated `$sname` static.
+
+### Deviations (slice 23)
+
+- **The two printer records' layouts are unmeasured.**  `PRINTER_INFO_2W`/`PRINTER_INFO_2A`'s
+  twenty-one fields are spelled from `<winspool.h>` and **corroborated against the Win32 metadata
+  projection** (`windows-sys` 0.52: the same fields in the same order), not against a compiled
+  `sizeof` - this machine has no SDK.  `pDevMode`/`pSecurityDescriptor` are C's pointers to records
+  this unit has no mirror of, so they stay `*mut c_void` (PORTING.md P-72 rule ③).
+- **`GetProfileString` and `OpenPrinter` are read as the `A` entry points.**  Both are macros in
+  C, and both calls pass `pname_buf`, which is a `char` buffer - only the `A` function accepts it,
+  so a `W` arm could not be written here at all.  This is deliberately *not* the
+  `w32_unicode_gui` device the earlier slices use for `GetMessage`/`FindWindow`/`DefWindowProc`
+  (whose arguments are not typed `char *`), and the notes row records the two token gaps; the
+  integrator's mingw measurement should settle the whole class at once.
+- **C's `do { … } while (*name)` is a `loop` with C's two exits.**  C 9819-9825's iteration is the
+  port's `loop { …; if *name == 0 { break; } }`, with C 9821's `break` carrying the `--slashes == 0`
+  test (PORTING.md 2.2's `do…while` class).
+- **C's `UINT <= 0` is the port's `== 0`.**  C 9910's `GetProfileStringA (…) <= 0` cannot be false
+  for an unsigned return value except at zero, so the port writes the comparison C means; the `0`
+  token stays.
+- **`pname_buf` moves to file scope** with its initialiser (the function-local `static` device this
+  file already uses for `coords`/`force_quit_count`); the notes row records the one bound token the
+  move takes out of the body.
+- **`LPCSTR` is spelled here** because C 9758's typedef needs it and the unit carried only
+  `LPCTSTR`/`LPSTR`/`LPWSTR`/`LPCWSTR`.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no volume is queried and no
+  printer is enumerated; the arm reading is compile-level (42 errors, none from this slice) and the
+  name sweep is a textual reading.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
