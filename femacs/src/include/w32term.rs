@@ -1416,19 +1416,18 @@ macro_rules! GUI_SDATA {
 /// C 925: `extern void w32_init_main_thread (void);`
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  // C 925's `w32_init_main_thread` and C 918-923's `*_of_w32*` entries are other units'
-  // definitions, so they stay here; `w32_arrow_cursor` (C 906) is this header's own unit's and
-  // moved to `w32term_fn_decls` below (E0428: the slice 22 round measured it).
-  // `w32_release_paint_buffer`/`w32_flip_buffers_if_dirty` (C 911-912) are this header's own
-  // unit's definitions: `w32term_fn_decls` below (E0428, P-21).
-  pub fn syms_of_w32term ();
+  // C 918-923's `*_of_w32*` entries are other units' definitions, so they stay here;
+  // `w32_arrow_cursor` (C 906) is this header's own unit's and moved to `w32term_fn_decls` below
+  // (E0428: the slice 22 round measured it), and `w32_release_paint_buffer`/
+  // `w32_flip_buffers_if_dirty` (C 911-912), `syms_of_w32term` (C 914) and `w32_init_main_thread`
+  // (C 925) followed it (E0428, P-21 - the slice 26 round measured the pair).
   // `syms_of_w32fns`/`globals_of_w32fns` (C 918-919) are `src/w32fns.c`'s definitions:
   // `w32term_fns_decls` below (E0428, P-21 - measured on the `w32fns` arm by that lane's slices
   // 37/38).
   pub fn globals_of_w32notify ();
   pub fn syms_of_w32image ();
   pub fn globals_of_w32image ();
-  pub fn w32_init_main_thread ();
+  // C 925's `w32_init_main_thread` is above (E0428, P-21).
 }
 
 /// C 927-929: `#ifdef CYGWIN / extern int w32_message_fd; / #endif /* CYGWIN */` - `CYGWIN` is
@@ -1504,6 +1503,10 @@ pub mod w32term_fn_decls {
 			  resource_class: *mut c_char) -> *mut w32_display_info;
     /// C 783: `extern void w32_delete_display (struct w32_display_info *dpyinfo);`
     pub fn w32_delete_display (dpyinfo: *mut w32_display_info);
+    /// C 914: `extern void syms_of_w32term (void);`
+    pub fn syms_of_w32term ();
+    /// C 925: `extern void w32_init_main_thread (void);`
+    pub fn w32_init_main_thread ();
   }
 
   unsafe extern "C" {

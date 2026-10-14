@@ -203,7 +203,8 @@ The `arm` cell says what the port does with the block.
 | 7866-7953 | the xrdb note and `w32_make_rdb` (C 7866-7918), C 7920's `extern frame_parm_handler w32_frame_parm_handlers[];` (recorded, the mirror already declares it) and **`w32_redisplay_interface`** (C 7922-7952, C's 28-entry positional initializer) | file gate (`have_ntgui`); slice 23 below |
 | 7954-8043 | C 7954's forward declaration of `w32_delete_terminal`, **`w32_create_terminal`** (C 7956-8026, its 44 hook assignments) and `w32_delete_terminal` (C 8028-8042) | file gate (`have_ntgui`); slice 24 below |
 | 8044-8138 | **`w32_term_init`** (C 8044-8112) and `w32_delete_display` (C 8115-8136) | file gate (`have_ntgui`); slice 25 below |
-| 8139-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 8139-8271 | `w32_init_main_thread` (C 8141-8150), C 8152's `w32_msg_worker` forward declaration and **`w32_initialize`** (C 8154-8270: the user-model lookup, the CYGWIN arm, the window thread, and the `LOAD_PROC` table) | file gate (`have_ntgui`); slice 26 below |
+| 8272-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1685,4 +1686,56 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
      `as_ptr`/`is_null`/`null`/`null_mut`).
   4. `extract-abi.py --check` -> `missing function` 5 -> **3**, the line-count row at **39.1%**
      (`11,700` vs `8,414`).
+  5. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 26 (C 8139-8271)
+
+- **What it is.**  `w32_init_main_thread` (C 8141-8150), C 8152's `w32_msg_worker` forward
+  declaration (recorded - `src/w32fns.rs` 6556 defines it) and **`w32_initialize`**
+  (C 8154-8270): the user-model lookup, C 8187-8191's CYGWIN arm, C 8193-8206's screen-reader
+  probe and input-mode setup, the window thread (C 8211-8226), C 8236-8238's `ATTACH_THREADS`
+  arm and C 8240-8266's dynamically-linked table.  Port: 11,700 -> **11,989 lines** (+289).  The
+  table's last row splits at C 8271; the next live line is C 8272's `void` (`syms_of_w32term`,
+  the file's closing slice).
+- **Two of the lane's three remaining `missing function` rows retire** (3 -> **1**: `syms_of_w32term`),
+  and **the `missing macro LOAD_PROC` row is gone**: C 8244's
+  `#define LOAD_PROC(lib, fn) pfn##fn = (void *) GetProcAddress (lib, #fn)` lands as the file's
+  `macro_rules! LOAD_PROC`, whose two name arguments are passed explicitly at each of C 8246-8253's
+  four call sites (the `src/w32.rs` 11323 device, `docs/ports/macro-body-notes.tsv`'s
+  `LOAD_PROC`/`init_winsock` rows).  The tokens C's macro pastes and stringifies can never reach
+  the port's body, so this slice adds a `w32_initialize` row to that TSV naming
+  `closetouchinputhandle`, `gettouchinputinfo`, `plgblt`, `setlayeredwindowattributes` and
+  `winapi` (the last is C 8159's `WINAPI` calling convention, which the port writes
+  `extern "system"`, the `set_user_model_id` row's device).
+- **Two mirror prototypes move into `w32term_fn_decls`** (E0428, P-21 - the slice-21/25 move
+  applied to the last two names this unit defines): w32term.h 914's `syms_of_w32term` and
+  w32term.h 925's `w32_init_main_thread`.  The mirror ledger records the pair.
+- **The slice's own use-site surface** (P-88 (1), UNVERIFIED): the thread/handle entries of
+  C 8144-8147 (`GetCurrentThreadId`, `GetCurrentProcess`, `GetCurrentThread`, `DuplicateHandle`),
+  C 8171/8242/8251's `GetModuleHandle`/`LoadLibrary`/`GetProcAddress` trio, C 8207's
+  `GetKeyboardLayout`, C 8219-8225's message-loop four (`PeekMessage`, `CreateThread`,
+  `GetMessage`, `w32_msg_worker`), C 8237's `AttachThreadInput`, and C 8188/8190's
+  `emacs_open_noquit`/`fatal` pair.  Six new constants: `DUPLICATE_SAME_ACCESS` 0x2,
+  `SPI_GETSCREENREADER` 0x0046, `PM_NOREMOVE` 0, `SM_CYVSCROLL` 2, `SM_CYHSCROLL` 3, and the two
+  local aliases `HMODULE` (the `src/w32fns.rs` 3246 spelling) and `HKL`.  `HRESULT` is the
+  third alias; `GetSystemMetrics`, `SystemParametersInfo`, `LCID` and `strerror` were already in
+  scope (`include/lisp.rs` 27's `<string.h>` carries the last).
+- **Value-shape fixes this slice**: the two uninitialised C locals that the port passes by
+  address (`MSG msg` at C 8217 and the previous slice's `Emacs_Color color`) are zeroed
+  (PORTING.md 1.5); C 8222's `w32_msg_worker` argument is `core::ptr::null_mut ()`, not `0`;
+  `WM_EMACS_DONE` reaches the two `UINT` parameters as `WM_EMACS_DONE as UINT` (the
+  `src/w32fns.rs` 3966 device); the wide literal at C 8184 is a file-scope `[c_ushort; 10]` array
+  spelled a character at a time (so this file's own text never spells it - the
+  `src/androidterm.rs` 8522 reading), and `wchar_t` is that array's `c_ushort`
+  (`docs/ports/token-aliases.tsv` 93).
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **20 errors, 0 anchored in this slice's text** (the
+     first draft's four `E0428`s were `strerror`/`SystemParametersInfo`/`LCID`/`GetSystemMetrics`
+     re-declared at this slice's use site when the unit already had them, plus two `E0381`s for
+     the uninitialised locals above and one `HMODULE` spelling).  The `have_ntgui` + `windowsnt`
+     arm stays at **78 errors**, none naming this slice's names.
+  3. The mechanical name sweep -> the slice's names all resolve; no residual.
+  4. `extract-abi.py --check` -> `missing function` 3 -> **1**, `missing macro` **1 -> 0**, the
+     line-count row at **42.5%** (`11,989` vs `8,414`).
   5. The ten gates: all `rc=0`, 0 FAIL.

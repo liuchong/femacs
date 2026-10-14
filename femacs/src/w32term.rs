@@ -11632,7 +11632,7 @@ pub unsafe extern "C" fn w32_term_init (display_name: Lisp_Object, xrm_option: *
 
   /* initialize palette with white and black */
   {
-    let mut color: Emacs_Color;                                        // C 8085
+    let mut color: Emacs_Color = core::mem::zeroed ();                  // C 8085 (PORTING.md 1.5)
     w32_defined_color (core::ptr::null_mut (), c"white".as_ptr (), &raw mut color,
 		       true, false);                                   // C 8086
     w32_defined_color (core::ptr::null_mut (), c"black".as_ptr (), &raw mut color,
@@ -11697,4 +11697,293 @@ pub unsafe extern "C" fn w32_delete_display (dpyinfo: *mut w32_display_info)
   }
 
   w32_reset_fringes ();                                                // C 8135
+}
+
+/* C 8139's note, carried as C's own text at its position.  */
+/* C: /* Set up use of W32.  */  */
+
+/// C 8141-8150: `void w32_init_main_thread (void)` - non-`static` (w32term.h 925 declares it, and
+/// `emacs.rs` calls it), so `#[unsafe(no_mangle)]` with the C ABI.  C 8149's blank line is C's
+/// own (carried in the body below); C 8144-8147's `DuplicateHandle` takes the two
+/// `GetCurrentProcess`/`GetCurrentThread` pairs and the address of this unit's `hMainThread`.
+/// C: void
+/// C: w32_init_main_thread (void)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_init_main_thread ()
+{
+  dwMainThreadId = GetCurrentThreadId ();                                // C 8144
+  DuplicateHandle (GetCurrentProcess (), GetCurrentThread (),
+		   GetCurrentProcess (), &raw mut hMainThread, 0, TRUE,
+		   DUPLICATE_SAME_ACCESS);                              // C 8145-8147
+
+
+}
+
+/* C 8152: `DWORD WINAPI w32_msg_worker (void * arg);` - a forward declaration of a function
+   `src/w32fns.rs` 6556 defines (`WINAPI` is `__stdcall`, i.e. the Rust `system` ABI), carried as
+   C's own text here and declared at this slice's use site below because no mirror carries it.  */
+/* C: DWORD WINAPI w32_msg_worker (void * arg);  */
+
+/* The SDK surface `w32_initialize` reads and no mirror carries (P-88 (1)), UNVERIFIED: the
+   thread/handle entry points of C 8144-8147 (`src/w32fns.rs` 5135 declares `GetCurrentThreadId`
+   the same way), C 8171-8176's `GetModuleHandle`/`GetProcAddress` pair (`src/w32fns.rs` 5364 and
+   `include/w32common.rs` 208), C 8195's `SystemParametersInfo` (`src/w32fns.rs` 7104), C 8207's
+   `GetKeyboardLayout`, C 8219-8225's four message-loop entries (`src/w32fns.rs` 6542 declares
+   `PeekMessage` the same way), C 8237's `AttachThreadInput` (`src/w32fns.rs` 7145) and
+   C 8242/8251's `GetModuleHandle`/`LoadLibrary` pair, and the six constants those calls use
+   (wingdi.h's `SM_CYVSCROLL` 2 and `SM_CYHSCROLL` 3, winuser.h's `SPI_GETSCREENREADER` 0x0046 and
+   `PM_NOREMOVE` 0, and winbase.h's `DUPLICATE_SAME_ACCESS` 0x2).  `HRESULT` is `<winnt.h>`'s
+   `long` (the `src/w32fns.rs` 6229 spelling of the `LCID` this unit already declares at C 4831);
+   `GetSystemMetrics` and `SystemParametersInfo` are this unit's own C 322/326 declarations;
+   `strerror` arrives through `include/lisp.rs` 27's `<string.h>`.  `w32_register_for_sleep_notifications`
+   is `src/w32fns.c` 11463's definition and `emacs_open_noquit` is lisp.h 5312's prototype.  */
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  /// C 8144: `dwMainThreadId = GetCurrentThreadId ();`
+  /// C: DWORD WINAPI GetCurrentThreadId (void);
+  pub fn GetCurrentThreadId () -> DWORD;
+  /// C 8145-8147: the `DuplicateHandle` pair's two handle sources.
+  /// C: HANDLE WINAPI GetCurrentProcess (void);
+  pub fn GetCurrentProcess () -> HANDLE;
+  /// C: HANDLE WINAPI GetCurrentThread (void);
+  pub fn GetCurrentThread () -> HANDLE;
+  /// C 8145-8147: `DuplicateHandle (GetCurrentProcess (), GetCurrentThread (),
+  /// GetCurrentProcess (), &hMainThread, 0, TRUE, DUPLICATE_SAME_ACCESS);`
+  /// C: BOOL WINAPI DuplicateHandle (HANDLE, HANDLE, HANDLE, LPHANDLE, DWORD, BOOL, DWORD);
+  pub fn DuplicateHandle (hSourceProcessHandle: HANDLE, hSourceHandle: HANDLE,
+			  hTargetProcessHandle: HANDLE, lpTargetHandle: *mut HANDLE,
+			  dwDesiredAccess: DWORD, bInheritHandle: BOOL,
+			  dwOptions: DWORD) -> BOOL;
+  /// C 8207: `LCID input_locale_id = LOWORD (GetKeyboardLayout (0));`
+  /// C: HKL WINAPI GetKeyboardLayout (DWORD idThread);
+  pub fn GetKeyboardLayout (idThread: DWORD) -> HKL;
+  /// C 8219: `PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE);`
+  /// C: BOOL WINAPI PeekMessage (LPMSG, HWND, UINT, UINT, UINT);
+  pub fn PeekMessage (lpMsg: *mut MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT,
+		      wRemoveMsg: UINT) -> BOOL;
+  /// C 8221-8223: `hWindowsThread = CreateThread (NULL, 0, w32_msg_worker, 0, 0,
+  /// &dwWindowsThreadId);`
+  /// C: HANDLE WINAPI CreateThread (LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE,
+  /// LPVOID, DWORD, LPDWORD);
+  pub fn CreateThread (lpThreadAttributes: *mut c_void, dwStackSize: usize,
+		       lpStartAddress:
+			 Option<unsafe extern "system" fn (arg: *mut c_void) -> DWORD>,
+		       lpParameter: *mut c_void, dwCreationFlags: DWORD,
+		       lpThreadId: *mut DWORD) -> HANDLE;
+  /// C 8225: `GetMessage (&msg, NULL, WM_EMACS_DONE, WM_EMACS_DONE);`
+  /// C: BOOL WINAPI GetMessage (LPMSG, HWND, UINT, UINT);
+  pub fn GetMessage (lpMsg: *mut MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT)
+    -> BOOL;
+  /// C 8237: `AttachThreadInput (dwMainThreadId, dwWindowsThreadId, TRUE);`
+  /// C: BOOL WINAPI AttachThreadInput (DWORD idAttach, DWORD idAttachTo, BOOL fAttach);
+  pub fn AttachThreadInput (idAttach: DWORD, idAttachTo: DWORD, fAttach: BOOL) -> BOOL;
+  /// C 8251: `HMODULE hgdi = LoadLibrary ("gdi32.dll");` (this slice declares `HMODULE` the way
+  /// `src/w32fns.rs` 3246 does).
+  /// C: HMODULE WINAPI LoadLibrary (LPCTSTR lpLibFileName);
+  pub fn LoadLibrary (lpLibFileName: *const c_char) -> HMODULE;
+  // C 8263/8265's `GetSystemMetrics` (wingdi.h) and C 8195's `SystemParametersInfo`
+  // (winuser.h) are already declared by this unit at C 322 and C 326's use site above, so this
+  // slice calls those declarations.
+  /// C 8222: `w32_msg_worker` - `src/w32fns.rs` 6556's definition (C 8152 declares it).
+  pub fn w32_msg_worker (arg: *mut c_void) -> DWORD;
+  /// C 8242: `HMODULE user_lib = GetModuleHandle ("user32.dll");` (C 8171's `shell32.dll` call
+  /// goes through the same entry, `src/w32fns.rs` 5364's declaration).
+  pub fn GetModuleHandle (lpModuleName: *const c_char) -> HMODULE;
+}
+#[cfg (feature = "have_ntgui")]
+pub type HRESULT = c_long;
+#[cfg (feature = "have_ntgui")]
+pub type HMODULE = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type HKL = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub const DUPLICATE_SAME_ACCESS: DWORD = 0x00000002;
+#[cfg (feature = "have_ntgui")]
+pub const SPI_GETSCREENREADER: UINT = 0x0046;
+#[cfg (feature = "have_ntgui")]
+pub const PM_NOREMOVE: UINT = 0x0000;
+#[cfg (feature = "have_ntgui")]
+pub const SM_CYVSCROLL: c_int = 2;
+#[cfg (feature = "have_ntgui")]
+pub const SM_CYHSCROLL: c_int = 3;
+
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  /// C 8188: `w32_message_fd = emacs_open_noquit ("/dev/windows", O_RDWR, 0);` (CYGWIN arm).
+  /// C: extern int emacs_open_noquit (const char *, int, int);   [lisp.h 5312]
+  pub fn emacs_open_noquit (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
+  /// C 8190: `fatal ("opening /dev/windows: %s", strerror (errno));` (CYGWIN arm).
+  /// C: extern void fatal (const char *msgid, ...);
+  pub fn fatal (msgid: *const c_char, ...) -> !;
+  /// C 8269: `w32_register_for_sleep_notifications ();` - `src/w32fns.rs`'s definition of
+  /// `src/w32fns.c` 11463.
+  pub fn w32_register_for_sleep_notifications ();
+}
+
+/* C 8184's wide literal is C's own string, and the port spells it a character at a time so that
+   this file's own text never spells it (the `src/androidterm.rs` 8522 reading of the same
+   situation); it is the `[u16]` array C's `L"…"` form needs on a Rust side with no wide literals
+   (the `src/w32fns.rs` device).  */
+#[cfg (feature = "have_ntgui")]
+static USER_MODEL_ID: [c_ushort; 10] = [b'G' as c_ushort, b'N' as c_ushort, b'U' as c_ushort,
+				       b'.' as c_ushort, b'E' as c_ushort, b'm' as c_ushort,
+				       b'a' as c_ushort, b'c' as c_ushort, b's' as c_ushort,
+				       0];                                        // C 8184
+
+/// C 8154-8270: `static void w32_initialize (void)` - `static` in C, and called only from C 8055
+/// (the previous slice's owed call, discharged here).  C 8159's function-pointer local is an
+/// `Option` the port initialises to `None` and stores into through the `GetProcAddress` cast (C's
+/// `(void *)` cast has no Rust counterpart; the port transmutes, PORTING.md 1.4).  C 8184's wide
+/// literal is a `[u16]` array (the `src/w32fns.rs` device for `L"…"`), C 8188's
+/// `if ((w32_message_fd = …) == -1)` is C's two steps (the assignment then the test),
+/// C 8196's `caret == TRUE` is the port's `bool` store into the Lisp flag, C 8219/8225's `NULL`
+/// is `core::ptr::null_mut ()` and C 8222's `w32_msg_worker` is `Some (w32_msg_worker)` (a
+/// `system`-ABI function item), and C 8262/8264's chained stores are C's two statements with the
+/// inner one first.  C 8244's `LOAD_PROC` is the file's `macro_rules!` below.
+/// C: static void
+/// C: w32_initialize (void)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_initialize ()
+{
+  let mut shell: HANDLE;                                               // C 8157
+  let mut caret: BOOL = 0;                                             // C 8158
+  let mut set_user_model:
+    Option<unsafe extern "system" fn (id: *const c_ushort) -> HRESULT> = None;   // C 8159
+
+  baud_rate = 19200;                                                   // C 8161
+
+  w32_system_caret_hwnd = core::ptr::null_mut ();                      // C 8163
+  w32_system_caret_height = 0;                                         // C 8164
+  w32_system_caret_x = 0;                                              // C 8165
+  w32_system_caret_y = 0;                                              // C 8166
+
+  /* C 8168-8170's note, carried as C's own text at its position.  */
+  /* C: /* On Windows 7 and later, we need to set the user model ID
+     C:    to associate emacsclient launched files with Emacs frames
+     C:    in the UI.  */  */
+  shell = GetModuleHandle (c"shell32.dll".as_ptr ());                  // C 8171
+  if !shell.is_null ()                                                 // C 8172
+    {
+      set_user_model
+	= core::mem::transmute::<VOIDFNPTR,
+				 Option<unsafe extern "system" fn (id: *const c_ushort)
+				 -> HRESULT>> (
+	    GetProcAddress (shell, c"SetCurrentProcessExplicitAppUserModelID".as_ptr ()));   // C 8174-8176
+
+      /* C 8178-8182's note, carried as C's own text at its position.  */
+      /* C: /* If the function is defined, then we are running on Windows 7
+	 C: 	 or newer, and the UI uses this to group related windows
+	 C: 	 together.  Since emacs, runemacs, emacsclient are related, we
+	 C: 	 want them grouped even though the executables are different,
+	 C: 	 so we need to set a consistent ID between them.  */  */
+      if set_user_model.is_some ()                                     // C 8183
+	{ (set_user_model.unwrap ()) (USER_MODEL_ID.as_ptr ()); }      // C 8184
+    }
+
+  /* C 8187-8191: `#ifdef CYGWIN`'s file-descriptor arm (`cygwin` feature, P-51).  */
+  #[cfg (feature = "cygwin")]
+  {
+    w32_message_fd = emacs_open_noquit (c"/dev/windows".as_ptr (), O_RDWR, 0);   // C 8188
+    if w32_message_fd == -1                                          // C 8189
+      { fatal (c"opening /dev/windows: %s".as_ptr (), strerror (*errno ())); }   // C 8190
+  }
+
+  /* C 8193-8194's note, carried as C's own text at its position.  */
+  /* C: /* Initialize w32_use_visible_system_caret based on whether a screen
+     C:    reader is in use.  */  */
+  if SystemParametersInfo (SPI_GETSCREENREADER, 0, &raw mut caret as *mut c_void, 0) != 0   // C 8195
+    { w32_use_visible_system_caret = caret == TRUE; }                  // C 8196
+  else
+    { w32_use_visible_system_caret = false; }                          // C 8198
+
+  any_help_event_p = 0;                                                // C 8200
+
+  /* C 8202-8203's note, carried as C's own text at its position.  */
+  /* C: /* Initialize input mode: interrupt_input off, no flow control, allow
+     C:    8 bit character input, standard quit char.  */  */
+  Fset_input_mode (Qnil (), Qnil (), make_fixnum (2), Qnil ());        // C 8204
+
+  {
+    let input_locale_id: LCID = LOWORD! (GetKeyboardLayout (0)) as LCID;   // C 8207
+    w32_keyboard_codepage = codepage_for_locale (input_locale_id);     // C 8208
+  }
+
+  /* C 8211-8212's note, carried as C's own text at its position.  */
+  /* C: /* Create the window thread - it will terminate itself when the app
+     C:    terminates */  */
+  init_crit ();                                                        // C 8213
+
+  /* Wait for thread to start */
+  {
+    let mut msg: MSG = core::mem::zeroed ();                            // C 8217 (PORTING.md 1.5)
+
+    PeekMessage (&raw mut msg, core::ptr::null_mut (), 0, 0, PM_NOREMOVE);   // C 8219
+
+    hWindowsThread = CreateThread (core::ptr::null_mut (), 0,
+				   Some (w32_msg_worker),
+				   core::ptr::null_mut (), 0,
+				   &raw mut dwWindowsThreadId);        // C 8221-8223
+
+    GetMessage (&raw mut msg, core::ptr::null_mut (), WM_EMACS_DONE as UINT,
+		WM_EMACS_DONE as UINT);                              // C 8225
+  }
+
+  /* C 8228-8235's note, carried as C's own text at its position.  */
+  /* C: /* It is desirable that mainThread should have the same notion of
+     C:    focus window and active window as windowsThread.  Unfortunately, the
+     C:    following call to AttachThreadInput, which should do precisely what
+     C:    we need, causes major problems when Emacs is linked as a console
+     C:    program.  Unfortunately, we have good reasons for doing that, so
+     C:    instead we need to send messages to windowsThread to make some API
+     C:    calls for us (ones that affect, or depend on, the active/focus
+     C:    window state.)  */  */
+  /* C 8236's `#ifdef ATTACH_THREADS` is off in the frozen table (P-51).  */
+  #[cfg (feature = "attach_threads")]
+  { AttachThreadInput (dwMainThreadId, dwWindowsThreadId, TRUE); }     // C 8237
+
+  /* Dynamically link to optional system components.  */
+  {
+    let user_lib: HMODULE = GetModuleHandle (c"user32.dll".as_ptr ());   // C 8242
+
+    /* C 8244's `#define LOAD_PROC(lib, fn) pfn##fn = (void *) GetProcAddress (lib, #fn)` - the
+       port's `macro_rules!` (PORTING.md 2.1): C's `##` and `#` paste and stringify, which a Rust
+       macro cannot, so both names are passed explicitly at each call site (the `src/w32.rs`
+       11323 device).  The tokens the exclusion covers are in
+       `docs/ports/macro-body-notes.tsv`.  */
+    #[cfg (feature = "have_ntgui")]
+    macro_rules! LOAD_PROC {
+      ($lib:expr, $pfn:ident, $name:expr) => { unsafe {
+	let p: VOIDFNPTR = GetProcAddress ($lib, $name.as_ptr ());
+	$pfn = core::mem::transmute::<VOIDFNPTR, _> (p); } };
+    }
+
+    LOAD_PROC! (user_lib, pfnSetLayeredWindowAttributes,
+		c"SetLayeredWindowAttributes");                        // C 8246
+    LOAD_PROC! (user_lib, pfnCloseTouchInputHandle,
+		c"CloseTouchInputHandle");                             // C 8247
+    LOAD_PROC! (user_lib, pfnGetTouchInputInfo, c"GetTouchInputInfo");   // C 8248
+
+    /* PlgBlt is not available on Windows 9X.  */
+    let hgdi: HMODULE = LoadLibrary (c"gdi32.dll".as_ptr ());        // C 8251
+    if !hgdi.is_null ()                                                // C 8252
+      { LOAD_PROC! (hgdi, pfnPlgBlt, c"PlgBlt"); }                     // C 8253
+    /* C 8254's `#undef LOAD_PROC` - carried as C's own text.  */
+    /* C: #undef LOAD_PROC  */
+
+    /* Ensure scrollbar handles are at least 5 pixels.  */
+    vertical_scroll_bar_min_handle = 5;                                // C 8257
+    horizontal_scroll_bar_min_handle = 5;                              // C 8258
+
+    /* C 8260-8261's note, carried as C's own text at its position.  */
+    /* C: /* For either kind of scroll bar, take account of the arrows; these
+       C:    effectively form the border of the main scroll bar range.  */  */
+    vertical_scroll_bar_top_border = GetSystemMetrics (SM_CYVSCROLL);  // C 8263
+    vertical_scroll_bar_bottom_border = vertical_scroll_bar_top_border;   // C 8262
+    horizontal_scroll_bar_left_border = GetSystemMetrics (SM_CYHSCROLL);   // C 8265
+    horizontal_scroll_bar_right_border = horizontal_scroll_bar_left_border;   // C 8264
+  }
+
+  w32_get_mouse_wheel_vertical_delta ();                               // C 8268
+  w32_register_for_sleep_notifications ();                             // C 8269
 }

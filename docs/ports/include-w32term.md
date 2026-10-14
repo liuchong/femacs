@@ -590,3 +590,22 @@ module.
 in the unit's text** (the lane's baseline), and the `have_ntgui` + `windowsnt` arm stays at **78**;
 `python3 tools/check-mirror-dupes.py` and `tools/check-declarations.py` -> 0 failure(s) each.  The
 unit-side readings are `docs/ports/w32term.md`'s `### Slice 25 (C 8044-8138)`.
+
+## `syms_of_w32term` and `w32_init_main_thread` move into `w32term_fn_decls` (2026-10-15, w32term slice 26)
+
+**The measurement.**  `src/w32term.c` 8141 and 8272 define `w32_init_main_thread` and
+`syms_of_w32term`, and this mirror declared both at the crate root (C 925's
+`extern void w32_init_main_thread (void);` and C 914's `extern void syms_of_w32term (void);` in
+the C 909-925 block), so the pair would have carried two `E0428`s - the class slice 21 closed
+nine of, slice 22 one and slice 25 two.
+
+**The move.**  Both prototypes now stand in `w32term_fn_decls`, the glob-imported module a local
+definition shadows (P-21/P-39); the crate-root site keeps C's own text and a note naming the
+module.  The two names are the last ones `src/w32term.c` defines that this header declares.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w26/x.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **20 errors, 0 anchored
+in the unit's text** (the lane's baseline), and the `have_ntgui` + `windowsnt` arm stays at **78**;
+`python3 tools/check-mirror-dupes.py` and `tools/check-declarations.py` -> 0 failure(s) each.  The
+unit-side readings are `docs/ports/w32term.md`'s `### Slice 26 (C 8139-8271)`.
