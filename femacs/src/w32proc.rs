@@ -6617,12 +6617,12 @@ unsafe fn int_from_hex (s: *mut c_char) -> DWORD
 
 /* C's `<winbase.h>`: the locale validation and the two `LOCALE_*` names C 4236-4292 reads (`LCID`
    is slice 23's).  UNVERIFIED (P-88 1).  */
-/// C: #define LCID_SUPPORTED 0x00000001
+/// C: #define LCID_SUPPORTED 0x00000002
 /// C: #define LOCALE_SLANGUAGE 0x00000002
 /// C: #define LOCALE_SABBREVLANGNAME 0x00000003
 /// C: WINBASEAPI BOOL WINAPI IsValidLocale (LCID Locale, DWORD dwFlags);
 #[cfg (feature = "windowsnt")]
-pub const LCID_SUPPORTED: DWORD = 0x00000001;
+pub const LCID_SUPPORTED: DWORD = 0x00000002;
 #[cfg (feature = "windowsnt")]
 pub const LOCALE_SLANGUAGE: LCTYPE = 0x00000002;
 #[cfg (feature = "windowsnt")]
@@ -6632,4 +6632,530 @@ unsafe extern "system" {
   pub fn IsValidLocale (Locale: LCID, dwFlags: DWORD) -> BOOL;
 }
 
-/* C 4323's comment and C 4325's `Vw32_valid_locale_ids` open the next slice.  */
+/* C 4323-4348: the locale enumeration and its `DEFUN`.  C 4323-4324's comment explains the
+   file-scope object (the `EnumSystemLocales` callback receives no context pointer);
+   `enum_locale_fn` (C 4327-4333) is that callback, and C 4330's `int_from_hex` (slice 24) turns
+   the hexadecimal locale string into the DWORD C 4331 conses onto the list; C 4342, C 4344 and
+   C 4346-4347 are the `DEFUN`'s reset, its enumeration and its reversed answer.  */
+/// C: /* We need to build a global list, since the EnumSystemLocale callback
+/// C:    function isn't given a context pointer.  */
+/// C: static Lisp_Object Vw32_valid_locale_ids;
+#[cfg (feature = "windowsnt")]
+static mut Vw32_valid_locale_ids: Lisp_Object = lisp_h_Qnil ();
+
+/// C 4327-4333: `static BOOL CALLBACK ALIGN_STACK enum_locale_fn (LPTSTR localeNum)` - the
+/// callback shape the banner at C 22-25 describes (`CALLBACK` is C's `__stdcall`, `ALIGN_STACK`
+/// the force-align attribute), C 4330's `int_from_hex`, C 4331's `Fcons` and C 4332's `TRUE`
+/// (keep enumerating).
+/// C: static BOOL CALLBACK ALIGN_STACK
+/// C: enum_locale_fn (LPTSTR localeNum)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn enum_locale_fn (localeNum: LPTSTR) -> BOOL
+{
+  let id: DWORD = int_from_hex (localeNum);                          // C 4330
+  Vw32_valid_locale_ids = Fcons (make_fixnum (id as EMACS_INT),
+                                 Vw32_valid_locale_ids);             // C 4331
+  return TRUE;                                                       // C 4332
+}
+
+/// C 4335-4348: `DEFUN ("w32-get-valid-locale-ids", …)`.
+/// C: DEFUN ("w32-get-valid-locale-ids", Fw32_get_valid_locale_ids,
+/// C:        Sw32_get_valid_locale_ids, 0, 0, 0,
+/// C:        doc: /* Return list of all valid Windows locale ids.
+/// C: Each id is a numerical value; use `w32-get-locale-info' to convert to a
+/// C: human-readable form.  */)
+/// C:   (void)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-valid-locale-ids", Fw32_get_valid_locale_ids, Sw32_get_valid_locale_ids,
+	0, 0, 0,
+	doc: "       doc: /* Return list of all valid Windows locale ids.
+Each id is a numerical value; use `w32-get-locale-info' to convert to a
+human-readable form.  */)  ",
+	(),
+	{
+  Vw32_valid_locale_ids = Qnil ();                                   // C 4342
+
+  EnumSystemLocales (Some (enum_locale_fn), LCID_SUPPORTED);         // C 4344
+
+  Vw32_valid_locale_ids = Fnreverse (Vw32_valid_locale_ids);         // C 4346
+  return Vw32_valid_locale_ids;                                      // C 4347
+});
+
+/// C 4351-4362: `DEFUN ("w32-get-default-locale-id", …)` - C 4359-4361's `NILP` branch between
+/// the system and the user default LCID.
+/// C: DEFUN ("w32-get-default-locale-id", Fw32_get_default_locale_id, Sw32_get_default_locale_id, 0, 1, 0,
+/// C:        doc: /* Return Windows locale id for default locale setting.
+/// C: By default, the system default locale setting is returned; if the optional
+/// C: parameter USERP is non-nil, the user default locale setting is returned.
+/// C: This is a numerical value; use `w32-get-locale-info' to convert to a
+/// C: human-readable form.  */)
+/// C:   (Lisp_Object userp)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-default-locale-id", Fw32_get_default_locale_id, Sw32_get_default_locale_id,
+	0, 1, 0,
+	doc: "       doc: /* Return Windows locale id for default locale setting.
+By default, the system default locale setting is returned; if the optional
+parameter USERP is non-nil, the user default locale setting is returned.
+This is a numerical value; use `w32-get-locale-info' to convert to a
+human-readable form.  */)  ",
+	(userp: Lisp_Object),
+	{
+  if NILP (userp)                                                    // C 4359
+    { return make_fixnum (GetSystemDefaultLCID () as EMACS_INT); }    // C 4360
+  return make_fixnum (GetUserDefaultLCID () as EMACS_INT);            // C 4361
+});
+
+/// C 4365-4384: `DEFUN ("w32-set-current-locale", …)` - C 4370's `CHECK_FIXNUM`, C 4372-4373's
+/// `IsValidLocale` guard, C 4375-4376's `SetThreadLocale`, C 4378-4381's input-thread
+/// notification (the `dwWindowsThreadId` test C 4379 makes) and C 4383's answer.
+/// C: DEFUN ("w32-set-current-locale", Fw32_set_current_locale, Sw32_set_current_locale, 1, 1, 0,
+/// C:        doc: /* Make Windows locale LCID be the current locale setting for Emacs.
+/// C: If successful, the new locale id is returned, otherwise nil.  */)
+/// C:   (Lisp_Object lcid)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-set-current-locale", Fw32_set_current_locale, Sw32_set_current_locale,
+	1, 1, 0,
+	doc: "       doc: /* Make Windows locale LCID be the current locale setting for Emacs.
+If successful, the new locale id is returned, otherwise nil.  */)  ",
+	(lcid: Lisp_Object),
+	{
+  CHECK_FIXNUM (lcid);                                               // C 4370
+
+  if IsValidLocale (XFIXNUM (lcid) as DWORD, LCID_SUPPORTED) == 0    // C 4372
+    { return Qnil (); }                                             // C 4373
+
+  if SetThreadLocale (XFIXNUM (lcid) as DWORD) == 0                  // C 4375
+    { return Qnil (); }                                             // C 4376
+
+  /* Need to set input thread locale if present.  */
+  if dwWindowsThreadId != 0                                          // C 4379
+    {
+      /* Reply is not needed.  */
+      PostThreadMessage (dwWindowsThreadId, WM_EMACS_SETLOCALE as UINT,
+			 XFIXNUM (lcid) as WPARAM, 0);                 // C 4381
+    }
+
+  return make_fixnum (GetThreadLocale () as EMACS_INT);              // C 4383
+});
+
+/* C 4386-4410: the codepage enumeration, the same shape as the locale one above: C 4387-4388's
+   comment, C 4389's file-scope object (assigned in C's `enum_codepage_fn`, declared as the file's
+   two `static Lisp_Object`s are), C 4391-4397's callback and C 4399-4410's `DEFUN`.  */
+/// C: /* We need to build a global list, since the EnumCodePages callback
+/// C:    function isn't given a context pointer.  */
+/// C: static Lisp_Object Vw32_valid_codepages;
+#[cfg (feature = "windowsnt")]
+static mut Vw32_valid_codepages: Lisp_Object = lisp_h_Qnil ();
+
+/// C 4391-4397: `static BOOL CALLBACK ALIGN_STACK enum_codepage_fn (LPTSTR codepageNum)` -
+/// C 4394's `atoi` (the decimal spelling, where `enum_locale_fn` reads hex) and C 4395-4396's
+/// cons-and-continue pair.
+/// C: static BOOL CALLBACK ALIGN_STACK
+/// C: enum_codepage_fn (LPTSTR codepageNum)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn enum_codepage_fn (codepageNum: LPTSTR) -> BOOL
+{
+  let id: DWORD = atoi (codepageNum) as DWORD;                       // C 4394
+  Vw32_valid_codepages = Fcons (make_fixnum (id as EMACS_INT),
+                                Vw32_valid_codepages);               // C 4395
+  return TRUE;                                                       // C 4396
+}
+
+/// C 4399-4410: `DEFUN ("w32-get-valid-codepages", …)`.
+/// C: DEFUN ("w32-get-valid-codepages", Fw32_get_valid_codepages,
+/// C:        Sw32_get_valid_codepages, 0, 0, 0,
+/// C:        doc: /* Return list of all valid Windows codepages.  */)
+/// C:   (void)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-valid-codepages", Fw32_get_valid_codepages, Sw32_get_valid_codepages,
+	0, 0, 0,
+	doc: "       doc: /* Return list of all valid Windows codepages.  */)  ",
+	(),
+	{
+  Vw32_valid_codepages = Qnil ();                                    // C 4404
+
+  EnumSystemCodePages (Some (enum_codepage_fn), CP_SUPPORTED);       // C 4406
+
+  Vw32_valid_codepages = Fnreverse (Vw32_valid_codepages);           // C 4408
+  return Vw32_valid_codepages;                                       // C 4409
+});
+
+/// C 4413-4419: `DEFUN ("w32-get-console-codepage", …)` - the one-line `GetConsoleCP` body.
+/// C: DEFUN ("w32-get-console-codepage", Fw32_get_console_codepage,
+/// C:        Sw32_get_console_codepage, 0, 0, 0,
+/// C:        doc: /* Return current Windows codepage for console input.  */)
+/// C:   (void)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-console-codepage", Fw32_get_console_codepage, Sw32_get_console_codepage,
+	0, 0, 0,
+	doc: "       doc: /* Return current Windows codepage for console input.  */)  ",
+	(),
+	{
+  return make_fixnum (GetConsoleCP () as EMACS_INT);                 // C 4418
+});
+
+/// C 4422-4438: `DEFUN ("w32-set-console-codepage", …)` - `CHECK_FIXNUM`, the two guards
+/// (`IsValidCodePage` C 4431, `SetConsoleCP` C 4434) and C 4437's read-back.
+/// C: DEFUN ("w32-set-console-codepage", Fw32_set_console_codepage,
+/// C:        Sw32_set_console_codepage, 1, 1, 0,
+/// C:        doc: /* Make Windows codepage CP be the codepage for Emacs tty keyboard input.
+/// C: This codepage setting affects keyboard input in tty mode.
+/// C: If successful, the new CP is returned, otherwise nil.  */)
+/// C:   (Lisp_Object cp)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-set-console-codepage", Fw32_set_console_codepage, Sw32_set_console_codepage,
+	1, 1, 0,
+	doc: "       doc: /* Make Windows codepage CP be the codepage for Emacs tty keyboard input.
+This codepage setting affects keyboard input in tty mode.
+If successful, the new CP is returned, otherwise nil.  */)  ",
+	(cp: Lisp_Object),
+	{
+  CHECK_FIXNUM (cp);                                                 // C 4429
+
+  if IsValidCodePage (XFIXNUM (cp) as UINT) == 0                     // C 4431
+    { return Qnil (); }                                             // C 4432
+
+  if SetConsoleCP (XFIXNUM (cp) as UINT) == 0                        // C 4434
+    { return Qnil (); }                                             // C 4435
+
+  return make_fixnum (GetConsoleCP () as EMACS_INT);                 // C 4437
+});
+
+/// C 4441-4447: `DEFUN ("w32-get-console-output-codepage", …)` - the one-line
+/// `GetConsoleOutputCP` body.
+/// C: DEFUN ("w32-get-console-output-codepage", Fw32_get_console_output_codepage,
+/// C:        Sw32_get_console_output_codepage, 0, 0, 0,
+/// C:        doc: /* Return current Windows codepage for console output.  */)
+/// C:   (void)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-console-output-codepage", Fw32_get_console_output_codepage,
+	Sw32_get_console_output_codepage, 0, 0, 0,
+	doc: "       doc: /* Return current Windows codepage for console output.  */)  ",
+	(),
+	{
+  return make_fixnum (GetConsoleOutputCP () as EMACS_INT);           // C 4446
+});
+
+/// C 4450-4466: `DEFUN ("w32-set-console-output-codepage", …)` - the output-console twin of
+/// C 4422-4438: `CHECK_FIXNUM`, `IsValidCodePage`, `SetConsoleOutputCP`, read-back.
+/// C: DEFUN ("w32-set-console-output-codepage", Fw32_set_console_output_codepage,
+/// C:        Sw32_set_console_output_codepage, 1, 1, 0,
+/// C:        doc: /* Make Windows codepage CP be the codepage for Emacs console output.
+/// C: This codepage setting affects display in tty mode.
+/// C: If successful, the new CP is returned, otherwise nil.  */)
+/// C:   (Lisp_Object cp)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-set-console-output-codepage", Fw32_set_console_output_codepage,
+	Sw32_set_console_output_codepage, 1, 1, 0,
+	doc: "       doc: /* Make Windows codepage CP be the codepage for Emacs console output.
+This codepage setting affects display in tty mode.
+If successful, the new CP is returned, otherwise nil.  */)  ",
+	(cp: Lisp_Object),
+	{
+  CHECK_FIXNUM (cp);                                                 // C 4457
+
+  if IsValidCodePage (XFIXNUM (cp) as UINT) == 0                     // C 4459
+    { return Qnil (); }                                             // C 4460
+
+  if SetConsoleOutputCP (XFIXNUM (cp) as UINT) == 0                  // C 4462
+    { return Qnil (); }                                             // C 4463
+
+  return make_fixnum (GetConsoleOutputCP () as EMACS_INT);           // C 4465
+});
+
+/// C 4469-4496: `DEFUN ("w32-get-codepage-charset", …)` - the `CHARSETINFO` local C 4480
+/// declares, C 4481's `DWORD_PTR` temporary (its comment at C 4488-4490 explains why: the cast
+/// below is from an integer, and going through the pointer-sized type keeps the
+/// `--with-wide-int`/64-bit build warning-free), C 4483/4485-4486's guards and C 4491-4493's
+/// `TranslateCharsetInfo` with `info.ciCharset` as the answer.
+/// C: DEFUN ("w32-get-codepage-charset", Fw32_get_codepage_charset,
+/// C:        Sw32_get_codepage_charset, 1, 1, 0,
+/// C:        doc: /* Return charset ID corresponding to codepage CP.
+/// C: Returns nil if the codepage is not valid or its charset ID could
+/// C: not be determined.
+/// C:
+/// C: Note that this function is only guaranteed to work with ANSI
+/// C: codepages; most console codepages are not supported and will
+/// C: yield nil.  */)
+/// C:   (Lisp_Object cp)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-codepage-charset", Fw32_get_codepage_charset, Sw32_get_codepage_charset,
+	1, 1, 0,
+	doc: "       doc: /* Return charset ID corresponding to codepage CP.
+Returns nil if the codepage is not valid or its charset ID could
+not be determined.
+
+Note that this function is only guaranteed to work with ANSI
+codepages; most console codepages are not supported and will
+yield nil.  */)  ",
+	(cp: Lisp_Object),
+	{
+  let mut info: CHARSETINFO = core::mem::zeroed ();                  // C 4480
+  let dwcp: DWORD_PTR;                                               // C 4481
+
+  CHECK_FIXNUM (cp);                                                 // C 4483
+
+  if IsValidCodePage (XFIXNUM (cp) as UINT) == 0                     // C 4485
+    { return Qnil (); }                                             // C 4486
+
+  /* Going through a temporary DWORD_PTR variable avoids compiler warning
+     about cast to pointer from integer of different size, when
+     building --with-wide-int or building for 64bit.  */
+  dwcp = XFIXNUM (cp) as DWORD_PTR;                                  // C 4491
+  if TranslateCharsetInfo (dwcp as *mut DWORD, &raw mut info,
+			   TCI_SRCCODEPAGE) != 0                    // C 4492
+    { return make_fixnum (info.ciCharset as EMACS_INT); }            // C 4493
+
+  return Qnil ();                                                    // C 4495
+});
+
+/* C's `<windef.h>`: `HIWORD`, the high half C 4515-4517 and C 4533-4534 read (the `LOWORD` at
+   C 2593 is slice 13's, declared the same way and for the same reason - a Rust `macro_rules!` is
+   visible only after its definition, so the SDK macro stands at its first user).  UNVERIFIED
+   (P-88 1).  */
+/// C: #define HIWORD(l) ((WORD) (((DWORD_PTR) (l) >> 16) & 0xffff))
+#[cfg (feature = "windowsnt")]
+macro_rules! HIWORD {
+  ($l:expr) => { ((($l) as DWORD_PTR >> 16) & 0xffff) as WORD };
+}
+
+/// C 4499-4522: `DEFUN ("w32-get-valid-keyboard-layouts", …)` - C 4505's count, C 4506's
+/// `alloca` (PORTING.md P-05's `sa_stack_alloc`, the device slice 15's `sys_spawnve` sites use),
+/// C 4509's filled-list check, C 4511's `while (--num_layouts >= 0)` walk and C 4515-4517's
+/// nested `Fcons`.
+/// C: DEFUN ("w32-get-valid-keyboard-layouts", Fw32_get_valid_keyboard_layouts,
+/// C:        Sw32_get_valid_keyboard_layouts, 0, 0, 0,
+/// C:        doc: /* Return list of Windows keyboard languages and layouts.
+/// C: The return value is a list of pairs of language id and layout id.  */)
+/// C:   (void)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-valid-keyboard-layouts", Fw32_get_valid_keyboard_layouts,
+	Sw32_get_valid_keyboard_layouts, 0, 0, 0,
+	doc: "       doc: /* Return list of Windows keyboard languages and layouts.
+The return value is a list of pairs of language id and layout id.  */)  ",
+	(),
+	{
+  let mut num_layouts: c_int
+    = GetKeyboardLayoutList (0, core::ptr::null_mut ());             // C 4505
+  let layouts: *mut HKL
+    = sa_stack_alloc (num_layouts as usize * core::mem::size_of::<HKL> ())
+      as *mut HKL;                                                   // C 4506
+  let mut obj: Lisp_Object = Qnil ();                                // C 4507
+
+  if GetKeyboardLayoutList (num_layouts, layouts) == num_layouts     // C 4509
+    {
+      while { num_layouts -= 1; num_layouts >= 0 }                   // C 4511
+	{
+	  let kl: HKL = *layouts.offset (num_layouts as isize);       // C 4513
+
+	  obj = Fcons (Fcons (make_fixnum (LOWORD! (kl) as EMACS_INT),
+			      make_fixnum (HIWORD! (kl) as EMACS_INT)),
+		       obj);                                         // C 4515-4517
+	}
+    }
+
+  return obj;                                                        // C 4521
+});
+
+/// C 4525-4535: `DEFUN ("w32-get-keyboard-layout", …)` - C 4531's `GetKeyboardLayout` of the
+/// input thread and C 4533-4534's language/layout cons.
+/// C: DEFUN ("w32-get-keyboard-layout", Fw32_get_keyboard_layout,
+/// C:        Sw32_get_keyboard_layout, 0, 0, 0,
+/// C:        doc: /* Return current Windows keyboard language and layout.
+/// C: The return value is the cons of the language id and the layout id.  */)
+/// C:   (void)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-keyboard-layout", Fw32_get_keyboard_layout, Sw32_get_keyboard_layout,
+	0, 0, 0,
+	doc: "       doc: /* Return current Windows keyboard language and layout.
+The return value is the cons of the language id and the layout id.  */)  ",
+	(),
+	{
+  let kl: HKL = GetKeyboardLayout (dwWindowsThreadId);               // C 4531
+
+  return Fcons (make_fixnum (LOWORD! (kl) as EMACS_INT),
+		make_fixnum (HIWORD! (kl) as EMACS_INT));            // C 4533-4534
+});
+
+/// C 4538-4571: `DEFUN ("w32-set-keyboard-layout", …)` - the three checks (C 4547-4549),
+/// C 4551-4552's packed `HKL` (C's `UINT_PTR` intermediate keeps the two casts), C 4554-4568's
+/// input-thread branch (`PostThreadMessage` + the `GetMessage` wait on `WM_EMACS_DONE`, whose
+/// `wParam` decides, C 4561-4564) with C 4567-4568's `ActivateKeyboardLayout` fallback, and
+/// C 4570's call back into `w32-get-keyboard-layout`.
+/// C: DEFUN ("w32-set-keyboard-layout", Fw32_set_keyboard_layout,
+/// C:        Sw32_set_keyboard_layout, 1, 1, 0,
+/// C:        doc: /* Make LAYOUT be the current keyboard layout for Emacs.
+/// C: The keyboard layout setting affects interpretation of keyboard input.
+/// C: If successful, the new layout id is returned, otherwise nil.  */)
+/// C:   (Lisp_Object layout)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-set-keyboard-layout", Fw32_set_keyboard_layout, Sw32_set_keyboard_layout,
+	1, 1, 0,
+	doc: "       doc: /* Make LAYOUT be the current keyboard layout for Emacs.
+The keyboard layout setting affects interpretation of keyboard input.
+If successful, the new layout id is returned, otherwise nil.  */)  ",
+	(layout: Lisp_Object),
+	{
+  let mut kl: HKL;                                                   // C 4545
+
+  CHECK_CONS (layout);                                               // C 4547
+  CHECK_FIXNUM (XCAR (layout));                                      // C 4548
+  CHECK_FIXNUM (XCDR (layout));                                      // C 4549
+
+  kl = (((XFIXNUM (XCAR (layout)) & 0xffff)
+	 | (XFIXNUM (XCDR (layout)) << 16)) as UINT_PTR) as HKL;     // C 4551-4552
+
+  /* Synchronize layout with input thread.  */
+  if dwWindowsThreadId != 0                                          // C 4555
+    {
+      if PostThreadMessage (dwWindowsThreadId, WM_EMACS_SETKEYBOARDLAYOUT as UINT,
+			    kl as WPARAM, 0) != 0                    // C 4557-4558
+	{
+	  let mut msg: MSG = core::mem::zeroed ();                   // C 4560
+	  GetMessage (&raw mut msg, core::ptr::null_mut (),
+		      WM_EMACS_DONE as UINT, WM_EMACS_DONE as UINT); // C 4561
+
+	  if msg.wParam == 0                                         // C 4563
+	    { return Qnil (); }                                      // C 4564
+	}
+    }
+  else if ActivateKeyboardLayout (kl, 0) == 0                        // C 4567
+    { return Qnil (); }                                             // C 4568
+
+  return Fw32_get_keyboard_layout ();                                // C 4570
+});
+
+/* C's `<windows.h>`: the enumeration and console surface C 4325-4410 and C 4505-4510 read.
+   `EnumSystemLocales`/`EnumSystemCodePages` are the SDK's A/W macro pair - this configuration
+   leaves `_UNICODE` undefined, so the `…A` entries are the ones C's text reaches (the
+   `src/w32select.rs` 339-355 spelling) - and the two callback shapes take `LPTSTR`, the TCHAR
+   pointer `<windef.h>` defines as `char *` on this arm.  Every value and record here is
+   UNVERIFIED (P-88 1).  */
+/// C: typedef char *LPSTR, *LPTSTR;
+/// C: typedef BOOL (CALLBACK *LOCALE_ENUMPROCA) (LPSTR);
+/// C: typedef BOOL (CALLBACK *CODEPAGE_ENUMPROCA) (LPSTR);
+/// C: #define CP_SUPPORTED 0x00000002
+/// C: WINBASEAPI BOOL WINAPI EnumSystemLocalesA (LOCALE_ENUMPROCA lpLocaleEnumProc, DWORD dwFlags);
+/// C: WINBASEAPI BOOL WINAPI EnumSystemCodePagesA (CODEPAGE_ENUMPROCA lpCodePageEnumProc, DWORD dwFlags);
+/// C: WINBASEAPI LCID WINAPI GetSystemDefaultLCID (void);
+/// C: WINBASEAPI LCID WINAPI GetUserDefaultLCID (void);
+/// C: WINBASEAPI LCID WINAPI SetThreadLocale (LCID Locale);
+/// C: WINUSERAPI BOOL WINAPI PostThreadMessageA (DWORD idThread, UINT Msg, WPARAM wParam, LPARAM lParam);
+/// C: WINBASEAPI UINT WINAPI GetConsoleCP (void);
+/// C: WINBASEAPI BOOL WINAPI SetConsoleCP (UINT wCodePageID);
+/// C: WINBASEAPI UINT WINAPI GetConsoleOutputCP (void);
+/// C: WINBASEAPI BOOL WINAPI SetConsoleOutputCP (UINT wCodePageID);
+/// C: WINBASEAPI BOOL WINAPI IsValidCodePage (UINT CodePage);
+#[cfg (feature = "windowsnt")]
+pub type LPTSTR = *mut c_char;
+#[cfg (feature = "windowsnt")]
+pub type LOCALE_ENUMPROCA = Option<unsafe extern "system" fn (LPTSTR) -> BOOL>;
+#[cfg (feature = "windowsnt")]
+pub type CODEPAGE_ENUMPROCA = Option<unsafe extern "system" fn (LPTSTR) -> BOOL>;
+#[cfg (feature = "windowsnt")]
+pub const CP_SUPPORTED: DWORD = 0x00000002;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn EnumSystemLocales (lpLocaleEnumProc: LOCALE_ENUMPROCA, dwFlags: DWORD) -> BOOL;
+  pub fn EnumSystemCodePages (lpCodePageEnumProc: CODEPAGE_ENUMPROCA, dwFlags: DWORD) -> BOOL;
+  pub fn GetSystemDefaultLCID () -> LCID;
+  pub fn GetUserDefaultLCID () -> LCID;
+  pub fn SetThreadLocale (Locale: LCID) -> LCID;
+  pub fn PostThreadMessage (idThread: DWORD, msg: UINT, wParam: WPARAM, lParam: LPARAM) -> BOOL;
+  pub fn GetConsoleCP () -> UINT;
+  pub fn SetConsoleCP (wCodePageID: UINT) -> BOOL;
+  pub fn GetConsoleOutputCP () -> UINT;
+  pub fn SetConsoleOutputCP (wCodePageID: UINT) -> BOOL;
+  pub fn IsValidCodePage (CodePage: UINT) -> BOOL;
+}
+
+/* C's `<wingdi.h>`: the charset record C 4480 declares and the converter C 4492 calls, with the
+   one flag C's text passes.  `FONTSIGNATURE` is the record's third member (`fsUsb[4]`,
+   `fsCsb[2]`), spelled in full so C's `CHARSETINFO` keeps its shape.  UNVERIFIED (P-88 1).  */
+/// C: typedef struct tagFONTSIGNATURE { DWORD fsUsb[4]; DWORD fsCsb[2]; } FONTSIGNATURE;
+/// C: typedef struct tagCHARSETINFO { UINT ciCharset; UINT ciACP; FONTSIGNATURE fs; } CHARSETINFO;
+/// C: #define TCI_SRCCODEPAGE 2
+/// C: WINAPI BOOL TranslateCharsetInfo (DWORD *lpSrc, LPCHARSETINFO lpCs, DWORD dwFlags);
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FONTSIGNATURE
+{
+  pub fsUsb: [DWORD; 4],
+  pub fsCsb: [DWORD; 2],
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CHARSETINFO
+{
+  pub ciCharset: UINT,
+  pub ciACP: UINT,
+  pub fs: FONTSIGNATURE,
+}
+#[cfg (feature = "windowsnt")]
+pub type LPCHARSETINFO = *mut CHARSETINFO;
+#[cfg (feature = "windowsnt")]
+pub const TCI_SRCCODEPAGE: DWORD = 2;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn TranslateCharsetInfo (lpSrc: *mut DWORD, lpCs: LPCHARSETINFO, dwFlags: DWORD) -> BOOL;
+}
+
+/* C's `<windows.h>`: the keyboard-layout entries and the message record C 4525-4571 needs.  The
+   four entries are the SDK's own (`GetKeyboardLayoutList`'s `nBuff`/`lpList`, `HKL` is
+   `<windef.h>`'s `typedef HANDLE HKL`), and `MSG` is `<winuser.h>`'s `tagMSG`, spelled member for
+   member as the `src/w32fns.rs` 379-388 use site spells it - the port has no Windows SDK mirror,
+   so each unit declares the record it reads (P-72 (3), P-88 1).  `HWND` is the first member's
+   type: slice 22's deviation 76 said "the graph's (`include/w32.rs`)", which is not the case -
+   that mirror mentions the name in prose and spells `w32.h`'s own members as untyped pointers -
+   so the handle and the two halves of the layout pair are declared here.  `GetMessage` is
+   `GetMessageA`.  UNVERIFIED.
+   */
+/// C: typedef HANDLE HWND;
+/// C: typedef HANDLE HKL;
+/// C: typedef struct tagPOINT { LONG x; LONG y; } POINT;
+/// C: typedef struct tagMSG { HWND hwnd; UINT message; WPARAM wParam; LPARAM lParam; DWORD time;
+/// C:   POINT pt; } MSG;
+/// C: #define HIWORD(l) ((WORD) (((DWORD_PTR) (l) >> 16) & 0xffff))
+/// C: WINUSERAPI int WINAPI GetKeyboardLayoutList (int nBuff, HKL *lpList);
+/// C: WINUSERAPI HKL WINAPI GetKeyboardLayout (DWORD idThread);
+/// C: WINUSERAPI HKL WINAPI ActivateKeyboardLayout (HKL hkl, UINT Flags);
+/// C: WINUSERAPI BOOL WINAPI GetMessageA (LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
+#[cfg (feature = "windowsnt")]
+pub type HWND = *mut c_void;
+#[cfg (feature = "windowsnt")]
+pub type HKL = *mut c_void;
+#[cfg (feature = "windowsnt")]
+pub type UINT_PTR = usize;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct POINT
+{
+  pub x: LONG,
+  pub y: LONG,
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MSG
+{
+  pub hwnd: HWND,
+  pub message: UINT,
+  pub wParam: WPARAM,
+  pub lParam: LPARAM,
+  pub time: DWORD,
+  pub pt: POINT,
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetKeyboardLayoutList (nBuff: c_int, lpList: *mut HKL) -> c_int;
+  pub fn GetKeyboardLayout (idThread: DWORD) -> HKL;
+  pub fn ActivateKeyboardLayout (hkl: HKL, Flags: UINT) -> HKL;
+  pub fn GetMessage (lpMsg: *mut MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT) -> BOOL;
+}
+
+/* C 4573-4641's `get_lcid_callback`/`get_lcid` (with the two `LOCALE_NAME_MAX_LENGTH`-sized
+   statics C 4578-4579 declares), C 4643-4730's `w32_compare_strings` and C 4764's
+   `syms_of_ntproc` open the next slices.  */

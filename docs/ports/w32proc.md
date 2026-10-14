@@ -138,7 +138,8 @@ which `check-dead-file-coverage.py` requires):
 | 4084-4135 | the `DEFUN` `w32-application-type`: the expand/encode/`unixtodos_filename`/`filename_to_ansi` chain, the `_mbspbrk` guard and the `w32_executable_type` call with its four `Q…` answers | file gate (slice 22); the four symbols are the `globals.rs` mirror's (this file's `syms_of_ntproc` is where C defines them - the next lane of rows) |
 | 4137-4234 | the langinfo arm: C 4137's `#ifdef HAVE_LANGINFO_CODESET` (live in the frozen table, carried under `have_langinfo_codeset`), C 4139-4143's `LOCALE_IPAPERSIZE` fallback and C 4145-4234's `nl_langinfo` (the `w32item` table, the lazily grown buffer, the `CODESET` `cp`-prefix path and the `_NL_PAPER_*` table) | file gate (slice 23); the round's `<winnt.h>`/CRT/gnulib surface stands at the use site (Deviations 86), and the `countof` macro is spelled here because its gnulib mirror is in no unit's graph (Deviations 87) |
 | 4236-4321 | `w32-get-locale-info` (C 4236-4292, with its three branches), `w32-get-current-locale-id` (C 4295-4303) and the static `int_from_hex` (C 4305-4321) | file gate (slice 24); the round's `<winbase.h>` names stand at the use site (Deviations 88), and the `hex` digit table is C's C string under the tree's `*b"…"` device |
-| 4323-4903 | **the remainder of the file** - C 4323's comment and C 4325's `Vw32_valid_locale_ids` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the other twelve `DEFUN`s (C 4327-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4323-4571 | the twelve `DEFUN`s of the locale/codepage/console/keyboard block and the four file-scope objects and callbacks they read: `w32-get-valid-locale-ids` (C 4323-4348, with `Vw32_valid_locale_ids` and `enum_locale_fn`), `w32-get-default-locale-id` (C 4351-4362), `w32-set-current-locale` (C 4365-4384), `w32-get-valid-codepages` (C 4386-4410, with `Vw32_valid_codepages` and `enum_codepage_fn`), the four console-codepage `DEFUN`s (C 4413-4466), `w32-get-codepage-charset` (C 4469-4496) and the three keyboard-layout `DEFUN`s (C 4499-4571) | file gate (slice 25); the round's `<windows.h>`/`<wingdi.h>` surface stands at the use site (Deviations 90-91), the `HIWORD` macro at C 4515's use site (the C 2593 `LOWORD` shape, Deviation 92), and `HWND` is declared there because slice 22's Deviation 76 note was wrong about the graph carrying it (Deviation 93) |
+| 4573-4903 | **the remainder of the file** - C 4573's `get_lcid_callback` and C 4578-4579's `found_lcid`/`lname` through `get_lcid` (C 4618-4641), `w32_compare_strings` (C 4651-4730), the `syms_of_ntproc` table (C 4764-4903) and C 4861-4869's `#if 0` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1308,8 +1309,11 @@ w32_valid_process_id` and `missing function find_child_console`.  No token rows;
 
 76. **`GetWindowThreadProcessId`, `GetClassName` and `LPARAM` stand at the use site** (P-88 ①):
     `<winuser.h>`'s two entry points (C 3506, C 3511) and `<windef.h>`'s `typedef LONG_PTR LPARAM`
-    (pointer-sized, spelled `isize`).  `HWND` is the graph's (`include/w32.rs`), `strcmp` the
-    `string.rs` mirror's, and `os_subtype`/`OS_SUBTYPE_9X` the `w32common.rs` mirror's.
+    (pointer-sized, spelled `isize`).  `strcmp` is the `string.rs` mirror's and
+    `os_subtype`/`OS_SUBTYPE_9X` the `w32common.rs` mirror's.  **`HWND` is *not* the graph's** -
+    this note said `include/w32.rs` carried it, and slice 25 measured that it does not (that
+    mirror names the type in prose and spells `w32.h`'s members as untyped pointers): the
+    `find_child_console` signature's `HWND` is declared at slice 25's use site (Deviation 93).
 77. **`include/w32common.rs` gained its eleventh P-39 move** (this round's Evidence ②): the
     `w32_valid_process_id` declaration moved from that mirror's root into `w32common_decls`, the
     module it glob-imports, for the reason its own note records for `w32_version_string`.  The
@@ -1542,3 +1546,92 @@ capitalized identifiers, missing: ['Locale', 'Sw32_get_locale_info',
     (`src/sysdep.rs` 1104/4693's spelling), with C's terminating NUL kept and the array's length
     C's own (23); `p - hex` is the port's `offset_from`, the same pointer difference C's `unsigned
     digit` takes.
+## Slice 25 (2026-10-14, status 4.304): C 4323-4571
+
+**What this round is.**  Twelve `DEFUN`s and the four file-scope objects and callbacks they read:
+the locale pair (`Vw32_valid_locale_ids` C 4325, `enum_locale_fn` C 4327-4333 and
+`w32-get-valid-locale-ids` C 4335-4348, whose C 4344 call is the SDK's `EnumSystemLocales`),
+`w32-get-default-locale-id` (C 4351-4362), `w32-set-current-locale` (C 4365-4384, with the
+`dwWindowsThreadId` notification at C 4379-4381), the codepage pair (`Vw32_valid_codepages`
+C 4389, `enum_codepage_fn` C 4391-4397 with C 4394's `atoi`, and `w32-get-valid-codepages`
+C 4399-4410), the four console-codepage `DEFUN`s (C 4413-4466), `w32-get-codepage-charset`
+(C 4469-4496, C 4492's `TranslateCharsetInfo`) and the three keyboard-layout `DEFUN`s
+(C 4499-4571, C 4506's `alloca` as PORTING.md P-05's `sa_stack_alloc`, C 4511's
+`while (--num_layouts >= 0)`, C 4551-4552's packed `HKL` and C 4560-4561's `MSG`/`GetMessage`
+wait on `WM_EMACS_DONE`).  Port: 6,635 -> **7161 lines** (+526).  The next row's first item is
+C 4573's comment with C 4578-4579's two statics.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.  This
+reading is the *ungated* text: the file gate removes every item of this unit in the frozen
+configuration (P-86 (1)), so a missing `macro_rules!` or a wrong arm is not what it measures.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - unchanged by the round's ~40 new declarations,
+which is the reading a name the mirror graph also declares would have moved.  The round's *first*
+spelling put `macro_rules! HIWORD` in the trailing SDK block and read **37: 2 `cannot find macro
+HIWORD in this scope`**, both anchored in this unit - a `macro_rules!` is visible only after its
+definition, so the macro moved to C 4515's use site (the C 2593 `LOWORD` shape, Deviation 92) and
+the reading returned to the baseline.  Two consequences the lane should keep: macro *name*
+resolution does read this unit's text (unlike the type resolution below), and the round's
+appended-item experiment (a probe copy with a deliberately unknown name - in value position and in
+an item signature - appended at the end) reports nothing for it, i.e. the reading is blind to name
+errors past the point where the include graph's own errors abort the pass; a *missing* name is
+caught by Evidence ③'s sweep, never by ②.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6637 7159` -> `92
+capitalized identifiers, missing: ['Clone', 'CodePage', 'Copy', 'Flags', 'Locale', 'Some',
+'Sw32_get_codepage_charset', 'Sw32_get_console_codepage', 'Sw32_get_console_output_codepage',
+'Sw32_get_default_locale_id', 'Sw32_get_keyboard_layout', 'Sw32_get_valid_codepages',
+'Sw32_get_valid_keyboard_layouts', 'Sw32_get_valid_locale_ids', 'Sw32_set_console_codepage',
+'Sw32_set_console_output_codepage', 'Sw32_set_current_locale', 'Sw32_set_keyboard_layout']` - the
+ten `DEFUN!` statics (class c), the three declaration parameter names `CodePage`/`Flags`/`Locale`
+(class e) and the derive/prelude names `Clone`/`Copy`/`Some` (class f), all in the tool's
+documented classes.
+**Evidence ④ - the `--check` reading.**  **47 -> 31 `- missing` rows**: the sixteen this round
+satisfies are the twelve new `F…` entries, the two callbacks and the two file-scope objects; the
+eighteen `defsubr` rows stay until `syms_of_ntproc` (C 4764) lands, and the rest are the next
+slice's (`get_lcid`, `get_lcid_callback`, `w32_compare_strings`, `syms_of_ntproc`, `lname`,
+`found_lcid`, `LOCALE_NAME_MAX_LENGTH`, `_NLSCMPERROR`, `LINGUISTIC_IGNORECASE`).  One token row,
+recorded in `docs/ports/macro-body-notes.tsv` this round: `Fw32_get_valid_keyboard_layouts` does
+not mention `alloca` (C 4506 is P-05's `sa_stack_alloc`).  Drift 35.3% -> **46.1%** (7,161 port
+lines against C's 4,903, the tool's own line): the port is now *ahead* of the reference, and the
+measurement crossed the stem's 0.36 row, so this round re-appends that row at **0.47** (measured
++ 0.01, the w32fns 0.35/0.37/0.39/0.41 rule) - owed 18 is settled here.
+
+**Deviations (this slice's additions).**
+
+90. **The round's `<windows.h>`/`<wingdi.h>` surface stands at the use site** (P-88 (1)): the two
+    enumeration callbacks and their entry points (`LPTSTR`, `LOCALE_ENUMPROCA`,
+    `CODEPAGE_ENUMPROCA`, `EnumSystemLocales`, `EnumSystemCodePages`), the locale and console
+    entries C 4359-4465 reads (`GetSystemDefaultLCID`, `GetUserDefaultLCID`, `SetThreadLocale`,
+    `PostThreadMessage`, `GetConsoleCP`, `SetConsoleCP`, `GetConsoleOutputCP`,
+    `SetConsoleOutputCP`, `IsValidCodePage`), the charset record and converter C 4480/4492 read
+    (`FONTSIGNATURE`, `CHARSETINFO`, `LPCHARSETINFO`, `TCI_SRCCODEPAGE`,
+    `TranslateCharsetInfo`), and the keyboard-layout entries C 4505-4567 read
+    (`HKL`, `GetKeyboardLayoutList`, `GetKeyboardLayout`, `ActivateKeyboardLayout`, `POINT`,
+    `MSG`, `GetMessage`, `UINT_PTR`) - all UNVERIFIED.  `Dial...` none; `LPTSTR` is the one name
+    of the `<windows.h>` typedef line (C 50's section, `src/w32proc.rs` 244) that section names but
+    does not declare, and this use site is what needs the TCHAR spelling.
+91. **`LCID_SUPPORTED` is corrected to `0x00000002`** in the slice-23/24 SDK block (its citation
+    line with it), and `CP_SUPPORTED` is declared with the same value: the SDK's two "supported"
+    flags are distinct from the "installed" pair (`LCID_INSTALLED`/`CP_INSTALLED`, the
+    `0x00000001` the `src/w32select.rs` 301 row carries), and C 4344/4406 pass the *supported*
+    flag.  Slice 24's `0x00000001` made the two names coincide; both values remain UNVERIFIED on
+    this machine (P-88 (1)), so this is a correction of a *recorded* value, not a measurement.
+92. **`HIWORD` stands at C 4515's use site as a `macro_rules!`** (the C 2593 `LOWORD` precedent):
+    C's `<windef.h>` macro is used at C 4515-4517 and C 4533-4534, and a Rust `macro_rules!` is
+    visible only after its definition, so the definition sits above the first user (Evidence ②
+    measured both the failure and the fix).  The call sites keep C's name with the port's `!`
+    (`LOWORD!`/`HIWORD!`).
+93. **`HWND` is declared at this use site and slice 22's Deviation 76 is corrected**: that note
+    said `HWND` was "the graph's (`include/w32.rs`)", but that mirror only *names* the type in its
+    prose (C 27, C 322) and spells `w32.h`'s own members as untyped pointers (P-72 (3)), so no
+    file in this unit's graph declares it.  Slice 22's `find_child_console` (C 3500-3523) reads the
+    name without a declaration; the record is corrected in place there and the handle is declared
+    here, where C 4560's `MSG` needs it as its first member's type.
+94. **The two `DEFUN` doc-comment pairs the round carries** (the C 4386-4388 and C 4323-4324
+    comments, and C 4469-4477's "Note that this function is only guaranteed to work with ANSI
+    codepages" paragraph) are carried as C's own text at their C positions, the same device the
+    earlier slices use; the `DEFUN!` doc slots carry C's docstrings as single literals, whose
+    leading `       doc: /*` run and the arglist line's two spaces are C's own columns.
+
