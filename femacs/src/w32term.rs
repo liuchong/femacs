@@ -4890,6 +4890,11 @@ macro_rules! frame_bits {
      mouse_moved : 1`; the `src/xterm.rs` 22681/22696-22700 copy of the same pair).  */
   (mouse_moved, $f:expr) => { (((*$f).bits1 >> FRAME_MOUSE_MOVED_SHIFT) & 1) != 0 };
   (mouse_moved, $f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_MOUSE_MOVED_SHIFT, $v) };
+  /* frame.h 494's `bool_bf after_make_frame : 1`, which slice 20's `w32_set_window_size` reads
+     (C 7198).  Arm A puts it in unit 2 at bit 14 (`docs/baseline/frame-bits.tsv`), so the read is
+     the mirror's `frame_field` - the `want_fullscreen!` shape above.  */
+  (after_make_frame, $f:expr) =>
+    { frame_field ($f, FRAME_AFTER_MAKE_FRAME_UNIT, FRAME_AFTER_MAKE_FRAME_SHIFT, 1) != 0 };
 }
 
 /* C 3239-3241 is the "Exposure Events" banner, carried as C's own text at its position.  */
@@ -10068,3 +10073,493 @@ unsafe fn w32fullscreen_hook (f: *mut frame)
 
 /* C 7148's note and `static void w32_set_window_size (struct frame *f, ...)` open the next slice.
    `w32_wm_set_size_hint` (C 7049's callee) is defined at C 7477, still uncarried.  */
+
+/* The SDK surface these eight items read: `<winuser.h>`'s menu-bar, window-rectangle, mouse-warp
+   and deferred-window-position entries with their constants, plus `MENUBARINFO` (the record
+   `src/w32fns.rs` 14014 declares the same way for its own menu-bar probe).  Every name stands at
+   the use site (P-88 (1)); the SDK records are UNVERIFIED, and the two `SPI_*`/`SM_CYMENUSIZE`
+   values follow the records `src/w32fns.rs` 13990/13992/6986 already carry.  */
+/// C: typedef struct tagMENUBARINFO { DWORD cbSize; RECT rcBar; HMENU hMenu; HWND hwndMenu;
+/// C:   BOOL fBarFocused : 1; BOOL fFocused : 1; } MENUBARINFO, *PMENUBARINFO;
+/// C: WINUSERAPI BOOL WINAPI GetMenuBarInfo (HWND hwnd, LONG idObject, LONG idItem,
+/// C:   PMENUBARINFO pmbi);
+/// C: WINUSERAPI HDC WINAPI AdjustWindowRect (LPRECT lpRect, DWORD dwStyle, BOOL bMenu);
+/// C: WINUSERAPI BOOL WINAPI GetWindowRect (HWND hWnd, LPRECT lpRect);
+/// C: WINUSERAPI BOOL WINAPI ClientToScreen (HWND hWnd, LPPOINT lpPoint);
+/// C: WINUSERAPI BOOL WINAPI SetCursorPos (int X, int Y);
+/// C: WINUSERAPI HWND WINAPI GetForegroundWindow (void);
+/// C: WINUSERAPI HDWP WINAPI BeginDeferWindowPos (int nNumWindows);
+/// C: WINUSERAPI HDWP WINAPI DeferWindowPos (HDWP hWinPosInfo, HWND hWnd, HWND hWndInsertAfter,
+/// C:   int x, int y, int cx, int cy, UINT uFlags);
+/// C: WINUSERAPI BOOL WINAPI EndDeferWindowPos (HDWP hWinPosInfo);
+/// C: #define SWP_NOMOVE 0x0002 / #define SM_CYMENUSIZE 51
+/// C: #define SPI_GETMOUSETRAILS 0x005E / #define SPI_SETMOUSETRAILS 0x005D
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MENUBARINFO
+{
+  pub cbSize: DWORD,
+  pub rcBar: RECT,
+  pub hMenu: HMENU,
+  pub hwndMenu: HWND,
+  /* C's two `BOOL : 1` members share one 4-byte unit (the `src/w32fns.rs` 14014 record).  */
+  pub bits: DWORD,
+}
+#[cfg (feature = "have_ntgui")]
+pub type HDWP = HANDLE;
+#[cfg (feature = "have_ntgui")]
+pub const SWP_NOMOVE: UINT = 0x0002;
+#[cfg (feature = "have_ntgui")]
+pub const SM_CYMENUSIZE: c_int = 51;
+#[cfg (feature = "have_ntgui")]
+pub const SPI_GETMOUSETRAILS: UINT = 0x005E;
+#[cfg (feature = "have_ntgui")]
+pub const SPI_SETMOUSETRAILS: UINT = 0x005D;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetMenuBarInfo (hwnd: HWND, idObject: LONG, idItem: LONG, pmbi: *mut MENUBARINFO) -> BOOL;
+  pub fn AdjustWindowRect (lpRect: LPRECT, dwStyle: DWORD, bMenu: BOOL) -> BOOL;
+  pub fn GetWindowRect (hWnd: HWND, lpRect: LPRECT) -> BOOL;
+  pub fn ClientToScreen (hWnd: HWND, lpPoint: LPPOINT) -> BOOL;
+  pub fn SetCursorPos (X: c_int, Y: c_int) -> BOOL;
+  pub fn GetForegroundWindow () -> HWND;
+  pub fn BeginDeferWindowPos (nNumWindows: c_int) -> HDWP;
+  pub fn DeferWindowPos (hWinPosInfo: HDWP, hWnd: HWND, hWndInsertAfter: HWND, x: c_int, y: c_int,
+			 cx: c_int, cy: c_int, uFlags: UINT) -> HDWP;
+  pub fn EndDeferWindowPos (hWinPosInfo: HDWP) -> BOOL;
+}
+
+/* C 7148-7151's note above `w32_set_window_size`, carried as C's own text.  */
+/* C: /* Change the size of frame F's Windows window to WIDTH and HEIGHT
+   C:    pixels.  If CHANGE_GRAVITY, change to top-left-corner window gravity
+   C:    for this size change and subsequent size changes.  Otherwise leave
+   C:    the window gravity unchanged.  */  */
+
+/// C 7152-7256: `static void w32_set_window_size (struct frame *f, bool change_gravity, int
+/// width, int height)` - C 7156-7159's four locals, C 7161's `block_input`, C 7166-7169's
+/// `GetMenuBarInfo` probe, C 7171-7187's wrapped-menu-bar adjustment, C 7189-7194's gravity,
+/// size-hint and `RECT` fill, C 7196's `AdjustWindowRect`, C 7198-7222's fullscreen-parameter
+/// block with `GetWindowRect`, C 7224-7251's resize block and C 7253-7255's `unblock_input` +
+/// `do_pending_window_change`.  C's unused `change_gravity` parameter has no Rust counterpart use
+/// and keeps C's name.
+/// C: static void
+/// C: w32_set_window_size (struct frame *f, bool change_gravity,
+/// C: 			 int width, int height)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_window_size (f: *mut frame, change_gravity: bool, mut width: c_int,
+			       mut height: c_int)
+{
+  let fullscreen: Lisp_Object = get_frame_param (f, Qfullscreen ());   // C 7156
+  /* C declares these uninitialised and fills them below (PORTING.md 1.5).  */
+  let mut rect: RECT = core::mem::zeroed ();                           // C 7157
+  let mut info: MENUBARINFO = core::mem::zeroed ();                    // C 7158
+  let mut menu_bar_height: c_int;                                      // C 7159
+
+  block_input ();                                                      // C 7161
+
+  /* Get the height of the menu bar here.  It's used below to detect
+     whether the menu bar is wrapped.  It's also used to specify the
+     third argument for AdjustWindowRect.  See bug#22105.  */
+  info.cbSize = core::mem::size_of::<MENUBARINFO> () as DWORD;         // C 7166
+  info.rcBar.bottom = 0;                                               // C 7167
+  info.rcBar.top = 0;                                                  // C 7167
+  GetMenuBarInfo (FRAME_W32_WINDOW! (f), 0xFFFFFFFD, 0, &raw mut info);   // C 7168
+  menu_bar_height = info.rcBar.bottom - info.rcBar.top;                // C 7169
+
+  if w32_add_wrapped_menu_bar_lines                                    // C 7171
+    {
+      /* When the menu bar wraps sending a SetWindowPos shrinks the
+	 height of the frame then the wrapped menu bar lines are not
+	 accounted for (Bug#15174 and Bug#18720).  Here we add these
+	 extra lines to the frame height.  */
+      let mut default_menu_bar_height: c_int;                          // C 7177
+
+      /* Why is (apparently) SM_CYMENUSIZE needed here instead of
+	 SM_CYMENU ??  */
+      default_menu_bar_height = GetSystemMetrics (SM_CYMENUSIZE);      // C 7181
+
+      if (default_menu_bar_height > 0)                                 // C 7183
+	  && (menu_bar_height > default_menu_bar_height)               // C 7184
+	  && ((menu_bar_height % default_menu_bar_height) == 0)        // C 7185
+	{ height = height + menu_bar_height - default_menu_bar_height; }   // C 7186
+    }
+
+  (*f).win_gravity = NorthWestGravity;                                 // C 7189
+  w32_wm_set_size_hint (f, 0 as c_long, false);                        // C 7190
+
+  rect.top = 0;                                                        // C 7192
+  rect.left = 0;                                                       // C 7192
+  rect.right = width;                                                  // C 7193
+  rect.bottom = height;                                                // C 7194
+
+  AdjustWindowRect (&raw mut rect, (*((*f).output_data.w32 as *mut w32_output)).dwStyle,
+		    (menu_bar_height > 0) as BOOL);                    // C 7196
+
+  if !(frame_bits! (after_make_frame, f))                              // C 7198
+      && (want_fullscreen! (f) & FULLSCREEN_WAIT) == 0                 // C 7199
+      && FRAME_VISIBLE_P (f)                                           // C 7200
+    {
+      /* C declares the `RECT` uninitialised and fills it with `GetWindowRect` (PORTING.md 1.5).  */
+      let mut window_rect: RECT = core::mem::zeroed ();                // C 7202
+
+      GetWindowRect (FRAME_W32_WINDOW! (f), &raw mut window_rect);      // C 7204
+
+      if EQ (fullscreen, Qmaximized ())                                // C 7206
+	  || EQ (fullscreen, Qfullboth ())                             // C 7207
+	  || EQ (fullscreen, Qfullwidth ())                            // C 7208
+	{
+	  rect.left = window_rect.left;                                // C 7210
+	  rect.right = window_rect.right;                              // C 7211
+	  width = -1;                                                  // C 7212
+	}
+      if EQ (fullscreen, Qmaximized ())                                // C 7214
+	  || EQ (fullscreen, Qfullboth ())                             // C 7215
+	  || EQ (fullscreen, Qfullheight ())                           // C 7216
+	{
+	  rect.top = window_rect.top;                                  // C 7218
+	  rect.bottom = window_rect.bottom;                            // C 7219
+	  height = -1;                                                 // C 7220
+	}
+    }
+
+  if width > 0 || height > 0                                           // C 7224
+    {
+      if FRAME_PARENT_FRAME (f).is_null ()                             // C 7226
+	{
+	  my_set_window_pos (FRAME_W32_WINDOW! (f), core::ptr::null_mut (),   // C 7227
+			     0, 0,                                     // C 7228
+			     rect.right - rect.left,                   // C 7229
+			     rect.bottom - rect.top,                   // C 7230
+			     (SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE) as UINT);   // C 7231
+	}
+      else
+	{
+	  my_set_window_pos (FRAME_W32_WINDOW! (f), HWND_TOP,              // C 7233
+			     0, 0,                                     // C 7234
+			     rect.right - rect.left,                   // C 7235
+			     rect.bottom - rect.top,                   // C 7236
+			     (SWP_NOMOVE | SWP_NOACTIVATE) as UINT);   // C 7237
+	}
+
+      change_frame_size (f, width, height, false, true, false);        // C 7239
+      SET_FRAME_GARBAGED! (f);                                         // C 7240
+
+      /* If cursor was outside the new size, mark it as off.  */
+      mark_window_cursors_off (XWINDOW ((*f).root_window));            // C 7243
+
+      /* Clear out any recollection of where the mouse highlighting was,
+	 since it might be in a place that's outside the new frame size.
+	 Actually checking whether it is outside is a pain in the neck,
+	 so don't try--just let the highlighting be done afresh with new
+	 size.  */
+      cancel_mouse_face (f);                                           // C 7250
+    }
+
+  unblock_input ();                                                    // C 7253
+
+  do_pending_window_change (false);                                    // C 7255
+}
+
+/* C 7258-7260's note above `w32_set_window_size_and_position`, carried as C's own text.  */
+/* C: /* Change the size of frame F's Windows window to WIDTH and HEIGHT
+   C:    pixels and its position to those stored in f->left_pos and
+   C:    f->top_pos.  */  */
+
+/// C 7261-7335: `static void w32_set_window_size_and_position (struct frame *f, int width, int
+/// height)` - the same probe and wrapped-menu-bar block as the function above, C 7296-7304's
+/// gravity/size-hint/`RECT` fill and `AdjustWindowRect`, C 7306-7317's two `my_set_window_pos`
+/// calls and C 7319-7334's tail.
+/// C: static void
+/// C: w32_set_window_size_and_position (struct frame *f, int width, int height)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_window_size_and_position (f: *mut frame, mut width: c_int, mut height: c_int)
+{
+  /* C declares these uninitialised and fills them below (PORTING.md 1.5).  */
+  let mut rect: RECT = core::mem::zeroed ();                           // C 7264
+  let mut info: MENUBARINFO = core::mem::zeroed ();                    // C 7265
+  let mut menu_bar_height: c_int;                                      // C 7266
+
+  block_input ();                                                      // C 7268
+
+  /* Get the height of the menu bar here.  It's used below to detect
+     whether the menu bar is wrapped.  It's also used to specify the
+     third argument for AdjustWindowRect.  See bug#22105.  */
+  info.cbSize = core::mem::size_of::<MENUBARINFO> () as DWORD;         // C 7273
+  info.rcBar.bottom = 0;                                               // C 7274
+  info.rcBar.top = 0;                                                  // C 7274
+  GetMenuBarInfo (FRAME_W32_WINDOW! (f), 0xFFFFFFFD, 0, &raw mut info);   // C 7275
+  menu_bar_height = info.rcBar.bottom - info.rcBar.top;                // C 7276
+
+  if w32_add_wrapped_menu_bar_lines                                    // C 7278
+    {
+      /* When the menu bar wraps sending a SetWindowPos shrinks the
+	 height of the frame then the wrapped menu bar lines are not
+	 accounted for (Bug#15174 and Bug#18720).  Here we add these
+	 extra lines to the frame height.  */
+      let mut default_menu_bar_height: c_int;                          // C 7284
+
+      /* Why is (apparently) SM_CYMENUSIZE needed here instead of
+	 SM_CYMENU ??  */
+      default_menu_bar_height = GetSystemMetrics (SM_CYMENUSIZE);      // C 7288
+
+      if (default_menu_bar_height > 0)                                 // C 7290
+	  && (menu_bar_height > default_menu_bar_height)               // C 7291
+	  && ((menu_bar_height % default_menu_bar_height) == 0)        // C 7292
+	{ height = height + menu_bar_height - default_menu_bar_height; }   // C 7293
+    }
+
+  (*f).win_gravity = NorthWestGravity;                                 // C 7296
+  w32_wm_set_size_hint (f, 0 as c_long, false);                        // C 7297
+
+  rect.left = (*f).left_pos;                                           // C 7299
+  rect.top = (*f).top_pos;                                             // C 7300
+  rect.right = rect.left + width;                                      // C 7301
+  rect.bottom = rect.top + height;                                     // C 7302
+
+  AdjustWindowRect (&raw mut rect, (*((*f).output_data.w32 as *mut w32_output)).dwStyle,
+		    (menu_bar_height > 0) as BOOL);                    // C 7304
+
+  if FRAME_PARENT_FRAME (f).is_null ()                                 // C 7306
+    {
+      my_set_window_pos (FRAME_W32_WINDOW! (f), core::ptr::null_mut (),   // C 7307
+			 (*f).left_pos, (*f).top_pos,                  // C 7308
+			 rect.right - rect.left,                       // C 7309
+			 rect.bottom - rect.top,                       // C 7310
+			 (SWP_NOZORDER | SWP_NOACTIVATE) as UINT);     // C 7311
+    }
+  else
+    {
+      my_set_window_pos (FRAME_W32_WINDOW! (f), HWND_TOP,              // C 7313
+			 (*f).left_pos, (*f).top_pos,                  // C 7314
+			 rect.right - rect.left,                       // C 7315
+			 rect.bottom - rect.top,                       // C 7316
+			 SWP_NOACTIVATE as UINT);                      // C 7317
+    }
+
+  change_frame_size (f, width, height, false, true, false);            // C 7319
+  SET_FRAME_GARBAGED! (f);                                             // C 7320
+
+  /* If cursor was outside the new size, mark it as off.  */
+  mark_window_cursors_off (XWINDOW ((*f).root_window));                // C 7323
+
+  /* Clear out any recollection of where the mouse highlighting was,
+     since it might be in a place that's outside the new frame size.
+     Actually checking whether it is outside is a pain in the neck,
+     so don't try--just let the highlighting be done afresh with new
+     size.  */
+  cancel_mouse_face (f);                                               // C 7330
+
+  unblock_input ();                                                    // C 7332
+
+  do_pending_window_change (false);                                    // C 7334
+}
+
+/* C 7337's "Mouse warping." banner, carried as C's own text at its position.  */
+/* C: /* Mouse warping.  */  */
+
+/// C 7339-7365: `void frame_set_mouse_pixel_position (struct frame *f, int pix_x, int pix_y)` -
+/// C's one non-`static` definition of this slice, so the port's is `#[unsafe(no_mangle)] pub
+/// unsafe extern "C" fn` (P-52).  C 7342-7345's four locals, C 7347's `block_input`, C 7349-7352's
+/// client-rect and `ClientToScreen` pair, C 7357-7362's mouse-trail block and C 7364's
+/// `unblock_input`.
+/// C: void
+/// C: frame_set_mouse_pixel_position (struct frame *f, int pix_x, int pix_y)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_mouse_pixel_position (f: *mut frame, pix_x: c_int, pix_y: c_int)
+{
+  let mut trail_num: UINT = 0;                                         // C 7342
+  let mut ret: BOOL = FALSE;                                           // C 7343
+  /* C declares these uninitialised and fills them below (PORTING.md 1.5).  */
+  let mut rect: RECT = core::mem::zeroed ();                           // C 7344
+  let mut pt: POINT = core::mem::zeroed ();                            // C 7345
+
+  block_input ();                                                      // C 7347
+
+  GetClientRect (FRAME_W32_WINDOW! (f), &raw mut rect);                // C 7349
+  pt.x = rect.left + pix_x;                                            // C 7350
+  pt.y = rect.top + pix_y;                                             // C 7351
+  ClientToScreen (FRAME_W32_WINDOW! (f), &raw mut pt);                 // C 7352
+
+  /* When "mouse trails" are in effect, moving the mouse cursor
+     sometimes leaves behind an annoying "ghost" of the pointer.
+     Avoid that by momentarily switching off mouse trails.  */
+  if os_subtype == OS_SUBTYPE_NT                                    // C 7357
+      && w32_major_version + w32_minor_version >= 6                 // C 7358
+    {
+      ret = SystemParametersInfo (SPI_GETMOUSETRAILS, 0, &raw mut trail_num as *mut c_void, 0);   // C 7359
+    }
+  SetCursorPos (pt.x, pt.y);                                           // C 7360
+  if ret != 0                                                          // C 7361
+    {
+      SystemParametersInfo (SPI_SETMOUSETRAILS, trail_num, core::ptr::null_mut (), 0);   // C 7362
+    }
+
+  unblock_input ();                                                    // C 7364
+}
+
+/// C 7367-7379: `static Lisp_Object w32_get_focus_frame (struct frame *f)` - C 7370's local, C
+/// 7372's `dpyinfo->w32_focus_frame` read, C 7374-7375's null guard and C 7377-7378's
+/// `XSETFRAME`/`return`.
+/// C: static Lisp_Object
+/// C: w32_get_focus_frame (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_get_focus_frame (f: *mut frame) -> Lisp_Object
+{
+  let mut lisp_focus: Lisp_Object;                                     // C 7370
+
+  let focus: *mut frame = (*FRAME_DISPLAY_INFO! (f)).w32_focus_frame;   // C 7372
+
+  if focus.is_null ()                                                  // C 7374
+    { return Qnil (); }                                                // C 7375
+
+  XSETFRAME! (lisp_focus, focus);                                      // C 7377
+  return lisp_focus;                                                   // C 7378
+}
+
+/* C 7381-7386: the "Focus shifting, raising and lowering." banner and the note above
+   `w32_focus_frame`, carried as C's own text at their positions.  */
+/* C: /* Focus shifting, raising and lowering.  */  */
+
+   /* The NOACTIVATE argument has no effect on Windows.  According to the
+      Windows API: An application cannot activate an inactive window
+      without also bringing it to the top of the Z order.  */
+
+/// C 7388-7405: `static void w32_focus_frame (struct frame *f, bool noactivate)` - C 7391-7393's
+/// `#if 0` declaration (carried as C's text), C 7396's `block_input`, C 7397-7402's `#if 0` block
+/// (also carried) and the live `my_set_foreground_window` of C 7403 with C 7404's `unblock_input`.
+/// C: static void
+/// C: w32_focus_frame (struct frame *f, bool noactivate)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_focus_frame (f: *mut frame, noactivate: bool)
+{
+  /* C 7391-7393 is `#if 0`:
+
+  #if 0
+    struct w32_display_info *dpyinfo = &one_w32_display_info;
+  #endif
+  */
+
+  /* Give input focus to frame.  */
+  block_input ();                                                      // C 7396
+  /* C 7397-7402 is `#if 0`, carried as C's own text:
+
+  #if 0
+    /* Try not to change its Z-order if possible.  */
+    if (w32_window_to_frame (dpyinfo, GetForegroundWindow ()))
+      my_set_focus (f, FRAME_W32_WINDOW (f));
+    else
+  #endif
+  */
+  my_set_foreground_window (FRAME_W32_WINDOW! (f));                    // C 7403
+  unblock_input ();                                                    // C 7404
+}
+
+/* C 7407's note above `w32_raise_frame`, carried as C's own text.  */
+/* C: /* Raise frame F.  */  */
+
+/// C 7408-7467: `static void w32_raise_frame (struct frame *f)` - C 7411's `block_input`, C
+/// 7413-7430's long note (carried), C 7432-7460's `Vw32_grab_focus_on_raise` arm (the three-step
+/// `BeginDeferWindowPos`/`DeferWindowPos`/`EndDeferWindowPos` chain), C 7461-7464's `else` with
+/// `my_bring_window_to_top` and C 7466's `unblock_input`.  **This is the definition of slice 16's
+/// second owed call** (C 6405 called it).
+/// C: static void
+/// C: w32_raise_frame (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_raise_frame (f: *mut frame)
+{
+  block_input ();                                                      // C 7411
+
+  /* Strictly speaking, raise-frame should only change the frame's Z
+     order, leaving input focus unchanged.  This is reasonable behavior
+     on X where the usual policy is point-to-focus.  However, this
+     behavior would be very odd on Windows where the usual policy is
+     click-to-focus.
+
+     On X, if the mouse happens to be over the raised frame, it gets
+     input focus anyway (so the window with focus will never be
+     completely obscured) - if not, then just moving the mouse over it
+     is sufficient to give it focus.  On Windows, the user must actually
+     click on the frame (preferably the title bar so as not to move
+     point), which is more awkward.  Also, no other Windows program
+     raises a window to the top but leaves another window (possibly now
+     completely obscured) with input focus.
+
+     Because there is a system setting on Windows that allows the user
+     to choose the point to focus policy, we make the strict semantics
+     optional, but by default we grab focus when raising.  */
+
+  if NILP (Vw32_grab_focus_on_raise)                                // C 7432
+    {
+      /* The obvious call to my_set_window_pos doesn't work if Emacs is
+	 not already the foreground application: the frame is raised
+	 above all other frames belonging to us, but not above the
+	 current top window.  To achieve that, we have to resort to this
+	 more cumbersome method.  */
+
+      let mut handle: HDWP = BeginDeferWindowPos (2);                  // C 7440
+      if !handle.is_null ()                                            // C 7441
+	{
+	  handle = DeferWindowPos (handle,                             // C 7443
+				   FRAME_W32_WINDOW! (f),              // C 7444
+				   HWND_TOP,                           // C 7445
+				   0, 0, 0, 0,                          // C 7446
+				   (SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE) as UINT);   // C 7447
+	  if !handle.is_null ()                                        // C 7448
+	    {
+	      handle = DeferWindowPos (handle,                         // C 7450
+				       GetForegroundWindow (),         // C 7451
+				       FRAME_W32_WINDOW! (f),          // C 7452
+				       0, 0, 0, 0,                      // C 7453
+				       (SWP_NOSIZE | SWP_NOMOVE |      // C 7454
+					SWP_NOACTIVATE) as UINT);      // C 7455
+	      if !handle.is_null ()                                    // C 7456
+		{ EndDeferWindowPos (handle); }                        // C 7457
+	    }
+	}
+    }
+  else
+    {
+      my_bring_window_to_top (FRAME_W32_WINDOW! (f));                  // C 7463
+    }
+
+  unblock_input ();                                                    // C 7466
+}
+
+/* C 7469's note above `w32_lower_frame`, carried as C's own text.  */
+/* C: /* Lower frame F.  */  */
+
+/// C 7470-7479: `static void w32_lower_frame (struct frame *f)` - the one `my_set_window_pos` with
+/// `HWND_BOTTOM`.
+/// C: static void
+/// C: w32_lower_frame (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_lower_frame (f: *mut frame)
+{
+  block_input ();                                                      // C 7473
+  my_set_window_pos (FRAME_W32_WINDOW! (f),                            // C 7474
+		     HWND_BOTTOM,                                      // C 7475
+		     0, 0, 0, 0,                                       // C 7476
+		     (SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE) as UINT);   // C 7477
+  unblock_input ();                                                    // C 7478
+}
+
+/// C 7481-7491: `static void w32_frame_raise_lower (struct frame *f, bool raise_flag)` - the
+/// `FRAME_W32_P` guard and the two calls.
+/// C: static void
+/// C: w32_frame_raise_lower (struct frame *f, bool raise_flag)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_frame_raise_lower (f: *mut frame, raise_flag: bool)
+{
+  if !FRAME_W32_P (f)                                                  // C 7484
+    { return; }                                                        // C 7485
+
+  if raise_flag                                                        // C 7487
+    { w32_raise_frame (f); }                                           // C 7488
+  else
+    { w32_lower_frame (f); }                                           // C 7490
+}
+
+/* C 7493's "Change of visibility." banner, C 7495-7501's note and C 7503-7504's
+   `void w32_make_frame_visible (struct frame *f)` open the next slice.  */

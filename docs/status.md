@@ -20298,3 +20298,13 @@
   ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `6908-7146`（本片）+ `7148-8414`（余项）；台账追加 **`### Slice 19 (C 6908-7146)`**。
   ⑧ 预算与清理：`build-tu` 2 发、臂读数 3 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w19`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.324 `src/w32term.c` 第 20 片（w32term lane，slice 20）：C 7148-7502 落地——窗口尺寸、鼠标 warp 与 Z 序组：`w32_set_window_size`、`w32_set_window_size_and_position`（两者共用菜单栏探测与 `AdjustWindowRect`）、`frame_set_mouse_pixel_position`（本片唯一的非 `static` 定义）、`w32_get_focus_frame`、`w32_focus_frame`（两处 `#if 0` 照 C 原文携带）、**`w32_raise_frame`**、`w32_lower_frame`、`w32_frame_raise_lower`；w32term.rs 10,070 → 10,565 行（+495，2026-10-15）**：
+  ① **slice 16 的第二个（也是最后一个）欠账调用解除**：C 6405 调用的 `w32_raise_frame` 在本片定义——那两条臂读数看不见的调用（值名解析盲区，见 4.320 ④）现在都在文件内可解析。
+  ② 八个定义退掉八条 `missing function` 行（30 → **22**），是本 lane 单次下降最多的一片。
+  ③ `frame_set_mouse_pixel_position` 非 `static` → 定义为 `#[unsafe(no_mangle)] pub unsafe extern "C" fn`（P-52 规则）。
+  ④ 用例处新增 SDK 面（P-88 ①，UNVERIFIED）：`MENUBARINFO`（按 `src/w32fns.rs` 14014 的形状，C 的两个 `BOOL : 1` 并为一个 `bits: DWORD`）、`GetMenuBarInfo`、`AdjustWindowRect`、`GetWindowRect`、`ClientToScreen`、`SetCursorPos`、`GetForegroundWindow`、三个 `*DeferWindowPos` 与 `HDWP`，以及 `SWP_NOMOVE`、`SM_CYMENUSIZE`(51)、两个 `SPI_*MOUSETRAILS`（后三者沿用 `src/w32fns.rs` 的记录值）。
+  ⑤ `frame_bits!` 增加 C 494 的 `after_make_frame` 读臂（arm A 在 unit 2 bit 14，故经镜像的 `frame_field`，与 `want_fullscreen!` 同形）；C 的链式存储写作 C 自己的两条语句（C 7167/7274），未初始化局部量一律清零（PORTING.md 1.5：C 7157-7158/7202/7264-7265/7344-7345）。
+  ⑥ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片**（首稿一条 `E0618` 是 `Vw32_grab_focus_on_raise` 本是全局量而非 getter）。`extract-abi.py --check`：**42 → 34 行**（`missing function` 30 → **22**），行数行 **25.6%**（10,565 : 8,414）。
+  ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `7148-7502`（本片）+ `7504-8414`（余项）；台账追加 **`### Slice 20 (C 7148-7502)`**。
+  ⑧ 预算与清理：`build-tu` 2 发、臂读数 3 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w20`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
