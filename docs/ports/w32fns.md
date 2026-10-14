@@ -214,7 +214,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 7108-7244 | C 7108-7244: the `set-message-beep` `DEFUN`, `w32_display_info_for_name` and the `x-open-connection` `DEFUN` - slice 10 | file gate |
 | 7246-7388 | C 7246-7388: the `x-close-connection`, `x-display-list` and `x-synchronize` `DEFUN`s, then C 7291-7388's `#if 0 /* TODO : port window properties to W32 */` block kept as C's own text - slice 11 | file gate; the `#if 0` region is dead in every configuration |
 | 7390-7661 | C 7390-7392's Tool-tips banner, C 7394-7395's `compute_tip_xy` declaration (dropped - the definition is C 7663), the six tip objects (C 7398-7415), `unwind_create_tip_frame` (C 7418-7429) and `w32_create_tip_frame` (C 7432-7661) - slice 12 | file gate; C 7394-7395's forward declaration has no counterpart (PORTING.md 0.1-12) |
-| 7663-12488 | **the remainder of the file** (C 7663 `compute_tip_xy` onward: C 7763 `w32_hide_tip`, C 7809 `x-show-tip`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7663-7807 | C 7663-7750's `compute_tip_xy` (the definition of the declaration slice 12 dropped) and C 7752-7806's `w32_hide_tip` - slice 13 | file gate |
+| 7809-12488 | **the remainder of the file** (C 7809's `x-show-tip` `DEFUN` onward: C 8064's neighbours, C 8138's `w32-handle-dde-request`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1804,6 +1805,52 @@ identifiers, missing: []**.
 - **C 7394-7395's forward declaration is dropped** (Rust needs none); the range table row records it.
 - **Not claimed.**  No run evidence: no tooltip frame is created here (no display, no
   `my_create_tip_window` call), the arm reading is compile-level and the name sweep textual.
+
+## Slice 13 (C 7663-7807)
+
+**Scope and the stop.**  `compute_tip_xy`'s definition (C 7663-7750, the item C 7394-7395's
+declaration of slice 12 announced) and `w32_hide_tip` (C 7752-7806).  The stop is C 7809's
+`x-show-tip` `DEFUN` (C 7808 blank).
+
+**What the item carries.**  C 7672-7675's four `Fcdr (Fassq (…))` parameter reads; C 7682's
+`POINT pt;` and C 7704's `struct MONITOR_INFO info;` (both PORTING.md 1.5 locals, zero-initialised
+here); C 7687-7688's two pixel readings off `FRAME_DISPLAY_INFO`; C 7690-7694's
+`block_input`/`GetCursorPos`/`unblock_input`; C 7702-7716's monitor clamp over
+`monitor_from_point_fn`/`get_monitor_info_fn` (the `Option` tests of C 498-503); C 7719-7749's two
+ladders (C's `*root_y = XFIXNUM (top)` narrows an `EMACS_INT` into the `int` the caller owns - the
+port's `as c_int`); and `w32_hide_tip`'s timer cancel (`calln!`), its guard and its
+`specbind`/`delete_frame`/`w32_make_frame_invisible`/`unbind_to` body.  Two new declarations:
+`GetCursorPos` (`<winuser.h>`, C 7691) and `delete_frame` (frame.h 1509, C 7790 - the
+`src/androidfns.rs` 117 spelling).
+
+### Evidence (slice 13, the final revision: 11,681 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0, object **336 bytes**.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **40 previous errors**, unchanged from slice 12 -
+these two functions add no error and no member gap (no flagged line falls in the new region).  One
+run.
+
+**③ `extract-abi.py --check`.**  162 rows → **160**: `missing function compute_tip_xy` and
+`missing function w32_hide_tip` retire, no row is added by this slice, and the drift row reads
+**6.5%** (`C 12488 vs Rust 11681`), down from 7.8%.
+
+**④ The range table and the dead-file gate.**  The `7663-12488` remainder row splits into
+`7663-7807` (this slice) and `7809-12488`; `check-dead-file-coverage.py` reads **162 range row(s)
+cover src/w32fns.c (12488 lines; 109 blank line(s) between blocks need no row)**, `0 failure(s)`
+(161 rows / 108 blanks before the split).  The ten gates read 0 failures.
+
+**⑤ The name sweep.**  `python3 tools/check-unit-names.py femacs/src/w32fns.rs 11509 11681` reads
+`missing: []` (`GetCursorPos` and `delete_frame` are declared by this slice itself).
+
+### Deviations (slice 13)
+
+- **The two locals are PORTING.md 1.5 outputs-only locals** (`POINT pt;` C 7682,
+  `struct MONITOR_INFO info;` C 7704): zero-initialised here, as the ledger names.
+- **`XFIXNUM`'s `EMACS_INT` narrows to `c_int` explicitly** where C relies on the implicit
+  conversion into `*root_x`/`*root_y` (C 7720 etc.).
+- **Not claimed.**  No run evidence: no cursor position is read and no tooltip is hidden on this
+  machine; the arm reading is compile-level and the name sweep textual.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

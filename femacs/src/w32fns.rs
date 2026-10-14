@@ -7042,6 +7042,8 @@ unsafe extern "system" {
   pub fn GetDC (hWnd: HWND) -> HDC;
   pub fn ReleaseDC (hWnd: HWND, hDC: HDC) -> c_int;
   pub fn GetDeviceCaps (hdc: HDC, nIndex: c_int) -> c_int;
+  /// C 7691's reader (`<winuser.h>`): `BOOL GetCursorPos (LPPOINT lpPoint);`
+  pub fn GetCursorPos (lpPoint: LPPOINT) -> BOOL;
   pub fn CreateDCA (pwszDriver: *const c_char, pwszDevice: *mut c_char, pszPort: *const c_char,
 		    pdm: *mut c_void) -> HDC;
   pub fn DeleteDC (hdc: HDC) -> BOOL;
@@ -7055,6 +7057,9 @@ unsafe extern "system" {
   /// `frame.c` 6180 defines it and no header declares it (the `src/xfns.rs` 6877 note).
   /// C: extern void validate_x_resource_name (void);
   pub fn validate_x_resource_name ();
+  /// C 7790's reader: `frame.h` 1509's `extern Lisp_Object delete_frame (Lisp_Object, Lisp_Object);`
+  /// (the `src/androidfns.rs` 117 declaration of the same function).
+  pub fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object;
   /// C 7237's reader: this unit's slice 1 already lists `fatal` among `lisp.h`'s entry points
   /// and never declared it; C's prototype is variadic.
   /// C: extern AVOID void fatal (const char *msgid, ...);
@@ -11506,4 +11511,171 @@ unsafe fn w32_create_tip_frame (dpyinfo: *mut w32_display_info, parms: Lisp_Obje
 
   /* Discard the unwind_protect.  */
   return unbind_to (count, frame);
+}
+
+/// C 7663-7750: `compute_tip_xy` - the position computation C 7663's step-1 declaration of slice
+/// 12 announced.  C 7672-7675's four `Fcdr (Fassq (…))` reads, C 7682's `POINT pt;`
+/// (PORTING.md 1.5, zero-initialised), C 7687-7688's two pixel readings, C 7690-7694's
+/// `block_input`/`GetCursorPos`/`unblock_input`, C 7702-7716's monitor clamp
+/// (`monitor_from_point_fn`/`get_monitor_info_fn` as `Option`s, the C 498-503 device; C 7704's
+/// `struct MONITOR_INFO info;` is the second PORTING.md 1.5 local) and C 7719-7749's two
+/// `XR`/`YR` ladders - C's `*root_y = XFIXNUM (top)` narrows an `EMACS_INT` to the `int` the
+/// caller passed, which the port writes with `as c_int`.
+/// C: static void
+/// C: compute_tip_xy (struct frame *f,
+/// C: 		  Lisp_Object parms, Lisp_Object dx, Lisp_Object dy,
+/// C: 		  int width, int height, int *root_x, int *root_y)
+#[cfg (feature = "have_ntgui")]
+unsafe fn compute_tip_xy (f: *mut frame, parms: Lisp_Object, dx: Lisp_Object, dy: Lisp_Object,
+			  width: c_int, height: c_int, root_x: *mut c_int, root_y: *mut c_int)
+{
+  let mut left: Lisp_Object;
+  let mut top: Lisp_Object;
+  let mut right: Lisp_Object;
+  let mut bottom: Lisp_Object;
+  let mut min_x: c_int = 0;
+  let mut min_y: c_int = 0;
+  let mut max_x: c_int = 0;
+  let mut max_y: c_int = 0;
+
+  /* User-specified position?  */
+  left = Fcdr (Fassq (Qleft (), parms));
+  top = Fcdr (Fassq (Qtop (), parms));
+  right = Fcdr (Fassq (Qright (), parms));
+  bottom = Fcdr (Fassq (Qbottom (), parms));
+
+  /* Move the tooltip window where the mouse pointer is.  Resize and
+     show it.  */
+  if (! FIXNUMP (left) && ! FIXNUMP (right))
+      || (! FIXNUMP (top) && ! FIXNUMP (bottom))
+    {
+      let mut pt: POINT = core::mem::zeroed ();
+
+      /* Default min and max values.  */
+      min_x = 0;
+      min_y = 0;
+      max_x = w32_display_pixel_width (FRAME_DISPLAY_INFO! (f));
+      max_y = w32_display_pixel_height (FRAME_DISPLAY_INFO! (f));
+
+      block_input ();
+      GetCursorPos (&raw mut pt);
+      *root_x = pt.x;
+      *root_y = pt.y;
+      unblock_input ();
+
+      /* If multiple monitor support is available, constrain the tip onto
+	 the current monitor. This improves the above by allowing negative
+	 coordinates if monitor positions are such that they are valid, and
+	 snaps a tooltip onto a single monitor if we are close to the edge
+	 where it would otherwise flow onto the other monitor (or into
+	 nothingness if there is a gap in the overlap).  */
+      if monitor_from_point_fn.is_some () && get_monitor_info_fn.is_some ()
+	{
+	  let mut info: MONITOR_INFO = core::mem::zeroed ();
+	  let monitor: HMONITOR
+	    = (monitor_from_point_fn.unwrap ()) (pt, MONITOR_DEFAULT_TO_NEAREST);
+	  info.cbSize = core::mem::size_of::<MONITOR_INFO> () as DWORD;
+
+	  if (get_monitor_info_fn.unwrap ()) (monitor, &raw mut info) != 0
+	    {
+	      min_x = info.rcWork.left;
+	      min_y = info.rcWork.top;
+	      max_x = info.rcWork.right;
+	      max_y = info.rcWork.bottom;
+	    }
+	}
+    }
+
+  if FIXNUMP (top)
+    { *root_y = XFIXNUM (top) as c_int; }
+  else if FIXNUMP (bottom)
+    { *root_y = XFIXNUM (bottom) as c_int - height; }
+  else if *root_y + XFIXNUM (dy) as c_int <= min_y
+    { *root_y = min_y; } /* Can happen for negative dy */
+  else if *root_y + XFIXNUM (dy) as c_int + height <= max_y
+    /* It fits below the pointer */
+    { *root_y += XFIXNUM (dy) as c_int; }
+  else if height + XFIXNUM (dy) as c_int + min_y <= *root_y
+    /* It fits above the pointer.  */
+    { *root_y -= height + XFIXNUM (dy) as c_int; }
+  else
+    /* Put it on the top.  */
+    { *root_y = min_y; }
+
+  if FIXNUMP (left)
+    { *root_x = XFIXNUM (left) as c_int; }
+  else if FIXNUMP (right)
+    { *root_x = XFIXNUM (right) as c_int - width; }
+  else if *root_x + XFIXNUM (dx) as c_int <= min_x
+    { *root_x = 0; } /* Can happen for negative dx */
+  else if *root_x + XFIXNUM (dx) as c_int + width <= max_x
+    /* It fits to the right of the pointer.  */
+    { *root_x += XFIXNUM (dx) as c_int; }
+  else if width + XFIXNUM (dx) as c_int + min_x <= *root_x
+    /* It fits to the left of the pointer.  */
+    { *root_x -= width + XFIXNUM (dx) as c_int; }
+  else
+    /* Put it left justified on the screen -- it ought to fit that way.  */
+    { *root_x = min_x; }
+}
+
+/**
+ * w32_hide_tip:
+ *
+ * Hide currently visible tooltip and cancel its timer.
+ *
+ * This will try to make tooltip_frame invisible (if DELETE is false)
+ * or delete tooltip_frame (if DELETE is true).
+ *
+ * Return Qt if the tooltip was either deleted or made invisible, Qnil
+ * otherwise.
+ */
+/// C 7763-7806: `w32_hide_tip` - C 7768's `calln (Qcancel_timer, tip_timer)` is the port's
+/// `calln!`, C 7780's `specpdl_ref count` C's own declaration order (after `was_open`), and
+/// C 7790's `delete_frame` / C 7794's `w32_make_frame_invisible` are declared above / in
+/// `include/w32term.rs`.
+/// C: static Lisp_Object
+/// C: w32_hide_tip (bool delete)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_hide_tip (delete: bool) -> Lisp_Object
+{
+  if ! NILP (tip_timer)
+    {
+      calln! (Qcancel_timer (), tip_timer);
+      tip_timer = Qnil ();
+    }
+
+  if NILP (tip_frame)
+      || (! delete && FRAMEP (tip_frame) && ! FRAME_VISIBLE_P (XFRAME (tip_frame)))
+    { return Qnil (); }
+  else
+    {
+      let mut was_open: Lisp_Object = Qnil ();
+
+      let count: specpdl_ref = SPECPDL_INDEX ();
+      specbind (Qinhibit_redisplay (), Qt ());
+      specbind (Qinhibit_quit (), Qt ());
+
+      if FRAMEP (tip_frame)
+	{
+	  if FRAME_LIVE_P (XFRAME (tip_frame))
+	    {
+	      if delete
+		{
+		  delete_frame (tip_frame, Qnil ());
+		  tip_frame = Qnil ();
+		}
+	      else
+		{ w32_make_frame_invisible (XFRAME (tip_frame)); }
+
+	      was_open = Qt ();
+	    }
+	  else
+	    { tip_frame = Qnil (); }
+	}
+      else
+	{ tip_frame = Qnil (); }
+
+      return unbind_to (count, was_open);
+    }
 }
