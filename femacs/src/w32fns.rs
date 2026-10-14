@@ -5066,6 +5066,7 @@ pub const VK_SCROLL: c_int = 0x91;
 /// C: DWORD WINAPI GetConsoleTitleW (LPWSTR lpConsoleTitle, DWORD nSize);
 /// C: BOOL WINAPI SetConsoleTitleW (LPCWSTR lpConsoleTitle);
 /// C: HWND WINAPI FindWindowW (LPCWSTR lpClassName, LPCWSTR lpWindowName);
+/// C: HWND WINAPI FindWindowA (LPCSTR lpClassName, LPCSTR lpWindowName);
 /// C: void WINAPI Sleep (DWORD dwMilliseconds);
 #[cfg (feature = "have_ntgui")]
 unsafe extern "system" {
@@ -5093,6 +5094,7 @@ unsafe extern "system" {
   pub fn GetConsoleTitleW (lpConsoleTitle: LPWSTR, nSize: DWORD) -> DWORD;
   pub fn SetConsoleTitleW (lpConsoleTitle: *const WCHAR) -> BOOL;
   pub fn FindWindowW (lpClassName: *const WCHAR, lpWindowName: *const WCHAR) -> HWND;
+  pub fn FindWindowA (lpClassName: *const c_char, lpWindowName: *const c_char) -> HWND;
   pub fn Sleep (dwMilliseconds: DWORD);
 }
 
@@ -13679,4 +13681,279 @@ unsafe fn w32_parse_and_hook_hot_key (key: Lisp_Object, hook: c_int) -> Lisp_Obj
 
       return HOTKEY! (vk_code as EMACS_INT, w32_modifiers as EMACS_INT);
     }
+}
+
+/// C 9147-9198: `w32-register-hot-key` - C 9177's `w32_parse_and_hook_hot_key (key, 1)`, C 9179-9180's
+/// `!w32_kbdhook_active` / `NILP (key)` / `Fmemq (key, w32_grabbed_keys)` test, C 9183's
+/// `Fmemq (Qnil, w32_grabbed_keys)` slot search, C 9186-9189's `Fcons`-or-`XSETCAR` branch and
+/// C 9193-9194's `PostThreadMessage (dwWindowsThreadId, WM_EMACS_REGISTER_HOT_KEY, …)`.  `key` is
+/// C's reassigned parameter, so the body re-binds it with `let mut` (the `x-show-tip` `DEFUN!`
+/// reading: the macro's `$arg:ident` cannot say `mut`).
+/// C: DEFUN ("w32-register-hot-key", Fw32_register_hot_key,
+/// C:        Sw32_register_hot_key, 1, 1, 0,
+/// C:        doc: /* Register KEY as a hot-key combination. … */)
+/// C:   (Lisp_Object key)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-register-hot-key", Fw32_register_hot_key,
+	Sw32_register_hot_key, 1, 1, 0,
+	doc: "Register KEY as a hot-key combination.\nCertain key combinations like Alt-Tab and Win-R are reserved for\nsystem use on Windows, and therefore are normally intercepted by the\nsystem.  These key combinations can be used in Emacs by registering\nthem as hot-keys, except for Win-L which always locks the computer.\n\nOn Windows 98 and ME, KEY must be a one element key definition in\nvector form that would be acceptable to `define-key' (e.g. [A-tab] for\nAlt-Tab).  The meta modifier is interpreted as Alt if\n`w32-alt-is-meta' is t, and hyper is always interpreted as the Windows\nmodifier keys.  The return value is the hotkey-id if registered,\notherwise nil.\n\nOn Windows versions since NT, KEY can also be specified as just a\nmodifier key, [M-], [s-] or [H-], to indicate that all combinations\nof the respective modifier key should be processed by Emacs instead\nof the operating system.  The super and hyper modifiers are\ninterpreted according to the current values of `w32-lwindow-modifier'\nand `w32-rwindow-modifier'.  For instance, setting `w32-lwindow-modifier'\nto `super' and then calling `(w32-register-hot-key [s-])' grabs all\ncombinations of the left Windows key to Emacs as keys with the Super\nmodifier, but leaves the right Windows key free for the operating\nsystem keyboard shortcuts.\n\nThe return value is t if the call affected any key combinations,\notherwise nil.",
+	(key: Lisp_Object),
+	{
+  let mut key = key;
+
+  key = w32_parse_and_hook_hot_key (key, 1);
+
+  if ! w32_kbdhook_active! ()
+      && ! NILP (key) && NILP (Fmemq (key, w32_grabbed_keys))
+    {
+      /* Reuse an empty slot if possible.  */
+      let item: Lisp_Object = Fmemq (Qnil (), w32_grabbed_keys);
+
+      /* Safe to add new key to list, even if we have focus.  */
+      if NILP (item)
+	{ w32_grabbed_keys = Fcons (key, w32_grabbed_keys); }
+      else
+	{ XSETCAR (item, key); }
+
+      /* Notify input thread about new hot-key definition, so that it
+	 takes effect without needing to switch focus.  */
+      PostThreadMessage (dwWindowsThreadId, WM_EMACS_REGISTER_HOT_KEY as UINT,
+			 XFIXNUM (key) as WPARAM, 0);
+    }
+
+  return key;
+});
+
+/// C 9200-9235: `w32-unregister-hot-key` - C 9207-9208's `FIXNUMP` guard and the
+/// `w32_parse_and_hook_hot_key (key, 0)` parse, C 9210-9211's `w32_kbdhook_active` return, C 9213's
+/// `Fmemq`, C 9219's `eassert (CONSP (item))`, C 9222's `XUNTAG (item, Lisp_Cons, struct Lisp_Cons)`
+/// into the `LPARAM` the input thread reads as the list tail (C's own comment says why) and
+/// C 9226-9231's `PostThreadMessage` + `GetMessage` wait for `WM_EMACS_DONE`.
+/// C: DEFUN ("w32-unregister-hot-key", Fw32_unregister_hot_key,
+/// C:        Sw32_unregister_hot_key, 1, 1, 0,
+/// C:        doc: /* Unregister KEY as a hot-key combination.  */)
+/// C:   (Lisp_Object key)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-unregister-hot-key", Fw32_unregister_hot_key,
+	Sw32_unregister_hot_key, 1, 1, 0,
+	doc: "Unregister KEY as a hot-key combination.",
+	(key: Lisp_Object),
+	{
+  let mut key = key;
+  let mut item: Lisp_Object;
+
+  if ! FIXNUMP (key)
+    { key = w32_parse_and_hook_hot_key (key, 0); }
+
+  if w32_kbdhook_active! ()
+    { return key; }
+
+  item = Fmemq (key, w32_grabbed_keys);
+
+  if ! NILP (item)
+    {
+      let mut lparam: LPARAM;
+
+      eassert! (CONSP (item));
+      /* Pass the tail of the list as a pointer to a Lisp_Cons cell,
+	 so that it works in a --with-wide-int build as well.  */
+      lparam = XUNTAG! (item, Lisp_Type::Lisp_Cons, Lisp_Cons) as LPARAM;
+
+      /* Notify input thread about hot-key definition being removed, so
+	 that it takes effect without needing focus switch.  */
+      if PostThreadMessage (dwWindowsThreadId, WM_EMACS_UNREGISTER_HOT_KEY as UINT,
+			     XFIXNUM (XCAR (item)) as WPARAM, lparam) != 0
+	{
+	  let mut msg: MSG = core::mem::zeroed ();   /* C's uninitialised `MSG msg;` (PORTING.md 1.5) */
+	  GetMessage (&raw mut msg, core::ptr::null_mut (), WM_EMACS_DONE as UINT,
+		      WM_EMACS_DONE as UINT);
+	}
+      return Qt ();
+    }
+  return Qnil ();
+});
+
+/// C 9237-9243: `w32-registered-hot-keys` - C 9242's one expression, `Fdelq (Qnil,
+/// Fcopy_sequence (w32_grabbed_keys))`: the copy is C's (the caller must not see the live slot
+/// list), and `Fdelq` drops the nil slots `w32-unregister-hot-key` leaves behind.
+/// C: DEFUN ("w32-registered-hot-keys", Fw32_registered_hot_keys,
+/// C:        Sw32_registered_hot_keys, 0, 0, 0,
+/// C:        doc: /* Return list of registered hot-key IDs.  */)
+/// C:   (void)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-registered-hot-keys", Fw32_registered_hot_keys,
+	Sw32_registered_hot_keys, 0, 0, 0,
+	doc: "Return list of registered hot-key IDs.",
+	(),
+	{
+  return Fdelq (Qnil (), Fcopy_sequence (w32_grabbed_keys));
+});
+
+/// C 9245-9275: `w32-reconstruct-hot-key` - C 9254's `CHECK_FIXNUM`, C 9256-9257's
+/// `HOTKEY_VK_CODE`/`HOTKEY_MODIFIERS` unpacking (the file's two macros above), C 9259-9262's
+/// `lispy_function_keys`-or-`make_fixnum` choice, and C 9264-9272's four `Fcons` layers in C's own
+/// order (shift, control, alt-or-meta by `Vw32_alt_is_meta`, then hyper for `MOD_WIN`).
+/// C: DEFUN ("w32-reconstruct-hot-key", Fw32_reconstruct_hot_key,
+/// C:        Sw32_reconstruct_hot_key, 1, 1, 0,
+/// C:        doc: /* Convert hot-key ID to a lisp key combination.  */)
+/// C:   (Lisp_Object hotkeyid)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-reconstruct-hot-key", Fw32_reconstruct_hot_key,
+	Sw32_reconstruct_hot_key, 1, 1, 0,
+	doc: "Convert hot-key ID to a lisp key combination.\nusage: (w32-reconstruct-hot-key ID)",
+	(hotkeyid: Lisp_Object),
+	{
+  let mut vk_code: c_int;
+  let mut w32_modifiers: c_int;
+  let mut key: Lisp_Object;
+
+  CHECK_FIXNUM (hotkeyid);
+
+  vk_code = HOTKEY_VK_CODE! (hotkeyid) as c_int;
+  w32_modifiers = HOTKEY_MODIFIERS! (hotkeyid) as c_int;
+
+  if vk_code < 256 && ! lispy_function_keys[vk_code as usize].is_null ()
+    { key = intern (lispy_function_keys[vk_code as usize]); }
+  else
+    { key = make_fixnum (vk_code as EMACS_INT); }
+
+  key = Fcons (key, Qnil ());
+  if w32_modifiers & MOD_SHIFT != 0
+    { key = Fcons (Qshift (), key); }
+  if w32_modifiers & MOD_CONTROL != 0
+    { key = Fcons (Qctrl (), key); }
+  if w32_modifiers & MOD_ALT != 0
+    { key = Fcons (if NILP (Vw32_alt_is_meta) { Qalt () } else { Qmeta () }, key); }
+  if w32_modifiers & MOD_WIN != 0
+    { key = Fcons (Qhyper (), key); }
+
+  return key;
+});
+
+/// C 9277-9316: `w32-toggle-lock-key` - C 9292-9299's three `EQ` arms over `Qcapslock` /
+/// `Qkp_numlock` / `Qscroll` with `VK_CAPITAL` / `VK_NUMLOCK` / `VK_SCROLL`, C 9301-9302's
+/// console-thread handoff to `w32_console_toggle_lock_key` (this file's own definition, landed
+/// with this slice because the call needs it - PORTING.md P-91 ①), C 9304-9307's
+/// `NILP`/`XUFIXNUM` `lparam` and C 9308-9313's `PostThreadMessage` + `GetMessage` wait whose
+/// `msg.wParam` is the answer.
+/// C: DEFUN ("w32-toggle-lock-key", Fw32_toggle_lock_key,
+/// C:        Sw32_toggle_lock_key, 1, 2, 0,
+/// C:        doc: /* Toggle the state of the lock key KEY. … */)
+/// C:   (Lisp_Object key, Lisp_Object new_state)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-toggle-lock-key", Fw32_toggle_lock_key,
+	Sw32_toggle_lock_key, 1, 2, 0,
+	doc: "Toggle the state of the lock key KEY.\nKEY can be `capslock', `kp-numlock', or `scroll'.\nIf the optional parameter NEW-STATE is a number, then the state of KEY\nis set to off if the low bit of NEW-STATE is zero, otherwise on.\nIf NEW-STATE is omitted or nil, the function toggles the state,\n\nValue is the new state of the key, or nil if the function failed\nto change the state.",
+	(key: Lisp_Object, new_state: Lisp_Object),
+	{
+  let mut vk_code: c_int;
+  let mut lparam: LPARAM;
+
+  if EQ (key, Qcapslock ())
+    { vk_code = VK_CAPITAL; }
+  else if EQ (key, Qkp_numlock ())
+    { vk_code = VK_NUMLOCK; }
+  else if EQ (key, Qscroll ())
+    { vk_code = VK_SCROLL; }
+  else
+    { return Qnil (); }
+
+  if dwWindowsThreadId == 0
+    { return make_fixnum (w32_console_toggle_lock_key (vk_code, new_state) as EMACS_INT); }
+
+  if NILP (new_state)
+    { lparam = -1; }
+  else
+    { lparam = (XUFIXNUM (new_state) & 1) as LPARAM; }
+  if PostThreadMessage (dwWindowsThreadId, WM_EMACS_TOGGLE_LOCK_KEY as UINT,
+			vk_code as WPARAM, lparam) != 0
+    {
+      let mut msg: MSG = core::mem::zeroed ();   /* C's uninitialised `MSG msg;` (PORTING.md 1.5) */
+      GetMessage (&raw mut msg, core::ptr::null_mut (), WM_EMACS_DONE as UINT,
+		  WM_EMACS_DONE as UINT);
+      return make_fixnum (msg.wParam as EMACS_INT);
+    }
+  return Qnil ();
+});
+
+/// C 9318-9337: `w32-window-exists-p` - C 9327-9330's two `NILP`/`CHECK_STRING` guards, C 9332-9333's
+/// `FindWindow` call with C's two `STRINGP`-guarded `(LPCTSTR) SDATA (…)`-or-`NULL` arguments and
+/// C 9334-9336's handle test.  C writes C's parameter name `class`, which is a Rust keyword, so the
+/// port spells it `r#class` (PORTING.md 0.2's raw-identifier rule).
+/// C: DEFUN ("w32-window-exists-p", Fw32_window_exists_p, Sw32_window_exists_p,
+/// C:        2, 2, 0,
+/// C:        doc: /* Return non-nil if a window exists with the specified CLASS and NAME. … */)
+/// C:   (Lisp_Object class, Lisp_Object name)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-window-exists-p", Fw32_window_exists_p, Sw32_window_exists_p,
+	2, 2, 0,
+	doc: "Return non-nil if a window exists with the specified CLASS and NAME.\n\nThis is a direct interface to the Windows API FindWindow function.",
+	(r#class: Lisp_Object, name: Lisp_Object),
+	{
+  let mut hnd: HWND;
+
+  if ! NILP (r#class)
+    { CHECK_STRING (r#class); }
+  if ! NILP (name)
+    { CHECK_STRING (name); }
+
+  hnd = if w32_unicode_gui != 0
+	  { FindWindowW (if STRINGP (r#class) { SDATA (r#class) as LPCWSTR }
+			 else { core::ptr::null () },
+			 if STRINGP (name) { SDATA (name) as LPCWSTR }
+			 else { core::ptr::null () }) }
+	else
+	  { FindWindowA (if STRINGP (r#class) { SDATA (r#class) as LPCTSTR }
+			 else { core::ptr::null () },
+			 if STRINGP (name) { SDATA (name) as LPCTSTR }
+			 else { core::ptr::null () }) };
+  if hnd.is_null ()
+    { return Qnil (); }
+  return Qt ();
+});
+
+/* C 9339-10110's text is not in the port yet (the file's remainder), but C 10112's
+   `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
+   pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
+   It therefore stands below, at the foot of the file rather than at its C position, and the
+   ledger's `## C line ranges` table carries the two landed rows (`9147-9337` and `10112-10138`)
+   around the remainder.  Later slices of this lane insert their own text *above* this block, so
+   the file's item order still equals C's order (P-91 ②: Rust items are order-independent).  */
+
+/// C 10112-10138: `int w32_console_toggle_lock_key (int vk_code, Lisp_Object new_state)` - the
+/// Cygwin/console fallback `w32-toggle-lock-key` uses when `dwWindowsThreadId` is zero.  C 10115's
+/// `GetKeyState (vk_code) & 1` (the C 3775 shape), C 10117-10119's `NILP`/`FIXNUMP`/`XUFIXNUM` test,
+/// C 10121-10123's `#ifdef WINDOWSNT` assignment to `faked_key` (`w32inevt.c`'s object, declared in
+/// this file at C 312), C 10125-10133's three `keybd_event` taps (`KEYEVENTF_EXTENDEDKEY`, the two
+/// `KEYEVENTF_KEYUP`s around a press) and C 10134's `cur_state = !cur_state;` (C's `!` on an `int`,
+/// the `cur_state` reading at C 3792).
+/// C: int
+/// C: w32_console_toggle_lock_key (int vk_code, Lisp_Object new_state)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_console_toggle_lock_key (vk_code: c_int, new_state: Lisp_Object)
+  -> c_int
+{
+  let mut cur_state: c_int = GetKeyState (vk_code) as c_int & 1;
+
+  if NILP (new_state)
+      || (FIXNUMP (new_state)
+	  && (XUFIXNUM (new_state) & 1) as c_int != cur_state)
+    {
+      #[cfg (feature = "windowsnt")]
+      { faked_key = vk_code; }
+
+      keybd_event (vk_code as BYTE,
+		   MapVirtualKey (vk_code as UINT, 0) as BYTE,
+		   KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+      keybd_event (vk_code as BYTE,
+		   MapVirtualKey (vk_code as UINT, 0) as BYTE,
+		   KEYEVENTF_EXTENDEDKEY | 0, 0);
+      keybd_event (vk_code as BYTE,
+		   MapVirtualKey (vk_code as UINT, 0) as BYTE,
+		   KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+      cur_state = if cur_state == 0 { 1 } else { 0 };
+    }
+
+  return cur_state;
 }

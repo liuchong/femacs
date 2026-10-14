@@ -222,7 +222,10 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 8669-8692 | C 8669-8688's `w32-send-sys-command` `DEFUN` and C 8690-8692's `#ifndef CYGWIN` with its `pfnShellExecuteExW` declaration (C 8692's `#endif` has no counterpart - the two attributes carry it) - slice 18 | file gate; `not (feature = "cygwin")` on the declaration |
 | 8694-9014 | C 8694-9014: the `w32-shell-execute` `DEFUN` - the file's 65-line docstring, the `CYGWIN` arm (C 8765-8836) and the live arm (C 8838-9002) - slice 19 | file gate; `cygwin` names C's arm split |
 | 9016-9145 | C 9016-9043's `lookup_vk_code` and C 9045-9145's `w32_parse_and_hook_hot_key` (with C 9101-9106's `#ifndef MOD_ALT` guard block carried as the four constants) - slice 20 | file gate |
-| 9147-12488 | **the remainder of the file** (C 9147's `w32-register-hot-key` `DEFUN` onward: C 9237's neighbours, C 9339 `w32-frame-geometry`, C 9586 `w32_frame_list_z_order`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 9147-9337 | C 9147's `w32-register-hot-key` `DEFUN` through C 9318-9337's `w32-window-exists-p` - the six hot-key/lock-key/window `DEFUN`s of slice 21 | file gate |
+| 9339-10110 | C 9339's `w32-frame-geometry` onward: the frame-geometry/edges/z-order/restack family, the DDE block and the `w32_console_*` family (C 9586 `w32_frame_list_z_order`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 10112-10138 | C 10112-10138's `w32_console_toggle_lock_key` - slice 21, landed **ahead of its C position** because C 9302 calls it and Rust has no declare-then-define pair inside one file (PORTING.md P-91 ①) | file gate |
+| 10140-12488 | **the remainder of the file** (C 10140's `w32_kbd_mods_to_emacs` onward: the console-modifier family, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2301,6 +2304,98 @@ Ten gates read 0 failures; the name sweep leaves one candidate, the character li
   `include/keyboard.rs` does not carry yet).
 - **Not claimed.**  No run evidence: no hot key is registered on this machine
   (`hook_w32_key` is never called), the arm reading is compile-level and the name sweep textual.
+
+## Slice 21 (C 9147-9337 + C 10112-10138)
+
+**Scope and the stop.**  The hot-key family: `w32-register-hot-key` (C 9147-9198),
+`w32-unregister-hot-key` (C 9200-9235), `w32-registered-hot-keys` (C 9237-9243),
+`w32-reconstruct-hot-key` (C 9245-9275), `w32-toggle-lock-key` (C 9277-9316) and
+`w32-window-exists-p` (C 9318-9337).  The stop is C 9339's `w32-frame-geometry` `DEFUN`
+(C 9338 blank).  The slice also lands **C 10112-10138's `w32_console_toggle_lock_key`**, 1,775 C
+lines ahead of the region it belongs to, because C 9302 calls it and Rust has no
+declare-then-define pair inside one file (PORTING.md 0.1-12 / P-91 ①: land whichever the slice
+needs); the `## C line ranges` table therefore carries two landed rows around the remainder, and
+later slices of this lane insert their text **above** that block, so the file's item order still
+equals C's (P-91 ② - Rust items are order-independent).
+
+**What the item carries.**  The six `DEFUN`s in C's order, each with `make-docfile`'s rule turning
+C's `doc: /* … */` into the `doc:` literal (`cinventory.doc_comment_value`, the same call the
+`Fw32_shell_execute` docstring used), and C's own argument list.  `w32-register-hot-key` reads
+C 9179-9180's macro/`NILP`/`Fmemq` test through the file's `w32_kbdhook_active! ()` mirror, C 9183's
+`Fmemq (Qnil, w32_grabbed_keys)` slot search over the file's own slot list (C 3567), C 9186-9189's
+`Fcons`-or-`XSETCAR` branch (`include/lisp.rs` 892) and C 9193-9194's
+`PostThreadMessage (dwWindowsThreadId, WM_EMACS_REGISTER_HOT_KEY, …)`.  `w32-unregister-hot-key` is
+C 9207-9208's parse, C 9219's `eassert (CONSP (item))` and C 9222's
+`XUNTAG (item, Lisp_Cons, struct Lisp_Cons)` into the `LPARAM` the input thread reads as the list
+tail (the `XUNTAG!` macro at `include/lisp.rs` 508, the `src/alloc.rs` 3074 precedent).  The other
+four are C 9242's one `Fdelq`/`Fcopy_sequence` expression, C 9254-9272's
+`HOTKEY_VK_CODE`/`HOTKEY_MODIFIERS` unpacking plus C's four `Fcons` layers (shift, control,
+alt-or-meta by `Vw32_alt_is_meta`, hyper for `MOD_WIN`), C 9292-9313's `EQ` chain over
+`Qcapslock`/`Qkp_numlock`/`Qscroll` with `VK_CAPITAL`/`VK_NUMLOCK`/`VK_SCROLL` and the
+console-thread handoff, and C 9327-9336's two guards and handle test.  New surface: `FindWindowA`,
+declared next to the `FindWindowW` C 3115 already uses (the file's A/W device, see Deviations).
+
+### Evidence (slice 21, the final revision: 13,959 Rust lines)
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/w21lane cargo run -q -p xtask -- build-tu src/w32fns.c` →
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, the object **336 bytes**.  One run.
+The file gate covers every item, so the frozen configuration compiles none of this slice's text.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the count slices 16-20
+left, so the slice's 277 lines add no error and no member gap: no diagnostic sits at or beyond the
+slice's first line (`src/w32fns.rs` 13,683), and the three error kinds are the standing mirror set
+(15 `E0428` name collisions with the mirrors, 1 `E0530` shadowing, 25 `E0609` missing members, plus the file's one deliberately-failing `HAVE_NTGUI` frame-flag probe).
+Two probe runs (the pre-write baseline and the slice's own).
+
+**③ `extract-abi.py --check`.**  **138 → 131** rows: seven retire and none is added - the six
+`missing subr` rows (the six `DEFUN`s) and `missing function w32_console_toggle_lock_key`.  The six
+`missing defsubr (&raw const Sw32_*)` rows stay: they are C 11965-11972's calls inside
+`syms_of_w32fns`, which is not ported (C 11586 is in the tail).  Three token rows were forestalled
+by three `macro-body-notes.tsv` rows appended with this slice (two `GetMessage` sites and one
+`FindWindow` site).  No `line count drifted` row: the file is 13,959 Rust lines against 12,488 C
+lines (11.8%), inside the file's `w32fns 0.35 total` tolerance row.
+
+**④ The range table and the dead-file gate.**  The `9147-12488` remainder row splits into
+`9147-9337` (this slice), `9339-10110` (the remainder), `10112-10138` (this slice's out-of-order
+block) and `10140-12488` (the remainder).  `python3 tools/check-dead-file-coverage.py` reads
+**172 range row(s) cover src/w32fns.c (12488 lines; 119 blank line(s) between blocks need no row)**,
+`0 failure(s)` (169 rows / 116 blanks before the split).  Ten gates read `rc=0` and **0 FAIL** lines.
+
+**⑤ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 13,683-13,930: 61 capitalized
+identifiers, missing `GetMessage` and the six `Sw32_*` names.  Both classes are the tool's
+documented ones rather than gaps: `GetMessage` is the `<winuser.h>` macro this file reads through
+its A/W binding (the `my_create_window` notes row, C 6032), and a `DEFUN!`'s `$sname` static is
+macro-generated (measured on slice 18's own text: `check-unit-names.py … 13100 13110` reports
+`Sw32_send_sys_command` the same way).  `src/w32fns.rs` 13,932-13,959 (the console function):
+10 capitalized identifiers, missing none.
+
+### Deviations (slice 21)
+
+- **`FindWindow` is read through the file's A/W device, with `FindWindowA` declared here.**  C 9332's
+  `FindWindow` is the `<winuser.h>` macro whose arm `UNICODE` fixes at compile time, and this file
+  already reads the same class of macro - `GetMessage` (C 3714/6032/9230/9312), `DispatchMessage`
+  (C 3828), `DefWindowProc` (C 5981) - through `if w32_unicode_gui != 0 { …W } else { …A }`.  The
+  port keeps that device, so both entry points must exist: `FindWindowW` was declared for C 3115,
+  `FindWindowA` joins it here (with C's own `<winuser.h>` line), and the body's two `(LPCTSTR)`
+  casts become the A arm's `LPCTSTR` and the W arm's `LPCWSTR` (`LPCTSTR` is this file's
+  `*const c_char`, C 3196).  The un-suffixed token cannot reappear; the notes row records it.
+- **`w32_console_toggle_lock_key` stands at the foot of the file, not at C 10112.**  P-91 ① (land
+  the dependency the slice needs) versus P-91 ② (text position follows C's line order): the two
+  agree only because Rust items are order-independent, so the block is written where the port's text
+  currently ends and later slices insert above it.  Its `cur_state = !cur_state;` is C's `!` on an
+  `int`, spelled `if cur_state == 0 { 1 } else { 0 }` (the C 3792 reading above it).
+- **C's `class` parameter is `r#class`.**  C 9323's parameter is named `class`, which is a Rust
+  keyword; PORTING.md 0.2's raw-identifier rule applies, and the token check folds the `r#`.
+- **C's reassigned parameters are re-bound with `let mut`.**  `w32-register-hot-key` and
+  `w32-unregister-hot-key` assign their `key` argument, and the `DEFUN!` macro's `$arg:ident`
+  cannot say `mut` - the `Fx_show_tip` device (`src/w32fns.rs` 11,746-11,748).
+- **The two `MSG` locals are zero-initialised** (PORTING.md 1.5), the C 6005/9,592 precedent; C
+  leaves them uninitialised and `GetMessage` fills them before C reads `msg.wParam`.
+- **Not claimed.**  No run evidence: no Windows and no mingw toolchain on this machine, so no hot
+  key is registered, no `PostThreadMessage` is delivered, and the `w32_unicode_gui` arm of the
+  `FindWindow` device is never taken here; the arm reading is compile-level (42 errors, none from
+  this slice) and the name sweep is a textual reading.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
