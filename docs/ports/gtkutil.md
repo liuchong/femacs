@@ -137,6 +137,7 @@
 | C 1954/1962's `#ifndef HAVE_PGTK` and C 1955's `#ifdef HAVE_XDBE` (`xg_free_frame_widgets`), C 2007's `#ifndef HAVE_PGTK` fold (`xg_wm_set_size_hint`) | `not (have_pgtk)`; `have_xdbe` | a GTK build with Xdbe / an X11-GTK build |
 | C 2124 `#ifdef USE_TOOLKIT_SCROLL_BARS` (`xg_set_background_color`) | `use_toolkit_scroll_bars` - **not registered** (Owed 9) | a build with toolkit scroll bars |
 | **slice 4 (C 2562-2843).** C 2571's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` (`xg_uses_old_file_dialog`), C 2739's same fold (the `xg_get_file_name_from_*`/`with_*` pair) and C 2820's (`xg_get_file_name`'s chooser choice) | `all (use_gtk, have_gtk_file_selection_new)` - registered by this slice | a GTK build whose headers still carry the old file-selection dialog (GTK2) |
+| **slice 5 (C 2844-3002).** C 2848's `#ifdef HAVE_FREETYPE` (the whole font-chooser half), C 2850/2886/2947/2961's `HAVE_GTK3` pairs, C 2918's `#ifdef HAVE_PGTK` and C 2859's `#if PANGO_VERSION_CHECK (1, 36, 7)` (the `PANGO_WEIGHT_SEMILIGHT` step of `xg_weight_to_symbol`) | `all (use_gtk, have_freetype)` for the section, `have_gtk3` for the two symbol walks/`xg_font_filter`/the chooser's desc path, `have_pgtk` inside `xg_get_font`, and `pango_version_ge_1_36_7` - registered by this slice | a GTK build with FreeType and GTK3; a pure-GTK (pgtk) build; a Pango >= 1.36.7 build |
 | C 2145's `#ifdef HAVE_PGTK` (`xg_set_undecorated`), C 2175/2190's `#ifndef HAVE_PGTK` / `#else` (`xg_frame_restack`, `xg_set_skip_taskbar`), C 2209/2229's `#ifdef HAVE_PGTK` (`xg_set_no_focus_on_map`, `xg_set_no_accept_focus`), C 2261's `#ifndef HAVE_PGTK` + C 2268's dead inner `#ifdef HAVE_PGTK` (`xg_set_frame_icon`) | `have_pgtk` / `not (have_pgtk)`; the two in-expression arm splits are arm choosers (`## Deviations` 17) | as above |
 
 ## C line ranges
@@ -190,7 +191,8 @@
 | 2278-2281 | C 2278's `#endif`, C 2279-2280's blanks and C 2281's form feed | file gate |
 | 2282-2561 | the "Dialog functions" banner (C 2282-2284) and the whole section: `get_dialog_title` (C 2288-2316), `dialog_delete_callback` (C 2329-2334), **`create_dialog`** (C 2343-2457; C 2363's `GTK_CHECK_VERSION (3, 12, 0)` and C 2419's `(3, 14, 0)` pairs), the `xg_dialog_data` record (C 2459-2465), `xg_dialog_response_cb` (C 2471-2479), `pop_down_dialog` (C 2484-2497), `xg_maybe_add_timer` (C 2502-2519) and `xg_dialog_run` (C 2526-2560, C 2561's blank) | file gate (`use_gtk`); `gtk_check_version_ge_3_12` / `_3_14` inside `create_dialog`; slice 3 below |
 | 2562-2843 | the "File dialog functions" banner (C 2562-2565) and the whole section: `xg_uses_old_file_dialog` (C 2568-2576), the `xg_get_file_func` typedef (C 2579), `xg_get_file_name_from_chooser` (C 2584-2588), `xg_toggle_visibility_cb` (C 2593-2600), `xg_toggle_notify_cb` (C 2609-2629), **`xg_get_file_with_chooser`** (C 2642-2737), the `HAVE_GTK_FILE_SELECTION_NEW` pair `xg_get_file_name_from_selector` (C 2744-2749) and `xg_get_file_with_selection` (C 2761-2787), and `xg_get_file_name` (C 2803-2842) | file gate (`use_gtk`); `have_gtk_file_selection_new` for the middle pair; `have_pgtk` inside `xg_get_file_name`; slice 4 below |
-| 2844-6753 | **the remainder** — from C 2844's "GTK font chooser" banner through C 6753: `xg_font_filter` and the font machinery, the menu machinery (`make_cl_data`, `xg_mark_data`, `create_menus`, `xg_update_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 2844-3002 | the "GTK font chooser" banner (C 2844-2846) and the whole `HAVE_FREETYPE` section: `xg_weight_to_symbol` (C 2852-2870, including C 2859-2861's version-guarded step), `xg_style_to_symbol` (C 2872-2879), `x_last_font_name` (C 2884), `xg_font_filter` (C 2887-2898) and **`xg_get_font`** (C 2911-3001: the `HAVE_PGTK` guard, the chooser dialog, the GTK3 `desc` path and the GTK2 name path) | file gate (`use_gtk`); `have_freetype`; `have_gtk3`; `have_pgtk`; `pango_version_ge_1_36_7`; slice 5 below |
+| 3003-6753 | **the remainder** — from C 3003's blanks and C 3006-3008's "Menu functions" banner through C 6753: the menu machinery (`make_cl_data`, `xg_mark_data`, `create_menus`, `xg_update_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -763,6 +765,15 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
    `docs/ports/pgtkterm.md` Owed 4 already names) and `include/systime.rs`'s 1 (`E0080`, a layout
    assertion that fails under `have_window_system`).
 
+9. **Two same-program prototypes belong to header mirrors this lane cannot extend** (added
+   by slice 5): **`font_is_ignored`** (font.h 861) is defined in `src/font.rs` 3592 and
+   **`dupstring`** (lisp.h 5555) in `src/alloc.rs` 970, and both of those units `include!`
+   their header's own mirror (`src/font.rs` 87, `src/alloc.rs` 70), so moving either
+   prototype into `include/font.rs` or `include/lisp.rs` would give the defining unit a
+   duplicate item (`E0428`).  Until those mirrors grow a way to carry a same-program
+   declaration, `src/gtkutil.rs` keeps its own gated copies (the `src/term.rs` 384-385 shape
+   that the four other `dupstring` callers already use).
+
 ## Not claimed
 
 - **Slice 2 (C 1297-2281) was executed nowhere.**  Same reading as slice 1's first bullet: no GTK
@@ -1020,3 +1031,85 @@ no name, so the tree could not spell the arm: `femacs/xtask/Cargo.toml` now carr
 
 **Not claimed.**  No arm was compiled (no GTK tree on this machine); every GTK/GLib prototype and
 value this slice added is UNVERIFIED.
+
+## Slice 5 (2026-10-15, status 4.335): C 2844-3002 — the GTK font chooser
+
+**What this slice is.**  The reference's "GTK font chooser" section: `xg_weight_to_symbol`
+(C 2852-2870, whose chain C 2859-2861 wraps one step in `PANGO_VERSION_CHECK (1, 36, 7)`),
+`xg_style_to_symbol` (C 2872-2879), the file-scope `x_last_font_name` (C 2884), `xg_font_filter`
+(C 2887-2898) and **`xg_get_font`** (C 2911-3001) - the GTK3 `PangoFontDescription` path and, under
+C 2952/2985's `#else`, the GTK2 `gtk_font_selection_dialog_get_font_name` path.  Port: 3,592 ->
+**3,855 lines**; the table's last row splits at C 3002 - the next live text is C 3006's "Menu
+functions" banner.
+
+**A stale reading this slice corrects.**  The header's port line above and Evidence ②S2 both read
+`4200 lines`; the unit is **3,855 lines** and the materialised root **3,862 lines** on this
+revision, and neither file has ever been that long (the port was 2,816 lines entering slice 3,
+3,207 entering slice 4 and 3,592 entering this one, and text is only ever added).  Those two
+figures are therefore wrong rather than old; they are left in place here so the record shows both
+readings.
+
+**The mirror this slice needed.**  `include/gtk.rs` gains the Pango surface the GTK3 arm names -
+four records (`PangoFontFamily`, `PangoFontFace`, `PangoFontDescription`, `GtkFontChooser`), the
+`PangoWeight`/`PangoStyle` typedefs with their fifteen enumerators, `PangoFontFilterFunc` and
+GLib's `GDestroyNotify`, nine Pango entry points, and the four `gtk_font_chooser_*` calls with the
+`GTK_FONT_CHOOSER` checked cast and a `gtk_font_chooser_dialog_new` forwarding macro (C 2923 calls
+that name in both arms, so the port's uniform spelling is the macro form - the
+`gtk_box_new`/`gtk_scrollbar_new` shape) - plus the GTK2 font trio (`GtkFontSelectionDialog`,
+`gtk_font_selection_dialog_new`, `..._set_font_name` and `..._get_font_name`, which C 110-117's own
+macros in this unit forward to).  Every Pango/GTK prototype stays **UNVERIFIED**, because neither
+tree exists here (`ls -d /opt/homebrew/include/pango-1.0` -> absent and `pkg-config pango` fails,
+the GTK rank); every Pango enumerator is a **placeholder**, so `xg_weight_to_symbol`'s twelve steps
+stay distinguishable instead of carrying numbers from memory (the `src/xwidget.rs` 495-520 rule).
+`GDestroyNotify` is GLib's, so it quotes `gtypes.h` 140 and its line.
+
+**The feature this slice registered.**  C 2859's `#if PANGO_VERSION_CHECK (1, 36, 7)` had no name,
+so the tree could not spell the arm: `femacs/xtask/Cargo.toml` now carries
+`pango_version_ge_1_36_7` (C's condition and its one site in the comment) and
+`python3 tools/feature-coverage.py --write` re-recorded `docs/baseline/feature-coverage.tsv`.  The
+gate table above gains its row.
+
+**Deviations this slice adds.**
+
+- **C's chained conditional is the port's `if`/`else if` chain**, and because C 2859-2861 removes
+  one step of that chain, `xg_weight_to_symbol` stands as the tree's two-`fn` arm pair (Deviation
+  3's shape) rather than as a `#[cfg]`ed fragment inside one expression; each arm keeps C's chain
+  whole and every step carries C's own `/* 100 */`-style comment.
+- **Two same-program declarations stand in this unit.**  C 2895 calls `font_is_ignored` (font.h
+  861) and C 2980 calls `dupstring` (lisp.h 5555); the port defines the first in `src/font.rs` 3592
+  and the second in `src/alloc.rs` 970, and both of those units `include!` their header's mirror
+  (`src/font.rs` 87, `src/alloc.rs` 70), so the prototype cannot move into `include/font.rs` or
+  `include/lisp.rs` without a duplicate item in the defining unit.  The declarations therefore
+  stand here, each gated like its call site (the `src/term.rs` 384-385 shape that the four other
+`dupstring` callers already use), and the Owed above names the mirror work.
+- **C 2927's callback is the one place C's implicit conversion changes a signature.**  GTK's
+  `PangoFontFilterFunc` takes two non-const pointers where C's own `xg_font_filter` declarator
+  makes them const, so the port spells the conversion as the function's address plus a pointer
+  `transmute` (PORTING.md 1.4; the `G_CALLBACK!` shape the mirror already carries).  C 2892's own
+  cast of the parameter is the port's `as *mut PangoFontFamily`, and C 2914's unassigned `w` is the
+  port's deferred `let` (C assigns it at C 2923 on every path).
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings.**  Arm A: **30 errors, none anchored in this slice** (the anchors are
+   slices 1-4's, e.g. Owed 6's `GParamSpec.name`); the same arm with `pango_version_ge_1_36_7` on:
+   **30 errors, the same anchor set**, so both arms of the new pair compile.  Arm C (GTK2):
+   **60 errors, none here**; arm C plus `have_freetype` - the GTK2 font arm, C 2985-2995's text,
+   which is a reading this slice added because the prescribed arm C leaves the whole
+   `HAVE_FREETYPE` half switched off: **60 errors, none here** too.  Arm B: **717 errors, 43 of
+   them in this slice**, every one of the "cannot find `GtkWidget`/`gpointer`/`TRUE`/`gboolean`"
+   class - the materialiser's dedupe artifact (Owed 17), which drops the whole GTK surface in that
+   arm; the first anchors are in slice 2's text.  473 anchor lines in all, 43 in this slice.
+3. **`extract-abi.py --check`** -> 105 -> **100 `- ` rows** (five retired: the four functions
+   `xg_get_font`, `xg_weight_to_symbol`, `xg_style_to_symbol`, `xg_font_filter`, and the
+   file-scope object `x_last_font_name`, which closes one of the `missing file-scope object` rows
+   the earlier slices carried); no new `does not mention` row was needed; the line-count row reads
+   **42.9%** (C 6,753 vs 3,855) - the file is still open, and its `line-drift-tolerance.tsv` row
+   lands with the closing slice.
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled - there is no GTK and no Pango tree on this machine - so
+every Pango/GTK prototype and every Pango enumerator this slice added is UNVERIFIED, and the twelve
+weight and three style values remain placeholders owed to a Pango host.

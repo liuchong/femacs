@@ -383,3 +383,37 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 336-byte object; `src/gtkutil.rs`'s arm readings carry one anchor in the fourth slice's text (the
 `GParamSpec.name` read).  The consumer's ledger records all of it (`docs/ports/gtkutil.md`'s
 slice-4 section).
+
+### status 4.335 (the gtkutil fifth-slice round this file took part in)
+
+`src/gtkutil.c`'s "GTK font chooser" (C 2844-3002) is the round's consumer, and it is the first
+round that needs **Pango**: this mirror gains **four records** (`PangoFontFamily`, `PangoFontFace`,
+`PangoFontDescription` and GTK3's `GtkFontChooser`, the pointee of the `GTK_FONT_CHOOSER` checked
+cast), **the `PangoWeight`/`PangoStyle` typedefs with their fifteen enumerators** (twelve
+`PANGO_WEIGHT_*`, three `PANGO_STYLE_*`), **`PangoFontFilterFunc`** (GTK's own callback typedef,
+quoted from `gtk/gtkfontchooser.h`) and GLib's **`GDestroyNotify`**, **nine Pango entry points**
+(`pango_font_family_get_name`, the seven `pango_font_description_*` calls, `pango_units_to_double`),
+and **four `gtk_font_chooser_*` calls** with a `gtk_font_chooser_dialog_new` **forwarding macro**
+(C 2923 names that function in both arms, so the port's uniform spelling is the macro form, exactly
+as `gtk_box_new`/`gtk_scrollbar_new` above) - plus the **GTK2 font trio**
+(`GtkFontSelectionDialog`, `gtk_font_selection_dialog_new` and its `_set_font_name`/
+`_get_font_name` pair) that C 110-117's macros in the consumer forward to.
+
+**The Pango rank is the GTK rank, and this is the first file where it shows.**  `/opt/homebrew`
+carries `glib-2.0` and `cairo` but neither `gtk-3.0` nor `pango-1.0`, and `pkg-config` is not
+installed - so every Pango prototype here is `UNVERIFIED` with no line number, and, unlike the GTK
+enumerators the earlier rounds could at least keep distinct by hand, the fifteen Pango values are
+**placeholders** whose real numbers a Pango host must supply (`xg_weight_to_symbol`'s chain depends
+on their order, so the round records that dependency rather than inventing values - P-88 (2), the
+`src/xwidget.rs` 495-520 rule).
+
+`GDestroyNotify` is the exception and is quoted with its line (`gtypes.h` 140), because GLib *is*
+on this machine; the same is true of nothing else this round added.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the fifth slice's text** under
+arm A (with `pango_version_ge_1_36_7` on or off), arm C or arm C plus `have_freetype`, and only the
+known dedupe artifact under arm B (Owed 17).  The consumer's ledger records all of it
+(`docs/ports/gtkutil.md`'s slice-5 section).

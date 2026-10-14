@@ -231,6 +231,7 @@ ns_self_contained                          = []  # NS_SELF_CONTAINED
 ntgui_unicode                               = []  # NTGUI_UNICODE (src/w32menu.c 43/143/191/1493/1519/1579/1838)
 open_syscall                                = []  # OPEN_SYSCALL (exec/trace.c)
 page_mask                                  = []  # page_mask (exec/exec.c 295 and 305; registered by the integrator in 3.560)
+pango_version_ge_1_36_7                    = []  # PANGO_VERSION_CHECK (1, 36, 7) (src/gtkutil.c 2859, the weight chain's SEMILIGHT step)
 ptrace_event_seccomp                        = []  # PTRACE_EVENT_SECCOMP (exec/trace.c)
 ptrace_geteventmsg                          = []  # PTRACE_GETEVENTMSG (exec/trace.c)
 ptrace_o_traceseccomp                       = []  # PTRACE_O_TRACESECCOMP (exec/trace.c)

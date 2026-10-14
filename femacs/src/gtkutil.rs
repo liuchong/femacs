@@ -3590,3 +3590,266 @@ pub unsafe extern "C" fn xg_get_file_name (f: *mut frame, prompt: *mut c_char,
   gtk_widget_destroy (w);                                               // C 2840
   fn_                                                                   // C 2841
 }
+
+/* C 2844-2846's "GTK font chooser" banner, carried as C's own text.  */
+/* C: /***********************************************************************
+   C:                       GTK font chooser
+   C:  ***********************************************************************/  */
+
+/* C 2848's `#ifdef HAVE_FREETYPE`: the whole font-chooser half below sits inside it (its `#endif`
+   is C 3002), so every item here carries `have_freetype` beside the file gate - the way C 1666's
+   own `xg_get_font` declaration does.  */
+/* C 2850's `#ifdef HAVE_GTK3` opens here and C 2881's `#endif` closes it; the names of that arm
+   are the mirror's GTK3/Pango surface (`include/gtk.rs`, P-90 (2)).  C 2859's
+   `#if PANGO_VERSION_CHECK (1, 36, 7)` had no name, so this slice registers
+   `pango_version_ge_1_36_7`; it decides one step of C 2856-2869's chain, so the function stands as
+   the tree's two-`fn` arm pair (Deviation 3's shape), each arm keeping C's chain whole.  */
+
+/// C 2852-2870: `static Lisp_Object xg_weight_to_symbol (PangoWeight w)` - `static` in C with one
+/// call site (C 2976), so a plain `unsafe fn`; C's chained conditional is the port's `if`/`else if`
+/// chain with the same steps in the same order, and C's own trailing comments name each step's
+/// nominal weight.  The twelve `PANGO_WEIGHT_*` names are the mirror's placeholders (no Pango tree
+/// on this machine).
+/// C: static
+/// C: Lisp_Object xg_weight_to_symbol (PangoWeight w)
+#[cfg (all (feature = "use_gtk", feature = "have_freetype", feature = "have_gtk3",
+	    feature = "pango_version_ge_1_36_7"))]
+unsafe fn xg_weight_to_symbol (w: PangoWeight) -> Lisp_Object
+{
+  if w <= PANGO_WEIGHT_THIN { Qthin () }                          // C 2856 /* 100 */
+  else if w <= PANGO_WEIGHT_ULTRALIGHT { Qultra_light () }        // C 2857 /* 200 */
+  else if w <= PANGO_WEIGHT_LIGHT { Qlight () }                   // C 2858 /* 300 */
+  else if w <= PANGO_WEIGHT_SEMILIGHT { Qsemi_light () }          // C 2860 /* 350 */
+  else if w <= PANGO_WEIGHT_BOOK { Qbook () }                     // C 2862 /* 380 */
+  else if w <= PANGO_WEIGHT_NORMAL { Qnormal () }                 // C 2863 /* 400 */
+  else if w <= PANGO_WEIGHT_MEDIUM { Qmedium () }                 // C 2864 /* 500 */
+  else if w <= PANGO_WEIGHT_SEMIBOLD { Qsemi_bold () }            // C 2865 /* 600 */
+  else if w <= PANGO_WEIGHT_BOLD { Qbold () }                     // C 2866 /* 700 */
+  else if w <= PANGO_WEIGHT_ULTRABOLD { Qultra_bold () }          // C 2867 /* 800 */
+  else if w <= PANGO_WEIGHT_HEAVY { Qblack () }                   // C 2868 /* 900 */
+  else { Qultra_heavy () }                                        // C 2869 /* 1000 */
+}
+
+/// C 2852-2870's other arm: C 2859-2861's `PANGO_WEIGHT_SEMILIGHT` step is the only text the
+/// version condition removes, so this arm is C's chain without it.
+#[cfg (all (feature = "use_gtk", feature = "have_freetype", feature = "have_gtk3"))]
+#[cfg (not (feature = "pango_version_ge_1_36_7"))]
+unsafe fn xg_weight_to_symbol (w: PangoWeight) -> Lisp_Object
+{
+  if w <= PANGO_WEIGHT_THIN { Qthin () }                          // C 2856 /* 100 */
+  else if w <= PANGO_WEIGHT_ULTRALIGHT { Qultra_light () }        // C 2857 /* 200 */
+  else if w <= PANGO_WEIGHT_LIGHT { Qlight () }                   // C 2858 /* 300 */
+  else if w <= PANGO_WEIGHT_BOOK { Qbook () }                     // C 2862 /* 380 */
+  else if w <= PANGO_WEIGHT_NORMAL { Qnormal () }                 // C 2863 /* 400 */
+  else if w <= PANGO_WEIGHT_MEDIUM { Qmedium () }                 // C 2864 /* 500 */
+  else if w <= PANGO_WEIGHT_SEMIBOLD { Qsemi_bold () }            // C 2865 /* 600 */
+  else if w <= PANGO_WEIGHT_BOLD { Qbold () }                     // C 2866 /* 700 */
+  else if w <= PANGO_WEIGHT_ULTRABOLD { Qultra_bold () }          // C 2867 /* 800 */
+  else if w <= PANGO_WEIGHT_HEAVY { Qblack () }                   // C 2868 /* 900 */
+  else { Qultra_heavy () }                                        // C 2869 /* 1000 */
+}
+
+/// C 2872-2879: `static Lisp_Object xg_style_to_symbol (PangoStyle s)` - `static` in C with one
+/// call site (C 2977), so a plain `unsafe fn`; C's chain is the port's `if`/`else if`, and C 2878's
+/// fall-through `Qnormal` is the port's final `else`.
+/// C: static
+/// C: Lisp_Object xg_style_to_symbol (PangoStyle s)
+#[cfg (all (feature = "use_gtk", feature = "have_freetype", feature = "have_gtk3"))]
+unsafe fn xg_style_to_symbol (s: PangoStyle) -> Lisp_Object
+{
+  if s == PANGO_STYLE_OBLIQUE { Qoblique () }                     // C 2876
+  else if s == PANGO_STYLE_ITALIC { Qitalic () }                  // C 2877
+  else { Qnormal () }                                             // C 2878
+}
+
+/* C 2881's `#endif /* HAVE_GTK3 */` and C 2883's second blank line.  */
+
+/// C 2884: `static char *x_last_font_name;` - the file-scope object `extract-abi.py` counts under
+/// `## File-scope objects` and the one this slice retires from the ledger's
+/// `missing file-scope object` rows.  C's static storage starts zeroed, which is the port's null
+/// initialiser (PORTING.md 1.5's static-storage shape).
+#[cfg (all (feature = "use_gtk", feature = "have_freetype"))]
+static mut x_last_font_name: *mut c_char = std::ptr::null_mut ();   // C 2884
+
+/* C 2886's `#ifdef HAVE_GTK3` (its `#endif` is C 2899).  */
+
+/* C 2895's `font_is_ignored` (font.h 861: `extern bool font_is_ignored (const char *name,
+   ptrdiff_t namelen);`) - the port defines it in `src/font.rs` 3592, which `include!`s the
+   font.h mirror (`src/font.rs` 87), so the mirror cannot carry the prototype without a
+   duplicate item in that unit (`dupstring`'s class above); the declaration stands here and
+   the ledger's Owed names it.  */
+#[cfg (all (feature = "use_gtk", feature = "have_freetype", feature = "have_gtk3"))]
+unsafe extern "C" { fn font_is_ignored (name: *const c_char, namelen: ptrdiff_t) -> bool; }
+
+/// C 2887-2898: `static gboolean xg_font_filter (const PangoFontFamily *family, const
+/// PangoFontFace *face, gpointer data)` - `static` in C, but C 2927 passes its address to
+/// `gtk_font_chooser_set_filter_func`, so the port defines it `unsafe extern "C" fn` (the
+/// `dialog_delete_callback` shape above).  C 2892's `(PangoFontFamily *)family` cast is the
+/// prototype's own non-const parameter, C 2893's `strlen` is `lib/include/string.rs` 28's and its
+/// `ptrdiff_t` result is `include/lisp.rs` 55's `isize`, C 2895-2897's `if (…) return FALSE;
+/// return TRUE;` is the port's `if`/`else` expression, and the two parameters C's body does not
+/// read keep C's names (the `dialog_delete_callback` shape).
+/// C: static gboolean
+/// C: xg_font_filter (const PangoFontFamily *family,
+/// C:                 const PangoFontFace *face,
+/// C:                 gpointer data)
+#[cfg (all (feature = "use_gtk", feature = "have_freetype", feature = "have_gtk3"))]
+unsafe extern "C" fn xg_font_filter (family: *const PangoFontFamily,
+				     face: *const PangoFontFace,   // C 2889
+				     data: gpointer) -> gboolean   // C 2890
+{
+  let name: *const c_char
+    = pango_font_family_get_name (family as *mut PangoFontFamily);   // C 2892
+  let namelen: ptrdiff_t = strlen (name) as ptrdiff_t;               // C 2893
+
+  if font_is_ignored (name, namelen) { FALSE } else { TRUE }         // C 2895-2897
+}
+
+/* C 2980's `dupstring` (lisp.h 5555, `alloc.c`) - C 2980 is this file's only call site;
+   it is a same-program function of `alloc.c` that no mirror carries yet, so the four
+   units that already call it declare it themselves (`src/term.rs` 384-385's shape).  The
+   declaration belongs in `include/lisp.rs`; the ledger's Owed names that.  */
+#[cfg (all (feature = "use_gtk", feature = "have_freetype"))]
+unsafe extern "C" { fn dupstring (ptr: *mut *mut c_char, string: *const c_char); }
+
+/* C 2901-2909's comment above `xg_get_font`, carried as C's own text.  */
+/* C: /* Pop up a GTK font selector and return the name of the font the user
+   C:    selects, as a C string.  The returned font name follows GTK's own
+   C:    format:
+
+   C:    `FAMILY [VALUE1 VALUE2] SIZE'
+
+   C:    This can be parsed using font_parse_fcname in font.c.
+   C:    DEFAULT_NAME, if non-null, is the default font name;
+   C:    it might be updated in place.  */  */
+
+/// C 2911-3001: `Lisp_Object xg_get_font (struct frame *f, char *default_name)` - non-`static`, so
+/// `#[unsafe(no_mangle)]` with the C ABI, and C 2929/2943's assignment to the parameter is the
+/// port's `mut`.  C 2918-2921's `#ifdef HAVE_PGTK` guard is the `have_pgtk` feature and C 2920's
+/// `error` is `include/lisp.rs` 3824's variadic; C 2923-2924's `gtk_font_chooser_dialog_new` is
+/// the mirror's macro form (GTK3's function behind it, the GTK2 arm's C 110-112 macro in this
+/// unit) and C 2924's `GTK_WINDOW` is the mirror's cast; C 2926-2928, C 2947-2954 and C 2961-2996
+/// are the `have_gtk3` pairs - C 2953 is the GTK2 arm's `gtk_font_chooser_set_font` macro (C
+/// 115-117) and C 2987-2988 the GTK2 `gtk_font_selection_dialog_get_font_name`; C 2931-2932's note
+/// is carried as C's own text; C 2933/2937/2939's byte arguments are C's `'-'`, its digit test and
+/// its `' '` (`strrchr`, `c_isdigit`, the store); C 2942-2943's read and C 2980's
+/// `dupstring (&x_last_font_name, …)` are the file-scope object above, whose address the port
+/// takes with `&raw mut` (its `static mut` form).  C 2980's `dupstring` is lisp.h 5555's
+/// (`alloc.c`), which no mirror carries yet - the four units that already call it declare it
+/// themselves (`src/term.rs` 384-385's shape); the declaration stands above and the ledger's
+/// Owed names it.
+/// C: Lisp_Object
+/// C: xg_get_font (struct frame *f, char *default_name)
+#[cfg (all (feature = "use_gtk", feature = "have_freetype"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_get_font (f: *mut frame, mut default_name: *mut c_char)
+  -> Lisp_Object
+{
+  let w: *mut GtkWidget;                                               // C 2914
+  let mut done: c_int = 0;                                             // C 2915
+  let mut font: Lisp_Object = Qnil ();                                 // C 2916
+
+  /* C 2918's `#ifdef HAVE_PGTK`.  */
+  #[cfg (feature = "have_pgtk")]
+  { if FRAME_GTK_OUTER_WIDGET! (f).is_null ()                          // C 2919
+      { error (c"Can't open dialog from child frames".as_ptr ()); } }  // C 2920
+
+  w = gtk_font_chooser_dialog_new! (c"Pick a font".as_ptr (),          // C 2923
+				    GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)));   // C 2924
+
+  /* C 2926's `#ifdef HAVE_GTK3`.  */
+  #[cfg (feature = "have_gtk3")]
+  { gtk_font_chooser_set_filter_func (GTK_FONT_CHOOSER! (w),           // C 2927
+				      /* C's second argument is `xg_font_filter`, whose own
+					 declarator makes the two pointers const where GTK's
+					 `PangoFontFilterFunc` does not; C converts silently, so the
+					 port spells the conversion out (PORTING.md 1.4).  */
+				      Some (core::mem::transmute::<
+					      *const (),
+					      unsafe extern "C" fn (
+						*mut PangoFontFamily, *mut PangoFontFace,
+						gpointer) -> gboolean> (xg_font_filter as *const ())),
+				      std::ptr::null_mut (), None); }      // C 2927
+  if !default_name.is_null ()                                          // C 2929
+    {
+      /* Convert fontconfig names to Gtk names, i.e. remove - before
+	 number */                                                     // C 2931-2932
+      let p: *mut c_char = strrchr (default_name, b'-' as c_int);      // C 2933
+      if !p.is_null ()                                                 // C 2934
+	{
+	  let mut ep: *mut c_char = p.offset (1);                      // C 2936
+	  while c_isdigit (*ep as c_int)                               // C 2937
+	    { ep = ep.add (1); }                                       // C 2938
+	  if *ep == 0 { *p = b' ' as c_char; }                         // C 2939
+	}
+    }
+  else if !x_last_font_name.is_null ()                                 // C 2942
+    { default_name = x_last_font_name; }                               // C 2943
+
+  if !default_name.is_null ()                                          // C 2945
+    {
+      #[cfg (feature = "have_gtk3")]
+      {
+	let desc: *mut PangoFontDescription
+	  = pango_font_description_from_string (default_name);         // C 2948-2949
+	gtk_font_chooser_set_font_desc (GTK_FONT_CHOOSER! (w), desc);  // C 2950
+	pango_font_description_free (desc);                            // C 2951
+      }
+      #[cfg (not (feature = "have_gtk3"))]
+      { gtk_font_chooser_set_font! (GTK_FONT_CHOOSER! (w), default_name); }   // C 2953
+    }
+
+  gtk_widget_set_name (w, c"emacs-fontdialog".as_ptr ());              // C 2957
+  done = xg_dialog_run (f, w);                                         // C 2958
+  if done == GTK_RESPONSE_OK                                           // C 2959
+    {
+      /* C 2961's `#ifdef HAVE_GTK3`.  */
+      #[cfg (feature = "have_gtk3")]
+      {
+	/* Use the GTK3 font chooser.  */                              // C 2962
+	let desc: *mut PangoFontDescription
+	  = gtk_font_chooser_get_font_desc (GTK_FONT_CHOOSER! (w));    // C 2963-2964
+
+	if !desc.is_null ()                                            // C 2966
+	  {
+	    let family: *const c_char
+	      = pango_font_description_get_family (desc);              // C 2968
+	    let size: gint = pango_font_description_get_size (desc);    // C 2969
+	    let weight: PangoWeight
+	      = pango_font_description_get_weight (desc);               // C 2970
+	    let style: PangoStyle
+	      = pango_font_description_get_style (desc);                // C 2971
+
+	    font = CALLN! (Ffont_spec,                                  // C 2973
+			   QCfamily (), build_string (family),           // C 2974
+			   QCsize (), make_float (pango_units_to_double (size)),   // C 2975
+			   QCweight (), xg_weight_to_symbol (weight),    // C 2976
+			   QCslant (), xg_style_to_symbol (style));      // C 2977
+
+	    let font_desc_str: *mut c_char
+	      = pango_font_description_to_string (desc);               // C 2979
+	    dupstring ((&raw mut x_last_font_name), font_desc_str);    // C 2980
+	    g_free (font_desc_str as gpointer);                        // C 2981
+	    pango_font_description_free (desc);                        // C 2982
+	  }
+      }
+      /* C 2985's `#else /* Use old font selector, which just returns the font name.  */`.  */
+      #[cfg (not (feature = "have_gtk3"))]
+      {
+	let font_name: *mut c_char
+	  = gtk_font_selection_dialog_get_font_name (GTK_FONT_CHOOSER! (w));   // C 2987-2988
+
+	if !font_name.is_null ()                                       // C 2990
+	  {
+	    font = build_string (font_name);                           // C 2992
+	    g_free (x_last_font_name as gpointer);                     // C 2993
+	    x_last_font_name = font_name;                              // C 2994
+	  }
+      }
+    }
+
+  gtk_widget_destroy (w);                                              // C 2999
+  font                                                                 // C 3000
+}
+/* C 3002's `#endif /* HAVE_FREETYPE */`.  */
+

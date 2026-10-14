@@ -2427,3 +2427,230 @@ unsafe extern "C" {
   #[cfg (feature = "have_gtk_file_selection_new")]
   pub fn gtk_file_selection_hide_fileop_buttons (filesel: *mut GtkFileSelection);
 }
+
+/* ----------------------------------------------------------------------------------------------
+   The font-chooser surface `src/gtkutil.c`'s "GTK font chooser" section (C 2844-3002) reads
+   (status 4.335).  P-90 (2) puts every GTK name in this mirror rather than inline in the unit, so
+   the HAVE_GTK3 arm's four Pango records, its two Pango scalar typedefs with their fifteen
+   enumerators, its nine Pango entry points, its four `gtk_font_chooser_*` calls and
+   `GtkFontChooser` with the `GTK_FONT_CHOOSER` checked cast, and the GTK2 arm's font-selection
+   trio, are declared here.  **Neither Pango nor GTK exists on this machine** (`ls -d
+   /opt/homebrew/include/pango-1.0` -> absent, `pkg-config pango` fails, and `/opt/homebrew/include
+   /gtk-3.0` is absent too), so every Pango and GTK prototype here is `UNVERIFIED` and every
+   enumerator of theirs is a placeholder (P-88 (2): no values from memory).  `GDestroyNotify` is
+   GLib's own and GLib *is* here, so that one quotes its line and its layout.  The Pango names carry
+   `have_gtk3` because C 2850-2881 and C 2947-2964 are the only arms that name them; a later unit
+   reaching Pango through another arm lifts the gate rather than declaring a second copy (P-90 (1)).
+   ---------------------------------------------------------------------------------------------- */
+
+/// C: pango/pango-types.h: `typedef struct _PangoFontFamily PangoFontFamily;` - the pointee of
+/// C 2888's `const PangoFontFamily *family` and the cast C 2892 takes of it.  **UNVERIFIED**.
+#[cfg (feature = "have_gtk3")]
+#[repr (C)]
+pub struct PangoFontFamily
+{
+  _private: [u8; 0],
+}
+/// C: pango/pango-types.h: `typedef struct _PangoFontFace PangoFontFace;` - pointee of C 2889's
+/// `const PangoFontFace *face`.  **UNVERIFIED**.
+#[cfg (feature = "have_gtk3")]
+#[repr (C)]
+pub struct PangoFontFace
+{
+  _private: [u8; 0],
+}
+/// C: pango/pango-font.h: `typedef struct _PangoFontDescription PangoFontDescription;` - the
+/// record C 2948/2963's two `PangoFontDescription *` locals hold.  **UNVERIFIED**.
+#[cfg (feature = "have_gtk3")]
+#[repr (C)]
+pub struct PangoFontDescription
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkfontchooser.h: `typedef struct _GtkFontChooser GtkFontChooser;` - the pointee of the
+/// `GTK_FONT_CHOOSER` cast below (C 2927/2950/2964/2988).  **UNVERIFIED**.
+#[cfg (feature = "have_gtk3")]
+#[repr (C)]
+pub struct GtkFontChooser
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkfontchooser.h (GTK2's): `typedef struct _GtkFontSelectionDialog
+/// GtkFontSelectionDialog;` - the pointee of C 114's `GTK_FONT_CHOOSER` (carried in the unit,
+/// where C defines it) and of the three `gtk_font_selection_dialog_*` calls below.  The GTK2 arm's
+/// names, so the gate is C 108-125's.  **UNVERIFIED**.
+#[cfg (all (not (feature = "have_gtk3"), feature = "have_freetype"))]
+#[repr (C)]
+pub struct GtkFontSelectionDialog
+{
+  _private: [u8; 0],
+}
+
+/// C: pango/pango-font.h: `typedef int PangoWeight;` - C 2853's parameter and C 2970's local.
+/// **UNVERIFIED**.
+#[cfg (feature = "have_gtk3")]
+pub type PangoWeight = c_int;
+/// C: pango/pango-font.h: `typedef enum { PANGO_STYLE_NORMAL, PANGO_STYLE_OBLIQUE,
+/// PANGO_STYLE_ITALIC } PangoStyle;` - C 2873's parameter and C 2971's local.  **UNVERIFIED**.
+#[cfg (feature = "have_gtk3")]
+pub type PangoStyle = c_int;
+/// C: gtk/gtkfontchooser.h: `typedef gboolean (*PangoFontFilterFunc) (PangoFontFamily *family,
+/// PangoFontFace *face, gpointer data);` - the second parameter of
+/// `gtk_font_chooser_set_filter_func` below.  C 2927 passes `xg_font_filter`, whose own
+/// declarator makes the two pointers const, so the use site spells C's silent conversion out
+/// (PORTING.md 1.4).  **UNVERIFIED**.
+#[cfg (feature = "have_gtk3")]
+pub type PangoFontFilterFunc = Option<unsafe extern "C" fn (family: *mut PangoFontFamily,
+                                                            face: *mut PangoFontFace,
+                                                            data: gpointer) -> gboolean>;
+/// C: gtypes.h 140: `typedef void            (*GDestroyNotify)       (gpointer       data);` -
+/// the fourth parameter of `gtk_font_chooser_set_filter_func`, which C 2927 passes `NULL` for.
+pub type GDestroyNotify = Option<unsafe extern "C" fn (data: gpointer)>;
+
+/// C 2856-2869 name the twelve `PANGO_WEIGHT_*` enumerators of pango/pango-font.h, and C's own
+/// trailing comments give their nominal weights.  Pango is not on this machine, so the port keeps
+/// the twelve distinct rather than inventing Pango's numbers - the `src/xwidget.rs` 495-520 rule:
+/// the values are not measurable here, so the chain's steps stay distinguishable and the real
+/// numbers are owed to a Pango host (`docs/ports/include-gtk.md`).
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_THIN: PangoWeight = 0;       // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_ULTRALIGHT: PangoWeight = 1; // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_LIGHT: PangoWeight = 2;      // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_SEMILIGHT: PangoWeight = 3;  // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_BOOK: PangoWeight = 4;       // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_NORMAL: PangoWeight = 5;     // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_MEDIUM: PangoWeight = 6;     // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_SEMIBOLD: PangoWeight = 7;   // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_BOLD: PangoWeight = 8;       // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_ULTRABOLD: PangoWeight = 9;  // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_HEAVY: PangoWeight = 10;     // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_WEIGHT_ULTRAHEAVY: PangoWeight = 11;   // placeholder, not Pango's value
+/// C 2876-2878 name three of pango/pango-font.h's `PANGO_STYLE_*` enumerators.  Placeholders, as
+/// the weights above (`docs/ports/include-gtk.md`).
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_STYLE_NORMAL: PangoStyle = 0;       // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_STYLE_OBLIQUE: PangoStyle = 1;      // placeholder, not Pango's value
+#[cfg (feature = "have_gtk3")]
+pub const PANGO_STYLE_ITALIC: PangoStyle = 2;       // placeholder, not Pango's value
+
+/// C: gtk/gtk.h: `#define GTK_FONT_CHOOSER(x)` - GTK3's checked cast (the GTK2 arm's own
+/// redefinition is C 113-114's, carried in the unit).  C 2927/2950/2964 use it under `HAVE_GTK3`
+/// and C 2988 under its `#else`; the port's single spelling is the macro form, and the GTK2 arm's
+/// macro of the same name gives the `#else` its own meaning.
+#[cfg (feature = "have_gtk3")]
+macro_rules! GTK_FONT_CHOOSER {
+  ($o:expr) => { ($o) as *mut GtkFontChooser };
+}
+/// C: gtk/gtkfontchooser.h: `GtkWidget *gtk_font_chooser_dialog_new (const gchar *title,
+/// GtkWindow *parent);` - GTK3's function (the GTK2 arm's `gtk_font_chooser_dialog_new` is C
+/// 110-112's macro, carried above).  C 2923 calls it outside any `HAVE_GTK3` arm, so the port's
+/// uniform spelling is the macro form, which forwards to this function here (the
+/// `gtk_box_new`/`gtk_scrollbar_new` shape above).
+#[cfg (feature = "have_gtk3")]
+macro_rules! gtk_font_chooser_dialog_new {
+  ($title:expr, $parent:expr) => { gtk_font_chooser_dialog_new ($title, $parent) };
+}
+
+unsafe extern "C" {
+  /// C 2892: `const char *name = pango_font_family_get_name ((PangoFontFamily *)family);`
+  /// C: pango/pango-font.h: `const char *pango_font_family_get_name (PangoFontFamily *family);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_font_family_get_name (family: *mut PangoFontFamily) -> *const c_char;
+  /// C 2949: `= pango_font_description_from_string (default_name);`
+  /// C: pango/pango-font.h: `PangoFontDescription *pango_font_description_from_string (const char
+  /// *str);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_font_description_from_string (str_: *const c_char) -> *mut PangoFontDescription;
+  /// C 2951/2982: `pango_font_description_free (desc);`
+  /// C: pango/pango-font.h: `void pango_font_description_free (PangoFontDescription *desc);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_font_description_free (desc: *mut PangoFontDescription);
+  /// C 2968: `const char *family = pango_font_description_get_family (desc);`
+  /// C: pango/pango-font.h: `const char *pango_font_description_get_family (const
+  /// PangoFontDescription *desc);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_font_description_get_family (desc: *const PangoFontDescription) -> *const c_char;
+  /// C 2969: `gint size = pango_font_description_get_size (desc);`
+  /// C: pango/pango-font.h: `int pango_font_description_get_size (const PangoFontDescription
+  /// *desc);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_font_description_get_size (desc: *const PangoFontDescription) -> gint;
+  /// C 2970: `PangoWeight weight = pango_font_description_get_weight (desc);`
+  /// C: pango/pango-font.h: `PangoWeight pango_font_description_get_weight (const
+  /// PangoFontDescription *desc);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_font_description_get_weight (desc: *const PangoFontDescription) -> PangoWeight;
+  /// C 2971: `PangoStyle style = pango_font_description_get_style (desc);`
+  /// C: pango/pango-font.h: `PangoStyle pango_font_description_get_style (const
+  /// PangoFontDescription *desc);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_font_description_get_style (desc: *const PangoFontDescription) -> PangoStyle;
+  /// C 2979: `char *font_desc_str = pango_font_description_to_string (desc);`
+  /// C: pango/pango-font.h: `char *pango_font_description_to_string (const PangoFontDescription
+  /// *desc);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_font_description_to_string (desc: *const PangoFontDescription) -> *mut c_char;
+  /// C 2975: `make_float (pango_units_to_double (size))`
+  /// C: pango/pango-font.h: `double pango_units_to_double (int i);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn pango_units_to_double (i: c_int) -> c_double;
+  /// C 2927: `gtk_font_chooser_set_filter_func (GTK_FONT_CHOOSER (w), xg_font_filter, NULL,
+  /// NULL);`
+  /// C: gtk/gtkfontchooser.h: `void gtk_font_chooser_set_filter_func (GtkFontChooser *chooser,
+  /// PangoFontFilterFunc filter_func, gpointer user_data, GDestroyNotify destroy);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn gtk_font_chooser_set_filter_func (chooser: *mut GtkFontChooser,
+                                           filter_func: PangoFontFilterFunc,
+                                           user_data: gpointer, destroy: GDestroyNotify);
+  /// C 2950: `gtk_font_chooser_set_font_desc (GTK_FONT_CHOOSER (w), desc);`
+  /// C: gtk/gtkfontchooser.h: `void gtk_font_chooser_set_font_desc (GtkFontChooser *chooser,
+  /// const PangoFontDescription *font_desc);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn gtk_font_chooser_set_font_desc (chooser: *mut GtkFontChooser,
+                                         font_desc: *const PangoFontDescription);
+  /// C 2963-2964: `= gtk_font_chooser_get_font_desc (GTK_FONT_CHOOSER (w));`
+  /// C: gtk/gtkfontchooser.h: `PangoFontDescription *gtk_font_chooser_get_font_desc
+  /// (GtkFontChooser *chooser);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn gtk_font_chooser_get_font_desc (chooser: *mut GtkFontChooser)
+    -> *mut PangoFontDescription;
+  /// C 2923-2924: `w = gtk_font_chooser_dialog_new ("Pick a font", GTK_WINDOW (…));`
+  /// C: gtk/gtkfontchooser.h: `GtkWidget *gtk_font_chooser_dialog_new (const gchar *title,
+  /// GtkWindow *parent);`
+  #[cfg (feature = "have_gtk3")]
+  pub fn gtk_font_chooser_dialog_new (title: *const gchar, parent: *mut GtkWindow)
+    -> *mut GtkWidget;
+  /// C 2988: `= gtk_font_selection_dialog_get_font_name (GTK_FONT_CHOOSER (w));` - the GTK2 arm's
+  /// call, which GTK3's header does not carry.
+  /// C: gtk/gtkfontselectiondialog.h (GTK2's): `gchar *gtk_font_selection_dialog_get_font_name
+  /// (GtkFontSelectionDialog *fsd);`
+  #[cfg (all (not (feature = "have_gtk3"), feature = "have_freetype"))]
+  pub fn gtk_font_selection_dialog_get_font_name (fsd: *mut GtkFontSelectionDialog)
+    -> *mut gchar;
+}
+
+unsafe extern "C" {
+  /// C 110-112 and C 115-117's two GTK2 macros (carried in the unit, at C's own position) forward
+  /// to these; C 2923 and C 2953 reach them through the macro form.
+  /// C: gtk/gtkfontselectiondialog.h (GTK2's): `GtkWidget *gtk_font_selection_dialog_new (const
+  /// gchar *title);`
+  #[cfg (all (not (feature = "have_gtk3"), feature = "have_freetype"))]
+  pub fn gtk_font_selection_dialog_new (title: *const gchar) -> *mut GtkWidget;
+  /// C: gtk/gtkfontselectiondialog.h (GTK2's): `void gtk_font_selection_dialog_set_font_name
+  /// (GtkFontSelectionDialog *fsd, const gchar *fontname);`
+  #[cfg (all (not (feature = "have_gtk3"), feature = "have_freetype"))]
+  pub fn gtk_font_selection_dialog_set_font_name (fsd: *mut GtkFontSelectionDialog,
+                                                  fontname: *const gchar);
+}

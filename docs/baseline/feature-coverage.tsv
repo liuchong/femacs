@@ -10,11 +10,11 @@ have_x_windows	3245	40	-	HAVE_X_WINDOWS
 have_ntgui	2709	24	-	-
 have_android	2483	37	-	-
 not_android_stubify	1895	12	-	-
-have_pgtk	1505	29	-	-
+have_pgtk	1507	29	-	-
 have_window_system	1489	35	-	-
-use_gtk	1369	17	-	-
+use_gtk	1386	17	-	-
 have_haiku	827	22	xtask dead-arms	-
-have_gtk3	722	9	-	-
+have_gtk3	773	9	-	-
 use_cairo	647	19	-	-
 use_x_toolkit	556	12	-	USE_X_TOOLKIT
 msdos	540	20	-	-
@@ -28,8 +28,8 @@ have_native_comp	289	12	xtask dead-arms	HAVE_NATIVE_COMP
 use_xcb	282	4	-	-
 have_gnutls	254	4	-	-
 have_x_i18n	238	5	-	-
+have_freetype	236	4	-	-
 have_xft	227	8	-	-
-have_freetype	224	3	-	-
 no_system_malloc	222	5	-	-
 test	221	5	-	-
 have_dbus	201	3	-	-
@@ -134,6 +134,7 @@ dbus_type_unix_fd	12	1	-	-
 djgpp_2_3	12	3	-	-
 gc_protect_malloc_state	12	1	-	-
 gcc_lint	12	7	-	-
+have_gtk_file_selection_new	12	2	-	-
 have_sys_uio_h	12	1	-	-
 poll_for_input	12	2	-	-
 readlink_syscall	12	1	-	-
@@ -219,7 +220,6 @@ have_acl_type_extended	6	1	-	-
 have_aclx_get	6	1	-	-
 have_decl_stpcpy	6	2	-	-
 have_getgroups	6	1	-	-
-have_gtk_file_selection_new	6	1	-	-
 have_jpeg	6	1	-	-
 have_png	6	1	-	-
 have_stpcpy	6	2	-	-
@@ -542,6 +542,7 @@ olcuc	2	1	-	-
 old_android_assets	2	1	-	-
 openvms	2	1	-	-
 os_h	2	2	-	-
+pango_version_ge_1_36_7	2	1	-	-
 ptrace_event_seccomp	2	1	-	-
 ptrace_geteventmsg	2	1	-	-
 ptrace_o_traceseccomp	2	1	-	-
