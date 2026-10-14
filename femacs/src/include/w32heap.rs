@@ -104,15 +104,27 @@ pub struct file_data
   pub file_base: *mut u8,
 }
 
-/// C 58-60: the three entry points the memory-mapped-file helpers share.
-/// C: int open_input_file (file_data *p_file, char *name);
-/// C: int open_output_file (file_data *p_file, char *name, unsigned long size);
-/// C: void close_file_data (file_data *p_file);
-unsafe extern "C" {
-  pub fn open_input_file (p_file: *mut file_data, name: *mut c_char) -> c_int;
-  pub fn open_output_file (p_file: *mut file_data, name: *mut c_char, size: c_ulong) -> c_int;
-  pub fn close_file_data (p_file: *mut file_data);
+/* C 58-60's three entry points and C 67's `rva_to_section` are declared in a module this mirror
+   glob-imports, for the reason `w32heap_decls` above records: `src/w32proc.c` **defines**
+   `open_input_file` (C 2451), `rva_to_section` (C 2485) and `close_file_data` (C 2512), so a
+   top-level copy is an `E0428` in `src/w32proc.rs` - measured 2026-10-14 (status 4.291): three of
+   them, the moment that unit's slice 12 landed.  `open_output_file` (C 59) is no unit's yet, but
+   C 59 declares it beside its siblings and the same defect is waiting for its definer.  */
+pub mod w32heap_file_decls {
+  use super::*;
+  unsafe extern "C" {
+    /// C: int open_input_file (file_data *p_file, char *name);
+    pub fn open_input_file (p_file: *mut file_data, name: *mut c_char) -> c_int;
+    /// C: int open_output_file (file_data *p_file, char *name, unsigned long size);
+    pub fn open_output_file (p_file: *mut file_data, name: *mut c_char, size: c_ulong) -> c_int;
+    /// C: void close_file_data (file_data *p_file);
+    pub fn close_file_data (p_file: *mut file_data);
+    /// C: IMAGE_SECTION_HEADER * rva_to_section (DWORD_PTR, IMAGE_NT_HEADERS *); - the first
+    /// argument is the RVA, which `DWORD_PTR` makes pointer-sized.
+    pub fn rva_to_section (rva: usize, nt_headers: *mut c_void) -> *mut c_void;
+  }
 }
+use w32heap_file_decls::*;
 
 /* Return pointer to section header for named section.  */
 /// C 63: `IMAGE_SECTION_HEADER * find_section (const char *, IMAGE_NT_HEADERS *);`
@@ -125,9 +137,3 @@ unsafe extern "C" {
 
 /* Return pointer to section header for section containing the given
    relative virtual address.  */
-/// C 67: `IMAGE_SECTION_HEADER * rva_to_section (DWORD_PTR, IMAGE_NT_HEADERS *);` - the first
-/// argument is the RVA, which `DWORD_PTR` makes pointer-sized.
-/// C: IMAGE_SECTION_HEADER * rva_to_section (DWORD_PTR, IMAGE_NT_HEADERS *);
-unsafe extern "C" {
-  pub fn rva_to_section (rva: usize, nt_headers: *mut c_void) -> *mut c_void;
-}

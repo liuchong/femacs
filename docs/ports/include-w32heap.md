@@ -83,3 +83,17 @@ C 36-38/41-45's `mmap_realloc`/`mmap_free`/`mmap_alloc`/`sbrk`/`init_heap` are t
 mirror glob-imports (P-39; `get_data_start`/`get_data_end`/`report_temacs_memory_usage`/
 `reserved_heap_size` stay at the top level - that unit does not define them).  Same flip after the
 move: **33 -> 27 errors**, the rest named in `docs/ports/w32heap.md`'s Owed.
+
+## 2026-10-14: the four mmap-file entry points move into `w32heap_file_decls` (4.291)
+
+The same surgery the 2026-10-05 section records, for the four names C 58-60 and C 67 declare:
+`src/w32proc.c` **defines** `open_input_file` (C 2451), `rva_to_section` (C 2485) and
+`close_file_data` (C 2512) - `w32heap.c` defines none of them - so the top-level declarations were
+three `E0428`s in `src/w32proc.rs` the moment that unit's slice 12 landed.  Measured:
+`probe src/w32proc.rs` read **40 errors (30 `E0428` + 9 `E0425` + 1 `compile_error!`), 0 anchored
+in the unit** before the move (the three extra `E0428`s all anchored here, at this mirror's 112/114
+and 132), and **37 (27 + 9 + 1)** after it - the lane's baseline, unchanged.  The four names sit in
+`w32heap_file_decls`, which this mirror glob-imports (P-39); `open_output_file` (C 59) is no unit's
+definition yet and moves with its siblings, because C 59 declares it beside them and the same defect
+was waiting for its definer.  The module is **not** gated: the four declarations were ungated at the
+top level, and a Windows-only gate would have narrowed what every configuration sees.

@@ -472,6 +472,12 @@ include!("../nt/inc/include/langinfo.rs");       // C 54: `#include <langinfo.h>
 include!("include/lisp.rs");                     // C 57: `#include "lisp.h"`
 #[cfg (feature = "windowsnt")]
 include!("../lib/include/string.rs");            // C 57's lisp.h 30: `#include <string.h>` (`memset`)
+/* C 57's lisp.h `#include "min-max.h"` (C 26 of that header): the `min!`/`max!` pair, which C
+   2501's `max (section->SizeOfRawData, section->Misc.VirtualSize)` reaches through lisp.h - the same
+   reading as `<string.h>`'s line above.  `include/lisp.rs` pulls neither mirror, so it is included
+   here under the lisp.h line it belongs to (the ledger records the deviation).  */
+#[cfg (feature = "windowsnt")]
+include!("../lib/include/min-max.rs");            // C 57's lisp.h 26: `#include "min-max.h"` (`max!`)
 #[cfg (feature = "windowsnt")]
 include!("include/w32.rs");                      // C 58: `#include "w32.h"` (`term_ntproc`)
 #[cfg (feature = "windowsnt")]
@@ -3727,3 +3733,326 @@ pub unsafe extern "C" fn waitpid (pid: pid_t, status: *mut c_int, options: c_int
 
   return pid;                                                    // C 2448
 }
+
+/* C 50's `<windows.h>`/`<winbase.h>`/`<winnt.h>`: the memory-mapped-file surface and the PE record
+   family C 2451-2528 names.  None of it is in any mirror of this unit's graph: `include/w32heap.rs`
+   63-76 declares `find_section`/`rva_to_section` with `IMAGE_NT_HEADERS *` and
+   `IMAGE_SECTION_HEADER *` spelled `*mut c_void` (P-72 ③, its own note), and this file's C 66-69
+   note carries `RVA_TO_PTR` as text for the same reason - so the unit spells the four records (and
+   the union C's `Misc` member is) exactly as `src/w32.rs` 11847-11916 spells `child_process`.
+   Every record is **UNVERIFIED** on this machine (P-88 ①); the sizes are the PE/COFF
+   specification's, and the `/// C:` lines carry C's own field order.  */
+/// C: #define GENERIC_READ 0x80000000L
+/// C: #define FILE_SHARE_READ 0x00000001
+/// C: #define OPEN_EXISTING 3
+/// C: #define FILE_ATTRIBUTE_NORMAL 0x00000080
+/// C: #define PAGE_READONLY 0x02
+/// C: #define FILE_MAP_READ 0x0004
+/// C: #define FILE_BEGIN 0
+/// C: #define IMAGE_NT_OPTIONAL_HDR_MAGIC 0x10b
+/// C: #define IMAGE_NT_OPTIONAL_HDR32_MAGIC IMAGE_NT_OPTIONAL_HDR_MAGIC
+#[cfg (feature = "windowsnt")]
+pub const GENERIC_READ: DWORD = 0x80000000;
+#[cfg (feature = "windowsnt")]
+pub const FILE_SHARE_READ: DWORD = 0x00000001;
+#[cfg (feature = "windowsnt")]
+pub const OPEN_EXISTING: DWORD = 3;
+#[cfg (feature = "windowsnt")]
+pub const FILE_ATTRIBUTE_NORMAL: DWORD = 0x00000080;
+#[cfg (feature = "windowsnt")]
+pub const PAGE_READONLY: DWORD = 0x02;
+#[cfg (feature = "windowsnt")]
+pub const FILE_MAP_READ: DWORD = 0x0004;
+#[cfg (feature = "windowsnt")]
+pub const FILE_BEGIN: DWORD = 0;
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_NT_OPTIONAL_HDR_MAGIC: WORD = 0x10b;
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_NT_OPTIONAL_HDR32_MAGIC: WORD = IMAGE_NT_OPTIONAL_HDR_MAGIC;
+/// C: WINBASEAPI HANDLE WINAPI CreateFileA (LPCSTR lpFileName, DWORD dwDesiredAccess,
+/// C:   DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
+/// C:   DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+/// C: WINBASEAPI DWORD WINAPI GetFileSize (HANDLE hFile, LPDWORD lpFileSizeHigh);
+/// C: WINBASEAPI HANDLE WINAPI CreateFileMappingA (HANDLE hFile,
+/// C:   LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh,
+/// C:   DWORD dwMaximumSizeLow, LPCSTR lpName);
+/// C: WINBASEAPI LPVOID WINAPI MapViewOfFile (HANDLE hFileMappingObject, DWORD dwDesiredAccess,
+/// C:   DWORD dwFileOffsetHigh, DWORD dwFileOffsetLow, SIZE_T dwNumberOfBytesToMap);
+/// C: WINBASEAPI BOOL WINAPI UnmapViewOfFile (LPCVOID lpBaseAddress);
+/// C: WINBASEAPI DWORD WINAPI SetFilePointer (HANDLE hFile, LONG lDistanceToMove,
+/// C:   PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod);
+/// C: WINBASEAPI BOOL WINAPI SetEndOfFile (HANDLE hFile);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn CreateFileA (lpFileName: LPCSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD,
+                      lpSecurityAttributes: *mut SECURITY_ATTRIBUTES,
+                      dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD,
+                      hTemplateFile: HANDLE) -> HANDLE;
+  pub fn GetFileSize (hFile: HANDLE, lpFileSizeHigh: LPDWORD) -> DWORD;
+  pub fn CreateFileMapping (hFile: HANDLE, lpFileMappingAttributes: *mut SECURITY_ATTRIBUTES,
+                            flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD,
+                            lpName: LPCSTR) -> HANDLE;
+  pub fn MapViewOfFile (hFileMappingObject: HANDLE, dwDesiredAccess: DWORD,
+                        dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD,
+                        dwNumberOfBytesToMap: SIZE_T) -> LPVOID;
+  pub fn UnmapViewOfFile (lpBaseAddress: *const c_void) -> BOOL;
+  pub fn SetFilePointer (hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: *mut LONG,
+                         dwMoveMethod: DWORD) -> DWORD;
+  pub fn SetEndOfFile (hFile: HANDLE) -> BOOL;
+}
+/// C: typedef struct _IMAGE_FILE_HEADER { WORD Machine; WORD NumberOfSections; DWORD TimeDateStamp;
+/// C:   DWORD PointerToSymbolTable; DWORD NumberOfSymbols; WORD SizeOfOptionalHeader;
+/// C:   WORD Characteristics; } IMAGE_FILE_HEADER;   [`<winnt.h>`; 20 bytes]
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IMAGE_FILE_HEADER
+{
+  pub Machine: WORD,
+  pub NumberOfSections: WORD,
+  pub TimeDateStamp: DWORD,
+  pub PointerToSymbolTable: DWORD,
+  pub NumberOfSymbols: DWORD,
+  pub SizeOfOptionalHeader: WORD,
+  pub Characteristics: WORD,
+}
+/// C: typedef struct _IMAGE_DATA_DIRECTORY { DWORD VirtualAddress; DWORD Size; }
+/// C:   IMAGE_DATA_DIRECTORY;   [`<winnt.h>`; 8 bytes]
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IMAGE_DATA_DIRECTORY
+{
+  pub VirtualAddress: DWORD,
+  pub Size: DWORD,
+}
+/// C: typedef struct _IMAGE_OPTIONAL_HEADER { WORD Magic; BYTE MajorLinkerVersion;
+/// C:   BYTE MinorLinkerVersion; DWORD SizeOfCode; DWORD SizeOfInitializedData;
+/// C:   DWORD SizeOfUninitializedData; DWORD AddressOfEntryPoint; DWORD BaseOfCode;
+/// C:   DWORD BaseOfData; DWORD ImageBase; DWORD SectionAlignment; DWORD FileAlignment;
+/// C:   WORD MajorOperatingSystemVersion; WORD MinorOperatingSystemVersion; WORD MajorImageVersion;
+/// C:   WORD MinorImageVersion; WORD MajorSubsystemVersion; WORD MinorSubsystemVersion;
+/// C:   DWORD Win32VersionValue; DWORD SizeOfImage; DWORD SizeOfHeaders; DWORD CheckSum;
+/// C:   WORD Subsystem; WORD DllCharacteristics; DWORD SizeOfStackReserve;
+/// C:   DWORD SizeOfStackCommit; DWORD SizeOfHeapReserve; DWORD SizeOfHeapCommit;
+/// C:   DWORD LoaderFlags; DWORD NumberOfRvaAndSizes;
+/// C:   IMAGE_DATA_DIRECTORY DataDirectory [IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+/// C:   } IMAGE_OPTIONAL_HEADER32;   [`<winnt.h>`; 224 bytes, `DataDirectory`'s sixteen entries
+/// included]
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IMAGE_OPTIONAL_HEADER32
+{
+  pub Magic: WORD,
+  pub MajorLinkerVersion: BYTE,
+  pub MinorLinkerVersion: BYTE,
+  pub SizeOfCode: DWORD,
+  pub SizeOfInitializedData: DWORD,
+  pub SizeOfUninitializedData: DWORD,
+  pub AddressOfEntryPoint: DWORD,
+  pub BaseOfCode: DWORD,
+  pub BaseOfData: DWORD,
+  pub ImageBase: DWORD,
+  pub SectionAlignment: DWORD,
+  pub FileAlignment: DWORD,
+  pub MajorOperatingSystemVersion: WORD,
+  pub MinorOperatingSystemVersion: WORD,
+  pub MajorImageVersion: WORD,
+  pub MinorImageVersion: WORD,
+  pub MajorSubsystemVersion: WORD,
+  pub MinorSubsystemVersion: WORD,
+  pub Win32VersionValue: DWORD,
+  pub SizeOfImage: DWORD,
+  pub SizeOfHeaders: DWORD,
+  pub CheckSum: DWORD,
+  pub Subsystem: WORD,
+  pub DllCharacteristics: WORD,
+  pub SizeOfStackReserve: DWORD,
+  pub SizeOfStackCommit: DWORD,
+  pub SizeOfHeapReserve: DWORD,
+  pub SizeOfHeapCommit: DWORD,
+  pub LoaderFlags: DWORD,
+  pub NumberOfRvaAndSizes: DWORD,
+  pub DataDirectory: [IMAGE_DATA_DIRECTORY; IMAGE_NUMBEROF_DIRECTORY_ENTRIES as usize],
+}
+/// C: #define IMAGE_OPTIONAL_HEADER32 IMAGE_OPTIONAL_HEADER  (the `#ifndef` fallback's second
+/// line; `<winnt.h>` gives the generic name to the same record, so the port carries
+/// both spellings - this unit's record is the 32-bit one.)
+#[cfg (feature = "windowsnt")]
+pub type IMAGE_OPTIONAL_HEADER = IMAGE_OPTIONAL_HEADER32;
+/// C: #define IMAGE_NUMBEROF_DIRECTORY_ENTRIES 16
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_NUMBEROF_DIRECTORY_ENTRIES: c_int = 16;
+/// C: typedef struct _IMAGE_NT_HEADERS { DWORD Signature; IMAGE_FILE_HEADER FileHeader;
+/// C:   IMAGE_OPTIONAL_HEADER32 OptionalHeader; } IMAGE_NT_HEADERS;   [`<winnt.h>`]
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IMAGE_NT_HEADERS
+{
+  pub Signature: DWORD,
+  pub FileHeader: IMAGE_FILE_HEADER,
+  pub OptionalHeader: IMAGE_OPTIONAL_HEADER32,
+}
+/// C: typedef struct _IMAGE_SECTION_HEADER { BYTE Name [IMAGE_SIZEOF_SHORT_NAME];
+/// C:   union { DWORD PhysicalAddress; DWORD VirtualSize; } Misc; DWORD VirtualAddress;
+/// C:   DWORD SizeOfRawData; DWORD PointerToRawData; DWORD PointerToRelocations;
+/// C:   DWORD PointerToLinenumbers; WORD NumberOfRelocations; WORD NumberOfLinenumbers;
+/// C:   DWORD Characteristics; } IMAGE_SECTION_HEADER;   [`<winnt.h>`; 40 bytes.  C's `Misc` is an
+/// anonymous union, so the port names it after its container (P-67, this file's `OVERLAPPED`).]
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub union IMAGE_SECTION_HEADER_Misc
+{
+  pub PhysicalAddress: DWORD,
+  pub VirtualSize: DWORD,
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IMAGE_SECTION_HEADER
+{
+  pub Name: [BYTE; IMAGE_SIZEOF_SHORT_NAME as usize],
+  pub Misc: IMAGE_SECTION_HEADER_Misc,
+  pub VirtualAddress: DWORD,
+  pub SizeOfRawData: DWORD,
+  pub PointerToRawData: DWORD,
+  pub PointerToRelocations: DWORD,
+  pub PointerToLinenumbers: DWORD,
+  pub NumberOfRelocations: WORD,
+  pub NumberOfLinenumbers: WORD,
+  pub Characteristics: DWORD,
+}
+/// C: #define IMAGE_SIZEOF_SHORT_NAME 8
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_SIZEOF_SHORT_NAME: c_int = 8;
+#[cfg (feature = "windowsnt")]
+pub type PIMAGE_SECTION_HEADER = *mut IMAGE_SECTION_HEADER;
+/// C: #define IMAGE_FIRST_SECTION(ntheader) ((PIMAGE_SECTION_HEADER) ((ULONG_PTR) (ntheader)
+/// C:   + FIELD_OFFSET (IMAGE_NT_HEADERS, OptionalHeader)
+/// C:   + ((ntheader))->FileHeader.SizeOfOptionalHeader))
+#[cfg (feature = "windowsnt")]
+macro_rules! IMAGE_FIRST_SECTION {
+  ($nt:expr) => {
+    ((($nt) as usize
+      + core::mem::offset_of! (IMAGE_NT_HEADERS, OptionalHeader)
+      + (*$nt).FileHeader.SizeOfOptionalHeader as usize) as PIMAGE_SECTION_HEADER)
+  };
+}
+
+/* C 2451-2528: the memory-mapped-file helpers C 2451-2481's `open_input_file` and C 2511-2521's
+   `close_file_data`, the section lookup C 2483-2509's `rva_to_section` between them, and C
+   2523-2528's `#ifndef IMAGE_NT_OPTIONAL_HDR32_MAGIC` fallback.  C 2530-2532's
+   `w32_executable_type` comment opens the next slice.  */
+
+/// C 2451-2481: `int open_input_file (file_data *p_file, char *filename)` - C 2459-2460's
+/// `CreateFileA`, C 2461-2462's `INVALID_HANDLE_VALUE` guard, C 2464-2468's `GetFileSize`/
+/// `CreateFileMapping` pair, C 2470-2472's `MapViewOfFile` and C 2474-2478's five field writes.
+/// C's `unsigned long size` is the mirror's `c_ulong`, so C 2464's `DWORD` return and C 2466/2470's
+/// use of `size` as `DWORD`/`SIZE_T` are the two `as` conversions (Deviations 39's class), and C
+/// 2478's `unsigned char *` field takes C's own implicit pointer conversion as a cast.
+/// C: int
+/// C: open_input_file (file_data *p_file, char *filename)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn open_input_file (p_file: *mut file_data, filename: *mut c_char) -> c_int
+{
+  let mut file: HANDLE;                                        // C 2454
+  let mut file_mapping: HANDLE;                                // C 2455
+  let mut file_base: *mut c_void;                              // C 2456
+  let mut size: c_ulong = 0;
+  let mut upper_size: c_ulong = 0;                             // C 2457
+
+  file = CreateFileA (filename, GENERIC_READ, FILE_SHARE_READ, core::ptr::null_mut (),
+                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);   // C 2459-2460
+  if file == INVALID_HANDLE_VALUE                              // C 2461
+    { return FALSE; }                                          // C 2462
+
+  size = GetFileSize (file, &raw mut upper_size) as c_ulong;   // C 2464
+  file_mapping = CreateFileMapping (file, core::ptr::null_mut (), PAGE_READONLY,
+                                    0, size as DWORD, core::ptr::null ());   // C 2465-2466
+  if file_mapping.is_null ()                                   // C 2467
+    { return FALSE; }                                          // C 2468
+
+  file_base = MapViewOfFile (file_mapping, FILE_MAP_READ, 0, 0, size as SIZE_T);   // C 2470
+  if file_base.is_null ()                                      // C 2471
+    { return FALSE; }                                          // C 2472
+
+  (*p_file).name = filename;                                   // C 2474
+  (*p_file).size = size;                                       // C 2475
+  (*p_file).file = file;                                       // C 2476
+  (*p_file).file_mapping = file_mapping;                       // C 2477
+  (*p_file).file_base = file_base as *mut u8;                  // C 2478
+
+  return TRUE;                                                 // C 2480
+}
+
+/* Return pointer to section header for section containing the given
+   relative virtual address.  */                             // C 2483-2484
+/// C 2483-2509: `IMAGE_SECTION_HEADER * rva_to_section (DWORD_PTR rva, IMAGE_NT_HEADERS
+/// *nt_header)` - C 2491's `IMAGE_FIRST_SECTION` (the port's `macro_rules!` above), C 2493's
+/// `NumberOfSections` loop, C 2495-2500's linker comment carried as C's text, C 2501-2502's
+/// `max (SizeOfRawData, Misc.VirtualSize)` (the `max!` mirror this round includes under C 57's
+/// lisp.h line) and C 2503-2505's range test.  The mirror's prototype keeps the record as
+/// `*mut c_void` (`include/w32heap.rs` 128-132); the definition spells the record it reads
+/// (Deviations 47's device), which is the same symbol either way.
+/// C: IMAGE_SECTION_HEADER *
+/// C: rva_to_section (DWORD_PTR rva, IMAGE_NT_HEADERS * nt_header)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rva_to_section (rva: DWORD_PTR, nt_header: *mut IMAGE_NT_HEADERS)
+                                         -> *mut IMAGE_SECTION_HEADER
+{
+  let mut section: PIMAGE_SECTION_HEADER;                      // C 2488
+  let mut i: c_int;                                            // C 2489
+
+  section = IMAGE_FIRST_SECTION! (nt_header);                  // C 2491
+
+  i = 0;                                                       // C 2493
+  while i < (*nt_header).FileHeader.NumberOfSections as c_int
+    {
+      /* Some linkers (eg. the NT SDK linker I believe) swapped the
+	 meaning of these two values - or rather, they ignored
+	 VirtualSize entirely and always set it to zero.  This affects
+	 some very old exes (eg. gzip dated Dec 1993).  Since
+	 w32_executable_type relies on this function to work reliably,
+	 we need to cope with this.  */
+      let real_size: DWORD_PTR = max! ((*section).SizeOfRawData as DWORD_PTR,
+                                      (*section).Misc.VirtualSize as DWORD_PTR);   // C 2501-2502
+      if rva >= (*section).VirtualAddress as DWORD_PTR         // C 2503
+          && rva < (*section).VirtualAddress as DWORD_PTR + real_size   // C 2504
+        { return section; }                                    // C 2505
+      section = section.add (1);                               // C 2506
+      i += 1;
+    }
+  return core::ptr::null_mut ();                               // C 2508
+}
+
+/* Close the system structures associated with the given file.  */    // C 2511
+/// C 2511-2521: `void close_file_data (file_data *p_file)` - C 2515's `UnmapViewOfFile`, C 2516's
+/// mapping close, C 2518-2519's `SetFilePointer`/`SetEndOfFile` pair (C's `p_file->size` narrows
+/// to the `LONG` parameter, the `as LONG` C's own conversion performs) and C 2520's file close.
+/// C: void
+/// C: close_file_data (file_data *p_file)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn close_file_data (p_file: *mut file_data)
+{
+  UnmapViewOfFile ((*p_file).file_base as *const c_void);      // C 2515
+  CloseHandle ((*p_file).file_mapping);                        // C 2516
+  /* For the case of output files, set final size.  */
+  SetFilePointer ((*p_file).file, (*p_file).size as LONG, core::ptr::null_mut (),
+                  FILE_BEGIN);                                 // C 2518
+  SetEndOfFile ((*p_file).file);                               // C 2519
+  CloseHandle ((*p_file).file);                                // C 2520
+}
+
+/* Old versions of w32api headers don't have separate 32-bit and
+   64-bit defines, but the one they have matches the 32-bit variety.  */    // C 2523-2524
+/* C 2525-2528: the `#ifndef IMAGE_NT_OPTIONAL_HDR32_MAGIC` fallback.  The guard is *false* with a
+   modern `<winnt.h>` (both names are defined there), so the two `#define`s below never fire; the
+   port carries C's own text here and spells the two names in its `<winnt.h>` block above
+   (`IMAGE_NT_OPTIONAL_HDR32_MAGIC`, the value `<winnt.h>` gives it, and the
+   `IMAGE_OPTIONAL_HEADER32` record this round's block declares).  */
+/*
+#ifndef IMAGE_NT_OPTIONAL_HDR32_MAGIC
+# define IMAGE_NT_OPTIONAL_HDR32_MAGIC IMAGE_NT_OPTIONAL_HDR_MAGIC
+# define IMAGE_OPTIONAL_HEADER32 IMAGE_OPTIONAL_HEADER
+#endif
+*/

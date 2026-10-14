@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**3729 lines**, md5 `46f0dd8dafd6ba893b2369c6c773c727`), carrying
-> **C 1-2449** - P-86 ④'s first eleven slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**4058 lines**, md5 `a6cb10739e634536296eec1e504010e6`), carrying
+> **C 1-2528** - P-86 ④'s first twelve slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -124,7 +124,8 @@ which `check-dead-file-coverage.py` requires):
 | 2123-2205 | `create_child`: the process-creation function (its `HAVE_NTGUI` arm, its two `#if 0` regions carried as C's text, the `filename_to_ansi`/`CharNextA` path fix-up, the batch-file `exe` clearing, the three create flags and C 2202-2204's `EH_Fail:` tail) | file gate (slice 9); the round's use-site `<windows.h>`/`<winbase.h>`/`<winuser.h>` block spells `STARTUPINFO`, `SECURITY_ATTRIBUTES`, `MAX_PATH`, the nine constants and the three entry points (Deviations 50), and `xstrcasecmp` stands there with `dispextern.h` 104's citation (Deviations 51) |
 | 2207-2268 | `register_child` (C 2207-2242, with C's `(DWORD)` cast, its dead `FULL_DEBUG` arm carried as C's text and the `fd_info` in-use guard) and `reap_subprocess` (C 2244-2268, whose own dead arm sits between C 2250's comment and the two `CloseHandle`s) | file gate (slice 10); C's `status` value is `STATUS_READ_ACKNOWLEDGED` (the mirror's 201) and the `fd_info` member is the deferred `*mut c_void` (Deviations 49's cast) |
 | 2270-2449 | `waitpid`: C's Posix comment, the single-pid arm, the any-child arm, the `do`/`while` (the port's `loop` + negated test, P-95), the five-way answer, `GetExitCodeProcess`, the `STILL_ACTIVE` punt and the exit-code massage | file gate (slice 11); `WNOHANG` and `STATUS_CONTROL_C_EXIT` stand at the use site (Deviations 54/55), C's two dead `FULL_DEBUG` arms are carried as C's text, and C's `retval <<= 8` is the port's own shift |
-| 2451-4903 | **the remainder of the file** - C 2451-2452's `open_input_file` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2451-2528 | the memory-mapped-file helpers and the section lookup: C 2451-2481's `open_input_file`, C 2483-2509's `rva_to_section` (with C's linker comment and the `max!` pair), C 2511-2521's `close_file_data` and C 2523-2528's `#ifndef IMAGE_NT_OPTIONAL_HDR32_MAGIC` fallback carried as C's text | file gate (slice 12); the round's use-site `<windows.h>`/`<winbase.h>`/`<winnt.h>` block spells the file API and the four PE records (Deviations 57), `min!`/`max!` come from the `min-max.rs` mirror included under C 57's lisp.h line (Deviations 58), and the mirror `include/w32heap.rs`'s four declarations moved into a glob-imported module in the same round (Deviations 59) |
+| 2530-4903 | **the remainder of the file** - C 2530-2532's `w32_executable_type` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -944,3 +945,72 @@ of the 73 matched pairs.
     C 2432's `retval = SIGINT` is `SIGINT as DWORD` (the constant is C's `int`) and C 2445's
     `*status = retval` is `retval as c_int` (C's implicit narrowing), the class Deviations 39
     records for this file.
+
+## Slice 12 (2026-10-14, status 4.291): C 2451-2528
+
+**What this round is.**  The memory-mapped-file helpers and the PE section lookup that
+`w32_executable_type` (C 2533, the next slice) is built on: `open_input_file` (the `CreateFileA`/
+`GetFileSize`/`CreateFileMapping`/`MapViewOfFile` chain and the five `file_data` writes),
+`rva_to_section` (C's linker comment, the `IMAGE_FIRST_SECTION` walk and the
+`max (SizeOfRawData, Misc.VirtualSize)` test) and `close_file_data` (the unmap and the
+`SetFilePointer`/`SetEndOfFile` pair), plus C 2523-2528's `#ifndef` fallback.  Port: 3,729 ->
+**4058 lines** (+329, of which 213 are the round's `<windows.h>`/`<winnt.h>` block).  The next row's
+first item is C 2530-2532's `w32_executable_type` comment.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes** (each of the
+three runs this round, including the two after the mirror and the constant were fixed).
+
+**Evidence ② - the arm reading, and the mirror defect this round found and fixed.**  The first
+`probe` read **40 errors (30 `E0428` + 9 `E0425` + 1 `compile_error!`)** - three more than this
+lane's baseline of 37.  All three were anchored in the **mirror** (`include/w32heap.rs` 112, 114,
+132: `open_input_file`, `close_file_data`, `rva_to_section` declared at that mirror's crate root
+while this unit defines them), which is exactly the class P-39's device exists for and which the
+2026-10-05 section of `docs/ports/include-w32heap.md` already fixed once for five other names.  This
+round moved the four into a glob-imported `w32heap_file_decls` (that mirror's ledger records the
+measurement) and re-read **37 (27 + 9 + 1), 0 anchored in this unit** - the lane's baseline.  **The
+device is therefore verified from both sides: a top-level declaration is an `E0428` against the
+unit's definition, a glob-imported one is shadowed by it.**  Note the probe *did* report these (it
+is a name-resolution reading for `E0428`) even though it cannot report a *missing* name.
+
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 3726 4050` -> `98
+capitalized identifiers, missing: [54 names]` - **every one of the 54 is a *field* of the PE records
+this round spells** (`Machine`, `NumberOfSections`, `AddressOfEntryPoint`, `Misc`, `Name`, …), i.e.
+the class the tool's own docstring records (it strips `.field` accesses but not field
+*definitions*), and `Some` does not appear this time because the slice has no `Option` use.  The
+control is the peer unit's identical spelling (slice 7: `check-unit-names.py femacs/src/w32.rs
+11860 11920` reads the five field names of `child_process` and `OVERLAPPED`).
+
+**Evidence ④ - the `--check` reading.**  **80 -> 75 `- missing` rows** (`missing function
+open_input_file`, `rva_to_section` and `close_file_data`, plus the two macro rows below).  Two token
+rows appeared and were retired in the round: `macro IMAGE_NT_OPTIONAL_HDR32_MAGIC does not mention
+image_nt_optional_hdr_magic` (fixed by declaring `<winnt.h>`'s generic `IMAGE_NT_OPTIONAL_HDR_MAGIC`
+and spelling the 32-bit name as its alias - more faithful *and* token-clean) and `missing macro
+IMAGE_OPTIONAL_HEADER32` (a one-row `docs/ports/excluded-macros.txt` entry: C's fallback renames a
+*type*, and the port carries that type under C's 32-bit name).  Drift 23.9% -> **17.4%**, inside the
+stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+57. **The round's use-site `<windows.h>`/`<winbase.h>`/`<winnt.h>` block** (P-88 ①): the seven file
+    API entry points and their eight constants, and the four PE records with C's `Misc` union named
+    after its container (`IMAGE_FILE_HEADER`, `IMAGE_DATA_DIRECTORY`,
+    `IMAGE_OPTIONAL_HEADER32`, `IMAGE_NT_HEADERS`, `IMAGE_SECTION_HEADER`,
+    `IMAGE_SECTION_HEADER_Misc`).  `include/w32heap.rs` 63-76 declares the two functions with the
+    records as `*mut c_void` (P-72 ③), so the definitions spell what they read - the
+    `child_process` device (Deviations 47) - and the mirror's prototype keeps its own pointer depth.
+    `IMAGE_FIRST_SECTION` is a `macro_rules!` because C's macro is a cast plus
+    `FIELD_OFFSET`/`SizeOfOptionalHeader` arithmetic (`core::mem::offset_of!`; the tree's
+    `SOCK_HANDLE` device).  Every record is **UNVERIFIED** on this machine.
+58. **`min!`/`max!` come from `../lib/include/min-max.rs`, included under C 57's lisp.h line**
+    (Deviations 57's round): C's `max` reaches this file through lisp.h's `#include "min-max.h"`, and
+    `include/lisp.rs` pulls neither that mirror nor `<string.h>` - the same reading the `<string.h>`
+    line above already records.  C 2503/2504's two `rva < VirtualAddress + real_size` bounds are C's
+    own `DWORD_PTR` arithmetic, and `Misc.VirtualSize` is a union field read (C's anonymous union,
+    named here).
+59. **The mirror `include/w32heap.rs` gained a `w32heap_file_decls` module with a glob import**
+    (the P-39 device, this round's Evidence ②), because the four declarations were at that mirror's
+    crate root and three of the names are this unit's definitions.  The module is deliberately
+    **ungated** - the declarations were ungated before the move - and `open_output_file` moved with
+    its siblings so its definer's slice does not hit the same defect.  The mirror's ledger
+    (`docs/ports/include-w32heap.md`) records it with both measurements; this file records it here
+    because the defect was found by *this* unit's probe.
