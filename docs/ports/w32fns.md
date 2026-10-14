@@ -1198,6 +1198,77 @@ section; `docs/ports/macro-body-notes.tsv` gains one appended row (nothing rewri
   one C assignment nested in another; the port keeps both stores in one statement through the
   `FRAME_W32_WINDOW!` macro.
 
+## Slice 6 (C 6123-6251)
+
+**Scope and the stop.**  The slice starts at C 6123 (`w32_icon`'s doc comment; C 6122 is blank) and
+stops at C 6251, the `}` of `w32_default_font_parameter` - a whole-item boundary (C 6252 is blank and
+C 6253 opens the `x-create-frame` DEFUN).  It carries **129 C lines** and lands four `static`
+helpers plus one C-visible definition: `w32_icon` (C 6127-6152), `w32_make_gc` (C 6155-6178),
+`unwind_create_frame` (C 6185-6208), `do_unwind_create_frame` (C 6210-6214) and
+`w32_default_font_parameter` (C 6216-6251).
+
+**New in this slice.**  Two prototypes the unit's graph does not carry - `font_open_by_name`
+(`font.h` 883, `src/frame.rs` 4788's shape) and `gui_default_parameter` (`dispextern.h` 4001-4003,
+`src/pgtkfns.rs` 561-566's shape) - plus C 6233-6238's function-local `static const char *names[]`,
+which becomes a file-scope `static mut names: [*const c_char; 5]` for the same static-storage reason
+slice 5's `coords` did (and `mut` for a second one: a `static` holding raw pointers is not `Sync`, so
+the probe's first run refused the shared one).
+
+### Evidence (slice 6, the final revision: 9,624 Rust lines)
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/w32fns6-lane cargo run -q -p xtask -- build-tu src/w32fns.c` ->
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, the object **336 bytes**.
+
+**② The arm readings (`probe`).**  The same command as slice 5's.  The first run read **52 error
+lines**; each repair moved it: `*`'s precedence over `as` (**6 sites**, this slice's four and slice
+5's two - `*(… as *mut w32_output)` dereferences *before* the cast, so the file's own two-paren
+shape `(*((…) as …))` from `src/w32fns.rs` 2205 is the correct spelling), the `static mut` above,
+and C 6051-6052's chained assignment (an assignment yields `()`, so C's two stores are two
+statements, in C's order).  The reading is now **38 error lines** - **five fewer than slice 5's 43**,
+because this slice's repairs also cleared the two `dwStyle`-class lines slice 5 left.  Of the 38,
+**only `frame.explicit_name` (2 lines) points into this slice's text**: the `frame` mirror lacks that
+member, the same "mirror record lacks a member" class as `menubar_active`/`hourglass_p`/`tab_bar_*`/
+`tool_bar_*` (27 lines) and the mirror `E0428`s.
+
+**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs`).**
+**202 -> 197** `- ` rows and the drift row reads `22.9%: C 12488 vs Rust 9624` (was 24.3%).  The five
+rows this slice's final text retired: the three it produced (two token rows -
+`w32_icon`/`w32_make_gc` `does not mention 0`, C's `0` arguments spelled `core::ptr::null ()`/
+`null_mut ()` - and the `w32_default_font_parameter is not static in C but has no
+#[unsafe(no_mangle)]` row, which the attribute then satisfied) are covered by **two appended
+`macro-body-notes.tsv` rows** (append-only) plus that one attribute; the other two are the
+`missing function` rows the definitions retire.
+
+**④ The other gates (repo root, final revision), one line each - exit code first (P-87 ④).**
+`[0]` for `check-declarations.py`, `check-own-voice.py`, `check-mirror-dupes.py`, `check-port-lines.py`,
+`check-ledger-ticks.py`, `check-carried.py`, `check-verbatim.py`, `check-verbatim-declarations.py`,
+`check-citations.py` and `check-dead-file-coverage.py` - the last reporting
+`info docs/ports/w32fns.md: 157 range row(s) cover src/w32fns.c (12488 lines; 102 blank line(s)
+between blocks need no row)` and `0 failure(s)`.
+
+**⑤ Lines.**  `femacs/src/w32fns.rs` **9,451 -> 9,624** lines; this section; two appended
+`macro-body-notes.tsv` rows.
+
+### Deviations (slice 6)
+
+- **C 6051-6052's chained assignment is two statements.**  `tip_window = FRAME_W32_WINDOW (f) =
+  CreateWindow (…)` nests one C assignment in another; Rust's assignment expression is `()`, so the
+  port keeps two stores in C's order (the frame's `window_desc` first, then the file-scope
+  `tip_window`) - a repair of slice 5's text, recorded here because that is where the defect landed.
+- **The `*`-before-`as` precedence repair touches six sites, two of them slice 5's.**  This file's own
+  working spelling is `(*((*f).output_data.w32 as *mut w32_output))` (`src/w32fns.rs` 2205-2212, C
+  1269-1277's live half), and the two-paren shape is what keeps the cast outside the deref.
+- **C 6193-6195/6200-6203's two `#ifdef GLYPH_DEBUG` arms are the `glyph_debug` feature.**  The
+  declaration is `undef` in the frozen configuration, both arms are carried, and C 6202's
+  `eassert` reads the file-scope `static int dpyinfo_refcount` this unit already declares (C 293).
+- **The `names` array is `static mut`.**  C 6233-6238's function-local `static const char *names[]`
+  has static storage duration (file scope here, the `coords` reading) and holds raw pointers, so it is
+  `static mut` - a shared `static` would need `Sync`, which `*const c_char` is not.
+- **`w32_default_font_parameter` keeps C's linkage.**  C defines it without `static`, so the port's
+  definition is `pub unsafe extern "C" fn` **with** `#[unsafe(no_mangle)]` (the inventory row above is
+  what caught the missing attribute); the four helpers stay private, as their C `static` says.
+
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
 reader would otherwise have to re-derive, all read off the tree just now:

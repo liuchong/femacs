@@ -9371,12 +9371,15 @@ unsafe fn my_create_tip_window (f: *mut frame)
   rect.bottom = FRAME_PIXEL_HEIGHT (f);
 
   AdjustWindowRect (&raw mut rect,
-		   (*(*f).output_data.w32 as *mut w32_output).dwStyle, FALSE);
+		   (*((*f).output_data.w32 as *mut w32_output)).dwStyle, FALSE);
 
-  tip_window = FRAME_W32_WINDOW! (f)
+  /* C 6051-6052's `tip_window = FRAME_W32_WINDOW (f) = CreateWindow (…)` nests one assignment in
+     another; Rust's assignment yields `()`, so the port keeps C's two stores as two statements,
+     in C's order (the window's own field first, then `tip_window`).  */
+  let created: Window
     = CreateWindow (EMACS_CLASS.as_ptr () as *const c_char,
 		    (*f).namebuf,
-		    (*(*f).output_data.w32 as *mut w32_output).dwStyle,
+		    (*((*f).output_data.w32 as *mut w32_output)).dwStyle,
 		    (*f).left_pos,
 		    (*f).top_pos,
 		    rect.right - rect.left,
@@ -9385,6 +9388,8 @@ unsafe fn my_create_tip_window (f: *mut frame)
 		    core::ptr::null_mut (),
 		    hinst,
 		    core::ptr::null_mut ());
+  FRAME_W32_WINDOW! (f) = created;
+  tip_window = created;
 
   if ! tip_window.is_null ()
     {
@@ -9448,4 +9453,172 @@ unsafe fn w32_window (f: *mut frame, window_prompting: c_long, minibuffer_only: 
 
   if FRAME_W32_WINDOW! (f).is_null ()
     { error (c"Unable to create window".as_ptr ()); }
+}
+
+/// C 6123-6152: `w32_icon` - C's `static void` (a private `unsafe fn` here); C 6135-6138's two
+/// `gui_display_get_arg` calls pass C's two null `const char *` arguments, and C 6145's message is
+/// C's own text.
+/// C: static void w32_icon (struct frame *f, Lisp_Object parms);
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_icon (f: *mut frame, parms: Lisp_Object)
+{
+  let mut icon_x: Lisp_Object; let mut icon_y: Lisp_Object;
+  let dpyinfo: *mut w32_display_info = &raw mut one_w32_display_info;
+
+  /* Set the position of the icon.  Note that Windows 95 groups all
+     icons in the tray.  */
+  icon_x = gui_display_get_arg (dpyinfo, parms, Qicon_left (), core::ptr::null (),
+				core::ptr::null (), RES_TYPE_NUMBER);
+  icon_y = gui_display_get_arg (dpyinfo, parms, Qicon_top (), core::ptr::null (),
+				core::ptr::null (), RES_TYPE_NUMBER);
+  if ! BASE_EQ (icon_x, Qunbound ()) && ! BASE_EQ (icon_y, Qunbound ())
+    {
+      CHECK_FIXNUM (icon_x);
+      CHECK_FIXNUM (icon_y);
+    }
+  else if ! BASE_EQ (icon_x, Qunbound ()) || ! BASE_EQ (icon_y, Qunbound ())
+    { error (c"Both left and top icon corners of icon must be specified".as_ptr ()); }
+
+  block_input ();
+
+  /* TODO: Start up iconic or window? */
+
+  unblock_input ();
+}
+
+
+/// C 6155-6178: `w32_make_gc` - C's `static void`; C 6168-6171's `XCreateGC` takes C's `NULL` as the
+/// display and the record's address, and C 6166/6167's two colour reads are the mirror's
+/// `FRAME_BACKGROUND_PIXEL` and the `cursor_pixel` field (whose `COLORREF` is a `DWORD`, so the
+/// record's `c_ulong` member needs the widening cast C's own promotion gives it).
+/// C: static void w32_make_gc (struct frame *f);
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_make_gc (f: *mut frame)
+{
+  let mut gc_values: Emacs_GC = core::mem::zeroed ();   /* C's uninitialised `Emacs_GC gc_values;` */
+
+  block_input ();
+
+  /* Create the GC's of this frame.
+     Note that many default values are used.  */
+
+  /* Cursor has cursor-color background, background-color foreground.  */
+  gc_values.foreground = FRAME_BACKGROUND_PIXEL (f);
+  gc_values.background = (*((*f).output_data.w32 as *mut w32_output)).cursor_pixel as c_ulong;
+  (*((*f).output_data.w32 as *mut w32_output)).cursor_gc
+    = XCreateGC (core::ptr::null_mut (), FRAME_W32_WINDOW! (f),
+		 (GCForeground | GCBackground) as c_ulong,
+		 &raw mut gc_values);
+
+  /* Reliefs.  */
+  (*((*f).output_data.w32 as *mut w32_output)).white_relief.gc = core::ptr::null_mut ();
+  (*((*f).output_data.w32 as *mut w32_output)).black_relief.gc = core::ptr::null_mut ();
+
+  unblock_input ();
+}
+
+
+/// C 6181-6208: `unwind_create_frame` - C's `static Lisp_Object`; C 6193-6195/6200-6203's two
+/// `#ifdef GLYPH_DEBUG` arms carry the `glyph_debug` feature (registered, P-51's reading), and C
+/// 6202's `dpyinfo_refcount` is C 293's file-scope `static int` this unit already declares.
+/// C: static Lisp_Object unwind_create_frame (Lisp_Object frame);
+#[cfg (feature = "have_ntgui")]
+unsafe fn unwind_create_frame (frame: Lisp_Object) -> Lisp_Object
+{
+  let f: *mut frame = XFRAME (frame);
+
+  /* If frame is ``official'', nothing to do.  */
+  if NILP (Fmemq (frame, Vframe_list))
+    {
+#[cfg (feature = "glyph_debug")]
+      let dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO (f);
+
+      w32_free_frame_resources (f);
+      free_glyphs (f);
+
+#[cfg (feature = "glyph_debug")]
+      {
+	/* Check that reference counts are indeed correct.  */
+	eassert! ((*dpyinfo).reference_count == dpyinfo_refcount);
+      }
+      return Qt ();
+    }
+
+  return Qnil ();
+}
+
+/// C 6210-6214: `do_unwind_create_frame` - C's `static void`, one call through to the function
+/// above (the `unwind-protect` body C 6213 hands to `record_unwind_protect`).
+/// C: static void do_unwind_create_frame (Lisp_Object frame);
+#[cfg (feature = "have_ntgui")]
+unsafe fn do_unwind_create_frame (frame: Lisp_Object)
+{
+  unwind_create_frame (frame);
+}
+
+
+/// C 6242/6250: the two readers this slice needs beyond the ones upward - `font_open_by_name`
+/// (`font.h` 883, `src/frame.rs` 4788's declaration shape) and `gui_default_parameter`
+/// (`dispextern.h` 4001-4003, `src/pgtkfns.rs` 561-566's shape).
+/// C: extern Lisp_Object font_open_by_name (struct frame *f, Lisp_Object name);
+/// C: extern Lisp_Object gui_default_parameter (struct frame *, Lisp_Object, Lisp_Object,
+/// C:   Lisp_Object, const char *, const char *, enum resource_types);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object;
+  pub fn gui_default_parameter (f: *mut frame, alist: Lisp_Object, prop: Lisp_Object,
+				deflt: Lisp_Object, name: *const c_char, x_name: *const c_char,
+				r#type: resource_types) -> Lisp_Object;
+}
+
+/// C 6216-6251: `w32_default_font_parameter` - C's non-`static` `void` (so a `pub` definition); C
+/// 6233-6238's function-local `static const char *names[]` is the file-scope array below (the
+/// `src/font.rs` 2706 `style_names` shape: a `*const c_char` array with C's own literals and the
+/// terminating null), and C 6226-6228's `?:` is the `if` expression the port writes it as.
+/// C: static const char *names[] = { "Courier New-10", "-*-Courier-normal-r-*-*-13-*-*-*-c-*-iso8859-1",
+/// C:   "-*-Fixedsys-normal-r-*-*-12-*-*-*-c-*-iso8859-1", "Fixedsys", NULL };
+/// C: void w32_default_font_parameter (struct frame *f, Lisp_Object parms);
+#[cfg (feature = "have_ntgui")]
+static mut names: [*const c_char; 5]
+  = [c"Courier New-10".as_ptr (),
+     c"-*-Courier-normal-r-*-*-13-*-*-*-c-*-iso8859-1".as_ptr (),
+     c"-*-Fixedsys-normal-r-*-*-12-*-*-*-c-*-iso8859-1".as_ptr (),
+     c"Fixedsys".as_ptr (),
+     core::ptr::null ()];
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_default_font_parameter (f: *mut frame, parms: Lisp_Object)
+{
+  let dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO (f);
+  let mut font_param: Lisp_Object = gui_display_get_arg (dpyinfo,
+							parms, Qfont (), core::ptr::null (),
+							core::ptr::null (),
+							RES_TYPE_STRING);
+  let mut font: Lisp_Object;
+  if BASE_EQ (font_param, Qunbound ())
+    { font_param = Qnil (); }
+  font = if ! NILP (font_param)
+    { font_param }
+    else
+    { gui_display_get_arg (dpyinfo, parms, Qfont (), c"font".as_ptr (), c"Font".as_ptr (),
+			   RES_TYPE_STRING) };
+
+  if ! STRINGP (font)
+    {
+      let mut i: c_int = 0;
+      /* C's `for (i = 0; names[i]; i++)` - the null terminator is the test, and the `break`
+	 C 6244 writes is the one below.  */
+      while ! names[i as usize].is_null ()
+	{
+	  font = font_open_by_name (f, build_unibyte_string (names[i as usize]));
+	  if ! NILP (font)
+	    { break; }
+	  i += 1;
+	}
+      if NILP (font)
+	{ error (c"No suitable font was found".as_ptr ()); }
+    }
+
+  gui_default_parameter (f, parms, Qfont (), font, c"font".as_ptr (), c"Font".as_ptr (),
+			 RES_TYPE_STRING);
 }
