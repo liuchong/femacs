@@ -3191,3 +3191,19 @@ unsafe extern "system" fn reader_thread (arg: *mut c_void) -> DWORD
     }
   return 0;                                                   // C 2114
 }
+
+/* C 2117-2121: `process_dir`, the directory the next child is to start in - the object
+   `create_child` (C 2123) reads and `set_process_dir` (C 3903-3907) writes, both past this slice.
+   C's four-line comment is carried as C's own text at its C position (the reading slices 1/2/6 give
+   this file's comments), and the object is a file-scope `static char *` C leaves NULL-initialised,
+   which the port spells `core::ptr::null_mut ()` in the `static mut` shape of slice 6's list.  */
+/* To avoid Emacs changing directory, we just record here the
+   directory the new process should start in.  This is set just before
+   calling sys_spawnve, and is not generally valid at any other time.
+   Note that this directory's name is UTF-8 encoded.  */
+/// C: static char * process_dir;
+#[cfg (feature = "windowsnt")]
+static mut process_dir: *mut c_char = core::ptr::null_mut ();
+
+/* C 2123's `create_child` (the `static BOOL` whose record block needs `<windows.h>`'s
+   `STARTUPINFO`/`SECURITY_ATTRIBUTES` and `CreateProcessA`) opens the next slice.  */

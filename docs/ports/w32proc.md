@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**3193 lines**, md5 `0af5462ee1a75257454681d0b2ea383b`), carrying
-> **C 1-2115** - P-86 ④'s first seven slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**3209 lines**, md5 `bbda20c25b167b0b6746117529a830cb`), carrying
+> **C 1-2121** - P-86 ④'s first eight slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -120,7 +120,8 @@ which `check-dead-file-coverage.py` requires):
 | 1513-1693 | the file's two wait entry points: C 1513-1526's `wait_for_objects` overview comment with C 1527-1597's `wait_for_objects`, and C 1599-1616's `msg_wait_for_objects` overview comment with C 1617-1693's `msg_wait_for_objects` | file gate (slice 5); `MsgWaitForMultipleObjects` and `QS_ALLINPUT` join the use-site `<windows.h>`/`<winuser.h>` block (Deviations 42), C's two counted `for` loops become `while` loops whose `continue` path carries C's increment clause (Deviations 43), and C's 64/63 group arithmetic keeps its `int`/`DWORD` spelling (Deviations 39) |
 | 1695-1832 | the child-process block's opening: C 1695-1823's subprocess/network overview comment (the file's longest banner, carried as C's own text), C 1825-1826's `_P_NOWAIT`, C 1828-1830's child-process management list (`child_proc_count`, `child_procs[MAX_CHILDREN]`) and C 1832's `reader_thread` forward declaration (dropped, 0.1-12) | file gate (slice 6); the record and the array's bound are the mirror's (`include/w32.rs` 326-355 / 242), not re-spelled here (0.1-3) |
 | 1834-2115 | the child-process block's five working functions: C 1834-1933's `new_child`, C 1935-1998's `delete_child` (with its C 1958-1969 `#if 0` region carried as C's text and its `fd_info` guard), C 2000-2011's `find_child_pid`, C 2013-2024's `release_listen_threads` and C 2026-2115's `reader_thread` | file gate (slice 7); the unit spells `w32.h` 74-113's `child_process` record and the three SDK records it embeds (the mirror defers it - Deviations 47), the two `goto Initialize` jumps become `break 'initialize` (Deviations 48, notes row), and `fd_info`'s deferred `*mut c_void` member is cast as the mirror's note spells it (Deviations 49) |
-| 2117-4903 | **the remainder of the file** - C 2117-2121's `process_dir` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `process_dir`/`set_process_dir`, `create_child` (C 2124), `register_child`, `reap_subprocess`, `waitpid` (C 2276), `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2117-2121 | `process_dir`: C 2117-2120's four-line comment (carried as C's own text) and C 2121's file-scope `static char *` | file gate (slice 8); the object is the `create_child` reader's and `set_process_dir`'s writer, both past this slice |
+| 2123-4903 | **the remainder of the file** - `create_child` (C 2123) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `create_child`, `register_child`, `reap_subprocess`, `waitpid` (C 2276), `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -746,3 +747,42 @@ at 0.36 = measured + 0.01.
     (`<io.h>`, a header with no file in the reference tree - the unit's own C 35 note records why
     `lib/include/unistd.in.rs` is not pulled in).  Both are **UNVERIFIED** here, like every Windows
     name in this file, and join the layout/behaviour assertions the mirror round owes.
+
+## Slice 8 (2026-10-14, status 4.287): C 2117-2121
+
+**What this round is.**  `process_dir`, the one file-scope object between the child-process block's
+working functions and `create_child`: C 2117-2120's comment (why the directory is recorded here
+rather than changed, and that its name is UTF-8) carried as C's own text, and C 2121's
+`static char * process_dir;`.  Port: 3,193 -> **3,209 lines** (+16).  It is the reader
+`create_child` (C 2165) and the writer `set_process_dir` (C 3903) that make it worth landing ahead
+of them: this round removes the `missing file-scope object process_dir` row so the next slice's
+`filename_to_ansi (process_dir, dir)` has a name to resolve.  The next row's first item is C 2123's
+`create_child`.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors, 0 anchored in this unit** - the eighth
+identical reading.
+
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 3194 3209` -> `0
+capitalized identifiers, missing: []` (the round adds no name at all, which is the point).
+
+**Evidence ④ - the `--check` reading.**  **85 -> 84 `- missing` rows**: `missing file-scope object
+process_dir` retires.  No new token rows; drift 34.9% -> **34.6%**, inside the stem's 0.36 row
+(measured + 0.01 at slice 7), so this round appends no tolerance row - the row's number is still the
+measured one, not a stale one.
+
+**Owed (this slice's additions).**
+
+15. **`create_child` (C 2123-2205) is the next slice and the file's largest SDK surface so far**:
+    its body needs `<windows.h>`'s `STARTUPINFO` (eighteen members) and `SECURITY_ATTRIBUTES`, the
+    six create-process constants (`STARTF_USESTDHANDLES`, `STARTF_USESHOWWINDOW`, `SW_HIDE`,
+    `CREATE_NEW_PROCESS_GROUP`, `CREATE_NEW_CONSOLE`, `CREATE_DEFAULT_ERROR_MODE`), the three
+    `STD_*_HANDLE` values, `MAX_PATH`, and the entry points `CreateProcessA`, `GetStdHandle` and
+    `CharNextA` - plus `xstrcasecmp` (the mirror carries it in `include/dispextern.rs`, which this
+    unit does **not** include) and the three `Vw32_start_process_*` globals (who *declares* them for
+    a reader in this unit, given `include/globals.rs` is not in its graph, is the question this
+    round's name check must answer before the body is written).  Every one is the `P-88` ①
+    `UNVERIFIED` class on this machine.
