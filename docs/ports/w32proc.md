@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**1705 lines**, md5 `9273c963a96d3fcf1bbc5c28e6aed089`), carrying
-> **C 1-1039** - P-86 ④'s first two slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**2069 lines**, md5 `59dd32592d9426a55c6a8dfc91192704`), carrying
+> **C 1-1299** - P-86 ④'s first three slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -115,7 +115,8 @@ which `check-dead-file-coverage.py` requires):
 | 807-894 | `setitimer` | file gate (C's `__int64`; Deviations 8) |
 | 896-912 | `alarm` (this slice's last definition) | file gate; C 899-911 both arms (`have_setitimer`) |
 | 913-1039 | the C 914-962 wait-object overview comment, C 968-971's four `WFO_*` constants, C 975-978's two `typedef`s and their two `extern` objects, C 981-1034's three records (`wait_objects_context`/`wait_objects_pool`/`wait_objects_info`) and C 1038-1039's two statics | file gate (slice 2); C 1040 is a blank line and C 1041-1050's comment belongs to C 1051's `wait_objects_thread`, which is the next row's first item |
-| 1041-4903 | **the remainder of the file** - `wait_objects_thread` (C 1051) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the wait-object thread pool, `sys_spawnve` (C 2725), `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1041-1299 | the wait-object worker pair: C 1041-1050's `wait_objects_thread` overview comment, C 1051-1117's `wait_objects_thread` and C 1123-1299's `start_wait_objects` | file gate (slice 3); the `switch` over the second wait's result becomes an `if`/`else if` chain (Deviations 38), and C's five `WAIT_*`/`INFINITE` values and six wait-event entry points stand in the use-site `<windows.h>` block (Deviations 37) |
+| 1301-4903 | **the remainder of the file** - `stop_wait_objects` (C 1301) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the rest of the wait-object thread pool (`end_wait_and_return` C 1352, `shrink_wait_pool` C 1441, `free_wait_pool` C 1485), `sys_spawnve` (C 2725), `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -401,3 +402,93 @@ this round touches the include graph).
    the two readings apart rather than trust the count.  This is the integrator's mirror round
    (P-87's scan follows it); the lane records it here because it is now the file's largest evidence
    gap.
+
+## Slice 3 (2026-10-14, status 4.282): C 1041-1299
+
+**What this round is.**  The wait-object *worker pair*, the first two definitions of the pool whose
+declarations slice 2 landed: C 1041-1050's overview comment (what a worker thread does between
+waits), C 1051-1117's `wait_objects_thread` (the `for (;;)` answer loop - the call counter, the
+pool's timeout event placed at the end of the handle array, C 1076's `memcpy` of the caller's
+handles, the `WaitForMultipleObjects` that starts the wait, the `wait_ready` handshake and C
+1095-1114's `switch` over the *second* wait's result) and C 1123-1299's `start_wait_objects` (the
+lazy `timeout_event` initialisation, the live-thread scan through `WaitForSingleObject (… , 0)`,
+the 63-per-thread group arithmetic with C 1166-1209's forty-line sizing comment carried as C's text,
+the thread-creation loop with its three `CreateEvent`s, `CreateThread`'s `64 * 1024`/`0x00010000`
+and the optional `SetThreadDescription`, and C 1282-1297's wait-array fill with
+`ResetEvent`/`SetEvent`).  Port: 1,705 -> **2,069 lines** (+364, of which 50 are the use-site
+`<windows.h>` block of Deviations 37).  The next row's first item is C 1301's `stop_wait_objects`.
+
+**Evidence ① - the frozen reading.**  `cd femacs && cargo run -q -p xtask -- build-tu
+src/w32proc.c` -> `built src/w32proc.rs -> ../build/femacs/w32proc.o`, **exit 0, 336 bytes** (one
+shot; the P-08 empty object, because every item is behind `feature = "windowsnt"` and the frozen
+configuration sets none - unchanged from slices 1/2, as expected).
+
+**Evidence ② - the arm reading, and the gap it still cannot close.**  `cargo run -q -p xtask --
+probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg 'feature="windowsnt"' --cfg
+'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg 'feature="have_langinfo_codeset"'`
+-> **exit 1, 37 errors, 0 anchored in this unit** (`27 E0428 + 9 E0425 + 1 compile_error!`), i.e.
+*the same 37 the file read before this round*: adding 364 lines moved the reading in neither
+direction.  This is owed item 8's fact, re-measured, not a fresh reading: every error is a
+*name-resolution* one, so rustc never reaches type-checking in this probe, and neither
+`wait_objects_thread`'s nor `start_wait_objects`'s body is type-checked by it.  **The round's
+positive reading is therefore not the probe**; it is Evidence ③.
+
+**Evidence ③ - the name sweep, and the one real defect it found.**  `python3
+tools/check-unit-names.py femacs/src/w32proc.rs 1703 2069` -> `25 capitalized identifiers, missing:
+['Some']`, where `Some` is the prelude variant the tool's docstring records as a false positive.
+**The first reading of this slice instead reported `WAIT_ABANDONED_0`**, and that was a genuine
+hole: C 1108-1109 names it (the `case WAIT_ABANDONED_0:` / `+ 1` pair) and the name exists nowhere
+in the tree, while its three siblings (`WAIT_OBJECT_0`, `WAIT_TIMEOUT`, `WAIT_FAILED`) exist only in
+*other units* (`src/w32.rs` 13252-13254, `src/systhread.rs` 509, `lib-src/ntlib.rs` 180-184) that
+this unit's include graph does not carry - so all four, plus `INFINITE`, plus the six entry points
+this slice calls, were unresolvable names in this unit.  **Neither the probe (Evidence ②) nor the
+token check can see that**: the probe cannot report a name, and the check compares token *sets*.  The
+sweep plus a hand reading of C 1041-1299's text are the two readings that can, which is why the
+round ran the sweep before, not after, deciding the slice was done.  The fix is Deviations 37.
+
+**Evidence ④ - the `--check` reading.**  `python3 tools/extract-abi.py --check emacs/src/w32proc.c
+femacs/src/w32proc.rs` -> **100 `- missing` rows, down from 102** (`missing function
+wait_objects_thread` and `missing function start_wait_objects` retire; nothing else changes), plus
+two problem rows this round owns: `- function wait_objects_thread does not mention break, case,
+switch` (new; the macro-body-notes row of Deviations 38) and `- line count drifted 57.8%: C 4903 vs
+Rust 2069` (the file's standing row, now the measured -57.8% and appended to
+`docs/ports/line-drift-tolerance.tsv` at 0.59 = measured + 0.01, the `xfns` 0.41 rule; it is a
+*negative* drift the not-yet-ported remainder owns, and it moves with every slice).
+
+**Deviations (this slice's additions).**
+
+37. **The five wait values and the six wait-event entry points stand in a use-site `<windows.h>`/
+    `<winbase.h>` block** (P-88 ①'s `UNVERIFIED` class): `WAIT_OBJECT_0` 0, `WAIT_ABANDONED_0`
+    0x00000080, `WAIT_TIMEOUT` 0x00000102, `WAIT_FAILED` 0xFFFFFFFF, `INFINITE` 0xFFFFFFFF,
+    `<winerror.h>`'s `S_OK` `((HRESULT) 0L)`, and `WaitForMultipleObjects`, `WaitForSingleObject`,
+    `CreateEvent`, `SetEvent`, `ResetEvent`, `SetLastError`.  None of them is in a mirror of this
+    unit's graph (`include/w32.rs`, `include/w32term.rs`, `include/w32common.rs`, `nt/inc/*` all
+    read for them), and the unit's own top `<windows.h>` section is *slice 1's* surface, so they
+    stand at the use site exactly as `PCWSTR`/`HRESULT` do (Deviations 34).  C's `…A`/`…W` alias
+    pair is spelled as C spells it.  Every one is **UNVERIFIED** - no Windows SDK on this machine.
+38. **C's `switch` in `wait_objects_thread` becomes an `if`/`else if` chain, not a `match`**
+    (PORTING.md 2.2).  C's `case WAIT_OBJECT_0: break;` continues the `for (;;)` loop, so it is the
+    port's empty `{ }` arm; the `case WAIT_OBJECT_0 + 1:` arm `return`s *out* of the loop, and the
+    four fallen-through labels (`WAIT_ABANDONED_0`, `WAIT_ABANDONED_0 + 1`, `WAIT_TIMEOUT`,
+    `WAIT_FAILED`) are one `||` chain - a `match` would have to reach every one of those exits from
+    inside its own scrutinee expression.  Neither the `switch` keyword nor the `case` labels
+    survive, which is the `break, case, switch` token row this round appends to
+    `docs/ports/macro-body-notes.tsv`.
+39. **C's implicit conversions the port spells.**  `static int` returning `WFO_FAILED` (a
+    `0xfffff` `DWORD` macro) is `WFO_FAILED as c_int`; C's `ctx->nCount + 1` handed to a `DWORD`
+    parameter is `((*ctx).nCount + 1) as DWORD`; C's `L"sys_select_worker_thread"` is the
+    `[u16; 26]` array plus `.as_ptr ()` (the `src/w32fns.rs` 423 `DARK_MODE_APP_NAME` device - C's
+    `L"…"` has no Rust syntax); and the two "is this function pointer set" tests C writes as
+    `if (is_debugger_present && …)` are `.is_some ()` / `.unwrap ()` on the `Option<fn>` spellings
+    of `IsDebuggerPresent_Proc`/`SetThreadDescription_Proc` (C 975-976, slice 2's declarations).
+
+**Owed (this slice's additions).**
+
+9. **`S_OK` is a second `<winerror.h>` name this unit cannot check** (Deviations 37): its value is
+   `((HRESULT) 0L)` on a 32-bit `HRESULT`, and the `HRESULT` the slice-2 block already declares is
+   `c_long` - correct on this target and on MinGW, but measured on neither (no mingw toolchain, no
+   `<winerror.h>`).  It joins the layout assertions owed for every SDK name in this file.
+10. **The two bodies this round adds are outside every type reading** (owed item 8, re-measured as
+   Evidence ②): `wait_objects_thread` and `start_wait_objects` are parsed, gated and swept for
+   names, and their token sets are compared - and that is all the evidence this machine can produce
+   for them until the mirror round discharges the `E0428` class.

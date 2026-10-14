@@ -1703,3 +1703,367 @@ pub type PCWSTR = *const u16;
 /// C: `typedef long HRESULT;   [<winnt.h>; UNVERIFIED here]`
 #[cfg (feature = "windowsnt")]
 pub type HRESULT = c_long;
+
+/* C 50's `<windows.h>`/`<winbase.h>`: the wait-object entry points this slice calls and the values
+   they return.  C 1078 and C 1094 make the two `WaitForMultipleObjects` calls whose result C
+   1081-1111 tests and `switch`es on, C 1147 makes `start_wait_objects`'s `WaitForSingleObject`
+   probe, and C 1131/1245/1248/1253 open the events that C 1084/1089/1290/1291 then `SetEvent`s and
+   `ResetEvent`s; C 1158 hands the failing thread's error to `SetLastError`.  `INFINITE` is
+   `<winbase.h>`'s wait sentinel and `S_OK` is `<winerror.h>`'s `((HRESULT) 0L)`, which C 1275
+   compares `SetThreadDescription`'s return against.  The unit's own `<windows.h>` section above
+   names slice 1's surface only, and no mirror in this unit's graph carries any of these names, so
+   all of them stand at the use site with the `UNVERIFIED` mark the acquisition note gives every
+   Windows name on this machine (P-88 ①); C's `…A`/`…W` alias pair is spelled as C spells it
+   (`_UNICODE` is undefined, so the alias resolves to the ANSI entry), exactly as the section above
+   does for `GetEnvironmentVariable`.  */
+/// C: #define WAIT_OBJECT_0 0
+/// C: #define WAIT_ABANDONED_0 (0x00000080)
+/// C: #define WAIT_TIMEOUT 0x00000102
+/// C: #define WAIT_FAILED ((DWORD) 0xFFFFFFFF)
+/// C: #define INFINITE 0xFFFFFFFF
+/// C: #define S_OK ((HRESULT) 0L)
+#[cfg (feature = "windowsnt")]
+pub const WAIT_OBJECT_0: DWORD = 0;
+#[cfg (feature = "windowsnt")]
+pub const WAIT_ABANDONED_0: DWORD = 0x00000080;
+#[cfg (feature = "windowsnt")]
+pub const WAIT_TIMEOUT: DWORD = 0x00000102;
+#[cfg (feature = "windowsnt")]
+pub const WAIT_FAILED: DWORD = 0xFFFFFFFF;
+#[cfg (feature = "windowsnt")]
+pub const INFINITE: DWORD = 0xFFFFFFFF;
+#[cfg (feature = "windowsnt")]
+pub const S_OK: HRESULT = 0;
+/// C: WINBASEAPI DWORD WINAPI WaitForMultipleObjects (DWORD nCount, const HANDLE *lpHandles,
+/// C:   BOOL bWaitAll, DWORD dwMilliseconds);
+/// C: WINBASEAPI DWORD WINAPI WaitForSingleObject (HANDLE hHandle, DWORD dwMilliseconds);
+/// C: WINBASEAPI HANDLE WINAPI CreateEventA (LPSECURITY_ATTRIBUTES lpEventAttributes,
+/// C:   BOOL bManualReset, BOOL bInitialState, LPCSTR lpName);
+/// C: WINBASEAPI BOOL WINAPI SetEvent (HANDLE hEvent);
+/// C: WINBASEAPI BOOL WINAPI ResetEvent (HANDLE hEvent);
+/// C: WINBASEAPI void WINAPI SetLastError (DWORD dwErrCode);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn WaitForMultipleObjects (nCount: DWORD, lpHandles: *const HANDLE, bWaitAll: BOOL,
+                                 dwMilliseconds: DWORD) -> DWORD;
+  pub fn WaitForSingleObject (hHandle: HANDLE, dwMilliseconds: DWORD) -> DWORD;
+  pub fn CreateEvent (lpEventAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL,
+                      bInitialState: BOOL, lpName: LPCSTR) -> HANDLE;
+  pub fn SetEvent (hEvent: HANDLE) -> BOOL;
+  pub fn ResetEvent (hEvent: HANDLE) -> BOOL;
+  pub fn SetLastError (dwErrCode: DWORD);
+}
+
+/* C 1041-1299: the wait-object worker pair - C 1041-1050's overview comment, C 1051-1117's
+   `wait_objects_thread` and C 1119-1299's `start_wait_objects`.  C 1301's `stop_wait_objects` opens
+   the next slice.  */
+
+/* Thread proc for worker threads waiting on objects.  Each thread is
+   normally blocked until woken by the main thread to wait on objects.
+   When the wait completes, wait_ready is signaled to wake up the main
+   thread and the thread blocks itself again.
+
+   The worker thread needs to wait for the timeout event from the main
+   thread.  When timeout_event is signaled by the main thread, it will
+   end the current wait and start the next round.  Similarly, threads
+   also need to wait for an quit event, which usually occurs when the
+   thread has not been used for a certain period of time.  */
+
+/// C 1051-1117: `static DWORD WINAPI wait_objects_thread (void *arg)` - C 1054-1060's four locals
+/// (C's `HANDLE hs[64] = {NULL}` / `start_or_quit[2] = {NULL}` are the `[null; N]` arrays C 1056 and
+/// C 1058 spell with initialisers), C 1062's cast of the thread argument, C 1064/1066's two event
+/// placements, and C 1067-1115's `for (;;)`: C 1070's call count, C 1073's timeout event at the end
+/// of `hs`, C 1076's `memcpy`, C 1078-1079/1094's two `WaitForMultipleObjects` calls with
+/// C 1081-1093's error paths and C 1095-1114's `switch` over the second result (whose two summed
+/// labels are guarded match arms, the `src/w32.rs` 13819 device - here the port keeps C's
+/// `if`/`else if` chain because the arms fall out of the loop instead of breaking).  C 1116's
+/// trailing `return 0` is C's own (the compilation unit is `unreachable_code`-allowed in this
+/// file's header).
+/// C: static DWORD WINAPI
+/// C: wait_objects_thread (void *arg)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn wait_objects_thread (arg: *mut c_void) -> DWORD
+{
+  let mut ctx: *mut wait_objects_context = core::ptr::null_mut ();     // C 1054
+  /* Thread's wait handle array.  */
+  let mut hs: [HANDLE; 64] = [core::ptr::null_mut (); 64];             // C 1056
+  /* start and quit event handle array.  */
+  let mut start_or_quit: [HANDLE; 2] = [core::ptr::null_mut (); 2];    // C 1058
+  /* return value of waiting.  */
+  let mut res: DWORD = 0;                                              // C 1060
+  /* Thread's context.  */
+  ctx = arg as *mut wait_objects_context;                              // C 1062
+  /* Place start event in start_or_quit[0].  */
+  start_or_quit[0] = (*ctx).wait_start;                                // C 1064
+  /* Place quit event in start_or_quit[1].  */
+  start_or_quit[1] = (*ctx).wait_quit;                                 // C 1066
+  loop
+    {
+      /* increase thread's wait call count by 1.  */
+      (*ctx).call_count += 1;                                          // C 1070
+      /* The timeout event object is placed at the end.
+	 nCount will not exceed 63.  */
+      hs[(*ctx).nCount as usize] = wait_pool.timeout_event;            // C 1073
+      /* The contents copied by different threads do not overlap, so it
+	 is safe to use memcpy.  */
+      memcpy (hs.as_mut_ptr () as *mut c_void, (*ctx).pHandles as *const c_void,
+	      (*ctx).nCount as usize * core::mem::size_of::<HANDLE> ()); // C 1076
+      /* Start waiting.  */
+      (*ctx).result = WaitForMultipleObjects (((*ctx).nCount + 1) as DWORD, hs.as_mut_ptr (),
+					      FALSE, INFINITE);          // C 1078-1079
+      /* Get the error code when the wait fails.  */
+      if (*ctx).result == WAIT_FAILED                                  // C 1081
+	{
+	  (*ctx).errcode = GetLastError ();                              // C 1083
+	  SetEvent ((*ctx).wait_ready);                                  // C 1084
+	  return WFO_FAILED;                                             // C 1085
+	}
+      /* After waiting, signal wait_ready and wait for the wait_start
+	 and wait_quit events from the main thread.  */
+      if SetEvent ((*ctx).wait_ready) == 0                             // C 1089
+	{
+	  (*ctx).errcode = GetLastError ();                              // C 1091
+	  return WFO_FAILED;                                             // C 1092
+	}
+      res = WaitForMultipleObjects (2, start_or_quit.as_mut_ptr (), FALSE, INFINITE); // C 1094
+      /* wait_start, continue loop.  */
+      if res == WAIT_OBJECT_0                                          // C 1095-1099
+	{ }
+      /* wait_quit, exit with code 0.  */
+      else if res == WAIT_OBJECT_0 + 1                                 // C 1101
+	{
+	  /* Close its wait_quit event handle.  */
+	  if CloseHandle (start_or_quit[1]) == 0                       // C 1103
+	    { return GetLastError (); }                                // C 1104
+	  return 0;                                                    // C 1105
+	}
+      /* Failure to wait for the start and quit event from the main
+	 thread should not occur.  */
+      else if res == WAIT_ABANDONED_0 || res == WAIT_ABANDONED_0 + 1   // C 1108-1111
+	       || res == WAIT_TIMEOUT || res == WAIT_FAILED
+	{
+	  (*ctx).errcode = GetLastError ();                              // C 1112
+	  return WFO_FAILED;                                             // C 1113
+	}
+    }
+  return 0;                                                            // C 1116
+}
+
+/* Determine the grouping based on the given wait objects and assign
+   them to the worker threads to begin waiting, creating new worker
+   threads if necessary.  The function also performs initialization of
+   some static resources.  */
+/// C 1123-1299: `static int start_wait_objects (wait_objects_info *p, DWORD nCount, HANDLE
+/// *lpHandles)` - C 1129-1137's lazy pool initialisation, C 1140-1165's live-thread scan
+/// (`WaitForSingleObject (... , 0)` against `WAIT_TIMEOUT`/`WAIT_OBJECT_0`), C 1166-1209's
+/// forty-line sizing comment (carried as C's text above the two assignments it explains),
+/// C 1210-1236's group arithmetic with C's `memcpy` and per-thread `nCount`/`pHandles`,
+/// C 1241-1278's thread creation loop (three `CreateEvent`s, `CreateThread` with C's
+/// `64 * 1024`/`0x00010000`, and C 1268-1276's optional `SetThreadDescription`), C 1282-1297's
+/// wait-array fill with `ResetEvent`/`SetEvent`, and C 1298's `return 0`.  C's `int` returns of the
+/// `WFO_FAILED` macro are `as c_int` (C's own u32-to-int conversion).
+/// C: static int
+/// C: start_wait_objects (wait_objects_info *p, DWORD nCount, HANDLE *lpHandles)
+#[cfg (feature = "windowsnt")]
+unsafe fn start_wait_objects (p: *mut wait_objects_info, nCount: DWORD,
+			      lpHandles: *mut HANDLE) -> c_int
+{
+  /* Initialization of static resources.  */
+  if wait_pool.init_flag == 0                                         // C 1129
+    {
+      wait_pool.timeout_event = CreateEvent (core::ptr::null_mut (), TRUE, FALSE,
+					     core::ptr::null ());      // C 1131
+      /* If resource initialization fails, exit immediately.  */
+      if wait_pool.timeout_event.is_null ()                           // C 1133
+	{ return WFO_FAILED as c_int; }                                // C 1134
+      /* Set init_flag.  */
+      wait_pool.init_flag = TRUE;                                     // C 1136
+    }
+  /* Check if all threads in the thread pool are working properly.  If
+     any thread has exited, exit immediately.  */
+  let mut i: c_int = 0;                                               // C 1140
+  while i < wait_pool.count
+    {
+      /* The MS documentation suggests that callers should call the
+	 GetExitCodeThread function only after the thread has been
+	 confirmed to have exited.  Use the WaitForSingleObject with a
+	 wait duration of zero to determine whether a thread has
+	 exited.  */
+      let res: DWORD = WaitForSingleObject (wait_pool.wocs[i as usize].thread, 0); // C 1147
+      /* Thread is alive.  */
+      if res == WAIT_TIMEOUT                                          // C 1149
+	{ i += 1; continue; }
+      /* The thread unexpectedly terminated when waiting
+	 wait_start and wait_quit.  */
+      else if res == WAIT_OBJECT_0                                    // C 1153
+	{
+	  /* The last-error code is kept in thread local storage so that
+	     multiple threads do not overwrite each other's values.  Pass
+	     the error by using SetLastError to set the error value.  */
+	  SetLastError (wait_pool.wocs[i as usize].errcode);           // C 1158
+	  return WFO_FAILED as c_int;                                  // C 1159
+	}
+      /* Unexpected return value from WaitForSingleObject.
+         WAIT_FAILED or WAIT_ABANDONED.  */
+      else
+	{ return WFO_FAILED as c_int; }                                // C 1164
+    }
+  /* Calculate the required number of threads and the number of objects
+     the main thread needs to wait for based on the number of objects to
+     be waited on.  To avoid increasing the number of threads for a small
+     increase in the number of objects (e.g., using two threads for 65
+     objects), the following calculation allows the main thread's array
+     to hold up to 32 wait objects, excluding the thread event
+     handles.  With this approach, the minimum number of wait objects for
+     the worker threads is 32, and it allows a maximum of 63 * 32 + 32 =
+     2048 objects to be waited on.
+
+     The number of child process in Emacs is limited by MAX_CHILDREN,
+     which is half of MAXDESC (FD_SETSIZE).  When FD_SETSIZE is set to
+     2048, a maximum of 1024 child processes and network/serial are
+     allowed.  Compared to network/serial, the process handles of child
+     processes are also waited on, which is why only a maximum of 1024
+     child processes can be created.
+
+     When there are 1024 child processes, the main thread needs to wait
+     for 64 objects, which seems to exceed the 63 allowed by
+     MsgWaitForMultipleObjects.  However, due to the influence of
+     emacs_pipe, a maximum of only 1021 child processes can be created,
+     so the number of elements in the main thread's wait array will not
+     exceed 63.  The explanation is as follows:
+
+     . emacs_pipe calls the pipe2 function located in w32.c.
+     . pipe2 makes sure that file descriptors return by _pipe less than
+       MAXDESC (2048), Therefore, the range of available file descriptor
+       values is from 3 to 2047 (0, 1, 2 for stdin, stdout and
+       stderr).  Since pipe file descriptors are opened in pairs, the
+       actual range is from 3 to 2046, meaning there are 2044 available
+       file descriptors.
+     . When create_process creates a process using the 'pipe' method, it
+       creates two pipes, one for reading and one for writing.  It then
+       closes one file descriptor for each pipe, as each pipe is only
+       used for reading or writing.  This results in 4 file descriptors
+       being used initially for each process creation, and then 2 are
+       released.  When only 2 empty slots remain, no new child processes
+       can be created.
+     . In the end, we can use 2042 file descriptors, which allows for
+       1021 child processes.  */
+
+  /* Compared to using (nCount / 63), we use (nCount - 33) / 63, which
+     will cause a new thread to be added only when the number of wait
+     objects in the main thread's array exceeds 32.  */
+  (*p).nt = (1 + (nCount - 33) / 63) as c_int;                        // C 1210
+  /* The number of objects the main thread needs to wait for is the
+     required number of threads plus the remaining objects.  If the
+     existing threads are sufficient to wait for all the objects, then
+     nh is the number of threads.  */
+  (*p).nh = if ((*p).nt * 63) as DWORD >= nCount                       // C 1215
+	      { (*p).nt }
+	    else
+	      { ((*p).nt as DWORD + nCount - ((*p).nt * 63) as DWORD) as c_int };
+  /* In the main thread's wait array hs, the first nt are thread event
+     handles, and the remaining are the remaining objects.  */
+  if (*p).nh != (*p).nt                                               // C 1218
+    {
+      memcpy ((*p).hs.as_mut_ptr ().add ((*p).nt as usize) as *mut c_void, // C 1219-1220
+	      lpHandles.add (((*p).nt * 63) as usize) as *const c_void,
+	      core::mem::size_of::<HANDLE> ()
+	      * (nCount - ((*p).nt * 63) as DWORD) as usize);
+    }
+  /* Set the pHandles and nCount parameters for each thread.  Since the
+     waiting task is relatively simple, we do not need a dedicated
+     task queue mechanism.  We can simply wait for the corresponding
+     objects in the order of the thread context array wait_pool.wocs.  */
+  let mut i: c_int = 0;                                               // C 1225
+  while i < (*p).nt
+    {
+      /* If it is the last thread and the thread is sufficient to wait
+	 all the objects, then the count needs to be calculated;
+	 otherwise, it will be 63.  */
+      let count: c_int = if i == (*p).nt - 1                          // C 1230-1233
+			   {
+			     if (*p).nt == (*p).nh
+			       { (nCount - (i * 63) as DWORD) as c_int }
+			     else { 63 }
+			   }
+			 else { 63 };
+      wait_pool.wocs[i as usize].nCount = count;                      // C 1234
+      wait_pool.wocs[i as usize].pHandles = lpHandles.add ((i * 63) as usize); // C 1235
+      i += 1;
+    }
+  /* Get current threads count.  */
+  let orig_thread_count: c_int = wait_pool.count;                     // C 1238
+  /* If the current thread pool is insufficient to wait for all the
+     objects, create new threads and initialize the event handles.  */
+  while wait_pool.count < (*p).nt                                     // C 1241
+    {
+      let ctx: *mut wait_objects_context                              // C 1243
+	= wait_pool.wocs.as_mut_ptr ().add (wait_pool.count as usize);
+      /* Create wait_start, wait_quit and wait_ready events.  */
+      (*ctx).wait_start = CreateEvent (core::ptr::null_mut (), FALSE, FALSE,
+				       core::ptr::null ());           // C 1245
+      if (*ctx).wait_start.is_null ()                                 // C 1246
+	{ return WFO_FAILED as c_int; }                                // C 1247
+      (*ctx).wait_quit = CreateEvent (core::ptr::null_mut (), FALSE, FALSE,
+				      core::ptr::null ());            // C 1248
+      if (*ctx).wait_quit.is_null ()                                  // C 1249
+	{ return WFO_FAILED as c_int; }                                // C 1250
+      /* The wait_ready event is set to be manually reset because it may
+	 be waited on multiple times.  */
+      (*ctx).wait_ready = CreateEvent (core::ptr::null_mut (), TRUE, FALSE,
+				       core::ptr::null ());           // C 1253
+      if (*ctx).wait_ready.is_null ()                                 // C 1254
+	{ return WFO_FAILED as c_int; }                                // C 1255
+      /* Set call_count and errcode to ZERO.  */
+      (*ctx).call_count = 0;                                          // C 1257
+      (*ctx).errcode = 0;                                             // C 1258
+      /* Creating new worker threads.  Please refer to the comment in
+	 w32proc.c within the new_child function, where the
+	 reader_thread thread is created, to understand why these
+	 parameters are needed.  */
+      (*ctx).thread = CreateThread (core::ptr::null_mut (), 64 * 1024, // C 1263-1264
+				    Some (wait_objects_thread), ctx as *mut c_void,
+				    0x00010000, core::ptr::null_mut ());
+      /* CreateThread failed.  */
+      if (*ctx).thread.is_null ()                                     // C 1266
+	{ return WFO_FAILED as c_int; }                                // C 1267
+      /* Set Thread Description information.  This may be handy with
+	 debugging.  */
+      if is_debugger_present.is_some ()                               // C 1270-1271
+	  && (is_debugger_present.unwrap ()) () != 0
+	  && set_thread_description.is_some ()
+	{
+	  if (set_thread_description.unwrap ()) ((*ctx).thread,          // C 1273-1274
+						 [0x0073u16, 0x0079, 0x0073, 0x005f, 0x0073,
+						  0x0065, 0x006c, 0x0065, 0x0063, 0x0074, 0x005f,
+						  0x0077, 0x006f, 0x0072, 0x006b, 0x0065, 0x0072,
+						  0x005f, 0x0074, 0x0068, 0x0072, 0x0065, 0x0061,
+						  0x0064, 0x0000].as_ptr ())
+	      != S_OK
+	    { return WFO_FAILED as c_int; }                            // C 1275
+	}
+      wait_pool.count += 1;                                           // C 1277
+    }
+  /* Fill the main thread's wait array with the wait_ready event
+     handles of the required worker threads, and set them to be
+     unsignaled.  */
+  let mut i: c_int = 0;                                               // C 1282
+  while i < (*p).nt
+    {
+      (*p).hs[i as usize] = wait_pool.wocs[i as usize].wait_ready;     // C 1284
+      /* Reset the wait_ready event and set wait_start event for threads
+	 that are not newly created.  Newly created threads start
+	 execution immediately.  */
+      if i < orig_thread_count                                        // C 1288
+	{
+	  if ResetEvent (wait_pool.wocs[i as usize].wait_ready) != 0     // C 1290-1291
+	      && SetEvent (wait_pool.wocs[i as usize].wait_start) != 0
+	    { i += 1; continue; }
+	  /* SetEvent or ResetEvent failed.  */
+	  else
+	    { return WFO_FAILED as c_int; }                            // C 1295
+	}
+      i += 1;
+    }
+  return 0;                                                           // C 1298
+}
