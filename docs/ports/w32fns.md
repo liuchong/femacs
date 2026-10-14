@@ -234,7 +234,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10836-10957 | C 10837-10839's registry banner, C 10840-10900's `w32-read-registry` (with C 10902's `#endif`) and C 10904-10956's `w32_get_resource` - slice 29; the three `HKEY_*` constants and `RegQueryValueEx` join the C 890-932 block above | the DEFUN: file gate + `windowsnt`; `w32_get_resource`: file gate |
 | 10958-11041 | C 10960-10962's wallpaper banner, C 10964-10965's `SystemParametersInfoW_Proc` with C 10967-11015's `w32-set-wallpaper`, and C 11017-11019's `GetLastInputInfo_Proc` with C 11021-11039's `w32-system-idle-time` - slice 30 | file gate + `windowsnt` |
 | 11044-11245 | C 11044's `#ifdef WINDOWSNT`, C 11046-11048's taskbar banner, C 11050-11054's `#ifndef MINGW_W64` guard with the two `DEFINE_GUID`s, and C 11056-11245's `w32-badge` - slice 31 | `windowsnt` (nested); the two GUIDs `not (mingw_w64)` |
-| 11247-12488 | **the remainder of the file** (C 11247 onward: `w32-request-user-attention` and `w32-progress-indicator` closing C 11348's `#endif`, the sleep-block group, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 11247-11348 | C 11247-11295's `w32-request-user-attention` and C 11297-11346's `w32-progress-indicator`, closing C 11348's `#endif` - slice 32 | `windowsnt` (nested) |
+| 11350-12488 | **the remainder of the file** (C 11350's System Sleep Support banner onward: `SetThreadExecutionState_fn` with `w32-block-system-sleep`/`w32-unblock-system-sleep`/`w32-system-sleep-block-count`, the notification group, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -3281,6 +3282,73 @@ inside the file's `w32fns 0.35 total` tolerance row - this is the last slice tha
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no overlay icon is drawn and
   no badge is set; the arm reading is compile-level (42 errors, none from this slice) and the name
   reading is the sweep's.
+
+## Slice 32 (C 11247-11348)
+
+**Scope and the stop.**  The two remaining taskbar DEFUNs - C 11247-11295's
+`w32-request-user-attention` and C 11297-11346's `w32-progress-indicator` - closing the
+badge/taskbar `#ifdef WINDOWSNT` with C 11348's `#endif`.  The stop is C 11350's System Sleep
+Support banner, which opens the next group.  Both items carry
+`all (feature = "have_ntgui", feature = "windowsnt")`.
+
+**What the items carry.**  `w32-request-user-attention` is C 11262-11264's `flash_window_ex_fn` NULL
+test (the pointer `globals_of_w32fns` loads), C 11266-11275's selected-frame resolution (the same
+shape `w32-badge` carries), C 11277-11283's `FLASHWINFO` field run with C's `sizeof(flash_info)`,
+C 11284-11292's three `dwFlags` arms (`Qinformational` -> `FLASHW_TRAY | FLASHW_TIMERNOFG`,
+`Qcritical` -> `FLASHW_ALL | FLASHW_TIMERNOFG`, otherwise `FLASHW_STOP`), and C 11294's call with
+`Qt`.  `w32-progress-indicator` is the same resolution, C 11323-11330's
+`CoInitialize`/`CoCreateInstance` pair with C 11329's `r != S_OK`, C 11332-11335's scaling
+(`ULONGLONG adj_progress = 0`, the `FLOATP` test and C's `(ULONGLONG) (100.0 * XFLOAT_DATA
+(progress))`), C 11336-11344's two arms (`TBPF_NORMAL` + `SetProgressValue (..., adj_progress,
+100)` against `TBPF_NOPROGRESS`), then the `Release` and `Qt`.
+
+**New surface.**  The `FLASHWINFO` record (five fields) and the four `FLASHW_*` flags, and the two
+`TBPFLAG` members `TBPF_NORMAL`/`TBPF_NOPROGRESS` - the SDK's enum read as the `c_int` this unit's
+`ITaskbarList3Vtbl.SetProgressState` takes.  Both `Q` symbols come from the mirror
+(`include/globals.rs` 1052/601), as do `SYMBOLP`, `EQ`, `FLOATP` and `XFLOAT_DATA`
+(`include/lisp.rs`).
+
+### Evidence (slice 32, the final revision: 16,963 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  One run: **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  One run: **42 previous errors** - the standing
+count - so this slice adds no error and no member gap, and **no error sits at or beyond
+`src/w32fns.rs` 16,770** (the largest is the pre-existing `must_be_updated_p` gap at 12,083).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 16,770-16,917: 39 capitalized
+identifiers, missing only `Clone`/`Copy` (the new record's derive arguments) and the two `Sw32_*`
+(`DEFUN!`'s macro-generated statics) - the documented non-item classes; no unresolved value.
+
+**④ `extract-abi.py --check`.**  **76 → 74** rows: `missing subr Fw32_request_user_attention` and
+`missing subr Fw32_progress_indicator` retire, and **no token row appears** - every token of both
+bodies has a counterpart.  The drift row the first reading added (`line count drifted 35.8%: C
+12488 vs Rust 16963`) is answered the way the table's own rule demands: a new `w32fns` row is
+appended to `docs/ports/line-drift-tolerance.tsv` (`0.37` = the measured 35.8% + 0.01, the
+`xfns` 0.41 row's rule), superseding the slice-17 `0.35`, and the second reading has no drift row.
+
+**⑤ The range table and the dead-file gate.**  The `11247-12488` remainder row splits into
+`11247-11348` (this slice) and `11350-12488` (the remainder, 1,139 lines);
+`check-dead-file-coverage.py` reads **182 range row(s) cover src/w32fns.c (12488 lines; 132 blank
+line(s) between blocks need no row)**.  The over-sequence comment above the
+`w32_console_toggle_lock_key` block now reads `C 11350-12488`.
+
+### Deviations (slice 32)
+
+- **C's `FLASHWINFO flash_info;` keeps C's field-only initialisation** as
+  `let mut flash_info: FLASHWINFO = core::mem::zeroed ();` (the `LASTINPUTINFO` device, slice 30) -
+  Rust's definite-initialization would otherwise reject C's partial writes.
+- **C's nullable function pointer is an `Option`**: C's `if (flash_window_ex_fn == NULL)` is
+  `flash_window_ex_fn.is_none ()` and the call is `(flash_window_ex_fn.unwrap ()) (...)`, the
+  `pfnShell_NotifyIconW`/`system_parameters_info_w_fn` device this file has used since slice 26.
+- **C's `TBPFLAG` enum is the `c_int` the unit's vtable slot takes** (the `NI_Severity` class), so
+  the two constants are `c_int`, not a Rust `enum`.
+- **C's two vtable calls keep C's `lpVtbl` walk** with an `Option` unwrap per method (slice 31's
+  reading).
+- **`FLASHW_ALL` is spelled `0x00000003`**, C's `(FLASHW_CAPTION | FLASHW_TRAY)` folded.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no taskbar icon flashes and
+  no progress bar appears; the arm reading is compile-level (42 errors, none from this slice) and
+  the name reading is the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

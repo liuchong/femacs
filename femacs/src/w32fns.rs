@@ -16767,7 +16767,155 @@ DEFUN! ("w32-badge", Fw32_badge, Sw32_badge,
   return Qt ();
 });
 
-/* C 11247-12488's text is not in the port yet (the file's remainder), but C 10112's
+/* C 11247-11348 closes the badge/taskbar `#ifdef WINDOWSNT`: C 11247-11295's
+   `w32-request-user-attention` and C 11297-11346's `w32-progress-indicator`, with C 11348's
+   `#endif` having no item of its own.  The System Sleep Support banner (C 11350-11352) and its
+   first `typedef` (C 11354) open the following slice, so the range table's remainder starts at
+   11350.  */
+
+/// C 11255-11295: `w32-request-user-attention` - C 11262-11264's `flash_window_ex_fn` NULL test
+/// (the pointer `globals_of_w32fns`, C 12460-12475, loads), C 11266-11275's selected-frame
+/// resolution (the same shape `w32_badge` carries), C 11277-11283's `FLASHWINFO` field run with
+/// C's `sizeof(flash_info)`, and C 11284-11292's three `dwFlags` arms (`Qinformational` ->
+/// `FLASHW_TRAY | FLASHW_TIMERNOFG`, `Qcritical` -> `FLASHW_ALL | FLASHW_TIMERNOFG`, otherwise
+/// `FLASHW_STOP`), then C 11294's call and `Qt`.  Both `Q` symbols are the mirror's
+/// (`include/globals.rs` 1052 and 601).
+/// C: DEFUN ("w32-request-user-attention", Fw32_request_user_attention,
+/// C:        Sw32_request_user_attention, 1, 1, 0,
+/// C:        doc: /* Flash the selected frame's taskbar icon and/or its window. … */)
+/// C:   (Lisp_Object urgency)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-request-user-attention", Fw32_request_user_attention, Sw32_request_user_attention,
+	1, 1, 0,
+	doc: "Flash the selected frame's taskbar icon and/or its window.\nIf URGENCY is nil, cancel the request, if any.  If URGENCY is the symbol\n`informational', flash the taskbar icon.  If URGENCY is the symbol\n`critical', flash the taskbar icon and the frame.  Windows stops\nflashing if the user focuses the frame.  Do nothing if Windows does not\nsupport FlashWindowEx and return nil, otherwise return t.  Do nothing if\nthe frame is not (yet) associated with a window handle.",
+	(urgency: Lisp_Object),
+	{
+  if flash_window_ex_fn.is_none ()
+    { return Qnil (); }
+
+  let sf: *mut frame = SELECTED_FRAME ();
+  let mut hwnd: HWND = core::ptr::null_mut ();
+
+  if FRAME_W32_P (sf) && FRAME_LIVE_P (sf)
+    { hwnd = FRAME_W32_WINDOW! (sf); }
+
+  if hwnd.is_null ()
+    { return Qnil (); }
+
+  let mut flash_info: FLASHWINFO = core::mem::zeroed ();
+  flash_info.cbSize = core::mem::size_of_val (&flash_info) as UINT;
+  flash_info.uCount = 0;
+  flash_info.dwTimeout = 0;
+  flash_info.hwnd = hwnd;
+  if ! NILP (urgency) && SYMBOLP (urgency)
+    {
+      /* The intended caller, 'system-taskbar-attention', has an
+	 optional timer to clear the attention indicator so this will
+	 flash until cleared via the timer, or the window comes to the
+	 foreground.  For informational attention, flash the tray icon.
+	 For critical attention, flash the tray icon and the window.  */
+      if EQ (urgency, Qinformational ())
+	{ flash_info.dwFlags = FLASHW_TRAY | FLASHW_TIMERNOFG; }
+      else if EQ (urgency, Qcritical ())
+	{ flash_info.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG; }
+    }
+  else
+    { flash_info.dwFlags = FLASHW_STOP; }
+
+  (flash_window_ex_fn.unwrap ()) (&raw mut flash_info as *mut c_void);
+  return Qt ();
+});
+
+/// C 11303-11346: `w32-progress-indicator` - the same selected-frame resolution as the item above,
+/// C 11323-11330's `CoInitialize`/`CoCreateInstance` pair, C 11332-11335's scaling (`ULONGLONG`
+/// zero, the `FLOATP` test and C's `(ULONGLONG) (100.0 * XFLOAT_DATA (progress))` cast), and
+/// C 11336-11344's two arms (`TBPF_NORMAL` + `SetProgressValue (…, adj_progress, 100)` against
+/// `TBPF_NOPROGRESS`), then the `Release` and `Qt`.
+/// C: DEFUN ("w32-progress-indicator", Fw32_progress_indicator, Sw32_progress_indicator,
+/// C:        1, 1, 0, doc: /* Show a progress bar on the selected frame's taskbar icon. … */)
+/// C:   (Lisp_Object progress)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-progress-indicator", Fw32_progress_indicator, Sw32_progress_indicator,
+	1, 1, 0,
+	doc: "Show a progress bar on the selected frame's taskbar icon.\nPROGRESS is a float in the range 0.0 to 1.0.  If PROGRESS is nil, remove\nthe progress indicator.  Do nothing if Windows does not support the\nITaskbarList3 interface and return nil, otherwise return t.  Do nothing\nif the selected frame is not (yet) associated with a window handle",
+	(progress: Lisp_Object),
+	{
+  let sf: *mut frame = SELECTED_FRAME ();
+  let mut hwnd: HWND = core::ptr::null_mut ();
+
+  if FRAME_W32_P (sf) && FRAME_LIVE_P (sf)
+    { hwnd = FRAME_W32_WINDOW! (sf); }
+
+  if hwnd.is_null ()
+    { return Qnil (); }
+
+  CoInitialize (core::ptr::null_mut ());
+  let mut task_bar_list: *mut ITaskbarList3 = core::ptr::null_mut ();
+  let r: HRESULT = CoCreateInstance (&raw const CLSID_TaskbarList,
+				     core::ptr::null_mut (),
+				     CLSCTX_INPROC_SERVER,
+				     &raw const IID_ITaskbarList3,
+				     &raw mut task_bar_list as *mut *mut c_void);
+  if r != S_OK
+    { return Qnil (); }
+
+  /* Scale task bar progress from 0.0-1.0 to 0-100.  */
+  let mut adj_progress: ULONGLONG = 0;
+  if ! NILP (progress) && FLOATP (progress)
+    { adj_progress = (100.0 * XFLOAT_DATA (progress)) as ULONGLONG; }
+  if adj_progress > 0
+    {
+      ((*((*task_bar_list).lpVtbl)).SetProgressState.unwrap ()) (task_bar_list,
+								hwnd, TBPF_NORMAL);
+      ((*((*task_bar_list).lpVtbl)).SetProgressValue.unwrap ()) (task_bar_list, hwnd,
+								 adj_progress, 100);
+    }
+  else
+    {
+      ((*((*task_bar_list).lpVtbl)).SetProgressState.unwrap ()) (task_bar_list,
+								 hwnd, TBPF_NOPROGRESS);
+    }
+
+  ((*((*task_bar_list).lpVtbl)).Release.unwrap ()) (task_bar_list);
+  return Qt ();
+});
+
+/// C 11277-11283's `FLASHWINFO` (the record C declares inside the item above) and C 11289-11292's
+/// four `FLASHW_*` flags, corroborated against the Win32 metadata projection.
+/// C: typedef struct { UINT cbSize; HWND hwnd; DWORD dwFlags; UINT uCount; DWORD dwTimeout; }
+/// C: FLASHWINFO, *PFLASHWINFO;
+/// C: #define FLASHW_STOP 0 / #define FLASHW_TRAY 0x00000002
+/// C: #define FLASHW_ALL (FLASHW_CAPTION | FLASHW_TRAY) / #define FLASHW_TIMERNOFG 0x0000000C
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FLASHWINFO
+{
+  pub cbSize: UINT,
+  pub hwnd: HWND,
+  pub dwFlags: DWORD,
+  pub uCount: UINT,
+  pub dwTimeout: DWORD,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FLASHW_STOP: UINT = 0;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FLASHW_TRAY: UINT = 0x00000002;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FLASHW_ALL: UINT = 0x00000003;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FLASHW_TIMERNOFG: UINT = 0x0000000C;
+
+/// C 11338/11343's two `TBPFLAG` members (`TBPF_NORMAL` 0x2 and `TBPF_NOPROGRESS` 0x0), the SDK's
+/// enum read as the `c_int` this unit's `ITaskbarList3Vtbl.SetProgressState` takes.
+/// C: typedef enum TBPFLAG { TBPF_NOPROGRESS = 0, TBPF_INDETERMINATE = 0x1, TBPF_NORMAL = 0x2,
+/// C: TBPF_ERROR = 0x4, TBPF_PAUSED = 0x8 } TBPFLAG;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const TBPF_NORMAL: c_int = 0x2;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const TBPF_NOPROGRESS: c_int = 0x0;
+
+/* C 11350-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C
