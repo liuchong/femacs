@@ -236,7 +236,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 11044-11245 | C 11044's `#ifdef WINDOWSNT`, C 11046-11048's taskbar banner, C 11050-11054's `#ifndef MINGW_W64` guard with the two `DEFINE_GUID`s, and C 11056-11245's `w32-badge` - slice 31 | `windowsnt` (nested); the two GUIDs `not (mingw_w64)` |
 | 11247-11348 | C 11247-11295's `w32-request-user-attention` and C 11297-11346's `w32-progress-indicator`, closing C 11348's `#endif` - slice 32 | `windowsnt` (nested) |
 | 11350-11477 | C 11350-11352's System Sleep Support banner, C 11354-11358's `SetThreadExecutionState_Proc` with its pointer and the two counters, C 11360/11391/11414's three sleep `DEFUN`s, and C 11424-11477's notification group (`sleep_notification_callback`, `RegisterSuspendResumeNotification_Proc`, `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, `w32_register_for_sleep_notifications`) - slice 33 | file gate (the group is outside every `#if`: `#[cfg (feature = "have_ntgui")]`, `input_event_bits!` included) |
-| 11478-12488 | **the remainder of the file** (C 11478-11480's Exporting frames banner onward: `w32-export-frame`, the exception/backtrace group, C 11586 `globals_of_w32fns`/`syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 11478-11520 | C 11478-11480's Exporting frames banner and C 11481-11520's `w32-export-frame` (its own `#ifdef WINDOWSNT` at C 11491 with the C 11517-11518 `#else`) - slice 34 | file gate; the body's two arms are `windowsnt` / `not (windowsnt)` |
+| 11522-12488 | **the remainder of the file** (C 11522-11524's Initialization banner onward: `w32_frame_parm_handlers` (C 11530), `syms_of_w32fns` (C 11585), the exception/backtrace group and `globals_of_w32fns` (C 12294)) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -3449,6 +3450,71 @@ line(s) between blocks need no row)**.  The over-sequence comment above the
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no thread execution state is
   set and no power notification is registered; the arm reading is compile-level (42 errors, none
   from this slice) and the name reading is the sweep's.
+
+## Slice 34 (C 11478-11520)
+
+**Scope and the stop.**  The Exporting frames group - C 11478-11480's banner and `w32-export-frame`
+(C 11481-11520), whose body carries its own `#ifdef WINDOWSNT` (C 11491) with the `#else`/
+`return Qnil;` arm (C 11517-11518).  The stop is C 11522's Initialization banner.  The item sits
+outside every other `#if`, so it carries the file gate alone.
+
+**What the item carries.**  C 11492's live-frame decode, C 11494-11495's optional-argument default
+(`type = Qjpeg`), C 11497-11500's two visibility tests with their `error` calls, C 11502-11503's
+redisplay call, C 11505-11514's GDI+ run (`FRAME_W32_WINDOW`, `result = -1`, the `CLSID` local, the
+`block_input`/`unblock_input` pair, the `w32_gdiplus_startup () && frame_hwnd != NULL &&
+w32_gdip_get_encoder_clsid (...)` chain and the export call), and C 11516's `result >= 0 ? Qt :
+Qnil`.  The four SDK names come from the mirrors (`w32gui.rs` 101's `w32_gdiplus_startup`,
+`w32gdiplus.rs` 392-395's two `w32_gdip_*`), and `redisplay_preserve_echo_area`
+(`dispextern.h` 3589) is declared at the use site because no mirror carries the row - the
+`src/xfns.rs` 14148 device.
+
+### Evidence (slice 34, the final revision: 17,273 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Two runs (the second after the `r#type` fix): **exit 0**,
+the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Two runs.  The first read **45** errors - the
+standing **42** plus `expected identifier, found keyword type` (C names the parameter `type`, which
+is a Rust keyword: the port spells it `r#type`, the `src/alloc.rs` 3876 / `src/androidfns.rs` 2216
+device, and `extract-abi.py` strips the prefix when it compares bodies).  The second run is back to
+**42** - so this slice adds no member gap and no type error, and **no error sits at or beyond
+`src/w32fns.rs` 17,163** (the largest is the pre-existing `must_be_updated_p` gap at 12,083).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 17,163-17,227: 13 capitalized
+identifiers, the one missing being `Sw32_export_frame` (`DEFUN!`'s macro-generated static) - no
+unresolved value.
+
+**④ `extract-abi.py --check`.**  **64 → 63** rows: `missing subr Fw32_export_frame` retires, and
+**no token row appears** - every token of the body has a counterpart, including C's
+`&image_type_clsid` (the mirror types the two `w32_gdip_*` parameters `*mut c_void`, so the port
+casts).  No drift row: 17,273 Rust lines against 12,488 C lines (38.3%), inside the `w32fns 0.39`
+row appended in slice 33.
+
+**⑤ The range table and the dead-file gate.**  The `11478-12488` remainder row splits into
+`11478-11520` (this slice) and `11522-12488` (the remainder, 967 lines);
+`check-dead-file-coverage.py` reads **184 range row(s) cover src/w32fns.c (12488 lines; 133 blank
+line(s) between blocks need no row)**.  The over-sequence comment above the
+`w32_console_toggle_lock_key` block now reads `C 11522-12488`.
+
+### Deviations (slice 34)
+
+- **C's `type` parameter is `r#type`** (a Rust keyword), in the DEFUN's argument list and in the
+  body; `extract-abi.py` strips the prefix, so the token comparison is unaffected.
+- **C assigns to the parameter, so it is re-bound** (`let mut r#type = r#type;`), because
+  `DEFUN!`'s `$arg:ident` cannot say `mut` - the `src/androidfns.rs` 3029 reading.
+- **The body's two arms are sibling `#[cfg]` blocks** (`windowsnt` / `not (windowsnt)`), the
+  `src/callproc.rs` 1828-1831 device, and the `#else`'s bare `return Qnil;` is the `not` arm.
+- **`image_type_clsid` is `core::mem::zeroed ()` first** - C declares it and writes it through the
+  callee; the same device `FLASHWINFO`/`LASTINPUTINFO` use.
+- **The two `w32_gdip_*` calls cast their CLSID argument to `*mut c_void`**, because the mirror
+  spells those parameters untyped (P-55/P-72 rule 3); C's own `&image_type_clsid` is unchanged in
+  meaning.
+- **`FRAME_VISIBLE_P`/`FRAME_WINDOW_P` are the mirror's predicated forms** (C's `!FRAME_VISIBLE_P
+  (f)` is `! FRAME_VISIBLE_P (f)`), and the two `error` literals are `c"..."` byte strings - the
+  file's device since slice 1.
+- **Not claimed.**  No run evidence: no Windows, no GDI+ and no mingw toolchain, so no frame is
+  exported and no encoder CLSID is looked up; the arm reading is compile-level (42 errors, none from
+  this slice) and the name reading is the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

@@ -17160,7 +17160,72 @@ pub unsafe extern "C" fn w32_register_for_sleep_notifications ()
     }
 }
 
-/* C 11479-12488's text is not in the port yet (the file's remainder), but C 10112's
+/* C 11478-11520 is the Exporting frames group: C 11478-11480's banner and C 11481-11520's
+   `w32-export-frame`, whose body carries its own `#ifdef WINDOWSNT` (C 11491) and the
+   `#else`/`return Qnil;` arm (C 11517-11518).  The group sits outside every other `#if`, so the
+   item carries the file gate; C 11522's Initialization banner opens the next slice.  */
+
+/* C: `dispextern.h` 3589: `void redisplay_preserve_echo_area (int);` - C 11503's call; the
+   mirror carries no row (the `src/xfns.rs` 14148 device).  */
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn redisplay_preserve_echo_area (n: c_int);                              // dispextern.h 3589
+}
+
+/// C 11481-11520: `w32-export-frame` - C 11492's live-frame decode (the slice-22 declaration
+/// above), C 11494-11495's optional-argument default (the parameter is re-bound as `mut`,
+/// because C assigns to it and `DEFUN!`'s `$arg:ident` cannot say `mut` - the `src/androidfns.rs`
+/// 3029 device), C 11497-11500's visibility tests, C 11502-11503's redisplay call,
+/// C 11505-11514's GDI+ run (`FRAME_W32_WINDOW`, the `result` accumulator, the encoder-CLSID
+/// lookup over `SSDATA (SYMBOL_NAME (r#type))` and the export call, inside `block_input`), and
+/// C 11516's three-valued return.
+/// C: DEFUN ("w32-export-frame", Fw32_export_frame, Sw32_export_frame, 2, 3, 0,
+/// C:        doc: /* Export screenshot of FRAME to FILE as image of TYPE format. … */)
+/// C:   (Lisp_Object frame, Lisp_Object file, Lisp_Object type)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-export-frame", Fw32_export_frame, Sw32_export_frame, 2, 3, 0,
+	doc: "Export screenshot of FRAME to FILE as image of TYPE format.\nIf FRAME is nil, it defaults to the selected frame.\nFRAME must be a visible GUI frame; if not, this function signals an error.\nOptional arg TYPE should be either `jpeg' (default), `bmp', `png',\n`gif', or `tiff'.\n\nValue is non-nil if FRAME was successfully exported, nil otherwise.",
+	(frame: Lisp_Object, file: Lisp_Object, r#type: Lisp_Object),
+	{
+  /* C 11491's `#ifdef WINDOWSNT` arm.  */
+  #[cfg (feature = "windowsnt")]
+  {
+    let f: *mut frame = decode_live_frame (frame);
+
+    let mut r#type = r#type;                    /* C 11494-11495 reassigns the parameter.  */
+    if NILP (r#type)
+      { r#type = Qjpeg (); }
+
+    if ! FRAME_VISIBLE_P (f)
+      { error (c"Frame to be exported must be visible".as_ptr ()); }
+    else if ! FRAME_WINDOW_P (f)
+      { error (c"Frame to be exported must be a GUI frame".as_ptr ()); }
+
+    /* Make sure the current matrices are up-to-date.  */
+    redisplay_preserve_echo_area (32);
+
+    let frame_hwnd: HWND = FRAME_W32_WINDOW! (f);
+    let mut result: c_int = -1;
+    let mut image_type_clsid: CLSID = core::mem::zeroed ();
+    block_input ();
+    if w32_gdiplus_startup ()
+	&& !frame_hwnd.is_null ()
+	&& w32_gdip_get_encoder_clsid (SSDATA (SYMBOL_NAME (r#type)),
+				       &raw mut image_type_clsid as *mut c_void) >= 0
+      {
+	result = w32_gdip_export_frame (frame_hwnd as *mut c_void, file,
+					&raw mut image_type_clsid as *mut c_void);
+      }
+    unblock_input ();
+
+    return if result >= 0 { Qt () } else { Qnil () };
+  }
+  /* C 11517-11518's `#else` arm.  */
+  #[cfg (not (feature = "windowsnt"))]
+  { return Qnil (); }
+});
+
+/* C 11522-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C
