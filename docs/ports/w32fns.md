@@ -4013,8 +4013,10 @@ row; `check-dead-file-coverage.py` reads **190 range row(s) cover src/w32fns.c (
 143 blank line(s) between blocks need no row)** - **no row of the table is a remainder any more**.
 
 **⑥ The lane's closing reading.**  `extract-abi.py --check` `OK` above is the per-file half; the
-tree-wide reading is `extract-abi.py --all` (run at the next round's start, since it reads every
-file).  What this lane claims at its close is exactly these readings: the file's text is complete
+tree-wide one was measured in the same round: **`extract-abi.py --all` reads 590 files -> 583 done,
+0 in progress, 7 failing** (180s, 297MB), where the failing set no longer contains `src/w32fns.c` -
+it is `android.c`, `androidterm.c`, `androidvfs.c` (the JNI-name/accounting class of the earlier
+reading), `gtkutil.c`, `w32.c`, `w32proc.c` and `w32term.c`.  What this lane claims at its close is exactly these readings: the file's text is complete
 against its reference, its token check is clean, its four arm readings are the 42-error baseline
 with no diagnostic from this file's own text, and the `--check` is `OK`.  Nothing here is a claim
 about running the code.
