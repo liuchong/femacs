@@ -213,7 +213,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 6917-7106 | C 6917-7106: `w32_monitor_enum`, `w32_display_monitor_attributes_list`, `w32_display_monitor_attributes_list_fallback` and the `w32-display-monitor-attributes-list` `DEFUN` - slice 9 | file gate |
 | 7108-7244 | C 7108-7244: the `set-message-beep` `DEFUN`, `w32_display_info_for_name` and the `x-open-connection` `DEFUN` - slice 10 | file gate |
 | 7246-7388 | C 7246-7388: the `x-close-connection`, `x-display-list` and `x-synchronize` `DEFUN`s, then C 7291-7388's `#if 0 /* TODO : port window properties to W32 */` block kept as C's own text - slice 11 | file gate; the `#if 0` region is dead in every configuration |
-| 7390-12488 | **the remainder of the file** (C 7390's Tool-tips banner onward: C 7394 `compute_tip_xy`, C 7418 `w32_show_tip`, C 7663 `w32_hide_tip`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7390-7661 | C 7390-7392's Tool-tips banner, C 7394-7395's `compute_tip_xy` declaration (dropped - the definition is C 7663), the six tip objects (C 7398-7415), `unwind_create_tip_frame` (C 7418-7429) and `w32_create_tip_frame` (C 7432-7661) - slice 12 | file gate; C 7394-7395's forward declaration has no counterpart (PORTING.md 0.1-12) |
+| 7663-12488 | **the remainder of the file** (C 7663 `compute_tip_xy` onward: C 7763 `w32_hide_tip`, C 7809 `x-show-tip`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1720,6 +1721,89 @@ this slice - `block_input`/`unblock_input`, `check_x_display_info`, `Fcons`, `XC
   fixed: it is a /tmp reading, not a gate, so its false positives are triaged by hand.
 - **Not claimed.**  No run evidence: no connection is closed, no display list is built and no
   property is set on this machine; the arm reading is compile-level and the sweep textual.
+
+## Slice 12 (C 7390-7661)
+
+**Scope and the stop.**  C 7390-7392's Tool-tips banner, C 7394-7395's `compute_tip_xy` forward
+declaration, the six tool-tip objects (C 7398-7415), `unwind_create_tip_frame` (C 7418-7429) and
+`w32_create_tip_frame` (C 7432-7661).  The stop is C 7663, which opens `compute_tip_xy`'s
+definition (C 7663-7761) - the next item.
+
+**What the item carries.**  The six objects (C 7402's `Window tip_window;` is the one non-`static`
+of them, so it carries `#[unsafe(no_mangle)]`; the five `static Lisp_Object`s are zero in C, i.e.
+the port's `lisp_h_Qnil ()`); `unwind_create_tip_frame` (C's `static void` whose address C 7476
+takes, so the definition carries the C ABI); and `w32_create_tip_frame`'s whole body -
+C 7459's parameter copy, C 7462's name read, C 7472's `make_frame (false)`, C 7476's
+`record_unwind_protect`, C 7482-7488's terminal/`output_method!`/`xzalloc`/`FRAME_FONTSET!`/
+`fset_icon_name` run, C 7490-7492's `glyph_debug` arm, C 7493's `FRAME_KBOARD (f) = kb;`,
+C 7495-7508's name block, C 7510-7516's three `register_font_driver` calls (`have_harfbuzz`),
+C 7518-7557's twelve `gui_default_parameter` calls and the `internalBorder` block, C 7562's
+`init_frame_faces`, C 7564-7566's `dwStyle`/`parent_desc`/`explicit_parent` writes,
+C 7568's `gui_figure_window_size`, C 7570-7576's five fringe/divider zeros, C 7578-7582's
+`my_create_tip_window`/`w32_make_gc` pair, C 7584-7600's seven more `gui_default_parameter` calls,
+C 7602-7604's `tooltip` parameter default, C 7606-7628's bg/fg block (`Fframe_parameter`,
+`calln` with `Qface_set_after_frame_default`), C 7634-7643's reference counts,
+`Vframe_list`, `adjust_frame_size (…, Qtip_frame)`, C 7650's `face_change` restore and C 7653's
+`unbind_to`.  New constant: `WS_DISABLED` (0x08000000, C 7564).
+
+**The flag-table correction (slices 6 and 7 revisited).**  C writes five `frame.h` `bool_bf`
+members directly in this file's text; the mirror carries each bit's `_UNIT`/`_SHIFT` pair and the
+`frame_set_flag`/`frame_flag` device the file already used for `FRAME_UNDECORATED!`, so this slice
+moves all five onto it: C 6105/6107's `explicit_name` reads and writes in `w32_window` (slice 6),
+C 6608's `no_split`, C 6637's `can_set_window_size` and C 6682's `was_invisible` in
+`Fx_create_frame` (slice 7), plus this slice's own C 7473 `wants_modeline`, C 7488 `tooltip`,
+C 7630 `no_split` and C 7641 `can_set_window_size`.  The arm reading drops from **42 to 40**
+previous errors: the five `frame`-bit sites retire and this slice's text adds one
+`explicit_parent` site (the `w32_output` member the mirror still records without packing - the
+same owed class as `menubar_active`/`hourglass_p`).  Three appended
+`docs/ports/macro-body-notes.tsv` rows close the token rows the correction creates.
+
+### Evidence (slice 12, the final revision: 11,509 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0, `build/femacs/w32fns.o`
+**336 bytes**.  One run (plus one earlier run that read the two parse errors below).
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **40 previous errors** (from slice 11's 42; the
+five retired sites and the one new `explicit_parent` site above).  Classes: `menubar_active` 6,
+`explicit_parent` 4, `hourglass_p` 3, `tab_bar_*`/`tool_bar_*` 9, the eleven `E0428`s and
+`E0530`.  One probe run after two unit-local fixes: C's banner text closed the port's own comment
+at its first `*/` (`error: unknown start of token`, `expected item, found \`,\``), and the note
+that quoted that delimiter did it a second time - the banner is now carried inside one wrapper
+comment and the note names the delimiter in prose.
+
+**③ `extract-abi.py --check`.**  169 rows → **162**: seven retire (`missing function
+unwind_create_tip_frame`, `missing function w32_create_tip_frame`, and the five `missing
+file-scope object` rows `tip_frame`, `tip_timer`, `tip_last_string`, `tip_last_frame`,
+`tip_last_parms`); the correction adds four token rows
+(`w32_window does not mention explicit_name`, `Fx_create_frame`/`w32_create_tip_frame`'s member
+lists), all closed by the three appended notes rows - so the final count is seven rows down.  The
+drift row reads **7.8%** (`C 12488 vs Rust 11509`), down from 10.3%.
+
+**④ The range table and the dead-file gate.**  The `7390-12488` remainder row splits into
+`7390-7661` (this slice; C 7394-7395 marked as the dropped forward declaration) and `7663-12488`;
+`check-dead-file-coverage.py` reads **161 range row(s) cover src/w32fns.c (12488 lines; 108 blank
+line(s) between blocks need no row)**, `0 failure(s)` (160 rows / 107 blanks before the split).
+
+**⑤ The name sweep, now a repository tool.**  The reading slice 8 introduced and slice 10 used
+(where it found `validate_x_resource_name`) is committed as **`tools/check-unit-names.py`** - a
+triage reading, not one of the ten gates, with its two known false-positive classes (nested block
+comments; macro-generated names and globals reached through a mirrored record) written into its
+docstring.  Over this slice's region (`src/w32fns.rs` 11252-11509) it reads **57 capitalized
+identifiers, missing: []**.
+
+### Deviations (slice 12)
+
+- **The five bitfield writes are the mirror's flag device**, not C's member syntax: the port's
+  `frame_set_flag (f, FRAME_X_UNIT, FRAME_X_SHIFT, v)` writes the same bit in the mirror's packed
+  word (PORTING.md 1.3 / P-80), and the notes rows above record the token loss.
+- **C 7493's `FRAME_KBOARD (f) = kb;`** writes through frame.h 919's `((f)->terminal->kboard)`;
+  the mirror's `terminal.kboard` member is the untyped `*mut c_void` (P-72 rule ③), so the write
+  carries C's own type as a cast - the C 6289 reading of slice 7.
+- **`explicit_parent` keeps C's spelling** (C 7566): it is a recorded-not-packed `w32_output`
+  member, so the write is the 4th owed site of that name (slice 7 has three).
+- **C 7394-7395's forward declaration is dropped** (Rust needs none); the range table row records it.
+- **Not claimed.**  No run evidence: no tooltip frame is created here (no display, no
+  `my_create_tip_window` call), the arm reading is compile-level and the name sweep textual.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
