@@ -1117,3 +1117,30 @@ rewritten).
   `deliver_wm_chars (1, …)`) stand at their C positions.
 - The two prefix defect classes this slice could not repair (`include/frame.rs`'s six members and
   `include/w32term.rs`'s two bitfields) are the next lane's arm-reading-starting point, unchanged.
+
+**Starting state measured for the next lane (2026-10-14, at `bb049624`).**  Three facts a fresh
+reader would otherwise have to re-derive, all read off the tree just now:
+
+- **This file's text convention is *prose* `C NNNN` citations, not column-end ticks.**  A tick
+  counter (the `src/w32.c` lane's `// C NNNN` device) reads `femacs/src/w32fns.rs` as 508 ticks and
+  a maximum of C 5,716, which is an artefact: the file cites its C lines inside `///`/`/* */` prose
+  (e.g. `/* C: `command:` (C 5708-5712).  */`).  Coverage is the range table plus `--check` plus
+  `check-dead-file-coverage.py`, as this ledger already says - **do not** re-tick the file.
+- **The first slice's boundary is C 5988-6121**: `my_create_window` (C 5988-6033, its doc comment
+  from 5988), `my_create_tip_window` (C 6035-6078) and `w32_window` (C 6080-6121), three whole
+  items ending at C 6121's `}` (C 6122 blank, C 6123 the next doc comment).  `w32_icon`
+  (C 6123-6152) through `w32_default_font_parameter` (C 6216-6251) are the following slice, and
+  **C 6253's `x-create-frame` DEFUN runs to about C 9579** (the ledge says C 9581 is
+  `w32_display_info_for_name`), so it is its own slice by size alone.
+- **The names C 5988-6121 needs that this unit's graph does not carry**: `CW_USEDEFAULT`
+  (`<winuser.h>`), `gui_display_get_arg` with `resource_types`/`RES_TYPE_NUMBER`/`RES_TYPE_STRING`
+  (`dispextern.h` 3983-4003 - `src/pgtkfns.rs` 498-507 spells the same four for its own unit) and
+  `GetMessage` (C's macro; the file's existing `GetMessageA`/`GetMessageW` pair sit at
+  `src/w32fns.rs` 6122/6124, and this very file already reads C's `...A`/`...W` macro pairs through
+  its own `w32_unicode_gui` test - see the `DefWindowProc`/`DispatchMessage` sites).  Everything
+  else those three functions name (`MSG`, `one_w32_display_info`, `PostThreadMessage`,
+  `WM_EMACS_CREATEWINDOW`/`WM_EMACS_DONE`, `AdjustWindowRect`, `EMACS_CLASS`, `SetWindowLong`,
+  `WND_*_INDEX`, `ShowWindow`/`SW_HIDE`, `hinst`, `FRAME_W32_WINDOW`, `block_input`/
+  `unblock_input`, `xlispstrdup`, `validate_x_resource_name`, `w32_set_name`, `fset_name`,
+  `initialize_frame_menubar`, `Vx_resource_name`, `one_w32_display_info`'s `hinst`) is already in
+  scope - measured one name at a time.
