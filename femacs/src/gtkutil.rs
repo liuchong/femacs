@@ -5176,3 +5176,177 @@ unsafe fn xg_update_menubar (menubar: *mut GtkWidget, f: *mut frame, list: *mut 
   xg_update_menubar (menubar, f, list, iter, pos, val,                  // C 3828
 		     select_cb, deactivate_cb, highlight_cb, cl_data);  // C 3829
 }
+
+/* C 3832-3835's comment above `xg_update_menu_item`, carried as C's own text.  */
+/* C: /* Update the menu item W so it corresponds to VAL.
+   C:    SELECT_CB is the callback to use when a menu item is selected.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.
+   C:    CL_DATA is the data to set in the widget for menu invocation.  */  */
+
+/// C 3837-3945: `static void xg_update_menu_item (widget_value *val, GtkWidget *w, GCallback
+/// select_cb, GCallback highlight_cb, xg_menu_cb_data *cl_data)` - `static` and its address is
+/// never taken, so a plain `unsafe fn`.  C 3845-3850's five pointer locals are the port's nulls
+/// (`GtkLabel *wlbl = 0`, the two `const char *` and C 3852's `false`), C 3859's `GTK_IS_BOX` is
+/// the mirror declaration this slice adds, C 3863-3864/3888-3889's `list->data`/
+/// `list->next->data` reads are the `GList` members (`include/gtk.rs` 68-70),
+/// C 3870/3873's `g_object_ref`/`g_object_unref` take C's `GObject *` through the port's
+/// `gpointer`, C 3897-3898's `gtk_label_get_label` is slice 8's mirror entry point, C 3900/3906's
+/// two comparisons are C's own `strcmp` tests with the port's null checks for C's `! old_key`/
+/// `! old_label`, C 3915/3917's `gtk_widget_get_sensitive` is this slice's second mirror
+/// declaration and its `gboolean` result is the port's `!= 0`/`== 0`, C 3920's
+/// `g_object_get_data` result takes C's conversion, C 3931/3936's `select_id` tests are the
+/// port's `== 0`/`!= 0` over a `gulong`, and C 3933-3934's `g_signal_connect` passes the
+/// *variable* `select_cb` - so it stands in the `g_signal_connect!` macro's own
+/// `g_signal_connect_data` expansion, as C 3359's and C 3469's do.
+/// C: static void
+/// C: xg_update_menu_item (widget_value *val,
+/// C:                      GtkWidget *w,
+/// C:                      GCallback select_cb,
+/// C:                      GCallback highlight_cb,
+/// C:                      xg_menu_cb_data *cl_data)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_update_menu_item (val: *mut widget_value, w: *mut GtkWidget, select_cb: GCallback,
+			       highlight_cb: GCallback, cl_data: *mut xg_menu_cb_data)
+{
+  let wchild: *mut GtkWidget;                                           // C 3844
+  let mut wlbl: *mut GtkLabel = std::ptr::null_mut ();                  // C 3845
+  let mut wkey: *mut GtkLabel = std::ptr::null_mut ();                  // C 3846
+  let utf8_label: *mut c_char;                                          // C 3847
+  let utf8_key: *mut c_char;                                            // C 3848
+  let mut old_label: *const c_char = std::ptr::null ();                 // C 3849
+  let mut old_key: *const c_char = std::ptr::null ();                   // C 3850
+  let cb_data: *mut xg_menu_item_cb_data;                               // C 3851
+  let mut label_changed: bool = false;                                  // C 3852
+
+  wchild = XG_BIN_CHILD! (w);                                           // C 3854
+  utf8_label = get_utf8_string ((*val).name);                           // C 3855
+  utf8_key = get_utf8_string ((*val).key);                              // C 3856
+
+  /* See if W is a menu item with a key.  See make_menu_item above.  */  // C 3858
+  if GTK_IS_BOX! (wchild)                                               // C 3859
+    {
+      let list: *mut GList = gtk_container_get_children (GTK_CONTAINER! (wchild));   // C 3861
+
+      wlbl = GTK_LABEL! ((*list).data);                                 // C 3863
+      wkey = GTK_LABEL! ((*(*list).next).data);                         // C 3864
+      g_list_free (list);                                               // C 3865
+
+      if utf8_key.is_null ()                                            // C 3867
+	{
+	  /* Remove the key and keep just the label.  */                // C 3869
+	  g_object_ref (G_OBJECT! (wlbl) as gpointer);                  // C 3870
+	  gtk_container_remove (GTK_CONTAINER! (w), wchild);            // C 3871
+	  gtk_container_add (GTK_CONTAINER! (w), GTK_WIDGET! (wlbl));   // C 3872
+	  g_object_unref (G_OBJECT! (wlbl) as gpointer);                // C 3873
+	  wkey = std::ptr::null_mut ();                                 // C 3874
+	}
+
+    }
+  else /* Just a label.  */                                             // C 3878
+    {
+      wlbl = GTK_LABEL! (wchild);                                       // C 3880
+
+      /* Check if there is now a key.  */                               // C 3882
+      if ! utf8_key.is_null ()                                          // C 3883
+	{
+	  let wtoadd: *mut GtkWidget
+	    = make_widget_for_menu_item (utf8_label, utf8_key);         // C 3885
+	  let list: *mut GList = gtk_container_get_children (GTK_CONTAINER! (wtoadd));   // C 3886
+
+	  wlbl = GTK_LABEL! ((*list).data);                             // C 3888
+	  wkey = GTK_LABEL! ((*(*list).next).data);                     // C 3889
+	  g_list_free (list);                                           // C 3890
+
+	  gtk_container_remove (GTK_CONTAINER! (w), wchild);            // C 3892
+	  gtk_container_add (GTK_CONTAINER! (w), wtoadd);               // C 3893
+	}
+    }
+
+  if ! wkey.is_null () { old_key = gtk_label_get_label (wkey); }        // C 3897
+  if ! wlbl.is_null () { old_label = gtk_label_get_label (wlbl); }      // C 3898
+
+  if ! wkey.is_null () && ! utf8_key.is_null ()                         // C 3900
+      && (old_key.is_null () || strcmp (utf8_key, old_key) != 0)
+    {
+      label_changed = true;                                             // C 3902
+      gtk_label_set_text (wkey, utf8_key);                              // C 3903
+    }
+
+  if ! utf8_label.is_null ()                                            // C 3906
+      && (old_label.is_null () || strcmp (utf8_label, old_label) != 0)
+    {
+      label_changed = true;                                             // C 3908
+      gtk_label_set_text (wlbl, utf8_label);                            // C 3909
+    }
+
+  if ! utf8_key.is_null () { g_free (utf8_key as gpointer); }           // C 3912
+  if ! utf8_label.is_null () { g_free (utf8_label as gpointer); }       // C 3913
+
+  if ! (*val).enabled && gtk_widget_get_sensitive (w) != 0              // C 3915
+    { gtk_widget_set_sensitive (w, FALSE); }                            // C 3916
+  else if (*val).enabled && gtk_widget_get_sensitive (w) == 0           // C 3917
+    { gtk_widget_set_sensitive (w, TRUE); }                             // C 3918
+
+  cb_data = g_object_get_data (G_OBJECT! (w), XG_ITEM_DATA)             // C 3920
+    as *mut xg_menu_item_cb_data;
+  if ! cb_data.is_null ()                                               // C 3921
+    {
+      (*cb_data).call_data = (*val).call_data;                          // C 3923
+      (*cb_data).help = (*val).help;                                    // C 3924
+      (*cb_data).cl_data = cl_data;                                     // C 3925
+
+      /* We assume the callback functions don't change.  */             // C 3927
+      if ! (*val).call_data.is_null () && (*val).contents.is_null ()    // C 3928
+	{
+	  /* This item shall have a select callback.  */                // C 3930
+	  if (*cb_data).select_id == 0                                  // C 3931
+	    {
+	      (*cb_data).select_id                                      // C 3932
+		= g_signal_connect_data (G_OBJECT! (w) as gpointer,
+					 c"activate".as_ptr (), select_cb,
+					 cb_data as gpointer, None,
+					 0 as GConnectFlags);               // C 3933-3934
+	    }
+	}
+      else if (*cb_data).select_id != 0                                 // C 3936
+	{
+	  g_signal_handler_disconnect (w as gpointer, (*cb_data).select_id);   // C 3938
+	  (*cb_data).select_id = 0;                                     // C 3939
+	}
+    }
+
+  if label_changed /* See comment in xg_update_menubar.  */             // C 3943
+    { g_object_notify (G_OBJECT! (w), c"label".as_ptr ()); }             // C 3944
+}
+
+/* C 3947's comment above `xg_update_toggle_item`, carried as C's own text.  */
+/* C: /* Update the toggle menu item W so it corresponds to VAL.  */  */
+
+/// C 3949-3953: `static void xg_update_toggle_item (widget_value *val, GtkWidget *w)` -
+/// `static`, address never taken, so a plain `unsafe fn`.  C 3952's `val->selected` is the
+/// `widget_value` mirror's `bool` and enters the `gboolean` parameter as `as gboolean` (C's own
+/// usual conversion, the `xg_create_widget` row's class), and `GTK_CHECK_MENU_ITEM` is the
+/// unit's own C 220 macro.
+/// C: static void
+/// C: xg_update_toggle_item (widget_value *val, GtkWidget *w)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_update_toggle_item (val: *mut widget_value, w: *mut GtkWidget)
+{
+  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM! (w),
+				  (*val).selected as gboolean);         // C 3952
+}
+
+/* C 3955's comment above `xg_update_radio_item`, carried as C's own text.  */
+/* C: /* Update the radio menu item W so it corresponds to VAL.  */  */
+
+/// C 3957-3961: `static void xg_update_radio_item (widget_value *val, GtkWidget *w)` - C's own
+/// text is the toggle function above with the comment changed, which the port carries as it
+/// stands (the two are separate definitions in C, so they are separate `unsafe fn`s here).
+/// C: static void
+/// C: xg_update_radio_item (widget_value *val, GtkWidget *w)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_update_radio_item (val: *mut widget_value, w: *mut GtkWidget)
+{
+  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM! (w),
+				  (*val).selected as gboolean);         // C 3960
+}

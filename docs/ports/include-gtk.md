@@ -481,3 +481,25 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the ninth slice's text** under
 arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and the
 pgtk arm's out-of-tree probe reads 10 `^error` matches with none of them this slice's.
+
+### status 4.340 (the gtkutil tenth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_update_menu_item` (C 3837-3945) is the round's consumer: this mirror gains
+**`GTK_IS_BOX`** (gtk/gtk.h, C 3859 - kept as this mirror's `GTK_IS_*` family above keeps its four,
+i.e. a null test, with the `G_TYPE_CHECK_INSTANCE_TYPE` chain owed) and
+**`gtk_widget_get_sensitive`** (gtk/gtkwidget.h, C 3915/3917's sensitivity pair).  Both are fresh
+names (`GTK_IS_BOX` and `gtk_widget_get_sensitive` read zero tree-wide before this round) and both
+are `UNVERIFIED` (no GTK tree on this machine).
+
+The slice's other call sites needed nothing new - `gtk_container_get_children`,
+`gtk_container_remove`, `gtk_container_add`, `g_object_ref`, `g_object_unref`, `g_list_free`,
+`g_signal_handler_disconnect` and `gtk_widget_set_sensitive` were already here, and
+`gtk_label_get_label` (4.338) with `gtk_label_set_text` and `g_object_notify` (4.339) cover the
+rest - which is what the round's zero in-slice arm anchors record.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the tenth slice's text** under
+arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and the
+pgtk arm's out-of-tree probe reads 10 `^error` matches with none of them this slice's.

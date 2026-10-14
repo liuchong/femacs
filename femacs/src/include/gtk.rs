@@ -2723,3 +2723,15 @@ unsafe extern "C" {
   pub fn gtk_label_set_text (label: *mut GtkLabel, str_: *const gchar);
   pub fn g_object_notify (object: *mut GObject, property_name: *const gchar);
 }
+
+/// C: gtk/gtk.h: `#define GTK_IS_BOX(obj)` - C 3859's test of `XG_BIN_CHILD`'s result - kept as
+/// the `GTK_IS_*` family above (this mirror's 809-821) keeps its four, with the
+/// `G_TYPE_CHECK_INSTANCE_TYPE` chain owed; **UNVERIFIED**.
+macro_rules! GTK_IS_BOX {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+/// C: gtk/gtkwidget.h: `gboolean gtk_widget_get_sensitive (GtkWidget *widget);` - C 3915/3917's
+/// two reads (the `xg_update_menu_item` sensitivity pair).  **UNVERIFIED**.
+unsafe extern "C" {
+  pub fn gtk_widget_get_sensitive (widget: *mut GtkWidget) -> gboolean;
+}

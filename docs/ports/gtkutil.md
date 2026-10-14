@@ -196,7 +196,8 @@
 | 3302-3533 | C 3301-3302's blank and C 3302-3314's comment above `xg_create_one_menuitem` [it was inside slice 6's row until this slice, which carries it here because it belongs to the function below], **`xg_create_one_menuitem`** (C 3316-3363), `menu_bar_button_pressed_cb` under `#ifdef HAVE_PGTK` (C 3366-3381), the `XG_FRAME_DATA` key (C 3459's first use; gtkutil.h 46), and **`create_menus`** (C 3404-3532, C 3384-3402's comment) plus C 3533's blank | file gate (`use_gtk`); `have_gtk3` for C 3440-3444's `#ifndef`/`#else` pair; `have_pgtk` for C 3365-3382 and the two C 3446-3474 arms; slice 7 below |
 | 3534-3640 | C 3534-3547's comment above `xg_create_widget`, **`xg_create_widget`** (C 3549-3597), `xg_get_menu_item_label` (C 3601-3606), `xg_item_label_same_p` (C 3610-3623) and `xg_destroy_widgets` (C 3627-3639), plus C 3640's blank | file gate (`use_gtk`); the mirror gains `gtk_label_get_label` (C 3605's read); slice 8 below |
 | 3641-3831 | C 3641-3651's comment above `xg_update_menubar` and **`xg_update_menubar`** (C 3653-3830), plus C 3831's blank | file gate (`use_gtk`); the mirror gains `gtk_menu_shell_insert`, `gtk_label_set_text` and `g_object_notify` (C 3673/3763/3764); slice 9 below |
-| 3832-6753 | **the remainder** — from C 3832-3835's comment above `xg_update_menu_item` through C 6753: the rest of the menu-update machinery (`xg_update_menu_item`, `xg_update_toggle_item`, `xg_update_radio_item`, `xg_update_submenu`, `xg_modify_menubar_widgets`, `menubar_map_cb`, `free_frame_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 3832-3962 | C 3832-3835's comment and **`xg_update_menu_item`** (C 3837-3945), C 3947's comment and `xg_update_toggle_item` (C 3949-3953), C 3955's comment and `xg_update_radio_item` (C 3957-3961), plus C 3962's blank | file gate (`use_gtk`); the mirror gains `GTK_IS_BOX` and `gtk_widget_get_sensitive` (C 3859/3915); slice 10 below |
+| 3963-6753 | **the remainder** — from C 3963-3973's comment above `xg_update_submenu` through C 6753: `xg_update_submenu` (C 3975-4104), `xg_modify_menubar_widgets`, `menubar_map_cb`, `free_frame_menubar`, the scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1401,3 +1402,56 @@ mirror's.
 
 **Not claimed.**  No arm was compiled against a real GTK tree, so `gtk_menu_shell_insert`'s and
 `gtk_label_set_text`'s prototypes are `UNVERIFIED`; the pgtk arm's reading is the probe's (Owed 17).
+
+## Slice 10 (2026-10-15, status 4.340): C 3832-3962 — the three item updaters
+
+**What this slice is.**  C 3832-3835's comment and **`xg_update_menu_item`** (C 3837-3945, 109
+lines - the one that rewrites a single menu item's label, key and sensitivity and re-wires its
+select callback), plus the two one-statement updaters under it, `xg_update_toggle_item`
+(C 3949-3953) and `xg_update_radio_item` (C 3957-3961), each with its own comment.  Port: 5,178 ->
+**5,352 lines**; the table's last row splits at C 3962 - the next text is C 3963-3973's comment
+above `xg_update_submenu`.
+
+**The mirror this slice needed.**  `include/gtk.rs` gains **`GTK_IS_BOX`** (gtk/gtk.h; C 3859's
+test of `XG_BIN_CHILD`'s result - kept as this mirror's `GTK_IS_*` family keeps its four, all of
+them a null test with the `G_TYPE_CHECK_INSTANCE_TYPE` chain owed) and
+**`gtk_widget_get_sensitive`** (gtk/gtkwidget.h; C 3915/3917's two reads).  Both are fresh names
+and both are `UNVERIFIED`.  Everything else was in place: `gtk_container_get_children`/
+`gtk_container_remove`/`gtk_container_add`/`g_object_ref`/`g_object_unref`/`g_list_free`/
+`g_signal_handler_disconnect`/`gtk_widget_set_sensitive` are the mirror's, `gtk_label_get_label`
+is slice 8's, `gtk_label_set_text` and `g_object_notify` are slice 9's, and
+`make_widget_for_menu_item`/`XG_BIN_CHILD`/`GTK_CHECK_MENU_ITEM` are the unit's own.
+
+**Deviations this slice adds.**
+
+- **C 3933-3934's `g_signal_connect` passes the *variable* `select_cb`**, so that call stands in
+  the `g_signal_connect!` macro's own `g_signal_connect_data` expansion (the macro needs a
+  function item: `E0605`, measured in slice 3) - the third site of that class after C 3359 and
+  C 3469 - and the function therefore carries a `does not mention g_signal_connect` row in
+  `docs/ports/macro-body-notes.tsv`.
+- **C 3863-3864/3888-3889's `list->data`/`list->next->data`** are the `GList` mirror's two
+  members read through the pointer C walks by hand, and C 3870/3873's `g_object_ref`/
+  `g_object_unref` take C's `GObject *` through the port's `gpointer`.
+- **C 3900/3906's two tests** keep C's `strcmp` comparisons and spell C's `! old_key`/`! old_label`
+  as null checks; C 3915/3917's `gtk_widget_get_sensitive` results are the port's `!= 0`/`== 0`
+  (the `int`-result idiom this file already uses), and C 3952/3960's `val->selected` is the
+  `widget_value` mirror's `bool` entering a `gboolean` parameter as `as gboolean`.
+- C 3928's `val->call_data && ! val->contents` is the port's pair of null checks, and
+  C 3931/3936's `select_id` tests are `== 0`/`!= 0` over a `gulong`.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings.**  Arm A: **30 errors, none anchored in this slice**; arm A plus
+   `gtk_check_version_ge_3_14`: **30, the same set**.  Arm C (GTK2): **64 errors, none here**;
+   arm C plus `have_freetype`: **64, the same set**.  Arm B (and the same set plus
+   `have_x_windows`): the dedupe artifact.  The out-of-tree probe reads **10 `^error` matches,
+   none in this slice**.
+3. **`extract-abi.py --check`** -> 79 -> **77 `- ` rows** (three retired: the three functions;
+   one new `does not mention g_signal_connect` row recorded in `macro-body-notes.tsv`); the
+   line-count row reads **20.7%** (C 6,753 vs 5,352).
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK tree, so the two prototypes this slice
+added are `UNVERIFIED`; the pgtk arm's reading is the probe's (Owed 17).
