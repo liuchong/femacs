@@ -220,7 +220,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 8264-8554 | C 8264-8554: the `x-file-dialog` `DEFUN` - the file's third-largest, with C 8284-8305's two wrapper records, C 8269-8271's filter strings, the `NTGUI_UNICODE`/`CYGWIN` arms and the three bare `alloca`s - slice 16 | file gate; the `cygwin` arms stay text (`cygwin` names C's `NTGUI_UNICODE`/`CYGWIN`) |
 | 8556-8667 | C 8556-8660: C's `#ifdef WINDOWSNT` block - the lazily bound `pfnSHFileOperationW` and the `system-move-file-to-trash` `DEFUN` - then C 8662's `#endif` (no Rust counterpart) and C 8664-8667's banner - slice 17 | `windowsnt` on every item of the block |
 | 8669-8692 | C 8669-8688's `w32-send-sys-command` `DEFUN` and C 8690-8692's `#ifndef CYGWIN` with its `pfnShellExecuteExW` declaration (C 8692's `#endif` has no counterpart - the two attributes carry it) - slice 18 | file gate; `not (feature = "cygwin")` on the declaration |
-| 8694-12488 | **the remainder of the file** (C 8694's `w32-shell-execute` `DEFUN` onward: C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 8694-9014 | C 8694-9014: the `w32-shell-execute` `DEFUN` - the file's 65-line docstring, the `CYGWIN` arm (C 8765-8836) and the live arm (C 8838-9002) - slice 19 | file gate; `cygwin` names C's arm split |
+| 9016-12488 | **the remainder of the file** (C 9016's `lookup_vk_code` comment onward: C 9019 `lookup_vk_code`, C 9047 `w32_parse_and_hook_hot_key`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2187,6 +2188,66 @@ the derive arguments, `Sw32_send_sys_command` is `DEFUN!`'s own static).
   extra lines are made of.
 - **Not claimed.**  No run evidence: no `WM_SYSCOMMAND` message is posted on this machine, and
   `pfnShellExecuteExW` is never called; the arm reading is compile-level.
+
+## Slice 19 (C 8694-9014)
+
+**Scope and the stop.**  The whole `w32-shell-execute` `DEFUN`: C 8695-8759's 65-line docstring,
+C 8765-8836's `CYGWIN` arm and C 8838-9002's live arm, closing with C 9005-9013's shared tail.  The
+stop is C 9016's `lookup_vk_code` comment (C 9019 the function).
+
+**What the item carries.**  The docstring is **generated from C's own text** through
+`cinventory.doc_comment_value` (make-docfile's rule: the comment's leading/trailing whitespace
+drops, escapes resolve), because C's doc has trailing spaces *inside* the text that a hand-written
+literal lost - the checker's `subr … docstring differs` row is what caught that, and the second
+generation matched.  C 8763's `BVAR! (current_buffer! (), directory_)`; C 8776-8836's `CYGWIN` arm
+(`GUI_ENCODE_FILE`/`GUI_ENCODE_SYSTEM`/`GUI_SDATA` from `include/w32term.rs`, `ShellExecuteW`, the
+ten `SE_ERR_*` cases as a `match`, `w32_strerror`); and C 8838-9002's live arm - C 8840's
+`c"file:///"` with C 8841's length constant, C 8863's `IS_DIRECTORY_SEP` (a unit-local macro) with
+`c_isalpha`, C 8874-8896's absolute-name probe (`Fexpand_file_name`,
+`Ffind_file_name_handler (…, Qfile_exists_p)`, `Fcopy_sequence (ENCODE_FILE (…))`, `faccessat` with
+`AT_FDCWD`/`F_OK`/`AT_EACCESS`, `unixtodos_filename`), C 8908-8915's `pMultiByteToWideChar` +
+`xmalloc` pass, C 8916-8960's `SHELLEXECUTEINFOW` fill (`filename_to_utf16`, the two
+`sa_stack_alloc` buffers where C has `alloca`, C 8932-8943's ASCII-only `ops_w` loop,
+`pfnShellExecuteExW`), and C 8961-8996's `SHELLEXECUTEINFOA` twin (`codepage_for_filenames`,
+`pWideCharToMultiByte`, `filename_to_ansi`, `ShellExecuteExA`).  New surface: `SHELLEXECUTEINFOA`
+(+ its union), the three `SEE_MASK_*`, `SW_SHOWDEFAULT`, the ten `SE_ERR_*`, the eight
+`ERROR_*` codes, `ShellExecuteExA`, `ShellExecuteW` (the `cygwin` arm), `faccessat` and the
+`IS_DIRECTORY_SEP!` macro.
+
+### Evidence (slice 19, the final revision: 13,516 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the count slices 16-18
+left, so this DEFUN adds no error and no member gap once four fixes are in, every one of them found
+by this reading: `buffer.directory` is the mirror's **`directory_`** (the C-name-with-underscore
+convention `xdisp.rs` 28808 already spells); `c_isalpha` returns `bool` in the port, so C's
+`!= 0` test comes out; `code_convert_string_norecord`'s third parameter is `bool` (C's `0`); and
+C 8937's `*s++` needs `let mut s`.  Five probe runs.
+
+**③ `extract-abi.py --check`.**  149 rows → **148**, and the three changes are all this item's:
+`missing subr Fw32_shell_execute` retires; the `docstring differs` row arrives and leaves when the
+literal is regenerated from C's text through make-docfile's rule; and the six-token row
+(`alloca`, `break`, `case`, `default`, `file_url_str`, `switch`) is closed by one appended
+`macro-body-notes.tsv` row that names each substitution (the two `alloca`s are `sa_stack_alloc`,
+C's `switch` is a `match`, and the function-local `file_url_str[]` is the `c"file:///"` spelling).
+
+**④ The range table and the dead-file gate.**  The `8694-12488` remainder row splits into
+`8694-9014` (this slice) and `9016-12488`; `check-dead-file-coverage.py` reads **168 range row(s)
+cover src/w32fns.c (12488 lines; 115 blank line(s) between blocks need no row)**, `0 failure(s)`.
+Ten gates read 0 failures; the name sweep reads `missing: []` after triage (`Clone`/`Copy` are the
+derive arguments, `Sw32_shell_execute` is `DEFUN!`'s static).
+
+### Deviations (slice 19)
+
+- **The docstring is machine-generated from C's comment** (make-docfile's rule), not transcribed:
+  C's doc carries trailing spaces inside the text (`…the default.  `), which the digest checks.
+- **The two `alloca`s are `sa_stack_alloc`** (P-05) and C's `switch` is a `match` - both named in
+  the notes row rather than spelled.
+- **`IS_DIRECTORY_SEP!` is unit-local** (`include/buffer.rs` does not carry buffer.h's macro).
+- **`faccessat` is declared here** (`lib/faccessat.rs` is the gnulib replacement's home).
+- **Not claimed.**  No run evidence: nothing is shell-executed on this machine
+  (`ShellExecuteExA`/`pfnShellExecuteExW` are never called), the arm reading is compile-level.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

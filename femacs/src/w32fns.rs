@@ -13118,3 +13118,399 @@ DEFUN! ("w32-send-sys-command", Fw32_send_sys_command,
 
 /* C 8690-8692's `#ifndef CYGWIN` / `#endif` are the two `not (feature = "cygwin")` attributes on
    `PFNSHELLEXECUTEEXW` and its storage above; C's `#endif` line itself has no counterpart.  */
+
+/// C 8838's `#else` arm needs `<shellapi.h>`'s `A` twin of slice 18's record (C 8964's
+/// `SHELLEXECUTEINFOA shexinfo_a;`), so it is declared here in full with the same anonymous union
+/// C's `DUMMYUNIONNAME` names.
+/// C: typedef struct _SHELLEXECUTEINFOA { DWORD cbSize; ULONG fMask; HWND hwnd; LPCSTR lpVerb;
+/// C: LPCSTR lpFile; LPCSTR lpParameters; LPCSTR lpDirectory; int nShow; HINSTANCE hInstApp;
+/// C: LPVOID lpIDList; LPCSTR lpClass; HKEY hkeyClass; DWORD dwHotKey;
+/// C: union { HANDLE hIcon; HANDLE hMonitor; } DUMMYUNIONNAME; HANDLE hProcess; }
+/// C: SHELLEXECUTEINFOA, *LPSHELLEXECUTEINFOA;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union SHELLEXECUTEINFOA_union
+{
+  pub hIcon: HANDLE,
+  pub hMonitor: HANDLE,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SHELLEXECUTEINFOA
+{
+  pub cbSize: DWORD,
+  pub fMask: c_ulong,
+  pub hwnd: HWND,
+  pub lpVerb: *const c_char,
+  pub lpFile: *const c_char,
+  pub lpParameters: *const c_char,
+  pub lpDirectory: *const c_char,
+  pub nShow: c_int,
+  pub hInstApp: HINSTANCE,
+  pub lpIDList: LPVOID,
+  pub lpClass: *const c_char,
+  pub hkeyClass: HKEY,
+  pub dwHotKey: DWORD,
+  pub r#DUMMYUNIONNAME: SHELLEXECUTEINFOA_union,
+  pub hProcess: HANDLE,
+}
+
+/// C: #define SEE_MASK_INVOKEIDLIST 0x0000000C / #define SEE_MASK_FLAG_DDEWAIT 0x00000100 /
+/// C: #define SEE_MASK_FLAG_NO_UI 0x00000400 - the three `<shellapi.h>` mask bits C 8951/8984 ORs.
+#[cfg (feature = "have_ntgui")]
+pub const SEE_MASK_INVOKEIDLIST: c_ulong = 0x0000000C;
+#[cfg (feature = "have_ntgui")]
+pub const SEE_MASK_FLAG_DDEWAIT: c_ulong = 0x00000100;
+#[cfg (feature = "have_ntgui")]
+pub const SEE_MASK_FLAG_NO_UI: c_ulong = 0x00000400;
+
+/// C: #define SW_SHOWDEFAULT 10 - the `<winuser.h>` show flag C 8797/8992 substitutes for a nil
+/// `show_flag` (`SW_SHOWNOACTIVATE` already stands above).
+#[cfg (feature = "have_ntgui")]
+pub const SW_SHOWDEFAULT: c_int = 10;
+
+/// C 8804-8832's ten `<shellapi.h>` `SE_ERR_*` codes - the values `ShellExecute` returns for
+/// everything at or below 32.
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_FNF: intptr_t = 2;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_PNF: intptr_t = 3;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_ACCESSDENIED: intptr_t = 5;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_OOM: intptr_t = 8;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_SHARE: intptr_t = 26;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_ASSOCINCOMPLETE: intptr_t = 27;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_DDETIMEOUT: intptr_t = 28;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_DDEFAIL: intptr_t = 29;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_DDEBUSY: intptr_t = 30;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_NOASSOC: intptr_t = 31;
+#[cfg (feature = "have_ntgui")]
+pub const SE_ERR_DLLNOTFOUND: intptr_t = 32;
+
+/// C 8805-8831's eight `<winerror.h>` codes, the arguments `w32_strerror` is handed
+/// (`ERROR_FILE_NOT_FOUND` already stands above as slice 17's `c_int`).
+#[cfg (feature = "have_ntgui")]
+pub const ERROR_ACCESS_DENIED: c_int = 5;
+#[cfg (feature = "have_ntgui")]
+pub const ERROR_NO_ASSOCIATION: c_int = 1155;
+#[cfg (feature = "have_ntgui")]
+pub const ERROR_DDE_FAIL: c_int = 1156;
+#[cfg (feature = "have_ntgui")]
+pub const ERROR_DLL_NOT_FOUND: c_int = 1157;
+#[cfg (feature = "have_ntgui")]
+pub const ERROR_TIMEOUT: c_int = 1460;
+#[cfg (feature = "have_ntgui")]
+pub const ERROR_NOT_ENOUGH_MEMORY: c_int = 8;
+#[cfg (feature = "have_ntgui")]
+pub const ERROR_PATH_NOT_FOUND: c_int = 3;
+#[cfg (feature = "have_ntgui")]
+pub const ERROR_SHARING_VIOLATION: c_int = 32;
+
+/// C 8794/8993's two `<shellapi.h>` entry points (`ShellExecuteW` belongs to the `CYGWIN` arm,
+/// `ShellExecuteExA` to the live one) and C 8887's `faccessat`, whose declaration `lib/faccessat.rs`
+/// carries for the gnulib replacement.
+/// C: HINSTANCE WINAPI ShellExecuteW (HWND, LPCWSTR, LPCWSTR, LPCWSTR, LPCWSTR, INT);
+/// C: BOOL WINAPI ShellExecuteExA (LPSHELLEXECUTEINFOA);
+/// C: int faccessat (int, const char *, int, int);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn ShellExecuteExA (lpExecInfo: *mut SHELLEXECUTEINFOA) -> BOOL;
+}
+#[cfg (all (feature = "have_ntgui", feature = "cygwin"))]
+unsafe extern "system" {
+  pub fn ShellExecuteW (hwnd: HWND, lpOperation: *const c_ushort, lpFile: *const c_ushort,
+			lpParameters: *const c_ushort, lpDirectory: *const c_ushort,
+			nShowCmd: c_int) -> HINSTANCE;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn faccessat (fd: c_int, path: *const c_char, mode: c_int, flag: c_int) -> c_int;
+}
+
+/// C 8863's `IS_DIRECTORY_SEP` - `buffer.h`'s macro
+/// (`#define IS_DIRECTORY_SEP(c) ((c) == '/' || (c) == '\\')`), which the `include/buffer.rs`
+/// mirror does not carry; the port keeps C's name as a `macro_rules!` (the file's device for a C
+/// macro that expands inside an expression).
+#[cfg (feature = "have_ntgui")]
+macro_rules! IS_DIRECTORY_SEP {
+  ($c:expr) => { ($c) == b'/' as c_char || ($c) == b'\\' as c_char };
+}
+
+/// C 8694-9014: `w32-shell-execute` - C 8695-8759's 65-line doc body is the `doc:` literal below,
+/// generated from C's own text.  C 8762-8771's declarations split along C 8765's `#ifdef CYGWIN`
+/// (the dead arm's `intptr_t result` versus the live arm's `use_unicode`, the three `*_a` pointers,
+/// `absdoc`, `handler` and `success`); C 8763's `BVAR (current_buffer, directory)` is
+/// `include/buffer.rs`'s macro; C 8776-8836 is the `CYGWIN` arm (`GUI_ENCODE_FILE`/
+/// `GUI_ENCODE_SYSTEM`/`GUI_SDATA` are `include/w32term.rs`'s macros, `ShellExecuteW` and the ten
+/// `SE_ERR_*` codes the case list, `w32_strerror` this file's own - C 10400-ish); C 8838-9002 is
+/// the live arm (C 8840's `"file:///"` literal and its `sizeof - 1` length, C 8863's
+/// `IS_DIRECTORY_SEP` with `c_isalpha`, C 8874-8896's absolute-name probe with `faccessat` and
+/// `unixtodos_filename`, C 8899-8905's `ENCODE_FILE`/`ENCODE_SYSTEM` chain, C 8908-8915's
+/// `pMultiByteToWideChar` + `xmalloc` pass, C 8916-8960's `SHELLEXECUTEINFOW` fill -
+/// `filename_to_utf16`, the `alloca`-fed `params_w`, C 8932-8943's ASCII-only `ops_w` loop,
+/// `pfnShellExecuteExW` - and C 8961-8996's `SHELLEXECUTEINFOA` twin with `codepage_for_filenames`,
+/// `pWideCharToMultiByte`, `filename_to_ansi` and `ShellExecuteExA`); then C 9005-9013's shared
+/// tail (`Vlocale_coding_system`, `code_convert_string_norecord`, `error`).
+/// C: DEFUN ("w32-shell-execute", Fw32_shell_execute, Sw32_shell_execute, 2, 4, 0,
+/// C:        doc: /* Get Windows to perform OPERATION on DOCUMENT. … */)
+/// C:   (Lisp_Object operation, Lisp_Object document, Lisp_Object parameters, Lisp_Object show_flag)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-shell-execute", Fw32_shell_execute, Sw32_shell_execute, 2, 4, 0,
+	doc: "Get Windows to perform OPERATION on DOCUMENT.\nThis is a wrapper around the ShellExecute system function, which\ninvokes the application registered to handle OPERATION for DOCUMENT.\n\nOPERATION is either nil or a string that names a supported operation.\nWhat operations can be used depends on the particular DOCUMENT and its\nhandler application, but typically it is one of the following common\noperations:\n\n \"open\"    - open DOCUMENT, which could be a file, a directory, or an\n	       executable program (application).  If it is an application,\n	       that application is launched in the current buffer's default\n	       directory.  Otherwise, the application associated with\n	       DOCUMENT is launched in the buffer's default directory.\n \"opennew\" - like \"open\", but instruct the application to open\n	       DOCUMENT in a new window.\n \"openas\"  - open the \"Open With\" dialog for DOCUMENT.\n \"print\"   - print DOCUMENT, which must be a file.\n \"printto\" - print DOCUMENT, which must be a file, to a specified printer.\n	       The printer should be provided in PARAMETERS, see below.\n \"explore\" - start the Windows Explorer on DOCUMENT.\n \"edit\"    - launch an editor and open DOCUMENT for editing; which\n	       editor is launched depends on the association for the\n	       specified DOCUMENT.\n \"find\"    - initiate search starting from DOCUMENT, which must specify\n	       a directory.\n \"delete\"  - move DOCUMENT, a file or a directory, to Recycle Bin.\n \"copy\"    - copy DOCUMENT, which must be a file or a directory, into\n	       the clipboard.\n \"cut\"     - move DOCUMENT, a file or a directory, into the clipboard.\n \"paste\"   - paste the file whose name is in the clipboard into DOCUMENT,\n	       which must be a directory.\n \"pastelink\"\n	   - create a shortcut in DOCUMENT (which must be a directory)\n	       the file or directory whose name is in the clipboard.\n \"runas\"   - run DOCUMENT, which must be an executable file, with\n	       elevated privileges (a.k.a. \"as Administrator\").\n \"properties\"\n	   - open the property sheet dialog for DOCUMENT.\n nil       - invoke the default OPERATION, or \"open\" if default is\n	       not defined or unavailable.\n\nDOCUMENT is typically the name of a document file or a URL, but can\nalso be an executable program to run, or a directory to open in the\nWindows Explorer.  If it is a file or a directory, it must be a local\none; this function does not support remote file names.\n\nIf DOCUMENT is an executable program, the optional third arg PARAMETERS\ncan be a string containing command line parameters, separated by blanks,\nthat will be passed to the program.  Some values of OPERATION also require\nparameters (e.g., \"printto\" requires the printer address).  Otherwise,\nPARAMETERS should be nil or unspecified.  Note that double quote characters\nin PARAMETERS must each be enclosed in 2 additional quotes, as in \"\"\".\n\nOptional fourth argument SHOW-FLAG can be used to control how the\napplication will be displayed when it is invoked.  If SHOW-FLAG is nil\nor unspecified, the application is displayed as if SHOW-FLAG of 10 was\nspecified, otherwise it is an integer between 0 and 11 representing\na ShowWindow flag:\n\n  0 - start hidden\n  1 - start as normal-size window\n  3 - start in a maximized window\n  6 - start in a minimized window\n 10 - start as the application itself specifies; this is the default.",
+	(operation: Lisp_Object, document: Lisp_Object, parameters: Lisp_Object,
+	 show_flag: Lisp_Object),
+	{
+  let mut errstr: *const c_char;
+  let mut current_dir: Lisp_Object = BVAR! (current_buffer! (), directory_);
+  let mut doc_w: *mut c_ushort = core::ptr::null_mut ();
+  let mut params_w: *mut c_ushort = core::ptr::null_mut ();
+  let mut ops_w: *mut c_ushort = core::ptr::null_mut ();
+  /* C 8785/8790/8864/8874/8974/8980 assign these three parameters.  */
+  let mut operation = operation;
+  let mut document = document;
+  let mut parameters = parameters;
+
+  CHECK_STRING (document);
+
+  /* C 8765-8836: `#ifdef CYGWIN`.  */
+  #[cfg (feature = "cygwin")]
+  {
+    let mut result: intptr_t;
+
+    current_dir = Fcygwin_convert_file_name_to_windows (current_dir, Qt ());
+    document = Fcygwin_convert_file_name_to_windows (document, Qt ());
+
+    /* Encode filename, current directory and parameters.  */
+    current_dir = GUI_ENCODE_FILE! (current_dir);
+    document = GUI_ENCODE_FILE! (document);
+    if STRINGP (parameters)
+      {
+	parameters = GUI_ENCODE_SYSTEM! (parameters);
+	params_w = GUI_SDATA! (parameters);
+      }
+    if STRINGP (operation)
+      {
+	operation = GUI_ENCODE_SYSTEM! (operation);
+	ops_w = GUI_SDATA! (operation);
+      }
+    doc_w = GUI_SDATA! (document);
+    result = (ShellExecuteW (core::ptr::null_mut (), ops_w, doc_w, params_w,
+			     GUI_SDATA! (current_dir),
+			     if FIXNUMP (show_flag) { XFIXNUM (show_flag) as c_int }
+			     else { SW_SHOWDEFAULT })) as intptr_t;
+
+    if result > 32
+      { return Qt (); }
+
+    match result
+      {
+	SE_ERR_ACCESSDENIED =>
+	  { errstr = w32_strerror (ERROR_ACCESS_DENIED); }
+	SE_ERR_ASSOCINCOMPLETE | SE_ERR_NOASSOC =>
+	  { errstr = w32_strerror (ERROR_NO_ASSOCIATION); }
+	SE_ERR_DDEBUSY | SE_ERR_DDEFAIL =>
+	  { errstr = w32_strerror (ERROR_DDE_FAIL); }
+	SE_ERR_DDETIMEOUT =>
+	  { errstr = w32_strerror (ERROR_TIMEOUT); }
+	SE_ERR_DLLNOTFOUND =>
+	  { errstr = w32_strerror (ERROR_DLL_NOT_FOUND); }
+	SE_ERR_FNF =>
+	  { errstr = w32_strerror (ERROR_FILE_NOT_FOUND); }
+	SE_ERR_OOM =>
+	  { errstr = w32_strerror (ERROR_NOT_ENOUGH_MEMORY); }
+	SE_ERR_PNF =>
+	  { errstr = w32_strerror (ERROR_PATH_NOT_FOUND); }
+	SE_ERR_SHARE =>
+	  { errstr = w32_strerror (ERROR_SHARING_VIOLATION); }
+	_ =>
+	  { errstr = w32_strerror (0); }
+      }
+  }
+
+  /* C 8838-9002: `#else`.  */
+  #[cfg (not (feature = "cygwin"))]
+  {
+  let use_unicode: c_int = w32_unicode_filenames as c_int;
+  let mut doc_a: *mut c_char = core::ptr::null_mut ();
+  let mut params_a: *mut c_char = core::ptr::null_mut ();
+  let mut ops_a: *mut c_char = core::ptr::null_mut ();
+  let mut absdoc: Lisp_Object;
+  let mut handler: Lisp_Object;
+  let mut success: BOOL;
+  /* C 8840-8842: the local `const char file_url_str[] = "file:///"`, its `sizeof - 1` length and
+     `int doclen;`.  */
+  let file_url_len: c_int = 8;
+  let mut doclen: c_int;
+
+  /* Required on Windows 9X.  */
+  maybe_load_unicows_dll ();
+
+  if strncmp (SSDATA (document), c"file:///".as_ptr (), file_url_len as usize) == 0
+    {
+      /* Passing "file:///" URLs to ShellExecute causes shlwapi.dll to
+	 start a thread in some rare system configurations, … */
+      let mut p: *const c_char = SSDATA (document).offset (file_url_len as isize);
+
+      if c_isalpha (*p as c_int) && *p.offset (1) == b':' as c_char
+	  && IS_DIRECTORY_SEP! (*p.offset (2))
+	{
+	  document = Fsubstring_no_properties (document,
+					       make_fixnum (file_url_len as EMACS_INT), Qnil ());
+	}
+      p = p;
+    }
+  /* We have a situation here.  If DOCUMENT is a relative file name, … */
+  absdoc = Fexpand_file_name (document, Qnil ());
+  /* Don't call file name handlers for file-exists-p, since they might … */
+  handler = Ffind_file_name_handler (absdoc, Qfile_exists_p ());
+  if NILP (handler)
+    {
+      let absdoc_encoded: Lisp_Object = Fcopy_sequence (ENCODE_FILE (absdoc));
+
+      if faccessat (AT_FDCWD, SSDATA (absdoc_encoded), F_OK, AT_EACCESS) == 0
+	{
+	  /* ShellExecute fails if DOCUMENT is a UNC with forward
+	     slashes …  */
+	  unixtodos_filename (SSDATA (absdoc_encoded));
+	  document = absdoc_encoded;
+	}
+      else
+	{ document = ENCODE_FILE (document); }
+    }
+  else
+    { document = ENCODE_FILE (document); }
+
+  current_dir = ENCODE_FILE (current_dir);
+  /* Cannot use filename_to_utf16/ansi with DOCUMENT, since it could
+     be a URL that is not limited to MAX_PATH characters.  */
+  doclen = (pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+					     SSDATA (document), -1,
+					     core::ptr::null_mut (), 0);
+  doc_w = xmalloc (doclen as usize * core::mem::size_of::<c_ushort> ()) as *mut c_ushort;
+  (pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+				    SSDATA (document), -1, doc_w, doclen);
+  if use_unicode != 0 && pfnShellExecuteExW.is_some ()
+    {
+      let mut current_dir_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize];
+      let mut shexinfo_w: SHELLEXECUTEINFOW = core::mem::zeroed ();
+
+      /* Encode the current directory and parameters, and convert
+	 operation to UTF-16.  */
+      filename_to_utf16 (SSDATA (current_dir), current_dir_w.as_mut_ptr ());
+      if STRINGP (parameters)
+	{
+	  let mut len: c_int;
+
+	  parameters = ENCODE_SYSTEM (parameters);
+	  len = (pMultiByteToWideChar.unwrap ()) (CP_ACP, multiByteToWideCharFlags,
+						  SSDATA (parameters), -1,
+						  core::ptr::null_mut (), 0);
+	  if len > 32768
+	    { len = 32768; }
+	  params_w = sa_stack_alloc (len as usize * core::mem::size_of::<c_ushort> ())
+	    as *mut c_ushort;
+	  (pMultiByteToWideChar.unwrap ()) (CP_ACP, multiByteToWideCharFlags,
+					    SSDATA (parameters), -1, params_w, len);
+	  *params_w.offset (len as isize - 1) = 0;
+	}
+      if STRINGP (operation)
+	{
+	  /* Assume OPERATION is pure ASCII.  */
+	  let mut s: *const c_char = SSDATA (operation);
+	  let mut d: *mut c_ushort;
+	  let mut len: c_int = SBYTES (operation) as c_int + 1;
+
+	  if len > 32768
+	    { len = 32768; }
+	  d = sa_stack_alloc (len as usize * core::mem::size_of::<c_ushort> ()) as *mut c_ushort;
+	  ops_w = d;
+	  while d < ops_w.offset (len as isize - 1)
+	    {
+	      *d = *s as c_ushort;
+	      d = d.offset (1);
+	      s = s.offset (1);
+	    }
+	  *d = 0;
+	}
+
+      /* Using ShellExecuteEx and setting the SEE_MASK_INVOKEIDLIST
+	 flag succeeds with more OPERATIONs (a.k.a. "verbs"), …  */
+      memset ((&raw mut shexinfo_w) as *mut c_void, 0, core::mem::size_of_val (&shexinfo_w));
+      shexinfo_w.cbSize = core::mem::size_of_val (&shexinfo_w) as DWORD;
+      shexinfo_w.fMask =
+	SEE_MASK_INVOKEIDLIST | SEE_MASK_FLAG_DDEWAIT | SEE_MASK_FLAG_NO_UI;
+      shexinfo_w.hwnd = core::ptr::null_mut ();
+      shexinfo_w.lpVerb = ops_w;
+      shexinfo_w.lpFile = doc_w;
+      shexinfo_w.lpParameters = params_w;
+      shexinfo_w.lpDirectory = current_dir_w.as_mut_ptr ();
+      shexinfo_w.nShow =
+	if FIXNUMP (show_flag) { XFIXNUM (show_flag) as c_int } else { SW_SHOWDEFAULT };
+      success = (pfnShellExecuteExW.unwrap ()) (&raw mut shexinfo_w);
+      xfree (doc_w as *mut c_void);
+    }
+  else
+    {
+      let mut current_dir_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];
+      let mut shexinfo_a: SHELLEXECUTEINFOA = core::mem::zeroed ();
+      let codepage: c_int = codepage_for_filenames (core::ptr::null_mut ());
+      let ldoc_a: c_int = (pWideCharToMultiByte.unwrap ()) (codepage as UINT, 0, doc_w, -1,
+							    core::ptr::null_mut (), 0,
+							    core::ptr::null_mut (),
+							    core::ptr::null_mut ());
+
+      doc_a = xmalloc (ldoc_a as usize) as *mut c_char;
+      (pWideCharToMultiByte.unwrap ()) (codepage as UINT, 0, doc_w, -1, doc_a, ldoc_a,
+					core::ptr::null_mut (), core::ptr::null_mut ());
+      filename_to_ansi (SSDATA (current_dir), current_dir_a.as_mut_ptr ());
+      if STRINGP (parameters)
+	{
+	  parameters = ENCODE_SYSTEM (parameters);
+	  params_a = SSDATA (parameters);
+	}
+      if STRINGP (operation)
+	{
+	  /* Assume OPERATION is pure ASCII.  */
+	  ops_a = SSDATA (operation);
+	}
+      memset ((&raw mut shexinfo_a) as *mut c_void, 0, core::mem::size_of_val (&shexinfo_a));
+      shexinfo_a.cbSize = core::mem::size_of_val (&shexinfo_a) as DWORD;
+      shexinfo_a.fMask =
+	SEE_MASK_INVOKEIDLIST | SEE_MASK_FLAG_DDEWAIT | SEE_MASK_FLAG_NO_UI;
+      shexinfo_a.hwnd = core::ptr::null_mut ();
+      shexinfo_a.lpVerb = ops_a;
+      shexinfo_a.lpFile = doc_a;
+      shexinfo_a.lpParameters = params_a;
+      shexinfo_a.lpDirectory = current_dir_a.as_mut_ptr ();
+      shexinfo_a.nShow =
+	if FIXNUMP (show_flag) { XFIXNUM (show_flag) as c_int } else { SW_SHOWDEFAULT };
+      success = ShellExecuteExA (&raw mut shexinfo_a);
+      xfree (doc_w as *mut c_void);
+      xfree (doc_a as *mut c_void);
+    }
+
+  if success != 0
+    { return Qt (); }
+
+  errstr = w32_strerror (0);
+  }
+
+  /* The error string might be encoded in the locale's encoding.  */
+  if ! NILP (Vlocale_coding_system)
+    {
+      let decoded: Lisp_Object =
+	code_convert_string_norecord (build_unibyte_string (errstr),
+				      Vlocale_coding_system, false);
+      errstr = SSDATA (decoded);
+    }
+  error (c"ShellExecute failed: %s".as_ptr (), errstr);
+});
