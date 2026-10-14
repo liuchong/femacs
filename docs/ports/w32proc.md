@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**2567 lines**, md5 `6bf615e839b556c4564df7d52aa97b5e`), carrying
-> **C 1-1693** - P-86 ④'s first five slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**2734 lines**, md5 `179510d9184a0aeea3fa8aab8140a1d7`), carrying
+> **C 1-1832** - P-86 ④'s first six slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -118,7 +118,8 @@ which `check-dead-file-coverage.py` requires):
 | 1041-1299 | the wait-object worker pair: C 1041-1050's `wait_objects_thread` overview comment, C 1051-1117's `wait_objects_thread` and C 1123-1299's `start_wait_objects` | file gate (slice 3); the `switch` over the second wait's result becomes an `if`/`else if` chain (Deviations 38), and C's five `WAIT_*`/`INFINITE` values and six wait-event entry points stand in the use-site `<windows.h>` block (Deviations 37) |
 | 1301-1511 | the pool's four control functions: C 1301-1347's `stop_wait_objects`, C 1349-1437's `end_wait_and_return`, C 1439-1483's `shrink_wait_pool` and C 1485-1511's `free_wait_pool` | file gate (slice 4); `WAIT_ABANDONED` joins the use-site `<windows.h>` block (Deviations 40), C's `for` loops whose bodies `break` are `while` loops, and C's `int`/`DWORD` boundary conversions are spelled with `as` (Deviations 39) |
 | 1513-1693 | the file's two wait entry points: C 1513-1526's `wait_for_objects` overview comment with C 1527-1597's `wait_for_objects`, and C 1599-1616's `msg_wait_for_objects` overview comment with C 1617-1693's `msg_wait_for_objects` | file gate (slice 5); `MsgWaitForMultipleObjects` and `QS_ALLINPUT` join the use-site `<windows.h>`/`<winuser.h>` block (Deviations 42), C's two counted `for` loops become `while` loops whose `continue` path carries C's increment clause (Deviations 43), and C's 64/63 group arithmetic keeps its `int`/`DWORD` spelling (Deviations 39) |
-| 1695-4903 | **the remainder of the file** - C 1695-1727's subprocess overview comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_spawnve` (C 2725), `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1695-1832 | the child-process block's opening: C 1695-1823's subprocess/network overview comment (the file's longest banner, carried as C's own text), C 1825-1826's `_P_NOWAIT`, C 1828-1830's child-process management list (`child_proc_count`, `child_procs[MAX_CHILDREN]`) and C 1832's `reader_thread` forward declaration (dropped, 0.1-12) | file gate (slice 6); the record and the array's bound are the mirror's (`include/w32.rs` 326-355 / 242), not re-spelled here (0.1-3) |
+| 1834-4903 | **the remainder of the file** - `new_child` (C 1834) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `new_child`, `delete_child`, `find_child_pid`, `release_listen_threads`, `reader_thread`, `create_child`, `register_child`, `reap_subprocess`, `waitpid`, `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type`, `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -609,3 +610,66 @@ wait_for_objects` and `missing function msg_wait_for_objects` retire.  No new to
     (owed items 8/10/11, re-measured as Evidence ②): `sys_select` (C 3109, still to land) is their
     principal caller, so the mirror round that discharges the `E0428` class is what this file - and
     that caller - wait on.
+
+## Slice 6 (2026-10-14, status 4.285): C 1695-1832
+
+**What this round is.**  The child-process block's *opening* - the declarations every function after
+it reads, and the file's longest banner comment.  C 1695-1823 is the overview of how subprocesses
+and network/serial streams are supported here (the `child_procs[]` array and its `MAX_CHILDREN`
+(= 32) bound, the `reader_thread`/`sys_select` handshake through `char_avail`/`char_consumed`, why
+`WaitForMultipleObjects`'s 64-handle ceiling becomes Emacs's 32-child limit, the `fd_info[]`
+conversion and the `_get_osfhandle`/`socket_to_fd` pair, and the `sys_kill` emulation with its
+`Ctrl-C`/`Ctrl-BREAK`-then-`TerminateProcess` order); C 1825-1826 is `_P_NOWAIT`; C 1828-1830 is the
+management list (`child_proc_count` and `child_procs[ MAX_CHILDREN ]`); C 1832 is the
+`reader_thread` forward declaration.  Port: 2,567 -> **2,734 lines** (+167, of which 129 are the
+carried banner).  The next row's first item is C 1834's `new_child`, whose own
+"Find an unused process slot." comment goes with it.
+
+**Evidence ① - the frozen reading.**  `cd femacs && cargo run -q -p xtask -- build-tu
+src/w32proc.c` -> exit 0, **336 bytes** (the same P-08 object as slices 1-5).
+
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the sixth identical reading (owed items 8/10/11/12).
+
+**Evidence ③ - the name sweep, and the trap this round's own prose hit.**  `python3
+tools/check-unit-names.py femacs/src/w32proc.rs 2568 2734` first read `missing: ['PORTING', 'Rust']`
+- **not** missing names but the tool's documented *nested-comment* false positive, produced by this
+round's own prose: two of the new comments quoted C's one-line comments **with their `*/`**, so the
+scanner's non-nesting comment rule ended the comment early and read the rest as code.  Rewriting
+those two quotes as plain quoted text (no `*/`) makes the sweep read `1 capitalized identifier,
+missing: []`.  **The lesson is worth the row: in this file the *ledger prose* can manufacture a
+false positive, and the sweep is only trustworthy once the round's own comments are checked for an
+embedded terminator.**
+ 
+**Evidence ④ - the `--check` reading.**  **94 -> 90 `- missing` rows**, and the four that retire are
+exactly this round's items: `missing macro _P_NOWAIT`, `missing constant _P_NOWAIT` (the `#define`
+is both a macro row and a constant row for the check) and the two `missing file-scope object`
+rows (`child_proc_count`, `child_procs`).  No new token rows; drift falls again (47.6% -> **44.2%**),
+so the stem's tolerance row is re-appended at 0.45 = measured + 0.01.
+
+**Deviations (this slice's additions).**
+
+44. **The banner comment is carried as C's own text, verbatim, at its C position** - the same
+    reading slices 1/2 give C 914-962, and the reason this ledger's range table does not split it:
+    it is 129 lines of C prose that documents the block below it.  What the port does *not* do is
+    copy it into the file's own header; the header keeps the pointer it already has.
+45. **`child_process` and `MAX_CHILDREN` are the mirror's names, so the unit does not re-spell
+    them** (PORTING.md 0.1-3): `include/w32.rs` 326-355 carries `_child_process`/`child_process`
+    (C `src/w32.h` 84-110) and 242 carries `MAX_CHILDREN` (C's `MAXDESC/2`), both at that mirror's
+    crate root and both reachable from this unit through its `include!` of `../include/w32.rs`.
+    The two objects are statics C leaves zero-initialised, spelled `core::mem::zeroed ()` like the
+    `wait_pool`/`wait_info` pair of slice 2.
+46. **`_P_NOWAIT` is this unit's own constant** (C 1826).  `src/callproc.rs` 339 spells the same
+    name for `callproc.c`'s `#ifdef WINDOWSNT` arm; two *units* spelling one constant is what C's
+    own headers do once per translation unit (Deviations 35's rule), and this unit may not take it
+    from another unit.
+
+**Owed (this slice's additions).**
+
+13. **The carried banner names the product** (C 1695-1823's prose says what a subprocess of this
+    program is, in C's words): it is C's text at C's position, which is what P-86 ① asks for, and it
+    is **not** one of the removed product-name declarations (those are the file's C 1-18 block that
+    PORTING.md 0.1-19 drops).  `tools/check-declarations.py` reads this file and reports no
+    forbidden declaration, which is the reading that keeps the two classes apart.

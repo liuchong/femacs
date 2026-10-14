@@ -2565,3 +2565,170 @@ unsafe fn msg_wait_for_objects (nCount: DWORD, lpHandles: *mut HANDLE,
     }
   return end_wait_and_return (&raw mut wait_info, res);                 // C 1692
 }
+
+/* C 1695-1832: the child-process block's opening - C 1695-1823's overview of how subprocesses and
+   network/serial streams are supported on this platform, C 1825-1826's `_P_NOWAIT`, C 1828-1830's
+   child-process management list and C 1832's `reader_thread` forward declaration.  `new_child`
+   (C 1834) opens the next slice.  */
+
+/* C 1695-1823: the file's overview comment, carried as C's own text at its C position (the reading
+   slices 1/2 give every one of this file's banner comments).  It is the map the whole child-process
+   block below it is read against: the `child_procs[]` array and its `MAX_CHILDREN` (= 32) bound,
+   the `reader_thread`/`sys_select` handshake through `char_avail`/`char_consumed`, the
+   `WaitForMultipleObjects` ceiling that bound comes from, the `fd_info[]` conversion and the
+   `sys_kill` emulation.  */
+/* Here's an overview of how support for subprocesses and
+   network/serial streams is implemented on MS-Windows.
+
+   The management of both subprocesses and network/serial streams
+   circles around the child_procs[] array, which can record up to the
+   grand total of MAX_CHILDREN (= 32) of these.  (The reasons for the
+   32 limitation will become clear below.)  Each member of
+   child_procs[] is a child_process structure, defined on w32.h.
+
+   A related data structure is the fd_info[] array, which holds twice
+   as many members, 64, and records the information about file
+   descriptors used for communicating with subprocesses and
+   network/serial devices.  Each member of the array is the filedesc
+   structure, which records the Windows handle for communications,
+   such as the read end of the pipe to a subprocess, a socket handle,
+   etc.
+
+   Both these arrays reference each other: there's a member of
+   child_process structure that records the corresponding file
+   descriptor, and there's a member of filedesc structure that holds a
+   pointer to the corresponding child_process.
+
+   Whenever Emacs starts a subprocess or opens a network/serial
+   stream, the function new_child is called to prepare a new
+   child_process structure.  new_child looks for the first vacant slot
+   in the child_procs[] array, initializes it, and starts a "reader
+   thread" that will watch the output of the subprocess/stream and its
+   status.  (If no vacant slot can be found, new_child returns a
+   failure indication to its caller, and the higher-level Emacs
+   primitive that called it will then fail with EMFILE or EAGAIN.)
+
+   The reader thread started by new_child communicates with the main
+   (a.k.a. "Lisp") thread via two event objects and a status, all of
+   them recorded by the members of the child_process structure in
+   child_procs[].  The event objects serve as semaphores between the
+   reader thread and the 'pselect' emulation in sys_select, as follows:
+
+     . Initially, the reader thread is waiting for the char_consumed
+       event to become signaled by sys_select, which is an indication
+       for the reader thread to go ahead and try reading more stuff
+       from the subprocess/stream.
+
+     . The reader thread then attempts to read by calling a
+       blocking-read function.  When the read call returns, either
+       successfully or with some failure indication, the reader thread
+       updates the status of the read accordingly, and signals the 2nd
+       event object, char_avail, on whose handle sys_select is
+       waiting.  This tells sys_select that the file descriptor
+       allocated for the subprocess or the stream is ready to be
+       read from.
+
+   When the subprocess exits or the network/serial stream is closed,
+   the reader thread sets the status accordingly and exits.  It also
+   exits when the main thread sets the status to STATUS_READ_ERROR
+   and/or the char_avail and char_consumed event handles become NULL;
+   this is how delete_child, called by Emacs when a subprocess or a
+   stream is terminated, terminates the reader thread as part of
+   deleting the child_process object.
+
+   The sys_select function emulates the Posix 'pselect' functionality;
+   it is needed because the Windows 'select' function supports only
+   network sockets, while Emacs expects 'pselect' to work for any file
+   descriptor, including pipes and serial streams.
+
+   When sys_select is called, it uses the information in fd_info[]
+   array to convert the file descriptors which it was asked to watch
+   into Windows handles.  In general, the handle to watch is the
+   handle of the char_avail event of the child_process structure that
+   corresponds to the file descriptor.  In addition, for subprocesses,
+   sys_select watches one more handle: the handle for the subprocess,
+   so that it could emulate the SIGCHLD signal when the subprocess
+   exits.
+
+   If file descriptor zero (stdin) doesn't have its bit set in the
+   'rfds' argument to sys_select, the function always watches for
+   keyboard interrupts, to be able to interrupt the wait and return
+   when the user presses C-g.
+
+   Having collected the handles to watch, sys_select calls
+   WaitForMultipleObjects to wait for any one of them to become
+   signaled.  Since WaitForMultipleObjects can only watch up to 64
+   handles, Emacs on Windows is limited to maximum 32 child_process
+   objects (since a subprocess consumes 2 handles to be watched, see
+   above).
+
+   When any of the handles become signaled, sys_select does whatever
+   is appropriate for the corresponding child_process object:
+
+     . If it's a handle to the char_avail event, sys_select marks the
+       corresponding bit in 'rfds', and Emacs will then read from that
+       file descriptor.
+
+     . If it's a handle to the process, sys_select calls the SIGCHLD
+       handler, to inform Emacs of the fact that the subprocess
+       exited.
+
+   The waitpid emulation works very similar to sys_select, except that
+   it only watches handles of subprocesses, and doesn't synchronize
+   with the reader thread.
+
+   Because socket descriptors on Windows are handles, while Emacs
+   expects them to be file descriptors, all low-level I/O functions,
+   such as 'read' and 'write', and all socket operations, like
+   'connect', 'recvfrom', 'accept', etc., are redirected to the
+   corresponding 'sys_*' functions, which must convert a file
+   descriptor to a handle using the fd_info[] array, and then invoke
+   the corresponding Windows API on the handle.  Most of these
+   redirected 'sys_*' functions are implemented on w32.c.
+
+   When the file descriptor was produced by functions such as 'open',
+   the corresponding handle is obtained by calling _get_osfhandle.  To
+   produce a file descriptor for a socket handle, which has no file
+   descriptor as far as Windows is concerned, the function
+   socket_to_fd opens the null device; the resulting file descriptor
+   will never be used directly in any I/O API, but serves as an index
+   into the fd_info[] array, where the socket handle is stored.  The
+   SOCK_HANDLE macro retrieves the handle when given the file
+   descriptor.
+
+   The function sys_kill emulates the Posix 'kill' functionality to
+   terminate other processes.  It does that by attaching to the
+   foreground window of the process and sending a Ctrl-C or Ctrl-BREAK
+   signal to the process; if that doesn't work, then it calls
+   TerminateProcess to forcibly terminate the process.  Note that this
+   only terminates the immediate process whose PID was passed to
+   sys_kill; it doesn't terminate the child processes of that process.
+   This means, for example, that an Emacs subprocess run through a
+   shell might not be killed, because sys_kill will only terminate the
+   shell.  (In practice, however, such problems are very rare.)  */
+
+/* C 1825-1826: C's one-line note "Defined in <process.h> which conflicts with the local copy" and
+   the `#define _P_NOWAIT 1` under it.  The constant is this file's own (`src/callproc.rs` 339 spells the
+   same one for `callproc.c`'s `#ifdef WINDOWSNT` arm, and two units spelling one constant is what
+   C's own headers do once per translation unit); the note above it is C's text, and the spelling
+   `<process.h>` is C's.  */
+/// C: #define _P_NOWAIT 1
+#[cfg (feature = "windowsnt")]
+pub const _P_NOWAIT: c_int = 1;
+
+/* C 1828-1830: C's "Child process management list." note and the two file-scope objects under it.
+   `child_process` is the mirror's record (`include/w32.rs` 326-355, C `src/w32.h` 84-110, which is
+   in this unit's graph) and the array's bound is the mirror's `MAX_CHILDREN` (`include/w32.rs` 242,
+   C's `MAXDESC/2`); the record is not re-spelled here (PORTING.md 0.1-3), and both objects are
+   statics C leaves zero-initialised, which Rust spells `core::mem::zeroed ()` exactly as the
+   `wait_pool`/`wait_info` pair above does.  */
+/// C: static int child_proc_count = 0;
+#[cfg (feature = "windowsnt")]
+static mut child_proc_count: c_int = 0;
+/// C: static child_process child_procs[ MAX_CHILDREN ];
+#[cfg (feature = "windowsnt")]
+static mut child_procs: [child_process; MAX_CHILDREN as usize] = unsafe { core::mem::zeroed () };
+
+/* C 1832: `static DWORD WINAPI reader_thread (void *arg);` - dropped (PORTING.md 0.1-12: C's
+   forward declaration has no Rust counterpart, and the definition is C 2031, past this slice).
+   `new_child` (C 1834) and its "Find an unused process slot." comment open the next slice.  */
