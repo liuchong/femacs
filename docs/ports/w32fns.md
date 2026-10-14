@@ -235,7 +235,7 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10958-11041 | C 10960-10962's wallpaper banner, C 10964-10965's `SystemParametersInfoW_Proc` with C 10967-11015's `w32-set-wallpaper`, and C 11017-11019's `GetLastInputInfo_Proc` with C 11021-11039's `w32-system-idle-time` - slice 30 | file gate + `windowsnt` |
 | 11044-11245 | C 11044's `#ifdef WINDOWSNT`, C 11046-11048's taskbar banner, C 11050-11054's `#ifndef MINGW_W64` guard with the two `DEFINE_GUID`s, and C 11056-11245's `w32-badge` - slice 31 | `windowsnt` (nested); the two GUIDs `not (mingw_w64)` |
 | 11247-11348 | C 11247-11295's `w32-request-user-attention` and C 11297-11346's `w32-progress-indicator`, closing C 11348's `#endif` - slice 32 | `windowsnt` (nested) |
-| 11350-11477 | C 11350-11352's System Sleep Support banner, C 11354-11358's `SetThreadExecutionState_Proc` with its pointer and the two counters, C 11360/11391/11414's three sleep `DEFUN`s, and C 11424-11477's notification group (`sleep_notification_callback`, `RegisterSuspendResumeNotification_Proc`, `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, `w32_register_for_sleep_notifications`) - slice 33 | `windowsnt` (nested); the `input_event_bits!` macro is `windowsnt` |
+| 11350-11477 | C 11350-11352's System Sleep Support banner, C 11354-11358's `SetThreadExecutionState_Proc` with its pointer and the two counters, C 11360/11391/11414's three sleep `DEFUN`s, and C 11424-11477's notification group (`sleep_notification_callback`, `RegisterSuspendResumeNotification_Proc`, `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, `w32_register_for_sleep_notifications`) - slice 33 | file gate (the group is outside every `#if`: `#[cfg (feature = "have_ntgui")]`, `input_event_bits!` included) |
 | 11478-12488 | **the remainder of the file** (C 11478-11480's Exporting frames banner onward: `w32-export-frame`, the exception/backtrace group, C 11586 `globals_of_w32fns`/`syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
@@ -3356,9 +3356,11 @@ line(s) between blocks need no row)**.  The over-sequence comment above the
 **Scope and the stop.**  The System Sleep Support group - C 11350-11352's banner, C 11354-11358's
 `SetThreadExecutionState_Proc` with its pointer and the two counters, the three `DEFUN`s
 (C 11360/11391/11414), and the notification half (C 11424-11477).  The stop is C 11478's Exporting
-frames banner, which opens the next group.  Every item carries
-`all (feature = "have_ntgui", feature = "windowsnt")`; the `input_event_bits!` macro is
-`windowsnt`'s, as in `src/w32inevt.rs`.
+frames banner, which opens the next group.  **Every item carries the file gate alone
+(`#[cfg (feature = "have_ntgui")]`)** - the group sits outside every `#if`, which the
+measurement below records - and the `input_event_bits!` macro carries it too (its
+`src/w32inevt.rs` 644 twin is `windowsnt`'s because *that* unit's items are inside the
+`#ifdef`).
 
 **What the items carry.**  `w32-block-system-sleep` is C 11370-11371's pointer guard, C 11373's
 `ES_CONTINUOUS` comment, C 11374-11376's `ES_SYSTEM_REQUIRED | ES_CONTINUOUS` initialiser and the
@@ -3392,6 +3394,17 @@ initialized` (measured: Rust rejects C's write-the-two-members form; the port us
 `core::mem::zeroed ()` device).  The second run is back to **42** - no member gap, no type error -
 and **no error sits at or beyond `src/w32fns.rs` 16,918** (the largest is the pre-existing
 `must_be_updated_p` gap at 12,083).
+
+**②b The arm gate, corrected after the round (the same revision, 17,208 lines).**  The slice
+first landed its twenty-four items with `all (feature = "have_ntgui", feature = "windowsnt")`
+(and the macro with `windowsnt`), which is the gate of slices 31-32 - but the measurement says
+the group is **outside every `#if`**: scanning `src/w32fns.c`'s preprocessor stack shows the
+`#ifdef WINDOWSNT` of C 11044 closing at C 11348, so C 11350's banner and everything under it
+carry no condition at all, and the file's own convention for such an item is the file gate
+alone (`w32_get_resource`, C 10904, is the neighbouring example).  All twenty-four gates became
+`#[cfg (feature = "have_ntgui")]`; the three readings are unchanged by the correction
+(`build-tu` exit 0 with the 336-byte object, the probe's **42**, `--check`'s **64** rows), which
+is why the first reading could not see it.
 
 **③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 16,918-17,161: 44 capitalized
 identifiers, the nine missing all in the documented non-item classes - `Clone`/`Copy` (the new

@@ -16937,13 +16937,13 @@ pub const TBPF_NOPROGRESS: c_int = 0x0;
 /// C: static SetThreadExecutionState_Proc SetThreadExecutionState_fn = NULL;
 /// C: static unsigned int sleep_block_id = 0;
 /// C: static unsigned int sleep_block_count = 0;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub type SetThreadExecutionState_Proc = unsafe extern "system" fn (ULONG) -> ULONG;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 static mut SetThreadExecutionState_fn: Option<SetThreadExecutionState_Proc> = None;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 static mut sleep_block_id: c_uint = 0;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 static mut sleep_block_count: c_uint = 0;
 
 /// C 11378/11408's `SetThreadExecutionState` (`winbase.h`; the guard above tests the *pointer*,
@@ -16951,15 +16951,15 @@ static mut sleep_block_count: c_uint = 0;
 /// C: EXECUTION_STATE WINAPI SetThreadExecutionState (EXECUTION_STATE esFlags);
 /// C: #define ES_SYSTEM_REQUIRED 0x00000001 / #define ES_DISPLAY_REQUIRED 0x00000002
 /// C: #define ES_CONTINUOUS 0x80000000
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub type EXECUTION_STATE = DWORD;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub const ES_SYSTEM_REQUIRED: EXECUTION_STATE = 0x00000001;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub const ES_DISPLAY_REQUIRED: EXECUTION_STATE = 0x00000002;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub const ES_CONTINUOUS: EXECUTION_STATE = 0x80000000;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" {
   pub fn SetThreadExecutionState (esFlags: EXECUTION_STATE) -> EXECUTION_STATE;
 }
@@ -16971,7 +16971,7 @@ unsafe extern "system" {
 /// C: DEFUN ("w32-block-system-sleep", Fw32_block_system_sleep, Sw32_block_system_sleep,
 /// C:        1, 1, 0, doc: /* Block system idle sleep. … */)
 /// C:   (Lisp_Object allow_display_sleep)
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 DEFUN! ("w32-block-system-sleep", Fw32_block_system_sleep, Sw32_block_system_sleep,
 	1, 1, 0,
 	doc: "Block system idle sleep.\nIf ALLOW-DISPLAY-SLEEP is non-nil, block the screen from sleeping.\nReturn a token to unblock this block using `w32-unblock-system-sleep',\nor nil if the block fails.",
@@ -17004,7 +17004,7 @@ DEFUN! ("w32-block-system-sleep", Fw32_block_system_sleep, Sw32_block_system_sle
 /// C: DEFUN ("w32-unblock-system-sleep", Fw32_unblock_system_sleep, Sw32_unblock_system_sleep,
 /// C:        0, 0, 0, doc: /* Unblock system idle sleep. … */)
 /// C:   (void)
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 DEFUN! ("w32-unblock-system-sleep", Fw32_unblock_system_sleep, Sw32_unblock_system_sleep,
 	0, 0, 0,
 	doc: "Unblock system idle sleep.\nReturn non-nil if the TOKEN block was unblocked.",
@@ -17030,7 +17030,7 @@ DEFUN! ("w32-unblock-system-sleep", Fw32_unblock_system_sleep, Sw32_unblock_syst
 /// C:        Sw32_system_sleep_block_count, 0, 0, 0,
 /// C:        doc: /* Return the w32 sleep block count.  */)
 /// C:   (void)
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 DEFUN! ("w32-system-sleep-block-count", Fw32_system_sleep_block_count,
 	Sw32_system_sleep_block_count,
 	0, 0, 0,
@@ -17046,7 +17046,7 @@ DEFUN! ("w32-system-sleep-block-count", Fw32_system_sleep_block_count,
 /// through a per-unit macro, because `macro_rules!` is textual and each unit's copy belongs to
 /// that unit (PORTING.md P-80's member-named shape; the `src/w32inevt.rs` 644 copy is this one's
 /// twin).  This unit uses the `kind` pair (C 11432's `ie.kind = SLEEP_EVENT;`).
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 macro_rules! input_event_bits {
   (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
   (kind, $e:expr, $v:expr) => {
@@ -17067,10 +17067,10 @@ macro_rules! input_event_bits {
 /// C:   (PVOID Context, ULONG Type, PVOID Setting);
 /// C: static ULONG CALLBACK ALIGN_STACK
 /// C: sleep_notification_callback (PVOID _Context, ULONG Type, PVOID _Setting)
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub type PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE
   = unsafe extern "system" fn (Context: *mut c_void, Type: ULONG, Setting: *mut c_void) -> ULONG;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" fn sleep_notification_callback (_Context: *mut c_void, Type: ULONG,
 						       _Setting: *mut c_void) -> ULONG
 {
@@ -17105,11 +17105,11 @@ unsafe extern "system" fn sleep_notification_callback (_Context: *mut c_void, Ty
 /// (PORTING.md 2.2, the `add_tray_notification` reading), recorded in this file's notes rows.
 /// C: #define PBT_APMRESUMEAUTOMATIC 0x0002 / #define PBT_APMSUSPEND 0x0004
 /// C: #define PBT_APMRESUMESUSPEND 0x0008
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub const PBT_APMRESUMEAUTOMATIC: ULONG = 0x0002;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub const PBT_APMSUSPEND: ULONG = 0x0004;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub const PBT_APMRESUMESUSPEND: ULONG = 0x0008;
 
 /// C 11451-11477: the registration half - C 11451-11453's `RegisterSuspendResumeNotification_Proc`
@@ -17124,17 +17124,17 @@ pub const PBT_APMRESUMESUSPEND: ULONG = 0x0008;
 /// C:   PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE Callback; PVOID Context;
 /// C: } MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS, *PMY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS;
 /// C: void w32_register_for_sleep_notifications (void)
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub type HPOWERNOTIFY = HANDLE;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 pub type RegisterSuspendResumeNotification_Proc
   = unsafe extern "system" fn (HANDLE, DWORD) -> HPOWERNOTIFY;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 static mut RegisterSuspendResumeNotification_fn: Option<RegisterSuspendResumeNotification_Proc>
   = None;
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 static mut sleep_notification_handle: HPOWERNOTIFY = core::ptr::null_mut ();
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS
@@ -17142,7 +17142,7 @@ pub struct MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS
   pub Callback: PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE,
   pub Context: *mut c_void,
 }
-#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn w32_register_for_sleep_notifications ()
 {
