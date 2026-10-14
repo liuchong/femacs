@@ -208,7 +208,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 4154-4488 | `deliver_wm_chars` (C 4453-4454's two `S_TYPES_*` macros stand after it) | file gate |
 | 4490-4523 | `maybe_pass_notification` (C 4490's `#ifdef WINDOWSNT` … C 4523's `#endif`) | file gate + `windowsnt` |
 | 4525-5986 | `w32_wnd_proc` (C 4599/4676's `W32_DEBUG_DISPLAY`, C 4853's `#if 0`, C 5113-5115/5185-5187's `MOUSEEVENTF_FROMTOUCH` guards, C 5331's function-local `last_x`/`last_y`, C 5712-5719's `WM_TOUCHMOVE` arm, the five `#ifdef WINDOWSNT` blocks at C 5727-5735/5738-5743/5745-5752/5756/5790) | file gate; the one arm `w32_debug_display` |
-| 5988-12488 | **the remainder of the file** (C 5988's `my_create_window` comment onward: C 5994 `my_create_window`, C 6253 `Fx_create_frame`, C 9581 `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5988-6712 | `my_create_window` (C 5994), `my_create_tip_window`, `w32_window`, `w32_icon`, `w32_make_gc`, `unwind_create_frame`, `do_unwind_create_frame`, `w32_default_font_parameter` and C 6253's `x-create-frame` `DEFUN` (C 6257-6711) - slices 5, 6 and 7 | file gate |
+| 6714-12488 | **the remainder of the file** (C 6714 `xw-color-defined-p` onward: C 9581 `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1268,6 +1269,128 @@ between blocks need no row)` and `0 failure(s)`.
 - **`w32_default_font_parameter` keeps C's linkage.**  C defines it without `static`, so the port's
   definition is `pub unsafe extern "C" fn` **with** `#[unsafe(no_mangle)]` (the inventory row above is
   what caught the missing attribute); the four helpers stay private, as their C `static` says.
+
+## Slice 7 (C 6253-6712)
+
+**Scope and the stop.**  C 6253-6712 - the whole of the file's first `DEFUN`, `x-create-frame`
+(`Fx_create_frame`/`Sx_create_frame`, C 6254's `1, 1, 0`, C 6256's single `Lisp_Object parameters`),
+from C 6253's `DEFUN (` line through C 6712's closing brace.  The stop is there because C 6713 is
+blank and C 6714 opens the next `DEFUN` (`xw-color-defined-p`): the item's own end, 460 reference
+lines, the file's second-longest item after `w32_wnd_proc` (C 4525-5986, four slices).  The
+`## C line ranges` table's old `5988-12488` remainder row is split accordingly: `5988-6712` is
+carried now (slices 5, 6 and 7 - `my_create_window`, `my_create_tip_window`, `w32_window`,
+`w32_icon`, `w32_make_gc`, `unwind_create_frame`, `do_unwind_create_frame`,
+`w32_default_font_parameter` and this `DEFUN`) and `6714-12488` stays the remainder for the next
+lanes.
+
+**What the item carries.**  C 6257-6267's thirteen locals (one `specpdl_ref` from
+`SPECPDL_INDEX`), C 6269-6271's two frame predicates and its `error`, C 6275's `Fcopy_alist`,
+C 6279's `Vx_resource_name = Vinvocation_name;`, C 6281-6288's `Qterminal`/`Qdisplay` pair with C's
+two `0` name arguments, C 6289's `check_x_display_info` and its `terminal->kboard` read,
+C 6291-6292's liveness `error`, C 6294-6302's name/resource pair, C 6305-6310's `parent-id`,
+C 6315-6329's minibuffer dispatch (`make_frame_without_minibuffer` twice,
+`make_minibuffer_frame`, `make_frame`), C 6331/6333's `XSETFRAME`/`frame_set_id_from_params`,
+C 6335-6348's `parent-frame`, C 6350-6359's `undecorated`/`skip_taskbar` pair,
+C 6362-6363's two `GetSystemMetrics` sizes, C 6365-6375's terminal/`output_method`/`xzalloc`/
+`FRAME_FONTSET`/`gui_init_fringe` block, C 6377-6384's icon name, C 6386's commented-out
+`FRAME_DISPLAY_INFO` line (carried as a comment), C 6389's `record_unwind_protect` with this unit's
+`do_unwind_create_frame`, C 6391-6393's `#ifdef GLYPH_DEBUG` arm (`glyph_debug`),
+C 6398-6409's `parent_desc`/`explicit_parent` pair, C 6411-6424's name block with
+`FRAME_EXPLICIT_NAME` and `specbind (Qx_resource_name, name)`, C 6426-6432's three
+`register_font_driver` calls under `have_harfbuzz`, C 6434-6522's thirty-four
+`gui_default_parameter` calls (and C 6447-6457/6464-6474's two `Fassq`/`Fcons` blocks),
+C 6526's `init_frame_faces`, C 6540-6550's `min-width`/`min-height` plus `adjust_frame_size`
+(`5, true, Qx_create_frame_1`), C 6555-6608's menu/tab/tool bar block, `inhibit-double-buffering`,
+`buffer-predicate`, `title`, C 6585's `parent_desc` re-read, C 6586-6602's fifteen
+`w32_load_cursor` calls and `current_cursor`, C 6604's `gui_figure_window_size`, C 6606-6608's
+`unsplittable`/`no_split`, C 6610-6613's `w32_window`/`w32_icon`/`w32_make_gc` (this unit's own,
+slices 5 and 6), C 6615-6618's "official frame" block, C 6622-6634's six post-window
+`gui_default_parameter` calls, C 6637's `can_set_window_size`, C 6642-6647's
+`w32_wm_set_size_hint`/`adjust_frame_size` pair, C 6652-6661's fullscreen/z-group/alpha run,
+C 6666-6686's visibility block, C 6689-6691's delayed alpha, C 6695-6698's
+`default-minibuffer-frame` (`KVAR`), C 6703-6705's remaining-parameters loop, C 6709's
+`Vwindow_list = Qnil;` and C 6711's `unbind_to (count, frame)`.
+
+**Two unit-local macros, under C's own names.**  C 6367's `f->output_method = output_w32;` writes
+frame.h 446's four-bit `ENUM_BF`, which `include/frame.rs` mirrors as a *reader* plus the
+`_UNIT`/`_SHIFT`/`_MASK` constants and the `bits1` word: this unit adds `set_output_method!` and the
+two-arm `output_method!` (the `src/androidfns.rs` 283-302 / `src/pgtkfns.rs` 240-249 device, whose
+C line is the same statement in their own `Fx_create_frame`).  C 6696-6697's two
+`KVAR (kb, Vdefault_minibuffer_frame)` sites need keyboard.h 38's token-pasting macro, which
+`include/keyboard.rs` 10-13 records as having no counterpart: the unit defines the one-arm `KVAR!`
+the `src/haikufns.rs` 1297-1301 spelling of these same C lines uses, naming the mirror's
+`Vdefault_minibuffer_frame_` field.
+
+**Eight new prototypes.**  This unit's includes carry none of `make_frame`,
+`make_minibuffer_frame`, `make_frame_without_minibuffer`, `frame_set_id_from_params`,
+`fset_parent_frame`, `gui_figure_window_size`, `register_font_driver` or `gui_init_fringe`, so the
+slice declares them with their `frame.h`/`font.h`/`xterm.h` lines (the `src/androidfns.rs` 95-171
+device).  `struct kboard` has a mirror, so the two prototypes that name it keep the record;
+`gui_init_fringe` keeps the untyped `*mut c_void` the two sibling spellings use.
+
+### Evidence (slice 7, the final revision: 10,220 Rust lines)
+
+**① The frozen configuration.**  `cargo run -q -p xtask -- build-tu src/w32fns.c` →
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, `build/femacs/w32fns.o` **336 bytes**.
+The reading is vacuous for the new text the same way it is for every slice of this file: the whole
+body sits behind `have_ntgui`, so the frozen feature set compiles only the two `config.h` includes
+and the `#![allow]` attribute.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Before this slice the same command read **36**
+errors; the final revision reads **42** (`41` carrying an `error[Exxxx]` code, plus the mirror's
+`compile_error!` for the unmeasured `HAVE_NTGUI` arm of `struct frame`'s flag run).  The six new
+ones are one class and all of them are the same story - a member the mirror *records* without
+packing it: `explicit_parent` (C 6403, C 6408 and C 6666, three sites), `no_split` (C 6608),
+`can_set_window_size` (C 6637) and `was_invisible` (C 6682).  Two fix rounds were needed first, both
+on this slice's own text: `(*((*f).terminal)).kboard as *mut kboard` (the first spelling
+dereferenced the untyped member before the cast, `E0606`/`E0614`) and the same shape on three more
+`terminal` members, then the two macros above (the `KVAR`/`output_method` rows were
+`cannot find macro` before them).  Nothing here claims a Windows reading: there is no mingw
+toolchain and no `<windows.h>` on this machine, so `IDC_*`/`SM_CX*SCROLL` and every other SDK name
+of the slice are spelled from PORTING.md's table and never compiled.
+
+**③ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/w32fns.c
+femacs/src/w32fns.rs` → **197 rows** (the count slice 6 left), with one row retired and one added:
+`missing subr Fx_create_frame (x-create-frame)` is gone (this slice's `DEFUN!` declares the subr) and
+`subr Fx_create_frame does not mention explicit_name` arrives (C 6416/6421's member, which the port
+writes through `FRAME_EXPLICIT_NAME!`; the row's `macro-body-notes.tsv` entry is below).  The
+line-count drift row falls from **22.9% to 18.2%** (`C 12488 vs Rust 10220`).  `missing defsubr
+(&raw const Sx_create_frame)` stays: C's `defsubr` call is in `syms_of_w32fns` (C 11949), which no
+slice has reached.
+
+**④ The range table and the dead-file gate.**  The `## C line ranges` row above covers the item, and
+`python3 tools/check-dead-file-coverage.py` reads `156 range row(s) cover src/w32fns.c (12488 lines;
+103 blank line(s) between blocks need no row)`, `0 failure(s)`.  The same command reads 155 rows and
+102 blank lines on the previous revision: the split above adds one row, and C 6713's blank line
+moves from inside a row to between two.
+
+### Deviations (slice 7)
+
+- **The six member sites are owed to the mirrors, not to a choice here.**  `w32_output`'s
+  `explicit_parent` (`include/w32term.rs` 499-501 records the three bitfields and packs none) and
+  `frame`'s `no_split`, `can_set_window_size` and `was_invisible` (`include/frame.rs` 485/657/732
+  record the `bool_bf` bits) keep C's own spelling in this slice's text; the arm's six errors are the
+  mirror's, and the ledger's "Owed by the integrator" list carries them.
+- **C's `kb` read is a cast because the mirror keeps `terminal.kboard` untyped.**  C 6289 is
+  `kb = dpyinfo->terminal->kboard;` with `struct kboard *kb` (C 6267); `include/termhooks.rs` 220
+  spells the member `*mut c_void` (the pointee has a mirror, `include/keyboard.rs` 56, but the
+  *terminal* member's record does not, so P-72 rule ③ applies at that one member).  The three
+  consumers keep C's record type.
+- **`do_unwind_create_frame` gains the C ABI in this slice.**  Slice 6 defined it `unsafe fn`;
+  C 6389 takes its address for `record_unwind_protect`, and the four sibling units define the same
+  function as `unsafe extern "C" fn` (`src/androidfns.rs` 991, `src/haikufns.rs` 1289,
+  `src/pgtkfns.rs` 2007, `src/xfns.rs` 6688), so slice 7 corrects the definition and says so in its
+  doc comment.
+- **C 6281/6284/6606/6669's `0` name arguments** are the port's `core::ptr::null ()`, the file's
+  existing reading; the token check is silent about them on this item (it counts what the body
+  carries, and the item's other tokens still compare), so no `macro-body-notes.tsv` row is needed
+  for them.
+- **C 6520/6689's `FRAME_NO_FOCUS_ON_MAP (f)` reads** use the mirror's reader function with C's
+  truth test written as `!= 0` / `== 0` (the file's `has_palette == 0` reading), because the
+  mirror returns `c_int`; the write form stays this unit's `FRAME_NO_FOCUS_ON_MAP!` macro.
+- **Not claimed.**  No run evidence: no frame, window, cursor, GC or font is created on this
+  machine; the frozen object is empty and the arm reading stops at resolution errors in mirrors.
+  `x-create-frame` has not been called and no Lisp-level behavior is asserted.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

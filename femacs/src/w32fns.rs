@@ -9548,10 +9548,14 @@ unsafe fn unwind_create_frame (frame: Lisp_Object) -> Lisp_Object
 }
 
 /// C 6210-6214: `do_unwind_create_frame` - C's `static void`, one call through to the function
-/// above (the `unwind-protect` body C 6213 hands to `record_unwind_protect`).
+/// above (the `unwind-protect` body C 6213 hands to `record_unwind_protect`).  C 6389 of the
+/// next slice takes this function's address (`record_unwind_protect (do_unwind_create_frame,
+/// frame)`), so the C ABI is part of the item and the definition carries it - the spelling
+/// the four sibling units use for the same function (`src/androidfns.rs` 991,
+/// `src/haikufns.rs` 1289, `src/pgtkfns.rs` 2007, `src/xfns.rs` 6688); slice 7 corrects it.
 /// C: static void do_unwind_create_frame (Lisp_Object frame);
 #[cfg (feature = "have_ntgui")]
-unsafe fn do_unwind_create_frame (frame: Lisp_Object)
+unsafe extern "C" fn do_unwind_create_frame (frame: Lisp_Object)
 {
   unwind_create_frame (frame);
 }
@@ -9622,3 +9626,595 @@ pub unsafe extern "C" fn w32_default_font_parameter (f: *mut frame, parms: Lisp_
   gui_default_parameter (f, parms, Qfont (), font, c"font".as_ptr (), c"Font".as_ptr (),
 			 RES_TYPE_STRING);
 }
+
+/* C's `f->output_method = …` (frame.h 446's `ENUM_BF (output_method) output_method : 4`):
+   `include/frame.rs` mirrors the four-bit reader (`output_method (f)`), C 446's
+   `_UNIT`/`_SHIFT`/`_MASK` and the `bits1` word, but not C's assignment shape, so this unit adds
+   it under C's own name (the `src/androidfns.rs` 283-302 device, `src/pgtkfns.rs` 240-249).
+   C 6367's `f->output_method = output_w32;` is the only write this unit makes.  */
+#[cfg (feature = "have_ntgui")]
+macro_rules! set_output_method {
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (FRAME_OUTPUT_METHOD_MASK << FRAME_OUTPUT_METHOD_SHIFT))
+		  | ((($v as u32) & FRAME_OUTPUT_METHOD_MASK) << FRAME_OUTPUT_METHOD_SHIFT)
+  };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! output_method {
+  ($f:expr) => { output_method ($f) };
+  ($f:expr, $v:expr) => { set_output_method! ($f, $v) };
+}
+
+/* keyboard.h 38's `KVAR` is a token-pasting macro (`((kboard)->field ## _)`) with no Rust
+   counterpart (the `include/keyboard.rs` 10-13 note); the port keeps the name and one arm per
+   member, the shape `src/haikufns.rs` 1297-1301 spells for these two C lines (C 6696-6697), and
+   `include/keyboard.rs` 79 carries the field the arm names.  */
+#[cfg (feature = "have_ntgui")]
+macro_rules! KVAR {
+  ($kb:expr, Vdefault_minibuffer_frame) => { (*$kb).Vdefault_minibuffer_frame_ };
+}
+
+/// C 6316/6320/6324/6329, C 6333 and C 6335-6348's readers: C's own `frame.h` prototypes for
+/// `make_frame` (1479), `make_minibuffer_frame` (1489), `make_frame_without_minibuffer` (1491),
+/// `frame_set_id_from_params` (1430, whose C return type is `EMACS_UINT` - C 6333 discards it)
+/// and `fset_parent_frame` (774's C `INLINE` setter), plus `gui_figure_window_size` (1865),
+/// `register_font_driver` (font.h 896) and `gui_init_fringe` (xterm.h 1162, C 6375).  None of the
+/// eight is declared by this unit's includes: `include/frame.rs` carries `init_frame_faces` and
+/// `include/w32term.rs` the three `w32_*` readers this slice calls, but the record and the
+/// definitions of the rest live in other units, which is why the sibling `*fns` units declare
+/// them the same way.  `struct kboard` has a mirror (`include/keyboard.rs` 56), so the two
+/// prototypes that name it keep the record and P-72 rule ③ does not apply; `gui_init_fringe`'s
+/// parameter is `struct redisplay_interface *` in C and the untyped `*mut c_void` in the two
+/// sibling spellings (`src/haikuterm.rs` 6260, `src/pgtkterm.rs` 10260), which this slice copies.
+/// C: extern struct frame *make_frame (bool);
+/// C: extern struct frame *make_minibuffer_frame (void);
+/// C: extern struct frame *make_frame_without_minibuffer (Lisp_Object, struct kboard *, Lisp_Object);
+/// C: extern EMACS_UINT frame_set_id_from_params (struct frame *, Lisp_Object);
+/// C: INLINE void fset_parent_frame (struct frame *f, Lisp_Object val);
+/// C: extern long gui_figure_window_size (struct frame *, Lisp_Object, bool, bool);
+/// C: extern void register_font_driver (struct font_driver const *, struct frame *);
+/// C: extern void gui_init_fringe (struct redisplay_interface *);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn make_frame (mini_p: bool) -> *mut frame;
+  pub fn make_minibuffer_frame () -> *mut frame;
+  pub fn make_frame_without_minibuffer (mini_window: Lisp_Object, kb: *mut kboard,
+					display: Lisp_Object) -> *mut frame;
+  pub fn frame_set_id_from_params (f: *mut frame, params: Lisp_Object);
+  pub fn fset_parent_frame (f: *mut frame, val: Lisp_Object);
+  pub fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object, x_frame: bool,
+				 toolbar_p: bool) -> c_long;
+  pub fn register_font_driver (driver: *const font_driver, f: *mut frame);
+  pub fn gui_init_fringe (rif: *mut c_void);
+}
+
+/// C 6253-6712: `x-create-frame` - the file's first `DEFUN` (`Fx_create_frame`,
+/// `Sx_create_frame`, C 6254's `1, 1, 0` and C 6256's single `Lisp_Object parameters`), the whole
+/// item from C 6253 through C 6712's closing brace (C 6714 opens `xw-color-defined-p`, the next
+/// one).  C 6255's doc body is `xfns.c`'s (`doc: /* SKIP: real doc in xfns.c.  */`), so the port
+/// carries the `doc:` string the sibling `*fns` units carry.
+///
+/// C's `struct kboard *kb` (C 6267) is read at C 6289 from `dpyinfo->terminal->kboard`, whose
+/// mirror keeps `terminal.kboard` as the untyped `*mut c_void` (P-72 rule ③): the read carries
+/// C's own type as a cast, and the three consumers keep the record
+/// (`make_frame_without_minibuffer` twice, C 6698's `kset_default_minibuffer_frame` and C 6696's
+/// `KVAR`, the `src/haikufns.rs` 1683 spelling of the same three C lines).
+///
+/// C 6426-6432's `#ifdef HAVE_HARFBUZZ` carries the `have_harfbuzz` arm around the one
+/// `register_font_driver` call, both C 6430's and C 6432's calls stay text, and the three driver
+/// objects are the other units' (`src/w32dwrite.rs` 2313 and `src/w32font.rs` 3731,
+/// `src/w32uniscribe.rs` 2547): `struct font_driver` has a mirror (`include/font.rs` 553), so the
+/// three declarations keep the record here the way `src/w32font.rs` 1954 spells the prototype.
+///
+/// The item is `text-only` (P-86 ③⑵): this machine has no Windows SDK, so the `<windows.h>` names
+/// it reads (C 6362-6363's `GetSystemMetrics`, C 6586-6600's eighteen `IDC_*` ids and
+/// `w32_load_cursor`) are spelled from PORTING.md's table and never compiled here - the file
+/// head's note; `w32_load_cursor`, `GetSystemMetrics` and `SM_CX*SCROLL` are this unit's own.
+/// C: DEFUN ("x-create-frame", Fx_create_frame, Sx_create_frame,
+/// C:        1, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object parameters)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-create-frame", Fx_create_frame, Sx_create_frame,
+	1, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(parameters: Lisp_Object),
+	{
+  let mut f: *mut frame;
+  let mut frame: Lisp_Object;
+  let mut tem: Lisp_Object;
+  let mut name: Lisp_Object;
+  let mut minibuffer_only: bool = false;
+  let mut window_prompting: c_long = 0;
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  let mut display: Lisp_Object;
+  let mut dpyinfo: *mut w32_display_info = core::ptr::null_mut ();
+  let mut parent: Lisp_Object;
+  let mut parent_frame: Lisp_Object;
+  let mut kb: *mut kboard;
+  let mut parameters = parameters;              /* C 6275 assigns the parameter.  */
+
+  /* C 6269-6271.  */
+  if ! FRAME_W32_P (SELECTED_FRAME ())
+      && ! FRAME_INITIAL_P (SELECTED_FRAME ())
+    { error (c"Cannot create a GUI frame in a -nw session".as_ptr ()); }
+
+  /* Make copy of frame parameters because the original is in pure
+     storage now. */
+  parameters = Fcopy_alist (parameters);
+
+  /* Use this general default value to start with
+     until we know if this frame has a specified name.  */
+  Vx_resource_name = Vinvocation_name;
+
+  /* C 6281-6285: C's two `0` name arguments are the null pointers the port spells
+     `core::ptr::null ()` (the `src/w32fns.rs` 9335 precedent).  */
+  display = gui_display_get_arg (dpyinfo, parameters, Qterminal (),
+				 core::ptr::null (), core::ptr::null (),
+				 RES_TYPE_NUMBER);
+  if BASE_EQ (display, Qunbound ())
+    { display = gui_display_get_arg (dpyinfo, parameters, Qdisplay (),
+				     core::ptr::null (), core::ptr::null (),
+				     RES_TYPE_STRING); }
+  if BASE_EQ (display, Qunbound ())
+    { display = Qnil (); }
+  dpyinfo = check_x_display_info (display);
+  /* C 6289's `dpyinfo->terminal->kboard` keeps C's type as this cast (the note above).  */
+  kb = (*((*dpyinfo).terminal)).kboard as *mut kboard;
+
+  if (*((*dpyinfo).terminal)).name.is_null ()
+    { error (c"Terminal is not live, can't create new frames on it".as_ptr ()); }
+
+  name = gui_display_get_arg (dpyinfo, parameters, Qname (),
+			      c"name".as_ptr (), c"Name".as_ptr (),
+			      RES_TYPE_STRING);
+  if ! STRINGP (name)
+      && ! BASE_EQ (name, Qunbound ())
+      && ! NILP (name)
+    { error (c"Invalid frame name--not a string or nil".as_ptr ()); }
+
+  if STRINGP (name)
+    { Vx_resource_name = name; }
+
+  /* See if parent window is specified.  */
+  parent = gui_display_get_arg (dpyinfo, parameters, Qparent_id (),
+				core::ptr::null (), core::ptr::null (),
+				RES_TYPE_NUMBER);
+  if BASE_EQ (parent, Qunbound ())
+    { parent = Qnil (); }
+  else if ! NILP (parent)
+    { CHECK_FIXNUM (parent); }
+
+  /* make_frame_without_minibuffer can run Lisp code and garbage collect.  */
+  /* No need to protect DISPLAY because that's not used after passing
+     it to make_frame_without_minibuffer.  */
+  frame = Qnil ();
+  tem = gui_display_get_arg (dpyinfo, parameters, Qminibuffer (),
+			     c"minibuffer".as_ptr (), c"Minibuffer".as_ptr (),
+			     RES_TYPE_SYMBOL);
+  if EQ (tem, Qnone ()) || NILP (tem)
+    { f = make_frame_without_minibuffer (Qnil (), kb, display); }
+  else if EQ (tem, Qonly ())
+    {
+      f = make_minibuffer_frame ();
+      minibuffer_only = true;
+    }
+  else if WINDOWP (tem)
+    { f = make_frame_without_minibuffer (tem, kb, display); }
+  else
+    { f = make_frame (true); }
+
+  XSETFRAME! (frame, f);
+
+  frame_set_id_from_params (f, parameters);
+
+  parent_frame = gui_display_get_arg (dpyinfo, parameters, Qparent_frame (),
+				      core::ptr::null (), core::ptr::null (),
+				      RES_TYPE_SYMBOL);
+  /* Apply `parent-frame' parameter only when no `parent-id' was
+     specified.  */
+  if ! NILP (parent_frame)
+      && (! NILP (parent)
+	  || ! FRAMEP (parent_frame)
+	  || ! FRAME_LIVE_P (XFRAME (parent_frame))
+	  || ! FRAME_W32_P (XFRAME (parent_frame)))
+    { parent_frame = Qnil (); }
+
+  fset_parent_frame (f, parent_frame);
+  store_frame_param (f, Qparent_frame (), parent_frame);
+
+  tem = gui_display_get_arg (dpyinfo, parameters, Qundecorated (),
+			     core::ptr::null (), core::ptr::null (),
+			     RES_TYPE_BOOLEAN);
+  FRAME_UNDECORATED! (f, ! NILP (tem) && ! BASE_EQ (tem, Qunbound ()));
+  store_frame_param (f, Qundecorated (),
+		     if FRAME_UNDECORATED (f) != 0 { Qt () } else { Qnil () });
+
+  tem = gui_display_get_arg (dpyinfo, parameters, Qskip_taskbar (),
+			     core::ptr::null (), core::ptr::null (),
+			     RES_TYPE_BOOLEAN);
+  FRAME_SKIP_TASKBAR! (f, ! NILP (tem) && ! BASE_EQ (tem, Qunbound ()));
+  store_frame_param (f, Qskip_taskbar (),
+		     if NILP (tem) || BASE_EQ (tem, Qunbound ()) { Qnil () } else { Qt () });
+
+  /* By default, make scrollbars the system standard width and height. */
+  FRAME_CONFIG_SCROLL_BAR_WIDTH! (f, GetSystemMetrics (SM_CXVSCROLL));
+  FRAME_CONFIG_SCROLL_BAR_HEIGHT! (f, GetSystemMetrics (SM_CXHSCROLL));
+
+  (*f).terminal = (*dpyinfo).terminal;
+
+  output_method! (f, output_w32);
+  (*f).output_data.w32 = xzalloc (core::mem::size_of::<w32_output> ());
+  FRAME_FONTSET! (f) = -1;
+
+  /* Need to finish setting up of user-defined fringe bitmaps that
+     were defined before the first GUI frame was created (e.g., while
+     in daemon mode).  */
+  if (*((*f).terminal)).reference_count == 0
+    { gui_init_fringe ((*((*f).terminal)).rif); }
+
+  fset_icon_name (f, gui_display_get_arg (dpyinfo, parameters, Qicon_name (),
+					  c"iconName".as_ptr (), c"Title".as_ptr (),
+					  RES_TYPE_STRING));
+  if ! STRINGP ((*f).icon_name)
+    { fset_icon_name (f, Qnil ()); }
+
+  /*  FRAME_DISPLAY_INFO (f) = dpyinfo; */
+
+  /* With FRAME_DISPLAY_INFO set up, this unwind-protect is safe.  */
+  record_unwind_protect (Some (do_unwind_create_frame), frame);
+
+  /* C 6391-6393: `#ifdef GLYPH_DEBUG`.  */
+  #[cfg (feature = "glyph_debug")]
+  {
+    dpyinfo_refcount = (*dpyinfo).reference_count;
+  }
+
+  /* Specify the parent under which to make this window - this seems to
+     have no effect on Windows because parent_desc is explicitly reset
+     below.  */
+  if ! NILP (parent)
+    {
+      /* Cast to UINT_PTR shuts up compiler warnings about cast to
+	 pointer from integer of different size.  */
+      (*((*f).output_data.w32 as *mut w32_output)).parent_desc
+	= XFIXNAT (parent) as UINT_PTR as Window;
+      (*((*f).output_data.w32 as *mut w32_output)).explicit_parent = true;
+    }
+  else
+    {
+      (*((*f).output_data.w32 as *mut w32_output)).parent_desc
+	= (*FRAME_DISPLAY_INFO! (f)).root_window;
+      (*((*f).output_data.w32 as *mut w32_output)).explicit_parent = false;
+    }
+
+  /* Set the name; the functions to which we pass f expect the name to
+     be set.  */
+  if BASE_EQ (name, Qunbound ()) || NILP (name)
+    {
+      fset_name (f, build_string ((*dpyinfo).w32_id_name));
+      FRAME_EXPLICIT_NAME! (f, false);
+    }
+  else
+    {
+      fset_name (f, name);
+      FRAME_EXPLICIT_NAME! (f, true);
+      /* Use the frame's title when getting resources for this frame.  */
+      specbind (Qx_resource_name (), name);
+    }
+
+  /* C 6426-6429: `#ifdef HAVE_HARFBUZZ`.  */
+  #[cfg (feature = "have_harfbuzz")]
+  {
+    if harfbuzz_available != 0
+      { register_font_driver (&raw mut harfbuzz_font_driver, f); }
+  }
+  if uniscribe_available != 0
+    { register_font_driver (&raw mut uniscribe_font_driver, f); }
+  register_font_driver (&raw mut w32font_driver, f);
+
+  gui_default_parameter (f, parameters, Qfont_backend (), Qnil (),
+			 c"fontBackend".as_ptr (), c"FontBackend".as_ptr (),
+			 RES_TYPE_STRING);
+
+  /* Extract the window parameters from the supplied values
+     that are needed to determine window geometry.  */
+  w32_default_font_parameter (f, parameters);
+
+  /* Default BorderWidth to 0 to match other platforms.  */
+  gui_default_parameter (f, parameters, Qborder_width (), make_fixnum (0),
+			 c"borderWidth".as_ptr (), c"BorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);
+
+  /* We recognize either internalBorderWidth or internalBorder
+     (which is what xterm calls it).  */
+  if NILP (Fassq (Qinternal_border_width (), parameters))
+    {
+      let value: Lisp_Object;
+
+      value = gui_display_get_arg (dpyinfo, parameters, Qinternal_border_width (),
+				   c"internalBorder".as_ptr (), c"internalBorder".as_ptr (),
+				   RES_TYPE_NUMBER);
+      if ! BASE_EQ (value, Qunbound ())
+	{ parameters = Fcons (Fcons (Qinternal_border_width (), value), parameters); }
+    }
+
+  gui_default_parameter (f, parameters, Qinternal_border_width (), make_fixnum (0),
+			 c"internalBorderWidth".as_ptr (), c"internalBorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);
+
+  /* Same for child frames.  */
+  if NILP (Fassq (Qchild_frame_border_width (), parameters))
+    {
+      let value: Lisp_Object;
+
+      value = gui_display_get_arg (dpyinfo, parameters, Qchild_frame_border_width (),
+				   c"childFrameBorder".as_ptr (), c"childFrameBorder".as_ptr (),
+				   RES_TYPE_NUMBER);
+      if ! BASE_EQ (value, Qunbound ())
+	{ parameters = Fcons (Fcons (Qchild_frame_border_width (), value), parameters); }
+    }
+
+  gui_default_parameter (f, parameters, Qchild_frame_border_width (), Qnil (),
+			 c"childFrameBorderWidth".as_ptr (),
+			 c"childFrameBorderWidth".as_ptr (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qright_divider_width (), make_fixnum (0),
+			 core::ptr::null (), core::ptr::null (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qbottom_divider_width (), make_fixnum (0),
+			 core::ptr::null (), core::ptr::null (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qvertical_scroll_bars (), Qright (),
+			 c"verticalScrollBars".as_ptr (), c"ScrollBars".as_ptr (),
+			 RES_TYPE_SYMBOL);
+  gui_default_parameter (f, parameters, Qhorizontal_scroll_bars (), Qnil (),
+			 c"horizontalScrollBars".as_ptr (), c"ScrollBars".as_ptr (),
+			 RES_TYPE_SYMBOL);
+
+  /* Also do the stuff which must be set before the window exists.  */
+  gui_default_parameter (f, parameters, Qforeground_color (), build_string (c"black".as_ptr ()),
+			 c"foreground".as_ptr (), c"Foreground".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parameters, Qbackground_color (), build_string (c"white".as_ptr ()),
+			 c"background".as_ptr (), c"Background".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parameters, Qmouse_color (), build_string (c"black".as_ptr ()),
+			 c"pointerColor".as_ptr (), c"Foreground".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parameters, Qborder_color (), build_string (c"black".as_ptr ()),
+			 c"borderColor".as_ptr (), c"BorderColor".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parameters, Qscreen_gamma (), Qnil (),
+			 c"screenGamma".as_ptr (), c"ScreenGamma".as_ptr (), RES_TYPE_FLOAT);
+  gui_default_parameter (f, parameters, Qline_spacing (), Qnil (),
+			 c"lineSpacing".as_ptr (), c"LineSpacing".as_ptr (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qleft_fringe (), Qnil (),
+			 c"leftFringe".as_ptr (), c"LeftFringe".as_ptr (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qright_fringe (), Qnil (),
+			 c"rightFringe".as_ptr (), c"RightFringe".as_ptr (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qno_focus_on_map (), Qnil (),
+			 core::ptr::null (), core::ptr::null (), RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parameters, Qno_accept_focus (), Qnil (),
+			 core::ptr::null (), core::ptr::null (), RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parameters, Qno_special_glyphs (), Qnil (),
+			 core::ptr::null (), core::ptr::null (), RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parameters, Qalpha_background (), Qnil (),
+			 c"alphaBackground".as_ptr (), c"AlphaBackground".as_ptr (),
+			 RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qborders_respect_alpha_background (),
+			 Qnil (), c"bordersRespectAlphaBackground".as_ptr (),
+			 c"BordersRespectAlphaBackground".as_ptr (), RES_TYPE_NUMBER);
+
+  /* Process alpha here (Bug#16619).  On XP this fails with child
+     frames.  For `no-focus-on-map' frames delay processing of alpha
+     until the frame becomes visible.  */
+  if FRAME_NO_FOCUS_ON_MAP (f) == 0
+    { gui_default_parameter (f, parameters, Qalpha (), Qnil (),
+			     c"alpha".as_ptr (), c"Alpha".as_ptr (), RES_TYPE_NUMBER); }
+
+  /* Init faces first since we need the frame's column width/line
+     height in various occasions.  */
+  init_frame_faces (f);
+
+  /* We have to call adjust_frame_size here since otherwise
+     w32_set_tool_bar_lines will already work with the character sizes
+     installed by init_frame_faces while the frame's pixel size is still
+     calculated from a character size of 1 and we subsequently hit the
+     (height >= 0) assertion in window_box_height.
+
+     The non-pixelwise code apparently worked around this because it
+     had one frame line vs one toolbar line which left us with a zero
+     root window height which was obviously wrong as well ...
+
+     Also process `min-width' and `min-height' parameters right here
+     because `frame-windows-min-size' needs them.  */
+  tem = gui_display_get_arg (dpyinfo, parameters, Qmin_width (),
+			     core::ptr::null (), core::ptr::null (),
+			     RES_TYPE_NUMBER);
+  if FIXNUMP (tem)
+    { store_frame_param (f, Qmin_width (), tem); }
+  tem = gui_display_get_arg (dpyinfo, parameters, Qmin_height (),
+			     core::ptr::null (), core::ptr::null (),
+			     RES_TYPE_NUMBER);
+  if FIXNUMP (tem)
+    { store_frame_param (f, Qmin_height (), tem); }
+  adjust_frame_size (f, FRAME_COLS (f) * FRAME_COLUMN_WIDTH (f),
+		     FRAME_LINES (f) * FRAME_LINE_HEIGHT (f), 5, true,
+		     Qx_create_frame_1 ());
+
+  /* The X resources controlling the menu-bar and tool-bar are
+     processed specially at startup, and reflected in the mode
+     variables; ignore them here.  */
+  if NILP (parent_frame)
+    {
+      gui_default_parameter (f, parameters, Qmenu_bar_lines (),
+			     if NILP (Vmenu_bar_mode) { make_fixnum (0) }
+			     else { make_fixnum (1) },
+			     core::ptr::null (), core::ptr::null (), RES_TYPE_NUMBER);
+    }
+  else
+    /* No menu bar for child frames.  */
+    { store_frame_param (f, Qmenu_bar_lines (), make_fixnum (0)); }
+
+  gui_default_parameter (f, parameters, Qtab_bar_lines (),
+			 if NILP (Vtab_bar_mode) { make_fixnum (0) } else { make_fixnum (1) },
+			 core::ptr::null (), core::ptr::null (), RES_TYPE_NUMBER);
+
+  gui_default_parameter (f, parameters, Qtool_bar_lines (),
+			 if NILP (Vtool_bar_mode) { make_fixnum (0) } else { make_fixnum (1) },
+			 core::ptr::null (), core::ptr::null (), RES_TYPE_NUMBER);
+
+  gui_default_parameter (f, parameters, Qinhibit_double_buffering (), Qnil (),
+			 c"inhibitDoubleBuffering".as_ptr (),
+			 c"InhibitDoubleBuffering".as_ptr (), RES_TYPE_BOOLEAN);
+
+  gui_default_parameter (f, parameters, Qbuffer_predicate (), Qnil (),
+			 c"bufferPredicate".as_ptr (), c"BufferPredicate".as_ptr (),
+			 RES_TYPE_SYMBOL);
+  gui_default_parameter (f, parameters, Qtitle (), Qnil (),
+			 c"title".as_ptr (), c"Title".as_ptr (), RES_TYPE_STRING);
+
+  (*((*f).output_data.w32 as *mut w32_output)).parent_desc
+    = (*FRAME_DISPLAY_INFO! (f)).root_window;
+  (*((*f).output_data.w32 as *mut w32_output)).text_cursor = w32_load_cursor (IDC_IBEAM);
+  (*((*f).output_data.w32 as *mut w32_output)).nontext_cursor = w32_load_cursor (IDC_ARROW);
+  (*((*f).output_data.w32 as *mut w32_output)).modeline_cursor = w32_load_cursor (IDC_ARROW);
+  (*((*f).output_data.w32 as *mut w32_output)).hand_cursor = w32_load_cursor (IDC_HAND);
+  (*((*f).output_data.w32 as *mut w32_output)).hourglass_cursor = w32_load_cursor (IDC_WAIT);
+  (*((*f).output_data.w32 as *mut w32_output)).horizontal_drag_cursor
+    = w32_load_cursor (IDC_SIZEWE);
+  (*((*f).output_data.w32 as *mut w32_output)).vertical_drag_cursor
+    = w32_load_cursor (IDC_SIZENS);
+  (*((*f).output_data.w32 as *mut w32_output)).left_edge_cursor = w32_load_cursor (IDC_SIZEWE);
+  (*((*f).output_data.w32 as *mut w32_output)).top_left_corner_cursor
+    = w32_load_cursor (IDC_SIZENWSE);
+  (*((*f).output_data.w32 as *mut w32_output)).top_edge_cursor = w32_load_cursor (IDC_SIZENS);
+  (*((*f).output_data.w32 as *mut w32_output)).top_right_corner_cursor
+    = w32_load_cursor (IDC_SIZENESW);
+  (*((*f).output_data.w32 as *mut w32_output)).right_edge_cursor = w32_load_cursor (IDC_SIZEWE);
+  (*((*f).output_data.w32 as *mut w32_output)).bottom_right_corner_cursor
+    = w32_load_cursor (IDC_SIZENWSE);
+  (*((*f).output_data.w32 as *mut w32_output)).bottom_edge_cursor = w32_load_cursor (IDC_SIZENS);
+  (*((*f).output_data.w32 as *mut w32_output)).bottom_left_corner_cursor
+    = w32_load_cursor (IDC_SIZENESW);
+
+  (*((*f).output_data.w32 as *mut w32_output)).current_cursor
+    = (*((*f).output_data.w32 as *mut w32_output)).nontext_cursor;
+
+  window_prompting = gui_figure_window_size (f, parameters, true, true);
+
+  tem = gui_display_get_arg (dpyinfo, parameters, Qunsplittable (),
+			     core::ptr::null (), core::ptr::null (),
+			     RES_TYPE_BOOLEAN);
+  (*f).no_split = minibuffer_only || EQ (tem, Qt ());
+
+  w32_window (f, window_prompting, minibuffer_only);
+  w32_icon (f, parameters);
+
+  w32_make_gc (f);
+
+  /* Now consider the frame official.  */
+  (*((*f).terminal)).reference_count += 1;
+  (*FRAME_DISPLAY_INFO! (f)).reference_count += 1;
+  Vframe_list = Fcons (frame, Vframe_list);
+
+  /* We need to do this after creating the window, so that the
+     icon-creation functions can say whose icon they're describing.  */
+  gui_default_parameter (f, parameters, Qicon_type (), Qnil (),
+			 c"bitmapIcon".as_ptr (), c"BitmapIcon".as_ptr (),
+			 RES_TYPE_SYMBOL);
+
+  gui_default_parameter (f, parameters, Qauto_raise (), Qnil (),
+			 c"autoRaise".as_ptr (), c"AutoRaiseLower".as_ptr (),
+			 RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parameters, Qauto_lower (), Qnil (),
+			 c"autoLower".as_ptr (), c"AutoRaiseLower".as_ptr (),
+			 RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parameters, Qcursor_type (), Qbox (),
+			 c"cursorType".as_ptr (), c"CursorType".as_ptr (),
+			 RES_TYPE_SYMBOL);
+  gui_default_parameter (f, parameters, Qscroll_bar_width (), Qnil (),
+			 c"scrollBarWidth".as_ptr (), c"ScrollBarWidth".as_ptr (),
+			 RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qscroll_bar_height (), Qnil (),
+			 c"scrollBarHeight".as_ptr (), c"ScrollBarHeight".as_ptr (),
+			 RES_TYPE_NUMBER);
+
+  /* Allow set_window_size_hook, now.  */
+  (*f).can_set_window_size = true;
+
+  /* Tell the server what size and position, etc, we want, and how
+     badly we want them.  This should be done after we have the menu
+     bar so that its size can be taken into account.  */
+  block_input ();
+  w32_wm_set_size_hint (f, window_prompting, false);
+  unblock_input ();
+
+  adjust_frame_size (f, FRAME_TEXT_WIDTH (f), FRAME_TEXT_HEIGHT (f),
+		     0, true, Qx_create_frame_2 ());
+
+  /* Process fullscreen parameter here in the hope that normalizing a
+     fullheight/fullwidth frame will produce the size set by the last
+     adjust_frame_size call.  */
+  gui_default_parameter (f, parameters, Qfullscreen (), Qnil (),
+			 c"fullscreen".as_ptr (), c"Fullscreen".as_ptr (),
+			 RES_TYPE_SYMBOL);
+  gui_default_parameter (f, parameters, Qz_group (), Qnil (),
+			 core::ptr::null (), core::ptr::null (), RES_TYPE_SYMBOL);
+
+  gui_default_parameter (f, parameters, Qalpha_background (), Qnil (),
+			 c"alphaBackground".as_ptr (), c"AlphaBackground".as_ptr (),
+			 RES_TYPE_NUMBER);
+  gui_default_parameter (f, parameters, Qborders_respect_alpha_background (),
+			 Qnil (), c"bordersRespectAlphaBackground".as_ptr (),
+			 c"BordersRespectAlphaBackground".as_ptr (), RES_TYPE_NUMBER);
+
+  /* Make the window appear on the frame and enable display, unless
+     the caller says not to.  However, with explicit parent, Emacs
+     cannot control visibility, so don't try.  */
+  if ! (*((*f).output_data.w32 as *mut w32_output)).explicit_parent
+    {
+      let mut visibility: Lisp_Object
+	= gui_display_get_arg (dpyinfo, parameters, Qvisibility (),
+			       core::ptr::null (), core::ptr::null (),
+			       RES_TYPE_SYMBOL);
+
+      if EQ (visibility, Qicon ())
+	{ w32_iconify_frame (f); }
+      else
+	{
+	  if BASE_EQ (visibility, Qunbound ())
+	    { visibility = Qt (); }
+
+	  if ! NILP (visibility)
+	    { w32_make_frame_visible (f); }
+	  else
+	    { (*f).was_invisible = true; }
+	}
+
+      store_frame_param (f, Qvisibility (), visibility);
+    }
+
+  /* For `no-focus-on-map' frames set alpha here.  */
+  if FRAME_NO_FOCUS_ON_MAP (f) != 0
+    { gui_default_parameter (f, parameters, Qalpha (), Qnil (),
+			     c"alpha".as_ptr (), c"Alpha".as_ptr (), RES_TYPE_NUMBER); }
+
+  /* Initialize `default-minibuffer-frame' in case this is the first
+     frame on this terminal.  */
+  if FRAME_HAS_MINIBUF_P (f)
+      && (! FRAMEP (KVAR! (kb, Vdefault_minibuffer_frame))
+	  || ! FRAME_LIVE_P (XFRAME (KVAR! (kb, Vdefault_minibuffer_frame))))
+    { kset_default_minibuffer_frame (kb, frame); }
+
+  /* All remaining specified parameters, which have not been "used" by
+     gui_display_get_arg and friends, now go in the misc. alist of the
+     frame.  */
+  tem = parameters;
+  while CONSP (tem)
+    {
+      if CONSP (XCAR (tem)) && ! NILP (XCAR (XCAR (tem)))
+	{ fset_param_alist (f, Fcons (XCAR (tem), (*f).param_alist)); }
+      tem = XCDR (tem);
+    }
+
+  /* Make sure windows on this frame appear in calls to next-window
+     and similar functions.  */
+  Vwindow_list = Qnil ();
+
+  return unbind_to (count, frame);
+});
