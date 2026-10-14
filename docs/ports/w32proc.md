@@ -139,7 +139,8 @@ which `check-dead-file-coverage.py` requires):
 | 4137-4234 | the langinfo arm: C 4137's `#ifdef HAVE_LANGINFO_CODESET` (live in the frozen table, carried under `have_langinfo_codeset`), C 4139-4143's `LOCALE_IPAPERSIZE` fallback and C 4145-4234's `nl_langinfo` (the `w32item` table, the lazily grown buffer, the `CODESET` `cp`-prefix path and the `_NL_PAPER_*` table) | file gate (slice 23); the round's `<winnt.h>`/CRT/gnulib surface stands at the use site (Deviations 86), and the `countof` macro is spelled here because its gnulib mirror is in no unit's graph (Deviations 87) |
 | 4236-4321 | `w32-get-locale-info` (C 4236-4292, with its three branches), `w32-get-current-locale-id` (C 4295-4303) and the static `int_from_hex` (C 4305-4321) | file gate (slice 24); the round's `<winbase.h>` names stand at the use site (Deviations 88), and the `hex` digit table is C's C string under the tree's `*b"…"` device |
 | 4323-4571 | the twelve `DEFUN`s of the locale/codepage/console/keyboard block and the four file-scope objects and callbacks they read: `w32-get-valid-locale-ids` (C 4323-4348, with `Vw32_valid_locale_ids` and `enum_locale_fn`), `w32-get-default-locale-id` (C 4351-4362), `w32-set-current-locale` (C 4365-4384), `w32-get-valid-codepages` (C 4386-4410, with `Vw32_valid_codepages` and `enum_codepage_fn`), the four console-codepage `DEFUN`s (C 4413-4466), `w32-get-codepage-charset` (C 4469-4496) and the three keyboard-layout `DEFUN`s (C 4499-4571) | file gate (slice 25); the round's `<windows.h>`/`<wingdi.h>` surface stands at the use site (Deviations 90-91), the `HIWORD` macro at C 4515's use site (the C 2593 `LOWORD` shape, Deviation 92), and `HWND` is declared there because slice 22's Deviation 76 note was wrong about the graph carrying it (Deviation 93) |
-| 4573-4903 | **the remainder of the file** - C 4573's `get_lcid_callback` and C 4578-4579's `found_lcid`/`lname` through `get_lcid` (C 4618-4641), `w32_compare_strings` (C 4651-4730), the `syms_of_ntproc` table (C 4764-4903) and C 4861-4869's `#if 0` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4573-4760 | the locale-name search and the collation entry point: C 4573-4579's comment, `LOCALE_NAME_MAX_LENGTH` and the `found_lcid`/`lname` pair, `get_lcid_callback` (C 4582-4616), `get_lcid` (C 4618-4644, with its two function-local statics), C 4646-4654's `_NLSCMPERROR`/`LINGUISTIC_IGNORECASE` fallbacks and the `CompareStringW_Proc` type, and `w32_compare_strings` (C 4656-4760) | file gate (slice 26); the round's `<windows.h>`/`<winnls.h>` and CRT surface stands at the use site (Deviations 95-96), with `strtoul` the one name the graph already carries (Deviation 97) |
+| 4762-4903 | **the remainder of the file** - `syms_of_ntproc` (C 4764-4903): the `DEFSYM` table (C 4766-4779), the `defsubr` block and the `DEFVAR_*` forms, plus C 4861-4869's `#if 0` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1634,4 +1635,60 @@ measurement crossed the stem's 0.36 row, so this round re-appends that row at **
     codepages" paragraph) are carried as C's own text at their C positions, the same device the
     earlier slices use; the `DEFUN!` doc slots carry C's docstrings as single literals, whose
     leading `       doc: /*` run and the arglist line's two spaces are C's own columns.
+
+## Slice 26 (2026-10-14, status 4.305): C 4573-4760
+
+**What this round is.**  The locale-name search and the collation entry point: C 4573-4579's
+comment with the `LOCALE_NAME_MAX_LENGTH` fallback and the `found_lcid`/`lname` pair,
+`get_lcid_callback` (C 4582-4616: `strtoul` of the hex locale number, the two `GetLocaleInfo`
+calls, `stricmp`/`strnicmp`), `get_lcid` (C 4618-4644: the one-entry cache and the truncating copy
+into `lname`), C 4646-4654's two `#ifndef` fallbacks with the `CompareStringW_Proc` type, and
+`w32_compare_strings` (C 4656-4760: `USE_SAFE_ALLOCA` C 4666, the "C"/POSIX shortcut C 4670-4673,
+the lazy `CompareStringW` load with C 4679-4681's `Unicows.dll` arm, the two
+`pMultiByteToWideChar` conversions under `SAFE_NALLOCA` C 4696-4721, C 4729-4734's `get_lcid`,
+C 4737-4751's flags and C 4752-4759's answer).  Port: 7,161 -> **7464 lines** (+303).  The next
+row's first item is C 4762-4763's blank and `syms_of_ntproc`'s declaration line.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit**.  The round's first spelling declared `strtoul` at the
+use site too and read **36: 26 `E0428` + 9 `E0425` + 1 `compile_error!`**, the extra row being
+"the name `strtoul` is defined multiple times" - `lib/include/stdlib.rs` 37 already declares it
+(TM C 30's `#include <stdlib.h>`), so the duplicate was removed and the note in that block records
+it (Deviation 97).  This is the second measurement in a row that the `E0428` reading is the one
+that catches an over-declaration.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 7164 7462` -> `37
+capitalized identifiers, missing: ['Locale', 'Some']` - the `SetThreadLocale` declaration's
+parameter name (class e) and the prelude variant (class f).
+**Evidence ④ - the `--check` reading.**  **31 -> 21 `- missing` rows**: the round satisfies the
+`LOCALE_NAME_MAX_LENGTH`/`_NLSCMPERROR`/`LINGUISTIC_IGNORECASE` macro-and-constant rows, the two
+`static` file-scope objects (`found_lcid`, `lname`) and the three functions
+(`get_lcid_callback`, `get_lcid`, `w32_compare_strings`).  No token rows.  Drift 46.1% ->
+**52.2%**, which crossed the 0.47 row the previous slice appended for the same reason, so this
+round re-appends it at **0.53** (measured + 0.01).
+
+**Deviations (this slice's additions).**
+
+95. **The round's `<windows.h>`/`<winnls.h>` surface stands at the use site** (P-88 (1)):
+    `wchar_t` (spelled with this gate's *C-mode* width, MinGW's 16-bit `c_ushort` - the
+    `src/w32inevt.rs` 104 reading, *not* the `lib/include/wchar.rs` mirror's glibc `int`),
+    `LPCWSTR` (`*const c_ushort`, the `src/w32fns.rs` 266 spelling), `CP_UTF8`,
+    `MB_ERR_INVALID_CHARS`, `NORM_IGNORECASE`, `NORM_IGNORESYMBOLS`, `LOCALE_SABBREVCTRYNAME`,
+    `LoadLibrary` (the `…A` export) and `CompareStringW` - all UNVERIFIED.
+96. **The CRT surface stands at the use site**: `strncpy` and MinGW's `stricmp`/`strnicmp`
+    (C 4595-4629 and C 4602 read them; `strcmp`/`strncmp`/`strcpy`/`strlen` are
+    `lib/include/string.rs`'s).  UNVERIFIED.
+97. **`strtoul` is the graph's and is *not* re-declared** (Evidence ②): `lib/include/stdlib.rs`
+    37 carries the exact `(const char *, char **, int) -> unsigned long` shape the round first
+    wrote again, and the duplicate is what the `E0428` row measured.  The block's note keeps the
+    reading.
+98. **C 4661's two uninitialised wide pointers are `null_mut ()`-initialised** (C 4660-4664's
+    declaration keeps C's other three names as they are): `SAFE_NALLOCA!` passes each binding to
+    `pointee_size` by value (`include/lisp.rs` 3054-3058: C's `sizeof *(buf)` never reads `buf`,
+    so the port takes the pointee type instead, and an uninitialised binding cannot be passed by
+    value).  `SAFE_FREE ()`'s no-argument call is the port's `SAFE_FREE! (sa_count)`
+    (`include/lisp.rs` 3084), and the three code sites are C's own (C 4666, C 4699/4712, C 4718,
+    C 4753).
 

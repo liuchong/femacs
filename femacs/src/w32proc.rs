@@ -7156,6 +7156,309 @@ unsafe extern "system" {
   pub fn GetMessage (lpMsg: *mut MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT) -> BOOL;
 }
 
-/* C 4573-4641's `get_lcid_callback`/`get_lcid` (with the two `LOCALE_NAME_MAX_LENGTH`-sized
-   statics C 4578-4579 declares), C 4643-4730's `w32_compare_strings` and C 4764's
-   `syms_of_ntproc` open the next slices.  */
+/* C 4573-4616: the locale-name search.  C 4573-4574's comment explains the pair of statics
+   `get_lcid` and `get_lcid_callback` share, C 4575-4577's `#ifndef` gives the buffer length (C
+   has no `<winnls.h>` on this target either, so the port declares the value at the use site), and
+   C 4582-4616 is the callback: C 4586's `strtoul` of the hexadecimal locale number, C 4588-4590's
+   `GetLocaleInfo` of the language abbreviation, C 4595's `stricmp` match on the language alone,
+   C 4601-4605's `"_"` join with the country abbreviation and C 4608-4610's `strnicmp` prefix match
+   (whose two lookahead characters are C's `'.'`/`'\0'`).  */
+/// C: /* Two variables to interface between get_lcid and the EnumLocales
+/// C:    callback function below.  */
+/// C: #ifndef LOCALE_NAME_MAX_LENGTH
+/// C: # define LOCALE_NAME_MAX_LENGTH 85
+/// C: #endif
+/// C: static LCID found_lcid;
+/// C: static char lname[3 * LOCALE_NAME_MAX_LENGTH + 1 + 1];
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_NAME_MAX_LENGTH: c_int = 85;
+#[cfg (feature = "windowsnt")]
+static mut found_lcid: LCID = 0;
+#[cfg (feature = "windowsnt")]
+static mut lname: [c_char; (3 * LOCALE_NAME_MAX_LENGTH + 1 + 1) as usize]
+  = [0; (3 * LOCALE_NAME_MAX_LENGTH + 1 + 1) as usize];
+
+/// C 4582-4616: `static BOOL CALLBACK get_lcid_callback (LPTSTR locale_num_str)`.
+/// C: static BOOL CALLBACK
+/// C: get_lcid_callback (LPTSTR locale_num_str)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn get_lcid_callback (locale_num_str: LPTSTR) -> BOOL
+{
+  let mut endp: *mut c_char;                                         // C 4584
+  let mut locval: [c_char; (2 * LOCALE_NAME_MAX_LENGTH + 1 + 1) as usize]
+    = [0; (2 * LOCALE_NAME_MAX_LENGTH + 1 + 1) as usize];            // C 4585
+  let try_lcid: LCID = strtoul (locale_num_str, &raw mut endp, 16) as LCID;   // C 4586
+
+  if GetLocaleInfo (try_lcid, LOCALE_SABBREVLANGNAME,                // C 4588-4589
+		    locval.as_mut_ptr (), LOCALE_NAME_MAX_LENGTH) != 0   // C 4590
+    {
+      let mut locval_len: size_t;                                    // C 4592
+
+      /* This is for when they only specify the language, as in "ENU".  */
+      if stricmp (locval.as_ptr (), lname.as_ptr ()) == 0            // C 4595
+	{
+	  found_lcid = try_lcid;                                     // C 4597
+	  return FALSE;                                              // C 4598
+	}
+      locval_len = strlen (locval.as_ptr ());                        // C 4601
+      strcpy (locval.as_mut_ptr ().add (locval_len), c"_".as_ptr ());   // C 4602
+      if GetLocaleInfo (try_lcid, LOCALE_SABBREVCTRYNAME,            // C 4603-4604
+			locval.as_mut_ptr ().add (locval_len + 1),
+			LOCALE_NAME_MAX_LENGTH) != 0                 // C 4605
+	{
+	  locval_len = strlen (locval.as_ptr ());                    // C 4607
+	  if strnicmp (locval.as_ptr (), lname.as_ptr (), locval_len) == 0   // C 4608
+	      && (lname[locval_len] == b'.' as c_char                // C 4609
+		  || lname[locval_len] == 0)                         // C 4610
+	    {
+	      found_lcid = try_lcid;                                 // C 4612
+	      return FALSE;                                          // C 4613
+	    }
+	}
+    }
+  return TRUE;                                                       // C 4616
+}
+
+/// C 4618-4644: `static LCID get_lcid (const char *locale_name)` - the one-entry cache C
+/// 4620-4621 declares (as function-local statics, the slice-17 reading) and C 4623-4624's
+/// thread-safety note, C 4626-4627's cache hit, C 4629-4630's truncating copy of the name into
+/// `lname`, C 4631-4632's enumeration with C 4633-4637's cache update and C 4643's answer.
+/// C: /* Return the Locale ID (LCID) number given the locale's name, a
+/// C:    string, in LOCALE_NAME.  This works by enumerating all the locales
+/// C:    supported by the system, until we find one whose name matches
+/// C:    LOCALE_NAME.  */
+/// C: static LCID
+/// C: get_lcid (const char *locale_name)
+#[cfg (feature = "windowsnt")]
+unsafe fn get_lcid (locale_name: *const c_char) -> LCID
+{
+  /* A simple cache.  */
+  static mut last_lcid: LCID = 0;                                    // C 4620
+  static mut last_locale: [c_char; 1000] = [0; 1000];                // C 4621
+
+  /* The code below is not thread-safe, as it uses static variables.
+     But this function is called only from the Lisp thread.  */
+  if last_lcid > 0 && strcmp (locale_name, last_locale.as_ptr ()) == 0   // C 4626
+    { return last_lcid; }                                            // C 4627
+
+  strncpy (lname.as_mut_ptr (), locale_name,                         // C 4629
+	   core::mem::size_of::<[c_char; (3 * LOCALE_NAME_MAX_LENGTH + 1 + 1) as usize]> ()
+	   - 1);                                                     // C 4629
+  lname[(core::mem::size_of::<[c_char; (3 * LOCALE_NAME_MAX_LENGTH + 1 + 1) as usize]> ()
+	 - 1) as usize] = 0;                                         // C 4630
+  found_lcid = 0;                                                    // C 4631
+  EnumSystemLocales (Some (get_lcid_callback), LCID_SUPPORTED);      // C 4632
+  if found_lcid > 0                                                  // C 4633
+    {
+      last_lcid = found_lcid;                                        // C 4635
+      strcpy (last_locale.as_mut_ptr (), locale_name);                // C 4636
+    }
+  return found_lcid;                                                 // C 4643
+}
+
+/* C 4646-4654: the two `#ifndef` fallbacks C needs for the flags `CompareStringW` takes, and the
+   entry-point type C's `pCompareStringW` is.  C's `#define _NLSCMPERROR INT_MAX` reads
+   `<limits.h>`'s value, which this unit's graph carries (`limits.in.rs` through lisp.h C 33), and
+   the linguistic-ignorecase value is `winnls.h`'s own.  UNVERIFIED (P-88 1).  */
+/// C: #ifndef _NLSCMPERROR
+/// C: # define _NLSCMPERROR INT_MAX
+/// C: #endif
+/// C: #ifndef LINGUISTIC_IGNORECASE
+/// C: # define LINGUISTIC_IGNORECASE  0x00000010
+/// C: #endif
+/// C: typedef int (WINAPI *CompareStringW_Proc)
+/// C:   (LCID, DWORD, LPCWSTR, int, LPCWSTR, int);
+#[cfg (feature = "windowsnt")]
+pub const _NLSCMPERROR: c_int = INT_MAX;
+#[cfg (feature = "windowsnt")]
+pub const LINGUISTIC_IGNORECASE: DWORD = 0x00000010;
+#[cfg (feature = "windowsnt")]
+pub type CompareStringW_Proc
+  = Option<unsafe extern "system" fn (LCID, DWORD, LPCWSTR, c_int, LPCWSTR, c_int) -> c_int>;
+
+/// C 4656-4760: `int w32_compare_strings (const char *s1, const char *s2, char *locname, int
+/// ignore_case)` - C 4660-4664's LCID, the two wide buffers, the two ints, the lazy entry-point
+/// pointer and the flag word, C 4666's `USE_SAFE_ALLOCA`, C 4668-4670's "the LCID machinery
+/// doesn't seem to support the `C` locale" shortcut (C 4671-4673, with C 4673's `? :` as the
+/// port's `if` expression), C 4675-4694's load (`Unicows.dll` through `get_proc_addr` on 9X,
+/// otherwise the import itself, C 4692), C 4696-4721's two `pMultiByteToWideChar` measurements
+/// with `SAFE_NALLOCA`, C 4723-4735's `get_lcid` conversion (and C 4734's `error`), C 4737-4751's
+/// case/punctuation flags and C 4752-4759's call and `val - 2` answer.
+/// C: int
+/// C: w32_compare_strings (const char *s1, const char *s2, char *locname,
+/// C: 		     int ignore_case)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_compare_strings (s1: *const c_char, s2: *const c_char,
+					      locname: *mut c_char,
+					      ignore_case: c_int) -> c_int
+{
+  let mut lcid: LCID = GetThreadLocale ();                           // C 4660
+  /* C 4661-4662's four locals.  The two pointers are `null_mut ()`-initialised because
+     `SAFE_NALLOCA!` passes each binding to `pointee_size` by value (`include/lisp.rs` 3054-3058:
+     C's `sizeof *(buf)` never reads `buf`, Rust has to name the pointee type, and an
+     uninitialised binding cannot be passed by value).  */
+  let mut string1_w: *mut wchar_t = core::ptr::null_mut ();          // C 4661
+  let mut string2_w: *mut wchar_t = core::ptr::null_mut ();          // C 4661
+  let val: c_int;                                                    // C 4662
+  let mut needed: c_int;                                             // C 4662
+  static mut pCompareStringW: CompareStringW_Proc = None;            // C 4663
+  let mut flags: DWORD = 0;                                          // C 4664
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);                             // C 4666
+
+  /* The LCID machinery doesn't seem to support the "C" locale, so we
+     need to do that by hand.  */
+  if !locname.is_null ()                                            // C 4670
+      && ((*locname == b'C' as c_char                               // C 4671
+	   && (*locname.add (1) == 0 || *locname.add (1) == b'.' as c_char))
+	  || strcmp (locname, c"POSIX".as_ptr ()) == 0)              // C 4672
+    { return if ignore_case != 0 { stricmp (s1, s2) } else { strcmp (s1, s2) }; }   // C 4673
+
+  if g_b_init_compare_string_w == 0                                  // C 4675
+    {
+      if os_subtype == OS_SUBTYPE_9X                                 // C 4677
+	{
+	  /* C's cast `(CompareStringW_Proc)` reinterprets the loader's untyped entry point; the
+	     port transmutes between the two `Option<fn>` types of equal width (the
+	     `s_pfn_Get_Thread_Times` reading above).  */
+	  pCompareStringW = core::mem::transmute::<VOIDFNPTR, CompareStringW_Proc>
+	    (get_proc_addr (LoadLibrary (c"Unicows.dll".as_ptr ()),
+			    c"CompareStringW".as_ptr ()));           // C 4679-4681
+	  if pCompareStringW.is_none ()                                  // C 4682
+	    {
+	      *errno () = EINVAL;                                        // C 4684
+	      /* This return value is compatible with wcscoll and
+		 other MS CRT functions.  */
+	      return _NLSCMPERROR;                                       // C 4687
+	    }
+	}
+      else
+	{ pCompareStringW = Some (CompareStringW); }                 // C 4691
+
+      g_b_init_compare_string_w = 1;                                 // C 4693
+    }
+
+  needed = pMultiByteToWideChar.unwrap () (CP_UTF8, MB_ERR_INVALID_CHARS, s1, -1,
+					   core::ptr::null_mut (), 0);   // C 4696
+  if needed > 0                                                      // C 4697
+    {
+      SAFE_NALLOCA! (sa_avail, string1_w, 1, needed + 1);            // C 4699
+      pMultiByteToWideChar.unwrap () (CP_UTF8, MB_ERR_INVALID_CHARS, s1, -1,
+				      string1_w, needed);            // C 4700-4701
+    }
+  else
+    {
+      *errno () = EINVAL;                                            // C 4705
+      return _NLSCMPERROR;                                           // C 4706
+    }
+
+  needed = pMultiByteToWideChar.unwrap () (CP_UTF8, MB_ERR_INVALID_CHARS, s2, -1,
+					   core::ptr::null_mut (), 0);   // C 4709
+  if needed > 0                                                      // C 4710
+    {
+      SAFE_NALLOCA! (sa_avail, string2_w, 1, needed + 1);            // C 4712
+      pMultiByteToWideChar.unwrap () (CP_UTF8, MB_ERR_INVALID_CHARS, s2, -1,
+				      string2_w, needed);            // C 4713-4714
+    }
+  else
+    {
+      SAFE_FREE! (sa_count);                                         // C 4718
+      *errno () = EINVAL;                                            // C 4719
+      return _NLSCMPERROR;                                           // C 4720
+    }
+
+  if !locname.is_null ()                                             // C 4723
+    {
+      /* Convert locale name string to LCID.  We don't want to use
+	 LocaleNameToLCID because (a) it is only available since
+	 Vista, and (b) it doesn't accept locale names returned by
+	 'setlocale' and 'GetLocaleInfo'.  */
+      let new_lcid: LCID = get_lcid (locname);                       // C 4729
+
+      if new_lcid > 0                                                // C 4731
+	{ lcid = new_lcid; }                                         // C 4732
+      else
+	{ error (c"Invalid locale %s: Invalid argument".as_ptr (), locname); }   // C 4734
+    }
+
+  if ignore_case != 0                                                // C 4737
+    {
+      /* NORM_IGNORECASE ignores any tertiary distinction, not just
+	 case variants.  LINGUISTIC_IGNORECASE is more selective, and
+	 is sensitive to the locale's language, but it is not
+	 available before Vista.  */
+      if w32_major_version >= 6                                      // C 4743
+	{ flags |= LINGUISTIC_IGNORECASE; }                          // C 4744
+      else
+	{ flags |= NORM_IGNORECASE; }                                // C 4746
+    }
+  /* This approximates what glibc collation functions do when the
+     locale's codeset is UTF-8.  */
+  if !NILP (Vw32_collate_ignore_punctuation)                         // C 4750
+    { flags |= NORM_IGNORESYMBOLS; }                                 // C 4751
+  val = pCompareStringW.unwrap () (lcid, flags, string1_w, -1, string2_w, -1);   // C 4752
+  SAFE_FREE! (sa_count);                                             // C 4753
+  if val == 0                                                        // C 4754
+    {
+      *errno () = EINVAL;                                            // C 4756
+      return _NLSCMPERROR;                                           // C 4757
+    }
+  return val - 2;                                                    // C 4759
+}
+
+/* C's `<windows.h>`/`<winnls.h>`: the conversion surface C 4656-4760 reads.  `wchar_t` is the
+   *C mode* width of this gate - MinGW's `unsigned short` (`src/w32inevt.rs` 104's reading) - and
+   not the glibc `int` the `lib/include/wchar.rs` mirror carries; `LPCWSTR` is the handle the
+   tree's units spell `*const c_ushort` (`src/w32fns.rs` 266); `LoadLibrary` is the `…A` export and
+   `CompareStringW` the wide entry C names directly.  The two `CF_*`-style flag values and
+   `CP_UTF8`/`MB_ERR_INVALID_CHARS` are `winnls.h`'s own.  UNVERIFIED (P-88 1).  */
+/// C: typedef unsigned short wchar_t;
+/// C: typedef const wchar_t *LPCWSTR;
+/// C: #define CP_UTF8 65001
+/// C: #define MB_ERR_INVALID_CHARS 0x00000008
+/// C: #define NORM_IGNORECASE 0x00000001
+/// C: #define NORM_IGNORESYMBOLS 0x00000004
+/// C: #define LOCALE_SABBREVCTRYNAME 0x00000007
+/// C: WINBASEAPI HMODULE WINAPI LoadLibraryA (LPCSTR lpLibFileName);
+/// C: WINBASEAPI int WINAPI CompareStringW (LCID Locale, DWORD dwCmpFlags, LPCWSTR lpString1,
+/// C:   int cchCount1, LPCWSTR lpString2, int cchCount2);
+#[cfg (feature = "windowsnt")]
+pub type wchar_t = c_ushort;
+#[cfg (feature = "windowsnt")]
+pub type LPCWSTR = *const c_ushort;
+#[cfg (feature = "windowsnt")]
+pub const CP_UTF8: UINT = 65001;
+#[cfg (feature = "windowsnt")]
+pub const MB_ERR_INVALID_CHARS: DWORD = 0x00000008;
+#[cfg (feature = "windowsnt")]
+pub const NORM_IGNORECASE: DWORD = 0x00000001;
+#[cfg (feature = "windowsnt")]
+pub const NORM_IGNORESYMBOLS: DWORD = 0x00000004;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SABBREVCTRYNAME: LCTYPE = 0x00000007;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn LoadLibrary (lpLibFileName: LPCSTR) -> HMODULE;
+  pub fn CompareStringW (Locale: LCID, dwCmpFlags: DWORD, lpString1: LPCWSTR, cchCount1: c_int,
+			 lpString2: LPCWSTR, cchCount2: c_int) -> c_int;
+}
+
+/* C's CRT surface: the three entries C 4602-4636 and C 4595-4608 read that this unit's graph does
+   not carry.  `strtoul` *is* the graph's (`lib/include/stdlib.rs` 37, through C 30's
+   `#include <stdlib.h>`; the round's first spelling declared it here too and the probe read the
+   `E0428`), and `strcmp`/`strncmp`/`strcpy`/`strlen` are `lib/include/string.rs`'s; the
+   `strncpy` and MinGW's two case-insensitive comparisons are declared here.  UNVERIFIED
+   (P-88 1).  */
+/// C: char *strncpy (char *dest, const char *src, size_t n);
+/// C: int stricmp (const char *s1, const char *s2);
+/// C: int strnicmp (const char *s1, const char *s2, size_t n);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn strncpy (dest: *mut c_char, src: *const c_char, n: usize) -> *mut c_char;
+  pub fn stricmp (s1: *const c_char, s2: *const c_char) -> c_int;
+  pub fn strnicmp (s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
+}
+
+/* C 4762-4903's `syms_of_ntproc` (with the `DEFSYM` table at C 4766-4773 and the `defsubr`/
+   `DEFVAR` block) and C 4861-4869's `#if 0` open the next slice.  */
