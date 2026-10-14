@@ -195,7 +195,8 @@ The `arm` cell says what the port does with the block.
 | 4917-5128 | the two scroll-bar motion reports and the clearer: `w32_scroll_bar_report_motion` (C 4917-4965, the vertical report with its `SB_THUMBTRACK`/`SB_LINEDOWN` arms), `w32_horizontal_scroll_bar_report_motion` (C 4967-5016, the horizontal twin with `SB_LINERIGHT`) and `w32_scroll_bar_clear` (C 5019-5061), then the socket reader's five `static` objects (C 5063-5076), `mouse_or_wdesc_frame` (C 5078-5107) and C 5128's `menubar_selection_callback` declaration | file gate (`have_ntgui`); slice 15 below |
 | 5130-6458 | `w32_read_socket` (C 5130-6458): the socket reader's locals, the `while get_next_msg` body with its twenty-five-arm `switch (msg.msg.message)` (C 5169 `WM_EMACS_PAINT` ... C 6344's `default:`), the `#if HAVE_W32NOTIFY` arm, the `WM_TOUCHMOVE`/`WM_TOUCH` pair with its `goto touch_located` and touch-point loop, the autoraise block and the `FOR_EACH_FRAME` visibility sweep | file gate (`have_ntgui`), with the one `have_w32notify` arm; slice 16 below |
 | 6460-6752 | the Text Cursor group: `w32_clip_to_row` (C 6473-6489), `w32_draw_hollow_cursor` (C 6494-6533), `w32_draw_bar_cursor` (C 6543-6626), `w32_define_frame_cursor` (C 6631-6635), `w32_clear_frame_area` (C 6640-6648) and `w32_draw_window_cursor` (C 6650-6752) | file gate (`have_ntgui`); slice 17 below |
-| 6754-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6754-6906 | `w32_bitmap_icon` (C 6758-6816) and `w32_new_font` (C 6846-6891), with C 6818-6841's "Handling X errors" and C 6894-6906's "TODO: W32 Input Methods" banner-plus-list blocks carried as C's own text | file gate (`have_ntgui`); slice 18 below |
+| 6908-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1347,4 +1348,39 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
      line-count row now reads **12.4%** (`9,457` vs `8,414`): the Rust file has passed the C file,
      so this row stops shrinking and its ratio grows from here (7.6% at slice 16, when the port
      was still the shorter text).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 18 (C 6754-6906)
+
+- **What it is.**  The Icons block and the font entry: `w32_bitmap_icon` (C 6758-6816, the four-way
+  icon choice with its two `LoadImage` calls and six `IDI_*` symbols) and `w32_new_font`
+  (C 6846-6891, the fontset/font stores, `get_font_ascent_descent`, the scroll-bar column
+  arithmetic and `adjust_frame_size`), with C 6818-6841's "Handling X errors" and C 6894-6906's
+  "TODO: W32 Input Methods" banner-plus-list blocks carried as C's own text.  Port: 9,457 ->
+  **9,740 lines** (+283).  The table's last row splits at C 6906; the next live definition is
+  C 6912's `w32_calc_absolute_position`.
+- **The two definitions retire two `missing function` rows** (35 -> 33).
+- **The SDK surface stands at the use site** (P-88 (1)), the records UNVERIFIED: `<winuser.h>`'s
+  `LoadIcon`/`LoadImage` with `IMAGE_ICON`/`LR_DEFAULTSIZE`/`LR_LOADFROMFILE`/`SM_CXSMICON`/
+  `SM_CYSMICON`/`WM_SETICON`/`ICON_SMALL`/`ICON_BIG` and the six `IDI_*` values (C's
+  `MAKEINTRESOURCE` is the unit's own macro copy, the `src/w32fns.rs` 492 shape), `frame.h` 1840's
+  `EMACS_CLASS` (the port's `&CStr` string-constant shape), `dispextern.h` 3631's
+  `get_font_ascent_descent` and `frame.h` 1511-1512's `adjust_frame_size` (defined at
+  `src/frame.rs` 1221).
+- **Four `frame.h` accessors this slice writes get the two-arm macro form** (the
+  `src/androidterm.rs` 2739-2757 shape, since `include/frame.rs` carries the reader alone):
+  `FRAME_TAB_BAR_HEIGHT`, `FRAME_COLUMN_WIDTH`, `FRAME_CONFIG_SCROLL_BAR_WIDTH` and
+  `FRAME_CONFIG_SCROLL_BAR_COLS`.
+- **Three of `include/w32term.rs`'s own accessors gained their write arms** (`FRAME_FONT` C 6860,
+  `FRAME_FONTSET` C 6854, `FRAME_BASELINE_OFFSET` C 6861) - the same shape, recorded in
+  `docs/ports/include-w32term.md`.
+- **C's two chained assignments are C's own two stores**: C 6862's
+  `FRAME_COLUMN_WIDTH (f) = unit = font->average_width;` (the inner store first, then the outer
+  with `unit`) and, in the previous slice, C 6669's cursor-type pair.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text**.
+  3. `extract-abi.py --check` -> **44 -> 43 rows** (`missing function` 35 -> **33**), the
+     line-count row at **15.8%** (`9,740` vs `8,414`; it grows from here, as slice 17's entry
+     records).
   4. The ten gates: all `rc=0`, 0 FAIL.

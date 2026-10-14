@@ -480,3 +480,22 @@ member in later slices.
 in the unit's text** (the row above is gone, the standing count unchanged);
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s); `python3 tools/check-declarations.py` -> 0
 failure(s).  The unit-side readings are `docs/ports/w32term.md`'s `### Slice 16 (C 5130-6458)`.
+
+## Three of this mirror's frame accessors gain their write arms (2026-10-15, w32term slice 18)
+
+**The measurement.**  `src/w32term.c` 6854/6860/6861 assign to `FRAME_FONTSET`, `FRAME_FONT` and
+`FRAME_BASELINE_OFFSET`, and this mirror carried each as a *reader* alone (`($f:expr) => { … }`),
+so the reading gave three `E0061`-class rows (the macro takes one argument and was given two).
+
+**The change.**  Each of the three macros gained the two-argument arm over C's own member text
+(`(*(( *$f).output_data.w32 as *mut w32_output)).font/fontset/baseline_offset = $v`), which is the
+shape `src/androidterm.rs` 2739-2757 carries for `frame.h`'s accessors and `src/w32term.rs`'s own
+`w32_output_bits!`/`window_bits!` pairs already use.  No storage changes: the arms write the
+members the readers read.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w51/x.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **22 errors, 0
+anchored in the unit's text**; `python3 tools/check-mirror-dupes.py` and `tools/check-declarations.py`
+-> 0 failure(s) each.  The unit-side readings are `docs/ports/w32term.md`'s
+`### Slice 18 (C 6754-6906)`.

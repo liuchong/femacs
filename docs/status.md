@@ -20279,3 +20279,12 @@
   ⑤ 十门全 `rc=0`、0 失败；区间表拆为 `6460-6752`（本片）+ `6754-8414`（余项）；台账追加 **`### Slice 17 (C 6460-6752)`**，`macro-body-notes.tsv` 追加 `w32_draw_window_cursor` 一行。
   ⑥ 预算与清理：`build-tu` 2 发、臂读数 3 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w17`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.322 `src/w32term.c` 第 18 片（w32term lane，slice 18）：C 6754-6906 落地——Icons 块与字体入口：`w32_bitmap_icon`（C 6758-6816，四路图标选择、两次 `LoadImage` 与六个 `IDI_*`）与 `w32_new_font`（C 6846-6891：fontset/font 存储、`get_font_ascent_descent`、滚动条列算术、`adjust_frame_size`），并照 C 原文携带 C 6818-6841 的 "Handling X errors" 与 C 6894-6906 的 "TODO: W32 Input Methods" 两段 banner+清单；w32term.rs 9,457 → 9,740 行（+283，2026-10-15）**：
+  ① 两个定义退掉两条 `missing function` 行（35 → **33**）。
+  ② 用例处新增 SDK 面（P-88 ①，UNVERIFIED）：`LoadIcon`/`LoadImage` 与 `IMAGE_ICON`/`LR_DEFAULTSIZE`/`LR_LOADFROMFILE`/`SM_CXSMICON`/`SM_CYSMICON`/`WM_SETICON`/`ICON_SMALL`/`ICON_BIG`/六个 `IDI_*`（`MAKEINTRESOURCE` 用本单元自己的宏副本，`src/w32fns.rs` 492 形状）、frame.h 1840 的 `EMACS_CLASS`（`&CStr` 形状）、dispextern.h 3631 的 `get_font_ascent_descent`、frame.h 1511-1512 的 `adjust_frame_size`（定义在 `src/frame.rs` 1221）。
+  ③ **四个 `frame.h` 访问器本片要写**，按 `src/androidterm.rs` 2739-2757 的两臂宏形状在本单元落地（`include/frame.rs` 只有读取器）：`FRAME_TAB_BAR_HEIGHT`/`FRAME_COLUMN_WIDTH`/`FRAME_CONFIG_SCROLL_BAR_WIDTH`/`FRAME_CONFIG_SCROLL_BAR_COLS`；另有 `include/w32term.rs` 自己的三个访问器补写臂（`FRAME_FONT` C 6860、`FRAME_FONTSET` C 6854、`FRAME_BASELINE_OFFSET` C 6861，记入 `docs/ports/include-w32term.md`）。
+  ④ C 的两处链式赋值写作 C 自己的两条语句（内层在前）：本片 C 6862 的 `FRAME_COLUMN_WIDTH (f) = unit = font->average_width;`，以及上一片 C 6669 的 cursor-type 对。
+  ⑤ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本**。`extract-abi.py --check`：**44 → 43 行**（`missing function` 35 → **33**），行数行 **15.8%**（9,740 : 8,414；自 slice 17 起随端口长于参照而增长）。
+  ⑥ 十门全 `rc=0`、0 失败；区间表拆为 `6754-6906`（本片）+ `6908-8414`（余项）；台账追加 **`### Slice 18 (C 6754-6906)`**。
+  ⑦ 预算与清理：`build-tu` 3 发（含一次把文本误追加到镜像后的纠正）、臂读数 2 发、`--check` 1 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w18`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

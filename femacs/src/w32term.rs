@@ -9455,3 +9455,286 @@ unsafe fn w32_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
 
 /* C 6755-6758's "Icons" banner and `static bool w32_bitmap_icon (struct frame *f, Lisp_Object
    icon)` open the next slice.  */
+/* The SDK surface this slice's `w32_bitmap_icon` and `w32_new_font` read: `<winuser.h>`'s icon
+   entry points and their constants, `frame.h` 1840's `EMACS_CLASS`, `dispextern.h` 3631's
+   `get_font_ascent_descent` and `frame.h` 1511-1512's `adjust_frame_size` (whose definition is
+   `src/frame.rs` 1221).  Every name stands at the use site (P-88 (1)); the SDK records are
+   UNVERIFIED.  Three `frame.h` accessors this slice *writes* get the two-arm form the unit carries
+   per site (the `src/androidterm.rs` 2739-2757 shape; `include/frame.rs` has only the reader).  */
+/// C: typedef void *HINSTANCE; typedef char *LPSTR; typedef const char *LPCSTR;
+/// C: #define MAKEINTRESOURCEA(i) ((LPSTR)((ULONG_PTR)((WORD)(i))))
+/// C: #define IMAGE_ICON 1 / #define LR_DEFAULTSIZE 0x00000040 / #define LR_LOADFROMFILE 0x00000010
+/// C: #define SM_CXSMICON 49 / #define SM_CYSMICON 50
+/// C: #define WM_SETICON 0x0080 / #define ICON_SMALL 0 / #define ICON_BIG 1
+/// C: #define IDI_APPLICATION MAKEINTRESOURCE(32512) / #define IDI_HAND MAKEINTRESOURCE(32513)
+/// C: #define IDI_QUESTION MAKEINTRESOURCE(32514) / #define IDI_EXCLAMATION MAKEINTRESOURCE(32515)
+/// C: #define IDI_ASTERISK MAKEINTRESOURCE(32516) / #define IDI_WINLOGO MAKEINTRESOURCE(32517)
+/// C: WINUSERAPI HICON WINAPI LoadIconA (HINSTANCE hInstance, LPCSTR lpIconName);
+/// C: WINUSERAPI HANDLE WINAPI LoadImageA (HINSTANCE hinst, LPCSTR lpszName, UINT uType,
+/// C:   int cxDesired, int cyDesired, UINT fuLoad);
+/// C: frame.h 1840: `#define EMACS_CLASS "Emacs"`
+/// C: extern void get_font_ascent_descent (struct font *, int *, int *);   [dispextern.h 3631]
+/// C: extern void adjust_frame_size (struct frame *, int, int, int, bool, Lisp_Object);
+/// C:   [frame.h 1511-1512]
+#[cfg (feature = "have_ntgui")]
+pub type HINSTANCE = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type LPSTR = *mut c_char;
+#[cfg (feature = "have_ntgui")]
+pub type LPCSTR = *const c_char;
+#[cfg (feature = "have_ntgui")]
+macro_rules! MAKEINTRESOURCE {
+  ($i:expr) => { (($i as ULONG_PTR) as LPSTR) };
+}
+#[cfg (feature = "have_ntgui")]
+pub const IMAGE_ICON: UINT = 1;
+#[cfg (feature = "have_ntgui")]
+pub const LR_DEFAULTSIZE: UINT = 0x00000040;
+#[cfg (feature = "have_ntgui")]
+pub const LR_LOADFROMFILE: UINT = 0x00000010;
+#[cfg (feature = "have_ntgui")]
+pub const SM_CXSMICON: c_int = 49;
+#[cfg (feature = "have_ntgui")]
+pub const SM_CYSMICON: c_int = 50;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SETICON: c_int = 0x0080;
+#[cfg (feature = "have_ntgui")]
+pub const ICON_SMALL: c_int = 0;
+#[cfg (feature = "have_ntgui")]
+pub const ICON_BIG: c_int = 1;
+#[cfg (feature = "have_ntgui")]
+pub const IDI_APPLICATION: LPSTR = MAKEINTRESOURCE! (32512);
+#[cfg (feature = "have_ntgui")]
+pub const IDI_HAND: LPSTR = MAKEINTRESOURCE! (32513);
+#[cfg (feature = "have_ntgui")]
+pub const IDI_QUESTION: LPSTR = MAKEINTRESOURCE! (32514);
+#[cfg (feature = "have_ntgui")]
+pub const IDI_EXCLAMATION: LPSTR = MAKEINTRESOURCE! (32515);
+#[cfg (feature = "have_ntgui")]
+pub const IDI_ASTERISK: LPSTR = MAKEINTRESOURCE! (32516);
+#[cfg (feature = "have_ntgui")]
+pub const IDI_WINLOGO: LPSTR = MAKEINTRESOURCE! (32517);
+#[cfg (feature = "have_ntgui")]
+pub const EMACS_CLASS: &core::ffi::CStr = c"Emacs";
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn LoadIcon (hInstance: HINSTANCE, lpIconName: LPCSTR) -> HANDLE;
+  pub fn LoadImage (hinst: HINSTANCE, lpszName: LPCSTR, uType: UINT, cxDesired: c_int,
+		    cyDesired: c_int, fuLoad: UINT) -> HANDLE;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
+  pub fn adjust_frame_size (f: *mut frame, new_text_width: c_int, new_text_height: c_int,
+			    inhibit: c_int, pretend: bool, parameter: Lisp_Object);
+}
+
+/// C: frame.h 1091: `#define FRAME_TAB_BAR_HEIGHT(f) (f)->tab_bar_height`
+#[cfg (feature = "have_ntgui")]
+macro_rules! FRAME_TAB_BAR_HEIGHT {
+  ($f:expr) => { FRAME_TAB_BAR_HEIGHT ($f) };
+  ($f:expr, $v:expr) => { (*$f).tab_bar_height = $v };
+}
+/// C: frame.h 1355: `#define FRAME_COLUMN_WIDTH(f) ((f)->column_width)`
+#[cfg (feature = "have_ntgui")]
+macro_rules! FRAME_COLUMN_WIDTH {
+  ($f:expr) => { FRAME_COLUMN_WIDTH ($f) };
+  ($f:expr, $v:expr) => { (*$f).column_width = $v };
+}
+/// C: frame.h 1286: `#define FRAME_CONFIG_SCROLL_BAR_WIDTH(f) ((f)->config_scroll_bar_width)`
+#[cfg (feature = "have_ntgui")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_WIDTH {
+  ($f:expr) => { FRAME_CONFIG_SCROLL_BAR_WIDTH ($f) };
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_width = $v };
+}
+/// C: frame.h 1296: `#define FRAME_CONFIG_SCROLL_BAR_COLS(f) ((f)->config_scroll_bar_cols)`
+#[cfg (feature = "have_ntgui")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_COLS {
+  ($f:expr) => { FRAME_CONFIG_SCROLL_BAR_COLS ($f) };
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_cols = $v };
+}
+/// C: frame.h 1357: `#define FRAME_LINE_HEIGHT(f) ((f)->line_height)`
+#[cfg (feature = "have_ntgui")]
+macro_rules! FRAME_LINE_HEIGHT {
+  ($f:expr) => { FRAME_LINE_HEIGHT ($f) };
+  ($f:expr, $v:expr) => { (*$f).line_height = $v };
+}
+
+/* C 6756's "Icons." banner, carried as C's own text at its position.  */
+/* C: /* Icons.  */  */
+
+/// C 6758-6816: `static bool w32_bitmap_icon (struct frame *f, Lisp_Object icon)` - C 6761-6762's
+/// two handles, C 6764-6765's window guard, C 6767-6802's four-way icon choice (the default icon,
+/// the two `LoadImage` calls of the `STRINGP` arm, the six `IDI_*` symbols of the `SYMBOLP` arm and
+/// C 6801-6802's `return 1`), C 6804-6805's NULL guard and C 6807-6815's two `PostMessage` calls
+/// with the `return 0`.
+/// C: static bool
+/// C: w32_bitmap_icon (struct frame *f, Lisp_Object icon)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_bitmap_icon (f: *mut frame, icon: Lisp_Object) -> bool
+{
+  let mut main_icon: HANDLE;                                           // C 6761
+  let mut small_icon: HANDLE = core::ptr::null_mut ();                 // C 6762
+
+  if FRAME_W32_WINDOW! (f).is_null ()                                  // C 6764
+    { return true; }                                                   // C 6765
+
+  if NILP (icon)                                                       // C 6767
+    { main_icon = LoadIcon (hinst, EMACS_CLASS.as_ptr ()); }           // C 6768
+  else if STRINGP (icon)                                               // C 6769
+    {
+      /* Load the main icon from the named file.  */
+      main_icon = LoadImage (core::ptr::null_mut (), SDATA (icon) as LPCTSTR, IMAGE_ICON, 0, 0,   // C 6772
+			     LR_DEFAULTSIZE | LR_LOADFROMFILE);        // C 6773
+      /* Try to load a small icon to go with it.  */
+      small_icon = LoadImage (core::ptr::null_mut (), SDATA (icon) as LPCSTR, IMAGE_ICON,   // C 6775
+			      GetSystemMetrics (SM_CXSMICON),          // C 6776
+			      GetSystemMetrics (SM_CYSMICON),          // C 6777
+			      LR_LOADFROMFILE);                        // C 6778
+    }
+  else if SYMBOLP (icon)                                               // C 6780
+    {
+      let name: LPCTSTR;                                               // C 6782
+
+      if EQ (icon, Qapplication ())                                    // C 6784
+	{ name = IDI_APPLICATION as LPCTSTR; }                         // C 6785
+      else if EQ (icon, Qhand ())                                      // C 6786
+	{ name = IDI_HAND as LPCTSTR; }                                // C 6787
+      else if EQ (icon, Qquestion ())                                  // C 6788
+	{ name = IDI_QUESTION as LPCTSTR; }                            // C 6789
+      else if EQ (icon, Qexclamation ())                               // C 6790
+	{ name = IDI_EXCLAMATION as LPCTSTR; }                         // C 6791
+      else if EQ (icon, Qasterisk ())                                  // C 6792
+	{ name = IDI_ASTERISK as LPCTSTR; }                            // C 6793
+      else if EQ (icon, Qwinlogo ())                                   // C 6794
+	{ name = IDI_WINLOGO as LPCTSTR; }                             // C 6795
+      else
+	{ return true; }                                               // C 6797
+
+      main_icon = LoadIcon (core::ptr::null_mut (), name);             // C 6799
+    }
+  else
+    { return true; }                                                   // C 6802
+
+  if main_icon.is_null ()                                              // C 6804
+    { return true; }                                                   // C 6805
+
+  PostMessage (FRAME_W32_WINDOW! (f), WM_SETICON as UINT, (ICON_BIG as WPARAM),   // C 6807
+	       (main_icon as LPARAM));                                    // C 6808
+
+  /* If there is a small icon that goes with it, set that too.  */
+  if !small_icon.is_null ()                                            // C 6811
+    { PostMessage (FRAME_W32_WINDOW! (f), WM_SETICON as UINT, (ICON_SMALL as WPARAM),   // C 6812
+		   (small_icon as LPARAM)); }                          // C 6813
+
+  return false;                                                        // C 6815
+}
+
+/* C 6818-6841: the "Handling X errors" banner and the commented-out list of the X-only display
+   error functions, carried as C's own text at their position.  */
+/* C: /************************************************************************
+   C: 			  Handling X errors
+   C:  ************************************************************************/  */
+
+   /* Display Error Handling functions not used on W32. Listing them here
+      helps diff stay in step when comparing w32term.c with xterm.c.
+
+   x_error_catcher (display, error)
+   x_catch_errors (dpy)
+   x_catch_errors_unwind (old_val)
+   x_check_errors (dpy, format)
+   x_fully_uncatch_errors ()
+   x_had_errors_p (dpy)
+   x_clear_errors (dpy)
+   x_uncatch_errors (dpy, count)
+   x_trace_wire ()
+   x_connection_signal (signalnum)
+   x_connection_closed (dpy, error_message)
+   x_error_quitter (display, error)
+   x_error_handler (display, error)
+   x_io_error_quitter (display)
+
+    */
+
+/* C 6843's banner above `w32_new_font`, carried as C's own text at its position.  */
+/* C: /* Changing the font of the frame.  */  */
+
+/// C 6846-6891: `static Lisp_Object w32_new_font (struct frame *f, Lisp_Object font_object, int
+/// fontset)` - C 6849's `XFONT_OBJECT`, C 6850's three locals, C 6852-6853's fontset lookup, C
+/// 6854's store, C 6855-6858's already-set early return, C 6860-6864's five stores (with C 6862's
+/// chained assignment and C 6863's `get_font_ascent_descent`), C 6866-6876's scroll-bar column
+/// arithmetic, C 6878's tab-bar height and C 6883-6886's `adjust_frame_size`.
+/// C: static Lisp_Object
+/// C: w32_new_font (struct frame *f, Lisp_Object font_object, int fontset)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_new_font (f: *mut frame, font_object: Lisp_Object, mut fontset: c_int) -> Lisp_Object
+{
+  let font: *mut font = XFONT_OBJECT (font_object);                    // C 6849
+  let mut unit: c_int;                                                 // C 6850
+  let mut font_ascent: c_int = 0;
+  let mut font_descent: c_int = 0;
+
+  if fontset < 0                                                       // C 6852
+    { fontset = fontset_from_font (font_object); }                     // C 6853
+  FRAME_FONTSET! (f, fontset);                                         // C 6854
+  if FRAME_FONT! (f) as *mut font == font                              // C 6855
+    /* This font is already set in frame F.  There's nothing more to
+       do.  */
+    { return font_object; }                                            // C 6858
+
+  FRAME_FONT! (f, font as *mut c_void);                                // C 6860
+  FRAME_BASELINE_OFFSET! (f, (*font).baseline_offset);                 // C 6861
+  /* C's chained `FRAME_COLUMN_WIDTH (f) = unit = font->average_width;` is its own two stores,
+     the inner one first.  */
+  unit = (*font).average_width;                                        // C 6862
+  FRAME_COLUMN_WIDTH! (f, unit);                                       // C 6862
+  get_font_ascent_descent (font, &raw mut font_ascent, &raw mut font_descent);   // C 6863
+  FRAME_LINE_HEIGHT! (f, font_ascent + font_descent);                  // C 6864
+
+  /* Compute number of scrollbar columns.  */
+  unit = FRAME_COLUMN_WIDTH! (f);                                      // C 6867
+  if FRAME_CONFIG_SCROLL_BAR_WIDTH! (f) > 0                            // C 6868
+    {
+      FRAME_CONFIG_SCROLL_BAR_COLS! (f, (FRAME_CONFIG_SCROLL_BAR_WIDTH! (f) + unit - 1) / unit);   // C 6869-6870
+    }
+  else
+    {
+      FRAME_CONFIG_SCROLL_BAR_COLS! (f, (14 + unit - 1) / unit);       // C 6873
+      FRAME_CONFIG_SCROLL_BAR_WIDTH! (f, FRAME_CONFIG_SCROLL_BAR_COLS! (f) * unit);   // C 6874-6875
+    }
+
+  FRAME_TAB_BAR_HEIGHT! (f, FRAME_TAB_BAR_LINES (f) * FRAME_LINE_HEIGHT! (f));   // C 6878
+
+/* Don't change the size of a tip frame; there's no point in
+   doing it because it's done in Fx_show_tip, and it leads to
+   problems because the tip frame has no widget.  */
+  if !FRAME_NATIVE_WINDOW! (f).is_null () && !FRAME_TOOLTIP_P (f)      // C 6883
+    {
+      adjust_frame_size (f, FRAME_COLS (f) * FRAME_COLUMN_WIDTH! (f),   // C 6884-6885
+			 FRAME_LINES (f) * FRAME_LINE_HEIGHT! (f), 3, false, Qfont ());   // C 6886
+    }
+
+  /* X version sets font of input methods here also.  */
+
+  return font_object;                                                  // C 6890
+}
+
+/* C 6894-6906: the Input Methods banner and the commented-out list of the X-only IME functions,
+   carried as C's own text at their position.  */
+/* C: /***********************************************************************
+   C: 	TODO: W32 Input Methods
+   C:  ***********************************************************************/  */
+
+   /* Listing missing functions from xterm.c helps diff stay in step.
+
+   xim_destroy_callback (xim, client_data, call_data)
+   xim_open_dpy (dpyinfo, resource_name)
+   struct xim_inst_t
+   xim_instantiate_callback (display, client_data, call_data)
+   xim_initialize (dpyinfo, resource_name)
+   xim_close_dpy (dpyinfo)
+
+    */
+
+/* C 6909-6912's note and `static void w32_calc_absolute_position (struct frame *f)` open the next
+   slice.  */

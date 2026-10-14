@@ -636,16 +636,25 @@ macro_rules! FRAME_NATIVE_WINDOW {
 #[cfg (feature = "windowsnt")]
 macro_rules! FRAME_FONT {
   ($f:expr) => { ((*((*$f).output_data.w32 as *mut w32_output)).font) };
+  /* The write arm `src/w32term.c` 6860/6854/6861 needs (the `src/androidterm.rs`
+     2739-2757 two-arm shape; this mirror carried the reader alone).  */
+  ($f:expr, $v:expr) => { ((*((*$f).output_data.w32 as *mut w32_output)).font) = $v };
 }
 /// C: #define FRAME_FONTSET(f) ((f)->output_data.w32->fontset)
 #[cfg (feature = "windowsnt")]
 macro_rules! FRAME_FONTSET {
   ($f:expr) => { ((*((*$f).output_data.w32 as *mut w32_output)).fontset) };
+  /* The write arm `src/w32term.c` 6860/6854/6861 needs (the `src/androidterm.rs`
+     2739-2757 two-arm shape; this mirror carried the reader alone).  */
+  ($f:expr, $v:expr) => { ((*((*$f).output_data.w32 as *mut w32_output)).fontset) = $v };
 }
 /// C: #define FRAME_BASELINE_OFFSET(f) ((f)->output_data.w32->baseline_offset)
 #[cfg (feature = "windowsnt")]
 macro_rules! FRAME_BASELINE_OFFSET {
   ($f:expr) => { ((*((*$f).output_data.w32 as *mut w32_output)).baseline_offset) };
+  /* The write arm `src/w32term.c` 6860/6854/6861 needs (the `src/androidterm.rs`
+     2739-2757 two-arm shape; this mirror carried the reader alone).  */
+  ($f:expr, $v:expr) => { ((*((*$f).output_data.w32 as *mut w32_output)).baseline_offset) = $v };
 }
 /// C: #define FRAME_DISPLAY_INFO(f) ((void) (f), (&one_w32_display_info))
 // C's `(void) (f)` is the "evaluate and discard" cast, and Rust has no such cast: a body that
