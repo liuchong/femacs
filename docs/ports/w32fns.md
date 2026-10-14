@@ -215,7 +215,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 7246-7388 | C 7246-7388: the `x-close-connection`, `x-display-list` and `x-synchronize` `DEFUN`s, then C 7291-7388's `#if 0 /* TODO : port window properties to W32 */` block kept as C's own text - slice 11 | file gate; the `#if 0` region is dead in every configuration |
 | 7390-7661 | C 7390-7392's Tool-tips banner, C 7394-7395's `compute_tip_xy` declaration (dropped - the definition is C 7663), the six tip objects (C 7398-7415), `unwind_create_tip_frame` (C 7418-7429) and `w32_create_tip_frame` (C 7432-7661) - slice 12 | file gate; C 7394-7395's forward declaration has no counterpart (PORTING.md 0.1-12) |
 | 7663-7807 | C 7663-7750's `compute_tip_xy` (the definition of the declaration slice 12 dropped) and C 7752-7806's `w32_hide_tip` - slice 13 | file gate |
-| 7809-12488 | **the remainder of the file** (C 7809's `x-show-tip` `DEFUN` onward: C 8064's neighbours, C 8138's `w32-handle-dde-request`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7809-8114 | C 7809-8106's `x-show-tip` (the file's second-largest `DEFUN`: the reuse/reposition arm, the hidden-frame comparison loop, the parameter defaults, `w32_create_tip_frame`, the pseudo-window setup, `try_window` and the two `SetWindowPos` calls) and C 8109-8114's `x-hide-tip` - slice 14 | file gate; C 7884/8101's `goto start_timer` is the `'start_timer` labelled block |
+| 8116-12488 | **the remainder of the file** (C 8116's File-selection-dialog banner onward: C 8129 `file_dialog_callback`, C 8208's neighbours, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1851,6 +1852,81 @@ cover src/w32fns.c (12488 lines; 109 blank line(s) between blocks need no row)**
   conversion into `*root_x`/`*root_y` (C 7720 etc.).
 - **Not claimed.**  No run evidence: no cursor position is read and no tooltip is hidden on this
   machine; the arm reading is compile-level and the name sweep textual.
+
+## Slice 14 (C 7809-8114)
+
+**Scope and the stop.**  The file's second-largest `DEFUN`, `x-show-tip` (C 7809-8106), and
+`x-hide-tip` (C 8109-8114).  The stop is C 8116's File-selection-dialog banner (C 8115 blank).
+
+**What the item carries.**  C's six-argument shape with the six parameters re-bound `let mut` (the
+`DEFUN!` macro's `$arg:ident` cannot say `mut`; the `src/androidfns.rs` 3028-3037 note and that
+file's identical C lines are the sibling); C 7884's `goto start_timer` and C 8101's label as the
+`'start_timer` labelled block whose `break 'start_timer` is the jump and which *stops before* the
+timer line exactly as C's label does; C 7847-7885's reuse arm with `Fequal_including_properties`,
+`compute_tip_xy` and the two `SetWindowPos` calls (`HWND_TOPMOST`/`HWND_TOP` and the four `SWP_*`
+flags); C 7886-7937's hidden-frame comparison (two `CONSP` walks with `calln! (Qassq_delete_all,
+…)`) and its three `w32_hide_tip` exits; C 7942-7980's parameter defaults and
+`w32_create_tip_frame` call; C 7982-8020's pseudo-window setup (`bset_left_margin_cols`,
+`bset_right_margin_cols`, `set_window_buffer`, `Fset_window_parameter (Qno_other_window)`, the
+`Vx_max_tooltip_size` clamp with `RANGED_FIXNUMP`, `FRAME_TOTAL_COLS!`, `adjust_frame_glyphs`);
+C 8024-8099's buffer insertion (`set_buffer_internal_1`, `bset_truncate_lines`, three `specbind`s,
+`Ferase_buffer`, `Finsert (1, &string)`, `SET_TEXT_POS!`, `try_window` with
+dispextern.h 3700's `TRY_WINDOW_IGNORE_FONTS_CHANGE`, C 8039-8051's `enable_checking` arm,
+`Fwindow_text_pixel_size`, `compute_tip_xy`, `AdjustWindowRect` with `FRAME_EXTERNAL_MENU_BAR`
+read as the mirror's `bool` function, `SET_FRAME_VISIBLE!`, `ShowWindow`, `update_single_window`,
+`windows_or_buffers_changed`) and C 8101-8105's timer + `unbind_to`.  Two new declarations
+(`try_window`, `update_single_window` - dispextern.h 3573/3918) and two unit-local macros
+(`FRAME_TOTAL_COLS!` for the frame.h 1035 writer, `SET_TEXT_POS!` for dispextern.h 291-292's
+two-assignment expansion; the `src/androidfns.rs` 2963-2974 / `src/haikufns.rs` 449-454 device).
+
+### Evidence (slice 14, the final revision: 12,062 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **41 previous errors**, one more than slice 13's
+40: this slice's two new members of the `window` mirror - C 7991's `pseudo_window_p` and C 8094's
+`must_be_updated_p`, neither recorded by `include/window.rs` (the `w32_output`/`frame` class, owed
+to the mirror).  The other classes are unchanged (eleven `E0428`s including the new
+`tip_window`/`windowsnt`-mirror collision this slice's C 7402 definition creates,
+`menubar_active` 6, `explicit_parent` 4, `hourglass_p` 3, `tab_bar_*`/`tool_bar_*` 9, `E0530`).
+Six unit-local fixes were needed first, all found by this reading: C 8032's `Finsert` argument
+shape, the `'start_timer` block's position (C's label is *before* the timer line, so the block must
+not be the body's tail expression - `E0308 expected *mut Lisp_X, found ()`), C 7886's
+`tooltip_reuse_hidden_frame` is a `bool` in the mirror (so `&&`, not `!= 0`; C 8113's `!` likewise),
+C 8033-8034's two matrices are `*mut c_void` in the window mirror (`as *mut glyph_matrix`), and
+C 6104-6107's `int explicit` needs `explicit != 0` at `w32_set_name` (a type error slice 12's
+flag-table correction introduced and this slice's reading caught).
+
+**③ `extract-abi.py --check`.**  160 rows → **157**: the two `missing subr` rows
+(`Fx_show_tip`, `Fx_hide_tip`) retire, and the **line-count drift row disappears** - the target is
+now 12,062 lines against the reference's 12,488, inside the checker's 5% window (the last reading
+was 6.5%).  This is the first time this file has no drift row.
+
+**④ The range table and the dead-file gate.**  The `7809-12488` remainder row splits into
+`7809-8114` (this slice; C 7884/8101's `goto` recorded) and `8116-12488`;
+`check-dead-file-coverage.py` reads **163 range row(s) cover src/w32fns.c (12488 lines; 110 blank
+line(s) between blocks need no row)**, `0 failure(s)` (162 rows / 109 blanks before the split).
+
+**⑤ The name sweep, and `check-citations`.**  `tools/check-unit-names.py` over the new region:
+`missing: []`.  `check-citations.py` first read **1 drift** - this slice's own doc comment cited
+`TRY_WINDOW_IGNORE_FONTS_CHANGE` as dispextern.h 2761 (the *mirror's* line) instead of the
+reference's dispextern.h 3700 - and reads 0 drift after the fix.  The ten gates read 0 failures.
+
+### Deviations (slice 14)
+
+- **Two `window` mirror members are owed** (`pseudo_window_p`, `must_be_updated_p`): C's writes are
+  kept verbatim and the arm reading names them, rather than inventing a unit-local bit device
+  (`src/androidfns.rs` 2955-2962 has one for the same two bits, but the mirror carries neither the
+  members nor the shift constants this file would need).
+- **`tip_window`'s definition collides with the mirror's declaration** (`include/w32term.rs` 1315):
+  the port keeps C's non-static definition (C 7402 does define it here) and the `E0428` is the
+  integrator's - drop the mirror's declaration when this unit lands (the class slice 7's ledger
+  names for the eleven other names).
+- **`FRAME_TOTAL_COLS!`/`SET_TEXT_POS!` are unit-local**, because the mirror carries the frame.h
+  1035 reader and a function-shaped `SET_TEXT_POS` while C writes both (the two sibling units'
+  device, cited above).
+- **Not claimed.**  No run evidence: no tooltip is shown on this machine (no display,
+  `SetWindowPos` is never called), the arm reading is compile-level and the name sweep textual.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

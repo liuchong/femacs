@@ -7060,6 +7060,11 @@ unsafe extern "system" {
   /// C 7790's reader: `frame.h` 1509's `extern Lisp_Object delete_frame (Lisp_Object, Lisp_Object);`
   /// (the `src/androidfns.rs` 117 declaration of the same function).
   pub fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object;
+  /// C 8036's readers (`dispextern.h` 3573/3918, the `src/androidfns.rs` 2981-2984 pair):
+  /// C: int try_window (Lisp_Object, struct text_pos, int);
+  /// C: void update_single_window (struct window *);
+  pub fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
+  pub fn update_single_window (w: *mut window);
   /// C 7237's reader: this unit's slice 1 already lists `fatal` among `lisp.h`'s entry points
   /// and never declared it; C's prototype is variadic.
   /// C: extern AVOID void fatal (const char *msgid, ...);
@@ -9529,7 +9534,7 @@ unsafe fn w32_window (f: *mut frame, window_prompting: c_long, minibuffer_only: 
     frame_set_flag (f, FRAME_EXPLICIT_NAME_UNIT, FRAME_EXPLICIT_NAME_SHIFT, 0);
     name = (*f).name;
     fset_name (f, Qnil ());
-    w32_set_name (f, name, explicit);
+    w32_set_name (f, name, explicit != 0);
   }
 
   unblock_input ();
@@ -9730,6 +9735,25 @@ macro_rules! set_output_method {
 macro_rules! output_method {
   ($f:expr) => { output_method ($f) };
   ($f:expr, $v:expr) => { set_output_method! ($f, $v) };
+}
+
+/// C 8019's writer: frame.h 1035's `#define FRAME_TOTAL_COLS(f) ((f)->total_cols)`.  The mirror
+/// carries the reader; a unit that writes it adds the write arm under C's own name (the
+/// `src/androidfns.rs` 2963-2967 / `src/haikufns.rs` 449-454 device).
+#[cfg (feature = "have_ntgui")]
+macro_rules! FRAME_TOTAL_COLS {
+  ($f:expr, $v:expr) => { (*$f).total_cols = $v };
+}
+/// C 8035's expansion: dispextern.h 291-292's
+/// `#define SET_TEXT_POS(pos, charpos, bytepos) ((pos).charpos = (charpos), (pos).bytepos = (bytepos))`
+/// - the mirror's copy is a function, and this file needs C's assignment shape (the
+/// `src/androidfns.rs` 2968-2974 device).
+#[cfg (feature = "have_ntgui")]
+macro_rules! SET_TEXT_POS {
+  ($pos:expr, $cp:expr, $bp:expr) => {{
+    $pos.charpos = $cp;
+    $pos.bytepos = $bp;
+  }};
 }
 
 /* keyboard.h 38's `KVAR` is a token-pasting macro (`((kboard)->field ## _)`) with no Rust
@@ -11679,3 +11703,362 @@ unsafe fn w32_hide_tip (delete: bool) -> Lisp_Object
       return unbind_to (count, was_open);
     }
 }
+
+/// C 7809-8106: `x-show-tip` - the file's largest `DEFUN` after `x-create-frame`, and the w32
+/// sibling of `src/androidfns.rs`'s `Fx_show_tip` (C 2301-2583 there) and `src/haikufns.rs`'s:
+/// the same six-argument shape, C's `goto start_timer` (C 7884) and its label (C 8101) as the
+/// labelled block `'start_timer` whose `break 'start_timer` is the jump (PORTING.md 2.2), C's six
+/// reassigned parameters re-bound with `let mut` (the `DEFUN!` macro's `$arg:ident` cannot say
+/// `mut`; `docs/ports/macro-body-notes.tsv` records that), C 7816's `int root_x, root_y;` and
+/// C 7819's `int width, height;` as PORTING.md 1.5 locals, C 7818's `struct text_pos pos;` as the
+/// `text_pos` mirror's zeroed value, C 7849's `FRAME_VISIBLE_P`, C 7880/8089's
+/// `SET_FRAME_VISIBLE!`, C 8019's `FRAME_TOTAL_COLS!` and C 8035's `SET_TEXT_POS!` (the two
+/// unit-local macros above), C 8036's `try_window` with
+/// dispextern.h 3700's `TRY_WINDOW_IGNORE_FONTS_CHANGE`, C 8039-8051's `#ifdef ENABLE_CHECKING`
+/// arm (`enable_checking`, the `src/androidfns.rs` 3021-3025 shape) and C 8032's `Finsert (1,
+/// &string)` (the port's `Finsert (1, &raw mut string)`, the sibling's spelling).
+/// C: DEFUN ("x-show-tip", Fx_show_tip, Sx_show_tip, 1, 6, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object string, Lisp_Object frame, Lisp_Object parms,
+/// C:    Lisp_Object timeout, Lisp_Object dx, Lisp_Object dy)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-show-tip", Fx_show_tip, Sx_show_tip, 1, 6, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(string: Lisp_Object, frame: Lisp_Object, parms: Lisp_Object, timeout: Lisp_Object,
+	 dx: Lisp_Object, dy: Lisp_Object),
+	{
+  let mut tip_f: *mut frame;
+  let mut w: *mut window;
+  let mut root_x: c_int = 0;
+  let mut root_y: c_int = 0;
+  let old_buffer: *mut buffer;
+  let mut pos: text_pos = core::mem::zeroed ();
+  let mut width: c_int = 0;
+  let mut height: c_int = 0;
+  let old_windows_or_buffers_changed: c_int = windows_or_buffers_changed;
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  let mut window: Lisp_Object;
+  let mut size: Lisp_Object;
+  let tip_buf: Lisp_Object;
+  AUTO_STRING! (tip, c" *tip*".as_ptr ());
+
+  /* C's `goto start_timer` (C 7884) and its label (C 8101) become this labelled block.  */
+  let mut string = string;
+  let mut frame = frame;
+  let mut parms = parms;
+  let mut timeout = timeout;
+  let mut dx = dx;
+  let mut dy = dy;
+
+  'start_timer: {
+  specbind (Qinhibit_redisplay (), Qt ());
+
+  CHECK_STRING (string);
+
+  if NILP (frame)
+    { frame = selected_frame; }
+  decode_window_system_frame (frame);
+
+  if NILP (timeout)
+    { timeout = Vx_show_tooltip_timeout; }
+  CHECK_FIXNAT (timeout);
+
+  if NILP (dx)
+    { dx = make_fixnum (5); }
+  else
+    { CHECK_FIXNUM (dx); }
+
+  if NILP (dy)
+    { dy = make_fixnum (-10); }
+  else
+    { CHECK_FIXNUM (dy); }
+
+  if FRAMEP (tip_frame) && FRAME_LIVE_P (XFRAME (tip_frame))
+    {
+      if FRAME_VISIBLE_P (XFRAME (tip_frame))
+	  && EQ (frame, tip_last_frame)
+	  && ! NILP (Fequal_including_properties (string, tip_last_string))
+	  && ! NILP (Fequal (parms, tip_last_parms))
+	{
+	  /* Only DX and DY have changed.  */
+	  tip_f = XFRAME (tip_frame);
+	  if ! NILP (tip_timer)
+	    {
+	      let timer: Lisp_Object = tip_timer;
+
+	      tip_timer = Qnil ();
+	      calln! (Qcancel_timer (), timer);
+	    }
+
+	  block_input ();
+	  compute_tip_xy (tip_f, parms, dx, dy, FRAME_PIXEL_WIDTH (tip_f),
+			  FRAME_PIXEL_HEIGHT (tip_f), &raw mut root_x, &raw mut root_y);
+
+	  /* Put tooltip in topmost group and in position.  */
+	  SetWindowPos (FRAME_W32_WINDOW! (tip_f), HWND_TOPMOST,
+			root_x, root_y, 0, 0,
+			SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+
+	  /* Ensure tooltip is on top of other topmost windows (eg menus).  */
+	  SetWindowPos (FRAME_W32_WINDOW! (tip_f), HWND_TOP,
+			0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE
+			| SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+
+	  /* Let redisplay know that we have made the frame visible already.  */
+	  SET_FRAME_VISIBLE! (tip_f, 1);
+	  ShowWindow (FRAME_W32_WINDOW! (tip_f), SW_SHOWNOACTIVATE);
+	  unblock_input ();
+
+	  break 'start_timer;
+	}
+      else if tooltip_reuse_hidden_frame && EQ (frame, tip_last_frame)
+	{
+	  let mut delete: bool = false;
+	  let mut tail: Lisp_Object;
+	  let mut elt: Lisp_Object;
+	  let mut parm: Lisp_Object;
+	  let mut last: Lisp_Object;
+
+	  /* Check if every parameter in PARMS has the same value in
+	     tip_last_parms.  This may destruct tip_last_parms
+	     which, however, will be recreated below.  */
+	  tail = parms;
+	  while CONSP (tail)
+	    {
+	      elt = XCAR (tail);
+	      parm = Fcar (elt);
+	      /* The left, top, right and bottom parameters are handled
+		 by compute_tip_xy so they can be ignored here.  */
+	      if ! EQ (parm, Qleft ()) && ! EQ (parm, Qtop ())
+		  && ! EQ (parm, Qright ()) && ! EQ (parm, Qbottom ())
+		{
+		  last = Fassq (parm, tip_last_parms);
+		  if NILP (Fequal (Fcdr (elt), Fcdr (last)))
+		    {
+		      /* We lost, delete the old tooltip.  */
+		      delete = true;
+		      break;
+		    }
+		  else
+		    { tip_last_parms = calln! (Qassq_delete_all (), parm, tip_last_parms); }
+		}
+	      else
+		{ tip_last_parms = calln! (Qassq_delete_all (), parm, tip_last_parms); }
+	      tail = XCDR (tail);
+	    }
+
+	  /* Now check if there's a parameter left in tip_last_parms with a
+	     non-nil value.  */
+	  tail = tip_last_parms;
+	  while CONSP (tail)
+	    {
+	      elt = XCAR (tail);
+	      parm = Fcar (elt);
+	      if ! EQ (parm, Qleft ()) && ! EQ (parm, Qtop ()) && ! EQ (parm, Qright ())
+		  && ! EQ (parm, Qbottom ()) && ! NILP (Fcdr (elt))
+		{
+		  /* We lost, delete the old tooltip.  */
+		  delete = true;
+		  break;
+		}
+	      tail = XCDR (tail);
+	    }
+
+	  w32_hide_tip (delete);
+	}
+      else
+	{ w32_hide_tip (true); }
+    }
+  else
+    { w32_hide_tip (true); }
+
+  tip_last_frame = frame;
+  tip_last_string = string;
+  tip_last_parms = parms;
+
+  /* Block input until the tip has been fully drawn, to avoid crashes
+     when drawing tips in menus.  */
+  block_input ();
+
+  if ! FRAMEP (tip_frame) || ! FRAME_LIVE_P (XFRAME (tip_frame))
+    {
+      /* Add default values to frame parameters.  */
+      if NILP (Fassq (Qname (), parms))
+	{ parms = Fcons (Fcons (Qname (), build_string (c"tooltip".as_ptr ())), parms); }
+      if NILP (Fassq (Qinternal_border_width (), parms))
+	{ parms = Fcons (Fcons (Qinternal_border_width (), make_fixnum (3)), parms); }
+      if NILP (Fassq (Qborder_width (), parms))
+	{ parms = Fcons (Fcons (Qborder_width (), make_fixnum (1)), parms); }
+      if NILP (Fassq (Qborder_color (), parms))
+	{
+	  parms = Fcons (Fcons (Qborder_color (), build_string (c"lightyellow".as_ptr ())),
+			 parms);
+	}
+      if NILP (Fassq (Qbackground_color (), parms))
+	{
+	  parms = Fcons (Fcons (Qbackground_color (), build_string (c"lightyellow".as_ptr ())),
+			 parms);
+	}
+
+      /* Create a frame for the tooltip and record it in the global
+	 variable tip_frame.  */
+      let f: *mut frame;		/* The value is unused.  */
+      tip_frame = w32_create_tip_frame (FRAME_DISPLAY_INFO! (f), parms);
+      if NILP (tip_frame)
+	{
+	  /* Creating the tip frame failed.  */
+	  unblock_input ();
+	  return unbind_to (count, Qnil ());
+	}
+    }
+  else
+    /* Required by X11 drag and drop, and left here in the interests of
+       consistency and in the event drag and drop should be implemented
+       on W32.  */
+    { tip_window = FRAME_W32_WINDOW! (XFRAME (tip_frame)); }
+
+  tip_f = XFRAME (tip_frame);
+  window = FRAME_ROOT_WINDOW (tip_f);
+  tip_buf = Fget_buffer_create (tip, Qnil ());
+  /* We will mark the tip window a "pseudo-window" below, and such
+     windows cannot have display margins.  */
+  bset_left_margin_cols (XBUFFER (tip_buf), make_fixnum (0));
+  bset_right_margin_cols (XBUFFER (tip_buf), make_fixnum (0));
+  set_window_buffer (window, tip_buf, false, false);
+  w = XWINDOW (window);
+  (*w).pseudo_window_p = true;
+  /* Try to avoid that `other-window' select us (Bug#47207).  */
+  Fset_window_parameter (window, Qno_other_window (), Qt ());
+
+  /* Set up the frame's root window.  Note: The following code does not
+     try to size the window or its frame correctly.  Its only purpose is
+     to make the subsequent text size calculations work.  The right
+     sizes should get installed when the toolkit gets back to us.  */
+  (*w).left_col = 0;
+  (*w).top_line = 0;
+  (*w).pixel_left = 0;
+  (*w).pixel_top = 0;
+
+  if CONSP (Vx_max_tooltip_size)
+      && RANGED_FIXNUMP (1, XCAR (Vx_max_tooltip_size), INT_MAX as EMACS_INT)
+      && RANGED_FIXNUMP (1, XCDR (Vx_max_tooltip_size), INT_MAX as EMACS_INT)
+    {
+      (*w).total_cols = XFIXNAT (XCAR (Vx_max_tooltip_size)) as c_int;
+      (*w).total_lines = XFIXNAT (XCDR (Vx_max_tooltip_size)) as c_int;
+    }
+  else
+    {
+      (*w).total_cols = 80;
+      (*w).total_lines = 40;
+    }
+
+  (*w).pixel_width = (*w).total_cols * FRAME_COLUMN_WIDTH (tip_f);
+  (*w).pixel_height = (*w).total_lines * FRAME_LINE_HEIGHT (tip_f);
+  FRAME_TOTAL_COLS! (tip_f, WINDOW_TOTAL_COLS (w));
+  adjust_frame_glyphs (tip_f);
+
+  /* Insert STRING into the root window's buffer and fit the frame to
+     the buffer.  */
+  let count_1: specpdl_ref = SPECPDL_INDEX ();
+  old_buffer = current_buffer! ();
+  set_buffer_internal_1 (XBUFFER ((*w).contents));
+  bset_truncate_lines (current_buffer! (), Qnil ());
+  specbind (Qinhibit_read_only (), Qt ());
+  specbind (Qinhibit_modification_hooks (), Qt ());
+  specbind (Qinhibit_point_motion_hooks (), Qt ());
+  Ferase_buffer ();
+  Finsert (1, &raw mut string);
+  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+  clear_glyph_matrix ((*w).current_matrix as *mut glyph_matrix);
+  SET_TEXT_POS! (pos, BEGV! (), BEGV_BYTE! ());
+  let displayed: bool = try_window (window, pos, TRY_WINDOW_IGNORE_FONTS_CHANGE) != 0;
+  if ! displayed && NILP (Vx_max_tooltip_size)
+    {
+      /* C 8039-8051: `#ifdef ENABLE_CHECKING`.  */
+      #[cfg (feature = "enable_checking")]
+      {
+	let mut row: *mut glyph_row =
+	  (*((*w).desired_matrix as *mut glyph_matrix)).rows;
+	let end: *mut glyph_row =
+	  (*((*w).desired_matrix as *mut glyph_matrix)).rows.offset
+	    ((*((*w).desired_matrix as *mut glyph_matrix)).nrows as isize);
+	while row < end
+	  {
+	    if ! (*row).displays_text_p
+		|| (*row).ends_at_zv_p
+	      { break; }
+	    row = row.offset (1);
+	  }
+	eassert! (row < end && (*row).ends_at_zv_p);
+      }
+    }
+  /* Calculate size of tooltip window.  */
+  size = Fwindow_text_pixel_size (window, Qnil (), Qnil (), Qnil (),
+				  make_fixnum ((*w).pixel_height as EMACS_INT), Qnil (),
+				  Qnil ());
+  /* Add the frame's internal border to calculated size.  */
+  width = XFIXNUM (Fcar (size)) as c_int + 2 * FRAME_INTERNAL_BORDER_WIDTH (tip_f);
+  height = XFIXNUM (Fcdr (size)) as c_int + 2 * FRAME_INTERNAL_BORDER_WIDTH (tip_f);
+  /* Calculate position of tooltip frame.  */
+  compute_tip_xy (tip_f, parms, dx, dy, width, height, &raw mut root_x, &raw mut root_y);
+
+  /* Show tooltip frame.  */
+  {
+    let mut rect: RECT = core::mem::zeroed ();
+    let pad: c_int = if FIXNUMP (Vw32_tooltip_extra_pixels)
+      { max (0, XFIXNUM (Vw32_tooltip_extra_pixels) as c_int) }
+      else
+      { FRAME_COLUMN_WIDTH (tip_f) };
+
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = width;
+    rect.bottom = height;
+    AdjustWindowRect (&raw mut rect, (*((*tip_f).output_data.w32 as *mut w32_output)).dwStyle,
+		      FRAME_EXTERNAL_MENU_BAR (tip_f) as BOOL);
+
+    /* Position and size tooltip and put it in the topmost group.  */
+    SetWindowPos (FRAME_W32_WINDOW! (tip_f), HWND_TOPMOST,
+		  root_x, root_y,
+		  rect.right - rect.left + pad,
+		  rect.bottom - rect.top, SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+
+    /* Ensure tooltip is on top of other topmost windows (eg menus).  */
+    SetWindowPos (FRAME_W32_WINDOW! (tip_f), HWND_TOP,
+		  0, 0, 0, 0,
+		  SWP_NOMOVE | SWP_NOSIZE
+		  | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+
+    /* Let redisplay know that we have made the frame visible already.  */
+    SET_FRAME_VISIBLE! (tip_f, 1);
+
+    ShowWindow (FRAME_W32_WINDOW! (tip_f), SW_SHOWNOACTIVATE);
+  }
+
+  (*w).must_be_updated_p = true;
+  update_single_window (w);
+  set_buffer_internal_1 (old_buffer);
+  unbind_to (count_1, Qnil ());
+  unblock_input ();
+  windows_or_buffers_changed = old_windows_or_buffers_changed;
+  }   /* 'start_timer: (C 8101's label) */
+
+  /* Let the tip disappear after timeout seconds.  */
+  tip_timer = calln! (Qrun_at_time (), timeout, Qnil (), Qx_hide_tip ());
+
+  return unbind_to (count, Qnil ());
+});
+
+/// C 8109-8114: `x-hide-tip` - one call, with C 8113's `!tooltip_reuse_hidden_frame` as the
+/// argument (C's `int` variable negated gives 0/1, i.e. the port's `== 0`).
+/// C: DEFUN ("x-hide-tip", Fx_hide_tip, Sx_hide_tip, 0, 0, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (void)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-hide-tip", Fx_hide_tip, Sx_hide_tip, 0, 0, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(),
+	{
+  return w32_hide_tip (! tooltip_reuse_hidden_frame);
+});
