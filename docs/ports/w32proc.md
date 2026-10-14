@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**6059 lines**, md5 `ff873b4f507a60318bb8166af646f13c`), carrying
-> **C 1-3967** - P-86 ④'s first twenty slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**6227 lines**, md5 `d4e43ba346d843eaadd6f7c963fced85`), carrying
+> **C 1-4082** - P-86 ④'s first twenty-one slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -134,7 +134,8 @@ which `check-dead-file-coverage.py` requires):
 | 3485-3526 | the three items between `sys_select` and `sys_kill`: C 3485-3496's `w32_valid_process_id`, C 3498-3523's `find_child_console` and C 3525-3526's `DebugBreakProcess_Proc` typedef | file gate (slice 18); the round's two `<winuser.h>` entry points and `LPARAM` stand at the use site (Deviations 76), and `w32_valid_process_id` forced the mirror `include/w32common.rs`'s eleventh P-39 move (Deviations 77) |
 | 3528-3901 | `sys_kill` (C 3528-3819: the negative-pid and signal-whitelist guards, the `sig == 0` probe with its two nested `switch`es, the child lookup and the two `OpenProcess`/`EnumWindows` arms, the `SIGINT`/`SIGQUIT` keyboard simulation, the `SIGTRAP` `DebugBreakProcess` lookup and the terminate arm) and the standard-handle pair `prepare_standard_handles`/`reset_standard_handles` (C 3821-3901) | file gate (slice 19); the round's `<windows.h>`/`<winuser.h>`/`<io.h>` block spells the whole surface (Deviations 78), the two `switch`es are `match` arms (notes row), and C 3898's `handles[0]` keeps its index (the token reading) |
 | 3903-3967 | `set_process_dir` (C 3903-3907), the winsock overview comment with C 3920-3922's two `w32.c` externs, and the block's first two `DEFUN`s: `w32-has-winsock` (C 3924-3956) and `w32-unload-winsock` (C 3958-3967) | file gate (slice 20); the two `DEFUN!` invocations carry C's docstrings in their `doc:` slot (Deviations 81) and the externs stand where C declares them (Deviations 82/83) |
-| 3969-4903 | **the remainder of the file** - C 3969-3971's banner comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the other eighteen `DEFUN`s (C 3973-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3969-4082 | the banner comment and the next three `DEFUN`s: `w32-short-file-name` (C 3973-3995), `w32-long-file-name` (C 3998-4030) and `w32-set-process-priority` (C 4032-4082) | file gate (slice 21); the three `DEFUN!` invocations carry C's docstrings in the `doc:` slot (Deviations 81's shape), and the round's four `<winbase.h>` names stand at the use site (Deviations 84) |
+| 4084-4903 | **the remainder of the file** - C 4084's `w32-application-type` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the other fifteen `DEFUN`s (C 4084-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1408,3 +1409,34 @@ definitions).  No token rows.  Drift -21.5% -> **-23.6%**, inside the stem's 0.3
     invocation per subr, so the rounds that carry it can be split per `DEFUN` or in small groups;
     `syms_of_ntproc` (C 4764) is the file's last item and the defsubr/`DEFVAR` table that must name
     each of them.
+
+## Slice 21 (2026-10-14, status 4.300): C 3969-4082
+
+**What this round is.**  The banner comment and the next three `DEFUN`s: `w32-short-file-name`
+(`Fexpand_file_name` plus the `w32_get_short_filename` guard), `w32-long-file-name` (the
+two-character drive test, `w32_get_long_filename`, and the drive-only fixup) and
+`w32-set-process-priority` (`find_child_pid`'s fixup, `OpenProcess`, the two `EQ` tests and
+`SetPriorityClass`).  Port: 6,059 -> **6227 lines** (+168).  The next row's first item is C 4084's
+`w32-application-type`.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the baseline.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6060 6227` -> `37
+capitalized identifiers, missing: ['Sw32_short_file_name', 'Sw32_long_file_name',
+'Sw32_set_process_priority']` - the macro-generated `S…` statics again.
+**Evidence ④ - the `--check` and docstring readings.**  **57 -> 54 `- missing` rows** (the three
+subr rows).  No token rows - the docstrings are carried as literals in the invocations and the token
+comparison accepts them.  `check-defvar-carriers.py`: `817 DEFVAR_* site(s), 817 with a declaration
+whose type is checked, 0 failure(s)`.  Drift -23.6% -> **-27.0%**, inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+84. **Four `<winbase.h>` names stand at the use site** (P-88 ①): `PROCESS_SET_INFORMATION`,
+    `NORMAL_PRIORITY_CLASS`, `IDLE_PRIORITY_CLASS`, `HIGH_PRIORITY_CLASS` and the
+    `SetPriorityClass` entry point (`OpenProcess` is slice 19's).  Everything else the three
+    `DEFUN`s call is the graph's: `w32_get_short_filename`/`w32_get_long_filename`/
+    `dostounix_filename`/`Fexpand_file_name`/`build_unibyte_string`/`DECODE_FILE`/`SBYTES`/`SDATA`/
+    `CHECK_STRING`/`CHECK_SYMBOL`/`CHECK_FIXNUM`/`EQ`/`MAX_UTF8_PATH`/`Qhigh`/`Qlow`.

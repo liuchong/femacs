@@ -6057,3 +6057,171 @@ unsafe extern "C" {
 }
 
 /* C 3969-3971's banner comment and C 3973's `w32-short-file-name` open the next slice.  */
+
+/* Some miscellaneous functions that are Windows specific, but not GUI
+   specific (ie. are applicable in terminal or batch mode as well).  */
+/// C 3973-3995: `DEFUN ("w32-short-file-name", …)` - C 3981's `CHECK_STRING`, C 3984's
+/// `Fexpand_file_name`, C 3987-3989's `w32_get_short_filename` guard and C 3991/3994's
+/// `dostounix_filename`/`build_string` pair.
+/// C: DEFUN ("w32-short-file-name", Fw32_short_file_name, Sw32_short_file_name, 1, 1, 0,
+/// C:        doc: /* Return the short file name version (8.3) of the full path of FILENAME.
+/// C: If FILENAME does not exist, return nil.
+/// C: All path elements in FILENAME are converted to their short names.  */)
+/// C:   (Lisp_Object filename)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-short-file-name", Fw32_short_file_name, Sw32_short_file_name, 1, 1, 0,
+	doc: "       doc: /* Return the short file name version (8.3) of the full path of FILENAME.
+If FILENAME does not exist, return nil.
+All path elements in FILENAME are converted to their short names.  */)  ",
+	(filename: Lisp_Object),
+	{
+  let mut shortname: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];   // C 3979
+
+  CHECK_STRING (filename);                                           // C 3981
+
+  /* first expand it.  */
+  filename = Fexpand_file_name (filename, Qnil ());                  // C 3984
+
+  /* luckily, this returns the short version of each element in the path.  */
+  if w32_get_short_filename (SSDATA (ENCODE_FILE (filename)),       // C 3987
+			     shortname.as_mut_ptr (), MAX_PATH) == 0     // C 3988
+    { return Qnil (); }                                              // C 3989
+
+  dostounix_filename (shortname.as_mut_ptr ());                      // C 3991
+
+  /* No need to DECODE_FILE, because 8.3 names are pure ASCII.   */
+  return build_string (shortname.as_ptr ());                         // C 3994
+});
+
+/// C 3998-4030: `DEFUN ("w32-long-file-name", …)` - C 4005-4012's buffer and the two-character
+/// drive test, C 4015's `Fexpand_file_name`, C 4017-4019's `w32_get_long_filename` guard, C 4021's
+/// `dostounix_filename` and C 4023-4029's drive-only fixup with `DECODE_FILE`/`build_unibyte_string`.
+/// C: DEFUN ("w32-long-file-name", Fw32_long_file_name, Sw32_long_file_name,
+/// C:        1, 1, 0,
+/// C:        doc: /* Return the long file name version of the full path of FILENAME.
+/// C: If FILENAME does not exist, return nil.
+/// C: All path elements in FILENAME are converted to their long names.  */)
+/// C:   (Lisp_Object filename)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-long-file-name", Fw32_long_file_name, Sw32_long_file_name, 1, 1, 0,
+	doc: "       doc: /* Return the long file name version of the full path of FILENAME.
+If FILENAME does not exist, return nil.
+All path elements in FILENAME are converted to their long names.  */)  ",
+	(filename: Lisp_Object),
+	{
+  let mut longname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];   // C 4005
+  let mut drive_only: c_int = 0;                                     // C 4006
+
+  CHECK_STRING (filename);                                           // C 4008
+
+  if SBYTES (filename) == 2                                          // C 4010
+      && *(SDATA (filename)).add (1) == b':' as c_char               // C 4011
+    { drive_only = 1; }                                              // C 4012
+
+  /* first expand it.  */
+  filename = Fexpand_file_name (filename, Qnil ());                  // C 4015
+
+  if w32_get_long_filename (SSDATA (ENCODE_FILE (filename)),         // C 4017
+			    longname.as_mut_ptr (), MAX_UTF8_PATH) == 0   // C 4018
+    { return Qnil (); }                                              // C 4019
+
+  dostounix_filename (longname.as_mut_ptr ());                       // C 4021
+
+  /* If we were passed only a drive, make sure that a slash is not appended
+     for consistency with directories.  Allow for drive mapping via SUBST
+     in case expand-file-name is ever changed to expand those.  */
+  if drive_only != 0 && longname[1] == b':' as c_char                // C 4026
+      && longname[2] == b'/' as c_char && longname[3] == 0
+    { longname[2] = 0; }                                             // C 4027
+
+  return DECODE_FILE (build_unibyte_string (longname.as_ptr ()));    // C 4029
+});
+
+/// C 4032-4082: `DEFUN ("w32-set-process-priority", …)` - C 4043-4045's three locals, C 4047's
+/// `CHECK_SYMBOL`, C 4049-4066's process arm (C 4054's `CHECK_FIXNUM`, C 4060-4063's
+/// `find_child_pid` fixup and C 4065's `OpenProcess`), C 4068-4071's two `EQ` tests and C
+/// 4073-4079's `SetPriorityClass`/`CloseHandle` pair.
+/// C: DEFUN ("w32-set-process-priority", Fw32_set_process_priority,
+/// C:        Sw32_set_process_priority, 2, 2, 0,
+/// C:        doc: /* Set the priority of PROCESS to PRIORITY.
+/// C: If PROCESS is nil, the priority of Emacs is changed, otherwise the
+/// C: priority of the process whose pid is PROCESS is changed.
+/// C: PRIORITY should be one of the symbols high, normal, or low;
+/// C: any other symbol will be interpreted as normal.
+/// C:
+/// C: If successful, the return value is t, otherwise nil.  */)
+/// C:   (Lisp_Object process, Lisp_Object priority)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-set-process-priority", Fw32_set_process_priority, Sw32_set_process_priority,
+	2, 2, 0,
+	doc: "       doc: /* Set the priority of PROCESS to PRIORITY.
+If PROCESS is nil, the priority of Emacs is changed, otherwise the
+priority of the process whose pid is PROCESS is changed.
+PRIORITY should be one of the symbols high, normal, or low;
+any other symbol will be interpreted as normal.
+
+If successful, the return value is t, otherwise nil.  */)  ",
+	(process: Lisp_Object, priority: Lisp_Object),
+	{
+  let mut proc_handle: HANDLE = GetCurrentProcess ();                 // C 4043
+  let mut priority_class: DWORD = NORMAL_PRIORITY_CLASS;              // C 4044
+  let mut result: Lisp_Object = Qnil ();                              // C 4045
+
+  CHECK_SYMBOL (priority);                                           // C 4047
+
+  if !NILP (process)                                                 // C 4049
+    {
+      let mut pid: DWORD;                                            // C 4051
+      let mut cp: *mut child_process;                                // C 4052
+
+      CHECK_FIXNUM (process);                                        // C 4054
+
+      /* Allow pid to be an internally generated one, or one obtained
+	 externally.  This is necessary because real pids on Windows 95 are
+	 negative.  */
+
+      pid = XFIXNUM (process) as DWORD;                              // C 4060
+      cp = find_child_pid (pid);                                     // C 4061
+      if !cp.is_null ()                                              // C 4062
+	{ pid = (*cp).procinfo.dwProcessId; }                        // C 4063
+
+      proc_handle = OpenProcess (PROCESS_SET_INFORMATION, FALSE, pid);   // C 4065
+    }
+
+  if EQ (priority, Qhigh)                                            // C 4068
+    { priority_class = HIGH_PRIORITY_CLASS; }                        // C 4069
+  else if EQ (priority, Qlow)                                        // C 4070
+    { priority_class = IDLE_PRIORITY_CLASS; }                        // C 4071
+
+  if !proc_handle.is_null ()                                         // C 4073
+    {
+      if SetPriorityClass (proc_handle, priority_class) != 0          // C 4075
+	{ result = Qt (); }                                          // C 4076
+      if !NILP (process)                                             // C 4077
+	{ CloseHandle (proc_handle); }                               // C 4078
+    }
+
+  return result;                                                     // C 4081
+});
+
+/* C's `<winbase.h>`: the `OpenProcess` access right and the three priority classes C 4032-4082
+   names, plus `SetPriorityClass` (`OpenProcess` itself is slice 19's).  UNVERIFIED (P-88 1).  */
+/// C: #define PROCESS_SET_INFORMATION 0x0200
+/// C: #define NORMAL_PRIORITY_CLASS 0x00000020
+/// C: #define IDLE_PRIORITY_CLASS 0x00000040
+/// C: #define HIGH_PRIORITY_CLASS 0x00000080
+/// C: WINBASEAPI BOOL WINAPI SetPriorityClass (HANDLE hProcess, DWORD dwPriorityClass);
+#[cfg (feature = "windowsnt")]
+pub const PROCESS_SET_INFORMATION: DWORD = 0x0200;
+#[cfg (feature = "windowsnt")]
+pub const NORMAL_PRIORITY_CLASS: DWORD = 0x00000020;
+#[cfg (feature = "windowsnt")]
+pub const IDLE_PRIORITY_CLASS: DWORD = 0x00000040;
+#[cfg (feature = "windowsnt")]
+pub const HIGH_PRIORITY_CLASS: DWORD = 0x00000080;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn SetPriorityClass (hProcess: HANDLE, dwPriorityClass: DWORD) -> BOOL;
+}
+
+/* C 4084's `w32-application-type` opens the next slice.  */
