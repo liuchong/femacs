@@ -61,8 +61,9 @@
 
 ## C line ranges
 
-One row per C block, in C's order, tiling C 1-912 contiguously (and the remainder as the last row,
-which `check-dead-file-coverage.py` requires):
+One row per C block, in C's order, tiling **C 1-4903 contiguously** - the whole reference file, which
+`check-dead-file-coverage.py` requires.  The last row landed at slice 27, which is also the round that
+emptied the file's `extract-abi.py --check` checklist (Evidence ④ there):
 
 | C | block | arm |
 | --- | --- | --- |
@@ -140,7 +141,7 @@ which `check-dead-file-coverage.py` requires):
 | 4236-4321 | `w32-get-locale-info` (C 4236-4292, with its three branches), `w32-get-current-locale-id` (C 4295-4303) and the static `int_from_hex` (C 4305-4321) | file gate (slice 24); the round's `<winbase.h>` names stand at the use site (Deviations 88), and the `hex` digit table is C's C string under the tree's `*b"…"` device |
 | 4323-4571 | the twelve `DEFUN`s of the locale/codepage/console/keyboard block and the four file-scope objects and callbacks they read: `w32-get-valid-locale-ids` (C 4323-4348, with `Vw32_valid_locale_ids` and `enum_locale_fn`), `w32-get-default-locale-id` (C 4351-4362), `w32-set-current-locale` (C 4365-4384), `w32-get-valid-codepages` (C 4386-4410, with `Vw32_valid_codepages` and `enum_codepage_fn`), the four console-codepage `DEFUN`s (C 4413-4466), `w32-get-codepage-charset` (C 4469-4496) and the three keyboard-layout `DEFUN`s (C 4499-4571) | file gate (slice 25); the round's `<windows.h>`/`<wingdi.h>` surface stands at the use site (Deviations 90-91), the `HIWORD` macro at C 4515's use site (the C 2593 `LOWORD` shape, Deviation 92), and `HWND` is declared there because slice 22's Deviation 76 note was wrong about the graph carrying it (Deviation 93) |
 | 4573-4760 | the locale-name search and the collation entry point: C 4573-4579's comment, `LOCALE_NAME_MAX_LENGTH` and the `found_lcid`/`lname` pair, `get_lcid_callback` (C 4582-4616), `get_lcid` (C 4618-4644, with its two function-local statics), C 4646-4654's `_NLSCMPERROR`/`LINGUISTIC_IGNORECASE` fallbacks and the `CompareStringW_Proc` type, and `w32_compare_strings` (C 4656-4760) | file gate (slice 26); the round's `<windows.h>`/`<winnls.h>` and CRT surface stands at the use site (Deviations 95-96), with `strtoul` the one name the graph already carries (Deviation 97) |
-| 4762-4903 | **the remainder of the file** - `syms_of_ntproc` (C 4764-4903): the `DEFSYM` table (C 4766-4779), the `defsubr` block and the `DEFVAR_*` forms, plus C 4861-4869's `#if 0` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4762-4903 | `syms_of_ntproc` (C 4764-4902) - the five `DEFSYM`s (C 4766-4770), the nineteen `defsubr`s (C 4772-4794), the nine `DEFVAR_LISP`/`DEFVAR_INT` forms with their initial values (C 4796-4898), C 4861-4869's `#if 0` (carried as C's text, P-51) and the two `staticpro`s (C 4900-4901) - with C 4903's `/* end of w32proc.c */` | file gate (slice 27); the `defsubr` calls keep C's spelling with the port's `&raw mut`, the one form the tool accepts besides C's own (`tools/extract-abi.py` 2035) |
 
 ## Evidence
 
@@ -1692,3 +1693,48 @@ round re-appends it at **0.53** (measured + 0.01).
     (`include/lisp.rs` 3084), and the three code sites are C's own (C 4666, C 4699/4712, C 4718,
     C 4753).
 
+## Slice 27 (2026-10-14, status 4.306): C 4762-4903 - the file is complete
+
+**What this round is.**  `syms_of_ntproc` (C 4764-4902) and C 4903's trailing comment: the five
+`DEFSYM!`s (the port's macro is empty by design - `include/globals.rs` generates every `Q…`,
+PORTING.md P-23), the nineteen `defsubr` calls for the `DEFUN`s this file defines, the nine
+`DEFVAR_LISP!`/`DEFVAR_INT!` forms with C's own docstrings and initial values (`Qt ()`/`Qnil ()`/
+`Qlocal ()`), C 4861-4869's `#if 0` arm carried as C's own text (P-51), and the two `staticpro`
+calls for the file-scope objects slice 25 declared.  Port: 7,464 -> **7569 lines** (+105).  With
+this row the C line-range table tiles C 1-4903 with no remainder, i.e. **`src/w32proc.c` is
+ported in full** - the lane's first file closes here, and the next lane picks up
+`src/gtkutil.c` (from C 2282) or `src/w32term.c` (from C 2716).
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - unchanged through the round's `DEFSYM!`/`defsubr`/
+`DEFVAR_*` block, whose macro names are the only part of it this reading resolves (Evidence ②'s
+slice-25 note).
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 7463 7569` -> `38
+capitalized identifiers, missing: ['Sw32_application_type', … 'Sw32_unload_winsock']` - the twenty
+`DEFUN!` statics (class c), the block's only class.
+**Evidence ④ - the `--check` reading, and the file's completion.**  **21 -> 0 `- missing` rows**:
+the nineteen `defsubr` rows and `missing function syms_of_ntproc` are the file's last checklist
+entries, and the checklist is now **empty**.  No token rows.  Drift 52.2% -> **54.4%**, crossing
+the 0.53 row again, so the row is re-appended at **0.55** (measured + 0.01).
+**Tree-wide reading, taken at this lane switch** (`python3 tools/extract-abi.py --all`):
+**590 files: 583 done, 0 in progress, 7 failing** - the same summary the previous lane switch
+recorded (`c185e6fa`), re-measured here.
+
+**Deviations (this slice's additions).**
+
+99. **The `defsubr` calls keep C's spelling with the port's `&raw mut`**: the checklist's row text
+    is `defsubr (&raw const Sw32_x)` and `tools/extract-abi.py` 2035 accepts both `&S…` and
+    `&raw mut S…`; `defsubr`'s declaration in `include/lisp.rs` 4112 takes `*mut Aligned_Lisp_Subr`,
+    so the port writes the `&raw mut` form (C's own `&Sx` is the other accepted spelling and would
+    not typecheck).
+100. **The `Q…` symbols and the nine `DEFVAR_*` variables are the mirror's, not this unit's**: the
+    five `DEFSYM!`s are empty (`globals.rs` generates `Qhigh ()` … `Qw32_native ()`), and
+    `Vw32_quote_process_args`, `Vw32_start_process_*`, `w32_pipe_*`, `Vw32_downcase_file_names`,
+    `Vw32_get_true_file_attributes` and `Vw32_collate_ignore_punctuation` are declared by that
+    mirror's `variables` module, so the unit neither declares nor re-defines them (the slice-9
+    reading).  `Vw32_valid_locale_ids`/`Vw32_valid_codepages` are the *other* case - C's own
+    `static`s, which slice 25 declared and C 4900-4901 protect - and they are **not** in the
+    mirror.

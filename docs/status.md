@@ -20138,3 +20138,12 @@
   ⑤ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `4573-4760`（本片）+ `4762-4903`（余项）。
   ⑥ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 26 (2026-10-14, status 4.305): C 4573-4760`** 段（偏差 95-98），表头更新为 **7,464 行**；预算与清理：`build-tu` 2 发、`probe` 3 发、名字扫描 1 次、`--check` 1 发、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），本片新增记录/常量仍 UNVERIFIED。下一片起点：`src/w32proc.c` **C 4762**（`syms_of_ntproc`：`DEFSYM` 表 + `defsubr` 块 + `DEFVAR_*` 与 C 4861-4869 的 `#if 0`），本文件余量 **142 C 行**（C 4762-4903，2.9%），做完即换 lane。
+
+- **4.306 `src/w32proc.c` 第 27 片（w32proc lane，slice 27，**本文件复刻完成**）：C 4762-4903 落地——`syms_of_ntproc`（5 个 `DEFSYM!`、19 个 `defsubr`、9 个 `DEFVAR_LISP!`/`DEFVAR_INT!` 含 C 的原 docstring 与初值 `Qt ()`/`Qnil ()`/`Qlocal ()`、C 4861-4869 的 `#if 0` 按 C 原文承载、两个 `staticpro`）与 C 4903 的 `/* end of w32proc.c */`；w32proc.rs 7,464 → 7,569 行（+105，2026-10-14）**：
+  ① 本片落的文本：`syms_of_ntproc` 全表（`DEFSYM!` 按 P-23 为空——`globals.rs` 生成全部 `Q…`；`defsubr` 用 `&raw mut` 拼法，是工具除 C 原拼法外唯一接受的形式，见偏差 99）；9 个 `DEFVAR_*` 变量与 5 个 `Q…` 都是镜像的，本单元不声明也不重定义（偏差 100）。
+  ② 读数：**`build-tu`（冻结）exit 0、对象 336 字节**；**`probe` 35 条 = 25 `E0428` + 9 `E0425` + 1 `compile_error!`，无一条落在本单元**（本片只经宏名解析）。
+  ③ **名字扫描** `38 capitalized identifiers, missing: ['Sw32_*…（20 个）']`——`DEFUN!` 生成静态量（类 c），本片唯一类别。
+  ④ `extract-abi.py --check`：**21 → 0 条 `- missing` 行**——文件清单清空，这是本文件的完成读数；**无 token 行**。漂移 52.2% → **54.4%**，故再追加 **`w32proc 0.55`** 容差行。**换 lane 全树盘点**：`extract-abi.py --all` → **590 文件：583 done / 0 in progress / 7 failing**（与 `c185e6fa` 同值，本次重测）。
+  ⑤ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表最后一行（`4762-4903`）落地，表头改为"C 1-4903 连续覆盖"——**C 1-4903 全部有主，无余项**。
+  ⑥ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 27 (2026-10-14, status 4.306): C 4762-4903 - the file is complete`** 段（偏差 99-100）；预算与清理：`build-tu` 2 发、`probe` 2 发、名字扫描 1 次、`--check` 1 发、`--all` 1 发（3 分钟）、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），全部记录/常量仍 UNVERIFIED。**下一 lane 起点**：`src/gtkutil.c`（自 C 2282 起，4,472 C 行）或 `src/w32term.c`（自 C 2716 起，5,699 C 行），按 `docs/ports/` 既有台账接手。

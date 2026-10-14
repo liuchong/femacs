@@ -7460,5 +7460,110 @@ unsafe extern "C" {
   pub fn strnicmp (s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
 }
 
-/* C 4762-4903's `syms_of_ntproc` (with the `DEFSYM` table at C 4766-4773 and the `defsubr`/
-   `DEFVAR` block) and C 4861-4869's `#if 0` open the next slice.  */
+/* C 4762-4903: `syms_of_ntproc` - the file's symbol table.  C 4766-4770 are the five `DEFSYM`s
+   (the port's `DEFSYM!`, which is empty by design: `include/globals.rs` generates every `Q…`, so
+   the names already exist - PORTING.md P-23), C 4772-4794 the nineteen `defsubr`s of the `DEFUN`s
+   this file defines, C 4796-4898 the nine `DEFVAR_LISP`/`DEFVAR_INT` forms with the initial values
+   they assign, C 4861-4869 the `#if 0` arm (carried as C's own text, P-51) and C 4900-4901 the two
+   `staticpro`s for the file-scope objects slice 25 declared.  */
+/// C: void
+/// C: syms_of_ntproc (void)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_ntproc ()
+{
+  DEFSYM! (Qhigh, "high");                                           // C 4766
+  DEFSYM! (Qlow, "low");                                             // C 4767
+  DEFSYM! (Qcygwin, "cygwin");                                       // C 4768
+  DEFSYM! (Qmsys, "msys");                                           // C 4769
+  DEFSYM! (Qw32_native, "w32-native");                               // C 4770
+
+  defsubr (&raw mut Sw32_has_winsock);                               // C 4772
+  defsubr (&raw mut Sw32_unload_winsock);                            // C 4773
+
+  defsubr (&raw mut Sw32_short_file_name);                           // C 4775
+  defsubr (&raw mut Sw32_long_file_name);                            // C 4776
+  defsubr (&raw mut Sw32_set_process_priority);                      // C 4777
+  defsubr (&raw mut Sw32_application_type);                          // C 4778
+  defsubr (&raw mut Sw32_get_locale_info);                           // C 4779
+  defsubr (&raw mut Sw32_get_current_locale_id);                     // C 4780
+  defsubr (&raw mut Sw32_get_default_locale_id);                     // C 4781
+  defsubr (&raw mut Sw32_get_valid_locale_ids);                      // C 4782
+  defsubr (&raw mut Sw32_set_current_locale);                        // C 4783
+
+  defsubr (&raw mut Sw32_get_console_codepage);                      // C 4785
+  defsubr (&raw mut Sw32_set_console_codepage);                      // C 4786
+  defsubr (&raw mut Sw32_get_console_output_codepage);               // C 4787
+  defsubr (&raw mut Sw32_set_console_output_codepage);               // C 4788
+  defsubr (&raw mut Sw32_get_valid_codepages);                       // C 4789
+  defsubr (&raw mut Sw32_get_codepage_charset);                      // C 4790
+
+  defsubr (&raw mut Sw32_get_valid_keyboard_layouts);                // C 4792
+  defsubr (&raw mut Sw32_get_keyboard_layout);                       // C 4793
+  defsubr (&raw mut Sw32_set_keyboard_layout);                       // C 4794
+
+  DEFVAR_LISP! (c"w32-quote-process-args", Vw32_quote_process_args,
+		doc: "Non-nil enables quoting of process arguments to ensure correct parsing.\nBecause Windows does not directly pass argv arrays to child processes,\nprograms have to reconstruct the argv array by parsing the command\nline string.  For an argument to contain a space, it must be enclosed\nin double quotes or it will be parsed as multiple arguments.\n\nIf the value is a character, that character will be used to escape any\nquote characters that appear, otherwise a suitable escape character\nwill be chosen based on the type of the program.  ");
+                                                                   // C 4796-4805
+  Vw32_quote_process_args = Qt ();                                   // C 4806
+
+  DEFVAR_LISP! (c"w32-start-process-show-window",
+		Vw32_start_process_show_window,
+		doc: "When nil, new child processes hide their windows.\nWhen non-nil, they show their window in the method of their choice.\nThis variable doesn't affect GUI applications, which will never be hidden.  ");
+                                                                   // C 4808-4812
+  Vw32_start_process_show_window = Qnil ();                          // C 4813
+
+  DEFVAR_LISP! (c"w32-start-process-share-console",
+		Vw32_start_process_share_console,
+		doc: "When nil, new child processes are given a new console.\nWhen non-nil, they share the Emacs console; this has the limitation of\nallowing only one DOS subprocess to run at a time (whether started directly\nor indirectly by Emacs), and preventing Emacs from cleanly terminating the\nsubprocess group, but may allow Emacs to interrupt a subprocess that doesn't\notherwise respond to interrupts from Emacs.  ");
+                                                                   // C 4815-4822
+  Vw32_start_process_share_console = Qnil ();                        // C 4823
+
+  DEFVAR_LISP! (c"w32-start-process-inherit-error-mode",
+		Vw32_start_process_inherit_error_mode,
+		doc: "When nil, new child processes revert to the default error mode.\nWhen non-nil, they inherit their error mode setting from Emacs, which stops\nthem blocking when trying to access unmounted drives etc.  ");
+                                                                   // C 4825-4829
+  Vw32_start_process_inherit_error_mode = Qt ();                     // C 4830
+
+  DEFVAR_INT! (c"w32-pipe-read-delay", w32_pipe_read_delay,
+	       "Forced delay before reading subprocess output.\nThis may need to be done to improve the buffering of subprocess output,\nby avoiding the inefficiency of frequently reading small amounts of data.\nTypically needed only with DOS programs on Windows 9X; set to 50 if\nthroughput with such programs is slow.\n\nIf positive, the value is the number of milliseconds to sleep before\nsignaling that output from a subprocess is ready to be read.\nIf negative, the value is the number of time slices to wait (effectively\nboosting the priority of the child process temporarily).\nA value of zero disables waiting entirely.  ");
+                                                                   // C 4832-4843
+  w32_pipe_read_delay = 0;                                           // C 4844
+
+  DEFVAR_INT! (c"w32-pipe-buffer-size", w32_pipe_buffer_size,
+	       "Size of buffer for pipes created to communicate with subprocesses.\nThe size is in bytes, and must be non-negative.  The default is zero,\nwhich lets the OS use its default size, usually 4KB (4096 bytes).\nAny negative value means to use the default value of zero.  ");
+                                                                   // C 4846-4850
+  w32_pipe_buffer_size = 0;                                          // C 4851
+
+  DEFVAR_LISP! (c"w32-downcase-file-names", Vw32_downcase_file_names,
+		doc: "Non-nil means convert all-upper case file names to lower case.\nThis applies when performing completions and file name expansion.\nNote that the value of this setting also affects remote file names,\nso you probably don't want to set to non-nil if you use case-sensitive\nfilesystems via ange-ftp.  ");
+                                                                   // C 4853-4858
+  Vw32_downcase_file_names = Qnil ();                                // C 4859
+
+  /* C 4861-4869: the `#if 0` arm, carried as C's own text (P-51; the ledger's owed list).
+     #if 0
+       DEFVAR_LISP ("w32-generate-fake-inodes", Vw32_generate_fake_inodes,
+		    doc: /* Non-nil means attempt to fake realistic inode values.
+     This works by hashing the truename of files, and should detect
+     aliasing between long and short (8.3 DOS) names, but can have
+     false positives because of hash collisions.  Note that determining
+     the truename of a file can be slow.  */);
+       Vw32_generate_fake_inodes = Qnil;
+     #endif  */
+
+  DEFVAR_LISP! (c"w32-get-true-file-attributes", Vw32_get_true_file_attributes,
+		doc: "Non-nil means determine accurate file attributes in `file-attributes'.\nThis option controls whether to issue additional system calls to determine\naccurate link counts, file type, and ownership information.  It is more\nuseful for files on NTFS volumes, where hard links and file security are\nsupported, than on volumes of the FAT family.\n\nWithout these system calls, link count will always be reported as 1 and file\nownership will be attributed to the current user.\nThe default value `local' means only issue these system calls for files\non local fixed drives.  A value of nil means never issue them.\nAny other non-nil value means do this even on remote and removable drives\nwhere the performance impact may be noticeable even on modern hardware.  ");
+                                                                   // C 4871-4883
+  Vw32_get_true_file_attributes = Qlocal ();                         // C 4884
+
+  DEFVAR_LISP! (c"w32-collate-ignore-punctuation",
+		Vw32_collate_ignore_punctuation,
+		doc: "Non-nil causes string collation functions ignore punctuation on MS-Windows.\nOn Posix platforms, `string-collate-lessp' and `string-collate-equalp'\nignore punctuation characters when they compare strings, if the\nlocale's codeset is UTF-8, as in \"en_US.UTF-8\".  Binding this option\nto a non-nil value will achieve a similar effect on MS-Windows, where\nlocales with UTF-8 codeset are not supported.\n\nNote that setting this to non-nil will also ignore blanks and symbols\nin the strings.  So do NOT use this option when comparing file names\nfor equality, only when you need to sort them.  ");
+                                                                   // C 4886-4897
+  Vw32_collate_ignore_punctuation = Qnil ();                         // C 4898
+
+  staticpro (&raw mut Vw32_valid_locale_ids);                        // C 4900
+  staticpro (&raw mut Vw32_valid_codepages);                         // C 4901
+}
+
+/* C 4903: `/* end of w32proc.c */` - C's own last line, carried as C's text here.  */
