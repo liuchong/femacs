@@ -6580,7 +6580,17 @@ human-readable form.  ",
 unsafe fn int_from_hex (s: *mut c_char) -> DWORD
 {
   let mut val: DWORD = 0;                                           // C 4308
-  static hex: [c_char; 23] = *b"0123456789abcdefABCDEF\0";          // C 4309
+  /* C's `static char hex[] = "0123456789abcdefABCDEF";` is the tree's element-list device
+     (`src/json.rs` 359), with C's terminating NUL and the array's own length (23) kept; the
+     `*b"…"` spelling slice 24 wrote is an `E0308` here (`c_char` is `i8`), which that unit's arm
+     reading cannot see (it stops at the mirror graph's resolution errors, so its type pass never
+     runs) - measured by this round's arm reading on the sibling unit.  */
+  static hex: [c_char; 23]
+    = [b'0' as c_char, b'1' as c_char, b'2' as c_char, b'3' as c_char, b'4' as c_char,
+       b'5' as c_char, b'6' as c_char, b'7' as c_char, b'8' as c_char, b'9' as c_char,
+       b'a' as c_char, b'b' as c_char, b'c' as c_char, b'd' as c_char, b'e' as c_char,
+       b'f' as c_char, b'A' as c_char, b'B' as c_char, b'C' as c_char, b'D' as c_char,
+       b'E' as c_char, b'F' as c_char, 0];                         // C 4309
   let mut p: *mut c_char;                                           // C 4310
 
   while *s != 0                                                    // C 4312

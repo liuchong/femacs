@@ -20197,3 +20197,12 @@
   ⑤ 十门全 `rc=0`、0 失败；区间表拆为 `3433-3629`（本片）+ `3631-8414`（余项）；台账追加 **`### Slice 7 (C 3433-3629)`**。
   ⑥ 预算与清理：`build-tu` 3 发（含两次首拼）、臂读数 4 发、`--check` 4 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w46`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.313 `src/w32term.c` 第 8 片（w32term lane，slice 8）+ `src/w32proc.c` 一处潜伏缺陷修复：C 3631-3763 落地——`#if HAVE_W32NOTIFY` 块（`w32_lispy_file_action` C 3636-3670、`#ifdef WINDOWSNT` 的 `w32_queue_notifications` C 3676-3761）；w32term.rs 5,401 → 5,610 行（+209，2026-10-14）**：
+  ① 门用**已注册**的 `have_w32notify`（xtask `Cargo.toml` 366）+ 文件门；`HAVE_W32NOTIFY` 在冻结表里是 `undef`，故臂读数在基配置上再加 `--cfg feature="have_w32notify"`。用例处新增：`FILE_NOTIFY_INFORMATION`/`PFILE_NOTIFY_INFORMATION`、五个 `FILE_ACTION_*`、`FILE_NOTIFY_EVENT`（termhooks.h 枚举，值 28，`src/inotify.rs` 284 同读数）、gnulib `INT_STRLEN_BOUND`（`src/xterm.rs` 19085 同体）。
+  ② **P-39 镜像移动（第二例）**：`w32term.h` 795 声明、`src/w32term.c` 3636 定义 `w32_lispy_file_action`，镜像摆在 crate root → 本轮臂读数 **22 → 23**（`E0428`），移入 `w32term_fn_decls` 后回到 **22**；记入 `docs/ports/include-w32term.md` 新段。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数（带 `have_w32notify`）22 条、0 条落在本片文本**（不带该 feature 的基配置同版本也是 22）。首拼读 **26 条**：三条本单元 E0308/E0308/参数类型（`*b"…"` 形式的 `unknown_fmt`——本机 `c_char` 是 `i8`，故 `*b"…"` 是 `E0308`；数组长度应为 19 而非 22；`kbd_buffer_store_event` 形参是 `*mut c_void`，实参处转换），一条即上条镜像 E0428。
+  ④ `extract-abi.py --check`：**80 → 79 行**（`missing function` 72 → **70**），新增 1 条 token 行（`switch`→`match`）；行数行 35.8% → **33.3%**（5,610 : 8,414）。
+  ⑤ **`src/w32proc.c` 潜伏缺陷一并修复**：slice 24 的 `static char hex[]` 也用了 `*b"…"`（同样 `E0308`），单元自己的臂读数看不到它（读数在镜像解析错误处即止，类型阶段从不运行），本轮按本树 element-list 装置改写并在该单元注释里记录；`build-tu` 与 `--check` 不变。台账 `docs/ports/w32proc.md` 加 **`## Slice 29`** 段。
+  ⑥ 十门全 `rc=0`、0 失败；区间表拆为 `3631-3763`（本片）+ `3765-8414`（余项）；w32term 台账加 **`### Slice 8`**。预算与清理：`build-tu` 4 发、臂读数 5 发、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w47`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

@@ -1779,3 +1779,19 @@ lines (unchanged); the drift row stays inside the 0.55 tolerance row.
      two spaces C's comment has (the checker normalizes them away on both sides, the
      `src/w32fns.rs` slots drop them; both spellings pass, and the lane keeps C's text).
 
+## Slice 29 (2026-10-14, status 4.313): the `hex` digit table's latent `E0308`
+
+**What it is.**  Slice 24 wrote C 4309's `static char hex[] = "0123456789abcdefABCDEF";` with the
+`*b"…"` device, which only type-checks where `c_char` is `u8`: on this target `c_char` is `i8`, so
+the initialiser is an `E0308` (`expected [i8; 23], found [u8; 23]`).  The unit's own arm reading
+could not see it - the `probe` stops at the mirror graph's resolution errors, so this unit's type
+pass never runs (the reading's own note) - and the frozen `build-tu` compiles none of the gated
+text.  The w32term slice-8 round hit the *same* defect on its own `static char unknown_fmt[]` and
+measured it; this round fixes the copy in this unit too.
+
+**The fix.**  The array is now the tree's element-list device (`src/json.rs` 359, `src/fns.rs`
+6421), with C's terminating NUL and the array's length (23) kept, and the reason in the comment.
+
+**Readings.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes** (the frozen configuration compiles
+none of this text, so the reading is unchanged, as it must be); `extract-abi.py --check` for the
+file -> `OK`, unchanged; the ten gates all `rc=0`, 0 FAIL.

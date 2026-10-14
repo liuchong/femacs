@@ -5397,5 +5397,214 @@ unsafe fn w32_construct_mouse_wheel (result: *mut input_event, msg: *mut W32Msg,
   return Qnil ();                                                    // C 3628
 }
 
-/* C 3631-3632's `#if HAVE_W32NOTIFY` and C 3634's "File event notifications (see w32notify.c)."
-   comment open the next slice, with `w32_lispy_file_action` (C 3636-3670).  */
+/* C 3631-3763: the `#if HAVE_W32NOTIFY` block (C 3632) with its inner `#ifdef WINDOWSNT`
+   (C 3672): `w32_lispy_file_action` (C 3636-3670) and `w32_queue_notifications` (C 3676-3761).
+   The gate is the registered `have_w32notify` feature plus the file gate (the `src/w32xfns.rs`
+   66-79 reading of the same macro; `HAVE_W32NOTIFY` is `undef` in
+   `docs/baseline/config/darwin-arm64.macros.tsv` 1675 and a Windows build's own configure).  */
+/// C: #if HAVE_W32NOTIFY
+/// C: /* File event notifications (see w32notify.c).  */
+
+/* C's `<winbase.h>` names this block reads that no mirror in this unit's graph carries: the
+   notification record with its `FileName[1]` tail, the `…ACTION…` values C's switch compares and
+   `termhooks.h`'s event kind.  Every name stands at the use site (P-88 (1)); the SDK records are
+   UNVERIFIED.  */
+/// C: typedef struct _FILE_NOTIFY_INFORMATION { DWORD NextEntryOffset; DWORD Action;
+/// C:   DWORD FileNameLength; WCHAR FileName[1]; } FILE_NOTIFY_INFORMATION;
+/// C: typedef FILE_NOTIFY_INFORMATION *PFILE_NOTIFY_INFORMATION;
+/// C: #define FILE_ACTION_ADDED 0x00000001 / #define FILE_ACTION_REMOVED 0x00000002
+/// C: #define FILE_ACTION_MODIFIED 0x00000003 / #define FILE_ACTION_RENAMED_OLD_NAME 0x00000004
+/// C: #define FILE_ACTION_RENAMED_NEW_NAME 0x00000005
+/// C: termhooks.h 291: `FILE_NOTIFY_EVENT` (an `enum input_event_kind` member; the `src/inotify.rs`
+/// C:   284 reading of the same enumerator, value 28)
+/// C: #define INT_STRLEN_BOUND(t) ((sizeof (t) * CHAR_BIT - 1) * 146 / 485 + 1)
+/// C:                                                    [gnulib intprops.h; `src/xterm.rs` 19085]
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FILE_NOTIFY_INFORMATION
+{
+  pub NextEntryOffset: DWORD,
+  pub Action: DWORD,
+  pub FileNameLength: DWORD,
+  pub FileName: [WCHAR; 1],
+}
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+pub type PFILE_NOTIFY_INFORMATION = *mut FILE_NOTIFY_INFORMATION;
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+pub const FILE_ACTION_ADDED: DWORD = 0x00000001;
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+pub const FILE_ACTION_REMOVED: DWORD = 0x00000002;
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+pub const FILE_ACTION_MODIFIED: DWORD = 0x00000003;
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+pub const FILE_ACTION_RENAMED_OLD_NAME: DWORD = 0x00000004;
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+pub const FILE_ACTION_RENAMED_NEW_NAME: DWORD = 0x00000005;
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+pub const FILE_NOTIFY_EVENT: c_int = 28;
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+macro_rules! INT_STRLEN_BOUND {
+  ($t:ty) => { ((core::mem::size_of::<$t> () * 8 - 1) * 146 + 484) / 485 + 1 };
+}
+
+/// C 3636-3670: `Lisp_Object w32_lispy_file_action (DWORD action)` - C 3639's function-local
+/// `static char unknown_fmt[]`, C 3642-3667's `switch (action)` over the five `FILE_ACTION_*`
+/// values with C 3659-3666's `default:` (which `sprintf`s the format into C's
+/// `sizeof`-sized buffer and interns it) and C 3669's answer.  The entry is non-`static`, so it is
+/// exported (PORTING.md 0.2).
+/// C: /* File event notifications (see w32notify.c).  */
+/// C: Lisp_Object
+/// C: w32_lispy_file_action (DWORD action)
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_lispy_file_action (action: DWORD) -> Lisp_Object
+{
+  /* C's `static char unknown_fmt[] = "unknown-action(%d)";` is the tree's element-list device
+     (`src/json.rs` 359, `src/fns.rs` 6421), with C's terminating NUL and the array's own length
+     (19) kept; `c_char` is `i8` here, so the byte-string form would be an `E0308`.  */
+  static mut unknown_fmt: [c_char; 19]
+    = [b'u' as c_char, b'n' as c_char, b'k' as c_char, b'n' as c_char, b'o' as c_char,
+       b'w' as c_char, b'n' as c_char, b'-' as c_char, b'a' as c_char, b'c' as c_char,
+       b't' as c_char, b'i' as c_char, b'o' as c_char, b'n' as c_char, b'(' as c_char,
+       b'%' as c_char, b'd' as c_char, b')' as c_char, 0];          // C 3639
+  let mut retval: Lisp_Object;                                       // C 3640
+
+  match action                                                       // C 3642
+    {
+    FILE_ACTION_ADDED =>                                             // C 3644
+      { retval = Qadded (); }                                        // C 3645
+
+    FILE_ACTION_REMOVED =>                                           // C 3647
+      { retval = Qremoved (); }                                      // C 3648
+
+    FILE_ACTION_MODIFIED =>                                          // C 3650
+      { retval = Qmodified (); }                                     // C 3651
+
+    FILE_ACTION_RENAMED_OLD_NAME =>                                  // C 3653
+      { retval = Qrenamed_from (); }                                 // C 3654
+
+    FILE_ACTION_RENAMED_NEW_NAME =>                                  // C 3656
+      { retval = Qrenamed_to (); }                                   // C 3657
+
+    /* C's `default:` builds `char buf[sizeof(unknown_fmt) - 1 + INT_STRLEN_BOUND (DWORD)]`,
+       formats C's own `unknown_fmt` into it and interns the result (C 3659-3666).  */
+    _ =>
+      {
+	let mut buf: [c_char; (19 - 1 + INT_STRLEN_BOUND! (DWORD)) as usize]
+	  = [0; (19 - 1 + INT_STRLEN_BOUND! (DWORD)) as usize];      // C 3661
+
+	sprintf (buf.as_mut_ptr (), unknown_fmt.as_ptr (), action);    // C 3663
+	retval = intern (buf.as_ptr ());                               // C 3664
+      }
+    }
+
+  return retval;                                                     // C 3669
+}
+
+/// C 3676-3761: "Put file notifications into the Emacs input event queue. …" - C 3680-3682's three
+/// locals, C 3686-3687's initialisation guard, C 3689's `XSETFRAME`, C 3691-3758's drain loop (the
+/// critical section, the list unlink, C 3711-3717's record walk, C 3723-3724's size/object guard,
+/// C 3728-3752's per-entry event build with C 3747-3751's advance and C 3755-3756's two `xfree`s)
+/// and C 3760's final `NO_EVENT`.
+/// C: #ifdef WINDOWSNT
+/// C: /* Put file notifications into the Emacs input event queue.  This
+/// C:    function runs when the WM_EMACS_FILENOTIFY message arrives from a
+/// C:    watcher thread.  */
+/// C: static void
+/// C: w32_queue_notifications (struct input_event *event, W32Msg *msg,
+/// C:                          struct frame *f, int *evcount)
+#[cfg (all (feature = "have_ntgui", feature = "have_w32notify", feature = "windowsnt"))]
+unsafe fn w32_queue_notifications (event: *mut input_event, msg: *mut W32Msg,
+				   f: *mut frame, evcount: *mut c_int)
+{
+  let mut ns: *mut notifications_set = core::ptr::null_mut ();       // C 3680
+  let mut frame: Lisp_Object;                                        // C 3681
+  let mut done: c_int = 0;                                           // C 3682
+
+  /* We cannot process notification before Emacs is fully initialized,
+     since we need the UTF-16LE coding-system to be set up.  */
+  if !initialized                                                  // C 3686
+    { return; }                                                      // C 3687
+
+  XSETFRAME! (frame, f);                                             // C 3689
+
+  while done == 0                                                   // C 3691
+    {
+      ns = core::ptr::null_mut ();                                   // C 3693
+
+      /* Find out if there is a record available in the linked list of
+	 notifications sets.  If so, unlink the set from the linked
+	 list.  Use critical section.  */
+      enter_crit ();                                                 // C 3698
+      if (*notifications_set_head).next != notifications_set_head   // C 3699
+	{
+	  ns = (*notifications_set_head).next;                         // C 3701
+	  (*(*ns).prev).next = (*ns).next;                             // C 3702
+	  (*(*ns).next).prev = (*ns).prev;                             // C 3703
+	}
+      else
+	{ done = 1; }                                                // C 3706
+      leave_crit ();                                                 // C 3707
+
+      if !ns.is_null ()                                              // C 3709
+	{
+	  let mut p: *mut BYTE = (*ns).notifications;                  // C 3711
+	  let mut fni: *mut FILE_NOTIFY_INFORMATION
+	    = p as PFILE_NOTIFY_INFORMATION;                           // C 3712
+	  let min_size: DWORD
+	    = core::mem::offset_of! (FILE_NOTIFY_INFORMATION, FileName) as DWORD
+	      + core::mem::size_of::<wchar_t> () as DWORD;             // C 3713-3714
+	  let mut info_size: DWORD = (*ns).size;                       // C 3715
+	  let cs: Lisp_Object = Qutf_16le ();                          // C 3716
+	  let obj: Lisp_Object = w32_get_watch_object ((*ns).desc);    // C 3717
+
+	  /* notifications size could be zero when the buffer of
+	     notifications overflowed on the OS level, or when the
+	     directory being watched was itself deleted.  Do nothing in
+	     that case.  */
+	  if info_size != 0                                            // C 3723
+	      && !NILP (obj) && CONSP (obj)                            // C 3724
+	    {
+	      let callback: Lisp_Object = XCDR (obj);                  // C 3726
+
+	      while info_size >= min_size                              // C 3728
+		{
+		  let utf_16_fn: Lisp_Object
+		    = make_unibyte_string ((*fni).FileName.as_ptr () as *const c_char,
+					   (*fni).FileNameLength as ptrdiff_t);   // C 3730-3732
+		  /* Note: mule-conf is preloaded, so utf-16le must
+		     already be defined at this point.  */
+		  let fname: Lisp_Object
+		    = code_convert_string_norecord (utf_16_fn, cs, false);   // C 3735-3736
+		  let action: Lisp_Object = w32_lispy_file_action ((*fni).Action);   // C 3737
+
+		  input_event_bits! (kind, event, FILE_NOTIFY_EVENT);   // C 3739
+		  (*event).timestamp = (*msg).msg.time as Time;         // C 3740
+		  (*event).modifiers = 0;                              // C 3741
+		  (*event).frame_or_window = callback;                 // C 3742
+		  (*event).arg = list3 (make_pointer_integer ((*ns).desc),   // C 3743-3744
+					action, fname);
+		  kbd_buffer_store_event (event as *mut c_void);       // C 3745
+		  *evcount += 1;                                       // C 3746
+		  if (*fni).NextEntryOffset == 0                       // C 3747
+		    { break; }                                         // C 3748
+		  p = p.add ((*fni).NextEntryOffset as usize);         // C 3749
+		  fni = p as PFILE_NOTIFY_INFORMATION;                 // C 3750
+		  info_size -= (*fni).NextEntryOffset;                 // C 3751
+		}
+	    }
+	  /* Free this notifications set. */
+	  xfree ((*ns).notifications as *mut c_void);                  // C 3755
+	  xfree (ns as *mut c_void);                                   // C 3756
+	}
+    }
+  /* We've stuffed all the events ourselves, so w32_read_socket shouldn't.  */
+  input_event_bits! (kind, event, NO_EVENT);                         // C 3760
+}
+/* C 3762-3763: the two block closers, carried as C's own text.
+   #endif	/* WINDOWSNT */
+   #endif	/* HAVE_W32NOTIFY */  */
+
+/* C 3766-3772's "Function to report a mouse movement to the mainstream Emacs code. …" comment and
+   C 3774's `w32_note_mouse_movement` open the next slice.  */

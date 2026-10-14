@@ -438,3 +438,24 @@ ledger's "The declaration homes" section records for 27 earlier names.
 `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
 `docs/ports/w32term.md`'s `### Slice 7 (C 3433-3629)`.
+
+## `w32_lispy_file_action` follows `parse_button` into `w32term_fn_decls` (2026-10-14, w32term slice 8)
+
+**The measurement.**  `src/w32term.h` 795 declares `extern Lisp_Object w32_lispy_file_action
+(DWORD);` and `src/w32term.c` 3636 defines it, so the slice-8 round's arm reading (with the base
+configuration plus `--cfg feature="have_w32notify"`) went from **22 to 23** with `E0428: the name
+\`w32_lispy_file_action\` is defined multiple times`.
+
+**The move.**  The declaration now stands beside `parse_button` in `w32term_fn_decls` (the
+glob-imported module for the file's own definitions), and the reading returned to **22**.  This is
+the second name of the `HAVE_W32NOTIFY`/mouse block the module absorbs; the two standing `E0428`s of
+the mirror (`w32_query_frame_background_color`, `w32_image_rotations_p`) are unchanged and remain
+Owed 4's.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w47/x.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"' --cfg
+'feature="have_w32notify"'` -> **23 before, 22 after**, 0 anchored in the unit's text either way;
+`python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
+`python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
+`docs/ports/w32term.md`'s `### Slice 8 (C 3631-3763)`.

@@ -1150,7 +1150,6 @@ pub struct notifications_set
 unsafe extern "C" {
   pub static mut notifications_set_head: *mut notifications_set;
   pub fn w32_get_watch_object (obj: *mut c_void) -> Lisp_Object;
-  pub fn w32_lispy_file_action (action: DWORD) -> Lisp_Object;
   /// `struct input_event` is termhooks.h's; this mirror includes nothing of it, so the parameter
   /// keeps P-55's untyped pointer.
   pub fn handle_file_notifications (event: *mut c_void) -> c_int;
@@ -1474,6 +1473,10 @@ pub mod w32term_fn_decls {
        definition, so it belongs in this module (E0428: the `w32term` slice 7 round, whose unit now
        defines the function the mirror had declared at its crate root).  */
     pub fn parse_button (a: c_int, b: c_int, c: *mut c_int, d: *mut c_int) -> BOOL;
+    /* C 795's `extern Lisp_Object w32_lispy_file_action (DWORD);` - `src/w32term.c`'s own
+       definition too, so it belongs here (E0428: the `w32term` slice 8 round, the same device slice
+       7's `parse_button` move records).  */
+    pub fn w32_lispy_file_action (action: DWORD) -> Lisp_Object;
     pub fn w32_display_pixel_height (dpyinfo: *mut w32_display_info) -> c_int;
     pub fn w32_display_pixel_width (dpyinfo: *mut w32_display_info) -> c_int;
     pub fn w32_release_paint_buffer (f: *mut frame);

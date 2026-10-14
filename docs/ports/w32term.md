@@ -185,7 +185,8 @@ The `arm` cell says what the port does with the block.
 | 3039-3235 | the five small frame entries and the scroller: `w32_shift_glyphs_for_insert` (C 3041-3054), `w32_delete_glyphs` (C 3057-3067), `w32_clear_frame` (C 3070-3091), `w32_ring_bell` (C 3094-3117), `w32_ins_del_lines` (C 3119-3133, with C 3119-3121's "Line Dance" banner) and `w32_scroll_run` (C 3136-3235) | file gate (`have_ntgui`); slice 5 below |
 | 3237-3431 | the Exposure Events section's focus machinery and the two keyboard entries: `w32_frame_highlight` (C 3243-3248), `w32_frame_unhighlight` (C 3250-3255), `w32_new_focus_frame` (C 3257-3284), `w32_focus_changed` (C 3287-3324), `w32_detect_focus_change` (C 3327-3347), C 3350-3358's `#if 0` (`w32_mouse_leave`, carried as C's text), `w32_frame_rehighlight` (C 3360-3374), `w32_frame_rehighlight_1` (C 3376-3403), `get_keysym_name` (C 3405-3420) and `codepage_for_locale` (C 3422-3431) | file gate (`have_ntgui`); slice 6 below |
 | 3433-3629 | the mouse section's head: the section comment (C 3433-3434), `parse_button` (C 3439-3499, the mouse-message `switch`), `w32_construct_mouse_click` (C 3501-3532) and `w32_construct_mouse_wheel` (C 3534-3629, with the high-precision/coalescing arms) | file gate (`have_ntgui`); slice 7 below |
-| 3631-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3631-3763 | the `#if HAVE_W32NOTIFY` block: `w32_lispy_file_action` (C 3636-3670) and the `#ifdef WINDOWSNT` `w32_queue_notifications` (C 3676-3761) | `all (have_ntgui, have_w32notify)`; slice 8 below |
+| 3765-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -981,4 +982,44 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **83 -> 80 rows** (75 -> **72** `missing function`: the round's
      three landed), one token row added to the notes file (above), and the line-count row improves
      from 39.3% to **35.8%** (5,401 vs 8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 8 (C 3631-3763)
+
+- **What it is.**  The `#if HAVE_W32NOTIFY` block: `w32_lispy_file_action` (C 3636-3670, the
+  five-`FILE_ACTION_*` switch with C 3659-3666's `sprintf`/`intern` default) and the `#ifdef
+  WINDOWSNT` `w32_queue_notifications` (C 3676-3761, the critical-section drain of the
+  notifications-set list, the per-entry event build and the two `xfree`s).  Port: 5,401 ->
+  **5610 lines** (+209).  The table's last row splits at C 3763; the next live definition is C
+  3774's `w32_note_mouse_movement`.
+- **The gate** is the *registered* `have_w32notify` feature (xtask's `Cargo.toml` 366, whose comment
+  names the `src/w32xfns.rs` 66-79 reading of the same macro) plus the file gate; `HAVE_W32NOTIFY`
+  itself is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv` 1675, so the arm is read with
+  `--cfg feature="have_w32notify"` added to the base set (below).
+- **The names this slice adds stand at the use site** (P-88 (1)): `FILE_NOTIFY_INFORMATION` (with
+  its `FileName[1]` tail, `PFILE_NOTIFY_INFORMATION`), the five `FILE_ACTION_*` values,
+  `FILE_NOTIFY_EVENT` (termhooks.h's enumerator, value 28 - the `src/inotify.rs` 284 reading) and
+  gnulib's `INT_STRLEN_BOUND` (`src/xterm.rs` 19085's body, the one C 3661's bound needs).  The SDK
+  records are UNVERIFIED; the enumerator and the macro are read from the reference and the sibling
+  port.
+- **C's `static char unknown_fmt[]` is the tree's element-list device**, not `*b"…"`: `c_char` is
+  `i8` here, so the byte-string form is an `E0308` (measured in this round's arm reading, and the
+  same latent defect slice 24 left in `src/w32proc.rs`'s `hex` - fixed in this round too, with the
+  reason in that unit's comment and this round's status bullet).
+- **`w32_lispy_file_action` is the second name this mirror had to hand to `w32term_fn_decls`**:
+  `src/w32term.h` 795 declares it and `src/w32term.c` 3636 defines it, so the crate-root
+  declaration was an `E0428` as soon as the unit defined it (the same case slice 7 measured for
+  `parse_button`); the arm reading went **23 -> 22** when it moved, and the move is
+  `docs/ports/include-w32term.md`'s.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep with the base configuration **plus `have_w32notify`** -> **22 errors, 0 anchored
+     in this slice's text** (the base configuration without that feature also reads 22 on this
+     revision).  The round's first spelling read **26**: the three own-text rows were the
+     byte-string `unknown_fmt` (an `E0308`, fixed above), its array length (19, not 22 - C's
+     `sizeof (unknown_fmt) - 1` is 18) and `kbd_buffer_store_event`'s `*mut c_void` parameter (P-55's
+     shape, the argument cast at the call site); the fourth was the mirror `E0428` above.
+  3. `extract-abi.py --check` -> **80 -> 79 rows** (72 -> **70** `missing function`: the round's two
+     landed), one token row added to the notes file (the `switch` again), and the line-count row
+     improves from 35.8% to **33.3%** (5,610 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.
