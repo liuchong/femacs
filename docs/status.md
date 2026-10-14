@@ -20308,3 +20308,14 @@
   ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `7148-7502`（本片）+ `7504-8414`（余项）；台账追加 **`### Slice 20 (C 7148-7502)`**。
   ⑧ 预算与清理：`build-tu` 2 发、臂读数 3 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w20`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.325 `src/w32term.c` 第 21 片（w32term lane，slice 21）：C 7503-7734 落地——可见性与资源组：`w32_make_frame_visible`（工作区调整、三路 `ShowWindow` 标志、等待循环）、`w32_make_frame_invisible`、`w32_make_frame_visible_invisible`、`w32_iconify_frame`、`w32_free_frame_resources`、`w32_destroy_window` 与 **`w32_wm_set_size_hint`**；w32term.rs 10,565 → 10,916 行（+348，2026-10-15）**：
+  ① **slice 19 的欠账调用解除**（C 7049/7190/7297 调用的 `w32_wm_set_size_hint` 在本片定义）——**本 lane 已无任何欠账调用**。
+  ② 七个定义退掉七条 `missing function` 行（22 → **15**）。
+  ③ 本片七项中六个非 `static` → 定义为 `#[unsafe(no_mangle)] pub unsafe extern "C" fn`（P-52）；`w32_make_frame_visible_invisible`/`w32_destroy_window` 是 C 自己的 `static`，保持普通 fn。
+  ④ frame.h 1895-1905 的 `INLINE` `gui_set_bitmap_icon` 按「每单元一份」惯例带实现落地（C 7508/7650 调用；`src/xterm.rs` 18186 把裸调用记为它的欠账行，本单元带正文）；用例处另加 `SPI_GETWORKAREA`/`SW_RESTORE`/`SW_SHOWNOACTIVATE`/`WM_SYSCOMMAND`/`SC_MINIMIZE`、`free_frame_faces`(dispextern.h 3822)、`free_frame_menubar`(frame.h 1883)、keyboard.h 489/510 两个轮询入口（UNVERIFIED）。
+  ⑤ `asked_for_visible` 首次被写（C 7538）——slice 16 并入 `w32_output` `bits` 字的那一位。
+  ⑥ **九条原型从镜像的 crate 根块移入 `w32term_fn_decls`**（glob 导入会被本地定义遮蔽，P-21/P-39）：C 251-258 的六条（含 slice 3 起就挂着的 **`Owed 4` 之一 `w32_query_frame_background_color`** 与本片新增的五个定义）与 C 802-805 的三条（含另一个 `Owed 4` `w32_image_rotations_p`，以及文件尾将落地、本来也会撞名的两个 `initialize_*`）。**由此本 lane 的两条长期 `E0428` 全部关闭**，臂读数从 **22 降到 20**（本 lane 迄今最低）；镜像台账已记。
+  ⑦ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 20 条、0 条落在本片**（首稿一条 `E0308` 是 C 7695 比较里的 `mouse_face_mouse_frame` 为 `*mut c_void`，按 slice 16 的写法补 cast）。`extract-abi.py --check`：**34 → 27 行**（`missing function` 22 → **15**），行数行 **29.7%**（10,916 : 8,414）。
+  ⑧ 十门全 `rc=0`、0 失败；区间表拆为 `7503-7734`（本片）+ `7736-8414`（余项）；台账追加 **`### Slice 21 (C 7503-7734)`**。
+  ⑨ 预算与清理：`build-tu` 2 发、臂读数 4 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w21`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

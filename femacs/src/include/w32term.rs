@@ -335,12 +335,12 @@ unsafe extern "C" {
   // `w32_display_pixel_height`/`w32_display_pixel_width` (C 247-248) are defined by this
   // header's own unit: `w32term_fn_decls` below (E0428, P-21).
   pub fn w32_dialog_in_progress (in_progress: Lisp_Object);
-  pub fn w32_query_frame_background_color (f: *mut frame, bgcolor: *mut Emacs_Color);
-  pub fn w32_make_frame_visible (f: *mut frame);
-  pub fn w32_make_frame_invisible (f: *mut frame);
-  pub fn w32_iconify_frame (f: *mut frame);
-  pub fn w32_free_frame_resources (f: *mut frame);
-  pub fn w32_wm_set_size_hint (f: *mut frame, long_arg: c_long, bool_arg: bool);
+  /* C 251-258's `w32_query_frame_background_color`, `w32_make_frame_visible`,
+     `w32_make_frame_invisible`, `w32_iconify_frame`, `w32_free_frame_resources` and
+     `w32_wm_set_size_hint` are `src/w32term.c`'s own definitions, so they stand in
+     `w32term_fn_decls` below (E0428: the `w32term` slice 21 round measured all six at this site
+     once its definitions landed - and the first of them had been the standing `Owed 4` row since
+     slice 3).  */
   // C 261-262's `w32_kbd_patch_key`/`w32_kbd_mods_to_emacs` are `src/w32fns.c`'s definitions:
   // `w32term_fns_decls` below (E0428, P-21/P-39 - w32fns slice 25 measured the pair).
   pub fn w32con_hide_cursor ();
@@ -1182,10 +1182,12 @@ unsafe extern "C" {
 /// initialize_w32_display (struct terminal *, int *, int *); extern bool w32_image_rotations_p
 /// (void);`
 #[cfg (feature = "windowsnt")]
+/* C 802-805's three are `src/w32term.c`'s own definitions too, so they stand in
+   `w32term_fn_decls` below (E0428: `w32_image_rotations_p` had been the second standing `Owed 4`
+   row since slice 3; the two `initialize_*` entries would collide the same way when the file's
+   tail lands).  */
 unsafe extern "C" {
-  pub fn w32_initialize_display_info (display_name: Lisp_Object);
-  pub fn initialize_w32_display (terminal: *mut terminal, width: *mut c_int, height: *mut c_int);
-  pub fn w32_image_rotations_p () -> bool;
+  // (the three moved declarations are in `w32term_fn_decls`)
 }
 
 /* C 803-812: `#ifdef WINDOWSNT`'s keyboard-hook arm ("Keyboard hooks").  The file itself is the
@@ -1466,6 +1468,23 @@ unsafe extern "C" {
 pub mod w32term_fn_decls {
   use super::*;
 
+  /* The nine prototypes C 251-258 and C 802-805 write for names `src/w32term.c` itself defines.
+     They live here rather than at the crate root because a glob import is shadowed by a local
+     definition (P-21/P-39) - the device `parse_button` and `w32_lispy_file_action` already use
+     above, and the two that had been the standing `E0428` rows (`Owed 4`) since slice 3 are now
+     the first two of the nine.  */
+  unsafe extern "C" {
+    pub fn w32_query_frame_background_color (f: *mut frame, bgcolor: *mut Emacs_Color);
+    pub fn w32_make_frame_visible (f: *mut frame);
+    pub fn w32_make_frame_invisible (f: *mut frame);
+    pub fn w32_iconify_frame (f: *mut frame);
+    pub fn w32_free_frame_resources (f: *mut frame);
+    pub fn w32_wm_set_size_hint (f: *mut frame, long_arg: c_long, bool_arg: bool);
+    pub fn w32_initialize_display_info (display_name: Lisp_Object);
+    pub fn initialize_w32_display (terminal: *mut terminal, width: *mut c_int,
+				   height: *mut c_int);
+    pub fn w32_image_rotations_p () -> bool;
+  }
 
   unsafe extern "C" {
   /* C 249's `initialize_frame_menubar` and C 909/914-918's `w32_popup_dialog`,

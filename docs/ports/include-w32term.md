@@ -516,3 +516,26 @@ three, this mirror's four `w32_output` frame accessors now carry both arms; no s
 anchored in the unit's text**; `python3 tools/check-mirror-dupes.py` and
 `tools/check-declarations.py` -> 0 failure(s) each.  The unit-side readings are
 `docs/ports/w32term.md`'s `### Slice 19 (C 6908-7146)`.
+
+## Nine unit-defined prototypes move into `w32term_fn_decls` (2026-10-15, w32term slice 21)
+
+**The measurement.**  `src/w32term.c` 7503/7605/7638/7665/7720 define `w32_make_frame_visible`,
+`w32_make_frame_invisible`, `w32_iconify_frame`, `w32_free_frame_resources` and
+`w32_wm_set_size_hint`, and this mirror declared all five in the crate-root `unsafe extern "C"`
+block C 251-258 comes from - so the reading went **22 -> 27** with five `E0428`s.  The same block
+held the lane's two standing `Owed 4` rows (`w32_query_frame_background_color` at 338,
+`w32_image_rotations_p` in the C 802-805 block), and two more names in that second block
+(`w32_initialize_display_info`, `initialize_w32_display`) are `src/w32term.c`'s definitions too, so
+they would have collided when the file's tail lands.
+
+**The move.**  All nine now stand in `w32term_fn_decls` - the glob-imported module whose imported
+names a local definition shadows (the device `parse_button` and `w32_lispy_file_action` already
+use, P-21/P-39).  The two crate-root sites keep C's own text and a note naming the module.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w53/x.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **27 before, 20
+after**, 0 anchored in the unit's text either way (the lane's baseline was 22, so the move also
+closed its two standing `Owed 4` rows); `python3 tools/check-mirror-dupes.py` and
+`tools/check-declarations.py` -> 0 failure(s) each.  The unit-side readings are
+`docs/ports/w32term.md`'s `### Slice 21 (C 7503-7734)`.

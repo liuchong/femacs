@@ -198,7 +198,8 @@ The `arm` cell says what the port does with the block.
 | 6754-6906 | `w32_bitmap_icon` (C 6758-6816) and `w32_new_font` (C 6846-6891), with C 6818-6841's "Handling X errors" and C 6894-6906's "TODO: W32 Input Methods" banner-plus-list blocks carried as C's own text | file gate (`have_ntgui`); slice 18 below |
 | 6908-7146 | `w32_calc_absolute_position` (C 6912-7021), `w32_set_offset` (C 7029-7065) and `w32fullscreen_hook` (C 7067-7146) | file gate (`have_ntgui`); slice 19 below |
 | 7148-7502 | `w32_set_window_size` (C 7152-7256), `w32_set_window_size_and_position` (C 7261-7335), `frame_set_mouse_pixel_position` (C 7339-7365), `w32_get_focus_frame` (C 7367-7379), `w32_focus_frame` (C 7388-7405), `w32_raise_frame` (C 7408-7467), `w32_lower_frame` (C 7470-7479) and `w32_frame_raise_lower` (C 7481-7491) | file gate (`have_ntgui`); slice 20 below |
-| 7503-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7503-7734 | `w32_make_frame_visible` (C 7503-7599), `w32_make_frame_invisible` (C 7605-7625), `w32_make_frame_visible_invisible` (C 7627-7634), `w32_iconify_frame` (C 7638-7660), `w32_free_frame_resources` (C 7665-7699), `w32_destroy_window` (C 7702-7710) and `w32_wm_set_size_hint` (C 7720-7734) | file gate (`have_ntgui`); slice 21 below |
+| 7736-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1458,4 +1459,45 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
      first draft's `E0618` was `Vw32_grab_focus_on_raise`, a global rather than a getter).
   3. `extract-abi.py --check` -> **42 -> 34 rows** (`missing function` 30 -> **22**), the
      line-count row at **25.6%** (`10,565` vs `8,414`).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 21 (C 7503-7734)
+
+- **What it is.**  The visibility and resource group: `w32_make_frame_visible` (C 7503-7599, the
+  work-area adjustment, the three-way `ShowWindow` flag choice and the wait loop),
+  `w32_make_frame_invisible` (C 7605-7625), `w32_make_frame_visible_invisible` (C 7627-7634),
+  `w32_iconify_frame` (C 7638-7660), `w32_free_frame_resources` (C 7665-7699),
+  `w32_destroy_window` (C 7702-7710) and **`w32_wm_set_size_hint`** (C 7720-7734).  Port:
+  10,565 -> **10,916 lines** (+348).  The table's last row splits at C 7734; the next live
+  definition is C 7746's `w32_check_font` (C 7736-7741's Fonts banner and its `ifdef GLYPH_DEBUG`).
+- **Slice 19's owed call is discharged**: C 7049/7190/7297 called `w32_wm_set_size_hint` and this
+  slice defines it.  **No owed call remains in this lane.**
+- **The seven definitions retire seven `missing function` rows** (22 -> 15).
+- **Six of C's seven items here are non-`static`**, so their definitions carry
+  `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (P-52); `w32_make_frame_visible_invisible` and
+  `w32_destroy_window` are C's own `static` and stay plain.
+- **frame.h 1895-1905's `INLINE` `gui_set_bitmap_icon` is carried as one copy per including unit**
+  (C 7508/7650 call it; `src/xterm.rs` 18186 records the bare call as its owed mirror row, this
+  unit carries the body over `assq_no_quit`/`Qicon_type`/`FRAME_TERMINAL`'s
+  `set_bitmap_icon_hook`).
+- **The SDK surface stands at the use site** (P-88 (1)), UNVERIFIED: `SPI_GETWORKAREA`,
+  `SW_RESTORE`, `SW_SHOWNOACTIVATE`, `WM_SYSCOMMAND`, `SC_MINIMIZE`, plus `free_frame_faces`
+  (dispextern.h 3822), `free_frame_menubar` (frame.h 1883) and keyboard.h 489/510's two polling
+  entries.
+- **`asked_for_visible` gets its write** (C 7538) - the bit slice 16 packed into `w32_output`'s
+  `bits` word, read at C 7517 and C 5190.
+- **Nine prototypes left the mirror's crate-root blocks for `w32term_fn_decls`** (a glob import is
+  shadowed by a local definition, P-21/P-39): C 251-258's six - `w32_query_frame_background_color`
+  and slice 21's five new definitions - and C 802-805's three (`w32_image_rotations_p`,
+  `w32_initialize_display_info`, `initialize_w32_display`).  **This closes the lane's two standing
+  `E0428` rows** (`Owed 4` since slice 3) and pre-empts the two `initialize_*` collisions the
+  file's tail would have hit; the arm reading drops from **22 to 20** - its lowest this lane has
+  recorded.  The mirror ledger records the move.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **20 errors, 0 anchored in this slice's text** (the
+     first draft's `E0308` was `mouse_face_mouse_frame`'s `*mut c_void` in the C 7695 comparison,
+     the slice-16 cast).
+  3. `extract-abi.py --check` -> **34 -> 27 rows** (`missing function` 22 -> **15**), the
+     line-count row at **29.7%** (`10,916` vs `8,414`).
   4. The ten gates: all `rc=0`, 0 FAIL.

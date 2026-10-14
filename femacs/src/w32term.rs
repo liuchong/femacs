@@ -10563,3 +10563,354 @@ unsafe fn w32_frame_raise_lower (f: *mut frame, raise_flag: bool)
 
 /* C 7493's "Change of visibility." banner, C 7495-7501's note and C 7503-7504's
    `void w32_make_frame_visible (struct frame *f)` open the next slice.  */
+
+/* The SDK surface and the two frame.c/xfaces.c entries these seven items read, plus frame.h
+   1895-1905's `INLINE` `gui_set_bitmap_icon`, whose live form the port keeps as one copy per
+   including unit (the `FACE_FROM_ID` shape slice 17 used; `src/xterm.rs` 18186 records the bare
+   call as its owed mirror row, this unit carries the body).  Every name stands at the use site
+   (P-88 (1)); the SDK records are UNVERIFIED.  */
+/// C: #define SPI_GETWORKAREA 0x0030 / #define SW_RESTORE 9 / #define SW_SHOWNOACTIVATE 4
+/// C: #define WM_SYSCOMMAND 0x0112 / #define SC_MINIMIZE 0xF020
+/// C: void free_frame_faces (struct frame *);              [dispextern.h 3822]
+/// C: extern void free_frame_menubar (struct frame *);     [frame.h 1883]
+/// C: extern bool input_polling_used (void);              [keyboard.h 489]
+/// C: extern void poll_for_input_1 (void);                [keyboard.h 510]
+/// C: INLINE void gui_set_bitmap_icon (struct frame *f) { Lisp_Object obj = assq_no_quit
+/// C:   (Qicon_type, f->param_alist); if (CONSP (obj) && !NILP (XCDR (obj)) && FRAME_TERMINAL
+/// C:   (f)->set_bitmap_icon_hook) FRAME_TERMINAL (f)->set_bitmap_icon_hook (f, XCDR (obj)); }
+/// C:                                                        [frame.h 1895-1905]
+#[cfg (feature = "have_ntgui")]
+pub const SPI_GETWORKAREA: UINT = 0x0030;
+#[cfg (feature = "have_ntgui")]
+pub const SW_RESTORE: c_int = 9;
+#[cfg (feature = "have_ntgui")]
+pub const SW_SHOWNOACTIVATE: c_int = 4;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SYSCOMMAND: c_int = 0x0112;
+#[cfg (feature = "have_ntgui")]
+pub const SC_MINIMIZE: c_int = 0xF020;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn free_frame_faces (f: *mut frame);
+  pub fn free_frame_menubar (f: *mut frame);
+  /* keyboard.c's two polling entries (C 7588/7594); `poll_suppress_count` comes from
+     `include/keyboard.rs` 269, these two from no mirror in this graph.  */
+  pub fn input_polling_used () -> bool;
+  pub fn poll_for_input_1 ();
+}
+
+/// frame.h 1895-1905: the `INLINE` bitmap-icon setter, C pastes it into every unit that includes
+/// the header (the `FACE_FROM_ID` reading two slices up).
+#[cfg (feature = "have_ntgui")]
+#[inline(always)]
+unsafe fn gui_set_bitmap_icon (f: *mut frame)
+{
+  let obj: Lisp_Object = assq_no_quit (Qicon_type (), (*f).param_alist);   // C 1899
+
+  if CONSP (obj) && !NILP (XCDR (obj))                                 // C 1901
+      && (*FRAME_TERMINAL! (f)).set_bitmap_icon_hook.is_some ()         // C 1902
+    {
+      ((*FRAME_TERMINAL! (f)).set_bitmap_icon_hook.unwrap ()) (f as *mut c_void, XCDR (obj));   // C 1903
+    }
+}
+
+/* C 7495-7501's note above `w32_make_frame_visible`, carried as C's own text.  */
+/* C: /* This tries to wait until the frame is really visible, depending on
+   C:    the value of Vx_visible_frame_timeout.
+   C:    However, if the window manager asks the user where to position
+   C:    the frame, this will return before the user finishes doing that.
+   C:    The frame will not actually be visible at that time,
+   C:    but it will become visible later when the window manager
+   C:    finishes with it.  */  */
+
+/// C 7503-7599: `void w32_make_frame_visible (struct frame *f)` - non-`static`, so
+/// `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (P-52).  C 7506-7508's `block_input` and
+/// `gui_set_bitmap_icon`, C 7510-7553's not-visible block (the iconified/`asked_for_visible`
+/// guard, C 7519-7536's work-area adjustment with `SystemParametersInfo`/`GetWindowRect` and
+/// `w32_set_offset`, C 7538's flag store and C 7547-7552's nested `SW_RESTORE`/
+/// `SW_SHOWNOACTIVATE`/`SW_SHOWNORMAL` choice), C 7555-7559's `Vx_wait_for_event_timeout` guard,
+/// C 7564-7598's wait loop (the two `Ffloat_time` reads, `input_polling_used`,
+/// `poll_suppress_count` and `poll_for_input_1`).
+/// C: void
+/// C: w32_make_frame_visible (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_make_frame_visible (f: *mut frame)
+{
+  block_input ();                                                      // C 7506
+
+  gui_set_bitmap_icon (f);                                             // C 7508
+
+  if !FRAME_VISIBLE_P (f)                                              // C 7510
+    {
+      /* We test FRAME_GARBAGED_P here to make sure we don't
+	 call w32_set_offset a second time
+	 if we get to w32_make_frame_visible a second time
+	 before the window gets really visible.  */
+      if !FRAME_ICONIFIED_P (f)                                        // C 7516
+	  && w32_output_bits! (asked_for_visible, FRAME_OUTPUT_DATA! (f)) == 0   // C 7517
+	{
+	  if FRAME_PARENT_FRAME (f).is_null ()                          // C 7519
+	    {
+	      /* C declares both `RECT`s uninitialised and fills them below (PORTING.md 1.5).  */
+	      let mut workarea_rect: RECT = core::mem::zeroed ();        // C 7521
+	      let mut window_rect: RECT = core::mem::zeroed ();          // C 7522
+
+	      /* Adjust vertical window position in order to avoid being
+		 covered by a taskbar placed at the bottom of the desktop. */
+	      SystemParametersInfo (SPI_GETWORKAREA, 0, &raw mut workarea_rect as *mut c_void, 0);   // C 7526
+	      GetWindowRect (FRAME_W32_WINDOW! (f), &raw mut window_rect);   // C 7527
+	      if window_rect.bottom > workarea_rect.bottom               // C 7528
+		  && window_rect.top > workarea_rect.top                 // C 7529
+		{
+		  (*f).top_pos = max! (window_rect.top                    // C 7530
+				       - window_rect.bottom + workarea_rect.bottom,
+				       workarea_rect.top);               // C 7532
+		}
+	    }
+
+	  w32_set_offset (f, (*f).left_pos, (*f).top_pos, 0);            // C 7535
+	}
+
+      w32_output_bits! (asked_for_visible, FRAME_OUTPUT_DATA! (f), 1);   // C 7538
+
+      /* According to a report in emacs-devel 2008-06-03, SW_SHOWNORMAL
+	 causes unexpected behavior when unminimizing frames that were
+	 previously maximized.  But only SW_SHOWNORMAL works properly for
+	 frames that were truly hidden (using make-frame-invisible), so
+	 we need it to avoid Bug#5482.  It seems that iconified is only
+	 set for minimized windows that are still visible, so use that to
+	 determine the appropriate flag to pass ShowWindow.  */
+      my_show_window (f, FRAME_W32_WINDOW! (f),                        // C 7547
+		      if FRAME_ICONIFIED_P (f)                           // C 7548
+			{ SW_RESTORE }                                   // C 7549
+		      else if FRAME_NO_FOCUS_ON_MAP (f) != 0             // C 7550
+			{ SW_SHOWNOACTIVATE }                            // C 7551
+		      else { SW_SHOWNORMAL });                           // C 7552
+    }
+
+  if !FLOATP (Vx_wait_for_event_timeout)                              // C 7555
+    {
+      unblock_input ();                                                // C 7557
+      return;                                                          // C 7558
+    }
+
+  /* Synchronize to ensure Emacs knows the frame is visible
+     before we do anything else.  We do this loop with input not blocked
+     so that incoming events are handled.  */
+  {
+    let mut frame: Lisp_Object;                                        // C 7565
+    let timeout: c_double = XFLOAT_DATA (Vx_wait_for_event_timeout);   // C 7566
+    let start_time: c_double = XFLOAT_DATA (Ffloat_time (Qnil ()));    // C 7567
+
+    /* This must come after we set COUNT.  */
+    unblock_input ();                                                  // C 7570
+
+    XSETFRAME! (frame, f);                                             // C 7572
+
+    /* Wait until the frame is visible.  Process X events until a
+       MapNotify event has been seen, or until we think we won't get a
+       MapNotify at all..  */
+    while timeout > (XFLOAT_DATA (Ffloat_time (Qnil ())) - start_time)   // C 7577
+	  && !FRAME_VISIBLE_P (f)                                      // C 7578
+      {
+	/* Force processing of queued events.  */
+	/* TODO: x_sync equivalent?  */
+
+	/* Machines that do polling rather than SIGIO have been observed
+	   to go into a busy-wait here.  So we'll fake an alarm signal
+	   to let the handler know that there's something to be read.
+	   We used to raise a real alarm, but it seems that the handler
+	   isn't always enabled here.  This is probably a bug.  */
+	if input_polling_used ()                                       // C 7588
+	  {
+	    /* It could be confusing if a real alarm arrives while processing
+	       the fake one.  Turn it off and let the handler reset it.  */
+	    let old_poll_suppress_count: c_int = poll_suppress_count;   // C 7592
+	    poll_suppress_count = 1;                                   // C 7593
+	    poll_for_input_1 ();                                       // C 7594
+	    poll_suppress_count = old_poll_suppress_count;             // C 7595
+	  }
+      }
+  }
+}
+
+/* C 7601's "Change from mapped state to withdrawn state." line and C 7603's note above
+   `w32_make_frame_invisible`, carried as C's own text at their positions.  */
+/* C: /* Change from mapped state to withdrawn state. */  */
+
+/* C: /* Make the frame visible (mapped and not iconified).  */  */
+
+/// C 7605-7625: `void w32_make_frame_invisible (struct frame *f)` - the highlight clear, C 7612's
+/// `block_input`, C 7614's `my_show_window` with `SW_HIDE` and C 7621-7622's two frame-flag
+/// stores.
+/// C: void
+/// C: w32_make_frame_invisible (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_make_frame_invisible (f: *mut frame)
+{
+  /* Don't keep the highlight on an invisible frame.  */
+  if (*FRAME_DISPLAY_INFO! (f)).highlight_frame == f                  // C 7609
+    { (*FRAME_DISPLAY_INFO! (f)).highlight_frame = core::ptr::null_mut (); }   // C 7610
+
+  block_input ();                                                      // C 7612
+
+  my_show_window (f, FRAME_W32_WINDOW! (f), SW_HIDE);                  // C 7614
+
+  /* We can't distinguish this from iconification
+     just by the event that we get from the server.
+     So we can't win using the usual strategy of letting
+     FRAME_SAMPLE_VISIBILITY set this.  So do it by hand,
+     and synchronize with the server to make sure we agree.  */
+  SET_FRAME_VISIBLE! (f, 0);                                           // C 7621
+  SET_FRAME_ICONIFIED (f, 0);                                          // C 7622
+
+  unblock_input ();                                                    // C 7624
+}
+
+/// C 7627-7634: `static void w32_make_frame_visible_invisible (struct frame *f, bool visible)` -
+/// the two-way dispatch.
+/// C: static void
+/// C: w32_make_frame_visible_invisible (struct frame *f, bool visible)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_make_frame_visible_invisible (f: *mut frame, visible: bool)
+{
+  if visible                                                           // C 7630
+    { w32_make_frame_visible (f); }                                    // C 7631
+  else
+    { w32_make_frame_invisible (f); }                                  // C 7633
+}
+
+/* C 7636's "Change window state from mapped to iconified." line and C 7662-7664's "Free resources
+   of frame F." note, carried as C's own text at their positions.  */
+/* C: /* Change window state from mapped to iconified. */  */
+
+/* C: /* Free resources of frame F.  */  */
+
+/// C 7638-7660: `void w32_iconify_frame (struct frame *f)` - the highlight clear, C 7645's
+/// already-iconified early return, C 7648's `block_input`, C 7650's `gui_set_bitmap_icon`, C
+/// 7653-7654's `SendMessageTimeout` with `WM_SYSCOMMAND`/`SC_MINIMIZE` and C 7656-7657's two
+/// frame-flag stores.
+/// C: void
+/// C: w32_iconify_frame (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_iconify_frame (f: *mut frame)
+{
+  /* Don't keep the highlight on an invisible frame.  */
+  if (*FRAME_DISPLAY_INFO! (f)).highlight_frame == f                  // C 7642
+    { (*FRAME_DISPLAY_INFO! (f)).highlight_frame = core::ptr::null_mut (); }   // C 7643
+
+  if FRAME_ICONIFIED_P (f)                                             // C 7645
+    { return; }                                                        // C 7646
+
+  block_input ();                                                      // C 7648
+
+  gui_set_bitmap_icon (f);                                             // C 7650
+
+  /* Simulate the user minimizing the frame.  */
+  SendMessageTimeout (FRAME_W32_WINDOW! (f), WM_SYSCOMMAND as UINT, SC_MINIMIZE as WPARAM, 0,
+		      0, 6000, core::ptr::null_mut ());                 // C 7653-7654
+
+  SET_FRAME_VISIBLE! (f, 0);                                           // C 7656
+  SET_FRAME_ICONIFIED (f, 1);                                          // C 7657
+
+  unblock_input ();                                                    // C 7659
+}
+
+/// C 7665-7699: `void w32_free_frame_resources (struct frame *f)` - the two locals, C 7671's
+/// `block_input`, C 7676-7684's five frees (`free_frame_faces`, `w32_release_paint_buffer`, the
+/// guarded `my_destroy_window`, `free_frame_menubar` and the `xfree` of the output record), C
+/// 7686-7687's `xfree`/clear and C 7689-7696's four display-info clears with the
+/// `reset_mouse_highlight`.
+/// C: void
+/// C: w32_free_frame_resources (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_free_frame_resources (f: *mut frame)
+{
+  let dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO! (f);        // C 7668
+  let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);                  // C 7669
+
+  block_input ();                                                      // C 7671
+
+  /* We must free faces before destroying windows because some
+     font-driver (e.g. xft) access a window while finishing a
+     face.  */
+  free_frame_faces (f);                                                // C 7676
+
+  /* Now release the back buffer if any exists.  */
+  w32_release_paint_buffer (f);                                        // C 7679
+
+  if FRAME_W32_WINDOW! (f).is_null () == false                         // C 7681
+    { my_destroy_window (f, FRAME_W32_WINDOW! (f)); }                  // C 7682
+
+  free_frame_menubar (f);                                              // C 7684
+
+  xfree ((*f).output_data.w32);                                        // C 7686
+  (*f).output_data.w32 = core::ptr::null_mut ();                        // C 7687
+
+  if f == (*dpyinfo).w32_focus_frame                                   // C 7689
+    { (*dpyinfo).w32_focus_frame = core::ptr::null_mut (); }            // C 7690
+  if f == (*dpyinfo).w32_focus_event_frame                             // C 7691
+    { (*dpyinfo).w32_focus_event_frame = core::ptr::null_mut (); }      // C 7692
+  if f == (*dpyinfo).highlight_frame                                   // C 7693
+    { (*dpyinfo).highlight_frame = core::ptr::null_mut (); }            // C 7694
+  if f == (*hlinfo).mouse_face_mouse_frame as *mut frame      // C 7695
+    { reset_mouse_highlight (hlinfo); }                                // C 7696
+
+  unblock_input ();                                                    // C 7698
+}
+
+/* C 7702's note above `w32_destroy_window`, carried as C's own text.  */
+/* C: /* Destroy the window of frame F.  */  */
+
+/// C 7703-7710: `static void w32_destroy_window (struct frame *f)` - the display-info local, C
+/// 7708's `w32_free_frame_resources` and C 7709's reference-count decrement.
+/// C: static void
+/// C: w32_destroy_window (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_destroy_window (f: *mut frame)
+{
+  let dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO! (f);        // C 7706
+
+  w32_free_frame_resources (f);                                        // C 7708
+  (*dpyinfo).reference_count -= 1;                                     // C 7709
+}
+
+/* C 7712-7713's "Setting window manager hints." banner and C 7715-7719's note above
+   `w32_wm_set_size_hint`, carried as C's own text at their positions.  */
+/* C: /* Setting window manager hints.  */  */
+
+   /* Set the normal size hints for the window manager, for frame F.
+      FLAGS is the flags word to use--or 0 meaning preserve the flags
+      that the window now has.
+      If USER_POSITION, set the USPosition
+      flag (this is useful when FLAGS is 0).  */
+
+/// C 7720-7734: `void w32_wm_set_size_hint (struct frame *f, long flags, bool user_position)` -
+/// non-`static`, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`; C 7723's window local, C
+/// 7725's `enter_crit`, C 7727-7731's five `SetWindowLong` stores and C 7733's `leave_crit`.  **This
+/// is the definition of the call slice 19 recorded as owed** (C 7049/7190/7297).  C's two unread
+/// parameters keep C's names.
+/// C: void
+/// C: w32_wm_set_size_hint (struct frame *f, long flags, bool user_position)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_wm_set_size_hint (f: *mut frame, flags: c_long, user_position: bool)
+{
+  let window: Window = FRAME_W32_WINDOW! (f);                          // C 7723
+
+  enter_crit ();                                                       // C 7725
+
+  SetWindowLong (window, WND_FONTWIDTH_INDEX, FRAME_COLUMN_WIDTH! (f) as LONG);   // C 7727
+  SetWindowLong (window, WND_LINEHEIGHT_INDEX, FRAME_LINE_HEIGHT! (f) as LONG);   // C 7728
+  SetWindowLong (window, WND_BORDER_INDEX, FRAME_INTERNAL_BORDER_WIDTH (f) as LONG);   // C 7729
+  SetWindowLong (window, WND_VSCROLLBAR_INDEX, FRAME_SCROLL_BAR_AREA_WIDTH (f) as LONG);   // C 7730
+  SetWindowLong (window, WND_HSCROLLBAR_INDEX, FRAME_SCROLL_BAR_AREA_HEIGHT (f) as LONG);   // C 7731
+
+  leave_crit ();                                                       // C 7733
+}
+
+/* C 7736-7739 is the "Fonts" banner and C 7741's `#ifdef GLYPH_DEBUG`, which open the next slice.  */
