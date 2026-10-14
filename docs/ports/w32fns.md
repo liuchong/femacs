@@ -216,7 +216,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 7390-7661 | C 7390-7392's Tool-tips banner, C 7394-7395's `compute_tip_xy` declaration (dropped - the definition is C 7663), the six tip objects (C 7398-7415), `unwind_create_tip_frame` (C 7418-7429) and `w32_create_tip_frame` (C 7432-7661) - slice 12 | file gate; C 7394-7395's forward declaration has no counterpart (PORTING.md 0.1-12) |
 | 7663-7807 | C 7663-7750's `compute_tip_xy` (the definition of the declaration slice 12 dropped) and C 7752-7806's `w32_hide_tip` - slice 13 | file gate |
 | 7809-8114 | C 7809-8106's `x-show-tip` (the file's second-largest `DEFUN`: the reuse/reposition arm, the hidden-frame comparison loop, the parameter defaults, `w32_create_tip_frame`, the pseudo-window setup, `try_window` and the two `SetWindowPos` calls) and C 8109-8114's `x-hide-tip` - slice 14 | file gate; C 7884/8101's `goto start_timer` is the `'start_timer` labelled block |
-| 8116-12488 | **the remainder of the file** (C 8116's File-selection-dialog banner onward: C 8129 `file_dialog_callback`, C 8208's neighbours, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 8116-8262 | C 8116-8118's File-selection-dialog banner, C 8120-8122's three `FILE_NAME_*` definitions, `file_dialog_callback` (C 8124-8221, both `NTGUI_UNICODE` arms) and `w32_dialog_in_progress` (C 8223-8262) - slice 15 | file gate; the `W`/`A` arms stay text (`cygwin` names C's `NTGUI_UNICODE`) |
+| 8264-12488 | **the remainder of the file** (C 8264's `x-file-dialog` `DEFUN` onward: C 8558 `pfnSHFileOperationW`, C 8562 `system-move-file-to-trash`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1927,6 +1928,75 @@ reference's dispextern.h 3700 - and reads 0 drift after the fix.  The ten gates 
   device, cited above).
 - **Not claimed.**  No run evidence: no tooltip is shown on this machine (no display,
   `SetWindowPos` is never called), the arm reading is compile-level and the name sweep textual.
+
+## Slice 15 (C 8116-8262)
+
+**Scope and the stop.**  C 8116-8118's File-selection-dialog banner, C 8120-8122's three
+`#define FILE_NAME_*`, `file_dialog_callback` (C 8124-8221) and `w32_dialog_in_progress`
+(C 8223-8262).  The stop is C 8264's `x-file-dialog` `DEFUN` (C 8263 blank) - the next item and
+the file's third-largest.
+
+**What the item carries.**  The callback's two `OFNOTIFY` views of C's `LPARAM` (C 8134-8135),
+C 8138-8142's `#ifdef NTGUI_UNICODE` pair (the `cygwin` feature names C's condition: `conf_post.h`
+169-170 defines it only for `CYGWIN && HAVE_NTGUI`, so the `#else` arm is live and both stand),
+the two `dropdown_changed` expressions (C's `int` from a `||`, the port's `as c_int`), the
+Windows-7 fallback walk (C 8164-8173's `GetDlgItem`/`GetWindow`/`GW_CHILD` chain), the two
+`SendMessageW`/`SendMessageA` pairs with C's two **wide** literals (`L"Current Directory"`,
+`L""` - carried as `[u16]` arrays, the `DARK_MODE_APP_NAME` device at the top of this file) and
+the narrow twins (`c"…"`), `EnableWindow`/`SetFocus`, and `w32_dialog_in_progress`'s critical
+section (`enter_crit`/`leave_crit`, C 8248's `bool` global) and `FOR_EACH_FRAME` z-group walk
+(`FRAME_Z_GROUP_ABOVE`/`_SUSPENDED` as the mirror's `bool` readers, `w32_set_z_group` as this
+unit's own).
+
+**New SDK surface.**  The three `<dlgs.h>` ids C's `#define`s rename (`edt1` 0x0480, `cmb13`
+0x047C, `lst1` 0x0460 - kept under C's `FILE_NAME_*` names); `WM_NOTIFY`, `GW_CHILD`; the five
+`<commdlg.h>` ids (`CDN_FIRST` = 0xFFFFFDA7, `CDN_INITDONE`, `CDN_TYPECHANGE`, `CDM_FIRST`,
+`CDM_SETCONTROLTEXT`); the `NMHDR`, `OPENFILENAMEA`, `OPENFILENAMEW`, `OFNOTIFYA`, `OFNOTIFYW`
+records and the `LPOFNHOOKPROC` pointer typedef (the full records - C 8264's `x-file-dialog` needs
+their members next, and `lpOFN->nFilterIndex` is the one member this slice reads); and six
+functions (`GetParent`, `GetDlgItem`, `GetWindow`, `SendMessageW`, `SendMessageA`,
+`EnableWindow`).
+
+### Evidence (slice 15, the final revision: 12,390 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run (its first reading
+caught the banner's nested comment and the `lpOFN` deref below).
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors**, one more than slice
+14's 41: this slice's `w32_dialog_in_progress` definition collides with the mirror's declaration
+(`include/w32term.rs`, the same `E0428` class as `tip_window` - an integrator item, not a defect of
+the text).  Outside the `E0609`/`E0428` classes only the pre-existing `E0530` remains, so this
+slice adds no member gap and no type error after two unit-local fixes: C's banner text closed the
+port's own comment at its first `*/` (the slice-12 lesson, applied here as a wrapper comment), and
+`(*notify_w).lpOFN.nFilterIndex` needed C's own deref-of-a-pointer-member spelling
+(`(*(*notify_w).lpOFN).nFilterIndex`).  Two probe runs.
+
+**③ `extract-abi.py --check`.**  157 rows → **155**: `missing function file_dialog_callback` and
+`missing function w32_dialog_in_progress` retire, no row is added, and the file still has no
+line-count drift row (12,390 lines against 12,488).
+
+**④ The range table and the dead-file gate.**  The `8116-12488` remainder row splits into
+`8116-8262` (this slice; its `W`/`A` arms marked) and `8264-12488`;
+`check-dead-file-coverage.py` reads **164 range row(s) cover src/w32fns.c (12488 lines; 111 blank
+line(s) between blocks need no row)**, `0 failure(s)`; the ten gates read 0 failures.
+
+**⑤ The name sweep.**  `tools/check-unit-names.py` reads 50 capitalized identifiers with five
+"missing" - `Clone`, `Copy` (a `#[derive]`'s arguments), `Flags`, `FlagsEx` (a struct definition's
+field names) and `Msg` (C's own parameter name in a declaration).  All five are the tool's known
+false-positive classes; its docstring now names them (the two earlier classes were nested block
+comments and macro-generated names).
+
+### Deviations (slice 15)
+
+- **The `OFNOTIFY`/`OPENFILENAME` records are declared in full**, not as the four members this
+  slice reads: C 8264's `x-file-dialog` reads `lpstrFile`, `nMaxFile`, `Flags` and the rest, so the
+  records are the file's own (the `--check` reading has no row for them).
+- **C's two wide literals are `[u16]` arrays** (`CURRENT_DIRECTORY_L`, `EMPTY_L`), because Rust has
+  no `L"…"` syntax; C's narrow twins stay `c"…"`.
+- **`w32_dialog_in_progress` collides with the mirror's declaration** (`E0428`, above): the port
+  keeps C's non-static definition.
+- **Not claimed.**  No run evidence: no dialog is opened on this machine and the callback is never
+  entered; the arm reading is compile-level and the name sweep textual.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

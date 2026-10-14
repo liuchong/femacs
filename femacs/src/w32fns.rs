@@ -12062,3 +12062,333 @@ DEFUN! ("x-hide-tip", Fx_hide_tip, Sx_hide_tip, 0, 0, 0,
 	{
   return w32_hide_tip (! tooltip_reuse_hidden_frame);
 });
+
+/* C 8116-8118: C's File-selection-dialog banner, kept as C's own text inside one wrapper
+   comment (the C 7390-7392 device: C's banner closes a comment on its own last line).
+
+/***********************************************************************
+			File selection dialog
+ ***********************************************************************/
+ */
+
+/// C 8120-8122: the three `<dlgs.h>` control ids C's `#define`s name -
+/// `#define FILE_NAME_TEXT_FIELD edt1` / `#define FILE_NAME_COMBO_BOX cmb13` /
+/// `#define FILE_NAME_LIST lst1`.  The port carries C's names as the constants and spells the
+/// header's own ids (`edt1` 0x0480, `cmb13` 0x047C, `lst1` 0x0460) at the definition site.
+#[cfg (feature = "have_ntgui")]
+pub const FILE_NAME_TEXT_FIELD: c_int = 0x0480;		/* `<dlgs.h>`'s `edt1` */
+#[cfg (feature = "have_ntgui")]
+pub const FILE_NAME_COMBO_BOX: c_int = 0x047C;		/* `<dlgs.h>`'s `cmb13` */
+#[cfg (feature = "have_ntgui")]
+pub const FILE_NAME_LIST: c_int = 0x0460;		/* `<dlgs.h>`'s `lst1` */
+
+/// C: #define WM_NOTIFY 0x004E / #define GW_CHILD 5 - the two `<winuser.h>` ids C 8132/8169 use.
+#[cfg (feature = "have_ntgui")]
+pub const WM_NOTIFY: UINT = 0x004E;
+#[cfg (feature = "have_ntgui")]
+pub const GW_CHILD: UINT = 5;
+
+/// C: #define CDN_FIRST (0U-601U) / #define CDN_INITDONE (CDN_FIRST - 0x0000) / #define
+/// C: CDN_TYPECHANGE (CDN_FIRST - 0x0006) / #define CDM_FIRST (WM_USER + 100) / #define
+/// C: CDM_SETCONTROLTEXT (CDM_FIRST + 0x0004) - the five `<commdlg.h>` ids C 8147-8207 passes
+/// around (the `-601`/`-607` forms are the unsigned 0xFFFFFDA7/0xFFFFFDA1 the header writes).
+#[cfg (feature = "have_ntgui")]
+pub const CDN_FIRST: UINT = 0xFFFFFDA7;
+#[cfg (feature = "have_ntgui")]
+pub const CDN_INITDONE: UINT = CDN_FIRST;
+#[cfg (feature = "have_ntgui")]
+pub const CDN_TYPECHANGE: UINT = CDN_FIRST - 0x0006;
+#[cfg (feature = "have_ntgui")]
+pub const CDM_FIRST: UINT = 0x0464;
+#[cfg (feature = "have_ntgui")]
+pub const CDM_SETCONTROLTEXT: UINT = CDM_FIRST + 0x0004;
+
+/// C: typedef struct tagNMHDR { HWND hwndFrom; UINT_PTR idFrom; UINT code; } NMHDR - the
+/// notification header the two `OFNOTIFY` records below start with (`<commdlg.h>`/`<winuser.h>`;
+/// only its `code` member is read here).
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct NMHDR
+{
+  pub hwndFrom: HWND,
+  pub idFrom: UINT_PTR,
+  pub code: UINT,
+}
+
+/// C: typedef struct _OFNOTIFYA { NMHDR hdr; LPOPENFILENAMEA lpOFN; LPSTR pszFile; } OFNOTIFYA;
+/// C: typedef struct _OFNOTIFYW { NMHDR hdr; LPOPENFILENAMEW lpOFN; LPWSTR pszFile; } OFNOTIFYW;
+/// - the two records C 8134-8135 casts C's `LPARAM` to.  `LPOFNHOOKPROC` is the function-pointer
+/// typedef both `OPENFILENAME` records carry, spelled as the file's other `WINAPI` pointers are
+/// (an `Option<unsafe extern "system" fn …>`).
+#[cfg (feature = "have_ntgui")]
+pub type LPOFNHOOKPROC
+  = Option<unsafe extern "system" fn (hwnd: HWND, msg: UINT, wParam: WPARAM,
+				      lParam: LPARAM) -> UINT_PTR>;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct OPENFILENAMEA
+{
+  pub lStructSize: DWORD,
+  pub hwndOwner: HWND,
+  pub hInstance: HINSTANCE,
+  pub lpstrFilter: *const c_char,
+  pub lpstrCustomFilter: *mut c_char,
+  pub nMaxCustFilter: DWORD,
+  pub nFilterIndex: DWORD,
+  pub lpstrFile: *mut c_char,
+  pub nMaxFile: DWORD,
+  pub lpstrFileTitle: *mut c_char,
+  pub nMaxFileTitle: DWORD,
+  pub lpstrInitialDir: *const c_char,
+  pub lpstrTitle: *const c_char,
+  pub Flags: DWORD,
+  pub nFileOffset: WORD,
+  pub nFileExtension: WORD,
+  pub lpstrDefExt: *const c_char,
+  pub lCustData: LPARAM,
+  pub lpfnHook: LPOFNHOOKPROC,
+  pub lpTemplateName: *const c_char,
+  pub pvReserved: *mut c_void,
+  pub dwReserved: DWORD,
+  pub FlagsEx: DWORD,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct OPENFILENAMEW
+{
+  pub lStructSize: DWORD,
+  pub hwndOwner: HWND,
+  pub hInstance: HINSTANCE,
+  pub lpstrFilter: *const c_ushort,
+  pub lpstrCustomFilter: *mut c_ushort,
+  pub nMaxCustFilter: DWORD,
+  pub nFilterIndex: DWORD,
+  pub lpstrFile: *mut c_ushort,
+  pub nMaxFile: DWORD,
+  pub lpstrFileTitle: *mut c_ushort,
+  pub nMaxFileTitle: DWORD,
+  pub lpstrInitialDir: *const c_ushort,
+  pub lpstrTitle: *const c_ushort,
+  pub Flags: DWORD,
+  pub nFileOffset: WORD,
+  pub nFileExtension: WORD,
+  pub lpstrDefExt: *const c_ushort,
+  pub lCustData: LPARAM,
+  pub lpfnHook: LPOFNHOOKPROC,
+  pub lpTemplateName: *const c_ushort,
+  pub pvReserved: *mut c_void,
+  pub dwReserved: DWORD,
+  pub FlagsEx: DWORD,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct OFNOTIFYA
+{
+  pub hdr: NMHDR,
+  pub lpOFN: *mut OPENFILENAMEA,
+  pub pszFile: *mut c_char,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct OFNOTIFYW
+{
+  pub hdr: NMHDR,
+  pub lpOFN: *mut OPENFILENAMEW,
+  pub pszFile: *mut c_ushort,
+}
+
+/// C 8132-8216's readers (`<winuser.h>`, the `AdjustWindowRect` block's sibling): `GetParent`,
+/// `GetDlgItem`, `GetWindow`, the two `SendMessage` arms C's `W`/`A` pair names, `EnableWindow`
+/// and `SetFocus` (the last is already declared above).
+/// C: HWND WINAPI GetParent (HWND hWnd); HWND WINAPI GetDlgItem (HWND hDlg, int nIDDlgItem);
+/// C: HWND WINAPI GetWindow (HWND hWnd, UINT uCmd); LRESULT WINAPI SendMessageW (HWND hWnd, UINT
+/// C: Msg, WPARAM wParam, LPARAM lParam); LRESULT WINAPI SendMessageA (…); BOOL WINAPI
+/// C: EnableWindow (HWND hWnd, BOOL bEnable);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetParent (hWnd: HWND) -> HWND;
+  pub fn GetDlgItem (hDlg: HWND, nIDDlgItem: c_int) -> HWND;
+  pub fn GetWindow (hWnd: HWND, uCmd: UINT) -> HWND;
+  pub fn SendMessageW (hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
+  pub fn SendMessageA (hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
+  pub fn EnableWindow (hWnd: HWND, bEnable: BOOL) -> BOOL;
+}
+
+/// C 8190/8193 and C 8211/8214 spell two **wide** string literals inline (`L"Current Directory"`
+/// and `L""`), which Rust has no syntax for: the port carries the same UTF-16 code units in the
+/// two arrays below (host-endian, as C's `L"…"` is; the trailing `0x0000` is C's terminator) and
+/// passes their address - the `DARK_MODE_APP_NAME` reading at the top of this file.
+#[cfg (feature = "have_ntgui")]
+pub const CURRENT_DIRECTORY_L: [u16; 18] =
+  [0x0043, 0x0075, 0x0072, 0x0072, 0x0065, 0x006E, 0x0074, 0x0020, 0x0044, 0x0069, 0x0072,
+   0x0065, 0x0063, 0x0074, 0x006F, 0x0072, 0x0079, 0x0000];
+#[cfg (feature = "have_ntgui")]
+pub const EMPTY_L: [u16; 1] = [0x0000];
+
+/* C 8124-8128's comment.  */
+/// C 8129-8221: `file_dialog_callback` - C's `static UINT_PTR CALLBACK` (the `extern "system"`
+/// convention C's `CALLBACK` names, the `src/w32font.rs` 1958-1966 device).  C 8138-8142's
+/// `#ifdef NTGUI_UNICODE` carries the `cygwin` feature (the `include/w32term.rs` NTGUI_UNICODE
+/// note: `conf_post.h` 169-170 defines it only for `CYGWIN && HAVE_NTGUI`, so the `#else` arm is
+/// the live one and both stand); C 8146-8152's `dropdown_changed` is C's `int` assigned from a
+/// `||`, i.e. the port's `as c_int`.
+/// C: static UINT_PTR CALLBACK
+/// C: file_dialog_callback (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn file_dialog_callback (hwnd: HWND, msg: UINT, wParam: WPARAM,
+						lParam: LPARAM) -> UINT_PTR
+{
+  if msg == WM_NOTIFY
+    {
+      let notify_w: *mut OFNOTIFYW = lParam as *mut OFNOTIFYW;
+      let notify_a: *mut OFNOTIFYA = lParam as *mut OFNOTIFYA;
+      let mut dropdown_changed: c_int;
+      let mut dir_index: c_int;
+      #[cfg (feature = "cygwin")]
+      const use_unicode: c_int = 1;
+      #[cfg (not (feature = "cygwin"))]
+      let use_unicode: c_int = w32_unicode_filenames as c_int;
+
+      /* Detect when the Filter dropdown is changed.  */
+      if use_unicode != 0
+	{
+	  dropdown_changed = ((*notify_w).hdr.code == CDN_TYPECHANGE
+			      || (*notify_w).hdr.code == CDN_INITDONE) as c_int;
+	}
+      else
+	{
+	  dropdown_changed = ((*notify_a).hdr.code == CDN_TYPECHANGE
+			      || (*notify_a).hdr.code == CDN_INITDONE) as c_int;
+	}
+      if dropdown_changed != 0
+	{
+	  let dialog: HWND = GetParent (hwnd);
+	  let mut edit_control: HWND = GetDlgItem (dialog, FILE_NAME_TEXT_FIELD);
+	  let list: HWND = GetDlgItem (dialog, FILE_NAME_LIST);
+	  let mut hdr_code: c_int;
+
+	  /* At least on Windows 7, the above attempt to get the window handle
+	     to the File Name Text Field fails.	 The following code does the
+	     job though.  Note that this code is based on my examination of the
+	     window hierarchy using Microsoft Spy++.  bk */
+	  if edit_control.is_null ()
+	    {
+	      let mut tmp: HWND = GetDlgItem (dialog, FILE_NAME_COMBO_BOX);
+	      if ! tmp.is_null ()
+		{
+		  tmp = GetWindow (tmp, GW_CHILD);
+		  if ! tmp.is_null ()
+		    { edit_control = GetWindow (tmp, GW_CHILD); }
+		}
+	    }
+
+	  /* Directories is in index 2.	 */
+	  if use_unicode != 0
+	    {
+	      dir_index = (*(*notify_w).lpOFN).nFilterIndex as c_int;
+	      hdr_code = (*notify_w).hdr.code as c_int;
+	    }
+	  else
+	    {
+	      dir_index = (*(*notify_a).lpOFN).nFilterIndex as c_int;
+	      hdr_code = (*notify_a).hdr.code as c_int;
+	    }
+	  if dir_index == 2
+	    {
+	      if use_unicode != 0
+		{
+		  SendMessageW (dialog, CDM_SETCONTROLTEXT, FILE_NAME_TEXT_FIELD as WPARAM,
+				(CURRENT_DIRECTORY_L.as_ptr ()) as LPARAM);
+		}
+	      else
+		{
+		  SendMessageA (dialog, CDM_SETCONTROLTEXT, FILE_NAME_TEXT_FIELD as WPARAM,
+				(c"Current Directory".as_ptr ()) as LPARAM);
+		}
+	      EnableWindow (edit_control, FALSE);
+	      /* Note that at least on Windows 7, the above call to EnableWindow
+		 disables the window that would ordinarily have focus.	If we
+		 do not set focus to some other window here, focus will land in
+		 no man's land and the user will be unable to tab through the
+		 dialog box (pressing tab will only result in a beep).
+		 Avoid that problem by setting focus to the list here.	*/
+	      if hdr_code == CDN_INITDONE as c_int
+		{ SetFocus (list); }
+	    }
+	  else
+	    {
+	      /* Don't override default filename on init done.  */
+	      if hdr_code == CDN_TYPECHANGE as c_int
+		{
+		  if use_unicode != 0
+		    {
+		      SendMessageW (dialog, CDM_SETCONTROLTEXT,
+				    FILE_NAME_TEXT_FIELD as WPARAM,
+				    (EMPTY_L.as_ptr ()) as LPARAM);
+		    }
+		  else
+		    {
+		      SendMessageA (dialog, CDM_SETCONTROLTEXT,
+				    FILE_NAME_TEXT_FIELD as WPARAM,
+				    (c"".as_ptr ()) as LPARAM);
+		    }
+		}
+	      EnableWindow (edit_control, TRUE);
+	    }
+	}
+    }
+  return 0;
+}
+
+/**
+ * w32_dialog_in_progress:
+ *
+ * This function is called by Fx_file_dialog and Fx_select_font and
+ * serves to temporarily remove any Emacs frame currently in the
+ * 'above' z-group from that group to assure that such a frame does
+ * not hide the dialog window.  Frames that are temporarily removed
+ * from the 'above' group have their z_group bit-field set to
+ * z_group_above_suspended.  Any such frame is moved back to the
+ * 'above' group as soon as the dialog finishes and has its z_group
+ * bit-field reset to z_group_above.
+ *
+ * This function does not affect the z-order or the z-group state of
+ * the dialog window itself.
+ */
+/// C 8238-8262: `w32_dialog_in_progress` - C's non-`static` `void`, so a `pub` definition with
+/// `#[unsafe(no_mangle)]` (PORTING.md 0.2; `src/w32proc.rs`/`src/w32font.rs` call it);
+/// C 8245's `if (!w32_disable_double_buffering)` is the mirror's `bool` global, and C 8253's
+/// `FOR_EACH_FRAME` is the three-argument macro.
+/// C: void
+/// C: w32_dialog_in_progress (Lisp_Object in_progress)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_dialog_in_progress (in_progress: Lisp_Object)
+{
+  let mut frames: Lisp_Object;
+  let mut frame: Lisp_Object;
+
+  /* Indicate to w32_wnd_proc that the selection dialog is about to be
+     open (or was closed, if IN_PROGRESS is nil).  */
+  if ! w32_disable_double_buffering
+    {
+      enter_crit ();
+      w32_selection_dialog_open = ! NILP (in_progress);
+      leave_crit ();
+    }
+
+  /* Don't let frames in `above' z-group obscure dialog windows.  */
+  FOR_EACH_FRAME! (frames, frame, {
+      let f: *mut frame = XFRAME (frame);
+
+      if ! NILP (in_progress) && FRAME_Z_GROUP_ABOVE (f)
+	{ w32_set_z_group (f, Qabove_suspended (), Qabove ()); }
+      else if NILP (in_progress) && FRAME_Z_GROUP_ABOVE_SUSPENDED (f)
+	{ w32_set_z_group (f, Qabove (), Qabove_suspended ()); }
+  });
+}

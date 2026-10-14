@@ -27,7 +27,10 @@ hand rather than "fixed":
     7291-7388, 1278-1417) reports names that are inside that comment (measured: the comment depth
     at the C 1278-1417 site, `src/w32fns.rs` 2260, is 2);
   * **macro-generated names** (`DEFUN!`'s per-subr `Sname` statics) and C globals the port reaches
-    through a mirrored record (the `KVAR` arm's `Vdefault_minibuffer_frame`) are not items.
+    through a mirrored record (the `KVAR` arm's `Vdefault_minibuffer_frame`) are not items;
+  * **names that are not item references at all**: `#[derive (Clone, Copy)]`'s arguments, a struct
+    definition's *field* names (`pub Flags: DWORD,` - only `.field` accesses are stripped), and the
+    parameter names of a declaration (C's own `Msg: UINT` in a `SendMessageW` prototype).
 
 Exit status is 0 either way: this is a reading for a lane's Evidence, not one of the ten gates.
 """
