@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**2734 lines**, md5 `179510d9184a0aeea3fa8aab8140a1d7`), carrying
-> **C 1-1832** - P-86 ④'s first six slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**3193 lines**, md5 `0af5462ee1a75257454681d0b2ea383b`), carrying
+> **C 1-2115** - P-86 ④'s first seven slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -119,7 +119,8 @@ which `check-dead-file-coverage.py` requires):
 | 1301-1511 | the pool's four control functions: C 1301-1347's `stop_wait_objects`, C 1349-1437's `end_wait_and_return`, C 1439-1483's `shrink_wait_pool` and C 1485-1511's `free_wait_pool` | file gate (slice 4); `WAIT_ABANDONED` joins the use-site `<windows.h>` block (Deviations 40), C's `for` loops whose bodies `break` are `while` loops, and C's `int`/`DWORD` boundary conversions are spelled with `as` (Deviations 39) |
 | 1513-1693 | the file's two wait entry points: C 1513-1526's `wait_for_objects` overview comment with C 1527-1597's `wait_for_objects`, and C 1599-1616's `msg_wait_for_objects` overview comment with C 1617-1693's `msg_wait_for_objects` | file gate (slice 5); `MsgWaitForMultipleObjects` and `QS_ALLINPUT` join the use-site `<windows.h>`/`<winuser.h>` block (Deviations 42), C's two counted `for` loops become `while` loops whose `continue` path carries C's increment clause (Deviations 43), and C's 64/63 group arithmetic keeps its `int`/`DWORD` spelling (Deviations 39) |
 | 1695-1832 | the child-process block's opening: C 1695-1823's subprocess/network overview comment (the file's longest banner, carried as C's own text), C 1825-1826's `_P_NOWAIT`, C 1828-1830's child-process management list (`child_proc_count`, `child_procs[MAX_CHILDREN]`) and C 1832's `reader_thread` forward declaration (dropped, 0.1-12) | file gate (slice 6); the record and the array's bound are the mirror's (`include/w32.rs` 326-355 / 242), not re-spelled here (0.1-3) |
-| 1834-4903 | **the remainder of the file** - `new_child` (C 1834) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `new_child`, `delete_child`, `find_child_pid`, `release_listen_threads`, `reader_thread`, `create_child`, `register_child`, `reap_subprocess`, `waitpid`, `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type`, `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1834-2115 | the child-process block's five working functions: C 1834-1933's `new_child`, C 1935-1998's `delete_child` (with its C 1958-1969 `#if 0` region carried as C's text and its `fd_info` guard), C 2000-2011's `find_child_pid`, C 2013-2024's `release_listen_threads` and C 2026-2115's `reader_thread` | file gate (slice 7); the unit spells `w32.h` 74-113's `child_process` record and the three SDK records it embeds (the mirror defers it - Deviations 47), the two `goto Initialize` jumps become `break 'initialize` (Deviations 48, notes row), and `fd_info`'s deferred `*mut c_void` member is cast as the mirror's note spells it (Deviations 49) |
+| 2117-4903 | **the remainder of the file** - C 2117-2121's `process_dir` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `process_dir`/`set_process_dir`, `create_child` (C 2124), `register_child`, `reap_subprocess`, `waitpid` (C 2276), `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -673,3 +674,75 @@ so the stem's tolerance row is re-appended at 0.45 = measured + 0.01.
     is **not** one of the removed product-name declarations (those are the file's C 1-18 block that
     PORTING.md 0.1-19 drops).  `tools/check-declarations.py` reads this file and reports no
     forbidden declaration, which is the reading that keeps the two classes apart.
+
+## Slice 7 (2026-10-14, status 4.286): C 1834-2115
+
+**What this round is.**  The child-process block's five working functions - the ones the rest of the
+file (and `src/w32.c`) reaches every subprocess through: C 1834-1933's `new_child` (the descending
+scan for a free slot, the dead-process sweep with its three `DebPrint`s, and the
+`Initialize` tail that zeroes the slot and starts the reader thread), C 1935-1998's `delete_child`
+(the `fd_info` guard, the thread reap with its `#if 0` region, and the `child_proc_count` rewind),
+C 2000-2011's `find_child_pid`, C 2013-2024's `release_listen_threads` and C 2026-2115's
+`reader_thread` (the descriptor dispatch on `FILE_CONNECT`/`FILE_LISTEN`, the `char_avail`/
+`char_consumed` handshake, and the post-loop close of a `FILE_DONT_CLOSE` descriptor).  Port: 2,734 ->
+**3,193 lines** (+459, of which 74 are the unit's own `child_process` spelling of Deviations 47 and
+36 the use-site SDK block).  The next row's first item is C 2117's `process_dir` comment.
+
+**Evidence ① - the frozen reading.**  `cd femacs && cargo run -q -p xtask -- build-tu
+src/w32proc.c` -> exit 0, **336 bytes** (the same P-08 object as slices 1-6).
+
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the seventh identical reading, so these five bodies
+join the queue owed items 8/10/11/12/13 name (the `compile_error!` is the mirror graph's measured
+`HAVE_NTGUI` `struct frame` gap, unchanged).
+
+**Evidence ③ - the name sweep, and the two false-positive classes it read.**  `python3
+tools/check-unit-names.py femacs/src/w32proc.rs 2735 3193` -> `41 capitalized identifiers, missing:
+['Internal', 'InternalHigh', 'Offset', 'OffsetHigh', 'Pointer', 'Some']` - **both classes are the
+tool's own documented limitations, not missing names**: the five field names are the *field*
+declarations of the SDK records this round spells (`pub Internal: ULONG_PTR,` - the tool strips
+`.field` accesses but not field definitions), and `Some` is the prelude variant.  Both were
+confirmed by a control run on the peer unit that spelled the same records: `check-unit-names.py
+femacs/src/w32.rs 11860 11920` reads the same five field names.  Nothing this round uses is
+undefined.
+
+**Evidence ④ - the `--check` reading.**  **90 -> 85 `- missing` rows**, and the five that retire are
+exactly this round's definitions (`missing function new_child`, `delete_child`, `find_child_pid`,
+`release_listen_threads`, `reader_thread`).  One **new token row**: `- function new_child does not
+mention goto` - C's two `goto Initialize` jumps, now recorded in `docs/ports/macro-body-notes.tsv`
+(Deviations 48).  Drift falls again (44.2% -> **34.9%**), so the stem's tolerance row is re-appended
+at 0.36 = measured + 0.01.
+
+**Deviations (this slice's additions).**
+
+47. **The unit spells `w32.h` 74-113's `child_process` record and the three SDK records it embeds**
+    (P-88 ①'s `UNVERIFIED` class): `PROCESS_INFORMATION`, `OVERLAPPED` (with the two named inner
+    records of the `P-67` device) and `ULONG_PTR`.  The `include/w32.rs` mirror **defers** the
+    record (its note 34-42) and keeps the pointers to it at C's pointer depth as `*mut c_void`,
+    leaving its checklist box unchecked; this unit reads the record's *members*
+    (`procinfo.hProcess`/`hThread`/`dwProcessId`), which a deferred `*mut c_void` cannot express,
+    so it spells the record exactly as `src/w32.rs` 11847-11916 did when it became the record's
+    first reader - same gate (`windowsnt`; the mirror's own copy is the dead `feature = "windows"`
+    arm's text, so the two never coexist in one crate), C's member names/order/types kept and C's
+    per-member prose not carried.  **This is the third spelling of the class in the tree** (mirror's
+    deferred note, `src/w32.rs`, here), which is the integrator's mirror-round material: the record
+    belongs in the mirror once a Windows measurement exists.
+48. **C's two `goto Initialize` jumps become `break 'initialize` out of a labeled block**
+    (PORTING.md 2.2).  The target is *forward*, into the tail both loops fall through to, so neither
+    a `loop` nor a `match` can express it; the `doprnt` tail-flag is the same class.  The
+    `Initialize:` label itself (C 1890) is carried as a comment at its C position, and the
+    `goto`/`Initialize` tokens are the `macro-body-notes.tsv` row this round appends.
+49. **`fd_info[i].cp == cp` is spelled `fd_info[i as usize].cp == cp as *mut c_void`** - the
+    mirror's `filedesc.cp` is the deferred `*mut c_void` (its note 34-42 names this very member),
+    and `src/w32.rs` 12615/12794 cast the other way (`... as *mut child_process`) at its own use
+    sites.  The comparison is pointer-for-pointer as C's is; the two spellings are one cast apart.
+
+**Owed (this slice's additions).**
+
+14. **`GetExitCodeProcess` and `_close` are the two SDK names this round declares at the use site**
+    (Deviations 47's block): `<winbase.h>`'s exit-code reader and the CRT's underscored `close`
+    (`<io.h>`, a header with no file in the reference tree - the unit's own C 35 note records why
+    `lib/include/unistd.in.rs` is not pulled in).  Both are **UNVERIFIED** here, like every Windows
+    name in this file, and join the layout/behaviour assertions the mirror round owes.
