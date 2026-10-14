@@ -20288,3 +20288,13 @@
   ⑥ 十门全 `rc=0`、0 失败；区间表拆为 `6754-6906`（本片）+ `6908-8414`（余项）；台账追加 **`### Slice 18 (C 6754-6906)`**。
   ⑦ 预算与清理：`build-tu` 3 发（含一次把文本误追加到镜像后的纠正）、臂读数 2 发、`--check` 1 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w18`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.323 `src/w32term.c` 第 19 片（w32term lane，slice 19）：C 6908-7146 落地——位置三件套：`w32_calc_absolute_position`（C 6912-7021：placement 探测、多显示器 left/top 扫描、两个负坐标分支）、`w32_set_offset`（C 7029-7065：gravity 块、`w32_wm_set_size_hint`、两次 `my_set_window_pos`）与 **`w32fullscreen_hook`**（C 7067-7146：五条全屏臂及其 `ShowWindow`/`SetWindowLong`/`SetWindowPos`/`change_frame_size` 四连、`FULLSCREEN_WAIT` 对）；w32term.rs 9,740 → 10,070 行（+330，2026-10-15）**：
+  ① **`w32fullscreen_hook` 落地，解除 slice 16 记下的第一个欠账调用**（C 5774/6064 的调用点现在文件内可解析）；`w32_raise_frame`（C 6405 调用，定义在 C 7407-7470）仍留欠账。
+  ② 三个定义退掉三条 `missing function` 行（33 → **30**）。
+  ③ 用例处新增 SDK 面（P-88 ①，UNVERIFIED）：`GetWindowPlacement`/`SetWindowPlacement`/`ShowWindow`、`GWL_STYLE`(-16)、`HWND_TOP`、`WS_OVERLAPPEDWINDOW`(0x00cf0000)、`SW_SHOWNORMAL`/`SW_MAXIMIZE`、本片要用的四个 `SWP_*`（`SWP_FRAMECHANGED` 已在 slice 8），以及 dispnew.c 的 `do_pending_window_change`（定义在 `src/dispnew.rs` 7434）；`XNegative`/`YNegative`（`include/w32gui.rs` 146-147）与 `FRAME_UNDECORATED` 本就在图内。
+  ④ `include/w32term.rs` 的 `FRAME_PREV_FSMODE` 补写臂（C 7093，与 slice 18 的三个同族，记入镜像台账）：该镜像四个 `w32_output` 访问器现均两臂齐全。
+  ⑤ C 的两处 `{ 0 }` 初始化与 C 7074 的独立 `rect` 一律显式清零（PORTING.md 1.5）；C 7030 的两个 `register` 无 Rust 对应，参数名照旧（PORTING.md 0.1）。**`w32_wm_set_size_hint`（C 7049）是本文件第二个「定义在后续片」的调用**（定义在 C 7477），等那片落地即绑定。
+  ⑥ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片**（首稿两条 `E0308` 是 `FRAME_UNDECORATED` 的 `c_int` 进了 `!` 测试）。`extract-abi.py --check`：**43 → 42 行**（`missing function` 33 → **30**），行数行 **19.7%**（10,070 : 8,414）。
+  ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `6908-7146`（本片）+ `7148-8414`（余项）；台账追加 **`### Slice 19 (C 6908-7146)`**。
+  ⑧ 预算与清理：`build-tu` 2 发、臂读数 3 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w19`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

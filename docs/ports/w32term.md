@@ -196,7 +196,8 @@ The `arm` cell says what the port does with the block.
 | 5130-6458 | `w32_read_socket` (C 5130-6458): the socket reader's locals, the `while get_next_msg` body with its twenty-five-arm `switch (msg.msg.message)` (C 5169 `WM_EMACS_PAINT` ... C 6344's `default:`), the `#if HAVE_W32NOTIFY` arm, the `WM_TOUCHMOVE`/`WM_TOUCH` pair with its `goto touch_located` and touch-point loop, the autoraise block and the `FOR_EACH_FRAME` visibility sweep | file gate (`have_ntgui`), with the one `have_w32notify` arm; slice 16 below |
 | 6460-6752 | the Text Cursor group: `w32_clip_to_row` (C 6473-6489), `w32_draw_hollow_cursor` (C 6494-6533), `w32_draw_bar_cursor` (C 6543-6626), `w32_define_frame_cursor` (C 6631-6635), `w32_clear_frame_area` (C 6640-6648) and `w32_draw_window_cursor` (C 6650-6752) | file gate (`have_ntgui`); slice 17 below |
 | 6754-6906 | `w32_bitmap_icon` (C 6758-6816) and `w32_new_font` (C 6846-6891), with C 6818-6841's "Handling X errors" and C 6894-6906's "TODO: W32 Input Methods" banner-plus-list blocks carried as C's own text | file gate (`have_ntgui`); slice 18 below |
-| 6908-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6908-7146 | `w32_calc_absolute_position` (C 6912-7021), `w32_set_offset` (C 7029-7065) and `w32fullscreen_hook` (C 7067-7146) | file gate (`have_ntgui`); slice 19 below |
+| 7148-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1383,4 +1384,40 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **44 -> 43 rows** (`missing function` 35 -> **33**), the
      line-count row at **15.8%** (`9,740` vs `8,414`; it grows from here, as slice 17's entry
      records).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 19 (C 6908-7146)
+
+- **What it is.**  The position trio: `w32_calc_absolute_position` (C 6912-7021, the placement
+  probe, the multi-monitor left/top scan and the two negative-coordinate branches),
+  `w32_set_offset` (C 7029-7065, the gravity block, `w32_wm_set_size_hint` and the two
+  `my_set_window_pos` calls) and **`w32fullscreen_hook`** (C 7067-7146, the five fullscreen arms
+  with their `ShowWindow`/`SetWindowLong`/`SetWindowPos`/`change_frame_size` quartet and the
+  `FULLSCREEN_WAIT` pair).  Port: 9,740 -> **10,070 lines** (+330).  The table's last row splits at
+  C 7146; the next live definition is C 7152's `w32_set_window_size`.
+- **`w32fullscreen_hook` is the first of slice 16's two owed calls discharged**: C 5774/6064 called
+  it and this slice defines it, so the name now resolves inside the file (the `w32_raise_frame`
+  call at C 6405 keeps its owed note until C 7407-7470 lands).
+- **The three definitions retire three `missing function` rows** (33 -> 30).
+- **The SDK surface stands at the use site** (P-88 (1)), UNVERIFIED: `GetWindowPlacement`/
+  `SetWindowPlacement`/`ShowWindow`, `GWL_STYLE` (-16), `HWND_TOP`, `WS_OVERLAPPEDWINDOW`
+  (0x00cf0000), `SW_SHOWNORMAL`/`SW_MAXIMIZE`, the four `SWP_*` values this slice needs (the
+  `SWP_FRAMECHANGED` it also uses was already here from slice 8) and dispnew.c's
+  `do_pending_window_change` (defined at `src/dispnew.rs` 7434).  `XNegative`/`YNegative`
+  (`include/w32gui.rs` 146-147) and `FRAME_UNDECORATED` (`include/frame.rs`) were already in the
+  graph.
+- **`FRAME_PREV_FSMODE` gained its write arm** in `include/w32term.rs` (C 7093 - the fourth
+  accessor of that family, the slice-18 shape; recorded in `docs/ports/include-w32term.md`).
+- **`w32_wm_set_size_hint` (C 7049) is the second call of the "defined later in this file" class**
+  (defined at C 7477, still uncarried) - Rust resolves it once that slice lands, exactly as
+  `w32_raise_frame`/`w32fullscreen_hook` did before this slice.
+- **C's two `{ 0 }` initialisers are explicit zero fills** (C 6926-6927, PORTING.md 1.5), and the
+  free-standing `rect` of C 7074 is zeroed for the same reason.  C's `register` keywords (C 7030)
+  have no Rust counterpart; the parameter names are kept (PORTING.md 0.1).
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text** (the
+     first draft's two `E0308` rows were `FRAME_UNDECORATED`'s `c_int` in a `!` test).
+  3. `extract-abi.py --check` -> **43 -> 42 rows** (`missing function` 33 -> **30**), the
+     line-count row at **19.7%** (`10,070` vs `8,414`).
   4. The ten gates: all `rc=0`, 0 FAIL.

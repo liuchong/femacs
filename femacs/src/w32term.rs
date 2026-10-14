@@ -9738,3 +9738,333 @@ unsafe fn w32_new_font (f: *mut frame, font_object: Lisp_Object, mut fontset: c_
 
 /* C 6909-6912's note and `static void w32_calc_absolute_position (struct frame *f)` open the next
    slice.  */
+
+/* The SDK surface this slice's three functions read: `<winuser.h>`'s placement and window-state
+   entry points with their constants, plus dispnew.c's `do_pending_window_change` (defined at
+   `src/dispnew.rs` 7434).  Every name stands at the use site (P-88 (1)); the SDK records are
+   UNVERIFIED.  `XNegative`/`YNegative` and `FRAME_UNDECORATED` are already in this unit's include
+   graph (`include/w32gui.rs` 146-147, `include/frame.rs`), and `w32_wm_set_size_hint` (defined
+   later in this file, C 7477) is the second call of that class this lane carries.  */
+/// C: WINUSERAPI BOOL WINAPI GetWindowPlacement (HWND hWnd, WINDOWPLACEMENT *lpwndpl);
+/// C: WINUSERAPI BOOL WINAPI SetWindowPlacement (HWND hWnd, const WINDOWPLACEMENT *lpwndpl);
+/// C: WINUSERAPI BOOL WINAPI ShowWindow (HWND hWnd, int nCmdShow);
+/// C: #define GWL_STYLE (-16) / #define HWND_TOP ((HWND)0)
+/// C: #define WS_OVERLAPPEDWINDOW (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+/// C:   | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)   /* 0x00cf0000 */
+/// C: #define SW_SHOWNORMAL 1 / #define SW_MAXIMIZE 3
+/// C: #define SWP_NOSIZE 0x0001 / #define SWP_NOZORDER 0x0004 / #define SWP_NOACTIVATE 0x0010
+/// C: #define SWP_NOOWNERZORDER 0x0200
+/// C: extern void do_pending_window_change (bool);            [dispnew.c]
+#[cfg (feature = "have_ntgui")]
+pub const GWL_STYLE: c_int = -16;
+#[cfg (feature = "have_ntgui")]
+pub const HWND_TOP: HWND = 0 as HWND;
+#[cfg (feature = "have_ntgui")]
+pub const WS_OVERLAPPEDWINDOW: DWORD = 0x00cf0000;
+#[cfg (feature = "have_ntgui")]
+pub const SW_SHOWNORMAL: c_int = 1;
+#[cfg (feature = "have_ntgui")]
+pub const SW_MAXIMIZE: c_int = 3;
+#[cfg (feature = "have_ntgui")]
+pub const SWP_NOSIZE: UINT = 0x0001;
+#[cfg (feature = "have_ntgui")]
+pub const SWP_NOZORDER: UINT = 0x0004;
+#[cfg (feature = "have_ntgui")]
+pub const SWP_NOACTIVATE: UINT = 0x0010;
+#[cfg (feature = "have_ntgui")]
+pub const SWP_NOOWNERZORDER: UINT = 0x0200;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetWindowPlacement (hWnd: HWND, lpwndpl: *mut WINDOWPLACEMENT) -> BOOL;
+  pub fn SetWindowPlacement (hWnd: HWND, lpwndpl: *const WINDOWPLACEMENT) -> BOOL;
+  pub fn ShowWindow (hWnd: HWND, nCmdShow: c_int) -> BOOL;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn do_pending_window_change (safe: bool);
+}
+
+/* C 6909-6910's note above `w32_calc_absolute_position`, carried as C's own text.  */
+/* C: /* Calculate the absolute position in frame F
+   C:    from its current recorded position values and gravity.  */  */
+
+/// C 6912-7021: `static void w32_calc_absolute_position (struct frame *f)` - C 6915's `flags`, C
+/// 6920's two border widths, C 6926-6927's two zeroed records, C 6929-6945's placement probe with
+/// its default arm, C 6951-6978's negative-coordinate monitor scan (`Fw32_display_monitor_attributes_list`,
+/// the `CONSP` walk, `Fassoc`/`Fnth` and the two `min`s), C 6988-7016's two negative branches and C
+/// 7020's flag clear.
+/// C: static void
+/// C: w32_calc_absolute_position (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_calc_absolute_position (f: *mut frame)
+{
+  let flags: c_int = (*f).size_hint_flags;                             // C 6915
+
+  /* The sum of the widths of the frame's left and right borders, and
+     the sum of the heights of the frame's top and bottom borders (in
+     pixels) drawn by Windows.  */
+  let mut left_right_borders_width: c_uint;                            // C 6920
+  let mut top_bottom_borders_height: c_uint;
+
+  /* Try to get the actual values of these two variables.  We compute
+     the border width (height) by subtracting the width (height) of
+     the frame's client area from the width (height) of the frame's
+     entire window.  */
+  /* C's `{ 0 }` initialisers are explicit zero fills (PORTING.md 1.5).  */
+  let mut wp: WINDOWPLACEMENT = core::mem::zeroed ();                  // C 6926
+  let mut client_rect: RECT = core::mem::zeroed ();                    // C 6927
+
+  if GetWindowPlacement (FRAME_W32_WINDOW! (f), &raw mut wp) != 0       // C 6929
+      && GetClientRect (FRAME_W32_WINDOW! (f), &raw mut client_rect) != 0   // C 6930
+    {
+      left_right_borders_width =
+	(wp.rcNormalPosition.right - wp.rcNormalPosition.left) as c_uint     // C 6932-6933
+	- (client_rect.right - client_rect.left) as c_uint;            // C 6934
+
+      top_bottom_borders_height =
+	(wp.rcNormalPosition.bottom - wp.rcNormalPosition.top) as c_uint   // C 6936-6937
+	- (client_rect.bottom - client_rect.top) as c_uint;            // C 6938
+    }
+  else
+    {
+      /* Use sensible default values.  */
+      left_right_borders_width = 8;                                    // C 6943
+      top_bottom_borders_height = 32;                                  // C 6944
+    }
+
+  /* With multiple monitors, we can legitimately get negative
+     coordinates (for monitors above or to the left of the primary
+     monitor).  Find the display origin to ensure negative positions
+     are computed correctly (Bug#21173).  */
+  let mut display_left: c_int = 0;                                     // C 6951
+  let mut display_top: c_int = 0;                                      // C 6952
+  let p: *mut frame = FRAME_PARENT_FRAME (f);                          // C 6953
+
+  if p.is_null () && (flags & (XNegative | YNegative)) != 0            // C 6955
+    {
+      let mut list: Lisp_Object;                                       // C 6957
+
+      list = Fw32_display_monitor_attributes_list (Qnil ());           // C 6959
+      while CONSP (list)                                               // C 6960
+	{
+	  let attributes: Lisp_Object = CAR (list);                     // C 6962
+	  let mut geometry: Lisp_Object;                                // C 6963
+	  let mut monitor_left: Lisp_Object;                            // C 6964
+	  let mut monitor_top: Lisp_Object;
+
+	  list = CDR (list);                                           // C 6966
+
+	  geometry = Fassoc (Qgeometry (), attributes, Qnil ());        // C 6968
+	  if !NILP (geometry)                                          // C 6969
+	    {
+	      monitor_left = Fnth (make_fixnum (1), geometry);          // C 6971
+	      monitor_top = Fnth (make_fixnum (2), geometry);           // C 6972
+
+	      display_left = min! (display_left, XFIXNUM (monitor_left) as c_int);   // C 6974
+	      display_top = min! (display_top, XFIXNUM (monitor_top) as c_int);   // C 6975
+	    }
+	}
+    }
+
+  /* Treat negative positions as relative to the rightmost bottommost
+     position that fits on the screen or parent frame.
+
+     I see no need for subtracting 1 from the border widths - is there
+     any on the remaining platforms?  Here these subtractions did put
+     the last pixel line/column of a frame off-display when, for
+     example, a (set-frame-parameter nil 'left '(- 0)) specification was
+     used - martin 20017-05-05. */
+  if (flags & XNegative) != 0                                          // C 6988
+    {
+      if !p.is_null ()                                                 // C 6990
+	{
+	  (*f).left_pos = (FRAME_PIXEL_WIDTH (p)                        // C 6991
+			   - FRAME_PIXEL_WIDTH (f)                      // C 6992
+			   + (*f).left_pos                              // C 6993
+			   - left_right_borders_width as c_int);        // C 6994
+	}
+      else
+	{
+	  (*f).left_pos = (w32_display_pixel_width (FRAME_DISPLAY_INFO! (f))   // C 6996
+			   + display_left                               // C 6997
+			   - FRAME_PIXEL_WIDTH (f)                      // C 6998
+			   + (*f).left_pos                              // C 6999
+			   - left_right_borders_width as c_int);        // C 7000
+	}
+    }
+
+  if (flags & YNegative) != 0                                          // C 7003
+    {
+      if !p.is_null ()                                                 // C 7005
+	{
+	  (*f).top_pos = (FRAME_PIXEL_HEIGHT (p)                       // C 7006
+			  - FRAME_PIXEL_HEIGHT (f)                     // C 7007
+			  + (*f).top_pos                               // C 7008
+			  - top_bottom_borders_height as c_int);        // C 7009
+	}
+      else
+	{
+	  (*f).top_pos = (w32_display_pixel_height (FRAME_DISPLAY_INFO! (f))   // C 7011
+			  + display_top                                // C 7012
+			  - FRAME_PIXEL_HEIGHT (f)                     // C 7013
+			  + (*f).top_pos                               // C 7014
+			  - top_bottom_borders_height as c_int);        // C 7015
+	}
+    }
+
+  /* The left_pos and top_pos are now relative to the top and left
+     screen edges, so the flags should correspond.  */
+  (*f).size_hint_flags &= ! (XNegative | YNegative);                   // C 7020
+}
+
+/* C 7023-7027's note above `w32_set_offset`, carried as C's own text.  */
+/* C: /* CHANGE_GRAVITY is 1 when calling from Fset_frame_position,
+   C:    to really change the position, and 0 when calling from
+   C:    w32_make_frame_visible (in that case, XOFF and YOFF are the current
+   C:    position values).  It is -1 when calling from gui_set_frame_parameters,
+   C:    which means, do adjust for borders but don't change the gravity.  */  */
+
+/// C 7029-7065: `static void w32_set_offset (struct frame *f, register int xoff, register int
+/// yoff, int change_gravity)` - C 7033's two locals, C 7035-7045's `change_gravity` block (the two
+/// stores, the flag clear, C 7040-7043's two conditional flag sets and C 7044's gravity), C 7046's
+/// `w32_calc_absolute_position`, C 7048-7049's `block_input`/`w32_wm_set_size_hint`, C 7051-7052's
+/// two locals and C 7054-7064's two `my_set_window_pos` calls.  C's two `register` keywords have
+/// no Rust counterpart and the port keeps the names (PORTING.md 0.1).
+/// C: static void
+/// C: w32_set_offset (struct frame *f, register int xoff, register int yoff,
+/// C:                 int change_gravity)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity: c_int)
+{
+  let mut modified_top: c_int;                                         // C 7033
+  let mut modified_left: c_int;
+
+  if change_gravity > 0                                                // C 7035
+    {
+      (*f).top_pos = yoff;                                             // C 7037
+      (*f).left_pos = xoff;                                            // C 7038
+      (*f).size_hint_flags &= ! (XNegative | YNegative);               // C 7039
+      if xoff < 0                                                      // C 7040
+	{ (*f).size_hint_flags |= XNegative; }                         // C 7041
+      if yoff < 0                                                      // C 7042
+	{ (*f).size_hint_flags |= YNegative; }                         // C 7043
+      (*f).win_gravity = NorthWestGravity;                             // C 7044
+    }
+  w32_calc_absolute_position (f);                                      // C 7046
+
+  block_input ();                                                      // C 7048
+  w32_wm_set_size_hint (f, 0 as c_long, false);                        // C 7049
+
+  modified_left = (*f).left_pos;                                       // C 7051
+  modified_top = (*f).top_pos;                                         // C 7052
+
+  if FRAME_PARENT_FRAME (f).is_null ()                                 // C 7054
+    {
+      my_set_window_pos (FRAME_W32_WINDOW! (f), core::ptr::null_mut (),   // C 7055
+			 modified_left, modified_top,                  // C 7056
+			 0, 0,                                         // C 7057
+			 SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);   // C 7058
+    }
+  else
+    {
+      my_set_window_pos (FRAME_W32_WINDOW! (f), HWND_TOP,              // C 7060
+			 modified_left, modified_top,                  // C 7061
+			 0, 0,                                         // C 7062
+			 SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);   // C 7063
+    }
+  unblock_input ();                                                    // C 7064
+}
+
+/// C 7067-7146: `static void w32fullscreen_hook (struct frame *f)` - C 7070's `FRAME_VISIBLE_P`
+/// guard, C 7072-7075's four locals, C 7077-7078's `block_input` and the `FULLSCREEN_WAIT` clear,
+/// C 7080-7091's three placement restores, C 7093's `FRAME_PREV_FSMODE` store, C 7095-7133's five
+/// fullscreen arms (the `SW_SHOWNORMAL`/`SW_MAXIMIZE` pair, the `FULLSCREEN_BOTH` arm with its
+/// `w32_fullscreen_rect` + `SetWindowLong` + `SetWindowPos` + `change_frame_size`, the `else` arm
+/// with the same four and the two `SWP_*` sets), C 7135-7136's store and `unblock_input` and C
+/// 7138-7141's `do_pending_window_change`, with C 7144-7145's `else` writing the WAIT flag.
+/// C: static void
+/// C: w32fullscreen_hook (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32fullscreen_hook (f: *mut frame)
+{
+  if FRAME_VISIBLE_P (f)                                               // C 7070
+    {
+      let hwnd: HWND = FRAME_W32_WINDOW! (f);                          // C 7072
+      let dwStyle: DWORD = GetWindowLong (hwnd, GWL_STYLE) as DWORD;   // C 7073
+      /* C declares the `RECT` uninitialised and fills it with `w32_fullscreen_rect`
+	 (PORTING.md 1.5).  */
+      let mut rect: RECT = core::mem::zeroed ();                       // C 7074
+      let prev_fsmode: fullscreen_type = FRAME_PREV_FSMODE! (f);       // C 7075
+
+      block_input ();                                                  // C 7077
+      want_fullscreen! (f, want_fullscreen! (f) & ! FULLSCREEN_WAIT);   // C 7078
+
+      if FRAME_PREV_FSMODE! (f) == FULLSCREEN_NONE                     // C 7080
+	{ GetWindowPlacement (hwnd, &raw mut FRAME_NORMAL_PLACEMENT! (f)); }   // C 7081
+
+      if FRAME_PREV_FSMODE! (f) == FULLSCREEN_BOTH                     // C 7083
+	{
+	  if FRAME_UNDECORATED (f) == 0                                    // C 7085
+	    { SetWindowLong (hwnd, GWL_STYLE, (dwStyle | WS_OVERLAPPEDWINDOW) as LONG); }   // C 7086
+	  SetWindowPlacement (hwnd, &raw const FRAME_NORMAL_PLACEMENT! (f));   // C 7087
+	}
+      else if FRAME_PREV_FSMODE! (f) == FULLSCREEN_HEIGHT              // C 7089
+	       || FRAME_PREV_FSMODE! (f) == FULLSCREEN_WIDTH           // C 7090
+	{ SetWindowPlacement (hwnd, &raw const FRAME_NORMAL_PLACEMENT! (f)); }   // C 7091
+
+      FRAME_PREV_FSMODE! (f, want_fullscreen! (f));                    // C 7093
+
+      if want_fullscreen! (f) == FULLSCREEN_NONE                       // C 7095
+	{ ShowWindow (hwnd, SW_SHOWNORMAL); }                          // C 7096
+      else if want_fullscreen! (f) == FULLSCREEN_MAXIMIZED             // C 7097
+	{
+	  if prev_fsmode == FULLSCREEN_BOTH                            // C 7099
+	      || prev_fsmode == FULLSCREEN_WIDTH                       // C 7100
+	      || prev_fsmode == FULLSCREEN_HEIGHT                      // C 7101
+	    /* Make window normal since otherwise the subsequent
+	       maximization might fail in some cases.  */
+	    { ShowWindow (hwnd, SW_SHOWNORMAL); }                      // C 7104
+	  ShowWindow (hwnd, SW_MAXIMIZE);                              // C 7105
+	}
+      else if want_fullscreen! (f) == FULLSCREEN_BOTH                  // C 7107
+	{
+	  w32_fullscreen_rect
+	    (hwnd, want_fullscreen! (f),                                 // C 7110
+	     FRAME_NORMAL_PLACEMENT! (f).rcNormalPosition, &raw mut rect);   // C 7111
+	  if FRAME_UNDECORATED (f) == 0                                    // C 7112
+	    { SetWindowLong (hwnd, GWL_STYLE, (dwStyle & ! WS_OVERLAPPEDWINDOW) as LONG); }   // C 7113
+	  SetWindowPos (hwnd, HWND_TOP, rect.left, rect.top,              // C 7114
+			rect.right - rect.left, rect.bottom - rect.top,   // C 7115
+			(SWP_NOOWNERZORDER | SWP_FRAMECHANGED) as UINT);   // C 7116
+	  change_frame_size
+	    (f, rect.right - rect.left, rect.bottom - rect.top,           // C 7117-7118
+	     false, true, false);                                      // C 7119
+	}
+      else
+	{
+	  ShowWindow (hwnd, SW_SHOWNORMAL);                            // C 7123
+	  w32_fullscreen_rect
+	    (hwnd, want_fullscreen! (f),                                 // C 7125
+	     FRAME_NORMAL_PLACEMENT! (f).rcNormalPosition, &raw mut rect);   // C 7126
+	  SetWindowPos (hwnd, HWND_TOP, rect.left, rect.top,              // C 7127
+			rect.right - rect.left, rect.bottom - rect.top, 0);   // C 7128
+
+	  change_frame_size
+	    (f, rect.right - rect.left, rect.bottom - rect.top,           // C 7130-7131
+	     false, true, false);                                      // C 7132
+	}
+
+      want_fullscreen! (f, FULLSCREEN_NONE);                           // C 7135
+      unblock_input ();                                                // C 7136
+
+      if want_fullscreen! (f) == FULLSCREEN_BOTH                       // C 7138
+	  || want_fullscreen! (f) == FULLSCREEN_WIDTH                  // C 7139
+	  || want_fullscreen! (f) == FULLSCREEN_HEIGHT                 // C 7140
+	{ do_pending_window_change (false); }                          // C 7141
+    }
+  else
+    { want_fullscreen! (f, want_fullscreen! (f) | FULLSCREEN_WAIT); }   // C 7145
+}
+
+/* C 7148's note and `static void w32_set_window_size (struct frame *f, ...)` open the next slice.
+   `w32_wm_set_size_hint` (C 7049's callee) is defined at C 7477, still uncarried.  */

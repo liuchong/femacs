@@ -676,6 +676,8 @@ macro_rules! FRAME_NORMAL_PLACEMENT {
 #[cfg (feature = "windowsnt")]
 macro_rules! FRAME_PREV_FSMODE {
   ($F:expr) => { ((*((*$F).output_data.w32 as *mut w32_output)).prev_fsmode) };
+  /* The write arm `src/w32term.c` 7093 needs (the `src/androidterm.rs` 2739-2757 two-arm shape).  */
+  ($F:expr, $v:expr) => { (*((*$F).output_data.w32 as *mut w32_output)).prev_fsmode = $v };
 }
 
 /* C 483-530: "We represent scroll bars as lisp vectors. … We use struct scroll_bar as a template

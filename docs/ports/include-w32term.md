@@ -499,3 +499,20 @@ members the readers read.
 anchored in the unit's text**; `python3 tools/check-mirror-dupes.py` and `tools/check-declarations.py`
 -> 0 failure(s) each.  The unit-side readings are `docs/ports/w32term.md`'s
 `### Slice 18 (C 6754-6906)`.
+
+## `FRAME_PREV_FSMODE` gains its write arm (2026-10-15, w32term slice 19)
+
+**The measurement.**  `src/w32term.c` 7093 stores into `FRAME_PREV_FSMODE (f)`, and this mirror
+carried the accessor as a reader alone, so the reading gave the `E0061`-class row the slice-18
+round recorded for its three siblings.
+
+**The change.**  The two-argument arm writes C's own member
+(`(*(( *$f).output_data.w32 as *mut w32_output)).prev_fsmode = $v`).  Together with slice 18's
+three, this mirror's four `w32_output` frame accessors now carry both arms; no storage changes.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w52/x.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **22 errors, 0
+anchored in the unit's text**; `python3 tools/check-mirror-dupes.py` and
+`tools/check-declarations.py` -> 0 failure(s) each.  The unit-side readings are
+`docs/ports/w32term.md`'s `### Slice 19 (C 6908-7146)`.
