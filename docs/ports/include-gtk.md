@@ -417,3 +417,23 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 arm A (with `pango_version_ge_1_36_7` on or off), arm C or arm C plus `have_freetype`, and only the
 known dedupe artifact under arm B (Owed 17).  The consumer's ledger records all of it
 (`docs/ports/gtkutil.md`'s slice-5 section).
+
+### status 4.337 (the gtkutil seventh-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_create_one_menuitem` and `create_menus` (C 3316-3532) are the round's
+consumers: this mirror gains **`GtkMenuItem`** with its **`GTK_MENU_ITEM`** checked cast and **five
+entry points** - `gtk_menu_new` (C 3424), `gtk_menu_bar_new` (C 3441, the `#ifndef HAVE_GTK3` arm's
+constructor), `gtk_separator_menu_item_new` (C 3498), `gtk_menu_item_set_submenu` (C 3523) and
+`gtk_menu_shell_append` (C 3527).  All five are **fresh names**: the four units that carry their own
+copies of the menu-item names (`src/pgtkmenu.rs`, `src/xmenu.rs`, `src/xwidget.rs`,
+`src/pgtkterm.rs`) declare none of them, so the mirror takes them without an `E0428` - which is
+exactly why the last slice's seven had to stay in the unit instead.  Every prototype is
+`UNVERIFIED` (no GTK tree on this machine).
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the seventh slice's text**
+under arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and
+the slice's out-of-tree probe (nine errors plus rustc's `aborting` line, none of them this slice's -
+and the `Emacs_Cursor` `E0428` it found).  The ledger's slice-7 section describes that probe.

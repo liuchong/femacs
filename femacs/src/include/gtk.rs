@@ -2654,3 +2654,49 @@ unsafe extern "C" {
   pub fn gtk_font_selection_dialog_set_font_name (fsd: *mut GtkFontSelectionDialog,
                                                   fontname: *const gchar);
 }
+
+/* ----------------------------------------------------------------------------------------------
+   The menu-shell surface `src/gtkutil.c`'s `xg_create_one_menuitem` and `create_menus`
+   (C 3316-3532) reads (status 4.337).  P-90 (2) puts every GTK name in this mirror rather than
+   inline in the unit, and these seven are fresh names: no other unit declares any of them
+   (`GtkMenuItem`, `GTK_MENU_ITEM`, `gtk_menu_new`, `gtk_menu_bar_new`,
+   `gtk_separator_menu_item_new`, `gtk_menu_item_set_submenu` and `gtk_menu_shell_append` all
+   read zero tree-wide before this round), so the mirror can take them without an `E0428` in the
+   four units that carry copies of the menu-item names the last slice had to leave in the unit.
+   **No GTK tree exists on this machine**, so every prototype here is `UNVERIFIED`.
+   ---------------------------------------------------------------------------------------------- */
+
+/// C: gtk/gtkmenuitem.h: `typedef struct _GtkMenuItem GtkMenuItem;` - the pointee of the
+/// `GTK_MENU_ITEM` cast C 3523 takes.  **UNVERIFIED**.
+#[repr (C)]
+pub struct GtkMenuItem
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtk.h: `#define GTK_MENU_ITEM(obj)` - C 3523's checked cast, keeping the macro's name
+/// and its result type (the `GTK_MENU_SHELL`/`GTK_CONTAINER` family above); the
+/// `G_TYPE_CHECK_INSTANCE_CAST` chain is owed, as theirs is.
+macro_rules! GTK_MENU_ITEM {
+  ($o:expr) => { ($o) as *mut GtkMenuItem };
+}
+
+unsafe extern "C" {
+  /// C 3424: `wmenu = gtk_menu_new ();`
+  /// C: gtk/gtkmenu.h: `GtkWidget *gtk_menu_new (void);`
+  pub fn gtk_menu_new () -> *mut GtkWidget;
+  /// C 3441: `wmenu = gtk_menu_bar_new ();` (that `#ifndef HAVE_GTK3` arm's constructor; the
+  /// GTK3 arm calls the unit's own `emacs_menu_bar_new`).
+  /// C: gtk/gtkmenubar.h: `GtkWidget *gtk_menu_bar_new (void);`
+  pub fn gtk_menu_bar_new () -> *mut GtkWidget;
+  /// C 3498: `w = gtk_separator_menu_item_new ();`
+  /// C: gtk/gtkseparatormenuitem.h: `GtkWidget *gtk_separator_menu_item_new (void);`
+  pub fn gtk_separator_menu_item_new () -> *mut GtkWidget;
+  /// C 3523: `gtk_menu_item_set_submenu (GTK_MENU_ITEM (w), submenu);`
+  /// C: gtk/gtkmenuitem.h: `void gtk_menu_item_set_submenu (GtkMenuItem *menu_item, GtkWidget
+  /// *submenu);`
+  pub fn gtk_menu_item_set_submenu (menu_item: *mut GtkMenuItem, submenu: *mut GtkWidget);
+  /// C 3527: `gtk_menu_shell_append (GTK_MENU_SHELL (wmenu), w);`
+  /// C: gtk/gtkmenushell.h: `void gtk_menu_shell_append (GtkMenuShell *menu_shell, GtkWidget
+  /// *child);`
+  pub fn gtk_menu_shell_append (menu_shell: *mut GtkMenuShell, child: *mut GtkWidget);
+}

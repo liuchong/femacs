@@ -4477,3 +4477,323 @@ unsafe fn make_menu_item (mut utf8_label: *const c_char, utf8_key: *const c_char
 
   w                                                                     // C 3299
 }
+
+/* C 3301's blank and C 3302-3314's comment above `xg_create_one_menuitem`, carried as C's own
+   text.  (The row table's slice-6 entry ends at C 3301: this comment belongs to the function
+   below and is carried here.)  */
+/* C: /* Create a menu item widget, and connect the callbacks.
+   C:    ITEM describes the menu item.
+   C:    F is the frame the created menu belongs to.
+   C:    SELECT_CB is the callback to use when a menu item is selected.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.
+   C:    CL_DATA points to the callback data to be used for this menu.
+   C:    GROUP is an in/out parameter.  If the menu item to be created is not
+   C:    part of any radio menu group, *GROUP contains NULL on entry and exit.
+   C:    If the menu item to be created is part of a radio menu group, on entry
+   C:    *GROUP contains the group to use, or NULL if this is the first item
+   C:    in the group.  On exit, *GROUP contains the radio item group.
+
+   C:    Returns the created GtkWidget.  */  */
+
+/// C 3316-3363: `static GtkWidget *xg_create_one_menuitem (widget_value *item, struct frame *f,
+/// GCallback select_cb, GCallback highlight_cb, xg_menu_cb_data *cl_data, GSList **group)` -
+/// `static` and its address is never taken, so a plain `unsafe fn`.  C 3329/3330's
+/// `get_utf8_string` is this file's own (C 655-729), C 3334/3335's `g_free` takes C's pointer
+/// through the port's `*mut c_void`, C 3337's `sizeof *cb_data` is the port's `size_of`,
+/// C 3346-3348's four-argument `g_signal_connect` is the mirror's `g_signal_connect!` with C's
+/// `cb_data` cast to the `gpointer` its data argument takes, and C 3358-3359's `g_signal_connect`
+/// passes the *variable* `select_cb` - which the port's macro would wrap a second time in
+/// `G_CALLBACK!` (that macro needs a function item: `E0605`, measured in slice 3) - so that one
+/// call stands in the macro's own expansion, its `gulong` result being what `select_id` holds.
+/// C: static GtkWidget *
+/// C: xg_create_one_menuitem (widget_value *item,
+/// C:                         struct frame *f,
+/// C:                         GCallback select_cb,
+/// C:                         GCallback highlight_cb,
+/// C:                         xg_menu_cb_data *cl_data,
+/// C:                         GSList **group)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_create_one_menuitem (item: *mut widget_value, f: *mut frame, select_cb: GCallback,
+				  highlight_cb: GCallback, cl_data: *mut xg_menu_cb_data,
+				  group: *mut *mut GSList) -> *mut GtkWidget
+{
+  let utf8_label: *mut c_char;                                          // C 3324
+  let utf8_key: *mut c_char;                                            // C 3325
+  let w: *mut GtkWidget;                                                // C 3326
+  let cb_data: *mut xg_menu_item_cb_data;                               // C 3327
+
+  utf8_label = get_utf8_string ((*item).name);                          // C 3329
+  utf8_key = get_utf8_string ((*item).key);                             // C 3330
+
+  w = make_menu_item (utf8_label, utf8_key, item, group);               // C 3332
+
+  if ! utf8_label.is_null () { g_free (utf8_label as gpointer); }       // C 3334
+  if ! utf8_key.is_null () { g_free (utf8_key as gpointer); }           // C 3335
+
+  cb_data = xmalloc (core::mem::size_of::<xg_menu_item_cb_data> ())     // C 3337
+    as *mut xg_menu_item_cb_data;
+
+  xg_list_insert ((&raw mut xg_menu_item_cb_list),
+		  (&raw mut (*cb_data).ptrs));                          // C 3339
+
+  (*cb_data).select_id = 0;                                             // C 3341
+  (*cb_data).help = (*item).help;                                       // C 3342
+  (*cb_data).cl_data = cl_data;                                         // C 3343
+  (*cb_data).call_data = (*item).call_data;                             // C 3344
+
+  g_signal_connect! (G_OBJECT! (w), c"destroy".as_ptr (),               // C 3346-3348
+		     menuitem_destroy_callback,
+		     cb_data as gpointer);                              // C 3349
+
+  /* Put cb_data in widget, so we can get at it when modifying menubar  */   // C 3351
+  g_object_set_data (G_OBJECT! (w), XG_ITEM_DATA, cb_data as gpointer);   // C 3352
+
+  /* final item, not a submenu  */                                      // C 3354
+  if ! (*item).call_data.is_null () && (*item).contents.is_null ()      // C 3355
+    {
+      if select_cb.is_some ()                                           // C 3357
+	{
+	  (*cb_data).select_id                                          // C 3358
+	    = g_signal_connect_data (G_OBJECT! (w) as gpointer,
+				     c"activate".as_ptr (), select_cb,
+				     cb_data as gpointer, None,
+				     0 as GConnectFlags);                   // C 3359
+	}
+    }
+
+  w                                                                     // C 3362
+}
+
+/* C 3365's `#ifdef HAVE_PGTK` (its `#endif` is C 3382).  */
+/// C 3366-3381: `static gboolean menu_bar_button_pressed_cb (GtkWidget *widget, GdkEvent *event,
+/// gpointer user_data)` - `static` in C, but C 3447-3448 takes its address for
+/// `g_signal_connect`, so the port defines it `unsafe extern "C" fn` (the callback shape above).
+/// C 3370's `struct frame *f = user_data` is C's implicit conversion, C 3372-3373's
+/// `event->button.button`/`event->button.window` are the mirror union's `button` member
+/// (`include/gtk.rs` 1131-1146), C 3374's `!popup_activated ()` is the port's `== 0` over
+/// the int dispextern.h 3879 declares, and C 3376/3377's true are C's own stdbool
+/// values (the two declarations take `bool`), and C 3380's `false` is the `gboolean` the
+/// function returns.
+/// C: static gboolean
+/// C: menu_bar_button_pressed_cb (GtkWidget *widget, GdkEvent *event,
+/// C: 			    gpointer user_data)
+#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+unsafe extern "C" fn menu_bar_button_pressed_cb (widget: *mut GtkWidget, event: *mut GdkEvent,
+						 user_data: gpointer) -> gboolean
+{
+  let f: *mut frame = user_data as *mut frame;                          // C 3370
+
+  if (*event).button.button < 4                                         // C 3372
+      && (*event).button.window != gtk_widget_get_window (widget)       // C 3373
+      && popup_activated () == 0                                        // C 3374
+    {
+      pgtk_menu_set_in_use (true);                                      // C 3376
+      set_frame_menubar (f, true);                                      // C 3377
+    }
+
+  FALSE                                                                 // C 3380
+}
+
+/// C: gtkutil.h 46: `#define XG_FRAME_DATA "emacs_frame"` - the key C 3459 puts a menu's
+/// callback data on its top widget under, and C 4116/4613's the two later reads use.  C's macro
+/// is a string literal; this object form is the one the same header's other consumers already
+/// use for the two data keys (`src/xmenu.rs` 825, `src/pgtkmenu.rs` 150), and the name is not in
+/// this file's own constant inventory.
+#[cfg (feature = "use_gtk")]
+pub const XG_FRAME_DATA: *const c_char = c"emacs_frame".as_ptr ();
+
+/* C 3384-3402's comment above `create_menus`, carried as C's own text.  */
+/* C: /* Create a full menu tree specified by DATA.
+   C:    F is the frame the created menu belongs to.
+   C:    SELECT_CB is the callback to use when a menu item is selected.
+   C:    DEACTIVATE_CB is the callback to use when a sub menu is not shown anymore.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.
+   C:    If POP_UP_P, create a popup menu.
+   C:    If MENU_BAR_P, create a menu bar.
+   C:    TOPMENU is the topmost GtkWidget that others shall be placed under.
+   C:    It may be NULL, in that case we create the appropriate widget
+   C:    (menu bar or menu item depending on POP_UP_P and MENU_BAR_P)
+   C:    CL_DATA is the callback data we shall use for this menu, or NULL
+   C:    if we haven't set the first callback yet.
+   C:    NAME is the name to give to the top level menu if this function
+   C:    creates it.  May be NULL to not set any name.
+
+   C:    Returns the top level GtkWidget.  This is TOPLEVEL if TOPLEVEL is
+   C:    not NULL.
+
+   C:    This function calls itself to create submenus.  */  */
+
+/// C 3404-3532: `static GtkWidget *create_menus (widget_value *data, struct frame *f, GCallback
+/// select_cb, GCallback deactivate_cb, GCallback highlight_cb, bool pop_up_p, bool menu_bar_p,
+/// GtkWidget *topmenu, xg_menu_cb_data *cl_data, const char *name)` - `static` and recursive
+/// (C 3513 calls itself), so a plain `unsafe fn` whose own name is in scope.  C 3406-3414's two
+/// `bool` parameters are the port's `bool`, C 3418's `= NULL` is the null pointer, C 3440-3444's
+/// `#ifndef HAVE_GTK3` pair is the `have_gtk3` feature and C 3446-3449's `#ifdef HAVE_PGTK` the
+/// `have_pgtk` one, C 3458's `cl_data = make_cl_data (…)` writes the parameter (the port's
+/// `mut`), C 3459/3460's `cl_data` enters a `gpointer` argument by C's conversion,
+/// C 3467/3471's `deactivate_cb` is a *variable* - so those two signals stand in the
+/// `g_signal_connect!` macro's own expansion, as C 3359's does - C 3477's `for` head is the
+/// port's `while` with C's step at the loop's end, C 3481/3482's three tests are the port's null
+/// checks and the local `menu_separator_name_p` declaration below, C 3504's
+/// `item->contents ? 0 : select_cb` is the port's `if`/`else` over C's null `GCallback`, and
+/// C 3513-3522's recursive call passes C's three `0` arguments as the port's `false`, `false`
+/// and null pointer plus the null `name`.
+/// C: static GtkWidget *
+/// C: create_menus (widget_value *data,
+/// C:               struct frame *f,
+/// C:               GCallback select_cb,
+/// C:               GCallback deactivate_cb,
+/// C:               GCallback highlight_cb,
+/// C:               bool pop_up_p,
+/// C:               bool menu_bar_p,
+/// C:               GtkWidget *topmenu,
+/// C:               xg_menu_cb_data *cl_data,
+/// C:               const char *name)
+#[cfg (feature = "use_gtk")]
+unsafe fn create_menus (data: *mut widget_value, f: *mut frame, select_cb: GCallback,
+			deactivate_cb: GCallback, highlight_cb: GCallback, pop_up_p: bool,
+			menu_bar_p: bool, topmenu: *mut GtkWidget,
+			mut cl_data: *mut xg_menu_cb_data, name: *const c_char) -> *mut GtkWidget
+{
+  let mut item: *mut widget_value;                                      // C 3416
+  let mut wmenu: *mut GtkWidget = topmenu;                              // C 3417
+  let mut group: *mut GSList = std::ptr::null_mut ();                   // C 3418
+
+  if topmenu.is_null ()                                                 // C 3420
+    {
+      if ! menu_bar_p                                                   // C 3422
+	{
+	  wmenu = gtk_menu_new ();                                      // C 3424
+	  xg_set_screen (wmenu, f);                                     // C 3425
+	  /* Connect this to the menu instead of items so we get enter/leave for
+	     disabled items also.  TODO:  Still does not get enter/leave for
+	     disabled items in detached menus.  */                      // C 3426-3428
+	  g_signal_connect! (G_OBJECT! (wmenu),                         // C 3429-3431
+			     c"enter-notify-event".as_ptr (),
+			     menuitem_highlight_callback,
+			     std::ptr::null_mut ());                    // C 3432
+	  g_signal_connect! (G_OBJECT! (wmenu),                         // C 3433-3435
+			     c"leave-notify-event".as_ptr (),
+			     menuitem_highlight_callback,
+			     std::ptr::null_mut ());                    // C 3436
+	}
+      else
+	{
+	  /* C 3440's `#ifndef HAVE_GTK3`: the GTK2 arm's `gtk_menu_bar_new` and the GTK3 arm's
+	     `emacs_menu_bar_new` (this file's own, C 182).  */
+	  #[cfg (not (feature = "have_gtk3"))]
+	  { wmenu = gtk_menu_bar_new (); }                              // C 3441
+	  #[cfg (feature = "have_gtk3")]
+	  { wmenu = emacs_menu_bar_new (); }                            // C 3443
+
+	  /* C 3446's `#ifdef HAVE_PGTK`.  */
+	  #[cfg (feature = "have_pgtk")]
+	  { g_signal_connect! (G_OBJECT! (wmenu),
+			       c"button-press-event".as_ptr (),        // C 3447
+			       menu_bar_button_pressed_cb, f as gpointer); }   // C 3448
+
+	  /* Set width of menu bar to a small value so it doesn't enlarge
+	     a small initial frame size.  The width will be set to the
+	     width of the frame later on when it is added to a container.
+	     height -1: Natural height.  */                             // C 3450-3453
+	  gtk_widget_set_size_request (wmenu, 1, -1);                   // C 3454
+	}
+
+      /* Put cl_data on the top menu for easier access.  */            // C 3457
+      cl_data = make_cl_data (cl_data, f, highlight_cb);                // C 3458
+      g_object_set_data (G_OBJECT! (wmenu), XG_FRAME_DATA,              // C 3459
+			 cl_data as gpointer);
+      g_signal_connect! (G_OBJECT! (wmenu), c"destroy".as_ptr (),       // C 3460
+			 menu_destroy_callback, cl_data as gpointer);   // C 3461
+
+      if ! name.is_null ()                                              // C 3463
+	{ gtk_widget_set_name (wmenu, name); }                          // C 3464
+
+      /* C 3466-3474: the `#ifndef HAVE_PGTK` pair, whose two arms differ in the signal name
+	 and nowhere else; both pass the *variable* `deactivate_cb`, so both stand in the
+	 `g_signal_connect!` macro's own expansion and C's final `0` is the null data.  */
+      #[cfg (not (feature = "have_pgtk"))]
+      {
+	if deactivate_cb.is_some ()                                     // C 3467
+	  { g_signal_connect_data (G_OBJECT! (wmenu) as gpointer,
+				   c"selection-done".as_ptr (), deactivate_cb,
+				   std::ptr::null_mut (), None,
+				   0 as GConnectFlags); }               // C 3469
+      }
+      #[cfg (feature = "have_pgtk")]
+      {
+	if deactivate_cb.is_some ()                                     // C 3471
+	  { g_signal_connect_data (G_OBJECT! (wmenu) as gpointer,
+				   c"deactivate".as_ptr (), deactivate_cb,
+				   std::ptr::null_mut (), None,
+				   0 as GConnectFlags); }               // C 3473
+      }
+    }
+
+  item = data;                                                          // C 3477
+  while ! item.is_null ()                                               // C 3477
+    {
+      let mut w: *mut GtkWidget;                                        // C 3479
+
+      if pop_up_p && (*item).contents.is_null ()                        // C 3481
+	  && (*item).call_data.is_null ()                               // C 3481
+	  && ! menu_separator_name_p ((*item).name)                     // C 3482
+	{
+	  let utf8_label: *mut c_char;                                  // C 3484
+	  /* A title for a popup.  We do the same as GTK does when
+	     creating titles, but it does not look good.  */            // C 3485-3486
+	  group = std::ptr::null_mut ();                                // C 3487
+	  utf8_label = get_utf8_string ((*item).name);                  // C 3488
+
+	  w = gtk_menu_item_new_with_label (utf8_label);                // C 3490
+	  gtk_widget_set_sensitive (w, FALSE);                          // C 3491
+	  if ! utf8_label.is_null ()
+	    { g_free (utf8_label as gpointer); }                        // C 3492
+	}
+      else if menu_separator_name_p ((*item).name)                      // C 3494
+	{
+	  group = std::ptr::null_mut ();                                // C 3496
+	  /* GTK only have one separator type.  */                      // C 3497
+	  w = gtk_separator_menu_item_new ();                           // C 3498
+	}
+      else
+	{
+	  w = xg_create_one_menuitem (item, f,                          // C 3502-3503
+				      if ! (*item).contents.is_null ()   // C 3504
+				      { select_cb } else { None },
+				      highlight_cb, cl_data,
+				      (&raw mut group));                 // C 3507
+
+	  /* Create a possibly empty submenu for menu bar items, since some
+	     themes don't highlight items correctly without it. */      // C 3509-3510
+	  if ! (*item).contents.is_null () || menu_bar_p                 // C 3511
+	    {
+	      let submenu: *mut GtkWidget
+		= create_menus ((*item).contents, f,                    // C 3513
+				select_cb, deactivate_cb, highlight_cb,
+				false, false, std::ptr::null_mut (),    // C 3518-3520
+				cl_data, std::ptr::null ());            // C 3521-3522
+	      gtk_menu_item_set_submenu (GTK_MENU_ITEM! (w), submenu);   // C 3523
+	    }
+	}
+
+      gtk_menu_shell_append (GTK_MENU_SHELL! (wmenu), w);                // C 3527
+      gtk_widget_set_name (w, MENU_ITEM_NAME.as_ptr ());                 // C 3528
+      item = (*item).next;                                              // C 3477 (the `for` step)
+    }
+
+  wmenu                                                                 // C 3531
+}
+
+/* The three same-program declarations this slice's two functions call and no mirror carries:
+   `menu_separator_name_p` (keyboard.h 473, defined in `keyboard.c` - `src/androidmenu.rs` 91,
+   `src/haikumenu.rs` 107 and `src/w32menu.rs` 874 already declare it the same way),
+   `popup_activated` (dispextern.h 3879, defined in `keyboard.c` - `src/androidterm.rs` 219's
+   shape) and `set_frame_menubar` (frame.h 1881, defined in `xdisp.c` - `src/w32fns.rs` 2645's
+   shape).  The ledger's Owed names the three mirror gaps.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn menu_separator_name_p (name: *const c_char) -> bool;           // keyboard.h 473
+  pub fn popup_activated () -> c_int;                                  // dispextern.h 3879
+  pub fn set_frame_menubar (f: *mut frame, deep_p: bool);               // frame.h 1881
+}
