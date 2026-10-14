@@ -1162,7 +1162,7 @@ pub const OPAQUE_FRAME: c_int = 255;
    narrowing is C's implicit conversion written out (`as BYTE`).  C 610's `GetWindowLong`/C 618's
    `SetWindowLong` are the `<windows.h>` entry points declared above; `ex_style` is a `LONG`.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_frame_alpha (f: *mut frame)
+unsafe extern "C" fn w32_set_frame_alpha (f: *mut frame)
 {
   let dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO! (f);
   let mut alpha: c_double = 1.0;
@@ -1240,7 +1240,7 @@ pub unsafe extern "C" fn w32_display_pixel_width (dpyinfo: *mut w32_display_info
 /* C 651-670: "Start an update of frame F. …"  C's `if (display_info->regen_palette)` is an
    `int` test, and `FALSE` is `<windows.h>`'s (declared above).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_update_begin (f: *mut frame)
+unsafe extern "C" fn w32_update_begin (f: *mut frame)
 {
   let display_info: *mut w32_display_info = FRAME_DISPLAY_INFO! (f);
 
@@ -1359,7 +1359,7 @@ unsafe extern "C" fn w32_update_window_end (w: *mut window, cursor_on_p: bool,
 /* C 785-797: "End update of frame F. …"  `MOUSE_HL_INFO` is `frame.rs`'s macro (C's own, from
    `frame.h`), and C's `false` assignment to its `bool` member is the port's `false`.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_update_end (f: *mut frame)
+unsafe extern "C" fn w32_update_end (f: *mut frame)
 {
   if ! FRAME_W32_P (f)
     { return; }
@@ -1377,7 +1377,7 @@ unsafe fn w32_update_end (f: *mut frame)
 /* C 799-811: "This function is called from various places in xdisp.c whenever a complete update
    has been performed."  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_frame_up_to_date (f: *mut frame)
+unsafe extern "C" fn w32_frame_up_to_date (f: *mut frame)
 {
   FRAME_MOUSE_UPDATE! (f);
 
@@ -1388,7 +1388,7 @@ unsafe fn w32_frame_up_to_date (f: *mut frame)
 
 /* C 813-818.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_buffer_flipping_unblocked_hook (f: *mut frame)
+unsafe extern "C" fn w32_buffer_flipping_unblocked_hook (f: *mut frame)
 {
   if w32_output_bits! (paint_buffer_dirty, FRAME_OUTPUT_DATA! (f)) != 0
     { w32_show_back_buffer (f); }
@@ -2661,7 +2661,7 @@ unsafe fn w32_alloc_lighter_color (f: *mut frame, color: *mut COLORREF, factor: 
    `unsigned long` to C's local `DWORD`, and each channel widens from the `BYTE` its accessor
    returns to the `int` of C's `* 257`, then narrows into the record's `unsigned short`.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_query_colors (f: *mut frame, colors: *mut Emacs_Color, ncolors: c_int)
+unsafe extern "C" fn w32_query_colors (f: *mut frame, colors: *mut Emacs_Color, ncolors: c_int)
 {
   let mut i: c_int;
 
@@ -4610,7 +4610,7 @@ unsafe extern "C" fn w32_shift_glyphs_for_insert (f: *mut frame, x: c_int, y: c_
 /// C: static void
 /// C: w32_delete_glyphs (struct frame *f, register int n)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_delete_glyphs (f: *mut frame, n: c_int)
+unsafe extern "C" fn w32_delete_glyphs (f: *mut frame, n: c_int)
 {
   if ! FRAME_W32_P (f)                                               // C 3063
     { return; }                                                      // C 3064
@@ -4624,7 +4624,7 @@ unsafe fn w32_delete_glyphs (f: *mut frame, n: c_int)
 /// C: static void
 /// C: w32_clear_frame (struct frame *f)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_clear_frame (f: *mut frame)
+unsafe extern "C" fn w32_clear_frame (f: *mut frame)
 {
   if ! FRAME_W32_P (f)                                               // C 3075
     { return; }                                                      // C 3076
@@ -4650,7 +4650,7 @@ unsafe fn w32_clear_frame (f: *mut frame)
 /// C: static void
 /// C: w32_ring_bell (struct frame *f)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_ring_bell (f: *mut frame)
+unsafe extern "C" fn w32_ring_bell (f: *mut frame)
 {
   block_input ();                                                    // C 3099
 
@@ -4685,7 +4685,7 @@ unsafe fn w32_ring_bell (f: *mut frame)
 /// C: static void
 /// C: w32_ins_del_lines (struct frame *f, int vpos, int n)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
+unsafe extern "C" fn w32_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
 {
   if ! FRAME_W32_P (f)                                               // C 3129
     { return; }                                                      // C 3130
@@ -5056,7 +5056,7 @@ unsafe fn w32_detect_focus_change (dpyinfo: *mut w32_display_info, event: *mut W
 /// C: static void
 /// C: w32_frame_rehighlight (struct frame *frame)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_frame_rehighlight (frame: *mut frame)
+unsafe extern "C" fn w32_frame_rehighlight (frame: *mut frame)
 {
   if !FRAME_W32_P (frame)                                            // C 3371
     { return; }                                                      // C 3372
@@ -5776,7 +5776,7 @@ unsafe fn w32_define_cursor (window: Window, cursor: Emacs_Cursor)
 /// C: 		    enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y,
 /// C: 		    Time *time)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_mouse_position (fp: *mut *mut frame, insist: c_int,
+unsafe extern "C" fn w32_mouse_position (fp: *mut *mut frame, insist: c_int,
 			      bar_window: *mut Lisp_Object, part: *mut scroll_bar_part,
 			      x: *mut Lisp_Object, y: *mut Lisp_Object, time: *mut Time)
 {
@@ -6445,7 +6445,7 @@ unsafe extern "system" {
 /// C: w32_set_vertical_scroll_bar (struct window *w,
 /// C: 			     int portion, int whole, int position)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+unsafe extern "C" fn w32_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
 				       position: c_int)
 {
   let f: *mut frame = XFRAME ((*w).frame);                            // C 4338
@@ -6561,7 +6561,7 @@ unsafe fn w32_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_
 /// C: w32_set_horizontal_scroll_bar (struct window *w,
 /// C: 			       int portion, int whole, int position)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+unsafe extern "C" fn w32_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
 					 position: c_int)
 {
   let f: *mut frame = XFRAME ((*w).frame);                            // C 4442
@@ -6686,7 +6686,7 @@ unsafe fn w32_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: 
 /// C: static void
 /// C: w32_condemn_scroll_bars (struct frame *frame)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_condemn_scroll_bars (frame: *mut frame)
+unsafe extern "C" fn w32_condemn_scroll_bars (frame: *mut frame)
 {
   if !NILP (FRAME_SCROLL_BARS (frame))                                // C 4554
     {
@@ -6717,7 +6717,7 @@ unsafe fn w32_condemn_scroll_bars (frame: *mut frame)
 /// C: static void
 /// C: w32_redeem_scroll_bar (struct window *w)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_redeem_scroll_bar (w: *mut window)
+unsafe extern "C" fn w32_redeem_scroll_bar (w: *mut window)
 {
   let mut bar: *mut scroll_bar;                                       // C 4580
   let mut barobj: Lisp_Object;                                        // C 4581
@@ -6811,7 +6811,7 @@ unsafe fn w32_redeem_scroll_bar (w: *mut window)
 /// C: static void
 /// C: w32_judge_scroll_bars (struct frame *f)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_judge_scroll_bars (f: *mut frame)
+unsafe extern "C" fn w32_judge_scroll_bars (f: *mut frame)
 {
   let mut bar: Lisp_Object;                                           // C 4664
   let mut next: Lisp_Object;
@@ -7651,7 +7651,7 @@ unsafe extern "C" {
 /// C: w32_read_socket (struct terminal *terminal,
 /// C: 		 struct input_event *hold_quit)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_read_socket (terminal: *mut terminal, hold_quit: *mut input_event) -> c_int
+unsafe extern "C" fn w32_read_socket (terminal: *mut terminal, hold_quit: *mut input_event) -> c_int
 {
   let mut count: c_int = 0;                                            // C 5134
   let mut check_visibility: c_int = 0;                                 // C 5135
@@ -9576,7 +9576,7 @@ macro_rules! FRAME_LINE_HEIGHT {
 /// C: static bool
 /// C: w32_bitmap_icon (struct frame *f, Lisp_Object icon)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_bitmap_icon (f: *mut frame, icon: Lisp_Object) -> bool
+unsafe extern "C" fn w32_bitmap_icon (f: *mut frame, icon: Lisp_Object) -> bool
 {
   let mut main_icon: HANDLE;                                           // C 6761
   let mut small_icon: HANDLE = core::ptr::null_mut ();                 // C 6762
@@ -9672,7 +9672,7 @@ unsafe fn w32_bitmap_icon (f: *mut frame, icon: Lisp_Object) -> bool
 /// C: static Lisp_Object
 /// C: w32_new_font (struct frame *f, Lisp_Object font_object, int fontset)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_new_font (f: *mut frame, font_object: Lisp_Object, mut fontset: c_int) -> Lisp_Object
+unsafe extern "C" fn w32_new_font (f: *mut frame, font_object: Lisp_Object, mut fontset: c_int) -> Lisp_Object
 {
   let font: *mut font = XFONT_OBJECT (font_object);                    // C 6849
   let mut unit: c_int;                                                 // C 6850
@@ -9939,7 +9939,7 @@ unsafe fn w32_calc_absolute_position (f: *mut frame)
 /// C: w32_set_offset (struct frame *f, register int xoff, register int yoff,
 /// C:                 int change_gravity)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity: c_int)
+unsafe extern "C" fn w32_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity: c_int)
 {
   let mut modified_top: c_int;                                         // C 7033
   let mut modified_left: c_int;
@@ -9990,7 +9990,7 @@ unsafe fn w32_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravit
 /// C: static void
 /// C: w32fullscreen_hook (struct frame *f)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32fullscreen_hook (f: *mut frame)
+unsafe extern "C" fn w32fullscreen_hook (f: *mut frame)
 {
   if FRAME_VISIBLE_P (f)                                               // C 7070
     {
@@ -10147,7 +10147,7 @@ unsafe extern "system" {
 /// C: w32_set_window_size (struct frame *f, bool change_gravity,
 /// C: 			 int width, int height)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_window_size (f: *mut frame, change_gravity: bool, mut width: c_int,
+unsafe extern "C" fn w32_set_window_size (f: *mut frame, change_gravity: bool, mut width: c_int,
 			       mut height: c_int)
 {
   let fullscreen: Lisp_Object = get_frame_param (f, Qfullscreen ());   // C 7156
@@ -10273,7 +10273,7 @@ unsafe fn w32_set_window_size (f: *mut frame, change_gravity: bool, mut width: c
 /// C: static void
 /// C: w32_set_window_size_and_position (struct frame *f, int width, int height)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_window_size_and_position (f: *mut frame, mut width: c_int, mut height: c_int)
+unsafe extern "C" fn w32_set_window_size_and_position (f: *mut frame, mut width: c_int, mut height: c_int)
 {
   /* C declares these uninitialised and fills them below (PORTING.md 1.5).  */
   let mut rect: RECT = core::mem::zeroed ();                           // C 7264
@@ -10405,7 +10405,7 @@ pub unsafe extern "C" fn frame_set_mouse_pixel_position (f: *mut frame, pix_x: c
 /// C: static Lisp_Object
 /// C: w32_get_focus_frame (struct frame *f)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_get_focus_frame (f: *mut frame) -> Lisp_Object
+unsafe extern "C" fn w32_get_focus_frame (f: *mut frame) -> Lisp_Object
 {
   let mut lisp_focus: Lisp_Object;                                     // C 7370
 
@@ -10432,7 +10432,7 @@ unsafe fn w32_get_focus_frame (f: *mut frame) -> Lisp_Object
 /// C: static void
 /// C: w32_focus_frame (struct frame *f, bool noactivate)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_focus_frame (f: *mut frame, noactivate: bool)
+unsafe extern "C" fn w32_focus_frame (f: *mut frame, noactivate: bool)
 {
   /* C 7391-7393 is `#if 0`:
 
@@ -10550,7 +10550,7 @@ unsafe fn w32_lower_frame (f: *mut frame)
 /// C: static void
 /// C: w32_frame_raise_lower (struct frame *f, bool raise_flag)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_frame_raise_lower (f: *mut frame, raise_flag: bool)
+unsafe extern "C" fn w32_frame_raise_lower (f: *mut frame, raise_flag: bool)
 {
   if !FRAME_W32_P (f)                                                  // C 7484
     { return; }                                                        // C 7485
@@ -10774,7 +10774,7 @@ pub unsafe extern "C" fn w32_make_frame_invisible (f: *mut frame)
 /// C: static void
 /// C: w32_make_frame_visible_invisible (struct frame *f, bool visible)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_make_frame_visible_invisible (f: *mut frame, visible: bool)
+unsafe extern "C" fn w32_make_frame_visible_invisible (f: *mut frame, visible: bool)
 {
   if visible                                                           // C 7630
     { w32_make_frame_visible (f); }                                    // C 7631
@@ -10871,7 +10871,7 @@ pub unsafe extern "C" fn w32_free_frame_resources (f: *mut frame)
 /// C: static void
 /// C: w32_destroy_window (struct frame *f)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_destroy_window (f: *mut frame)
+unsafe extern "C" fn w32_destroy_window (f: *mut frame)
 {
   let dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO! (f);        // C 7706
 
@@ -11025,7 +11025,7 @@ pub unsafe extern "C" fn w32_arrow_cursor ()
 /// C: static void
 /// C: w32_toggle_invisible_pointer (struct frame *f, bool invisible)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_toggle_invisible_pointer (f: *mut frame, invisible: bool)
+unsafe extern "C" fn w32_toggle_invisible_pointer (f: *mut frame, invisible: bool)
 {
   block_input ();                                                      // C 7796
 
@@ -11049,7 +11049,7 @@ unsafe fn w32_toggle_invisible_pointer (f: *mut frame, invisible: bool)
 /// C: static void
 /// C: w32_free_pixmap (struct frame *_f, Emacs_Pixmap pixmap)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_free_pixmap (_f: *mut frame, pixmap: Emacs_Pixmap)
+unsafe extern "C" fn w32_free_pixmap (_f: *mut frame, pixmap: Emacs_Pixmap)
 {
   DeleteObject (pixmap);                                               // C 7816
 }
@@ -11315,3 +11315,222 @@ static mut w32_redisplay_interface: dispextern_unit_names::redisplay_interface =
     #[cfg (feature = "have_window_system")]
     default_font_parameter: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)> (w32_default_font_parameter as *const ()) }),                                  // C 7951
   };
+
+/* C 7954: `static void w32_delete_terminal (struct terminal *term);` - C's forward declaration;
+   the definition is C 8028-8042 below and Rust needs no declaration before a definition, so the
+   port records C's text here.  */
+/* C: static void w32_delete_terminal (struct terminal *term);  */
+
+/* The tree's hook-slot cast (the `src/pgtkterm.rs` 7032-7036 copy, and C 7966-7967's own note
+   about the MSVC cast): a hook field's type is spelled with the pointee types `termhooks.h` has,
+   while the port's function takes C's `struct frame *`/`struct window *`, so each assignment is a
+   transmute of the item's address (PORTING.md 1.4; the field's type is the *target's* type).  */
+#[cfg (feature = "have_ntgui")]
+macro_rules! hook {
+  ($target:ty, $f:expr) => { unsafe {
+    let p: *const c_void = $f as *const c_void;
+    std::mem::transmute::<*const c_void, Option<$target>> (p) } };
+}
+
+/* C: keyboard.h 477: `extern KBOARD *allocate_kboard (Lisp_Object);` - C 8017's call; no mirror
+   carries it.  C: menu.h 63-65: `extern Lisp_Object w32_menu_show (struct frame *, int, int,
+   int, Lisp_Object, const char **);` and `extern void w32_activate_menubar (struct frame *);` -
+   C 7996/7997's two assignments, both `src/w32fns.rs`'s definitions and both recorded in
+   `include/menu.rs` for the frozen arm only (the `src/pgtkterm.rs` 7044 reading).  `Qw32` is
+   `include/globals.rs` 6010's `builtin_lisp_symbol` call and `create_terminal` is
+   `include/termhooks.rs`'s row, so neither is declared again here.  */
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+  pub fn w32_menu_show (f: *mut frame, x: c_int, y: c_int, menuflags: c_int,
+			title: Lisp_Object, error_name: *mut *const c_char) -> Lisp_Object;
+  pub fn w32_activate_menubar (f: *mut frame);
+}
+
+/// C 7956-8026: `static struct terminal *w32_create_terminal (struct w32_display_info *dpyinfo)` -
+/// `static` in C with one call site (C 8061, inside `w32_term_init` in the remainder), so a plain
+/// `unsafe fn`.  C 7961's `&w32_redisplay_interface` is C's own `struct redisplay_interface *`,
+/// which `create_terminal`'s third parameter takes as `*mut c_void` here; C 7963's
+/// `display_info.w32` is the union member `include/termhooks.rs` 170-180 carries.
+/// **The forty-four assignments are the addresses PORTING.md 1.4 is about**: each names a `static`
+/// in C whose address C stores in a hook field, so each is `unsafe extern "C" fn` - the
+/// thirty-one that were still plain `unsafe fn` are converted by this slice - and each assignment
+/// is this unit's `hook!` cast.  Two of the forty-four carry the **field's** condition rather than
+/// C's text, because termhooks.h gates the fields (the `src/pgtkterm.rs` Deviation 60 device):
+/// termhooks.h 719-722's `HAVE_EXT_MENU_BAR` for `activate_menubar_hook` (off in this machine's
+/// arms) and termhooks.h 849-853's `HAVE_WINDOW_SYSTEM` for `free_pixmap` (termhooks.h 851).
+/// C: static struct terminal *
+/// C: w32_create_terminal (struct w32_display_info *dpyinfo)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_create_terminal (dpyinfo: *mut w32_display_info) -> *mut terminal
+{
+  let terminal: *mut terminal;                                          // C 7959
+
+  terminal = create_terminal (output_w32,
+			      &raw mut w32_redisplay_interface as *mut c_void);   // C 7961
+
+  (*terminal).display_info.w32 = dpyinfo as *mut c_void;               // C 7963
+  (*dpyinfo).terminal = terminal;                                        // C 7964
+
+  /* C 7966-7967's MSVC note, carried as C's own text at its position.  */
+  /* C: /* MSVC does not type K&R functions with no arguments correctly, and
+     C:    so we must explicitly cast them.  */  */
+
+  (*terminal).clear_frame_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_clear_frame);      // C 7968
+  (*terminal).ins_del_lines_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int),
+	     w32_ins_del_lines);                                        // C 7969
+  (*terminal).delete_glyphs_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), w32_delete_glyphs);   // C 7970
+  (*terminal).ring_bell_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_ring_bell);        // C 7971
+  (*terminal).toggle_invisible_pointer_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool),
+	     w32_toggle_invisible_pointer);                             // C 7972
+  (*terminal).update_begin_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_update_begin);     // C 7973
+  (*terminal).update_end_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_update_end);       // C 7974
+  (*terminal).read_socket_hook
+    = hook! (unsafe extern "C" fn (*mut terminal, *mut input_event) -> c_int,
+	     w32_read_socket);                                          // C 7975
+  (*terminal).frame_up_to_date_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_frame_up_to_date);   // C 7976
+  (*terminal).buffer_flipping_unblocked_hook
+    = hook! (unsafe extern "C" fn (*mut c_void),
+	     w32_buffer_flipping_unblocked_hook);                       // C 7977
+  (*terminal).defined_color_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *mut Emacs_Color, bool, bool)
+	     -> bool, w32_defined_color);                               // C 7978
+  (*terminal).query_frame_background_color
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color),
+	     w32_query_frame_background_color);                         // C 7979
+  (*terminal).query_colors
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color, c_int),
+	     w32_query_colors);                                         // C 7980
+  (*terminal).mouse_position_hook
+    = hook! (unsafe extern "C" fn (*mut *mut c_void, c_int, *mut Lisp_Object,
+				   *mut scroll_bar_part, *mut Lisp_Object, *mut Lisp_Object,
+				   *mut Time), w32_mouse_position);     // C 7981
+  (*terminal).get_focus_frame
+    = hook! (unsafe extern "C" fn (*mut c_void) -> Lisp_Object, w32_get_focus_frame);   // C 7982
+  (*terminal).focus_frame_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), w32_focus_frame);   // C 7983
+  (*terminal).frame_rehighlight_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_frame_rehighlight);   // C 7984
+  (*terminal).frame_raise_lower_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), w32_frame_raise_lower);   // C 7985
+  (*terminal).frame_visible_invisible_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool),
+	     w32_make_frame_visible_invisible);                         // C 7986
+  (*terminal).fullscreen_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32fullscreen_hook);   // C 7987
+  (*terminal).iconify_frame_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_iconify_frame);    // C 7988
+  (*terminal).set_window_size_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool, c_int, c_int),
+	     w32_set_window_size);                                      // C 7989
+  (*terminal).set_window_size_and_position_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int),
+	     w32_set_window_size_and_position);                         // C 7990
+  (*terminal).set_frame_offset_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int), w32_set_offset);   // C 7991
+  (*terminal).set_frame_alpha_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_set_frame_alpha);   // C 7992
+  (*terminal).set_new_font_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, c_int) -> Lisp_Object,
+	     w32_new_font);                                             // C 7993
+  (*terminal).set_bitmap_icon_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object) -> bool, w32_bitmap_icon);   // C 7994
+  (*terminal).implicit_set_name_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object),
+	     w32_implicitly_set_name);                                  // C 7995
+  (*terminal).menu_show_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int, Lisp_Object,
+				   *mut *const c_char) -> Lisp_Object, w32_menu_show);   // C 7996
+  /* C 7997: termhooks.h 719-722 gates this field on `HAVE_EXT_MENU_BAR`, so the assignment
+     carries the field's condition rather than C's text (the `src/pgtkterm.rs` reading).  */
+  #[cfg (feature = "have_ext_menu_bar")]
+  { (*terminal).activate_menubar_hook
+      = hook! (unsafe extern "C" fn (*mut c_void), w32_activate_menubar); }   // C 7997
+  (*terminal).popup_dialog_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object) -> Lisp_Object,
+	     w32_popup_dialog);                                         // C 7998
+  (*terminal).change_tab_bar_height_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), w32_change_tab_bar_height);   // C 7999
+  (*terminal).change_tool_bar_height_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), w32_change_tool_bar_height);   // C 8000
+  (*terminal).set_vertical_scroll_bar_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int),
+	     w32_set_vertical_scroll_bar);                              // C 8001
+  (*terminal).set_horizontal_scroll_bar_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int),
+	     w32_set_horizontal_scroll_bar);                            // C 8002
+  (*terminal).set_scroll_bar_default_width_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_set_scroll_bar_default_width);   // C 8003
+  (*terminal).set_scroll_bar_default_height_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_set_scroll_bar_default_height);   // C 8004
+  (*terminal).condemn_scroll_bars_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_condemn_scroll_bars);   // C 8005
+  (*terminal).redeem_scroll_bar_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_redeem_scroll_bar);   // C 8006
+  (*terminal).judge_scroll_bars_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_judge_scroll_bars);   // C 8007
+  (*terminal).get_string_resource_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *const c_char) -> *const c_char,
+	     w32_get_string_resource);                                  // C 8008
+  /* C 8009: termhooks.h 849-853 gates this field on `HAVE_WINDOW_SYSTEM`, so the assignment
+     carries the field's condition rather than C's text (as above).  */
+  #[cfg (feature = "have_window_system")]
+  { (*terminal).free_pixmap
+      = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void), w32_free_pixmap); }   // C 8009
+  (*terminal).delete_frame_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), w32_destroy_window);   // C 8010
+  (*terminal).delete_terminal_hook
+    = hook! (unsafe extern "C" fn (*mut terminal), w32_delete_terminal);   // C 8011
+  /* C 8012's note, carried as C's own text at its position.  */
+  /* C: /* Other hooks are NULL by default.  */  */
+
+  /* C 8014-8016's note, carried as C's own text at its position.  */
+  /* C: /* We don't yet support separate terminals on W32, so don't try to share
+     C:    keyboards between virtual terminals that are on the same physical
+     C:    terminal like X does.  */  */
+  (*terminal).kboard = allocate_kboard (Qw32 ()) as *mut c_void;        // C 8017
+  /* C 8018-8020's note, carried as C's own text at its position.  */
+  /* C: /* Don't let the initial kboard remain current longer than necessary.
+     C:    That would cause problems if a file loaded on startup tries to
+     C:    prompt in the mini-buffer.  */  */
+  if current_kboard == initial_kboard                                  // C 8021
+    { current_kboard = (*terminal).kboard as *mut kboard; }            // C 8022
+  let kb: *mut kboard = (*terminal).kboard as *mut kboard;              // C 8023
+  (*kb).reference_count += 1;                                           // C 8023
+
+  terminal                                                              // C 8025
+}
+
+/// C 8028-8042: `static void w32_delete_terminal (struct terminal *terminal)` - C 7954's forward
+/// declaration is this definition; `terminal->display_info.w32` and C 8035's `terminal->name`
+/// are the union member and the `*mut c_char` field `include/termhooks.rs` carries, and C 8031's
+/// uninitialised `dpyinfo` is initialised from C's own expression (PORTING.md 1.5).
+/// **`static` in C, but C 8011 stores its address in `delete_terminal_hook`**, so the port
+/// defines it `unsafe extern "C" fn` (PORTING.md 1.4).
+/// C: static void
+/// C: w32_delete_terminal (struct terminal *terminal)
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" fn w32_delete_terminal (terminal: *mut terminal)
+{
+  let dpyinfo: *mut w32_display_info
+    = (*terminal).display_info.w32 as *mut w32_display_info;      // C 8031
+
+  /* C 8033-8034's note, carried as C's own text at its position.  */
+  /* C: /* Protect against recursive calls.  delete_frame in
+     C:    delete_terminal calls us back when it deletes our last frame.  */  */
+  if (*terminal).name.is_null ()                                       // C 8035
+    { return; }                                                        // C 8036
+
+  block_input ();                                                       // C 8038
+
+  w32_delete_display (dpyinfo);                                         // C 8040
+  unblock_input ();                                                     // C 8041
+}

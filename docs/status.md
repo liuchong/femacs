@@ -20343,3 +20343,13 @@
   ⑧ 十门全 `rc=0`、0 失败；区间表拆为 `7866-7953`（本片）+ `7954-8414`（余项，起始行即首个未落地的 C 7954）；台账追加 **`### Slice 23 (C 7866-7953)`**。
   ⑨ 预算与清理：`build-tu` 2 发、臂读数 5 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w23`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.328 `src/w32term.c` 第 24 片（w32term lane，slice 24）：C 7954-8043 落地——终端创建与销毁：C 7954 的 `w32_delete_terminal` 前置声明（记为原文）、**`w32_create_terminal`**（C 7956-8026，44 条 hook 赋值）与 `w32_delete_terminal`（C 8028-8042）；w32term.rs 11,317 → 11,536 行（+219，2026-10-15）**：
+  ① **两条 `missing function` 退掉**（7 → **5**）：两个定义分别是终端的 `delete_frame_hook`/`delete_terminal_hook`。
+  ② **`hook!` 转换宏落入本单元**（抄 `src/pgtkterm.rs` 7032-7036）：hook 字段的类型用的是 `termhooks.h` 里的指针类型，而本单元的函数取 C 的 `struct frame *`/`struct window *`，故每条赋值按 PORTING.md 1.4 transmute 取址；**31 个本单元 `static` 助手因此放宽为 `unsafe extern "C" fn`**（`w32_query_frame_background_color`/`w32_iconify_frame` 本就 `extern "C"`）。
+  ③ 两条赋值带**字段的**条件而非 C 原文，因 termhooks.h 给字段加了门：`activate_menubar_hook`（termhooks.h 719-722 的 `#ifdef HAVE_EXT_MENU_BAR`，本机各臂均关）与 `free_pixmap`（termhooks.h 849-853 的 `#ifdef HAVE_WINDOW_SYSTEM`）——`src/pgtkterm.rs` Deviation 60 的同一装置，本片记为同一 Deviation。
+  ④ 三条用例处新声明（P-88 ①，UNVERIFIED）：keyboard.h 477 的 `allocate_kboard`、menu.h 63-65 的 `w32_menu_show`/`w32_activate_menubar`（后两者是 `src/w32fns.rs` 的定义，`include/menu.rs` 只为 frozen 臂携带）。`create_terminal`（termhooks.h 964）与 `Qw32`（`include/globals.rs` 6010）已在作用域内。
+  ⑤ 取值形状修正：C 7963 的 `display_info.w32` 是镜像写作 `*mut c_void` 的 union 成员，写入需 cast；C 8031 的读取再 cast 回 `*mut w32_display_info`；C 8023 的 `terminal->kboard->reference_count++` 按 C 的两步写（`src/pgtkterm.rs` 7191 的写法）。
+  ⑥ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数（base）20 条、0 条落在本片**（首稿两条 `E0308` 即上面两个 cast）；`have_ntgui` + `windowsnt` 臂仍 **78 条**，无一提到本片的名字。`extract-abi.py --check` `missing function` 7 → **5**，行数行 **37.1%**（11,536 : 8,414）。
+  ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `7954-8043`（本片）+ `8044-8414`（余项）；台账追加 **`### Slice 24 (C 7954-8043)`**。
+  ⑧ 预算与清理：`build-tu` 1 发、臂读数 5 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w24`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

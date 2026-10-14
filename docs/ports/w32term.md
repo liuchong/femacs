@@ -201,7 +201,8 @@ The `arm` cell says what the port does with the block.
 | 7503-7734 | `w32_make_frame_visible` (C 7503-7599), `w32_make_frame_invisible` (C 7605-7625), `w32_make_frame_visible_invisible` (C 7627-7634), `w32_iconify_frame` (C 7638-7660), `w32_free_frame_resources` (C 7665-7699), `w32_destroy_window` (C 7702-7710) and `w32_wm_set_size_hint` (C 7720-7734) | file gate (`have_ntgui`); slice 21 below |
 | 7736-7864 | the Text Cursor/Fonts banner and the hourglass/cursor family: `w32_check_font` (C 7746-7752, `GLYPH_DEBUG`), `w32_show_hourglass` (C 7758-7768), `w32_hide_hourglass` (C 7772-7783), **`w32_arrow_cursor`** (C 7787-7791), `w32_toggle_invisible_pointer` (C 7793-7804), the Image Hooks banner and `w32_free_pixmap` (C 7813-7817), `w32_initialized` (C 7824) and `w32_initialize_display_info` (C 7826-7864) | file gate (`have_ntgui`); slice 22 below |
 | 7866-7953 | the xrdb note and `w32_make_rdb` (C 7866-7918), C 7920's `extern frame_parm_handler w32_frame_parm_handlers[];` (recorded, the mirror already declares it) and **`w32_redisplay_interface`** (C 7922-7952, C's 28-entry positional initializer) | file gate (`have_ntgui`); slice 23 below |
-| 7954-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7954-8043 | C 7954's forward declaration of `w32_delete_terminal`, **`w32_create_terminal`** (C 7956-8026, its 44 hook assignments) and `w32_delete_terminal` (C 8028-8042) | file gate (`have_ntgui`); slice 24 below |
+| 8044-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1606,4 +1607,41 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> `missing function` 8 -> **7** (`missing file-scope object`
      stays 0, the `LOAD_PROC` macro row stays), the line-count row at **34.5%**
      (`11,317` vs `8,414`).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 24 (C 7954-8043)
+
+- **What it is.**  C 7954's forward declaration of `w32_delete_terminal` (recorded - Rust needs no
+  declaration before a definition), **`w32_create_terminal`** (C 7956-8026, its 44 hook
+  assignments) and `w32_delete_terminal` (C 8028-8042).  Port: 11,317 -> **11,536 lines** (+219).
+  The table's last row splits at C 8043; the next live line is C 8044's
+  `struct w32_display_info *` (`w32_term_init`).
+- **Two `missing function` rows retire** (7 -> 5): the two definitions are the terminal's own
+  hooks, and both carry C's address into `delete_terminal_hook`/`delete_frame_hook`.
+- **The `hook!` cast is this unit's** (copied from `src/pgtkterm.rs` 7032-7036): a hook field's
+  type is spelled with the pointee types `termhooks.h` has, while the port's function takes C's
+  `struct frame *`/`struct window *`, so each assignment transmutes the item's address
+  (PORTING.md 1.4).  **Thirty-one unit `static` helpers were widened to `unsafe extern "C" fn`**
+  so that their address may be stored at all (the same operation slice 23 performed for the
+  redisplay-interface table); `w32_query_frame_background_color` and `w32_iconify_frame` were
+  already `extern "C"`.
+- **Two assignments carry the *field's* condition**, not C's text, because termhooks.h gates the
+  fields: `activate_menubar_hook` (termhooks.h 719-722's `#ifdef HAVE_EXT_MENU_BAR`, off in this
+  machine's arms) and `free_pixmap` (termhooks.h 849-853's `#ifdef HAVE_WINDOW_SYSTEM`) - the
+  `src/pgtkterm.rs` Deviation 60 device, recorded here as the same deviation.
+- **Three use-site declarations** (P-88 (1), UNVERIFIED): keyboard.h 477's
+  `allocate_kboard`, menu.h 63-65's `w32_menu_show` and `w32_activate_menubar` (the last two are
+  `src/w32fns.rs`'s definitions; `include/menu.rs` carries them for the frozen arm only).
+  `create_terminal` (termhooks.h 964) and `Qw32` (`include/globals.rs` 6010) are already in scope.
+- **Value-shape fixes this slice**: C 7963's `display_info.w32` is the union member the mirror
+  spells `*mut c_void`, so the store is cast; C 8031's read of it is cast back to
+  `*mut w32_display_info`; C 8023's `terminal->kboard->reference_count++` takes C's two steps
+  (the `src/pgtkterm.rs` 7191 shape).
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **20 errors, 0 anchored in this slice's text** (the
+     first draft's two `E0308`s were the union member's two casts above).  The
+     `have_ntgui` + `windowsnt` arm stays at **78 errors**, none naming this slice's names.
+  3. `extract-abi.py --check` -> `missing function` 7 -> **5**, the line-count row at **37.1%**
+     (`11,536` vs `8,414`).
   4. The ten gates: all `rc=0`, 0 FAIL.
