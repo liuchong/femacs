@@ -1879,7 +1879,7 @@ read as the mirror's `bool` function, `SET_FRAME_VISIBLE!`, `ShowWindow`, `updat
 (`FRAME_TOTAL_COLS!` for the frame.h 1035 writer, `SET_TEXT_POS!` for dispextern.h 291-292's
 two-assignment expansion; the `src/androidfns.rs` 2963-2974 / `src/haikufns.rs` 449-454 device).
 
-### Evidence (slice 14, the final revision: 12,062 Rust lines)
+### Evidence (slice 14, the final revision: 12,064 Rust lines)
 
 **① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run.
 
@@ -1899,7 +1899,7 @@ flag-table correction introduced and this slice's reading caught).
 
 **③ `extract-abi.py --check`.**  160 rows → **157**: the two `missing subr` rows
 (`Fx_show_tip`, `Fx_hide_tip`) retire, and the **line-count drift row disappears** - the target is
-now 12,062 lines against the reference's 12,488, inside the checker's 5% window (the last reading
+now 12,064 lines against the reference's 12,488, inside the checker's 5% window (the last reading
 was 6.5%).  This is the first time this file has no drift row.
 
 **④ The range table and the dead-file gate.**  The `7809-12488` remainder row splits into
