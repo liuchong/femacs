@@ -11017,3 +11017,182 @@ DEFUN! ("x-open-connection", Fx_open_connection, Sx_open_connection,
 
   return Qnil ();
 });
+
+/// C 7246-7263: `x-close-connection` - C 7253-7254's reference-count test and its `error`, then
+/// C 7256-7260's `block_input`/`image_destroy_all_bitmaps`/`w32_delete_display`/`unblock_input`.
+/// C's `image_destroy_all_bitmaps` parameter is `dispextern.h` 3741's `Display_Info *`; each unit
+/// declares the callee with its own display record (the `src/pgtkterm.rs` 6534-6544 device), so
+/// the declaration at the end of this slice names `w32_display_info`.
+/// C: DEFUN ("x-close-connection", Fx_close_connection, Sx_close_connection, 1, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-close-connection", Fx_close_connection, Sx_close_connection, 1, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+
+  if (*dpyinfo).reference_count > 0
+    { error (c"Display still has frames on it".as_ptr ()); }
+
+  block_input ();
+  image_destroy_all_bitmaps (dpyinfo);
+
+  w32_delete_display (dpyinfo);
+  unblock_input ();
+
+  return Qnil ();
+});
+
+/// C 7265-7276: `x-display-list` - C's `(void)` argument list is the port's `()`, and C 7272's
+/// `for (wdi = x_display_list; wdi; wdi = wdi->next)` is the file's `while ! ….is_null ()` walk
+/// (the mirror carries `x_display_list` as a `static mut`, C 281/287's reading).
+/// C: DEFUN ("x-display-list", Fx_display_list, Sx_display_list, 0, 0, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (void)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-list", Fx_display_list, Sx_display_list, 0, 0, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(),
+	{
+  let mut result: Lisp_Object = Qnil ();
+  let mut wdi: *mut w32_display_info;
+
+  wdi = x_display_list;
+  while ! wdi.is_null ()
+    {
+      result = Fcons (XCAR ((*wdi).name_list_element), result);
+      wdi = (*wdi).next;
+    }
+
+  return result;
+});
+
+/// C 7278-7283: `x-synchronize` - two unused parameters and a literal `Qnil`.
+/// C: DEFUN ("x-synchronize", Fx_synchronize, Sx_synchronize, 1, 2, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object on, Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-synchronize", Fx_synchronize, Sx_synchronize, 1, 2, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(on: Lisp_Object, display: Lisp_Object),
+	{
+  return Qnil ();
+});
+
+/* C 7291-7388 is `#if 0 /* TODO : port window properties to W32 */` - C's own dead text, which
+   the port keeps as C's own text (the C 1278-1417 reading of its own `#if 0` region): the three
+   `DEFUN`s `x-change-window-property`, `x-delete-window-property` and `x-window-property` over
+   Xlib's `XInternAtom`/`XChangeProperty`/`XGetWindowProperty`, none of which this port has (no
+   Xlib mirror, and C's own preprocessor never compiles the block - which is why
+   `extract-abi.py`'s checklist carries no subr row for the three: the `--check` reading of this
+   file names no `missing subr` for them).
+
+   #if 0 /* TODO : port window properties to W32 */
+   
+   DEFUN ("x-change-window-property", Fx_change_window_property,
+          Sx_change_window_property, 2, 6, 0,
+          doc: /* SKIP: real doc in xfns.c.  */)
+     (Lisp_Object prop, Lisp_Object value, Lisp_Object frame,
+      Lisp_Object type, Lisp_Object format, Lisp_Object outer_p)
+   {
+     struct frame *f = decode_window_system_frame (frame);
+     Atom prop_atom;
+   
+     CHECK_STRING (prop);
+     CHECK_STRING (value);
+   
+     block_input ();
+     prop_atom = XInternAtom (FRAME_W32_DISPLAY (f), SDATA (prop), False);
+     XChangeProperty (FRAME_W32_DISPLAY (f), FRAME_W32_WINDOW (f),
+   		   prop_atom, XA_STRING, 8, PropModeReplace,
+   		   SDATA (value), SCHARS (value));
+   
+     /* Make sure the property is set when we return.  */
+     XFlush (FRAME_W32_DISPLAY (f));
+     unblock_input ();
+   
+     return value;
+   }
+   
+   
+   DEFUN ("x-delete-window-property", Fx_delete_window_property,
+          Sx_delete_window_property, 1, 2, 0,
+          doc: /* SKIP: real doc in xfns.c.  */)
+     (Lisp_Object prop, Lisp_Object frame)
+   {
+     struct frame *f = decode_window_system_frame (frame);
+     Atom prop_atom;
+   
+     CHECK_STRING (prop);
+     block_input ();
+     prop_atom = XInternAtom (FRAME_W32_DISPLAY (f), SDATA (prop), False);
+     XDeleteProperty (FRAME_W32_DISPLAY (f), FRAME_W32_WINDOW (f), prop_atom);
+   
+     /* Make sure the property is removed when we return.  */
+     XFlush (FRAME_W32_DISPLAY (f));
+     unblock_input ();
+   
+     return prop;
+   }
+   
+   
+   DEFUN ("x-window-property", Fx_window_property, Sx_window_property,
+          1, 6, 0,
+          doc: /* SKIP: real doc in xfns.c.  */)
+     (Lisp_Object prop, Lisp_Object frame, Lisp_Object type,
+      Lisp_Object source, Lisp_Object delete_p, Lisp_Object vector_ret_p)
+   {
+     struct frame *f = decode_window_system_frame (frame);
+     Atom prop_atom;
+     int rc;
+     Lisp_Object prop_value = Qnil;
+     char *tmp_data = NULL;
+     Atom actual_type;
+     int actual_format;
+     unsigned long actual_size, bytes_remaining;
+   
+     CHECK_STRING (prop);
+     block_input ();
+     prop_atom = XInternAtom (FRAME_W32_DISPLAY (f), SDATA (prop), False);
+     rc = XGetWindowProperty (FRAME_W32_DISPLAY (f), FRAME_W32_WINDOW (f),
+   			   prop_atom, 0, 0, False, XA_STRING,
+   			   &actual_type, &actual_format, &actual_size,
+   			   &bytes_remaining, (unsigned char **) &tmp_data);
+     if (rc == Success)
+       {
+         int size = bytes_remaining;
+   
+         XFree (tmp_data);
+         tmp_data = NULL;
+   
+         rc = XGetWindowProperty (FRAME_W32_DISPLAY (f), FRAME_W32_WINDOW (f),
+   			       prop_atom, 0, bytes_remaining,
+   			       False, XA_STRING,
+   			       &actual_type, &actual_format,
+   			       &actual_size, &bytes_remaining,
+   			       (unsigned char **) &tmp_data);
+         if (rc == Success)
+   	prop_value = make_string (tmp_data, size);
+   
+         XFree (tmp_data);
+       }
+   
+     unblock_input ();
+   
+     return prop_value;
+   
+     return Qnil;
+   }
+   
+   #endif /* TODO */
+*/
+
+/// C 7257's reader, declared the way `src/pgtkterm.rs` 6534-6544 declares its own copy (C's
+/// `Display_Info` is `dispextern.h` 3741's name for the unit's display record).
+/// C: extern void image_destroy_all_bitmaps (Display_Info *);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn image_destroy_all_bitmaps (dpyinfo: *mut w32_display_info);
+}

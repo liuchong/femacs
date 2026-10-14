@@ -212,7 +212,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 6714-6915 | C 6714-6915: the seventeen display-info `DEFUN`s (`xw-color-defined-p` through `x-display-save-under`) - slice 8 | file gate |
 | 6917-7106 | C 6917-7106: `w32_monitor_enum`, `w32_display_monitor_attributes_list`, `w32_display_monitor_attributes_list_fallback` and the `w32-display-monitor-attributes-list` `DEFUN` - slice 9 | file gate |
 | 7108-7244 | C 7108-7244: the `set-message-beep` `DEFUN`, `w32_display_info_for_name` and the `x-open-connection` `DEFUN` - slice 10 | file gate |
-| 7246-12488 | **the remainder of the file** (C 7246 `x-close-connection` onward: C 7265 `x-display-list`, C 7293 `x-change-window-property`, C 7394 `compute_tip_xy`, C 9581 `w32_display_info_for_name`'s neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7246-7388 | C 7246-7388: the `x-close-connection`, `x-display-list` and `x-synchronize` `DEFUN`s, then C 7291-7388's `#if 0 /* TODO : port window properties to W32 */` block kept as C's own text - slice 11 | file gate; the `#if 0` region is dead in every configuration |
+| 7390-12488 | **the remainder of the file** (C 7390's Tool-tips banner onward: C 7394 `compute_tip_xy`, C 7418 `w32_show_tip`, C 7663 `w32_hide_tip`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1649,6 +1650,76 @@ before the split).
 identifiers, missing: []** (the two `Sset_message_beep`/`Sx_open_connection` subr statics the
 `DEFUN!` macro generates are the only names the sweep cannot see).  `validate_x_resource_name`,
 `fatal` and the five `MB_*` ids are declared by this slice itself.
+
+## Slice 11 (C 7246-7388)
+
+**Scope and the stop.**  `x-close-connection` (C 7246-7263), `x-display-list` (C 7265-7276),
+`x-synchronize` (C 7278-7283), then C 7291-7388's
+`#if 0 /* TODO : port window properties to W32 */` block.  The stop is C 7390's Tool-tips banner
+(C 7389 blank) - the next subject.
+
+**What the item carries.**  The three live `DEFUN`s: C 7253's reference-count test and its `error`
+(C 7254 is `error`'s own format), C 7256-7260's `block_input` / `image_destroy_all_bitmaps` /
+`w32_delete_display` / `unblock_input`; C 7269-7275's `x_display_list` walk with
+`name_list_element`/`XCAR`/`Fcons` (C 7272's `for` becomes the file's `while ! … .is_null ()`
+shape); and C 7282's literal `Qnil`.  `w32_delete_display` (mirror 1126-1129) and `x_display_list`
+(mirror 281-287) are declared by `include/w32term.rs`; `image_destroy_all_bitmaps` is not, so this
+slice declares it with **this unit's** display record - C's parameter is `dispextern.h` 3741's
+`Display_Info *`, and each unit spells that with its own record (the `src/pgtkterm.rs` 6534-6544
+device).
+
+**The `#if 0` block is kept as C's own text.**  C 7291-7388 (three window-property `DEFUN`s over
+`XInternAtom`/`XChangeProperty`/`XGetWindowProperty`) never compiles, and this port has no Xlib, so
+the block is carried inside a Rust block comment with C's text verbatim - the device C 1278-1417 and
+C 1552-1583 already use in this file (Rust block comments nest, so C's own inner `/* … */` runs do
+not end the region).  Neither `--check` nor the checklist expects the three subrs, because C's
+`#if 0` keeps them out of `syms_of_w32fns`' `defsubr` list (the reading below names no
+`missing subr` for them).
+
+### Evidence (slice 11, the final revision: 11,198 Rust lines)
+
+**① The frozen configuration.**  `cargo run -q -p xtask -- build-tu src/w32fns.c` → `built
+src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, object **336 bytes**.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - identical to slice 10,
+so the three live items add no error and no member gap; the four references into this slice's
+region (11026/11053/11077/11197) are `warning: unused doc comment` on the `DEFUN!` invocations and
+on the `image_destroy_all_bitmaps` declaration note.  One probe run.
+
+**③ `extract-abi.py --check`.**  172 rows → **169**: the three `missing subr` rows for
+`Fx_close_connection`, `Fx_display_list` and `Fx_synchronize` retire and **no row is added** (the
+`#if 0` block contributes none, as above).  The drift row reads **10.3%**
+(`C 12488 vs Rust 11198`), down from 11.8%.
+
+**④ The range table and the dead-file gate.**  The `7246-12488` remainder row splits into
+`7246-7388` (this slice, its `#if 0` half marked "dead in every configuration") and `7390-12488`;
+`python3 tools/check-dead-file-coverage.py` reads **160 range row(s) cover src/w32fns.c (12488
+lines; 107 blank line(s) between blocks need no row)**, `0 failure(s)` (159 rows / 106 blanks
+before the split).
+
+**⑤ The name sweep, and one limitation of the reading itself.**  Over this slice's region
+(`src/w32fns.rs` 11019-11198) the sweep reports **36 capitalized identifiers, five "missing"**:
+`FRAME_W32_DISPLAY`, `Xlib` and the three `Sx_*` subr names of the dead `DEFUN`s.  All five are
+**inside the `#if 0` text this slice carries as a comment** - and the sweep's comment scanner is
+naive: it ends a block comment at the first `*/`, while Rust's own block comments nest (measured:
+the comment depth at the C 1278-1417 region's `FRAME_W32_DISPLAY` site, `src/w32fns.rs` 2260, is
+**2**).  So the five are an artifact of the sweep, not gaps; the sweep's results must be read that
+way for any region that carries a nested-comment block.  Everything the *live* part of this slice
+names resolves (`w32_delete_display`, `x_display_list`, `image_destroy_all_bitmaps` - declared by
+this slice - `block_input`/`unblock_input`, `check_x_display_info`, `Fcons`, `XCAR`).
+
+### Deviations (slice 11)
+
+- **The `#if 0` block is text, not code** (C 7291-7388), on the C 1278-1417 precedent; the file's
+  `feature = "have_ntgui"` arm therefore never compiles the three window-property `DEFUN`s, exactly
+  as C never does.
+- **`image_destroy_all_bitmaps` is declared here** rather than in `include/dispextern.rs` (whose
+  3741 prototype the mirror does not yet carry, the ledger's owed item): the declaration names
+  `*mut w32_display_info`, the unit's own record for C's `Display_Info *`.
+- **The name sweep's nested-comment limitation** is recorded above and in this ledger rather than
+  fixed: it is a /tmp reading, not a gate, so its false positives are triaged by hand.
+- **Not claimed.**  No run evidence: no connection is closed, no display list is built and no
+  property is set on this machine; the arm reading is compile-level and the sweep textual.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
