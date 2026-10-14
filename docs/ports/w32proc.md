@@ -1738,3 +1738,44 @@ recorded (`c185e6fa`), re-measured here.
     reading).  `Vw32_valid_locale_ids`/`Vw32_valid_codepages` are the *other* case - C's own
     `static`s, which slice 25 declared and C 4900-4901 protect - and they are **not** in the
     mirror.
+
+## Slice 28 (2026-10-14, status 4.307): the `DEFUN!` doc-slot correction (C 4323-4903)
+
+**What this round is, and why it exists.**  The previous round read the file's checklist as
+complete (0 `- missing` rows) and stopped there.  The *file-level* `--check` still **FAILed**: 18
+`subr F…: docstring differs` rows.  Every `DEFUN!` this lane wrote carried C's *columns* in the
+doc slot (`doc: "       doc: /* … */)  "`, the shape slices 1-24 chose) instead of the docstring
+**value** make-docfile stores - the shape `src/w32fns.rs`'s passing units use ("Return the type of
+an MS-Windows PROGRAM.\n\n…").  The `- missing` count could never see it, because a differing
+docstring is not a missing name: the row class only appears in the `FAIL` body.  **Reading
+correction for the following lanes: Evidence ④ must quote the `--check` verdict, not just the
+`- missing` count** (gtkutil.c, w32term.c and the android units all fail on rows of this kind).
+
+**The fix.**  Seventeen slots were rewritten by removing C's columns, keeping the remainder (their
+values already matched C's, since the leading `       doc: /* ` and the trailing `*/)  ` were the
+whole difference).  The eighteenth, `Fw32_application_type` (slice 19's), was **rebuilt from
+C 4086-4108**, because its literal was not merely column-shifted: it was truncated mid-docstring
+(its last line read "…ANSI codepage, as" where C continues "such programs cannot be invoked by
+Emacs anyway.") and it carried `\\\"COMSPEC\\\"` where make-docfile's own normalization
+(`tools/cinventory.py`'s `doc_comment_value`: leading/trailing whitespace dropped, `\"` -> `"`)
+wants a plain `"COMSPEC"`.  The replacement literal is generated from the C text through that same
+normalization, so the two sides cannot drift again.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **35 errors (25 `E0428` + 9 `E0425` + 1 `compile_error!`), 0
+anchored in this unit** - unchanged, as a doc-slot text change should leave it.
+**Evidence ③ - the name sweep.**  Not re-run: no name changed this round.
+**Evidence ④ - the `--check` reading.**  **`OK emacs/src/w32proc.c -> femacs/src/w32proc.rs`** -
+the 18 docstring rows are gone and the file now passes the checker outright.  The port is 7569
+lines (unchanged); the drift row stays inside the 0.55 tolerance row.
+
+**Deviations (this slice's additions).**
+
+101. **The `DEFUN!` doc slot carries the docstring *value*.**  C's comment is the source; the
+     slot's literal is that value with the escapes a Rust string needs (`\n`, `\"`), i.e. what
+     `make-docfile` would store - not C's source columns.  The 17 rewritten slots keep the trailing
+     two spaces C's comment has (the checker normalizes them away on both sides, the
+     `src/w32fns.rs` slots drop them; both spellings pass, and the lane keeps C's text).
+

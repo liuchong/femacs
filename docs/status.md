@@ -20147,3 +20147,12 @@
   ⑤ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表最后一行（`4762-4903`）落地，表头改为"C 1-4903 连续覆盖"——**C 1-4903 全部有主，无余项**。
   ⑥ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 27 (2026-10-14, status 4.306): C 4762-4903 - the file is complete`** 段（偏差 99-100）；预算与清理：`build-tu` 2 发、`probe` 2 发、名字扫描 1 次、`--check` 1 发、`--all` 1 发（3 分钟）、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），全部记录/常量仍 UNVERIFIED。**下一 lane 起点**：`src/gtkutil.c`（自 C 2282 起，4,472 C 行）或 `src/w32term.c`（自 C 2716 起，5,699 C 行），按 `docs/ports/` 既有台账接手。
+
+- **4.307 `src/w32proc.c` 第 28 片（w32proc lane，slice 28，**文件级 `--check` 真正通过**）：18 个 `DEFUN!` 的 doc 槽改为 make-docfile 语义的 *docstring 值*（此前带 C 的原列 `doc: "       doc: /* … */)  "`）——其中 17 个仅去掉列前缀/后缀，`Fw32_application_type`（slice 19 所写）按 C 4086-4108 重建（原字面量在 docstring 中途被截断，且 `\"COMSPEC\"` 转义被写坏）；w32proc.rs 仍 7,569 行（2026-10-14）**：
+  ① 本片落的改动：17 个 doc 槽去列 + 1 个按 C 文本经 `tools/cinventory.py` 的 `doc_comment_value`（去首尾空白、`\"`→`"`）重新生成字面量；def 值与本树 `src/w32fns.rs` 的通过拼法一致。
+  ② 读数：**`build-tu`（冻结）exit 0、对象 336 字节**；**`probe` 35 条 = 25 `E0428` + 9 `E0425` + 1 `compile_error!`，无一条落在本单元**。
+  ③ **`extract-abi.py --check` → `OK emacs/src/w32proc.c -> femacs/src/w32proc.rs`**：18 条 `subr …: docstring differs` 清零，本文件**整体通过检查器**（不再是"只有 0 条 missing 行"）；漂移行仍在 0.55 容差内。
+  ④ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**。
+  ⑤ **读数方式纠正（写给后续 lane）**：证据 ④ 必须引用 `--check` 的**判定行**，不能只数 `- missing` 行——docstring/常量/宏体/多余符号这类行只出现在 FAIL 明细里，`- missing` 计数看不到。全树 `--all` 现状即：**590 文件 → 583 done / 0 in progress / 7 failing**，7 个 failing 为 `src/android.c`、`src/androidterm.c`、`src/androidvfs.c`、`src/gtkutil.c`、`src/w32.c`、`src/w32proc.c`（本片已修，待下次 `--all` 复测）、`src/w32term.c`。
+  ⑥ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 28 (…, status 4.307): the DEFUN! doc-slot correction`** 段（偏差 101）；预算与清理：`build-tu` 1 发、`probe` 1 发、`--check` 4 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w43`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 记录/常量仍 UNVERIFIED。**下一目标**（按剩余量排序）：`src/w32term.c`（91 个缺函数 + 6 个文件级对象）、`src/gtkutil.c`、`src/android*.c`，以及 `src/w32.c` 的 1 条 token 行（`null` 家族 9:8）。

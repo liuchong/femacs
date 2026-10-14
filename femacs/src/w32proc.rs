@@ -6070,9 +6070,9 @@ unsafe extern "C" {
 /// C:   (Lisp_Object filename)
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-short-file-name", Fw32_short_file_name, Sw32_short_file_name, 1, 1, 0,
-	doc: "       doc: /* Return the short file name version (8.3) of the full path of FILENAME.
+	doc: "Return the short file name version (8.3) of the full path of FILENAME.
 If FILENAME does not exist, return nil.
-All path elements in FILENAME are converted to their short names.  */)  ",
+All path elements in FILENAME are converted to their short names.  ",
 	(filename: Lisp_Object),
 	{
   let mut shortname: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];   // C 3979
@@ -6104,9 +6104,9 @@ All path elements in FILENAME are converted to their short names.  */)  ",
 /// C:   (Lisp_Object filename)
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-long-file-name", Fw32_long_file_name, Sw32_long_file_name, 1, 1, 0,
-	doc: "       doc: /* Return the long file name version of the full path of FILENAME.
+	doc: "Return the long file name version of the full path of FILENAME.
 If FILENAME does not exist, return nil.
-All path elements in FILENAME are converted to their long names.  */)  ",
+All path elements in FILENAME are converted to their long names.  ",
 	(filename: Lisp_Object),
 	{
   let mut longname: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];   // C 4005
@@ -6154,13 +6154,13 @@ All path elements in FILENAME are converted to their long names.  */)  ",
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-set-process-priority", Fw32_set_process_priority, Sw32_set_process_priority,
 	2, 2, 0,
-	doc: "       doc: /* Set the priority of PROCESS to PRIORITY.
+	doc: "Set the priority of PROCESS to PRIORITY.
 If PROCESS is nil, the priority of Emacs is changed, otherwise the
 priority of the process whose pid is PROCESS is changed.
 PRIORITY should be one of the symbols high, normal, or low;
 any other symbol will be interpreted as normal.
 
-If successful, the return value is t, otherwise nil.  */)  ",
+If successful, the return value is t, otherwise nil.  ",
 	(process: Lisp_Object, priority: Lisp_Object),
 	{
   let mut proc_handle: HANDLE = GetCurrentProcess ();                 // C 4043
@@ -6238,27 +6238,7 @@ unsafe extern "system" {
 /// C:      (Lisp_Object program)
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-application-type", Fw32_application_type, Sw32_application_type, 1, 1, 0,
-	doc: "
-Knowing the type of an executable could be useful for formatting
-file names passed to it or for quoting its command-line arguments.
-
-PROGRAM should specify an executable file, including the extension.
-
-The value is one of the following:
-
-`dos'        -- a DOS .com program or some other non-PE executable
-`cygwin'     -- a Cygwin program that depends on Cygwin DLL
-`msys'       -- an MSYS 1.x or MSYS2 program
-`w32-native' -- a native Windows application
-`unknown'    -- a file that doesn't exist, or cannot be open, or whose
-                name is not encodable in the current ANSI codepage.
-
-Note that for .bat and .cmd batch files the function returns the type
-of their command interpreter, as specified by the \\\"COMSPEC\\\"
-environment variable.
-
-This function returns `unknown' for programs whose file names
-include characters not supported by the current ANSI codepage, as  ",
+	doc: "Return the type of an MS-Windows PROGRAM.\n\nKnowing the type of an executable could be useful for formatting\nfile names passed to it or for quoting its command-line arguments.\n\nPROGRAM should specify an executable file, including the extension.\n\nThe value is one of the following:\n\n`dos'        -- a DOS .com program or some other non-PE executable\n`cygwin'     -- a Cygwin program that depends on Cygwin DLL\n`msys'       -- an MSYS 1.x or MSYS2 program\n`w32-native' -- a native Windows application\n`unknown'    -- a file that doesn't exist, or cannot be open, or whose\n                name is not encodable in the current ANSI codepage.\n\nNote that for .bat and .cmd batch files the function returns the type\nof their command interpreter, as specified by the \"COMSPEC\"\nenvironment variable.\n\nThis function returns `unknown' for programs whose file names\ninclude characters not supported by the current ANSI codepage, as\nsuch programs cannot be invoked by Emacs anyway.",
 	(program: Lisp_Object),
 	{
   let mut is_dos_app: c_int = 0;                                     // C 4111
@@ -6513,7 +6493,7 @@ pub unsafe extern "C" fn nl_langinfo (item: nl_item) -> *mut c_char
 /// C:   (Lisp_Object lcid, Lisp_Object longform)
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-locale-info", Fw32_get_locale_info, Sw32_get_locale_info, 1, 2, 0,
-	doc: "       doc: /* Return information about the Windows locale LCID.
+	doc: "Return information about the Windows locale LCID.
 By default, return a three letter locale code which encodes the default
 language as the first two characters, and the country or regional variant
 as the third letter.  For example, ENU refers to `English (United States)',
@@ -6524,7 +6504,7 @@ name is returned, e.g. `English (United States)' instead; if LONGFORM
 is a number, it is interpreted as an LCTYPE constant and the corresponding
 locale information is returned.
 
-If LCID (a 16-bit number) is not a valid locale, the result is nil.  */)  ",
+If LCID (a 16-bit number) is not a valid locale, the result is nil.  ",
 	(lcid: Lisp_Object, longform: Lisp_Object),
 	{
   let mut got_abbrev: c_int;                                        // C 4252
@@ -6583,9 +6563,9 @@ If LCID (a 16-bit number) is not a valid locale, the result is nil.  */)  ",
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-current-locale-id", Fw32_get_current_locale_id, Sw32_get_current_locale_id,
 	0, 0, 0,
-	doc: "       doc: /* Return Windows locale id for current locale setting.
+	doc: "Return Windows locale id for current locale setting.
 This is a numerical value; use `w32-get-locale-info' to convert to a
-human-readable form.  */)  ",
+human-readable form.  ",
 	(),
 	{
   return make_fixnum (GetThreadLocale () as EMACS_INT);             // C 4302
@@ -6668,9 +6648,9 @@ unsafe extern "system" fn enum_locale_fn (localeNum: LPTSTR) -> BOOL
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-valid-locale-ids", Fw32_get_valid_locale_ids, Sw32_get_valid_locale_ids,
 	0, 0, 0,
-	doc: "       doc: /* Return list of all valid Windows locale ids.
+	doc: "Return list of all valid Windows locale ids.
 Each id is a numerical value; use `w32-get-locale-info' to convert to a
-human-readable form.  */)  ",
+human-readable form.  ",
 	(),
 	{
   Vw32_valid_locale_ids = Qnil ();                                   // C 4342
@@ -6693,11 +6673,11 @@ human-readable form.  */)  ",
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-default-locale-id", Fw32_get_default_locale_id, Sw32_get_default_locale_id,
 	0, 1, 0,
-	doc: "       doc: /* Return Windows locale id for default locale setting.
+	doc: "Return Windows locale id for default locale setting.
 By default, the system default locale setting is returned; if the optional
 parameter USERP is non-nil, the user default locale setting is returned.
 This is a numerical value; use `w32-get-locale-info' to convert to a
-human-readable form.  */)  ",
+human-readable form.  ",
 	(userp: Lisp_Object),
 	{
   if NILP (userp)                                                    // C 4359
@@ -6715,8 +6695,8 @@ human-readable form.  */)  ",
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-set-current-locale", Fw32_set_current_locale, Sw32_set_current_locale,
 	1, 1, 0,
-	doc: "       doc: /* Make Windows locale LCID be the current locale setting for Emacs.
-If successful, the new locale id is returned, otherwise nil.  */)  ",
+	doc: "Make Windows locale LCID be the current locale setting for Emacs.
+If successful, the new locale id is returned, otherwise nil.  ",
 	(lcid: Lisp_Object),
 	{
   CHECK_FIXNUM (lcid);                                               // C 4370
@@ -6769,7 +6749,7 @@ unsafe extern "system" fn enum_codepage_fn (codepageNum: LPTSTR) -> BOOL
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-valid-codepages", Fw32_get_valid_codepages, Sw32_get_valid_codepages,
 	0, 0, 0,
-	doc: "       doc: /* Return list of all valid Windows codepages.  */)  ",
+	doc: "Return list of all valid Windows codepages.  ",
 	(),
 	{
   Vw32_valid_codepages = Qnil ();                                    // C 4404
@@ -6788,7 +6768,7 @@ DEFUN! ("w32-get-valid-codepages", Fw32_get_valid_codepages, Sw32_get_valid_code
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-console-codepage", Fw32_get_console_codepage, Sw32_get_console_codepage,
 	0, 0, 0,
-	doc: "       doc: /* Return current Windows codepage for console input.  */)  ",
+	doc: "Return current Windows codepage for console input.  ",
 	(),
 	{
   return make_fixnum (GetConsoleCP () as EMACS_INT);                 // C 4418
@@ -6805,9 +6785,9 @@ DEFUN! ("w32-get-console-codepage", Fw32_get_console_codepage, Sw32_get_console_
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-set-console-codepage", Fw32_set_console_codepage, Sw32_set_console_codepage,
 	1, 1, 0,
-	doc: "       doc: /* Make Windows codepage CP be the codepage for Emacs tty keyboard input.
+	doc: "Make Windows codepage CP be the codepage for Emacs tty keyboard input.
 This codepage setting affects keyboard input in tty mode.
-If successful, the new CP is returned, otherwise nil.  */)  ",
+If successful, the new CP is returned, otherwise nil.  ",
 	(cp: Lisp_Object),
 	{
   CHECK_FIXNUM (cp);                                                 // C 4429
@@ -6830,7 +6810,7 @@ If successful, the new CP is returned, otherwise nil.  */)  ",
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-console-output-codepage", Fw32_get_console_output_codepage,
 	Sw32_get_console_output_codepage, 0, 0, 0,
-	doc: "       doc: /* Return current Windows codepage for console output.  */)  ",
+	doc: "Return current Windows codepage for console output.  ",
 	(),
 	{
   return make_fixnum (GetConsoleOutputCP () as EMACS_INT);           // C 4446
@@ -6847,9 +6827,9 @@ DEFUN! ("w32-get-console-output-codepage", Fw32_get_console_output_codepage,
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-set-console-output-codepage", Fw32_set_console_output_codepage,
 	Sw32_set_console_output_codepage, 1, 1, 0,
-	doc: "       doc: /* Make Windows codepage CP be the codepage for Emacs console output.
+	doc: "Make Windows codepage CP be the codepage for Emacs console output.
 This codepage setting affects display in tty mode.
-If successful, the new CP is returned, otherwise nil.  */)  ",
+If successful, the new CP is returned, otherwise nil.  ",
 	(cp: Lisp_Object),
 	{
   CHECK_FIXNUM (cp);                                                 // C 4457
@@ -6881,13 +6861,13 @@ If successful, the new CP is returned, otherwise nil.  */)  ",
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-codepage-charset", Fw32_get_codepage_charset, Sw32_get_codepage_charset,
 	1, 1, 0,
-	doc: "       doc: /* Return charset ID corresponding to codepage CP.
+	doc: "Return charset ID corresponding to codepage CP.
 Returns nil if the codepage is not valid or its charset ID could
 not be determined.
 
 Note that this function is only guaranteed to work with ANSI
 codepages; most console codepages are not supported and will
-yield nil.  */)  ",
+yield nil.  ",
 	(cp: Lisp_Object),
 	{
   let mut info: CHARSETINFO = core::mem::zeroed ();                  // C 4480
@@ -6931,8 +6911,8 @@ macro_rules! HIWORD {
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-valid-keyboard-layouts", Fw32_get_valid_keyboard_layouts,
 	Sw32_get_valid_keyboard_layouts, 0, 0, 0,
-	doc: "       doc: /* Return list of Windows keyboard languages and layouts.
-The return value is a list of pairs of language id and layout id.  */)  ",
+	doc: "Return list of Windows keyboard languages and layouts.
+The return value is a list of pairs of language id and layout id.  ",
 	(),
 	{
   let mut num_layouts: c_int
@@ -6967,8 +6947,8 @@ The return value is a list of pairs of language id and layout id.  */)  ",
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-get-keyboard-layout", Fw32_get_keyboard_layout, Sw32_get_keyboard_layout,
 	0, 0, 0,
-	doc: "       doc: /* Return current Windows keyboard language and layout.
-The return value is the cons of the language id and the layout id.  */)  ",
+	doc: "Return current Windows keyboard language and layout.
+The return value is the cons of the language id and the layout id.  ",
 	(),
 	{
   let kl: HKL = GetKeyboardLayout (dwWindowsThreadId);               // C 4531
@@ -6991,9 +6971,9 @@ The return value is the cons of the language id and the layout id.  */)  ",
 #[cfg (feature = "windowsnt")]
 DEFUN! ("w32-set-keyboard-layout", Fw32_set_keyboard_layout, Sw32_set_keyboard_layout,
 	1, 1, 0,
-	doc: "       doc: /* Make LAYOUT be the current keyboard layout for Emacs.
+	doc: "Make LAYOUT be the current keyboard layout for Emacs.
 The keyboard layout setting affects interpretation of keyboard input.
-If successful, the new layout id is returned, otherwise nil.  */)  ",
+If successful, the new layout id is returned, otherwise nil.  ",
 	(layout: Lisp_Object),
 	{
   let mut kl: HKL;                                                   // C 4545
