@@ -2067,3 +2067,269 @@ unsafe fn start_wait_objects (p: *mut wait_objects_info, nCount: DWORD,
     }
   return 0;                                                           // C 1298
 }
+
+/* C 50's `<windows.h>`: `WAIT_ABANDONED`, the base value the `WAIT_ABANDONED_0` above is computed
+   from - `<winbase.h>` spells both, and C 1314 compares a `WaitForMultipleObjects` result against
+   the base one here.  Like the five values above it is not in any mirror of this unit's graph, so
+   it stands at the use site with the `UNVERIFIED` mark the acquisition note gives every Windows
+   name on this machine (P-88 ①).  */
+/// C: #define WAIT_ABANDONED 0x00000080
+#[cfg (feature = "windowsnt")]
+pub const WAIT_ABANDONED: DWORD = 0x00000080;
+
+/* C 1301-1511: the pool's four control functions - C 1301-1347's `stop_wait_objects`, C
+   1349-1437's `end_wait_and_return`, C 1439-1483's `shrink_wait_pool` and C 1485-1511's
+   `free_wait_pool`.  C 1513's `wait_for_objects` opens the next slice.  */
+
+/// C 1301-1347: `static int stop_wait_objects (wait_objects_info *p)` - C 1306-1308's
+/// `timeout_event` signal, C 1313's `WaitForMultipleObjects (p->nt, p->hs, TRUE, 20)`, C 1314-1315's
+/// `WAIT_FAILED`/`WAIT_ABANDONED` guard, C 1319-1331's timeout branch with its dead-thread scan,
+/// C 1336-1342's `errcode` scan and C 1344-1345's `ResetEvent`.  C's three `int` returns of the
+/// `WFO_FAILED` macro are `as c_int` (the C 1134 conversion, Deviations 39).
+/// C: static int
+/// C: stop_wait_objects (wait_objects_info *p)
+#[cfg (feature = "windowsnt")]
+unsafe fn stop_wait_objects (p: *mut wait_objects_info) -> c_int
+{
+  /* Ensure that all worker threads have completed their wait and are in
+     the ready state.  */
+  /* Set timeout_event to tell all worker threads stop waiting.  */      // C 1306
+  if SetEvent (wait_pool.timeout_event) == 0                            // C 1307
+    { return WFO_FAILED as c_int; }                                     // C 1308
+  /* Wait for all the used worker threads to signal wait_ready.  This
+     typically takes no more than a few dozen microseconds, so a
+     timeout indicates that an error has occurred.  */
+  let result: DWORD = WaitForMultipleObjects ((*p).nt, (*p).hs.as_mut_ptr (),    // C 1313
+                                              TRUE, 20);
+  if result == WAIT_FAILED || result == WAIT_ABANDONED                   // C 1314
+    { return WFO_FAILED as c_int; }                                     // C 1315
+  /* Timeout means there exists a thread exit abnormally.  Since the
+     WAIT_FAILED error in the worker threads signals wait_ready, this
+     can only be an error occurring when the worker threads are waiting
+     for curr_start and wait_quit.  */
+  if result == WAIT_TIMEOUT                                             // C 1319
+    {
+      /* Find the first dead thread.  */
+      let mut i: c_int = 0;                                             // C 1322
+      while i < (*p).nt
+        {
+          if WaitForSingleObject (wait_pool.wocs[i as usize].thread, 0) // C 1324
+              == WAIT_OBJECT_0
+            {
+              SetLastError (wait_pool.wocs[i as usize].errcode);        // C 1326
+              return WFO_FAILED as c_int;                               // C 1327
+            }
+          i += 1;
+        }
+      return WFO_FAILED as c_int;                                       // C 1330
+    }
+  /* Even if the wait succeeds, there is still a possibility that some
+     wait_ready might be signaled by a WAIT_FAILED error.  To determine
+     if no WAIT_FAILED error occurred, check the errcode of all threads.  */
+  let mut i: c_int = 0;                                                 // C 1336
+  while i < (*p).nt
+    {
+      if wait_pool.wocs[i as usize].errcode != 0                        // C 1338
+        {
+          SetLastError (wait_pool.wocs[i as usize].errcode);            // C 1340
+          return WFO_FAILED as c_int;                                   // C 1341
+        }
+      i += 1;
+    }
+  /* Reset the timeout event.  */
+  if ResetEvent (wait_pool.timeout_event) == 0                          // C 1344
+    { return WFO_FAILED as c_int; }                                     // C 1345
+  return 0;                                                             // C 1346
+}
+
+/// C 1349-1437: `static DWORD end_wait_and_return (wait_objects_info *p, DWORD result)` - C
+/// 1356-1357's timeout, C 1359-1360's failure, C 1365-1385's `WAIT_ABANDONED` arm (whose two
+/// bounds are C's `result >= WAIT_ABANDONED_0 && result < p->nh + WAIT_ABANDONED_0` and whose
+/// rewrite adds `62 * p->nt + WFO_ABANDONED`), C 1388-1432's success branch (C 1389's `idx`, C
+/// 1391-1405's two main-thread cases, C 1407-1432's worker-thread cases with C's `t_result`
+/// comparisons) and C 1434-1435's `stop_wait_objects (&wait_info)` guard.  C's `p->nh + …`,
+/// `p->nt + …` and `idx - 1` are `int`, so each is spelled with the `as` conversion C's own
+/// arithmetic performs (Deviations 39); C's `result = …` assignments are `DWORD` throughout.
+/// C: static DWORD
+/// C: end_wait_and_return (wait_objects_info *p, DWORD result)
+#[cfg (feature = "windowsnt")]
+unsafe fn end_wait_and_return (p: *mut wait_objects_info, mut result: DWORD) -> DWORD
+{
+  /* Wait timeout in main thread.  */
+  if result == WAIT_TIMEOUT                                             // C 1356
+    { result = WFO_TIMEOUT; }                                           // C 1357
+  /* Wait failed in main thread.  */
+  else if result == WAIT_FAILED                                         // C 1359
+    { return WFO_FAILED; }                                              // C 1360
+  /* It seems that all the wait objects are just process handles and
+     event handles.  WAIT_ABANDONED may not occur, but let's just
+     handle it here.  */
+  else if result >= WAIT_ABANDONED_0                                    // C 1365
+           && result < (*p).nh as DWORD + WAIT_ABANDONED_0               // C 1366
+    {
+      result -= WAIT_ABANDONED_0;                                       // C 1368
+      /* The event object wait_ready is not mutex object.  This is
+         unlikely to happen...  */
+      if result < (*p).nt as DWORD                                      // C 1374
+        { return WFO_FAILED; }                                          // C 1375
+      /* There are 62 * nt objects before the objects in the main
+         thread.  Each thread can wait for 63 objects, and each
+         thread's wait_ready occupies one position in the main thread
+         array.  Therefore, the index of the waiting object in the main
+         thread array should be incremented by (63 - 1) multiplied by
+         the number of worker threads.  We add WFO_ABANDONED to
+         distinguish it from normal object index.  */
+      result = result + (62 * (*p).nt) as DWORD + WFO_ABANDONED;        // C 1384
+    }
+  /* Wait succeed in main thread.  */
+  else
+    {
+      /* Object index in main thread wait array.  */
+      let idx: c_int = (result - WAIT_OBJECT_0) as c_int;               // C 1389
+      /* Object is in main thread's wait array.  */
+      if idx >= (*p).nt                                                 // C 1391
+        {
+          /* When the index is equal to the number of worker threads,
+             and the number of worker threads is equal to the number of
+             wait objects for the main thread, it indicates that the main
+             thread is using MsgWaitForMultipleObjects and that there are
+             no wait objects in the main thread's array.  We should return
+             the total number of wait objects to indicate that a message
+             was received during the wait.  */
+          if (*p).nt == (*p).nh                                          // C 1399
+            { result = ((idx - 1) * 63 + wait_pool.wocs[(idx - 1) as usize].nCount) as DWORD; }
+                                                                        // C 1400
+          /* Normal case.  */
+          else
+            { result = (62 * (*p).nt + idx) as DWORD; }                 // C 1403
+        }
+      /* Object is in worker threads.  */
+      else
+        {
+          let t_result: DWORD = wait_pool.wocs[idx as usize].result;    // C 1407
+          /* WAIT_FAILED or WAIT_TIMEOUT.  Since the wait time in the
+             worker thread is set to INFINITE, WAIT_TIMEOUT should not
+             occur.  */
+          if t_result == WAIT_FAILED || t_result == WAIT_TIMEOUT        // C 1412
+            {
+              SetLastError (wait_pool.wocs[idx as usize].errcode);      // C 1414
+              return WFO_FAILED;                                        // C 1415
+            }
+          /* Abandoned.  Compared to the waiting objects in the main
+             thread's array, the index in the worker threads needs to be
+             incremented by 63 times the number of preceding threads,
+             rather than 62.  */
+          else if t_result >= WAIT_ABANDONED_0                          // C 1421
+                   && t_result < wait_pool.wocs[idx as usize].nCount as DWORD
+                                  + WAIT_ABANDONED_0                    // C 1422
+            { result = (idx * 63) as DWORD + t_result + WFO_ABANDONED - WAIT_ABANDONED_0; }
+                                                                        // C 1423-1424
+          /* The worker thread is signaled by timeout_event, but at this
+             point, timeout_event has not yet been signaled.  */
+          else if t_result == wait_pool.wocs[idx as usize].nCount as DWORD + WAIT_OBJECT_0
+            { return WFO_FAILED; }                                      // C 1429
+          /* Normal object index.  */
+          else
+            { result = (idx * 63) as DWORD + (t_result - WAIT_OBJECT_0); }   // C 1431
+        }
+    }
+  /* Ensure that all the worker threads are ready to begin the next
+     round of waiting, and check for any potential errors.  */
+  if stop_wait_objects (&raw mut wait_info) == WFO_FAILED as c_int      // C 1434
+    { return WFO_FAILED; }                                              // C 1435
+  return result;                                                        // C 1436
+}
+
+/// C 1439-1483: `static int shrink_wait_pool (void)` - C 1444's `main_thread_waits` bump, C
+/// 1447-1448/1451-1452's two early returns, C 1455's `last`, C 1458-1478's retirement of the last
+/// worker thread (each `CloseHandle`'s own failure branch and the `NULL` it writes back) and
+/// C 1480-1481's `call_count` reset.  C's `wait_pool.count--` is `-= 1` and its `NULL` field
+/// writes are `core::ptr::null_mut ()` (the `CreateEvent (core::ptr::null_mut (), …)` spelling of
+/// the slice above); C's returns of `WFO_FAILED` are again `as c_int`.
+/// C: static int
+/// C: shrink_wait_pool (void)
+#[cfg (feature = "windowsnt")]
+unsafe fn shrink_wait_pool () -> c_int
+{
+  wait_pool.main_thread_waits += 1;                                     // C 1444
+  /* Check the thread every 64 Wait call.  64 is just a value that might
+     be reasonably suitable.  */
+  if wait_pool.main_thread_waits <= 64                                  // C 1447
+    { return 0; }                                                       // C 1448
+  wait_pool.main_thread_waits = 0;                                      // C 1449
+  /* return if no thread.  */
+  if wait_pool.count == 0                                               // C 1451
+    { return 0; }                                                       // C 1452
+  /* Each time, we only check the last worker thread, which helps avoid
+     terminating a large number of threads at the same time.  */
+  let last: c_int = wait_pool.count - 1;                                // C 1455
+  /* A call count of 0 indicates that the thread has not been used
+     during the past period of time.  */
+  if wait_pool.wocs[last as usize].call_count == 0                      // C 1458
+    {
+      /* Signal wait_quit to let the worker thread exit.  */
+      if SetEvent (wait_pool.wocs[last as usize].wait_quit) == 0        // C 1461
+        { return WFO_FAILED as c_int; }                                 // C 1462
+      wait_pool.wocs[last as usize].wait_quit = core::ptr::null_mut (); // C 1463
+      /* Close thread handle.  */
+      if CloseHandle (wait_pool.wocs[last as usize].thread) == 0        // C 1465
+        { return WFO_FAILED as c_int; }                                 // C 1466
+      wait_pool.wocs[last as usize].thread = core::ptr::null_mut ();    // C 1467
+      /* Close wait_start event handle.  */
+      if CloseHandle (wait_pool.wocs[last as usize].wait_start) == 0    // C 1469
+        { return WFO_FAILED as c_int; }                                 // C 1470
+      wait_pool.wocs[last as usize].wait_start = core::ptr::null_mut ();    // C 1471
+      /* Close wait_ready event handle  */
+      if CloseHandle (wait_pool.wocs[last as usize].wait_ready) == 0    // C 1473
+        { return WFO_FAILED as c_int; }                                 // C 1474
+      wait_pool.wocs[last as usize].wait_ready = core::ptr::null_mut ();    // C 1475
+      /* decrease the number of workder thread by 1.  */
+      wait_pool.count -= 1;                                             // C 1477
+    }
+  /* Reset call_count for each worker thread.  */
+  let mut i: c_int = 0;                                                 // C 1480
+  while i <= last
+    {
+      wait_pool.wocs[i as usize].call_count = 0;
+      i += 1;
+    }
+  return 0;                                                             // C 1482
+}
+
+/// C 1485-1511: `void free_wait_pool (void)` - the non-`static` definition `src/w32.c` 10559 calls
+/// (its declaration is the mirror's, `include/w32.rs` 578, inside `pub mod w32proc_fn_decls`, so
+/// the unit does not repeat it: PORTING.md 0.1-3).  C 1490-1491's `init_flag` guard, C 1492-1500's
+/// quit-and-close loop, C 1501-1506's exit wait (C's `for` whose body `break`s is the port's
+/// `while`) and C 1509's `timeout_event` close.  C's trailing `return;` is C's own (C 1510).
+/// C: void
+/// C: free_wait_pool (void)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn free_wait_pool ()
+{
+  /* Emacs has never used more than 32 child processes.  */
+  if wait_pool.init_flag == FALSE                                       // C 1490
+    { return; }                                                         // C 1491
+  let mut i: c_int = 0;                                                 // C 1492
+  while i < wait_pool.count
+    {
+      /* Send quit event to earch worker thread.  */
+      SetEvent (wait_pool.wocs[i as usize].wait_quit);                  // C 1496
+      /* Close wait_start, wait_ready event.  */
+      CloseHandle (wait_pool.wocs[i as usize].wait_start);              // C 1498
+      CloseHandle (wait_pool.wocs[i as usize].wait_ready);              // C 1499
+      i += 1;
+    }
+  /* Wait all worker threads exit.  Stop if failed.  */
+  let mut i: c_int = 0;                                                 // C 1501
+  while i < wait_pool.count
+    {
+      if WaitForSingleObject (wait_pool.wocs[i as usize].thread, 1)     // C 1503-1504
+          != WAIT_OBJECT_0
+        { break; }                                                      // C 1505
+      i += 1;
+    }
+  /* Close timeout event.  */
+  CloseHandle (wait_pool.timeout_event);                                // C 1509
+  return;                                                               // C 1510
+}
