@@ -15408,6 +15408,15 @@ macro_rules! MYNOTIFYICONDATAW_V3_SIZE {
 /// C: #define WM_APP 0x8000
 #[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
 pub const WM_APP: c_int = 0x8000;
+/// C 10471's three other `<shellapi.h>` flags (C's `#ifndef NIF_INFO` guard above declares only
+/// `NIF_INFO`; these three come from the header).
+/// C: #define NIF_MESSAGE 0x00000001 / #define NIF_ICON 0x00000002 / #define NIF_TIP 0x00000004
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIF_MESSAGE: DWORD = 0x00000001;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIF_ICON: DWORD = 0x00000002;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIF_TIP: DWORD = 0x00000004;
 #[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
 pub const NIF_INFO: DWORD = 0x00000010;
 #[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
@@ -15534,7 +15543,252 @@ unsafe fn utf8_mbslen_lim (str_: *const c_char, lim: c_int) -> c_int
   return mblen;
 }
 
-/* C 10429-12488's text is not in the port yet (the file's remainder), but C 10112's
+/// C 10456-10599's new `<shellapi.h>`/`<winuser.h>` surface: the two `Shell_NotifyIcon` messages,
+/// the two image-loading flags, the `LoadImageW`/`LoadImageA` pair C's explicit calls name (this unit
+/// declares `LoadImage` - the macro - above), `DestroyIcon` and the CRT's `wcscpy`.
+/// C: #define NIM_ADD 0x00000000 / #define NIM_DELETE 0x00000002
+/// C: #define IMAGE_ICON 1 / #define LR_LOADFROMFILE 0x00000010
+/// C: HANDLE WINAPI LoadImageW (HINSTANCE hinst, LPCWSTR lpszName, UINT uType, int cxDesired, int
+/// C: cyDesired, UINT fuLoad);
+/// C: HANDLE WINAPI LoadImageA (HINSTANCE hinst, LPCSTR lpszName, UINT uType, int cxDesired, int
+/// C: cyDesired, UINT fuLoad);
+/// C: BOOL WINAPI DestroyIcon (HICON hIcon);
+/// C: wchar_t *wcscpy (wchar_t *dest, const wchar_t *src);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIM_ADD: DWORD = 0x00000000;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIM_DELETE: DWORD = 0x00000002;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const IMAGE_ICON: UINT = 1;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const LR_LOADFROMFILE: UINT = 0x00000010;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+unsafe extern "system" {
+  pub fn LoadImageW (hinst: HINSTANCE, lpszName: LPCWSTR, uType: UINT, cxDesired: c_int,
+		     cyDesired: c_int, fuLoad: UINT) -> HANDLE;
+  pub fn LoadImageA (hinst: HINSTANCE, lpszName: LPCSTR, uType: UINT, cxDesired: c_int,
+		     cyDesired: c_int, fuLoad: UINT) -> HANDLE;
+  pub fn DestroyIcon (hIcon: HICON) -> BOOL;
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+unsafe extern "C" {
+  pub fn wcscpy (dest: *mut c_ushort, src: *const c_ushort) -> *mut c_ushort;
+}
+
+/// C 10429: `static unsigned short last_tray_notification_id;` - the tray counter (C's
+/// tentative-definition zero).
+/// C: static unsigned short last_tray_notification_id;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+static mut last_tray_notification_id: c_ushort = 0;
+
+/// C 10431-10605: `add_tray_notification` - C 10438's `retval`, C 10442-10445's locals (`nidw`,
+/// the Shell32 version, the three wide buffers and `tiplen`), C 10447's `memset`, C 10449-10463's
+/// comment and four version-dependent `cbSize` choices, C 10464-10472's window/counter/flags/message
+/// fills, C 10473-10501's icon load (the class icon, or the file's own through
+/// `filename_to_utf16`/`filename_to_ansi` with C 10483/10496's `ENOENT` exits), C 10502-10514's
+/// `GetLastError` split, C 10516-10540's tip conversion (`pMultiByteToWideChar` over
+/// `utf8_mbslen_lim`'s cap and `wcscpy`), C 10542-10589's Windows-2000 tail (the message, the
+/// timeout, the title and the `severity` switch), C 10591-10599's `NIM_ADD` call, C 10600-10602's
+/// `done:` cleanup and C 10604's return.  C's three `goto done` sites are the labelled block below.
+/// C: static int
+/// C: add_tray_notification (struct frame *f, const char *icon, const char *tip,
+/// C:                       enum NI_Severity severity, unsigned timeout,
+/// C:                       const char *title, const char *msg)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+unsafe fn add_tray_notification (f: *mut frame, icon: *const c_char, tip: *const c_char,
+				 severity: c_int, timeout: c_uint, title: *const c_char,
+				 msg: *const c_char) -> c_int
+{
+  let mut retval: c_int = -1;
+
+  if FRAME_W32_P (f)
+    {
+      let mut nidw: MY_NOTIFYICONDATAW = core::mem::zeroed ();
+      let shell_dll_version: ULONGLONG = get_dll_version (c"Shell32.dll".as_ptr ());
+      let mut tipw: [c_ushort; 128] = [0; 128];
+      let mut msgw: [c_ushort; 256] = [0; 256];
+      let mut titlew: [c_ushort; 64] = [0; 64];
+      let mut tiplen: c_int;
+
+      memset (&raw mut nidw as *mut c_void, 0, core::mem::size_of_val (&nidw));
+
+      /* MSDN says the full struct is supported since Vista, whose
+	 Shell32.dll version is said to be 6.0.6.  But DllGetVersion
+	 cannot report the 3rd field value, it reports "build number"
+	 instead, which is something else.  So we use the Windows 7's
+	 version 6.1 as cutoff, and Vista loses.  (Actually, the loss
+	 is not a real one, since we don't expose the hBalloonIcon
+	 member of the struct to Lisp.)  */
+      if shell_dll_version >= MAKEDLLVERULL! (6, 1, 0, 0) /* >= Windows 7 */
+	{ nidw.cbSize = core::mem::size_of_val (&nidw) as DWORD; }
+      else if shell_dll_version >= MAKEDLLVERULL! (6, 0, 0, 0) /* XP */
+	{ nidw.cbSize = MYNOTIFYICONDATAW_V3_SIZE! () as DWORD; }
+      else if shell_dll_version >= MAKEDLLVERULL! (5, 0, 0, 0) /* W2K */
+	{ nidw.cbSize = MYNOTIFYICONDATAW_V2_SIZE! () as DWORD; }
+      else
+	{ nidw.cbSize = MYNOTIFYICONDATAW_V1_SIZE! () as DWORD; }	/* < W2K */
+      nidw.hWnd = FRAME_W32_WINDOW! (f);
+      if last_tray_notification_id == 0
+	{ last_tray_notification_id = EMACS_TRAY_NOTIFICATION_ID_INIT as c_ushort; }
+      else
+	{ last_tray_notification_id += 1; }
+      retval = last_tray_notification_id as c_int;
+      nidw.uID = last_tray_notification_id as UINT;
+      nidw.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_INFO;
+      nidw.uCallbackMessage = EMACS_NOTIFICATION_MSG as UINT;
+      if *icon == 0
+	{ nidw.hIcon = LoadIcon (hinst, EMACS_CLASS.as_ptr () as LPSTR); }
+      else
+	{
+	  if w32_unicode_filenames
+	    {
+	      let mut icon_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize];
+
+	      if filename_to_utf16 (icon, icon_w.as_mut_ptr ()) != 0
+		{
+		  *errno () = ENOENT;
+		  return -1;
+		}
+	      nidw.hIcon = LoadImageW (core::ptr::null_mut (), icon_w.as_ptr (), IMAGE_ICON, 0, 0,
+				       LR_DEFAULTSIZE | LR_LOADFROMFILE) as HICON;
+	    }
+	  else
+	    {
+	      let mut icon_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];
+
+	      if filename_to_ansi (icon, icon_a.as_mut_ptr ()) != 0
+		{
+		  *errno () = ENOENT;
+		  return -1;
+		}
+	      nidw.hIcon = LoadImageA (core::ptr::null_mut (), icon_a.as_ptr (), IMAGE_ICON, 0, 0,
+				       LR_DEFAULTSIZE | LR_LOADFROMFILE) as HICON;
+	    }
+	}
+      if nidw.hIcon.is_null ()
+	{
+	  match GetLastError () as c_int
+	    {
+	    ERROR_FILE_NOT_FOUND => { *errno () = ENOENT; }
+	    _ => { *errno () = ENOMEM; }
+	    }
+	  return -1;
+	}
+
+      /* Windows 9X and NT4 support only 64 characters in the Tip,
+	 later versions support up to 128.  */
+      'done: {
+	if nidw.cbSize == MYNOTIFYICONDATAW_V1_SIZE! () as DWORD
+	  {
+	    tiplen = (pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+						      tip, utf8_mbslen_lim (tip, 63),
+						      tipw.as_mut_ptr (), 64);
+	    if tiplen >= 63
+	      { tipw[63] = 0; }
+	  }
+	else
+	  {
+	    tiplen = (pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+						      tip, utf8_mbslen_lim (tip, 127),
+						      tipw.as_mut_ptr (), 128);
+	    if tiplen >= 127
+	      { tipw[127] = 0; }
+	  }
+	if tiplen == 0
+	  {
+	    *errno () = EINVAL;
+	    retval = -1;
+	    break 'done;
+	  }
+	wcscpy (nidw.szTip.as_mut_ptr (), tipw.as_ptr ());
+
+	/* The rest of the structure is only supported since Windows 2000.  */
+	if nidw.cbSize > MYNOTIFYICONDATAW_V1_SIZE! () as DWORD
+	  {
+	    let mut slen: c_int;
+
+	    slen = (pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+						     msg, utf8_mbslen_lim (msg, 255),
+						     msgw.as_mut_ptr (), 256);
+	    if slen >= 255
+	      { msgw[255] = 0; }
+	    else if slen == 0
+	      {
+		*errno () = EINVAL;
+		retval = -1;
+		break 'done;
+	      }
+	    wcscpy (nidw.szInfo.as_mut_ptr (), msgw.as_ptr ());
+	    nidw.r#DUMMYUNIONNAME.uTimeout = timeout;   /* C's anonymous union member */
+	    slen = (pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+						     title, utf8_mbslen_lim (title, 63),
+						     titlew.as_mut_ptr (), 64);
+	    if slen >= 63
+	      { titlew[63] = 0; }
+	    else if slen == 0
+	      {
+		*errno () = EINVAL;
+		retval = -1;
+		break 'done;
+	      }
+	    wcscpy (nidw.szInfoTitle.as_mut_ptr (), titlew.as_ptr ());
+
+	    match severity
+	      {
+	      Ni_None => { nidw.dwInfoFlags = NIIF_NONE; }
+	      Ni_Info => { nidw.dwInfoFlags = NIIF_INFO; }
+	      Ni_Warn => { nidw.dwInfoFlags = NIIF_WARNING; }
+	      Ni_Err => { nidw.dwInfoFlags = NIIF_ERROR; }
+	      _ => { nidw.dwInfoFlags = NIIF_INFO; }	/* C's `default:` (with `Ni_Info`) */
+	      }
+	  }
+
+	if (pfnShell_NotifyIconW.unwrap ()) (NIM_ADD, &raw mut nidw as *mut c_void) == 0
+	  {
+	    /* GetLastError returns meaningless results when
+	       Shell_NotifyIcon fails.  */
+	    DebPrint! ((c"Shell_NotifyIcon ADD failed (err=%d)\n".as_ptr (),
+			GetLastError ()));
+	    *errno () = EINVAL;
+	    retval = -1;
+	  }
+      }
+
+      if *icon != 0 && DestroyIcon (nidw.hIcon) == 0
+	{ DebPrint! ((c"DestroyIcon failed (err=%d)\n".as_ptr (), GetLastError ())); }
+    }
+  return retval;
+}
+
+/// C 10607-10633: `delete_tray_notification` - C 10607-10611's own comment, C 10617's `nidw`,
+/// C 10619-10621's three fills, C 10623-10630's `NIM_DELETE` call (C 10627's `DebPrint`) and
+/// C 10631-10632's two returns.
+/// C: static void
+/// C: delete_tray_notification (struct frame *f, int id)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+unsafe fn delete_tray_notification (f: *mut frame, id: c_int)
+{
+  if FRAME_W32_P (f)
+    {
+      let mut nidw: MY_NOTIFYICONDATAW = core::mem::zeroed ();
+
+      memset (&raw mut nidw as *mut c_void, 0, core::mem::size_of_val (&nidw));
+      nidw.hWnd = FRAME_W32_WINDOW! (f);
+      nidw.uID = id as UINT;
+
+      if (pfnShell_NotifyIconW.unwrap ()) (NIM_DELETE, &raw mut nidw as *mut c_void) == 0
+	{
+	  /* GetLastError returns meaningless results when
+	     Shell_NotifyIcon fails.  */
+	  DebPrint! ((c"Shell_NotifyIcon DELETE failed\n".as_ptr ()));
+	  *errno () = EINVAL;
+	  return;
+	}
+    }
+  return;
+}
+
+/* C 10635-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C

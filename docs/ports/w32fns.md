@@ -229,7 +229,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10112-10138 | C 10112-10138's `w32_console_toggle_lock_key` - slice 21, landed **ahead of its C position** because C 9302 calls it and Rust has no declare-then-define pair inside one file (PORTING.md P-91 ①) | file gate |
 | 10140-10312 | C 10140-10202's `w32_kbd_mods_to_emacs`, C 10207-10287's `w32_kbd_patch_key` (with C 10242-10252's `#if 0` block carried as C's text), C 10290-10303's `w32_sys_ring_bell` and C 10305-10312's `w32--menu-bar-in-use` - slice 25 | file gate |
 | 10314-10427 | C 10314's `#if defined WINDOWSNT && !defined HAVE_DBUS` and the tray block's head: C 10316's `pfnShell_NotifyIconW`, C 10322-10341's `MY_NOTIFYICONDATAW`, C 10343-10345's three size macros, C 10346-10364's five `#ifndef` guards and two `#define`s, C 10366-10371's `enum NI_Severity`, C 10375-10402's `get_dll_version` and C 10408-10427's `utf8_mbslen_lim` - slice 26 | file gate + `windowsnt` + `not (feature = "have_dbus")` |
-| 10429-12488 | **the remainder of the file** (C 10429's `last_tray_notification_id` and `add_tray_notification` onward: `delete_tray_notification`, the two notification DEFUNs, the exception/backtrace group, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 10429-10633 | C 10429's `last_tray_notification_id`, C 10433-10605's `add_tray_notification` (the four `cbSize` versions, the icon load, the tip/message/title conversions and the `NIM_ADD` call) and C 10612-10633's `delete_tray_notification` - slice 27 | file gate + `windowsnt` + `not (feature = "have_dbus")` |
+| 10635-12488 | **the remainder of the file** (C 10635's two notification DEFUNs onward: the exception/backtrace group, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2879,6 +2880,100 @@ records this slice declares, i.e. the tool's documented "not an item" class.
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no DLL version is queried and
   no UTF-8 length is measured; the arm reading is compile-level (42 errors, none from this slice) and
   the name sweep is a textual reading.
+
+## Slice 27 (C 10429-10633)
+
+**Scope and the stop.**  `last_tray_notification_id` (C 10429), `add_tray_notification`
+(C 10433-10605) and `delete_tray_notification` (C 10612-10633).  The stop is C 10635's
+`w32-notification-notify` `DEFUN` (C 10634 blank).  All three items carry slice 26's three-condition
+gate.
+
+**What the item carries.**  `add_tray_notification` is C 10438's `retval`, C 10442-10447's locals,
+C 10449-10463's four version-dependent `cbSize` choices (`get_dll_version`'s value against C's three
+`MAKEDLLVERULL` thresholds), C 10464-10472's window/counter/flags/message fills, C 10473-10501's icon
+load (the class icon, or the file's own through `filename_to_utf16`/`filename_to_ansi` with C's two
+`ENOENT` exits), C 10502-10514's `GetLastError` split, C 10516-10540's tip conversion
+(`pMultiByteToWideChar` over `utf8_mbslen_lim`'s cap with C's 63/127 truncations and `wcscpy`),
+C 10542-10589's Windows-2000 tail (message, `uTimeout` through the record's union member, title and
+the `severity` switch as a `match`), C 10591-10599's `Shell_NotifyIconW (NIM_ADD, …)` call (through
+`pfnShell_NotifyIconW.unwrap ()`, the `pfnSHFileOperationW` device), C 10600-10602's `done:` cleanup
+and C 10604's return.  C's three `goto done` sites are the port's `'done:` labelled block, and the
+`done:` statement itself stands after it.  `delete_tray_notification` is C 10617-10630's six
+statements with C 10627's `DebPrint`.
+
+**New surface.**  `NIM_ADD`/`NIM_DELETE`, `IMAGE_ICON`, `LR_LOADFROMFILE`, `NIF_MESSAGE`/`NIF_ICON`/
+`NIF_TIP` (see the finding below - C's file defines only `NIF_INFO`), the `LoadImageW`/`LoadImageA`
+pair (this unit declares `LoadImage`, the macro, above), `DestroyIcon` and the CRT's `wcscpy`.
+
+### Evidence (slice 27, the final revision: 15,836 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Two runs (the first text and the one after the
+`NIF_*` fix below), both `built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, the object
+**336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the standing count
+(15 `E0428`, 1 `E0530`, 25 `E0609`, plus the one deliberately-failing frame-flag probe) - and **no
+diagnostic sits at or beyond `src/w32fns.rs` 15,546**.  The slice's own two readings: run 1 read
+**43** and named a real defect (`nidw.uTimeout = timeout;` - C's anonymous union member is reached
+as `nidw.r#DUMMYUNIONNAME.uTimeout` in the port, the `SHELLEXECUTEINFOW`/`INPUT` device), run 2 the
+42 above.
+
+**③ A measured blind spot, and what it hid.**  Eight further probe runs were spent on one question
+the first readings raised: `NIF_MESSAGE`/`NIF_ICON`/`NIF_TIP` (C 10471) are undefined in the tree,
+yet the probe reported nothing.  A deliberate `ZZ_PROBE_UNDEFINED_*` binder was placed in three
+items - `add_tray_notification`, `delete_tray_notification` and `w32_console_toggle_lock_key` (the
+last landed by slice 21) - and **none produced a diagnostic**, while (a) a deliberately wrong
+*field* write (`nidw.zz_no_field_9 = 1;`) in the same body **did** (`E0609`, 43 errors) and (b) an
+undefined *macro* is reported (measured by dropping `windowsnt`: 51 `cannot find macro
+FRAME_W32_WINDOW` rows and 148 errors).  `-Zunpretty=expanded` (with `RUSTC_BOOTSTRAP=1`) shows the
+items and the markers present in the expanded crate, so the items are compiled: **the probe does not
+report unresolved *value* names** - the property `tools/check-unit-names.py`'s own docstring records
+for `Fx_create_frame` (slice 8), re-measured here on three items.  The gap it hid is exactly the
+class the sweep exists for: `check-unit-names.py` on the slice's range reported
+`missing: ['NIF_ICON', 'NIF_MESSAGE', 'NIF_TIP']`, and the three constants are now spelled
+(`<shellapi.h>`, values corroborated against the Windows metadata projection) - after which the same
+sweep reads `missing: []`.  One more note on the reading's shape: `not (feature = "have_dbus")` is
+satisfied in this configuration, so the tray items *are* compiled (**the E0609 above proves it**),
+and the items' predicates were verified after the investigation (40 two-condition and 37
+three-condition `#[cfg]` lines in the file).
+
+**④ `extract-abi.py --check`.**  **90 → 87** rows: three retire (`missing function
+add_tray_notification`, `missing function delete_tray_notification` and `missing file-scope object
+last_tray_notification_id`) and two token rows were added and cleared by two notes rows
+(`add_tray_notification` does not mention `case, default, goto, pnotifyicondataw, switch`; the same
+`pnotifyicondataw` for `delete_tray_notification`).  No `line count drifted` row: 15,836 Rust lines
+against 12,488 C lines (26.8%), inside the file's `w32fns 0.35 total` tolerance row.
+
+**⑤ The range table and the dead-file gate.**  The `10429-12488` remainder row splits into
+`10429-10633` (this slice) and `10635-12488` (the remainder); `check-dead-file-coverage.py` reads
+**177 range row(s) cover src/w32fns.c (12488 lines; 126 blank line(s) between blocks need no row)**.
+
+**⑥ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 15,546-15,790: 44 capitalized
+identifiers, `missing: []` (before the fix: the three `NIF_*`).
+
+### Deviations (slice 27)
+
+- **`NIF_MESSAGE`/`NIF_ICON`/`NIF_TIP` are spelled here.**  C 10471 uses them and C's file defines
+  only `NIF_INFO` (its `#ifndef` guard); the three come from `<shellapi.h>` and are spelled with
+  their values (the slice-8 reading for a header constant), corroborated against the Windows
+  metadata projection.
+- **`nidw.uTimeout` goes through the record's union member.**  C's `_ANONYMOUS_UNION` makes
+  `uTimeout`/`uVersion` direct members; the port reaches them as
+  `nidw.r#DUMMYUNIONNAME.uTimeout` (the `SHELLEXECUTEINFOW` device), which the first probe run
+  caught as an `E0609` before the fix.
+- **C's `switch`/`case`/`default` is a `match`, and C's three `goto done` are a labelled block.**
+  C's `Ni_Info`/`default` arm keeps C's order (the wildcard last), and `break 'done` replaces the
+  three jumps; the notes row records the five tokens this conversion cannot carry.
+- **`PNOTIFYICONDATAW` casts stay untyped** (`&raw mut nidw as *mut c_void`) - the same P-72 rule ③
+  as the function-pointer type in slice 26.
+- **The image loaders are the explicit `W`/`A` pair.**  This unit declares `LoadImage` (the macro,
+  `LPCTSTR`-typed); C's two calls here name the entry points, so the pair is declared beside it and
+  the `HANDLE` results are cast to `HICON`.
+- **C's `errno` is `*errno ()`** (`lib/include/errno.rs`'s `__error` device), and `unsigned timeout`
+  is `c_uint`; the counter's `unsigned short` arithmetic is cast at each use.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no tray icon is added or
+  removed and no DLL version is compared; the arm reading is compile-level (42 errors, none from
+  this slice), and the *name* reading is the sweep's, not the probe's - this slice measured why.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
