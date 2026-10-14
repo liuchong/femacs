@@ -17904,7 +17904,79 @@ pub unsafe extern "C" fn globals_of_w32fns ()
   syms_of_w32uniscribe ();                                               // C 12449
 }
 
-/* C 11585-12038 and C 12130-12279's text is not in the port yet (the file's remainder), but C 10112's
+/* C 12130-12159: the backtrace half of the crashing group - C 12130-12131's
+   `CaptureStackBackTrace_proc`, C 12133's `BACKTRACE_LIMIT_MAX`, C 12134-12141's two-arm
+   `DEFAULT_IMAGE_BASE` and C 12143-12159's `w32_backtrace`.  Nothing here is under an `#if` except
+   the `#if/#elif` pair of C 12137-12141, so the items carry the file gate alone; C 12161-12279's
+   `emacs_abort` is the next slice.  */
+
+/// C 12130-12131: `typedef USHORT (WINAPI * CaptureStackBackTrace_proc) (ULONG, ULONG, PVOID *,
+/// PULONG);` - `PULONG` is `<winnt.h>`'s and this unit declares its own copy (the P-88 ① stand-in,
+/// the `src/w32.rs` 295 spelling).
+/// C: typedef USHORT (WINAPI * CaptureStackBackTrace_proc) (ULONG, ULONG, PVOID *, PULONG);
+#[cfg (feature = "have_ntgui")]
+pub type PULONG = *mut ULONG;
+#[cfg (feature = "have_ntgui")]
+pub type CaptureStackBackTrace_proc
+  = unsafe extern "system" fn (ULONG, ULONG, *mut PVOID, PULONG) -> USHORT;
+
+/// C 12133: `#define BACKTRACE_LIMIT_MAX 62` - the bound `w32_backtrace`'s call and `emacs_abort`'s
+/// two arrays use.
+/// C: #define BACKTRACE_LIMIT_MAX 62
+#[cfg (feature = "have_ntgui")]
+pub const BACKTRACE_LIMIT_MAX: c_int = 62;
+
+/// C 12134-12141: `#define DEFAULT_IMAGE_BASE` with C 12134-12136's comment ("must be kept in sync
+/// with the value of the -Wl,-image-base switch we use in LD_SWITCH_SYSTEM_TEMACS, see
+/// configure.ac"), carried as two complementary constants whose second arm names C's own `#elif`
+/// (`not (all (...))`, the `src/image.rs` 1316 device).  `EMACS_INT_MAX > LONG_MAX` is a *value*
+/// condition, so it is the derived feature `emacs_int_max_gt_long_max` - the
+/// `win32_nt_lt_500`/`win32_windows_ge_0410` naming rule.
+/// C: #if defined MINGW_W64 && EMACS_INT_MAX > LONG_MAX
+/// C: # define DEFAULT_IMAGE_BASE 0x400000000
+/// C: #elif !defined CYGWIN	/* 32-bit MinGW build */
+/// C: # define DEFAULT_IMAGE_BASE 0x01000000
+/// C: #endif
+#[cfg (all (feature = "have_ntgui", feature = "mingw_w64", feature = "emacs_int_max_gt_long_max"))]
+pub const DEFAULT_IMAGE_BASE: ptrdiff_t = 0x400000000;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin"),
+	   not (all (feature = "mingw_w64", feature = "emacs_int_max_gt_long_max"))))]
+pub const DEFAULT_IMAGE_BASE: ptrdiff_t = 0x01000000;
+
+/// C 12146's function-local `static CaptureStackBackTrace_proc s_pfn_CaptureStackBackTrace = NULL;`
+/// - moved to file scope with its initialiser by this file's standing reading (the
+/// `version_string`/`coords` device), so C's declaration line has no item of its own.
+/// C: static CaptureStackBackTrace_proc s_pfn_CaptureStackBackTrace = NULL;
+#[cfg (feature = "have_ntgui")]
+static mut s_pfn_CaptureStackBackTrace: Option<CaptureStackBackTrace_proc> = None;
+
+/// C 12143-12159: `static int w32_backtrace (void **buffer, int limit)` - C 12147's local, C 12149-12154's
+/// lazy load through `LoadLibrary ("Kernel32.dll")` and C 12155-12158's guarded call
+/// (`min (BACKTRACE_LIMIT_MAX, limit)` is the mirror's `min`, cast to the entry point's `ULONG`,
+/// with C's `NULL` fourth argument) against the no-symbol arm's `return 0`.  The call's `USHORT`
+/// result is `as c_int`: C's own widening at that `return`.
+/// C: static int w32_backtrace (void **buffer, int limit)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_backtrace (buffer: *mut *mut c_void, limit: c_int) -> c_int
+{
+  let mut hm_kernel32: HMODULE = core::ptr::null_mut ();                 // C 12147
+
+  if s_pfn_CaptureStackBackTrace.is_none ()                              // C 12149
+    {
+      hm_kernel32 = LoadLibrary (c"Kernel32.dll".as_ptr ());             // C 12151
+      s_pfn_CaptureStackBackTrace                                       // C 12152-12153
+	= core::mem::transmute::<VOIDFNPTR, Option<CaptureStackBackTrace_proc>> (
+	    get_proc_addr (hm_kernel32, c"RtlCaptureStackBackTrace".as_ptr ()));
+    }
+  if s_pfn_CaptureStackBackTrace.is_some ()                              // C 12155
+    {
+      return (s_pfn_CaptureStackBackTrace.unwrap ()) (0, min (BACKTRACE_LIMIT_MAX, limit) as ULONG,
+						      buffer, core::ptr::null_mut ()) as c_int;
+    }
+  return 0;                                                              // C 12158
+}
+
+/* C 11585-12038 and C 12161-12279's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C

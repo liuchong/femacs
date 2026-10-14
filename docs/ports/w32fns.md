@@ -240,7 +240,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 11522-11583 | C 11523-11525's Initialization banner, C 11527-11528's ordering comment, and C 11530-11583's `w32_frame_parm_handlers[]` (with the `frame_parm_handler` alias and the twenty-two `gui_set_*` use-site declarations) - slice 35 | file gate |
 | 11585-12038 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`; C 11588's `globals_of_w32fns ()` is landed - slice 36 landed the callee first, P-91 ①) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 12042-12128 | C 12042's banner, C 12044-12049's guard and objects (`prev_exception_handler` under `not (cygwin)`, `except_code`/`except_addr` ungated), C 12051-12059's `_resetstkoflw_proc` and `resetstkoflw`, and C 12061-12128's `w32_reset_stack_overflow_guard`, `stack_overflow_handler` and `my_exception_handler` - slice 37 | file gate; the group's `#ifndef CYGWIN` arms are `not (cygwin)`, and the two `#ifdef _WIN64` pairs are `win64` / `not (win64)` |
-| 12130-12279 | **the remainder** (C 12130-12141's `CaptureStackBackTrace_proc` with `BACKTRACE_LIMIT_MAX`/`DEFAULT_IMAGE_BASE`, then C 12143-12159's `w32_backtrace` and C 12161-12279's `emacs_abort`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 12130-12159 | C 12130-12131's `CaptureStackBackTrace_proc` (with this unit's own `PULONG`), C 12133's `BACKTRACE_LIMIT_MAX`, C 12134-12141's two-arm `DEFAULT_IMAGE_BASE` and C 12143-12159's `w32_backtrace` - slice 39 | file gate; the `DEFAULT_IMAGE_BASE` arms are `mingw_w64` + the derived `emacs_int_max_gt_long_max` / `not (cygwin)` |
+| 12161-12279 | **the remainder** (C 12161-12279's `emacs_abort`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 12283-12450 | C 12283's `/* Initialization.  */`, C 12285-12292's comment and C 12293-12450's `globals_of_w32fns` (the twenty-six lazy loads, the dark-mode probe, the four `DEFVAR`s and the three startup calls) - slice 38 | file gate; the group's `#ifndef CYGWIN` arms are `not (cygwin)`, and C 12365's arm is `windowsnt` |
 | 12452-12488 | C 12452's `#ifdef WINDOWSNT` with C 12454-12476's `load_unicows_dll_for_w32fns`, and C 12478's `#ifdef NTGUI_UNICODE` with C 12480-12488's `ntgui_encode_system` - slice 36, landed ahead of the C 11585-12450 text above it (P-91 ①: `syms_of_w32fns` calls `globals_of_w32fns` first) | `windowsnt` (nested) / `ntgui_unicode` (nested) |
 
@@ -3815,6 +3816,68 @@ lines; 142 blank line(s) between blocks need no row)**.
 - **Not claimed.**  No run evidence: no Windows toolchain, so no DLL is loaded, no code page is read
   and no dark mode is probed; the readings are the compile-level ones above, the sweep's and the
   token check's.
+
+## Slice 39 (C 12130-12159)
+
+**Scope and the stop.**  The backtrace half of the crashing group: C 12130-12131's
+`CaptureStackBackTrace_proc`, C 12133's `BACKTRACE_LIMIT_MAX`, C 12134-12141's two-arm
+`DEFAULT_IMAGE_BASE` and C 12143-12159's `w32_backtrace`.  The stop is C 12161's `emacs_abort`.
+Nothing here is under an `#if` except the `#if/#elif` pair of C 12137-12141, so the items carry the
+file gate alone.
+
+**What the items carry.**  `w32_backtrace` is C 12147's local, C 12149-12154's lazy load through
+`LoadLibrary ("Kernel32.dll")` (C's function-local `static` moved to file scope with its
+initialiser, the file's standing reading) and C 12155-12158's guarded call with the no-symbol arm's
+`return 0`.
+
+**New surface.**  `PULONG` (this unit's own `<winnt.h>` stand-in copy, the P-88 ① device),
+`CaptureStackBackTrace_proc`, `BACKTRACE_LIMIT_MAX`, the two `DEFAULT_IMAGE_BASE` arms and the moved
+`s_pfn_CaptureStackBackTrace`.  `min` is the mirror's (`include/lisp.rs` 3160, not `core::cmp::min`
+- the slice-30 reading), and the derived feature `emacs_int_max_gt_long_max` is new to the tree's
+feature table (`tools/feature-coverage.py --write` will add its row).
+
+### Evidence (slice 39, the final revision: 18,024 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Two runs, both **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Two runs.  The first read **43** errors - the
+standing **42** plus `E0308` at the call (`expected i32, found u16`: C's `USHORT` result widened to
+the function's `int`; now `as c_int`).  The second run is back to **42** and **no error sits at or
+beyond `src/w32fns.rs` 17,959** (the largest is the pre-existing `must_be_updated_p` gap at 12,094).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 17,959-18,040: 17 capitalized
+identifiers, **none missing** - this slice invents no name (its `PULONG`, the typedef, the two
+constants and the moved static all resolve).
+
+**④ `extract-abi.py --check`.**  **53 → 49** rows: `missing function w32_backtrace`,
+`missing macro BACKTRACE_LIMIT_MAX`, `missing constant BACKTRACE_LIMIT_MAX` (the one `pub const`
+answers both spellings of a C `#define`, the slice-26 rule) and `missing macro DEFAULT_IMAGE_BASE`
+retire.  **No token row** - C's body tokens all have a counterpart, including the moved static's
+declaration (`NULL`'s count is carried by the call's `core::ptr::null_mut ()` plus C's own
+`hm_kernel32 = NULL`, whose port spelling is the same device) - and **no drift row**: 18,024 Rust
+lines against 12,488 C lines (44.3%), inside the `w32fns 0.45` row appended in slice 38.
+
+**⑤ The range table and the dead-file gate.**  The `12130-12279` remainder row splits into
+`12130-12159` (this slice) and `12161-12279` (`emacs_abort`, the remainder);
+`check-dead-file-coverage.py` reads **190 range row(s) cover src/w32fns.c (12488 lines; 143 blank
+line(s) between blocks need no row)**.  The over-sequence comment above the
+`w32_console_toggle_lock_key` block now reads `C 11585-12038 and C 12161-12279`.
+
+### Deviations (slice 39)
+
+- **C's `#if/#elif` pair is two complementary constants**, the second arm naming C's own `#elif`
+  (`not (all (...))` - the `src/image.rs` 1316 device), because Rust has no `#elif`.
+- **`EMACS_INT_MAX > LONG_MAX` is the derived feature `emacs_int_max_gt_long_max`**, the
+  `win32_nt_lt_500`/`win32_windows_ge_0410` naming rule for a condition whose value the port cannot
+  read from the C text alone.
+- **The entry point's `USHORT` result is `as c_int`** (C's own widening at the `return`), and the
+  `min (BACKTRACE_LIMIT_MAX, limit)` argument is `as ULONG` for the same reason.
+- **C's function-local `static` is a file-scope item** with its initialiser (the
+  `version_string`/`coords` device), so C 12146 has no separate item.
+- **`PULONG` is declared here** rather than taken from another unit: each unit carries its own
+  `<windows.h>`/`<winnt.h>` stand-in names (P-88 ①).
+- **Not claimed.**  No run evidence: no Windows toolchain, so no `RtlCaptureStackBackTrace` is ever
+  loaded and no backtrace is taken; the readings are the compile-level ones above and the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
