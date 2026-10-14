@@ -218,7 +218,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 7809-8114 | C 7809-8106's `x-show-tip` (the file's second-largest `DEFUN`: the reuse/reposition arm, the hidden-frame comparison loop, the parameter defaults, `w32_create_tip_frame`, the pseudo-window setup, `try_window` and the two `SetWindowPos` calls) and C 8109-8114's `x-hide-tip` - slice 14 | file gate; C 7884/8101's `goto start_timer` is the `'start_timer` labelled block |
 | 8116-8262 | C 8116-8118's File-selection-dialog banner, C 8120-8122's three `FILE_NAME_*` definitions, `file_dialog_callback` (C 8124-8221, both `NTGUI_UNICODE` arms) and `w32_dialog_in_progress` (C 8223-8262) - slice 15 | file gate; the `W`/`A` arms stay text (`cygwin` names C's `NTGUI_UNICODE`) |
 | 8264-8554 | C 8264-8554: the `x-file-dialog` `DEFUN` - the file's third-largest, with C 8284-8305's two wrapper records, C 8269-8271's filter strings, the `NTGUI_UNICODE`/`CYGWIN` arms and the three bare `alloca`s - slice 16 | file gate; the `cygwin` arms stay text (`cygwin` names C's `NTGUI_UNICODE`/`CYGWIN`) |
-| 8556-12488 | **the remainder of the file** (C 8556's `#ifdef WINDOWSNT` onward: C 8558 `pfnSHFileOperationW`, C 8562 `system-move-file-to-trash`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 8556-8667 | C 8556-8660: C's `#ifdef WINDOWSNT` block - the lazily bound `pfnSHFileOperationW` and the `system-move-file-to-trash` `DEFUN` - then C 8662's `#endif` (no Rust counterpart) and C 8664-8667's banner - slice 17 | `windowsnt` on every item of the block |
+| 8669-12488 | **the remainder of the file** (C 8669 `w32-send-sys-command` onward: C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2078,6 +2079,62 @@ false-positive classes: `FlagsEx`, `Some`, `Sx_file_dialog`).
   carries a comment naming it.
 - **Not claimed.**  No run evidence: no file dialog is opened on this machine (no Windows, no
   `GetOpenFileName*`), the callback is never entered, and the arm reading is compile-level.
+
+## Slice 17 (C 8556-8667)
+
+**Scope and the stop.**  C's `#ifdef WINDOWSNT` block: the lazily bound `pfnSHFileOperationW`
+(C 8558) and the `system-move-file-to-trash` `DEFUN` (C 8562-8660), then C 8662's `#endif` and
+C 8664-8667's "w32 specialized functions" banner.  The stop is C 8669's `w32-send-sys-command`
+`DEFUN` - the next item.
+
+**What the item carries.**  C 8572's `maybe_load_unicows_dll` (`w32.h` 176, declared by
+`include/w32.rs`); C 8574-8579's directory test (`Ffile_directory_p`, `Ffile_symlink_p`,
+`Fdirectory_file_name`, the two `Qdelete_*` symbols); C 8584's `Fexpand_file_name` and C 8586-8588's
+`Ffind_file_name_handler` + `calln!`; C 8594-8596's `ENCODE_FILE` + `map_w32_filename`; and
+C 8600-8655's two arms - the `W` one over `SHFILEOPSTRUCTW` (`filename_to_utf16`, `_wchmod` with
+C 8612's `0666`, the five-flag OR, `eassert!` on the `Option`, and the `pfnSHFileOperationW`
+call) and the `A` one over `SHFILEOPSTRUCTA` (`_mbspbrk`'s `?*` guard, `_chmod`,
+`SHFileOperationA`) - closing with C 8656's `report_file_error`.  New surface: the
+`PFNSHFILEOPERATIONW` type and its `static mut` storage, `FILEOP_FLAGS`, the two `SHFILEOPSTRUCT`
+records, `FO_DELETE`, four `FOF_*` flags, `ERROR_FILE_NOT_FOUND`, and the three CRT entries
+(`_wchmod`, `_chmod`, `_mbspbrk`) plus `SHFileOperationA`.
+
+### Evidence (slice 17, the final revision: 13,042 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the count slice 16
+left, so this block adds no error and no member gap once two fixes are in, both found by this
+reading: `FOF_NO_CONNECTED_ELEMENTS` was **already declared** at the top of this file (C 154's
+`#ifndef` guard) as a `DWORD`, so the slice's own declaration came out and the two OR sites cast
+that one flag down to `FILEOP_FLAGS` (`u16`) - the module-level duplicate was visible as both an
+`E0428` and the `E0277`/`E0308` pair the header's narrower type produced.  One probe run for each
+of the two readings.
+
+**③ `extract-abi.py --check`.**  151 rows → **150**: `missing subr Fsystem_move_file_to_trash`
+retires and no row is added; no token or family row appears for this block, and the file still has
+no line-count drift row.
+
+**④ The range table and the dead-file gate.**  The `8556-12488` remainder row splits into
+`8556-8667` (this slice, with C 8662's `#endif` explicitly recorded as having no Rust counterpart -
+the items carry the `windowsnt` feature themselves) and `8669-12488`;
+`check-dead-file-coverage.py` reads **166 range row(s) cover src/w32fns.c (12488 lines; 113 blank
+line(s) between blocks need no row)**, `0 failure(s)`.  Ten gates read 0 failures; the name sweep
+over the new region reads `missing: []` after triage (its one candidate is `DEFUN!`'s own
+`Ssystem_move_file_to_trash` static).
+
+### Deviations (slice 17)
+
+- **`FOF_NO_CONNECTED_ELEMENTS` keeps the file's earlier `DWORD` spelling** (C 154's guard block
+  landed long before this slice); only the two OR sites narrow it, which is where C's `int`-valued
+  macro meets the `WORD` member.
+- **The `0666` arguments are `0o666`**, the port's spelling for C's octal literals.
+- **`pfnSHFileOperationW` is an `Option<PFNSHFILEOPERATIONW>` static**, so C 8624's
+  `eassert (pfnSHFileOperationW)` is `is_some ()`; C 12466 (`globals_of_w32fns`) is what assigns it.
+- **C 8662's `#endif` and C 8664-8667's banner are carried in C's order** (the banner inside one
+  wrapper comment, the `#endif` recorded in the range table rather than spelled).
+- **Not claimed.**  No run evidence: nothing is moved to the recycle bin on this machine
+  (`SHFileOperationA/W` are never called), the arm reading is compile-level.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

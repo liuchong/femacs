@@ -12833,3 +12833,210 @@ DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,
 
   return filename;
 });
+
+/// C 8557-8558: C's `#ifdef WINDOWSNT` and the lazily bound `SHFileOperationW` pointer - C's
+/// `static int (WINAPI *pfnSHFileOperationW) (LPSHFILEOPSTRUCTW);`.  `globals_of_w32fns`
+/// (C 12466) is what assigns it, and the storage is `Option<…>` because a C function pointer may
+/// be NULL (the `include/w32term.rs` 1237-1245 reading).  The `FILEOP_FLAGS`, `SHFILEOPSTRUCTA/W`
+/// and `LPSHFILEOPSTRUCTA/W` records below are `<shellapi.h>`'s, spelled in that header's order,
+/// and the five `FOF_*` flags are what C 8618/8649 ORs together.
+/// C: static int (WINAPI *pfnSHFileOperationW) (LPSHFILEOPSTRUCTW);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type PFNSHFILEOPERATIONW
+  = Option<unsafe extern "system" fn (lpFileOp: *mut SHFILEOPSTRUCTW) -> c_int>;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut pfnSHFileOperationW: PFNSHFILEOPERATIONW = None;
+
+/// C: typedef WORD FILEOP_FLAGS; - `<shellapi.h>`'s flag type (the record member is a `WORD`).
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type FILEOP_FLAGS = WORD;
+/// C: typedef struct _SHFILEOPSTRUCTW { HWND hwnd; UINT wFunc; PCWSTR pFrom; PCWSTR pTo;
+/// C: FILEOP_FLAGS fFlags; BOOL fAnyOperationsAborted; LPVOID hNameMappings; PCWSTR
+/// C: lpszProgressTitle; } SHFILEOPSTRUCTW, *LPSHFILEOPSTRUCTW;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+pub struct SHFILEOPSTRUCTW
+{
+  pub hwnd: HWND,
+  pub wFunc: UINT,
+  pub pFrom: *const c_ushort,
+  pub pTo: *const c_ushort,
+  pub fFlags: FILEOP_FLAGS,
+  pub fAnyOperationsAborted: BOOL,
+  pub hNameMappings: LPVOID,
+  pub lpszProgressTitle: *const c_ushort,
+}
+/// C: typedef struct _SHFILEOPSTRUCTA { … PCSTR pFrom; PCSTR pTo; … } SHFILEOPSTRUCTA,
+/// C: *LPSHFILEOPSTRUCTA; - the `A` twin (C 8629).
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+pub struct SHFILEOPSTRUCTA
+{
+  pub hwnd: HWND,
+  pub wFunc: UINT,
+  pub pFrom: *const c_char,
+  pub pTo: *const c_char,
+  pub fFlags: FILEOP_FLAGS,
+  pub fAnyOperationsAborted: BOOL,
+  pub hNameMappings: LPVOID,
+  pub lpszProgressTitle: *const c_char,
+}
+
+/// C: #define FO_DELETE 3 / #define FOF_SILENT 0x0004 / #define FOF_NOCONFIRMATION 0x0010 /
+/// C: #define FOF_ALLOWUNDO 0x0040 / #define FOF_NOERRORUI 0x0400 / #define
+/// C: FOF_NO_CONNECTED_ELEMENTS 0x2000 - C 8616/8647's function code and four of the five flags
+/// C 8618/8649 OR together, from `<shellapi.h>`; the fifth, `FOF_NO_CONNECTED_ELEMENTS`, is C 154's
+/// `#ifndef` guard block and already stands at the top of this file as a `DWORD`, so the two OR
+/// sites cast it down to `FILEOP_FLAGS` (`check-mirror-dupes` found the duplicate).
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FO_DELETE: UINT = 3;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FOF_SILENT: FILEOP_FLAGS = 0x0004;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FOF_NOCONFIRMATION: FILEOP_FLAGS = 0x0010;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FOF_ALLOWUNDO: FILEOP_FLAGS = 0x0040;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const FOF_NOERRORUI: FILEOP_FLAGS = 0x0400;
+/// C: #define ERROR_FILE_NOT_FOUND 2 - `<winerror.h>`, C 8640's result for the wildcard case.
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const ERROR_FILE_NOT_FOUND: c_int = 2;
+
+/// C 8653's `SHFileOperationA` (`<shellapi.h>`) and the three CRT entries C 8612/8638/8643 uses:
+/// `_wchmod`/`_chmod` (`<io.h>`) and `_mbspbrk` (`<mbstring.h>`).
+/// C: int WINAPI SHFileOperationA (LPSHFILEOPSTRUCTA); int _wchmod (const wchar_t *, int);
+/// C: int _chmod (const char *, int); unsigned char *_mbspbrk (const unsigned char *,
+/// C: const unsigned char *);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "C" {
+  pub fn SHFileOperationA (lpFileOp: *mut SHFILEOPSTRUCTA) -> c_int;
+  pub fn _wchmod (path: *const c_ushort, pmode: c_int) -> c_int;
+  pub fn _chmod (path: *const c_char, pmode: c_int) -> c_int;
+  pub fn _mbspbrk (str: *const c_uchar, charset: *const c_uchar) -> *mut c_uchar;
+}
+
+/* C 8560-8561's comment.  */
+/// C 8562-8660: `system-move-file-to-trash` - C 8572/8596/8600's three readers
+/// (`maybe_load_unicows_dll` is `w32.h` 176's, declared by `include/w32.rs`; `map_w32_filename`
+/// is that mirror's; `os_subtype`/`OS_SUBTYPE_9X` are `include/w32common.rs`'s), C 8574-8579's
+/// directory test, C 8584-8588's handler call (C's `calln` is the port's `calln!`), and
+/// C 8591-8658's two arms - the `W` one over C 8602-8625's record and `_wchmod`, the `A` one over
+/// C 8629-8653's with C 8638's `_mbspbrk` wildcard guard.  C 8624's `eassert` is the port's
+/// `is_some ()` because the pointer is an `Option`.
+/// C: DEFUN ("system-move-file-to-trash", Fsystem_move_file_to_trash,
+/// C:        Ssystem_move_file_to_trash, 1, 1, 0,
+/// C:        doc: /* Move file or directory named FILENAME to the recycle bin.  */)
+/// C:   (Lisp_Object filename)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("system-move-file-to-trash", Fsystem_move_file_to_trash,
+	Ssystem_move_file_to_trash, 1, 1, 0,
+	doc: "Move file or directory named FILENAME to the recycle bin.  ",
+	(filename: Lisp_Object),
+	{
+  let handler: Lisp_Object;
+  let encoded_file: Lisp_Object;
+  let mut operation: Lisp_Object;
+  let mut filename = filename;                 /* C 8579 assigns the parameter.  */
+
+  /* Required on Windows 9X.  */
+  maybe_load_unicows_dll ();
+
+  operation = Qdelete_file ();
+  if ! NILP (Ffile_directory_p (filename))
+      && NILP (Ffile_symlink_p (filename))
+    {
+      operation = Qdelete_directory ();
+      filename = Fdirectory_file_name (filename);
+    }
+
+  /* Must have fully qualified file names for moving files to Recycle
+     Bin. */
+  filename = Fexpand_file_name (filename, Qnil ());
+
+  handler = Ffind_file_name_handler (filename, operation);
+  if ! NILP (handler)
+    { return calln! (handler, operation, filename); }
+  else
+    {
+      let path: *const c_char;
+      let mut result: c_int;
+
+      encoded_file = ENCODE_FILE (filename);
+
+      path = map_w32_filename (SSDATA (encoded_file), core::ptr::null_mut ());
+
+      /* The Unicode version of SHFileOperation is not supported on
+	 Windows 9X. */
+      if w32_unicode_filenames && os_subtype != OS_SUBTYPE_9X
+	{
+	  let mut file_op_w: SHFILEOPSTRUCTW = core::mem::zeroed ();
+	  /* We need one more element beyond MAX_PATH because this is
+	     a list of file names, with the last element double-null
+	     terminated. */
+	  let mut tmp_path_w: [c_ushort; MAX_PATH as usize + 1] =
+	    [0; MAX_PATH as usize + 1];
+
+	  memset ((&raw mut tmp_path_w) as *mut c_void, 0, core::mem::size_of_val (&tmp_path_w));
+	  filename_to_utf16 (path, tmp_path_w.as_mut_ptr ());
+
+	  /* On Windows, write permission is required to delete/move files.  */
+	  _wchmod (tmp_path_w.as_mut_ptr (), 0o666);
+
+	  memset ((&raw mut file_op_w) as *mut c_void, 0, core::mem::size_of_val (&file_op_w));
+	  file_op_w.hwnd = HWND_DESKTOP;
+	  file_op_w.wFunc = FO_DELETE;
+	  file_op_w.pFrom = tmp_path_w.as_mut_ptr ();
+	  file_op_w.fFlags = FOF_SILENT | FOF_NOCONFIRMATION | FOF_ALLOWUNDO
+	    | FOF_NOERRORUI | FOF_NO_CONNECTED_ELEMENTS as FILEOP_FLAGS;
+	  file_op_w.fAnyOperationsAborted = FALSE;
+
+	  /* This is stated to exist on all versions of Windows NT Emacs
+	     supports.  */
+	  eassert! (pfnSHFileOperationW.is_some ());
+	  result = (pfnSHFileOperationW.unwrap ()) (&raw mut file_op_w);
+	}
+      else
+	{
+	  let mut file_op_a: SHFILEOPSTRUCTA = core::mem::zeroed ();
+	  let mut tmp_path_a: [c_char; MAX_PATH as usize + 1] = [0; MAX_PATH as usize + 1];
+
+	  memset ((&raw mut tmp_path_a) as *mut c_void, 0, core::mem::size_of_val (&tmp_path_a));
+	  filename_to_ansi (path, tmp_path_a.as_mut_ptr ());
+
+	  /* If a file cannot be represented in ANSI codepage, don't
+	     let them inadvertently delete other files because some
+	     characters are interpreted as a wildcards.  */
+	  if ! (_mbspbrk (tmp_path_a.as_mut_ptr () as *const c_uchar,
+			  c"?*".as_ptr () as *const c_uchar)).is_null ()
+	    { result = ERROR_FILE_NOT_FOUND; }
+	  else
+	    {
+	      _chmod (tmp_path_a.as_mut_ptr (), 0o666);
+
+	      memset ((&raw mut file_op_a) as *mut c_void, 0,
+		      core::mem::size_of_val (&file_op_a));
+	      file_op_a.hwnd = HWND_DESKTOP;
+	      file_op_a.wFunc = FO_DELETE;
+	      file_op_a.pFrom = tmp_path_a.as_mut_ptr ();
+	      file_op_a.fFlags = FOF_SILENT | FOF_NOCONFIRMATION | FOF_ALLOWUNDO
+		| FOF_NOERRORUI | FOF_NO_CONNECTED_ELEMENTS as FILEOP_FLAGS;
+	      file_op_a.fAnyOperationsAborted = FALSE;
+
+	      result = SHFileOperationA (&raw mut file_op_a);
+	    }
+	}
+      if result != 0
+	{ report_file_error (c"Removing old name".as_ptr (), list1 (filename)); }
+    }
+  return Qnil ();
+});
+
+/* C 8662's `#endif /* WINDOWSNT */` has no Rust counterpart (the items above carry the
+   `windowsnt` feature themselves), and C 8664-8667's banner follows it in C's order: the port
+   keeps C's text inside one wrapper comment (the C 8116-8118 device).
+
+/***********************************************************************
+			 w32 specialized functions
+ ***********************************************************************/
+ */
+
