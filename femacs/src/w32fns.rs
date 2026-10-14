@@ -17976,7 +17976,220 @@ unsafe fn w32_backtrace (buffer: *mut *mut c_void, limit: c_int) -> c_int
   return 0;                                                              // C 12158
 }
 
-/* C 11585-12038 and C 12161-12279's text is not in the port yet (the file's remainder), but C 10112's
+/* C 12161-12279: `emacs_abort` - C 12164-12165's abort-dialog short circuit, the dialog itself
+   (with C 12179-12182's `#if __GNUC__` string arm), C 12186-12278's `switch` over the answer with
+   the three `#ifdef CYGWIN` pairs inside its second arm, and C 12275's `abort ()`.  */
+
+/// C 12172/12183's `MessageBox` and the three entry points C 12189/12218/12222/12240 call.  C writes
+/// the SDK alias `MessageBox` (the `RegOpenKeyEx` convention of this file), so the port keeps the
+/// name; no mirror carries any of the four rows - the `redisplay_preserve_echo_area` device.
+/// C: int MessageBoxA (HWND, LPCSTR, LPCSTR, UINT); void WINAPI DebugBreak (void);
+/// C: HANDLE WINAPI GetStdHandle (DWORD); int _open_osfhandle (intptr_t, int);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn MessageBox (hWnd: HWND, lpText: LPCSTR, lpCaption: LPCSTR, uType: UINT) -> c_int;
+  pub fn DebugBreak ();
+  pub fn GetStdHandle (nStdHandle: DWORD) -> HANDLE;
+  pub fn _open_osfhandle (osfhandle: intptr_t, flags: c_int) -> c_int;
+}
+
+/// C 12237-12239's `#ifdef CYGWIN` `#define _open open`: a *name* macro has no single Rust spelling,
+/// so the port declares C's `_open` here and lets the `cygwin` arm call the tree's own `open`
+/// (`lib/include/fcntl.in.rs` 286, already in this unit's include graph - a second declaration is
+/// what `tools/check-mirror-dupes.py` refuses).
+/// C: #ifdef CYGWIN
+/// C: #define _open open
+/// C: #endif
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+unsafe extern "C" {
+  pub fn _open (path: *const c_char, oflag: c_int, ...) -> c_int;
+}
+
+/// C 12188/12191's two ids, C 12184-12185's three `<winuser.h>` flags (the file's own `<windows.h>`
+/// block above carries only the five `set-message-beep` ones), C 12218/12221's
+/// `STD_ERROR_HANDLE`/`INVALID_HANDLE_VALUE` and C 12240's `S_IREAD`/`S_IWRITE` (MinGW's spelling of
+/// `S_IRUSR`/`S_IWUSR`; the mirror carries the POSIX names only).  All eight are spelled from the
+/// SDK headers, with no local authority.
+/// C: #define IDYES 6 / #define IDNO 7
+/// C: #define MB_TASKMODAL 0x00002000 / #define MB_SETFOREGROUND 0x00010000 / #define MB_YESNO 0x00000004
+/// C: #define STD_ERROR_HANDLE ((DWORD)-12) / #define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
+/// C: #define S_IREAD 0x0100 / #define S_IWRITE 0x0080
+#[cfg (feature = "have_ntgui")]
+pub const IDYES: c_int = 6;
+#[cfg (feature = "have_ntgui")]
+pub const IDNO: c_int = 7;
+#[cfg (feature = "have_ntgui")]
+pub const MB_TASKMODAL: DWORD = 0x00002000;
+#[cfg (feature = "have_ntgui")]
+pub const MB_SETFOREGROUND: DWORD = 0x00010000;
+#[cfg (feature = "have_ntgui")]
+pub const MB_YESNO: DWORD = 0x00000004;
+#[cfg (feature = "have_ntgui")]
+pub const STD_ERROR_HANDLE: DWORD = 0xFFFFFFF4;
+#[cfg (feature = "have_ntgui")]
+pub const INVALID_HANDLE_VALUE: HANDLE = -1isize as HANDLE;   /* the `src/sysdep.rs` 1058 spelling */
+#[cfg (feature = "have_ntgui")]
+pub const S_IREAD: c_int = 0x0100;
+#[cfg (feature = "have_ntgui")]
+pub const S_IWRITE: c_int = 0x0080;
+
+/// C 12161-12279: `void emacs_abort (void)` - C 12164-12167's short circuit and the `button` local,
+/// C 12169-12185's dialog (C 12179-12182's `#if __GNUC__` tail is the arm-selected `abort_msg`
+/// binding, because `concat!` cannot take a `#[cfg]` fragment - a recorded deviation), C 12186-12278's
+/// `match` over the answer (C's `case IDNO:` and `default:` share one arm, `IDNO | _`), the
+/// `w32_backtrace` call with C's `void *stack[]`, the two `#ifdef CYGWIN` pairs and C 12240's
+/// `_open`/`open`, the `sprintf`/`write` reporting loop, and C 12275's `abort ()`.
+/// C: void
+/// C: emacs_abort (void)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn emacs_abort ()
+{
+  if w32_disable_abort_dialog                                        // C 12164
+    { abort (); }                                                    // C 12165
+
+  let button: c_int;                                                 // C 12167
+
+  if noninteractive                                                  // C 12169
+    { button = IDNO; }                                               // C 12170
+  else
+    {
+      /* C 12172-12185's text.  C's six adjacent literals are one `c"…"` per arm, the
+	 `#if __GNUC__` fragment being the tail the arms differ by.  */
+      #[cfg (feature = "gnuc")]
+      let abort_msg: LPCSTR
+	= c"A fatal error has occurred!\n\nWould you like to attach a debugger?\n\nSelect:\nYES -- to debug Emacs, or\nNO  -- to abort Emacs and produce a backtrace\n       (emacs_backtrace.txt in current directory).\n\n(Before clicking YES, type\n\"gdb -p <emacs-PID>\", then \"continue\" inside GDB.)".as_ptr ();
+      #[cfg (not (feature = "gnuc"))]
+      let abort_msg: LPCSTR
+	= c"A fatal error has occurred!\n\nWould you like to attach a debugger?\n\nSelect:\nYES -- to debug Emacs, or\nNO  -- to abort Emacs and produce a backtrace\n       (emacs_backtrace.txt in current directory).".as_ptr ();
+      button = MessageBox (core::ptr::null_mut (), abort_msg,             // C 12172
+			   c"Emacs Abort Dialog".as_ptr (),                 // C 12183
+			   MB_ICONEXCLAMATION | MB_TASKMODAL                // C 12184
+			   | MB_SETFOREGROUND | MB_YESNO);                  // C 12185
+    }
+  match button                                                       // C 12186
+    {
+      IDYES =>                                                       // C 12188
+	{
+	  DebugBreak ();                                             // C 12189
+	  exit (2);	/* tell the compiler we will never return */      // C 12190
+	}
+      IDNO | _ =>                                                    // C 12191-12192
+	{
+	  let mut stack: [*mut c_void; BACKTRACE_LIMIT_MAX as usize + 1] // C 12194
+	    = [core::ptr::null_mut (); BACKTRACE_LIMIT_MAX as usize + 1];
+	  let i: c_int = w32_backtrace (stack.as_mut_ptr (),             // C 12195
+					BACKTRACE_LIMIT_MAX + 1);
+	  /* C 12196-12202's `#ifdef CYGWIN` pair.  */
+	  #[cfg (feature = "cygwin")]
+	  let addr_offset: ptrdiff_t = 0;                                // C 12197
+	  #[cfg (not (feature = "cygwin"))]
+	  /* The offset below is zero unless ASLR is in effect.  */
+	  let addr_offset: ptrdiff_t                                     // C 12200-12201
+	    = DEFAULT_IMAGE_BASE - GetModuleHandle (core::ptr::null_mut ()) as ptrdiff_t;
+
+	  if i != 0                                                      // C 12204
+	    {
+	      let mut errfile_fd: c_int = -1;                            // C 12206
+	      let mut j: c_int = 0;                                      // C 12207
+	      /* C 12208-12214's `char buf[sizeof ("…") + 2 * INT_BUFSIZE_BOUND (intptr_t)]`,
+		 measured: 76 bytes (the literal is 34 with its NUL and `INT_BUFSIZE_BOUND (intptr_t)`
+		 is 21 - the `src/font.rs` 2177 device for a C bound expression).  */
+	      let mut buf: [c_char; 76] = [0; 76];                       // C 12208-12214
+	      /* C 12215-12223's `#ifdef CYGWIN` pair.  */
+	      #[cfg (feature = "cygwin")]
+	      let stderr_fd: c_int = 2;                                  // C 12216
+	      #[cfg (not (feature = "cygwin"))]
+	      let errout: HANDLE = GetStdHandle (STD_ERROR_HANDLE);       // C 12218
+	      #[cfg (not (feature = "cygwin"))]
+	      let mut stderr_fd: c_int = -1;                             // C 12219
+	      #[cfg (not (feature = "cygwin"))]
+	      if !errout.is_null () && errout != INVALID_HANDLE_VALUE     // C 12221
+		{
+		  stderr_fd = _open_osfhandle (errout as intptr_t,        // C 12222
+					       O_APPEND | O_BINARY);
+		}
+
+	      /* We use %p, not 0x%p, as %p produces a leading "0x" on XP,
+		 but not on Windows 7.  addr2line doesn't mind a missing
+		 "0x", but will be confused by an extra one.  */
+	      if !except_addr.is_null ()                                 // C 12228
+		{
+		  sprintf (buf.as_mut_ptr (),                            // C 12229-12230
+			   c"\r\nException 0x%x at this address:\r\n%p\r\n".as_ptr (),
+			   except_code as c_uint, except_addr);
+		}
+	      if stderr_fd >= 0                                          // C 12231
+		{
+		  if !except_addr.is_null ()                             // C 12233
+		    {
+		      write (stderr_fd, buf.as_ptr () as *const c_void,  // C 12234
+			     strlen (buf.as_ptr ()));
+		    }
+		  write (stderr_fd, c"\r\nBacktrace:\r\n".as_ptr () as *const c_void, 14); // C 12235
+		}
+	      /* C 12237-12239's `_open`/`open` pair.  */
+	      #[cfg (not (feature = "cygwin"))]
+	      {
+		errfile_fd = _open (c"emacs_backtrace.txt".as_ptr (),      // C 12240
+				    O_RDWR | O_CREAT | O_BINARY, S_IREAD | S_IWRITE);
+	      }
+	      #[cfg (feature = "cygwin")]
+	      {
+		errfile_fd = open (c"emacs_backtrace.txt".as_ptr (),       // C 12240
+				   O_RDWR | O_CREAT | O_BINARY, S_IREAD | S_IWRITE);
+	      }
+	      if errfile_fd >= 0                                         // C 12241
+		{
+		  lseek (errfile_fd, 0, SEEK_END);                        // C 12243
+		  if !except_addr.is_null ()                             // C 12244
+		    {
+		      write (errfile_fd, buf.as_ptr () as *const c_void,  // C 12245
+			     strlen (buf.as_ptr ()));
+		    }
+		  write (errfile_fd, c"\r\nBacktrace:\r\n".as_ptr () as *const c_void, 14); // C 12246
+		}
+
+	      while j < i                                                // C 12249
+		{
+		  /* stack[] gives the return addresses, whereas we want
+		     the address of the call, so decrease each address
+		     by approximate size of 1 CALL instruction.  We add
+		     ADDR_OFFSET to account for ASLR which changes the
+		     base address of the program's image in memory,
+		     whereas 'addr2line' needs to see addresses relative
+		     to the fixed base recorded in the PE header.  */
+		  sprintf (buf.as_mut_ptr (), c"%p\r\n".as_ptr (),      // C 12258-12259
+			   (stack[j as usize] as *mut c_char).offset (
+			       addr_offset - core::mem::size_of::<*mut c_void> () as isize));
+		  if stderr_fd >= 0                                      // C 12260
+		    {
+		      write (stderr_fd, buf.as_ptr () as *const c_void,  // C 12261
+			     strlen (buf.as_ptr ()));
+		    }
+		  if errfile_fd >= 0                                     // C 12262
+		    {
+		      write (errfile_fd, buf.as_ptr () as *const c_void, // C 12263
+			     strlen (buf.as_ptr ()));
+		    }
+		  j += 1;                                                // C 12249's `j++`
+		}
+	      if i == BACKTRACE_LIMIT_MAX                                // C 12265
+		{
+		  if stderr_fd >= 0
+		    { write (stderr_fd, c"...\r\n".as_ptr () as *const c_void, 5); }  // C 12268
+		  if errfile_fd >= 0
+		    { write (errfile_fd, c"...\r\n".as_ptr () as *const c_void, 5); } // C 12270
+		}
+	      if errfile_fd >= 0                                         // C 12272
+		{ close (errfile_fd); }                                  // C 12273
+	    }
+	  abort ();                                                      // C 12275
+	}
+    }
+}
+
+/* C 11585-12038's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C

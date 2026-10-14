@@ -241,7 +241,7 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 11585-12038 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`; C 11588's `globals_of_w32fns ()` is landed - slice 36 landed the callee first, P-91 ①) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 12042-12128 | C 12042's banner, C 12044-12049's guard and objects (`prev_exception_handler` under `not (cygwin)`, `except_code`/`except_addr` ungated), C 12051-12059's `_resetstkoflw_proc` and `resetstkoflw`, and C 12061-12128's `w32_reset_stack_overflow_guard`, `stack_overflow_handler` and `my_exception_handler` - slice 37 | file gate; the group's `#ifndef CYGWIN` arms are `not (cygwin)`, and the two `#ifdef _WIN64` pairs are `win64` / `not (win64)` |
 | 12130-12159 | C 12130-12131's `CaptureStackBackTrace_proc` (with this unit's own `PULONG`), C 12133's `BACKTRACE_LIMIT_MAX`, C 12134-12141's two-arm `DEFAULT_IMAGE_BASE` and C 12143-12159's `w32_backtrace` - slice 39 | file gate; the `DEFAULT_IMAGE_BASE` arms are `mingw_w64` + the derived `emacs_int_max_gt_long_max` / `not (cygwin)` |
-| 12161-12279 | **the remainder** (C 12161-12279's `emacs_abort`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 12161-12279 | C 12161-12279's `emacs_abort` (the dialog with C's `#if __GNUC__` string arm, the `switch` over the answer with three `#ifdef CYGWIN` pairs inside, and the backtrace-file reporting loop) - slice 40 | file gate; the three inner pairs are `cygwin` / `not (cygwin)`, and the message arm is `gnuc` |
 | 12283-12450 | C 12283's `/* Initialization.  */`, C 12285-12292's comment and C 12293-12450's `globals_of_w32fns` (the twenty-six lazy loads, the dark-mode probe, the four `DEFVAR`s and the three startup calls) - slice 38 | file gate; the group's `#ifndef CYGWIN` arms are `not (cygwin)`, and C 12365's arm is `windowsnt` |
 | 12452-12488 | C 12452's `#ifdef WINDOWSNT` with C 12454-12476's `load_unicows_dll_for_w32fns`, and C 12478's `#ifdef NTGUI_UNICODE` with C 12480-12488's `ntgui_encode_system` - slice 36, landed ahead of the C 11585-12450 text above it (P-91 ①: `syms_of_w32fns` calls `globals_of_w32fns` first) | `windowsnt` (nested) / `ntgui_unicode` (nested) |
 
@@ -3878,6 +3878,85 @@ line(s) between blocks need no row)**.  The over-sequence comment above the
   `<windows.h>`/`<winnt.h>` stand-in names (P-88 ①).
 - **Not claimed.**  No run evidence: no Windows toolchain, so no `RtlCaptureStackBackTrace` is ever
   loaded and no backtrace is taken; the readings are the compile-level ones above and the sweep's.
+
+## Slice 40 (C 12161-12279)
+
+**Scope and the stop.**  `emacs_abort` (C 12161-12279): C 12164-12167's abort-dialog short circuit and
+the `button` local, C 12169-12185's dialog (C 12179-12182's `#if __GNUC__` string arm), C 12186-12278's
+`switch` over the answer with the three `#ifdef CYGWIN` pairs inside its second arm, and C 12275's
+`abort ()`.  The stop is C 12281's form feed; the file's only remaining text is C 11585-12038
+(`syms_of_w32fns`).  The item carries the file gate alone, with `gnuc` and `cygwin` arms inside.
+
+**What the item carries.**  C 12172-12185's `MessageBox` (the message text with C 12179-12182's
+GNU-only tail, the caption and the four flags), C 12188-12190's `IDYES` arm (`DebugBreak` and
+`exit (2)`), C 12194-12195's `void *stack[BACKTRACE_LIMIT_MAX + 1]` with the `w32_backtrace` call,
+C 12196-12202's CYGWIN/MinGW `addr_offset` pair, C 12204-12273's reporting block (the `errfile_fd`
+local, C 12208-12214's measured `buf`, C 12215-12223's `stderr_fd` pair with `GetStdHandle` and
+`_open_osfhandle`, the two `sprintf` sites, the four `write` calls, C 12240's `_open`/`open` pair,
+C 12243's `lseek`, the `j` loop with C 12251-12257's comment, C 12265-12271's truncation marker and
+C 12272-12273's `close`), and C 12275's `abort ()`.
+
+**New surface.**  Four use-site declarations (`MessageBox` under C's SDK alias name, `DebugBreak`,
+`GetStdHandle`, `_open_osfhandle`), C's `_open` (the `cygwin` arm of C 12237-12239's `#define` calls
+the tree's own `open`, `lib/include/fcntl.in.rs` 286 - a second declaration of it is what
+`tools/check-mirror-dupes.py` refuses, measured), and
+nine SDK constants (`IDYES`, `IDNO`, `MB_TASKMODAL`, `MB_SETFOREGROUND`, `MB_YESNO`,
+`STD_ERROR_HANDLE`, `INVALID_HANDLE_VALUE`, `S_IREAD`, `S_IWRITE`).  `write`/`close`/`lseek`/`sprintf`/
+`strlen`/`abort`/`exit`/`min` and the four globals (`w32_disable_abort_dialog`, `noninteractive`,
+`except_code`, `except_addr`) were already in scope.
+
+### Evidence (slice 40, the final revision: 18,237 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Three runs - the first two refused the file: the
+GNU-only message fragment was written with `\\"` instead of `\"` (`unknown start of token: \`,
+three errors; the C text's own `\"` is what the Rust literal needs).  The third is **exit 0**, the
+object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  One run: **42 previous errors** - the standing
+count, so this slice adds no error (its `IDNO | _` arm draws no `unreachable_patterns`) - and **no
+error sits at or beyond `src/w32fns.rs` 17,979**.  The warning count moves 122 → 124: the two new
+rows are `unused doc comment` on the two new `unsafe extern "C"` blocks' `/// C:` headers, the
+file's standing style (rustdoc does not consume a doc comment on an extern block).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 17,976-18,220: 29 capitalized
+identifiers, **none missing** - every name this slice introduces resolves.
+
+**④ `extract-abi.py --check`.**  **49 → 47** rows: `missing function emacs_abort` retires, leaving
+the forty-six `missing defsubr` rows and `missing function syms_of_w32fns` - both C 11585-12038's.
+Two rows the first reading added are answered: a token row
+(`function emacs_abort does not mention break, case, default, int_bufsize_bound, switch` - the
+`match` substitution of C's `switch`/its two shared labels, and C's `INT_BUFSIZE_BOUND` bound
+expression, recorded in one new `macro-body-notes.tsv` row) and a drift row (`line count drifted
+46.0%: C 12488 vs Rust 18237`), answered by a new `w32fns 0.47` row in
+`docs/ports/line-drift-tolerance.tsv` (the measured 46.1% + 0.01, superseding slice 38's `0.45`).
+
+**⑤ The range table and the dead-file gate.**  The `12161-12279` remainder row becomes the slice's
+landed row; `check-dead-file-coverage.py` still reads **190 range row(s) cover src/w32fns.c (12488
+lines; 143 blank line(s) between blocks need no row)**, and the table's only remainder row is now
+`11585-12038`.  The over-sequence comment above the `w32_console_toggle_lock_key` block reads
+`C 11585-12038's text is not in the port yet`.
+
+### Deviations (slice 40)
+
+- **C 12179-12182's `#if __GNUC__` fragment makes the message two arm-selected bindings.**  C's one
+  chain of adjacent literals cannot be spelled as `concat! (…)` with a `#[cfg]` inside, so the
+  `gnuc`/`not (gnuc)` arms each bind `abort_msg` with the text they compile - a recorded deviation,
+  and the `gnuc` name is the tree's own (`lib/include/cdefs.rs` 413).
+- **C's `switch` is the port's `match`**, and its two shared labels (`case IDNO:` and `default:`)
+  are the single arm `IDNO | _` (the `add_tray_notification` reading), recorded in a notes row.
+- **C 12208-12214's `char buf[...]` is the measured `[c_char; 76]`** (the literal is 34 with its NUL;
+  `INT_BUFSIZE_BOUND (intptr_t)` is 21) - the `src/font.rs` 2177 device for a C bound expression.
+- **Only `_open` is declared here**: `lib/include/fcntl.in.rs` 286 already declares `open`, so the
+  `cygwin` arm of the `#define` uses the mirror's copy (the `check-mirror-dupes.py` reading of the
+  first attempt, which had both).
+- **The three `#ifdef CYGWIN` pairs are sibling `#[cfg]` bindings/statements** (the
+  `src/callproc.rs` 1828-1831 device): the `addr_offset` binding, the `stderr_fd` binding with
+  `errout`'s two statements, and the `_open`/`open` call.
+- **The nine SDK constants are spelled from the headers** (`S_IREAD`/`S_IWRITE` are MinGW's names
+  for the mirror's `S_IRUSR`/`S_IWUSR`), and `INVALID_HANDLE_VALUE` uses the `src/sysdep.rs` 1058
+  `-1isize as HANDLE` spelling.
+- **Not claimed.**  No run evidence: no Windows toolchain, so no dialog is shown, no backtrace file
+  is written and no process aborts; the readings are the compile-level ones above and the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
