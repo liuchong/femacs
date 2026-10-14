@@ -233,7 +233,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10635-10833 | C 10635-10763's `w32-notification-notify`, C 10765-10779's `w32-notification-close` (with the tray block's `#endif` at C 10781) and C 10783-10833's two IME `DEFUN`s - slice 28 | the tray pair: file gate + `windowsnt` + `not (feature = "have_dbus")`; the IME pair: file gate |
 | 10836-10957 | C 10837-10839's registry banner, C 10840-10900's `w32-read-registry` (with C 10902's `#endif`) and C 10904-10956's `w32_get_resource` - slice 29; the three `HKEY_*` constants and `RegQueryValueEx` join the C 890-932 block above | the DEFUN: file gate + `windowsnt`; `w32_get_resource`: file gate |
 | 10958-11041 | C 10960-10962's wallpaper banner, C 10964-10965's `SystemParametersInfoW_Proc` with C 10967-11015's `w32-set-wallpaper`, and C 11017-11019's `GetLastInputInfo_Proc` with C 11021-11039's `w32-system-idle-time` - slice 30 | file gate + `windowsnt` |
-| 11044-12488 | **the remainder of the file** (C 11044's `#ifdef WINDOWSNT` onward: the badge/taskbar trio, the sleep-block group, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 11044-11245 | C 11044's `#ifdef WINDOWSNT`, C 11046-11048's taskbar banner, C 11050-11054's `#ifndef MINGW_W64` guard with the two `DEFINE_GUID`s, and C 11056-11245's `w32-badge` - slice 31 | `windowsnt` (nested); the two GUIDs `not (mingw_w64)` |
+| 11247-12488 | **the remainder of the file** (C 11247 onward: `w32-request-user-attention` and `w32-progress-indicator` closing C 11348's `#endif`, the sleep-block group, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -3189,6 +3190,96 @@ identifiers, missing `Clone`/`Copy` (the new record's derive arguments) and the 
   is what loads them, which is still unported.
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no wallpaper is set and no
   idle time is read; the arm reading is compile-level (42 errors, none from this slice) and the name
+  reading is the sweep's.
+
+## Slice 31 (C 11044-11245)
+
+**Scope and the stop.**  C 11044's `#ifdef WINDOWSNT`, C 11046-11048's Taskbar Indicators banner,
+C 11050-11054's `#ifndef MINGW_W64` guard carrying the SDK's two `DEFINE_GUID`s, and `w32-badge`
+(C 11056-11245).  The stop is C 11247's `DEFUN ("w32-request-user-attention", ...)`, the second of
+the taskbar trio.  Every item carries `all (feature = "have_ntgui", feature = "windowsnt")`.
+
+**What the item carries.**  `w32-badge` is C 11068-11075's selected-frame resolution (the
+`FRAME_W32_P`/`FRAME_LIVE_P` pair, `hwnd` from `FRAME_W32_WINDOW`, C 11071's `Qnil` on a NULL
+handle), C 11077-11085's `CoInitialize`/`CoCreateInstance` pair with C 11084's `r != S_OK` test,
+C 11087-11100's badge/colour parsing (C's two `parse_color_spec` calls with their out-parameters and
+the two `RGB` macros, each failure returning `Qnil`), C 11102-11110's UTF-8 badge (`ENCODE_UTF_8`,
+the sizing `pMultiByteToWideChar` call, C 11107's `alloca` buffer, the filling call),
+C 11113-11116's `SM_CXSMICON` pair and the `GetDC`/`CreateCompatibleDC` pair, C 11118-11134's
+`BITMAPV5HEADER` setup (C's `memset`, `bV5Size`, the negative `bV5Height` for a top-down DIB, the
+four channel masks) with the `CreateDIBSection` call and `SelectObject`, C 11136-11141's circle
+(`CreateSolidBrush`/`Ellipse`/restore/`DeleteObject`), C 11144-11163's font derivation (the
+`system_parameters_info_w_fn` arm with C's `NONCLIENTMETRICS` `memset`/`cbSize`,
+`SystemParametersInfo`, `CreateFontIndirect` and the `clean_up_base_font` flag, against the
+`GetStockObject (DEFAULT_GUI_FONT)` fallback), C 11165-11180's `GetObject` + `LOGFONT` edits
+(`FW_BOLD`, `OUT_OUTLINE_PRECIS`, `ANTIALIASED_QUALITY`, the `MulDiv`/`GetDeviceCaps (LOGPIXELSY)`
+height and the `SetMapMode` save/restore), C 11182-11193's text draw (`SetBkMode`/`SetTextColor`,
+the `RECT`, `DrawText` with the four `DT_*` flags), C 11195-11214's alpha walk (the circle's
+centre/radius arithmetic and the per-pixel `|= 0xff000000`), C 11216-11238's icon assembly
+(`CreateBitmap` mask, the `SelectObject` restore C's comment calls for, `ICONINFO`,
+`CreateIconIndirect`, `SetOverlayIcon`, then the five releases), and C 11240-11243's `else` arm
+(`SetOverlayIcon (..., NULL, NULL)`) with the final `Release` and `Qt`.
+
+**New surface.**  The two `GUID` objects; the constants `CLSCTX_INPROC_SERVER`, `SM_CXSMICON`,
+`SPI_GETNONCLIENTMETRICS`, `BI_BITFIELDS`, `DIB_RGB_COLORS`, `MM_TEXT`, `TRANSPARENT`,
+`DEFAULT_GUI_FONT`, `LOGPIXELSY`, `OUT_OUTLINE_PRECIS`, `ANTIALIASED_QUALITY` and the four `DT_*`
+flags; the COM/GDI entry points `CoInitialize`, `CoCreateInstance`, `CreateCompatibleDC`,
+`CreateDIBSection`, `CreateSolidBrush`, `Ellipse`, `GetStockObject`, `SetMapMode`, `SetBkMode`,
+`SetTextColor`, `DrawText` (declared under C's alias name - the C 890-932 `RegOpenKeyEx`
+convention), `CreateBitmap`, `CreateIconIndirect` and `MulDiv`; and the records `BITMAPV5HEADER`
+(24 fields), `RGBQUAD`, `BITMAPINFOHEADER`, `BITMAPINFO`, `ICONINFO`, `NONCLIENTMETRICS` (the `A`
+form, 15 fields) and `ITaskbarList3Vtbl`/`ITaskbarList3`.
+
+### Evidence (slice 31, the final revision: 16,815 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Exit 0, the object **336 bytes** - after a first
+reading refused the file: the slice's `DEFUN!` ended at its body's `}` and lost the invocation's
+`);`, so the whole-file paren count was short one and the parse stopped at the invocation (`build-tu`
+caught it; the probe would not have).  One character pair added; the second reading is exit 0.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Two runs.  The first read **46** errors - the
+standing **42** plus four `E0381` from this slice (C's `unsigned short r, g, b;` and `DWORD
+*bitmap_pixels;` are written by the callee, which Rust's definite-initialization rejects).
+Initialized to `0`/`core::ptr::null_mut ()` in the two shapes the file already uses
+(`x_to_w32_color`'s `= 0`; the `*mut` locals' `= core::ptr::null_mut ()`), the second run is back to
+**42**: this slice adds no member gap and no type error, and **no error sits at or beyond
+`src/w32fns.rs` 16,249** (the largest is the pre-existing `must_be_updated_p` gap at 12,083).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 16,249-16,815: 126 capitalized
+identifiers, the 29 missing all in the documented non-item classes - `Clone`/`Copy` (the new
+records' derive arguments), `Data1`-`Data4` (`GUID`'s field names), the 22 vtable field names plus
+`This` (the `ITaskbarList3Vtbl` fields and the declaration parameters), and `Sw32_badge`
+(`DEFUN!`'s macro-generated static).  No unresolved value.
+
+**④ `extract-abi.py --check`.**  **77 → 76** rows: `missing subr Fw32_badge` retires; one token row
+appeared (`subr Fw32_badge does not mention alloca, false, true`) and one `macro-body-notes.tsv`
+row records it.  No `line count drifted` row: 16,815 Rust lines against 12,488 C lines (34.6%),
+inside the file's `w32fns 0.35 total` tolerance row - this is the last slice that fits under it.
+
+**⑤ The range table and the dead-file gate.**  The `11044-12488` remainder row splits into
+`11044-11245` (this slice) and `11247-12488` (the remainder); `check-dead-file-coverage.py` reads
+**181 range row(s) cover src/w32fns.c (12488 lines; 131 blank line(s) between blocks need no row)**.
+
+### Deviations (slice 31)
+
+- **C's `TRUE`/`FALSE` on a `BOOL` are `1`/`0`** (C 11149, 11157, 11227), recorded in a notes row
+  (the `serial_configure` reading of those two tokens).
+- **C's vtable calls keep C's `lpVtbl` walk** with an `Option` unwrap per method:
+  `(*((*task_bar_list).lpVtbl)).SetOverlayIcon.unwrap () (...)` where C writes
+  `task_bar_list->lpVtbl->SetOverlayIcon (...)`, and `Release` likewise - the
+  `pfnShell_NotifyIconW` device for a function-pointer member.
+- **`ITaskbarList3Vtbl` is spelled from the documented method order and is unmeasured here.**
+  `windows-sys` 0.52 carries no `ITaskbarList3`, so this machine has no authority for the 22
+  entries; the record's doc comment and this section say so, and the slots the port actually walks
+  are the two C calls plus `Release`.
+- **`alloca` is `sa_stack_alloc`** (C 11107, PORTING.md P-05), recorded in the notes row.
+- **`DrawText` is declared under C's alias name** (the SDK's `DrawTextA`, which is what C's `char`
+  badge wants - the C 890-932 `RegOpenKeyEx` device), so no notes row is needed (the
+  `RegQueryValueEx` class).
+- **C's banner is a wrapper comment** (the C 8116-8118 device), and C 11044's `#ifdef` and
+  C 11046-11048's banner text have no item of their own beyond the arm pair.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no overlay icon is drawn and
+  no badge is set; the arm reading is compile-level (42 errors, none from this slice) and the name
   reading is the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the

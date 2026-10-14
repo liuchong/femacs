@@ -16246,7 +16246,528 @@ DEFUN! ("w32-system-idle-time", Fw32_system_idle_time, Sw32_system_idle_time,
 /* C 11041's `#endif` closes the wallpaper/idle-time `#ifdef WINDOWSNT`; C's line itself has no
    counterpart beyond the end of the two two-condition items above (PORTING.md 0.1-4).  */
 
-/* C 11044-12488's text is not in the port yet (the file's remainder), but C 10112's
+/* C 11044's `#ifdef WINDOWSNT` opens the badge/taskbar section; C 11050-11054's `#ifndef MINGW_W64`
+   guard and the two GUIDs, C 11056-11245's `w32-badge`, and C 11348's `#endif` close it at the end
+   of the next slice.  */
+
+/*
+/***********************************************************************
+		     Taskbar Indicators
+ ***********************************************************************/
+*/
+
+/// C 11050-11054: the `#ifndef MINGW_W64` guard with the SDK's two `DEFINE_GUID`s ("mingw.org's
+/// MinGW doesn't have this stuff").  `DEFINE_GUID` defines a const GUID object; the port spells the
+/// eleven numbers as the `GUID` record above.
+/// C: DEFINE_GUID(CLSID_TaskbarList, 0x56fdf344, 0xfd6d, 0x11d0, 0x95,0x8a, 0x00,0x60,0x97,0xc9,0xa0,0x90);
+/// C: DEFINE_GUID(IID_ITaskbarList3, 0xea1afb91, 0x9e28, 0x4b86, 0x90,0xe9, 0x9e,0x9f,0x8a,0x5e,0xef,0xaf);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub static CLSID_TaskbarList: GUID
+  = GUID { Data1: 0x56fdf344, Data2: 0xfd6d, Data3: 0x11d0,
+	   Data4: [0x95, 0x8a, 0x00, 0x60, 0x97, 0xc9, 0xa0, 0x90] };
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub static IID_ITaskbarList3: GUID
+  = GUID { Data1: 0xea1afb91, Data2: 0x9e28, Data3: 0x4b86,
+	   Data4: [0x90, 0xe9, 0x9e, 0x9f, 0x8a, 0x5e, 0xef, 0xaf] };
+
+/// C 11077/11079-11083's COM entry points and C 11084's `S_OK`, C 11113-11114's `SM_CXSMICON`,
+/// C 11119-11130's `BITMAPV5HEADER` choices (its own record below), C 11133-11134's
+/// `DIB_RGB_COLORS`, C 11155's `SPI_GETNONCLIENTMETRICS`, C 11160's `DEFAULT_GUI_FONT`,
+/// C 11166-11169's three `LOGFONT` values, C 11174's `LOGPIXELSY`, C 11176's `MM_TEXT`,
+/// C 11182's `TRANSPARENT` and C 11191's four `DT_*` flags.
+/// C: HRESULT WINAPI CoInitialize (LPVOID pvReserved);
+/// C: HRESULT WINAPI CoCreateInstance (REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext,
+/// C: REFIID riid, LPVOID *ppv);
+/// C: #define CLSCTX_INPROC_SERVER 0x1
+/// C: #define SM_CXSMICON 49 / #define SPI_GETNONCLIENTMETRICS 0x0029
+/// C: #define BI_BITFIELDS 3 / #define DIB_RGB_COLORS 0
+/// C: #define MM_TEXT 1 / #define TRANSPARENT 1 / #define DEFAULT_GUI_FONT 17 / #define LOGPIXELSY 90
+/// C: #define OUT_OUTLINE_PRECIS 8 / #define ANTIALIASED_QUALITY 4
+/// C: #define DT_CENTER 0x00000001 / #define DT_VCENTER 0x00000004 / #define DT_SINGLELINE
+/// C: 0x00000020 / #define DT_NOCLIP 0x00000100
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const CLSCTX_INPROC_SERVER: DWORD = 0x1;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const SM_CXSMICON: c_int = 49;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const SPI_GETNONCLIENTMETRICS: UINT = 0x0029;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const BI_BITFIELDS: DWORD = 3;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const DIB_RGB_COLORS: UINT = 0;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const MM_TEXT: c_int = 1;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const TRANSPARENT: c_int = 1;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const DEFAULT_GUI_FONT: c_int = 17;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const LOGPIXELSY: c_int = 90;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const OUT_OUTLINE_PRECIS: BYTE = 8;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const ANTIALIASED_QUALITY: BYTE = 4;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const DT_CENTER: UINT = 0x00000001;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const DT_VCENTER: UINT = 0x00000004;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const DT_SINGLELINE: UINT = 0x00000020;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const DT_NOCLIP: UINT = 0x00000100;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "system" {
+  pub fn CoInitialize (pvReserved: *mut c_void) -> HRESULT;
+  pub fn CoCreateInstance (rclsid: *const GUID, pUnkOuter: *mut c_void, dwClsContext: DWORD,
+			   riid: *const GUID, ppv: *mut *mut c_void) -> HRESULT;
+  pub fn CreateCompatibleDC (hdc: HDC) -> HDC;
+  pub fn CreateDIBSection (hdc: HDC, pbmi: *const BITMAPINFO, usage: UINT,
+			   ppvBits: *mut *mut c_void, hSection: HANDLE, offset: DWORD) -> HBITMAP;
+  pub fn CreateSolidBrush (color: COLORREF) -> HBRUSH;
+  pub fn Ellipse (hdc: HDC, left: c_int, top: c_int, right: c_int, bottom: c_int) -> BOOL;
+  pub fn GetStockObject (i: c_int) -> HGDIOBJ;
+  pub fn SetMapMode (hdc: HDC, iMode: c_int) -> c_int;
+  pub fn SetBkMode (hdc: HDC, mode: c_int) -> c_int;
+  pub fn SetTextColor (hdc: HDC, color: COLORREF) -> COLORREF;
+  /// C 11188's `DrawText` is the SDK's alias (`DrawTextA`), which is the one C's `char` badge wants -
+  /// the C 890-932 block's `RegOpenKeyEx` convention, so the port keeps C's name.
+  /// C: int WINAPI DrawTextA (HDC hdc, LPCSTR lpchText, int cchText, LPRECT lprc, UINT format);
+  pub fn DrawText (hdc: HDC, lpchText: LPCSTR, cchText: c_int, lprc: *mut RECT,
+		   format: UINT) -> c_int;
+  pub fn CreateBitmap (nWidth: c_int, nHeight: c_int, nPlanes: UINT, nBitCount: UINT,
+		       lpBits: *const c_void) -> HBITMAP;
+  pub fn CreateIconIndirect (piconinfo: *mut ICONINFO) -> HICON;
+  pub fn MulDiv (nNumber: c_int, nNumerator: c_int, nDenominator: c_int) -> c_int;
+}
+
+/// C 11119-11130's `BITMAPV5HEADER` (twenty-four fields, corroborated against the Win32 metadata
+/// projection - `windows-sys` 0.52's record; the layout is unmeasured here) with C 11133's
+/// `BITMAPINFO` cast (its header record below) and C 11125-11130's `ICONINFO`.
+/// C: typedef struct { DWORD bV5Size; LONG bV5Width; LONG bV5Height; WORD bV5Planes;
+/// C: WORD bV5BitCount; DWORD bV5Compression; DWORD bV5SizeImage; LONG bV5XPelsPerMeter;
+/// C: LONG bV5YPelsPerMeter; DWORD bV5ClrUsed; DWORD bV5ClrImportant; DWORD bV5RedMask;
+/// C: DWORD bV5GreenMask; DWORD bV5BlueMask; DWORD bV5AlphaMask; DWORD bV5CSType;
+/// C: CIEXYZTRIPLE bV5Endpoints; DWORD bV5GammaRed; DWORD bV5GammaGreen; DWORD bV5GammaBlue;
+/// C: DWORD bV5Intent; DWORD bV5ProfileData; DWORD bV5ProfileSize; DWORD bV5Reserved; }
+/// C: BITMAPV5HEADER;
+/// C: typedef struct tagRGBQUAD { BYTE rgbBlue; BYTE rgbGreen; BYTE rgbRed; BYTE rgbReserved; } RGBQUAD;
+/// C: typedef struct tagBITMAPINFOHEADER { DWORD biSize; LONG biWidth; LONG biHeight; WORD biPlanes;
+/// C: WORD biBitCount; DWORD biCompression; DWORD biSizeImage; LONG biXPelsPerMeter;
+/// C: LONG biYPelsPerMeter; DWORD biClrUsed; DWORD biClrImportant; } BITMAPINFOHEADER;
+/// C: typedef struct tagBITMAPINFO { BITMAPINFOHEADER bmiHeader; RGBQUAD bmiColors[1]; } BITMAPINFO;
+/// C: typedef struct tagICONINFO { BOOL fIcon; DWORD xHotspot; DWORD yHotspot; HBITMAP hbmMask;
+/// C: HBITMAP hbmColor; } ICONINFO;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct BITMAPV5HEADER
+{
+  pub bV5Size: DWORD,
+  pub bV5Width: LONG,
+  pub bV5Height: LONG,
+  pub bV5Planes: WORD,
+  pub bV5BitCount: WORD,
+  pub bV5Compression: DWORD,
+  pub bV5SizeImage: DWORD,
+  pub bV5XPelsPerMeter: LONG,
+  pub bV5YPelsPerMeter: LONG,
+  pub bV5ClrUsed: DWORD,
+  pub bV5ClrImportant: DWORD,
+  pub bV5RedMask: DWORD,
+  pub bV5GreenMask: DWORD,
+  pub bV5BlueMask: DWORD,
+  pub bV5AlphaMask: DWORD,
+  pub bV5CSType: DWORD,
+  pub bV5Endpoints: CIEXYZTRIPLE,
+  pub bV5GammaRed: DWORD,
+  pub bV5GammaGreen: DWORD,
+  pub bV5GammaBlue: DWORD,
+  pub bV5Intent: DWORD,
+  pub bV5ProfileData: DWORD,
+  pub bV5ProfileSize: DWORD,
+  pub bV5Reserved: DWORD,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RGBQUAD
+{
+  pub rgbBlue: BYTE,
+  pub rgbGreen: BYTE,
+  pub rgbRed: BYTE,
+  pub rgbReserved: BYTE,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct BITMAPINFOHEADER
+{
+  pub biSize: DWORD,
+  pub biWidth: LONG,
+  pub biHeight: LONG,
+  pub biPlanes: WORD,
+  pub biBitCount: WORD,
+  pub biCompression: DWORD,
+  pub biSizeImage: DWORD,
+  pub biXPelsPerMeter: LONG,
+  pub biYPelsPerMeter: LONG,
+  pub biClrUsed: DWORD,
+  pub biClrImportant: DWORD,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct BITMAPINFO
+{
+  pub bmiHeader: BITMAPINFOHEADER,
+  pub bmiColors: [RGBQUAD; 1],
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ICONINFO
+{
+  pub fIcon: BOOL,
+  pub xHotspot: DWORD,
+  pub yHotspot: DWORD,
+  pub hbmMask: HBITMAP,
+  pub hbmColor: HBITMAP,
+}
+
+/// C 11152-11156's `NONCLIENTMETRICS` (fifteen fields, the `A` form: this file's `LOGFONT` is the
+/// `CHAR`-faced one and C's `SystemParametersInfo` call below is the alias whose ANSI form fills a
+/// `char` buffer - the same reading), corroborated against `windows-sys` 0.52's `NONCLIENTMETRICSW`.
+/// C: typedef struct tagNONCLIENTMETRICSA { UINT cbSize; int iBorderWidth; int iScrollWidth;
+/// C: int iScrollHeight; int iCaptionWidth; int iCaptionHeight; LOGFONTA lfCaptionFont;
+/// C: int iSmCaptionWidth; int iSmCaptionHeight; LOGFONTA lfSmCaptionFont; int iMenuWidth;
+/// C: int iMenuHeight; LOGFONTA lfMenuFont, lfStatusFont, lfMessageFont;
+/// C: #if (WINVER >= 0x0600) int iPaddedBorderWidth; #endif } NONCLIENTMETRICSA;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct NONCLIENTMETRICS
+{
+  pub cbSize: UINT,
+  pub iBorderWidth: c_int,
+  pub iScrollWidth: c_int,
+  pub iScrollHeight: c_int,
+  pub iCaptionWidth: c_int,
+  pub iCaptionHeight: c_int,
+  pub lfCaptionFont: LOGFONT,
+  pub iSmCaptionWidth: c_int,
+  pub iSmCaptionHeight: c_int,
+  pub lfSmCaptionFont: LOGFONT,
+  pub iMenuWidth: c_int,
+  pub iMenuHeight: c_int,
+  pub lfMenuFont: LOGFONT,
+  pub lfStatusFont: LOGFONT,
+  pub lfMessageFont: LOGFONT,
+  pub iPaddedBorderWidth: c_int,
+}
+
+/// C 11078/11083/11232/11241/11243's `ITaskbarList3`: the interface pointer C declares and the
+/// vtable its three calls walk (`SetOverlayIcon`, `Release`; the first store is the inherited
+/// `IUnknown` trio).  The method order is the SDK's - `IUnknown`'s three, `ITaskbarList`'s five,
+/// `ITaskbarList2`'s one, then `ITaskbarList3`'s twelve - and this machine has **no** authority for
+/// it (`windows-sys` 0.52 carries no `ITaskbarList3`), so the vtable is spelled from the documented
+/// order and marked unmeasured in the ledger.
+/// C: typedef struct ITaskbarList3Vtbl { HRESULT (STDMETHODCALLTYPE *QueryInterface)(ITaskbarList3 *This,
+/// C: REFIID riid, void **ppvObject); ULONG (STDMETHODCALLTYPE *AddRef)(ITaskbarList3 *This);
+/// C: ULONG (STDMETHODCALLTYPE *Release)(ITaskbarList3 *This);
+/// C: HRESULT (STDMETHODCALLTYPE *HrInit)(ITaskbarList3 *This);
+/// C: HRESULT (STDMETHODCALLTYPE *AddTab)(ITaskbarList3 *This, HWND hwnd);
+/// C: HRESULT (STDMETHODCALLTYPE *DeleteTab)(ITaskbarList3 *This, HWND hwnd);
+/// C: HRESULT (STDMETHODCALLTYPE *ActivateTab)(ITaskbarList3 *This, HWND hwnd);
+/// C: HRESULT (STDMETHODCALLTYPE *SetActiveAlt)(ITaskbarList3 *This, HWND hwnd);
+/// C: HRESULT (STDMETHODCALLTYPE *MarkFullscreenWindow)(ITaskbarList3 *This, HWND hwnd, BOOL fFullscreen);
+/// C: HRESULT (STDMETHODCALLTYPE *SetProgressValue)(ITaskbarList3 *This, HWND hwnd,
+/// C: ULONGLONG ullCompleted, ULONGLONG ullTotal);
+/// C: HRESULT (STDMETHODCALLTYPE *SetProgressState)(ITaskbarList3 *This, HWND hwnd, TBPFLAG tbpFlags);
+/// C: HRESULT (STDMETHODCALLTYPE *RegisterTab)(ITaskbarList3 *This, HWND hwndTab, HWND hwndMDI);
+/// C: HRESULT (STDMETHODCALLTYPE *UnregisterTab)(ITaskbarList3 *This, HWND hwndTab);
+/// C: HRESULT (STDMETHODCALLTYPE *SetTabOrder)(ITaskbarList3 *This, HWND hwndTab, HWND hwndInsertBefore);
+/// C: HRESULT (STDMETHODCALLTYPE *SetTabActive)(ITaskbarList3 *This, HWND hwndTab, HWND hwndMDI,
+/// C: DWORD dwReserved);
+/// C: HRESULT (STDMETHODCALLTYPE *ThumbBarAddButtons)(ITaskbarList3 *This, HWND hwnd, UINT cButtons,
+/// C: LPTHUMBBUTTON pButton);
+/// C: HRESULT (STDMETHODCALLTYPE *ThumbBarUpdateButtons)(ITaskbarList3 *This, HWND hwnd, UINT cButtons,
+/// C: LPTHUMBBUTTON pButton);
+/// C: HRESULT (STDMETHODCALLTYPE *ThumbBarSetImageList)(ITaskbarList3 *This, HWND hwnd, HIMAGELIST himl);
+/// C: HRESULT (STDMETHODCALLTYPE *SetOverlayIcon)(ITaskbarList3 *This, HWND hwnd, HICON hIcon,
+/// C: LPCWSTR pszDescription);
+/// C: HRESULT (STDMETHODCALLTYPE *SetThumbnailTooltip)(ITaskbarList3 *This, HWND hwnd, LPCWSTR pszTip);
+/// C: HRESULT (STDMETHODCALLTYPE *SetThumbnailClip)(ITaskbarList3 *This, HWND hwnd, RECT *prcClip);
+/// C: } ITaskbarList3Vtbl; typedef struct ITaskbarList3 { ITaskbarList3Vtbl *lpVtbl; } ITaskbarList3;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ITaskbarList3Vtbl
+{
+  pub QueryInterface: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, riid: *const GUID,
+							 ppvObject: *mut *mut c_void) -> HRESULT>,
+  pub AddRef: Option<unsafe extern "system" fn (This: *mut ITaskbarList3) -> ULONG>,
+  pub Release: Option<unsafe extern "system" fn (This: *mut ITaskbarList3) -> ULONG>,
+  pub HrInit: Option<unsafe extern "system" fn (This: *mut ITaskbarList3) -> HRESULT>,
+  pub AddTab: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND) -> HRESULT>,
+  pub DeleteTab: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND) -> HRESULT>,
+  pub ActivateTab: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND) -> HRESULT>,
+  pub SetActiveAlt: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND) -> HRESULT>,
+  pub MarkFullscreenWindow: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							      fFullscreen: BOOL) -> HRESULT>,
+  pub SetProgressValue: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							  ullCompleted: ULONGLONG,
+							  ullTotal: ULONGLONG) -> HRESULT>,
+  pub SetProgressState: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							  tbpFlags: c_int) -> HRESULT>,
+  pub RegisterTab: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwndTab: HWND,
+						     hwndMDI: HWND) -> HRESULT>,
+  pub UnregisterTab: Option<unsafe extern "system" fn (This: *mut ITaskbarList3,
+						       hwndTab: HWND) -> HRESULT>,
+  pub SetTabOrder: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwndTab: HWND,
+						     hwndInsertBefore: HWND) -> HRESULT>,
+  pub SetTabActive: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwndTab: HWND,
+						      hwndMDI: HWND, dwReserved: DWORD) -> HRESULT>,
+  pub ThumbBarAddButtons: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							    cButtons: UINT,
+							    pButton: *mut c_void) -> HRESULT>,
+  pub ThumbBarUpdateButtons: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							       cButtons: UINT,
+							       pButton: *mut c_void) -> HRESULT>,
+  pub ThumbBarSetImageList: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							      himl: *mut c_void) -> HRESULT>,
+  pub SetOverlayIcon: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							hIcon: HICON,
+							pszDescription: LPCWSTR) -> HRESULT>,
+  pub SetThumbnailTooltip: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							     pszTip: LPCWSTR) -> HRESULT>,
+  pub SetThumbnailClip: Option<unsafe extern "system" fn (This: *mut ITaskbarList3, hwnd: HWND,
+							  prcClip: *mut RECT) -> HRESULT>,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ITaskbarList3
+{
+  pub lpVtbl: *mut ITaskbarList3Vtbl,
+}
+
+/// C 11056-11245: `w32-badge` - C 11068-11075's window resolution, C 11077-11085's
+/// `CoInitialize`/`CoCreateInstance` pair with C 11084's `S_OK` test, C 11087-11100's badge/colour
+/// parsing (`parse_color_spec` twice with C's two `RGB` calls), C 11102-11110's UTF-8 badge and the
+/// two `pMultiByteToWideChar` calls over C's `alloca` buffer (`sa_stack_alloc`, P-05),
+/// C 11112-11114's icon metrics, C 11116-11137's DC/DIB setup (`BITMAPV5HEADER` with C's
+/// twenty-four stores, `CreateDIBSection`, `SelectObject`), C 11139-11144's circle fill,
+/// C 11146-11179's font scaling (`SPI_GETNONCLIENTMETRICS` into `NONCLIENTMETRICS`, the `LOGFONT`
+/// rework with `MulDiv`/`LOGPIXELSY`, `SetMapMode`'s save/restore), C 11181-11193's text draw,
+/// C 11195-11214's alpha-channel walk over `bitmap_pixels`'s two nested loops, C 11216-11237's
+/// mask/`ICONINFO`/`CreateIconIndirect` and the `SetOverlayIcon` call, and C 11240-11244's else arm,
+/// `Release` and `Qt`.
+/// C: DEFUN ("w32-badge",
+/// C:        Fw32_badge,
+/// C:        Sw32_badge,
+/// C:        3, 3, 0,
+/// C:        doc: /* Display a taskbar icon overlay image on the selected frame. … */)
+/// C:   (Lisp_Object badge, Lisp_Object background, Lisp_Object foreground)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-badge", Fw32_badge, Sw32_badge,
+	3, 3, 0,
+	doc: "Display a taskbar icon overlay image on the selected frame.\nBADGE is a string.  If BADGE is nil, remove the overlay.  Do nothing if\nWindows does not support the ITaskbarList3 interface and return nil,\notherwise return t.  Do nothing if the selected frame is not (yet)\nassociated with a window handle.  BACKGROUND and FOREGROUND are RGB\ntriplet strings of the form \"#RRGGBB\".",
+	(badge: Lisp_Object, background: Lisp_Object, foreground: Lisp_Object),
+	{
+  let sf: *mut frame = SELECTED_FRAME ();
+  let mut hwnd: HWND = core::ptr::null_mut ();
+
+  if FRAME_W32_P (sf) && FRAME_LIVE_P (sf)
+    { hwnd = FRAME_W32_WINDOW! (sf); }
+
+  if hwnd.is_null ()
+    { return Qnil (); }
+
+  CoInitialize (core::ptr::null_mut ());
+  let mut task_bar_list: *mut ITaskbarList3 = core::ptr::null_mut ();
+  let r: HRESULT = CoCreateInstance (&raw const CLSID_TaskbarList,
+				     core::ptr::null_mut (),
+				     CLSCTX_INPROC_SERVER,
+				     &raw const IID_ITaskbarList3,
+				     &raw mut task_bar_list as *mut *mut c_void);
+  if r != S_OK
+    { return Qnil (); }
+
+  if ! NILP (badge) && STRINGP (badge)
+      && STRINGP (background) && STRINGP (foreground)
+    {
+      let mut bg_rgb: COLORREF;
+      let mut fg_rgb: COLORREF;
+      let mut r: c_ushort = 0;
+      let mut g: c_ushort = 0;
+      let mut b: c_ushort = 0;
+      if parse_color_spec (SSDATA (background) as *const c_char, &raw mut r, &raw mut g, &raw mut b)
+	{ bg_rgb = RGB! (r, g, b); }
+      else
+	{ return Qnil (); }
+      if parse_color_spec (SSDATA (foreground) as *const c_char, &raw mut r, &raw mut g, &raw mut b)
+	{ fg_rgb = RGB! (r, g, b); }
+      else
+	{ return Qnil (); }
+
+      /* Prepare a string for drawing and as alt-text.  */
+      let badge_utf8: Lisp_Object = ENCODE_UTF_8 (badge);
+      let wide_len: c_int = (pMultiByteToWideChar.unwrap ()) (CP_UTF8, 0,
+							      SSDATA (badge_utf8) as *const c_char,
+							      -1, core::ptr::null_mut (), 0);
+      let badge_w: *mut c_ushort
+	= sa_stack_alloc ((wide_len + 1) as usize * core::mem::size_of::<c_ushort> ())
+	    as *mut c_ushort;
+      (pMultiByteToWideChar.unwrap ()) (CP_UTF8, 0, SSDATA (badge_utf8) as *const c_char, -1,
+					badge_w as LPWSTR, wide_len);
+
+      /* Use the small icon size Windows suggests to not hard code 16x16.  */
+      let icon_width: c_int = GetSystemMetrics (SM_CXSMICON);
+      let icon_height: c_int = GetSystemMetrics (SM_CXSMICON);
+
+      let hwnd_dc: HDC = GetDC (hwnd);
+      let dc: HDC = CreateCompatibleDC (hwnd_dc);
+
+      let mut bi: BITMAPV5HEADER = core::mem::zeroed ();
+      memset (&raw mut bi as *mut c_void, 0, core::mem::size_of_val (&bi));
+      bi.bV5Size = core::mem::size_of_val (&bi) as DWORD;
+      bi.bV5Width = icon_width;
+      bi.bV5Height = -icon_height; /* Negative for a top-down DIB.  */
+      bi.bV5Planes = 1;
+      bi.bV5BitCount = 32;
+      bi.bV5Compression = BI_BITFIELDS;  /* Enable the masks below.  */
+      bi.bV5RedMask   =  0x00FF0000;
+      bi.bV5GreenMask =  0x0000FF00;
+      bi.bV5BlueMask  =  0x000000FF;
+      bi.bV5AlphaMask =  0xFF000000;
+
+      let mut bitmap_pixels: *mut DWORD = core::ptr::null_mut ();
+      let bitmap: HBITMAP = CreateDIBSection (dc, &raw const bi as *const BITMAPINFO,
+					      DIB_RGB_COLORS,
+					      &raw mut bitmap_pixels as *mut *mut c_void,
+					      core::ptr::null_mut (), 0);
+      let old_bitmap: HGDIOBJ = SelectObject (dc, bitmap);
+
+      /* Draw a circle filled with bg.  */
+      let bg_brush: HBRUSH = CreateSolidBrush (bg_rgb);
+      let old_brush: HGDIOBJ = SelectObject (dc, bg_brush);
+      Ellipse (dc, 0, 0, icon_width, icon_height);
+      SelectObject (dc, old_brush);
+      DeleteObject (bg_brush);
+
+      /* Derive a font scaled to fit the icon.  First find the system's
+	 base font.  Then scale it to fit icon_height.  */
+      let base_font: HFONT;
+      let mut clean_up_base_font: BOOL = 0;
+      if system_parameters_info_w_fn.is_some ()
+	{
+	  let mut ncm: NONCLIENTMETRICS = core::mem::zeroed ();
+	  memset (&raw mut ncm as *mut c_void, 0, core::mem::size_of_val (&ncm));
+	  ncm.cbSize = core::mem::size_of_val (&ncm) as UINT;
+	  SystemParametersInfo (SPI_GETNONCLIENTMETRICS, core::mem::size_of_val (&ncm) as UINT,
+				&raw mut ncm as *mut c_void, 0);
+	  base_font = CreateFontIndirect (&raw const ncm.lfSmCaptionFont);
+	  clean_up_base_font = 1;
+	}
+      else
+	{ base_font = GetStockObject (DEFAULT_GUI_FONT) as HFONT; }
+      if clean_up_base_font != 0
+	{ DeleteObject (base_font); }
+
+      let mut lf: LOGFONT = core::mem::zeroed ();
+      GetObject (base_font, core::mem::size_of_val (&lf) as c_int, &raw mut lf as *mut c_void);
+      lf.lfWeight = FW_BOLD as LONG;
+      lf.lfOutPrecision = OUT_OUTLINE_PRECIS;
+      /* ClearType quality needs opqaue, but we draw transparent.  */
+      lf.lfQuality = ANTIALIASED_QUALITY;
+      /* Negative lfHeight indicates pixel units vs. positive in points.
+	 Use the LOGPIXELSY px/in of the primary monitor.  */
+      lf.lfHeight = -MulDiv (icon_height / 2, /* Fit ~3 chars.  */
+			     72,
+			     GetDeviceCaps (GetDC (core::ptr::null_mut ()),
+					    LOGPIXELSY)) as LONG;
+      /* Ensure lfHeight pixel interpretation.  */
+      let old_map_mode: c_int = SetMapMode (dc, MM_TEXT);
+      let scaled_font: HFONT = CreateFontIndirect (&raw const lf);
+      let old_font: HGDIOBJ = SelectObject (dc, scaled_font);
+      SetMapMode (dc, old_map_mode);
+
+      /* Draw badge text.  */
+      SetBkMode (dc, TRANSPARENT);
+      SetTextColor (dc, fg_rgb);
+      let mut rect: RECT = core::mem::zeroed ();
+      rect.left = 0;
+      rect.top = 0;
+      rect.right = icon_width;
+      rect.bottom = icon_height;
+      DrawText (dc, SSDATA (badge_utf8) as *const c_char,
+		-1, /* Indicate null-terminated string.  */
+		&raw mut rect,
+		DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP);
+      SelectObject (dc, old_font);
+      DeleteObject (scaled_font);
+
+      /* Make the circle and its text opaque by setting the alpha
+	 channel on each pixel falling within the circle.  */
+      let circle_center_x: c_int = icon_width / 2;
+      let circle_center_y: c_int = icon_height / 2;
+      let circle_radius: c_int = (if icon_width < icon_height
+				  { icon_width }
+				  else { icon_height }) / 2 - 2;
+      let circle_radius_sq: c_int = circle_radius * circle_radius;
+      let mut pixel: *mut DWORD;
+      let mut y: c_int = 0;
+      while y < icon_height
+	{
+	  let mut x: c_int = 0;
+	  while x < icon_width
+	    {
+	      let dx: c_int = x - circle_center_x;
+	      let dy: c_int = y - circle_center_y;
+	      if dx * dx + dy * dy <= circle_radius_sq
+		{
+		  pixel = bitmap_pixels.offset ((y * icon_width + x) as isize);
+		  *pixel |= 0xff000000; /* Flip the 0xAARRGGBB alpha channel.  */
+		}
+	      x += 1;
+	    }
+	  y += 1;
+	}
+
+      /* Dummy monochrome bitmap mask, ignored when the color bitmap has
+	 an alpha channel, but needed to satisfy CreateIconIndirect.  */
+      let mask_bitmap: HBITMAP = CreateBitmap (icon_width, icon_height, 1, 1, core::ptr::null ());
+
+      /* https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createiconindirect
+	 hbmMask and hbmColor members of the ICONINFO structure should
+	 not already be selected into a device context.  */
+      SelectObject (dc, old_bitmap);
+
+      let mut icon_info: ICONINFO = core::mem::zeroed ();
+      memset (&raw mut icon_info as *mut c_void, 0, core::mem::size_of_val (&icon_info));
+      icon_info.fIcon = 1;
+      icon_info.hbmMask = mask_bitmap;
+      icon_info.hbmColor = bitmap;
+
+      let icon: HICON = CreateIconIndirect (&raw mut icon_info);
+      ((*((*task_bar_list).lpVtbl)).SetOverlayIcon.unwrap ()) (task_bar_list, hwnd, icon, badge_w);
+
+      DestroyIcon (icon);
+      DeleteObject (mask_bitmap);
+      DeleteObject (bitmap);
+      DeleteDC (dc);
+      ReleaseDC (hwnd, hwnd_dc);
+    }
+  else
+    { ((*((*task_bar_list).lpVtbl)).SetOverlayIcon.unwrap ()) (task_bar_list, hwnd,
+							      core::ptr::null_mut (),
+							      core::ptr::null ()); }
+
+  ((*((*task_bar_list).lpVtbl)).Release.unwrap ()) (task_bar_list);
+  return Qt ();
+});
+
+/* C 11247-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C
