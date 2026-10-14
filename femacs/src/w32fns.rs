@@ -12073,14 +12073,21 @@ DEFUN! ("x-hide-tip", Fx_hide_tip, Sx_hide_tip, 0, 0, 0,
 
 /// C 8120-8122: the three `<dlgs.h>` control ids C's `#define`s name -
 /// `#define FILE_NAME_TEXT_FIELD edt1` / `#define FILE_NAME_COMBO_BOX cmb13` /
-/// `#define FILE_NAME_LIST lst1`.  The port carries C's names as the constants and spells the
-/// header's own ids (`edt1` 0x0480, `cmb13` 0x047C, `lst1` 0x0460) at the definition site.
+/// `#define FILE_NAME_LIST lst1`.  The port keeps C's three names *and* the header's own ids,
+/// because C's macro bodies are exactly those id tokens: the `FILE_NAME_*` constants alias the
+/// three `<dlgs.h>` values the way C's `#define`s alias the header's macros.
 #[cfg (feature = "have_ntgui")]
-pub const FILE_NAME_TEXT_FIELD: c_int = 0x0480;		/* `<dlgs.h>`'s `edt1` */
+pub const edt1: c_int = 0x0480;			/* `<dlgs.h>` */
 #[cfg (feature = "have_ntgui")]
-pub const FILE_NAME_COMBO_BOX: c_int = 0x047C;		/* `<dlgs.h>`'s `cmb13` */
+pub const cmb13: c_int = 0x047C;		/* `<dlgs.h>` */
 #[cfg (feature = "have_ntgui")]
-pub const FILE_NAME_LIST: c_int = 0x0460;		/* `<dlgs.h>`'s `lst1` */
+pub const lst1: c_int = 0x0460;			/* `<dlgs.h>` */
+#[cfg (feature = "have_ntgui")]
+pub const FILE_NAME_TEXT_FIELD: c_int = edt1;
+#[cfg (feature = "have_ntgui")]
+pub const FILE_NAME_COMBO_BOX: c_int = cmb13;
+#[cfg (feature = "have_ntgui")]
+pub const FILE_NAME_LIST: c_int = lst1;
 
 /// C: #define WM_NOTIFY 0x004E / #define GW_CHILD 5 - the two `<winuser.h>` ids C 8132/8169 use.
 #[cfg (feature = "have_ntgui")]
@@ -12392,3 +12399,437 @@ pub unsafe extern "C" fn w32_dialog_in_progress (in_progress: Lisp_Object)
 	{ w32_set_z_group (f, Qabove (), Qabove_suspended ()); }
   });
 }
+
+/* C 8269/8271's two filter strings.  C's `static const wchar_t filter_w[]` is a **wide** literal
+   with embedded NULs, which Rust cannot spell: the port carries the same UTF-16 code units in the
+   array below (36 of them, the last `\0` inclusive) and `filter_a` the same bytes in a `[c_char]`
+   - the `DARK_MODE_APP_NAME` / `CURRENT_DIRECTORY_L` device above.  */
+#[cfg (feature = "have_ntgui")]
+pub const FILTER_W: [c_ushort; 36] =
+  [0x0041, 0x006C, 0x006C, 0x0020, 0x0046, 0x0069, 0x006C, 0x0065, 0x0073, 0x0020, 0x0028,
+   0x002A, 0x002E, 0x002A, 0x0029, 0x0000, 0x002A, 0x002E, 0x002A, 0x0000, 0x0044, 0x0069,
+   0x0072, 0x0065, 0x0063, 0x0074, 0x006F, 0x0072, 0x0069, 0x0065, 0x0073, 0x0000, 0x002A,
+   0x007C, 0x002A, 0x0000];
+#[cfg (feature = "have_ntgui")]
+pub const FILTER_A: [c_char; 36] =
+  [0x41, 0x6C, 0x6C, 0x20, 0x46, 0x69, 0x6C, 0x65, 0x73, 0x20, 0x28, 0x2A, 0x2E, 0x2A, 0x29,
+   0x00, 0x2A, 0x2E, 0x2A, 0x00, 0x44, 0x69, 0x72, 0x65, 0x63, 0x74, 0x6F, 0x72, 0x69, 0x65,
+   0x73, 0x00, 0x2A, 0x7C, 0x2A, 0x00];
+
+/// C: #define CP_ACP 0 / #define CP_UTF8 65001 - the two `<winnls.h>` code-page ids C 8380-8409
+/// passes to the lazily bound `pMultiByteToWideChar`/`pWideCharToMultiByte` (`CP_UTF8` is
+/// already declared above; `CP_ACP` joins it).
+#[cfg (feature = "have_ntgui")]
+pub const CP_ACP: UINT = 0;
+
+/// C: #define OFN_HIDEREADONLY 0x00000004 / #define OFN_NOCHANGEDIR 0x00000008 / #define
+/// C: OFN_ENABLEHOOK 0x00000020 / #define OFN_PATHMUSTEXIST 0x00000800 / #define
+/// C: OFN_FILEMUSTEXIST 0x00001000 / #define OFN_EXPLORER 0x00080000 - the six `<commdlg.h>`
+/// flags C 8441-8475 writes into the two `OPENFILENAME` records.
+#[cfg (feature = "have_ntgui")]
+pub const OFN_HIDEREADONLY: DWORD = 0x00000004;
+#[cfg (feature = "have_ntgui")]
+pub const OFN_NOCHANGEDIR: DWORD = 0x00000008;
+#[cfg (feature = "have_ntgui")]
+pub const OFN_ENABLEHOOK: DWORD = 0x00000020;
+#[cfg (feature = "have_ntgui")]
+pub const OFN_PATHMUSTEXIST: DWORD = 0x00000800;
+#[cfg (feature = "have_ntgui")]
+pub const OFN_FILEMUSTEXIST: DWORD = 0x00001000;
+#[cfg (feature = "have_ntgui")]
+pub const OFN_EXPLORER: DWORD = 0x00080000;
+
+/// C 8493/8500's two readers (`<commdlg.h>`) and C 8535's `CommDlgExtendedError`.
+/// C: BOOL WINAPI GetOpenFileNameW (LPOPENFILENAMEW); BOOL WINAPI GetOpenFileNameA
+/// C: (LPOPENFILENAMEA); DWORD WINAPI CommDlgExtendedError (void);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetOpenFileNameW (lpofn: *mut OPENFILENAMEW) -> BOOL;
+  pub fn GetOpenFileNameA (lpofn: *mut OPENFILENAMEA) -> BOOL;
+  pub fn CommDlgExtendedError () -> DWORD;
+}
+
+/// C 8351-8353 and C 8511, the two helpers of C's `NTGUI_UNICODE` arm: `coding.h` 728's
+/// `to_unicode` and 737's `from_unicode_buffer` (defined in `coding.c` 8573 and `w32.c`), which
+/// the `include/coding.rs` mirror does not carry yet.  Both stay text here - the arm is dead
+/// unless the `cygwin` feature is on - and `guardian-file-name`'s twin uses land with
+/// `syms_of_w32fns` (C 12484).
+/// C: extern wchar_t *to_unicode (Lisp_Object str, Lisp_Object *buf);
+/// C: extern Lisp_Object from_unicode_buffer (const wchar_t *wstr);
+#[cfg (all (feature = "have_ntgui", feature = "cygwin"))]
+unsafe extern "C" {
+  pub fn to_unicode (str: Lisp_Object, buf: *mut Lisp_Object) -> *mut c_ushort;
+  pub fn from_unicode_buffer (wstr: *const c_ushort) -> Lisp_Object;
+  /* C 8334/8336 and C 8522's two readers (`cygw32.h`) are `include/globals.rs`'s
+     (`Fcygwin_convert_file_name_to_windows`/`_from_windows`), so this block declares only the two
+     coding.h helpers above (`check-mirror-dupes.py` is the reading that says so).  */
+}
+
+/// C 8284-8291 and C 8298-8305: the two **anonymous** structs C wraps its `OPENFILENAME` records
+/// in ("define a big enough struct for the new dialog to trick GetOpenFileName into giving us the
+/// new dialogs").  The port names each after the variable it initialises (the file's `…_s` device,
+/// `kbdhook_s`'s reading) and carries C 8286/8300's `#if _WIN32_WINNT < 0x500` arm under the
+/// feature that names C's own condition - the file head's `win32_windows_ge_0410` convention, so
+/// `win32_nt_lt_500`; `tools/check-cond-eval.py` cannot decide the value, which is why both arms
+/// stay text.
+/// C: struct { OPENFILENAMEW details;
+/// C: #if _WIN32_WINNT < 0x500   PVOID pvReserved; DWORD dwReserved; DWORD FlagsEx;  #endif
+/// C: } new_file_details_w;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+pub struct new_file_details_w_s
+{
+  pub details: OPENFILENAMEW,
+  #[cfg (feature = "win32_nt_lt_500")]
+  pub pvReserved: PVOID,
+  #[cfg (feature = "win32_nt_lt_500")]
+  pub dwReserved: DWORD,
+  #[cfg (feature = "win32_nt_lt_500")]
+  pub FlagsEx: DWORD,
+}
+/// C 8298-8305: the `A` twin of the record above.
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+pub struct new_file_details_a_s
+{
+  pub details: OPENFILENAMEA,
+  #[cfg (feature = "win32_nt_lt_500")]
+  pub pvReserved: PVOID,
+  #[cfg (feature = "win32_nt_lt_500")]
+  pub dwReserved: DWORD,
+  #[cfg (feature = "win32_nt_lt_500")]
+  pub FlagsEx: DWORD,
+}
+
+/// C 8264-8554: `x-file-dialog` - the file's third-largest `DEFUN`, and the one that puts
+/// C 8284-8305's two wrapper records and C 8269-8271's filter strings to work.  C's order is kept
+/// item for item: C 8274-8278's five locals, C 8294-8315's `NTGUI_UNICODE`/else declaration pairs
+/// (both arms carried; the else arm is the live one, so its four path buffers and the two
+/// `file_details` pointers are the ones this configuration compiles - C's `#ifdef`/`#else` split
+/// is preserved as the two arms of a `#[cfg]` group), C 8317-8411's conversion block
+/// (`CHECK_STRING`s, `Fexpand_file_name`, `Ffile_name_nondirectory`, `empty_unibyte_string`,
+/// C 8347's literal, `ENCODE_FILE` + `Fcopy_sequence` + `unixtodos_filename`,
+/// `filename_to_utf16`/`filename_to_ansi`, and C 8384/8402/8408's three **bare `alloca`s** - the
+/// port's `sa_stack_alloc` (PORTING.md P-05, the `src/w32menu.rs` 1005 reading) - feeding
+/// `pMultiByteToWideChar`/`pWideCharToMultiByte`), C 8413-8478's two record-filling arms
+/// (`memset`, C 8422/8456's `w32_major_version` size choice, `countof`, the six `OFN_*` flags),
+/// C 8480-8505's dialog call (`w32_dialog_in_progress`, the two `specbind`s,
+/// `record_unwind_protect (w32_dialog_in_progress, Qnil)`, `GetOpenFileNameW`/`A`) and
+/// C 8507-8553's result handling (`filename_from_utf16`/`filename_from_ansi`,
+/// `dostounix_filename`, `DECODE_FILE`, the C 8527-8532 directory strip, C 8535's
+/// `CommDlgExtendedError` and C 8539-8546's `Fcompleting_read` fallback with its eight
+/// arguments).
+/// C: DEFUN ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object prompt, Lisp_Object dir, Lisp_Object default_filename,
+/// C:    Lisp_Object mustmatch, Lisp_Object only_dir_p)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(prompt: Lisp_Object, dir: Lisp_Object, default_filename: Lisp_Object,
+	 mustmatch: Lisp_Object, only_dir_p: Lisp_Object),
+	{
+  let mut filename: Lisp_Object = default_filename;
+  let f: *mut frame = SELECTED_FRAME ();
+  let mut file_opened: BOOL = FALSE;
+  let orig_dir: Lisp_Object = dir;
+  let orig_prompt: Lisp_Object = prompt;
+
+  /* C 8284-8305's two wrapper records, then C 8293-8296's `#ifdef NTGUI_UNICODE` arm and
+     C 8297-8315's `#else` arm - both carried, the else one live (PORTING.md P-51).  C's
+     `wchar_t` is the mirror's `c_ushort` (the token family `tools/extract-abi.py` records).  */
+  let mut new_file_details_w: new_file_details_w_s = core::mem::zeroed ();
+  /* C 8294-8296: `#ifdef NTGUI_UNICODE`.  */
+  #[cfg (feature = "cygwin")]
+  let mut filename_buf_w: [c_ushort; 32 * 1024 + 1] = [0; 32 * 1024 + 1];   /* NT kernel maximum */
+  #[cfg (feature = "cygwin")]
+  let file_details_w: *mut OPENFILENAMEW = &raw mut new_file_details_w.details;
+  #[cfg (feature = "cygwin")]
+  const use_unicode: c_int = 1;
+  /* C 8297-8315: `#else`.  */
+  let mut new_file_details_a: new_file_details_a_s = core::mem::zeroed ();
+  #[cfg (not (feature = "cygwin"))]
+  let mut filename_buf_w: [c_ushort; MAX_PATH as usize + 1] = [0; MAX_PATH as usize + 1];
+  #[cfg (not (feature = "cygwin"))]
+  let mut dir_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize];
+  #[cfg (not (feature = "cygwin"))]
+  let mut filename_buf_a: [c_char; MAX_PATH as usize + 1] = [0; MAX_PATH as usize + 1];
+  #[cfg (not (feature = "cygwin"))]
+  let mut dir_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];
+  #[cfg (not (feature = "cygwin"))]
+  let file_details_w: *mut OPENFILENAMEW = &raw mut new_file_details_w.details;
+  #[cfg (not (feature = "cygwin"))]
+  let file_details_a: *mut OPENFILENAMEA = &raw mut new_file_details_a.details;
+  #[cfg (not (feature = "cygwin"))]
+  let use_unicode: c_int = w32_unicode_filenames as c_int;
+  #[cfg (not (feature = "cygwin"))]
+  let mut prompt_w: *mut c_ushort;
+  #[cfg (not (feature = "cygwin"))]
+  let mut prompt_a: *mut c_char;		/* C's `UNINIT`.  */
+  #[cfg (not (feature = "cygwin"))]
+  let mut len: c_int;
+  #[cfg (not (feature = "cygwin"))]
+  let mut fname_ret: [c_char; MAX_UTF8_PATH as usize] = [0; MAX_UTF8_PATH as usize];
+
+  /* C 8317-8318's block comment.  */
+  {
+    /* Note: under NTGUI_UNICODE, we do _NOT_ use ENCODE_FILE: the
+       system file encoding expected by the platform APIs (e.g. Cygwin's
+       POSIX implementation) may not be the same as the encoding expected
+       by the Windows "ANSI" APIs!  */
+
+    CHECK_STRING (prompt);
+    CHECK_STRING (dir);
+
+    dir = Fexpand_file_name (dir, Qnil ());
+
+    if STRINGP (filename)
+      { filename = Ffile_name_nondirectory (filename); }
+    else
+      { filename = empty_unibyte_string; }
+
+    /* C 8333-8337: `#ifdef CYGWIN`.  */
+    #[cfg (all (feature = "have_ntgui", feature = "cygwin"))]
+    {
+      dir = Fcygwin_convert_file_name_to_windows (dir, Qt ());
+      if SCHARS (filename) > 0
+	{ filename = Fcygwin_convert_file_name_to_windows (filename, Qnil ()); }
+    }
+
+    CHECK_STRING (dir);
+    CHECK_STRING (filename);
+
+    /* The code in file_dialog_callback that attempts to set the text
+       of the file name edit window when handling the CDN_INITDONE
+       WM_NOTIFY message does not work.  Setting filename to "Current
+       Directory" in the only_dir_p case here does work however.  */
+    if SCHARS (filename) == 0 && ! NILP (only_dir_p)
+      { filename = build_string (c"Current Directory".as_ptr ()); }
+
+    /* Convert the values we've computed so far to system form.  */
+    /* C 8350-8357: `#ifdef NTGUI_UNICODE`.  */
+    #[cfg (feature = "cygwin")]
+    {
+      to_unicode (prompt, &raw mut prompt);
+      to_unicode (dir, &raw mut dir);
+      to_unicode (filename, &raw mut filename);
+      if SBYTES (filename) + 1 > core::mem::size_of_val (&filename_buf_w) as isize
+        { report_file_error (c"filename too long".as_ptr (), default_filename); }
+
+      memcpy (filename_buf_w.as_mut_ptr () as *mut c_void, SDATA (filename) as *const c_void,
+              SBYTES (filename) as usize + 1);
+    }
+    /* C 8358-8410: `#else` - the live arm.  */
+    #[cfg (not (feature = "cygwin"))]
+    {
+    /* Convert the values we've computed so far to system form.  */
+    prompt = ENCODE_FILE (prompt);
+    dir = ENCODE_FILE (dir);
+    filename = ENCODE_FILE (filename);
+
+    /* We modify these in-place, so make copies for safety.  */
+    dir = Fcopy_sequence (dir);
+    unixtodos_filename (SSDATA (dir));
+    filename = Fcopy_sequence (filename);
+    unixtodos_filename (SSDATA (filename));
+    if SBYTES (filename) >= MAX_UTF8_PATH as isize
+      { report_file_error (c"filename too long".as_ptr (), default_filename); }
+    if w32_unicode_filenames
+      {
+	filename_to_utf16 (SSDATA (dir), dir_w.as_mut_ptr ());
+	if filename_to_utf16 (SSDATA (filename), filename_buf_w.as_mut_ptr ()) != 0
+	  {
+	    /* filename_to_utf16 sets errno to ENOENT when the file
+	       name is too long or cannot be converted to UTF-16.  */
+	    if *errno () == ENOENT && filename_buf_w[MAX_PATH as usize - 1] != 0
+	      { report_file_error (c"filename too long".as_ptr (), default_filename); }
+	  }
+	len = (pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+				    SSDATA (prompt) as *const c_char, -1,
+				    core::ptr::null_mut (), 0);
+	if len > 32768
+	  { len = 32768; }
+	prompt_w = sa_stack_alloc (len as usize * core::mem::size_of::<c_ushort> ()) as *mut u16;
+	(pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+				      SSDATA (prompt) as *const c_char, -1, prompt_w, len);
+      }
+    else
+      {
+	filename_to_ansi (SSDATA (dir), dir_a.as_mut_ptr ()) as c_int;
+	if (filename_to_ansi (SSDATA (filename), filename_buf_a.as_mut_ptr ()) as c_int) != 0
+	  {
+	    /* filename_to_ansi sets errno to ENOENT when the file
+	       name is too long or cannot be converted to UTF-16.  */
+	    if *errno () == ENOENT && filename_buf_a[MAX_PATH as usize - 1] != 0
+	      { report_file_error (c"filename too long".as_ptr (), default_filename); }
+	  }
+	len = (pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+				    SSDATA (prompt) as *const c_char, -1,
+				    core::ptr::null_mut (), 0);
+	if len > 32768
+	  { len = 32768; }
+	prompt_w = sa_stack_alloc (len as usize * core::mem::size_of::<c_ushort> ()) as *mut u16;
+	(pMultiByteToWideChar.unwrap ()) (CP_UTF8, multiByteToWideCharFlags,
+				      SSDATA (prompt) as *const c_char, -1, prompt_w, len);
+	len = (pWideCharToMultiByte.unwrap ()) (CP_ACP, 0, prompt_w, -1, core::ptr::null_mut (), 0,
+				    core::ptr::null_mut (), core::ptr::null_mut ());
+	if len > 32768
+	  { len = 32768; }
+	prompt_a = sa_stack_alloc (len as usize) as *mut c_char;
+	(pWideCharToMultiByte.unwrap ()) (CP_ACP, 0, prompt_w, -1, prompt_a, len,
+			      core::ptr::null_mut (), core::ptr::null_mut ());
+      }
+
+    }
+    /* Fill in the structure for the call to GetOpenFileName below.
+       For NTGUI_UNICODE builds (which run only on NT), we just use
+       the actual size of the structure.  For non-NTGUI_UNICODE
+       builds, we tell the OS we're using an old version of the
+       structure if the OS isn't new enough to support the newer
+       version.  */
+    if use_unicode != 0
+      {
+	memset ((&raw mut new_file_details_w) as *mut c_void, 0,
+		core::mem::size_of::<new_file_details_w_s> ());
+	if w32_major_version > 4 && w32_major_version < 95
+	  {
+	    (*file_details_w).lStructSize =
+	      core::mem::size_of::<new_file_details_w_s> () as DWORD;
+	  }
+	else
+	  { (*file_details_w).lStructSize = core::mem::size_of::<OPENFILENAMEW> () as DWORD; }
+	/* Set up the inout parameter for the selected file name.  */
+	(*file_details_w).lpstrFile = filename_buf_w.as_mut_ptr ();
+	(*file_details_w).nMaxFile = countof! (filename_buf_w) as DWORD;
+	(*file_details_w).hwndOwner = FRAME_W32_WINDOW! (f);
+	/* Undocumented Bug in Common File Dialog:
+	   If a filter is not specified, shell links are not resolved.  */
+	(*file_details_w).lpstrFilter = FILTER_W.as_ptr ();
+	/* C 8433-8439: `#ifdef NTGUI_UNICODE`.  */
+	#[cfg (feature = "cygwin")]
+	{
+	  (*file_details_w).lpstrInitialDir = SDATA (dir) as *mut c_ushort;
+	  (*file_details_w).lpstrTitle = SDATA (prompt) as *mut guichar_t;
+	}
+	#[cfg (not (feature = "cygwin"))]
+	{
+	  (*file_details_w).lpstrInitialDir = dir_w.as_mut_ptr ();
+	  (*file_details_w).lpstrTitle = prompt_w;
+	}
+	(*file_details_w).nFilterIndex = if NILP (only_dir_p) { 1 } else { 2 };
+	(*file_details_w).Flags = OFN_HIDEREADONLY | OFN_NOCHANGEDIR
+	  | OFN_EXPLORER | OFN_ENABLEHOOK;
+	if ! NILP (mustmatch)
+	  {
+	    /* Require that the path to the parent directory exists.  */
+	    (*file_details_w).Flags |= OFN_PATHMUSTEXIST;
+	    /* If we are looking for a file, require that it exists.  */
+	    if NILP (only_dir_p)
+	      { (*file_details_w).Flags |= OFN_FILEMUSTEXIST; }
+	  }
+      }
+    else
+      {
+	memset ((&raw mut new_file_details_a) as *mut c_void, 0,
+		core::mem::size_of::<new_file_details_a_s> ());
+	if w32_major_version > 4 && w32_major_version < 95
+	  {
+	    (*file_details_a).lStructSize =
+	      core::mem::size_of::<new_file_details_a_s> () as DWORD;
+	  }
+	else
+	  { (*file_details_a).lStructSize = core::mem::size_of::<OPENFILENAMEA> () as DWORD; }
+	(*file_details_a).lpstrFile = filename_buf_a.as_mut_ptr ();
+	(*file_details_a).nMaxFile = countof! (filename_buf_a) as DWORD;
+	(*file_details_a).hwndOwner = FRAME_W32_WINDOW! (f);
+	(*file_details_a).lpstrFilter = FILTER_A.as_ptr ();
+	(*file_details_a).lpstrInitialDir = dir_a.as_mut_ptr ();
+	(*file_details_a).lpstrTitle = prompt_a;
+	(*file_details_a).nFilterIndex = if NILP (only_dir_p) { 1 } else { 2 };
+	(*file_details_a).Flags = OFN_HIDEREADONLY | OFN_NOCHANGEDIR
+	  | OFN_EXPLORER | OFN_ENABLEHOOK;
+	if ! NILP (mustmatch)
+	  {
+	    /* Require that the path to the parent directory exists.  */
+	    (*file_details_a).Flags |= OFN_PATHMUSTEXIST;
+	    /* If we are looking for a file, require that it exists.  */
+	    if NILP (only_dir_p)
+	      { (*file_details_a).Flags |= OFN_FILEMUSTEXIST; }
+	  }
+      }
+
+    {
+      let count: specpdl_ref = SPECPDL_INDEX ();
+
+      w32_dialog_in_progress (Qt ());
+
+      /* Prevent redisplay.  */
+      specbind (Qinhibit_redisplay (), Qt ());
+      record_unwind_protect (Some (w32_dialog_in_progress), Qnil ());
+      block_input ();
+      if use_unicode != 0
+	{
+	  (*file_details_w).lpfnHook = Some (file_dialog_callback);
+
+	  file_opened = GetOpenFileNameW (file_details_w);
+	}
+      else
+	{
+	  (*file_details_a).lpfnHook = Some (file_dialog_callback);
+
+	  file_opened = GetOpenFileNameA (file_details_a);
+	}
+      unblock_input ();
+      unbind_to (count, Qnil ());
+    }
+
+    if file_opened != 0
+      {
+	/* Get an Emacs string from the value Windows gave us.  */
+	/* C 8510-8511: `#ifdef NTGUI_UNICODE`.  */
+	#[cfg (feature = "cygwin")]
+	{ filename = from_unicode_buffer (filename_buf_w.as_mut_ptr ()); }
+	/* C 8512-8519: `#else`.  */
+	#[cfg (not (feature = "cygwin"))]
+	{
+	if use_unicode != 0
+	  { filename_from_utf16 (filename_buf_w.as_mut_ptr (), fname_ret.as_mut_ptr ()); }
+	else
+	  { filename_from_ansi (filename_buf_a.as_mut_ptr (), fname_ret.as_mut_ptr ()); }
+	dostounix_filename (fname_ret.as_mut_ptr ());
+	filename = DECODE_FILE (build_unibyte_string (fname_ret.as_mut_ptr ()));
+	}
+
+	/* C 8521-8523: `#ifdef CYGWIN`.  */
+	#[cfg (all (feature = "have_ntgui", feature = "cygwin"))]
+	{ filename = Fcygwin_convert_file_name_from_windows (filename, Qt ()); }
+
+	/* Strip the dummy filename off the end of the string if we
+	   added it to select a directory.  */
+	if (use_unicode != 0 && (*file_details_w).nFilterIndex == 2)
+	    || (use_unicode == 0 && (*file_details_a).nFilterIndex == 2)
+	  { filename = Ffile_name_directory (filename); }
+      }
+    /* User canceled the dialog without making a selection.  */
+    else if CommDlgExtendedError () == 0
+      { filename = Qnil (); }
+    /* An error occurred, fallback on reading from the mini-buffer.  */
+    else
+      {
+	filename = Fcompleting_read (orig_prompt,
+				     Qread_file_name_internal (),
+				     orig_dir,
+				     mustmatch,
+				     orig_dir,
+				     Qfile_name_history (),
+				     default_filename,
+				     Qnil ());
+      }
+  }
+
+  /* Make "Cancel" equivalent to C-g.  */
+  if NILP (filename)
+    { quit (); }
+
+  return filename;
+});

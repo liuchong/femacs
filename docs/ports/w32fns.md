@@ -217,7 +217,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 7663-7807 | C 7663-7750's `compute_tip_xy` (the definition of the declaration slice 12 dropped) and C 7752-7806's `w32_hide_tip` - slice 13 | file gate |
 | 7809-8114 | C 7809-8106's `x-show-tip` (the file's second-largest `DEFUN`: the reuse/reposition arm, the hidden-frame comparison loop, the parameter defaults, `w32_create_tip_frame`, the pseudo-window setup, `try_window` and the two `SetWindowPos` calls) and C 8109-8114's `x-hide-tip` - slice 14 | file gate; C 7884/8101's `goto start_timer` is the `'start_timer` labelled block |
 | 8116-8262 | C 8116-8118's File-selection-dialog banner, C 8120-8122's three `FILE_NAME_*` definitions, `file_dialog_callback` (C 8124-8221, both `NTGUI_UNICODE` arms) and `w32_dialog_in_progress` (C 8223-8262) - slice 15 | file gate; the `W`/`A` arms stay text (`cygwin` names C's `NTGUI_UNICODE`) |
-| 8264-12488 | **the remainder of the file** (C 8264's `x-file-dialog` `DEFUN` onward: C 8558 `pfnSHFileOperationW`, C 8562 `system-move-file-to-trash`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 8264-8554 | C 8264-8554: the `x-file-dialog` `DEFUN` - the file's third-largest, with C 8284-8305's two wrapper records, C 8269-8271's filter strings, the `NTGUI_UNICODE`/`CYGWIN` arms and the three bare `alloca`s - slice 16 | file gate; the `cygwin` arms stay text (`cygwin` names C's `NTGUI_UNICODE`/`CYGWIN`) |
+| 8556-12488 | **the remainder of the file** (C 8556's `#ifdef WINDOWSNT` onward: C 8558 `pfnSHFileOperationW`, C 8562 `system-move-file-to-trash`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1997,6 +1998,86 @@ comments and macro-generated names).
   keeps C's non-static definition.
 - **Not claimed.**  No run evidence: no dialog is opened on this machine and the callback is never
   entered; the arm reading is compile-level and the name sweep textual.
+
+## Slice 16 (C 8264-8554)
+
+**Scope and the stop.**  The whole `x-file-dialog` `DEFUN` (C 8264-8554) - the file's third-largest
+item.  The stop is C 8556's `#ifdef WINDOWSNT` (C 8555 blank) and `system-move-file-to-trash`
+(C 8562), the next item.
+
+**What the item carries.**  C 8269-8271's two filter strings (the wide one as a `[c_ushort]` array,
+the narrow as `[c_char]`); C 8274-8278's five locals; C 8284-8305's two **anonymous wrapper
+structs** (`new_file_details_w_s` / `new_file_details_a_s`, C's `#if _WIN32_WINNT < 0x500` arm
+under the feature `win32_nt_lt_500` that names C's condition - the file head's
+`win32_windows_ge_0410` convention, both arms text because `check-cond-eval.py` cannot decide the
+value); C 8293-8296's `NTGUI_UNICODE` declaration arm and C 8297-8315's `#else` arm, both carried
+(`cygwin` names C's condition); C 8317-8411's conversion block, including C 8333-8337's `CYGWIN`
+arm (`Fcygwin_convert_file_name_to_windows`), C 8350-8357's `NTGUI_UNICODE` arm (`to_unicode`,
+`memcpy`) and the live arm's `ENCODE_FILE`/`Fcopy_sequence`/`unixtodos_filename` chain,
+`filename_to_utf16`/`filename_to_ansi`, and C 8384/8402/8408's three **bare `alloca`s** - the
+port's `sa_stack_alloc` (PORTING.md P-05; the `src/w32menu.rs` 1005 reading) - feeding the
+`.unwrap ()`-called `pMultiByteToWideChar`/`pWideCharToMultiByte`; C 8413-8478's two record-filling
+arms (`memset`, C 8422/8456's `w32_major_version` size choice, `countof!`, the six `OFN_*` flags);
+C 8480-8505's dialog call (`w32_dialog_in_progress` as both the pre-call and the unwind function,
+two `specbind`s, `GetOpenFileNameW`/`A` bound to `file_dialog_callback`); and C 8507-8553's result
+handling (C 8510-8511's `NTGUI_UNICODE` arm with `from_unicode_buffer`, C 8512-8519's live arm with
+`filename_from_utf16`/`filename_from_ansi` + `dostounix_filename` + `DECODE_FILE`, C 8521-8523's
+`CYGWIN` arm, the C 8527-8532 directory strip, C 8535's `CommDlgExtendedError` and C 8539-8546's
+eight-argument `Fcompleting_read` fallback).
+
+**New surface.**  `CP_ACP` (winnls.h), the six `OFN_*` flags (commdlg.h), `GetOpenFileNameW`,
+`GetOpenFileNameA`, `CommDlgExtendedError`, `to_unicode`/`from_unicode_buffer` (coding.h 728/737 -
+the `include/coding.rs` mirror does not carry them yet, so the slice declares them), the two
+wrapper records and the two filter arrays.  Slice 15's `FILE_NAME_*` constants gained the
+`edt1`/`cmb13`/`lst1` ids they alias, because C's macro bodies *are* those tokens and
+`extract-abi.py` compares a macro's body.
+
+### Evidence (slice 16, the final revision: 12,835 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the same count slice 15
+left, i.e. this DEFUN adds no error and no member gap once four rounds of fixes are in (all of them
+found by this reading): `countof (x)` had to be the mirror's macro `countof! (x)`; C's `errno` is
+the port's `*errno ()`; the five lazily bound code-page calls need `.unwrap ()` (the mirror's
+`Option` typedefs); `SBYTES` returns `isize`, so `MAX_UTF8_PATH as isize`; `multiByteToWideCharFlags`
+is the mirror's `c_ulong` and must be passed bare (the proc's second parameter is `c_ulong`, not
+`DWORD`); `pWideCharToMultiByte`'s two trailing arguments are `*mut BOOL`, not `null`; and
+`use_unicode` is a `c_int`, so C's `use_unicode &&` is `use_unicode != 0 &&`.  Five probe runs.
+
+**③ `extract-abi.py --check`.**  155 rows → **151** and **no token or family row** for this file:
+the `missing subr Fx_file_dialog` row retires; the 3 macro rows slice 15 had created
+(`FILE_NAME_*` vs `edt1`/`cmb13`/`lst1`) close when the three header ids become the aliased
+constants; the `memcpy` and `wchar_t` family rows close when C 8350-8357's arm and the `c_ushort`
+spellings are carried; and the one remaining token row (six tokens: `alloca`, `PVOID`,
+`pvReserved`, `dwReserved`, `FlagsEx`, `uninit`) is closed by one appended
+`macro-body-notes.tsv` row that names why each cannot reappear.  The file still has no
+line-count drift row.
+
+**④ The range table and the dead-file gate.**  The `8264-12488` remainder row splits into
+`8264-8554` (this slice) and `8556-12488`; `check-dead-file-coverage.py` reads **165 range row(s)
+cover src/w32fns.c (12488 lines; 112 blank line(s) between blocks need no row)**, `0 failure(s)`.
+
+**⑤ `check-mirror-dupes.py` fired once - and that is the reading working.**  The slice's first
+draft declared `Fcygwin_convert_file_name_to_windows`/`_from_windows` itself; the gate reported
+both as *already declared by `include/globals.rs`*, so the two lines came out and the gate reads 0
+failures (the C 8334/8336 text now points at the mirror's declarations).  The name sweep over the
+new region reads `missing: []` after triage (its five candidates are the tool's known
+false-positive classes: `FlagsEx`, `Some`, `Sx_file_dialog`).
+
+### Deviations (slice 16)
+
+- **The three bare `alloca`s are `sa_stack_alloc`** (PORTING.md P-05; the `src/w32menu.rs` 1005
+  reading), which is why the `alloca` token is recorded in the notes row rather than spelled.
+- **C's `wchar_t` is the mirror's `c_ushort`** everywhere this slice names it (the token family
+  `tools/extract-abi.py` keeps); C 8435's `guichar_t` cast stays `guichar_t`.
+- **The two anonymous wrapper structs live at file scope**, named after the variables they
+  initialise (`new_file_details_w_s`/`new_file_details_a_s`); their members are therefore outside
+  the body the token check reads, which the notes row records.
+- **C 8312's `UNINIT` attribute has no Rust counterpart** (the attribute is GCC's); the declaration
+  carries a comment naming it.
+- **Not claimed.**  No run evidence: no file dialog is opened on this machine (no Windows, no
+  `GetOpenFileName*`), the callback is never entered, and the arm reading is compile-level.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
