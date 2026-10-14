@@ -93,7 +93,7 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 302-303 | `menubar_in_use` | file gate |
 | 305-308 | the `w32uniscribe.c` externs | file gate |
 | 310-313 | `#ifdef WINDOWSNT` / `faked_key` / `#endif` | `windowsnt` (nested) |
-| 315-319 | `sysinfo_cache`, `osinfo_cache` | file gate (**deferred**, see the Deviations) |
+| 315-319 | `sysinfo_cache`, `osinfo_cache` (the two objects; the records are `include/w32common.rs`'s) - resolved by slice 24 | file gate + `windowsnt` |
 | 321-326 | `syspage_mask`, `w32_major_version`, `w32_minor_version`, `w32_build_number` | file gate |
 | 328-329 | `w32_darkmode` | file gate |
 | 331-332 | `os_subtype` | file gate |
@@ -225,7 +225,7 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 9147-9337 | C 9147's `w32-register-hot-key` `DEFUN` through C 9318-9337's `w32-window-exists-p` - the six hot-key/lock-key/window `DEFUN`s of slice 21 | file gate |
 | 9339-9752 | C 9339-9486's `w32-frame-geometry`, C 9488-9577's `w32-frame-edges`, C 9579-9607's `w32_frame_list_z_order`, C 9609-9633's `w32-frame-list-z-order`, C 9635-9674's `w32_frame_restack`, C 9676-9707's `w32-frame-restack` and C 9709-9752's mouse pair - slice 22 | file gate |
 | 9755-9999 | C 9755-9890's `#ifdef WINDOWSNT` block with `file-system-info` (and C 9756-9759's two `GetDiskFreeSpaceEx` pointer types), then C 9893-9999's second block with `default-printer-name` - slice 23 | file gate (nested `windowsnt`) |
-| 10002-10110 | C 10002's `/* Equivalent of strerror for W32 error codes.  */` onward: `w32_strerror`, `w32_last_error`, `cache_system_info`, `w32_version_string` and the `EMACSDEBUG` `_DebPrint` | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 10002-10110 | C 10002-10027's `w32_strerror`, C 10029-10038's `w32_last_error`, C 10040-10081's `cache_system_info`, C 10083-10093's `w32_version_string` (C's `#ifdef WINDOWSNT`) and C 10095-10110's `_DebPrint` (C's `#ifdef EMACSDEBUG`) - slice 24 | file gate, plus the two nested features |
 | 10112-10138 | C 10112-10138's `w32_console_toggle_lock_key` - slice 21, landed **ahead of its C position** because C 9302 calls it and Rust has no declare-then-define pair inside one file (PORTING.md P-91 ①) | file gate |
 | 10140-12488 | **the remainder of the file** (C 10140's `w32_kbd_mods_to_emacs` onward: the console-modifier family, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
@@ -2602,6 +2602,104 @@ Copy)]`'s arguments, and a `DEFUN!`'s macro-generated `$sname` static.
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no volume is queried and no
   printer is enumerated; the arm reading is compile-level (42 errors, none from this slice) and the
   name sweep is a textual reading.
+
+## Slice 24 (C 10002-10110, and C 315-319 resolved)
+
+**Scope and the stop.**  The strerror/version group: `w32_strerror` (C 10002-10027),
+`w32_last_error` (C 10029-10038, whose C 10032 forward declaration is dropped per PORTING.md 0.1-12),
+`cache_system_info` (C 10040-10081), `w32_version_string` (C 10083-10093, under C's `#ifdef
+WINDOWSNT`) and `_DebPrint` (C 10095-10110, under C's `#ifdef EMACSDEBUG`, which is the `emacsdebug`
+feature the file's `w32_name_of_message` already uses).  The stop is C 10112's
+`w32_console_toggle_lock_key` (C 10111 blank) - already landed, out of order, by slice 21.  The slice
+also **resolves the C 315-319 deferral**: this file *defines* `sysinfo_cache` and `osinfo_cache`, and
+the two records were spelled by another lane in the meantime (`include/w32common.rs` 118-146, marked
+UNVERIFIED there), so the two objects now stand at their C position - the `syspage_mask` shape
+(the mirror declares them inside `w32common_decls`, the owning unit defines them).
+
+**What the item carries.**  `w32_strerror` is C 10006's function-local `static char buf[500]` (file
+scope; C's own name `buf` is taken by C 3630-3632's `emacsdebug` static, so this one is `buf_`, the
+trailing-underscore spelling the checker folds), C 10009-10010's `GetLastError` default, C 10012-10017's
+`FormatMessage` call with C's two flag bits, C 10019-10021's trailing-CRLF trim and C 10023-10024's
+`sprintf` fallback.  `cache_system_info` declares C 10044-10053's function-local union inside the body
+(the `src/thread.rs` 788-795 reading; C's union has no tag, so the port names it after C's variable
+`version`, and C's own member names `info`/`data`/`major`/`minor`/`platform` stay) and then reads
+C 10056's `hinst`, C 10059-10061's `GetVersion` unpacking, C 10063-10066's platform-bit test,
+C 10069-10070's `GetSystemInfo`/`syspage_mask`, C 10073-10076's `OSVERSIONINFO` size + `GetVersionEx`
++ `dwBuildNumber`, C 10077-10078's 9X truncation and C 10080's mouse-button metric.
+`w32_version_string` moves C 10088's function-local `static char version_string[…]` to file scope with
+its initialiser (the `coords` device; a notes row carries the three numbers its bound takes out of the
+body) and keeps C 10089-10090's `_snprintf`.  `_DebPrint` is C 10099's `char buf[1024]` with C 10100-10108's
+`va_list` trio (the `...` parameter *is* the list, PORTING.md P-04), the `CYGWIN` `fprintf` arm and
+`OutputDebugString`.
+
+**New surface.**  `SM_CMOUSEBUTTONS`, `FORMAT_MESSAGE_FROM_SYSTEM`/`FORMAT_MESSAGE_IGNORE_INSERTS`
+(both values corroborated against the Win32 metadata projection, `windows-sys` 0.52: 4096/512), and
+the declarations `GetLastError`, `FormatMessageA`, `GetVersion`, `GetSystemInfo`, `GetVersionExA`,
+`OutputDebugStringA`, `_snprintf`, `vsprintf` (`<stdio.h>`'s MSVCRT pair, in-unit like
+`src/nt/cmdproxy.rs` 261-265 does for the first).
+
+### Evidence (slice 24, the final revision: 15,122 Rust lines)
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/w24lane cargo run -q -p xtask -- build-tu src/w32fns.c` →
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, the object **336 bytes**.  Two runs
+(the first text and the one after the mirror fix below).
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the standing count
+(15 `E0428`, 1 `E0530`, 25 `E0609`, and the one deliberately-failing frame-flag probe), so this
+slice's 208 lines add no error and no member gap: **no diagnostic sits at or beyond `src/w32fns.rs`
+888** (the slice's first changed line).  **The first probe run read 43** and named this slice's one
+real defect: the mirror declared `w32_version_string` at *file* scope under `windowsnt`, so this
+unit's definition collided with it (`the name w32_version_string is defined multiple times`).  The
+fix is P-21's rule - the declaration moves into `w32common_decls`, where the unit's definition
+shadows the glob import (the tenth such move; the mirror's own ledger now records it, and every
+caller still resolves the name through `use w32common_decls::*;`).  Two runs.
+
+**③ `extract-abi.py --check`.**  **121 → 116** rows: five `missing function` rows retire
+(`w32_strerror`, `w32_last_error`, `cache_system_info`, `w32_version_string` and the pair's
+neighbour) and none is added; the mirror pair (`w32common.h` → `include/w32common.rs`) still reads
+`OK`.  Two token rows were found and cleared by notes rows (`w32_strerror` does not mention `500` -
+the moved static's bound; `cache_system_info` does not mention `getversionex` - C's plain macro).
+Five `macro-body-notes.tsv` rows accompany the slice.  No `line count drifted` row: 15,122 Rust lines
+against 12,488 C lines (21.1%), inside the file's `w32fns 0.35 total` tolerance row.
+
+**④ The range table and the dead-file gate.**  The `315-319` row loses its **deferred** mark and the
+`10002-10110` remainder row becomes this slice's landed row; `check-dead-file-coverage.py` reads
+**174 range row(s) cover src/w32fns.c (12488 lines; 123 blank line(s) between blocks need no row)**,
+`0 failure(s)`.
+
+**⑤ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 888-922 (the two cache definitions):
+2 capitalized identifiers, missing none.  `src/w32fns.rs` 14,896-15,076 (the five functions and the
+new surface): 24 capitalized identifiers, missing `Clone` and `Copy` - the `#[derive (Clone, Copy)]`
+arguments of the two records `cache_system_info` declares in its body, i.e. the tool's documented
+"not an item" class.
+
+### Deviations (slice 24)
+
+- **The C 315-319 deferral is resolved, and the records stay the mirror's.**  This file defines the
+  two objects (C 316/319) and the two records' spellings are `include/w32common.rs` 118-146's, marked
+  UNVERIFIED there because no `<windows.h>` exists on this machine.  The port's two definitions carry
+  explicit zero initialisers (C's text has none: a tentative definition) and the mirror's copies stay
+  the declarations, so the two records are still *unmeasured* - the integrator's mingw measurement is
+  what would close that.
+- **`w32_version_string`'s declaration moves inside `w32common_decls`.**  P-21's E0428 rule; the
+  mirror's ledger has the note (the tenth declaration of that class).  Nothing else in the mirror
+  changed.
+- **`buf_` is C's `buf` folded.**  C's `w32_strerror` owns a `static char buf[500]` and C 3630-3632's
+  `w32_name_of_message` owns a `static char buf[64]`; both live at file scope in the port and the
+  `emacsdebug` gate compiles the second, so the first is spelled `buf_` (PORTING.md 0.2's
+  trailing-underscore fold, which the token check applies).
+- **Three plain macros are read as the `A` entry points.**  `FormatMessage`, `GetVersionEx` and
+  `OutputDebugString` (C 10012/10074/10108) all take a `char` buffer here, which only the `A`
+  function accepts - the same reading as slice 23's `GetProfileString`/`OpenPrinter`, and the notes
+  rows record the three token gaps.  The integrator's mingw measurement should settle the whole class
+  at once, including the earlier slices' `w32_unicode_gui` device.
+- **C's anonymous function-local union gets the port's name `version`.**  Its members and the inner
+  tag are C's (`info`, `data`, `major`, `minor`, `platform`); only the union's own name is the
+  port's, since C's has no tag (`src/thread.rs` 788-795 establishes the in-body record device).
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no cache is filled, no error
+  string is formatted and no debug output is emitted; the arm reading is compile-level (42 errors,
+  none from this slice) and the name sweep is a textual reading.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

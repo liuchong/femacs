@@ -157,3 +157,13 @@ were (the loader's own body is the one definition in this mirror).
 (the three deferred macros and two deferred objects are its recorded deferrals, unchanged);
 `xtask layout-check` passed; `xtask probe src/w32fns.rs` above falls from 12 to 0 `E0428`;
 `check-all-units.sh` 83/0 both legs.
+
+## `w32_version_string` moves into `w32common_decls` (2026-10-14, w32fns slice 24)
+
+The tenth declaration of the same class as the nine above.  `src/w32fns.c` 10085 defines
+`char * w32_version_string (void)` (C 10083's `#ifdef WINDOWSNT`), and this mirror declared the name
+at file scope under `#[cfg (feature = "windowsnt")]`, so the unit's own definition collided with it
+(`E0428`, measured: the w32fns arm probe read 43 errors against the standing 42, the extra one
+`the name w32_version_string is defined multiple times`).  The declaration now stands inside
+`w32common_decls` with the four version objects, and its file-scope copy is removed; every unit that
+calls it still resolves the name through `use w32common_decls::*;`.

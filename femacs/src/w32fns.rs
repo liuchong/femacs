@@ -885,13 +885,40 @@ unsafe extern "C" {
 }
 
 /* This gives us the page size and the size of the allocation unit on NT.  */
-/* C 315-319: **deferred, not written** - `include/w32common.rs` 35-36 records the same decision
-   for the same two records ("C declares a `<sysinfoapi.h>`/`<winver.h>` record *by value*, the
-   port has no mirror of either, and no compiler on this target could measure them - so no Rust
-   spelling is written rather than an unmeasured one"), and this file is where both objects are
-   defined.  The ledger's Deviations and its owed list carry the pair.  */
+/* C 315-320: the two `<sysinfoapi.h>`/`<winver.h>` caches this file *defines*.  The pair used to
+   be recorded here as deferred; `include/w32common.rs` 118-146 now carries both records (spelled
+   from `<windows.h>` and marked UNVERIFIED there, since no `<windows.h>` exists on this machine)
+   and declares both objects inside its `w32common_decls` module, so the two definitions land at
+   C's own position here - the `syspage_mask` shape below (the mirror declares, the owning unit
+   defines).  C's own text has no initialiser, i.e. a tentative definition (zero).  */
 /// C: SYSTEM_INFO sysinfo_cache;
 /// C: OSVERSIONINFO osinfo_cache;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub static mut sysinfo_cache: SYSTEM_INFO
+  = SYSTEM_INFO {
+      dwOemId: 0,
+      dwPageSize: 0,
+      lpMinimumApplicationAddress: core::ptr::null_mut (),
+      lpMaximumApplicationAddress: core::ptr::null_mut (),
+      dwActiveProcessorMask: 0,
+      dwNumberOfProcessors: 0,
+      dwProcessorType: 0,
+      dwAllocationGranularity: 0,
+      wProcessorLevel: 0,
+      wProcessorRevision: 0,
+    };
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub static mut osinfo_cache: OSVERSIONINFO
+  = OSVERSIONINFO {
+      dwOSVersionInfoSize: 0,
+      dwMajorVersion: 0,
+      dwMinorVersion: 0,
+      dwBuildNumber: 0,
+      dwPlatformId: 0,
+      szCSDVersion: [0; 128],
+    };
 
 /* C 321-326: the four globals `w32common.h` 37-41 declares (this file defines them; see the
    collision note above).  The C objects have no initializer, i.e. C's tentative definitions
@@ -14866,7 +14893,188 @@ DEFUN! ("default-printer-name", Fdefault_printer_name, Sdefault_printer_name,
   return DECODE_FILE (build_unibyte_string (pname_buf.as_ptr ()));
 });
 
-/* C 9754-10110's text is not in the port yet (the file's remainder), but C 10112's
+/// C 10002-10110's new `<windows.h>`/`<stdio.h>` surface: `GetLastError`, `FormatMessageA` with the
+/// two `FORMAT_MESSAGE_*` bits, `GetVersion`, `GetSystemInfo`, `GetVersionExA`, `OutputDebugStringA`
+/// and the `_snprintf`/`vsprintf` pair (the latter two are MSVCRT's, spelled here as
+/// `src/nt/cmdproxy.rs` 261-265 spells the first).  `SM_CMOUSEBUTTONS` is C 10080's metric.
+/// C: DWORD WINAPI GetLastError (void);
+/// C: DWORD WINAPI FormatMessageA (DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId,
+/// C: DWORD dwLanguageId, LPSTR lpBuffer, DWORD nSize, va_list *Arguments);
+/// C: DWORD WINAPI GetVersion (void);
+/// C: void WINAPI GetSystemInfo (LPSYSTEM_INFO lpSystemInfo);
+/// C: BOOL WINAPI GetVersionExA (LPOSVERSIONINFOA lpVersionInformation);
+/// C: void WINAPI OutputDebugStringA (LPCSTR lpOutputString);
+/// C: int _snprintf (char *buffer, size_t count, const char *format, …);
+/// C: int vsprintf (char *s, const char *format, va_list arg);
+/// C: #define SM_CMOUSEBUTTONS 43
+/// C: #define FORMAT_MESSAGE_FROM_SYSTEM 0x00001000
+/// C: #define FORMAT_MESSAGE_IGNORE_INSERTS 0x00000200
+#[cfg (feature = "have_ntgui")]
+pub const SM_CMOUSEBUTTONS: c_int = 43;
+#[cfg (feature = "have_ntgui")]
+pub const FORMAT_MESSAGE_FROM_SYSTEM: DWORD = 0x00001000;
+#[cfg (feature = "have_ntgui")]
+pub const FORMAT_MESSAGE_IGNORE_INSERTS: DWORD = 0x00000200;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetLastError () -> DWORD;
+  pub fn FormatMessageA (dwFlags: DWORD, lpSource: *const c_void, dwMessageId: DWORD,
+			 dwLanguageId: DWORD, lpBuffer: LPSTR, nSize: DWORD,
+			 arguments: *const *const c_char) -> DWORD;
+  pub fn GetVersion () -> DWORD;
+  pub fn GetSystemInfo (lpSystemInfo: *mut SYSTEM_INFO);
+  pub fn GetVersionExA (lpVersionInformation: *mut OSVERSIONINFO) -> BOOL;
+  pub fn OutputDebugStringA (lpOutputString: LPCSTR);
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn _snprintf (buffer: *mut c_char, count: usize, format: *const c_char, ...) -> c_int;
+  pub fn vsprintf (s: *mut c_char, format: *const c_char, arg: ...) -> c_int;
+}
+
+/// C 10002-10027: `w32_strerror` - C 10006's function-local `static char buf[500]` (file scope
+/// below; C's own name `buf` is taken by C 3630-3632's `static char buf[64]` above, which the
+/// `emacsdebug` gate compiles, so this one keeps the trailing-underscore spelling PORTING.md 0.2
+/// folds), C 10009-10010's `GetLastError` default, C 10012-10017's `FormatMessage` call with C's
+/// two flag bits (the macro's arm: the buffer is `char`, so the A entry point - the `GetProfileString`
+/// reading of slice 23), C 10019-10021's trailing-CRLF trim and C 10023-10024's `sprintf` fallback.
+/// C: char *
+/// C: w32_strerror (int error_no)
+#[cfg (feature = "have_ntgui")]
+static mut buf_: [c_char; 500] = [0; 500];
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_strerror (error_no: c_int) -> *mut c_char
+{
+  let mut error_no = error_no;
+  let mut ret: DWORD;
+
+  if error_no == 0
+    { error_no = GetLastError () as c_int; }
+
+  ret = FormatMessageA (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			core::ptr::null (),
+			error_no as DWORD,
+			0, /* choose most suitable language */
+			buf_.as_mut_ptr (), core::mem::size_of_val (&buf_) as DWORD,
+			core::ptr::null ());
+
+  while ret > 0 && (buf_[ret as usize - 1] == b'\n' as c_char
+		    || buf_[ret as usize - 1] == b'\r' as c_char)
+    { ret -= 1; }
+  buf_[ret as usize] = 0;
+  if ret == 0
+    { sprintf (buf_.as_mut_ptr (), c"w32 error %d".as_ptr (), error_no); }
+
+  return buf_.as_mut_ptr ();
+}
+
+/// C 10029-10038: C 10030-10031's comment, C 10032's forward declaration (dropped, PORTING.md
+/// 0.1-12) and the definition C 10034-10038 - a non-`static` C function, so `#[unsafe(no_mangle)]`.
+/// C: DWORD w32_last_error (void)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_last_error () -> DWORD
+{
+  return GetLastError ();
+}
+
+/// C 10040-10081: `cache_system_info` - C 10044-10053's function-local union (the port declares the
+/// same two records in the body, the `src/thread.rs` 788-795 reading; C's anonymous union has no
+/// tag, so the port names it after C's own variable `version`), C 10056's `hinst` cache, C 10059-10061's
+/// `GetVersion` unpacking (C's `char major`/`char minor`/`short platform` are `c_char`/`c_short`), C 10063-10066's
+/// platform-bit test, C 10069-10070's `GetSystemInfo` and `syspage_mask`, C 10073-10076's
+/// `OSVERSIONINFO` size + `GetVersionEx` and `dwBuildNumber`, C 10077-10078's 9X truncation and
+/// C 10080's mouse-button metric.
+/// C: void
+/// C: cache_system_info (void)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn cache_system_info ()
+{
+  /* C 10044-10053's in-body `union { struct info { … } info; DWORD data; } version;`.  */
+  #[repr(C)]
+  #[derive(Clone, Copy)]
+  struct info
+  {
+    major: c_char,
+    minor: c_char,
+    platform: c_short,
+  }
+  #[repr(C)]
+  #[derive(Clone, Copy)]
+  union version
+  {
+    info: info,
+    data: DWORD,
+  }
+  let mut version: version = core::mem::zeroed ();
+
+  /* Cache the module handle of Emacs itself.  */
+  hinst = GetModuleHandle (core::ptr::null ());
+
+  /* Cache the version of the operating system.  */
+  version.data = GetVersion ();
+  w32_major_version = version.info.major as c_int;
+  w32_minor_version = version.info.minor as c_int;
+
+  if version.info.platform as c_int & 0x8000 != 0
+    { os_subtype = OS_SUBTYPE_9X; }
+  else
+    { os_subtype = OS_SUBTYPE_NT; }
+
+  /* Cache page size, allocation unit, processor type, etc.  */
+  GetSystemInfo (&raw mut sysinfo_cache);
+  syspage_mask = sysinfo_cache.dwPageSize as DWORD_PTR - 1;
+
+  /* Cache os info.  */
+  osinfo_cache.dwOSVersionInfoSize = core::mem::size_of::<OSVERSIONINFO> () as DWORD;
+  GetVersionExA (&raw mut osinfo_cache);
+
+  w32_build_number = osinfo_cache.dwBuildNumber as c_int;
+  if os_subtype == OS_SUBTYPE_9X
+    { w32_build_number &= 0xffff; }
+
+  w32_num_mouse_buttons = GetSystemMetrics (SM_CMOUSEBUTTONS) as EMACS_INT;
+}
+
+/// C 10083-10093: `w32_version_string` under C's `#ifdef WINDOWSNT` - C 10088's function-local
+/// `static char version_string[…]` (file scope below with its initialiser, the `coords` device; the
+/// notes row records the three numbers its bound takes out of the body) and C 10089-10090's
+/// `_snprintf` of the three cached numbers.
+/// C: char *
+/// C: w32_version_string (void)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut version_string: [c_char; 3 + 1 + 3 + 1 + 10 + 1] = [0; 3 + 1 + 3 + 1 + 10 + 1];
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_version_string () -> *mut c_char
+{
+  /* NNN.NNN.NNNNNNNNNN */
+  _snprintf (version_string.as_mut_ptr (), core::mem::size_of_val (&version_string),
+	     c"%d.%d.%d".as_ptr (), w32_major_version, w32_minor_version, w32_build_number);
+  return version_string.as_mut_ptr ();
+}
+
+/// C 10095-10110: `_DebPrint` under C's `#ifdef EMACSDEBUG` - C 10099's `char buf[1024]`, C 10100-10104's
+/// `va_list`/`va_start`/`vsprintf`/`va_end` (the `...` parameter *is* the list, PORTING.md P-04; the
+/// notes row carries the three tokens that have no counterpart), C 10105-10107's `CYGWIN` arm and
+/// C 10108's `OutputDebugString` (the A entry point: the buffer is `char`).
+/// C: void
+/// C: _DebPrint (const char *fmt, ...)
+#[cfg (all (feature = "have_ntgui", feature = "emacsdebug"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn _DebPrint (fmt: *const c_char, mut args: ...)
+{
+  let mut buf: [c_char; 1024] = [0; 1024];
+
+  vsprintf (buf.as_mut_ptr (), fmt, args);
+  #[cfg (feature = "cygwin")]
+  { fprintf (stderr, c"%s".as_ptr (), buf.as_mut_ptr ()); }
+  OutputDebugStringA (buf.as_mut_ptr ());
+}
+
+/* C 10140-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C

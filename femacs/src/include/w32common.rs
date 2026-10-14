@@ -154,6 +154,10 @@ pub mod w32common_decls {
     pub static mut w32_build_number: c_int;
     pub static mut os_subtype: c_int;
     pub fn cache_system_info ();
+    /// C 53's `extern char * w32_version_string (void);`, whose definition is `src/w32fns.c`
+    /// 10085 (w32fns slice 24) - declared here so that unit's definition shadows it (P-21).
+    #[cfg (feature = "windowsnt")]
+    pub fn w32_version_string () -> *mut c_char;
 
     #[cfg (feature = "windowsnt")]
     pub static mut sysinfo_cache: SYSTEM_INFO;
@@ -176,12 +180,14 @@ pub const OS_SUBTYPE_NT: c_int = 2;
 /// C 53-58: the `WINDOWSNT` arm, dead text on this target (the feature macro is `undef`), so it
 /// is carried under the feature that names the other side (PORTING.md P-51).  `intmax_t` is
 /// PORTING.md 1.1's `i64`.
-/// C: extern char * w32_version_string (void);
 /// C: extern bool w32_valid_process_id (intmax_t);
 /// C: # define VALID_PROCESS_ID(p) w32_valid_process_id(p)
+/// C 53's `w32_version_string` declaration is **not** here: `src/w32fns.c` 10085 defines it, so the
+/// name belongs in `w32common_decls` above, where the unit's own definition shadows the glob import
+/// (P-21's E0428 rule - the tenth declaration to move, w32fns slice 24; the mirror's ledger records
+/// the move).
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn w32_version_string () -> *mut c_char;
   pub fn w32_valid_process_id (pid: i64) -> bool;
 }
 #[cfg (feature = "windowsnt")]
