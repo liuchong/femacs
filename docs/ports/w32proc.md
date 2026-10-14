@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**6502 lines**, md5 `096979f48637e994a0e8989b30485083`), carrying
-> **C 1-4234** - P-86 ④'s first twenty-three slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**6635 lines**, md5 `893c7fb6ad06991e9d946b148ad4f358`), carrying
+> **C 1-4321** - P-86 ④'s first twenty-four slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -137,7 +137,8 @@ which `check-dead-file-coverage.py` requires):
 | 3969-4082 | the banner comment and the next three `DEFUN`s: `w32-short-file-name` (C 3973-3995), `w32-long-file-name` (C 3998-4030) and `w32-set-process-priority` (C 4032-4082) | file gate (slice 21); the three `DEFUN!` invocations carry C's docstrings in the `doc:` slot (Deviations 81's shape), and the round's four `<winbase.h>` names stand at the use site (Deviations 84) |
 | 4084-4135 | the `DEFUN` `w32-application-type`: the expand/encode/`unixtodos_filename`/`filename_to_ansi` chain, the `_mbspbrk` guard and the `w32_executable_type` call with its four `Q…` answers | file gate (slice 22); the four symbols are the `globals.rs` mirror's (this file's `syms_of_ntproc` is where C defines them - the next lane of rows) |
 | 4137-4234 | the langinfo arm: C 4137's `#ifdef HAVE_LANGINFO_CODESET` (live in the frozen table, carried under `have_langinfo_codeset`), C 4139-4143's `LOCALE_IPAPERSIZE` fallback and C 4145-4234's `nl_langinfo` (the `w32item` table, the lazily grown buffer, the `CODESET` `cp`-prefix path and the `_NL_PAPER_*` table) | file gate (slice 23); the round's `<winnt.h>`/CRT/gnulib surface stands at the use site (Deviations 86), and the `countof` macro is spelled here because its gnulib mirror is in no unit's graph (Deviations 87) |
-| 4236-4903 | **the remainder of the file** - C 4236's `w32-get-locale-info` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the other fourteen `DEFUN`s (C 4236-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4236-4321 | `w32-get-locale-info` (C 4236-4292, with its three branches), `w32-get-current-locale-id` (C 4295-4303) and the static `int_from_hex` (C 4305-4321) | file gate (slice 24); the round's `<winbase.h>` names stand at the use site (Deviations 88), and the `hex` digit table is C's C string under the tree's `*b"…"` device |
+| 4323-4903 | **the remainder of the file** - C 4323's comment and C 4325's `Vw32_valid_locale_ids` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the other twelve `DEFUN`s (C 4327-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1509,3 +1510,35 @@ inside the stem's 0.36 row.
     }; }`: gnulib's `<stdcountof.h>` mirror (`lib/include/stdcountof.rs` 55, whose body carries a
     `_gl_verify_is_array` clause this port does not need) is in no unit's graph, so C 4223's
     `countof (paper_size)` gets the array's length the same way the macro computes it.
+
+## Slice 24 (2026-10-14, status 4.303): C 4236-4321
+
+**What this round is.**  Three items: `w32-get-locale-info` (the `IsValidLocale` guard and the three
+branches that answer from `LOCALE_SABBREVLANGNAME`, `LOCALE_SLANGUAGE` with `DECODE_SYSTEM`, or a
+caller-given `LCTYPE` through `make_unibyte_string`), `w32-get-current-locale-id` (the one-line
+`GetThreadLocale`) and the static `int_from_hex` (the `strchr` walk over C's digit table and its
+`p - hex` arithmetic).  Port: 6,502 -> **6635 lines** (+133).  The next row's first item is C 4323's
+comment with C 4325's `Vw32_valid_locale_ids`.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit**.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6503 6635` -> `26
+capitalized identifiers, missing: ['Locale', 'Sw32_get_locale_info',
+'Sw32_get_current_locale_id']` - the `IsValidLocale` declaration's parameter name and the two
+`DEFUN!` statics, all three in the tool's documented classes.
+**Evidence ④ - the `--check` reading.**  **50 -> 47 `- missing` rows** (the two subrs and
+`missing function int_from_hex`).  No token rows.  Drift -32.6% -> **-35.3%**, inside the stem's
+0.36 row.
+
+**Deviations (this slice's additions).**
+
+88. **The round's `<winbase.h>` names stand at the use site** (P-88 ①): `IsValidLocale` and the
+    two `LOCALE_*` values C 4265/4273 read (`LCID_SUPPORTED`, `LOCALE_SLANGUAGE`,
+    `LOCALE_SABBREVLANGNAME`; `LCID`, `LCTYPE` and `LOCALE_USE_CP_ACP` are slice 23's).
+89. **C 4309's `static char hex[] = "0123456789abcdefABCDEF";` is the tree's `*b"…"` device**
+    (`src/sysdep.rs` 1104/4693's spelling), with C's terminating NUL kept and the array's length
+    C's own (23); `p - hex` is the port's `offset_from`, the same pointer difference C's `unsigned
+    digit` takes.

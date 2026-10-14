@@ -6500,3 +6500,136 @@ pub unsafe extern "C" fn nl_langinfo (item: nl_item) -> *mut c_char
 }
 
 /* C 4236's `w32-get-locale-info` opens the next slice.  */
+
+/// C 4236-4292: `DEFUN ("w32-get-locale-info", …)` - C 4252-4255's two flags and two buffers, C
+/// 4257-4260's `CHECK_FIXNUM`/`IsValidLocale` guard, and C 4262-4289's three branches
+/// (`LOCALE_SABBREVLANGNAME`, `EQ (longform, Qt)` with `DECODE_SYSTEM`, and the `FIXNUMP` branch
+/// whose `make_unibyte_string` takes C's own `got_full - 1`).
+/// C: DEFUN ("w32-get-locale-info", Fw32_get_locale_info,
+/// C:        Sw32_get_locale_info, 1, 2, 0,
+/// C:        doc: /* Return information about the Windows locale LCID.
+/// C: …
+/// C: If LCID (a 16-bit number) is not a valid locale, the result is nil.  */)
+/// C:   (Lisp_Object lcid, Lisp_Object longform)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-locale-info", Fw32_get_locale_info, Sw32_get_locale_info, 1, 2, 0,
+	doc: "       doc: /* Return information about the Windows locale LCID.
+By default, return a three letter locale code which encodes the default
+language as the first two characters, and the country or regional variant
+as the third letter.  For example, ENU refers to `English (United States)',
+while ENC means `English (Canadian)'.
+
+If the optional argument LONGFORM is t, the long form of the locale
+name is returned, e.g. `English (United States)' instead; if LONGFORM
+is a number, it is interpreted as an LCTYPE constant and the corresponding
+locale information is returned.
+
+If LCID (a 16-bit number) is not a valid locale, the result is nil.  */)  ",
+	(lcid: Lisp_Object, longform: Lisp_Object),
+	{
+  let mut got_abbrev: c_int;                                        // C 4252
+  let mut got_full: c_int;                                          // C 4253
+  let mut abbrev_name: [c_char; 32] = [0; 32];                      // C 4254
+  let mut full_name: [c_char; 256] = [0; 256];                      // C 4255
+
+  CHECK_FIXNUM (lcid);                                              // C 4257
+
+  if IsValidLocale (XFIXNUM (lcid) as DWORD, LCID_SUPPORTED) == 0   // C 4259
+    { return Qnil (); }                                             // C 4260
+
+  if NILP (longform)                                                // C 4262
+    {
+      got_abbrev = GetLocaleInfo (XFIXNUM (lcid) as DWORD,          // C 4264
+				  LOCALE_SABBREVLANGNAME | LOCALE_USE_CP_ACP,   // C 4265
+				  abbrev_name.as_mut_ptr (),
+				  core::mem::size_of::<[c_char; 32]> () as c_int);   // C 4266
+      if got_abbrev != 0                                            // C 4267
+	{ return build_string (abbrev_name.as_ptr ()); }            // C 4268
+    }
+  else if EQ (longform, Qt ())                                      // C 4270
+    {
+      got_full = GetLocaleInfo (XFIXNUM (lcid) as DWORD,            // C 4272
+				LOCALE_SLANGUAGE | LOCALE_USE_CP_ACP,   // C 4273
+				full_name.as_mut_ptr (),
+				core::mem::size_of::<[c_char; 256]> () as c_int);   // C 4274
+      if got_full != 0                                              // C 4275
+	{ return DECODE_SYSTEM (build_string (full_name.as_ptr ())); }   // C 4276
+    }
+  else if FIXNUMP (longform)                                        // C 4278
+    {
+      got_full = GetLocaleInfo (XFIXNUM (lcid) as DWORD,            // C 4280
+				XFIXNUM (longform) as LCTYPE,           // C 4281
+				full_name.as_mut_ptr (),
+				core::mem::size_of::<[c_char; 256]> () as c_int);   // C 4282
+      /* GetLocaleInfo's return value includes the terminating null
+	 character, when the returned information is a string, whereas
+	 make_unibyte_string needs the string length without the
+	 terminating null.  */
+      if got_full != 0                                              // C 4287
+	{ return make_unibyte_string (full_name.as_ptr (),
+				      (got_full - 1) as ptrdiff_t); }   // C 4288
+    }
+
+  return Qnil ();                                                   // C 4291
+});
+
+/// C 4295-4303: `DEFUN ("w32-get-current-locale-id", …)` - the one-line body C 4302.
+/// C: DEFUN ("w32-get-current-locale-id", Fw32_get_current_locale_id,
+/// C:        Sw32_get_current_locale_id, 0, 0, 0,
+/// C:        doc: /* Return Windows locale id for current locale setting.
+/// C: This is a numerical value; use `w32-get-locale-info' to convert to a
+/// C: human-readable form.  */)
+/// C:   (void)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-get-current-locale-id", Fw32_get_current_locale_id, Sw32_get_current_locale_id,
+	0, 0, 0,
+	doc: "       doc: /* Return Windows locale id for current locale setting.
+This is a numerical value; use `w32-get-locale-info' to convert to a
+human-readable form.  */)  ",
+	(),
+	{
+  return make_fixnum (GetThreadLocale () as EMACS_INT);             // C 4302
+});
+
+/// C 4305-4321: `static DWORD int_from_hex (char *s)` - C 4308-4310's value and the `hex` digit
+/// table C 4309 spells as a C string, C 4312's `strchr` loop and C 4314-4318's digit arithmetic
+/// (`p - hex` is the pointer difference the port keeps).
+/// C: static DWORD
+/// C: int_from_hex (char * s)
+#[cfg (feature = "windowsnt")]
+unsafe fn int_from_hex (s: *mut c_char) -> DWORD
+{
+  let mut val: DWORD = 0;                                           // C 4308
+  static hex: [c_char; 23] = *b"0123456789abcdefABCDEF\0";          // C 4309
+  let mut p: *mut c_char;                                           // C 4310
+
+  while *s != 0                                                    // C 4312
+        && { p = strchr (hex.as_ptr (), *s as c_int); !p.is_null () }
+    {
+      let mut digit: c_uint = p.offset_from (hex.as_ptr ()) as c_uint;   // C 4314
+      if digit > 15                                                 // C 4315
+	{ digit -= 6; }                                             // C 4316
+      val = val * 16 + digit;                                       // C 4317
+      s = s.add (1);                                                // C 4318
+    }
+  return val;                                                       // C 4320
+}
+
+/* C's `<winbase.h>`: the locale validation and the two `LOCALE_*` names C 4236-4292 reads (`LCID`
+   is slice 23's).  UNVERIFIED (P-88 1).  */
+/// C: #define LCID_SUPPORTED 0x00000001
+/// C: #define LOCALE_SLANGUAGE 0x00000002
+/// C: #define LOCALE_SABBREVLANGNAME 0x00000003
+/// C: WINBASEAPI BOOL WINAPI IsValidLocale (LCID Locale, DWORD dwFlags);
+#[cfg (feature = "windowsnt")]
+pub const LCID_SUPPORTED: DWORD = 0x00000001;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SLANGUAGE: LCTYPE = 0x00000002;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SABBREVLANGNAME: LCTYPE = 0x00000003;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn IsValidLocale (Locale: LCID, dwFlags: DWORD) -> BOOL;
+}
+
+/* C 4323's comment and C 4325's `Vw32_valid_locale_ids` open the next slice.  */
