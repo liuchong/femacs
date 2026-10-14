@@ -199,7 +199,8 @@ The `arm` cell says what the port does with the block.
 | 6908-7146 | `w32_calc_absolute_position` (C 6912-7021), `w32_set_offset` (C 7029-7065) and `w32fullscreen_hook` (C 7067-7146) | file gate (`have_ntgui`); slice 19 below |
 | 7148-7502 | `w32_set_window_size` (C 7152-7256), `w32_set_window_size_and_position` (C 7261-7335), `frame_set_mouse_pixel_position` (C 7339-7365), `w32_get_focus_frame` (C 7367-7379), `w32_focus_frame` (C 7388-7405), `w32_raise_frame` (C 7408-7467), `w32_lower_frame` (C 7470-7479) and `w32_frame_raise_lower` (C 7481-7491) | file gate (`have_ntgui`); slice 20 below |
 | 7503-7734 | `w32_make_frame_visible` (C 7503-7599), `w32_make_frame_invisible` (C 7605-7625), `w32_make_frame_visible_invisible` (C 7627-7634), `w32_iconify_frame` (C 7638-7660), `w32_free_frame_resources` (C 7665-7699), `w32_destroy_window` (C 7702-7710) and `w32_wm_set_size_hint` (C 7720-7734) | file gate (`have_ntgui`); slice 21 below |
-| 7736-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7736-7864 | the Text Cursor/Fonts banner and the hourglass/cursor family: `w32_check_font` (C 7746-7752, `GLYPH_DEBUG`), `w32_show_hourglass` (C 7758-7768), `w32_hide_hourglass` (C 7772-7783), **`w32_arrow_cursor`** (C 7787-7791), `w32_toggle_invisible_pointer` (C 7793-7804), the Image Hooks banner and `w32_free_pixmap` (C 7813-7817), `w32_initialized` (C 7824) and `w32_initialize_display_info` (C 7826-7864) | file gate (`have_ntgui`); slice 22 below |
+| 7866-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1500,4 +1501,61 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
      the slice-16 cast).
   3. `extract-abi.py --check` -> **34 -> 27 rows** (`missing function` 22 -> **15**), the
      line-count row at **29.7%** (`10,916` vs `8,414`).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 22 (C 7736-7864)
+
+- **What it is.**  The Fonts banner and the hourglass/cursor family: `w32_check_font`
+  (C 7746-7752, inside `#ifdef GLYPH_DEBUG`), `w32_show_hourglass` (C 7758-7768),
+  `w32_hide_hourglass` (C 7772-7783), **`w32_arrow_cursor`** (C 7787-7791), the statically
+  linked `w32_toggle_invisible_pointer` (C 7793-7804), the Image Hooks banner and
+  `w32_free_pixmap` (C 7813-7817), the Initialization banner, `static int w32_initialized`
+  (C 7824) and `w32_initialize_display_info` (C 7826-7864).  Port: 10,916 -> **11,135 lines**
+  (+219).  The table's last row splits at C 7864; the next live definition is C 7878's
+  `w32_make_rdb` (C 7866-7877's xrdb comment block).
+- **The seven definitions retire seven `missing function` rows** (15 -> 8); `w32_check_font` is
+  the one `GLYPH_DEBUG`-only item and is carried under the same `all (have_ntgui, glyph_debug)`
+  gate the section's earlier debug helpers use.
+- **The `missing file-scope object` row count reaches zero.**  C 7824's `static int
+  w32_initialized` is the last object of the file the checker had been reporting; it lands as
+  `static mut w32_initialized: c_int = 0` with C's initialiser.
+- **`w32_arrow_cursor` is non-`static`** -> `#[unsafe(no_mangle)] pub unsafe extern "C" fn`
+  (P-52), and its mirror prototype moved out of `include/w32term.rs`'s crate-root block into
+  `w32term_fn_decls` for the same reason slice 21 moved nine others (a glob import is shadowed
+  by a local definition, P-21/P-39).  `w32_initialize_display_info` too is non-`static` and
+  carries the same attribute; the two `static` items (`w32_show_hourglass`/`w32_hide_hourglass`
+  are C's own `static`, as are `w32_free_pixmap`/`w32_toggle_invisible_pointer`) stay plain.
+- **`hourglass_p` gets its bits word.**  C 7765/7780 write it and C 7763 reads it; the mirror
+  gains `W32_OUTPUT_HOURGLASS_P_BIT: c_uint = 1 << 3` and the `(hourglass_p, ...)` read/write
+  arms of `w32_output_bits!` - C 378's bit, the same stand-in shape `asked_for_visible` uses.
+- **`pointer_invisible` gains its accessor pair**: `pointer_invisible!` is copied from
+  `src/xterm.rs` 18691 (one copy per including unit), reading C 7781 and writing C 7797.
+- **The SDK surface stands at the use site** (P-88 (1)), UNVERIFIED: `SetCursor` and
+  `IDC_ARROW` (the latter through the file's existing `MAKEINTRESOURCE!`), plus `DeleteObject`
+  for `w32_free_pixmap` and `memset`/`Fcons`/`Qnil`/`STRINGP`/`SCHARS`/`SDATA`/`ckd_add`/
+  `memory_full_up`/`xmalloc`/`sprintf`/`strcpy` for `w32_initialize_display_info`.
+- **C's two `static char const` arrays become file-scope byte arrays.**  C 7830's `title[]` and
+  C 7834's `at[]` are function-local `static` in C; the port lifts both to file scope as
+  NUL-terminated byte slices (the `sizeof` arithmetic at C 7835 counts the terminators).
+- **Value-shape fixes this slice**: C 7852's `dpyinfo->resx = 1` is assigned as `1.0` (the field
+  is a `double`); C 7760's `if (!menubar_in_use && !current_popup_menu)` writes the `c_int`
+  tests as `== 0`; C 7796's `f->pointer_invisible != invisible` goes through the packed-bit
+  accessor rather than a direct field read.
+- **The declarations gate caught one line.**  The slice's first draft quoted C 7834's own text in a
+  `/// C:` citation, and a `///` comment that spells the program's own name is the gate's forbidden
+  `title` class.  C's text is now described in the block comment above the array, with the byte
+  values on the code line and the citation a line number (the `src/androidterm.rs` 8522 reading of
+  the same C line); the gate reads 0 forbidden.
+- **Comment-carrier incident (nesting).**  Rust block comments nest, so every `/* C: ... */`
+  carrier whose copied C text itself contains a `/* ... */` needs one extra closing `*/  */`,
+  and every `/**** ... ****/` banner one appended marker.  The depth-scan (walk lines, count
+  `/*` vs `*/`, expect depth 0 at EOF) is now run before and after appending slice text.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **20 errors, 0 anchored in this slice's text** (the
+     slice's first draft's three drafting errors - the `resx`, `menubar_in_use` and
+     `pointer_invisible` shapes above - were fixed before the sweep was read).
+  3. `extract-abi.py --check` -> **27 -> 15 rows** (`missing function` 15 -> **8**,
+     `missing file-scope object` **1 -> 0**), the line-count row at **32.3%**
+     (`11,135` vs `8,414`).
   4. The ten gates: all `rc=0`, 0 FAIL.

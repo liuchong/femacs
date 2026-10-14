@@ -539,3 +539,35 @@ after**, 0 anchored in the unit's text either way (the lane's baseline was 22, s
 closed its two standing `Owed 4` rows); `python3 tools/check-mirror-dupes.py` and
 `tools/check-declarations.py` -> 0 failure(s) each.  The unit-side readings are
 `docs/ports/w32term.md`'s `### Slice 21 (C 7503-7734)`.
+
+## `w32_output`'s `hourglass_p` joins the packed word (2026-10-15, w32term slice 22)
+
+**The measurement.**  `src/w32term.c` 7763/7765 read and write `f->output_data.w32->hourglass_p`
+(`w32_show_hourglass`/`w32_hide_hourglass`), and C 378's member was recorded as text only, so the
+accessor pair had no member to name.
+
+**The change.**  C 378's bit becomes `W32_OUTPUT_HOURGLASS_P_BIT: c_uint = 1 << 3` with the two
+`w32_output_bits! (hourglass_p, …)` arms - the same shape, and the same `1 << n` numbering, the
+slice-16 `asked_for_visible` bit uses.  Adding a bit to a word that already stands changes no
+offset; C 394/397/400's other three members stay recorded-only.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w22/x.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **20 errors, 0 anchored
+in the unit's text** (the lane's baseline); `python3 tools/check-mirror-dupes.py` and
+`tools/check-declarations.py` -> 0 failure(s) each.  The unit-side readings are
+`docs/ports/w32term.md`'s `### Slice 22 (C 7736-7864)`.
+
+## `w32_arrow_cursor`'s prototype moves into `w32term_fn_decls` (2026-10-15, w32term slice 22)
+
+**The measurement.**  C 7787 defines `w32_arrow_cursor` and this mirror declared it in the
+crate-root `unsafe extern "C"` block, so the definition shadowed nothing and the reading would
+have carried an `E0428` - the class the slice-21 move closed nine of.
+
+**The change.**  The prototype now stands in `w32term_fn_decls`, the glob-imported module a local
+definition shadows (P-21/P-39); the crate-root site keeps C's own text and a note naming the
+module.  This is the same move slice 21 made for the nine names that were about to be defined.
+
+**Evidence.**  The probe row above - **20 errors, 0 anchored in the unit's text**, the lane's
+baseline, so the move added no collision; `python3 tools/check-mirror-dupes.py` ->
+0 failure(s).  The unit-side readings are `docs/ports/w32term.md`'s `### Slice 22 (C 7736-7864)`.

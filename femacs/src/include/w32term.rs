@@ -559,6 +559,11 @@ pub const W32_OUTPUT_WANT_PAINT_BUFFER_BIT: c_uint = 1 << 1;
    and 400 leave (`hourglass_p`, `explicit_parent`, `menubar_active`) stay recorded-only.  */
 #[cfg (feature = "windowsnt")]
 pub const W32_OUTPUT_ASKED_FOR_VISIBLE_BIT: c_uint = 1 << 2;
+/* C 378's `unsigned hourglass_p : 1` joins the same packed word (slice 22's `w32_show_hourglass`
+   and `w32_hide_hourglass` read and write it, C 7765/7777); the same stand-in as the three above,
+   and the two bitfields C 394/400 leave (`explicit_parent`, `menubar_active`) stay recorded-only.  */
+#[cfg (feature = "windowsnt")]
+pub const W32_OUTPUT_HOURGLASS_P_BIT: c_uint = 1 << 3;
 
 /// C's member is a 1-bit `unsigned`, so reading it yields 0 or 1; the value form (rather than a
 /// `bool`) keeps C's comparison - `... ->want_paint_buffer != 0` - spelled the same on this side,
@@ -606,6 +611,10 @@ macro_rules! w32_output_bits {
   (asked_for_visible, $o:expr) => { w32_output_bit_get ($o as *mut c_void, W32_OUTPUT_ASKED_FOR_VISIBLE_BIT) };
   (asked_for_visible, $o:expr, $v:expr)
     => { w32_output_bit_set ($o as *mut c_void, W32_OUTPUT_ASKED_FOR_VISIBLE_BIT, ($v) != 0) };
+  /* C 378's member (see the mask above).  */
+  (hourglass_p, $o:expr) => { w32_output_bit_get ($o as *mut c_void, W32_OUTPUT_HOURGLASS_P_BIT) };
+  (hourglass_p, $o:expr, $v:expr)
+    => { w32_output_bit_set ($o as *mut c_void, W32_OUTPUT_HOURGLASS_P_BIT, ($v) != 0) };
 }
 
 /// C 458: `extern struct w32_output w32term_display;`
@@ -1404,7 +1413,9 @@ macro_rules! GUI_SDATA {
 /// C 925: `extern void w32_init_main_thread (void);`
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn w32_arrow_cursor ();
+  // C 925's `w32_init_main_thread` and C 918-923's `*_of_w32*` entries are other units'
+  // definitions, so they stay here; `w32_arrow_cursor` (C 906) is this header's own unit's and
+  // moved to `w32term_fn_decls` below (E0428: the slice 22 round measured it).
   // `w32_release_paint_buffer`/`w32_flip_buffers_if_dirty` (C 911-912) are this header's own
   // unit's definitions: `w32term_fn_decls` below (E0428, P-21).
   pub fn syms_of_w32term ();
@@ -1480,6 +1491,7 @@ pub mod w32term_fn_decls {
     pub fn w32_iconify_frame (f: *mut frame);
     pub fn w32_free_frame_resources (f: *mut frame);
     pub fn w32_wm_set_size_hint (f: *mut frame, long_arg: c_long, bool_arg: bool);
+    pub fn w32_arrow_cursor ();
     pub fn w32_initialize_display_info (display_name: Lisp_Object);
     pub fn initialize_w32_display (terminal: *mut terminal, width: *mut c_int,
 				   height: *mut c_int);

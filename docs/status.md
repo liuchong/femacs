@@ -20319,3 +20319,16 @@
   ⑧ 十门全 `rc=0`、0 失败；区间表拆为 `7503-7734`（本片）+ `7736-8414`（余项）；台账追加 **`### Slice 21 (C 7503-7734)`**。
   ⑨ 预算与清理：`build-tu` 2 发、臂读数 4 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w21`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.326 `src/w32term.c` 第 22 片（w32term lane，slice 22）：C 7736-7864 落地——Fonts 横幅与沙漏/光标族：`w32_check_font`（C 7746-7752，`GLYPH_DEBUG`）、`w32_show_hourglass`、`w32_hide_hourglass`、**`w32_arrow_cursor`**、`w32_toggle_invisible_pointer`、Image Hooks 横幅与 `w32_free_pixmap`、Initialization 横幅、`static int w32_initialized` 与 `w32_initialize_display_info`；w32term.rs 10,916 → 11,135 行（+219，2026-10-15）**：
+  ① 七个定义退掉七条 `missing function` 行（15 → **8**）；`w32_check_font` 是唯一的 `GLYPH_DEBUG` 项，沿用本段既有 debug 助手所用的 `all (have_ntgui, glyph_debug)` 门。
+  ② **`missing file-scope object` 行清零**：C 7824 的 `static int w32_initialized` 是检查器最后报的那个文件级对象，落地为 `static mut w32_initialized: c_int = 0`（带 C 的初始化式）——臂读数台账里那条自 slice 3 起就存在的行关闭。
+  ③ `w32_arrow_cursor` 与 `w32_initialize_display_info` 非 `static` → `#[unsafe(no_mangle)] pub unsafe extern "C" fn`（P-52）；`w32_show_hourglass`/`w32_hide_hourglass`/`w32_free_pixmap`/`w32_toggle_invisible_pointer` 是 C 自己的 `static`，保持普通 fn。
+  ④ **镜像两处改动**：`include/w32term.rs` 新增 `W32_OUTPUT_HOURGLASS_P_BIT: c_uint = 1 << 3` 与 `w32_output_bits!` 的 `(hourglass_p, …)` 读写臂（C 378 那一位，与 slice 16 的 `asked_for_visible` 同形）；`w32_arrow_cursor` 的原型从镜像 crate 根块移入 `w32term_fn_decls`（本地定义遮蔽 glob 导入，P-21/P-39，同 slice 21 的九项移动）。镜像台账两条已记。
+  ⑤ 用例处新增 SDK 面（P-88 ①，UNVERIFIED）：`SetCursor`、`IDC_ARROW`（经本文件既有的 `MAKEINTRESOURCE!`），以及 `w32_free_pixmap` 的 `DeleteObject` 与 `w32_initialize_display_info` 的 `memset`/`Fcons`/`Qnil`/`STRINGP`/`SCHARS`/`SDATA`/`ckd_add`/`memory_full_up`/`xmalloc`/`sprintf`/`strcpy`。
+  ⑥ `pointer_invisible` 获得访问器对（`pointer_invisible!`，抄自 `src/xterm.rs` 18691，每单元一份），读 C 7781、写 C 7797；C 7830/7834 的两个函数内 `static char const` 数组提升为文件级字节数组（C 7835 的 `sizeof` 算术含终止符）。
+  ⑦ 取值形状修正：C 7852 `dpyinfo->resx = 1` 写作 `1.0`（字段是 `double`）；C 7760 `!menubar_in_use && !current_popup_menu` 的 `c_int` 测试写作 `== 0`；C 7796 的 `pointer_invisible != invisible` 走打包位访问器。本片还遇到**注释载体嵌套事故**（Rust 块注释可嵌套，含 `/* … */` 的 `/* C: … */` 需多补一层 `*/  */`），此后每片先跑深度扫描再落文本。
+  ⑧ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 20 条、0 条落在本片**（本 lane 基线读数）。`extract-abi.py --check`：**15 → 8 行**（`missing function` 15 → **8**，`missing file-scope object` **1 → 0**；`LOAD_PROC` 宏行仍在，属文件尾），行数行 **32.3%**（11,135 : 8,414）。
+  ⑨ 首稿的 `/// C: static char const title[] = …` 被 declarations 门判为 forbidden 的 `title` 类（`///` 注释里写了程序自身名字），改为把 C 原文写进上方块注释、字节值落在代码行（`src/androidterm.rs` 8522 的写法）后 **0 forbidden**。
+  ⑩ 十门全 `rc=0`、0 失败；区间表拆为 `7736-7864`（本片）+ `7866-8414`（余项，起始行即首个未落地的 C 7866）；台账追加 **`### Slice 22 (C 7736-7864)`**。
+  ⑪ 预算与清理：`build-tu` 2 发、臂读数 2 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w22`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

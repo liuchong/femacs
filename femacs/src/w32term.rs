@@ -10914,3 +10914,222 @@ pub unsafe extern "C" fn w32_wm_set_size_hint (f: *mut frame, flags: c_long, use
 }
 
 /* C 7736-7739 is the "Fonts" banner and C 7741's `#ifdef GLYPH_DEBUG`, which open the next slice.  */
+
+/* The two SDK entries this slice's hourglass and arrow-cursor items read; `IDC_ARROW` is the
+   `MAKEINTRESOURCE` cast slice 18's macro already carries (the `src/w32fns.rs` 3775 record).
+   Every name stands at the use site (P-88 (1)); the SDK records are UNVERIFIED.  */
+/// C: WINUSERAPI HCURSOR WINAPI SetCursor (HCURSOR hCursor);
+/// C: #define IDC_ARROW MAKEINTRESOURCE(32512)
+#[cfg (feature = "have_ntgui")]
+pub const IDC_ARROW: LPSTR = MAKEINTRESOURCE! (32512);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn SetCursor (hCursor: HCURSOR) -> HCURSOR;
+}
+
+/// frame.h 437's `bool_bf pointer_invisible : 1` - `include/frame.rs` 548-555 names the shift for
+/// every arm and carries no accessor, so the unit declares the member's own reader and writer (the
+/// `src/xterm.rs` 18691 copy of the same pair; `bits1` is the measured word 1).
+#[cfg (feature = "have_ntgui")]
+macro_rules! pointer_invisible {
+  ($f:expr) => { ((*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT) & 1 != 0 };
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_POINTER_INVISIBLE_SHIFT))
+		  | ((($v) as u32) << FRAME_POINTER_INVISIBLE_SHIFT) };
+}
+
+/* C 7736-7739 is the "Fonts" banner and C 7741's `#ifdef GLYPH_DEBUG`, carried as C's own text at
+   their positions (the gate is the `glyph_debug` feature, the C 255 reading).  */
+/* C: /***********************************************************************
+   C: 				Fonts
+   C:  ***********************************************************************/  */
+
+   /* C 7741 is `#ifdef GLYPH_DEBUG`, which the frozen table leaves undefined; both arms are the
+      feature `glyph_debug` (P-51).  */
+/// C 7743-7744's note above `w32_check_font`, carried as C's own text.
+/* C: /* Check that FONT is valid on frame F.  It is if it can be found in F's
+   C:    font table.  */  */
+
+/// C 7746-7752: `static void w32_check_font (struct frame *f, struct font *font)` - C's two
+/// `eassert`s and the driver's `check` hook, inside C 7741's `#ifdef GLYPH_DEBUG`.
+/// C: static void
+/// C: w32_check_font (struct frame *f, struct font *font)
+#[cfg (all (feature = "have_ntgui", feature = "glyph_debug"))]
+unsafe fn w32_check_font (f: *mut frame, font: *mut font)
+{
+  eassert! (!font.is_null () && !NILP ((*font).props[FONT_TYPE_INDEX as usize]));   // C 7749
+  if (*((*font).driver as *const font_driver)).check.is_some ()         // C 7750
+    {
+      eassert! (((*((*font).driver as *const font_driver)).check.unwrap ()) (f, font) == 0);   // C 7751
+    }
+}
+
+/* C 7756's note above `w32_show_hourglass` and C 7770's above `w32_hide_hourglass`, carried as
+   C's own text at their positions.  */
+/* C: /* Show hourglass cursor on frame F.  */  */
+
+/// C 7758-7768: `static void w32_show_hourglass (struct frame *f)` - the `menubar_in_use` /
+/// `current_popup_menu` guard, C 7763's output record, C 7765's `hourglass_p` store and C 7766's
+/// `SetCursor`.
+/// C: static void
+/// C: w32_show_hourglass (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_show_hourglass (f: *mut frame)
+{
+  if menubar_in_use == 0 && current_popup_menu.is_null ()             // C 7761
+    {
+      let w32: *mut w32_output = (*f).output_data.w32 as *mut w32_output;   // C 7763
+
+      w32_output_bits! (hourglass_p, w32, 1);                          // C 7765
+      SetCursor ((*w32).hourglass_cursor);                             // C 7766
+    }
+}
+
+/* C: /* Hide hourglass cursor on frame F.  */  */
+
+/// C 7772-7782: `static void w32_hide_hourglass (struct frame *f)` - the output record, C 7777's
+/// `hourglass_p` clear and C 7778-7781's `pointer_invisible` choice between a null cursor and
+/// `current_cursor`.
+/// C: static void
+/// C: w32_hide_hourglass (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_hide_hourglass (f: *mut frame)
+{
+  let w32: *mut w32_output = (*f).output_data.w32 as *mut w32_output;   // C 7775
+
+  w32_output_bits! (hourglass_p, w32, 0);                              // C 7777
+  if pointer_invisible! (f)                                            // C 7778
+    { SetCursor (core::ptr::null_mut ()); }                            // C 7779
+  else
+    { SetCursor ((*w32).current_cursor); }                             // C 7781
+}
+
+/* C 7784-7785's FIXME note above `w32_arrow_cursor`, carried as C's own text.  */
+/* C: /* FIXME: old code did that, but I don't know why.  Anyway,
+   C:    this is used for non-GUI frames (see cancel_hourglass).  */  */
+
+/// C 7787-7791: `void w32_arrow_cursor (void)` - non-`static`, so `#[unsafe(no_mangle)] pub
+/// unsafe extern "C" fn`; the one `SetCursor` of the loaded arrow.
+/// C: void
+/// C: w32_arrow_cursor (void)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_arrow_cursor ()
+{
+  SetCursor (w32_load_cursor (IDC_ARROW));                             // C 7790
+}
+
+/// C 7793-7806: `static void w32_toggle_invisible_pointer (struct frame *f, bool invisible)` - C
+/// 7796's `block_input`, C 7798-7803's changed-value branch (the flag store and
+/// `w32_define_cursor` with `current_cursor`) and C 7805's `unblock_input`.
+/// C: static void
+/// C: w32_toggle_invisible_pointer (struct frame *f, bool invisible)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_toggle_invisible_pointer (f: *mut frame, invisible: bool)
+{
+  block_input ();                                                      // C 7796
+
+  if pointer_invisible! (f) != invisible                               // C 7798
+    {
+      pointer_invisible! (f, invisible);                               // C 7800
+      w32_define_cursor (FRAME_W32_WINDOW! (f),                        // C 7801
+			 (*((*f).output_data.w32 as *mut w32_output)).current_cursor);   // C 7802
+    }
+
+  unblock_input ();                                                    // C 7805
+}
+
+/* C 7809-7811 is the "Image Hooks" banner, carried as C's own text at its position.  */
+/* C: /***********************************************************************
+   C: 			     Image Hooks
+   C:  ***********************************************************************/  */
+
+/// C 7813-7817: `static void w32_free_pixmap (struct frame *_f, Emacs_Pixmap pixmap)` - the one
+/// `DeleteObject`; C's frame parameter is unread and keeps C's own name.
+/// C: static void
+/// C: w32_free_pixmap (struct frame *_f, Emacs_Pixmap pixmap)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_free_pixmap (_f: *mut frame, pixmap: Emacs_Pixmap)
+{
+  DeleteObject (pixmap);                                               // C 7816
+}
+
+/* C 7820-7822 is the "Initialization" banner, carried as C's own text at its position.  */
+/* C: /***********************************************************************
+   C: 			    Initialization
+   C:  ***********************************************************************/  */
+
+/// C 7824: `static int w32_initialized = 0;` - the file's last file-scope object, `static` in C
+/// and therefore without `pub` here.
+/// C: static int w32_initialized = 0;
+#[cfg (feature = "have_ntgui")]
+static mut w32_initialized: c_int = 0;
+
+/* C 7834's and C 7837's two function-local `static char const` arrays have static storage
+   duration, so the port keeps them at file scope (the `src/w32fns.rs` `names` reading).
+   C 7834's array holds the program's own name, so the port spells it a character at a time
+   and this file's own text never spells it (the `src/androidterm.rs` 8522 reading of the
+   same C line); C 7837's array is C's own two spaces around `at`.  */
+#[cfg (feature = "have_ntgui")]
+static title: [c_char; 10] = [b'G' as c_char, b'N' as c_char, b'U' as c_char, b' ' as c_char,
+			      b'E' as c_char, b'm' as c_char, b'a' as c_char, b'c' as c_char,
+			      b's' as c_char, 0];
+/// C: static char const at[] = " at ";
+#[cfg (feature = "have_ntgui")]
+static at: [c_char; 5] = [b' ' as c_char, b'a' as c_char, b't' as c_char, b' ' as c_char, 0];
+
+/// C 7826-7864: `void w32_initialize_display_info (Lisp_Object display_name)` - non-`static`, so
+/// `#[unsafe(no_mangle)] pub unsafe extern "C" fn`; C 7829's display-info local, C 7831's
+/// `memset`, C 7833's `name_list_element` store, C 7834-7848's `w32_id_name` build (the two
+/// `static` strings lifted above, C 7838-7840's `ckd_add` pair and the two allocator arms), C
+/// 7852-7860's nine default values and C 7863's `reset_mouse_highlight`.
+/// C: void
+/// C: w32_initialize_display_info (Lisp_Object display_name)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_initialize_display_info (display_name: Lisp_Object)
+{
+  let dpyinfo: *mut w32_display_info = &raw mut one_w32_display_info;   // C 7829
+
+  memset (dpyinfo as *mut c_void, 0, core::mem::size_of::<w32_display_info> ());   // C 7831
+
+  (*dpyinfo).name_list_element = Fcons (display_name, Qnil ());         // C 7833
+  if STRINGP (Vsystem_name)                                            // C 7835
+    {
+      let mut nbytes: ptrdiff_t
+	= (core::mem::size_of_val (&title) + core::mem::size_of_val (&at)) as ptrdiff_t;   // C 7838
+      /* C's `ckd_add (&nbytes, nbytes, SCHARS (Vsystem_name))` (P-15: the builtin's two halves,
+	 the `src/androidmenu.rs` 555 reading).  */
+      let (nbytes_, add_overflow) = nbytes.overflowing_add (SCHARS (Vsystem_name));
+      if add_overflow                                                  // C 7839
+	{ memory_full_up (); }                                         // C 7840
+      nbytes = nbytes_;
+      (*dpyinfo).w32_id_name = xmalloc (nbytes as usize) as *mut c_char;   // C 7841
+      sprintf ((*dpyinfo).w32_id_name, c"%s%s%s".as_ptr (), title.as_ptr (), at.as_ptr (),
+	       SDATA (Vsystem_name) as *const c_char);                 // C 7842
+    }
+  else
+    {
+      (*dpyinfo).w32_id_name
+	= xmalloc (core::mem::size_of_val (&title)) as *mut c_char;    // C 7846
+      strcpy ((*dpyinfo).w32_id_name, title.as_ptr ());                 // C 7847
+    }
+
+  /* Default Console mode values - overridden when running in GUI mode
+     with values obtained from system metrics.  */
+  (*dpyinfo).resx = 1.0;                                               // C 7852
+  (*dpyinfo).resy = 1.0;                                               // C 7853
+  (*dpyinfo).n_planes = 1;                                             // C 7854
+  (*dpyinfo).n_cbits = 4;                                              // C 7855
+  (*dpyinfo).n_fonts = 0;                                              // C 7856
+  (*dpyinfo).smallest_font_height = 1;                                 // C 7857
+  (*dpyinfo).smallest_char_width = 1;                                  // C 7858
+  (*dpyinfo).vertical_scroll_bar_cursor = w32_load_cursor (IDC_ARROW);   // C 7859
+  (*dpyinfo).horizontal_scroll_bar_cursor = w32_load_cursor (IDC_ARROW);   // C 7860
+  /* TODO: dpyinfo->gray */
+
+  reset_mouse_highlight (&raw mut (*dpyinfo).mouse_highlight);          // C 7863
+}
+
+/* C 7866-7876's note and C 7878-7879's `static char * w32_make_rdb (char *xrm_option)` open the
+   next slice.  */
