@@ -16548,3 +16548,77 @@ pub unsafe extern "C" fn register_aux_fd (infd: c_int)                  // C 112
   fd_info[infd as usize].hnd = _get_osfhandle (infd) as HANDLE;         // C 11313 (C's `(HANDLE) _get_osfhandle (infd)`)
   fd_info[infd as usize].flags |= FILE_DONT_CLOSE;                      // C 11314
 }                                                                       // C 11315
+
+
+/* C 11316's blank, C 11317's `#ifdef HAVE_GNUTLS` (the `have_gnutls` feature, `undef` in the frozen
+   configuration and registered in `xtask/Cargo.toml` 315), C 11319-11359's `emacs_gnutls_pull` /
+   `emacs_gnutls_push`, C 11360's `#endif` and C 11361-11362's blank with `/* end of w32.c */` - the
+   file's **last** item, so this slice closes `src/w32.c`.  The mirror `include/w32.rs` 587-591
+   already *declares* both functions (the `w32_file_decls` module's `HAVE_GNUTLS` arm, glob-imported),
+   which slice 53 measured to be shadowed by a unit definition; what no mirror in this unit's graph
+   names is `gnutls_transport_ptr_t`, `gnutls_session_t` and `emacs_gnutls_transport_set_errno`
+   (`src/gnutls.h` 89), so those are spelled here under the same feature - `src/gnutls.rs` 96-102's
+   zero-sized stand-in shape - all `UNVERIFIED` (Owed 57).  */
+/// C 11320/11337/11343/11355: the two gnutls types and `gnutls.c`'s error setter.  `src/gnutls.h` 89
+/// declares `extern void emacs_gnutls_transport_set_errno (gnutls_session_t state, int err);`.
+/// C: typedef void *gnutls_transport_ptr_t;
+/// C: typedef struct gnutls_session_int *gnutls_session_t;
+#[cfg (feature = "have_gnutls")]
+pub type gnutls_transport_ptr_t = *mut c_void;
+/// `typedef struct gnutls_session_int *gnutls_session_t;` - an incomplete type named only through a
+/// pointer (PORTING.md 0.1-2's zero-sized stand-in, the `src/gnutls.rs` 96-102 shape).
+#[cfg (feature = "have_gnutls")]
+pub struct gnutls_session_int { _private: [u8; 0] }
+#[cfg (feature = "have_gnutls")]
+pub type gnutls_session_t = *mut gnutls_session_int;
+#[cfg (feature = "have_gnutls")]
+unsafe extern "C" {
+  pub fn emacs_gnutls_transport_set_errno (state: gnutls_session_t, err: c_int);
+}
+#[cfg (feature = "have_gnutls")]                                        // C 11317 (C's `#ifdef HAVE_GNUTLS`; C 11360 closes it)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn emacs_gnutls_pull (p: gnutls_transport_ptr_t, buf: *mut c_void, // C 11319-11320
+					sz: usize) -> ssize_t
+{                                                                       // C 11321
+  let mut n: c_int; let mut err: c_int;                                 // C 11322
+  let process: *mut Lisp_Process = p as *mut Lisp_Process;              // C 11323 (C's `(struct Lisp_Process *)p`)
+  let fd: c_int = (*process).infd;                                      // C 11324
+
+  n = sys_read (fd, buf as *mut c_char, sz as c_uint);                  // C 11326 (C's `(char *)buf` and `size_t` -> `c_uint`)
+
+  if n >= 0                                                             // C 11328
+    { return n as ssize_t; }                                            // C 11329 (C's `int` -> `ssize_t`)
+
+  err = *errno ();                                                      // C 11331 (C's `errno` macro)
+
+  /* Translate the WSAEWOULDBLOCK alias EWOULDBLOCK to EAGAIN. */       // C 11333
+  if err == EWOULDBLOCK                                                 // C 11334
+    { err = EAGAIN; }                                                   // C 11335
+
+  emacs_gnutls_transport_set_errno ((*process).gnutls_state, err);      // C 11337
+
+  return -1;                                                            // C 11339
+}                                                                       // C 11340
+
+#[cfg (feature = "have_gnutls")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn emacs_gnutls_push (p: gnutls_transport_ptr_t, buf: *const c_void, // C 11342-11343
+					sz: usize) -> ssize_t
+{                                                                       // C 11344
+  let process: *mut Lisp_Process = p as *mut Lisp_Process;              // C 11345 (C's `(struct Lisp_Process *)p`)
+  let fd: c_int = (*process).outfd;                                     // C 11346
+  let n: ssize_t = sys_write (fd, buf, sz as c_uint) as ssize_t;        // C 11347 (C's `size_t` -> `c_uint` and `int` -> `ssize_t`)
+
+  /* 0 or more bytes written means everything went fine.  */            // C 11349
+  if n >= 0                                                             // C 11350
+    { return n; }                                                       // C 11351
+
+  /* Negative bytes written means we got an error in errno.             // C 11353
+     Translate the WSAEWOULDBLOCK alias EWOULDBLOCK to EAGAIN.  */      // C 11354
+  emacs_gnutls_transport_set_errno ((*process).gnutls_state,            // C 11355
+				    if *errno () == EWOULDBLOCK { EAGAIN } else { *errno () });     // C 11356 (C's two `errno` reads and its `?:`)
+
+  return -1;                                                            // C 11358
+}                                                                       // C 11359
+                                                                        // C 11360 (C's `#endif /* HAVE_GNUTLS */`)
+/* end of w32.c */                                                      // C 11362
