@@ -4356,3 +4356,93 @@ unsafe fn w32_executable_type (filename: *mut c_char, is_dos_app: *mut c_int,
   close_file_data (&raw mut executable);                        // C 2672
   return retval;                                                // C 2673
 }
+
+/* C 2676-2720: the environment pair `sys_spawnve` (C 2725, the next slice) calls - C 2676-2698's
+   `compare_env` comparator and C 2700-2720's `merge_and_sort_env`.  C's `<stdlib.h>`'s `qsort` is
+   the one C library entry the pair needs and the port's `stdlib.rs` mirror does not carry
+   (`src/buffer.rs` 129-134 declares the same row with C's own text; the comparator is C's
+   `__compar_fn_t`), so it stands at the use site.  `compare_env` keeps C's `static` (no
+   `no_mangle`: this file's rule for the C helpers) but takes the `extern "C"` ABI C's callback
+   needs, and `toupper` is the `ctype.rs` mirror's.  */
+
+/* C's `<stdlib.h>`: `void qsort (void *, size_t, size_t, __compar_fn_t);` - C 2717's call, whose
+   `compare_env` is the `Some (...)` below (`src/buffer.rs` 129-134's spelling).
+   */
+/// C: extern void qsort (void *__base, size_t __nmemb, size_t __size, __compar_fn_t __compar);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
+                compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
+}
+
+/// C 2676-2698: `static int compare_env (const void *strp1, const void *strp2)` - C 2679's two
+/// dereferences, C 2681's four-part loop test, C 2683-2688's `toupper` comparison pair and C
+/// 2689's two increments, then C 2692-2697's three-way answer on `=`.
+/// C: static int
+/// C: compare_env (const void *strp1, const void *strp2)
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" fn compare_env (strp1: *const c_void, strp2: *const c_void) -> c_int
+{
+  let mut str1: *const c_char = *(strp1 as *const *const c_char);
+  let mut str2: *const c_char = *(strp2 as *const *const c_char);    // C 2679
+
+  while *str1 != 0 && *str2 != 0                                    // C 2681
+        && *str1 != b'=' as c_char && *str2 != b'=' as c_char
+    {
+      /* Sort order in command.com/cmd.exe is based on uppercasing
+         names, so do the same here.  */
+      if toupper (*str1 as c_int) > toupper (*str2 as c_int)         // C 2685
+        { return 1; }                                                // C 2686
+      else if toupper (*str1 as c_int) < toupper (*str2 as c_int)    // C 2687
+        { return -1; }                                               // C 2688
+      str1 = str1.add (1);
+      str2 = str2.add (1);                                           // C 2689
+    }
+
+  if *str1 == b'=' as c_char && *str2 == b'=' as c_char              // C 2692
+    { return 0; }                                                    // C 2693
+  else if *str1 == b'=' as c_char                                    // C 2694
+    { return -1; }                                                   // C 2695
+  else
+    { return 1; }                                                    // C 2697
+}
+
+/// C 2700-2720: `static void merge_and_sort_env (char **envp1, char **envp2, char **new_envp)` -
+/// C 2706-2710's first copy loop and its count, C 2712-2715's second, C 2717's `qsort` (C's
+/// `sizeof (char *)` is the element size below) and C 2719's terminator.  C's `*nptr++ = *optr++`
+/// is the port's assignment plus the two advances (the same order), and the two element counts are
+/// C's own pointer differences.
+/// C: static void
+/// C: merge_and_sort_env (char **envp1, char **envp2, char **new_envp)
+#[cfg (feature = "windowsnt")]
+unsafe fn merge_and_sort_env (envp1: *mut *mut c_char, envp2: *mut *mut c_char,
+                              new_envp: *mut *mut c_char)
+{
+  let mut optr: *mut *mut c_char;                                    // C 2703
+  let mut nptr: *mut *mut c_char;
+  let mut num: c_int;                                                // C 2704
+
+  nptr = new_envp;                                                   // C 2706
+  optr = envp1;                                                      // C 2707
+  while !(*optr).is_null ()                                          // C 2708
+    {
+      *nptr = *optr;                                                 // C 2709
+      nptr = nptr.add (1);
+      optr = optr.add (1);
+    }
+  num = optr.offset_from (envp1) as c_int;                           // C 2710
+
+  optr = envp2;                                                      // C 2712
+  while !(*optr).is_null ()                                          // C 2713
+    {
+      *nptr = *optr;                                                 // C 2714
+      nptr = nptr.add (1);
+      optr = optr.add (1);
+    }
+  num += optr.offset_from (envp2) as c_int;                          // C 2715
+
+  qsort (new_envp as *mut c_void, num as usize,
+         core::mem::size_of::<*mut c_char> (), Some (compare_env));   // C 2717
+
+  *nptr = core::ptr::null_mut ();                                    // C 2719
+}

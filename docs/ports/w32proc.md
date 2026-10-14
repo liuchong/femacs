@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**4358 lines**, md5 `43b4a7b8163127b6a9b278d934e2b2a7`), carrying
-> **C 1-2674** - P-86 ④'s first thirteen slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**4448 lines**, md5 `e3a23f25ff2975579a4bafcccae6fc47`), carrying
+> **C 1-2720** - P-86 ④'s first fourteen slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -126,7 +126,8 @@ which `check-dead-file-coverage.py` requires):
 | 2270-2449 | `waitpid`: C's Posix comment, the single-pid arm, the any-child arm, the `do`/`while` (the port's `loop` + negated test, P-95), the five-way answer, `GetExitCodeProcess`, the `STILL_ACTIVE` punt and the exit-code massage | file gate (slice 11); `WNOHANG` and `STATUS_CONTROL_C_EXIT` stand at the use site (Deviations 54/55), C's two dead `FULL_DEBUG` arms are carried as C's text, and C's `retval <<= 8` is the port's own shift |
 | 2451-2528 | the memory-mapped-file helpers and the section lookup: C 2451-2481's `open_input_file`, C 2483-2509's `rva_to_section` (with C's linker comment and the `max!` pair), C 2511-2521's `close_file_data` and C 2523-2528's `#ifndef IMAGE_NT_OPTIONAL_HDR32_MAGIC` fallback carried as C's text | file gate (slice 12); the round's use-site `<windows.h>`/`<winbase.h>`/`<winnt.h>` block spells the file API and the four PE records (Deviations 57), `min!`/`max!` come from the `min-max.rs` mirror included under C 57's lisp.h line (Deviations 58), and the mirror `include/w32heap.rs`'s four declarations moved into a glob-imported module in the same round (Deviations 59) |
 | 2530-2674 | `w32_executable_type`: the ANSI-codepage note, the four defaults, the `.com`/`.bat`/`.cmd` extension test with its `COMSPEC` recursion, the DOS/NT header walk (the two records, the two "DOS program" answers, the 32-bit optional-header read, the `IMAGE_NT_OPTIONAL_HDR64_MAGIC` arm under its feature, and the import-directory walk with `RVA_TO_PTR` and the two DLL-name tests) and the `unwind` tail | file gate (slice 13); the round's use-site `<windows.h>`/`<winnt.h>` block spells the two records, `LOWORD` and the 64-bit pair (Deviations 60), the `#ifdef IMAGE_NT_OPTIONAL_HDR64_MAGIC` guard becomes `feature = "image_nt_optional_hdr64_magic"` (Deviations 61), C's `goto unwind` is `break 'unwind` (Deviations 48's device), and `RVA_TO_PTR` is written out at C 66-69 (Deviation 6 retired) |
-| 2676-4903 | **the remainder of the file** - `compare_env` (C 2676) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2676-2720 | `compare_env` and `merge_and_sort_env`: the environment pair `sys_spawnve` calls (C's `toupper` comparison, the two copy loops with their pointer-difference counts, and C 2717's `qsort`) | file gate (slice 14); `qsort` stands at the use site with C's own text (`src/buffer.rs` 129-134's row) and `compare_env` takes the `extern "C"` ABI the comparator needs while keeping C's `static` (Deviations 64/65) |
+| 2722-4903 | **the remainder of the file** - C 2722-2724's `sys_spawnve` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1083,3 +1084,35 @@ Drift 17.4% -> **11.2%**, inside the stem's 0.36 row.
     240 are unmeasured** (P-88 ①'s class): C 2585's `e_lfanew` offset and C 2603/2614's two
     optional-header casts are reads whose *layout* this machine cannot check, so a Windows/mingw
     clang probe is what closes them - the measurement Deviations 47/57/60 all owe.
+
+## Slice 14 (2026-10-14, status 4.293): C 2676-2720
+
+**What this round is.**  The environment pair `sys_spawnve` (C 2725, the next slice) calls:
+`compare_env`, C's `qsort` comparator (the four-part loop test, the `toupper` comparison and the
+three-way answer on `=`), and `merge_and_sort_env`, which copies both environment vectors into one
+and sorts the result.  Port: 4,358 -> **4448 lines** (+90).  The next row's first item is C
+2722-2724's `sys_spawnve` comment.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the baseline.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 4359 4448` -> `2
+capitalized identifiers, missing: ['Some']` - the prelude variant alone (the tool's documented
+false positive; `toupper`, `qsort` and `compare_env` all resolve).
+**Evidence ④ - the `--check` reading.**  **73 -> 71 `- missing` rows**: `missing function
+compare_env` and `missing function merge_and_sort_env`.  No new token rows; drift 11.2% ->
+**9.3%**, inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+64. **`qsort` stands at the use site** with C's own text and the port's `__compar_fn_t` spelling
+    (`Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>`); the `stdlib.rs`
+    mirror does not carry it, and `src/buffer.rs` 129-134 declares the same row the same way - so
+    the file follows that precedent rather than inventing a declaration.
+65. **`compare_env` is `unsafe extern "C" fn` with C's `static`** (no `no_mangle`, this file's rule
+    for the C helpers) - C's callback ABI is what `qsort`'s parameter needs, and C 2689's
+    `str1++, str2++` is the port's two advances after the comparison.  In `merge_and_sort_env`, C
+    2709/2714's `*nptr++ = *optr++` is the same order spelled out (assign, then advance both), and
+    C 2710/2715's `optr - envp1` counts are the port's `offset_from` on the same two pointers.
