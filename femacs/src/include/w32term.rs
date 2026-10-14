@@ -327,8 +327,9 @@ unsafe extern "C" {
   pub fn w32_implicitly_set_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
   pub fn w32_set_scroll_bar_default_width (f: *mut frame);
   pub fn w32_set_scroll_bar_default_height (f: *mut frame);
-  pub fn w32_term_init (display_name: Lisp_Object, resource_name: *mut c_char,
-                        resource_class: *mut c_char) -> *mut w32_display_info;
+  // C 243-244's `w32_term_init` is `src/w32term.c`'s own definition (the file's tail): it
+  // stands in `w32term_fn_decls` below (E0428, P-21 - the `w32term` slice 25 round measured it
+  // at this site once its definition landed).
   pub fn w32_defined_color (f: *mut frame, color_name: *const c_char,
                             color_def: *mut Emacs_Color, alloc: bool,
                             make_index: bool) -> bool;
@@ -1148,10 +1149,12 @@ unsafe extern "C" {
   pub fn w32_query_color (f: *mut frame, color: *mut Emacs_Color);
 }
 
-/// C 783: `extern void w32_delete_display (struct w32_display_info *dpyinfo);`
+/// C 783: `extern void w32_delete_display (struct w32_display_info *dpyinfo);` - a name
+/// `src/w32term.c` itself defines, so it stands in `w32term_fn_decls` below (E0428, P-21 - the
+/// `w32term` slice 25 round measured it at this site once its definition landed).
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn w32_delete_display (dpyinfo: *mut w32_display_info);
+  // C 783's `w32_delete_display` is above (E0428, P-21).
 }
 
 /// C 782: `#define FILE_NOTIFICATIONS_SIZE 16384`
@@ -1496,6 +1499,11 @@ pub mod w32term_fn_decls {
     pub fn initialize_w32_display (terminal: *mut terminal, width: *mut c_int,
 				   height: *mut c_int);
     pub fn w32_image_rotations_p () -> bool;
+    /// C 243-244: `extern struct w32_display_info *w32_term_init (Lisp_Object, char *, char *);`
+    pub fn w32_term_init (display_name: Lisp_Object, resource_name: *mut c_char,
+			  resource_class: *mut c_char) -> *mut w32_display_info;
+    /// C 783: `extern void w32_delete_display (struct w32_display_info *dpyinfo);`
+    pub fn w32_delete_display (dpyinfo: *mut w32_display_info);
   }
 
   unsafe extern "C" {

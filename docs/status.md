@@ -20353,3 +20353,13 @@
   ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `7954-8043`（本片）+ `8044-8414`（余项）；台账追加 **`### Slice 24 (C 7954-8043)`**。
   ⑧ 预算与清理：`build-tu` 1 发、臂读数 5 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w24`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.329 `src/w32term.c` 第 25 片（w32term lane，slice 25）：C 8044-8138 落地——终端初始化与显示销毁：**`w32_term_init`**（C 8044-8112）与 `w32_delete_display`（C 8115-8136），两者都非 `static`，故 `#[unsafe(no_mangle)]` + C ABI；w32term.rs 11,536 → 11,700 行（+164，2026-10-15）**：
+  ① **两条 `missing function` 退掉**（5 → **3**）：余下 `w32_init_main_thread`（C 8141）、`w32_initialize`（C 8154）与 `syms_of_w32term`（C 8273），外加 `LOAD_PROC` 宏行。
+  ② **开出一笔欠账调用**：C 8055 调用 `w32_initialize`（C 里 `static`，定义在下一片 C 8154）；Rust 无需前置声明，故调用就地保留、由下一片解除（`w32_wm_set_size_hint` 同款）。
+  ③ **两条镜像原型移入 `w32term_fn_decls`**（E0428，P-21——slice 21 移九个、slice 22 移一个的同款操作）：w32term.h 243-244 的 `w32_term_init` 与 w32term.h 783 的 `w32_delete_display`，二者都是 `src/w32term.c` 自己的定义。镜像台账已记。
+  ④ 本片读到的 SDK 面（P-88 ①，UNVERIFIED）：`GetDesktopWindow`、`GetDeviceCaps`（`src/w32fns.rs` 7094 那一行），以及 wingdi.h 的六个设备能力索引 `PLANES` 2、`BITSPIXEL` 12、`LOGPIXELSX` 88、`LOGPIXELSY` 90、`RASTERCAPS` 38、`RC_PALETTE` 0x0100（其中两个与 `src/w32image.rs` 467、`src/w32fns.rs` 16311 的记录值一致）。另有四个任何镜像都不带的入口：`xlispstrdup`（lisp.h 5553）、`add_keyboard_wait_descriptor`（lisp.h 5194）、`gui_init_fringe`（dispextern.h 3708）、`w32_reset_fringes`（dispextern.h 3714）。
+  ⑤ C 8090-8098 的 `#ifdef WINDOWSNT` / `#elif CYGWIN` 对写成两个 feature 臂（`windowsnt`，以及 `not (windowsnt)` + `cygwin`），frozen 目标走第一条；C 8067 的三目写作端口的 `if` 表达式，C 8078-8079 的 `double` 字段按 C 自己的 `int` 转换，C 8084-8088 的调色板块保持 C 自己的作用域。
+  ⑥ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数（base）20 条、0 条落在本片**；`have_ntgui` + `windowsnt` 臂仍 **78 条**，无一提到本片的名字。**机械名字扫描**（臂读数在 crate 有早期解析错误时对*值*名是盲的，4.320 ④）：本片的调用/宏/常量名对 `build/probes/w32term/*.rs` 与单元的全部声明取差集——唯一残留是上面点名的那笔欠账 `w32_initialize`（其余为 Rust 关键字与 `as_ptr`/`is_null`/`null`/`null_mut` 方法名）。`extract-abi.py --check` `missing function` 5 → **3**，行数行 **39.1%**（11,700 : 8,414）。
+  ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `8044-8138`（本片）+ `8139-8414`（余项）；台账追加 **`### Slice 25 (C 8044-8138)`**。
+  ⑧ 预算与清理：`build-tu` 1 发、臂读数 8 发（含 3 次探针插桩实验，均已回滚）、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w25`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

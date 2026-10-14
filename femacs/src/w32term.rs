@@ -11534,3 +11534,167 @@ unsafe extern "C" fn w32_delete_terminal (terminal: *mut terminal)
   w32_delete_display (dpyinfo);                                         // C 8040
   unblock_input ();                                                     // C 8041
 }
+
+/* C 8044-8141's section: `w32_term_init` and `w32_delete_display`.  C 8113's form feed and
+   C 8114's note are carried as C's own text at their positions.  */
+/* C: /* Get rid of display DPYINFO, assuming all frames are already gone.  */  */
+
+/* The SDK surface this slice reads (P-88 (1)), UNVERIFIED: `GetDesktopWindow` and
+   `GetDeviceCaps` (the `src/w32fns.rs` 7094 row), and wingdi.h's six device-capability indexes
+   C 8076-8080 asks for.  Their values are wingdi.h's own (`BITSPIXEL` 12 agrees with
+   `src/w32image.rs` 467's row, `LOGPIXELSY` 90 with `src/w32fns.rs` 16311's).  */
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  /// C 8075: `dpyinfo->root_window = GetDesktopWindow ();`
+  /// C: HWND WINAPI GetDesktopWindow (void);
+  pub fn GetDesktopWindow () -> HWND;
+  /// C 8076-8080: the five `GetDeviceCaps` reads below.
+  /// C: int WINAPI GetDeviceCaps (HDC hdc, int nIndex);
+  pub fn GetDeviceCaps (hdc: HDC, nIndex: c_int) -> c_int;
+}
+#[cfg (feature = "have_ntgui")]
+pub const PLANES: c_int = 2;
+#[cfg (feature = "have_ntgui")]
+pub const BITSPIXEL: c_int = 12;
+#[cfg (feature = "have_ntgui")]
+pub const LOGPIXELSX: c_int = 88;
+#[cfg (feature = "have_ntgui")]
+pub const LOGPIXELSY: c_int = 90;
+#[cfg (feature = "have_ntgui")]
+pub const RASTERCAPS: c_int = 38;
+#[cfg (feature = "have_ntgui")]
+pub const RC_PALETTE: c_int = 0x0100;
+
+/* Four more entries this slice calls and no mirror carries - `xlispstrdup` (lisp.h 5553, the
+   `src/pgtkfns.rs` 622 row), `add_keyboard_wait_descriptor` (lisp.h 5194), and two whose
+   prototypes are dispextern.h 3708's `gui_init_fringe` and dispextern.h 3714's
+   `w32_reset_fringes` (`src/w32fns.rs` 9849 and `src/fringe.rs` 2503 are their definitions).  */
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+  pub fn add_keyboard_wait_descriptor (fd: c_int);
+  pub fn gui_init_fringe (rif: *mut c_void);
+  pub fn w32_reset_fringes ();
+}
+
+/// C 8044-8112: `struct w32_display_info *w32_term_init (Lisp_Object display_name, char
+/// *xrm_option, char *resource_name)` - non-`static` (w32term.h 243-244 declares it), so
+/// `#[unsafe(no_mangle)]` with the C ABI.  C 8067's ternary is the port's `if` expression,
+/// C 8078-8079's `double` fields take C's own conversion of the `int` result, and C 8084-8088's
+/// palette block is C's own scope (a `struct Emacs_Color` local the two `w32_defined_color`
+/// calls share).  C 8094/8097's `add_keyboard_wait_descriptor` sits in C 8090-8098's
+/// `WINDOWSNT`/`CYGWIN` pair, whose two arms are the `windowsnt`/`cygwin` features (P-51) and the
+/// frozen target's `WINDOWSNT` arm is the live one.
+/// C: struct w32_display_info *
+/// C: w32_term_init (Lisp_Object display_name, char *xrm_option, char *resource_name)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_term_init (display_name: Lisp_Object, xrm_option: *mut c_char,
+					resource_name: *mut c_char)
+  -> *mut w32_display_info
+{
+  let mut dpyinfo: *mut w32_display_info;                              // C 8047
+  let terminal: *mut terminal;                                         // C 8048
+  let hdc: HDC;                                                        // C 8049
+
+  block_input ();                                                       // C 8051
+
+  if w32_initialized == 0                                                // C 8053
+    {
+      w32_initialize ();                                                // C 8055
+      w32_initialized = 1;                                              // C 8056
+    }
+
+  w32_initialize_display_info (display_name);                           // C 8059
+
+  dpyinfo = &raw mut one_w32_display_info;                              // C 8061
+  terminal = w32_create_terminal (dpyinfo);                             // C 8062
+
+  /* Set the name of the terminal. */
+  (*terminal).name = xlispstrdup (display_name);                        // C 8065
+
+  (*dpyinfo).rdb = if xrm_option.is_null () { core::ptr::null () }
+		   else { w32_make_rdb (xrm_option) as *const c_char };   // C 8067
+
+  /* Put this display on the chain.  */
+  (*dpyinfo).next = x_display_list;                                     // C 8070
+  x_display_list = dpyinfo;                                             // C 8071
+
+  hdc = GetDC (core::ptr::null_mut ());                                 // C 8073
+
+  (*dpyinfo).root_window = GetDesktopWindow ();                         // C 8075
+  (*dpyinfo).n_planes = GetDeviceCaps (hdc, PLANES);                    // C 8076
+  (*dpyinfo).n_cbits = GetDeviceCaps (hdc, BITSPIXEL);                  // C 8077
+  (*dpyinfo).resx = GetDeviceCaps (hdc, LOGPIXELSX) as f64;             // C 8078
+  (*dpyinfo).resy = GetDeviceCaps (hdc, LOGPIXELSY) as f64;             // C 8079
+  (*dpyinfo).has_palette = GetDeviceCaps (hdc, RASTERCAPS) & RC_PALETTE;   // C 8080
+  ReleaseDC (core::ptr::null_mut (), hdc);                              // C 8081
+
+  /* initialize palette with white and black */
+  {
+    let mut color: Emacs_Color;                                        // C 8085
+    w32_defined_color (core::ptr::null_mut (), c"white".as_ptr (), &raw mut color,
+		       true, false);                                   // C 8086
+    w32_defined_color (core::ptr::null_mut (), c"black".as_ptr (), &raw mut color,
+		       true, false);                                   // C 8087
+  }
+
+  /* C 8090-8098: `#ifdef WINDOWSNT` / `#elif CYGWIN` - the two arms the `windowsnt` and
+     `cygwin` features carry (P-51); the frozen target takes the first.  C 8091-8093's note and
+     C 8096's are carried below.  */
+  /* C: /* Add the default keyboard.  When !WINDOWSNT, we're using the
+     C:    standard Emacs console handling machinery and don't need an
+     C:    explicit FD here.  */  */
+  #[cfg (feature = "windowsnt")]
+  { add_keyboard_wait_descriptor (0); }                                // C 8094
+  /* C 8096's note, carried as C's own text at its position.  */
+  /* C: /* /dev/windows wakes us up when we have a thread message pending.  */  */
+  #[cfg (all (not (feature = "windowsnt"), feature = "cygwin"))]
+  { add_keyboard_wait_descriptor (w32_message_fd); }                   // C 8097
+
+  /* C 8100-8106's note, carried as C's own text at its position.  */
+  /* C: /* Create Fringe Bitmaps and store them for later use.
+
+     C:    On W32, bitmaps are all unsigned short, as Windows requires
+     C:    bitmap data to be Word aligned.  For some reason they are
+     C:    horizontally reflected compared to how they appear on X, so we
+     C:    need to bitswap and convert to unsigned shorts before creating
+     C:    the bitmaps.  */  */
+  gui_init_fringe ((*terminal).rif);                                   // C 8107
+
+  unblock_input ();                                                    // C 8109
+
+  dpyinfo                                                              // C 8111
+}
+
+/// C 8115-8136: `void w32_delete_display (struct w32_display_info *dpyinfo)` - non-`static`
+/// (w32term.h 783 declares it), so `#[unsafe(no_mangle)]` with the C ABI.  C 8118-8119's two
+/// notes are carried below; C 8120-8133's block is C's own scope (a `w32_palette_entry` walk
+/// with an inner `pentry`), and C 8131's `if (dpyinfo->palette)` is C's truthiness written out
+/// (PORTING.md 1.5).
+/// C: void
+/// C: w32_delete_display (struct w32_display_info *dpyinfo)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_delete_display (dpyinfo: *mut w32_display_info)
+{
+  /* C 8118-8119's two notes, carried as C's own text at their positions.  */
+  /* C: /* FIXME: the only display info apparently can't be deleted.  */
+     C:    /* free palette table */  */
+  {
+    let mut plist: *mut w32_palette_entry;                             // C 8121
+
+    plist = (*dpyinfo).color_list;                                     // C 8123
+    while !plist.is_null ()                                            // C 8124
+      {
+	let pentry: *mut w32_palette_entry = plist;                    // C 8126
+	plist = (*plist).next;                                         // C 8127
+	xfree (pentry as *mut c_void);                                 // C 8128
+      }
+    (*dpyinfo).color_list = core::ptr::null_mut ();                    // C 8130
+    if !(*dpyinfo).palette.is_null ()                                  // C 8131
+      { DeleteObject ((*dpyinfo).palette); }                           // C 8132
+  }
+
+  w32_reset_fringes ();                                                // C 8135
+}

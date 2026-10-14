@@ -571,3 +571,22 @@ module.  This is the same move slice 21 made for the nine names that were about 
 **Evidence.**  The probe row above - **20 errors, 0 anchored in the unit's text**, the lane's
 baseline, so the move added no collision; `python3 tools/check-mirror-dupes.py` ->
 0 failure(s).  The unit-side readings are `docs/ports/w32term.md`'s `### Slice 22 (C 7736-7864)`.
+
+## `w32_term_init` and `w32_delete_display` move into `w32term_fn_decls` (2026-10-15, w32term slice 25)
+
+**The measurement.**  `src/w32term.c` 8044 and 8115 define `w32_term_init` and
+`w32_delete_display`, and this mirror declared both at the crate root (C 243-244's
+`extern struct w32_display_info *w32_term_init (Lisp_Object, char *, char *);` and C 783's
+`extern void w32_delete_display (struct w32_display_info *dpyinfo);`), so the reading would have
+carried two `E0428`s - the class slice 21 closed nine of and slice 22 one of.
+
+**The move.**  Both prototypes now stand in `w32term_fn_decls`, the glob-imported module a local
+definition shadows (P-21/P-39); the two crate-root sites keep C's own text and a note naming the
+module.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w25/y.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **20 errors, 0 anchored
+in the unit's text** (the lane's baseline), and the `have_ntgui` + `windowsnt` arm stays at **78**;
+`python3 tools/check-mirror-dupes.py` and `tools/check-declarations.py` -> 0 failure(s) each.  The
+unit-side readings are `docs/ports/w32term.md`'s `### Slice 25 (C 8044-8138)`.
