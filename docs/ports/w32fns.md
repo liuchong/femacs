@@ -232,7 +232,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10429-10633 | C 10429's `last_tray_notification_id`, C 10433-10605's `add_tray_notification` (the four `cbSize` versions, the icon load, the tip/message/title conversions and the `NIM_ADD` call) and C 10612-10633's `delete_tray_notification` - slice 27 | file gate + `windowsnt` + `not (feature = "have_dbus")` |
 | 10635-10833 | C 10635-10763's `w32-notification-notify`, C 10765-10779's `w32-notification-close` (with the tray block's `#endif` at C 10781) and C 10783-10833's two IME `DEFUN`s - slice 28 | the tray pair: file gate + `windowsnt` + `not (feature = "have_dbus")`; the IME pair: file gate |
 | 10836-10957 | C 10837-10839's registry banner, C 10840-10900's `w32-read-registry` (with C 10902's `#endif`) and C 10904-10956's `w32_get_resource` - slice 29; the three `HKEY_*` constants and `RegQueryValueEx` join the C 890-932 block above | the DEFUN: file gate + `windowsnt`; `w32_get_resource`: file gate |
-| 10958-12488 | **the remainder of the file** (C 10958's `#ifdef WINDOWSNT` onward: `w32-set-wallpaper`, `w32-system-idle-time`, the badge/taskbar group, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 10958-11041 | C 10960-10962's wallpaper banner, C 10964-10965's `SystemParametersInfoW_Proc` with C 10967-11015's `w32-set-wallpaper`, and C 11017-11019's `GetLastInputInfo_Proc` with C 11021-11039's `w32-system-idle-time` - slice 30 | file gate + `windowsnt` |
+| 11044-12488 | **the remainder of the file** (C 11044's `#ifdef WINDOWSNT` onward: the badge/taskbar trio, the sleep-block group, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -3128,6 +3129,67 @@ inside the file's `w32fns 0.35 total` tolerance row.
   arm reading is compile-level (42 errors, none from this slice), and the name reading is the
   sweep's.  The Cygwin GUI arm was not compiled here at all - the mirror move above is a reading of
   the *text*, not of that arm.
+
+## Slice 30 (C 10958-11041)
+
+**Scope and the stop.**  C 10958's `#ifdef WINDOWSNT` with C 10960-10962's wallpaper banner and
+`w32-set-wallpaper` (C 10964-11015), then the idle-time pair - C 11017's comment, C 11018-11019's
+pointer and `w32-system-idle-time` (C 11021-11039) - closed by C 11041's `#endif`.  The stop is
+C 11044's `#ifdef WINDOWSNT`, which opens the badge/taskbar section.  Both items carry
+`all (feature = "have_ntgui", feature = "windowsnt")`.
+
+**What the item carries.**  `w32-set-wallpaper` is C 10971-10974's four locals, C 10976-10979's
+comment, C 10980-10989's `w32_unicode_filenames` + `system_parameters_info_w_fn` arm (the `wchar_t`
+buffer, `filename_to_utf16`'s failure setting `ERROR_FILE_NOT_FOUND`, C 10987-10988's explicit
+`SystemParametersInfoW` call), C 10990-10999's ANSI arm, and C 11000-11012's three-way report
+(`error` over `fname`, then `w32_strerror (GetLastError ())` or the wrong-image-type message).
+`w32-system-idle-time` is C 11028-11029's `LASTINPUTINFO` with C's `sizeof info`, C 11031's pointer
+test and call, C 11033's `GetTickCount () - info.dwTime` and C 11034-11038's two returns.
+
+**New surface.**  `SystemParametersInfoW_Proc` and `GetLastInputInfo_Proc` with their two file-scope
+pointers, `SystemParametersInfoW`/`SystemParametersInfoA` (the alias `SystemParametersInfo` is
+declared in the C 1997 block above), `GetLastInputInfo`, `GetTickCount`, `LASTINPUTINFO` with
+`PLASTINPUTINFO` (C 11028's record), and the two constants `SPI_SETDESKWALLPAPER` (0x0014) and
+`SPIF_SENDCHANGE` (0x2), all corroborated against the Windows metadata projection.
+
+### Evidence (slice 30, the final revision: 16,294 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  One run: **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  One run: **42 previous errors** - the standing
+count (15 `E0428`, 1 `E0530`, 25 `E0609`, plus the one deliberately-failing frame-flag probe) - so
+this slice's 157 lines add no error and no member gap, and **no diagnostic sits at or beyond
+`src/w32fns.rs` 16,092**.
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 16,092-16,248: 33 capitalized
+identifiers, missing `Clone`/`Copy` (the new record's derive arguments) and the two `Sw32_*`
+(`DEFUN!`'s macro-generated statics) - the documented non-item classes; no unresolved value.
+
+**④ `extract-abi.py --check`.**  **81 → 77** rows: `missing subr Fw32_set_wallpaper` and
+`missing subr Fw32_system_idle_time`, plus the two `missing file-scope object` rows
+(`system_parameters_info_w_fn`, `get_last_input_info_fn`), retire; one token row appeared
+(`subr Fw32_set_wallpaper does not mention false` - C 10973's `BOOL result = false;` keeps C's
+`BOOL`, so the port writes `0`) and one `macro-body-notes.tsv` row records it.  No
+`line count drifted` row: 16,294 Rust lines against 12,488 C lines (30.5%), inside the file's
+`w32fns 0.35 total` tolerance row.
+
+**⑤ The range table and the dead-file gate.**  The `10958-12488` remainder row splits into
+`10958-11041` (this slice) and `11044-12488` (the remainder); `check-dead-file-coverage.py` reads
+**180 range row(s) cover src/w32fns.c (12488 lines; 130 blank line(s) between blocks need no row)**.
+
+### Deviations (slice 30)
+
+- **C's `false` on a `BOOL` is `0`** (C 10973), recorded in a notes row (the `Fw32_frame_edges` class).
+- **C's `GetTickCount () - info.dwTime` keeps its wrap** as `wrapping_sub` (`src/android.rs` 5352's
+  reading of C's unsigned arithmetic), because the subtraction is a DWORD difference that C wraps.
+- **The `EMACS_INT_MAX` guard widens the DWORD first** (`time_since_last_input as EMACS_INT >
+  EMACS_INT_MAX`), which is C's own promotion; on this target the guard is never true.
+- **C's banner is a wrapper comment** (the C 8116-8118 device), and C 11041's `#endif` has no item.
+- **The two hand-loaded pointers are file-scope statics here**; `globals_of_w32fns` (C 12460-12475)
+  is what loads them, which is still unported.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no wallpaper is set and no
+  idle time is read; the arm reading is compile-level (42 errors, none from this slice) and the name
+  reading is the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

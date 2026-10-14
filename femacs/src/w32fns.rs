@@ -16089,7 +16089,164 @@ pub unsafe extern "C" fn w32_get_resource (key: *const c_char, name: *const c_ch
   return core::ptr::null_mut ();
 }
 
-/* C 10958-12488's text is not in the port yet (the file's remainder), but C 10112's
+/// C 10964-10965 and C 11018-11019: the two loads-by-hand pointers this section carries, and
+/// C 10987-10988/10997-10998's explicit `SystemParametersInfoW`/`A` pair (the alias
+/// `SystemParametersInfo` is declared in the C 1997 block above), `SPI_SETDESKWALLPAPER` and
+/// `SPIF_SENDCHANGE`, `GetTickCount` and C 11028's `LASTINPUTINFO` with its pointer type.
+/// C: typedef BOOL (WINAPI * SystemParametersInfoW_Proc) (UINT,UINT,PVOID,UINT);
+/// C: typedef BOOL (WINAPI *GetLastInputInfo_Proc) (PLASTINPUTINFO);
+/// C: typedef struct tagLASTINPUTINFO { UINT cbSize; DWORD dwTime; } LASTINPUTINFO, *PLASTINPUTINFO;
+/// C: BOOL WINAPI SystemParametersInfoW (UINT uiAction, UINT uiParam, PVOID pvParam, UINT fWinIni);
+/// C: BOOL WINAPI SystemParametersInfoA (UINT uiAction, UINT uiParam, PVOID pvParam, UINT fWinIni);
+/// C: BOOL WINAPI GetLastInputInfo (PLASTINPUTINFO plii);
+/// C: DWORD WINAPI GetTickCount (void);
+/// C: #define SPI_SETDESKWALLPAPER 0x0014 / #define SPIF_SENDCHANGE 0x2
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type SystemParametersInfoW_Proc
+  = Option<unsafe extern "system" fn (arg0: UINT, arg1: UINT, arg2: *mut c_void,
+				      arg3: UINT) -> BOOL>;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type GetLastInputInfo_Proc
+  = Option<unsafe extern "system" fn (arg0: PLASTINPUTINFO) -> BOOL>;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type PLASTINPUTINFO = *mut LASTINPUTINFO;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct LASTINPUTINFO
+{
+  pub cbSize: UINT,
+  pub dwTime: DWORD,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const SPI_SETDESKWALLPAPER: UINT = 0x0014;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const SPIF_SENDCHANGE: UINT = 0x2;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "system" {
+  pub fn SystemParametersInfoW (uiAction: UINT, uiParam: UINT, pvParam: *mut c_void,
+				fWinIni: UINT) -> BOOL;
+  pub fn SystemParametersInfoA (uiAction: UINT, uiParam: UINT, pvParam: *mut c_void,
+				fWinIni: UINT) -> BOOL;
+  pub fn GetLastInputInfo (plii: PLASTINPUTINFO) -> BOOL;
+  pub fn GetTickCount () -> DWORD;
+}
+
+/// C 10965: `static SystemParametersInfoW_Proc system_parameters_info_w_fn = NULL;` - C's file-scope
+/// pointer, which `globals_of_w32fns` loads (C 12460-12475).
+/// C: static SystemParametersInfoW_Proc system_parameters_info_w_fn = NULL;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut system_parameters_info_w_fn: SystemParametersInfoW_Proc = None;
+
+/* C 10960-10962: the section's banner, carried as C's own text (the C 8116-8118 wrapper device).  */
+
+/*
+/***********************************************************************
+\t\t\t    Wallpaper
+ ***********************************************************************/
+*/
+
+/// C 10967-11015: `w32-set-wallpaper` - C 10971-10974's four locals, C 10976-10979's comment,
+/// C 10980-10989's `w32_unicode_filenames` + `system_parameters_info_w_fn` arm (the `wchar_t` buffer,
+/// `filename_to_utf16`'s failure setting `ERROR_FILE_NOT_FOUND`, C 10987-10988's
+/// `SystemParametersInfoW` call) and C 10990-10999's ANSI arm, then C 11000-11012's three-way error
+/// report (`error` over `fname`, `w32_strerror (err)` for the other two).
+/// C: DEFUN ("w32-set-wallpaper", Fw32_set_wallpaper, Sw32_set_wallpaper, 1, 1, 0,
+/// C:        doc: /* Set the desktop wallpaper image to IMAGE-FILE.  */)
+/// C:   (Lisp_Object image_file)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-set-wallpaper", Fw32_set_wallpaper, Sw32_set_wallpaper, 1, 1, 0,
+	doc: "Set the desktop wallpaper image to IMAGE-FILE.",
+	(image_file: Lisp_Object),
+	{
+  let encoded: Lisp_Object = ENCODE_FILE (Fexpand_file_name (image_file, Qnil ()));
+  let fname: *mut c_char = SSDATA (encoded) as *mut c_char;
+  let mut result: BOOL = 0;
+  let mut err: DWORD = 0;
+
+  /* UNICOWS.DLL seems to have SystemParametersInfoW, but it doesn't
+     seem to be worth the hassle to support that on Windows 9X for the
+     benefit of this minor feature.  Let them use on Windows 9X only
+     image file names that can be encoded by the system codepage.  */
+  if w32_unicode_filenames && system_parameters_info_w_fn.is_some ()
+    {
+      let mut fname_w: [c_ushort; MAX_PATH as usize] = [0; MAX_PATH as usize];
+
+      if filename_to_utf16 (fname, fname_w.as_mut_ptr ()) != 0
+	{ err = ERROR_FILE_NOT_FOUND as DWORD; }
+      else
+	{ result = SystemParametersInfoW (SPI_SETDESKWALLPAPER, 0,
+					  fname_w.as_mut_ptr () as *mut c_void,
+					  SPIF_SENDCHANGE); }
+    }
+  else
+    {
+      let mut fname_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];
+
+      if filename_to_ansi (fname, fname_a.as_mut_ptr ()) != 0
+	{ err = ERROR_FILE_NOT_FOUND as DWORD; }
+      else
+	{ result = SystemParametersInfoA (SPI_SETDESKWALLPAPER, 0,
+					  fname_a.as_mut_ptr () as *mut c_void,
+					  SPIF_SENDCHANGE); }
+    }
+  if result == 0
+    {
+      if err == ERROR_FILE_NOT_FOUND as DWORD
+	{ error (c"Wallpaper file %s does not exist or cannot be accessed".as_ptr (), fname); }
+      else
+	{
+	  err = GetLastError ();
+	  if err != 0
+	    { error (c"Could not set desktop wallpaper: %s".as_ptr (),
+		     w32_strerror (err as c_int)); }
+	  else
+	    { error (c"Could not set desktop wallpaper (wrong image type?)".as_ptr ()); }
+	}
+    }
+
+  return Qnil ();
+});
+
+/// C 11017-11019: C's one-line comment and the second load-by-hand pointer.
+/// C: /* Return time in milliseconds since the last input event.  */
+/// C: static GetLastInputInfo_Proc get_last_input_info_fn = NULL;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut get_last_input_info_fn: GetLastInputInfo_Proc = None;
+
+/// C 11021-11039: `w32-system-idle-time` - C 11028-11029's `LASTINPUTINFO` with C's `sizeof info`,
+/// C 11031's pointer test and call, C 11033's `GetTickCount () - info.dwTime` (C's DWORD
+/// subtraction, which wraps - the port keeps that with `wrapping_sub`), C 11034-11035's
+/// `EMACS_INT_MAX` guard over the widened value and C 11036/11038's two returns.
+/// C: DEFUN ("w32-system-idle-time", Fw32_system_idle_time, Sw32_system_idle_time,
+/// C:        0, 0, 0,
+/// C:        doc: /* Return the time in milliseconds since last system-wide input event. … */)
+/// C:   (void)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-system-idle-time", Fw32_system_idle_time, Sw32_system_idle_time,
+	0, 0, 0,
+	doc: "Return the time in milliseconds since last system-wide input event.\n\nReturn -1 if the required system API is not available or fails.",
+	(),
+	{
+  let mut info: LASTINPUTINFO = core::mem::zeroed ();
+  info.cbSize = core::mem::size_of_val (&info) as UINT;
+
+  if get_last_input_info_fn.is_some ()
+      && (get_last_input_info_fn.unwrap ()) (&raw mut info) != 0
+    {
+      let time_since_last_input: DWORD
+	= GetTickCount ().wrapping_sub (info.dwTime);
+      if time_since_last_input as EMACS_INT > EMACS_INT_MAX
+	{ return Vmost_positive_fixnum; }
+      return make_fixnum (time_since_last_input as EMACS_INT);
+    }
+  return make_fixnum (-1);
+});
+
+/* C 11041's `#endif` closes the wallpaper/idle-time `#ifdef WINDOWSNT`; C's line itself has no
+   counterpart beyond the end of the two two-condition items above (PORTING.md 0.1-4).  */
+
+/* C 11044-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C
