@@ -314,3 +314,43 @@ entry point is `gtk/gtkshow.h`'s rather than `gtk/gtkutils.h`'s).  `check-mirror
 `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`.  The consumer's
 ledger records the trio (`docs/ports/pgtkfns.md` Deviations 78-81 and the thirteenth slice's
 section).
+
+### status 4.333 (the gtkutil third-slice round this file took part in)
+
+`src/gtkutil.c`'s "Dialog functions" (C 2282-2561) is the round's consumer, and P-90 (2) puts its
+names here rather than inline in the unit: **seventeen entry points** -
+`gtk_widget_unmap`, `gtk_widget_set_sensitive`, `gtk_widget_set_halign`,
+`gtk_widget_set_valign`, `gtk_builder_new`, `gtk_buildable_get_internal_child`,
+`gtk_dialog_get_action_area`, `gtk_dialog_get_content_area`, `gtk_misc_set_alignment`,
+`gtk_button_new_with_label`, `gtk_window_set_modal`, `gtk_box_set_spacing`, `gtk_true`,
+`g_main_loop_new`, `g_main_loop_run`, `g_main_loop_quit` and `g_main_loop_unref` - each with its
+header in the `/// C:` citation, four of them inside `#[cfg (feature = "gtk_check_version_ge_3_14")]`
+/ `not (…)` arms because that is where their C call sites are; **five records** (`GtkDialog`,
+`GtkBuilder`, `GtkBuildable`, `GtkMisc` - opaque, `_private: [u8; 0]`, the `GtkBox` shape - and
+GLib's `GMainLoop`); **three checked-cast wrappers** (`GTK_DIALOG`, `GTK_MISC`, `GTK_BUILDABLE`);
+**`GtkAlign`** with `GTK_ALIGN_START`/`GTK_ALIGN_CENTER` (placeholders: no GTK header on this
+machine, `## Owed` 6); and **`GTK_RESPONSE_CANCEL`** (a placeholder too, -6 with that number named
+in the comment as this tree's stand-in rather than GTK's).  `gtk_misc_set_alignment`'s two
+parameters are Rust's `f32`: GLib's `gfloat` is `typedef float gfloat` and this mirror has no
+`gfloat` alias, so the spelling carries the note.
+
+**The unit's own edge.**  C 44's chain also needed `"gtkutil.h"` 27's
+`#include "../lwlib/lwlib-widget.h"` (the `widget_value` record every function in the section
+takes): `src/gtkutil.rs` now carries `include!("../lwlib/include/lwlib-widget.rs")` at that
+position (the `src/pgtkmenu.rs` 95 device), and `check-mirror-dupes.py` stays green because the
+record has exactly one mirror.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> 0 failures; P-87 (1)'s consumer sweep ->
+`checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object (every item behind `use_gtk`), and
+`src/gtkutil.rs`'s own probe reads 29 errors with none anchored in the third slice's text.  The
+consumer's ledger records the reading (`docs/ports/gtkutil.md`'s slice-3 section and Owed 17).
+
+**One name moved in and two unit copies out.**  `gtk_dialog_get_content_area` was declared by
+`src/pgtkterm.rs` (its C 7048 call) and by `src/xwidget.rs` (C 2693), and by neither's mirror,
+because `tools/check-mirror-dupes.py` counts a *unit-vs-mirror* collision: adding the row here
+before the copies left meant two findings with no ratchet row.  P-90 (1) ("one surface, one
+mirror") decides the direction, so the row stands in this mirror and both unit copies are deleted
+in the same commit (each site keeps a comment naming the mirror and the edge that resolves it);
+`python3 tools/check-mirror-dupes.py` reads `16 duplicate declaration(s), 16 ratchet row(s),
+0 failure(s)` and `tools/check-all-units.sh` still reads `checked 83 unit(s), 0 failure(s)`.

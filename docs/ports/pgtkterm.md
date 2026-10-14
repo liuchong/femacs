@@ -4600,3 +4600,14 @@ tree and no PGTK target, no surface was created and no frame was exported, and t
 **compile** readings of text this machine cannot build (the `GDK_*` values are placeholders and every
 record offset stays UNVERIFIED).  What "the file is complete" is worth is that statement and no more:
 a text reading, with `--check` OK.
+
+## The `gtk_dialog_get_content_area` copy leaves for the mirror (2026-10-15, status 4.333)
+
+This unit declared `gtk_dialog_get_content_area` (its C 7048 call) at a use site, with a comment
+explaining that `femacs/src/include/gtk.rs` could not own the row while `src/xwidget.rs` declared
+its own copy - `tools/check-mirror-dupes.py` counts a unit-versus-mirror collision.
+`src/gtkutil.rs`'s third slice needed the same name, which made the pair a triple, and P-90 (1)
+("one surface, one mirror") decided the direction: the row now stands in the mirror and this
+unit's copy is gone, its comment recording where the name resolves from (this unit's own
+`include/gtk.rs` edge).  `tools/check-mirror-dupes.py` reads 16 ratchet rows and 0 failures;
+`tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)`.

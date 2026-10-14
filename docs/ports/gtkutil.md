@@ -187,7 +187,8 @@
 | 2109-2138 | the comment (C 2110-2114) and `xg_set_background_color` (C 2117-2138; C 2124's `#ifdef USE_TOOLKIT_SCROLL_BARS`) | file gate; `use_toolkit_scroll_bars` (unregistered) |
 | 2139-2277 | the seven frame-parameter setters: `xg_set_undecorated` (C 2143-2156, C 2145's `#ifdef HAVE_PGTK`), `xg_frame_restack` (C 2162-2182, C 2175's pair), `xg_set_skip_taskbar` (C 2187-2202, C 2190's pair), `xg_set_no_focus_on_map` (C 2207-2222, C 2209's `#ifdef HAVE_PGTK`), `xg_set_no_accept_focus` (C 2226-2244, C 2229's), `xg_set_override_redirect` (C 2247-2259) and `xg_set_frame_icon` (C 2266-2277, under C 2261's `#ifndef HAVE_PGTK` with C 2268's dead `#ifdef HAVE_PGTK`) | file gate; `have_pgtk` / `not (have_pgtk)` |
 | 2278-2281 | C 2278's `#endif`, C 2279-2280's blanks and C 2281's form feed | file gate |
-| 2282-6753 | **the remainder** — from C 2282's banner through C 6753: `get_dialog_title` (C 2288, the next live definition), `create_dialog`, `xg_dialog_run`, the file chooser half (`xg_get_file_name_from_chooser`, `xg_get_file_with_chooser`, `xg_get_file_with_selection`, `xg_get_file_name`), `xg_get_font` and the font machinery, the menu machinery (`make_cl_data`, `xg_mark_data`, `create_menus`, `xg_update_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 2282-2561 | the "Dialog functions" banner (C 2282-2284) and the whole section: `get_dialog_title` (C 2288-2316), `dialog_delete_callback` (C 2329-2334), **`create_dialog`** (C 2343-2457; C 2363's `GTK_CHECK_VERSION (3, 12, 0)` and C 2419's `(3, 14, 0)` pairs), the `xg_dialog_data` record (C 2459-2465), `xg_dialog_response_cb` (C 2471-2479), `pop_down_dialog` (C 2484-2497), `xg_maybe_add_timer` (C 2502-2519) and `xg_dialog_run` (C 2526-2560, C 2561's blank) | file gate (`use_gtk`); `gtk_check_version_ge_3_12` / `_3_14` inside `create_dialog`; slice 3 below |
+| 2562-6753 | **the remainder** — from C 2562's form feed through C 6753: the file chooser half (`xg_get_file_name_from_chooser`, `xg_get_file_with_chooser`, `xg_get_file_with_selection`, `xg_get_file_name`), `xg_get_font` and the font machinery, the menu machinery (`make_cl_data`, `xg_mark_data`, `create_menus`, `xg_update_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -865,3 +866,91 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
 - **Budget**: this round used 3 `build-tu` runs (the cap) - `gtkutil.c` twice (the mirror's fix and
   the unit's two casts) and `pgtkterm.c` once - and re-ran `layout-check` 3 times; the arm readings
   were taken 5 times over the two states.
+
+## Slice 3 (2026-10-15, status 4.333): C 2282-2561 — the Dialog functions
+
+**What this slice is.**  The reference's "Dialog functions" section: `get_dialog_title`
+(C 2288-2316), `dialog_delete_callback` (C 2329-2334), **`create_dialog`** (C 2343-2457),
+the `xg_dialog_data` record (C 2459-2465), `xg_dialog_response_cb` (C 2471-2479),
+`pop_down_dialog` (C 2484-2497), `xg_maybe_add_timer` (C 2502-2519) and `xg_dialog_run`
+(C 2526-2560).  Port: 2,816 -> **3,207 lines**; the table's last row splits at C 2561 - the next
+live definition is C 2569's `xg_uses_old_file_dialog` (the file chooser half).
+
+**The mirror this slice needed.**  `include/gtk.rs` gains the seventeen entry points, four records
+(`GtkDialog`, `GtkBuilder`, `GtkBuildable`, `GtkMisc`, and GLib's `GMainLoop`), three checked-cast
+wrappers (`GTK_DIALOG`, `GTK_MISC`, `GTK_BUILDABLE`), `GtkAlign` with its two constants and
+`GTK_RESPONSE_CANCEL`; and the unit gains the edge `"gtkutil.h"` 27's
+`#include "../lwlib/lwlib-widget.h"` needs (`include!("../lwlib/include/lwlib-widget.rs")`, the
+`src/pgtkmenu.rs` 95 device - the `widget_value` record every function here takes).  Both are
+recorded in `docs/ports/include-gtk.md`'s round section.
+
+**Two features this slice registered.**  C 2363's `GTK_CHECK_VERSION (3, 12, 0)` and C 2419's
+`(3, 14, 0)` had no feature name, so the tree could not spell the pair: `femacs/xtask/Cargo.toml`
+now carries `gtk_check_version_ge_3_12` and `gtk_check_version_ge_3_14` (each with C's condition
+and site in the comment) and `python3 tools/feature-coverage.py --write` re-recorded
+`docs/baseline/feature-coverage.tsv`.  The two names join `gtk_check_version_ge_3_10`/`_3_22`,
+which slice 1 registered (Owed 1).
+
+**Deviations this slice adds.**
+
+- **C's two callback *variables* bypass the `g_signal_connect!` macro.**  C 2402/2403 pass
+  `deactivate_cb` and C 2442 passes `select_cb` - values of type `GCallback`, not function items -
+  while the port's `g_signal_connect!` wraps its handler in `G_CALLBACK!`, which casts an *item*
+  address (measured: `E0605 non-primitive cast`, this slice's first arm run).  Those three calls
+  therefore stand in the macro's own expansion (`g_signal_connect_data` with the handler, `NULL`
+  and `(GConnectFlags) 0` spelled out).  The sites where C writes `G_CALLBACK (…)` itself keep
+  C's name in the macro's body (Deviation 12).
+- **C's `(guint) -1`** (C 2515's `((guint) -1 - ms) / 1000`) is the port's `! 0 as guint`, the
+  `lib/include/w32.c` device for a negative unsigned constant, and the whole bound is converted to
+  `c_long` for the comparison with C's `time_t s`.
+- **`xg_dialog_run`'s `struct xg_dialog_data dd`** is zeroed before C 2538-2541's four member
+  stores, because Rust's definite-initialisation analysis rejects field-by-field assignment
+  (PORTING.md 1.5); C's own `dd.w = 0` at C 2556 is `std::ptr::null_mut ()`.
+- **`gtk_box_new` is called in the macro form** (`gtk_box_new! (…)`), as slice 2's four sites do:
+  the GTK2 arm's is C 119-121's macro, which this unit carries (Deviation 13), and the GTK3 arm's
+  forwards to the function in the mirror.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  `cargo run -q -p xtask -- build-tu src/gtkutil.c` ->
+   exit 0, `build/femacs/gtkutil.o` is **336 bytes** (the empty object: every item is behind
+   `use_gtk`, and the frozen configuration has it `undef`).
+2. **The arm readings** (the slice-2 arrangement: rustc on the materialised
+   `build/femacs/units/gtkutil/_root.rs`, `--emit=metadata`, the three `--cfg` sets below).
+   Arm A: **29 errors, 0 anchored in this slice's text** (the 29 are the classes slices 1-2 already
+   record: `new_size_p` ×5, `redisplay_interface`, the two `emacs_menu_bar_*` names, the two
+   `xg_*` definitions the remainder carries, `FRAME_MENUBAR_HEIGHT`, and the mirror-side
+   `XIEventMask`/`GDK_WINDOW_XID`/`GdkScrollDirection`/`void` rows).  Arm C (GTK2): **52 errors,
+   3 anchored in this slice** - all three are Owed 6's GTK2 class (`GTK_ORIENTATION_*` and the
+   `gtk_hbox_new`/`gtk_vbox_new` pair C 119-121's macro calls), which slice 2's own four
+   `gtk_box_new!` sites carry too.  Arm B: **543 errors, and it is an artifact, not this slice** -
+   the materialiser dedupes the unit's `#[cfg (feature = "use_gtk")] include!("include/gtk.rs")`
+   edge to `include/xterm.rs` 53's (root line 185's `// [xtask dedupe] … already included`), and in
+   arm B that earlier edge's own gate is off, so the whole GTK surface is absent and every
+   `GTK_WINDOW!`/`GtkWidget` in slices 1-3 reads as missing (the first errors are anchored in slice
+   2's text).  `## Owed` 17 records it.
+3. **`extract-abi.py --check`** -> 149 -> **116 `- ` rows** (9 functions retired, plus one
+   `missing constant` group the mirror provided); the three new `does not mention` rows
+   (`get_dialog_title`'s `switch`/`case`/`break`, and `g_callback` in `create_dialog` and
+   `xg_dialog_run`) are recorded in `docs/ports/macro-body-notes.tsv`; the line-count row reads
+   **52.5%** (C 6,753 vs 3,207) - the file is still open, and its `line-drift-tolerance.tsv` row
+   lands with the closing slice.
+4. The ten gates: all `rc=0`, 0 FAIL.
+
+**Not claimed.**  No arm was *compiled* - there is no GTK tree on this machine (the arm readings
+are rustc's name-resolution and type errors with the features a real target would set), so every
+GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFIED.
+
+17. **The materialiser's `include!` dedupe is cfg-sensitive, and slice 3's arm-B reading is where it
+    shows.**  `build/femacs/units/gtkutil/_root.rs` line 185 rewrites this unit's
+    `#[cfg (feature = "use_gtk")] include!("include/gtk.rs")` edge into
+    `// [xtask dedupe] … already included`, because `include/xterm.rs` 53 includes the same mirror
+    and the unit reaches `xterm.rs` at C 34.  The deduped first edge is *that* one, so when arm B
+    (`use_gtk, have_pgtk, have_window_system, have_gtk3, use_cairo, have_xinput2`) turns
+    `include/xterm.rs`'s own gate off, no edge brings `include/gtk.rs` in at all: the whole GTK
+    surface disappears and arm B reads **543** errors instead of the ~60 the file's Evidence (2)
+    recorded at slice 2 - every `GTK_WINDOW!`/`GtkWidget`/`TRUE` in slices 1-3 among them (the first
+    anchors are in slice 2's text).  The reading is an artifact of the materialiser, not of any
+    slice's transcription, and the fix belongs to `femacs/xtask` (the dedupe should either keep the
+    edge where its own cfg is on, or place the shared mirror's copy outside every gate); until then
+    the file's arm-B reading is reported with this reason, as slice 3's section does.

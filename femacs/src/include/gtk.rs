@@ -2170,3 +2170,126 @@ unsafe extern "C" {
   pub fn g_main_context_dispatch (context: *mut GMainContext);
   pub fn g_main_context_iteration (context: *mut GMainContext, may_block: c_int) -> c_int;
 }
+
+/* ----------------------------------------------------------------------------------------------
+   The dialog surface `src/gtkutil.c`'s "Dialog functions" section (C 2282-2843) reads (status
+   4.333).  P-90 (2) puts every GTK/GLib name in this mirror rather than inline in the unit, so
+   the seventeen entry points, the four records and the three checked-cast wrappers that section
+   needs are declared here.  **No GTK tree exists on this machine**, so every prototype is
+   `UNVERIFIED` and the two enum constants are placeholders (P-88 (2): no numbers from memory);
+   the ledger's Owed names the GTK host that would measure them.
+   ---------------------------------------------------------------------------------------------- */
+
+/// C: gtk/gtkdialog.h: `typedef struct _GtkDialog GtkDialog;` - the pointee of `GTK_DIALOG`,
+/// which C 2355 casts the `gtk_dialog_new` result to.  **UNVERIFIED**.
+#[repr (C)]
+pub struct GtkDialog
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkbuilder.h: `typedef struct _GtkBuilder GtkBuilder;` - the object C 2364's
+/// `gtk_builder_new` returns and C 2365-2367 passes to `gtk_buildable_get_internal_child`.
+/// **UNVERIFIED**.
+#[repr (C)]
+pub struct GtkBuilder
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkbuildable.h: `typedef struct _GtkBuildable GtkBuildable;` - `GTK_BUILDABLE`'s
+/// pointee (C 2365 casts the dialog to it).  **UNVERIFIED**.
+#[repr (C)]
+pub struct GtkBuildable
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkmisc.h: `typedef struct _GtkMisc GtkMisc;` - `GTK_MISC`'s pointee (C 2423 casts the
+/// label to it, in the GTK < 3.14 arm).  **UNVERIFIED**.
+#[repr (C)]
+pub struct GtkMisc
+{
+  _private: [u8; 0],
+}
+/// C: glib/gmain.h: `typedef struct _GMainLoop GMainLoop;` - the loop `struct xg_dialog_data`
+/// holds and C 2538/2478/2493/2494 pass to the four `g_main_loop_*` entry points below.
+/// **UNVERIFIED**.
+#[repr (C)]
+pub struct GMainLoop
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkenums.h: `typedef enum { GTK_ALIGN_FILL, GTK_ALIGN_START, GTK_ALIGN_END,
+/// GTK_ALIGN_CENTER, GTK_ALIGN_BASELINE } GtkAlign;` - C 2420/2421's two calls.  The values are
+/// **UNVERIFIED** placeholders (`## Owed` 6, the `GtkOrientation` row's class).
+#[cfg (feature = "have_gtk3")]
+pub type GtkAlign = c_int;
+/// C: gtk/gtkenums.h: `GTK_ALIGN_START` (C 2420's `gtk_widget_set_halign`).  Placeholder.
+#[cfg (feature = "have_gtk3")]
+pub const GTK_ALIGN_START: GtkAlign = 0;                        // placeholder, not GTK's value
+/// C: gtk/gtkenums.h: `GTK_ALIGN_CENTER` (C 2421's `gtk_widget_set_valign`).  Placeholder.
+#[cfg (feature = "have_gtk3")]
+pub const GTK_ALIGN_CENTER: GtkAlign = 0;                       // placeholder, not GTK's value
+/// C: gtk/gtkdialog.h: `GTK_RESPONSE_CANCEL` (C 2539's `dd.response` initialiser).  Placeholder:
+/// GTK's enumeration is `GTK_RESPONSE_NONE = -1`, then the four standard responses, and this tree
+/// has no GTK header to read it from (`## Owed` 6).
+pub const GTK_RESPONSE_CANCEL: c_int = -6;                      // placeholder, not GTK's value
+/// C: gtk/gtkdialog.h / gtk/gtkmisc.h / gtk/gtkbuildable.h: the three checked-cast wrappers
+/// C 2355/2365/2423 use, each keeping the macro's name and its result type (the GLib cast chains
+/// are owed, as above).
+macro_rules! GTK_DIALOG {
+  ($o:expr) => { ($o) as *mut GtkDialog };
+}
+macro_rules! GTK_MISC {
+  ($o:expr) => { ($o) as *mut GtkMisc };
+}
+macro_rules! GTK_BUILDABLE {
+  ($o:expr) => { ($o) as *mut GtkBuildable };
+}
+/// C: gtk/gtkdialog.h, gtk/gtkbuildable.h, gtk/gtkbox.h, gtk/gtkwidget.h, gtk/gtkbutton.h,
+/// gtk/gtkwindow.h, gtk/gtkmisc.h and glib/gmain.h: the seventeen entry points C 2282-2560 calls.
+/// Every prototype here is `UNVERIFIED` (no GTK/GLib header is on this machine), `gboolean` is
+/// spelled `gboolean` as the rest of this mirror spells it, and `GtkBuilder`'s `gtk_builder_new`
+/// argument list is its header's.
+/// C: gtk/gtkwidget.h: `void gtk_widget_unmap (GtkWidget *widget);`
+/// C: gtk/gtkwidget.h: `void gtk_widget_set_sensitive (GtkWidget *widget, gboolean sensitive);`
+/// C: gtk/gtkwidget.h: `void gtk_widget_set_halign (GtkWidget *widget, GtkAlign align);`
+/// C: gtk/gtkwidget.h: `void gtk_widget_set_valign (GtkWidget *widget, GtkAlign align);`
+/// C: gtk/gtkbuilder.h: `GtkBuilder *gtk_builder_new (void);`
+/// C: gtk/gtkbuildable.h: `GObject *gtk_buildable_get_internal_child (GtkBuildable *buildable,
+/// C:   GtkBuilder *builder, const gchar *childname);`
+/// C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_get_action_area (GtkDialog *dialog);`
+/// C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_get_content_area (GtkDialog *dialog);`
+/// C: gtk/gtkmisc.h: `void gtk_misc_set_alignment (GtkMisc *misc, gfloat xalign, gfloat yalign);`
+/// C: gtk/gtkbutton.h: `GtkWidget *gtk_button_new_with_label (const gchar *label);`
+/// C: gtk/gtkwindow.h: `void gtk_window_set_modal (GtkWindow *window, gboolean modal);`
+/// C: gtk/gtkbox.h: `void gtk_box_set_spacing (GtkBox *box, gint spacing);`
+/// C: gtk/gtkmain.h: `gboolean gtk_true (void);`
+/// C: glib/gmain.h: `GMainLoop *g_main_loop_new (GMainContext *context, gboolean is_running);`
+/// C: glib/gmain.h: `void g_main_loop_run (GMainLoop *loop);`
+/// C: glib/gmain.h: `void g_main_loop_quit (GMainLoop *loop);`
+/// C: glib/gmain.h: `void g_main_loop_unref (GMainLoop *loop);`
+unsafe extern "C" {
+  pub fn gtk_widget_unmap (widget: *mut GtkWidget);
+  pub fn gtk_widget_set_sensitive (widget: *mut GtkWidget, sensitive: gboolean);
+  #[cfg (feature = "gtk_check_version_ge_3_14")]
+  pub fn gtk_widget_set_halign (widget: *mut GtkWidget, align: GtkAlign);
+  #[cfg (feature = "gtk_check_version_ge_3_14")]
+  pub fn gtk_widget_set_valign (widget: *mut GtkWidget, align: GtkAlign);
+  pub fn gtk_builder_new () -> *mut GtkBuilder;
+  pub fn gtk_buildable_get_internal_child (buildable: *mut GtkBuildable,
+                                           builder: *mut GtkBuilder,
+                                           childname: *const gchar) -> *mut GObject;
+  pub fn gtk_dialog_get_action_area (dialog: *mut GtkDialog) -> *mut GtkWidget;
+  pub fn gtk_dialog_get_content_area (dialog: *mut GtkDialog) -> *mut GtkWidget;
+  #[cfg (not (feature = "gtk_check_version_ge_3_14"))]
+  // GLib's `gfloat` is `typedef float gfloat` (glib.h 198), so the two parameters are Rust's
+  // `f32`: this mirror has no `gfloat` alias and `c_float` is not in scope at this point.
+  pub fn gtk_misc_set_alignment (misc: *mut GtkMisc, xalign: f32, yalign: f32);
+  pub fn gtk_button_new_with_label (label: *const gchar) -> *mut GtkWidget;
+  pub fn gtk_window_set_modal (window: *mut GtkWindow, modal: gboolean);
+  pub fn gtk_box_set_spacing (box_: *mut GtkBox, spacing: gint);
+  pub fn gtk_true () -> gboolean;
+  pub fn g_main_loop_new (context: *mut GMainContext, is_running: gboolean) -> *mut GMainLoop;
+  pub fn g_main_loop_run (loop_: *mut GMainLoop);
+  pub fn g_main_loop_quit (loop_: *mut GMainLoop);
+  pub fn g_main_loop_unref (loop_: *mut GMainLoop);
+}

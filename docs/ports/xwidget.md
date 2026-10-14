@@ -1418,3 +1418,13 @@ tooltip position query: the mirror is in this unit's include graph, so the copie
 `tools/check-mirror-dupes.py`'s rule (it read `18 duplicate declaration(s), 16 ratchet row(s), 2
 failure(s)` and named both).  The two call sites are unchanged, and this unit's probe
 (`have_xwidgets + have_window_system`) compiles clean (exit 0, 0 errors, 0 warnings).
+
+## The `gtk_dialog_get_content_area` copy leaves for the mirror (2026-10-15, status 4.333)
+
+The same move `docs/ports/pgtkterm.md` records: this unit's C 2693 row for
+`gtk_dialog_get_content_area` stood at a use site because the mirror could not take it while two
+units declared copies (`tools/check-mirror-dupes.py`'s unit-versus-mirror rule).
+`src/gtkutil.rs`'s third slice needed the name too, so P-90 (1) moved the row into
+`femacs/src/include/gtk.rs` and deleted both unit copies in one commit; the name resolves through
+this unit's `include/gtk.rs` edge.  `tools/check-mirror-dupes.py`: 16 ratchet rows, 0 failures;
+`tools/check-all-units.sh`: `checked 83 unit(s), 0 failure(s)`.

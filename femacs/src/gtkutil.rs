@@ -133,6 +133,11 @@ include!("include/blockinput.rs");             // C 42: `#include "blockinput.h"
 include!("include/window.rs");                 // C 43: `#include "window.h"`
 #[cfg (feature = "use_gtk")]
 include!("include/gtkutil.rs");                // C 44: `#include "gtkutil.h"`
+/* C 44's chain: `"gtkutil.h"` 27's `#include "../lwlib/lwlib-widget.h"`, which declares the
+   `widget_value` record C 2289 onward takes.  The mirror is `femacs/lwlib/include/lwlib-widget.rs`
+   (the `src/pgtkmenu.rs` 95 device).  */
+#[cfg (feature = "use_gtk")]
+include!("../lwlib/include/lwlib-widget.rs");
 #[cfg (feature = "use_gtk")]
 include!("include/termhooks.rs");              // C 45: `#include "termhooks.h"`
 #[cfg (feature = "use_gtk")]
@@ -2813,4 +2818,390 @@ pub unsafe extern "C" fn xg_set_frame_icon (f: *mut frame, icon_pixmap: Pixmap,
   let gp: *mut GdkPixbuf = xg_get_pixbuf_from_pix_and_mask (f, icon_pixmap, icon_mask);
   if ! gp.is_null ()
     { gtk_window_set_icon (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)), gp); }
+}
+
+/* C 2282-2284's "Dialog functions" banner, carried as C's own text at its position.  */
+/* C: /***********************************************************************
+   C:                       Dialog functions
+   C:  ***********************************************************************/  */
+
+/* C 2285-2286's comment above `get_dialog_title`, carried as C's own text.  */
+/* C: /* Return the dialog title to use for a dialog of type KEY.
+   C:    This is the encoding used by lwlib.  We use the same for GTK.  */  */
+
+/// C 2288-2316: `static const char *get_dialog_title (char key)` - C's `switch` over the ten
+/// letters becomes a `match` whose fall-through pairs are `|` alternatives (PORTING.md 2.2), so
+/// the `switch`/`case`/`break` tokens have no Rust counterpart
+/// (`docs/ports/macro-body-notes.tsv`'s row); C's `title` initialiser, the five literals and the
+/// final `return` are unchanged.
+/// C: static const char *
+/// C: get_dialog_title (char key)
+#[cfg (feature = "use_gtk")]
+unsafe fn get_dialog_title (key: c_char) -> *const c_char
+{
+  let mut title: *const c_char = c"".as_ptr ();                        // C 2291
+
+  match key as u8
+    {
+    b'E' | b'e' =>                                                    // C 2294
+      { title = c"Error".as_ptr (); }                                 // C 2295
+
+    b'I' | b'i' =>                                                    // C 2298
+      { title = c"Information".as_ptr (); }                           // C 2299
+
+    b'L' | b'l' =>                                                    // C 2302
+      { title = c"Prompt".as_ptr (); }                                // C 2303
+
+    b'P' | b'p' =>                                                    // C 2306
+      { title = c"Prompt".as_ptr (); }                                // C 2307
+
+    b'Q' | b'q' =>                                                    // C 2310
+      { title = c"Question".as_ptr (); }                              // C 2311
+
+    _ => {}
+    }
+
+  title                                                               // C 2315
+}
+
+/* C 2318-2327's comment above `dialog_delete_callback`, carried as C's own text.  */
+/* C: /* Callback for dialogs that get WM_DELETE_WINDOW.  We pop down
+   C:    the dialog, but return TRUE so the event does not propagate further
+   C:    in GTK.  This prevents GTK from destroying the dialog widget automatically
+   C:    and we can always destroy the widget manually, regardless of how
+   C:    it was popped down (button press or WM_DELETE_WINDOW).
+   C:    W is the dialog widget.
+   C:    EVENT is the GdkEvent that represents WM_DELETE_WINDOW (not used).
+   C:    user_data is NULL (not used).
+
+   C:    Returns TRUE to end propagation of event.  */  */
+
+/// C 2329-2334: `static gboolean dialog_delete_callback (GtkWidget *w, GdkEvent *event,
+/// gpointer user_data)` - `static` in C, but C 2398 takes its address for `g_signal_connect`
+/// (through `G_CALLBACK`), so the port defines it `unsafe extern "C" fn` (the `delete_cb` shape
+/// above).
+/// C: static gboolean
+/// C: dialog_delete_callback (GtkWidget *w, GdkEvent *event, gpointer user_data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn dialog_delete_callback (w: *mut GtkWidget, event: *mut GdkEvent,
+					     user_data: gpointer) -> gboolean
+{
+  gtk_widget_unmap (w);                                                 // C 2332
+  TRUE                                                                  // C 2333
+}
+
+/* C 2336-2341's comment above `create_dialog`, carried as C's own text.  */
+/* C: /* Create a popup dialog window.  See also xg_create_widget below.
+   C:    WV is a widget_value describing the dialog.
+   C:    SELECT_CB is the callback to use when a button has been pressed.
+   C:    DEACTIVATE_CB is the callback to use when the dialog pops down.
+
+   C:    Returns the GTK dialog widget.  */  */
+
+/// C 2343-2457: `static GtkWidget *create_dialog (widget_value *wv, GCallback select_cb,
+/// GCallback deactivate_cb)` - C 2363-2372's `#if GTK_CHECK_VERSION (3, 12, 0)` pair is the
+/// `gtk_check_version_ge_3_12` feature (the two arms assign the same `cur_box`), and C 2419-2424's
+/// `#if GTK_CHECK_VERSION (3, 14, 0)` pair is `gtk_check_version_ge_3_14`.  C 2361's `bool` local,
+/// C 2430's `strlen` conversion and C 2445's `++button_nr` are the port's `bool`, `as c_int` and
+/// two statements.
+/// C: static GtkWidget *
+/// C: create_dialog (widget_value *wv,
+/// C:                GCallback select_cb,
+/// C:                GCallback deactivate_cb)
+#[cfg (feature = "use_gtk")]
+unsafe fn create_dialog (wv: *mut widget_value, select_cb: GCallback,
+			 deactivate_cb: GCallback) -> *mut GtkWidget
+{
+  let title: *const c_char = get_dialog_title (*(*wv).name as c_char);  // C 2348
+  let mut total_buttons: c_int = *(*wv).name.offset (1) as c_int - b'0' as c_int;   // C 2349
+  let mut right_buttons: c_int = *(*wv).name.offset (4) as c_int - b'0' as c_int;   // C 2350
+  let left_buttons: c_int;                                             // C 2351
+  let mut button_nr: c_int = 0;                                        // C 2352
+  let mut button_spacing: c_int = 10;                                  // C 2353
+  let wdialog: *mut GtkWidget = gtk_dialog_new ();                     // C 2354
+  let wd: *mut GtkDialog = GTK_DIALOG! (wdialog);                      // C 2355
+  let mut item: *mut widget_value;                                     // C 2356
+  /* C leaves `whbox_down` uninitialised in its `else` arm (PORTING.md 1.5); C 2448 reads it only
+     under `make_two_rows`, which is exactly the arm that stores it.  */
+  let mut whbox_down: *mut GtkWidget = std::ptr::null_mut ();          // C 2357
+
+  /* C 2359-2360's note, carried as C's own text at its position.  */
+  /* C: /* If the number of buttons is greater than 4, make two rows of buttons
+     C:    instead.  This looks better.  */  */
+  let make_two_rows: bool = total_buttons > 4;                         // C 2361
+
+  /* C 2363's `#if GTK_CHECK_VERSION (3, 12, 0)` - the `gtk_check_version_ge_3_12` feature.  */
+  let mut cur_box: *mut GtkBox;                                        // C 2368/2371
+  #[cfg (feature = "gtk_check_version_ge_3_12")]
+  {
+    let gbld: *mut GtkBuilder = gtk_builder_new ();                    // C 2364
+    let go: *mut GObject
+      = gtk_buildable_get_internal_child (GTK_BUILDABLE! (wd), gbld,
+					  c"action_area".as_ptr ());       // C 2365-2367
+    cur_box = GTK_BOX! (go);                                           // C 2368
+    g_object_unref (G_OBJECT! (gbld));                                  // C 2369
+  }
+  #[cfg (not (feature = "gtk_check_version_ge_3_12"))]
+  { cur_box = GTK_BOX! (gtk_dialog_get_action_area (wd)); }             // C 2371
+
+  if right_buttons == 0 { right_buttons = total_buttons / 2; }          // C 2374
+  left_buttons = total_buttons - right_buttons;                         // C 2375
+
+  gtk_window_set_title (GTK_WINDOW! (wdialog), title);                  // C 2377
+  gtk_widget_set_name (wdialog, c"emacs-dialog".as_ptr ());             // C 2378
+
+
+  if make_two_rows                                                      // C 2381
+    {
+      let wvbox: *mut GtkWidget = gtk_box_new! (GTK_ORIENTATION_VERTICAL, button_spacing);   // C 2383
+      let whbox_up: *mut GtkWidget = gtk_box_new! (GTK_ORIENTATION_HORIZONTAL, 0);   // C 2384
+      gtk_box_set_homogeneous (GTK_BOX! (wvbox), TRUE);                 // C 2385
+      gtk_box_set_homogeneous (GTK_BOX! (whbox_up), FALSE);             // C 2386
+      whbox_down = gtk_box_new! (GTK_ORIENTATION_HORIZONTAL, 0);        // C 2387
+      gtk_box_set_homogeneous (GTK_BOX! (whbox_down), FALSE);           // C 2388
+
+      gtk_box_pack_start (cur_box, wvbox, FALSE, FALSE, 0);             // C 2390
+      gtk_box_pack_start (GTK_BOX! (wvbox), whbox_up, FALSE, FALSE, 0); // C 2391
+      gtk_box_pack_start (GTK_BOX! (wvbox), whbox_down, FALSE, FALSE, 0);   // C 2392
+
+      cur_box = GTK_BOX! (whbox_up);                                    // C 2394
+    }
+
+  g_signal_connect! (G_OBJECT! (wdialog), c"delete-event".as_ptr (),    // C 2397
+		    dialog_delete_callback, std::ptr::null_mut ());     // C 2398
+
+  if deactivate_cb.is_some ()                                           // C 2400
+    {
+      /* C 2402/2403 pass the *variable* `deactivate_cb`, which the port's `g_signal_connect!`
+	 macro would wrap a second time in `G_CALLBACK!` - and that macro needs a function item,
+	 not a `GCallback` value (measured: `E0605`, this slice's first arm run).  The two calls
+	 therefore stand in the macro's own expansion, handler and all.  */
+      g_signal_connect_data (G_OBJECT! (wdialog) as gpointer, c"close".as_ptr (),
+			     deactivate_cb, std::ptr::null_mut (), None,
+			     0 as GConnectFlags);                          // C 2402
+      g_signal_connect_data (G_OBJECT! (wdialog) as gpointer, c"response".as_ptr (),
+			     deactivate_cb, std::ptr::null_mut (), None,
+			     0 as GConnectFlags);                          // C 2403
+    }
+
+  item = (*wv).contents;                                                // C 2406
+  while !item.is_null ()
+    {
+      let utf8_label: *mut c_char = get_utf8_string ((*item).value);    // C 2408
+      let mut w: *mut GtkWidget;                                        // C 2409
+      let mut req: GtkRequisition = GtkRequisition { width: 0, height: 0 };   // C 2410
+
+      if !(*item).name.is_null () && strcmp ((*item).name, c"message".as_ptr ()) == 0   // C 2412
+	{
+	  let wvbox: *mut GtkBox = GTK_BOX! (gtk_dialog_get_content_area (wd));   // C 2414
+	  /* This is the text part of the dialog.  */                       // C 2415
+	  w = gtk_label_new (utf8_label);                                   // C 2416
+	  gtk_box_pack_start (wvbox, gtk_label_new (c"".as_ptr ()), FALSE, FALSE, 0);   // C 2417
+	  gtk_box_pack_start (wvbox, w, TRUE, TRUE, 0);                     // C 2418
+	  /* C 2419's `#if GTK_CHECK_VERSION (3, 14, 0)` - the `gtk_check_version_ge_3_14` feature.  */
+	  #[cfg (feature = "gtk_check_version_ge_3_14")]
+	  {
+	    gtk_widget_set_halign (w, GTK_ALIGN_START);                     // C 2420
+	    gtk_widget_set_valign (w, GTK_ALIGN_CENTER);                    // C 2421
+	  }
+	  #[cfg (not (feature = "gtk_check_version_ge_3_14"))]
+	  { gtk_misc_set_alignment (GTK_MISC! (w), 0.1, 0.5); }             // C 2423
+	  /* C 2425-2426's note, carried as C's own text at its position.  */
+	  /* C: /* Try to make dialog look better.  Must realize first so
+	     C:    the widget can calculate the size it needs.  */  */
+	  gtk_widget_realize (w);                                           // C 2427
+	  gtk_widget_get_preferred_size (w, std::ptr::null_mut (), &raw mut req);   // C 2428
+	  gtk_box_set_spacing (wvbox, req.height);                          // C 2429
+	  if !(*item).value.is_null () && strlen ((*item).value) > 0        // C 2430
+	    { button_spacing = 2 * req.width / strlen ((*item).value) as c_int; }   // C 2431
+	  if button_spacing < 10 { button_spacing = 10; }                    // C 2432
+	}
+      else
+	{
+	  /* This is one button to add to the dialog.  */                   // C 2436
+	  w = gtk_button_new_with_label (utf8_label);                       // C 2437
+	  if !(*item).enabled                                               // C 2438
+	    { gtk_widget_set_sensitive (w, FALSE); }                        // C 2439
+	  if select_cb.is_some ()                                           // C 2440
+	    {
+	      /* C 2441-2442's `select_cb` is the variable, so this call takes the macro's own
+		 expansion as above.  */
+	      g_signal_connect_data (G_OBJECT! (w) as gpointer, c"clicked".as_ptr (),
+				     select_cb, (*item).call_data, None,
+				     0 as GConnectFlags);                   // C 2441-2442
+	    }
+
+	  gtk_box_pack_start (cur_box, w, TRUE, TRUE, button_spacing as guint);   // C 2444
+	  button_nr += 1;                                                    // C 2445
+	  if button_nr == left_buttons
+	    {
+	      if make_two_rows
+		{ cur_box = GTK_BOX! (whbox_down); }                         // C 2448
+	    }
+	}
+
+     if !utf8_label.is_null ()                                           // C 2452
+       { g_free (utf8_label as *mut c_void); }                           // C 2453
+     item = (*item).next;                                                // C 2406 (the loop's step)
+    }
+
+  wdialog                                                               // C 2456
+}
+
+/* C 2459-2465: `struct xg_dialog_data` - the record the three callbacks below share.  C's `loop`
+   member is the Rust keyword, so the port spells it `r#loop` (C's own name; the
+   `lib/include/sfnt.rs` 1994 device).  */
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct xg_dialog_data
+{
+  pub r#loop: *mut GMainLoop,             // C 2461
+  pub response: c_int,                    // C 2462
+  pub w: *mut GtkWidget,                  // C 2463
+  pub timerid: guint,                     // C 2464
+}
+
+/* C 2467-2469's comment above `xg_dialog_response_cb`, carried as C's own text.  */
+/* C: /* Function that is called when the file or font dialogs pop down.
+   C:    W is the dialog widget, RESPONSE is the response code.
+   C:    USER_DATA is what we passed in to g_signal_connect.  */  */
+
+/// C 2471-2479: `static void xg_dialog_response_cb (GtkDialog *w, gint response,
+/// gpointer user_data)` - `static` in C and C 2545 takes its address through `G_CALLBACK`, so
+/// the port defines it `unsafe extern "C" fn`; C 2476's `void *` to `struct xg_dialog_data *`
+/// conversion is the plain cast.
+/// C: static void
+/// C: xg_dialog_response_cb (GtkDialog *w, gint response, gpointer user_data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn xg_dialog_response_cb (w: *mut GtkDialog, response: gint,
+					    user_data: gpointer)
+{
+  let dd: *mut xg_dialog_data = user_data as *mut xg_dialog_data;       // C 2476
+  (*dd).response = response;                                            // C 2477
+  g_main_loop_quit ((*dd).r#loop);                                       // C 2478
+}
+
+
+/* C 2482's comment above `pop_down_dialog`, carried as C's own text.  */
+/* C: /*  Destroy the dialog.  This makes it pop down.  */  */
+
+/// C 2484-2497: `static void pop_down_dialog (void *arg)` - the unwind function C 2551 registers
+/// with `record_unwind_protect_ptr`, so the port defines it `unsafe extern "C" fn` with the
+/// mirror's `Option<unsafe extern "C" fn (*mut c_void)>` signature; C 2490/2491's two truth tests
+/// are the port's `! … is_null ()` and `!= 0`.
+/// C: static void
+/// C: pop_down_dialog (void *arg)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn pop_down_dialog (arg: *mut c_void)
+{
+  let dd: *mut xg_dialog_data = arg as *mut xg_dialog_data;             // C 2487
+
+  block_input ();                                                       // C 2489
+  if !(*dd).w.is_null () { gtk_widget_destroy ((*dd).w); }              // C 2490
+  if (*dd).timerid != 0 { g_source_remove ((*dd).timerid); }            // C 2491
+
+  g_main_loop_quit ((*dd).r#loop);                                       // C 2493
+  g_main_loop_unref ((*dd).r#loop);                                      // C 2494
+
+  unblock_input ();                                                     // C 2496
+}
+
+/* C 2499-2500's comment above `xg_maybe_add_timer`, carried as C's own text.  */
+/* C: /* If there are any emacs timers pending, add a timeout to main loop in DATA.
+   C:    Pass DATA as gpointer so we can use this as a callback.  */  */
+
+/* Use-site declarations (P-88 (1)): the one name this slice calls and no mirror in the unit's
+   include graph carries.  C: keyboard.h 521: `extern struct timespec timer_check (void);` - the
+   `src/haikumenu.rs` 116 spelling.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C: keyboard.h 521: `extern struct timespec timer_check (void);` - C 2506's call.
+  pub fn timer_check () -> timespec;
+}
+
+/// C 2502-2519: `static gboolean xg_maybe_add_timer (gpointer data)` - `static` in C, and its
+/// address is C 2516's `g_timeout_add` argument, so an `unsafe extern "C" fn`; C 2513's
+/// `TIMESPEC_HZ / 1000` is `lib/include/timespec.rs` 34's constant, C 2514's `int ms` and
+/// C 2515's `(guint) -1` are the port's `c_int` and `-1 as guint`.
+/// C: static gboolean
+/// C: xg_maybe_add_timer (gpointer data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn xg_maybe_add_timer (data: gpointer) -> gboolean
+{
+  let dd: *mut xg_dialog_data = data as *mut xg_dialog_data;            // C 2505
+  let next_time: timespec = timer_check ();                             // C 2506
+
+  (*dd).timerid = 0;                                                    // C 2508
+
+  if timespec_valid_p (next_time)                                       // C 2510
+    {
+      let s: time_t = next_time.tv_sec;                                 // C 2512
+      let per_ms: c_int = TIMESPEC_HZ / 1000;                           // C 2513
+      let ms: c_int = ((next_time.tv_nsec + per_ms as c_long - 1)
+		       / per_ms as c_long) as c_int;                    // C 2514
+      /* C 2515's `((guint) -1 - ms) / 1000`: the `(guint) -1` cast is the port's `! 0 as guint`
+	 (the `lib/include/w32.c` device for a negative `DWORD`), and the whole expression is
+	 converted to `time_t` for the comparison with `s`, exactly as C's arithmetic conversions
+	 do (the RHS is a `guint` and `s` is a `time_t`).  */
+      if s <= (((! 0 as guint) - ms as guint) / 1000) as c_long         // C 2515
+	{
+	  (*dd).timerid
+	    = g_timeout_add ((s * 1000 + ms as c_long) as guint,
+			     Some (xg_maybe_add_timer), dd as gpointer);   // C 2516
+	}
+    }
+  FALSE                                                                 // C 2518
+}
+
+
+/* C 2522-2524's comment above `xg_dialog_run`, carried as C's own text.  */
+/* C: /* Pops up a modal dialog W and waits for response.
+   C:    We don't use gtk_dialog_run because we want to process emacs timers.
+   C:    The dialog W is not destroyed when this function returns.  */  */
+
+/// C 2526-2560: `static int xg_dialog_run (struct frame *f, GtkWidget *w)` - `static` in C with
+/// one call site, so a plain `unsafe fn`; C 2529's `SPECPDL_INDEX` and C 2551's
+/// `record_unwind_protect_ptr` are `include/lisp.rs` 2624/4094's rows, C 2553's `(void)` cast is
+/// the port's bare call, and C 2556/2539's `0`/`GTK_RESPONSE_CANCEL` are the null pointer and the
+/// mirror's placeholder constant.
+/// C: static int
+/// C: xg_dialog_run (struct frame *f, GtkWidget *w)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_dialog_run (f: *mut frame, w: *mut GtkWidget) -> c_int
+{
+  let count: specpdl_ref = SPECPDL_INDEX ();                            // C 2529
+  /* C leaves the record uninitialised and fills its four members at C 2538-2541; Rust's
+     definite-initialisation analysis rejects field-by-field assignment, so the port zeroes it
+     first (PORTING.md 1.5) and then writes the same four members.  */
+  let mut dd: xg_dialog_data = core::mem::zeroed ();                    // C 2530
+
+  xg_set_screen (w, f);                                                 // C 2532
+  gtk_window_set_transient_for (GTK_WINDOW! (w),                        // C 2533
+				GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)));   // C 2534
+  gtk_window_set_destroy_with_parent (GTK_WINDOW! (w), TRUE);           // C 2535
+  gtk_window_set_modal (GTK_WINDOW! (w), TRUE);                         // C 2536
+
+  dd.r#loop = g_main_loop_new (std::ptr::null_mut (), FALSE);            // C 2538
+  dd.response = GTK_RESPONSE_CANCEL;                                    // C 2539
+  dd.w = w;                                                             // C 2540
+  dd.timerid = 0;                                                       // C 2541
+
+  g_signal_connect! (G_OBJECT! (w),                                     // C 2543
+		     c"response".as_ptr (),                             // C 2544
+		     xg_dialog_response_cb,                             // C 2545
+		     (&raw mut dd) as gpointer);                         // C 2546
+  /* Don't destroy the widget if closed by the window manager close button.  */   // C 2547
+  g_signal_connect! (G_OBJECT! (w), c"delete-event".as_ptr (),
+		     gtk_true, std::ptr::null_mut ());                  // C 2548
+  gtk_widget_show (w);                                                  // C 2549
+
+  record_unwind_protect_ptr (Some (pop_down_dialog), (&raw mut dd) as *mut c_void);   // C 2551
+
+  xg_maybe_add_timer ((&raw mut dd) as gpointer);                       // C 2553 (C's `(void)` cast)
+  g_main_loop_run (dd.r#loop);                                          // C 2554
+
+  dd.w = std::ptr::null_mut ();                                         // C 2556
+  unbind_to (count, Qnil ());                                           // C 2557
+
+  dd.response                                                           // C 2559
 }

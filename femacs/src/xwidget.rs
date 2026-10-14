@@ -2409,9 +2409,10 @@ unsafe extern "C" {
   /// *parent, GtkDialogFlags flags, const gchar *first_button_text, ...);`
   pub fn gtk_dialog_new_with_buttons (title: *const gchar, parent: *mut GtkWindow, flags: c_int,
                                       first_button_text: *const gchar, ...) -> *mut GtkWidget;
-  /// C 2693: `content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));`
-  /// C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_get_content_area (GtkDialog *dialog);`
-  pub fn gtk_dialog_get_content_area (dialog: *mut GtkDialog) -> *mut GtkWidget;
+  // C 2693's `gtk_dialog_get_content_area` is `include/gtk.rs`'s row now (P-90 (1): one surface,
+  // one mirror).  This unit's copy was the P-90 (7) placeholder the mirror could not take while
+  // `tools/check-mirror-dupes.py` counted the two units' copies against it; that collision is what
+  // the move removes, and the name still resolves through the unit's own `include/gtk.rs` edge.
   /// C 2704: `result = gtk_dialog_run (GTK_DIALOG (dialog));`
   /// C: gtk/gtkdialog.h: `gint gtk_dialog_run (GtkDialog *dialog);`
   pub fn gtk_dialog_run (dialog: *mut GtkDialog) -> gint;

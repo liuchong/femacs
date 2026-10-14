@@ -10022,13 +10022,10 @@ unsafe extern "C" fn pgtk_selection_event (widget: *mut GtkWidget, event: *mut G
 }
 
 /* C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_get_content_area (GtkDialog *dialog);` - the C 7048
-   call.  The mirror cannot own this row: `src/xwidget.rs` declares it for its own call (P-90 7), and
-   `tools/check-mirror-dupes.py` named exactly that collision (`FAIL src/xwidget.rs: …`), so it
-   stands here instead (the `gdk_atom_name`/`strstr` shape).  */
-#[cfg (feature = "have_pgtk")]
-unsafe extern "C" {
-  pub fn gtk_dialog_get_content_area (dialog: *mut GtkDialog) -> *mut GtkWidget;
-}
+   call.  The row now stands in `femacs/src/include/gtk.rs` (P-90 (1): one surface, one mirror);
+   this unit's copy was the P-90 (7) placeholder that kept it here only because
+   `tools/check-mirror-dupes.py` counted the two units' copies against the mirror, and the name
+   resolves through this unit's own `include/gtk.rs` edge.  */
 
 /// C: gtk/gtkdialog.h: `typedef struct _GtkDialog GtkDialog;` (a `GtkWindow`) - the C 7034 local's
 /// type.  **The mirror cannot own it**: `src/xwidget.rs` 2373-2377 defines the same record for its
