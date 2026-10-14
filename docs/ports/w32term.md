@@ -192,7 +192,8 @@ The `arm` cell says what the port does with the block.
 | 4330-4536 | the two scroll-bar setters: `w32_set_vertical_scroll_bar` (C 4330-4432) and `w32_set_horizontal_scroll_bar` (C 4434-4536), each with its create branch and its move branch | file gate (`have_ntgui`); slice 12 below |
 | 4538-4684 | the three scroll-bar hooks: C 4539-4545's comment, `w32_condemn_scroll_bars` (C 4551-4571), `w32_redeem_scroll_bar` (C 4577-4656, with C 4599's `goto horizontal`) and `w32_judge_scroll_bars` (C 4661-4684) | file gate (`have_ntgui`); slice 13 below |
 | 4686-4915 | the two scroll-bar click handlers: `w32_scroll_bar_handle_click` (C 4686-4800) and `w32_horizontal_scroll_bar_handle_click` (C 4802-4915), each with its `SCROLLINFO` probe and its `SB_*` switch | file gate (`have_ntgui`); slice 14 below |
-| 4917-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4917-5128 | the two scroll-bar motion reports and the clearer: `w32_scroll_bar_report_motion` (C 4917-4965, the vertical report with its `SB_THUMBTRACK`/`SB_LINEDOWN` arms), `w32_horizontal_scroll_bar_report_motion` (C 4967-5016, the horizontal twin with `SB_LINERIGHT`) and `w32_scroll_bar_clear` (C 5019-5061), then the socket reader's five `static` objects (C 5063-5076), `mouse_or_wdesc_frame` (C 5078-5107) and C 5128's `menubar_selection_callback` declaration | file gate (`have_ntgui`); slice 15 below |
+| 5130-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1204,4 +1205,40 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **57 -> 54 rows** (48 -> **46** `missing function`: the round's two
      landed), two token rows added to the notes file (above), and the line-count row improves from
      18.9% to **14.9%** (7,162 vs 8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 15 (C 4917-5128)
+
+- **What it is.**  The two scroll-bar motion reports - `w32_scroll_bar_report_motion`
+  (C 4917-4965) and its horizontal twin `w32_horizontal_scroll_bar_report_motion` (C 4967-5016),
+  each the four display-info reads, the `GetScrollInfo` probe with its `SB_THUMBTRACK`/`SIF_*`
+  choice, the `scroll_bar_handle` store and the two `XSETINT`s - then `w32_scroll_bar_clear`
+  (C 5019-5061, the double-buffering guard and the `for` sweep over `FRAME_SCROLL_BARS`), the
+  socket reader's five `static` objects (C 5063-5076), `mouse_or_wdesc_frame` (C 5078-5107) and
+  C 5128's `menubar_selection_callback` declaration.  Port: 7162 -> **7456 lines** (+294).  The
+  table's last row splits at C 5128; the next live definition is C 5130's `w32_read_socket`.
+- **The two reports are already named by this unit's own text**: `w32_mouse_position` (C 3861-3970)
+  calls both at C 3875/3877, and Rust's item order resolves them, so this slice adds no forward
+  declaration (C's three `static` prototypes are dropped, PORTING.md 0.1-12, recorded in the
+  comment above C 3879's block).
+- **C's own integer conversion is stated where C writes it**: C 4950/5000's `si.nMax - si.nPage + 1`
+  mixes `int` (`nMax`) with `UINT` (`nPage`), and the port writes the narrow the C 4842 row above
+  uses - `si.nMax - si.nPage as c_int + 1`.
+- **`mouse_or_wdesc_frame` is the same function the X side has** (this unit's copy is C 5078-5107;
+  `src/xterm.rs` 29989 is its sibling): C's `?:` on `gui_mouse_grabbed` is an `if` expression, the
+  two `!EQ`-style tests keep C's order, and `FRAME_TOOLTIP_P`/`Qdropping` are the mirror's.  This
+  unit's copy has **one** test at C 5093 where the X one has two (no `Qdrag_source` clause).
+- **The five socket objects are C `static`**, so the port writes them without `pub` (the
+  `last_mousemove_x/y` shape); `temp_buffer` is C's `short[100]`, written `[c_short; 100]`.
+- **C 5128's declaration is kept as a declaration**: the socket reader calls
+  `menubar_selection_callback`, whose definition is `w32menu.c` 386's (ported at
+  `src/w32menu.rs` 1216), so the name stands at this use site in an `extern "C"` block (P-88 (1)).
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text** (the ten
+     unit anchors stay at `_root.rs` 1322-1561, owed 11; the other twelve are mirrors).
+  3. `extract-abi.py --check` -> **54 -> 46 rows**: `missing function` 46 -> **42** (the round's four
+     definitions), `missing file-scope object` 6 -> **1** (the five above; `w32_initialized`
+     remains), no new token row, and the line-count row improves from 14.9% to **11.4%**
+     (7,456 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.

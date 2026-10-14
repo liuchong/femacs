@@ -20253,3 +20253,11 @@
   ④ 十门全 `rc=0`、0 失败；区间表拆为 `4686-4915`（本片）+ `4917-8414`（余项）；台账追加 **`### Slice 14 (C 4686-4915)`**。
   ⑤ 预算与清理：`build-tu` 2 发、臂读数 3 发（含一次"未绑定名可行性"实验）、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w53`、`/tmp/w52e.rlib`、`/tmp/slice14.txt`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.320 `src/w32term.c` 第 15 片（w32term lane，slice 15）：C 4917-5128 落地——两个滚动条位移上报（`w32_scroll_bar_report_motion` C 4917-4965、`w32_horizontal_scroll_bar_report_motion` C 4967-5016）、`w32_scroll_bar_clear`（C 5019-5061）、socket 读取器的五个 `static` 对象（C 5063-5076）、`mouse_or_wdesc_frame`（C 5078-5107）与 C 5128 的 `menubar_selection_callback` 声明；w32term.rs 7,162 → 7,456 行（+294，2026-10-15）**：
+  ① 两个上报函数本单元自己的文本早就点名（`w32_mouse_position` 的 C 3875/3877），Rust 项目序即可解析，无需前置声明（C 的三条 `static` 原型按 PORTING.md 0.1-12 丢弃）。
+  ② **C 的整型转换照 C 的位置写**：C 4950/5000 的 `si.nMax - si.nPage + 1` 混 `int`/`UINT`，端口沿用 C 4842 行的窄化写法 `si.nMax - si.nPage as c_int + 1`。
+  ③ `mouse_or_wdesc_frame` 与 X 侧同形（`src/xterm.rs` 29989）：C 的 `?:` 写为 `if` 表达式，`FRAME_TOOLTIP_P`/`Qdropping` 走镜像；**本单元版本 C 5093 只有一条测试**（无 `Qdrag_source` 子句）。五个 socket 对象是 C `static`，故不带 `pub`，`temp_buffer` 写为 `[c_short; 100]`。C 5128 的声明按 P-88 ① 留在用例处（定义在 `src/w32menu.rs` 1216）。
+  ④ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本**（10 条单元锚点仍在 `_root.rs` 1322-1561，欠账 11；另 12 条在镜像）。`extract-abi.py --check`：**54 → 46 行**（`missing function` 46 → **42**，`missing file-scope object` 6 → **1**，余 `w32_initialized`），无新增 token 行；行数行 14.9% → **11.4%**（7,456 : 8,414）。
+  ⑤ 十门全 `rc=0`、0 失败；区间表拆为 `4917-5128`（本片）+ `5130-8414`（余项）；台账追加 **`### Slice 15 (C 4917-5128)`**。
+  ⑥ 预算与清理：`build-tu` 2 发、臂读数 2 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w15`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

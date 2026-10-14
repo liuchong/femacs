@@ -7159,4 +7159,298 @@ unsafe fn w32_horizontal_scroll_bar_handle_click (bar: *mut scroll_bar, msg: *mu
   }
 }
 
-/* C 4917-4922's comment and C 4926's `w32_scroll_bar_report_motion` open the next slice.  */
+
+/* C 4917-4918's banner comment, carried as C's own text at its position.  */
+/* C: /* Return information to the user about the current position of the mouse
+   C:    on the vertical scroll bar.  */  */
+
+/// C 4919-4965: `static void w32_scroll_bar_report_motion (struct frame **fp, Lisp_Object
+/// *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y, Time *time)` - C
+/// 4925's `FRAME_DISPLAY_INFO` read, C 4926's `last_mouse_scroll_bar`, C 4927's
+/// `SCROLL_BAR_W32_WINDOW`, C 4928's `XFRAME (WINDOW_FRAME (XWINDOW …))`, C 4929's `pos` and C
+/// 4930's `top_range` from `VERTICAL_SCROLL_BAR_TOP_RANGE`, C 4931's `SCROLLINFO` and C 4932's
+/// `LOWORD (…)` read; C 4934's `block_input`, C 4936-4937's two stores, C 4939-4943's
+/// `cbSize`/`fMask` choice, C 4945's `GetScrollInfo` with C 4946-4949's position choice and C
+/// 4950's range recompute, C 4952's `scroll_bar_handle` with C 4953-4954's `SB_LINEDOWN` step, C
+/// 4956-4957's two `XSETINT`s, C 4959-4960's flag clear and handle drop, C 4962's time store and
+/// C 4964's `unblock_input`.
+/// C: static void
+/// C: w32_scroll_bar_report_motion (struct frame **fp, Lisp_Object *bar_window,
+/// C: 			    enum scroll_bar_part *part,
+/// C: 			    Lisp_Object *x, Lisp_Object *y,
+/// C: 			    Time *time)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_scroll_bar_report_motion (fp: *mut *mut frame, bar_window: *mut Lisp_Object,
+					part: *mut scroll_bar_part, x: *mut Lisp_Object,
+					y: *mut Lisp_Object, time: *mut Time)
+{
+  let dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO! (*fp);      // C 4925
+  let bar: *mut scroll_bar = (*dpyinfo).last_mouse_scroll_bar;         // C 4926
+  let w: Window = SCROLL_BAR_W32_WINDOW! (bar);                        // C 4927
+  let f: *mut frame = XFRAME (WINDOW_FRAME (XWINDOW ((*bar).window)));  // C 4928
+  let mut pos: c_int;                                                  // C 4929
+  let mut top_range: c_int = VERTICAL_SCROLL_BAR_TOP_RANGE! (f, (*bar).height);   // C 4930
+  /* C declares the `SCROLLINFO` uninitialised and fills it below (PORTING.md 1.5).  */
+  let mut si: SCROLLINFO = core::mem::zeroed ();                       // C 4931
+  let sb_event: c_int = LOWORD! ((*dpyinfo).last_mouse_scroll_bar_pos) as c_int;   // C 4932
+
+  block_input ();                                                      // C 4934
+
+  *fp = f;                                                             // C 4936
+  *bar_window = (*bar).window;                                         // C 4937
+
+  si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;             // C 4939
+  if sb_event == SB_THUMBTRACK                                        // C 4940
+    { si.fMask = SIF_TRACKPOS | SIF_PAGE | SIF_RANGE; }               // C 4941
+  else
+    { si.fMask = SIF_POS | SIF_PAGE | SIF_RANGE; }                    // C 4943
+
+  GetScrollInfo (w, SB_CTL, &raw mut si);                              // C 4945
+  if sb_event == SB_THUMBTRACK                                        // C 4946
+    { pos = si.nTrackPos; }                                           // C 4947
+  else
+    { pos = si.nPos; }                                                // C 4949
+  top_range = si.nMax - si.nPage as c_int + 1;                         // C 4950
+
+  *part = scroll_bar_handle;                                           // C 4952
+  if sb_event == SB_LINEDOWN                                          // C 4953
+    { pos += 1; }                                                     // C 4954
+
+  XSETINT! (*x, pos as EMACS_INT);                                     // C 4956
+  XSETINT! (*y, top_range as EMACS_INT);                               // C 4957
+
+  frame_bits! (mouse_moved, f, false);                                 // C 4959
+  (*dpyinfo).last_mouse_scroll_bar = core::ptr::null_mut ();           // C 4960
+
+  *time = (*dpyinfo).last_mouse_movement_time;                         // C 4962
+
+  unblock_input ();                                                    // C 4964
+}
+
+/* C 4967-4968's banner comment, carried as C's own text at its position.  */
+/* C: /* Return information to the user about the current position of the mouse
+   C:    on the horizontal scroll bar.  */  */
+
+/// C 4969-5016: `static void w32_horizontal_scroll_bar_report_motion (struct frame **fp,
+/// Lisp_Object *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y,
+/// Time *time)` - the horizontal twin, line for line: C 4980's `left_range` from
+/// `HORIZONTAL_SCROLL_BAR_LEFT_RANGE`, C 5000's range recompute, C 5003's `SB_LINERIGHT` step and
+/// C 5006's blank line (C's own, carried), then C 5007-5008's two `XSETINT`s in C's `y`-then-`x`
+/// order.
+/// C: static void
+/// C: w32_horizontal_scroll_bar_report_motion (struct frame **fp, Lisp_Object *bar_window,
+/// C:                                          enum scroll_bar_part *part,
+/// C:                                          Lisp_Object *x, Lisp_Object *y,
+/// C:                                          Time *time)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_horizontal_scroll_bar_report_motion (fp: *mut *mut frame,
+						   bar_window: *mut Lisp_Object,
+						   part: *mut scroll_bar_part,
+						   x: *mut Lisp_Object, y: *mut Lisp_Object,
+						   time: *mut Time)
+{
+  let dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO! (*fp);      // C 4975
+  let bar: *mut scroll_bar = (*dpyinfo).last_mouse_scroll_bar;         // C 4976
+  let w: Window = SCROLL_BAR_W32_WINDOW! (bar);                        // C 4977
+  let f: *mut frame = XFRAME (WINDOW_FRAME (XWINDOW ((*bar).window)));  // C 4978
+  let mut pos: c_int;                                                  // C 4979
+  let mut left_range: c_int = HORIZONTAL_SCROLL_BAR_LEFT_RANGE! (f, (*bar).width);   // C 4980
+  /* C declares the `SCROLLINFO` uninitialised and fills it below (PORTING.md 1.5).  */
+  let mut si: SCROLLINFO = core::mem::zeroed ();                       // C 4981
+  let sb_event: c_int = LOWORD! ((*dpyinfo).last_mouse_scroll_bar_pos) as c_int;   // C 4982
+
+  block_input ();                                                      // C 4984
+
+  *fp = f;                                                             // C 4986
+  *bar_window = (*bar).window;                                         // C 4987
+
+  si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;             // C 4989
+  if sb_event == SB_THUMBTRACK                                        // C 4990
+    { si.fMask = SIF_TRACKPOS | SIF_PAGE | SIF_RANGE; }               // C 4991
+  else
+    { si.fMask = SIF_POS | SIF_PAGE | SIF_RANGE; }                    // C 4993
+
+  GetScrollInfo (w, SB_CTL, &raw mut si);                              // C 4995
+  if sb_event == SB_THUMBTRACK                                        // C 4996
+    { pos = si.nTrackPos; }                                           // C 4997
+  else
+    { pos = si.nPos; }                                                // C 4999
+  left_range = si.nMax - si.nPage as c_int + 1;                        // C 5000
+
+  *part = scroll_bar_handle;                                           // C 5002
+  if sb_event == SB_LINERIGHT                                         // C 5003
+    { pos += 1; }                                                     // C 5004
+
+  /* C 5006 is blank.  */
+
+  XSETINT! (*y, pos as EMACS_INT);                                     // C 5007
+  XSETINT! (*x, left_range as EMACS_INT);                              // C 5008
+
+  frame_bits! (mouse_moved, f, false);                                 // C 5010
+  (*dpyinfo).last_mouse_scroll_bar = core::ptr::null_mut ();           // C 5011
+
+  *time = (*dpyinfo).last_mouse_movement_time;                         // C 5013
+
+  unblock_input ();                                                    // C 5015
+}
+
+/* C 5019-5022's banner comment, carried as C's own text at its position.  */
+/* C: /* The screen has been cleared so we may have changed foreground or
+   C:    background colors, and the scroll bars may need to be redrawn.
+   C:    Clear out the scroll bars, and ask for expose events, so we can
+   C:    redraw them.  */  */
+
+/// C 5023-5061: `static void w32_scroll_bar_clear (struct frame *f)` - C 5027's `bar`, C
+/// 5029-5035's double-buffering guard (C 5034's `want_paint_buffer` bit read the
+/// `src/w32xfns.rs` 639 way, from the C 207-208 pair it copies), C 5037-5041's scroll-bar-kind
+/// guard and C 5042-5060's `for` sweep (C 5045-5047's window/DC/`RECT`, C 5049-5051's hide, C
+/// 5053-5057's client rect, palette and clear, C 5059's `ReleaseDC`), with C's increment clause
+/// written at the loop's end (`w32_window_to_scroll_bar`'s shape above).
+/// C: static void
+/// C: w32_scroll_bar_clear (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_scroll_bar_clear (f: *mut frame)
+{
+  let mut bar: Lisp_Object;                                           // C 5027
+
+  /* Return if double buffering is enabled, since clearing a frame
+     actually clears just the back buffer, so avoid clearing all of
+     the scroll bars, since that causes the scroll bars to
+     flicker.  */
+  if !w32_disable_double_buffering                                    // C 5033
+    && w32_output_bits! (want_paint_buffer, FRAME_OUTPUT_DATA! (f)) != 0   // C 5034
+    { return; }                                                       // C 5035
+
+  /* We can have scroll bars even if this is 0,
+     if we just turned off scroll bar mode.
+     But in that case we should not clear them.  */
+  if FRAME_HAS_VERTICAL_SCROLL_BARS (f) != 0                          // C 5040
+    || FRAME_HAS_HORIZONTAL_SCROLL_BARS (f) != 0                      // C 5041
+    {
+      bar = FRAME_SCROLL_BARS (f);                                    // C 5042
+      while VECTORP (bar)                                             // C 5043
+	{
+	  let window: HWND = SCROLL_BAR_W32_WINDOW! (XSCROLL_BAR! (bar));   // C 5045
+	  let hdc: HDC = GetDC (window);                                // C 5046
+	  /* C declares the `RECT` uninitialised and fills it with `GetClientRect`
+	     (PORTING.md 1.5).  */
+	  let mut rect: RECT = core::mem::zeroed ();                    // C 5047
+
+	  /* Hide scroll bar until ready to repaint.  x_scroll_bar_move
+	     arranges to refresh the scroll bar if hidden.  */
+	  my_show_window (f, window, SW_HIDE);                          // C 5051
+
+	  GetClientRect (window, &raw mut rect);                        // C 5053
+	  select_palette (f, hdc);                                      // C 5054
+	  w32_clear_rect! (f, hdc, &raw mut rect);                      // C 5055
+	  w32_clear_under_internal_border (f);                          // C 5056
+	  deselect_palette (f, hdc);                                    // C 5057
+
+	  ReleaseDC (window, hdc);                                      // C 5059
+
+	  bar = (*XSCROLL_BAR! (bar)).next;                             // C 5043
+	}
+    }
+}
+
+/* C 5063-5076: the socket reader's banner and buffer comments with the five `static` objects C
+   5068-5076 declares for it, carried as C's own text at their positions.  All five are C
+   `static`, so the port writes them without `pub` (the `last_mousemove_x/y` shape above).  */
+/* C: /* The main W32 event-reading loop - w32_read_socket.  */
+   C:
+   C: /* Record the last 100 characters stored
+   C:    to help debug the loss-of-chars-during-GC problem.  */
+   C:
+   C: /* Temporarily store lead byte of DBCS input sequences.  */
+   C:
+   C: /* Temporarily store pending UTF-16 high surrogate unit and the modifiers.  */  */
+/// C: static int temp_index;
+/// C: static short temp_buffer[100];
+/// C: static char dbcs_lead = 0;
+/// C: static unsigned short utf16_high;
+/// C: static DWORD utf16_high_modifiers;
+#[cfg (feature = "have_ntgui")]
+static mut temp_index: c_int = 0;
+#[cfg (feature = "have_ntgui")]
+static mut temp_buffer: [c_short; 100] = [0; 100];
+#[cfg (feature = "have_ntgui")]
+static mut dbcs_lead: c_char = 0;
+#[cfg (feature = "have_ntgui")]
+static mut utf16_high: c_ushort = 0;
+#[cfg (feature = "have_ntgui")]
+static mut utf16_high_modifiers: DWORD = 0;
+
+/* C 5078-5085's doxygen comment, carried as C's own text at its position.  */
+/* C: /**
+   C:   mouse_or_wdesc_frame: When not dropping and the mouse was grabbed
+   C:   for DPYINFO, return the frame where the mouse was seen last.  If
+   C:   there's no such frame, return the frame according to WDESC.  When
+   C:   dropping, return the frame according to WDESC.  If there's no such
+   C:   frame and the mouse was grabbed for DPYINFO, return the frame where
+   C:   the mouse was seen last.  In either case, never return a tooltip
+   C:   frame.  */  */
+
+/// C 5086-5107: `static struct frame *mouse_or_wdesc_frame (struct w32_display_info *dpyinfo,
+/// HWND wdesc)` - C 5089-5091's `gui_mouse_grabbed`/`last_mouse_frame` ternary (an `if`
+/// expression), C 5093's drop test, C 5097's `w32_window_to_frame`, C 5100's tooltip guard with C
+/// 5101's ternary and C 5105's answer.  C's `static`, so a plain `unsafe fn`; the rendering is
+/// `src/xterm.rs` 29989's copy of the X-side function of the same shape (which names its own
+/// `src/androidterm.rs` 768-790 sibling), minus the reference's `Qdrag_source` clause, which its
+/// version of C 5093 does not have.
+/// C: static struct frame *
+/// C: mouse_or_wdesc_frame (struct w32_display_info *dpyinfo, HWND wdesc)
+#[cfg (feature = "have_ntgui")]
+unsafe fn mouse_or_wdesc_frame (dpyinfo: *mut w32_display_info, wdesc: HWND) -> *mut frame
+{
+  let lm_f: *mut frame = if gui_mouse_grabbed (dpyinfo)              // C 5089-5091
+    { (*dpyinfo).last_mouse_frame } else { core::ptr::null_mut () };
+
+  if !lm_f.is_null () && !EQ (track_mouse, Qdropping ())               // C 5093
+    { return lm_f; }                                                   // C 5094
+  else
+    {
+      let w_f: *mut frame = w32_window_to_frame (dpyinfo, wdesc);      // C 5097
+
+      /* Do not return a tooltip frame.  */
+      if w_f.is_null () || FRAME_TOOLTIP_P (w_f)                       // C 5100
+	{ return if EQ (track_mouse, Qdropping ()) { lm_f } else { core::ptr::null_mut () }; }   // C 5101
+      else
+	/* When dropping it would be probably nice to raise w_f
+	   here.  */
+	{ return w_f; }                                                // C 5105
+    }
+}
+
+/* C 5109-5126's comment on the socket reader's repost discipline, carried as C's own text at its
+   position.  */
+/* C: /* Read events coming from the W32 shell.
+   C:    This routine is called by the SIGIO handler.
+   C:    We return as soon as there are no more events to be read.
+   C:
+   C:    For an overview of how Emacs input works on MS-Windows, see the
+   C:    commentary before w32_msg_pump in w32fns.c.
+   C:
+   C:    We return the number of characters stored into the buffer,
+   C:    thus pretending to be `read'.
+   C:
+   C:    Some of these messages are reposted back to the message queue since the
+   C:    system calls the windows proc directly in a context where we cannot return
+   C:    the data nor can we guarantee the state we are in.  So if we dispatch them
+   C:    we will get into an infinite loop.  To prevent this from ever happening we
+   C:    will set a variable to indicate we are in the read_socket call and indicate
+   C:    which message we are processing since the windows proc gets called
+   C:    recursively with different messages by the system.
+   C: */  */
+
+/// C 5128: `extern void menubar_selection_callback (struct frame *, void *);` - the socket
+/// reader's own forward declaration, so the port carries it as a declaration at the use site
+/// (P-88 (1)); C's definition is `w32menu.c` 386's, ported at `src/w32menu.rs` 1216 (whose own
+/// comment keeps C's text and drops the declaration per PORTING.md 0.1-12).
+/// C: extern void menubar_selection_callback (struct frame *, void *);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn menubar_selection_callback (f: *mut frame, client_data: *mut c_void);
+}
+
+/* C 5130-5131's `static int w32_read_socket (struct terminal *terminal, struct input_event
+   *hold_quit)` opens the next slice.  */
