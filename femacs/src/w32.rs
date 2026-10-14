@@ -11258,21 +11258,6 @@ unsafe extern "system" {
   pub fn FreeLibrary (hLibModule: HMODULE) -> BOOL;
 }
 
-/// C 7852-7854: `#define LOAD_PROC(fn) if ((pfn_##fn = (void *) get_proc_addr (winsock_lib,
-/// #fn)) == NULL) goto fail;` - `do { … } while` is a block expression (PORTING.md 2.1), and C's
-/// `##fn`/`#fn` token pasting has no Rust spelling, so the call sites pass the pasted field (the
-/// `LOAD_DLL_FN!` device of `decompress.rs` 237, whose doc comment records the same rule).  C's
-/// `goto fail` is `break 'fail` - the label's block is `init_winsock`'s own below.
-#[cfg (feature = "windowsnt")]
-macro_rules! LOAD_PROC {
-  ($label:lifetime, $pfn:ident, $name:expr) => {
-    {
-      $pfn = std::mem::transmute::<VOIDFNPTR, _> (get_proc_addr (winsock_lib, $name.as_ptr ()));
-      if $pfn.is_none () { break $label; }
-    }
-  };
-}
-
 /* C 7808-7809's `extern`-then-define pair is one item (PORTING.md 0.1-12), and C spells the
    definition without `static`, so it is exported.  */
 /// C: HANDLE winsock_lib;  (C 7808's `extern` + C 7809's definition)
@@ -11328,6 +11313,22 @@ pub unsafe extern "C" fn init_winsock (load_now: c_int) -> BOOL         // C 783
   if ! winsock_lib.is_null ()                                           // C 7848 (C's `!= NULL`)
     {                                                                   // C 7849
       /* dynamically link to socket functions  */                       // C 7850
+
+/// C 7852-7854: `#define LOAD_PROC(fn) if ((pfn_##fn = (void *) get_proc_addr (winsock_lib,
+/// #fn)) == NULL) goto fail;` - `do { … } while` is a block expression (PORTING.md 2.1), and C's
+/// `##fn`/`#fn` token pasting has no Rust spelling, so the call sites pass the pasted field (the
+/// `LOAD_DLL_FN!` device of `decompress.rs` 237, whose doc comment records the same rule).  C's
+/// `goto fail` is `break 'fail` - the label's block is `init_winsock`'s own below.
+#[cfg (feature = "windowsnt")]
+macro_rules! LOAD_PROC {
+  ($label:lifetime, $pfn:ident, $name:expr) => {
+    {
+      $pfn = std::mem::transmute::<VOIDFNPTR, _> (get_proc_addr (winsock_lib, $name.as_ptr ()));
+      if $pfn.is_none () { break $label; }
+    }
+  };
+}
+
 
       /* C 7856-7886's thirty `LOAD_PROC` invocations - each passes the pasted `pfn_##fn` field
 	 and C's `#fn` string, and `break 'fail` stands in for the macro's `goto fail`.  The block

@@ -20156,3 +20156,11 @@
   ⑤ **读数方式纠正（写给后续 lane）**：证据 ④ 必须引用 `--check` 的**判定行**，不能只数 `- missing` 行——docstring/常量/宏体/多余符号这类行只出现在 FAIL 明细里，`- missing` 计数看不到。全树 `--all` 现状即：**590 文件 → 583 done / 0 in progress / 7 failing**，7 个 failing 为 `src/android.c`、`src/androidterm.c`、`src/androidvfs.c`、`src/gtkutil.c`、`src/w32.c`、`src/w32proc.c`（本片已修，待下次 `--all` 复测）、`src/w32term.c`。
   ⑥ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 28 (…, status 4.307): the DEFUN! doc-slot correction`** 段（偏差 101）；预算与清理：`build-tu` 1 发、`probe` 1 发、`--check` 4 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w43`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 记录/常量仍 UNVERIFIED。**下一目标**（按剩余量排序）：`src/w32term.c`（91 个缺函数 + 6 个文件级对象）、`src/gtkutil.c`、`src/android*.c`，以及 `src/w32.c` 的 1 条 token 行（`null` 家族 9:8）。
+
+- **4.308 `src/w32.c`（w32 lane）：`LOAD_PROC` 宏归位，文件最后一条 `--check` 行清零——`python3 tools/extract-abi.py --check emacs/src/w32.c femacs/src/w32.rs` → `OK`（本文件首次整体通过）**：
+  ① 该行是"family null: C 用 9 次、端口 8 次"，属 `init_winsock`（C 7834-7927）一个函数体：C 7852 的 `#define LOAD_PROC` 带两个续行（C 7853-7854 内含 `== NULL`），工具只丢以 `#` *开头* 的行，故这两次算在函数体内；端口把 `macro_rules! LOAD_PROC` 摆在模块作用域（函数之外），其 `is_none ()` 不在函数体内 → 少 1。
+  ② 修法按一比一：C 在 `init_winsock` *内部* 定义该宏并在 C 7887 `#undef`，31 处调用全在该函数内；端口把宏定义移到同一位置（C 7850 "dynamically link to socket functions" 注释之下），`macro_rules!` 在函数体内合法、文本作用域覆盖其后三十处调用，宏体里的 `winsock_lib`/`get_proc_addr` 仍在展开点解析。
+  ③ 读数：`--check` → **OK**（family 行与行数行均不再报，后者在该文件容差行内）；`build-tu src/w32.c` exit 0、对象 **336 字节**；**十门全 `rc=0`、0 失败**。
+  ④ 台账：`docs/ports/w32.md` 追加 Evidence 段 **"The `LOAD_PROC` placement closes the file's last `--check` row"**，并就地修订偏差（宏位置）与 Owed 尾段（该 standing 行结清，余下只剩测量类 Owed）。
+  ⑤ 全树 `--all` 口径：7 个 failing 里 **`src/w32.c` 与 `src/w32proc.c` 均已清除**，余 `src/android.c`、`src/androidterm.c`、`src/androidvfs.c`、`src/gtkutil.c`、`src/w32term.c`（下次 `--all` 复测为准）。
+  ⑥ 预算与清理：`build-tu` 1 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w43`、`build/probes` 与 `build/femacs`。
