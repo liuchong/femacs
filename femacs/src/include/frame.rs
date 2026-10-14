@@ -170,11 +170,17 @@ pub struct frame
   pub desired_tab_bar_string: Lisp_Object,                 // 257
   #[cfg (feature = "have_window_system")]
   pub current_tab_bar_string: Lisp_Object,                 // 258
-  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
+/* C 261's guard is `defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)` - the ledger
+   table below (`docs/ports/include-frame.md` 484) states it that way, and `HAVE_EXT_TOOL_BAR` is
+   `lisp.h` 3938's, defined only for GTK/NS - so these four fields are live in the `have_ntgui` arm
+   too: the extra clause the cfg used to carry made `src/w32term.rs` 5268/5553/5573/6256's reads of
+   them `E0609` (measured in that lane's slice 16: seven rows).  The three flags C 355-363 guards the
+   same way keep the old clause for now, because they sit inside the refused flag run.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
   pub tool_bar_window: Lisp_Object,                        // 263
-  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
   pub desired_tool_bar_string: Lisp_Object,                // 266
-  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
   pub current_tool_bar_string: Lisp_Object,                // 267
   pub tool_bar_position: Lisp_Object,
   #[cfg (any (feature = "have_xft", feature = "have_freetype"))]
@@ -186,7 +192,7 @@ pub struct frame
   pub image_cache: *mut c_void,   /// C: `struct image_cache *image_cache` (frame.h 290-292)
   pub id: EMACS_UINT,
   pub last_tab_bar_item: c_int,
-  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
   pub last_tool_bar_item: c_int,                           // 303
   pub menu_bar_items_used: c_int,
   #[cfg (any (feature = "use_x_toolkit", feature = "have_ntgui"))]

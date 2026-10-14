@@ -459,3 +459,24 @@ Owed 4's.
 `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
 `docs/ports/w32term.md`'s `### Slice 8 (C 3631-3763)`.
+
+## `w32_output`'s `asked_for_visible` joins the packed word (2026-10-15, w32term slice 16)
+
+**The measurement.**  `src/w32term.c` 5190 reads `f->output_data.w32->asked_for_visible`, and the
+mirror recorded C 394/397/400's three bitfields (`explicit_parent`, `asked_for_visible`,
+`menubar_active`) as **text only**, so the reading gave `E0609: no field \`asked_for_visible\` on
+type \`w32_output\`` - the same missing-member class the two `paint_buffer` bits had before they
+were packed.
+
+**The change.**  C 397's member is the *third* bit of the same `bits` word the record already
+carries for C 436/439 (`W32_OUTPUT_ASKED_FOR_VISIBLE_BIT`, `1 << 2`, with the two
+`w32_output_bits! (asked_for_visible, …)` arms).  Adding a bit to a word that already stands
+changes no offset; C 378/394/400's other three stay recorded-only.  C 7517/7538 read the same
+member in later slices.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w50/x.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **22 errors, 0 anchored
+in the unit's text** (the row above is gone, the standing count unchanged);
+`python3 tools/check-mirror-dupes.py` -> 0 failure(s); `python3 tools/check-declarations.py` -> 0
+failure(s).  The unit-side readings are `docs/ports/w32term.md`'s `### Slice 16 (C 5130-6458)`.

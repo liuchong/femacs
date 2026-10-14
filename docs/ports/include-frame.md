@@ -859,3 +859,26 @@ readings.  What the arms need is the shape decision this ledger already records 
 `error[E0308]: mismatched types`, whose note says expected `*mut frame` and found `*mut c_void`, at this macro's `note_mouse_highlight` line - reached through `FRAME_MOUSE_UPDATE! (f)` in a unit that expands it.  The cast is now spelled exactly as the comparison above does (`…mouse_face_mouse_frame } as *mut frame`), which is C's own type written back - the member is untyped only because five units include the `Mouse_HLInfo` record without frame.h.
 
 Measured on this revision, all four xterm arms (A `have_x_windows`, B `+have_gtk3+use_gtk`, C `+have_xinput2`, X `+have_xinput2_4`): the E0308 class reads **13** in A/B and **13** in C/X - the same counts as before the change, i.e. the cast removed exactly the one error the declaration had exposed - and `tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)` + `checking 83 unit(s), 0 unit failure(s)`, the two legs P-87 ① asks for when a mirror changes.
+
+## C 261/301's four tool-bar fields are not gated on `HAVE_NTGUI` (2026-10-15, w32term slice 16)
+
+**The measurement.**  `src/w32term.rs` 5268/5553/5573/6256 read `f->tool_bar_window` and
+`f->last_tool_bar_item` (C 5268/5553/5573/6256's own text), and the reading gave **seven `E0609:
+no field \`tool_bar_window\`/\`last_tool_bar_item\` on type \`frame\`** rows: the mirror's cfg for
+those four fields carried `not (feature = "have_ntgui")`, which C 261/301's
+`#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)` does not have - and
+`HAVE_EXT_TOOL_BAR` is `lisp.h` 3938's, defined only for GTK and NS, never for the Windows build.
+The table above (line 484) states the guard the same way C does, so the code had drifted from its
+own ledger.
+
+**The change.**  The four declarations (`tool_bar_window` 263, `desired_tool_bar_string` 266,
+`current_tool_bar_string` 267, `last_tool_bar_item` 303) lose the clause.  The three flags C
+355-363 guards the same way (`minimize_tool_bar_window_p`, `tool_bar_wraps_p`, and the
+`have_ext_menu_bar`-gated pair above them) keep theirs for now: they sit inside the flag run this
+mirror **refuses** for `have_ntgui` (the `compile_error!` that says the arm is unmeasured), so
+moving them is part of measuring that arm, not of this round.
+
+**Evidence.**  The seven `E0609` rows above are gone from the arm reading and the count is back to
+**22** (`docs/ports/w32term.md`'s `### Slice 16 (C 5130-6458)` Evidence 2); no new error appears
+anywhere in the graph; `python3 tools/check-mirror-dupes.py` and `tools/check-declarations.py` ->
+0 failure(s) each.

@@ -20261,3 +20261,13 @@
   ⑤ 十门全 `rc=0`、0 失败；区间表拆为 `4917-5128`（本片）+ `5130-8414`（余项）；台账追加 **`### Slice 15 (C 4917-5128)`**。
   ⑥ 预算与清理：`build-tu` 2 发、臂读数 2 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w15`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.320 `src/w32term.c` 第 16 片（w32term lane，slice 16）：C 5130-6458 落地——整个 socket 读取器 `w32_read_socket`（25 个 `switch` 臂：C 5169 `WM_EMACS_PAINT` … C 6122 `WM_TOUCHMOVE`、C 6344 `default:`，加 `#if HAVE_W32NOTIFY` 臂、`goto touch_located` 触点循环、autoraise 与 `FOR_EACH_FRAME` 可见性扫查）；w32term.rs 7,456 → 9,057 行（+1,597，2026-10-15）**：
+  ① C 的 `switch` 成为带标签的 `'dispatch` 块、臂中 `break` 写作 `break 'dispatch`；C 两处 `goto touch_located` 是前向跳进本体的标号站，故站前文本是标号块，而 Rust 禁止标号块里的 `continue` 指向块外循环（**实测 E0695 三条**），于是 C 的 `for` 头上加了 C 自己不需要的标签、三处 `continue` 写作 `continue 'touch_points`；C 的 `for` 在 `continue` 时也执行更新，故 `while` 在**两处**都写 C 自己的 `i += 1`（PORTING.md 2.2 的 `fringe.rs` 形状），含两处内层 `for (x = 0; …)`。
+  ② 照 C 原文携带的死文本：C 5157-5159 的注释掉的 `DebPrint`、C 5490-5499 的 `#if 0`/`#else`（`#else` 才是编译的那支）、C 5809-5817 的 `#if 0`、C 6113-6125 的 `#if 0` 与 `#ifdef WM_TOUCHMOVE`/`#else`（两个标签同值 576，故活标签用本文件自己的名字）。用例处新增 22 个 `WM_*`、`SPI_SETWHEELSCROLLLINES`、三个 `SIZE_*`、四个 SDK 入口与十二个参照函数声明（P-88 ①，SDK 记录 UNVERIFIED）；`countof` 按 C 23 的 `lisp.h` 路径 `include!` 进本单元。
+  ③ **两个未落地函数被调用**：`w32fullscreen_hook`（C 5774/6064，定义在 C 7067-7146）与 `w32_raise_frame`（C 6405，定义在 C 7407-7470）；Rust 文件级解析，等那两片落地即绑定（slice 9 → 15 的同一形状），并已用机械扫描证明本片**只有这两个名字**没有声明。
+  ④ **重要发现（读数盲区，已实测）**：基础配置下 crate 的**早期**名字解析已失败（两条 `E0428`、frame 旗标运行的 `compile_error!`、四条 SDK 类型 `E0425`），于是**值名解析被跳过**——往 materialized 图的 `/tmp` 副本注入三种错（调用不存在的名字、给 `note_mouse_highlight` 传四个实参、删掉一个语句的 `;`）**均不产生行**，而同块里的**类型**错误会报。故本 lane 的「0 条落在本片」应读作「**0 条类型错误**」，名字面另以机械扫描核验（C 3445-3624 那次扫描的方法，覆盖本片全文）。
+  ⑤ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片**（首稿的 7 条 `E0609` 是镜像 guard，见 ⑥）。`extract-abi.py --check`：**46 → 45 行**（`missing function` 42 → **41**）；行数行 11.4% → **7.6%**（9,057 : 8,414）。
+  ⑥ 本片逼出**两处镜像修正**（各自台账已记）：`include/w32term.rs` 把 C 397 的 `asked_for_visible` 并入 `w32_output` 的 `bits` 字（`docs/ports/include-w32term.md`）；`include/frame.rs` 的四个 tool-bar 字段去掉 C 261/301 从未有的 `not (have_ntgui)` 子句（`docs/ports/include-frame.md`，其台账 484 行本就写着 C 的 guard）。
+  ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `5130-6458`（本片）+ `6460-8414`（余项）；台账追加 **`### Slice 16 (C 5130-6458)`**，`macro-body-notes.tsv` 追加 `w32_read_socket` 与 `w32_scroll_bar_clear` 两行。
+  ⑧ 预算与清理：`build-tu` 2 发、臂读数 5 发（含 3 次注入实验与 4 次修正后复测）、`--check` 1 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w16`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED；`have_ntgui` 臂的 `struct frame` 旗标运行仍未被镜像建模（C 355-363 的三个旗标留待那次测量）。

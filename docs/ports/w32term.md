@@ -193,7 +193,8 @@ The `arm` cell says what the port does with the block.
 | 4538-4684 | the three scroll-bar hooks: C 4539-4545's comment, `w32_condemn_scroll_bars` (C 4551-4571), `w32_redeem_scroll_bar` (C 4577-4656, with C 4599's `goto horizontal`) and `w32_judge_scroll_bars` (C 4661-4684) | file gate (`have_ntgui`); slice 13 below |
 | 4686-4915 | the two scroll-bar click handlers: `w32_scroll_bar_handle_click` (C 4686-4800) and `w32_horizontal_scroll_bar_handle_click` (C 4802-4915), each with its `SCROLLINFO` probe and its `SB_*` switch | file gate (`have_ntgui`); slice 14 below |
 | 4917-5128 | the two scroll-bar motion reports and the clearer: `w32_scroll_bar_report_motion` (C 4917-4965, the vertical report with its `SB_THUMBTRACK`/`SB_LINEDOWN` arms), `w32_horizontal_scroll_bar_report_motion` (C 4967-5016, the horizontal twin with `SB_LINERIGHT`) and `w32_scroll_bar_clear` (C 5019-5061), then the socket reader's five `static` objects (C 5063-5076), `mouse_or_wdesc_frame` (C 5078-5107) and C 5128's `menubar_selection_callback` declaration | file gate (`have_ntgui`); slice 15 below |
-| 5130-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 5130-6458 | `w32_read_socket` (C 5130-6458): the socket reader's locals, the `while get_next_msg` body with its twenty-five-arm `switch (msg.msg.message)` (C 5169 `WM_EMACS_PAINT` ... C 6344's `default:`), the `#if HAVE_W32NOTIFY` arm, the `WM_TOUCHMOVE`/`WM_TOUCH` pair with its `goto touch_located` and touch-point loop, the autoraise block and the `FOR_EACH_FRAME` visibility sweep | file gate (`have_ntgui`), with the one `have_w32notify` arm; slice 16 below |
+| 6460-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1241,4 +1242,73 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
      definitions), `missing file-scope object` 6 -> **1** (the five above; `w32_initialized`
      remains), no new token row, and the line-count row improves from 14.9% to **11.4%**
      (7,456 vs 8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 16 (C 5130-6458)
+
+- **What it is.**  The whole socket reader: `static int w32_read_socket (struct terminal *terminal,
+  struct input_event *hold_quit)` - C 5134-5139's locals, C 5141's `block_input`, C 5144's
+  `drain_message_queue`, C 5147-6399's `while (get_next_msg (&msg, FALSE))` body with the
+  `switch (msg.msg.message)` over **twenty-five arms** (C 5169 `WM_EMACS_PAINT` through C 6122
+  `WM_TOUCHMOVE`, C 6344's `default:`), C 6403-6407's autoraise, C 6409-6454's `FOR_EACH_FRAME`
+  visibility sweep and C 6456-6457's answer.  Port: 7,456 -> **9,057 lines** (+1,597).  The table's
+  last row splits at C 6458; the next live definition is C 6473's `w32_clip_to_row`.
+- **C's `switch` is the labelled `'dispatch` block and C's mid-arm `break`s are `break
+  'dispatch`** (PORTING.md 2.2): C 5335/5366/5374/5384/5395 (the `WM_CHAR`/DBCS exits), C 5432
+  (`WM_MOUSEMOVE`'s non-movement test), C 5669/5687 (the DND guards), C 6089 (the duplicate
+  monitor event) and C 6131 (no touch entry point).  `WM_SETFOCUS`/`WM_KILLFOCUS` are the mirror's
+  `UINT` constants, so those two arms are guards over C's own tokens with the scrutinee's cast.
+- **C's two `goto touch_located` are a forward jump into the body's own station**, so the text
+  between the arm's head and C 6191 is a labelled block (`break 'touch_located`) - and because a
+  Rust `continue` inside a labelled block may not target a loop outside it (`E0695`, **measured**:
+  three rows), C's `for` loop carries the label C's `for` does not need and its three
+  `continue`s are `continue 'touch_points`.  C's `for` performs its update on `continue`, so the
+  port's `while` writes C's own `i += 1`/`++i` at both sites (PORTING.md 2.2's `fringe.rs` shape) -
+  including the two inner `for (x = 0; ...)` scans.  C 6136's `int x UNINIT` is `= {0,}` in
+  conf_post.h 369, so the port zeroes it, and C 6139's bare `alloca` is the stack pool (P-05).
+- **Carried as C's own text**: C 5157-5159's commented-out `DebPrint` preamble, C 5490-5499's
+  `#if 0`/`#else` pair (the `#else` is what compiles), C 5809-5817's `#if 0` block and C 6113-6125's
+  dead `#if 0` with the `#ifdef WM_TOUCHMOVE`/`#else` pair whose two labels are the same number
+  (this file's `WM_TOUCHMOVE` is 576 and `<winuser.h>`'s `WM_TOUCH` is 0x0240 = 576), so the live
+  label is the file's own name.  C 6105-6111's `#if HAVE_W32NOTIFY` arm carries `have_w32notify`.
+- **The names this slice adds stand at the use site** (P-88 (1)), the SDK records UNVERIFIED: the
+  twenty-two `WM_*` values the file does not already carry, `SPI_SETWHEELSCROLLLINES`, the three
+  `SIZE_*`, `GetWindowDC`/`GetClipBox`/`MultiByteToWideChar`/`IsDBCSLeadByteEx`, and the six
+  reference functions no mirror in this unit's graph declares (`store_frame_param`,
+  `frame_ancestor_p`, `cancel_mouse_face`, `gui_redo_mouse_highlight`, `gen_help_event`,
+  `w32_process_dnd_data`, `expose_frame`, `clear_mouse_face`, `change_frame_size`,
+  `get_frame_param`, `gui_set_fullscreen`, `note_mouse_highlight`).  `countof` is reached the way C
+  23's `lisp.h` reaches it (`include!("../lib/include/stdcountof.rs")`, the `src/cm.rs` 33 shape).
+- **Three event kinds the mirror does not carry** are declared here with the value their own
+  configuration gives (`LANGUAGE_CHANGE_EVENT` 8, `END_SESSION_EVENT` 14, `MULTIMEDIA_KEY_EVENT` 28)
+  - the `dbusbind.rs` 572 `DBUS_EVENT` shape, owed below.
+- **Two calls name functions whose definitions are later C ranges**: `w32fullscreen_hook`
+  (C 5774/6064; defined at C 7067-7146) and `w32_raise_frame` (C 6405; defined at C 7407-7470), both
+  still uncarried.  Rust resolves items file-wide, so they bind once those slices land - the
+  slice-9 -> slice-15 pair (`w32_mouse_position`'s two report calls) is the same shape.  **They are
+  the only names in this slice with no declaration** (the mechanical sweep below).
+- **The arm reading cannot see this class, and that is now measured.**  In the base configuration
+  the crate's *early* resolution is already failed (two `E0428`s, the frame flag-run
+  `compile_error!` and four `E0425`s for SDK types), so value-name resolution is skipped: three
+  injections into a `/tmp` copy of the materialized graph - a call to a name defined nowhere, a
+  four-argument call to `note_mouse_highlight`, and deleting a statement's `;` - each produced **no
+  row**, while a *type* error in the same block did (the `src/w32fns.rs` lane's clean harness, where
+  one injected name gave exactly one row, is what an error-free graph gives).  The lane's "0
+  anchored" reading therefore means **0 type errors**, and the slice's name surface is verified
+  mechanically instead: every function/macro name called in C 5130-6458 has a declaration in the
+  unit or its include graph, except the two above (the C 3445-3624 sweep's method, re-run over this
+  slice's text).
+- **Two mirror fixes this slice forced** (both recorded in their own ledgers): `include/w32term.rs`
+  gains C 397's `asked_for_visible` as the third packed bit of `w32_output`'s `bits` word (with its
+  two `w32_output_bits!` arms - `docs/ports/include-w32term.md`), and `include/frame.rs`'s
+  `tool_bar_window`/`desired_tool_bar_string`/`current_tool_bar_string`/`last_tool_bar_item` lose
+  the `not (have_ntgui)` clause their C 261/301 guards never had (`docs/ports/include-frame.md`).
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text** (the same
+     twenty-two as slices 1-15; the seven `E0609` rows the first draft had were the frame mirror's
+     guard, above).
+  3. `extract-abi.py --check` -> **46 -> 45 rows** (`missing function` 42 -> **41**: this slice's one
+     definition; `missing file-scope object` stays 1, `LOAD_PROC` stays) and the line-count row
+     improves from 11.4% to **7.6%** (9,057 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.

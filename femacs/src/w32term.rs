@@ -4857,6 +4857,9 @@ unsafe extern "C" {
 /// C: enum input_event_kind kind : 16; unsigned part : 16;   (termhooks.h 377-378)
 #[cfg (feature = "have_ntgui")]
 macro_rules! input_event_bits {
+  /* The read arm slice 16's `w32_read_socket` needs - C 6355/6362 compare the field and C 6085
+     reads a queued event's - which is `src/keyboard.rs` 4063's copy of the same pair.  */
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
   (kind, $e:expr, $v:expr) => {
     (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK)
       | (($v) as u32 & INPUT_EVENT_KIND_MASK); };
@@ -7454,3 +7457,1601 @@ unsafe extern "C" {
 
 /* C 5130-5131's `static int w32_read_socket (struct terminal *terminal, struct input_event
    *hold_quit)` opens the next slice.  */
+
+/* C 5274/5300/5415 use `countof`, which C 23's `lisp.h` (28) reaches through
+   `<stdcountof.h>`; the mirror chain this unit includes does not carry it, so the unit includes the
+   mirror where C reaches it (the `src/cm.rs` 33 shape).  */
+#[cfg (feature = "have_ntgui")]
+include!("../lib/include/stdcountof.rs");       // lisp.h 28: `#include <stdcountof.h>` (`countof`)
+
+/* dispextern.h 3019-3023's three `bool_bf : 1` members of `struct Mouse_HLInfo` are the mirror's
+   single `bits` byte with three masks, so `hlinfo->mouse_face_hidden` is a pack access - the
+   `src/xterm.rs` 31041 `mouse_face_hidden!` pair, brought to this unit because C 5266/5292 read it
+   and C 5271/5297 write it.  */
+#[cfg (feature = "have_ntgui")]
+macro_rules! mouse_face_hidden {
+  ($h:expr) => { (*$h).bits & MOUSE_FACE_HIDDEN != 0 };
+  ($h:expr, $v:expr) => {
+    (*$h).bits = if ($v) as c_int != 0 { (*$h).bits | MOUSE_FACE_HIDDEN }
+		 else { (*$h).bits & ! MOUSE_FACE_HIDDEN } };
+}
+
+/* frame.h 460's `ENUM_BF (fullscreen_type) want_fullscreen : 4;` is one of the flag run's packed
+   fields (arm A's word 2, bits 0-3 - `docs/baseline/frame-bits.tsv`), and `include/frame.rs` has
+   the mask/shift/unit and the reader but no accessor, so the pair stands here (the
+   `src/xterm.rs` 16556 copy).  C 5769 reads it against `FULLSCREEN_WAIT`; the write arm is C's own
+   masked write on `bits2`, which the later slices' `w32fullscreen_hook` needs.  */
+#[cfg (feature = "have_ntgui")]
+macro_rules! want_fullscreen {
+  ($f:expr) => {
+	 frame_field ($f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT,
+		     FRAME_WANT_FULLSCREEN_MASK) as fullscreen_type };
+  ($f:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & !(FRAME_WANT_FULLSCREEN_MASK << FRAME_WANT_FULLSCREEN_SHIFT))
+                  | (((($v) as u32) & FRAME_WANT_FULLSCREEN_MASK) << FRAME_WANT_FULLSCREEN_SHIFT) };
+}
+
+/* C's `<winuser.h>` surface `w32_read_socket` (C 5130-6458) reads and this unit does not carry,
+   plus the three `termhooks.h` members C writes inside platform `#if`s.  Every name stands at the
+   use site (P-88 (1)); the SDK records are UNVERIFIED, and the three event kinds follow the
+   `src/dbusbind.rs` 572 `DBUS_EVENT` shape - a mirror gap with the configuration's own value
+   (owed, see the ledger).  */
+/// C: #define WM_KEYDOWN 0x0100 / #define WM_SYSKEYDOWN 0x0104
+/// C: #define WM_CHAR 0x0102 / #define WM_SYSCHAR 0x0106
+/// C: #define WM_INPUTLANGCHANGE 0x0051 / #define WM_SETTINGCHANGE 0x001A
+/// C: #define WM_MOUSEMOVE 0x0200 / #define WM_APPCOMMAND 0x0319
+/// C: #define WM_HSCROLL 0x0114 / #define WM_VSCROLL 0x0115
+/// C: #define WM_WINDOWPOSCHANGED 0x0047 / #define WM_ACTIVATE 0x0006
+/// C: #define WM_ACTIVATEAPP 0x001C / #define WM_MOVE 0x0003
+/// C: #define WM_SHOWWINDOW 0x0018 / #define WM_SIZE 0x0005 / #define WM_CLOSE 0x0010
+/// C: #define WM_ENDSESSION 0x0016 / #define WM_INITMENU 0x0116 / #define WM_COMMAND 0x0111
+/// C: #define WM_DISPLAYCHANGE 0x007E / #define WM_TOUCH 0x0240
+/// C: #define SPI_SETWHEELSCROLLLINES 0x0073
+/// C: #define SIZE_RESTORED 0 / #define SIZE_MINIMIZED 1 / #define SIZE_MAXIMIZED 2
+/// C: WINUSERAPI HDC WINAPI GetWindowDC (HWND hWnd);
+/// C: WINUSERAPI int WINAPI GetClipBox (HDC hdc, LPRECT lprc);
+/// C: WINUSERAPI int WINAPI MultiByteToWideChar (UINT CodePage, DWORD dwFlags,
+/// C:   LPCCH lpMultiByteStr, int cbMultiByte, LPWSTR lpWideCharStr, int cchWideChar);
+/// C: WINUSERAPI BOOL WINAPI IsDBCSLeadByteEx (UINT CodePage, BYTE TestChar);
+/// C: termhooks.h 152-158: `LANGUAGE_CHANGE_EVENT` (inside `#ifdef HAVE_NTGUI`)
+/// C: termhooks.h 189-191: `END_SESSION_EVENT` (inside `#ifdef HAVE_NTGUI`)
+/// C: termhooks.h 258-271: `MULTIMEDIA_KEY_EVENT` (inside `#ifdef HAVE_NTGUI`)
+#[cfg (feature = "have_ntgui")]
+pub const WM_KEYDOWN: c_int = 0x0100;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SYSKEYDOWN: c_int = 0x0104;
+#[cfg (feature = "have_ntgui")]
+pub const WM_CHAR: c_int = 0x0102;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SYSCHAR: c_int = 0x0106;
+#[cfg (feature = "have_ntgui")]
+pub const WM_INPUTLANGCHANGE: c_int = 0x0051;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SETTINGCHANGE: c_int = 0x001A;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MOUSEMOVE: c_int = 0x0200;
+#[cfg (feature = "have_ntgui")]
+pub const WM_HSCROLL: c_int = 0x0114;
+#[cfg (feature = "have_ntgui")]
+pub const WM_VSCROLL: c_int = 0x0115;
+#[cfg (feature = "have_ntgui")]
+pub const WM_WINDOWPOSCHANGED: c_int = 0x0047;
+#[cfg (feature = "have_ntgui")]
+pub const WM_ACTIVATE: c_int = 0x0006;
+#[cfg (feature = "have_ntgui")]
+pub const WM_ACTIVATEAPP: c_int = 0x001C;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MOVE: c_int = 0x0003;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SHOWWINDOW: c_int = 0x0018;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SIZE: c_int = 0x0005;
+#[cfg (feature = "have_ntgui")]
+pub const WM_CLOSE: c_int = 0x0010;
+#[cfg (feature = "have_ntgui")]
+pub const WM_ENDSESSION: c_int = 0x0016;
+#[cfg (feature = "have_ntgui")]
+pub const WM_INITMENU: c_int = 0x0116;
+#[cfg (feature = "have_ntgui")]
+pub const WM_COMMAND: c_int = 0x0111;
+#[cfg (feature = "have_ntgui")]
+pub const WM_DISPLAYCHANGE: c_int = 0x007E;
+#[cfg (feature = "have_ntgui")]
+pub const WM_TOUCH: c_int = 0x0240;
+#[cfg (feature = "have_ntgui")]
+pub const SPI_SETWHEELSCROLLLINES: c_int = 0x0073;
+#[cfg (feature = "have_ntgui")]
+pub const SIZE_RESTORED: c_int = 0;
+#[cfg (feature = "have_ntgui")]
+pub const SIZE_MINIMIZED: c_int = 1;
+#[cfg (feature = "have_ntgui")]
+pub const SIZE_MAXIMIZED: c_int = 2;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetWindowDC (hWnd: HWND) -> HDC;
+  pub fn GetClipBox (hdc: HDC, lprc: LPRECT) -> c_int;
+  pub fn MultiByteToWideChar (CodePage: UINT, dwFlags: DWORD, lpMultiByteStr: *const c_char,
+			      cbMultiByte: c_int, lpWideCharStr: *mut c_ushort,
+			      cchWideChar: c_int) -> c_int;
+  pub fn IsDBCSLeadByteEx (CodePage: UINT, TestChar: BYTE) -> BOOL;
+}
+/* C's own chain with `HAVE_NTGUI` defined places `LANGUAGE_CHANGE_EVENT` at 8 (`HORIZ_WHEEL_EVENT`
+   is 7) and `END_SESSION_EVENT` at 14 (`DELETE_WINDOW_EVENT` is 13), and `MULTIMEDIA_KEY_EVENT` at
+   28 (`CONFIG_CHANGED_EVENT` is 27); `include/termhooks.rs` carries the frozen configuration's 37
+   members and none of these three, so each carries the value its own configuration gives (the
+   `dbusbind.rs` 572 reading of the same gap - a `have_ntgui` build therefore reads them as the
+   frozen `SCROLL_BAR_CLICK_EVENT`, `ICONIFY_EVENT` and `SLEEP_EVENT` until the mirror is extended;
+   recorded as owed, not claimed).  */
+#[cfg (feature = "have_ntgui")]
+pub const LANGUAGE_CHANGE_EVENT: event_kind = 8;
+#[cfg (feature = "have_ntgui")]
+pub const END_SESSION_EVENT: event_kind = 14;
+#[cfg (feature = "have_ntgui")]
+pub const MULTIMEDIA_KEY_EVENT: event_kind = 28;
+
+/// C's socket-reader entry points this unit calls but no mirror in its include graph declares (the
+/// header and line of each prototype is in its own `/// C:` line below): `store_frame_param`,
+/// `frame_ancestor_p`, `cancel_mouse_face`, `gui_redo_mouse_highlight`, `gen_help_event`,
+/// `expose_frame`, `clear_mouse_face`, `change_frame_size`, `get_frame_param`, `gui_set_fullscreen`
+/// and `note_mouse_highlight`, plus `w32_process_dnd_data` (defined at `src/w32fns.rs` 4394).  Each
+/// name stands at the use site (P-88 (1)).
+/// C: extern void store_frame_param (struct frame *, Lisp_Object, Lisp_Object);   [lisp.h 5117]
+/// C: extern bool frame_ancestor_p (struct frame *, struct frame *);              [frame.h 1911]
+/// C: extern void cancel_mouse_face (struct frame *);                       [dispextern.h 3690]
+/// C: extern void gui_redo_mouse_highlight (Display_Info *);                [dispextern.h 4007]
+/// C: extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object,
+/// C:   ptrdiff_t);                                                          [keyboard.h 513]
+/// C: extern void expose_frame (struct frame *, int, int, int, int);        [dispextern.h 3675]
+/// C: extern bool clear_mouse_face (Mouse_HLInfo *);                        [dispextern.h 3691]
+/// C: extern void change_frame_size (struct frame *, int, int, bool, bool, bool);
+/// C:                                                                    [dispextern.h 3924]
+/// C: extern Lisp_Object get_frame_param (struct frame *, Lisp_Object);          [lisp.h 5120]
+/// C: extern void gui_set_fullscreen (struct frame *, Lisp_Object, Lisp_Object);
+/// C:                                                                          [frame.h 1844]
+/// C: extern void note_mouse_highlight (struct frame *, int, int);          [dispextern.h 3688]
+/// C: Lisp_Object w32_process_dnd_data (int, void *);                          [w32fns.c 2541]
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
+  pub fn frame_ancestor_p (a: *mut frame, b: *mut frame) -> bool;
+  pub fn cancel_mouse_face (f: *mut frame);
+  pub fn gui_redo_mouse_highlight (dpyinfo: *mut w32_display_info);
+  pub fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
+			 object: Lisp_Object, pos: isize);
+  pub fn w32_process_dnd_data (format: c_int, hGlobal: *mut c_void) -> Lisp_Object;
+  pub fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
+  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+  pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
+			    pretend: bool, delay: bool, safe: bool);
+  pub fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;
+  pub fn gui_set_fullscreen (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object);
+  pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
+}
+
+/// C 5130-6458: `static int w32_read_socket (struct terminal *terminal, struct input_event
+/// *hold_quit)` - the socket reader: C 5134-5139's five locals, C 5141's `block_input`, C 5144's
+/// `drain_message_queue`, C 5147-6399's `while (get_next_msg (&msg, FALSE))` body (the per-event
+/// `inev`/`do_help`/`ignore_dirty_back_buffer`, the `EVENT_INIT` at C 5163-5165, the `switch
+/// (msg.msg.message)` over C 5167-6353's twenty-five arms with C 6344's `default:`, C 6355-6359's
+/// event store, C 6361-6389's help block and C 6395-6398's back-buffer flush), C 6403-6407's
+/// autoraise, C 6409-6454's visibility sweep with `FOR_EACH_FRAME` and C 6456-6457's
+/// `unblock_input`/`return count`.
+/// C: static int
+/// C: w32_read_socket (struct terminal *terminal,
+/// C: 		 struct input_event *hold_quit)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_read_socket (terminal: *mut terminal, hold_quit: *mut input_event) -> c_int
+{
+  let mut count: c_int = 0;                                            // C 5134
+  let mut check_visibility: c_int = 0;                                 // C 5135
+  /* C declares the `W32Msg` uninitialised and fills it with `get_next_msg` (PORTING.md 1.5).  */
+  let mut msg: W32Msg = core::mem::zeroed ();                          // C 5136
+  let mut f: *mut frame;                                               // C 5137
+  let dpyinfo: *mut w32_display_info = &raw mut one_w32_display_info;   // C 5138
+  let hlinfo: *mut Mouse_HLInfo = &raw mut (*dpyinfo).mouse_highlight;  // C 5139
+
+  block_input ();                                                      // C 5141
+
+  /* Process any incoming thread messages.  */
+  drain_message_queue ();                                              // C 5144
+
+  /* TODO: ghostscript integration. */
+  while get_next_msg (&raw mut msg, FALSE) != 0                             // C 5147
+    {
+      let mut inev: input_event = core::mem::zeroed ();                 // C 5149
+      let mut do_help: c_int = 0;                                      // C 5150
+
+      /* WM_WINDOWPOSCHANGED makes the buffer dirty, but there's no
+	 reason to flush the back buffer after receiving such an
+	 event, and that also causes flicker.  */
+      let mut ignore_dirty_back_buffer: bool = false;                  // C 5155
+
+      /* C 5157-5159's commented-out three-line `DebPrint` call, carried as C's own text:
+
+	   /* DebPrint (("w32_read_socket: %s time:%u\n", */
+	   /*            w32_name_of_message (msg.msg.message), */
+	   /*            msg.msg.time)); */
+      */
+
+      f = core::ptr::null_mut ();                                      // C 5161
+
+      EVENT_INIT (&raw mut inev);                                      // C 5163
+      input_event_bits! (kind, &raw mut inev, NO_EVENT);               // C 5164
+      inev.arg = Qnil ();                                              // C 5165
+
+      /* C's `switch` reaches its end at C 6353 and C's mid-arm `break`s leave it there, so the
+	 match below is the labelled block PORTING.md 2.2 asks for.  */
+      'dispatch:
+      {
+      match msg.msg.message as c_int
+	{
+	  WM_EMACS_PAINT =>                                            // C 5169
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5170
+
+	      if !f.is_null ()                                         // C 5172
+		{
+		  if msg.rect.right == msg.rect.left             // C 5174
+		      || msg.rect.bottom == msg.rect.top         // C 5175
+		    {
+		      /* We may get paint messages even though the client
+			 area is clipped - these are not expose events. */
+		      DebPrint! (("clipped frame %p (%s) got WM_PAINT - ignored\n", f,
+				  SDATA ((*f).name)));                 // C 5179-5180
+		    }
+		  else if !FRAME_VISIBLE_P (f)                     // C 5182
+		    {
+		      let iconified: bool = FRAME_ICONIFIED_P (f);     // C 5184
+
+		      /* Definitely not obscured, so mark as visible.  */
+		      SET_FRAME_VISIBLE! (f, 1);                        // C 5187
+		      SET_FRAME_ICONIFIED (f, 0);                  // C 5188
+		      SET_FRAME_GARBAGED! (f);                          // C 5189
+		      if w32_output_bits! (asked_for_visible, FRAME_OUTPUT_DATA! (f)) == 0   // C 5190
+			{ DebPrint! (("frame %p (%s) reexposed by WM_PAINT\n", f,
+				      SDATA ((*f).name))); }           // C 5191-5192
+
+		      /* WM_PAINT serves as MapNotify as well, so report
+			 visibility changes properly.  */
+		      if iconified                                      // C 5196
+			{
+			  input_event_bits! (kind, &raw mut inev, DEICONIFY_EVENT);   // C 5198
+			  XSETFRAME! (inev.frame_or_window, f);         // C 5199
+			}
+		    }
+		  else
+		    {
+		      if w32_disable_double_buffering                   // C 5204
+			  || (*((*f).output_data.w32 as *mut w32_output)).paint_buffer.is_null ()   // C 5205
+			{
+			  /* Erase background again for safety.  But don't do
+			     that if the frame's 'garbaged' flag is set, since
+			     in that case expose_frame will do nothing, and if
+			     the various redisplay flags happen to be unset,
+			     we are left with a blank frame.  */
+
+			  if !FRAME_GARBAGED_P (f) || !FRAME_PARENT_FRAME (f).is_null ()   // C 5213
+			    {
+			      let hdc: HDC = get_frame_dc (f);          // C 5215
+
+			      w32_clear_rect! (f, hdc, &raw mut msg.rect);   // C 5217
+			      release_frame_dc (f, hdc);                // C 5218
+			    }
+
+			  expose_frame (f,                              // C 5221
+					msg.rect.left,               // C 5222
+					msg.rect.top,                // C 5223
+					msg.rect.right - msg.rect.left,   // C 5224
+					msg.rect.bottom - msg.rect.top);   // C 5225
+			  w32_clear_under_internal_border (f);          // C 5226
+			}
+		      else
+			{ w32_show_back_buffer (f); }                   // C 5229
+		    }
+		}
+	      /* C 5232's `break` is the arm's end.  */
+	    }
+
+	  WM_INPUTLANGCHANGE =>                                        // C 5234
+	    {
+	      /* Generate a language change event.  */
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5236
+
+	      /* lParam contains the input language ID in its low 16 bits.
+		 Use it to update our record of the keyboard codepage.  */
+	      w32_keyboard_codepage = codepage_for_locale ((msg.msg.lParam
+							    & 0xffff) as LCID);   // C 5240-5241
+
+	      if !f.is_null ()                                         // C 5243
+		{
+		  input_event_bits! (kind, &raw mut inev, LANGUAGE_CHANGE_EVENT);   // C 5245
+		  XSETFRAME! (inev.frame_or_window, f);                 // C 5246
+		  inev.code = w32_keyboard_codepage as c_uint;          // C 5247
+		  inev.modifiers = (msg.msg.lParam & 0xffff) as c_uint;   // C 5248
+		}
+	    }
+
+	  WM_SETTINGCHANGE =>                                          // C 5252
+	    {
+	      /* We are only interested in changes of the number of lines
+		 to scroll when the vertical mouse wheel is moved.  This
+		 is only supported on NT.  */
+	      if msg.msg.wParam == SPI_SETWHEELSCROLLLINES as usize   // C 5256
+		{ w32_get_mouse_wheel_vertical_delta (); }              // C 5257
+	    }
+
+	  WM_KEYDOWN | WM_SYSKEYDOWN =>                                // C 5260-5261
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5262
+
+	      if !f.is_null () && !FRAME_ICONIFIED_P (f)               // C 5264
+		{
+		  if !mouse_face_hidden! (hlinfo) && FIXNUMP (Vmouse_highlight)   // C 5266
+		      && !EQ ((*f).tab_bar_window, (*hlinfo).mouse_face_window)   // C 5267
+		      && !EQ ((*f).tool_bar_window, (*hlinfo).mouse_face_window)   // C 5268
+		    {
+		      clear_mouse_face (hlinfo);                        // C 5270
+		      mouse_face_hidden! (hlinfo, true);                // C 5271
+		    }
+
+		  if temp_index == countof! (temp_buffer) as c_int      // C 5274
+		    { temp_index = 0; }                                 // C 5275
+		  temp_buffer[temp_index as usize] = msg.msg.wParam as c_short;   // C 5276
+		  temp_index += 1;
+		  input_event_bits! (kind, &raw mut inev, NON_ASCII_KEYSTROKE_EVENT);   // C 5277
+		  inev.code = msg.msg.wParam as c_uint;               // C 5278
+		  inev.modifiers = msg.dwModifiers;                   // C 5279
+		  XSETFRAME! (inev.frame_or_window, f);                  // C 5280
+		  inev.timestamp = msg.msg.time as Time;              // C 5281
+		}
+	    }
+
+	  WM_UNICHAR | WM_SYSCHAR | WM_CHAR =>                          // C 5285-5287
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5288
+
+	      if !f.is_null () && !FRAME_ICONIFIED_P (f)               // C 5290
+		{
+		  if !mouse_face_hidden! (hlinfo) && FIXNUMP (Vmouse_highlight)   // C 5292
+		      && !EQ ((*f).tab_bar_window, (*hlinfo).mouse_face_window)   // C 5293
+		      && !EQ ((*f).tool_bar_window, (*hlinfo).mouse_face_window)   // C 5294
+		    {
+		      clear_mouse_face (hlinfo);                        // C 5296
+		      mouse_face_hidden! (hlinfo, true);                // C 5297
+		    }
+
+		  if temp_index == countof! (temp_buffer) as c_int      // C 5300
+		    { temp_index = 0; }                                 // C 5301
+		  temp_buffer[temp_index as usize] = msg.msg.wParam as c_short;   // C 5302
+		  temp_index += 1;
+
+		  inev.modifiers = msg.dwModifiers;                   // C 5304
+		  XSETFRAME! (inev.frame_or_window, f);                  // C 5305
+		  inev.timestamp = msg.msg.time as Time;              // C 5306
+
+		  if utf16_high != 0                                    // C 5308
+		      && (msg.msg.message != WM_UNICHAR as c_uint    // C 5309
+			  || UTF_16_HIGH_SURROGATE_P (msg.msg.wParam as c_int) != 0)   // C 5310
+		    {
+		      /* Flush the pending high surrogate if the low one
+			 isn't coming.  (This should never happen, but I
+			 have paranoia about this stuff.)  */
+		      let mut inev1: input_event = core::mem::zeroed ();   // C 5315
+		      inev1.modifiers = utf16_high_modifiers;            // C 5316
+		      inev1.code = utf16_high as c_uint;                 // C 5317
+		      inev1.timestamp = inev.timestamp;                  // C 5318
+		      inev1.arg = Qnil ();                               // C 5319
+		      kbd_buffer_store_event_hold (&raw mut inev1, hold_quit);   // C 5320
+		      utf16_high = 0;                                    // C 5321
+		      utf16_high_modifiers = 0;                          // C 5322
+		    }
+
+		  if msg.msg.message == WM_UNICHAR as c_uint          // C 5325
+		    {
+		      /* Handle UTF-16 encoded codepoint above the BMP.
+			 This is needed to support Emoji input from input
+			 panel popped up by "Win+." shortcut.  */
+		      if UTF_16_HIGH_SURROGATE_P (msg.msg.wParam as c_int) != 0   // C 5330
+			{
+			  utf16_high = msg.msg.wParam as c_ushort;     // C 5332
+			  utf16_high_modifiers = inev.modifiers;          // C 5333
+			  input_event_bits! (kind, &raw mut inev, NO_EVENT);   // C 5334
+			  break 'dispatch;                                // C 5335
+			}
+		      else if UTF_16_LOW_SURROGATE_P (msg.msg.wParam as c_int) != 0   // C 5337
+			  && utf16_high != 0                          // C 5338
+			{
+			  inev.code = surrogates_to_codepoint (msg.msg.wParam as c_int,
+					       utf16_high as c_int) as c_uint;   // C 5340-5341
+			  utf16_high = 0;                                 // C 5342
+			  utf16_high_modifiers = 0;                       // C 5343
+			}
+		      else
+			{ inev.code = msg.msg.wParam as c_uint; }      // C 5346
+		    }
+		  else if msg.msg.wParam < 256                         // C 5348
+		    {
+		      let mut code: c_ushort;                             // C 5350
+		      let mut dbcs: [c_char; 2] = [0; 2];                 // C 5351
+		      dbcs[0] = 0;                                        // C 5352
+		      dbcs[1] = msg.msg.wParam as c_char;              // C 5353
+
+		      if dbcs_lead != 0                                   // C 5355
+			{
+			  dbcs[0] = dbcs_lead;                            // C 5357
+			  dbcs_lead = 0;                                  // C 5358
+			  if MultiByteToWideChar (w32_keyboard_codepage as UINT, 0,
+						  &raw const dbcs[0], 2, &raw mut code, 1) == 0   // C 5359-5360
+			    {
+			      /* Garbage */
+			      DebPrint! (("Invalid DBCS sequence: %d %d\n",
+					  dbcs[0], dbcs[1]));             // C 5363-5364
+			      input_event_bits! (kind, &raw mut inev, NO_EVENT);   // C 5365
+			      break 'dispatch;                            // C 5366
+			    }
+			}
+		      else if IsDBCSLeadByteEx (w32_keyboard_codepage as UINT,
+						msg.msg.wParam as BYTE) != 0   // C 5369-5370
+			{
+			  dbcs_lead = msg.msg.wParam as c_char;         // C 5372
+			  input_event_bits! (kind, &raw mut inev, NO_EVENT);   // C 5373
+			  break 'dispatch;                                // C 5374
+			}
+		      else
+			{
+			  if MultiByteToWideChar (w32_keyboard_codepage as UINT, 0,
+						  &raw const dbcs[1], 1, &raw mut code, 1) == 0   // C 5378-5379
+			    {
+			      /* What to do with garbage? */
+			      DebPrint! (("Invalid character: %d\n", dbcs[1]));   // C 5382
+			      input_event_bits! (kind, &raw mut inev, NO_EVENT);   // C 5383
+			      break 'dispatch;                            // C 5384
+			    }
+			}
+		      inev.code = code as c_uint;                          // C 5387
+		    }
+		  else
+		    {
+		      /* Windows shouldn't generate WM_CHAR events above 0xFF
+			 in non-Unicode message handlers.  */
+		      DebPrint! (("Non-byte WM_CHAR: %d\n", msg.msg.wParam));   // C 5393
+		      input_event_bits! (kind, &raw mut inev, NO_EVENT);   // C 5394
+		      break 'dispatch;                                    // C 5395
+		    }
+		  input_event_bits! (kind, &raw mut inev,                 // C 5397
+				     if (inev.code as c_int) < 128
+				       { ASCII_KEYSTROKE_EVENT }
+				     else { MULTIBYTE_CHAR_KEYSTROKE_EVENT });   // C 5397-5398
+		}
+	    }
+
+	  WM_APPCOMMAND =>                                             // C 5402
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5403
+
+	      if !f.is_null () && !FRAME_ICONIFIED_P (f)                // C 5405
+		{
+		  if !mouse_face_hidden! (hlinfo) && FIXNUMP (Vmouse_highlight)   // C 5407
+		      && !EQ ((*f).tab_bar_window, (*hlinfo).mouse_face_window)   // C 5408
+		      && !EQ ((*f).tool_bar_window, (*hlinfo).mouse_face_window)   // C 5409
+		    {
+		      clear_mouse_face (hlinfo);                        // C 5411
+		      mouse_face_hidden! (hlinfo, true);                // C 5412
+		    }
+
+		  if temp_index == countof! (temp_buffer) as c_int      // C 5415
+		    { temp_index = 0; }                                 // C 5416
+		  temp_buffer[temp_index as usize] = msg.msg.wParam as c_short;   // C 5417
+		  temp_index += 1;
+		  input_event_bits! (kind, &raw mut inev, MULTIMEDIA_KEY_EVENT);   // C 5418
+		  inev.code = GET_APPCOMMAND_LPARAM! (msg.msg.lParam) as c_uint;   // C 5419
+		  inev.modifiers = msg.dwModifiers;                   // C 5420
+		  XSETFRAME! (inev.frame_or_window, f);                  // C 5421
+		  inev.timestamp = msg.msg.time as Time;              // C 5422
+		}
+	    }
+
+	  WM_MOUSEMOVE =>                                              // C 5426
+	    {
+	      /* Ignore non-movement.  */
+	      {
+		let x: c_int = LOWORD! (msg.msg.lParam) as c_int;     // C 5429
+		let y: c_int = HIWORD! (msg.msg.lParam) as c_int;     // C 5430
+		if x == last_mousemove_x && y == last_mousemove_y     // C 5431
+		  { break 'dispatch; }                               // C 5432
+		last_mousemove_x = x;                                // C 5433
+		last_mousemove_y = y;                                // C 5434
+	      }
+
+	      previous_help_echo_string = help_echo_string;          // C 5437
+	      help_echo_string = Qnil ();                            // C 5438
+
+	      if mouse_face_hidden! (hlinfo)                         // C 5440
+		{
+		  mouse_face_hidden! (hlinfo, false);                  // C 5442
+		  clear_mouse_face (hlinfo);                           // C 5443
+		}
+
+	      f = mouse_or_wdesc_frame (dpyinfo, msg.msg.hwnd);   // C 5446
+	      if !f.is_null ()                                       // C 5447
+		{
+		  /* Maybe generate SELECT_WINDOW_EVENTs for
+		     `mouse-autoselect-window'.  */
+		  if !NILP (Vmouse_autoselect_window)                 // C 5451
+		      && (f == XFRAME (selected_frame)                // C 5452
+			  /* Switch to f from another frame iff
+			     focus_follows_mouse is set and f accepts
+			     focus.  */
+			  || (!NILP (focus_follows_mouse)             // C 5456
+			      && FRAME_NO_ACCEPT_FOCUS (f) == 0))     // C 5457
+		    {
+		      let window: Lisp_Object = window_from_coordinates (f as *mut c_void,
+									 LOWORD! (msg.msg.lParam) as c_int,
+									 HIWORD! (msg.msg.lParam) as c_int,
+									 core::ptr::null_mut (), false, false, false);   // C 5459-5460
+
+		      /* Window will be selected only when it is not
+			 selected now and last mouse movement event was
+			 not in it.  Minibuffer window will be selected
+			 only when it is active.  */
+		      if WINDOWP (window)                             // C 5466
+			  && !EQ (window, last_mouse_window)          // C 5467
+			  && !EQ (window, selected_window)            // C 5468
+			{
+			  input_event_bits! (kind, &raw mut inev, SELECT_WINDOW_EVENT);   // C 5470
+			  inev.frame_or_window = window;              // C 5471
+			}
+
+		      /* Remember the last window where we saw the mouse.  */
+		      last_mouse_window = window;                     // C 5475
+		    }
+
+		  if w32_note_mouse_movement (f, &raw mut msg.msg) == 0   // C 5478
+		    { help_echo_string = previous_help_echo_string; }   // C 5479
+		}
+	      else
+		{
+		  /* If we move outside the frame, then we're
+		     certainly no longer on any text in the frame.  */
+		  clear_mouse_face (hlinfo);                          // C 5485
+		}
+
+	      /* If the contents of the global variable help_echo_string
+		 has changed, generate a HELP_EVENT.  */
+	      /* C 5490-5499 is `#if 0` / `#else` / `#endif`; the arm this configuration compiles is
+		 C's `#else` (the `xterm.c` one), and C's dead arm is carried as C's own text:
+
+	  #if 0 /* The below is an invalid comparison when CHECK_LISP_OBJECT_TYPE.
+		   But it was originally changed to this to fix a bug, so I
+		   have not removed it completely in case the bug is still there.  */
+		  if (help_echo_string != previous_help_echo_string ||
+		      (!NILP (help_echo_string) && !STRINGP (help_echo_string) && f->mouse_moved))
+		#else /* This is what xterm.c does.  */
+	      */
+	      if !NILP (help_echo_string)                             // C 5496
+		  || !NILP (previous_help_echo_string)                // C 5497
+		{ do_help = 1; }                                      // C 5498
+	    }
+
+	  WM_LBUTTONDOWN | WM_LBUTTONUP | WM_MBUTTONDOWN | WM_MBUTTONUP   // C 5502-5505
+	  | WM_RBUTTONDOWN | WM_RBUTTONUP | WM_XBUTTONDOWN | WM_XBUTTONUP =>   // C 5506-5509
+	    {
+	      /* If we decide we want to generate an event to be seen
+		 by the rest of Emacs, we put it here.  */
+	      let mut tab_bar_arg: Lisp_Object = Qnil ();             // C 5513
+	      let mut tab_bar_p: bool = false;                        // C 5514
+	      let mut tool_bar_p: bool = false;                       // C 5515
+	      let mut button: c_int = 0;                              // C 5516
+	      let mut up: c_int = 0;                                  // C 5517
+
+	      f = mouse_or_wdesc_frame (dpyinfo, msg.msg.hwnd);    // C 5519
+	      if !f.is_null ()                                        // C 5520
+		{
+		  w32_construct_mouse_click (&raw mut inev, &raw mut msg, f);   // C 5522
+
+		  /* Is this in the tab-bar?  */
+		  if WINDOWP ((*f).tab_bar_window)                    // C 5525
+		      && WINDOW_TOTAL_LINES (XWINDOW ((*f).tab_bar_window)) != 0   // C 5526
+		    {
+		      let window: Lisp_Object;                        // C 5528
+		      let x: c_int = XFIXNAT (inev.x) as c_int;       // C 5529
+		      let y: c_int = XFIXNAT (inev.y) as c_int;       // C 5530
+
+		      window = window_from_coordinates (f as *mut c_void, x, y,
+							core::ptr::null_mut (), true, true, true);   // C 5532
+
+		      if EQ (window, (*f).tab_bar_window)             // C 5534
+			{
+			  tab_bar_arg = w32_handle_tab_bar_click (f, &raw mut inev);   // C 5536
+			  tab_bar_p = true;                           // C 5537
+			}
+		    }
+
+		  if (tab_bar_p && NILP (tab_bar_arg))                // C 5541
+		      || (!(*dpyinfo).w32_focus_frame.is_null ()      // C 5542
+			  && f != (*dpyinfo).w32_focus_frame          // C 5543
+			  /* This does not help when the click happens in
+			     a grand-parent frame.  */
+			  && !frame_ancestor_p (f, (*dpyinfo).w32_focus_frame))   // C 5546
+		    { input_event_bits! (kind, &raw mut inev, NO_EVENT); }   // C 5547
+
+		  if !NILP (tab_bar_arg)                              // C 5549
+		    { inev.arg = tab_bar_arg; }                       // C 5550
+
+		  /* Is this in the tool-bar?  */
+		  if WINDOWP ((*f).tool_bar_window)                   // C 5553
+		      && WINDOW_TOTAL_LINES (XWINDOW ((*f).tool_bar_window)) != 0   // C 5554
+		    {
+		      let window: Lisp_Object;                        // C 5556
+		      let x: c_int = XFIXNAT (inev.x) as c_int;       // C 5557
+		      let y: c_int = XFIXNAT (inev.y) as c_int;       // C 5558
+
+		      window = window_from_coordinates (f as *mut c_void, x, y,
+							core::ptr::null_mut (), true, true, true);   // C 5560
+
+		      if EQ (window, (*f).tool_bar_window)            // C 5562
+			  /* Make sure the tool bar was previously
+			     pressed, otherwise an event that started
+			     outside of the tool bar will not be handled
+			     correctly when the mouse button is
+			     released.  For example, start dragging to
+			     select some buffer text, drag the mouse to
+			     the tool bar, and release the mouse button
+			     -- this should not consider the release
+			     event as a tool-bar click.  */
+			  && ((inev.modifiers & down_modifier as c_uint) != 0    // C 5572
+			      || (*f).last_tool_bar_item != -1)       // C 5573
+			{
+			  w32_handle_tool_bar_click (f, &raw mut inev);   // C 5575
+			  tool_bar_p = true;                          // C 5576
+			}
+		    }
+
+		  if tool_bar_p                                        // C 5580
+		      || (!(*dpyinfo).w32_focus_frame.is_null ()      // C 5581
+			  && f != (*dpyinfo).w32_focus_frame          // C 5582
+			  /* This does not help when the click happens in
+			     a grand-parent frame.  */
+			  && !frame_ancestor_p (f, (*dpyinfo).w32_focus_frame))   // C 5585
+		    { input_event_bits! (kind, &raw mut inev, NO_EVENT); }   // C 5586
+		}
+
+	      parse_button (msg.msg.message as c_int, HIWORD! (msg.msg.wParam) as c_int,   // C 5589
+			    &raw mut button, &raw mut up);            // C 5590
+
+	      if up != 0                                              // C 5592
+		{
+		  (*dpyinfo).grabbed &= ! (1 << button);              // C 5594
+		}
+	      else
+		{
+		  (*dpyinfo).grabbed |= (1 << button);                // C 5598
+		  (*dpyinfo).last_mouse_frame = f;                    // C 5599
+		  /* Ignore any mouse motion that happened
+		     before this event; any subsequent mouse-movement
+		     Emacs events should reflect only motion after
+		     the ButtonPress.  */
+		  if !f.is_null ()                                    // C 5604
+		    {
+		      frame_bits! (mouse_moved, f, false);            // C 5606
+		      if !tab_bar_p                                  // C 5607
+			{ (*f).last_tab_bar_item = -1; }             // C 5608
+		      if !tool_bar_p                                 // C 5609
+			{ (*f).last_tool_bar_item = -1; }            // C 5610
+		    }
+		}
+	    }
+
+	  WM_MOUSEWHEEL | WM_MOUSEHWHEEL =>                           // C 5616-5617
+	    {
+	      f = mouse_or_wdesc_frame (dpyinfo, msg.msg.hwnd);    // C 5619
+	      if !f.is_null ()                                        // C 5620
+		{
+		  if (*dpyinfo).w32_focus_frame.is_null ()            // C 5622
+		      || f == (*dpyinfo).w32_focus_frame              // C 5623
+		    /* Emit an Emacs wheel-up/down event.  */
+		    {
+		      w32_construct_mouse_wheel (&raw mut inev, &raw mut msg, f);   // C 5626
+
+		      /* Ignore any mouse motion that happened before this
+			 event; any subsequent mouse-movement Emacs events
+			 should reflect only motion after the ButtonPress.  */
+		      frame_bits! (mouse_moved, f, false);             // C 5631
+		      (*f).last_tab_bar_item = -1;                      // C 5632
+		      (*f).last_tool_bar_item = -1;                     // C 5633
+		      (*dpyinfo).last_mouse_frame = f;                  // C 5634
+		    }
+		  else if FRAME_NO_ACCEPT_FOCUS (f) != 0               // C 5636
+		      && !gui_mouse_grabbed (dpyinfo)                   // C 5637
+		    {
+		      let frame1: Lisp_Object = get_frame_param (f, Qmouse_wheel_frame ());   // C 5639
+		      let f1: *mut frame = if FRAMEP (frame1) { XFRAME (frame1) } else { core::ptr::null_mut () };   // C 5640
+
+		      if !f1.is_null () && FRAME_LIVE_P (f1) && FRAME_W32_P (f1)   // C 5642
+			{
+			  w32_construct_mouse_wheel (&raw mut inev, &raw mut msg, f1);   // C 5644
+			  frame_bits! (mouse_moved, f1, false);         // C 5645
+			  (*f1).last_tab_bar_item = -1;                 // C 5646
+			  (*f1).last_tool_bar_item = -1;                // C 5647
+			  (*dpyinfo).last_mouse_frame = f1;             // C 5648
+			}
+		      else
+			{ (*dpyinfo).last_mouse_frame = f; }            // C 5651
+		    }
+		  else
+		    { (*dpyinfo).last_mouse_frame = f; }                // C 5654
+		}
+	      else
+		{ (*dpyinfo).last_mouse_frame = f; }                    // C 5657
+	    }
+
+	  WM_EMACS_DROP =>                                             // C 5661
+	    {
+	      let format: c_int = msg.msg.wParam as c_int;           // C 5663
+	      let drop_object: Lisp_Object
+		= w32_process_dnd_data (format, msg.msg.lParam as *mut c_void);   // C 5664-5665
+
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5667
+	      if f.is_null () || NILP (drop_object)                   // C 5668
+		{ break 'dispatch; }                                   // C 5669
+
+	      XSETFRAME! (inev.frame_or_window, f);                   // C 5671
+	      input_event_bits! (kind, &raw mut inev, DRAG_N_DROP_EVENT);   // C 5672
+	      inev.code = 0;                                          // C 5673
+	      inev.timestamp = msg.msg.time as Time;               // C 5674
+	      inev.modifiers = msg.dwModifiers;                    // C 5675
+	      ScreenToClient (msg.msg.hwnd, &raw mut msg.msg.pt);   // C 5676
+	      XSETINT! (inev.x, msg.msg.pt.x as EMACS_INT);         // C 5677
+	      XSETINT! (inev.y, msg.msg.pt.y as EMACS_INT);         // C 5678
+	      inev.arg = drop_object;                                 // C 5679
+	    }
+
+	  WM_EMACS_DRAGOVER =>                                         // C 5683
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5685
+	      if f.is_null ()                                          // C 5686
+		{ break 'dispatch; }                                   // C 5687
+	      XSETFRAME! (inev.frame_or_window, f);                    // C 5688
+	      input_event_bits! (kind, &raw mut inev, DRAG_N_DROP_EVENT);   // C 5689
+	      inev.code = 0;                                           // C 5690
+	      inev.timestamp = msg.msg.time as Time;                // C 5691
+	      inev.modifiers = msg.dwModifiers;                     // C 5692
+	      ScreenToClient (msg.msg.hwnd, &raw mut msg.msg.pt);   // C 5693
+	      XSETINT! (inev.x, msg.msg.pt.x as EMACS_INT);         // C 5694
+	      XSETINT! (inev.y, msg.msg.pt.y as EMACS_INT);         // C 5695
+	      /* This is a drag movement.  */
+	      inev.arg = Qnil ();                                     // C 5697
+	      /* C 5698's `break` is the arm's end.  */
+	    }
+
+	  WM_HSCROLL =>                                                // C 5701
+	    {
+	      let bar: *mut scroll_bar
+		= w32_window_to_scroll_bar (msg.msg.lParam as HWND, 1);   // C 5703-5704
+
+	      if !bar.is_null ()                                       // C 5706
+		{ w32_horizontal_scroll_bar_handle_click (bar, &raw mut msg, &raw mut inev); }   // C 5707
+	    }
+
+	  WM_VSCROLL =>                                                // C 5711
+	    {
+	      let bar: *mut scroll_bar
+		= w32_window_to_scroll_bar (msg.msg.lParam as HWND, 0);   // C 5713-5714
+
+	      if !bar.is_null ()                                       // C 5716
+		{ w32_scroll_bar_handle_click (bar, &raw mut msg, &raw mut inev); }   // C 5717
+	    }
+
+	  WM_WINDOWPOSCHANGED =>                                       // C 5721
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5722
+	      ignore_dirty_back_buffer = true;                          // C 5723
+
+	      if !f.is_null ()                                          // C 5725
+		{
+		  /* C declares the `RECT` uninitialised and fills it with `GetClientRect`
+		     (PORTING.md 1.5).  */
+		  let mut rect: RECT = core::mem::zeroed ();                // C 5727
+		  /* C 5728's `int /* rows, columns, */ width, height;` - the comment is C's own.  */
+		  let mut width: c_int;
+		  let mut height: c_int;
+
+		  if GetClientRect (msg.msg.hwnd, &raw mut rect) != 0   // C 5730
+		      /* GetClientRect evidently returns (0, 0, 0, 0) if
+			 called on a minimized frame.  Such "dimensions"
+			 aren't useful anyway.  */
+		      && !(rect.bottom == 0                            // C 5734
+			   && rect.top == 0                             // C 5735
+			   && rect.left == 0                            // C 5736
+			   && rect.right == 0)                          // C 5737
+		    {
+		      height = rect.bottom - rect.top;                   // C 5739
+		      width = rect.right - rect.left;                    // C 5740
+		      if width != FRAME_PIXEL_WIDTH (f)                  // C 5741
+			  || height != FRAME_PIXEL_HEIGHT (f)            // C 5742
+			{
+			  change_frame_size (f, width, height, false, true, false);   // C 5744-5745
+			  SET_FRAME_GARBAGED! (f);                        // C 5746
+			  cancel_mouse_face (f);                          // C 5747
+			  (*f).win_gravity = NorthWestGravity;            // C 5748
+			}
+		    }
+		}
+
+	      check_visibility = 1;                                     // C 5753
+	    }
+
+	  WM_ACTIVATE | WM_ACTIVATEAPP =>                              // C 5756-5757
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5758
+	      if !f.is_null ()                                          // C 5759
+		{
+		  /* Run the full-screen hook function also when we are
+		     being activated, to actually install the required
+		     size in effect, if the WAIT flag is set.  This
+		     because when the hook is run from gui_set_fullscreen,
+		     the frame might not yet be visible, if that call is a
+		     result of make-frame, and in that case the hook just
+		     sets the WAIT flag.  */
+		  if ((msg.msg.message == WM_WINDOWPOSCHANGED as c_uint   // C 5768
+		       || msg.msg.wParam != 0)                       // C 5768
+		      && (want_fullscreen! (f) & FULLSCREEN_WAIT) != 0)   // C 5769
+		    {
+		      /* Must set visibility right here since otherwise
+			 w32fullscreen_hook returns immediately.  */
+		      SET_FRAME_VISIBLE! (f, 1);                        // C 5773
+		      w32fullscreen_hook (f);                           // C 5774
+		    }
+		}
+
+	      check_visibility = 1;                                     // C 5778
+	    }
+
+	  WM_MOVE =>                                                    // C 5781
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5782
+
+	      if !f.is_null () && FRAME_VISIBLE_P (f) && !FRAME_ICONIFIED_P (f)   // C 5784
+		  && !FRAME_TOOLTIP_P (f)                               // C 5785
+		{
+		  w32_real_positions (f, &raw mut (*f).left_pos, &raw mut (*f).top_pos);   // C 5787
+		  input_event_bits! (kind, &raw mut inev, MOVE_FRAME_EVENT);   // C 5788
+		  XSETFRAME! (inev.frame_or_window, f);                 // C 5789
+		}
+
+	      check_visibility = 1;                                     // C 5792
+	    }
+
+	  WM_SHOWWINDOW =>                                              // C 5795
+	    {
+	      /* wParam non-zero means Window is about to be shown, 0 means
+		 about to be hidden.  */
+	      /* Redo the mouse-highlight after the tooltip has gone.  */
+	      if msg.msg.wParam == 0 && msg.msg.hwnd == tip_window   // C 5799
+		{
+		  tip_window = core::ptr::null_mut ();                    // C 5801
+		  gui_redo_mouse_highlight (dpyinfo);                     // C 5802
+		}
+
+	      /* If window has been obscured or exposed by another window
+		 being maximized or minimized/restored, then recheck
+		 visibility of all frames.  Direct changes to our own
+		 windows get handled by WM_SIZE.  */
+	      /* C 5809-5817 is `#if 0`, carried as C's own text:
+
+	  #if 0
+		  if (msg.msg.lParam != 0)
+		    check_visibility = 1;
+		  else
+		    {
+		      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);
+		      f->async_visible = msg.msg.wParam;
+		    }
+	  #endif
+	      */
+
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5819
+	      if !f.is_null ()                                          // C 5820
+		{ w32_clear_under_internal_border (f); }                // C 5821
+
+	      check_visibility = 1;                                     // C 5823
+	    }
+
+	  WM_SIZE =>                                                   // C 5826
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5827
+
+	      /* Inform lisp of whether frame has been iconified etc. */
+	      if !f.is_null ()                                          // C 5830
+		{
+		  match msg.msg.wParam as c_int                      // C 5832
+		    {
+		      SIZE_MINIMIZED =>                                 // C 5834
+			{
+			  SET_FRAME_VISIBLE! (f, 0);                    // C 5835
+			  SET_FRAME_ICONIFIED (f, 1);                   // C 5836
+
+			  input_event_bits! (kind, &raw mut inev, ICONIFY_EVENT);   // C 5838
+			  XSETFRAME! (inev.frame_or_window, f);         // C 5839
+			}
+
+		      SIZE_MAXIMIZED =>                                 // C 5842
+			{
+			  let iconified: bool = FRAME_ICONIFIED_P (f);   // C 5844
+			  let fullscreen: Lisp_Object = get_frame_param (f, Qfullscreen ());   // C 5845
+
+			  SET_FRAME_VISIBLE! (f, 1);                    // C 5847
+			  SET_FRAME_ICONIFIED (f, 0);                   // C 5848
+
+			  /* wait_reading_process_output will notice this
+			     and update the frame's display structures.  */
+			  SET_FRAME_GARBAGED! (f);                      // C 5852
+
+			  if iconified                                  // C 5854
+			    {
+			      let mut x: c_int;
+			      let mut y: c_int;
+
+			      /* Reset top and left positions of the Window
+				 here since Windows sends a WM_MOVE message
+				 BEFORE telling us the Window is minimized
+				 when the Window is iconified, with 3000,3000
+				 as the co-ords. */
+			      w32_real_positions (f, &raw mut x, &raw mut y);   // C 5863
+			      (*f).left_pos = x;                        // C 5864
+			      (*f).top_pos = y;                         // C 5865
+
+			      input_event_bits! (kind, &raw mut inev, DEICONIFY_EVENT);   // C 5867
+			      XSETFRAME! (inev.frame_or_window, f);     // C 5868
+			    }
+
+			  /* Windows can send us a SIZE_MAXIMIZED message even
+			     when fullscreen is fullboth.  The following is a
+			     simple hack to check that based on the fact that
+			     only a maximized fullscreen frame should have top
+			     or left outside the screen.  */
+			  if EQ (fullscreen, Qfullwidth ()) || EQ (fullscreen, Qfullheight ())   // C 5876
+			      || NILP (fullscreen)                      // C 5877
+			    {
+			      let mut x: c_int;
+			      let mut y: c_int;
+
+			      w32_real_positions (f, &raw mut x, &raw mut y);   // C 5881
+			      if x < 0 || y < 0                         // C 5882
+				{ store_frame_param (f, Qfullscreen (), Qmaximized ()); }   // C 5883
+			    }
+			}
+
+		      SIZE_RESTORED =>                                  // C 5889
+			{
+			  let iconified: bool = FRAME_ICONIFIED_P (f);   // C 5891
+
+			  /* The following was made unconditional in a
+			     pathetic attempt to fix bug#16967 in revision
+			     116716 but, considered counterproductive was made
+			     conditional again in revision 116727.  martin */
+			  if iconified                                  // C 5897
+			    { SET_FRAME_VISIBLE! (f, 1); }               // C 5898
+			  SET_FRAME_ICONIFIED (f, 0);                   // C 5899
+
+			  /* wait_reading_process_output will notice this
+			     and update the frame's display structures.  */
+			  SET_FRAME_GARBAGED! (f);                      // C 5903
+
+			  if iconified                                  // C 5905
+			    {
+			      /* Reset top and left positions of the Window
+				 here since Windows sends a WM_MOVE message
+				 BEFORE telling us the Window is minimized
+				 when the Window is iconified, with 3000,3000
+				 as the co-ords.  */
+			      w32_real_positions (f, &raw mut (*f).left_pos, &raw mut (*f).top_pos);   // C 5912
+
+			      input_event_bits! (kind, &raw mut inev, DEICONIFY_EVENT);   // C 5914
+			      XSETFRAME! (inev.frame_or_window, f);     // C 5915
+			    }
+			}
+
+		      /* C's `switch` has no `default` (PORTING.md 2.2).  */
+		      _ => { }
+		    }
+
+		  if EQ (get_frame_param (f, Qfullscreen ()), Qmaximized ())   // C 5919
+		    { store_frame_param (f, Qfullscreen (), Qnil ()); }   // C 5920
+		}
+
+	      if !f.is_null () && !FRAME_ICONIFIED_P (f)                // C 5926
+		  && msg.msg.wParam != SIZE_MINIMIZED as usize       // C 5926
+		{
+		  /* C declares the `RECT` uninitialised and fills it with `GetClientRect`
+		     (PORTING.md 1.5).  */
+		  let mut rect: RECT = core::mem::zeroed ();                // C 5928
+		  /* C 5929's `int /* rows, columns, */ width, height;` - the comment is C's own.  */
+		  let mut width: c_int;
+		  let mut height: c_int;
+
+		  if GetClientRect (msg.msg.hwnd, &raw mut rect) != 0   // C 5931
+		      /* GetClientRect evidently returns (0, 0, 0, 0) if
+			 called on a minimized frame.  Such "dimensions"
+			 aren't useful anyway.  */
+		      && !(rect.bottom == 0                            // C 5935
+			   && rect.top == 0                             // C 5936
+			   && rect.left == 0                            // C 5937
+			   && rect.right == 0)                          // C 5938
+		    {
+		      height = rect.bottom - rect.top;                   // C 5940
+		      width = rect.right - rect.left;                    // C 5941
+
+		      if width != FRAME_PIXEL_WIDTH (f)                  // C 5943
+			  || height != FRAME_PIXEL_HEIGHT (f)            // C 5944
+			{
+			  w32_release_paint_buffer (f);                  // C 5946
+
+			  change_frame_size (f, width, height, false, true, false);   // C 5948-5949
+			  SET_FRAME_GARBAGED! (f);                       // C 5950
+			  cancel_mouse_face (f);                         // C 5951
+			  (*f).win_gravity = NorthWestGravity;           // C 5952
+			}
+		    }
+		}
+
+	      check_visibility = 1;                                     // C 5957
+	    }
+
+	  WM_MOUSELEAVE =>                                             // C 5960
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5961
+	      if !f.is_null ()                                          // C 5962
+		{
+		  if f == (*hlinfo).mouse_face_mouse_frame as *mut frame              // C 5964
+		    {
+		      /* If we move outside the frame, then we're
+			 certainly no longer on any text in the frame.  */
+		      clear_mouse_face (hlinfo);                        // C 5968
+		      (*hlinfo).mouse_face_mouse_frame = core::ptr::null_mut ();   // C 5969
+		    }
+
+		  /* Generate a nil HELP_EVENT to cancel a help-echo.
+		     Do it only if there's something to cancel.
+		     Otherwise, the startup message is cleared when
+		     the mouse leaves the frame.  */
+		  if any_help_event_p != 0                              // C 5976
+		    { do_help = -1; }                                   // C 5977
+		}
+	    }
+
+	  /* The mirror declares `WM_SETFOCUS` as `UINT` (C 3343-3344's comparisons, slice 10's
+	     block), so the arm is a guard over C's own token with the scrutinee's cast.  */
+	  x if x == WM_SETFOCUS as c_int =>                            // C 5982
+	    {
+	      w32_detect_focus_change (dpyinfo, &raw mut msg, &raw mut inev);   // C 5983
+
+	      (*dpyinfo).grabbed = 0;                                   // C 5985
+	      check_visibility = 1;                                     // C 5986
+	    }
+
+	  x if x == WM_KILLFOCUS as c_int =>                           // C 5989
+	    {
+	      w32_detect_focus_change (dpyinfo, &raw mut msg, &raw mut inev);   // C 5990
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 5991
+
+	      if !f.is_null ()                                          // C 5993
+		{
+		  if f == (*hlinfo).mouse_face_mouse_frame as *mut frame              // C 5995
+		    {
+		      /* If we move outside the frame, then we're
+			 certainly no longer on any text in the frame.  */
+		      clear_mouse_face (hlinfo);                        // C 5999
+		      (*hlinfo).mouse_face_mouse_frame = core::ptr::null_mut ();   // C 6000
+		    }
+
+		  /* Generate a nil HELP_EVENT to cancel a help-echo.
+		     Do it only if there's something to cancel.
+		     Otherwise, the startup message is cleared when
+		     the mouse leaves the frame.  */
+		  if any_help_event_p != 0                              // C 6007
+		    { do_help = -1; }                                   // C 6008
+		}
+
+	      (*dpyinfo).grabbed = 0;                                   // C 6011
+	      check_visibility = 1;                                     // C 6012
+	    }
+
+	  WM_CLOSE =>                                                  // C 6015
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 6016
+
+	      if !f.is_null ()                                          // C 6018
+		{
+		  input_event_bits! (kind, &raw mut inev, DELETE_WINDOW_EVENT);   // C 6020
+		  XSETFRAME! (inev.frame_or_window, f);                 // C 6021
+		}
+	    }
+
+	  WM_ENDSESSION =>                                             // C 6025
+	    {
+	      input_event_bits! (kind, &raw mut inev, END_SESSION_EVENT);   // C 6026
+	    }
+
+	  WM_INITMENU =>                                               // C 6029
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 6030
+
+	      if !f.is_null ()                                          // C 6032
+		{
+		  input_event_bits! (kind, &raw mut inev, MENU_BAR_ACTIVATE_EVENT);   // C 6034
+		  XSETFRAME! (inev.frame_or_window, f);                 // C 6035
+		}
+	    }
+
+	  WM_COMMAND =>                                                // C 6039
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 6040
+
+	      if !f.is_null ()                                          // C 6042
+		{
+		  menubar_selection_callback (f, msg.msg.wParam as *mut c_void);   // C 6044
+		}
+
+	      check_visibility = 1;                                     // C 6047
+	    }
+
+	  WM_DISPLAYCHANGE =>                                          // C 6050
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 6051
+
+	      if !f.is_null ()                                          // C 6053
+		{
+		  let fullscreen: Lisp_Object = get_frame_param (f, Qfullscreen ());   // C 6055
+
+		  (*dpyinfo).n_cbits = msg.msg.wParam as c_int;         // C 6057
+		  /* The new display could have a different resolution, in
+		     which case we must reconsider what fullscreen means.
+		     The following code is untested yet.  */
+		  if !NILP (fullscreen)                                 // C 6061
+		    {
+		      gui_set_fullscreen (f, fullscreen, fullscreen);   // C 6063
+		      w32fullscreen_hook (f);                           // C 6064
+		    }
+
+		  DebPrint! (("display change: %d %d\n",                 // C 6067
+			      LOWORD! (msg.msg.lParam) as c_short,    // C 6068
+			      HIWORD! (msg.msg.lParam) as c_short));   // C 6069
+		}
+
+	      /* According to the MS documentation, this message is sent
+		 to each window whenever a monitor is added, removed, or
+		 has its resolution change.  Detect duplicate events when
+		 there are multiple frames by ensuring only one event is
+		 put in the keyboard buffer at any given time.  */
+	      {
+		let ev: *mut buffered_input_event;                       // C 6078
+
+		ev = if kbd_store_ptr == (&raw mut kbd_buffer as *mut buffered_input_event)
+		  { (&raw mut kbd_buffer as *mut buffered_input_event)
+		      .add (KBD_BUFFER_SIZE as usize - 1) }             // C 6080-6081
+		else
+		  { kbd_store_ptr.offset (-1) };                        // C 6082
+
+		if kbd_store_ptr != kbd_fetch_ptr                       // C 6084
+		    && input_event_bits! (kind, &raw mut (*ev).ie) == MONITORS_CHANGED_EVENT   // C 6085
+		    && XTERMINAL ((*ev).ie.arg) == (*dpyinfo).terminal   // C 6086
+		  /* Don't store a MONITORS_CHANGED_EVENT if there is
+		     already an undelivered event on the queue.  */
+		  { break 'dispatch; }                                  // C 6089
+
+		input_event_bits! (kind, &raw mut inev, MONITORS_CHANGED_EVENT);   // C 6091
+		XSETTERMINAL! (inev.arg, (*dpyinfo).terminal);           // C 6092
+	      }
+
+	      check_visibility = 1;                                     // C 6095
+	    }
+
+	  WM_EMACS_SET_TOOLKIT_THEME =>                                // C 6098
+	    {
+	      input_event_bits! (kind, &raw mut inev, TOOLKIT_THEME_CHANGED_EVENT);   // C 6100
+	      inev.arg = if msg.msg.wParam != 0 { Qdark () } else { Qlight () };   // C 6101
+	    }
+
+	  /* C 6105-6111 is `#if HAVE_W32NOTIFY` - the file gate's second arm (`have_w32notify`,
+	     the `docs/ports/w32term.md` table's `all (have_ntgui, have_w32notify)` row), so the arm
+	     carries the feature.  */
+	  #[cfg (feature = "have_w32notify")]
+	  WM_EMACS_FILENOTIFY =>                                       // C 6106
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 6107
+	      if !f.is_null ()                                          // C 6108
+		{ w32_queue_notifications (&raw mut inev, &raw mut msg, f, &raw mut count); }   // C 6109
+	    }
+
+	  /* C 6113-6125 carries a dead `#if 0` and an `#ifdef WM_TOUCHMOVE` / `#else` pair whose two
+	     labels are the same number (`src/w32term.c` 141 defines `WM_TOUCHMOVE` 576 under
+	     `_WIN32_WINNT < 0x0601`, and `<winuser.h>`'s `WM_TOUCH` is 0x0240 = 576), so the live
+	     label is the file's own name and C's two dead arms are carried as C's own text:
+
+	  #if 0
+		  /* These messages existed in prerelease versions of Windows 7,
+		     yet, though superseded by just WM_TOUCHMOVE (renamed
+		     WM_TOUCH) in the release, are still defined by MinGW's
+		     winuser.h.  */
+		case WM_TOUCHDOWN:
+		case WM_TOUCHUP:
+	  #endif /* 0 */
+	  #ifdef WM_TOUCHMOVE
+		case WM_TOUCHMOVE:
+	  #else /* not WM_TOUCHMOVE */
+		case WM_TOUCH:
+	  #endif /* not WM_TOUCHMOVE */
+	      */
+	  WM_TOUCHMOVE =>                                              // C 6122
+	    {
+	      f = w32_window_to_frame (dpyinfo, msg.msg.hwnd);       // C 6126
+
+	      /* WM_TOUCH should never be received when touch input
+		 functions are unavailable.  */
+	      if pfnGetTouchInputInfo.is_none ()                        // C 6130
+		{ break 'dispatch; }                                   // C 6131
+
+	      if !f.is_null ()                                          // C 6133
+		{
+		  let points: *mut TOUCHINPUT;                              // C 6135
+		  let mut i: c_int;
+		  /* C 6136's `int x UNINIT` is `= {0,}` in conf_post.h 369, so the port zeroes it.  */
+		  let mut x: c_int = 0;
+		  let mut px: c_int;
+		  let mut py: c_int;
+		  let mut pt: POINT;                                       // C 6137
+
+		  /* C's bare `alloca` is the port's stack pool (PORTING.md P-05).  */
+		  points = sa_stack_alloc (core::mem::size_of::<TOUCHINPUT> ()
+					   * LOWORD! (msg.msg.wParam) as usize) as *mut TOUCHINPUT;   // C 6139
+		  if (pfnGetTouchInputInfo.unwrap ()) (msg.msg.lParam as HANDLE,   // C 6140-6141
+						       LOWORD! (msg.msg.wParam) as UINT,
+						       points,
+						       core::mem::size_of::<TOUCHINPUT> () as c_int) != 0   // C 6142
+		    {
+		      let mut movement_p: bool = false;                    // C 6144
+		      let base: EMACS_INT = (*((*f).output_data.w32 as *mut w32_output)).touch_base;   // C 6145
+
+		      /* Iterate over the list of touch points in the
+			 structure, and for each, enter or remove
+			 information into and from F->touch_ids, and
+			 generate events correspondingly.  */
+		      /* C's `for` performs its update on `continue` too, so the port's `while` writes
+		 C's own `++i` at both sites (PORTING.md 2.2's `fringe.rs` shape), and C's two
+		 `goto touch_located` are the forward jumps into the labelled block below.  */
+		      i = 0;
+		      /* Rust forbids an unlabelled `continue` whose loop is outside the labelled block
+			 (`E0695`, measured), so C's own `while` head carries the label C's `for` does not
+			 need - the label C's own two `goto touch_located` already imply.  */
+		      'touch_points: while i < LOWORD! (msg.msg.wParam) as c_int   // C 6151
+			{
+			  'touch_located: {
+			    if (*points.offset (i as isize)).dwID == 0     // C 6153
+			      { i += 1; continue 'touch_points; }          // C 6154
+
+			    /* Skip to `touch_located' if the point is
+			       reserved for the tool bar, and hasn't just been
+			       placed.  */
+			    if (*points.offset (i as isize)).dwID          // C 6159
+				== (*((*f).output_data.w32 as *mut w32_output)).tool_bar_dwID   // C 6160
+			      {
+				if ((*points.offset (i as isize)).dwFlags & TOUCHEVENTF_UP as DWORD) != 0   // C 6162
+				  { break 'touch_located; }                // C 6163
+
+				/* Other like events should be simply
+				   discarded.  */
+				i += 1; continue 'touch_points;            // C 6167
+			      }
+
+			    /* Search for a slot in touch_ids that is either
+			       empty or matches dwID.  */
+			    x = 0;
+			    while x < MAX_TOUCH_POINTS as c_int                     // C 6172
+			      {
+				if (*((*f).output_data.w32 as *mut w32_output)).touch_ids[x as usize]
+				    == (*points.offset (i as isize)).dwID as c_int   // C 6174-6175
+				  { break; }                               // C 6176
+				x += 1;
+			      }
+
+			    if x < MAX_TOUCH_POINTS as c_int                        // C 6179
+			      { break 'touch_located; }                    // C 6180
+
+			    x = 0;
+			    while x < MAX_TOUCH_POINTS as c_int                     // C 6182
+			      {
+				if (*((*f).output_data.w32 as *mut w32_output)).touch_ids[x as usize] == -1   // C 6184
+				  { break; }                               // C 6185
+				x += 1;
+			      }
+
+			    if x == MAX_TOUCH_POINTS as c_int                       // C 6188
+			      { i += 1; continue 'touch_points; }          // C 6189
+			  }
+
+			  /* C 6191's `touch_located:` station.  */
+			  /* X and Y are fractional values.  */
+			  pt.x = (*points.offset (i as isize)).x / 100;    // C 6193
+			  pt.y = (*points.offset (i as isize)).y / 100;    // C 6194
+
+			  /* Convert them from screen values to client
+			     values.  */
+			  ScreenToClient (msg.msg.hwnd, &raw mut pt);   // C 6198
+			  px = pt.x;                                       // C 6199
+			  py = pt.y;                                       // C 6200
+
+			  if ((*points.offset (i as isize)).dwFlags & TOUCHEVENTF_UP as DWORD) != 0   // C 6202
+			    {
+			      if (*points.offset (i as isize)).dwID
+				  == (*((*f).output_data.w32 as *mut w32_output)).tool_bar_dwID   // C 6204-6205
+				{
+				  (*((*f).output_data.w32 as *mut w32_output)).tool_bar_dwID = -1i32 as DWORD;   // C 6207
+				  if (*f).last_tool_bar_item != -1         // C 6208
+				    { handle_tool_bar_click (f, px, py, false, 0); }   // C 6209
+
+				  /* Cancel any outstanding mouse highlight.  */
+				  note_mouse_highlight (f, -1, -1);        // C 6212
+				  i += 1; continue;                        // C 6213
+				}
+
+			      /* Clear the entry in touch_ids and report the
+				 change.  Unless, of course, the entry be
+				 empty.  */
+			      if (*((*f).output_data.w32 as *mut w32_output)).touch_ids[x as usize] == -1   // C 6219
+				{ i += 1; continue; }                      // C 6220
+			      (*((*f).output_data.w32 as *mut w32_output)).touch_ids[x as usize] = -1;   // C 6221
+
+			      input_event_bits! (kind, &raw mut inev, TOUCHSCREEN_END_EVENT);   // C 6223
+			      inev.timestamp = msg.msg.time as Time;    // C 6224
+			      XSETFRAME! (inev.frame_or_window, f);        // C 6225
+			      XSETINT! (inev.x, px as EMACS_INT);          // C 6226
+			      XSETINT! (inev.y, py as EMACS_INT);          // C 6227
+			      XSETINT! (inev.arg, (x as EMACS_INT + base) as EMACS_INT);   // C 6228
+			      kbd_buffer_store_event (&raw mut inev as *mut c_void);   // C 6229
+			      EVENT_INIT (&raw mut inev);                  // C 6230
+			    }
+			  else if ((*points.offset (i as isize)).dwFlags
+				   & TOUCHEVENTF_DOWN as DWORD) != 0   // C 6232
+			    {
+			      let mut recorded_p: bool;                    // C 6234
+			      let mut window: Lisp_Object;                 // C 6235
+
+			      recorded_p
+				= (*((*f).output_data.w32 as *mut w32_output)).touch_ids[x as usize] != -1;   // C 6237-6238
+
+			      /* Update the local record of its
+				 position.  */
+			      (*((*f).output_data.w32 as *mut w32_output)).touch_x[x as usize] = px;   // C 6242
+			      (*((*f).output_data.w32 as *mut w32_output)).touch_y[x as usize] = py;   // C 6243
+
+			      if recorded_p                              // C 6245
+				{
+				  movement_p = true;                       // C 6247
+				  i += 1; continue;                        // C 6248
+				}
+
+			      /* This event might have landed above the tool
+				 bar, which if true its dwID should be
+				 reserved for manipulation of the tool bar.  */
+			      window = window_from_coordinates (f as *mut c_void, px, py,
+								core::ptr::null_mut (),
+								true, true, true);   // C 6254-6255
+			      if EQ (window, (*f).tool_bar_window)         // C 6256
+				{
+				  if !NILP (Vmouse_highlight)              // C 6258
+				    {
+				      note_mouse_highlight (f, px, py);    // C 6260
+
+				      /* Always allow future mouse motion to
+					 update the mouse highlight, no matter
+					 where it is.  */
+				      memset (&raw mut (*dpyinfo).last_mouse_glyph as *mut c_void, 0,
+					      core::mem::size_of_val (&(*dpyinfo).last_mouse_glyph));   // C 6265-6266
+				      (*dpyinfo).last_mouse_glyph_frame = f;   // C 6267
+				    }
+
+				  handle_tool_bar_click (f, px, py, true, 0);   // C 6270
+				  (*((*f).output_data.w32 as *mut w32_output)).tool_bar_dwID
+				    = (*points.offset (i as isize)).dwID;      // C 6271-6272
+				  i += 1; continue;                        // C 6273
+				}
+
+			      /* Report and record (if not already recorded)
+				 the addition.  */
+			      (*((*f).output_data.w32 as *mut w32_output)).touch_ids[x as usize]
+				= (*points.offset (i as isize)).dwID as c_int;      // C 6278
+
+			      input_event_bits! (kind, &raw mut inev, TOUCHSCREEN_BEGIN_EVENT);   // C 6280
+			      inev.timestamp = msg.msg.time as Time;    // C 6281
+			      XSETFRAME! (inev.frame_or_window, f);        // C 6282
+			      XSETINT! (inev.x, px as EMACS_INT);          // C 6283
+			      XSETINT! (inev.y, py as EMACS_INT);          // C 6284
+			      XSETINT! (inev.arg, (x as EMACS_INT + base) as EMACS_INT);   // C 6285
+			      kbd_buffer_store_event (&raw mut inev as *mut c_void);   // C 6286
+			      EVENT_INIT (&raw mut inev);                  // C 6287
+			    }
+			  else
+			    {
+			      let recorded_p
+				= (*((*f).output_data.w32 as *mut w32_output)).touch_ids[x as usize] != -1;   // C 6291-6292
+
+			      if !recorded_p                               // C 6294
+				{ i += 1; continue; }                      // C 6295
+
+			      if (*((*f).output_data.w32 as *mut w32_output)).touch_x[x as usize] != px   // C 6297
+				  || (*((*f).output_data.w32 as *mut w32_output)).touch_y[x as usize] != py   // C 6298
+				{
+				  movement_p = true;                       // C 6300
+				  (*((*f).output_data.w32 as *mut w32_output)).touch_ids[x as usize]
+				    = (*points.offset (i as isize)).dwID as c_int;   // C 6301-6302
+				  (*((*f).output_data.w32 as *mut w32_output)).touch_x[x as usize] = px;   // C 6303
+				  (*((*f).output_data.w32 as *mut w32_output)).touch_y[x as usize] = py;   // C 6304
+				}
+			    }
+
+			  i += 1;                                          // C 6151
+			}
+
+		      /* Report updated positions of touchpoints if some
+			 changed.  */
+		      if movement_p                                        // C 6311
+			{
+			  let mut arg: Lisp_Object;                        // C 6313
+
+			  input_event_bits! (kind, &raw mut inev, TOUCHSCREEN_UPDATE_EVENT);   // C 6315
+			  inev.timestamp = msg.msg.time as Time;        // C 6316
+			  XSETFRAME! (inev.frame_or_window, f);            // C 6317
+			  arg = Qnil ();                                   // C 6318
+
+			  i = 0;
+			  while i < MAX_TOUCH_POINTS as c_int                       // C 6320
+			    {
+			      if (*((*f).output_data.w32 as *mut w32_output)).touch_ids[i as usize] == -1   // C 6322
+				{ i += 1; continue; }                      // C 6323
+
+			      arg
+				= Fcons (list3i ((*((*f).output_data.w32 as *mut w32_output)).touch_x[i as usize] as EMACS_INT,
+						 (*((*f).output_data.w32 as *mut w32_output)).touch_y[i as usize] as EMACS_INT,
+						 (i as EMACS_INT + base) as EMACS_INT),   // C 6326-6328
+				 arg);                                     // C 6329
+			      i += 1;                                      // C 6320
+			    }
+
+			  inev.arg = arg;                                  // C 6332
+
+			  /* Don't generate events if they would be empty.  */
+			  if NILP (arg)                                    // C 6335
+			    { EVENT_INIT (&raw mut inev); }                // C 6336
+			}
+		    }
+		}
+
+	      (pfnCloseTouchInputHandle.unwrap ()) (msg.msg.lParam as HANDLE);   // C 6341
+	    }
+
+	  /* C's `default:` (C 6344-6352).  */
+	  _ =>
+	    {
+	      /* Check for messages registered at runtime.  */
+	      if msg.msg.message == msh_mousewheel                // C 6346
+		{
+		  /* Forward MSH_MOUSEWHEEL as WM_MOUSEWHEEL.  */
+		  msg.msg.message = WM_MOUSEWHEEL as c_uint;           // C 6349
+		  prepend_msg (&raw mut msg);                            // C 6350
+		}
+	    }
+	}
+      }
+
+      if input_event_bits! (kind, &raw mut inev) != NO_EVENT              // C 6355
+	{
+	  kbd_buffer_store_event_hold (&raw mut inev, hold_quit);        // C 6357
+	  count += 1;                                                    // C 6358
+	}
+
+      if do_help != 0                                                   // C 6361
+	  && !(!hold_quit.is_null ()
+	       && input_event_bits! (kind, hold_quit) != NO_EVENT)       // C 6362
+	{
+	  let mut frame: Lisp_Object;                                     // C 6364
+
+	  if !f.is_null ()                                                // C 6366
+	    { XSETFRAME! (frame, f); }                                    // C 6367
+	  else
+	    { frame = Qnil (); }                                          // C 6369
+
+	  if do_help > 0                                                  // C 6371
+	    {
+	      if NILP (help_echo_string)                                  // C 6373
+		{
+		  help_echo_object = Qnil ();                             // C 6375
+		  help_echo_window = Qnil ();
+		  help_echo_pos = -1;                                     // C 6376
+		}
+
+	      any_help_event_p = 1;                                       // C 6379
+	      gen_help_event (help_echo_string, frame, help_echo_window,   // C 6380
+			      help_echo_object, help_echo_pos as isize);   // C 6381
+	    }
+	  else
+	    {
+	      help_echo_string = Qnil ();                                 // C 6385
+	      gen_help_event (Qnil (), frame, Qnil (), Qnil (), 0);        // C 6386
+	    }
+	  count += 1;                                                     // C 6388
+	}
+
+      /* Event processing might have drawn to F outside redisplay.  If
+	 that is the case, flush any changes that have been made to
+	 the front buffer.  */
+
+      if !f.is_null () && !w32_disable_double_buffering                 // C 6395
+	  && w32_output_bits! (paint_buffer_dirty, FRAME_OUTPUT_DATA! (f)) != 0   // C 6396
+	  && !FRAME_GARBAGED_P (f) && !ignore_dirty_back_buffer                   // C 6397
+	{ w32_show_back_buffer (f); }                                     // C 6398
+    }
+
+  /* If the focus was just given to an autoraising frame,
+     raise it now.  FIXME: handle more than one such frame.  */
+  if !(*dpyinfo).w32_pending_autoraise_frame.is_null ()                 // C 6403
+    {
+      w32_raise_frame ((*dpyinfo).w32_pending_autoraise_frame);         // C 6405
+      (*dpyinfo).w32_pending_autoraise_frame = core::ptr::null_mut ();   // C 6406
+    }
+
+  /* Check which frames are still visible, if we have enqueued any user
+     events or been notified of events that may affect visibility.  We
+     do this here because there doesn't seem to be any direct
+     notification from Windows that the visibility of a window has
+     changed (at least, not in all cases).  */
+  if count > 0 || check_visibility != 0                                 // C 6414
+    {
+      let mut tail: Lisp_Object;                                        // C 6416
+      let mut frame: Lisp_Object;
+
+      FOR_EACH_FRAME! (tail, frame, {                                   // C 6418
+	let f: *mut frame = XFRAME (frame);                              // C 6420
+	/* The tooltip has been drawn already.  Avoid the
+	   SET_FRAME_GARBAGED below.  */
+	if FRAME_TOOLTIP_P (f)                                           // C 6423
+	  { continue; }                                                  // C 6424
+
+	/* Check "visible" frames and mark each as visible or not.
+	   Note that visible is nonzero for unobscured and obscured
+	   frames, but zero for hidden and iconified frames.  */
+	if FRAME_W32_P (f) && FRAME_VISIBLE_P (f)                        // C 6429
+	  {
+	    /* C declares the `RECT` uninitialised and fills it with `GetClipBox`
+	       (PORTING.md 1.5).  */
+	    let mut clipbox: RECT = core::mem::zeroed ();                 // C 6431
+	    let mut hdc: HDC;                                            // C 6432
+
+	    enter_crit ();                                               // C 6434
+	    /* Query clipping rectangle for the entire window area
+	       (GetWindowDC), not just the client portion (GetDC).
+	       Otherwise, the scrollbars and menubar aren't counted as
+	       part of the visible area of the frame, and we may think
+	       the frame is obscured when really a scrollbar is still
+	       visible and gets WM_PAINT messages above.  */
+	    hdc = GetWindowDC (FRAME_W32_WINDOW (f));                   // C 6441
+	    GetClipBox (hdc, &raw mut clipbox);                          // C 6442
+	    ReleaseDC (FRAME_W32_WINDOW (f), hdc);                      // C 6443
+	    leave_crit ();                                               // C 6444
+
+	    if !(clipbox.right == clipbox.left                           // C 6446
+		 || clipbox.bottom == clipbox.top)                       // C 6447
+	      {
+		/* Frame is not obscured, so mark it as such.  */
+		SET_FRAME_VISIBLE! (f, 1);                               // C 6450
+	      }
+	  }
+      });                                                                // C 6454
+    }
+
+  unblock_input ();                                                      // C 6456
+  return count;                                                          // C 6457
+}
+
+/* C 6462-6464 is the "Text Cursor" banner, C 6466-6471 the note above `w32_clip_to_row` and C
+   6473-6489 that function - the next slice's text.  */

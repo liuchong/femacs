@@ -551,6 +551,14 @@ pub struct w32_output
 pub const W32_OUTPUT_PAINT_BUFFER_DIRTY_BIT: c_uint = 1;
 #[cfg (feature = "windowsnt")]
 pub const W32_OUTPUT_WANT_PAINT_BUFFER_BIT: c_uint = 1 << 1;
+/* C 397's `unsigned asked_for_visible : 1` joins the same packed word: `src/w32term.c` 5190 (the
+   `WM_EMACS_PAINT` arm) is the first live read of it, and C 7517/7538 the other two.  It is the
+   same stand-in the two `paint_buffer` members above already take (PORTING.md 1.3 / P-80: the
+   record cannot be compiled on this machine, so the real byte dump is owed, not claimed) - and
+   adding a bit to a word that is already there changes no offset.  The three bitfields C 378/394
+   and 400 leave (`hourglass_p`, `explicit_parent`, `menubar_active`) stay recorded-only.  */
+#[cfg (feature = "windowsnt")]
+pub const W32_OUTPUT_ASKED_FOR_VISIBLE_BIT: c_uint = 1 << 2;
 
 /// C's member is a 1-bit `unsigned`, so reading it yields 0 or 1; the value form (rather than a
 /// `bool`) keeps C's comparison - `... ->want_paint_buffer != 0` - spelled the same on this side,
@@ -594,6 +602,10 @@ macro_rules! w32_output_bits {
   (want_paint_buffer, $o:expr) => { w32_output_bit_get ($o as *mut c_void, W32_OUTPUT_WANT_PAINT_BUFFER_BIT) };
   (want_paint_buffer, $o:expr, $v:expr)
     => { w32_output_bit_set ($o as *mut c_void, W32_OUTPUT_WANT_PAINT_BUFFER_BIT, ($v) != 0) };
+  /* C 397's member, the third of the record's packed bits (see the mask above).  */
+  (asked_for_visible, $o:expr) => { w32_output_bit_get ($o as *mut c_void, W32_OUTPUT_ASKED_FOR_VISIBLE_BIT) };
+  (asked_for_visible, $o:expr, $v:expr)
+    => { w32_output_bit_set ($o as *mut c_void, W32_OUTPUT_ASKED_FOR_VISIBLE_BIT, ($v) != 0) };
 }
 
 /// C 458: `extern struct w32_output w32term_display;`
