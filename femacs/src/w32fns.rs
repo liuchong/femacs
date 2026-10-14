@@ -309,6 +309,11 @@ pub const VERTSIZE: c_int = 6;
 pub const HORZRES: c_int = 8;
 #[cfg (feature = "have_ntgui")]
 pub const VERTRES: c_int = 10;
+/// C: #define SPI_GETWORKAREA 0x0030 - the action C 7071 passes to `SystemParametersInfo`; the
+/// function itself is the declaration `src/w32term.rs` 326 carries for C 384 (this unit's
+/// `<windows.h>` block has no copy, so one is added here with C's `<winuser.h>` line).
+#[cfg (feature = "have_ntgui")]
+pub const SPI_GETWORKAREA: UINT = 0x0030;
 
 /// C 473: `GetWindowRect (FRAME_W32_WINDOW (f), &rect);` - `<winuser.h>`.
 /// C: WINUSERAPI BOOL WINAPI GetWindowRect (HWND hWnd, LPRECT lpRect);
@@ -7020,6 +7025,15 @@ unsafe extern "system" {
   pub fn GetDC (hWnd: HWND) -> HDC;
   pub fn ReleaseDC (hWnd: HWND, hDC: HDC) -> c_int;
   pub fn GetDeviceCaps (hdc: HDC, nIndex: c_int) -> c_int;
+  pub fn CreateDCA (pwszDriver: *const c_char, pwszDevice: *mut c_char, pszPort: *const c_char,
+		    pdm: *mut c_void) -> HDC;
+  pub fn DeleteDC (hdc: HDC) -> BOOL;
+  /// C 7071's reader: the declaration `src/w32term.rs` 326 carries for C 384, added here
+  /// because this unit's `<windows.h>` block has no copy of it.
+  /// C: BOOL WINAPI SystemParametersInfoA (UINT uiAction, UINT uiParam, PVOID pvParam,
+  /// C:                            UINT fWinIni);
+  pub fn SystemParametersInfo (uiAction: UINT, uiParam: UINT, pvParam: *mut c_void,
+			       fWinIni: UINT) -> BOOL;
   pub fn GetCurrentObject (hdc: HDC, r#type: UINT) -> HGDIOBJ;
   pub fn GetObject (h: HANDLE, c: c_int, pv: LPVOID) -> c_int;
   pub fn GetObjectW (h: HANDLE, c: c_int, pv: LPVOID) -> c_int;
@@ -10562,4 +10576,261 @@ DEFUN! ("x-display-save-under", Fx_display_save_under, Sx_display_save_under, 0,
 	(display: Lisp_Object),
 	{
   return Qnil ();
+});
+
+/// C 6917-6925: `w32_monitor_enum` - C's `static BOOL CALLBACK ALIGN_STACK` (the `extern "system"`
+/// plus the mirror's `ALIGN_STACK`, the `src/w32font.rs` 1958-1966 device), the callback
+/// `enum_display_monitors_fn` is called with.  C's two unused parameters (`hdc`, `rcMonitor`) stay
+/// in the signature because `MonitorEnum_Proc` fixes it.
+/// C: static BOOL CALLBACK ALIGN_STACK
+/// C: w32_monitor_enum (HMONITOR monitor, HDC hdc, RECT *rcMonitor, LPARAM dwData)
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_monitor_enum (monitor: HMONITOR, hdc: HDC, rcMonitor: *mut RECT,
+					    dwData: LPARAM) -> BOOL
+{
+  let monitor_list: *mut Lisp_Object = dwData as *mut Lisp_Object;
+
+  *monitor_list = Fcons (make_mint_ptr (monitor), *monitor_list);
+
+  return TRUE;
+}
+
+/// C 6927-7025: `w32_display_monitor_attributes_list` - the enumeration arm over the three lazily
+/// bound entry points (C 6935-6941's two tests are the `Option` tests C 498-503 already gave this
+/// unit, `(f.unwrap ()) (…)` at the two call sites).  C 6948's `xmalloc (n * sizeof (*p))` is the
+/// unit's `xmalloc` (a `usize` byte count) cast to the pointer's own type, C 6951's
+/// `xmint_pointer` is the mirror's, C 6955's `Fmake_vector` and C 6971/6993/6998/7000/7006/7011's
+/// `ASET`/`AREF`/`Fcons` are `include/lisp.rs`'s and `include/globals.rs`'s, C 6956's
+/// `FOR_EACH_FRAME` is `include/frame.rs`'s three-argument macro (the `src/androidfns.rs` 1948
+/// call shape), and C 6980's `struct MONITOR_INFO_EX mi;` is a PORTING.md 1.5 outputs-only local
+/// (zero-initialised, as the ledger names).  C 6977's four `Lisp_Object` locals are C's one
+/// declaration with one initialiser (`attributes = Qnil`), so the port writes one `let` per name.
+/// C: static Lisp_Object
+/// C: w32_display_monitor_attributes_list (void)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_display_monitor_attributes_list () -> Lisp_Object
+{
+  let mut attributes_list: Lisp_Object = Qnil ();
+  let mut primary_monitor_attributes: Lisp_Object = Qnil ();
+  let mut monitor_list: Lisp_Object = Qnil ();
+  let mut monitor_frames: Lisp_Object;
+  let mut rest: Lisp_Object;
+  let mut frame: Lisp_Object;
+  let mut i: c_int;
+  let mut n_monitors: c_int;
+  let mut monitors: *mut HMONITOR;
+
+  if ! (enum_display_monitors_fn.is_some () && get_monitor_info_fn.is_some ()
+	&& monitor_from_window_fn.is_some ())
+    { return Qnil (); }
+
+  if ! ((enum_display_monitors_fn.unwrap ()) (core::ptr::null_mut (), core::ptr::null_mut (),
+					      w32_monitor_enum,
+					      (&raw mut monitor_list) as LPARAM) != 0)
+      || NILP (monitor_list)
+    { return Qnil (); }
+
+  n_monitors = 0;
+  rest = monitor_list;
+  while CONSP (rest)
+    {
+      n_monitors += 1;
+      rest = XCDR (rest);
+    }
+
+  monitors = xmalloc (n_monitors as usize * core::mem::size_of::<HMONITOR> ()) as *mut HMONITOR;
+  i = 0;
+  while i < n_monitors
+    {
+      *monitors.offset (i as isize) = xmint_pointer (XCAR (monitor_list)) as HMONITOR;
+      monitor_list = XCDR (monitor_list);
+      i += 1;
+    }
+
+  monitor_frames = Fmake_vector (make_fixnum (n_monitors as EMACS_INT), Qnil ());
+  FOR_EACH_FRAME! (rest, frame, {
+      let f: *mut frame = XFRAME (frame);
+
+      if FRAME_W32_P (f) && ! FRAME_TOOLTIP_P (f)
+	{
+	  let monitor: HMONITOR =
+	    (monitor_from_window_fn.unwrap ()) (FRAME_W32_WINDOW! (f),
+						MONITOR_DEFAULT_TO_NEAREST);
+
+	  i = 0;
+	  while i < n_monitors
+	    {
+	      if *monitors.offset (i as isize) == monitor
+		{ break; }
+	      i += 1;
+	    }
+
+	  if i < n_monitors
+	    { ASET (monitor_frames, i as isize,
+		    Fcons (frame, AREF (monitor_frames, i as isize))); }
+	}
+  });
+
+  i = 0;
+  while i < n_monitors
+    {
+      let mut geometry: Lisp_Object;
+      let mut workarea: Lisp_Object;
+      let mut name: Lisp_Object;
+      let mut attributes: Lisp_Object = Qnil ();
+      let hdc: HDC;
+      let mut width_mm: c_int;
+      let mut height_mm: c_int;
+      let mut mi: MONITOR_INFO_EX = core::mem::zeroed ();
+
+      mi.cbSize = core::mem::size_of::<MONITOR_INFO_EX> () as DWORD;
+      if ! ((get_monitor_info_fn.unwrap ()) (*monitors.offset (i as isize),
+					     (&raw mut mi) as *mut MONITOR_INFO) != 0)
+	{
+	  i += 1;
+	  continue;
+	}
+
+      hdc = CreateDCA (c"DISPLAY".as_ptr (), mi.szDevice.as_mut_ptr (),
+		       core::ptr::null (), core::ptr::null_mut ());
+      if hdc.is_null ()
+	{
+	  i += 1;
+	  continue;
+	}
+      width_mm = GetDeviceCaps (hdc, HORZSIZE);
+      height_mm = GetDeviceCaps (hdc, VERTSIZE);
+      DeleteDC (hdc);
+
+      attributes = Fcons (Fcons (Qframes (), AREF (monitor_frames, i as isize)),
+			  attributes);
+
+      name = DECODE_SYSTEM (build_unibyte_string (mi.szDevice.as_mut_ptr ()));
+
+      attributes = Fcons (Fcons (Qname (), name), attributes);
+
+      attributes = Fcons (Fcons (Qmm_size (),
+				 list2i (width_mm as EMACS_INT, height_mm as EMACS_INT)),
+			  attributes);
+
+      workarea = list4i (mi.rcWork.left as EMACS_INT, mi.rcWork.top as EMACS_INT,
+			 (mi.rcWork.right - mi.rcWork.left) as EMACS_INT,
+			 (mi.rcWork.bottom - mi.rcWork.top) as EMACS_INT);
+      attributes = Fcons (Fcons (Qworkarea (), workarea), attributes);
+
+      geometry = list4i (mi.rcMonitor.left as EMACS_INT, mi.rcMonitor.top as EMACS_INT,
+			 (mi.rcMonitor.right - mi.rcMonitor.left) as EMACS_INT,
+			 (mi.rcMonitor.bottom - mi.rcMonitor.top) as EMACS_INT);
+      attributes = Fcons (Fcons (Qgeometry (), geometry), attributes);
+
+      if mi.dwFlags & MONITORINFOF_PRIMARY != 0
+	{ primary_monitor_attributes = attributes; }
+      else
+	{ attributes_list = Fcons (attributes, attributes_list); }
+      i += 1;
+    }
+
+  if ! NILP (primary_monitor_attributes)
+    { attributes_list = Fcons (primary_monitor_attributes, attributes_list); }
+
+  xfree (monitors as *mut c_void);
+
+  return attributes_list;
+}
+
+/// C 7027-7082: `w32_display_monitor_attributes_list_fallback` - the single-pseudo-monitor arm.
+/// C 7034's `RECT workarea_rect;` is the callee-filled local (`SystemParametersInfo`'s fourth
+/// argument), i.e. PORTING.md 1.5's zero initialiser, and C 7058/7061's double results are the
+/// `as c_int` truncations the two `x-display-mm-*` readers above spell the same way.
+/// C: static Lisp_Object
+/// C: w32_display_monitor_attributes_list_fallback (struct w32_display_info *dpyinfo)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_display_monitor_attributes_list_fallback (dpyinfo: *mut w32_display_info)
+  -> Lisp_Object
+{
+  let mut geometry: Lisp_Object;
+  let mut workarea: Lisp_Object;
+  let mut frames: Lisp_Object;
+  let mut rest: Lisp_Object;
+  let mut frame: Lisp_Object;
+  let mut attributes: Lisp_Object = Qnil ();
+  let hdc: HDC;
+  let mut mm_per_pixel: c_double;
+  let mut pixel_width: c_int;
+  let mut pixel_height: c_int;
+  let mut width_mm: c_int;
+  let mut height_mm: c_int;
+  let mut workarea_rect: RECT = core::mem::zeroed ();
+
+  /* Fallback: treat (possibly) multiple physical monitors as if they
+     formed a single monitor as a whole.  This should provide a
+     consistent result at least on single monitor environments.  */
+  attributes = Fcons (Fcons (Qname (), build_string (c"combined screen".as_ptr ())),
+		      attributes);
+
+  frames = Qnil ();
+  FOR_EACH_FRAME! (rest, frame, {
+      let f: *mut frame = XFRAME (frame);
+
+      if FRAME_W32_P (f) && ! FRAME_TOOLTIP_P (f)
+	{ frames = Fcons (frame, frames); }
+  });
+  attributes = Fcons (Fcons (Qframes (), frames), attributes);
+
+  pixel_width = w32_display_pixel_width (dpyinfo);
+  pixel_height = w32_display_pixel_height (dpyinfo);
+
+  hdc = GetDC (core::ptr::null_mut ());
+  mm_per_pixel = (GetDeviceCaps (hdc, HORZSIZE) as c_double)
+		 / (GetDeviceCaps (hdc, HORZRES) as c_double);
+  width_mm = (pixel_width as c_double * mm_per_pixel + 0.5) as c_int;
+  mm_per_pixel = (GetDeviceCaps (hdc, VERTSIZE) as c_double)
+		 / (GetDeviceCaps (hdc, VERTRES) as c_double);
+  height_mm = (pixel_height as c_double * mm_per_pixel + 0.5) as c_int;
+  ReleaseDC (core::ptr::null_mut (), hdc);
+  attributes = Fcons (Fcons (Qmm_size (),
+			     list2i (width_mm as EMACS_INT, height_mm as EMACS_INT)),
+		      attributes);
+
+  /* GetSystemMetrics below may return 0 for Windows 95 or NT 4.0, but
+     we don't care.  */
+  geometry = list4i (GetSystemMetrics (SM_XVIRTUALSCREEN) as EMACS_INT,
+		     GetSystemMetrics (SM_YVIRTUALSCREEN) as EMACS_INT,
+		     pixel_width as EMACS_INT, pixel_height as EMACS_INT);
+  if SystemParametersInfo (SPI_GETWORKAREA, 0, (&raw mut workarea_rect) as *mut c_void, 0) != 0
+    { workarea = list4i (workarea_rect.left as EMACS_INT, workarea_rect.top as EMACS_INT,
+			 (workarea_rect.right - workarea_rect.left) as EMACS_INT,
+			 (workarea_rect.bottom - workarea_rect.top) as EMACS_INT); }
+  else
+    { workarea = geometry; }
+  attributes = Fcons (Fcons (Qworkarea (), workarea), attributes);
+
+  attributes = Fcons (Fcons (Qgeometry (), geometry), attributes);
+
+  return list1 (attributes);
+}
+
+/// C 7084-7106: `w32-display-monitor-attributes-list` - C 7087-7093's doc body (four paragraphs and
+/// the two `\n\n` runs, the shape `src/androidfns.rs` 1971 gives its twin), and C 7099/7103's
+/// `block_input`/`unblock_input` pair around the two arms.
+/// C: DEFUN ("w32-display-monitor-attributes-list", Fw32_display_monitor_attributes_list,
+/// C:        Sw32_display_monitor_attributes_list, 0, 1, 0,
+/// C:        doc: /* Return a list of physical monitor attributes on the W32 display DISPLAY. … */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-display-monitor-attributes-list", Fw32_display_monitor_attributes_list,
+	Sw32_display_monitor_attributes_list, 0, 1, 0,
+	doc: "Return a list of physical monitor attributes on the W32 display DISPLAY.\n\nThe optional argument DISPLAY specifies which display to ask about.\nDISPLAY should be either a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nInternal use only, use `display-monitor-attributes-list' instead.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+  let mut attributes_list: Lisp_Object;
+
+  block_input ();
+  attributes_list = w32_display_monitor_attributes_list ();
+  if NILP (attributes_list)
+    { attributes_list = w32_display_monitor_attributes_list_fallback (dpyinfo); }
+  unblock_input ();
+
+  return attributes_list;
 });

@@ -210,7 +210,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 4525-5986 | `w32_wnd_proc` (C 4599/4676's `W32_DEBUG_DISPLAY`, C 4853's `#if 0`, C 5113-5115/5185-5187's `MOUSEEVENTF_FROMTOUCH` guards, C 5331's function-local `last_x`/`last_y`, C 5712-5719's `WM_TOUCHMOVE` arm, the five `#ifdef WINDOWSNT` blocks at C 5727-5735/5738-5743/5745-5752/5756/5790) | file gate; the one arm `w32_debug_display` |
 | 5988-6712 | `my_create_window` (C 5994), `my_create_tip_window`, `w32_window`, `w32_icon`, `w32_make_gc`, `unwind_create_frame`, `do_unwind_create_frame`, `w32_default_font_parameter` and C 6253's `x-create-frame` `DEFUN` (C 6257-6711) - slices 5, 6 and 7 | file gate |
 | 6714-6915 | C 6714-6915: the seventeen display-info `DEFUN`s (`xw-color-defined-p` through `x-display-save-under`) - slice 8 | file gate |
-| 6917-12488 | **the remainder of the file** (C 6917 `w32_monitor_enum` onward: C 7084 `w32-display-monitor-attributes-list`, C 7166 `x-open-connection`, C 9581 `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6917-7106 | C 6917-7106: `w32_monitor_enum`, `w32_display_monitor_attributes_list`, `w32_display_monitor_attributes_list_fallback` and the `w32-display-monitor-attributes-list` `DEFUN` - slice 9 | file gate |
+| 7108-12488 | **the remainder of the file** (C 7108 `set-message-beep` onward: C 7142 `w32_display_info_for_name`, C 7166 `x-open-connection`, C 9581 `w32_display_info_for_name`'s neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1501,6 +1502,83 @@ before the split).
 - **Not claimed.**  No run evidence: no display is opened, no device context is acquired and no
   color is looked up on this machine; the arm reading is a compile-level result that stops at the
   mirrors' errors, and the name sweep is a textual reading, not a compile of the Windows arm.
+
+## Slice 9 (C 6917-7106)
+
+**Scope and the stop.**  The monitor block: `w32_monitor_enum` (C 6917-6925),
+`w32_display_monitor_attributes_list` (C 6927-7025),
+`w32_display_monitor_attributes_list_fallback` (C 7027-7082) and the
+`w32-display-monitor-attributes-list` `DEFUN` (C 7084-7106).  The stop is C 7108's
+`set-message-beep` `DEFUN` (C 7107 blank) - the next item, whose subject (the bell) is unrelated
+to the monitor enumeration.
+
+**What the item carries.**  The `extern "system"` callback C 6917 declares (the `MonitorEnum_Proc`
+signature this unit already carries for `enum_display_monitors_fn`); the enumeration arm's three
+`Option` entry-point tests and their `(f.unwrap ()) (…)` call sites (C 6935-6941, the device C
+498-503 established); `xmalloc`/`xfree` with C's `n * sizeof (*p)` byte count (C 6948/7022);
+`Fmake_vector` (C 6955), `ASET`/`AREF` (C 6971/6993/7000/7006/7011 - `include/lisp.rs` 1324/1336's
+functions, whose index parameter is `isize`), `FOR_EACH_FRAME` (C 6956/7043, the three-argument
+macro `include/frame.rs` provides), `MONITOR_INFO_EX`'s four members and its `szDevice`
+(C 6980-6996), `CreateDCA`/`DeleteDC` (C 6986/6991), the fallback arm's
+`GetDC`/`GetDeviceCaps`/`ReleaseDC` chain (C 7055-7062), `SystemParametersInfo` with
+`SPI_GETWORKAREA` (C 7071), `SM_XVIRTUALSCREEN`/`SM_YVIRTUALSCREEN` (C 7068-7069) and C
+7087-7093's four-paragraph doc string (the `src/androidfns.rs` 1971 spelling).
+
+**Three declarations and one constant this item needed.**  `CreateDCA`, `DeleteDC` and
+`SystemParametersInfo` join the `<windows.h>` block (the last with the `<winuser.h>` line
+`src/w32term.rs` 326 records for C 384, since this unit's own block had no copy), and
+`SPI_GETWORKAREA` (0x0030) stands with the `<wingdi.h>` metrics slice 8 added.
+
+**Deviations (slice 9).**
+
+- **Two PORTING.md 1.5 locals**: C 6980's `struct MONITOR_INFO_EX mi;` (filled by
+  `get_monitor_info_fn`) and C 7034's `RECT workarea_rect;` (filled by `SystemParametersInfo`) are
+  zero-initialised here, because Rust needs a value before `&raw mut` can name it.
+- **`xmint_pointer`'s result is cast to `HMONITOR`** (C 6951): the mirror's function returns
+  `*mut c_void` (the `include/lisp.rs` 1679 shape) and `HMONITOR` is the same pointer type in this
+  unit, so the cast is C's own assignment type written out.
+- **C's `for` loop increments are re-spelled at the two `continue`s** (C 6983-6984 and C 6987-6988
+  inside C 6975's `for (i = 0; i < n_monitors; i++)`): the port's loop is C's `while` shape
+  elsewhere in this file, so each `continue` carries C's `i++` explicitly.
+- **C 6977's one declaration with one initialiser** (`Lisp_Object geometry, workarea, name,
+  attributes = Qnil;`) becomes four `let`s; only `attributes` keeps the initialiser, exactly as C
+  writes it, and C's own order (attributes, then name, then the two geometry lists) is what makes
+  the three uninitialised ones legal.
+- **Not claimed.**  No run evidence: no monitor is enumerated on this machine (`enum_display_monitors_fn`
+  is never bound here - the three entry points come from a `GetProcAddress` path C reaches at
+  C 7198-7210, which no slice has ported yet), no device context is created and no Lisp list is
+  built; the arm reading is a compile-level result and the name sweep a textual one.
+
+### Evidence (slice 9, the final revision: 10,836 Rust lines)
+
+**① The frozen configuration.**  `cargo run -q -p xtask -- build-tu src/w32fns.c` → `built
+src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, object **336 bytes** (the file gate keeps
+every item out of this configuration).  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  First reading: **43 previous errors** (42 coded)
+- exactly one more than slice 8's 42/41, and it is this slice's: `E0308` at C 6986's `CreateDCA`
+call, whose fourth argument (`const DEVMODEA *`) is `*mut c_void`, so `core::ptr::null ()` had to
+become `core::ptr::null_mut ()`.  Final reading: **42 previous errors** (41 coded) - identical to
+slice 8's, i.e. this slice adds no error and no member gap.  Two probe runs, plus one baseline
+reading of the pre-slice file taken at the start of the round.
+
+**③ `extract-abi.py --check`.**  179 rows → **175**: the two `missing function` rows of C 6927/7027,
+C 6917's `missing function w32_monitor_enum`, and the DEFUN's `missing subr
+Fw32_display_monitor_attributes_list` retire, with **no row added**; the drift row reads **13.2%**
+(`C 12488 vs Rust 10836`), down from 15.4%.  (Both readings were taken in place, minutes apart,
+with the same ledger.)
+
+**④ The range table and the dead-file gate.**  The `6917-12488` remainder row splits into
+`6917-7106` (this slice) and `7108-12488`;
+`python3 tools/check-dead-file-coverage.py` reads **158 range row(s) cover src/w32fns.c (12488
+lines; 105 blank line(s) between blocks need no row)**, `0 failure(s)` (157 rows / 104 blanks
+before the split).
+
+**⑤ The name sweep.**  Over this slice's region (`src/w32fns.rs` 10565-10836) the sweep reads
+**48 capitalized identifiers, missing: []** - `CreateDCA`, `DeleteDC`, `SystemParametersInfo` and
+`SPI_GETWORKAREA` are declared by this slice itself, and everything else the region uses
+(`MonitorEnum_Proc`, `enum_display_monitors_fn`, `FOR_EACH_FRAME`, `ASET`/`AREF`, `DECODE_SYSTEM`,
+`Qframes`/`Qname`/`Qmm_size`/`Qworkarea`/`Qgeometry`, `list1`/`list2i`/`list4i`) already resolves.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
