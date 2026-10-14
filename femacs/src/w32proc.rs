@@ -6294,3 +6294,209 @@ include characters not supported by the current ANSI codepage, as  ",
    `LOCALE_IPAPERSIZE` fallback open the next slice) is the file's langinfo arm: the frozen table
    has the macro 1, so it is live and the next slice carries it under the feature the include lines
    above already use (`have_langinfo_codeset`).  */
+
+/* C 4137-4234: the file's langinfo arm - C 4137's `#ifdef HAVE_LANGINFO_CODESET` (the frozen
+   table has the macro 1, so this is the live arm, carried under the feature the include lines above
+   already use), C 4139-4143's `LOCALE_IPAPERSIZE` fallback and C 4145-4234's `nl_langinfo`.  The
+   C 4137 comment and C 4141's `#ifndef` are C's own text; the constant the guard would define is
+   the port's `LOCALE_IPAPERSIZE` below (the port has no preprocessor, and a modern `<winnt.h>`
+   defines it).  */
+/* If we are compiling for compatibility with older 32-bit Windows
+   versions, this might not be defined by the Windows headers.  */
+/* C 4141-4143:
+#ifndef LOCALE_IPAPERSIZE
+# define LOCALE_IPAPERSIZE 0x100A
+#endif
+*/
+/// C: #define LOCALE_IPAPERSIZE 0x100A
+#[cfg (all (feature = "windowsnt", feature = "have_langinfo_codeset"))]
+pub const LOCALE_IPAPERSIZE: LCTYPE = 0x100A;
+
+/* C 50's `<windows.h>`/`<winnt.h>` and gnulib's `<stdcountof.h>`: the surface `nl_langinfo` needs
+   and no mirror in this unit's graph carries (UNVERIFIED, P-88 1) - `nl_item` and the `_NL_*`
+   enumerators *are* the `nt/inc/include/langinfo.rs` mirror's, and `xmalloc`/`xrealloc` are
+   `include/lisp.rs`'s.  The twenty-two `LOCALE_*` values are `<winnt.h>`'s; `countof` is spelled
+   here because `lib/include/stdcountof.rs` is in no unit's graph.  */
+/// C: typedef DWORD LCID;   typedef DWORD LCTYPE;
+/// C: #define LOCALE_USE_CP_ACP 0x40000000
+/// C: #define LOCALE_IDEFAULTANSICODEPAGE 0x00001004
+/// C: #define LOCALE_SDAYNAME1 0x0000002A  … #define LOCALE_SDAYNAME7 0x00000030
+/// C: #define LOCALE_SMONTHNAME1 0x00000038  … #define LOCALE_SMONTHNAME12 0x00000043
+/// C: WINBASEAPI LCID WINAPI GetThreadLocale (void);
+/// C: WINBASEAPI int WINAPI GetLocaleInfoA (LCID Locale, LCTYPE LCType, LPSTR lpLCData,
+/// C:   int cchData);
+/// C: UINT WINAPI GetACP (void);
+/// C: int atoi (const char *);
+/// C: #define countof(a) (sizeof (a) / sizeof ((a)[0]))
+#[cfg (feature = "windowsnt")]
+pub type LCID = DWORD;
+#[cfg (feature = "windowsnt")]
+pub type LCTYPE = DWORD;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_USE_CP_ACP: LCTYPE = 0x40000000;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_IDEFAULTANSICODEPAGE: LCTYPE = 0x00001004;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SDAYNAME1: LCTYPE = 0x0000002A;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SDAYNAME2: LCTYPE = 0x0000002B;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SDAYNAME3: LCTYPE = 0x0000002C;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SDAYNAME4: LCTYPE = 0x0000002D;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SDAYNAME5: LCTYPE = 0x0000002E;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SDAYNAME6: LCTYPE = 0x0000002F;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SDAYNAME7: LCTYPE = 0x00000030;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME1: LCTYPE = 0x00000038;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME2: LCTYPE = 0x00000039;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME3: LCTYPE = 0x0000003A;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME4: LCTYPE = 0x0000003B;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME5: LCTYPE = 0x0000003C;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME6: LCTYPE = 0x0000003D;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME7: LCTYPE = 0x0000003E;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME8: LCTYPE = 0x0000003F;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME9: LCTYPE = 0x00000040;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME10: LCTYPE = 0x00000041;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME11: LCTYPE = 0x00000042;
+#[cfg (feature = "windowsnt")]
+pub const LOCALE_SMONTHNAME12: LCTYPE = 0x00000043;
+#[cfg (feature = "windowsnt")]
+macro_rules! countof { ($a:expr) => { (($a).len ()) }; }
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetThreadLocale () -> LCID;
+  pub fn GetLocaleInfo (Locale: LCID, LCType: LCTYPE, lpLCData: LPSTR, cchData: c_int) -> c_int;
+  pub fn GetACP () -> UINT;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn atoi (s: *const c_char) -> c_int;
+}
+
+/* Emulation of nl_langinfo.  Used in fns.c:Flocale_info.  */
+/// C 4145-4234: `char * nl_langinfo (nl_item item)` - C 4149-4158's twenty-two-entry `w32item`
+/// table, C 4160-4164's lazily allocated buffer with its two `xmalloc`/`xrealloc` sites, C 4168-4169's
+/// range guard, C 4172-4174's `GetThreadLocale`/`GetLocaleInfo` measurement, C 4180-4189's `CODESET`
+/// slack and buffer growth, C 4191-4206's fill and `cp`-prefix path (C 4196-4198's two `strcmp`s and
+/// `sprintf`, C 4201-4204's `memmove`) and C 4207-4229's `_NL_PAPER_*` table with its `atoi` index
+/// and the `(char *) (intptr_t)` answers C 4224-4228 spell.
+/// C: char *
+/// C: nl_langinfo (nl_item item)
+#[cfg (all (feature = "windowsnt", feature = "have_langinfo_codeset"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn nl_langinfo (item: nl_item) -> *mut c_char
+{
+  /* Conversion of Posix item numbers to their Windows equivalents.  */
+  static w32item: [LCTYPE; 22] = [                                      // C 4149-4158
+    LOCALE_IDEFAULTANSICODEPAGE,
+    LOCALE_SDAYNAME1, LOCALE_SDAYNAME2, LOCALE_SDAYNAME3,
+    LOCALE_SDAYNAME4, LOCALE_SDAYNAME5, LOCALE_SDAYNAME6, LOCALE_SDAYNAME7,
+    LOCALE_SMONTHNAME1, LOCALE_SMONTHNAME2, LOCALE_SMONTHNAME3,
+    LOCALE_SMONTHNAME4, LOCALE_SMONTHNAME5, LOCALE_SMONTHNAME6,
+    LOCALE_SMONTHNAME7, LOCALE_SMONTHNAME8, LOCALE_SMONTHNAME9,
+    LOCALE_SMONTHNAME10, LOCALE_SMONTHNAME11, LOCALE_SMONTHNAME12,
+    LOCALE_IPAPERSIZE, LOCALE_IPAPERSIZE,
+  ];
+
+  static mut nl_langinfo_buf: *mut c_char = core::ptr::null_mut ();     // C 4160
+  static mut nl_langinfo_len: c_int = 0;                                // C 4161
+
+  if nl_langinfo_len <= 0                                               // C 4163
+    {
+      nl_langinfo_len = 1;                                              // C 4164
+      nl_langinfo_buf = xmalloc (1) as *mut c_char;
+    }
+
+  let mut retval: *mut c_char = nl_langinfo_buf;                        // C 4166
+
+  if item < 0 || item >= _NL_NUM                                        // C 4168
+    { *nl_langinfo_buf = 0; }                                           // C 4169
+  else
+    {
+      let cloc: LCID = GetThreadLocale ();                              // C 4172
+      let mut need_len: c_int
+	= GetLocaleInfo (cloc, w32item[item as usize] | LOCALE_USE_CP_ACP,
+			 core::ptr::null_mut (), 0);                    // C 4173-4174
+
+      if need_len <= 0                                                  // C 4176
+	{ *nl_langinfo_buf = 0; }                                       // C 4177
+      else
+	{
+	  if item == CODESET                                            // C 4180
+	    {
+	      need_len += 2;	/* for the "cp" prefix */                // C 4182
+	      if need_len < 8	/* for the case we call GetACP */        // C 4183
+		{ need_len = 8; }                                       // C 4184
+	    }
+	  if nl_langinfo_len <= need_len                                // C 4186
+	    {
+	      nl_langinfo_len = need_len;
+	      nl_langinfo_buf = xrealloc (nl_langinfo_buf as *mut c_void,
+					  need_len as usize) as *mut c_char;   // C 4187-4188
+	    }
+	  retval = nl_langinfo_buf;                                     // C 4189
+
+	  if GetLocaleInfo (cloc, w32item[item as usize] | LOCALE_USE_CP_ACP,
+			    nl_langinfo_buf, nl_langinfo_len) == 0      // C 4191-4192
+	    { *nl_langinfo_buf = 0; }                                   // C 4193
+	  else if item == CODESET                                       // C 4194
+	    {
+	      if strcmp (nl_langinfo_buf, c"0".as_ptr ()) == 0	/* CP_ACP */
+		  || strcmp (nl_langinfo_buf, c"1".as_ptr ()) == 0	/* CP_OEMCP */
+		{ sprintf (nl_langinfo_buf, c"cp%u".as_ptr (), GetACP ()); }   // C 4198
+	      else
+		{
+		  memmove (nl_langinfo_buf.add (2) as *mut c_void,
+			   nl_langinfo_buf as *const c_void,
+			   strlen (nl_langinfo_buf) + 1);               // C 4201-4202
+		  *nl_langinfo_buf = b'c' as c_char;                    // C 4203
+		  *nl_langinfo_buf.add (1) = b'p' as c_char;            // C 4204
+		}
+	    }
+	  else if item == _NL_PAPER_WIDTH || item == _NL_PAPER_HEIGHT   // C 4207
+	    {
+	      static paper_size: [[c_int; 2]; 10] =                     // C 4209-4221
+		[
+		  [ -1, -1 ],
+		  [ 216, 279 ],
+		  [ -1, -1 ],
+		  [ -1, -1 ],
+		  [ -1, -1 ],
+		  [ 216, 356 ],
+		  [ -1, -1 ],
+		  [ -1, -1 ],
+		  [ 297, 420 ],
+		  [ 210, 297 ]
+		];
+	      let idx: c_int = atoi (nl_langinfo_buf);                  // C 4222
+	      if 0 <= idx && idx < countof! (paper_size)                // C 4223
+		{
+		  retval = (if item == _NL_PAPER_WIDTH
+			      { paper_size[idx as usize][0] }
+			    else
+			      { paper_size[idx as usize][1] }) as intptr_t
+		    as *mut c_char;                                     // C 4224-4226
+		}
+	      else
+		{ retval = -1isize as *mut c_char; }                    // C 4228
+	    }
+	}
+    }
+  return retval;                                                        // C 4232
+}
+
+/* C 4236's `w32-get-locale-info` opens the next slice.  */

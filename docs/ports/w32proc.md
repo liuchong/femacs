@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**6296 lines**, md5 `3a0af8cee3ac842f8c7a9fb516a7abe5`), carrying
-> **C 1-4135** - P-86 ④'s first twenty-two slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**6502 lines**, md5 `096979f48637e994a0e8989b30485083`), carrying
+> **C 1-4234** - P-86 ④'s first twenty-three slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -136,7 +136,8 @@ which `check-dead-file-coverage.py` requires):
 | 3903-3967 | `set_process_dir` (C 3903-3907), the winsock overview comment with C 3920-3922's two `w32.c` externs, and the block's first two `DEFUN`s: `w32-has-winsock` (C 3924-3956) and `w32-unload-winsock` (C 3958-3967) | file gate (slice 20); the two `DEFUN!` invocations carry C's docstrings in their `doc:` slot (Deviations 81) and the externs stand where C declares them (Deviations 82/83) |
 | 3969-4082 | the banner comment and the next three `DEFUN`s: `w32-short-file-name` (C 3973-3995), `w32-long-file-name` (C 3998-4030) and `w32-set-process-priority` (C 4032-4082) | file gate (slice 21); the three `DEFUN!` invocations carry C's docstrings in the `doc:` slot (Deviations 81's shape), and the round's four `<winbase.h>` names stand at the use site (Deviations 84) |
 | 4084-4135 | the `DEFUN` `w32-application-type`: the expand/encode/`unixtodos_filename`/`filename_to_ansi` chain, the `_mbspbrk` guard and the `w32_executable_type` call with its four `Q…` answers | file gate (slice 22); the four symbols are the `globals.rs` mirror's (this file's `syms_of_ntproc` is where C defines them - the next lane of rows) |
-| 4137-4903 | **the remainder of the file** - C 4137's `#ifdef HAVE_LANGINFO_CODESET` arm with `nl_langinfo` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `nl_langinfo` (C 4145), the other fourteen `DEFUN`s (C 4236-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4137-4234 | the langinfo arm: C 4137's `#ifdef HAVE_LANGINFO_CODESET` (live in the frozen table, carried under `have_langinfo_codeset`), C 4139-4143's `LOCALE_IPAPERSIZE` fallback and C 4145-4234's `nl_langinfo` (the `w32item` table, the lazily grown buffer, the `CODESET` `cp`-prefix path and the `_NL_PAPER_*` table) | file gate (slice 23); the round's `<winnt.h>`/CRT/gnulib surface stands at the use site (Deviations 86), and the `countof` macro is spelled here because its gnulib mirror is in no unit's graph (Deviations 87) |
+| 4236-4903 | **the remainder of the file** - C 4236's `w32-get-locale-info` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the other fourteen `DEFUN`s (C 4236-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1468,3 +1469,43 @@ rows; the docstring rides in the invocation as slice 21's do.  Drift -27.0% -> *
     mirror already declares every one - so the port reads `Qdos ()`/`Qcygwin ()`/`Qmsys ()`/
     `Qw32_native ()`/`Qunknown ()` through that declaration, exactly as the `w32-has-winsock` DEFUN
     reads `Qt ()`/`Qnil ()`.
+
+## Slice 23 (2026-10-14, status 4.302): C 4137-4234
+
+**What this round is.**  The file's langinfo arm: C 4137's `#ifdef HAVE_LANGINFO_CODESET` (the
+frozen table has the macro 1, so the arm is live and the port carries it under the
+`have_langinfo_codeset` feature the include lines above already use), C 4139-4143's
+`LOCALE_IPAPERSIZE` fallback, and `nl_langinfo` itself (the twenty-two-entry `w32item` table, the
+lazily allocated and grown buffer with its `xmalloc`/`xrealloc` sites, the `CODESET` path that
+either `sprintf`s a `cp`-prefixed codepage or `memmove`s the `cp` prefix in, and the `_NL_PAPER_*`
+table with its `atoi` index).  Port: 6,296 -> **6502 lines** (+206).  The next row's first item is
+C 4236's `w32-get-locale-info`.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.  The first
+run **failed**: the `paper_size` initialiser had been written with C's braces instead of Rust's
+brackets; the fix is the round's only text change between the two runs.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - unchanged by the round's ~30 new declarations, which
+is the reading a wrong name among them would have moved.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6297 6502` -> `33
+capitalized identifiers, missing: ['LCType', 'Locale']` - the *parameter names* of this round's
+`GetLocaleInfo` declaration (`decltype DWORD LCType, LCID Locale`), the class the tool's docstring
+names, as slice 19's `Msg` was.
+**Evidence ④ - the `--check` reading.**  **53 -> 50 `- missing` rows**: `missing function
+nl_langinfo` and the two `LOCALE_IPAPERSIZE` rows (macro and constant).  No token rows - the two
+tables and the `countof` spelling ride through the token comparison.  Drift -28.4% -> **-32.6%**,
+inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+86. **The round's SDK/CRT surface stands at the use site** (P-88 ①): `LCID`/`LCTYPE`, the
+    twenty-two `LOCALE_*` values (the `LOCALE_IPAPERSIZE` fallback included, which the port declares
+    because it has no preprocessor), `GetThreadLocale`, `GetLocaleInfo`, `GetACP` and the CRT's
+    `atoi` - all UNVERIFIED.  `nl_item`, `CODESET`, `_NL_NUM` and the two `_NL_PAPER_*` enumerators
+    are the `nt/inc/include/langinfo.rs` mirror's, and `xmalloc`/`xrealloc` are `include/lisp.rs`'s.
+87. **`countof` is spelled at the use site** as `macro_rules! countof { ($a:expr) => { (($a).len ())
+    }; }`: gnulib's `<stdcountof.h>` mirror (`lib/include/stdcountof.rs` 55, whose body carries a
+    `_gl_verify_is_array` clause this port does not need) is in no unit's graph, so C 4223's
+    `countof (paper_size)` gets the array's length the same way the macro computes it.

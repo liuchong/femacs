@@ -20103,3 +20103,12 @@
   ④ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `4084-4135`（本片）+ `4137-4903`（余项）。
   ⑤ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 22 (2026-10-14, status 4.301): C 4084-4135`** 段，表头更新为 **6,296 与 `3a0af8ce…`**；本片无 notes/容差行。预算与清理：`build-tu` **2 发**、`probe` 1 发、名字扫描 1 次、`--check` 2 发、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链）。下一片起点：`src/w32proc.c` **C 4137**（`#ifdef HAVE_LANGINFO_CODESET` 臂 + `nl_langinfo` C 4145-4234，随后余下 14 个 `DEFUN` 与 `syms_of_ntproc`），本文件余量 **768 C 行**（C 4137-4903，15.7%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。
+
+- **4.302 `src/w32proc.c` 第 23 片（w32proc lane，slice 23）：C 4137-4234 落地——本文件的 langinfo 臂：`#ifdef HAVE_LANGINFO_CODESET`（冻结核该宏为 1 → 活臂，按上面 include 行已在用的 `have_langinfo_codeset` 承载）、`LOCALE_IPAPERSIZE` 回退、`nl_langinfo`（22 项 `w32item` 表、惰性分配并增长的缓冲与两处 `xmalloc`/`xrealloc`、`CODESET` 的 `cp` 前缀路径（`sprintf` 或 `memmove` 前缀）、`_NL_PAPER_*` 的 `atoi` 索引表）；w32proc.rs 6,296 → 6,502 行（+206，2026-10-14）**：
+  ① 本片落的文本：langinfo 臂全篇 + 约 30 行用例处声明（`LCID`/`LCTYPE`、22 个 `LOCALE_*` 值、`GetThreadLocale`/`GetLocaleInfo`/`GetACP`、CRT 的 `atoi`）。**首读 build-tu 失败**：`paper_size` 初始化用了 C 的花括号而非 Rust 的方括号，改好后通过——这是本轮两次读数之间唯一的文本变化。
+  ② 读数：**`build-tu`（冻结）exit 0、对象 336 字节**（两发）；**`probe` 35 条 = 25 `E0428` + 9 `E0425` + 1 `compile_error!`，无一条落在本单元**——约 30 个新声明**没有移动**这条读数（名字写错会以 `E0428` 显形）；**名字扫描** `33 capitalized identifiers, missing: ['LCType','Locale']`——本轮 `GetLocaleInfo` 声明的**形参名**（slice 19 的 `Msg` 同类，在案类）。
+  ③ `extract-abi.py --check`：**53 → 50 条 `- missing` 行**（`nl_langinfo` + 两条 `LOCALE_IPAPERSIZE` 行），**无 token 行**（两张表与 `countof` 拼法都过 token 比对）；漂移 -28.4% → **-32.6%**（0.36 行内）。
+  ④ 偏差（台账两条）：本轮 `<winnt.h>`/CRT/gnulib 面站用例处（`nl_item`/`CODESET`/`_NL_*` 属 langinfo 镜像、`xmalloc`/`xrealloc` 属 lisp 镜像）；`countof` 因 gnulib 镜像不在任何单元的图内而在用例处拼成 `macro_rules!`（语义同其 `sizeof/sizeof`）。
+  ⑤ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `4137-4234`（本片）+ `4236-4903`（余项）。
+  ⑥ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 23 (2026-10-14, status 4.302): C 4137-4234`** 段，表头更新为 **6,502 与 `096979f4…`**；本片无 notes/容差行。预算与清理：`build-tu` **3 发**（含一次失败）、`probe` 1 发、名字扫描 1 次、`--check` 2 发、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链）；22 个 `LOCALE_*` 值仍 UNVERIFIED。下一片起点：`src/w32proc.c` **C 4236**（`w32-get-locale-info` 起的余下 14 个 `DEFUN` 与 `syms_of_ntproc`），本文件余量 **668 C 行**（C 4236-4903，13.6%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。
