@@ -235,7 +235,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10958-11041 | C 10960-10962's wallpaper banner, C 10964-10965's `SystemParametersInfoW_Proc` with C 10967-11015's `w32-set-wallpaper`, and C 11017-11019's `GetLastInputInfo_Proc` with C 11021-11039's `w32-system-idle-time` - slice 30 | file gate + `windowsnt` |
 | 11044-11245 | C 11044's `#ifdef WINDOWSNT`, C 11046-11048's taskbar banner, C 11050-11054's `#ifndef MINGW_W64` guard with the two `DEFINE_GUID`s, and C 11056-11245's `w32-badge` - slice 31 | `windowsnt` (nested); the two GUIDs `not (mingw_w64)` |
 | 11247-11348 | C 11247-11295's `w32-request-user-attention` and C 11297-11346's `w32-progress-indicator`, closing C 11348's `#endif` - slice 32 | `windowsnt` (nested) |
-| 11350-12488 | **the remainder of the file** (C 11350's System Sleep Support banner onward: `SetThreadExecutionState_fn` with `w32-block-system-sleep`/`w32-unblock-system-sleep`/`w32-system-sleep-block-count`, the notification group, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 11350-11477 | C 11350-11352's System Sleep Support banner, C 11354-11358's `SetThreadExecutionState_Proc` with its pointer and the two counters, C 11360/11391/11414's three sleep `DEFUN`s, and C 11424-11477's notification group (`sleep_notification_callback`, `RegisterSuspendResumeNotification_Proc`, `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, `w32_register_for_sleep_notifications`) - slice 33 | `windowsnt` (nested); the `input_event_bits!` macro is `windowsnt` |
+| 11478-12488 | **the remainder of the file** (C 11478-11480's Exporting frames banner onward: `w32-export-frame`, the exception/backtrace group, C 11586 `globals_of_w32fns`/`syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -3349,6 +3350,92 @@ line(s) between blocks need no row)**.  The over-sequence comment above the
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no taskbar icon flashes and
   no progress bar appears; the arm reading is compile-level (42 errors, none from this slice) and
   the name reading is the sweep's.
+
+## Slice 33 (C 11350-11477)
+
+**Scope and the stop.**  The System Sleep Support group - C 11350-11352's banner, C 11354-11358's
+`SetThreadExecutionState_Proc` with its pointer and the two counters, the three `DEFUN`s
+(C 11360/11391/11414), and the notification half (C 11424-11477).  The stop is C 11478's Exporting
+frames banner, which opens the next group.  Every item carries
+`all (feature = "have_ntgui", feature = "windowsnt")`; the `input_event_bits!` macro is
+`windowsnt`'s, as in `src/w32inevt.rs`.
+
+**What the items carry.**  `w32-block-system-sleep` is C 11370-11371's pointer guard, C 11373's
+`ES_CONTINUOUS` comment, C 11374-11376's `ES_SYSTEM_REQUIRED | ES_CONTINUOUS` initialiser and the
+`NILP` test that adds `ES_DISPLAY_REQUIRED`, and C 11378-11387's two arms (`++sleep_block_count` and
+`++sleep_block_id` as two statements with the synthesised token, against the failed call's `Qnil`).
+`w32-unblock-system-sleep` is the same guard, C 11396-11397's empty-count test, and C 11401-11410's
+`--sleep_block_count == 0` paired with the `ES_CONTINUOUS` clear.  `w32-system-sleep-block-count` is
+C 11420's one return.  `sleep_notification_callback` is C 11429-11432's `input_event` with
+`EVENT_INIT` and `ie.kind = SLEEP_EVENT`, then C 11434-11447's three-arm `switch` on `Type`.
+`w32_register_for_sleep_notifications` is C 11463-11464's comment, the two `params` members and
+C 11473-11474's `RegisterSuspendResumeNotification_fn (&params, 2)`.
+
+**New surface.**  `SetThreadExecutionState_Proc`/`SetThreadExecutionState_fn`, `sleep_block_id`,
+`sleep_block_count`; `EXECUTION_STATE` with `ES_SYSTEM_REQUIRED`/`ES_DISPLAY_REQUIRED`/
+`ES_CONTINUOUS` and the `SetThreadExecutionState` entry point; `PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE`
+with the three `PBT_*` labels; `RegisterSuspendResumeNotification_Proc`,
+`RegisterSuspendResumeNotification_fn`, `HPOWERNOTIFY`, `sleep_notification_handle`,
+`MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`; and the per-unit `input_event_bits!` macro.
+`input_event`/`EVENT_INIT`/`SLEEP_EVENT` arrive through `include/frame.rs` 24's `termhooks.rs`
+include, and `Qpre_sleep`/`Qpost_wake` are the mirror's (`include/globals.rs` 1517/1513).
+
+### Evidence (slice 33, the final revision: 17,208 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  One run: **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Two runs.  The first read **44** errors - the
+standing **42** plus two this slice's own: the `input_event_bits!` call preceded its definition
+(`macro_rules!` is textual; the macro is now above the callback, which is where
+`src/w32inevt.rs` 644 puts its copy) and `E0381 partially assigned binding params isn't fully
+initialized` (measured: Rust rejects C's write-the-two-members form; the port uses the file's
+`core::mem::zeroed ()` device).  The second run is back to **42** - no member gap, no type error -
+and **no error sits at or beyond `src/w32fns.rs` 16,918** (the largest is the pre-existing
+`must_be_updated_p` gap at 12,083).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 16,918-17,161: 44 capitalized
+identifiers, the nine missing all in the documented non-item classes - `Clone`/`Copy` (the new
+record's derive arguments), `Callback`/`Context` (its field names), `Setting`/`Type` (the callback
+typedef's parameter names) and the three `Sw32_*` (`DEFUN!`'s macro-generated statics).  No
+unresolved value.
+
+**④ `extract-abi.py --check`.**  **74 → 64** rows: three `missing subr`
+(`Fw32_block_system_sleep`, `Fw32_unblock_system_sleep`, `Fw32_system_sleep_block_count`), two
+`missing function` (`sleep_notification_callback`, `w32_register_for_sleep_notifications`) and five
+`missing file-scope object` (`SetThreadExecutionState_fn`, `sleep_block_id`, `sleep_block_count`,
+`RegisterSuspendResumeNotification_fn`, `sleep_notification_handle`) retire.  The first reading
+added two rows, both answered: a token row (`function sleep_notification_callback does not mention
+break, case, switch` - the `match` substitution, one new `macro-body-notes.tsv` row) and a drift row
+(`line count drifted 37.8%: C 12488 vs Rust 17208` - a new `w32fns 0.39` row in
+`docs/ports/line-drift-tolerance.tsv`, the measured 37.8% + 0.01, superseding slice 32's `0.37`).
+
+**⑤ The range table and the dead-file gate.**  The `11350-12488` remainder row splits into
+`11350-11477` (this slice) and `11478-12488` (the remainder, 1,011 lines; the first attempt wrote
+`11479` and the gate caught C 11478's banner text);
+`check-dead-file-coverage.py` reads **183 range row(s) cover src/w32fns.c (12488 lines; 132 blank
+line(s) between blocks need no row)**.  The over-sequence comment above the
+`w32_console_toggle_lock_key` block now reads `C 11479-12488`.
+
+### Deviations (slice 33)
+
+- **C's `switch` is the port's `match` with a trailing wildcard** standing in for C's absent
+  `default` (the `add_tray_notification` reading), recorded in the new notes row.
+- **The `input_event_bits!` copy sits above its first use.**  `macro_rules!` is textual, so the
+  macro cannot stand at the C `#define`'s position; the unit's items keep C's order (P-91 ②).
+- **`ALIGN_STACK! ()` stands at the top of the callback's body** - a Rust item cannot carry
+  `__attribute__((force_align_arg_pointer))`, which `include/w32term.rs` 52-67 already records as
+  carried by the empty macro.
+- **`params` is `core::mem::zeroed ()` first.**  C writes both members of an uninitialised local;
+  measured, Rust rejects that form (`E0381 ... partial initialization isn't supported`), so the port
+  uses the same device `FLASHWINFO`/`LASTINPUTINFO` use.
+- **C's `--sleep_block_count == 0` keeps its pre-decrement** in a block expression
+  (`{ sleep_block_count -= 1; sleep_block_count == 0 }` - the `pgtk_hide_hourglass` device), and
+  C's `++x;` statements are `x += 1;`.
+- **C's `HPOWERNOTIFY sleep_notification_handle = 0` is `core::ptr::null_mut ()`** (the
+  `hinst` device; `HPOWERNOTIFY` is `HANDLE`).
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no thread execution state is
+  set and no power notification is registered; the arm reading is compile-level (42 errors, none
+  from this slice) and the name reading is the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

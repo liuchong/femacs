@@ -16915,7 +16915,252 @@ pub const TBPF_NORMAL: c_int = 0x2;
 #[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const TBPF_NOPROGRESS: c_int = 0x0;
 
-/* C 11350-12488's text is not in the port yet (the file's remainder), but C 10112's
+/* C 11350-11477 is the System Sleep Support group: C 11350-11352's banner, C 11354-11355's
+   `SetThreadExecutionState_Proc` with its pointer, C 11357-11358's two counters, the three
+   `DEFUN`s (C 11360, C 11391, C 11414), C 11424-11449's `PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE`
+   with `sleep_notification_callback`, C 11451-11455's `RegisterSuspendResumeNotification_Proc`,
+   its pointer and `sleep_notification_handle`, C 11457-11460's
+   `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, and C 11462-11477's
+   `w32_register_for_sleep_notifications`.  C 11479's Exporting frames banner opens the next
+   slice, so the range table's remainder starts there.  */
+
+/*
+/***********************************************************************
+		     System Sleep Support
+ ***********************************************************************/
+*/
+
+/// C 11354-11358: the four file-scope objects the three items below read - the dynamically loaded
+/// `SetThreadExecutionState` pointer (`globals_of_w32fns`, C 12325-12327, is what loads it) and
+/// C's two `static unsigned int` counters.
+/// C: typedef ULONG (WINAPI * SetThreadExecutionState_Proc) (IN ULONG);
+/// C: static SetThreadExecutionState_Proc SetThreadExecutionState_fn = NULL;
+/// C: static unsigned int sleep_block_id = 0;
+/// C: static unsigned int sleep_block_count = 0;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type SetThreadExecutionState_Proc = unsafe extern "system" fn (ULONG) -> ULONG;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut SetThreadExecutionState_fn: Option<SetThreadExecutionState_Proc> = None;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut sleep_block_id: c_uint = 0;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut sleep_block_count: c_uint = 0;
+
+/// C 11378/11408's `SetThreadExecutionState` (`winbase.h`; the guard above tests the *pointer*,
+/// which is C's own text), with C 11368-11372's `EXECUTION_STATE` and its three `ES_*` values.
+/// C: EXECUTION_STATE WINAPI SetThreadExecutionState (EXECUTION_STATE esFlags);
+/// C: #define ES_SYSTEM_REQUIRED 0x00000001 / #define ES_DISPLAY_REQUIRED 0x00000002
+/// C: #define ES_CONTINUOUS 0x80000000
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type EXECUTION_STATE = DWORD;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const ES_SYSTEM_REQUIRED: EXECUTION_STATE = 0x00000001;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const ES_DISPLAY_REQUIRED: EXECUTION_STATE = 0x00000002;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const ES_CONTINUOUS: EXECUTION_STATE = 0x80000000;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "system" {
+  pub fn SetThreadExecutionState (esFlags: EXECUTION_STATE) -> EXECUTION_STATE;
+}
+
+/// C 11362-11389: `w32-block-system-sleep` - the pointer guard, C 11366's comment, C 11367's
+/// `ES_SYSTEM_REQUIRED | ES_CONTINUOUS` initialiser, C 11368-11369's `NILP` test, and
+/// C 11371-11387's two arms (`++sleep_block_count`/`++sleep_block_id` as two statements and the
+/// synthesised token, against the `Qnil` the failed call returns).
+/// C: DEFUN ("w32-block-system-sleep", Fw32_block_system_sleep, Sw32_block_system_sleep,
+/// C:        1, 1, 0, doc: /* Block system idle sleep. … */)
+/// C:   (Lisp_Object allow_display_sleep)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-block-system-sleep", Fw32_block_system_sleep, Sw32_block_system_sleep,
+	1, 1, 0,
+	doc: "Block system idle sleep.\nIf ALLOW-DISPLAY-SLEEP is non-nil, block the screen from sleeping.\nReturn a token to unblock this block using `w32-unblock-system-sleep',\nor nil if the block fails.",
+	(allow_display_sleep: Lisp_Object),
+	{
+  if SetThreadExecutionState_fn.is_none ()
+    { return Qnil (); }
+
+  /* ES_CONTINUOUS keeps the state until cleared.  */
+  let mut new_state: EXECUTION_STATE = ES_SYSTEM_REQUIRED | ES_CONTINUOUS;
+  if NILP (allow_display_sleep)
+    { new_state |= ES_DISPLAY_REQUIRED; }
+
+  if SetThreadExecutionState (new_state) == 0
+    { return Qnil (); }
+  else
+    {
+      /* One more block and next id.  */
+      sleep_block_count += 1;
+      sleep_block_id += 1;
+
+      /* Synthesize a token.  */
+      return make_fixnum (sleep_block_id as EMACS_INT);
+    }
+});
+
+/// C 11393-11412: `w32-unblock-system-sleep` - the pointer guard, C 11396-11397's comment with
+/// the empty-count test, and C 11401-11410's `--sleep_block_count == 0` pre-decrement (a block
+/// expression, the `pgtk_hide_hourglass` device) paired with the `ES_CONTINUOUS` clear.
+/// C: DEFUN ("w32-unblock-system-sleep", Fw32_unblock_system_sleep, Sw32_unblock_system_sleep,
+/// C:        0, 0, 0, doc: /* Unblock system idle sleep. … */)
+/// C:   (void)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-unblock-system-sleep", Fw32_unblock_system_sleep, Sw32_unblock_system_sleep,
+	0, 0, 0,
+	doc: "Unblock system idle sleep.\nReturn non-nil if the TOKEN block was unblocked.",
+	(),
+	{
+  if SetThreadExecutionState_fn.is_none ()
+    { return Qnil (); }
+
+  /* No blocks to unblock.  */
+  if sleep_block_count == 0
+    { return Qnil (); }
+
+  /* One fewer block.  */
+  if { sleep_block_count -= 1; sleep_block_count == 0 }
+      && SetThreadExecutionState (ES_CONTINUOUS) == 0
+    { return Qnil (); }
+  else
+    { return Qt (); }
+});
+
+/// C 11416-11422: `w32-system-sleep-block-count` - C's one-line body over the counter.
+/// C: DEFUN ("w32-system-sleep-block-count", Fw32_system_sleep_block_count,
+/// C:        Sw32_system_sleep_block_count, 0, 0, 0,
+/// C:        doc: /* Return the w32 sleep block count.  */)
+/// C:   (void)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-system-sleep-block-count", Fw32_system_sleep_block_count,
+	Sw32_system_sleep_block_count,
+	0, 0, 0,
+	doc: "Return the w32 sleep block count.",
+	(),
+	{
+  return make_fixnum (sleep_block_count as EMACS_INT);
+});
+
+/// `struct input_event`'s two bit fields - `termhooks.h` 373-412's `enum event_kind kind :
+/// EVENT_KIND_WIDTH` and the `part` that shares the same unit (`include/termhooks.rs` carries
+/// `bits`, `INPUT_EVENT_KIND_MASK` and `INPUT_EVENT_PART_SHIFT`) - are C members the port reaches
+/// through a per-unit macro, because `macro_rules!` is textual and each unit's copy belongs to
+/// that unit (PORTING.md P-80's member-named shape; the `src/w32inevt.rs` 644 copy is this one's
+/// twin).  This unit uses the `kind` pair (C 11432's `ie.kind = SLEEP_EVENT;`).
+#[cfg (feature = "windowsnt")]
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
+}
+
+/// C 11424-11449: the power-notification callback - C 11424-11425's
+/// `PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE`, then C 11427-11429's `static ULONG CALLBACK ALIGN_STACK`
+/// definition whose body is C 11431-11432's `input_event` (the file's first use of the mirror's
+/// `EVENT_INIT`, the `src/dbusbind.rs` 2530 device) and C 11434-11446's three `case` arms.
+/// `ALIGN_STACK` is the mirror's empty macro (a Rust item cannot express C's
+/// `__attribute__((force_align_arg_pointer))`; `include/w32term.rs` 63-67 records that).
+/// C: typedef ULONG (CALLBACK *PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE)
+/// C:   (PVOID Context, ULONG Type, PVOID Setting);
+/// C: static ULONG CALLBACK ALIGN_STACK
+/// C: sleep_notification_callback (PVOID _Context, ULONG Type, PVOID _Setting)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE
+  = unsafe extern "system" fn (Context: *mut c_void, Type: ULONG, Setting: *mut c_void) -> ULONG;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "system" fn sleep_notification_callback (_Context: *mut c_void, Type: ULONG,
+						       _Setting: *mut c_void) -> ULONG
+{
+  ALIGN_STACK! ();
+  let mut ie: input_event = core::mem::zeroed ();
+  EVENT_INIT (&raw mut ie);
+  input_event_bits! (kind, &raw mut ie, SLEEP_EVENT);
+
+  match Type
+    {
+      PBT_APMRESUMEAUTOMATIC =>
+	{
+	  /* Ignore this event.  No user is present.  */
+	}
+      PBT_APMSUSPEND =>
+	{
+	  ie.arg = list1 (Qpre_sleep ());
+	  kbd_buffer_store_event (&raw mut ie as *mut c_void);
+	}
+      PBT_APMRESUMESUSPEND =>
+	{
+	  ie.arg = list1 (Qpost_wake ());
+	  kbd_buffer_store_event (&raw mut ie as *mut c_void);
+	}
+      _ => {}
+    }
+  return 0;
+}
+
+/// C 11427-11446's three `PBT_*` case labels (`powrprof.h`; the third is the resume) - the
+/// `switch (Type)` above is the port's `match`, whose trailing wildcard is C's absent `default`
+/// (PORTING.md 2.2, the `add_tray_notification` reading), recorded in this file's notes rows.
+/// C: #define PBT_APMRESUMEAUTOMATIC 0x0002 / #define PBT_APMSUSPEND 0x0004
+/// C: #define PBT_APMRESUMESUSPEND 0x0008
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const PBT_APMRESUMEAUTOMATIC: ULONG = 0x0002;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const PBT_APMSUSPEND: ULONG = 0x0004;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub const PBT_APMRESUMESUSPEND: ULONG = 0x0008;
+
+/// C 11451-11477: the registration half - C 11451-11453's `RegisterSuspendResumeNotification_Proc`
+/// with its pointer, C 11455's handle, C 11457-11460's `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`
+/// (the struct and its `P…` alias; only the value type is used) and C 11462-11477's
+/// `w32_register_for_sleep_notifications` with C 11463-11464's comment, the `params` field pair
+/// and C 11473-11474's call with C 11457's `DEVICE_NOTIFY_CALLBACK` value 2.
+/// C: typedef HPOWERNOTIFY (WINAPI * RegisterSuspendResumeNotification_Proc) (IN HANDLE, IN DWORD);
+/// C: static RegisterSuspendResumeNotification_Proc RegisterSuspendResumeNotification_fn = NULL;
+/// C: static HPOWERNOTIFY sleep_notification_handle = 0;
+/// C: typedef struct _MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS {
+/// C:   PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE Callback; PVOID Context;
+/// C: } MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS, *PMY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS;
+/// C: void w32_register_for_sleep_notifications (void)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type HPOWERNOTIFY = HANDLE;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+pub type RegisterSuspendResumeNotification_Proc
+  = unsafe extern "system" fn (HANDLE, DWORD) -> HPOWERNOTIFY;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut RegisterSuspendResumeNotification_fn: Option<RegisterSuspendResumeNotification_Proc>
+  = None;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+static mut sleep_notification_handle: HPOWERNOTIFY = core::ptr::null_mut ();
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS
+{
+  pub Callback: PMY_DEVICE_NOTIFY_CALLBACK_ROUTINE,
+  pub Context: *mut c_void,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_register_for_sleep_notifications ()
+{
+  /* PowerRegisterSuspendResumeNotification is not a user-space call so
+     we use RegisterSuspendResumeNotification.  */
+  if RegisterSuspendResumeNotification_fn.is_some ()
+    {
+      let mut params: MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS = core::mem::zeroed ();
+      params.Callback = sleep_notification_callback;
+      params.Context = core::ptr::null_mut ();
+
+      /* DEVICE_NOTIFY_CALLBACK = 2  */
+      sleep_notification_handle
+	= (RegisterSuspendResumeNotification_fn.unwrap ()) (&raw mut params as *mut c_void, 2);
+    }
+}
+
+/* C 11479-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C
