@@ -17359,7 +17359,59 @@ pub static mut w32_frame_parm_handlers: [frame_parm_handler; 51] =
     None,					    /* x_set_use_frame_synchronization */
   ];
 
-/* C 11585-12488's text is not in the port yet (the file's remainder), but C 10112's
+/* C 12452-12488 closes the file: C 12452's `#ifdef WINDOWSNT` around C 12454-12476's
+   `load_unicows_dll_for_w32fns`, then C 12478's `#ifdef NTGUI_UNICODE` around C 12480-12488's
+   `ntgui_encode_system`.  Both are landed here, ahead of the C 11585-12450 text above them,
+   because `globals_of_w32fns` (C 12294) is what `syms_of_w32fns` calls first and this file has no
+   "declare then define" pair (PORTING.md 0.1-12 / P-91 ①: land whichever the slice needs first;
+   Rust items are order-independent, P-91 ②).  */
+
+/// C 12454-12476: `void load_unicows_dll_for_w32fns (HMODULE unicows)` - C 12461-12464's fallback
+/// to SHELL32.DLL (with C 12462-12463's comment), C 12466-12467's `pfnSHFileOperationW` and
+/// C 12468-12469's `pfnShellExecuteExW`, and C 12470-12473's `#ifndef HAVE_DBUS` arm.  Each load
+/// is C's `(void *) get_proc_addr (...)` cast spelled as a `transmute` of the loader's `VOIDFNPTR`
+/// into the pointer alias's own type - the `src/w32.rs` 2048-2049 device.
+/// C: void load_unicows_dll_for_w32fns (HMODULE unicows)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn load_unicows_dll_for_w32fns (mut unicows: HMODULE)
+{
+  if unicows.is_null ()
+    { unicows = GetModuleHandle (c"shell32".as_ptr ()); }         // C 12461-12464
+
+  pfnSHFileOperationW                                                // C 12466-12467
+    = core::mem::transmute::<VOIDFNPTR, PFNSHFILEOPERATIONW> (
+	get_proc_addr (unicows, c"SHFileOperationW".as_ptr ()));
+  pfnShellExecuteExW                                                 // C 12468-12469
+    = core::mem::transmute::<VOIDFNPTR, PFNSHELLEXECUTEEXW> (
+	get_proc_addr (unicows, c"ShellExecuteExW".as_ptr ()));
+  /* C 12470's `#ifndef HAVE_DBUS` arm.  */
+  #[cfg (not (feature = "have_dbus"))]
+  {
+    pfnShell_NotifyIconW                                             // C 12471-12472
+      = core::mem::transmute::<VOIDFNPTR,
+			       Option<unsafe extern "system" fn (arg0: DWORD,
+								 arg1: *mut c_void)
+									-> BOOL>> (
+	  get_proc_addr (unicows, c"Shell_NotifyIconW".as_ptr ()));
+  }
+}
+
+/// C 12480-12486: `Lisp_Object ntgui_encode_system (Lisp_Object str)` - C 12483's local (written
+/// through `&encoded` by the declaration at C 12505, so the port initialises it to `Qnil` for
+/// Rust's definite-initialisation - the `src/androidfns.rs` 2787 device), C 12484's `to_unicode`
+/// and C 12485's return.
+/// C: Lisp_Object ntgui_encode_system (Lisp_Object str)
+#[cfg (all (feature = "have_ntgui", feature = "ntgui_unicode"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ntgui_encode_system (str: Lisp_Object) -> Lisp_Object
+{
+  let mut encoded: Lisp_Object = Qnil ();                        // C 12483
+  to_unicode (str, &raw mut encoded);                            // C 12484
+  return encoded;                                                // C 12485
+}
+
+/* C 11585-12450's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C

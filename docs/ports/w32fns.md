@@ -238,7 +238,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 11350-11477 | C 11350-11352's System Sleep Support banner, C 11354-11358's `SetThreadExecutionState_Proc` with its pointer and the two counters, C 11360/11391/11414's three sleep `DEFUN`s, and C 11424-11477's notification group (`sleep_notification_callback`, `RegisterSuspendResumeNotification_Proc`, `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, `w32_register_for_sleep_notifications`) - slice 33 | file gate (the group is outside every `#if`: `#[cfg (feature = "have_ntgui")]`, `input_event_bits!` included) |
 | 11478-11520 | C 11478-11480's Exporting frames banner and C 11481-11520's `w32-export-frame` (its own `#ifdef WINDOWSNT` at C 11491 with the C 11517-11518 `#else`) - slice 34 | file gate; the body's two arms are `windowsnt` / `not (windowsnt)` |
 | 11522-11583 | C 11523-11525's Initialization banner, C 11527-11528's ordering comment, and C 11530-11583's `w32_frame_parm_handlers[]` (with the `frame_parm_handler` alias and the twenty-two `gui_set_*` use-site declarations) - slice 35 | file gate |
-| 11585-12488 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`, then the exception/backtrace group and C 12294's `globals_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 11585-12450 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`, then the exception/backtrace group and C 12294-12450's `globals_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 12452-12488 | C 12452's `#ifdef WINDOWSNT` with C 12454-12476's `load_unicows_dll_for_w32fns`, and C 12478's `#ifdef NTGUI_UNICODE` with C 12480-12488's `ntgui_encode_system` - slice 36, landed ahead of the C 11585-12450 text above it (P-91 ①: `syms_of_w32fns` calls `globals_of_w32fns` first) | `windowsnt` (nested) / `ntgui_unicode` (nested) |
 
 
 ## Evidence
@@ -3583,6 +3584,72 @@ line(s) between blocks need no row)**.  The over-sequence comment above the
 - **Not claimed.**  No run evidence: no Windows toolchain, so no frame parameter is ever set through
   this table and the object is never linked; the arm reading is compile-level (42 errors, none at or
   after this slice) and the name reading is the sweep's.
+
+## Slice 36 (C 12452-12488)
+
+**Scope and the stop.**  The file's last two items - C 12452's `#ifdef WINDOWSNT` around
+`load_unicows_dll_for_w32fns` (C 12454-12476) and C 12478's `#ifdef NTGUI_UNICODE` around
+`ntgui_encode_system` (C 12480-12488).  **Landed ahead of the C 11585-12450 text above it**: C 11588
+is what would be `syms_of_w32fns`'s first statement, `globals_of_w32fns ()`, and C 12294's
+definition is inside that remainder - this file has no "declare then define" pair (PORTING.md 0.1-12
+/ P-91 ①, "land whichever the slice needs first"), so the callee lands first and slice 37's
+`syms_of_w32fns` will find it.  Rust items are order-independent (P-91 ②).
+
+**What the items carry.**  `load_unicows_dll_for_w32fns` is C 12461-12464's fallback to
+SHELL32.DLL, C 12466-12469's two loads and C 12471-12472's `#ifndef HAVE_DBUS` third; each is C's
+`(void *) get_proc_addr (...)` cast spelled as a `transmute` of the loader's `VOIDFNPTR` into the
+pointer's own type (the `src/w32.rs` 2048-2049 device).  `ntgui_encode_system` is C 12483's local,
+C 12484's `to_unicode` (declared at C 12505) and C 12485's return.
+
+### Evidence (slice 36, the final revision: 17,459 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Two runs, both **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Two runs, both **42 previous errors** - and
+that is this slice's finding, not a clean bill of health (see ⑤): the first run's text carried a
+type name that does not exist anywhere in the tree, and the probe reported nothing.  **No error sits
+at or beyond `src/w32fns.rs` 17,362** (the largest is the pre-existing `must_be_updated_p` gap at
+12,083).
+
+**③ The name sweep (`check-unit-names.py`) - the reading that caught it.**  First run,
+`src/w32fns.rs` 17,362-17,430: 9 capitalized identifiers, missing **`PFNSHELL_NOTIFYICONW`** - a
+name the slice had invented: `pfnShell_NotifyIconW`'s declaration (C 10316-10320) spells its type
+inline, so no such alias exists.  Repaired by writing the target type out as that declaration has
+it; second run: 11 capitalized identifiers, **none missing**, for the slice and the file's tail.
+
+**④ `extract-abi.py --check`.**  **63 → 61** rows: `missing function load_unicows_dll_for_w32fns`
+and `missing function ntgui_encode_system` retire, and **no token row appears**.  No drift row:
+17,459 Rust lines against 12,488 C lines (39.8%), inside the `w32fns 0.41` row appended in slice 35.
+
+**⑤ The probe's name-resolution gap, re-measured and extended (this slice's real finding).**
+Four deliberate injections, each read with the same probe command:
+
+| injection | result |
+| --- | --- |
+| `let _zz: u32 = c"x".as_ptr ();` in `load_unicows_dll_for_w32fns`'s body (inside the `not (have_dbus)` block) | **reported** - 43 errors, `E0308` at the injected line |
+| `let _zz: u32 = c"x".as_ptr ();` in the same body, outside the block | **reported** - 43 errors, `E0308` |
+| `ZZQQ_BOGUS_TYPE` as the `transmute`'s target type, and as a `let` annotation, inside the block | **not reported** |
+| `ZZQQ_OUTER_TYPE`/`ZZQQ_OUTER_VALUE` in the body outside the block | **not reported** |
+
+So the probe checks *types* but is not a name-resolution reading (slice 27 measured the value-name
+half for `DEFUN!` bodies; this extends it to types and to plain items) - and the injection rows also
+prove that the `not (have_dbus)` arm **is** compiled by the probe (`have_dbus` is not in the
+command's `--cfg` list), so the tray block's *type* errors since slice 26 were genuinely read.
+Consequence, recorded with the tool: the sweep is the only reading for a name, and it only looks at
+capitalized identifiers - a lowercase unresolved name is still invisible to both.
+
+### Deviations (slice 36)
+
+- **The two items are landed before the text that precedes them in C** (P-91 ①/②), which the range
+  table's last row records.
+- **`unicows` is `mut`** (C 12461 assigns the parameter), the `src/image.rs` 2902 device.
+- **`ntgui_encode_system`'s `encoded` is `Qnil ()` first**, because C's `Lisp_Object encoded;` is
+  written through a pointer by `to_unicode` and Rust's definite-initialisation rejects the read -
+  the `src/androidfns.rs` 2787 device.
+- **The `#ifdef WINDOWSNT` and `#ifdef NTGUI_UNICODE` arms are the item's gate**, not a nested
+  condition: C 12452/12478 sit inside no other `#if`.
+- **Not claimed.**  No run evidence: no Windows toolchain, so no UNICOWS.DLL is loaded and no
+  code-page conversion runs; the readings are the compile-level ones above and the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

@@ -19,6 +19,18 @@ strip comments and string literals, drop field accesses and macro invocation nam
 an item (`fn`/`const`/`static`/`struct`/`type`/`enum`/`union`/`macro_rules!`) of that name anywhere
 under `femacs/`.
 
+Extended measurement (w32fns slice 36, 2026-10-14): the gap is not limited to `DEFUN!` bodies or to
+values.  Four deliberate injections into `src/w32fns.rs`'s `load_unicows_dll_for_w32fns`, read with
+the same arm-probe command, showed that `let _zz: u32 = c"x".as_ptr ();` is **reported** (E0308, 43
+errors) both inside the `not (feature = "have_dbus")` block and outside it - so that arm *is*
+compiled - while `ZZQQ_BOGUS_TYPE` as a `transmute` target type and as a `let` annotation, and
+`ZZQQ_OUTER_TYPE`/`ZZQQ_OUTER_VALUE` outside the block, are all **not reported**.  The probe is
+therefore a *type* reading, never a name-resolution one: a missing name - type or value, in any item
+- is invisible to it, and this sweep is the only reading that sees it.  Note the sweep's own limit:
+it only looks at capitalized identifiers, so a lowercase unresolved name is invisible to both.
+`PFNSHELL_NOTIFYICONW` (this slice) is the case the extended reading caught - a type invented for
+the `transmute` target where the declaration spells the type inline.
+
 Two known limitations, both of which produced false positives in practice and must be triaged by
 hand rather than "fixed":
 
