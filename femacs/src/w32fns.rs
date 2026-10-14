@@ -211,6 +211,8 @@ pub type BYTE = u8;
 #[cfg (feature = "have_ntgui")]
 pub type WORD = c_ushort;
 #[cfg (feature = "have_ntgui")]
+pub type USHORT = c_ushort;
+#[cfg (feature = "have_ntgui")]
 pub type DWORD = u32;
 /* C's `DWORD_PTR` (`syspage_mask`'s type, C 321) is the one `<windows.h>` name this tree already
    carries: `include/w32common.rs` 42 declares it ("a Windows target that grows a windows.h mirror
@@ -218,6 +220,8 @@ pub type DWORD = u32;
    (measured in the arm pre-flight below), so the port uses the mirror's copy.  */
 #[cfg (feature = "have_ntgui")]
 pub type ULONG = u32;
+#[cfg (feature = "have_ntgui")]
+pub type DWORD64 = u64;
 #[cfg (feature = "have_ntgui")]
 pub type LONG = i32;
 #[cfg (feature = "have_ntgui")]
@@ -256,6 +260,8 @@ pub type LPBYTE = *mut BYTE;
 pub type LPVOID = *mut c_void;
 #[cfg (feature = "have_ntgui")]
 pub type LPCVOID = *const c_void;
+#[cfg (feature = "have_ntgui")]
+pub type PVOID = *mut c_void;
 #[cfg (feature = "have_ntgui")]
 pub type LPCWSTR = *const c_ushort;
 #[cfg (feature = "have_ntgui")]
@@ -17410,6 +17416,268 @@ pub unsafe extern "C" fn ntgui_encode_system (str: Lisp_Object) -> Lisp_Object
   to_unicode (str, &raw mut encoded);                            // C 12484
   return encoded;                                                // C 12485
 }
+
+/* C 12042-12128 is the exception half of the crashing group: C 12042's banner, C 12044-12047's
+   `#ifndef CYGWIN` guard (C 12045's `my_exception_handler` forward declaration, which PORTING.md
+   0.1-12 drops, and C 12046's `prev_exception_handler`), C 12048-12049's two ungated objects,
+   C 12051-12059's `#ifndef CYGWIN` guard with `_resetstkoflw_proc`/`resetstkoflw`, and
+   C 12061-12128's three functions.  C 12130-12279 (the backtrace and `emacs_abort`) is the next
+   slice.  */
+
+/* Crashing and reporting backtrace.  */
+
+/// The four `<winnt.h>` records C 12099-12126's handler walks.  They are SDK records the
+/// reference tree carries no prototype for, so the field lists are the Win32 metadata projection's
+/// (`windows-sys` 0.52, `Win32/System/Diagnostics/Debug/mod.rs`), and `CONTEXT` is carried as the
+/// **prefix** each `_WIN64` arm needs: C 12113/12115 name only `Rip`/`Eip`, so the arm's remaining
+/// members (the floating-point save area, the vector registers) are not modeled - the two
+/// `offset_of!` assertions below pin the one fact C uses, and the ledger records the truncation.
+/// C: typedef struct _FLOATING_SAVE_AREA { DWORD ControlWord; DWORD StatusWord; DWORD TagWord;
+/// C: DWORD ErrorOffset; DWORD ErrorSelector; DWORD DataOffset; DWORD DataSelector;
+/// C: BYTE RegisterArea[80]; DWORD Cr0NpxState; } FLOATING_SAVE_AREA;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FLOATING_SAVE_AREA
+{
+  pub ControlWord: DWORD,
+  pub StatusWord: DWORD,
+  pub TagWord: DWORD,
+  pub ErrorOffset: DWORD,
+  pub ErrorSelector: DWORD,
+  pub DataOffset: DWORD,
+  pub DataSelector: DWORD,
+  pub RegisterArea: [BYTE; 80],
+  pub Cr0NpxState: DWORD,
+}
+/// C: typedef struct DECLSPEC_ALIGN(16) _CONTEXT { DWORD64 P1Home, P2Home, P3Home, P4Home, P5Home,
+/// C: P6Home; DWORD ContextFlags; DWORD MxCsr; WORD SegCs, SegDs, SegEs, SegFs, SegGs, SegSs;
+/// C: DWORD EFlags; DWORD64 Dr0, Dr1, Dr2, Dr3, Dr6, Dr7; DWORD64 Rax, Rcx, Rdx, Rbx, Rsp, Rbp,
+/// C: Rsi, Rdi, R8, R9, R10, R11, R12, R13, R14, R15; DWORD64 Rip; … } CONTEXT; /* AMD64 */
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin"), feature = "win64"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CONTEXT
+{
+  pub P1Home: DWORD64,
+  pub P2Home: DWORD64,
+  pub P3Home: DWORD64,
+  pub P4Home: DWORD64,
+  pub P5Home: DWORD64,
+  pub P6Home: DWORD64,
+  pub ContextFlags: DWORD,
+  pub MxCsr: DWORD,
+  pub SegCs: WORD,
+  pub SegDs: WORD,
+  pub SegEs: WORD,
+  pub SegFs: WORD,
+  pub SegGs: WORD,
+  pub SegSs: WORD,
+  pub EFlags: DWORD,
+  pub Dr0: DWORD64,
+  pub Dr1: DWORD64,
+  pub Dr2: DWORD64,
+  pub Dr3: DWORD64,
+  pub Dr6: DWORD64,
+  pub Dr7: DWORD64,
+  pub Rax: DWORD64,
+  pub Rcx: DWORD64,
+  pub Rdx: DWORD64,
+  pub Rbx: DWORD64,
+  pub Rsp: DWORD64,
+  pub Rbp: DWORD64,
+  pub Rsi: DWORD64,
+  pub Rdi: DWORD64,
+  pub R8: DWORD64,
+  pub R9: DWORD64,
+  pub R10: DWORD64,
+  pub R11: DWORD64,
+  pub R12: DWORD64,
+  pub R13: DWORD64,
+  pub R14: DWORD64,
+  pub R15: DWORD64,
+  pub Rip: DWORD64,
+}
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin"), feature = "win64"))]
+const _: () = core::assert! (core::mem::offset_of! (CONTEXT, Rip) == 0xF8);
+/// C: typedef struct _CONTEXT { DWORD ContextFlags; DWORD Dr0, Dr1, Dr2, Dr3, Dr6, Dr7;
+/// C: FLOATING_SAVE_AREA FloatSave; DWORD SegGs, SegFs, SegEs, SegDs; DWORD Edi, Esi, Ebx, Edx,
+/// C: Ecx, Eax; DWORD Ebp; DWORD Eip; … } CONTEXT; /* ix86 */
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin"), not (feature = "win64")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CONTEXT
+{
+  pub ContextFlags: DWORD,
+  pub Dr0: DWORD,
+  pub Dr1: DWORD,
+  pub Dr2: DWORD,
+  pub Dr3: DWORD,
+  pub Dr6: DWORD,
+  pub Dr7: DWORD,
+  pub FloatSave: FLOATING_SAVE_AREA,
+  pub SegGs: DWORD,
+  pub SegFs: DWORD,
+  pub SegEs: DWORD,
+  pub SegDs: DWORD,
+  pub Edi: DWORD,
+  pub Esi: DWORD,
+  pub Ebx: DWORD,
+  pub Edx: DWORD,
+  pub Ecx: DWORD,
+  pub Eax: DWORD,
+  pub Ebp: DWORD,
+  pub Eip: DWORD,
+}
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin"), not (feature = "win64")))]
+const _: () = core::assert! (core::mem::offset_of! (CONTEXT, Eip) == 0xB8);
+/// C: typedef struct _EXCEPTION_RECORD { DWORD ExceptionCode; DWORD ExceptionFlags;
+/// C: struct _EXCEPTION_RECORD *ExceptionRecord; PVOID ExceptionAddress; DWORD NumberParameters;
+/// C: ULONG_PTR ExceptionInformation[15]; } EXCEPTION_RECORD;
+/// C: typedef struct _EXCEPTION_POINTERS { PEXCEPTION_RECORD ExceptionRecord; PCONTEXT
+/// C: ContextRecord; } EXCEPTION_POINTERS;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct EXCEPTION_RECORD
+{
+  pub ExceptionCode: DWORD,
+  pub ExceptionFlags: DWORD,
+  pub ExceptionRecord: *mut EXCEPTION_RECORD,
+  pub ExceptionAddress: PVOID,
+  pub NumberParameters: DWORD,
+  pub ExceptionInformation: [usize; 15],
+}
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct EXCEPTION_POINTERS
+{
+  pub ExceptionRecord: *mut EXCEPTION_RECORD,
+  pub ContextRecord: *mut CONTEXT,
+}
+/// C: typedef LONG (WINAPI *PTOP_LEVEL_EXCEPTION_FILTER) (struct _EXCEPTION_POINTERS *);
+/// C: typedef PTOP_LEVEL_EXCEPTION_FILTER LPTOP_LEVEL_EXCEPTION_FILTER;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+pub type LPTOP_LEVEL_EXCEPTION_FILTER
+  = Option<unsafe extern "system" fn (ExceptionInfo: *mut EXCEPTION_POINTERS) -> LONG>;
+
+/// C 12046-12049: the previous filter and the two objects the handler records into.  C 12045's
+/// forward declaration of the handler itself has no Rust counterpart (a Rust item is visible
+/// everywhere in its module) - PORTING.md 0.1-12's dropped class.
+/// C: static LPTOP_LEVEL_EXCEPTION_FILTER prev_exception_handler;
+/// C: static DWORD except_code;
+/// C: static PVOID except_addr;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+static mut prev_exception_handler: LPTOP_LEVEL_EXCEPTION_FILTER = None;
+#[cfg (feature = "have_ntgui")]
+static mut except_code: DWORD = 0;
+#[cfg (feature = "have_ntgui")]
+static mut except_addr: PVOID = core::ptr::null_mut ();
+
+/// C 12053-12059: the stack-overflow banner and the run-time-loaded `_resetstkoflw` C 12055-12057's
+/// comment asks for ("the function is not present pre-W2K, so make the call through a function
+/// pointer").
+/// C: typedef int (__cdecl *_resetstkoflw_proc) (void);
+/// C: static _resetstkoflw_proc resetstkoflw;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+pub type _resetstkoflw_proc = unsafe extern "C" fn () -> c_int;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+static mut resetstkoflw: Option<_resetstkoflw_proc> = None;
+
+/// C 12061-12075: `w32_reset_stack_overflow_guard` - C 12068-12070's lazy load through
+/// `GetModuleHandle ("msvcrt.dll")` and C 12073-12074's guarded call, whose discarded result is
+/// C's own `(void)` cast (the port keeps the call as a statement).
+/// C: void w32_reset_stack_overflow_guard (void)
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_reset_stack_overflow_guard ()
+{
+  if resetstkoflw.is_none ()
+    {
+      resetstkoflw
+	= core::mem::transmute::<VOIDFNPTR, Option<_resetstkoflw_proc>> (
+	    get_proc_addr (GetModuleHandle (c"msvcrt.dll".as_ptr ()), c"_resetstkoflw".as_ptr ()));
+    }
+  /* We ignore the return value.  If _resetstkoflw fails, the next
+     stack overflow will crash the program.  */
+  if resetstkoflw.is_some ()
+    { (resetstkoflw.unwrap ()) (); }
+}
+
+/* C: `dispextern.h`/`syssignal.h`: `void terminate_due_to_signal (int, int);` - C 12083's call;
+   the mirror carries no row (the `src/xfns.rs` 14148 device for `redisplay_preserve_echo_area`).  */
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+unsafe extern "C" {
+  pub fn terminate_due_to_signal (sig: c_int, backtrace_limit: c_int);
+}
+
+/// C 12077-12090: `stack_overflow_handler` - C 12082-12083's hard-GC-error test, then
+/// C 12084-12089's `#ifdef _WIN64` pair.  **C's `__builtin_longjmp` has no Rust counterpart** (the
+/// GCC builtin MinGW needs because its `longjmp` crashes in this context), so the port calls the
+/// tree's own `sys_longjmp` in both arms and PORTING.md P-10 keeps the final spelling open for a
+/// Windows-target spike - a recorded deviation.
+/// C: static void stack_overflow_handler (void)
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+unsafe extern "C" fn stack_overflow_handler ()
+{
+  /* Hard GC error may lead to stack overflow caused by
+     too nested calls to mark_object.  No way to survive.  */
+  if gc_in_progress
+    { terminate_due_to_signal (SIGSEGV, 40); }
+  /* C 12084-12089's `#ifdef _WIN64` pair (see the note above).  */
+  #[cfg (feature = "win64")]
+  { sys_longjmp (&raw mut return_to_command_loop as *mut jmp_buf, 1); }
+  #[cfg (not (feature = "win64"))]
+  { sys_longjmp (&raw mut return_to_command_loop as *mut jmp_buf, 1); }
+}
+
+/// C 12092-12127: `my_exception_handler` - C 12102-12103's two recorded fields, C 12106-12122's
+/// stack-overflow test (the code, the parameter count, the main-thread test, the `#ifdef _WIN64`
+/// `Rip`/`Eip` write and C 12120's cleared address with C 12117-12119's comment), and
+/// C 12124-12126's two-exit chain over `prev_exception_handler`.  The `Eip` arm spells C's own
+/// narrowing (C's `(DWORD_PTR)` value into the `DWORD` member) as `as DWORD_PTR as DWORD`.
+/// C: static LONG CALLBACK my_exception_handler (EXCEPTION_POINTERS * exception_data)
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+unsafe extern "system" fn my_exception_handler (exception_data: *mut EXCEPTION_POINTERS) -> LONG
+{
+  except_code = (*(*exception_data).ExceptionRecord).ExceptionCode;
+  except_addr = (*(*exception_data).ExceptionRecord).ExceptionAddress;
+
+  /* If this is a stack overflow exception, attempt to recover.  */
+  if (*(*exception_data).ExceptionRecord).ExceptionCode == EXCEPTION_STACK_OVERFLOW
+      && (*(*exception_data).ExceptionRecord).NumberParameters == 2
+      /* We can only longjmp to top level from the main thread.  */
+      && GetCurrentThreadId () == dwMainThreadId
+    {
+      /* Call stack_overflow_handler ().  */
+      #[cfg (feature = "win64")]
+      { (*(*exception_data).ContextRecord).Rip = stack_overflow_handler as DWORD_PTR; }
+      #[cfg (not (feature = "win64"))]
+      { (*(*exception_data).ContextRecord).Eip = stack_overflow_handler as DWORD_PTR as DWORD; }
+      /* Zero this out, so the stale address of the stack overflow
+	 exception we handled is not displayed in some future
+	 unrelated crash.  */
+      except_addr = core::ptr::null_mut ();
+      return EXCEPTION_CONTINUE_EXECUTION;
+    }
+
+  if prev_exception_handler.is_some ()
+    { return (prev_exception_handler.unwrap ()) (exception_data); }
+  return EXCEPTION_EXECUTE_HANDLER;
+}
+
+/// C 12106/12121/12126-12127's `<winnt.h>` values (`EXCEPTION_STACK_OVERFLOW` is
+/// `0xC00000FD`; C's `EXCEPTION_CONTINUE_EXECUTION` is `(LONG)-1` and
+/// `EXCEPTION_EXECUTE_HANDLER` is 1), corroborated against the metadata projection.
+/// C: #define EXCEPTION_CONTINUE_EXECUTION (-1) / #define EXCEPTION_EXECUTE_HANDLER 1
+/// C: #define EXCEPTION_STACK_OVERFLOW 0xC00000FD
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+pub const EXCEPTION_CONTINUE_EXECUTION: LONG = -1;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+pub const EXCEPTION_EXECUTE_HANDLER: LONG = 1;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+pub const EXCEPTION_STACK_OVERFLOW: DWORD = 0xC00000FD;
 
 /* C 11585-12450's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"

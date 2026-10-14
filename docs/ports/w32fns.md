@@ -238,7 +238,10 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 11350-11477 | C 11350-11352's System Sleep Support banner, C 11354-11358's `SetThreadExecutionState_Proc` with its pointer and the two counters, C 11360/11391/11414's three sleep `DEFUN`s, and C 11424-11477's notification group (`sleep_notification_callback`, `RegisterSuspendResumeNotification_Proc`, `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, `w32_register_for_sleep_notifications`) - slice 33 | file gate (the group is outside every `#if`: `#[cfg (feature = "have_ntgui")]`, `input_event_bits!` included) |
 | 11478-11520 | C 11478-11480's Exporting frames banner and C 11481-11520's `w32-export-frame` (its own `#ifdef WINDOWSNT` at C 11491 with the C 11517-11518 `#else`) - slice 34 | file gate; the body's two arms are `windowsnt` / `not (windowsnt)` |
 | 11522-11583 | C 11523-11525's Initialization banner, C 11527-11528's ordering comment, and C 11530-11583's `w32_frame_parm_handlers[]` (with the `frame_parm_handler` alias and the twenty-two `gui_set_*` use-site declarations) - slice 35 | file gate |
-| 11585-12450 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`, then the exception/backtrace group and C 12294-12450's `globals_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 11585-12038 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`; C 11588's `globals_of_w32fns ()` is landed - slice 36 landed the callee first, P-91 ①) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 12042-12128 | C 12042's banner, C 12044-12049's guard and objects (`prev_exception_handler` under `not (cygwin)`, `except_code`/`except_addr` ungated), C 12051-12059's `_resetstkoflw_proc` and `resetstkoflw`, and C 12061-12128's `w32_reset_stack_overflow_guard`, `stack_overflow_handler` and `my_exception_handler` - slice 37 | file gate; the group's `#ifndef CYGWIN` arms are `not (cygwin)`, and the two `#ifdef _WIN64` pairs are `win64` / `not (win64)` |
+| 12130-12279 | **the remainder** (C 12130-12141's `CaptureStackBackTrace_proc` with `BACKTRACE_LIMIT_MAX`/`DEFAULT_IMAGE_BASE`, then C 12143-12159's `w32_backtrace` and C 12161-12279's `emacs_abort`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 12283-12450 | **the remainder** (C 12283's `/* Initialization.  */`, C 12285-12292's comment and C 12293-12450's `globals_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 12452-12488 | C 12452's `#ifdef WINDOWSNT` with C 12454-12476's `load_unicows_dll_for_w32fns`, and C 12478's `#ifdef NTGUI_UNICODE` with C 12480-12488's `ntgui_encode_system` - slice 36, landed ahead of the C 11585-12450 text above it (P-91 ①: `syms_of_w32fns` calls `globals_of_w32fns` first) | `windowsnt` (nested) / `ntgui_unicode` (nested) |
 
 
@@ -3650,6 +3653,85 @@ capitalized identifiers - a lowercase unresolved name is still invisible to both
   condition: C 12452/12478 sit inside no other `#if`.
 - **Not claimed.**  No run evidence: no Windows toolchain, so no UNICOWS.DLL is loaded and no
   code-page conversion runs; the readings are the compile-level ones above and the sweep's.
+
+## Slice 37 (C 12042-12128)
+
+**Scope and the stop.**  The exception half of the crashing group: C 12042's banner, C 12044-12049's
+`#ifndef CYGWIN` guard (the handler's forward declaration, dropped by PORTING.md 0.1-12, and
+`prev_exception_handler`) with the two ungated objects, C 12051-12059's `#ifndef CYGWIN` guard
+(`_resetstkoflw_proc`, `resetstkoflw`), and C 12061-12128's three functions.  The stop is C 12130's
+`CaptureStackBackTrace_proc`.  `globals_of_w32fns` (slice 38) is what needs this half: it passes
+`my_exception_handler` to `SetUnhandledExceptionFilter` and writes `prev_exception_handler`/
+`resetstkoflw`, and this file has no "declare then define" pair (P-91 ①).
+
+**What the items carry.**  `w32_reset_stack_overflow_guard` is C 12068-12070's lazy load through
+`GetModuleHandle ("msvcrt.dll")` and C 12073-12074's guarded call; `stack_overflow_handler` is
+C 12082-12083's hard-GC-error test and C 12084-12089's `#ifdef _WIN64` pair; `my_exception_handler`
+is C 12102-12103's two recorded fields, C 12106-12122's stack-overflow test (code, parameter count,
+main-thread test, the `Rip`/`Eip` write and C 12120's cleared address) and C 12124-12126's two-exit
+chain.
+
+**New surface.**  The five `<winnt.h>` records the group walks, `LPTOP_LEVEL_EXCEPTION_FILTER`, the
+four objects, `_resetstkoflw_proc`, the three `EXCEPTION_*` values, and a use-site declaration for
+`terminate_due_to_signal` (`syssignal.h`; the mirror carries no row - the `src/xfns.rs` 14148
+device).  Three `<windows.h>` scalars join the file's own stand-in block: `PVOID` (C 12049's
+`except_addr`), `USHORT` (C 12130's `CaptureStackBackTrace_proc`, next slice) and `DWORD64` (the
+AMD64 `CONTEXT` members).
+
+### Evidence (slice 37, the final revision: 17,727 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Three runs (the third after the `Eip` narrowing fix):
+**exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Three runs.  The second read **43** errors - the
+standing **42** plus `E0308` at the `Eip` write (`stack_overflow_handler as DWORD_PTR` into a
+`DWORD` field; C's own narrowing, now spelled `as DWORD_PTR as DWORD`).  The third run is back to
+**42** and **no error sits at or beyond `src/w32fns.rs` 17,420** (the largest is the pre-existing
+`must_be_updated_p` gap, now at 12,094).  This slice's records therefore **do** type-check: the
+`CONTEXT` offset assertions and the five records are read by the probe - the contrast with slice
+36's name-resolution gap is the point (types are read, names are not).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 17,420-17,681: 88 capitalized
+identifiers, the missing ones all in the documented non-item classes - `Clone`/`Copy` and the field
+names of the five new records (`Rip`, `Eip`, `ExceptionCode`, `P1Home`, …); no unresolved item name.
+
+**④ `extract-abi.py --check`.**  **61 → 54** rows: `missing function w32_reset_stack_overflow_guard`,
+`missing function stack_overflow_handler`, `missing function my_exception_handler` and the four
+`missing file-scope object` rows (`prev_exception_handler`, `except_code`, `except_addr`,
+`resetstkoflw`) retire.  Two token rows appeared and one notes row each answers them:
+`stack_overflow_handler does not mention __builtin_longjmp` (the GCC builtin Rust has no counterpart
+for; PORTING.md P-10 keeps the final spelling open) and `my_exception_handler does not mention 0`
+(C 12120's null pointer constant, spelled `core::ptr::null_mut ()`).  The drift row the first
+reading added (`line count drifted 42.0%: C 12488 vs Rust 17727`) is answered by a new `w32fns 0.43`
+row in `docs/ports/line-drift-tolerance.tsv` (the measured 42.0% + 0.01, superseding slice 35's
+`0.41`), and the second reading has no drift row.
+
+**⑤ The range table and the dead-file gate.**  The single remainder row `11585-12450` becomes four:
+`11585-12038` (remainder: `syms_of_w32fns`), `12042-12128` (this slice), `12130-12279` (remainder:
+the backtrace and `emacs_abort`) and `12283-12450` (remainder: `globals_of_w32fns`);
+`check-dead-file-coverage.py` reads **189 range row(s) cover src/w32fns.c (12488 lines; 142 blank
+line(s) between blocks need no row)**.
+
+### Deviations (slice 37)
+
+- **`CONTEXT` is carried as each `_WIN64` arm's *prefix*, not the whole SDK record.**  C 12113/12115
+  name only `Rip`/`Eip`; the ARM64/x86_64/ix86 layouts live in `<winnt.h>` (no file in the reference
+  tree, no `windows.h` on this machine), so the two arms transcribed here are the Win32 metadata
+  projection's (`windows-sys` 0.52) field runs **up to the member C writes**, and the two
+  `offset_of!` assertions (`Rip` at `0xF8`, `Eip` at `0xB8`) pin the facts C depends on.  The
+  remaining members (the floating-point save area, `VectorRegister`, `ExtendedRegisters`) are
+  **not modeled** and no size claim is made for the record - the truncation is the deviation.
+- **C's `__builtin_longjmp` (C 12086) has no Rust counterpart.**  The port calls the tree's own
+  `sys_longjmp` in both arms of C 12084-12089's pair and records it in a notes row; PORTING.md P-10
+  (a Windows-target spike) is what must decide the final spelling.
+- **C 12045's forward declaration of `my_exception_handler` is dropped** (PORTING.md 0.1-12: a Rust
+  item is visible throughout its module), and C 12117-12119's/12120's comment text is carried.
+- **C's `(DWORD_PTR)` value into the `DWORD` `Eip` member is spelled `as DWORD_PTR as DWORD`** - C's
+  own narrowing at that assignment.
+- **The discarded `_resetstkoflw` result keeps C's `(void)`** as a statement whose value is unused.
+- **Not claimed.**  No run evidence: no Windows/mingw toolchain, so no guard page is re-established,
+  no stack overflow is recovered and no filter is installed; the readings are compile-level (42
+  errors, none from this slice), the name sweep's, and the two offset assertions'.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
