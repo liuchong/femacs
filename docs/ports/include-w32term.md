@@ -414,3 +414,27 @@ src/w32fns.rs /tmp/w38lane/x.rlib --crate-type=lib -C panic=abort --cfg 'feature
 `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
 `docs/ports/w32fns.md`'s `## Slice 38 (C 12283-12450)`.
+
+## `parse_button` moves into `w32term_fn_decls` (2026-10-14, w32term slice 7)
+
+**The measurement.**  `src/w32term.h` 776 declares `extern BOOL parse_button (int, int, int *, int
+*);` and `src/w32term.c` 3439 defines it, so the mirror declared it - at its crate root, in the
+block that says the four names there "are `src/w32term.c`'s own".  That is exact as long as no unit
+defines the name; the w32term slice-7 round did, and its arm reading went from **22 to 23** with
+`E0428: the name \`parse_button\` is defined multiple times` (the other two `E0428`s of that
+reading, `w32_query_frame_background_color` and `w32_image_rotations_p`, are the mirror's own
+standing rows - Owed 4's list).
+
+**The move.**  The declaration now stands in `w32term_fn_decls`, the glob-imported module that
+already holds the file's other own definitions (`w32_window_to_frame`, `w32_clear_window`,
+`w32_real_positions`, ...), with the reading in its comment.  A crate-root definition shadows a glob
+import, so the unit's `parse_button` wins and the `E0428` disappears - the P-21/P-39 device this
+ledger's "The declaration homes" section records for 27 earlier names.
+
+**Evidence.**  `cd femacs && cargo run -q -p xtask -- probe src/w32term.rs /tmp/w46/x.rlib
+--crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
+'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **23 errors before,
+22 after** (and 0 anchored in the unit's text either way);
+`python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
+`python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
+`docs/ports/w32term.md`'s `### Slice 7 (C 3433-3629)`.

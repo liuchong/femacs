@@ -20188,3 +20188,12 @@
   ④ 十门全 `rc=0`、0 失败；区间表拆为 `3237-3431`（本片）+ `3433-8414`（余项）；台账追加 **`### Slice 6 (C 3237-3431)`**。
   ⑤ 预算与清理：`build-tu` 2 发（含一次首拼）、臂读数 2 发、`--check` 5 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w45`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.312 `src/w32term.c` 第 7 片（w32term lane，slice 7）：C 3433-3629 落地——鼠标段头部：段注释、`parse_button`（本文件鼠标消息 `switch`）、`w32_construct_mouse_click`、`w32_construct_mouse_wheel`（含高精度滚轮臂与合并累加器）；w32term.rs 5,110 → 5,401 行（+291，2026-10-14）**：
+  ① 用例处新增：六个 `WM_*BUTTON*`、`WHEEL_DELTA`、`ScreenToClient`（winuser）、`MSG` 记录（`W32Msg` 成员类型，本图镜像未声明，沿用 `src/w32fns.rs` 379-388 与 `src/w32proc.rs` slice-25 的拼法）、以及 `<windef.h>` 的 `LOWORD`（与本单元自己的 `HIWORD` 配对）。
+  ② **P-39 镜像移动（本轮新测）**：`w32term.h` 776 声明、`src/w32term.c` 3439 定义 `parse_button`，镜像把它摆在 crate root → 本轮定义该函数后臂读数 **22 → 23**（`E0428: the name parse_button is defined multiple times`）；把声明移入 `include/w32term.rs` 的 `w32term_fn_decls`（P-21/P-39 装置）后回到 **22**（0 条落在本单元）。移动与证据记入 `docs/ports/include-w32term.md` 新段。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本**。首拼读 **34 条**，11 条在本片文本：四处 `Vw32_swap_mouse_buttons ()`（`globals.rs` 的名字是 `static`，不是 `Q…` 式函数）、三处 `FRAME_LINE_HEIGHT!`（是函数不是宏）、四处 `XSETINT!` 实参（`make_fixnum` 取 `EMACS_INT`）；修后 23（即上条 E0428）。
+  ④ `extract-abi.py --check`：**83 → 80 行**（`missing function` 75 → **72**），新增 1 条 token 行（`parse_button` 的 `switch`→`match`）入 `docs/ports/macro-body-notes.tsv`；行数行 39.3% → **35.8%**（5,401 : 8,414）。
+  ⑤ 十门全 `rc=0`、0 失败；区间表拆为 `3433-3629`（本片）+ `3631-8414`（余项）；台账追加 **`### Slice 7 (C 3433-3629)`**。
+  ⑥ 预算与清理：`build-tu` 3 发（含两次首拼）、臂读数 4 发、`--check` 4 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w46`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

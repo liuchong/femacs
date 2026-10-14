@@ -5106,5 +5106,296 @@ unsafe fn codepage_for_locale (locale: LCID) -> c_int
     { return CP_ACP as c_int; }                                       // C 3430
 }
 
-/* C 3433-3434's "Mouse clicks and mouse movement.  Rah." comment and C 3439's `parse_button`
-   (the mouse-message `switch`, C 3445-3560) open the next slice.  */
+/* C's `<windows.h>` surface C 3445-3624 reads and this unit does not carry yet, plus the `MSG`
+   record `W32Msg`'s `msg` member names (the mirror's `W32Msg` leaves it to its includer, the
+   `src/w32fns.rs` 379-388 / `src/w32proc.rs` slice-25 reading).  Every name stands at the use
+   site (P-88 (1)); the SDK records are UNVERIFIED.  */
+/// C: #define WM_LBUTTONDOWN 0x0201 / #define WM_LBUTTONUP 0x0202
+/// C: #define WM_RBUTTONDOWN 0x0204 / #define WM_RBUTTONUP 0x0205
+/// C: #define WM_MBUTTONDOWN 0x0207 / #define WM_MBUTTONUP 0x0208
+/// C: #define WHEEL_DELTA 120
+/// C: WINUSERAPI BOOL WINAPI ScreenToClient (HWND hWnd, LPPOINT lpPoint);
+/// C: typedef struct tagMSG { HWND hwnd; UINT message; WPARAM wParam; LPARAM lParam; DWORD time;
+/// C:   POINT pt; } MSG;
+#[cfg (feature = "have_ntgui")]
+pub const WM_LBUTTONDOWN: c_int = 0x0201;
+#[cfg (feature = "have_ntgui")]
+pub const WM_LBUTTONUP: c_int = 0x0202;
+#[cfg (feature = "have_ntgui")]
+pub const WM_RBUTTONDOWN: c_int = 0x0204;
+#[cfg (feature = "have_ntgui")]
+pub const WM_RBUTTONUP: c_int = 0x0205;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MBUTTONDOWN: c_int = 0x0207;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MBUTTONUP: c_int = 0x0208;
+#[cfg (feature = "have_ntgui")]
+pub const WHEEL_DELTA: c_int = 120;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MSG
+{
+  pub hwnd: HWND,
+  pub message: UINT,
+  pub wParam: WPARAM,
+  pub lParam: LPARAM,
+  pub time: DWORD,
+  pub pt: POINT,
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn ScreenToClient (hWnd: HWND, lpPoint: *mut POINT) -> BOOL;
+}
+
+/* C's `<windef.h>` macro the two event constructors call: no mirror in this unit's graph declares
+   it (the unit's own `HIWORD` at C 79-82 is the other half), so it stands here.  */
+/// C: #define LOWORD(l) ((WORD) (((DWORD_PTR) (l)) & 0xffff))
+#[cfg (feature = "have_ntgui")]
+macro_rules! LOWORD {
+  ($l:expr) => { (($l) as DWORD_PTR & 0xffff) as WORD };
+}
+
+/* C 3433-3434: "Mouse clicks and mouse movement.  Rah." - the section comment, carried at its
+   position.  */
+/// C: /* Mouse clicks and mouse movement.  Rah.  */
+
+/// C 3436-3499: "Parse a button MESSAGE. …" - C 3442-3443's two locals, C 3445-3493's
+/// `switch (message)` over the eight message labels (with C 3456-3473's two `Vw32_swap_mouse_buttons`
+/// branches), C 3491-3492's `default:` (which returns `FALSE`) and C 3495-3498's two
+/// write-through-pointer stores and `TRUE` answer.  The entry is non-`static`, so it is exported
+/// (PORTING.md 0.2).
+/// C: /* Parse a button MESSAGE. The button index is returned in PBUTTON, and
+/// C:    the state in PUP. XBUTTON provides extra information for extended mouse
+/// C:    button messages. Returns FALSE if unable to parse the message.  */
+/// C: BOOL
+/// C: parse_button (int message, int xbutton, int * pbutton, int * pup)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn parse_button (message: c_int, xbutton: c_int, pbutton: *mut c_int,
+				       pup: *mut c_int) -> BOOL
+{
+  let mut button: c_int = 0;                                         // C 3442
+  let mut up: c_int = 0;                                             // C 3443
+
+  match message                                                      // C 3445
+    {
+    WM_LBUTTONDOWN =>                                                // C 3447
+      {
+	button = 0; up = 0;                                          // C 3448-3449
+      }
+
+    WM_LBUTTONUP =>                                                  // C 3451
+      {
+	button = 0; up = 1;                                          // C 3452-3453
+      }
+
+    WM_MBUTTONDOWN =>                                                // C 3455
+      {
+	if NILP (Vw32_swap_mouse_buttons)                         // C 3456
+	  { button = 1; }                                            // C 3457
+	else
+	  { button = 2; }                                            // C 3459
+	up = 0;                                                      // C 3460
+      }
+
+    WM_MBUTTONUP =>                                                  // C 3462
+      {
+	if NILP (Vw32_swap_mouse_buttons)                         // C 3463
+	  { button = 1; }                                            // C 3464
+	else
+	  { button = 2; }                                            // C 3466
+	up = 1;                                                      // C 3467
+      }
+
+    WM_RBUTTONDOWN =>                                                // C 3469
+      {
+	if NILP (Vw32_swap_mouse_buttons)                         // C 3470
+	  { button = 2; }                                            // C 3471
+	else
+	  { button = 1; }                                            // C 3473
+	up = 0;                                                      // C 3474
+      }
+
+    WM_RBUTTONUP =>                                                  // C 3476
+      {
+	if NILP (Vw32_swap_mouse_buttons)                         // C 3477
+	  { button = 2; }                                            // C 3478
+	else
+	  { button = 1; }                                            // C 3480
+	up = 1;                                                      // C 3481
+      }
+
+    WM_XBUTTONDOWN =>                                                // C 3483
+      {
+	button = xbutton + 2; up = 0;                                // C 3484-3485
+      }
+
+    WM_XBUTTONUP =>                                                  // C 3487
+      {
+	button = xbutton + 2; up = 1;                                // C 3488-3489
+      }
+
+    /* C's `default:` returns FALSE for every other message (C 3491-3492).  */
+    _ =>
+      { return FALSE; }                                              // C 3492
+    }
+
+  if !pup.is_null () { *pup = up; }                                  // C 3495
+  if !pbutton.is_null () { *pbutton = button; }                      // C 3496
+
+  return TRUE;                                                       // C 3498
+}
+
+/// C 3501-3532: "Prepare a mouse-event in *RESULT for placement in the input queue. …" - C
+/// 3511-3512's two locals, C 3514-3515's `parse_button` (with C 3514's `HIWORD` of the `wParam`),
+/// C 3519-3525's event fill and C 3527-3530's four setters.
+/// C: /* Prepare a mouse-event in *RESULT for placement in the input queue.
+/// C:
+/// C:    If the event is a button press, then note that we have grabbed
+/// C:    the mouse.  */
+/// C: static Lisp_Object
+/// C: w32_construct_mouse_click (struct input_event *result, W32Msg *msg,
+/// C:                            struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_construct_mouse_click (result: *mut input_event, msg: *mut W32Msg,
+				     f: *mut frame) -> Lisp_Object
+{
+  let mut button: c_int = 0;                                         // C 3511
+  let mut up: c_int = 0;                                             // C 3512
+
+  parse_button ((*msg).msg.message as c_int,                         // C 3514
+		HIWORD! ((*msg).msg.wParam) as c_int,
+		&raw mut button, &raw mut up);                       // C 3515
+
+  /* Make the event type NO_EVENT; we'll change that when we decide
+     otherwise.  */
+  input_event_bits! (kind, result, MOUSE_CLICK_EVENT);               // C 3519
+  (*result).code = button as c_uint;                                 // C 3520
+  (*result).timestamp = (*msg).msg.time as Time;                     // C 3521
+  (*result).modifiers = (*msg).dwModifiers | (if up != 0                   // C 3522-3525
+					       { up_modifier as c_uint }
+					     else { down_modifier as c_uint });
+
+  XSETINT! ((*result).x, LOWORD! ((*msg).msg.lParam) as EMACS_INT);  // C 3527
+  XSETINT! ((*result).y, HIWORD! ((*msg).msg.lParam) as EMACS_INT);  // C 3528
+  XSETFRAME! ((*result).frame_or_window, f);                         // C 3529
+  (*result).arg = Qnil ();                                           // C 3530
+  return Qnil ();                                                    // C 3531
+}
+
+/// C 3534-3629: `static Lisp_Object w32_construct_mouse_wheel (struct input_event *result, W32Msg
+/// *msg, struct frame *f)` - C 3538-3540's point, delta and `sum_delta_y` (a function-local
+/// static, the slice-17 reading), C 3542-3546's event fill, C 3551-3556's `GET_WHEEL_DELTA_WPARAM`
+/// and zero-delta guard, C 3560-3561's two `short` casts, C 3563-3616's high-precision arm (with
+/// C 3576-3586's `window_from_coordinates`/pixel-height fallback, C 3590-3607's coalescing
+/// accumulator, C 3603-3615's two rate expressions and C 3613-3615's `list3`), C 3620-3621's
+/// modifier choice and C 3624-3627's `ScreenToClient` + three setters.
+/// C: static Lisp_Object
+/// C: w32_construct_mouse_wheel (struct input_event *result, W32Msg *msg,
+/// C:                            struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_construct_mouse_wheel (result: *mut input_event, msg: *mut W32Msg,
+				     f: *mut frame) -> Lisp_Object
+{
+  /* C declares the `POINT` uninitialised and fills both members below (PORTING.md 1.5).  */
+  let mut p: POINT = core::mem::zeroed ();                           // C 3538
+  let mut delta: c_int;                                              // C 3539
+  static mut sum_delta_y: c_int = 0;                                 // C 3540
+
+  input_event_bits! (kind, result,                                  // C 3542-3543
+		     if (*msg).msg.message == WM_MOUSEHWHEEL as c_uint
+		       { HORIZ_WHEEL_EVENT } else { WHEEL_EVENT });
+  (*result).code = 0;                                                // C 3544
+  (*result).timestamp = (*msg).msg.time as Time;                     // C 3545
+  (*result).arg = Qnil ();                                           // C 3546
+
+  /* A WHEEL_DELTA positive value indicates that the wheel was rotated
+     forward, away from the user (up); a negative value indicates that
+     the wheel was rotated backward, toward the user (down).  */
+  delta = GET_WHEEL_DELTA_WPARAM! ((*msg).msg.wParam) as c_int;      // C 3551
+  if delta == 0                                                      // C 3552
+    {
+      input_event_bits! (kind, result, NO_EVENT);                    // C 3554
+      return Qnil ();                                                // C 3555
+    }
+
+  /* With multiple monitors, we can legitimately get negative
+     coordinates, so cast to short to interpret them correctly.  */
+  p.x = LOWORD! ((*msg).msg.lParam) as c_short as LONG;              // C 3560
+  p.y = HIWORD! ((*msg).msg.lParam) as c_short as LONG;              // C 3561
+
+  if eabs! (delta) < WHEEL_DELTA                                     // C 3563
+    {
+      /* This is high-precision mouse wheel, which sends
+	 fine-resolution wheel events.  Produce a wheel event only if
+	 the conditions for sending such an event are fulfilled.  */
+      let mut scroll_unit: c_int = max! (w32_wheel_scroll_lines, 1) as c_int;   // C 3568
+      let mut nlines: c_int;
+      let mut value_to_report: c_double;                             // C 3569
+
+      /* w32_wheel_scroll_lines == UINT_MAX means the user asked for
+	 "entire page" to be the scroll unit.  We interpret that as
+	 the height of the window under the mouse pointer.  */
+      if w32_wheel_scroll_lines == UINT_MAX                          // C 3574
+	{
+	  let window: Lisp_Object
+	    = window_from_coordinates (f as *mut c_void, p.x, p.y,     // C 3576
+				       core::ptr::null_mut (), false, false, false);
+	  if !WINDOWP (window)                                       // C 3578
+	    {
+	      input_event_bits! (kind, result, NO_EVENT);            // C 3580
+	      return Qnil ();                                        // C 3581
+	    }
+	  scroll_unit = (*XWINDOW (window)).pixel_height;             // C 3583
+	  if scroll_unit < 1	/* paranoia */                          // C 3584
+	    { scroll_unit = 1; }                                     // C 3585
+	}
+
+      /* If mwheel-coalesce-scroll-events is non-nil, report a wheel event
+	 only when we have accumulated enough delta's for WHEEL_DELTA.  */
+      if mwheel_coalesce_scroll_events                               // C 3590
+	{
+	  /* If the user changed the direction, reset the accumulated
+	     deltas. */
+	  if (delta > 0) != (sum_delta_y > 0)                        // C 3594
+	    { sum_delta_y = 0; }                                     // C 3595
+	  sum_delta_y += delta;                                      // C 3596
+	  /* https://docs.microsoft.com/en-us/previous-versions/ms997498(v=msdn.10) */
+	  if eabs! (sum_delta_y) < WHEEL_DELTA                       // C 3598
+	    {
+	      input_event_bits! (kind, result, NO_EVENT);            // C 3600
+	      return Qnil ();                                        // C 3601
+	    }
+	  value_to_report
+	    = (FRAME_LINE_HEIGHT (f) as c_double * scroll_unit as c_double)
+	      / (WHEEL_DELTA as c_double / sum_delta_y as c_double);   // C 3603-3605
+	  sum_delta_y = 0;                                           // C 3606
+	}
+      else
+	{
+	  value_to_report
+	    = (FRAME_LINE_HEIGHT (f) as c_double * scroll_unit as c_double)
+	      / (WHEEL_DELTA as c_double / delta as c_double);       // C 3609-3611
+	}
+      nlines = (value_to_report / FRAME_LINE_HEIGHT (f) as c_double + 0.5) as c_int;   // C 3612
+      (*result).arg = list3 (make_fixnum (eabs! (nlines) as EMACS_INT),   // C 3613-3615
+			     make_float (0.0),
+			     make_float (value_to_report));
+    }
+
+  /* The up and down modifiers indicate if the wheel was rotated up or
+     down based on WHEEL_DELTA value.  */
+  (*result).modifiers = (*msg).dwModifiers                                // C 3620-3621
+    | (if delta < 0 { down_modifier as c_uint } else { up_modifier as c_uint });
+
+  /* For the case that F's w32 window is not msg->msg.hwnd.  */
+  ScreenToClient (FRAME_W32_WINDOW (f), &raw mut p);                 // C 3624
+  XSETINT! ((*result).x, p.x as EMACS_INT);                           // C 3625
+  XSETINT! ((*result).y, p.y as EMACS_INT);                           // C 3626
+  XSETFRAME! ((*result).frame_or_window, f);                         // C 3627
+  return Qnil ();                                                    // C 3628
+}
+
+/* C 3631-3632's `#if HAVE_W32NOTIFY` and C 3634's "File event notifications (see w32notify.c)."
+   comment open the next slice, with `w32_lispy_file_action` (C 3636-3670).  */

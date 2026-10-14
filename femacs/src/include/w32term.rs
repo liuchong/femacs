@@ -1113,7 +1113,6 @@ unsafe extern "C" {
   /// resolves to `*mut c_void` (the `Window`/`Display` reading in `w32gui.rs`), so no
   /// caller changes.  Same for the five other names below (status 3.540).
   pub fn complete_deferred_msg (hwnd: *mut c_void, msg: UINT, result: LRESULT);
-  pub fn parse_button (a: c_int, b: c_int, c: *mut c_int, d: *mut c_int) -> BOOL;
   pub fn w32_query_color (f: *mut frame, color: *mut Emacs_Color);
 }
 
@@ -1471,6 +1470,10 @@ pub mod w32term_fn_decls {
     pub fn w32_real_positions (f: *mut frame, xptr: *mut c_int, yptr: *mut c_int);
     pub fn w32_fill_rect (f: *mut frame, hdc: HDC, pix: COLORREF, rect: *mut RECT);
     pub fn w32_clear_window (f: *mut frame);
+    /* C 776's `extern BOOL parse_button (int, int, int *, int *);` - `src/w32term.c`'s own
+       definition, so it belongs in this module (E0428: the `w32term` slice 7 round, whose unit now
+       defines the function the mirror had declared at its crate root).  */
+    pub fn parse_button (a: c_int, b: c_int, c: *mut c_int, d: *mut c_int) -> BOOL;
     pub fn w32_display_pixel_height (dpyinfo: *mut w32_display_info) -> c_int;
     pub fn w32_display_pixel_width (dpyinfo: *mut w32_display_info) -> c_int;
     pub fn w32_release_paint_buffer (f: *mut frame);

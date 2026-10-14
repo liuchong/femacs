@@ -184,7 +184,8 @@ The `arm` cell says what the port does with the block.
 | 2716-3038 | `w32_draw_glyph_string` (C 2719-3038) - the file's glyph painter: the successor-first background pass (C 2724-2744), C 2747's GC/clipping setup, C 2749-2772's relief-or-clip choice, C 2774-2811's `switch (s->first_glyph->type)`, and C 2813-3037's `if (!s->for_overlaps)` block with the relief, underline (C 2831-2936, including C 2856-2873's two `WINDOW_BUFFER_LOCAL_VALUE` reads), overline, strike-through and the two overhang-repair loops | file gate (`have_ntgui`); slice 4 below |
 | 3039-3235 | the five small frame entries and the scroller: `w32_shift_glyphs_for_insert` (C 3041-3054), `w32_delete_glyphs` (C 3057-3067), `w32_clear_frame` (C 3070-3091), `w32_ring_bell` (C 3094-3117), `w32_ins_del_lines` (C 3119-3133, with C 3119-3121's "Line Dance" banner) and `w32_scroll_run` (C 3136-3235) | file gate (`have_ntgui`); slice 5 below |
 | 3237-3431 | the Exposure Events section's focus machinery and the two keyboard entries: `w32_frame_highlight` (C 3243-3248), `w32_frame_unhighlight` (C 3250-3255), `w32_new_focus_frame` (C 3257-3284), `w32_focus_changed` (C 3287-3324), `w32_detect_focus_change` (C 3327-3347), C 3350-3358's `#if 0` (`w32_mouse_leave`, carried as C's text), `w32_frame_rehighlight` (C 3360-3374), `w32_frame_rehighlight_1` (C 3376-3403), `get_keysym_name` (C 3405-3420) and `codepage_for_locale` (C 3422-3431) | file gate (`have_ntgui`); slice 6 below |
-| 3433-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3433-3629 | the mouse section's head: the section comment (C 3433-3434), `parse_button` (C 3439-3499, the mouse-message `switch`), `w32_construct_mouse_click` (C 3501-3532) and `w32_construct_mouse_wheel` (C 3534-3629, with the high-precision/coalescing arms) | file gate (`have_ntgui`); slice 7 below |
+| 3631-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -944,4 +945,40 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **92 -> 83 rows** (84 -> **75** `missing function`: the round's nine
      landed), four token rows added to the notes file (above), and the line-count row improves from
      42.8% to **39.3%** (5,110 vs 8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 7 (C 3433-3629)
+
+- **What it is.**  The mouse section's head: the "Mouse clicks and mouse movement.  Rah." comment,
+  `parse_button` (C 3439-3499, the file's mouse-message `switch`), `w32_construct_mouse_click`
+  (C 3501-3532) and `w32_construct_mouse_wheel` (C 3534-3629, with the high-precision wheel arm and
+  the coalescing accumulator).  Port: 5,110 -> **5401 lines** (+291).  The table's last row splits
+  at C 3629; the next live definition is C 3636's `w32_lispy_file_action` (the
+  `#if HAVE_W32NOTIFY` block).
+- **The names this slice adds stand at the use site** (P-88 (1)): the six `WM_*BUTTON*` messages,
+  `WHEEL_DELTA` and `ScreenToClient` (`<winuser.h>`), the `MSG` record (`W32Msg`'s member type,
+  which no mirror in this unit's graph declares - the `src/w32fns.rs` 379-388 / `src/w32proc.rs`
+  slice-25 spelling) and `<windef.h>`'s `LOWORD` (the companion of the unit's own `HIWORD`).  All
+  UNVERIFIED.
+- **The `parse_button` switch is the port's `match`** over C's eight message labels (each keeping
+  C's `NILP (Vw32_swap_mouse_buttons)` branch) with C's `default:` returning `FALSE`; the token row
+  the `--check` first produced (`break,case,default,switch`) is recorded in
+  `docs/ports/macro-body-notes.tsv`, the `w32_fill_underline`/`pgtk_draw_window_cursor` class.
+- **`parse_button` is one of the names `w32term.h` has to declare but `src/w32term.c` defines, and
+  the mirror declared it at its crate root**: the arm reading's `E0428: the name parse_button is
+  defined multiple times` (23 errors) is what the round measured, and the declaration moved into
+  `include/w32term.rs`'s `w32term_fn_decls` (P-21/P-39's device, the shape that module already uses
+  for `w32_window_to_frame`/`w32_clear_window`), the reading returning to **22**.  The move and its
+  evidence are `docs/ports/include-w32term.md`'s.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text**.  The
+     round's first spelling read **34**; the eleven own-text rows were the four
+     `Vw32_swap_mouse_buttons ()` calls (the `globals.rs` name is a `static`, not a `Q…`-style
+     function), the three `FRAME_LINE_HEIGHT!` spellings (a function, not a macro) and the four
+     `XSETINT!` arguments (`make_fixnum` takes `EMACS_INT`), and the intermediate reading after
+     those fixes was 23 - the `parse_button` `E0428` above.
+  3. `extract-abi.py --check` -> **83 -> 80 rows** (75 -> **72** `missing function`: the round's
+     three landed), one token row added to the notes file (above), and the line-count row improves
+     from 39.3% to **35.8%** (5,401 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.
