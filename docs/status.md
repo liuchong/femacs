@@ -20041,3 +20041,13 @@
   ⑥ 偏差（台账五条）：`alloca`→`sa_stack_alloc`（P-05）；`\f`→`\x0c`；三处过期 `errno` 声明交回镜像（slice 1 的说明与 owed 行随之被取代）；CRT/SDK 名站用例处（`AT_FDCWD`/`AT_EACCESS`/`X_OK` 已在图内，不重复）；`#if 0` 臂与 `first`/`last` 注释按 C 原文承载。
   ⑦ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 15 (2026-10-14, status 4.294): C 2722-3078`** 段，表头更新为 **4,877 与 `47ccd36d…`**；`macro-body-notes.tsv` 追一条；`tools/check-unit-names.py` 的 docstring 补一条实测限制说明。预算与清理：`build-tu` **3 发**（含一次失败）、`probe` **3 发**、名字扫描 **5 次**（含分段定位）、`--check` **3 发**、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链）。下一片起点：`src/w32proc.c` **C 3080**（`sys_select` 注释与函数，C 3108-3530，**本文件最长单函数**），本文件余量 **1,824 C 行**（C 3080-4903，37.2%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。
+
+- **4.295 `src/w32proc.c` 第 16 片（w32proc lane，slice 16）：C 3099-3106 落地——本文件最长函数 `sys_select` 要读的三个 extern 对象：`keyboard_handle`（`w32console.c`）、`interrupt_handle`（`w32xfns.c`）、`proc_buffered_char`（`process.c`）；w32proc.rs 4,877 → 4,907 行（+30，2026-10-14）**：
+  ① 本片落的文本：三个 extern 声明（各自的 C 单行注释按原文站在其上方、声明本身按其 `/// C:` 行引用），数组长度用镜像的 `FD_SETSIZE`（经 slice 2 `WFO_MAX_WAIT` 已在用的模块路径，Deviation 36），定义在 `src/process.rs` 489。**首读 build-tu 失败**：三行 C 注释与声明被裸贴而非按注释/引用承载，改成规范写法后通过——这是本轮两次读数之间唯一的文本变化。
+  ② 读数：**`build-tu`（冻结）exit 0、对象 336 字节**；**`probe` 35 条 = 25 `E0428` + 9 `E0425` + 1 `compile_error!`，无一条落在本单元**（即 slice 15 清理 errno 后的更好基线，本片不新增任何名字）；**名字扫描** `1 capitalized identifier, missing: []`（干净）。
+  ③ `extract-abi.py --check`：**70 → 67 条 `- missing` 行**，退掉的正是本片三项（`keyboard_handle`/`interrupt_handle`/`proc_buffered_char`）；无 token 行；漂移 0.4% → **-0.1%**（端口行数已与整个参照文件相当，而 C 3108-4903 尚未落地）。
+  ④ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `3080-3097`（注释，随下一片的函数）+ `3099-3106`（本片）+ `3108-4903`（余项）。
+  ⑤ 偏差（台账一条）：三个 extern 站 C 的声明处、各带 C 的单行注释；`proc_buffered_char` 的长度经模块路径取镜像 `FD_SETSIZE`。
+  ⑥ **owed 18**：漂移行现为 -0.1%，等余下三项（`sys_select`、20 个 `DEFUN`、`syms_of_ntproc`——本文件注释与 SDK 声明最重的块）落地后会转正，届时按 `w32fns` 0.35→0.50 的先例重测重挂。
+  ⑦ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 16 (2026-10-14, status 4.295): C 3099-3106`** 段，表头更新为 **4,907 与 `f9703060…`**；本片无 notes/容差行。预算与清理：`build-tu` **2 发**（含一次失败）、`probe` **1 发**、名字扫描 1 次、`--check` 2 发、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链）。下一片起点：`src/w32proc.c` **C 3080/3108**（`sys_select` 总览注释 + C 3108-3530 的函数体，**本文件最长单函数**，含 `fd_info`/`SELECT_TYPE`/`interrupt_handle` 等待循环），本文件余量 **1,796 C 行**（C 3108-4903，36.6%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。

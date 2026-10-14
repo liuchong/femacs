@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**4877 lines**, md5 `47ccd36da1b4238f11b2b91b805557f3`), carrying
-> **C 1-3078** - P-86 ④'s first fifteen slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**4907 lines**, md5 `f9703060da104d4ee2f24d4dd18c915f`), carrying
+> **C 1-3106** - P-86 ④'s first sixteen slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -128,7 +128,9 @@ which `check-dead-file-coverage.py` requires):
 | 2530-2674 | `w32_executable_type`: the ANSI-codepage note, the four defaults, the `.com`/`.bat`/`.cmd` extension test with its `COMSPEC` recursion, the DOS/NT header walk (the two records, the two "DOS program" answers, the 32-bit optional-header read, the `IMAGE_NT_OPTIONAL_HDR64_MAGIC` arm under its feature, and the import-directory walk with `RVA_TO_PTR` and the two DLL-name tests) and the `unwind` tail | file gate (slice 13); the round's use-site `<windows.h>`/`<winnt.h>` block spells the two records, `LOWORD` and the 64-bit pair (Deviations 60), the `#ifdef IMAGE_NT_OPTIONAL_HDR64_MAGIC` guard becomes `feature = "image_nt_optional_hdr64_magic"` (Deviations 61), C's `goto unwind` is `break 'unwind` (Deviations 48's device), and `RVA_TO_PTR` is written out at C 66-69 (Deviation 6 retired) |
 | 2676-2720 | `compare_env` and `merge_and_sort_env`: the environment pair `sys_spawnve` calls (C's `toupper` comparison, the two copy loops with their pointer-difference counts, and C 2717's `qsort`) | file gate (slice 14); `qsort` stands at the use site with C's own text (`src/buffer.rs` 129-134's row) and `compare_env` takes the `extern "C"` ABI the comparator needs while keeping C's `static` (Deviations 64/65) |
 | 2722-3078 | `sys_spawnve`: the mode guard, the `openp` fallback, the ANSI conversion and `_mbspbrk` guard, the DOS-app `CMDPROXY` branch, the two `argv` quoting passes (with C 2976-2988's `#if 0` arm carried as C's text) and the `envp` merge, ending at the `new_child`/`create_child` pair | file gate (slice 15); C's four `alloca` sites are PORTING.md P-05's `sa_stack_alloc` (Deviations 66), the CRT/SDK names no mirror carries stand at the use site (Deviations 69), and the round removed the unit's three stale `errno` duplicates (Deviations 68) |
-| 3080-4903 | **the remainder of the file** - C 3080-3097's `sys_select` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_select` (C 3108), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3080-3097 | the `sys_select` overview comment (what the function waits on, why it waits on `interrupt_handle`, and the `EINTR` answer when C-g wakes it) | carried with C 3108's function, the next row's first item (the file's rule that a C comment belongs to the item it documents) |
+| 3099-3106 | the three extern objects `sys_select` reads: `keyboard_handle` (`w32console.c`), `interrupt_handle` (`w32xfns.c`) and `proc_buffered_char` (`process.c`) | file gate (slice 16); C's three one-line comments stand above each declaration, and the array's length is the mirror's `FD_SETSIZE` through its module path (Deviations 36/71) |
+| 3108-4903 | **the remainder of the file** - C 3108's `sys_select` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_select` (C 3108, the file's longest function), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1178,3 +1180,46 @@ number of lines for this range), inside the stem's 0.36 row.
 70. **C 2976-2988's commented-out arm is carried as C's own text** (P-51) inside the live `#else`
     arm's position, and C 2969-2974's commented-out `first`/`last` declarations are carried as C's
     comments.
+
+## Slice 16 (2026-10-14, status 4.295): C 3099-3106
+
+**What this round is.**  The three extern objects the file's longest function reads, landed ahead of
+it because they are the item C puts between the overview comment and `sys_select`: C 3099's
+`keyboard_handle` (`w32console.c`), C 3102's `interrupt_handle` (`w32xfns.c`) and C 3105's
+`proc_buffered_char` (`process.c`).  Port: 4,877 -> **4907 lines** (+30).  The next row's first item
+is C 3108's `sys_select`, with C 3080-3097's overview comment travelling with it.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.  The first
+run of the round **failed**: the three C one-line comments and their declarations had been spliced
+raw instead of as comments/citations; the rewrite (each C comment as a Rust comment, each
+declaration in its `/// C:` line) is the round's only text change between the two runs.
+
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the reading slice 15's errno cleanup produced, and the
+shape this round adds no name to.
+
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 4901 4907` -> `1
+capitalized identifier, missing: []`.
+
+**Evidence ④ - the `--check` reading.**  **70 -> 67 `- missing` rows**, and the three that retire
+are exactly this round's items (`missing file-scope object keyboard_handle`, `interrupt_handle`,
+`proc_buffered_char`).  No token rows.  Drift 0.4% -> **-0.1%**: the port now carries as many lines
+as the whole reference file while C 3108-4903 is still to land.
+
+**Deviations (this slice's additions).**
+
+71. **The three externs stand where C declares them, each under its own C comment**: C's
+    `/* From w32console.c */`-style lines are carried as Rust comments at their positions and each
+    declaration is cited in a `/// C:` line (this file's rule for a declaration).  The array's length
+    is the mirror's `FD_SETSIZE` through the module path slice 2's `WFO_MAX_WAIT` already uses
+    (Deviation 36), and its definition is `src/process.rs` 489's (whose `-1` fill is its own C's).
+
+**Owed (this slice's additions).**
+
+18. **The drift row now reads -0.1% and will swing positive as the remaining items land** (they are
+    the file's most comment- and SDK-heavy blocks: `sys_select`, the twenty `DEFUN`s and
+    `syms_of_ntproc`): re-measure and re-append the stem's tolerance row when the file is covered,
+    the `w32fns` 0.35-to-0.50 precedent.  The per-function token check is unaffected and remains the
+    real guard.

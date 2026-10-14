@@ -4875,3 +4875,33 @@ unsafe extern "system" {
   pub fn GetCurrentProcessId () -> DWORD;
   pub fn CharPrevA (lpszStart: LPCSTR, lpszCurrent: LPCSTR) -> LPSTR;
 }
+
+/* C 3099-3106: the three extern objects `sys_select` (C 3108, the next slice) reads - C 3099's
+   `keyboard_handle` (`w32console.c`), C 3102's `interrupt_handle` (`w32xfns.c`) and C 3105's
+   `proc_buffered_char` (`process.c`).  No mirror in this unit's graph declares any of them (that is
+   why C declares them here), and the array's length is C's own `FD_SETSIZE` - the mirror's 2048,
+   spelled `w32_system_names::FD_SETSIZE` as slice 2's `WFO_MAX_WAIT` is (Deviation 36); the
+   definitions are `src/process.rs` 489 (the array, whose `-1` fill is its own C's) and the two
+   units of `w32console.c`/`w32xfns.c`.  C's own one-line comments stand above each declaration and
+   each declaration is cited in its `/// C:` line (the file's rule for a declaration).  */
+/* From w32console.c */
+/// C: extern HANDLE keyboard_handle;
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut keyboard_handle: HANDLE;
+}
+/* From w32xfns.c */
+/// C: extern HANDLE interrupt_handle;
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut interrupt_handle: HANDLE;
+}
+/* From process.c */
+/// C: extern int proc_buffered_char[];
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut proc_buffered_char: [c_int; w32_system_names::FD_SETSIZE as usize];
+}
+
+/* C 3080-3097's `sys_select` overview comment travels with C 3108's function, which opens the next
+   slice (the file's rule that a C comment belongs to the item it documents).  */
