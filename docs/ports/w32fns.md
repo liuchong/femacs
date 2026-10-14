@@ -227,7 +227,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 9755-9999 | C 9755-9890's `#ifdef WINDOWSNT` block with `file-system-info` (and C 9756-9759's two `GetDiskFreeSpaceEx` pointer types), then C 9893-9999's second block with `default-printer-name` - slice 23 | file gate (nested `windowsnt`) |
 | 10002-10110 | C 10002-10027's `w32_strerror`, C 10029-10038's `w32_last_error`, C 10040-10081's `cache_system_info`, C 10083-10093's `w32_version_string` (C's `#ifdef WINDOWSNT`) and C 10095-10110's `_DebPrint` (C's `#ifdef EMACSDEBUG`) - slice 24 | file gate, plus the two nested features |
 | 10112-10138 | C 10112-10138's `w32_console_toggle_lock_key` - slice 21, landed **ahead of its C position** because C 9302 calls it and Rust has no declare-then-define pair inside one file (PORTING.md P-91 ①) | file gate |
-| 10140-12488 | **the remainder of the file** (C 10140's `w32_kbd_mods_to_emacs` onward: the console-modifier family, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 10140-10312 | C 10140-10202's `w32_kbd_mods_to_emacs`, C 10207-10287's `w32_kbd_patch_key` (with C 10242-10252's `#if 0` block carried as C's text), C 10290-10303's `w32_sys_ring_bell` and C 10305-10312's `w32--menu-bar-in-use` - slice 25 | file gate |
+| 10314-12488 | **the remainder of the file** (C 10314's `#if defined WINDOWSNT && !defined HAVE_DBUS` tray block onward: the `MY_NOTIFYICONDATAW` family, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2700,6 +2701,96 @@ arguments of the two records `cache_system_info` declares in its body, i.e. the 
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no cache is filled, no error
   string is formatted and no debug output is emitted; the arm reading is compile-level (42 errors,
   none from this slice) and the name sweep is a textual reading.
+
+## Slice 25 (C 10140-10312)
+
+**Scope and the stop.**  `w32_kbd_mods_to_emacs` (C 10140-10202), `w32_kbd_patch_key`
+(C 10207-10287, whose C 10242-10252 `#if 0` block is carried as C's own text), `w32_sys_ring_bell`
+(C 10290-10303) and the `w32--menu-bar-in-use` `DEFUN` (C 10305-10312).  The stop is C 10314's
+`#if defined WINDOWSNT && !defined HAVE_DBUS`, which opens the tray-notification block (C 10313
+blank).
+
+**What the item carries.**  `w32_kbd_mods_to_emacs` is C 10145's `retval`, C 10149-10152's AltGr
+strip, C 10154-10155's alt-or-meta choice by `Vw32_alt_is_meta`, C 10157-10163's control/meta pair,
+C 10165-10172's four `w32_key_to_modifier` calls and C 10176-10199's CapsLock ladder with C's own
+"keys that should _not_ be affected" list (`VK_NUMPAD_CLEAR`/`VK_NUMPAD_DELETE` are
+`include/w32term.rs`'s).  `w32_kbd_patch_key` is C 10210-10212's three locals, C 10216-10223's
+dead-key short circuits, C 10225-10240's `keystate` fill, C 10256-10276's NT arm (`ToUnicode`,
+`GetConsoleCP` when `cpId == -1`, the `uChar.UnicodeChar` write, `WideCharToMultiByte`) and
+C 10277-10281's `ToAscii` arm; C 10213-10214's two function-local statics (`ansi_code`, `isdead`)
+stand at file scope (the `force_quit_count` reading).  `w32_sys_ring_bell` is C 10293-10302's three
+arms, and the `DEFUN` is C 10311's one ternary over C 303's `menubar_in_use`.
+
+**New surface.**  `VK_BACK`, `VK_TAB`, `VK_ESCAPE`, `VK_HELP`, `VK_F24` (the other `VK_*` this slice
+compares were already spelled here or come from the mirror), `LPWORD`, and the declarations
+`ToUnicode`, `ToAscii`, `WideCharToMultiByte`, `GetConsoleCP`, `Beep`, `MessageBeep`.
+
+**The mirror's three misattributed declarations move.**  `include/w32term.rs` declared
+`w32_kbd_patch_key`, `w32_kbd_mods_to_emacs` and `w32_sys_ring_bell` at its crate root under
+`windowsnt`, with two notes calling them `src/w32term.c`'s own - but
+`grep -n '^w32_kbd_patch_key' emacs/src/*.c` shows the one definition each, in `src/w32fns.c`
+(C 10208, C 10143, C 10291).  They now stand in a new `pub mod w32term_fns_decls` with the
+`use w32term_fns_decls::*;` this file already uses twice (P-21/P-39: the unit's own definition
+shadows the glob import), so the names this slice defines no longer collide.  The mirror's ledger
+has the note; the mirror pair still reads `OK`.  Two in-unit call sites (C 4915's block) dropped the
+`*mut c_void` cast the untyped declaration had forced, since the unit's typed definition is now the
+live item.
+
+### Evidence (slice 25, the final revision: 15,370 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Three runs, and the first two **failed** - the frozen
+configuration still *parses* the whole file even though the file gate compiles none of it, so
+`build-tu` is a real syntax gate here: run 1 `unexpected closing delimiter` (C 10186's `))` is C's
+extra grouping parenthesis, which Rust's `if` does not have) and run 2 `expected '{', found
+MessageBeep` (C 10299-10302's brace-less `else MessageBeep (…)`).  Run 3: exit 0, the object
+**336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Run 3 reads **42 previous errors** - the standing
+count (15 `E0428`, 1 `E0530`, 25 `E0609`, plus the one deliberately-failing frame-flag probe) - and
+**no diagnostic sits at or beyond `src/w32fns.rs` 15,077** (the slice's first new line).  Run 1 was
+the parse failure above and run 2 read **46**: four `E0308`s, all this slice's own -
+`w32_kbd_patch_key (&raw mut key_record as *mut c_void, …)` at the two C 4915 call sites (the cast
+the *mirror's* untyped declaration had forced) and `ansi_code[0]`/`ansi_code[2]` (C's `BYTE` is
+`u8`, C's `AsciiChar` is `CHAR`/`i8`).  Both fixed in place; the reading above is the third run.
+
+**③ `extract-abi.py --check`.**  **116 → 112** rows: the three `missing function` rows and the
+`missing subr Fw32__menu_bar_in_use` row retire, and one row is *added* -
+`missing defsubr (&raw const Sw32__menu_bar_in_use)`, which is C 11941's call inside the unported
+`syms_of_w32fns`.  No token row was needed: every token of the four C bodies is spelled here.  The
+mirror pair (`w32term.h` → `include/w32term.rs`) still reads `OK`.  No `line count drifted` row:
+15,370 Rust lines against 12,488 C lines (23.1%), inside the file's `w32fns 0.35 total` tolerance
+row.
+
+**④ The range table and the dead-file gate.**  The `10140-12488` remainder row splits into
+`10140-10312` (this slice) and `10314-12488` (the remainder); `check-dead-file-coverage.py` reads
+**175 range row(s) cover src/w32fns.c (12488 lines; 124 blank line(s) between blocks need no row)**.
+
+**⑤ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 15,077-15,324: 60 capitalized
+identifiers, missing `CodePage` (the SDK's own parameter name in the `WideCharToMultiByte`
+declaration - the `Y`/`Level` class) and `Sw32__menu_bar_in_use` (a `DEFUN!`'s macro-generated
+`$sname`).
+
+### Deviations (slice 25)
+
+- **Three mirror declarations move into `w32term_fns_decls`.**  See above; the mirror's ledger
+  carries the note and the mirror pair's checklist is unchanged.
+- **Two in-unit call sites lose their `*mut c_void` cast.**  C 4915's block called
+  `w32_kbd_patch_key` through the mirror's untyped declaration; the unit's definition is typed
+  (`*mut KEY_EVENT_RECORD`), so the casts go.  Every *other* unit still sees the mirror's P-72
+  rule 3 spelling.
+- **C's `BYTE` → `CHAR` conversions are explicit.**  C 10218/10285 assign an `ansi_code` byte to
+  `uChar.AsciiChar`; C converts silently and the port writes `as CHAR` (C's `BYTE` is `u8`, `CHAR`
+  is `i8`).
+- **The five `<wincon.h>` bits are `c_int` while `mods` is `DWORD`.**  C promotes them implicitly;
+  each use here carries the cast (`as DWORD`/`as c_uint`), which is what the file's other
+  `mods`-shaped sites do.
+- **C 10242-10252's `#if 0` block is carried as C's own text** inside a comment (the file's reading
+  for a region no configuration compiles).
+- **`ansi_code`/`isdead` stand at file scope** (Rust has no function-scope `static`; the
+  `force_quit_count` reading), keeping C's names.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no console key is patched
+  and no key modifier is translated; the arm reading is compile-level (42 errors, none from this
+  slice) and the name sweep is a textual reading.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

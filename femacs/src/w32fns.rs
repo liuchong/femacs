@@ -8179,7 +8179,7 @@ unsafe extern "system" fn w32_wnd_proc (hwnd: HWND, mut msg: UINT, mut wParam: W
 					key_record.uChar.AsciiChar = 0;
 					key_record.dwControlKeyState = modifiers_;
 
-					add = w32_kbd_patch_key (&raw mut key_record as *mut c_void,
+					add = w32_kbd_patch_key (&raw mut key_record,
 								 w32_keyboard_codepage);
 					/* 0 means an unrecognized keycode, negative means
 					   dead key.  Ignore both.  */
@@ -8195,7 +8195,7 @@ unsafe extern "system" fn w32_wnd_proc (hwnd: HWND, mut msg: UINT, mut wParam: W
 					       key_record.uChar.AsciiChar as u8 as WPARAM, lParam,
 					       w32_get_key_modifiers (wParam as c_uint,
 								      lParam as c_uint) as DWORD);
-					    w32_kbd_patch_key (&raw mut key_record as *mut c_void,
+					    w32_kbd_patch_key (&raw mut key_record,
 							       w32_keyboard_codepage);
 					  }
 					return 0;
@@ -15074,7 +15074,255 @@ pub unsafe extern "C" fn _DebPrint (fmt: *const c_char, mut args: ...)
   OutputDebugStringA (buf.as_mut_ptr ());
 }
 
-/* C 10140-12488's text is not in the port yet (the file's remainder), but C 10112's
+/// C 10140-10303's new `<winuser.h>`/`<wincon.h>`/`<winnls.h>` surface: the five `VK_*` codes
+/// C 10178-10184 compares (`VK_BACK`/`VK_TAB`/`VK_ESCAPE`/`VK_HELP`/`VK_F24` - the others are
+/// already spelled above or come from `include/w32term.rs`), the two console/codepage entry points
+/// and the three sound ones, plus `LPWORD`.
+/// C: #define VK_BACK 0x08 / #define VK_TAB 0x09 / #define VK_ESCAPE 0x1B / #define VK_HELP 0x2F /
+/// C: #define VK_F24 0x87
+/// C: typedef WORD *LPWORD;
+/// C: int WINAPI ToUnicode (UINT wVirtKey, UINT wScanCode, const BYTE *lpKeyState, LPWSTR pwszBuff,
+/// C: int cchBuff, UINT wFlags);
+/// C: int WINAPI ToAscii (UINT uVirtKey, UINT uScanCode, const BYTE *lpKeyState, LPWORD lpChar,
+/// C: UINT uFlags);
+/// C: int WINAPI WideCharToMultiByte (UINT CodePage, DWORD dwFlags, LPCWCH lpWideCharStr,
+/// C: int cchWideChar, LPSTR lpMultiByteStr, int cbMultiByte, LPCCH lpDefaultChar,
+/// C: LPBOOL lpUsedDefaultChar);
+/// C: UINT WINAPI GetConsoleCP (void);
+/// C: BOOL WINAPI Beep (DWORD dwFreq, DWORD dwDuration);
+/// C: BOOL WINAPI MessageBeep (UINT uType);
+#[cfg (feature = "have_ntgui")]
+pub const VK_BACK: c_int = 0x08;
+#[cfg (feature = "have_ntgui")]
+pub const VK_TAB: c_int = 0x09;
+#[cfg (feature = "have_ntgui")]
+pub const VK_ESCAPE: c_int = 0x1B;
+#[cfg (feature = "have_ntgui")]
+pub const VK_HELP: c_int = 0x2F;
+#[cfg (feature = "have_ntgui")]
+pub const VK_F24: c_int = 0x87;
+#[cfg (feature = "have_ntgui")]
+pub type LPWORD = *mut WORD;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn ToUnicode (wVirtKey: UINT, wScanCode: UINT, lpKeyState: *const BYTE, pwszBuff: LPWSTR,
+		    cchBuff: c_int, wFlags: UINT) -> c_int;
+  pub fn ToAscii (uVirtKey: UINT, uScanCode: UINT, lpKeyState: *const BYTE, lpChar: LPWORD,
+		  uFlags: UINT) -> c_int;
+  pub fn WideCharToMultiByte (CodePage: UINT, dwFlags: DWORD, lpWideCharStr: *const WCHAR,
+			      cchWideChar: c_int, lpMultiByteStr: LPSTR, cbMultiByte: c_int,
+			      lpDefaultChar: *const c_char, lpUsedDefaultChar: *mut BOOL) -> c_int;
+  pub fn GetConsoleCP () -> UINT;
+  pub fn Beep (dwFreq: DWORD, dwDuration: DWORD) -> BOOL;
+  pub fn MessageBeep (uType: UINT) -> BOOL;
+}
+
+/// C 10140-10202: `w32_kbd_mods_to_emacs` (C 10140-10141's own two comment lines first) - C 10145's
+/// `retval`, C 10149-10152's AltGr strip (`!NILP` + the two-state test and C's `&= ~`), C 10154-10155's
+/// alt-or-meta choice by `Vw32_alt_is_meta`, C 10157-10163's control/meta pair, C 10165-10172's four
+/// `w32_key_to_modifier` calls, C 10176-10199's CapsLock ladder (C's own "keys that should _not_ be
+/// affected" list with `VK_NUMPAD_CLEAR`/`VK_NUMPAD_DELETE` from `include/w32term.rs`) and C 10201's
+/// return.  `mods` is C's reassigned parameter and the five `<wincon.h>` bits are `c_int` in this
+/// file while `mods` is `DWORD`, so each use carries C's promotion as a cast.
+/// C: int
+/// C: w32_kbd_mods_to_emacs (DWORD mods, WORD key)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_kbd_mods_to_emacs (mods: DWORD, key: WORD) -> c_int
+{
+  let mut mods = mods;
+  let mut retval: c_int = 0;
+
+  /* If we recognize right-alt and left-ctrl as AltGr, and it has been
+     pressed, first remove those modifiers.  */
+  if ! NILP (Vw32_recognize_altgr)
+      && (mods & (RIGHT_ALT_PRESSED as DWORD | LEFT_CTRL_PRESSED as DWORD))
+      == (RIGHT_ALT_PRESSED as DWORD | LEFT_CTRL_PRESSED as DWORD)
+    { mods &= ! (RIGHT_ALT_PRESSED as DWORD | LEFT_CTRL_PRESSED as DWORD); }
+
+  if mods & (RIGHT_ALT_PRESSED as DWORD | LEFT_ALT_PRESSED as DWORD) != 0
+    { retval = if NILP (Vw32_alt_is_meta) { alt_modifier } else { meta_modifier }; }
+
+  if mods & (RIGHT_CTRL_PRESSED as DWORD | LEFT_CTRL_PRESSED as DWORD) != 0
+    {
+      retval |= ctrl_modifier;
+      if (mods & (RIGHT_CTRL_PRESSED as DWORD | LEFT_CTRL_PRESSED as DWORD))
+	  == (RIGHT_CTRL_PRESSED as DWORD | LEFT_CTRL_PRESSED as DWORD)
+	{ retval |= meta_modifier; }
+    }
+
+  if mods & LEFT_WIN_PRESSED as DWORD != 0
+    { retval |= w32_key_to_modifier (VK_LWIN) as c_int; }
+  if mods & RIGHT_WIN_PRESSED as DWORD != 0
+    { retval |= w32_key_to_modifier (VK_RWIN) as c_int; }
+  if mods & APPS_PRESSED as DWORD != 0
+    { retval |= w32_key_to_modifier (VK_APPS) as c_int; }
+  if mods & SCROLLLOCK_ON as DWORD != 0
+    { retval |= w32_key_to_modifier (VK_SCROLL) as c_int; }
+
+  /* Just in case someone wanted the original behavior, make it
+     optional by setting w32-capslock-is-shiftlock to t.  */
+  if NILP (Vw32_capslock_is_shiftlock)
+      /* Keys that should _not_ be affected by CapsLock.  */
+      && (    (key as c_int == VK_BACK)
+	   || (key as c_int == VK_TAB)
+	   || (key as c_int == VK_CLEAR)
+	   || (key as c_int == VK_RETURN)
+	   || (key as c_int == VK_ESCAPE)
+	   || ((key as c_int >= VK_SPACE) && (key as c_int <= VK_HELP))
+	   || ((key as c_int >= VK_NUMPAD0) && (key as c_int <= VK_F24))
+	   || ((key as c_int >= VK_NUMPAD_CLEAR) && (key as c_int <= VK_NUMPAD_DELETE))
+	 )
+    {
+      /* Only consider shift state.  */
+      if (mods & SHIFT_PRESSED as DWORD) != 0
+	{ retval |= shift_modifier; }
+    }
+  else
+    {
+      /* Ignore CapsLock state if not enabled.  */
+      if NILP (Vw32_enable_caps_lock)
+	{ mods &= ! (CAPSLOCK_ON as DWORD); }
+      if (mods & (SHIFT_PRESSED as DWORD | CAPSLOCK_ON as DWORD)) != 0
+	{ retval |= shift_modifier; }
+    }
+
+  return retval;
+}
+
+/// C 10204-10214's comment and the two function-local statics C 10213-10214 declares (`ansi_code`
+/// and `isdead`, which Rust has no function-scope `static` for - the `force_quit_count` reading).
+/// C: static BYTE ansi_code[4];
+/// C: static int isdead = 0;
+#[cfg (feature = "have_ntgui")]
+static mut ansi_code: [BYTE; 4] = [0; 4];
+#[cfg (feature = "have_ntgui")]
+static mut isdead: c_int = 0;
+
+/// C 10207-10287: `w32_kbd_patch_key` - C 10210-10212's three locals, C 10216-10223's dead-key
+/// short circuits, C 10225-10240's `keystate` fill (the `memset`, the virtual key and the four
+/// AltGr states), C 10242-10252's `#if 0` block carried as C's own text, C 10256-10276's NT arm
+/// (`ToUnicode`, `GetConsoleCP` when `cpId == -1`, the `uChar.UnicodeChar` write and
+/// `WideCharToMultiByte`), C 10277-10281's `ToAscii` arm, C 10283-10286's exit.
+/// C: int
+/// C: w32_kbd_patch_key (KEY_EVENT_RECORD *event, int cpId)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_kbd_patch_key (event: *mut KEY_EVENT_RECORD, cpId: c_int) -> c_int
+{
+  let mut cpId = cpId;
+  let key_code: c_uint = (*event).wVirtualKeyCode as c_uint;
+  let mods: c_uint = (*event).dwControlKeyState as c_uint;
+  let mut keystate: [BYTE; 256] = [0; 256];
+
+  if isdead == 2
+    {
+      (*event).uChar.AsciiChar = ansi_code[2] as CHAR;
+      isdead = 0;
+      return 1;
+    }
+  if (*event).uChar.AsciiChar != 0
+    { return 1; }
+
+  memset (keystate.as_mut_ptr () as *mut c_void, 0, core::mem::size_of_val (&keystate));
+  keystate[key_code as usize] = 0x80;
+  if mods & SHIFT_PRESSED as c_uint != 0
+    { keystate[VK_SHIFT as usize] = 0x80; }
+  if mods & CAPSLOCK_ON as c_uint != 0
+    { keystate[VK_CAPITAL as usize] = 1; }
+  /* If we recognize right-alt and left-ctrl as AltGr, set the key
+     states accordingly before invoking ToAscii.  */
+  if ! NILP (Vw32_recognize_altgr)
+      && (mods & LEFT_CTRL_PRESSED as c_uint) != 0 && (mods & RIGHT_ALT_PRESSED as c_uint) != 0
+    {
+      keystate[VK_CONTROL as usize] = 0x80;
+      keystate[VK_LCONTROL as usize] = 0x80;
+      keystate[VK_MENU as usize] = 0x80;
+      keystate[VK_RMENU as usize] = 0x80;
+    }
+
+  /* C 10242-10252's `#if 0` arm (`is_dead_key`'s note about the NT4 console bug) is carried as
+     C's own text, the file's reading for a region no configuration compiles.  */
+
+  /*
+  if (is_dead_key (event->wVirtualKeyCode))
+    return 0;
+  */
+
+  /* On NT, call ToUnicode instead and then convert to the current
+     console input codepage.  */
+  if os_subtype == OS_SUBTYPE_NT
+    {
+      let mut buf: [WCHAR; 128] = [0; 128];
+
+      isdead = ToUnicode ((*event).wVirtualKeyCode as UINT, (*event).wVirtualScanCode as UINT,
+			  keystate.as_ptr (), buf.as_mut_ptr (), 128, 0);
+      if isdead > 0
+	{
+	  /* When we are called from the GUI message processing code,
+	     we are passed the current keyboard codepage, a positive
+	     number, to use below.  */
+	  if cpId == -1
+	    { cpId = GetConsoleCP () as c_int; }
+
+	  (*event).uChar.UnicodeChar = buf[isdead as usize - 1];
+	  isdead = WideCharToMultiByte (cpId as UINT, 0, buf.as_ptr (), isdead,
+					ansi_code.as_mut_ptr () as LPSTR, 4,
+					core::ptr::null (), core::ptr::null_mut ());
+	}
+      else
+	{ isdead = 0; }
+    }
+  else
+    {
+      isdead = ToAscii ((*event).wVirtualKeyCode as UINT, (*event).wVirtualScanCode as UINT,
+			keystate.as_ptr (), ansi_code.as_mut_ptr () as LPWORD, 0);
+    }
+
+  if isdead == 0
+    { return 0; }
+  (*event).uChar.AsciiChar = ansi_code[0] as CHAR;
+  return isdead;
+}
+
+
+/// C 10290-10303: `w32_sys_ring_bell` - C 10293's `sound_type` test against C 339's
+/// `MB_EMACS_SILENT`, C 10295's `Beep (666, 100)` and C 10302's `MessageBeep (sound_type)`.  C never
+/// reads `f` and the port keeps the parameter without an `_` (the `window_prompting` reading).
+/// C: void
+/// C: w32_sys_ring_bell (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_sys_ring_bell (f: *mut frame)
+{
+  if sound_type == 0xFFFFFFFF
+    {
+      Beep (666, 100);
+    }
+  else if sound_type == MB_EMACS_SILENT
+    {
+      /* Do nothing.  */
+    }
+  else
+    { MessageBeep (sound_type); }
+}
+
+/// C 10305-10312: `w32--menu-bar-in-use` - C 10311's one ternary over C 303's `menubar_in_use`
+/// (this file defines it).
+/// C: DEFUN ("w32--menu-bar-in-use", Fw32__menu_bar_in_use, Sw32__menu_bar_in_use,
+/// C:        0, 0, 0,
+/// C:        doc: /* Return non-nil when a menu-bar menu is being used. … */)
+/// C:   (void)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32--menu-bar-in-use", Fw32__menu_bar_in_use, Sw32__menu_bar_in_use,
+	0, 0, 0,
+	doc: "Return non-nil when a menu-bar menu is being used.\nInternal use only.",
+	(),
+	{
+  return if menubar_in_use != 0 { Qt () } else { Qnil () };
+});
+
+/* C 10314-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C

@@ -357,3 +357,15 @@ treatment.  Moving the whole block now would be a claim no reading supports.
   `python3 tools/check-mirror-dupes.py` -> `18 ratchet row(s), 0 failure(s)` for this file;
   `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` / `checking 83 unit(s),
   0 unit failure(s)`.
+
+## `w32term_fns_decls`: the three `src/w32fns.c` definitions move into a module (2026-10-14, w32fns slice 25)
+
+Three names this mirror declared at its crate root under `#[cfg (feature = "windowsnt")]` are
+**`src/w32fns.c`'s definitions**, not `src/w32term.c`'s: `w32_kbd_patch_key` (C 10208),
+`w32_kbd_mods_to_emacs` (C 10143) and `w32_sys_ring_bell` (C 10291) - `grep -n '^w32_kbd_patch_key'
+emacs/src/*.c` shows the one definition each, and the two comments that called them this header's own
+unit were wrong.  When w32fns slice 25 wrote the three definitions, the arm probe read three
+`E0428`s; the fix is P-21/P-39's device, which this file already uses twice
+(`w32term_fn_decls`, `w32term_xfns_decls`): a `pub mod w32term_fns_decls` plus
+`use w32term_fns_decls::*;`, so the unit's own item is the live one and every caller still resolves
+the name through the glob import.  Nothing else in the mirror changed.

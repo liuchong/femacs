@@ -341,12 +341,8 @@ unsafe extern "C" {
   pub fn w32_iconify_frame (f: *mut frame);
   pub fn w32_free_frame_resources (f: *mut frame);
   pub fn w32_wm_set_size_hint (f: *mut frame, long_arg: c_long, bool_arg: bool);
-  /// P-72 rule 3: `KEY_EVENT_RECORD` is `<wincon.h>`'s record and this tree has no Windows
-  /// SDK mirror (each unit that uses it declares its own, the P-88 ① stand-in), so the
-  /// parameter is the untyped pointer.  `src/w32inevt.rs`'s call site casts its own record;
-  /// every other spelling of the name in the port is unchanged.
-  pub fn w32_kbd_patch_key (event: *mut c_void, cpId: c_int) -> c_int;
-  pub fn w32_kbd_mods_to_emacs (mods: DWORD, key: WORD) -> c_int;
+  // C 261-262's `w32_kbd_patch_key`/`w32_kbd_mods_to_emacs` are `src/w32fns.c`'s definitions:
+  // `w32term_fns_decls` below (E0428, P-21/P-39 - w32fns slice 25 measured the pair).
   pub fn w32con_hide_cursor ();
   pub fn w32con_show_cursor ();
   pub fn w32_get_string_resource (v_rdb: *mut c_void, name: *const c_char,
@@ -1108,7 +1104,8 @@ macro_rules! leave_crit {
 /// void complete_deferred_msg (HWND hwnd, UINT msg, LRESULT result);`
 /// C 778: `extern BOOL parse_button (int, int, int *, int *);`
 /// C 780-781: `extern void w32_sys_ring_bell (struct frame *f); extern void w32_query_color
-/// (struct frame *, Emacs_Color *);`
+/// (struct frame *, Emacs_Color *);` - the first is `src/w32fns.c`'s definition (C 10291), so it
+/// too stands in `w32term_fns_decls` below; `w32_query_color` is `src/w32term.c`'s own and stays.
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
   // C 767-776's seven entry points are `src/w32xfns.c`'s definitions: `w32term_xfns_decls` below
@@ -1119,7 +1116,6 @@ unsafe extern "C" {
   /// caller changes.  Same for the five other names below (status 3.540).
   pub fn complete_deferred_msg (hwnd: *mut c_void, msg: UINT, result: LRESULT);
   pub fn parse_button (a: c_int, b: c_int, c: *mut c_int, d: *mut c_int) -> BOOL;
-  pub fn w32_sys_ring_bell (f: *mut frame);
   pub fn w32_query_color (f: *mut frame, color: *mut Emacs_Color);
 }
 
@@ -1575,6 +1571,30 @@ pub mod w32term_xfns_decls {
 }
 #[cfg (feature = "windowsnt")]
 use w32term_xfns_decls::*;
+
+/// C 261-262 and C 780: `w32_kbd_patch_key`, `w32_kbd_mods_to_emacs` and `w32_sys_ring_bell` are
+/// all **`src/w32fns.c`'s definitions** (C 10208, C 10143, C 10291), so they sit in a module this
+/// mirror glob-imports for the reason the two modules above do (P-21/P-39; a crate-root definition
+/// shadows a glob import, so the unit's own item is the live one).  Measured on the w32fns arm
+/// (slice 25): at this mirror's crate root the three read three `E0428`s.  The mirror's two earlier
+/// notes had them as `src/w32term.c`'s own, which `grep -n '^w32_kbd_patch_key' emacs/src/*.c`
+/// refutes.
+#[cfg (feature = "windowsnt")]
+pub mod w32term_fns_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// P-72 rule 3: `KEY_EVENT_RECORD` is `<wincon.h>`'s record and this tree has no Windows SDK
+    /// mirror (each unit that uses it declares its own, the P-88 ① stand-in), so the parameter is
+    /// the untyped pointer.  `src/w32inevt.rs`'s call site casts its own record; every other
+    /// spelling of the name in the port is unchanged.
+    pub fn w32_kbd_patch_key (event: *mut c_void, cpId: c_int) -> c_int;
+    pub fn w32_kbd_mods_to_emacs (mods: DWORD, key: WORD) -> c_int;
+    pub fn w32_sys_ring_bell (f: *mut frame);
+  }
+}
+#[cfg (feature = "windowsnt")]
+use w32term_fns_decls::*;
 
 /// C 756: `extern CRITICAL_SECTION critsect;` - the data symbol `src/w32xfns.c` defines.
 #[cfg (feature = "windowsnt")]
