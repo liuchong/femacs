@@ -16093,3 +16093,171 @@ pub unsafe extern "C" fn w32_reexec_emacs (cmd_line: *mut c_char, wdir: *const c
   *errno () = ENOEXEC;                                                  // C 11012
   return -1;                                                            // C 11013
 }                                                                       // C 11014
+
+
+/* C 11015's blank, C 11016-11020's comment (C's own text) and C 11021-11103's `globals_of_w32` -
+   the 46 `g_b_init_*` resets (C 11031-11076, all declared by earlier slices), `DEFSYM!` (the
+   `src/androidselect.rs` 1284 device), `SetConsoleCtrlHandler (shutdown_handler, TRUE)` (slice 50's
+   private handler) and C 11102's `(HCRYPTPROV)0` - then C 11105-11143's `serial_open`.  New in-unit
+   items: `CreateFile` (C's macro target, spelled beside the SDK section's `…A`/`…W` pair the
+   loader-block reading asks for), `GENERIC_WRITE`/`FILE_FLAG_OVERLAPPED`, `CreateEvent`, and
+   `PHANDLER_ROUTINE` with `SetConsoleCtrlHandler` - all `UNVERIFIED` (Owed 55).  C 11098's `#ifdef
+   HAVE_MODULES` is the `have_modules` feature C 91-93's declaration already carries.  */
+/// C 11082/11114-11138: the console-control entry point, `CreateFile`'s macro target, two of its
+/// flags and `CreateEvent` (`<fileapi.h>`/`<wincon.h>`).
+/// C: WINBASEAPI BOOL WINAPI SetConsoleCtrlHandler (PHANDLER_ROUTINE HandlerRoutine, BOOL Add);
+/// C: typedef BOOL (WINAPI *PHANDLER_ROUTINE) (DWORD CtrlType);
+/// C: WINBASEAPI HANDLE WINAPI CreateFileA (LPCSTR lpFileName, DWORD dwDesiredAccess,
+/// C:   DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+/// C:   DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+/// C: #define GENERIC_READ 0x80000000
+/// C: #define GENERIC_WRITE 0x40000000
+/// C: #define FILE_FLAG_OVERLAPPED 0x40000000
+/// C: WINBASEAPI HANDLE WINAPI CreateEventA (LPSECURITY_ATTRIBUTES lpEventAttributes,
+/// C:   BOOL bManualReset, BOOL bInitialState, LPCSTR lpName);
+#[cfg (feature = "windowsnt")]
+pub type PHANDLER_ROUTINE = Option<unsafe extern "system" fn (DWORD) -> BOOL>;
+#[cfg (feature = "windowsnt")]
+pub const GENERIC_READ: DWORD = 0x80000000;
+#[cfg (feature = "windowsnt")]
+pub const GENERIC_WRITE: DWORD = 0x40000000;
+#[cfg (feature = "windowsnt")]
+pub const FILE_FLAG_OVERLAPPED: DWORD = 0x40000000;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn SetConsoleCtrlHandler (HandlerRoutine: PHANDLER_ROUTINE, Add: BOOL) -> BOOL;
+  pub fn CreateFile (lpFileName: LPCSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD,
+		     lpSecurityAttributes: LPVOID, dwCreationDisposition: DWORD,
+		     dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE) -> HANDLE;
+  pub fn CreateEvent (lpEventAttributes: LPVOID, bManualReset: BOOL, bInitialState: BOOL,
+		      lpName: LPCSTR) -> HANDLE;
+}
+/*                                                                      // C 11016
+	globals_of_w32 is used to initialize those global variables that       // C 11017
+	must always be initialized on startup even when the global variable    // C 11018
+	initialized is non zero (see the function main in emacs.c).            // C 11019
+*/                                                                      // C 11020
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn globals_of_w32 ()                              // C 11021-11022
+{                                                                       // C 11023
+  let kernel32: HMODULE = GetModuleHandle (c"kernel32.dll".as_ptr ());  // C 11024
+
+  get_process_times_fn = std::mem::transmute::<VOIDFNPTR, GetProcessTimes_Proc> // C 11026
+    (get_proc_addr (kernel32, c"GetProcessTimes".as_ptr ()));           // C 11027
+
+  DEFSYM! (QCloaded_from, ":loaded-from");                              // C 11029
+
+  g_b_init_is_windows_9x = 0;                                           // C 11031
+  g_b_init_open_process_token = 0;                                      // C 11032
+  g_b_init_get_token_information = 0;                                   // C 11033
+  g_b_init_lookup_account_sid = 0;                                      // C 11034
+  g_b_init_get_sid_sub_authority = 0;                                   // C 11035
+  g_b_init_get_sid_sub_authority_count = 0;                             // C 11036
+  g_b_init_get_security_info = 0;                                       // C 11037
+  g_b_init_get_file_security_w = 0;                                     // C 11038
+  g_b_init_get_file_security_a = 0;                                     // C 11039
+  g_b_init_get_security_descriptor_owner = 0;                           // C 11040
+  g_b_init_get_security_descriptor_group = 0;                           // C 11041
+  g_b_init_is_valid_sid = 0;                                            // C 11042
+  g_b_init_create_toolhelp32_snapshot = 0;                              // C 11043
+  g_b_init_process32_first = 0;                                         // C 11044
+  g_b_init_process32_next = 0;                                          // C 11045
+  g_b_init_open_thread_token = 0;                                       // C 11046
+  g_b_init_impersonate_self = 0;                                        // C 11047
+  g_b_init_revert_to_self = 0;                                          // C 11048
+  g_b_init_get_process_memory_info = 0;                                 // C 11049
+  g_b_init_get_process_working_set_size = 0;                            // C 11050
+  g_b_init_global_memory_status = 0;                                    // C 11051
+  g_b_init_global_memory_status_ex = 0;                                 // C 11052
+  g_b_init_equal_sid = 0;                                               // C 11053
+  g_b_init_copy_sid = 0;                                                // C 11054
+  g_b_init_get_length_sid = 0;                                          // C 11055
+  g_b_init_get_native_system_info = 0;                                  // C 11056
+  g_b_init_get_system_times = 0;                                        // C 11057
+  g_b_init_create_symbolic_link_w = 0;                                  // C 11058
+  g_b_init_create_symbolic_link_a = 0;                                  // C 11059
+  g_b_init_get_security_descriptor_dacl = 0;                            // C 11060
+  g_b_init_convert_sd_to_sddl = 0;                                      // C 11061
+  g_b_init_convert_sddl_to_sd = 0;                                      // C 11062
+  g_b_init_is_valid_security_descriptor = 0;                            // C 11063
+  g_b_init_set_file_security_w = 0;                                     // C 11064
+  g_b_init_set_file_security_a = 0;                                     // C 11065
+  g_b_init_set_named_security_info_w = 0;                               // C 11066
+  g_b_init_set_named_security_info_a = 0;                               // C 11067
+  g_b_init_get_adapters_info = 0;                                       // C 11068
+  g_b_init_get_adapters_addresses = 0;                                  // C 11069
+  g_b_init_reg_open_key_ex_w = 0;                                       // C 11070
+  g_b_init_reg_query_value_ex_w = 0;                                    // C 11071
+  g_b_init_expand_environment_strings_w = 0;                            // C 11072
+  g_b_init_compare_string_w = 0;                                        // C 11073
+  g_b_init_debug_break_process = 0;                                     // C 11074
+  g_b_init_get_user_default_ui_language = 0;                            // C 11075
+  g_b_init_get_console_font_size = 0;                                   // C 11076
+  num_of_processors = 0;                                                // C 11077
+  /* The following sets a handler for shutdown notifications for        // C 11078
+     console apps. This actually applies to Emacs in both console and   // C 11079
+     GUI modes, since we had to fool windows into thinking emacs is a   // C 11080
+     console application to get console mode to work.  */               // C 11081
+  SetConsoleCtrlHandler (Some (shutdown_handler), TRUE);                // C 11082
+
+  /* "None" is the default group name on standalone workstations.  */   // C 11084
+  strcpy (&raw mut dflt_group_name as *mut c_char, c"None".as_ptr ());  // C 11085
+
+  /* Reset, in case it has some value inherited from dump time.  */     // C 11087
+  w32_stat_get_owner_group = 0;                                         // C 11088
+
+  /* If w32_unicode_filenames is non-zero, we will be using Unicode     // C 11090
+     (a.k.a. "wide") APIs to invoke functions that accept file          // C 11091
+     names.  */                                                         // C 11092
+  if is_windows_9x () != 0                                              // C 11093 (C's truth test)
+    { w32_unicode_filenames = false; }                                  // C 11094
+  else                                                                  // C 11095
+    { w32_unicode_filenames = true; }                                   // C 11096
+
+#[cfg (feature = "have_modules")]                                       // C 11098 (C's `#ifdef HAVE_MODULES`)
+  { dynlib_reset_last_error (); }                                       // C 11099
+
+  w32_crypto_hprov = 0;                                                 // C 11102 (C's `(HCRYPTPROV)0`)
+}                                                                       // C 11103
+
+/* For make-serial-process  */                                          // C 11105
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn serial_open (port_obj: Lisp_Object) -> c_int   // C 11106-11107
+{                                                                       // C 11108
+  let port: *mut c_char = SSDATA (port_obj);                            // C 11109
+  let mut hnd: HANDLE;                                                  // C 11110
+  let mut cp: *mut child_process;                                       // C 11111
+  let mut fd: c_int = -1;                                               // C 11112
+
+  hnd = CreateFile (port, GENERIC_READ | GENERIC_WRITE, 0, std::ptr::null_mut (), // C 11114
+		    OPEN_EXISTING, FILE_FLAG_OVERLAPPED, std::ptr::null_mut ());      // C 11115
+  if hnd == INVALID_HANDLE_VALUE                                        // C 11116
+    { error (c"Could not open %s".as_ptr (), port); }                   // C 11117
+  fd = _open_osfhandle (hnd as intptr_t, 0);                            // C 11118
+  if fd == -1                                                           // C 11119
+    { error (c"Could not open %s".as_ptr (), port); }                   // C 11120
+
+  cp = new_child () as *mut child_process;                              // C 11122 (C's `new_child ()` into a `child_process *`)
+  if cp.is_null ()                                                      // C 11123 (C's `!cp`)
+    { error (c"Could not create child process".as_ptr ()); }            // C 11124
+  (*cp).fd = fd;                                                        // C 11125
+  (*cp).status = STATUS_READ_ACKNOWLEDGED;                              // C 11126
+  fd_info[fd as usize].hnd = hnd;                                       // C 11127
+  fd_info[fd as usize].flags |=                                         // C 11128
+    FILE_READ | FILE_WRITE | FILE_BINARY | FILE_SERIAL;                 // C 11129
+  if ! fd_info[fd as usize].cp.is_null ()                               // C 11130 (C's truth test)
+    {                                                                   // C 11131
+      error (c"fd_info[fd = %d] is already in use".as_ptr (), fd);      // C 11132
+    }                                                                   // C 11133
+  fd_info[fd as usize].cp = cp;                                         // C 11134
+  (*cp).ovl_read.hEvent = CreateEvent (std::ptr::null_mut (), TRUE, FALSE, std::ptr::null ()); // C 11135
+  if (*cp).ovl_read.hEvent.is_null ()                                   // C 11136
+      { error (c"Could not create read event".as_ptr ()); }             // C 11137
+  (*cp).ovl_write.hEvent = CreateEvent (std::ptr::null_mut (), TRUE, FALSE, std::ptr::null ()); // C 11138
+  if (*cp).ovl_write.hEvent.is_null ()                                  // C 11139
+      { error (c"Could not create write event".as_ptr ()); }            // C 11140
+
+  return fd;                                                            // C 11142
+}                                                                       // C 11143
