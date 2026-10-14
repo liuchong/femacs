@@ -13514,3 +13514,169 @@ DEFUN! ("w32-shell-execute", Fw32_shell_execute, Sw32_shell_execute, 2, 4, 0,
     }
   error (c"ShellExecute failed: %s".as_ptr (), errstr);
 });
+
+/// C 9045-9046's readers: `keyboard.h` 461's `parse_modifiers` and 497's
+/// `lucid_event_type_list_p`, neither of which the `include/keyboard.rs` mirror carries yet
+/// (`keyboard.c` 7566/8010 define them).
+/// C: extern Lisp_Object parse_modifiers (Lisp_Object); extern bool lucid_event_type_list_p
+/// C: (Lisp_Object);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object;
+  pub fn lucid_event_type_list_p (object: Lisp_Object) -> bool;
+}
+
+/// C 9101-9106: C's `#ifndef MOD_ALT` guard block - "Supply defs missing from mingw32", i.e. the
+/// four `<winuser.h>` modifier bits carried with C's values and no `cfg` (the file's `#ifndef`
+/// reading, `include/w32term.rs` 37-39's `ALIGN_STACK` note).
+/// C: #define MOD_ALT 0x0001 / #define MOD_CONTROL 0x0002 / #define MOD_SHIFT 0x0004 /
+/// C: #define MOD_WIN 0x0008
+#[cfg (feature = "have_ntgui")]
+pub const MOD_ALT: c_int = 0x0001;
+#[cfg (feature = "have_ntgui")]
+pub const MOD_CONTROL: c_int = 0x0002;
+#[cfg (feature = "have_ntgui")]
+pub const MOD_SHIFT: c_int = 0x0004;
+#[cfg (feature = "have_ntgui")]
+pub const MOD_WIN: c_int = 0x0008;
+
+/* C 9016-9018's comment.  */
+/// C 9019-9043: `lookup_vk_code` - C 9024's `for (i = 0; i < 256; i++)` over
+/// `lispy_function_keys` (the mirror's `[*const c_char; 256]`), then C 9029-9040's
+/// `w32_kbdhook_active! ()` block with C's own character comparisons and `c_toupper`
+/// (`lib/include/c-ctype.rs`).  C's `char *key` is a string the caller owns, so the port's
+/// parameter is `*const c_char` - the `w32_parse_and_hook_hot_key` call below is its only caller.
+/// C: static int
+/// C: lookup_vk_code (char *key)
+#[cfg (feature = "have_ntgui")]
+unsafe fn lookup_vk_code (key: *const c_char) -> c_int
+{
+  let mut i: c_int;
+
+  i = 0;
+  while i < 256
+    {
+      if ! lispy_function_keys[i as usize].is_null ()
+	  && strcmp (lispy_function_keys[i as usize], key) == 0
+	{ return i; }
+      i += 1;
+    }
+
+  if w32_kbdhook_active! ()
+    {
+      /* Alphanumerics map to themselves.  */
+      if *key.offset (1) == 0
+	{
+	  if (*key >= b'A' as c_char && *key <= b'Z' as c_char)
+	      || (*key >= b'0' as c_char && *key <= b'9' as c_char)
+	    { return *key as c_int; }
+	  if *key >= b'a' as c_char && *key <= b'z' as c_char
+	    { return c_toupper (*key as c_int); }
+	}
+    }
+
+  return -1;
+}
+
+/* C 9045-9046's comment.  */
+/// C 9047-9145: `w32_parse_and_hook_hot_key` - C 9050-9056's six locals (C's `register` keyword
+/// has no Rust counterpart), C 9058-9069's `CHECK_VECTOR`/`ASIZE`/`AREF` chain with
+/// `lucid_event_type_list_p`/`Fevent_convert_list`, C 9072-9091's symbol-versus-fixnum arms
+/// (`parse_modifiers`, `SYMBOL_NAME`, `VK_ANY`, `CHARACTERBITS`), C 9096-9098's `alt_modifier`
+/// rule, and C 9108-9144's two `w32_kbdhook_active! ()` arms - the first over `hook_w32_key` with
+/// `VK_MENU`/`VK_LWIN`/`VK_RWIN` and the four modifier symbols, the second building C's
+/// `w32_modifiers` and returning `HOTKEY! (…)`.
+/// C: static Lisp_Object
+/// C: w32_parse_and_hook_hot_key (Lisp_Object key, int hook)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_parse_and_hook_hot_key (key: Lisp_Object, hook: c_int) -> Lisp_Object
+{
+  let mut c: Lisp_Object;
+  let mut vk_code: c_int = 0;
+  let mut lisp_modifiers: c_int = 0;
+  let mut w32_modifiers: c_int;
+  let mut res: Lisp_Object = Qnil ();
+  let vkname: *mut c_char;
+
+  CHECK_VECTOR (key);
+
+  if ASIZE (key) != 1
+    { return Qnil (); }
+
+  c = AREF (key, 0);
+
+  if CONSP (c) && lucid_event_type_list_p (c)
+    { c = Fevent_convert_list (c); }
+
+  if ! FIXNUMP (c) && ! SYMBOLP (c)
+    { error (c"Key definition is invalid".as_ptr ()); }
+
+  /* Work out the base key and the modifiers.  */
+  if SYMBOLP (c)
+    {
+      c = parse_modifiers (c);
+      lisp_modifiers = XFIXNUM (Fcar (Fcdr (c))) as c_int;
+      c = Fcar (c);
+      if ! SYMBOLP (c)
+	{ emacs_abort (); }
+      vkname = SSDATA (SYMBOL_NAME (c));
+      /* [s-], [M-], [h-]: Register all keys for this modifier */
+      if w32_kbdhook_active! () && *vkname == 0
+	{ vk_code = VK_ANY; }
+      else
+	{ vk_code = lookup_vk_code (vkname); }
+    }
+  else if FIXNUMP (c)
+    {
+      lisp_modifiers = (XFIXNUM (c) & ! (CHARACTERBITS as EMACS_INT)) as c_int;
+      /* Many ascii characters are their own virtual key code.  */
+      vk_code = (XFIXNUM (c) & (CHARACTERBITS as EMACS_INT)) as c_int;
+    }
+
+  if vk_code < 0 || vk_code > 255
+    { return Qnil (); }
+
+  if (lisp_modifiers & meta_modifier) != 0
+      && ! NILP (Vw32_alt_is_meta)
+    { lisp_modifiers |= alt_modifier; }
+
+  /* Supply defs missing from mingw32.  (C 9101-9106's `#ifndef MOD_ALT` block stands above.)  */
+
+  if w32_kbdhook_active! ()
+    {
+      /* Register Alt-x combinations.  */
+      if lisp_modifiers & alt_modifier != 0
+	{
+	  hook_w32_key (hook, VK_MENU, vk_code);
+	  res = Qt ();
+	}
+      /* Register Win-x combinations based on modifier mappings.  */
+      if ((lisp_modifiers & hyper_modifier != 0)
+	  && EQ (Vw32_lwindow_modifier, Qhyper ()))
+	  || ((lisp_modifiers & super_modifier != 0)
+	      && EQ (Vw32_lwindow_modifier, Qsuper ()))
+	{
+	  hook_w32_key (hook, VK_LWIN, vk_code);
+	  res = Qt ();
+	}
+      if ((lisp_modifiers & hyper_modifier != 0)
+	  && EQ (Vw32_rwindow_modifier, Qhyper ()))
+	  || ((lisp_modifiers & super_modifier != 0)
+	      && EQ (Vw32_rwindow_modifier, Qsuper ()))
+	{
+	  hook_w32_key (hook, VK_RWIN, vk_code);
+	  res = Qt ();
+	}
+      return res;
+    }
+  else
+    {
+      /* Convert lisp modifiers to Windows hot-key form.  */
+      w32_modifiers = if lisp_modifiers & hyper_modifier != 0 { MOD_WIN } else { 0 };
+      w32_modifiers |= if lisp_modifiers & alt_modifier != 0 { MOD_ALT } else { 0 };
+      w32_modifiers |= if lisp_modifiers & ctrl_modifier != 0 { MOD_CONTROL } else { 0 };
+      w32_modifiers |= if lisp_modifiers & shift_modifier != 0 { MOD_SHIFT } else { 0 };
+
+      return HOTKEY! (vk_code as EMACS_INT, w32_modifiers as EMACS_INT);
+    }
+}

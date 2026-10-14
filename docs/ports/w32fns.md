@@ -221,7 +221,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 8556-8667 | C 8556-8660: C's `#ifdef WINDOWSNT` block - the lazily bound `pfnSHFileOperationW` and the `system-move-file-to-trash` `DEFUN` - then C 8662's `#endif` (no Rust counterpart) and C 8664-8667's banner - slice 17 | `windowsnt` on every item of the block |
 | 8669-8692 | C 8669-8688's `w32-send-sys-command` `DEFUN` and C 8690-8692's `#ifndef CYGWIN` with its `pfnShellExecuteExW` declaration (C 8692's `#endif` has no counterpart - the two attributes carry it) - slice 18 | file gate; `not (feature = "cygwin")` on the declaration |
 | 8694-9014 | C 8694-9014: the `w32-shell-execute` `DEFUN` - the file's 65-line docstring, the `CYGWIN` arm (C 8765-8836) and the live arm (C 8838-9002) - slice 19 | file gate; `cygwin` names C's arm split |
-| 9016-12488 | **the remainder of the file** (C 9016's `lookup_vk_code` comment onward: C 9019 `lookup_vk_code`, C 9047 `w32_parse_and_hook_hot_key`, C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 9016-9145 | C 9016-9043's `lookup_vk_code` and C 9045-9145's `w32_parse_and_hook_hot_key` (with C 9101-9106's `#ifndef MOD_ALT` guard block carried as the four constants) - slice 20 | file gate |
+| 9147-12488 | **the remainder of the file** (C 9147's `w32-register-hot-key` `DEFUN` onward: C 9237's neighbours, C 9339 `w32-frame-geometry`, C 9586 `w32_frame_list_z_order`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2248,6 +2249,58 @@ derive arguments, `Sw32_shell_execute` is `DEFUN!`'s static).
 - **`faccessat` is declared here** (`lib/faccessat.rs` is the gnulib replacement's home).
 - **Not claimed.**  No run evidence: nothing is shell-executed on this machine
   (`ShellExecuteExA`/`pfnShellExecuteExW` are never called), the arm reading is compile-level.
+
+## Slice 20 (C 9016-9145)
+
+**Scope and the stop.**  The hot-key prelude: `lookup_vk_code` (C 9016-9043) and
+`w32_parse_and_hook_hot_key` (C 9045-9145).  The stop is C 9147's `w32-register-hot-key` `DEFUN`
+(C 9146 blank).
+
+**What the item carries.**  `lookup_vk_code`'s `for` over `lispy_function_keys` (the mirror's
+`[*const c_char; 256]`) as the file's `while` shape, then C 9029-9040's `w32_kbdhook_active! ()`
+block with C's own `'A'`/`'Z'`/`'0'`/`'9'`/`'a'`/`'z'` comparisons and `c_toupper`
+(`lib/include/c-ctype.rs`); and `w32_parse_and_hook_hot_key`'s six locals (C's `register` keyword
+has no counterpart), the `CHECK_VECTOR`/`ASIZE`/`AREF` chain with `lucid_event_type_list_p`
+(keyboard.h 497) and `Fevent_convert_list`, the symbol-versus-fixnum arms (`parse_modifiers`,
+keyboard.h 461; `SYMBOL_NAME`; `VK_ANY`; `CHARACTERBITS` - C's `& ~CHARACTERBITS` is `& ! …`
+because Rust has no `~`), C 9096-9098's `alt_modifier` rule, and C 9108-9144's two
+`w32_kbdhook_active! ()` arms - the first over `hook_w32_key` with `VK_MENU`/`VK_LWIN`/`VK_RWIN`
+and the four modifier symbols, the second building C's `w32_modifiers` and returning
+`HOTKEY! (…)`.  New surface: `parse_modifiers` and `lucid_event_type_list_p` (both declared here
+because `include/keyboard.rs` does not carry them yet) and C 9101-9106's four `MOD_*` bits.
+
+### Evidence (slice 20, the final revision: 13,682 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the count slices 16-19
+left, so these two functions add no error and no member gap once one fix is in: `HOTKEY!`'s
+expansion calls `make_fixnum`, whose parameter is `EMACS_INT`, so the two `c_int` arguments are
+widened at the call site (`as EMACS_INT`) - the macro is C's `((vk) & 255) | ((mods) << 8)` and the
+mirror's expansion cannot do that itself.  Two probe runs.
+
+**③ `extract-abi.py --check`.**  148 rows → **138**: ten rows retire and none is added - the two
+`missing function` rows (`lookup_vk_code`, `w32_parse_and_hook_hot_key`) and, because C 9101-9106
+is the file's `#ifndef` guard block, the **four `missing macro` and the four `missing constant`
+rows** for `MOD_ALT`/`MOD_CONTROL`/`MOD_SHIFT`/`MOD_WIN` (the checker looks for both spellings, and
+one constant satisfies each pair).
+
+**④ The range table and the dead-file gate.**  The `9016-12488` remainder row splits into
+`9016-9145` (this slice) and `9147-12488`; `check-dead-file-coverage.py` reads **169 range row(s)
+cover src/w32fns.c (12488 lines; 116 blank line(s) between blocks need no row)**, `0 failure(s)`.
+Ten gates read 0 failures; the name sweep leaves one candidate, the character literal `b'A'`.
+
+### Deviations (slice 20)
+
+- **The four `MOD_*` bits are constants with C's values and no `cfg`** (C's `#ifndef` guard block):
+  the file's standing reading of an SDK "define it if the header has not" guard.
+- **C's `register` keyword has no counterpart** (the locals are plain `let mut`).
+- **`HOTKEY!`'s arguments are widened at the call site** (`make_fixnum`'s `EMACS_INT`), because the
+  macro's text is C's.
+- **`parse_modifiers`/`lucid_event_type_list_p` are declared here** (keyboard.h 461/497, which
+  `include/keyboard.rs` does not carry yet).
+- **Not claimed.**  No run evidence: no hot key is registered on this machine
+  (`hook_w32_key` is never called), the arm reading is compile-level and the name sweep textual.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
