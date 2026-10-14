@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**4448 lines**, md5 `e3a23f25ff2975579a4bafcccae6fc47`), carrying
-> **C 1-2720** - P-86 ④'s first fourteen slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**4877 lines**, md5 `47ccd36da1b4238f11b2b91b805557f3`), carrying
+> **C 1-3078** - P-86 ④'s first fifteen slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -127,7 +127,8 @@ which `check-dead-file-coverage.py` requires):
 | 2451-2528 | the memory-mapped-file helpers and the section lookup: C 2451-2481's `open_input_file`, C 2483-2509's `rva_to_section` (with C's linker comment and the `max!` pair), C 2511-2521's `close_file_data` and C 2523-2528's `#ifndef IMAGE_NT_OPTIONAL_HDR32_MAGIC` fallback carried as C's text | file gate (slice 12); the round's use-site `<windows.h>`/`<winbase.h>`/`<winnt.h>` block spells the file API and the four PE records (Deviations 57), `min!`/`max!` come from the `min-max.rs` mirror included under C 57's lisp.h line (Deviations 58), and the mirror `include/w32heap.rs`'s four declarations moved into a glob-imported module in the same round (Deviations 59) |
 | 2530-2674 | `w32_executable_type`: the ANSI-codepage note, the four defaults, the `.com`/`.bat`/`.cmd` extension test with its `COMSPEC` recursion, the DOS/NT header walk (the two records, the two "DOS program" answers, the 32-bit optional-header read, the `IMAGE_NT_OPTIONAL_HDR64_MAGIC` arm under its feature, and the import-directory walk with `RVA_TO_PTR` and the two DLL-name tests) and the `unwind` tail | file gate (slice 13); the round's use-site `<windows.h>`/`<winnt.h>` block spells the two records, `LOWORD` and the 64-bit pair (Deviations 60), the `#ifdef IMAGE_NT_OPTIONAL_HDR64_MAGIC` guard becomes `feature = "image_nt_optional_hdr64_magic"` (Deviations 61), C's `goto unwind` is `break 'unwind` (Deviations 48's device), and `RVA_TO_PTR` is written out at C 66-69 (Deviation 6 retired) |
 | 2676-2720 | `compare_env` and `merge_and_sort_env`: the environment pair `sys_spawnve` calls (C's `toupper` comparison, the two copy loops with their pointer-difference counts, and C 2717's `qsort`) | file gate (slice 14); `qsort` stands at the use site with C's own text (`src/buffer.rs` 129-134's row) and `compare_env` takes the `extern "C"` ABI the comparator needs while keeping C's `static` (Deviations 64/65) |
-| 2722-4903 | **the remainder of the file** - C 2722-2724's `sys_spawnve` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2722-3078 | `sys_spawnve`: the mode guard, the `openp` fallback, the ANSI conversion and `_mbspbrk` guard, the DOS-app `CMDPROXY` branch, the two `argv` quoting passes (with C 2976-2988's `#if 0` arm carried as C's text) and the `envp` merge, ending at the `new_child`/`create_child` pair | file gate (slice 15); C's four `alloca` sites are PORTING.md P-05's `sa_stack_alloc` (Deviations 66), the CRT/SDK names no mirror carries stand at the use site (Deviations 69), and the round removed the unit's three stale `errno` duplicates (Deviations 68) |
+| 3080-4903 | **the remainder of the file** - C 3080-3097's `sys_select` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_select` (C 3108), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1116,3 +1117,64 @@ compare_env` and `missing function merge_and_sort_env`.  No new token rows; drif
     `str1++, str2++` is the port's two advances after the comparison.  In `merge_and_sort_env`, C
     2709/2714's `*nptr++ = *optr++` is the same order spelled out (assign, then advance both), and
     C 2710/2715's `optr - envp1` counts are the port's `offset_from` on the same two pointers.
+
+## Slice 15 (2026-10-14, status 4.294): C 2722-3078
+
+**What this round is.**  `sys_spawnve` - the file's spawn entry point and, at 357 C lines, its
+second-longest function: the mode guard, the executable-name check with its `openp` fallback, the
+ANSI conversion and `_mbspbrk` guard, the DOS-app `CMDPROXY` branch, the two quoting passes over
+`argv` (with C's commented-out `#if 0` arm carried as text) and the `envp` merge, ending at the
+`new_child`/`create_child` pair.  Port: 4,448 -> **4877 lines** (+429).  The next row's first item is
+C 3080-3097's `sys_select` comment.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.  The first
+run **failed**: C 2897's `"\r\n\t\f '"` has no Rust spelling for `\f`, so the port writes `\x0c`
+(the same byte) with the difference in the line's citation (Deviation 67).
+
+**Evidence ② - the arm reading, and the round's second finding.**  The first `probe` read **38
+errors (28 `E0428` + 9 `E0425` + 1 `compile_error!`)** - one more than the lane's baseline.  The new
+`E0428` was `ENOEXEC`, and the check `lib/include/errno.rs` 112-120 answered why: that mirror now
+carries `ENOEXEC`, `ESRCH` and `EFAULT` (status 3.446/3.514 moved them in, the same P-88 ⑤ route its
+own note records for `E2BIG`), while slice 1 had declared `ESRCH`/`EFAULT` here **because the mirror
+lacked them then** - three duplicate declarations, the last of which this round added.  The round
+removes all three (the unit declares nothing for them; C 1318/1368/3073 resolve through the mirror)
+and the probe now reads **35 errors (25 `E0428` + 9 `E0425` + 1 `compile_error!`), 0 anchored in
+this unit** - two *fewer* than the standing baseline of 37, which is the better state and the reason
+this reading is recorded rather than smoothed over.
+
+**Evidence ③ - the name sweep, and the tool's two reading limits.**  `check-unit-names.py
+femacs/src/w32proc.rs 4449 4884` -> `31 capitalized identifiers, missing: ['CRT', 'P', 'PORTING',
+'SDK']`.  None of the four is an identifier: they are words of this round's own prose, read as code
+by the tool's two documented limits - the block-comment scan does not nest (so the carried
+`#if 0` region's inner `/* … */` re-synchronises the scan one delimiter out of phase) and the scan
+is fed the *range* it is asked about (so a `/*` opening before the range is not recognised).
+Measured the same way: the round's real names (`sa_stack_alloc`, `openp`, `faccessat`, `_mbspbrk`,
+`GetCurrentProcessId`, `CharPrevA`, `CharPrevA`, `faccessat`, `X_OK`, `AT_FDCWD`, `AT_EACCESS`,
+`ENCODE_FILE`, `SSDATA`, `lispstpcpy`, `ansi_encode_filename`, `stpcpy`, `strchr`, `sprintf`) all
+resolve - the tool reports no name this unit uses and cannot find.  The tool's docstring gains the
+range-boundary note this round measured (it already lists the nesting one).
+
+**Evidence ④ - the `--check` reading.**  **71 -> 70 `- missing` rows** (`missing function
+sys_spawnve`).  One token row appeared and was retired: `function sys_spawnve does not mention
+alloca`, whose `macro-body-notes.tsv` row records PORTING.md P-05's device (`sa_stack_alloc`, the
+`src/w32.rs` 1770-1774 reading).  Drift 9.3% -> **0.4%** (the port and C now carry nearly the same
+number of lines for this range), inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+66. **C's four `alloca` sites are PORTING.md P-05's stack pool `sa_stack_alloc`** - the device is
+    chosen and this unit calls it through `include/lisp.rs`'s declaration, exactly as `src/w32.rs`
+    1770-1774 records for `w32.c`'s four sites; C's sizes are C's own
+    (`strlen (cmdname) + 1`, `MAX_PATH`, `arglen`, `numenv * sizeof (char *)`).
+67. **C's `\f` is Rust's `\x0c`** (C 2897's `sepchars`): Rust has no `\f` escape, and the byte is
+    the same.
+68. **The unit's three stale `errno` declarations are removed** (`ESRCH`, `EFAULT`, and this round's
+    own `ENOEXEC`): the mirror carries all three now, so the unit's copies were `E0428`s against it.
+    Slice 1's note and the ledger's owed rows that named them are superseded by this reading.
+69. **The CRT/SDK names stand at the use site with C's own text**: `openp` (the `src/callproc.rs`
+    98-103 device), `faccessat`, `_mbspbrk`, `GetCurrentProcessId`, `CharPrevA`; `AT_FDCWD` and
+    `AT_EACCESS` are in the graph (`nt/inc/include/unistd.rs` 31, `lib/include/fcntl.in.rs` 34) and
+    `X_OK` is in `nt/inc/sys/include/file.rs`, so none of those three is repeated here.
+70. **C 2976-2988's commented-out arm is carried as C's own text** (P-51) inside the live `#else`
+    arm's position, and C 2969-2974's commented-out `first`/`last` declarations are carried as C's
+    comments.

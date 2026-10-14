@@ -94,17 +94,12 @@ unsafe extern "C" {
 #[cfg (feature = "windowsnt")]
 include!("../lib/include/errno.rs");             // C 31: `#include <errno.h>` (`EINVAL`, `EAGAIN`)
 
-/// C 31's `<errno.h>`: the two rows this slice sets that the port's `<errno.h>` mirror does not
-/// carry yet (`femacs/lib/include/errno.rs` has EINVAL, EAGAIN and the rest of this file's set).
-/// The values are the frozen configuration's own - `docs/baseline/config/darwin-arm64.macros.tsv`
-/// 841 `EFAULT 14` and 936 `ESRCH 3` - and the runtime's `<errno.h>` uses the same two on a
-/// Windows target.  The ledger's owed list names the two mirror rows.
-/// C: #define ESRCH 3
-/// C: #define EFAULT 14
-#[cfg (feature = "windowsnt")]
-pub const ESRCH: c_int = 3;
-#[cfg (feature = "windowsnt")]
-pub const EFAULT: c_int = 14;
+/* C 31's `<errno.h>`: `ESRCH`, `EFAULT` and (slice 15's) `ENOEXEC` are **the mirror's** rows.
+   Slice 1 declared the first two here because `femacs/lib/include/errno.rs` did not carry them
+   yet; status 3.446/3.514 moved all three back into that mirror (`errno.rs` 112-120, whose own
+   note records the same P-88 (5) route for `E2BIG`), so the unit's copies became three `E0428`s
+   against it.  Slice 15 removes them and records the reading; the three call sites (C 1318, C
+   1368, C 3073) resolve through the mirror.  */
 #[cfg (feature = "windowsnt")]
 include!("../lib/include/ctype.rs");             // C 32: `#include <ctype.h>`
 // C 33: `#include <io.h>` - the runtime's own header; this slice names nothing from it.
@@ -4445,4 +4440,438 @@ unsafe fn merge_and_sort_env (envp1: *mut *mut c_char, envp2: *mut *mut c_char,
          core::mem::size_of::<*mut c_char> (), Some (compare_env));   // C 2717
 
   *nptr = core::ptr::null_mut ();                                    // C 2719
+}
+
+/* C 2722-3078: `sys_spawnve` - the file's ``spawn'' entry point: the executable-name check and its
+   `openp` fallback, the ANSI conversion and the `_mbspbrk` guard, the DOS-app `CMDPROXY` branch,
+   the two quoting passes over `argv` (with C 2976-2988's `#if 0` arm carried as C's text) and the
+   `envp` pass that merges and sorts the environment, ending at C 3062-3077's `new_child`/
+   `create_child` pair.  C's four `alloca` sites are PORTING.md P-05's stack pool `sa_stack_alloc`
+   (the `src/w32.rs` 1770-1774 reading: the device is chosen and this unit calls it through
+   `include/lisp.rs`'s declaration).  Names no mirror in this unit's graph carries stand at the use
+   site with C's own text (P-88 1): `openp` (the `src/callproc.rs` 98-103 device), the CRT's
+   `faccessat` and `_mbspbrk`, `GetCurrentProcessId`/`CharPrevA` (SDK), and `ENOEXEC` (the errno
+   mirror's three remaining rows, this file's slice 1 note).  */
+
+/* When a new child process is created we need to register it in our list,
+   so intercept spawn requests.  */
+/// C 2724-3078: `int sys_spawnve (int mode, char *cmdname, char **argv, char **envp)`.
+/// C: int
+/// C: sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_spawnve (mode: c_int, cmdname: *mut c_char,
+                                      argv: *mut *mut c_char, envp: *mut *mut c_char) -> c_int
+{
+  let mut program: Lisp_Object = Qnil ();                            // C 2727
+  let mut full: Lisp_Object = Qnil ();
+  let mut cmdline: *mut c_char;                                      // C 2728
+  let mut env: *mut c_char;
+  let mut parg: *mut c_char;
+  let mut targ: *mut *mut c_char;
+  let mut arglen: c_int;                                             // C 2729
+  let mut numenv: c_int;
+  let mut pid: pid_t;                                                // C 2730
+  let mut cp: *mut child_process;                                    // C 2731
+  let mut is_dos_app: c_int = 0;
+  let mut is_cygnus_app: c_int = 0;
+  let mut is_msys_app: c_int = 0;
+  let mut is_gui_app: c_int = 0;                                     // C 2732
+  let mut do_quoting: c_int = 0;                                     // C 2733
+  /* We pass our process ID to our children by setting up an environment
+     variable in their environment.  */
+  let mut ppid_env_var_buffer: [c_char; 64] = [0; 64];               // C 2736
+  let mut extra_env: [*mut c_char; 2]
+    = [ppid_env_var_buffer.as_mut_ptr (), core::ptr::null_mut ()];   // C 2737
+  /* These are the characters that cause an argument to need quoting.
+     Arguments with whitespace characters need quoting to prevent the
+     argument being split into two or more. Arguments with wildcards
+     are also quoted, for consistency with posix platforms, where wildcards
+     are not expanded if we run the program directly without a shell.
+     Some extra whitespace characters need quoting in Cygwin/MSYS programs,
+     so this list is conditionally modified below.  */
+  let mut sepchars: *const c_char = c" \t*?".as_ptr ();             // C 2745
+  /* This is for native w32 apps; modified below for Cygwin/MSUS apps.  */
+  let mut escape_char: c_char = b'\\' as c_char;                    // C 2747
+  let mut cmdname_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];   // C 2748
+
+  /* We don't care about the other modes */
+  if mode != _P_NOWAIT                                               // C 2751
+    {
+      *errno () = EINVAL;                                            // C 2753
+      return -1;                                                     // C 2754
+    }
+
+  /* Handle executable names without an executable suffix.  The caller
+     already searched exec-path and verified the file is executable,
+     but start-process doesn't do that for file names that are already
+     absolute.  So we double-check this here, just in case.  */
+  if faccessat (AT_FDCWD, cmdname, X_OK, AT_EACCESS) != 0            // C 2761
+    {
+      program = build_string (cmdname);                              // C 2763
+      full = Qnil ();                                                // C 2764
+      openp (Vexec_path, program, Fdefault_value (Qexec_suffixes),    // C 2765
+             &raw mut full, make_fixnum (X_OK), false, false,        // C 2766
+             core::ptr::null_mut ());
+      if NILP (full)                                                 // C 2767
+        {
+          *errno () = EINVAL;                                        // C 2769
+          return -1;                                                 // C 2770
+        }
+      program = ENCODE_FILE (full);                                  // C 2772
+      cmdname = SSDATA (program);                                    // C 2773
+    }
+  else
+    {
+      let p: *mut c_char = sa_stack_alloc (strlen (cmdname) + 1) as *mut c_char;   // C 2777
+
+      /* Don't change the command name we were passed by our caller
+	 (unixtodos_filename below will destructively mirror forward
+	 slashes).  */
+      cmdname = strcpy (p, cmdname);                                 // C 2782
+    }
+
+  /* make sure argv[0] and cmdname are both in DOS format */
+  unixtodos_filename (cmdname);                                      // C 2786
+  /* argv[0] was encoded by caller using ENCODE_FILE, so it is in
+     UTF-8.  All the other arguments are encoded by ENCODE_SYSTEM or
+     some such, and are in some ANSI codepage.  We need to have
+     argv[0] encoded in ANSI codepage.  */
+  filename_to_ansi (cmdname, cmdname_a.as_mut_ptr ());               // C 2791
+  /* We explicitly require that the command's file name be encodable
+     in the current ANSI codepage, because we will be invoking it via
+     the ANSI APIs.  */
+  if !_mbspbrk (cmdname_a.as_mut_ptr () as *const c_uchar,           // C 2795
+                c"?".as_ptr () as *const c_uchar).is_null ()
+    {
+      *errno () = ENOENT;                                            // C 2797
+      return -1;                                                     // C 2798
+    }
+  /* From here on, CMDNAME is an ANSI-encoded string.  */
+  cmdname = cmdname_a.as_mut_ptr ();                                 // C 2801
+  *argv = cmdname;                                                   // C 2802
+
+  /* Determine whether program is a 16-bit DOS executable, or a 32-bit
+     Windows executable that is implicitly linked to the Cygnus or
+     MSYS dll (implying it was compiled with the Cygnus/MSYS GNU
+     toolchain and hence relies on cygwin.dll or MSYS DLL to parse the
+     command line - we use this to decide how to escape quote chars in
+     command line args that must be quoted).
+
+     Also determine whether it is a GUI app, so that we don't hide its
+     initial window unless specifically requested.  */
+  w32_executable_type (cmdname, &raw mut is_dos_app, &raw mut is_cygnus_app,
+                       &raw mut is_msys_app, &raw mut is_gui_app);   // C 2813-2814
+
+  /* On Windows 95, if cmdname is a DOS app, we invoke a helper
+     application to start it by specifying the helper app as cmdname,
+     while leaving the real app name as argv[0].  */
+  if is_dos_app != 0                                                 // C 2819
+    {
+      let mut p: *mut c_char;                                        // C 2821
+
+      cmdname = sa_stack_alloc (MAX_PATH as usize) as *mut c_char;   // C 2823
+      if !egetenv (c"CMDPROXY".as_ptr ()).is_null ()                 // C 2824
+        {
+	  /* Implementation note: since process-environment, where
+	     'egetenv' looks, is encoded in the system codepage, we
+	     don't need to encode the cmdproxy file name if we get it
+	     from the environment.  */
+          strcpy (cmdname, egetenv (c"CMDPROXY".as_ptr ()));         // C 2830
+        }
+      else
+        {
+          let mut q: *mut c_char = lispstpcpy (cmdname,              // C 2834
+                                               /* exec-directory needs to be encoded.  */
+                                               ansi_encode_filename (Vexec_directory));   // C 2836
+
+	  /* If we are run from the source tree, use cmdproxy.exe from
+	     the same source tree.  */
+          p = q.offset (-2);                                         // C 2839
+          while p > cmdname
+            {
+              if *p == b'/' as c_char { break; }                     // C 2840-2841
+              p = CharPrevA (cmdname, p);
+            }
+          if *p == b'/' as c_char                                    // C 2842
+              && xstrcasecmp (p, c"/lib-src/".as_ptr ()) == 0
+            { q = stpcpy (p, c"/nt/".as_ptr ()); }                   // C 2843
+          strcpy (q, c"cmdproxy.exe".as_ptr ());                     // C 2844
+        }
+
+      /* Can't use unixtodos_filename here, since that needs its file
+	 name argument encoded in UTF-8.  */
+      p = cmdname;                                                   // C 2849
+      while *p != 0
+        {
+          if *p == b'/' as c_char { *p = b'\\' as c_char; }        // C 2850-2851
+          p = CharNextA (p);
+        }
+    }
+
+  /* we have to do some conjuring here to put argv and envp into the
+     form CreateProcess wants...  argv needs to be a space separated/null
+     terminated list of parameters, and envp is a null
+     separated/double-null terminated list of parameters.
+
+     Additionally, zero-length args and args containing whitespace or
+     quote chars need to be wrapped in double quotes - for this to work,
+     embedded quotes need to be escaped as well.  The aim is to ensure
+     the child process reconstructs the argv array we start with
+     exactly, so we treat quotes at the beginning and end of arguments
+     as embedded quotes.
+
+     The w32 GNU-based library from Cygnus doubles quotes to escape
+     them, while MSVC uses backslash for escaping.  (Actually the MSVC
+     startup code does attempt to recognize doubled quotes and accept
+     them, but gets it wrong and ends up requiring three quotes to get a
+     single embedded quote!)  So by default we decide whether to use
+     quote or backslash as the escape character based on whether the
+     binary is apparently a Cygnus compiled app.
+
+     Note that using backslash to escape embedded quotes requires
+     additional special handling if an embedded quote is already
+     preceded by backslash, or if an arg requiring quoting ends with
+     backslash.  In such cases, the run of escape characters needs to be
+     doubled.  For consistency, we apply this special handling as long
+     as the escape character is not quote.
+
+     Since we have no idea how large argv and envp are likely to be we
+     figure out list lengths on the fly and allocate them.  */
+
+  if !NILP (Vw32_quote_process_args)                                 // C 2884
+    {
+      do_quoting = 1;                                                // C 2886
+      /* Override escape char by binding w32-quote-process-args to
+	 desired character, or use t for auto-selection.  */
+      if FIXNUMP (Vw32_quote_process_args)                           // C 2889
+        { escape_char = XFIXNUM (Vw32_quote_process_args) as c_char; }   // C 2890
+      else
+        { escape_char = if is_cygnus_app != 0 || is_msys_app != 0    // C 2892
+                          { b'"' as c_char } else { b'\\' as c_char }; }
+    }
+
+  /* Cygwin/MSYS apps need quoting a bit more often.  */
+  if escape_char == b'"' as c_char                                   // C 2896
+    { sepchars = c"\r\n\t\x0c '".as_ptr (); }   /* C's \f is Rust's \x0c */    // C 2897
+
+  /* do argv...  */
+  arglen = 0;                                                        // C 2900
+  targ = argv;                                                       // C 2901
+  while !(*targ).is_null ()                                          // C 2902
+    {
+      let mut p: *mut c_char = *targ;                                // C 2904
+      let mut need_quotes: c_int = 0;                                // C 2905
+      let mut escape_char_run: c_int = 0;                            // C 2906
+
+      if *p == 0                                                     // C 2908
+        { need_quotes = 1; }                                         // C 2909
+      while *p != 0                                                  // C 2910
+        {
+          if escape_char == b'"' as c_char && *p == b'\\' as c_char   // C 2912
+            /* If it's a Cygwin/MSYS app, \ needs to be escaped.  */
+            { arglen += 1; }                                         // C 2914
+          else if *p == b'"' as c_char                               // C 2915
+            {
+              /* allow for embedded quotes to be escaped */
+              arglen += 1;                                           // C 2918
+              need_quotes = 1;                                       // C 2919
+              /* handle the case where the embedded quote is already escaped */
+              if escape_char_run > 0                                 // C 2921
+                {
+		  /* To preserve the arg exactly, we need to double the
+		     preceding escape characters (plus adding one to
+		     escape the quote character itself).  */
+                  arglen += escape_char_run;                         // C 2926
+                }
+            }
+          else if !strchr (sepchars, *p as c_int).is_null ()         // C 2929
+            {
+              need_quotes = 1;                                       // C 2931
+            }
+
+          if *p == escape_char && escape_char != b'"' as c_char      // C 2934
+            { escape_char_run += 1; }                                // C 2935
+          else
+            { escape_char_run = 0; }                                 // C 2937
+          p = p.add (1);
+        }
+      if need_quotes != 0                                            // C 2939
+        {
+          arglen += 2;                                               // C 2941
+	  /* handle the case where the arg ends with an escape char - we
+	     must not let the enclosing quote be escaped.  */
+          if escape_char_run > 0                                     // C 2944
+            { arglen += escape_char_run; }                           // C 2945
+        }
+      arglen += strlen (*targ) as c_int + 1;                         // C 2947
+      targ = targ.add (1);
+    }
+  cmdline = sa_stack_alloc (arglen as usize) as *mut c_char;         // C 2949
+  targ = argv;                                                       // C 2950
+  parg = cmdline;                                                    // C 2951
+  while !(*targ).is_null ()                                          // C 2952
+    {
+      let mut p: *mut c_char = *targ;                                // C 2954
+      let mut need_quotes: c_int = 0;                                // C 2955
+
+      if *p == 0                                                     // C 2957
+        { need_quotes = 1; }                                         // C 2958
+
+      if do_quoting != 0                                             // C 2960
+        {
+          while *p != 0                                              // C 2962
+            {
+              if !strchr (sepchars, *p as c_int).is_null ()          // C 2963
+                  || *p == b'"' as c_char
+                { need_quotes = 1; }                                 // C 2964
+              p = p.add (1);
+            }
+        }
+      if need_quotes != 0                                            // C 2966
+        {
+          let mut escape_char_run: c_int = 0;                        // C 2968
+          /* char * first; */
+          /* char * last; */
+
+          p = *targ;                                                 // C 2972
+          /* first = p; */
+          /* last = p + strlen (p) - 1; */
+          *parg = b'"' as c_char; parg = parg.add (1);                // C 2975
+          /* C 2976-2988: the first (commented-out) arm of C's
+             `#if 0`/`#else` pair, carried as C's own text (P-51).  The live arm below is C 2989's
+             `#else`.  */
+          /*
+#if 0
+	  /* This version does not escape quotes if they occur at the
+	     beginning or end of the arg - this could lead to incorrect
+	     behavior when the arg itself represents a command line
+	     containing quoted args.  I believe this was originally done
+	     as a hack to make some things work, before
+	     `w32-quote-process-args' was added.  */
+	  while (*p)
+	    {
+	      if (*p == '"' && p > first && p < last)
+		*parg++ = escape_char;	/* escape embedded quotes */
+	      *parg++ = *p++;
+	    }
+          */
+          while *p != 0                                              // C 2990
+            {
+              if *p == b'"' as c_char                                // C 2992
+                {
+                  /* double preceding escape chars if any */
+                  while escape_char_run > 0                          // C 2995
+                    {
+                      *parg = escape_char; parg = parg.add (1);      // C 2997
+                      escape_char_run -= 1;                          // C 2998
+                    }
+                  /* escape all quote chars, even at beginning or end */
+                  *parg = escape_char; parg = parg.add (1);          // C 3001
+                }
+              else if escape_char == b'"' as c_char && *p == b'\\' as c_char
+                { *parg = b'\\' as c_char; parg = parg.add (1); }  // C 3003-3004
+              *parg = *p; parg = parg.add (1);                       // C 3005
+
+              if *p == escape_char && escape_char != b'"' as c_char   // C 3007
+                { escape_char_run += 1; }                            // C 3008
+              else
+                { escape_char_run = 0; }                             // C 3010
+              p = p.add (1);
+            }
+          /* double escape chars before enclosing quote */
+          while escape_char_run > 0                                   // C 3013
+            {
+              *parg = escape_char; parg = parg.add (1);               // C 3015
+              escape_char_run -= 1;                                   // C 3016
+            }
+          *parg = b'"' as c_char; parg = parg.add (1);                // C 3019
+        }
+      else
+        {
+          strcpy (parg, *targ);                                       // C 3023
+          parg = parg.add (strlen (*targ));                           // C 3024
+        }
+      *parg = b' ' as c_char; parg = parg.add (1);                    // C 3026
+      targ = targ.add (1);                                            // C 3027
+    }
+  parg = parg.sub (1);
+  *parg = 0;                                                          // C 3029
+
+  /* and envp...  */
+  arglen = 1;                                                        // C 3032
+  targ = envp;                                                        // C 3033
+  numenv = 1; /* for end null */                                     // C 3034
+  while !(*targ).is_null ()                                          // C 3035
+    {
+      arglen += strlen (*targ) as c_int + 1;                         // C 3037
+      targ = targ.add (1);
+      numenv += 1;                                                   // C 3038
+    }
+  /* extra env vars... */
+  sprintf (ppid_env_var_buffer.as_mut_ptr (),                        // C 3041
+           c"EM_PARENT_PROCESS_ID=%lu".as_ptr (), GetCurrentProcessId ());   // C 3042
+  arglen += strlen (ppid_env_var_buffer.as_ptr ()) as c_int + 1;     // C 3043
+  numenv += 1;                                                        // C 3044
+
+  /* merge env passed in and extra env into one, and sort it.  */
+  targ = sa_stack_alloc (numenv as usize * core::mem::size_of::<*mut c_char> ())
+    as *mut *mut c_char;                                             // C 3047
+  merge_and_sort_env (envp, extra_env.as_mut_ptr (), targ);           // C 3048
+
+  /* concatenate env entries.  */
+  env = sa_stack_alloc (arglen as usize) as *mut c_char;              // C 3051
+  parg = env;                                                         // C 3052
+  while !(*targ).is_null ()                                          // C 3053
+    {
+      strcpy (parg, *targ);                                           // C 3055
+      parg = parg.add (strlen (*targ));                               // C 3056
+      targ = targ.add (1);
+      *parg = 0; parg = parg.add (1);                                 // C 3057
+    }
+  *parg = 0; parg = parg.add (1);                                     // C 3059
+  *parg = 0;                                                          // C 3060
+
+  cp = new_child ();                                                  // C 3062
+  if cp.is_null ()                                                    // C 3063
+    {
+      *errno () = EAGAIN;                                             // C 3065
+      return -1;                                                      // C 3066
+    }
+
+  /* Now create the process.  */
+  if create_child (cmdname, cmdline, env, is_gui_app, &raw mut pid, cp) == 0   // C 3070
+    {
+      delete_child (cp);                                              // C 3072
+      *errno () = ENOEXEC;                                            // C 3073
+      return -1;                                                      // C 3074
+    }
+
+  return pid;                                                         // C 3077
+}
+
+/* C's CRT and SDK surface this round needs and no mirror in this unit's graph carries (P-88 1):
+   `openp` (the `src/callproc.rs` 98-103 shape, from `lisp.h` 4743/lread.c 1756), the gnulib
+   `faccessat` and its `AT_FDCWD`/`AT_EACCESS` (the latter two are in this unit's graph through
+   `nt/inc/include/unistd.rs` 31 and `lib/include/fcntl.in.rs` 34), the CRT's `_mbspbrk` and the
+   SDK's `GetCurrentProcessId`/`CharPrevA`.  `ENOEXEC` is *not* here: `lib/include/errno.rs` 116
+   carries it (the note above).  */
+/// C: int faccessat (int fd, const char *file, int mode, int flag);
+/// C: int openp (Lisp_Object path, Lisp_Object str, Lisp_Object suffixes, Lisp_Object *storeptr,
+/// C:            Lisp_Object predicate, bool newer, bool no_native, void **platform);
+/// C: unsigned char *_mbspbrk (const unsigned char *, const unsigned char *);
+/// C: DWORD WINAPI GetCurrentProcessId (void);
+/// C: LPSTR WINAPI CharPrevA (LPCSTR lpszStart, LPCSTR lpszCurrent);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn faccessat (fd: c_int, file: *const c_char, mode: c_int, flag: c_int) -> c_int;
+  pub fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
+                storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
+                no_native: bool, platform: *mut *mut c_void) -> c_int;
+  pub fn _mbspbrk (s1: *const c_uchar, s2: *const c_uchar) -> *mut c_uchar;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetCurrentProcessId () -> DWORD;
+  pub fn CharPrevA (lpszStart: LPCSTR, lpszCurrent: LPCSTR) -> LPSTR;
 }

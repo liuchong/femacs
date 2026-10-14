@@ -38,5 +38,5 @@ femacs/src/include/termchar.rs:13	termhooks.h 533-542 is `union display_info`; `
 femacs/src/include/termhooks.rs:13	termhooks.h 27 is the `#include "dispextern.h"` line (status 3.527 added the edge); `struct terminal` is the type the sentence quotes, not the line's own subject (the include-line class)
 femacs/src/include/termhooks.rs:376	termhooks.h 920-921 is right; `tty_display_info` is the type being read
 femacs/src/include/pgtkgui.rs:15	dispextern.h 179 is right (the `#ifndef NativeRectangle` / `#define NativeRectangle int` fallback the comment is about); the quoted `HAVE_PGTK` is the feature that makes both fallbacks dead, named in the same sentence (dispextern.h 149)
-femacs/src/w32proc.rs:474	lisp.h 30 is an #include line; `memset` is what that include brings in
+femacs/src/w32proc.rs:469	lisp.h 30 is an #include line; `memset` is what that include brings in
 femacs/src/gtkutil.rs:92	lisp.h 30 is an #include line; `strlen` is what that include brings in

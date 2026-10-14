@@ -36,8 +36,13 @@ hand rather than "fixed":
 
   * **nested block comments.**  The scanner ends a comment at the first `*/`, while Rust's block
     comments nest - so a slice that carries a C `#if 0` region as C's own text (w32fns.c
-    7291-7388, 1278-1417) reports names that are inside that comment (measured: the comment depth
-    at the C 1278-1417 site, `src/w32fns.rs` 2260, is 2);
+    7291-7388, 1278-1417, w32proc.c 2976-2988) reports names that are inside that comment
+    (measured: the comment depth at the C 1278-1417 site, `src/w32fns.rs` 2260, is 2).  **A second
+    reading of the same shape, measured 2026-10-14**: the scan is fed the *range* it is asked
+    about, so a comment that opens **before** the range is not recognised and its prose is read as
+    code - the reading then reports words like `CRT`/`SDK`/`PORTING`.  Both are triaged by hand:
+    start the range at or before the first `/*` the slice adds, and read the reported words against
+    the carried text.
   * **macro-generated names** (`DEFUN!`'s per-subr `Sname` statics) and C globals the port reaches
     through a mirrored record (the `KVAR` arm's `Vdefault_minibuffer_frame`) are not items;
   * **names that are not item references at all**: `#[derive (Clone, Copy)]`'s arguments, a struct
