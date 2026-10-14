@@ -939,6 +939,12 @@ macro_rules! garbaged {
 #[cfg (feature = "have_ntgui")]
 macro_rules! window_bits {
   (pseudo_window_p, $w:expr) => { ((*($w)).bits >> WINDOW_PSEUDO_WINDOW_P_SHIFT) & 1 != 0 };
+  /* C 418's `bool_bf phys_cursor_on_p : 1`, which slice 17's `w32_draw_window_cursor` writes
+     (C 6677); the shift is the mirror's `WINDOW_PHYS_CURSOR_ON_P_SHIFT` (window.rs 191).  */
+  (phys_cursor_on_p, $w:expr) => { ((*($w)).bits >> WINDOW_PHYS_CURSOR_ON_P_SHIFT) & 1 != 0 };
+  (phys_cursor_on_p, $w:expr, $v:expr) => {
+    (*($w)).bits = ((*($w)).bits & ! (1u32 << WINDOW_PHYS_CURSOR_ON_P_SHIFT))
+		   | (((($v) as u32) & 1) << WINDOW_PHYS_CURSOR_ON_P_SHIFT) };
 }
 
 /// C: frame.h 1656: `INLINE struct face *FACE_FROM_ID_OR_NULL (struct frame *f, int id);`
@@ -9055,3 +9061,397 @@ unsafe fn w32_read_socket (terminal: *mut terminal, hold_quit: *mut input_event)
 
 /* C 6462-6464 is the "Text Cursor" banner, C 6466-6471 the note above `w32_clip_to_row` and C
    6473-6489 that function - the next slice's text.  */
+
+/* The five functions C 6506-6733 calls have no prototype in the port's mirrors: `dispextern.h`
+   declares all five (`get_phys_cursor_glyph` 3688's neighbourhood, `get_phys_cursor_geometry`
+   3652, `draw_phys_cursor_glyph` 3649, `erase_phys_cursor` 3654, `draw_fringe_bitmap` 3703) and
+   C 25's chain reaches them through `w32term.h` 22, so the unit declares them at the use sites the
+   way `src/xterm.rs` 38828-38833 does for the same three cursor entries (P-72 rule 4).
+   `FrameRect` is `<wingdi.h>`'s, and `WM_IME_STARTCOMPOSITION` is `<imm.h>`'s (C 37's include).
+   The SDK records are UNVERIFIED.  */
+/// C: WINUSERAPI HBRUSH WINAPI CreateSolidBrush (COLORREF color);
+/// C: WINUSERAPI int WINAPI FrameRect (HDC hDC, const RECT *lprc, HBRUSH hbr);
+/// C: #define WM_IME_STARTCOMPOSITION 0x010D
+/// C: extern struct glyph *get_phys_cursor_glyph (struct window *w);
+/// C: extern void get_phys_cursor_geometry (struct window *, struct glyph_row *, struct glyph *,
+/// C:   int *, int *, int *);
+/// C: extern void draw_phys_cursor_glyph (struct window *, struct glyph_row *,
+/// C:   enum draw_glyphs_face);
+/// C: extern void erase_phys_cursor (struct window *);
+/// C: void draw_fringe_bitmap (struct window *, struct glyph_row *, int);   [dispextern.h 3703]
+#[cfg (feature = "have_ntgui")]
+pub const WM_IME_STARTCOMPOSITION: c_int = 0x010D;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn FrameRect (hDC: HDC, lprc: *const RECT, hbr: HBRUSH) -> c_int;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph;
+  pub fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row, glyph: *mut glyph,
+				   xp: *mut c_int, yp: *mut c_int, heightp: *mut c_int);
+  pub fn draw_phys_cursor_glyph (w: *mut window, row: *mut glyph_row, draw: draw_glyphs_face);
+  pub fn erase_phys_cursor (w: *mut window);
+  pub fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row, left_p: c_int);
+}
+
+/* C 1656's `FACE_FROM_ID` is dispextern.h's second `INLINE` face accessor: C pastes it into every
+   unit that includes the header, and the port's live form is one copy per including unit (the
+   `src/xterm.rs` 38843 block, whose shape this is; the sibling `FACE_FROM_ID_OR_NULL` copy is this
+   unit's own at C 868).  C 6569 reads it.  */
+/// C: INLINE struct face *FACE_FROM_ID (struct frame *f, int id)
+#[cfg (feature = "have_ntgui")]
+#[inline(always)]
+unsafe fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
+{
+  eassert! (0 <= id && id < (*FRAME_FACE_CACHE! (f)).used);
+  return *(*FRAME_FACE_CACHE! (f)).faces_by_id.add (id as usize);      // C 1656
+}
+
+/* C 6462-6464 is the "Text Cursor" banner, carried as C's own text at its position.  */
+/* C: /***********************************************************************
+   C: 			     Text Cursor
+   C:  ***********************************************************************/  */
+
+/* C 6466-6471's note above `w32_clip_to_row`, carried as C's own text.  */
+/* C: /* Set clipping for output in glyph row ROW.  W is the window in which
+   C:    we operate.  GC is the graphics context to set clipping in.
+   C:
+   C:    ROW may be a text row or, e.g., a mode line.  Text rows must be
+   C:    clipped to the interior of the window dedicated to text display,
+   C:    mode lines must be clipped to the whole window.  */  */
+
+/// C 6473-6489: `static void w32_clip_to_row (struct window *w, struct glyph_row *row, enum
+/// glyph_row_area area, HDC hdc)` - C 6477's `RECT`, C 6478's three locals, C 6480's `window_box`
+/// and C 6482-6486's five member writes, closed by C 6488's `w32_set_clip_rectangle`.
+/// C: static void
+/// C: w32_clip_to_row (struct window *w, struct glyph_row *row,
+/// C: 		 enum glyph_row_area area, HDC hdc)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_clip_to_row (w: *mut window, row: *mut glyph_row, area: glyph_row_area, hdc: HDC)
+{
+  /* C declares the `RECT` uninitialised and fills every member below (PORTING.md 1.5).  */
+  let mut clip_rect: RECT = core::mem::zeroed ();                       // C 6477
+  /* C declares these three uninitialised and fills them with `window_box` (PORTING.md 1.5).  */
+  let mut window_x: c_int = 0;                                         // C 6478
+  let mut window_y: c_int = 0;
+  let mut window_width: c_int = 0;
+
+  window_box (w, area, &raw mut window_x, &raw mut window_y, &raw mut window_width,
+	      core::ptr::null_mut ());                                 // C 6480
+
+  clip_rect.left = window_x;                                           // C 6482
+  clip_rect.top = WINDOW_TO_FRAME_PIXEL_Y! (w, (*row).y);              // C 6483
+  clip_rect.top = max! (clip_rect.top, window_y);                      // C 6484
+  clip_rect.right = clip_rect.left + window_width;                     // C 6485
+  clip_rect.bottom = clip_rect.top + (*row).visible_height;            // C 6486
+
+  w32_set_clip_rectangle (hdc, &raw mut clip_rect);                    // C 6488
+}
+
+/* C 6492's note above `w32_draw_hollow_cursor`, carried as C's own text.  */
+/* C: /* Draw a hollow box cursor on window W in glyph row ROW.  */  */
+
+/// C 6494-6533: `static void w32_draw_hollow_cursor (struct window *w, struct glyph_row *row)` - C
+/// 6497-6502's seven locals (with the brush C 6502 creates), C 6506-6511's glyph lookup and its
+/// early return, C 6514-6524's geometry (with C 6519-6521's R2L shift), C 6526-6532's DC, clipped
+/// `FrameRect` and reset.
+/// C: static void
+/// C: w32_draw_hollow_cursor (struct window *w, struct glyph_row *row)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                      // C 6497
+  let mut hdc: HDC;                                                    // C 6498
+  /* C declares the `RECT` uninitialised and fills every member below (PORTING.md 1.5).  */
+  let mut rect: RECT = core::mem::zeroed ();                           // C 6499
+  /* C declares these three uninitialised and fills them with `get_phys_cursor_geometry`
+     (PORTING.md 1.5).  */
+  let mut left: c_int = 0;                                             // C 6500
+  let mut top: c_int = 0;
+  let mut h: c_int = 0;
+  let mut cursor_glyph: *mut glyph;                                    // C 6501
+  let hb: HBRUSH
+    = CreateSolidBrush ((*((*f).output_data.w32 as *mut w32_output)).cursor_pixel);   // C 6502
+
+  /* Get the glyph the cursor is on.  If we can't tell because
+     the current matrix is invalid or such, give up.  */
+  cursor_glyph = get_phys_cursor_glyph (w);                            // C 6506
+  if cursor_glyph.is_null ()                                           // C 6507
+    {
+      DeleteObject (hb as HGDIOBJ);                                    // C 6509
+      return;                                                          // C 6510
+    }
+
+  /* Compute frame-relative coordinates for phys cursor.  */
+  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut left, &raw mut top, &raw mut h);   // C 6514
+  rect.left = left;                                                    // C 6515
+  /* When on R2L character, show cursor at the right edge of the
+     glyph, unless the cursor box is as wide as the glyph or wider
+     (the latter happens when x-stretch-cursor is non-nil).  */
+  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0          // C 6519
+      && ((*cursor_glyph).pixel_width as c_int) > (*w).phys_cursor_width   // C 6520
+    { rect.left += (*cursor_glyph).pixel_width as c_int - (*w).phys_cursor_width; }   // C 6521
+  rect.top = top;                                                      // C 6522
+  rect.bottom = rect.top + h;                                          // C 6523
+  rect.right = rect.left + (*w).phys_cursor_width;                     // C 6524
+
+  hdc = get_frame_dc (f);                                              // C 6526
+  /* Set clipping, draw the rectangle, and reset clipping again.  */
+  w32_clip_to_row (w, row, TEXT_AREA, hdc);                            // C 6528
+  FrameRect (hdc, &raw const rect, hb);                               // C 6529
+  DeleteObject (hb as HGDIOBJ);                                        // C 6530
+  w32_set_clip_rectangle (hdc, core::ptr::null_mut ());                // C 6531
+  release_frame_dc (f, hdc);                                           // C 6532
+}
+
+/* C 6536-6541's note above `w32_draw_bar_cursor`, carried as C's own text.  */
+/* C: /* Draw a bar cursor on window W in glyph row ROW.
+   C:
+   C:    Implementation note: One would like to draw a bar cursor with an
+   C:    angle equal to the one given by the font property XA_ITALIC_ANGLE.
+   C:    Unfortunately, I didn't find a font yet that has this property set.
+   C:    --gerd.  */  */
+
+/// C 6543-6626: `static void w32_draw_bar_cursor (struct window *w, struct glyph_row *row, int
+/// width, enum text_cursor_kinds kind)` - C 6547's frame, C 6553-6555's glyph lookup with its bare
+/// `return`, C 6560-6565's image arm (the `MATRIX_ROW` of the current matrix and the cursor glyph)
+/// and C 6566-6625's bar arm (the colour choice of C 6578-6579, C 6581's x, C 6584's clip, the two
+/// `BAR_CURSOR`/`HBAR_CURSOR` branches with their `min`/`max` arithmetic and C 6623-6624's reset).
+/// C: static void
+/// C: w32_draw_bar_cursor (struct window *w, struct glyph_row *row,
+/// C: 		   int width, enum text_cursor_kinds kind)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut width: c_int,
+			       kind: text_cursor_kinds)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                             // C 6547
+  let mut cursor_glyph: *mut glyph;                                    // C 6548
+
+  /* If cursor is out of bounds, don't draw garbage.  This can happen
+     in mini-buffer windows when switching between echo area glyphs
+     and mini-buffer.  */
+  cursor_glyph = get_phys_cursor_glyph (w);                            // C 6553
+  if cursor_glyph.is_null ()                                           // C 6554
+    { return; }                                                        // C 6555
+
+  /* If on an image, draw like a normal cursor.  That's usually better
+     visible than drawing a bar, esp. if the image is large so that
+     the bar might not be in the window.  */
+  if glyph_bits! (type, (*cursor_glyph)) == IMAGE_GLYPH                 // C 6560
+    {
+      let row: *mut glyph_row;
+      row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, (*w).phys_cursor.vpos);   // C 6563
+      draw_phys_cursor_glyph (w, row, DRAW_CURSOR);                     // C 6564
+    }
+  else
+    {
+      let mut cursor_color: COLORREF
+	= (*((*f).output_data.w32 as *mut w32_output)).cursor_pixel;     // C 6568
+      let face: *mut face = FACE_FROM_ID (f, glyph_bits! (face_id, (*cursor_glyph)));   // C 6569
+      let mut x: c_int;                                                 // C 6570
+      let mut hdc: HDC;                                                 // C 6571
+
+      /* If the glyph's background equals the color we normally draw
+	 the bar cursor in, the bar cursor in its normal color is
+	 invisible.  Use the glyph's foreground color instead in this
+	 case, on the assumption that the glyph's colors are chosen so
+	 that the glyph is legible.  */
+      if (*face).background == cursor_color as c_ulong                  // C 6578
+	{ cursor_color = (*face).foreground as COLORREF; }              // C 6579
+
+      x = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);        // C 6581
+
+      hdc = get_frame_dc (f);                                           // C 6583
+      w32_clip_to_row (w, row, TEXT_AREA, hdc);                         // C 6584
+
+      if kind == BAR_CURSOR                                             // C 6586
+	{
+	  if width < 0                                                  // C 6588
+	    { width = FRAME_CURSOR_WIDTH (f); }                         // C 6589
+	  width = min! ((*cursor_glyph).pixel_width as c_int, width);       // C 6590
+
+	  (*w).phys_cursor_width = width;                               // C 6592
+
+	  /* If the character under cursor is R2L, draw the bar cursor
+	     on the right of its glyph, rather than on the left.  */
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0   // C 6596
+	    { x += (*cursor_glyph).pixel_width as c_int - width; }      // C 6597
+
+	  w32_fill_area! (f, hdc, cursor_color, x,                        // C 6599
+			  WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y),   // C 6600
+			  width, (*row).height);                        // C 6601
+	}
+      else	/* HBAR_CURSOR */                                       // C 6603
+	{
+	  /* C declares these three uninitialised and fills them with `get_phys_cursor_geometry`
+	     (PORTING.md 1.5).  */
+	  let mut dummy_x: c_int = 0;                                   // C 6605
+	  let mut dummy_y: c_int = 0;
+	  let mut dummy_h: c_int = 0;
+
+	  if width < 0                                                  // C 6607
+	    { width = (*row).height; }                                  // C 6608
+
+	  width = min! ((*row).height, width);                            // C 6610
+
+	  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut dummy_x,
+				    &raw mut dummy_y, &raw mut dummy_h);   // C 6612-6613
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0   // C 6614
+	      && ((*cursor_glyph).pixel_width as c_int) > (*w).phys_cursor_width   // C 6615
+	    { x += (*cursor_glyph).pixel_width as c_int - (*w).phys_cursor_width; }   // C 6616
+	  w32_fill_area! (f, hdc, cursor_color, x,                        // C 6617
+			  WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y + (*row).height - width),   // C 6618-6619
+			  (*w).phys_cursor_width, width);                 // C 6620
+	}
+
+      w32_set_clip_rectangle (hdc, core::ptr::null_mut ());             // C 6623
+      release_frame_dc (f, hdc);                                       // C 6624
+    }
+}
+
+/* C 6629's note above `w32_define_frame_cursor`, carried as C's own text.  */
+/* C: /* RIF: Define cursor CURSOR on frame F.  */  */
+
+/// C 6631-6635: `static void w32_define_frame_cursor (struct frame *f, Emacs_Cursor cursor)` - the
+/// one `w32_define_cursor` call.
+/// C: static void
+/// C: w32_define_frame_cursor (struct frame *f, Emacs_Cursor cursor)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+{
+  w32_define_cursor (FRAME_W32_WINDOW! (f), cursor);                   // C 6634
+}
+
+/* C 6638's note above `w32_clear_frame_area`, carried as C's own text.  */
+/* C: /* RIF: Clear area on frame F.  */  */
+
+/// C 6640-6648: `static void w32_clear_frame_area (struct frame *f, int x, int y, int width, int
+/// height)` - the DC, C 6646's `w32_clear_area` and C 6647's release.
+/// C: static void
+/// C: w32_clear_frame_area (struct frame *f, int x, int y, int width, int height)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int, height: c_int)
+{
+  let hdc: HDC;                                                        // C 6643
+
+  hdc = get_frame_dc (f);                                              // C 6645
+  w32_clear_area! (f, hdc, x, y, width, height);                       // C 6646
+  release_frame_dc (f, hdc);                                           // C 6647
+}
+
+/// C 6650-6752: `static void w32_draw_window_cursor (struct window *w, struct glyph_row
+/// *glyph_row, int x, int y, enum text_cursor_kinds cursor_type, int cursor_width, bool on_p,
+/// bool active_p)` - C 6657's `on_p` guard, C 6659-6675's system-caret choice (with C 6667's
+/// `erase_phys_cursor` and the chained store of C 6669), C 6677's flag, C 6682-6714's active-cursor
+/// block (the face lookup, the four `w32_system_caret_*` stores, C 6699-6700's font choice and C
+/// 6702-6713's four `PostMessage` calls), C 6716-6724's fringe branch and C 6726-6750's
+/// `switch (cursor_type)` with its five labels and C's own `default:` abort.  C's `x` and `y`
+/// parameters are unread in C's body too (`-Wunused-parameter`; the file's `unused_variables`
+/// covers them), so the port keeps C's names and no use.
+/// C: static void
+/// C: w32_draw_window_cursor (struct window *w, struct glyph_row *glyph_row,
+/// C: 			int x, int y, enum text_cursor_kinds cursor_type,
+/// C: 			int cursor_width, bool on_p, bool active_p)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
+				  x: c_int, y: c_int, mut cursor_type: text_cursor_kinds,
+				  cursor_width: c_int, on_p: bool, active_p: bool)
+{
+  if on_p                                                              // C 6657
+    {
+      /* If the user wants to use the system caret, make sure our own
+	 cursor remains invisible.  */
+      if w32_use_visible_system_caret                                  // C 6661
+	{
+	  /* Call to erase_phys_cursor here seems to use the
+	     wrong values of w->phys_cursor, as they have been
+	     overwritten before this function was called. */
+	  if (*w).phys_cursor_type != NO_CURSOR                        // C 6666
+	    { erase_phys_cursor (w); }                                 // C 6667
+
+	  /* C's chained `cursor_type = w->phys_cursor_type = NO_CURSOR;` is its own two stores.  */
+	  (*w).phys_cursor_type = NO_CURSOR;                          // C 6669
+	  cursor_type = NO_CURSOR;                                    // C 6669
+	  (*w).phys_cursor_width = -1;                                // C 6670
+	}
+      else
+	{
+	  (*w).phys_cursor_type = cursor_type;                        // C 6674
+	}
+
+      window_bits! (phys_cursor_on_p, w, true);                       // C 6677
+
+      /* If this is the active cursor, we need to track it with the
+	 system caret, so third party software like screen magnifiers
+	 and speech synthesizers can follow the cursor.  */
+      if active_p                                                     // C 6682
+	{
+	  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                // C 6684
+	  let face_id: c_int = lookup_basic_face (w, f, DEFAULT_FACE_ID);   // C 6685
+	  let face: *mut face = FACE_FROM_ID_OR_NULL (f, face_id);        // C 6686
+	  let hwnd: HWND = FRAME_W32_WINDOW! (f);                         // C 6687
+
+	  w32_system_caret_x
+	    = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);      // C 6689-6690
+	  w32_system_caret_y
+	    = (WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y)           // C 6692
+	       + (*glyph_row).ascent as c_int - (*w).phys_cursor_ascent);   // C 6693
+	  w32_system_caret_window = w;                                    // C 6694
+	  w32_system_caret_hdr_height = WINDOW_TAB_LINE_HEIGHT! (w)       // C 6695
+	    + WINDOW_HEADER_LINE_HEIGHT! (w);                             // C 6696
+	  w32_system_caret_mode_height = WINDOW_MODE_LINE_HEIGHT! (w);    // C 6697
+
+	  w32_system_remap_font
+	    = if !face.is_null () && !(*face).font.is_null ()
+		{ (*face).font as *mut font } else { FRAME_FONT! (f) as *mut font };   // C 6699-6700
+
+	  PostMessage (hwnd, WM_IME_STARTCOMPOSITION as UINT, 0, 0);      // C 6702
+
+	  /* If the size of the active cursor changed, destroy the old
+	     system caret.  */
+	  if !w32_system_caret_hwnd.is_null ()                           // C 6706
+	      && w32_system_caret_height != (*w).phys_cursor_height      // C 6707
+	    { PostMessage (hwnd, WM_EMACS_DESTROY_CARET as UINT, 0, 0); }   // C 6708
+
+	  w32_system_caret_height = (*w).phys_cursor_height;              // C 6710
+
+	  /* Move the system caret.  */
+	  PostMessage (hwnd, WM_EMACS_TRACK_CARET as UINT, 0, 0);         // C 6713
+	}
+
+      if glyph_row_bits! (exact_window_width_line_p, glyph_row)       // C 6716
+	  && (if glyph_row_bits! (reversed_p, glyph_row)                  // C 6717
+		{ (*w).phys_cursor.hpos < 0 }                            // C 6718
+	      else { (*w).phys_cursor.hpos >= (*glyph_row).used[TEXT_AREA as usize] as c_int })   // C 6719
+	{
+	  glyph_row_bits! (cursor_in_fringe_p, glyph_row, true);          // C 6721
+	  draw_fringe_bitmap (w, glyph_row, glyph_row_bits! (reversed_p, glyph_row) as c_int);   // C 6722
+	  return;                                                        // C 6723
+	}
+
+      match cursor_type                                               // C 6726
+	{
+	  HOLLOW_BOX_CURSOR =>                                        // C 6728
+	    { w32_draw_hollow_cursor (w, glyph_row); }                // C 6729
+
+	  FILLED_BOX_CURSOR =>                                        // C 6732
+	    { draw_phys_cursor_glyph (w, glyph_row, DRAW_CURSOR); }    // C 6733
+
+	  BAR_CURSOR =>                                               // C 6736
+	    { w32_draw_bar_cursor (w, glyph_row, cursor_width, BAR_CURSOR); }   // C 6737
+
+	  HBAR_CURSOR =>                                              // C 6740
+	    { w32_draw_bar_cursor (w, glyph_row, cursor_width, HBAR_CURSOR); }   // C 6741
+
+	  NO_CURSOR =>                                                // C 6744
+	    { (*w).phys_cursor_width = 0; }                           // C 6745
+
+	  /* C's `default:` (C 6748-6749).  */
+	  _ => { emacs_abort (); }
+	}
+    }
+}
+
+/* C 6755-6758's "Icons" banner and `static bool w32_bitmap_icon (struct frame *f, Lisp_Object
+   icon)` open the next slice.  */

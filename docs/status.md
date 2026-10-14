@@ -20271,3 +20271,11 @@
   ⑦ 十门全 `rc=0`、0 失败；区间表拆为 `5130-6458`（本片）+ `6460-8414`（余项）；台账追加 **`### Slice 16 (C 5130-6458)`**，`macro-body-notes.tsv` 追加 `w32_read_socket` 与 `w32_scroll_bar_clear` 两行。
   ⑧ 预算与清理：`build-tu` 2 发、臂读数 5 发（含 3 次注入实验与 4 次修正后复测）、`--check` 1 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w16`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED；`have_ntgui` 臂的 `struct frame` 旗标运行仍未被镜像建模（C 355-363 的三个旗标留待那次测量）。
+- **4.321 `src/w32term.c` 第 17 片（w32term lane，slice 17）：C 6460-6752 落地——Text Cursor 组：`w32_clip_to_row`、`w32_draw_hollow_cursor`、`w32_draw_bar_cursor`（含 image 臂与 `BAR_CURSOR`/`HBAR_CURSOR` 两分支）、`w32_define_frame_cursor`、`w32_clear_frame_area`、`w32_draw_window_cursor`（RIF 入口：系统插入符块 + 五标签 `switch (cursor_type)`）；w32term.rs 9,057 → 9,457 行（+400，2026-10-15）**：
+  ① 六个定义退掉六条 `missing function` 行（41 → **35**）。
+  ② 镜像没有的五条原型照 P-88 ① 站到用例处（`src/xterm.rs` 38828-38833 的形状）：`get_phys_cursor_glyph`、`get_phys_cursor_geometry`、`draw_phys_cursor_glyph`、`erase_phys_cursor`、`draw_fringe_bitmap`，外加 `<wingdi.h>` 的 `FrameRect` 与 `<imm.h>` 的 `WM_IME_STARTCOMPOSITION`（SDK 记录 UNVERIFIED）；`FACE_FROM_ID` 按 dispextern.h 第二条 `INLINE` 的「每单元一份」惯例补进本单元（`src/xterm.rs` 38843 形状，保留 C 的 `eassert`）。
+  ③ C 的未初始化出参一律清零（PORTING.md 1.5）：C 6478/6500/6605 三组共九个——首稿的 **9 条 `E0381`** 正是此处；C 6719 的 `used[TEXT_AREA]` 需 `i16 → c_int` 窄化。C 6669 的链式赋值 `cursor_type = w->phys_cursor_type = NO_CURSOR;` 写作 C 自己的两条语句（内层在前）。`window_bits!` 增加 C 418 的 `phys_cursor_on_p` 读写臂。
+  ④ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本**。`extract-abi.py --check`：**45 → 44 行**（`missing function` 41 → **35**）；行数行读作 **12.4%**（9,457 : 8,414）——Rust 已超过 C，此比率从本片起转为随行数增长（slice 16 的 7.6% 是端口还短于参照时的读数）。
+  ⑤ 十门全 `rc=0`、0 失败；区间表拆为 `6460-6752`（本片）+ `6754-8414`（余项）；台账追加 **`### Slice 17 (C 6460-6752)`**，`macro-body-notes.tsv` 追加 `w32_draw_window_cursor` 一行。
+  ⑥ 预算与清理：`build-tu` 2 发、臂读数 3 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w17`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
