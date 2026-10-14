@@ -15920,3 +15920,176 @@ unsafe fn get_console_font_size (hscreen: HANDLE, font_width: *mut c_int, // C 1
 	}                                                                      // C 10936
     }                                                                   // C 10937
 }                                                                       // C 10938
+
+
+/* C 10939's blank, C 10940-10945's comment (C's own text) and C 10946-11014's `w32_reexec_emacs` -
+   the re-exec path, which C 10994's `chdir` reaches because C 52's `#undef chdir` cancels
+   `ms-w32.h`'s `#define chdir sys_chdir` (so the CRT's `chdir` is the callee, and the in-graph
+   `lib/include/unistd.in.rs` 57 declares it).  New in-unit records and constants, none of which any
+   mirror in this unit's graph carries: `STARTUPINFO` (all eighteen members, because the OS writes
+   the whole record - the `nt/runemacs.rs` 164 shape), `SECURITY_ATTRIBUTES` (C 10998-10999's two
+   `NULL` arguments), `SMALL_RECT`/`CONSOLE_SCREEN_BUFFER_INFO` (the `src/w32console.rs` 174/204
+   shapes), `GetStartupInfo`, `GetConsoleScreenBufferInfo`, `CreateProcess` (C's macro target, the
+   `nt/runemacs.rs` 291 shape) and the four `<winbase.h>` values.  All `UNVERIFIED` (Owed 54).  */
+/// C 10952/10989/10980: the creation flags and `STARTUPINFO.dwFlags` bits C's body names
+/// (`<winbase.h>`).
+/// C: #define NORMAL_PRIORITY_CLASS 0x00000020
+/// C: #define CREATE_NEW_CONSOLE 0x00000010
+/// C: #define STARTF_USESIZE 0x00000002
+/// C: #define STARTF_USECOUNTCHARS 0x00000008
+#[cfg (feature = "windowsnt")]
+pub const NORMAL_PRIORITY_CLASS: DWORD = 0x00000020;
+#[cfg (feature = "windowsnt")]
+pub const CREATE_NEW_CONSOLE: DWORD = 0x00000010;
+#[cfg (feature = "windowsnt")]
+pub const STARTF_USESIZE: DWORD = 0x00000002;
+#[cfg (feature = "windowsnt")]
+pub const STARTF_USECOUNTCHARS: DWORD = 0x00000008;
+/// C: typedef struct _STARTUPINFOA { DWORD cb; LPSTR lpReserved, lpDesktop, lpTitle; DWORD dwX, dwY,
+/// C:   dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags; WORD wShowWindow,
+/// C:   cbReserved2; LPBYTE lpReserved2; HANDLE hStdInput, hStdOutput, hStdError; } STARTUPINFOA;
+/// Every member is carried because `GetStartupInfo` writes the whole record.
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct STARTUPINFO
+{
+  pub cb: DWORD,
+  pub lpReserved: LPSTR,
+  pub lpDesktop: LPSTR,
+  pub lpTitle: LPSTR,
+  pub dwX: DWORD,
+  pub dwY: DWORD,
+  pub dwXSize: DWORD,
+  pub dwYSize: DWORD,
+  pub dwXCountChars: DWORD,
+  pub dwYCountChars: DWORD,
+  pub dwFillAttribute: DWORD,
+  pub dwFlags: DWORD,
+  pub wShowWindow: WORD,
+  pub cbReserved2: WORD,
+  pub lpReserved2: *mut u8,      /* C: LPBYTE lpReserved2; */
+  pub hStdInput: HANDLE,
+  pub hStdOutput: HANDLE,
+  pub hStdError: HANDLE,
+}
+/// C: typedef struct _SECURITY_ATTRIBUTES { DWORD nLength; LPVOID lpSecurityDescriptor;
+/// C:   BOOL bInheritHandle; } SECURITY_ATTRIBUTES, *PSECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SECURITY_ATTRIBUTES
+{
+  pub nLength: DWORD,
+  pub lpSecurityDescriptor: LPVOID,
+  pub bInheritHandle: BOOL,
+}
+/// C: typedef struct _SMALL_RECT { SHORT Left; SHORT Top; SHORT Right; SHORT Bottom; } SMALL_RECT;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SMALL_RECT
+{
+  pub Left: c_short,
+  pub Top: c_short,
+  pub Right: c_short,
+  pub Bottom: c_short,
+}
+/// C: typedef struct _CONSOLE_SCREEN_BUFFER_INFO { COORD dwSize; COORD dwCursorPosition; WORD
+/// C:   wAttributes; SMALL_RECT srWindow; COORD dwMaximumWindowSize; } CONSOLE_SCREEN_BUFFER_INFO;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CONSOLE_SCREEN_BUFFER_INFO
+{
+  pub dwSize: COORD,
+  pub dwCursorPosition: COORD,
+  pub wAttributes: WORD,
+  pub srWindow: SMALL_RECT,
+  pub dwMaximumWindowSize: COORD,
+}
+/// C 10954/10965/10996: the three entry points this body calls (`<winbase.h>`/`<wincon.h>`).
+/// C: WINBASEAPI VOID WINAPI GetStartupInfoA (LPSTARTUPINFOA lpStartupInfo);
+/// C: WINBASEAPI BOOL WINAPI GetConsoleScreenBufferInfo (HANDLE hConsoleOutput,
+/// C:   PCONSOLE_SCREEN_BUFFER_INFO lpConsoleScreenBufferInfo);
+/// C: WINBASEAPI BOOL WINAPI CreateProcessA (LPCSTR lpApplicationName, LPSTR lpCommandLine,
+/// C:   LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes,
+/// C:   BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, LPCSTR lpCurrentDirectory,
+/// C:   LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetStartupInfo (lpStartupInfo: *mut STARTUPINFO);
+  pub fn GetConsoleScreenBufferInfo (hConsoleOutput: HANDLE,
+				     lpConsoleScreenBufferInfo: *mut CONSOLE_SCREEN_BUFFER_INFO) -> BOOL;
+  pub fn CreateProcess (lpApplicationName: LPCSTR, lpCommandLine: LPSTR,
+			lpProcessAttributes: *mut SECURITY_ATTRIBUTES,
+			lpThreadAttributes: *mut SECURITY_ATTRIBUTES, bInheritHandles: BOOL,
+			dwCreationFlags: DWORD, lpEnvironment: LPVOID,
+			lpCurrentDirectory: LPCSTR, lpStartupInfo: *mut STARTUPINFO,
+			lpProcessInformation: *mut PROCESS_INFORMATION) -> BOOL;
+}
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_reexec_emacs (cmd_line: *mut c_char, wdir: *const c_char) // C 10946-10947
+	-> c_int
+{                                                                       // C 10948
+  let mut si: STARTUPINFO = core::mem::zeroed ();                       // C 10949 (C's uninitialised local, PORTING.md 1.5)
+  let mut status: BOOL;                                                 // C 10950
+  let mut proc_info: PROCESS_INFORMATION = core::mem::zeroed ();        // C 10951 (C's uninitialised local, PORTING.md 1.5)
+  let mut dwCreationFlags: DWORD = NORMAL_PRIORITY_CLASS;               // C 10952
+
+  GetStartupInfo (&raw mut si);                                         // C 10954 (C's `/* Use the same startup info as the caller.  */`)
+  /* Reset undocumented bits in STARTUPINFO flags, as they could cause a // C 10955
+     crash in the re-exec'ed Emacs.  */                                 // C 10956
+  si.dwFlags &= 0xbbff;                                                 // C 10957 (C's `/* reset the 0x4000 and 0x0400 bits */`)
+  if inhibit_window_system                                              // C 10958
+    {                                                                   // C 10959
+      let mut screen_handle: HANDLE;                                    // C 10960
+      let mut screen_info: CONSOLE_SCREEN_BUFFER_INFO = core::mem::zeroed (); // C 10961 (C's uninitialised local)
+
+      screen_handle = GetStdHandle (STD_OUTPUT_HANDLE);                 // C 10963
+      if screen_handle != INVALID_HANDLE_VALUE                          // C 10964
+	  && GetConsoleScreenBufferInfo (screen_handle, &raw mut screen_info) != 0 // C 10965 (C's truth test)
+	{                                                                      // C 10966
+	  let mut font_width: c_int = 0; let mut font_height: c_int = 0;       // C 10967
+
+	  /* Make the restarted Emacs's console window the same                // C 10969
+	     dimensions as ours.  */                                           // C 10970
+	  si.dwXCountChars = screen_info.dwSize.X as DWORD;                    // C 10971 (C's `short` -> `DWORD`)
+	  si.dwYCountChars = screen_info.dwSize.Y as DWORD;                    // C 10972
+	  get_console_font_size (screen_handle, &raw mut font_width, &raw mut font_height); // C 10973
+	  si.dwXSize =                                                         // C 10974
+	    (((screen_info.srWindow.Right - screen_info.srWindow.Left + 1) as c_int) // C 10975
+	     * font_width) as DWORD;                                           // C 10976
+	  si.dwYSize =                                                         // C 10977
+	    (((screen_info.srWindow.Bottom - screen_info.srWindow.Top + 1) as c_int) // C 10978
+	     * font_height) as DWORD;                                          // C 10979
+	  si.dwFlags |= STARTF_USESIZE | STARTF_USECOUNTCHARS;                 // C 10980
+	}                                                                      // C 10981
+      /* This is a kludge: it causes the restarted "emacs -nw" to have  // C 10982
+	 a new console window created for it, and that new window              // C 10983
+	 might have different (default) properties, not the ones of            // C 10984
+	 the parent process's console window.  But without this,               // C 10985
+	 restarting Emacs in the -nw mode simply doesn't work,                 // C 10986
+	 probably because the parent's console is still in use.                // C 10987
+	 FIXME!  */                                                            // C 10988
+      dwCreationFlags = CREATE_NEW_CONSOLE;                             // C 10989
+    }                                                                   // C 10990
+
+  /* Make sure we are in the original directory, in case the command    // C 10992
+     line specifies the program as a relative file name.  */            // C 10993
+  chdir (wdir);                                                         // C 10994 (C's `#undef chdir` makes this the CRT's, not `sys_chdir`)
+
+  status = CreateProcess (std::ptr::null (), cmd_line, std::ptr::null_mut (), // C 10996 (C's `/* no program, take from command line */`)
+			  std::ptr::null_mut (), FALSE, dwCreationFlags,                     // C 10999 (C's `/* thread attributes */`)
+			  std::ptr::null_mut (), wdir, &raw mut si,                          // C 11003 (C's `/* initial directory */`)
+			  &raw mut proc_info);                                               // C 11005
+  if status != 0                                                        // C 11006 (C's truth test)
+    {                                                                   // C 11007
+      CloseHandle (proc_info.hThread);                                  // C 11008
+      CloseHandle (proc_info.hProcess);                                 // C 11009
+      exit (0);                                                         // C 11010
+    }                                                                   // C 11011
+  *errno () = ENOEXEC;                                                  // C 11012
+  return -1;                                                            // C 11013
+}                                                                       // C 11014
