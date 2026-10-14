@@ -13040,3 +13040,81 @@ DEFUN! ("system-move-file-to-trash", Fsystem_move_file_to_trash,
  ***********************************************************************/
  */
 
+
+/// C: #define WM_SYSCOMMAND 0x0112 - the `<winuser.h>` message C 8685 posts.
+#[cfg (feature = "have_ntgui")]
+pub const WM_SYSCOMMAND: UINT = 0x0112;
+
+/// C 8691's `static BOOL (WINAPI *pfnShellExecuteExW) (LPSHELLEXECUTEINFOW);` and the
+/// `<shellapi.h>` record it names - C 8765+'s `w32-shell-execute` fills every member, so the
+/// record is declared in full now (`nShow` is C's `int`, `dwHotKey` a `DWORD`, and C's
+/// `DUMMYUNIONNAME` is the anonymous union of `hIcon`/`hMonitor`, carried as a Rust `union` with
+/// the same two names).  The pointer's storage is `Option<…>` (a C function pointer may be NULL);
+/// `globals_of_w32fns` is what assigns it.
+/// C: typedef struct _SHELLEXECUTEINFOW { DWORD cbSize; ULONG fMask; HWND hwnd; LPCWSTR lpVerb;
+/// C: LPCWSTR lpFile; LPCWSTR lpParameters; LPCWSTR lpDirectory; int nShow; HINSTANCE hInstApp;
+/// C: LPVOID lpIDList; LPCWSTR lpClass; HKEY hkeyClass; DWORD dwHotKey;
+/// C: union { HANDLE hIcon; HANDLE hMonitor; } DUMMYUNIONNAME; HANDLE hProcess; }
+/// C: SHELLEXECUTEINFOW, *LPSHELLEXECUTEINFOW;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union SHELLEXECUTEINFOW_union
+{
+  pub hIcon: HANDLE,
+  pub hMonitor: HANDLE,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SHELLEXECUTEINFOW
+{
+  pub cbSize: DWORD,
+  pub fMask: c_ulong,
+  pub hwnd: HWND,
+  pub lpVerb: *const c_ushort,
+  pub lpFile: *const c_ushort,
+  pub lpParameters: *const c_ushort,
+  pub lpDirectory: *const c_ushort,
+  pub nShow: c_int,
+  pub hInstApp: HINSTANCE,
+  pub lpIDList: LPVOID,
+  pub lpClass: *const c_ushort,
+  pub hkeyClass: HKEY,
+  pub dwHotKey: DWORD,
+  pub r#DUMMYUNIONNAME: SHELLEXECUTEINFOW_union,
+  pub hProcess: HANDLE,
+}
+#[cfg (feature = "have_ntgui")]
+pub type LPSHELLEXECUTEINFOW = *mut SHELLEXECUTEINFOW;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+pub type PFNSHELLEXECUTEEXW
+  = Option<unsafe extern "system" fn (lpExecInfo: *mut SHELLEXECUTEINFOW) -> BOOL>;
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+static mut pfnShellExecuteExW: PFNSHELLEXECUTEEXW = None;
+
+/// C 8669-8688: `w32-send-sys-command` - C 8680's `decode_window_system_frame`, C 8682's
+/// `CHECK_FIXNUM`, C 8684-8685's `FRAME_W32_P` test and its `PostMessage` (declared above as
+/// `<winuser.h>`'s) with C's `XFIXNUM (command)` narrowed into the `WPARAM` parameter.
+/// C: DEFUN ("w32-send-sys-command", Fw32_send_sys_command,
+/// C:        Sw32_send_sys_command, 1, 2, 0,
+/// C:        doc: /* Send frame a Windows WM_SYSCOMMAND message of type COMMAND. … */)
+/// C:   (Lisp_Object command, Lisp_Object frame)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-send-sys-command", Fw32_send_sys_command,
+	Sw32_send_sys_command, 1, 2, 0,
+	doc: "Send frame a Windows WM_SYSCOMMAND message of type COMMAND.\nSome useful values for COMMAND are #xf030 to maximize frame (#xf020\nto minimize), #xf120 to restore frame to original size, and #xf100\nto activate the menubar for keyboard access.  #xf140 activates the\nscreen saver if defined.\n\nIf optional parameter FRAME is not specified, use selected frame.  ",
+	(command: Lisp_Object, frame: Lisp_Object),
+	{
+  let f: *mut frame = decode_window_system_frame (frame);
+
+  CHECK_FIXNUM (command);
+
+  if FRAME_W32_P (f)
+    { PostMessage (FRAME_W32_WINDOW! (f), WM_SYSCOMMAND, XFIXNUM (command) as WPARAM, 0); }
+
+  return Qnil ();
+});
+
+/* C 8690-8692's `#ifndef CYGWIN` / `#endif` are the two `not (feature = "cygwin")` attributes on
+   `PFNSHELLEXECUTEEXW` and its storage above; C's `#endif` line itself has no counterpart.  */

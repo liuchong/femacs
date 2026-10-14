@@ -219,7 +219,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 8116-8262 | C 8116-8118's File-selection-dialog banner, C 8120-8122's three `FILE_NAME_*` definitions, `file_dialog_callback` (C 8124-8221, both `NTGUI_UNICODE` arms) and `w32_dialog_in_progress` (C 8223-8262) - slice 15 | file gate; the `W`/`A` arms stay text (`cygwin` names C's `NTGUI_UNICODE`) |
 | 8264-8554 | C 8264-8554: the `x-file-dialog` `DEFUN` - the file's third-largest, with C 8284-8305's two wrapper records, C 8269-8271's filter strings, the `NTGUI_UNICODE`/`CYGWIN` arms and the three bare `alloca`s - slice 16 | file gate; the `cygwin` arms stay text (`cygwin` names C's `NTGUI_UNICODE`/`CYGWIN`) |
 | 8556-8667 | C 8556-8660: C's `#ifdef WINDOWSNT` block - the lazily bound `pfnSHFileOperationW` and the `system-move-file-to-trash` `DEFUN` - then C 8662's `#endif` (no Rust counterpart) and C 8664-8667's banner - slice 17 | `windowsnt` on every item of the block |
-| 8669-12488 | **the remainder of the file** (C 8669 `w32-send-sys-command` onward: C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 8669-8692 | C 8669-8688's `w32-send-sys-command` `DEFUN` and C 8690-8692's `#ifndef CYGWIN` with its `pfnShellExecuteExW` declaration (C 8692's `#endif` has no counterpart - the two attributes carry it) - slice 18 | file gate; `not (feature = "cygwin")` on the declaration |
+| 8694-12488 | **the remainder of the file** (C 8694's `w32-shell-execute` `DEFUN` onward: C 9581's neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2135,6 +2136,57 @@ over the new region reads `missing: []` after triage (its one candidate is `DEFU
   wrapper comment, the `#endif` recorded in the range table rather than spelled).
 - **Not claimed.**  No run evidence: nothing is moved to the recycle bin on this machine
   (`SHFileOperationA/W` are never called), the arm reading is compile-level.
+
+## Slice 18 (C 8669-8692)
+
+**Scope and the stop.**  C 8669-8688's `w32-send-sys-command` - the first `DEFUN` of the "w32
+specialized functions" block - and C 8690-8692's `#ifndef CYGWIN` with C 8691's
+`pfnShellExecuteExW` declaration.  The stop is C 8694's `w32-shell-execute` `DEFUN` (C 8693 blank).
+
+**What the item carries.**  C 8680's `decode_window_system_frame`, C 8682's `CHECK_FIXNUM`,
+C 8684-8685's `FRAME_W32_P` test and `PostMessage` (already declared above as `<winuser.h>`'s)
+with C's `XFIXNUM (command)` narrowed into the `WPARAM` parameter; and C 8691's pointer, whose
+storage is the `Option<PFNSHELLEXECUTEEXW>` static `globals_of_w32fns` assigns.  New surface:
+`WM_SYSCOMMAND` (0x0112), `PFNSHELLEXECUTEEXW`, and the `<shellapi.h>` `SHELLEXECUTEINFOW` record -
+declared in full, with C's `DUMMYUNIONNAME` as the Rust union `SHELLEXECUTEINFOW_union`, because
+C 8694's `w32-shell-execute` fills every member next.
+
+### Evidence (slice 18, the final revision: 13,120 Rust lines)
+
+**① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the same count slices
+16 and 17 left, with **no unit-local fix needed at all** this time: the declaration, the record and
+the DEFUN all resolved on the first reading.  One probe run.
+
+**③ `extract-abi.py --check`.**  150 rows → **149**, with one swap inside the count:
+`missing subr Fw32_send_sys_command` retires, and the file's **first `line count drifted` row**
+appears (5.1%: C 12,488 vs Rust 13,120 - the port is now longer than the C file).  That row is
+closed the documented way, by a new `docs/ports/line-drift-tolerance.tsv` row for `w32fns`
+(tolerance **0.35**, basis **total**) whose reason names what the extra lines are: both arms of
+every `#if` (the file gate plus the six nested features), the per-item `/// C:` doc comments, the
+per-slice declaration blocks with one citation per prototype, the `[repr(C)]` records and the
+`[u16]`/`[c_char]` arrays C spells as literals.  The check uses `max (0.05, tolerance)`, so the row
+also covers the growth the file's remaining 3,800 C lines will bring.
+
+**④ The range table and the dead-file gate.**  The `8694-12488` remainder row's predecessor
+splits into `8669-8692` (this slice, with C 8692's `#endif` recorded as having no counterpart - the
+two attributes carry it) and `8694-12488`; `check-dead-file-coverage.py` reads **167 range row(s)
+cover src/w32fns.c (12488 lines; 114 blank line(s) between blocks need no row)**, `0 failure(s)`.
+Ten gates read 0 failures, and the name sweep reads `missing: []` after triage (`Clone`/`Copy` are
+the derive arguments, `Sw32_send_sys_command` is `DEFUN!`'s own static).
+
+### Deviations (slice 18)
+
+- **`SHELLEXECUTEINFOW` is declared ahead of its only user** (C 8694's `w32-shell-execute`, the next
+  slice): C declares the record in `<shellapi.h>`, and this file's text needs the *type* here for
+  C 8691's pointer, so the record lands with that declaration rather than with its first write.
+- **C's anonymous union is a Rust `union`** (`SHELLEXECUTEINFOW_union`, both names kept).
+- **The file's line-count tolerance row is new** (`docs/ports/line-drift-tolerance.tsv`, 0.35/total):
+  the port's target crossed the checker's 5% window at this slice, and the row's reason is what the
+  extra lines are made of.
+- **Not claimed.**  No run evidence: no `WM_SYSCOMMAND` message is posted on this machine, and
+  `pfnShellExecuteExW` is never called; the arm reading is compile-level.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
