@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**3209 lines**, md5 `bbda20c25b167b0b6746117529a830cb`), carrying
-> **C 1-2121** - P-86 ④'s first eight slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**3420 lines**, md5 `e944edb8b00997d20f15363d545b7589`), carrying
+> **C 1-2205** - P-86 ④'s first nine slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -121,7 +121,8 @@ which `check-dead-file-coverage.py` requires):
 | 1695-1832 | the child-process block's opening: C 1695-1823's subprocess/network overview comment (the file's longest banner, carried as C's own text), C 1825-1826's `_P_NOWAIT`, C 1828-1830's child-process management list (`child_proc_count`, `child_procs[MAX_CHILDREN]`) and C 1832's `reader_thread` forward declaration (dropped, 0.1-12) | file gate (slice 6); the record and the array's bound are the mirror's (`include/w32.rs` 326-355 / 242), not re-spelled here (0.1-3) |
 | 1834-2115 | the child-process block's five working functions: C 1834-1933's `new_child`, C 1935-1998's `delete_child` (with its C 1958-1969 `#if 0` region carried as C's text and its `fd_info` guard), C 2000-2011's `find_child_pid`, C 2013-2024's `release_listen_threads` and C 2026-2115's `reader_thread` | file gate (slice 7); the unit spells `w32.h` 74-113's `child_process` record and the three SDK records it embeds (the mirror defers it - Deviations 47), the two `goto Initialize` jumps become `break 'initialize` (Deviations 48, notes row), and `fd_info`'s deferred `*mut c_void` member is cast as the mirror's note spells it (Deviations 49) |
 | 2117-2121 | `process_dir`: C 2117-2120's four-line comment (carried as C's own text) and C 2121's file-scope `static char *` | file gate (slice 8); the object is the `create_child` reader's and `set_process_dir`'s writer, both past this slice |
-| 2123-4903 | **the remainder of the file** - `create_child` (C 2123) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `create_child`, `register_child`, `reap_subprocess`, `waitpid` (C 2276), `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2123-2205 | `create_child`: the process-creation function (its `HAVE_NTGUI` arm, its two `#if 0` regions carried as C's text, the `filename_to_ansi`/`CharNextA` path fix-up, the batch-file `exe` clearing, the three create flags and C 2202-2204's `EH_Fail:` tail) | file gate (slice 9); the round's use-site `<windows.h>`/`<winbase.h>`/`<winuser.h>` block spells `STARTUPINFO`, `SECURITY_ATTRIBUTES`, `MAX_PATH`, the nine constants and the three entry points (Deviations 50), and `xstrcasecmp` stands there with `dispextern.h` 104's citation (Deviations 51) |
+| 2207-4903 | **the remainder of the file** - C 2207-2211's `register_child` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `register_child`, `reap_subprocess`, `waitpid` (C 2276), `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -786,3 +787,75 @@ measured one, not a stale one.
     a reader in this unit, given `include/globals.rs` is not in its graph, is the question this
     round's name check must answer before the body is written).  Every one is the `P-88` ①
     `UNVERIFIED` class on this machine.
+
+## Slice 9 (2026-10-14, status 4.288): C 2123-2205
+
+**What this round is.**  `create_child` - the one place this file starts a process, and the round
+that had to answer the two scope questions slice 8 left open: `xstrcasecmp` (the mirror carries it
+in `include/dispextern.rs`, which this unit's graph does not include - this file names
+`dispextern.h` nowhere) and the three `Vw32_start_process_*` globals.  Port: 3,209 -> **3,420
+lines** (+211, of which 108 are the SDK block of Deviations 50).  The next row's first item is
+C 2207's `register_child` comment.
+
+**The two questions, answered from the tree (this round's first readings).**
+
+  * **The three globals need no declaration here.**  `include/globals.rs` declares them
+    (`Vw32_start_process_show_window` at its 6838, inside `pub mod variables`, glob-imported at its
+    7208) and `include/lisp.rs` 690 includes that mirror - which this unit already includes at its
+    C 57 line - so C 2143/2183/2186's three names resolve exactly as `src/w32.rs` 5919's
+    `Vw32_downcase_file_names` does.  The same unit *defines* them at C 4809-4826, so the reader and
+    the writer are one file, as in C.
+  * **`xstrcasecmp` is declared at the use site with C's own citation** (`dispextern.h` 104), the
+    device `src/xfns.rs` 10563 and `src/fontset.rs` 108 already use for units whose graph has no
+    `dispextern.rs`; the definition is `src/font.rs` 298's / `include/dispextern.rs` 2648's.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the ninth identical reading, and the first one that
+could have moved: the round adds 108 lines of SDK declarations, and a wrong name there would have
+shown as an `E0428` (the class the probe *does* report).
+
+**Evidence ③ - the name sweep, and the `#if 0` text it reads.**  `check-unit-names.py
+femacs/src/w32proc.rs 3210 3420` -> `34 capitalized identifiers, missing: ['EH_Fail',
+'InitializeSecurityDescriptor', 'SECURITY_DESCRIPTOR_REVISION', 'SetSecurityDescriptorDacl']` - the
+four names of the C 2154-2160 `#if 0` region, i.e. the tool's documented **nested-comment** false
+positive: that region carries an inner `/* … */`, so the scanner ends the comment early and reads
+its tail (`goto EH_Fail`, the two `SECURITY_DESCRIPTOR` entries) as code.  The control is inside the
+same round: C 2129-2131's region has **no** inner comment and its `SECURITY_DESCRIPTOR` is *not*
+reported.  Both are carried as C's own text (P-51, the file's reading for a region no configuration
+compiles).
+
+**Evidence ④ - the `--check` reading.**  **84 -> 83 `- missing` rows** (`missing function
+create_child` retires), plus one new token row - `function create_child does not mention goto`,
+recorded in `docs/ports/macro-body-notes.tsv`.  Drift 34.6% -> **30.2%**, inside the stem's 0.36
+row (the row is still the measured one, +0.01 at slice 7).
+
+**Deviations (this slice's additions).**
+
+50. **The round's use-site SDK block** (P-88 ①): `STARTUPINFO` (eighteen members, C 2127's record)
+    and `SECURITY_ATTRIBUTES` (C 2128's), `MAX_PATH` (C 2133), `STARTF_USESTDHANDLES`,
+    `STARTF_USESHOWWINDOW`, `SW_HIDE`, the three `STD_*_HANDLE` values, `CREATE_NEW_CONSOLE`,
+    `CREATE_NEW_PROCESS_GROUP`, `CREATE_DEFAULT_ERROR_MODE`, and `CreateProcessA`, `GetStdHandle`,
+    `CharNextA`.  No mirror in this unit's graph carries any of them; every value is
+    **UNVERIFIED** (no Windows SDK on this machine), and `CreateProcessA`'s two
+    `LPSECURITY_ATTRIBUTES` parameters are spelled `*mut SECURITY_ATTRIBUTES` because this round
+    spells the record (the top block's `LPSECURITY_ATTRIBUTES` is the deferred `*mut c_void` and
+    stays for the callers that pass one through).
+51. **`xstrcasecmp` stands at the use site** (the round's second question): C's `dispextern.h` 104
+    inline, declared `unsafe extern "C"` with that citation, exactly as `src/xfns.rs` 10563 and
+    `src/fontset.rs` 108 declare it for units whose include graph has no `dispextern.rs`.  This
+    file's C text names no `dispextern.h`, so nothing is included for it.
+52. **C 2203's `DebPrint` line carries a stray `;`** (`DebPrint ((...););`) that the port's macro
+    call cannot spell; the port writes the tuple C's own parentheses hold and the line's citation
+    records the difference.  C's own compilations accept it, so this is a transcription note, not a
+    behaviour change.
+
+**Owed (this slice's additions).**
+
+16. **`STARTUPINFO`'s 104 bytes and `SECURITY_ATTRIBUTES`' three members are unmeasured** (the
+    class P-88 ① names): the record this round spells is read by C's `start.cb` and passed to
+    `CreateProcessA`, so a Windows/mingw clang probe is what closes it - the same measurement the
+    mirror's deferred `child_process` note (its 34-42) and Deviations 47 already owe.

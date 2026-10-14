@@ -3207,3 +3207,214 @@ static mut process_dir: *mut c_char = core::ptr::null_mut ();
 
 /* C 2123's `create_child` (the `static BOOL` whose record block needs `<windows.h>`'s
    `STARTUPINFO`/`SECURITY_ATTRIBUTES` and `CreateProcessA`) opens the next slice.  */
+
+/* C 50's `<windows.h>`/`<winbase.h>`/`<winuser.h>`: the process-creation surface C 2123-2189 names,
+   none of which any mirror in this unit's graph carries (the same reading as the blocks above; no
+   Windows SDK on this machine, so every record and constant is UNVERIFIED, P-88 ①).  `STARTUPINFO`
+   and `SECURITY_ATTRIBUTES` are the two records C 2127-2128 place by value, `MAX_PATH` bounds C
+   2133's `dir`, the three `STARTF_*`/`SW_HIDE`/`STD_*` values are the `HAVE_NTGUI` arm's, and the
+   three `CREATE_*` flags are C 2183-2187's.  C 2188's `CreateProcessA`, C 2149-2151's
+   `GetStdHandle` and C 2170's `CharNextA` are the three entry points; `xstrcasecmp` is C
+   `dispextern.h` 104's inline (the `src/xfns.rs` 10563 / `src/fontset.rs` 108 device for a unit
+   whose include graph has no `dispextern.rs` - this file names `dispextern.h` nowhere).  */
+/// C: #define MAX_PATH 260
+/// C: typedef struct _STARTUPINFOA { DWORD cb; LPSTR lpReserved; LPSTR lpDesktop; LPSTR lpTitle;
+/// C:   DWORD dwX; DWORD dwY; DWORD dwXSize; DWORD dwYSize; DWORD dwXCountChars;
+/// C:   DWORD dwYCountChars; DWORD dwFillAttribute; DWORD dwFlags; WORD wShowWindow;
+/// C:   WORD cbReserved2; LPBYTE lpReserved2; HANDLE hStdInput; HANDLE hStdOutput;
+/// C:   HANDLE hStdError; } STARTUPINFO, *LPSTARTUPINFO;   [`<winbase.h>`; 104 bytes]
+/// C: typedef struct _SECURITY_ATTRIBUTES { DWORD nLength; LPVOID lpSecurityDescriptor;
+/// C:   BOOL bInheritHandle; } SECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;   [`<winbase.h>`]
+/// C: #define STARTF_USESHOWWINDOW 0x00000001
+/// C: #define STARTF_USESTDHANDLES 0x00000100
+/// C: #define SW_HIDE 0
+/// C: #define STD_INPUT_HANDLE ((DWORD) -10)
+/// C: #define STD_OUTPUT_HANDLE ((DWORD) -11)
+/// C: #define STD_ERROR_HANDLE ((DWORD) -12)
+/// C: #define CREATE_NEW_CONSOLE 0x00000010
+/// C: #define CREATE_NEW_PROCESS_GROUP 0x00000200
+/// C: #define CREATE_DEFAULT_ERROR_MODE 0x04000000
+#[cfg (feature = "windowsnt")]
+pub const MAX_PATH: c_int = 260;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct STARTUPINFO
+{
+  pub cb: DWORD,
+  pub lpReserved: LPSTR,
+  pub lpDesktop: LPSTR,
+  pub lpTitle: LPSTR,
+  pub dwX: DWORD,
+  pub dwY: DWORD,
+  pub dwXSize: DWORD,
+  pub dwYSize: DWORD,
+  pub dwXCountChars: DWORD,
+  pub dwYCountChars: DWORD,
+  pub dwFillAttribute: DWORD,
+  pub dwFlags: DWORD,
+  pub wShowWindow: WORD,
+  pub cbReserved2: WORD,
+  pub lpReserved2: LPBYTE,
+  pub hStdInput: HANDLE,
+  pub hStdOutput: HANDLE,
+  pub hStdError: HANDLE,
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct SECURITY_ATTRIBUTES
+{
+  pub nLength: DWORD,
+  pub lpSecurityDescriptor: LPVOID,
+  pub bInheritHandle: BOOL,
+}
+#[cfg (feature = "windowsnt")]
+pub const STARTF_USESHOWWINDOW: DWORD = 0x00000001;
+#[cfg (feature = "windowsnt")]
+pub const STARTF_USESTDHANDLES: DWORD = 0x00000100;
+#[cfg (feature = "windowsnt")]
+pub const SW_HIDE: WORD = 0;
+#[cfg (feature = "windowsnt")]
+pub const STD_INPUT_HANDLE: DWORD = -10i32 as DWORD;
+#[cfg (feature = "windowsnt")]
+pub const STD_OUTPUT_HANDLE: DWORD = -11i32 as DWORD;
+#[cfg (feature = "windowsnt")]
+pub const STD_ERROR_HANDLE: DWORD = -12i32 as DWORD;
+#[cfg (feature = "windowsnt")]
+pub const CREATE_NEW_CONSOLE: DWORD = 0x00000010;
+#[cfg (feature = "windowsnt")]
+pub const CREATE_NEW_PROCESS_GROUP: DWORD = 0x00000200;
+#[cfg (feature = "windowsnt")]
+pub const CREATE_DEFAULT_ERROR_MODE: DWORD = 0x04000000;
+/// C: WINBASEAPI BOOL WINAPI CreateProcessA (LPCSTR lpApplicationName, LPSTR lpCommandLine,
+/// C:   LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes,
+/// C:   BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment,
+/// C:   LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo,
+/// C:   LPPROCESS_INFORMATION lpProcessInformation);
+/// C: WINBASEAPI HANDLE WINAPI GetStdHandle (DWORD nStdHandle);
+/// C: WINUSERAPI LPSTR WINAPI CharNextA (LPCSTR lpsz);
+/// C: extern int xstrcasecmp (const char *, const char *);   [dispextern.h 104]
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn CreateProcessA (lpApplicationName: LPCSTR, lpCommandLine: LPSTR,
+                         lpProcessAttributes: *mut SECURITY_ATTRIBUTES,
+                         lpThreadAttributes: *mut SECURITY_ATTRIBUTES, bInheritHandles: BOOL,
+                         dwCreationFlags: DWORD, lpEnvironment: LPVOID,
+                         lpCurrentDirectory: LPCSTR, lpStartupInfo: *mut STARTUPINFO,
+                         lpProcessInformation: *mut PROCESS_INFORMATION) -> BOOL;
+  pub fn GetStdHandle (nStdHandle: DWORD) -> HANDLE;
+  pub fn CharNextA (lpsz: LPCSTR) -> LPSTR;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int;
+}
+
+/* C 2123-2205: `create_child` - the one place this file starts a process.  C's live body keeps its
+   order: the C 2137 abort guard, C 2139-2140's zeroed `STARTUPINFO` and its size, C 2142-2152's
+   `HAVE_NTGUI` arm (the two `dwFlags` spellings, `SW_HIDE` and the three standard handles), C
+   2154-2160's `#if 0` security region carried as C's text (P-51), C 2161-2163's
+   `SECURITY_ATTRIBUTES`, C 2165-2172's `filename_to_ansi`/`CharNextA` path fix-up, C 2174-2181's
+   batch-file `exe` clearing, C 2183-2187's three flags, C 2188-2190's `CreateProcessA`, C
+   2192-2199's pid fix-up and C 2200's `TRUE`, with C 2202-2204's `EH_Fail:` tail after it (both
+   `goto EH_Fail`s inside the carried region are dead text; C 2190's is the live one, and the port
+   spells the forward jump as `break 'eh_fail` - Deviations 48's device).
+   C 2129-2131's second `#if 0` declares `SECURITY_DESCRIPTOR sec_desc`; it is carried as C's text
+   with the other region, so the identifier appears in this file only inside that text.  */
+/// C: static BOOL
+/// C: create_child (char *exe, char *cmdline, char *env, int is_gui_app, pid_t * pPid,
+/// C:              child_process *cp)
+#[cfg (feature = "windowsnt")]
+unsafe fn create_child (exe: *mut c_char, cmdline: *mut c_char, env: *mut c_char,
+                        is_gui_app: c_int, pPid: *mut pid_t,
+                        cp: *mut child_process) -> BOOL
+{
+  let mut start: STARTUPINFO = core::mem::zeroed ();           // C 2127
+  let mut sec_attrs: SECURITY_ATTRIBUTES = core::mem::zeroed ();   // C 2128
+/* C 2129-2131:
+#if 0
+  SECURITY_DESCRIPTOR sec_desc;
+#endif
+*/
+  let mut flags: DWORD = 0;                                    // C 2132
+  let mut dir: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];   // C 2133
+  let mut p: *mut c_char = core::ptr::null_mut ();             // C 2134
+  let mut ext: *const c_char = core::ptr::null ();             // C 2135
+
+  if cp.is_null () { emacs_abort (); }                         // C 2137
+
+  memset (&raw mut start as *mut c_void, 0, core::mem::size_of::<STARTUPINFO> ());   // C 2139
+  start.cb = core::mem::size_of::<STARTUPINFO> () as DWORD;    // C 2140
+
+  #[cfg (feature = "have_ntgui")]
+  {
+    if NILP (Vw32_start_process_show_window) && is_gui_app == 0   // C 2143
+      { start.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW; }   // C 2144
+    else
+      { start.dwFlags = STARTF_USESTDHANDLES; }                // C 2146
+    start.wShowWindow = SW_HIDE;                               // C 2147
+
+    start.hStdInput = GetStdHandle (STD_INPUT_HANDLE);         // C 2149
+    start.hStdOutput = GetStdHandle (STD_OUTPUT_HANDLE);       // C 2150
+    start.hStdError = GetStdHandle (STD_ERROR_HANDLE);         // C 2151
+  }
+
+/* C 2154-2160:
+#if 0
+  /* Explicitly specify no security */
+  if (!InitializeSecurityDescriptor (&sec_desc, SECURITY_DESCRIPTOR_REVISION))
+    goto EH_Fail;
+  if (!SetSecurityDescriptorDacl (&sec_desc, TRUE, NULL, FALSE))
+    goto EH_Fail;
+#endif
+*/
+  sec_attrs.nLength = core::mem::size_of::<SECURITY_ATTRIBUTES> () as DWORD;   // C 2161
+  sec_attrs.lpSecurityDescriptor = core::ptr::null_mut ();     /* &sec_desc */    // C 2162
+  sec_attrs.bInheritHandle = FALSE;                            // C 2163
+
+  filename_to_ansi (process_dir, dir.as_mut_ptr ());           // C 2165
+  /* Can't use unixtodos_filename here, since that needs its file name
+     argument encoded in UTF-8.  OTOH, process_dir, which _is_ in
+     UTF-8, points, to the directory computed by our caller, and we
+     don't want to modify that, either.  */
+  p = dir.as_mut_ptr ();                                       // C 2170
+  while *p != 0
+    {
+      if *p == b'/' as c_char                                 // C 2171
+        { *p = b'\\' as c_char; }                            // C 2172
+      p = CharNextA (p);
+    }
+
+  /* CreateProcess handles batch files as exe specially.  This special
+     handling fails when both the batch file and arguments are quoted.
+     We pass NULL as exe to avoid the special handling.  */
+  if !exe.is_null () && *cmdline == b'"' as c_char             // C 2177
+      && { ext = strrchr (exe, b'.' as c_int); !ext.is_null () }   // C 2178
+      && (xstrcasecmp (ext, c".bat".as_ptr ()) == 0            // C 2179
+          || xstrcasecmp (ext, c".cmd".as_ptr ()) == 0)        // C 2180
+    { exe = core::ptr::null_mut (); }                          // C 2181
+
+  flags = if !NILP (Vw32_start_process_share_console)          // C 2183
+            { CREATE_NEW_PROCESS_GROUP }                       // C 2184
+          else
+            { CREATE_NEW_CONSOLE };                            // C 2185
+  if NILP (Vw32_start_process_inherit_error_mode)              // C 2186
+    { flags |= CREATE_DEFAULT_ERROR_MODE; }                    // C 2187
+  'eh_fail: {
+    if CreateProcessA (exe, cmdline, &raw mut sec_attrs, core::ptr::null_mut (), TRUE,
+                       flags, env, dir.as_mut_ptr (), &raw mut start,
+                       &raw mut (*cp).procinfo) == 0           // C 2188-2189
+      { break 'eh_fail; }                                      // C 2190 (C's `goto EH_Fail`)
+    (*cp).pid = (*cp).procinfo.dwProcessId as c_int;           // C 2192
+
+    /* Hack for Windows 95, which assigns large (ie negative) pids */
+    if (*cp).pid < 0                                           // C 2195
+      { (*cp).pid = -(*cp).pid; }                              // C 2196
+    *pPid = (*cp).pid;                                         // C 2198
+    return TRUE;                                               // C 2200
+  }
+  /* C 2202's `EH_Fail:` label.  C's own line has a stray `;` before the closing parenthesis
+     (`DebPrint ((...););`), which the port's macro call cannot carry (the file's rule for a C
+     typo that compiles: the macro takes the tuple C's parentheses hold).  */
+  DebPrint! (("create_child.CreateProcess failed: %ld\n", GetLastError ()));   // C 2203
+  return FALSE;                                                // C 2204
+}
