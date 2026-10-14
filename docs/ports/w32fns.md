@@ -228,7 +228,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10002-10110 | C 10002-10027's `w32_strerror`, C 10029-10038's `w32_last_error`, C 10040-10081's `cache_system_info`, C 10083-10093's `w32_version_string` (C's `#ifdef WINDOWSNT`) and C 10095-10110's `_DebPrint` (C's `#ifdef EMACSDEBUG`) - slice 24 | file gate, plus the two nested features |
 | 10112-10138 | C 10112-10138's `w32_console_toggle_lock_key` - slice 21, landed **ahead of its C position** because C 9302 calls it and Rust has no declare-then-define pair inside one file (PORTING.md P-91 ①) | file gate |
 | 10140-10312 | C 10140-10202's `w32_kbd_mods_to_emacs`, C 10207-10287's `w32_kbd_patch_key` (with C 10242-10252's `#if 0` block carried as C's text), C 10290-10303's `w32_sys_ring_bell` and C 10305-10312's `w32--menu-bar-in-use` - slice 25 | file gate |
-| 10314-12488 | **the remainder of the file** (C 10314's `#if defined WINDOWSNT && !defined HAVE_DBUS` tray block onward: the `MY_NOTIFYICONDATAW` family, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 10314-10427 | C 10314's `#if defined WINDOWSNT && !defined HAVE_DBUS` and the tray block's head: C 10316's `pfnShell_NotifyIconW`, C 10322-10341's `MY_NOTIFYICONDATAW`, C 10343-10345's three size macros, C 10346-10364's five `#ifndef` guards and two `#define`s, C 10366-10371's `enum NI_Severity`, C 10375-10402's `get_dll_version` and C 10408-10427's `utf8_mbslen_lim` - slice 26 | file gate + `windowsnt` + `not (feature = "have_dbus")` |
+| 10429-12488 | **the remainder of the file** (C 10429's `last_tray_notification_id` and `add_tray_notification` onward: `delete_tray_notification`, the two notification DEFUNs, the exception/backtrace group, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2791,6 +2792,93 @@ declaration - the `Y`/`Level` class) and `Sw32__menu_bar_in_use` (a `DEFUN!`'s m
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no console key is patched
   and no key modifier is translated; the arm reading is compile-level (42 errors, none from this
   slice) and the name sweep is a textual reading.
+
+## Slice 26 (C 10314-10427)
+
+**Scope and the stop.**  The head of C's tray-notification block, which C 10314's
+`#if defined WINDOWSNT && !defined HAVE_DBUS` opens: C 10316's `pfnShell_NotifyIconW`,
+C 10322-10341's `MY_NOTIFYICONDATAW`, C 10343-10345's three size macros, C 10346-10364's five
+`#ifndef` guards and two `#define`s, C 10366-10371's `enum NI_Severity`, C 10375-10402's
+`get_dll_version` and C 10408-10427's `utf8_mbslen_lim`.  The stop is C 10429's
+`static unsigned short last_tray_notification_id;` (C 10428 blank), which opens the next slice's
+`add_tray_notification`.  Every item carries C's three conditions as
+`all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus"))` - the file gate
+plus C's own pair (`feature-coverage.tsv` 138 names `have_dbus`); the frozen configuration does not
+define `HAVE_DBUS` and does define `WINDOWSNT`, so these items **are** live lines for the checklist,
+which is why this slice retires twenty-two rows.
+
+**What the item carries.**  The record is C's private copy of `<shellapi.h>`'s `NOTIFYICONDATAW`
+("A private struct declaration to avoid compile-time limits"), fifteen members in C's order with the
+anonymous union member keeping the SDK's compatibility name `DUMMYUNIONNAME` (the `SHELLEXECUTEINFOW`
+device: a `MY_NOTIFYICONDATAW_union` type plus the `r#DUMMYUNIONNAME` field).  The three size macros
+are C's `offsetof` expressions; C 10343's `szTip[64]` names an *element* of the array, so the port
+adds `64 * size_of::<WCHAR> ()` to that field's `core::mem::offset_of!`.  `get_dll_version` is
+C 10378-10398 (the `LoadLibrary` probe, the `DllGetVersion` lookup through `get_proc_addr` +
+`transmute`, the `DLLVERSIONINFO` fill and `SUCCEEDED`/`MAKEDLLVERULL`, `FreeLibrary`), and
+`utf8_mbslen_lim` is C 10411-10424's `CHAR_BYTES` walk (`include/character.rs`'s function).
+
+**New surface.**  `ULONGLONG`, `DLLGETVERSIONPROC`, `DLLVERSIONINFO` (five fields, corroborated
+against `windows-sys` 0.52's record), `MAKEDLLVERULL!`, the two `<libloaderapi.h>` declarations
+`LoadLibraryA`/`FreeLibrary`, and the constants `WM_APP`, `NIF_INFO`, the four `NIIF_*`,
+`EMACS_TRAY_NOTIFICATION_ID_INIT`, `EMACS_NOTIFICATION_MSG` and the four `Ni_*`.
+
+### Evidence (slice 26, the final revision: 15,582 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  One run: `built src/w32fns.rs ->
+../build/femacs/w32fns.o`, **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  One run: **42 previous errors** - the standing
+count (15 `E0428`, 1 `E0530`, 25 `E0609`, plus the one deliberately-failing frame-flag probe) - so
+this slice's 212 lines add no error and no member gap, and **no diagnostic sits at or beyond
+`src/w32fns.rs` 15,325** (the slice's first new line).  The reading is a real one for these items:
+`have_dbus` is off, so the three-condition gate is satisfied and rustc sees the whole slice.
+
+**③ `extract-abi.py --check`.**  **112 → 90** rows: twenty-two retire and one is added.  The retired
+set is the block's whole head - `get_dll_version`, `utf8_mbslen_lim`, the three
+`MYNOTIFYICONDATAW_V*_SIZE` macros, `EMACS_NOTIFICATION_MSG`/`EMACS_TRAY_NOTIFICATION_ID_INIT`, the
+five `NIF_INFO`/`NIIF_*` guards and the four `Ni_*` enumerators (the checker looks for both the
+macro and the constant spelling of each guarded name, so the eleven constants are twenty-two rows).
+The one added row is the token gap `function get_dll_version does not mention loadlibrary` (C's plain
+`LoadLibrary` macro vs the `LoadLibraryA` the port must call for a `char *` argument), cleared by one
+`macro-body-notes.tsv` row.  No `line count drifted` row: 15,582 Rust lines against 12,488 C lines
+(24.8%), inside the file's `w32fns 0.35 total` tolerance row.  (A side note the measurement itself
+produced: running `--check` against a *copy* of the port under a different file name loses the
+tolerance row - the table is keyed by path - and then reports the drift; the reading above is the
+real file's.)
+
+**④ The range table and the dead-file gate.**  The `10314-12488` remainder row splits into
+`10314-10427` (this slice) and `10429-12488` (the remainder); `check-dead-file-coverage.py` reads
+**176 range row(s) cover src/w32fns.c (12488 lines; 125 blank line(s) between blocks need no row)**.
+
+**⑤ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 15,325-15,536: 42 capitalized
+identifiers, missing `Clone` and `Copy` - the `#[derive (Clone, Copy)]` arguments of the three
+records this slice declares, i.e. the tool's documented "not an item" class.
+
+### Deviations (slice 26)
+
+- **`MY_NOTIFYICONDATAW`'s layout is unmeasured.**  The field list and order are the SDK's,
+  corroborated against the Win32 metadata projection (`windows-sys` 0.52's `NOTIFYICONDATAW`), not
+  against a compiled `sizeof`; the integrator's mingw measurement is what would close it.  The
+  anonymous union member is the `SHELLEXECUTEINFOW` device (a named union type + C's compatibility
+  field name).
+- **The three size macros add the array element C's `offsetof` names.**  C's
+  `offsetof (MY_NOTIFYICONDATAW, szTip[64])` is `szTip`'s offset plus 64 `WCHAR`s; the port writes
+  exactly that, so the value is C's byte count for any layout.
+- **`PNOTIFYICONDATAW` is untyped here.**  C's pointer type is the SDK's record and this unit carries
+  only its own `MY_NOTIFYICONDATAW`, so the function-pointer type's second parameter is `*mut c_void`
+  (PORTING.md P-72 rule ③) and the one call site (next slice) casts.
+- **`LoadLibrary` is read as the A entry point.**  C's plain macro takes the `char *` this function
+  passes; the notes row records the token gap, like slices 23-24's `GetProfileString`/`FormatMessage`.
+- **`enum NI_Severity` is four `c_int` constants.**  C's small enum has no Rust counterpart; the
+  members keep C's names and C's implicit values (the `OS_SUBTYPE_9X` reading), and the *type* the
+  parameter takes is `c_int`.
+- **The five `#ifndef` guards are constants with C's values and no `cfg`** - the file's standing
+  reading of an SDK "define it if the header has not" guard.
+- **C's `str` parameter is `str_`** (C 10409): the trailing-underscore spelling this tree uses for
+  that name (`include/lisp.rs` 2728's `intern`), which the token check folds.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no DLL version is queried and
+  no UTF-8 length is measured; the arm reading is compile-level (42 errors, none from this slice) and
+  the name sweep is a textual reading.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

@@ -15322,7 +15322,219 @@ DEFUN! ("w32--menu-bar-in-use", Fw32__menu_bar_in_use, Sw32__menu_bar_in_use,
   return if menubar_in_use != 0 { Qt () } else { Qnil () };
 });
 
-/* C 10314-12488's text is not in the port yet (the file's remainder), but C 10112's
+/* C 10314's `#if defined WINDOWSNT && !defined HAVE_DBUS` opens the tray-notification block; the
+   three features on every item below are the file gate plus C's own two conditions
+   (`feature-coverage.tsv` 138 names `have_dbus`).  */
+
+/// C 10316-10320: the `Shell_NotifyIconW` pointer the block loads by hand (C 10553-10555) and the
+/// banner comment before it.  C's type is the SDK's `PNOTIFYICONDATAW`; this unit has only its own
+/// `MY_NOTIFYICONDATAW` (below), so the second parameter is untyped (PORTING.md P-72 rule ③) and
+/// the one call site casts.
+/// C: static BOOL (WINAPI *pfnShell_NotifyIconW) (DWORD, PNOTIFYICONDATAW);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+static mut pfnShell_NotifyIconW
+  : Option<unsafe extern "system" fn (arg0: DWORD, arg1: *mut c_void) -> BOOL> = None;
+
+/// C 10321-10341: `MY_NOTIFYICONDATAW`, C's private copy of `<shellapi.h>`'s `NOTIFYICONDATAW`
+/// ("A private struct declaration to avoid compile-time limits").  The field list and their order
+/// are the SDK's, corroborated against the Win32 metadata projection (`windows-sys` 0.52's
+/// `NOTIFYICONDATAW`: the same members); the layout is **unmeasured** here (no `<windows.h>` on this
+/// machine).  C's anonymous union member keeps the SDK's own compatibility name `DUMMYUNIONNAME`
+/// (the `SHELLEXECUTEINFOW` reading below).
+/// C: typedef struct MY_NOTIFYICONDATAW { DWORD cbSize; HWND hWnd; UINT uID; UINT uFlags;
+/// C: UINT uCallbackMessage; HICON hIcon; WCHAR szTip[128]; DWORD dwState; DWORD dwStateMask;
+/// C: WCHAR szInfo[256]; _ANONYMOUS_UNION union { UINT uTimeout; UINT uVersion; } DUMMYUNIONNAME;
+/// C: WCHAR szInfoTitle[64]; DWORD dwInfoFlags; GUID guidItem; HICON hBalloonIcon; }
+/// C: MY_NOTIFYICONDATAW;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union MY_NOTIFYICONDATAW_union
+{
+  pub uTimeout: UINT,
+  pub uVersion: UINT,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MY_NOTIFYICONDATAW
+{
+  pub cbSize: DWORD,
+  pub hWnd: HWND,
+  pub uID: UINT,
+  pub uFlags: UINT,
+  pub uCallbackMessage: UINT,
+  pub hIcon: HICON,
+  pub szTip: [WCHAR; 128],
+  pub dwState: DWORD,
+  pub dwStateMask: DWORD,
+  pub szInfo: [WCHAR; 256],
+  pub r#DUMMYUNIONNAME: MY_NOTIFYICONDATAW_union,
+  pub szInfoTitle: [WCHAR; 64],
+  pub dwInfoFlags: DWORD,
+  pub guidItem: GUID,
+  pub hBalloonIcon: HICON,
+}
+
+/// C 10343-10345: the three sizes.  C's `offsetof (MY_NOTIFYICONDATAW, szTip[64])` names an
+/// *element* of the array, so the port adds 64 `WCHAR`s to that field's offset (`offsetof` is
+/// `core::mem::offset_of!`, the `src/alloc.rs` 391 reading).
+/// C: #define MYNOTIFYICONDATAW_V1_SIZE offsetof (MY_NOTIFYICONDATAW, szTip[64])
+/// C: #define MYNOTIFYICONDATAW_V2_SIZE offsetof (MY_NOTIFYICONDATAW, guidItem)
+/// C: #define MYNOTIFYICONDATAW_V3_SIZE offsetof (MY_NOTIFYICONDATAW, hBalloonIcon)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+macro_rules! MYNOTIFYICONDATAW_V1_SIZE {
+  () => { core::mem::offset_of! (MY_NOTIFYICONDATAW, szTip)
+	  + 64 * core::mem::size_of::<WCHAR> () };
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+macro_rules! MYNOTIFYICONDATAW_V2_SIZE {
+  () => { core::mem::offset_of! (MY_NOTIFYICONDATAW, guidItem) };
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+macro_rules! MYNOTIFYICONDATAW_V3_SIZE {
+  () => { core::mem::offset_of! (MY_NOTIFYICONDATAW, hBalloonIcon) };
+}
+
+/// C 10346-10360: the five `#ifndef` guards (the file's standing reading: C's value, no `cfg`) and
+/// C 10363-10364's two `#define`s.
+/// C: #ifndef NIF_INFO / # define NIF_INFO 0x00000010 / #endif
+/// C: #ifndef NIIF_NONE / # define NIIF_NONE 0x00000000 / #endif
+/// C: #ifndef NIIF_INFO / # define NIIF_INFO 0x00000001 / #endif
+/// C: #ifndef NIIF_WARNING / # define NIIF_WARNING 0x00000002 / #endif
+/// C: #ifndef NIIF_ERROR / # define NIIF_ERROR 0x00000003 / #endif
+/// C: #define EMACS_TRAY_NOTIFICATION_ID_INIT  42	/* arbitrary */
+/// C: #define EMACS_NOTIFICATION_MSG           (WM_APP + 1)
+/// C: #define WM_APP 0x8000
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const WM_APP: c_int = 0x8000;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIF_INFO: DWORD = 0x00000010;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIIF_NONE: DWORD = 0x00000000;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIIF_INFO: DWORD = 0x00000001;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIIF_WARNING: DWORD = 0x00000002;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const NIIF_ERROR: DWORD = 0x00000003;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const EMACS_TRAY_NOTIFICATION_ID_INIT: c_int = 42;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const EMACS_NOTIFICATION_MSG: c_int = WM_APP + 1;
+
+/// C 10366-10371: `enum NI_Severity`, the four members as C's names with C's implicit values (the
+/// `OS_SUBTYPE_9X`/`OS_SUBTYPE_NT` reading of a small enum); the *type* `enum NI_Severity` is the
+/// `c_int` that `add_tray_notification`'s parameter takes below.
+/// C: enum NI_Severity { Ni_None, Ni_Info, Ni_Warn, Ni_Err };
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const Ni_None: c_int = 0;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const Ni_Info: c_int = 1;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const Ni_Warn: c_int = 2;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub const Ni_Err: c_int = 3;
+
+/// C 10373-10402: `get_dll_version` - C 10378's `version`, C 10379's `LoadLibrary` (C's plain macro
+/// whose argument is a `char` string: the A entry point, the notes row records the token), C 10383-10384's
+/// `DllGetVersion` lookup (`get_proc_addr` + the `transmute` the loader sites use), C 10388-10396's
+/// `DLLVERSIONINFO` (`memset`, `cbSize`, the call, `SUCCEEDED`, `MAKEDLLVERULL`) and C 10398's
+/// `FreeLibrary`.  The `<shlwapi.h>` record and macro are new here.
+/// C: typedef HRESULT (STDAPICALLTYPE *DLLGETVERSIONPROC) (DLLVERSIONINFO *);
+/// C: typedef struct _DLLVERSIONINFO { DWORD cbSize; DWORD dwMajorVersion; DWORD dwMinorVersion;
+/// C: DWORD dwBuildNumber; } DLLVERSIONINFO;
+/// C: #define MAKEDLLVERULL(major, minor, build, qfe) \
+/// C:   (((ULONGLONG)(major) << 48) | ((ULONGLONG)(minor) << 32) | ((ULONGLONG)(build) << 16) | (ULONGLONG)(qfe))
+/// C: HMODULE WINAPI LoadLibraryA (LPCSTR lpLibFileName);
+/// C: BOOL WINAPI FreeLibrary (HMODULE hLibModule);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub type ULONGLONG = u64;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+pub type DLLGETVERSIONPROC
+  = Option<unsafe extern "system" fn (arg0: *mut DLLVERSIONINFO) -> HRESULT>;
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DLLVERSIONINFO
+{
+  pub cbSize: DWORD,
+  pub dwMajorVersion: DWORD,
+  pub dwMinorVersion: DWORD,
+  pub dwBuildNumber: DWORD,
+  pub dwPlatformID: DWORD,
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+macro_rules! MAKEDLLVERULL {
+  ($major:expr, $minor:expr, $build:expr, $qfe:expr) => {
+    ((($major) as ULONGLONG) << 48 | (($minor) as ULONGLONG) << 32
+     | (($build) as ULONGLONG) << 16 | ($qfe) as ULONGLONG)
+  };
+}
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+unsafe extern "system" {
+  pub fn LoadLibraryA (lpLibFileName: LPCSTR) -> HMODULE;
+  pub fn FreeLibrary (hLibModule: HMODULE) -> BOOL;
+}
+
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+unsafe fn get_dll_version (dll_name: *const c_char) -> ULONGLONG
+{
+  let mut version: ULONGLONG = 0;
+  let hdll: HINSTANCE = LoadLibraryA (dll_name);
+
+  if ! hdll.is_null ()
+    {
+      let pDllGetVersion: DLLGETVERSIONPROC
+	= core::mem::transmute::<VOIDFNPTR, DLLGETVERSIONPROC> (
+	    get_proc_addr (hdll, c"DllGetVersion".as_ptr ()));
+
+      if pDllGetVersion.is_some ()
+	{
+	  let mut dvi: DLLVERSIONINFO = core::mem::zeroed ();
+	  let result: HRESULT;
+
+	  memset (&raw mut dvi as *mut c_void, 0, core::mem::size_of_val (&dvi));
+	  dvi.cbSize = core::mem::size_of_val (&dvi) as DWORD;
+	  result = (pDllGetVersion.unwrap ()) (&raw mut dvi);
+	  if SUCCEEDED! (result)
+	    {
+	      version = MAKEDLLVERULL! (dvi.dwMajorVersion, dvi.dwMinorVersion, 0, 0);
+	    }
+	}
+      FreeLibrary (hdll);
+    }
+
+  return version;
+}
+
+/// C 10404-10427: `utf8_mbslen_lim` - C 10411-10412's three locals, C 10414-10421's `CHAR_BYTES`
+/// walk (`include/character.rs`'s function) and C 10423-10424's terminating-byte count.
+/// C: static int
+/// C: utf8_mbslen_lim (const char *str, int lim)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+unsafe fn utf8_mbslen_lim (str_: *const c_char, lim: c_int) -> c_int
+{
+  let mut p: *const c_char = str_;
+  let mut mblen: c_int = 0;
+  let mut nchars: c_int = 0;
+
+  while *p != 0 && nchars < lim
+    {
+      let nbytes: c_int = CHAR_BYTES (*p as c_int);
+
+      mblen += nbytes;
+      nchars += 1;
+      p = p.add (nbytes as usize);
+    }
+
+  if *p == 0 && nchars < lim
+    { mblen += 1; }
+
+  return mblen;
+}
+
+/* C 10429-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C
