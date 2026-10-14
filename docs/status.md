@@ -20222,3 +20222,11 @@
   ④ 十门全 `rc=0`、0 失败；区间表拆为 `3973-4157`（本片）+ `4160-8414`（余项）；台账追加 **`### Slice 10 (C 3973-4157)`**。
   ⑤ 预算与清理：`build-tu` 3 发、臂读数 2 发、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w49`、`/tmp/slice10.txt`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.316 `src/w32term.c` 第 11 片（w32term lane，slice 11）：C 4160-4328 落地——"Scroll bars, general" 段首批：八个 `my_*` 包装（两 creator、`my_show_window`、`my_set_window_pos`、C 4212-4219 的 `#if 0`、`my_set_foreground_window`、`my_destroy_window`、`my_bring_window_to_top`）+ `w32_scroll_bar_create` + `w32_scroll_bar_remove`；w32term.rs 6,138 → 6,390 行（+252，2026-10-14）**：
+  ① 用例处新增：`SIF_ALL`（winuser）、`WINDOWPOS` 记录、两个 creator 调用的 `SendMessage`。
+  ② **C 4180 的 `/*#define ATTACH_THREADS*/` 让两组 `#ifndef` 臂只编译第一臂**：`my_show_window`/`my_set_window_pos` 的 `#else` 臂（`ShowWindow`/`SetWindowPos`）按 P-51 以 C 原文承载于 doc 注释，故两个 token 不出现在编译体里 → 本轮入 `docs/ports/macro-body-notes.tsv` 两行；C 4212-4219 的 `#if 0` 同法承载。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本**（首拼 23：`my_show_window` 里 `SendMessageTimeout` 的返回值 C 隐式转 `BOOL`，端口补 `as BOOL`）。`extract-abi.py --check`：**70 → 61 行**（`missing function` 62 → **53**，本片落 9 个），新增 2 条 token 行；行数行 27.1% → **24.1%**（6,390 : 8,414）。
+  ④ 十门全 `rc=0`、0 失败；区间表拆为 `4160-4328`（本片）+ `4330-8414`（余项）；台账追加 **`### Slice 11 (C 4160-4328)`**。
+  ⑤ 预算与清理：`build-tu` 3 发、臂读数 2 发、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w50`、`/tmp/slice11.txt`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

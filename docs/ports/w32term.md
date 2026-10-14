@@ -188,7 +188,8 @@ The `arm` cell says what the port does with the block.
 | 3631-3763 | the `#if HAVE_W32NOTIFY` block: `w32_lispy_file_action` (C 3636-3670) and the `#ifdef WINDOWSNT` `w32_queue_notifications` (C 3676-3761) | `all (have_ntgui, have_w32notify)`; slice 8 below |
 | 3765-3970 | `w32_note_mouse_movement` (C 3774-3819), the "Mouse Face" banner with C 3826-3834's three dropped forward declarations, `w32_define_cursor` (C 3835-3839) and `w32_mouse_position` (C 3861-3970) | file gate (`have_ntgui`); slice 9 below |
 | 3973-4157 | the Tab-bars and Tool-bars click handlers (`w32_handle_tab_bar_click` C 3977-3992, `w32_handle_tool_bar_click` C 4000-4015), the "Scroll bars" banner with C 4023-4027's two comments, `w32_window_to_scroll_bar` (C 4029-4056), `w32_set_scroll_bar_thumb` (C 4059-4132) and `w32_set_horizontal_scroll_bar_thumb` (C 4134-4157) | file gate (`have_ntgui`); slice 10 below |
-| 4160-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4160-4328 | the "Scroll bars, general" banner and the eight `my_*` wrappers (`my_create_vscrollbar` C 4164-4170, `my_create_hscrollbar` C 4172-4178, `my_show_window` C 4182-4191, `my_set_window_pos` C 4193-4210, C 4212-4219's `#if 0`, `my_set_foreground_window` C 4221-4226, `my_destroy_window` C 4229-4234, `my_bring_window_to_top` C 4236-4241), plus `w32_scroll_bar_create` (C 4243-4305) and `w32_scroll_bar_remove` (C 4308-4328) | file gate (`have_ntgui`); slice 11 below |
+| 4330-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1089,4 +1090,34 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **75 -> 70 rows** (67 -> **62** `missing function`: the round's
      five landed), two token rows added to the notes file (above), and the line-count row improves
      from 30.2% to **27.1%** (6,138 vs 8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 11 (C 4160-4328)
+
+- **What it is.**  The "Scroll bars, general" section's head: the eight `my_*` wrappers (two
+  creators, the shover, the position setter, the foreground raiser, the destroyer and the
+  bring-to-top, plus C 4212-4219's `#if 0` `my_set_focus`), `w32_scroll_bar_create` (the
+  `ALLOCATE_PSEUDOVECTOR` bar, the nine field stores, the `SCROLLINFO` fill and the frame's list
+  insert) and `w32_scroll_bar_remove`.  Port: 6,138 -> **6390 lines** (+252).  The table's last row
+  splits at C 4328; the next live definition is C 4338's `w32_set_scroll_bar_end`.
+- **The names this slice adds stand at the use site** (P-88 (1)): `SIF_ALL` (`<winuser.h>`), the
+  `WINDOWPOS` record and the `SendMessage` entry the two creators call.  The SDK records are
+  UNVERIFIED.
+- **C 4180's `/*#define ATTACH_THREADS*/` keeps both `#ifndef` arms in C, but only the first is
+  compiled**: `my_show_window` and `my_set_window_pos` therefore carry C's `#else` arms as C's own
+  text in their doc comments (P-51) and the two tokens (`ShowWindow`, `SetWindowPos`) cannot
+  reappear in the port's body - the pair of rows this round added to
+  `docs/ports/macro-body-notes.tsv`.  C 4212-4219's `#if 0` block is carried the same way.
+- **`ALLOCATE_PSEUDOVECTOR! (scroll_bar, w32_widget_high, pvec_type::PVEC_OTHER)`** is the mirror's
+  three-argument macro (lisp.rs 2970-2974, whose `$field` is the member before the pseudovector
+  tail); `src/xterm.rs` 28266 is the sibling call of the same C text with its own field name.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text**.  The
+     round's first spelling read **23**: the one own-text row was `my_show_window`'s
+     `SendMessageTimeout` result, which C converts to the function's `BOOL` return implicitly and
+     the port now casts (`as BOOL`).
+  3. `extract-abi.py --check` -> **70 -> 61 rows** (62 -> **53** `missing function`: the round's nine
+     landed), two token rows added to the notes file (the dead `#else` arms above), and the
+     line-count row improves from 27.1% to **24.1%** (6,390 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.

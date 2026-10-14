@@ -6134,5 +6134,257 @@ unsafe fn w32_set_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_
   unblock_input ();                                                   // C 4156
 }
 
-/* C 4160-4162's "Scroll bars, general" banner and C 4164's `my_create_vscrollbar` open the next
-   slice.  */
+/* C's `<winuser.h>` names C 4167-4239 read that this unit does not carry yet: the two message
+   entries (the non-timeout one the two `my_create_*scrollbar` wrappers call) and the
+   `WINDOWPOS` record `my_set_window_pos` fills.  C 4197-4209's `#else` arm names `SetWindowPos`
+   and C 4189's names `ShowWindow`; both are dead here (`ATTACH_THREADS` is C 4180's commented-out
+   `#define`), so C's own text carries them and no declaration is needed (P-51).  Every name stands
+   at the use site (P-88 (1)); the SDK records are UNVERIFIED.  */
+/// C: #define SIF_ALL (SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS)
+/// C: WINUSERAPI LRESULT WINAPI SendMessageA (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+/// C: typedef struct tagWINDOWPOS { HWND hwnd; HWND hwndInsertAfter; int x; int y; int cx;
+/// C:   int cy; UINT flags; } WINDOWPOS;
+#[cfg (feature = "have_ntgui")]
+pub const SIF_ALL: UINT = 0x0017;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WINDOWPOS
+{
+  pub hwnd: HWND,
+  pub hwndInsertAfter: HWND,
+  pub x: c_int,
+  pub y: c_int,
+  pub cx: c_int,
+  pub cy: c_int,
+  pub flags: UINT,
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn SendMessage (hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
+}
+
+/* C 4160-4162 is the "Scroll bars, general" banner, carried as C's own text at its position.  */
+/* C: /************************************************************************
+   C: 			 Scroll bars, general
+   C:  ************************************************************************/  */
+
+/// C 4164-4170: `static HWND my_create_vscrollbar (struct frame * f, struct scroll_bar * bar)` -
+/// the one `SendMessage` with C 4168-4169's two casts.
+/// C: static HWND
+/// C: my_create_vscrollbar (struct frame * f, struct scroll_bar * bar)
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_create_vscrollbar (f: *mut frame, bar: *mut scroll_bar) -> HWND
+{
+  return SendMessage (FRAME_W32_WINDOW (f),                            // C 4167
+		      WM_EMACS_CREATEVSCROLLBAR as UINT, bar as WPARAM,
+		      f as LPARAM) as HWND;                            // C 4168-4169
+}
+
+/// C 4172-4178: `static HWND my_create_hscrollbar (struct frame * f, struct scroll_bar * bar)` -
+/// the same pair with C 4176-4177's two casts.
+/// C: static HWND
+/// C: my_create_hscrollbar (struct frame * f, struct scroll_bar * bar)
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_create_hscrollbar (f: *mut frame, bar: *mut scroll_bar) -> HWND
+{
+  return SendMessage (FRAME_W32_WINDOW (f),                            // C 4175
+		      WM_EMACS_CREATEHSCROLLBAR as UINT, bar as WPARAM,
+		      f as LPARAM) as HWND;                            // C 4176-4177
+}
+
+/* C 4180's `/*#define ATTACH_THREADS*/` is C's own commented-out `#define`, carried here; with it
+   undefined, C 4185's and C 4197's `#ifndef` arms are the live ones and the two `#else` arms below
+   are dead text (P-51).  */
+/// C 4182-4191: `static BOOL my_show_window (struct frame *f, HWND hwnd, int how)`.
+/// C: /*#define ATTACH_THREADS*/
+/// C: static BOOL
+/// C: my_show_window (struct frame *f, HWND hwnd, int how)
+/// C: #ifndef ATTACH_THREADS
+/// C:   return SendMessageTimeout (FRAME_W32_WINDOW (f), WM_EMACS_SHOWWINDOW,
+/// C: 			     (WPARAM) hwnd, (LPARAM) how, 0, 6000, NULL);
+/// C: #else
+/// C:   return ShowWindow (hwnd, how);
+/// C: #endif
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_show_window (f: *mut frame, hwnd: HWND, how: c_int) -> BOOL
+{
+  return SendMessageTimeout (FRAME_W32_WINDOW (f), WM_EMACS_SHOWWINDOW as UINT,   // C 4186
+			     hwnd as WPARAM, how as LPARAM, 0, 6000,
+			     core::ptr::null_mut ()) as BOOL;          // C 4187
+}
+
+/// C 4193-4210: `static void my_set_window_pos (HWND hwnd, HWND hwndAfter, int x, int y, int cx,
+/// int cy, UINT flags)` - C 4198's `WINDOWPOS` (six field stores) and C 4205-4206's
+/// `SendMessageTimeout`.
+/// C: static void
+/// C: my_set_window_pos (HWND hwnd, HWND hwndAfter,
+/// C: 		   int x, int y, int cx, int cy, UINT flags)
+/// C: #ifndef ATTACH_THREADS
+/// C:   WINDOWPOS pos;
+/// C:   pos.hwndInsertAfter = hwndAfter; pos.x = x; pos.y = y; pos.cx = cx; pos.cy = cy;
+/// C:   pos.flags = flags;
+/// C:   SendMessageTimeout (hwnd, WM_EMACS_SETWINDOWPOS, (WPARAM) &pos, 0, 0, 6000, NULL);
+/// C: #else
+/// C:   SetWindowPos (hwnd, hwndAfter, x, y, cx, cy, flags);
+/// C: #endif
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_set_window_pos (hwnd: HWND, hwndAfter: HWND, x: c_int, y: c_int, cx: c_int,
+			     cy: c_int, flags: UINT)
+{
+  /* C declares the `WINDOWPOS` uninitialised and fills its six members below (PORTING.md 1.5).  */
+  let mut pos: WINDOWPOS = core::mem::zeroed ();                      // C 4198
+  pos.hwndInsertAfter = hwndAfter;                                    // C 4199
+  pos.x = x;                                                          // C 4200
+  pos.y = y;                                                          // C 4201
+  pos.cx = cx;                                                        // C 4202
+  pos.cy = cy;                                                        // C 4203
+  pos.flags = flags;                                                  // C 4204
+  SendMessageTimeout (hwnd, WM_EMACS_SETWINDOWPOS as UINT,            // C 4205
+		      &raw mut pos as WPARAM, 0, 0, 6000,
+		      core::ptr::null_mut ());                           // C 4206
+}
+
+/* C 4212-4219: the `#if 0` block holding `my_set_focus`, carried as C's own text (P-51).
+   #if 0
+   static void
+   my_set_focus (struct frame * f, HWND hwnd)
+   {
+     SendMessageTimeout (FRAME_W32_WINDOW (f), WM_EMACS_SETFOCUS,
+			 (WPARAM) hwnd, 0, 0, 6000, NULL);
+   }
+   #endif  */
+
+/// C 4221-4226: `static void my_set_foreground_window (HWND hwnd)` - the one timeout message.
+/// C: static void
+/// C: my_set_foreground_window (HWND hwnd)
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_set_foreground_window (hwnd: HWND)
+{
+  SendMessageTimeout (hwnd, WM_EMACS_SETFOREGROUND as UINT,           // C 4224
+		      hwnd as WPARAM, 0, 0, 6000, core::ptr::null_mut ());   // C 4225
+}
+
+/// C 4229-4234: `static void my_destroy_window (struct frame * f, HWND hwnd)`.
+/// C: static void
+/// C: my_destroy_window (struct frame * f, HWND hwnd)
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_destroy_window (f: *mut frame, hwnd: HWND)
+{
+  SendMessageTimeout (FRAME_W32_WINDOW (f), WM_EMACS_DESTROYWINDOW as UINT,   // C 4232
+		      hwnd as WPARAM, 0, 0, 6000, core::ptr::null_mut ());   // C 4233
+}
+
+/// C 4236-4241: `static void my_bring_window_to_top (HWND hwnd)`.
+/// C: static void
+/// C: my_bring_window_to_top (HWND hwnd)
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_bring_window_to_top (hwnd: HWND)
+{
+  SendMessageTimeout (hwnd, WM_EMACS_BRINGTOTOP as UINT,              // C 4239
+		      hwnd as WPARAM, 0, 0, 6000, core::ptr::null_mut ());   // C 4240
+}
+
+/// C 4243-4305: "Create a scroll bar and return the scroll bar vector for it. …" - C 4252's
+/// frame, C 4255-4256's `ALLOCATE_PSEUDOVECTOR`, C 4259's input block, C 4261-4269's nine field
+/// stores, C 4273-4276's window creation, C 4278-4290's `SCROLLINFO` fill (with C 4282-4286's
+/// horizontal/vertical range pair) and C 4292-4300's list insert with C 4299-4300's
+/// `SET_SCROLL_BAR_W32_WINDOW`/`XSETVECTOR` pair.
+/// C: /* Create a scroll bar and return the scroll bar vector for it.  W is
+/// C:    the Emacs window on which to create the scroll bar. TOP, LEFT,
+/// C:    WIDTH and HEIGHT are the pixel coordinates and dimensions of the
+/// C:    scroll bar. */
+/// C: static struct scroll_bar *
+/// C: w32_scroll_bar_create (struct window *w, int left, int top,
+/// C:                        int width, int height, bool horizontal)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_scroll_bar_create (w: *mut window, left: c_int, top: c_int, width: c_int,
+				 height: c_int, horizontal: bool) -> *mut scroll_bar
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME (w));                      // C 4252
+  let mut hwnd: HWND;                                                 // C 4253
+  let mut si: SCROLLINFO;                                             // C 4254
+  let mut bar: *mut scroll_bar
+    = ALLOCATE_PSEUDOVECTOR! (scroll_bar, w32_widget_high, pvec_type::PVEC_OTHER);   // C 4255-4256
+  let mut barobj: Lisp_Object;                                        // C 4257
+
+  block_input ();                                                     // C 4259
+
+  XSETWINDOW! ((*bar).window, w);                                     // C 4261
+  (*bar).top = top;                                                   // C 4262
+  (*bar).left = left;                                                 // C 4263
+  (*bar).width = width;                                               // C 4264
+  (*bar).height = height;                                             // C 4265
+  (*bar).start = 0;                                                   // C 4266
+  (*bar).end = 0;                                                     // C 4267
+  (*bar).dragging = 0;                                                // C 4268
+  (*bar).horizontal = horizontal;                                     // C 4269
+
+  /* Requires geometry to be set before call to create the real window */
+
+  if horizontal                                                       // C 4273
+    { hwnd = my_create_hscrollbar (f, bar); }                         // C 4274
+  else
+    { hwnd = my_create_vscrollbar (f, bar); }                         // C 4276
+
+  /* C declares the `SCROLLINFO` uninitialised and fills it below (PORTING.md 1.5).  */
+  si = core::mem::zeroed ();                                          // C 4254
+  si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;            // C 4278
+  si.fMask = SIF_ALL;                                                 // C 4279
+  si.nMin = 0;                                                        // C 4280
+  if horizontal                                                       // C 4281
+    {
+      si.nMax = HORIZONTAL_SCROLL_BAR_LEFT_RANGE! (f, width)          // C 4282
+	+ HORIZONTAL_SCROLL_BAR_MIN_HANDLE! ();                       // C 4283
+    }
+  else
+    {
+      si.nMax = VERTICAL_SCROLL_BAR_TOP_RANGE! (f, height)            // C 4285
+	+ VERTICAL_SCROLL_BAR_MIN_HANDLE! ();                         // C 4286
+    }
+  si.nPage = si.nMax as UINT;                                         // C 4287
+  si.nPos = 0;                                                        // C 4288
+
+  SetScrollInfo (hwnd, SB_CTL, &raw const si, FALSE);                 // C 4290
+
+  SET_SCROLL_BAR_W32_WINDOW! (bar, hwnd);                             // C 4292
+
+  /* Add bar to its frame's list of scroll bars.  */
+  (*bar).next = FRAME_SCROLL_BARS (f);                                // C 4295
+  (*bar).prev = Qnil ();                                              // C 4296
+  XSETVECTOR! (barobj, bar);                                          // C 4297
+  fset_scroll_bars (f, barobj);                                       // C 4298
+  if !NILP ((*bar).next)                                              // C 4299
+    { XSETVECTOR! ((*(XSCROLL_BAR! ((*bar).next))).prev, bar); }      // C 4300
+
+  unblock_input ();                                                   // C 4302
+
+  return bar;                                                         // C 4304
+}
+
+/// C 4308-4328: "Destroy scroll bar BAR, and set its Emacs window's scroll bar to nil." - C
+/// 4314's frame, C 4319's `my_destroy_window` and C 4322-4325's two `wset_*_scroll_bar` calls.
+/// C: /* Destroy scroll bar BAR, and set its Emacs window's scroll bar to
+/// C:    nil. */
+/// C: static void
+/// C: w32_scroll_bar_remove (struct scroll_bar *bar)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_scroll_bar_remove (bar: *mut scroll_bar)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME (XWINDOW ((*bar).window)));   // C 4314
+
+  block_input ();                                                     // C 4316
+
+  /* Destroy the window.  */
+  my_destroy_window (f, SCROLL_BAR_W32_WINDOW! (bar));                // C 4319
+
+  /* Dissociate this scroll bar from its window.  */
+  if (*bar).horizontal                                                // C 4322
+    { wset_horizontal_scroll_bar (XWINDOW ((*bar).window), Qnil ()); }   // C 4323
+  else
+    { wset_vertical_scroll_bar (XWINDOW ((*bar).window), Qnil ()); }   // C 4325
+
+  unblock_input ();                                                   // C 4327
+}
+
+/* C 4330-4332's comment and C 4338's `w32_set_scroll_bar_end` open the next slice.  */
