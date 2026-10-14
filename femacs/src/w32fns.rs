@@ -18189,14 +18189,371 @@ pub unsafe extern "C" fn emacs_abort ()
     }
 }
 
-/* C 11585-12038's text is not in the port yet (the file's remainder), but C 10112's
-   `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
-   pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
-   It therefore stands below the slices that insert their text above it, rather than at its C
-   position, and the ledger's `## C line ranges` table carries the landed rows (`9147-9337`,
-   `9339-9752`, `10112-10138`) around the remainder.  Later slices of this lane insert their own
-   text *above* this block, so the file's item order still equals C's order (P-91 ②: Rust items
-   are order-independent).  */
+/* C 11585-12038: `syms_of_w32fns` - the file's last item.  C 11588's `globals_of_w32fns ()` call
+   (slice 38's definition), C 11589-11611's first symbol run, C 11612-11628's two tray/registry
+   arms, C 11631-11637's six module symbols, C 11638-11644's `Fput`/`staticpro` pair,
+   C 11646-11916's `DEFVAR`s, C 11827-11854's and C 11927-11931's `#if 0` regions (carried as C's
+   own text, the file's reading for a region no configuration compiles), C 11932-12007's `defsubr`
+   table with its three arms, C 11990-11999's five `tip_*` staticpro pairs, C 12009-12024's closing
+   symbols and C 12026-12037's taskbar/sleep arm.  With this item the file's own text is complete,
+   so the range table's last remainder row retires.  */
+
+/// C 11784's `GetDoubleClickTime` (`winuser.h`) - the mirror carries no row (the
+/// `redisplay_preserve_echo_area` device, slice 34).
+/// C: DWORD WINAPI GetDoubleClickTime (void);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetDoubleClickTime () -> DWORD;
+}
+
+/// C 11585-12038: `void syms_of_w32fns (void)` - the file's initialization entry point: the
+/// `globals_of_w32fns` call, C 11589-11592's two objects with `PDUMPER_IGNORE`, the fifty-four
+/// `DEFSYM`s in C's five runs, the two `Fput`s over `Qundefined_color`, C 11643-11644's
+/// `staticpro`, the twenty-nine `DEFVAR`s with their assignments and C's own comments, the two
+/// `#if 0` regions (carried as text), the forty-six `defsubr`s in C's order and the five `tip_*`
+/// `staticpro` pairs.  The item carries the file gate alone, with `windowsnt`/`not (have_dbus)`
+/// arms inside.
+/// C: void
+/// C: syms_of_w32fns (void)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_w32fns ()
+{
+  globals_of_w32fns ();                       // C 11588
+  track_mouse_window = core::ptr::null_mut (); // C 11589
+
+  w32_visible_system_caret_hwnd = core::ptr::null_mut (); // C 11591
+  PDUMPER_IGNORE! (w32_visible_system_caret_hwnd);
+
+  DEFSYM! (Qundefined_color, "undefined-color");
+  DEFSYM! (Qcancel_timer, "cancel-timer");
+  DEFSYM! (Qhyper, "hyper");
+  DEFSYM! (Qsuper, "super");
+  DEFSYM! (Qmeta, "meta");
+  DEFSYM! (Qalt, "alt");
+  DEFSYM! (Qctrl, "ctrl");
+  DEFSYM! (Qcontrol, "control");
+  DEFSYM! (Qshift, "shift");
+  DEFSYM! (Qfont_parameter, "font-parameter");
+  DEFSYM! (Qgeometry, "geometry");
+  DEFSYM! (Qworkarea, "workarea");
+  DEFSYM! (Qmm_size, "mm-size");
+  DEFSYM! (Qframes, "frames");
+  DEFSYM! (Qtip_frame, "tip-frame");
+  DEFSYM! (Qassq_delete_all, "assq-delete-all");
+  DEFSYM! (Qunicode_sip, "unicode-sip");
+  DEFSYM! (Qread_file_name_internal, "read-file-name-internal");
+  /* C 11612's `#if defined WINDOWSNT && !defined HAVE_DBUS`.  */
+  #[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+  {
+    DEFSYM! (QCicon, ":icon");
+    DEFSYM! (QCtip, ":tip");
+    DEFSYM! (QClevel, ":level");
+    DEFSYM! (Qinfo, "info");
+    DEFSYM! (Qwarning, "warning");
+    DEFSYM! (QCtitle, ":title");
+    DEFSYM! (QCbody, ":body");
+  }
+
+  /* C 11622's `#ifdef WINDOWSNT`.  */
+  #[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+  {
+    DEFSYM! (QHKCR, "HKCR");
+    DEFSYM! (QHKCU, "HKCU");
+    DEFSYM! (QHKLM, "HKLM");
+    DEFSYM! (QHKU, "HKU");
+    DEFSYM! (QHKCC, "HKCC");
+  }
+
+  /* Symbols used elsewhere, but only in MS-Windows-specific code.  */
+  DEFSYM! (Qgnutls, "gnutls");
+  DEFSYM! (Qlibxml2, "libxml2");
+  DEFSYM! (Qserif, "serif");
+  DEFSYM! (Qzlib, "zlib");
+  DEFSYM! (Qlcms2, "lcms2");
+  DEFSYM! (Qjson, "json");
+
+  Fput (Qundefined_color (), Qerror_conditions (), list! (Qundefined_color (), Qerror ()));
+  Fput (Qundefined_color (), Qerror_message (), build_string (c"Undefined color".as_ptr ()));
+
+  staticpro (&raw mut w32_grabbed_keys);
+  w32_grabbed_keys = Qnil ();                 // C 11644
+
+  DEFVAR_LISP! (c"w32-color-map", Vw32_color_map,
+  	       doc: "An array of color name mappings for Windows.");   // C 11646-11647
+  Vw32_color_map = Qnil ();                   // C 11648
+
+  DEFVAR_LISP! (c"w32-pass-alt-to-system", Vw32_pass_alt_to_system,
+  	       doc: "Non-nil if Alt key presses are passed on to Windows.\nWhen non-nil, for example, Alt pressed and released and then space will\nopen the System menu.  When nil, Emacs processes the Alt key events, and\nthen silently swallows them.");   // C 11650-11654
+  Vw32_pass_alt_to_system = Qnil ();          // C 11655
+
+  DEFVAR_LISP! (c"w32-alt-is-meta", Vw32_alt_is_meta,
+  	       doc: "Non-nil if the Alt key is to be considered the same as the META key.\nWhen nil, Emacs will translate the Alt key to the ALT modifier, not to META.");   // C 11657-11659
+  Vw32_alt_is_meta = Qt ();                   // C 11660
+
+  DEFVAR_INT! (c"w32-quit-key", w32_quit_key,
+  	      "If non-zero, the virtual key code for an alternative quit key.");   // C 11662-11663
+  w32_quit_key = 0;                           // C 11664
+
+  DEFVAR_LISP! (c"w32-pass-lwindow-to-system", Vw32_pass_lwindow_to_system,
+  	       doc: "If non-nil, the left \"Windows\" key is passed on to Windows.\n\nWhen non-nil, the Start menu is opened by tapping the key.\nIf you set this to nil, the left \"Windows\" key is processed by Emacs\naccording to the value of `w32-lwindow-modifier', which see.\n\nNote that some combinations of the left \"Windows\" key with other\nkeys are caught by Windows at low level.  For example, <lwindow>-r\npops up the Windows Run dialog, <lwindow>-<Pause> pops up the \"System\nProperties\" dialog, etc.  On Windows 10, no \"Windows\" key\ncombinations are normally handed to applications.  To enable Emacs to\nprocess \"Windows\" key combinations, use the function\n`w32-register-hot-key'.\n\nFor Windows 98/ME, see the doc string of `w32-phantom-key-code'.");   // C 11666-11682
+  Vw32_pass_lwindow_to_system = Qt ();        // C 11683
+
+  DEFVAR_LISP! (c"w32-pass-rwindow-to-system", Vw32_pass_rwindow_to_system,
+  	       doc: "If non-nil, the right \"Windows\" key is passed on to Windows.\n\nWhen non-nil, the Start menu is opened by tapping the key.\nIf you set this to nil, the right \"Windows\" key is processed by Emacs\naccording to the value of `w32-rwindow-modifier', which see.\n\nNote that some combinations of the right \"Windows\" key with other\nkeys are caught by Windows at low level.  For example, <rwindow>-r\npops up the Windows Run dialog, <rwindow>-<Pause> pops up the \"System\nProperties\" dialog, etc.  On Windows 10, no \"Windows\" key\ncombinations are normally handed to applications.  To enable Emacs to\nprocess \"Windows\" key combinations, use the function\n`w32-register-hot-key'.\n\nFor Windows 98/ME, see the doc string of `w32-phantom-key-code'.");   // C 11685-11701
+  Vw32_pass_rwindow_to_system = Qt ();        // C 11702
+
+  DEFVAR_LISP! (c"w32-phantom-key-code", Vw32_phantom_key_code,
+  	       doc: "Virtual key code used to generate \"phantom\" key presses.\nValue is a number between 0 and 255.\n\nPhantom key presses are generated in order to stop the system from\nacting on \"Windows\" key events when `w32-pass-lwindow-to-system' or\n`w32-pass-rwindow-to-system' is nil.\n\nThis variable is only used on Windows 98 and ME.  For other Windows\nversions, see the documentation of the `w32-register-hot-key'\nfunction.");   // C 11704-11715
+  /* Although 255 is technically not a valid key code, it works and
+  means that this hack won't interfere with any real key code.  */
+  XSETINT! (Vw32_phantom_key_code, 255);      // C 11718
+
+  DEFVAR_LISP! (c"w32-enable-num-lock", Vw32_enable_num_lock,
+  	       doc: "If non-nil, the Num Lock key acts normally.\nSet to nil to handle Num Lock as the `kp-numlock' key.");   // C 11720-11723
+  Vw32_enable_num_lock = Qt ();               // C 11724
+
+  DEFVAR_LISP! (c"w32-enable-caps-lock", Vw32_enable_caps_lock,
+  	       doc: "If non-nil, the Caps Lock key acts normally.\nSet to nil to handle Caps Lock as the `capslock' key.");   // C 11726-11729
+  Vw32_enable_caps_lock = Qt ();              // C 11730
+
+  DEFVAR_LISP! (c"w32-scroll-lock-modifier", Vw32_scroll_lock_modifier,
+  	       doc: "Modifier to use for the Scroll Lock ON state.\nThe value can be hyper, super, meta, alt, control or shift for the\nrespective modifier, or nil to handle Scroll Lock as the `scroll' key.\nAny other value will cause the Scroll Lock key to be ignored by Emacs,\nand it will have the same effect as in other applications.");   // C 11732-11738
+  Vw32_scroll_lock_modifier = Qnil ();        // C 11739
+
+  DEFVAR_LISP! (c"w32-lwindow-modifier", Vw32_lwindow_modifier,
+  	       doc: "Modifier to use for the left \"Windows\" key.\nThe value can be hyper, super, meta, alt, control or shift for the\nrespective modifier, or nil to appear as the `lwindow' key.\nAny other value will cause the key to be ignored.\n\nAlso see the documentation of the `w32-register-hot-key' function.");   // C 11741-11748
+  Vw32_lwindow_modifier = Qnil ();            // C 11749
+
+  DEFVAR_LISP! (c"w32-rwindow-modifier", Vw32_rwindow_modifier,
+  	       doc: "Modifier to use for the right \"Windows\" key.\nThe value can be hyper, super, meta, alt, control or shift for the\nrespective modifier, or nil to appear as the `rwindow' key.\nAny other value will cause the key to be ignored.\n\nAlso see the documentation of the `w32-register-hot-key' function.");   // C 11751-11758
+  Vw32_rwindow_modifier = Qnil ();            // C 11759
+
+  DEFVAR_LISP! (c"w32-apps-modifier", Vw32_apps_modifier,
+  	       doc: "Modifier to use for the \"Apps\" key.\nThe value can be hyper, super, meta, alt, control or shift for the\nrespective modifier, or nil to appear as the `apps' key.\nAny other value will cause the key to be ignored.");   // C 11761-11766
+  Vw32_apps_modifier = Qnil ();               // C 11767
+
+  DEFVAR_BOOL! (c"w32-enable-synthesized-fonts", w32_enable_synthesized_fonts,
+  	       doc: "Non-nil enables selection of artificially italicized and bold fonts.");   // C 11769-11770
+  w32_enable_synthesized_fonts = false;       // C 11771
+
+  DEFVAR_LISP! (c"w32-enable-palette", Vw32_enable_palette,
+  	       doc: "Non-nil enables Windows palette management to map colors exactly.");   // C 11773-11774
+  Vw32_enable_palette = Qt ();                // C 11775
+
+  DEFVAR_INT! (c"w32-mouse-button-tolerance", w32_mouse_button_tolerance,
+  	      "Analogue of double click interval for faking middle mouse events.\nThe value is the minimum time in milliseconds that must elapse between\nleft and right button down events before they are considered distinct events.\nIf both mouse buttons are depressed within this interval, a middle mouse\nbutton down event is generated instead.");   // C 11777-11783
+  w32_mouse_button_tolerance = (GetDoubleClickTime () / 2) as EMACS_INT; // C 11784
+
+  DEFVAR_INT! (c"w32-mouse-move-interval", w32_mouse_move_interval,
+  	      "Minimum interval between mouse move events.\nThe value is the minimum time in milliseconds that must elapse between\nsuccessive mouse move (or scroll bar drag) events before they are\nreported as lisp events.");   // C 11786-11791
+  w32_mouse_move_interval = 0;                // C 11792
+
+  DEFVAR_BOOL! (c"w32-pass-extra-mouse-buttons-to-system", w32_pass_extra_mouse_buttons_to_system,
+  	       doc: "If non-nil, the fourth and fifth mouse buttons are passed to Windows.\nRecent versions of Windows support mice with up to five buttons.\nSince most applications don't support these extra buttons, most mouse\ndrivers will allow you to map them to functions at the system level.\nIf this variable is non-nil, Emacs will pass them on, allowing the\nsystem to handle them.");   // C 11794-11801
+  w32_pass_extra_mouse_buttons_to_system = false; // C 11802
+
+  DEFVAR_BOOL! (c"w32-pass-multimedia-buttons-to-system", w32_pass_multimedia_buttons_to_system,
+  	       doc: "If non-nil, media buttons are passed to Windows.\nSome modern keyboards contain buttons for controlling media players, web\nbrowsers and other applications.  Generally these buttons are handled on a\nsystem wide basis, but by setting this to nil they are made available\nto Emacs for binding.  Depending on your keyboard, additional keys that\nmay be available are:\n\nbrowser-back, browser-forward, browser-refresh, browser-stop,\nbrowser-search, browser-favorites, browser-home,\nmail, mail-reply, mail-forward, mail-send,\napp-1, app-2,\nhelp, find, new, open, close, save, print, undo, redo, copy, cut, paste,\nspell-check, correction-list, toggle-dictate-command,\nmedia-next, media-previous, media-stop, media-play-pause, media-select,\nmedia-play, media-pause, media-record, media-fast-forward, media-rewind,\nmedia-channel-up, media-channel-down,\nvolume-mute, volume-up, volume-down,\nmic-volume-mute, mic-volume-down, mic-volume-up, mic-toggle,\nbass-down, bass-boost, bass-up, treble-down, treble-up");   // C 11804-11824
+  w32_pass_multimedia_buttons_to_system = true; // C 11825
+
+  /* C 11827-11854's `#if 0 /* TODO: Mouse cursor customization.  */` region is carried as C's own text - the file's reading for a
+     region no configuration compiles (PORTING.md P-51):
+
+  #if 0 /* TODO: Mouse cursor customization.  */
+    DEFVAR_LISP ("x-pointer-shape", Vx_pointer_shape,
+  	       doc: /* SKIP: real doc in xfns.c.  */);
+    Vx_pointer_shape = Qnil;
+  
+    Vx_nontext_pointer_shape = Qnil;
+  
+    Vx_mode_pointer_shape = Qnil;
+  
+    DEFVAR_LISP ("x-hourglass-pointer-shape", Vx_hourglass_pointer_shape,
+  	       doc: /* SKIP: real doc in xfns.c.  */);
+    Vx_hourglass_pointer_shape = Qnil;
+  
+    DEFVAR_LISP ("x-sensitive-text-pointer-shape",
+  	       Vx_sensitive_text_pointer_shape,
+  	       doc: /* SKIP: real doc in xfns.c.  */);
+    Vx_sensitive_text_pointer_shape = Qnil;
+  
+    DEFVAR_LISP ("x-window-horizontal-drag-cursor",
+  	       Vx_window_horizontal_drag_shape,
+  	       doc: /* SKIP: real doc in xfns.c.  */);
+    Vx_window_horizontal_drag_shape = Qnil;
+  
+    DEFVAR_LISP ("x-window-vertical-drag-cursor",
+  	       Vx_window_vertical_drag_shape,
+  	       doc: /* SKIP: real doc in xfns.c.  */);
+    Vx_window_vertical_drag_shape = Qnil;
+  */
+
+  DEFVAR_LISP! (c"x-cursor-fore-pixel", Vx_cursor_fore_pixel,
+  	       doc: "SKIP: real doc in xfns.c.");   // C 11856-11857
+  Vx_cursor_fore_pixel = Qnil ();             // C 11858
+
+  DEFVAR_LISP! (c"x-max-tooltip-size", Vx_max_tooltip_size,
+  	       doc: "SKIP: real doc in xfns.c.");   // C 11860-11861
+  Vx_max_tooltip_size = Qnil ();              // C 11862
+
+  DEFVAR_LISP! (c"x-no-window-manager", Vx_no_window_manager,
+  	       doc: "SKIP: real doc in xfns.c.");   // C 11864-11865
+  /* We don't have any way to find this out, so set it to nil
+  and maybe the user would like to set it to t.  */
+  Vx_no_window_manager = Qnil ();             // C 11868
+
+  DEFVAR_LISP! (c"x-pixel-size-width-font-regexp", Vx_pixel_size_width_font_regexp,
+  	       doc: "SKIP: real doc in xfns.c.");   // C 11870-11872
+  Vx_pixel_size_width_font_regexp = Qnil ();  // C 11873
+
+  DEFVAR_BOOL! (c"w32-strict-painting", w32_strict_painting,
+  	       doc: "Non-nil means use strict rules for repainting frames.\nSet this to nil to get the old behavior for repainting; this should\nonly be necessary if the default setting causes problems.");   // C 11875-11879
+  w32_strict_painting = true;                 // C 11880
+
+  DEFVAR_BOOL! (c"w32-use-fallback-wm-chars-method", w32_use_fallback_wm_chars_method,
+  	       doc: "Non-nil means use old method of processing character keys.\nThis is intended only for debugging of the new processing method.\nDefault is nil.\n\nThis variable has effect only on NT family of systems, not on Windows 9X.");   // C 11882-11888
+  w32_use_fallback_wm_chars_method = false;   // C 11889
+
+  DEFVAR_BOOL! (c"w32-disable-new-uniscribe-apis", w32_disable_new_uniscribe_apis,
+  	       doc: "Non-nil means don't use new Uniscribe APIs.\nThe new APIs are used to access OTF features supported by fonts.\nThis is intended only for debugging of the new Uniscribe-related code.\nDefault is nil.\n\nThis variable has effect only on Windows Vista and later.");   // C 11891-11898
+  w32_disable_new_uniscribe_apis = false;     // C 11899
+
+  DEFVAR_LISP! (c"w32-tooltip-extra-pixels", Vw32_tooltip_extra_pixels,
+  	       doc: "Number of pixels added after tooltip text.\nOn Windows some fonts may cause the last character of a tooltip be\ntruncated or wrapped around to the next line.  Adding some extra space\nat the end of the toooltip works around this problem.\n\nThis variable specifies the number of pixels that shall be added.  The\ndefault value t means to add the width of one canonical character of the\ntip frame.");   // C 11901-11910
+  Vw32_tooltip_extra_pixels = Qt ();          // C 11911
+
+  DEFVAR_BOOL! (c"w32-disable-abort-dialog", w32_disable_abort_dialog,
+  	       doc: "Non-nil means don't display the abort dialog when aborting.");   // C 11913-11915
+  w32_disable_abort_dialog = false;           // C 11916
+
+  DEFVAR_BOOL! (c"w32-ignore-modifiers-on-IME-input", w32_ignore_modifiers_on_IME_input,
+  	       doc: "Whether to ignore modifier keys when processing input with IME.\nSome MS-Windows input methods use modifier keys such as Ctrl or Alt to input\ncharacters, in which case applying the modifiers will change the input.\nThe default value of this variable is therefore t, to ignore modifier\nkeys when IME input is received.");   // C 11918-11924
+  w32_ignore_modifiers_on_IME_input = true;   // C 11925
+
+  /* C 11927-11931's `#if 0 /* TODO: Port to W32 */` region is carried as C's own text - the file's reading for a
+     region no configuration compiles (PORTING.md P-51):
+
+  #if 0 /* TODO: Port to W32 */
+    defsubr (&Sx_change_window_property);
+    defsubr (&Sx_delete_window_property);
+    defsubr (&Sx_window_property);
+  */
+  defsubr (&raw mut Sxw_display_color_p);
+  defsubr (&raw mut Sx_display_grayscale_p);
+  defsubr (&raw mut Sxw_color_defined_p);
+  defsubr (&raw mut Sxw_color_values);
+  defsubr (&raw mut Sx_server_max_request_size);
+  defsubr (&raw mut Sx_server_vendor);
+  defsubr (&raw mut Sx_server_version);
+  defsubr (&raw mut Sx_display_pixel_width);
+  defsubr (&raw mut Sx_display_pixel_height);
+  defsubr (&raw mut Sx_display_mm_width);
+  defsubr (&raw mut Sx_display_mm_height);
+  defsubr (&raw mut Sx_display_screens);
+  defsubr (&raw mut Sx_display_planes);
+  defsubr (&raw mut Sx_display_color_cells);
+  defsubr (&raw mut Sx_display_visual_class);
+  defsubr (&raw mut Sx_display_backing_store);
+  defsubr (&raw mut Sx_display_save_under);
+  defsubr (&raw mut Sx_create_frame);
+  defsubr (&raw mut Sx_open_connection);
+  defsubr (&raw mut Sx_close_connection);
+  defsubr (&raw mut Sx_display_list);
+  defsubr (&raw mut Sw32_frame_geometry);
+  defsubr (&raw mut Sw32_frame_edges);
+  defsubr (&raw mut Sw32_frame_list_z_order);
+  defsubr (&raw mut Sw32_frame_restack);
+  defsubr (&raw mut Sw32_mouse_absolute_pixel_position);
+  defsubr (&raw mut Sw32_set_mouse_absolute_pixel_position);
+  defsubr (&raw mut Sx_synchronize);
+
+  /* W32 specific functions */
+
+  defsubr (&raw mut Sw32_define_rgb_color);
+  defsubr (&raw mut Sw32_display_monitor_attributes_list);
+  defsubr (&raw mut Sw32_send_sys_command);
+  defsubr (&raw mut Sw32_shell_execute);
+  defsubr (&raw mut Sw32_register_hot_key);
+  defsubr (&raw mut Sw32_unregister_hot_key);
+  defsubr (&raw mut Sw32_registered_hot_keys);
+  defsubr (&raw mut Sw32_reconstruct_hot_key);
+  defsubr (&raw mut Sw32_toggle_lock_key);
+  defsubr (&raw mut Sw32_window_exists_p);
+  defsubr (&raw mut Sw32__menu_bar_in_use);
+  /* C 11974's `#if defined WINDOWSNT && !defined HAVE_DBUS`.  */
+  #[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+  {
+    defsubr (&raw mut Sw32_notification_notify);
+    defsubr (&raw mut Sw32_notification_close);
+  }
+  defsubr (&raw mut Sw32_get_ime_open_status);
+  defsubr (&raw mut Sw32_set_ime_open_status);
+
+  /* C 11981's `#ifdef WINDOWSNT`.  */
+  #[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+  {
+    defsubr (&raw mut Sw32_read_registry);
+    defsubr (&raw mut Sfile_system_info);
+    defsubr (&raw mut Sdefault_printer_name);
+  }
+
+  defsubr (&raw mut Sset_message_beep);
+  defsubr (&raw mut Sx_show_tip);
+  defsubr (&raw mut Sx_hide_tip);
+  tip_timer = Qnil ();                        // C 11990
+  staticpro (&raw mut tip_timer);
+  tip_frame = Qnil ();                        // C 11992
+  staticpro (&raw mut tip_frame);
+  tip_last_frame = Qnil ();                   // C 11994
+  staticpro (&raw mut tip_last_frame);
+  tip_last_string = Qnil ();                  // C 11996
+  staticpro (&raw mut tip_last_string);
+  tip_last_parms = Qnil ();                   // C 11998
+  staticpro (&raw mut tip_last_parms);
+
+  defsubr (&raw mut Sx_file_dialog);
+  /* C 12002's `#ifdef WINDOWSNT`.  */
+  #[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+  {
+    defsubr (&raw mut Ssystem_move_file_to_trash);
+    defsubr (&raw mut Sw32_set_wallpaper);
+    defsubr (&raw mut Sw32_system_idle_time);
+  }
+  defsubr (&raw mut Sw32_export_frame);
+
+  DEFSYM! (Qnot_useful, "not-useful");
+  DEFSYM! (Qpseudo_color, "pseudo-color");
+  DEFSYM! (Qstatic_gray, "static-gray");
+  DEFSYM! (Qstatic_color, "static-color");
+  DEFSYM! (Qtrue_color, "true-color");
+  DEFSYM! (Qasterisk, "asterisk");
+  DEFSYM! (Qexclamation, "exclamation");
+  DEFSYM! (Qquestion, "question");
+  DEFSYM! (Qok, "ok");
+  DEFSYM! (Qsilent, "silent");
+  DEFSYM! (Qdata_directory, "data-directory");
+  DEFSYM! (Qrun_at_time, "run-at-time");
+  DEFSYM! (Qx_hide_tip, "x-hide-tip");
+  DEFSYM! (Qcapslock, "capslock");
+  DEFSYM! (Qkp_numlock, "kp-numlock");
+  DEFSYM! (Qscroll, "scroll");
+
+  /* C 12026's `#ifdef WINDOWSNT`.  */
+  #[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+  {
+    /* Taskbar indicators support.  */
+    defsubr (&raw mut Sw32_badge);
+    defsubr (&raw mut Sw32_progress_indicator);
+    defsubr (&raw mut Sw32_request_user_attention);
+    DEFSYM! (Qinformational, "informational");
+    DEFSYM! (Qcritical, "critical");
+    /* System sleep support.  */
+    defsubr (&raw mut Sw32_unblock_system_sleep);
+    defsubr (&raw mut Sw32_block_system_sleep);
+    defsubr (&raw mut Sw32_system_sleep_block_count);
+  }
+}
 
 /// C 10112-10138: `int w32_console_toggle_lock_key (int vk_code, Lisp_Object new_state)` - the
 /// Cygwin/console fallback `w32-toggle-lock-key` uses when `dwWindowsThreadId` is zero.  C 10115's

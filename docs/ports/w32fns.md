@@ -238,7 +238,7 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 11350-11477 | C 11350-11352's System Sleep Support banner, C 11354-11358's `SetThreadExecutionState_Proc` with its pointer and the two counters, C 11360/11391/11414's three sleep `DEFUN`s, and C 11424-11477's notification group (`sleep_notification_callback`, `RegisterSuspendResumeNotification_Proc`, `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, `w32_register_for_sleep_notifications`) - slice 33 | file gate (the group is outside every `#if`: `#[cfg (feature = "have_ntgui")]`, `input_event_bits!` included) |
 | 11478-11520 | C 11478-11480's Exporting frames banner and C 11481-11520's `w32-export-frame` (its own `#ifdef WINDOWSNT` at C 11491 with the C 11517-11518 `#else`) - slice 34 | file gate; the body's two arms are `windowsnt` / `not (windowsnt)` |
 | 11522-11583 | C 11523-11525's Initialization banner, C 11527-11528's ordering comment, and C 11530-11583's `w32_frame_parm_handlers[]` (with the `frame_parm_handler` alias and the twenty-two `gui_set_*` use-site declarations) - slice 35 | file gate |
-| 11585-12038 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`; C 11588's `globals_of_w32fns ()` is landed - slice 36 landed the callee first, P-91 ①) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 11585-12038 | C 11585-12038's `syms_of_w32fns`: the `globals_of_w32fns ()` call, the fifty-four `DEFSYM`s of C's five runs, the two `Fput`s, the `staticpro` pair, the twenty-nine `DEFVAR`s with C's comments, the two `#if 0` regions (carried as C's text), the forty-six `defsubr`s and the five `tip_*` `staticpro` pairs - slice 41, the file's last item | file gate; the tray arms are `windowsnt` + `not (have_dbus)` |
 | 12042-12128 | C 12042's banner, C 12044-12049's guard and objects (`prev_exception_handler` under `not (cygwin)`, `except_code`/`except_addr` ungated), C 12051-12059's `_resetstkoflw_proc` and `resetstkoflw`, and C 12061-12128's `w32_reset_stack_overflow_guard`, `stack_overflow_handler` and `my_exception_handler` - slice 37 | file gate; the group's `#ifndef CYGWIN` arms are `not (cygwin)`, and the two `#ifdef _WIN64` pairs are `win64` / `not (win64)` |
 | 12130-12159 | C 12130-12131's `CaptureStackBackTrace_proc` (with this unit's own `PULONG`), C 12133's `BACKTRACE_LIMIT_MAX`, C 12134-12141's two-arm `DEFAULT_IMAGE_BASE` and C 12143-12159's `w32_backtrace` - slice 39 | file gate; the `DEFAULT_IMAGE_BASE` arms are `mingw_w64` + the derived `emacs_int_max_gt_long_max` / `not (cygwin)` |
 | 12161-12279 | C 12161-12279's `emacs_abort` (the dialog with C's `#if __GNUC__` string arm, the `switch` over the answer with three `#ifdef CYGWIN` pairs inside, and the backtrace-file reporting loop) - slice 40 | file gate; the three inner pairs are `cygwin` / `not (cygwin)`, and the message arm is `gnuc` |
@@ -3957,6 +3957,85 @@ lines; 143 blank line(s) between blocks need no row)**, and the table's only rem
   `-1isize as HANDLE` spelling.
 - **Not claimed.**  No run evidence: no Windows toolchain, so no dialog is shown, no backtrace file
   is written and no process aborts; the readings are the compile-level ones above and the sweep's.
+
+## Slice 41 (C 11585-12038) - the file's last item, and the lane closes
+
+**Scope and the stop.**  `syms_of_w32fns` (C 11585-12038): C 11588's `globals_of_w32fns ()` call
+(slice 38's definition), C 11589-11592's two objects with `PDUMPER_IGNORE`, C 11594-11636's
+fifty-four `DEFSYM`s in C's five runs (two of them under C 11612's `#if defined WINDOWSNT &&
+!defined HAVE_DBUS` and C 11622's `#ifdef WINDOWSNT`), C 11638-11644's two `Fput`s over
+`Qundefined_color` with the `staticpro (&w32_grabbed_keys, NULL)` pair, C 11646-11925's twenty-nine
+`DEFVAR`s with their assignments and C's own comments, C 11827-11854's and C 11927-11931's `#if 0`
+regions (carried as C's own text), C 11932-12007's forty-six `defsubr`s with their three arms,
+C 11990-11999's five `tip_*` `staticpro` pairs, C 12009-12024's sixteen closing `DEFSYM`s and
+C 12026-12037's taskbar/sleep arm.  **There is no stop**: this is the file's last C text, and the
+range table's last remainder row retires with it.
+
+**What the item carries.**  Everything listed above; the only new name the port needs is
+`GetDoubleClickTime` (C 11784, declared at the use site - the `redisplay_preserve_echo_area`
+device).  The `S...` subr statics are the ones the file's `DEFUN!` items generated, so the
+`defsubr` table names existing items.
+
+**The remainder comment retires.**  The block that explained why `w32_console_toggle_lock_key`
+(C 10112) stands below the slices that insert above it - "C 11585-12038's text is not in the port
+yet ... Later slices of this lane insert their own text *above* this block, so the file's item order
+still equals C's order (P-91 ②)" - is removed: no text is left to insert above it, so the file's
+items now all stand in C's order with that one documented exception (C 10112 sits at the file's end
+because C 9302 calls it and the port has no "declare then define" pair, P-91 ①).
+
+### Evidence (slice 41, the final revision: 18,594 Rust lines - the file closes)
+
+**① The frozen configuration (`build-tu`).**  One run: **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  One run: **42 previous errors** - the standing
+count, so the whole 454-line body type-checks with **no error at or beyond `src/w32fns.rs` 18,192**
+(the largest is the pre-existing `must_be_updated_p` gap at 12,094).  The warning count moves
+124 → 125 (one more `unused doc comment`, the new extern block's `/// C:` header - the file's
+standing style).
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 18,192-18,594: 165 capitalized
+identifiers, and the 65 "missing" ones are all in the tool's documented false-positive classes - the
+`S...` subr statics `DEFUN!` generates, the three `Sx_*_window_property` names *inside* the carried
+`#if 0` text (the nested-comment limitation) and the two words of the `PORTING.md P-51` citation
+inside that comment; no unresolved item name.
+
+**④ `extract-abi.py --check` - `OK`.**  **47 → 0** rows: the forty-six `missing defsubr` rows and
+`missing function syms_of_w32fns` retire, and the reading is `OK emacs/src/w32fns.c ->
+femacs/src/w32fns.rs` with four recorded C macros (`C_CHILDREN_TITLEBAR`, `DEFAULT_IMAGE_BASE`,
+`FPRINTF_WM_CHARS`, `MOUSEEVENTF_FROMTOUCH` - the branches the token check does not compare).  Two
+rows the first reading added are answered: a token row (`function syms_of_w32fns does not mention 1`
+- C's two `= 1;` sites on `bool` variables are the port's `= true;`, one new
+`macro-body-notes.tsv` row) and the drift row (`line count drifted 48.9%: C 12488 vs Rust 18594`),
+answered by the file's **finished** `w32fns 0.50` row in `docs/ports/line-drift-tolerance.tsv`.
+
+**⑤ The range table and the dead-file gate.**  The last remainder row becomes the slice's landed
+row; `check-dead-file-coverage.py` reads **190 range row(s) cover src/w32fns.c (12488 lines;
+143 blank line(s) between blocks need no row)** - **no row of the table is a remainder any more**.
+
+**⑥ The lane's closing reading.**  `extract-abi.py --check` `OK` above is the per-file half; the
+tree-wide reading is `extract-abi.py --all` (run at the next round's start, since it reads every
+file).  What this lane claims at its close is exactly these readings: the file's text is complete
+against its reference, its token check is clean, its four arm readings are the 42-error baseline
+with no diagnostic from this file's own text, and the `--check` is `OK`.  Nothing here is a claim
+about running the code.
+
+### Deviations (slice 41)
+
+- **C's `DEFVAR_*` invocations keep C's docstring text** as a literal (the port's macros take it
+  positionally for `DEFVAR_INT!` and under C's `doc:` label for `DEFVAR_LISP!`/`DEFVAR_BOOL!`).
+- **C's two `#if 0` regions are carried as C's own text** inside comments (the file's reading for a
+  region no configuration compiles: no `DEFVAR`/`defsubr` of them takes effect), and the nested
+  comment is why the name sweep reads two words of the citation there.
+- **C's `XSETINT (Vw32_phantom_key_code, 255)` is the tree's `XSETINT!`** (the
+  `src/androidterm.rs` 872 device), and C's `= 0;`/`= 1;` on `bool` variables are `false`/`true`
+  (recorded in a notes row).
+- **`GetDoubleClickTime` is declared at the use site** (no mirror row).
+- **The file's one remaining out-of-sequence item is `w32_console_toggle_lock_key`** (C 10112),
+  which stays at the file's end with its own doc comment; the range table carries it as the landed
+  row `10112-10138`.
+- **Not claimed.**  No run evidence: no Windows toolchain, so no symbol is interned, no variable
+  registered and no subr defined at run time; the readings are the compile-level ones above, the
+  name sweep's and the token check's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
