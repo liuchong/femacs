@@ -237,7 +237,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 11247-11348 | C 11247-11295's `w32-request-user-attention` and C 11297-11346's `w32-progress-indicator`, closing C 11348's `#endif` - slice 32 | `windowsnt` (nested) |
 | 11350-11477 | C 11350-11352's System Sleep Support banner, C 11354-11358's `SetThreadExecutionState_Proc` with its pointer and the two counters, C 11360/11391/11414's three sleep `DEFUN`s, and C 11424-11477's notification group (`sleep_notification_callback`, `RegisterSuspendResumeNotification_Proc`, `MY_DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS`, `w32_register_for_sleep_notifications`) - slice 33 | file gate (the group is outside every `#if`: `#[cfg (feature = "have_ntgui")]`, `input_event_bits!` included) |
 | 11478-11520 | C 11478-11480's Exporting frames banner and C 11481-11520's `w32-export-frame` (its own `#ifdef WINDOWSNT` at C 11491 with the C 11517-11518 `#else`) - slice 34 | file gate; the body's two arms are `windowsnt` / `not (windowsnt)` |
-| 11522-12488 | **the remainder of the file** (C 11522-11524's Initialization banner onward: `w32_frame_parm_handlers` (C 11530), `syms_of_w32fns` (C 11585), the exception/backtrace group and `globals_of_w32fns` (C 12294)) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 11522-11583 | C 11523-11525's Initialization banner, C 11527-11528's ordering comment, and C 11530-11583's `w32_frame_parm_handlers[]` (with the `frame_parm_handler` alias and the twenty-two `gui_set_*` use-site declarations) - slice 35 | file gate |
+| 11585-12488 | **the remainder of the file** (C 11585-12038's `syms_of_w32fns`, then the exception/backtrace group and C 12294's `globals_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -3515,6 +3516,73 @@ line(s) between blocks need no row)**.  The over-sequence comment above the
 - **Not claimed.**  No run evidence: no Windows, no GDI+ and no mingw toolchain, so no frame is
   exported and no encoder CLSID is looked up; the arm reading is compile-level (42 errors, none from
   this slice) and the name reading is the sweep's.
+
+## Slice 35 (C 11522-11583)
+
+**Scope and the stop.**  The Initialization banner (C 11523-11525), C 11527-11528's ordering
+comment and `w32_frame_parm_handlers[]` (C 11530-11583, fifty-one entries).  The stop is C 11585's
+`syms_of_w32fns`.  The group sits outside every `#if`, so the items carry the file gate.
+
+**What the items carry.**  The table is C's fifty-one entries in C's order, with C's five `0` rows as
+`None` and C's trailing comments kept; the twenty-three `w32_set_*`/`w32_explicitly_set_name` entries
+are this file's own definitions and the twenty-two `gui_set_*` entries are `frame.c`'s, named in a
+use-site block because `include/frame.rs` does not carry `frame.h` 1844-1871's prototypes.
+
+**The mirror move (P-21/P-39).**  `w32term.h` 274's `extern frame_parm_handler
+w32_frame_parm_handlers[];` stood at `include/w32term.rs`'s crate root (line 353), where a
+`have_ntgui` unit that defines the object reads `E0428`.  The declaration moved into the existing
+`pub mod w32term_objs` (which the mirror glob-imports, so the unit's crate-root definition shadows
+it), its `/// C:` line moved with it, and the old site carries a one-line pointer comment - the
+device `docs/ports/include-w32term.md` records for the twenty-seven names of 2026-10-05.  The
+conversion of this file's twenty-three handlers to `unsafe extern "C" fn` is the same table's doing:
+their address now goes into a C-ABI slot, which is how `src/haikufns.rs`, `src/pgtkfns.rs` and
+`src/androidfns.rs` spell their own handlers.
+
+### Evidence (slice 35, the final revision: 17,407 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Two runs (the second after the ABI conversion): **exit
+0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Two runs.  The first read **65** errors - the
+standing **42** plus twenty-three `E0308 mismatched types` (`Some (w32_set_background_color)` and its
+twenty-two siblings: the alias is C-ABI and the unit's own handlers were Rust-ABI `unsafe fn`).  The
+second run is back to **42** with the same fifteen `E0428` names as before the mirror move - so the
+move produced no new collision, and **no error sits at or beyond `src/w32fns.rs` 17,228**.
+
+**③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 17,228-17,361: 4 capitalized
+identifiers, the one missing being `Some` - the prelude variant the table uses, not an item under
+`femacs/` (the tool's documented non-item class); no unresolved value.
+
+**④ `extract-abi.py --check`.**  **63** rows, unchanged: the table is an object no `missing` row ever
+named (the mirror declares it), and **no token row appears**.  The drift row the first reading added
+(`line count drifted 39.4%: C 12488 vs Rust 17407`) is answered by a new `w32fns 0.41` row in
+`docs/ports/line-drift-tolerance.tsv` (the measured 39.4% + 0.01, superseding slice 33's `0.39`),
+and the second reading has no drift row.
+
+**⑤ The range table and the dead-file gate.**  The `11522-12488` remainder row splits into
+`11522-11583` (this slice) and `11585-12488` (the remainder, 904 lines);
+`check-dead-file-coverage.py` reads **185 range row(s) cover src/w32fns.c (12488 lines; 134 blank
+line(s) between blocks need no row)**.  The over-sequence comment above the
+`w32_console_toggle_lock_key` block now reads `C 11585-12488`.
+
+### Deviations (slice 35)
+
+- **The twenty-three handlers became `unsafe extern "C" fn`** (from `unsafe fn`): C stores their
+  address in a C-ABI function-pointer table, which is the spelling `src/haikufns.rs` 2335,
+  `src/pgtkfns.rs` 1092 and `src/androidfns.rs` 3452 already use for their own handlers.  Their
+  bodies, names and gates are unchanged.
+- **The `frame_parm_handler` alias is spelled at the use site** (`dispextern.h` 3063's typedef body),
+  because `include/dispextern.rs` carries only the `*mut c_void` field - the
+  `src/haikufns.rs` 218-225 precedent.
+- **The twenty-two `gui_set_*` prototypes are declared here**, because `include/frame.rs` does not
+  carry `frame.h` 1844-1871 - the `src/haikufns.rs` 226-272 block, same wording.
+- **C's `0` entries are `None`, with C's comments kept** (`/* x_set_scroll_bar_foreground, */` and
+  its four siblings); the table's element count (51) is the reference's own.
+- **The mirror declaration moved into `w32term_objs`**; the unit's definition keeps
+  `#[unsafe(no_mangle)]` (C's `w32_frame_parm_handlers` is non-static) and shadows the glob import.
+- **Not claimed.**  No run evidence: no Windows toolchain, so no frame parameter is ever set through
+  this table and the object is never linked; the arm reading is compile-level (42 errors, none at or
+  after this slice) and the name reading is the sweep's.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

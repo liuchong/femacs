@@ -2204,7 +2204,7 @@ unsafe fn w32_decode_color (f: *mut frame, arg: Lisp_Object, def: c_int) -> c_in
    is the `Emacs_GC` member `dispextern.rs` declares.  `PIX_TYPE` is `include/w32term.rs` 360-366's
    type macro, so C's declaration `PIX_TYPE fg, old_fg;` is the port's `PIX_TYPE! ()`.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_foreground_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_foreground_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let x: *mut w32_output = (*f).output_data.w32 as *mut w32_output;
   let mut fg: PIX_TYPE! ();
@@ -2236,7 +2236,7 @@ unsafe fn w32_set_foreground_color (f: *mut frame, arg: Lisp_Object, oldval: Lis
    `FRAME_BACKGROUND_PIXEL (f)` is the macro pair declared above (the mirror's reader is a
    function, so the write needs the place expression).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_background_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_background_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   FRAME_BACKGROUND_PIXEL! (f)
     = w32_decode_color (f, arg, WHITE_PIX_DEFAULT! (f)) as c_ulong;
@@ -2274,7 +2274,7 @@ unsafe extern "C" {
 /* Set the mouse color of frame F to ARG.  */
 
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   /* C 1265-1268: (dead text, `#if 0`)
      Cursor cursor, nontext_cursor, mode_cursor, hand_cursor;
@@ -2442,7 +2442,7 @@ unsafe fn w32_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Obj
    C's two `gui_update_cursor (f, 0)`/`(f, 1)` `int`-as-`bool` arguments are the port's
    `false`/`true` (a `macro-body-notes.tsv` row records the two integer tokens).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_cursor_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_cursor_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let mut fore_pixel: c_ulong;
   let mut pixel: c_ulong;
@@ -2512,7 +2512,7 @@ unsafe fn w32_set_border_pixel (f: *mut frame, pix: c_int)
 
 /* C 1489-1497.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_border_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_border_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let mut pix: c_int;
 
@@ -2525,7 +2525,7 @@ unsafe fn w32_set_border_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Ob
 /* C 1501-1504.  */
 
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_cursor_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_cursor_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   set_frame_cursor_types (f, arg);
 }
@@ -2534,7 +2534,7 @@ unsafe fn w32_set_cursor_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Obj
    `c"…"` literal (PORTING.md 2.1), and the terminal hook is the `pgtkfns.rs` 1211 shape (the
    `Option<…>` is `unwrap`ped and the frame crosses as `*mut c_void`).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_icon_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_icon_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let mut result: bool;
 
@@ -2563,7 +2563,7 @@ unsafe fn w32_set_icon_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Objec
 /* C 1534-1578.  C's second half is `#if 0` (C 1552-1583), kept as C's own text below;
    `fset_icon_name` is `include/frame.rs`'s.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_icon_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_icon_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   if STRINGP (arg)
     {
@@ -2752,7 +2752,7 @@ pub unsafe extern "C" fn w32_clear_under_internal_border (f: *mut frame)
    above); `FRAME_NATIVE_WINDOW` is `include/w32term.rs`'s macro and C's `if (…) w32_clear_…`
    single statement is the port's one-line block.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object,
+unsafe extern "C" fn w32_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object,
 					    oldval: Lisp_Object)
 {
   let mut border: c_int;
@@ -2788,7 +2788,7 @@ unsafe fn w32_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object,
    into its `int argval`, and C's `max (argval, 0)` is the mirror's `max` function over `isize`
    (the `abi_shim.rs` 2475 / `bidi.rs` 412 shape).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_internal_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_internal_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let argval: c_int = check_integer_range (arg, INT_MIN as intmax_t, INT_MAX as intmax_t) as c_int;
   let border: c_int = max (argval as isize, 0) as c_int;
@@ -2820,7 +2820,7 @@ unsafe fn w32_set_internal_border_width (f: *mut frame, arg: Lisp_Object, oldval
    (f)`/`FRAME_MENU_BAR_HEIGHT (f)` are the macro pair declared above; `FRAME_W32_WINDOW (f)` is a
    pointer test, so C's bare `if (…)` is the `!= 0` comparison.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {
   /* Right now, menu bars don't work properly in minibuf-only frames;
      most of the commands try to apply themselves to the minibuffer
@@ -2875,7 +2875,7 @@ unsafe fn w32_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lis
 
 /* C 1760-1775.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {
   let mut nlines: c_int;
 
@@ -3016,7 +3016,7 @@ macro_rules! FRAME_TOOL_BAR_HEIGHT {
 
 /* C 1859-1874.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_tool_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_set_tool_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {
   let mut nlines: c_int;
 
@@ -3037,7 +3037,7 @@ unsafe fn w32_set_tool_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lis
    mirror's variadic `error` with a `c"…"` literal; `fset_tool_bar_position` is `include/frame.rs`
    1544's.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_tool_bar_position (f: *mut frame,
+unsafe extern "C" fn w32_set_tool_bar_position (f: *mut frame,
 				     new_value: Lisp_Object,
 				     old_value: Lisp_Object)
 {
@@ -3075,7 +3075,7 @@ unsafe fn w32_set_tool_bar_position (f: *mut frame,
    and the bit is set by `w32_output_bits!` - the integrator's 3.575 spelling, used, not
    re-invented.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_inhibit_double_buffering (f: *mut frame,
+unsafe extern "C" fn w32_set_inhibit_double_buffering (f: *mut frame,
 					    new_value: Lisp_Object,
 					    /* This parameter is unused.  */
 					    old_value: Lisp_Object)
@@ -3386,7 +3386,7 @@ unsafe fn w32_set_name (f: *mut frame, mut name: Lisp_Object, explicit: bool)
    redisplay code.  */
 /* C 2086-2089.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_explicitly_set_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+unsafe extern "C" fn w32_explicitly_set_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   w32_set_name (f, arg, true);
 }
@@ -3408,7 +3408,7 @@ pub unsafe extern "C" fn w32_implicitly_set_name (f: *mut frame, arg: Lisp_Objec
 
 /* C 2104-2118.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_title (f: *mut frame, mut name: Lisp_Object, old_name: Lisp_Object)
+unsafe extern "C" fn w32_set_title (f: *mut frame, mut name: Lisp_Object, old_name: Lisp_Object)
 {
   /* Don't change the title if it's already NAME.  */
   if EQ (name, (*f).title)
@@ -3491,7 +3491,7 @@ pub unsafe extern "C" fn w32_set_scroll_bar_default_height (f: *mut frame)
    `GetWindowLong`'s `LONG` narrows into C's `DWORD dwStyle`, which the port writes out, and
    `f->output_data.w32->dwStyle` is the `w32_output` member `include/w32term.rs` declares.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_undecorated (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+unsafe extern "C" fn w32_set_undecorated (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   let hwnd: HWND = FRAME_W32_WINDOW! (f);
   let mut dwStyle: DWORD = GetWindowLong (hwnd, GWL_STYLE) as DWORD;
@@ -3552,7 +3552,7 @@ unsafe fn w32_set_undecorated (f: *mut frame, new_value: Lisp_Object, old_value:
    `if`/`else` (the `null_mut ()` spelling of C's `NULL`), `FRAMEP`/`FRAME_LIVE_P` are the
    mirror's `bool` functions, and `fset_parent_frame` is the mirror's frame.h 1697-family setter.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_parent_frame (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+unsafe extern "C" fn w32_set_parent_frame (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   let mut p: *mut frame = 0 as *mut frame;
 
@@ -3600,7 +3600,7 @@ unsafe fn w32_set_parent_frame (f: *mut frame, new_value: Lisp_Object, old_value
    `WS_EX_NOACTIVATE` constant is this file's own C 352 guard (`LONG`, so C's `exStyle |
    WS_EX_NOACTIVATE` widens it, which the port writes out).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_skip_taskbar (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+unsafe extern "C" fn w32_set_skip_taskbar (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   if ! EQ (new_value, old_value)
     {
@@ -3635,7 +3635,7 @@ unsafe fn w32_set_skip_taskbar (f: *mut frame, new_value: Lisp_Object, old_value
  */
 /* C 2295-2299.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_no_focus_on_map (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+unsafe extern "C" fn w32_set_no_focus_on_map (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   if ! EQ (new_value, old_value)
     { FRAME_NO_FOCUS_ON_MAP! (f, ! NILP (new_value)); }
@@ -3655,7 +3655,7 @@ unsafe fn w32_set_no_focus_on_map (f: *mut frame, new_value: Lisp_Object, old_va
  */
 /* C 2314-2318.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_no_accept_focus (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+unsafe extern "C" fn w32_set_no_accept_focus (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   if ! EQ (new_value, old_value)
     { FRAME_NO_ACCEPT_FOCUS! (f, ! NILP (new_value)); }
@@ -3683,7 +3683,7 @@ unsafe fn w32_set_no_accept_focus (f: *mut frame, new_value: Lisp_Object, old_va
    above (`z_group_none`/`z_group_above`/`z_group_above_suspended` are `include/frame.rs`
    1589-1640's enumerators).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_z_group (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+unsafe extern "C" fn w32_set_z_group (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   let hwnd: HWND = FRAME_W32_WINDOW! (f);
 
@@ -17225,7 +17225,141 @@ DEFUN! ("w32-export-frame", Fw32_export_frame, Sw32_export_frame, 2, 3, 0,
   { return Qnil (); }
 });
 
-/* C 11522-12488's text is not in the port yet (the file's remainder), but C 10112's
+/* C 11522-11583 is the Initialization banner (C 11523-11525) and C 11530-11583's
+   `w32_frame_parm_handlers[]` table with C 11527-11528's ordering comment.  The group sits
+   outside every `#if`, so the items carry the file gate; C 11585's `syms_of_w32fns` opens the
+   next slice.  */
+
+/*
+/***********************************************************************
+			    Initialization
+ ***********************************************************************/
+*/
+
+/* Keep this list in the same order as frame_parms in frame.c.
+   Use 0 for unsupported frame parameters.  */
+
+/// C: dispextern.h 3063: `typedef void (*frame_parm_handler) (struct frame *, Lisp_Object,
+/// Lisp_Object);` - the element type of C 11530-11583's `w32_frame_parm_handlers[]`.  The mirror
+/// does not carry the alias (its `redisplay_interface.frame_parm_handlers` is `*mut c_void`), so
+/// the array spells the typedef's own body here - the `src/haikufns.rs` 218-225 precedent.
+#[cfg (feature = "have_ntgui")]
+type frame_parm_handler =
+  Option<unsafe extern "C" fn (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object)>;
+
+/// C: frame.h 1844-1871's `gui_set_*` family, the entries C 11530-11583 puts in
+/// `w32_frame_parm_handlers[]`.  They are `frame.c`'s definitions and `frame.h`'s prototypes;
+/// `include/frame.rs` does not carry the prototypes, so they are named here - the
+/// `src/haikufns.rs` 226-272 block, same wording.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  /// C: frame.h 1844-1851: `extern void gui_set_fullscreen (struct frame *, Lisp_Object,
+  /// Lisp_Object);` and its seven siblings
+  pub fn gui_set_fullscreen (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_line_spacing (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_screen_gamma (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_font (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_font_backend (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_left_fringe (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_right_fringe (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1852-1855: `extern void gui_set_right_divider_width (struct frame *,
+  /// Lisp_Object, Lisp_Object);` / `gui_set_bottom_divider_width (…)`
+  pub fn gui_set_right_divider_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_bottom_divider_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1856: `extern void gui_set_visibility (struct frame *, Lisp_Object,
+  /// Lisp_Object);`
+  pub fn gui_set_visibility (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1857/1858: `extern void gui_set_autoraise (struct frame *, Lisp_Object,
+  /// Lisp_Object);` / `gui_set_autolower (…)`
+  pub fn gui_set_autoraise (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_autolower (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1859-1863: `extern void gui_set_unsplittable (struct frame *, Lisp_Object,
+  /// Lisp_Object);` and its four siblings
+  pub fn gui_set_unsplittable (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_horizontal_scroll_bars (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  pub fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1867: `extern void gui_set_alpha (struct frame *, Lisp_Object, Lisp_Object);`
+  pub fn gui_set_alpha (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1868: `extern void gui_set_alpha_background (struct frame *, Lisp_Object,
+  /// Lisp_Object);`
+  pub fn gui_set_alpha_background (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+  /// C: frame.h 1869-1870: `extern void gui_set_borders_respect_alpha_background (struct frame *,
+  /// Lisp_Object, Lisp_Object);`
+  pub fn gui_set_borders_respect_alpha_background (f: *mut frame, arg: Lisp_Object,
+						   oldval: Lisp_Object);
+  /// C: frame.h 1872: `extern void gui_set_no_special_glyphs (struct frame *, Lisp_Object,
+  /// Lisp_Object);`
+  pub fn gui_set_no_special_glyphs (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+}
+
+/* C 11530-11583: the frame parameter handler table.  Its 51 entries are the `frame_parm_handler`
+   values this file defines or the generic `frame.c` setters; C's `0` entries are `None` and keep
+   C's trailing comments.  `include/w32term.rs`'s `w32term_objs` declares this object (w32term.h
+   274) and this definition shadows the declaration (PORTING.md 0.1-10/P-21) - the
+   `src/haikufns.rs` 4087-4094 device, and the move of that declaration into the module is
+   recorded in `docs/ports/include-w32term.md`.  */
+// C 11530-11583.
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_frame_parm_handlers: [frame_parm_handler; 51] =
+  [
+    Some (gui_set_autoraise),                       // C 11532
+    Some (gui_set_autolower),                       // C 11533
+    Some (w32_set_background_color),                // C 11534
+    Some (w32_set_border_color),                    // C 11535
+    Some (gui_set_border_width),                    // C 11536
+    Some (w32_set_cursor_color),                    // C 11537
+    Some (w32_set_cursor_type),                     // C 11538
+    Some (gui_set_font),                            // C 11539
+    Some (w32_set_foreground_color),                // C 11540
+    Some (w32_set_icon_name),                       // C 11541
+    Some (w32_set_icon_type),                       // C 11542
+    Some (w32_set_child_frame_border_width),        // C 11543
+    Some (w32_set_internal_border_width),           // C 11544
+    Some (gui_set_right_divider_width),             // C 11545
+    Some (gui_set_bottom_divider_width),            // C 11546
+    Some (w32_set_menu_bar_lines),                  // C 11547
+    Some (w32_set_mouse_color),                     // C 11548
+    Some (w32_explicitly_set_name),                 // C 11549
+    Some (gui_set_scroll_bar_width),                // C 11550
+    Some (gui_set_scroll_bar_height),               // C 11551
+    Some (w32_set_title),                           // C 11552
+    Some (gui_set_unsplittable),                    // C 11553
+    Some (gui_set_vertical_scroll_bars),            // C 11554
+    Some (gui_set_horizontal_scroll_bars),          // C 11555
+    Some (gui_set_visibility),                      // C 11556
+    Some (w32_set_tab_bar_lines),                   // C 11557
+    Some (w32_set_tool_bar_lines),                  // C 11558
+    None,					    /* x_set_scroll_bar_foreground, */
+    None,					    /* x_set_scroll_bar_background, */
+    Some (gui_set_screen_gamma),                    // C 11561
+    Some (gui_set_line_spacing),                    // C 11562
+    Some (gui_set_left_fringe),                     // C 11563
+    Some (gui_set_right_fringe),                    // C 11564
+    None,					    /* x_set_wait_for_wm, */
+    Some (gui_set_fullscreen),                      // C 11566
+    Some (gui_set_font_backend),                    // C 11567
+    Some (gui_set_alpha),                           // C 11568
+    None,					    /* x_set_sticky */
+    Some (w32_set_tool_bar_position),               // C 11570
+    Some (w32_set_inhibit_double_buffering),        // C 11571
+    Some (w32_set_undecorated),                     // C 11572
+    Some (w32_set_parent_frame),                    // C 11573
+    Some (w32_set_skip_taskbar),                    // C 11574
+    Some (w32_set_no_focus_on_map),                 // C 11575
+    Some (w32_set_no_accept_focus),                 // C 11576
+    Some (w32_set_z_group),                         // C 11577
+    None,					    /* x_set_override_redirect */
+    Some (gui_set_no_special_glyphs),               // C 11579
+    Some (gui_set_alpha_background),                // C 11580
+    Some (gui_set_borders_respect_alpha_background),// C 11581
+    None,					    /* x_set_use_frame_synchronization */
+  ];
+
+/* C 11585-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C

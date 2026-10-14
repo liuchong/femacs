@@ -316,7 +316,7 @@ unsafe extern "C" {
 /// C 265-266: `extern void w32con_hide_cursor (void); extern void w32con_show_cursor (void);`
 /// C 269-271: `extern const char *w32_get_string_resource (void *v_rdb, const char *name, const
 /// char *class);`
-/// C 274: `extern frame_parm_handler w32_frame_parm_handlers[];`
+/// C 274: `extern frame_parm_handler w32_frame_parm_handlers[];` - moved to `w32term_objs` (P-21)
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
   // `w32_window_to_frame` (C 230) and `w32_real_positions` (C 232) are `w32fns.c`'s
@@ -347,10 +347,8 @@ unsafe extern "C" {
   pub fn w32con_show_cursor ();
   pub fn w32_get_string_resource (v_rdb: *mut c_void, name: *const c_char,
                                   class: *const c_char) -> *const c_char;
-  /// `frame_parm_handler` is `dispextern.h` 3063's typedef and `include/dispextern.rs` does not
-  /// carry it yet, so the array's elements are `*mut c_void` for now - the
-  /// `include/androidterm.rs` 506-511 reading of its own `android_frame_parm_handlers[]`.
-  pub static mut w32_frame_parm_handlers: [*mut c_void; 0];
+  // C 274's `w32_frame_parm_handlers` is `src/w32fns.c`'s definition: `w32term_objs` below
+  // (E0428, P-21 - measured on the `w32fns` arm by that lane's slice 35).
 }
 
 /// C 280: `#define PIX_TYPE COLORREF` - a *type* macro, so it is a `macro_rules!` with no
@@ -1510,6 +1508,13 @@ pub mod w32term_objs {
     pub static mut one_w32_display_info: w32_display_info;
     /// C 228: `extern int menubar_in_use;`
     pub static mut menubar_in_use: c_int;
+    /// C 274: `extern frame_parm_handler w32_frame_parm_handlers[];` - moved here by
+    /// `src/w32fns.rs`'s slice 35, which defines the object (`E0428` at the crate root,
+    /// P-21/P-39).  `frame_parm_handler` is `dispextern.h` 3063's typedef and
+    /// `include/dispextern.rs` does not carry it yet, so the declaration spells the elements
+    /// `*mut c_void` - the `include/androidterm.rs` 506-511 reading of its own
+    /// `android_frame_parm_handlers[]`.
+    pub static mut w32_frame_parm_handlers: [*mut c_void; 0];
     pub static mut dwWindowsThreadId: DWORD;
     pub static mut hWindowsThread: HANDLE;
     pub static mut dwMainThreadId: DWORD;

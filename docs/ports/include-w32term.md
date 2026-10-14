@@ -369,3 +369,26 @@ unit were wrong.  When w32fns slice 25 wrote the three definitions, the arm prob
 (`w32term_fn_decls`, `w32term_xfns_decls`): a `pub mod w32term_fns_decls` plus
 `use w32term_fns_decls::*;`, so the unit's own item is the live one and every caller still resolves
 the name through the glob import.  Nothing else in the mirror changed.
+
+## `w32_frame_parm_handlers` moves into `w32term_objs` (2026-10-14, w32fns slice 35)
+
+C 274's `extern frame_parm_handler w32_frame_parm_handlers[];` was the one declaration left at this
+mirror's crate root that a `HAVE_NTGUI` unit defines: `src/w32fns.c` C 11530-11583 **is** the object,
+so the declaration and w32fns slice 35's `#[unsafe(no_mangle)] pub static mut
+w32_frame_parm_handlers: [frame_parm_handler; 51]` agree in the value namespace and the arm probe
+would read `E0428` - the same collision the 2026-10-05 section above describes for twenty-seven
+names.  The declaration therefore moved into the *existing* `pub mod w32term_objs`, which this
+mirror already glob-imports (`use w32term_objs::*;`, line 1534), and its `/// C:` line went with it;
+the crate-root site now carries a one-line pointer comment, the convention that section records.
+Nothing else in the mirror changed, and the declaration keeps the `[*mut c_void; 0]` spelling its
+own note explains (`dispextern.h` 3063's `frame_parm_handler` is not in `include/dispextern.rs`, and a
+nested module's `use super::*` cannot see a name the crate root glob-imported - the `HMENU`
+distinction in `w32term_objs`' note).
+
+**Evidence.**  `cd femacs && CARGO_TARGET_DIR=/tmp/w35lane cargo run -q -p xtask -- probe
+src/w32fns.rs /tmp/w35lane/x.rlib --crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"'
+--cfg 'feature="windowsnt"'` -> **42 errors**, the same fifteen `E0428` names as before the move and
+none for `w32_frame_parm_handlers`; `build-tu src/w32fns.c` -> exit 0, the object 336 bytes;
+`python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
+`python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
+`docs/ports/w32fns.md`'s `## Slice 35 (C 11522-11583)`.
