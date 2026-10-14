@@ -183,7 +183,8 @@ The `arm` cell says what the port does with the block.
 | 2675-2715 | `w32_fill_underline` (C 2676-2680's comment; **slice 3's last item**) | file gate (C's `switch` is the port's `match`; `docs/ports/macro-body-notes.tsv`) |
 | 2716-3038 | `w32_draw_glyph_string` (C 2719-3038) - the file's glyph painter: the successor-first background pass (C 2724-2744), C 2747's GC/clipping setup, C 2749-2772's relief-or-clip choice, C 2774-2811's `switch (s->first_glyph->type)`, and C 2813-3037's `if (!s->for_overlaps)` block with the relief, underline (C 2831-2936, including C 2856-2873's two `WINDOW_BUFFER_LOCAL_VALUE` reads), overline, strike-through and the two overhang-repair loops | file gate (`have_ntgui`); slice 4 below |
 | 3039-3235 | the five small frame entries and the scroller: `w32_shift_glyphs_for_insert` (C 3041-3054), `w32_delete_glyphs` (C 3057-3067), `w32_clear_frame` (C 3070-3091), `w32_ring_bell` (C 3094-3117), `w32_ins_del_lines` (C 3119-3133, with C 3119-3121's "Line Dance" banner) and `w32_scroll_run` (C 3136-3235) | file gate (`have_ntgui`); slice 5 below |
-| 3237-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3237-3431 | the Exposure Events section's focus machinery and the two keyboard entries: `w32_frame_highlight` (C 3243-3248), `w32_frame_unhighlight` (C 3250-3255), `w32_new_focus_frame` (C 3257-3284), `w32_focus_changed` (C 3287-3324), `w32_detect_focus_change` (C 3327-3347), C 3350-3358's `#if 0` (`w32_mouse_leave`, carried as C's text), `w32_frame_rehighlight` (C 3360-3374), `w32_frame_rehighlight_1` (C 3376-3403), `get_keysym_name` (C 3405-3420) and `codepage_for_locale` (C 3422-3431) | file gate (`have_ntgui`); slice 6 below |
+| 3433-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -903,4 +904,44 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **98 -> 92 rows** (90 -> **84** `missing function`: the round's six
      landed), no token rows, and the line-count row improves from 46.0% to **42.8%** (4,812 vs
      8,414 - the port is still behind C by construction).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 6 (C 3237-3431)
+
+- **What it is.**  The "Exposure Events" section's focus machinery and the two keyboard entries this
+  file opens with: `w32_frame_highlight`/`w32_frame_unhighlight`, `w32_new_focus_frame`,
+  `w32_focus_changed`, `w32_detect_focus_change`, C 3350-3358's `#if 0` block, `w32_frame_rehighlight`
+  and `w32_frame_rehighlight_1`, plus `get_keysym_name` (C 3405-3420, the file's only non-`static`
+  entry in the block) and `codepage_for_locale`.  Port: 4,812 -> **5110 lines** (+298).  The table's
+  last row splits at C 3431; the next live definition is C 3439's `parse_button` (the mouse-message
+  `switch`, C 3445-3560).
+- **The names this slice adds stand at the use site** (P-88 (1)): `WM_SETFOCUS`/`WM_KILLFOCUS`
+  (`<winuser.h>`), `GetKeyNameText` (the `…A` export), `<winnls.h>`'s `LCID`/`LCTYPE` pair with
+  `LOCALE_IDEFAULTANSICODEPAGE` and `CP_ACP` (the `src/w32proc.rs` slice-23/24 readings of the same
+  header), `GetLocaleInfo` (the `…A` export), the CRT's `atoi`, and `gui_update_cursor`
+  (dispextern.h 3656, `bool` parameter).  All UNVERIFIED except the two Emacs-side prototypes.
+- **Two bitfield accessors stand at the use site** (the mirrors declare the units and the shifts,
+  the accessors live in the units that read them):
+  * `frame_bits! (auto_lower|auto_raise, f)` - frame.h 405/408's two bits, whose shifts
+    `include/frame.rs` 463-479 gives per configuration (`src/xterm.rs` 22696-22700,
+    `src/haikuterm.rs` 722-728 are the sibling copies).
+  * `input_event_bits! (kind, bufp, v)` - termhooks.h 377-378's 16+16-bit `kind`/`part` unit, which
+    `include/termhooks.rs` 116 carries as `bits: u32`; only the write arm this slice needs is
+    declared (`src/xterm.rs` 22985-22999 is the full copy).
+- **The four token rows this slice's `--check` first produced are the two spellings C's types force**,
+  and they are recorded in `docs/ports/macro-body-notes.tsv` rather than spelled to satisfy the
+  counter: C's `gui_update_cursor (f, 1)` passes `1` for a `bool` parameter (the port writes `true`),
+  and C's two null-pointer spellings (`w32_new_focus_frame (dpyinfo, 0)` at C 3316 and
+  `dpyinfo->highlight_frame = 0` at C 3394) are `core::ptr::null_mut ()` in the port.  Both readings
+  are the sibling ports' own (`src/xterm.rs` 22748/23031/18995).
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration, as slices 4-5) -> **22 errors, 0 anchored in this slice's
+     text** - the reading is unchanged again: the ten unit anchors remain the pre-existing
+     `_root.rs` 1322-1561 rows and the twelve mirror anchors the same files.  The round's first
+     spelling read **24**, the two extra being `no field kind on type input_event` (the `bits: u32`
+     deviation above, fixed by the `input_event_bits!` write arm).
+  3. `extract-abi.py --check` -> **92 -> 83 rows** (84 -> **75** `missing function`: the round's nine
+     landed), four token rows added to the notes file (above), and the line-count row improves from
+     42.8% to **39.3%** (5,110 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.

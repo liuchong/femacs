@@ -20180,3 +20180,11 @@
   ④ 十门全 `rc=0`、0 失败；区间表拆为 `3039-3235`（本片）+ `3237-8414`（余项）；台账追加 **`### Slice 5 (C 3039-3235)`**。
   ⑤ 预算与清理：`build-tu` 1 发、臂读数 1 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w44`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.311 `src/w32term.c` 第 6 片（w32term lane，slice 6）：C 3237-3431 落地——"Exposure Events" 段焦点机制 + 两个键盘入口：`w32_frame_highlight`/`w32_frame_unhighlight`、`w32_new_focus_frame`、`w32_focus_changed`、`w32_detect_focus_change`、C 3350-3358 的 `#if 0`（按 C 原文承载）、`w32_frame_rehighlight`/`w32_frame_rehighlight_1`、`get_keysym_name`（本块唯一非 static 入口）、`codepage_for_locale`；w32term.rs 4,812 → 5,110 行（+298，2026-10-14）**：
+  ① 用例处新增：`WM_SETFOCUS`/`WM_KILLFOCUS`、`GetKeyNameText`、`<winnls.h>` 的 `LCID`/`LCTYPE` + `LOCALE_IDEFAULTANSICODEPAGE` + `CP_ACP`、`GetLocaleInfo`、CRT `atoi`，以及 `gui_update_cursor`（dispextern.h 3656，`bool` 形参）；另有两个位域访问器：`frame_bits! (auto_lower|auto_raise, f)`（frame.h 405/408，位移由 `include/frame.rs` 463-479 按配置给出）与 `input_event_bits! (kind, bufp, v)`（termhooks.h 377-378 的 16+16 位单元，镜像按 `bits: u32` 承载）。
+  ② 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本**（与前两片同形：10 条单元锚点仍是既有的 `_root.rs` 1322-1561 行，12 条在镜像）。首拼读 **24 条**，多出的两条是 `no field kind on type input_event`（即上条 `bits: u32` 偏差），补 `input_event_bits!` 写臂后清零。
+  ③ `extract-abi.py --check`：**92 → 83 行**（`missing function` 84 → **75**），并新增 **4 条 token 行**入 `docs/ports/macro-body-notes.tsv`——C 的 `gui_update_cursor (f, 1)` 是 `bool` 形参故端口写 `true`（两个函数），C 的 `w32_new_focus_frame (dpyinfo, 0)` 与 `dpyinfo->highlight_frame = 0` 是空指针故端口写 `core::ptr::null_mut ()`；三条读数与 `src/xterm.rs` 的姊妹端口一致。行数行 42.8% → **39.3%**（5,110 : 8,414）。
+  ④ 十门全 `rc=0`、0 失败；区间表拆为 `3237-3431`（本片）+ `3433-8414`（余项）；台账追加 **`### Slice 6 (C 3237-3431)`**。
+  ⑤ 预算与清理：`build-tu` 2 发（含一次首拼）、臂读数 2 发、`--check` 5 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w45`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

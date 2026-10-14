@@ -4808,5 +4808,303 @@ unsafe fn w32_scroll_run (w: *mut window, run: *mut run)
     { DeleteObject (expect_dirty as HGDIOBJ); }                       // C 3234
 }
 
-/* C 3237's banner and C 3239's "Exposure Events" section (`w32_frame_up_to_date` onward) open the
-   next slice.  */
+/* C's `<windows.h>`/`<winnls.h>` surface C 3246-3428 reads and this unit does not carry yet: the
+   two focus messages, the key-name entry, the locale entries C 3427 reads and the CRT's `atoi`;
+   plus `gui_update_cursor` (dispextern.h 3656), which no mirror in this unit's graph declares.
+   Every name stands at the use site (P-88 (1)); the SDK records are UNVERIFIED.  */
+/// C: #define WM_SETFOCUS 0x0007
+/// C: #define WM_KILLFOCUS 0x0008
+/// C: WINUSERAPI int WINAPI GetKeyNameTextA (LONG lParam, LPSTR lpString, int cchSize);
+/// C: typedef DWORD LCID; typedef DWORD LCTYPE;
+/// C: #define LOCALE_IDEFAULTANSICODEPAGE 0x00001004
+/// C: #define CP_ACP 0
+/// C: WINBASEAPI int WINAPI GetLocaleInfoA (LCID Locale, LCTYPE LCType, LPSTR lpLCData, int cchData);
+/// C: int atoi (const char *);
+/// C: extern void gui_update_cursor (struct frame *, bool);        [dispextern.h 3656]
+#[cfg (feature = "have_ntgui")]
+pub type LCID = DWORD;
+#[cfg (feature = "have_ntgui")]
+pub type LCTYPE = DWORD;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SETFOCUS: UINT = 0x0007;
+#[cfg (feature = "have_ntgui")]
+pub const WM_KILLFOCUS: UINT = 0x0008;
+#[cfg (feature = "have_ntgui")]
+pub const LOCALE_IDEFAULTANSICODEPAGE: LCTYPE = 0x00001004;
+#[cfg (feature = "have_ntgui")]
+pub const CP_ACP: UINT = 0;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetKeyNameText (lParam: LONG, lpString: LPSTR, cchSize: c_int) -> c_int;
+  pub fn GetLocaleInfo (Locale: LCID, LCType: LCTYPE, lpLCData: LPSTR, cchData: c_int) -> c_int;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn atoi (s: *const c_char) -> c_int;
+  pub fn gui_update_cursor (f: *mut frame, arg: bool);
+}
+
+/* frame.h 405/408's two bit members this slice reads (`auto_raise`, `auto_lower`).  The mirror
+   declares the shifts (`include/frame.rs` 463-479, per configuration) but the accessors live in
+   the units that read them (`src/xterm.rs` 22696-22700, `src/haikuterm.rs` 722-728), so the two
+   read arms stand here at the use site.  */
+/// C: bool_bf auto_raise : 1;   bool_bf auto_lower : 1;   (frame.h 405/408)
+/* termhooks.h 375-380's event record carries `kind` and `part` in one 32-bit unit
+   (`include/termhooks.rs` 116's `bits: u32`, its own recorded deviation), so the two writes C
+   3301/3318 makes go through the accessor this tree spells per unit (`src/xterm.rs` 22985-22999's
+   copy, `src/androidterm.rs` 259's).  Only the `kind` write arm is needed here; the masks are
+   `include/termhooks.rs`'s.  */
+/// C: enum input_event_kind kind : 16; unsigned part : 16;   (termhooks.h 377-378)
+#[cfg (feature = "have_ntgui")]
+macro_rules! input_event_bits {
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK)
+      | (($v) as u32 & INPUT_EVENT_KIND_MASK); };
+}
+
+#[cfg (feature = "have_ntgui")]
+macro_rules! frame_bits {
+  (auto_raise, $f:expr) => { (((*$f).bits1 >> FRAME_AUTO_RAISE_SHIFT) & 1) != 0 };
+  (auto_lower, $f:expr) => { (((*$f).bits1 >> FRAME_AUTO_LOWER_SHIFT) & 1) != 0 };
+}
+
+/* C 3239-3241 is the "Exposure Events" banner, carried as C's own text at its position.  */
+/// C: /***********************************************************************
+/// C: 			   Exposure Events
+/// C:  ***********************************************************************/
+
+/// C 3243-3248: `static void w32_frame_highlight (struct frame *f)` - the two-call body (the
+/// cursor update and the alpha re-read C's `w32_set_frame_alpha` redoes; the same body is C
+/// 3250-3255's `w32_frame_unhighlight`).
+/// C: static void
+/// C: w32_frame_highlight (struct frame *f)
+/// C:   gui_update_cursor (f, 1); w32_set_frame_alpha (f);   (the body's two calls)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_frame_highlight (f: *mut frame)
+{
+  gui_update_cursor (f, true);                                       // C 3246
+  w32_set_frame_alpha (f);                                           // C 3247
+}
+
+/// C 3250-3255: `static void w32_frame_unhighlight (struct frame *f)`.
+/// C: static void
+/// C: w32_frame_unhighlight (struct frame *f)
+/// C:   gui_update_cursor (f, 1); w32_set_frame_alpha (f);   (the body's two calls)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_frame_unhighlight (f: *mut frame)
+{
+  gui_update_cursor (f, true);                                       // C 3253
+  w32_set_frame_alpha (f);                                           // C 3254
+}
+
+/// C 3257-3284: "The focus has changed. …" - C 3266's saved focus, C 3268-3281's update (the
+/// `auto_lower`/`auto_raise` reads and the pending-autoraise record) and C 3283's
+/// `w32_frame_rehighlight_1`.
+/// C: /* The focus has changed.  Update the frames as necessary to reflect
+/// C:    the new situation.  Note that we can't change the selected frame
+/// C:    here, because the Lisp code we are interrupting might become confused.
+/// C:    Each event gets marked with the frame in which it occurred, so the
+/// C:    Lisp code can tell when the switch took place by examining the events.  */
+/// C: static void
+/// C: w32_new_focus_frame (struct w32_display_info *dpyinfo, struct frame *frame)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_new_focus_frame (dpyinfo: *mut w32_display_info, frame: *mut frame)
+{
+  let old_focus: *mut frame = (*dpyinfo).w32_focus_frame;            // C 3266
+
+  if frame != (*dpyinfo).w32_focus_frame                              // C 3268
+    {
+      /* Set this before calling other routines, so that they see
+	 the correct value of w32_focus_frame.  */
+      (*dpyinfo).w32_focus_frame = frame;                             // C 3272
+
+      if !old_focus.is_null () && frame_bits! (auto_lower, old_focus)   // C 3274
+	{ w32_lower_frame (old_focus); }                              // C 3275
+
+      if !(*dpyinfo).w32_focus_frame.is_null ()
+	  && frame_bits! (auto_raise, (*dpyinfo).w32_focus_frame)      // C 3277
+	{ (*dpyinfo).w32_pending_autoraise_frame = (*dpyinfo).w32_focus_frame; }   // C 3278
+      else
+	{ (*dpyinfo).w32_pending_autoraise_frame = core::ptr::null_mut (); }   // C 3280
+    }
+
+  w32_frame_rehighlight_1 (dpyinfo);                                  // C 3283
+}
+
+/// C 3287-3324: "Handle FocusIn and FocusOut state changes for FRAME. …" - the `WM_SETFOCUS` arm
+/// (C 3297-3307, with C 3301-3302's event fill and C 3305's `focus_state` set) and the
+/// `WM_KILLFOCUS` arm (C 3313-3322, which clears the bit and the focus-event frame).
+/// C: /* Handle FocusIn and FocusOut state changes for FRAME.
+/// C:    If FRAME has focus and there exists more than one frame, puts
+/// C:    a FOCUS_IN_EVENT into *BUFP.  */
+/// C: static void
+/// C: w32_focus_changed (int type, int state, struct w32_display_info *dpyinfo,
+/// C: 		 struct frame *frame, struct input_event *bufp)
+/// C:   dpyinfo->w32_focus_event_frame = 0;
+/// C:   w32_new_focus_frame (dpyinfo, 0);
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_focus_changed (type_: c_int, state: c_int, dpyinfo: *mut w32_display_info,
+			     frame: *mut frame, bufp: *mut input_event)
+{
+  if type_ == WM_SETFOCUS as c_int                                   // C 3295
+    {
+      if (*dpyinfo).w32_focus_event_frame != frame                   // C 3297
+	{
+	  w32_new_focus_frame (dpyinfo, frame);                       // C 3299
+	  (*dpyinfo).w32_focus_event_frame = frame;                   // C 3300
+	  input_event_bits! (kind, bufp, FOCUS_IN_EVENT);            // C 3301
+	  XSETFRAME! ((*bufp).frame_or_window, frame);                // C 3302
+	}
+
+      (*( (*frame).output_data.x as *mut x_output )).focus_state |= state;   // C 3305
+
+      /* TODO: IME focus?  */
+    }
+  else if type_ == WM_KILLFOCUS as c_int                             // C 3309
+    {
+      (*( (*frame).output_data.x as *mut x_output )).focus_state &= !state;   // C 3311
+
+      if (*dpyinfo).w32_focus_event_frame == frame                    // C 3313
+	{
+	  (*dpyinfo).w32_focus_event_frame = core::ptr::null_mut ();    // C 3315
+	  w32_new_focus_frame (dpyinfo, core::ptr::null_mut ());        // C 3316
+
+	  input_event_bits! (kind, bufp, FOCUS_OUT_EVENT);           // C 3318
+	  XSETFRAME! ((*bufp).frame_or_window, frame);                // C 3319
+	}
+
+      /* TODO: IME focus?  */
+    }
+}
+
+/// C 3327-3347: "The focus may have changed. …" - C 3338's frame lookup, C 3339-3340's guard and
+/// C 3343-3346's call with C 3344-3345's `? :` choosing the focus kind.
+/// C: /* The focus may have changed.  Figure out if it is a real focus change,
+/// C:    by checking both FocusIn/Out and Enter/LeaveNotify events.
+/// C:
+/// C:    Returns FOCUS_IN_EVENT event in *BUFP. */
+/// C: static void
+/// C: w32_detect_focus_change (struct w32_display_info *dpyinfo, W32Msg *event,
+/// C: 			 struct input_event *bufp)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_detect_focus_change (dpyinfo: *mut w32_display_info, event: *mut W32Msg,
+				   bufp: *mut input_event)
+{
+  let frame: *mut frame;                                              // C 3336
+
+  frame = w32_window_to_frame (dpyinfo, (*event).msg.hwnd);           // C 3338
+  if frame.is_null ()                                                 // C 3339
+    { return; }                                                       // C 3340
+
+  /* On w32, this is only called from focus events, so no switch needed.  */
+  w32_focus_changed ((*event).msg.message as c_int,                   // C 3343
+		     if (*event).msg.message == WM_KILLFOCUS          // C 3344
+		       { FOCUS_IMPLICIT } else { FOCUS_EXPLICIT },    // C 3345
+		     dpyinfo, frame, bufp);                           // C 3346
+}
+
+/* C 3350-3358: the `#if 0 /* unused */` block (`w32_mouse_leave`), carried as C's own text
+   (P-51; C itself excludes it in every configuration).
+   #if 0	/* unused */
+     /* Handle an event saying the mouse has moved out of an Emacs frame.  */
+
+     static void
+     w32_mouse_leave (struct w32_display_info *dpyinfo)
+     {
+       w32_new_focus_frame (dpyinfo, dpyinfo->w32_focus_event_frame);
+     }
+   #endif  */
+
+/// C 3360-3374: "The focus has changed, or we have redirected a frame's focus …" - the
+/// `FRAME_W32_P` guard and the `FRAME_DISPLAY_INFO` call.
+/// C: /* The focus has changed, or we have redirected a frame's focus to
+/// C:    another frame (this happens when a frame uses a surrogate
+/// C:    mini-buffer frame).  Shift the highlight as appropriate.
+/// C:
+/// C:    The FRAME argument doesn't necessarily have anything to do with which
+/// C:    frame is being highlighted or un-highlighted; we only use it to find
+/// C:    the appropriate X display info.  */
+/// C: static void
+/// C: w32_frame_rehighlight (struct frame *frame)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_frame_rehighlight (frame: *mut frame)
+{
+  if !FRAME_W32_P (frame)                                            // C 3371
+    { return; }                                                      // C 3372
+  w32_frame_rehighlight_1 (FRAME_DISPLAY_INFO! (frame));              // C 3373
+}
+
+/// C 3376-3403: `static void w32_frame_rehighlight_1 (struct w32_display_info *dpyinfo)` - C
+/// 3379's saved highlight, C 3381-3394's choice (C 3384-3386's `FRAMEP (FRAME_FOCUS_FRAME …)`
+/// test with the dead-frame repair C 3387-3391 runs) and C 3396-3402's two re-highlight calls.
+/// C: static void
+/// C: w32_frame_rehighlight_1 (struct w32_display_info *dpyinfo)
+/// C:   dpyinfo->highlight_frame = 0;
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_frame_rehighlight_1 (dpyinfo: *mut w32_display_info)
+{
+  let old_highlight: *mut frame = (*dpyinfo).highlight_frame;         // C 3379
+
+  if !(*dpyinfo).w32_focus_frame.is_null ()                           // C 3381
+    {
+      (*dpyinfo).highlight_frame
+	= (if FRAMEP (FRAME_FOCUS_FRAME ((*dpyinfo).w32_focus_frame)) // C 3384
+	     { XFRAME (FRAME_FOCUS_FRAME ((*dpyinfo).w32_focus_frame)) }   // C 3385
+	   else
+	     { (*dpyinfo).w32_focus_frame });                         // C 3386
+      if !FRAME_LIVE_P ((*dpyinfo).highlight_frame)                   // C 3387
+	{
+	  fset_focus_frame ((*dpyinfo).w32_focus_frame, Qnil ());     // C 3389
+	  (*dpyinfo).highlight_frame = (*dpyinfo).w32_focus_frame;    // C 3390
+	}
+    }
+  else
+    { (*dpyinfo).highlight_frame = core::ptr::null_mut (); }          // C 3394
+
+  if (*dpyinfo).highlight_frame != old_highlight                      // C 3396
+    {
+      if !old_highlight.is_null ()                                    // C 3398
+	{ w32_frame_unhighlight (old_highlight); }                    // C 3399
+      if !(*dpyinfo).highlight_frame.is_null ()                       // C 3400
+	{ w32_frame_highlight ((*dpyinfo).highlight_frame); }         // C 3401
+    }
+}
+
+/* C 3405-3420: "Keyboard processing - modifier keys, etc." with "Convert a keysym to its name."
+   - C's `static char value[100]` is a function-local static (the `sys_select` reading), and the
+   entry is non-`static`, so it is exported (PORTING.md 0.2).  */
+/// C: /* Keyboard processing - modifier keys, etc. */
+/// C: /* Convert a keysym to its name.  */
+/// C: char *
+/// C: get_keysym_name (int keysym)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_keysym_name (keysym: c_int) -> *mut c_char
+{
+  /* Make static so we can always return it */
+  static mut value: [c_char; 100] = [0; 100];                         // C 3413
+
+  block_input ();                                                    // C 3415
+  GetKeyNameText (keysym, value.as_mut_ptr (), 100);                 // C 3416
+  unblock_input ();                                                  // C 3417
+
+  return value.as_mut_ptr ();                                        // C 3419
+}
+
+/// C 3422-3431: `static int codepage_for_locale (LCID locale)` - C 3425's twenty-byte buffer, the
+/// `GetLocaleInfo` read of `LOCALE_IDEFAULTANSICODEPAGE` and C 3428/3430's two answers.
+/// C: static int
+/// C: codepage_for_locale (LCID locale)
+#[cfg (feature = "have_ntgui")]
+unsafe fn codepage_for_locale (locale: LCID) -> c_int
+{
+  let mut cp: [c_char; 20] = [0; 20];                                 // C 3425
+
+  if GetLocaleInfo (locale, LOCALE_IDEFAULTANSICODEPAGE, cp.as_mut_ptr (), 20) > 0   // C 3427
+    { return atoi (cp.as_ptr ()); }                                   // C 3428
+  else
+    { return CP_ACP as c_int; }                                       // C 3430
+}
+
+/* C 3433-3434's "Mouse clicks and mouse movement.  Rah." comment and C 3439's `parse_button`
+   (the mouse-message `switch`, C 3445-3560) open the next slice.  */
