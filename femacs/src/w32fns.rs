@@ -290,6 +290,25 @@ pub const SM_CYSCREEN: c_int = 1;
 pub const SM_CXMAXIMIZED: c_int = 61;
 #[cfg (feature = "have_ntgui")]
 pub const SM_CYMAXIMIZED: c_int = 62;
+/// C: #define SM_CXVSCROLL 2 / #define SM_CXHSCROLL 4 - the two metrics C 2125/2127 and
+/// C 6362-6363 read.  They were used from slice 5 on (C 2125/2127's
+/// `w32_set_scroll_bar_default_width`/`_height`) without a definition anywhere in the tree,
+/// which is what slice 8's name sweep found: the `<windows.h>` section spells them here in
+/// `<winuser.h>`'s order, next to C 283-290's four neighbours.
+#[cfg (feature = "have_ntgui")]
+pub const SM_CXVSCROLL: c_int = 2;
+#[cfg (feature = "have_ntgui")]
+pub const SM_CXHSCROLL: c_int = 4;
+/// C: #define HORZSIZE 4 / #define VERTSIZE 6 / #define HORZRES 8 / #define VERTRES 10 - the
+/// four `<wingdi.h>` metrics C 6858-6859, C 6874-6875, C 6989-6990 and C 7056-7060 read.
+#[cfg (feature = "have_ntgui")]
+pub const HORZSIZE: c_int = 4;
+#[cfg (feature = "have_ntgui")]
+pub const VERTSIZE: c_int = 6;
+#[cfg (feature = "have_ntgui")]
+pub const HORZRES: c_int = 8;
+#[cfg (feature = "have_ntgui")]
+pub const VERTRES: c_int = 10;
 
 /// C 473: `GetWindowRect (FRAME_W32_WINDOW (f), &rect);` - `<winuser.h>`.
 /// C: WINUSERAPI BOOL WINAPI GetWindowRect (HWND hWnd, LPRECT lpRect);
@@ -3736,6 +3755,25 @@ pub const WS_CLIPSIBLINGS: DWORD = 0x04000000;
 pub const EMACS_CLASS: &str = "Emacs";
 #[cfg (feature = "have_ntgui")]
 pub const IDC_ARROW: LPSTR = MAKEINTRESOURCE! (32512);
+/// C: #define IDC_IBEAM MAKEINTRESOURCE(32513) / #define IDC_WAIT MAKEINTRESOURCE(32514) /
+/// C: #define IDC_SIZENWSE MAKEINTRESOURCE(32642) / #define IDC_SIZENESW MAKEINTRESOURCE(32643) /
+/// C: #define IDC_SIZEWE MAKEINTRESOURCE(32644) / #define IDC_SIZENS MAKEINTRESOURCE(32645)
+/// - the six cursor ids C 6586-6600 hands to `w32_load_cursor` beyond `IDC_ARROW` (C 3689's
+/// block) and `IDC_HAND` (C 465's `#ifndef` guard), spelled here from `<winuser.h>`, in the
+/// header's order.  Slice 7's text used all six; slice 8's name sweep is what found them
+/// undefined (see the lane ledger's Evidence).
+#[cfg (feature = "have_ntgui")]
+pub const IDC_IBEAM: LPSTR = MAKEINTRESOURCE! (32513);
+#[cfg (feature = "have_ntgui")]
+pub const IDC_WAIT: LPSTR = MAKEINTRESOURCE! (32514);
+#[cfg (feature = "have_ntgui")]
+pub const IDC_SIZENWSE: LPSTR = MAKEINTRESOURCE! (32642);
+#[cfg (feature = "have_ntgui")]
+pub const IDC_SIZENESW: LPSTR = MAKEINTRESOURCE! (32643);
+#[cfg (feature = "have_ntgui")]
+pub const IDC_SIZEWE: LPSTR = MAKEINTRESOURCE! (32644);
+#[cfg (feature = "have_ntgui")]
+pub const IDC_SIZENS: LPSTR = MAKEINTRESOURCE! (32645);
 #[cfg (feature = "have_ntgui")]
 pub const MAXPATHLEN: c_int = 1024;
 #[cfg (feature = "have_ntgui")]
@@ -6981,6 +7019,7 @@ unsafe extern "system" {
   pub fn GetClientRect (hWnd: HWND, lpRect: LPRECT) -> BOOL;
   pub fn GetDC (hWnd: HWND) -> HDC;
   pub fn ReleaseDC (hWnd: HWND, hDC: HDC) -> c_int;
+  pub fn GetDeviceCaps (hdc: HDC, nIndex: c_int) -> c_int;
   pub fn GetCurrentObject (hdc: HDC, r#type: UINT) -> HGDIOBJ;
   pub fn GetObject (h: HANDLE, c: c_int, pv: LPVOID) -> c_int;
   pub fn GetObjectW (h: HANDLE, c: c_int, pv: LPVOID) -> c_int;
@@ -10217,4 +10256,310 @@ DEFUN! ("x-create-frame", Fx_create_frame, Sx_create_frame,
   Vwindow_list = Qnil ();
 
   return unbind_to (count, frame);
+});
+
+/// C 6719/6734's reader: C's `frame.h` prototype for `decode_window_system_frame` (1475), which
+/// this unit's includes do not carry (`src/androidfns.rs` 108 declares the same one).  The
+/// `wdpyinfo`-and-`frame` shape is frame.h's `WINDOW_SYSTEM_RETURN` arm, `struct frame *`.
+/// C: extern WINDOW_SYSTEM_RETURN struct frame *decode_window_system_frame (Lisp_Object);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
+}
+
+/// C 6714-6727: `xw-color-defined-p` - `w32_defined_color` (this unit's own, C 1126) on the
+/// `SSDATA` of the string, C 6723's `&foo` being the port's `&raw mut foo`.  C 6718's
+/// `Emacs_Color foo;` is one of PORTING.md 1.5's outputs-only locals - Rust needs a value before
+/// the address can be taken, so it is the zero-initialised `core::mem::zeroed ()` this unit
+/// already uses for C 1201's `cdef` (the ledger names both sites of this slice).
+/// C: DEFUN ("xw-color-defined-p", Fxw_color_defined_p, Sxw_color_defined_p, 1, 2, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object color, Lisp_Object frame)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("xw-color-defined-p", Fxw_color_defined_p, Sxw_color_defined_p, 1, 2, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(color: Lisp_Object, frame: Lisp_Object),
+	{
+  let mut foo: Emacs_Color = unsafe { core::mem::zeroed () };
+  let f: *mut frame = decode_window_system_frame (frame);
+
+  CHECK_STRING (color);
+
+  if w32_defined_color (f, SSDATA (color), &raw mut foo, false, false)
+    { return Qt (); }
+  else
+    { return Qnil (); }
+});
+
+/// C 6729-6744: `xw-color-values` (C 6733's `Emacs_Color foo;` is C 6718's twin, PORTING.md 1.5
+/// again).  C's three `(GetRValue (x) << 8) | GetRValue (x)` expressions
+/// lean on the integer promotion a `BYTE` gets before `<<`; the port casts each read to `c_int`
+/// first, the spelling C 2094's sibling uses for the same channel macros (`(GetRValue! (…) as
+/// c_int * 256) as c_ushort`).
+/// C: DEFUN ("xw-color-values", Fxw_color_values, Sxw_color_values, 1, 2, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object color, Lisp_Object frame)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("xw-color-values", Fxw_color_values, Sxw_color_values, 1, 2, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(color: Lisp_Object, frame: Lisp_Object),
+	{
+  let mut foo: Emacs_Color = unsafe { core::mem::zeroed () };
+  let f: *mut frame = decode_window_system_frame (frame);
+
+  CHECK_STRING (color);
+
+  if w32_defined_color (f, SSDATA (color), &raw mut foo, false, false)
+    { return list3i ((((GetRValue! (foo.pixel) as c_int) << 8)
+		      | GetRValue! (foo.pixel) as c_int) as EMACS_INT,
+		     (((GetGValue! (foo.pixel) as c_int) << 8)
+		      | GetGValue! (foo.pixel) as c_int) as EMACS_INT,
+		     (((GetBValue! (foo.pixel) as c_int) << 8)
+		      | GetBValue! (foo.pixel) as c_int) as EMACS_INT); }
+  else
+    { return Qnil (); }
+});
+
+/// C 6746-6756: `xw-display-color-p` (C's `int` multiplication against 2).
+/// C: DEFUN ("xw-display-color-p", Fxw_display_color_p, Sxw_display_color_p, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("xw-display-color-p", Fxw_display_color_p, Sxw_display_color_p, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+
+  if ((*dpyinfo).n_planes * (*dpyinfo).n_cbits) <= 2
+    { return Qnil (); }
+
+  return Qt ();
+});
+
+/// C 6758-6769: `x-display-grayscale-p` (the same product against 1).
+/// C: DEFUN ("x-display-grayscale-p", Fx_display_grayscale_p, Sx_display_grayscale_p, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-grayscale-p", Fx_display_grayscale_p, Sx_display_grayscale_p, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+
+  if ((*dpyinfo).n_planes * (*dpyinfo).n_cbits) <= 1
+    { return Qnil (); }
+
+  return Qt ();
+});
+
+/// C 6771-6779: `x-display-pixel-width` - C 6778's reader is `w32term.h`'s declaration, which
+/// `include/w32term.rs` 1479-1480 carries.
+/// C: DEFUN ("x-display-pixel-width", Fx_display_pixel_width, Sx_display_pixel_width, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-pixel-width", Fx_display_pixel_width, Sx_display_pixel_width, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+
+  return make_fixnum (w32_display_pixel_width (dpyinfo) as EMACS_INT);
+});
+
+/// C 6781-6789: `x-display-pixel-height`.
+/// C: DEFUN ("x-display-pixel-height", Fx_display_pixel_height, Sx_display_pixel_height, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-pixel-height", Fx_display_pixel_height, Sx_display_pixel_height, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+
+  return make_fixnum (w32_display_pixel_height (dpyinfo) as EMACS_INT);
+});
+
+/// C 6791-6799: `x-display-planes`.
+/// C: DEFUN ("x-display-planes", Fx_display_planes, Sx_display_planes, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-planes", Fx_display_planes, Sx_display_planes, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+
+  return make_fixnum (((*dpyinfo).n_planes * (*dpyinfo).n_cbits) as EMACS_INT);
+});
+
+/// C 6801-6816: `x-display-color-cells` (C 6807's `int cap`, C 6814's `min` in the shift count -
+/// `include/lisp.rs` 3160's `min`, which C reaches through `lisp.h`).
+/// C: DEFUN ("x-display-color-cells", Fx_display_color_cells, Sx_display_color_cells, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-color-cells", Fx_display_color_cells, Sx_display_color_cells, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+  let cap: c_int;
+
+  /* Don't use NCOLORS: it returns incorrect results under remote
+   * desktop.  We force 24+ bit depths to 24-bit, both to prevent an
+   * overflow and because probably is more meaningful on Windows
+   * anyway.  */
+
+  cap = 1 << min ((*dpyinfo).n_planes * (*dpyinfo).n_cbits, 24);
+  return make_fixnum (cap as EMACS_INT);
+});
+
+/// C 6818-6825: `x-server-max-request-size` - a literal 1.
+/// C: DEFUN ("x-server-max-request-size", Fx_server_max_request_size, Sx_server_max_request_size,
+/// C:        0, 1, 0, doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-server-max-request-size", Fx_server_max_request_size, Sx_server_max_request_size,
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  return make_fixnum (1);
+});
+
+/// C 6827-6832: `x-server-vendor`.
+/// C: DEFUN ("x-server-vendor", Fx_server_vendor, Sx_server_vendor, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object terminal)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-server-vendor", Fx_server_vendor, Sx_server_vendor, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  return build_string (c"Microsoft Corp.".as_ptr ());
+});
+
+/// C 6834-6839: `x-server-version` (C 882-888's three file-scope ints, this unit's own).
+/// C: DEFUN ("x-server-version", Fx_server_version, Sx_server_version, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object terminal)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-server-version", Fx_server_version, Sx_server_version, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  return list3i (w32_major_version as EMACS_INT, w32_minor_version as EMACS_INT,
+		 w32_build_number as EMACS_INT);
+});
+
+/// C 6841-6846: `x-display-screens`.
+/// C: DEFUN ("x-display-screens", Fx_display_screens, Sx_display_screens, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-screens", Fx_display_screens, Sx_display_screens, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  return make_fixnum (1);
+});
+
+/// C 6848-6863: `x-display-mm-height` (C 6857's `NULL` HWND is the null pointer the reader's own
+/// parameter type names; C 6858-6859's two `(double)` casts are the port's `as c_double`, and
+/// C 6862's double result becomes an `EMACS_INT` the way C's implicit conversion does).
+/// C: DEFUN ("x-display-mm-height", Fx_display_mm_height, Sx_display_mm_height, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-mm-height", Fx_display_mm_height, Sx_display_mm_height, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+  let hdc: HDC;
+  let mut mm_per_pixel: c_double;
+
+  hdc = GetDC (core::ptr::null_mut ());
+  mm_per_pixel = (GetDeviceCaps (hdc, VERTSIZE) as c_double)
+		 / (GetDeviceCaps (hdc, VERTRES) as c_double);
+  ReleaseDC (core::ptr::null_mut (), hdc);
+
+  return make_fixnum ((w32_display_pixel_height (dpyinfo) as c_double * mm_per_pixel + 0.5)
+		      as EMACS_INT);
+});
+
+/// C 6865-6879: `x-display-mm-width` (the same two readers, `HORZSIZE`/`HORZRES`).
+/// C: DEFUN ("x-display-mm-width", Fx_display_mm_width, Sx_display_mm_width, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-mm-width", Fx_display_mm_width, Sx_display_mm_width, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+  let hdc: HDC;
+  let mut mm_per_pixel: c_double;
+
+  hdc = GetDC (core::ptr::null_mut ());
+  mm_per_pixel = (GetDeviceCaps (hdc, HORZSIZE) as c_double)
+		 / (GetDeviceCaps (hdc, HORZRES) as c_double);
+  ReleaseDC (core::ptr::null_mut (), hdc);
+
+  return make_fixnum ((w32_display_pixel_width (dpyinfo) as c_double * mm_per_pixel + 0.5)
+		      as EMACS_INT);
+});
+
+/// C 6881-6887: `x-display-backing-store` - the static symbol, no display read at all.
+/// C: DEFUN ("x-display-backing-store", Fx_display_backing_store, Sx_display_backing_store,
+/// C:        0, 1, 0, doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-backing-store", Fx_display_backing_store, Sx_display_backing_store, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  return Qnot_useful ();
+});
+
+/// C 6889-6907: `x-display-visual-class` (C 6897's `dpyinfo->has_palette` is the file's `!= 0`
+/// truth test on the mirror's `c_int` member).
+/// C: DEFUN ("x-display-visual-class", Fx_display_visual_class, Sx_display_visual_class, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-visual-class", Fx_display_visual_class, Sx_display_visual_class, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+  let mut result: Lisp_Object = Qnil ();
+
+  if (*dpyinfo).has_palette != 0
+    { result = Qpseudo_color (); }
+  else if (*dpyinfo).n_planes * (*dpyinfo).n_cbits == 1
+    { result = Qstatic_gray (); }
+  else if (*dpyinfo).n_planes * (*dpyinfo).n_cbits == 4
+    { result = Qstatic_color (); }
+  else if (*dpyinfo).n_planes * (*dpyinfo).n_cbits > 8
+    { result = Qtrue_color (); }
+
+  return result;
+});
+
+/// C 6909-6915: `x-display-save-under` - `Qnil`, with no display read.
+/// C: DEFUN ("x-display-save-under", Fx_display_save_under, Sx_display_save_under, 0, 1, 0,
+/// C:        doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-display-save-under", Fx_display_save_under, Sx_display_save_under, 0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object),
+	{
+  return Qnil ();
 });

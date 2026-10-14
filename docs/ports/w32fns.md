@@ -209,7 +209,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 4490-4523 | `maybe_pass_notification` (C 4490's `#ifdef WINDOWSNT` … C 4523's `#endif`) | file gate + `windowsnt` |
 | 4525-5986 | `w32_wnd_proc` (C 4599/4676's `W32_DEBUG_DISPLAY`, C 4853's `#if 0`, C 5113-5115/5185-5187's `MOUSEEVENTF_FROMTOUCH` guards, C 5331's function-local `last_x`/`last_y`, C 5712-5719's `WM_TOUCHMOVE` arm, the five `#ifdef WINDOWSNT` blocks at C 5727-5735/5738-5743/5745-5752/5756/5790) | file gate; the one arm `w32_debug_display` |
 | 5988-6712 | `my_create_window` (C 5994), `my_create_tip_window`, `w32_window`, `w32_icon`, `w32_make_gc`, `unwind_create_frame`, `do_unwind_create_frame`, `w32_default_font_parameter` and C 6253's `x-create-frame` `DEFUN` (C 6257-6711) - slices 5, 6 and 7 | file gate |
-| 6714-12488 | **the remainder of the file** (C 6714 `xw-color-defined-p` onward: C 9581 `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6714-6915 | C 6714-6915: the seventeen display-info `DEFUN`s (`xw-color-defined-p` through `x-display-save-under`) - slice 8 | file gate |
+| 6917-12488 | **the remainder of the file** (C 6917 `w32_monitor_enum` onward: C 7084 `w32-display-monitor-attributes-list`, C 7166 `x-open-connection`, C 9581 `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1391,6 +1392,115 @@ moves from inside a row to between two.
 - **Not claimed.**  No run evidence: no frame, window, cursor, GC or font is created on this
   machine; the frozen object is empty and the arm reading stops at resolution errors in mirrors.
   `x-create-frame` has not been called and no Lisp-level behavior is asserted.
+
+## Slice 8 (C 6714-6915)
+
+**Scope and the stop.**  C 6714-6915 - the seventeen display-info `DEFUN`s, in C's order:
+`xw-color-defined-p` (6714-6727), `xw-color-values` (6729-6744), `xw-display-color-p` (6746-6756),
+`x-display-grayscale-p` (6758-6769), `x-display-pixel-width` (6771-6779),
+`x-display-pixel-height` (6781-6789), `x-display-planes` (6791-6799),
+`x-display-color-cells` (6801-6816), `x-server-max-request-size` (6818-6825),
+`x-server-vendor` (6827-6832), `x-server-version` (6834-6839), `x-display-screens` (6841-6846),
+`x-display-mm-height` (6848-6863), `x-display-mm-width` (6865-6879),
+`x-display-backing-store` (6881-6887), `x-display-visual-class` (6889-6907),
+`x-display-save-under` (6909-6915).  The stop is C 6917's `static BOOL CALLBACK ALIGN_STACK` +
+`w32_monitor_enum` (6907's closing brace ends the last `DEFUN`), which opens the monitor block
+(C 6917-7082) - a different subject with its own reader set (`MONITOR_INFO_EX`, the three
+dynamically loaded entry points, `ASET`/`AREF`), so it is the next lane's item.
+
+**What the item carries.**  Two `decode_window_system_frame` readers (C 6719/6734) over
+`Emacs_Color` out-params, the `n_planes * n_cbits` products (C 6752/6765/6798/6814/6899/6901/6903),
+`make_fixnum` of the two `w32term.h` pixel readers (C 6778/6788), three literal returns
+(C 6824/6845/6914), `list3i` of C 882-888's three version ints (C 6838), the two
+`GetDC`/`GetDeviceCaps`/`ReleaseDC` mm computations (C 6857-6862, C 6873-6878), the
+`Qnot_useful`/`Qpseudo_color`/`Qstatic_gray`/`Qstatic_color`/`Qtrue_color` ladder (C 6886-6904) and
+`include/lisp.rs` 3160's `min` in C 6814's shift count.
+
+**Two deviations this item needs, both the port's standing rules.**
+`Emacs_Color foo;` (C 6718/6733) is one of PORTING.md 1.5's outputs-only locals - Rust needs a
+value before `&raw mut` can name it, so both are `let mut foo: Emacs_Color = unsafe {
+core::mem::zeroed () };`, the spelling this unit already gives C 1201's `cdef`.  And
+`(GetRValue (x) << 8) | GetRValue (x)` (C 6739-6741) leans on C's integer promotion of a `BYTE`
+before `<<`; the port casts each read to `c_int` first, the shape C 2094's sibling uses for the
+same three channel macros.
+
+**The name sweep, and eight names it found.**  Slice 8's first arm reading included two
+`E0381`s (`used binding \`foo\` isn't initialized`) from those two locals; they are fixed above.
+While checking them, the slice measured the arm reading's own blind spot: an unresolved *value*
+name inside a `DEFUN!` body is **not** reported by the probe (a deliberately injected
+`let _ = SM_CXVSCROLL_ZZZ_PROBE;` in `Fx_create_frame`'s body does not appear in the error list,
+while member errors (`E0609`) and initialization errors (`E0381`) from the very same body do).
+So this slice added a textual sweep as a reading: for a code region, strip comments and string
+literals, drop field accesses and macro invocation names, and require an item of that name
+anywhere in `femacs/`.  It reports, over the two regions of the file's `have_ntgui` text
+(`src/w32fns.rs` 9620-10259 = slices 5-7, and 10245-10561 = this slice), **missing: []** - after
+the eight names it found are defined:
+
+| name | C line that reads it | value | site |
+| --- | --- | --- | --- |
+| `SM_CXVSCROLL` | 2125, 6362 | 2 | next to C 283-290's four `<winuser.h>` metrics |
+| `SM_CXHSCROLL` | 2127, 6363 | 4 | same block |
+| `IDC_IBEAM` | 6586 | `MAKEINTRESOURCE (32513)` | C 3689's `IDC_ARROW` block |
+| `IDC_WAIT` | 6590 | 32514 | same block |
+| `IDC_SIZENWSE` | 6594, 6598 | 32642 | same block |
+| `IDC_SIZENESW` | 6596, 6600 | 32643 | same block |
+| `IDC_SIZEWE` | 6591, 6593, 6597 | 32644 | same block |
+| `IDC_SIZENS` | 6592, 6595, 6599 | 32645 | same block |
+
+The first two were used from slice 5 on (C 2125/2127's `w32_set_scroll_bar_default_width`/
+`_height`) and the six cursor ids are slice 7's (C 6586-6600); none had a definition anywhere in
+the tree, and no reading of record saw them - which is what the sweep exists to catch.  The same
+slice defines the four `<wingdi.h>` metrics C 6858-6859 and C 6874-6875 read (`HORZSIZE` 4,
+`VERTSIZE` 6, `HORZRES` 8, `VERTRES` 10), C 6857/6873's `GetDeviceCaps` declaration, and C
+6719/6734's `decode_window_system_frame` prototype (frame.h 1475).
+
+### Evidence (slice 8, the final revision: 10,565 Rust lines)
+
+**① The frozen configuration.**  `cargo run -q -p xtask -- build-tu src/w32fns.c` →
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, `build/femacs/w32fns.o` **336
+bytes** - the same empty-object reading every slice of this file gives, since the whole unit sits
+behind `have_ntgui`.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  First reading of this slice: **44 previous
+errors** (43 with a code), of which **two are `E0381`** - this slice's own two locals, fixed by the
+zero initialisers above.  Final reading: **42 previous errors** (41 with a code, plus the mirror's
+`compile_error!` for the unmeasured HAVE_NTGUI arm of `struct frame`'s flag run), i.e. **the same
+total slice 7 left**: the seventeen `DEFUN`s add no error and no member gap.  The remaining classes
+are the mirrors' (eleven `E0428`s, `E0530`, and the `w32_output`/`frame` members recorded but not
+packed: `menubar_active` 6, `hourglass_p` 3, `explicit_parent` 3, `tab_bar_*`/`tool_bar_*` 10,
+`explicit_name` 2, `was_invisible`, `no_split`, `can_set_window_size`).  Four probe runs in total.
+
+**③ `extract-abi.py --check`.**  196 rows → **179** (measured minutes apart in one tree state):
+the seventeen `missing subr` rows of C 6714-6915 retire and **no row is added**; the drift row
+reads **15.4%** (`C 12488 vs Rust 10565`), down from 18.2%.  (The row count moves with the
+ledger's own text as well as the unit's - slice 7's entry recorded 197 for the same file, measured
+against the ledger it had just written - which is why this pair is quoted as one measurement pair
+rather than across slices.)
+
+**④ The range table and the dead-file gate.**  The `## C line ranges` table splits the old
+`6714-12488` remainder row into `6714-6915` (this slice) and `6917-12488` (the remainder);
+`python3 tools/check-dead-file-coverage.py` reads **157 range row(s) cover src/w32fns.c (12488
+lines; 104 blank line(s) between blocks need no row)**, `0 failure(s)` (156 rows / 103 blanks
+before the split).
+
+### Deviations (slice 8)
+
+- **The two `Emacs_Color` locals are zero-initialised** (PORTING.md 1.5), the file's C 1201
+  `cdef` precedent; C leaves them uninitialised and passes their address.  The probe reported the
+  difference as `E0381` until the initialisers were added.
+- **C's `BYTE` promotion before `<<` is spelled as a `c_int` cast** (C 6739-6741), per the
+  `src/w32fns.rs` 2094 precedent - C's `GetRValue` yields a `BYTE` that C promotes to `int`
+  before the shift, and Rust's `u8 << 8` would be an overflow.
+- **The eight `<winuser.h>` constants and the four `<wingdi.h>` metrics are spelled from the
+  headers** (not from the reference tree, which contains only the uses): `MAKEINTRESOURCE (n)`
+  values for the cursor ids and the small ordinals for the metrics, with the C lines that read
+  each one named at the definition site.
+- **`decode_window_system_frame` is declared here**, since this unit's include list does not carry
+  frame.h's prototype (the `src/androidfns.rs` 108 shape); `GetDeviceCaps` likewise joins the
+  `<windows.h>` block where C 6857/6873's `GetDC`/`ReleaseDC` already stand.
+- **Not claimed.**  No run evidence: no display is opened, no device context is acquired and no
+  color is looked up on this machine; the arm reading is a compile-level result that stops at the
+  mirrors' errors, and the name sweep is a textual reading, not a compile of the Windows arm.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
