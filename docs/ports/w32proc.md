@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**3503 lines**, md5 `c444b997a48e9fe55016f94e511db9f9`), carrying
-> **C 1-2268** - P-86 ④'s first ten slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**3729 lines**, md5 `46f0dd8dafd6ba893b2369c6c773c727`), carrying
+> **C 1-2449** - P-86 ④'s first eleven slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -123,7 +123,8 @@ which `check-dead-file-coverage.py` requires):
 | 2117-2121 | `process_dir`: C 2117-2120's four-line comment (carried as C's own text) and C 2121's file-scope `static char *` | file gate (slice 8); the object is the `create_child` reader's and `set_process_dir`'s writer, both past this slice |
 | 2123-2205 | `create_child`: the process-creation function (its `HAVE_NTGUI` arm, its two `#if 0` regions carried as C's text, the `filename_to_ansi`/`CharNextA` path fix-up, the batch-file `exe` clearing, the three create flags and C 2202-2204's `EH_Fail:` tail) | file gate (slice 9); the round's use-site `<windows.h>`/`<winbase.h>`/`<winuser.h>` block spells `STARTUPINFO`, `SECURITY_ATTRIBUTES`, `MAX_PATH`, the nine constants and the three entry points (Deviations 50), and `xstrcasecmp` stands there with `dispextern.h` 104's citation (Deviations 51) |
 | 2207-2268 | `register_child` (C 2207-2242, with C's `(DWORD)` cast, its dead `FULL_DEBUG` arm carried as C's text and the `fd_info` in-use guard) and `reap_subprocess` (C 2244-2268, whose own dead arm sits between C 2250's comment and the two `CloseHandle`s) | file gate (slice 10); C's `status` value is `STATUS_READ_ACKNOWLEDGED` (the mirror's 201) and the `fd_info` member is the deferred `*mut c_void` (Deviations 49's cast) |
-| 2270-4903 | **the remainder of the file** - C 2270-2273's `waitpid` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `waitpid` (C 2275), `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2270-2449 | `waitpid`: C's Posix comment, the single-pid arm, the any-child arm, the `do`/`while` (the port's `loop` + negated test, P-95), the five-way answer, `GetExitCodeProcess`, the `STILL_ACTIVE` punt and the exit-code massage | file gate (slice 11); `WNOHANG` and `STATUS_CONTROL_C_EXIT` stand at the use site (Deviations 54/55), C's two dead `FULL_DEBUG` arms are carried as C's text, and C's `retval <<= 8` is the port's own shift |
+| 2451-4903 | **the remainder of the file** - C 2451-2452's `open_input_file` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -891,3 +892,55 @@ register_child` and `missing function reap_subprocess` retire.  No new token row
     9, neither hides a name this unit needs - the guard's `WaitForSingleObject`/`WAIT_OBJECT_0`/
     `DebPrint` are all live items elsewhere - so the carried text stays exactly C's and the sweep
     reads no invented name from it.
+
+## Slice 11 (2026-10-14, status 4.290): C 2270-2449
+
+**What this round is.**  `waitpid` - the file's longest single function, and the caller
+`reap_subprocess` (slice 10) was landed for: C's Posix comment, the `pid > 0` single-child arm
+(descending scan, `FILE_AT_EOF` page, the two failures), the any-child arm, the two timeouts, the
+`do`/`while` over `wait_for_objects` with `maybe_quit`, the five-way answer, `GetExitCodeProcess`,
+the `STILL_ACTIVE` punt and the exit-code massage, ending at the reap and return.  Port: 3,503 ->
+**3729 lines** (+226).  The next row's first item is C 2451's `open_input_file`.
+
+**The scope questions, answered from the tree before writing.**  (a) **`SIGINT` is in the graph**:
+`include/syssignal.rs` 18 includes `lib/include/signal.rs`, and this unit includes
+`include/syssignal.rs` at its C 62 line - so C 2432's value needs no declaration, even though the
+name appears nowhere in the files the unit names directly.  (b) **`WNOHANG` has to be declared
+here**: C reaches it through C 61's `"syswait.h"`, whose mirror records the dead `#ifndef`
+fallbacks instead of the system header, and `nt/inc/sys/include/wait.rs` - the mirror that does
+carry it - is included by no unit at all (`docs/ports/include-wait.md` 23-27).  Including that
+mirror here would be an `E0428` against this unit's own `waitpid` definition (its only other item
+is that prototype), so the constant stands at the use site (Deviations 54), which is the file's
+usual device for a name whose header mirror is not in the graph.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.  The first
+`build-tu` run **failed** (two `#ifdef FULL_DEBUG` regions were pasted bare instead of wrapped in
+their `/* C … */` carry); the fix is the only text change between that run and this one.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the eleventh identical reading.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 3504 3729` -> `17
+capitalized identifiers, missing: []` - clean, including both carried `FULL_DEBUG` regions (neither
+holds an inner `/* … */`).
+**Evidence ④ - the `--check` and do/while readings.**  **81 -> 80 `- missing` rows**
+(`missing function waitpid` retires), no new token rows; drift 28.6% -> **23.9%**, inside the stem's
+0.36 row.  `python3 tools/check-do-while.py` -> `read 152 unit(s): 221 C do/while condition(s), 73
+matched by a port if ... { break; }, 2 reviewed, 0 failure(s)` - the round's own `do`/`while` is one
+of the 73 matched pairs.
+
+**Deviations (this slice's additions).**
+
+54. **`WNOHANG` stands at the use site** (the round's second question): `<sys/wait.h>`'s
+    `#define WNOHANG 1`, declared beside the function that reads it with C's text, because the
+    mirror that carries it (`nt/inc/sys/include/wait.rs`, 11) is included by no unit and its only
+    other item - the `waitpid` prototype - is the definition this unit supplies.  This is the
+    `_P_NOWAIT`/`xstrcasecmp`/`ULONG_PTR` device, and it is what keeps the two declarations apart.
+55. **`STATUS_CONTROL_C_EXIT` stands at the use site too**: `<winbase.h>`/`<ntstatus.h>`'s
+    `0xC000013A`, the exit code C 2431 compares; `nt/cmdproxy.rs` 118-120 spells the same value for
+    cmdproxy.c and calls its own copy a placeholder, so the two units each carry the value C's
+    headers give them (Deviations 46's rule for `_P_NOWAIT`).  **UNVERIFIED** on this machine.
+56. **C's `retval <<= 8` and the two `as` conversions it needs are the port's own shift and casts**:
+    C 2432's `retval = SIGINT` is `SIGINT as DWORD` (the constant is C's `int`) and C 2445's
+    `*status = retval` is `retval as c_int` (C's implicit narrowing), the class Deviations 39
+    records for this file.

@@ -3501,3 +3501,229 @@ unsafe fn reap_subprocess (cp: *mut child_process)
   if (*cp).fd < 0                                              // C 2266
     { delete_child (cp); }                                     // C 2267
 }
+
+/* C 2270-2449: `waitpid` - the file's longest single function, and the caller `reap_subprocess`
+   (slice 10) was landed for.  C's two values it needs and no mirror in this unit's graph carries
+   stand at the use site: `WNOHANG` (`<sys/wait.h>`'s `#define WNOHANG 1`, reached in C through
+   C 61's `"syswait.h"`; the port's `include/syswait.rs` records the dead fallbacks instead and
+   `nt/inc/sys/include/wait.rs` - whose only other item is the `waitpid` prototype C's own
+   definition here supplies - is included by no unit, `docs/ports/include-wait.md` 23-27) and
+   `STATUS_CONTROL_C_EXIT` (`<winbase.h>`/`<ntstatus.h>`'s `0xC000013A`, the exit code C 2431
+   compares; `nt/cmdproxy.rs` 118-120 spells the same value for cmdproxy.c).  `SIGINT` (C 2432's
+   value) is *not* one of these: `include/syssignal.rs` 18 includes `lib/include/signal.rs`, so the
+   six standard signals are in this unit's graph through C 62's line.  */
+/// C: #define WNOHANG 1
+#[cfg (feature = "windowsnt")]
+pub const WNOHANG: c_int = 1;
+/// C: #define STATUS_CONTROL_C_EXIT ((NTSTATUS) 0xC000013A)
+#[cfg (feature = "windowsnt")]
+pub const STATUS_CONTROL_C_EXIT: DWORD = 0xC000013A;
+
+/* Wait for a child process specified by PID, or for any of our
+   existing child processes (if PID is nonpositive) to die.  When it
+   does, close its handle.  Return the pid of the process that died
+   and fill in STATUS if non-NULL.  */
+/// C 2275-2449: `pid_t waitpid (pid_t pid, int *status, int options)` - C 2278-2283's locals and
+/// the `WNOHANG` decode, the C 2286-2303 Posix comment carried as C's text, C 2304-2343's
+/// single-pid arm (the descending scan, the `FILE_AT_EOF` test page and the two failures), C
+/// 2344-2363's any-child arm, C 2365-2368's two timeouts, C 2370-2378's `do`/`while` (the port's
+/// `loop` + negated test, P-95 - `check-do-while.py` reads this pair), C 2380-2404's five-way
+/// answer, C 2406-2411's `GetExitCodeProcess`, C 2412-2425's `STILL_ACTIVE` punt and C
+/// 2427-2437's exit-code massage, ending at C 2438-2448's reap and return.  C's two dead
+/// `FULL_DEBUG` arms are carried as C's text at their positions; `active` indexes the two arrays
+/// (`as usize`) and C's `retval <<= 8` is the port's own shift.
+/// C: pid_t
+/// C: waitpid (pid_t pid, int *status, int options)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn waitpid (pid: pid_t, status: *mut c_int, options: c_int) -> pid_t
+{
+  let mut active: DWORD = 0;                                     // C 2278
+  let mut retval: DWORD = 0;
+  let mut nh: c_int = 0;                                         // C 2279
+  let mut cp: *mut child_process = core::ptr::null_mut ();       // C 2280
+  let mut cps: [*mut child_process; MAX_CHILDREN as usize]
+    = [core::ptr::null_mut (); MAX_CHILDREN as usize];
+  let mut wait_hnd: [HANDLE; MAX_CHILDREN as usize]              // C 2281
+    = [core::ptr::null_mut (); MAX_CHILDREN as usize];
+  let mut timeout_ms: DWORD = 0;                                 // C 2282
+  let dont_wait: c_int = ((options & WNOHANG) != 0) as c_int;    // C 2283
+
+  nh = 0;                                                        // C 2285
+  /* According to Posix:
+
+     PID = -1 means status is requested for any child process.
+
+     PID > 0 means status is requested for a single child process
+     whose pid is PID.
+
+     PID = 0 means status is requested for any child process whose
+     process group ID is equal to that of the calling process.  But
+     since Windows has only a limited support for process groups (only
+     for console processes and only for the purposes of passing
+     Ctrl-BREAK signal to them), and since we have no documented way
+     of determining whether a given process belongs to our group, we
+     treat 0 as -1.
+
+     PID < -1 means status is requested for any child process whose
+     process group ID is equal to the absolute value of PID.  Again,
+     since we don't support process groups, we treat that as -1.  */
+  if pid > 0                                                     // C 2304
+    {
+      let mut our_child: c_int = 0;                              // C 2306
+
+      /* We are requested to wait for a specific child.  */
+      let base: *mut child_process = child_procs.as_mut_ptr ();
+      cp = base.add ((child_proc_count - 1) as usize);           // C 2309
+      while cp >= base
+        {
+          /* Some child_procs might be sockets; ignore them.  Also
+             ignore subprocesses whose output is not yet completely
+             read.  */
+          if CHILD_ACTIVE! (*cp)                                 // C 2314
+              && !(*cp).procinfo.hProcess.is_null ()             // C 2315
+              && (*cp).pid == pid                                // C 2316
+            {
+              our_child = 1;                                     // C 2318
+              break;                                             // C 2319
+            }
+          cp = cp.sub (1);
+        }
+      if our_child != 0                                          // C 2322
+        {
+          if (*cp).fd < 0                                        // C 2324
+              || (fd_info[(*cp).fd as usize].flags & FILE_AT_EOF as c_uint) != 0
+            {
+              wait_hnd[nh as usize] = (*cp).procinfo.hProcess;   // C 2326
+              cps[nh as usize] = cp;                             // C 2327
+              nh += 1;                                           // C 2328
+            }
+          else if dont_wait != 0                                 // C 2330
+            {
+              /* PID specifies our subprocess, but its status is not
+                 yet available.  */
+              return 0;                                          // C 2334
+            }
+        }
+      if nh == 0                                                 // C 2337
+        {
+          /* No such child process, or nothing to wait for, so fail.  */
+          *errno () = ECHILD;                                    // C 2340
+          return -1;                                             // C 2341
+        }
+    }
+  else
+    {
+      let base: *mut child_process = child_procs.as_mut_ptr ();
+      cp = base.add ((child_proc_count - 1) as usize);           // C 2346
+      while cp >= base
+        {
+          if CHILD_ACTIVE! (*cp)                                 // C 2348
+              && !(*cp).procinfo.hProcess.is_null ()             // C 2349
+              && ((*cp).fd < 0                                   // C 2350
+                  || (fd_info[(*cp).fd as usize].flags & FILE_AT_EOF as c_uint) != 0)
+            {
+              wait_hnd[nh as usize] = (*cp).procinfo.hProcess;   // C 2352
+              cps[nh as usize] = cp;                             // C 2353
+              nh += 1;                                           // C 2354
+            }
+          cp = cp.sub (1);
+        }
+      if nh == 0                                                 // C 2357
+        {
+          /* Nothing to wait on, so fail.  */
+          *errno () = ECHILD;                                    // C 2360
+          return -1;                                             // C 2361
+        }
+    }
+
+  if dont_wait != 0                                              // C 2365
+    { timeout_ms = 0; }                                          // C 2366
+  else
+    { timeout_ms = 1000; }        /* Check for quit about once a second.  */    // C 2368
+
+  loop                                                           // C 2370
+    {
+      /* When child_status_changed calls us with WNOHANG in OPTIONS,
+         we are supposed to be non-interruptible, so don't allow
+         quitting in that case.  */
+      if dont_wait == 0                                          // C 2375
+        { maybe_quit (); }                                       // C 2376
+      active = wait_for_objects (nh as DWORD, wait_hnd.as_mut_ptr (), timeout_ms);   // C 2377
+      if !(active == WFO_TIMEOUT && dont_wait == 0) { break; }    // C 2378
+    }
+
+  if active == WFO_FAILED                                        // C 2380
+    {
+      *errno () = EBADF;                                         // C 2382
+      return -1;                                                 // C 2383
+    }
+  else if active == WFO_TIMEOUT && dont_wait != 0                // C 2385
+    {
+      /* PID specifies our subprocess, but it didn't exit yet, so its
+         status is not yet available.  */
+/* C 2389-2391:
+#ifdef FULL_DEBUG
+      DebPrint (("Wait: PID %d not reap yet\n", cp->pid));
+#endif
+*/
+      return 0;                                                  // C 2392
+    }
+  else if active >= 0 && active < WFO_MAX_WAIT as DWORD          // C 2394
+    {
+      ;                                                          // C 2396
+    }
+  else if active >= WFO_ABANDONED                                // C 2398
+           && active < WFO_ABANDONED + WFO_MAX_WAIT as DWORD     // C 2399
+    {
+      active -= WFO_ABANDONED;                                   // C 2401
+    }
+  else
+    { emacs_abort (); }                                          // C 2404
+
+  if GetExitCodeProcess (wait_hnd[active as usize], &raw mut retval) == 0   // C 2406
+    {
+      DebPrint! (("Wait.GetExitCodeProcess failed with %lu\n",    // C 2408-2409
+                  GetLastError ()));
+      retval = 1;                                                // C 2410
+    }
+  if retval == STILL_ACTIVE                                      // C 2412
+    {
+      /* Should never happen.  But it does, with invoking git-gui.exe
+         asynchronously.  So we punt, and just report this process as
+         exited with exit code 259, when we are called with WNOHANG
+         from child_status_changed, because in that case we already
+         _know_ the process has died.  */
+      DebPrint! (("Wait.WaitForMultipleObjects returned an active process\n"));   // C 2419
+      if !(pid > 0 && dont_wait != 0)                            // C 2420
+        {
+          *errno () = EINVAL;                                    // C 2422
+          return -1;                                             // C 2423
+        }
+    }
+
+  /* Massage the exit code from the process to match the format expected
+     by the WIFSTOPPED et al macros in syswait.h.  Only WIFSIGNALED and
+     WIFEXITED are supported; WIFSTOPPED doesn't make sense under NT.  */
+
+  if retval == STATUS_CONTROL_C_EXIT                             // C 2431
+    { retval = SIGINT as DWORD; }                                // C 2432
+  else
+    { retval <<= 8; }                                            // C 2434
+
+  if pid > 0 && active != 0                                      // C 2436
+    { emacs_abort (); }                                          // C 2437
+  cp = cps[active as usize];                                     // C 2438
+  pid = (*cp).pid;                                               // C 2439
+/* C 2440-2442:
+#ifdef FULL_DEBUG
+  DebPrint (("Wait signaled with process pid %d\n", cp->pid));
+#endif
+*/
+
+  if !status.is_null ()                                          // C 2444
+    { *status = retval as c_int; }                               // C 2445
+  reap_subprocess (cp);                                          // C 2446
+
+  return pid;                                                    // C 2448
+}
