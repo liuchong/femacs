@@ -2540,7 +2540,7 @@ them) with `PULARGE_INTEGER`, `GetDiskFreeSpaceW`/`A`, then `PRINTER_ATTRIBUTE_S
 `GetPrinterW`/`GetPrinterA`, `ClosePrinter`, and in-unit `strtok`/`strncpy` declarations
 (`<string.h>`'s, the `src/image.rs` 8571 shape; `snprintf` is already `lib/include/stdio.rs`'s).
 
-### Evidence (slice 23, the final revision: 14,916 Rust lines)
+### Evidence (slice 23, the final revision: 14,914 Rust lines)
 
 **① The frozen configuration (`build-tu`).**
 `cd femacs && CARGO_TARGET_DIR=/tmp/w23lane cargo run -q -p xtask -- build-tu src/w32fns.c` →
@@ -2549,7 +2549,7 @@ them) with `PULARGE_INTEGER`, `GetDiskFreeSpaceW`/`A`, then `PRINTER_ATTRIBUTE_S
 
 **② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the count slices 16-22
 left (15 `E0428`, 1 `E0530`, 25 `E0609`, and the one deliberately-failing frame-flag probe), so this
-slice's 481 lines add no error and no member gap: no diagnostic sits at or beyond the slice's first
+slice's 479 lines add no error and no member gap: no diagnostic sits at or beyond the slice's first
 line (`src/w32fns.rs` 14,390).  **The first probe run is what caught this slice's one real defect**:
 `LPBYTE` was declared here although the file already spells it at `src/w32fns.rs` 254, and rustc
 answered with a duplicate-definition error that *also* hid the standing 42-error reading (the run
@@ -2560,7 +2560,7 @@ reported 18).  Removing the duplicate restored it; the second run is the reading
 does not mention ularge_integer` was a *code* fix (the four casts are written `as *mut ULARGE_INTEGER`,
 which is C's own `(ULARGE_INTEGER *)` text, rather than through the `PULARGE_INTEGER` alias), and
 `Fdefault_printer_name does not mention 3` is the moved `pname_buf` bound, recorded in a notes row.
-Two `macro-body-notes.tsv` rows accompany the slice.  No `line count drifted` row: 14,916 Rust lines
+Two `macro-body-notes.tsv` rows accompany the slice.  No `line count drifted` row: 14,914 Rust lines
 against 12,488 C lines (19.4%), inside the file's `w32fns 0.35 total` tolerance row.
 
 **④ The range table and the dead-file gate.**  The `9754-10110` remainder row splits into
