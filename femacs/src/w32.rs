@@ -16261,3 +16261,290 @@ pub unsafe extern "C" fn serial_open (port_obj: Lisp_Object) -> c_int   // C 111
 
   return fd;                                                            // C 11142
 }                                                                       // C 11143
+
+
+/* C 11144's blank, C 11145's comment (C's own text) and C 11146-11294's `serial_configure` - the
+   file's longest remaining function - then C 11296's comment and C 11297-11315's `register_aux_fd`.
+   New in-unit items: `<winbase.h>`'s `DCB` (C's fourteen bitfields live in one `bits` word, the
+   PORTING.md 1.3 device, with masks named after C's own bitfield names), that record's eight value
+   constants, `GetCommState`/`SetCommState`, and the two `plist_member`/`plist_get` declarations
+   (`src/lisp.h`; `plist_put` is `include/lisp.rs`'s) - all `UNVERIFIED` (Owed 56).  */
+/// C 11152/11174: `<winbase.h>`'s `DCB` - C's two `DWORD`s, its fourteen bitfields (C 11177-11179,
+/// 11215-11217, 11225-11234, 11249-11252, 11262-11269 and 11278-11284 write them all), then the
+/// `WORD`/`BYTE`/`char` tail in C's order.  The bitfields are one `bits` word, LSB first
+/// (PORTING.md 1.3); every offset is `UNVERIFIED` (Owed 56).
+/// C: typedef struct _DCB { DWORD DCBlength; DWORD BaudRate; DWORD fBinary:1; DWORD fParity:1;
+/// C:   DWORD fOutxCtsFlow:1; DWORD fOutxDsrFlow:1; DWORD fDtrControl:2; DWORD fDsrSensitivity:1;
+/// C:   DWORD fTXContinueOnXoff:1; DWORD fOutX:1; DWORD fInX:1; DWORD fErrorChar:1; DWORD fNull:1;
+/// C:   DWORD fRtsControl:2; DWORD fAbortOnError:1; DWORD fDummy2:17; WORD wReserved; WORD XonLim;
+/// C:   WORD XoffLim; BYTE ByteSize; BYTE Parity; BYTE StopBits; char XonChar; char XoffChar;
+/// C:   char ErrorChar; char EofChar; char EvtChar; WORD wReserved1; } DCB;
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DCB
+{
+  pub DCBlength: DWORD,
+  pub BaudRate: DWORD,
+  /// fBinary:1 | fParity:1 | fOutxCtsFlow:1 | fOutxDsrFlow:1 | fDtrControl:2 | fDsrSensitivity:1 |
+  /// fTXContinueOnXoff:1 | fOutX:1 | fInX:1 | fErrorChar:1 | fNull:1 | fRtsControl:2 |
+  /// fAbortOnError:1 | fDummy2:17
+  pub bits: DWORD,
+  pub wReserved: WORD,
+  pub XonLim: WORD,
+  pub XoffLim: WORD,
+  pub ByteSize: BYTE,
+  pub Parity: BYTE,
+  pub StopBits: BYTE,
+  pub XonChar: c_char,
+  pub XoffChar: c_char,
+  pub ErrorChar: c_char,
+  pub EofChar: c_char,
+  pub EvtChar: c_char,
+  pub wReserved1: WORD,
+}
+/// C 11177-11284: the bitfields' masks, `bits`-relative and LSB first (PORTING.md 1.3).  The names are
+/// C's own member names, so each write below still spells the token C's body does; the one 2-bit field
+/// C assigns a non-zero value to carries its shift as well.
+#[cfg (feature = "windowsnt")]
+pub const fBinary: DWORD = 1 << 0;
+#[cfg (feature = "windowsnt")]
+pub const fParity: DWORD = 1 << 1;
+#[cfg (feature = "windowsnt")]
+pub const fOutxCtsFlow: DWORD = 1 << 2;
+#[cfg (feature = "windowsnt")]
+pub const fOutxDsrFlow: DWORD = 1 << 3;
+#[cfg (feature = "windowsnt")]
+pub const fDtrControl: DWORD = 3 << 4;
+#[cfg (feature = "windowsnt")]
+pub const fDsrSensitivity: DWORD = 1 << 6;
+#[cfg (feature = "windowsnt")]
+pub const fTXContinueOnXoff: DWORD = 1 << 7;
+#[cfg (feature = "windowsnt")]
+pub const fOutX: DWORD = 1 << 8;
+#[cfg (feature = "windowsnt")]
+pub const fInX: DWORD = 1 << 9;
+#[cfg (feature = "windowsnt")]
+pub const fErrorChar: DWORD = 1 << 10;
+#[cfg (feature = "windowsnt")]
+pub const fNull: DWORD = 1 << 11;
+#[cfg (feature = "windowsnt")]
+pub const fRtsControl: DWORD = 3 << 12;
+#[cfg (feature = "windowsnt")]
+pub const fRtsControl_SHIFT: DWORD = 12;
+#[cfg (feature = "windowsnt")]
+pub const fAbortOnError: DWORD = 1 << 14;
+/// C 11216/11226/11233/11250/11252/11264/11269/11278: `DCB`'s value constants (`<winbase.h>`).
+/// C: #define NOPARITY 0, `#define ODDPARITY 1`, `#define EVENPARITY 2`
+/// C: #define ONESTOPBIT 0, `#define TWOSTOPBITS 2`
+/// C: #define DTR_CONTROL_DISABLE 0, `#define RTS_CONTROL_DISABLE 0`,
+/// C: `#define RTS_CONTROL_HANDSHAKE 2`
+#[cfg (feature = "windowsnt")]
+pub const NOPARITY: BYTE = 0;
+#[cfg (feature = "windowsnt")]
+pub const ODDPARITY: BYTE = 1;
+#[cfg (feature = "windowsnt")]
+pub const EVENPARITY: BYTE = 2;
+#[cfg (feature = "windowsnt")]
+pub const ONESTOPBIT: BYTE = 0;
+#[cfg (feature = "windowsnt")]
+pub const TWOSTOPBITS: BYTE = 2;
+#[cfg (feature = "windowsnt")]
+pub const DTR_CONTROL_DISABLE: DWORD = 0;
+#[cfg (feature = "windowsnt")]
+pub const RTS_CONTROL_DISABLE: DWORD = 0;
+#[cfg (feature = "windowsnt")]
+pub const RTS_CONTROL_HANDSHAKE: DWORD = 2;
+/// C 11175/11289: `GetCommState`/`SetCommState` (`<winbase.h>`), and C 11186-11286's two plist
+/// readers (`src/lisp.h`; `src/process.rs` 2082 and `src/dired.rs` 134 spell the same prototypes for
+/// their own units).
+/// C: WINBASEAPI BOOL WINAPI GetCommState (HANDLE hFile, LPDCB lpDCB);
+/// C: WINBASEAPI BOOL WINAPI SetCommState (HANDLE hFile, LPDCB lpDCB);
+/// C: Lisp_Object plist_member (Lisp_Object, Lisp_Object);
+/// C: Lisp_Object plist_get (Lisp_Object, Lisp_Object);
+/// C: Lisp_Object plist_put (Lisp_Object, Lisp_Object, Lisp_Object);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetCommState (hFile: HANDLE, lpDCB: *mut DCB) -> BOOL;
+  pub fn SetCommState (hFile: HANDLE, lpDCB: *mut DCB) -> BOOL;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+  pub fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object)
+                  -> Lisp_Object;
+}
+/* For serial-process-configure  */                                     // C 11145
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn serial_configure (p: *mut Lisp_Process, contact: Lisp_Object) // C 11146-11147
+{                                                                       // C 11148
+  let mut childp2: Lisp_Object = Qnil ();                               // C 11149
+  let mut tem: Lisp_Object = Qnil ();                                   // C 11150
+  let mut hnd: HANDLE;                                                  // C 11151
+  let mut dcb: DCB = core::mem::zeroed ();                              // C 11152 (C's uninitialised local, PORTING.md 1.5)
+  let mut ct: COMMTIMEOUTS = core::mem::zeroed ();                      // C 11153 (C's uninitialised local)
+  let mut summary: [c_char; 4] = [b'?' as c_char, b'?' as c_char, b'?' as c_char, 0]; // C 11154 (C's `char summary[4] = "???"` and its comment)
+
+  if (fd_info[(*p).outfd as usize].flags & FILE_SERIAL) == 0            // C 11156
+    { error (c"Not a serial process".as_ptr ()); }                      // C 11157
+  hnd = fd_info[(*p).outfd as usize].hnd;                               // C 11158
+
+  childp2 = Fcopy_sequence ((*p).childp);                               // C 11160
+
+  /* Initialize timeouts for blocking read and blocking write.  */      // C 11162
+  if GetCommTimeouts (hnd, &raw mut ct) == 0                            // C 11163 (C's `!`)
+    { error (c"GetCommTimeouts() failed".as_ptr ()); }                  // C 11164
+  ct.ReadIntervalTimeout = 0;                                           // C 11165
+  ct.ReadTotalTimeoutMultiplier = 0;                                    // C 11166
+  ct.ReadTotalTimeoutConstant = 0;                                      // C 11167
+  ct.WriteTotalTimeoutMultiplier = 0;                                   // C 11168
+  ct.WriteTotalTimeoutConstant = 0;                                     // C 11169
+  if SetCommTimeouts (hnd, &raw mut ct) == 0                            // C 11170 (C's `!`)
+    { error (c"SetCommTimeouts() failed".as_ptr ()); }                  // C 11171
+  /* Read port attributes and prepare default configuration.  */        // C 11172
+  memset (&raw mut dcb as *mut c_void, 0, core::mem::size_of::<DCB> ()); // C 11173
+  dcb.DCBlength = core::mem::size_of::<DCB> () as DWORD;                // C 11174
+  if GetCommState (hnd, &raw mut dcb) == 0                              // C 11175 (C's `!`)
+    { error (c"GetCommState() failed".as_ptr ()); }                     // C 11176
+  dcb.bits |= fBinary;                                                  // C 11177 (C's `dcb.fBinary = TRUE;`)
+  dcb.bits &= ! fNull;                                                  // C 11178 (C's `dcb.fNull = FALSE;`)
+  dcb.bits &= ! fAbortOnError;                                          // C 11179 (C's `dcb.fAbortOnError = FALSE;`)
+  /* dcb.XonLim and dcb.XoffLim are set by GetCommState() */            // C 11180
+  dcb.ErrorChar = 0;                                                    // C 11181
+  dcb.EofChar = 0;                                                      // C 11182
+  dcb.EvtChar = 0;                                                      // C 11183
+
+  /* Configure speed.  */                                               // C 11185
+  if ! NILP (plist_member (contact, QCspeed ()))                        // C 11186
+    { tem = plist_get (contact, QCspeed ()); }                          // C 11187
+  else                                                                  // C 11188
+    { tem = plist_get ((*p).childp, QCspeed ()); }                      // C 11189
+  CHECK_FIXNUM (tem);                                                   // C 11190
+  dcb.BaudRate = XFIXNUM (tem) as DWORD;                                // C 11191
+  childp2 = plist_put (childp2, QCspeed (), tem);                       // C 11192
+
+  /* Configure bytesize.  */                                            // C 11194
+  if ! NILP (plist_member (contact, QCbytesize ()))                     // C 11195
+    { tem = plist_get (contact, QCbytesize ()); }                       // C 11196
+  else                                                                  // C 11197
+    { tem = plist_get ((*p).childp, QCbytesize ()); }                   // C 11198
+  if NILP (tem)                                                         // C 11199
+    { tem = make_fixnum (8); }                                          // C 11200
+  CHECK_FIXNUM (tem);                                                   // C 11201
+  if XFIXNUM (tem) != 7 && XFIXNUM (tem) != 8                           // C 11202
+    { error (c":bytesize must be nil (8), 7, or 8".as_ptr ()); }        // C 11203
+  dcb.ByteSize = XFIXNUM (tem) as BYTE;                                 // C 11204
+  summary[0] = (XFIXNUM (tem) + b'0' as EMACS_INT) as c_char;           // C 11205 (C's `+ '0'`)
+  childp2 = plist_put (childp2, QCbytesize (), tem);                    // C 11206
+
+  /* Configure parity.  */                                              // C 11208
+  if ! NILP (plist_member (contact, QCparity ()))                       // C 11209
+    { tem = plist_get (contact, QCparity ()); }                         // C 11210
+  else                                                                  // C 11211
+    { tem = plist_get ((*p).childp, QCparity ()); }                     // C 11212
+  if ! NILP (tem) && ! EQ (tem, Qeven ()) && ! EQ (tem, Qodd ())        // C 11213
+    { error (c":parity must be nil (no parity), `even', or `odd'".as_ptr ()); } // C 11214
+  dcb.bits &= ! fParity;                                                // C 11215 (C's `dcb.fParity = FALSE;`)
+  dcb.Parity = NOPARITY;                                                // C 11216
+  dcb.bits &= ! fErrorChar;                                             // C 11217 (C's `dcb.fErrorChar = FALSE;`)
+  if NILP (tem)                                                         // C 11218
+    {                                                                   // C 11219
+      summary[1] = b'N' as c_char;                                      // C 11220
+    }                                                                   // C 11221
+  else if EQ (tem, Qeven ())                                            // C 11222
+    {                                                                   // C 11223
+      summary[1] = b'E' as c_char;                                      // C 11224
+      dcb.bits |= fParity;                                              // C 11225 (C's `dcb.fParity = TRUE;`)
+      dcb.Parity = EVENPARITY;                                          // C 11226
+      dcb.bits |= fErrorChar;                                           // C 11227 (C's `dcb.fErrorChar = TRUE;`)
+    }                                                                   // C 11228
+  else if EQ (tem, Qodd ())                                             // C 11229
+    {                                                                   // C 11230
+      summary[1] = b'O' as c_char;                                      // C 11231
+      dcb.bits |= fParity;                                              // C 11232 (C's `dcb.fParity = TRUE;`)
+      dcb.Parity = ODDPARITY;                                           // C 11233
+      dcb.bits |= fErrorChar;                                           // C 11234 (C's `dcb.fErrorChar = TRUE;`)
+    }                                                                   // C 11235
+  childp2 = plist_put (childp2, QCparity (), tem);                      // C 11236
+
+  /* Configure stopbits.  */                                            // C 11238
+  if ! NILP (plist_member (contact, QCstopbits ()))                     // C 11239
+    { tem = plist_get (contact, QCstopbits ()); }                       // C 11240
+  else                                                                  // C 11241
+    { tem = plist_get ((*p).childp, QCstopbits ()); }                   // C 11242
+  if NILP (tem)                                                         // C 11243
+    { tem = make_fixnum (1); }                                          // C 11244
+  CHECK_FIXNUM (tem);                                                   // C 11245
+  if XFIXNUM (tem) != 1 && XFIXNUM (tem) != 2                           // C 11246
+    { error (c":stopbits must be nil (1 stopbit), 1, or 2".as_ptr ()); } // C 11247
+  summary[2] = (XFIXNUM (tem) + b'0' as EMACS_INT) as c_char;           // C 11248 (C's `+ '0'`)
+  if XFIXNUM (tem) == 1                                                 // C 11249
+    { dcb.StopBits = ONESTOPBIT; }                                      // C 11250
+  else if XFIXNUM (tem) == 2                                            // C 11251
+    { dcb.StopBits = TWOSTOPBITS; }                                     // C 11252
+  childp2 = plist_put (childp2, QCstopbits (), tem);                    // C 11253
+
+  /* Configure flowcontrol.  */                                         // C 11255
+  if ! NILP (plist_member (contact, QCflowcontrol ()))                  // C 11256
+    { tem = plist_get (contact, QCflowcontrol ()); }                    // C 11257
+  else                                                                  // C 11258
+    { tem = plist_get ((*p).childp, QCflowcontrol ()); }                // C 11259
+  if ! NILP (tem) && ! EQ (tem, Qhw ()) && ! EQ (tem, Qsw ())           // C 11260
+    { error (c":flowcontrol must be nil (no flowcontrol), `hw', or `sw'".as_ptr ()); } // C 11261
+  dcb.bits &= ! fOutxCtsFlow;                                           // C 11262 (C's `dcb.fOutxCtsFlow = FALSE;`)
+  dcb.bits &= ! fOutxDsrFlow;                                           // C 11263 (C's `dcb.fOutxDsrFlow = FALSE;`)
+  dcb.bits = (dcb.bits & ! fDtrControl) | DTR_CONTROL_DISABLE;          // C 11264 (C's `dcb.fDtrControl = DTR_CONTROL_DISABLE;`)
+  dcb.bits &= ! fDsrSensitivity;                                        // C 11265 (C's `dcb.fDsrSensitivity = FALSE;`)
+  dcb.bits &= ! fTXContinueOnXoff;                                      // C 11266 (C's `dcb.fTXContinueOnXoff = FALSE;`)
+  dcb.bits &= ! fOutX;                                                  // C 11267 (C's `dcb.fOutX = FALSE;`)
+  dcb.bits &= ! fInX;                                                   // C 11268 (C's `dcb.fInX = FALSE;`)
+  dcb.bits = (dcb.bits & ! fRtsControl) | RTS_CONTROL_DISABLE;          // C 11269 (C's `dcb.fRtsControl = RTS_CONTROL_DISABLE;`)
+  dcb.XonChar = 17;                                                     // C 11270 (C's `/* Control-Q  */`)
+  dcb.XoffChar = 19;                                                    // C 11271 (C's `/* Control-S  */`)
+  if NILP (tem)                                                         // C 11272
+    {                                                                   // C 11273
+      /* Already configured.  */                                        // C 11274
+    }                                                                   // C 11275
+  else if EQ (tem, Qhw ())                                              // C 11276
+    {                                                                   // C 11277
+      dcb.bits = (dcb.bits & ! fRtsControl) | (RTS_CONTROL_HANDSHAKE << fRtsControl_SHIFT); // C 11278 (C's `dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;`)
+      dcb.bits |= fOutxCtsFlow;                                         // C 11279 (C's `dcb.fOutxCtsFlow = TRUE;`)
+    }                                                                   // C 11280
+  else if EQ (tem, Qsw ())                                              // C 11281
+    {                                                                   // C 11282
+      dcb.bits |= fOutX;                                                // C 11283 (C's `dcb.fOutX = TRUE;`)
+      dcb.bits |= fInX;                                                 // C 11284 (C's `dcb.fInX = TRUE;`)
+    }                                                                   // C 11285
+  childp2 = plist_put (childp2, QCflowcontrol (), tem);                 // C 11286
+
+  /* Activate configuration.  */                                        // C 11288
+  if SetCommState (hnd, &raw mut dcb) == 0                              // C 11289 (C's `!`)
+    { error (c"SetCommState() failed".as_ptr ()); }                     // C 11290
+
+  childp2 = plist_put (childp2, QCsummary (), build_string (summary.as_ptr ())); // C 11292
+  pset_childp (p, childp2);                                             // C 11293
+}                                                                       // C 11294
+
+/* For make-pipe-process */                                             // C 11296
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn register_aux_fd (infd: c_int)                  // C 11297-11298
+{                                                                       // C 11299
+  let mut cp: *mut child_process;                                       // C 11300
+
+  cp = new_child () as *mut child_process;                              // C 11302 (C's `new_child ()` into a `child_process *`)
+  if cp.is_null ()                                                      // C 11303 (C's `!cp`)
+    { error (c"Could not create child process".as_ptr ()); }            // C 11304
+  (*cp).fd = infd;                                                      // C 11305
+  (*cp).status = STATUS_READ_ACKNOWLEDGED;                              // C 11306
+
+  if ! fd_info[infd as usize].cp.is_null ()                             // C 11308 (C's truth test)
+    {                                                                   // C 11309
+      error (c"fd_info[fd = %d] is already in use".as_ptr (), infd);    // C 11310
+    }                                                                   // C 11311
+  fd_info[infd as usize].cp = cp;                                       // C 11312
+  fd_info[infd as usize].hnd = _get_osfhandle (infd) as HANDLE;         // C 11313 (C's `(HANDLE) _get_osfhandle (infd)`)
+  fd_info[infd as usize].flags |= FILE_DONT_CLOSE;                      // C 11314
+}                                                                       // C 11315
