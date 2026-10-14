@@ -4863,9 +4863,19 @@ macro_rules! input_event_bits {
 }
 
 #[cfg (feature = "have_ntgui")]
+macro_rules! set_frame_flag1 {
+  ($f:expr, $shift:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << $shift)) | (($v as u32) << $shift)
+  };
+}
+#[cfg (feature = "have_ntgui")]
 macro_rules! frame_bits {
   (auto_raise, $f:expr) => { (((*$f).bits1 >> FRAME_AUTO_RAISE_SHIFT) & 1) != 0 };
   (auto_lower, $f:expr) => { (((*$f).bits1 >> FRAME_AUTO_LOWER_SHIFT) & 1) != 0 };
+  /* The two `mouse_moved` arms slices 9's text reads and writes (frame.h 434's `bool_bf
+     mouse_moved : 1`; the `src/xterm.rs` 22681/22696-22700 copy of the same pair).  */
+  (mouse_moved, $f:expr) => { (((*$f).bits1 >> FRAME_MOUSE_MOVED_SHIFT) & 1) != 0 };
+  (mouse_moved, $f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_MOUSE_MOVED_SHIFT, $v) };
 }
 
 /* C 3239-3241 is the "Exposure Events" banner, carried as C's own text at its position.  */
@@ -5606,5 +5616,260 @@ unsafe fn w32_queue_notifications (event: *mut input_event, msg: *mut W32Msg,
    #endif	/* WINDOWSNT */
    #endif	/* HAVE_W32NOTIFY */  */
 
-/* C 3766-3772's "Function to report a mouse movement to the mainstream Emacs code. …" comment and
-   C 3774's `w32_note_mouse_movement` open the next slice.  */
+/// C 3766-3819: "Function to report a mouse movement to the mainstream Emacs code. …" - C
+/// 3777-3780's four locals (C 3778-3779's two `LOWORD`/`HIWORD` reads of the `lParam`), C
+/// 3782-3783's output guard, C 3785-3789's five display-info stores, C 3791-3798's
+/// off-frame arm and C 3801-3818's glyph-rectangle test (C 3806-3815's five statements).
+/// C: /* Function to report a mouse movement to the mainstream Emacs code.
+/// C:    The input handler calls this.
+/// C:
+/// C:    We have received a mouse movement event, which is given in *event.
+/// C:    If the mouse is over a different glyph than it was last time, tell
+/// C:    the mainstream emacs code by setting mouse_moved.  If not, ask for
+/// C:    another motion event, so we can check again the next time it moves.  */
+/// C: static int
+/// C: w32_note_mouse_movement (struct frame *frame, MSG *msg)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_note_mouse_movement (frame: *mut frame, msg: *mut MSG) -> c_int
+{
+  let mut dpyinfo: *mut w32_display_info;                            // C 3777
+  let mouse_x: c_int = LOWORD! ((*msg).lParam) as c_int;             // C 3778
+  let mouse_y: c_int = HIWORD! ((*msg).lParam) as c_int;             // C 3779
+  let mut r: *mut RECT;                                              // C 3780
+
+  if FRAME_OUTPUT_DATA! (frame).is_null ()                           // C 3782
+    { return 0; }                                                    // C 3783
+
+  dpyinfo = FRAME_DISPLAY_INFO! (frame);                             // C 3785
+  (*dpyinfo).last_mouse_movement_time = (*msg).time as Time;         // C 3786
+  (*dpyinfo).last_mouse_motion_frame = frame;                        // C 3787
+  (*dpyinfo).last_mouse_motion_x = mouse_x;                          // C 3788
+  (*dpyinfo).last_mouse_motion_y = mouse_y;                          // C 3789
+
+  if (*msg).hwnd != FRAME_W32_WINDOW (frame)                         // C 3791
+    {
+      frame_bits! (mouse_moved, frame, true);                        // C 3793
+      (*dpyinfo).last_mouse_scroll_bar = core::ptr::null_mut ();     // C 3794
+      note_mouse_highlight (frame, -1, -1);                          // C 3795
+      (*dpyinfo).last_mouse_glyph_frame = core::ptr::null_mut ();    // C 3796
+      return 1;                                                      // C 3797
+    }
+
+  /* Has the mouse moved off the glyph it was on at the last sighting?  */
+  r = &raw mut (*dpyinfo).last_mouse_glyph;                          // C 3801
+  if frame != (*dpyinfo).last_mouse_glyph_frame                      // C 3802
+      || mouse_x < (*r).left || mouse_x >= (*r).right                // C 3803
+      || mouse_y < (*r).top  || mouse_y >= (*r).bottom               // C 3804
+    {
+      frame_bits! (mouse_moved, frame, true);                        // C 3806
+      (*dpyinfo).last_mouse_scroll_bar = core::ptr::null_mut ();     // C 3807
+      note_mouse_highlight (frame, mouse_x, mouse_y);                // C 3808
+      /* Remember the mouse position here, as w32_mouse_position only
+	 gets called when mouse tracking is enabled but we also need
+	 to keep track of the mouse for help_echo and highlighting at
+	 other times.  */
+      remember_mouse_glyph (frame, mouse_x, mouse_y, r);             // C 3813
+      (*dpyinfo).last_mouse_glyph_frame = frame;                     // C 3814
+      return 1;                                                      // C 3815
+    }
+
+  return 0;                                                          // C 3818
+}
+
+/* C 3822-3824 is the "Mouse Face" banner and C 3826-3834 are the file's own three forward
+   declarations (`w32_window_to_scroll_bar`, `w32_scroll_bar_report_motion`,
+   `w32_horizontal_scroll_bar_report_motion`) - dropped by PORTING.md 0.1-12 (Rust resolves
+   forward references), with C's text carried at its position.  */
+/* C: /************************************************************************
+   C: 			      Mouse Face
+   C:  ************************************************************************/
+   C: static struct scroll_bar *w32_window_to_scroll_bar (Window, int);
+   C: static void w32_scroll_bar_report_motion (struct frame **, Lisp_Object *,
+   C:                                           enum scroll_bar_part *,
+   C:                                           Lisp_Object *, Lisp_Object *,
+   C:                                           Time *);
+   C: static void w32_horizontal_scroll_bar_report_motion (struct frame **, Lisp_Object *,
+   C:                                                      enum scroll_bar_part *,
+   C:                                                      Lisp_Object *, Lisp_Object *,
+   C:                                                      Time *);  */
+
+/* C's `<winuser.h>` entries C 3838/3904/3911/3936 call and the two reference-side prototypes this
+   slice needs that no mirror in this unit's graph declares: `PostMessage` (the `…A` export),
+   `WindowFromPoint`, `ChildWindowFromPoint`, `GetCursorPos`, `remember_mouse_glyph`
+   (dispextern.h 3586, whose `NativeRectangle *` is this unit's `RECT *`) and `gui_mouse_grabbed`
+   (dispextern.h 4006, `Display_Info *` being `w32_display_info *` for this term).  Every name
+   stands at the use site (P-88 (1)); the SDK records are UNVERIFIED.  */
+/// C: WINUSERAPI BOOL WINAPI PostMessageA (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+/// C: WINUSERAPI HWND WINAPI WindowFromPoint (POINT Point);
+/// C: WINUSERAPI HWND WINAPI ChildWindowFromPoint (HWND hWndParent, POINT Point);
+/// C: WINUSERAPI BOOL WINAPI GetCursorPos (LPPOINT lpPoint);
+/// C: extern void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *);
+/// C: extern bool gui_mouse_grabbed (Display_Info *);            [dispextern.h 3586 / 4006]
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn PostMessage (hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) -> BOOL;
+  pub fn WindowFromPoint (Point: POINT) -> HWND;
+  pub fn ChildWindowFromPoint (hWndParent: HWND, Point: POINT) -> HWND;
+  pub fn GetCursorPos (lpPoint: *mut POINT) -> BOOL;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn remember_mouse_glyph (f: *mut frame, x: c_int, y: c_int, rectangle: *mut RECT);
+  pub fn gui_mouse_grabbed (dpyinfo: *mut w32_display_info) -> bool;
+}
+
+/// C 3835-3839: `static void w32_define_cursor (Window window, Emacs_Cursor cursor)` - the one
+/// `PostMessage` with C 3838's two casts.
+/// C: static void
+/// C: w32_define_cursor (Window window, Emacs_Cursor cursor)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_define_cursor (window: Window, cursor: Emacs_Cursor)
+{
+  PostMessage (window, WM_EMACS_SETCURSOR as UINT, cursor as WPARAM, 0);   // C 3838
+}
+
+/// C 3841-3970: "Return the current position of the mouse. …" - C 3866's display-info read, C
+/// 3868's input block, C 3870-3878's scroll-bar arm (C 3874's `horizontal` choice), C 3881-3883's
+/// four locals, C 3886-3887's `FOR_EACH_FRAME` clear, C 3891's `GetCursorPos`, C 3900-3943's
+/// innermost-window search (C 3931-3940's scroll-bar lookup and C 3942-3943's fallback), C
+/// 3945-3966's store block and C 3969's `unblock_input`.
+/// C: /* Return the current position of the mouse.
+/// C:    *fp should be a frame which indicates which display to ask about.
+/// C:
+/// C:    If the mouse movement started in a scroll bar, set *fp, *bar_window,
+/// C:    and *part to the frame, window, and scroll bar part that the mouse
+/// C:    is over.  Set *x and *y to the portion and whole of the mouse's
+/// C:    position on the scroll bar.
+/// C:
+/// C:    If the mouse movement started elsewhere, set *fp to the frame the
+/// C:    mouse is on, *bar_window to nil, and *x and *y to the character cell
+/// C:    the mouse is over.
+/// C:
+/// C:    Set *time to the server time-stamp for the time at which the mouse
+/// C:    was at this position.
+/// C:
+/// C:    Don't store anything if we don't have a valid set of values to report.
+/// C:
+/// C:    This clears the mouse_moved flag, so we can wait for the next mouse
+/// C:    movement.  */
+/// C: static void
+/// C: w32_mouse_position (struct frame **fp, int insist, Lisp_Object *bar_window,
+/// C: 		    enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y,
+/// C: 		    Time *time)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_mouse_position (fp: *mut *mut frame, insist: c_int,
+			      bar_window: *mut Lisp_Object, part: *mut scroll_bar_part,
+			      x: *mut Lisp_Object, y: *mut Lisp_Object, time: *mut Time)
+{
+  let mut dpyinfo: *mut w32_display_info = FRAME_DISPLAY_INFO! (*fp);   // C 3866
+
+  block_input ();                                                    // C 3868
+
+  if !(*dpyinfo).last_mouse_scroll_bar.is_null () && insist == 0       // C 3870
+    {
+      let bar: *mut scroll_bar = (*dpyinfo).last_mouse_scroll_bar;     // C 3872
+
+      if (*bar).horizontal                                             // C 3874
+	{ w32_horizontal_scroll_bar_report_motion (fp, bar_window, part, x, y, time); }   // C 3875
+      else
+	{ w32_scroll_bar_report_motion (fp, bar_window, part, x, y, time); }   // C 3877
+    }
+  else
+    {
+      /* C declares the `POINT` uninitialised and fills it with `GetCursorPos` (PORTING.md 1.5).  */
+      let mut pt: POINT = core::mem::zeroed ();                        // C 3881
+      let mut frame: Lisp_Object;                                      // C 3882
+      let mut tail: Lisp_Object;
+      let mut f1: *mut frame = core::ptr::null_mut ();                 // C 3883
+
+      /* Clear the mouse-moved flag for every frame on this display.  */
+      FOR_EACH_FRAME! (tail, frame, {                                  // C 3886
+	frame_bits! (mouse_moved, XFRAME (frame), false); });          // C 3887
+      (*dpyinfo).last_mouse_scroll_bar = core::ptr::null_mut ();       // C 3889
+
+      GetCursorPos (&raw mut pt);                                      // C 3891
+
+      /* Now we have a position on the root; find the innermost window
+	 containing the pointer.  */
+
+      /* If mouse was grabbed on a frame and we are not dropping,
+	 give coords for that frame even if the mouse is now outside
+	 it.  Otherwise check for window under mouse on one of our
+	 frames.  */
+      if gui_mouse_grabbed (dpyinfo)
+	  && !EQ (track_mouse, Qdropping ())                           // C 3900
+	{ f1 = (*dpyinfo).last_mouse_frame; }                          // C 3901
+      else
+	{
+	  let wfp: HWND = WindowFromPoint (pt);                        // C 3904
+
+	  if !wfp.is_null ()                                           // C 3906
+	    {
+	      f1 = w32_window_to_frame (dpyinfo, wfp);                 // C 3908
+	      if !f1.is_null ()                                        // C 3909
+		{
+		  let cwfp: HWND = ChildWindowFromPoint (wfp, pt);     // C 3911
+
+		  if !cwfp.is_null ()                                  // C 3913
+		    {
+		      let f2: *mut frame = w32_window_to_frame (dpyinfo, cwfp);   // C 3915
+
+		      /* If a child window was found, make sure that its
+			 frame is a child frame (Bug#26615, maybe).  */
+		      if !f2.is_null () && !FRAME_PARENT_FRAME (f2).is_null ()   // C 3919
+			{ f1 = f2; }                                   // C 3920
+		    }
+		}
+	    }
+	}
+
+      if f1.is_null () || FRAME_TOOLTIP_P (f1)                         // C 3926
+	/* Don't use a tooltip frame.  */
+	{
+	  f1 = if EQ (track_mouse, Qdropping ()) && gui_mouse_grabbed (dpyinfo)   // C 3928
+		 { (*dpyinfo).last_mouse_frame }                       // C 3929
+	       else
+		 { core::ptr::null_mut () };                           // C 3930
+	}
+
+      /* If not, is it one of our scroll bars?  */
+      if f1.is_null ()                                                 // C 3933
+	{
+	  let bar: *mut scroll_bar
+	    = w32_window_to_scroll_bar (WindowFromPoint (pt), 2);     // C 3935-3936
+
+	  if !bar.is_null ()                                           // C 3938
+	    { f1 = XFRAME (WINDOW_FRAME (XWINDOW ((*bar).window))); }  // C 3939
+	}
+
+      if f1.is_null () && insist > 0                                   // C 3942
+	{ f1 = SELECTED_FRAME (); }                                    // C 3943
+
+      if !f1.is_null ()                                                // C 3945
+	{
+	  /* Ok, we found a frame.  Store all the values.
+	     last_mouse_glyph is a rectangle used to reduce the
+	     generation of mouse events.  To not miss any motion
+	     events, we must divide the frame into rectangles of the
+	     size of the smallest character that could be displayed
+	     on it, i.e. into the same rectangles that matrices on
+	     the frame are divided into.  */
+
+	  dpyinfo = FRAME_DISPLAY_INFO! (f1);                             // C 3955
+	  ScreenToClient (FRAME_W32_WINDOW (f1), &raw mut pt);             // C 3956
+	  remember_mouse_glyph (f1, pt.x, pt.y, &raw mut (*dpyinfo).last_mouse_glyph);   // C 3957
+	  (*dpyinfo).last_mouse_glyph_frame = f1;                          // C 3958
+
+	  *bar_window = Qnil ();                                          // C 3960
+	  *part = scroll_bar_above_handle;                                // C 3961
+	  *fp = f1;                                                       // C 3962
+	  XSETINT! (*x, pt.x as EMACS_INT);                               // C 3963
+	  XSETINT! (*y, pt.y as EMACS_INT);                               // C 3964
+	  *time = (*dpyinfo).last_mouse_movement_time;                   // C 3965
+	}
+    }
+
+  unblock_input ();                                                   // C 3969
+}
+
+/* C 3973-3975's "Tab-bars" banner and C 3981's `w32_handle_tab_bar_click` open the next slice.  */

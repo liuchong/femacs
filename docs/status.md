@@ -20206,3 +20206,11 @@
   ⑤ **`src/w32proc.c` 潜伏缺陷一并修复**：slice 24 的 `static char hex[]` 也用了 `*b"…"`（同样 `E0308`），单元自己的臂读数看不到它（读数在镜像解析错误处即止，类型阶段从不运行），本轮按本树 element-list 装置改写并在该单元注释里记录；`build-tu` 与 `--check` 不变。台账 `docs/ports/w32proc.md` 加 **`## Slice 29`** 段。
   ⑥ 十门全 `rc=0`、0 失败；区间表拆为 `3631-3763`（本片）+ `3765-8414`（余项）；w32term 台账加 **`### Slice 8`**。预算与清理：`build-tu` 4 发、臂读数 5 发、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w47`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.314 `src/w32term.c` 第 9 片（w32term lane，slice 9）：C 3765-3970 落地——`w32_note_mouse_movement`（C 3774-3819）、"Mouse Face" banner 与 C 3826-3834 三条自身前置声明（按 0.1-12 丢弃、文本承载）、`w32_define_cursor`（C 3835-3839）、`w32_mouse_position`（C 3861-3970：C 3900-3943 的最内层窗口搜索 + C 3945-3966 的存储块）；w32term.rs 5,610 → 5,875 行（+265，2026-10-14）**：
+  ① 用例处新增：`PostMessage`（`…A` 导出）、`WindowFromPoint`、`ChildWindowFromPoint`、`GetCursorPos`（winuser），以及本图镜像未覆盖的两个参照侧原型 `remember_mouse_glyph`（dispextern.h 3586，`NativeRectangle *` 即本单元 `RECT *`）与 `gui_mouse_grabbed`（dispextern.h 4006，`Display_Info *` 即 `w32_display_info *`）。
+  ② `frame->mouse_moved` 是 frame.h 434 的 `bool_bf mouse_moved : 1`：本单元 `frame_bits!` 增加 read/write 两臂（写臂配 `set_frame_flag1!`，与 `src/xterm.rs` 22681/22696-22700 同形）；C 3886-3887 的 `FOR_EACH_FRAME` 用镜像的三参形状 `FOR_EACH_FRAME! (tail, frame, { … });`；C 3926-3930 的 `? :` 落成 `if`/`else` 表达式。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**（本轮首跑失败于 `FOR_EACH_FRAME!` 的参数个数，属同版本内的文本修正，正是该读数抓到的）；**臂读数 22 条、0 条落在本片文本**（与前几片同形）。`extract-abi.py --check`：**79 → 75 行**（`missing function` 70 → **67**），**无新 token 行**；行数行 33.3% → **30.2%**（5,875 : 8,414）。
+  ④ 十门全 `rc=0`、0 失败；区间表拆为 `3765-3970`（本片）+ `3973-8414`（余项）；台账追加 **`### Slice 9 (C 3765-3970)`**。
+  ⑤ 预算与清理：`build-tu` 3 发（含两次首拼）、臂读数 1 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w48`、`/tmp/slice9.txt`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

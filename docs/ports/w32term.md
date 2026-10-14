@@ -186,7 +186,8 @@ The `arm` cell says what the port does with the block.
 | 3237-3431 | the Exposure Events section's focus machinery and the two keyboard entries: `w32_frame_highlight` (C 3243-3248), `w32_frame_unhighlight` (C 3250-3255), `w32_new_focus_frame` (C 3257-3284), `w32_focus_changed` (C 3287-3324), `w32_detect_focus_change` (C 3327-3347), C 3350-3358's `#if 0` (`w32_mouse_leave`, carried as C's text), `w32_frame_rehighlight` (C 3360-3374), `w32_frame_rehighlight_1` (C 3376-3403), `get_keysym_name` (C 3405-3420) and `codepage_for_locale` (C 3422-3431) | file gate (`have_ntgui`); slice 6 below |
 | 3433-3629 | the mouse section's head: the section comment (C 3433-3434), `parse_button` (C 3439-3499, the mouse-message `switch`), `w32_construct_mouse_click` (C 3501-3532) and `w32_construct_mouse_wheel` (C 3534-3629, with the high-precision/coalescing arms) | file gate (`have_ntgui`); slice 7 below |
 | 3631-3763 | the `#if HAVE_W32NOTIFY` block: `w32_lispy_file_action` (C 3636-3670) and the `#ifdef WINDOWSNT` `w32_queue_notifications` (C 3676-3761) | `all (have_ntgui, have_w32notify)`; slice 8 below |
-| 3765-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3765-3970 | `w32_note_mouse_movement` (C 3774-3819), the "Mouse Face" banner with C 3826-3834's three dropped forward declarations, `w32_define_cursor` (C 3835-3839) and `w32_mouse_position` (C 3861-3970) | file gate (`have_ntgui`); slice 9 below |
+| 3973-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1022,4 +1023,38 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **80 -> 79 rows** (72 -> **70** `missing function`: the round's two
      landed), one token row added to the notes file (the `switch` again), and the line-count row
      improves from 35.8% to **33.3%** (5,610 vs 8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 9 (C 3765-3970)
+
+- **What it is.**  The mouse-movement reporter and the pointer-motion reader:
+  `w32_note_mouse_movement` (C 3774-3819), the "Mouse Face" banner with C 3826-3834's three own
+  forward declarations (dropped, 0.1-12), `w32_define_cursor` (C 3835-3839) and `w32_mouse_position`
+  (C 3861-3970, with C 3900-3943's innermost-window search and C 3945-3966's store block).  Port:
+  5,610 -> **5875 lines** (+265).  The table's last row splits at C 3970; the next live definition is
+  C 3981's `w32_handle_tab_bar_click` (the "Tab-bars" banner at C 3973-3975).
+- **The names this slice adds stand at the use site** (P-88 (1)): `<winuser.h>`'s `PostMessage` (the
+  `…A` export), `WindowFromPoint`, `ChildWindowFromPoint` and `GetCursorPos`, plus the two
+  reference-side prototypes no mirror in this unit's graph declares - `remember_mouse_glyph`
+  (dispextern.h 3586, whose `NativeRectangle *` is this unit's `RECT *`) and `gui_mouse_grabbed`
+  (dispextern.h 4006, `Display_Info *` being `w32_display_info *` for this term, the
+  `src/xterm.rs` 15317-15323 reading of the same pair).  The SDK records are UNVERIFIED.
+- **`frame->mouse_moved` is the frame bit run's `bool_bf mouse_moved : 1`** (frame.h 434): the
+  slice's three reads/writes go through the unit's own `frame_bits!`, whose `mouse_moved` read and
+  write arms (and the `set_frame_flag1!` helper the write arm needs) are declared with it - the
+  `src/xterm.rs` 22681/22696-22700 copy of the same pair.
+- **C 3886-3887's `FOR_EACH_FRAME (tail, frame) XFRAME (frame)->mouse_moved = false;`** is the
+  mirror's `FOR_EACH_FRAME! (tail, frame, { … });` (the three-argument shape frame.rs 800-806
+  declares and `src/androidfns.rs` 1948 uses), and C 3926-3930's `? :` between the tooltip check's
+  two frames is the port's `if`/`else` expression.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text** - the
+     reading is unchanged from slices 4-8, i.e. the round's three functions and its two accessor
+     arms added no own error.  (The first `build-tu` run of the round failed on the `FOR_EACH_FRAME!`
+     arity above; that is a *text* fix in the same revision, and the frozen `build-tu` is the
+     reading that caught it - the arm reading compiled clean.)
+  3. `extract-abi.py --check` -> **79 -> 75 rows** (70 -> **67** `missing function`: the round's
+     three landed), no token rows, and the line-count row improves from 33.3% to **30.2%**
+     (5,875 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.
