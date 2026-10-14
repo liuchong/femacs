@@ -230,7 +230,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10140-10312 | C 10140-10202's `w32_kbd_mods_to_emacs`, C 10207-10287's `w32_kbd_patch_key` (with C 10242-10252's `#if 0` block carried as C's text), C 10290-10303's `w32_sys_ring_bell` and C 10305-10312's `w32--menu-bar-in-use` - slice 25 | file gate |
 | 10314-10427 | C 10314's `#if defined WINDOWSNT && !defined HAVE_DBUS` and the tray block's head: C 10316's `pfnShell_NotifyIconW`, C 10322-10341's `MY_NOTIFYICONDATAW`, C 10343-10345's three size macros, C 10346-10364's five `#ifndef` guards and two `#define`s, C 10366-10371's `enum NI_Severity`, C 10375-10402's `get_dll_version` and C 10408-10427's `utf8_mbslen_lim` - slice 26 | file gate + `windowsnt` + `not (feature = "have_dbus")` |
 | 10429-10633 | C 10429's `last_tray_notification_id`, C 10433-10605's `add_tray_notification` (the four `cbSize` versions, the icon load, the tip/message/title conversions and the `NIM_ADD` call) and C 10612-10633's `delete_tray_notification` - slice 27 | file gate + `windowsnt` + `not (feature = "have_dbus")` |
-| 10635-12488 | **the remainder of the file** (C 10635's two notification DEFUNs onward: the exception/backtrace group, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 10635-10833 | C 10635-10763's `w32-notification-notify`, C 10765-10779's `w32-notification-close` (with the tray block's `#endif` at C 10781) and C 10783-10833's two IME `DEFUN`s - slice 28 | the tray pair: file gate + `windowsnt` + `not (feature = "have_dbus")`; the IME pair: file gate |
+| 10836-12488 | **the remainder of the file** (C 10836's `#ifdef WINDOWSNT` registry section onward: `w32-read-registry`/`w32-write-registry`, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -2974,6 +2975,80 @@ identifiers, `missing: []` (before the fix: the three `NIF_*`).
 - **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no tray icon is added or
   removed and no DLL version is compared; the arm reading is compile-level (42 errors, none from
   this slice), and the *name* reading is the sweep's, not the probe's - this slice measured why.
+
+## Slice 28 (C 10635-10833)
+
+**Scope and the stop.**  The tray block's two public `DEFUN`s - `w32-notification-notify`
+(C 10635-10763) and `w32-notification-close` (C 10765-10779) - with the block's `#endif` (C 10781),
+then C 10783-10818's `w32-get-ime-open-status` and C 10820-10833's `w32-set-ime-open-status`, which
+C 10781's `#endif` puts **outside** the tray block: their gate is the file gate alone.  The stop is
+C 10836's `#ifdef WINDOWSNT`, which opens the registry section (C 10834-10835 blank).
+
+**What the item carries.**  `w32-notification-notify` is C 10700-10708's locals (`0, MANY` per
+C 10637), C 10711's `maybe_load_unicows_dll`, C 10713-10715's argument guard and
+`CHECK_KEYWORD_ARGS`, C 10717's `Flist` and C 10719-10758's five `plist_get` reads - the icon
+through `ENCODE_FILE`/`Fexpand_file_name`, the three strings through
+`code_convert_string_norecord` with C's `1`, and C 10733-10744's severity ladder - then
+C 10761-10762's call and the nil-or-fixnum return.  `w32-notification-close` is C 10775-10776's
+guard around `delete_tray_notification`.  The IME pair is C 10799-10802's selected-frame ternary,
+C 10806-10811's window/context/two calls with the release between them, C 10813's `retval ? Qt :
+Qnil` and C 10829-10831's `unsigned` and `PostThreadMessage (WM_EMACS_IME_STATUS, …)`.
+
+**New surface.**  One in-unit declaration: `plist_get` (`lisp.h` 4280's prototype, whose definition
+is `src/w32.c`'s 16056 - the `decode_live_frame` shape).
+
+### Evidence (slice 28, the final revision: 16,010 Rust lines)
+
+**① The frozen configuration (`build-tu`).**  Two runs (the first text and the one after the
+`MANY`-parameter fix below), both **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  Both runs read **42 previous errors** - the
+standing count (15 `E0428`, 1 `E0530`, 25 `E0609`, plus the one deliberately-failing frame-flag
+probe) - so this slice's 174 lines add no error and no member gap, and **no diagnostic sits at or
+beyond `src/w32fns.rs` 15,791**.  Slice 27's measured blind spot applies: the probe would not have
+reported an unresolved *value* name here, which is why the sweep below ran first.
+
+**③ `extract-abi.py --check`.**  **87 → 83** rows: four `missing subr` rows retire
+(`Fw32_notification_notify`, `Fw32_notification_close`, `Fw32_get_ime_open_status`,
+`Fw32_set_ime_open_status`) and two rows the first reading produced were fixed rather than recorded:
+`DEFUN! Fw32_notification_notify: parameters ['ptrdiff_t', …] but maxargs MANY needs ['isize', …]`
+- the gate wants the *mirror's* spelling of C's `ptrdiff_t` (the `Flist`/`alloc.rs` 3025 shape), so
+the parameter is `isize` - and `subr Fw32_notification_notify does not mention 1, ni_severity`,
+which one `macro-body-notes.tsv` row records (C 10729/10749/10756's `…, 1` is the mirror's `bool`
+third argument, the `w32_set_cursor_color` class; C 10707's `enum NI_Severity` is the port's
+`c_int`).  No `line count drifted` row: 16,010 Rust lines against 12,488 C lines (28.2%), inside the
+file's `w32fns 0.35 total` tolerance row.
+
+**④ The range table and the dead-file gate.**  The `10635-12488` remainder row splits into
+`10635-10833` (this slice) and `10836-12488` (the remainder); `check-dead-file-coverage.py` reads
+**178 range row(s) cover src/w32fns.c (12488 lines; 128 blank line(s) between blocks need no row)**.
+
+**⑤ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 15,791-15,964: 49 capitalized
+identifiers, missing the four `Sw32_*` (`DEFUN!`'s macro-generated statics) and `PORTING` - the
+latter an artifact of the sweep's *naive* comment scanner: the `#endif` note below quotes C's own
+`#endif  /* WINDOWSNT && !HAVE_DBUS */`, whose inner `*/` ends the sweep's comment early, so the
+tail of that note reads as code (the tool's docstring lists "nested block comments" as a known
+limitation; Rust nests block comments, so the text is correct as it stands).
+
+### Deviations (slice 28)
+
+- **`plist_get` is declared in this unit.**  `lisp.h` 4280 declares it and `include/lisp.rs` does not
+  carry that prototype yet, so the unit declares it with C's signature (the `decode_live_frame`
+  shape of slice 22); its definition stays `src/w32.c`'s.
+- **The `MANY` `DEFUN` takes `isize`, not `ptrdiff_t`.**  C 10701's `ptrdiff_t nargs` is the same
+  type and the mirror spells it `isize`; the P-28 gate compares the parameter list against the
+  generated prototype's spelling, and the file's other `MANY` `DEFUN`s (e.g. `Flist`) do the same.
+- **C's `…, 1` third argument to `code_convert_string_norecord` is `true`.**  The mirror declares
+  that parameter `bool` (the `w32_set_cursor_color` row's class), recorded in a notes row.
+- **C's `enum NI_Severity` local is `c_int`** (its members are slice 26's `Ni_*` constants).
+- **The `#endif` note quotes C's line containing `/* … */`.**  Rust's block comments nest, so the
+  text is legal; it makes the name sweep report `PORTING` (documented above).
+- **The IME pair carries the file gate alone.**  C 10781's `#endif` closes
+  `WINDOWSNT && !HAVE_DBUS`, so C 10783+ are outside it, and their items' `#[cfg]` says so.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no notification is shown and
+  no IME state is read or set; the arm reading is compile-level (42 errors, none from this slice),
+  the name reading is the sweep's, and the `plist_get` call is a cross-unit symbol this lane does not
+  link.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

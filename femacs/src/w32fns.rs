@@ -15788,7 +15788,181 @@ unsafe fn delete_tray_notification (f: *mut frame, id: c_int)
   return;
 }
 
-/* C 10635-12488's text is not in the port yet (the file's remainder), but C 10112's
+/// C 10720-10754's `plist_get`: `lisp.h` 4280's prototype (`extern Lisp_Object plist_get
+/// (Lisp_Object plist, Lisp_Object prop);`), which `include/lisp.rs` does not carry yet and whose
+/// definition is `src/w32.c`'s 16056 (`src/w32.rs` 16364 declares the same name for its own unit) -
+/// the `decode_live_frame` shape of slice 22.
+/// C: extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+unsafe extern "C" {
+  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+}
+
+/// C 10635-10763: `w32-notification-notify` - C 10700-10708's locals (`0, MANY` per C 10637),
+/// C 10711's `maybe_load_unicows_dll`, C 10713-10714's argument-count/pointer guard,
+/// C 10715's `CHECK_KEYWORD_ARGS`, C 10717's `Flist` and C 10719-10758's five `plist_get` reads
+/// (the icon through `ENCODE_FILE`/`Fexpand_file_name`, the three strings through
+/// `code_convert_string_norecord` with C's `1`, and C 10733-10744's severity ladder), then
+/// C 10761-10762's `add_tray_notification` call and the nil-or-fixnum return.
+/// C: DEFUN ("w32-notification-notify",
+/// C:        Fw32_notification_notify, Sw32_notification_notify,
+/// C:        0, MANY, 0,
+/// C:        doc: /* Display an MS-Windows tray notification as specified by PARAMS. … */)
+/// C:   (ptrdiff_t nargs, Lisp_Object *args)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+DEFUN! ("w32-notification-notify", Fw32_notification_notify, Sw32_notification_notify,
+	0, MANY, 0,
+	doc: "Display an MS-Windows tray notification as specified by PARAMS.\n\nValue is the integer unique ID of the notification that can be used\nto remove the notification using `w32-notification-close', which see.\nIf the function fails, the return value is nil.\n\nTray notifications, a.k.a. \"taskbar messages\", are messages that\ninform the user about events unrelated to the current user activity,\nsuch as a significant system event, by briefly displaying informative\ntext in a balloon from an icon in the notification area of the taskbar.\n\nParameters in PARAMS are specified as keyword/value pairs.  All the\nparameters are optional, but if no parameters are specified, the\nfunction will do nothing and return nil.\n\nThe following parameters are supported:\n\n:icon ICON       -- Display ICON in the system tray.  If ICON is a string,\n                    it should specify a file name from which to load the\n                    icon; the specified file should be a .ico Windows icon\n                    file.  If ICON is not a string, or if this parameter\n                    is not specified, the standard Emacs icon will be used.\n\n:tip TIP         -- Use TIP as the tooltip for the notification.  If TIP\n                    is a string, this is the text of a tooltip that will\n                    be shown when the mouse pointer hovers over the tray\n                    icon added by the notification.  If TIP is not a\n                    string, or if this parameter is not specified, the\n                    default tooltip text is \"Emacs notification\".  The\n                    tooltip text can be up to 127 characters long (63\n                    on Windows versions before W2K).  Longer strings\n                    will be truncated.\n\n:level LEVEL     -- Notification severity level, one of `info',\n                    `warning', or `error'.  If given, the value\n                    determines the icon displayed to the left of the\n                    notification title, but only if the `:title'\n                    parameter (see below) is also specified and is a\n                    string.\n\n:title TITLE     -- The title of the notification.  If TITLE is a string,\n                    it is displayed in a larger font immediately above\n                    the body text.  The title text can be up to 63\n                    characters long; longer text will be truncated.\n\n:body BODY       -- The body of the notification.  If BODY is a string,\n                    it specifies the text of the notification message.\n                    Use embedded newlines to control how the text is\n                    broken into lines.  The body text can be up to 255\n                    characters long, and will be truncated if it's longer.\n\nNote that versions of Windows before W2K support only `:icon' and `:tip'.\nYou can pass the other parameters, but they will be ignored on\nthose old systems.\n\nThere can be at most one active notification at any given time per each\nEmacs frame.  An active notification must be removed by calling the\nfunction `w32-notification-close', with the same frame selected as the\none which was selected when the notification was created, before a new\none can be shown for the same frame.  The caller must track which\nnotification was created from which frame, using the returned ID value.\n\nusage: (w32-notification-notify &rest PARAMS)",
+	(nargs: isize, args: *mut Lisp_Object),
+	{
+  let f: *mut frame = SELECTED_FRAME ();
+  let mut arg_plist: Lisp_Object;
+  let mut lres: Lisp_Object;
+  let mut retval: c_int;
+  let mut icon: *mut c_char;
+  let mut tip: *mut c_char;
+  let mut title: *mut c_char;
+  let mut msg: *mut c_char;
+  let mut severity: c_int;
+  let mut timeout: c_uint = 0;
+
+  /* Required on Windows 9X.  */
+  maybe_load_unicows_dll ();
+
+  if nargs == 0 || pfnShell_NotifyIconW.is_none ()
+    { return Qnil (); }
+  CHECK_KEYWORD_ARGS (nargs);
+
+  arg_plist = Flist (nargs, args);
+
+  /* Icon.  */
+  lres = plist_get (arg_plist, QCicon ());
+  if STRINGP (lres)
+    { icon = SSDATA (ENCODE_FILE (Fexpand_file_name (lres, Qnil ()))) as *mut c_char; }
+  else
+    { icon = c"".as_ptr () as *mut c_char; }
+
+  /* Tip.  */
+  lres = plist_get (arg_plist, QCtip ());
+  if STRINGP (lres)
+    { tip = SSDATA (code_convert_string_norecord (lres, Qutf_8 (), true)) as *mut c_char; }
+  else
+    { tip = c"Emacs notification".as_ptr () as *mut c_char; }
+
+  /* Severity.  */
+  lres = plist_get (arg_plist, QClevel ());
+  if NILP (lres)
+    { severity = Ni_None; }
+  else if EQ (lres, Qinfo ())
+    { severity = Ni_Info; }
+  else if EQ (lres, Qwarning ())
+    { severity = Ni_Warn; }
+  else if EQ (lres, Qerror ())
+    { severity = Ni_Err; }
+  else
+    { severity = Ni_Info; }
+
+  /* Title.  */
+  lres = plist_get (arg_plist, QCtitle ());
+  if STRINGP (lres)
+    { title = SSDATA (code_convert_string_norecord (lres, Qutf_8 (), true)) as *mut c_char; }
+  else
+    { title = c"".as_ptr () as *mut c_char; }
+
+  /* Notification body text.  */
+  lres = plist_get (arg_plist, QCbody ());
+  if STRINGP (lres)
+    { msg = SSDATA (code_convert_string_norecord (lres, Qutf_8 (), true)) as *mut c_char; }
+  else
+    { msg = c"".as_ptr () as *mut c_char; }
+
+  /* Do it!  */
+  retval = add_tray_notification (f, icon, tip, severity, timeout, title, msg);
+  return if retval < 0 { Qnil () } else { make_fixnum (retval as EMACS_INT) };
+});
+
+/// C 10765-10779: `w32-notification-close` - C 10773's selected frame and C 10775-10776's
+/// `FIXNUMP`/pointer test around C 10776's `delete_tray_notification` call.
+/// C: DEFUN ("w32-notification-close",
+/// C:        Fw32_notification_close, Sw32_notification_close,
+/// C:        1, 1, 0,
+/// C:        doc: /* Remove the MS-Windows tray notification specified by its ID. … */)
+/// C:   (Lisp_Object id)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
+DEFUN! ("w32-notification-close", Fw32_notification_close, Sw32_notification_close,
+	1, 1, 0,
+	doc: "Remove the MS-Windows tray notification specified by its ID.\nThe frame which was selected when the notification was created must\nbe selected when removing the notification.",
+	(id: Lisp_Object),
+	{
+  let f: *mut frame = SELECTED_FRAME ();
+
+  if FIXNUMP (id) && pfnShell_NotifyIconW.is_some ()
+    { delete_tray_notification (f, XFIXNUM (id) as c_int); }
+
+  return Qnil ();
+});
+
+/* C 10781's `#endif  /* WINDOWSNT && !HAVE_DBUS */` closes the tray block; C's line itself has no
+   counterpart beyond the end of the three-condition items above (PORTING.md 0.1-4).  */
+
+/// C 10783-10818: `w32-get-ime-open-status` - C 10799-10802's selected-frame test (C's
+/// `FRAMEP (selected_frame) && FRAME_LIVE_P (XFRAME (selected_frame))` ternary with `NULL`),
+/// C 10806-10807's window and IME context, C 10810-10811's two pointer calls, C 10813's
+/// `retval ? Qt : Qnil` and C 10817's fall-through return.  This item is **outside** the tray
+/// block's `#ifdef` (C 10781 closed it): its gate is the file gate alone.
+/// C: DEFUN ("w32-get-ime-open-status",
+/// C:        Fw32_get_ime_open_status, Sw32_get_ime_open_status,
+/// C:        0, 0, 0,
+/// C:        doc: /* Return non-nil if IME is active, otherwise return nil. … */)
+/// C:   (void)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-get-ime-open-status", Fw32_get_ime_open_status, Sw32_get_ime_open_status,
+	0, 0, 0,
+	doc: "Return non-nil if IME is active, otherwise return nil.\n\nIME, the MS-Windows Input Method Editor, can be active or inactive.\nThis function returns non-nil if the IME is active, otherwise nil.\n\nCaveat: on Windows 11 and later, this function might return non-nil\neven when IME is not active, or nil when it's active.  This is due to\n\"new\" TSF-based IME which have known compatibility issues with\nIME-related APIs which Emacs uses.  A workaround is to switch to the\nlegacy IME mode, a.k.a. the \"previous version of Microsoft IME\", in\nthe IME Compatibility settings.",
+	(),
+	{
+  let sf: *mut frame
+    = if FRAMEP (selected_frame) && FRAME_LIVE_P (XFRAME (selected_frame))
+      { XFRAME (selected_frame) }
+      else { core::ptr::null_mut () };
+
+  if ! sf.is_null ()
+    {
+      let current_window: HWND = FRAME_W32_WINDOW! (sf);
+      let context: HIMC = (get_ime_context_fn.unwrap ()) (current_window);
+      if ! context.is_null ()
+	{
+	  let retval: BOOL = (get_ime_open_status_fn.unwrap ()) (context);
+	  (release_ime_context_fn.unwrap ()) (current_window, context);
+
+	  return if retval != 0 { Qt () } else { Qnil () };
+	}
+    }
+
+  return Qnil ();
+});
+
+/// C 10820-10833: `w32-set-ime-open-status` - C 10829's `unsigned` from C's nil test and
+/// C 10831's `PostThreadMessage (dwWindowsThreadId, WM_EMACS_IME_STATUS, …)`.
+/// C: DEFUN ("w32-set-ime-open-status",
+/// C:        Fw32_set_ime_open_status, Sw32_set_ime_open_status,
+/// C:        1, 1, 0,
+/// C:        doc: /* Open or close the IME according to STATUS. … */)
+/// C:   (Lisp_Object status)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-set-ime-open-status", Fw32_set_ime_open_status, Sw32_set_ime_open_status,
+	1, 1, 0,
+	doc: "Open or close the IME according to STATUS.\n\nThis function activates the IME, the MS-Windows Input Method Editor,\nif STATUS is non-nil, otherwise it deactivates the IME.",
+	(status: Lisp_Object),
+	{
+  let ime_status: c_uint = if NILP (status) { 0 } else { 1 };
+
+  PostThreadMessage (dwWindowsThreadId, WM_EMACS_IME_STATUS as UINT,
+		     ime_status as WPARAM, 0);
+  return Qnil ();
+});
+
+/* C 10836-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C
