@@ -459,3 +459,25 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the eighth slice's text**
 under arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and
 the pgtk arm's out-of-tree probe reads 10 `^error` matches with none of them this slice's.
+
+### status 4.339 (the gtkutil ninth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_update_menubar` (C 3653-3830) is the round's consumer: this mirror gains
+**`gtk_menu_shell_insert`** (gtk/gtkmenushell.h - C 3673/3794/3814's three inserts),
+**`gtk_label_set_text`** (gtk/gtklabel.h - C 3763's relabel, the second `gtk_label_*` accessor this
+tree needs after status 4.338's `gtk_label_get_label`) and **`g_object_notify`**.  The first two are
+fresh names and are `UNVERIFIED`; `g_object_notify` is GLib's, so it quotes `gobject.h` 499-501 and
+is the round's *verified* entry - GLib is on this machine.
+
+The function's other 28 call sites needed nothing new: `gtk_container_remove`,
+`gtk_container_get_children`, `g_object_ref`, `g_object_unref`, `g_list_free`,
+`gtk_menu_item_set_submenu`, `gtk_widget_destroy`, `gtk_menu_item_new_with_label` (the unit's) and
+the `GTK_MENU_SHELL`/`GTK_MENU_ITEM`/`GTK_LABEL`/`GTK_CONTAINER`/`GTK_WIDGET` casts were all
+already here, which is what the round's zero in-slice arm anchors record.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the ninth slice's text** under
+arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and the
+pgtk arm's out-of-tree probe reads 10 `^error` matches with none of them this slice's.

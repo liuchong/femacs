@@ -4948,3 +4948,231 @@ unsafe fn xg_destroy_widgets (list: *mut GList)
       iter = g_list_next! (iter);                                       // C 3632 (the `for` step)
     }
 }
+
+/* C 3641-3651's comment above `xg_update_menubar`, carried as C's own text.  */
+/* C: /* Update the top level names in MENUBAR (i.e. not submenus).
+   C:    F is the frame the menu bar belongs to.
+   C:    *LIST is a list with the current menu bar names (menu item widgets).
+   C:    ITER is the item within *LIST that shall be updated.
+   C:    POS is the numerical position, starting at 0, of ITER in *LIST.
+   C:    VAL describes what the menu bar shall look like after the update.
+   C:    SELECT_CB is the callback to use when a menu item is selected.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.
+   C:    CL_DATA points to the callback data to be used for this menu bar.
+
+   C:    This function calls itself to walk through the menu bar names.  */  */
+
+/// C 3653-3830: `static void xg_update_menubar (GtkWidget *menubar, struct frame *f, GList **list,
+/// GList *iter, int pos, widget_value *val, GCallback select_cb, GCallback deactivate_cb,
+/// GCallback highlight_cb, xg_menu_cb_data *cl_data)` - `static` and recursive (C 3828 calls
+/// itself), so a plain `unsafe fn`; C writes `iter`, `pos` and `val` (C 3677/3678/3694-3696 and
+/// the four branches below), which is the port's `mut`.  C 3665/3667/3680/3691's four tests are
+/// the port's null checks and the slice-8 `xg_item_label_same_p`; C 3674's `""` is the port's
+/// one-element `c""`; C 3684's `0, 1, menubar, cl_data, 0` is `false, true, menubar, cl_data` and
+/// the null `name`; C 3702/3703's two `bool` locals are the port's `bool` from C's `0`;
+/// C 3708-3710 and C 3718's `for` heads are the port's `while` with C's update step at the
+/// loop's end (PORTING.md 2.2); C 3737/3799/3820's `while (nr-- > 0)` keeps C's post-decrement
+/// inside the condition, because that decrement happens on the test that fails too (the
+/// `src/xfns.rs` 4526-4528 shape); C 3730/3812's `g_object_ref` and C 3816's `g_object_unref`
+/// take C's `GObject *` through the port's `gpointer`; and C 3736/3798/3819's chained
+/// `*list = iter = …` is two stores of one call, which the port writes as the store and a read
+/// of it back, since Rust has no chained assignment.
+/// C: static void
+/// C: xg_update_menubar (GtkWidget *menubar,
+/// C: 		   struct frame *f,
+/// C: 		   GList **list,
+/// C: 		   GList *iter,
+/// C: 		   int pos,
+/// C: 		   widget_value *val,
+/// C: 		   GCallback select_cb,
+/// C: 		   GCallback deactivate_cb,
+/// C: 		   GCallback highlight_cb,
+/// C: 		   xg_menu_cb_data *cl_data)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_update_menubar (menubar: *mut GtkWidget, f: *mut frame, list: *mut *mut GList,
+			     mut iter: *mut GList, mut pos: c_int,
+			     mut val: *mut widget_value, select_cb: GCallback,
+			     deactivate_cb: GCallback, highlight_cb: GCallback,
+			     cl_data: *mut xg_menu_cb_data)
+{
+  if iter.is_null () && val.is_null ()                                  // C 3665
+    { return; }                                                         // C 3666
+  else if ! iter.is_null () && val.is_null ()                           // C 3667
+    {
+      /* Item(s) have been removed.  Remove all remaining items.  */     // C 3669
+      xg_destroy_widgets (iter);                                        // C 3670
+
+      /* Add a blank entry so the menubar doesn't collapse to nothing. */   // C 3672
+      gtk_menu_shell_insert (GTK_MENU_SHELL! (menubar),                 // C 3673
+			     gtk_menu_item_new_with_label (c"".as_ptr ()),   // C 3674
+			     0);                                        // C 3675
+      /* All updated.  */                                               // C 3676
+      val = std::ptr::null_mut ();                                      // C 3677
+      iter = std::ptr::null_mut ();                                     // C 3678
+    }
+  else if iter.is_null () && ! val.is_null ()                           // C 3680
+    {
+      /* Item(s) added.  Add all new items in one call.  */             // C 3682
+      create_menus (val, f, select_cb, deactivate_cb, highlight_cb,     // C 3683
+		    false, true, menubar, cl_data, std::ptr::null ());  // C 3684
+
+      /* All updated.  */                                               // C 3686
+      val = std::ptr::null_mut ();                                      // C 3687
+      iter = std::ptr::null_mut ();                                     // C 3688
+    }
+  /* Below this neither iter or val is NULL */                          // C 3690
+  else if xg_item_label_same_p (GTK_MENU_ITEM! ((*iter).data),
+				(*val).name)                            // C 3691
+    {
+      /* This item is still the same, check next item.  */              // C 3693
+      val = (*val).next;                                                // C 3694
+      iter = g_list_next! (iter);                                       // C 3695
+      pos += 1;                                                         // C 3696
+    }
+  else /* This item is changed.  */                                     // C 3698
+    {
+      let witem: *mut GtkMenuItem = GTK_MENU_ITEM! ((*iter).data);      // C 3700
+      let mut witem2: *mut GtkMenuItem = std::ptr::null_mut ();         // C 3701
+      let mut val_in_menubar: bool = false;                             // C 3702
+      let mut iter_in_new_menubar: bool = false;                        // C 3703
+      let mut iter2: *mut GList;                                        // C 3704
+      let mut cur: *mut widget_value;                                   // C 3705
+
+      /* See if the changed entry (val) is present later in the menu bar  */   // C 3707
+      iter2 = iter;                                                     // C 3708
+      while ! iter2.is_null () && ! val_in_menubar                      // C 3709
+	{
+	  witem2 = GTK_MENU_ITEM! ((*iter2).data);                      // C 3712
+	  val_in_menubar = xg_item_label_same_p (witem2, (*val).name);   // C 3713
+	  iter2 = g_list_next! (iter2);                                 // C 3710 (the `for` step)
+	}
+
+      /* See if the current entry (iter) is present later in the
+	 specification for the new menu bar.  */                        // C 3716-3717
+      cur = val;                                                        // C 3718
+      while ! cur.is_null () && ! iter_in_new_menubar                   // C 3718
+	{
+	  iter_in_new_menubar = xg_item_label_same_p (witem, (*cur).name);   // C 3719
+	  cur = (*cur).next;                                            // C 3718 (the `for` step)
+	}
+
+      if val_in_menubar && ! iter_in_new_menubar                        // C 3721
+	{
+	  let mut nr: c_int = pos;                                      // C 3723
+
+	  /*  This corresponds to:
+	        Current:  A B C
+	        New:      A C
+	      Remove B.  */                                             // C 3725-3728
+
+	  g_object_ref (G_OBJECT! (witem) as gpointer);                 // C 3730
+	  gtk_container_remove (GTK_CONTAINER! (menubar), GTK_WIDGET! (witem));   // C 3731
+	  gtk_widget_destroy (GTK_WIDGET! (witem));                     // C 3732
+
+	  /* Must get new list since the old changed.  */               // C 3734
+	  g_list_free (*list);                                          // C 3735
+	  *list = gtk_container_get_children (GTK_CONTAINER! (menubar));   // C 3736
+	  iter = *list;
+	  while { nr -= 1; nr + 1 > 0 }                                 // C 3737
+	    { iter = g_list_next! (iter); }
+	}
+      else if ! val_in_menubar && ! iter_in_new_menubar                 // C 3739
+	{
+	  /*  This corresponds to:
+	        Current:  A B C
+	        New:      A X C
+	      Rename B to X.  This might seem to be a strange thing to do,
+	      since if there is a menu under B it will be totally wrong for X.
+	      But consider editing a C file.  Then there is a C-mode menu
+	      (corresponds to B above).
+	      If then doing C-x C-f the minibuf menu (X above) replaces the
+	      C-mode menu.  When returning from the minibuffer, we get
+	      back the C-mode menu.  Thus we do:
+	        Rename B to X (C-mode to minibuf menu)
+	        Rename X to B (minibuf to C-mode menu).
+	      If the X menu hasn't been invoked, the menu under B
+	      is up to date when leaving the minibuffer.  */            // C 3741-3754
+	  let wlabel: *mut GtkLabel = GTK_LABEL! (XG_BIN_CHILD! (witem));   // C 3755
+	  let utf8_label: *mut c_char = get_utf8_string ((*val).name);  // C 3756
+
+	  /* GTK menu items don't notice when their labels have been
+	     changed from underneath them, so we have to explicitly
+	     use g_object_notify to tell listeners (e.g., a GMenuModel
+	     bridge that might be loaded) that the item's label has
+	     changed.  */                                              // C 3758-3762
+	  gtk_label_set_text (wlabel, utf8_label);                      // C 3763
+	  g_object_notify (G_OBJECT! (witem), c"label".as_ptr ());      // C 3764
+	  if ! utf8_label.is_null ()
+	    { g_free (utf8_label as gpointer); }                        // C 3765
+	  iter = g_list_next! (iter);                                   // C 3766
+	  val = (*val).next;                                            // C 3767
+	  pos += 1;                                                     // C 3768
+	}
+      else if ! val_in_menubar && iter_in_new_menubar                   // C 3770
+	{
+	  /*  This corresponds to:
+	        Current:  A B C
+	        New:      A X B C
+	      Insert X.  */                                             // C 3772-3775
+
+	  let mut nr: c_int = pos;                                      // C 3777
+	  let mut group: *mut GSList = std::ptr::null_mut ();           // C 3778
+	  let w: *mut GtkWidget
+	    = xg_create_one_menuitem (val,                              // C 3779
+				      f,
+				      select_cb,
+				      highlight_cb,
+				      cl_data,
+				      (&raw mut group));                // C 3784
+
+	  /* Create a possibly empty submenu for menu bar items, since some
+	     themes don't highlight items correctly without it. */     // C 3786-3787
+	  let submenu: *mut GtkWidget
+	    = create_menus (std::ptr::null_mut (), f,                   // C 3788
+			    select_cb, deactivate_cb,
+			    highlight_cb,
+			    false, false, std::ptr::null_mut (),
+			    cl_data, std::ptr::null ());            // C 3791
+
+	  gtk_widget_set_name (w, MENU_ITEM_NAME.as_ptr ());            // C 3793
+	  gtk_menu_shell_insert (GTK_MENU_SHELL! (menubar), w, pos);    // C 3794
+	  gtk_menu_item_set_submenu (GTK_MENU_ITEM! (w), submenu);      // C 3795
+
+	  g_list_free (*list);                                          // C 3797
+	  *list = gtk_container_get_children (GTK_CONTAINER! (menubar));   // C 3798
+	  iter = *list;
+	  while { nr -= 1; nr + 1 > 0 }                                 // C 3799
+	    { iter = g_list_next! (iter); }
+	  iter = g_list_next! (iter);                                   // C 3800
+	  val = (*val).next;                                            // C 3801
+	  pos += 1;                                                     // C 3802
+	}
+      else /* if (val_in_menubar && iter_in_new_menubar) */             // C 3804
+	{
+	  let mut nr: c_int = pos;                                      // C 3806
+	  /*  This corresponds to:
+	        Current:  A B C
+	        New:      A C B
+	      Move C before B  */                                       // C 3807-3810
+
+	  g_object_ref (G_OBJECT! (witem2) as gpointer);                // C 3812
+	  gtk_container_remove (GTK_CONTAINER! (menubar), GTK_WIDGET! (witem2));   // C 3813
+	  gtk_menu_shell_insert (GTK_MENU_SHELL! (menubar),             // C 3814
+				 GTK_WIDGET! (witem2), pos);            // C 3815
+	  g_object_unref (G_OBJECT! (witem2) as gpointer);              // C 3816
+
+	  g_list_free (*list);                                          // C 3818
+	  *list = gtk_container_get_children (GTK_CONTAINER! (menubar));   // C 3819
+	  iter = *list;
+	  while { nr -= 1; nr + 1 > 0 }                                 // C 3820
+	    { iter = g_list_next! (iter); }
+	  if ! iter.is_null () { iter = g_list_next! (iter); }          // C 3821
+	  val = (*val).next;                                            // C 3822
+	  pos += 1;                                                     // C 3823
+	}
+    }
+
+  /* Update the rest of the menu bar.  */                               // C 3827
+  xg_update_menubar (menubar, f, list, iter, pos, val,                  // C 3828
+		     select_cb, deactivate_cb, highlight_cb, cl_data);  // C 3829
+}

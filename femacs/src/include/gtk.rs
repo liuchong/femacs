@@ -2708,3 +2708,18 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn gtk_label_get_label (label: *mut GtkLabel) -> *const gchar;
 }
+
+/// C: gtk/gtkmenushell.h: `void gtk_menu_shell_insert (GtkMenuShell *menu_shell, GtkWidget
+/// *child, gint position);` - C 3673/3794/3814's three inserts in `xg_update_menubar` (the
+/// blank entry, the new item and the moved one) - and gtk/gtklabel.h: `void gtk_label_set_text
+/// (GtkLabel *label, const gchar *str);` - C 3763's relabel.  Both are fresh names (no other
+/// unit declares either) and both are **UNVERIFIED** (no GTK tree on this machine).
+/// C: gobject.h 499-501: `void        g_object_notify (GObject *object, const char
+/// *property_name);` - C 3764's notification.  **VERIFIED**: GLib is on this machine
+/// (`/opt/homebrew/include/glib-2.0/gobject/gobject.h`), so this one quotes its line.
+unsafe extern "C" {
+  pub fn gtk_menu_shell_insert (menu_shell: *mut GtkMenuShell, child: *mut GtkWidget,
+				position: gint);
+  pub fn gtk_label_set_text (label: *mut GtkLabel, str_: *const gchar);
+  pub fn g_object_notify (object: *mut GObject, property_name: *const gchar);
+}
