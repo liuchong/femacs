@@ -271,7 +271,7 @@ pub type LPDWORD = *mut DWORD;
 pub type SIZE_T = usize;
 /* `DWORD_PTR` belongs to `include/w32common.rs` 42 (`w32common.h` 26-37 names it), which is in
    this unit's graph; the SDK section does not repeat it.  The only occurrences in this slice's
-   text are inside C 66-69's macro and C 74-75's dropped prototype, both carried as text.  */
+   text are inside C 66-69's macro (written out in slice 13) and C 74-75's dropped prototype.  */
 #[cfg (feature = "windowsnt")]
 pub type HANDLE = *mut c_void;
 #[cfg (feature = "windowsnt")]
@@ -494,19 +494,22 @@ include!("include/w32term.rs");                  // C 63: `#include "w32term.h"`
 #[cfg (feature = "windowsnt")]
 include!("include/coding.rs");                   // C 64: `#include "coding.h"`
 
-/* C 66-69: `#define RVA_TO_PTR(var,section,filedata) …`, the file's own macro.  Its body is
-   three field reads on `<windows.h>`'s `IMAGE_SECTION_HEADER` and on `struct file_data`, and the
-   port has no mirror for the SDK record: `include/w32heap.rs` 63-76 declares `find_section` and
-   `rva_to_section` with the record as `*mut c_void` (P-72 ③/P-55), so a Rust body cannot be
-   written without inventing that record's layout.  The macro is carried as C's own text at its C
-   position, and its two users (C 2635, 2644) are past this slice; the ledger records the
-   deviation and the integrator owes either a measured record or an `excluded-macros.txt` row.
-
-#define RVA_TO_PTR(var,section,filedata) \
-  ((void *)((section)->PointerToRawData					\
-	    + ((DWORD_PTR)(var) - (section)->VirtualAddress)		\
-	    + (filedata).file_base))
-*/
+/* C 66-69: `#define RVA_TO_PTR(var,section,filedata) …`, the file's own macro.  Slice 1 carried its
+   text because the port had no `IMAGE_SECTION_HEADER` (`include/w32heap.rs` 63-76 declares
+   `rva_to_section` with the record as `*mut c_void`, P-72 ③/P-55); slice 12 spelled the record, so
+   the macro is written out here, at its C position, and its two users (C 2635, 2644) call it.
+   The three operands are C's own: two field reads and `file_data`'s `file_base`, whose pointer
+   addition is the `as usize` arithmetic below.  */
+/// C: #define RVA_TO_PTR(var,section,filedata) ((void *) ((section)->PointerToRawData
+/// C:   + ((DWORD_PTR) (var) - (section)->VirtualAddress) + (filedata).file_base))
+#[cfg (feature = "windowsnt")]
+macro_rules! RVA_TO_PTR {
+  ($var:expr, $section:expr, $filedata:expr) => {
+    (((*$section).PointerToRawData as usize
+      + (($var) as DWORD_PTR - (*$section).VirtualAddress as DWORD_PTR)
+      + ($filedata).file_base as usize) as *mut c_void)
+  };
+}
 
 /* C 71-72: the two "the entry point has been resolved" flags.  `w32.c` owns the definitions, and
    this file's `w32_compare_strings` (C 4657+) and `sys_kill` (C 3530+) are their readers, so C
@@ -3924,6 +3927,8 @@ pub struct IMAGE_SECTION_HEADER
 pub const IMAGE_SIZEOF_SHORT_NAME: c_int = 8;
 #[cfg (feature = "windowsnt")]
 pub type PIMAGE_SECTION_HEADER = *mut IMAGE_SECTION_HEADER;
+#[cfg (feature = "windowsnt")]
+pub type PIMAGE_NT_HEADERS = *mut IMAGE_NT_HEADERS;
 /// C: #define IMAGE_FIRST_SECTION(ntheader) ((PIMAGE_SECTION_HEADER) ((ULONG_PTR) (ntheader)
 /// C:   + FIELD_OFFSET (IMAGE_NT_HEADERS, OptionalHeader)
 /// C:   + ((ntheader))->FileHeader.SizeOfOptionalHeader))
@@ -4056,3 +4061,298 @@ pub unsafe extern "C" fn close_file_data (p_file: *mut file_data)
 # define IMAGE_OPTIONAL_HEADER32 IMAGE_OPTIONAL_HEADER
 #endif
 */
+
+/* C 50's `<windows.h>`/`<winbase.h>`/`<winnt.h>`: the DOS/NT header surface C 2530-2674 reads - the
+   two records, the four signatures, the two subsystem/directory constants, the SDK's `LOWORD`, and
+   the 64-bit pair C 2610's `#ifdef IMAGE_NT_OPTIONAL_HDR64_MAGIC` arm needs (which follows the
+   file's `__MINGW64__` reading: a guard the *header* defines becomes a feature named after it, and
+   the arm's text is carried under it - P-51; a modern `<winnt.h>` defines the macro, so a build
+   that sets the feature gets the arm).  No mirror in this unit's graph carries any of them
+   (UNVERIFIED, P-88 ①).  */
+/// C: #define IMAGE_DOS_SIGNATURE 0x5A4D
+/// C: #define IMAGE_NT_SIGNATURE 0x00004550
+/// C: #define IMAGE_OS2_SIGNATURE 0x454E
+/// C: #define IMAGE_NT_OPTIONAL_HDR64_MAGIC 0x20b
+/// C: #define IMAGE_SUBSYSTEM_WINDOWS_GUI 2
+/// C: #define IMAGE_DIRECTORY_ENTRY_IMPORT 1
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_DOS_SIGNATURE: WORD = 0x5A4D;
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_NT_SIGNATURE: DWORD = 0x00004550;
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_OS2_SIGNATURE: WORD = 0x454E;
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_SUBSYSTEM_WINDOWS_GUI: WORD = 2;
+#[cfg (feature = "windowsnt")]
+pub const IMAGE_DIRECTORY_ENTRY_IMPORT: c_int = 1;
+/// C: typedef struct _IMAGE_DOS_HEADER { WORD e_magic; WORD e_cblp; WORD e_cp; WORD e_crlc;
+/// C:   WORD e_cparhdr; WORD e_minalloc; WORD e_maxalloc; WORD e_ss; WORD e_sp; WORD e_csum;
+/// C:   WORD e_ip; WORD e_cs; WORD e_lfarlc; WORD e_ovno; WORD e_res [4]; WORD e_oemid;
+/// C:   WORD e_oeminfo; WORD e_res2 [10]; LONG e_lfanew; } IMAGE_DOS_HEADER;   [`<winnt.h>`; 64
+/// bytes]
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IMAGE_DOS_HEADER
+{
+  pub e_magic: WORD,
+  pub e_cblp: WORD,
+  pub e_cp: WORD,
+  pub e_crlc: WORD,
+  pub e_cparhdr: WORD,
+  pub e_minalloc: WORD,
+  pub e_maxalloc: WORD,
+  pub e_ss: WORD,
+  pub e_sp: WORD,
+  pub e_csum: WORD,
+  pub e_ip: WORD,
+  pub e_cs: WORD,
+  pub e_lfarlc: WORD,
+  pub e_ovno: WORD,
+  pub e_res: [WORD; 4],
+  pub e_oemid: WORD,
+  pub e_oeminfo: WORD,
+  pub e_res2: [WORD; 10],
+  pub e_lfanew: LONG,
+}
+#[cfg (feature = "windowsnt")]
+pub type PIMAGE_DOS_HEADER = *mut IMAGE_DOS_HEADER;
+/// C: typedef struct _IMAGE_IMPORT_DESCRIPTOR { union { DWORD Characteristics;
+/// C:   DWORD OriginalFirstThunk; }; DWORD TimeDateStamp; DWORD ForwarderChain; DWORD Name;
+/// C:   DWORD FirstThunk; } IMAGE_IMPORT_DESCRIPTOR;   [`<winnt.h>`; 20 bytes.  C's first member is
+/// an anonymous union, named here after its container (P-67).]
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub union IMAGE_IMPORT_DESCRIPTOR_u
+{
+  pub Characteristics: DWORD,
+  pub OriginalFirstThunk: DWORD,
+}
+#[cfg (feature = "windowsnt")]
+#[repr(C)]
+pub struct IMAGE_IMPORT_DESCRIPTOR
+{
+  pub u: IMAGE_IMPORT_DESCRIPTOR_u,
+  pub TimeDateStamp: DWORD,
+  pub ForwarderChain: DWORD,
+  pub Name: DWORD,
+  pub FirstThunk: DWORD,
+}
+/// C: #define LOWORD(l) ((WORD) (((DWORD_PTR) (l)) & 0xffff))
+#[cfg (feature = "windowsnt")]
+macro_rules! LOWORD {
+  ($l:expr) => { (($l) as DWORD_PTR & 0xffff) as WORD };
+}
+#[cfg (feature = "image_nt_optional_hdr64_magic")]
+pub const IMAGE_NT_OPTIONAL_HDR64_MAGIC: WORD = 0x20b;
+/// C: typedef struct _IMAGE_OPTIONAL_HEADER64 { WORD Magic; BYTE MajorLinkerVersion;
+/// C:   BYTE MinorLinkerVersion; DWORD SizeOfCode; DWORD SizeOfInitializedData;
+/// C:   DWORD SizeOfUninitializedData; DWORD AddressOfEntryPoint; DWORD BaseOfCode;
+/// C:   ULONGLONG ImageBase; DWORD SectionAlignment; DWORD FileAlignment;
+/// C:   WORD MajorOperatingSystemVersion; WORD MinorOperatingSystemVersion; WORD MajorImageVersion;
+/// C:   WORD MinorImageVersion; WORD MajorSubsystemVersion; WORD MinorSubsystemVersion;
+/// C:   DWORD Win32VersionValue; DWORD SizeOfImage; DWORD SizeOfHeaders; DWORD CheckSum;
+/// C:   WORD Subsystem; WORD DllCharacteristics; ULONGLONG SizeOfStackReserve;
+/// C:   ULONGLONG SizeOfStackCommit; ULONGLONG SizeOfHeapReserve; ULONGLONG SizeOfHeapCommit;
+/// C:   DWORD LoaderFlags; DWORD NumberOfRvaAndSizes;
+/// C:   IMAGE_DATA_DIRECTORY DataDirectory [IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+/// C:   } IMAGE_OPTIONAL_HEADER64;   [`<winnt.h>`; 240 bytes]
+#[cfg (feature = "image_nt_optional_hdr64_magic")]
+#[repr(C)]
+pub struct IMAGE_OPTIONAL_HEADER64
+{
+  pub Magic: WORD,
+  pub MajorLinkerVersion: BYTE,
+  pub MinorLinkerVersion: BYTE,
+  pub SizeOfCode: DWORD,
+  pub SizeOfInitializedData: DWORD,
+  pub SizeOfUninitializedData: DWORD,
+  pub AddressOfEntryPoint: DWORD,
+  pub BaseOfCode: DWORD,
+  pub ImageBase: ULONGLONG,
+  pub SectionAlignment: DWORD,
+  pub FileAlignment: DWORD,
+  pub MajorOperatingSystemVersion: WORD,
+  pub MinorOperatingSystemVersion: WORD,
+  pub MajorImageVersion: WORD,
+  pub MinorImageVersion: WORD,
+  pub MajorSubsystemVersion: WORD,
+  pub MinorSubsystemVersion: WORD,
+  pub Win32VersionValue: DWORD,
+  pub SizeOfImage: DWORD,
+  pub SizeOfHeaders: DWORD,
+  pub CheckSum: DWORD,
+  pub Subsystem: WORD,
+  pub DllCharacteristics: WORD,
+  pub SizeOfStackReserve: ULONGLONG,
+  pub SizeOfStackCommit: ULONGLONG,
+  pub SizeOfHeapReserve: ULONGLONG,
+  pub SizeOfHeapCommit: ULONGLONG,
+  pub LoaderFlags: DWORD,
+  pub NumberOfRvaAndSizes: DWORD,
+  pub DataDirectory: [IMAGE_DATA_DIRECTORY; IMAGE_NUMBEROF_DIRECTORY_ENTRIES as usize],
+}
+
+/* Implementation note: This function works with file names encoded in
+   the current ANSI codepage.  */                             // C 2530-2531
+/// C 2532-2674: `static int w32_executable_type (char * filename, int * is_dos_app, int
+/// * is_cygnus_app, int * is_msys_app, int * is_gui_app)` - C 2543-2547's four defaults, C
+/// 2549-2550's `open_input_file` guard, C 2552-2570's extension test (`.com`/`.bat`/`.cmd` and the
+/// `COMSPEC` recursion), C 2571-2669's DOS/NT header walk (C 2578-2585's two records, C 2587-2596's
+/// two "it is a DOS program" answers, C 2597-2607's 32-bit optional-header read, C 2610-2619's
+/// `IMAGE_NT_OPTIONAL_HDR64_MAGIC` arm, C 2620-2667's import-directory walk with `RVA_TO_PTR` and
+/// the two DLL-name tests) and C 2671-2673's `unwind` tail.  C's `goto unwind` is forward, into
+/// that tail, so it is the port's `break 'unwind` out of a labeled block (Deviations 48's device).
+/// C: static int
+/// C: w32_executable_type (char * filename,
+/// C:                      int * is_dos_app,
+/// C:                      int * is_cygnus_app,
+/// C:                      int * is_msys_app,
+/// C:                      int * is_gui_app)
+#[cfg (feature = "windowsnt")]
+unsafe fn w32_executable_type (filename: *mut c_char, is_dos_app: *mut c_int,
+                               is_cygnus_app: *mut c_int, is_msys_app: *mut c_int,
+                               is_gui_app: *mut c_int) -> c_int
+{
+  let mut executable: file_data = core::mem::zeroed ();        // C 2539
+  let mut p: *mut c_char;                                      // C 2540
+  let mut retval: c_int = 0;                                   // C 2541
+
+  /* Default values in case we can't tell for sure.  */
+  *is_dos_app = FALSE;                                         // C 2544
+  *is_cygnus_app = FALSE;                                      // C 2545
+  *is_msys_app = FALSE;                                        // C 2546
+  *is_gui_app = FALSE;                                         // C 2547
+
+  if open_input_file (&raw mut executable, filename) == 0      // C 2549
+    { return -1; }                                             // C 2550
+
+  p = strrchr (filename, b'.' as c_int);                       // C 2552
+
+  /* We can only identify DOS .com programs from the extension. */
+  if !p.is_null () && xstrcasecmp (p, c".com".as_ptr ()) == 0  // C 2555
+    { *is_dos_app = TRUE; }                                    // C 2556
+  else if !p.is_null () && (xstrcasecmp (p, c".bat".as_ptr ()) == 0   // C 2557
+                            || xstrcasecmp (p, c".cmd".as_ptr ()) == 0)   // C 2558
+    {
+      /* A DOS shell script - it appears that CreateProcess is happy to
+	 accept this (somewhat surprisingly); presumably it looks at
+	 COMSPEC to determine what executable to actually invoke.
+	 Therefore, we have to do the same here as well. */
+      /* Actually, I think it uses the program association for that
+	 extension, which is defined in the registry.  */
+      p = egetenv (c"COMSPEC".as_ptr ());                      // C 2566
+      if !p.is_null ()                                         // C 2567
+        {
+          retval = w32_executable_type (p, is_dos_app, is_cygnus_app, is_msys_app,
+                                        is_gui_app);           // C 2568-2569
+        }
+    }
+  else
+    {
+      /* Look for DOS .exe signature - if found, we must also check that
+	 it isn't really a 16- or 32-bit Windows exe, since both formats
+	 start with a DOS program stub.  Note that 16-bit Windows
+	 executables use the OS/2 1.x format. */
+
+      let mut dos_header: *mut IMAGE_DOS_HEADER;                // C 2578
+      let mut nt_header: *mut IMAGE_NT_HEADERS;                 // C 2579
+
+      'unwind: {
+        dos_header = executable.file_base as PIMAGE_DOS_HEADER;   // C 2581
+        if (*dos_header).e_magic != IMAGE_DOS_SIGNATURE         // C 2582
+          { break 'unwind; }                                    // C 2583 (C's `goto unwind`)
+
+        nt_header = (dos_header as *mut u8).add ((*dos_header).e_lfanew as usize)
+          as PIMAGE_NT_HEADERS;                                 // C 2585
+
+        if nt_header as *mut c_char
+          > (dos_header as *mut c_char).add (executable.size as usize)   // C 2587
+          {
+            /* Some dos headers (pkunzip) have bogus e_lfanew fields.  */
+            *is_dos_app = TRUE;                                 // C 2590
+          }
+        else if (*nt_header).Signature != IMAGE_NT_SIGNATURE    // C 2592
+                 && LOWORD! ((*nt_header).Signature) != IMAGE_OS2_SIGNATURE   // C 2593
+          {
+            *is_dos_app = TRUE;                                 // C 2595
+          }
+        else if (*nt_header).Signature == IMAGE_NT_SIGNATURE    // C 2597
+          {
+            let mut data_dir: *mut IMAGE_DATA_DIRECTORY = core::ptr::null_mut ();   // C 2599
+            if (*nt_header).OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC   // C 2600
+              {
+                /* Ensure we are using the 32 bit structure.  */
+                let opt: *mut IMAGE_OPTIONAL_HEADER32
+                  = &raw mut (*nt_header).OptionalHeader;       // C 2603-2604
+                data_dir = (*opt).DataDirectory.as_mut_ptr ();  // C 2605
+                *is_gui_app = ((*opt).Subsystem == IMAGE_SUBSYSTEM_WINDOWS_GUI) as c_int;   // C 2606
+              }
+            /* MingW 3.12 has the required 64 bit structs, but in case older
+               versions don't, only check 64 bit exes if we know how.  */
+            #[cfg (feature = "image_nt_optional_hdr64_magic")]
+            if (*nt_header).OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC   // C 2611-2612
+              {
+                let opt: *mut IMAGE_OPTIONAL_HEADER64
+                  = &raw mut (*nt_header).OptionalHeader as *mut _ as *mut IMAGE_OPTIONAL_HEADER64;   // C 2614-2615
+                data_dir = (*opt).DataDirectory.as_mut_ptr ();  // C 2616
+                *is_gui_app = ((*opt).Subsystem == IMAGE_SUBSYSTEM_WINDOWS_GUI) as c_int;   // C 2617
+              }
+            if !data_dir.is_null ()                             // C 2620
+              {
+                /* Look for Cygwin DLL in the DLL import list. */
+                let import_dir: IMAGE_DATA_DIRECTORY
+                  = *data_dir.add (IMAGE_DIRECTORY_ENTRY_IMPORT as usize);   // C 2623-2624
+
+                /* Import directory can be missing in .NET DLLs.  */
+                if import_dir.VirtualAddress != 0               // C 2627
+                  {
+                    let mut section: *mut IMAGE_SECTION_HEADER
+                      = rva_to_section (import_dir.VirtualAddress as DWORD_PTR, nt_header);   // C 2629-2630
+                    if section.is_null ()                       // C 2631
+                      { emacs_abort (); }                       // C 2632
+
+                    let mut imports: *mut IMAGE_IMPORT_DESCRIPTOR
+                      = RVA_TO_PTR! (import_dir.VirtualAddress, section, executable)
+                        as *mut IMAGE_IMPORT_DESCRIPTOR;        // C 2634-2636
+
+                    while (*imports).Name != 0                  // C 2638
+                      {
+                        section = rva_to_section ((*imports).Name as DWORD_PTR,
+                                                  nt_header);   // C 2640
+                        if section.is_null ()                   // C 2641
+                          { emacs_abort (); }                   // C 2642
+
+                        let dllname: *mut c_char
+                          = RVA_TO_PTR! ((*imports).Name, section, executable)
+                            as *mut c_char;                     // C 2644-2645
+
+                        /* The exact name of the Cygwin DLL has changed with
+			   various releases, but hopefully this will be
+			   reasonably future-proof.  */
+                        if strncmp (dllname, c"cygwin".as_ptr (), 6) == 0   // C 2650
+                          {
+                            *is_cygnus_app = TRUE;              // C 2652
+                            break;                              // C 2653
+                          }
+                        else if strncmp (dllname, c"msys-".as_ptr (), 5) == 0   // C 2655
+                          {
+                            /* This catches both MSYS 1.x and MSYS2
+			       executables (the DLL name is msys-1.0.dll and
+			       msys-2.0.dll, respectively).  There doesn't
+			       seem to be a reason to distinguish between
+			       the two, for now.  */
+                            *is_msys_app = TRUE;                // C 2662
+                            break;                              // C 2663
+                          }
+                        imports = imports.add (1);              // C 2638's `imports++`
+                      }
+                  }
+              }
+          }
+      }
+    }
+
+  /* C 2671's `unwind:` label.  */
+  close_file_data (&raw mut executable);                        // C 2672
+  return retval;                                                // C 2673
+}

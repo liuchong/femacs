@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**4058 lines**, md5 `a6cb10739e634536296eec1e504010e6`), carrying
-> **C 1-2528** - P-86 ④'s first twelve slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**4358 lines**, md5 `43b4a7b8163127b6a9b278d934e2b2a7`), carrying
+> **C 1-2674** - P-86 ④'s first thirteen slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -73,7 +73,7 @@ which `check-dead-file-coverage.py` requires):
 | 44-48 | the `#undef signal` … `#undef kill` block | C's text in a comment (the nt/inc renames are `macro_rules!`s, whose call form a plain call cannot reach) |
 | 50-55 | `<windows.h>`, then `#ifdef HAVE_LANGINFO_CODESET` around `<nl_types.h>`/`<langinfo.h>` | SDK section below; C 52-55 both arms (`have_langinfo_codeset`) |
 | 57-64 | the eight `"…"` includes (`"lisp.h"` … `"coding.h"`) | file gate |
-| 66-69 | `#define RVA_TO_PTR(var,section,filedata)` | **carried as C's text**: its body reads three fields of `<windows.h>`'s `IMAGE_SECTION_HEADER`, which `include/w32heap.rs` 63-76 spells `*mut c_void` (P-72 ③), so no Rust body is writable here (Deviations 6) |
+| 66-69 | `#define RVA_TO_PTR(var,section,filedata)` | the file's own macro, **written out in slice 12's wake** once `IMAGE_SECTION_HEADER` existed (slice 1 could only carry its text: Deviations 6, retired in the Slice 13 section) |
 | 71-72 | `extern BOOL g_b_init_compare_string_w;` / `g_b_init_debug_break_process;` | file gate; the two definitions are `src/w32.c`'s (`w32.rs` 899-902) |
 | 74-75 | `int sys_select (…)` prototype | dropped (PORTING.md 0.1-12); the definition is C 3109 |
 | 77-82 | `sig_handlers[NSIG]`, `sig_mask`, `crit_sig` | file gate |
@@ -125,7 +125,8 @@ which `check-dead-file-coverage.py` requires):
 | 2207-2268 | `register_child` (C 2207-2242, with C's `(DWORD)` cast, its dead `FULL_DEBUG` arm carried as C's text and the `fd_info` in-use guard) and `reap_subprocess` (C 2244-2268, whose own dead arm sits between C 2250's comment and the two `CloseHandle`s) | file gate (slice 10); C's `status` value is `STATUS_READ_ACKNOWLEDGED` (the mirror's 201) and the `fd_info` member is the deferred `*mut c_void` (Deviations 49's cast) |
 | 2270-2449 | `waitpid`: C's Posix comment, the single-pid arm, the any-child arm, the `do`/`while` (the port's `loop` + negated test, P-95), the five-way answer, `GetExitCodeProcess`, the `STILL_ACTIVE` punt and the exit-code massage | file gate (slice 11); `WNOHANG` and `STATUS_CONTROL_C_EXIT` stand at the use site (Deviations 54/55), C's two dead `FULL_DEBUG` arms are carried as C's text, and C's `retval <<= 8` is the port's own shift |
 | 2451-2528 | the memory-mapped-file helpers and the section lookup: C 2451-2481's `open_input_file`, C 2483-2509's `rva_to_section` (with C's linker comment and the `max!` pair), C 2511-2521's `close_file_data` and C 2523-2528's `#ifndef IMAGE_NT_OPTIONAL_HDR32_MAGIC` fallback carried as C's text | file gate (slice 12); the round's use-site `<windows.h>`/`<winbase.h>`/`<winnt.h>` block spells the file API and the four PE records (Deviations 57), `min!`/`max!` come from the `min-max.rs` mirror included under C 57's lisp.h line (Deviations 58), and the mirror `include/w32heap.rs`'s four declarations moved into a glob-imported module in the same round (Deviations 59) |
-| 2530-4903 | **the remainder of the file** - C 2530-2532's `w32_executable_type` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2530-2674 | `w32_executable_type`: the ANSI-codepage note, the four defaults, the `.com`/`.bat`/`.cmd` extension test with its `COMSPEC` recursion, the DOS/NT header walk (the two records, the two "DOS program" answers, the 32-bit optional-header read, the `IMAGE_NT_OPTIONAL_HDR64_MAGIC` arm under its feature, and the import-directory walk with `RVA_TO_PTR` and the two DLL-name tests) and the `unwind` tail | file gate (slice 13); the round's use-site `<windows.h>`/`<winnt.h>` block spells the two records, `LOWORD` and the 64-bit pair (Deviations 60), the `#ifdef IMAGE_NT_OPTIONAL_HDR64_MAGIC` guard becomes `feature = "image_nt_optional_hdr64_magic"` (Deviations 61), C's `goto unwind` is `break 'unwind` (Deviations 48's device), and `RVA_TO_PTR` is written out at C 66-69 (Deviation 6 retired) |
+| 2676-4903 | **the remainder of the file** - `compare_env` (C 2676) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -166,7 +167,7 @@ now, P-86 ⑩): 118 findings, all of them the slice boundary or the four token r
 `missing macro` 12, `missing constant` 7, **`does not mention` 4**, `line count drifted 68.4%: C
 4903 vs Rust 1550` 1.  The 39/20/20/15/12/7 are the C 913-4903 remainder (the first missing function
 is `close_file_data`, C 2513; the first missing subr is `Fw32_has_winsock`, C 3924) plus, in this
-slice's own text, `RVA_TO_PTR` (carried as text, Deviations 6) and the two `WFO_*`/`LOCALE_*`-family
+slice's own text, `RVA_TO_PTR` (carried as text then, written out in slice 13 - Deviations 6) and the two `WFO_*`/`LOCALE_*`-family
 constants.  The four `does not mention` rows are Deviations 8.
 
 ④ **`python3 tools/check-cond-eval.py src/w32proc.c`**: `26 conditions, 0 unknown, 0 disagreements
@@ -293,7 +294,7 @@ collide with this unit's own definitions are the ones Evidence ② names
 4. **`docs/ports/macro-body-notes.tsv`**: four rows, `sigprocmask` and `w32_raise`
    (`switch,case,default,break`: C's switch is the port's `match`, PORTING.md 2.2) and `getitimer`,
    `setitimer` (`__int64`: PORTING.md 1.1 spells MSVC's builtin `i64`/`c_longlong`).  Plus one row or
-   a measured `IMAGE_SECTION_HEADER` for `RVA_TO_PTR` (C 66-69, carried as text: Deviations 6;
+   a measured `IMAGE_SECTION_HEADER` for `RVA_TO_PTR` (C 66-69: carried as text until slice 13 wrote it out - Deviations 6;
    either an `excluded-macros.txt` row of kind `deferred` or the record itself, which is the mirror
    round's call - the record also needs a Windows/mingw clang layout measurement).
 5. **The mirror round's reconciliation of the Windows arm** (Evidence ②, Deviations 5/7): (a)
@@ -1014,3 +1015,71 @@ stem's 0.36 row.
     its siblings so its definer's slice does not hit the same defect.  The mirror's ledger
     (`docs/ports/include-w32heap.md`) records it with both measurements; this file records it here
     because the defect was found by *this* unit's probe.
+
+## Slice 13 (2026-10-14, status 4.292): C 2530-2674
+
+**What this round is.**  `w32_executable_type` - the function the file's whole PE path exists for:
+the ANSI-codepage note, the four `is_*_app` defaults, the extension test that recognises DOS `.com`
+and recurses on `COMSPEC` for `.bat`/`.cmd`, and C 2571-2669's header walk (the `IMAGE_DOS_HEADER`
+signature check, the `e_lfanew` bound, the three "this is a DOS program" answers, the 32-bit
+optional-header read, the `IMAGE_NT_OPTIONAL_HDR64_MAGIC` arm, and the import-directory walk that
+looks for a `cygwin`/`msys-` DLL name).  Port: 4,058 -> **4358 lines** (+300, of which 175 are the
+round's `<windows.h>`/`<winnt.h>` block).  The next row's first item is C 2676's `compare_env`.
+
+**Two earlier deviations are retired by this round, and both are recorded where they were made.**
+
+  * **Deviation 6 (`RVA_TO_PTR` carried as C's own text) is retired**: slice 1 could not write the
+    macro's body because the port had no `IMAGE_SECTION_HEADER` (the mirror spells the record
+    `*mut c_void`, P-72 ③); slice 12 spelled it, so this round writes the macro out at its C
+    position (C 66-69) as `macro_rules! RVA_TO_PTR` and its two users (C 2635, C 2644) call it.
+    The **`missing macro RVA_TO_PTR` row retires with it** - one of the two rows this round removes.
+  * **`PIMAGE_NT_HEADERS` and C's own local types**: the `--check` first read
+    `function w32_executable_type does not mention goto, image_dos_header, pimage_nt_headers`; the
+    two type tokens were the port's own spellings (`PIMAGE_DOS_HEADER` for C's `IMAGE_DOS_HEADER *`,
+    and a bare `*mut IMAGE_NT_HEADERS` for C's `(PIMAGE_NT_HEADERS)` cast).  The round declares the
+    alias and uses C's own spellings in the two locals and the cast, so the row is now
+    `does not mention goto` alone - the labeled-block deviation, recorded in
+    `docs/ports/macro-body-notes.tsv`.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes** (each of the
+three runs).
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the lane's baseline again after slice 12's mirror fix.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 4059 4358` -> `64
+capitalized identifiers, missing: [64 names]` - every one a *field* of the records this round
+spells (`e_magic`, `DataDirectory`, `FirstThunk`, `Subsystem`, …), the tool's documented class
+(slice 7's control: `femacs/src/w32.rs` 11860-11920 reads the same class for `child_process`).
+**Evidence ④ - the `--check` reading.**  **75 -> 73 `- missing` rows**: `missing function
+w32_executable_type` and `missing macro RVA_TO_PTR`.  One token row, now the `goto` alone (above).
+Drift 17.4% -> **11.2%**, inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+60. **The round's use-site `<windows.h>`/`<winbase.h>`/`<winnt.h>` block** (P-88 ①):
+    `IMAGE_DOS_HEADER` (64 bytes, C's eighteen members) with `PIMAGE_DOS_HEADER`,
+    `IMAGE_IMPORT_DESCRIPTOR` (its anonymous first union named after the container, P-67),
+    `PIMAGE_NT_HEADERS`, the four signatures (`IMAGE_DOS_SIGNATURE`, `IMAGE_NT_SIGNATURE`,
+    `IMAGE_OS2_SIGNATURE`, `IMAGE_NT_OPTIONAL_HDR64_MAGIC`), `IMAGE_SUBSYSTEM_WINDOWS_GUI`,
+    `IMAGE_DIRECTORY_ENTRY_IMPORT`, the SDK's `LOWORD` as a `macro_rules!`, and the 64-bit record
+    `IMAGE_OPTIONAL_HEADER64` (240 bytes).  UNVERIFIED like every SDK record in this file.
+61. **C 2610's `#ifdef IMAGE_NT_OPTIONAL_HDR64_MAGIC` becomes `feature =
+    "image_nt_optional_hdr64_magic"`**, i.e. the file's `__MINGW64__` device (slice 1's gate
+    mapping): a guard the *header* defines is a feature named after the macro, and the arm's text is
+    carried under it (P-51).  A modern `<winnt.h>` defines the macro, so the feature is what a build
+    that has it sets; on the frozen configuration the arm is dead, exactly as C's is.
+62. **The `RVA_TO_PTR` macro is written out** (Deviation 6 retired): `macro_rules! RVA_TO_PTR` with
+    C's three operands, and the pointer arithmetic C does in `DWORD_PTR`/`file_base` is the
+    `as usize` sum in that macro.  `PIMAGE_NT_HEADERS` is declared beside the other PE aliases and
+    C's own type spellings are used in the two locals and the cast (the token row above).
+63. **The `unwind` tail is C's `close_file_data`/return pair**, reached by `break 'unwind` from
+    C 2583's `goto` - the label's own line (C 2671) stays as a comment at its C position, as
+    `new_child`'s `Initialize:` does (Deviations 48).
+
+**Owed (this slice's additions).**
+
+17. **`IMAGE_DOS_HEADER`'s 64 bytes, `IMAGE_IMPORT_DESCRIPTOR`'s 20 and `IMAGE_OPTIONAL_HEADER64`'s
+    240 are unmeasured** (P-88 ①'s class): C 2585's `e_lfanew` offset and C 2603/2614's two
+    optional-header casts are reads whose *layout* this machine cannot check, so a Windows/mingw
+    clang probe is what closes them - the measurement Deviations 47/57/60 all owe.
