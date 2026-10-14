@@ -9300,3 +9300,152 @@ unsafe extern "system" fn w32_wnd_proc (hwnd: HWND, mut msg: UINT, mut wParam: W
 static mut last_x: c_int = 0;
 #[cfg (feature = "have_ntgui")]
 static mut last_y: c_int = 0;
+
+/// C 5988-6033: `my_create_window` - C's `static void` (a private `unsafe fn` here) plus the
+/// function-local `static int coords[2]` C 5997 declares, which has static storage duration and is
+/// therefore a file-scope `static mut` (the `force_quit_count`/`last_x` reading above).  The two
+/// `gui_display_get_arg` calls are C 6015-6018's, with C's own `"left"`/`"Left"` strings.
+/// C: static int coords[2];
+/// C: static void my_create_window (struct frame * f);
+#[cfg (feature = "have_ntgui")]
+static mut coords: [c_int; 2] = [0, 0];
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_create_window (f: *mut frame)
+{
+  let mut msg: MSG = core::mem::zeroed ();        /* C's uninitialised `MSG msg;`, PORTING.md 1.5 */
+  let mut left: Lisp_Object; let mut top: Lisp_Object;
+  let dpyinfo: *mut w32_display_info = &raw mut one_w32_display_info;
+
+  /* If f->size_hint_flags is set, it means gui_figure_window_size
+     already processed the 'top' and 'left' frame parameters and set
+     f->top_pos and f->left_pos accordingly.  w32_createwindow will
+     then use those value disregarding coords[].  So we don't need to
+     compute coords[] in that case.  */
+  if ! ((((*f).size_hint_flags as c_long) & USPosition != 0)
+	|| (((*f).size_hint_flags as c_long) & PPosition != 0))
+    {
+      /* When called with RES_TYPE_NUMBER, and there's no 'top' or
+	 'left' parameters in the frame's parameter alist,
+	 gui_display_get_arg will return zero for anything that is
+	 neither a number nor Qunbound.  If frame parameter alist does
+	 have 'left' or 'top', they are interpreted by
+	 gui_figure_window_size, which was already called, and which
+	 sets f->size_hint_flags.  */
+      left = gui_display_get_arg (dpyinfo, Qnil (), Qleft (), c"left".as_ptr (),
+				  c"Left".as_ptr (), RES_TYPE_NUMBER);
+      top = gui_display_get_arg (dpyinfo, Qnil (), Qtop (), c"top".as_ptr (),
+				 c"Top".as_ptr (), RES_TYPE_NUMBER);
+      if BASE_EQ (left, Qunbound ())
+	{ coords[0] = CW_USEDEFAULT; }
+      else
+	{ coords[0] = XFIXNUM (left) as c_int; }
+      if BASE_EQ (top, Qunbound ())
+	{ coords[1] = CW_USEDEFAULT; }
+      else
+	{ coords[1] = XFIXNUM (top) as c_int; }
+    }
+
+  if PostThreadMessage (dwWindowsThreadId, WM_EMACS_CREATEWINDOW as UINT,
+			f as WPARAM, coords.as_mut_ptr () as LPARAM) == 0
+    { emacs_abort (); }
+  let get_message: unsafe extern "system" fn (lpMsg: *mut MSG, hWnd: HWND,
+					      wMsgFilterMin: UINT, wMsgFilterMax: UINT) -> BOOL
+    = if w32_unicode_gui != 0 { GetMessageW } else { GetMessageA };
+  get_message (&raw mut msg, core::ptr::null_mut (), WM_EMACS_DONE as UINT,
+	       WM_EMACS_DONE as UINT);
+}
+
+
+/// C 6036-6078: `my_create_tip_window` - C's `static void`, and C 6049/6051-6062's
+/// `f->output_data.w32->` reads are this file's `(*f).output_data.w32 as *mut w32_output` cast
+/// (C 1221-1242's reading).  C 6051-6052's `tip_window = FRAME_W32_WINDOW (f) = CreateWindow (…)`
+/// is one assignment through the `FRAME_W32_WINDOW!` macro, so the window handle is stored twice.
+/// C: static void my_create_tip_window (struct frame *f);
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_create_tip_window (f: *mut frame)
+{
+  let mut rect: RECT = core::mem::zeroed ();     /* C's uninitialised `RECT rect;`, PORTING.md 1.5 */
+
+  rect.left = 0; rect.top = 0;                   /* C's chained `rect.left = rect.top = 0;` */
+  rect.right = FRAME_PIXEL_WIDTH (f);
+  rect.bottom = FRAME_PIXEL_HEIGHT (f);
+
+  AdjustWindowRect (&raw mut rect,
+		   (*(*f).output_data.w32 as *mut w32_output).dwStyle, FALSE);
+
+  tip_window = FRAME_W32_WINDOW! (f)
+    = CreateWindow (EMACS_CLASS.as_ptr () as *const c_char,
+		    (*f).namebuf,
+		    (*(*f).output_data.w32 as *mut w32_output).dwStyle,
+		    (*f).left_pos,
+		    (*f).top_pos,
+		    rect.right - rect.left,
+		    rect.bottom - rect.top,
+		    FRAME_W32_WINDOW! (SELECTED_FRAME ()), /* owner */
+		    core::ptr::null_mut (),
+		    hinst,
+		    core::ptr::null_mut ());
+
+  if ! tip_window.is_null ()
+    {
+      SetWindowLong (tip_window, WND_FONTWIDTH_INDEX, FRAME_COLUMN_WIDTH (f) as LONG);
+      SetWindowLong (tip_window, WND_LINEHEIGHT_INDEX, FRAME_LINE_HEIGHT (f) as LONG);
+      SetWindowLong (tip_window, WND_BORDER_INDEX,
+		     FRAME_INTERNAL_BORDER_WIDTH (f) as LONG);
+      SetWindowLong (tip_window, WND_BACKGROUND_INDEX,
+		     FRAME_BACKGROUND_PIXEL (f) as LONG);
+
+      /* Tip frames have no scrollbars.  */
+      SetWindowLong (tip_window, WND_VSCROLLBAR_INDEX, 0);
+      SetWindowLong (tip_window, WND_HSCROLLBAR_INDEX, 0);
+
+      /* Do this to discard the default setting specified by our parent. */
+      ShowWindow (tip_window, SW_HIDE);
+    }
+}
+
+
+/// C 6080-6121: `w32_window` - C's `static void`; C 6093's `f->namebuf = xlispstrdup (…)` is the
+/// same field slice 2 wrote, and C 6103-6111's block is a plain scope whose three statements keep
+/// C's order (the `explicit` save, the two `Qnil` writes through `fset_name`, and the `w32_set_name
+/// (f, name, explicit)` call).
+/// C: static void w32_window (struct frame *f, long window_prompting, bool minibuffer_only);
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_window (f: *mut frame, window_prompting: c_long, minibuffer_only: bool)
+{
+  block_input ();
+
+  /* Use the resource name as the top-level window name
+     for looking up resources.  Make a non-Lisp copy
+     for the window manager, so GC relocation won't bother it.
+
+     Elsewhere we specify the window name for the window manager.  */
+  (*f).namebuf = xlispstrdup (Vx_resource_name);
+
+  my_create_window (f);
+
+  validate_x_resource_name ();
+
+  /* w32_set_name normally ignores requests to set the name if the
+     requested name is the same as the current name.  This is the one
+     place where that assumption isn't correct; f->name is set, but
+     the server hasn't been told.  */
+  {
+    let name: Lisp_Object;
+    let explicit: c_int = (*f).explicit_name;
+
+    (*f).explicit_name = 0;
+    name = (*f).name;
+    fset_name (f, Qnil ());
+    w32_set_name (f, name, explicit);
+  }
+
+  unblock_input ();
+
+  if ! minibuffer_only && FRAME_EXTERNAL_MENU_BAR (f)
+      && FRAME_PARENT_FRAME (f).is_null ()
+    { initialize_frame_menubar (f); }
+
+  if FRAME_W32_WINDOW! (f).is_null ()
+    { error (c"Unable to create window".as_ptr ()); }
+}

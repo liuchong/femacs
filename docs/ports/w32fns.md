@@ -1118,7 +1118,88 @@ rewritten).
 - The two prefix defect classes this slice could not repair (`include/frame.rs`'s six members and
   `include/w32term.rs`'s two bitfields) are the next lane's arm-reading-starting point, unchanged.
 
-**Starting state measured for the next lane (2026-10-14, at `bb049624`).**  Three facts a fresh
+## Slice 5 (C 5988-6121)
+
+**Scope and the stop.**  The slice starts at C 5988 (`my_create_window`'s own doc comment, the item
+the fourth slice's "Owed by the next lane" names) and stops at C 6121, the `}` of `w32_window` - a
+whole-item boundary (C 6122 is blank and C 6123 starts `w32_icon`'s comment).  It carries **134 C
+lines** and lands three `static` helpers: `my_create_window` (C 5993-6033), `my_create_tip_window`
+(C 6040-6078) and `w32_window` (C 6083-6121).  The `x-create-frame` DEFUN that begins at C 6253 is
+**not** in it (it runs to about C 9579 - a slice by size alone, as the addendum below records).
+
+**New in this slice (the addendum's list was short one level).**  The three functions needed the
+names the addendum names, and this slice spells them in-unit: `CW_USEDEFAULT` (`<winuser.h>`'s
+`(int)0x80000000`), `resource_types` with C's six `RES_TYPE_*` values (`dispextern.h` 3983-3992,
+`src/pgtkfns.rs` 498-509's shape) and `gui_display_get_arg` (`dispextern.h` 3994, whose `Display_Info`
+is this unit's `w32_display_info`).  `GetMessage` needed no declaration: this file already reads
+C's macro through its own `if w32_unicode_gui != 0 { GetMessageW } else { GetMessageA }` binding, and
+this slice reuses that device (with a `get_message` local of the A/W function type).
+
+### Evidence (slice 5, the final revision: 9,451 Rust lines)
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/w32fns5-lane cargo run -q -p xtask -- build-tu src/w32fns.c` ->
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, the object **336 bytes**.  The file
+gate covers every item, so the frozen configuration compiles none of this slice's text either.
+
+**② The arm readings (`probe`).**  Both runs are
+`cargo run -q -p xtask -- probe src/w32fns.rs /tmp/w32fns5-lane/x.rlib --crate-type=lib
+-C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'`.  The first read **52 error
+lines**; the second (after this slice's own repairs) **43**.  The nine-line difference is this
+slice's own defect classes, all repaired: the `size_hint_flags`/`USPosition` width mismatch (the
+field is `c_int`, the flags are `c_long`, so the cast is on the flags side), `WM_EMACS_CREATEWINDOW`/
+`WM_EMACS_DONE` passed as `UINT` (`as UINT`, the constants are `c_int`), `EMACS_CLASS`'s `&str`
+pointer cast to `*const c_char` for `CreateWindow`, `FRAME_EXTERNAL_MENU_BAR`'s `bool` return (C's
+`!= 0` is the function itself) and `Vx_resource_name`'s **static** spelling (this file calls its Lisp
+variables as statics, not as accessors, so C 6093's call takes the name bare).
+**What is left of this slice in the 43 is one class, and it is not this file's**: `w32_output.dwStyle`
+(2 lines) and `frame.explicit_name` (2 lines, with their 2 `E0606` companions) - the same
+"mirror record lacks a member" class the fourth slice's evidence already names for
+`menubar_active`/`hourglass_p`/`tab_bar_*`/`tool_bar_*` (27 of the 43) and the mirror `E0428`s.  They
+join this file's owed list; nothing in this file's own text can spell a member the mirror lacks.
+
+**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs`).**
+**205 -> 202** `- ` rows - the three functions this slice defines are no longer `missing function`
+rows, and no new row names them - and the line-count drift row reads `24.3%: C 12488 vs Rust 9451`
+(was 25.5%).  One row this slice's text produced -
+`function my_create_window does not mention 2, getmessage` - is covered by **one row appended to
+`docs/ports/macro-body-notes.tsv`** (append-only), which names C's own lines for both tokens: the
+`GetMessage` macro's A/W binding above, and the array bound C writes inside the function
+(`static int coords[2]`) but the port keeps at file scope with that static.
+
+**④ The other gates (repo root, final revision), one line each - exit code first (P-87 ④).**
+`[0] check-declarations.py` -> 0 failures. - `[0] check-own-voice.py` -> 0. - `[0]
+check-mirror-dupes.py` -> 0. - `[0] check-port-lines.py` -> `0 file(s) under ten percent`. - `[0]
+check-ledger-ticks.py` -> 0 failures. - `[0] check-carried.py` -> 0. - `[0] check-verbatim.py` -> 0. -
+`[0] check-verbatim-declarations.py` -> 0. - `[0] check-citations.py` -> 0. - `[0]
+check-dead-file-coverage.py` -> `info docs/ports/w32fns.md: 156 range row(s) cover src/w32fns.c
+(12488 lines; 102 blank line(s) between blocks need no row)` and `0 failure(s)` (the table has this
+slice's row).
+
+**⑤ Lines.**  `femacs/src/w32fns.rs` **9,302 -> 9,451** lines; `docs/ports/w32fns.md` gains this
+section; `docs/ports/macro-body-notes.tsv` gains one appended row (nothing rewritten).
+
+### Deviations (slice 5)
+
+- **C's `static int coords[2]` moves to file scope.**  `my_create_window`'s array has static storage
+  duration inside the function, which Rust spells at file scope with its initialiser (the
+  `force_quit_count`/`after_deadkey`/`last_x` reading this file already uses for the other four).
+  The token check's `2` follows from that move and is recorded in the notes row.
+- **`GetMessage` is the file's A/W binding, not a declaration.**  The macro's arm is chosen at run
+  time by `w32_unicode_gui` (`src/w32fns.rs` 6155-6157's `w32_msg_pump` device), so the local
+  `get_message` carries the A/W function type and the call goes through it.
+- **`f->output_data.w32->` keeps this file's cast idiom** (`(*f).output_data.w32 as *mut w32_output`,
+  the C 1221-1242 reading), which is why the two `dwStyle` sites read as they do; both are blocked on
+  the mirror member named in ②, not on the cast.
+- **`w32_window`'s `window_prompting` is unused in the body** - C never reads it either (the
+  parameter exists for the caller's signature), so the port keeps it without an `_` prefix, as C
+  does.
+- **C 6051-6052's double store is kept.**  `tip_window = FRAME_W32_WINDOW (f) = CreateWindow (…)` is
+  one C assignment nested in another; the port keeps both stores in one statement through the
+  `FRAME_W32_WINDOW!` macro.
+
+**Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
+slice that used it.**  Three facts a fresh
 reader would otherwise have to re-derive, all read off the tree just now:
 
 - **This file's text convention is *prose* `C NNNN` citations, not column-end ticks.**  A tick
