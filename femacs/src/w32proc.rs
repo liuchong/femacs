@@ -4905,3 +4905,475 @@ unsafe extern "C" {
 
 /* C 3080-3097's `sys_select` overview comment travels with C 3108's function, which opens the next
    slice (the file's rule that a C comment belongs to the item it documents).  */
+/* Emulate the select call.
+   Wait for available input on any of the given rfds, or timeout if
+   a timeout is given and no input is detected.  wfds are supported
+   only for asynchronous 'connect' calls.  efds are not supported
+   and must be NULL.
+
+   For simplicity, we detect the death of child processes here and
+   synchronously call the SIGCHLD handler.  Since it is possible for
+   children to be created without a corresponding pipe handle from which
+   to read output, we wait separately on the process handles as well as
+   the char_avail events for each process pipe.  We only call
+   wait/reap_process when the process actually terminates.
+
+   To reduce the number of places in which Emacs can be hung such that
+   C-g is not able to interrupt it, we always wait on interrupt_handle
+   (which is signaled by the input thread when C-g is detected).  If we
+   detect that we were woken up by C-g, we return -1 with errno set to
+   EINTR as on Unix.  */
+/// C 3108-3483: `int sys_select (int nfds, SELECT_TYPE *rfds, SELECT_TYPE *wfds, SELECT_TYPE
+/// *efds, const struct timespec *timeout, const sigset_t *ignored)` - the file's longest function.
+/// C 3112-3115's four function-local statics (`orfds`/`owfds`, `cps`, `wait_hnd`, `fdindex`), C
+/// 3121-3151's timeout decode and the two set copies plus the two `FD_ZERO`s, C 3154-3162's
+/// `interrupt_handle` entry, C 3165-3274's descriptor scan (C 3168-3190's stdin arm with
+/// `detect_input_pending`/`handle_file_notifications`, C 3192-3272's child/socket arm with the
+/// `STATUS_READ_ACKNOWLEDGED` handshake), C 3276-3292's `count_children` label and its child scan,
+/// C 3307-3314's wait, C 3316-3346's five-way answer, C 3352-3461's fairness `do`/`while`, C
+/// 3463-3470's noninteractive drain and the timeout recheck, and C 3482's `return nr`.  C's two
+/// `goto count_children`-shaped jumps are one labeled `loop` (the `start:`/`goto start` device) and
+/// the `do`/`while` is the port's negated `break` (P-95, `check-do-while.py`).  C's `CHECK_INTERLOCK`
+/// and two `FULL_DEBUG` arms are carried as C's text at their positions.
+/// C: int
+/// C: sys_select (int nfds, SELECT_TYPE *rfds, SELECT_TYPE *wfds, SELECT_TYPE *efds,
+/// C:             const struct timespec *timeout, const sigset_t *ignored)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_select (nfds: c_int, rfds: *mut SELECT_TYPE! (),
+                                     wfds: *mut SELECT_TYPE! (), efds: *mut SELECT_TYPE! (),
+                                     timeout: *const timespec, ignored: *const sigset_t) -> c_int
+{
+  static mut orfds: SELECT_TYPE! () = unsafe { core::mem::zeroed () };    // C 3112
+  static mut owfds: SELECT_TYPE! () = unsafe { core::mem::zeroed () };
+  static mut cps: [*mut child_process; MAX_CHILDREN as usize]             // C 3113
+    = [core::ptr::null_mut (); MAX_CHILDREN as usize];
+  static mut wait_hnd: [HANDLE; (MAXDESC + MAX_CHILDREN) as usize]        // C 3114
+    = [core::ptr::null_mut (); (MAXDESC + MAX_CHILDREN) as usize];
+  static mut fdindex: [c_int; MAXDESC as usize] = [0; MAXDESC as usize];   // C 3115
+  let mut timeout_ms: DWORD;                                              // C 3116
+  let mut start_time: DWORD = 0;
+  let mut i: c_int = 0;                                                   // C 3117
+  let mut nh: c_int = 0;
+  let mut nc: c_int = 0;
+  let mut nr: c_int = 0;
+  let mut active: DWORD = 0;                                              // C 3118
+  let mut cp: *mut child_process = core::ptr::null_mut ();                // C 3119
+
+  timeout_ms = if !timeout.is_null ()                                     // C 3121-3122
+    { ((*timeout).tv_sec * 1000 + (*timeout).tv_nsec / 1000000) as DWORD }
+    else { INFINITE };
+
+  /* If the descriptor sets are NULL but timeout isn't, then just Sleep.  */
+  if rfds.is_null () && wfds.is_null () && efds.is_null () && !timeout.is_null ()   // C 3125
+    {
+      Sleep (timeout_ms);                                                 // C 3127
+      return 0;                                                           // C 3128
+    }
+
+  /* Otherwise, we only handle rfds and wfds, so fail otherwise.  */
+  if (rfds.is_null () && wfds.is_null ()) || !efds.is_null ()              // C 3132
+    {
+      *errno () = EINVAL;                                                 // C 3134
+      return -1;                                                          // C 3135
+    }
+
+  if !rfds.is_null ()                                                     // C 3138
+    {
+      orfds = *rfds;                                                      // C 3140
+      FD_ZERO! (rfds);                                                    // C 3141
+    }
+  else
+    { FD_ZERO! (&raw mut orfds); }                                        // C 3144
+  if !wfds.is_null ()                                                     // C 3145
+    {
+      owfds = *wfds;                                                      // C 3147
+      FD_ZERO! (wfds);                                                    // C 3148
+    }
+  else
+    { FD_ZERO! (&raw mut owfds); }                                        // C 3151
+  nr = 0;                                                                 // C 3152
+
+  /* If interrupt_handle is available and valid, always wait on it, to
+     detect C-g (quit).  */
+  nh = 0;                                                                 // C 3156
+  if !interrupt_handle.is_null () && interrupt_handle != INVALID_HANDLE_VALUE   // C 3157
+    {
+      wait_hnd[0] = interrupt_handle;                                     // C 3159
+      fdindex[0] = -1;                                                    // C 3160
+      nh += 1;                                                            // C 3161
+    }
+
+  /* Build a list of pipe handles to wait on.  */
+  i = 0;                                                                  // C 3165
+  while i < nfds
+    {
+      if FD_ISSET! (i, &orfds) || FD_ISSET! (i, &owfds)                   // C 3166
+        {
+          if i == 0                                                       // C 3168
+            {
+              if !keyboard_handle.is_null ()                              // C 3170
+                {
+                  /* Handle stdin specially */
+                  wait_hnd[nh as usize] = keyboard_handle;                // C 3173
+                  fdindex[nh as usize] = i;                               // C 3174
+                  nh += 1;                                                // C 3175
+                }
+
+              /* Check for any emacs-generated input in the queue since
+                 it won't be detected in the wait */
+              if !rfds.is_null () && detect_input_pending ()              // C 3180
+                {
+                  FD_SET! (i, rfds);                                      // C 3182
+                  return 1;                                               // C 3183
+                }
+              else if noninteractive != 0                                 // C 3185
+                {
+                  if handle_file_notifications (core::ptr::null_mut ()) != 0   // C 3187
+                    { return 1; }                                         // C 3188
+                }
+            }
+          else
+            {
+              /* Child process and socket/comm port input.  */
+              cp = fd_info[i as usize].cp as *mut child_process;           // C 3194
+              if FD_ISSET! (i, &owfds)                                    // C 3195
+                  && !cp.is_null ()                                       // C 3196
+                  && (fd_info[i as usize].flags & FILE_CONNECT as c_uint) == 0   // C 3197
+                {
+                  DebPrint! (("sys_select: fd %d is in wfds, but FILE_CONNECT is reset!\n", i));   // C 3199
+                  cp = core::ptr::null_mut ();                            // C 3200
+                }
+              if !cp.is_null ()                                           // C 3202
+                {
+                  let mut current_status: c_int = (*cp).status;            // C 3204
+
+                  if current_status == STATUS_READ_ACKNOWLEDGED            // C 3206
+                    {
+                      /* Tell reader thread which file handle to use. */
+                      (*cp).fd = i;                                       // C 3209
+                      /* Zero out the error code.  */
+                      (*cp).errcode = 0;                                  // C 3211
+                      /* Wake up the reader thread for this process */
+                      (*cp).status = STATUS_READ_READY;                   // C 3213
+                      if SetEvent ((*cp).char_consumed) == 0              // C 3214
+                        { DebPrint! (("sys_select.SetEvent failed with "
+                                      "%lu for fd %ld\n", GetLastError (), i)); }   // C 3215-3216
+                    }
+
+                  /* C 3219-3248: the `CHECK_INTERLOCK` arm (a debug-only macro no configuration
+                     defines), carried as C's own text (P-51).  The declarations below it keep C's
+                     names: `current_status` is C 3222/3228's own assignment.  */
+                  /*
+#ifdef CHECK_INTERLOCK
+		/* slightly crude cross-checking of interlock between threads */
+
+		current_status = cp->status;
+		if (WaitForSingleObject (cp->char_avail, 0) == WAIT_OBJECT_0)
+		  {
+		    /* char_avail has been signaled, so status (which may
+		       have changed) should indicate read has completed
+		       but has not been acknowledged. */
+		    current_status = cp->status;
+		    if (current_status != STATUS_READ_SUCCEEDED
+			&& current_status != STATUS_READ_FAILED)
+		      DebPrint (("char_avail set, but read not completed: status %d\n",
+				 current_status));
+		  }
+		else
+		  {
+		    /* char_avail has not been signaled, so status should
+		       indicate that read is in progress; small possibility
+		       that read has completed but event wasn't yet signaled
+		       when we tested it (because a context switch occurred
+		       or if running on separate CPUs). */
+		    if (current_status != STATUS_READ_READY
+			&& current_status != STATUS_READ_IN_PROGRESS
+			&& current_status != STATUS_READ_SUCCEEDED
+			&& current_status != STATUS_READ_FAILED)
+		      DebPrint (("char_avail reset, but read status is bad: %d\n",
+				 current_status));
+		  }
+#endif
+                  */
+                  wait_hnd[nh as usize] = (*cp).char_avail;               // C 3249
+                  fdindex[nh as usize] = i;                               // C 3250
+                  if wait_hnd[nh as usize].is_null () { emacs_abort (); }   // C 3251
+                  nh += 1;                                               // C 3252
+                  /* C 3253-3256: the dead `FULL_DEBUG` arm.  */
+                  /*
+#ifdef FULL_DEBUG
+		DebPrint (("select waiting on child %d fd %d\n",
+			   cp-child_procs, i));
+#endif
+                  */
+                }
+              else
+                {
+                  /* Unable to find something to wait on for this fd, skip */
+
+		/* Note that this is not a fatal error, and can in fact
+		   happen in unusual circumstances.  Specifically, if
+		   sys_spawnve fails, eg. because the program doesn't
+		   exist, and debug-on-error is t so Fsignal invokes a
+		   nested input loop, then the process output pipe is
+		   still included in input_wait_mask with no child_proc
+		   associated with it.  (It is removed when the debugger
+		   exits the nested input loop and the error is thrown.)  */
+                  DebPrint! (("sys_select: fd %ld is invalid! ignoring\n", i));   // C 3271
+                }
+            }
+        }
+      i += 1;
+    }
+
+  /* C 3276's `count_children:` label - C's two `goto count_children` jumps (C 3478) are this
+     loop's `continue`.  */
+  'count_children: loop
+    {
+      /* Add handles of child processes.  */
+      nc = 0;                                                            // C 3278
+      let base: *mut child_process = child_procs.as_mut_ptr ();
+      cp = base.add ((child_proc_count - 1) as usize);                   // C 3279
+      while cp >= base
+        {
+    /* Some child_procs might be sockets; ignore them.  Also some
+       children may have died already, but we haven't finished reading
+       the process output; ignore them too.  */
+          if CHILD_ACTIVE! (*cp) && !(*cp).procinfo.hProcess.is_null ()   // C 3283
+              && ((*cp).fd < 0                                            // C 3284
+                  || (fd_info[(*cp).fd as usize].flags & FILE_SEND_SIGCHLD as c_uint) == 0   // C 3285
+                  || (fd_info[(*cp).fd as usize].flags & FILE_AT_EOF as c_uint) != 0)        // C 3286
+            {
+              wait_hnd[(nh + nc) as usize] = (*cp).procinfo.hProcess;     // C 3289
+              cps[nc as usize] = cp;                                      // C 3290
+              nc += 1;                                                    // C 3291
+            }
+          cp = cp.sub (1);
+        }
+
+      /* Nothing to look for, so we didn't find anything */
+      if nh + nc == 0                                                     // C 3295
+        {
+          if !timeout.is_null ()                                          // C 3297
+            { Sleep (timeout_ms); }                                       // C 3298
+          if noninteractive != 0                                          // C 3299
+            {
+              if handle_file_notifications (core::ptr::null_mut ()) != 0   // C 3301
+                { return 1; }                                             // C 3302
+            }
+          return 0;                                                       // C 3304
+        }
+
+      start_time = GetTickCount ();                                       // C 3307
+
+      /* Wait for input or child death to be signaled.  If user input is
+         allowed, then also accept window messages.  */
+      if FD_ISSET! (0, &orfds)                                            // C 3311
+        {
+          active = msg_wait_for_objects ((nh + nc) as DWORD, wait_hnd.as_mut_ptr (),
+                                         timeout_ms);                     // C 3312
+        }
+      else
+        {
+          active = wait_for_objects ((nh + nc) as DWORD, wait_hnd.as_mut_ptr (),
+                                     timeout_ms);                         // C 3314
+        }
+
+      if active == WFO_FAILED                                             // C 3316
+        {
+          DebPrint! (("select.WaitForMultipleObjects (%d, %lu) failed with %lu\n",
+                      nh + nc, timeout_ms, GetLastError ()));             // C 3318-3319
+      /* don't return EBADF - this causes wait_reading_process_output to
+	 abort; WAIT_FAILED is returned when single-stepping under
+	 Windows 95 after switching thread focus in debugger, and
+	 possibly at other times. */
+          *errno () = EINTR;                                              // C 3324
+          return -1;                                                      // C 3325
+        }
+      else if active == WFO_TIMEOUT                                       // C 3327
+        {
+          if noninteractive != 0                                          // C 3329
+            {
+              if handle_file_notifications (core::ptr::null_mut ()) != 0   // C 3331
+                { return 1; }                                             // C 3332
+            }
+          return 0;                                                       // C 3334
+        }
+      else if active >= 0 && active < WFO_MAX_WAIT as DWORD               // C 3336
+        {
+          ;                                                               // C 3338
+        }
+      else if active >= WFO_ABANDONED                                     // C 3340
+               && active < WFO_ABANDONED + WFO_MAX_WAIT as DWORD          // C 3341
+        {
+          active -= WFO_ABANDONED;                                        // C 3343
+        }
+      else
+        { emacs_abort (); }                                               // C 3346
+
+  /* Loop over all handles after active (now officially documented as
+     being the first signaled handle in the array).  We do this to
+     ensure fairness, so that all channels with data available will be
+     processed - otherwise higher numbered channels could be starved. */
+      loop                                                                // C 3352
+        {
+          if active == (nh + nc) as DWORD                                 // C 3354
+            {
+	  /* There are messages in the lisp thread's queue; we must
+             drain the queue now to ensure they are processed promptly,
+             because if we don't do so, we will not be woken again until
+             further messages arrive.
+
+	     NB. If ever we allow window message procedures to callback
+	     into lisp, we will need to ensure messages are dispatched
+	     at a safe time for lisp code to be run (*), and we may also
+	     want to provide some hooks in the dispatch loop to cater
+	     for modeless dialogs created by lisp (ie. to register
+	     window handles to pass to IsDialogMessage).
+
+	     (*) Note that MsgWaitForMultipleObjects above is an
+	     internal dispatch point for messages that are sent to
+	     windows created by this thread.  */
+              if drain_message_queue () != 0                              // C 3371
+	      /* If drain_message_queue returns non-zero, that means
+		 we received a WM_EMACS_FILENOTIFY message.  If this
+		 is a TTY frame, we must signal the caller that keyboard
+		 input is available, so that w32_console_read_socket
+		 will be called to pick up the notifications.  If we
+		 don't do that, file notifications will only work when
+		 the Emacs TTY frame has focus.  */
+                  && FRAME_TERMCAP_P (SELECTED_FRAME ())                  // C 3379
+                  /* they asked for stdin reads */
+                  && FD_ISSET! (0, &orfds)                                // C 3381
+                  /* the stdin handle is valid */
+                  && !keyboard_handle.is_null ()                          // C 3383
+                {
+                  FD_SET! (0, rfds);                                      // C 3385
+                  if nr == 0                                              // C 3386
+                    { nr = 1; }                                           // C 3387
+                }
+            }
+          else if active >= nh as DWORD                                   // C 3390
+            {
+              cp = cps[(active - nh as DWORD) as usize];                  // C 3392
+
+	  /* We cannot always signal SIGCHLD immediately; if we have not
+	     finished reading the process output, we must delay sending
+	     SIGCHLD until we do.  */
+
+              if (*cp).fd >= 0                                            // C 3398
+                  && (fd_info[(*cp).fd as usize].flags & FILE_AT_EOF as c_uint) == 0
+                { fd_info[(*cp).fd as usize].flags |= FILE_SEND_SIGCHLD as c_uint; }   // C 3399
+              /* SIG_DFL for SIGCHLD is ignored */
+              else if sig_handlers[SIGCHLD as usize] != SIG_DFL           // C 3401
+                      && sig_handlers[SIGCHLD as usize] != SIG_IGN        // C 3402
+                {
+                  /* C 3404-3407: the dead `FULL_DEBUG` arm.  */
+                  /*
+#ifdef FULL_DEBUG
+	      DebPrint (("select calling SIGCHLD handler for pid %d\n",
+			 cp->pid));
+#endif
+                  */
+                  sig_handlers[SIGCHLD as usize].unwrap () (SIGCHLD);      // C 3408
+                }
+            }
+          else if fdindex[active as usize] == -1                          // C 3411
+            {
+              /* Quit (C-g) was detected.  */
+              *errno () = EINTR;                                          // C 3414
+              return -1;                                                  // C 3415
+            }
+          else if !rfds.is_null () && fdindex[active as usize] == 0        // C 3417
+            {
+              /* Keyboard input available */
+              FD_SET! (0, rfds);                                          // C 3420
+              nr += 1;                                                    // C 3421
+            }
+          else
+            {
+	  /* Must be a socket or pipe - read ahead should have
+             completed, either succeeding or failing.  If this handle
+             was waiting for an async 'connect', reset the connect
+             flag, so it could read from now on.  */
+              if !wfds.is_null ()                                         // C 3429
+                  && (fd_info[fdindex[active as usize] as usize].flags
+                      & FILE_CONNECT as c_uint) != 0
+                {
+                  cp = fd_info[fdindex[active as usize] as usize].cp
+                    as *mut child_process;                                // C 3431
+                  if !cp.is_null ()                                       // C 3432
+                    {
+		  /* Don't reset the FILE_CONNECT bit and don't
+		     acknowledge the read if the status is
+		     STATUS_CONNECT_FAILED or some other
+		     failure. That's because the thread exits in those
+		     cases, so it doesn't need the ACK, and we want to
+		     keep the FILE_CONNECT bit as evidence that the
+		     connect failed, to be checked in sys_read.  */
+                      if (*cp).status == STATUS_READ_SUCCEEDED            // C 3441
+                        {
+                          fd_info[(*cp).fd as usize].flags
+                            &= !(FILE_CONNECT as c_uint);                 // C 3443
+                          (*cp).status = STATUS_READ_ACKNOWLEDGED;        // C 3444
+                        }
+                      ResetEvent ((*cp).char_avail);                      // C 3446
+                    }
+                  FD_SET! (fdindex[active as usize], wfds);               // C 3448
+                }
+              else if !rfds.is_null ()
+                { FD_SET! (fdindex[active as usize], rfds); }             // C 3451
+              nr += 1;                                                    // C 3452
+            }
+
+      /* Even though wait_reading_process_output only reads from at most
+	 one channel, we must process all channels here so that we reap
+	 all children that have died.  */
+          active += 1;                                                    // C 3458
+          while active < (nh + nc) as DWORD
+            {
+              if WaitForSingleObject (wait_hnd[active as usize], 0)       // C 3459
+                  == WAIT_OBJECT_0
+                { break; }                                                // C 3460
+              active += 1;
+            }
+          if !(active < (nh + nc) as DWORD) { break; }                    // C 3461
+        }
+
+      if noninteractive != 0                                              // C 3463
+        {
+          if handle_file_notifications (core::ptr::null_mut ()) != 0       // C 3465
+            { nr += 1; }                                                  // C 3466
+        }
+
+      /* If no input has arrived and timeout hasn't expired, wait again.  */
+      if nr == 0                                                          // C 3470
+        {
+          let elapsed: DWORD = GetTickCount () - start_time;              // C 3472
+
+          if timeout_ms > elapsed                                         // C 3474
+            {
+              if timeout_ms != INFINITE                                   // C 3476
+                { timeout_ms -= elapsed; }                                // C 3477
+              continue 'count_children;                                   // C 3478 (C's `goto`)
+            }
+        }
+
+      return nr;                                                          // C 3482
+    }
+}
+
+/* C's `<keyboard.h>`/`<winbase.h>`: the two entries this function calls and no mirror in this
+   unit's graph carries (`handle_file_notifications` and `drain_message_queue` are in the
+   `w32term.rs` mirror).  */
+/// C: extern bool detect_input_pending (void);   [lisp.h 5095]
+/// C: DWORD WINAPI GetTickCount (void);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn detect_input_pending () -> bool;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetTickCount () -> DWORD;
+}

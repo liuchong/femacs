@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**4907 lines**, md5 `f9703060da104d4ee2f24d4dd18c915f`), carrying
-> **C 1-3106** - P-86 ④'s first sixteen slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**5379 lines**, md5 `d506705c9ce32d820a87ffc738a9511f`), carrying
+> **C 1-3483** - P-86 ④'s first seventeen slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -128,9 +128,10 @@ which `check-dead-file-coverage.py` requires):
 | 2530-2674 | `w32_executable_type`: the ANSI-codepage note, the four defaults, the `.com`/`.bat`/`.cmd` extension test with its `COMSPEC` recursion, the DOS/NT header walk (the two records, the two "DOS program" answers, the 32-bit optional-header read, the `IMAGE_NT_OPTIONAL_HDR64_MAGIC` arm under its feature, and the import-directory walk with `RVA_TO_PTR` and the two DLL-name tests) and the `unwind` tail | file gate (slice 13); the round's use-site `<windows.h>`/`<winnt.h>` block spells the two records, `LOWORD` and the 64-bit pair (Deviations 60), the `#ifdef IMAGE_NT_OPTIONAL_HDR64_MAGIC` guard becomes `feature = "image_nt_optional_hdr64_magic"` (Deviations 61), C's `goto unwind` is `break 'unwind` (Deviations 48's device), and `RVA_TO_PTR` is written out at C 66-69 (Deviation 6 retired) |
 | 2676-2720 | `compare_env` and `merge_and_sort_env`: the environment pair `sys_spawnve` calls (C's `toupper` comparison, the two copy loops with their pointer-difference counts, and C 2717's `qsort`) | file gate (slice 14); `qsort` stands at the use site with C's own text (`src/buffer.rs` 129-134's row) and `compare_env` takes the `extern "C"` ABI the comparator needs while keeping C's `static` (Deviations 64/65) |
 | 2722-3078 | `sys_spawnve`: the mode guard, the `openp` fallback, the ANSI conversion and `_mbspbrk` guard, the DOS-app `CMDPROXY` branch, the two `argv` quoting passes (with C 2976-2988's `#if 0` arm carried as C's text) and the `envp` merge, ending at the `new_child`/`create_child` pair | file gate (slice 15); C's four `alloca` sites are PORTING.md P-05's `sa_stack_alloc` (Deviations 66), the CRT/SDK names no mirror carries stand at the use site (Deviations 69), and the round removed the unit's three stale `errno` duplicates (Deviations 68) |
-| 3080-3097 | the `sys_select` overview comment (what the function waits on, why it waits on `interrupt_handle`, and the `EINTR` answer when C-g wakes it) | carried with C 3108's function, the next row's first item (the file's rule that a C comment belongs to the item it documents) |
+| 3080-3097 | the `sys_select` overview comment | **landed in slice 17**, with the function it documents |
 | 3099-3106 | the three extern objects `sys_select` reads: `keyboard_handle` (`w32console.c`), `interrupt_handle` (`w32xfns.c`) and `proc_buffered_char` (`process.c`) | file gate (slice 16); C's three one-line comments stand above each declaration, and the array's length is the mirror's `FD_SETSIZE` through its module path (Deviations 36/71) |
-| 3108-4903 | **the remainder of the file** - C 3108's `sys_select` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_select` (C 3108, the file's longest function), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3108-3483 | `sys_select`: the file's longest function (the four function-local statics, the timeout decode and set copies, the descriptor scan with its stdin and child/socket arms, the `count_children` label and child scan, the five-way answer, the fairness `do`/`while` and the timeout recheck) | file gate (slice 17); the four statics are Rust `static mut` items inside the function (Deviations 72), C's `goto count_children` is a labeled loop and the `do`/`while` the negated break (Deviations 73), the three dead debug arms are carried as C's text (Deviations 74), and `detect_input_pending`/`GetTickCount` stand at the use site (Deviations 75) |
+| 3485-4903 | **the remainder of the file** - C 3485-3488's `w32_valid_process_id` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `w32_valid_process_id` (C 3488), `find_child_console`, `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1223,3 +1224,50 @@ as the whole reference file while C 3108-4903 is still to land.
     `syms_of_ntproc`): re-measure and re-append the stem's tolerance row when the file is covered,
     the `w32fns` 0.35-to-0.50 precedent.  The per-function token check is unaffected and remains the
     real guard.
+
+## Slice 17 (2026-10-14, status 4.296): C 3080-3483
+
+**What this round is.**  `sys_select` - the file's longest function (376 C lines) and the one whose
+declarations slices 16's three externs were landed for: the four function-local statics, the timeout
+decode, the two `SELECT_TYPE` set copies with their `FD_ZERO`s, the `interrupt_handle` entry, the
+descriptor scan with its stdin arm (`detect_input_pending`, `handle_file_notifications`) and its
+child/socket arm (the `STATUS_READ_ACKNOWLEDGED` handshake), the `count_children` label with its
+child scan, the wait and its five-way answer, the fairness `do`/`while` over the remaining handles,
+and the noninteractive drain with the timeout recheck.  Port: 4,907 -> **5379 lines** (+472).  The
+next row's first item is C 3485-3488's `w32_valid_process_id` comment.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - slice 15's improved baseline, unchanged.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 4908 5379` -> `33
+capitalized identifiers, missing: []` - clean, including the three carried dead arms.
+**Evidence ④ - the `--check`, do/while and drift readings.**  **67 -> 66 `- missing` rows**
+(`missing function sys_select`), one token row (`does not mention goto`, recorded in
+`docs/ports/macro-body-notes.tsv`).  `check-do-while.py`: `221 C do/while condition(s), 73 matched by
+a port if ... { break; }, 0 failure(s)` - this round's fairness loop is one of the 73.  Drift 0.4%
+-> **-9.7%**: with the file's comment- and SDK-heaviest function in, the port now carries ~10% *more*
+lines than the whole reference (the shape `w32fns` ended at, 0.50); the stem's 0.36 row still covers
+it (owed 18's re-measure is what fixes the final number).
+
+**Deviations (this slice's additions).**
+
+72. **The four function-local statics stay statics** - Rust allows `static mut` items inside a
+    function, so C 3112-3115's `orfds`/`owfds`/`cps`/`wait_hnd`/`fdindex` are declared in place
+    (the same `core::mem::zeroed ()`/`null_mut ()` initialisers this file gives every static), and
+    the two set types are spelled through the mirror's nullary `SELECT_TYPE! ()` with `FD_ZERO!`,
+    `FD_SET!` and `FD_ISSET!` (the mirror's own macros, in this unit's graph at their root).
+73. **C 3276's `count_children:` label and C 3478's `goto count_children` are a labeled `loop`** with
+    `continue 'count_children` (a *backward* jump: the `start:`/`goto start` device the tree records
+    for `find_symbol_value` and friends), and C 3352-3461's `do { … } while (active < nh + nc)` is
+    the port's `loop` with the negated `break` (P-95, `check-do-while.py`'s 73 matched pairs).
+74. **C's three dead arms are carried as C's own text at their positions** (P-51): the
+    `CHECK_INTERLOCK` block (C 3219-3248, a macro no configuration defines) and the two
+    `FULL_DEBUG` blocks (C 3253-3256, C 3404-3407).
+75. **`detect_input_pending` and `GetTickCount` stand at the use site** (`lisp.h` 5095's
+    `bool detect_input_pending (void)` and `<winbase.h>`'s `GetTickCount`): no mirror in this unit's
+    graph carries either, while `handle_file_notifications`/`drain_message_queue` are the
+    `w32term.rs` mirror's and `FRAME_TERMCAP_P`/`SELECTED_FRAME` come in through `w32term.rs` ->
+    `frame.rs`.  C's `ignored` parameter is kept although nothing reads it (the unit's
+    `unused_variables` allow covers it).
