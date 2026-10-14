@@ -8999,7 +8999,7 @@ unsafe extern "C" fn w32_read_socket (terminal: *mut terminal, hold_quit: *mut i
 
       if !f.is_null () && !w32_disable_double_buffering                 // C 6395
 	  && w32_output_bits! (paint_buffer_dirty, FRAME_OUTPUT_DATA! (f)) != 0   // C 6396
-	  && !FRAME_GARBAGED_P (f) && !ignore_dirty_back_buffer                   // C 6397
+	  && !garbaged! (f) && !ignore_dirty_back_buffer                        // C 6397
 	{ w32_show_back_buffer (f); }                                     // C 6398
     }
 
@@ -10978,7 +10978,7 @@ unsafe extern "C" fn w32_show_hourglass (f: *mut frame)
 {
   if menubar_in_use == 0 && current_popup_menu.is_null ()             // C 7761
     {
-      let w32: *mut w32_output = (*f).output_data.w32 as *mut w32_output;   // C 7763
+      let w32: *mut w32_output = FRAME_OUTPUT_DATA! (f) as *mut w32_output;   // C 7763
 
       w32_output_bits! (hourglass_p, w32, 1);                          // C 7765
       SetCursor ((*w32).hourglass_cursor);                             // C 7766
@@ -10995,7 +10995,7 @@ unsafe extern "C" fn w32_show_hourglass (f: *mut frame)
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" fn w32_hide_hourglass (f: *mut frame)
 {
-  let w32: *mut w32_output = (*f).output_data.w32 as *mut w32_output;   // C 7775
+  let w32: *mut w32_output = FRAME_OUTPUT_DATA! (f) as *mut w32_output;   // C 7775
 
   w32_output_bits! (hourglass_p, w32, 0);                              // C 7777
   if pointer_invisible! (f)                                            // C 7778
@@ -11986,4 +11986,117 @@ unsafe fn w32_initialize ()
 
   w32_get_mouse_wheel_vertical_delta ();                               // C 8268
   w32_register_for_sleep_notifications ();                             // C 8269
+}
+
+/// C 8272-8414: `void syms_of_w32term (void)` - non-`static` (w32term.h 914 declares it), so
+/// `#[unsafe(no_mangle)]` with the C ABI.  **The lane's last function and the closing item of
+/// `src/w32term.c`.**  C's eleven `DEFSYM`s are the mirror's no-op `DEFSYM!` (the symbol table
+/// carries them), C's fourteen `DEFVAR`s are the shaped `DEFVAR_LISP!`/`DEFVAR_INT!`/
+/// `DEFVAR_BOOL!` macros (`include/lisp.rs` 3483-3560), each followed by C's own assignment, and
+/// C 8384-8391's `#if defined WINDOWSNT && HAVE_NATIVE_IMAGE_API` pair is the `windowsnt` +
+/// `have_native_image_api` feature pair (P-51).  Two of the C texts are `SKIP: real doc in
+/// xterm.c.  ` - C's own placeholder, carried verbatim (the `src/w32fns.rs` 9881 device for the
+/// same sentence).
+/// C: void
+/// C: syms_of_w32term (void)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_w32term ()
+{
+  DEFSYM! (Qvendor_specific_keysyms, "vendor-specific-keysyms");       // C 8275
+
+  DEFSYM! (Qadded, "added");                                           // C 8277
+  DEFSYM! (Qremoved, "removed");                                       // C 8278
+  DEFSYM! (Qmodified, "modified");                                     // C 8279
+  DEFSYM! (Qrenamed_from, "renamed-from");                             // C 8280
+  DEFSYM! (Qrenamed_to, "renamed-to");                                 // C 8281
+
+  /* Bitmap icon constants.  */
+  DEFSYM! (Qapplication, "application");                               // C 8284
+  DEFSYM! (Qwinlogo, "winlogo");                                       // C 8285
+
+  DEFVAR_LISP! (c"x-wait-for-event-timeout", Vx_wait_for_event_timeout,
+		doc: "SKIP: real doc in xterm.c.  ");                  // C 8287-8288
+  Vx_wait_for_event_timeout = make_float (0.1);                        // C 8289
+
+  DEFVAR_INT! (c"w32-num-mouse-buttons", w32_num_mouse_buttons,
+	       "Number of physical mouse buttons.  ");                 // C 8291-8293
+  w32_num_mouse_buttons = 2;                                           // C 8294
+
+  DEFVAR_LISP! (c"w32-swap-mouse-buttons", Vw32_swap_mouse_buttons,
+		doc: "Swap the mapping of middle and right mouse buttons.\nWhen nil, middle button is mouse-2 and right button is mouse-3.  ");   // C 8296-8299
+  Vw32_swap_mouse_buttons = Qnil ();                                   // C 8300
+
+  DEFVAR_LISP! (c"w32-grab-focus-on-raise", Vw32_grab_focus_on_raise,
+		doc: "Raised frame grabs input focus.\nWhen t, `raise-frame' grabs input focus as well.  This fits well\nwith the normal Windows click-to-focus policy, but might not be\ndesirable when using a point-to-focus policy.  ");   // C 8302-8307
+  Vw32_grab_focus_on_raise = Qt ();                                    // C 8308
+
+  DEFVAR_LISP! (c"w32-capslock-is-shiftlock", Vw32_capslock_is_shiftlock,
+		doc: "Apply CapsLock state to non character input keys.\nWhen nil, CapsLock only affects normal character input keys.  ");   // C 8310-8313
+  Vw32_capslock_is_shiftlock = Qnil ();                                // C 8314
+
+  DEFVAR_LISP! (c"w32-recognize-altgr", Vw32_recognize_altgr,
+		doc: "Recognize right-alt and left-ctrl as AltGr.\nWhen nil, the right-alt and left-ctrl key combination is\ninterpreted normally.  ");   // C 8316-8320
+  Vw32_recognize_altgr = Qt ();                                        // C 8321
+
+  DEFVAR_BOOL! (c"w32-use-visible-system-caret", w32_use_visible_system_caret,
+		doc: "Flag to make the system caret visible.\nWhen this is non-nil, Emacs will indicate the position of point by\nusing the system caret instead of drawing its own cursor.  Some screen\nreader software does not track the system cursor properly when it is\ninvisible, and gets confused by Emacs drawing its own cursor, so this\nvariable is initialized to t when Emacs detects that screen reader\nsoftware is running as it starts up.\n\nWhen this variable is set, other variables affecting the appearance of\nthe cursor have no effect.  ");   // C 8323-8334
+
+  w32_use_visible_system_caret = false;                                // C 8336
+
+  /* We don't yet support this, but defining this here avoids whining
+     from cus-start.el and other places, like "M-x set-variable".  */
+  DEFVAR_BOOL! (c"x-use-underline-position-properties",
+		x_use_underline_position_properties,
+		doc: "SKIP: real doc in xterm.c.  ");                  // C 8340-8342
+  x_use_underline_position_properties = false;                         // C 8343
+  DEFSYM! (Qx_use_underline_position_properties,
+	   "x-use-underline-position-properties");                     // C 8344-8345
+
+  DEFVAR_BOOL! (c"x-underline-at-descent-line", x_underline_at_descent_line,
+		doc: "SKIP: real doc in xterm.c.  ");                  // C 8347-8349
+  x_underline_at_descent_line = false;                                 // C 8350
+  DEFSYM! (Qx_underline_at_descent_line, "x-underline-at-descent-line");   // C 8351
+
+  DEFVAR_LISP! (c"x-toolkit-scroll-bars", Vx_toolkit_scroll_bars,
+		doc: "SKIP: real doc in xterm.c.  ");                  // C 8353-8354
+  Vx_toolkit_scroll_bars = Qt ();                                      // C 8355
+
+  DEFVAR_BOOL! (c"w32-unicode-filenames", w32_unicode_filenames,
+		doc: "Non-nil means use Unicode APIs when passing file names to the OS.\nA value of nil means file names passed to the OS APIs and returned\nfrom those APIs are encoded/decoded using the ANSI codepage\nspecified by `file-name-coding-system'.\n\nThis variable is set to non-nil by default when Emacs runs on Windows\nsystems of the NT family, including W2K, XP, Vista, Windows 7 and\nWindows 8.  It is set to nil on Windows 9X.  ");   // C 8357-8366
+  if os_subtype == OS_SUBTYPE_9X                                      // C 8367
+    { w32_unicode_filenames = false; }                                // C 8368
+  else
+    { w32_unicode_filenames = true; }                                 // C 8370
+
+  DEFVAR_BOOL! (c"w32-use-native-image-API", w32_use_native_image_api,
+		doc: "Non-nil means use the native MS-Windows image API to display images.\n\nA value of nil means displaying images other than PBM and XBM requires\noptional supporting libraries to be installed.\nThe native image API library used is GDI+ via GDIPLUS.DLL.  This\nlibrary is available only since W2K, therefore this variable is\nunconditionally set to nil on older systems.  ");   // C 8372-8380
+
+  /* Disabled for Cygwin/w32 builds, since they don't link against
+     -lgdiplus, see configure.ac.  */
+  /* C 8384's `#if defined WINDOWSNT && HAVE_NATIVE_IMAGE_API` - the `windowsnt` +
+     `have_native_image_api` feature pair (P-51).  */
+  #[cfg (all (feature = "windowsnt", feature = "have_native_image_api"))]
+  {
+    if os_subtype == OS_SUBTYPE_9X                                    // C 8385
+      { w32_use_native_image_api = false; }                           // C 8386
+    else
+      { w32_use_native_image_api = true; }                            // C 8388
+  }
+  #[cfg (not (all (feature = "windowsnt", feature = "have_native_image_api")))]
+  { w32_use_native_image_api = false; }                               // C 8390
+
+  DEFVAR_BOOL! (c"w32-yes-no-dialog-show-cancel", w32_yes_no_dialog_show_cancel,
+		doc: "If non-nil, show Cancel button in MS-Windows GUI Yes/No dialogs.  ");   // C 8393-8395
+  w32_yes_no_dialog_show_cancel = true;                                // C 8396
+
+  /* FIXME: The following variable will be (hopefully) removed
+     before Emacs 25.1 gets released.  */
+
+  DEFVAR_BOOL! (c"w32-add-wrapped-menu-bar-lines", w32_add_wrapped_menu_bar_lines,
+		doc: "Non-nil means frame resizing accounts for wrapped menu bar lines.\nA value of nil means frame resizing does not add the height of wrapped\nmenu bar lines when sending a frame resize request to the Windows API.\nThis usually means that the resulting frame height is off by the number\nof wrapped menu bar lines.  If this is non-nil, Emacs adds the height of\nwrapped menu bar lines when sending frame resize requests to the Windows\nAPI.  ");   // C 8401-8409
+  w32_add_wrapped_menu_bar_lines = true;                               // C 8410
+
+  /* Tell Emacs about this window system.  */
+  Fprovide (Qw32 (), Qnil ());                                         // C 8413
 }

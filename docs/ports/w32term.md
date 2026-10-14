@@ -204,7 +204,7 @@ The `arm` cell says what the port does with the block.
 | 7954-8043 | C 7954's forward declaration of `w32_delete_terminal`, **`w32_create_terminal`** (C 7956-8026, its 44 hook assignments) and `w32_delete_terminal` (C 8028-8042) | file gate (`have_ntgui`); slice 24 below |
 | 8044-8138 | **`w32_term_init`** (C 8044-8112) and `w32_delete_display` (C 8115-8136) | file gate (`have_ntgui`); slice 25 below |
 | 8139-8271 | `w32_init_main_thread` (C 8141-8150), C 8152's `w32_msg_worker` forward declaration and **`w32_initialize`** (C 8154-8270: the user-model lookup, the CYGWIN arm, the window thread, and the `LOAD_PROC` table) | file gate (`have_ntgui`); slice 26 below |
-| 8272-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 8272-8414 | **`syms_of_w32term`** (C 8272-8414): C's eleven `DEFSYM`s, fourteen `DEFVAR`s with their assignments and C 8384-8391's `WINDOWSNT` + `HAVE_NATIVE_IMAGE_API` pair - **the file's last item** | file gate (`have_ntgui`); slice 27 below |
 
 ## Evidence
 
@@ -1739,3 +1739,43 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   4. `extract-abi.py --check` -> `missing function` 3 -> **1**, `missing macro` **1 -> 0**, the
      line-count row at **42.5%** (`11,989` vs `8,414`).
   5. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 27 (C 8272-8414) — the lane's last slice
+
+- **What it is.**  `syms_of_w32term` (C 8272-8414), the file's last item: eleven `DEFSYM`s, the
+  fourteen `DEFVAR`s with their assignments, and C 8384-8391's
+  `#if defined WINDOWSNT && HAVE_NATIVE_IMAGE_API` pair (the `windowsnt` + `have_native_image_api`
+  features, P-51).  Port: 11,989 -> **12,102 lines** (+113).  The line-range table is now
+  **complete** - it has no remainder row, because no C line is left unaccounted for.
+- **`extract-abi.py --check` reads `OK`.**  The lane's last `missing function` row
+  (`syms_of_w32term`) is gone, and **the eight long-standing `does not mention` rows are
+  resolved**, three of them by fixing the port and six by recorded rows:
+  - fixed: `w32_show_hourglass`/`w32_hide_hourglass` now read the output record through
+    `FRAME_OUTPUT_DATA! (f)`, which is C's own token (`FRAME_OUTPUT_DATA (f)`), and
+    `w32_read_socket`'s C 6397 test is the unit's own `garbaged! (f)` macro instead of the mirror
+    function `FRAME_GARBAGED_P` (the `garbaged` token survives, which is why that macro exists);
+  - recorded in `docs/ports/macro-body-notes.tsv`: `w32_make_frame_visible` (`output_data`,
+    `w32` - the bitfield's member path is the packed-bit macro), `w32_make_frame_invisible`
+    (`false`) and `w32_iconify_frame` (`true`) - the mirror's `SET_FRAME_ICONIFIED` takes C's
+    `int` - `w32_free_frame_resources` (`0` - three pointer stores are `core::ptr::null_mut ()`),
+    `w32_read_socket` (`wm_touch` - C 6113-6125's two live labels are the same number, so the live
+    arm is `WM_TOUCHMOVE` and C's text is carried in a comment) and `w32_bitmap_icon` (`1` - the
+    hook's type is `bool`);
+  - and `docs/ports/line-drift-tolerance.tsv` gains the `w32term` row (**0.44**, basis `total`)
+    with the reason the port's text is 42.5% longer than C's.
+- **The SDK surface this slice reads** (P-88 (1), UNVERIFIED): none - every name it uses is a
+  `DEFSYM` the mirror's no-op macro carries, a `static mut` of `include/globals.rs`, or
+  `os_subtype`/`OS_SUBTYPE_9X` from `include/w32common.rs`.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **20 errors, 0 anchored in this slice's text** (the
+     slice compiled clean on its first draft).  The `have_ntgui` + `windowsnt` arm stays at
+     **78 errors**, none naming this slice's names.
+  3. `extract-abi.py --check` -> **`OK`** (0 rows): `missing function` 1 -> **0**, the eight
+     `does not mention` rows -> **0**, and the line-count row is covered by the tolerance row.
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+**This closes the `w32term` lane.**  `src/w32term.c`'s 8,414 lines and `src/w32term.h`'s mirror
+are complete; the file's `docs/ports/w32term.md` table has no remainder and its `--check` is
+`OK`.  What the lane does **not** claim: any runnability (this machine has no Windows toolchain),
+and the SDK declarations it carries at its use sites remain UNVERIFIED.

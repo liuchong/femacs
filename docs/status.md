@@ -20372,3 +20372,10 @@
   ⑥ 十门全 `rc=0`、0 失败；区间表拆为 `8139-8271`（本片）+ `8272-8414`（余项）；台账追加 **`### Slice 26 (C 8139-8271)`**。
   ⑦ 预算与清理：`build-tu` 2 发、臂读数 8 发、`--check` 4 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w26`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.331 `src/w32term.c` 第 27 片（w32term lane，slice 27）——**本 lane 收口片**：C 8272-8414 落地，`syms_of_w32term`（十一个 `DEFSYM`、十四个 `DEFVAR` 及其赋值、C 8384-8391 的 `WINDOWSNT` + `HAVE_NATIVE_IMAGE_API` 对）；w32term.rs 11,989 → 12,102 行（+113，2026-10-15）**：
+  ① **`extract-abi.py --check` 读数 `OK`**：最后一条 `missing function`（`syms_of_w32term`）消失，**八条长期存在的 `does not mention` 行全部收口**——三条靠改端口、六条靠台账登记：`w32_show_hourglass`/`w32_hide_hourglass` 改走 `FRAME_OUTPUT_DATA! (f)`（C 自己的 token），`w32_read_socket` 的 C 6397 改走本单元自己的 `garbaged! (f)`（`garbaged` 这个 token 得以留存，正是该宏存在的理由）；`docs/ports/macro-body-notes.tsv` 新增六行：`w32_make_frame_visible`（`output_data,w32`——位域成员路径由打包位宏承担）、`w32_make_frame_invisible`（`false`）与 `w32_iconify_frame`（`true`）——镜像的 `SET_FRAME_ICONIFIED` 收 C 的 `int`、`w32_free_frame_resources`（`0`——三处指针存储写 `core::ptr::null_mut ()`）、`w32_read_socket`（`wm_touch`——C 6113-6125 两个活标签同号，活臂是 `WM_TOUCHMOVE`，C 原文以注释承载）、`w32_bitmap_icon`（`1`——该钩子类型是 `bool`）；`docs/ports/line-drift-tolerance.tsv` 增 `w32term` 行（**0.44**，basis `total`），理由写明端口比 C 长 42.5% 的那些结构。
+  ② 本片无需新增任何 SDK 面（P-88 ①）：`DEFSYM!` 是镜像里的空宏，其余名字都在 `include/globals.rs` 与 `include/w32common.rs` 里。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数（base）20 条、0 条落在本片**；`have_ntgui` + `windowsnt` 臂仍 **78 条**。`extract-abi.py --check` 由 FAIL 转 **OK（0 行）**。
+  ④ 十门全 `rc=0`、0 失败；**区间表收口——不再有余项行**（`8272-8414` 为本表最后一行，且该行即本文件最后一项）；台账追加 **`### Slice 27 (C 8272-8414) — the lane's last slice`**。
+  ⑤ 预算与清理：`build-tu` 1 发、臂读数 3 发、`--check` 3 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w27`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），用例处 SDK 声明仍 UNVERIFIED。**本 lane 至此收口**：`src/w32term.c`（8,414 C 行）+ `src/w32term.h` 镜像复刻完成，台账无余项、`--check` 为 `OK`。
