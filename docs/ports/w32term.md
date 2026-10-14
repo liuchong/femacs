@@ -200,7 +200,8 @@ The `arm` cell says what the port does with the block.
 | 7148-7502 | `w32_set_window_size` (C 7152-7256), `w32_set_window_size_and_position` (C 7261-7335), `frame_set_mouse_pixel_position` (C 7339-7365), `w32_get_focus_frame` (C 7367-7379), `w32_focus_frame` (C 7388-7405), `w32_raise_frame` (C 7408-7467), `w32_lower_frame` (C 7470-7479) and `w32_frame_raise_lower` (C 7481-7491) | file gate (`have_ntgui`); slice 20 below |
 | 7503-7734 | `w32_make_frame_visible` (C 7503-7599), `w32_make_frame_invisible` (C 7605-7625), `w32_make_frame_visible_invisible` (C 7627-7634), `w32_iconify_frame` (C 7638-7660), `w32_free_frame_resources` (C 7665-7699), `w32_destroy_window` (C 7702-7710) and `w32_wm_set_size_hint` (C 7720-7734) | file gate (`have_ntgui`); slice 21 below |
 | 7736-7864 | the Text Cursor/Fonts banner and the hourglass/cursor family: `w32_check_font` (C 7746-7752, `GLYPH_DEBUG`), `w32_show_hourglass` (C 7758-7768), `w32_hide_hourglass` (C 7772-7783), **`w32_arrow_cursor`** (C 7787-7791), `w32_toggle_invisible_pointer` (C 7793-7804), the Image Hooks banner and `w32_free_pixmap` (C 7813-7817), `w32_initialized` (C 7824) and `w32_initialize_display_info` (C 7826-7864) | file gate (`have_ntgui`); slice 22 below |
-| 7866-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7866-7953 | the xrdb note and `w32_make_rdb` (C 7866-7918), C 7920's `extern frame_parm_handler w32_frame_parm_handlers[];` (recorded, the mirror already declares it) and **`w32_redisplay_interface`** (C 7922-7952, C's 28-entry positional initializer) | file gate (`have_ntgui`); slice 23 below |
+| 7954-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1558,4 +1559,51 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **27 -> 15 rows** (`missing function` 15 -> **8**,
      `missing file-scope object` **1 -> 0**), the line-count row at **32.3%**
      (`11,135` vs `8,414`).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 23 (C 7866-7953)
+
+- **What it is.**  The xrdb note and `w32_make_rdb` (C 7866-7918), C 7920's
+  `extern frame_parm_handler w32_frame_parm_handlers[];` (recorded - the mirror already declares
+  the name) and **`w32_redisplay_interface`** (C 7922-7952), C's 28-entry positional initializer.
+  Port: 11,135 -> **11,317 lines** (+182).  The table's last row splits at C 7953; the next live
+  line is C 7954's `static void w32_delete_terminal (struct terminal *term);` (the next slice's
+  forward declaration).
+- **`w32_make_rdb` retires one `missing function` row** (8 -> 7); its `do { … } while (ch);` is
+  the lane's last real `do`/`while` and takes the P-95 shape (`loop` + `if ch == 0 { break; }`,
+  C's own condition kept as a comment; the `tools/check-do-while.py` reading counts a rewritten
+  condition *unchecked*, never as a failure).
+- **The redisplay-interface object is the port's second** - `src/pgtkterm.rs` 5412's
+  `pgtk_redisplay_interface` is the first, and PORTING.md 1.4's two decisions are taken the same
+  way: the positional initializer becomes a named-field literal whose names come from the mirror
+  record (`dispextern_unit_names::redisplay_interface`, reached through `include/termhooks.rs`
+  16's `include!("dispextern.rs")`), and each entry's type is the *field's* type.  Measured: C's
+  initializer has **28 entries** and the record has **28 fields** in the same order, so nothing is
+  left to C's implicit zeroing; C 7933's `0` is `None`.
+- **Twenty-one entries convert the item's address** with the `G_CALLBACK`-class transmute
+  (`transmute::<*const (), <the field's fn type)> (f as *const ())`) - a direct `as` is `E0605`
+  (measured again here) - and **five are `Some (name)`**: `gui_produce_glyphs` (declared with
+  `*mut dispextern_unit_names::it`, the field's own type) and the four hooks whose C prototypes
+  the mirror spells verbatim (`w32_define_fringe_bitmap`, `w32_destroy_fringe_bitmap`,
+  `w32_compute_glyph_string_overhangs`, `w32_draw_glyph_string`).
+- **Eighteen unit `static` helpers were widened to `unsafe extern "C" fn`** so that an entry may
+  take their address at all (PORTING.md 1.4's second half; the `src/pgtkterm.rs` device).  The
+  definitions themselves are unchanged otherwise - 17 of the 18 are this unit's own;
+  `w32_clear_under_internal_border` is `src/w32fns.rs` 2699's and was already `extern "C"`.
+- **Eight use-site declarations** (P-88 (1), UNVERIFIED): the seven `gui_*` entries and
+  `w32_default_font_parameter`, none of which any mirror carries - `src/w32fns.rs` 9736 defines
+  the last.  `frame_parm_handlers` is `&raw mut w32_frame_parm_handlers as *mut c_void`, the array
+  `include/w32term.rs` 1578 declares (its elements are `*mut c_void` for now) and
+  `src/w32fns.rs` 17313 defines.
+- **The 15 `have_window_system` entries carry that feature**, because the record's own members
+  are C 3131-3195's `#ifdef HAVE_WINDOW_SYSTEM` members; the arm that turns `have_window_system`
+  off (`have_ntgui` + `windowsnt`) therefore still names only the 13 base fields, and this slice
+  adds **no anchored error to that arm**.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **20 errors, 0 anchored in this slice's text** (the
+     first draft's one `E0384` was `xrm_option`, C's by-value parameter the body steps).
+  3. `extract-abi.py --check` -> `missing function` 8 -> **7** (`missing file-scope object`
+     stays 0, the `LOAD_PROC` macro row stays), the line-count row at **34.5%**
+     (`11,317` vs `8,414`).
   4. The ten gates: all `rc=0`, 0 FAIL.

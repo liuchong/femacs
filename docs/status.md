@@ -20332,3 +20332,14 @@
   ⑩ 十门全 `rc=0`、0 失败；区间表拆为 `7736-7864`（本片）+ `7866-8414`（余项，起始行即首个未落地的 C 7866）；台账追加 **`### Slice 22 (C 7736-7864)`**。
   ⑪ 预算与清理：`build-tu` 2 发、臂读数 2 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w22`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+- **4.327 `src/w32term.c` 第 23 片（w32term lane，slice 23）：C 7866-7953 落地——xrdb 与 redisplay 接口表：`w32_make_rdb`（C 7866-7918）、C 7920 的 `extern frame_parm_handler w32_frame_parm_handlers[];`（记为原文，镜像已声明该名）与 **`w32_redisplay_interface`**（C 7922-7952，C 的 28 项位置式初始化器）；w32term.rs 11,135 → 11,317 行（+182，2026-10-15）**：
+  ① `w32_make_rdb` 退掉一条 `missing function`（8 → **7**）；其 `do { } while (ch);` 是本 lane 最后一个真 do/while，按 P-95 写 `loop` + `if ch == 0 { break; }`（C 的条件留在注释里；`check-do-while.py` 把改写过的条件计为 unchecked，不判失败）。C 的 `*xrm_option++`/`*current++ = …` 写成 C 的两条语句（`src/w32fns.rs` 7210/7261 的写法）；首稿的 `E0384` 是 C 的按值参数 `xrm_option` 被循环步进，补 `mut`。
+  ② **这是端口第二个 redisplay-interface 对象**（`src/pgtkterm.rs` 5412 的 `pgtk_redisplay_interface` 是第一个），PORTING.md 1.4 的两条决定照办：位置式初始化器写成同名字段字面量（名字取镜像记录 `dispextern_unit_names::redisplay_interface`，经 `include/termhooks.rs` 16 的 `include!("dispextern.rs")` 到手），每项的类型取**字段的**类型。实测 C 的初始化器 **28 项 = 记录 28 字段**且顺序一致，C 7933 的 `0` 是 `None`。
+  ③ 二十一项按 `G_CALLBACK` 类 transmute 转换地址（`transmute::<*const (), <字段的 fn 类型)> (f as *const ())`；直接 `as` 是 `E0605`，本片再次实测）；**五项直接 `Some (name)`**：`gui_produce_glyphs`（用字段自己的 `*mut dispextern_unit_names::it`）与四个镜像逐字保留 C 原型的钩子（`w32_define_fringe_bitmap`/`w32_destroy_fringe_bitmap`/`w32_compute_glyph_string_overhangs`/`w32_draw_glyph_string`）。
+  ④ **本单元 17 个 `static` 助手放宽为 `unsafe extern "C" fn`**（PORTING.md 1.4 后半，`src/pgtkterm.rs` 的装置），否则表项无法取它们的地址；`w32_clear_under_internal_border` 是 `src/w32fns.rs` 2699 的、本就 `extern "C"`，故合计 18 项。
+  ⑤ 用例处八条新声明（P-88 ①，UNVERIFIED）：七个 `gui_*` 与 `w32_default_font_parameter`，任何镜像都不带（末项由 `src/w32fns.rs` 9736 定义）；`frame_parm_handlers` 写 `&raw mut w32_frame_parm_handlers as *mut c_void`（数组由 `include/w32term.rs` 1578 声明、`src/w32fns.rs` 17313 定义）。
+  ⑥ 15 个 `have_window_system` 表项带该 feature（记录自己的成员就是 C 3131-3195 的 `#ifdef HAVE_WINDOW_SYSTEM` 成员），所以关掉 `have_window_system` 的臂（`have_ntgui` + `windowsnt`）仍只命名 13 个基字段——本片给该臂**加了 0 条锚定错误**。
+  ⑦ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数（base）20 条、0 条落在本片**；`extract-abi.py --check` `missing function` 8 → **7**（`missing file-scope object` 仍 0、`LOAD_PROC` 宏行仍在），行数行 **34.5%**（11,317 : 8,414）。
+  ⑧ 十门全 `rc=0`、0 失败；区间表拆为 `7866-7953`（本片）+ `7954-8414`（余项，起始行即首个未落地的 C 7954）；台账追加 **`### Slice 23 (C 7866-7953)`**。
+  ⑨ 预算与清理：`build-tu` 2 发、臂读数 5 发、`--check` 1 发、十门 1 轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w23`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

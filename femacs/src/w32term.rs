@@ -1258,7 +1258,7 @@ unsafe fn w32_update_begin (f: *mut frame)
 
 /* C 672-685: "Start update of window W."  C's third `&&` operand is the `HWND` truth test.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_update_window_begin (w: *mut window)
+unsafe extern "C" fn w32_update_window_begin (w: *mut window)
 {
   /* Hide the system caret during an update.  */
   if w32_use_visible_system_caret && ! w32_system_caret_hwnd.is_null ()
@@ -1273,7 +1273,7 @@ unsafe fn w32_update_window_begin (w: *mut window)
    `FRAME_FOREGROUND_PIXEL` are `unsigned long` while `w32_fill_rect`'s parameter is a `COLORREF`
    (`uint32_t`), so C's narrowing is written out at both call sites.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
+unsafe extern "C" fn w32_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
   let mut r: RECT = core::mem::zeroed ();
@@ -1299,7 +1299,7 @@ unsafe fn w32_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, 
    C's three `?:` expressions on pointers are the port's `if`/`else` in C's order, and the six
    `w32_fill_area_abs` calls are `include/w32term.rs`'s macro (C 641-655's).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_draw_window_divider (w: *mut window, x0: c_int, x1: c_int, y0: c_int, y1: c_int)
+unsafe extern "C" fn w32_draw_window_divider (w: *mut window, x0: c_int, x1: c_int, y0: c_int, y1: c_int)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
   let hdc: HDC = get_frame_dc (f);
@@ -1342,7 +1342,7 @@ unsafe fn w32_draw_window_divider (w: *mut window, x0: c_int, x1: c_int, y0: c_i
 
 /* C 762-783: "End update of window W. …"  The third `&&` operand is the `HWND` truth test again.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_update_window_end (w: *mut window, cursor_on_p: bool,
+unsafe extern "C" fn w32_update_window_end (w: *mut window, cursor_on_p: bool,
                                 mouse_face_overwritten_p: bool)
 {
   /* Unhide the caret.  This won't actually show the cursor, unless it
@@ -1417,7 +1417,7 @@ pub unsafe extern "C" fn w32_flip_buffers_if_dirty (f: *mut frame)
    965/988/990), and `w->pseudo_window_p` is `window.h`'s own `WINDOW_PSEUDO_P`
    (`include/window.rs` 391-392).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
+unsafe extern "C" fn w32_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
 {
   let mut f: *mut frame = 0 as *mut frame;
   let mut width: c_int = 0;
@@ -1491,7 +1491,7 @@ unsafe fn w32_after_update_window_line (w: *mut window, desired_row: *mut glyph_
    it names the type the way `abi_shim.rs` 2087 does, which is the measured reading there ("the
    unqualified name is `E0425` in the flip arm").  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
+unsafe extern "C" fn w32_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
 				  p: *mut dispextern_unit_names::draw_fringe_bitmap_params)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
@@ -1582,7 +1582,7 @@ unsafe fn w32_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
    `void *` assignment written out (`as *mut HBITMAP`), and `fringe_bmp[i++] = 0` is C's
    post-increment loop, which the port keeps as the index then the step.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_define_fringe_bitmap (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)
+unsafe extern "C" fn w32_define_fringe_bitmap (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)
 {
   if which >= max_fringe_bmp
     {
@@ -1852,7 +1852,7 @@ macro_rules! IMAGE_BACKGROUND_TRANSPARENT {
    the last item of slice 1, this is the first of slice 2.  C's `fringe_bmp[which]` truth test is
    the port's null test, and the `0` C stores is the port's `0 as HBITMAP` (the same value).  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_destroy_fringe_bitmap (which: c_int)
+unsafe extern "C" fn w32_destroy_fringe_bitmap (which: c_int)
 {
   if which >= max_fringe_bmp
     { return; }
@@ -2115,7 +2115,7 @@ unsafe fn w32_set_glyph_string_clipping_exactly (src: *mut glyph_string, dst: *m
    `*mut composition` and the three metric members are `short`s, so C's assignment to the `int`
    overhang members widens with `as c_int`.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_compute_glyph_string_overhangs (s: *mut glyph_string)
+unsafe extern "C" fn w32_compute_glyph_string_overhangs (s: *mut glyph_string)
 {
   if (*s).cmp.is_null ()
     {
@@ -4185,7 +4185,7 @@ unsafe extern "C" {
 /// C: static void
 /// C: w32_draw_glyph_string (struct glyph_string *s)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_draw_glyph_string (s: *mut glyph_string)
+unsafe extern "C" fn w32_draw_glyph_string (s: *mut glyph_string)
 {
   /* C reads `s->face` (a `struct face *`) through its own member access; the port binds it once
      (the `x_draw_glyph_string` reading) because the bitfield macros take the record's pointer.  */
@@ -4591,7 +4591,7 @@ unsafe extern "C" {
 /// C: w32_shift_glyphs_for_insert (struct frame *f, int x, int y,
 /// C: 			     int width, int height, int shift_by)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_shift_glyphs_for_insert (f: *mut frame, x: c_int, y: c_int,
+unsafe extern "C" fn w32_shift_glyphs_for_insert (f: *mut frame, x: c_int, y: c_int,
 				       width: c_int, height: c_int, shift_by: c_int)
 {
   let mut hdc: HDC;                                                  // C 3047
@@ -4702,7 +4702,7 @@ unsafe fn w32_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
 /// C: static void
 /// C: w32_scroll_run (struct window *w, struct run *run)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_scroll_run (w: *mut window, run: *mut run)
+unsafe extern "C" fn w32_scroll_run (w: *mut window, run: *mut run)
 {
   let f: *mut frame = XFRAME ((*w).frame);                           // C 3141
   let mut x: c_int;                                                  // C 3142
@@ -9323,7 +9323,7 @@ unsafe fn w32_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut width: c
 /// C: static void
 /// C: w32_define_frame_cursor (struct frame *f, Emacs_Cursor cursor)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+unsafe extern "C" fn w32_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
 {
   w32_define_cursor (FRAME_W32_WINDOW! (f), cursor);                   // C 6634
 }
@@ -9336,7 +9336,7 @@ unsafe fn w32_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
 /// C: static void
 /// C: w32_clear_frame_area (struct frame *f, int x, int y, int width, int height)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int, height: c_int)
+unsafe extern "C" fn w32_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int, height: c_int)
 {
   let hdc: HDC;                                                        // C 6643
 
@@ -9359,7 +9359,7 @@ unsafe fn w32_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int,
 /// C: 			int x, int y, enum text_cursor_kinds cursor_type,
 /// C: 			int cursor_width, bool on_p, bool active_p)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
+unsafe extern "C" fn w32_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row,
 				  x: c_int, y: c_int, mut cursor_type: text_cursor_kinds,
 				  cursor_width: c_int, on_p: bool, active_p: bool)
 {
@@ -10974,7 +10974,7 @@ unsafe fn w32_check_font (f: *mut frame, font: *mut font)
 /// C: static void
 /// C: w32_show_hourglass (struct frame *f)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_show_hourglass (f: *mut frame)
+unsafe extern "C" fn w32_show_hourglass (f: *mut frame)
 {
   if menubar_in_use == 0 && current_popup_menu.is_null ()             // C 7761
     {
@@ -10993,7 +10993,7 @@ unsafe fn w32_show_hourglass (f: *mut frame)
 /// C: static void
 /// C: w32_hide_hourglass (struct frame *f)
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_hide_hourglass (f: *mut frame)
+unsafe extern "C" fn w32_hide_hourglass (f: *mut frame)
 {
   let w32: *mut w32_output = (*f).output_data.w32 as *mut w32_output;   // C 7775
 
@@ -11133,3 +11133,185 @@ pub unsafe extern "C" fn w32_initialize_display_info (display_name: Lisp_Object)
 
 /* C 7866-7876's note and C 7878-7879's `static char * w32_make_rdb (char *xrm_option)` open the
    next slice.  */
+
+/* C 7866-7876's xrdb note above `w32_make_rdb`, carried as C's own text at its position.  */
+/* C: /* Create an xrdb-style database of resources to supersede registry settings.
+   C:    The database is just a concatenation of C strings, finished by an additional
+   C:    \0.  The strings are submitted to some basic normalization, so
+
+   C:      [ *]option[ *]:[ *]value...
+
+   C:    becomes
+
+   C:      option:value...
+
+   C:    but any whitespace following value is not removed.  */  */
+
+/// C 7878-7918: `static char *w32_make_rdb (char *xrm_option)` - C's one-past-the-end
+/// normalization: the `xmalloc` result is `strlen (xrm_option) + 2` bytes, `strlen`'s `size_t`
+/// is `usize` here (the `lib/include/string.rs` 28 row, reached through `include/lisp.rs`
+/// 3837's `<string.h>`), and `xmalloc`'s `*mut c_void` takes C's own `char *` cast.  The
+/// `do { … } while (ch);` is the P-95 shape: `ch` is C's `char`, so the negation of its
+/// truthiness is `ch == 0` and the `break` carries C's own condition as a comment (the
+/// `tools/check-do-while.py` reading counts it unchecked, not as a failure - a rewritten
+/// condition cannot match C's text).  `*xrm_option++` and `*current++ = …` are C's two stores
+/// plus the step, written as C's two statements (the `src/w32fns.rs` 7210/7261 device).
+/// C: static char *
+/// C: w32_make_rdb (char *xrm_option)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_make_rdb (mut xrm_option: *mut c_char) -> *mut c_char
+{
+  let buffer: *mut c_char = xmalloc (strlen (xrm_option) + 2) as *mut c_char;   // C 7881
+  let mut current: *mut c_char = buffer;                               // C 7882
+  let mut ch: c_char = 0;                                              // C 7883
+  let mut in_option: c_int = 1;                                        // C 7884
+  let mut before_value: c_int = 0;                                     // C 7885
+
+  loop                                                                    // C 7887's `do {`
+    {
+      ch = *xrm_option;                                                  // C 7888
+      xrm_option = xrm_option.add (1);                                   // C 7888's `xrm_option++`
+
+      if ch == b'\n' as c_char                                           // C 7890
+	{
+	  *current = 0;                                                      // C 7892
+	  current = current.add (1);                                         // C 7892's `current++`
+	  in_option = 1;                                                     // C 7893
+	  before_value = 0;                                                  // C 7894
+	}
+      else if ch != b' ' as c_char                                       // C 7896
+	{
+	  *current = ch;                                                     // C 7898
+	  current = current.add (1);                                         // C 7898's `current++`
+	  if in_option != 0 && ch == b':' as c_char                          // C 7899
+	    {
+	      in_option = 0;                                                 // C 7901
+	      before_value = 1;                                              // C 7902
+	    }
+	  else if before_value != 0                                          // C 7904
+	    {
+	      before_value = 0;                                              // C 7906
+	    }
+	}
+      else if !(in_option != 0 || before_value != 0)                      // C 7909
+	{
+	  *current = ch;                                                     // C 7911
+	  current = current.add (1);                                         // C 7911's `current++`
+	}
+
+      if ch == 0 { break; }                                              // C 7913's `while (ch);`
+    }
+
+  *current = 0;                                                          // C 7915
+
+  buffer                                                                 // C 7917
+}
+
+/* C 7920: `extern frame_parm_handler w32_frame_parm_handlers[];` - `include/w32term.rs` 319 and
+   1572 already carry this declaration (w32term.h 274, moved into `w32term_objs` by the `w32fns`
+   lane's slice 35), and `include/w32term.rs` 1600 glob-imports that module, so the name is in
+   scope and the port records C's text here instead of declaring the name twice (P-21, the
+   `src/pgtkterm.rs` 5400 reading of the same C line).  */
+
+/* The seven `gui_*` entries C 7925-7936's table names and **no mirror carries**: `xdisp.c`'s
+   definitions, declared by dispextern.h 3636-3648/3689 (the `src/pgtkterm.rs` 5368-5395 block,
+   same citations); `it` and `draw_fringe_bitmap_params` take the module path their record lives
+   in (this unit is no C record's owner, the C 1491 reading), and `w32_default_font_parameter` is
+   `src/w32fns.rs` 9736's definition.  C's prototypes are kept as C writes them; the table's
+   entries whose field type differs convert the item's address at the entry (below).  */
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  /// C: dispextern.h 3639: `extern void gui_produce_glyphs (struct it *);` - C 7925's entry.
+  pub fn gui_produce_glyphs (it: *mut dispextern_unit_names::it);
+  /// C: dispextern.h 3641-3642: `extern void gui_write_glyphs (struct window *,
+  /// struct glyph_row *, struct glyph *, enum glyph_row_area, int);` - C 7926's entry.
+  pub fn gui_write_glyphs (w: *mut window, row: *mut glyph_row, string: *mut glyph,
+			   area: glyph_row_area, len: c_int);
+  /// C: dispextern.h 3643-3644: the `gui_insert_glyphs` pair - C 7927's entry.
+  pub fn gui_insert_glyphs (w: *mut window, row: *mut glyph_row, start: *mut glyph,
+			    area: glyph_row_area, len: c_int);
+  /// C: dispextern.h 3645-3646: `extern void gui_clear_end_of_line (struct window *,
+  /// struct glyph_row *, enum glyph_row_area, int);` - C 7928's entry.
+  pub fn gui_clear_end_of_line (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+				x: c_int);
+  /// C: dispextern.h 3689: `extern void gui_clear_window_mouse_face (struct window *);` -
+  /// C 7934's entry.
+  pub fn gui_clear_window_mouse_face (w: *mut window);
+  /// C: dispextern.h 3636-3638: `extern void gui_get_glyph_overhangs (struct glyph *,
+  /// struct frame *, int *, int *);` - C 7935's entry.
+  pub fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame, left: *mut c_int,
+				  right: *mut c_int);
+  /// C: dispextern.h 3647-3648: `extern void gui_fix_overlapping_area (struct window *,
+  /// struct glyph_row *, enum glyph_row_area, int);` - C 7936's entry.
+  pub fn gui_fix_overlapping_area (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+				   overlaps: c_int);
+  /// C: dispextern.h 3659: `extern void w32_default_font_parameter (struct frame *,
+  /// Lisp_Object);`- C 7951's entry (`src/w32fns.rs` 9736 defines it).
+  pub fn w32_default_font_parameter (f: *mut frame, parms: Lisp_Object);
+}
+
+/* C 7922-7952: `static struct redisplay_interface w32_redisplay_interface = { … }` - the port's
+   second redisplay-interface object (the `src/pgtkterm.rs` 5412 one is the first, and
+   PORTING.md 1.4's two decisions are taken the same way here).  C's initializer is *positional*
+   and Rust has none: the port writes a named-field literal whose names come from the mirror's
+   record (`dispextern_unit_names::redisplay_interface`, C 3069-3200's 13 base fields plus the
+   15 `have_window_system` hooks).  Measured: C's initializer has **28 entries** and the record
+   has **28 fields** in the same order, so nothing is left to C's implicit zeroing.  An entry's
+   type is the *field's* type: where the declared item already has it the entry is `Some (name)`
+   (`gui_produce_glyphs`'s `*mut dispextern_unit_names::it`, and the five hooks whose C
+   prototypes are `struct glyph_row *`/`struct glyph_string *`), and where the mirror spells a
+   C `struct frame *`/`struct window *` parameter `*mut c_void` (P-55) the item's address is
+   converted with the `G_CALLBACK`-class transmute (PORTING.md 1.4, `E0605` for a direct `as`,
+   measured in 3.650).  C 7933's `0` is `None`.  The 15 `have_window_system` entries carry that
+   feature because the record's own members do (they are C 3131-3195's `#ifdef HAVE_WINDOW_SYSTEM`
+   members), so the arm that turns `have_window_system` off still names only the 13 base fields.
+   The unit's own `static` helpers an entry's address is taken of are defined `unsafe extern "C"
+   fn` (PORTING.md 1.4's second half; eighteen of them were widened to that ABI by this slice).  */
+#[cfg (feature = "have_ntgui")]
+static mut w32_redisplay_interface: dispextern_unit_names::redisplay_interface =
+  dispextern_unit_names::redisplay_interface
+  {
+    frame_parm_handlers: &raw mut w32_frame_parm_handlers as *mut c_void,   // C 7924
+    produce_glyphs: Some (gui_produce_glyphs),                          // C 7925
+    write_glyphs: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)> (gui_write_glyphs as *const ()) }),       // C 7926
+    insert_glyphs: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)> (gui_insert_glyphs as *const ()) }),      // C 7927
+    clear_end_of_line: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)> (gui_clear_end_of_line as *const ()) }),                   // C 7928
+    scroll_run_hook: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, run: *mut run)> (w32_scroll_run as *const ()) }),                                                         // C 7929
+    after_update_window_line_hook: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)> (w32_after_update_window_line as *const ()) }),                 // C 7930
+    update_window_begin_hook: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void)> (w32_update_window_begin as *const ()) }),                                                     // C 7931
+    update_window_end_hook: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)> (w32_update_window_end as *const ()) }),       // C 7932
+    flush_display: None,                                                 // C 7933 (`0`)
+    clear_window_mouse_face: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void)> (gui_clear_window_mouse_face as *const ()) }),                                                   // C 7934
+    get_glyph_overhangs: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)> (gui_get_glyph_overhangs as *const ()) }),     // C 7935
+    fix_overlapping_area: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)> (gui_fix_overlapping_area as *const ()) }),        // C 7936
+    #[cfg (feature = "have_window_system")]
+    draw_fringe_bitmap: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut dispextern_unit_names::draw_fringe_bitmap_params)> (w32_draw_fringe_bitmap as *const ()) }),   // C 7937
+    #[cfg (feature = "have_window_system")]
+    define_fringe_bitmap: Some (w32_define_fringe_bitmap),               // C 7938
+    #[cfg (feature = "have_window_system")]
+    destroy_fringe_bitmap: Some (w32_destroy_fringe_bitmap),             // C 7939
+    #[cfg (feature = "have_window_system")]
+    compute_glyph_string_overhangs: Some (w32_compute_glyph_string_overhangs),   // C 7940
+    #[cfg (feature = "have_window_system")]
+    draw_glyph_string: Some (w32_draw_glyph_string),                     // C 7941
+    #[cfg (feature = "have_window_system")]
+    define_frame_cursor: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)> (w32_define_frame_cursor as *const ()) }),                                       // C 7942
+    #[cfg (feature = "have_window_system")]
+    clear_frame_area: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)> (w32_clear_frame_area as *const ()) }),                  // C 7943
+    #[cfg (feature = "have_window_system")]
+    clear_under_internal_border: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void)> (w32_clear_under_internal_border as *const ()) }),                                            // C 7944
+    #[cfg (feature = "have_window_system")]
+    draw_window_cursor: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int, cursor_type: text_cursor_kinds, cursor_width: c_int, on_p: bool, active_p: bool)> (w32_draw_window_cursor as *const ()) }),   // C 7945
+    #[cfg (feature = "have_window_system")]
+    draw_vertical_window_border: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)> (w32_draw_vertical_window_border as *const ()) }),          // C 7946
+    #[cfg (feature = "have_window_system")]
+    draw_window_divider: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)> (w32_draw_window_divider as *const ()) }),             // C 7947
+    #[cfg (feature = "have_window_system")]
+    shift_glyphs_for_insert: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int, shift_by: c_int)> (w32_shift_glyphs_for_insert as *const ()) }),   // C 7948
+    #[cfg (feature = "have_window_system")]
+    show_hourglass: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void)> (w32_show_hourglass as *const ()) }),                                                                     // C 7949
+    #[cfg (feature = "have_window_system")]
+    hide_hourglass: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void)> (w32_hide_hourglass as *const ()) }),                                                                     // C 7950
+    #[cfg (feature = "have_window_system")]
+    default_font_parameter: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)> (w32_default_font_parameter as *const ()) }),                                  // C 7951
+  };
