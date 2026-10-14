@@ -191,7 +191,8 @@ The `arm` cell says what the port does with the block.
 | 4160-4328 | the "Scroll bars, general" banner and the eight `my_*` wrappers (`my_create_vscrollbar` C 4164-4170, `my_create_hscrollbar` C 4172-4178, `my_show_window` C 4182-4191, `my_set_window_pos` C 4193-4210, C 4212-4219's `#if 0`, `my_set_foreground_window` C 4221-4226, `my_destroy_window` C 4229-4234, `my_bring_window_to_top` C 4236-4241), plus `w32_scroll_bar_create` (C 4243-4305) and `w32_scroll_bar_remove` (C 4308-4328) | file gate (`have_ntgui`); slice 11 below |
 | 4330-4536 | the two scroll-bar setters: `w32_set_vertical_scroll_bar` (C 4330-4432) and `w32_set_horizontal_scroll_bar` (C 4434-4536), each with its create branch and its move branch | file gate (`have_ntgui`); slice 12 below |
 | 4538-4684 | the three scroll-bar hooks: C 4539-4545's comment, `w32_condemn_scroll_bars` (C 4551-4571), `w32_redeem_scroll_bar` (C 4577-4656, with C 4599's `goto horizontal`) and `w32_judge_scroll_bars` (C 4661-4684) | file gate (`have_ntgui`); slice 13 below |
-| 4686-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4686-4915 | the two scroll-bar click handlers: `w32_scroll_bar_handle_click` (C 4686-4800) and `w32_horizontal_scroll_bar_handle_click` (C 4802-4915), each with its `SCROLLINFO` probe and its `SB_*` switch | file gate (`have_ntgui`); slice 14 below |
+| 4917-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1173,4 +1174,34 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **59 -> 56 rows** (51 -> **48** `missing function`: the round's
      three landed), one token row added to the notes file (above), and the line-count row improves
      from 21.0% to **18.9%** (6,823 vs 8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 14 (C 4686-4915)
+
+- **What it is.**  The two scroll-bar click handlers: the vertical one (C 4686-4800) and the
+  horizontal one (C 4802-4915), each of them the event fill, the `GetScrollInfo` probe with its
+  `SIF_TRACKPOS`/`SIF_POS` choice, the `SB_*` dispatch (fourteen and thirteen labels) and the two
+  `XSETINT`s.  Port: 6,823 -> **7162 lines** (+339).  The table's last row splits at C 4915; the
+  next live definition is C 4926's `w32_scroll_bar_report_motion`.
+- **The names this slice adds stand at the use site** (P-88 (1)): the `SB_*` command values (the
+  vertical and horizontal sets that share numbers) and `SIF_TRACKPOS`, all `UNVERIFIED`.
+- **C's dead `f` appears twice per handler and the port keeps it as C writes it**:
+  `VERTICAL_SCROLL_BAR_TOP_RANGE (f, …)`/`HORIZONTAL_SCROLL_BAR_LEFT_RANGE (f, …)` at C 4709/4825
+  and `FRAME_DISPLAY_INFO (f)` at C 4729/4846, with C 4728/4845's own `struct frame *f; /* Value is
+  not used.  */`.  None of the three macros expands its argument, and a Rust `macro_rules!`
+  argument that no expansion uses is dropped the same way - **measured** (the round's arm reading
+  shows no `cannot find value \`f\`` row with the unbound name in place), which also retires slice
+  10's stand-in: that site now passes C's own `f` too, with the reason in its comment.
+- **`input_event_bits!` gained the `part` write arm** (the same 16+16-bit unit as `kind`'s, the
+  `src/xterm.rs` 1650-1658 copy) - the two handlers set `emacs_event->part` seventeen times between
+  them.
+- **`FALLTHROUGH` is C's, written in the arm it falls from**: both handlers' `SB_ENDSCROLL` arms end
+  in the `default:` arm's two statements (PORTING.md 2.2), and the two `switch` token rows are in
+  `docs/ports/macro-body-notes.tsv` with that reading.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text**.
+  3. `extract-abi.py --check` -> **57 -> 54 rows** (48 -> **46** `missing function`: the round's two
+     landed), two token rows added to the notes file (above), and the line-count row improves from
+     18.9% to **14.9%** (7,162 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.

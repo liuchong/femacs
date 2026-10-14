@@ -20245,3 +20245,11 @@
   ③ 十门全 `rc=0`、0 失败；区间表拆为 `4538-4684`（本片）+ `4686-8414`（余项）；台账追加 **`### Slice 13 (C 4538-4684)`**。
   ④ 预算与清理：`build-tu` 1 发、臂读数 1 发、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w52`、`/tmp/slice13.txt`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.319 `src/w32term.c` 第 14 片（w32term lane，slice 14）：C 4686-4915 落地——两个滚动条点击处理器：`w32_scroll_bar_handle_click`（C 4686-4800，14 个 `SB_*` 标签）与 `w32_horizontal_scroll_bar_handle_click`（C 4802-4915，13 个标签），各含 `SCROLLINFO` 探测与 `XSETINT` 对；w32term.rs 6,823 → 7,162 行（+339，2026-10-15）**：
+  ① 用例处新增：`SB_*` 命令值（纵/横两套，数值共用）与 `SIF_TRACKPOS`（winuser，UNVERIFIED）；`input_event_bits!` 增 `part` 写臂（与 `kind` 同 16+16 位单元，`src/xterm.rs` 1650-1658 同形），两处理器共写 17 次。
+  ② **C 里死参数 `f` 每处理器出现两次，端口保留 C 的写法**：C 4709/4825 的 `VERTICAL_SCROLL_BAR_TOP_RANGE (f, …)`/`HORIZONTAL_SCROLL_BAR_LEFT_RANGE (f, …)` 与 C 4729/4846 的 `FRAME_DISPLAY_INFO (f)`，配 C 4728/4845 自己的 `struct frame *f; /* Value is not used. */`；三个宏都不展开该实参，Rust `macro_rules!` 未使用的实参同样被丢弃——**本轮臂读数为证**（未绑定名在场也无 `cannot find value f`），并据此**撤销 slice 10 的人造空指针**（该处改回 C 自己的 `f`，注释同步）。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本**。`extract-abi.py --check`：**57 → 54 行**（`missing function` 48 → **46**），新增 2 条 token 行（两个 `switch`→`match` + `FALLTHROUGH` 落入 `default` 的写法）；行数行 18.9% → **14.9%**（7,162 : 8,414）。
+  ④ 十门全 `rc=0`、0 失败；区间表拆为 `4686-4915`（本片）+ `4917-8414`（余项）；台账追加 **`### Slice 14 (C 4686-4915)`**。
+  ⑤ 预算与清理：`build-tu` 2 发、臂读数 3 发（含一次"未绑定名可行性"实验）、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w53`、`/tmp/w52e.rlib`、`/tmp/slice14.txt`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

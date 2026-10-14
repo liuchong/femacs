@@ -4860,6 +4860,11 @@ macro_rules! input_event_bits {
   (kind, $e:expr, $v:expr) => {
     (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK)
       | (($v) as u32 & INPUT_EVENT_KIND_MASK); };
+  /* The `part` write arm slices 14's two scroll-bar click handlers need (termhooks.h 377-378's
+     16+16-bit unit; the `src/xterm.rs` 1650-1658 copy of the same pair).  */
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+      | ((($v) as u32 & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
 }
 
 #[cfg (feature = "have_ntgui")]
@@ -6033,10 +6038,11 @@ unsafe fn w32_set_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int, positi
      avoid strange effects like scrolling backwards when just clicking
      on the handle (without moving it).  */
   /* C 4071 passes C's dead macro argument `f`: `VERTICAL_SCROLL_BAR_INSIDE_HEIGHT` never expands
-     it (w32term.h 581-582), and this function has no `f` in scope - C compiles because a macro
-     argument is unexpanded text.  The port passes a typed null in that slot and the ledger
-     records it.  */
-  let range: c_double = VERTICAL_SCROLL_BAR_TOP_RANGE! (core::ptr::null_mut (), (*bar).height)
+     it (w32term.h 581-582), so the name never reaches a scope and this function has none of its
+     own - C compiles because a macro argument is unexpanded text, and a Rust `macro_rules!`
+     argument that no expansion uses is the same (measured by slice 14's arm reading, which is why
+     the port keeps C's own `f` here rather than a stand-in).  */
+  let range: c_double = VERTICAL_SCROLL_BAR_TOP_RANGE! (f, (*bar).height)
     as c_double                                                       // C 4071
     + VERTICAL_SCROLL_BAR_MIN_HANDLE! () as c_double;                 // C 4072
   let mut sb_page: c_int;                                             // C 4073
@@ -6820,4 +6826,337 @@ unsafe fn w32_judge_scroll_bars (f: *mut frame)
      and they should get garbage-collected.  */
 }
 
-/* C 4686-4691's comment and C 4694's `w32_scroll_bar_handle_click` open the next slice.  */
+/* C's `<winuser.h>` scroll-bar values C 4716-4905 reads and this unit does not carry yet: the nine
+   `SB_*` commands (`SB_LINEUP`/`SB_LINEDOWN`/`SB_PAGEUP`/`SB_PAGEDOWN`/`SB_THUMBPOSITION`/
+   `SB_THUMBTRACK`/`SB_TOP`/`SB_BOTTOM`/`SB_ENDSCROLL` and their horizontal counterparts
+   `SB_LINELEFT`/`SB_LINERIGHT`/`SB_PAGELEFT`/`SB_PAGERIGHT`/`SB_LEFT`/`SB_RIGHT`, whose numeric
+   values the SDK shares with the vertical set) and `SIF_TRACKPOS`.  Every name stands at the use
+   site (P-88 (1)); the SDK values are UNVERIFIED.  */
+/// C: #define SB_LINEUP 0 / #define SB_LINELEFT 0
+/// C: #define SB_LINEDOWN 1 / #define SB_LINERIGHT 1
+/// C: #define SB_PAGEUP 2 / #define SB_PAGELEFT 2
+/// C: #define SB_PAGEDOWN 3 / #define SB_PAGERIGHT 3
+/// C: #define SB_THUMBPOSITION 4 / #define SB_THUMBTRACK 5
+/// C: #define SB_TOP 6 / #define SB_LEFT 6
+/// C: #define SB_BOTTOM 7 / #define SB_RIGHT 7
+/// C: #define SB_ENDSCROLL 8
+/// C: #define SIF_TRACKPOS 0x0010
+#[cfg (feature = "have_ntgui")]
+pub const SB_LINEUP: c_int = 0;
+#[cfg (feature = "have_ntgui")]
+pub const SB_LINELEFT: c_int = 0;
+#[cfg (feature = "have_ntgui")]
+pub const SB_LINEDOWN: c_int = 1;
+#[cfg (feature = "have_ntgui")]
+pub const SB_LINERIGHT: c_int = 1;
+#[cfg (feature = "have_ntgui")]
+pub const SB_PAGEUP: c_int = 2;
+#[cfg (feature = "have_ntgui")]
+pub const SB_PAGELEFT: c_int = 2;
+#[cfg (feature = "have_ntgui")]
+pub const SB_PAGEDOWN: c_int = 3;
+#[cfg (feature = "have_ntgui")]
+pub const SB_PAGERIGHT: c_int = 3;
+#[cfg (feature = "have_ntgui")]
+pub const SB_THUMBPOSITION: c_int = 4;
+#[cfg (feature = "have_ntgui")]
+pub const SB_THUMBTRACK: c_int = 5;
+#[cfg (feature = "have_ntgui")]
+pub const SB_TOP: c_int = 6;
+#[cfg (feature = "have_ntgui")]
+pub const SB_LEFT: c_int = 6;
+#[cfg (feature = "have_ntgui")]
+pub const SB_BOTTOM: c_int = 7;
+#[cfg (feature = "have_ntgui")]
+pub const SB_RIGHT: c_int = 7;
+#[cfg (feature = "have_ntgui")]
+pub const SB_ENDSCROLL: c_int = 8;
+#[cfg (feature = "have_ntgui")]
+pub const SIF_TRACKPOS: UINT = 0x0010;
+
+/// C 4686-4800: "Handle a mouse click on the vertical scroll bar BAR. …" - C 4697-4698's guard, C
+/// 4700-4706's six event fields, C 4709-4713's five locals, C 4715-4725's `SCROLLINFO` probe (with
+/// C 4721's `GetScrollInfo` and C 4722-4725's position choice), C 4727-4729's dragging reset and
+/// the display-info store, C 4731-4793's `switch (sb_event)` over C's fourteen labels (C 4759-4770's
+/// nested position store, C 4776-4787's drag tail and C 4788-4792's `FALLTHROUGH` into `default`)
+/// and C 4795-4798's two setters and `TRUE` answer.
+/// C: /* Handle a mouse click on the vertical scroll bar BAR.  If
+/// C:    *EMACS_EVENT's kind is set to something other than NO_EVENT, it is
+/// C:    enqueued.
+/// C:
+/// C:    This may be called from a signal handler, so we have to ignore GC
+/// C:    mark bits.  */
+/// C: static int
+/// C: w32_scroll_bar_handle_click (struct scroll_bar *bar, W32Msg *msg,
+/// C: 			     struct input_event *emacs_event)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_scroll_bar_handle_click (bar: *mut scroll_bar, msg: *mut W32Msg,
+				       emacs_event: *mut input_event) -> c_int
+{
+  if !WINDOWP ((*bar).window)                                         // C 4697
+    { emacs_abort (); }                                               // C 4698
+
+  input_event_bits! (kind, emacs_event, SCROLL_BAR_CLICK_EVENT);      // C 4700
+  (*emacs_event).code = 0;                                            // C 4701
+  /* not really meaningful to distinguish up/down */
+  (*emacs_event).modifiers = (*msg).dwModifiers;                      // C 4703
+  (*emacs_event).frame_or_window = (*bar).window;                     // C 4704
+  (*emacs_event).arg = Qnil ();                                       // C 4705
+  (*emacs_event).timestamp = (*msg).msg.time as Time;                 // C 4706
+
+  {
+    /* C 4709 passes C's dead macro argument `f` (`VERTICAL_SCROLL_BAR_INSIDE_HEIGHT` never
+       expands it), and C 4728's own `struct frame *f;  /* Value is not used.  */` declaration
+       below is what makes the name visible to C 4729's `FRAME_DISPLAY_INFO` - which is this
+       unit's `(&one_w32_display_info)` macro and ignores it the same way.  */
+    let top_range: c_int = VERTICAL_SCROLL_BAR_TOP_RANGE! (f, (*bar).height);   // C 4709
+    let mut y: c_int;                                                 // C 4710
+    let dragging: c_int = (*bar).dragging;                            // C 4711
+    let mut si: SCROLLINFO;                                           // C 4712
+    let sb_event: c_int = LOWORD! ((*msg).msg.wParam) as c_int;       // C 4713
+
+    si = core::mem::zeroed ();                                        // C 4712 (C's uninitialised `SCROLLINFO`)
+    si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;          // C 4715
+    if sb_event == SB_THUMBTRACK                                      // C 4716
+      { si.fMask = SIF_TRACKPOS; }                                    // C 4717
+    else
+      { si.fMask = SIF_POS; }                                         // C 4719
+
+    GetScrollInfo ((*msg).msg.lParam as HWND, SB_CTL, &raw mut si);   // C 4721
+    if sb_event == SB_THUMBTRACK                                      // C 4722
+      { y = si.nTrackPos; }                                           // C 4723
+    else
+      { y = si.nPos; }                                                // C 4725
+
+    (*bar).dragging = 0;                                              // C 4727
+    let mut f: *mut frame;	/* Value is not used.  */                 // C 4728
+    (*FRAME_DISPLAY_INFO! (f)).last_mouse_scroll_bar_pos
+      = (*msg).msg.wParam as c_int;                                   // C 4729
+
+    match sb_event                                                    // C 4731
+      {
+      SB_LINEDOWN =>                                                  // C 4733
+	{ input_event_bits! (part, emacs_event, scroll_bar_down_arrow); }   // C 4734
+
+      SB_LINEUP =>                                                    // C 4736
+	{ input_event_bits! (part, emacs_event, scroll_bar_up_arrow); }   // C 4737
+
+      SB_PAGEUP =>                                                    // C 4739
+	{ input_event_bits! (part, emacs_event, scroll_bar_above_handle); }   // C 4740
+
+      SB_PAGEDOWN =>                                                  // C 4742
+	{ input_event_bits! (part, emacs_event, scroll_bar_below_handle); }   // C 4743
+
+      SB_TOP =>                                                       // C 4745
+	{
+	  input_event_bits! (part, emacs_event, scroll_bar_handle);    // C 4746
+	  y = 0;                                                      // C 4747
+	}
+
+      SB_BOTTOM =>                                                    // C 4749
+	{
+	  input_event_bits! (part, emacs_event, scroll_bar_handle);    // C 4750
+	  y = top_range;                                              // C 4751
+	}
+
+      SB_THUMBTRACK | SB_THUMBPOSITION =>                             // C 4753-4754
+	{
+	  (*bar).dragging = 1; /* ??????? */                           // C 4755
+	  input_event_bits! (part, emacs_event, scroll_bar_handle);    // C 4756
+
+	  /* "Silently" update current position.  */
+	  {
+	    /* C declares this inner `SCROLLINFO` uninitialised and fills it below
+	       (PORTING.md 1.5).  */
+	    let mut si: SCROLLINFO = core::mem::zeroed ();             // C 4760
+
+	    si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;   // C 4762
+	    si.fMask = SIF_POS;                                       // C 4763
+	    si.nPos = y;                                              // C 4764
+	    /* Remember apparent position (we actually lag behind the real
+	       position, so don't set that directly).  */
+	    last_scroll_bar_drag_pos = y;                             // C 4767
+
+	    SetScrollInfo (SCROLL_BAR_W32_WINDOW! (bar), SB_CTL, &raw const si, FALSE);   // C 4769
+	  }
+	}
+
+      SB_ENDSCROLL =>                                                 // C 4772
+	{
+	  /* If this is the end of a drag sequence, then reset the scroll
+	     handle size to normal and do a final redraw.  Otherwise do
+	     nothing.  */
+	  if dragging != 0                                            // C 4776
+	    {
+	      /* C declares this inner `SCROLLINFO` uninitialised and fills it below
+		 (PORTING.md 1.5).  */
+	      let mut si: SCROLLINFO = core::mem::zeroed ();           // C 4778
+	      let start: c_int = (*bar).start;                         // C 4779
+	      let end: c_int = (*bar).end;                             // C 4780
+
+	      si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;   // C 4782
+	      si.fMask = SIF_PAGE | SIF_POS;                           // C 4783
+	      si.nPage = (end - start + VERTICAL_SCROLL_BAR_MIN_HANDLE! ()) as UINT;   // C 4784
+	      si.nPos = last_scroll_bar_drag_pos;                      // C 4785
+	      SetScrollInfo (SCROLL_BAR_W32_WINDOW! (bar), SB_CTL, &raw const si, TRUE);   // C 4786
+	    }
+	  /* C's `FALLTHROUGH;` sends this arm on into the `default:` arm's two statements, which
+	     the port therefore writes here too (PORTING.md 2.2).  */
+	  input_event_bits! (kind, emacs_event, NO_EVENT);             // C 4791
+	  return FALSE;                                                // C 4792
+	}
+
+      /* C's `default:` (C 4790-4792).  */
+      _ =>
+	{
+	  input_event_bits! (kind, emacs_event, NO_EVENT);             // C 4791
+	  return FALSE;                                                // C 4792
+	}
+      }
+
+    XSETINT! ((*emacs_event).x, y as EMACS_INT);                       // C 4795
+    XSETINT! ((*emacs_event).y, top_range as EMACS_INT);               // C 4796
+
+    return TRUE;                                                       // C 4798
+  }
+}
+
+/// C 4802-4915: "Handle a mouse click on the horizontal scroll bar BAR. …" - the horizontal twin of
+/// C 4686-4800: C 4825's `left_range`, C 4826's extra `y`, C 4832-4842's `SIF_TRACKPOS | SIF_PAGE |
+/// SIF_RANGE` probe with C 4842's `y = si.nMax - si.nPage`, C 4848-4908's `switch (sb_event)` over
+/// C's thirteen labels (C 4881's `min (x, XWINDOW (bar->window)->hscroll_whole - 1)` and C
+/// 4899-4900's min of the remembered position) and C 4910-4913's two setters and `TRUE`.
+/// C: static int
+/// C: w32_horizontal_scroll_bar_handle_click (struct scroll_bar *bar, W32Msg *msg,
+/// C: 					struct input_event *emacs_event)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_horizontal_scroll_bar_handle_click (bar: *mut scroll_bar, msg: *mut W32Msg,
+						  emacs_event: *mut input_event) -> c_int
+{
+  if !WINDOWP ((*bar).window)                                         // C 4813
+    { emacs_abort (); }                                               // C 4814
+
+  input_event_bits! (kind, emacs_event, HORIZONTAL_SCROLL_BAR_CLICK_EVENT);   // C 4816
+  (*emacs_event).code = 0;                                            // C 4817
+  /* not really meaningful to distinguish left/right */
+  (*emacs_event).modifiers = (*msg).dwModifiers;                      // C 4819
+  (*emacs_event).frame_or_window = (*bar).window;                     // C 4820
+  (*emacs_event).arg = Qnil ();                                       // C 4821
+  (*emacs_event).timestamp = (*msg).msg.time as Time;                 // C 4822
+
+  {
+    /* C 4825 and C 4846 pass C's dead macro argument `f` and C 4845 declares the same unused
+       `struct frame *f;` as the vertical twin above.  */
+    let left_range: c_int = HORIZONTAL_SCROLL_BAR_LEFT_RANGE! (f, (*bar).width);   // C 4825
+    let mut x: c_int;                                                 // C 4826
+    let mut y: c_int;
+    let dragging: c_int = (*bar).dragging;                            // C 4827
+    let mut si: SCROLLINFO;                                           // C 4828
+    let sb_event: c_int = LOWORD! ((*msg).msg.wParam) as c_int;       // C 4829
+
+    si = core::mem::zeroed ();                                        // C 4828 (C's uninitialised `SCROLLINFO`)
+    si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;          // C 4831
+    if sb_event == SB_THUMBTRACK                                      // C 4832
+      { si.fMask = SIF_TRACKPOS | SIF_PAGE | SIF_RANGE; }             // C 4833
+    else
+      { si.fMask = SIF_POS | SIF_PAGE | SIF_RANGE; }                  // C 4835
+
+    GetScrollInfo ((*msg).msg.lParam as HWND, SB_CTL, &raw mut si);   // C 4837
+    if sb_event == SB_THUMBTRACK                                      // C 4838
+      { x = si.nTrackPos; }                                           // C 4839
+    else
+      { x = si.nPos; }                                                // C 4841
+    y = si.nMax - si.nPage as c_int;                                  // C 4842
+
+    (*bar).dragging = 0;                                              // C 4844
+    let mut f: *mut frame;	/* Value is not used.  */                 // C 4845
+    (*FRAME_DISPLAY_INFO! (f)).last_mouse_scroll_bar_pos
+      = (*msg).msg.wParam as c_int;                                   // C 4846
+
+    match sb_event                                                    // C 4848
+      {
+      SB_LINELEFT =>                                                  // C 4850
+	{ input_event_bits! (part, emacs_event, scroll_bar_left_arrow); }   // C 4851
+
+      SB_LINERIGHT =>                                                 // C 4853
+	{ input_event_bits! (part, emacs_event, scroll_bar_right_arrow); }   // C 4854
+
+      SB_PAGELEFT =>                                                  // C 4856
+	{ input_event_bits! (part, emacs_event, scroll_bar_before_handle); }   // C 4857
+
+      SB_PAGERIGHT =>                                                 // C 4859
+	{ input_event_bits! (part, emacs_event, scroll_bar_after_handle); }   // C 4860
+
+      SB_LEFT =>                                                      // C 4862
+	{
+	  input_event_bits! (part, emacs_event, scroll_bar_horizontal_handle);   // C 4863
+	  x = 0;                                                      // C 4864
+	}
+
+      SB_RIGHT =>                                                     // C 4866
+	{
+	  input_event_bits! (part, emacs_event, scroll_bar_horizontal_handle);   // C 4867
+	  x = left_range;                                             // C 4868
+	}
+
+      SB_THUMBTRACK | SB_THUMBPOSITION =>                             // C 4870-4871
+	{
+	  (*bar).dragging = 1;                                          // C 4872
+	  input_event_bits! (part, emacs_event, scroll_bar_horizontal_handle);   // C 4873
+
+	  /* "Silently" update current position.  */
+	  {
+	    /* C declares this inner `SCROLLINFO` uninitialised and fills it below
+	       (PORTING.md 1.5).  */
+	    let mut si: SCROLLINFO = core::mem::zeroed ();             // C 4877
+
+	    si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;   // C 4879
+	    si.fMask = SIF_POS;                                       // C 4880
+	    si.nPos = min! (x, (*XWINDOW ((*bar).window)).hscroll_whole as c_int - 1) as c_int;   // C 4881
+	    /* Remember apparent position (we actually lag behind the real
+	       position, so don't set that directly).  */
+	    last_scroll_bar_drag_pos = x;                              // C 4884
+
+	    SetScrollInfo (SCROLL_BAR_W32_WINDOW! (bar), SB_CTL, &raw const si, FALSE);   // C 4886
+	  }
+	}
+
+      SB_ENDSCROLL =>                                                 // C 4889
+	{
+	  /* If this is the end of a drag sequence, then reset the scroll
+	     handle size to normal and do a final redraw.  Otherwise do
+	     nothing.  */
+	  if dragging != 0                                            // C 4893
+	    {
+	      /* C declares this inner `SCROLLINFO` uninitialised and fills it below
+		 (PORTING.md 1.5).  */
+	      let mut si: SCROLLINFO = core::mem::zeroed ();           // C 4895
+
+	      si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;   // C 4897
+	      si.fMask = SIF_POS;                                      // C 4898
+	      si.nPos = min! (last_scroll_bar_drag_pos,
+			      (*XWINDOW ((*bar).window)).hscroll_whole as c_int - 1) as c_int;   // C 4899-4900
+	      SetScrollInfo (SCROLL_BAR_W32_WINDOW! (bar), SB_CTL, &raw const si, TRUE);   // C 4901
+	    }
+	  /* C's `FALLTHROUGH;` sends this arm on into the `default:` arm's two statements, which
+	     the port therefore writes here too (PORTING.md 2.2).  */
+	  input_event_bits! (kind, emacs_event, NO_EVENT);             // C 4906
+	  return FALSE;                                                // C 4907
+	}
+
+      /* C's `default:` (C 4905-4907).  */
+      _ =>
+	{
+	  input_event_bits! (kind, emacs_event, NO_EVENT);             // C 4906
+	  return FALSE;                                                // C 4907
+	}
+      }
+
+    XSETINT! ((*emacs_event).x, x as EMACS_INT);                       // C 4910
+    XSETINT! ((*emacs_event).y, y as EMACS_INT);                       // C 4911
+
+    return TRUE;                                                       // C 4913
+  }
+}
+
+/* C 4917-4922's comment and C 4926's `w32_scroll_bar_report_motion` open the next slice.  */
