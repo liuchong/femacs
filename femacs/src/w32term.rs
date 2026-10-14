@@ -6647,5 +6647,177 @@ unsafe fn w32_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: 
   wset_horizontal_scroll_bar (w, barobj);                             // C 4535
 }
 
-/* C 4538-4539's "The following three hooks are used when we're doing a thorough redisplay of the
-   frame. …" comment and C 4544's `w32_scroll_bar_clear` open the next slice.  */
+/* C 4539-4545's comment ("The following three hooks are used when we're doing a thorough redisplay
+   of the frame. …"), carried as C's own text at its position.  */
+/* C: /* The following three hooks are used when we're doing a thorough
+   C:    redisplay of the frame.  We don't explicitly know which scroll bars
+   C:    are going to be deleted, because keeping track of when windows go
+   C:    away is a real pain - "Can you say set-window-configuration, boys
+   C:    and girls?"  Instead, we just assert at the beginning of redisplay
+   C:    that *all* scroll bars are to be removed, and then save a scroll bar
+   C:    from the fiery pit when we actually redisplay its window.  */  */
+
+/// C 4547-4571: "Arrange for all scroll bars on FRAME to be removed at the next call to
+/// `*judge_scroll_bars_hook'. …" - C 4554's guard, C 4556-4566's prepend (the two-list walk and
+/// the two pointer stores) and C 4568-4569's two moves.
+/// C: /* Arrange for all scroll bars on FRAME to be removed at the next call
+/// C:    to `*judge_scroll_bars_hook'.  A scroll bar may be spared if
+/// C:    `*redeem_scroll_bar_hook' is applied to its window before the judgment.  */
+/// C: static void
+/// C: w32_condemn_scroll_bars (struct frame *frame)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_condemn_scroll_bars (frame: *mut frame)
+{
+  if !NILP (FRAME_SCROLL_BARS (frame))                                // C 4554
+    {
+      if !NILP (FRAME_CONDEMNED_SCROLL_BARS (frame))                  // C 4556
+	{
+	  /* Prepend scrollbars to already condemned ones.  */
+	  let mut last: Lisp_Object = FRAME_SCROLL_BARS (frame);       // C 4559
+
+	  while !NILP ((*XSCROLL_BAR! (last)).next)                    // C 4561
+	    { last = (*XSCROLL_BAR! (last)).next; }                   // C 4562
+
+	  (*XSCROLL_BAR! (last)).next = FRAME_CONDEMNED_SCROLL_BARS (frame);   // C 4564
+	  (*XSCROLL_BAR! (FRAME_CONDEMNED_SCROLL_BARS (frame))).prev = last;   // C 4565
+	}
+
+      fset_condemned_scroll_bars (frame, FRAME_SCROLL_BARS (frame));   // C 4568
+      fset_scroll_bars (frame, Qnil ());                               // C 4569
+    }
+}
+
+/// C 4574-4656: "Un-mark WINDOW's scroll bar for deletion in this judgment cycle. …" - C
+/// 4580-4582's three locals, C 4585-4586's guard, C 4588-4620's vertical arm (the condemned-list
+/// unlink with C 4597-4606's three-way front test - whose C 4599 is the `goto horizontal` the
+/// labelled block below serves - and C 4614-4619's re-insert) and C 4623-4655's horizontal twin
+/// (whose C 4634 returns directly, C's own `return`).
+/// C: /* Un-mark WINDOW's scroll bar for deletion in this judgment cycle.
+/// C:    Note that WINDOW isn't necessarily condemned at all.  */
+/// C: static void
+/// C: w32_redeem_scroll_bar (struct window *w)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_redeem_scroll_bar (w: *mut window)
+{
+  let mut bar: *mut scroll_bar;                                       // C 4580
+  let mut barobj: Lisp_Object;                                        // C 4581
+  let mut f: *mut frame;                                              // C 4582
+
+  /* We can't redeem this window's scroll bar if it doesn't have one.  */
+  if NILP ((*w).vertical_scroll_bar) && NILP ((*w).horizontal_scroll_bar)   // C 4585
+    { emacs_abort (); }                                               // C 4586
+
+  /* C 4622's `horizontal:` label's block: C 4599's `goto horizontal` leaves it, so the vertical
+     arm and the label's own line are one labelled block and the horizontal arm follows it (the
+     `w32proc` `new_child` reading of the forward-jump device).  */
+  'horizontal: {
+    if !NILP ((*w).vertical_scroll_bar)                               // C 4588
+	&& WINDOW_HAS_VERTICAL_SCROLL_BAR (w)
+      {
+	bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                // C 4590
+	/* Unlink it from the condemned list.  */
+	f = XFRAME (WINDOW_FRAME (w));                                // C 4592
+	if NILP ((*bar).prev)                                         // C 4593
+	  {
+	    /* If the prev pointer is nil, it must be the first in one of
+	       the lists.  */
+	    if EQ (FRAME_SCROLL_BARS (f), (*w).vertical_scroll_bar)   // C 4597
+	      /* It's not condemned.  Everything's fine.  */
+	      { break 'horizontal; }                                  // C 4599
+	    else if EQ (FRAME_CONDEMNED_SCROLL_BARS (f),              // C 4600-4601
+			(*w).vertical_scroll_bar)
+	      { fset_condemned_scroll_bars (f, (*bar).next); }        // C 4602
+	    else
+	      /* If its prev pointer is nil, it must be at the front of
+		 one or the other!  */
+	      { emacs_abort (); }                                     // C 4606
+	  }
+	else
+	  { (*(XSCROLL_BAR! ((*bar).prev))).next = (*bar).next; }     // C 4609
+
+	if !NILP ((*bar).next)                                        // C 4611
+	  { (*(XSCROLL_BAR! ((*bar).next))).prev = (*bar).prev; }     // C 4612
+
+	(*bar).next = FRAME_SCROLL_BARS (f);                          // C 4614
+	(*bar).prev = Qnil ();                                        // C 4615
+	XSETVECTOR! (barobj, bar);                                    // C 4616
+	fset_scroll_bars (f, barobj);                                 // C 4617
+	if !NILP ((*bar).next)                                        // C 4618
+	  { XSETVECTOR! ((*(XSCROLL_BAR! ((*bar).next))).prev, bar); }   // C 4619
+      }
+  }
+
+  if !NILP ((*w).horizontal_scroll_bar)                               // C 4623
+      && WINDOW_HAS_HORIZONTAL_SCROLL_BAR (w)
+    {
+      bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                // C 4625
+      /* Unlink it from the condemned list.  */
+      f = XFRAME (WINDOW_FRAME (w));                                  // C 4627
+      if NILP ((*bar).prev)                                           // C 4628
+	{
+	  /* If the prev pointer is nil, it must be the first in one of
+	     the lists.  */
+	  if EQ (FRAME_SCROLL_BARS (f), (*w).horizontal_scroll_bar)   // C 4632
+	    /* It's not condemned.  Everything's fine.  */
+	    { return; }                                               // C 4634
+	  else if EQ (FRAME_CONDEMNED_SCROLL_BARS (f),                // C 4635-4636
+		      (*w).horizontal_scroll_bar)
+	    { fset_condemned_scroll_bars (f, (*bar).next); }          // C 4637
+	  else
+	    /* If its prev pointer is nil, it must be at the front of
+	       one or the other!  */
+	    { emacs_abort (); }                                       // C 4641
+	}
+      else
+	{ (*(XSCROLL_BAR! ((*bar).prev))).next = (*bar).next; }       // C 4644
+
+      if !NILP ((*bar).next)                                          // C 4646
+	{ (*(XSCROLL_BAR! ((*bar).next))).prev = (*bar).prev; }       // C 4647
+
+      (*bar).next = FRAME_SCROLL_BARS (f);                            // C 4649
+      (*bar).prev = Qnil ();                                          // C 4650
+      XSETVECTOR! (barobj, bar);                                      // C 4651
+      fset_scroll_bars (f, barobj);                                   // C 4652
+      if !NILP ((*bar).next)                                          // C 4653
+	{ XSETVECTOR! ((*(XSCROLL_BAR! ((*bar).next))).prev, bar); }   // C 4654
+    }
+}
+
+/// C 4658-4684: "Remove all scroll bars on FRAME that haven't been saved since the last call to
+/// `*condemn_scroll_bars_hook'." - C 4666's read, C 4670's clear, C 4672-4680's removal walk (with
+/// C 4678-4679's two stores) and C 4682-4683's comment.
+/// C: /* Remove all scroll bars on FRAME that haven't been saved since the
+/// C:    last call to `*condemn_scroll_bars_hook'.  */
+/// C: static void
+/// C: w32_judge_scroll_bars (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_judge_scroll_bars (f: *mut frame)
+{
+  let mut bar: Lisp_Object;                                           // C 4664
+  let mut next: Lisp_Object;
+
+  bar = FRAME_CONDEMNED_SCROLL_BARS (f);                              // C 4666
+
+  /* Clear out the condemned list now so we won't try to process any
+     more events on the hapless scroll bars.  */
+  fset_condemned_scroll_bars (f, Qnil ());                            // C 4670
+
+  /* C's `for (; ! NILP (bar); bar = next)` (C 4672-4673) is the initialisation C 4666 made, the
+     condition and C's increment clause.  */
+  while !NILP (bar)                                                   // C 4672
+    {
+      let b: *mut scroll_bar = XSCROLL_BAR! (bar);                    // C 4674
+
+      w32_scroll_bar_remove (b);                                     // C 4676
+
+      next = (*b).next;                                              // C 4678
+      (*b).next = Qnil ();                                           // C 4679
+      (*b).prev = Qnil ();
+      bar = next;                                                     // C 4672 (C's increment clause)
+    }
+
+  /* Now there should be no references to the condemned scroll bars,
+     and they should get garbage-collected.  */
+}
+
+/* C 4686-4691's comment and C 4694's `w32_scroll_bar_handle_click` open the next slice.  */

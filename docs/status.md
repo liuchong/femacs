@@ -20238,3 +20238,10 @@
   ④ 十门全 `rc=0`、0 失败；区间表拆为 `4330-4536`（本片）+ `4538-8414`（余项）；台账追加 **`### Slice 12 (C 4330-4536)`**。
   ⑤ 预算与清理：`build-tu` 1 发、臂读数 1 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w51`、`/tmp/slice12.txt`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.318 `src/w32term.c` 第 13 片（w32term lane，slice 13）：C 4538-4684 落地——三个滚动条钩子：`w32_condemn_scroll_bars`（C 4551-4571：把本帧链表前插到 condemned 链）、`w32_redeem_scroll_bar`（C 4577-4656：纵/横两条"摘链-重插"臂）、`w32_judge_scroll_bars`（C 4661-4684：清理走查）；w32term.rs 6,651 → 6,823 行（+172，2026-10-15）**：
+  ① C 4599 的 `goto horizontal` 落成 `break 'horizontal`：标签在纵向臂之后（C 4622），故纵向臂包进带标签的块、以 C 的跳转退出（`w32proc` 的 `new_child`/`create_child` 装置）；`--check` 首报的 `goto` token 行已按该理由入 `docs/ports/macro-body-notes.tsv`。
+  ② 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本（首拼即通过）**。`extract-abi.py --check`：**59 → 56 行**（`missing function` 51 → **48**），新增 1 条 token 行；行数行 21.0% → **18.9%**（6,823 : 8,414）。
+  ③ 十门全 `rc=0`、0 失败；区间表拆为 `4538-4684`（本片）+ `4686-8414`（余项）；台账追加 **`### Slice 13 (C 4538-4684)`**。
+  ④ 预算与清理：`build-tu` 1 发、臂读数 1 发、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w52`、`/tmp/slice13.txt`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

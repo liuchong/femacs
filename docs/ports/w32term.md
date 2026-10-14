@@ -190,7 +190,8 @@ The `arm` cell says what the port does with the block.
 | 3973-4157 | the Tab-bars and Tool-bars click handlers (`w32_handle_tab_bar_click` C 3977-3992, `w32_handle_tool_bar_click` C 4000-4015), the "Scroll bars" banner with C 4023-4027's two comments, `w32_window_to_scroll_bar` (C 4029-4056), `w32_set_scroll_bar_thumb` (C 4059-4132) and `w32_set_horizontal_scroll_bar_thumb` (C 4134-4157) | file gate (`have_ntgui`); slice 10 below |
 | 4160-4328 | the "Scroll bars, general" banner and the eight `my_*` wrappers (`my_create_vscrollbar` C 4164-4170, `my_create_hscrollbar` C 4172-4178, `my_show_window` C 4182-4191, `my_set_window_pos` C 4193-4210, C 4212-4219's `#if 0`, `my_set_foreground_window` C 4221-4226, `my_destroy_window` C 4229-4234, `my_bring_window_to_top` C 4236-4241), plus `w32_scroll_bar_create` (C 4243-4305) and `w32_scroll_bar_remove` (C 4308-4328) | file gate (`have_ntgui`); slice 11 below |
 | 4330-4536 | the two scroll-bar setters: `w32_set_vertical_scroll_bar` (C 4330-4432) and `w32_set_horizontal_scroll_bar` (C 4434-4536), each with its create branch and its move branch | file gate (`have_ntgui`); slice 12 below |
-| 4538-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4538-4684 | the three scroll-bar hooks: C 4539-4545's comment, `w32_condemn_scroll_bars` (C 4551-4571), `w32_redeem_scroll_bar` (C 4577-4656, with C 4599's `goto horizontal`) and `w32_judge_scroll_bars` (C 4661-4684) | file gate (`have_ntgui`); slice 13 below |
+| 4686-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1148,4 +1149,28 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **61 -> 59 rows** (53 -> **51** `missing function`: the round's two
      landed), no token rows, and the line-count row improves from 24.1% to **21.0%** (6,651 vs
      8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 13 (C 4538-4684)
+
+- **What it is.**  The three scroll-bar hooks redisplay drives: `w32_condemn_scroll_bars` (the
+  prepend of this frame's list onto the condemned one), `w32_redeem_scroll_bar` (the vertical and
+  horizontal unlink-and-reinsert pairs) and `w32_judge_scroll_bars` (the removal walk).  Port:
+  6,651 -> **6823 lines** (+172).  The table's last row splits at C 4684; the next live definition
+  is C 4694's `w32_scroll_bar_handle_click`.
+- **C 4599's `goto horizontal` is the port's `break 'horizontal`**: the label sits after the
+  vertical arm (C 4622), so that arm is wrapped in a labelled block whose exit is C's jump - the
+  `w32proc` `new_child`/`create_child` device - and the token row the `--check` first produced
+  (`goto`) is recorded in `docs/ports/macro-body-notes.tsv` with that reason (the
+  `w32_executable_type` row's class in the same file).
+- **C 4672-4673's `for (; ! NILP (bar); bar = next)`** is the port's `while` with C's increment
+  clause at the loop's end, `next` being the guard C 4678 reads before C 4679 clears the two
+  pointers.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text** - the
+     reading is unchanged from slices 4-12.
+  3. `extract-abi.py --check` -> **59 -> 56 rows** (51 -> **48** `missing function`: the round's
+     three landed), one token row added to the notes file (above), and the line-count row improves
+     from 21.0% to **18.9%** (6,823 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.
