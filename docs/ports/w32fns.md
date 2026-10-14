@@ -223,7 +223,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 8694-9014 | C 8694-9014: the `w32-shell-execute` `DEFUN` - the file's 65-line docstring, the `CYGWIN` arm (C 8765-8836) and the live arm (C 8838-9002) - slice 19 | file gate; `cygwin` names C's arm split |
 | 9016-9145 | C 9016-9043's `lookup_vk_code` and C 9045-9145's `w32_parse_and_hook_hot_key` (with C 9101-9106's `#ifndef MOD_ALT` guard block carried as the four constants) - slice 20 | file gate |
 | 9147-9337 | C 9147's `w32-register-hot-key` `DEFUN` through C 9318-9337's `w32-window-exists-p` - the six hot-key/lock-key/window `DEFUN`s of slice 21 | file gate |
-| 9339-10110 | C 9339's `w32-frame-geometry` onward: the frame-geometry/edges/z-order/restack family, the DDE block and the `w32_console_*` family (C 9586 `w32_frame_list_z_order`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 9339-9752 | C 9339-9486's `w32-frame-geometry`, C 9488-9577's `w32-frame-edges`, C 9579-9607's `w32_frame_list_z_order`, C 9609-9633's `w32-frame-list-z-order`, C 9635-9674's `w32_frame_restack`, C 9676-9707's `w32-frame-restack` and C 9709-9752's mouse pair - slice 22 | file gate |
+| 9754-10110 | C 9754's `#ifdef WINDOWSNT` onward: the disk-free-space/pfn pointer block, the DDE block and the `w32_console_*` family | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 | 10112-10138 | C 10112-10138's `w32_console_toggle_lock_key` - slice 21, landed **ahead of its C position** because C 9302 calls it and Rust has no declare-then-define pair inside one file (PORTING.md P-91 ①) | file gate |
 | 10140-12488 | **the remainder of the file** (C 10140's `w32_kbd_mods_to_emacs` onward: the console-modifier family, C 11586 `syms_of_w32fns` and the `#ifdef WINDOWSNT` tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
@@ -2396,6 +2397,109 @@ macro-generated (measured on slice 18's own text: `check-unit-names.py … 13100
   key is registered, no `PostThreadMessage` is delivered, and the `w32_unicode_gui` arm of the
   `FindWindow` device is never taken here; the arm reading is compile-level (42 errors, none from
   this slice) and the name sweep is a textual reading.
+
+## Slice 22 (C 9339-9752)
+
+**Scope and the stop.**  The geometry and stacking family: `w32-frame-geometry` (C 9339-9486),
+`w32-frame-edges` (C 9488-9577), the `static` walk `w32_frame_list_z_order` (C 9579-9607) with its
+`w32-frame-list-z-order` `DEFUN` (C 9609-9633), the `static` `w32_frame_restack` (C 9635-9674) with
+its `w32-frame-restack` `DEFUN` (C 9676-9707), and the mouse pair -
+`w32-mouse-absolute-pixel-position` (C 9709-9724) and `w32-set-mouse-absolute-pixel-position`
+(C 9726-9752).  The stop is C 9754's `#ifdef WINDOWSNT`, which opens the disk-free-space pointer
+block (C 9753 blank).  The slice's text is inserted **above** C 10112-10138's out-of-order block
+(slice 21), so the file's item order still equals C's (P-91 ②).
+
+**What the item carries.**  Eight items in C's order, each with `make-docfile`'s rule turning C's
+`doc: /* … */` into the `doc:` literal, and two new `static` helpers plus two new `DEFUN`s around
+them.  `w32-frame-geometry` is C 9385-9393's two records and eleven scalars (the records
+zero-initialised per PORTING.md 1.5), C 9400-9403's `GetWindowInfo` fill with the two border reads,
+C 9405-9422's `get_title_bar_info_fn` block (`TITLEBAR_INFO` is C 167-190's pair, C 9412-9413's
+six-entry `rgstate` clear, C 9415's `!(rgstate[0] & 0x00008001)` test), C 9423-9424's `WS_CAPTION`
+fallback to `SM_CYCAPTION`, C 9426-9432's `GetMenuBarInfo` and the two menu metrics, C 9435-9448's
+rectangle reads and menu-bar height fix-up, and C 9450-9485's eleven-`Fcons` `list`.  Its two
+chained assignments (C 9410-9411, C 9427-9428) are two statements each, innermost store first.
+`w32-frame-edges` is C 9511-9528's `outer-edges` arm (`GetWindowRect` straight into `list4`) and
+C 9529-9576's other arm (`GetClientRect` + `ClientToScreen`, then the `inner-edges` four
+`FRAME_*`-adjusted coordinates or the native rectangle).  The walk is C 9591-9604's `while (window)`
+over `w32_window_to_frame` with C 9597's `XSETFRAME`/`Fcons` pair, C 9602's `GetNextWindow` and
+C 9606's `Fnreverse`; its `DEFUN` is C 9622's `check_x_display_info` and C 9626-9629's
+`FRAMEP`/`FRAME_LIVE_P` choice between `GetWindow (…, GW_CHILD)` and `GetTopWindow (NULL)`.
+`w32_frame_restack` is C 9650-9672's two `SetWindowPos` orders behind the two `GetNextWindow`
+guards; its `DEFUN` is C 9694-9699's two decodes and call, with C 9704's
+`error ("Cannot restack frames")`.  The mouse pair is C 9717-9723's `POINT`/`GetCursorPos`/`Fcons`
+and C 9733-9749's `check_integer_range` pair, `os_subtype == OS_SUBTYPE_NT` +
+`w32_major_version + w32_minor_version >= 6` guard, `SPI_GETMOUSETRAILS` save, `SetCursorPos` and
+`SPI_SETMOUSETRAILS` restore.
+
+**New surface (all of it `<winuser.h>`'s).**  `WINDOWINFO` and `MENUBARINFO` (C 9385-9386's two
+records), `GetWindowInfo`, `GetMenuBarInfo`, `GetTopWindow`, `ClientToScreen`, `SetCursorPos`, the
+five constants `SM_CYCAPTION`, `SM_CYMENU`, `GW_HWNDNEXT`, `SPI_GETMOUSETRAILS`,
+`SPI_SETMOUSETRAILS`, and `frame.h` 1476's `decode_live_frame` declaration (no mirror carries it -
+the `decode_window_system_frame` shape).  They stand in one block at the head of the slice with the
+header text each one is taken from (the slice-8 reading for `<windows.h>` names).
+
+### Evidence (slice 22, the final revision: 14,435 Rust lines)
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/w22lane cargo run -q -p xtask -- build-tu src/w32fns.c` →
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, the object **336 bytes**.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - the count slices 16-21
+left, so this slice's 476 lines add no error and no member gap: no diagnostic sits at or beyond the
+slice's first line (`src/w32fns.rs` 13,915), and the kinds are the standing mirror set (15 `E0428`
+name collisions, 1 `E0530` shadowing, 25 `E0609` missing members, plus the one deliberately-failing
+`HAVE_NTGUI` frame-flag probe).  One run.
+
+**③ `extract-abi.py --check`.**  **131 → 123** rows: eight retire and none is added - the six
+`missing subr` rows (the six `DEFUN`s) and the two `missing function` rows
+(`w32_frame_list_z_order`, `w32_frame_restack`).  The six new `missing defsubr (&raw const Sw32_*)`
+rows belong to `syms_of_w32fns` (C 11949-11986, unported), as the six from slice 21 do.  Four token
+rows were forestalled by four `macro-body-notes.tsv` rows appended with this slice (two
+`GetNextWindow` bodies and two `BOOL … = false` bodies).  No `line count drifted` row: 14,435 Rust
+lines against 12,488 C lines (15.6%), inside the file's `w32fns 0.35 total` tolerance row.
+
+**④ The range table and the dead-file gate.**  The `9339-10110` remainder row splits into
+`9339-9752` (this slice) and `9754-10110` (the remainder); `check-dead-file-coverage.py` reads
+**173 range row(s) cover src/w32fns.c (12488 lines; 120 blank line(s) between blocks need no row)**,
+`0 failure(s)` (172 rows / 119 blanks before the split).
+
+**⑤ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 13,915-14,389 (the slice's text):
+90 capitalized identifiers, missing `Clone`, `Copy`, the six `Sw32_*` and `Y` - every one of them a
+class the tool documents as "not an item": `#[derive (Clone, Copy)]`'s two arguments, a `DEFUN!`'s
+per-subr `Sname` static (macro-generated), and the SDK's own parameter name in a declaration
+(`SetCursorPos (X: c_int, Y: c_int)`, the `SendMessageW` prototype class).  The slice's docstrings
+alone read two identifiers, missing only the S-name.
+
+### Deviations (slice 22)
+
+- **Two records' layouts are unmeasured.**  `WINDOWINFO`'s field list and `MENUBARINFO`'s single
+  bitfield word are spelled from the header and **corroborated against the Win32 metadata projection**
+  (`windows-sys` 0.52's `WINDOWINFO` - same ten fields in the same order, including
+  `dwWindowStatus` - and `MENUBARINFO`, whose tail is a `_bitfield: i32`), not against a compiled
+  `sizeof`: this machine has no SDK and no mingw toolchain.  `MENUBARINFO`'s two `BOOL … : 1` members
+  are one `bits` word, LSB first (PORTING.md 1.3, the `src/w32.rs` `DCB` device); nothing writes
+  either bit.  The integrator owes both records' measured layout.
+- **`GetNextWindow` is a pure rename, so the port keeps the real entry point.**  C's `<winuser.h>`
+  has `#define GetNextWindow(hWnd, wCmd) GetWindow(hWnd, wCmd)`, and the port calls `GetWindow` with
+  C's own `GW_HWNDNEXT`; the notes rows record the macro name for the two bodies that use it.  This
+  is deliberately *not* the `CreateWindow` treatment (C 2399-2471 section): that macro's expansion
+  inserts the `0L` extended style, so its declaration had to carry the macro's own name and
+  argument list, while this one only renames.
+- **C's chained assignments are two statements each.**  C 9410-9411 (`title_bar.rcTitleBar.left =
+  … .right = 0;`) and C 9427-9428 (`menu_bar.rcBar.right = … .left = 0;`) are each written as two
+  stores, innermost first - the C 6051-6052 `tip_window` reading (Rust's assignment yields `()`).
+- **C's unsigned chain in the tab-bar/tool-bar widths is cast at the operand.**  C 9469/9480's
+  `right - left - 2 * external_border_width - 2 * internal_border_width` promotes the whole chain to
+  `unsigned int` (the local is `unsigned int`, C 9388); the port casts that operand `as c_int` at the
+  subtraction, which is the same value for every border width a window manager reports - recorded
+  rather than silently assumed.
+- **C's `BOOL … = false` keeps C's `BOOL`** (C 9514's `success`, C 9734's `ret`), so the port writes
+  `0` and the notes rows carry the `false` token (the `record_in_backtrace` class).
+- **C's `class` and `type` parameters are `r#class`/`r#type`** (C 9323, C 9504): Rust keywords,
+  PORTING.md 0.2's raw-identifier rule; the token check folds the `r#`.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no frame geometry is
+  measured, no window is restacked, and the mouse cannot be moved; the arm reading is compile-level
+  (42 errors, none from this slice) and the name sweep is a textual reading.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

@@ -13912,13 +13912,489 @@ DEFUN! ("w32-window-exists-p", Fw32_window_exists_p, Sw32_window_exists_p,
   return Qt ();
 });
 
-/* C 9339-10110's text is not in the port yet (the file's remainder), but C 10112's
+/// C 9398-9750's new `<windows.h>` surface: the three records the geometry DEFUNs fill
+/// (`WINDOWINFO` is C 9386's, `MENUBARINFO` C 9385's), the five entry points they call and the five
+/// constants they pass.  None of these names is in the reference file (they are `<winuser.h>`'s), so
+/// each one is spelled from the header - the slice-8 reading - and the two records' layouts are
+/// **unmeasured** on this machine (no SDK, no mingw toolchain): `WINDOWINFO`'s field list and
+/// `MENUBARINFO`'s one bitfield word are corroborated against the Win32 metadata projection
+/// (`windows-sys` 0.52's `WINDOWINFO`/`MENUBARINFO`, which gives the same field order and a
+/// `_bitfield: i32` tail), not against a compiled `sizeof`.
+/// C: #define SM_CYCAPTION 4 / #define SM_CYMENU 15 / #define GW_HWNDNEXT 2
+/// C: #define SPI_GETMOUSETRAILS 0x005E / #define SPI_SETMOUSETRAILS 0x005D
+/// C: typedef struct tagWINDOWINFO { DWORD cbSize; RECT rcWindow; RECT rcClient; DWORD dwStyle;
+/// C: DWORD dwExStyle; DWORD dwWindowStatus; UINT cxWindowBorders; UINT cyWindowBorders;
+/// C: ATOM atomWindowType; WORD wCreatorVersion; } WINDOWINFO, *PWINDOWINFO, *LPWINDOWINFO;
+/// C: typedef struct tagMENUBARINFO { DWORD cbSize; RECT rcBar; HMENU hMenu; HWND hwndMenu;
+/// C: BOOL fBarFocused : 1; BOOL fFocused : 1; } MENUBARINFO, *PMENUBARINFO, *LPMENUBARINFO;
+/// C: BOOL WINAPI GetWindowInfo (HWND hwnd, PWINDOWINFO pwi);
+/// C: BOOL WINAPI GetMenuBarInfo (HWND hwnd, LONG idObject, LONG idItem, PMENUBARINFO pmbi);
+/// C: HWND WINAPI GetTopWindow (HWND hWnd);
+/// C: BOOL WINAPI ClientToScreen (HWND hWnd, LPPOINT lpPoint);
+/// C: BOOL WINAPI SetCursorPos (int X, int Y);
+#[cfg (feature = "have_ntgui")]
+pub const SM_CYCAPTION: c_int = 4;
+#[cfg (feature = "have_ntgui")]
+pub const SM_CYMENU: c_int = 15;
+#[cfg (feature = "have_ntgui")]
+pub const GW_HWNDNEXT: UINT = 2;
+#[cfg (feature = "have_ntgui")]
+pub const SPI_GETMOUSETRAILS: UINT = 0x005E;
+#[cfg (feature = "have_ntgui")]
+pub const SPI_SETMOUSETRAILS: UINT = 0x005D;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WINDOWINFO
+{
+  pub cbSize: DWORD,
+  pub rcWindow: RECT,
+  pub rcClient: RECT,
+  pub dwStyle: DWORD,
+  pub dwExStyle: DWORD,
+  pub dwWindowStatus: DWORD,
+  pub cxWindowBorders: UINT,
+  pub cyWindowBorders: UINT,
+  pub atomWindowType: ATOM,
+  pub wCreatorVersion: WORD,
+}
+/// The two `BOOL … : 1` bitfields are one `bits` word, LSB first: `fBarFocused:1 | fFocused:1`
+/// (PORTING.md 1.3, the `src/w32.rs` `DCB` device).  Nothing in this file writes either bit.
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MENUBARINFO
+{
+  pub cbSize: DWORD,
+  pub rcBar: RECT,
+  pub hMenu: HMENU,
+  pub hwndMenu: HWND,
+  pub bits: DWORD,
+}
+/// C 9383/9494/9696's `frame.h` 1476 prototype, which this unit's include list does not carry (the
+/// `decode_window_system_frame` shape below).
+/// C: extern struct frame *decode_live_frame (Lisp_Object);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn decode_live_frame (arg0: Lisp_Object) -> *mut frame;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetWindowInfo (hwnd: HWND, pwi: *mut WINDOWINFO) -> BOOL;
+  pub fn GetMenuBarInfo (hwnd: HWND, idObject: LONG, idItem: LONG,
+                         pmbi: *mut MENUBARINFO) -> BOOL;
+  pub fn GetTopWindow (hWnd: HWND) -> HWND;
+  pub fn ClientToScreen (hWnd: HWND, lpPoint: LPPOINT) -> BOOL;
+  pub fn SetCursorPos (X: c_int, Y: c_int) -> BOOL;
+}
+
+/// C 9339-9486: `w32-frame-geometry` - the alist of C 9450-9485.  C 9385-9393's locals (two
+/// records and eleven scalars, the records zero-initialised per PORTING.md 1.5), C 9395-9396's
+/// initial/W32 test, C 9400-9403's `GetWindowInfo` fill and the two border reads, C 9405-9422's
+/// `get_title_bar_info_fn` block (`TITLEBAR_INFO` is C 167-190's pair above, its `rgstate[0]` test is
+/// C 9415's `!(rgstate[0] & 0x00008001)`), C 9423-9424's `WS_CAPTION` fallback, C 9426-9432's
+/// `GetMenuBarInfo` and the two menu metrics, C 9435-9438's four rectangle edges and C 9441-9448's
+/// menu-bar height fix-up.  C 9410-9411 and C 9427-9428 are C's chained assignments: two statements
+/// each, innermost store first (the C 6051-6052 `tip_window` reading).
+/// C: DEFUN ("w32-frame-geometry", Fw32_frame_geometry, Sw32_frame_geometry, 0, 1, 0,
+/// C:        doc: /* Return geometric attributes of FRAME. … */)
+/// C:   (Lisp_Object frame)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-frame-geometry", Fw32_frame_geometry, Sw32_frame_geometry, 0, 1, 0,
+	doc: "Return geometric attributes of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is an association list of the attributes listed below.  All height\nand width values are in pixels.\n\n`outer-position' is a cons of the outer left and top edges of FRAME\n  relative to the origin - the position (0, 0) - of FRAME's display.\n\n`outer-size' is a cons of the outer width and height of FRAME.  The\n  outer size includes the title bar and the external borders as well as\n  any menu and/or tool bar of frame.\n\n`external-border-size' is a cons of the horizontal and vertical width of\n  FRAME's external borders as supplied by the window manager.\n\n`title-bar-size' is a cons of the width and height of the title bar of\n  FRAME as supplied by the window manager.  If both of them are zero,\n  FRAME has no title bar.  If only the width is zero, Emacs was not\n  able to retrieve the width information.\n\n`menu-bar-external', if non-nil, means the menu bar is external (never\n  included in the inner edges of FRAME).\n\n`menu-bar-size' is a cons of the width and height of the menu bar of\n  FRAME.\n\n`tab-bar-size' is a cons of the width and height of the tab bar of\n  FRAME.\n\n`tool-bar-external', if non-nil, means the tool bar is external (never\n  included in the inner edges of FRAME).\n\n`tool-bar-position' tells on which side the tool bar on FRAME is and can\n  be one of `left', `top', `right' or `bottom'.  If this is nil, FRAME\n  has no tool bar.\n\n`tool-bar-size' is a cons of the width and height of the tool bar of\n  FRAME.\n\n`internal-border-width' is the width of the internal border of\n  FRAME.",
+	(frame: Lisp_Object),
+	{
+  let f: *mut frame = decode_live_frame (frame);
+
+  let mut menu_bar: MENUBARINFO = core::mem::zeroed ();
+  let mut window: WINDOWINFO = core::mem::zeroed ();
+  let mut left: c_int;
+  let mut top: c_int;
+  let mut right: c_int;
+  let mut bottom: c_int;
+  let mut external_border_width: c_uint;
+  let mut external_border_height: c_uint;
+  let mut title_bar_width: c_int = 0;
+  let mut title_bar_height: c_int = 0;
+  let mut single_menu_bar_height: c_int;
+  let mut wrapped_menu_bar_height: c_int;
+  let mut menu_bar_height: c_int;
+  let tab_bar_height: c_int = FRAME_TAB_BAR_HEIGHT (f);
+  let tool_bar_height: c_int = FRAME_TOOL_BAR_HEIGHT (f);
+  let internal_border_width: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);
+
+  if FRAME_INITIAL_P (f) || ! FRAME_W32_P (f)
+    { return Qnil (); }
+
+  block_input ();
+  /* Outer rectangle and borders.  */
+  window.cbSize = core::mem::size_of_val (&window) as DWORD;
+  GetWindowInfo (FRAME_W32_WINDOW! (f), &raw mut window);
+  external_border_width = window.cxWindowBorders;
+  external_border_height = window.cyWindowBorders;
+  /* Title bar.  */
+  if get_title_bar_info_fn.is_some ()
+    {
+      let mut title_bar: TITLEBAR_INFO = core::mem::zeroed ();
+
+      title_bar.cbSize = core::mem::size_of_val (&title_bar) as DWORD;
+      title_bar.rcTitleBar.left = 0;
+      title_bar.rcTitleBar.right = 0;
+      title_bar.rcTitleBar.top = 0;
+      title_bar.rcTitleBar.bottom = 0;
+      let mut i: c_int = 0;
+      while i < 6
+	{
+	  title_bar.rgstate[i as usize] = 0;
+	  i += 1;
+	}
+      if (get_title_bar_info_fn.unwrap ()) (FRAME_W32_WINDOW! (f), &raw mut title_bar) != 0
+	  && title_bar.rgstate[0] & 0x00008001 == 0
+	{
+	  title_bar_width = title_bar.rcTitleBar.right - title_bar.rcTitleBar.left;
+	  title_bar_height = title_bar.rcTitleBar.bottom - title_bar.rcTitleBar.top;
+	}
+    }
+  else if (window.dwStyle & WS_CAPTION) == WS_CAPTION
+    { title_bar_height = GetSystemMetrics (SM_CYCAPTION); }
+  /* Menu bar.  */
+  menu_bar.cbSize = core::mem::size_of_val (&menu_bar) as DWORD;
+  menu_bar.rcBar.left = 0;
+  menu_bar.rcBar.right = 0;
+  menu_bar.rcBar.top = 0;
+  menu_bar.rcBar.bottom = 0;
+
+  GetMenuBarInfo (FRAME_W32_WINDOW! (f), 0xFFFFFFFD, 0, &raw mut menu_bar);
+  single_menu_bar_height = GetSystemMetrics (SM_CYMENU);
+  wrapped_menu_bar_height = GetSystemMetrics (SM_CYMENUSIZE);
+  unblock_input ();
+
+  left = window.rcWindow.left;
+  top = window.rcWindow.top;
+  right = window.rcWindow.right;
+  bottom = window.rcWindow.bottom;
+
+  /* Menu bar.  */
+  menu_bar_height = menu_bar.rcBar.bottom - menu_bar.rcBar.top;
+  /* Fix menu bar height reported by GetMenuBarInfo.  */
+  if menu_bar_height > single_menu_bar_height
+    /* A wrapped menu bar.  */
+    { menu_bar_height += single_menu_bar_height - wrapped_menu_bar_height; }
+  else if menu_bar_height > 0
+    /* A single line menu bar.  */
+    { menu_bar_height = single_menu_bar_height; }
+
+  return list! (Fcons (Qouter_position (),
+		       Fcons (make_fixnum (left as EMACS_INT), make_fixnum (top as EMACS_INT))),
+		Fcons (Qouter_size (),
+		       Fcons (make_fixnum ((right - left) as EMACS_INT),
+			      make_fixnum ((bottom - top) as EMACS_INT))),
+		Fcons (Qexternal_border_size (),
+		       Fcons (make_fixnum (external_border_width as EMACS_INT),
+			      make_fixnum (external_border_height as EMACS_INT))),
+		Fcons (Qtitle_bar_size (),
+		       Fcons (make_fixnum (title_bar_width as EMACS_INT),
+			      make_fixnum (title_bar_height as EMACS_INT))),
+		Fcons (Qmenu_bar_external (), Qt ()),
+		Fcons (Qmenu_bar_size (),
+		       Fcons (make_fixnum ((menu_bar.rcBar.right - menu_bar.rcBar.left) as EMACS_INT),
+			      make_fixnum (menu_bar_height as EMACS_INT))),
+		Fcons (Qtab_bar_size (),
+		       Fcons (make_fixnum
+			      (if tab_bar_height != 0
+				 { (right - left - 2 * (external_border_width as c_int)
+				    - 2 * internal_border_width) as EMACS_INT }
+			       else { 0 }),
+			      make_fixnum (tab_bar_height as EMACS_INT))),
+		Fcons (Qtool_bar_external (), Qnil ()),
+		Fcons (Qtool_bar_position (), (if tool_bar_height != 0
+					       { FRAME_TOOL_BAR_POSITION (f) }
+					       else { Qnil () })),
+		Fcons (Qtool_bar_size (),
+		       Fcons (make_fixnum
+			      (if tool_bar_height != 0
+				 { (right - left - 2 * (external_border_width as c_int)
+				    - 2 * internal_border_width) as EMACS_INT }
+			       else { 0 }),
+			      make_fixnum (tool_bar_height as EMACS_INT))),
+		Fcons (Qinternal_border_width (),
+		       make_fixnum (internal_border_width as EMACS_INT)));
+});
+
+/// C 9488-9577: `w32-frame-edges` - C 9506's frame decode and C 9508-9509's test, then C 9511-9528's
+/// `outer-edges` arm (`GetWindowRect`'s rectangle straight into `list4`) and C 9529-9576's other arm
+/// (`GetClientRect` plus `ClientToScreen` for the native rectangle, then `inner-edges`' four
+/// `FRAME_*`-adjusted coordinates or the native rectangle itself).  `success` is C's `BOOL`, so the
+/// port keeps the type and spells C's `false` as `0` (the `record_in_backtrace` notes row class).
+/// C: DEFUN ("w32-frame-edges", Fw32_frame_edges, Sw32_frame_edges, 0, 2, 0,
+/// C:        doc: /* Return edge coordinates of FRAME. … */)
+/// C:   (Lisp_Object frame, Lisp_Object type)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-frame-edges", Fw32_frame_edges, Sw32_frame_edges, 0, 2, 0,
+	doc: "Return edge coordinates of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is a list of the form (LEFT, TOP, RIGHT, BOTTOM).  All values are\nin pixels relative to the origin - the position (0, 0) - of FRAME's\ndisplay.\n\nIf optional argument TYPE is the symbol `outer-edges', return the outer\nedges of FRAME.  The outer edges comprise the decorations of the window\nmanager (like the title bar or external borders) as well as any external\nmenu or tool bar of FRAME.  If optional argument TYPE is the symbol\n`native-edges' or nil, return the native edges of FRAME.  The native\nedges exclude the decorations of the window manager and any external\nmenu or tool bar of FRAME.  If TYPE is the symbol `inner-edges', return\nthe inner edges of FRAME.  These edges exclude title bar, any borders,\nmenu bar or tool bar of FRAME.",
+	(frame: Lisp_Object, r#type: Lisp_Object),
+	{
+  let f: *mut frame = decode_live_frame (frame);
+
+  if FRAME_INITIAL_P (f) || ! FRAME_W32_P (f)
+    { return Qnil (); }
+
+  if EQ (r#type, Qouter_edges ())
+    {
+      let mut rectangle: RECT = core::mem::zeroed ();
+      let mut success: BOOL = 0;
+
+      block_input ();
+      /* Outer frame rectangle, including outer borders and title bar. */
+      success = GetWindowRect (FRAME_W32_WINDOW! (f), &raw mut rectangle);
+      unblock_input ();
+
+      if success != 0
+	{ return list4 (make_fixnum (rectangle.left as EMACS_INT),
+			make_fixnum (rectangle.top as EMACS_INT),
+			make_fixnum (rectangle.right as EMACS_INT),
+			make_fixnum (rectangle.bottom as EMACS_INT)); }
+      else
+	{ return Qnil (); }
+    }
+  else
+    {
+      let mut rectangle: RECT = core::mem::zeroed ();
+      let mut pt: POINT = core::mem::zeroed ();
+      let mut left: c_int;
+      let mut top: c_int;
+      let mut right: c_int;
+      let mut bottom: c_int;
+      let mut success: BOOL;
+
+      block_input ();
+      /* Inner frame rectangle, excluding borders and title bar.  */
+      success = GetClientRect (FRAME_W32_WINDOW! (f), &raw mut rectangle);
+      /* Get top-left corner of native rectangle in screen
+	 coordinates.  */
+      if success == 0
+	{
+	  unblock_input ();
+	  return Qnil ();
+	}
+
+      pt.x = 0;
+      pt.y = 0;
+      success = ClientToScreen (FRAME_W32_WINDOW! (f), &raw mut pt);
+      unblock_input ();
+
+      if success == 0
+	{ return Qnil (); }
+
+      left = pt.x;
+      top = pt.y;
+      right = left + rectangle.right;
+      bottom = top + rectangle.bottom;
+
+      if EQ (r#type, Qinner_edges ())
+	{
+	  let internal_border_width: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);
+
+	  return list4 (make_fixnum ((left + internal_border_width) as EMACS_INT),
+			make_fixnum ((top
+				      + FRAME_TAB_BAR_HEIGHT (f)
+				      + FRAME_TOOL_BAR_TOP_HEIGHT (f)
+				      + internal_border_width) as EMACS_INT),
+			make_fixnum ((right - internal_border_width) as EMACS_INT),
+			make_fixnum ((bottom - internal_border_width
+				      - FRAME_TOOL_BAR_BOTTOM_HEIGHT (f)) as EMACS_INT));
+	}
+      else
+	{ return list4 (make_fixnum (left as EMACS_INT), make_fixnum (top as EMACS_INT),
+			make_fixnum (right as EMACS_INT), make_fixnum (bottom as EMACS_INT)); }
+    }
+});
+
+/// C 9579-9607: `static Lisp_Object w32_frame_list_z_order (struct w32_display_info *, HWND)` -
+/// C 9589's two locals, C 9591's `while (window)` walk with C 9593's `w32_window_to_frame`, C 9597's
+/// `XSETFRAME`/`Fcons` pair, C 9602's `GetNextWindow (window, GW_HWNDNEXT)` (C's macro: the port
+/// calls `<winuser.h>`'s real entry point, the notes row records the name) and C 9606's `Fnreverse`.
+/// C: static Lisp_Object
+/// C: w32_frame_list_z_order (struct w32_display_info *dpyinfo, HWND window)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_frame_list_z_order (dpyinfo: *mut w32_display_info, mut window: HWND) -> Lisp_Object
+{
+  let mut frame: Lisp_Object;
+  let mut frames: Lisp_Object = Qnil ();
+
+  while ! window.is_null ()
+    {
+      let f: *mut frame = w32_window_to_frame (dpyinfo, window);
+
+      if ! f.is_null ()
+	{
+	  XSETFRAME! (frame, f);
+	  frames = Fcons (frame, frames);
+	}
+
+      block_input ();
+      window = GetWindow (window, GW_HWNDNEXT);
+      unblock_input ();
+    }
+
+  return Fnreverse (frames);
+}
+
+/// C 9609-9633: `w32-frame-list-z-order` - C 9622's `check_x_display_info`, C 9626-9629's
+/// `FRAMEP`/`FRAME_LIVE_P` choice between `GetWindow (…, GW_CHILD)` (a live frame argument) and
+/// `GetTopWindow (NULL)`, and C 9632's call into the walk above.
+/// C: DEFUN ("w32-frame-list-z-order", Fw32_frame_list_z_order,
+/// C:        Sw32_frame_list_z_order, 0, 1, 0,
+/// C:        doc: /* Return list of Emacs's frames, in Z (stacking) order. … */)
+/// C:   (Lisp_Object display)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-frame-list-z-order", Fw32_frame_list_z_order,
+	Sw32_frame_list_z_order, 0, 1, 0,
+	doc: "Return list of Emacs's frames, in Z (stacking) order.\nThe optional argument DISPLAY specifies which display to ask about.\nDISPLAY should be either a frame or a display name (a string).  If\nomitted or nil, that stands for the selected frame's display.\n\nAs a special case, if DISPLAY is non-nil and specifies a live frame,\nreturn the child frames of that frame in Z (stacking) order.\n\nFrames are listed from topmost (first) to bottommost (last).",
+	(display: Lisp_Object),
+	{
+  let dpyinfo: *mut w32_display_info = check_x_display_info (display);
+  let mut window: HWND;
+
+  block_input ();
+  if FRAMEP (display) && FRAME_LIVE_P (XFRAME (display))
+    { window = GetWindow (FRAME_W32_WINDOW! (XFRAME (display)), GW_CHILD); }
+  else
+    { window = GetTopWindow (core::ptr::null_mut ()); }
+  unblock_input ();
+
+  return w32_frame_list_z_order (dpyinfo, window);
+});
+
+/// C 9635-9674: `static void w32_frame_restack (struct frame *, struct frame *, bool)` - C 9646-9647's
+/// two handles, C 9650-9667's `above_flag` arm (the two `GetNextWindow` guards around the two
+/// `SetWindowPos` calls, whose comments explain why F1 goes below F2 first) and C 9668-9672's
+/// single-call `else if` arm.  `SetWindowPos`'s `SWP_*` set is C 3183-3185's.
+/// C: static void
+/// C: w32_frame_restack (struct frame *f1, struct frame *f2, bool above_flag)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_frame_restack (f1: *mut frame, f2: *mut frame, above_flag: bool)
+{
+  let hwnd1: HWND = FRAME_W32_WINDOW! (f1);
+  let hwnd2: HWND = FRAME_W32_WINDOW! (f2);
+
+  block_input ();
+  if above_flag
+    /* Put F1 above F2 in the z-order.  */
+    {
+      if GetWindow (hwnd1, GW_HWNDNEXT) != hwnd2
+	{
+	  /* Make sure F1 is below F2 first because we must not
+	     change the relative position of F2 wrt any other
+	     window but F1.  */
+	  if GetWindow (hwnd2, GW_HWNDNEXT) != hwnd1
+	    { SetWindowPos (hwnd1, hwnd2, 0, 0, 0, 0,
+			    SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE
+			    | SWP_FRAMECHANGED); }
+	  /* Now put F1 above F2.  */
+	  SetWindowPos (hwnd2, hwnd1, 0, 0, 0, 0,
+			SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE
+			| SWP_FRAMECHANGED);
+	}
+    }
+  else if GetWindow (hwnd2, GW_HWNDNEXT) != hwnd1
+    /* Put F1 below F2 in the z-order.  */
+    { SetWindowPos (hwnd1, hwnd2, 0, 0, 0, 0,
+		    SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE
+		    | SWP_FRAMECHANGED); }
+  unblock_input ();
+}
+
+/// C 9676-9707: `w32-frame-restack` - C 9694-9695's two frame decodes, C 9697's `FRAME_W32_P` pair,
+/// C 9699's call with C's `!NILP (above)` and C 9704's `error ("Cannot restack frames")`.
+/// C: DEFUN ("w32-frame-restack", Fw32_frame_restack, Sw32_frame_restack, 2, 3, 0,
+/// C:        doc: /* Restack FRAME1 below FRAME2. … */)
+/// C:      (Lisp_Object frame1, Lisp_Object frame2, Lisp_Object above)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-frame-restack", Fw32_frame_restack, Sw32_frame_restack, 2, 3, 0,
+	doc: "Restack FRAME1 below FRAME2.\nThis means that if both frames are visible and the display areas of\nthese frames overlap, FRAME2 (partially) obscures FRAME1.  If optional\nthird argument ABOVE is non-nil, restack FRAME1 above FRAME2.  This\nmeans that if both frames are visible and the display areas of these\nframes overlap, FRAME1 (partially) obscures FRAME2.\n\nThis may be thought of as an atomic action performed in two steps: The\nfirst step removes FRAME1's window-system window from the display.  The\nsecond step reinserts FRAME1's window below (above if ABOVE is true)\nthat of FRAME2.  Hence the position of FRAME2 in its display's Z\n(stacking) order relative to all other frames excluding FRAME1 remains\nunaltered.\n\nSome window managers may refuse to restack windows.",
+	(frame1: Lisp_Object, frame2: Lisp_Object, above: Lisp_Object),
+	{
+  let f1: *mut frame = decode_live_frame (frame1);
+  let f2: *mut frame = decode_live_frame (frame2);
+
+  if FRAME_W32_P (f1) && FRAME_W32_P (f2)
+    {
+      w32_frame_restack (f1, f2, ! NILP (above));
+      return Qt ();
+    }
+  else
+    {
+      error (c"Cannot restack frames".as_ptr ());
+      return Qnil ();
+    }
+});
+
+/// C 9709-9724: `w32-mouse-absolute-pixel-position` - C 9717's `POINT` (zero-initialised,
+/// PORTING.md 1.5), C 9720's `GetCursorPos` and C 9723's `Fcons` of the two coordinates.
+/// C: DEFUN ("w32-mouse-absolute-pixel-position", Fw32_mouse_absolute_pixel_position,
+/// C:        Sw32_mouse_absolute_pixel_position, 0, 0, 0,
+/// C:        doc: /* Return absolute position of mouse cursor in pixels. … */)
+/// C:   (void)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-mouse-absolute-pixel-position", Fw32_mouse_absolute_pixel_position,
+	Sw32_mouse_absolute_pixel_position, 0, 0, 0,
+	doc: "Return absolute position of mouse cursor in pixels.\nThe position is returned as a cons cell (X . Y) of the coordinates of\nthe mouse cursor position in pixels relative to a position (0, 0) of the\nselected frame's display.",
+	(),
+	{
+  let mut pt: POINT = core::mem::zeroed ();
+
+  block_input ();
+  GetCursorPos (&raw mut pt);
+  unblock_input ();
+
+  return Fcons (make_fixnum (pt.x as EMACS_INT), make_fixnum (pt.y as EMACS_INT));
+});
+
+/// C 9726-9752: `w32-set-mouse-absolute-pixel-position` - C 9733-9737's four locals (`ret` is C's
+/// `BOOL`, so C's `false` is the port's `0`), C 9739-9749's body: the mouse-trails guard pair on NT
+/// 6.0+ (`os_subtype`, `w32_major_version`/`w32_minor_version`), `SPI_GETMOUSETRAILS`'s saved
+/// `trail_num`, `SetCursorPos` and `SPI_SETMOUSETRAILS`'s restore.
+/// C: DEFUN ("w32-set-mouse-absolute-pixel-position", Fw32_set_mouse_absolute_pixel_position,
+/// C:        Sw32_set_mouse_absolute_pixel_position, 2, 2, 0,
+/// C:        doc: /* Move mouse pointer to absolute pixel position (X, Y). … */)
+/// C:   (Lisp_Object x, Lisp_Object y)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("w32-set-mouse-absolute-pixel-position", Fw32_set_mouse_absolute_pixel_position,
+	Sw32_set_mouse_absolute_pixel_position, 2, 2, 0,
+	doc: "Move mouse pointer to absolute pixel position (X, Y).\nThe coordinates X and Y are interpreted in pixels relative to a position\n(0, 0) of the selected frame's display.",
+	(x: Lisp_Object, y: Lisp_Object),
+	{
+  let mut trail_num: UINT = 0;
+  let mut ret: BOOL = 0;
+
+  let xval: c_int = check_integer_range (x, INT_MIN as intmax_t, INT_MAX as intmax_t) as c_int;
+  let yval: c_int = check_integer_range (y, INT_MIN as intmax_t, INT_MAX as intmax_t) as c_int;
+
+  block_input ();
+  /* When "mouse trails" are in effect, moving the mouse cursor
+     sometimes leaves behind an annoying "ghost" of the pointer.
+     Avoid that by momentarily switching off mouse trails.  */
+  if os_subtype == OS_SUBTYPE_NT
+      && w32_major_version + w32_minor_version >= 6
+    { ret = SystemParametersInfo (SPI_GETMOUSETRAILS, 0,
+				  &raw mut trail_num as *mut c_void, 0); }
+  SetCursorPos (xval, yval);
+  if ret != 0
+    { SystemParametersInfo (SPI_SETMOUSETRAILS, trail_num, core::ptr::null_mut (), 0); }
+  unblock_input ();
+
+  return Qnil ();
+});
+
+/* C 9754-10110's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
-   It therefore stands below, at the foot of the file rather than at its C position, and the
-   ledger's `## C line ranges` table carries the two landed rows (`9147-9337` and `10112-10138`)
-   around the remainder.  Later slices of this lane insert their own text *above* this block, so
-   the file's item order still equals C's order (P-91 ②: Rust items are order-independent).  */
+   It therefore stands below the slices that insert their text above it, rather than at its C
+   position, and the ledger's `## C line ranges` table carries the landed rows (`9147-9337`,
+   `9339-9752`, `10112-10138`) around the remainder.  Later slices of this lane insert their own
+   text *above* this block, so the file's item order still equals C's order (P-91 ②: Rust items
+   are order-independent).  */
 
 /// C 10112-10138: `int w32_console_toggle_lock_key (int vk_code, Lisp_Object new_state)` - the
 /// Cygwin/console fallback `w32-toggle-lock-key` uses when `dwWindowsThreadId` is zero.  C 10115's
