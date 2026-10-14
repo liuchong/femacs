@@ -20214,3 +20214,11 @@
   ④ 十门全 `rc=0`、0 失败；区间表拆为 `3765-3970`（本片）+ `3973-8414`（余项）；台账追加 **`### Slice 9 (C 3765-3970)`**。
   ⑤ 预算与清理：`build-tu` 3 发（含两次首拼）、臂读数 1 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w48`、`/tmp/slice9.txt`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.315 `src/w32term.c` 第 10 片（w32term lane，slice 10）：C 3973-4157 落地——Tab-bars/Tool-bars 两个点击处理器（`w32_handle_tab_bar_click`、`w32_handle_tool_bar_click`）、"Scroll bars" banner 与其两条注释、`w32_window_to_scroll_bar`（C 4041-4047 的双链表单循环走法）、`w32_set_scroll_bar_thumb`（含 C 4085-4096 拖动期 `GetScrollInfo` 探测）与 `w32_set_horizontal_scroll_bar_thumb`；w32term.rs 5,875 → 6,138 行（+263，2026-10-14）**：
+  ① 用例处新增：`handle_tab_bar_click`/`handle_tool_bar_click`（dispextern.h 3668-3671，均带 `bool down_p`），`SCROLLINFO` 记录与 `SIF_RANGE`/`SIF_PAGE`/`SIF_POS`、`SB_CTL`、`GetScrollInfo`、`SetScrollInfo`（winuser）。
+  ② **C 4071 的 `f` 实参是参照自身的死文本**：w32term.h 581-582 的 `VERTICAL_SCROLL_BAR_INSIDE_HEIGHT(f,height)` 从不展开 `f`，而该函数作用域内没有 `f`（C 能编译只因宏实参是不展开的文本）；端口在该槽传类型化空指针并在注释/台账记录该偏差。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本（首拼即通过）**。`extract-abi.py --check`：**75 → 70 行**（`missing function` 67 → **62**），新增 **2 条 token 行**（两个处理器里 C 的 `1` 即 `bool down_p` 的 true，与 `w32_frame_highlight` 同类）；行数行 30.2% → **27.1%**（6,138 : 8,414）。
+  ④ 十门全 `rc=0`、0 失败；区间表拆为 `3973-4157`（本片）+ `4160-8414`（余项）；台账追加 **`### Slice 10 (C 3973-4157)`**。
+  ⑤ 预算与清理：`build-tu` 3 发、臂读数 2 发、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w49`、`/tmp/slice10.txt`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。

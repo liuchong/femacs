@@ -5872,4 +5872,267 @@ unsafe fn w32_mouse_position (fp: *mut *mut frame, insist: c_int,
   unblock_input ();                                                   // C 3969
 }
 
-/* C 3973-3975's "Tab-bars" banner and C 3981's `w32_handle_tab_bar_click` open the next slice.  */
+/* C's `<winuser.h>`/`<dispextern.h>` surface C 3988-4154 reads that this unit does not carry yet:
+   the two click handlers' own prototypes (dispextern.h 3668-3671) and the scroll-bar info block
+   (`SCROLLINFO` with its two entry points and the three `SIF_*` bits and `SB_CTL`).  Every name
+   stands at the use site (P-88 (1)); the SDK records are UNVERIFIED.  */
+/// C: extern Lisp_Object handle_tab_bar_click (struct frame *, int, int, bool, int);
+/// C: extern void handle_tool_bar_click (struct frame *, int, int, bool, int);
+/// C: typedef struct tagSCROLLINFO { UINT cbSize; UINT fMask; int nMin; int nMax; UINT nPage;
+/// C:   int nPos; int nTrackPos; } SCROLLINFO;
+/// C: #define SIF_RANGE 0x0001 / #define SIF_PAGE 0x0002 / #define SIF_POS 0x0004
+/// C: #define SB_CTL 2
+/// C: WINUSERAPI BOOL WINAPI GetScrollInfo (HWND hwnd, int nBar, LPSCROLLINFO lpsi);
+/// C: WINUSERAPI int WINAPI SetScrollInfo (HWND hwnd, int nBar, LPCSCROLLINFO lpsi, BOOL redraw);
+/// C:                                                        [dispextern.h 3668-3671; winuser.h]
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SCROLLINFO
+{
+  pub cbSize: UINT,
+  pub fMask: UINT,
+  pub nMin: c_int,
+  pub nMax: c_int,
+  pub nPage: UINT,
+  pub nPos: c_int,
+  pub nTrackPos: c_int,
+}
+#[cfg (feature = "have_ntgui")]
+pub const SIF_RANGE: UINT = 0x0001;
+#[cfg (feature = "have_ntgui")]
+pub const SIF_PAGE: UINT = 0x0002;
+#[cfg (feature = "have_ntgui")]
+pub const SIF_POS: UINT = 0x0004;
+#[cfg (feature = "have_ntgui")]
+pub const SB_CTL: c_int = 2;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetScrollInfo (hwnd: HWND, nBar: c_int, lpsi: *mut SCROLLINFO) -> BOOL;
+  pub fn SetScrollInfo (hwnd: HWND, nBar: c_int, lpsi: *const SCROLLINFO, redraw: BOOL) -> c_int;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn handle_tab_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+			       ts: c_int) -> Lisp_Object;
+  pub fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+				ts: c_int);
+}
+
+/* C 3973-3975 is the "Tab-bars" banner and C 4000-4002 the tool-bar one, both carried as C's own
+   text at their positions.  */
+/* C: /***********************************************************************
+   C: 			       Tab-bars
+   C:  ***********************************************************************/  */
+
+/// C 3977-3992: "Handle mouse button event on the tab-bar of frame F, …" - C 3984-3985's two
+/// `XFIXNAT` reads, C 3987's modifier test and C 3988/3990-3991's two handler calls.
+/// C: /* Handle mouse button event on the tab-bar of frame F, at
+/// C:    frame-relative coordinates X/Y.  EVENT_TYPE is either ButtonPress
+/// C:    or ButtonRelease.  */
+/// C: static Lisp_Object
+/// C: w32_handle_tab_bar_click (struct frame *f, struct input_event *button_event)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_handle_tab_bar_click (f: *mut frame,
+				    button_event: *mut input_event) -> Lisp_Object
+{
+  let x: c_int = XFIXNAT ((*button_event).x) as c_int;               // C 3984
+  let y: c_int = XFIXNAT ((*button_event).y) as c_int;               // C 3985
+
+  if (*button_event).modifiers & down_modifier as c_uint != 0         // C 3987
+    { return handle_tab_bar_click (f, x, y, true, 0); }              // C 3988
+  else
+    { return handle_tab_bar_click (f, x, y, false,                   // C 3990
+				   ((*button_event).modifiers
+				    & ! (up_modifier as c_uint)) as c_int); }   // C 3991
+}
+
+/* C: /***********************************************************************
+   C: 			       Tool-bars
+   C:  ***********************************************************************/  */
+
+/// C 4000-4015: "Handle mouse button event on the tool-bar of frame F, …" - the same two
+/// `XFIXNAT` reads and modifier test as the tab-bar twin, with C 4011/4013-4014's two calls (the
+/// second one returns nothing).
+/// C: static void
+/// C: w32_handle_tool_bar_click (struct frame *f, struct input_event *button_event)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_handle_tool_bar_click (f: *mut frame, button_event: *mut input_event)
+{
+  let x: c_int = XFIXNAT ((*button_event).x) as c_int;               // C 4007
+  let y: c_int = XFIXNAT ((*button_event).y) as c_int;               // C 4008
+
+  if (*button_event).modifiers & down_modifier as c_uint != 0         // C 4010
+    { handle_tool_bar_click (f, x, y, true, 0); }                    // C 4011
+  else
+    { handle_tool_bar_click (f, x, y, false,                         // C 4013
+			     ((*button_event).modifiers
+			      & ! (up_modifier as c_uint)) as c_int); }   // C 4014
+}
+
+/*: /***********************************************************************
+   C: 			       Scroll bars
+   C:  ***********************************************************************/  */
+/* C 4023-4027's two comments: "Scroll bar support." and "Given a window ID, find the struct
+   scroll_bar which manages it vertically.  This can be called in GC, so we have to make sure to
+   strip off mark bits."  */
+
+/// C 4029-4056: `static struct scroll_bar *w32_window_to_scroll_bar (Window window_id, int
+/// type)` - C 4032's two list variables, C 4034's `FOR_EACH_FRAME`, C 4040-4046's two-list
+/// initialisation and the trick condition, C 4047's increment clause, C 4048-4051's four-way match
+/// and C 4055's null answer.
+/// C: static struct scroll_bar *
+/// C: w32_window_to_scroll_bar (Window window_id, int type)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_window_to_scroll_bar (window_id: Window, type_: c_int) -> *mut scroll_bar
+{
+  let mut tail: Lisp_Object;                                         // C 4032
+  let mut frame: Lisp_Object;
+
+  FOR_EACH_FRAME! (tail, frame, {                                     // C 4034
+    let mut bar: Lisp_Object;                                         // C 4036
+    let mut condemned: Lisp_Object;
+
+    /* Scan this frame's scroll bar list for a scroll bar with the
+       right window ID.  */
+    condemned = FRAME_CONDEMNED_SCROLL_BARS (XFRAME (frame));          // C 4040
+    /* C's `for` (C 4041-4047) is the initialisation plus a `while` whose condition is C's own
+       "trick allows us to search both the ordinary and condemned scroll bar lists with one
+       loop" (C 4042-4046), with C's increment clause written at the loop's end.  */
+    bar = FRAME_SCROLL_BARS (XFRAME (frame));                          // C 4041
+    while !NILP (bar)                                                 // C 4044
+	|| { bar = condemned; condemned = Qnil (); !NILP (bar) }       // C 4044-4046
+      {
+	if SCROLL_BAR_W32_WINDOW! (XSCROLL_BAR! (bar)) == window_id    // C 4048
+	    && (type_ == 2                                              // C 4049
+		|| (type_ == 1 && (*XSCROLL_BAR! (bar)).horizontal)     // C 4050
+		|| (type_ == 0 && !(*XSCROLL_BAR! (bar)).horizontal))   // C 4051
+	  { return XSCROLL_BAR! (bar); }                               // C 4052
+	bar = (*XSCROLL_BAR! (bar)).next;                              // C 4047
+      }
+  });
+
+  return core::ptr::null_mut ();                                      // C 4055
+}
+
+/// C 4059-4132: "Set the thumb size and position of vertical scroll bar BAR. …" - C 4067's window
+/// handle, C 4071-4072's range expression, C 4074's `draggingp`, C 4085-4096's drag-time
+/// `GetScrollInfo` probe, C 4098-4118's two position branches (with C 4105/4110-4111's `range` and
+/// `whole` arithmetic) and C 4120-4131's `SetScrollInfo`.
+/// C: /* Set the thumb size and position of vertical scroll bar BAR.  We are currently
+/// C:    displaying PORTION out of a whole WHOLE, and our position POSITION.  */
+/// C: static void
+/// C: w32_set_scroll_bar_thumb (struct scroll_bar *bar,
+/// C: 			  int portion, int position, int whole)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int, position: c_int,
+				    whole: c_int)
+{
+  let w: Window = SCROLL_BAR_W32_WINDOW! (bar);                       // C 4067
+  /* We use the whole scroll-bar height in the calculations below, to
+     avoid strange effects like scrolling backwards when just clicking
+     on the handle (without moving it).  */
+  /* C 4071 passes C's dead macro argument `f`: `VERTICAL_SCROLL_BAR_INSIDE_HEIGHT` never expands
+     it (w32term.h 581-582), and this function has no `f` in scope - C compiles because a macro
+     argument is unexpanded text.  The port passes a typed null in that slot and the ledger
+     records it.  */
+  let range: c_double = VERTICAL_SCROLL_BAR_TOP_RANGE! (core::ptr::null_mut (), (*bar).height)
+    as c_double                                                       // C 4071
+    + VERTICAL_SCROLL_BAR_MIN_HANDLE! () as c_double;                 // C 4072
+  let mut sb_page: c_int;                                             // C 4073
+  let mut sb_pos: c_int;
+  let draggingp: BOOL = if (*bar).dragging != 0 { TRUE } else { FALSE };   // C 4074
+  /* C declares the `SCROLLINFO` uninitialised and fills it below (PORTING.md 1.5).  */
+  let mut si: SCROLLINFO = core::mem::zeroed ();                      // C 4075
+
+  /* We used to change the nPage setting while dragging the handle,
+     but that had very strange effects (such as scrolling backwards
+     while dragging downwards).
+
+     Now, we don't change the nPage setting while dragging unless we
+     get near to the end of the buffer, in which case we often have to
+     resize the handle to "go all the way".  */
+
+  if draggingp != 0                                                   // C 4085
+    {
+      let mut near_bottom_p: c_int;                                   // C 4087
+      block_input ();                                                 // C 4088
+      si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;        // C 4089
+      si.fMask = SIF_POS | SIF_PAGE;                                  // C 4090
+      GetScrollInfo (w, SB_CTL, &raw mut si);                         // C 4091
+      near_bottom_p = (si.nPos + si.nPage as c_int >= range as c_int) as c_int;   // C 4092
+      unblock_input ();                                               // C 4093
+      if near_bottom_p == 0                                           // C 4094
+	{ return; }                                                   // C 4095
+    }
+
+  if whole != 0                                                       // C 4098
+    {
+      /* Position scroll bar at rock bottom if the bottom of the
+         buffer is visible. This avoids shrinking the thumb away
+         to nothing if it is held at the bottom of the buffer.  */
+      if position + portion >= whole && draggingp == 0                 // C 4103
+	{
+	  sb_page = (range * (whole - position) as c_double / whole as c_double) as c_int;   // C 4105
+	  sb_pos = range as c_int;                                    // C 4106
+	}
+      else
+	{
+	  sb_pos = (position as c_double * range / whole as c_double) as c_int;   // C 4110
+	  sb_page = (min! (portion, whole - position) as c_double * range
+		     / whole as c_double) as c_int;                   // C 4111
+	}
+    }
+  else
+    {
+      sb_page = range as c_int;                                       // C 4116
+      sb_pos = 0;                                                     // C 4117
+    }
+
+  sb_page = max! (sb_page, VERTICAL_SCROLL_BAR_MIN_HANDLE! ()) as c_int;   // C 4120
+
+  block_input ();                                                     // C 4122
+
+  si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;            // C 4124
+  si.fMask = SIF_PAGE | SIF_POS;                                      // C 4125
+  si.nPage = sb_page as UINT;                                         // C 4126
+  si.nPos = sb_pos;                                                   // C 4127
+
+  SetScrollInfo (w, SB_CTL, &raw const si, TRUE);                     // C 4129
+
+  unblock_input ();                                                   // C 4131
+}
+
+/// C 4134-4157: "Set the thumb size and position of horizontal scroll bar BAR. …" - the same
+/// shape without the drag probe: C 4141's window handle, C 4146-4153's six `SCROLLINFO` fields and
+/// C 4154's `SetScrollInfo`.
+/// C: /* Set the thumb size and position of horizontal scroll bar BAR.  We are currently
+/// C:    displaying PORTION out of a whole WHOLE, and our position POSITION.  */
+/// C: static void
+/// C: w32_set_horizontal_scroll_bar_thumb (struct scroll_bar *bar,
+/// C: 				     int portion, int position, int whole)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int,
+					       position: c_int, whole: c_int)
+{
+  let w: Window = SCROLL_BAR_W32_WINDOW! (bar);                       // C 4141
+  /* C declares the `SCROLLINFO` uninitialised and fills it below (PORTING.md 1.5).  */
+  let mut si: SCROLLINFO = core::mem::zeroed ();                      // C 4142
+
+  block_input ();                                                     // C 4144
+
+  si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;            // C 4146
+  si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE;                          // C 4147
+  si.nMin = 0;                                                        // C 4148
+  si.nMax = whole;                                                    // C 4149
+  /* Allow nPage to be one larger than nPos so we don't allow the scrolling
+     of an already fully visible buffer.  */
+  si.nPage = (min! (portion, si.nMax) + 1) as UINT;                   // C 4152
+  si.nPos = min! (position, si.nMax);                                 // C 4153
+  SetScrollInfo (w, SB_CTL, &raw const si, TRUE);                     // C 4154
+
+  unblock_input ();                                                   // C 4156
+}
+
+/* C 4160-4162's "Scroll bars, general" banner and C 4164's `my_create_vscrollbar` open the next
+   slice.  */

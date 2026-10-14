@@ -187,7 +187,8 @@ The `arm` cell says what the port does with the block.
 | 3433-3629 | the mouse section's head: the section comment (C 3433-3434), `parse_button` (C 3439-3499, the mouse-message `switch`), `w32_construct_mouse_click` (C 3501-3532) and `w32_construct_mouse_wheel` (C 3534-3629, with the high-precision/coalescing arms) | file gate (`have_ntgui`); slice 7 below |
 | 3631-3763 | the `#if HAVE_W32NOTIFY` block: `w32_lispy_file_action` (C 3636-3670) and the `#ifdef WINDOWSNT` `w32_queue_notifications` (C 3676-3761) | `all (have_ntgui, have_w32notify)`; slice 8 below |
 | 3765-3970 | `w32_note_mouse_movement` (C 3774-3819), the "Mouse Face" banner with C 3826-3834's three dropped forward declarations, `w32_define_cursor` (C 3835-3839) and `w32_mouse_position` (C 3861-3970) | file gate (`have_ntgui`); slice 9 below |
-| 3973-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3973-4157 | the Tab-bars and Tool-bars click handlers (`w32_handle_tab_bar_click` C 3977-3992, `w32_handle_tool_bar_click` C 4000-4015), the "Scroll bars" banner with C 4023-4027's two comments, `w32_window_to_scroll_bar` (C 4029-4056), `w32_set_scroll_bar_thumb` (C 4059-4132) and `w32_set_horizontal_scroll_bar_thumb` (C 4134-4157) | file gate (`have_ntgui`); slice 10 below |
+| 4160-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1057,4 +1058,35 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   3. `extract-abi.py --check` -> **79 -> 75 rows** (70 -> **67** `missing function`: the round's
      three landed), no token rows, and the line-count row improves from 33.3% to **30.2%**
      (5,875 vs 8,414).
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 10 (C 3973-4157)
+
+- **What it is.**  The two click handlers (tab-bar and tool-bar), the "Scroll bars" banner with its
+  two comments, `w32_window_to_scroll_bar` (the two-list walk C 4041-4047 writes as one loop) and
+  the two thumb setters (`w32_set_scroll_bar_thumb` with C 4085-4096's drag-time `GetScrollInfo`
+  probe, and `w32_set_horizontal_scroll_bar_thumb`).  Port: 5,875 -> **6138 lines** (+263).  The
+  table's last row splits at C 4157; the next live definition is C 4164's `my_create_vscrollbar`
+  (the "Scroll bars, general" banner at C 4160-4162).
+- **The names this slice adds stand at the use site** (P-88 (1)): `handle_tab_bar_click` and
+  `handle_tool_bar_click` (dispextern.h 3668-3671, both taking a `bool down_p`), the `SCROLLINFO`
+  record with `SIF_RANGE`/`SIF_PAGE`/`SIF_POS`, `SB_CTL`, `GetScrollInfo` and `SetScrollInfo`
+  (`<winuser.h>`).  The SDK records are UNVERIFIED; the two Emacs-side prototypes are read from the
+  reference header.
+- **C 4071's `f` argument is dead text in the reference itself**: `w32term.h` 581-582's
+  `VERTICAL_SCROLL_BAR_INSIDE_HEIGHT(f,height)` never expands `f`, and `w32_set_scroll_bar_thumb`
+  has no `f` in scope (C compiles because a macro argument is unexpanded text).  The port passes a
+  typed null in that slot (`VERTICAL_SCROLL_BAR_TOP_RANGE! (core::ptr::null_mut (), …)`) with the
+  reason in the comment; C's name is one character, so the token comparison never saw it either way.
+- **The token rows of this slice are the `bool` parameter again**: C's `handle_tab_bar_click (f, x,
+  y, 1, 0)` passes `1` for dispextern.h 3668's `bool down_p`, and the port writes `true` - the
+  `w32_frame_highlight` row's class, recorded in `docs/ports/macro-body-notes.tsv` for both handlers.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (base configuration) -> **22 errors, 0 anchored in this slice's text** - the
+     reading is unchanged from slices 4-9, i.e. the round's five functions and its `SCROLLINFO`
+     record added no own error.
+  3. `extract-abi.py --check` -> **75 -> 70 rows** (67 -> **62** `missing function`: the round's
+     five landed), two token rows added to the notes file (above), and the line-count row improves
+     from 30.2% to **27.1%** (6,138 vs 8,414).
   4. The ten gates: all `rc=0`, 0 FAIL.
