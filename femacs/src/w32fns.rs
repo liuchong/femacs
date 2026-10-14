@@ -1681,8 +1681,11 @@ unsafe extern "C" {
 /// the four names the calls read.  `RegOpenKeyEx` is the SDK's `RegOpenKeyExA`/`RegOpenKeyExW`
 /// alias (C's text writes the alias and the port keeps C's name - PORTING.md 0.1's rename
 /// convention); the ANSI form is the one C's `char` buffers want.
+/// C: #define HKEY_CLASSES_ROOT ((HKEY) (ULONG_PTR) ((INT_PTR) 0x80000000))
 /// C: #define HKEY_CURRENT_USER ((HKEY) (ULONG_PTR) ((INT_PTR) 0x80000001))
 /// C: #define HKEY_LOCAL_MACHINE ((HKEY) (ULONG_PTR) ((INT_PTR) 0x80000002))
+/// C: #define HKEY_USERS ((HKEY) (ULONG_PTR) ((INT_PTR) 0x80000003))
+/// C: #define HKEY_CURRENT_CONFIG ((HKEY) (ULONG_PTR) ((INT_PTR) 0x80000005))
 /// C: #define KEY_READ ((STANDARD_RIGHTS_READ | KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS |
 /// C: KEY_NOTIFY) & (~SYNCHRONIZE))
 /// C: #define ERROR_SUCCESS 0L
@@ -1698,9 +1701,15 @@ pub type PHKEY = *mut HKEY;
 /// C's `(HKEY) (ULONG_PTR) ((INT_PTR) 0x80000001)`: the handle constants are the pointer-sized
 /// unsigned values the SDK defines, cast twice, which is what the port writes.
 #[cfg (feature = "have_ntgui")]
+pub const HKEY_CLASSES_ROOT: HKEY = (0x80000000 as ULONG_PTR) as HKEY;
+#[cfg (feature = "have_ntgui")]
 pub const HKEY_CURRENT_USER: HKEY = (0x80000001 as ULONG_PTR) as HKEY;
 #[cfg (feature = "have_ntgui")]
 pub const HKEY_LOCAL_MACHINE: HKEY = (0x80000002 as ULONG_PTR) as HKEY;
+#[cfg (feature = "have_ntgui")]
+pub const HKEY_USERS: HKEY = (0x80000003 as ULONG_PTR) as HKEY;
+#[cfg (feature = "have_ntgui")]
+pub const HKEY_CURRENT_CONFIG: HKEY = (0x80000005 as ULONG_PTR) as HKEY;
 #[cfg (feature = "have_ntgui")]
 pub const KEY_READ: REGSAM = 0x20019;
 #[cfg (feature = "have_ntgui")]
@@ -1709,6 +1718,12 @@ pub const ERROR_SUCCESS: LONG = 0;
 unsafe extern "system" {
   pub fn RegOpenKeyEx (hKey: HKEY, lpSubKey: *const c_char, ulOptions: DWORD,
                        samDesired: REGSAM, phkResult: PHKEY) -> LONG;
+  /// C 890-932's block keeps C's name for the SDK's alias (`RegOpenKeyEx` above is the same case):
+  /// C 10925/10942 write `RegQueryValueEx`, whose ANSI form is the one C's `char` buffers want.
+  /// C: WINADVAPI LONG WINAPI RegQueryValueExA (HKEY hKey, LPCSTR lpValueName, LPDWORD lpReserved,
+  /// C: LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
+  pub fn RegQueryValueEx (hKey: HKEY, lpValueName: *const c_char, lpReserved: *mut DWORD,
+			  lpType: *mut DWORD, lpData: LPBYTE, lpcbData: *mut DWORD) -> LONG;
   pub fn RegEnumValueA (hKey: HKEY, dwIndex: DWORD, lpValueName: LPSTR,
                         lpcchValueName: *mut DWORD, lpReserved: *mut DWORD,
                         lpType: *mut DWORD, lpData: LPBYTE, lpcbData: *mut DWORD) -> LONG;
@@ -15962,7 +15977,119 @@ DEFUN! ("w32-set-ime-open-status", Fw32_set_ime_open_status, Sw32_set_ime_open_s
   return Qnil ();
 });
 
-/* C 10836-12488's text is not in the port yet (the file's remainder), but C 10112's
+/* C 10836's `#ifdef WINDOWSNT` opens the registry section, whose banner C 10837-10839 carries
+   below as C's own text (the C 8116-8118 wrapper device); C 10902's `#endif` closes the section, and
+   C 10904-10956's `w32_get_resource` stands after it (the file gate alone).  */
+
+/*
+/***********************************************************************
+			  Reading Registry
+ ***********************************************************************/
+*/
+
+/// C 10840-10900: `w32-read-registry` - C 10877-10879's three checks, C 10881-10893's root-key
+/// ladder (`HKEY_CLASSES_ROOT`/`HKEY_USERS`/`HKEY_CURRENT_CONFIG` are spelled in the C 890-932 block
+/// above) with C 10893's `error` over `SDATA (SYMBOL_NAME (root))`, C 10895's first
+/// `w32_read_registry` call and C 10896-10897's nil-root retry under `HKEY_LOCAL_MACHINE`.
+/// C: DEFUN ("w32-read-registry",
+/// C:        Fw32_read_registry, Sw32_read_registry,
+/// C:        3, 3, 0,
+/// C:        doc: /* Return the value stored in MS-Windows Registry under ROOT/KEY/NAME. … */)
+/// C:   (Lisp_Object root, Lisp_Object key, Lisp_Object name)
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+DEFUN! ("w32-read-registry", Fw32_read_registry, Sw32_read_registry,
+	3, 3, 0,
+	doc: "Return the value stored in MS-Windows Registry under ROOT/KEY/NAME.\n\nROOT is a symbol, one of `HKCR', `HKCU', `HKLM', `HKU', or `HKCC'.\nIt can also be nil, which means try `HKCU', and if that fails, try `HKLM'.\n\nKEY and NAME must be strings, and NAME must not include slashes.\nKEY can use either forward- or back-slashes.\nTo access the default value of KEY (if it is defined), use NAME\nthat is an empty string.\n\nIf the named KEY or its subkey called NAME don't exist, or cannot be\naccessed by the current user, the function returns nil.  Otherwise,\nthe return value depends on the type of the data stored in Registry:\n\n  If the data type is REG_NONE, the function returns t.\n  If the data type is REG_DWORD or REG_QWORD, the function returns\n    its integer value.  If the value is too large for a fixnum,\n    the function returns a bignum.\n  If the data type is REG_BINARY, the function returns a vector whose\n    elements are individual bytes of the value.\n  If the data type is REG_SZ, the function returns a string.\n  If the data type is REG_EXPAND_SZ, the function returns a string\n    with all the %..% references to environment variables replaced\n    by the values of those variables.  If the expansion fails, or\n    some variables are not defined in the environment, some or all\n    of the environment variables will remain unexpanded.\n  If the data type is REG_MULTI_SZ, the function returns a list whose\n    elements are the individual strings.\n\nNote that this function doesn't know whether a string value is a file\nname, so file names will be returned with backslashes, which may need\nto be converted to forward slashes by the caller.",
+	(root: Lisp_Object, key: Lisp_Object, name: Lisp_Object),
+	{
+  CHECK_SYMBOL (root);
+  CHECK_STRING (key);
+  CHECK_STRING (name);
+
+  let mut rootkey: HKEY = HKEY_CURRENT_USER;
+  if EQ (root, QHKCR ())
+    { rootkey = HKEY_CLASSES_ROOT; }
+  else if EQ (root, QHKCU ())
+    { rootkey = HKEY_CURRENT_USER; }
+  else if EQ (root, QHKLM ())
+    { rootkey = HKEY_LOCAL_MACHINE; }
+  else if EQ (root, QHKU ())
+    { rootkey = HKEY_USERS; }
+  else if EQ (root, QHKCC ())
+    { rootkey = HKEY_CURRENT_CONFIG; }
+  else if ! NILP (root)
+    { error (c"Unknown root key: %s".as_ptr (), SDATA (SYMBOL_NAME (root))); }
+
+  let mut val: Lisp_Object = w32_read_registry (rootkey, key, name);
+  if NILP (val) && NILP (root)
+    { val = w32_read_registry (HKEY_LOCAL_MACHINE, key, name); }
+
+  return val;
+});
+
+/* C 10902's `#endif  /* WINDOWSNT */` closes the section; C's line itself has no counterpart
+   beyond the end of the two-condition item above (PORTING.md 0.1-4).  */
+
+/// C 10904-10956: `w32_get_resource` (C's own comment first) - C 10914-10916's three locals,
+/// C 10921-10936's `HKEY_CURRENT_USER` block and C 10938-10953's `HKEY_LOCAL_MACHINE` block (each:
+/// `RegOpenKeyEx`, the two `RegQueryValueEx` calls with C's assignment-in-condition written as the
+/// port's `&& { … }` block, `xfree` and `RegCloseKey`) and C 10955's `NULL` return.
+/// C: LPBYTE
+/// C: w32_get_resource (const char *key, const char *name, LPDWORD lpdwtype)
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_get_resource (key: *const c_char, name: *const c_char,
+					   lpdwtype: LPDWORD) -> LPBYTE
+{
+  let mut lpvalue: LPBYTE;
+  let mut hrootkey: HKEY = core::ptr::null_mut ();
+  let mut cbData: DWORD;
+
+  /* Check both the current user and the local machine to see if
+     we have any resources.  */
+
+  if RegOpenKeyEx (HKEY_CURRENT_USER, key, 0, KEY_READ, &raw mut hrootkey) == ERROR_SUCCESS
+    {
+      lpvalue = core::ptr::null_mut ();
+
+      if RegQueryValueEx (hrootkey, name, core::ptr::null_mut (), core::ptr::null_mut (),
+			  core::ptr::null_mut (), &raw mut cbData) == ERROR_SUCCESS
+	  && { lpvalue = xmalloc (cbData as usize) as LPBYTE; ! lpvalue.is_null () }
+	  && RegQueryValueEx (hrootkey, name, core::ptr::null_mut (), lpdwtype, lpvalue,
+			      &raw mut cbData) == ERROR_SUCCESS
+	{
+	  RegCloseKey (hrootkey);
+	  return lpvalue;
+	}
+
+      xfree (lpvalue as *mut c_void);
+
+      RegCloseKey (hrootkey);
+    }
+
+  if RegOpenKeyEx (HKEY_LOCAL_MACHINE, key, 0, KEY_READ, &raw mut hrootkey) == ERROR_SUCCESS
+    {
+      lpvalue = core::ptr::null_mut ();
+
+      if RegQueryValueEx (hrootkey, name, core::ptr::null_mut (), core::ptr::null_mut (),
+			  core::ptr::null_mut (), &raw mut cbData) == ERROR_SUCCESS
+	  && { lpvalue = xmalloc (cbData as usize) as LPBYTE; ! lpvalue.is_null () }
+	  && RegQueryValueEx (hrootkey, name, core::ptr::null_mut (), lpdwtype, lpvalue,
+			      &raw mut cbData) == ERROR_SUCCESS
+	{
+	  RegCloseKey (hrootkey);
+	  return lpvalue;
+	}
+
+      xfree (lpvalue as *mut c_void);
+
+      RegCloseKey (hrootkey);
+    }
+
+  return core::ptr::null_mut ();
+}
+
+/* C 10958-12488's text is not in the port yet (the file's remainder), but C 10112's
    `w32_console_toggle_lock_key` is: C 9302 above calls it, and Rust has no "declare then define"
    pair inside one file (PORTING.md 0.1-12 / P-91 ① - "land whichever the slice needs first").
    It therefore stands below the slices that insert their text above it, rather than at its C

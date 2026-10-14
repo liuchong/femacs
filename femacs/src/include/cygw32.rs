@@ -30,7 +30,21 @@ pub const CYGW32_H: bool = true;
 /// C: extern LPBYTE w32_get_resource (const char * key, const char * name, LPDWORD type);
 unsafe extern "C" {
   pub fn syms_of_cygw32 ();
+}
 
+/// C 37-38's other two declarations are **not** at this crate root: `src/w32fns.c` defines both
+/// (`w32_strerror` C 10002 - w32fns slice 24 - and `w32_get_resource` C 10911 - slice 29), and
+/// `src/w32fns.rs` 172-173 `include!`s this mirror under `all (have_ntgui, cygwin)`, so the crate
+/// root carried a declaration and the unit a definition of each name - a latent `E0428` the w32fns
+/// lane's arm reading cannot see (its configuration has no `cygwin`).  They now stand in a module
+/// this mirror glob-imports, the P-21/P-39 device `include/w32common.rs` and `include/w32term.rs`
+/// use (the unit's own item shadows the glob import).  The file note above ("no unit `include!`s
+/// this mirror") is stale: w32fns.rs 172 gates that include on the Cygwin GUI build.
+#[cfg (all (feature = "have_ntgui", feature = "cygwin"))]
+pub mod cygw32_decls {
+  use super::*;
+
+  unsafe extern "C" {
   /// C 37.  `char *` is C's own pointee; the parameter is an errno value.
   pub fn w32_strerror (error_no: c_int) -> *mut c_char;
 
@@ -42,4 +56,7 @@ unsafe extern "C" {
   /// names themselves takes them from that target's headers (PORTING.md 0.1-9).
   pub fn w32_get_resource (key: *const c_char, name: *const c_char,
                            type_: *mut c_ulong) -> *mut u8;
+  }
 }
+#[cfg (all (feature = "have_ntgui", feature = "cygwin"))]
+use cygw32_decls::*;

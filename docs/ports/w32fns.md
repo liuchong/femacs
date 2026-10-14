@@ -231,7 +231,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 10314-10427 | C 10314's `#if defined WINDOWSNT && !defined HAVE_DBUS` and the tray block's head: C 10316's `pfnShell_NotifyIconW`, C 10322-10341's `MY_NOTIFYICONDATAW`, C 10343-10345's three size macros, C 10346-10364's five `#ifndef` guards and two `#define`s, C 10366-10371's `enum NI_Severity`, C 10375-10402's `get_dll_version` and C 10408-10427's `utf8_mbslen_lim` - slice 26 | file gate + `windowsnt` + `not (feature = "have_dbus")` |
 | 10429-10633 | C 10429's `last_tray_notification_id`, C 10433-10605's `add_tray_notification` (the four `cbSize` versions, the icon load, the tip/message/title conversions and the `NIM_ADD` call) and C 10612-10633's `delete_tray_notification` - slice 27 | file gate + `windowsnt` + `not (feature = "have_dbus")` |
 | 10635-10833 | C 10635-10763's `w32-notification-notify`, C 10765-10779's `w32-notification-close` (with the tray block's `#endif` at C 10781) and C 10783-10833's two IME `DEFUN`s - slice 28 | the tray pair: file gate + `windowsnt` + `not (feature = "have_dbus")`; the IME pair: file gate |
-| 10836-12488 | **the remainder of the file** (C 10836's `#ifdef WINDOWSNT` registry section onward: `w32-read-registry`/`w32-write-registry`, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 10836-10957 | C 10837-10839's registry banner, C 10840-10900's `w32-read-registry` (with C 10902's `#endif`) and C 10904-10956's `w32_get_resource` - slice 29; the three `HKEY_*` constants and `RegQueryValueEx` join the C 890-932 block above | the DEFUN: file gate + `windowsnt`; `w32_get_resource`: file gate |
+| 10958-12488 | **the remainder of the file** (C 10958's `#ifdef WINDOWSNT` onward: `w32-set-wallpaper`, `w32-system-idle-time`, the badge/taskbar group, the exception/backtrace group, C 11586 `syms_of_w32fns` and the tail) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -3049,6 +3050,84 @@ limitation; Rust nests block comments, so the text is correct as it stands).
   no IME state is read or set; the arm reading is compile-level (42 errors, none from this slice),
   the name reading is the sweep's, and the `plist_get` call is a cross-unit symbol this lane does not
   link.
+
+## Slice 29 (C 10836-10957)
+
+**Scope and the stop.**  The registry pair: C 10836's `#ifdef WINDOWSNT` with C 10837-10839's banner
+and `w32-read-registry` (C 10840-10900, closed by C 10902's `#endif`), then `w32_get_resource`
+(C 10904-10956), which stands **outside** that `#ifdef` and therefore carries the file gate alone.
+The stop is C 10958's `#ifdef WINDOWSNT`, which opens the wallpaper/idle-time section.
+
+**What the item carries.**  `w32-read-registry` is C 10877-10879's three checks, C 10881-10893's
+root-key ladder (`HKEY_CLASSES_ROOT`/`HKEY_USERS`/`HKEY_CURRENT_CONFIG` are new constants in the
+C 890-932 block above) with C 10893's `error` over `SDATA (SYMBOL_NAME (root))`, C 10895's first
+`w32_read_registry` call (w32.h 253's, declared by `include/w32.rs`) and C 10896-10897's nil-root
+retry under `HKEY_LOCAL_MACHINE`.  `w32_get_resource` is C 10914-10916's three locals and two
+identical blocks (C 10921-10936 for `HKEY_CURRENT_USER`, C 10938-10953 for `HKEY_LOCAL_MACHINE`),
+each one `RegOpenKeyEx`, the two `RegQueryValueEx` calls, `xfree` and `RegCloseKey`, with C's
+`(lpvalue = xmalloc (cbData)) != NULL` written as the port's `&& { … }` block.
+
+**New surface.**  `HKEY_CLASSES_ROOT` (0x80000000), `HKEY_USERS` (0x80000003),
+`HKEY_CURRENT_CONFIG` (0x80000005) and the `RegQueryValueEx` declaration, all added to the existing
+C 890-932 `<winreg.h>` block (next to `RegOpenKeyEx`/`RegEnumValueA`/`RegCloseKey`) - the file's
+position for a header name.
+
+**The mirror's second latent collision is removed.**  `include/cygw32.rs` carried C 37-38's
+`w32_strerror`/`w32_get_resource` declarations at its crate root, and `src/w32fns.rs` 172-173
+includes that mirror under `all (have_ntgui, cygwin)` - so a Cygwin GUI build would have read an
+`E0428` per name against this unit's definitions (slice 24's and this slice's), which the arm reading
+cannot see because its configuration has no `cygwin`.  Both now stand in a `pub mod cygw32_decls` +
+`use cygw32_decls::*;` (P-21/P-39, the device `include/w32common.rs` and `include/w32term.rs` use);
+`syms_of_cygw32` stays at the crate root.  The mirror's file note ("no unit `include!`s this mirror")
+is stale and is corrected in place; the mirror's own ledger has the section.
+
+### Evidence (slice 29, the final revision: 16,137 Rust lines; the mirror 17 lines longer)
+
+**① The frozen configuration (`build-tu`).**  One run: **exit 0**, the object **336 bytes**.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  One run: **42 previous errors** - the standing
+count (15 `E0428`, 1 `E0530`, 25 `E0609`, plus the one deliberately-failing frame-flag probe) - so
+this slice's 127 lines add no error and no member gap, and **no diagnostic sits at or beyond
+`src/w32fns.rs` 15,980**.
+
+**③ The name sweeps (`check-unit-names.py`, which is the only reading that sees unresolved values -
+slice 27's finding).**  The slice's text (`src/w32fns.rs` 15,980-16,091): 30 capitalized
+identifiers, missing `Sw32_read_registry` (a `DEFUN!`'s macro-generated static) and `PORTING` (the
+sweep's naive comment scanner ends my `#endif` note early at the `*/` it quotes - the documented
+nested-comment limitation; Rust nests block comments).  The C 890-932 additions
+(`src/w32fns.rs` 1,692-1,716): 13 capitalized identifiers, `missing: []`.
+
+**④ `extract-abi.py --check`.**  **83 → 81** rows: `missing function w32_get_resource` and
+`missing subr Fw32_read_registry` retire, none is added, and **no notes row was needed**: C 10925/10942
+write the SDK's alias `RegQueryValueEx`, so the port declares that *name* as the ANSI function - the
+device the same block already uses for `RegOpenKeyEx` (its comment: "C's text writes the alias and the
+port keeps C's name").  No `line count drifted` row: 16,137 Rust lines against 12,488 C lines (29.2%),
+inside the file's `w32fns 0.35 total` tolerance row.
+
+**⑤ The range table and the dead-file gate.**  The `10836-12488` remainder row splits into
+`10836-10957` (this slice) and `10958-12488` (the remainder); `check-dead-file-coverage.py` reads
+**179 range row(s) cover src/w32fns.c (12488 lines; 128 blank line(s) between blocks need no row)**.
+
+### Deviations (slice 29)
+
+- **`include/cygw32.rs`'s two declarations move into `cygw32_decls`.**  See above; the mirror's
+  ledger has the note and the mirror pair's checklist is unchanged.
+- **`RegQueryValueEx` is declared under C's own name** (not `RegQueryValueExA`): the C 890-932
+  block's convention for an SDK alias, taken from its `RegOpenKeyEx` (and `RegEnumValueA` is spelled
+  with its suffix there because C's *call site* names that one).
+- **C's banner and the two `#endif`s are wrapper comments.**  C 10837-10839's `/***…***/` banner and
+  C 10902's `#endif` have no items of their own; they stand inside `/* … */` wrappers (the
+  C 8116-8118 device), which is also what makes the name sweep report `PORTING` for this range.
+- **C's assignment-in-condition is the port's `&& { … }` block** (`(lpvalue = xmalloc (cbData)) !=
+  NULL`), and the two pointers are cast where C converts implicitly (`as LPBYTE`, `as *mut c_void`
+  for `xfree`).
+- **The new header names join the C 890-932 block**, not the C 10881/10925 call sites - the file's
+  position for `<winreg.h>`'s names.
+- **Not claimed.**  No run evidence: no Windows, no mingw toolchain, so no registry key is opened and
+  no value is read; `w32_read_registry` is another unit's definition (this lane does not link), the
+  arm reading is compile-level (42 errors, none from this slice), and the name reading is the
+  sweep's.  The Cygwin GUI arm was not compiled here at all - the mirror move above is a reading of
+  the *text*, not of that arm.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh

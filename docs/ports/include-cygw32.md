@@ -72,3 +72,14 @@
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures;
   `check-target-names` 576 .rs files / 592 map targets / 0 findings (the file count includes mirrors other lanes landed in the same session).
+
+## `cygw32_decls`: `w32_strerror`/`w32_get_resource` move into a module (2026-10-14, w32fns slices 24/29)
+
+The mirror's file note says no unit `include!`s it, which is stale: `src/w32fns.rs` 172-173 includes
+it under `all (feature = "have_ntgui", feature = "cygwin")`.  Its two C 37-38 declarations are
+**`src/w32fns.c`'s definitions** (`w32_strerror` C 10002, `w32_get_resource` C 10911), so on a Cygwin
+GUI build the crate root carried a declaration and the unit a definition of the same name - a latent
+`E0428` that the w32fns lane's arm reading cannot see (its configuration has no `cygwin`).  Both now
+stand in a `pub mod cygw32_decls` + `use cygw32_decls::*;`, the P-21/P-39 device
+`include/w32common.rs` and `include/w32term.rs` already use; `syms_of_cygw32` stays at the crate root
+because no unit on this target defines it.
