@@ -3418,3 +3418,86 @@ unsafe fn create_child (exe: *mut c_char, cmdline: *mut c_char, env: *mut c_char
   DebPrint! (("create_child.CreateProcess failed: %ld\n", GetLastError ()));   // C 2203
   return FALSE;                                                // C 2204
 }
+
+/* C 2207-2268: the two functions that pair a started child with a descriptor and reap it when it
+   exits - C 2207-2211's comment with C 2212-2242's `register_child`, and C 2244's comment with
+   C 2245-2268's `reap_subprocess`.  C 2270-2273's `waitpid` comment opens the next slice.  */
+
+/* create_child doesn't know what emacs's file handle will be for waiting
+   on output from the child, so we need to make this additional call
+   to register the handle with the process
+   This way the select emulator knows how to match file handles with
+   entries in child_procs.  */
+/// C 2212-2242: `void register_child (pid_t pid, int fd)` - C 2217's `find_child_pid` with C's
+/// `(DWORD)` cast, C 2218-2222's not-found exit, C 2224-2226's dead `FULL_DEBUG` arm carried as
+/// C's own text (P-51: `FULL_DEBUG` is not in the frozen table), C 2228's descriptor, C 2230-2232's
+/// `STATUS_READ_ACKNOWLEDGED` and C 2234-2241's in-use guard, whose `fd_info[fd].cp` is the
+/// mirror's deferred `*mut c_void` member (Deviations 49's cast).
+/// C: void
+/// C: register_child (pid_t pid, int fd)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn register_child (pid: pid_t, fd: c_int)
+{
+  let mut cp: *mut child_process;                              // C 2215
+
+  cp = find_child_pid (pid as DWORD);                          // C 2217
+  if cp.is_null ()                                             // C 2218
+    {
+      DebPrint! (("register_child unable to find pid %lu\n", pid));   // C 2220
+      return;                                                  // C 2221
+    }
+
+  /* C 2224-2226:
+#ifdef FULL_DEBUG
+  DebPrint (("register_child registered fd %d with pid %lu\n", fd, pid));
+#endif
+*/
+  (*cp).fd = fd;                                               // C 2228
+
+  /* thread is initially blocked until select is called; set status so
+     that select will release thread */
+  (*cp).status = STATUS_READ_ACKNOWLEDGED;                     // C 2232
+
+  /* attach child_process to fd_info */
+  if !fd_info[fd as usize].cp.is_null ()                       // C 2235
+    {
+      DebPrint! (("register_child: fd_info[%d] apparently in use!\n", fd));   // C 2237
+      emacs_abort ();                                          // C 2238
+    }
+
+  fd_info[fd as usize].cp = cp as *mut c_void;                 // C 2241
+}
+
+/* Called from waitpid when a process exits.  */
+/// C 2245-2268: `static void reap_subprocess (child_process *cp)` - C 2248-2260's handle pair (C
+/// 2251-2255's dead `FULL_DEBUG` arm carried as C's text between C 2250's comment and the two
+/// `CloseHandle`s) and C 2266-2267's `delete_child` for a descriptor already closed.
+/// C: static void
+/// C: reap_subprocess (child_process *cp)
+#[cfg (feature = "windowsnt")]
+unsafe fn reap_subprocess (cp: *mut child_process)
+{
+  if !(*cp).procinfo.hProcess.is_null ()                       // C 2248
+    {
+      /* Reap the process */
+      /* C 2251-2255:
+#ifdef FULL_DEBUG
+      /* Process should have already died before we are called.  */
+      if (WaitForSingleObject (cp->procinfo.hProcess, 0) != WAIT_OBJECT_0)
+	DebPrint (("reap_subprocess: child for fd %d has not died yet!", cp->fd));
+#endif
+*/
+      CloseHandle ((*cp).procinfo.hProcess);                   // C 2256
+      (*cp).procinfo.hProcess = core::ptr::null_mut ();        // C 2257
+      CloseHandle ((*cp).procinfo.hThread);                    // C 2258
+      (*cp).procinfo.hThread = core::ptr::null_mut ();         // C 2259
+    }
+
+  /* If cp->fd was not closed yet, we might be still reading the
+     process output, so don't free its resources just yet.  The call
+     to delete_child on behalf of this subprocess will be made by
+     sys_read when the subprocess output is fully read.  */
+  if (*cp).fd < 0                                              // C 2266
+    { delete_child (cp); }                                     // C 2267
+}

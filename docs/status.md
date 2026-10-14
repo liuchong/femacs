@@ -19982,3 +19982,13 @@
   ⑥ 偏差（台账三条）：用例处 SDK 块（`STARTUPINFO` 18 成员、`SECURITY_ATTRIBUTES`、`MAX_PATH`、九个常量、三个入口；`CreateProcessA` 的两个 `LPSECURITY_ATTRIBUTES` 写成 `*mut SECURITY_ATTRIBUTES`，因为本轮已拼该记录）；`xstrcasecmp` 用例处声明；C 2203 的 `DebPrint` 行带一个多余 `;`，端口写宏所取的元组并记下差异。
   ⑦ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 9 (2026-10-14, status 4.288): C 2123-2205`** 段（What this round is / 两问的答案 / Evidence ①-④ / Deviations 3 条 / Owed 1 条），表头更新为 **3,420 与 `e944edb8…`**；`macro-body-notes.tsv` 追一条（无容差行）。预算与清理：`build-tu` **2 发**、`probe` **1 发**、名字扫描 1 次、`--check` 2 发、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链）；`STARTUPINFO`/`SECURITY_ATTRIBUTES` 的尺寸仍未实测（owed 16）。本文件余量 **2,697 C 行**（C 2207-4903，55.0%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。
+
+- **4.289 `src/w32proc.c` 第 10 片（w32proc lane，slice 10）：C 2207-2268 落地——`register_child`（`find_child_pid` 带 C 的 `(DWORD)` cast、未找到即退出、死 `FULL_DEBUG` 臂、`cp->fd`、`STATUS_READ_ACKNOWLEDGED`、`fd_info` 占用守卫）与 `reap_subprocess`（进程/线程句柄对、其死 `FULL_DEBUG` 臂、已关闭描述符的 `delete_child`）；w32proc.rs 3,420 → 3,503 行（+83，2026-10-14）**：
+  ① 本片落的文本：两个函数 + 两处 C 注释（C 2207-2211、C 2244）按 C 原文承载；`STATUS_READ_ACKNOWLEDGED` 用镜像 `include/w32.rs` 201 的值，`fd_info[fd].cp` 仍是延迟的 `*mut c_void`（沿用 Deviations 49 的 cast 写法）。
+  ② 读数（本 lane 两档）：**`build-tu`（冻结）exit 0、对象 336 字节**；**`probe`（`windowsnt` + `have_ntgui`）37 条 = 27 `E0428` + 9 `E0425` + 1 `compile_error!`，无一条落在本单元**——第 2～10 片十次一致。
+  ③ 名字扫描：`6 capitalized identifiers, missing: []`——**干净**，含两处按 C 原文携带的 `FULL_DEBUG` 区；C 2251-2255 那处虽含内层 `/* … */`，但其尾部携带的名字（`DebPrint`/`WaitForSingleObject`/`WAIT_OBJECT_0`）都是树里已有的项，故第 9 片的嵌套注释假阳性**本轮不触发**。
+  ④ `extract-abi.py --check`：**83 → 81 条 `- missing` 行**（`register_child`/`reap_subprocess` 两条退场）；无 token 行；漂移 30.2% → **28.6%**，仍在 0.36 行内。
+  ⑤ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `2207-2268`（本片）+ `2270-4903`。
+  ⑥ 偏差（台账一条）：两处 `FULL_DEBUG` 死臂按 C 原文承载（P-51），与 slice 9 的 `#if 0` 区不同——本轮携带的文本里没有需要活的项，故文本保持 C 原样、扫描也读不出任何生造名。
+  ⑦ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 10 (2026-10-14, status 4.289): C 2207-2268`** 段，表头更新为 **3,503 与 `c444b997…`**；本片无 notes/容差行。预算与清理：`build-tu` **1 发**、`probe` **1 发**、名字扫描 1 次、`--check` 2 发、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链）。下一片起点：`src/w32proc.c` **C 2270**（`waitpid` 注释与函数，C 2275-2451，本文件目前最长的单个函数），本文件余量 **2,635 C 行**（C 2270-4903，53.7%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。

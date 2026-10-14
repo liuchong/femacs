@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**3420 lines**, md5 `e944edb8b00997d20f15363d545b7589`), carrying
-> **C 1-2205** - P-86 ④'s first nine slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**3503 lines**, md5 `c444b997a48e9fe55016f94e511db9f9`), carrying
+> **C 1-2268** - P-86 ④'s first ten slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -122,7 +122,8 @@ which `check-dead-file-coverage.py` requires):
 | 1834-2115 | the child-process block's five working functions: C 1834-1933's `new_child`, C 1935-1998's `delete_child` (with its C 1958-1969 `#if 0` region carried as C's text and its `fd_info` guard), C 2000-2011's `find_child_pid`, C 2013-2024's `release_listen_threads` and C 2026-2115's `reader_thread` | file gate (slice 7); the unit spells `w32.h` 74-113's `child_process` record and the three SDK records it embeds (the mirror defers it - Deviations 47), the two `goto Initialize` jumps become `break 'initialize` (Deviations 48, notes row), and `fd_info`'s deferred `*mut c_void` member is cast as the mirror's note spells it (Deviations 49) |
 | 2117-2121 | `process_dir`: C 2117-2120's four-line comment (carried as C's own text) and C 2121's file-scope `static char *` | file gate (slice 8); the object is the `create_child` reader's and `set_process_dir`'s writer, both past this slice |
 | 2123-2205 | `create_child`: the process-creation function (its `HAVE_NTGUI` arm, its two `#if 0` regions carried as C's text, the `filename_to_ansi`/`CharNextA` path fix-up, the batch-file `exe` clearing, the three create flags and C 2202-2204's `EH_Fail:` tail) | file gate (slice 9); the round's use-site `<windows.h>`/`<winbase.h>`/`<winuser.h>` block spells `STARTUPINFO`, `SECURITY_ATTRIBUTES`, `MAX_PATH`, the nine constants and the three entry points (Deviations 50), and `xstrcasecmp` stands there with `dispextern.h` 104's citation (Deviations 51) |
-| 2207-4903 | **the remainder of the file** - C 2207-2211's `register_child` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `register_child`, `reap_subprocess`, `waitpid` (C 2276), `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2207-2268 | `register_child` (C 2207-2242, with C's `(DWORD)` cast, its dead `FULL_DEBUG` arm carried as C's text and the `fd_info` in-use guard) and `reap_subprocess` (C 2244-2268, whose own dead arm sits between C 2250's comment and the two `CloseHandle`s) | file gate (slice 10); C's `status` value is `STATUS_READ_ACKNOWLEDGED` (the mirror's 201) and the `fd_info` member is the deferred `*mut c_void` (Deviations 49's cast) |
+| 2270-4903 | **the remainder of the file** - C 2270-2273's `waitpid` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `waitpid` (C 2275), `open_input_file`, `rva_to_section`, `close_file_data`, `w32_executable_type` (C 2533), `compare_env`, `merge_and_sort_env`, `sys_spawnve` (C 2725), `child_setup`, `sys_select` (C 3109), `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -859,3 +860,34 @@ row (the row is still the measured one, +0.01 at slice 7).
     class P-88 ① names): the record this round spells is read by C's `start.cb` and passed to
     `CreateProcessA`, so a Windows/mingw clang probe is what closes it - the same measurement the
     mirror's deferred `child_process` note (its 34-42) and Deviations 47 already owe.
+
+## Slice 10 (2026-10-14, status 4.289): C 2207-2268
+
+**What this round is.**  The pair that ties a started child to a descriptor and reaps it:
+`register_child` (C 2207-2242: `find_child_pid` with C's `(DWORD)` cast, the not-found exit, the
+dead `FULL_DEBUG` arm, the descriptor and `STATUS_READ_ACKNOWLEDGED`, and the `fd_info` in-use
+guard) and `reap_subprocess` (C 2244-2268: the process/thread handle pair, its own dead
+`FULL_DEBUG` arm, and the `delete_child` for a descriptor already closed).  Port: 3,420 -> **3503
+lines** (+83).  The next row's first item is C 2270-2273's `waitpid` comment.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort
+--cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the tenth identical reading.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 3421 3503` -> `6
+capitalized identifiers, missing: []` - clean, including the two carried `FULL_DEBUG` regions (the
+C 2251-2255 one does hold an inner `/* … */`, but every name its tail carries - `DebPrint`,
+`WaitForSingleObject`, `WAIT_OBJECT_0` - is an item the tree already has, so the documented
+false-positive class does not fire this time).
+**Evidence ④ - the `--check` reading.**  **83 -> 81 `- missing` rows**: `missing function
+register_child` and `missing function reap_subprocess` retire.  No new token rows; drift 30.2% ->
+**28.6%**, inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+53. **The two `FULL_DEBUG` arms are carried as C's own text** (P-51, the file's reading for a region
+    no configuration compiles): C 2224-2226 and C 2251-2255.  Unlike the C 2154-2160 region of slice
+    9, neither hides a name this unit needs - the guard's `WaitForSingleObject`/`WAIT_OBJECT_0`/
+    `DebPrint` are all live items elsewhere - so the carried text stays exactly C's and the sweep
+    reads no invented name from it.
