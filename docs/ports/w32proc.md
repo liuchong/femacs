@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**5454 lines**, md5 `56bd1ad33d5d38b4280d0f0a64606554`), carrying
-> **C 1-3526** - P-86 ④'s first eighteen slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**5956 lines**, md5 `300b31a1f971114627cda5fc9efe3ed0`), carrying
+> **C 1-3901** - P-86 ④'s first nineteen slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -132,7 +132,8 @@ which `check-dead-file-coverage.py` requires):
 | 3099-3106 | the three extern objects `sys_select` reads: `keyboard_handle` (`w32console.c`), `interrupt_handle` (`w32xfns.c`) and `proc_buffered_char` (`process.c`) | file gate (slice 16); C's three one-line comments stand above each declaration, and the array's length is the mirror's `FD_SETSIZE` through its module path (Deviations 36/71) |
 | 3108-3483 | `sys_select`: the file's longest function (the four function-local statics, the timeout decode and set copies, the descriptor scan with its stdin and child/socket arms, the `count_children` label and child scan, the five-way answer, the fairness `do`/`while` and the timeout recheck) | file gate (slice 17); the four statics are Rust `static mut` items inside the function (Deviations 72), C's `goto count_children` is a labeled loop and the `do`/`while` the negated break (Deviations 73), the three dead debug arms are carried as C's text (Deviations 74), and `detect_input_pending`/`GetTickCount` stand at the use site (Deviations 75) |
 | 3485-3526 | the three items between `sys_select` and `sys_kill`: C 3485-3496's `w32_valid_process_id`, C 3498-3523's `find_child_console` and C 3525-3526's `DebugBreakProcess_Proc` typedef | file gate (slice 18); the round's two `<winuser.h>` entry points and `LPARAM` stand at the use site (Deviations 76), and `w32_valid_process_id` forced the mirror `include/w32common.rs`'s eleventh P-39 move (Deviations 77) |
-| 3528-4903 | **the remainder of the file** - C 3528-3529's `sys_kill` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3528-3901 | `sys_kill` (C 3528-3819: the negative-pid and signal-whitelist guards, the `sig == 0` probe with its two nested `switch`es, the child lookup and the two `OpenProcess`/`EnumWindows` arms, the `SIGINT`/`SIGQUIT` keyboard simulation, the `SIGTRAP` `DebugBreakProcess` lookup and the terminate arm) and the standard-handle pair `prepare_standard_handles`/`reset_standard_handles` (C 3821-3901) | file gate (slice 19); the round's `<windows.h>`/`<winuser.h>`/`<io.h>` block spells the whole surface (Deviations 78), the two `switch`es are `match` arms (notes row), and C 3898's `handles[0]` keeps its index (the token reading) |
+| 3903-4903 | **the remainder of the file** - C 3903-3907's `set_process_dir` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `set_process_dir` (C 3903), the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1309,3 +1310,55 @@ w32_valid_process_id` and `missing function find_child_console`.  No token rows;
     module it glob-imports, for the reason its own note records for `w32_version_string`.  The
     macro `VALID_PROCESS_ID!` stays at the root (no unit defines it) and the `#ifdef WINDOWSNT`
     arm's prose is carried where the C text is.
+
+## Slice 19 (2026-10-14, status 4.298): C 3528-3901
+
+**What this round is.**  The file's third-longest function and the pair after it: `sys_kill` (the
+negative-pid and signal-whitelist guards, the `sig == 0` probe with its two nested `switch`es on
+`GetLastError`, the child lookup and the two `OpenProcess`/`EnumWindows` arms, the `SIGINT`/`SIGQUIT`
+keyboard simulation with its thread attaching and the `GenerateConsoleCtrlEvent` fallback, the
+`SIGTRAP` arm that resolves `DebugBreakProcess` through `get_proc_addr`, and the terminate arm whose
+`os_subtype` chooses between `TerminateProcess` and `PostMessage (WM_CLOSE)`), plus
+`prepare_standard_handles` and `reset_standard_handles`.  Port: 5,454 -> **5956 lines** (+502, of
+which 103 are the round's SDK block).  The next row's first item is C 3903's `set_process_dir`.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes** (both runs:
+the SDK block alone, then the functions).
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the baseline, unchanged by 103 lines of new
+declarations (the reading a wrong name there would have moved, `E0428` being name resolution).
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 5455 5956` -> `69
+capitalized identifiers, missing: ['Msg', 'Some']`: `Some` is the prelude variant and `Msg` is the
+*parameter name* of this round's `PostMessage` declaration - the tool's docstring names exactly that
+class ("the parameter names of a declaration (C's own `Msg: UINT` in a `SendMessageW` prototype)").
+Nothing this round uses is undefined.
+**Evidence ④ - the `--check` reading.**  **64 -> 61 `- missing` rows** (`missing function sys_kill`,
+`prepare_standard_handles`, `reset_standard_handles`), and **two token rows appeared and were
+retired in the round**: `function sys_kill does not mention break, case, default, switch` (the three
+`switch (err)`es, now a `macro-body-notes.tsv` row) and `function reset_standard_handles does not
+mention 0` (C 3898's `handles[0]` index - the port spells `*handles.add (0)` rather than dropping the
+index).  Drift -11.2% -> **-21.5%**, inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+78. **The round's SDK block** (P-88 ①): `OpenProcess`, `EnumWindows` (with `WNDENUMPROC`),
+    `MapVirtualKey`, `GetForegroundWindow`, `GetCurrentThreadId`, `AttachThreadInput`,
+    `SetForegroundWindow`, `GetKeyState`, `keybd_event`, `GenerateConsoleCtrlEvent`, `PostMessage`
+    (with `WPARAM`), `TerminateProcess`, `SetStdHandle` and the CRT's `_get_osfhandle`, plus the
+    thirteen values they take (`PROCESS_*`, `ERROR_ACCESS_DENIED`/`ERROR_INVALID_PARAMETER`,
+    `VK_CANCEL`/`VK_CONTROL`/`VK_LCONTROL`, the two `KEYEVENTF_*`, `CTRL_BREAK_EVENT`,
+    `WM_CLOSE`/`WM_QUIT`).  `get_proc_addr` (the `w32common.rs` mirror), `report_file_error`
+    (`lisp.rs`), `ENOTSUP` (`conf_post.rs`), `DUPLICATE_SAME_ACCESS`, `GetModuleHandle`,
+    `GetCurrentProcess`, `DuplicateHandle`, the three `STD_*` values and `find_child_console` are
+    all already in this unit's graph or its own text.
+79. **C's `#if 1` and its inner `#if 0`** (C 3760-3800): the `#if 1` takes its arm in every
+    configuration (its `#endif` is C 3800 and C 3799's `else` pairs with C 3762's `if`), so the port
+    writes the live arm; the Shell-VxD note (C 3764-3779) and the `#if 0` block (C 3780-3790) are
+    carried as C's comments at their positions.
+80. **`EnumWindows (find_child_console, (LPARAM) cp)` is `EnumWindows (Some (find_child_console),
+    cp as LPARAM)`**: C's function-pointer argument is the port's `Option<...>` wrapper (P-27) and
+    C's `(LPARAM)` cast is the port's `as`.  The `DebugBreakProcess` resolution casts
+    `get_proc_addr`'s `VOIDFNPTR` through `core::mem::transmute` (the file's slice-1 device for an
+    SDK proc pointer).

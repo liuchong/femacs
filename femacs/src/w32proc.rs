@@ -5452,3 +5452,505 @@ unsafe extern "system" {
 }
 
 /* C 3528's `sys_kill` opens the next slice.  */
+
+/* C 50's `<windows.h>`/`<winbase.h>`/`<winuser.h>`/`<io.h>`: the surface `sys_kill` (C 3528) and
+   the standard-handle pair (C 3838-3901) name, none of which any mirror in this unit's graph
+   carries (UNVERIFIED, P-88 1): the process/console entry points, the two window-message users
+   with `WM_CLOSE`/`WM_QUIT`, the keyboard-simulation set with its four virtual-key and flag
+   constants, the four `OpenProcess` access/error values, and the CRT's `_get_osfhandle`.  */
+/// C: #define PROCESS_TERMINATE 0x0001
+/// C: #define PROCESS_QUERY_INFORMATION 0x0400
+/// C: #define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFFF)
+/// C: #define ERROR_ACCESS_DENIED 5
+/// C: #define ERROR_INVALID_PARAMETER 87
+/// C: #define VK_CANCEL 0x03
+/// C: #define VK_CONTROL 0x11
+/// C: #define VK_LCONTROL 0xA2
+/// C: #define KEYEVENTF_EXTENDEDKEY 0x0001
+/// C: #define KEYEVENTF_KEYUP 0x0002
+/// C: #define CTRL_BREAK_EVENT 1
+/// C: #define WM_CLOSE 0x0010
+/// C: #define WM_QUIT 0x0012
+#[cfg (feature = "windowsnt")]
+pub const PROCESS_TERMINATE: DWORD = 0x0001;
+#[cfg (feature = "windowsnt")]
+pub const PROCESS_QUERY_INFORMATION: DWORD = 0x0400;
+#[cfg (feature = "windowsnt")]
+pub const PROCESS_ALL_ACCESS: DWORD = 0x001F0FFF;
+#[cfg (feature = "windowsnt")]
+pub const ERROR_ACCESS_DENIED: DWORD = 5;
+#[cfg (feature = "windowsnt")]
+pub const ERROR_INVALID_PARAMETER: DWORD = 87;
+#[cfg (feature = "windowsnt")]
+pub const VK_CANCEL: c_int = 0x03;
+#[cfg (feature = "windowsnt")]
+pub const VK_CONTROL: c_int = 0x11;
+#[cfg (feature = "windowsnt")]
+pub const VK_LCONTROL: c_int = 0xA2;
+#[cfg (feature = "windowsnt")]
+pub const KEYEVENTF_EXTENDEDKEY: DWORD = 0x0001;
+#[cfg (feature = "windowsnt")]
+pub const KEYEVENTF_KEYUP: DWORD = 0x0002;
+#[cfg (feature = "windowsnt")]
+pub const CTRL_BREAK_EVENT: DWORD = 1;
+#[cfg (feature = "windowsnt")]
+pub const WM_CLOSE: UINT = 0x0010;
+#[cfg (feature = "windowsnt")]
+pub const WM_QUIT: UINT = 0x0012;
+/// C: typedef BOOL (CALLBACK *WNDENUMPROC) (HWND, LPARAM);
+/// C: WINBASEAPI HANDLE WINAPI OpenProcess (DWORD dwDesiredAccess, BOOL bInheritHandle,
+/// C:   DWORD dwProcessId);
+/// C: WINUSERAPI BOOL WINAPI EnumWindows (WNDENUMPROC lpEnumFunc, LPARAM lParam);
+/// C: WINUSERAPI UINT WINAPI MapVirtualKeyA (UINT uCode, UINT uMapType);
+/// C: WINUSERAPI HWND WINAPI GetForegroundWindow (void);
+/// C: WINBASEAPI DWORD WINAPI GetCurrentThreadId (void);
+/// C: WINUSERAPI BOOL WINAPI AttachThreadInput (DWORD idAttach, DWORD idAttachTo, BOOL fAttach);
+/// C: WINUSERAPI BOOL WINAPI SetForegroundWindow (HWND hWnd);
+/// C: WINUSERAPI SHORT WINAPI GetKeyState (int nVirtKey);
+/// C: WINUSERAPI void WINAPI keybd_event (BYTE bVk, BYTE bScan, DWORD dwFlags,
+/// C:   ULONG_PTR dwExtraInfo);
+/// C: WINBASEAPI BOOL WINAPI GenerateConsoleCtrlEvent (DWORD dwCtrlEvent, DWORD dwProcessGroupId);
+/// C: WINUSERAPI BOOL WINAPI PostMessageA (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+/// C: WINBASEAPI BOOL WINAPI TerminateProcess (HANDLE hProcess, UINT uExitCode);
+/// C: WINBASEAPI BOOL WINAPI SetStdHandle (DWORD nStdHandle, HANDLE hHandle);
+/// C: _CRTIMP intptr_t __cdecl _get_osfhandle (int);
+#[cfg (feature = "windowsnt")]
+pub type WNDENUMPROC = Option<unsafe extern "system" fn (HWND, LPARAM) -> BOOL>;
+/// C: typedef UINT_PTR WPARAM;   [`<windef.h>`; pointer-sized, `usize`]
+#[cfg (feature = "windowsnt")]
+pub type WPARAM = usize;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn OpenProcess (dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DWORD) -> HANDLE;
+  pub fn EnumWindows (lpEnumFunc: WNDENUMPROC, lParam: LPARAM) -> BOOL;
+  pub fn MapVirtualKey (uCode: UINT, uMapType: UINT) -> UINT;
+  pub fn GetForegroundWindow () -> HWND;
+  pub fn GetCurrentThreadId () -> DWORD;
+  pub fn AttachThreadInput (idAttach: DWORD, idAttachTo: DWORD, fAttach: BOOL) -> BOOL;
+  pub fn SetForegroundWindow (hWnd: HWND) -> BOOL;
+  pub fn GetKeyState (nVirtKey: c_int) -> c_short;
+  pub fn keybd_event (bVk: BYTE, bScan: BYTE, dwFlags: DWORD, dwExtraInfo: ULONG_PTR);
+  pub fn GenerateConsoleCtrlEvent (dwCtrlEvent: DWORD, dwProcessGroupId: DWORD) -> BOOL;
+  pub fn PostMessage (hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> BOOL;
+  pub fn TerminateProcess (hProcess: HANDLE, uExitCode: UINT) -> BOOL;
+  pub fn SetStdHandle (nStdHandle: DWORD, hHandle: HANDLE) -> BOOL;
+}
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn _get_osfhandle (fd: c_int) -> isize;
+}
+/* Emulate 'kill', but only for other processes.  */
+/// C 3529-3819: `int sys_kill (pid_t pid, int sig)` - the file's third-longest function: C
+/// 3536/3539-3540's negative-pid handling and C 3543-3549's signal whitelist, C 3551-3601's
+/// `sig == 0` probe (the `pid <= 4` guard, `OpenProcess` with its two nested `switch`es on
+/// `GetLastError`), C 3603-3630's child lookup and the two `OpenProcess`/`EnumWindows` arms, C
+/// 3632-3719's `SIGINT`/`SIGQUIT` arm (the `Ctrl-C`/`Ctrl-Break` keyboard simulation with its
+/// thread attaching, and the `GenerateConsoleCtrlEvent` fallback), C 3720-3756's `SIGTRAP` arm
+/// (`DebugBreakProcess` resolved through `get_proc_addr` on first use) and C 3757-3813's
+/// terminate arm (the `os_subtype` choice between `TerminateProcess` and `PostMessage (WM_CLOSE)`),
+/// ending at C 3815-3818's `need_to_free` close and `return rc`.
+/// C: int
+/// C: sys_kill (pid_t pid, int sig)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_kill (pid: pid_t, sig: c_int) -> c_int
+{
+  let mut cp: *mut child_process = core::ptr::null_mut ();           // C 3532
+  let mut proc_hand: HANDLE;                                         // C 3533
+  let mut need_to_free: c_int = 0;                                   // C 3534
+  let mut rc: c_int = 0;                                             // C 3535
+  let mut pid: pid_t = pid;                                          // (C 3536's `orig_pid`)
+  let orig_pid: pid_t = pid;
+
+  /* Each process is in its own process group.  */
+  if pid < 0                                                         // C 3539
+    { pid = -pid; }                                                  // C 3540
+
+  /* Only handle signals that can be mapped to a similar behavior on Windows */
+  if sig != 0                                                        // C 3543
+      && sig != SIGINT && sig != SIGKILL && sig != SIGQUIT          // C 3544
+      && sig != SIGHUP && sig != SIGTRAP                            // C 3545
+    {
+      *errno () = EINVAL;                                            // C 3547
+      return -1;                                                     // C 3548
+    }
+
+  if sig == 0                                                        // C 3551
+    {
+      /* It will take _some_ time before PID 4 or less on Windows will
+	 be Emacs...  */
+      if pid <= 4                                                    // C 3555
+        {
+          *errno () = EPERM;                                         // C 3557
+          return -1;                                                 // C 3558
+        }
+      proc_hand = OpenProcess (PROCESS_QUERY_INFORMATION, 0, pid as DWORD);   // C 3560
+      if proc_hand.is_null ()                                        // C 3561
+        {
+          let mut err: DWORD = GetLastError ();                       // C 3563
+
+          match err
+            {
+              /* existing process, but access denied */
+              ERROR_ACCESS_DENIED =>                             // C 3567
+                {
+                  *errno () = EPERM;                                 // C 3568
+                  return -1;                                         // C 3569
+                }
+              /* process PID does not exist */
+              ERROR_INVALID_PARAMETER =>                         // C 3570
+                {
+                  if orig_pid == pid                                 // C 3572
+                    {
+                      *errno () = ESRCH;                             // C 3574
+                      return -1;                                     // C 3575
+                    }
+		/* If we received a negative value, try again with the
+                   original one we received.  */
+                  proc_hand = OpenProcess (PROCESS_QUERY_INFORMATION, 0, orig_pid as DWORD);   // C 3579-3580
+                  if proc_hand.is_null ()                            // C 3581
+                    {
+                      err = GetLastError ();                         // C 3583
+                      match err
+                        {
+                          ERROR_ACCESS_DENIED =>                 // C 3586
+                            {
+                              *errno () = EPERM;                     // C 3587
+                              return -1;                             // C 3588
+                            }
+                          ERROR_INVALID_PARAMETER =>             // C 3589
+                            {
+                              *errno () = ESRCH;                     // C 3590
+                              return -1;                             // C 3591
+                            }
+                          _ => { }
+                        }
+                    }
+                  /* C 3594's `break` - the arm's end.  */
+                }
+              _ => { }
+            }
+        }
+      if !proc_hand.is_null ()                                       // C 3598
+        { CloseHandle (proc_hand); }                                 // C 3599
+      return 0;                                                      // C 3600
+    }
+
+  cp = find_child_pid (pid as DWORD);                                // C 3603
+  if cp.is_null ()                                                   // C 3604
+    {
+      /* We were passed a PID of something other than our subprocess.
+	 If that is our own PID, we will send to ourself a message to
+	 close the selected frame, which does not necessarily
+	 terminates Emacs.  But then we are not supposed to call
+	 sys_kill with our own PID.  */
+
+      let desiredAccess: DWORD = if sig == SIGTRAP                   // C 3612
+        { PROCESS_ALL_ACCESS } else { PROCESS_TERMINATE };            // C 3613
+
+      proc_hand = OpenProcess (desiredAccess, 0, pid as DWORD);       // C 3615
+      if proc_hand.is_null ()                                         // C 3616
+        {
+          *errno () = EPERM;                                          // C 3618
+          return -1;                                                  // C 3619
+        }
+      need_to_free = 1;                                               // C 3621
+    }
+  else
+    {
+      proc_hand = (*cp).procinfo.hProcess;                            // C 3625
+      pid = (*cp).procinfo.dwProcessId as pid_t;                      // C 3626
+
+      /* Try to locate console window for process. */
+      EnumWindows (Some (find_child_console), cp as LPARAM);           // C 3629
+    }
+
+  if sig == SIGINT || sig == SIGQUIT                                 // C 3632
+    {
+      if NILP (Vw32_start_process_share_console) && !cp.is_null ()     // C 3634
+          && !(*cp).hwnd.is_null ()
+        {
+          let control_scan_code: BYTE = MapVirtualKey (VK_CONTROL as UINT, 0) as BYTE;   // C 3636
+          /* Fake Ctrl-C for SIGINT, and Ctrl-Break for SIGQUIT.  */
+          let mut vk_break_code: BYTE = if sig == SIGINT               // C 3638
+            { b'C' as BYTE } else { VK_CANCEL as BYTE };
+          let mut break_scan_code: BYTE
+            = MapVirtualKey (vk_break_code as UINT, 0) as BYTE;        // C 3639
+          let mut foreground_window: HWND;                             // C 3640
+
+          if break_scan_code == 0                                      // C 3642
+            {
+              /* Fake Ctrl-C for SIGQUIT if we can't manage Ctrl-Break. */
+              vk_break_code = b'C' as BYTE;                             // C 3645
+              break_scan_code = MapVirtualKey (vk_break_code as UINT, 0) as BYTE;   // C 3646
+            }
+
+          foreground_window = GetForegroundWindow ();                  // C 3649
+          if !foreground_window.is_null ()                             // C 3650
+            {
+              /* NT 5.0, and apparently also Windows 98, will not allow
+		 a Window to be set to foreground directly without the
+		 user's involvement. The workaround is to attach
+		 ourselves to the thread that owns the foreground
+		 window, since that is the only thread that can set the
+		 foreground window.  */
+              let mut foreground_thread: DWORD;                        // C 3658
+              let mut child_thread: DWORD;
+              foreground_thread = GetWindowThreadProcessId (foreground_window,
+                                                            core::ptr::null_mut ());   // C 3659-3660
+              if foreground_thread == GetCurrentThreadId ()            // C 3661
+                  || AttachThreadInput (GetCurrentThreadId (), foreground_thread,
+                                        TRUE) == 0                     // C 3662-3663
+                { foreground_thread = 0; }                             // C 3664
+
+              child_thread = GetWindowThreadProcessId ((*cp).hwnd,
+                                                       core::ptr::null_mut ());   // C 3666
+              if child_thread == GetCurrentThreadId ()                 // C 3667
+                  || AttachThreadInput (GetCurrentThreadId (), child_thread, TRUE) == 0   // C 3668-3669
+                { child_thread = 0; }                                  // C 3670
+
+              /* Set the foreground window to the child.  */
+              if SetForegroundWindow ((*cp).hwnd) != 0                 // C 3673
+                {
+		  /* Record the state of the left Ctrl key: the user
+		     could have it depressed while we are simulating
+		     Ctrl-C, in which case we will have to leave the
+		     state of that Ctrl depressed when we are done.  */
+                  let ctrl_state: c_short = GetKeyState (VK_LCONTROL) & 0x8000u16 as c_short;   // C 3679
+
+                  /* Generate keystrokes as if user had typed Ctrl-Break or
+                     Ctrl-C.  */
+                  keybd_event (VK_CONTROL as BYTE, control_scan_code, 0, 0);   // C 3683
+                  keybd_event (vk_break_code, break_scan_code,
+                               if vk_break_code == b'C' as BYTE
+                                 { 0 } else { KEYEVENTF_EXTENDEDKEY }, 0);   // C 3684-3685
+                  keybd_event (vk_break_code, break_scan_code,
+                               (if vk_break_code == b'C' as BYTE
+                                  { 0 } else { KEYEVENTF_EXTENDEDKEY })
+                               | KEYEVENTF_KEYUP, 0);                  // C 3686-3688
+                  keybd_event (VK_CONTROL as BYTE, control_scan_code,
+                               KEYEVENTF_KEYUP, 0);                    // C 3689-3690
+
+                  /* Sleep for a bit to give time for Emacs frame to respond
+                     to focus change events (if Emacs was active app).  */
+                  Sleep (100);                                         // C 3694
+
+                  SetForegroundWindow (foreground_window);              // C 3696
+                  /* If needed, restore the state of Ctrl.  */
+                  if ctrl_state != 0                                   // C 3698
+                    { keybd_event (VK_CONTROL as BYTE, control_scan_code, 0, 0); }   // C 3699
+                }
+              /* Detach from the foreground and child threads now that
+                 the foreground switching is over.  */
+              if foreground_thread != 0                                // C 3703
+                { AttachThreadInput (GetCurrentThreadId (), foreground_thread, FALSE); }   // C 3704-3705
+              if child_thread != 0                                     // C 3706
+                { AttachThreadInput (GetCurrentThreadId (), child_thread, FALSE); }        // C 3707-3708
+            }
+        }
+      /* Ctrl-Break is NT equivalent of SIGINT.  */
+      else if GenerateConsoleCtrlEvent (CTRL_BREAK_EVENT, pid as DWORD) == 0   // C 3712
+        {
+          DebPrint! (("sys_kill.GenerateConsoleCtrlEvent return %d "
+                      "for pid %lu\n", GetLastError (), pid));        // C 3714-3715
+          *errno () = EINVAL;                                          // C 3716
+          rc = -1;                                                     // C 3717
+        }
+    }
+  else if sig == SIGTRAP                                            // C 3720
+    {
+      static mut s_pfn_Debug_Break_Process: DebugBreakProcess_Proc = None;   // C 3722
+
+      if g_b_init_debug_break_process == 0                          // C 3724
+        {
+          g_b_init_debug_break_process = 1;                          // C 3726
+          s_pfn_Debug_Break_Process
+            = core::mem::transmute::<VOIDFNPTR, DebugBreakProcess_Proc> (
+                get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()),
+                               c"DebugBreakProcess".as_ptr ()));      // C 3727-3729
+        }
+
+      if s_pfn_Debug_Break_Process.is_none ()                        // C 3732
+        {
+          *errno () = ENOTSUP;                                       // C 3734
+          rc = -1;                                                   // C 3735
+        }
+      else if (s_pfn_Debug_Break_Process.unwrap ()) (proc_hand) == 0   // C 3737
+        {
+          let err: DWORD = GetLastError ();                           // C 3739
+
+          DebPrint! (("sys_kill.DebugBreakProcess return %d "
+                      "for pid %lu\n", err, pid));                    // C 3741-3742
+
+          match err
+            {
+              ERROR_ACCESS_DENIED =>                             // C 3746
+                { *errno () = EPERM; }                                // C 3747
+              _ =>                                                 // C 3749
+                { *errno () = EINVAL; }                               // C 3750
+            }
+
+          rc = -1;                                                    // C 3754
+        }
+    }
+  else
+    {
+      if NILP (Vw32_start_process_share_console) && !cp.is_null ()     // C 3759
+          && !(*cp).hwnd.is_null ()
+        {
+          /* C 3760's `#if 1` takes this arm in every configuration; C 3799's `else` pairs with
+             C 3762's `if`, and C 3800's `#endif` closes the `#if 1`.  */
+          if os_subtype == OS_SUBTYPE_9X                               // C 3762
+            {
+              /* C 3764-3779: the Shell VxD note, carried as C's comment.  */
+              /*
+/*
+   Another possibility is to try terminating the VDM out-right by
+   calling the Shell VxD (id 0x17) V86 interface, function #4
+   "SHELL_Destroy_VM", ie.
+
+     mov edx,4
+     mov ebx,vm_handle
+     call shellapi
+
+   First need to determine the current VM handle, and then arrange for
+   the shellapi call to be made from the system vm (by using
+   Switch_VM_and_callback).
+
+   Could try to invoke DestroyVM through CallVxD.
+
+*/
+              */
+              /* C 3780-3790: the `#if 0` arm.  */
+              /*
+#if 0
+	      /* On Windows 95, posting WM_QUIT causes the 16-bit subsystem
+		 to hang when cmdproxy is used in conjunction with
+		 command.com for an interactive shell.  Posting
+		 WM_CLOSE pops up a dialog that, when Yes is selected,
+		 does the same thing.  TerminateProcess is also less
+		 than ideal in that subprocesses tend to stick around
+		 until the machine is shutdown, but at least it
+		 doesn't freeze the 16-bit subsystem.  */
+	      PostMessage (cp->hwnd, WM_QUIT, 0xff, 0);
+#endif
+              */
+              if TerminateProcess (proc_hand, 0xff) == 0               // C 3791
+                {
+                  DebPrint! (("sys_kill.TerminateProcess returned %d "
+                              "for pid %lu\n", GetLastError (), pid));   // C 3793-3794
+                  *errno () = EINVAL;                                   // C 3795
+                  rc = -1;                                              // C 3796
+                }
+            }
+          else
+            { PostMessage ((*cp).hwnd, WM_CLOSE, 0, 0); }               // C 3801
+        }
+      /* Kill the process.  On W32 this doesn't kill child processes
+	 so it doesn't work very well for shells which is why it's not
+	 used in every case.  */
+      else if TerminateProcess (proc_hand, 0xff) == 0                  // C 3806
+        {
+          DebPrint! (("sys_kill.TerminateProcess returned %d "
+                      "for pid %lu\n", GetLastError (), pid));         // C 3808-3809
+          *errno () = EINVAL;                                           // C 3810
+          rc = -1;                                                      // C 3811
+        }
+    }
+
+  if need_to_free != 0                                                 // C 3815
+    { CloseHandle (proc_hand); }                                       // C 3816
+
+  return rc;                                                           // C 3818
+}
+
+/* The following two routines are used to manipulate stdin, stdout, and
+   stderr of our child processes.
+
+   Assuming that in, out, and err are *not* inheritable, we make them
+   stdin, stdout, and stderr of the child as follows:
+
+   - Save the parent's current standard handles.
+   - Set the std handles to inheritable duplicates of the ones being passed in.
+     (Note that _get_osfhandle() is an io.h procedure that retrieves the
+     NT file handle for a crt file descriptor.)
+   - Spawn the child, which inherits in, out, and err as stdin,
+     stdout, and stderr. (see Spawnve)
+   - Close the std handles passed to the child.
+   - Reset the parent's standard handles to the saved handles.
+     (see reset_standard_handles)
+   We assume that the caller closes in, out, and err after calling us.  */
+/// C 3838-3887: `void prepare_standard_handles (int in, int out, int err, HANDLE handles[3])` -
+/// C 3844-3848's parent handle and the three saved std handles, C 3851-3876's three
+/// `DuplicateHandle` calls with their `report_file_error` paths, and C 3879-3886's three
+/// `SetStdHandle` calls.  C's `(HANDLE) _get_osfhandle (in)` is the `_get_osfhandle` cast the
+/// use-site block above declares.
+/// C: void
+/// C: prepare_standard_handles (int in, int out, int err, HANDLE handles[3])
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn prepare_standard_handles (in_: c_int, out: c_int, err: c_int,
+                                                   handles: *mut HANDLE)
+{
+  let mut parent: HANDLE;                                              // C 3841
+  let mut newstdin: HANDLE = core::ptr::null_mut ();                   // C 3842
+  let mut newstdout: HANDLE = core::ptr::null_mut ();
+  let mut newstderr: HANDLE = core::ptr::null_mut ();
+
+  parent = GetCurrentProcess ();                                       // C 3844
+
+  *handles = GetStdHandle (STD_INPUT_HANDLE);                          // C 3846
+  *handles.add (1) = GetStdHandle (STD_OUTPUT_HANDLE);                 // C 3847
+  *handles.add (2) = GetStdHandle (STD_ERROR_HANDLE);                  // C 3848
+
+  /* make inheritable copies of the new handles */
+  if DuplicateHandle (parent, _get_osfhandle (in_) as HANDLE, parent, // C 3851-3853
+                      &raw mut newstdin, 0, TRUE,
+                      DUPLICATE_SAME_ACCESS) == 0                      // C 3857
+    { report_file_error (c"Duplicating input handle for child".as_ptr (), Qnil ()); }   // C 3858
+
+  if DuplicateHandle (parent, _get_osfhandle (out) as HANDLE, parent,   // C 3860-3862
+                      &raw mut newstdout, 0, TRUE,
+                      DUPLICATE_SAME_ACCESS) == 0                       // C 3866
+    { report_file_error (c"Duplicating output handle for child".as_ptr (), Qnil ()); }   // C 3867
+
+  if DuplicateHandle (parent, _get_osfhandle (err) as HANDLE, parent,   // C 3869-3871
+                      &raw mut newstderr, 0, TRUE,
+                      DUPLICATE_SAME_ACCESS) == 0                       // C 3875
+    { report_file_error (c"Duplicating error handle for child".as_ptr (), Qnil ()); }   // C 3876
+
+  /* and store them as our std handles */
+  if SetStdHandle (STD_INPUT_HANDLE, newstdin) == 0                     // C 3879
+    { report_file_error (c"Changing stdin handle".as_ptr (), Qnil ()); }    // C 3880
+
+  if SetStdHandle (STD_OUTPUT_HANDLE, newstdout) == 0                   // C 3882
+    { report_file_error (c"Changing stdout handle".as_ptr (), Qnil ()); }    // C 3883
+
+  if SetStdHandle (STD_ERROR_HANDLE, newstderr) == 0                    // C 3885
+    { report_file_error (c"Changing stderr handle".as_ptr (), Qnil ()); }    // C 3886
+}
+
+/// C 3889-3901: `void reset_standard_handles (int in, int out, int err, HANDLE handles[3])` - the
+/// three closes of the duplicated handles C 3893-3895 and the three `SetStdHandle` restores C
+/// 3898-3900.  C's `in`/`out`/`err` parameters are unused here (the unit's `unused_variables`
+/// allow covers them).
+/// C: void
+/// C: reset_standard_handles (int in, int out, int err, HANDLE handles[3])
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn reset_standard_handles (in_: c_int, out: c_int, err: c_int,
+                                                 handles: *mut HANDLE)
+{
+  /* close the duplicated handles passed to the child */
+  CloseHandle (GetStdHandle (STD_INPUT_HANDLE));                        // C 3893
+  CloseHandle (GetStdHandle (STD_OUTPUT_HANDLE));                       // C 3894
+  CloseHandle (GetStdHandle (STD_ERROR_HANDLE));                        // C 3895
+
+  /* now restore parent's saved std handles */
+  SetStdHandle (STD_INPUT_HANDLE, *handles.add (0));                    // C 3898
+  SetStdHandle (STD_OUTPUT_HANDLE, *handles.add (1));                   // C 3899
+  SetStdHandle (STD_ERROR_HANDLE, *handles.add (2));                    // C 3900
+}
+
+/* C 3903's `set_process_dir` (C 3903-3907) opens the next slice, with the twenty `DEFUN`s and
+   `syms_of_ntproc`.  */
