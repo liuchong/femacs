@@ -167,3 +167,12 @@ at file scope under `#[cfg (feature = "windowsnt")]`, so the unit's own definiti
 `the name w32_version_string is defined multiple times`).  The declaration now stands inside
 `w32common_decls` with the four version objects, and its file-scope copy is removed; every unit that
 calls it still resolves the name through `use w32common_decls::*;`.
+
+## 2026-10-14: `w32_valid_process_id` moves into `w32common_decls` (4.297)
+
+The eleventh move of the class this file's C 53 note records (`w32_version_string` was the tenth).
+`src/w32proc.c` 3488 **defines** `w32_valid_process_id`, so the top-level `unsafe extern "C"` copy
+was one `E0428` in `src/w32proc.rs`; measured: `probe src/w32proc.rs` read **36 errors (26 `E0428` +
+9 `E0425` + 1 `compile_error!`)** before the move and **35 (25 + 9 + 1)** after it, with the new
+`E0428` anchored here at line 191.  The declaration sits in the glob-imported `w32common_decls` now;
+`VALID_PROCESS_ID!` stays at the root.

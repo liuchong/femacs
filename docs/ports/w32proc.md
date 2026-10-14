@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**5379 lines**, md5 `d506705c9ce32d820a87ffc738a9511f`), carrying
-> **C 1-3483** - P-86 ④'s first seventeen slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**5454 lines**, md5 `56bd1ad33d5d38b4280d0f0a64606554`), carrying
+> **C 1-3526** - P-86 ④'s first eighteen slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -131,7 +131,8 @@ which `check-dead-file-coverage.py` requires):
 | 3080-3097 | the `sys_select` overview comment | **landed in slice 17**, with the function it documents |
 | 3099-3106 | the three extern objects `sys_select` reads: `keyboard_handle` (`w32console.c`), `interrupt_handle` (`w32xfns.c`) and `proc_buffered_char` (`process.c`) | file gate (slice 16); C's three one-line comments stand above each declaration, and the array's length is the mirror's `FD_SETSIZE` through its module path (Deviations 36/71) |
 | 3108-3483 | `sys_select`: the file's longest function (the four function-local statics, the timeout decode and set copies, the descriptor scan with its stdin and child/socket arms, the `count_children` label and child scan, the five-way answer, the fairness `do`/`while` and the timeout recheck) | file gate (slice 17); the four statics are Rust `static mut` items inside the function (Deviations 72), C's `goto count_children` is a labeled loop and the `do`/`while` the negated break (Deviations 73), the three dead debug arms are carried as C's text (Deviations 74), and `detect_input_pending`/`GetTickCount` stand at the use site (Deviations 75) |
-| 3485-4903 | **the remainder of the file** - C 3485-3488's `w32_valid_process_id` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `w32_valid_process_id` (C 3488), `find_child_console`, `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3485-3526 | the three items between `sys_select` and `sys_kill`: C 3485-3496's `w32_valid_process_id`, C 3498-3523's `find_child_console` and C 3525-3526's `DebugBreakProcess_Proc` typedef | file gate (slice 18); the round's two `<winuser.h>` entry points and `LPARAM` stand at the use site (Deviations 76), and `w32_valid_process_id` forced the mirror `include/w32common.rs`'s eleventh P-39 move (Deviations 77) |
+| 3528-4903 | **the remainder of the file** - C 3528-3529's `sys_kill` comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_kill` (C 3530), `set_process_dir` (C 3903), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1271,3 +1272,40 @@ it (owed 18's re-measure is what fixes the final number).
     `w32term.rs` mirror's and `FRAME_TERMCAP_P`/`SELECTED_FRAME` come in through `w32term.rs` ->
     `frame.rs`.  C's `ignored` parameter is kept although nothing reads it (the unit's
     `unused_variables` allow covers it).
+
+## Slice 18 (2026-10-14, status 4.297): C 3485-3526
+
+**What this round is.**  The three items between the file's two longest functions: C 3485-3496's
+`w32_valid_process_id` (the four-way PID test), C 3498-3523's `find_child_console` (the
+`EnumWindows` callback that matches a child's process id and the `tty`/`ConsoleWindowClass` class
+name the `os_subtype` selects) and C 3525-3526's `DebugBreakProcess_Proc` typedef.  Port: 5,379 ->
+**5454 lines** (+75).  The next row's first item is C 3528's `sys_kill`.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.
+**Evidence ② - the arm reading, and the mirror defect this round found.**  The first `probe` read
+**36 errors (26 `E0428` + 9 `E0425` + 1 `compile_error!`)** - one more than the lane's baseline - and
+the new `E0428` was `w32_valid_process_id`, anchored in `include/w32common.rs` 191: that mirror
+declared it in a **top-level** `unsafe extern "C"` block, while this unit defines it.  The mirror's
+own note 185-188 records the identical case for `w32_version_string` ("the tenth declaration to
+move"), so this round is its **eleventh** P-39 move: the declaration sits in the glob-imported
+`w32common_decls` now, with the mirror's note updated and `docs/ports/include-w32common.md` carrying
+the ledger row.  Re-read after the move: **35 errors (25 + 9 + 1), 0 anchored in this unit** - the
+baseline slice 15 produced, restored.  (Slice 12's `w32heap_file_decls` was the same device; the
+probe reports this class because `E0428` *is* a name-resolution error.)
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 5380 5454` -> `16
+capitalized identifiers, missing: []`.
+**Evidence ④ - the `--check` reading.**  **66 -> 64 `- missing` rows**: `missing function
+w32_valid_process_id` and `missing function find_child_console`.  No token rows; drift -9.7% ->
+**-11.2%**, inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+76. **`GetWindowThreadProcessId`, `GetClassName` and `LPARAM` stand at the use site** (P-88 ①):
+    `<winuser.h>`'s two entry points (C 3506, C 3511) and `<windef.h>`'s `typedef LONG_PTR LPARAM`
+    (pointer-sized, spelled `isize`).  `HWND` is the graph's (`include/w32.rs`), `strcmp` the
+    `string.rs` mirror's, and `os_subtype`/`OS_SUBTYPE_9X` the `w32common.rs` mirror's.
+77. **`include/w32common.rs` gained its eleventh P-39 move** (this round's Evidence ②): the
+    `w32_valid_process_id` declaration moved from that mirror's root into `w32common_decls`, the
+    module it glob-imports, for the reason its own note records for `w32_version_string`.  The
+    macro `VALID_PROCESS_ID!` stays at the root (no unit defines it) and the `#ifdef WINDOWSNT`
+    arm's prose is carried where the C text is.

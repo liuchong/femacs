@@ -5377,3 +5377,78 @@ unsafe extern "C" {
 unsafe extern "system" {
   pub fn GetTickCount () -> DWORD;
 }
+
+/* C 3485-3526: the three items between `sys_select` and `sys_kill` (C 3528, the next slice) - C
+   3485-3496's `w32_valid_process_id`, C 3498-3523's `find_child_console` and C 3525-3526's
+   `DebugBreakProcess_Proc`.  `os_subtype`/`OS_SUBTYPE_9X` are the `w32common.rs` mirror's, so the
+   round declares only the two `<winuser.h>` entry points and the `LPARAM` they need (a `LONG_PTR`
+   at the ABI, spelled `isize`; P-88 1's `UNVERIFIED` class).  */
+
+/* This is called from filelock.c:current_lock_owner to validate a PID.
+   Return true if PID could identify a process on the current host,
+   false otherwise.  */
+/// C 3488-3496: `bool w32_valid_process_id (intmax_t id)` - C 3491-3493's four-way test (C's
+/// `UINT32_MAX`/`INT32_MIN` are the `stdint.in.rs` mirror's).
+/// C: bool
+/// C: w32_valid_process_id (intmax_t id)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_valid_process_id (id: intmax_t) -> bool
+{
+  if id == -1 || id == 0                                             // C 3491
+      || id > UINT32_MAX as intmax_t                                 // C 3492
+      || id < INT32_MIN as intmax_t                                  // C 3493
+    { return false; }                                                // C 3494
+  return true;                                                       // C 3495
+}
+
+/* Substitute for certain kill () operations */
+
+/// C 3500-3523: `static BOOL CALLBACK find_child_console (HWND hwnd, LPARAM arg)` - C 3503's cast
+/// of the enumeration argument, C 3506's process-id read, C 3507's match, C 3509-3515's
+/// `GetClassName`/`strcmp` pair with C 3513's `os_subtype` choice, and C 3517-3518's record of the
+/// window (C's `return FALSE` stops the enumeration).
+/// C: static BOOL CALLBACK
+/// C: find_child_console (HWND hwnd, LPARAM arg)
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" fn find_child_console (hwnd: HWND, arg: LPARAM) -> BOOL
+{
+  let cp: *mut child_process = arg as *mut child_process;            // C 3503
+  let mut process_id: DWORD = 0;                                     // C 3504
+
+  GetWindowThreadProcessId (hwnd, &raw mut process_id);              // C 3506
+  if process_id == (*cp).procinfo.dwProcessId                        // C 3507
+    {
+      let mut window_class: [c_char; 32] = [0; 32];                  // C 3509
+
+      GetClassName (hwnd, window_class.as_mut_ptr (),                // C 3511
+                    core::mem::size_of::<[c_char; 32]> () as c_int);
+      if strcmp (window_class.as_ptr (),                             // C 3512
+                 if os_subtype == OS_SUBTYPE_9X                      // C 3513
+                   { c"tty".as_ptr () } else { c"ConsoleWindowClass".as_ptr () }) == 0   // C 3514-3515
+        {
+          (*cp).hwnd = hwnd;                                         // C 3517
+          return FALSE;                                              // C 3518
+        }
+    }
+  /* keep looking */
+  return TRUE;                                                       // C 3522
+}
+
+/// C: typedef BOOL (WINAPI * DebugBreakProcess_Proc) (HANDLE hProcess);
+#[cfg (feature = "windowsnt")]
+pub type DebugBreakProcess_Proc
+  = Option<unsafe extern "system" fn (hProcess: HANDLE) -> BOOL>;    // C 3525-3526
+
+/// C: typedef LONG_PTR LPARAM;   [`<windef.h>`; pointer-sized, `isize`]
+/// C: WINUSERAPI DWORD WINAPI GetWindowThreadProcessId (HWND hWnd, LPDWORD lpdwProcessId);
+/// C: WINUSERAPI int WINAPI GetClassNameA (HWND hWnd, LPSTR lpClassName, int nMaxCount);
+#[cfg (feature = "windowsnt")]
+pub type LPARAM = isize;
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn GetWindowThreadProcessId (hWnd: HWND, lpdwProcessId: LPDWORD) -> DWORD;
+  pub fn GetClassName (hWnd: HWND, lpClassName: LPSTR, nMaxCount: c_int) -> c_int;
+}
+
+/* C 3528's `sys_kill` opens the next slice.  */

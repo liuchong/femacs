@@ -163,6 +163,14 @@ pub mod w32common_decls {
     pub static mut sysinfo_cache: SYSTEM_INFO;
     #[cfg (feature = "windowsnt")]
     pub static mut osinfo_cache: OSVERSIONINFO;
+
+    /// C 53: `extern bool w32_valid_process_id (intmax_t);` - `src/w32proc.c` 3488 **defines** it,
+    /// so the name is declared here rather than at the mirror's root, exactly as `w32_version_string`
+    /// above is (P-21's `E0428` rule; measured 2026-10-14: the root copy was one `E0428` against
+    /// `src/w32proc.rs`'s own definition - the eleventh declaration to move).  `intmax_t` is
+    /// PORTING.md 1.1's `i64`.
+    #[cfg (feature = "windowsnt")]
+    pub fn w32_valid_process_id (pid: i64) -> bool;
   }
 }
 use w32common_decls::*;
@@ -177,19 +185,12 @@ pub const OS_SUBTYPE_NT: c_int = 2;
 // `sysinfo_cache`/`osinfo_cache` - both deferred above - and the three versions) sit in
 // `w32common_decls` above with the four version objects (E0428, P-21).
 
-/// C 53-58: the `WINDOWSNT` arm, dead text on this target (the feature macro is `undef`), so it
-/// is carried under the feature that names the other side (PORTING.md P-51).  `intmax_t` is
-/// PORTING.md 1.1's `i64`.
-/// C: extern bool w32_valid_process_id (intmax_t);
-/// C: # define VALID_PROCESS_ID(p) w32_valid_process_id(p)
-/// C 53's `w32_version_string` declaration is **not** here: `src/w32fns.c` 10085 defines it, so the
-/// name belongs in `w32common_decls` above, where the unit's own definition shadows the glob import
-/// (P-21's E0428 rule - the tenth declaration to move, w32fns slice 24; the mirror's ledger records
-/// the move).
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub fn w32_valid_process_id (pid: i64) -> bool;
-}
+/* C 53-58: the `WINDOWSNT` arm, dead text on this target (the feature macro is `undef`), so it is
+   carried under the feature that names the other side (PORTING.md P-51); the declaration itself is
+   in `w32common_decls` above, for the reason C 53's `w32_version_string` is (P-21's `E0428` rule -
+   the eleventh declaration to move, measured 2026-10-14 in `src/w32proc.rs` slice 18: the
+   top-level copy was one `E0428` against that unit's own definition).  C's
+   `# define VALID_PROCESS_ID(p) w32_valid_process_id(p)` stays here.  */
 #[cfg (feature = "windowsnt")]
 macro_rules! VALID_PROCESS_ID { ($p:expr) => { w32_valid_process_id ($p) }; }
 
