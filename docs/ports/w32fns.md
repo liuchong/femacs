@@ -1957,7 +1957,7 @@ their members next, and `lpOFN->nFilterIndex` is the one member this slice reads
 functions (`GetParent`, `GetDlgItem`, `GetWindow`, `SendMessageW`, `SendMessageA`,
 `EnableWindow`).
 
-### Evidence (slice 15, the final revision: 12,390 Rust lines)
+### Evidence (slice 15, the final revision: 12,394 Rust lines)
 
 **① The frozen configuration.**  `build-tu src/w32fns.c` → exit 0.  One run (its first reading
 caught the banner's nested comment and the `lpOFN` deref below).
@@ -1973,7 +1973,7 @@ port's own comment at its first `*/` (the slice-12 lesson, applied here as a wra
 
 **③ `extract-abi.py --check`.**  157 rows → **155**: `missing function file_dialog_callback` and
 `missing function w32_dialog_in_progress` retire, no row is added, and the file still has no
-line-count drift row (12,390 lines against 12,488).
+line-count drift row (12,394 lines against 12,488).
 
 **④ The range table and the dead-file gate.**  The `8116-12488` remainder row splits into
 `8116-8262` (this slice; its `W`/`A` arms marked) and `8264-12488`;
