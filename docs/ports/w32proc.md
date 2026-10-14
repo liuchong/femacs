@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**2335 lines**, md5 `688232646ec5edeeea726cb323b04e8e`), carrying
-> **C 1-1511** - P-86 ④'s first four slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**2567 lines**, md5 `6bf615e839b556c4564df7d52aa97b5e`), carrying
+> **C 1-1693** - P-86 ④'s first five slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -117,7 +117,8 @@ which `check-dead-file-coverage.py` requires):
 | 913-1039 | the C 914-962 wait-object overview comment, C 968-971's four `WFO_*` constants, C 975-978's two `typedef`s and their two `extern` objects, C 981-1034's three records (`wait_objects_context`/`wait_objects_pool`/`wait_objects_info`) and C 1038-1039's two statics | file gate (slice 2); C 1040 is a blank line and C 1041-1050's comment belongs to C 1051's `wait_objects_thread`, which is the next row's first item |
 | 1041-1299 | the wait-object worker pair: C 1041-1050's `wait_objects_thread` overview comment, C 1051-1117's `wait_objects_thread` and C 1123-1299's `start_wait_objects` | file gate (slice 3); the `switch` over the second wait's result becomes an `if`/`else if` chain (Deviations 38), and C's five `WAIT_*`/`INFINITE` values and six wait-event entry points stand in the use-site `<windows.h>` block (Deviations 37) |
 | 1301-1511 | the pool's four control functions: C 1301-1347's `stop_wait_objects`, C 1349-1437's `end_wait_and_return`, C 1439-1483's `shrink_wait_pool` and C 1485-1511's `free_wait_pool` | file gate (slice 4); `WAIT_ABANDONED` joins the use-site `<windows.h>` block (Deviations 40), C's `for` loops whose bodies `break` are `while` loops, and C's `int`/`DWORD` boundary conversions are spelled with `as` (Deviations 39) |
-| 1513-4903 | **the remainder of the file** - `wait_for_objects` (C 1513) through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `wait_for_objects` (C 1527), `sys_spawnve` (C 2725), `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1513-1693 | the file's two wait entry points: C 1513-1526's `wait_for_objects` overview comment with C 1527-1597's `wait_for_objects`, and C 1599-1616's `msg_wait_for_objects` overview comment with C 1617-1693's `msg_wait_for_objects` | file gate (slice 5); `MsgWaitForMultipleObjects` and `QS_ALLINPUT` join the use-site `<windows.h>`/`<winuser.h>` block (Deviations 42), C's two counted `for` loops become `while` loops whose `continue` path carries C's increment clause (Deviations 43), and C's 64/63 group arithmetic keeps its `int`/`DWORD` spelling (Deviations 39) |
+| 1695-4903 | **the remainder of the file** - C 1695-1727's subprocess overview comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `sys_spawnve` (C 2725), `sys_select` (C 3109), `sys_kill` (C 3530), the standard-handle pair, the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -553,3 +554,58 @@ stem's tolerance row is re-appended at 0.54 = measured + 0.01 rather than left w
 11. **The four bodies are parsed, gated, swept and token-compared - and not type-checked** (owed
     items 8/10, re-measured as Evidence ②): the mirror round that discharges the `E0428` class is
     still what this file waits on, and this round adds four more bodies to that queue.
+
+## Slice 5 (2026-10-14, status 4.284): C 1513-1693
+
+**What this round is.**  The file's two wait entry points, i.e. the pair every caller in the tree
+reaches `w32proc.c` through: C 1513-1597's `wait_for_objects` (C's replacement for
+`WaitForMultipleObjects` with `bWaitAll` removed - the `shrink_wait_pool` guard, the `nCount <= 64`
+fast path, the busy-wait loop that walks 64-sized groups when `dwMilliseconds` is 0, and the
+multithreaded path that hands the wait to `start_wait_objects` and translates the answer through
+`end_wait_and_return`, with C 1585-1590's sixty-four-hertz comment) and C 1599-1693's
+`msg_wait_for_objects` (the same shape over `MsgWaitForMultipleObjects`, where C waits on groups of
+63, uses `<=` at C 1635-1636 because the call can also report `nCount` itself, and answers `nCount`
+- not the group offset - when a message arrived, C 1664-1666's own note).  Port: 2,335 -> **2,567
+lines** (+232, of which 16 are the `MsgWaitForMultipleObjects`/`QS_ALLINPUT` block of Deviations
+42).  The next row's first item is C 1695-1727's subprocess overview comment.
+
+**Evidence ① - the frozen reading.**  `cd femacs && cargo run -q -p xtask -- build-tu
+src/w32proc.c` -> exit 0, **336 bytes** (one shot, the same P-08 object as slices 1-4).
+
+**Evidence ② - the arm reading (unchanged for the fifth time).**  `probe src/w32proc.rs <out>
+--crate-type=lib -C panic=abort --cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg
+'feature="have_setitimer"' --cfg 'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27
+`E0428` + 9 `E0425` + 1 `compile_error!`), 0 anchored in this unit**.  These two bodies are outside
+every type reading as well (owed items 8/10/11).
+
+**Evidence ③ - the name sweep is clean again.**  `python3 tools/check-unit-names.py
+femacs/src/w32proc.rs 2337 2567` -> `13 capitalized identifiers, missing: []`.  The round's own two
+new SDK names (`MsgWaitForMultipleObjects`, `QS_ALLINPUT`) went into the use-site block before the
+sweep, the order slice 3's defect established.
+
+**Evidence ④ - the `--check` reading.**  **96 -> 94 `- missing` rows**: `missing function
+wait_for_objects` and `missing function msg_wait_for_objects` retire.  No new token rows (C's two
+`for` loops keep their `break`/`continue` tokens in the port's `while` forms, and C's
+`int`/`DWORD` mix is a spelling the token families already fold), and the drift falls again
+(52.4% -> **47.6%**), so the stem's tolerance row is re-appended at 0.49 = measured + 0.01.
+
+**Deviations (this slice's additions).**
+
+42. **`MsgWaitForMultipleObjects` and `QS_ALLINPUT` stand in a use-site `<windows.h>`/`<winuser.h>`
+    block** (P-88 ①): `<windows.h>` pulls `<winuser.h>`, which is where both names live
+    (`#define QS_ALLINPUT 0x04FF` is the OR of the five input-queue classes plus
+    `QS_SENDMESSAGE`).  No mirror in this unit's graph carries either; both are **UNVERIFIED**.
+43. **C's two counted `for` loops become `while` loops, and the `continue` path carries C's
+    increment clause.**  C 1557/1650 spell
+    `for (int i = 0, offset = 0; i <= group; i++, offset += 64)`, so C's `continue` (C 1567/1660)
+    still runs `i++, offset += 64`; the port's `{ i += 1; offset += 64; continue; }` is that clause
+    written at the `continue`, and the loop's own tail carries the same pair.  The busy-wait
+    arithmetic itself (`rest`/`group`, `count`, `offset + res - WAIT_OBJECT_0`) is unchanged, with
+    C's `int`/`DWORD` conversions spelled as `as` (Deviations 39).
+
+**Owed (this slice's additions).**
+
+12. **The two entry points are the file's most-called names and neither is type-checked here**
+    (owed items 8/10/11, re-measured as Evidence ②): `sys_select` (C 3109, still to land) is their
+    principal caller, so the mirror round that discharges the `E0428` class is what this file - and
+    that caller - wait on.

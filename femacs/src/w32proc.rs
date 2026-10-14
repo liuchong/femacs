@@ -2333,3 +2333,235 @@ pub unsafe extern "C" fn free_wait_pool ()
   CloseHandle (wait_pool.timeout_event);                                // C 1509
   return;                                                               // C 1510
 }
+
+/* C 50's `<windows.h>`/`<winuser.h>`: the message-aware wait entry point C 1628/1657/1681 calls and
+   the wake mask its last argument carries.  `MsgWaitForMultipleObjects` is `<winuser.h>`'s (C
+   reaches it through `<windows.h>`), and `QS_ALLINPUT` is that header's `#define QS_ALLINPUT
+   0x04FF` - the OR of every input-queue class the SDK names.  No mirror in this unit's graph
+   carries either, so both stand at the use site with the `UNVERIFIED` mark the acquisition note
+   gives every Windows name on this machine (P-88 ①).  */
+/// C: #define QS_ALLINPUT 0x04FF
+#[cfg (feature = "windowsnt")]
+pub const QS_ALLINPUT: DWORD = 0x04FF;
+/// C: WINUSERAPI DWORD WINAPI MsgWaitForMultipleObjects (DWORD nCount, const HANDLE *pHandles,
+/// C:   BOOL fWaitAll, DWORD dwMilliseconds, DWORD dwWakeMask);
+#[cfg (feature = "windowsnt")]
+unsafe extern "system" {
+  pub fn MsgWaitForMultipleObjects (nCount: DWORD, pHandles: *const HANDLE, fWaitAll: BOOL,
+                                    dwMilliseconds: DWORD, dwWakeMask: DWORD) -> DWORD;
+}
+
+/* C 1513-1693: the file's two wait entry points - C 1513-1526's `wait_for_objects` overview
+   comment, C 1527-1597's `wait_for_objects`, C 1599-1616's `msg_wait_for_objects` overview comment
+   and C 1617-1693's `msg_wait_for_objects`.  C 1695's subprocess overview comment opens the next
+   slice.  */
+
+/* Replacement of WaitForMultipleObjects, with the bWaitAll parameter
+   removed.  The function's return values are as follows:
+
+   [0 ~ nCount-1], the return value indicates the lpHandles array
+   index of the object that satisfied the wait.
+
+   [WFO_ABANDONED ~ nCount-1 + WFO_ABANDONED], the return value minus
+   WFO_ABANDONED indicates the lpHandles array index of an abandoned
+   mutex object that satisfied the wait.
+
+   [WFO_TIMEOUT], The time-out interval elapsed.
+
+   [WFO_FAILED], The function has failed.  To get extended error
+   information, call GetLastError.  */                              // C 1513-1526
+/// C 1527-1597: `static DWORD wait_for_objects (DWORD nCount, HANDLE *lpHandles, DWORD
+/// dwMilliseconds)` - C 1531-1533's shrink guard, C 1536-1550's `nCount <= 64` fast path (C
+/// 1538-1539's `WaitForMultipleObjects`, C 1540-1541's timeout and C 1542-1549's three-range
+/// answer), C 1551-1578's busy-wait loop over 64-sized groups (C 1554-1555's `rest`/`group`, C
+/// 1556-1557's two loop variables, C 1559's `count` choice, C 1564-1575's per-group answer) and C
+/// 1579-1596's multithreaded path (C 1581's `start_wait_objects`, C 1583-1584's
+/// `WaitForMultipleObjects (wait_info.nh, wait_info.hs, FALSE, dwMilliseconds)`, C 1585-1590's
+/// sixty-four-hertz comment and C 1591-1595's zero-time retry).  C's `int` loop offset scales a
+/// `HANDLE *` (`lpHandles.add (…)`) and its `int`/`DWORD` mix is spelled with the `as` conversions
+/// C's own arithmetic performs (Deviations 39).
+/// C: static DWORD
+/// C: wait_for_objects (DWORD nCount, HANDLE *lpHandles, DWORD dwMilliseconds)
+#[cfg (feature = "windowsnt")]
+unsafe fn wait_for_objects (nCount: DWORD, lpHandles: *mut HANDLE,
+                           dwMilliseconds: DWORD) -> DWORD
+{
+  /* Check inactive worker threads and terminate them.  */
+  if shrink_wait_pool () == WFO_FAILED as c_int                        // C 1532
+    { return WFO_FAILED; }                                             // C 1533
+  /* If the number of wait objects does not exceed 64, directly call
+     WaitForMultipleObjects and convert the return value.  */
+  if nCount <= 64                                                       // C 1536
+    {
+      let res: DWORD = WaitForMultipleObjects (nCount, lpHandles, FALSE, dwMilliseconds);    // C 1538-1539
+      if res == WAIT_TIMEOUT                                            // C 1540
+        { return WFO_TIMEOUT; }                                        // C 1541
+      else if res >= WAIT_OBJECT_0                                      // C 1542
+               && res < WAIT_OBJECT_0 + nCount                          // C 1543
+        { return res - WAIT_OBJECT_0; }                                 // C 1544
+      else if res >= WAIT_ABANDONED_0                                   // C 1545
+               && res < WAIT_ABANDONED_0 + nCount                       // C 1546
+        { return res + WFO_ABANDONED - WAIT_ABANDONED_0; }              // C 1547
+      else
+        { return WFO_FAILED; }                                          // C 1549
+    }
+  /* If the wait time is 0, perform busy waiting.  */
+  if dwMilliseconds == 0                                                // C 1552
+    {
+      let rest: c_int = (nCount % 64) as c_int;                         // C 1554
+      let group: c_int = (nCount / 64) as c_int;                        // C 1555
+      let mut res: DWORD = 0;
+      let mut count: DWORD = 0;                                         // C 1556
+      let mut i: c_int = 0;
+      let mut offset: c_int = 0;                                        // C 1557
+      while i <= group
+        {
+          count = if i == group { rest as DWORD } else { 64 };          // C 1559
+          /* When the number of waits is a multiple of 64, skipping the
+             last wait with a count of 0.  */
+          if count == 0                                                 // C 1562
+            { break; }                                                  // C 1563
+          res = WaitForMultipleObjects (count, lpHandles.add (offset as usize),    // C 1564-1565
+                                        FALSE, 0);
+          if res == WAIT_TIMEOUT                                        // C 1566
+            { i += 1; offset += 64; continue; }                         // C 1567
+          else if res >= WAIT_OBJECT_0                                  // C 1568
+                   && res < WAIT_OBJECT_0 + count                        // C 1569
+            { return offset as DWORD + res - WAIT_OBJECT_0; }           // C 1570
+          else if res >= WAIT_ABANDONED_0                               // C 1571
+                   && res < WAIT_ABANDONED_0 + count                     // C 1572
+            { return offset as DWORD + res + WFO_ABANDONED - WAIT_ABANDONED_0; }    // C 1573
+          else
+            { return WFO_FAILED; }                                      // C 1575
+        }
+      return WFO_TIMEOUT;                                               // C 1577
+    }
+  /* If the number of objects is greater than 64 and the wait time is
+     not 0, use multithreaded waiting.  */
+  if start_wait_objects (&raw mut wait_info, nCount, lpHandles)         // C 1581
+      == WFO_FAILED as c_int
+    { return WFO_FAILED; }                                              // C 1582
+  let mut res: DWORD = WaitForMultipleObjects (wait_info.nh, wait_info.hs.as_mut_ptr (),    // C 1583-1584
+                                               FALSE, dwMilliseconds);
+  /* If the main thread wait times out, call WaitForMultipleObjects
+     again with zero time-out interval to check if any objects have
+     completed.  The default clock resolution of Windows is 64 Hz.  If a
+     time less than 15.625ms is specified, the waiting time may be
+     longer than the specified time, and some objects that were not
+     completed in the previous call may now be completed.  */
+  if res == WAIT_TIMEOUT                                                // C 1591
+    {
+      res = WaitForMultipleObjects (wait_info.nh, wait_info.hs.as_mut_ptr (),    // C 1593-1594
+                                    FALSE, 0);
+    }
+  return end_wait_and_return (&raw mut wait_info, res);                 // C 1596
+}
+
+/* Replacement of MsgWaitForMultipleObjects, with the bWaitAll and
+   dwWakeMask parameters removed.  The function's return values are as
+   follows:
+
+   [0 ~ nCount-1], the return value indicates the lpHandles array
+   index of the object that satisfied the wait.
+
+   [nCount], New input of the type QS_ALLINPUT is available in the
+   thread's input queue.
+
+   [WFO_ABANDONED ~ nCount-1 + WFO_ABANDONED], the return value minus
+   WFO_ABANDONED indicates the lpHandles array index of an abandoned
+   mutex object that satisfied the wait.
+
+   [WFO_TIMEOUT], The time-out interval elapsed.
+
+   [WFO_FAILED], The function has failed.  To get extended error
+   information, call GetLastError.  */                              // C 1599-1616
+/// C 1617-1693: `static DWORD msg_wait_for_objects (DWORD nCount, HANDLE *lpHandles, DWORD
+/// dwMilliseconds)` - the same shape as `wait_for_objects` over `MsgWaitForMultipleObjects`, with
+/// C's two differences carried in place: C 1635-1636's `res <= WAIT_OBJECT_0 + nCount` (`<=`,
+/// because the call can also report `nCount` itself) and C 1667-1668's `res == WAIT_OBJECT_0 +
+/// count` answer, which returns `nCount` for a message rather than the group offset.  C 1621-1623's
+/// shrink guard, C 1626-1643's `nCount <= 63` fast path, C 1644-1676's busy-wait loop over
+/// 63-sized groups and C 1677-1692's multithreaded path (C 1687-1691's zero-time retry) round it
+/// out; the two numbers C waits on are `63` and `QS_ALLINPUT` (the wake mask of every call).
+/// C: static DWORD
+/// C: msg_wait_for_objects (DWORD nCount, HANDLE *lpHandles, DWORD dwMilliseconds)
+#[cfg (feature = "windowsnt")]
+unsafe fn msg_wait_for_objects (nCount: DWORD, lpHandles: *mut HANDLE,
+                               dwMilliseconds: DWORD) -> DWORD
+{
+  /* Check inactive worker threads and terminate them.  */
+  if shrink_wait_pool () == WFO_FAILED as c_int                        // C 1622
+    { return WFO_FAILED; }                                             // C 1623
+  /* If the number of wait objects does not exceed 63, directly call
+     MsgWaitForMultipleObjects and convert the return value.  */
+  if nCount <= 63                                                       // C 1626
+    {
+      let res: DWORD = MsgWaitForMultipleObjects (nCount, lpHandles, FALSE,    // C 1628-1629
+                                                  dwMilliseconds, QS_ALLINPUT);
+      if res == WAIT_TIMEOUT                                            // C 1630
+        { return WFO_TIMEOUT; }                                        // C 1631
+      /* The return value of MsgWaitForMultipleObjects can be
+         WAIT_OBJECT_0 + nCount, indicating that a message was
+         received.  So use (<=) rather than (<) here.  */
+      else if res >= WAIT_OBJECT_0                                      // C 1635
+               && res <= WAIT_OBJECT_0 + nCount                         // C 1636
+        { return res - WAIT_OBJECT_0; }                                 // C 1637
+      else if res >= WAIT_ABANDONED_0                                   // C 1638
+               && res < WAIT_ABANDONED_0 + nCount                       // C 1639
+        { return res + WFO_ABANDONED - WAIT_ABANDONED_0; }              // C 1640
+      else
+        { return WFO_FAILED; }                                          // C 1642
+    }
+  /* If the wait time is 0, perform busy waiting.  */
+  if dwMilliseconds == 0                                                // C 1645
+    {
+      let rest: c_int = (nCount % 63) as c_int;                         // C 1647
+      let group: c_int = (nCount / 63) as c_int;                        // C 1648
+      let mut res: DWORD = 0;
+      let mut count: DWORD = 0;                                         // C 1649
+      let mut i: c_int = 0;
+      let mut offset: c_int = 0;                                        // C 1650
+      while i <= group
+        {
+          count = if i == group { rest as DWORD } else { 63 };          // C 1652
+          /* When the number of waits is a multiple of 63, skipping the
+             last wait with a count of 0.  */
+          if count == 0                                                 // C 1655
+            { break; }                                                  // C 1656
+          res = MsgWaitForMultipleObjects (count, lpHandles.add (offset as usize),    // C 1657-1658
+                                           FALSE, 0, QS_ALLINPUT);
+          if res == WAIT_TIMEOUT                                        // C 1659
+            { i += 1; offset += 63; continue; }                         // C 1660
+          else if res >= WAIT_OBJECT_0                                  // C 1661
+                   && res < WAIT_OBJECT_0 + count                       // C 1662
+            { return offset as DWORD + res - WAIT_OBJECT_0; }           // C 1663
+          /* When a message is received during the wait, return nCount
+             directly.  This is the distinction that needs to be made
+             compared to wait_for_objects.  */
+          else if res == WAIT_OBJECT_0 + count                          // C 1667
+            { return nCount; }                                          // C 1668
+          else if res >= WAIT_ABANDONED_0                               // C 1669
+                   && res < WAIT_ABANDONED_0 + count                     // C 1670
+            { return offset as DWORD + res + WFO_ABANDONED - WAIT_ABANDONED_0; }    // C 1671
+          else
+            { return WFO_FAILED; }                                      // C 1673
+        }
+      return WFO_TIMEOUT;                                               // C 1675
+    }
+  /* If the number of objects is greater than 63 and the wait time is
+     not 0, use multithreaded waiting.  */
+  if start_wait_objects (&raw mut wait_info, nCount, lpHandles)         // C 1679
+      == WFO_FAILED as c_int
+    { return WFO_FAILED; }                                              // C 1680
+  let mut res: DWORD = MsgWaitForMultipleObjects (wait_info.nh, wait_info.hs.as_mut_ptr (),    // C 1681-1683
+                                                 FALSE, dwMilliseconds, QS_ALLINPUT);
+  /* If the main thread wait times out, call MsgWaitForMultipleObjects
+     again with zero time-out interval to check if any objects have
+     completed.  */
+  if res == WAIT_TIMEOUT                                                // C 1687
+    {
+      res = MsgWaitForMultipleObjects (wait_info.nh, wait_info.hs.as_mut_ptr (),   // C 1689-1690
+                                       FALSE, 0, QS_ALLINPUT);
+    }
+  return end_wait_and_return (&raw mut wait_info, res);                 // C 1692
+}
