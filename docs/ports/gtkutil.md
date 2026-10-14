@@ -194,7 +194,8 @@
 | 2844-3002 | the "GTK font chooser" banner (C 2844-2846) and the whole `HAVE_FREETYPE` section: `xg_weight_to_symbol` (C 2852-2870, including C 2859-2861's version-guarded step), `xg_style_to_symbol` (C 2872-2879), `x_last_font_name` (C 2884), `xg_font_filter` (C 2887-2898) and **`xg_get_font`** (C 2911-3001: the `HAVE_PGTK` guard, the chooser dialog, the GTK3 `desc` path and the GTK2 name path) | file gate (`use_gtk`); `have_freetype`; `have_gtk3`; `have_pgtk`; `pango_version_ge_1_36_7`; slice 5 below |
 | 3003-3301 | C 3003-3005's blanks and form feed, the "Menu functions." banner (C 3006-3008), the `MENU_ITEM_NAME` macro (C 3014), the two file-scope lists `xg_menu_cb_list`/`xg_menu_item_cb_list` (C 3019/3023), **`make_cl_data`** (C 3035-3053), `update_cl_data` (C 3066-3078), `unref_cl_data` (C 3083-3095), **`xg_mark_data`** (C 3099-3142), `menuitem_destroy_callback` (C 3148-3157), `menuitem_highlight_callback` (C 3166-3189), `menu_destroy_callback` (C 3195-3199), `make_widget_for_menu_item` (C 3206-3235) and **`make_menu_item`** (C 3251-3300) | file gate (`use_gtk`); the gtkutil.h records C 3035-3095 use stand in the unit (Owed 10); `have_pgtk` for C 3133-3141's arm and C 3294-3297's; `gtk_check_version_ge_3_14` for C 3218-3226's pair; slice 6 below |
 | 3302-3533 | C 3301-3302's blank and C 3302-3314's comment above `xg_create_one_menuitem` [it was inside slice 6's row until this slice, which carries it here because it belongs to the function below], **`xg_create_one_menuitem`** (C 3316-3363), `menu_bar_button_pressed_cb` under `#ifdef HAVE_PGTK` (C 3366-3381), the `XG_FRAME_DATA` key (C 3459's first use; gtkutil.h 46), and **`create_menus`** (C 3404-3532, C 3384-3402's comment) plus C 3533's blank | file gate (`use_gtk`); `have_gtk3` for C 3440-3444's `#ifndef`/`#else` pair; `have_pgtk` for C 3365-3382 and the two C 3446-3474 arms; slice 7 below |
-| 3534-6753 | **the remainder** — from C 3534-3547's comment above `xg_create_widget` through C 6753: `xg_create_widget`, `xg_modify_menubar_widgets`, the menu-bar machinery (`xg_update_menubar`, `xg_update_menu_item`, `xg_update_submenu`, `xg_update_radio_item`, `xg_update_toggle_item`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 3534-3640 | C 3534-3547's comment above `xg_create_widget`, **`xg_create_widget`** (C 3549-3597), `xg_get_menu_item_label` (C 3601-3606), `xg_item_label_same_p` (C 3610-3623) and `xg_destroy_widgets` (C 3627-3639), plus C 3640's blank | file gate (`use_gtk`); the mirror gains `gtk_label_get_label` (C 3605's read); slice 8 below |
+| 3641-6753 | **the remainder** — from C 3641-3651's comment above `xg_update_menubar` through C 6753: `xg_update_menubar` and the rest of the menu-update machinery (`xg_update_menu_item`, `xg_update_submenu`, `xg_update_radio_item`, `xg_update_toggle_item`, `xg_modify_menubar_widgets`, `free_frame_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1297,3 +1298,53 @@ surface (measured: 708 errors).
 the mirror are UNVERIFIED prototypes - and the pgtk text's reading comes from the probe described
 above rather than from a tree build, because no `have_pgtk` arm of the materialised unit can see
 the GTK surface at all (Owed 17).
+
+## Slice 8 (2026-10-15, status 4.338): C 3534-3640 — `xg_create_widget` and the label helpers
+
+**What this slice is.**  C 3534-3547's comment and the four functions under it: **`xg_create_widget`**
+(C 3549-3597, the dispatcher that builds a dialog, a popup menu or a menu bar from C's `type`
+string), `xg_get_menu_item_label` (C 3601-3606), `xg_item_label_same_p` (C 3610-3623) and
+`xg_destroy_widgets` (C 3627-3639).  Port: 4,799 -> **4,950 lines**; the table's last row splits at
+C 3640 - the next text is C 3641-3651's comment above `xg_update_menubar`.
+
+**The mirror this slice needed.**  `include/gtk.rs` gains **`gtk_label_get_label`**
+(gtk/gtklabel.h, C 3605's read): it is the first `gtk_label_*` *accessor* this tree needs - the
+mirror carried the `gtk_label_new` constructor alone - and no other unit declares it, so P-90 (2)
+puts it there.  The prototype is `UNVERIFIED` (no GTK tree on this machine).  Everything else the
+four functions call was already in place: `create_dialog` and `xg_set_cursor` are this unit's own
+(C 2343/C 603), `create_menus` is slice 7's, and the GTK entry points
+(`gtk_window_set_transient_for`, `gtk_window_set_destroy_with_parent`, `gtk_window_set_modal`,
+`gtk_widget_realize`, `gtk_label_get_label` aside) plus the `GTK_LABEL`/`GTK_WINDOW`/`GTK_WIDGET`
+casts, `XG_BIN_CHILD` (C 127, the unit's) and `g_list_next` are the mirror's.
+
+**Deviations this slice adds.**
+
+- **C's `type` parameter is the port's `type_`** (a Rust keyword), as the mirror's `gtk_window_new`
+  already spells its `GtkWindowType` parameter.
+- **C 3614's `witem ? xg_get_menu_item_label (witem) : 0`** is the port's `if`/`else` over the same
+  null test with C's `0` as the null `const char *`, and C 3616-3618's nested conditional is an
+  `if`/`else` whose two arms are C's own `strcmp` test and `!utf8_label` fall-through.
+- **C 3632's `for` head** is the port's `while` with C's `g_list_next` step at the loop's end
+  (PORTING.md 2.2).
+- C 3555/3556's two `bool` locals are the port's `bool` from C's `strcmp (…) == 0`, C 3554's
+  `= 0` is the null pointer, C 3570-3579's recursive call passes C's two `0` arguments as the
+  null `topmenu` and `cl_data`, and C 3592's `fprintf` carries C's format string through
+  `lib/include/stdio.rs`.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings.**  Arm A: **30 errors, none anchored in this slice**; arm A plus
+   `gtk_check_version_ge_3_14`: **30, the same set**.  Arm C (GTK2): **64 errors, none here**;
+   arm C plus `have_freetype`: **64, the same set**.  Arm B (and the same set plus
+   `have_x_windows`): the dedupe artifact again, 19 anchors in this slice.  The out-of-tree probe
+   slice 7 introduced reproduces its reading on this revision: **10 `^error` matches, none in this
+   slice** - so `xg_create_widget`'s three branches compile in that arm too.
+3. **`extract-abi.py --check`** -> 84 -> **80 `- ` rows** (four retired: `xg_create_widget`,
+   `xg_get_menu_item_label`, `xg_item_label_same_p`, `xg_destroy_widgets`; no new
+   `does not mention` row was needed); the line-count row reads **26.7%** (C 6,753 vs 4,950).
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK tree, so `gtk_label_get_label`'s
+prototype is `UNVERIFIED`; the pgtk arm's reading is the probe's, not a tree build's (Owed 17).

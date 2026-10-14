@@ -437,3 +437,25 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 under arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and
 the slice's out-of-tree probe (nine errors plus rustc's `aborting` line, none of them this slice's -
 and the `Emacs_Cursor` `E0428` it found).  The ledger's slice-7 section describes that probe.
+
+### status 4.338 (the gtkutil eighth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_get_menu_item_label` (C 3601-3606) is the round's consumer: this mirror gains
+**`gtk_label_get_label`** (gtk/gtklabel.h: `const gchar *gtk_label_get_label (GtkLabel *label);`),
+the first `gtk_label_*` accessor the tree needs - it carried the `gtk_label_new` constructor alone
+until now - and no other unit declares it, so P-90 (2) puts it here.  The prototype is
+`UNVERIFIED` (no GTK tree on this machine).
+
+This round's other three functions (`xg_create_widget`, `xg_item_label_same_p`,
+`xg_destroy_widgets`) needed **no** new mirror name: `create_dialog` and `xg_set_cursor` are the
+unit's own, `create_menus` is the last round's, and the rest of their GTK surface
+(`gtk_window_set_transient_for`, `gtk_window_set_destroy_with_parent`, `gtk_window_set_modal`,
+`gtk_widget_realize`, the `GTK_WINDOW`/`GTK_WIDGET`/`GTK_LABEL` casts and `g_list_next`) was
+already here - which is what the round's arm readings show on the marks.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the eighth slice's text**
+under arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and
+the pgtk arm's out-of-tree probe reads 10 `^error` matches with none of them this slice's.

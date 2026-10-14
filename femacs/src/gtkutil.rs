@@ -4797,3 +4797,154 @@ unsafe extern "C" {
   pub fn popup_activated () -> c_int;                                  // dispextern.h 3879
   pub fn set_frame_menubar (f: *mut frame, deep_p: bool);               // frame.h 1881
 }
+
+/* C 3534-3547's comment above `xg_create_widget`, carried as C's own text.  */
+/* C: /* Create a menubar, popup menu or dialog, depending on the TYPE argument.
+   C:    TYPE can be "menubar", "popup" for popup menu, or "dialog" for a dialog
+   C:    with some text and buttons.
+   C:    F is the frame the created item belongs to.
+   C:    NAME is the name to use for the top widget.
+   C:    VAL is a widget_value structure describing items to be created.
+   C:    SELECT_CB is the callback to use when a menu item is selected or
+   C:    a dialog button is pressed.
+   C:    DEACTIVATE_CB is the callback to use when an item is deactivated.
+   C:    For a menu, when a sub menu is not shown anymore, for a dialog it is
+   C:    called when the dialog is popped down.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.
+
+   C:    Returns the widget created.  */  */
+
+/// C 3549-3597: `GtkWidget *xg_create_widget (const char *type, const char *name, struct frame
+/// *f, widget_value *val, GCallback select_cb, GCallback deactivate_cb, GCallback highlight_cb)`
+/// - non-`static` (gtkutil.h 96 declares it and `xmenu.c` calls it), so `#[unsafe(no_mangle)]`
+/// with the C ABI; C's `type` parameter is the port's `type_` (Rust's keyword).  C 3555/3556/3558's
+/// three `strcmp` tests are `lib/include/string.rs` 30's, the two locals C 3555-3556 holds are
+/// the port's `bool` from `== 0`, C 3554's `= 0` is the null pointer, C 3570-3579's recursive
+/// call passes C's two `0` arguments as the port's null pointers (topmenu and cl_data) plus the
+/// two `bool`s and C's `name`, C 3587's `FRAME_DISPLAY_INFO (f)->xg_cursor` is the mirror's field
+/// (`include/xterm.rs` 431) through the macro form this file already uses, and C 3592's
+/// `fprintf` is `lib/include/stdio.rs`'s with C's own format string.
+/// C: GtkWidget *
+/// C: xg_create_widget (const char *type, const char *name, struct frame *f,
+/// C: 		  widget_value *val, GCallback select_cb,
+/// C: 		  GCallback deactivate_cb, GCallback highlight_cb)
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_create_widget (type_: *const c_char, name: *const c_char,
+					   f: *mut frame, val: *mut widget_value,
+					   select_cb: GCallback, deactivate_cb: GCallback,
+					   highlight_cb: GCallback) -> *mut GtkWidget
+{
+  let mut w: *mut GtkWidget = std::ptr::null_mut ();                    // C 3554
+  let menu_bar_p: bool = strcmp (type_, c"menubar".as_ptr ()) == 0;     // C 3555
+  let pop_up_p: bool = strcmp (type_, c"popup".as_ptr ()) == 0;         // C 3556
+
+  if strcmp (type_, c"dialog".as_ptr ()) == 0                           // C 3558
+    {
+      w = create_dialog (val, select_cb, deactivate_cb);                // C 3560
+      xg_set_screen (w, f);                                             // C 3561
+      gtk_window_set_transient_for (GTK_WINDOW! (w),                    // C 3562
+				    GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)));   // C 3563
+      gtk_window_set_destroy_with_parent (GTK_WINDOW! (w), TRUE);       // C 3564
+      gtk_widget_set_name (w, c"emacs-dialog".as_ptr ());               // C 3565
+      gtk_window_set_modal (GTK_WINDOW! (w), TRUE);                     // C 3566
+    }
+  else if menu_bar_p || pop_up_p                                         // C 3568
+    {
+      w = create_menus ((*val).contents, f,                             // C 3570
+			select_cb, deactivate_cb, highlight_cb,
+			pop_up_p, menu_bar_p,                           // C 3575-3576
+			std::ptr::null_mut (),                          // C 3577
+			std::ptr::null_mut (),                          // C 3578
+			name);                                          // C 3579
+
+      /* Set the cursor to an arrow for popup menus when they are mapped.
+	 This is done by default for menu bar menus.  */                // C 3581-3582
+      if pop_up_p                                                       // C 3583
+	{
+	  /* Must realize so the GdkWindow inside the widget is created.  */   // C 3585
+	  gtk_widget_realize (w);                                       // C 3586
+	  xg_set_cursor (w, (*FRAME_DISPLAY_INFO! (f)).xg_cursor);      // C 3587
+	}
+    }
+  else
+    {
+      fprintf (stderr,
+	       c"bad type in xg_create_widget: %s, doing nothing\n".as_ptr (),
+	       type_);                                                  // C 3592-3593
+    }
+
+  w                                                                     // C 3596
+}
+
+/* C 3599's comment above `xg_get_menu_item_label`, carried as C's own text.  */
+/* C: /* Return the label for menu item WITEM.  */  */
+
+/// C 3601-3606: `static const char *xg_get_menu_item_label (GtkMenuItem *witem)` - `static` and
+/// its address is never taken, so a plain `unsafe fn`.  C 3604's `GTK_LABEL (XG_BIN_CHILD
+/// (witem))` is the mirror's cast over this file's own `XG_BIN_CHILD!` (C 127), and C 3605's
+/// `gtk_label_get_label` is the mirror declaration this slice adds.
+/// C: static const char *
+/// C: xg_get_menu_item_label (GtkMenuItem *witem)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_get_menu_item_label (witem: *mut GtkMenuItem) -> *const c_char
+{
+  let wlabel: *mut GtkLabel = GTK_LABEL! (XG_BIN_CHILD! (witem));       // C 3604
+  gtk_label_get_label (wlabel)                                          // C 3605
+}
+
+/* C 3608's comment above `xg_item_label_same_p`, carried as C's own text.  */
+/* C: /* Return true if the menu item WITEM has the text LABEL.  */  */
+
+/// C 3610-3623: `static bool xg_item_label_same_p (GtkMenuItem *witem, const char *label)` -
+/// `static`, address never taken, so a plain `unsafe fn`.  C 3614's `witem ? … : 0` is the port's
+/// `if`/`else` over the same null test with C's `0` as the null `const char *`, and C 3616-3618's
+/// nested conditional is the port's `if`/`else` whose two arms are C's own - the `strcmp` test
+/// and the `!utf8_label` fall-through; C 3620's `g_free` takes C's pointer through the port's
+/// `*mut c_void`.
+/// C: static bool
+/// C: xg_item_label_same_p (GtkMenuItem *witem, const char *label)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_item_label_same_p (witem: *mut GtkMenuItem, label: *const c_char) -> bool
+{
+  let utf8_label: *mut c_char = get_utf8_string (label);                // C 3613
+  let old_label: *const c_char
+    = if ! witem.is_null () { xg_get_menu_item_label (witem) }          // C 3614
+      else { std::ptr::null () };
+
+  let is_same: bool
+    = if ! old_label.is_null ()                                         // C 3616
+      { ! utf8_label.is_null ()                                         // C 3617
+	  && strcmp (utf8_label, old_label) == 0 }
+      else { utf8_label.is_null () };                                   // C 3618
+
+  if ! utf8_label.is_null () { g_free (utf8_label as gpointer); }       // C 3620
+
+  is_same                                                               // C 3622
+}
+
+/* C 3625's comment above `xg_destroy_widgets`, carried as C's own text.  */
+/* C: /* Destroy widgets in LIST.  */  */
+
+/// C 3627-3639: `static void xg_destroy_widgets (GList *list)` - `static`, address never taken,
+/// so a plain `unsafe fn`.  C 3632's `for` head is the port's `while` with C's `g_list_next`
+/// step at the loop's end (PORTING.md 2.2), C 3634's `GTK_WIDGET (iter->data)` is the mirror's
+/// cast macro over the `gpointer` member (`include/gtk.rs` 68), and C 3637's `gtk_widget_destroy`
+/// is the mirror entry point the other destroy sites use.
+/// C: static void
+/// C: xg_destroy_widgets (GList *list)
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_destroy_widgets (list: *mut GList)
+{
+  let mut iter: *mut GList;                                             // C 3630
+
+  iter = list;                                                          // C 3632
+  while ! iter.is_null ()                                               // C 3632
+    {
+      let w: *mut GtkWidget = GTK_WIDGET! ((*iter).data);               // C 3634
+
+      /* Destroying the widget will remove it from the container it is in.  */   // C 3636
+      gtk_widget_destroy (w);                                           // C 3637
+      iter = g_list_next! (iter);                                       // C 3632 (the `for` step)
+    }
+}

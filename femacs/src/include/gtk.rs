@@ -2700,3 +2700,11 @@ unsafe extern "C" {
   /// *child);`
   pub fn gtk_menu_shell_append (menu_shell: *mut GtkMenuShell, child: *mut GtkWidget);
 }
+
+/// C: gtk/gtklabel.h: `const gchar *gtk_label_get_label (GtkLabel *label);` - C 3605's read in
+/// `xg_get_menu_item_label`.  It is the first `gtk_label_*` *accessor* this tree needs (the
+/// mirror carries the `gtk_label_new` constructor alone) and no other unit declares it, so the
+/// mirror takes it.  **UNVERIFIED** (no GTK tree on this machine).
+unsafe extern "C" {
+  pub fn gtk_label_get_label (label: *mut GtkLabel) -> *const gchar;
+}
