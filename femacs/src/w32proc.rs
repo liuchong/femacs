@@ -6224,4 +6224,73 @@ unsafe extern "system" {
   pub fn SetPriorityClass (hProcess: HANDLE, dwPriorityClass: DWORD) -> BOOL;
 }
 
-/* C 4084's `w32-application-type` opens the next slice.  */
+/* C 4084-4135's `w32-application-type` landed in slice 22; C 4137's langinfo arm is next.  */
+
+/// C 4084-4135: `DEFUN ("w32-application-type", …)` - C 4115-4119's expand/encode/`unixtodos_filename`/
+/// `filename_to_ansi` chain, C 4120-4123's `_mbspbrk` guard and C 4125-4134's `w32_executable_type`
+/// call with its four `Q…` answers.  The four `Q` symbols are the `globals.rs` mirror's (this file's
+/// `syms_of_ntproc` is where C defines them).
+/// C: DEFUN ("w32-application-type", Fw32_application_type,
+/// C:        Sw32_application_type, 1, 1, 0,
+/// C:        doc: /* Return the type of an MS-Windows PROGRAM.
+/// C: …
+/// C: such programs cannot be invoked by Emacs anyway.  */)
+/// C:      (Lisp_Object program)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-application-type", Fw32_application_type, Sw32_application_type, 1, 1, 0,
+	doc: "
+Knowing the type of an executable could be useful for formatting
+file names passed to it or for quoting its command-line arguments.
+
+PROGRAM should specify an executable file, including the extension.
+
+The value is one of the following:
+
+`dos'        -- a DOS .com program or some other non-PE executable
+`cygwin'     -- a Cygwin program that depends on Cygwin DLL
+`msys'       -- an MSYS 1.x or MSYS2 program
+`w32-native' -- a native Windows application
+`unknown'    -- a file that doesn't exist, or cannot be open, or whose
+                name is not encodable in the current ANSI codepage.
+
+Note that for .bat and .cmd batch files the function returns the type
+of their command interpreter, as specified by the \\\"COMSPEC\\\"
+environment variable.
+
+This function returns `unknown' for programs whose file names
+include characters not supported by the current ANSI codepage, as  ",
+	(program: Lisp_Object),
+	{
+  let mut is_dos_app: c_int = 0;                                     // C 4111
+  let mut is_cygwin_app: c_int = 0;
+  let mut is_msys_app: c_int = 0;
+  let mut dummy: c_int = 0;
+  let mut encoded_progname: Lisp_Object;                             // C 4112
+  let mut progname: *mut c_char;                                     // C 4113
+  let mut progname_a: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];
+
+  program = Fexpand_file_name (program, Qnil ());                    // C 4115
+  encoded_progname = Fcopy_sequence (ENCODE_FILE (program));         // C 4116
+  progname = SSDATA (encoded_progname);                              // C 4117
+  unixtodos_filename (progname);                                     // C 4118
+  filename_to_ansi (progname, progname_a.as_mut_ptr ());             // C 4119
+  /* Reject file names that cannot be encoded in the current ANSI
+     codepage.  */
+  if !_mbspbrk (progname_a.as_mut_ptr () as *const c_uchar,          // C 4122
+		c"?".as_ptr () as *const c_uchar).is_null ()
+    { return Qunknown (); }                                          // C 4123
+
+  if w32_executable_type (progname_a.as_mut_ptr (), &raw mut is_dos_app,   // C 4125
+			  &raw mut is_cygwin_app, &raw mut is_msys_app,
+			  &raw mut dummy) != 0                       // C 4126
+    { return Qunknown (); }                                          // C 4127
+  if is_dos_app != 0 { return Qdos (); }                             // C 4128-4129
+  if is_cygwin_app != 0 { return Qcygwin (); }                       // C 4130-4131
+  if is_msys_app != 0 { return Qmsys (); }                           // C 4132-4133
+  return Qw32_native ();                                             // C 4134
+});
+
+/* C 4137's `#ifdef HAVE_LANGINFO_CODESET` block (C 4137-4234, whose `nl_langinfo` and its
+   `LOCALE_IPAPERSIZE` fallback open the next slice) is the file's langinfo arm: the frozen table
+   has the macro 1, so it is live and the next slice carries it under the feature the include lines
+   above already use (`have_langinfo_codeset`).  */

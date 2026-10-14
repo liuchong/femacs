@@ -20095,3 +20095,11 @@
   ④ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `3969-4082`（本片）+ `4084-4903`（余项）。
   ⑤ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 21 (2026-10-14, status 4.300): C 3969-4082`** 段，表头更新为 **6,227 与 `d4e43ba3…`**；本片无 notes/容差行。预算与清理：`build-tu` 1 发、`probe` 1 发、名字扫描 1 次、`--check` 2 发、docstring 门 1 次、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链）。下一片起点：`src/w32proc.c` **C 4084**（`w32-application-type` 起，余下 15 个 `DEFUN` 与 `syms_of_ntproc`），本文件余量 **819 C 行**（C 4084-4903，16.7%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。
+
+- **4.301 `src/w32proc.c` 第 22 片（w32proc lane，slice 22）：C 4084-4135 落地——`DEFUN` `w32-application-type`（`Fexpand_file_name`/`ENCODE_FILE`/`Fcopy_sequence`/`SSDATA`/`unixtodos_filename`/`filename_to_ansi` 链、`_mbspbrk` 拒绝非 ANSI 可编码名、`w32_executable_type` 返回的四个标志决定 `Qdos`/`Qcygwin`/`Qmsys`/`Qw32_native`（两条失败路径给 `Qunknown`））；w32proc.rs 6,227 → 6,296 行（+69，2026-10-14）**：
+  ① 本片落的文本：一个 `DEFUN!`（docstring 按字面量走 `doc:` 槽，与 slice 21 同）；四个 `Q…` 符号取 `globals.rs` 镜像的声明（C 的 `syms_of_ntproc` 才是定义处，本文件最后一页会落它）。顺带把 slice 21 留下的"`w32-application-type` opens the next slice"那句文件内注释改成实况（本文件的 prose 不许说谎）。
+  ② 读数：**`build-tu`（冻结）exit 0、对象 336 字节**；**`probe` 35 条 = 25 `E0428` + 9 `E0425` + 1 `compile_error!`，无一条落在本单元**；**名字扫描** `14 capitalized identifiers, missing: ['Sw32_application_type']`（`DEFUN!` 的 `S…` 静态量，在案类）。
+  ③ `extract-abi.py --check`：**54 → 53 条 `- missing` 行**（subr 行退场），**无 token 行**（docstring 随调用承载）；漂移 -27.0% → **-28.4%**（0.36 行内）。
+  ④ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `4084-4135`（本片）+ `4137-4903`（余项）。
+  ⑤ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 22 (2026-10-14, status 4.301): C 4084-4135`** 段，表头更新为 **6,296 与 `3a0af8ce…`**；本片无 notes/容差行。预算与清理：`build-tu` **2 发**、`probe` 1 发、名字扫描 1 次、`--check` 2 发、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链）。下一片起点：`src/w32proc.c` **C 4137**（`#ifdef HAVE_LANGINFO_CODESET` 臂 + `nl_langinfo` C 4145-4234，随后余下 14 个 `DEFUN` 与 `syms_of_ntproc`），本文件余量 **768 C 行**（C 4137-4903，15.7%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。
