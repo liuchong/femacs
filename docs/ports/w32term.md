@@ -181,7 +181,8 @@ The `arm` cell says what the port does with the block.
 | 2533-2631 | `w32_draw_stretch_glyph_string` (C 2535's comment) | file gate |
 | 2632-2674 | `w32_draw_dash` (C 2633-2638's comment) | file gate |
 | 2675-2715 | `w32_fill_underline` (C 2676-2680's comment; **slice 3's last item**) | file gate (C's `switch` is the port's `match`; `docs/ports/macro-body-notes.tsv`) |
-| 2716-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 2716-3038 | `w32_draw_glyph_string` (C 2719-3038) - the file's glyph painter: the successor-first background pass (C 2724-2744), C 2747's GC/clipping setup, C 2749-2772's relief-or-clip choice, C 2774-2811's `switch (s->first_glyph->type)`, and C 2813-3037's `if (!s->for_overlaps)` block with the relief, underline (C 2831-2936, including C 2856-2873's two `WINDOW_BUFFER_LOCAL_VALUE` reads), overline, strike-through and the two overhang-repair loops | file gate (`have_ntgui`); slice 4 below |
+| 3040-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -814,3 +815,55 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   `missing function`, 6 `missing file-scope object`, the `LOAD_PROC` macro of C 8244 and the
   line-count row.  Nothing in this ledger claims the file is complete, and the checklist is empty
   for it (P-86 ②), so the C line-range table and these readings are the substitute, not a pass.
+
+### Slice 4 (C 2716-3038)
+
+- **What it is.**  `w32_draw_glyph_string` (C 2719-3038) - the file's glyph painter - and nothing
+  else: the successor-first background pass (C 2724-2744), the GC/clipping setup (C 2747), the
+  relief-or-clip choice (C 2749-2772), the `switch (s->first_glyph->type)` (C 2774-2811) and the
+  `if (!s->for_overlaps)` block (C 2813-3037).  Port: 4,123 -> **4545 lines** (+422).  The C
+  line-range table's last row is split at C 3038; the next live definition is C 3044's
+  `w32_shift_glyphs_for_insert` (C 3040-3054).
+- **The names this slice adds stand at the use site** (P-88 (1)); the *bit* values are the
+  measured ones, the entry point is `UNVERIFIED`:
+  * `font_for_underline_metrics` (C 2852's `font.h` entry) - no mirror in this unit's graph carries
+    it, so the declaration stands with the function (`unsafe extern "C" { pub fn
+    font_for_underline_metrics (s: *mut glyph_string) -> *mut font; }`).
+  * the eight `struct face` bit constants and the seven `face_bits!` arms C 2820-2971's text reads
+    (`FACE_UNDERLINE_SHIFT` 2, `FACE_UNDERLINE_MASK` 0x7, `FACE_OVERLINE_P` 1<<6,
+    `FACE_STRIKE_THROUGH_P` 1<<7, `FACE_UNDERLINE_DEFAULTED_P` 1<<10,
+    `FACE_OVERLINE_COLOR_DEFAULTED_P` 1<<11, `FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P` 1<<12,
+    `FACE_UNDERLINE_AT_DESCENT_LINE_P` 1<<14 - the same values `src/xterm.rs` 9850-9870 measured
+    from dispextern.h 1893-1935, repeated here because `include/dispextern.rs`'s own copy is behind
+    `dispextern_face_records`, the mirror row that is still owed).
+- **C's `struct glyph_string` member types this unit's record gives**: `hl` is the
+  `draw_glyphs_face` *value* (a `c_int`), not a pointer, so C's `s->hl` reads and writes are
+  `(*s).hl` with no dereference (the first spelling of this slice had `(*(*s).hl)` - the
+  `src/xterm.rs` shape of *its* record - and the arm read the eight `E0614`s); `gc->foreground` and
+  the three face colours are `unsigned long` members, so C's implicit conversion to `COLORREF` is
+  written `as COLORREF` (three `E0308`s); and `face->underline_pixels_above_descent_line` is an
+  `int` member, so C's truth test is `!= 0` (one `E0308`).
+- **The successor pass is C's `for` with its increment clauses written last** (C 2731-2733:
+  `width += next->width, next = next->next` after the body), the two overhang-repair loops keep
+  C's `for (prev = s->prev; prev; prev = prev->prev)` shape the same way, and the underline block
+  writes C's unsigned arithmetic with `wrapping_add`/`wrapping_sub` (C 2911-2914, 2932); C's
+  `max (…)` is this file's `max! (…)`.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes** (the file gate compiles none of
+     this text).
+  2. The arm sweep (direct `rustc` on the materialized root, the base configuration
+     `have_ntgui + windowsnt + have_window_system + dispextern_face_records`) -> **22 errors, 0
+     anchored in this slice's text**: the ten primary unit anchors are the *pre-existing* rows at
+     `_root.rs` 1322-1561 (the seven `E0308`s of the `draw_fringe_bitmap_params` records and the
+     `overlay_p`/`cursor_p` field gaps - Owed 11's class), and the rest are the mirrors'
+     (`include/w32term.rs` 4, `font.rs` 4, `w32common.rs` 2, `frame.rs` 1, `w32font.rs` 1,
+     including the two `E0428` pairs the P-39 rule still owes).  The first spelling read **35**
+     errors with ten of them *in* this slice's text - the four fixes above - and the intermediate
+     reading after the `face_bits!` extension was 21 (the same pre-existing rows).
+  3. `extract-abi.py --check` -> **99 -> 98 rows** (91 -> **90** `missing function`: the round's
+     own `w32_draw_glyph_string` landed), with one token row **added** to
+     `docs/ports/macro-body-notes.tsv` (`w32_draw_glyph_string`, `break,case,cmp,default,switch`:
+     C's `switch` is the port's `match` and C 2794's `u.cmp.automatic` is read through this unit's
+     `glyph_u_cmp_bits!`), and the line-count row still reports the port *behind* C (46.0%;
+     4,545 vs 8,414) - the file needs a `line-drift-tolerance.tsv` row only when it completes.
+  4. The ten gates: all `rc=0`, 0 FAIL.

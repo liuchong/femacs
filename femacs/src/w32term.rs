@@ -1712,11 +1712,48 @@ pub const FACE_USE_BOX_COLOR_FOR_SHADOWS_P: u32 = 1 << 5;
 #[cfg (feature = "have_ntgui")]
 pub const FACE_OVERSTRIKE: u32 = 1 << 21;
 #[cfg (feature = "have_ntgui")]
+/* The eight `struct face` members slice 4's `w32_draw_glyph_string` text reads and this unit's
+   copy did not name yet, at the positions dispextern.h 1893-1935 gives them (the `src/xterm.rs`
+   9850-9870 row of the same record, whose values this copy repeats; `include/dispextern.rs`'s own
+   copy is behind `dispextern_face_records`, so the mirror row is owed - P-26/P-80).
+   C: unsigned underline : 3; then the `overline_p`/`strike_through_p` bits, the two
+   `*_defaulted_p` and `underline_at_descent_line_p` bits and the 3-bit `underline` field.  */
+#[cfg (feature = "have_ntgui")]
+pub const FACE_UNDERLINE_SHIFT: u32 = 2;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_UNDERLINE_MASK: u32 = 0x7;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_OVERLINE_P: u32 = 1 << 6;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_STRIKE_THROUGH_P: u32 = 1 << 7;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_UNDERLINE_DEFAULTED_P: u32 = 1 << 10;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_OVERLINE_COLOR_DEFAULTED_P: u32 = 1 << 11;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P: u32 = 1 << 12;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_UNDERLINE_AT_DESCENT_LINE_P: u32 = 1 << 14;
+
 macro_rules! face_bits {
   (box, $f:expr) =>
     { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
   (use_box_color_for_shadows_p, $f:expr) =>
     { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
+  /* The seven arms C 2820-2971's text reads (the `xterm.rs` 9875-9886 copy of the same
+     members).  */
+  (underline, $f:expr) =>
+    { (((*$f).bits & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT) as c_int };
+  (overline_p, $f:expr) => { ((*$f).bits & FACE_OVERLINE_P) != 0 };
+  (strike_through_p, $f:expr) => { ((*$f).bits & FACE_STRIKE_THROUGH_P) != 0 };
+  (underline_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_UNDERLINE_DEFAULTED_P) != 0 };
+  (overline_color_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_OVERLINE_COLOR_DEFAULTED_P) != 0 };
+  (strike_through_color_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P) != 0 };
+  (underline_at_descent_line_p, $f:expr) =>
+    { ((*$f).bits & FACE_UNDERLINE_AT_DESCENT_LINE_P) != 0 };
   (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
 }
 
@@ -4121,3 +4158,388 @@ unsafe fn w32_fill_underline (f: *mut frame, s: *mut glyph_string, foreground: C
       { emacs_abort (); }
     }
 }
+
+/* C 2717-3038: "Draw glyph string S."  The file's glyph painter: C 2724-2744's successor-first
+   background pass, C 2747's GC/clipping setup, C 2749-2772's relief-or-clip choice, C 2774-2811's
+   `switch (s->first_glyph->type)`, and C 2813-3037's `if (!s->for_overlaps)` block - the relief,
+   underline (with C 2838-2908's previous-style reuse and the two locale values C 2856-2873 reads),
+   overline, strike-through and the two overhang-repair loops - ending with C 3035-3037's clip
+   reset.  The sibling ports of the same algorithm are `src/xterm.rs`'s `x_draw_glyph_string` and
+   `src/haikuterm.rs`'s, whose idioms this slice follows where the C text is the same.  */
+/* C's `<font.h>` entry C 2852 calls: no mirror in this unit's graph carries it (the
+   `w32font.h`/`font.h` declaration set the slices so far needed is narrower), so it stands at the
+   use site (P-88 1) and the ledger records the gap.  */
+/// C: struct font *font_for_underline_metrics (struct glyph_string *s);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn font_for_underline_metrics (s: *mut glyph_string) -> *mut font;
+}
+
+/// C: /* Draw glyph string S.  */
+/// C: static void
+/// C: w32_draw_glyph_string (struct glyph_string *s)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_glyph_string (s: *mut glyph_string)
+{
+  /* C reads `s->face` (a `struct face *`) through its own member access; the port binds it once
+     (the `x_draw_glyph_string` reading) because the bitfield macros take the record's pointer.  */
+  let face: *mut face = (*s).face as *mut face;
+  let mut relief_drawn_p: bool = false;                              // C 2722
+
+  /* If S draws into the background of its successor, draw the
+     background of the successor first so that S can draw into it.
+     This makes S->next use XDrawString instead of XDrawImageString.  */
+  if !(*s).next.is_null () && (*s).right_overhang != 0               // C 2727
+      && glyph_string_bits! (for_overlaps, (*s)) == 0
+    {
+      let mut width: c_int;                                          // C 2729
+      let mut next: *mut glyph_string;                               // C 2730
+
+      width = 0; next = (*s).next;                                   // C 2731
+      while !next.is_null () && width < (*s).right_overhang          // C 2731-2732
+	{
+	  if glyph_bits! (type, (*(*next).first_glyph)) != IMAGE_GLYPH   // C 2734
+	    {
+	      w32_set_glyph_string_gc (next);                            // C 2736
+	      w32_set_glyph_string_clipping (next);                      // C 2737
+	      if glyph_bits! (type, (*(*next).first_glyph)) == STRETCH_GLYPH   // C 2738
+		{ w32_draw_stretch_glyph_string (next); }                // C 2739
+	      else
+		{ w32_draw_glyph_string_background (next, true); }       // C 2741
+	      (*next).num_clips = 0;                                     // C 2742
+	    }
+	  /* C's `for` increment clause (`width += next->width, next = next->next`).  */
+	  width += (*next).width;                                        // C 2733
+	  next = (*next).next;
+	}
+    }
+
+  /* Set up S->gc, set clipping and draw S.  */
+  w32_set_glyph_string_gc (s);                                       // C 2747
+
+  /* Draw relief (if any) in advance for char/composition so that the
+     glyph string can be drawn over it.  */
+  if glyph_string_bits! (for_overlaps, (*s)) == 0                    // C 2751
+      && face_bits! (box, face) != FACE_NO_BOX                       // C 2752
+      && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH      // C 2753
+	  || glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH)   // C 2754
+    {
+      w32_set_glyph_string_clipping (s);                             // C 2757
+      w32_draw_glyph_string_background (s, true);                    // C 2758
+      w32_draw_glyph_string_box (s);                                 // C 2759
+      w32_set_glyph_string_clipping (s);                             // C 2760
+      relief_drawn_p = true;                                         // C 2761
+    }
+  else if (*s).clip_head.is_null ()                                  // C 2763
+      && (*s).clip_tail.is_null ()                                   // C 2764
+      && ((!(*s).prev.is_null () && (*(*s).prev).hl != (*s).hl
+	   && (*s).left_overhang != 0)
+	  || (!(*s).next.is_null () && (*(*s).next).hl != (*s).hl
+	      && (*s).right_overhang != 0))                          // C 2765-2766
+    /* We must clip just this glyph.  left_overhang part has already
+       drawn when s->prev was drawn, and right_overhang part will be
+       drawn later when s->next is drawn. */
+    { w32_set_glyph_string_clipping_exactly (s, s); }                // C 2770
+  else
+    { w32_set_glyph_string_clipping (s); }                           // C 2772
+
+  match glyph_bits! (type, (*(*s).first_glyph))                      // C 2774
+    {
+    IMAGE_GLYPH =>                                                   // C 2776
+      { w32_draw_image_glyph_string (s); }                           // C 2777
+
+    STRETCH_GLYPH =>                                                 // C 2780
+      { w32_draw_stretch_glyph_string (s); }                         // C 2781
+
+    CHAR_GLYPH =>                                                    // C 2784
+      {
+	if glyph_string_bits! (for_overlaps, (*s)) != 0               // C 2785
+	  { glyph_string_bits! (background_filled_p, (*s), true); }  // C 2786
+	else
+	  { w32_draw_glyph_string_background (s, false); }           // C 2788
+	w32_draw_glyph_string_foreground (s);                        // C 2789
+      }
+
+    COMPOSITE_GLYPH =>                                               // C 2792
+      {
+	if glyph_string_bits! (for_overlaps, (*s)) != 0               // C 2793
+	    || ((*s).cmp_from > 0
+		&& ! glyph_u_cmp_bits! (automatic, (*s).first_glyph))    // C 2794
+	  { glyph_string_bits! (background_filled_p, (*s), true); }  // C 2795
+	else
+	  { w32_draw_glyph_string_background (s, true); }            // C 2797
+	w32_draw_composite_glyph_string_foreground (s);              // C 2798
+      }
+
+    GLYPHLESS_GLYPH =>                                               // C 2801
+      {
+	if glyph_string_bits! (for_overlaps, (*s)) != 0               // C 2802
+	  { glyph_string_bits! (background_filled_p, (*s), true); }  // C 2803
+	else
+	  { w32_draw_glyph_string_background (s, false); }           // C 2805
+	w32_draw_glyphless_glyph_string_foreground (s);              // C 2806
+      }
+
+    /* C's `default:` runs `emacs_abort` for every other glyph type (C 2809-2810).  */
+    _ =>
+      { emacs_abort (); }                                            // C 2810
+    }
+
+  if glyph_string_bits! (for_overlaps, (*s)) == 0                    // C 2813
+    {
+      /* Draw relief if not yet drawn.  */
+      if !relief_drawn_p && face_bits! (box, face) != FACE_NO_BOX    // C 2816
+	{ w32_draw_glyph_string_box (s); }                           // C 2817
+
+      /* Draw underline.  */
+      if face_bits! (underline, face) != 0                           // C 2820
+	{
+	  if face_bits! (underline, face) == FACE_UNDERLINE_WAVE       // C 2822
+	    {
+	      let mut color: COLORREF;                                   // C 2824
+
+	      if face_bits! (underline_defaulted_p, face)              // C 2826
+		{ color = (*(*s).gc).foreground as COLORREF; }           // C 2827
+	      else
+		{ color = (*face).underline_color as COLORREF; }         // C 2829
+
+	      w32_draw_underwave (s, color);                             // C 2831
+	    }
+	  else if face_bits! (underline, face) >= FACE_UNDERLINE_SINGLE   // C 2833
+	    {
+	      let mut thickness: c_ulong;                                // C 2835
+	      let mut position: c_ulong;
+	      let mut foreground: COLORREF;                              // C 2836
+
+	      if !(*s).prev.is_null ()                                   // C 2838
+		  && (face_bits! (underline, (*((*s).prev)).face as *mut face)
+		      != FACE_UNDERLINE_WAVE
+		      && face_bits! (underline, (*((*s).prev)).face as *mut face)
+			 >= FACE_UNDERLINE_SINGLE)                       // C 2839-2840
+		  && (face_bits! (underline_at_descent_line_p,
+				  (*((*s).prev)).face as *mut face)
+		      == face_bits! (underline_at_descent_line_p, face))   // C 2841-2842
+		  && ((*( (*((*s).prev)).face as *mut face )).underline_pixels_above_descent_line
+		      == (*face).underline_pixels_above_descent_line)   // C 2843-2844
+		{
+		  /* We use the same underline style as the previous one.  */
+		  thickness = (*(*s).prev).underline_thickness as c_ulong;   // C 2847
+		  position = (*(*s).prev).underline_position as c_ulong;     // C 2848
+		}
+	      else
+		{
+		  let font: *mut font = font_for_underline_metrics (s);  // C 2852
+		  let mut minimum_offset: c_ulong;                        // C 2853
+		  let mut underline_at_descent_line: bool;                // C 2854
+		  let mut use_underline_position_properties: bool;        // C 2855
+		  let mut val: Lisp_Object
+		    = (WINDOW_BUFFER_LOCAL_VALUE (Qunderline_minimum_offset (),
+						  (*s).w));              // C 2856-2857
+
+		  if FIXNUMP (val)                                        // C 2859
+		    { minimum_offset = max! (0, XFIXNUM (val) as c_int) as c_ulong; }   // C 2860
+		  else
+		    { minimum_offset = 1; }                              // C 2862
+
+		  val = (WINDOW_BUFFER_LOCAL_VALUE (Qx_underline_at_descent_line (),
+						    (*s).w));         // C 2864-2865
+		  underline_at_descent_line
+		    = (!(NILP (val) || BASE_EQ (val, Qunbound ()))
+		       || face_bits! (underline_at_descent_line_p, face));   // C 2866-2868
+
+		  val = (WINDOW_BUFFER_LOCAL_VALUE (Qx_use_underline_position_properties (),
+						    (*s).w));         // C 2870-2871
+		  use_underline_position_properties
+		    = !(NILP (val) || BASE_EQ (val, Qunbound ()));       // C 2872-2873
+
+		  /* Get the underline thickness.  Default is 1 pixel.  */
+		  if !font.is_null () && (*font).underline_thickness > 0   // C 2876
+		    { thickness = (*font).underline_thickness as c_ulong; }   // C 2877
+		  else
+		    { thickness = 1; }                                   // C 2879
+		  if underline_at_descent_line || font.is_null ()        // C 2880-2881
+		    {
+		      position = (((*s).height - thickness as c_int)
+				  - ((*s).ybase - (*s).y)
+				  - (*face).underline_pixels_above_descent_line)
+				 as c_ulong;                        // C 2882-2884
+		    }
+		  else
+		    {
+		      /* Get the underline position.  This is the
+			 recommended vertical offset in pixels from
+			 the baseline to the top of the underline.
+			 This is a signed value according to the
+			 specs, and its default is
+
+			 ROUND ((maximum_descent) / 2), with
+			 ROUND (x) = floor (x + 0.5)  */
+
+		      if use_underline_position_properties             // C 2896
+			  && (*font).underline_position >= 0
+			{ position = (*font).underline_position as c_ulong; }   // C 2898
+		      else
+			{ position = (((*font).descent + 1) / 2) as c_ulong; }   // C 2900
+		    }
+
+		  if !(face_bits! (underline_at_descent_line_p, face)   // C 2903-2906
+		       /* Ignore minimum_offset if the amount of pixels
+			  was explicitly specified.  */
+		       && (*face).underline_pixels_above_descent_line != 0)
+		    { position = max! (position as isize, minimum_offset as isize) as c_ulong; }   // C 2907
+		}
+	      /* Check the sanity of thickness and position.  We should
+		 avoid drawing underline out of the current line area.  */
+	      if (((*s).y + (*s).height) as c_ulong)
+		  <= ((*s).ybase as c_ulong).wrapping_add (position)   // C 2911
+		{ position = (((*s).height - 1) - ((*s).ybase - (*s).y)) as c_ulong; }   // C 2912
+	      if (((*s).y + (*s).height) as c_ulong)
+		  < ((*s).ybase as c_ulong).wrapping_add (position).wrapping_add (thickness)   // C 2913
+		{
+		  thickness = (((*s).y + (*s).height) as c_ulong)
+			      .wrapping_sub ((*s).ybase as c_ulong + position);   // C 2914
+		}
+	      (*s).underline_thickness = thickness as c_int;           // C 2915
+	      (*s).underline_position = position as c_int;             // C 2916
+
+	      if face_bits! (underline_defaulted_p, face)              // C 2918
+		{ foreground = (*(*s).gc).foreground as COLORREF; }      // C 2919
+	      else
+		{ foreground = (*face).underline_color as COLORREF; }    // C 2921
+
+	      w32_fill_underline ((*s).f, s, foreground,
+				  face_bits! (underline, face),
+				  position as c_int, thickness as c_int);   // C 2923-2924
+
+	      /* Place a second underline above the first if this was
+		 requested in the face specification.  */
+
+	      if face_bits! (underline, face) == FACE_UNDERLINE_DOUBLE_LINE   // C 2929
+		{
+		  /* Compute the position of the second underline.  */
+		  position = position.wrapping_sub (thickness).wrapping_sub (1);   // C 2932
+		  w32_fill_underline ((*s).f, s, foreground,
+				      face_bits! (underline, face),
+				      position as c_int, thickness as c_int);   // C 2933-2934
+		}
+	    }
+	}
+      /* Draw overline.  */
+      if face_bits! (overline_p, face)                               // C 2939
+	{
+	  let dy: c_ulong = 0;                                           // C 2941
+	  let h: c_ulong = 1;
+
+	  if face_bits! (overline_color_defaulted_p, face)             // C 2943
+	    {
+	      w32_fill_area! ((*s).f, (*s).hdc as HDC,
+			      (*(*s).gc).foreground as COLORREF, (*s).x,
+			      (*s).y + dy as c_int, (*s).width, h as c_int);   // C 2945-2946
+	    }
+	  else
+	    {
+	      w32_fill_area! ((*s).f, (*s).hdc as HDC,
+			      (*face).overline_color as COLORREF, (*s).x,
+			      (*s).y + dy as c_int, (*s).width, h as c_int);   // C 2950-2951
+	    }
+	}
+
+      /* Draw strike-through.  */
+      if face_bits! (strike_through_p, face)                         // C 2956
+	  && FONT_TEXTMETRIC! ((*s).font).tmStruckOut == 0           // C 2957
+	{
+	  /* Y-coordinate and height of the glyph string's first
+	     glyph.  We cannot use s->y and s->height because those
+	     could be larger if there are taller display elements
+	     (e.g., characters displayed with a larger font) in the
+	     same glyph row.  */
+	  let glyph_y: c_int
+	    = (*s).ybase - (*(*s).first_glyph).ascent as c_int;      // C 2964
+	  let glyph_height: c_int
+	    = (*(*s).first_glyph).ascent as c_int
+	      + (*(*s).first_glyph).descent as c_int;                // C 2965
+	  /* Strike-through width and offset from the glyph string's
+	     top edge.  */
+	  let h: c_ulong = 1;                                        // C 2968
+	  let dy: c_ulong = ((glyph_height as c_ulong).wrapping_sub (h)) / 2;   // C 2969
+
+	  if face_bits! (strike_through_color_defaulted_p, face)     // C 2971
+	    {
+	      w32_fill_area! ((*s).f, (*s).hdc as HDC,
+			      (*(*s).gc).foreground as COLORREF, (*s).x,
+			      glyph_y + dy as c_int, (*s).width, h as c_int);   // C 2973-2974
+	    }
+	  else
+	    {
+	      w32_fill_area! ((*s).f, (*s).hdc as HDC,
+			      (*face).strike_through_color as COLORREF, (*s).x,
+			      glyph_y + dy as c_int, (*s).width, h as c_int);   // C 2978-2979
+	    }
+	}
+
+      if !(*s).prev.is_null ()                                       // C 2983
+	{
+	  let mut prev: *mut glyph_string;                             // C 2985
+
+	  prev = (*s).prev;                                            // C 2987
+	  while !prev.is_null ()
+	    {
+	      if (*prev).hl != (*s).hl
+		  && (*prev).x + (*prev).width + (*prev).right_overhang > (*s).x   // C 2988-2989
+		{
+		  /* As prev was drawn while clipped to its own area, we
+		     must draw the right_overhang part using s->hl now.  */
+		  let save: draw_glyphs_face = (*prev).hl;             // C 2993
+
+		  (*prev).hl = (*s).hl;                                // C 2995
+		  w32_set_glyph_string_gc (prev);                      // C 2996
+		  w32_set_glyph_string_clipping_exactly (s, prev);     // C 2997
+		  if glyph_bits! (type, (*(*prev).first_glyph)) == CHAR_GLYPH   // C 2998
+		    { w32_draw_glyph_string_foreground (prev); }       // C 2999
+		  else
+		    { w32_draw_composite_glyph_string_foreground (prev); }   // C 3001
+		  w32_set_clip_rectangle ((*prev).hdc, core::ptr::null_mut ());   // C 3002
+		  (*prev).hl = save;                                   // C 3003
+		  (*prev).num_clips = 0;                               // C 3004
+		}
+	      prev = (*prev).prev;                                     // C 2987 (C's increment clause)
+	    }
+	}
+
+      if !(*s).next.is_null ()                                       // C 3008
+	{
+	  let mut next: *mut glyph_string;                             // C 3010
+
+	  next = (*s).next;                                            // C 3012
+	  while !next.is_null ()
+	    {
+	      if (*next).hl != (*s).hl
+		  && (*next).x - (*next).left_overhang < (*s).x + (*s).width   // C 3013-3014
+		{
+		  /* As next will be drawn while clipped to its own area,
+		     we must draw the left_overhang part using s->hl now.  */
+		  let save: draw_glyphs_face = (*next).hl;             // C 3018
+
+		  (*next).hl = (*s).hl;                                // C 3020
+		  w32_set_glyph_string_gc (next);                      // C 3021
+		  w32_set_glyph_string_clipping_exactly (s, next);     // C 3022
+		  if glyph_bits! (type, (*(*next).first_glyph)) == CHAR_GLYPH   // C 3023
+		    { w32_draw_glyph_string_foreground (next); }       // C 3024
+		  else
+		    { w32_draw_composite_glyph_string_foreground (next); }   // C 3026
+		  w32_set_clip_rectangle ((*next).hdc, core::ptr::null_mut ());   // C 3027
+		  (*next).hl = save;                                   // C 3028
+		  (*next).num_clips = 0;                               // C 3029
+		  (*next).clip_head = (*s).next;                       // C 3030
+		}
+	      next = (*next).next;                                     // C 3012 (C's increment clause)
+	    }
+	}
+    }
+
+  /* Reset clipping.  */
+  w32_set_clip_rectangle ((*s).hdc, core::ptr::null_mut ());          // C 3036
+  (*s).num_clips = 0;                                                 // C 3037
+}
+
+/* C 3040-3054's `w32_shift_glyphs_for_insert` opens the next slice.  */

@@ -20164,3 +20164,11 @@
   ④ 台账：`docs/ports/w32.md` 追加 Evidence 段 **"The `LOAD_PROC` placement closes the file's last `--check` row"**，并就地修订偏差（宏位置）与 Owed 尾段（该 standing 行结清，余下只剩测量类 Owed）。
   ⑤ 全树 `--all` 口径：7 个 failing 里 **`src/w32.c` 与 `src/w32proc.c` 均已清除**，余 `src/android.c`、`src/androidterm.c`、`src/androidvfs.c`、`src/gtkutil.c`、`src/w32term.c`（下次 `--all` 复测为准）。
   ⑥ 预算与清理：`build-tu` 1 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w43`、`build/probes` 与 `build/femacs`。
+
+- **4.309 `src/w32term.c` 第 4 片（w32term lane，slice 4）：C 2716-3038 落地——`w32_draw_glyph_string`（本文件字形绘制主函数：后继先画的背景趟、GC/裁剪建立、relief-或-裁剪选择、`switch (s->first_glyph->type)`、以及 `if (!s->for_overlaps)` 下的 relief/下划线（含两处 `WINDOW_BUFFER_LOCAL_VALUE`）/上划线/删除线/两个 overhang 修补循环）；w32term.rs 4,123 → 4,545 行（+422，2026-10-14）**：
+  ① 用例处新增：`font_for_underline_metrics`（C 2852，本图无镜像）；8 个 `struct face` 位常量 + 7 个 `face_bits!` 臂（值取自 dispextern.h 1893-1935，与 `src/xterm.rs` 9850-9870 的测量一致，因 `include/dispextern.rs` 自己的那份在 `dispextern_face_records` 之后——该镜像行仍欠）。
+  ② 读数：**`build-tu`（冻结）exit 0、对象 336 字节**；**臂读数**（直接 rustc 编译物化根，基配置 `have_ntgui + windowsnt + have_window_system + dispextern_face_records`）**22 条错误、0 条落在本片文本**——10 条单元内锚点全是既有行（`_root.rs` 1322-1561 的 `draw_fringe_bitmap_params` 七处 `E0308` 与 `overlay_p`/`cursor_p` 字段缺口，属 Owed 11），其余在镜像（`include/w32term.rs`/`font.rs`/`w32common.rs`/`frame.rs`/`w32font.rs`）。首拼读 **35 条（其中 10 条在本片文本）**，四处修正后清零：`hl` 在本单元记录里是 `draw_glyphs_face` *值*（八处 `E0614`）、`gc->foreground` 与三个 face 颜色的 `as COLORREF`（三处 `E0308`）、`underline_pixels_above_descent_line` 是 `int` 成员故真值判定写 `!= 0`（一处 `E0308`）、以及 C 的 `max` 用本文件的 `max!`。
+  ③ `extract-abi.py --check`：**99 → 98 行**（`missing function` 91 → **90**），新增 1 条 token 行入 `docs/ports/macro-body-notes.tsv`（`w32_draw_glyph_string`：`switch`→`match`、`u.cmp.automatic`→本单元 `glyph_u_cmp_bits!`）；行数行仍报端口落后 C（46.0%，4,545 : 8,414），该文件只在收口时才需要容差行。
+  ④ 十门全 `rc=0`、0 失败；区间表拆为 `2716-3038`（本片）+ `3040-8414`（余项）；台账 `docs/ports/w32term.md` 追加 **`### Slice 4 (C 2716-3038)`**。
+  ⑤ 预算与清理：`build-tu` 3 发（含一次首拼失败）、臂读数 4 发、`--check` 4 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w43` 与 `build/probes`/`build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面与 GDI 面仍 UNVERIFIED。
