@@ -6387,4 +6387,265 @@ unsafe fn w32_scroll_bar_remove (bar: *mut scroll_bar)
   unblock_input ();                                                   // C 4327
 }
 
-/* C 4330-4332's comment and C 4338's `w32_set_scroll_bar_end` open the next slice.  */
+/* C's `<winuser.h>` names C 4383-4518 reads and this unit does not carry yet: the two show
+   commands, the bottom-of-z-order handle, the frame-changed flag, and the two window entries
+   (`InvalidateRect` and `SetWindowPos`).  Every name stands at the use site (P-88 (1)); the SDK
+   records are UNVERIFIED.  */
+/// C: #define SW_HIDE 0 / #define SW_NORMAL 1
+/// C: #define HWND_BOTTOM ((HWND) 1)
+/// C: #define SWP_FRAMECHANGED 0x0020
+/// C: WINUSERAPI BOOL WINAPI InvalidateRect (HWND hWnd, const RECT *lpRect, BOOL bErase);
+/// C: WINUSERAPI BOOL WINAPI SetWindowPos (HWND hWnd, HWND hWndInsertAfter, int X, int Y,
+/// C:   int cx, int cy, UINT uFlags);
+#[cfg (feature = "have_ntgui")]
+pub const SW_HIDE: c_int = 0;
+#[cfg (feature = "have_ntgui")]
+pub const SW_NORMAL: c_int = 1;
+#[cfg (feature = "have_ntgui")]
+pub const HWND_BOTTOM: HWND = 1 as HWND;
+#[cfg (feature = "have_ntgui")]
+pub const SWP_FRAMECHANGED: UINT = 0x0020;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn InvalidateRect (hWnd: HWND, lpRect: *const RECT, bErase: BOOL) -> BOOL;
+  pub fn SetWindowPos (hWnd: HWND, hWndInsertAfter: HWND, X: c_int, Y: c_int, cx: c_int,
+		       cy: c_int, uFlags: UINT) -> BOOL;
+}
+
+/// C 4330-4432: "Set the handle of the vertical scroll bar for WINDOW …" - C 4338-4342's locals,
+/// C 4345-4351's geometry reads, C 4354-4367's create branch (with C 4357-4364's clear when the
+/// area is non-empty), C 4368-4428's move branch (C 4377-4385's "already positioned" redraw, C
+/// 4391-4427's four-part move: the clear, the hide, C 4406-4407's `SetWindowPos`, the `SCROLLINFO`
+/// fill C 4409-4415 and C 4421-4424's four remembered settings) and C 4429-4431's thumb update.
+/// C: /* Set the handle of the vertical scroll bar for WINDOW to indicate that
+/// C:    we are displaying PORTION characters out of a total of WHOLE
+/// C:    characters, starting at POSITION.  If WINDOW has no vertical scroll
+/// C:    bar, create one.  */
+/// C: static void
+/// C: w32_set_vertical_scroll_bar (struct window *w,
+/// C: 			     int portion, int whole, int position)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+				       position: c_int)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                            // C 4338
+  let mut barobj: Lisp_Object;                                        // C 4339
+  let mut bar: *mut scroll_bar;                                       // C 4340
+  let mut top: c_int;                                                 // C 4341
+  let mut height: c_int;
+  let mut left: c_int;
+  let mut width: c_int;
+  let mut window_y: c_int;                                            // C 4342
+  let mut window_height: c_int;
+
+  /* Get window dimensions.  */
+  window_box (w, ANY_AREA, core::ptr::null_mut (), &raw mut window_y,   // C 4345
+	      core::ptr::null_mut (), &raw mut window_height);
+  top  = window_y;                                                    // C 4346
+  height = window_height;                                             // C 4347
+
+  /* Compute the left edge and the width of the scroll bar area.  */
+  left = WINDOW_SCROLL_BAR_AREA_X (w);                                // C 4350
+  width = WINDOW_SCROLL_BAR_AREA_WIDTH (w);                           // C 4351
+
+  /* Does the scroll bar exist yet?  */
+  if NILP ((*w).vertical_scroll_bar)                                  // C 4354
+    {
+      let mut hdc: HDC;                                               // C 4356
+      block_input ();                                                 // C 4357
+      if width > 0 && height > 0                                      // C 4358
+	{
+	  hdc = get_frame_dc (f);                                     // C 4360
+	  w32_clear_area! (f, hdc, left, top, width, height);          // C 4361
+	  release_frame_dc (f, hdc);                                   // C 4362
+	}
+      unblock_input ();                                               // C 4364
+
+      bar = w32_scroll_bar_create (w, left, top, width, height, false);   // C 4366
+    }
+  else
+    {
+      /* It may just need to be moved and resized.  */
+      let mut hwnd: HWND;                                             // C 4371
+
+      bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                   // C 4373
+      hwnd = SCROLL_BAR_W32_WINDOW! (bar);                             // C 4374
+
+      /* If already correctly positioned, do nothing.  */
+      if (*bar).left == left                                          // C 4377
+	  && (*bar).top == top                                        // C 4378
+	  && (*bar).width == width                                    // C 4379
+	  && (*bar).height == height                                  // C 4380
+	{
+	  /* Redraw after clear_frame. */
+	  if my_show_window (f, hwnd, SW_NORMAL) == 0                  // C 4383
+	    { InvalidateRect (hwnd, core::ptr::null (), FALSE); }      // C 4384
+	}
+      else
+	{
+	  /* C declares the `SCROLLINFO` uninitialised and fills it below
+	     (PORTING.md 1.5).  */
+	  let mut hdc: HDC;                                            // C 4388
+	  let mut si: SCROLLINFO = core::mem::zeroed ();               // C 4389
+
+	  block_input ();                                              // C 4391
+	  if width != 0 && height != 0                                 // C 4392
+	    {
+	      hdc = get_frame_dc (f);                                  // C 4394
+	      /* Since Windows scroll bars are smaller than the space reserved
+		 for them on the frame, we have to clear "under" them.  */
+	      w32_clear_area! (f, hdc, left, top, width, height);       // C 4397
+	      release_frame_dc (f, hdc);                               // C 4398
+	      w32_clear_under_internal_border (f);                     // C 4399
+	    }
+	  /* Make sure scroll bar is "visible" before moving, to ensure the
+	     area of the parent window now exposed will be refreshed.  */
+	  my_show_window (f, hwnd, SW_HIDE);                           // C 4403
+	  /* Try to not draw over child frames.  */
+	  SetWindowPos (hwnd, HWND_BOTTOM, left, top, width,
+			max! (height, 1), SWP_FRAMECHANGED);           // C 4406-4407
+
+	  si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;      // C 4409
+	  si.fMask = SIF_RANGE;                                        // C 4410
+	  si.nMin = 0;                                                 // C 4411
+	  si.nMax = VERTICAL_SCROLL_BAR_TOP_RANGE! (f, height)          // C 4412
+	    + VERTICAL_SCROLL_BAR_MIN_HANDLE! ();                      // C 4413
+
+	  SetScrollInfo (hwnd, SB_CTL, &raw const si, FALSE);           // C 4415
+
+	  my_show_window (f, hwnd, SW_NORMAL);                          // C 4417
+	  /* InvalidateRect (w, NULL, FALSE);  */
+
+	  /* Remember new settings.  */
+	  (*bar).left = left;                                           // C 4421
+	  (*bar).top = top;                                             // C 4422
+	  (*bar).width = width;                                         // C 4423
+	  (*bar).height = height;                                       // C 4424
+
+	  unblock_input ();                                             // C 4426
+	}
+    }
+  w32_set_scroll_bar_thumb (bar, portion, position, whole);            // C 4429
+  XSETVECTOR! (barobj, bar);                                          // C 4430
+  wset_vertical_scroll_bar (w, barobj);                               // C 4431
+}
+
+/// C 4434-4536: "Set the handle of the horizontal scroll bar for WINDOW …" - the same shape as the
+/// vertical twin with C 4447-4448's two extra `clear_*` locals, C 4451-4455's five geometry reads
+/// and C 4512-4517's page/pos fill.
+/// C: /* Set the handle of the horizontal scroll bar for WINDOW to indicate
+/// C:    that we are displaying PORTION characters out of a total of WHOLE
+/// C:    characters, starting at POSITION.  If WINDOW has no horizontal scroll
+/// C:    bar, create one.  */
+/// C: static void
+/// C: w32_set_horizontal_scroll_bar (struct window *w,
+/// C: 			       int portion, int whole, int position)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+					 position: c_int)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                            // C 4442
+  let mut barobj: Lisp_Object;                                        // C 4443
+  let mut bar: *mut scroll_bar;                                       // C 4444
+  let mut top: c_int;                                                 // C 4445
+  let mut height: c_int;
+  let mut left: c_int;
+  let mut width: c_int;
+  let mut window_x: c_int;                                            // C 4446
+  let mut window_width: c_int;
+  let clear_left: c_int = WINDOW_LEFT_EDGE_X (w);                     // C 4447
+  let clear_width: c_int
+    = WINDOW_PIXEL_WIDTH (w) - WINDOW_RIGHT_DIVIDER_WIDTH (w);         // C 4448
+
+  /* Get window dimensions.  */
+  window_box (w, ANY_AREA, &raw mut window_x, core::ptr::null_mut (),   // C 4451
+	      &raw mut window_width, core::ptr::null_mut ());
+  left  = window_x;                                                   // C 4452
+  height = WINDOW_SCROLL_BAR_AREA_HEIGHT (w);                         // C 4453
+  width = window_width;                                               // C 4454
+  top = WINDOW_SCROLL_BAR_AREA_Y (w);                                 // C 4455
+
+  /* Does the scroll bar exist yet?  */
+  if NILP ((*w).horizontal_scroll_bar)                                // C 4458
+    {
+      let mut hdc: HDC;                                               // C 4460
+      block_input ();                                                 // C 4461
+      if width > 0 && height > 0                                      // C 4462
+	{
+	  hdc = get_frame_dc (f);                                     // C 4464
+	  w32_clear_area! (f, hdc, clear_left, top, clear_width, height);   // C 4465
+	  release_frame_dc (f, hdc);                                   // C 4466
+	}
+      unblock_input ();                                               // C 4468
+
+      bar = w32_scroll_bar_create (w, left, top, width, height, true);   // C 4470
+    }
+  else
+    {
+      /* It may just need to be moved and resized.  */
+      let mut hwnd: HWND;                                             // C 4475
+
+      bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                 // C 4477
+      hwnd = SCROLL_BAR_W32_WINDOW! (bar);                             // C 4478
+
+      /* If already correctly positioned, do nothing.  */
+      if (*bar).left == left && (*bar).top == top                     // C 4481
+	  && (*bar).width == width && (*bar).height == height         // C 4482
+	{
+	  /* Redraw after clear_frame. */
+	  if my_show_window (f, hwnd, SW_NORMAL) == 0                  // C 4485
+	    { InvalidateRect (hwnd, core::ptr::null (), FALSE); }      // C 4486
+	}
+      else
+	{
+	  /* C declares the `SCROLLINFO` uninitialised and fills it below
+	     (PORTING.md 1.5).  */
+	  let mut hdc: HDC;                                            // C 4490
+	  let mut si: SCROLLINFO = core::mem::zeroed ();               // C 4491
+
+	  block_input ();                                              // C 4493
+	  if width != 0 && height != 0                                 // C 4494
+	    {
+	      hdc = get_frame_dc (f);                                  // C 4496
+	      /* Since Windows scroll bars are smaller than the space reserved
+		 for them on the frame, we have to clear "under" them.  */
+	      w32_clear_area! (f, hdc, clear_left, top, clear_width, height);   // C 4499
+	      release_frame_dc (f, hdc);                               // C 4500
+	      w32_clear_under_internal_border (f);                     // C 4501
+	    }
+	  /* Make sure scroll bar is "visible" before moving, to ensure the
+	     area of the parent window now exposed will be refreshed.  */
+	  my_show_window (f, hwnd, SW_HIDE);                           // C 4505
+	  /* Try to not draw over child frames.  */
+	  SetWindowPos (hwnd, HWND_BOTTOM, left, top, max! (width, 1),
+			height, SWP_FRAMECHANGED);                     // C 4508-4509
+
+	  /* +++ SetScrollInfo +++ */
+	  si.cbSize = core::mem::size_of::<SCROLLINFO> () as UINT;      // C 4512
+	  si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE;                   // C 4513
+	  si.nMin = 0;                                                 // C 4514
+	  si.nMax = whole;                                             // C 4515
+	  si.nPage = (min! (portion, si.nMax) + 1) as UINT;            // C 4516
+	  si.nPos = min! (position, si.nMax);                          // C 4517
+	  SetScrollInfo (hwnd, SB_CTL, &raw const si, FALSE);           // C 4518
+
+	  my_show_window (f, hwnd, SW_NORMAL);                          // C 4520
+	  /* InvalidateRect (w, NULL, FALSE);  */
+
+	  /* Remember new settings.  */
+	  (*bar).left = left;                                           // C 4524
+	  (*bar).top = top;                                             // C 4525
+	  (*bar).width = width;                                         // C 4526
+	  (*bar).height = height;                                       // C 4527
+
+	  unblock_input ();                                             // C 4529
+	}
+    }
+
+  w32_set_horizontal_scroll_bar_thumb (bar, portion, position, whole);   // C 4533
+  XSETVECTOR! (barobj, bar);                                          // C 4534
+  wset_horizontal_scroll_bar (w, barobj);                             // C 4535
+}
+
+/* C 4538-4539's "The following three hooks are used when we're doing a thorough redisplay of the
+   frame. …" comment and C 4544's `w32_scroll_bar_clear` open the next slice.  */

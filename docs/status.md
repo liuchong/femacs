@@ -20230,3 +20230,11 @@
   ④ 十门全 `rc=0`、0 失败；区间表拆为 `4160-4328`（本片）+ `4330-8414`（余项）；台账追加 **`### Slice 11 (C 4160-4328)`**。
   ⑤ 预算与清理：`build-tu` 3 发、臂读数 2 发、`--check` 3 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w50`、`/tmp/slice11.txt`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
+
+- **4.317 `src/w32term.c` 第 12 片（w32term lane，slice 12）：C 4330-4536 落地——两个滚动条 setter：`w32_set_vertical_scroll_bar`（C 4330-4432）与 `w32_set_horizontal_scroll_bar`（C 4434-4536），各自含"无则创建"分支与"移动/改尺寸"分支；w32term.rs 6,390 → 6,651 行（+261，2026-10-15）**：
+  ① 用例处新增：`SW_HIDE`/`SW_NORMAL`/`HWND_BOTTOM`（C 的 `((HWND) 1)` 写成 `1 as HWND`）/`SWP_FRAMECHANGED`/`InvalidateRect`/`SetWindowPos`（winuser）；`w32_clear_area`（w32term.h 660 宏）与 `w32_clear_under_internal_border`（w32fns.c 1587）是本图镜像的，故不重声明。
+  ② 横向孪生体多两个局部量：C 4447-4448 的 `clear_left`/`clear_width`（`WINDOW_LEFT_EDGE_X` 与 `WINDOW_PIXEL_WIDTH - WINDOW_RIGHT_DIVIDER_WIDTH`），创建分支用它们而非 bar 自身的 `left`/`width`。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数 22 条、0 条落在本片文本（首拼即通过）**。`extract-abi.py --check`：**61 → 59 行**（`missing function` 53 → **51**），**无新 token 行**；行数行 24.1% → **21.0%**（6,651 : 8,414）。
+  ④ 十门全 `rc=0`、0 失败；区间表拆为 `4330-4536`（本片）+ `4538-8414`（余项）；台账追加 **`### Slice 12 (C 4330-4536)`**。
+  ⑤ 预算与清理：`build-tu` 1 发、臂读数 1 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w51`、`/tmp/slice12.txt`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
