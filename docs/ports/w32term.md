@@ -182,7 +182,8 @@ The `arm` cell says what the port does with the block.
 | 2632-2674 | `w32_draw_dash` (C 2633-2638's comment) | file gate |
 | 2675-2715 | `w32_fill_underline` (C 2676-2680's comment; **slice 3's last item**) | file gate (C's `switch` is the port's `match`; `docs/ports/macro-body-notes.tsv`) |
 | 2716-3038 | `w32_draw_glyph_string` (C 2719-3038) - the file's glyph painter: the successor-first background pass (C 2724-2744), C 2747's GC/clipping setup, C 2749-2772's relief-or-clip choice, C 2774-2811's `switch (s->first_glyph->type)`, and C 2813-3037's `if (!s->for_overlaps)` block with the relief, underline (C 2831-2936, including C 2856-2873's two `WINDOW_BUFFER_LOCAL_VALUE` reads), overline, strike-through and the two overhang-repair loops | file gate (`have_ntgui`); slice 4 below |
-| 3040-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3039-3235 | the five small frame entries and the scroller: `w32_shift_glyphs_for_insert` (C 3041-3054), `w32_delete_glyphs` (C 3057-3067), `w32_clear_frame` (C 3070-3091), `w32_ring_bell` (C 3094-3117), `w32_ins_del_lines` (C 3119-3133, with C 3119-3121's "Line Dance" banner) and `w32_scroll_run` (C 3136-3235) | file gate (`have_ntgui`); slice 5 below |
+| 3237-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -866,4 +867,40 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
      C's `switch` is the port's `match` and C 2794's `u.cmp.automatic` is read through this unit's
      `glyph_u_cmp_bits!`), and the line-count row still reports the port *behind* C (46.0%;
      4,545 vs 8,414) - the file needs a `line-drift-tolerance.tsv` row only when it completes.
+  4. The ten gates: all `rc=0`, 0 FAIL.
+
+### Slice 5 (C 3039-3235)
+
+- **What it is.**  Six functions: the five small frame entries (`w32_shift_glyphs_for_insert`,
+  `w32_delete_glyphs`, `w32_clear_frame`, `w32_ring_bell`, `w32_ins_del_lines`) and the scroller
+  `w32_scroll_run` (C 3136-3235, with its two bounding-box branches, the dirty-region check and
+  the double-buffering arm).  Port: 4,545 -> **4812 lines** (+267).  The table's last row splits at
+  C 3235; the next live definition is C 3239's `w32_frame_up_to_date` (the "Exposure Events"
+  section).
+- **The names this slice adds stand at the use site** (P-88 (1)): `CreateRectRgn`, `EqualRgn`
+  (the two `<wingdi.h>` entries), `FlashWindow`, `ScrollWindowEx` and `SW_INVALIDATE`
+  (`<winuser.h>`), `Sleep` (`<winbase.h>`), and the two reference-side prototypes no mirror in this
+  unit's graph carries - `gui_clear_cursor` (dispextern.h 3657) and `window_box` (dispextern.h
+  3570-3571, whose `int *` out-parameters the port passes as `&raw mut`).  The SDK records are
+  `UNVERIFIED`; the two prototypes are read from the reference's own headers.
+- **The slice's three spellings the reader should know.**  (1) C's chained assignment
+  `from.left = to.left = x;` (C 3208-3209) is two statements in C's own order (the inner target
+  first), because Rust has no assignment expression.  (2) C's `RECT from; RECT to;` locals are
+  `core::mem::zeroed ()`-started (PORTING.md 1.5, the `w32_clear_window` reading) since every
+  member is written below.  (3) `DeleteObject`'s declared parameter is `HGDIOBJ`, so C's three
+  HRGN arguments are passed `as HGDIOBJ` (the conversion C performs implicitly).
+- **`w32_scroll_bar_clear` (C 3088) is a forward reference to this file's own C 5025** - the
+  remainder's definition, the class the arm table already records for `update_theme_scrollbar_*`;
+  C's forward declaration (C 224) is dropped by PORTING.md 0.1-12 as usual.
+- **Readings.**
+  1. `build-tu src/w32term.c` (frozen) -> exit 0, **336 bytes**.
+  2. The arm sweep (same base configuration as slice 4) -> **22 errors, 0 anchored in this
+     slice's text** - the reading is *unchanged* from slice 4's, i.e. the six functions added no
+     own error and no mirror row moved: the ten unit anchors are still the pre-existing
+     `_root.rs` 1322-1561 rows (Owed 11's fringe/`draw_fringe_bitmap_params` class) and the twelve
+     mirror anchors are the same files.  (`w32_scroll_bar_clear`'s forward reference is not one of
+     them: rustc resolves a plain `fn` defined later in the module.)
+  3. `extract-abi.py --check` -> **98 -> 92 rows** (90 -> **84** `missing function`: the round's six
+     landed), no token rows, and the line-count row improves from 46.0% to **42.8%** (4,812 vs
+     8,414 - the port is still behind C by construction).
   4. The ten gates: all `rc=0`, 0 FAIL.

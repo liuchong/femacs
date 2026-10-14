@@ -4542,4 +4542,271 @@ unsafe fn w32_draw_glyph_string (s: *mut glyph_string)
   (*s).num_clips = 0;                                                 // C 3037
 }
 
-/* C 3040-3054's `w32_shift_glyphs_for_insert` opens the next slice.  */
+/* C's `<windows.h>`/`<wingdi.h>` surface C 3049-3234 reads and this unit does not carry yet: the
+   four GDI/user entries (`CreateRectRgn` and `EqualRgn` on `<wingdi.h>`, `FlashWindow`,
+   `ScrollWindowEx` and `SW_INVALIDATE` on `<winuser.h>`, `Sleep` on `<winbase.h>`) and the two
+   display-side declarations the tree's mirrors do not reach (`gui_clear_cursor`, dispextern.h
+   3657, and `window_box`, dispextern.h 3570-3571).  Every name stands at the use site (P-88 (1));
+   the SDK records are `UNVERIFIED` (no Windows SDK on this machine) and the two prototypes above
+   are read from the reference's own headers.  */
+/// C: HRGN WINAPI CreateRectRgn (int x1, int y1, int x2, int y2);
+/// C: BOOL WINAPI EqualRgn (HRGN hrgn1, HRGN hrgn2);
+/// C: BOOL WINAPI FlashWindow (HWND hWnd, BOOL bInvert);
+/// C: int WINAPI ScrollWindowEx (HWND hWnd, int XAmount, int YAmount, const RECT *prcScroll,
+/// C:   const RECT *prcClip, HRGN hrgnUpdate, LPRECT prcUpdate, UINT flags);
+/// C: #define SW_INVALIDATE 0x0002
+/// C: void WINAPI Sleep (DWORD dwMilliseconds);
+/// C: extern void gui_clear_cursor (struct window *);        [dispextern.h 3657]
+/// C: void window_box (struct window *, enum glyph_row_area, int *, int *, int *, int *);
+/// C:                                                        [dispextern.h 3570-3571]
+#[cfg (feature = "have_ntgui")]
+pub const SW_INVALIDATE: UINT = 0x0002;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn CreateRectRgn (x1: c_int, y1: c_int, x2: c_int, y2: c_int) -> HRGN;
+  pub fn EqualRgn (hrgn1: HRGN, hrgn2: HRGN) -> BOOL;
+  pub fn FlashWindow (hWnd: HWND, bInvert: BOOL) -> BOOL;
+  pub fn ScrollWindowEx (hWnd: HWND, XAmount: c_int, YAmount: c_int, prcScroll: *const RECT,
+			 prcClip: *const RECT, hrgnUpdate: HRGN, prcUpdate: *mut RECT,
+			 flags: UINT) -> c_int;
+  pub fn Sleep (dwMilliseconds: DWORD);
+}
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn gui_clear_cursor (w: *mut window);
+  pub fn window_box (w: *mut window, area: glyph_row_area, box_x: *mut c_int,
+		     box_y: *mut c_int, box_width: *mut c_int, box_height: *mut c_int);
+}
+
+/* C 3041-3054: "Shift display to make room for inserted glyphs." - the `get_frame_dc` /
+   `BitBlt` / `release_frame_dc` trio C 3049-3053 writes.  */
+/// C: /* Shift display to make room for inserted glyphs.   */
+/// C: static void
+/// C: w32_shift_glyphs_for_insert (struct frame *f, int x, int y,
+/// C: 			     int width, int height, int shift_by)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_shift_glyphs_for_insert (f: *mut frame, x: c_int, y: c_int,
+				       width: c_int, height: c_int, shift_by: c_int)
+{
+  let mut hdc: HDC;                                                  // C 3047
+
+  hdc = get_frame_dc (f);                                            // C 3049
+  BitBlt (hdc, x + shift_by, y, width, height,
+	  hdc, x, y, SRCCOPY);                                       // C 3050-3051
+
+  release_frame_dc (f, hdc);                                         // C 3053
+}
+
+/* C 3057-3067: "Delete N glyphs at the nominal cursor position.  Not implemented for X frames."
+   - the same `FRAME_W32_P` guard and `emacs_abort` body as C 3123-3133 below.  */
+/// C: /* Delete N glyphs at the nominal cursor position.  Not implemented
+/// C:    for X frames.  */
+/// C: static void
+/// C: w32_delete_glyphs (struct frame *f, register int n)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_delete_glyphs (f: *mut frame, n: c_int)
+{
+  if ! FRAME_W32_P (f)                                               // C 3063
+    { return; }                                                      // C 3064
+
+  emacs_abort ();                                                    // C 3066
+}
+
+/* C 3070-3091: "Clear entire frame." - the cursor bookkeeping (C 3080), the input block and the
+   two clears.  */
+/// C: /* Clear entire frame.  */
+/// C: static void
+/// C: w32_clear_frame (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_clear_frame (f: *mut frame)
+{
+  if ! FRAME_W32_P (f)                                               // C 3075
+    { return; }                                                      // C 3076
+
+  /* Clearing the frame will erase any cursor, so mark them all as no
+     longer visible.  */
+  mark_window_cursors_off (XWINDOW (FRAME_ROOT_WINDOW (f)));         // C 3080
+
+  block_input ();                                                    // C 3082
+
+  w32_clear_window (f);                                              // C 3084
+
+  /* We have to clear the scroll bars, too.  If we have changed
+     colors or something like that, then they should be notified.  */
+  w32_scroll_bar_clear (f);                                          // C 3088
+
+  unblock_input ();                                                  // C 3090
+}
+
+/* C 3094-3117: "Make audible bell." - C's five-`FlashWindow` flash when `visible_bell` is set,
+   the `w32_sys_ring_bell` fallback, and the input block C 3099/3116 wraps both in.  */
+/// C: /* Make audible bell.  */
+/// C: static void
+/// C: w32_ring_bell (struct frame *f)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_ring_bell (f: *mut frame)
+{
+  block_input ();                                                    // C 3099
+
+  if FRAME_W32_P (f) && visible_bell                                 // C 3101
+    {
+      let mut i: c_int;                                              // C 3103
+      let hwnd: HWND = FRAME_W32_WINDOW (f);                          // C 3104
+
+      i = 0;                                                         // C 3106
+      while i < 5
+	{
+	  FlashWindow (hwnd, TRUE);                                  // C 3108
+	  Sleep (10);                                                // C 3109
+	  i += 1;                                                    // C 3106 (C's increment clause)
+	}
+      FlashWindow (hwnd, FALSE);                                     // C 3111
+    }
+  else
+    { w32_sys_ring_bell (f); }                                       // C 3114
+
+  unblock_input ();                                                  // C 3116
+}
+
+/* C 3119-3133: the "Line Dance" banner (C 3119-3121) and C's insert/delete-lines entry, which
+   this frame type never implements (the `emacs_abort` tail).  */
+/// C 3119-3121: the section banner, carried as C's own text at its position.
+/// C: /***********************************************************************
+/// C: 			      Line Dance
+/// C:  ***********************************************************************/
+/// C 3123-3124's comment: "Perform an insert-lines or delete-lines operation, inserting N lines or
+/// deleting -N lines at vertical position VPOS."
+/// C: static void
+/// C: w32_ins_del_lines (struct frame *f, int vpos, int n)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
+{
+  if ! FRAME_W32_P (f)                                               // C 3129
+    { return; }                                                      // C 3130
+
+  emacs_abort ();                                                    // C 3132
+}
+
+/* C 3136-3235: "Scroll part of the display as described by RUN." - C 3150's `window_box`, the
+   two bounding-box branches C 3156-3189 (each computing the copied height and the region C
+   3175/3187 registers when double buffering is off), C 3191/3230's input block, C 3194's
+   `gui_clear_cursor`, the BitBlt arm C 3195-3199 and the `ScrollWindowEx` arm C 3201-3228 with
+   its dirty-region check (C 3218-3227) and C 3232-3234's `expect_dirty` release.  */
+/// C: /* Scroll part of the display as described by RUN.  */
+/// C: static void
+/// C: w32_scroll_run (struct window *w, struct run *run)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_scroll_run (w: *mut window, run: *mut run)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                           // C 3141
+  let mut x: c_int;                                                  // C 3142
+  let mut y: c_int;
+  let mut width: c_int;
+  let mut height: c_int;
+  let mut from_y: c_int;
+  let mut to_y: c_int;
+  let mut bottom_y: c_int;
+  let mut hdc: HDC;                                                  // C 3143
+  let hwnd: HWND = FRAME_W32_WINDOW (f);                              // C 3144
+  let mut expect_dirty: HRGN = core::ptr::null_mut ();                // C 3145
+
+  /* Get frame-relative bounding box of the text display area of W,
+     without mode lines.  Include in this box the left and right
+     fringes of W.  */
+  window_box (w, ANY_AREA, &raw mut x, &raw mut y, &raw mut width,
+	      &raw mut height);                                      // C 3150
+
+  from_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).current_y);            // C 3152
+  to_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).desired_y);              // C 3153
+  bottom_y = y + height;                                             // C 3154
+
+  if to_y < from_y                                                    // C 3156
+    {
+      /* Scrolling up.  Make sure we don't copy part of the mode
+	 line at the bottom.  */
+      if from_y + (*run).height > bottom_y                            // C 3160
+	{ height = bottom_y - from_y; }                               // C 3161
+      else
+	{ height = (*run).height; }                                   // C 3163
+
+      /* Don't draw over the display parts above if destination is off
+         the top of the current window.  */
+      if to_y < y                                                     // C 3167
+	{
+	  let d: c_int = y - to_y;                                    // C 3169
+	  height -= d;                                                // C 3170
+	  to_y += d;                                                  // C 3171
+	  from_y += d;                                                // C 3172
+	}
+
+      if w32_disable_double_buffering                                 // C 3175
+	{ expect_dirty = CreateRectRgn (x, y + height, x + width, bottom_y); }   // C 3176
+    }
+  else
+    {
+      /* Scrolling down.  Make sure we don't copy over the mode line.
+	 at the bottom.  */
+      if to_y + (*run).height > bottom_y                              // C 3182
+	{ height = bottom_y - to_y; }                                 // C 3183
+      else
+	{ height = (*run).height; }                                   // C 3185
+
+      if w32_disable_double_buffering                                 // C 3187
+	{ expect_dirty = CreateRectRgn (x, y, x + width, to_y); }     // C 3188
+    }
+
+  block_input ();                                                     // C 3191
+
+  /* Cursor off.  Will be switched on again in gui_update_window_end.  */
+  gui_clear_cursor (w);                                               // C 3194
+  if !w32_disable_double_buffering                                    // C 3195
+    {
+      hdc = get_frame_dc (f);                                         // C 3197
+      BitBlt (hdc, x, to_y, width, height, hdc, x, from_y, SRCCOPY);   // C 3198
+      release_frame_dc (f, hdc);                                      // C 3199
+    }
+  else
+    {
+      /* C declares both `RECT`s uninitialised and fills every member below
+	 (PORTING.md 1.5's reading); Rust has to start them zeroed.  */
+      let mut from: RECT = core::mem::zeroed ();                      // C 3203
+      let mut to: RECT = core::mem::zeroed ();                        // C 3204
+      let dirty: HRGN = CreateRectRgn (0, 0, 0, 0);                   // C 3205
+      let combined: HRGN = CreateRectRgn (0, 0, 0, 0);                // C 3206
+
+      /* C's chained `from.left = to.left = x;` (and the `from.right = to.right = x + width;`
+	 below) assign the inner target first, so the port writes the two statements in that
+	 order.  */
+      to.left = x;                                                    // C 3208
+      from.left = x;
+      to.right = x + width;                                           // C 3209
+      from.right = x + width;
+      from.top = from_y;                                              // C 3210
+      from.bottom = from_y + height;                                  // C 3211
+      to.top = y;                                                     // C 3212
+      to.bottom = bottom_y;                                           // C 3213
+
+      ScrollWindowEx (hwnd, 0, to_y - from_y, &raw const from, &raw const to, dirty,
+		      core::ptr::null_mut (), SW_INVALIDATE);         // C 3215-3216
+
+      /* Combine this with what we expect to be dirty. This covers the
+	 case where not all of the region we expect is actually dirty.  */
+      CombineRgn (combined, dirty, expect_dirty, RGN_OR);             // C 3220
+
+      /* If the dirty region is not what we expected, redraw the entire frame.  */
+      if EqualRgn (combined, expect_dirty) == 0                       // C 3223
+	{ SET_FRAME_GARBAGED! (f); }                                  // C 3224
+
+      DeleteObject (dirty as HGDIOBJ);                                // C 3226
+      DeleteObject (combined as HGDIOBJ);                             // C 3227
+    }
+
+  unblock_input ();                                                   // C 3230
+
+  if w32_disable_double_buffering
+      && !expect_dirty.is_null ()                                     // C 3232-3233
+    { DeleteObject (expect_dirty as HGDIOBJ); }                       // C 3234
+}
+
+/* C 3237's banner and C 3239's "Exposure Events" section (`w32_frame_up_to_date` onward) open the
+   next slice.  */

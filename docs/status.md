@@ -20172,3 +20172,11 @@
   ④ 十门全 `rc=0`、0 失败；区间表拆为 `2716-3038`（本片）+ `3040-8414`（余项）；台账 `docs/ports/w32term.md` 追加 **`### Slice 4 (C 2716-3038)`**。
   ⑤ 预算与清理：`build-tu` 3 发（含一次首拼失败）、臂读数 4 发、`--check` 4 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w43` 与 `build/probes`/`build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链），SDK 面与 GDI 面仍 UNVERIFIED。
+
+- **4.310 `src/w32term.c` 第 5 片（w32term lane，slice 5）：C 3039-3235 落地——五个小 frame 入口 + 滚动器：`w32_shift_glyphs_for_insert`、`w32_delete_glyphs`、`w32_clear_frame`、`w32_ring_bell`、`w32_ins_del_lines`（含 C 3119-3121 的 "Line Dance" banner）与 `w32_scroll_run`（两分支包围盒、脏区校验、双缓冲两臂）；w32term.rs 4,545 → 4,812 行（+267，2026-10-14）**：
+  ① 用例处新增：`CreateRectRgn`/`EqualRgn`（wingdi）、`FlashWindow`/`ScrollWindowEx`/`SW_INVALIDATE`（winuser）、`Sleep`（winbase），以及本图镜像未覆盖的两个 Emacs 侧原型 `gui_clear_cursor`（dispextern.h 3657）与 `window_box`（dispextern.h 3570-3571）。
+  ② 三处拼法记入台账：C 的链式赋值 `from.left = to.left = x;` 按 C 的求值顺序写成两句（Rust 无赋值表达式）；C 的两个未初始化 `RECT` 局部按 PORTING.md 1.5 用 `zeroed ()` 起步；`DeleteObject` 形参是 `HGDIOBJ`，故 C 的三个 HRGN 实参写 `as HGDIOBJ`。`w32_scroll_bar_clear`（C 3088）是**本文件 C 5025 的前向引用**（余项中的定义，与 `update_theme_scrollbar_*` 同类，臂表已记录）。
+  ③ 读数：**`build-tu`（冻结）exit 0、336 字节**；**臂读数与第 4 片完全相同：22 条错误、0 条落在本片文本**（10 条单元锚点仍是既有的 `_root.rs` 1322-1561 行，属 Owed 11 类；12 条在镜像）；`extract-abi.py --check` **98 → 92 行**（`missing function` 90 → **84**），**无新 token 行**，行数行由 46.0% 改善到 **42.8%**（4,812 : 8,414，端口仍落后 C）。
+  ④ 十门全 `rc=0`、0 失败；区间表拆为 `3039-3235`（本片）+ `3237-8414`（余项）；台账追加 **`### Slice 5 (C 3039-3235)`**。
+  ⑤ 预算与清理：`build-tu` 1 发、臂读数 1 发、`--check` 2 发、十门一轮；零全盘扫描、零大内存任务；收尾删 `/tmp/w44`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链），SDK 面仍 UNVERIFIED。
