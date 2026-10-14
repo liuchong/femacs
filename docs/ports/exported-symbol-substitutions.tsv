@@ -1,0 +1,14 @@
+# Exported symbols whose *reference* name a function-like C macro composes, and whose port name
+# is this project's rename of the reference's own package identity (PORTING.md 0.1-19's name
+# half; `docs/ports/excluded-macros.txt`'s `NATIVE_NAME` row, status 3.503).
+# One `<composing macro>\t<port prefix>\t<reason>` per line.
+#
+# Column 1 is the macro's *name*, not the reference symbol: the reference's own package identity
+# is read out of the reference text (the paste's prefix) and is deliberately elided here, as
+# `docs/ports/excluded-macros.txt` 150 elides it (`tools/check-declarations.py`'s own-voice rule).
+#
+# The reading (`tools/extract-abi.py`'s `substituted_exports`) accepts a port symbol only when all
+# three hold: a row names the composing macro, the C file's own text (or one of the headers it
+# includes) defines that macro as a paste of a prefix in front of its parameter, and that same C
+# text invokes the macro with exactly the symbol's suffix.  Nothing else is exempted by this table.
+NATIVE_NAME	Java_org_femacs_EmacsNative_	android.h 344's `#define NATIVE_NAME(name)` pastes the reference's own Java package in front of its argument; the class this tree loads is `org.femacs.EmacsNative`, so every JNI definition carries the renamed prefix as `#[unsafe(export_name = "Java_org_femacs_EmacsNative_<name>")]` (`docs/ports/excluded-macros.txt` 150 records the macro and the replacement; the Kotlin side is ported with the same package)

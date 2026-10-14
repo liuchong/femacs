@@ -1217,6 +1217,51 @@ def object_selftest() -> int:
     return bad
 
 
+def exported_substitution_selftest() -> int:
+    """docs/ports/exported-symbol-substitutions.tsv: the reader, and all three conditions.
+
+    A row only ever exempts a symbol whose reference twin the reference text *composes*
+    (`substituted_exports`), so the cases below pin each half: the composing macro must be in
+    the file or a header it includes, the invocation must pass the candidate's own suffix, and
+    a stale row (a macro the reference does not compose with) must exempt nothing.
+    """
+    import tempfile
+    bad = 0
+    rows = [("NATIVE_NAME", "Java_org_renamed_EmacsNative_", "why")]
+    header = "#define NATIVE_NAME(name) Java_org_reference_EmacsNative_##name\n"
+    source = ('#include "demo.h"\n'
+              "NATIVE_NAME (demoEntry) (int x);\n"
+              "NATIVE_NAME (otherEntry) (int x);\n")
+    cases: list[tuple[str, str, str, list[tuple[str, str, str]], set[str], set[str]]] = [
+        ("the composing macro and the invocation", header, source, rows,
+         {"Java_org_renamed_EmacsNative_demoEntry"}, {"Java_org_renamed_EmacsNative_demoEntry"}),
+        ("a stale row (no composing macro anywhere)", "", source, rows, set(), set()),
+        ("the invocation's suffix differs (no call passes it)", header, source, rows, set(),
+         {"Java_org_renamed_EmacsNative_notInvoked"}),
+        ("no row at all", header, source, [], set(),
+         {"Java_org_renamed_EmacsNative_demoEntry"}),
+    ]
+    for name, head, src, table, want, invented in cases:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "demo.h").write_text(head, encoding="utf-8")
+            (root / "demo.c").write_text(src, encoding="utf-8")
+            got = substituted_exports(root / "demo.c", src, set(invented), table)
+        ok = got == want
+        print(f"{'ok  ' if ok else 'FAIL'} exported substitutions, {name}: {sorted (got)}"
+              + ("" if ok else f" (want {sorted (want)})"))
+        bad += 0 if ok else 1
+    with tempfile.TemporaryDirectory() as tmp:
+        table = Path(tmp) / "t.tsv"
+        table.write_text("# c\n\nNATIVE_NAME\tJava_org_femacs_EmacsNative_\twhy\nshort\n",
+                         encoding="utf-8")
+        got = read_exported_substitutions(table)
+    ok = got == [("NATIVE_NAME", "Java_org_femacs_EmacsNative_", "why")]
+    print(f"{'ok  ' if ok else 'FAIL'} exported substitutions, table reading: {got}")
+    bad += 0 if ok else 1
+    return bad
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -1237,8 +1282,10 @@ def selftest() -> int:
     bad += token_selftest ()
     bad += family_selftest ()
     bad += object_selftest ()
+    bad += exported_substitution_selftest ()
     print(f"{len(SELFTEST) + len(WHOLE_FILE_SELFTEST)} cases, {len(TOKEN_SELFTEST)} token "
-          f"cases, {len(FAMILY_SELFTEST)} family cases, 4 excluded-object cases, {bad} failures")
+          f"cases, {len(FAMILY_SELFTEST)} family cases, 4 excluded-object cases, "
+          f"5 exported-substitution cases, {bad} failures")
     return 1 if bad else 0
 
 
@@ -1716,10 +1763,75 @@ def whole_file_defsubr_names(text: str) -> set[str]:
     return set(re.findall(r"defsubr\s*\(\s*&\s*(S\w+)\s*\)", ci.blank_comments(text)))
 
 
+def read_exported_substitutions(path: Path) -> list[tuple[str, str, str]]:
+    """`<composing macro>\t<port prefix>\t<reason>` rows for exported-symbol renames.
+
+    `docs/ports/exported-symbol-substitutions.tsv`: a reference name that a *function-like*
+    macro composes and that this tree renames in the same position (PORTING.md 0.1-19's name
+    half - `android.h` 344's `NATIVE_NAME(name)` pastes the reference's own Java package in
+    front of its argument, and the class this tree loads is `org.femacs.EmacsNative`, so every
+    JNI definition carries the renamed prefix as `#[unsafe(export_name = "Java_org_femacs_…")]`,
+    `docs/ports/excluded-macros.txt` 150 / status 3.503).  The first column names the *macro*,
+    not the reference symbol: the reference's own package identity is read out of the reference
+    text (the paste's prefix) and is deliberately not spelled in this tree's prose
+    (`tools/check-declarations.py`'s own-voice rule - the `docs/ports/excluded-macros.txt` 150
+    elision).
+    """
+    out: list[tuple[str, str, str]] = []
+    if not path.is_file():
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 3:
+            out.append((parts[0].strip(), parts[1].strip(), parts[2].strip()))
+    return out
+
+
+def substituted_exports(c_path: Path, c_source: str, invented: set[str],
+                        rows: list[tuple[str, str, str]]) -> set[str]:
+    """Port symbols whose reference twin a function-like paste macro composes.
+
+    A row names the composing macro and the port's prefix.  The reference's own prefix is read
+    from the *reference text*: a `#define <macro> (x) <reference prefix>##x` (in the file or one
+    of the headers it includes, with the `.in.h` twin tried too) is the evidence that a name of
+    the composed shape exists.  A candidate is then an `invented` symbol carrying the port
+    prefix; it is accepted only when that same C text invokes the macro with exactly the
+    candidate's suffix as its argument.  The macro definition, the invocation and the recorded
+    pair are all required, so no other symbol is accepted by this path.
+    """
+    if not invented or not rows:
+        return set()
+    texts = [c_source]
+    for inc in re.findall(r'#\s*include\s+"([^"]+)"', c_source):
+        candidates = [c_path.parent / inc]
+        if inc.endswith(".h"):
+            candidates.append(c_path.parent / (inc[:-2] + ".in.h"))
+        for cand in candidates:
+            if cand.is_file():
+                texts.append(cand.read_text(encoding="utf-8", errors="replace"))
+    out: set[str] = set()
+    for macro, port_prefix, _reason in rows:
+        composing = any(re.search(r"#\s*define\s+" + re.escape(macro)
+                                  + r"\s*\(\s*(\w+)\s*\)\s*[A-Za-z_]\w*\s*##\s*\1\b", text)
+                        for text in texts)
+        if not composing:
+            continue
+        for symbol in invented:
+            if not symbol.startswith(port_prefix):
+                continue
+            suffix = symbol[len(port_prefix):]
+            if re.search(rf"\b{re.escape(macro)}\s*\(\s*{re.escape(suffix)}\s*\)", c_source):
+                out.add(symbol)
+    return out
+
+
 def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             excluded: dict[str, str] | None = None,
             macro_notes: dict[str, set[str]] | None = None,
             excluded_objects: dict[str, dict[str, str]] | None = None,
+            exported_substitutions: list[tuple[str, str, str]] | None = None,
             ledger: Path | None = None) -> list[str]:
     c = ci.inventory(c_path)
     # status 3.31: nothing in this configuration compiles such a file, so a unit that ports it
@@ -1740,6 +1852,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     excluded = excluded or {}
     macro_notes = macro_notes or {}
     excluded_objects = excluded_objects or {}
+    exported_substitutions = exported_substitutions or []
     problems: list[str] = []
 
     # PORTING.md P-86: a unit whose whole body hangs on an `#if` the frozen configuration
@@ -2377,6 +2490,16 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         # `malloc`, and C 1695-2005 defines exactly that non-static function in its own text.
         symbols = {exported_symbol.get(n, n): n for n in no_mangle_names}
         invented = set(symbols) - c_exported - unknown_linkage - PORT_ONLY_EXPORTS
+        if invented and exported_substitutions:
+            # A *function-like* macro can compose an exported name from an argument
+            # (`android.h` 344's `#define NATIVE_NAME(name) Java_org_…_EmacsNative_##name`),
+            # which neither the raw-text inventory nor `reference_object_symbols` sees for a
+            # file the frozen build does not compile; and this tree renames the reference's
+            # package identity in that same position (PORTING.md 0.1-19's name half).  The
+            # recorded prefix pair, the macro definition and the invocation are all required
+            # (`substituted_exports`), so no other symbol is accepted by this path.
+            invented -= substituted_exports(c_path, c_source, invented,
+                                            exported_substitutions)
         if invented:
             known = whole_reference("function")
             # gnulib's rename chain is the other half of the same reading: `#define malloc
@@ -2468,6 +2591,11 @@ def main() -> int:
                     help="directory holding the per-file checklists")
     ap.add_argument("--excluded", default="docs/ports/excluded-macros.txt",
                     help="C macros with no Rust counterpart, with reasons")
+    ap.add_argument("--exported-substitutions",
+                    default="docs/ports/exported-symbol-substitutions.tsv",
+                    help="exported symbols whose reference name a function-like macro composes "
+                         "and whose port name is the project's rename of the reference's own "
+                         "package identity")
     ap.add_argument("--excluded-objects", default="docs/ports/excluded-objects.txt",
                     help="C header objects a mirror deliberately does not carry")
     ap.add_argument("--macro-notes", default="docs/ports/macro-body-notes.tsv",
@@ -2501,6 +2629,7 @@ def main() -> int:
         # the fallback so a run from another working directory still finds its table.
         object_rows_path = HERE.parent / object_rows_path
     object_rows = read_excluded_objects(object_rows_path)
+    exported_rows = read_exported_substitutions(Path(args.exported_substitutions))
     load_token_aliases(Path(args.token_aliases))
     cond_macros = Path(args.cond_macros)
     cond_paths = Path(args.cond_macro_paths)
@@ -2547,6 +2676,7 @@ def main() -> int:
             checklist = own_ledger(c, reference, Path(args.checklists))
             problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=excluded,
                                macro_notes=macro_notes, excluded_objects=object_rows,
+                               exported_substitutions=exported_rows,
                                ledger=checklist)
             if not problems:
                 done += 1
@@ -2576,6 +2706,7 @@ def main() -> int:
         ex = read_exclusions(Path(args.excluded)) if Path(args.excluded).is_file() else {}
         problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=ex,
                            macro_notes=macro_notes, excluded_objects=object_rows,
+                           exported_substitutions=exported_rows,
                            ledger=ledger_for(c, Path(args.reference), Path(args.checklists)))
         for p in problems:
             print(f"- {p}")

@@ -1867,3 +1867,14 @@ The file's last three definitions, and with them **`src/androidterm.c` is carrie
   two `Fprovide` calls keep C's two arguments.
 - **C's docstrings** are one string each with `\n` (Owed 37), and the file's last line is
   `mark_androidterm`'s close, exactly as C's is.
+
+## The twenty-two `invented exported symbol` rows are closed (2026-10-15)
+
+`docs/ports/exported-symbol-substitutions.tsv` plus `extract-abi.py`'s `substituted_exports` close the
+class this file carried twenty-two times: C composes every JNI definition's name with `android.h`
+344's function-like `NATIVE_NAME(name)`, and the port emits the project's renamed prefix through
+`#[unsafe(export_name = ...)]`.  The reading now requires the composing macro's definition *and* the
+invocation with the symbol's own suffix, so nothing else is exempted.  `python3 tools/extract-abi.py
+--check emacs/src/androidterm.c femacs/src/androidterm.rs` -> **OK** (0 rows); the file's own
+`line-drift-tolerance.tsv` row (0.27, measured when slice 29 closed it) covers the line count.
+`docs/status.md` 4.332 records the reading.

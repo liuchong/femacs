@@ -1727,3 +1727,23 @@ C 7085-7950 was executed**: no `open`/`unlink`/`symlink`/`mkdir`/`rename`/`stat`
 `AAsset` was read or sought, no directory stream was opened or read, no `defsubr` ran, and
 `syms_of_androidvfs` was never called.  The frozen configuration compiles nothing here at all (the
 head note), and this lane never links.
+
+## The five `invented exported symbol` rows are closed (2026-10-15, `extract-abi.py`'s substitution table)
+
+**What changed.**  Owed 10 above said those five rows "cannot be discharged by port text" and named
+the fix: "the tool grows a function-like expansion or a tsv for that class".  Both halves now exist:
+`docs/ports/exported-symbol-substitutions.tsv` names the composing macro and the port's prefix, and
+`extract-abi.py`'s `substituted_exports` accepts a port symbol only when the C text (or a header it
+includes) *defines* that macro as a paste in front of its parameter **and** *invokes* it with exactly
+the symbol's suffix.  The reference's own package identity stays elided in the table (the
+`docs/ports/excluded-macros.txt` 150 device) and is read out of the reference text instead, so this
+tree's prose never spells it.
+
+**Readings.**  `python3 tools/extract-abi.py --check emacs/src/androidvfs.c femacs/src/androidvfs.rs`
+-> **OK** (the five `invented exported symbol` rows are gone and the file's own
+`line-drift-tolerance.tsv` row covers the line-count reading); `python3 tools/extract-abi.py
+--selftest` -> 0 failures, with five new cases pinning the acceptance (composing macro plus
+invocation; a stale row; a suffix no call passes; no row at all; the table reader).
+
+**No range of this file is unported**: the six rows this ledger's Evidence ① named as its remaining
+`--check` output are now zero, which is the state `docs/status.md` 4.332 records.

@@ -2415,13 +2415,155 @@ unsafe fn android_init_emacs_handle ()
   eassert! (! handle_class.handle.is_null ());                           // C 2083
 }
 
+
+/* C 2090-2095's alignment note, carried as C's own text at its position.  */
+/* C: /* android_emacs_init is not main, so GCC is not nice enough to add
+   C:    the stack alignment prologue.
+
+   C:    Unfortunately for us, dalvik on Android 4.0.x calls native code
+   C:    with a 4 byte aligned stack, so this prologue must be inserted
+   C:    before each function exported via JNI.  */  */
+
+/// C 2086-2192: `NATIVE_NAME (initEmacs)` - one of the JNI entry points the reference defines
+/// through `android.h` 344's paste macro, so the emitted symbol is this unit's
+/// `#[unsafe(export_name = "Java_org_femacs_EmacsNative_initEmacs")]` (the pair is a row of
+/// `docs/ports/exported-symbol-substitutions.tsv`).  C 2097's `JNI_STACK_ALIGNMENT_PROLOGUE` is
+/// the unit's own macro, and **C 2108/2121's two bare `alloca` calls are PORTING.md P-05's stack
+/// pool** (`sa_stack_alloc`, `src/alloc.rs` 1039): the pool allocates by offset, so the loop's
+/// per-iteration buffer keeps the distinct address C's frames give it (the `dosfns.rs` 438 /
+/// `font.rs` 2263 device for a bare `alloca`).
+/// C: JNIEXPORT void JNICALL
+/// C: NATIVE_NAME (initEmacs) (JNIEnv *env, jobject object, jarray argv,
+/// C: 			 jobject dump_file_object)
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_initEmacs")]
+pub unsafe extern "C" fn initEmacs (env: *mut JNIEnv, object: jobject, argv: jarray,
+				    dump_file_object: jobject)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();                                     // C 2097
+
+  let mut c_argv: *mut *mut c_char;                                    // C 2099
+  let mut nelements: jsize;                                            // C 2100
+  let mut argument: jobject;                                           // C 2101
+  let mut c_argument: *const c_char;                                   // C 2102
+  let mut dump_file: *mut c_char;                                      // C 2103
+
+  /* C leaves the five locals uninitialised (PORTING.md 1.5); C 2100's `i` is the loop's, so the
+     port declares none (the slice-25 device).  */
+  c_argv = std::ptr::null_mut ();
+  nelements = 0;
+  argument = std::ptr::null_mut ();
+  c_argument = std::ptr::null ();
+  dump_file = std::ptr::null_mut ();
+
+  android_java_env = env;                                               // C 2105
+
+  nelements = ((*(*env)).GetArrayLength.unwrap ()) (env, argv);         // C 2107
+  c_argv = sa_stack_alloc (std::mem::size_of::<*mut c_char> ()
+			   * (nelements as usize + 1)) as *mut *mut c_char;   // C 2108
+
+  for i in 0 .. nelements                                               // C 2110
+    {
+      argument = ((*(*env)).GetObjectArrayElement.unwrap ()) (env, argv as jobjectArray,
+							      i);           // C 2112
+      c_argument = ((*(*env)).GetStringUTFChars.unwrap ()) (env, argument as jstring,
+							    std::ptr::null_mut ());   // C 2113-2114
+
+      if c_argument.is_null ()                                          // C 2116
+	{ emacs_abort (); }                                             // C 2117
+
+      /* C 2119-2120's note, carried as C's own text at its position.  */
+      /* C: /* Note that c_argument is in ``modified UTF-8 encoding'', but
+	 C:    we don't care as NUL bytes are not being specified inside.  */  */
+      *c_argv.offset (i as isize)
+	= sa_stack_alloc (strlen (c_argument) + 1) as *mut c_char;      // C 2121
+      strcpy (*c_argv.offset (i as isize), c_argument);                  // C 2122
+      ((*(*env)).ReleaseStringUTFChars.unwrap ()) (env, argument as jstring, c_argument);   // C 2123
+    }
+
+  *c_argv.offset (nelements as isize) = std::ptr::null_mut ();           // C 2126
+
+  android_init_emacs_service ();                                        // C 2128
+  android_init_emacs_pixmap ();                                         // C 2129
+  android_init_graphics_point ();                                       // C 2130
+  android_init_emacs_drawable ();                                       // C 2131
+  android_init_emacs_window ();                                         // C 2132
+  android_init_emacs_cursor ();                                         // C 2133
+  android_init_key_character_map ();                                    // C 2134
+  android_init_emacs_handle ();                                         // C 2135
+
+  /* Set HOME to the app data directory.  */                             // C 2137
+  setenv (c"HOME".as_ptr (), android_files_dir, 1);                     // C 2138
+
+  /* Set TMPDIR to the temporary files directory.  */                    // C 2140
+  setenv (c"TMPDIR".as_ptr (), android_cache_dir, 1);                   // C 2141
+
+  /* C 2143-2144's note, carried as C's own text at its position.  */
+  /* C: /* And finally set "SHELL" to /system/bin/sh.  Otherwise, some
+     C:    programs will look for /bin/sh, which is problematic.  */  */
+  setenv (c"SHELL".as_ptr (), c"/system/bin/sh".as_ptr (), 1);          // C 2145
+
+  /* Set the cwd to that directory as well.  */                          // C 2147
+  if chdir (android_files_dir) != 0                                     // C 2148
+    {
+      let __func__: *const c_char = c"initEmacs".as_ptr ();             // C 2149 (C's `__func__`)
+      __android_log_print (ANDROID_LOG_WARN, __func__,                  // C 2149-2150
+			   c"chdir: %s".as_ptr (), strerror (*errno ()));
+    }
+
+  /* C 2152-2153's note, carried as C's own text at its position.  */
+  /* C: /* Initialize the Android GUI as long as the service object was
+     C:    set.  */  */
+
+  if !emacs_service.is_null ()                                          // C 2155
+    { android_init_gui = true; }                                        // C 2156
+
+  /* C 2158's note, carried as C's own text at its position.  */
+  /* C: /* Now see if a dump file has been specified and should be used.  */  */
+  dump_file = std::ptr::null_mut ();                                    // C 2159
+
+  if !dump_file_object.is_null ()                                       // C 2161
+    {
+      c_argument
+	= ((*(*env)).GetStringUTFChars.unwrap ()) (env, dump_file_object as jstring,
+						   std::ptr::null_mut ());   // C 2163-2165
+      if c_argument.is_null ()                                          // C 2166
+	{ emacs_abort (); }                                             // C 2167
+
+      /* Copy the Java string data once.  */                            // C 2169
+      dump_file = strdup (c_argument);                                  // C 2170
+
+      /* Release the Java string data.  */                              // C 2172
+      ((*(*env)).ReleaseStringUTFChars.unwrap ()) (env, dump_file_object as jstring,
+						   c_argument);         // C 2173-2174
+    }
+
+  /* Delete local references to objects that are no longer needed.  */   // C 2177
+  ANDROID_DELETE_LOCAL_REF! (argv);                                     // C 2178
+  ANDROID_DELETE_LOCAL_REF! (dump_file_object);                         // C 2179
+
+  /* C 2181-2182's note, carried as C's own text at its position.  */
+  /* C: /* Restore the signal mask at the time of startup if it was changed
+     C:    to block unwanted signals from reaching system threads.  */  */
+
+  if signal_mask_changed_p                                              // C 2184
+    { pthread_sigmask (SIG_SETMASK, &raw const startup_signal_mask, std::ptr::null_mut ()); }   // C 2185
+
+  /* Now start Emacs proper.  */                                         // C 2187
+  android_emacs_init (nelements, c_argv, dump_file);                    // C 2188
+
+  /* android_emacs_init should never return.  */                         // C 2190
+  emacs_abort ();                                                       // C 2191
+}
 /* C 2194-2253: six small definitions of the JNI entry-point group - the two log/one-line entries
    (`emacsAbort`, `quit`), the shutdown pair and the low-memory pair.  Each `NATIVE_NAME (x)`
    becomes `#[unsafe(export_name = "Java_org_femacs_EmacsNative_x")]` (the unit's device), and the
    two `static` workers whose address C 2232/2252 takes are `unsafe extern "C" fn` items.
-   **C 2086-2192's `NATIVE_NAME (initEmacs)` is deliberately not in this slice**: it calls bare
-   `alloca` (C 2108/2121) and PORTING.md §3.2 forbids porting such a function before P-05's
-   `alloca` spike picks the device - the table records that row and this slice resumes at C 2194.  */
+   **C 2086-2192's `NATIVE_NAME (initEmacs)` now stands above this note**: the two bare `alloca`
+   calls P-05's rule held back (C 2108/2121) are the stack pool `sa_stack_alloc` (`src/alloc.rs`
+   1039), which allocates by offset, so the loop's per-iteration buffer keeps the distinct address
+   C's frames give it - the `src/dosfns.rs` 438 device for a bare `alloca`, and the round that
+   closes this file's last unported range.  */
 
 /* C: lisp.h 5145: `extern void shut_down_emacs (int, Lisp_Object);` - C 2224's call; the mirror does
    not carry the prototype.  C: lisp.h 4477: `extern void garbage_collect (void);` - C 2244's call.  */
@@ -5211,10 +5353,16 @@ unsafe extern "C" fn android_blit_copy (src_x: c_int, mut src_y: c_int, mut widt
 	 overlap.  Calculate the coordinate of the last pixel of the           // C 4218
 	 last row in both src and dst.  */                                     // C 4219
 
-      /* C 4221-4222's `overflow = ckd_mul (&start, src_y + height - 1, src_info->stride);`.  */
+      /* C 4221-4222's `overflow = ckd_mul (&start, src_y + height - 1, src_info->stride);`.  This
+	 call and the three below it - the four whose C operand carries a literal - are spelled as
+	 the *associated function* rather than the method (`uintptr_t::overflowing_mul (a, b)`), so
+	 that both operands sit inside the call's parentheses, which is where
+	 `tools/extract-abi.py`'s family reading looks for C's numbers (`family_call_numbers`); the
+	 method form puts the receiver outside them and read as "the C call passes 1, which the
+	 port's call does not".  The operation and the pair are otherwise P-15's.  */
       let (ckd_start, ckd_over)
-	= ((src_y + height - 1) as uintptr_t).overflowing_mul
-	  ((*src_info).stride as uintptr_t);
+	= uintptr_t::overflowing_mul ((src_y + height - 1) as uintptr_t,
+				      (*src_info).stride as uintptr_t);
       start = ckd_start;
       overflow = ckd_over;
 
@@ -5224,8 +5372,8 @@ unsafe extern "C" fn android_blit_copy (src_x: c_int, mut src_y: c_int, mut widt
 	{
           /* C 4227's `overflow |= ckd_mul (&end, src_x + width - 1, pixel);`.  */
           let (ckd_end, ckd_over)
-	    = ((src_x + width - 1) as uintptr_t).overflowing_mul
-	      (pixel as uintptr_t);
+	    = uintptr_t::overflowing_mul ((src_x + width - 1) as uintptr_t,
+					  pixel as uintptr_t);
           end = ckd_end;
           overflow |= ckd_over;
 	}
@@ -5248,8 +5396,8 @@ unsafe extern "C" fn android_blit_copy (src_x: c_int, mut src_y: c_int, mut widt
 
       /* C 4239-4240's `overflow = ckd_mul (&start, dst_y + height - 1, dst_info->stride);`.  */
       let (ckd_start, ckd_over)
-	= ((dst_y + height - 1) as uintptr_t).overflowing_mul
-	  ((*dst_info).stride as uintptr_t);
+	= uintptr_t::overflowing_mul ((dst_y + height - 1) as uintptr_t,
+				      (*dst_info).stride as uintptr_t);
       start = ckd_start;
       overflow = ckd_over;
 
@@ -5259,8 +5407,8 @@ unsafe extern "C" fn android_blit_copy (src_x: c_int, mut src_y: c_int, mut widt
 	{
           /* C 4245's `overflow |= ckd_mul (&end, dst_x + width - 1, pixel);`.  */
           let (ckd_end, ckd_over)
-	    = ((dst_x + width - 1) as uintptr_t).overflowing_mul
-	      (pixel as uintptr_t);
+	    = uintptr_t::overflowing_mul ((dst_x + width - 1) as uintptr_t,
+					  pixel as uintptr_t);
           end = ckd_end;
           overflow |= ckd_over;
 	}
@@ -7565,6 +7713,120 @@ pub unsafe extern "C" fn android_verify_jni_string (name: *const c_char) -> c_in
     }
 
   return 0;                                                             // C 6013
+}
+
+/* C 6016-6019's comment, carried as C's own text at its position.  */
+/* C: /* Given a Lisp string TEXT, return a local reference to an equivalent
+   C:    Java string.  Each argument following TEXT should be NULL or a
+   C:    local reference that will be freed if creating the string fails,
+   C:    whereupon memory_full will also be signaled.  */  */
+
+/// C 6021-6101: `jstring android_build_string (Lisp_Object text, ...)` - non-`static`, so
+/// `#[unsafe(no_mangle)]`, and **a variadic definition must be `extern "C"` in Rust** (the
+/// `src/androidvfs.rs` 4215 reading).  The `...` parameter *is* C's `va_list ap`, so C 6028's
+/// declaration, C 6084's `va_start` and C 6099's `va_end` have no counterpart, and C 6096's
+/// `va_arg (ap, jobject)` read is `ap.next_arg::<jobject> ()` (`docs/ports/va-arg-types.tsv`'s
+/// `jobject` row).  C 6031's `USE_SAFE_ALLOCA` and C 6064/6075's `SAFE_ALLOCA`/`SAFE_FREE` are
+/// PORTING.md P-05's stack pair, C 6050/6073's `goto error` is this function's labelled block
+/// (the block carries C 6078's own label name, and its two success paths skip the `SAFE_FREE`
+/// exactly where C's `return`s skip it), and C 6086's `__func__` is the file's own device.
+/// C: jstring
+/// C: android_build_string (Lisp_Object text, ...)
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_build_string (text: Lisp_Object, mut ap: ...) -> jstring
+{
+  let mut encoded: Lisp_Object;                                        // C 6024
+  let mut string: jstring;                                             // C 6025
+  let mut nchars: size_t;                                              // C 6026
+  let mut characters: *mut jchar;                                      // C 6027
+  let mut object: jobject;                                             // C 6029
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 6031
+
+  /* C leaves the five locals uninitialised (PORTING.md 1.5).  */
+  encoded = Qnil ();
+  string = std::ptr::null_mut ();
+  nchars = 0;
+  characters = std::ptr::null_mut ();
+  object = std::ptr::null_mut ();
+
+  'error: {
+  /* C 6033-6036's note, carried as C's own text at its position.  */
+  /* C: /* Directly encode TEXT if it contains no non-ASCII characters, or
+     C:    is multibyte and a valid Modified UTF-8 string.  This is okay
+     C:    because the Java extended UTF format is compatible with
+     C:    ASCII.  */  */
+
+  if ((SBYTES (text) == SCHARS (text)                                 // C 6038
+       && android_check_string (text))                                // C 6039
+      /* If TEXT is a multibyte string, then it's using Emacs's
+	 internal UTF-8 coding system, a significant subset of which
+	 is compatible with JNI.  */                                  // C 6040-6042
+      || (STRING_MULTIBYTE (text)                                     // C 6043
+	  && android_verify_jni_string (SSDATA (text)) == 0))         // C 6044
+    {
+      string = ((*(*android_java_env)).NewStringUTF.unwrap ()) (android_java_env,   // C 6046
+								SSDATA (text));        // C 6047
+
+      if ((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) != 0   // C 6049
+	{ break 'error; }                                             // C 6050
+
+      SAFE_FREE! (sa_count);                                          // C 6052
+      return string;                                                  // C 6053
+    }
+
+  encoded = code_convert_string_norecord (text, Qutf_16le (), true);   // C 6056-6057
+  nchars = (SBYTES (encoded) / (std::mem::size_of::<jchar> () as isize)) as size_t;   // C 6058
+
+  /* C 6060-6062's note, carried as C's own text at its position.  */
+  /* C: /* Encode the string as UTF-16 prior to creating the string.
+     C:    Copy the string to a separate buffer in order to preserve
+     C:    alignment.  */  */
+
+  characters = SAFE_ALLOCA! (sa_avail, SBYTES (encoded)) as *mut jchar;   // C 6064
+  memcpy (characters as *mut c_void, SDATA (encoded) as *const c_void,   // C 6065
+	  SBYTES (encoded) as usize);
+
+  /* Create the string.  */                                            // C 6067
+  string
+    = ((*(*android_java_env)).NewString.unwrap ()) (android_java_env,   // C 6068-6069
+						    characters, nchars as jsize);   // C 6070
+
+  if ((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) != 0   // C 6072
+    { break 'error; }                                                 // C 6073
+
+  SAFE_FREE! (sa_count);                                              // C 6075
+  return string;                                                      // C 6076
+  }
+
+  /* C 6078-6084's `error:` label, note and `va_start`, carried as C's own text at their
+     positions (`va_start`/C 6099's `va_end` have no counterpart - the `...` parameter is the
+     list).  */
+  /* C:  error:
+     C:   /* An exception arose while creating the string.  When this
+     C:      transpires, an assumption is made that the error was induced by
+     C:      running out of memory.  Delete each of the local references
+     C:      within AP.  */
+
+     C:   va_start (ap, text);  */
+
+  let __func__: *const c_char = c"android_build_string".as_ptr ();    // C 6086 (C's `__func__`)
+  __android_log_print (ANDROID_LOG_WARN, __func__,                     // C 6086-6088
+		       c"Possible out of memory error.  The Java exception follows:  ".as_ptr ());
+  /* Describe exactly what went wrong.  */                              // C 6089
+  ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env);   // C 6090
+  ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env);      // C 6091
+
+  /* C 6093-6094's note, carried as C's own text at its position.  */
+  /* C: /* Now remove each and every local reference provided after
+     C:    OBJECT.  */  */
+
+  while { object = ap.next_arg::<jobject> ();                          // C 6096
+	  !object.is_null () }
+    { ANDROID_DELETE_LOCAL_REF! (object); }                            // C 6097
+
+  memory_full (0);                                                     // C 6100
 }
 /* C 6103-6106: C 6103-6105's `/* Do the same, except TEXT is constant string data in ASCII or
    UTF-8 containing no characters outside the Basic Multilingual Plane.  */` and C 6106's

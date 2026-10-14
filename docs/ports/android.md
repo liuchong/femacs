@@ -2370,3 +2370,33 @@ carried except its two P-05 holes: **7,406 of 7,594 C lines (97.5%)**.
   "not_android_stubify")))]` definitions whose bodies are the single `emacs_abort ()` call C
   writes; the file-level `#![allow (dead_code, unused_variables, unreachable_code, …)]` covers
   the unreachable tails (the entries return non-`()` types) and the unused parameters.
+
+## The last two P-05 holes, and the file's closure (2026-10-15, status 4.332)
+
+**What this round ports.**  The two ranges this ledger's last Evidence ⑤⑮ left out as P-05 `alloca`
+holes:
+
+- **C 6021-6101's `android_build_string`** - a *variadic* definition, so `extern "C"` (the
+  `src/androidvfs.rs` 4215 device): the `...` parameter *is* C's `va_list ap`, C 6096's
+  `va_arg (ap, jobject)` is `ap.next_arg::<jobject> ()` (`va-arg-types.tsv`'s `jobject` row), the
+  `USE_SAFE_ALLOCA`/`SAFE_ALLOCA`/`SAFE_FREE` trio is P-05's stack pool, and C 6050/6073's
+  `goto error` is a labelled block carrying C's own label name.  The condition is spelled
+  `while { object = …; ! object.is_null () }` (the `src/androidvfs.rs` 1597 device) so the body
+  carries exactly one `next_arg` read, which is what the `va_arg` reading compares.
+- **C 2086-2192's `NATIVE_NAME (initEmacs)`** - the JNI entry point whose emitted symbol comes from
+  `docs/ports/exported-symbol-substitutions.tsv`; C 2108/2121's two **bare `alloca` calls** are
+  `sa_stack_alloc` (P-05's pool, which allocates by offset, so the loop's per-iteration buffer keeps
+  the distinct address C's frames give it - the `src/dosfns.rs` 438 device).
+
+**Two more rows closed.**  `macro-body-notes.tsv` gains the `android_build_string` row (the four
+tokens P-04 removes - `va_list`/`va_start`/`va_end` - plus `goto`, which the labelled block replaces);
+and C 4221/4227/4239/4245's four `ckd_mul` calls are spelled `uintptr_t::overflowing_mul (a, b)`
+rather than the method form, because the family reading looks for C's operands *inside* the call and
+the method's receiver sits outside it (the ledger's P-15 note still describes the pair).
+
+**Readings.**  `python3 tools/extract-abi.py --check emacs/src/android.c femacs/src/android.rs` ->
+**OK** (0 rows; the line-count reading is covered by this file's own `line-drift-tolerance.tsv` row,
+0.26 at +21.2%); the arm probe (base configuration, `have_android` + `not_android_stubify`) still
+stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member alone (Owed 6, not this
+round's); the forty-one `invented exported symbol` rows of Owed 9 are gone with the substitution
+table, which `docs/status.md` 4.332 records.  **No range of this file is unported any more.**
