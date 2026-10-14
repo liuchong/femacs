@@ -5,8 +5,8 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**5956 lines**, md5 `300b31a1f971114627cda5fc9efe3ed0`), carrying
-> **C 1-3901** - P-86 ④'s first nineteen slices of this file - with **both arms of every `#if`**.
+> `femacs/src/w32proc.rs` (**6059 lines**, md5 `ff873b4f507a60318bb8166af646f13c`), carrying
+> **C 1-3967** - P-86 ④'s first twenty slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -133,7 +133,8 @@ which `check-dead-file-coverage.py` requires):
 | 3108-3483 | `sys_select`: the file's longest function (the four function-local statics, the timeout decode and set copies, the descriptor scan with its stdin and child/socket arms, the `count_children` label and child scan, the five-way answer, the fairness `do`/`while` and the timeout recheck) | file gate (slice 17); the four statics are Rust `static mut` items inside the function (Deviations 72), C's `goto count_children` is a labeled loop and the `do`/`while` the negated break (Deviations 73), the three dead debug arms are carried as C's text (Deviations 74), and `detect_input_pending`/`GetTickCount` stand at the use site (Deviations 75) |
 | 3485-3526 | the three items between `sys_select` and `sys_kill`: C 3485-3496's `w32_valid_process_id`, C 3498-3523's `find_child_console` and C 3525-3526's `DebugBreakProcess_Proc` typedef | file gate (slice 18); the round's two `<winuser.h>` entry points and `LPARAM` stand at the use site (Deviations 76), and `w32_valid_process_id` forced the mirror `include/w32common.rs`'s eleventh P-39 move (Deviations 77) |
 | 3528-3901 | `sys_kill` (C 3528-3819: the negative-pid and signal-whitelist guards, the `sig == 0` probe with its two nested `switch`es, the child lookup and the two `OpenProcess`/`EnumWindows` arms, the `SIGINT`/`SIGQUIT` keyboard simulation, the `SIGTRAP` `DebugBreakProcess` lookup and the terminate arm) and the standard-handle pair `prepare_standard_handles`/`reset_standard_handles` (C 3821-3901) | file gate (slice 19); the round's `<windows.h>`/`<winuser.h>`/`<io.h>` block spells the whole surface (Deviations 78), the two `switch`es are `match` arms (notes row), and C 3898's `handles[0]` keeps its index (the token reading) |
-| 3903-4903 | **the remainder of the file** - C 3903-3907's `set_process_dir` through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): `set_process_dir` (C 3903), the twenty `DEFUN`s (C 3924-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3903-3967 | `set_process_dir` (C 3903-3907), the winsock overview comment with C 3920-3922's two `w32.c` externs, and the block's first two `DEFUN`s: `w32-has-winsock` (C 3924-3956) and `w32-unload-winsock` (C 3958-3967) | file gate (slice 20); the two `DEFUN!` invocations carry C's docstrings in their `doc:` slot (Deviations 81) and the externs stand where C declares them (Deviations 82/83) |
+| 3969-4903 | **the remainder of the file** - C 3969-3971's banner comment through C 4861-4869's `#if 0` and `syms_of_ntproc` (C 4764): the other eighteen `DEFUN`s (C 3973-4730) and `syms_of_ntproc` | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1362,3 +1363,48 @@ index).  Drift -11.2% -> **-21.5%**, inside the stem's 0.36 row.
     C's `(LPARAM)` cast is the port's `as`.  The `DebugBreakProcess` resolution casts
     `get_proc_addr`'s `VOIDFNPTR` through `core::mem::transmute` (the file's slice-1 device for an
     SDK proc pointer).
+
+## Slice 20 (2026-10-14, status 4.299): C 3903-3967
+
+**What this round is.**  The writer of slice 8's `process_dir` (`set_process_dir`), the winsock
+overview comment with the two `w32.c` externs C 3920-3922 declares, and the first two `DEFUN`s of
+the block: `w32-has-winsock` (the `init_winsock` call, the `winsock_lib` guard with its
+save/`init_system_name`/restore of `Vsystem_name`, and the `Qt`/`Qnil` answers) and
+`w32-unload-winsock` (the one-line `term_winsock` body).  Port: 5,956 -> **6059 lines** (+103).  The
+next row's first item is C 3969-3971's banner comment.
+
+**Evidence ① - the frozen reading.**  `build-tu src/w32proc.c` -> exit 0, **336 bytes**.  The first
+run **failed**: C 3921-3922's two extern lines had been spliced raw (the file's rule is C's own
+comment carried plus a `/// C:` citation per declaration); the fix is the round's only text change
+between the two runs.
+**Evidence ② - the arm reading.**  `probe src/w32proc.rs <out> --crate-type=lib -C panic=abort --cfg
+'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
+'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
+`compile_error!`), 0 anchored in this unit** - the baseline.
+**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 5957 6059` -> `11
+capitalized identifiers, missing: ['Sw32_has_winsock', 'Sw32_unload_winsock']` - the two `S…`
+statics the `DEFUN!` macro generates, the tool's documented *macro-generated names* class.  Nothing
+this round uses is undefined.
+**Evidence ④ - the `--check` reading.**  **61 -> 57 `- missing` rows** (`set_process_dir`,
+`winsock_lib`, `term_winsock` and the `w32-has-winsock` subr row retire with the round's
+definitions).  No token rows.  Drift -21.5% -> **-23.6%**, inside the stem's 0.36 row.
+
+**Deviations (this slice's additions).**
+
+81. **The two `DEFUN!` invocations carry C's docstrings in the macro's `doc:` slot** (the
+    `src/w32fns.rs` 10403 shape), with C's `Qt`/`Qnil` answers spelled `Qt ()`/`Qnil ()` and C's
+    `init_winsock (!NILP (load_now))` the `!NILP (load_now) as c_int` the mirror's signature
+    (`init_winsock (load_now: c_int) -> c_int`) asks for.
+82. **The winsock overview comment and C 3920-3922's two externs stand at their C positions**: C's
+    `/* From w32.c */` is carried as a Rust comment and each declaration in a `/// C:` line -
+    `winsock_lib`/`term_winsock` are `w32.c`'s (`include/w32.rs` carries neither, while
+    `init_winsock` is that mirror's 534), so this unit declares them, as its C does.
+83. **`init_system_name` stands at the use site** (`src/process.rs` defines it; C's `process.h`
+    chains to it) - a declaration-only row in the shape `src/emacs.rs` uses.
+
+**Owed (this slice's additions).**
+
+19. **Eighteen `DEFUN`s and `syms_of_ntproc` remain** (C 3969-4903, 1,003 C lines): the block is one
+    invocation per subr, so the rounds that carry it can be split per `DEFUN` or in small groups;
+    `syms_of_ntproc` (C 4764) is the file's last item and the defsubr/`DEFVAR` table that must name
+    each of them.

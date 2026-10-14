@@ -20077,3 +20077,13 @@
   ⑤ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `3528-3901`（本片）+ `3903-4903`（余项）。
   ⑥ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 19 (2026-10-14, status 4.298): C 3528-3901`** 段，表头更新为 **5,956 与 `300b31a1…`**；`macro-body-notes.tsv` 追一条（`sys_kill` 的 switch 行）。预算与清理：`build-tu` **3 发**、`probe` **1 发**、名字扫描 1 次、`--check` **3 发**、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
     **未声称**：无运行证据（本机无 Windows 工具链）。下一片起点：`src/w32proc.c` **C 3903**（`set_process_dir`，随后 **20 个 `DEFUN`** C 3924-4730 与 **`syms_of_ntproc`** C 4764——本文件最后的"机械大块"，也是收口前最后一页），本文件余量 **1,003 C 行**（C 3903-4903，20.5%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。
+
+- **4.299 `src/w32proc.c` 第 20 片（w32proc lane，slice 20）：C 3903-3967 落地——`set_process_dir`（slice 8 那个 `process_dir` 的写者）、winsock 总览注释与 C 3920-3922 的两个 `w32.c` extern，以及 `DEFUN` 块的头两个：`w32-has-winsock`（`init_winsock` 调用、`winsock_lib` 守卫与 `Vsystem_name` 的存/`init_system_name`/还原、`Qt`/`Qnil` 答案）与 `w32-unload-winsock`（一行的 `term_winsock` 体）；w32proc.rs 5,956 → 6,059 行（+103，2026-10-14）**：
+  ① 本片落的文本：`set_process_dir`、winsock 注释 + 两个 extern、两个 `DEFUN!`（C 的 docstring 走宏的 `doc:` 槽，`Qt ()`/`Qnil ()` 按本树拼法）。**首读 build-tu 失败**：C 3921-3922 两行 extern 被裸贴（本文件规矩是"C 注释按原文承载 + 每条声明一个 `/// C:` 引用"），改好后通过——这是本轮两次读数之间唯一的文本变化。
+  ② 读数：**`build-tu`（冻结）exit 0、对象 336 字节**（两发）；**`probe` 35 条 = 25 `E0428` + 9 `E0425` + 1 `compile_error!`，无一条落在本单元**（基线）；**名字扫描** `11 capitalized identifiers, missing: ['Sw32_has_winsock','Sw32_unload_winsock']`——正是 `DEFUN!` 宏生成的 `S…` 静态量，工具 docstring 在案的**宏生成名**类，**无未定义名**。
+  ③ `extract-abi.py --check`：**61 → 57 条 `- missing` 行**（`set_process_dir`、`winsock_lib`、`term_winsock` 与 `w32-has-winsock` 的 subr 行随本轮定义退场）；无 token 行；漂移 -21.5% → **-23.6%**（0.36 行内）。
+  ④ 偏差（台账三条）：两个 `DEFUN!` 的 docstring 与 `Qt ()`/`Qnil ()`、`init_winsock` 的 `c_int` 形参；winsock 注释与两个 extern 站 C 的声明处（镜像 `include/w32.rs` 两个都没有、`init_winsock` 在它 534）；`init_system_name` 站用例处（`src/process.rs` 定义）。
+  ⑤ 十门按退出码/FAIL 行读取：**十门全 `rc=0`、0 失败**；区间表拆为 `3903-3967`（本片）+ `3969-4903`（余项）。
+  ⑥ **owed 19**：余下 18 个 `DEFUN`（C 3973-4730）与 `syms_of_ntproc`（C 4764）共 1,003 C 行——一个 subr 一次调用，可按 DEFUN 或小组切分；`syms_of_ntproc` 是文件最后一项，也是必须点到每个 subr 的 defsubr/`DEFVAR` 表。
+  ⑦ 台账与状态：`docs/ports/w32proc.md` 追加 **`## Slice 20 (2026-10-14, status 4.299): C 3903-3967`** 段，表头更新为 **6,059 与 `ff873b4f…`**；本片无 notes/容差行。预算与清理：`build-tu` **3 发**（含一次失败）、`probe` **1 发**、名字扫描 1 次、`--check` 2 发、十门一轮；零 `--all`、零全盘扫描、零大内存任务；收尾删 `/tmp/w42lane`、`build/probes` 与 `build/femacs`。
+    **未声称**：无运行证据（本机无 Windows 工具链）。下一片起点：`src/w32proc.c` **C 3969**（banner 注释 + `w32-short-file-name` 起的一串 `DEFUN`），本文件余量 **936 C 行**（C 3969-4903，19.1%）；全树盘点仍取换 lane 时那次 **590 文件 → 583 done / 0 in progress / 7 failing**（`c185e6fa` 读数）。

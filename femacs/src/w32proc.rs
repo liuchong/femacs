@@ -5954,3 +5954,106 @@ pub unsafe extern "C" fn reset_standard_handles (in_: c_int, out: c_int, err: c_
 
 /* C 3903's `set_process_dir` (C 3903-3907) opens the next slice, with the twenty `DEFUN`s and
    `syms_of_ntproc`.  */
+
+/// C 3903-3907: `void set_process_dir (const char *dir)` - the writer of the `process_dir` static
+/// slice 8 landed; C's `(char *) dir` is the port's cast.
+/// C: void
+/// C: set_process_dir (const char * dir)
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_process_dir (dir: *const c_char)
+{
+  process_dir = dir as *mut c_char;                                  // C 3906
+}
+
+/* To avoid problems with winsock implementations that work over dial-up
+   connections causing or requiring a connection to exist while Emacs is
+   running, Emacs no longer automatically loads winsock on startup if it
+   is present.  Instead, it will be loaded when open-network-stream is
+   first called.
+
+   To allow full control over when winsock is loaded, we provide these
+   two functions to dynamically load and unload winsock.  This allows
+   dial-up users to only be connected when they actually need to use
+   socket services.  */
+
+/* From w32.c */
+/* C 3920-3922's two `w32.c` names: this unit declares them (the mirror `include/w32.rs` carries
+   neither - `init_winsock` is there, at its 534, and is the one the two DEFUNs below call).  */
+/// C: extern HANDLE winsock_lib;
+/// C: extern BOOL term_winsock (void);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut winsock_lib: HANDLE;
+  pub fn term_winsock () -> BOOL;
+}
+
+/// C 3924-3956: `DEFUN ("w32-has-winsock", Fw32_has_winsock, Sw32_has_winsock, 0, 1, 0, …)` - C
+/// 3937's `init_winsock (!NILP (load_now))`, C 3940's `winsock_lib` guard with C 3945-3950's
+/// save/`init_system_name`/restore of `Vsystem_name`, and the `Qt`/`Qnil` answers.  C's docstring
+/// is carried in the invocation (the `doc:` label the macro takes).
+/// C: DEFUN ("w32-has-winsock", Fw32_has_winsock, Sw32_has_winsock, 0, 1, 0,
+/// C:        doc: /* Test for presence of the Windows socket library `winsock'.
+/// C: Returns non-nil if winsock support is present, nil otherwise.
+/// C:
+/// C: If the optional argument LOAD-NOW is non-nil, the winsock library is
+/// C: also loaded immediately if not already loaded.  If winsock is loaded,
+/// C: the winsock local hostname is returned (since this may be different from
+/// C: the value of `system-name' and should supplant it), otherwise t is
+/// C: returned to indicate winsock support is present.  */)
+/// C:   (Lisp_Object load_now)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-has-winsock", Fw32_has_winsock, Sw32_has_winsock, 0, 1, 0,
+	doc: "Test for presence of the Windows socket library `winsock'.\nReturns non-nil if winsock support is present, nil otherwise.\n\nIf the optional argument LOAD-NOW is non-nil, the winsock library is\nalso loaded immediately if not already loaded.  If winsock is loaded,\nthe winsock local hostname is returned (since this may be different from\nthe value of `system-name' and should supplant it), otherwise t is\nreturned to indicate winsock support is present.  ",
+	(load_now: Lisp_Object),
+	{
+  let have_winsock: c_int;                                           // C 3935
+
+  have_winsock = init_winsock (!NILP (load_now) as c_int);           // C 3937
+  if have_winsock != 0                                               // C 3938
+    {
+      if !winsock_lib.is_null ()                                     // C 3940
+	{
+	  /* Return new value for system-name.  The best way to do this
+	     is to call init_system_name, saving and restoring the
+	     original value to avoid side-effects.  */
+	  let orig_hostname: Lisp_Object = Vsystem_name;              // C 3945
+	  let hostname: Lisp_Object;                                  // C 3946
+
+	  init_system_name ();                                        // C 3948
+	  hostname = Vsystem_name;                                    // C 3949
+	  Vsystem_name = orig_hostname;                               // C 3950
+	  return hostname;                                            // C 3951
+	}
+      return Qt ();                                                   // C 3953
+    }
+  return Qnil ();                                                     // C 3955
+});
+
+/// C 3958-3967: `DEFUN ("w32-unload-winsock", Fw32_unload_winsock, Sw32_unload_winsock, 0, 0, 0, …)`
+/// - the one-line body C 3966, whose `term_winsock ()` is the extern above.
+/// C: DEFUN ("w32-unload-winsock", Fw32_unload_winsock, Sw32_unload_winsock,
+/// C:        0, 0, 0,
+/// C:        doc: /* Unload the Windows socket library `winsock' if loaded.
+/// C: This is provided to allow dial-up socket connections to be disconnected
+/// C: when no longer needed.  Returns nil without unloading winsock if any
+/// C: socket connections still exist.  */)
+/// C:   (void)
+#[cfg (feature = "windowsnt")]
+DEFUN! ("w32-unload-winsock", Fw32_unload_winsock, Sw32_unload_winsock, 0, 0, 0,
+	doc: "Unload the Windows socket library `winsock' if loaded.\nThis is provided to allow dial-up socket connections to be disconnected\nwhen no longer needed.  Returns nil without unloading winsock if any\nsocket connections still exist.  ",
+	(),
+	{
+  return if term_winsock () != 0 { Qt () } else { Qnil () };         // C 3966
+});
+
+/* C's `<process.h>`/`<emacs.c>`: `init_system_name`, the one name the first DEFUN needs and no
+   mirror in this unit's graph carries (`src/process.rs` defines it; the declaration shape is
+   `src/emacs.rs`'s).  */
+/// C: extern void init_system_name (void);
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub fn init_system_name ();
+}
+
+/* C 3969-3971's banner comment and C 3973's `w32-short-file-name` open the next slice.  */
