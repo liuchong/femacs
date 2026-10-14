@@ -933,6 +933,20 @@ static mut sound_type: c_uint = 0xFFFFFFFF;
 /// C: #define MB_EMACS_SILENT (0xFFFFFFFF - 1)
 #[cfg (feature = "have_ntgui")]
 pub const MB_EMACS_SILENT: DWORD = 0xFFFFFFFF - 1;
+/// C: #define MB_OK 0x00000000 / #define MB_ICONHAND 0x00000010 / #define MB_ICONQUESTION
+/// C: 0x00000020 / #define MB_ICONEXCLAMATION 0x00000030 / #define MB_ICONASTERISK
+/// C: 0x00000040 - the five `<winuser.h>` ids C 7121-7131 gives `set-message-beep`, spelled
+/// from the header (C 339's `MB_EMACS_SILENT` above is the file's own extra).
+#[cfg (feature = "have_ntgui")]
+pub const MB_OK: DWORD = 0x00000000;
+#[cfg (feature = "have_ntgui")]
+pub const MB_ICONHAND: DWORD = 0x00000010;
+#[cfg (feature = "have_ntgui")]
+pub const MB_ICONQUESTION: DWORD = 0x00000020;
+#[cfg (feature = "have_ntgui")]
+pub const MB_ICONEXCLAMATION: DWORD = 0x00000030;
+#[cfg (feature = "have_ntgui")]
+pub const MB_ICONASTERISK: DWORD = 0x00000040;
 
 /* Special virtual key code for indicating "any" key.  */
 /// C: #define VK_ANY 0xFF
@@ -7034,6 +7048,14 @@ unsafe extern "system" {
   /// C:                            UINT fWinIni);
   pub fn SystemParametersInfo (uiAction: UINT, uiParam: UINT, pvParam: *mut c_void,
 			       fWinIni: UINT) -> BOOL;
+  /// C 7156/7228's reader (and C 6121's, which this file has called since slice 6):
+  /// `frame.c` 6180 defines it and no header declares it (the `src/xfns.rs` 6877 note).
+  /// C: extern void validate_x_resource_name (void);
+  pub fn validate_x_resource_name ();
+  /// C 7237's reader: this unit's slice 1 already lists `fatal` among `lisp.h`'s entry points
+  /// and never declared it; C's prototype is variadic.
+  /// C: extern AVOID void fatal (const char *msgid, ...);
+  pub fn fatal (msgid: *const c_char, ...) -> !;
   pub fn GetCurrentObject (hdc: HDC, r#type: UINT) -> HGDIOBJ;
   pub fn GetObject (h: HANDLE, c: c_int, pv: LPVOID) -> c_int;
   pub fn GetObjectW (h: HANDLE, c: c_int, pv: LPVOID) -> c_int;
@@ -10833,4 +10855,165 @@ DEFUN! ("w32-display-monitor-attributes-list", Fw32_display_monitor_attributes_l
   unblock_input ();
 
   return attributes_list;
+});
+
+/// C 7108-7136: `set-message-beep` - C's five-line doc body, C 7116's `CHECK_SYMBOL` and the
+/// eight-arm ladder onto the file-scope `static unsigned int sound_type` this unit carries from
+/// C 338 (writable, hence `static mut`).  C 7119/7133's `0xFFFFFFFF` is the same literal twice.
+/// C: DEFUN ("set-message-beep", Fset_message_beep, Sset_message_beep, 1, 1, 0,
+/// C:        doc: /* Set the sound generated when the bell is rung. … */)
+/// C:   (Lisp_Object sound)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("set-message-beep", Fset_message_beep, Sset_message_beep, 1, 1, 0,
+	doc: "Set the sound generated when the bell is rung.\nSOUND is `asterisk', `exclamation', `hand', `question', `ok', or `silent'\nto use the corresponding system sound for the bell.  The `silent' sound\nprevents Emacs from making any sound at all.\nSOUND is nil to use the normal beep.  ",
+	(sound: Lisp_Object),
+	{
+  CHECK_SYMBOL (sound);
+
+  if NILP (sound)
+    { sound_type = 0xFFFFFFFF; }
+  else if EQ (sound, Qasterisk ())
+    { sound_type = MB_ICONASTERISK; }
+  else if EQ (sound, Qexclamation ())
+    { sound_type = MB_ICONEXCLAMATION; }
+  else if EQ (sound, Qhand ())
+    { sound_type = MB_ICONHAND; }
+  else if EQ (sound, Qquestion ())
+    { sound_type = MB_ICONQUESTION; }
+  else if EQ (sound, Qok ())
+    { sound_type = MB_OK; }
+  else if EQ (sound, Qsilent ())
+    { sound_type = MB_EMACS_SILENT; }
+  else
+    { sound_type = 0xFFFFFFFF; }
+
+  return sound;
+});
+
+/// C 7142-7164: `w32_display_info_for_name` - the `one_w32_display_info` list walk (C 7149's
+/// `for (dpyinfo = &one_w32_display_info; dpyinfo; dpyinfo = dpyinfo->next)` is this file's
+/// `while ! dpyinfo.is_null ()` spelling), then C 7158's `w32_term_init` (whose C `char *`
+/// parameters take the null pointer and `SSDATA`'s `*mut c_char`), C 7156's
+/// `validate_x_resource_name` and C 7161's variadic `error`.
+/// C: static struct w32_display_info *
+/// C: w32_display_info_for_name (Lisp_Object name)
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_display_info_for_name (name: Lisp_Object) -> *mut w32_display_info
+{
+  let mut dpyinfo: *mut w32_display_info;
+
+  CHECK_STRING (name);
+
+  dpyinfo = &raw mut one_w32_display_info;
+  while ! dpyinfo.is_null ()
+    {
+      if ! NILP (Fstring_equal (XCAR ((*dpyinfo).name_list_element), name))
+	{ return dpyinfo; }
+      dpyinfo = (*dpyinfo).next;
+    }
+
+  /* Use this general default value to start with.  */
+  Vx_resource_name = Vinvocation_name;
+
+  validate_x_resource_name ();
+
+  dpyinfo = w32_term_init (name, core::ptr::null_mut (), SSDATA (Vx_resource_name));
+
+  if dpyinfo.is_null ()
+    { error (c"Cannot connect to server %s".as_ptr (), SDATA (name)); }
+
+  return dpyinfo;
+}
+
+/// C 7166-7244: `x-open-connection` - the `"w32"` name check (C 7180's `strcmp`), C 7185's
+/// `window_system_available (NULL)`, the rgb.txt block (C 7193-7204, C's one `Lisp_Object
+/// color_file;` local assigned before either read), `Vw32_color_map`'s two sources (C 7203/7206,
+/// `w32_default_color_map` being this unit's own) and C 7209's `add_system_logical_colors_to_map`,
+/// then C 7218-7225's basename block: C's `char basename[MAX_PATH], *str;` is a PORTING.md 1.5
+/// local (the array) whose `str` is assigned by `strrchr` before the test, and C 7221's string is
+/// `lib/include/string.rs`'s `lispstpcpy`.  C 7237's `fatal` is variadic and returns `!`.
+/// C: DEFUN ("x-open-connection", Fx_open_connection, Sx_open_connection,
+/// C:        1, 3, 0, doc: /* SKIP: real doc in xfns.c.  */)
+/// C:   (Lisp_Object display, Lisp_Object xrm_string, Lisp_Object must_succeed)
+#[cfg (feature = "have_ntgui")]
+DEFUN! ("x-open-connection", Fx_open_connection, Sx_open_connection,
+	1, 3, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object, xrm_string: Lisp_Object, must_succeed: Lisp_Object),
+	{
+  let mut xrm_option: *mut c_char;
+  let mut dpyinfo: *mut w32_display_info;
+
+  CHECK_STRING (display);
+
+  /* Signal an error in order to encourage correct use from callers.
+   * If we ever support multiple window systems in the same Emacs,
+   * we'll need callers to be precise about what window system they
+   * want.  */
+
+  if strcmp (SSDATA (display), c"w32".as_ptr ()) != 0
+    { error (c"The name of the display in this Emacs must be \"w32\"".as_ptr ()); }
+
+  /* If initialization has already been done, return now to avoid
+     overwriting critical parts of one_w32_display_info.  */
+  if window_system_available (core::ptr::null_mut ())
+    { return Qnil (); }
+
+  if ! NILP (xrm_string)
+    { CHECK_STRING (xrm_string); }
+
+  /* Allow color mapping to be defined externally; first look in user's
+     HOME directory, then in Emacs etc dir for a file called rgb.txt. */
+  {
+    let mut color_file: Lisp_Object;
+
+    color_file = build_string (c"~/rgb.txt".as_ptr ());
+
+    if NILP (Ffile_readable_p (color_file))
+      {
+	color_file = Fexpand_file_name (build_string (c"rgb.txt".as_ptr ()),
+					Fsymbol_value (Qdata_directory ()));
+      }
+
+    Vw32_color_map = Fx_load_color_file (color_file);
+  }
+  if NILP (Vw32_color_map)
+    { Vw32_color_map = w32_default_color_map (); }
+
+  /* Merge in system logical colors.  */
+  add_system_logical_colors_to_map (&raw mut Vw32_color_map);
+
+  if ! NILP (xrm_string)
+    { xrm_option = SSDATA (xrm_string); }
+  else
+    { xrm_option = core::ptr::null_mut (); }
+
+  /* Use this general default value to start with.  */
+  /* First remove .exe suffix from invocation-name - it looks ugly. */
+  {
+    let mut basename: [c_char; MAX_PATH as usize] = [0; MAX_PATH as usize];
+    let mut str_: *mut c_char;
+
+    lispstpcpy (basename.as_mut_ptr (), Vinvocation_name);
+    str_ = strrchr (basename.as_mut_ptr (), b'.' as c_int);
+    if ! str_.is_null () { *str_ = 0; }
+    Vinvocation_name = build_string (basename.as_mut_ptr ());
+  }
+  Vx_resource_name = Vinvocation_name;
+
+  validate_x_resource_name ();
+
+  /* This is what opens the connection and sets x_current_display.
+     This also initializes many symbols, such as those used for input.  */
+  dpyinfo = w32_term_init (display, xrm_option, SSDATA (Vx_resource_name));
+
+  if dpyinfo.is_null ()
+    {
+      if ! NILP (must_succeed)
+	{ fatal (c"Cannot connect to server %s.\n".as_ptr (), SDATA (display)); }
+      else
+	{ error (c"Cannot connect to server %s".as_ptr (), SDATA (display)); }
+    }
+
+  return Qnil ();
 });

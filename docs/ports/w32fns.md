@@ -211,7 +211,8 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 5988-6712 | `my_create_window` (C 5994), `my_create_tip_window`, `w32_window`, `w32_icon`, `w32_make_gc`, `unwind_create_frame`, `do_unwind_create_frame`, `w32_default_font_parameter` and C 6253's `x-create-frame` `DEFUN` (C 6257-6711) - slices 5, 6 and 7 | file gate |
 | 6714-6915 | C 6714-6915: the seventeen display-info `DEFUN`s (`xw-color-defined-p` through `x-display-save-under`) - slice 8 | file gate |
 | 6917-7106 | C 6917-7106: `w32_monitor_enum`, `w32_display_monitor_attributes_list`, `w32_display_monitor_attributes_list_fallback` and the `w32-display-monitor-attributes-list` `DEFUN` - slice 9 | file gate |
-| 7108-12488 | **the remainder of the file** (C 7108 `set-message-beep` onward: C 7142 `w32_display_info_for_name`, C 7166 `x-open-connection`, C 9581 `w32_display_info_for_name`'s neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7108-7244 | C 7108-7244: the `set-message-beep` `DEFUN`, `w32_display_info_for_name` and the `x-open-connection` `DEFUN` - slice 10 | file gate |
+| 7246-12488 | **the remainder of the file** (C 7246 `x-close-connection` onward: C 7265 `x-display-list`, C 7293 `x-change-window-property`, C 7394 `compute_tip_xy`, C 9581 `w32_display_info_for_name`'s neighbours, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -1579,6 +1580,75 @@ before the split).
 `SPI_GETWORKAREA` are declared by this slice itself, and everything else the region uses
 (`MonitorEnum_Proc`, `enum_display_monitors_fn`, `FOR_EACH_FRAME`, `ASET`/`AREF`, `DECODE_SYSTEM`,
 `Qframes`/`Qname`/`Qmm_size`/`Qworkarea`/`Qgeometry`, `list1`/`list2i`/`list4i`) already resolves.
+
+## Slice 10 (C 7108-7244)
+
+**Scope and the stop.**  Three items in C's order: the `set-message-beep` `DEFUN` (C 7108-7136),
+`w32_display_info_for_name` (C 7142-7164) and the `x-open-connection` `DEFUN` (C 7166-7244).  The
+stop is C 7246's `x-close-connection` `DEFUN` (C 7245 blank) - the next item.
+
+**What the item carries.**  C 7116-7133's eight-arm ladder onto C 338's file-scope
+`static unsigned int sound_type` (this unit's own `static mut sound_type: c_uint`, slice 1);
+C 7149's `one_w32_display_info` walk with `Fstring_equal`/`XCAR`/`name_list_element` (the port's
+`while ! dpyinfo.is_null ()` for C's `for (…; dpyinfo; …)`); C 7156/7228's
+`validate_x_resource_name`; C 7158/7232's `w32_term_init` (`include/w32term.rs` 330-331's
+declaration, whose two `char *` parameters take the null pointer and `SSDATA`'s `*mut c_char`);
+C 7180's `strcmp` name check and its `error`; C 7185's `window_system_available (NULL)`;
+C 7193-7204's rgb.txt block (`Ffile_readable_p`, `Fexpand_file_name`, `Fsymbol_value`,
+`Qdata_directory`, `Fx_load_color_file`); C 7206's `w32_default_color_map` (this unit's own);
+C 7209's `add_system_logical_colors_to_map`; C 7218-7225's basename block (`lispstpcpy`,
+`strrchr`, `MAX_PATH`, the `.exe` truncation); and C 7237/7240's `fatal`/`error` pair.
+
+**Six declarations this item needed, and one of them closes an older gap.**
+`MB_OK`/`MB_ICONHAND`/`MB_ICONQUESTION`/`MB_ICONEXCLAMATION`/`MB_ICONASTERISK` are spelled next to
+C 339's `MB_EMACS_SILENT` with `<winuser.h>`'s values; `fatal` is declared variadic (C 7237 is its
+only use in this unit); and `validate_x_resource_name` joins the extern block because this unit's
+text has called it since **slice 6** (C 6121) without any declaration in the file - `frame.c` 6180
+defines it and no header declares it, so each unit declares its own (the `src/xfns.rs` 6877-6883
+note).  The name sweep below is what named that gap.
+
+**Deviations (slice 10).**
+
+- **C 7219's `char basename[MAX_PATH], *str;`** is two PORTING.md 1.5 locals in one C statement:
+  the array is zero-initialised here (`MAX_PATH` is this file's `c_int` 260, so the length is
+  `MAX_PATH as usize`) and `str_` is assigned by `strrchr` before its `is_null ()` test, which is
+  why C's one-line `if (str) *str = 0;` stays one line.
+- **C 7160's `dpyinfo == 0`** is the port's `dpyinfo.is_null ()` - the `0` token row this produces
+  is closed by an appended `docs/ports/macro-body-notes.tsv` row (append-only), not by changing the
+  port's spelling.
+- **C 7194's block-local `Lisp_Object color_file;`** keeps C's shape (declared, then assigned by
+  C 7196's `build_string` before both reads), so no initialiser is added.
+- **Not claimed.**  No run evidence: this machine opens no display, so `x-open-connection` has
+  never run and `w32_term_init` is never called; the arm reading is a compile-level result and the
+  name sweep a textual one.
+
+### Evidence (slice 10, the final revision: 11,019 Rust lines)
+
+**① The frozen configuration.**  `cargo run -q -p xtask -- build-tu src/w32fns.c` → `built
+src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, object **336 bytes**.  One run.
+
+**② The arm probe (`have_ntgui` + `windowsnt`).**  **42 previous errors** - identical to slice 9's
+count, i.e. these three items add no error and no member gap; the three references into this
+slice's region (10840/10865/10933) are `warning: unused doc comment` on the `DEFUN!` invocations,
+the file's standing pattern.  One probe run.
+
+**③ `extract-abi.py --check`.**  175 rows → **172**: `missing function w32_display_info_for_name`,
+`missing subr Fset_message_beep` and `missing subr Fx_open_connection` retire; the check's one new
+row (`function w32_display_info_for_name does not mention 0`, C 7160) is closed by the appended
+`macro-body-notes.tsv` row above, so the final count is three rows down.  The drift row reads
+**11.8%** (`C 12488 vs Rust 11019`), down from 13.2%.  (Both readings taken in place, minutes
+apart, with the same ledger.)
+
+**④ The range table and the dead-file gate.**  The `7108-12488` remainder row splits into
+`7108-7244` (this slice) and `7246-12488`;
+`python3 tools/check-dead-file-coverage.py` reads **159 range row(s) cover src/w32fns.c (12488
+lines; 106 blank line(s) between blocks need no row)**, `0 failure(s)` (158 rows / 105 blanks
+before the split).
+
+**⑤ The name sweep.**  Over this slice's region (`src/w32fns.rs` 10836-11019): **37 capitalized
+identifiers, missing: []** (the two `Sset_message_beep`/`Sx_open_connection` subr statics the
+`DEFUN!` macro generates are the only names the sweep cannot see).  `validate_x_resource_name`,
+`fatal` and the five `MB_*` ids are declared by this slice itself.
 
 **Starting state measured for the slice-5 lane (2026-10-14, at `bb049624`), kept here below the
 slice that used it.**  Three facts a fresh
