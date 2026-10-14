@@ -192,7 +192,8 @@
 | 2282-2561 | the "Dialog functions" banner (C 2282-2284) and the whole section: `get_dialog_title` (C 2288-2316), `dialog_delete_callback` (C 2329-2334), **`create_dialog`** (C 2343-2457; C 2363's `GTK_CHECK_VERSION (3, 12, 0)` and C 2419's `(3, 14, 0)` pairs), the `xg_dialog_data` record (C 2459-2465), `xg_dialog_response_cb` (C 2471-2479), `pop_down_dialog` (C 2484-2497), `xg_maybe_add_timer` (C 2502-2519) and `xg_dialog_run` (C 2526-2560, C 2561's blank) | file gate (`use_gtk`); `gtk_check_version_ge_3_12` / `_3_14` inside `create_dialog`; slice 3 below |
 | 2562-2843 | the "File dialog functions" banner (C 2562-2565) and the whole section: `xg_uses_old_file_dialog` (C 2568-2576), the `xg_get_file_func` typedef (C 2579), `xg_get_file_name_from_chooser` (C 2584-2588), `xg_toggle_visibility_cb` (C 2593-2600), `xg_toggle_notify_cb` (C 2609-2629), **`xg_get_file_with_chooser`** (C 2642-2737), the `HAVE_GTK_FILE_SELECTION_NEW` pair `xg_get_file_name_from_selector` (C 2744-2749) and `xg_get_file_with_selection` (C 2761-2787), and `xg_get_file_name` (C 2803-2842) | file gate (`use_gtk`); `have_gtk_file_selection_new` for the middle pair; `have_pgtk` inside `xg_get_file_name`; slice 4 below |
 | 2844-3002 | the "GTK font chooser" banner (C 2844-2846) and the whole `HAVE_FREETYPE` section: `xg_weight_to_symbol` (C 2852-2870, including C 2859-2861's version-guarded step), `xg_style_to_symbol` (C 2872-2879), `x_last_font_name` (C 2884), `xg_font_filter` (C 2887-2898) and **`xg_get_font`** (C 2911-3001: the `HAVE_PGTK` guard, the chooser dialog, the GTK3 `desc` path and the GTK2 name path) | file gate (`use_gtk`); `have_freetype`; `have_gtk3`; `have_pgtk`; `pango_version_ge_1_36_7`; slice 5 below |
-| 3003-6753 | **the remainder** — from C 3003's blanks and C 3006-3008's "Menu functions" banner through C 6753: the menu machinery (`make_cl_data`, `xg_mark_data`, `create_menus`, `xg_update_menubar`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 3003-3315 | C 3003-3005's blanks and form feed, the "Menu functions." banner (C 3006-3008), the `MENU_ITEM_NAME` macro (C 3014), the two file-scope lists `xg_menu_cb_list`/`xg_menu_item_cb_list` (C 3019/3023), **`make_cl_data`** (C 3035-3053), `update_cl_data` (C 3066-3078), `unref_cl_data` (C 3083-3095), **`xg_mark_data`** (C 3099-3142), `menuitem_destroy_callback` (C 3148-3157), `menuitem_highlight_callback` (C 3166-3189), `menu_destroy_callback` (C 3195-3199), `make_widget_for_menu_item` (C 3206-3235) and **`make_menu_item`** (C 3251-3300) | file gate (`use_gtk`); the gtkutil.h records C 3019-3023/3035-3095 use stand in the unit (Owed 10); `have_pgtk` for C 3133-3141's arm and C 3294-3297's; `gtk_check_version_ge_3_14` for C 3218-3226's pair; slice 6 below |
+| 3316-6753 | **the remainder** — from C 3316's `xg_create_one_menuitem` through C 6753: `xg_create_widget`, `xg_modify_menubar_widgets`, the menu-bar machinery (`create_menus`, `xg_update_menubar`, `xg_update_menu_item`, …), scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -774,6 +775,27 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
    declaration, `src/gtkutil.rs` keeps its own gated copies (the `src/term.rs` 384-385 shape
    that the four other `dupstring` callers already use).
 
+10. **The menu section's names stand in the unit** (added by slice 6).  `include/gtkutil.rs`
+    is a placeholder (Owed 11 and `docs/ports/include-gtkutil.md`), so the two callback
+    records (`xg_menu_cb_data`, gtkutil.h 63-72; `xg_menu_item_cb_data`, gtkutil.h 75-84) and
+    the key `XG_ITEM_DATA` (gtkutil.h 49) are carried in the unit at their C position, the
+    shape C 619's `xg_list_node` already has and `src/pgtkmenu.rs` 147-170 / `src/xmenu.rs`
+    822-846 already use.  The round that writes that mirror deletes all four copies.
+    **It also has to fix a layout defect this slice found**: `src/xmenu.rs` 828-834's copy of
+    `xg_menu_cb_data` opens with `f` where gtkutil.h 65 puts the `xg_list_node ptrs` head, so
+    every member it carries sits at the wrong offset for the record gtkutil.c itself
+    allocates (PORTING.md 10's rule); the mirror round is where one shape replaces both.
+    Two more same-program declarations land the same way, each with six or more sibling
+    callers already doing it: `mark_object` (lisp.h 4436; `include/lisp.rs` carries only the
+    plural `mark_objects`) and `xg_pending_quit_event` (xterm.h 2012; the xterm.h mirror
+    leaves the object to `src/xterm.rs`'s own `xterm_globals` module).  The four
+    `input_event_bits!` arms are the per-unit accessor every terminal unit carries
+    (PORTING.md P-80), and the seven GTK/GDK names the builders need
+    (`GtkCallback`, `GtkCheckMenuItem`, `GtkRadioMenuItem`, `GTK_CHECK_MENU_ITEM`,
+    `GTK_RADIO_MENU_ITEM`, `GDK_LEAVE_NOTIFY` and the eight menu-item constructors) cannot
+    move into `include/gtk.rs` without an `E0428` in the four units that already copy them
+    (`src/pgtkmenu.rs`, `src/xmenu.rs`, `src/xwidget.rs`, `src/pgtkterm.rs`).
+
 ## Not claimed
 
 - **Slice 2 (C 1297-2281) was executed nowhere.**  Same reading as slice 1's first bullet: no GTK
@@ -1113,3 +1135,80 @@ gate table above gains its row.
 **Not claimed.**  No arm was compiled - there is no GTK and no Pango tree on this machine - so
 every Pango/GTK prototype and every Pango enumerator this slice added is UNVERIFIED, and the twelve
 weight and three style values remain placeholders owed to a Pango host.
+
+## Slice 6 (2026-10-15, status 4.336): C 3003-3315 — the menu section's opening
+
+**What this slice is.**  The reference's "Menu functions." banner and everything up to
+`make_menu_item`'s closing brace: the `MENU_ITEM_NAME` macro (C 3014), the two file-scope list
+heads `xg_menu_cb_list`/`xg_menu_item_cb_list` (C 3019/3023), the callback-data trio
+(`make_cl_data`, C 3035-3053; `update_cl_data`, C 3066-3078; `unref_cl_data`, C 3083-3095), the
+GC hook **`xg_mark_data`** (C 3099-3142), the three widget callbacks
+(`menuitem_destroy_callback`, `menuitem_highlight_callback`, `menu_destroy_callback`), and the two
+menu-item builders `make_widget_for_menu_item` (C 3206-3235) and **`make_menu_item`**
+(C 3251-3300).  Port: 3,855 -> **4,479 lines**; the table's last row splits at C 3315 - the next
+live definition is C 3316's `xg_create_one_menuitem`.
+
+**The declarations this section needed.**  `include/gtkutil.rs` is still the placeholder its own
+ledger records, so the two callback records the section allocates and walks (gtkutil.h 63-72 and
+75-84) and the `XG_ITEM_DATA` key (gtkutil.h 49) are carried in the unit at their C position -
+the shape C 619's `xg_list_node` already has.  `mark_object` (lisp.h 4436) and
+`xg_pending_quit_event` (xterm.h 2012) are same-program declarations the mirrors do not carry,
+and the four `input_event_bits!` arms are the per-unit accessor every terminal unit writes.  The
+seven GTK/GDK names the builders need cannot go into `include/gtk.rs`, because the four units that
+already copy them (`src/pgtkmenu.rs`, `src/xmenu.rs`, `src/xwidget.rs`, `src/pgtkterm.rs`) all
+`include!` that mirror and would read `E0428`; they stand in the unit.  All of it is Owed 10,
+which also records the layout defect this slice found in `src/xmenu.rs`'s copy of
+`xg_menu_cb_data`.
+
+**Deviations this slice adds.**
+
+- **C's two `for` heads are the port's `while`** with C's update step at the loop's end
+  (PORTING.md 2.2), each written at C's own line - the `iter = iter->next` of C 3105/3108.
+- **C 3258's and C 3182's `0`** are the port's `std::ptr::null_mut ()` (PORTING.md 1.5's
+  pointer-null rule), which is why both functions carry a `does not mention 0` row in
+  `docs/ports/macro-body-notes.tsv`; C 3271/3286's two `*group = NULL` stores are the same shape.
+- **C 3274/3282's `item->selected`** is the `widget_value` mirror's `bool`, so it enters the
+  variadic-free `gtk_check_menu_item_set_active` as `as gboolean` (C's own usual conversion, the
+  `x_gtk_*` row's class).
+- **C 3183's cast** is `core::mem::transmute::<GCallback, GtkCallback>`, the reverse direction of
+  the `gpointer`-to-`GCallback` device C 2344's site already uses, and C 3184's `(*func) (…)` is
+  the port's `(func.unwrap ()) (…)` as at C 2838.
+- **C 3171's uninitialised `GdkEvent ev`** is the port's zeroed local (PORTING.md 1.5), and its one
+  written member reaches `gtk_get_event_widget` through `&raw mut`.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings.**  Arm A: **30 errors, none anchored in this slice** (the same anchor set as
+   slice 5's, slices 1-4's text); arm A plus `gtk_check_version_ge_3_14` - which lights C
+   3218-3226's other arm: **30 errors, the same set**.  Arm C (GTK2): **64 errors, 1 anchored
+   here** - C 3213's `GTK_ORIENTATION_HORIZONTAL`, the mirror item gated `have_gtk3` is configured
+   out in that arm (rustc's note says so), i.e. Owed 6's GTK2 class, which the same `gtk_box_new!`
+   call sites in slices 1-2 already carry; arm C plus `have_freetype`: the same **64 and the same
+   single anchor**.  Arm B: **790 errors, 51 of them in this slice**, every one of the
+   `cannot find GtkWidget/gpointer/TRUE/gboolean` class - the materialiser's dedupe artifact
+   (Owed 17), whose first anchors are in slice 2's text.
+3. **`extract-abi.py --check`** -> 100 -> **87 `- ` rows** (ten retired: `MENU_ITEM_NAME`,
+   `xg_mark_data`, `make_cl_data`, `update_cl_data`, `unref_cl_data`, `make_menu_item`,
+   `make_widget_for_menu_item`, `menuitem_destroy_callback`, `menuitem_highlight_callback`,
+   `menu_destroy_callback`; two new `does not mention 0` rows recorded in
+   `macro-body-notes.tsv`); the line-count row reads **33.7%** (C 6,753 vs 4,479) - the file is
+   still open.
+4. **One reading had to be redone after the round lost the file to its own tooling.**  An `awk`
+   rewrite whose program lacked a default `print` truncating `src/gtkutil.rs` to four lines; the
+   text was recovered from the round's own materialised `build/femacs/units/gtkutil/_root.rs`
+   (whose tail region is this unit's text at a fixed `+7`-line offset once the include-edge
+   rewrites of the top of the file are accounted for), and the recovery is *proved* rather than
+   asserted: the first 3,855 recovered lines are byte-identical to the previous commit's file
+   (`head -n 3855 recovered | diff - <commit's file>` is empty), the recovered file is 4,476 lines
+   as `root - 7` predicts, and the three readings above (frozen object size, five arm counts,
+   `--check`) reproduce exactly.  Including the two retries this cost, the round spent **4
+   `build-tu` runs** - one above the lane's three-per-slice budget - and 15 arm runs (the
+   five-arm set, three times: before and after the duplicate removal, and after the recovery).
+5. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled - there is no GTK or Pango tree on this machine - so the
+seven GTK/GDK names this slice added are UNVERIFIED and `GDK_LEAVE_NOTIFY`'s value is a
+placeholder; `GSList` is the exception and is real, because GLib is on this machine (its four
+layout assertions are checked whenever arm A compiles).

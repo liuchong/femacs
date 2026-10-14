@@ -3853,3 +3853,627 @@ pub unsafe extern "C" fn xg_get_font (f: *mut frame, mut default_name: *mut c_ch
 }
 /* C 3002's `#endif /* HAVE_FREETYPE */`.  */
 
+
+/* C 3003-3004's two blanks and C 3005's form feed, carried at C's own position.  */
+/* C 3006-3008's "Menu functions." banner, carried as C's own text.  */
+/* C: /***********************************************************************
+   C: 	                Menu functions.
+   C:  ***********************************************************************/  */
+
+/* C 3010-3012's comment above `MENU_ITEM_NAME`, carried as C's own text.  */
+/* C: /* The name of menu items that can be used for customization.  Since GTK
+   C:    RC files are very crude and primitive, we have to set this on all
+   C:    menu item names so a user can easily customize menu items.  */  */
+
+/// C 3014: `#define MENU_ITEM_NAME "emacs-menuitem"` - the name C 3230-3232 gives every widget
+/// of a menu item.  C's macro is a string literal and the port keeps that form - the
+/// `&CStr` shape this file already gives its own keys (`TB_INFO_KEY` at C 132 and
+/// `EMACS_CLASS` at C 7), which is also what `extract-abi.py`'s constant comparison reads,
+/// since the `*const c_char` the sibling units use for their keys is a pointer where C's is
+/// the string's own bytes; the three call sites below therefore take C's argument as
+/// `MENU_ITEM_NAME.as_ptr ()`.
+#[cfg (feature = "use_gtk")]
+pub const MENU_ITEM_NAME: &core::ffi::CStr = c"emacs-menuitem";
+
+/* ----------------------------------------------------------------------------------------------
+   The declarations this section takes from `gtkutil.h`, `xterm.h` and `termhooks.h`.
+
+   `gtkutil.h`'s mirror (`femacs/src/include/gtkutil.rs`) is a placeholder: its ledger records
+   the P-08 decision that the header's whole body (C 24-243) is dead text under the frozen
+   configuration, so its names stand in the unit at their first use - the shape C 619's
+   `xg_list_node` above already has, and the shape `src/pgtkmenu.rs` 147-170 and `src/xmenu.rs`
+   822-846 already use for two of these three records.  P-72 rule 4 and the ledger's Owed name
+   the move-back: one `include/gtkutil.rs` body carrying each name once, with the consumers'
+   copies deleted.  That round also has to reconcile `src/xmenu.rs`'s copy of
+   `xg_menu_cb_data`, whose first member is `f` where gtkutil.h 63-72 puts the `xg_list_node`
+   `ptrs` head - a wrong layout for a record gtkutil.c itself allocates, and one the ledger's
+   Owed records.
+   ---------------------------------------------------------------------------------------------- */
+
+/// C: gtkutil.h 49: `#define XG_ITEM_DATA "emacs_menuitem"` - the key C 3177 reads the menu
+/// item's callback record with.
+#[cfg (feature = "use_gtk")]
+pub const XG_ITEM_DATA: *const c_char = c"emacs_menuitem".as_ptr ();
+
+/// C: gtkutil.h 63-72: `typedef struct xg_menu_cb_data_ { xg_list_node ptrs; struct frame *f;
+/// Lisp_Object menu_bar_vector; int menu_bar_items_used; GCallback highlight_cb; int ref_count;
+/// } xg_menu_cb_data;` - C 3035-3052 writes every member, C 3073-3076 rewrites four of them and
+/// C 3086-3093 reads `ref_count`.  The head member is this unit's C 619 copy of gtkutil.h
+/// 52-56, and `GCallback` is `include/gtk.rs` 93's (glib's `gclosure.h` 92, on this machine).
+#[cfg (feature = "use_gtk")]
+#[repr(C)]
+pub struct xg_menu_cb_data
+{
+  pub ptrs: xg_list_node,                  // gtkutil.h 65: `xg_list_node  ptrs;`
+  pub f: *mut frame,                       // gtkutil.h 67: `struct frame  *f;`
+  pub menu_bar_vector: Lisp_Object,        // gtkutil.h 68: `Lisp_Object   menu_bar_vector;`
+  pub menu_bar_items_used: c_int,          // gtkutil.h 69: `int           menu_bar_items_used;`
+  pub highlight_cb: GCallback,             // gtkutil.h 71: `GCallback     highlight_cb;`
+  pub ref_count: c_int,                    // gtkutil.h 72: `int           ref_count;`
+}
+
+/// C: gtkutil.h 75-84: `typedef struct xg_menu_item_cb_data_ { xg_list_node ptrs; gulong
+/// select_id; Lisp_Object help; gpointer call_data; xg_menu_cb_data *cl_data; }
+/// xg_menu_item_cb_data;` - C 3110/3153 use `ptrs`, C 3112-3113 and C 3180 read `help`, and
+/// C 3180/3183 read `cl_data`.  `gulong` is `include/gtk.rs` 56's alias of `c_ulong`.
+#[cfg (feature = "use_gtk")]
+#[repr(C)]
+pub struct xg_menu_item_cb_data
+{
+  pub ptrs: xg_list_node,                  // gtkutil.h 77: `xg_list_node  ptrs;`
+  pub select_id: c_ulong,                  // gtkutil.h 79: `gulong        select_id;`
+  pub help: Lisp_Object,                   // gtkutil.h 80: `Lisp_Object   help;`
+  pub call_data: gpointer,                 // gtkutil.h 81: `gpointer	call_data;`
+  pub cl_data: *mut xg_menu_cb_data,       // gtkutil.h 82: `xg_menu_cb_data *cl_data;`
+}
+
+/* C 3017-3018's comment above the first list, carried as C's own text.  */
+/* C: /* Linked list of all allocated struct xg_menu_cb_data.  Used for marking
+   C:    during GC.  The next member points to the items.  */  */
+/// C 3019: `static xg_list_node xg_menu_cb_list;` - the object the ledger's
+/// `missing file-scope object` rows name, and the list C 3047 inserts into and C 3091 removes
+/// from.  C's static storage starts zeroed, which the port writes out (PORTING.md 1.5's
+/// static-storage shape).
+#[cfg (feature = "use_gtk")]
+static mut xg_menu_cb_list: xg_list_node                                    // C 3019
+  = xg_list_node { prev: std::ptr::null_mut (), next: std::ptr::null_mut () };
+
+/* C 3021-3022's comment above the second list, carried as C's own text.  */
+/* C: /* Linked list of all allocated struct xg_menu_item_cb_data.  Used for marking
+   C:    during GC.  The next member points to the items.  */  */
+/// C 3023: `static xg_list_node xg_menu_item_cb_list;` - C 3154 removes from it and C 3339 (the
+/// next slice) inserts into it.
+#[cfg (feature = "use_gtk")]
+static mut xg_menu_item_cb_list: xg_list_node                               // C 3023
+  = xg_list_node { prev: std::ptr::null_mut (), next: std::ptr::null_mut () };
+
+/* C 3025-3033's comment above `make_cl_data`, carried as C's own text.  */
+/* C: /* Allocate and initialize CL_DATA if NULL, otherwise increase ref_count.
+   C:    F is the frame CL_DATA will be initialized for.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.
+
+   C:    The menu bar and all sub menus under the menu bar in a frame
+   C:    share the same structure, hence the reference count.
+
+   C:    Returns CL_DATA if CL_DATA is not NULL,  or a pointer to a newly
+   C:    allocated xg_menu_cb_data if CL_DATA is NULL.  */  */
+
+/// C 3035-3053: `static xg_menu_cb_data *make_cl_data (xg_menu_cb_data *cl_data, struct frame
+/// *f, GCallback highlight_cb)` - `static` in C and its address is never taken, so a plain
+/// `unsafe fn`.  C 3038's `if (! cl_data)` writes the parameter, which is the port's `mut`;
+/// C 3040's `sizeof *cl_data` is the port's `size_of`, C 3047's two `&` operands are the
+/// `&raw mut` forms of the two file-scope/record places, and C 3050's `cl_data->ref_count++`
+/// is the port's `+= 1`.
+/// C: static xg_menu_cb_data *
+/// C: make_cl_data (xg_menu_cb_data *cl_data, struct frame *f, GCallback highlight_cb)
+#[cfg (feature = "use_gtk")]
+unsafe fn make_cl_data (mut cl_data: *mut xg_menu_cb_data, f: *mut frame,
+			highlight_cb: GCallback) -> *mut xg_menu_cb_data
+{
+  if cl_data.is_null ()                                                 // C 3038
+    {
+      cl_data = xmalloc (core::mem::size_of::<xg_menu_cb_data> ())      // C 3040
+	as *mut xg_menu_cb_data;
+      (*cl_data).f = f;                                                 // C 3041
+      (*cl_data).menu_bar_vector = (*f).menu_bar_vector;                // C 3042
+      (*cl_data).menu_bar_items_used = (*f).menu_bar_items_used;        // C 3043
+      (*cl_data).highlight_cb = highlight_cb;                           // C 3044
+      (*cl_data).ref_count = 0;                                         // C 3045
+
+      xg_list_insert ((&raw mut xg_menu_cb_list),
+		      (&raw mut (*cl_data).ptrs));                      // C 3047
+    }
+
+  (*cl_data).ref_count += 1;                                            // C 3050
+
+  cl_data                                                               // C 3052
+}
+
+/* C 3055-3064's comment above `update_cl_data`, carried as C's own text.  */
+/* C: /* Update CL_DATA with values from frame F and with HIGHLIGHT_CB.
+   C:    HIGHLIGHT_CB is the callback to call when entering/leaving menu items.
+
+   C:    When the menu bar is updated, menu items may have been added and/or
+   C:    removed, so menu_bar_vector and menu_bar_items_used change.  We must
+   C:    then update CL_DATA since it is used to determine which menu
+   C:    item that is invoked in the menu.
+   C:    HIGHLIGHT_CB could change, there is no check that the same
+   C:    function is given when modifying a menu bar as was given when
+   C:    creating the menu bar.  */  */
+
+/// C 3066-3078: `static void update_cl_data (xg_menu_cb_data *cl_data, struct frame *f,
+/// GCallback highlight_cb)` - `static`, address never taken, so a plain `unsafe fn`; C 3071's
+/// guard keeps the four stores off a null pointer in both C and the port.
+/// C: static void
+/// C: update_cl_data (xg_menu_cb_data *cl_data,
+/// C:                 struct frame *f,
+/// C:                 GCallback highlight_cb)
+#[cfg (feature = "use_gtk")]
+unsafe fn update_cl_data (cl_data: *mut xg_menu_cb_data, f: *mut frame, highlight_cb: GCallback)
+{
+  if ! cl_data.is_null ()                                               // C 3071
+    {
+      (*cl_data).f = f;                                                 // C 3073
+      (*cl_data).menu_bar_vector = (*f).menu_bar_vector;                // C 3074
+      (*cl_data).menu_bar_items_used = (*f).menu_bar_items_used;        // C 3075
+      (*cl_data).highlight_cb = highlight_cb;                           // C 3076
+    }
+}
+
+/* C 3080-3081's comment above `unref_cl_data`, carried as C's own text.  */
+/* C: /* Decrease reference count for CL_DATA.
+   C:    If reference count is zero, free CL_DATA.  */  */
+
+/// C 3083-3095: `static void unref_cl_data (xg_menu_cb_data *cl_data)` - `static,` address
+/// never taken, so a plain `unsafe fn`; C 3086's two tests are the port's null check and the
+/// same `> 0`, C 3088's `--` is `-= 1`, and C 3092's `xfree` takes the `*mut c_void` the
+/// port's allocator declares.
+/// C: static void
+/// C: unref_cl_data (xg_menu_cb_data *cl_data)
+#[cfg (feature = "use_gtk")]
+unsafe fn unref_cl_data (cl_data: *mut xg_menu_cb_data)
+{
+  if ! cl_data.is_null () && (*cl_data).ref_count > 0                   // C 3086
+    {
+      (*cl_data).ref_count -= 1;                                        // C 3088
+      if (*cl_data).ref_count == 0                                      // C 3089
+	{
+	  xg_list_remove ((&raw mut xg_menu_cb_list),
+			  (&raw mut (*cl_data).ptrs));                  // C 3091
+	  xfree (cl_data as *mut c_void);                                   // C 3092
+	}
+    }
+}
+
+/* C 3097's comment above `xg_mark_data`, carried as C's own text.  */
+/* C: /* Function that marks all lisp data during GC.  */  */
+
+/// C 3099-3142: `void xg_mark_data (void)` - non-`static` (gtkutil.h 232 declares it and
+/// `alloc.c`'s GC calls it), so `#[unsafe(no_mangle)]` with the C ABI.  C 3105/3108's two
+/// `for` heads are the port's `while` with C's update step at the loop's end (PORTING.md 2.2),
+/// C 3106/3110's casts are the port's `as`, C 3116's `FOR_EACH_FRAME` is `include/lisp.rs`'s
+/// macro form, C 3120's bare pointer test is the port's null check, C 3122-3124's
+/// `g_object_get_data` result takes C's own conversion, and C 3134-3139's `#ifndef HAVE_PGTK`
+/// arm reads the quit event whose `.kind` bitfield is the port's `input_event_bits!` accessor
+/// (PORTING.md P-80) over the object declared below.
+/// C: void
+/// C: xg_mark_data (void)
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_mark_data ()
+{
+  let mut iter: *mut xg_list_node;                                      // C 3102
+  let mut rest: Lisp_Object;                                            // C 3103
+  let mut frame: Lisp_Object;
+
+  iter = xg_menu_cb_list.next;                                          // C 3105
+  while ! iter.is_null ()                                               // C 3105
+    {
+      mark_object ((*(iter as *mut xg_menu_cb_data)).menu_bar_vector);   // C 3106
+      iter = (*iter).next;                                              // C 3105 (the `for` step)
+    }
+
+  iter = xg_menu_item_cb_list.next;                                     // C 3108
+  while ! iter.is_null ()                                               // C 3108
+    {
+      let cb_data: *mut xg_menu_item_cb_data
+	= iter as *mut xg_menu_item_cb_data;                            // C 3110
+
+      if ! NILP ((*cb_data).help)                                       // C 3112
+	{ mark_object ((*cb_data).help); }                              // C 3113
+      iter = (*iter).next;                                              // C 3108 (the `for` step)
+    }
+
+  FOR_EACH_FRAME! (rest, frame, {                                       // C 3116
+      let f: *mut frame = XFRAME (frame);                               // C 3118
+
+      if (FRAME_X_P (f) || FRAME_PGTK_P (f))                            // C 3120
+	  && ! FRAME_GTK_OUTER_WIDGET! (f).is_null ()
+	{
+	  let tbinfo: *mut xg_frame_tb_info
+	    = g_object_get_data (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)),
+				 TB_INFO_KEY.as_ptr ()) as *mut xg_frame_tb_info;   // C 3122-3124
+	  if ! tbinfo.is_null ()                                        // C 3125
+	    {
+	      mark_object ((*tbinfo).last_tool_bar);                    // C 3127
+	      mark_object ((*tbinfo).style);                            // C 3128
+	    }
+	}
+    });
+
+  /* C 3133's `#ifndef HAVE_PGTK`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  {
+    if input_event_bits! (kind, (&raw mut xg_pending_quit_event)) != NO_EVENT   // C 3134
+      {
+	eassert! (input_event_bits! (kind, (&raw mut xg_pending_quit_event))
+		  == ASCII_KEYSTROKE_EVENT);                            // C 3136
+
+	mark_object (xg_pending_quit_event.frame_or_window);            // C 3138
+	mark_object (xg_pending_quit_event.arg);                        // C 3139
+      }
+  }
+}
+
+/* `mark_object` (lisp.h 4436, `alloc.c`) and `xg_pending_quit_event` (xterm.h 2012, defined in
+   `src/xterm.rs` 769 - `xterm.c` 815) are same-program declarations no mirror carries:
+   `include/lisp.rs` carries `mark_objects` alone, and the xterm.h mirror leaves the object to
+   the unit that defines it (its own `xterm_globals` module).  Six units already declare
+   `mark_object` this way (`src/eval.rs` 77, `src/bytecode.rs` 104 and the rest) and the
+   ledger's Owed names both gaps.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn mark_object (obj: Lisp_Object);                                // lisp.h 4436
+  #[cfg (not (feature = "have_pgtk"))]
+  pub static mut xg_pending_quit_event: input_event;                    // xterm.h 2012
+}
+
+/* `input_event_bits!` (termhooks.h's `input_event` bitfield accessor, PORTING.md P-80): every
+   terminal unit carries its own copy of the four-arm accessor over
+   `include/termhooks.rs`'s `INPUT_EVENT_KIND_MASK`/`INPUT_EVENT_PART_SHIFT` (`src/xterm.rs`
+   1650-1658's shape), and C 3134/3136 are this unit's two reads.  */
+#[cfg (feature = "use_gtk")]
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
+}
+
+/* C 3144-3146's comment above `menuitem_destroy_callback`, carried as C's own text.  */
+/* C: /* Callback called when a menu item is destroyed.  Used to free data.
+   C:    W is the widget that is being destroyed (not used).
+   C:    CLIENT_DATA points to the xg_menu_item_cb_data associated with the W.  */  */
+
+/// C 3148-3157: `static void menuitem_destroy_callback (GtkWidget *w, gpointer client_data)` -
+/// `static` in C, but C 3393 (the next slice) takes its address for `g_signal_connect`, so the
+/// port defines it `unsafe extern "C" fn` (the `dialog_delete_callback` shape above).  C 3153's
+/// implicit `gpointer` conversion is the port's `as`, C 3151's pointer test is the null check,
+/// and the unread parameter keeps C's name.
+/// C: static void
+/// C: menuitem_destroy_callback (GtkWidget *w, gpointer client_data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn menuitem_destroy_callback (w: *mut GtkWidget, client_data: gpointer)
+{
+  if ! client_data.is_null ()                                           // C 3151
+    {
+      let data: *mut xg_menu_item_cb_data
+	= client_data as *mut xg_menu_item_cb_data;                     // C 3153
+      xg_list_remove ((&raw mut xg_menu_item_cb_list),
+		      (&raw mut (*data).ptrs));                         // C 3154
+      xfree (data as *mut c_void);                                       // C 3155
+    }
+}
+
+/* C 3159-3164's comment above `menuitem_highlight_callback`, carried as C's own text.  */
+/* C: /* Callback called when the pointer enters/leaves a menu item.
+   C:    W is the parent of the menu item.
+   C:    EVENT is either an enter event or leave event.
+   C:    CLIENT_DATA is not used.
+
+   C:    Returns FALSE to tell GTK to keep processing this event.  */  */
+
+/// C 3166-3189: `static gboolean menuitem_highlight_callback (GtkWidget *w, GdkEventCrossing
+/// *event, gpointer client_data)` - `static`, but C 3418 (the next slice) takes its address for
+/// `g_signal_connect`, so `unsafe extern "C" fn`.  C 3171's uninitialised `GdkEvent ev` is the
+/// port's zeroed local (PORTING.md 1.5), C 3175's `&ev` is `&raw mut`, C 3177's
+/// `g_object_get_data` result takes C's conversion, C 3182's `0` is the null pointer and C
+/// 3183's cast is the `GCallback`-to-`GtkCallback` transmute this file already uses for the
+/// reverse direction (C 2344's device); C 3184's `(*func) (…)` is the port's `unwrap ()` call,
+/// as C 2838's is.
+/// C: static gboolean
+/// C: menuitem_highlight_callback (GtkWidget *w,
+/// C:                              GdkEventCrossing *event,
+/// C:                              gpointer client_data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn menuitem_highlight_callback (w: *mut GtkWidget,
+						  event: *mut GdkEventCrossing,
+						  client_data: gpointer) -> gboolean
+{
+  let mut ev: GdkEvent = core::mem::zeroed ();                          // C 3171
+  let subwidget: *mut GtkWidget;                                        // C 3172
+  let data: *mut xg_menu_item_cb_data;                                  // C 3173
+
+  ev.crossing = *event;                                                  // C 3175
+  subwidget = gtk_get_event_widget ((&raw mut ev));                     // C 3176
+  data = g_object_get_data (G_OBJECT! (subwidget), XG_ITEM_DATA)        // C 3177
+    as *mut xg_menu_item_cb_data;
+  if ! data.is_null ()                                                  // C 3178
+    {
+      if ! NILP ((*data).help)                                          // C 3180
+	  && (*((*data).cl_data)).highlight_cb.is_some ()
+	{
+	  let call_data: gpointer
+	    = if (*event).r#type == GDK_LEAVE_NOTIFY
+		{ std::ptr::null_mut () } else { data as gpointer };    // C 3182
+	  let func: GtkCallback
+	    = core::mem::transmute::<GCallback, GtkCallback> ((*((*data).cl_data)).highlight_cb);   // C 3183
+	  (func.unwrap ()) (subwidget, call_data);                      // C 3184
+	}
+    }
+
+  FALSE                                                                 // C 3188
+}
+
+/* C 3191-3193's comment above `menu_destroy_callback`, carried as C's own text.  */
+/* C: /* Callback called when a menu is destroyed.  Used to free data.
+   C:    W is the widget that is being destroyed (not used).
+   C:    CLIENT_DATA points to the xg_menu_cb_data associated with W.  */  */
+
+/// C 3195-3199: `static void menu_destroy_callback (GtkWidget *w, gpointer client_data)` -
+/// `static`, but C 3468 (a later slice) takes its address for `g_signal_connect`, so
+/// `unsafe extern "C" fn`.  C 3198's implicit conversion to `xg_menu_cb_data *` is the port's
+/// `as`, and both parameters keep C's names.
+/// C: static void
+/// C: menu_destroy_callback (GtkWidget *w, gpointer client_data)
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn menu_destroy_callback (w: *mut GtkWidget, client_data: gpointer)
+{
+  unref_cl_data (client_data as *mut xg_menu_cb_data);                  // C 3198
+}
+
+/* ----------------------------------------------------------------------------------------------
+   The GTK/GDK/GLib names the two builders below need and no mirror carries.
+
+   Four units that `include!` `include/gtk.rs` already carry their own copies of them
+   (`src/pgtkmenu.rs` 212-227, `src/xmenu.rs` 776-791, `src/xwidget.rs` 300/408 and
+   `src/pgtkterm.rs`), so the mirror cannot take these names without an `E0428` in those
+   translation units; the move-back to `include/gtk.rs` with all five copies deleted is one
+   round, and the ledger's Owed names it (P-90 ①/②).  **No GTK or GDK tree exists on this
+   machine**, so every prototype here is `UNVERIFIED` and every enumerator is a placeholder
+   (P-88 (2)) - except `GSList`, which is GLib's and therefore real.
+   ---------------------------------------------------------------------------------------------- */
+
+/// C: gtk/gtk.h: `typedef void (*GtkCallback) (GtkWidget *widget, gpointer data);` - the type
+/// C 3183 casts the highlight callback to and C 3184 calls through.  **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+pub type GtkCallback = Option<unsafe extern "C" fn (widget: *mut GtkWidget, data: gpointer)>;
+/// C: gtk/gtkcheckmenuitem.h: `typedef struct _GtkCheckMenuItem GtkCheckMenuItem;` - the type of
+/// `GTK_CHECK_MENU_ITEM`'s result and of `gtk_check_menu_item_set_active`'s parameter
+/// (C 3274/3282).  **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+#[repr(C)]
+pub struct GtkCheckMenuItem
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkradiomenuitem.h: `typedef struct _GtkRadioMenuItem GtkRadioMenuItem;` - the type of
+/// `GTK_RADIO_MENU_ITEM`'s result and of `gtk_radio_menu_item_get_group`'s parameter (C 3280).
+/// **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+#[repr(C)]
+pub struct GtkRadioMenuItem
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkcheckmenuitem.h and gtk/gtkradiomenuitem.h: `#define GTK_CHECK_MENU_ITEM(obj)` /
+/// `#define GTK_RADIO_MENU_ITEM(obj)` - C 3274/3280/3282's two checked casts, each keeping the
+/// macro's name and its result type (the `src/pgtkmenu.rs` 220-227 and `src/xmenu.rs` 788-791
+/// shapes); the `G_TYPE_CHECK_INSTANCE_CAST` chain is owed, as the mirror's other casts are.
+#[cfg (feature = "use_gtk")]
+macro_rules! GTK_CHECK_MENU_ITEM {
+  ($o:expr) => { ($o) as *mut GtkCheckMenuItem };
+}
+#[cfg (feature = "use_gtk")]
+macro_rules! GTK_RADIO_MENU_ITEM {
+  ($o:expr) => { ($o) as *mut GtkRadioMenuItem };
+}
+/// C: glib/gslist.h 39 and 41-45: `typedef struct _GSList GSList;` and `struct _GSList {
+/// gpointer data; GSList *next; };` - the radio group C 3255's `GSList **group` threads through
+/// the builders.  **VERIFIED**: GLib is on this machine
+/// (`/opt/homebrew/include/glib-2.0/glib/gslist.h`), so the record is the header's own layout
+/// and the four assertions are the `_GList` shape's (`include/gtk.rs` 60-75).
+#[cfg (feature = "use_gtk")]
+pub type GSList = _GSList;
+#[cfg (feature = "use_gtk")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct _GSList
+{
+  pub data: gpointer,        // gslist.h 43: `gpointer data;`
+  pub next: *mut _GSList,    // gslist.h 44: `GSList *next;`
+}
+#[cfg (feature = "use_gtk")]
+const _: () = core::assert! (core::mem::size_of::<_GSList> () == 16);
+#[cfg (feature = "use_gtk")]
+const _: () = core::assert! (core::mem::align_of::<_GSList> () == 8);
+#[cfg (feature = "use_gtk")]
+const _: () = core::assert! (core::mem::offset_of! (_GSList, data) == 0);
+#[cfg (feature = "use_gtk")]
+const _: () = core::assert! (core::mem::offset_of! (_GSList, next) == 8);
+/// C: gdk/gdktypes.h: `GDK_LEAVE_NOTIFY` - the `GdkEventType` member C 3182's conditional tests.
+/// **No GDK tree exists on this machine**, so the value is a **placeholder**; it is distinct
+/// from every other member of `include/gtk.rs`'s set and it is the value `src/xwidget.rs` 300
+/// already carries for the same enumerator (the `src/xwidget.rs` 495-520 rule).
+#[cfg (feature = "use_gtk")]
+pub const GDK_LEAVE_NOTIFY: GdkEventType = 8;         // placeholder, not GDK's value
+
+/// C: gtk/gtkmenuitem.h, gtk/gtkcheckmenuitem.h and gtk/gtkradiomenuitem.h: the nine
+/// constructors, accessors and the container call C 3272-3291 spends.  Every prototype is
+/// `UNVERIFIED`.
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 3272: `if (utf8_key) w = gtk_check_menu_item_new ();`
+  /// C: gtk/gtkcheckmenuitem.h: `GtkWidget *gtk_check_menu_item_new (void);`
+  pub fn gtk_check_menu_item_new () -> *mut GtkWidget;
+  /// C 3273: `else w = gtk_check_menu_item_new_with_label (utf8_label);`
+  /// C: gtk/gtkcheckmenuitem.h: `GtkWidget *gtk_check_menu_item_new_with_label (const gchar
+  /// *label);`
+  pub fn gtk_check_menu_item_new_with_label (label: *const gchar) -> *mut GtkWidget;
+  /// C 3274/3282: `gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (w), …);`
+  /// C: gtk/gtkcheckmenuitem.h: `void gtk_check_menu_item_set_active (GtkCheckMenuItem
+  /// *check_menu_item, gboolean is_active);`
+  pub fn gtk_check_menu_item_set_active (check_menu_item: *mut GtkCheckMenuItem,
+					 is_active: gboolean);
+  /// C 3278: `if (utf8_key) w = gtk_radio_menu_item_new (*group);`
+  /// C: gtk/gtkradiomenuitem.h: `GtkWidget *gtk_radio_menu_item_new (GSList *group);`
+  pub fn gtk_radio_menu_item_new (group: *mut GSList) -> *mut GtkWidget;
+  /// C 3279: `else w = gtk_radio_menu_item_new_with_label (*group, utf8_label);`
+  /// C: gtk/gtkradiomenuitem.h: `GtkWidget *gtk_radio_menu_item_new_with_label (GSList *group,
+  /// const gchar *label);`
+  pub fn gtk_radio_menu_item_new_with_label (group: *mut GSList,
+					     label: *const gchar) -> *mut GtkWidget;
+  /// C 3280: `*group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (w));`
+  /// C: gtk/gtkradiomenuitem.h: `GSList *gtk_radio_menu_item_get_group (GtkRadioMenuItem
+  /// *radio_menu_item);`
+  pub fn gtk_radio_menu_item_get_group (radio_menu_item: *mut GtkRadioMenuItem)
+    -> *mut GSList;
+  /// C 3287: `if (utf8_key) w = gtk_menu_item_new ();`
+  /// C: gtk/gtkmenuitem.h: `GtkWidget *gtk_menu_item_new (void);`
+  pub fn gtk_menu_item_new () -> *mut GtkWidget;
+  /// C 3288: `else w = gtk_menu_item_new_with_label (utf8_label);`
+  /// C: gtk/gtkmenuitem.h: `GtkWidget *gtk_menu_item_new_with_label (const gchar *label);`
+  pub fn gtk_menu_item_new_with_label (label: *const gchar) -> *mut GtkWidget;
+}
+
+/* C 3201-3204's comment above `make_widget_for_menu_item`, carried as C's own text.  */
+/* C: /* Make a GTK widget that contains both UTF8_LABEL and UTF8_KEY (both
+   C:    must be non-NULL) and can be inserted into a menu item.
+
+   C:    Returns the GtkHBox.  */  */
+
+/// C 3206-3235: `static GtkWidget *make_widget_for_menu_item (const char *utf8_label, const char
+/// *utf8_key)` - `static` in C and its address is never taken, so a plain `unsafe fn`.  C
+/// 3218-3226's `#if GTK_CHECK_VERSION (3, 14, 0)` pair is the `gtk_check_version_ge_3_14`
+/// feature (C 2419's twin, registered by the third slice), the two `gtk_misc_set_alignment`
+/// arguments C writes as `0.0, 0.5` are the mirror's `f32` parameters (glib.h 198's `gfloat`),
+/// and C 3230-3232's `MENU_ITEM_NAME` is the constant above.
+/// C: static GtkWidget *
+/// C: make_widget_for_menu_item (const char *utf8_label, const char *utf8_key)
+#[cfg (feature = "use_gtk")]
+unsafe fn make_widget_for_menu_item (utf8_label: *const c_char, utf8_key: *const c_char)
+  -> *mut GtkWidget
+{
+  let wlbl: *mut GtkWidget;                                             // C 3209
+  let wkey: *mut GtkWidget;                                             // C 3210
+  let wbox: *mut GtkWidget;                                             // C 3211
+
+  wbox = gtk_box_new! (GTK_ORIENTATION_HORIZONTAL, 0);                  // C 3213
+  gtk_box_set_homogeneous (GTK_BOX! (wbox), FALSE);                     // C 3214
+  wlbl = gtk_label_new (utf8_label);                                    // C 3215
+  wkey = gtk_label_new (utf8_key);                                      // C 3216
+
+  /* C 3218's `#if GTK_CHECK_VERSION (3, 14, 0)`.  */
+  #[cfg (feature = "gtk_check_version_ge_3_14")]
+  {
+    gtk_widget_set_halign (wlbl, GTK_ALIGN_START);                      // C 3219
+    gtk_widget_set_valign (wlbl, GTK_ALIGN_CENTER);                     // C 3220
+    gtk_widget_set_halign (wkey, GTK_ALIGN_START);                      // C 3221
+    gtk_widget_set_valign (wkey, GTK_ALIGN_CENTER);                     // C 3222
+  }
+  #[cfg (not (feature = "gtk_check_version_ge_3_14"))]
+  {
+    gtk_misc_set_alignment (GTK_MISC! (wlbl), 0.0, 0.5);                // C 3224
+    gtk_misc_set_alignment (GTK_MISC! (wkey), 0.0, 0.5);                // C 3225
+  }
+  gtk_box_pack_start (GTK_BOX! (wbox), wlbl, TRUE, TRUE, 0);            // C 3227
+  gtk_box_pack_start (GTK_BOX! (wbox), wkey, FALSE, FALSE, 0);          // C 3228
+
+  gtk_widget_set_name (wlbl, MENU_ITEM_NAME.as_ptr ());                // C 3230
+  gtk_widget_set_name (wkey, MENU_ITEM_NAME.as_ptr ());                // C 3231
+  gtk_widget_set_name (wbox, MENU_ITEM_NAME.as_ptr ());                // C 3232
+
+  wbox                                                                  // C 3234
+}
+
+/* C 3237-3249's comment above `make_menu_item`, carried as C's own text.  */
+/* C: /* Make and return a menu item widget with the key to the right.
+   C:    UTF8_LABEL is the text for the menu item (GTK uses UTF8 internally).
+   C:    UTF8_KEY is the text representing the key binding.
+   C:    ITEM is the widget_value describing the menu item.
+
+   C:    GROUP is an in/out parameter.  If the menu item to be created is not
+   C:    part of any radio menu group, *GROUP contains NULL on entry and exit.
+   C:    If the menu item to be created is part of a radio menu group, on entry
+   C:    *GROUP contains the group to use, or NULL if this is the first item
+   C:    in the group.  On exit, *GROUP contains the radio item group.
+
+   C:    Unfortunately, keys don't line up as nicely as in Motif,
+   C:    but the macOS version doesn't either, so I guess that is OK.  */  */
+
+/// C 3251-3300: `static GtkWidget *make_menu_item (const char *utf8_label, const char
+/// *utf8_key, widget_value *item, GSList **group)` - `static`, address never taken, so a plain
+/// `unsafe fn`.  C 3264's write to the parameter is the port's `mut` and its `" "` literal is
+/// the port's one-element `c" "`, C 3258's `= 0` is the null pointer, C 3274's and C 3282's
+/// `item->selected` is the mirror's `bool` promoted to `gboolean` (C's own usual conversion),
+/// and C 3294-3297's `#ifdef HAVE_PGTK` arm reads `widget_value`'s help through `NILP`/`SSDATA`
+/// as the file's other arms do.
+/// C: static GtkWidget *
+/// C: make_menu_item (const char *utf8_label,
+/// C:                 const char *utf8_key,
+/// C:                 widget_value *item,
+/// C:                 GSList **group)
+#[cfg (feature = "use_gtk")]
+unsafe fn make_menu_item (mut utf8_label: *const c_char, utf8_key: *const c_char,
+			  item: *mut widget_value, group: *mut *mut GSList) -> *mut GtkWidget
+{
+  let w: *mut GtkWidget;                                                // C 3257
+  let mut wtoadd: *mut GtkWidget = std::ptr::null_mut ();               // C 3258
+
+  /* It has been observed that some menu items have a NULL name field.
+     This will lead to this function being called with a NULL utf8_label.
+     GTK crashes on that so we set a blank label.  Why there is a NULL
+     name remains to be investigated.  */                               // C 3260-3263
+  if utf8_label.is_null () { utf8_label = c" ".as_ptr (); }            // C 3264
+
+  if ! utf8_key.is_null ()                                              // C 3266
+    { wtoadd = make_widget_for_menu_item (utf8_label, utf8_key); }      // C 3267
+
+  if (*item).button_type == BUTTON_TYPE_TOGGLE                          // C 3269
+    {
+      *group = std::ptr::null_mut ();                                   // C 3271
+      if ! utf8_key.is_null () { w = gtk_check_menu_item_new (); }       // C 3272
+      else { w = gtk_check_menu_item_new_with_label (utf8_label); }      // C 3273
+      gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM! (w),          // C 3274
+				      (*item).selected as gboolean);
+    }
+  else if (*item).button_type == BUTTON_TYPE_RADIO                       // C 3276
+    {
+      if ! utf8_key.is_null () { w = gtk_radio_menu_item_new (*group); }   // C 3278
+      else { w = gtk_radio_menu_item_new_with_label (*group, utf8_label); }   // C 3279
+      *group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM! (w));   // C 3280
+      if (*item).selected                                               // C 3281
+	{ gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM! (w), TRUE); }   // C 3282
+    }
+  else
+    {
+      *group = std::ptr::null_mut ();                                   // C 3286
+      if ! utf8_key.is_null () { w = gtk_menu_item_new (); }             // C 3287
+      else { w = gtk_menu_item_new_with_label (utf8_label); }            // C 3288
+    }
+
+  if ! wtoadd.is_null ()                                                // C 3291
+    { gtk_container_add (GTK_CONTAINER! (w), wtoadd); }
+  if ! (*item).enabled                                                  // C 3292
+    { gtk_widget_set_sensitive (w, FALSE); }
+
+  /* C 3294's `#ifdef HAVE_PGTK`.  */
+  #[cfg (feature = "have_pgtk")]
+  { if ! NILP ((*item).help)                                            // C 3295
+      { gtk_widget_set_tooltip_text (w, SSDATA ((*item).help)); } }      // C 3296
+
+  w                                                                     // C 3299
+}
