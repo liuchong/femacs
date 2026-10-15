@@ -128,6 +128,14 @@ type xp_output = pgtk_output;                  // C 40: `typedef struct pgtk_out
 type xp_display = Display;
 #[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
 type xp_display = GdkDisplay;
+/* C 30/33 of `gtkutil.h` give C's `EVENT` two faces too: `#define EVENT GdkEvent` under `HAVE_PGTK`
+   and `#define EVENT XEvent` otherwise, which is why C 5118's parameter is spelled either way in
+   one text.  The port carries the alias (the `xp_output`/`xp_display` shape above), and the
+   twenty-fourth slice's function is its only user.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+type EVENT = XEvent;
+#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+type EVENT = GdkEvent;
 
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/emacsgtkfixed.rs");          // C 63: `#include "emacsgtkfixed.h"`
@@ -7427,4 +7435,176 @@ pub unsafe extern "C" fn xg_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut s
       { gtk_adjustment_changed (adj); }                                  // C 5106
       unblock_input ();                                                  // C 5108
     }
+}
+
+/* ----------------------------------------------------------------------------------------------
+   The two X11 records and the three XInput2 enumerators `xg_event_is_for_scrollbar` needs and no
+   mirror in the unit's include graph carries.
+
+   `event->xgeneric` is Xlib's `XGenericEvent` (`Xlib.h` 945-952, the head of the
+   `XGenericEventCookie` slice 14 already carries in this unit), and `Xlib.h` **is** on this
+   machine: the record's three members this file reads sit at the offsets the cookie's measured
+   56-byte record already fixes (`extension`@32, `evtype`@36), so the size assertion below is that
+   reading extended by the header's own two fields.  The three `XI_*` enumerators are XInput2's,
+   which is **not** on this machine: they carry `src/xterm.rs` 957-961's reading and its citation
+   (XI2.h 194-196), the same values that unit's copy states.
+   ---------------------------------------------------------------------------------------------- */
+/// C: Xlib.h 945-952: `typedef struct { int type; unsigned long serial; Bool send_event; Display
+/// *display; int extension; int evtype; } XGenericEvent;` - the record C 5127-5129 reads
+/// `extension` and `evtype` from.  `type`/`serial`/`send_event`/`display` repeat the head slice 14's
+/// `XGenericEventCookie` asserts (`evtype`@36 there), so this record is the same head without the
+/// cookie and the data pointer: size 40, `extension`@32, `evtype`@36.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XGenericEvent
+{
+  pub r#type: c_int,               // Xlib.h: `int type;`
+  pub serial: c_ulong,             // Xlib.h: `unsigned long serial;`
+  pub send_event: Bool,            // Xlib.h: `Bool send_event;`
+  pub display: *mut Display,       // Xlib.h: `Display *display;`
+  pub extension: c_int,            // Xlib.h: `int extension;`
+  pub evtype: c_int,               // Xlib.h: `int evtype;`
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::size_of::<XGenericEvent> () == 40);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XGenericEvent, extension) == 32);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XGenericEvent, evtype) == 36);
+/// C: XI2.h 194-196 (through `src/xterm.rs` 957-961, whose unit carries its own copy): the three
+/// XInput2 event types C 5129/5170-5172 and their siblings test.  **XInput2.h is not on this
+/// machine**, so the values are that unit's reading; the placeholders elsewhere in this file for
+/// the same header follow it too.
+#[cfg (all (feature = "use_gtk", feature = "have_xinput2"))]
+pub const XI_ButtonPress: c_int = 4;           // XI2.h 194
+#[cfg (all (feature = "use_gtk", feature = "have_xinput2"))]
+pub const XI_ButtonRelease: c_int = 5;         // XI2.h 195
+#[cfg (all (feature = "use_gtk", feature = "have_xinput2"))]
+pub const XI_Motion: c_int = 6;                // XI2.h 196
+
+/* C 5112-5115's comment above the predicate, carried as C's own text, then C 5117-5193.  */
+
+/// C 5117-5193: `bool xg_event_is_for_scrollbar (struct frame *f, const EVENT *event, bool
+/// for_valuator)` - decide whether the button event in `event` belongs to a scroll bar: C 5123-5142's
+/// press test (XInput2's `XI_ButtonPress`, or X11's `ButtonPress`, or the pgtk face's
+/// `GDK_BUTTON_PRESS`), C 5143-5164's "did it happen outside the frame's edit widget?" check through
+/// the pointer's current window, and C 5165-5191's release/motion arm, which answers with the widget
+/// that holds the grab.  Non-`static` (`gtkutil.h` 163 declares it and `xterm.c` calls it), so
+/// `#[unsafe(no_mangle)]` with the C ABI.
+///
+/// **Both of C's folds split inside the `if` condition** (C 5123's `#ifdef HAVE_XINPUT2` and
+/// C 5165's), which this file's `## Deviations` 17 calls an arm chooser: the port keeps C's `if`
+/// text and both bodies once and puts each face's term in a `let` (`press_p`, `move_p`, the
+/// `take_body`/`frame_p` shape).  The `EVENT` parameter is the file's per-face alias, so C's
+/// `event->type`/`xgeneric`/`xbutton` reads are the X11 records' members through the same casts
+/// slice 14 used, while the pgtk face reads the mirror's `GdkEvent` union.  **C itself is only
+/// valid in the XInput2 face for a non-pgtk build**: C 5125/5128's `FRAME_DISPLAY_INFO (f)` is
+/// `x_display_info` there, whose `supports_xi2`/`xi2_opcode` (`include/xterm.rs` 687/691)
+/// `pgtk_display_info` does not have (pgtkterm.h mentions no `xi2` at all), which is exactly what
+/// the out-of-tree pgtk probe reads two `E0609`s for.
+/* C: /* Return true if EVENT is for a scroll bar in frame F.
+   C:    When the same X window is used for several Gtk+ widgets, we cannot
+   C:    say for sure based on the X window alone if an event is for the
+   C:    frame.  This function does additional checks.  */  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_event_is_for_scrollbar (f: *mut frame, event: *const EVENT,
+						    for_valuator: bool) -> bool   // C 5118-5193
+{
+  /* C 5131/5137/5173/5179/5180's `ButtonPress`/`ButtonRelease`/`MotionNotify` are X11/X.h's, and
+     `include/xlib.rs` 61's `x11_constants` module carries all three (its 115/325/330) - but a
+     module's items are not in scope unqualified, so the three names come in here (the
+     `src/xterm.rs` 13920 `use x11_constants::None;` shape; that unit's own note at 4255, "the
+     mirror's `x11_constants` module does not carry yet", is stale - the rows are there - and this
+     slice is that note's counterexample).  A `use` is not a C statement.  */
+  use x11_constants::{ButtonPress, ButtonRelease, MotionNotify};
+
+  let mut retval: bool = false;                                         // C 5121
+
+  /* C 5123's `#ifdef HAVE_XINPUT2` and C 5135's `#else` pick the press test; C 5142's `#endif`
+     closes the pair.  */
+  #[cfg (feature = "have_xinput2")]
+  let xev: *mut XIDeviceEvent
+    = (*(event as *const XGenericEventCookie)).data as *mut XIDeviceEvent;   // C 5124
+  #[cfg (feature = "have_xinput2")]
+  let press_p: bool = ! f.is_null ()                                    // C 5125
+    && ((*FRAME_DISPLAY_INFO! (f)).supports_xi2
+	&& (*(event as *const XGenericEventCookie)).r#type == GenericEvent   // C 5126
+	&& ((*(event as *const XGenericEvent)).extension
+	    == (*FRAME_DISPLAY_INFO! (f)).xi2_opcode)                    // C 5127-5128
+	&& ((*(event as *const XGenericEvent)).evtype == XI_ButtonPress     // C 5129
+	    && (*xev).detail < 4)                                        // C 5130
+	|| ((*(event as *const XButtonEvent)).r#type == ButtonPress        // C 5131
+	    && (*(event as *const XButtonEvent)).button < 4)             // C 5132
+	|| for_valuator);                                               // C 5133
+  #[cfg (all (not (feature = "have_xinput2"), not (feature = "have_pgtk")))]
+  let press_p: bool = ! f.is_null ()                                    // C 5135
+    && (*(event as *const XButtonEvent)).r#type == ButtonPress          // C 5137
+    && (*(event as *const XButtonEvent)).button < 4;
+  #[cfg (all (not (feature = "have_xinput2"), feature = "have_pgtk"))]
+  let press_p: bool = ! f.is_null ()                                    // C 5135
+    && (*event).r#type == GDK_BUTTON_PRESS                              // C 5139
+    && (*event).button.button < 4;
+
+  #[cfg (feature = "have_xinput2")]
+  let move_p: bool = ! f.is_null ()                                     // C 5166
+    && ((*FRAME_DISPLAY_INFO! (f)).supports_xi2
+	&& (*(event as *const XGenericEventCookie)).r#type == GenericEvent   // C 5167
+	&& ((*(event as *const XGenericEvent)).extension
+	    == (*FRAME_DISPLAY_INFO! (f)).xi2_opcode)                    // C 5168-5169
+	&& (((*(event as *const XGenericEvent)).evtype == XI_ButtonRelease   // C 5170
+	     && (*xev).detail < 4)                                       // C 5171
+	    || ((*(event as *const XGenericEvent)).evtype == XI_Motion))    // C 5172
+	|| (((*(event as *const XButtonEvent)).r#type == ButtonRelease      // C 5173
+	     && (*(event as *const XButtonEvent)).button < 4)            // C 5174
+	    || (*(event as *const XButtonEvent)).r#type == MotionNotify));   // C 5175
+  #[cfg (all (not (feature = "have_xinput2"), not (feature = "have_pgtk")))]
+  let move_p: bool = ! f.is_null ()                                     // C 5177
+    && (((*(event as *const XButtonEvent)).r#type == ButtonRelease      // C 5179
+	 && (*(event as *const XButtonEvent)).button < 4)
+	|| (*(event as *const XButtonEvent)).r#type == MotionNotify);   // C 5180
+  #[cfg (all (not (feature = "have_xinput2"), feature = "have_pgtk"))]
+  let move_p: bool = ! f.is_null ()                                     // C 5177
+    && (((*event).r#type == GDK_BUTTON_RELEASE                          // C 5182
+	 && (*event).button.button < 4)
+	|| (*event).r#type == GDK_MOTION_NOTIFY);                       // C 5183
+
+  if press_p
+    {
+      /* Check if press occurred outside the edit widget.  */
+      /* C 5145's `#ifndef HAVE_PGTK`; its `#else` is C 5147.  */
+      #[cfg (not (feature = "have_pgtk"))]
+      let gdpy: *mut GdkDisplay = gdk_x11_lookup_xdisplay (FRAME_X_DISPLAY! (f));   // C 5146
+      #[cfg (feature = "have_pgtk")]
+      let gdpy: *mut GdkDisplay = FRAME_X_DISPLAY! (f);                 // C 5148
+      let gwin: *mut GdkWindow;                                         // C 5150
+      /* C 5151's `#ifdef HAVE_GTK3`; its `#else` is C 5160.  */
+      #[cfg (feature = "have_gtk3")]
+      {
+	/* C 5152's `#if GTK_CHECK_VERSION (3, 20, 0)`; its `#else` is C 5155.  */
+	#[cfg (feature = "gtk_check_version_ge_3_20")]
+	let gdev: *mut GdkDevice
+	  = gdk_seat_get_pointer (gdk_display_get_default_seat (gdpy));      // C 5153-5154
+	#[cfg (not (feature = "gtk_check_version_ge_3_20"))]
+	let gdev: *mut GdkDevice = gdk_device_manager_get_client_pointer (   // C 5156
+				     gdk_display_get_device_manager (gdpy));  // C 5157
+	gwin = gdk_device_get_window_at_position (gdev, std::ptr::null_mut (),   // C 5159
+						  std::ptr::null_mut ());
+      }
+      #[cfg (not (feature = "have_gtk3"))]
+      { gwin = gdk_display_get_window_at_pointer (gdpy, std::ptr::null_mut (),   // C 5161
+						  std::ptr::null_mut ()); }
+
+      retval = gwin != gtk_widget_get_window ((*(FRAME_X_OUTPUT! (f) as *mut xp_output))   // C 5163
+					      .edit_widget);
+    }
+  else if move_p
+    {
+      /* If we are releasing or moving the scroll bar, it has the grab.  */
+      let w: *mut GtkWidget = gtk_grab_get_current ();                  // C 5189
+      retval = ! w.is_null () && GTK_IS_SCROLLBAR! (w);                 // C 5190
+    }
+
+  return retval;                                                        // C 5193
 }

@@ -723,3 +723,30 @@ owed rows only - arm A 27 -> 28 (and the same +1 with `gtk_check_version_ge_3_14
 out-of-tree pgtk probe stays **byte-identical at 24**.  This round also registered the
 `gtk_check_version_ge_3_20` feature in `femacs/xtask/Cargo.toml` (C 4829's condition) and
 re-recorded `docs/baseline/feature-coverage.tsv`.
+
+### status 4.354 (the gtkutil twenty-fourth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_event_is_for_scrollbar` (C 5112-5195) is the round's consumer and this file
+takes its largest batch for a while - seven names, all fresh:
+
+- **`gtk_grab_get_current`** (gtk/gtkmain.h, C 5189) - the widget that holds the grab, the answer
+  the function's release/motion arm gives.
+- **`GDK_MOTION_NOTIFY`**, **`GDK_BUTTON_PRESS`** and **`GDK_BUTTON_RELEASE`**
+  (gdk/gdktypes.h, C 5183/5139/5182) - the `GdkEventType` members the pgtk face of the two arm
+  choosers tests.  The family's own comment already named the two button ones as rows owed to
+  Owed 21's round, so this round closes that part of it; all three carry GDK's ordinals and the
+  family's UNVERIFIED marking.
+- **`GdkDeviceManager`** (gdk/gdkdevicemanager.h, the GTK < 3.20 face's record) and the four entry
+  points C 5156-5161 uses: **`gdk_display_get_device_manager`**,
+  **`gdk_device_manager_get_client_pointer`**, **`gdk_device_get_window_at_position`** and
+  **`gdk_display_get_window_at_pointer`**.  The first of those four is also the name
+  `src/xterm.rs` 20066 uses and no row anywhere declared (that unit's C 30644 site), so the mirror
+  closes an owed name for that lane too - the class slice 17's `GdkEventConfigure` belonged to.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings are
+**identical** to the pre-slice tree in seven of the eight sets (29/29/29/29/28/72/72) and the pgtk
+probe reads 23 = 23 once its set omits `have_xinput2` - which is the reference's own configuration,
+since its pgtk build defines no XInput2 (see that ledger's slice-24 section for the 45-anchor reading
+of the combination C cannot compile either).

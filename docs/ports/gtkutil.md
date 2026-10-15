@@ -212,7 +212,8 @@
 | 4877-4977 | C 4877-4880's comment and **`xg_update_horizontal_scrollbar_pos`** (C 4882-4974 - slice 20's twin, with C's own four differences: C 4920's `msl > width` test instead of a stored `hidden`, C 4942-4948's comment-inside-the-`if` clear that does not rescale the old width, and C 4954-4965's lowering block with C 4967-4971's sync unconditional), plus C 4975-4977's blanks | file gate (`use_gtk`) plus C's own five folds; **no mirror change and no new name** - every call the twin makes arrived with slice 20; slice 21 below |
 | 4978-5074 | C 4978's comment and **`int_gtk_range_get_value`** (C 4980-4984 - C's truncation of the range's `gdouble` to `int`), C 4987-4988's comment and **`xg_set_toolkit_scroll_bar_thumb`** (C 4990-5073 - the vertical thumb setter: the adjustment behind the range, `scroll-bar-adjust-thumb-portion`'s substitution of the line count for the portion, the thumb's fraction of the whole, the two `clip_to_bounds` calls into the adjustment's range, the step size from the frame's line count, the page/step writes and the guarded value write under `xg_ignore_gtk_scrollbar`), plus C 5074's blank | file gate (`use_gtk`) plus C 5063's version fold; **no mirror change** - the nine GtkRange/GtkAdjustment entry points are the unit's, because they name the unit's records - and the round widens `GtkRange`/`GTK_RANGE` to both GTK faces, declares `XG_SB_RANGE` and registers `gtk_check_version_ge_3_18`; slice 22 below |
 | 5075-5111 | C 5075-5077's comment and **`xg_set_toolkit_horizontal_scroll_bar_thumb`** (C 5079-5109 - the horizontal twin and a much shorter one: C 5091-5094's `max`/`min` clamps, the two fixed increments, and C 5102-5104's single `gtk_adjustment_configure` write, with C 5105's `gtk_check_version_ge_3_18` fold), plus C 5110-5111's blanks | file gate (`use_gtk`) plus C's version fold; **no mirror change and one new in-unit prototype** (`gtk_adjustment_configure`, Owed 18); slice 23 below |
-| 5112-6753 | **the remainder** — from C 5112-5115's comment and **`xg_event_is_for_scrollbar`** (C 5117) through C 6753: that predicate with its XInput2 and GTK 3.20 folds, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 5112-5195 | C 5112-5115's comment and **`xg_event_is_for_scrollbar`** (C 5117-5193 - the predicate `xterm.c` asks when a button event might belong to a scroll bar: C 5123-5142's press test in three faces, C 5143-5164's "did it happen outside the frame's edit widget?" through the pointer's current window, and C 5165-5191's release/motion arm answering with the widget that holds the grab), plus C 5195's blank | file gate (`use_gtk`) plus C's own eight folds; the mirror gains five GDK/GTK names and the unit carries the `EVENT` alias, the `XGenericEvent` record and the three `XI_*` enumerators (Owed 18); slice 24 below |
+| 5196-6753 | **the remainder** — from C 5196's form feed and C 5197-5199's "Printing" banner through C 6753: printing (`xg_page_setup_dialog`, `draw_page`, `print_settings`, `page_setup`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1123,6 +1124,14 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     above, so its home arrives with the same record move.  The round also **removed a claim** this
     item did not make but the slice-22 section did: `YG_SB_RANGE` is read by no C text anywhere
     (`gtkutil.h` 43 alone defines it), so nothing owes it.
+    **Slice 24 adds four more.**  The `EVENT` alias is the `xp_output`/`xp_display` class rather
+    than the mirror's (C's `#define EVENT` has two faces and the port writes both); the
+    `XGenericEvent` record is slice 14's `XButtonEvent`/`XGenericEventCookie` class - `include/xlib.rs`
+    is its home, where the whole `XEvent` union's members are owed; and the three `XI_*` enumerators
+    are XInput2's, which has **no mirror at all** (`XInput2.h` is not on this machine), so
+    `src/xterm.rs` 957-961 and this unit each carry their own copy until a round decides where those
+    go.  The round's seven *mirror* additions (the GDK constants, `gtk_grab_get_current`,
+    `GdkDeviceManager` and the four GDK entry points) are not owed to anything - they landed.
 
 ## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
 
@@ -2462,3 +2471,74 @@ comment above `xg_event_is_for_scrollbar`.
 the new prototype is UNVERIFIED, the `GDK_WINDOW_*` macro gap remains the mirror's, and the 3.18
 feature's value is the gate name rather than a measurement; the pgtk arm's reading is the probe's
 (Owed 17).
+
+## Slice 24 (2026-10-15, status 4.354): C 5112-5195 — `xg_event_is_for_scrollbar`
+
+**What this slice is.**  The predicate `xterm.c` asks when a button event might belong to a scroll
+bar (C 5117-5193): C 5123-5142's press test (XInput2's `XI_ButtonPress` under `HAVE_XINPUT2`, X11's
+`ButtonPress` otherwise, the pgtk face's `GDK_BUTTON_PRESS`), C 5143-5164's check that the press
+happened *outside* the frame's edit widget (through the window under the pointer, read three
+different ways per GTK version), and C 5165-5191's release/motion arm, which answers with the widget
+that holds the grab.  Non-`static` (`gtkutil.h` 163 declares it and `xterm.c` calls it).  Port:
+7,430 -> **7,610 lines**; the table's last row splits at C 5195 - the next text is C 5196's form feed
+and the "Printing" banner.
+
+**Both of C's folds split inside the `if` condition**, which this file's `## Deviations` 17 calls an
+*arm chooser*: the port keeps C's `if`/`else if` and both bodies once and puts each face's term in a
+`let` (`press_p`, `move_p` - the `take_body`/`frame_p`/`suppressed` shape).  That is what makes three
+mutually exclusive press tests and three release tests fit around one body apiece instead of
+triplicating C 5143-5164.
+
+**The names this slice needed, and where they could stand.**
+
+- **The mirror takes seven**: `gtk_grab_get_current` (gtk/gtkmain.h, C 5189), the `GdkEventType`
+  members `GDK_MOTION_NOTIFY`/`GDK_BUTTON_PRESS`/`GDK_BUTTON_RELEASE` (C 5183/5139/5182 - the two
+  button ones are the rows the family's own comment already called owed), `GdkDeviceManager`
+  (gdk/gdkdevicemanager.h, the GTK < 3.20 face's record) and the four entry points
+  C 5156-5161 uses (`gdk_display_get_device_manager`,
+  `gdk_device_manager_get_client_pointer`, `gdk_device_get_window_at_position`,
+  `gdk_display_get_window_at_pointer`); declaring the device-manager one also closes a name
+  `src/xterm.rs` 20066 uses and nothing declared (that unit's own C 30644 site), the class slice 17's
+  `GdkEventConfigure` belonged to.
+- **The unit carries four**: the `EVENT` alias (gtkutil.h 30/33's `#define EVENT GdkEvent` /
+  `XEvent`, so C 5118's parameter is one text with two meanings - the `xp_output`/`xp_display`
+  shape), the `XGenericEvent` record (Xlib.h 945-952, **measured**: `Xlib.h` is on this machine and
+  its head is the one slice 14's 56-byte `XGenericEventCookie` already asserts, so size 40 with
+  `extension`@32 and `evtype`@36), and the three `XI_*` enumerators (XInput2.h 194-196 through
+  `src/xterm.rs` 957-961, whose unit carries its own copy; **XInput2.h is not on this machine**).
+- **Two X11 constants the unit had to import by name.**  C 5131/5137/5173/5179/5180's
+  `ButtonPress`/`ButtonRelease`/`MotionNotify` live in `include/xlib.rs` 61's `x11_constants`
+  module, and a module's items are not in scope unqualified, so the function carries a
+  `use x11_constants::{…};` (the `src/xterm.rs` 13920 shape).  `src/xterm.rs` 4255's note that "the
+  mirror's `x11_constants` module does not carry yet" those three is stale - the rows are at
+  `include/xlib.rs` 115/325/330 - and this slice is that note's counterexample.
+
+**Readings, and one probe-set correction.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings, against a materialised baseline** (a temporary `git worktree` at `1de21093`).
+   Seven of the eight sets are **identical multisets before and after** (arm A 29, plus
+   `gtk_check_version_ge_3_14` 29, plus `gtk_check_version_ge_3_20` 29, plus
+   `gtk_check_version_ge_3_18` 29, arm A without `have_xinput2` 28, arm C 72, arm C plus
+   `have_freetype` 72), and the **pgtk probe reads 23 = 23 identical** once its set is corrected:
+3. **The probe-set correction.**  The pgtk probe's set has carried `have_xinput2` since slice 2/3,
+   but the reference's pgtk build defines no XInput2 at all (`pgtkterm.h` mentions no `xi2`; C's
+   `#ifdef HAVE_XINPUT2` text then reads `FRAME_DISPLAY_INFO (f)`'s `supports_xi2`/`xi2_opcode`,
+   which only `x_display_info` has - `include/xterm.rs` 687/691 - so **C itself does not compile
+   that combination**).  The round therefore measures the pgtk face **without** `have_xinput2` as its
+   primary reading (23, identical to the baseline's same set) and records the other one as what it
+   is: with `have_xinput2` on, the pgtk face reads **45** against the baseline's 24, and every added
+   row is the port's X11-only records and constants being absent there (5 `XButtonEvent`,
+   3 `XGenericEventCookie`, 5 `XGenericEvent`, 2 `XIDeviceEvent`, 2 `GenericEvent`, and the two
+   `pgtk_display_info` field errors) - the same wall C's own text hits in that configuration.
+4. **`extract-abi.py --check`** -> 45 -> **44 `- ` rows**: the `missing function
+   xg_event_is_for_scrollbar` retirement meets the one new `does not mention 0, output_data,
+   xbutton, xcookie, xgeneric` row recorded in `macro-body-notes.tsv`; the `line count drifted` row
+   moves from 10.0% to **12.7%** (C 6,753 vs 7,610), still the closing round's.
+5. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK, GDK or XInput2 tree - none is on this
+machine - so the seven mirror names and the three enumerators are UNVERIFIED (only `XGenericEvent`'s
+layout is measured, from `Xlib.h` itself), the `GDK_WINDOW_*` macro gap remains the mirror's, and the
+pgtk reading is the probe's (Owed 17).

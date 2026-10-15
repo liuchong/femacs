@@ -2848,3 +2848,52 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn gtk_widget_get_size_request (widget: *mut GtkWidget, width: *mut gint, height: *mut gint);
 }
+
+/// C: gdk/gdktypes.h: the `GdkEventType` member C 5183 tests (`GDK_MOTION_NOTIFY`) - the family's
+/// next row after the touch/selection ones above and slice 17's `GDK_CONFIGURE`.  **UNVERIFIED**
+/// (no GDK tree on this machine), like every value in that family.
+pub const GDK_MOTION_NOTIFY: GdkEventType = 3;      // GDK's ordinal; UNVERIFIED like the family
+/// C: gdk/gdktypes.h: `GDK_BUTTON_PRESS` and `GDK_BUTTON_RELEASE` - the two members the pgtk face
+/// of C 5139/5182 tests.  The block above already names them as owed to this family's round; the
+/// gtkutil lane's twenty-fourth slice is where they are needed, so they arrive here with the
+/// family's values (GDK's ordinals) and its UNVERIFIED marking.
+pub const GDK_BUTTON_PRESS: GdkEventType = 4;
+pub const GDK_BUTTON_RELEASE: GdkEventType = 7;
+
+/// C: gtk/gtkmain.h: `GtkWidget *gtk_grab_get_current (void);` - C 5189's read of the widget that
+/// holds the grab (the gtkutil lane's twenty-fourth slice).  A fresh name; **UNVERIFIED**.
+unsafe extern "C" {
+  pub fn gtk_grab_get_current () -> *mut GtkWidget;
+}
+
+/// C: gdk/gdkdevicemanager.h: `typedef struct _GdkDeviceManager GdkDeviceManager;` - the record
+/// GTK < 3.20's client-pointer read goes through (C 5156-5157).  The `_private: [u8; 0]` head is
+/// the port's opaque stand-in, the `GtkDeviceManager`-family shape above; **GTK is not on this
+/// machine** so no size is asserted.
+#[repr(C)]
+pub struct GdkDeviceManager
+{
+  _private: [u8; 0],
+}
+/// C: gdk/gdkdisplay.h and gdk/gdkdevicemanager.h: the four entry points C 5156-5161 uses to find
+/// the window under the pointer - `gdk_display_get_device_manager` and
+/// `gdk_device_manager_get_client_pointer` in the GTK < 3.20 face, and the two
+/// `…_get_window_at_pointer` readers in the GTK2 one.  All four are fresh names; the two
+/// `gint *` out-parameters are `NULL` at both call sites.  **UNVERIFIED.**
+unsafe extern "C" {
+  /// C: gdk/gdkdisplay.h: `GdkDeviceManager *gdk_display_get_device_manager (GdkDisplay
+  /// *display);`
+  pub fn gdk_display_get_device_manager (display: *mut GdkDisplay) -> *mut GdkDeviceManager;
+  /// C: gdk/gdkdevicemanager.h: `GdkDevice *gdk_device_manager_get_client_pointer
+  /// (GdkDeviceManager *device_manager);`
+  pub fn gdk_device_manager_get_client_pointer (device_manager: *mut GdkDeviceManager)
+    -> *mut GdkDevice;
+  /// C: gdk/gdkdevice.h: `GdkWindow *gdk_device_get_window_at_position (GdkDevice *device, gint
+  /// *win_x, gint *win_y);`
+  pub fn gdk_device_get_window_at_position (device: *mut GdkDevice, win_x: *mut gint,
+					    win_y: *mut gint) -> *mut GdkWindow;
+  /// C: gdk/gdkdisplay.h: `GdkWindow *gdk_display_get_window_at_pointer (GdkDisplay *display, gint
+  /// *win_x, gint *win_y);`
+  pub fn gdk_display_get_window_at_pointer (display: *mut GdkDisplay, win_x: *mut gint,
+					    win_y: *mut gint) -> *mut GdkWindow;
+}
