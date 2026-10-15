@@ -154,6 +154,7 @@ include!("../lib/include/time.in.rs");         // C 38: `#include <time.h>` (`cl
    C's calls at 2251/4808 are the DJGPP arm's, so the prototype comes from DJGPP's
    `<time.h>` and is declared here (P-88 ①): `/// C: clock_t clock (void);`.  DJGPP's
    `clock_t` is unverifiable on this machine - **UNVERIFIED** (status 3.479).  */
+#[cfg (feature = "msdos")]
 unsafe extern "C" {
   pub fn clock () -> clock_t;
 }
@@ -5695,6 +5696,15 @@ pub unsafe fn msdos_fatal_signal (sig: c_int)      // C 4311-4312
   else
     { raise (sig); }
 }
+
+/* The `globals.f_<name>` field this unit's `syms_of_msdos` registers (its `DEFVAR_LISP` call at
+   C 4331, under C 4326's `#ifndef HAVE_X_WINDOWS`), defined here as the port's storage - C's
+   `struct emacs_globals` is zero-initialised and the `DEFVAR_*` macros only take each field's
+   address, so the initialiser is `lisp_h_Qnil ()` (docs/status.md 3.29, the `src/cmds.rs`
+   489-492 row).  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[unsafe(no_mangle)]
+pub static mut Vdos_unsupported_char_glyph: Lisp_Object = lisp_h_Qnil ();   // C 4331
 
 #[cfg (feature = "msdos")]
 #[unsafe(no_mangle)]
