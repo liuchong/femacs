@@ -4178,6 +4178,15 @@ pub static mut haiku_pass_control_tab_to_system: bool = false;
 #[unsafe(no_mangle)]
 pub static mut Vhaiku_allowed_ui_colors: Lisp_Object = lisp_h_Qnil ();
 
+// C 3312: `DEFVAR_LISP ("cairo-version-string", Vcairo_version_string, ...)` - C 3311's
+// `#ifdef USE_BE_CAIRO`, so its storage carries the `be_cairo` gate of the `DEFVAR` block itself in
+// addition to the file gate.  C's `DEFVAR_*` defines the object (`globals.f_##vname`), so the port
+// defines it here and `globals.rs`'s declaration is shadowed (docs/status.md 3.29).
+#[cfg (feature = "have_haiku")]
+#[cfg (feature = "be_cairo")]
+#[unsafe(no_mangle)]
+pub static mut Vcairo_version_string: Lisp_Object = lisp_h_Qnil ();
+
 // C 3205-3324.
 #[cfg (feature = "have_haiku")]
 #[unsafe(no_mangle)]
