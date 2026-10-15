@@ -1428,6 +1428,14 @@ def read_exclusions(path: Path) -> dict[str, str]:
 
 LEDGER_HEAD = re.compile(r"^#\s+(emacs/[A-Za-z0-9._/+-]+\.(?:c|h|cc|m|el))\b")
 
+# A checklist row is a *line* that starts with `- [ ]`; the raw substring test also matched prose
+# and fenced commands that quote the shape, and the places that ask "is this ledger finished?" used
+# it that way: a unit whose Evidence quotes the grep (`src/process.c`'s ledger carries
+# `grep -c '^- [ ]' docs/ports/process.md -> 0`, status 3.198) reads as unfinished, so its
+# differences are reported as "still being ported" instead of failing (measured again 2026-10-15;
+# `femacs/xtask/src/main.rs`'s `has_unchecked_box` is the same reading).
+UNCHECKED_BOX = re.compile(r"(?m)^\s*- \[ \]")
+
 
 def ledger_names(c: Path, reference: Path) -> list[str]:
     """The ledger file names for a C source, best first.
@@ -2273,7 +2281,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             # WIP slice that does not carry it yet, so the record can only be written once font.h's
             # mirror grows it.  Rather than force a stub or hide the gap, the check names the
             # deferral on stderr and leaves the ledger's box as the signal (status 3.154).
-            if ledger is not None and "- [ ]" in ledger.read_text(encoding="utf-8"):
+            if ledger is not None and UNCHECKED_BOX.search(ledger.read_text(encoding="utf-8")):
                 print(f"missing type deferred: {rel} "
                       f"{'/'.join(sorted(candidates))} (the ledger has unchecked boxes)",
                       file=sys.stderr)
@@ -2684,7 +2692,7 @@ def main() -> int:
             # A file that is still being ported keeps its generated checklist with
             # unchecked boxes; the gate fails when the checklist says the file is
             # finished, and when there is no checklist of its own at all.
-            if checklist is not None and "- [ ]" in checklist.read_text(encoding="utf-8"):
+            if checklist is not None and UNCHECKED_BOX.search(checklist.read_text(encoding="utf-8")):
                 in_progress += 1
                 print(f"WIP  {c.relative_to(reference)} -> {rs} "
                       f"({len(problems)} differences, {checklist} has unchecked boxes)")
