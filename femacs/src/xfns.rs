@@ -14638,6 +14638,95 @@ unsafe extern "C" {
 				nbytes: ptrdiff_t, multibyte: bool) -> Lisp_Object;
 }
 
+/* C's twenty-six `globals.f_<name>` fields this unit's `syms_of_xfns` registers (its
+   `DEFVAR_LISP`/`DEFVAR_BOOL` calls at C 10332-10484 and the three version strings at C 10533,
+   10547 and 10560), defined here as the port's storage - C's `struct emacs_globals` is
+   zero-initialised and the DEFVAR macros only take each field's address, so the initialisers
+   are `lisp_h_Qnil ()` / `false` (docs/status.md 3.29, the `src/cmds.rs` 489-492 row and the
+   `src/image.rs` block shape).  Each carries the `#[cfg]` its call site sits under: the
+   twenty-three in `syms_of_xfns`'s body take the function's `have_x_windows` (C's two dead
+   `#if false` blocks at C 10338-10343 and C 10352-10357 leave their DEFVARs live text), and
+   the three version strings take their C `#ifdef` too - `USE_X_TOOLKIT` + `USE_MOTIF`,
+   `USE_GTK` and `USE_CAIRO`.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_pointer_shape: Lisp_Object = lisp_h_Qnil ();                     // C 10332
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_nontext_pointer_shape: Lisp_Object = lisp_h_Qnil ();             // C 10339
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_hourglass_pointer_shape: Lisp_Object = lisp_h_Qnil ();           // C 10346
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_mode_pointer_shape: Lisp_Object = lisp_h_Qnil ();                // C 10353
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_sensitive_text_pointer_shape: Lisp_Object = lisp_h_Qnil ();      // C 10360
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_horizontal_drag_shape: Lisp_Object = lisp_h_Qnil ();      // C 10367
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_vertical_drag_shape: Lisp_Object = lisp_h_Qnil ();        // C 10374
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_left_edge_shape: Lisp_Object = lisp_h_Qnil ();            // C 10381
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_top_left_corner_shape: Lisp_Object = lisp_h_Qnil ();      // C 10388
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_top_edge_shape: Lisp_Object = lisp_h_Qnil ();             // C 10395
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_top_right_corner_shape: Lisp_Object = lisp_h_Qnil ();     // C 10402
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_right_edge_shape: Lisp_Object = lisp_h_Qnil ();           // C 10409
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_bottom_right_corner_shape: Lisp_Object = lisp_h_Qnil ();  // C 10416
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_bottom_edge_shape: Lisp_Object = lisp_h_Qnil ();          // C 10423
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_bottom_left_corner_shape: Lisp_Object = lisp_h_Qnil ();   // C 10430
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_cursor_fore_pixel: Lisp_Object = lisp_h_Qnil ();                 // C 10437
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_max_tooltip_size: Lisp_Object = lisp_h_Qnil ();                  // C 10441
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_no_window_manager: Lisp_Object = lisp_h_Qnil ();                 // C 10446
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut Vx_pixel_size_width_font_regexp: Lisp_Object = lisp_h_Qnil ();      // C 10454
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut x_gtk_use_old_file_dialog: bool = false;                            // C 10465
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut x_gtk_show_hidden_files: bool = false;                              // C 10472
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut x_gtk_file_dialog_help_text: bool = false;                          // C 10478
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut x_gtk_resize_child_frames: Lisp_Object = lisp_h_Qnil ();            // C 10484
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_motif"))]
+#[unsafe(no_mangle)]
+pub static mut Vmotif_version_string: Lisp_Object = lisp_h_Qnil ();                // C 10533
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+#[unsafe(no_mangle)]
+pub static mut Vgtk_version_string: Lisp_Object = lisp_h_Qnil ();                  // C 10547
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo"))]
+#[unsafe(no_mangle)]
+pub static mut Vcairo_version_string: Lisp_Object = lisp_h_Qnil ();                // C 10560
+
 /* C 10298-10662.  */
 #[cfg (feature = "have_x_windows")]
 #[unsafe(no_mangle)]
