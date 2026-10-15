@@ -13474,3 +13474,26 @@ because it is a dated reading of the round it belongs to.
 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
 `checking 83 unit(s), 0 unit failure(s)`; `extract-abi.py --check emacs/src/xterm.h
 femacs/src/include/xterm.rs` is unaffected by this change (the macro inventory is the same name).
+
+## Gate repair (2026-10-15, status 4.370)
+
+`x_atom_refs`'s two statics (`femacs/src/xterm.rs` 1627-1631) carried only their `have_xkb`
+split, while C 976-983's `struct x_atom_ref` and the `ATOM_REFS_INIT` table at C 987 sit under
+no `#if` of their own: the file is X-only, so the whole body is this unit's `have_x_windows`
+gate (Decisions 1-2, P-86 clause 8), and every other item of the unit carries it.  The frozen
+configuration - where `have_x_windows` is off - therefore compiled the two statics with their
+type and macro gated out:
+
+    error: cannot find macro `def_x_atom_refs` in this scope   (units/xterm/_root.rs:1642)
+    error[E0425]: cannot find type `x_atom_ref` in this scope
+
+Measured 2026-10-15: 2 errors, first visible in the round that put the unit into the
+finished-TU leg - this ledger's Evidence quotes the box shape, which the leg's old substring
+test read as "still being ported", so the unit had never been compiled by that leg (the reader
+fix is `docs/status.md` 4.370's first commit).  After the two
+`#[cfg (feature = "have_x_windows")]` lines: `build-tu src/xterm.c` exit 0 ->
+`../build/femacs/xterm.o`, and the same text is what `extract-abi.py --check emacs/src/xterm.c
+femacs/src/xterm.rs` reads as `OK`.  The change narrows the frozen arm only: every arm that
+defines `have_x_windows` sees the same two statics as before, and the two `have_xkb` arms are
+untouched.  **Not claimed**: the unit's own arm readings (the `UT/UM/UG/A/U` counts above) were
+not re-measured for this change; it moves no name, only the `cfg` that selects the pair.
