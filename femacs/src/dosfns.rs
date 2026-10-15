@@ -1149,6 +1149,23 @@ pub unsafe extern "C" fn dos_cleanup ()          // C 670-671
     }
 }
 
+/* The eleven `globals.f_<name>` fields this unit's `syms_of_dosfns` registers (its `DEFVAR_INT`/
+   `DEFVAR_LISP` calls at C 715, 719, 731, 735, 739, 743, 751, 756, 761, 785 and 790; C 739's
+   `dos-windows-version` carries C 738's `#ifndef HAVE_X_WINDOWS` too), defined here as the port's
+   storage: C zero-initialises `globals` and the macros take each field's address, so the
+   initialisers are `lisp_h_Qnil ()` / `0` (docs/status.md 3.29, the `src/cmds.rs` 489-492 row).  */
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut dos_country_code: EMACS_INT = 0;   // C 715
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut dos_codepage: EMACS_INT = 0;   // C 719
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut dos_timezone_offset: EMACS_INT = 0;   // C 731
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut Vdos_version: Lisp_Object = lisp_h_Qnil ();   // C 735
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))] #[unsafe(no_mangle)] pub static mut Vdos_windows_version: Lisp_Object = lisp_h_Qnil ();   // C 739
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut Vdos_display_scancodes: Lisp_Object = lisp_h_Qnil ();   // C 743
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut dos_hyper_key: EMACS_INT = 0;   // C 751
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut dos_super_key: EMACS_INT = 0;   // C 756
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut dos_keypad_mode: EMACS_INT = 0;   // C 761
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut dos_keyboard_layout: EMACS_INT = 0;   // C 785
+#[cfg (feature = "msdos")] #[unsafe(no_mangle)] pub static mut dos_decimal_point: EMACS_INT = 0;   // C 790
+
 /*
  *	Define everything
  */
