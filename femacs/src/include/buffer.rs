@@ -39,6 +39,7 @@ pub const EMACS_BUFFER_H: bool = true;
 // `struct buffer` it points at (PORTING.md P-26); this mirror defines that type, so the accessor
 // and the cast that restores C's pointee type live here.  Every unit that reads `current_buffer`
 // includes this mirror (measured over the frozen unit set when the declaration moved).
+#[macro_export]
 macro_rules! current_buffer { () => { ((*current_thread).m_current_buffer as *mut buffer) } }
 /// C also *writes* the accessor (`current_buffer = v;` - `buffer.c` 4929 and the
 /// `set_buffer_internal` family) and passes its *address* (`&current_buffer`, `buffer.c` 4930).
