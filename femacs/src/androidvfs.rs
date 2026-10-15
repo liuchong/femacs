@@ -9924,6 +9924,7 @@ pub unsafe extern "C" fn android_closedir (dirp: *mut android_vdir)
    `#[unsafe(no_mangle)]` definition together, exactly as C's `DEFUN` writes the `union
    Aligned_Lisp_Subr` and the function); `Qandroid_jni` is already the symbol
    `include/globals.rs` 1102 indexes, so C 7947's `DEFSYM` is the macro's registration of it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 DEFUN! ("android-relinquish-directory-access", Fandroid_relinquish_directory_access,
 	Sandroid_relinquish_directory_access, 1, 1,
 	"DDirectory: ",
