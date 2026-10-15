@@ -349,3 +349,35 @@ defines (`Vglobal_mode_string`, `Vline_number_display_limit`, `Vline_prefix`, `V
 **the port's own `xdisp.o` references where the reference object does not** - a review item for the
 xdisp slice in flight (is the port's `#[cfg]` on those call sites the same as C's?), not a link-set
 artifact.  `_strcat` is a libc name the classifier files under `unknown`.
+## Reading five (2026-10-15): the archive is an input, and a missing one now says so
+
+`gate-fast` reached this gate for the first time at full scale in the round of `docs/status.md`
+4.370 and read `378 undefined symbol(s) from 76 program + 0 libgnu object(s), 102 failure(s)` -
+every one of the 102 a gnulib entry point (`_mpz_*`, `_sha*_buffer`, `_careadlinkat`,
+`_md5_buffer`, `_sig2str`, ...).  The cause is this gate's own second input: C's `temacs` rule
+links `$(lib)/libgnu.a` (see "The input set is C's, not ours"), and
+`build/emacs-ref/lib/libgnu.a` had never been built in this tree, so `lib_objects()` mapped no
+member onto a port object and every name the port's `lib/` units own read as undefined.  Built
+once (`make -C build/emacs-ref/lib libgnu.a`, 2.6s, 86 members):
+
+    302 undefined symbol(s) from 76 program + 87 libgnu object(s), 302 ratchet row(s), 0 failure(s)
+
+so the gate is green on its own measurement, and the ratchet shed the seven rows nothing
+references any more (`_current_buffer`, `_pipe2`, `_reset_mouse_highlight`, `_specpdl`,
+`_specpdl_end`, `_specpdl_ptr`, `_syms_of_xwidget`: 309 -> 302 rows,
+`docs/baseline/link-pending.txt`).
+
+A missing archive must not read as port debt, so `lib_objects()` now raises a setup error (exit
+2) naming the fix and both readings, instead of classifying 102 names against an incomplete
+object set.  Measured with the archive moved aside:
+
+    setup: build/emacs-ref/lib/libgnu.a is missing: C's own `temacs` rule links it ... without
+    it, 378 from 76 + 0 object(s) and 102 failure(s) - all of them gnulib entry points.  Build
+    it once: `make -C build/emacs-ref/lib libgnu.a`.
+
+**Open (not claimed to be understood)**: the archive was present in the round's four gate runs
+and absent in one, and no single tool run reproduces the loss - each of
+`check-cond-eval.py`, `check-globals.py`, `check-ledger-ticks.py`, `check-dead-file-coverage.py`,
+`extract-abi.py --all`, `check-symbols.py` (both forms), `check-undef.py`, `check-link.py`, the
+link gate's own `make -n -W emacs.o temacs` and `build-tu` leaves 161 objects and the archive in
+place.  The guard is what makes a next occurrence read as a setup gap rather than as debt.
