@@ -7608,3 +7608,176 @@ pub unsafe extern "C" fn xg_event_is_for_scrollbar (f: *mut frame, event: *const
 
   return retval;                                                        // C 5193
 }
+
+/* C 5196's form feed and C 5197-5199's "Printing" banner, carried as C's own text; the whole
+   section stands under C 5200's `#ifdef USE_CAIRO` (its `#endif` is C 5296), i.e. the port's
+   `use_cairo` feature.  */
+/* C: /***********************************************************************
+   C: 			       Printing
+   C:  ***********************************************************************/  */
+
+/// C 5201: `static GtkPrintSettings *print_settings = NULL;` - C's file-scope settings the two
+/// dialogs keep (C 5209-5210, 5278, 5288-5291) and `extract-abi.py`'s long-standing
+/// `missing file-scope object` row retires here.  C `static`, so unexported (PORTING.md 0.2) and
+/// behind the section's own gate.
+#[cfg (all (feature = "use_gtk", feature = "use_cairo"))]
+static mut print_settings: *mut GtkPrintSettings = std::ptr::null_mut ();
+/// C 5202: `static GtkPageSetup *page_setup = NULL;` - the same for the page setup (C 5213-5215,
+/// 5223-5224, 5280-5281) and the second of the two rows.
+#[cfg (all (feature = "use_gtk", feature = "use_cairo"))]
+static mut page_setup: *mut GtkPageSetup = std::ptr::null_mut ();
+
+/* C 5244's `#define GETSETUP(f) make_float (f (page_setup, GTK_UNIT_POINTS))` and C 5253's
+   `#undef`: the six uses inside `xg_get_page_setup`'s `return` are why the port carries it as a
+   unit macro (the `input_event_bits!` shape), placed at C's own position - above the function that
+   uses it.  */
+#[cfg (all (feature = "use_gtk", feature = "use_cairo"))]
+macro_rules! GETSETUP {
+  ($f:expr) => { make_float ($f (page_setup, GTK_UNIT_POINTS)) };
+}
+
+/// C 5204-5216: `void xg_page_setup_dialog (void)` - the page-setup dialog: make the settings once
+/// (C 5209-5210), run the dialog over the current setup (C 5211-5212), drop the old setup's
+/// reference (C 5213-5214) and keep the new one (C 5215).  Non-`static` (`gtkutil.h` 166 declares
+/// it and `xterm.c`'s print code calls it), so `#[unsafe(no_mangle)]` with the C ABI.  C 5282's
+/// `list_length` returns `ptrdiff_t` where `gtk_print_operation_set_n_pages` takes a `gint`, and
+/// C 5290-5291's `g_object_ref`/`_get_print_settings` return `gpointer`/`GtkPrintSettings *`, so the
+/// two conversions C performs implicitly are explicit casts here (`as gint`, `as gpointer`).
+#[cfg (all (feature = "use_gtk", feature = "use_cairo"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_page_setup_dialog ()   // C 5205-5216
+{
+  let mut new_page_setup: *mut GtkPageSetup = std::ptr::null_mut ();    // C 5207 (`= NULL`)
+
+  if print_settings.is_null ()                                          // C 5209
+    { print_settings = gtk_print_settings_new (); }                     // C 5210
+  new_page_setup = gtk_print_run_page_setup_dialog (std::ptr::null_mut (),   // C 5211
+						    page_setup, print_settings);   // C 5212
+  if ! page_setup.is_null ()                                            // C 5213
+    { g_object_unref (page_setup as gpointer); }                        // C 5214
+  page_setup = new_page_setup;                                          // C 5215
+}
+
+/// C 5218-5254: `Lisp_Object xg_get_page_setup (void)` - the page setup as the alist the Lisp
+/// printer code reads: orientation as one of four symbols (C 5226-5242's `switch`, the port's
+/// `match` with C's five labels in C's order) and the six measurements as floats (C 5245-5252,
+/// through the `GETSETUP` macro above).  Non-`static` (`gtkutil.h` 165 declares it).
+///
+/// C 5240-5241's `default: eassume (false);` is the port's wildcard arm: `eassume! (false)` is what
+/// that macro does in a release build too (the file's own reading, C 4411's `emacs_abort` shape).
+/// C 5246's `list (...)` is the mirror's **macro** of that name (`include/lisp.rs` 3281, C's
+/// variadic `list`), so the call is `list! (…)` - the one place in this section where C's name is
+/// spelled with a `!`.
+#[cfg (all (feature = "use_gtk", feature = "use_cairo"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_get_page_setup () -> Lisp_Object   // C 5219-5254
+{
+  /* C 5221's `Lisp_Object orientation_symbol;` is written by four of C's five labels and the fifth
+     aborts; Rust's borrow checker cannot see that, so the port zeroes it the way this file's other
+     `Lisp_Object` locals start (`lisp_h_Qnil ()`, PORTING.md 1.5) - the value the wildcard arm
+     leaves behind is never read, because `eassume! (false)` does not return.  */
+  let mut orientation_symbol: Lisp_Object = lisp_h_Qnil ();             // C 5221
+
+  if page_setup.is_null ()                                              // C 5223
+    { page_setup = gtk_page_setup_new (); }                             // C 5224
+
+  /* C 5226's `switch (gtk_page_setup_get_orientation (page_setup))` and its five labels
+     (PORTING.md 2.2: the port's `match`, the labels as constant patterns).  */
+  match gtk_page_setup_get_orientation (page_setup)                     // C 5226
+    {
+      GTK_PAGE_ORIENTATION_PORTRAIT =>                                  // C 5228
+	{ orientation_symbol = Qportrait (); }                          // C 5229
+
+      GTK_PAGE_ORIENTATION_LANDSCAPE =>                                 // C 5231
+	{ orientation_symbol = Qlandscape (); }                          // C 5232
+
+      GTK_PAGE_ORIENTATION_REVERSE_PORTRAIT =>                          // C 5234
+	{ orientation_symbol = Qreverse_portrait (); }                  // C 5235
+
+      GTK_PAGE_ORIENTATION_REVERSE_LANDSCAPE =>                         // C 5237
+	{ orientation_symbol = Qreverse_landscape (); }                  // C 5238
+
+      _ =>                                                             // C 5240
+	{ eassume! (false); }                                            // C 5241
+    }
+
+  return
+    list! (Fcons (Qorientation (), orientation_symbol),                 // C 5246
+	  Fcons (Qwidth (), GETSETUP! (gtk_page_setup_get_page_width)),   // C 5247
+	  Fcons (Qheight (), GETSETUP! (gtk_page_setup_get_page_height)),   // C 5248
+	  Fcons (Qleft_margin (), GETSETUP! (gtk_page_setup_get_left_margin)),   // C 5249
+	  Fcons (Qright_margin (), GETSETUP! (gtk_page_setup_get_right_margin)),   // C 5250
+	  Fcons (Qtop_margin (), GETSETUP! (gtk_page_setup_get_top_margin)),   // C 5251
+	  Fcons (Qbottom_margin (), GETSETUP! (gtk_page_setup_get_bottom_margin)));   // C 5252
+}
+
+/// C 5256-5269: `static void draw_page (GtkPrintOperation *operation, GtkPrintContext *context,
+/// gint page_nr, gpointer user_data)` - the `draw-page` handler: the `user_data` is C 5283's
+/// address of the frames list, the page number indexes it, and the frame is drawn through the
+/// face's own cairo entry point (C 5264-5268's `#ifndef HAVE_PGTK` pair).  C `static`, so a plain
+/// `unsafe extern "C" fn` (a GObject signal handler needs the C ABI, the `find_scrollbar_cb` shape);
+/// C's unused `operation` parameter stays unused, and C 5261's `make_fixnum (page_nr)` carries the
+/// `gint`-to-`EMACS_INT` conversion C performs implicitly (`make_fixnum` takes `EMACS_INT`).
+#[cfg (all (feature = "use_gtk", feature = "use_cairo"))]
+unsafe extern "C" fn draw_page (operation: *mut GtkPrintOperation,
+				context: *mut GtkPrintContext, page_nr: gint,
+				user_data: gpointer)   // C 5257-5269
+{
+  let frames: Lisp_Object = *((user_data as *mut Lisp_Object));         // C 5260
+  let f: *mut frame = XFRAME (Fnth (make_fixnum (page_nr as EMACS_INT), frames));   // C 5261
+  let cr: *mut cairo_t = gtk_print_context_get_cairo_context (context);   // C 5262
+
+  /* C 5264's `#ifndef HAVE_PGTK`; its `#else` is C 5266.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  { x_cr_draw_frame (cr, f); }                                          // C 5265
+  #[cfg (feature = "have_pgtk")]
+  { pgtk_cr_draw_frame (cr, f); }                                       // C 5267
+}
+
+/// C 5271-5294: `void xg_print_frames_dialog (Lisp_Object frames)` - the print dialog: build the
+/// (`frames` is `mut` in the port only because C 5283 hands its address to the signal handler, the
+/// `mut`-parameter shape slice 20 uses)
+/// operation (C 5277), hand it the remembered settings and setup (C 5278-5281), set the page count
+/// from the list (C 5282), connect `draw_page` with the list's address as its data (C 5283), run
+/// the dialog (C 5284-5285) and - when the user applied - re-take the settings the run produced
+/// (C 5286-5292) before dropping the operation (C 5293).  Non-`static` (`gtkutil.h` 164 declares
+/// it).
+#[cfg (all (feature = "use_gtk", feature = "use_cairo"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_print_frames_dialog (mut frames: Lisp_Object)   // C 5272-5294
+{
+  let print: *mut GtkPrintOperation;                                    // C 5274
+  let res: GtkPrintOperationResult;                                     // C 5275
+
+  print = gtk_print_operation_new ();                                   // C 5277
+  if ! print_settings.is_null ()                                        // C 5278
+    { gtk_print_operation_set_print_settings (print, print_settings); }   // C 5279
+  if ! page_setup.is_null ()                                            // C 5280
+    { gtk_print_operation_set_default_page_setup (print, page_setup); }   // C 5281
+  gtk_print_operation_set_n_pages (print, list_length (frames) as gint);   // C 5282
+  g_signal_connect! (print, c"draw-page".as_ptr (), draw_page,          // C 5283
+		     ((&raw mut frames) as gpointer));
+  res = gtk_print_operation_run (print, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG,   // C 5284
+				 std::ptr::null_mut (), std::ptr::null_mut ());   // C 5285
+  if res == GTK_PRINT_OPERATION_RESULT_APPLY                            // C 5286
+    {
+      if ! print_settings.is_null ()                                    // C 5288
+	{ g_object_unref (print_settings as gpointer); }                 // C 5289
+      print_settings
+	= g_object_ref (gtk_print_operation_get_print_settings (print) as gpointer)
+	  as *mut GtkPrintSettings;                                      // C 5290-5291
+    }
+  g_object_unref (print as gpointer);                                   // C 5293
+}
+
+/* C 5296's `#endif` closes C 5200's `#ifdef USE_CAIRO`.  */
+/* `x_cr_draw_frame` (xterm.h 1817: `extern void x_cr_draw_frame (cairo_t *, struct frame *);`,
+   defined by `xterm.c` and carried by `src/xterm.rs` 6950) is a same-program declaration no mirror
+   in this unit's graph carries - `include/xterm.rs` has no row for it - so it stands at the use
+   site under the gate its definition carries (`src/xterm.rs` 6949's
+   `all (have_x_windows, use_cairo)`), Owed 18's class.  The pgtk face's arm comes from
+   `include/pgtkterm.rs` 722 as it should.  */
+#[cfg (all (feature = "use_gtk", feature = "use_cairo", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn x_cr_draw_frame (cr: *mut cairo_t, f: *mut frame);             // xterm.h 1817
+}

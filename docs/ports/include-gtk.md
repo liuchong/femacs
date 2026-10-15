@@ -750,3 +750,26 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 probe reads 23 = 23 once its set omits `have_xinput2` - which is the reference's own configuration,
 since its pgtk build defines no XInput2 (see that ledger's slice-24 section for the 45-anchor reading
 of the combination C cannot compile either).
+
+### status 4.355 (the gtkutil twenty-fifth-slice round this file took part in)
+
+`src/gtkutil.c`'s Printing section (C 5196-5298, under `#ifdef USE_CAIRO`) is this round's consumer,
+and it is the largest mirror batch a round has taken: **twenty-two fresh items**.
+
+- **Four records**: `GtkPrintSettings`, `GtkPageSetup`, `GtkPrintOperation` and `GtkPrintContext`,
+  each an opaque `_private: [u8; 0]` head (the `GtkPrintSettings`-family shape this file already uses
+  for records it cannot lay out - GTK is not on this machine, so no size is asserted).
+- **Three enumerations with the needed values**: `GtkPageOrientation` and all four of its labels
+  (C 5228-5238's `switch`), `GtkUnit` with `GTK_UNIT_POINTS` (C 5244's macro), and
+  `GtkPrintOperationResult`/`GtkPrintOperationAction` with the two the section compares against.
+- **Eleven entry points**: `gtk_print_settings_new`, `gtk_print_run_page_setup_dialog`,
+  `gtk_page_setup_new`, `gtk_page_setup_get_orientation`, the six `gtk_page_setup_get_*` readers, the
+  four `gtk_print_operation_*` setters and `_run`/`_get_print_settings`, and
+  `gtk_print_context_get_cairo_context` (whose return type is this file's `cairo_t`, already here).
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings are
+**identical multisets to the pre-slice tree in all eight sets** (29/29/29/29/28/72/72/23), which for a
+twenty-two-item mirror batch is the reading that matters: none of the new records or prototypes
+collides with a name any other unit declares.

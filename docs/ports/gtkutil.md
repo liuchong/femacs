@@ -213,7 +213,8 @@
 | 4978-5074 | C 4978's comment and **`int_gtk_range_get_value`** (C 4980-4984 - C's truncation of the range's `gdouble` to `int`), C 4987-4988's comment and **`xg_set_toolkit_scroll_bar_thumb`** (C 4990-5073 - the vertical thumb setter: the adjustment behind the range, `scroll-bar-adjust-thumb-portion`'s substitution of the line count for the portion, the thumb's fraction of the whole, the two `clip_to_bounds` calls into the adjustment's range, the step size from the frame's line count, the page/step writes and the guarded value write under `xg_ignore_gtk_scrollbar`), plus C 5074's blank | file gate (`use_gtk`) plus C 5063's version fold; **no mirror change** - the nine GtkRange/GtkAdjustment entry points are the unit's, because they name the unit's records - and the round widens `GtkRange`/`GTK_RANGE` to both GTK faces, declares `XG_SB_RANGE` and registers `gtk_check_version_ge_3_18`; slice 22 below |
 | 5075-5111 | C 5075-5077's comment and **`xg_set_toolkit_horizontal_scroll_bar_thumb`** (C 5079-5109 - the horizontal twin and a much shorter one: C 5091-5094's `max`/`min` clamps, the two fixed increments, and C 5102-5104's single `gtk_adjustment_configure` write, with C 5105's `gtk_check_version_ge_3_18` fold), plus C 5110-5111's blanks | file gate (`use_gtk`) plus C's version fold; **no mirror change and one new in-unit prototype** (`gtk_adjustment_configure`, Owed 18); slice 23 below |
 | 5112-5195 | C 5112-5115's comment and **`xg_event_is_for_scrollbar`** (C 5117-5193 - the predicate `xterm.c` asks when a button event might belong to a scroll bar: C 5123-5142's press test in three faces, C 5143-5164's "did it happen outside the frame's edit widget?" through the pointer's current window, and C 5165-5191's release/motion arm answering with the widget that holds the grab), plus C 5195's blank | file gate (`use_gtk`) plus C's own eight folds; the mirror gains five GDK/GTK names and the unit carries the `EVENT` alias, the `XGenericEvent` record and the three `XI_*` enumerators (Owed 18); slice 24 below |
-| 5196-6753 | **the remainder** — from C 5196's form feed and C 5197-5199's "Printing" banner through C 6753: printing (`xg_page_setup_dialog`, `draw_page`, `print_settings`, `page_setup`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 5196-5298 | C 5196's form feed, C 5197-5199's “Printing” banner and C 5200's `#ifdef USE_CAIRO` (its `#endif` is C 5296): the two file-scope objects `print_settings`/`page_setup` (C 5201-5202 - **two `missing file-scope object` rows retire here**), **`xg_page_setup_dialog`** (C 5205-5216), **`xg_get_page_setup`** (C 5219-5254, C 5226-5242's `switch` as the port's `match` and C 5245-5252's seven-element alist through the `GETSETUP` macro), **`draw_page`** (C 5257-5269) and **`xg_print_frames_dialog`** (C 5272-5294), plus C 5297-5298's blanks | file gate (`use_gtk`) plus `use_cairo` for the whole section; the mirror gains the GtkPrint* surface (four records, three enumerations and eleven entry points), the unit carries `GETSETUP!` and `x_cr_draw_frame` (Owed 18); slice 25 below |
+| 5299-6753 | **the remainder** — from C 5299's form feed and C 5300-5302's “Tool bar functions” banner through C 6753: the tool bar (`XG_TOOL_BAR_*` keys, the callbacks, `xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1132,6 +1133,10 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     `src/xterm.rs` 957-961 and this unit each carry their own copy until a round decides where those
     go.  The round's seven *mirror* additions (the GDK constants, `gtk_grab_get_current`,
     `GdkDeviceManager` and the four GDK entry points) are not owed to anything - they landed.
+    **Slice 25 adds one more**: `x_cr_draw_frame` (xterm.h 1817, defined by `xterm.c` / `src/xterm.rs`
+    6950) is a same-program declaration `include/xterm.rs` has no row for, so `draw_page` reaches it
+    through a use-site copy under its definition's gate.  The round's twenty-two *mirror* additions
+    (the whole GtkPrint* surface) are not owed to anything - they landed.
 
 ## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
 
@@ -2542,3 +2547,82 @@ triplicating C 5143-5164.
 machine - so the seven mirror names and the three enumerators are UNVERIFIED (only `XGenericEvent`'s
 layout is measured, from `Xlib.h` itself), the `GDK_WINDOW_*` macro gap remains the mirror's, and the
 pgtk reading is the probe's (Owed 17).
+
+## Slice 25 (2026-10-15, status 4.355): C 5196-5298 — the Printing section
+
+**What this slice is.**  The whole "Printing" section, which C puts under C 5200's `#ifdef USE_CAIRO`
+(the port's `use_cairo` feature): the two file-scope objects C 5201-5202 keeps across calls
+(`print_settings`, `page_setup` - **the two `missing file-scope object` rows `extract-abi.py` has
+carried since the first slice retire here**), **`xg_page_setup_dialog`** (C 5205-5216 - make the
+settings once, run the dialog over the current setup, drop the old reference and keep the new),
+**`xg_get_page_setup`** (C 5219-5254 - the orientation as one of four Lisp symbols through C
+5226-5242's `switch`, then the seven-element alist through C 5244's `GETSETUP` macro),
+**`draw_page`** (C 5257-5269 - the `draw-page` handler, whose `user_data` is C 5283's address of the
+frames list) and **`xg_print_frames_dialog`** (C 5272-5294 - build the operation, hand it the
+remembered settings and setup, set the page count, connect `draw_page`, run the dialog and re-take
+the settings when the user applied).  Port: 7,610 -> **7,783 lines**; the table's last row splits at
+C 5298 - the next text is C 5299's form feed and the "Tool bar functions" banner.
+
+**The mirror this slice needed, and it is the largest single batch so far.**  `include/gtk.rs` gains
+the whole `GtkPrint*` surface: the four records (`GtkPrintSettings` and `GtkPageSetup` -
+gtkprintsettings.h/gtkpagesetup.h - `GtkPrintOperation` and `GtkPrintContext`), the three
+enumerations with their needed values (`GtkPageOrientation` with all four labels C 5228-5238 asks,
+`GtkUnit` with `GTK_UNIT_POINTS`, `GtkPrintOperationResult` with `_APPLY`,
+`GtkPrintOperationAction` with `_PRINT_DIALOG`), and the eleven entry points the four functions call
+(`gtk_print_settings_new`, `gtk_print_run_page_setup_dialog`, `gtk_page_setup_new`,
+`gtk_page_setup_get_orientation`, the six `gtk_page_setup_get_*` readers,
+`gtk_print_operation_new`/`_set_print_settings`/`_set_default_page_setup`/`_set_n_pages`/`_run`/
+`_get_print_settings` and `gtk_print_context_get_cairo_context`).  Every one is fresh in this tree
+and every one is UNVERIFIED (no GTK tree here), with GTK's ordinals in the three enumerations and
+opaque `_private: [u8; 0]` heads in the four records.
+
+**Two unit-side items.**  `GETSETUP` (C 5244's `#define`, C 5253's `#undef`) is carried as the unit's
+`GETSETUP!` macro at C's own position above its user (the `input_event_bits!` shape), and
+`x_cr_draw_frame` (xterm.h 1817, defined by `xterm.c` / `src/xterm.rs` 6950) is a same-program
+declaration no mirror in this unit's graph carries, so it stands at the use site under its
+definition's gate - Owed 18's class; the pgtk arm's `pgtk_cr_draw_frame` comes from
+`include/pgtkterm.rs` 722 as it should.
+
+**Deviations this slice adds.**
+
+- **Five conversions C performs implicitly are explicit casts here**, and all five were measured in
+  the first arm run rather than guessed: `make_fixnum (page_nr)` takes `EMACS_INT` where `page_nr` is
+  a `gint` (`as EMACS_INT`), `gtk_print_operation_set_n_pages` takes a `gint` where `list_length`
+  returns `ptrdiff_t` (`as gint`), and `g_object_ref`/`gtk_print_operation_get_print_settings` return
+  `gpointer`/`GtkPrintSettings *` (`as gpointer` inward, `as *mut GtkPrintSettings` outward).
+- **C 5246's `list (...)` is the mirror's macro of that name** (`include/lisp.rs` 3281), so the call
+  is `list! (...)` - the one place in this section where C's name gains a `!` - and `g_signal_connect`
+  is the mirror's macro too (C 5283's `G_CALLBACK (draw_page)` names a function item, so the function
+  carries the `does not mention g_callback` row).
+- **C 5226's `switch`/`case`/`default` becomes the port's `match`** (PORTING.md 2.2): the four
+  orientation labels are constant patterns and C 5240's `default: eassume (false)` is the wildcard
+  arm - which is why the function carries the `does not mention break, case, default, switch` row.
+- **C 5221's uninitialised `orientation_symbol` is the port's `lisp_h_Qnil ()`** (PORTING.md 1.5): four
+  labels assign it and the fifth aborts, which Rust's borrow checker cannot see (measured: one
+  `E0381` without the initialiser).  C 5272's `frames` parameter is `mut` for the same
+  measured reason (C 5283 hands its address out; one `E0596` otherwise) - the `mut`-parameter shape
+  slices 20/22 use.
+- C 5197-5199's banner, C 5200's fold, C 5244/5253's macro pair and C 5296's `#endif` are carried as
+  C's own text at their positions; C's unused `operation` parameter in `draw_page` stays unused.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings, against a materialised baseline** (a temporary `git worktree` at `1f3bd58e`),
+   the same eight sets as slices 22-24: **all eight are identical multisets before and after** (arm
+   A 29, plus `gtk_check_version_ge_3_14` 29, plus `gtk_check_version_ge_3_20` 29, plus
+   `gtk_check_version_ge_3_18` 29, arm A without `have_xinput2` 28, arm C 72, arm C plus
+   `have_freetype` 72, the pgtk probe 23).  None of the four functions has a caller inside the unit
+   (`xterm.c`'s print code calls them), so the reading says what it should - and it is the first
+   round in which the *mirror* batch (twenty-two items) adds no error either, which is what the four
+   records' opaque heads and the macro-form calls were chosen for.
+3. **`extract-abi.py --check`** -> 44 -> **37 `- ` rows**: seven retirements (the two file-scope
+   objects, the four functions and the `GETSETUP` macro) against two new `does not mention` rows,
+   both recorded in `macro-body-notes.tsv`; the `line count drifted` row moves from 12.7% to **15.3%**
+   (C 6,753 vs 7,783), still the closing round's.
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK or cairo tree - cairo *is* on this machine
+but the GTK print records are not - so the whole print surface is UNVERIFIED, the `GDK_WINDOW_*`
+macro gap remains the mirror's, and the pgtk reading is the probe's (Owed 17).

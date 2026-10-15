@@ -2897,3 +2897,132 @@ unsafe extern "C" {
   pub fn gdk_display_get_window_at_pointer (display: *mut GdkDisplay, win_x: *mut gint,
 					    win_y: *mut gint) -> *mut GdkWindow;
 }
+
+/* ----------------------------------------------------------------------------------------------
+   The GtkPrint* surface the gtkutil lane's twenty-fifth slice needs: `src/gtkutil.c`'s whole
+   "Printing" section stands under C 5200's `#ifdef USE_CAIRO`, and every name below is fresh in
+   this tree.  **No GTK tree exists on this machine**, so the four records are opaque stand-ins
+   (`_private: [u8; 0]`, the `GtkPrintSettings`-family shape used above), the three enumerations
+   carry GTK's ordinals, and every prototype is UNVERIFIED - the family's standing marking.
+   ---------------------------------------------------------------------------------------------- */
+/// C: gtk/gtkprintsettings.h: `typedef struct _GtkPrintSettings GtkPrintSettings;` - C 5201's
+/// record, the file-scope `print_settings` the section keeps across calls.
+#[repr(C)]
+pub struct GtkPrintSettings
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkpagesetup.h: `typedef struct _GtkPageSetup GtkPageSetup;` - C 5202's `page_setup`.
+#[repr(C)]
+pub struct GtkPageSetup
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkprintoperation.h: `typedef struct _GtkPrintOperation GtkPrintOperation;` - C 5274's
+/// operation record.
+#[repr(C)]
+pub struct GtkPrintOperation
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkprintcontext.h: `typedef struct _GtkPrintContext GtkPrintContext;` - `draw_page`'s
+/// second parameter (C 5257).
+#[repr(C)]
+pub struct GtkPrintContext
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkenums.h: `typedef enum { GTK_PAGE_ORIENTATION_PORTRAIT, GTK_PAGE_ORIENTATION_LANDSCAPE,
+/// GTK_PAGE_ORIENTATION_REVERSE_PORTRAIT, GTK_PAGE_ORIENTATION_REVERSE_LANDSCAPE } GtkPageOrientation;`
+/// - the four labels C 5226-5239's `switch` tests.  GTK's ordinals, **UNVERIFIED**.
+pub type GtkPageOrientation = c_int;
+pub const GTK_PAGE_ORIENTATION_PORTRAIT: GtkPageOrientation = 0;
+pub const GTK_PAGE_ORIENTATION_LANDSCAPE: GtkPageOrientation = 1;
+pub const GTK_PAGE_ORIENTATION_REVERSE_PORTRAIT: GtkPageOrientation = 2;
+pub const GTK_PAGE_ORIENTATION_REVERSE_LANDSCAPE: GtkPageOrientation = 3;
+/// C: gtk/gtkenums.h: `typedef enum { GTK_UNIT_NONE, GTK_UNIT_POINTS, GTK_UNIT_INCH, GTK_UNIT_MM }
+/// GtkUnit;` - the unit C 5244's `GETSETUP` macro passes.  **UNVERIFIED.**
+pub type GtkUnit = c_int;
+pub const GTK_UNIT_POINTS: GtkUnit = 1;
+/// C: gtk/gtkprintoperation.h: `typedef enum { GTK_PRINT_OPERATION_RESULT_ERROR,
+/// GTK_PRINT_OPERATION_RESULT_APPLY, GTK_PRINT_OPERATION_RESULT_CANCEL,
+/// GTK_PRINT_OPERATION_RESULT_IN_PROGRESS } GtkPrintOperationResult;` - C 5286's comparison.
+/// **UNVERIFIED.**
+pub type GtkPrintOperationResult = c_int;
+pub const GTK_PRINT_OPERATION_RESULT_APPLY: GtkPrintOperationResult = 1;
+/// C: gtk/gtkprintoperation.h: `typedef enum { GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG,
+/// GTK_PRINT_OPERATION_ACTION_PRINT, GTK_PRINT_OPERATION_ACTION_PREVIEW,
+/// GTK_PRINT_OPERATION_ACTION_EXPORT } GtkPrintOperationAction;` - C 5284's second argument.
+/// **UNVERIFIED.**
+pub type GtkPrintOperationAction = c_int;
+pub const GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG: GtkPrintOperationAction = 0;
+
+/// C: gtk/gtkprintsettings.h, gtk/gtkpagesetup.h, gtk/gtkprintoperation.h and
+/// gtk/gtkprintcontext.h: the eleven entry points the Printing section calls, each keeping its
+/// GTK prototype's parameter names.  All **UNVERIFIED**.
+unsafe extern "C" {
+  /// C 5210: `print_settings = gtk_print_settings_new ();`
+  /// C: gtk/gtkprintsettings.h: `GtkPrintSettings *gtk_print_settings_new (void);`
+  pub fn gtk_print_settings_new () -> *mut GtkPrintSettings;
+  /// C 5211-5212: `new_page_setup = gtk_print_run_page_setup_dialog (NULL, page_setup,
+  /// print_settings);`
+  /// C: gtk/gtkpagesetup.h: `GtkPageSetup *gtk_print_run_page_setup_dialog (GtkWindow *parent,
+  /// GtkPageSetup *page_setup, GtkPrintSettings *settings);`
+  pub fn gtk_print_run_page_setup_dialog (parent: *mut GtkWindow, page_setup: *mut GtkPageSetup,
+					  settings: *mut GtkPrintSettings) -> *mut GtkPageSetup;
+  /// C 5224: `page_setup = gtk_page_setup_new ();`
+  /// C: gtk/gtkpagesetup.h: `GtkPageSetup *gtk_page_setup_new (void);`
+  pub fn gtk_page_setup_new () -> *mut GtkPageSetup;
+  /// C 5226: `switch (gtk_page_setup_get_orientation (page_setup))`
+  /// C: gtk/gtkpagesetup.h: `GtkPageOrientation gtk_page_setup_get_orientation (GtkPageSetup
+  /// *setup);`
+  pub fn gtk_page_setup_get_orientation (setup: *mut GtkPageSetup) -> GtkPageOrientation;
+  /// C 5247-5252: the six `GETSETUP` readers, all `gdouble (GtkPageSetup *, GtkUnit)`.
+  /// C: gtk/gtkpagesetup.h: `gdouble gtk_page_setup_get_page_width (GtkPageSetup *setup, GtkUnit
+  /// unit);`
+  pub fn gtk_page_setup_get_page_width (setup: *mut GtkPageSetup, unit: GtkUnit) -> c_double;
+  /// C: gtk/gtkpagesetup.h: `gdouble gtk_page_setup_get_page_height (GtkPageSetup *setup, GtkUnit
+  /// unit);`
+  pub fn gtk_page_setup_get_page_height (setup: *mut GtkPageSetup, unit: GtkUnit) -> c_double;
+  /// C: gtk/gtkpagesetup.h: `gdouble gtk_page_setup_get_left_margin (GtkPageSetup *setup, GtkUnit
+  /// unit);`
+  pub fn gtk_page_setup_get_left_margin (setup: *mut GtkPageSetup, unit: GtkUnit) -> c_double;
+  /// C: gtk/gtkpagesetup.h: `gdouble gtk_page_setup_get_right_margin (GtkPageSetup *setup, GtkUnit
+  /// unit);`
+  pub fn gtk_page_setup_get_right_margin (setup: *mut GtkPageSetup, unit: GtkUnit) -> c_double;
+  /// C: gtk/gtkpagesetup.h: `gdouble gtk_page_setup_get_top_margin (GtkPageSetup *setup, GtkUnit
+  /// unit);`
+  pub fn gtk_page_setup_get_top_margin (setup: *mut GtkPageSetup, unit: GtkUnit) -> c_double;
+  /// C: gtk/gtkpagesetup.h: `gdouble gtk_page_setup_get_bottom_margin (GtkPageSetup *setup,
+  /// GtkUnit unit);`
+  pub fn gtk_page_setup_get_bottom_margin (setup: *mut GtkPageSetup, unit: GtkUnit) -> c_double;
+  /// C 5277: `print = gtk_print_operation_new ();`
+  /// C: gtk/gtkprintoperation.h: `GtkPrintOperation *gtk_print_operation_new (void);`
+  pub fn gtk_print_operation_new () -> *mut GtkPrintOperation;
+  /// C: gtk/gtkprintoperation.h: `void gtk_print_operation_set_print_settings (GtkPrintOperation
+  /// *op, GtkPrintSettings *print_settings);`
+  pub fn gtk_print_operation_set_print_settings (op: *mut GtkPrintOperation,
+						 print_settings: *mut GtkPrintSettings);
+  /// C: gtk/gtkprintoperation.h: `void gtk_print_operation_set_default_page_setup
+  /// (GtkPrintOperation *op, GtkPageSetup *default_page_setup);`
+  pub fn gtk_print_operation_set_default_page_setup (op: *mut GtkPrintOperation,
+						     default_page_setup: *mut GtkPageSetup);
+  /// C: gtk/gtkprintoperation.h: `void gtk_print_operation_set_n_pages (GtkPrintOperation *op,
+  /// gint n_pages);`
+  pub fn gtk_print_operation_set_n_pages (op: *mut GtkPrintOperation, n_pages: gint);
+  /// C 5284-5285: `res = gtk_print_operation_run (print, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG,
+  /// NULL, NULL);`
+  /// C: gtk/gtkprintoperation.h: `GtkPrintOperationResult gtk_print_operation_run
+  /// (GtkPrintOperation *op, GtkPrintOperationAction action, GtkWindow *parent, GError **error);`
+  pub fn gtk_print_operation_run (op: *mut GtkPrintOperation, action: GtkPrintOperationAction,
+				  parent: *mut GtkWindow, error: *mut *mut GError)
+    -> GtkPrintOperationResult;
+  /// C: gtk/gtkprintoperation.h: `GtkPrintSettings *gtk_print_operation_get_print_settings
+  /// (GtkPrintOperation *op);`
+  pub fn gtk_print_operation_get_print_settings (op: *mut GtkPrintOperation)
+    -> *mut GtkPrintSettings;
+  /// C 5262: `cairo_t *cr = gtk_print_context_get_cairo_context (context);`
+  /// C: gtk/gtkprintcontext.h: `cairo_t *gtk_print_context_get_cairo_context (GtkPrintContext
+  /// *context);`
+  pub fn gtk_print_context_get_cairo_context (context: *mut GtkPrintContext) -> *mut cairo_t;
+}
