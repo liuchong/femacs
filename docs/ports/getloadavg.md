@@ -96,3 +96,30 @@ checklist items ticked; `build-tu lib/getloadavg.c` -> `built lib/getloadavg.rs 
   by the reference build on this target, so there is no `getloadavg.o` to compare symbols
   with, and `/dev/kmem` does not exist on modern Darwin — the live arm's runtime behaviour is
   the same `ENOTSUP` path C would take there).
+
+
+## Gate repair (2026-10-16, status 4.371)
+
+The unit's items carried no file gate, so the frozen configuration compiled it - while C's own
+build does not compile the file at all: `build/emacs-ref/src/config.h` 830 has
+`/* #undef HAVE_GETDELIM */`-style absence for it, `build/emacs-ref/lib/Makefile` names no
+`getloadavg.o` and `libgnu.a` has no member for it (the system provides the function, so gnulib's
+module is not part of the build).  Every item now carries `#[cfg (feature = "no_getloadavg")]`
+(`femacs/xtask/Cargo.toml`, the `no_<macro>` convention this tree uses for `!HAVE_<fn>`), and the
+file's note records the reason.
+
+This is not cosmetic, and it is the reason the whole-program link was blocked: this file is
+gnulib's *own* `getloadavg` (the module is used only where the system lacks one), so its object
+defines the **unprefixed** `getloadavg`, which the program's own objects reference (`fns.o`).  The
+ungated object therefore shadowed libSystem's implementation and pulled in `nlist`, and
+`xtask gate-load` read exactly that as its only undefined symbol:
+
+    undefined symbols: 1 (referenced from 1 object(s))
+         1  libgnu-port.a[46](getloadavg.o)
+
+Readings after the gate: the frozen object is the empty shape (336 bytes, no `T _getloadavg`), the
+arm that enables the file still compiles its whole text
+(`rustc --cfg 'feature="no_getloadavg"'` on the materialized root: 0 errors, and the arm's object
+defines `_getloadavg`), and the link reports `undefined symbols: 0`.  `--check` on the text is
+`OK` before and after: no gate can see this class either - only an object-set comparison can (see
+the audit in `docs/ports/link.md`'s "Reading six").
