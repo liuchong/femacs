@@ -13,6 +13,22 @@
 // unknown, 0 disagreements [VERIFIED] - so the arms below are the evaluator's split, and its
 // per-block verdicts are the ledger's `## Gate mapping`.
 //
+// **The file gate is `feature = "have_android"`** - the name `docs/baseline/feature-coverage.tsv` 11
+// registers, and the one `src/androidmenu.rs`, `src/sfnt.rs` and this directory's `exec/trace.rs`
+// gate their bodies with - on every item and on the include graph (P-86 8): `configure.ac` 178-220
+// configures `exec/` with the build directory set to `exec` only inside the `XCONFIGURE=android`
+// block (1343 sets that variable from `--with-android`), and that is the build `exec/configure.ac`
+// 235's `OBJS="exec.o trace.o"` and `exec/Makefile.in`'s `libexec.a`/`loader` rules belong to, so
+// the gate is the build's own rather than a `#if` in the text.  The port's frozen object is
+// therefore the 336-byte empty one (P-86 8) instead of the real 49,472-byte object this file's
+// previous revision produced (both are `xtask build-tu exec/exec.c` readings).  This round puts the
+// three units of this directory the frozen build compiles - this file, `exec1.rs` and `test.rs` -
+// under the same gate `exec/trace.rs` already carries; the reading that found the missing gate is
+// `tools/check-undef.py`'s seven new rows (2026-10-15), three of them (`___errno_location`,
+// `_user_alloca`, `_user_copy` - the last two defined in the gated `exec/trace.rs`) naming `exec.o`
+// and the other four naming `exec1.rs`/`test.rs`.  The `#![allow (...)]` block, the `use std::ffi`
+// import and the C 20 `config.rs` mirror stay ungated, the `exec/trace.rs` 52-56 shape.
+//
 // **The system surface is declared at its own C `#include` line** (P-88 (1)), not taken from the
 // landed mirrors: every one of these headers is the *target's* (a Linux system's, `exec/README`) and
 // the mirrors spell the frozen target's readings instead (`lib/include/errno.rs` 12's `errno` is
@@ -44,6 +60,7 @@ include!("../src/include/config.rs");   // C 20: `#include <config.h>`
 
 /* C 22: `#include <errno.h>`.  */
 /// C: <errno.h>: `int *__errno_location (void);`
+#[cfg (feature = "have_android")]
 unsafe extern "C" {
   pub fn __errno_location () -> *mut c_int;
 }
@@ -51,6 +68,7 @@ unsafe extern "C" {
 /// C: <errno.h>: `#define errno (*__errno_location ())` - C's macro, carried as a function so that
 /// `errno = x` and `errno` keep C's lvalue shape at the use sites (the `lib/include/errno.rs` 12
 /// shape; C 704, C 709, C 860, C 967, C 1181).
+#[cfg (feature = "have_android")]
 #[inline(always)]
 pub unsafe fn errno () -> *mut c_int
 {
@@ -58,10 +76,13 @@ pub unsafe fn errno () -> *mut c_int
 }
 
 /// C: <errno.h>: `#define ENOEXEC 8`
+#[cfg (feature = "have_android")]
 pub const ENOEXEC: c_int = 8;
 /// C: <errno.h>: `#define ENOMEM 12`
+#[cfg (feature = "have_android")]
 pub const ENOMEM: c_int = 12;
 /// C: <errno.h>: `#define ENAMETOOLONG 36`
+#[cfg (feature = "have_android")]
 pub const ENAMETOOLONG: c_int = 36;
 
 /* C 23: `#include <unistd.h>`.  The eight entries this file calls.  */
@@ -73,6 +94,7 @@ pub const ENAMETOOLONG: c_int = 36;
 /// C: <unistd.h>: `ssize_t pread (int, void *, size_t, off_t);`
 /// C: <unistd.h>: `long sysconf (int);`
 /// C: <unistd.h>: `int getpagesize (void);`
+#[cfg (feature = "have_android")]
 unsafe extern "C" {
   pub fn read (fd: c_int, buf: *mut c_void, count: usize) -> ssize_t;
   pub fn close (fd: c_int) -> c_int;
@@ -85,20 +107,25 @@ unsafe extern "C" {
 }
 
 /// C: <unistd.h>: `#define SEEK_SET 0`
+#[cfg (feature = "have_android")]
 pub const SEEK_SET: c_int = 0;
 /// C: <unistd.h>: `#define X_OK 1`
+#[cfg (feature = "have_android")]
 pub const X_OK: c_int = 1;
 /// C: <unistd.h>: `#define _SC_PAGESIZE 39`.  The target's value (measured 0x27; the mirror's is
 /// the frozen target's 29).
+#[cfg (feature = "have_android")]
 pub const _SC_PAGESIZE: c_int = 39;
 
 /* C 24: `#include <fcntl.h>`.  One name and the `open` C 514, C 990 and C 1005 call.  */
 /// C: <fcntl.h>: `int open (const char *, int, ...);`
+#[cfg (feature = "have_android")]
 unsafe extern "C" {
   pub fn open (path: *const c_char, flags: c_int, ...) -> c_int;
 }
 
 /// C: <fcntl.h>: `#define O_RDONLY 0`
+#[cfg (feature = "have_android")]
 pub const O_RDONLY: c_int = 0;
 
 /* C 25: `#include <assert.h>`.  This translation unit is the `exec/` one, whose own `config.h`
@@ -109,11 +136,11 @@ pub const O_RDONLY: c_int = 0;
    same pair (P-51); the failure entry is `abort`, as it is there (PORTING.md 2.5).  */
 /// C: <assert.h>: `# define assert(expr) ((void) 0)` when `NDEBUG`, else
 /// C: `((expr) ? (void) 0 : __assert_fail (#expr, __FILE__, __LINE__, __func__))`
-#[cfg (feature = "no_ndebug")]
+#[cfg (all (feature = "have_android", feature = "no_ndebug"))]
 macro_rules! assert {
   ($expr:expr) => { if !($expr) { abort () } };
 }
-#[cfg (not (feature = "no_ndebug"))]
+#[cfg (all (feature = "have_android", not (feature = "no_ndebug")))]
 macro_rules! assert {
   ($expr:expr) => { () };
 }
@@ -129,6 +156,7 @@ macro_rules! assert {
 /// C: <string.h>: `size_t strnlen (const char *, size_t);`
 /// C: <string.h>: `int strcmp (const char *, const char *);`
 /// C: <string.h>: `void *memchr (const void *, int, size_t);`
+#[cfg (feature = "have_android")]
 unsafe extern "C" {
   pub fn strlen (s: *const c_char) -> usize;
   pub fn memcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void;
@@ -145,6 +173,7 @@ unsafe extern "C" {
    unit).  */
 /// C: <stdlib.h>: `_Noreturn void abort (void);` (`_Noreturn` is the port's `-> !`, PORTING.md
 /// 0.2).
+#[cfg (feature = "have_android")]
 unsafe extern "C" {
   pub fn abort () -> !;
 }
@@ -153,28 +182,35 @@ unsafe extern "C" {
    are the NDK's `linux/ptrace.h`/`sys/ptrace.h`, and `PTRACE_SETREGS` is the x86 family's request,
    absent from the aarch64 header (the `exec/trace.rs` 92-148 readings of the same surface).  */
 /// C: <sys/ptrace.h>: `long ptrace (enum __ptrace_request, ...);`
+#[cfg (feature = "have_android")]
 unsafe extern "C" {
   pub fn ptrace (request: c_uint, ...) -> c_long;
 }
 
 /// C: <sys/ptrace.h>: `#define PTRACE_PEEKDATA 2`
+#[cfg (feature = "have_android")]
 pub const PTRACE_PEEKDATA: c_uint = 2;
 /// C: <sys/ptrace.h>: `#define PTRACE_POKETEXT 4`
+#[cfg (feature = "have_android")]
 pub const PTRACE_POKETEXT: c_uint = 4;
 /// C: <sys/ptrace.h>: `#define PTRACE_SETREGS 13` (the x86 family's; measured with the
 /// `x86_64-linux-android24` sysroot).
+#[cfg (feature = "have_android")]
 pub const PTRACE_SETREGS: c_uint = 13;
 
 /* C 30: `#include <sys/param.h>`.  The two macros C 494 and C 732 name, with C's own bodies; the
    editor's `config.h` carries the same pair (the `exec/trace.rs` 71-77 note for it).  */
 /// C: <sys/param.h>: `#define PATH_MAX 4096` (the target's reading; the mirror
 /// `lib/include/limits.in.rs` 131 spells the frozen target's `1024`).
+#[cfg (feature = "have_android")]
 pub const PATH_MAX: usize = 4096;
 /// C: <sys/param.h>: `#define MIN(a, b) ((a) < (b) ? (a) : (b))`
+#[cfg (feature = "have_android")]
 macro_rules! MIN {
   ($a:expr, $b:expr) => { if ($a) < ($b) { $a } else { $b } };
 }
 /// C: <sys/param.h>: `#define MAX(a, b) ((a) > (b) ? (a) : (b))`
+#[cfg (feature = "have_android")]
 macro_rules! MAX {
   ($a:expr, $b:expr) => { if ($a) > ($b) { $a } else { $b } };
 }
@@ -182,33 +218,42 @@ macro_rules! MAX {
 /* C 31: `#include <sys/mman.h>`.  The six constants C 331, C 335-342 and C 365 build the `mmap`
    protection and flags words from (measured against the NDK's `sys/mman.h`).  */
 /// C: <sys/mman.h>: `#define PROT_READ 0x1`
+#[cfg (feature = "have_android")]
 pub const PROT_READ: c_int = 0x1;
 /// C: <sys/mman.h>: `#define PROT_WRITE 0x2`
+#[cfg (feature = "have_android")]
 pub const PROT_WRITE: c_int = 0x2;
 /// C: <sys/mman.h>: `#define PROT_EXEC 0x4`
+#[cfg (feature = "have_android")]
 pub const PROT_EXEC: c_int = 0x4;
 /// C: <sys/mman.h>: `#define MAP_PRIVATE 0x02`
+#[cfg (feature = "have_android")]
 pub const MAP_PRIVATE: c_int = 0x02;
 /// C: <sys/mman.h>: `#define MAP_FIXED 0x10`
+#[cfg (feature = "have_android")]
 pub const MAP_FIXED: c_int = 0x10;
 /// C: <sys/mman.h>: `#define MAP_ANONYMOUS 0x20`
+#[cfg (feature = "have_android")]
 pub const MAP_ANONYMOUS: c_int = 0x20;
 
 /* C 33: `#include "exec.h"`.  The mirror carries the ELF records, `struct exec_tracee` and the
    loader's prototypes, and this unit *defines* `exec_0` and `format_pid` - the `E0428` class - so
    it is consumed through a module plus a glob import: a same-named definition shadows a glob
    import (P-21/P-28, the `exec/trace.rs` 63-69 shape for the same reason).  */
+#[cfg (feature = "have_android")]
 mod exec_decls
 {
   use super::*;
   include!("include/exec.rs");                 // C 33: `#include "exec.h"`
 }
+#[cfg (feature = "have_android")]
 use exec_decls::*;
 
 /* C 33's `exec.h` 24: `#include <sys/types.h>` (the mirror carries it).  This file's own text names
    one type it does not supply: `ssize_t`, C 100 and C 926 (`exec/trace.rs` 187-190 declares the
    same pair in-unit).  */
 /// C: <sys/types.h>: `typedef __ssize_t ssize_t;` (8 bytes on the target).
+#[cfg (feature = "have_android")]
 pub type ssize_t = c_long;
 
 /* ----------------------------------------------------------------------------------------------
@@ -224,6 +269,7 @@ pub type ssize_t = c_long;
 /// 380-412 shape, whose `## Owed` 1 is this record's per-host table).  **UNVERIFIED**: no Linux
 /// toolchain here defines the record the *C* build sees, so the member list is
 /// `exec/configure.ac`'s own and the layout is documented, not measured.
+#[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct USER_REGS_STRUCT
@@ -266,13 +312,15 @@ pub struct USER_REGS_STRUCT
    with `0xaf000000` or `0x1f000000` - **UNVERIFIED**, because no configuration the port builds runs
    that script on this target.  */
 /// configure.ac 273: `AC_DEFINE([EXECUTABLE_BASE], [0x555555554000])` - the x86-64 arm's reading.
+#[cfg (feature = "have_android")]
 pub const EXECUTABLE_BASE: USER_WORD = 0x555555554000;
 /// configure.ac 274: `AC_DEFINE([INTERPRETER_BASE], [0x600000000000])` - the x86-64 arm's reading.
+#[cfg (feature = "have_android")]
 pub const INTERPRETER_BASE: USER_WORD = 0x600000000000;
 
 /* C 35-37: `#if defined __mips__ && !defined MIPS_NABI` / `#include "mipsfpu.h"`.  A gated include
    edge (P-86 (8); P-89: no other reach in this unit's graph names the file).  */
-#[cfg (all (feature = "mips", not (feature = "mips_nabi")))]
+#[cfg (all (feature = "have_android", feature = "mips", not (feature = "mips_nabi")))]
 include!("include/mipsfpu.rs");              // C 36: `#include "mipsfpu.h"`
 
 /* C 39-41: three form feeds and blank lines (the file's page breaks, PORTING.md 0.1).  */
@@ -282,7 +330,8 @@ include!("include/mipsfpu.rs");              // C 36: `#include "mipsfpu.h"`
 /* C 44-66: the `HAVE_STPCPY`/`HAVE_DECL_STPCPY` pair.  The evaluator reads C 44 as *true* on the
    frozen macro table (`HAVE_STPCPY` is defined, `HAVE_DECL_STPCPY` is not), so the body below is
    the live arm there; both arms are carried (P-51) and the other one is C's one-line `#endif`.  */
-#[cfg (any (not (feature = "have_stpcpy"), not (feature = "have_decl_stpcpy")))]
+#[cfg (all (feature = "have_android",
+            any (not (feature = "have_stpcpy"), not (feature = "have_decl_stpcpy"))))]
 /// C 46-47: "Copy SRC to DEST, returning the address of the terminating '\\0' in DEST."
 unsafe fn rpl_stpcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char
 {
@@ -307,13 +356,14 @@ unsafe fn rpl_stpcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char
 
 /* C 65: `#define stpcpy rpl_stpcpy`.  The rename form the `lib/include/string.in.rs` mirror uses
    for the same gnulib `REPLACE_STPCPY` (`use rpl_stpcpy as stpcpy;`, PORTING.md 0.1-2).  */
-#[cfg (any (not (feature = "have_stpcpy"), not (feature = "have_decl_stpcpy")))]
+#[cfg (all (feature = "have_android",
+            any (not (feature = "have_stpcpy"), not (feature = "have_decl_stpcpy"))))]
 use rpl_stpcpy as stpcpy;
 
 /* C 44-66's other arm: both macros are defined, so C's `stpcpy` is the C library's.  Declared here
    at the C `#if` (P-88 (1)) because this unit cannot also carry `string.rs`'s reading of the same
    question (see the file note).  */
-#[cfg (all (feature = "have_stpcpy", feature = "have_decl_stpcpy"))]
+#[cfg (all (feature = "have_android", feature = "have_stpcpy", feature = "have_decl_stpcpy"))]
 unsafe extern "C" {
   /// C: <string.h>: `char *stpcpy (char *, const char *);`
   pub fn stpcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
@@ -325,6 +375,7 @@ unsafe extern "C" {
 /* C 87-93: the `check_interpreter` banner.  */
 
 /// C 95-96: `static const char *check_interpreter (const char *name, int fd, const char **extra)`.
+#[cfg (feature = "have_android")]
 unsafe fn check_interpreter (name: *const c_char, fd: c_int, extra: *mut *const c_char)
   -> *const c_char
 {
@@ -417,15 +468,18 @@ unsafe fn check_interpreter (name: *const c_char, fd: c_int, extra: *mut *const 
 
 /* C 167-168: `static char loader_area[65536];` - "Static area used to store data placed on the
    loader's stack."  */
+#[cfg (feature = "have_android")]
 static mut loader_area: [c_char; 65536] = [0; 65536];
 
 /* C 170-171: `static int loader_area_used;` - "Number of bytes used in that area."  */
+#[cfg (feature = "have_android")]
 static mut loader_area_used: c_int = 0;
 
 /* C 175-176: "Structure definitions for commands placed in the loader area.  Arrange these so that
    each member is naturally aligned."  */
 
 /// C 178-185: `struct exec_open_command`.
+#[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct exec_open_command
@@ -435,6 +489,7 @@ pub struct exec_open_command
 }
 
 /// C 187-209: `struct exec_map_command`.
+#[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct exec_map_command
@@ -462,6 +517,7 @@ pub struct exec_map_command
 }
 
 /// C 211-238: `struct exec_jump_command`.
+#[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct exec_jump_command
@@ -496,13 +552,16 @@ pub struct exec_jump_command
 /* Arithmetic from the field types (`USER_WORD` is the mirror's `usize`, PORTING.md 1.1), not a
    measurement: no Linux toolchain here compiles this unit, and C's own alignment comment (C 176)
    is what puts the words on word boundaries.  */
+#[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<exec_open_command> () == 8);
+#[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<exec_map_command> () == 56);
+#[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (exec_map_command, clear) == 48);
-#[cfg (not (all (feature = "mips", not (feature = "lp64"))))]
+#[cfg (all (feature = "have_android", not (all (feature = "mips", not (feature = "lp64")))))]
 const _: () = core::assert! (std::mem::size_of::<exec_jump_command> () == 56);
 /* C 234-237's field is the eighth word, and only that arm has it.  */
-#[cfg (all (feature = "mips", not (feature = "lp64")))]
+#[cfg (all (feature = "have_android", feature = "mips", not (feature = "lp64")))]
 const _: () = core::assert! (std::mem::size_of::<exec_jump_command> () == 64);
 
 /* C 295-318: the `#ifndef PAGE_MASK` half of `write_load_command`.  The `static long pagesize;` C
@@ -512,16 +571,16 @@ const _: () = core::assert! (std::mem::size_of::<exec_jump_command> () == 64);
    `macro_rules!` in the same body, but the *scope* a C `#define` has is the file's (PORTING.md
    2.1's "one macro, one home").  */
 /// C 296: `static long pagesize;`
-#[cfg (not (feature = "page_mask"))]
+#[cfg (all (feature = "have_android", not (feature = "page_mask")))]
 static mut pagesize: c_long = 0;
 /// C 316: `#define PAGE_MASK (~(pagesize - 1))`.  C's expression, with the `long`-to-`uintptr_t`
 /// conversion C 320's `&` performs made explicit.
-#[cfg (not (feature = "page_mask"))]
+#[cfg (all (feature = "have_android", not (feature = "page_mask")))]
 macro_rules! PAGE_MASK {
   () => { (!(pagesize - 1)) as USER_WORD };
 }
 /// C 317: `#define PAGE_SIZE (pagesize)`
-#[cfg (not (feature = "page_mask"))]
+#[cfg (all (feature = "have_android", not (feature = "page_mask")))]
 macro_rules! PAGE_SIZE {
   () => { pagesize as USER_WORD };
 }
@@ -531,15 +590,15 @@ macro_rules! PAGE_SIZE {
    as a clang reading, because the Android sysroots carry those names only in the kernel uapi
    headers.  */
 /// C: <asm-generic/page.h>: `#define PAGE_SHIFT 12`
-#[cfg (feature = "page_mask")]
+#[cfg (all (feature = "have_android", feature = "page_mask"))]
 pub const PAGE_SHIFT: c_uint = 12;
 /// C: <asm-generic/page.h>: `#define PAGE_SIZE (1 << PAGE_SHIFT)`
-#[cfg (feature = "page_mask")]
+#[cfg (all (feature = "have_android", feature = "page_mask"))]
 macro_rules! PAGE_SIZE {
   () => { (1 as USER_WORD) << PAGE_SHIFT };
 }
 /// C: <asm-generic/page.h>: `#define PAGE_MASK (~(PAGE_SIZE - 1))`
-#[cfg (feature = "page_mask")]
+#[cfg (all (feature = "have_android", feature = "page_mask"))]
 macro_rules! PAGE_MASK {
   () => { !(PAGE_SIZE! () - 1) };
 }
@@ -547,6 +606,7 @@ macro_rules! PAGE_MASK {
 /* C 242-244: the `write_open_command` banner.  */
 
 /// C 246-247: `static int write_open_command (const char *name, bool alternate)`.
+#[cfg (feature = "have_android")]
 unsafe fn write_open_command (name: *const c_char, alternate: bool) -> c_int
 {
   let mut command: exec_open_command = std::mem::zeroed ();   // C 249: `struct exec_open_command command;` (C fills it below)
@@ -587,6 +647,7 @@ unsafe fn write_open_command (name: *const c_char, alternate: bool) -> c_int
 
 /// C 287-289: `static int write_load_command (program_header *header, bool use_alternate,
 /// USER_WORD offset)`.
+#[cfg (feature = "have_android")]
 unsafe fn write_load_command (header: *mut program_header, use_alternate: bool, offset: USER_WORD)
   -> c_int
 {
@@ -705,26 +766,26 @@ unsafe fn write_load_command (header: *mut program_header, use_alternate: bool, 
 /* C 402-421: `#if defined __mips__ && !defined MIPS_NABI` - the four static storage objects the
    MIPS ABI-flag path records into.  C leaves them zero-initialized; Rust's static initializer
    spells C's own zero value (PORTING.md 0.1-13, and 1.5 for the locals of the same class).  */
-#[cfg (all (feature = "mips", not (feature = "mips_nabi")))]
+#[cfg (all (feature = "have_android", feature = "mips", not (feature = "mips_nabi")))]
 /// C 404-405: `static struct mips_elf_abi_flags exec_abi, interpreter_abi;`
 static mut exec_abi: mips_elf_abi_flags = unsafe { std::mem::zeroed () };
-#[cfg (all (feature = "mips", not (feature = "mips_nabi")))]
+#[cfg (all (feature = "have_android", feature = "mips", not (feature = "mips_nabi")))]
 /// C 404-405
 static mut interpreter_abi: mips_elf_abi_flags = unsafe { std::mem::zeroed () };
 
-#[cfg (all (feature = "mips", not (feature = "mips_nabi")))]
+#[cfg (all (feature = "have_android", feature = "mips", not (feature = "mips_nabi")))]
 /// C 407-408: `static elf_header exec_interpreter_header;`
 static mut exec_interpreter_header: elf_header = unsafe { std::mem::zeroed () };
 
-#[cfg (all (feature = "mips", not (feature = "mips_nabi")))]
+#[cfg (all (feature = "have_android", feature = "mips", not (feature = "mips_nabi")))]
 /// C 410-411: `static elf_header *interpreter_header;`
 static mut interpreter_header: *mut elf_header = std::ptr::null_mut ();
 
-#[cfg (all (feature = "mips", not (feature = "mips_nabi")))]
+#[cfg (all (feature = "have_android", feature = "mips", not (feature = "mips_nabi")))]
 /// C 413-415: `static struct mips_elf_abi_flags *exec_abiflags;`
 static mut exec_abiflags: *mut mips_elf_abi_flags = std::ptr::null_mut ();
 
-#[cfg (all (feature = "mips", not (feature = "mips_nabi")))]
+#[cfg (all (feature = "have_android", feature = "mips", not (feature = "mips_nabi")))]
 /// C 417-419: `static struct mips_elf_abi_flags *interpreter_abiflags;`
 static mut interpreter_abiflags: *mut mips_elf_abi_flags = std::ptr::null_mut ();
 
@@ -732,6 +793,7 @@ static mut interpreter_abiflags: *mut mips_elf_abi_flags = std::ptr::null_mut ()
 
 /// C 433-436: `static int process_interpreter_1 (const char *name, int fd, program_header *header,
 /// elf_header *elf_header)`.
+#[cfg (feature = "have_android")]
 unsafe fn process_interpreter_1 (name: *const c_char, fd: c_int, header: *mut program_header,
 				 elf_header: *mut elf_header) -> c_int
 {
@@ -781,6 +843,7 @@ unsafe fn process_interpreter_1 (name: *const c_char, fd: c_int, header: *mut pr
 /// C 484-486: `static int process_interpreter (int fd, program_header *prog_header, USER_WORD
 /// *entry)`.  C 514 assigns `fd`, so the parameter is `mut` (Rust 0.1-13's class: the name and the
 /// value are C's, the binding is the language's).
+#[cfg (feature = "have_android")]
 unsafe fn process_interpreter (mut fd: c_int, prog_header: *mut program_header,
 			       entry: *mut USER_WORD) -> c_int
 {
@@ -909,6 +972,7 @@ unsafe fn process_interpreter (mut fd: c_int, prog_header: *mut program_header,
 
 /// C 608-613: `static int process_program_header (const char *name, int fd, program_header *header,
 /// elf_header *elf_header, USER_WORD *entry, USER_WORD *offset)`.
+#[cfg (feature = "have_android")]
 unsafe fn process_program_header (name: *const c_char, fd: c_int, header: *mut program_header,
 				  elf_header: *mut elf_header, entry: *mut USER_WORD,
 				  offset: *mut USER_WORD) -> c_int
@@ -979,6 +1043,7 @@ unsafe fn process_program_header (name: *const c_char, fd: c_int, header: *mut p
 
 /// C 683-685: `static int insert_args (struct exec_tracee *tracee, USER_REGS_STRUCT *regs, const
 /// char *arg1, const char *arg2, const char *arg3)`.
+#[cfg (feature = "have_android")]
 unsafe fn insert_args (tracee: *mut exec_tracee, regs: *mut USER_REGS_STRUCT, arg1: *const c_char,
 		       arg2: *const c_char, arg3: *const c_char) -> c_int
 {
@@ -1181,6 +1246,7 @@ unsafe fn insert_args (tracee: *mut exec_tracee, regs: *mut USER_REGS_STRUCT, ar
 /// C 870-871: `char *format_pid (char *in, unsigned int pid)` - a non-`static` definition, so it
 /// keeps `#[unsafe(no_mangle)]` (PORTING.md 0.2); `in` is a Rust keyword and takes the raw
 /// identifier spelling (0.2).
+#[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn format_pid (mut r#in: *mut c_char, mut pid: c_uint) -> *mut c_char
 {
@@ -1221,6 +1287,7 @@ pub unsafe extern "C" fn format_pid (mut r#in: *mut c_char, mut pid: c_uint) -> 
 
 /// C 909-911: `char *exec_0 (char *name, struct exec_tracee *tracee, size_t *size, USER_REGS_STRUCT
 /// *regs)` - non-`static`, so `#[unsafe(no_mangle)]` (PORTING.md 0.2).
+#[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn exec_0 (name: *mut c_char, tracee: *mut exec_tracee, size: *mut usize,
 				 regs: *mut USER_REGS_STRUCT) -> *mut c_char
