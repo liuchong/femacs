@@ -3767,6 +3767,15 @@ pub static mut w32font_driver: font_driver = font_driver {
 /* C 2871: `static void syms_of_w32font_for_pdumper (void);` - dropped (PORTING.md 0.1-12); the
    definition is C 3064-3068.  */
 
+/* C's one `globals.f_Vw32_charset_info_alist` field this unit's `syms_of_w32font` registers
+   (its `DEFVAR_LISP` call at C 3014), defined here as the port's storage - C's
+   `struct emacs_globals` is zero-initialised and the DEFVAR macros only take each field's
+   address, so the initialiser is `lisp_h_Qnil ()` (docs/status.md 3.29, the `src/cmds.rs`
+   row and the `src/alloc.rs` 8019-8025 note).  */
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_charset_info_alist: Lisp_Object = lisp_h_Qnil (); // C 3014
+
 /* C 2873-3015: `syms_of_w32font`.  */
 /// C: void syms_of_w32font (void)
 #[cfg (feature = "have_ntgui")]
