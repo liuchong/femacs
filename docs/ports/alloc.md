@@ -640,3 +640,31 @@ cells.  With the blocks marked the same command loads 34 files and stops in
 `international/characters.el` - not on a GC symptom but on the next defect:
 `Fcopy_sequence`'s `copy_nonoverlapping` precondition panic (see status 3.626, which names it as
 the next station).
+
+
+## Defect repair (2026-10-16, status 4.373): the two unchecked arithmetics (P-96's first half)
+
+The unit's byte sums were ported as *checked* Rust arithmetic, and the reference's are unchecked C:
+
+* `total_bytes_of_live_objects` sums eight `byte_ct` terms (C 5482-5492) - C's `+=` on a `byte_ct`
+  wraps silently, and the eighth term is the unsigned spelling of a **signed** counter;
+* `hash_table_allocated_bytes` (C 326, a `ptrdiff_t`) is incremented by `hash_table_alloc_bytes`
+  (C 5411) and decremented in the sweep (C 3226, 3235) and by `hash_table_free_bytes` (C 5420) -
+  and C's own obarray arm (C 3230-3235) subtracts a size that has no matching add, so the counter
+  *does* go negative in C, and `gcstat.total_hash_table_bytes = hash_table_allocated_bytes`
+  (C 3362) then spells that as a huge `byte_ct`.
+
+Measured 2026-10-16, the first round in which the port could run the compiler: the first
+`(garbage-collect)` after `bindat.el` aborted the process
+(`femacs: panic: panicked at .../units/alloc/_root.rs:5880: attempt to add with overflow` - the
+last `+=` in `total_bytes_of_live_objects`, because the hash-table term is the huge one), and every
+later GC would abort the same way.  This is P-96's first half exactly: the sites where C relies on
+the wrap are written `wrapping_add`/`wrapping_sub` with C's own text kept in the comment, and
+`overflow-checks` stays **on** (the rule forbids turning it off).
+
+Eight sites: the eight additions of the sum, and the counter's `+=` plus the three `-=`.
+Readings: `build-tu src/alloc.c` exit 0; `extract-abi.py --check emacs/src/alloc.c
+femacs/src/alloc.rs` OK; `gate-load` `undefined symbols: 0`; the L1 byte-compile worklist went from
+`3 .elc` + `Abort trap: 6` to 38 `.elc` + 47 failing files (docs/status.md 4.373); the twelve text
+gates, `tools/check-all-units.sh` (83/0) and the L0 differential (`19 expression(s), 0
+failure(s)`) all unchanged green.
