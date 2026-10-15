@@ -1624,9 +1624,11 @@ macro_rules! def_x_atom_refs {
   };
 }
 
+#[cfg (feature = "have_x_windows")]
 #[cfg (not (feature = "have_xkb"))]
 pub static mut x_atom_refs: [x_atom_ref; 116] = def_x_atom_refs! ();
 
+#[cfg (feature = "have_x_windows")]
 #[cfg (feature = "have_xkb")]
 pub static mut x_atom_refs: [x_atom_ref; 121] = def_x_atom_refs! (
       ATOM_REFS_INIT! (c"Meta".as_ptr (), Xatom_Meta),   // C 1074
