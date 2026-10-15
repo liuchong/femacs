@@ -1388,6 +1388,54 @@ fn probe_programs() -> Result<(), String> {
 /// `lib/` objects in place of the reference `libgnu.a` (the port has no archive, and mixing the
 /// reference library in is the C/Rust hybrid goal constraint 2 forbids), the frozen `-L` paths
 /// and `-lncurses` all go through a response file.
+/// The members of the frozen `libgnu.a`, in the order `ar` prints them.
+///
+/// This is C's own `lib/` object set: the frozen configuration's `lib/Makefile` lists exactly
+/// these, and C's `temacs` rule links them through `LIBEGNU_ARCHIVE`.  The port has no archive of
+/// its own (goal constraint 2), so its objects for these members stand in - and *only* these:
+/// see the call site for what linking a member C never builds costs.
+fn reference_members() -> Vec<String> {
+    let archive = Path::new(REPO).join("build/emacs-ref/lib/libgnu.a");
+    if !archive.is_file() {
+        return Vec::new();
+    }
+    match Command::new("ar").arg("t").arg(&archive).output() {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+            .lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// The port's build tree: `src/temacs` plus the trees the port owns under their own names.
+///
+/// C's build tree and its source tree are one tree (`lib-src/`, `etc/`, `lisp/` beside `src/`),
+/// and the port's trees are the verbatim copies under `femacs/` (`lisp/`, `etc/`, `leim/`,
+/// `doc/`, `test/`, `admin/`).  Links keep `build/` a build artifact rather than a second copy
+/// (`build/` is git-ignored), and `lib-src/` is a real directory because that is where the
+/// program's own outputs go (`emacs.pdmp` for a dumped build).
+fn port_tree(root: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(root.join("src"))?;
+    fs::create_dir_all(root.join("lib-src"))?;
+    for name in ["lisp", "leim", "etc", "doc", "test", "admin"] {
+        // The *target string* is relative to the link's own directory (`build/port/`, hence two
+        // levels up), while the existence test has to be about the real tree the port owns - the
+        // relative string resolves against this process's cwd and would skip every link.
+        if !Path::new(REPO).join("femacs").join(name).exists() {
+            continue;                       // a tree the port does not own is not linked
+        }
+        let target = Path::new("../..").join("femacs").join(name);
+        let link = root.join(name);
+        // `symlink` is Unix-only, which is all this driver needs (`std::os::unix::fs`).
+        let _ = fs::remove_file(&link);
+        match std::os::unix::fs::symlink(&target, &link) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(())
+}
+
 fn gate_load(arg: Option<&str>) -> i32 {
     let report = arg == Some("--report");
     // `-W emacs.o`: the frozen build's `temacs` is already linked, and make prints *nothing*
@@ -1437,18 +1485,49 @@ fn gate_load(arg: Option<&str>) -> i32 {
                 missing.push(tok.to_string());
             }
         } else if tok.ends_with("../lib/libgnu.a") {
-            // the port's own objects for the `lib/` units stand in for the reference archive
-            if let Ok(rd) = fs::read_dir("lib") {
-                let mut stems: Vec<String> = rd.filter_map(|e| e.ok())
-                    .filter_map(|e| e.path().file_stem().map(|s| s.to_string_lossy().into_owned()))
-                    .collect();
-                stems.sort();
-                for stem in stems {
-                    let p = Path::new(REPO).join("build/femacs").join(format!("{stem}.o"));
+            // The port's own objects stand in for the reference archive, and the **member set is
+            // the reference's own** (`ar t` on the frozen `libgnu.a`), because that is what C's
+            // link has: a `lib/` file the frozen configuration does not compile must not be
+            // linked from the port's side either.  gnulib writes a replacement under the *plain*
+            // name of the function when the module is used (not a `rpl_` rename), so a port unit
+            // for an unused module defines a system name and *shadows libSystem's*: measured
+            // 2026-10-16, the program died inside the port's own `open` before running any Lisp
+            // (lldb: `EXC_BAD_ACCESS` at `open + 16`), and an object-set audit found 14 such
+            // definitions across 11 units (`open`, `fcntl`, `getdelim`, `getline`, `getgroups`,
+            // `mkostemp`, `stpcpy`, `strnlen`, `strtoimax`, `strtoll`, `time_r`).  "Every ported
+            // `lib/` unit goes into the archive" was the older reading and is not C's object set.
+            let members = reference_members();
+            if members.is_empty() {
+                return fail("cannot list build/emacs-ref/lib/libgnu.a: build the frozen archive \
+                             (make -C build/emacs-ref/lib libgnu.a)");
+            }
+            let mut absent: Vec<String> = Vec::new();
+            for member in &members {
+                let stem = Path::new(member).file_stem()
+                    .map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+                // gnulib amalgamates sources with `#include`, so a member named `X-gnulib.o`
+                // also needs `X.o` when that unit exists (the rule tools/check-link.py records:
+                // `mini-gmp-gnulib.o` carries no `mpz_*`, `mini-gmp.o` carries 127 of them).
+                let cands: Vec<String> = if let Some(base) = stem.strip_suffix("-gnulib") {
+                    vec![stem.clone(), base.to_string()]
+                } else {
+                    vec![stem.clone()]
+                };
+                let mut hit = false;
+                for cand in cands {
+                    let p = Path::new(REPO).join("build/femacs").join(format!("{cand}.o"));
                     if p.is_file() {
                         libs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
+                        hit = true;
                     }
                 }
+                if !hit {
+                    absent.push(stem);
+                }
+            }
+            if !absent.is_empty() {
+                println!("reference archive member(s) with no port object (not linked): {}",
+                         absent.join(" "));
             }
         } else if tok.starts_with("-L") {
             search.push(tok.to_string());
@@ -1478,8 +1557,23 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
     if let Err(e) = fs::write("../build/load/driver.rs", DRIVER) {
         return fail(format!("writing the link driver: {e}"));
     }
-    let out_path = fs::canonicalize("..").map(|p| p.join("build/load/temacs-port"))
-        .unwrap_or_else(|_| PathBuf::from("build/load/temacs-port"));
+    // The program has to *find its own tree*, and where it is put decides that: C's
+    // `init_cmdargs` walks up from the executable's directory looking for a sibling `lib-src`
+    // and `etc` (emacs.c 585-630) and sets `installation-directory` from what it finds, which is
+    // what `init_callproc` then turns into `exec-directory` and the default load path.  A binary
+    // dropped in a bare directory therefore behaves like an *installed* program whose prefix does
+    // not exist: measured 2026-10-16, `build/load/temacs-port` printed
+    // `Warning: arch-dependent data dir '/usr/local/libexec/emacs/32.0.50/...': No such file or
+    // directory` and reported `exec-directory` as that installed path, while the reference
+    // (`build/emacs-ref/src/temacs`, whose siblings `lib-src/` and `etc/` exist) printed no
+    // warning and reported the build tree - the *only* stderr difference between the two runs.
+    // So the port gets the same shape: `<port>/src/temacs` with the trees the port owns reachable
+    // beside it, which is also what makes the program load its *own* verbatim `lisp/`.
+    let port_root = fs::canonicalize("..").map(|p| p.join("build/port"))
+        .unwrap_or_else(|_| PathBuf::from("build/port"));
+    if let Err(e) = port_tree(&port_root) {
+        return fail(format!("building the port's tree layout: {e}"));
+    }
     // The reference link pulls `../lib/libgnu.a`, and an archive's members are only linked when
     // something needs them: `lib/getloadavg.c`'s `nlist` call is in an object the C program never
     // pulls, while passing every lib object individually would demand that every one of them
@@ -1505,6 +1599,7 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
     }
     let archive_abs = fs::canonicalize(archive).map(|p| p.display().to_string())
         .unwrap_or_else(|_| archive.to_string());
+    let out_path = port_root.join("src").join("temacs");
     let mut rsp: Vec<String> = vec![format!("-o\n{}", out_path.display())];
     rsp.extend(objs.iter().cloned());
     rsp.push(archive_abs);
