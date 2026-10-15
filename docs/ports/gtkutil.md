@@ -223,7 +223,8 @@
 | 5847-6162 | C 5849-5850's comment and **`update_frame_tool_bar`** (C 5851-6162 - the file's largest remaining item and its one entry point: the button margin with C 5895-5896's "default for GTK is zero" adjustment, the bar's creation on first use, C 5909-5928's up-to-date test and bookkeeping, then the item walk with C 5957-5968's separator arm, C 5982-5988's invalid-image arm, C 5991-6015's stock/icon resolution, C 6027-6046's vector image pick and `lookup_image`, C 6065-6074's staleness test, C 6076-6132's widget creation under five version folds, and C 6141-6161's removal, packing and resize) | file gate (`use_gtk`) plus C's own `HAVE_PGTK`, `USE_CAIRO`, `HAVE_GTK3` and `GTK_CHECK_VERSION (3, 14, 0)` folds; the mirror gains sixteen items (the tool-bar item/render surface, GTK2's `gtk_image_new_from_stock` and `gtk_misc_set_padding` under negated features, `g_object_set_data_full`, and the four 3.14 margin setters); the unit carries three use-site declarations (`valid_image_p`, `lookup_image`, `prepare_image_for_display`) and a copy of `IMAGE_FROM_ID` (Owed 18) | slice 32 below |
 | 6163-6312 | C 6164-6165's comment and three items: **`free_frame_tool_bar`** (C 6167-6209 - take the bar out of its box when it was packed, otherwise destroy it, clear the frame's four toolbar slots, free the `xg_frame_tb_info` record and ask for a resize), **`xg_change_toolbar_position`** (C 6211-6239 - hold a reference across the re-pack, remove the widget from whichever box holds it, `xg_pack_tool_bar` at `pos`, drop the reference and resize when the sizes moved) and **`xg_initialize`** (C 6246-6312 - keep libXft linked, clear the three file-scope objects and the scroll-bar widget map, then set the menu-bar accelerator and the `Emacs` key theme and install the two `C-g` binding sets) | file gate (`use_gtk`) plus C's own `HAVE_XFT`, the `have_pgtk`-or-not-GTK3 fold, `HAVE_GTK3`, the **new `gtk_check_version_ge_3_16` feature** (registered by this slice in `femacs/xtask/Cargo.toml`), `HAVE_FREETYPE` and `HAVE_XWIDGETS`; the mirror gains twelve items (the binding-set surface, the two `GTK_TYPE_*` macro pairs, `GDK_KEY_g`/`GDK_CONTROL_MASK`, the pre-3.16 string-property setter and `XftInit`) | slice 33 below |
 | 6313-6447 | C 6313's blank and C 6314's `#ifndef HAVE_PGTK` (whose `#endif` is C 6629, far past this slice, so the fold prefixes the five items below), then **`xg_add_virtual_mods`** (C 6315-6336 - X's real masks into GDK's virtual bits, with C 6324's "GDK always assumes Mod1 is alt" arm), **`xg_virtual_mods_to_x`** (C 6338-6357 - the Other direction: strip the seven GDK bits and map Meta/Super/Hyper back through the display's masks), **`xg_im_context_commit`** (C 6359-6408 - a `MULTIBYTE_CHAR_KEYSTROKE_EVENT` from the committed string, decoded as UTF-8 with C 6380-6381's unibyte fallback, the `coding` property, and under XInput2 the device that sent the filtered keystroke), **`xg_im_context_preedit_changed`** (C 6410-6435 - the preedit string, its attribute list and the cursor, with C 6425-6429's `min`/`max` pair tagging the character under the cursor) and **`xg_im_context_preedit_end`** (C 6437-6446 - an empty `PREEDIT_TEXT_EVENT`) | file gate (`use_gtk`) plus the pgtk fold and, inside `xg_im_context_commit`, C 6365-6368/6387-6401's `HAVE_XINPUT2` pair; the mirror gains eleven items (the seven GDK modifier bits, `PangoAttrList`, `gtk_im_context_get_preedit_string`, `pango_attr_list_unref`); the unit carries two use-site declarations (`decode_string_utf_8`, `xi_device_from_id`) | slice 34 below |
-| 6448-6753 | **the remainder** — from C 6448-6449's `xg_widget_key_press_event_cb` through C 6753: that callback (C 6450-6628, the file's largest event handler, with its `HAVE_XINPUT2` and `GDK_KEY_*` folds), `xg_filter_key` (C 6630-6731) and `xg_widget_style_updated` (C 6732-6753), plus the file's final `#endif`s | not this slice |
+| 6448-6628 | **`xg_widget_key_press_event_cb`** (C 6450-6627 - the file's largest event handler: C 6463-6471's `FOR_EACH_FRAME` walk for the frame whose widget this is, C 6476's popup test, C 6479-6485's pending-keystroke bookkeeping under XInput2, C 6487-6489's native-input guard, C 6491-6499's event frame/modifiers/timestamp, C 6501-6510's device lookup, and then the keysym classification - C 6512's `is_modifier`, C 6515-6520's GTK2 range guard, C 6524-6530's ASCII range, C 6533-6541's Unicode keysym range, C 6543-6598's `Is…Key` family with the fourteen `GDK_KEY_dead_*` folds, and C 6600-6613's `gdk_keyval_to_unicode` pair - then C 6615-6620's store and C 6622-6626's connection exercise) | file gate (`use_gtk`) plus the pgtk fold and C's own `HAVE_XINPUT2`, `HAVE_GTK3` and `USABLE_SIGIO` arms; **no mirror change** - the four `Is…Key` macros, the twenty-two `GDK_KEY_*` rows, `gunichar` with `gdk_keyval_to_unicode` and `XNoOp` are all unit-local (three other units declare the first two groups over the mirror, and the mirror cannot name a unit-local type) | slice 35 below |
+| 6629-6753 | **the remainder** — from C 6629-6630's `xg_filter_key` through C 6753: that function (C 6631-6727, with the `GTK_CHECK_VERSION (3, 20, 0)`/`(3, 16, 0)` pair, C 6672-6719's XInput2 arm and C 6678-6681's `HAVE_XKB` block) and `xg_widget_style_updated` (C 6731-6751, under C 6730's `GTK_CHECK_VERSION (3, 10, 0)`), plus the file's final `#endif`s at C 6728/6752-6753 | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -293,6 +294,16 @@ the remainder carries - **none is a defect of a C statement's transcription**:
 | C | 2+2 | `cannot find function gtk_hbox_new` / `gtk_vbox_new` | C 119-121's GTK2 `gtk_box_new` macro body - GTK2's, no header here (Owed 6) |
 | C | 1+1 | `no field bg` / `no field fg` on `GtkStyle` | slice 1's GTK2 gap (the `GtkStyle` record) |
 | C | 1 | `no field bg_pixmap_name on type GtkRcStyle` | GTK2's `GtkRcStyle` record is an opaque handle here (Owed 6) |
+
+**Correction (2026-10-15, the thirty-fifth slice's round): one row retires and the moving text adds
+none.**  A/A+3.14/A+3.16/A+3.18/A+3.20 read 35 -> 34, AN 34 -> 33 and the GTK2 face 58 -> 57: one
+retirement (`cannot find value xg_widget_key_press_event_cb`, the forward declaration C 97-102 left
+open) against **no** addition, and the pgtk probe is unchanged (1,505).  The round also fixes three
+type defects the first arm run found in its own text (`event->key.time` is GDK's `guint32` where C
+compares it against a `Time` - `src/pgtkterm.rs` 7944's `as Time` shape; `x_x_to_emacs_modifiers`
+takes C's `int`, so C 6498's unsigned argument is `as c_int`; and the four `Is…Key` macros cannot
+name `XK_*`, which live inside `include/xlib.rs`'s `x11_constants` module in a file this unit's graph
+does not reach, so they carry the measured numbers instead - the `src/pgtkterm.rs` 7646-7662 shape).
 
 **Correction (2026-10-15, the thirty-fourth slice's round): five rows retire, no class enters, and the
 pgtk face gains its first `E0425`-free pair.**  The five retirements are the whole slice:
@@ -1270,6 +1281,14 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     `src/xwidget.rs`, `src/pgtkterm.rs` and `src/pgtkim.rs` declare them over it, and
     they belong back in the mirror once those three copies are reconciled in one round -
     a change in three units outside this lane (see the correction below).
+    **Slice 35 adds five more of the same class and explains the widest one**: the four `Is…Key`
+    macros (`src/pgtkterm.rs` 7646 and `src/xterm.rs` 31012 keep their own), the twenty-two
+    `GDK_KEY_*` keysym rows (`src/pgtkterm.rs` 7607-7845 keeps its own), `gunichar`
+    (`src/pgtkterm.rs` 4930-4936's) with `gdk_keyval_to_unicode` (which could not go into the mirror
+    even alone, since its signature names that unit-local type), and `XNoOp` (Xlib.h 2856, which
+    `src/xterm.rs` 29742/38643 leaves to the recorded bare class).  `GDK_KEY_dead_degree` carries the
+    `gdk_key_dead_degree` feature `src/pgtkterm.rs` 7838-7841 introduced, because X11's own table has
+    no such keysym on this machine and GDK's is the presence C's `#ifdef` asks about.
     **Slice 30 closes slice 28's item**: `xg_update_tool_bar_sizes`'s definition (C 5761-5810) has
     landed, so C 5517's call resolves and the row the round above added is gone (the P-91 ④ class
     shrinks by one site and now holds only the *other* names this file still waits for, e.g.
@@ -3372,3 +3391,69 @@ the same closure slice 30's `xg_update_tool_bar_sizes` and slice 32's `update_fr
 **Not claimed.**  No arm was compiled against a real GTK or Pango tree - there is none on this machine
 - so the eleven mirror rows are UNVERIFIED; `xg_widget_key_press_event_cb`, `xg_filter_key` and
 `xg_widget_style_updated` still show as the remainder's; and the pgtk reading is the probe's (Owed 17).
+
+## Slice 35 (2026-10-15, status 4.365): C 6448-6628 — `xg_widget_key_press_event_cb`
+
+**What this slice is.**  The file's largest event handler (C 6450-6627): the `FOR_EACH_FRAME` walk
+that finds the frame whose widget the event belongs to, the popup and native-input guards, the
+pending-keystroke bookkeeping (XInput2), the event's frame/modifiers/timestamp, and then the keysym
+classification - `is_modifier`, the GTK2 range guard, the ASCII range, the Unicode keysym range, the
+`Is…Key` family with fourteen `GDK_KEY_dead_*` folds, and `gdk_keyval_to_unicode` - followed by the
+store and the connection exercise.  Port: 9,555 -> **9,843 lines**; the table's last row splits at
+C 6628 - the next text is C 6629-6630's `xg_filter_key`.
+
+**The `goto done` shape.**  C 6513/6519/6529/6540/6597 jump to the label C 6615 defines, i.e. all
+five are forward jumps and the label sits after the last one: the port wraps the guarded range in
+`'done: { … }` and writes `break 'done;` at each jump - the `src/androidterm.rs` 1399-1402 shape
+(P-92), and the round's one new token row (`does not mention goto`), which
+`docs/ports/macro-body-notes.tsv` records with every other token of the body still compared.
+
+**What stayed in the unit, and why (the last round's lesson applied).**  Three groups of names
+**cannot** go into `include/gtk.rs`, each for a measured reason: the four `Is…Key` macros and the
+twenty-two `GDK_KEY_*` keysym rows are declared by `src/pgtkterm.rs` (7607-7845) and, for the macros,
+`src/xterm.rs` (31012) as well - all units that `include!` the mirror; `gunichar` is
+`src/pgtkterm.rs` 4930-4936's, and `gdk_keyval_to_unicode`'s signature names it, so the mirror could
+not carry the function even alone (a mirror is textually included into units that do not define that
+type); and `XNoOp` is Xlib's, which `src/xterm.rs` 29742/38643 leaves to the "recorded bare class"
+(`include/xlib.rs` has no row), so it is declared at the use site with Xlib.h 2856 beside it.  The
+keysym values are **measured** in `/opt/homebrew/include/X11/keysymdef.h` (the table `gdkkeysyms.h`
+is generated from), with the header's line on every row; `GDK_KEY_dead_degree` keeps the
+`gdk_key_dead_degree` feature `src/pgtkterm.rs` 7838-7841 introduced, because X11's own table has no
+such keysym and GDK's presence is exactly what C's `#ifdef` asks about.
+
+**Deviations this slice adds.**
+
+- C 6448's `static bool` is `G_CALLBACK`'d, so `unsafe extern "C" fn`; C 6454's `union
+  buffered_input_event inev` is zeroed (`EVENT_INIT` takes the member's address, PORTING.md 1.5) and
+  C 6497's `inev.ie.modifiers` is written through `|=` with C 6498's result cast `as c_uint`.
+- C 6512's `event->key.is_modifier` is GDK's one-bit `guint`, read through its storage unit
+  (`& 1`, the `src/pgtkterm.rs` 8030 shape).
+- C 6604/6611's kind stores are the `input_event_bits!` accessor (P-80), and C 6618's
+  `xg_pending_quit_event.kind = NO_EVENT;` is the same accessor on this file's own static.
+- C 6624's `raise (SIGIO)` is gated by `not (feature = "no_usable_sigio")` (the frozen table has
+  `USABLE_SIGIO 1`, so the arm is live; `src/sound.rs` 719-721's shape).
+- C 6465/6466's `FRAME_X_P`/`XFRAME`/`FRAME_GTK_WIDGET` and C 6487's `x_gtk_use_native_input` (a
+  `globals.rs` `variables` row) are the tree's existing shapes.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes** (two runs:
+   the first draft and after the three type fixes the arm run demanded).
+2. **The arm readings, against a materialised baseline** (a temporary `git worktree` at `3d981501`),
+   the nine sets: **A/A+3.14/A+3.16/A+3.18/A+3.20 35 -> 34, AN 34 -> 33, C 58 -> 57**, the pgtk probe
+   1,505 unchanged.  The single move is the round's retirement; **no class enters**, and the three
+   defects the first run found (`E0308` x4/2/2 for the `Time` pair and the `int state` cast, and the
+   eight `XK_*` `E0425`s) are all fixed above.
+3. **`extract-abi.py --check`** -> 8 -> **8 `- ` rows**: one retirement
+   (`xg_widget_key_press_event_cb`) against one new token row (`does not mention goto`), recorded in
+   `docs/ports/macro-body-notes.tsv`; the `line count drifted` row moves from 41.5% to **45.8%**
+   (C 6,753 vs 9,843).  What is left is `xg_filter_key`, `xg_widget_style_updated` and the `xp`
+   token-macro row.
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`); the table's last row splits at C 6628; `docs/ports/include-gtk.md` records that
+   this round added **no** mirror row.
+
+**Not claimed.**  No arm was compiled against a real GTK tree - there is none on this machine - so the
+widget path and the whole keysym classification are evidenced by rustc's name resolution and typing
+alone; `xg_filter_key` and `xg_widget_style_updated` still show as the remainder's; the `GDK_WINDOW_*`
+macro gap remains the mirror's; and the pgtk reading is the probe's (Owed 17).

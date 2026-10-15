@@ -1069,3 +1069,23 @@ rows with mirror rows, and the frozen sweep compiles `use_gtk`-gated text out - 
 unit's arm reading sees it (recorded in `docs/ports/gtkutil.md`'s correction and in
 `docs/status.md`).
 
+
+### status 4.365 (the gtkutil thirty-fifth-slice round this file took part in): no new rows
+
+`src/gtkutil.c`'s `xg_widget_key_press_event_cb` (C 6450-6627) is a *consumer* of names this file
+could not take, and the round records that instead of adding rows: the four `Is…Key` macros and the
+twenty-two `GDK_KEY_*` keysym rows are declared by `src/pgtkterm.rs` 7607-7845 (and, for the macros,
+`src/xterm.rs` 31012) over this mirror, `gunichar` is `src/pgtkterm.rs` 4930-4936's - and
+`gdk_keyval_to_unicode`, whose signature names that type, could not stand here even alone, because a
+mirror is textually included into units that do not define it - and `XNoOp` is Xlib's, which
+`src/xterm.rs` 29742/38643 leaves to the recorded bare class.  All of them therefore stand in
+`src/gtkutil.rs` (its `## Owed` 18 names them for the round that reconciles the copies).  The keysym
+values the round carries are **measured** in `/opt/homebrew/include/X11/keysymdef.h` with the
+header's line on each row; `GDK_KEY_dead_degree` is the one name that table lacks, so it keeps the
+`gdk_key_dead_degree` feature `status 4.363`'s neighbour introduced.
+
+**Checks.**  `tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet row(s),
+0 failure(s)` (unchanged, as it must be: nothing was added); `tools/check-all-units.sh` ->
+`checked 83 unit(s), 0 failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a 336-byte
+object; `src/gtkutil.rs`'s arm readings move by exactly one retirement
+(`cannot find value xg_widget_key_press_event_cb`) with no addition.

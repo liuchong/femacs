@@ -9553,3 +9553,291 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn xi_device_from_id (dpyinfo: *mut x_display_info, id: c_int) -> *mut xi_device_t;   // xterm.h 2022
 }
+
+/* C 6448-6627's `xg_widget_key_press_event_cb`, with the four `Is…Key` macros and the keysym rows
+   it reads standing above it (a `macro_rules!` is visible only in *text* order, P-92).  */
+
+/* C 6549-6591's four `Is…Key` macros are the X11 header's, and this machine's `<X11/keysym.h>`
+   carries none of them.  The bodies below are **`src/pgtkterm.rs` 7646-7662's**: the ranges C's own
+   comments give at each use ("0xff50 <= x < 0xff60", "0xff80 <= x < 0xffbe", "0xffbe <= x <
+   0xffe1"), measured against the X11 headers this machine has.  They are written with the numbers
+   rather than with `XK_Home`/`XK_Select`/… because those rows live inside `include/xlib.rs`'s
+   `x11_constants` **module**, and `include/xlib.rs` is not in this unit's graph at all (its names
+   reach the units that `include!` it through `crate::x11_constants`, which this unit does not have);
+   `src/xterm.rs` 31012-31044's copies name them and cite the SDK copy they were measured from.
+   These four are this unit's copies (Owed 18's class).  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+macro_rules! IsCursorKey {
+  ($keysym:expr) => { (0xff50 as guint) <= ($keysym) && ($keysym) < (0xff60 as guint) };
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+macro_rules! IsMiscFunctionKey {
+  ($keysym:expr) => { (0xff60 as guint) <= ($keysym) && ($keysym) < (0xff6c as guint) };
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+macro_rules! IsKeypadKey {
+  ($keysym:expr) => { (0xff80 as guint) <= ($keysym) && ($keysym) < (0xffbe as guint) };
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+macro_rules! IsFunctionKey {
+  ($keysym:expr) => { (0xffbe as guint) <= ($keysym) && ($keysym) < (0xffe1 as guint) };
+}
+
+/* C 6518/6524-6593's keysym rows.  **They are not in `include/gtk.rs`**: `src/pgtkterm.rs`
+   7607-7845 declares the same GDK keysyms over that mirror (it `include!`s it), so a mirror row
+   would make that unit define each name twice - the "mirror-vs-unit duplicates" correction above.
+   Each value is **measured** in `/opt/homebrew/include/X11/keysymdef.h` (`gdkkeysyms.h` is
+   generated from that table and is not on this machine), with the header's line beside it, and the
+   two ranges C's own comments give at C 6549-6551 follow from the values.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_BackSpace: guint = 0xff08;            // keysymdef.h 200
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_Escape: guint = 0xff1b;               // keysymdef.h 208
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_Delete: guint = 0xffff;               // keysymdef.h 209
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_Shift_L: guint = 0xffe1;              // keysymdef.h 391
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_Hyper_R: guint = 0xffee;              // keysymdef.h 405
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_ISO_Left_Tab: guint = 0xfe20;         // keysymdef.h 435
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_ISO_Enter: guint = 0xfe34;            // keysymdef.h 455
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_circumflex: guint = 0xfe52;      // keysymdef.h 459
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_grave: guint = 0xfe50;           // keysymdef.h 457
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_tilde: guint = 0xfe53;           // keysymdef.h 460
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_diaeresis: guint = 0xfe57;       // keysymdef.h 465
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_macron: guint = 0xfe54;          // keysymdef.h 462
+/// C 6566-6568's `#ifdef GDK_KEY_dead_degree`.  **X11's table has no such keysym** (measured above:
+/// `keysymdef.h` defines every other `dead_*` name C names and not this one), so the presence C's
+/// `#ifdef` asks about is the one thing that cannot be measured here; `src/pgtkterm.rs` 7838-7841
+/// keeps the same arm behind this feature, and the value below is a **placeholder** - the round
+/// that can measure a GDK tree (`gdkkeysyms.h`) settles both.  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"), feature = "gdk_key_dead_degree"))]
+pub const GDK_KEY_dead_degree: guint = 0xfe5d;          // placeholder, not a measured value
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_acute: guint = 0xfe51;           // keysymdef.h 458
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_cedilla: guint = 0xfe5b;         // keysymdef.h 469
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_breve: guint = 0xfe55;           // keysymdef.h 463
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_ogonek: guint = 0xfe5c;          // keysymdef.h 470
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_caron: guint = 0xfe5a;           // keysymdef.h 468
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_doubleacute: guint = 0xfe59;     // keysymdef.h 467
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_dead_abovedot: guint = 0xfe56;        // keysymdef.h 464
+
+/// C: glib.h: `typedef unsigned int gunichar;` - the type of C 6600's `uc`.  **Not in
+/// `include/gtk.rs`**: `src/pgtkterm.rs` 4930-4936 declares it over that mirror (the
+/// "mirror-vs-unit duplicates" correction), and a mirror row for `gdk_keyval_to_unicode` below
+/// could not name it either, since a mirror is textually included into units that do not define it.
+/// **UNVERIFIED** (no GLib tree here).
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub type gunichar = c_uint;
+/// C: gdk/gdkkeysyms-update.pl's table entry / gdk/gdk.h: `gunichar gdk_keyval_to_unicode (guint
+/// keyval);` - C 6600's read, the last keysym conversion this callback needs.  It stands here with
+/// `gunichar` for the reason that row gives.  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn gdk_keyval_to_unicode (keyval: guint) -> gunichar;
+}
+
+/// C 6622's `XNoOp (FRAME_X_DISPLAY (f));`.  C: Xlib.h 2856: `extern int XNoOp (Display
+/// *display);` - Xlib's prototype, which `include/xlib.rs` does not carry (`src/xterm.rs` 29742
+/// and 38643 are Xlib's recorded bare class there), so it stands at this use site under this
+/// unit's gate - Owed 18's class.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn XNoOp (display: *mut Display) -> c_int;                        // Xlib.h 2856
+}
+
+/// C 6448-6627: `static bool xg_widget_key_press_event_cb (GtkWidget *widget, GdkEvent *event,
+/// gpointer user_data)` - the widget's `key-press-event` handler and the file's last big one: find
+/// the frame whose widget this is (C 6463-6471's `FOR_EACH_FRAME` walk), bail out when there is
+/// none or a popup is active, clear the pending-keystroke bookkeeping under XInput2, bail out again
+/// unless native input is in use, build the event's frame, modifiers and timestamp (with the
+/// XInput2 device when the timestamps match), and then classify the keysym: modifier, the GTK2
+/// range guard, ASCII, the Unicode keysym range, the `Is…Key` family, or `gdk_keyval_to_unicode` -
+/// then store it unless nothing was produced, and finally exercise the X connection.  C `static` and
+/// `G_CALLBACK`'d at C 2362/2466, so `unsafe extern "C" fn`.  C 6491/6492's `EVENT_INIT` and
+/// `XSETFRAME` take the union member's address in the port, C 6512's one-bit `is_modifier` is read
+/// through its storage unit (P-80, the `src/pgtkterm.rs` 8030 shape), and C 6513/6519/6529/6540/6597's
+/// five `goto done` are the `'done` labelled block `src/androidterm.rs` 1399-1402 establishes (C's
+/// label sits at C 6615, after the last jump, and the block's body is what the label guards).
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" fn xg_widget_key_press_event_cb (widget: *mut GtkWidget, event: *mut GdkEvent,
+						   user_data: gpointer) -> bool   // C 6448-6627
+{
+  let mut tail: Lisp_Object;                                            // C 6452
+  let mut tem: Lisp_Object;
+  let mut f: *mut frame = std::ptr::null_mut ();                        // C 6453
+  let mut inev: buffered_input_event = std::mem::zeroed ();             // C 6454
+  let keysym: guint = (*event).key.keyval;                              // C 6455
+  let mut xstate: c_uint;                                               // C 6456
+  let uc: gunichar;                                                     // C 6457
+  /* C 6458-6461's `#ifdef HAVE_XINPUT2` locals.  */
+  #[cfg (feature = "have_xinput2")]
+  let mut pending_keystroke_time: Time;                                 // C 6459
+  #[cfg (feature = "have_xinput2")]
+  let mut source: *mut xi_device_t;                                     // C 6460
+
+  FOR_EACH_FRAME! (tail, tem, {                                         // C 6463
+    if FRAME_X_P (XFRAME (tem))                                         // C 6465
+	&& FRAME_GTK_WIDGET! (XFRAME (tem)) == widget                   // C 6466
+      {
+	f = XFRAME (tem);                                               // C 6468
+	break;                                                          // C 6469
+      }
+  });
+
+  if f.is_null ()                                                       // C 6473
+    { return true; }                                                    // C 6474
+
+  if popup_activated () != 0                                            // C 6476
+    { return true; }                                                    // C 6477
+
+  /* C 6479-6485's `#ifdef HAVE_XINPUT2`.  */
+  #[cfg (feature = "have_xinput2")]
+  {
+    pending_keystroke_time                                              // C 6480
+      = (*FRAME_DISPLAY_INFO! (f)).pending_keystroke_time;              // C 6481
+
+    if (*event).key.time as Time >= pending_keystroke_time              // C 6483
+      { (*FRAME_DISPLAY_INFO! (f)).pending_keystroke_time = 0; }        // C 6484
+  }
+
+  if ! x_gtk_use_native_input                                           // C 6487
+      && ! (*FRAME_DISPLAY_INFO! (f)).prefer_native_input               // C 6488
+    { return true; }                                                    // C 6489
+
+  EVENT_INIT ((&raw mut inev.ie));                                      // C 6491
+  XSETFRAME! (inev.ie.frame_or_window, f);                              // C 6492
+
+  xstate = xg_virtual_mods_to_x (FRAME_DISPLAY_INFO! (f),               // C 6494
+				 (*event).key.state);                   // C 6495
+
+  inev.ie.modifiers                                                     // C 6497
+    |= x_x_to_emacs_modifiers (FRAME_DISPLAY_INFO! (f), xstate as c_int) as c_uint;   // C 6498
+  inev.ie.timestamp = (*event).key.time as Time;                        // C 6499
+
+  /* C 6501-6510's `#ifdef HAVE_XINPUT2`.  */
+  #[cfg (feature = "have_xinput2")]
+  {
+    if (*event).key.time as Time == pending_keystroke_time              // C 6502
+      {
+	source = xi_device_from_id (FRAME_DISPLAY_INFO! (f),            // C 6504
+				    (*FRAME_DISPLAY_INFO! (f)).pending_keystroke_source);   // C 6505
+
+	if ! source.is_null ()                                          // C 6507
+	  { inev.ie.device = (*source).name; }                          // C 6508
+      }
+  }
+
+  /* C 6615's `done:` label, which every jump below reaches; it sits after the last one.  */
+  'done: {
+    if ((*event).key.is_modifier & 1) != 0                              // C 6512
+      { break 'done; }                                                  // C 6513
+
+    /* C 6515-6520's `#ifndef HAVE_GTK3`.  */
+    #[cfg (not (feature = "have_gtk3"))]
+    {
+      /* FIXME: event->key.is_modifier is not accurate on GTK 2.  */
+
+      if keysym >= GDK_KEY_Shift_L && keysym <= GDK_KEY_Hyper_R        // C 6518
+	{ break 'done; }                                                // C 6519
+    }
+
+    /* First deal with keysyms which have defined
+       translations to characters.  */
+    if keysym >= 32 && keysym < 128                                     // C 6524
+      {
+	/* Avoid explicitly decoding each ASCII character.  */
+	input_event_bits! (kind, (&raw mut inev.ie), ASCII_KEYSTROKE_EVENT);   // C 6527
+	inev.ie.code = keysym;                                          // C 6528
+	break 'done;                                                    // C 6529
+      }
+
+    /* Keysyms directly mapped to Unicode characters.  */
+    if keysym >= 0x01000000 && keysym <= 0x0110FFFF                     // C 6533
+      {
+	input_event_bits! (kind, (&raw mut inev.ie),                     // C 6535
+			   if keysym < 0x01000080                           // C 6536
+			     { ASCII_KEYSTROKE_EVENT }
+			   else { MULTIBYTE_CHAR_KEYSTROKE_EVENT });    // C 6538
+	inev.ie.code = keysym & 0xFFFFFF;                               // C 6539
+	break 'done;                                                    // C 6540
+      }
+
+    /* Random non-modifier sorts of keysyms.  */
+    if ((keysym >= GDK_KEY_BackSpace && keysym <= GDK_KEY_Escape)       // C 6544
+	|| keysym == GDK_KEY_Delete                                     // C 6545
+	/* C 6546's `#ifdef GDK_KEY_ISO_Left_Tab`: X11's table has both names (measured above).  */
+	|| (keysym >= GDK_KEY_ISO_Left_Tab && keysym <= GDK_KEY_ISO_Enter)   // C 6547
+	|| IsCursorKey! (keysym)                                        // C 6549
+	|| IsMiscFunctionKey! (keysym)                                  // C 6550
+	|| keysym == GDK_KEY_dead_circumflex                            // C 6552
+	|| keysym == GDK_KEY_dead_grave                                 // C 6555
+	|| keysym == GDK_KEY_dead_tilde                                 // C 6558
+	|| keysym == GDK_KEY_dead_diaeresis                             // C 6561
+	|| keysym == GDK_KEY_dead_macron                                // C 6564
+	/* C 6566-6568's `#ifdef GDK_KEY_dead_degree`: the one name X11's table lacks.  */
+	|| { #[cfg (feature = "gdk_key_dead_degree")]
+	     { keysym == GDK_KEY_dead_degree }                          // C 6567
+	     #[cfg (not (feature = "gdk_key_dead_degree"))]
+	     { false } }
+	|| keysym == GDK_KEY_dead_acute                                 // C 6570
+	|| keysym == GDK_KEY_dead_cedilla                               // C 6573
+	|| keysym == GDK_KEY_dead_breve                                 // C 6576
+	|| keysym == GDK_KEY_dead_ogonek                                // C 6579
+	|| keysym == GDK_KEY_dead_caron                                 // C 6582
+	|| keysym == GDK_KEY_dead_doubleacute                           // C 6585
+	|| keysym == GDK_KEY_dead_abovedot                              // C 6588
+	|| IsKeypadKey! (keysym)                                        // C 6590
+	|| IsFunctionKey! (keysym)                                      // C 6591
+	/* Any "vendor-specific" key is ok.  */
+	|| keysym & (1 << 28) != 0)                                     // C 6593
+      {
+	input_event_bits! (kind, (&raw mut inev.ie), NON_ASCII_KEYSTROKE_EVENT);   // C 6595
+	inev.ie.code = keysym;                                          // C 6596
+	break 'done;                                                    // C 6597
+      }
+
+    uc = gdk_keyval_to_unicode (keysym);                                // C 6600
+
+    if uc != 0                                                          // C 6602
+      {
+	input_event_bits! (kind, (&raw mut inev.ie),                     // C 6604
+			   if SINGLE_BYTE_CHAR_P (uc as intmax_t)          // C 6604
+			     { ASCII_KEYSTROKE_EVENT }                   // C 6605
+			   else { MULTIBYTE_CHAR_KEYSTROKE_EVENT });    // C 6606
+	inev.ie.code = uc;                                              // C 6607
+      }
+    else
+      {
+	input_event_bits! (kind, (&raw mut inev.ie), NON_ASCII_KEYSTROKE_EVENT);   // C 6611
+	inev.ie.code = keysym;                                          // C 6612
+      }
+  }
+
+  /* C 6615's `done:`.  */
+  if input_event_bits! (kind, (&raw mut inev.ie)) != NO_EVENT           // C 6616
+    {
+      input_event_bits! (kind, (&raw mut xg_pending_quit_event), NO_EVENT);   // C 6618
+      kbd_buffer_store_buffered_event ((&raw mut inev), (&raw mut xg_pending_quit_event));   // C 6619
+    }
+
+  XNoOp (FRAME_X_DISPLAY! (f));                                         // C 6622
+  /* C 6623-6625's `#ifdef USABLE_SIGIO` - live on the frozen target (`USABLE_SIGIO 1`), so the
+     port's `no_usable_sigio` feature is the arm selector (`src/sound.rs` 719-721's shape).  */
+  #[cfg (not (feature = "no_usable_sigio"))]
+  { raise (SIGIO); }                                                    // C 6624
+  return true;                                                          // C 6626
+}
