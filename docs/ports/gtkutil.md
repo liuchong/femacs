@@ -3482,6 +3482,54 @@ widget path and the whole keysym classification are evidenced by rustc's name re
 alone; `xg_filter_key` and `xg_widget_style_updated` still show as the remainder's; the `GDK_WINDOW_*`
 macro gap remains the mirror's; and the pgtk reading is the probe's (Owed 17).
 
+## Closing round (2026-10-15, status 4.367): the file's `--check` passes, and `--all` reads 590 of 590
+
+**What closed.**  Slice 36 left two rows, and this round is the three changes that retire them:
+
+1. **Three `type` reads** (the token-family reading `<family> type: the C body uses it 3 time(s), the
+   port 2`): C 6632/6634/6673 all read Xlib's union's first member (`xkey->type`), and the port had
+   spelled it once through `c_int` and twice through `XGenericEventCookie`; all three now go through
+   this unit's `XKeyEvent` (whose `type` *is* that member - offset 0, the same offset its `time`,
+   `state` and `keycode` assertions pin).  The two `xcookie`/`xgeneric` reads keep the
+   `XGenericEventCookie` cast and are recorded in `docs/ports/macro-body-notes.tsv` with the reason
+   (the mirror's `XEvent` carries no members, so those two names cannot appear in the port's body) and
+   every other token of the body still compared.
+2. **C 35/38's `#define xp x` / `#define xp pgtk`** gets a `docs/ports/excluded-macros.txt` row
+   (kind `syntax`): the macro names a **union member in a field position**
+   (`f->output_data.xp`), which no `macro_rules!` can spell - a macro cannot be a member path, and the
+   two arms name different Rust types (`x_output` / `pgtk_output`).  The port writes the member C's own
+   `#define` selects at every use site as a `#[cfg]` pair, which is that structural expression; the
+   file's header note (108-112) and its `## Deviations` entry say the same for the whole file.
+3. **The line-count tolerance**: `docs/ports/line-drift-tolerance.tsv` gains the `gtkutil` row
+   (0.52 against the measured **51.1%**, C 6,753 vs 10,206) with the reason spelled out - both arms of
+   all 212 conditions plus the file gate on every item and on the include graph, the per-item `/// C:`
+   citations, the `xp` pairs, the unit-local copies `## Owed` 18 lists, the P-91/P-92 shapes and the
+   zeroed locals PORTING.md 1.5 requires.
+
+**The readings this round establishes.**
+
+1. **`extract-abi.py --check emacs/src/gtkutil.c femacs/src/gtkutil.rs` -> `OK`** with **zero
+   `- ` rows**: every function, record, macro and constant of the reference's 6,753 lines is either
+   transcribed or recorded with its reason.  The line it prints beside the verdict is `(1 C macros
+   have a recorded Rust counterpart: xp)` - the exclusion above.
+2. **`extract-abi.py --all --reference emacs --root femacs` -> `checked 590 ported files: 590 done,
+   0 in progress, 0 failing`** - the tree-wide inventory reading this lane has been the last entry of
+   since its first slice.  `src/gtkutil.c` was that entry; it is now `done`.
+3. The frozen `build-tu src/gtkutil.c` stays exit 0 with a **336-byte** object (the empty object a
+   `text-only` file produces under the frozen configuration, which is exactly what P-86 ⑧ asks for);
+   the ten gates are all `rc=0` and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`.
+
+**What is *not* claimed here, and what the next rounds are.**  This round closes the file's
+*inventory* reading, not its verification: no arm was ever compiled against a real GTK, GDK, XInput2,
+XKB or Pango tree (there is none on this machine), so everything the ledger marks **UNVERIFIED**
+stands as it is - the mirror's two hundred-odd GDK/GTK/Pango rows, the two `bool_bf` arm pairs (Owed
+11), the records whose headers are not here (`XIDeviceEvent` and its new tail, `GtkStockItem`,
+`GdkEventExpose`), the version features whose arms nothing can turn on, and the pgtk readings that are
+probes rather than tree builds (Owed 17).  The `## Owed` list of this ledger is the list of those
+follow-ups, and the three lanes it names (pgtk/pgtkim/xwidget for the unit-local copies, and the
+`include/gtk.rs` move that P-90 wants) are outside it.
+
 ## Slice 36 (2026-10-15, status 4.366): C 6629-6753 — `xg_filter_key`, `xg_widget_style_updated`, and the file's last line
 
 **What this slice is.**  The file's last two definitions and its closing `#endif`s: `xg_filter_key`

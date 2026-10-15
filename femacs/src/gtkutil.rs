@@ -10035,10 +10035,10 @@ macro_rules! XkbGroupForCoreState {
 pub unsafe extern "C" fn xg_filter_key (frame: *mut frame, xkey: *mut XEvent) -> bool   // C 6629-6727
 {
   let xg_event: *mut GdkEvent                                            // C 6632
-    = gdk_event_new (if (*(xkey as *const c_int)) == KeyPress            // C 6632
+    = gdk_event_new (if (*(xkey as *const XKeyEvent)).r#type == KeyPress   // C 6632
 		       /* C 6633-6636's `#ifdef HAVE_XINPUT2` conjunct.  */
 		       || { #[cfg (feature = "have_xinput2")]
-			    { (*(xkey as *const XGenericEventCookie)).r#type == GenericEvent   // C 6634
+			    { (*(xkey as *const XKeyEvent)).r#type == GenericEvent   // C 6634
 				&& (*(xkey as *const XGenericEventCookie)).evtype == XI_KeyPress }   // C 6635
 			    #[cfg (not (feature = "have_xinput2"))]
 			    { false } }                                          // C 6636
@@ -10089,7 +10089,7 @@ pub unsafe extern "C" fn xg_filter_key (frame: *mut frame, xkey: *mut XEvent) ->
      XInput2 one, so the port writes both under this unit's gate.  */
   #[cfg (feature = "have_xinput2")]
   let is_core_event: bool
-    = (*(xkey as *const XGenericEventCookie)).r#type != GenericEvent;   // C 6673
+    = (*(xkey as *const XKeyEvent)).r#type != GenericEvent;   // C 6673
   #[cfg (not (feature = "have_xinput2"))]
   let is_core_event: bool = true;                                        // C 6673 (no `#else` in C)
 
