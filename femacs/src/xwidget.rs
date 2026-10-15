@@ -6077,6 +6077,19 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 pub static mut xwidget_webkit_disable_javascript: bool = false;
 
+/* C's two `globals.f_<name>` fields this unit's `syms_of_xwidget` registers (its
+   `DEFVAR_LISP` calls at C 3988 and 3992), defined here as the port's storage - C's
+   `struct emacs_globals` is zero-initialised and the DEFVAR macros only take each field's
+   address, so the initialisers are `lisp_h_Qnil ()` (docs/status.md 3.29, the `src/cmds.rs`
+   489-492 row and the `src/image.rs` block shape; the `xwidget_webkit_disable_javascript`
+   definition above is the same shape).  */
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub static mut Vxwidget_list: Lisp_Object = lisp_h_Qnil ();       // C 3988
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub static mut Vxwidget_view_list: Lisp_Object = lisp_h_Qnil ();  // C 3992
+
 /// C 3928: `void` / `syms_of_xwidget (void)` - non-`static`, so exported.
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[unsafe(no_mangle)]
