@@ -148,10 +148,20 @@ pub mod w32common_decls {
   }
 
   unsafe extern "C" {
+    /// The four `c_int`s and `syspage_mask`'s `DWORD_PTR` come from the same gated surface the two
+    /// records above carry `#[cfg (feature = "windowsnt")]` for (status 3.548's measurement), so
+    /// each of them carries it too: ungated they made the **frozen** `build-tu` of the units that
+    /// `include!` this mirror read `E0425 cannot find type DWORD_PTR / c_int` rows (measured on
+    /// `src/w32menu.c`, 2026-10-15, the round that first built every finished unit).
+    #[cfg (feature = "windowsnt")]
     pub static mut syspage_mask: DWORD_PTR;
+    #[cfg (feature = "windowsnt")]
     pub static mut w32_major_version: c_int;
+    #[cfg (feature = "windowsnt")]
     pub static mut w32_minor_version: c_int;
+    #[cfg (feature = "windowsnt")]
     pub static mut w32_build_number: c_int;
+    #[cfg (feature = "windowsnt")]
     pub static mut os_subtype: c_int;
     pub fn cache_system_info ();
     /// C 53's `extern char * w32_version_string (void);`, whose definition is `src/w32fns.c`
@@ -177,8 +187,13 @@ use w32common_decls::*;
 
 /// C 43-46: `enum { OS_SUBTYPE_9X = 1, OS_SUBTYPE_NT };` - the header's anonymous enum, whose
 /// second member is 2 (C's implicit successor).  C leaves the type to the enum; the port spells
-/// it `c_int` (PORTING.md 1.3's shape for an anonymous enum).
+/// it `c_int` (PORTING.md 1.3's shape for an anonymous enum).  `c_int` comes from the same gated
+/// surface the records above need `#[cfg (feature = "windowsnt")]` for (status 3.548's reading),
+/// so the two enumerators carry it as well (measured 2026-10-15: ungated they were two of the
+/// `E0425 cannot find type c_int` rows the frozen `build-tu` of `src/w32menu.c` read).
+#[cfg (feature = "windowsnt")]
 pub const OS_SUBTYPE_9X: c_int = 1;
+#[cfg (feature = "windowsnt")]
 pub const OS_SUBTYPE_NT: c_int = 2;
 
 // C 48 (`extern int os_subtype;`) and C 51 (`extern void cache_system_info (void);`, which fills
@@ -204,6 +219,9 @@ pub type VOIDFNPTR = Option<unsafe extern "C" fn ()>;
 /// windows.h mirror, so the declaration lives here (the file note above records the retirement
 /// this copy needs if such a mirror is added).
 /// C:   return (VOIDFNPTR) GetProcAddress (handle, fname);
+/// The row carries `#[cfg (feature = "windowsnt")]`: `c_void`/`c_char` are the same gated
+/// surface's spellings (measured 2026-10-15, the `OS_SUBTYPE_*` pair's reading).
+#[cfg (feature = "windowsnt")]
 unsafe extern "C" {
   pub fn GetProcAddress (hmodule: *mut c_void, lpProcName: *const c_char) -> VOIDFNPTR;
 }
@@ -216,6 +234,7 @@ unsafe extern "C" {
 /// C: {
 /// C:   return (VOIDFNPTR) GetProcAddress (handle, fname);
 /// C: }
+#[cfg (feature = "windowsnt")]
 #[inline(always)]
 pub unsafe fn get_proc_addr (handle: *mut c_void, fname: *const c_char) -> VOIDFNPTR
 {
