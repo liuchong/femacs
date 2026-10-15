@@ -118,6 +118,16 @@ type xp_output = x_output;                     // C 36: `typedef struct x_output
 include!("include/xsettings.rs");              // C 39: `#include "xsettings.h"`
 #[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
 type xp_output = pgtk_output;                  // C 40: `typedef struct pgtk_output xp_output;`
+/* The same two headers give C's `Display` two faces - `xterm.h` reaches Xlib's record and pgtk's
+   `pgtkterm.h` 50 is `typedef struct _GdkDisplay Display;`, which the port cannot alias
+   (`src/pgtkgui.rs` 99-101 records why).  C 4430's `xg_get_widget_from_map` is the one place
+   either face's `Display` is a parameter type, and `FRAME_X_DISPLAY!` yields `*mut Display` in one
+   face and `*mut GdkDisplay` in the other, so the parameter is spelled through this alias (the
+   `xp_output` shape above) and agrees with its callers in both.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+type xp_display = Display;
+#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+type xp_display = GdkDisplay;
 
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/emacsgtkfixed.rs");          // C 63: `#include "emacsgtkfixed.h"`
@@ -6198,9 +6208,13 @@ unsafe fn xg_remove_widget_from_map (idx: ptrdiff_t)   // C 4417-4425
 /// C 4427's comment and C 4429-4436: the map arm's `static GtkWidget *xg_get_widget_from_map
 /// (ptrdiff_t idx, Display *dpy)` - the lookup C 4432 does, and C 4435's `0` is the null pointer.
 /// `dpy` is unused in this arm of C too (the `#else` arm's `xg_get_widget_from_map` is the one that
-/// needs it), and keeping C's signature keeps the two arms one function.
+/// needs it), and keeping C's signature keeps the two arms one function - through the file's
+/// `xp_display` alias, because C's own `Display` is Xlib's in one face and `GdkDisplay` in the
+/// other and this parameter has to agree with `FRAME_X_DISPLAY!`'s type in both (measured: the
+/// pgtk probe read one `E0308` when it did not, the eighteenth slice's `xg_remove_scroll_bar` being
+/// the first caller either arm set compiles).
 #[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
-unsafe fn xg_get_widget_from_map (idx: ptrdiff_t, dpy: *mut Display)
+unsafe fn xg_get_widget_from_map (idx: ptrdiff_t, dpy: *mut xp_display)
   -> *mut GtkWidget                                                     // C 4429-4436
 {
   if idx < id_to_widget.max_size
@@ -6744,4 +6758,110 @@ unsafe fn xg_finish_scroll_bar_creation (f: *mut frame, wscroll: *mut GtkWidget,
   /* C 4683's `#if defined HAVE_PGTK || !defined HAVE_GTK3`; its `#endif` is C 4685.  */
   #[cfg (any (feature = "have_pgtk", not (feature = "have_gtk3")))]
   { (*bar).x_window = scroll_id as Window; }                            // C 4684
+}
+
+/* C 4688-4694's comment above the vertical constructor, carried as C's own text, then C 4696-4719.  */
+
+/// C 4696-4719: `void xg_create_scroll_bar (struct frame *f, struct scroll_bar *bar, GCallback
+/// scroll_callback, GCallback end_callback, const char *scroll_bar_name)` - the vertical
+/// constructor: a fresh adjustment over C 4712's `XG_SB_MIN`/`XG_SB_MAX` range, the scroll bar
+/// widget slice 16's `gtk_scrollbar_new!` macro makes for it, C 4717's shared tail (slice 18's
+/// `xg_finish_scroll_bar_creation`), and C 4719's `horizontal` marker.  Non-`static`
+/// (`gtkutil.h` declares it and `xterm.c` calls it), so `#[unsafe(no_mangle)]` with the C ABI.
+/// C 4704/4706's `HAVE_GTK3` pair is the port's `#[cfg]` pair for `vadj` (C 4705/4707 - the same
+/// pair slice 16's `update_theme_scrollbar_width` carries), and C 4719's `0` is C's `false`.
+/* C: /* Create a scroll bar widget for frame F.  Store the scroll bar
+   C:    in BAR.
+   C:    SCROLL_CALLBACK is the callback to invoke when the value of the
+   C:    bar changes.
+   C:    END_CALLBACK is the callback to invoke when scrolling ends.
+   C:    SCROLL_BAR_NAME is the name we use for the scroll bar.  Can be used
+   C:    to set resources for the widget.  */  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_create_scroll_bar (f: *mut frame, bar: *mut scroll_bar,
+					       scroll_callback: GCallback,
+					       end_callback: GCallback,
+					       scroll_bar_name: *const c_char)   // C 4697-4719
+{
+  let wscroll: *mut GtkWidget;                                          // C 4703
+  /* C 4704's `#ifdef HAVE_GTK3`; its `#else` is C 4706.  */
+  #[cfg (feature = "have_gtk3")]
+  let vadj: *mut GtkAdjustment;                                         // C 4705
+  #[cfg (not (feature = "have_gtk3"))]
+  let vadj: *mut GtkObject;                                             // C 4707
+
+  /* C 4710-4711's comment, carried as C's own text.  */
+  /* C: /* Page, step increment values are not so important here, they
+     C:    will be corrected in x_set_toolkit_scroll_bar_thumb. */  */
+  vadj = gtk_adjustment_new (XG_SB_MIN as c_double, XG_SB_MIN as c_double,   // C 4712
+			     XG_SB_MAX as c_double, 0.1, 0.1, 0.1);
+
+  wscroll = gtk_scrollbar_new! (GTK_ORIENTATION_VERTICAL, GTK_ADJUSTMENT! (vadj));   // C 4715
+
+  xg_finish_scroll_bar_creation (f, wscroll, bar, scroll_callback,      // C 4717
+				 end_callback, scroll_bar_name);        // C 4718
+  (*bar).horizontal = false;                                            // C 4719
+}
+
+/* C 4722-4726's comment above the horizontal constructor, carried as C's own text, then C 4728-4751.  */
+
+/// C 4728-4751: `void xg_create_horizontal_scroll_bar (struct frame *f, struct scroll_bar *bar,
+/// GCallback scroll_callback, GCallback end_callback, const char *scroll_bar_name)` - the
+/// horizontal twin of the function above: `YG_SB_MIN`/`YG_SB_MAX` for the range, C 4747's
+/// `GTK_ORIENTATION_HORIZONTAL` widget, the same shared tail and C 4751's `horizontal` marker,
+/// whose `1` is C's `true`.  Non-`static` as well (`gtkutil.h` 148 declares it).
+/* C: /* Create a horizontal scroll bar widget for frame F.  Store the scroll
+   C:    bar in BAR.  SCROLL_CALLBACK is the callback to invoke when the value
+   C:    of the bar changes.  END_CALLBACK is the callback to invoke when
+   C:    scrolling ends.  SCROLL_BAR_NAME is the name we use for the scroll
+   C:    bar.  Can be used to set resources for the widget.  */  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_create_horizontal_scroll_bar (f: *mut frame, bar: *mut scroll_bar,
+							  scroll_callback: GCallback,
+							  end_callback: GCallback,
+							  scroll_bar_name: *const c_char)   // C 4729-4751
+{
+  let wscroll: *mut GtkWidget;                                          // C 4735
+  /* C 4736's `#ifdef HAVE_GTK3`; its `#else` is C 4738.  */
+  #[cfg (feature = "have_gtk3")]
+  let hadj: *mut GtkAdjustment;                                         // C 4737
+  #[cfg (not (feature = "have_gtk3"))]
+  let hadj: *mut GtkObject;                                             // C 4739
+
+  /* C 4742-4743's comment, carried as C's own text.  */
+  /* C: /* Page, step increment values are not so important here, they
+     C:    will be corrected in x_set_toolkit_scroll_bar_thumb. */  */
+  hadj = gtk_adjustment_new (YG_SB_MIN as c_double, YG_SB_MIN as c_double,   // C 4744
+			     YG_SB_MAX as c_double, 0.1, 0.1, 0.1);
+
+  wscroll = gtk_scrollbar_new! (GTK_ORIENTATION_HORIZONTAL, GTK_ADJUSTMENT! (hadj));   // C 4747
+
+  xg_finish_scroll_bar_creation (f, wscroll, bar, scroll_callback,      // C 4749
+				 end_callback, scroll_bar_name);        // C 4750
+  (*bar).horizontal = true;                                             // C 4751
+}
+
+/* C 4754's comment above the removal hook, carried as C's own text, then C 4756-4767.  */
+
+/// C 4756-4767: `void xg_remove_scroll_bar (struct frame *f, ptrdiff_t scrollbar_id)` - take the
+/// widget out of slice 15's map (the id is the index in the map face and the window id in the GTK3
+/// one, which is why C hands `FRAME_X_DISPLAY (f)` to it), destroy it together with the event box
+/// slice 18 wrapped it in, and mark the frame garbaged.  Non-`static` (`gtkutil.h` 152 declares it
+/// and `xterm.c`'s scroll-bar code calls it), so `#[unsafe(no_mangle)]`.
+/* C: /* Remove the scroll bar represented by SCROLLBAR_ID from the frame F.  */  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_remove_scroll_bar (f: *mut frame, scrollbar_id: ptrdiff_t)   // C 4757-4767
+{
+  let w: *mut GtkWidget = xg_get_widget_from_map (scrollbar_id,         // C 4759
+						  FRAME_X_DISPLAY! (f));       // C 4760
+  if ! w.is_null ()                                                     // C 4761
+    {
+      let wparent: *mut GtkWidget = gtk_widget_get_parent (w);          // C 4763
+      gtk_widget_destroy (w);                                           // C 4764
+      gtk_widget_destroy (wparent);                                     // C 4765
+      SET_FRAME_GARBAGED! (f);                                          // C 4766
+    }
 }
