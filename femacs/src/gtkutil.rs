@@ -5778,3 +5778,252 @@ pub unsafe extern "C" fn free_frame_menubar (f: *mut frame)
       unblock_input ();                                                 // C 4254
     }
 }
+
+/* ----------------------------------------------------------------------------------------------
+   The X11 and GTK names `xg_event_is_for_menubar` needs and no mirror this unit reaches carries.
+
+   `GenericEvent` is Xlib's event-type constant (`X11/X.h` 223) and `src/xwidget.rs` 2808 already
+   declares it in-unit; `XButtonEvent` and `XGenericEventCookie` are Xlib records the port's
+   `XEvent` stand-in has no members for (`include/xlib.rs` 1556 is a 192-byte placeholder - the
+   `src/xterm.rs` 23225-23228 note), so the port declares them at the use site and reads C's member
+   text through a local cast (`src/xmenu.rs` 212's shape, which is the same record's other
+   consumer).  `XIDeviceEvent` is XInput2's, and **`X11/extensions/XInput2.h` is not on this
+   machine**, so its member list is `src/xmenu.rs` 730-750's (the sibling's in-unit copy) and it is
+   **UNVERIFIED** - no offset assertion is written for it.  `gtk_widget_intersect` cannot go into
+   `include/gtk.rs` because `src/xterm.rs` 31215's neighbourhood already copies it.
+   ---------------------------------------------------------------------------------------------- */
+/// C: X11/X.h 223: `#define GenericEvent 35` - C 4275/4294/4313's test (the same constant
+/// `src/xwidget.rs` 2808 carries).
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GenericEvent: c_int = 35;                 // X.h 223
+
+/// C: Xlib.h 585: `typedef struct { int type; unsigned long serial; Bool send_event; Display
+/// *display; Window window; Window root; Window subwindow; Time time; int x, y; int x_root,
+/// y_root; unsigned int state; unsigned int button; Bool same_screen; } XButtonEvent;` - the
+/// record C 4285-4289/4298/4321-4322 read through `event->xbutton`.  **Measured on this
+/// machine's `/opt/homebrew/include/X11/Xlib.h`**: size 96, and `src/xmenu.rs` 296-302 asserts
+/// the same head offsets for its own copy.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XButtonEvent
+{
+  pub r#type: c_int,               // Xlib.h: `int type;`
+  pub serial: c_ulong,             // Xlib.h: `unsigned long serial;`
+  pub send_event: Bool,            // Xlib.h: `Bool send_event;`
+  pub display: *mut Display,       // Xlib.h: `Display *display;`
+  pub window: Window,              // Xlib.h: `Window window;`
+  pub root: Window,                // Xlib.h: `Window root;`
+  pub subwindow: Window,           // Xlib.h: `Window subwindow;`
+  pub time: Time,                  // Xlib.h: `Time time;`
+  pub x: c_int,                    // Xlib.h: `int x, y;`
+  pub y: c_int,
+  pub x_root: c_int,               // Xlib.h: `int x_root, y_root;`
+  pub y_root: c_int,
+  pub state: c_uint,               // Xlib.h: `unsigned int state;`
+  pub button: c_uint,              // Xlib.h: `unsigned int button;`
+  pub same_screen: Bool,           // Xlib.h: `Bool same_screen;`
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::size_of::<XButtonEvent> () == 96);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XButtonEvent, window) == 32);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XButtonEvent, x) == 64);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XButtonEvent, y) == 68);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XButtonEvent, same_screen) == 88);
+
+/// C: Xlib.h 963: `typedef struct { int type; unsigned long serial; Bool send_event; Display
+/// *display; int extension; int evtype; unsigned int cookie; void *data; } XGenericEventCookie;`
+/// - the record C 4274 reads `data` from.  **Measured on this machine**: size 56, `evtype`@36,
+/// `data`@48 - the two offsets `src/xwidget.rs` 2969-2973 asserts for its own copy.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XGenericEventCookie
+{
+  pub r#type: c_int,               // Xlib.h: `int type;`
+  pub serial: c_ulong,             // Xlib.h: `unsigned long serial;`
+  pub send_event: Bool,            // Xlib.h: `Bool send_event;`
+  pub display: *mut Display,       // Xlib.h: `Display *display;`
+  pub extension: c_int,            // Xlib.h: `int extension;`
+  pub evtype: c_int,               // Xlib.h: `int evtype;`
+  pub cookie: c_uint,              // Xlib.h: `unsigned int cookie;`
+  pub data: *mut c_void,           // Xlib.h: `void *data;`
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::size_of::<XGenericEventCookie> () == 56);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XGenericEventCookie, evtype) == 36);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XGenericEventCookie, data) == 48);
+
+/// C: X11/extensions/XInput2.h (libXi): the `XIDeviceEvent` record C 4274's cast names and
+/// C 4277-4280/4295/4315-4316 read (`event_x`, `event_y`, `event`).  **XInput2.h is not on this
+/// machine**, so this member list is `src/xmenu.rs` 730-750's in-unit copy (the same header's
+/// other consumer) and is **UNVERIFIED**: no offset assertion is written for it.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"), feature = "have_xinput2"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XIDeviceEvent
+{
+  pub r#type: c_int,               // XInput2.h: `int type;`
+  pub serial: c_ulong,             // XInput2.h: `unsigned long serial;`
+  pub send_event: Bool,            // XInput2.h: `Bool send_event;`
+  pub display: *mut Display,       // XInput2.h: `Display *display;`
+  pub extension: c_int,            // XInput2.h: `int extension;`
+  pub evtype: c_int,               // XInput2.h: `int evtype;`
+  pub deviceid: c_int,             // XInput2.h: `int deviceid;`
+  pub sourceid: c_int,             // XInput2.h: `int sourceid;`
+  pub detail: c_int,               // XInput2.h: `int detail;`
+  pub flags: c_int,                // XInput2.h: `int flags;`
+  pub root: Window,                // XInput2.h: `Window root;`
+  pub event: Window,               // XInput2.h: `Window event;`
+  pub child: Window,               // XInput2.h: `Window child;`
+  pub root_x: f64,                 // XInput2.h: `double root_x;`
+  pub root_y: f64,                 // XInput2.h: `double root_y;`
+  pub event_x: f64,                // XInput2.h: `double event_x;`
+  pub event_y: f64,                // XInput2.h: `double event_y;`
+  pub time: Time,                  // XInput2.h: `Time time;`
+}
+
+/// C: gtk/gtkwidget.h: `gboolean gtk_widget_intersect (GtkWidget *widget, const GdkRectangle
+/// *area, GdkRectangle *intersection);` - C 4333's per-child test.  Carried in-unit because
+/// `src/xterm.rs` 31215's neighbourhood already copies it (Owed 10/12's class); **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn gtk_widget_intersect (widget: *mut GtkWidget, area: *const GdkRectangle,
+			       intersection: *mut GdkRectangle) -> gboolean;
+}
+
+/* C 4258's `#ifndef HAVE_PGTK` (its `#endif` is C 4339).  */
+
+/// C 4259-4338: `bool xg_event_is_for_menubar (struct frame *f, const XEvent *event)` -
+/// non-`static` (gtkutil.h 114 declares it and `xterm.c` calls it), so `#[unsafe(no_mangle)]`
+/// with the C ABI, and the whole body stands under C 4258's `#ifndef HAVE_PGTK`.  C 4262's
+/// `f->output_data.x` is the plain member (the function is already X11-only, so no `#[cfg]` pair
+/// is needed here), C 4267's `GdkEvent gevent` is the mirror union, C 4268's `GtkWidget *gwdesc`
+/// and C 4264/4265's two locals are the port's declarations, and the four `XEvent` member
+/// families C reads are spelled through the in-unit records above (the `src/xmenu.rs` 212 shape):
+/// `event->type` and `event->xcookie.data` through `XGenericEventCookie`, `event->xbutton.*`
+/// through `XButtonEvent` - **XInput2's `xev->` reads keep C's text**, because that header is not
+/// on this machine and the record is UNVERIFIED.  C 4313-4325's `#ifdef HAVE_XINPUT2` / `#else`
+/// pair around the two `rec.x`/`rec.y` stores is the `xi2_p`-style `let` pair the file already
+/// uses (C 1546-1548's shape), C 4315-4316's double-to-`int` stores take C's own conversion
+/// (`as c_int`), C 4321-4322's are integer divisions of `c_int`s, and C 4330's `for` head is the
+/// port's `while` with C's step at the end.
+/// C: bool
+/// C: xg_event_is_for_menubar (struct frame *f, const XEvent *event)
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_event_is_for_menubar (f: *mut frame, event: *const XEvent) -> bool
+{
+  let x: *mut x_output = (*f).output_data.x as *mut x_output;           // C 4262
+  let mut iter: *mut GList;                                             // C 4263
+  let mut rec: GdkRectangle = GdkRectangle { x: 0, y: 0, width: 0, height: 0 };   // C 4264
+  let mut list: *mut GList;                                             // C 4265
+  let gdpy: *mut GdkDisplay;                                            // C 4266
+  let gw: *mut GdkWindow;                                               // C 4267
+  let mut gevent: GdkEvent = core::mem::zeroed ();                     // C 4268
+  let gwdesc: *mut GtkWidget;                                           // C 4269
+
+  if (*x).menubar_widget.is_null () { return false; }                   // C 4271
+
+  /* C 4273's `#ifdef HAVE_XINPUT2` opens here; its `else` is C 4283.  */
+  #[cfg (feature = "have_xinput2")]
+  let xev: *mut XIDeviceEvent
+    = (*(event as *const XGenericEventCookie)).data as *mut XIDeviceEvent;   // C 4274
+
+  #[cfg (feature = "have_xinput2")]
+  { if (*(event as *const XGenericEventCookie)).r#type == GenericEvent   // C 4275
+      {
+	/* XI_ButtonPress or XI_ButtonRelease or a touch event.  */
+	if ! ((*xev).event_x >= 0.0                                     // C 4277
+	      && (*xev).event_x < FRAME_PIXEL_WIDTH (f) as f64         // C 4278
+	      && (*xev).event_y >= 0.0                                  // C 4279
+	      && (*xev).event_y < FRAME_MENUBAR_HEIGHT! (f) as f64)     // C 4280
+	  { return false; }                                             // C 4281
+      }
+    }
+
+  #[cfg (not (feature = "have_xinput2"))]
+  { if ! ((*(event as *const XButtonEvent)).x >= 0                      // C 4285
+	  && (*(event as *const XButtonEvent)).x < FRAME_PIXEL_WIDTH (f)   // C 4286
+	  && (*(event as *const XButtonEvent)).y >= 0                   // C 4287
+	  && (*(event as *const XButtonEvent)).y < FRAME_MENUBAR_HEIGHT! (f)   // C 4288
+	  && (*(event as *const XButtonEvent)).same_screen != 0)        // C 4289
+      { return false; }                                                 // C 4290
+  }
+  #[cfg (feature = "have_xinput2")]
+  { if (*(event as *const XGenericEventCookie)).r#type != GenericEvent   // C 4275's test, inverted
+      {
+	if ! ((*(event as *const XButtonEvent)).x >= 0                  // C 4285
+	      && (*(event as *const XButtonEvent)).x < FRAME_PIXEL_WIDTH (f)   // C 4286
+	      && (*(event as *const XButtonEvent)).y >= 0               // C 4287
+	      && (*(event as *const XButtonEvent)).y < FRAME_MENUBAR_HEIGHT! (f)   // C 4288
+	      && (*(event as *const XButtonEvent)).same_screen != 0)    // C 4289
+	  { return false; }                                             // C 4290
+      }
+  }
+
+  gdpy = gdk_x11_lookup_xdisplay (FRAME_X_DISPLAY! (f));                // C 4292
+  /* C 4293's `#ifdef HAVE_XINPUT2` opens here; its `else` is C 4296.  */
+  #[cfg (feature = "have_xinput2")]
+  { if (*(event as *const XGenericEventCookie)).r#type == GenericEvent   // C 4294
+      { gw = gdk_x11_window_lookup_for_display (gdpy, (*xev).event) as *mut GdkWindow; }  // C 4295
+    else
+      { gw = gdk_x11_window_lookup_for_display (gdpy,
+						(*(event as *const XButtonEvent)).window) as *mut GdkWindow; }   // C 4298
+  }
+  #[cfg (not (feature = "have_xinput2"))]
+  { gw = gdk_x11_window_lookup_for_display (gdpy,
+					    (*(event as *const XButtonEvent)).window) as *mut GdkWindow; }   // C 4298
+  if gw.is_null () { return false; }                                    // C 4299
+  gevent.any.window = gw;                                               // C 4300
+  gevent.any.r#type = GDK_NOTHING;                                      // C 4301
+  gwdesc = gtk_get_event_widget ((&raw mut gevent));                    // C 4302
+  if gwdesc.is_null () { return false; }                                // C 4303
+  if ! GTK_IS_MENU_BAR! (gwdesc)                                        // C 4304
+      && ! GTK_IS_MENU_ITEM! (gwdesc)                                   // C 4305
+      && gtk_widget_is_ancestor ((*x).menubar_widget, gwdesc) == 0    // C 4306
+    { return false; }                                                   // C 4307
+
+  list = gtk_container_get_children (GTK_CONTAINER! ((*x).menubar_widget));   // C 4309
+  if list.is_null () { return false; }                                  // C 4310
+  let scale: c_int = xg_get_scale (f);                                  // C 4311
+  #[cfg (feature = "have_xinput2")]
+  {
+    if (*(event as *const XGenericEventCookie)).r#type == GenericEvent   // C 4313
+      {
+	rec.x = ((*xev).event_x / scale as f64) as c_int;               // C 4315
+	rec.y = ((*xev).event_y / scale as f64) as c_int;               // C 4316
+      }
+    else
+      {
+	rec.x = (*(event as *const XButtonEvent)).x / scale;            // C 4321
+	rec.y = (*(event as *const XButtonEvent)).y / scale;            // C 4322
+      }
+  }
+  #[cfg (not (feature = "have_xinput2"))]
+  {
+    rec.x = (*(event as *const XButtonEvent)).x / scale;                // C 4321
+    rec.y = (*(event as *const XButtonEvent)).y / scale;                // C 4322
+  }
+
+  rec.width = 1;                                                        // C 4327
+  rec.height = 1;                                                       // C 4328
+
+  iter = list;                                                          // C 4330
+  while ! iter.is_null ()                                               // C 4330
+    {
+      let w: *mut GtkWidget = GTK_WIDGET! ((*iter).data);               // C 4332
+      if gtk_widget_get_mapped (w) != 0                                 // C 4333
+	  && gtk_widget_intersect (w, (&raw const rec), std::ptr::null_mut ()) != 0
+	{ break; }                                                      // C 4334
+      iter = g_list_next! (iter);                                       // C 4330 (the `for` step)
+    }
+  g_list_free (list);                                                   // C 4336
+  ! iter.is_null ()                                                     // C 4337
+}

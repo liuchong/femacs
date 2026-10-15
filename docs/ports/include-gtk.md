@@ -548,3 +548,34 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the thirteenth slice's text**
 under arm A (with or without `gtk_check_version_ge_3_14`), arm C, arm C plus `have_freetype` or the
 pgtk probe.
+
+### status 4.344 (the gtkutil fourteenth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_event_is_for_menubar` (C 4260-4338) is the round's consumer, and it needed one
+*change* to an existing item rather than a new one: **`GTK_IS_MENU_BAR`** (gtk/gtkmenubar.h) was
+gated `all (have_gtk3, have_xinput2)` - pinned to this lane's then-only consumer, C 1039-1046's site
+inside C 1033's `HAVE_GTK3 && HAVE_XINPUT2` fold.  C 4304 tests a widget that came back from
+`gtk_get_event_widget` **outside** any GTK3 fold, so the macro's gate is widened to a `have_gtk3` /
+`not (have_gtk3)` pair with the family's own body `(! ($o).is_null ())` in both arms.  No unit
+carries its own `GTK_IS_MENU_BAR`, so the widening can collide with nothing (the class Owed 10/12
+record does not arise here).
+
+**The round's new name.**  **`gtk_widget_is_ancestor`** (gtk/gtkwidget.h, C 4306's
+`gtk_widget_is_ancestor (x->menubar_widget, gwdesc)`) - it read zero tree-wide before this round, and
+it is `UNVERIFIED` (no GTK tree on this machine).
+
+**One name the round did not take.**  `gtk_widget_intersect` (C 4333's per-child test) is a name
+the tree declares nowhere: `src/xterm.rs` 5619/37551 call it and that unit's own ledger records
+the gap (`docs/ports/xterm.md` 8054).  This mirror is therefore its eventual home, but moving it
+here would change another unit's name resolution and arm readings in the same round this slice
+becomes its first *declarer* - so it stands at the use site for now (Owed 18 of
+`docs/ports/gtkutil.md`).
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings read **28** `^error` matches under arm A and **62**
+under arm C - the same multisets the pre-slice tree at `a1c7041b` produces, so the widening adds no
+error and, in the arm C face, its own new definition is what C 4304 needs; the pgtk face compiles
+none of the consumer's body (C 4258's `#ifndef HAVE_PGTK`), so its reading is the out-of-tree
+probe's.

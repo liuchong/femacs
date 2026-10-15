@@ -200,7 +200,8 @@
 | 3963-4095 | C 3963-3973's comment above `xg_update_submenu` and **`xg_update_submenu`** (C 3975-4094 - the recursive submenu reconciler, C 4050 calling itself), plus C 4095's blank | file gate (`use_gtk`); the mirror gains `GTK_IS_SEPARATOR_MENU_ITEM`, `GTK_IS_CHECK_MENU_ITEM`, `GTK_IS_MENU_ITEM` and `gtk_menu_item_get_submenu`, and the unit carries `GTK_IS_RADIO_MENU_ITEM` (Owed 12); slice 11 below |
 | 4096-4189 | C 4096-4104's comment and **`xg_modify_menubar_widgets`** (C 4105-4170, the menubar updater that calls `xg_update_menubar` first and then walks the sub menus when `deep_p`), C 4172-4174's comment and `menubar_map_cb` (C 4176-4188), plus C 4189's blank | file gate (`use_gtk`); `include/xterm.rs`'s `FRAME_MENUBAR_HEIGHT` gains its live arm and loses its uncompilable `void` body (this slice; see the round section); slice 12 below |
 | 4190-4257 | C 4190-4191's comment and **`xg_update_frame_menubar`** (C 4193-4234, the pack/reorder/show/measure/`adjust_frame_size` body with C 4217-4226's `HAVE_GTK3` arm), C 4236-4237's comment and **`free_frame_menubar`** (C 4239-4256), plus C 4257's blank | file gate (`use_gtk`); the mirror gains `gtk_box_reorder_child` and `gdk_screen_get_system_visual`, and the unit carries `gtk_widget_get_mapped` (Owed 10/12's class); slice 13 below |
-| 4258-6753 | **the remainder** — from C 4258's `#ifndef HAVE_PGTK` and `xg_event_is_for_menubar` (C 4260-4338) through C 6753: `xg_event_is_for_menubar`, the two scroll-bar flags and the `xg_frame_tb_info` record (C 4351-4374), `xg_store_widget_in_map` and the scroll-bar machinery, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 4258-4341 | C 4258's `#ifndef HAVE_PGTK` and **`xg_event_is_for_menubar`** (C 4260-4338 - the non-`static` predicate `gtkutil.h` 114 declares and `xterm.c` calls: reject the event unless it is inside the frame's menu-bar rectangle (`XIDeviceEvent` under `HAVE_XINPUT2`, `XButtonEvent` otherwise), look the frame's `GdkWindow` up, ask GTK which widget the event belongs to, then walk the menubar's children for a mapped one the 1x1 rectangle intersects), C 4339's `#endif`, C 4340-4341's blanks | file gate (`use_gtk`) **and** `not (feature = "have_pgtk")` (C 4258); the mirror widens `GTK_IS_MENU_BAR` to a `have_gtk3`/`not (have_gtk3)` pair and gains `gtk_widget_is_ancestor`, and the unit carries the four X11 records and `gtk_widget_intersect` (Owed 10/12's class); slice 14 below |
+| 4342-6753 | **the remainder** — from C 4342's form feed, the “Scroll bar functions” banner at C 4343-4345 and `xg_ignore_gtk_scrollbar` (C 4351) through C 6753: the two scroll-bar flags and the `xg_frame_tb_info` record (C 4351-4374), `xg_store_widget_in_map` and the scroll-bar machinery, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1020,6 +1021,21 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     edge where its own cfg is on, or place the shared mirror's copy outside every gate); until then
     the file's arm-B reading is reported with this reason, as slice 3's section does.
 
+18. **`gtk_widget_intersect` and the four X11 records stand in the unit** (added by slice 14).
+    `gtk_widget_intersect` (gtk/gtkwidget.h, C 4333) is a name **no row anywhere in the tree
+    declares**: `src/xterm.rs` 5619 and 37551 call it (C 5616-5620's `*tool_bar_p =
+    gtk_widget_intersect (...)` and C 24819-24820's) and that unit's own ledger records the gap
+    (`docs/ports/xterm.md` 8054: "`gtk_widget_intersect` and `G_OBJECT_GET_CLASS` have no row
+    anywhere").  Its home is therefore `include/gtk.rs`, but moving it there changes another
+    unit's name resolution - and that lane's recorded arm readings - in the same round this slice
+    becomes its first *declarer*, so it stays at the use site until a round can measure the move.
+    `GenericEvent`, `XButtonEvent`, `XGenericEventCookie` and `XIDeviceEvent` are the same class
+    with a different home: `include/xlib.rs`'s 192-byte `XEvent` stand-in has no members, so the
+    three records' real home is that mirror's union (the `src/xmenu.rs` 205-215 note, which is why
+    `src/xmenu.rs` 276/423 and `src/xwidget.rs` 2957 carry their own copies too) - Owed 10/Owed
+    12's class, and `XIDeviceEvent` adds the extra cost that its header is not on this machine, so
+    its copy stays UNVERIFIED until a machine with `X11/extensions/XInput2.h` measures it.
+
 ## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
 
 **What this slice is.**  The reference's "File dialog functions" section: `xg_uses_old_file_dialog`
@@ -1634,3 +1650,87 @@ one spelling each here.
 
 **Not claimed.**  No arm was compiled against a real GTK tree, so the two prototypes this slice
 added are `UNVERIFIED`; the pgtk arm's reading is the probe's (Owed 17).
+
+## Slice 14 (2026-10-15, status 4.344): C 4258-4341 — `xg_event_is_for_menubar`
+
+**What this slice is.**  C 4258's `#ifndef HAVE_PGTK` (its `#endif` is C 4339) and C 4259-4338's
+**`xg_event_is_for_menubar`** (C 4260-4338) - the non-`static` predicate `gtkutil.h` 114 declares and
+`xterm.c` calls to decide whether a button event belongs to the menu bar: reject the event unless it
+is inside the frame's menu-bar rectangle (through XInput2's `XIDeviceEvent` when `HAVE_XINPUT2` is
+on, through `XButtonEvent` otherwise), look the frame's GDK window up, ask GTK which widget the
+event belongs to, and then walk the menubar's children looking for a mapped child the 1x1 rectangle
+intersects.  Port: 5,780 -> **6,029 lines**; the table's last row splits at C 4341 - the next text
+is C 4342's form feed, the "Scroll bar functions" banner at C 4343-4345 and `xg_ignore_gtk_scrollbar`
+at C 4351.
+
+**The five declarations this slice needed, and where each could stand.**  No mirror this unit
+`include!`s reaches them:
+
+- `GenericEvent` (X.h 223 - the event-type constant C 4275/4294/4313 test) is carried in-unit at the
+  same value `src/xwidget.rs` 2808 already gives it.
+- `XButtonEvent` (Xlib.h 585) and `XGenericEventCookie` (Xlib.h 963) - `include/xlib.rs` 1556 carries
+  a 192-byte `XEvent` stand-in with no members for either (the `src/xterm.rs` 23225-23228 note), so
+  the port declares them at the use site and reads C's member text through a local cast: the
+  `src/xmenu.rs` 212/296-302 shape, which is the same record's other consumer.  Their size and offset
+  assertions are **clang readings on this machine** - `XButtonEvent` is 96 bytes with `window`@32,
+  `x`@64, `y`@68 and `same_screen`@88; `XGenericEventCookie` is 56 bytes with `evtype`@36 and
+  `data`@48 (`src/xwidget.rs` 2969-2973 asserts the same two offsets).
+- `XIDeviceEvent` - XInput2's record, and **`X11/extensions/XInput2.h` is not on this machine**, so
+  its member list is `src/xmenu.rs` 730-750's in-unit copy and it is **UNVERIFIED**: no offset
+  assertion is written, because an assertion that cannot be checked is not evidence.
+- `gtk_widget_intersect` (C 4333) stands at the use site: **no row anywhere in the tree declares
+  it ("`gtk_widget_intersect` and `G_OBJECT_GET_CLASS` have no row anywhere")**: `src/xterm.rs`
+  5619 and 37551 call it, so `include/gtk.rs` is its eventual home - but moving it there changes
+  another lane's name resolution and arm readings in the same round this slice becomes the name's
+  first *declarer*, so it stays at the use site (Owed 18).
+
+**The mirror this slice needed.**  `include/gtk.rs`'s **`GTK_IS_MENU_BAR`** was gated
+`have_gtk3 && have_xinput2`, pinned to the unit's then-only consumer (C 1039-1046's site, itself
+inside that fold).  C 4304 uses it **outside** any GTK3 fold, so the gate is widened to a `have_gtk3`
+/ `not (have_gtk3)` pair.  **`gtk_widget_is_ancestor`** (gtk/gtkwidget.h, C 4306) is the round's
+other new name; both are `UNVERIFIED` (no GTK tree on this machine).
+
+**Deviations this slice adds.**
+
+- C 4273/4283, C 4293/4296 and C 4312/4326's three `#ifdef HAVE_XINPUT2` / `#else` pairs are three
+  `#[cfg]` pairs in the port, so the `xev->` reads (C 4277-4280, C 4295, C 4315-4316) keep C's member
+  text through the UNVERIFIED record while the `event->xbutton.*` reads go through the local cast.
+- C 4281/4290's `return 0` are `false` (the C `bool` return), C 4289's `event->xbutton.same_screen`
+  is `!= 0` (the `Bool`-to-`bool` test) and C 4306's `! gtk_widget_is_ancestor (...)` is `== 0`
+  (the mirror returns `gboolean`, so the `&&` chain needs a `bool`).
+- C 4330's `for (iter = list ; iter; iter = g_list_next (iter))` is the port's `while` with C's own
+  step at the loop end (PORTING.md 2.2), and C 4334's `break` is the `for`'s own exit.
+- C 4295/4298's two `gdk_x11_window_lookup_for_display` results take `as *mut GdkWindow` (the port's
+  `GdkWindow` stand-in is a distinct type), C 4334's `NULL` argument is `std::ptr::null_mut ()`, and
+  C 4268's `GdkEvent gevent` is the zeroed mirror union (PORTING.md 1.5).
+- C 4274's `XIDeviceEvent *xev = (XIDeviceEvent *) event->xcookie.data;` becomes a `#[cfg]`-gated
+  `let` under the `have_xinput2` arm only, the C 1546-1548 shape the file already uses.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings, this round against a materialised pre-slice baseline.**  A temporary
+   `git worktree` at the previous commit (`a1c7041b`) materialised the pre-slice unit, and the same
+   five sets were run on both trees: arm A **28 `^error` matches (27 errors) before and after, the
+   error multisets identical**; arm A plus `gtk_check_version_ge_3_14`: 28 before and after; arm A
+   without `have_xinput2`: 27 before and after; arm C (GTK2): 62 before and after; arm C plus
+   `have_freetype`: 62 before and after.  So this slice adds **no anchor anywhere**, not merely none
+   in its own text - a stronger reading than the earlier slices' "none in this slice".  (Slices 12
+   and 13 recorded 27/61 for the same sets; those numbers do not reproduce on the pre-slice tree
+   with this round's exact set, and no unit or mirror text changed in the interval - the identical
+   multisets are the property this ritual is about.)
+3. **The pgtk probe.**  The slice's body stands under `not (feature = "have_pgtk")`, so the pgtk face
+   compiles none of it; the out-of-tree probe (a copy of the materialised `_root.rs` whose deduped
+   `include/gtk.rs` edge is restored) reads **26 `^error` matches under arm A's set and 25 under arm
+   C's, both identical to the same probe on the pre-slice tree**, none of them this slice's.
+4. **`extract-abi.py --check`** -> 71 -> **71 `- ` rows**: one retired (`missing function
+   xg_event_is_for_menubar`) and one added (`function xg_event_is_for_menubar does not mention
+   xbutton, xcookie`, recorded in `macro-body-notes.tsv` - C's `event->xbutton.*` and
+   `event->xcookie.data` reads are the local casts above); the line-count row reads **10.7%**
+   (C 6,753 vs 6,029).
+5. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK or XInput2 tree - `X11/extensions/XInput2.h`
+is not on this machine - so `XIDeviceEvent`'s member list and offsets, and every GTK prototype and
+value this slice added, are UNVERIFIED; the pgtk arm's reading is the probe's (Owed 17).

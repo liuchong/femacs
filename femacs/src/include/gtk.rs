@@ -815,7 +815,16 @@ macro_rules! GTK_IS_WINDOW {
 macro_rules! GTK_IS_LABEL {
   ($o:expr) => { (! ($o).is_null ()) };
 }
-#[cfg (all (feature = "have_gtk3", feature = "have_xinput2"))]
+/// C: gtk/gtkmenubar.h: `#define GTK_IS_MENU_BAR(obj)` - the family's body.  C 4304 (the
+/// gtkutil lane's fourteenth slice, `xg_event_is_for_menubar`) uses it **outside** any
+/// `HAVE_GTK3` fold, so both GTK faces need the macro; until that slice the gate was
+/// `have_gtk3 && have_xinput2`, pinned to the unit's then-only consumer (its C 1039-1046
+/// site, itself under that fold).  No unit carries its own copy, so widening is safe.
+#[cfg (feature = "have_gtk3")]
+macro_rules! GTK_IS_MENU_BAR {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+#[cfg (not (feature = "have_gtk3"))]
 macro_rules! GTK_IS_MENU_BAR {
   ($o:expr) => { (! ($o).is_null ()) };
 }
@@ -2766,4 +2775,11 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn gtk_box_reorder_child (box_: *mut GtkBox, child: *mut GtkWidget, position: gint);
   pub fn gdk_screen_get_system_visual (screen: *mut GdkScreen) -> *mut GdkVisual;
+}
+
+/// C: gtk/gtkwidget.h: `gboolean gtk_widget_is_ancestor (GtkWidget *widget, GtkWidget
+/// *ancestor);` - C 4306's test of the menubar against the widget the event landed on.  A fresh
+/// name (no other unit declares it), so the mirror takes it; **UNVERIFIED**.
+unsafe extern "C" {
+  pub fn gtk_widget_is_ancestor (widget: *mut GtkWidget, ancestor: *mut GtkWidget) -> gboolean;
 }
