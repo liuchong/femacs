@@ -1946,6 +1946,18 @@ DEFUN! ("w32-selection-targets", Fw32_selection_targets,
   return Qnil ();                                             // C 1309
 });
 
+/* C's two `globals.f_<name>` fields this unit's `syms_of_w32select` registers (its
+   `DEFVAR_LISP` calls at C 1324 and 1330), defined here as the port's storage - C's
+   `struct emacs_globals` is zero-initialised and the DEFVAR macros only take each field's
+   address, so the initialisers are `lisp_h_Qnil ()` (docs/status.md 3.29, the `src/cmds.rs`
+   row and the `src/alloc.rs` 8019-8025 note).  */
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vselection_coding_system: Lisp_Object = lisp_h_Qnil ();      // C 1324
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vnext_selection_coding_system: Lisp_Object = lisp_h_Qnil (); // C 1330
+
 /* C 1312-1314: "One-time init.  Called in the un-dumped Emacs, but not in the dumped version."  */
 /// C 1315-1343: `syms_of_w32select`.
 #[cfg (feature = "have_ntgui")]
