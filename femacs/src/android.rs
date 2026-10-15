@@ -7487,7 +7487,11 @@ pub unsafe extern "C" fn android_set_wm_name (handle: android_window, name: jstr
    `androidvfs.rs` 266-272 device below).  C 5841's `switch (keysym)` with its three
    `return`ing arms is the port's `match`; C's `size - 1` is `size_t`, so it is
    `wrapping_sub (1)` (the `androidterm.rs` 5519 device), and C's `name_return[size]` write is
-   `*name_return.offset (size as isize)`.  */
+   `*name_return.offset (size as isize)`.  The declaration carries this unit's file gate, like
+   every other item of the file: its three `c_char` types come from the same `have_android`
+   includes, so without the gate the **frozen** build sees three `E0425`s (P-86 ⑧'s class, the
+   `src/pgtkterm.rs` record's and `src/msdos.rs`'s prototype's).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
   /// C: `char *strncpy (char *dest, const char *src, size_t n);`
   pub fn strncpy (dest: *mut c_char, src: *const c_char, n: usize) -> *mut c_char;
