@@ -13,6 +13,32 @@ use std::process::{exit, Command};
 const REPO: &str = "..";
 const BUILD: &str = "../build/femacs";
 
+/// The `-C` flags every unit object is built with (PORTING.md 0.1-1).
+///
+/// `opt-level=0` is deliberate and is the only level the port currently survives, measured
+/// 2026-10-16 by rebuilding all 680 units at each level and running the loadup:
+/// `-C opt-level=2` and `-C opt-level=1` both die within the first few `Loading' lines - a
+/// `memmove` from an unmapped address inside `styled_format` (xdisp) at 2, and, with xdisp
+/// rebuilt at 0, a spurious `wrong-type-argument (stringp ...)` that aborts inside `print_object`
+/// (print) while loading `international/mule-conf`; at 1 the crash is before the first
+/// `Loading` line.  The port's `unsafe` layer (the mirrors' type punning and `&`/`&mut` aliasing)
+/// is therefore **not optimization-safe yet** - that is a named open defect, not a build choice.
+///
+/// The cost of 0 is frame size: `eval_sub` is 2992 bytes against the reference's 208 (its own
+/// `CFLAGS = -g3 -O2`), so the 4200-level interpreter recursion the Lisp loader runs
+/// (`macroexpand--all-toplevel` over `cus-start.el`'s 41 KB form) wants ~25 MB of an 8 MB stack
+/// and the SIGSEGV handler abandons `loadup.el` ("Re-entering top level after C stack overflow",
+/// 108 of the reference's 112 files).  The program is therefore *linked* with a 64 MB stack
+/// (`-Wl,-stack_size,0x4000000`, see the link command below), the same remedy the reference's own
+/// macOS app build uses - C's runtime `setrlimit (RLIMIT_STACK, ...)` cannot grow the main
+/// thread's stack on Darwin, which is fixed at exec.
+///
+/// The two check flags stay explicit: `overflow-checks` because P-96 forbids leaning on release
+/// arithmetic, and `debug-assertions` because a unit is built the way C's checking build is.
+const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=0", "-C", "overflow-checks=on",
+                                       "-C", "debug-assertions=on", "-C", "panic=abort",
+                                       "-C", "codegen-units=1"];
+
 /// The directories a ported unit can live in.  `docs/port-map.md` pairs every reference file
 /// with a target path, and the C tree's non-`src/` directories keep their own names (PORTING.md
 /// 0.1: `lib/`, `lib-src/`, `lwlib/`, `oldXMenu/`, `exec/`, `nt/`, `msdos/`), so the unit
@@ -1030,8 +1056,8 @@ fn build_tu(rel: Option<&String>) -> i32 {
     };
     let status = Command::new("rustc")
         .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-               "--crate-name", &cname,
-               "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
+               "--crate-name", &cname])
+        .args(UNIT_CODEGEN_FLAGS)
         .arg(&root)
         .arg("-o").arg(&out)
         .status();
@@ -1630,7 +1656,13 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
     println!("   {} port object(s) + {} lib object(s), linked by rustc (panic=abort, no_std driver)",
              objs.len(), libs.len());
     let out = match Command::new("rustc")
-        .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
+        .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang",
+               // The main thread's stack is fixed at exec on Darwin, so C's own runtime
+               // `setrlimit (RLIMIT_STACK, ...)` cannot grow it there, and the port needs more
+               // than the 8 MB default while its units are built at `-C opt-level=0` (the frames
+               // are ~14x the reference's; see the reading in `UNIT_CODEGEN_FLAGS`'s note).  The
+               // link-time stack is the same remedy the reference's own macOS app build uses.
+               "-C", "link-arg=-Wl,-stack_size,0x4000000"])
         .arg("../build/load/driver.rs")
         .arg("-C").arg("link-arg=@../build/load/link-args.rsp")
         .arg("-o").arg(&out_path)
@@ -1833,8 +1865,8 @@ fn dead_arms() -> i32 {
         let out = format!("{}.o", rel.replace('/', "_").replace(".rs", ""));
         let mut cmd = Command::new("rustc");
         cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                  "--crate-name", &cname,
-                  "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"]);
+                  "--crate-name", &cname])
+        .args(UNIT_CODEGEN_FLAGS);
         for (feature, _, _) in FLIPS {
             if !feature.is_empty() {
                 cmd.arg("--cfg").arg(format!("feature=\"{feature}\""));
@@ -2300,8 +2332,8 @@ fn build_finished_tus() -> Result<(), String> {
         };
         let status = Command::new("rustc")
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                   "--crate-name", &cname,
-                   "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
+                   "--crate-name", &cname])
+            .args(UNIT_CODEGEN_FLAGS)
             .arg(&root)
             .arg("-o")
             .arg(&out)
@@ -2319,8 +2351,8 @@ fn build_finished_tus() -> Result<(), String> {
         let status = Command::new("rustc")
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname,
-                   "--cfg", "enable_checking",
-                   "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
+                   "--cfg", "enable_checking"])
+            .args(UNIT_CODEGEN_FLAGS)
             .arg(&root)
             .arg("-o")
             .arg(&checked)
