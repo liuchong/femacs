@@ -579,3 +579,34 @@ under arm C - the same multisets the pre-slice tree at `a1c7041b` produces, so t
 error and, in the arm C face, its own new definition is what C 4304 needs; the pgtk face compiles
 none of the consumer's body (C 4258's `#ifndef HAVE_PGTK`), so its reading is the out-of-tree
 probe's.
+
+### status 4.345 (the gtkutil fifteenth-slice round this file took part in)
+
+`src/gtkutil.c`'s index-to-widget map (C 4342-4472) is the round's consumer.  The mirror gains
+**`GTK_IS_SCROLLBAR`** (gtk/gtkscrollbar.h, C 4444) and **`GTK_IS_EVENT_BOX`** (gtk/gtkeventbox.h,
+C 4463) - the two tests the GTK3 arm of `xg_get_widget_from_map` asks; both keep the `GTK_IS_*`
+family's body `(! ($o).is_null ())` with their `G_TYPE_CHECK_INSTANCE_TYPE` chains owed (the family
+this file's own 809-821 and 2755-2776 carry), both read zero tree-wide before this round, so both are
+safe mirror items, and both are `UNVERIFIED` (no GTK tree on this machine).
+
+**Two names the round did not take.**  `gtk_container_forall` (gtk/gtkcontainer.h, C 4464) is
+already copied by `src/xwidget.rs` 504-506, which `include!`s this mirror, so a mirror item would be
+an `E0428` there; `TYPE_MAXIMUM` (min-max.h, C 4384) is a token macro each unit spells for itself.
+Both are Owed 18 of `docs/ports/gtkutil.md`.
+
+**And a name whose home was already here.**  The round's draft declared `xnrealloc` (lisp.h 5546,
+C 4388) in its own unit, on the reading that no mirror carries it; `tools/check-mirror-dupes.py`
+said otherwise - `17 duplicate declaration(s), 16 ratchet row(s), 1 failure(s)`, "already declared by
+`femacs/src/include/lisp.rs` (in the include graph)" - because this file's sibling `include/lisp.rs`
+carries it at 3772 inside `lisp_safe_decls` and re-exports it at 3268's `use lisp_safe_decls::*;`.
+Deleting the copy brought the gate back to `16/16/0` with every arm reading unchanged, so the
+lisp.h mirror's row was in place all along.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings are **byte-identical multisets to the pre-slice
+tree at `b75d7cca`** (arm A 28 `^error` matches, arm A plus `gtk_check_version_ge_3_14` 28, arm A
+without `have_xinput2` 27, arm C 62, arm C plus `have_freetype` 62, and the out-of-tree pgtk probe 26
+- the pgtk probe is what caught the one spelling this round had to split by arm, C 4384's
+`Window`-typed arithmetic), so the round adds no error in any face.

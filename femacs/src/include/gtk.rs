@@ -2761,6 +2761,17 @@ macro_rules! GTK_IS_CHECK_MENU_ITEM {
 macro_rules! GTK_IS_MENU_ITEM {
   ($o:expr) => { (! ($o).is_null ()) };
 }
+/// C: gtk/gtkscrollbar.h and gtk/gtkeventbox.h: `#define GTK_IS_SCROLLBAR(obj)` and `#define
+/// GTK_IS_EVENT_BOX(obj)` - the two tests the GTK3 arm of `xg_get_widget_from_map` asks (C
+/// 4444/4463, the gtkutil lane's fifteenth slice).  Both are fresh names (no other unit declares
+/// either), so the mirror takes both; each keeps the family's body above, with its
+/// `G_TYPE_CHECK_INSTANCE_TYPE` chain owed.  **UNVERIFIED** (no GTK tree on this machine).
+macro_rules! GTK_IS_SCROLLBAR {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+macro_rules! GTK_IS_EVENT_BOX {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
 /// C: gtk/gtkmenuitem.h: `GtkWidget *gtk_menu_item_get_submenu (GtkMenuItem *menu_item);` -
 /// C 4038's read of the item's current submenu.  Fresh name; **UNVERIFIED**.
 unsafe extern "C" {

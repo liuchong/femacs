@@ -6027,3 +6027,254 @@ pub unsafe extern "C" fn xg_event_is_for_menubar (f: *mut frame, event: *const X
   g_list_free (list);                                                   // C 4336
   ! iter.is_null ()                                                     // C 4337
 }
+
+/* C 4342's form feed and C 4343-4345's "Scroll bar functions" banner, carried as C's own text.  */
+/* C: /***********************************************************************
+   C:                       Scroll bar functions
+   C:  ***********************************************************************/  */
+
+/* C 4348-4349's comment above the flag, carried as C's own text.  */
+/* C: /* Setting scroll bar values invokes the callback.  Use this variable
+   C:    to indicate that callback should do nothing.  */  */
+
+/// C 4351: `bool xg_ignore_gtk_scrollbar;` - a non-`static` definition, so the port exports C's
+/// symbol (PORTING.md 0.2); this file's own scroll-bar callbacks and `xterm.c`'s thumb setters are
+/// its readers and writers.  A zero-initialised C object is `false` for a `bool`.
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub static mut xg_ignore_gtk_scrollbar: bool = false;
+
+/// C 4354/4355: the two `static int`s the theme measurement writes (`scroll_bar_width_for_theme`
+/// and `scroll_bar_height_for_theme`; C 4353's one-line comment above them is carried in the note
+/// below).  C `static` objects keep their C names, unexported (PORTING.md 0.2), and C's
+/// zero-initialisation is the port's `0`.
+#[cfg (feature = "use_gtk")]
+static mut scroll_bar_width_for_theme: c_int = 0;
+#[cfg (feature = "use_gtk")]
+static mut scroll_bar_height_for_theme: c_int = 0;
+
+/* C 4357's `#if defined HAVE_PGTK || !defined HAVE_GTK3` - the index-to-widget map exists only
+   where Xlib's 32-bit `Window` cannot hold a pointer.  Its `#else` is C 4438 and its `#endif` is
+   C 4472; the record, the object and the three functions below belong to that fold (and only
+   `xg_get_widget_from_map` has an item in both arms - C 4430 and C 4449).  */
+
+/* C 4359-4361's comment above the record, carried as C's own text.  */
+/* C: /* Xlib's `Window' fits in 32 bits.  But we want to store pointers, and they
+   C:    may be larger than 32 bits.  Keep a mapping from integer index to widget
+   C:    pointers to get around the 32 bit limitation.  */  */
+
+/// C 4363-4368: `static struct { GtkWidget **widgets; ptrdiff_t max_size; ptrdiff_t used; }
+/// id_to_widget;` - the anonymous record is named `id_to_widget_s` (PORTING.md 1.3: an anonymous
+/// struct must be named) and the object keeps C's name.  Three pointer-wide members on the frozen
+/// target, so the record is 24 bytes with no padding and the two asserts below are the port's own
+/// reading of it.
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+#[repr(C)]
+pub struct id_to_widget_s
+{
+  pub widgets: *mut *mut GtkWidget,               // C: `GtkWidget **widgets;`
+  pub max_size: ptrdiff_t,                        // C: `ptrdiff_t max_size;`
+  pub used: ptrdiff_t,                            // C: `ptrdiff_t used;`
+}
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+const _: () = core::assert! (core::mem::size_of::<id_to_widget_s> () == 24);
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+const _: () = core::assert! (core::mem::offset_of! (id_to_widget_s, max_size) == 8);
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+const _: () = core::assert! (core::mem::offset_of! (id_to_widget_s, used) == 16);
+/// C 4368: `} id_to_widget;` - the object itself, at C's zero-initialised value (`widgets` is the
+/// null pointer, `max_size` and `used` are `0`).
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+static mut id_to_widget: id_to_widget_s
+  = id_to_widget_s { widgets: std::ptr::null_mut (), max_size: 0, used: 0 };
+
+/* C 4370-4371's comment above the increment, carried as C's own text.  */
+/* C: /* Grow this much every time we need to allocate more  */  */
+
+/// C 4372: `#define ID_TO_WIDGET_INCR  32` - C's two uses are `ptrdiff_t` arithmetic
+/// (`max_size + ID_TO_WIDGET_INCR` and `max_size + ID_TO_WIDGET_INCR`), so the port keeps C's
+/// value in that type.
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+const ID_TO_WIDGET_INCR: ptrdiff_t = 32;
+
+/* ----------------------------------------------------------------------------------------------
+   The two names `xg_store_widget_in_map` and the GTK3 arm of `xg_get_widget_from_map` call and no
+   mirror in this unit's include graph carries.
+
+   `TYPE_MAXIMUM (Window)` (C 4384) is min-max.h's `#define TYPE_MAXIMUM(t) ...` - a *token* macro
+   Rust cannot spell inside an expression, so each unit that needs it carries its own accessor
+   (`src/androidterm.rs` 7268's `macro_rules! TYPE_MAXIMUM`; this unit's `input_event_bits!` and
+   `GSETTINGS_SCHEMA!` are the same shape).  `xnrealloc` (C 4388) needs no declaration: the
+   lisp.h mirror carries it at `include/lisp.rs` 3772 and re-exports it at 3268's `use
+   lisp_safe_decls::*;`, which is why the call below is the bare C name (the first draft declared
+   it in-unit and `tools/check-mirror-dupes.py` caught the duplicate).  `memory_full_up` (C 4385)
+   and `emacs_abort` (C 4411) come from the same mirror (4098/3839).  **No GTK or GDK tree exists on
+   this machine**, so `gtk_container_forall` below is UNVERIFIED.
+   ---------------------------------------------------------------------------------------------- */
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+macro_rules! TYPE_MAXIMUM {
+  ($t:ty) => { <$t>::MAX };
+}
+
+/// C 4374's comment and C 4376-4412: `static ptrdiff_t xg_store_widget_in_map (GtkWidget *w)` -
+/// C `static`, so a plain `unsafe fn` (PORTING.md 0.2), and the whole function stands under
+/// C 4357's fold.  C's `ptrdiff_t i` serves both `for`s (PORTING.md 2.2: each `for` head is the
+/// port's `while` with C's own step at the loop end), C 4384's condition is a comparison C performs
+/// in `Window`'s own type (the `#[cfg]` pair at C 4384 spells both faces: `unsigned long` under
+/// X11, `int` under pgtk), C 4388's third argument is C's `sizeof (GtkWidget *)`, and
+/// C 4385/4388/4411's calls are the `include/lisp.rs` prototypes.
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+unsafe fn xg_store_widget_in_map (w: *mut GtkWidget) -> ptrdiff_t   // C 4376-4412
+{
+  let mut i: ptrdiff_t;                                                 // C 4379
+
+  if id_to_widget.max_size == id_to_widget.used                         // C 4381
+    {
+      let mut new_size: ptrdiff_t;                                      // C 4383
+      /* C 4384's test is arithmetic in `Window`'s own type, and the two faces spell that type
+	 differently - `unsigned long` under X11 (`include/xlib.rs` 1144), `int` under pgtk
+	 (`include/pgtkgui.rs` 102, C 49's `typedef int Window;`) - so the arm is chosen here the way
+	 the file chooses its other C-arm pairs.  C's `int` constant widens into `Window`'s type and
+	 the `ptrdiff_t` right side converts at the comparison, which keeps `unsigned long` here.  */
+      #[cfg (feature = "have_pgtk")]
+      { if ((TYPE_MAXIMUM! (Window) - ID_TO_WIDGET_INCR as c_int) as ptrdiff_t)
+	  < id_to_widget.max_size
+	  { memory_full_up (); } }                                      // C 4384-4385
+      #[cfg (not (feature = "have_pgtk"))]
+      { if (TYPE_MAXIMUM! (Window) - ID_TO_WIDGET_INCR as c_ulong)
+	  < id_to_widget.max_size as c_ulong
+	  { memory_full_up (); } }                                      // C 4384-4385
+
+      new_size = id_to_widget.max_size + ID_TO_WIDGET_INCR;             // C 4387
+      id_to_widget.widgets = xnrealloc (id_to_widget.widgets as *mut c_void,   // C 4388
+					new_size,
+					core::mem::size_of::<*mut GtkWidget> () as ptrdiff_t)
+	as *mut *mut GtkWidget;
+
+      i = id_to_widget.max_size;                                        // C 4391 (the `for` head)
+      while i < new_size
+        {
+          *id_to_widget.widgets.offset (i as isize) = std::ptr::null_mut ();   // C 4392
+          i += 1;                                                       // C 4391 (the `for` step)
+        }
+      id_to_widget.max_size = new_size;                                 // C 4393
+    }
+
+  /* C 4396-4398's comment, carried as C's own text.  */
+  /* C: /* Just loop over the array and find a free place.  After all,
+     C:    how many scroll bars are we creating?  Should be a small number.
+     C:    The check above guarantees we will find a free place.  */  */
+  i = 0;                                                                // C 4399 (the `for` head)
+  while i < id_to_widget.max_size
+    {
+      if (*id_to_widget.widgets.offset (i as isize)).is_null ()         // C 4401
+        {
+          *id_to_widget.widgets.offset (i as isize) = w;                // C 4403
+          id_to_widget.used += 1;                                       // C 4404
+
+          return i;                                                     // C 4406
+        }
+      i += 1;                                                           // C 4399 (the `for` step)
+    }
+
+  /* Should never end up here  */
+  emacs_abort ();                                                       // C 4411
+}
+
+/// C 4414-4415's comment and C 4417-4425: `static void xg_remove_widget_from_map (ptrdiff_t idx)`
+/// - the map arm's removal, which C 4420's two tests guard so that `used` only ever counts live
+/// entries.
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+unsafe fn xg_remove_widget_from_map (idx: ptrdiff_t)   // C 4417-4425
+{
+  if idx < id_to_widget.max_size
+      && ! (*id_to_widget.widgets.offset (idx as isize)).is_null ()     // C 4420
+    {
+      *id_to_widget.widgets.offset (idx as isize) = std::ptr::null_mut ();   // C 4422
+      id_to_widget.used -= 1;                                           // C 4423
+    }
+}
+
+/// C 4427's comment and C 4429-4436: the map arm's `static GtkWidget *xg_get_widget_from_map
+/// (ptrdiff_t idx, Display *dpy)` - the lookup C 4432 does, and C 4435's `0` is the null pointer.
+/// `dpy` is unused in this arm of C too (the `#else` arm's `xg_get_widget_from_map` is the one that
+/// needs it), and keeping C's signature keeps the two arms one function.
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+unsafe fn xg_get_widget_from_map (idx: ptrdiff_t, dpy: *mut Display)
+  -> *mut GtkWidget                                                     // C 4429-4436
+{
+  if idx < id_to_widget.max_size
+      && ! (*id_to_widget.widgets.offset (idx as isize)).is_null ()     // C 4432
+    { return *id_to_widget.widgets.offset (idx as isize); }             // C 4433
+
+  return std::ptr::null_mut ();                                         // C 4435
+}
+
+/* C 4438's `#else` - the GTK3 arm, where a `GdkWindow` *is* the index and the widget is found by
+   walking the event box's children.  Its `#endif` is C 4472.  */
+
+/// C 4439-4446: `static void find_scrollbar_cb (GtkWidget *widget, gpointer user_data)` - the
+/// `forall` callback C 4464-4465 hands to `gtk_container_forall`, so it carries the C ABI (the
+/// `menuitem_destroy_callback` shape).  C's `GtkWidget **scroll_bar = user_data;` is the port's
+/// cast (a `gpointer` parameter arrives as `*mut c_void`) and C 4444's `GTK_IS_SCROLLBAR` is one of
+/// the two family macros this slice adds to the mirror.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
+unsafe extern "C" fn find_scrollbar_cb (widget: *mut GtkWidget, user_data: gpointer)  // C 4439-4446
+{
+  let scroll_bar: *mut *mut GtkWidget = user_data as *mut *mut GtkWidget;   // C 4442
+
+  if GTK_IS_SCROLLBAR! (widget)                                         // C 4444
+    { *scroll_bar = widget; }                                           // C 4445
+}
+
+/// C 4448-4471: the GTK3 arm's `static GtkWidget *xg_get_widget_from_map (ptrdiff_t window,
+/// Display *dpy)` - look the display's `GdkWindow` up from the index (C 4455's `(Window) window`
+/// is the port's cast, since this arm's index is C's `ptrdiff_t`), build C 4458's synthetic
+/// `GdkEvent` (the port's zeroed union, PORTING.md 1.5: C leaves it uninitialised and writes both
+/// members it reads - the C 1918/1922 shape this file already uses for the same call), ask GTK
+/// which widget the event belongs to, and then let C 4464-4465's `gtk_container_forall` walk the
+/// widget's children for a `GtkScrollbar`.  C 4444's test and C 4463's `GTK_IS_EVENT_BOX` are the
+/// mirror's two new macros, C 4469's function is declared in-unit below (`src/xwidget.rs` 504-506
+/// already carries its own copy, Owed 18's class), and the callback argument is the port's
+/// `Some (find_scrollbar_cb)` because the parameter's type is `GtkCallback`, an `Option` - the
+/// `src/xwidget.rs` 1972 shape.  C 4468's `NULL` is the null pointer.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
+unsafe fn xg_get_widget_from_map (window: ptrdiff_t, dpy: *mut Display)
+  -> *mut GtkWidget                                                     // C 4448-4471
+{
+  let mut gwdesc: *mut GtkWidget;                                       // C 4451
+  let mut scroll_bar: *mut GtkWidget = std::ptr::null_mut ();           // C 4451 (`= NULL`)
+  let mut gdkwin: gpointer;                                             // C 4452
+
+  gdkwin = gdk_x11_window_lookup_for_display (gdk_x11_lookup_xdisplay (dpy),   // C 4454
+					      window as Window);        // C 4455
+  if ! gdkwin.is_null ()                                                // C 4456
+    {
+      let mut event: GdkEvent = core::mem::zeroed ();                   // C 4458
+      event.any.window = gdkwin as *mut GdkWindow;                      // C 4459
+      event.any.r#type = GDK_NOTHING;                                   // C 4460
+      gwdesc = gtk_get_event_widget ((&raw mut event));                 // C 4461
+
+      if ! gwdesc.is_null () && GTK_IS_EVENT_BOX! (gwdesc)              // C 4463
+        {
+          gtk_container_forall (GTK_CONTAINER! (gwdesc), Some (find_scrollbar_cb),   // C 4464
+                                (&raw mut scroll_bar) as gpointer);     // C 4465
+        }
+    }
+  else
+    { return std::ptr::null_mut (); }                                   // C 4468
+
+  return scroll_bar;                                                    // C 4470
+}
+
+/* C 4464's `gtk_container_forall` (gtk/gtkcontainer.h: `void gtk_container_forall (GtkContainer
+   *container, GtkCallback callback, gpointer callback_data);`) - `src/xwidget.rs` 504-506 already
+   carries its own copy, so a mirror item would be an `E0428` there (the class Owed 10/Owed 12
+   record); the unit carries it at the use site.  **UNVERIFIED.**  */
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn gtk_container_forall (container: *mut GtkContainer, callback: GtkCallback,
+			       callback_data: gpointer);
+}
+
+/* C 4472's `#endif` closes C 4357's `#if defined HAVE_PGTK || !defined HAVE_GTK3`.  */
