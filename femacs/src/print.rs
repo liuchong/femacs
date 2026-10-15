@@ -1293,8 +1293,6 @@ pub unsafe extern "C" fn print_error_message (mut data: Lisp_Object, stream: Lis
 	else
 	  { Fprin1 (obj, stream, Qnil ()); }
       });
-    if ! sep.is_null ()
-      { write_string (c"\n".as_ptr (), stream); }
   }
 }
 
