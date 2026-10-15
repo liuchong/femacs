@@ -914,3 +914,32 @@ read), and no item of this batch collides with a name any other unit declares.
 **UNVERIFIED.**  No GTK tree is on this machine, so all three rows are taken from GTK's documented
 shapes and this file's conventions, not from headers on disk - the boundary `status 4.355` recorded
 for the GtkPrint* surface.
+
+
+### status 4.361 (the gtkutil thirty-first-slice round this file took part in)
+
+`src/gtkutil.c`'s icon-name resolver (C 5812-5846) is this round's consumer, and it asks for **six
+items** - the icon-theme surface, and the two GTK2 rows its stock-id arm needs.
+
+- **`GtkIconTheme`** (an opaque head), **`gtk_icon_theme_get_for_screen`** and
+  **`gtk_icon_theme_has_icon`** - C 5906's screen lookup (the next slice's line, in the file already)
+  and C 5826/5834's two membership tests, all in both faces.
+- **`GtkStockItem`** and **`gtk_stock_lookup`**, both under `not (feature = "have_gtk3")` - C 5818's
+  address-only local and C 5831's call, which C itself puts inside `#ifndef HAVE_GTK3`.  The record's
+  `modifier` member is C's `GdkModifierType`: that *type* is `src/pgtkterm.rs` 4932's own row (the
+  unit `include!`s this mirror, so the name cannot also live here - the `GTK_IS_*` family's reverse
+  situation), and since only the record's **address** is ever passed, the field keeps the scalar's
+  width with C's type named in the comment.  The whole record is **UNVERIFIED**: GTK2 is not on this
+  machine, so its documented five-member layout is quoted, not measured.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings show
+**no row from this unit's own text** - the four GTK3 faces and `AN` move by one `E0658 c_variadic`
+whose span is `include/lisp.rs` 3828's `verror` declaration, a mirror site that is not reproducible
+between invocations on the same input (see the unit ledger's correction), and no item of this batch
+collides with a name any other unit declares.
+
+**UNVERIFIED.**  All six rows are taken from GTK's and GTK2's documented shapes and this file's
+conventions, not from headers on disk - the boundary `status 4.355` recorded for the GtkPrint*
+surface.

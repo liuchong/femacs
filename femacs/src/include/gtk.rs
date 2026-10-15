@@ -3204,3 +3204,45 @@ macro_rules! GTK_IS_HBOX {
 unsafe extern "C" {
   pub fn gtk_orientable_get_orientation (orientable: *mut GtkOrientable) -> GtkOrientation;
 }
+
+/// C: gtk/gtkicontheme.h: `typedef struct _GtkIconTheme GtkIconTheme;` - the record
+/// `find_icon_from_name` takes and `update_frame_tool_bar` gets from a screen
+/// (`gtk_icon_theme_get_for_screen`).  Both faces have it; an opaque head, **UNVERIFIED**.
+#[repr(C)]
+pub struct GtkIconTheme
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkicontheme.h: `GtkIconTheme *gtk_icon_theme_get_for_screen (GdkScreen *screen);` /
+/// `gboolean gtk_icon_theme_has_icon (GtkIconTheme *icon_theme, const gchar *icon_name);` -
+/// C 5906's screen lookup and C 5826/5834's two membership tests.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_icon_theme_get_for_screen (screen: *mut GdkScreen) -> *mut GtkIconTheme;
+  pub fn gtk_icon_theme_has_icon (icon_theme: *mut GtkIconTheme, icon_name: *const gchar)
+    -> gboolean;
+}
+/// C: gtk/gtkstock.h (GTK2's): `typedef struct _GtkStockItem GtkStockItem;` and its definition -
+/// `gchar *stock_id; gchar *label; GdkModifierType modifier; guint keyval; gchar
+/// *translation_domain;`.  `find_icon_from_name` declares one and passes only its **address** to
+/// `gtk_stock_lookup`, so the port needs the record for its size and nothing else: the layout is
+/// GTK2's documented one and is **UNVERIFIED** (no GTK2 tree here, Owed 6).
+#[cfg (not (feature = "have_gtk3"))]
+#[repr(C)]
+pub struct GtkStockItem
+{
+  pub stock_id: *mut gchar,               // C: `gchar *stock_id;`
+  pub label: *mut gchar,                  // C: `gchar *label;`
+  /// C: `GdkModifierType modifier;` - the *type* is `src/pgtkterm.rs` 4932's own row (that unit
+  /// `include!`s this mirror, so the name cannot also live here), and this record is only passed by
+  /// address anyway: the field keeps the scalar's width with C's type named in the comment.
+  pub modifier: c_int,
+  pub keyval: guint,                      // C: `guint keyval;`
+  pub translation_domain: *mut gchar,    // C: `gchar *translation_domain;`
+}
+/// C: gtk/gtkstock.h (GTK2's): `gboolean gtk_stock_lookup (const gchar *stock_id, GtkStockItem
+/// *item);` - C 5831's call, which exists only before GTK3 (the arm itself is inside
+/// `#ifndef HAVE_GTK3`), so the row carries that gate.  **UNVERIFIED.**
+#[cfg (not (feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn gtk_stock_lookup (stock_id: *const gchar, item: *mut GtkStockItem) -> gboolean;
+}

@@ -8557,3 +8557,82 @@ unsafe fn xg_update_tool_bar_sizes (f: *mut frame) -> bool   // C 5761-5810
   else
     { return false; }                                                   // C 5809
 }
+
+/* C 5811's blank and `find_icon_from_name` - the name resolver `update_frame_tool_bar` (C 5851, the
+   next slice) calls at C 6001/6009.  */
+
+/// C 5812-5846: `static char *find_icon_from_name (char *name, GtkIconTheme *icon_theme,
+/// char **icon_name)` - decide what `name` is: the `"n:"` prefix C 5821 tests is the "this is
+/// already an icon name" marker (then the rest must exist in the theme or the pair is dropped), a
+/// plain name is looked up as a stock id first under GTK2 and as an icon name under both, and
+/// anything left over comes back as `NULL` with `*icon_name` cleared.  C `static`, no address
+/// taken, so a plain `unsafe fn`; `name` is a parameter C writes (C 5824/5837/5841), so it is
+/// `mut`, and C 5812's `char *` is `*mut c_char`.  C 5821's two character tests are byte constants
+/// (the C 2349 shape), C 5823's `name + 2` is `name.offset (2)`, and C 5818's `GtkStockItem
+/// stock_item;` is only ever passed by address, so it is `std::mem::zeroed ()` (PORTING.md 1.5).
+///
+/// **C 5830-5833's `#ifndef HAVE_GTK3` is a middle arm of an `if`/`else if` chain**, which Rust
+/// cannot gate in place (a `#[cfg]` has no `else if` form): the GTK2 face's chain has three
+/// `else`-arms and the GTK3 face's two, so the port writes the chain **once per face** inside the
+/// two `#[cfg]` blocks below - the arm-chooser shape this file uses for C 35/38's `#define xp`, with
+/// the first arm then carried twice.  The `gtk_stock_lookup` arm's `stock_item` is declared in the
+/// same `#[cfg]` block as its one user.
+/* C: static char *
+   C: find_icon_from_name (char *name,
+   C:                      GtkIconTheme *icon_theme,
+   C:                      char **icon_name)  */
+#[cfg (feature = "use_gtk")]
+unsafe fn find_icon_from_name (mut name: *mut c_char, icon_theme: *mut GtkIconTheme,
+			       icon_name: *mut *mut c_char) -> *mut c_char   // C 5812-5846
+{
+  /* C 5830's `#ifndef HAVE_GTK3`; its `#endif` is C 5833.  The two faces' chains, C's own order.  */
+  #[cfg (not (feature = "have_gtk3"))]
+  {
+    /* C 5817-5819's `#ifndef HAVE_GTK3` local: `GtkStockItem stock_item;` (address only).  */
+    let mut stock_item: GtkStockItem = std::mem::zeroed ();             // C 5818
+
+    if *name == b'n' as c_char && *name.offset (1) == b':' as c_char     // C 5821
+      {
+	*icon_name = name.offset (2);                                   // C 5823
+	name = std::ptr::null_mut ();                                   // C 5824
+
+	if gtk_icon_theme_has_icon (icon_theme, *icon_name) == 0        // C 5826
+	  { *icon_name = std::ptr::null_mut (); }                       // C 5827
+      }
+    else if gtk_stock_lookup (name, (&raw mut stock_item)) != 0          // C 5831
+      { *icon_name = std::ptr::null_mut (); }                            // C 5832
+    else if gtk_icon_theme_has_icon (icon_theme, name) != 0              // C 5834
+      {
+	*icon_name = name;                                              // C 5836
+	name = std::ptr::null_mut ();                                   // C 5837
+      }
+    else
+      {
+	name = std::ptr::null_mut ();                                   // C 5841
+	*icon_name = std::ptr::null_mut ();                             // C 5842
+      }
+  }
+  #[cfg (feature = "have_gtk3")]
+  {
+    if *name == b'n' as c_char && *name.offset (1) == b':' as c_char     // C 5821
+      {
+	*icon_name = name.offset (2);                                   // C 5823
+	name = std::ptr::null_mut ();                                   // C 5824
+
+	if gtk_icon_theme_has_icon (icon_theme, *icon_name) == 0        // C 5826
+	  { *icon_name = std::ptr::null_mut (); }                       // C 5827
+      }
+    else if gtk_icon_theme_has_icon (icon_theme, name) != 0              // C 5834
+      {
+	*icon_name = name;                                              // C 5836
+	name = std::ptr::null_mut ();                                   // C 5837
+      }
+    else
+      {
+	name = std::ptr::null_mut ();                                   // C 5841
+	*icon_name = std::ptr::null_mut ();                             // C 5842
+      }
+  }
+
+  return name;                                                          // C 5845
+}
