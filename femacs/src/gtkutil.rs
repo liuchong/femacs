@@ -8063,3 +8063,152 @@ unsafe extern "C" fn xg_tool_bar_item_expose_callback (w: *mut GtkWidget,
 unsafe extern "C" {
   pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);   // keyboard.h 486
 }
+
+/* C 5465-5466's comment and the tool bar's packing and creation: `xg_pack_tool_bar`, C 5505's
+   forward declaration of `xg_update_tool_bar_sizes`, `tb_size_cb` and `xg_create_tool_bar`.  */
+
+/// C 5467-5503: `static void xg_pack_tool_bar (struct frame *f, Lisp_Object pos)` - pack the
+/// frame's tool bar into the hbox (`left`/`right`) or the vbox (`top`/`bottom`), oriented
+/// vertically in the first case and horizontally in the second, and reorder it to the front when
+/// C 5484/5496 ask; C 5488/5500/5502 then record where it went.  C `static` and no caller takes its
+/// address, so a plain `unsafe fn`.  C 5470's `f->output_data.xp` is the file's `#[cfg]` pair
+/// (C 35/38's `#define xp`), C 5476-5477's ternary is the port's `if`/`else` (the C 5386 shape),
+/// C 5492's `!= 0` is the port's null check, C 5499's `bool` position is `as gint` (the mirror's
+/// `gtk_box_reorder_child` takes `gint`), and C 5488/5500/5502's three `bool_bf` writes are the arm
+/// pair Owed 11's row records: `xterm.h`'s `x_output` keeps those two bits in its storage unit,
+/// while the pgtk arm writes through `include/pgtkterm.rs` 379-387's accessors.
+/* C: /* Attach a tool bar to frame F.  */  */
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_pack_tool_bar (f: *mut frame, pos: Lisp_Object)   // C 5467-5503
+{
+  /* C 5470's `f->output_data.xp`: the `#[cfg]` pair is C 35/38's `#define xp`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let x: *mut xp_output = (*f).output_data.x as *mut xp_output;         // C 5470 (`xp` = `x`)
+  #[cfg (feature = "have_pgtk")]
+  let x: *mut xp_output = (*f).output_data.pgtk as *mut xp_output;      // C 5470 (`xp` = `pgtk`)
+  let into_hbox: bool = EQ (pos, Qleft ()) || EQ (pos, Qright ());      // C 5471
+  let top_widget: *mut GtkWidget = (*x).toolbar_widget;                 // C 5472
+
+  gtk_orientable_set_orientation (GTK_ORIENTABLE! ((*x).toolbar_widget),   // C 5474
+				  if into_hbox { GTK_ORIENTATION_VERTICAL }
+				  else { GTK_ORIENTATION_HORIZONTAL });
+
+  if into_hbox                                                          // C 5479
+    {
+      gtk_box_pack_start (GTK_BOX! ((*x).hbox_widget), top_widget,      // C 5481
+			  FALSE, FALSE, 0);
+
+      if EQ (pos, Qleft ())                                             // C 5484
+	{
+	  gtk_box_reorder_child (GTK_BOX! ((*x).hbox_widget),           // C 5485-5487
+				 top_widget, 0);
+	}
+      /* C 5488's `x->toolbar_in_hbox = true;` - the arm pair above (C's bit, not a field).  */
+      #[cfg (not (feature = "have_pgtk"))]
+      { (*x).toolbar_in_hbox = true; }
+      #[cfg (feature = "have_pgtk")]
+      { pgtk_output_bits! (toolbar_in_hbox, x, true); }
+    }
+  else
+    {
+      let vbox_pos: bool = ! (*x).menubar_widget.is_null ();            // C 5492
+      gtk_box_pack_start (GTK_BOX! ((*x).vbox_widget), top_widget,      // C 5493
+			  FALSE, FALSE, 0);
+
+      if EQ (pos, Qtop ())                                              // C 5496
+	{
+	  gtk_box_reorder_child (GTK_BOX! ((*x).vbox_widget),           // C 5497-5499
+				 top_widget, vbox_pos as gint);
+	}
+      #[cfg (not (feature = "have_pgtk"))]                              // C 5500
+      { (*x).toolbar_in_hbox = false; }
+      #[cfg (feature = "have_pgtk")]
+      { pgtk_output_bits! (toolbar_in_hbox, x, false); }
+    }
+  #[cfg (not (feature = "have_pgtk"))]                                  // C 5502
+  { (*x).toolbar_is_packed = true; }
+  #[cfg (feature = "have_pgtk")]
+  { pgtk_output_bits! (toolbar_is_packed, x, true); }
+}
+
+/* C 5505: `static bool xg_update_tool_bar_sizes (struct frame *f);` - a forward declaration whose
+   definition the remainder carries (C 5762), so `tb_size_cb`'s C 5517 call is one of the sites
+   P-91 ①/④ records: a `static` definition of the same file, its C line known, not yet ported.
+   Rust has no prototype (PORTING.md 0.1-12 drops C's), so the call site carries the wait.  */
+
+/// C 5507-5519: `static void tb_size_cb (GtkWidget *widget, GdkRectangle *allocation, gpointer
+/// user_data)` - the tool bar's `size-allocate` handler: it asks `xg_update_tool_bar_sizes` whether
+/// the bar's size changed and, when it did, asks for a frame resize with C 5518's six arguments.
+/// C `static` and reached through `G_CALLBACK` (C 5554), so `unsafe extern "C" fn`; C 5515's
+/// `gpointer` is `as *mut frame`.
+/* C: /* When tool bar is created it has one preferred size.  But when size is
+   C:    allocated between widgets, it may get another.  So we must update
+   C:    size hints if tool bar size changes.  Seen on Fedora 18 at least.  */  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn tb_size_cb (widget: *mut GtkWidget, allocation: *mut GdkRectangle,
+				 user_data: gpointer)   // C 5507-5519
+{
+  let f: *mut frame = user_data as *mut frame;                          // C 5515
+
+  if xg_update_tool_bar_sizes (f)                                       // C 5517
+    { adjust_frame_size (f, -1, -1, 2, false, Qtool_bar_lines ()); }    // C 5518
+}
+
+/* C 5521's comment above `xg_create_tool_bar`, carried as C's own text.  */
+/* C: /* Create a tool bar for frame F.  */  */
+
+/// C 5523-5559: `static void xg_create_tool_bar (struct frame *f)` - make the frame's tool bar:
+/// the `xg_frame_tb_info` record on the outer widget is created on first use (with C 5536-5540's
+/// six fields), then the bar itself (`gtk_toolbar_new`), its GTK name, its style and orientation
+/// and the `size-allocate` connection to `tb_size_cb`, and finally, under GTK3, the
+/// `primary-toolbar` class on its style context.  C `static`, no address taken, so a plain
+/// `unsafe fn`.  C 5526's `f->output_data.xp` is the `#[cfg]` pair, C 5530-5532's implicit
+/// `gpointer` conversion is `as *mut xg_frame_tb_info`, C 5535's `xmalloc (sizeof (*tbinfo))` is
+/// `size_of::<xg_frame_tb_info> ()` with the same cast, C 5538's chained assignment is two
+/// statements (both zero - no aliasing, so the order does not matter), and C 5528's uninitialised
+/// GTK3 local is a `let mut` whose only writer is C 5555-5558's own `#[cfg]` block.
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_create_tool_bar (f: *mut frame)   // C 5523-5559
+{
+  /* C 5526's `f->output_data.xp`: the `#[cfg]` pair is C 35/38's `#define xp`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let x: *mut xp_output = (*f).output_data.x as *mut xp_output;         // C 5526
+  #[cfg (feature = "have_pgtk")]
+  let x: *mut xp_output = (*f).output_data.pgtk as *mut xp_output;      // C 5526
+  /* C 5527-5529's `#ifdef HAVE_GTK3`: `GtkStyleContext *gsty;` - C 5555-5558 is its only writer.  */
+  #[cfg (feature = "have_gtk3")]
+  let mut gsty: *mut GtkStyleContext;                                   // C 5528
+  let mut tbinfo: *mut xg_frame_tb_info
+    = g_object_get_data (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)),       // C 5530-5532
+			 TB_INFO_KEY.as_ptr ()) as *mut xg_frame_tb_info;
+
+  if tbinfo.is_null ()                                                  // C 5533
+    {
+      tbinfo = xmalloc (core::mem::size_of::<xg_frame_tb_info> ())      // C 5535
+	as *mut xg_frame_tb_info;
+      (*tbinfo).last_tool_bar = Qnil ();                                // C 5536
+      (*tbinfo).style = Qnil ();                                        // C 5537
+      (*tbinfo).hmargin = 0;                                            // C 5538
+      (*tbinfo).vmargin = 0;
+      (*tbinfo).dir = GTK_TEXT_DIR_NONE;                                // C 5539
+      (*tbinfo).n_last_items = 0;                                       // C 5540
+      g_object_set_data (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)),       // C 5541-5543
+			 TB_INFO_KEY.as_ptr (), tbinfo as gpointer);
+    }
+
+  (*x).toolbar_widget = gtk_toolbar_new ();                             // C 5546
+
+  gtk_widget_set_name ((*x).toolbar_widget, c"emacs-toolbar".as_ptr ());   // C 5548
+
+  gtk_toolbar_set_style (GTK_TOOLBAR! ((*x).toolbar_widget), GTK_TOOLBAR_ICONS);   // C 5550
+  gtk_orientable_set_orientation (GTK_ORIENTABLE! ((*x).toolbar_widget),   // C 5551-5552
+				  GTK_ORIENTATION_HORIZONTAL);
+  g_signal_connect! ((*x).toolbar_widget, c"size-allocate".as_ptr (),   // C 5553-5554
+		     tb_size_cb, f as gpointer);
+  /* C 5555-5558's `#ifdef HAVE_GTK3`.  */
+  #[cfg (feature = "have_gtk3")]
+  {
+    gsty = gtk_widget_get_style_context ((*x).toolbar_widget);          // C 5556
+    gtk_style_context_add_class (gsty, c"primary-toolbar".as_ptr ());   // C 5557
+  }
+}

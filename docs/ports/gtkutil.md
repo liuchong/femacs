@@ -216,7 +216,8 @@
 | 5196-5298 | C 5196's form feed, C 5197-5199's “Printing” banner and C 5200's `#ifdef USE_CAIRO` (its `#endif` is C 5296): the two file-scope objects `print_settings`/`page_setup` (C 5201-5202 - **two `missing file-scope object` rows retire here**), **`xg_page_setup_dialog`** (C 5205-5216), **`xg_get_page_setup`** (C 5219-5254, C 5226-5242's `switch` as the port's `match` and C 5245-5252's seven-element alist through the `GETSETUP` macro), **`draw_page`** (C 5257-5269) and **`xg_print_frames_dialog`** (C 5272-5294), plus C 5297-5298's blanks | file gate (`use_gtk`) plus `use_cairo` for the whole section; the mirror gains the GtkPrint* surface (four records, three enumerations and eleven entry points), the unit carries `GETSETUP!` and `x_cr_draw_frame` (Owed 18); slice 25 below |
 | 5299-5380 | C 5299's form feed, C 5300-5302's “Tool bar functions” banner and the four `XG_TOOL_BAR_*` data keys (C 5303-5320 - **the four `missing macro`+`missing constant` rows the tool has carried since the first slice retire here**), then **`xg_tool_bar_button_cb`** (C 5326-5336) and **`xg_tool_bar_callback`** (C 5343-5380 - the click handler that turns a tool-bar press into a `TOOL_BAR_EVENT` with GDK's modifier bits converted, with C 5369-5373's `HAVE_PGTK` pair), plus C 5380's blank | file gate (`use_gtk`) plus C's own fold; **no mirror change** - the four keys are `&CStr` constants, `TOOL_BAR_ITEM_*` come in by name from a mirror module, and the unit carries `x_x_to_emacs_modifiers` (Owed 18); slice 26 below |
 | 5381-5464 | C 5381-5382's **`xg_get_tool_bar_widgets`** (C 5383-5391 - the two children of a tool bar item's box, classified by `GTK_IS_IMAGE`/`GTK_IS_LABEL`: the image goes out through `*wimage` and the label, or the other child, is the return value), C 5394-5401's comment and **`xg_tool_bar_help_callback`** (C 5404-5430 - the item's `enter`/`leave` handler: on entering it indexes `TOOL_BAR_ITEM_HELP`, falls back to `TOOL_BAR_ITEM_CAPTION` when the help is nil, and otherwise clears it, then hands frame and help to `kbd_buffer_store_help_event`), then C 5433-5441's comment and C 5443's `#ifndef HAVE_GTK3` with **`xg_tool_bar_item_expose_callback`** (C 5445-5462 - GTK2's partial-redraw workaround: read the drawable's size and grow the event's `area` to it on all four sides), plus C 5463's `#endif` and C 5464's blank | file gate (`use_gtk`) plus C's own GTK3 fold; the mirror gains five items (`GTK_IS_IMAGE`, GDK's `GDK_ENTER_NOTIFY`, `GdkEventExpose` with its `area`, GTK2's `GdkDrawable` and `gdk_drawable_get_size`), and the unit carries `kbd_buffer_store_help_event` (Owed 18); slice 27 below |
-| 5465-6753 | **the remainder** — from C 5465-5466's comment and `xg_pack_tool_bar` through C 6753: the rest of the tool bar (`tb_size_cb`, `xg_create_tool_bar`, `xg_make_tool_item`, `xg_tool_item_stale_p`, `xg_update_tool_bar_sizes`, `update_frame_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 5465-5559 | C 5465-5466's comment and **`xg_pack_tool_bar`** (C 5467-5503 - pack the frame's tool bar into the hbox (`left`/`right`, oriented vertically) or the vbox (`top`/`bottom`, horizontal), with C 5484/5496's two `gtk_box_reorder_child` calls and C 5488/5500/5502's three flag writes), C 5505's forward declaration, C 5507-5519's **`tb_size_cb`** (the bar's `size-allocate` handler: ask `xg_update_tool_bar_sizes` whether the size changed and, if it did, `adjust_frame_size` with `Qtool_bar_lines`) and C 5523-5559's **`xg_create_tool_bar`** (the `xg_frame_tb_info` record on the outer widget, then the bar itself: `gtk_toolbar_new`, its GTK name, style and orientation, the `size-allocate` connection, and GTK3's `primary-toolbar` style class) | file gate (`use_gtk`) plus C's own GTK3 fold; the mirror gains the orientable/tool-bar surface (`GtkOrientable`, `GTK_ORIENTABLE`, `gtk_orientable_set_orientation`, `GtkToolbar`, `GtkToolbarStyle` + `GTK_TOOLBAR_ICONS`, `GTK_TOOLBAR`, `gtk_toolbar_new`, `gtk_toolbar_set_style`, GTK3's `gtk_style_context_add_class`), `GTK_TEXT_DIR_NONE`, and the two `GTK_ORIENTATION_*` enumerators widened to both faces; `tb_size_cb` waits for C 5762's definition of `xg_update_tool_bar_sizes` (P-91 ④) | slice 28 below |
+| 5560-6753 | **the remainder** — from C 5562's `#define PROP (IDX)` and C 5564-5565's comment through C 6753: the rest of the tool bar (`find_rtl_image`, `xg_make_tool_item`, `xg_tool_item_stale_p`, `xg_update_tool_bar_sizes`, `find_icon_from_name`, `update_frame_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -286,6 +287,20 @@ the remainder carries - **none is a defect of a C statement's transcription**:
 | C | 2+2 | `cannot find function gtk_hbox_new` / `gtk_vbox_new` | C 119-121's GTK2 `gtk_box_new` macro body - GTK2's, no header here (Owed 6) |
 | C | 1+1 | `no field bg` / `no field fg` on `GtkStyle` | slice 1's GTK2 gap (the `GtkStyle` record) |
 | C | 1 | `no field bg_pixmap_name on type GtkRcStyle` | GTK2's `GtkRcStyle` record is an opaque handle here (Owed 6) |
+
+**Correction (2026-10-15, the twenty-eighth slice's round): three rows move - one in each direction.**
+Two classes enter and one class partly retires.  **In**: `cannot find function
+xg_update_tool_bar_sizes` (1 in A/AN/C - C 5517's call, whose definition is C 5762, i.e. P-91 ④'s
+class: a `static` definition of this same file, its C line known, not yet ported; the round names it
+in the range table's `5465-5559` row too); `no field toolbar_in_hbox on type x_output` (2 in A/AN/C -
+C 5488/5500's two writes; `toolbar_in_hbox` is the *second* of the pair Owed 11's row already
+carried for `toolbar_is_packed`, which grows from 1 to 2 for C 5502's write).  **Out of the C face**:
+the round declares the two `GTK_ORIENTATION_*` enumerators for **both** GTK faces (C 5474-5477's and
+C 5551-5552's uses stand in C's GTK2 build too, and GTK2's own `gtkenums.h` has both), which retires
+`17 x cannot find value GTK_ORIENTATION_HORIZONTAL` and `5 x ... _VERTICAL` from the GTK2 arm - so
+that face's total falls from 71 to 53 while the GTK3 faces' rise by 4 (28 -> 32; the AN face 27 ->
+31).  **No new defect class enters the table**: all three moved rows are classes it already carries
+or classes the range table names.
 
 **Correction (2026-10-15, the eighteenth slice's round): the C arm gains one owed enumerator and
 the two `GDK_WINDOW_*` kinds gain one instance each.**  C 4611 tests `GTK_UPDATE_CONTINUOUS`, a GTK2
@@ -1149,6 +1164,13 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     site carries a use-site copy under `use_gtk`.  The round's five *mirror* additions (`GTK_IS_IMAGE`,
     GDK's `GDK_ENTER_NOTIFY`, `GdkEventExpose`, GTK2's `GdkDrawable` and `gdk_drawable_get_size`) are
     not owed to anything - they landed.
+    **Slice 28 adds one more of the same class**: `xg_update_tool_bar_sizes` (this file, defined at
+    C 5762, forward-declared at C 5505) is called by C 5517's `tb_size_cb` before the remainder
+    ports it - P-91 ④'s class, whose sites the round's range-table row and the arm-reading
+    correction above both name.  The round's *mirror* additions (the orientable/tool-bar surface,
+    `GTK_TEXT_DIR_NONE` and the two `GTK_ORIENTATION_*` enumerators widened to both faces) are not
+    owed to anything - they landed, and the widening *retired* 22 `cannot find value` instances
+    from the GTK2 arm.
 
 ## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
 
@@ -2778,3 +2800,73 @@ GDK's `GDK_ENTER_NOTIFY`, `GdkEventExpose` with its `GdkRectangle area`, GTK2's 
 so the three functions' widget path and the whole GTK2 expose record are evidenced by rustc's name
 resolution and typing alone, the `GDK_WINDOW_*` macro gap remains the mirror's, and the pgtk reading
 is the probe's (Owed 17).
+
+## Slice 28 (2026-10-15, status 4.358): C 5465-5559 — packing a tool bar, and creating one
+
+**What this slice is.**  The tool bar's packing and creation: **`xg_pack_tool_bar`** (C 5467-5503 -
+put the frame's bar into the hbox when `pos` is `left`/`right`, oriented vertically, or into the vbox
+otherwise, oriented horizontally, reorder it to the front for `left`/`top`, and record the three
+flags), C 5505's forward declaration of `xg_update_tool_bar_sizes`, **`tb_size_cb`** (C 5507-5519 -
+the bar's `size-allocate` handler) and **`xg_create_tool_bar`** (C 5523-5559 - the
+`xg_frame_tb_info` record on the outer widget with C 5536-5540's six fields, then `gtk_toolbar_new`,
+the GTK name, style and orientation, the `size-allocate` connection to `tb_size_cb`, and GTK3's
+`primary-toolbar` style class).  Port: 8,066 -> **8,214 lines**; the table's last row splits at
+C 5559 - the next text is C 5562's `#define PROP (IDX)` and C 5564-5565's comment above
+`find_rtl_image`.
+
+**The mirror batch: ten items, and one of them is a *widening*.**  `GtkOrientable` +
+`GTK_ORIENTABLE` + `gtk_orientable_set_orientation`, `GtkToolbar` + `GTK_TOOLBAR` +
+`gtk_toolbar_new`/`gtk_toolbar_set_style`, `GtkToolbarStyle` + `GTK_TOOLBAR_ICONS`, GTK3's
+`gtk_style_context_add_class` and `GTK_TEXT_DIR_NONE` are fresh (the two records opaque heads, the
+two enumerators placeholders, all UNVERIFIED - no GTK tree on this machine).  The tenth item is not
+new: `GTK_ORIENTATION_HORIZONTAL`/`_VERTICAL` were declared for the GTK3 face alone, and C 5474-5477
+and C 5551-5552 use both in **both** faces, so the round widens them instead of writing three more
+`cannot find value` rows per GTK2 build - which retires 22 instances from that arm (see the
+arm-reading correction in the header).  **`GTK_TEXT_DIR_NONE` is the same kind of gap closed**:
+C 5539 writes it into `xg_frame_tb_info.dir`, whose *type* the mirror has carried since slice 1.
+
+**Deviations this slice adds.**
+
+- C 5499's `bool` position is `as gint` at the call (the mirror's `gtk_box_reorder_child` takes
+  `gint`); C 5492's `!= 0` is the port's null check; C 5530-5532's implicit `gpointer` conversion is
+  `as *mut xg_frame_tb_info` and C 5535's `xmalloc (sizeof (*tbinfo))` is
+  `size_of::<xg_frame_tb_info> ()` with the same cast.
+- C 5538's chained assignment (`tbinfo->hmargin = tbinfo->vmargin = 0;`) is **two statements** in the
+  port (`// C 5538` on the first): also split, the pair keeps C's own line as its citation, and the
+  order is irrelevant because both sides are literals (no aliasing).
+- C 5528's `GtkStyleContext *gsty;` under `#ifdef HAVE_GTK3` is a `let mut` with the *same* `#[cfg]`
+  on both declaration and writer (C 5555-5558's block), so Rust's definite-assignment analysis sees
+  the pair C's preprocessor does.
+- **C 5488/5500/5502's three `bool_bf` writes are an arm pair.**  `xterm.h` 1105-1106 records
+  `toolbar_in_hbox`/`toolbar_is_packed` as one-bit fields and `include/xterm.rs` 867-868 carries the
+  bits, not fields (Owed 11), so the X arm writes C's member names - the two `E0609` rows the arm
+  reading records - while the pgtk arm uses `include/pgtkterm.rs` 379-387's accessors
+  (`pgtk_output_bits!`), which is what P-80 gives that record.  The pair is the arm-chooser shape
+  this file already uses for `f->output_data.xp`.
+- C 5505's forward declaration is dropped per PORTING.md 0.1-12 with C's own line carried as a
+  comment, and C 5517's call to the not-yet-ported definition is P-91 ④'s class (the row above).
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings, against a materialised baseline** (a temporary `git worktree` at `b9af50af`),
+   the same eight sets, compared as multisets: **A/A+3.14/A+3.18/A+3.20 29 -> 33** (two classes
+   enter: C 5517's `xg_update_tool_bar_sizes`, 1, and C 5488/5500's `no field toolbar_in_hbox`, 2;
+   `toolbar_is_packed` 1 -> 2 for C 5502), **AN 28 -> 32**, **C 72 -> 54** (the widened
+   `GTK_ORIENTATION_*` retire 17 + 5 instances while the same three rows enter), the pgtk probe
+   1,286 -> 1,326 (its new rows are this file's new names against the probe's placeholder graph,
+   Owed 3/11 - the probe is not a tree build, Owed 17).
+3. **`extract-abi.py --check`** -> 27 -> **25 `- ` rows**: three retirements (`xg_pack_tool_bar`,
+   `tb_size_cb`, `xg_create_tool_bar`) against one new `does not mention g_callback` row for
+   `xg_create_tool_bar` (C 5553-5554's cast sits inside the port's `g_signal_connect!` macro), which
+   is recorded in `docs/ports/macro-body-notes.tsv`; the `line count drifted` row moves from 19.4%
+   to **21.6%** (C 6,753 vs 8,214), still the closing round's.
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`); the table's last row splits at C 5559; `docs/ports/include-gtk.md` gains the
+   `status 4.358` section.
+
+**Not claimed.**  No arm was compiled against a real GTK tree - there is none on this machine - so
+the orientable/tool-bar surface is UNVERIFIED, the two `bool_bf` rows are Owed 11's (the X arm's
+`x_output` has no such member to write), `tb_size_cb` cannot resolve its callee until C 5762's
+definition lands (P-91 ④), the `GDK_WINDOW_*` macro gap remains the mirror's, and the pgtk
+reading is the probe's (Owed 17).

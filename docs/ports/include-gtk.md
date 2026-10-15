@@ -809,3 +809,46 @@ name any other unit declares.
 `GDK_ENTER_NOTIFY` ordinal and both entry points' signatures are taken from the family's already
 recorded shapes and this file's conventions, not from headers on disk - the same boundary `status
 4.355` recorded for the GtkPrint* surface.
+
+
+### status 4.358 (the gtkutil twenty-eighth-slice round this file took part in)
+
+`src/gtkutil.c`'s tool bar packing and creation (C 5465-5559) is this round's consumer, and it asks
+for **ten items** - nine fresh ones and one *widening* of a row this file already carried.
+
+- **`GtkOrientable`** and **`GtkToolbar`** - two opaque `_private: [u8; 0]` heads, the first for the
+  interface `gtk_orientable_set_orientation` takes (introduced in GTK 2.16, so it stands in both
+  faces) and the second for the bar itself (both faces; deprecated in GTK3 but present).
+- **`GTK_ORIENTABLE`** and **`GTK_TOOLBAR`** - the cast family's ninth and tenth members, the
+  `GTK_CONTAINER` shape (GLib's chain owed, the result type kept).
+- **`gtk_orientable_set_orientation`**, **`gtk_toolbar_new`**, **`gtk_toolbar_set_style`** - C 5474,
+  C 5546 and C 5550's calls, all in both faces.
+- **`GtkToolbarStyle`** with **`GTK_TOOLBAR_ICONS`** - C 5550's second argument; the type is
+  `c_int` and the value is a **placeholder** (`0`, GTK's own first row of the enum).  The three
+  enumerators after it are not carried, because no C text in this tree names them.
+- **`GTK_TEXT_DIR_NONE`** - C 5539 writes it into `xg_frame_tb_info.dir`, a member whose *type*
+  (`GtkTextDirection`) this file has carried since slice 1 while the enumerator was missing: the
+  same "the type is here, the value is not" gap the `GtkUpdateType` row records.  Value `0`
+  (GTK's own first row), **placeholder**.
+- **`gtk_style_context_add_class`** (GTK3's gtkstylecontext.h) - C 5557's call, which stands inside
+  C's own `#ifdef HAVE_GTK3`, so the row carries that gate.
+- **The widening.**  `GTK_ORIENTATION_HORIZONTAL`/`GTK_ORIENTATION_VERTICAL` were declared for the
+  GTK3 face alone (slice 1, where C's `gtk_box_new` macro body reached them); C 5474-5477's
+  `gtk_orientable_set_orientation` and C 5551-5552's are **not** inside a version fold, and GTK2's
+  own `gtkenums.h` has both enumerators, so this round declares them for **both** faces (the two
+  values stay the placeholders they were).  Measured effect on the unit's GTK2 arm: 17
+  `cannot find value GTK_ORIENTATION_HORIZONTAL` and 5 `... _VERTICAL` instances retire, i.e. that
+  face's error total falls from 71 to 53.  The round also *replaced* the doc comment above the type
+  to record the second consumer rather than adding a second declaration.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move
+by exactly the three classes the unit's ledger records (`A/A+3.14/A+3.18/A+3.20` 29 -> 33, `AN`
+28 -> 32, `C` 72 -> 54, the pgtk probe 1,286 -> 1,326 lines-instances), and no item of this batch
+collides with a name any other unit declares.
+
+**UNVERIFIED.**  No GTK tree is on this machine, so all nine fresh items' signatures, the two
+placeholders' values and both opaque heads are taken from GTK's documented shapes and this file's
+conventions, not from headers on disk - the boundary `status 4.355` recorded for the GtkPrint*
+surface.

@@ -1458,9 +1458,10 @@ pub const GTK_WINDOW_POPUP: GtkWindowType = 1;                  // placeholder, 
 /// **UNVERIFIED** placeholders.
 #[cfg (feature = "have_gtk3")]
 pub type GtkOrientation = c_int;
-#[cfg (feature = "have_gtk3")]
+/// C 5474-5477 (in both GTK faces) and C 5551-5552 are the second consumer: `xg_pack_tool_bar`'s
+/// `gtk_orientable_set_orientation` call and `xg_create_tool_bar`'s, neither of them inside a
+/// version fold, so the two enumerators are declared for **both** arms here (both are `c_int`).
 pub const GTK_ORIENTATION_HORIZONTAL: GtkOrientation = 0;       // placeholder, not GTK's value
-#[cfg (feature = "have_gtk3")]
 pub const GTK_ORIENTATION_VERTICAL: GtkOrientation = 1;         // placeholder, not GTK's value
 /// C: gtk/gtkstyle.h (GTK2's): `typedef struct _GtkRcStyle GtkRcStyle;` - C 1583/1763-1767 hold
 /// one and write its `bg_pixmap_name` array.  **UNVERIFIED** (GTK2's own surface).
@@ -3067,4 +3068,64 @@ pub struct GdkDrawable
 #[cfg (not (feature = "have_gtk3"))]
 unsafe extern "C" {
   pub fn gdk_drawable_get_size (drawable: *mut GdkDrawable, width: *mut gint, height: *mut gint);
+}
+
+/// C: gtk/gtktypes.h: `typedef enum { GTK_TEXT_DIR_NONE, GTK_TEXT_DIR_LTR, GTK_TEXT_DIR_RTL }
+/// GtkTextDirection;` - the declaration above carries the *type* (C 139's record member) and this
+/// row carries the one enumerator C 5539 writes into it (`xg_create_tool_bar`'s
+/// `tbinfo->dir = GTK_TEXT_DIR_NONE;`).  Both GTK faces have it; the value is a **placeholder**
+/// (`0`, which is GTK's own order: `NONE` first), **UNVERIFIED** like the family above.
+pub const GTK_TEXT_DIR_NONE: GtkTextDirection = 0;      // placeholder (GTK's own first row)
+
+/// C: gtk/gtkorientable.h: `typedef struct _GtkOrientable GtkOrientable;` - the interface
+/// `GTK_ORIENTABLE` casts to and `gtk_orientable_set_orientation` takes.  Introduced in GTK 2.16,
+/// so it stands in **both** faces (like `GtkToolbar` below); an opaque head, **UNVERIFIED**.
+#[repr(C)]
+pub struct GtkOrientable
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtk.h: `#define GTK_ORIENTABLE(obj)` - the cast/check family's ninth member (the
+/// `GTK_CONTAINER` shape: the GLib chain is owed, the result type kept).
+macro_rules! GTK_ORIENTABLE {
+  ($o:expr) => { ($o) as *mut GtkOrientable };
+}
+/// C: gtk/gtkorientable.h: `void gtk_orientable_set_orientation (GtkOrientable *orientable,
+/// GtkOrientation orientation);` - C 5474's and C 5551's calls.  **UNVERIFIED** (no GTK tree here).
+unsafe extern "C" {
+  pub fn gtk_orientable_set_orientation (orientable: *mut GtkOrientable,
+					 orientation: GtkOrientation);
+}
+/// C: gtk/gtktoolbar.h: `typedef struct _GtkToolbar GtkToolbar;` - the record `GTK_TOOLBAR` casts
+/// to and `gtk_toolbar_set_style` takes; present in both faces (deprecated in GTK3, still there).
+/// Opaque head, **UNVERIFIED**.
+#[repr(C)]
+pub struct GtkToolbar
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtktoolbar.h: `typedef enum { GTK_TOOLBAR_ICONS, GTK_TOOLBAR_TEXT, GTK_TOOLBAR_BOTH,
+/// GTK_TOOLBAR_BOTH_HORIZ } GtkToolbarStyle;` - the type of C 5550's second argument.  The value is
+/// a **placeholder** (`0`, GTK's own first row) and the three rows after it are not carried, since
+/// no C text in this tree names them - **UNVERIFIED**.
+pub type GtkToolbarStyle = c_int;
+pub const GTK_TOOLBAR_ICONS: GtkToolbarStyle = 0;       // placeholder (GTK's own first row)
+/// C: gtk/gtk.h: `#define GTK_TOOLBAR(obj)` - the cast family's tenth member (same shape).
+macro_rules! GTK_TOOLBAR {
+  ($o:expr) => { ($o) as *mut GtkToolbar };
+}
+/// C: gtk/gtktoolbar.h: `GtkWidget *gtk_toolbar_new (void);` / `void gtk_toolbar_set_style
+/// (GtkToolbar *toolbar, GtkToolbarStyle style);` - C 5546's constructor and C 5550's setter.
+/// **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_toolbar_new () -> *mut GtkWidget;
+  pub fn gtk_toolbar_set_style (toolbar: *mut GtkToolbar, style: GtkToolbarStyle);
+}
+/// C 5556-5557: `gtk_style_context_add_class (gsty, "primary-toolbar");`
+/// C: gtk/gtkstylecontext.h (GTK3's): `void gtk_style_context_add_class (GtkStyleContext *context,
+/// const gchar *class_name);` - the call stands inside C's own `#ifdef HAVE_GTK3`, so the row
+/// carries that gate.  **UNVERIFIED.**
+#[cfg (feature = "have_gtk3")]
+unsafe extern "C" {
+  pub fn gtk_style_context_add_class (context: *mut GtkStyleContext, class_name: *const gchar);
 }
