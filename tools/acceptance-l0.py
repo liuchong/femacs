@@ -21,11 +21,19 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+# The default golden is the one recorded from the reference's *dumped* program.  The ladder has
+# two flavours of "the reference program" - the dumped `emacs` and the bare `temacs` that loads
+# `loadup.el` from source - and their stderr differs by construction (the dump is silent, the
+# bare program prints its load trace).  `--golden-path` records a second golden beside this one
+# so a port binary is compared with the flavour it can actually be at its rung: L0-L3 are the
+# bare program (there is no dump yet), so the reading that matters today is
+# `docs/baseline/l0-reference-temacs.txt` (docs/acceptance.md's L0 section records both).
 GOLDEN = REPO / "docs/baseline/l0-reference.txt"
 
 # (label, program).  Ordered, and each label is unique: the check side compares by label so a
@@ -91,7 +99,7 @@ def version_header_lines(first: str) -> list[str]:
             "#   docs/acceptance.md as evidence about the reference, and is not repeated here"]
 
 
-def write_golden(binary: Path) -> int:
+def write_golden(binary: Path, golden: Path) -> int:
     first, digest = binary_identity(binary)
     lines = ["# L0 golden: the self-check expressions' outputs on the reference program.",
              "# Written by `python3 tools/acceptance-l0.py --golden <binary>` (docs/status.md 3.261,",
@@ -101,18 +109,21 @@ def write_golden(binary: Path) -> int:
              f"# binary: {binary}",
              *version_header_lines(first),
              f"# sha256[0:16]: {digest}",
+             *([f"# EMACSLOADPATH: {os.environ['EMACSLOADPATH']}"]
+               if os.environ.get("EMACSLOADPATH") else
+               ["# EMACSLOADPATH: (unset - the binary uses its own tree)"]),
              ""]
     for label, program in EXPRESSIONS:
         code, out, err = run(binary, program)
         lines += [f"@@ {label}", f"$ {program}", f"--- exit: {code}",
                   "--- stdout:", out, "--- end stdout", "--- stderr:", err, "--- end stderr"]
-    GOLDEN.write_text("\n".join(lines), encoding="utf-8")
-    print(f"wrote {GOLDEN.relative_to(REPO)}: {len(EXPRESSIONS)} expression(s) "
+    golden.write_text("\n".join(lines), encoding="utf-8")
+    print(f"wrote {golden}: {len(EXPRESSIONS)} expression(s) "
           f"(reference {version_number(first)!r}, sha256[0:16] {digest})")
     return 0
 
 
-def read_golden() -> dict[str, tuple[int, str, str]]:
+def read_golden(golden: Path) -> dict[str, tuple[int, str, str]]:
     """Every record of the golden, keyed by label, as `(exit code, stdout, stderr)`.
 
     The format is the one `write_golden()` writes: `@@ label`, the program line, the exit code,
@@ -120,8 +131,8 @@ def read_golden() -> dict[str, tuple[int, str, str]]:
     `--- stderr:` / `--- end stderr` markers - which is what makes the bytes of a stream readable
     without guessing whether its last newline belongs to it.
     """
-    if not GOLDEN.is_file():
-        raise SystemExit(f"{GOLDEN.relative_to(REPO)} does not exist: run --golden first")
+    if not golden.is_file():
+        raise SystemExit(f"{golden} does not exist: run --golden first")
     records: dict[str, tuple[int, str, str]] = {}
     label: str | None = None
     code = 0
@@ -133,7 +144,7 @@ def read_golden() -> dict[str, tuple[int, str, str]]:
         if label is not None:
             records[label] = (code, "\n".join(out), "\n".join(err))
 
-    for line in GOLDEN.read_text(encoding="utf-8").split("\n"):
+    for line in golden.read_text(encoding="utf-8").split("\n"):
         if line.startswith("@@"):
             flush()
             label, code, mode, out, err = line[3:].strip(), 0, None, [], []
@@ -158,10 +169,12 @@ def read_golden() -> dict[str, tuple[int, str, str]]:
     return records
 
 
-def check(binary: Path) -> int:
-    golden = read_golden()
+def check(binary: Path, golden_path: Path) -> int:
+    golden = read_golden(golden_path)
     first, digest = binary_identity(binary)
     print(f"binary: {binary}\n  version: {version_number(first)}\n  sha256[0:16]: {digest}")
+    print(f"golden: {golden_path}\n  load path: "
+          f"{os.environ.get('EMACSLOADPATH', '(unset - the binary uses its own tree)')}")
     failures = 0
     for label, program in EXPRESSIONS:
         want = golden.get(label)
@@ -189,11 +202,15 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--golden", metavar="BINARY", help="record the golden from this reference binary")
     ap.add_argument("--check", metavar="BINARY", help="compare this binary with the golden")
+    ap.add_argument("--golden-path", metavar="PATH",
+                    help="the golden file to write or read (default: "
+                         f"{GOLDEN.relative_to(REPO)}); the ladder's two flavours keep one each")
     args = ap.parse_args()
+    golden_path = Path(args.golden_path) if args.golden_path else GOLDEN
     if args.golden:
-        return write_golden(Path(args.golden))
+        return write_golden(Path(args.golden), golden_path)
     if args.check:
-        return check(Path(args.check))
+        return check(Path(args.check), golden_path)
     ap.print_help()
     return 2
 
