@@ -11988,6 +11988,55 @@ unsafe fn w32_initialize ()
   w32_register_for_sleep_notifications ();                             // C 8269
 }
 
+/* C's fourteen `globals.f_<name>` fields this unit's `syms_of_w32term` registers (its
+   `DEFVAR_*` calls at C 8287, 8291, 8296, 8302, 8310, 8316, 8323, 8340, 8347, 8353, 8357, 8372,
+   8393 and 8401), defined here as the port's storage - C's `struct emacs_globals` is
+   zero-initialised and the DEFVAR macros only take each field's address, so the initialisers
+   are `lisp_h_Qnil ()` / `false` / `0` (docs/status.md 3.29, the `src/cmds.rs` row and the
+   `src/alloc.rs` 8019-8025 note).  */
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vx_wait_for_event_timeout: Lisp_Object = lisp_h_Qnil ();  // C 8287
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_num_mouse_buttons: EMACS_INT = 0;                     // C 8291
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_swap_mouse_buttons: Lisp_Object = lisp_h_Qnil ();    // C 8296
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_grab_focus_on_raise: Lisp_Object = lisp_h_Qnil ();   // C 8302
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_capslock_is_shiftlock: Lisp_Object = lisp_h_Qnil (); // C 8310
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_recognize_altgr: Lisp_Object = lisp_h_Qnil ();       // C 8316
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_use_visible_system_caret: bool = false;               // C 8323
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut x_use_underline_position_properties: bool = false;        // C 8340
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut x_underline_at_descent_line: bool = false;                // C 8347
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vx_toolkit_scroll_bars: Lisp_Object = lisp_h_Qnil ();     // C 8353
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_unicode_filenames: bool = false;                      // C 8357
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_use_native_image_api: bool = false;                   // C 8372
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_yes_no_dialog_show_cancel: bool = false;              // C 8393
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_add_wrapped_menu_bar_lines: bool = false;             // C 8401
+
 /// C 8272-8414: `void syms_of_w32term (void)` - non-`static` (w32term.h 914 declares it), so
 /// `#[unsafe(no_mangle)]` with the C ABI.  **The lane's last function and the closing item of
 /// `src/w32term.c`.**  C's eleven `DEFSYM`s are the mirror's no-op `DEFSYM!` (the symbol table
