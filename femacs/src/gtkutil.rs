@@ -8379,3 +8379,181 @@ unsafe fn xg_make_tool_item (f: *mut frame, wimage: *mut GtkWidget, wbutton: *mu
 
   return ti;                                                            // C 5690
 }
+
+/* C 5692's blank and the three functions between the item maker and `find_icon_from_name`:
+   `is_box_type`, `xg_tool_item_stale_p` and `xg_update_tool_bar_sizes` (the definition slice 28's
+   `tb_size_cb` was waiting for).  */
+
+/// C 5693-5708: `static bool is_box_type (GtkWidget *vb, bool is_horizontal)` - is the item's box
+/// the orientation we want?  Under GTK3 it asks the widget itself (`gtk_orientable_get_orientation`
+/// through the `GTK_IS_BOX` test); under GTK2 it asks the type (`GTK_IS_VBOX`/`GTK_IS_HBOX`), which
+/// is the same question the interface answers.  C `static`, no address taken, so a plain `unsafe
+/// fn`; C 5696's `#ifdef HAVE_GTK3` is the feature pair, and C 5697's `bool ret = 0;` is the port's
+/// `false` (PORTING.md 1.3's `bool`/`int` mapping, the `xg_uses_old_file_dialog` row's class).
+#[cfg (feature = "use_gtk")]
+unsafe fn is_box_type (vb: *mut GtkWidget, is_horizontal: bool) -> bool   // C 5693-5708
+{
+  /* C 5696's `#ifdef HAVE_GTK3`; its `#else` is C 5705-5707.  */
+  #[cfg (feature = "have_gtk3")]
+  {
+    let mut ret: bool = false;                                          // C 5697
+    if GTK_IS_BOX! (vb)                                                 // C 5698
+      {
+	let ori: GtkOrientation
+	  = gtk_orientable_get_orientation (GTK_ORIENTABLE! (vb));       // C 5700
+	ret = (ori == GTK_ORIENTATION_HORIZONTAL && is_horizontal)          // C 5701
+	  || (ori == GTK_ORIENTATION_VERTICAL && ! is_horizontal);          // C 5702
+      }
+    return ret;                                                         // C 5704
+  }
+  #[cfg (not (feature = "have_gtk3"))]
+  { return if is_horizontal { GTK_IS_VBOX! (vb) } else { GTK_IS_HBOX! (vb) }; }   // C 5706
+}
+
+/// C 5711-5759: `static bool xg_tool_item_stale_p (GtkWidget *wbutton, const char *stock_name,
+/// const char *icon_name, const struct image *img, const char *label, bool horiz)` - may this
+/// button be reused?  It reads the item's image widget and label (through the two helpers above),
+/// compares the name the widget remembers against the one C has (`XG_TOOL_BAR_STOCK_NAME`,
+/// `_ICON_NAME`, or the image pointer under `XG_TOOL_BAR_IMAGE_DATA`), then the box's orientation
+/// and the label's presence - and updates the label when it is the only thing that changed.  C
+/// `static`, no address taken, so a plain `unsafe fn`; C 5722/5729/5736's pointer tests are the
+/// port's null checks, C 5726/5733's `const char *` compared against a `gpointer` is `as *const
+/// c_char` (P-72 rule 3), C 5741's cairo arm compares `img->cr_data` and C 5745's other arm casts
+/// the same `gpointer` to `Pixmap` (C 5744), and the function's three `return 1;`/`return 0;` are
+/// `true`/`false` (the `is_box_type` row's class).
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_tool_item_stale_p (wbutton: *mut GtkWidget, stock_name: *const c_char,
+				icon_name: *const c_char, img: *const image,
+				label: *const c_char, horiz: bool) -> bool   // C 5711-5759
+{
+  let mut old: gpointer;                                                // C 5716
+  /* C 5717's `GtkWidget *wimage;` is written by C 5719 and read from C 5722 down; borrowck cannot
+     see the write through the helper's raw-pointer out-parameter, so the port zeroes it
+     (PORTING.md 1.5 - the slice 20 `msl` / slice 27 `width` finding again).  */
+  let mut wimage: *mut GtkWidget = std::ptr::null_mut ();               // C 5717
+  let vb: *mut GtkWidget = XG_BIN_CHILD! (wbutton);                     // C 5718
+  let wlbl: *mut GtkWidget = xg_get_tool_bar_widgets (vb, (&raw mut wimage));   // C 5719
+
+  /* Check if the tool icon matches.  */
+  if ! stock_name.is_null () && ! wimage.is_null ()                     // C 5722
+    {
+      old = g_object_get_data (G_OBJECT! (wimage),                      // C 5724-5725
+			       XG_TOOL_BAR_STOCK_NAME.as_ptr ());
+      if old.is_null () || strcmp (old as *const c_char, stock_name) != 0   // C 5726
+	{ return true; }                                                // C 5727
+    }
+  else if ! icon_name.is_null () && ! wimage.is_null ()                 // C 5729
+    {
+      old = g_object_get_data (G_OBJECT! (wimage),                      // C 5731-5732
+			       XG_TOOL_BAR_ICON_NAME.as_ptr ());
+      if old.is_null () || strcmp (old as *const c_char, icon_name) != 0   // C 5733
+	{ return true; }                                                // C 5734
+    }
+  else if ! wimage.is_null ()                                           // C 5736
+    {
+      let gold_img: gpointer = g_object_get_data (G_OBJECT! (wimage),   // C 5738-5739
+						  XG_TOOL_BAR_IMAGE_DATA.as_ptr ());
+      /* C 5740's `#ifdef USE_CAIRO`; its `#else` is C 5743-5747.  */
+      #[cfg (feature = "use_cairo")]
+      {
+	if gold_img != (*img).cr_data                                   // C 5741
+	  { return true; }                                              // C 5742
+      }
+      #[cfg (not (feature = "use_cairo"))]
+      {
+	let old_img: Pixmap = gold_img as Pixmap;                       // C 5744
+	if old_img != (*img).pixmap                                     // C 5745
+	  { return true; }                                              // C 5746
+      }
+    }
+
+  /* Check button configuration and label.  */
+  if is_box_type (vb, horiz)                                            // C 5751
+      || (if ! label.is_null () { wlbl.is_null () } else { ! wlbl.is_null () })   // C 5752
+    { return true; }                                                    // C 5753
+
+  /* Ensure label is correct.  */
+  if ! label.is_null () && ! wlbl.is_null ()                            // C 5756
+    { gtk_label_set_text (GTK_LABEL! (wlbl), label); }                  // C 5757
+  return false;                                                         // C 5758
+}
+
+/// C 5761-5810: `static bool xg_update_tool_bar_sizes (struct frame *f)` - measure the bar and tell
+/// the frame how much room it takes: read the widget's preferred size, ask its *container* for the
+/// position (`position` out of the hbox or the vbox), put the width or the height - scaled - into
+/// the matching one of C's four frame slots, and if any of them moved, zero all four and write the
+/// new values, answering `true` so the caller resizes the frame.  **This is the definition slice
+/// 28's `tb_size_cb` waits for** (P-91 \u2463's site closes here).  C `static` and called only from
+/// C 5517, so a plain `unsafe fn`.  C 5765's uninitialised `GtkRequisition req` is the port's zeroed
+/// record (PORTING.md 1.5, the C 4197 shape), C 5773/5784's uninitialised `int pos` is zeroed for
+/// the same reason (the call writes it through `&raw mut`), C 5776/5787's varargs tail ends with
+/// `std::ptr::null::<c_char> ()` (the C 4805 shape), C 5799-5800's chained assignment is four
+/// statements, and C 5771's `x->toolbar_in_hbox` is the arm pair slice 28's writes used (Owed 11).
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_update_tool_bar_sizes (f: *mut frame) -> bool   // C 5761-5810
+{
+  /* C 5764's `f->output_data.xp`: the `#[cfg]` pair is C 35/38's `#define xp`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let x: *mut xp_output = (*f).output_data.x as *mut xp_output;         // C 5764
+  #[cfg (feature = "have_pgtk")]
+  let x: *mut xp_output = (*f).output_data.pgtk as *mut xp_output;      // C 5764
+  let mut req: GtkRequisition = GtkRequisition { width: 0, height: 0 };   // C 5765
+  let mut nl: c_int = 0;                                                // C 5766
+  let mut nr: c_int = 0;
+  let mut nt: c_int = 0;
+  let mut nb: c_int = 0;
+  let top_widget: *mut GtkWidget = (*x).toolbar_widget;                 // C 5767
+  let scale: c_int = xg_get_scale (f);                                  // C 5768
+
+  gtk_widget_get_preferred_size (GTK_WIDGET! (top_widget), std::ptr::null_mut (),
+				 (&raw mut req));                       // C 5770
+  /* C 5771's `x->toolbar_in_hbox`: the arm pair (the `#[cfg]` on the local is the read's, and the
+     pgtk arm goes through the record's storage unit - Owed 11's two bits).  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let in_hbox: bool = (*x).toolbar_in_hbox;                             // C 5771
+  #[cfg (feature = "have_pgtk")]
+  let in_hbox: bool = pgtk_output_bits! (toolbar_in_hbox, x);            // C 5771
+  if in_hbox                                                            // C 5771
+    {
+      let mut pos: c_int = 0;                                           // C 5773
+      gtk_container_child_get (GTK_CONTAINER! ((*x).hbox_widget),       // C 5774-5776
+			       top_widget,
+			       c"position".as_ptr (), (&raw mut pos),
+			       std::ptr::null::<c_char> ());
+      if pos == 0                                                       // C 5777
+	{ nl = req.width * scale; }                                     // C 5778
+      else
+	{ nr = req.width * scale; }                                     // C 5780
+    }
+  else
+    {
+      let mut pos: c_int = 0;                                           // C 5784
+      gtk_container_child_get (GTK_CONTAINER! ((*x).vbox_widget),       // C 5785-5787
+			       top_widget,
+			       c"position".as_ptr (), (&raw mut pos),
+			       std::ptr::null::<c_char> ());
+      if pos == 0 || (pos == 1 && ! (*x).menubar_widget.is_null ())     // C 5788
+	{ nt = req.height * scale; }                                    // C 5789
+      else
+	{ nb = req.height * scale; }                                    // C 5791
+    }
+
+  if nl != FRAME_TOOLBAR_LEFT_WIDTH! (f)                                // C 5794
+      || nr != FRAME_TOOLBAR_RIGHT_WIDTH! (f)                           // C 5795
+      || nt != FRAME_TOOLBAR_TOP_HEIGHT! (f)                            // C 5796
+      || nb != FRAME_TOOLBAR_BOTTOM_HEIGHT! (f)                         // C 5797
+    {
+      FRAME_TOOLBAR_RIGHT_WIDTH! (f) = 0;                               // C 5799-5800
+      FRAME_TOOLBAR_LEFT_WIDTH! (f) = 0;
+      FRAME_TOOLBAR_TOP_HEIGHT! (f) = 0;
+      FRAME_TOOLBAR_BOTTOM_HEIGHT! (f) = 0;
+      FRAME_TOOLBAR_LEFT_WIDTH! (f) = nl;                               // C 5801
+      FRAME_TOOLBAR_RIGHT_WIDTH! (f) = nr;                              // C 5802
+      FRAME_TOOLBAR_TOP_HEIGHT! (f) = nt;                               // C 5803
+      FRAME_TOOLBAR_BOTTOM_HEIGHT! (f) = nb;                            // C 5804
+
+      return true;                                                      // C 5806
+    }
+  else
+    { return false; }                                                   // C 5809
+}

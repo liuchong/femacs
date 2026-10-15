@@ -884,3 +884,33 @@ batch collides with a name any other unit declares.
 **UNVERIFIED.**  No GTK tree is on this machine, so all ten rows' signatures are taken from GTK's
 documented shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
 recorded for the GtkPrint* surface.
+
+
+### status 4.360 (the gtkutil thirtieth-slice round this file took part in)
+
+`src/gtkutil.c`'s orientation and reuse tests (C 5692-5810) are this round's consumer, and they ask
+for **three items** - the smallest batch since `status 4.357`, and the first in which every one of
+them is a *version arm* of the same question.
+
+- **`GTK_IS_VBOX`** and **`GTK_IS_HBOX`** under `not (feature = "have_gtk3")` - the two type-check
+  macros C 5706 asks when the build has no `GtkOrientable` query (`is_box_type`'s `#else` arm), kept
+  as the `GTK_IS_*` family keeps its own: a null test, with the `G_TYPE_CHECK_INSTANCE_TYPE` chain
+  owed.  The records they name (GTK2's `GtkVBox`/`GtkHBox`) stay owed with the two constructors C
+  119-121's macro body names (Owed 6) - the gates say why: what this file needs is the *test*, not
+  the type.
+- **`gtk_orientable_get_orientation`** under `feature = "gtk_check_version_ge_3_20"`'s sibling, the
+  plain `have_gtk3` - C 5700's read, inside C's own `#ifdef HAVE_GTK3`.  GTK 2.16's `GtkOrientable`
+  interface carries the *setter* (`gtk_orientable_set_orientation`, added in `status 4.358`); the
+  *getter* is GTK3's, so this row carries the feature and its two siblings above carry its negation -
+  the three together are `is_box_type`'s two arms.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move by
+exactly one retirement and one instance (A family 33 -> 33, AN 32 -> 32, C 56 -> 56: the
+`xg_update_tool_bar_sizes` row retires while `no field toolbar_in_hbox` goes 2 -> 3 for C 5771's
+read), and no item of this batch collides with a name any other unit declares.
+
+**UNVERIFIED.**  No GTK tree is on this machine, so all three rows are taken from GTK's documented
+shapes and this file's conventions, not from headers on disk - the boundary `status 4.355` recorded
+for the GtkPrint* surface.

@@ -3183,3 +3183,24 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn gtk_widget_set_focus_on_click (widget: *mut GtkWidget, can_focus_on_click: gboolean);
 }
+
+/// C: gtk/gtk.h (GTK2's): `#define GTK_IS_VBOX(obj)` / `#define GTK_IS_HBOX(obj)` - C 5706's pair,
+/// which `is_box_type` asks when the build has no `GtkOrientable` query.  Kept as the `GTK_IS_*`
+/// family above keeps its own (a null test, with the `G_TYPE_CHECK_INSTANCE_TYPE` chain owed); the
+/// two records they name are GTK2's `GtkVBox`/`GtkHBox`, whose constructors C 119-121's macro body
+/// also names and which stay owed to a GTK2 tree (Owed 6) - **UNVERIFIED**.
+#[cfg (not (feature = "have_gtk3"))]
+macro_rules! GTK_IS_VBOX {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+#[cfg (not (feature = "have_gtk3"))]
+macro_rules! GTK_IS_HBOX {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+/// C: gtk/gtkorientable.h: `GtkOrientation gtk_orientable_get_orientation (GtkOrientable
+/// *orientable);` - C 5700's read, inside C's own `#ifdef HAVE_GTK3` (2.16's interface carries the
+/// *setter*; the getter is GTK3's), so the row carries that gate.  **UNVERIFIED.**
+#[cfg (feature = "have_gtk3")]
+unsafe extern "C" {
+  pub fn gtk_orientable_get_orientation (orientable: *mut GtkOrientable) -> GtkOrientation;
+}
