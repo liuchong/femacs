@@ -6470,3 +6470,105 @@ pub unsafe extern "C" fn xg_get_default_scrollbar_height (f: *mut frame) -> c_in
   /* Apparently there's no default height for themes.  */
   return scroll_bar_width_for_theme * xg_get_scale (f);                 // C 4530
 }
+
+/* C 4533's `#ifndef HAVE_GTK3` (its `#endif` is C 4554), C 4534-4535's comment and C 4537-4553.  */
+
+/// C 4535's two comment lines are carried below as C's own text, and C 4537-4553 is
+/// `ptrdiff_t xg_get_scroll_id_for_window (Display *dpy, Window wid)` - non-`static` (`gtkutil.h`
+/// declares it and `xterm.c`'s scroll-bar code calls it), so `#[unsafe(no_mangle)]` with the C ABI.
+/// It is slice 15's map read backwards: look the X window's widget up, then walk `id_to_widget` for
+/// that pointer and answer its index, or C 4552's `-1`.  C 4547's `for` is the port's `while` with
+/// C's own step at the loop end (PORTING.md 2.2), and C 4548's `widgets[idx]` is the `.offset (…)`
+/// spelling a raw pointer needs (slice 15's seven sites).
+/* C: /* Return the scrollbar id for X Window WID on display DPY.
+   C:    Return -1 if WID not in id_to_widget.  */  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_get_scroll_id_for_window (dpy: *mut Display, wid: Window)
+  -> ptrdiff_t                                             // C 4538-4553
+{
+  let mut idx: ptrdiff_t;                                              // C 4540
+  let w: *mut GtkWidget;                                               // C 4541
+
+  w = xg_win_to_widget (dpy, wid);                                     // C 4543
+
+  if ! w.is_null ()                                                    // C 4545
+    {
+      idx = 0;                                                         // C 4547 (the `for` head)
+      while idx < id_to_widget.max_size
+	{
+	  if *id_to_widget.widgets.offset (idx as isize) == w              // C 4548
+	    { return idx; }                                                // C 4549
+	  idx += 1;                                                        // C 4547 (the `for` step)
+	}
+    }
+
+  return -1;                                                           // C 4552
+}
+
+/* C 4556-4558's comment above the destroy handler, carried as C's own text, then C 4560's
+   `#if !defined HAVE_GTK3 || defined HAVE_PGTK` (its `#endif` is C 4567).  */
+
+/// C 4556-4558's comment, C's own text.
+/* C: /* Callback invoked when scroll bar WIDGET is destroyed.
+   C:    DATA is the index into id_to_widget for WIDGET.
+   C:    We free pointer to last scroll bar values here and remove the index.  */  */
+/// C 4561-4566: `static void xg_gtk_scroll_destroy (GtkWidget *widget, gpointer data)` - the
+/// `destroy` signal handler the scroll-bar creation connects in this face; it carries the C ABI
+/// because a GObject signal handler does, and C leaves `widget` unused as well.  C 4564's
+/// `(intptr_t) data` is the port's `as intptr_t` (`include/lisp.rs` 1077's `isize`), and C 4565's
+/// call is slice 15's `xg_remove_widget_from_map`, which carries the same gate.
+#[cfg (all (feature = "use_gtk", any (feature = "have_pgtk", not (feature = "have_gtk3"))))]
+unsafe extern "C" fn xg_gtk_scroll_destroy (widget: *mut GtkWidget, data: gpointer)   // C 4561-4566
+{
+  let id: intptr_t = data as intptr_t;                                 // C 4564
+  xg_remove_widget_from_map (id);                                      // C 4565
+}
+
+/* C 4568's blank and C 4569's `#if defined HAVE_GTK3 && !defined HAVE_PGTK` (its `#endif` is
+   C 4593).  */
+
+/// C 4570-4592: `static void xg_scroll_bar_size_allocate_cb (GtkWidget *widget, GdkRectangle
+/// *allocation, gpointer user_data)` - the GTK3/X11 `size-allocate` handler: a configure event in
+/// hand is forwarded to `x_scroll_bar_configure` as is, otherwise C 4582-4590's synthetic event is
+/// filled from the allocation and consumed the same way.  C 4575's `gtk_get_current_event` and
+/// C 4588's `gtk_widget_get_window` come from the mirror, C 4578's `event->any.type` is the
+/// `(*event).any.r#type` spelling this file uses for the union (`src/xwidget.rs` 1000's shape),
+/// C 4583's `FALSE` is the mirror's `gboolean` while the member is `gint8`, so the store is
+/// `FALSE as i8` (the `w32.rs` `FALSE as DWORD` shape), and C 4576's uninitialised `GdkEvent dummy`
+/// is the port's zeroed value (PORTING.md 1.5 - C itself writes every member it reads).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
+unsafe extern "C" fn xg_scroll_bar_size_allocate_cb (widget: *mut GtkWidget,
+						     allocation: *mut GdkRectangle,
+						     user_data: gpointer)   // C 4570-4592
+{
+  let event: *mut GdkEvent = gtk_get_current_event ();                 // C 4575
+  let mut dummy: GdkEvent = std::mem::zeroed ();                       // C 4576
+
+  if ! event.is_null () && (*event).any.r#type == GDK_CONFIGURE        // C 4578
+    { x_scroll_bar_configure (event); }                                // C 4579
+  else
+    {
+      /* These are the only fields used by x_scroll_bar_configure.  */
+      dummy.configure.send_event = FALSE as i8;                        // C 4583
+      dummy.configure.x = (*allocation).x;                             // C 4584
+      dummy.configure.y = (*allocation).y;                             // C 4585
+      dummy.configure.width = (*allocation).width;                     // C 4586
+      dummy.configure.height = (*allocation).height;                   // C 4587
+      dummy.configure.window = gtk_widget_get_window (widget);         // C 4588
+
+      x_scroll_bar_configure ((&raw mut dummy));                       // C 4590
+    }
+}
+
+/* `x_scroll_bar_configure` (xterm.h 1848: `extern void x_scroll_bar_configure (GdkEvent *);`,
+   defined by `xterm.c` 18058-18084 and carried by `src/xterm.rs` 29944) is a same-program
+   declaration no mirror in this unit's graph carries - `include/xterm.rs` does not have it, and
+   that unit's own note names this file's C 4579/4590 as its two callers.  It stands here under the
+   gate its definition carries (`src/xterm.rs` 29943's `all (have_x_windows, have_gtk3)`), which the
+   X11-GTK3 face satisfies; the move back into `include/xterm.rs` is Owed 18's class.
+   **UNVERIFIED** (GDK is not on this machine).  */
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn x_scroll_bar_configure (event: *mut GdkEvent);                // xterm.h 1848
+}

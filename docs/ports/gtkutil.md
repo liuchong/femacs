@@ -203,7 +203,8 @@
 | 4258-4341 | C 4258's `#ifndef HAVE_PGTK` and **`xg_event_is_for_menubar`** (C 4260-4338 - the non-`static` predicate `gtkutil.h` 114 declares and `xterm.c` calls: reject the event unless it is inside the frame's menu-bar rectangle (`XIDeviceEvent` under `HAVE_XINPUT2`, `XButtonEvent` otherwise), look the frame's `GdkWindow` up, ask GTK which widget the event belongs to, then walk the menubar's children for a mapped one the 1x1 rectangle intersects), C 4339's `#endif`, C 4340-4341's blanks | file gate (`use_gtk`) **and** `not (feature = "have_pgtk")` (C 4258); the mirror widens `GTK_IS_MENU_BAR` to a `have_gtk3`/`not (have_gtk3)` pair and gains `gtk_widget_is_ancestor`, and the unit carries the four X11 records and `gtk_widget_intersect` (Owed 10/12's class); slice 14 below |
 | 4342-4472 | C 4342's form feed, the “Scroll bar functions” banner (C 4343-4345) and **`xg_ignore_gtk_scrollbar`** (C 4351), the two theme `static int`s (C 4354/4355), then C 4357's `#if defined HAVE_PGTK || !defined HAVE_GTK3`: the `id_to_widget` record (C 4363-4368) and `ID_TO_WIDGET_INCR` (C 4372), **`xg_store_widget_in_map`** (C 4376-4412), **`xg_remove_widget_from_map`** (C 4417-4425), C 4430's **`xg_get_widget_from_map`**, C 4438's `#else` with **`find_scrollbar_cb`** (C 4439-4446) and C 4449's second **`xg_get_widget_from_map`**, C 4472's `#endif` | file gate (`use_gtk`) plus C's own `have_pgtk`-or-`not have_gtk3` fold; the mirror gains `GTK_IS_SCROLLBAR` and `GTK_IS_EVENT_BOX`, and the unit carries `gtk_container_forall`, `xnrealloc` and a `TYPE_MAXIMUM!` accessor (Owed 18's class); slice 15 below |
 | 4473-4532 | C 4473's blank, **`update_theme_scrollbar_width`** (C 4475-4496 - the theme's scroll-bar width, measured by building a vertical scroll bar and reading its style, with C 4477/4492's `HAVE_GTK3` pair and C 4492-4494's GTK2-only width floor), **`update_theme_scrollbar_height`** (C 4499-4518 - the other axis, whose floor at C 4516 is *not* inside that pair), **`xg_get_default_scrollbar_width`** (C 4520-4524) and **`xg_get_default_scrollbar_height`** (C 4526-4531, C 4529's comment explaining why it multiplies the *width*), plus C 4532's blank | file gate (`use_gtk`); the mirror gains GTK2's `GtkObject` and `gtk_widget_style_get`, and the unit carries `GtkAdjustment`, `GTK_ADJUSTMENT`, `gtk_adjustment_new`, GTK3's `gtk_scrollbar_new`, GTK2's `gtk_hscrollbar_new`/`gtk_vscrollbar_new`, `g_object_ref_sink` and the four `XG_SB_*`/`YG_SB_*` bounds (Owed 18's class); slice 16 below |
-| 4533-6753 | **the remainder** — from C 4533's `#ifndef HAVE_GTK3` and C 4534-4535's comment above `xg_get_scroll_id_for_window` (C 4537) through C 6753: the scroll-bar id/creation/position/thumb machinery, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 4533-4594 | C 4533's `#ifndef HAVE_GTK3` and C 4534-4535's comment with **`xg_get_scroll_id_for_window`** (C 4537-4553 - slice 15's map read backwards: the X window's widget, then its index in `id_to_widget`, or C's `-1`), C 4556-4558's comment and C 4560's `#if !defined HAVE_GTK3 || defined HAVE_PGTK` with **`xg_gtk_scroll_destroy`** (C 4561-4566 - the `destroy` handler that removes the index), then C 4569's `#if defined HAVE_GTK3 && !defined HAVE_PGTK` with **`xg_scroll_bar_size_allocate_cb`** (C 4570-4592 - the GTK3/X11 `size-allocate` handler: a live configure event goes to `x_scroll_bar_configure` as is, otherwise a synthetic `GdkEvent` is filled from the allocation), plus C 4594's blank | file gate (`use_gtk`) plus C's own three folds; the mirror gains `gtk_get_current_event` and `GDK_CONFIGURE` and `GdkEventConfigure` grows GDK's `width`/`height`, and the unit declares `x_scroll_bar_configure` (Owed 18); slice 17 below |
+| 4595-6753 | **the remainder** — from C 4595's `static void xg_finish_scroll_bar_creation (...)` (C 4596-4706, the shared tail of both scroll-bar constructors) through C 6753: `xg_create_scroll_bar`/`xg_create_horizontal_scroll_bar`, the position/thumb machinery, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1069,6 +1070,11 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     The four `gtkutil.h` 38-42 bounds (`XG_SB_MIN`/`XG_SB_MAX`/`YG_SB_MIN`/`YG_SB_MAX`) are the
     placeholder-mirror class this ledger's Owed 10/Owed 11 already record; their
     `XG_SB_RANGE`/`YG_SB_RANGE` siblings stay undeclared until the slice that reads them.
+    **Slice 17 adds one more, and it is a same-program declaration rather than a third-party one**:
+    `x_scroll_bar_configure` (xterm.h 1848) is defined by `xterm.c` 18058-18084 / `src/xterm.rs`
+    29944 and declared by no mirror this unit reaches, so it stands at the use site under its
+    definition's gate; `include/xterm.rs` is its home, and that unit's own note already names this
+    file's C 4579/4590 as its two callers.
 
 ## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
 
@@ -1931,3 +1937,69 @@ any read, so the zeroing is invisible in C's semantics and mandatory in Rust's.
 every prototype and every value this slice added is UNVERIFIED, `GtkAdjustment`'s layout is the
 port's opaque stand-in, and GTK2's two enumerators remain Owed 6's; the pgtk arm's reading is the
 probe's (Owed 17).
+
+## Slice 17 (2026-10-15, status 4.347): C 4533-4594 — the id lookup, the destroy handler and the size-allocate callback
+
+**What this slice is.**  Three functions with C's own folds around them:
+**`xg_get_scroll_id_for_window`** (C 4537-4553, under C 4533's `#ifndef HAVE_GTK3` - slice 15's map
+read backwards: look the X window's widget up, then walk `id_to_widget` for that pointer and answer
+its index, or C 4552's `-1`), **`xg_gtk_scroll_destroy`** (C 4561-4566, under C 4560's
+`#if !defined HAVE_GTK3 || defined HAVE_PGTK` - the `destroy` signal handler that takes the index C
+4596's creator will pass and removes it from the map), and **`xg_scroll_bar_size_allocate_cb`**
+(C 4570-4592, under C 4569's `#if defined HAVE_GTK3 && !defined HAVE_PGTK` - the GTK3/X11
+`size-allocate` handler: a live configure event goes to `x_scroll_bar_configure` as is, otherwise C
+4582-4590's synthetic `GdkEvent` is filled from the allocation's rectangle and consumed the same
+way).  Port: 6,472 -> **6,574 lines**; the table's last row splits at C 4594 - the next text is
+C 4595's `static void xg_finish_scroll_bar_creation (...)`.
+
+**The mirror this slice needed.**  `include/gtk.rs` gains two fresh names - **`gtk_get_current_event`**
+(gtk/gtkmain.h, C 4575) and **`GDK_CONFIGURE`** (gdk/gdktypes.h, C 4578, declared beside the family's
+other `GdkEventType` members) - and **`GdkEventConfigure` grows GDK's trailing `width`/`height`**
+(C 4586/4587's two stores).  The record's own note had left those two out on the rule that it carries
+"the members the reference's text touches"; this slice's text is the first that touches them, they sit
+at GDK's own positions right after `y`, and they are **the two members `src/xterm.rs` 29935-29938
+names as owed** for that unit's own `GdkEventConfigure` reads (C 18071-18072) - so that lane's Owed
+row can be closed without this round touching its file.  All three additions are UNVERIFIED
+(no GDK tree on this machine).
+
+**One declaration that stands in the unit.**  `x_scroll_bar_configure` (xterm.h 1848:
+`extern void x_scroll_bar_configure (GdkEvent *);`) is defined by `xterm.c` 18058-18084 and carried
+by `src/xterm.rs` 29944 as `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, and `include/xterm.rs`
+does not declare it - while that unit's own note already names **this** file's C 4579/4590 as its two
+callers.  It therefore stands at the use site under the gate its definition carries
+(`all (have_x_windows, have_gtk3)`), the class Owed 18 records and Owed 11 documents with three
+older names.
+
+**Deviations this slice adds.**
+
+- C 4583's `FALSE` is the mirror's `gboolean` while the member is GDK's `gint8`, so the store is
+  `FALSE as i8` - C's conversion made explicit, the `w32.rs` `FALSE as DWORD` shape.
+- C 4576's uninitialised `GdkEvent dummy` is the port's zeroed value (PORTING.md 1.5); C writes each
+  of the six members it reads, and the zeroing is what keeps `&raw mut dummy` legal in Rust.
+- C 4578's `event->any.type` is `(*event).any.r#type` (the `src/xwidget.rs` 1000 shape for the same
+  union), C 4590's `&dummy` is `(&raw mut dummy)`, C 4547's `for` head is the port's `while` with C's
+  own step at the loop end (PORTING.md 2.2), C 4548's `widgets[idx]` is the `.offset (…)` spelling a
+  raw pointer needs, C 4552's `-1` is C's sentinel and C 4564's `(intptr_t) data` is
+  `data as intptr_t` (`include/lisp.rs` 1077's `isize`).
+- C 4534-4535's and C 4556-4558's comments and C 4582's one-liner are carried as C's own text at their
+  positions; C 4561/4570's callbacks keep the C ABI (`unsafe extern "C" fn`, the `find_scrollbar_cb`
+  shape) and C's unused `widget`/`user_data` parameters stay unused, as they are in C.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings, against a materialised baseline** (a temporary `git worktree` at `2b9e5858`):
+   **all six are identical multisets before and after** - arm A 26, arm A plus
+   `gtk_check_version_ge_3_14` 26, arm A without `have_xinput2` 25, arm C (GTK2) 64, arm C plus
+   `have_freetype` 64, the out-of-tree pgtk probe 24.  That is the reading this slice should have:
+   none of the three functions has a caller yet (C 4882-4900 are the first), so nothing can change in
+   any face until the creator slice lands.
+3. **`extract-abi.py --check`** -> 56 -> **53 `- ` rows**, all three retirements being the
+   `missing function` rows of this slice's functions; no new `does not mention` row was needed.
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK or GDK tree - there is none on this machine
+- so `gtk_get_current_event`, `GDK_CONFIGURE` and the extended record are UNVERIFIED, and
+`x_scroll_bar_configure` is used here exactly as `src/xterm.rs` defines it (no signature measurement
+of its own); the pgtk arm's reading is the probe's (Owed 17).

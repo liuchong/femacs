@@ -646,3 +646,27 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 in five of six faces (arm A 28 -> 26, arm A plus `gtk_check_version_ge_3_14` 28 -> 26, arm A without
 `have_xinput2` 27 -> 25, the pgtk probe 26 -> 24) and the GTK2 face reads 62 -> 64 with four new
 references to Owed 6's untranscribed enumerators.  No other tree is touched by this round.
+
+### status 4.347 (the gtkutil seventeenth-slice round this file took part in)
+
+`src/gtkutil.c`'s scroll-bar id lookup and its two callbacks (C 4533-4594) are the round's
+consumers, and this file took three edits:
+
+- **`gtk_get_current_event`** (gtk/gtkmain.h, C 4575) - declared beside `gtk_get_current_event_time`,
+  that family's other row.  Fresh name, UNVERIFIED.
+- **`GDK_CONFIGURE`** (gdk/gdktypes.h, C 4578) - C's second consumer of a `GdkEventType` member after
+  the rows the earlier rounds added, declared with the family's other values and UNVERIFIED like
+  them.
+- **`GdkEventConfigure` grows GDK's trailing `width`/`height`** (C 4586/4587 write both into a
+  synthetic event).  This file's own note had left them out on the rule that it carries "the members
+  the reference's text touches"; the first text that touches them is this round's.  **They are also
+  the two members `src/xterm.rs` 29935-29938 names as owed** for that unit's own reads of the same
+  record (C 18071-18072), so that lane's Owed row can be closed now - this round does not touch the
+  file, and says so rather than editing another unit's ledger.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)` (the two fresh names are in no other unit either); `tools/check-all-units.sh` ->
+`checked 83 unit(s), 0 failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a 336-byte
+object; `src/gtkutil.rs`'s six arm readings are **identical multisets** to the pre-slice tree at
+`2b9e5858` (26/26/25/64/64/24) - expected, because none of the slice's three functions has a caller
+until C 4882-4900's creator lands.

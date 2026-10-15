@@ -877,6 +877,10 @@ unsafe extern "C" {
   /// C 3756: `guint32 timestamp = gtk_get_current_event_time ();`
   /// C: gtk/gtkmain.h: `guint32 gtk_get_current_event_time (void);`
   pub fn gtk_get_current_event_time () -> guint32;
+  /// C 4575: `GdkEvent *event = gtk_get_current_event ();`
+  /// C: gtk/gtkmain.h: `GdkEvent *gtk_get_current_event (void);` - the gtkutil lane's seventeenth
+  /// slice is the first consumer.  A fresh name; **UNVERIFIED**.
+  pub fn gtk_get_current_event () -> *mut GdkEvent;
   /// C 3763: `gtk_show_uri_on_window (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (XFRAME (frame))),
   /// SSDATA (uri), timestamp, &err);`
   /// C: gtk/gtkshow.h: `gboolean gtk_show_uri_on_window (GtkWindow *parent, const char *uri,
@@ -1037,6 +1041,10 @@ pub const GDK_SELECTION_REQUEST: GdkEventType = 30;
 pub const GDK_SELECTION_NOTIFY: GdkEventType = 31;
 
 pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
+/// C: gdk/gdktypes.h: `GDK_CONFIGURE` - the member C 4578 tests the event `gtk_get_current_event`
+/// returned against (the gtkutil lane's seventeenth slice).  The value is GDK's ordinal and is
+/// **UNVERIFIED** like every row of this family (no GDK tree on this machine).
+pub const GDK_CONFIGURE: GdkEventType = 13;
 /// C: gdk/gdktypes.h: `typedef guint GdkWindowState;` and the twelve flags C 5632-5687 tests.  No GDK
 /// header exists on this machine, so each value is a **placeholder** with a distinct bit (the
 /// `GDK_*_MASK` reading in `src/xwidget.rs` 306-316) and **UNVERIFIED**.
@@ -1107,8 +1115,10 @@ pub union GdkEvent
    pointer was all anyone took (status 3.481).  */
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventConfigure GdkEventConfigure;` - the union's
 /// `configure` member above, read by `src/pgtkterm.c` 5543-5564 (`window`, `x` and `y`).  GDK's
-/// trailing `width`/`height` are not carried because the reference's text does not read them (the
-/// `GdkEventButton` reading below).  **UNVERIFIED**.
+/// trailing `width`/`height` arrive with the gtkutil lane's seventeenth slice, whose C 4586-4587
+/// write both of them into a synthetic event (`dummy.configure.width/height`); they sit at GDK's
+/// own positions, right after `y`, so the two readers that only take the head are unaffected.
+/// **UNVERIFIED** (no GDK tree, as the block above says).
 #[repr (C)]
 #[derive (Clone, Copy)]
 pub struct GdkEventConfigure
@@ -1118,6 +1128,8 @@ pub struct GdkEventConfigure
   pub send_event: i8,
   pub x: c_int,
   pub y: c_int,
+  pub width: c_int,        // C 4586: `dummy.configure.width = allocation->width;`
+  pub height: c_int,       // C 4587: `dummy.configure.height = allocation->height;`
 }
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventWindowState GdkEventWindowState;` - the union's
 /// `window_state` member above, read by `src/pgtkterm.c` 5622-5626 (`window`, `new_window_state`).
