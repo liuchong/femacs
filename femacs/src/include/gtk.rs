@@ -3035,9 +3035,10 @@ macro_rules! GTK_IS_IMAGE {
   ($o:expr) => { (! ($o).is_null ()) };
 }
 
-/// C: gdk/gdktypes.h: `GDK_ENTER_NOTIFY` - the member `xg_tool_bar_help_callback`'s C 5415 tests.
-/// The family's next row after slice 26's; GDK's ordinal and the family's UNVERIFIED marking.
-pub const GDK_ENTER_NOTIFY: GdkEventType = 10;
+/* C: gdk/gdktypes.h: `GDK_ENTER_NOTIFY` - the member `xg_tool_bar_help_callback`'s C 5415
+   tests - is **not** declared here: `src/xwidget.rs` 298 declares that name over this mirror
+   (its own placeholder row), so the gtkutil lane keeps its copy in the unit (see
+   `docs/ports/gtkutil.md`'s "mirror-vs-unit duplicates" correction).  */
 
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventExpose GdkEventExpose;` - the record C 5445-5461's
 /// GTK2-only expose callback reads: `window` for the drawable size and the four `area` members it
@@ -3371,10 +3372,9 @@ unsafe extern "C" {
 macro_rules! GTK_TYPE_MENU_SHELL {
   () => { gtk_menu_shell_get_type () };
 }
-/// C: gdk/gdktypes.h: `GDK_CONTROL_MASK = 1 << 2` - the second key argument C 6294/6300 install on.
-/// The value is GDK's documented one, not a placeholder; the type is the scalar behind
-/// `GdkModifierType`.  **UNVERIFIED.**
-pub const GDK_CONTROL_MASK: c_uint = 1 << 2;
+/* C: gdk/gdktypes.h: `GDK_CONTROL_MASK = 1 << 2` - the second key argument C 6294/6300
+   install on - is **not** declared here either: `src/xwidget.rs` 314 and `src/pgtkterm.rs` 7469
+   declare it over this mirror, so the unit keeps its copy (see the correction above).  */
 /// C: gdk/gdkkeysyms.h: `#define GDK_KEY_g 0x0067` - the keysym C 6294/6300 install.  The value is
 /// the header's own (the lowercase `g` keysym), spelled as a constant because the header is not on
 /// this machine.  **UNVERIFIED.**
@@ -3396,41 +3396,20 @@ unsafe extern "C" {
   pub fn XftInit (config: *const c_char) -> c_int;
 }
 
-/// C: pango/pango-attributes.h: `typedef struct _PangoAttrList PangoAttrList;` - the pointee of C
-/// 6413's `list`, written by `gtk_im_context_get_preedit_string` and released by
-/// `pango_attr_list_unref`.  Pango is not on this machine (`status 4.355`'s boundary), so the head
-/// is opaque and the row **UNVERIFIED**.
-#[repr(C)]
-pub struct PangoAttrList
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkimcontext.h: `void gtk_im_context_get_preedit_string (GtkIMContext *context, gchar
-/// **str, PangoAttrList **attrs, gint *cursor_pos);` - C 6418's read of the preedit string, its
-/// attribute list and the cursor's offset.  C 2339-2349 already holds the context and connects the
-/// three callbacks, so this is the only `gtk_im_context_*` entry point the file had left.
-/// **UNVERIFIED.**
-unsafe extern "C" {
-  pub fn gtk_im_context_get_preedit_string (context: *mut GtkIMContext, str_: *mut *mut gchar,
-					    attrs: *mut *mut PangoAttrList, cursor_pos: *mut gint);
-}
-/// C: pango/pango-attributes.h: `void pango_attr_list_unref (PangoAttrList *list);` - C 6434's
-/// release of the list the getter above hands out.  **UNVERIFIED.**
-unsafe extern "C" {
-  pub fn pango_attr_list_unref (list: *mut PangoAttrList);
-}
-/// C: gdk/gdktypes.h: `GdkModifierType`'s seven virtual-modifier bits C 6325-6335 writes into
-/// `GdkEventKey.state` and C 6341-6354 tests: `GDK_SHIFT_MASK = 1 << 0`, `GDK_LOCK_MASK = 1 << 1`,
-/// `GDK_CONTROL_MASK = 1 << 2`, `GDK_MOD1_MASK = 1 << 3`, `GDK_MOD2_MASK = 1 << 4`, `GDK_MOD3_MASK =
-/// 1 << 5`, `GDK_MOD4_MASK = 1 << 6`, `GDK_MOD5_MASK = 1 << 7`, `GDK_SUPER_MASK = 1 << 26`,
-/// `GDK_HYPER_MASK = 1 << 27`, `GDK_META_MASK = 1 << 28`.  `GDK_CONTROL_MASK` is this file's row
-/// already; these seven are the rest of the family the two translators need, and their values are
-/// GDK's documented ones (the shifts are quoted, not measured).  **UNVERIFIED.**
-pub const GDK_MOD1_MASK: c_uint = 1 << 3;
+/* C 6413/6418/6434's Pango preedit trio - `PangoAttrList` (pango/pango-attributes.h),
+   `gtk_im_context_get_preedit_string` (gtk/gtkimcontext.h) and `pango_attr_list_unref`
+   (pango/pango-attributes.h) - is **not** declared here: `src/pgtkim.rs` 119-219 declares all
+   three over this mirror, so the gtkutil lane keeps its copies in the unit (see
+   `docs/ports/gtkutil.md`'s "mirror-vs-unit duplicates" correction).  */
+/// C: gdk/gdktypes.h: `GdkModifierType`'s `GDK_MOD2_MASK = 1 << 4`, `GDK_MOD3_MASK = 1 << 5`,
+/// `GDK_MOD4_MASK = 1 << 6` and `GDK_MOD5_MASK = 1 << 7` - the four members of that family no
+/// other unit declares.  The rest of the family C 6325-6354 uses (`GDK_CONTROL_MASK`,
+/// `GDK_MOD1_MASK`, `GDK_SUPER_MASK`, `GDK_HYPER_MASK`, `GDK_META_MASK`) is declared by
+/// `src/xwidget.rs` 306-314 and `src/pgtkterm.rs` 7461-7469, so the gtkutil lane keeps its five
+/// copies **in the unit** rather than splitting one family across two homes (see
+/// `docs/ports/gtkutil.md`'s correction).  The values are GDK's documented ones, quoted rather
+/// than measured; **UNVERIFIED**.
 pub const GDK_MOD2_MASK: c_uint = 1 << 4;
 pub const GDK_MOD3_MASK: c_uint = 1 << 5;
 pub const GDK_MOD4_MASK: c_uint = 1 << 6;
 pub const GDK_MOD5_MASK: c_uint = 1 << 7;
-pub const GDK_SUPER_MASK: c_uint = 1 << 26;
-pub const GDK_HYPER_MASK: c_uint = 1 << 27;
-pub const GDK_META_MASK: c_uint = 1 << 28;

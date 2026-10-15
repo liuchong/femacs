@@ -1046,3 +1046,26 @@ class, and the pgtk probe reads 1,505 -> 1,520.
 **UNVERIFIED.**  Neither GTK nor Pango is on this machine, so all eleven rows are taken from the
 documents' shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
 recorded for the GtkPrint* surface.
+
+
+### Correction (2026-10-15): nine rows this file had taken in belong to their units, not here
+
+The gtkutil lane's slices 27-34 added eleven GDK/Pango names here; an audit of every declaration the
+lane added (75 names, compared against every other unit's declaration lines) found that **nine of
+them are already declared by a unit that `include!`s this mirror**:
+
+* `GDK_ENTER_NOTIFY` - `src/xwidget.rs` 298;
+* `GDK_CONTROL_MASK`, `GDK_MOD1_MASK`, `GDK_SUPER_MASK`, `GDK_HYPER_MASK`, `GDK_META_MASK` -
+  `src/xwidget.rs` 306-314 and `src/pgtkterm.rs` 7461-7469;
+* `PangoAttrList`, `gtk_im_context_get_preedit_string`, `pango_attr_list_unref` -
+  `src/pgtkim.rs` 119-219.
+
+In a GTK build those units would have defined each name twice (`E0428`).  The round therefore
+**removed the nine rows from this file** and put them in `src/gtkutil.rs` under that unit's gate;
+the four modifier bits no other unit declares (`GDK_MOD2_MASK` through `GDK_MOD5_MASK`) stay here.
+Measured: `src/xwidget.rs`'s arm goes 21 -> 15 `E0428` rows (our six -> 0) and `src/pgtkim.rs`'s
+5 -> 2 (our three -> 0).  **No gate in the tree read this**: `check-mirror-dupes.py` compares mirror
+rows with mirror rows, and the frozen sweep compiles `use_gtk`-gated text out - only a consuming
+unit's arm reading sees it (recorded in `docs/ports/gtkutil.md`'s correction and in
+`docs/status.md`).
+

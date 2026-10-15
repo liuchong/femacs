@@ -9306,6 +9306,57 @@ pub unsafe extern "C" fn xg_initialize ()   // C 6246-6312
    input-method context callbacks.  C 6314's `#endif` is C 6629 (far past this slice), so the
    four items after the first pair carry that fold as a prefix.  */
 
+/* The nine names below are **not** in `include/gtk.rs`, although every one of them is a GDK or
+   Pango row: `src/xwidget.rs` 298/306-314, `src/pgtkterm.rs` 7461-7469 and `src/pgtkim.rs` 119-219
+   each declare their own copy *over* that mirror (all three units `include!` it), so putting them
+   there as well would make every one of those units define the name twice (`E0428`) in any build
+   that has GTK - a defect no gate in this tree currently reads, because the frozen configuration
+   compiles none of them and `check-mirror-dupes.py` compares mirror rows with mirror rows.  The
+   round that reconciles those three lanes' copies can move these rows into the mirror; until then
+   they stand here, which is Owed 18's class.  */
+
+/// C: gdk/gdktypes.h: `GDK_ENTER_NOTIFY` - the crossing-event type `xg_tool_bar_help_callback`'s
+/// C 5415 tests.  GDK's documented ordinal (`7` is `GDK_ENTER_NOTIFY`'s neighbour `GDK_LEAVE_NOTIFY`
+/// in `src/xwidget.rs`'s placeholder family, which is why this row carries `10` - the same
+/// placeholder the mirror carried before this correction); **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+pub const GDK_ENTER_NOTIFY: GdkEventType = 10;
+
+/// C: gdk/gdktypes.h: `GdkModifierType`'s five remaining bits the two translators read and write
+/// (`GDK_MOD1_MASK = 1 << 3`, `GDK_SUPER_MASK = 1 << 26`, `GDK_HYPER_MASK = 1 << 27`,
+/// `GDK_META_MASK = 1 << 28`, `GDK_CONTROL_MASK = 1 << 2`); the values are GDK's documented ones
+/// and are **UNVERIFIED**.  The gate is the two translators' own, since they are this copy's only
+/// users.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_MOD1_MASK: c_uint = 1 << 3;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_SUPER_MASK: c_uint = 1 << 26;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_HYPER_MASK: c_uint = 1 << 27;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_META_MASK: c_uint = 1 << 28;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_CONTROL_MASK: c_uint = 1 << 2;
+
+/// C: pango/pango-attributes.h: `typedef struct _PangoAttrList PangoAttrList;` - the pointee of
+/// `xg_im_context_preedit_changed`'s C 6413 `list`.  Opaque head, **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[repr(C)]
+pub struct PangoAttrList
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkimcontext.h: `void gtk_im_context_get_preedit_string (GtkIMContext *context, gchar
+/// **str, PangoAttrList **attrs, gint *cursor_pos);` / C: pango/pango-attributes.h: `void
+/// pango_attr_list_unref (PangoAttrList *list);` - C 6418's read and C 6434's release.
+/// **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn gtk_im_context_get_preedit_string (context: *mut GtkIMContext, str_: *mut *mut gchar,
+					    attrs: *mut *mut PangoAttrList, cursor_pos: *mut gint);
+  pub fn pango_attr_list_unref (list: *mut PangoAttrList);
+}
+
 /// C 6315-6336: `static void xg_add_virtual_mods (struct x_display_info *dpyinfo, GdkEventKey *key)`
 /// - turn X's real modifier masks into the GDK bits the rest of this file reads: `meta_mod_mask`
 /// becomes GDK's Mod1 when X has no separate alt mask and GDK's Meta when it has (C 6324), and the

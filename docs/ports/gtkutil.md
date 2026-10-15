@@ -1263,6 +1263,13 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     defined at C 5794-5811 / `src/xterm.rs` 6318) stand at their use sites - the second under xterm's
     own `have_x_windows && have_xinput2`, the `src/xmenu.rs` 866 shape.  The round's eleven *mirror*
     additions are not owed.
+    **The 2026-10-15 correction moves nine rows the other way**: `GDK_ENTER_NOTIFY`,
+    `GDK_CONTROL_MASK`, `GDK_MOD1_MASK`, `GDK_SUPER_MASK`, `GDK_HYPER_MASK`,
+    `GDK_META_MASK`, `PangoAttrList`, `gtk_im_context_get_preedit_string` and
+    `pango_attr_list_unref` left the mirror for this unit's own text because
+    `src/xwidget.rs`, `src/pgtkterm.rs` and `src/pgtkim.rs` declare them over it, and
+    they belong back in the mirror once those three copies are reconciled in one round -
+    a change in three units outside this lane (see the correction below).
     **Slice 30 closes slice 28's item**: `xg_update_tool_bar_sizes`'s definition (C 5761-5810) has
     landed, so C 5517's call resolves and the row the round above added is gone (the P-91 ④ class
     shrinks by one site and now holds only the *other* names this file still waits for, e.g.
@@ -3271,6 +3278,47 @@ the eight the earlier rounds used, and the ledger's Evidence records it as the n
 machine - so the twelve mirror rows are UNVERIFIED; the five `bool_bf` rows are Owed 11's class
 rather than a defect of the transcription; `xg_add_virtual_mods` and everything after C 6312 still
 show as the remainder's; and the pgtk reading is the probe's (Owed 17).
+
+## Correction (2026-10-15, status 4.364): nine mirror rows had to move back into this unit
+
+**The defect, and how it was found.**  Slices 27, 33 and 34 added eleven GDK/Pango names to
+`include/gtk.rs` - `GDK_ENTER_NOTIFY`, `GDK_CONTROL_MASK`, the five remaining `GdkModifierType` bits
+and the Pango preedit trio - and **nine of them are already declared by a unit that `include!`s that
+mirror**: `src/xwidget.rs` 298/306-314, `src/pgtkterm.rs` 7461-7469 and `src/pgtkim.rs` 119-219.  So
+in any build with GTK those three units would have defined each name **twice** (`E0428`) - and no
+gate in this tree read it:
+
+* `tools/check-mirror-dupes.py` compares **mirror rows with mirror rows** (it stayed
+  `16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)` on both sides of the correction);
+* the frozen sweep compiles `use_gtk`-gated text out entirely, so `tools/check-all-units.sh` reads
+  `83 unit(s), 0 failure(s)` either way;
+* only the **consuming unit's arm reading** sees it - which is what this round ran.
+
+The audit that found it compares every declaration the lane added to the mirror (since `03018b0c`)
+against every declaration line of every other unit: 75 names, 9 collisions (a tenth candidate,
+`GtkToolItem`, was gtkutil's own *use* of the name and not a declaration).
+
+**The measurements (the fix, before and after).**
+
+| unit | arm set | `E0428` total | of those, our nine |
+| --- | --- | ---: | ---: |
+| `src/xwidget.rs` | A (GTK3, no pgtk) | 21 -> **15** | 6 -> **0** |
+| `src/pgtkim.rs` | A + `have_pgtk` | 5 -> **2** | 3 -> **0** |
+
+(The rows the two units still carry are their own lanes' pre-existing state, not this round's.)
+`src/pgtkterm.rs` cannot be measured the same way - its *frozen* `build-tu` fails on two
+`E0425`s of its own (`GdkWindow`/`GtkWidget` at its C 4928-4930), which is why that unit is not in
+the frozen sweep - so its copy is closed by construction (the mirror no longer declares the five
+bits it keeps).
+
+**What the unit now carries.**  The nine names stand in `femacs/src/gtkutil.rs` under this unit's
+gate, with the reason recorded there; the four bits no other unit declares (`GDK_MOD2_MASK` through
+`GDK_MOD5_MASK`) stay in the mirror, so the modifier family is split 4/5 across the two homes rather
+than one family living in two places for the same unit.  **`## Owed` 18 gains the item**: the mirror
+is the right home for all nine once the three lanes' copies are reconciled in one round, which needs
+edits in three units outside this lane.  The unit's own arm readings are **identical multisets on both
+sides** (35/35/35/35/35, 34, 58/58 and 1,505 for the pgtk probe), i.e. the move changed nothing for
+this unit and everything for the three it collided with.
 
 ## Slice 34 (2026-10-15, status 4.364): C 6313-6447 — the two modifier translators and the input-method callbacks
 
