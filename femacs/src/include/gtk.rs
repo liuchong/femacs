@@ -2794,3 +2794,23 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn gtk_widget_is_ancestor (widget: *mut GtkWidget, ancestor: *mut GtkWidget) -> gboolean;
 }
+
+/// C: gtk/gtktypeutils.h (GTK2's): `typedef struct _GtkObject GtkObject;` - the type C 4480/4504's
+/// `#else` arms declare `vadj`/`hadj` as, and the type GTK2's `gtk_adjustment_new` returns (the
+/// gtkutil lane's sixteenth slice is where both facts are used).  The `_private: [u8; 0]` head is
+/// the port's placeholder for a record it cannot lay out (the `GtkStyle`/`GtkRange` shape above;
+/// **GTK2 is not on this machine**, P-88 2), and the name is fresh - no other unit declares it.
+#[cfg (not (feature = "have_gtk3"))]
+#[repr(C)]
+pub struct GtkObject
+{
+  _private: [u8; 0],
+}
+
+/// C: gtk/gtkwidget.h: `void gtk_widget_style_get (GtkWidget *widget, const gchar
+/// *first_property_name, ...);` - C 4488/4512's two theme reads, whose variadic tail carries the
+/// property names and their out-parameters and whose `NULL` terminates the list.  A fresh name (no
+/// other unit declares it), so the mirror takes it; **UNVERIFIED** (no GTK tree on this machine).
+unsafe extern "C" {
+  pub fn gtk_widget_style_get (widget: *mut GtkWidget, first_property_name: *const gchar, ...);
+}

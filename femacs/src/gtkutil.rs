@@ -2037,7 +2037,7 @@ pub unsafe extern "C" fn xg_set_initial_dark_mode (f: *mut frame)   // C 1498-15
 unsafe extern "C" fn style_changed_cb (go: *mut GObject, spec: *mut GParamSpec,
 				       user_data: gpointer)   // C 1509-1559
 {
-  let mut event: input_event;
+  let mut event: input_event = std::mem::zeroed ();
   let gdpy: *mut GdkDisplay = user_data as *mut GdkDisplay;
   let mut display_name: *const c_char = gdk_display_get_name (gdpy);
   #[cfg (not (feature = "have_pgtk"))]
@@ -6278,3 +6278,195 @@ unsafe extern "C" {
 }
 
 /* C 4472's `#endif` closes C 4357's `#if defined HAVE_PGTK || !defined HAVE_GTK3`.  */
+
+/* ----------------------------------------------------------------------------------------------
+   The GTK, GLib and `gtkutil.h` names the four definitions below need and no mirror in the unit's
+   include graph carries.
+
+   `GtkAdjustment` (gtk/gtkadjustment.h) is a record `src/pgtkterm.rs` 5759 already declares, and
+   that unit `include!`s `include/gtk.rs` - so the mirror cannot take the name without an `E0428`
+   there (Owed 10/Owed 12/Owed 18's class).  The same reason keeps `gtk_adjustment_new`, GTK3's
+   `gtk_scrollbar_new`, GTK2's two scrollbar constructors and the `GTK_ADJUSTMENT` cast in the unit:
+   every one of them names that record.  `g_object_ref_sink` (gobject/gobject.h 509-510) is declared
+   by `src/xsettings.rs` 337-338, a unit that includes the mirror too, so it stands here as well.
+   The four bounds are `gtkutil.h` 38-42's macros, whose home `include/gtkutil.rs` is a placeholder
+   (Owed 10/Owed 11).  GTK2's `GtkObject` and `gtk_widget_style_get` are fresh names - no unit
+   declares either - so this round's mirror takes them.  **No GTK tree exists on this machine**, so
+   every prototype and every value here is UNVERIFIED.
+   ---------------------------------------------------------------------------------------------- */
+/// C: gtk/gtkadjustment.h: `typedef struct _GtkAdjustment GtkAdjustment;` - the record C 4478's
+/// `vadj` points at, the target of C 4486/4510's `GTK_ADJUSTMENT` cast and the parameter type GTK3's
+/// `gtk_scrollbar_new` takes.  It is declared in **both** GTK faces, because GTK2 has the record too
+/// (C 4480's `#else` arm casts an `GtkObject *` to it).  The `_private: [u8; 0]` head is the port's
+/// opaque stand-in - the same head `src/pgtkterm.rs` 5759 carries for its own copy - and **no size
+/// or offset assertion is written, because the layout is GTK's and no GTK tree is on this machine**
+/// (P-88 2).
+#[cfg (feature = "use_gtk")]
+#[repr(C)]
+pub struct GtkAdjustment
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkadjustment.h: `#define GTK_ADJUSTMENT(obj)` - C 4486/4510's two checked casts, each
+/// keeping the macro's name and its result type (the GLib cast chain is owed, as the mirror's other
+/// casts are).  It is the unit's macro because its expansion names the unit's record.
+#[cfg (feature = "use_gtk")]
+macro_rules! GTK_ADJUSTMENT {
+  ($o:expr) => { ($o) as *mut GtkAdjustment };
+}
+/// C: gtk/gtkadjustment.h: `GtkAdjustment *gtk_adjustment_new (gdouble value, gdouble lower, gdouble
+/// upper, gdouble step_increment, gdouble page_increment, gdouble page_size);` - C 4485/4509's
+/// six-argument calls.  GTK2's face of the same function returns `GtkObject *` instead, which is what
+/// C 4480/4504's declarations of `vadj`/`hadj` prove, so the two arms differ in their return type
+/// alone.  `gdouble` is `c_double` (the mirror's 40-41 has `gint`/`gboolean` and no `gdouble` row;
+/// `src/pgtkterm.rs` 5773 carries its own copy, Owed 11).  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn gtk_adjustment_new (value: c_double, lower: c_double, upper: c_double,
+			     step_increment: c_double, page_increment: c_double,
+			     page_size: c_double) -> *mut GtkAdjustment;
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+unsafe extern "C" {
+  pub fn gtk_adjustment_new (value: c_double, lower: c_double, upper: c_double,
+			     step_increment: c_double, page_increment: c_double,
+			     page_size: c_double) -> *mut GtkObject;
+}
+/// C: gtk/gtkscrollbar.h: `GtkWidget *gtk_scrollbar_new (GtkOrientation orientation, GtkAdjustment
+/// *adjustment);` - GTK3's function, whose GTK2 face is C 122-124's macro (carried above at C's own
+/// position).  C 4486/4510 keep C's text in both arms, so the port's uniform spelling is the macro
+/// form, which forwards to this function here - the `gtk_box_new` and `gtk_font_chooser_dialog_new`
+/// shape (`include/gtk.rs` 1507-1519 and 2566-2572, whose note already names `gtk_scrollbar_new` as
+/// the family's next member).  Its parameter type is what keeps it out of the mirror.
+/// **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn gtk_scrollbar_new (orientation: GtkOrientation,
+			    adjustment: *mut GtkAdjustment) -> *mut GtkWidget;
+}
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+macro_rules! gtk_scrollbar_new {
+  ($ori:expr, $adj:expr) => { gtk_scrollbar_new ($ori, $adj) };
+}
+/// C: gtk/gtk.h (GTK2's, inside C 119-124's `#ifndef HAVE_GTK3`): `GtkWidget *gtk_hscrollbar_new
+/// (GtkAdjustment *hadjustment);` and `GtkWidget *gtk_vscrollbar_new (GtkAdjustment *vadjustment);`
+/// - the two constructors C 122-124's macro body calls, and the first slice whose call sites expand
+/// that macro (C 4486/4510).  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+unsafe extern "C" {
+  pub fn gtk_hscrollbar_new (hadjustment: *mut GtkAdjustment) -> *mut GtkWidget;
+  pub fn gtk_vscrollbar_new (vadjustment: *mut GtkAdjustment) -> *mut GtkWidget;
+}
+/// C: gobject/gobject.h 509-510: `gpointer g_object_ref_sink (gpointer object);` - C 4487/4511's sink
+/// of the freshly created scroll bar's floating reference.  `src/xsettings.rs` 337-338 declares the
+/// same name and that unit also `include!`s the mirror, so this copy stands at the use site, spelled
+/// exactly as that one is (Owed 18's class).
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn g_object_ref_sink (object: gpointer) -> gpointer;
+}
+/// C: gtkutil.h 38-42: `#define XG_SB_MIN 1`, `#define XG_SB_MAX 10000000` and the `YG_` pair (the
+/// same two values on the other axis) - the bounds C 4485/4509 hand to `gtk_adjustment_new`'s
+/// `gdouble` parameters, so each of those call sites carries C's implicit integer-to-`double`
+/// conversion as an explicit `as c_double` (the file's `scale as f64` shape).  They stand here
+/// because `include/gtkutil.rs` is a placeholder (Owed 10/Owed 11), and the
+/// `XG_SB_RANGE`/`YG_SB_RANGE` pair C 40/43 also define is left for the slice that reads it.
+#[cfg (feature = "use_gtk")]
+const XG_SB_MIN: c_int = 1;              // gtkutil.h 38
+#[cfg (feature = "use_gtk")]
+const XG_SB_MAX: c_int = 10000000;       // gtkutil.h 39
+#[cfg (feature = "use_gtk")]
+const YG_SB_MIN: c_int = 1;              // gtkutil.h 41
+#[cfg (feature = "use_gtk")]
+const YG_SB_MAX: c_int = 10000000;       // gtkutil.h 42
+
+/* C 4473's blank and C 4474-4496.  */
+
+/// C 4475-4496: `static void update_theme_scrollbar_width (void)` - the theme's scroll-bar width,
+/// measured by building a vertical scroll bar and reading its style, and the value
+/// `xg_get_default_scrollbar_width` below returns.  C `static`, so a plain `unsafe fn` (PORTING.md
+/// 0.2).  C 4477/4492's `HAVE_GTK3` pair is the port's `#[cfg]` pair: `vadj` is `GtkAdjustment *` in
+/// the GTK3 arm and `GtkObject *` in the GTK2 one (C 4478/4480's own declarations), and C 4492-4494's
+/// width floor belongs to the GTK2 arm alone.  C 4486's call keeps one spelling in both arms through
+/// the macro form C itself gives it (C 122-124's macro in GTK2, the forwarding macro above in GTK3).
+#[cfg (feature = "use_gtk")]
+unsafe fn update_theme_scrollbar_width ()   // C 4475-4496
+{
+  /* C 4477's `#ifdef HAVE_GTK3`; its `#else` is C 4479.  */
+  #[cfg (feature = "have_gtk3")]
+  let vadj: *mut GtkAdjustment;                                        // C 4478
+  #[cfg (not (feature = "have_gtk3"))]
+  let vadj: *mut GtkObject;                                            // C 4480
+  let wscroll: *mut GtkWidget;                                         // C 4482
+  let mut w: c_int = 0;                                                // C 4483
+  let mut b: c_int = 0;
+
+  vadj = gtk_adjustment_new (XG_SB_MIN as c_double, XG_SB_MIN as c_double,   // C 4485
+			     XG_SB_MAX as c_double, 0.1, 0.1, 0.1);
+  wscroll = gtk_scrollbar_new! (GTK_ORIENTATION_VERTICAL, GTK_ADJUSTMENT! (vadj));   // C 4486
+  g_object_ref_sink (G_OBJECT! (wscroll) as gpointer);                 // C 4487
+  gtk_widget_style_get (wscroll, c"slider-width".as_ptr (), (&raw mut w),   // C 4488
+			c"trough-border".as_ptr (), (&raw mut b), std::ptr::null::<c_char> ());
+  gtk_widget_destroy (wscroll);                                        // C 4489
+  g_object_unref (G_OBJECT! (wscroll) as gpointer);                    // C 4490
+  w += 2*b;                                                            // C 4491
+  /* C 4492's `#ifndef HAVE_GTK3`, whose one statement is C 4493.  */
+  #[cfg (not (feature = "have_gtk3"))]
+  { if w < 16 { w = 16; } }                                            // C 4493
+  scroll_bar_width_for_theme = w;                                      // C 4495
+}
+
+/// C 4498-4518: `static void update_theme_scrollbar_height (void)` - the same measurement on the
+/// other axis, with `YG_SB_*`'s bounds, `GTK_ORIENTATION_HORIZONTAL` and C 4498's own comment (C
+/// 4497's blank is the one between the two).  Two of its lines differ from the width function's for
+/// C's own reasons: C 4501's `HAVE_GTK3` pair declares `hadj` (C 4502/4504), and C 4516's floor
+/// stands **outside** that pair, because it is the `trough-border` reading that needs it in both
+/// faces here.
+#[cfg (feature = "use_gtk")]
+unsafe fn update_theme_scrollbar_height ()   // C 4499-4518
+{
+  /* C 4501's `#ifdef HAVE_GTK3`; its `#else` is C 4503.  */
+  #[cfg (feature = "have_gtk3")]
+  let hadj: *mut GtkAdjustment;                                        // C 4502
+  #[cfg (not (feature = "have_gtk3"))]
+  let hadj: *mut GtkObject;                                            // C 4504
+  let wscroll: *mut GtkWidget;                                         // C 4506
+  let mut w: c_int = 0;                                                // C 4507
+  let mut b: c_int = 0;
+
+  hadj = gtk_adjustment_new (YG_SB_MIN as c_double, YG_SB_MIN as c_double,   // C 4509
+			     YG_SB_MAX as c_double, 0.1, 0.1, 0.1);
+  wscroll = gtk_scrollbar_new! (GTK_ORIENTATION_HORIZONTAL, GTK_ADJUSTMENT! (hadj));   // C 4510
+  g_object_ref_sink (G_OBJECT! (wscroll) as gpointer);                 // C 4511
+  gtk_widget_style_get (wscroll, c"slider-width".as_ptr (), (&raw mut w),   // C 4512
+			c"trough-border".as_ptr (), (&raw mut b), std::ptr::null::<c_char> ());
+  gtk_widget_destroy (wscroll);                                        // C 4513
+  g_object_unref (G_OBJECT! (wscroll) as gpointer);                    // C 4514
+  w += 2*b;                                                            // C 4515
+  if w < 12 { w = 12; }                                                // C 4516
+  scroll_bar_height_for_theme = w;                                     // C 4517
+}
+
+/* C 4519's blank.  */
+
+/// C 4520-4524: `int xg_get_default_scrollbar_width (struct frame *f)` - non-`static` (`gtkutil.h`
+/// declares both readers and `xterm.c` calls them), so `#[unsafe(no_mangle)]` with the C ABI.  C
+/// 4523's product is `c_int` times `xg_get_scale (f)` (`static int` and `int` in C), which is the
+/// port's `c_int`, i.e. C's return type.
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_get_default_scrollbar_width (f: *mut frame) -> c_int   // C 4520-4524
+{
+  return scroll_bar_width_for_theme * xg_get_scale (f);                 // C 4523
+}
+
+/// C 4526-4531: `int xg_get_default_scrollbar_height (struct frame *f)` - the height reader, whose
+/// body multiplies the *width* because GTK offers no default height; C 4529's comment says so and is
+/// carried below as C's own text.
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_get_default_scrollbar_height (f: *mut frame) -> c_int   // C 4526-4531
+{
+  /* Apparently there's no default height for themes.  */
+  return scroll_bar_width_for_theme * xg_get_scale (f);                 // C 4530
+}

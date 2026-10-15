@@ -610,3 +610,39 @@ tree at `b75d7cca`** (arm A 28 `^error` matches, arm A plus `gtk_check_version_g
 without `have_xinput2` 27, arm C 62, arm C plus `have_freetype` 62, and the out-of-tree pgtk probe 26
 - the pgtk probe is what caught the one spelling this round had to split by arm, C 4384's
 `Window`-typed arithmetic), so the round adds no error in any face.
+
+### status 4.346 (the gtkutil sixteenth-slice round this file took part in)
+
+`src/gtkutil.c`'s theme measurement (C 4473-4532) is the round's consumer, and the mirror takes the
+two names it could not have taken any other way:
+
+- **`GtkObject`** (gtk/gtktypeutils.h, GTK2's) - C 4480/4504 declare `vadj`/`hadj` as it in the
+  `#else` arms of C 4477/4501's `HAVE_GTK3` pair, and GTK2's `gtk_adjustment_new` returns it.  The
+  `not (feature = "have_gtk3")` gate is that arm's; the `_private: [u8; 0]` head is this file's
+  placeholder shape for a record it cannot lay out (GTK2 is not on this machine), and the name is
+  fresh.
+- **`gtk_widget_style_get`** (gtk/gtkwidget.h, C 4488/4512) - the variadic style reader whose tail
+  carries the property names and their out-parameters.  Fresh, ungated (both GTK faces call it), and
+  UNVERIFIED as every GTK prototype here is.
+
+**Six names this round could not take, all for one reason.**  `GtkAdjustment` (gtk/gtkadjustment.h)
+is declared by `src/pgtkterm.rs` 5759, a unit that `include!`s this mirror, so a mirror item would be
+an `E0428` there; `gtk_adjustment_new`, GTK3's `gtk_scrollbar_new`, GTK2's `gtk_hscrollbar_new` /
+`gtk_vscrollbar_new` and the `GTK_ADJUSTMENT` cast macro all name that record, so they stand in the
+consumer too.  `g_object_ref_sink` (gobject/gobject.h 509-510) is the GLib instance of the same
+class: `src/xsettings.rs` 337-338 declares it and that unit includes this mirror.  All seven rows are
+Owed 18 of `docs/ports/gtkutil.md`; the round's `check-mirror-dupes.py` reading (`16 duplicate
+declaration(s), 16 ratchet row(s), 0 failure(s)`) is what proves none of them leaked into the mirror
+as a copy.
+
+**One family this round completed.**  C 119-124's two GTK2 macros (`gtk_box_new`,
+`gtk_scrollbar_new`) had their GTK3 function side here for the first only; this round adds
+`gtk_scrollbar_new`'s GTK3 function and its forwarding macro in the consumer, which is the shape this
+file's own note at 2566-2572 already described.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings improve
+in five of six faces (arm A 28 -> 26, arm A plus `gtk_check_version_ge_3_14` 28 -> 26, arm A without
+`have_xinput2` 27 -> 25, the pgtk probe 26 -> 24) and the GTK2 face reads 62 -> 64 with four new
+references to Owed 6's untranscribed enumerators.  No other tree is touched by this round.
