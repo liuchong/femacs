@@ -20695,3 +20695,13 @@
   ⑥ **L1 的第一份工单（本轮新开，全部为实测）**：把 `femacs/lisp/emacs-lisp/*.el`（110 个文件）一次性交给端口的 `batch-byte-compile` → **只产出 3 个 `.elc`**（`avl-tree`、`backquote`、`benchmark`）后报 **4 个 `Invalid function: #[…]`**（byte-code 对象不能调用）并**以 `Abort trap: 6` 结束**（端口自己的 `panic=abort`，即 Rust panic）。四个对象的 arglist 都是**整数形式**（`514`/`256`/`0`），而同一调用在参照构建下编译同一批文件全绿。另有一处可复现差异：裸 `(byte-compile '(lambda (x) (+ x 1)))` 的 arglist 在参照是**列表** `(x)`、在端口是**整数** `257` ✓（两者都能调用，所以它是**形态**差异而非崩溃点，但与本轮的 `Invalid function` 同一族）。这两条是下一轮的第一项工作。
   ⑦ **未声称**：①的四件是**AWK**产物，不是端口的 Lisp 能力；③的 unidata 生成物**不是**逐字节一致（差程序名与生成器形态两处，均已定位）；⑤只覆盖**一个**探针文件的 `.elc` 一致性，不是 1,645 个；⑥是**失败清单**（L1 还没通过）；L4-L5、`.elc`/dump/模块互换、平台冒烟、性能**一条未动**；`gate-fast` 本轮未重跑（本轮只改了 `.gitignore` 与文档，未改任何单元文本）。
   ⑧ **预算与清理**：无 Rust 编译（本轮全程只用已构建的 `build/port/src/temacs`）；端口启动约 30 s/次（无 dump，loadup 从源码加载），本轮共约 25 次调用；零全盘扫描、零大内存任务；生成物按参照规则留在工作树（ignored），`/tmp/gen` 之外无临时产物。
+  **补充（同轮，2026-10-16）**：⑤ 的"一个探针文件"扩到**四个**——把 `backquote`/`avl-tree`/`benchmark`
+  三件**真实**文件按**同一路径拼法**两侧各编一次（参照在 `/tmp/cmp/ref/emacs-lisp/`、端口在
+  `/tmp/cmp/port/emacs-lisp/`，都在该目录下用相对文件名调用 `batch-byte-compile`，否则 docstring
+  位置字段会内嵌不同的绝对路径、比较就不公平）：**三件 `.elc` 全部逐字节一致**
+  （`backquote` 4,279 B、`avl-tree` 28,402 B、`benchmark` 4,890 B），端口侧一次性编译三件的退出码是 0。
+  这条读数把 ⑥ 的性质钉住：那个 `Abort trap: 6` 与四条 `Invalid function` **不是系统性问题**，
+  而是**特定的文件/构造**触发的（同一批 110 个文件里，先崩溃的这一次只产出 3 个 `.elc`，而这三件单独
+  两侧对拍完全一致）；下一轮的工作就是把这批文件**逐件**跑一遍、记下失败清单（`byte-compile-verbose`
+  或逐件调用），再按清单定位缺陷。本轮留在 `femacs/lisp/emacs-lisp/` 的三个 `.elc` 已删除：它们是
+  用**绝对路径**调用产生的，docstring 位置字段内嵌的是那条绝对路径，不是正式构建应有的相对形式。
