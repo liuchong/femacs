@@ -1017,3 +1017,32 @@ with a name any other unit declares.
 documented shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
 recorded for the GtkPrint* surface.  The round also registers the ninth version feature the unit
 needs (`gtk_check_version_ge_3_16`) in `femacs/xtask/Cargo.toml`.
+
+
+### status 4.364 (the gtkutil thirty-fourth-slice round this file took part in)
+
+`src/gtkutil.c`'s modifier translators and input-method callbacks (C 6315-6446) are this round's
+consumer, and they ask for **eleven items** - the seven remaining GDK modifier bits plus the Pango
+preedit surface.
+
+- **The seven GDK modifier bits** C 6325-6354 reads and writes: `GDK_MOD1_MASK` (1 << 3) through
+  `GDK_MOD5_MASK` (1 << 7), `GDK_SUPER_MASK` (1 << 26), `GDK_HYPER_MASK` (1 << 27) and
+  `GDK_META_MASK` (1 << 28).  `GDK_CONTROL_MASK` (1 << 2) is this file's row already
+  (`status 4.363`), so the family is now complete except for the three shift/lock bits no C text here
+  names.  The shifts are GDK's documented ones, quoted rather than measured.
+- **`PangoAttrList`** (an opaque head), **`gtk_im_context_get_preedit_string`** and
+  **`pango_attr_list_unref`** - C 6418's read of the preedit string, its attribute list and the
+  cursor, and C 6434's release of that list.  C 2339-2349 already holds the `GtkIMContext` and
+  connects the three callbacks, so the getter is the only `gtk_im_context_*` entry point the file had
+  left; the record joins the four Pango records the `HAVE_GTK3` block carries.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move by
+the slice's five retirements (`xg_add_virtual_mods`, `xg_virtual_mods_to_x` and the three
+`xg_im_context_*` callbacks - the group the first slice's forward declarations left open) with no new
+class, and the pgtk probe reads 1,505 -> 1,520.
+
+**UNVERIFIED.**  Neither GTK nor Pango is on this machine, so all eleven rows are taken from the
+documents' shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
+recorded for the GtkPrint* surface.

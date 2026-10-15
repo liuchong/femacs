@@ -9300,3 +9300,205 @@ pub unsafe extern "C" fn xg_initialize ()   // C 6246-6312
   #[cfg (feature = "have_xwidgets")]
   { xg_gtk_initialized = true; }                                        // C 6310
 }
+
+/* C 6313's blank and C 6314's `#ifndef HAVE_PGTK`, then the five callbacks between it and
+   `xg_widget_key_press_event_cb`: the two virtual-modifier translators and the three
+   input-method context callbacks.  C 6314's `#endif` is C 6629 (far past this slice), so the
+   four items after the first pair carry that fold as a prefix.  */
+
+/// C 6315-6336: `static void xg_add_virtual_mods (struct x_display_info *dpyinfo, GdkEventKey *key)`
+/// - turn X's real modifier masks into the GDK bits the rest of this file reads: `meta_mod_mask`
+/// becomes GDK's Mod1 when X has no separate alt mask and GDK's Meta when it has (C 6324), and the
+/// three others map one to one.  C `static`, no address taken, so a plain `unsafe fn`; C 6318 reads
+/// the state once into `modifiers` and C 6325/6327/6331/6333/6335 write `key->state` (so the read is
+/// what makes "did X report this bit" independent of GDK's own additions - C's comment at C 6322-6323
+/// says why).  `GDK_*_MASK` are the mirror's constants, `dpyinfo`'s four masks the X mirror's.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe fn xg_add_virtual_mods (dpyinfo: *mut x_display_info, key: *mut GdkEventKey)   // C 6315-6336
+{
+  let modifiers: guint = (*key).state;                                  // C 6318
+
+  if modifiers & (*dpyinfo).meta_mod_mask != 0                           // C 6320
+    {
+      /* GDK always assumes Mod1 is alt, but that's no reason for
+	 us to make that mistake as well.  */
+      if (*dpyinfo).alt_mod_mask == 0                                   // C 6324
+	{ (*key).state |= GDK_MOD1_MASK; }                              // C 6325
+      else
+	{ (*key).state |= GDK_META_MASK; }                              // C 6327
+    }
+
+  if modifiers & (*dpyinfo).alt_mod_mask != 0                            // C 6330
+    { (*key).state |= GDK_MOD1_MASK; }                                  // C 6331
+  if modifiers & (*dpyinfo).super_mod_mask != 0                          // C 6332
+    { (*key).state |= GDK_SUPER_MASK; }                                 // C 6333
+  if modifiers & (*dpyinfo).hyper_mod_mask != 0                          // C 6334
+    { (*key).state |= GDK_HYPER_MASK; }                                 // C 6335
+}
+
+/// C 6338-6357: `static unsigned int xg_virtual_mods_to_x (struct x_display_info *dpyinfo, guint
+/// virtual)` - the other direction: strip every bit GDK owns outside X's five masks (C 6341-6347's
+/// `~` sum) and map Meta/Super/Hyper back through the display's own masks.  C `static`, no address
+/// taken, so a plain `unsafe fn`; the return type is C's `unsigned int` (`c_uint`), and C's `~` is
+/// Rust's `!` (the same bitwise complement on the same width).
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe fn xg_virtual_mods_to_x (dpyinfo: *mut x_display_info, virtual_: guint) -> c_uint   // C 6338-6357
+{
+  let mut modifiers: c_uint = virtual_ & !(GDK_SUPER_MASK                      // C 6341
+					   | GDK_META_MASK                     // C 6342
+					   | GDK_HYPER_MASK                    // C 6343
+					   | GDK_MOD2_MASK                     // C 6344
+					   | GDK_MOD3_MASK                     // C 6345
+					   | GDK_MOD4_MASK                     // C 6346
+					   | GDK_MOD5_MASK);                   // C 6347
+
+  if virtual_ & GDK_META_MASK != 0                                      // C 6349
+    { modifiers |= (*dpyinfo).meta_mod_mask; }                          // C 6350
+  if virtual_ & GDK_SUPER_MASK != 0                                     // C 6351
+    { modifiers |= (*dpyinfo).super_mod_mask; }                         // C 6352
+  if virtual_ & GDK_HYPER_MASK != 0                                     // C 6353
+    { modifiers |= (*dpyinfo).hyper_mod_mask; }                         // C 6354
+
+  return modifiers;                                                     // C 6356
+}
+
+/// C 6359-6408: `static void xg_im_context_commit (GtkIMContext *imc, gchar *str, gpointer
+/// user_data)` - the input method's `commit` handler: build a `MULTIBYTE_CHAR_KEYSTROKE_EVENT` whose
+/// argument is `str` decoded as UTF-8 (C 6376-6377), falling back to a unibyte string when the
+/// decoder answers nil (C 6380-6381), tag it with the `coding` property (C 6383-6385), fill in the
+/// frame and - under XInput2 - the device that sent the keystroke being filtered (C 6387-6401), zero
+/// the two remaining fields and store the event.  C `static` and `G_CALLBACK`'d at C 2345, so
+/// `unsafe extern "C" fn`; C 6364's uninitialised `struct input_event ie` starts zeroed in the port
+/// (PORTING.md 1.5 - `EVENT_INIT` takes its address), C 6375's kind store is the
+/// `input_event_bits!` accessor (P-80, slice 26's finding), and C 6399's `ie.device` is a
+/// `Lisp_Object` on both sides (`xi_device_t.name` too), so the assignment is direct.  C 6371-6373's
+/// comment is carried at its own position, between `EVENT_INIT` and the kind store.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" fn xg_im_context_commit (imc: *mut GtkIMContext, str_: *mut gchar,
+					   user_data: gpointer)   // C 6359-6408
+{
+  let f: *mut frame = user_data as *mut frame;                          // C 6363
+  let mut ie: input_event = std::mem::zeroed ();                        // C 6364
+  /* C 6365-6368's `#ifdef HAVE_XINPUT2` locals.  */
+  #[cfg (feature = "have_xinput2")]
+  let mut source: *mut xi_device_t;                                     // C 6366
+  #[cfg (feature = "have_xinput2")]
+  let mut dpyinfo: *mut x_display_info;                                 // C 6367
+
+  EVENT_INIT ((&raw mut ie));                                           // C 6370
+  /* This used to use g_utf8_to_ucs4_fast, which led to bad results
+     when STR wasn't actually a UTF-8 string, which some input method
+     modules commit.  */
+
+  input_event_bits! (kind, (&raw mut ie), MULTIBYTE_CHAR_KEYSTROKE_EVENT);   // C 6375
+  ie.arg = decode_string_utf_8 (Qnil (), str_, strlen (str_) as ptrdiff_t,   // C 6376
+				Qnil (), false, Qnil (), Qnil ());      // C 6377
+
+  /* STR is invalid and not really encoded in UTF-8.  */
+  if NILP (ie.arg)                                                      // C 6380
+    { ie.arg = build_unibyte_string (str_); }                           // C 6381
+
+  Fput_text_property (make_fixnum (0),                                  // C 6383
+		      make_fixnum (SCHARS (ie.arg) as EMACS_INT),       // C 6384
+		      Qcoding (), Qt (), ie.arg);                       // C 6385
+
+  /* C 6387-6401's `#ifdef HAVE_XINPUT2`.  */
+  #[cfg (feature = "have_xinput2")]
+  {
+    dpyinfo = FRAME_DISPLAY_INFO! (f);                                  // C 6388
+
+    /* There is no timestamp associated with commit events, so use the
+       device that sent the last event to be filtered.  */
+    if (*dpyinfo).pending_keystroke_time != 0                           // C 6392
+      {
+	(*dpyinfo).pending_keystroke_time = 0;                          // C 6394
+	source = xi_device_from_id (dpyinfo,                            // C 6395
+				    (*dpyinfo).pending_keystroke_source);   // C 6396
+
+	if ! source.is_null ()                                          // C 6398
+	  { ie.device = (*source).name; }                               // C 6399
+      }
+  }
+
+  XSETFRAME! (ie.frame_or_window, f);                                   // C 6403
+  ie.modifiers = 0;                                                     // C 6404
+  ie.timestamp = 0;                                                     // C 6405
+
+  kbd_buffer_store_event ((&raw mut ie) as *mut c_void);                // C 6407
+}
+
+/// C 6410-6435: `static void xg_im_context_preedit_changed (GtkIMContext *imc, gpointer user_data)`
+/// - the input method's `preedit-changed` handler: ask the context for its preedit string, its
+/// attribute list and the cursor's offset, build a `PREEDIT_TEXT_EVENT` from the string and, when
+/// the string is not empty, tag the character under the cursor with the `cursor` property (C
+/// 6425-6429's `min`/`max` pair).  C `static` and `G_CALLBACK`'d at C 2347, so `unsafe extern "C"
+/// fn`; C 6413-6416's four locals are written through addresses (`str`/`list` by the getter, `inev`
+/// by `EVENT_INIT`), so the port zeroes them (PORTING.md 1.5); C 6421's kind store is the accessor
+/// again; and C 6425-6428's `cursor` is a `gint` inside `isize` arithmetic, spelled `cursor as
+/// isize` - the `src/xfns.rs` 5144 reading of C's own twin in `x_preedit_changed_callback`.
+/* C: /* This callback is called when the input method's preedit text changes.  */  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" fn xg_im_context_preedit_changed (imc: *mut GtkIMContext,
+						    user_data: gpointer)   // C 6410-6435
+{
+  let mut list: *mut PangoAttrList = std::ptr::null_mut ();             // C 6413
+  let mut str_: *mut gchar = std::ptr::null_mut ();                     // C 6414
+  let mut cursor: gint = 0;                                             // C 6415
+  let mut inev: input_event = std::mem::zeroed ();                      // C 6416
+
+  gtk_im_context_get_preedit_string (imc, (&raw mut str_), (&raw mut list),   // C 6418
+				     (&raw mut cursor));
+
+  EVENT_INIT ((&raw mut inev));                                         // C 6420
+  input_event_bits! (kind, (&raw mut inev), PREEDIT_TEXT_EVENT);        // C 6421
+  inev.arg = build_string_from_utf8 (str_);                             // C 6422
+
+  if SCHARS (inev.arg) != 0                                             // C 6424
+    {
+      Fput_text_property (make_fixnum (min (SCHARS (inev.arg) - 1,      // C 6425
+					    max (0, cursor as isize))), // C 6426
+			  make_fixnum (min (SCHARS (inev.arg),          // C 6427
+					    max (0, cursor as isize) + 1)),   // C 6428
+			  Qcursor (), Qt (), inev.arg);                 // C 6429
+    }
+
+  kbd_buffer_store_event ((&raw mut inev) as *mut c_void);              // C 6431
+
+  g_free (str_ as gpointer);                                            // C 6433
+  pango_attr_list_unref (list);                                         // C 6434
+}
+
+/// C 6437-6446: `static void xg_im_context_preedit_end (GtkIMContext *imc, gpointer user_data)` -
+/// the input method's `preedit-end` handler, the shortest of the three: an empty
+/// `PREEDIT_TEXT_EVENT`.  C `static` and `G_CALLBACK`'d at C 2349, so `unsafe extern "C" fn`; C
+/// 6440's uninitialised `struct input_event inev` is zeroed for `EVENT_INIT`'s address (PORTING.md
+/// 1.5), and C 6444's `inev.arg = Qnil;` is the port's `Qnil ()`.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" fn xg_im_context_preedit_end (imc: *mut GtkIMContext,
+						user_data: gpointer)   // C 6437-6446
+{
+  let mut inev: input_event = std::mem::zeroed ();                      // C 6440
+
+  EVENT_INIT ((&raw mut inev));                                         // C 6442
+  input_event_bits! (kind, (&raw mut inev), PREEDIT_TEXT_EVENT);        // C 6443
+  inev.arg = Qnil ();                                                   // C 6444
+  kbd_buffer_store_event ((&raw mut inev) as *mut c_void);              // C 6445
+}
+
+/* C 6376's `decode_string_utf_8` is `coding.h` 695-697's declaration (the definition is
+   `coding.c`'s / `src/coding.rs` 200-207's module-private block), and no mirror in this unit's graph
+   has a row, so it stands at the use site under this unit's gate - Owed 18's class.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn decode_string_utf_8 (arg0: Lisp_Object, text: *const c_char, nbytes: ptrdiff_t,
+			      arg3: Lisp_Object, arg4: bool, arg5: Lisp_Object,
+			      arg6: Lisp_Object) -> Lisp_Object;          // coding.h 695-697
+}
+
+/* C 6395's `xi_device_from_id` is `xterm.h` 2022's declaration (the definition is C 5794-5811,
+   `src/xterm.rs` 6318), and no mirror in this unit's graph has a row - Owed 18's class, the
+   `src/xmenu.rs` 866 shape with xterm's own two-feature gate.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe extern "C" {
+  pub fn xi_device_from_id (dpyinfo: *mut x_display_info, id: c_int) -> *mut xi_device_t;   // xterm.h 2022
+}

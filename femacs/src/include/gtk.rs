@@ -3395,3 +3395,42 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn XftInit (config: *const c_char) -> c_int;
 }
+
+/// C: pango/pango-attributes.h: `typedef struct _PangoAttrList PangoAttrList;` - the pointee of C
+/// 6413's `list`, written by `gtk_im_context_get_preedit_string` and released by
+/// `pango_attr_list_unref`.  Pango is not on this machine (`status 4.355`'s boundary), so the head
+/// is opaque and the row **UNVERIFIED**.
+#[repr(C)]
+pub struct PangoAttrList
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkimcontext.h: `void gtk_im_context_get_preedit_string (GtkIMContext *context, gchar
+/// **str, PangoAttrList **attrs, gint *cursor_pos);` - C 6418's read of the preedit string, its
+/// attribute list and the cursor's offset.  C 2339-2349 already holds the context and connects the
+/// three callbacks, so this is the only `gtk_im_context_*` entry point the file had left.
+/// **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_im_context_get_preedit_string (context: *mut GtkIMContext, str_: *mut *mut gchar,
+					    attrs: *mut *mut PangoAttrList, cursor_pos: *mut gint);
+}
+/// C: pango/pango-attributes.h: `void pango_attr_list_unref (PangoAttrList *list);` - C 6434's
+/// release of the list the getter above hands out.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn pango_attr_list_unref (list: *mut PangoAttrList);
+}
+/// C: gdk/gdktypes.h: `GdkModifierType`'s seven virtual-modifier bits C 6325-6335 writes into
+/// `GdkEventKey.state` and C 6341-6354 tests: `GDK_SHIFT_MASK = 1 << 0`, `GDK_LOCK_MASK = 1 << 1`,
+/// `GDK_CONTROL_MASK = 1 << 2`, `GDK_MOD1_MASK = 1 << 3`, `GDK_MOD2_MASK = 1 << 4`, `GDK_MOD3_MASK =
+/// 1 << 5`, `GDK_MOD4_MASK = 1 << 6`, `GDK_MOD5_MASK = 1 << 7`, `GDK_SUPER_MASK = 1 << 26`,
+/// `GDK_HYPER_MASK = 1 << 27`, `GDK_META_MASK = 1 << 28`.  `GDK_CONTROL_MASK` is this file's row
+/// already; these seven are the rest of the family the two translators need, and their values are
+/// GDK's documented ones (the shifts are quoted, not measured).  **UNVERIFIED.**
+pub const GDK_MOD1_MASK: c_uint = 1 << 3;
+pub const GDK_MOD2_MASK: c_uint = 1 << 4;
+pub const GDK_MOD3_MASK: c_uint = 1 << 5;
+pub const GDK_MOD4_MASK: c_uint = 1 << 6;
+pub const GDK_MOD5_MASK: c_uint = 1 << 7;
+pub const GDK_SUPER_MASK: c_uint = 1 << 26;
+pub const GDK_HYPER_MASK: c_uint = 1 << 27;
+pub const GDK_META_MASK: c_uint = 1 << 28;
