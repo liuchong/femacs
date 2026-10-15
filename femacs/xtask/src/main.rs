@@ -1702,7 +1702,7 @@ fn dead_arms() -> i32 {
         return fail(e);
     }
     let units = match finished_units() {
-        Ok(u) => c_translation_units(u),
+        Ok(u) => buildable_units(u),
         Err(e) => return fail(e),
     };
     let mut n = 0;
@@ -2115,37 +2115,37 @@ fn finished_units() -> Result<Vec<String>, String> {
     Ok(units)
 }
 
-/// The subset of `finished_units()` a **C** build can compile.
+/// The subset of `finished_units()` this leg can build: the entries whose port **exists**.
 ///
-/// `build-tu`'s path is the C one, and the finished set also holds nine references that are
-/// not translation units: the two header ledgers (`src/lisp.h`, `lib/arg-nonnull.h`) - mirrors
-/// with no object of their own, since `layout-check` asserts their types and every unit that
-/// includes them compiles them - and the seven Objective-C ledgers (`src/*.m`), whose ports are
-/// the Swift units under `femacs/platform/macos/` (`tools/check-swift-units.py` reads those).
-/// Measured 2026-10-15, the first round in which every finished unit was built: the leg failed
-/// on exactly those nine entries (six "does not exist yet" for the `.m` files, whose Rust name
-/// `build_tu` derives from the C stem, and three unresolved names in the two headers).
-fn c_translation_units(units: Vec<String>) -> Vec<String> {
+/// `finished_units()` already skips the `.h` ledgers (they are mirrors, reached through the
+/// units that include them), but it maps an Objective-C reference through `port_path`, which
+/// gives `src/nsfns.rs` - a path no port owns, because those files' ports are the **Swift**
+/// units under `femacs/platform/macos/` (`tools/check-swift-units.py` reads those).  Measured
+/// 2026-10-15, the first round in which the whole finished set was handed to `rustc`: the leg
+/// failed on exactly those seven entries ("src/nsfns.rs does not exist yet"), and every `.rs`
+/// it names that *does* exist builds.  The two `lib/arg-nonnull.h`-style header ledgers and the
+/// `.m` files are therefore printed and skipped, not silently dropped.
+fn buildable_units(units: Vec<String>) -> Vec<String> {
     let mut skipped: Vec<String> = Vec::new();
     let kept: Vec<String> = units
         .into_iter()
         .filter(|u| {
-            if u.ends_with(".c") {
-                true
-            } else {
+            let ok = u.ends_with(".rs") && Path::new(REPO).join("femacs").join(u).is_file();
+            if !ok {
                 skipped.push(u.clone());
-                false
             }
+            ok
         })
         .collect();
     if !skipped.is_empty() {
-        println!("skipped {} non-C reference(s): {}", skipped.len(), skipped.join(", "));
+        println!("skipped {} reference(s) with no buildable port (a Swift/Objective-C unit or a \
+                  header mirror): {}", skipped.len(), skipped.join(", "));
     }
     kept
 }
 
 fn build_finished_tus() -> Result<(), String> {
-    let units = c_translation_units(finished_units()?);
+    let units = buildable_units(finished_units()?);
     let mut built = 0usize;
     fs::create_dir_all(BUILD).ok();
     for unit in &units {
