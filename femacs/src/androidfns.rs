@@ -4566,6 +4566,64 @@ unsafe extern "C" fn syms_of_androidfns_for_pdumper ()
 
 /* C 3577: the `#endif /* ANDROID_STUBIFY */` that closes C 3361's block.  */
 
+/* C's seventeen `globals.f_<name>` fields this unit's `syms_of_androidfns` registers (its
+   `DEFVAR_LISP`/`DEFVAR_BOOL` calls at C 3587, 3597, 3601, 3606, 3611, 3616, 3621, 3626, 3631,
+   3636, 3641, 3646, 3657, 3662, 3673, 3701 and 3723), defined here as the port's storage -
+   C's `struct emacs_globals` is zero-initialised and the `DEFVAR_*` macros only take each
+   field's address, so the initialisers are `lisp_h_Qnil ()` / `false` (docs/status.md 3.29, the
+   `src/cmds.rs` 489-492 row).  */
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_pointer_shape: Lisp_Object = lisp_h_Qnil ();   // C 3587
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_hourglass_pointer_shape: Lisp_Object = lisp_h_Qnil ();   // C 3597
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_sensitive_text_pointer_shape: Lisp_Object = lisp_h_Qnil ();   // C 3601
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_horizontal_drag_shape: Lisp_Object = lisp_h_Qnil ();   // C 3606
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_vertical_drag_shape: Lisp_Object = lisp_h_Qnil ();   // C 3611
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_left_edge_shape: Lisp_Object = lisp_h_Qnil ();   // C 3616
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_top_left_corner_shape: Lisp_Object = lisp_h_Qnil ();   // C 3621
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_top_edge_shape: Lisp_Object = lisp_h_Qnil ();   // C 3626
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_top_right_corner_shape: Lisp_Object = lisp_h_Qnil ();   // C 3631
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_right_edge_shape: Lisp_Object = lisp_h_Qnil ();   // C 3636
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_bottom_right_corner_shape: Lisp_Object = lisp_h_Qnil ();   // C 3641
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_bottom_edge_shape: Lisp_Object = lisp_h_Qnil ();   // C 3646
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_window_bottom_left_corner_shape: Lisp_Object = lisp_h_Qnil ();   // C 3657
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_cursor_fore_pixel: Lisp_Object = lisp_h_Qnil ();   // C 3662
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vx_max_tooltip_size: Lisp_Object = lisp_h_Qnil ();   // C 3673
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut android_use_exec_loader: bool = false;   // C 3701
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub static mut Vandroid_os_language: Lisp_Object = lisp_h_Qnil ();   // C 3723
+
 /* C 3578-3797: `syms_of_androidfns` (C 3579-3797), the file's last item - the `DEFSYM`s, the
    `DEFVAR_LISP`/`DEFVAR_BOOL`/`DEFVAR_INT` registrations, the thirty-five `defsubr`s, the six
    `staticpro`s and the pdumper hook.  C's two `#if false` blocks (C 3591-3594 and C 3651-3654)
