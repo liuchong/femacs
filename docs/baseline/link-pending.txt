@@ -65,7 +65,6 @@ _closedir	the reference references it too (or an SDK .tbd exports it): provided 
 _confstr	the reference references it too (or an SDK .tbd exports it): provided at link time
 _connect	the reference references it too (or an SDK .tbd exports it): provided at link time
 _cos	the reference references it too (or an SDK .tbd exports it): provided at link time
-_current_buffer	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _devname	the reference references it too (or an SDK .tbd exports it): provided at link time
 _dup	the reference references it too (or an SDK .tbd exports it): provided at link time
 _dup2	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -179,7 +178,6 @@ _ntohs	the reference references it too (or an SDK .tbd exports it): provided at 
 _open	the reference references it too (or an SDK .tbd exports it): provided at link time
 _pathconf	the reference references it too (or an SDK .tbd exports it): provided at link time
 _pipe	the reference references it too (or an SDK .tbd exports it): provided at link time
-_pipe2	the reference references it too (or an SDK .tbd exports it): provided at link time
 _posix_madvise	the reference references it too (or an SDK .tbd exports it): provided at link time
 _posix_openpt	the reference references it too (or an SDK .tbd exports it): provided at link time
 _posix_spawn	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -219,7 +217,6 @@ _realpath	the reference references it too (or an SDK .tbd exports it): provided 
 _recvfrom	the reference references it too (or an SDK .tbd exports it): provided at link time
 _rename	the reference references it too (or an SDK .tbd exports it): provided at link time
 _renameatx_np	the reference references it too (or an SDK .tbd exports it): provided at link time
-_reset_mouse_highlight	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _rint	the reference references it too (or an SDK .tbd exports it): provided at link time
 _rmdir	the reference references it too (or an SDK .tbd exports it): provided at link time
 _scalbn	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -244,9 +241,6 @@ _sigsuspend	the reference references it too (or an SDK .tbd exports it): provide
 _sin	the reference references it too (or an SDK .tbd exports it): provided at link time
 _snprintf	the reference references it too (or an SDK .tbd exports it): provided at link time
 _socket	the reference references it too (or an SDK .tbd exports it): provided at link time
-_specpdl	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_specpdl_end	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_specpdl_ptr	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _sprintf	the reference references it too (or an SDK .tbd exports it): provided at link time
 _sqrt	the reference references it too (or an SDK .tbd exports it): provided at link time
 _srandom	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -255,7 +249,7 @@ _stat	the reference references it too (or an SDK .tbd exports it): provided at l
 _statfs	the reference references it too (or an SDK .tbd exports it): provided at link time
 _stpcpy	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strcasecmp	the reference references it too (or an SDK .tbd exports it): provided at link time
-_strcat	libc; C `xdisp.c` 25665 calls `strcat (lnum_buf, " ")` and the port mirrors it (`femacs/src/xdisp.rs` 24309) - clang folds that call inside the reference's own object, so the reference-use half does not carry it, while the SDK's `libSystem.B.tbd` does export it (the tbd-version 4 parse of status 3.603); the generic reason would be wrong for this row
+_strcat	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strchr	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strcmp	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strcpy	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -276,7 +270,6 @@ _strtoimax	the reference references it too (or an SDK .tbd exports it): provided
 _strtol	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strtoul	the reference references it too (or an SDK .tbd exports it): provided at link time
 _symlink	the reference references it too (or an SDK .tbd exports it): provided at link time
-_syms_of_xwidget	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _sync	the reference references it too (or an SDK .tbd exports it): provided at link time
 _sysconf	the reference references it too (or an SDK .tbd exports it): provided at link time
 _sysctl	the reference references it too (or an SDK .tbd exports it): provided at link time
