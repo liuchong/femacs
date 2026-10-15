@@ -20748,3 +20748,11 @@
   ⑤ **更正 4.376**：那条"端口每一次批处理会话都以错误结束"**不准确** ✗——准确说法是**当命令行留下一个要被访问的文件时**才触发 ✓（我当时的 driver 只**遍历** `command-line-args-left` 而没有**消费**它 ✗ → 那个文件于是被 `command-line` 当成"要访问的文件" ✓✓）；`-Q --batch -l <file>`（不访问文件 ✓）端口 **exit 0、stderr 干净** ✓（本轮实测 ✓）。所以 4.376 里"任何按退出码判断的脚本都会误判"也要按这个前提收窄 ✓。
   ⑥ **未声称**：v①③ 的缺陷**未修** ✗；④的赋值点**未找到** ✗；`initial-environment` 少的那一条（68 vs 69）**未查** ✓；4.373 的"47 个文件"仍未按返回值口径重测 ✓。
   ⑦ **预算与清理**：本轮**零 Rust 编译**（只跑程序与 grep）；端口调用约 8 次；零全盘扫描、零大内存任务；`/tmp/d`、`/tmp/p*.el` 收尾删除。
+
+- **4.378 验证相第十轮：`temporary-file-directory` 的赋值来自"端口树里缺的那批 Lisp"（决定性实验），但不在 `loaddefs.el`（已排除）（2026-10-16）**：
+  ① **决定性实验**：同一个端口二进制，**只换 Lisp 树**——`EMACSLOADPATH=<repo>/emacs/lisp`（参照的完整树，含 1,645 个 `.elc` 与 82 个生成的 `.el`）时 **`temporary-file-directory` = `"/var/folders/…/T/"`** ✓；用它自己的树（`build/port/lisp`）时 = **nil** ✗。⇒ 赋值**发生在 Lisp 侧**，且**落在端口树缺失的那批文件里** ✓✓（不是 C 侧差异、也不是"两侧 Lisp 文本不同"——两侧 Lisp 逐字相同 ✓）。
+  ② **已排除的候选**：把参照的生成物逐个 `load` 进端口都不改变值 ✗ —— `loaddefs.el`、`loaddefs.elc`、`cus-load.el`、`finder-inf.el`、`subdirs.el`、`theme-loaddefs.el`、`leim/leim-list.el`（`strings` 显示 `loaddefs.el`/`ldefs-boot.el` 各只有 2 处符号名，不是 setter ✓）。另外：**参照的 `loadup` 加载 `loaddefs`，端口加载 `ldefs-boot`** ✓（端口缺生成物 ⇒ 走 bootstrap 回退 ✓，两条 loadup 轨迹的唯一文件级差异就在这里 ✓）；`add-variable-watcher` 在**重载 loadup** 时**没有捕获到任何 set** ✗（因为值在 `-l` 文件运行之前就已经设置好了 ✓，watcher 装得太晚 ✓）。
+  ③ **结论与下一步（可测的预言）**：赋值点在**端口缺的那批 Lisp**（生成物或它们的 `.elc`）里 ✓ —— 因此**补上端口的生成物（L3 的生成步骤）很可能同时消掉这个缺陷** ✓✓：下一轮先按 `admin/unidata`+`admin/charsets`+`loaddefs` 那条已知路线把端口树补全，然后**直接重测** `-Q --batch <file>`（应当从 exit 255 变成跟参照一样 exit 0 ✓）；若仍为 nil，再用 `EMACSLOADPATH` 的*目录子集*二分（路径是目录列表，可逐目录收窄 ✓）或对参照的 `lisp/` 做副本删文件二分 ✓。
+  ④ **顺带读数（本轮实测，值得记下）**：端口 + 参照的完整 Lisp 树时，`(locate-library "loaddefs")` = `.../emacs/lisp/loaddefs.elc` ✓ —— 即端口的 `load-path` 能正确解析参照的 `.elc` ✓。
+  ⑤ **未声称**：赋值点**仍未指名**（只知道"在缺的那批文件里" ✓）；①②的两个缺陷**未修** ✗；`initial-environment` 少一条（68 vs 69）**未查** ✓。
+  ⑥ **预算与清理**：本轮**零 Rust 编译**；端口调用约 6 次（参照调用瞬时 ✓）；零全盘扫描、零大内存任务；`/tmp/*.el`、`/tmp/g.el`、`/tmp/h.el`、`/tmp/i.el`、轨迹文件收尾删除。
