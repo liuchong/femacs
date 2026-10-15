@@ -345,3 +345,71 @@ sha256[0:16] `a959f1d7a8bb4e11`.
 from the port's objects alone - prints `19 expression(s), 0 failure(s)` against that golden.  The
 dumped golden (`docs/baseline/l0-reference.txt`) is unchanged and still has no check side: a
 dumped port binary needs L3's `dump` step, which needs the generated Lisp (next section).
+
+
+## 生成物（完成定义第 4 条）：端口自己产出的第一批读数（2026-10-16）
+
+`femacs/lisp/` 是参照 `lisp/` 的逐字副本，因此参照构建**生成**的那些文件在端口树里没有：`lisp/`
+下 **82 个生成的 `.el`**（`international/uni-*.el`、`charscript.el`、`charprop.el`、
+`*-loaddefs.el`、`leim/quail/*.el`、`cedet` 的 `*-by/-wy.el`、`subdirs.el` 等）与 **1,645 个
+`.elc`**。它们由参照构建自己的配方产出，这些配方按目标写进**源码树**（`.gitignore` 里对它们有
+规则）；端口用同一批工具、同一批输入、同一份配方，写进 `femacs/` 的对应路径。
+
+**AWK 生成的两族（无 emacs 参与，gawk = 冻结构建的 `AWK`）**
+
+```sh
+cd emacs/admin/unidata && gawk -f blocks.awk Blocks.txt emoji-data.txt \
+    > <port>/femacs/lisp/international/charscript.el
+cd emacs/admin/unidata && gawk -f emoji-zwj.awk emoji-zwj-sequences.txt emoji-sequences.txt \
+    emoji-variation-sequences.txt emoji-test.txt > <port>/femacs/lisp/international/emoji-zwj.el
+cd emacs/admin/charsets && gawk -f cp51932.awk < ../../../emacs/etc/charsets/CP932-2BYTE.map \
+    > <port>/femacs/lisp/international/cp51932.el
+cd emacs/admin/charsets && gunzip -c glibc/EUC-JP-MS.gz | gawk -f eucjp-ms.awk \
+    > <port>/femacs/lisp/international/eucjp-ms.el
+```
+
+| 产物 | 字节 | 与参照产物 |
+| --- | ---: | --- |
+| `international/charscript.el` | 28,303 | **逐字节一致** |
+| `international/emoji-zwj.el` | 191,950 | **逐字节一致** |
+| `international/cp51932.el` | 9,631 | **逐字节一致** |
+| `international/eucjp-ms.el` | 39,937 | **逐字节一致** |
+
+这四件是完成定义第 4 条的第一批读数，也让端口**在自己的树上跑完整个 `loadup.el`**（下一节）。
+
+**emacs 生成的族（`admin/unidata` 的 `unidata-gen-*`）**
+
+配方（与 `admin/unidata/Makefile.in` 同形；`unidata.txt` 由 `sed` 从 `UnicodeData.txt` 产出）：
+
+```sh
+sed -e 's/\([^;]*\);\（.*\)/(#x\1 "\2")/' -e 's/;/" "/g' < UnicodeData.txt > unidata.txt
+<emacs> -batch --no-site-file --no-site-lisp -L <admin/unidata> -l unidata-gen \
+    -f unidata-gen-file <target> <admin/unidata> <unidata.txt>
+<emacs> -batch --no-site-file --no-site-lisp -L <admin/unidata> -l unidata-gen \
+    -f unidata-gen-charprop <target>
+<emacs> -batch --no-site-file --no-site-lisp -L <admin/unidata> -l unidata-gen \
+    -f unidata-gen-scripts|unidata-gen-confusable|unidata-gen-idna-mapping <target>
+<emacs> -batch --no-site-file --no-site-lisp -L <lisp/international> -l emoji.el \
+    -f emoji--generate-file <target>
+```
+
+**端口自己跑通了这条配方**（`build/port/src/temacs` 生成 `uni-bidi.el`：exit 0，12,387 字节），
+与参照的 `emacs/lisp/international/uni-bidi.el` 相比**只在程序自己的名字那一行不同**
+（`;; This file is part of femacs.` 对 `;; This file is part of GNU Emacs.`，3 字节 =
+PORTING.md 0.1-19 那条：端口用自己的名字，不许写参照的名字；`unidata-gen.el` 第 9 行是
+`check-verbatim.py` 的 8,463 条 sanctioned 改名之一）。**剩下的差异来自生成器自身的形态**：参照的
+配方把 `unidata-gen.elc` 作为 order-only 前置（`-l unidata-gen` 因此加载**字节编译过的**生成器 ✓），
+端口当时还没有 `.elc`，所以它加载源码版 ✓，生成物里内嵌的 compiled-function 字面量因此不同。
+**结论：生成物逐字节一致这一条，先决条件是端口的字节编译器产出与参照一致的 `.elc`**（下一节）。
+
+## 端口在自己的树上跑完 `loadup.el`（2026-10-16）
+
+```sh
+build/port/src/temacs -Q --batch --eval '(princ (+ 1 2))'   # 不设 EMACSLOADPATH
+```
+
+`exit 0`、stdout `3`、stderr **108 个 `Loading ...`**（端口自己的 `lisp/`，源码形式
+`(source)`；load-path 读作 `build/port/lisp/...`）。这需要上面四件 AWK 生成物：端口此前依次停在
+`charscript`、`cp51932`（`Cannot open load file`），补上后 loadup 一路走完
+（`cus-start.el` 是最后一个）。`.elc` 与其余 78 个生成 `.el` **不是**这一级的先决条件
+（端口按 `.el` 源码加载）。
