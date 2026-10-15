@@ -381,3 +381,75 @@ and absent in one, and no single tool run reproduces the loss - each of
 `extract-abi.py --all`, `check-symbols.py` (both forms), `check-undef.py`, `check-link.py`, the
 link gate's own `make -n -W emacs.o temacs` and `build-tu` leaves 161 objects and the archive in
 place.  The guard is what makes a next occurrence read as a setup gap rather than as debt.
+
+## Reading six (2026-10-16, status 4.371): the port has to own C's member set - and the first run
+
+`gate-fast` went green end to end (status 4.370), so `gate-load` became the next rung's evidence -
+and it failed on its first full-scale run with one name:
+
+    undefined symbols: 1 (referenced from 1 object(s))
+         1  libgnu-port.a[46](getloadavg.o)
+
+### What the archive stands in for
+
+The gate substitutes the port's objects for the reference archive's members, and until this round
+it substituted **every ported `lib/` unit** ("the port has no archive of its own", the call site's
+older comment).  That is not C's object set.  The reference archive names 87 members with `ar t`,
+and `libgnulib`'s own module list is what decides them: a `lib/` file whose module this
+configuration does not use (*the system provides the function*) is **not compiled** - `open.c`,
+`fcntl.c`, `getdelim.c`, `getline.c`, `getgroups.c`, `getloadavg.c`, `mkostemp.c`, `stpcpy.c`,
+`strnlen.c`, `strtoimax.c`, `strtoll.c`, `time_r.c`, `fchmodat.c`, `cloexec.c` and more.
+
+Linking those objects is not harmless, because gnulib writes such a replacement under the
+**plain** name of the function (not a `rpl_` rename, which is why `_rpl_dup2` and friends are
+inert).  The port's object then *defines a libc name* and shadows libSystem's implementation for
+the whole program.  Measured two ways:
+
+* an object-set audit - port objects whose definitions the whole C build (its `src/*.o`, its
+  `lib-src/` objects and its archive) does not define, and which some object references: **14
+  definitions across 11 units** (`open`, `fcntl`, `getdelim`, `getline`, `getgroups`, `mkostemp`,
+  `stpcpy`, `strnlen`, `strtoimax`, `strtoll`, `time_r`);
+* the program itself: it died before running any Lisp, in the port's own `open` -
+  `lldb` on `build/load/temacs-port` stopped at `EXC_BAD_ACCESS` in `open + 16`.
+
+The gate now archives the port's objects for the reference's members (with the amalgam rule:
+`X-gnulib.o` also takes `X.o`), and names any member it has no object for.  Reading: `75 port
+object(s) + 87 lib object(s)`, `undefined symbols: 0`, `link: temacs linked from the port's
+objects alone`.
+
+### The executable, and its tree
+
+The link's output moved from `build/load/temacs-port` to `build/port/src/temacs`, with the trees
+the port owns linked beside it (`build/port/lisp -> ../../femacs/lisp`, `etc`, `leim`, `doc`,
+`test`, `admin`; `lib-src/` is a real directory).  That is not cosmetic either: C's
+`init_cmdargs` walks up from the executable's directory looking for a sibling `lib-src` and `etc`
+(emacs.c 585-630) and sets `installation-directory` from what it finds, which is what
+`init_callproc` turns into `exec-directory` and the default load path.  A binary in a bare
+directory therefore behaves like an *installed* program whose prefix does not exist: measured,
+`exec-directory` was `/usr/local/libexec/emacs/32.0.50/aarch64-apple-darwin25.6.0/` and the program
+printed `Warning: arch-dependent data dir ...` that the reference does not - the **only** stderr
+difference between the two runs.  With the tree in place the walk resolves to the port's own tree
+and the warning is gone.
+
+### What the program does now
+
+* `build/port/src/temacs -Q --batch --eval '(princ (+ 1 2))'` with `EMACSLOADPATH` on the
+  reference's `lisp/`: stdout `3`, exit 0, and **3,734 bytes of stderr byte-identical** with the
+  reference's own run - the whole `loadup.el` trace, from `Loading loadup.el (source)...` through
+  `Making lexical-binding buffer-local while locally let-bound!`.
+* `tools/acceptance-l0.py --check build/port/src/temacs --golden-path
+  docs/baseline/l0-reference-temacs.txt`: `19 expression(s), 0 failure(s)`.
+* On its **own** tree (no `EMACSLOADPATH`): the port loads its own `lisp/` - the load path reads
+  `build/port/lisp/...`, sources are loaded as `(source)`, ~40 files - and stops at the first
+  file the verbatim copy does not have: `Cannot open load file: No such file or directory,
+  charscript`, required by `international/characters.el`.  That is the generated-Lisp gap
+  (`admin/unidata`'s outputs, `lisp/loaddefs.el`, `subdirs.el`), not a code defect, and it is the
+  next rung's work (docs/acceptance.md's generated-artifact section).
+
+### Owed (measured, not fixed)
+
+The **per-unit** file gates P-86 clause 8 asks for: each of the 11 units above keeps its text but
+should carry the reference's own build condition, so its object is the empty shape in the frozen
+configuration rather than a definition the archive happens not to link.  `getloadavg.rs` is the
+first one done (its gate is in `docs/ports/getloadavg.md`); the other ten are owed, with the audit
+above as the acceptance instrument (after all eleven, the audit's list is empty).
