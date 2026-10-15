@@ -852,3 +852,35 @@ collides with a name any other unit declares.
 placeholders' values and both opaque heads are taken from GTK's documented shapes and this file's
 conventions, not from headers on disk - the boundary `status 4.355` recorded for the GtkPrint*
 surface.
+
+
+### status 4.359 (the gtkutil twenty-ninth-slice round this file took part in)
+
+`src/gtkutil.c`'s tool bar item maker (C 5593-5691) is this round's consumer, and it asks for **ten
+items** - the tool item, the button, and the two spellings of the `focus-on-click` setter that GTK
+splits at 3.20.
+
+- **`GtkToolItem`** with **`gtk_tool_item_new`** and **`gtk_tool_item_set_homogeneous`** - the item
+  record (an opaque head; `GtkContainer` receives it at C 5642) and C 5600/5663's two calls.
+- **`GtkButton`** with **`GTK_BUTTON`** (the cast family's eleventh member), **`gtk_button_new`** and
+  **`gtk_button_set_relief`** - C 5605 and C 5639's calls, both faces.
+- **`GtkReliefStyle`** with **`GTK_RELIEF_NONE`** - C 5639's second argument.  Unlike this file's
+  other unverifiable enumerators the value is **not** a placeholder: GTK's documented order is
+  `GTK_RELIEF_NORMAL`, `GTK_RELIEF_HALF`, `GTK_RELIEF_NONE`, so the one row this tree names is `2`,
+  and no C text depends on the other two (the row says so).
+- **`gtk_button_set_focus_on_click`** under `not (feature = "gtk_check_version_ge_3_20")` and
+  **`gtk_widget_set_focus_on_click`** under the feature itself - the two arms of C 5634's
+  `GTK_CHECK_VERSION (3, 20, 0)` fold, each row carrying its own gate so both faces resolve: before
+  3.20 the setter is the *button's*, from 3.20 it is the *widget's*.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move by
+exactly one class on the GTK2 face only (`cannot find function gtk_hbox_new`/`gtk_vbox_new`, 7 -> 8
+each, from C 5601's `gtk_box_new` call - the C 119-121 row the unit's ledger already carries), while
+the four GTK3 faces and `AN` keep their error multisets exactly (33/33/33/33, 32); and no item of this
+batch collides with a name any other unit declares.
+
+**UNVERIFIED.**  No GTK tree is on this machine, so all ten rows' signatures are taken from GTK's
+documented shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
+recorded for the GtkPrint* surface.

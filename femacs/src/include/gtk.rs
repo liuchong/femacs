@@ -3129,3 +3129,57 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn gtk_style_context_add_class (context: *mut GtkStyleContext, class_name: *const gchar);
 }
+
+/// C: gtk/gtktoolitem.h: `typedef struct _GtkToolItem GtkToolItem;` - the record
+/// `xg_make_tool_item` returns (`gtk_tool_item_new`, `gtk_tool_item_set_homogeneous`) and the
+/// `GtkContainer` C 5642 adds to.  Both GTK faces have it; an opaque head, **UNVERIFIED**.
+#[repr(C)]
+pub struct GtkToolItem
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtktoolitem.h: `GtkToolItem *gtk_tool_item_new (void);` / `void
+/// gtk_tool_item_set_homogeneous (GtkToolItem *tool_item, gboolean homogeneous);` - C 5600's
+/// constructor and C 5663's setter.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_tool_item_new () -> *mut GtkToolItem;
+  pub fn gtk_tool_item_set_homogeneous (tool_item: *mut GtkToolItem, homogeneous: gboolean);
+}
+/// C: gtk/gtkbutton.h: `typedef struct _GtkButton GtkButton;` - the record `GTK_BUTTON` casts the
+/// item's button to; both faces.  Opaque head, **UNVERIFIED**.
+#[repr(C)]
+pub struct GtkButton
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtk.h: `#define GTK_BUTTON(obj)` - the cast family's eleventh member (same shape).
+macro_rules! GTK_BUTTON {
+  ($o:expr) => { ($o) as *mut GtkButton };
+}
+/// C: gtk/gtkenums.h: `typedef enum { GTK_RELIEF_NORMAL, GTK_RELIEF_HALF, GTK_RELIEF_NONE }
+/// GtkReliefStyle;` - C 5639's `gtk_button_set_relief (…, GTK_RELIEF_NONE)`.  The type is `c_int`
+/// and the one enumerator this tree names is GTK's own third row (`2`, taken from the documented
+/// order - unlike the placeholders above, no C text here depends on the other two); **UNVERIFIED**.
+pub type GtkReliefStyle = c_int;
+pub const GTK_RELIEF_NONE: GtkReliefStyle = 2;
+/// C: gtk/gtkbutton.h (GTK2's and GTK3's before 3.20): `GtkWidget *gtk_button_new (void);` /
+/// `void gtk_button_set_relief (GtkButton *button, GtkReliefStyle relief);` / `void
+/// gtk_button_set_focus_on_click (GtkButton *button, gboolean focus_on_click);` - C 5605, C 5639
+/// and C 5637's calls.  The last one is the `#else` arm of C 5634's `GTK_CHECK_VERSION (3, 20, 0)`,
+/// so its row carries the **negated** feature; `gtk_button_new` and `gtk_button_set_relief` stand
+/// in both faces.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_button_new () -> *mut GtkWidget;
+  pub fn gtk_button_set_relief (button: *mut GtkButton, relief: GtkReliefStyle);
+}
+#[cfg (not (feature = "gtk_check_version_ge_3_20"))]
+unsafe extern "C" {
+  pub fn gtk_button_set_focus_on_click (button: *mut GtkButton, focus_on_click: gboolean);
+}
+/// C: gtk/gtkwidget.h (GTK3's, since 3.20): `void gtk_widget_set_focus_on_click (GtkWidget *widget,
+/// gboolean can_focus_on_click);` - C 5635's call, the `#if` arm of the same fold, so the row
+/// carries the feature itself.  **UNVERIFIED.**
+#[cfg (feature = "gtk_check_version_ge_3_20")]
+unsafe extern "C" {
+  pub fn gtk_widget_set_focus_on_click (widget: *mut GtkWidget, can_focus_on_click: gboolean);
+}

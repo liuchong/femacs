@@ -8212,3 +8212,170 @@ unsafe fn xg_create_tool_bar (f: *mut frame)   // C 5523-5559
     gtk_style_context_add_class (gsty, c"primary-toolbar".as_ptr ());   // C 5557
   }
 }
+
+/* C 5560-5561's blanks and C 5562's `#define PROP`, then C 5564-5565's comment and the tool bar's
+   item creation: `find_rtl_image` and `xg_make_tool_item`.  */
+
+/// C 5562: `#define PROP(IDX) AREF (f->tool_bar_items, i * TOOL_BAR_ITEM_NSLOTS + (IDX))` - a
+/// token macro whose body reads the *enclosing* function's `f` and `i` (C macros are unhygienic;
+/// this is the `xg_frame_tb_info`/`PROP` family's shape).  Rust's `macro_rules!` is hygienic, so the
+/// port passes both in - `PROP! (f, i, TOOL_BAR_ITEM_IMAGES)` - and keeps C's arithmetic (three
+/// `c_int`s, converted to `AREF`'s `isize` at the end).  `TOOL_BAR_ITEM_*` live in the
+/// `dispextern_unit_names` module, which the macro names by path (`use` in a macro body would have
+/// to resolve at the definition site anyway).
+#[cfg (feature = "use_gtk")]
+macro_rules! PROP {
+  ($f:expr, $i:expr, $idx:expr) => {
+    AREF ((*$f).tool_bar_items,
+          (($i) * dispextern_unit_names::TOOL_BAR_ITEM_NSLOTS + ($idx)) as isize)
+  };
+}
+
+/// C 5567-5591: `static Lisp_Object find_rtl_image (struct frame *f, Lisp_Object image,
+/// Lisp_Object rtl)` - look for the right-to-left twin of an image: `rtl`'s non-directory part is
+/// taken once, then every tool bar item's own image is reduced the same way (through
+/// `file_name_sans_extension`) and the first match is returned; `image` comes back untouched when no
+/// item matches.  C `static`, no address taken, so a plain `unsafe fn`; `image` is a parameter C
+/// writes, so it is `mut`.  C 5578's assignment inside the condition is the port's two statements
+/// (the `xg_get_file_with_chooser` shape), and C 5575's `for` head/step are carried as the
+/// init/`while`/step trio with C's own line on each.
+/* C: /* Find the right-to-left image named by RTL in the tool bar images for F.
+   C:    Returns IMAGE if RTL is not found.  */  */
+#[cfg (feature = "use_gtk")]
+unsafe fn find_rtl_image (mut f: *mut frame, mut image: Lisp_Object, rtl: Lisp_Object)
+  -> Lisp_Object   // C 5567-5591
+{
+  use dispextern_unit_names::TOOL_BAR_ITEM_IMAGES;
+
+  let mut i: c_int;                                                     // C 5570
+  let mut file: Lisp_Object;                                            // C 5571
+  let rtl_name: Lisp_Object;                                            // C 5571
+
+  rtl_name = Ffile_name_nondirectory (rtl);                             // C 5573
+
+  i = 0;                                                                // C 5575 (the `for` head)
+  while i < (*f).n_tool_bar_items
+    {
+      let rtl_image: Lisp_Object = PROP! (f, i, TOOL_BAR_ITEM_IMAGES);   // C 5577
+      file = file_for_image (rtl_image);                                 // C 5578 (C's assignment)
+      if ! NILP (file)                                                   // C 5578 (C's test)
+	{
+	  file = calln! (Qfile_name_sans_extension (),                   // C 5580-5581
+			 Ffile_name_nondirectory (file));
+	  if ! NILP (Fequal (file, rtl_name))                            // C 5582
+	    {
+	      image = rtl_image;                                        // C 5584
+	      break;                                                    // C 5585
+	    }
+	}
+      i += 1;                                                           // C 5575 (the `for` step)
+    }
+
+  return image;                                                         // C 5590
+}
+
+/// C 5593-5691: `static GtkToolItem *xg_make_tool_item (struct frame *f, GtkWidget *wimage,
+/// GtkWidget **wbutton, const char *label, int i, bool horiz, bool text_image)` - build one tool
+/// bar item: the `GtkToolItem`, its box (`gtk_box_new` with C 5601-5604's orientation pair), the
+/// button, the event box that lets a disabled item still carry a tooltip, GTK3's transparent
+/// `GtkCssProvider` on that box, the three conditional packs (image before label, or after it when
+/// the item wants text first), the focus/relief/container chain, and then, when there is something
+/// to click, the four signal connections plus the frame's data on both the button and the event box.
+/// C `static`, `G_CALLBACK`'d at C 5649-5685's four sites, so `unsafe extern "C"` is **not** needed
+/// here (the *handlers* are extern; this maker is not) - a plain `unsafe fn`.  C 5634's
+/// `GTK_CHECK_VERSION (3, 20, 0)` pair is the `gtk_check_version_ge_3_20` feature (the C 4829
+/// shape), C 5612-5616's three concatenated string literals are one Rust literal (C joins them
+/// before the call), C 5616's `NULL` and C 5670/5661's `0` are `std::ptr::null_mut ()`, C 5653/5672's
+/// `(gpointer) f` is `f as gpointer`, and C 5646-5647's two conversions are `as intptr_t` followed
+/// by `as gpointer`.
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_make_tool_item (f: *mut frame, wimage: *mut GtkWidget, wbutton: *mut *mut GtkWidget,
+			     label: *const c_char, i: c_int, horiz: bool, text_image: bool)
+  -> *mut GtkToolItem   // C 5593-5691
+{
+  let ti: *mut GtkToolItem = gtk_tool_item_new ();                      // C 5600
+  let vb: *mut GtkWidget = gtk_box_new! (if horiz { GTK_ORIENTATION_HORIZONTAL }   // C 5601-5604
+					 else { GTK_ORIENTATION_VERTICAL }, 0);
+  let wb: *mut GtkWidget = gtk_button_new ();                           // C 5605
+  /* The eventbox is here so we can have tooltips on disabled items.  */
+  let weventbox: *mut GtkWidget = gtk_event_box_new ();                 // C 5607
+
+  /* C 5608-5623's `#ifdef HAVE_GTK3`; its `#endif` is C 5623.  */
+  #[cfg (feature = "have_gtk3")]
+  {
+    let css_prov: *mut GtkCssProvider = gtk_css_provider_new ();        // C 5609
+    let gsty: *mut GtkStyleContext;                                     // C 5610
+
+    gtk_css_provider_load_from_data (css_prov,                          // C 5612-5616
+				     c"GtkEventBox {    background-color: transparent;}".as_ptr (),
+				     -1, std::ptr::null_mut ());
+
+    gsty = gtk_widget_get_style_context (weventbox);                    // C 5618
+    gtk_style_context_add_provider (gsty,                               // C 5619-5621
+				    GTK_STYLE_PROVIDER! (css_prov),
+				    GTK_STYLE_PROVIDER_PRIORITY_USER);
+    g_object_unref (css_prov as gpointer);                              // C 5622
+  }
+
+  gtk_box_set_homogeneous (GTK_BOX! (vb), FALSE);                       // C 5625
+
+  if ! wimage.is_null () && ! text_image                               // C 5627
+    { gtk_box_pack_start (GTK_BOX! (vb), wimage, TRUE, TRUE, 0); }      // C 5628
+  if ! label.is_null ()                                                 // C 5629
+    { gtk_box_pack_start (GTK_BOX! (vb), gtk_label_new (label), TRUE, TRUE, 0); }   // C 5630
+  if ! wimage.is_null () && text_image                                  // C 5631
+    { gtk_box_pack_start (GTK_BOX! (vb), wimage, TRUE, TRUE, 0); }      // C 5632
+
+  /* C 5634's `#if GTK_CHECK_VERSION (3, 20, 0)`; its `#else` is C 5636-5637.  */
+  #[cfg (feature = "gtk_check_version_ge_3_20")]
+  { gtk_widget_set_focus_on_click (wb, FALSE); }                        // C 5635
+  #[cfg (not (feature = "gtk_check_version_ge_3_20"))]
+  { gtk_button_set_focus_on_click (GTK_BUTTON! (wb), FALSE); }          // C 5637
+  gtk_button_set_relief (GTK_BUTTON! (wb), GTK_RELIEF_NONE);            // C 5639
+  gtk_container_add (GTK_CONTAINER! (wb), vb);                          // C 5640
+  gtk_container_add (GTK_CONTAINER! (weventbox), wb);                   // C 5641
+  gtk_container_add (GTK_CONTAINER! (ti), weventbox);                   // C 5642
+
+  if ! wimage.is_null () || ! label.is_null ()                          // C 5644
+    {
+      let ii: intptr_t = i as intptr_t;                                 // C 5646
+      let gi: gpointer = ii as gpointer;                                // C 5647
+
+      g_signal_connect! (G_OBJECT! (wb), c"clicked".as_ptr (),          // C 5649-5651
+			 xg_tool_bar_callback, gi);
+
+      g_object_set_data (G_OBJECT! (weventbox), XG_FRAME_DATA, f as gpointer);   // C 5653
+
+      /* C 5655's `#ifndef HAVE_GTK3`; its `#endif` is C 5662.  */
+      #[cfg (not (feature = "have_gtk3"))]
+      {
+	/* Catch expose events to overcome an annoying redraw bug, see
+	   comment for xg_tool_bar_item_expose_callback.  */
+	g_signal_connect! (G_OBJECT! (ti), c"expose-event".as_ptr (),   // C 5658-5661
+			   xg_tool_bar_item_expose_callback, std::ptr::null_mut ());
+      }
+      gtk_tool_item_set_homogeneous (ti, FALSE);                        // C 5663
+
+      /* Callback to save modifier mask (Shift/Control, etc).  GTK makes
+	 no distinction based on modifiers in the activate callback,
+	 so we have to do it ourselves.  */
+      g_signal_connect! (wb, c"button-release-event".as_ptr (),         // C 5668-5670
+			 xg_tool_bar_button_cb, std::ptr::null_mut ());
+
+      g_object_set_data (G_OBJECT! (wb), XG_FRAME_DATA, f as gpointer);   // C 5672
+
+      /* Use enter/leave notify to show help.  We use the events
+	 rather than the GtkButton specific signals "enter" and
+	 "leave", so we can have only one callback.  The event
+	 will tell us what kind of event it is.  */
+      g_signal_connect! (G_OBJECT! (weventbox), c"enter-notify-event".as_ptr (),   // C 5678-5681
+			 xg_tool_bar_help_callback, gi);
+      g_signal_connect! (G_OBJECT! (weventbox), c"leave-notify-event".as_ptr (),   // C 5682-5685
+			 xg_tool_bar_help_callback, gi);
+    }
+
+  if ! wbutton.is_null ()                                               // C 5688
+    { *wbutton = wb; }
+
+  return ti;                                                            // C 5690
+}
