@@ -18206,6 +18206,115 @@ unsafe extern "system" {
   pub fn GetDoubleClickTime () -> DWORD;
 }
 
+/* C's thirty-three `globals.f_<name>` fields this unit's `syms_of_w32fns` and
+   `globals_of_w32fns` register (the `DEFVAR_*` calls at C 11646, 11650, 11657, 11662, 11666,
+   11685, 11704, 11720, 11726, 11732, 11741, 11751, 11761, 11769, 11773, 11777, 11786, 11794,
+   11804, 11856, 11860, 11864, 11870, 11875, 11882, 11891, 11901, 11913, 11918, 12411, 12417,
+   12425 and 12431), defined here as the port's storage - C's `struct emacs_globals` is
+   zero-initialised and the DEFVAR macros only take each field's address, so the initialisers
+   are `lisp_h_Qnil ()` / `false` / `0` (docs/status.md 3.29, the `src/cmds.rs` row and the
+   `src/alloc.rs` 8019-8025 note).  `w32-multibyte-code-page` sits inside C 12416's
+   `#ifndef CYGWIN` arm, so its storage carries that same extra gate.  */
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_ansi_code_page: EMACS_INT = 0;                             // C 12411
+#[cfg (all (feature = "have_ntgui", not (feature = "cygwin")))]
+#[unsafe(no_mangle)]
+pub static mut w32_multibyte_code_page: EMACS_INT = 0;                        // C 12417
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_disable_double_buffering: bool = false;                    // C 12425
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_follow_system_dark_mode: bool = false;                     // C 12431
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_color_map: Lisp_Object = lisp_h_Qnil ();                  // C 11646
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_pass_alt_to_system: Lisp_Object = lisp_h_Qnil ();         // C 11650
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_alt_is_meta: Lisp_Object = lisp_h_Qnil ();                // C 11657
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_quit_key: EMACS_INT = 0;                                   // C 11662
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_pass_lwindow_to_system: Lisp_Object = lisp_h_Qnil ();     // C 11666
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_pass_rwindow_to_system: Lisp_Object = lisp_h_Qnil ();     // C 11685
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_phantom_key_code: Lisp_Object = lisp_h_Qnil ();           // C 11704
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_enable_num_lock: Lisp_Object = lisp_h_Qnil ();            // C 11720
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_enable_caps_lock: Lisp_Object = lisp_h_Qnil ();           // C 11726
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_scroll_lock_modifier: Lisp_Object = lisp_h_Qnil ();       // C 11732
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_lwindow_modifier: Lisp_Object = lisp_h_Qnil ();           // C 11741
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_rwindow_modifier: Lisp_Object = lisp_h_Qnil ();           // C 11751
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_apps_modifier: Lisp_Object = lisp_h_Qnil ();              // C 11761
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_enable_synthesized_fonts: bool = false;                    // C 11769
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_enable_palette: Lisp_Object = lisp_h_Qnil ();             // C 11773
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_mouse_button_tolerance: EMACS_INT = 0;                     // C 11777
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_mouse_move_interval: EMACS_INT = 0;                        // C 11786
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_pass_extra_mouse_buttons_to_system: bool = false;          // C 11794
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_pass_multimedia_buttons_to_system: bool = false;           // C 11804
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vx_cursor_fore_pixel: Lisp_Object = lisp_h_Qnil ();            // C 11856
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vx_max_tooltip_size: Lisp_Object = lisp_h_Qnil ();             // C 11860
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vx_no_window_manager: Lisp_Object = lisp_h_Qnil ();            // C 11864
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vx_pixel_size_width_font_regexp: Lisp_Object = lisp_h_Qnil (); // C 11870
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_strict_painting: bool = false;                             // C 11875
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_use_fallback_wm_chars_method: bool = false;                // C 11882
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_disable_new_uniscribe_apis: bool = false;                  // C 11891
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_tooltip_extra_pixels: Lisp_Object = lisp_h_Qnil ();       // C 11901
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_disable_abort_dialog: bool = false;                        // C 11913
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub static mut w32_ignore_modifiers_on_IME_input: bool = false;               // C 11918
+
 /// C 11585-12038: `void syms_of_w32fns (void)` - the file's initialization entry point: the
 /// `globals_of_w32fns` call, C 11589-11592's two objects with `PDUMPER_IGNORE`, the fifty-four
 /// `DEFSYM`s in C's five runs, the two `Fput`s over `Qundefined_color`, C 11643-11644's
