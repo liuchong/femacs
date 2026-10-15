@@ -3026,3 +3026,45 @@ unsafe extern "C" {
   /// *context);`
   pub fn gtk_print_context_get_cairo_context (context: *mut GtkPrintContext) -> *mut cairo_t;
 }
+
+/// C: gtk/gtkimage.h: `#define GTK_IS_IMAGE(obj)` - C 5388's test of the child `xg_get_tool_bar_widgets`
+/// picks; the family's body with its `G_TYPE_CHECK_INSTANCE_TYPE` chain owed, like `GTK_IS_LABEL`
+/// below it.  A fresh name; **UNVERIFIED**.
+macro_rules! GTK_IS_IMAGE {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+
+/// C: gdk/gdktypes.h: `GDK_ENTER_NOTIFY` - the member `xg_tool_bar_help_callback`'s C 5415 tests.
+/// The family's next row after slice 26's; GDK's ordinal and the family's UNVERIFIED marking.
+pub const GDK_ENTER_NOTIFY: GdkEventType = 10;
+
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventExpose GdkEventExpose;` - the record C 5445-5461's
+/// GTK2-only expose callback reads: `window` for the drawable size and the four `area` members it
+/// rewrites.  The head follows `GdkEventAny`'s and `area` is the mirror's `GdkRectangle`;
+/// **UNVERIFIED** (no GDK tree here).
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct GdkEventExpose
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub area: GdkRectangle,          // C: `GdkRectangle area;`
+}
+
+/// C: gdk/gdkdrawable.h (GTK2's): `typedef struct _GdkDrawable GdkDrawable;` - the record
+/// `gdk_drawable_get_size` takes, of which GTK2's `GdkWindow` is the concrete case.  The port keeps
+/// the abstract record too (a second opaque head), which is why the one call site casts - P-72
+/// rule 3's shape.  **UNVERIFIED.**
+#[repr(C)]
+pub struct GdkDrawable
+{
+  _private: [u8; 0],
+}
+/// C: gdk/gdkdrawable.h (GTK2): `void gdk_drawable_get_size (GdkDrawable *drawable, gint *width,
+/// gint *height);` - C 5451's read, which exists only before GTK3 (the whole callback is inside
+/// `#ifndef HAVE_GTK3`), so the row carries that gate.  **UNVERIFIED.**
+#[cfg (not (feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn gdk_drawable_get_size (drawable: *mut GdkDrawable, width: *mut gint, height: *mut gint);
+}

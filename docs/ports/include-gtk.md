@@ -773,3 +773,39 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 **identical multisets to the pre-slice tree in all eight sets** (29/29/29/29/28/72/72/23), which for a
 twenty-two-item mirror batch is the reading that matters: none of the new records or prototypes
 collides with a name any other unit declares.
+
+
+### status 4.357 (the gtkutil twenty-seventh-slice round this file took part in)
+
+`src/gtkutil.c`'s tool bar body (C 5381-5464) is this round's consumer, and it asks for **five
+items** - the smallest batch a round has taken since the scroll-bar rounds, and the first since
+`status 4.355` (slice 26 asked for nothing, which is why this file has no `status 4.356` section).
+
+- **`GTK_IS_IMAGE`** (macro family) - the second of the two cast/check macros the tool bar's item
+  boxes are classified with (`GTK_IS_LABEL` is already here), written with the family's body and its
+  `G_TYPE_CHECK_INSTANCE_TYPE` chain still owed, like its neighbours.
+- **`GDK_ENTER_NOTIFY`** (`= 10`) - the next row of the GDK event-type family the mirror already
+  carries; `xg_tool_bar_help_callback`'s C 5415 compares the crossing event's type against it.
+- **`GdkEventExpose`** - a fresh record for GTK2's expose event, following `GdkEventAny`'s head
+  (`type`, `window`, `send_event`) and then `GdkRectangle area`, which is the member C 5452-5459
+  rewrites on all four sides.
+- **`GdkDrawable`** - GTK2's abstract drawable, a second opaque `_private: [u8; 0]` head; the one
+  call site casts GTK's `GdkWindow` to it (P-72 rule 3), which is why the abstract record is kept
+  rather than aliased away.
+- **`gdk_drawable_get_size`** - the GTK2 entry point C 5451 calls, gated `not (have_gtk3)` because
+  the whole callback that uses it stands inside C 5443's `#ifndef HAVE_GTK3`.
+
+The first four are **fresh names**; `gdk_drawable_get_size` is the only one whose gate the round has
+to state, and it is C's own fold rather than a new one.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings are
+**identical multisets to the pre-slice tree in all eight sets** (29/29/29/29/28/72/72/23), which is
+the reading that matters for a five-item batch: none of the new records or prototypes collides with a
+name any other unit declares.
+
+**UNVERIFIED.**  There is no GDK or GTK tree on this machine, so `GdkEventExpose`'s layout, the
+`GDK_ENTER_NOTIFY` ordinal and both entry points' signatures are taken from the family's already
+recorded shapes and this file's conventions, not from headers on disk - the same boundary `status
+4.355` recorded for the GtkPrint* surface.

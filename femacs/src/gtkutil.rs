@@ -7932,3 +7932,134 @@ unsafe extern "C" fn xg_tool_bar_callback (w: *mut GtkWidget, client_data: gpoin
 unsafe extern "C" {
   pub fn x_x_to_emacs_modifiers (dpyinfo: *mut x_display_info, state: c_int) -> c_int;   // xterm.h 1826
 }
+
+/* C 5393's blank and the four functions of the tool bar body that follow the two entry callbacks:
+   `xg_get_tool_bar_widgets`, `xg_tool_bar_help_callback` and the GTK2-only
+   `xg_tool_bar_item_expose_callback`.  */
+
+/// C 5381-5391: `static GtkWidget *xg_get_tool_bar_widgets (GtkWidget *vb, GtkWidget **wimage)` -
+/// the two children of a tool bar item's box, classified by `GTK_IS_IMAGE`/`GTK_IS_LABEL`: the
+/// image goes out through `*wimage` and the label (or the other child) is the return value.  C
+/// `static`, but its first parameter is written by the caller, so the C ABI is not needed - a plain
+/// `unsafe fn`.  C 5386's ternary is the port's `if`/`else` (the file's `part = if … else` shape),
+/// and C 5385/5386's `clist->data`/`clist->next->data` are `gpointer`s that C converts implicitly,
+/// so the port spells `as *mut GtkWidget`.
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_get_tool_bar_widgets (vb: *mut GtkWidget, wimage: *mut *mut GtkWidget)
+  -> *mut GtkWidget   // C 5382-5391
+{
+  let clist: *mut GList = gtk_container_get_children (GTK_CONTAINER! (vb));   // C 5384
+  let c1: *mut GtkWidget = (*clist).data as *mut GtkWidget;             // C 5385
+  let c2: *mut GtkWidget
+    = if ! (*clist).next.is_null () { (*(*clist).next).data as *mut GtkWidget }   // C 5386
+      else { std::ptr::null_mut () };
+
+  *wimage = if GTK_IS_IMAGE! (c1) { c1 } else { c2 };                    // C 5388
+  g_list_free (clist);                                                  // C 5389
+  return if GTK_IS_LABEL! (c1) { c1 } else { c2 };                      // C 5390
+}
+
+/* C 5394-5401's comment above the help callback, carried as C's own text, then C 5403-5430.  */
+
+/// C 5403-5430: `static gboolean xg_tool_bar_help_callback (GtkWidget *w, GdkEventCrossing *event,
+/// gpointer client_data)` - the `enter-notify-event`/`leave-notify-event` handler: on entering the
+/// item it indexes `TOOL_BAR_ITEM_HELP` (falling back to `TOOL_BAR_ITEM_CAPTION` when the help is
+/// nil) and on leaving it clears the help, then hands both to `kbd_buffer_store_help_event`.  C
+/// `static`, C ABI as a signal handler (the `find_scrollbar_cb` shape); C 5412/5420's `NILP` and
+/// C 5426's `XSETFRAME` keep their macro forms, and the two `TOOL_BAR_ITEM_*` names come in from
+/// `include/dispextern.rs`'s `dispextern_unit_names` module as in the slice above (with C's
+/// `c_int`-to-`intptr_t` widening spelled `as intptr_t`).
+/* C: /* This callback is called when the mouse enters or leaves a tool bar item.
+   C:    It is used for displaying and hiding the help text.
+   C:    W is the tool bar item, a button.
+   C:    EVENT is either an enter event or leave event.
+   C:    CLIENT_DATA is an integer that is the index of the button in the
+   C:    tool bar.  0 is the first button.
+   C:
+   C:    Returns FALSE to tell GTK to keep processing this event.  */  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn xg_tool_bar_help_callback (w: *mut GtkWidget,
+						event: *mut GdkEventCrossing,
+						client_data: gpointer) -> gboolean   // C 5404-5430
+{
+  use dispextern_unit_names::{TOOL_BAR_ITEM_CAPTION, TOOL_BAR_ITEM_HELP, TOOL_BAR_ITEM_NSLOTS};
+
+  let mut idx: intptr_t = client_data as intptr_t;                      // C 5408
+  let f: *mut frame = g_object_get_data (G_OBJECT! (w), XG_FRAME_DATA) as *mut frame;   // C 5409
+  let mut help: Lisp_Object;                                            // C 5410
+  let mut frame: Lisp_Object;
+
+  if f.is_null () || (*f).n_tool_bar_items == 0 || NILP ((*f).tool_bar_items)   // C 5412
+    { return FALSE; }
+
+  if (*event).r#type == GDK_ENTER_NOTIFY                                 // C 5415
+    {
+      idx *= TOOL_BAR_ITEM_NSLOTS as intptr_t;                           // C 5417
+      help = AREF ((*f).tool_bar_items, idx + TOOL_BAR_ITEM_HELP as intptr_t);   // C 5418
+
+      if NILP (help)                                                     // C 5420
+	{ help = AREF ((*f).tool_bar_items, idx + TOOL_BAR_ITEM_CAPTION as intptr_t); }   // C 5421
+    }
+  else
+    { help = Qnil (); }                                                  // C 5424
+
+  XSETFRAME! (frame, f);                                                 // C 5426
+  kbd_buffer_store_help_event (frame, help);                             // C 5427
+
+  return FALSE;                                                          // C 5429
+}
+
+/* C 5433-5441's comment above the GTK2-only expose callback, carried as C's own text, then
+   C 5443's `#ifndef HAVE_GTK3` and C 5445-5462.  */
+
+/// C 5445-5462: `static gboolean xg_tool_bar_item_expose_callback (GtkWidget *w, GdkEventExpose
+/// *event, gpointer client_data)` - GTK2's workaround for `GtkImage` drawing a partial redraw in
+/// the wrong place: it grows the event's `area` to the drawable's whole size.  C `static`, C ABI as
+/// a signal handler; the whole function stands under C 5443's `#ifndef HAVE_GTK3`.  C 5451's
+/// `event->window` is a `GdkWindow` where `gdk_drawable_get_size` takes GTK2's abstract
+/// `GdkDrawable`, so the port spells that conversion with a cast (P-72 rule 3), C 5452/5453's
+/// two ternaries are the port's `if`/`else`, and C 5449's two locals start zeroed (see below).
+/* C: /* This callback is called when a tool bar item shall be redrawn.
+   C:    It modifies the expose event so that the GtkImage widget redraws the
+   C:    whole image.  This to overcome a bug that makes GtkImage draw the image
+   C:    in the wrong place when it tries to redraw just a part of the image.
+   C:    W is the GtkImage to be redrawn.
+   C:    EVENT is the expose event for W.
+   C:    CLIENT_DATA is unused.
+   C:
+   C:    Returns FALSE to tell GTK to keep processing this event.  */  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+unsafe extern "C" fn xg_tool_bar_item_expose_callback (w: *mut GtkWidget,
+						       event: *mut GdkEventExpose,
+						       client_data: gpointer) -> gboolean   // C 5445-5462
+{
+  /* C 5449's `gint width, height;` are written by C 5451's call and read at C 5452; borrowck cannot
+     see the write through the raw-pointer arguments, so the port zeroes them (PORTING.md 1.5 - the
+     same finding as slice 20's `msl`).  */
+  let mut width: gint = 0;                                              // C 5449
+  let mut height: gint = 0;
+
+  gdk_drawable_get_size ((*event).window as *mut GdkDrawable,           // C 5451
+			 (&raw mut width), (&raw mut height));
+  (*event).area.x
+    -= if width > (*event).area.width { width - (*event).area.width } else { 0 };   // C 5452
+  (*event).area.y
+    -= if height > (*event).area.height { height - (*event).area.height } else { 0 };   // C 5453
+
+  (*event).area.x = max (0, (*event).area.x);                           // C 5455
+  (*event).area.y = max (0, (*event).area.y);                           // C 5456
+
+  (*event).area.width = max (width, (*event).area.width);               // C 5458
+  (*event).area.height = max (height, (*event).area.height);            // C 5459
+
+  return FALSE;                                                         // C 5461
+}
+
+/* `kbd_buffer_store_help_event` (keyboard.h 486 declares it; `keyboard.c` defines it and
+   `src/keyboard.rs` 4317 carries it) is declared by `src/w32menu.rs` 870 and `src/xmenu.rs` 914
+   each for its own unit, and no mirror in this unit's graph has a row, so C 5427's call needs its
+   copy here - Owed 18's class, the `x_scroll_bar_configure` shape.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);   // keyboard.h 486
+}

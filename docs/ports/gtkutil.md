@@ -215,7 +215,8 @@
 | 5112-5195 | C 5112-5115's comment and **`xg_event_is_for_scrollbar`** (C 5117-5193 - the predicate `xterm.c` asks when a button event might belong to a scroll bar: C 5123-5142's press test in three faces, C 5143-5164's "did it happen outside the frame's edit widget?" through the pointer's current window, and C 5165-5191's release/motion arm answering with the widget that holds the grab), plus C 5195's blank | file gate (`use_gtk`) plus C's own eight folds; the mirror gains five GDK/GTK names and the unit carries the `EVENT` alias, the `XGenericEvent` record and the three `XI_*` enumerators (Owed 18); slice 24 below |
 | 5196-5298 | C 5196's form feed, C 5197-5199's “Printing” banner and C 5200's `#ifdef USE_CAIRO` (its `#endif` is C 5296): the two file-scope objects `print_settings`/`page_setup` (C 5201-5202 - **two `missing file-scope object` rows retire here**), **`xg_page_setup_dialog`** (C 5205-5216), **`xg_get_page_setup`** (C 5219-5254, C 5226-5242's `switch` as the port's `match` and C 5245-5252's seven-element alist through the `GETSETUP` macro), **`draw_page`** (C 5257-5269) and **`xg_print_frames_dialog`** (C 5272-5294), plus C 5297-5298's blanks | file gate (`use_gtk`) plus `use_cairo` for the whole section; the mirror gains the GtkPrint* surface (four records, three enumerations and eleven entry points), the unit carries `GETSETUP!` and `x_cr_draw_frame` (Owed 18); slice 25 below |
 | 5299-5380 | C 5299's form feed, C 5300-5302's “Tool bar functions” banner and the four `XG_TOOL_BAR_*` data keys (C 5303-5320 - **the four `missing macro`+`missing constant` rows the tool has carried since the first slice retire here**), then **`xg_tool_bar_button_cb`** (C 5326-5336) and **`xg_tool_bar_callback`** (C 5343-5380 - the click handler that turns a tool-bar press into a `TOOL_BAR_EVENT` with GDK's modifier bits converted, with C 5369-5373's `HAVE_PGTK` pair), plus C 5380's blank | file gate (`use_gtk`) plus C's own fold; **no mirror change** - the four keys are `&CStr` constants, `TOOL_BAR_ITEM_*` come in by name from a mirror module, and the unit carries `x_x_to_emacs_modifiers` (Owed 18); slice 26 below |
-| 5381-6753 | **the remainder** — from C 5381-5382's `xg_get_tool_bar_widgets` through C 6753: the rest of the tool bar (`xg_tool_bar_help_callback`, `xg_tool_bar_item_expose_callback`, `xg_pack_tool_bar`, `tb_size_cb`, `xg_create_tool_bar`, `xg_make_tool_item`, `xg_tool_item_stale_p`, `xg_update_tool_bar_sizes`, `update_frame_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 5381-5464 | C 5381-5382's **`xg_get_tool_bar_widgets`** (C 5383-5391 - the two children of a tool bar item's box, classified by `GTK_IS_IMAGE`/`GTK_IS_LABEL`: the image goes out through `*wimage` and the label, or the other child, is the return value), C 5394-5401's comment and **`xg_tool_bar_help_callback`** (C 5404-5430 - the item's `enter`/`leave` handler: on entering it indexes `TOOL_BAR_ITEM_HELP`, falls back to `TOOL_BAR_ITEM_CAPTION` when the help is nil, and otherwise clears it, then hands frame and help to `kbd_buffer_store_help_event`), then C 5433-5441's comment and C 5443's `#ifndef HAVE_GTK3` with **`xg_tool_bar_item_expose_callback`** (C 5445-5462 - GTK2's partial-redraw workaround: read the drawable's size and grow the event's `area` to it on all four sides), plus C 5463's `#endif` and C 5464's blank | file gate (`use_gtk`) plus C's own GTK3 fold; the mirror gains five items (`GTK_IS_IMAGE`, GDK's `GDK_ENTER_NOTIFY`, `GdkEventExpose` with its `area`, GTK2's `GdkDrawable` and `gdk_drawable_get_size`), and the unit carries `kbd_buffer_store_help_event` (Owed 18); slice 27 below |
+| 5465-6753 | **the remainder** — from C 5465-5466's comment and `xg_pack_tool_bar` through C 6753: the rest of the tool bar (`tb_size_cb`, `xg_create_tool_bar`, `xg_make_tool_item`, `xg_tool_item_stale_p`, `xg_update_tool_bar_sizes`, `update_frame_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1142,6 +1143,12 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     `src/xterm.rs` 24827) is a same-program declaration `include/xterm.rs` has no row for, so
     `xg_tool_bar_callback`'s C 5370 site reaches it through a use-site copy under its definition's
     gate.  The round's four `XG_TOOL_BAR_*` keys are the file's own constants and owe nothing.
+    **Slice 27 adds one more**: `kbd_buffer_store_help_event` (keyboard.h 486, defined by `keyboard.c`
+    / `src/keyboard.rs` 4317) is declared by `src/w32menu.rs` 870 and `src/xmenu.rs` 914 each for its
+    own unit, and no mirror in this unit's graph has a row, so `xg_tool_bar_help_callback`'s C 5427
+    site carries a use-site copy under `use_gtk`.  The round's five *mirror* additions (`GTK_IS_IMAGE`,
+    GDK's `GDK_ENTER_NOTIFY`, `GdkEventExpose`, GTK2's `GdkDrawable` and `gdk_drawable_get_size`) are
+    not owed to anything - they landed.
 
 ## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
 
@@ -2706,3 +2713,68 @@ recorded because the next `#define` of a string in this file must follow it.
 **Not claimed.**  No arm was compiled against a real GTK tree - there is none on this machine - so
 the two callbacks' widget path is evidenced by rustc's name resolution and typing alone, the
 `GDK_WINDOW_*` macro gap remains the mirror's, and the pgtk reading is the probe's (Owed 17).
+
+## Slice 27 (2026-10-15, status 4.357): C 5381-5464 — the tool bar's widget readers and its two item callbacks
+
+**What this slice is.**  The tool bar body between slice 26's click handler and `xg_pack_tool_bar`:
+**`xg_get_tool_bar_widgets`** (C 5383-5391 - the two children of an item's box, classified by
+`GTK_IS_IMAGE`/`GTK_IS_LABEL`, with the image handed out through the out-parameter and the label as
+the return value), **`xg_tool_bar_help_callback`** (C 5404-5430 - the `enter-notify-event` /
+`leave-notify-event` handler that turns the item's help, or its caption as a fallback, into a
+`kbd_buffer_store_help_event` call) and, under C 5443's `#ifndef HAVE_GTK3`, the GTK2-only
+**`xg_tool_bar_item_expose_callback`** (C 5445-5462 - the `GtkImage` partial-redraw workaround: read
+the drawable's size, grow the event's `area` on all four sides, then clamp both origins at zero).
+Port: 7,934 -> **8,066 lines**; the table's last row splits at C 5464 - the next text is C 5465-5466's
+comment and C 5468's `xg_pack_tool_bar`.
+
+**The one name this slice needed, and where it could stand.**  `kbd_buffer_store_help_event`
+(keyboard.h 486, defined by `keyboard.c` / `src/keyboard.rs` 4317) is **declared by two units already**
+(`src/w32menu.rs` 870, `src/xmenu.rs` 914), each for its own unit, and no mirror in this unit's graph
+carries a row - so C 5427's call reaches it through a use-site copy under `use_gtk`, Owed 18's class
+(the `x_scroll_bar_configure` shape).  **The mirror gained the round's five items** (`GTK_IS_IMAGE`,
+GDK's `GDK_ENTER_NOTIFY`, `GdkEventExpose` with its `GdkRectangle area`, GTK2's `GdkDrawable` and
+`gdk_drawable_get_size` under `not (have_gtk3)`) - see `docs/ports/include-gtk.md`'s `status 4.357`.
+
+**Deviations this slice adds.**
+
+- C 5385/5386's `clist->data` / `clist->next->data` are `gpointer`s C converts implicitly (both to
+  `GtkWidget *`), so the port spells both `as *mut GtkWidget`; C 5388/5390's two ternaries are the
+  port's `if`/`else` (the file's `part = if … else` shape).
+- C 5381's `static GtkWidget *` needs **no C ABI** here - its first parameter is written by the caller
+  and nothing else calls it - so the port writes a plain `unsafe fn`, not `unsafe extern "C" fn`.
+- The two callbacks *are* signal handlers, so both keep `unsafe extern "C" fn` (the
+  `find_scrollbar_cb` shape) and `gboolean`/`FALSE`.
+- C 5408's `(intptr_t) client_data` is `as intptr_t`; C 5417/5418/5421's `TOOL_BAR_ITEM_*` are
+  `c_int` where C's arithmetic is `intptr_t`, so each is `as intptr_t` at its site (the slice-26
+  finding), and the three names come in by name from `include/dispextern.rs`'s
+  `dispextern_unit_names` module.
+- C 5451 passes a `GdkWindow *` where GTK2's `gdk_drawable_get_size` takes the abstract
+  `GdkDrawable *`, so the port casts at the call (`as *mut GdkDrawable`, P-72 rule 3).
+- **C 5449's `gint width, height;` must start zeroed in the port** (`let mut width: gint = 0;`) and
+  the comment says why: C 5451 writes them through `&raw mut` and borrowck cannot see the write, so
+  the first draft's two `E0381`s - measured in the C face - are the slice-16/20 `msl` finding again.
+- C 5394-5401's and C 5433-5441's comments are carried as C's own text at their positions (the
+  `/* C: … */` form), as are the two functions' `/// C:` citations.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes** (three
+   runs: the first draft, then after each of the two fixes above).
+2. **The arm readings, against a materialised baseline** (a temporary `git worktree` at `03018b0c`),
+   the same eight sets: **all eight are identical multisets before and after** (29, 29, 29, 29, 28 for
+   the A faces; 72, 72 for the C faces; 23 for the pgtk probe).  None of the three functions has a
+   caller inside the unit (the tool bar code connects them), so the reading says what it should.  The
+   first arm run is what demanded both fixes above: one `E0425` (`TOOL_BAR_ITEM_NSLOTS` had to join
+   the `use` list) and two `E0381`s (the GTK2 callback's two locals).
+3. **`extract-abi.py --check`** -> 30 -> **27 `- ` rows**: **three retirements** (the three
+   functions) and **no addition** - the round adds no `does not mention` row, so
+   `macro-body-notes.tsv` is untouched this time.  The `line count drifted` row moves from 17.5% to
+   **19.4%** (C 6,753 vs 8,066), still the closing round's.
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`); the table's last row splits at C 5464; `docs/ports/include-gtk.md` gains the
+   `status 4.357` section (five items, all UNVERIFIED).
+
+**Not claimed.**  No arm was compiled against a real GTK or GDK tree - there is none on this machine -
+so the three functions' widget path and the whole GTK2 expose record are evidenced by rustc's name
+resolution and typing alone, the `GDK_WINDOW_*` macro gap remains the mirror's, and the pgtk reading
+is the probe's (Owed 17).
