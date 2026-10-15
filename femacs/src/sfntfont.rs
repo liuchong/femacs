@@ -4890,6 +4890,22 @@ pub unsafe extern "C" fn sfntfont_detect_sigbus (addr: *mut c_void) -> bool
    `syms_of_alloc` shape of `src/alloc.rs`.  `init_sfntfont`'s empty body is not a stub this port
    invented: C has no statement between C 4201's `{` and C 4202's `}`, and the site says so.
    ---------------------------------------------------------------------------------------------- */
+/* C's three `globals.f_<name>` fields this unit's `syms_of_sfntfont` registers (its
+   `DEFVAR_LISP` calls at C 4148 and 4156, and its `DEFVAR_BOOL` at C 4171 - the sole `true`
+   the C body writes is C 4176's own assignment, not this storage's initialiser), defined here
+   as the port's storage - C's `struct emacs_globals` is zero-initialised and the DEFVAR macros
+   only take each field's address, so the initialisers are `lisp_h_Qnil ()` / `false`
+   (docs/status.md 3.29, the `src/cmds.rs` 489-492 row and the `src/image.rs` block shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vsfnt_default_family_alist: Lisp_Object = lisp_h_Qnil ();          // C 4148
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vsfnt_uninstructable_family_regexp: Lisp_Object = lisp_h_Qnil ();  // C 4156
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut sfnt_raster_glyphs_exactly: bool = false;                          // C 4171
+
 /// C 4114-4177: `syms_of_sfntfont` - C's non-`static` entry point.
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 #[unsafe(no_mangle)]
