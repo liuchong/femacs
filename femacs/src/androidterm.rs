@@ -8690,6 +8690,42 @@ unsafe extern "C" fn android_set_build_fingerprint ()
   }
 }
 
+/* C's ten `globals.f_<name>` fields this unit's `syms_of_androidterm` registers (its
+   `DEFVAR_INT`/`DEFVAR_LISP` calls at C 7008, 7036, 7042, 7046, 7057, 7061, 7065, 7069, 7073 and
+   7078), defined here as the port's storage - C's `struct emacs_globals` is zero-initialised and
+   the `DEFVAR_*` macros only take each field's address, so the initialisers are `lisp_h_Qnil ()`
+   / `0` (docs/status.md 3.29, the `src/cmds.rs` 489-492 row).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut android_quit_keycode: EMACS_INT = 0;   // C 7008
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vandroid_build_fingerprint: Lisp_Object = lisp_h_Qnil ();   // C 7036
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vandroid_build_manufacturer: Lisp_Object = lisp_h_Qnil ();   // C 7042
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut android_display_planes: EMACS_INT = 0;   // C 7046
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vx_ctrl_keysym: Lisp_Object = lisp_h_Qnil ();   // C 7057
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vx_alt_keysym: Lisp_Object = lisp_h_Qnil ();   // C 7061
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vx_hyper_keysym: Lisp_Object = lisp_h_Qnil ();   // C 7065
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vx_meta_keysym: Lisp_Object = lisp_h_Qnil ();   // C 7069
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vx_super_keysym: Lisp_Object = lisp_h_Qnil ();   // C 7073
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub static mut Vx_toolkit_scroll_bars: Lisp_Object = lisp_h_Qnil ();   // C 7078
+
 /* C 6991-7110.  Non-`static` (androidterm.h declares it) and no address is taken:
    `#[unsafe(no_mangle)]` with the C ABI.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
