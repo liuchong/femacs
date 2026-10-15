@@ -319,3 +319,29 @@ OK      admin: 253 files, byte-identical, 260 sanctioned line(s)
 `femacs/lisp` 里**没有任何手写或被改过的 `.el`/`.elc`**。
 
 **未声称**：这是"复制"与"参照树多出来的到底是什么"的读数，**不是**生成物一致性的读数——生成物一致性今天**一条都没有**。
+
+
+## L0's second golden: the bare program (2026-10-16, status 4.371)
+
+The ladder's L0-L3 are about the **bare** program (`temacs` loading `loadup.el` from source: L1
+loads `lisp/emacs-lisp/*.elc`, L3 is the full `loadup.el`), and a dumped binary is silent on stderr
+where the bare one prints its load trace - so the two flavours cannot share one golden.  The
+harness now takes `--golden-path`, and the bare program's golden is recorded beside the dumped
+one:
+
+```sh
+EMACSLOADPATH=$PWD/emacs/lisp python3 tools/acceptance-l0.py --golden \
+    build/emacs-ref/src/temacs --golden-path docs/baseline/l0-reference-temacs.txt
+EMACSLOADPATH=$PWD/emacs/lisp python3 tools/acceptance-l0.py --check \
+    build/port/src/temacs --golden-path docs/baseline/l0-reference-temacs.txt
+```
+
+The golden records the `EMACSLOADPATH` it was written under (`# EMACSLOADPATH:`), because the
+expressions' stderr *is* the load trace and therefore depends on which Lisp tree the program
+walks.  `build/emacs-ref/src/temacs` at `fd7afced403`'s frozen configuration has
+sha256[0:16] `a959f1d7a8bb4e11`.
+
+**Reading (2026-10-16)**: the port's binary - `build/port/src/temacs`, linked by `xtask gate-load`
+from the port's objects alone - prints `19 expression(s), 0 failure(s)` against that golden.  The
+dumped golden (`docs/baseline/l0-reference.txt`) is unchanged and still has no check side: a
+dumped port binary needs L3's `dump` step, which needs the generated Lisp (next section).
