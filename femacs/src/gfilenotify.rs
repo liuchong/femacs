@@ -250,6 +250,7 @@ unsafe extern "C" fn dir_monitor_callback (monitor: *mut GFileMonitor, file: *mu
 }
 
 /* C 125-227: the first subr.  */
+#[cfg (feature = "have_gfilenotify")]
 DEFUN! ("gfile-add-watch", Fgfile_add_watch, Sgfile_add_watch, 3, 3, 0,
        doc: "Add a watch for filesystem events pertaining to FILE.\n\nThis arranges for filesystem events pertaining to FILE to be reported\nto Emacs.  Use `gfile-rm-watch' to cancel the watch.\n\nValue is a descriptor for the added watch.  If the file cannot be\nwatched for some reason, this function signals a `file-notify-error' error.\n\nFLAGS is a list of conditions to set what will be watched for.  It can\ninclude the following symbols:\n\n  `change'           -- watch for file changes\n  `attribute-change' -- watch for file attributes changes, like\n                        permissions or modification time\n  `watch-mounts'     -- watch for mount events\n  `send-moved'       -- pair `deleted' and `created' events caused by\n                        file renames and send a single `renamed' event\n                        instead\n\nWhen any event happens, Emacs will call the CALLBACK function passing\nit a single argument EVENT, which is of the form\n\n  (DESCRIPTOR ACTION FILE [FILE1])\n\nDESCRIPTOR is the same object as the one returned by this function.\nACTION is the description of the event.  It could be any one of the\nfollowing:\n\n  `changed'           -- FILE has changed\n  `changes-done-hint' -- a hint that this was probably the last change\n                         in a set of changes\n  `deleted'           -- FILE was deleted\n  `created'           -- FILE was created\n  `attribute-changed' -- a FILE attribute was changed\n  `pre-unmount'       -- the FILE location will soon be unmounted\n  `unmounted'         -- the FILE location was unmounted\n  `moved'             -- FILE was moved to FILE1\n\nFILE is the name of the file whose event is being reported.  FILE1\nwill be reported only in case of the `moved' event.",
        (file: Lisp_Object, flags: Lisp_Object, callback: Lisp_Object),
@@ -325,6 +326,7 @@ DEFUN! ("gfile-add-watch", Fgfile_add_watch, Sgfile_add_watch, 3, 3, 0,
 });
 
 /* C 229-255: the second subr.  */
+#[cfg (feature = "have_gfilenotify")]
 DEFUN! ("gfile-rm-watch", Fgfile_rm_watch, Sgfile_rm_watch, 1, 1, 0,
        doc: "Remove an existing WATCH-DESCRIPTOR.\n\nWATCH-DESCRIPTOR should be an object returned by `gfile-add-watch'.",
        (watch_descriptor: Lisp_Object),
@@ -352,6 +354,7 @@ DEFUN! ("gfile-rm-watch", Fgfile_rm_watch, Sgfile_rm_watch, 1, 1, 0,
 });
 
 /* C 257-276: the third subr.  */
+#[cfg (feature = "have_gfilenotify")]
 DEFUN! ("gfile-valid-p", Fgfile_valid_p, Sgfile_valid_p, 1, 1, 0,
        doc: "Check a watch specified by its WATCH-DESCRIPTOR.\n\nWATCH-DESCRIPTOR should be an object returned by `gfile-add-watch'.\n\nA watch can become invalid if the file or directory it watches is\ndeleted, or if the watcher thread exits abnormally for any other\nreason.  Removing the watch by calling `gfile-rm-watch' also makes it\ninvalid.",
        (watch_descriptor: Lisp_Object),
@@ -367,6 +370,7 @@ DEFUN! ("gfile-valid-p", Fgfile_valid_p, Sgfile_valid_p, 1, 1, 0,
 });
 
 /* C 278-295: the fourth subr.  */
+#[cfg (feature = "have_gfilenotify")]
 DEFUN! ("gfile-monitor-name", Fgfile_monitor_name, Sgfile_monitor_name, 1, 1, 0,
        doc: "Return the internal monitor name for WATCH-DESCRIPTOR.\n\nThe result is a symbol, either `GInotifyFileMonitor',\n`GKqueueFileMonitor', `GFamFileMonitor', or `GPollFileMonitor'.\n\nWATCH-DESCRIPTOR should be an object returned by `gfile-add-watch'.\nIf WATCH-DESCRIPTOR is not valid, nil is returned.",
        (watch_descriptor: Lisp_Object),
