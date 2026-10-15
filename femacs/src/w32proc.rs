@@ -7450,6 +7450,41 @@ unsafe extern "C" {
   pub fn strnicmp (s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
 }
 
+/* C's nine `globals.f_<name>` fields this unit's `syms_of_ntproc` registers (its
+   `DEFVAR_LISP`/`DEFVAR_INT` calls at C 4796, 4808, 4815, 4825, 4832, 4846, 4853, 4871 and
+   4886), defined here as the port's storage - C's `struct emacs_globals` is zero-initialised
+   and the DEFVAR macros only take each field's address, so the initialisers are
+   `lisp_h_Qnil ()` / `false` / `0` (docs/status.md 3.29, the `src/cmds.rs` row and the
+   `src/alloc.rs` 8019-8025 note).  C 4861-4869's `#if 0` arm names no storage (the file's own
+   text above carries it).  */
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_quote_process_args: Lisp_Object = lisp_h_Qnil ();               // C 4796
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_start_process_show_window: Lisp_Object = lisp_h_Qnil ();        // C 4808
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_start_process_share_console: Lisp_Object = lisp_h_Qnil ();      // C 4815
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_start_process_inherit_error_mode: Lisp_Object = lisp_h_Qnil (); // C 4825
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut w32_pipe_read_delay: EMACS_INT = 0;                                  // C 4832
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut w32_pipe_buffer_size: EMACS_INT = 0;                                 // C 4846
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_downcase_file_names: Lisp_Object = lisp_h_Qnil ();              // C 4853
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_get_true_file_attributes: Lisp_Object = lisp_h_Qnil ();         // C 4871
+#[cfg (feature = "windowsnt")]
+#[unsafe(no_mangle)]
+pub static mut Vw32_collate_ignore_punctuation: Lisp_Object = lisp_h_Qnil ();       // C 4886
+
 /* C 4762-4903: `syms_of_ntproc` - the file's symbol table.  C 4766-4770 are the five `DEFSYM`s
    (the port's `DEFSYM!`, which is empty by design: `include/globals.rs` generates every `Q…`, so
    the names already exist - PORTING.md P-23), C 4772-4794 the nineteen `defsubr`s of the `DEFUN`s
