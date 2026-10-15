@@ -7180,7 +7180,12 @@ unsafe fn pgtk_create_terminal (dpyinfo: *mut pgtk_display_info) -> *mut termina
 
 /* C 4926-4931: `struct pgtk_window_is_of_frame_recursive_t` - the record travels to
    `gtk_container_foreach` through its `gpointer` parameter and comes back as the third argument,
-   so it is a unit-level `#[repr (C)]` record (the `cairo_rectangle_t` shape, line 4312).  */
+   so it is a unit-level `#[repr (C)]` record (the `cairo_rectangle_t` shape, line 4312).  Its two
+   pointee types come from this file's `#[cfg (feature = "have_pgtk")] include!` of
+   `include/gtk.rs` (C 28's chain), so the record carries that same file gate - without it the
+   **frozen** `build-tu` fails with two `E0425`s (`GdkWindow`, `GtkWidget`), which is P-86 ⑧'s
+   class and the reading `docs/ports/pgtkterm.md` records for this slice.  */
+#[cfg (feature = "have_pgtk")]
 #[repr(C)]
 pub struct pgtk_window_is_of_frame_recursive_t
 {
@@ -10719,6 +10724,51 @@ pub unsafe extern "C" fn pgtk_clear_area (f: *mut frame, x: c_int, y: c_int, wid
   cairo_fill (cr);                                                      // C 7466
   pgtk_end_cr_clip (f);                                                 // C 7467
 }
+
+/* C 7507-7552 carries this unit's ten `DEFVAR_LISP`/`DEFVAR_BOOL` variables: C's `DEFVAR_*`
+   (lisp.h 3495-3530) defines the object (`globals.f_##vname`), so the port defines it here and
+   `globals.rs`'s declaration is shadowed (docs/status.md 3.29, the `src/cmds.rs` 489-492 row).
+   C zero-initialises the `globals` object, so the initialisers are `lisp_h_Qnil ()` / `false`.  */
+// C 7507: `DEFVAR_LISP ("x-ctrl-keysym", Vx_ctrl_keysym, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vx_ctrl_keysym: Lisp_Object = lisp_h_Qnil ();
+// C 7511: `DEFVAR_LISP ("x-alt-keysym", Vx_alt_keysym, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vx_alt_keysym: Lisp_Object = lisp_h_Qnil ();
+// C 7515: `DEFVAR_LISP ("x-hyper-keysym", Vx_hyper_keysym, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vx_hyper_keysym: Lisp_Object = lisp_h_Qnil ();
+// C 7519: `DEFVAR_LISP ("x-meta-keysym", Vx_meta_keysym, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vx_meta_keysym: Lisp_Object = lisp_h_Qnil ();
+// C 7523: `DEFVAR_LISP ("x-super-keysym", Vx_super_keysym, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vx_super_keysym: Lisp_Object = lisp_h_Qnil ();
+// C 7527: `DEFVAR_BOOL ("x-use-underline-position-properties", x_use_underline_position_properties, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut x_use_underline_position_properties: bool = false;
+// C 7532: `DEFVAR_BOOL ("x-underline-at-descent-line", x_underline_at_descent_line, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut x_underline_at_descent_line: bool = false;
+// C 7537: `DEFVAR_LISP ("x-toolkit-scroll-bars", Vx_toolkit_scroll_bars, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vx_toolkit_scroll_bars: Lisp_Object = lisp_h_Qnil ();
+// C 7541: `DEFVAR_LISP ("pgtk-wait-for-event-timeout", Vpgtk_wait_for_event_timeout, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vpgtk_wait_for_event_timeout: Lisp_Object = lisp_h_Qnil ();
+// C 7552: `DEFVAR_LISP ("pgtk-keysym-table", Vpgtk_keysym_table, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vpgtk_keysym_table: Lisp_Object = lisp_h_Qnil ();
 
 /* C 7471-7561's `syms_of_pgtkterm`.  */
 /// C 7471-7561: `void syms_of_pgtkterm (void)` - a **non-`static`** C definition (`extern "C"` +
