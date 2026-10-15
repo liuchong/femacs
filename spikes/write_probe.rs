@@ -17,15 +17,17 @@ use m::*;
 pub struct Arena (pub [u8; 101664]);
 #[unsafe(no_mangle)]
 pub static mut lispsym: Arena = Arena ([0; 101664]);
+use core::ffi::c_void;
+static mut TS: thread_state = unsafe { core::mem::zeroed () };
 #[unsafe(no_mangle)]
-pub static mut current_buffer: *mut buffer = core::ptr::null_mut ();
+pub static mut current_thread: *mut thread_state = core::ptr::addr_of_mut! (TS);
 static mut B: buffer = unsafe { core::mem::zeroed () };
 static mut T: buffer_text = unsafe { core::mem::zeroed () };
 static mut ARR: [u8; 64] = [0; 64];
 static mut N: itree_node = unsafe { core::mem::zeroed () };
 fn main () {
   unsafe {
-    current_buffer = &raw mut B;
+    (*current_thread).m_current_buffer = core::ptr::addr_of_mut! (B) as *mut c_void;
     B.text = &raw mut T;
     T.beg = (&raw mut ARR) as *mut u8;
     GPT! () = 7;
@@ -47,7 +49,7 @@ fn main () {
               GPT! (), ZV! (), ZV_BYTE! (), GAP_SIZE! (), MODIFF! (), SAVE_MODIFF! (),
               CHARS_MODIFF! (), BEGV! (), Z! (), Z_BYTE! (),
               BEG_UNCHANGED! () + END_UNCHANGED! (),
-              BUF_GPT! (current_buffer), FETCH_BYTE! (1), *BYTE_POS_ADDR (1));
+              BUF_GPT! (current_buffer! ()), FETCH_BYTE! (1), *BYTE_POS_ADDR (1));
     B.bits = 0; T.bits = 0;
     B.bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P | BUFFER_CLIP_CHANGED
             | BUFFER_INHIBIT_BUFFER_HOOKS | BUFFER_LONG_LINE_OPTIMIZATIONS_P;
