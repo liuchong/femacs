@@ -5,7 +5,7 @@
 //! layout assertions from the frozen baselines, and runs the mechanical gates.
 //!
 //! `cargo run -p xtask -- <command>`, with the femacs directory as cwd.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
@@ -2062,6 +2062,21 @@ fn collect_includes(root: &Path, seen: &mut std::collections::BTreeSet<PathBuf>)
     }
 }
 
+/// `true` when a checklist still carries a row that is not ticked.
+///
+/// A box is a *line* that starts with `- [ ]` (`docs/ports/README.md`: "A file is done when
+/// every box is ticked"), and a unit this test drops is a unit this leg never compiles.  The raw
+/// substring test also matched prose and fenced commands that quote the shape, which is how it
+/// dropped `src/process.c` on the first round the whole finished set reached the program gates:
+/// its ledger's Evidence quotes `grep -c '^- [ ]' docs/ports/process.md -> 0`, so the 9,129-line
+/// port had no object at all and `tools/check-link.py` read `1 frozen source(s) have no built
+/// object` - status 3.198/3.196's "the reader has to constrain the shape it reads" class, in the
+/// reader that decides which units get compiled (`tools/gen-port-inventory.py` had already
+/// restricted the same test for the inventory).
+fn has_unchecked_box(text: &str) -> bool {
+    text.lines().any(|line| line.trim_start().starts_with("- [ ]"))
+}
+
 /// Compile every translation unit whose ledger says it is finished.  The textual
 /// gates cannot see a unit that rustc rejects (that is how the noreturn record
 /// defect in the first DEFUN machinery passed them), so the fast gate compiles
@@ -2079,6 +2094,7 @@ fn finished_units() -> Result<Vec<String>, String> {
         .collect();
     entries.sort();
     let mut units = Vec::new();
+    let mut seen: BTreeSet<String> = BTreeSet::new();
     for ledger in entries {
         if ledger.extension().map(|x| x != "md").unwrap_or(true) {
             continue;
@@ -2088,7 +2104,7 @@ fn finished_units() -> Result<Vec<String>, String> {
             continue;
         }
         let checklist = fs::read_to_string(&ledger).map_err(|e| e.to_string())?;
-        if checklist.contains("- [ ]") {
+        if has_unchecked_box(&checklist) {
             continue;                                  // still being ported
         }
         // The ledger's own first line names the reference file (`# emacs/lib/malloc/x.c (56
@@ -2110,6 +2126,19 @@ fn finished_units() -> Result<Vec<String>, String> {
         let Some(unit) = unit else {
             continue;                                  // header mirror, not a unit
         };
+        // Two ledgers can name one reference file: a file the checklist generator excludes
+        // (P-86 clause 2) keeps its generated checklist under the canonical name, and the lane's
+        // record sits under the `<dir>-<stem>` name the range-table gates resolve first
+        // (`docs/ports/Internal.md` and `docs/ports/oldXMenu-Internal.md` both name
+        // `oldXMenu/Internal.c`, and the entry in the latter says so).  Both name the same port,
+        // and pushing it twice ran rustc twice into one object path: measured 2026-10-15 as
+        // `676 finished translation unit(s)` against 674 objects on disk, which is also what
+        // `check-link.py`'s object list reads.  The second ledger is named, not dropped silently.
+        if !seen.insert(unit.clone()) {
+            println!("skipped `{}`: it names {unit}, which another ledger already named",
+                     ledger.file_name().unwrap_or_default().to_string_lossy());
+            continue;
+        }
         units.push(unit);
     }
     Ok(units)
