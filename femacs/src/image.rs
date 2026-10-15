@@ -11809,6 +11809,33 @@ pub unsafe extern "C" fn image_prune_animation_caches (clear: bool)
    measured value, the `callproc.rs` 275 `PATH_DOC` shape.  */
 const PATH_BITMAPS: &std::ffi::CStr = c"";
 
+/* C's seven `globals.f_<name>` fields this unit's `syms_of_image` registers (its DEFVAR_* calls
+   at C 13521, 13527, 13759, 13765, 13769, 13779 and 13790), defined here as the port's storage -
+   C's `struct emacs_globals` is zero-initialised and the DEFVAR macros only take each field's
+   address, so the initialisers are `lisp_h_Qnil ()` / `false` / `0` (docs/status.md 3.29, the
+   `src/cmds.rs` row and the `src/alloc.rs` 8022-8025 note).  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut Vimage_types: Lisp_Object = lisp_h_Qnil ();              // C 13521
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut Vmax_image_size: Lisp_Object = lisp_h_Qnil ();           // C 13527
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut cross_disabled_images: bool = false;                     // C 13759
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut Vx_bitmap_file_path: Lisp_Object = lisp_h_Qnil ();       // C 13765
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut Vimage_cache_eviction_delay: Lisp_Object = lisp_h_Qnil ();   // C 13769
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut Vimage_scaling_factor: Lisp_Object = lisp_h_Qnil ();     // C 13779
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut imagemagick_render_type: EMACS_INT = 0;                  // C 13790
+
 /// C: C 13516-13805: `void syms_of_image (void)`
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
