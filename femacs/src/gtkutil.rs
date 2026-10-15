@@ -6572,3 +6572,176 @@ unsafe extern "C" fn xg_scroll_bar_size_allocate_cb (widget: *mut GtkWidget,
 unsafe extern "C" {
   pub fn x_scroll_bar_configure (event: *mut GdkEvent);                // xterm.h 1848
 }
+
+/* ----------------------------------------------------------------------------------------------
+   The GTK names `xg_finish_scroll_bar_creation` needs and no mirror in the unit's include graph
+   carries.
+
+   `GtkRange` (gtk/gtkrange.h) is GTK2's record and the target of C 4611's `GTK_RANGE` cast; like
+   `GtkAdjustment` above, `src/pgtkterm.rs` 5757 declares it and that unit `include!`s the mirror,
+   so the unit carries its own copy (Owed 18).  The cast macro expands to that record, which is why
+   it is the unit's too, and `gtk_range_set_update_policy` takes the record.  `gtk_event_box_new`
+   (gtk/gtkeventbox.h) is needed in **every** GTK face (C 4603 is not inside a fold) and
+   `src/pgtkterm.rs` 5221 declares it for its own C 3708, so it stands here as well.
+   `GtkUpdateType` - the type C 4611's `GTK_UPDATE_CONTINUOUS` belongs to - is the round's one
+   **mirror** addition (no unit declares it); the enumerator itself is left undeclared with Owed 6's
+   other GTK2 values, which is why the C face reads one more `cannot find value` row after this
+   slice.  **No GTK tree exists on this machine**, so every prototype here is UNVERIFIED.
+   ---------------------------------------------------------------------------------------------- */
+/// C: gtk/gtkrange.h: `typedef struct _GtkRange GtkRange;` - the record C 4611's
+/// `GTK_RANGE (wscroll)` produces.  The `_private: [u8; 0]` head is the port's opaque stand-in, the
+/// same head `src/pgtkterm.rs` 5757 carries for its own copy (the `GtkAdjustment` shape above).
+/// **Sizes UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+#[repr(C)]
+pub struct GtkRange
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkrange.h: `#define GTK_RANGE(obj)` - C 4611's checked cast, keeping the macro's name
+/// and its result type (the GLib cast chain is owed, as the mirror's other casts are).  It is the
+/// unit's macro because its expansion names the unit's record.
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+macro_rules! GTK_RANGE {
+  ($o:expr) => { ($o) as *mut GtkRange };
+}
+/// C: gtk/gtkrange.h (GTK2's): `void gtk_range_set_update_policy (GtkRange *range, GtkUpdateType
+/// policy);` - C 4611's call, whose `GTK_UPDATE_CONTINUOUS` argument stays C's name (the mirror
+/// carries the type and not the enumerator).  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+unsafe extern "C" {
+  pub fn gtk_range_set_update_policy (range: *mut GtkRange, policy: GtkUpdateType);
+}
+/// C: gtk/gtkeventbox.h: `GtkWidget *gtk_event_box_new (void);` - C 4603's call, the event box
+/// every GTK face wraps its scroll bar in.  `src/pgtkterm.rs` 5221 declares the same name for its
+/// own C 3708, so the mirror cannot carry it (Owed 18's class).  **UNVERIFIED.**
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn gtk_event_box_new () -> *mut GtkWidget;
+}
+
+/// C 4595-4686: `static void xg_finish_scroll_bar_creation (struct frame *f, GtkWidget *wscroll,
+/// struct scroll_bar *bar, GCallback scroll_callback, GCallback end_callback, const char
+/// *scroll_bar_name)` - the tail both scroll-bar constructors share: name the widget, remember the
+/// frame on it (`XG_FRAME_DATA`), connect the four signals (the `size-allocate` one in the
+/// GTK3/X11 face and the `destroy` pair in the map face), put the widget inside an event box on the
+/// frame's edit widget, realize the box so it becomes a real X window, and install the theme's two
+/// CSS providers in the GTK3 face.  C `static`, so a plain `unsafe fn` (PORTING.md 0.2).
+///
+/// The five folds are the port's `#[cfg]`s: C 4604's `HAVE_GTK3` (the two providers' declarations),
+/// C 4610's `#ifndef HAVE_GTK3` (the update policy), C 4615's `have_gtk3 && !have_pgtk`
+/// (the `size-allocate` connection), C 4621's `have_pgtk || !have_gtk3` (the map store, its
+/// `destroy` connection and C 4683's same condition around the `x_window` store), C 4655's pgtk
+/// `#ifdef` / C 4657's `#elif have_gtk3` / C 4660's `#else` (the three `GTK_WIDGET_TO_X_WIN` shapes),
+/// C 4667's `HAVE_GTK3` (the provider block with C 4677's `#ifndef HAVE_PGTK` inside it).
+/// C 4645's `f->output_data.xp->edit_widget` and C 4669's `FRAME_OUTPUT_DATA (f)` are C's own
+/// `#define`s for the per-arm member, spelled here through the mirrors' `FRAME_X_OUTPUT!` /
+/// `FRAME_OUTPUT_DATA!` (whose expansions are the `.x`/`.pgtk` members) and the file's per-arm
+/// `xp_output` alias, so both lines have one spelling in both faces; the alias cast is what makes
+/// the `c_void`-typed member C 35/38's `#define` yields reachable (measured: two `E0609`s without
+/// it, this slice's first arm run).
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_finish_scroll_bar_creation (f: *mut frame, wscroll: *mut GtkWidget,
+					 bar: *mut scroll_bar, scroll_callback: GCallback,
+					 end_callback: GCallback,
+					 scroll_bar_name: *const c_char)   // C 4596-4686
+{
+  let webox: *mut GtkWidget = gtk_event_box_new ();                     // C 4603
+  /* C 4604's `#ifdef HAVE_GTK3`; its `#endif` is C 4608.  */
+  #[cfg (feature = "have_gtk3")]
+  let mut foreground_provider: *mut GtkCssProvider;                     // C 4605
+  #[cfg (feature = "have_gtk3")]
+  let mut background_provider: *mut GtkCssProvider;                     // C 4606
+
+  gtk_widget_set_name (wscroll, scroll_bar_name);                       // C 4609
+  /* C 4610's `#ifndef HAVE_GTK3`; its `#endif` is C 4612.  */
+  #[cfg (not (feature = "have_gtk3"))]
+  { gtk_range_set_update_policy (GTK_RANGE! (wscroll), GTK_UPDATE_CONTINUOUS); }   // C 4611
+  g_object_set_data (G_OBJECT! (wscroll), XG_FRAME_DATA, (f as gpointer));   // C 4613
+
+  /* C 4615's `#if defined HAVE_GTK3 && !defined HAVE_PGTK`; its `#endif` is C 4619.  */
+  #[cfg (all (feature = "have_gtk3", not (feature = "have_pgtk")))]
+  { g_signal_connect! (G_OBJECT! (webox), c"size-allocate".as_ptr (),   // C 4616
+		       xg_scroll_bar_size_allocate_cb,                        // C 4617
+		       std::ptr::null_mut ()); }                              // C 4618
+
+  /* C 4621's `#if defined HAVE_PGTK || !defined HAVE_GTK3`; its `#endif` is C 4629.  */
+  #[cfg (any (feature = "have_pgtk", not (feature = "have_gtk3")))]
+  let scroll_id: ptrdiff_t = xg_store_widget_in_map (wscroll);          // C 4622
+  #[cfg (any (feature = "have_pgtk", not (feature = "have_gtk3")))]
+  { g_signal_connect! (G_OBJECT! (wscroll), c"destroy".as_ptr (),      // C 4624
+		       xg_gtk_scroll_destroy,                                 // C 4626
+		       (scroll_id as gpointer)); }                            // C 4627
+
+  /* C 4632/4636 pass the *variables* `scroll_callback` and `end_callback`, which this file's
+     `g_signal_connect!` macro would wrap a second time in `G_CALLBACK!` - a macro that needs a
+     function item, not a `GCallback` value (measured: `E0605`, the `xg_dialog_run` reading in the
+     `## Deviations`).  Both calls therefore stand in the macro's own `g_signal_connect_data`
+     expansion, handler and all.  */
+  g_signal_connect_data (G_OBJECT! (wscroll) as gpointer, c"change-value".as_ptr (),   // C 4630-4631
+			 scroll_callback, (bar as gpointer), None,
+			 0 as GConnectFlags);                                  // C 4632-4633
+  g_signal_connect_data (G_OBJECT! (wscroll) as gpointer,
+			 c"button-release-event".as_ptr (),                    // C 4634-4635
+			 end_callback, (bar as gpointer), None,
+			 0 as GConnectFlags);                                  // C 4636-4637
+
+  /* C 4639-4644's comment, carried as C's own text.  */
+  /* C: /* The scroll bar widget does not draw on a window of its own.  Instead
+     C:    it draws on the parent window, in this case the edit widget.  So
+     C:    whenever the edit widget is cleared, the scroll bar needs to redraw
+     C:    also, which causes flicker.  Put an event box between the edit widget
+     C:    and the scroll bar, so the scroll bar instead draws itself on the
+     C:    event box window.  */  */
+  gtk_fixed_put (GTK_FIXED! ((*(FRAME_X_OUTPUT! (f) as *mut xp_output)).edit_widget),   // C 4645
+		 webox, -1, -1);
+  gtk_container_add (GTK_CONTAINER! (webox), wscroll);                  // C 4646
+
+  xg_set_widget_bg (f, webox, FRAME_BACKGROUND_PIXEL (f));              // C 4648
+
+  /* C 4650-4653's comment, carried as C's own text.  */
+  /* C: /* N.B. The event box doesn't become a real X11 window until we ask
+     C:    for its XID via GTK_WIDGET_TO_X_WIN.  If the event box is not a
+     C:    real X window, it and its scroll-bar child try to draw on the
+     C:    Emacs main window, which we draw over using Xlib.  */  */
+  gtk_widget_realize (webox);                                           // C 4654
+  /* C 4655's `#ifdef HAVE_PGTK` / C 4657's `#elif defined HAVE_GTK3` / C 4660's `#else`: the three
+     faces differ in whether the window id is stored (C 4658), discarded (C 4661) or not asked for. */
+  #[cfg (feature = "have_pgtk")]
+  { gtk_widget_show_all (webox); }                                      // C 4656
+  #[cfg (all (feature = "have_gtk3", not (feature = "have_pgtk")))]
+  {
+    (*bar).x_window = GTK_WIDGET_TO_X_WIN! (webox);                     // C 4658
+    gtk_widget_show_all (webox);                                        // C 4659
+  }
+  #[cfg (not (feature = "have_gtk3"))]
+  { GTK_WIDGET_TO_X_WIN! (webox); }                                     // C 4661
+
+  /* Set the cursor to an arrow.  */
+  xg_set_cursor (webox, (*FRAME_DISPLAY_INFO! (f)).xg_cursor);          // C 4665
+
+  /* C 4667's `#ifdef HAVE_GTK3`; its `#endif` is C 4681.  */
+  #[cfg (feature = "have_gtk3")]
+  {
+    let ctxt: *mut GtkStyleContext = gtk_widget_get_style_context (wscroll);   // C 4668
+    foreground_provider = (*(FRAME_OUTPUT_DATA! (f) as *mut xp_output))   // C 4669
+	  .scrollbar_foreground_css_provider;
+    background_provider = (*(FRAME_OUTPUT_DATA! (f) as *mut xp_output))   // C 4670
+	  .scrollbar_background_css_provider;
+
+    gtk_style_context_add_provider (ctxt, GTK_STYLE_PROVIDER! (foreground_provider),   // C 4672
+				    GTK_STYLE_PROVIDER_PRIORITY_USER);          // C 4673
+    gtk_style_context_add_provider (ctxt, GTK_STYLE_PROVIDER! (background_provider),   // C 4674
+				    GTK_STYLE_PROVIDER_PRIORITY_USER);          // C 4675
+    /* C 4677's `#ifndef HAVE_PGTK`; its `#endif` is C 4680.  */
+    #[cfg (not (feature = "have_pgtk"))]
+    {
+      gtk_widget_add_events (webox, GDK_STRUCTURE_MASK);                // C 4678
+      gtk_widget_set_double_buffered (wscroll, FALSE);                  // C 4679
+    }
+  }
+
+  /* C 4683's `#if defined HAVE_PGTK || !defined HAVE_GTK3`; its `#endif` is C 4685.  */
+  #[cfg (any (feature = "have_pgtk", not (feature = "have_gtk3")))]
+  { (*bar).x_window = scroll_id as Window; }                            // C 4684
+}

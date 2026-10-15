@@ -670,3 +670,26 @@ row(s), 0 failure(s)` (the two fresh names are in no other unit either); `tools/
 object; `src/gtkutil.rs`'s six arm readings are **identical multisets** to the pre-slice tree at
 `2b9e5858` (26/26/25/64/64/24) - expected, because none of the slice's three functions has a caller
 until C 4882-4900's creator lands.
+
+### status 4.348 (the gtkutil eighteenth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_finish_scroll_bar_creation` (C 4595-4687) is the round's consumer, and this
+file took one addition: **`GtkUpdateType`** (gtk/gtkenums.h, GTK2's), the type of C 4611's
+`GTK_UPDATE_CONTINUOUS`.  It sits with the other GTK2 rows (`GtkOrientation`, `GtkStateType`) and is
+the *type* only - the enumerator is deliberately not carried, because its value cannot be measured
+here and inventing it is what Owed 6 refuses.  **UNVERIFIED**, like every GTK2 row.
+
+**Six names the consumer keeps.**  `GtkRange` / `GTK_RANGE` / `gtk_range_set_update_policy`
+(gtk/gtkrange.h) and `gtk_event_box_new` (gtk/gtkeventbox.h) stand in the unit - the first three
+because `src/pgtkterm.rs` 5757 declares the record over this mirror, the last because that unit's
+5221 does the same for its own C 3708.  All five rows are Owed 18 of `docs/ports/gtkutil.md`.  The
+round also measured the two `E0609`s that the mirrors' `FRAME_OUTPUT_DATA!`/`FRAME_X_OUTPUT!`
+expansions produce when their `c_void`-typed member is dereferenced without the consumer's alias
+cast - a consumer-side lesson, recorded in that ledger's slice-18 section rather than here.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move by
+owed rows only (arm A 26 -> 27, arm A plus `gtk_check_version_ge_3_14` 26 -> 27, arm A without
+`have_xinput2` 25 -> 26, arm C 64 -> 66, arm C plus `have_freetype` 64 -> 66) and the out-of-tree
+pgtk probe is **byte-identical at 24**.

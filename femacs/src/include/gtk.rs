@@ -773,6 +773,14 @@ pub const GTK_STYLE_PROPERTY_BACKGROUND_COLOR: *const c_char = c"background-colo
 pub type GtkOrientation = c_int;
 #[cfg (not (feature = "have_gtk3"))]
 pub type GtkStateType = c_int;
+/// C: gtk/gtkenums.h (GTK2's): `typedef enum { GTK_UPDATE_CONTINUOUS, GTK_UPDATE_DISCONTINUOUS,
+/// GTK_UPDATE_DELAYED } GtkUpdateType;` - the type of C 4611's `GTK_UPDATE_CONTINUOUS`, the
+/// gtkutil lane's eighteenth slice.  The *type* is carried (the `GtkOrientation`/`GtkStateType`
+/// rows above); its three enumerators are **not**, for the reason those rows give, so the C arm
+/// reads one more `cannot find value` row per use until Owed 6's round can measure a GTK2 tree.
+/// **UNVERIFIED.**
+#[cfg (not (feature = "have_gtk3"))]
+pub type GtkUpdateType = c_int;
 /// C: gtk/gtk.h: the eight checked-cast wrappers C 211-223/533-594/866/871/873/914/928/978/1041
 /// uses, each keeping the macro's name and its result type (the GLib cast chains are owed, as
 /// above).
