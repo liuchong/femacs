@@ -943,3 +943,41 @@ collides with a name any other unit declares.
 **UNVERIFIED.**  All six rows are taken from GTK's and GTK2's documented shapes and this file's
 conventions, not from headers on disk - the boundary `status 4.355` recorded for the GtkPrint*
 surface.
+
+
+### status 4.362 (the gtkutil thirty-second-slice round this file took part in)
+
+`src/gtkutil.c`'s `update_frame_tool_bar` (C 5851-6162) is this round's consumer, and it asks for
+**sixteen items** - the largest batch since `status 4.355`, and the first in which the *same* setter
+family appears twice under complementary gates.
+
+- **The tool-bar item surface**: `gtk_toolbar_get_nth_item` and `gtk_toolbar_insert` (C 5954/6143's
+  reads, C 5965/6131's inserts), `GtkIconSize` (a `c_int` typedef; no enumerator of it is named here)
+  with `gtk_toolbar_get_icon_size` (C 6015), and the separator side: `GtkSeparatorToolItem`,
+  `GTK_IS_SEPARATOR_TOOL_ITEM` (the cast/check family's seventh member) and
+  `gtk_separator_tool_item_new` (C 5959/5964/5973).
+- **`gtk_widget_get_direction`** plus the **`GTK_TEXT_DIR_RTL`** enumerator of the
+  `GtkTextDirection` family whose type and `NONE` row arrived in `status 4.358`; C 6022 compares it.
+  The value is a **placeholder** (`2`, GTK's documented third row).
+- **The image constructors**: `gtk_image_new_from_icon_name` (both faces) and, under
+  `not (feature = "have_gtk3")`, GTK2's `gtk_image_new_from_stock` - C 6088/6090's two arms.
+- **`g_object_set_data_full`** - C 6092/6099's two calls, whose fourth argument is C's
+  `(GDestroyNotify) xfree`.  The port names that type in the body (`{ let destroy: GDestroyNotify =
+  Some (xfree); destroy }`) rather than passing a bare `Some (xfree)`: `extract-abi` read a
+  `does not mention gdestroynotify` row for the bare form, because C's body names the type.
+- **The 3.14 pair**, complementary gates again: `gtk_widget_set_margin_start`/`_end`/`_top`/`_bottom`
+  under `feature = "gtk_check_version_ge_3_14"` (C 6118-6121) and `gtk_misc_set_padding` under its
+  negation (C 6124) - the same shape `status 4.359` used for the two `focus_on_click` setters.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move by
+exactly one retirement (`cannot find function update_frame_tool_bar` - the definition landed), one
+widened and one new Owed 11 row (`toolbar_is_packed` 2 -> 3, `tool_bar_resized` entering) and the
+mirror's unstable `E0658 c_variadic` row (see the unit ledger's correction); and no item of this batch
+collides with a name any other unit declares.
+
+**UNVERIFIED.**  No GTK tree is on this machine, so all sixteen rows' signatures are taken from GTK's
+documented shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
+recorded for the GtkPrint* surface.  `GtkIconSize`'s enumerators are not carried at all (no C text
+here names one), so the typedef is the whole row.

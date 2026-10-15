@@ -3246,3 +3246,83 @@ pub struct GtkStockItem
 unsafe extern "C" {
   pub fn gtk_stock_lookup (stock_id: *const gchar, item: *mut GtkStockItem) -> gboolean;
 }
+
+/// C: gtk/gtktoolbar.h: `GtkToolItem *gtk_toolbar_get_nth_item (GtkToolbar *toolbar, gint n);` /
+/// `void gtk_toolbar_insert (GtkToolbar *toolbar, GtkToolItem *item, gint pos);` - C 5954/6143's
+/// reads and C 5965/6131's inserts (`update_frame_tool_bar`'s item walk).  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_toolbar_get_nth_item (toolbar: *mut GtkToolbar, n: gint) -> *mut GtkToolItem;
+  pub fn gtk_toolbar_insert (toolbar: *mut GtkToolbar, item: *mut GtkToolItem, pos: gint);
+}
+/// C: gtk/gtkicontheme.h: `typedef enum { GTK_ICON_SIZE_INVALID, … } GtkIconSize;` - the type of
+/// C 6015's read.  The enumerator family is not carried (no C text here names one; `GtkIconSize` is
+/// only ever passed back to GTK), and the width is `c_int` by PORTING.md 1.3.  **UNVERIFIED.**
+pub type GtkIconSize = c_int;
+/// C: gtk/gtktoolbar.h: `GtkIconSize gtk_toolbar_get_icon_size (GtkToolbar *toolbar);` - C 6015's
+/// call, read into C's `int icon_size`.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_toolbar_get_icon_size (toolbar: *mut GtkToolbar) -> GtkIconSize;
+}
+/// C: gtk/gtkseparatortoolitem.h: `typedef struct _GtkSeparatorToolItem GtkSeparatorToolItem;` -
+/// the record `GTK_IS_SEPARATOR_TOOL_ITEM` tests; both faces have it.  Opaque head, **UNVERIFIED**.
+#[repr(C)]
+pub struct GtkSeparatorToolItem
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtk.h: `#define GTK_IS_SEPARATOR_TOOL_ITEM(obj)` - the type-check family's seventh member
+/// (the `GTK_IS_BOX` shape: the `G_TYPE_CHECK_INSTANCE_TYPE` chain is owed).
+macro_rules! GTK_IS_SEPARATOR_TOOL_ITEM {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+/// C: gtk/gtkseparatortoolitem.h: `GtkToolItem *gtk_separator_tool_item_new (void);` - C 5964's
+/// constructor.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_separator_tool_item_new () -> *mut GtkToolItem;
+}
+/// C: gtk/gtkwidget.h: `GtkTextDirection gtk_widget_get_direction (GtkWidget *widget);` - C 5902's
+/// read (the tool bar's direction, compared against `GTK_TEXT_DIR_RTL` at C 6022).  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_widget_get_direction (widget: *mut GtkWidget) -> GtkTextDirection;
+}
+/// C: gtk/gtktypes.h: the `GTK_TEXT_DIR_RTL` enumerator of the `GtkTextDirection` family (the third
+/// row, after `NONE` and `LTR`) - C 6022's comparison.  A **placeholder** like `NONE` above: the
+/// documented order is quoted, not measured.  **UNVERIFIED.**
+pub const GTK_TEXT_DIR_RTL: GtkTextDirection = 2;
+/// C: gtk/gtkimage.h: `GtkWidget *gtk_image_new_from_icon_name (const gchar *icon_name, GtkIconSize
+/// size);` - C 6088/6098's constructors (the GTK3 arm of C 6087's fold, and the arm both faces
+/// take for an `icon_name`).  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_image_new_from_icon_name (icon_name: *const gchar, size: GtkIconSize) -> *mut GtkWidget;
+}
+/// C: gtk/gtkimage.h (GTK2's): `GtkWidget *gtk_image_new_from_stock (const gchar *stock_id,
+/// GtkIconSize size);` - C 6090's call, inside C's own `#ifndef HAVE_GTK3`, so the row carries that
+/// gate (GTK3 deprecated and then removed it).  **UNVERIFIED.**
+#[cfg (not (feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn gtk_image_new_from_stock (stock_id: *const gchar, size: GtkIconSize) -> *mut GtkWidget;
+}
+/// C: gobject/gobject.h: `void g_object_set_data_full (GObject *object, const gchar *key, gpointer
+/// data, GDestroyNotify destroy);` - C 6092/6099's two calls, which hand the widget the
+/// `xstrdup`'d name and C's `(GDestroyNotify) xfree` (the port's `Some (xfree)`, P-27's cast
+/// shape).  A fresh name (no other unit declares it).  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn g_object_set_data_full (object: *mut GObject, key: *const gchar, data: gpointer,
+				 destroy: GDestroyNotify);
+}
+/// C: gtk/gtkwidget.h (GTK 3.12's, used from C 6115's `GTK_CHECK_VERSION (3, 14, 0)` on): the four
+/// margin setters C 6118-6121 calls.  The row carries that feature, whose negation selects
+/// `gtk_misc_set_padding` below.  **UNVERIFIED.**
+#[cfg (feature = "gtk_check_version_ge_3_14")]
+unsafe extern "C" {
+  pub fn gtk_widget_set_margin_start (widget: *mut GtkWidget, margin: gint);
+  pub fn gtk_widget_set_margin_end (widget: *mut GtkWidget, margin: gint);
+  pub fn gtk_widget_set_margin_top (widget: *mut GtkWidget, margin: gint);
+  pub fn gtk_widget_set_margin_bottom (widget: *mut GtkWidget, margin: gint);
+}
+/// C: gtk/gtkmisc.h: `void gtk_misc_set_padding (GtkMisc *misc, gint xpad, gint ypad);` - C 6124's
+/// call, the `#else` arm of the same fold (GTK2's and GTK's before 3.14).  **UNVERIFIED.**
+#[cfg (not (feature = "gtk_check_version_ge_3_14"))]
+unsafe extern "C" {
+  pub fn gtk_misc_set_padding (misc: *mut GtkMisc, xpad: gint, ypad: gint);
+}

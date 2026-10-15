@@ -8636,3 +8636,424 @@ unsafe fn find_icon_from_name (mut name: *mut c_char, icon_theme: *mut GtkIconTh
 
   return name;                                                          // C 5845
 }
+
+/* C 5847-5848's blanks and C 5849-5850's comment above `update_frame_tool_bar`, carried as C's own
+   text, then C 5851-6162: the tool bar's rebuild - the largest single item left in this file, and
+   the first one in it with a C `continue` inside a C `for` loop.  */
+
+/* C: /* Update the tool bar for frame F.  Add new buttons and remove old.  */  */
+
+/* C: frame.h 1667-1672: `INLINE struct image * IMAGE_FROM_ID (struct frame *f, int id) { eassert (0
+   <= id && id < FRAME_IMAGE_CACHE (f)->used); return FRAME_IMAGE_CACHE (f)->images[id]; }` - the
+   macro `src/image.rs` 2173 spells for its own unit; this unit's copy (the `src/xwidget.rs` 2957
+   shape) keeps C's body and its `image_cache` record, which `include/dispextern.rs` 2591 carries.  */
+#[cfg (feature = "use_gtk")]
+macro_rules! IMAGE_FROM_ID {
+  ($f:expr, $id:expr) =>
+    {
+      ({
+	eassert! (0 <= $id && ($id as isize) < (*(FRAME_IMAGE_CACHE! ($f) as *mut image_cache)).used);
+	(*(*(FRAME_IMAGE_CACHE! ($f) as *mut image_cache)).images.offset ($id as isize))
+      })
+    };
+}
+
+/// C 5851-6162: `void update_frame_tool_bar (struct frame *f)` - the tool bar's one entry point
+/// (gtkutil.h 158 declares it, so C's non-`static` rule gives it `#[unsafe(no_mangle)]` with the C
+/// ABI): bail out when the frame has no outer widget, read the button margin (with C 5895-5896's
+/// "default for GTK is zero" adjustment), create the bar on first use, then walk
+/// `f->tool_bar_items` and make each item - separator or button - and finally drop the items the
+/// frame no longer needs and resize.
+///
+/// **The C `for` head, and its three `continue`s.**  C 5933 is
+/// `for (i = j = 0; i < f->n_tool_bar_items; ++i)` and the body C 5968/5988/6059 `continue`s from
+/// three places.  The port keeps the `while` spelling - so C's *re-evaluated* bound stays
+/// re-evaluated, which a Rust `for i in 0..n` would fix at loop entry (the body calls into Lisp at
+/// C 5993) - and therefore writes C's step **at each `continue`** (`{ i += 1; continue; }`), the
+/// `src/fontset.rs` 1490 shape for the same reason.  C 6134's `#undef PROP` has no Rust counterpart
+/// (a `macro_rules!` is scoped by its module and cannot be undefined), so it is carried as a comment.
+///
+/// **The five version folds inside**: C 5870-5873 (`HAVE_PGTK`), C 6049-6053 (`USE_CAIRO` vs the
+/// pixmap arm), C 6087-6091 (GTK3's `gtk_image_new_from_icon_name` vs GTK2's `_from_stock`),
+/// C 6107-6111 (the third argument of `g_object_set_data`) and C 6115-6125
+/// (`GTK_CHECK_VERSION (3, 14, 0)`: the four margin setters vs `gtk_misc_set_padding`).  C 6106-6112
+/// and C 6092-6094's `g_object_set_data_full` are the two places the port casts C's function
+/// pointer (`(GDestroyNotify) xfree` is `Some (xfree)`, the same once-cast shape P-27 records for
+/// `GCallback`).
+///
+/// **Use-site declarations and one macro copy** (Owed 18's class - non-`static` definitions in
+/// other units, or a macro another unit's text owns): `valid_image_p`, `lookup_image` and
+/// `prepare_image_for_display` are `image.c`'s, declared at the end of this slice, and
+/// `IMAGE_FROM_ID` (frame.h 1667-1672) is a macro `src/image.rs` 2173 carries for its own unit, so
+/// its copy stands here under this unit's gate.
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn update_frame_tool_bar (f: *mut frame)   // C 5851-6162
+{
+  use dispextern_unit_names::{TOOL_BAR_ITEM_ENABLED_P, TOOL_BAR_ITEM_IMAGES, TOOL_BAR_ITEM_LABEL,
+			      TOOL_BAR_ITEM_RTL_IMAGE, TOOL_BAR_ITEM_SELECTED_P,
+			      TOOL_BAR_ITEM_TYPE, TOOL_BAR_ITEM_VERT_ONLY};
+
+  let mut i: c_int;                                                     // C 5854
+  let mut j: c_int;
+  /* C 5855's `f->output_data.xp`: the `#[cfg]` pair is C 35/38's `#define xp`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let x: *mut xp_output = (*f).output_data.x as *mut xp_output;         // C 5855 (`xp` = `x`)
+  #[cfg (feature = "have_pgtk")]
+  let x: *mut xp_output = (*f).output_data.pgtk as *mut xp_output;      // C 5855 (`xp` = `pgtk`)
+  let mut hmargin: c_int = 0;                                           // C 5856
+  let mut vmargin: c_int = 0;
+  let wtoolbar: *mut GtkToolbar;                                        // C 5857
+  let mut ti: *mut GtkToolItem;                                         // C 5858
+  let dir: GtkTextDirection;                                            // C 5859
+  let style: Lisp_Object;                                               // C 5860
+  let mut text_image: bool;                                             // C 5861
+  let mut horiz: bool;
+  let tbinfo: *mut xg_frame_tb_info;                                    // C 5862
+  let screen: *mut GdkScreen;                                           // C 5863
+  let icon_theme: *mut GtkIconTheme;                                    // C 5864
+
+
+  if FRAME_GTK_WIDGET! (f).is_null ()                                   // C 5867
+    { return; }                                                         // C 5868
+
+  /* C 5870-5873's `#ifdef HAVE_PGTK`.  */
+  #[cfg (feature = "have_pgtk")]
+  {
+    if FRAME_GTK_OUTER_WIDGET! (f).is_null ()                           // C 5871
+      { return; }                                                       // C 5872
+  }
+
+  block_input ();                                                       // C 5875
+
+  if RANGED_FIXNUMP (1, Vtool_bar_button_margin, INT_MAX as EMACS_INT)   // C 5877
+    {
+      hmargin = XFIXNAT (Vtool_bar_button_margin) as c_int;             // C 5879
+      vmargin = XFIXNAT (Vtool_bar_button_margin) as c_int;             // C 5880
+    }
+  else if CONSP (Vtool_bar_button_margin)                               // C 5882
+    {
+      if RANGED_FIXNUMP (1, XCAR (Vtool_bar_button_margin), INT_MAX as EMACS_INT)   // C 5884
+	{ hmargin = XFIXNAT (XCAR (Vtool_bar_button_margin)) as c_int; }   // C 5885
+
+      if RANGED_FIXNUMP (1, XCDR (Vtool_bar_button_margin), INT_MAX as EMACS_INT)   // C 5887
+	{ vmargin = XFIXNAT (XCDR (Vtool_bar_button_margin)) as c_int; }   // C 5888
+    }
+
+  /* The natural size (i.e. when GTK uses 0 as margin) looks best,
+     so take DEFAULT_TOOL_BAR_BUTTON_MARGIN to mean "default for GTK",
+     i.e. zero.  This means that margins less than
+     DEFAULT_TOOL_BAR_BUTTON_MARGIN has no effect.  */
+  hmargin = max (0, hmargin - DEFAULT_TOOL_BAR_BUTTON_MARGIN);          // C 5895
+  vmargin = max (0, vmargin - DEFAULT_TOOL_BAR_BUTTON_MARGIN);          // C 5896
+
+  if (*x).toolbar_widget.is_null ()                                     // C 5898
+    { xg_create_tool_bar (f); }                                         // C 5899
+
+  wtoolbar = GTK_TOOLBAR! ((*x).toolbar_widget);                        // C 5901
+  dir = gtk_widget_get_direction (GTK_WIDGET! (wtoolbar));              // C 5902
+
+  style = Ftool_bar_get_system_style ();                                // C 5904
+  screen = gtk_widget_get_screen (GTK_WIDGET! (wtoolbar));              // C 5905
+  icon_theme = gtk_icon_theme_get_for_screen (screen);                  // C 5906
+
+  /* Are we up to date? */
+  tbinfo = g_object_get_data (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)),   // C 5909-5910
+			      TB_INFO_KEY.as_ptr ()) as *mut xg_frame_tb_info;
+
+  if ! NILP ((*tbinfo).last_tool_bar) && ! NILP ((*f).tool_bar_items)    // C 5912
+      && (*tbinfo).n_last_items == (*f).n_tool_bar_items                // C 5913
+      && (*tbinfo).hmargin == hmargin && (*tbinfo).vmargin == vmargin   // C 5914
+      && (*tbinfo).dir == dir                                           // C 5915
+      && ! NILP (Fequal ((*tbinfo).style, style))                       // C 5916
+      && ! NILP (Fequal ((*tbinfo).last_tool_bar, (*f).tool_bar_items))   // C 5917
+    {
+      unblock_input ();                                                 // C 5919
+      return;                                                           // C 5920
+    }
+
+  (*tbinfo).last_tool_bar = (*f).tool_bar_items;                        // C 5923
+  (*tbinfo).n_last_items = (*f).n_tool_bar_items;                       // C 5924
+  (*tbinfo).style = style;                                              // C 5925
+  (*tbinfo).hmargin = hmargin;                                          // C 5926
+  (*tbinfo).vmargin = vmargin;                                          // C 5927
+  (*tbinfo).dir = dir;                                                  // C 5928
+
+  text_image = EQ (style, Qtext_image_horiz ());                        // C 5930
+  horiz = EQ (style, Qboth_horiz ()) || text_image;                     // C 5931
+
+  j = 0;                                                                // C 5933 (the `for` head)
+  i = 0;
+  while i < (*f).n_tool_bar_items
+    {
+      let enabled_p: bool = ! NILP (PROP! (f, i, TOOL_BAR_ITEM_ENABLED_P));   // C 5935
+      let selected_p: bool = ! NILP (PROP! (f, i, TOOL_BAR_ITEM_SELECTED_P));   // C 5936
+      let mut idx: c_int;                                               // C 5937
+      let mut img_id: ptrdiff_t;                                        // C 5938
+      let mut icon_size: c_int = 0;                                     // C 5939
+      let mut img: *mut image = std::ptr::null_mut ();                  // C 5940
+      let mut image: Lisp_Object;                                       // C 5941
+      let mut stock: Lisp_Object = Qnil ();                             // C 5942
+      let mut stock_name: *mut c_char = std::ptr::null_mut ();          // C 5943
+      let mut icon_name: *mut c_char = std::ptr::null_mut ();           // C 5944
+      let mut rtl: Lisp_Object;                                         // C 5945
+      let mut wbutton: *mut GtkWidget = std::ptr::null_mut ();          // C 5946
+      let specified_file: Lisp_Object;                                  // C 5947
+      let vert_only: bool = ! NILP (PROP! (f, i, TOOL_BAR_ITEM_VERT_ONLY));   // C 5948
+      let label: Lisp_Object                                            // C 5949-5952
+	= if EQ (style, Qimage ()) || (vert_only && horiz) { Qnil () }
+	  else { PROP! (f, i, TOOL_BAR_ITEM_LABEL) };
+
+      ti = gtk_toolbar_get_nth_item (wtoolbar, j);                      // C 5954
+
+      /* If this is a separator, use a gtk separator item.  */
+      if EQ (PROP! (f, i, TOOL_BAR_ITEM_TYPE), Qt ())                   // C 5957
+	{
+	  if ti.is_null () || ! GTK_IS_SEPARATOR_TOOL_ITEM! (ti)        // C 5959
+	    {
+	      if ! ti.is_null ()                                        // C 5961
+		{
+		  gtk_container_remove (GTK_CONTAINER! (wtoolbar),      // C 5962
+					GTK_WIDGET! (ti));              // C 5963
+		}
+	      ti = gtk_separator_tool_item_new ();                      // C 5964
+	      gtk_toolbar_insert (wtoolbar, ti, j);                     // C 5965
+	    }
+	  j += 1;                                                       // C 5967
+	  i += 1; continue;                                             // C 5968 (plus C 5933's step)
+	}
+
+      /* Otherwise, the tool-bar item is an ordinary button.  */
+
+      if ! ti.is_null () && GTK_IS_SEPARATOR_TOOL_ITEM! (ti)            // C 5973
+	{
+	  gtk_container_remove (GTK_CONTAINER! (wtoolbar), GTK_WIDGET! (ti));   // C 5975
+	  ti = std::ptr::null_mut ();                                   // C 5976
+	}
+
+      if ! ti.is_null () { wbutton = XG_BIN_CHILD! (XG_BIN_CHILD! (ti)); }   // C 5979
+
+      /* Ignore invalid image specifications.  */
+      image = PROP! (f, i, TOOL_BAR_ITEM_IMAGES);                       // C 5982
+      if ! valid_image_p (image)                                        // C 5983
+	{
+	  if ! ti.is_null ()                                            // C 5985
+	    {
+	      gtk_container_remove (GTK_CONTAINER! (wtoolbar),          // C 5986
+				    GTK_WIDGET! (ti));                  // C 5987
+	    }
+	  i += 1; continue;                                             // C 5988 (plus C 5933's step)
+	}
+
+      specified_file = file_for_image (image);                          // C 5991
+      if ! NILP (specified_file) && ! NILP (Ffboundp (Qx_gtk_map_stock ()))   // C 5992
+	{ stock = calln! (Qx_gtk_map_stock (), specified_file); }       // C 5993
+
+      if CONSP (stock)                                                  // C 5995
+	{
+	  let mut tem: Lisp_Object;                                     // C 5997
+	  tem = stock;                                                  // C 5998 (the `for` head)
+	  while CONSP (tem)
+	    {
+	      if ! NILP (tem) && STRINGP (XCAR (tem))                   // C 5999
+		{
+		  stock_name = find_icon_from_name (SSDATA (XCAR (tem)),   // C 6001-6002
+						    icon_theme,
+						    (&raw mut icon_name));   // C 6003
+		  if ! stock_name.is_null () || ! icon_name.is_null () { break; }   // C 6004
+		}
+	      tem = XCDR (tem);                                         // C 5998 (the `for` step)
+	    }
+	}
+      else if STRINGP (stock)                                           // C 6007
+	{
+	  stock_name = find_icon_from_name (SSDATA (stock),             // C 6009-6010
+					    icon_theme,
+					    (&raw mut icon_name));      // C 6011
+	}
+
+      if ! stock_name.is_null () || ! icon_name.is_null ()              // C 6014
+	{ icon_size = gtk_toolbar_get_icon_size (wtoolbar); }           // C 6015
+
+      if stock_name.is_null () && icon_name.is_null ()                  // C 6017
+	{
+	  /* No stock image, or stock item not known.  Try regular
+	     image.  If image is a vector, choose it according to the
+	     button state.  */
+	  /* C 6022-6024's condition assigns `rtl` in the middle of itself; the port keeps C's
+	     short-circuit with the block-expression spelling `src/alloc.rs` 6318 uses.  */
+	  if dir == GTK_TEXT_DIR_RTL                                    // C 6022
+	      && { rtl = PROP! (f, i, TOOL_BAR_ITEM_RTL_IMAGE); ! NILP (rtl) }   // C 6023
+	      && STRINGP (rtl)                                          // C 6024
+	    { image = find_rtl_image (f, image, rtl); }                 // C 6025
+
+	  if VECTORP (image)                                            // C 6027
+	    {
+	      if enabled_p                                              // C 6029
+		{
+		  idx = if selected_p { TOOL_BAR_IMAGE_ENABLED_SELECTED }   // C 6030-6031
+			else { TOOL_BAR_IMAGE_ENABLED_DESELECTED };     // C 6032
+		}
+	      else
+		{
+		  idx = if selected_p { TOOL_BAR_IMAGE_DISABLED_SELECTED }   // C 6034-6035
+			else { TOOL_BAR_IMAGE_DISABLED_DESELECTED };    // C 6036
+		}
+
+	      eassert! (ASIZE (image) >= idx as isize);                 // C 6038
+	      image = AREF (image, idx as isize);                       // C 6039
+	    }
+	  else
+	    { idx = -1; }                                               // C 6042
+
+	  img_id = lookup_image (f, image, -1);                         // C 6044
+	  img = IMAGE_FROM_ID! (f, img_id);                             // C 6045
+	  prepare_image_for_display (f, img);                           // C 6046
+
+	  /* C 6049-6053's `#ifdef USE_CAIRO`: the load-failure test's second operand.  */
+	  let load_failed: bool = (*img).load_failed_p;                  // C 6048
+	  #[cfg (feature = "use_cairo")]
+	  let img_missing: bool = (*img).cr_data.is_null ();             // C 6050
+	  #[cfg (not (feature = "use_cairo"))]
+	  let img_missing: bool = (*img).pixmap == None;                 // C 6052
+	  if load_failed || img_missing
+	    {
+	      if ! ti.is_null ()                                        // C 6056
+		{
+		  gtk_container_remove (GTK_CONTAINER! (wtoolbar),      // C 6057
+					GTK_WIDGET! (ti));              // C 6058
+		}
+	      i += 1; continue;                                         // C 6059 (plus C 5933's step)
+	    }
+	}
+
+      /* If there is an existing widget, check if it's stale; if so,
+	 remove it and make a new tool item from scratch.  */
+      if ! ti.is_null ()                                                // C 6065
+	  && xg_tool_item_stale_p (wbutton, stock_name, icon_name, img,   // C 6065-6066
+				   if NILP (label) { std::ptr::null () }   // C 6067
+				   else if STRINGP (label) { SSDATA (label) }   // C 6068
+				   else { c"".as_ptr () },
+				   horiz)                               // C 6069
+	{
+	  gtk_container_remove (GTK_CONTAINER! (wtoolbar),              // C 6071
+				GTK_WIDGET! (ti));                      // C 6072
+	  ti = std::ptr::null_mut ();                                   // C 6073
+	}
+
+      if ti.is_null ()                                                  // C 6076
+	{
+	  let mut w: *mut GtkWidget;                                    // C 6078
+
+	  /* Save the image so we can see if an update is needed the
+	     next time we call xg_tool_item_match_p.  */
+	  if EQ (style, Qtext ())                                       // C 6082
+	    { w = std::ptr::null_mut (); }                              // C 6083
+	  else if ! stock_name.is_null ()                               // C 6084
+	    {
+	      /* C 6087's `#ifdef HAVE_GTK3`; its `#else` is C 6089-6090.  */
+	      #[cfg (feature = "have_gtk3")]
+	      { w = gtk_image_new_from_icon_name (stock_name, icon_size); }   // C 6088
+	      #[cfg (not (feature = "have_gtk3"))]
+	      { w = gtk_image_new_from_stock (stock_name, icon_size); }   // C 6090
+	      g_object_set_data_full (G_OBJECT! (w), XG_TOOL_BAR_STOCK_NAME.as_ptr (),   // C 6092-6093
+				      xstrdup (stock_name) as gpointer,   // C 6093
+				      /* C 6094's `(GDestroyNotify) xfree`: the cast is
+					 a type ascription here, at its own argument.  */
+				      { let destroy: GDestroyNotify = Some (xfree); destroy });   // C 6094
+	    }
+	  else if ! icon_name.is_null ()                                // C 6096
+	    {
+	      w = gtk_image_new_from_icon_name (icon_name, icon_size);   // C 6098
+	      g_object_set_data_full (G_OBJECT! (w), XG_TOOL_BAR_ICON_NAME.as_ptr (),   // C 6099-6100
+				      xstrdup (icon_name) as gpointer,    // C 6100
+				      { let destroy: GDestroyNotify = Some (xfree); destroy });   // C 6101
+	    }
+	  else
+	    {
+	      w = xg_get_image_for_pixmap (f, img, (*x).widget, std::ptr::null_mut ());   // C 6105
+	      /* C 6107-6111's third argument: the cairo arm passes `img->cr_data`, the other casts
+		 `img->pixmap`.  */
+	      #[cfg (feature = "use_cairo")]
+	      {
+		g_object_set_data (G_OBJECT! (w), XG_TOOL_BAR_IMAGE_DATA.as_ptr (),   // C 6106
+				   (*img).cr_data);                      // C 6108
+	      }
+	      #[cfg (not (feature = "use_cairo"))]
+	      {
+		g_object_set_data (G_OBJECT! (w), XG_TOOL_BAR_IMAGE_DATA.as_ptr (),   // C 6106
+				   (*img).pixmap as gpointer);           // C 6110
+	      }
+	    }
+
+	  /* C 6115's `#if GTK_CHECK_VERSION (3, 14, 0)`; its `#else` is C 6123-6124.  */
+	  #[cfg (feature = "gtk_check_version_ge_3_14")]
+	  {
+	    if ! w.is_null ()                                           // C 6116
+	      {
+		gtk_widget_set_margin_start (w, hmargin);               // C 6118
+		gtk_widget_set_margin_end (w, hmargin);                 // C 6119
+		gtk_widget_set_margin_top (w, vmargin);                 // C 6120
+		gtk_widget_set_margin_bottom (w, vmargin);              // C 6121
+	      }
+	  }
+	  #[cfg (not (feature = "gtk_check_version_ge_3_14"))]
+	  {
+	    if ! w.is_null ()                                           // C 6124
+	      { gtk_misc_set_padding (GTK_MISC! (w), hmargin, vmargin); }   // C 6124
+	  }
+	  ti = xg_make_tool_item (f, w, (&raw mut wbutton),             // C 6126
+				  if NILP (label) { std::ptr::null () }   // C 6127
+				  else if STRINGP (label) { SSDATA (label) }   // C 6128
+				  else { c"".as_ptr () },               // C 6129
+				  i, horiz, text_image);                // C 6130
+	  gtk_toolbar_insert (wtoolbar, ti, j);                         // C 6131
+	}
+
+      /* C 6134: `#undef PROP` - a `macro_rules!` has no `#undef` (the slice note above).  */
+
+      gtk_widget_set_sensitive (wbutton, enabled_p as gboolean);        // C 6136
+      j += 1;                                                           // C 6137
+      i += 1;                                                           // C 5933 (the `for` step)
+    }
+
+  /* Remove buttons not longer needed.  */
+  loop                                                                  // C 6141-6146
+    {
+      ti = gtk_toolbar_get_nth_item (wtoolbar, j);                      // C 6143
+      if ! ti.is_null ()                                                // C 6144
+	{ gtk_container_remove (GTK_CONTAINER! (wtoolbar), GTK_WIDGET! (ti)); }   // C 6145
+      if ti.is_null () { break; }                                       // C 6146
+    }
+
+  if (*f).n_tool_bar_items != 0                                         // C 6148
+    {
+      /* C 6150's `x->toolbar_is_packed`: the arm pair (Owed 11's bit).  */
+      #[cfg (not (feature = "have_pgtk"))]
+      let packed: bool = (*x).toolbar_is_packed;                        // C 6150
+      #[cfg (feature = "have_pgtk")]
+      let packed: bool = pgtk_output_bits! (toolbar_is_packed, x);      // C 6150
+      if ! packed
+	{ xg_pack_tool_bar (f, FRAME_TOOL_BAR_POSITION (f)); }          // C 6151
+      gtk_widget_show_all ((*x).toolbar_widget);                        // C 6152
+      if xg_update_tool_bar_sizes (f)                                  // C 6153
+	{ adjust_frame_size (f, -1, -1, 2, false, Qtool_bar_lines ()); }   // C 6154
+    }
+
+  /* Set this regardless of whether a tool bar was made or not.  It's
+     needed for 'frame-inhibit-implied-resize' to work on GTK.  */
+  (*f).tool_bar_resized = true;                                         // C 6159
+
+  unblock_input ();                                                     // C 6161
+}
+
+/* The three `image.c` definitions C 5983/6044/6046 calls are non-`static` there (`src/image.rs`
+   2100/4971/2793 carry them with `#[unsafe(no_mangle)]`), and no mirror in this unit's graph has a
+   row, so they stand at the use site under this unit's gate - Owed 18's class, the
+   `x_x_to_emacs_modifiers` shape.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn valid_image_p (object: Lisp_Object) -> bool;                   // dispextern.h 3755
+  pub fn lookup_image (f: *mut frame, spec: Lisp_Object, face_id: c_int) -> ptrdiff_t;   // dispextern.h 3757
+  pub fn prepare_image_for_display (f: *mut frame, img: *mut image);    // dispextern.h 3756
+}
