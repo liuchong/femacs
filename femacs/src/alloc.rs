@@ -3611,7 +3611,9 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 				      + std::mem::size_of::<ptrdiff_t> () as ptrdiff_t)
 				   + hash_table_index_size (h)
 				   * std::mem::size_of::<ptrdiff_t> () as ptrdiff_t;
-	    hash_table_allocated_bytes -= bytes;
+	    /* C 3226: signed `-=`; C's ptrdiff_t wraps, so the counter may legitimately go
+	       negative (the obarray arm below has no matching add, C 3230-3235 vs C 5411).  */
+	    hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_sub (bytes);
 	  }
       }
     pvec_type::PVEC_OBARRAY =>
@@ -3619,7 +3621,8 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	let o = PSEUDOVEC_STRUCT! (vector, Lisp_Obarray);
 	xfree ((*o).buckets as *mut c_void);
 	let bytes: ptrdiff_t = obarray_size (o) * std::mem::size_of::<Lisp_Object> () as ptrdiff_t;
-	hash_table_allocated_bytes -= bytes;
+	/* C 3235: as above - the obarray's free has no matching add in the reference either.  */
+	hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_sub (bytes);
       }
     /* Keep the switch exhaustive.  */
     pvec_type::PVEC_NORMAL_VECTOR | pvec_type::PVEC_FREE | pvec_type::PVEC_SYMBOL_WITH_POS
@@ -5791,7 +5794,8 @@ pub unsafe extern "C" fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *mut c_vo
   if nbytes == 0
     { return std::ptr::null_mut (); }
   tally_consing (nbytes);
-  hash_table_allocated_bytes += nbytes;
+  /* C 5411: `hash_table_allocated_bytes += nbytes;` on a signed ptrdiff_t (wraps in C).  */
+  hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_add (nbytes);
   return xmalloc (nbytes as size_t);
 }
 
@@ -5800,7 +5804,8 @@ pub unsafe extern "C" fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *mut c_vo
 pub unsafe extern "C" fn hash_table_free_bytes (p: *mut c_void, nbytes: ptrdiff_t)
 {
   tally_consing (- nbytes);
-  hash_table_allocated_bytes -= nbytes;
+  /* C 5420: `hash_table_allocated_bytes -= nbytes;` (signed, wraps in C).  */
+  hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_sub (nbytes);
   xfree (p);
 }
 
@@ -5862,15 +5867,24 @@ unsafe fn object_bytes (n: object_ct, s: ptrdiff_t) -> byte_ct
 
 unsafe fn total_bytes_of_live_objects () -> byte_ct
 {
+  /* C 5482-5492: `byte_ct tot = 0; tot += ...;` - the reference's arithmetic here is
+     *unchecked* (C's `+=` on a `byte_ct` wraps silently), and one of the fields is the
+     unsigned spelling of a signed counter (`hash_table_allocated_bytes`, C 326) that C itself
+     lets go negative when a table is freed without its alloc having been counted (the obarray
+     case, C 3230-3235 against the one `+=` site, C 5411).  Porting the additions as checked
+     arithmetic turned the reference's silent wrap into `attempt to add with overflow` - measured
+     2026-10-16, the first L1 byte-compile run aborted on the *next* `(garbage-collect)` after
+     `bindat.el`, and every later GC would abort the same way.  P-96's first half applies: the
+     sites where C relies on the wrap are written `wrapping_add`, with C's own text kept.  */
   let mut tot: byte_ct = 0;
-  tot += object_bytes (gcstat.total_conses, std::mem::size_of::<Lisp_Cons> () as ptrdiff_t);
-  tot += object_bytes (gcstat.total_symbols, std::mem::size_of::<Lisp_Symbol> () as ptrdiff_t);
-  tot += gcstat.total_string_bytes;
-  tot += object_bytes (gcstat.total_vector_slots, word_size);
-  tot += object_bytes (gcstat.total_floats, std::mem::size_of::<Lisp_Float> () as ptrdiff_t);
-  tot += object_bytes (gcstat.total_intervals, std::mem::size_of::<interval> () as ptrdiff_t);
-  tot += object_bytes (gcstat.total_strings, std::mem::size_of::<Lisp_String> () as ptrdiff_t);
-  tot += gcstat.total_hash_table_bytes;
+  tot = tot.wrapping_add (object_bytes (gcstat.total_conses, std::mem::size_of::<Lisp_Cons> () as ptrdiff_t));
+  tot = tot.wrapping_add (object_bytes (gcstat.total_symbols, std::mem::size_of::<Lisp_Symbol> () as ptrdiff_t));
+  tot = tot.wrapping_add (gcstat.total_string_bytes);
+  tot = tot.wrapping_add (object_bytes (gcstat.total_vector_slots, word_size));
+  tot = tot.wrapping_add (object_bytes (gcstat.total_floats, std::mem::size_of::<Lisp_Float> () as ptrdiff_t));
+  tot = tot.wrapping_add (object_bytes (gcstat.total_intervals, std::mem::size_of::<interval> () as ptrdiff_t));
+  tot = tot.wrapping_add (object_bytes (gcstat.total_strings, std::mem::size_of::<Lisp_String> () as ptrdiff_t));
+  tot = tot.wrapping_add (gcstat.total_hash_table_bytes);
   return tot;
 }
 
