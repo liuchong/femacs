@@ -1545,9 +1545,26 @@ fn gate_load(arg: Option<&str>) -> i32 {
     const DRIVER: &str = "#![no_std]\n#![no_main]\n\
 // femacs link driver (build scaffolding, not a ported file): rustc links the runtime.\n\
 use core::panic::PanicInfo;\n\
+use core::fmt::{self, Write};\n\
+// A panic is a defect (PORTING.md 424), and a handler that only aborts leaves the reason\n\
+// invisible: measured 2026-10-16, a `batch-byte-compile` run died with `Abort trap: 6` and\n\
+// nothing else.  This one writes the panic\'s message and location to stderr first, then\n\
+// aborts exactly as before, so the abort stays the behaviour and the diagnosis is not a guess.\n\
+struct Stderr;\n\
+impl Write for Stderr {\n\
+    fn write_str (&mut self, s: &str) -> fmt::Result {\n\
+        unsafe { write (2, s.as_ptr () as *const core::ffi::c_void, s.len ()); }\n\
+        Ok (())\n\
+    }\n\
+}\n\
 #[panic_handler]\n\
-fn panic (_info: &PanicInfo) -> ! { unsafe { abort () } }\n\
-unsafe extern \"C\" { fn abort () -> !; }\n\
+fn panic (info: &PanicInfo) -> ! {\n\
+    let mut w = Stderr;\n\
+    let _ = w.write_str (\"femacs: panic: \");\n\
+    let _ = write! (w, \"{}\\n\", info);\n\
+    unsafe { abort () }\n\
+}\n\
+unsafe extern \"C\" { fn abort () -> !; fn write (fd: core::ffi::c_int, buf: *const core::ffi::c_void, n: usize) -> isize; }\n\
 // libcompiler_builtins' prebuilt rlib carries EH landing pads (it is built for the\n\
 // toolchain's own std configuration), so it references the C-unmangled\n\
 // rust_eh_personality symbol; nothing raises in a panic=abort link, and the port's panics\n\
