@@ -963,6 +963,19 @@ DEFUN! ("w16-selection-exists-p", Fw16_selection_exists_p, Sw16_selection_exists
   return Qnil ();                                             // C 671
 });
 
+/* C 681-685 carries this unit's two `DEFVAR_LISP` variables: C's `DEFVAR_*` (lisp.h 3495-3530)
+   defines the object (`globals.f_##vname`), so the port defines it here and `globals.rs`'s
+   declaration is shadowed (docs/status.md 3.29, the `src/cmds.rs` 489-492 row).  C zero-initialises
+   the `globals` object, so the initialisers are `lisp_h_Qnil ()`.  */
+// C 681: `DEFVAR_LISP ("selection-coding-system", Vselection_coding_system, ...)`.
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub static mut Vselection_coding_system: Lisp_Object = lisp_h_Qnil ();
+// C 685: `DEFVAR_LISP ("next-selection-coding-system", Vnext_selection_coding_system, ...)`.
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub static mut Vnext_selection_coding_system: Lisp_Object = lisp_h_Qnil ();
+
 /* C 674-690: `syms_of_win16select`.  */
 #[cfg (feature = "msdos")]
 #[unsafe(no_mangle)]
