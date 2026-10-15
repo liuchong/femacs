@@ -6383,8 +6383,9 @@ unsafe extern "C" {
 /// same two values on the other axis) - the bounds C 4485/4509 hand to `gtk_adjustment_new`'s
 /// `gdouble` parameters, so each of those call sites carries C's implicit integer-to-`double`
 /// conversion as an explicit `as c_double` (the file's `scale as f64` shape).  They stand here
-/// because `include/gtkutil.rs` is a placeholder (Owed 10/Owed 11), and the
-/// `XG_SB_RANGE`/`YG_SB_RANGE` pair C 40/43 also define is left for the slice that reads it.
+/// because `include/gtkutil.rs` is a placeholder (Owed 10/Owed 11); the `XG_SB_RANGE` C 40 also
+/// defines is declared with them here (the slice that reads it), and `YG_SB_RANGE` (C 43) is left
+/// for the horizontal thumb setter's slice.
 #[cfg (feature = "use_gtk")]
 const XG_SB_MIN: c_int = 1;              // gtkutil.h 38
 #[cfg (feature = "use_gtk")]
@@ -6393,6 +6394,11 @@ const XG_SB_MAX: c_int = 10000000;       // gtkutil.h 39
 const YG_SB_MIN: c_int = 1;              // gtkutil.h 41
 #[cfg (feature = "use_gtk")]
 const YG_SB_MAX: c_int = 10000000;       // gtkutil.h 42
+/// C: gtkutil.h 40: `#define XG_SB_RANGE (XG_SB_MAX-XG_SB_MIN)` - C 5033/5034's span, kept as
+/// C's own expression over the two bounds above (its `YG_` sibling, C 43, arrives with the
+/// horizontal thumb setter in the next slice).
+#[cfg (feature = "use_gtk")]
+const XG_SB_RANGE: c_int = XG_SB_MAX - XG_SB_MIN;   // gtkutil.h 40
 
 /* C 4473's blank and C 4474-4496.  */
 
@@ -6602,20 +6608,24 @@ unsafe extern "C" {
    other GTK2 values, which is why the C face reads one more `cannot find value` row after this
    slice.  **No GTK tree exists on this machine**, so every prototype here is UNVERIFIED.
    ---------------------------------------------------------------------------------------------- */
-/// C: gtk/gtkrange.h: `typedef struct _GtkRange GtkRange;` - the record C 4611's
-/// `GTK_RANGE (wscroll)` produces.  The `_private: [u8; 0]` head is the port's opaque stand-in, the
-/// same head `src/pgtkterm.rs` 5757 carries for its own copy (the `GtkAdjustment` shape above).
-/// **Sizes UNVERIFIED.**
-#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+/// C: gtk/gtkrange.h: `typedef struct _GtkRange GtkRange;` - the record C 4611's and C
+/// 5011/5053/5061/5062's `GTK_RANGE (wscroll)` produce.  The `_private: [u8; 0]` head is the port's
+/// opaque stand-in, the same head `src/pgtkterm.rs` 5757 carries for its own copy (the
+/// `GtkAdjustment` shape above).  **Sizes UNVERIFIED.**  The slice-22 round widens the gate from
+/// `not (have_gtk3)` to `use_gtk`: C 5011/5053/5061/5062 use the cast **outside** any GTK2 fold
+/// (GTK3 has the same header and the same record), and the `use_gtk` face is what the two thumb
+/// setters need - the slice-14 `GTK_IS_MENU_BAR` widening's class.
+#[cfg (feature = "use_gtk")]
 #[repr(C)]
 pub struct GtkRange
 {
   _private: [u8; 0],
 }
-/// C: gtk/gtkrange.h: `#define GTK_RANGE(obj)` - C 4611's checked cast, keeping the macro's name
-/// and its result type (the GLib cast chain is owed, as the mirror's other casts are).  It is the
-/// unit's macro because its expansion names the unit's record.
-#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+/// C: gtk/gtkrange.h: `#define GTK_RANGE(obj)` - C 4611's and C 5011/5053/5061/5062's checked
+/// casts, keeping the macro's name and its result type (the GLib cast chain is owed, as the
+/// mirror's other casts are).  It is the unit's macro because its expansion names the unit's
+/// record, and its gate is that record's (`use_gtk` - see the note above).
+#[cfg (feature = "use_gtk")]
 macro_rules! GTK_RANGE {
   ($o:expr) => { ($o) as *mut GtkRange };
 }
@@ -6625,6 +6635,52 @@ macro_rules! GTK_RANGE {
 #[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
 unsafe extern "C" {
   pub fn gtk_range_set_update_policy (range: *mut GtkRange, policy: GtkUpdateType);
+}
+
+/* ----------------------------------------------------------------------------------------------
+   The GtkRange/GtkAdjustment entry points the two thumb setters need and no mirror in the unit's
+   include graph carries.
+
+   Every one of them names a record the mirror cannot have - `GtkRange` and `GtkAdjustment` are the
+   unit's own declarations above, because `src/pgtkterm.rs` 5757/5759 declares both over this mirror
+   (Owed 18) - so they stand here too, in both GTK faces (C's calls are outside every fold).
+   `gtk_range_get_adjustment` and `gtk_adjustment_get_page_size` are the two that unit also declares
+   for its own C 4011/4023/4031; the rest are fresh names.  **No GTK tree exists on this machine**,
+   so every prototype here is UNVERIFIED.
+   ---------------------------------------------------------------------------------------------- */
+/// C: gtk/gtkrange.h: `gdouble gtk_range_get_value (GtkRange *range);` - C 4983's call through the
+/// unit's `int_gtk_range_get_value` and C 5053/5061's direct reads.  **UNVERIFIED.**
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn gtk_range_get_value (range: *mut GtkRange) -> c_double;
+  /// C 5011: `adj = gtk_range_get_adjustment (GTK_RANGE (wscroll));`
+  /// C: gtk/gtkrange.h: `GtkAdjustment *gtk_range_get_adjustment (GtkRange *range);`
+  pub fn gtk_range_get_adjustment (range: *mut GtkRange) -> *mut GtkAdjustment;
+  /// C 5062: `gtk_range_set_value (GTK_RANGE (wscroll), (gdouble)value);`
+  /// C: gtk/gtkrange.h: `void gtk_range_set_value (GtkRange *range, gdouble value);`
+  pub fn gtk_range_set_value (range: *mut GtkRange, value: c_double);
+  /// C 5039/5042: `gtk_adjustment_get_page_size (adj)` and `gtk_adjustment_get_step_increment (adj)`
+  /// (both `gdouble`, truncated by C 5039/5042's `int` targets).
+  /// C: gtk/gtkadjustment.h: `gdouble gtk_adjustment_get_page_size (GtkAdjustment *adjustment);`
+  pub fn gtk_adjustment_get_page_size (adjustment: *mut GtkAdjustment) -> c_double;
+  /// C: gtk/gtkadjustment.h: `gdouble gtk_adjustment_get_step_increment (GtkAdjustment
+  /// *adjustment);`
+  pub fn gtk_adjustment_get_step_increment (adjustment: *mut GtkAdjustment) -> c_double;
+  /// C 5045/5046/5048: the three writers of the adjustment's page, step and page-increment.
+  /// C: gtk/gtkadjustment.h: `void gtk_adjustment_set_page_size (GtkAdjustment *adjustment, gdouble
+  /// page_size);`
+  pub fn gtk_adjustment_set_page_size (adjustment: *mut GtkAdjustment, page_size: c_double);
+  /// C: gtk/gtkadjustment.h: `void gtk_adjustment_set_step_increment (GtkAdjustment *adjustment,
+  /// gdouble step_increment);`
+  pub fn gtk_adjustment_set_step_increment (adjustment: *mut GtkAdjustment,
+					    step_increment: c_double);
+  /// C: gtk/gtkadjustment.h: `void gtk_adjustment_set_page_increment (GtkAdjustment *adjustment,
+  /// gdouble page_increment);`
+  pub fn gtk_adjustment_set_page_increment (adjustment: *mut GtkAdjustment,
+					    page_increment: c_double);
+  /// C 5065 (under C 5063's `#if ! GTK_CHECK_VERSION (3, 18, 0)`): `gtk_adjustment_changed (adj);`
+  /// C: gtk/gtkadjustment.h: `void gtk_adjustment_changed (GtkAdjustment *adjustment);`
+  pub fn gtk_adjustment_changed (adjustment: *mut GtkAdjustment);
 }
 /// C: gtk/gtkeventbox.h: `GtkWidget *gtk_event_box_new (void);` - C 4603's call, the event box
 /// every GTK face wraps its scroll bar in.  `src/pgtkterm.rs` 5221 declares the same name for its
@@ -7167,5 +7223,144 @@ pub unsafe extern "C" fn xg_update_horizontal_scrollbar_pos (f: *mut frame,
       { gdk_flush (); }                                                 // C 4970
       SET_FRAME_GARBAGED! (f);                                          // C 4972
       cancel_mouse_face (f);                                            // C 4973
+    }
+}
+
+/* C 4978's comment above the range-value reader, carried as C's own text, then C 4980-4984.  */
+
+/// C 4980-4984: `static int int_gtk_range_get_value (GtkRange *range)` - `gtk_range_get_value`
+/// returns `gdouble`, and this helper is C's truncation to `int` (its callers are C 5053/5061 and
+/// C 5054's comparison, all of them `int`).  C `static`, so a plain `unsafe fn` (PORTING.md 0.2),
+/// and C 4983's implicit narrowing is the port's explicit `as c_int`.
+/* C: /* Get the current value of the range, truncated to an integer.  */  */
+#[cfg (feature = "use_gtk")]
+unsafe fn int_gtk_range_get_value (range: *mut GtkRange) -> c_int   // C 4981-4984
+{
+  return gtk_range_get_value (range) as c_int;                          // C 4983
+}
+
+/* C 4987-4988's comment above the vertical thumb setter, carried as C's own text, then C 4990-5073.  */
+
+/// C 4990-5073: `void xg_set_toolkit_scroll_bar_thumb (struct scroll_bar *bar, int portion, int
+/// position, int whole)` - put the vertical bar's thumb where the window's visible portion says it
+/// belongs: the adjustment behind the range (C 5011), C 5013-5023's `scroll-bar-adjust-thumb-portion`
+/// substitution of the line count for the real portion, the fraction of the whole the thumb shows
+/// and sits at (C 5025-5031), the two `clip_to_bounds` calls that turn those fractions into the
+/// adjustment's own range (C 5033-5034), the step size C 5037 derives from the frame's line count,
+/// C 5039-5051's page/step writes when either changed, and C 5053-5071's guarded value write under
+/// the `xg_ignore_gtk_scrollbar` flag.  Non-`static` (`gtkutil.h` 158 declares it and `xterm.c`'s
+/// scroll-bar code calls it), so `#[unsafe(no_mangle)]` with the C ABI.
+///
+/// C 4992-4994's `portion` and `whole` are written by C 5018/5022, so they are `mut` in the port
+/// (slice 20's shape); `position` is only read.  C 5004-5009's locals are C's uninitialised
+/// declarations (every path assigns them before the read), and C 4997/5029/5030/5034/5037/5039/5042/
+/// 5045/5046/5048/5062's implicit conversions (`Window`-to-`ptrdiff_t`, `int`-to-`gdouble`,
+/// `gdouble`-to-`int`) are the port's explicit casts at the same places - the first of them
+/// measured: the map call's GTK2/GTK3 arms both take `ptrdiff_t` where `bar->x_window` is a `Window`
+/// (`c_ulong` under X11, `c_int` under pgtk), so every arm read one `E0308` without it.  C 5026's
+/// comma expression is the port's two statements in C's order.
+/* C: /* Set the thumb size and position of scroll bar BAR.  We are currently
+   C:    displaying PORTION out of a whole WHOLE, and our position POSITION.  */  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_toolkit_scroll_bar_thumb (bar: *mut scroll_bar,
+							  mut portion: c_int,
+							  position: c_int,
+							  mut whole: c_int)   // C 4991-5073
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME (XWINDOW ((*bar).window)));   // C 4996
+  let wscroll: *mut GtkWidget
+    = xg_get_widget_from_map ((*bar).x_window as ptrdiff_t,            // C 4997
+			      FRAME_X_DISPLAY! (f));            // C 4998
+
+  if ! wscroll.is_null () && (*bar).dragging == -1                       // C 5001
+    {
+      let adj: *mut GtkAdjustment;                                       // C 5003
+      let mut shown: c_double;                                           // C 5004
+      let mut top: c_double;                                             // C 5005
+      let mut size: c_int;                                               // C 5006
+      let mut value: c_int;
+      let old_size: c_int;                                               // C 5007
+      let new_step: c_int;                                               // C 5008
+      let mut changed: bool = false;                                     // C 5009
+
+      adj = gtk_range_get_adjustment (GTK_RANGE! (wscroll));             // C 5011
+
+      if scroll_bar_adjust_thumb_portion_p                               // C 5013
+	{
+	  /* C 5015-5017's comment, carried as C's own text.  */
+	  /* C: /* We do the same as for MOTIF in xterm.c, use 30 chars per
+	     C:    line rather than the real portion value.  This makes the
+	     C:    thumb less likely to resize and that looks better.  */  */
+	  portion = WINDOW_TOTAL_LINES (XWINDOW ((*bar).window)) * 30;      // C 5018
+
+	  /* C 5020-5021's comment, carried as C's own text.  */
+	  /* C: /* When the thumb is at the bottom, position == whole.
+	     C:    So we need to increase `whole' to make space for the thumb.  */  */
+	  whole += portion;                                                 // C 5022
+	}
+
+      if whole <= 0                                                      // C 5025
+	{ top = 0.0; shown = 1.0; }                                      // C 5026
+      else
+	{
+	  top = position as c_double / whole as c_double;                 // C 5029
+	  shown = portion as c_double / whole as c_double;                // C 5030
+	}
+
+      size = clip_to_bounds (1, (shown * XG_SB_RANGE as c_double) as ptrdiff_t,   // C 5033
+			     XG_SB_RANGE as ptrdiff_t) as c_int;
+      value = clip_to_bounds (XG_SB_MIN as ptrdiff_t,                     // C 5034
+			      (top * XG_SB_RANGE as c_double) as ptrdiff_t,
+			      (XG_SB_MAX - size) as ptrdiff_t) as c_int;
+
+      /* Assume all lines are of equal size.  */
+      new_step = size / max (1, FRAME_LINES (f));                         // C 5037
+
+      old_size = gtk_adjustment_get_page_size (adj) as c_int;              // C 5039
+      if old_size != size                                                 // C 5040
+	{
+	  let old_step: c_int
+	    = gtk_adjustment_get_step_increment (adj) as c_int;             // C 5042
+	  if old_step != new_step                                           // C 5043
+	    {
+	      gtk_adjustment_set_page_size (adj, size as c_double);        // C 5045
+	      gtk_adjustment_set_step_increment (adj, new_step as c_double);   // C 5046
+	      /* Assume a page increment is about 95% of the page size  */
+	      gtk_adjustment_set_page_increment (adj, (size - size / 20) as c_double);   // C 5048
+	      changed = true;                                              // C 5049
+	    }
+	}
+
+      if changed || int_gtk_range_get_value (GTK_RANGE! (wscroll)) != value   // C 5053
+	{
+	  block_input ();                                                // C 5055
+
+	  /* C 5057-5058's comment, carried as C's own text.  */
+	  /* C: /* gtk_range_set_value invokes the callback.  Set
+	     C:    ignore_gtk_scrollbar to make the callback do nothing  */  */
+	  xg_ignore_gtk_scrollbar = true;                                // C 5059
+
+	  /* C 5063's `#if ! GTK_CHECK_VERSION (3, 18, 0)` attaches a second condition to the `if` of
+	     C 5061 (`else if`), and Rust cannot put an attribute on an `else` - so the group is the
+	     port's `#[cfg]` pair, one copy of C 5061-5062 per face, and the face under the gate keeps
+	     C's `else if` (a second test is *not* the same program: C evaluates the range once).  */
+	  #[cfg (feature = "gtk_check_version_ge_3_18")]
+	  {
+	    if int_gtk_range_get_value (GTK_RANGE! (wscroll)) != value    // C 5061
+	      { gtk_range_set_value (GTK_RANGE! (wscroll), value as c_double); }   // C 5062
+	  }
+	  #[cfg (not (feature = "gtk_check_version_ge_3_18"))]
+	  {
+	    if int_gtk_range_get_value (GTK_RANGE! (wscroll)) != value    // C 5061
+	      { gtk_range_set_value (GTK_RANGE! (wscroll), value as c_double); }   // C 5062
+	    else if changed                                             // C 5064
+	      { gtk_adjustment_changed (adj); }                          // C 5065
+	  }
+
+	  xg_ignore_gtk_scrollbar = false;                               // C 5068
+
+	  unblock_input ();                                              // C 5070
+	}
     }
 }

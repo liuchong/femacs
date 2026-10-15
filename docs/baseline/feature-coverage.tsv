@@ -10,8 +10,8 @@ have_x_windows	3246	40	-	HAVE_X_WINDOWS
 have_ntgui	2709	24	-	-
 have_android	2483	37	-	-
 not_android_stubify	1895	12	-	-
-have_pgtk	1570	29	-	-
-use_gtk	1502	17	-	-
+have_pgtk	1578	29	-	-
+use_gtk	1507	17	-	-
 have_window_system	1489	35	-	-
 have_haiku	827	22	xtask dead-arms	-
 have_gtk3	826	9	-	-
@@ -426,6 +426,7 @@ gnuc_prereq_4_3_glibc_has	2	1	-	-
 gnuc_prereq_4_6_defined_libc	2	1	-	-
 gnuc_prereq_4_9_glibc_has	2	1	-	-
 gtk_check_version_ge_3_12	2	1	-	-
+gtk_check_version_ge_3_20	2	1	-	-
 have_aclv_h	2	2	-	-
 have_dbus_message_set_allow_interactive_authorization	2	1	-	-
 have_dbus_watch_get_unix_fd	2	1	-	-
@@ -705,7 +706,6 @@ gnulib_strtok_r	1	1	-	-
 gnulib_strverscmp	1	1	-	-
 gtk_check_version_ge_3_10	1	1	-	-
 gtk_check_version_ge_3_18	1	1	-	-
-gtk_check_version_ge_3_20	1	1	-	-
 have_copy_file_range	1	1	-	-
 have_decl_sysinfo	1	1	-	-
 have_eaccess	1	1	-	-
