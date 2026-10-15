@@ -242,3 +242,35 @@ falls through was written `break;` - which in Rust exits the *inner* loop only, 
 the outer loop was reached again and the object was printed forever.  Invisible until the first
 Lisp-level print: the first error message printed its symbol name 437,531 times
 (counted in a temporary instrumentation).  The exit is now `break 'print_obj;`.
+
+
+## Defect repair (2026-10-16, status 4.371)
+
+`print_error_message` wrote one byte the reference does not.  At the end of its data loop the port
+carried
+
+```rust
+    if ! sep.is_null ()
+      { write_string (c"\n".as_ptr (), stream); }
+```
+
+and C's function ends with the `FOR_EACH_TAIL` loop (`emacs/src/print.c` 1119-1133 for this port's
+copy of it): no newline is written to the stream, so every `error-message-string` came back one
+character too long.  Measured on the bare program, byte for byte against the reference:
+
+| expression | reference | port (before) |
+| --- | ---: | ---: |
+| `(length (error-message-string '(wrong-type-argument integerp "x")))` | 34 | 35 |
+| `(length (error-message-string '(wrong-type-argument integerp "xy")))` | 35 | 36 |
+| `(length (error-message-string (quote (void-variable foo))))` | 39 | 40 |
+| `(length (error-message-string '...))` for a caught `(car 5)` | 29 | 30 |
+
+The +1 was stable across repeated calls (so it was not a leaked `prin1-to-string` buffer) and it is
+what `tools/acceptance-l0.py`'s `signal-message` case compared: L0 read
+`19 expression(s), 1 failure(s)` before this change and `19 expression(s), 0 failure(s)` after it,
+against the bare program's golden (`docs/baseline/l0-reference-temacs.txt`).
+
+`extract-abi.py --check emacs/src/print.c femacs/src/print.rs` prints `OK` both before and after
+(P-44's occurrence check is a lower bound, so *extra* text is invisible to it), and so does every
+other gate: this byte was found by the differential, which is the reason the ladder exists.
+`femacs/src/print.rs` 3,263 -> 3,261 lines.
