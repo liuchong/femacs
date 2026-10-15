@@ -145,6 +145,7 @@ gnulib_defined_setlocale                   = []  # GNULIB_defined_setlocale
 gnulib_getpagesize                         = []  # GNULIB_GETPAGESIZE
 gnulib_nonblocking                         = []  # GNULIB_NONBLOCKING
 gnulib_openat2                             = []  # GNULIB_OPENAT2
+gtk_check_version_ge_3_6                   = []  # GTK_CHECK_VERSION (3,6,0) (src/gtkutil.c 6692, gdk_x11_keymap_key_is_modifier)
 gtk_check_version_ge_3_10                  = []  # GTK_CHECK_VERSION (3,10,0) (src/gtkutil.c 129)
 gtk_check_version_ge_3_12                  = []  # GTK_CHECK_VERSION (3,12,0) (src/gtkutil.c 2363, the dialog action area)
 gtk_check_version_ge_3_14                  = []  # GTK_CHECK_VERSION (3,14,0) (src/gtkutil.c 2419, the dialog label alignment)

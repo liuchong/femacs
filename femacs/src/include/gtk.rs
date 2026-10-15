@@ -3413,3 +3413,54 @@ pub const GDK_MOD2_MASK: c_uint = 1 << 4;
 pub const GDK_MOD3_MASK: c_uint = 1 << 5;
 pub const GDK_MOD4_MASK: c_uint = 1 << 6;
 pub const GDK_MOD5_MASK: c_uint = 1 << 7;
+
+/// C: gdk/gdkkeys.h: `typedef struct _GdkKeymap GdkKeymap;` - the record `xg_filter_key` reads from
+/// the display and hands to the two keymap calls below.  Both faces have it; opaque head,
+/// **UNVERIFIED**.
+#[repr(C)]
+pub struct GdkKeymap
+{
+  _private: [u8; 0],
+}
+/// C: gdk/gdkkeys.h: `GdkKeymap *gdk_keymap_get_for_display (GdkDisplay *display);` - C 6639's read.
+/// **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gdk_keymap_get_for_display (display: *mut GdkDisplay) -> *mut GdkKeymap;
+}
+/// C: gdk/gdkkeys.h: `gboolean gdk_keymap_translate_keyboard_state (GdkKeymap *keymap, guint
+/// hardware_keycode, GdkModifierType state, gint group, guint *keyval, gint *effective_group, gint
+/// *level, GdkModifierType *consumed_modifiers);` - C 6683-6688's and C 6706-6711's calls (the
+/// non-XInput2 and XInput2 arms of `xg_filter_key`).  Four of its out-parameters are passed as
+/// C's `NULL`, so the call sites write `std::ptr::null_mut ()`.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gdk_keymap_translate_keyboard_state (keymap: *mut GdkKeymap, hardware_keycode: guint,
+					      state: GdkModifierType, group: gint,
+					      keyval: *mut guint, effective_group: *mut gint,
+					      level: *mut gint,
+					      consumed_modifiers: *mut GdkModifierType) -> gboolean;
+}
+/// C: gdk/gdkx.h: `gboolean gdk_x11_keymap_key_is_modifier (GdkKeymap *keymap, guint
+/// hardware_keycode);` - C 6693-6694's and C 6715-6716's calls, both inside C's own
+/// `GTK_CHECK_VERSION (3, 6, 0)`, so the row carries this round's new feature.  **UNVERIFIED.**
+#[cfg (feature = "gtk_check_version_ge_3_6")]
+unsafe extern "C" {
+  pub fn gdk_x11_keymap_key_is_modifier (keymap: *mut GdkKeymap, hardware_keycode: guint)
+    -> gboolean;
+}
+/// C: gdk/gdkdevicemanager.h: `typedef enum { GDK_DEVICE_TYPE_MASTER, GDK_DEVICE_TYPE_SLAVE,
+/// GDK_DEVICE_TYPE_FLOATING } GdkDeviceType;` - the type of C 6655's second argument.  No GDK tree
+/// exists on this machine, so the value is the documented first member; **UNVERIFIED**.
+pub type GdkDeviceType = c_int;
+pub const GDK_DEVICE_TYPE_MASTER: GdkDeviceType = 0;      // documented first member
+/// C: gdk/gdkdevicemanager.h: `GList *gdk_device_manager_list_devices (GdkDeviceManager
+/// *device_manager, GdkDeviceType type);` - C 6654-6655's read, inside C 6652's
+/// `#elif GTK_CHECK_VERSION (3, 16, 0)`.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gdk_device_manager_list_devices (device_manager: *mut GdkDeviceManager,
+					  r#type: GdkDeviceType) -> *mut GList;
+}
+/// C: gdk/gdkdevice.h: `GDK_SOURCE_KEYBOARD` - the fifth member of the `GdkInputSource` enumeration
+/// whose sixth this file already carries (`GDK_SOURCE_TOUCHSCREEN = 5` above), so the value here is
+/// `4` by the same documented order (mouse, pen, eraser, cursor, keyboard, touchscreen, …).  C 6662
+/// compares against it.  **UNVERIFIED.**
+pub const GDK_SOURCE_KEYBOARD: GdkInputSource = 4;

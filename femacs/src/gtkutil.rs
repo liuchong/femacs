@@ -5905,6 +5905,64 @@ pub struct XIDeviceEvent
   pub event_x: f64,                // XInput2.h: `double event_x;`
   pub event_y: f64,                // XInput2.h: `double event_y;`
   pub time: Time,                  // XInput2.h: `Time time;`
+  /* C 6703/6704 read `xev->group.effective` and `xev->mods.effective`, so the two state records
+     that close XInput2's `XIDeviceEvent` are appended here, in that header's declared tail order
+     (`buttons`, `valuators`, `mods`, `group`).  `src/xfns.rs` 13230-13272 carries the same four
+     without `group`, and `src/xmenu.rs` 730-750's copy stops at `time`.  **No header on this
+     machine can measure them**, so no offset assertion is written (the doc comment above says the
+     same) and the round that lands `X11/extensions/XInput2.h` settles all three copies at once;
+     this file's copy also keeps `time` where the earlier slice put it.  */
+  pub buttons: XIButtonState,      // XInput2.h: `XIButtonState buttons;`
+  pub valuators: XIValuatorState,  // XInput2.h: `XIValuatorState valuators;`
+  pub mods: XIModifierState,       // XInput2.h: `XIModifierState mods;` (C 6704)
+  pub group: XIGroupState,         // XInput2.h: `XIGroupState group;` (C 6703)
+}
+/// C: X11/extensions/XInput2.h: `typedef struct { int mask_len; unsigned char *mask; }
+/// XIButtonState;` - the member before `valuators`, carried so the tail above keeps that header's
+/// order (`src/xfns.rs` 13210-13215's shape).  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"), feature = "have_xinput2"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XIButtonState
+{
+  pub mask_len: c_int,             // XInput2.h: `int mask_len;`
+  pub mask: *mut c_uchar,          // XInput2.h: `unsigned char *mask;`
+}
+/// C: X11/extensions/XInput2.h: `typedef struct { int num_valuators; int *valuators; double *values;
+/// } XIValuatorState;` - the next member, carried for the same reason.  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"), feature = "have_xinput2"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XIValuatorState
+{
+  pub num_valuators: c_int,        // XInput2.h: `int num_valuators;`
+  pub valuators: *mut c_int,       // XInput2.h: `int *valuators;`
+  pub values: *mut f64,            // XInput2.h: `double *values;`
+}
+/// C: X11/extensions/XInput2.h: `typedef struct { int base; int latched; int locked; int effective;
+/// } XIModifierState;` - the type of C 6704's read (`src/xfns.rs` 13233-13242's measured-in-shape
+/// twin).  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"), feature = "have_xinput2"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XIModifierState
+{
+  pub base: c_int,                 // XInput2.h: `int base;`
+  pub latched: c_int,              // XInput2.h: `int latched;`
+  pub locked: c_int,               // XInput2.h: `int locked;`
+  pub effective: c_int,            // XInput2.h: `int effective;` (C 6704)
+}
+/// C: X11/extensions/XInput2.h: `typedef struct { int base; int latched; int locked; int effective;
+/// } XIGroupState;` - the type of C 6703's read.  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"), feature = "have_xinput2"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XIGroupState
+{
+  pub base: c_int,                 // XInput2.h: `int base;`
+  pub latched: c_int,              // XInput2.h: `int latched;`
+  pub locked: c_int,               // XInput2.h: `int locked;`
+  pub effective: c_int,            // XInput2.h: `int effective;` (C 6703)
 }
 
 /// C: gtk/gtkwidget.h: `gboolean gtk_widget_intersect (GtkWidget *widget, const GdkRectangle
@@ -9841,3 +9899,308 @@ unsafe extern "C" fn xg_widget_key_press_event_cb (widget: *mut GtkWidget, event
   { raise (SIGIO); }                                                    // C 6624
   return true;                                                          // C 6626
 }
+
+/* The names below are **this unit's copies**, for the reasons the "mirror-vs-unit duplicates"
+   correction records and one more: `src/xwidget.rs` 263/328/331, `src/pgtkterm.rs` 4932/6552 and
+   `src/pgtkim.rs` 245 declare the GTK ones over the mirror, and the two Xlib event-type constants
+   are declared per unit by `src/xfns.rs` 13205/5802, `src/xmenu.rs` 450/577 and `src/xterm.rs` 953
+   (Owed 18's class).  */
+
+/// C: X11/X.h 181: `#define KeyPress 2` - C 6632/6634's test (the same constant `src/xfns.rs`
+/// 13205 carries).  **UNVERIFIED** in the sense every Xlib value is here: the number is the
+/// header's own and is quoted from it.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const KeyPress: c_int = 2;                  // X.h 181
+/// C: X11/extensions/XInput2.h 192: `#define XI_KeyPress 2` - C 6635's test (`src/xterm.rs` 953's
+/// twin).  **UNVERIFIED** the same way.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const XI_KeyPress: c_int = 2;               // XI2.h 192
+
+/// C: gdk/gdktypes.h: `typedef enum { … } GdkModifierType;` - the type of C 6640's `consumed`
+/// (`src/pgtkterm.rs` 4932 and `src/xwidget.rs` 263 declare it over the mirror).  The width is
+/// `c_int`; the enumerators this file names are its own rows above.  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub type GdkModifierType = c_int;
+
+/// C: X11/Xlib.h: `typedef struct { int type; unsigned long serial; Bool send_event; Display
+/// *display; Window window, root, subwindow; Time time; int x, y, x_root, y_root; unsigned int
+/// state; unsigned int keycode; Bool same_screen; } XKeyEvent;` - the record C 6676-6691 reads
+/// through `xkey->xkey`.  `include/xlib.rs` 1556's `XEvent` stand-in carries no members, so the
+/// shape stands here beside slice 14's `XButtonEvent` copy (whose measured offsets 32/64/68/88 and
+/// 96-byte size this record shares, its member list differing only in the two at 80/84 - `state`
+/// and `keycode` instead of `state` and `button`), and the four members C reads carry assertions.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XKeyEvent
+{
+  pub r#type: c_int,               // Xlib.h: `int type;`
+  pub serial: c_ulong,             // Xlib.h: `unsigned long serial;`
+  pub send_event: Bool,            // Xlib.h: `Bool send_event;`
+  pub display: *mut Display,       // Xlib.h: `Display *display;`
+  pub window: Window,              // Xlib.h: `Window window, root, subwindow;`
+  pub root: Window,
+  pub subwindow: Window,
+  pub time: Time,                  // Xlib.h: `Time time;` (C 6691)
+  pub x: c_int,                    // Xlib.h: `int x, y, x_root, y_root;`
+  pub y: c_int,
+  pub x_root: c_int,
+  pub y_root: c_int,
+  pub state: c_uint,               // Xlib.h: `unsigned int state;` (C 6682/6685)
+  pub keycode: c_uint,             // Xlib.h: `unsigned int keycode;` (C 6676/6684)
+  pub same_screen: Bool,           // Xlib.h: `Bool same_screen;`
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::size_of::<XKeyEvent> () == 96);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XKeyEvent, time) == 56);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XKeyEvent, state) == 80);
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (XKeyEvent, keycode) == 84);
+
+/// C: gdk/gdkevents.h: `GdkEvent *gdk_event_new (GdkEventType type);` / `void gdk_event_free
+/// (GdkEvent *event);` - C 6632's constructor and C 6724's release (`src/xwidget.rs` 328/331's
+/// rows).  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn gdk_event_new (r#type: GdkEventType) -> *mut GdkEvent;
+  pub fn gdk_event_free (event: *mut GdkEvent);
+}
+/// C: gtk/gtkimcontext.h: `gboolean gtk_im_context_filter_keypress (GtkIMContext *context,
+/// GdkEventKey *event);` - C 6721-6722's call (`src/pgtkim.rs` 245's row).  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn gtk_im_context_filter_keypress (context: *mut GtkIMContext, event: *mut GdkEventKey)
+    -> gboolean;
+}
+/// C: gdk/gdkevents.h: `void gdk_event_set_device (GdkEvent *event, GdkDevice *device);` -
+/// C 6650/6664's calls, which stand in the two device arms C 6647/6652 open (`src/xwidget.rs`
+/// 334's row).  **UNVERIFIED.**
+/* The gate is the **union** of the two arms that call it (C 6647's 3.20 and C 6652's 3.16): the
+   arm sets this lane reads turn each version feature on *alone*, and GDK has had this entry point
+   since 3.0, so the union is what makes both arms resolve.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"),
+	   any (feature = "gtk_check_version_ge_3_16",
+		feature = "gtk_check_version_ge_3_20")))]
+unsafe extern "C" {
+  pub fn gdk_event_set_device (event: *mut GdkEvent, device: *mut GdkDevice);
+}
+/// C: gdk/gdkseat.h: `GdkDevice *gdk_seat_get_keyboard (GdkSeat *seat);` - C 6651's read, in the
+/// C 6647 arm alone (`src/xwidget.rs` 353's row).  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"),
+	   feature = "gtk_check_version_ge_3_20"))]
+unsafe extern "C" {
+  pub fn gdk_seat_get_keyboard (seat: *mut GdkSeat) -> *mut GdkDevice;
+}
+
+/* C 6629-6727's `xg_filter_key` and C 6730-6751's `xg_widget_style_updated`, then the file's two
+   closing `#endif`s (C 6752's closes the `#ifndef HAVE_PGTK` C 6314 opened, C 6753's the file's
+   `USE_GTK`).  */
+
+/* C 6637/6632's `GDK_KEY_PRESS`/`GDK_KEY_RELEASE` are **not in `include/gtk.rs`**: `src/xwidget.rs`
+   303-304 declares both over that mirror (with the same 9/10 placeholders), so this unit keeps its
+   own copies - the "mirror-vs-unit duplicates" correction's rule.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_PRESS: GdkEventType = 9;      // placeholder, not GDK's value (GTK3's ordinal)
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const GDK_KEY_RELEASE: GdkEventType = 10;   // placeholder, not GDK's value (GTK3's ordinal)
+
+/* C 6680's `XkbGroupForCoreState` is XKB's (XKBlib.h), and **this machine's copy of that header
+   (libx11 1.8.13) does not define it** (measured: `grep -n GroupForCoreState
+   /opt/homebrew/include/X11/XKBlib.h` finds nothing), so its body cannot be transcribed here; the
+   macro below carries the documented form (`XkbStateGroup`, the core state's group being bits
+   13-14) and is **UNVERIFIED**.  C's own `#ifdef HAVE_XKB` (C 6678) is `undef` in the frozen
+   configuration, so the arm is dead text in every reading this tree carries; the feature name is
+   `src/xterm.rs` 5185's.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk"), feature = "have_xkb"))]
+macro_rules! XkbGroupForCoreState {
+  ($state:expr) => { ((($state) >> 13) & 0x1f) };   // documented body; UNVERIFIED
+}
+
+/// C 6629-6727: `bool xg_filter_key (struct frame *frame, XEvent *xkey)` - hand an X key event to
+/// GTK's input method: build a `GdkEvent` of the right type (C 6632-6637's condition, whose
+/// `HAVE_XINPUT2` conjunct is a cfg'd block expression here so C's short-circuit survives), give it
+/// the frame's Gdk window (C 6644-6645), pick a keyboard device - the seat under C 6647's
+/// `GTK_CHECK_VERSION (3, 20, 0)`, the first master device under C 6652's `#elif (3, 16, 0)`, and
+/// nothing before that - then fill the key event from the core event (C 6676-6695) or from an
+/// XInput2 cookie (C 6698-6718), and answer whatever `gtk_im_context_filter_keypress` says after
+/// freeing the event.  Non-`static` (gtkutil.h 164 declares it, `xterm.c` calls it), so
+/// `#[unsafe(no_mangle)]` with the C ABI.  C 6640's uninitialised `GdkModifierType consumed` is
+/// zeroed (it is written by the two translate calls through its address, PORTING.md 1.5), and the
+/// two `xg_event->key.state &= ~consumed` writes are `&= ! (consumed as c_uint)` (the
+/// `src/pgtkterm.rs` 7928 shape).
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_filter_key (frame: *mut frame, xkey: *mut XEvent) -> bool   // C 6629-6727
+{
+  let xg_event: *mut GdkEvent                                            // C 6632
+    = gdk_event_new (if (*(xkey as *const c_int)) == KeyPress            // C 6632
+		       /* C 6633-6636's `#ifdef HAVE_XINPUT2` conjunct.  */
+		       || { #[cfg (feature = "have_xinput2")]
+			    { (*(xkey as *const XGenericEventCookie)).r#type == GenericEvent   // C 6634
+				&& (*(xkey as *const XGenericEventCookie)).evtype == XI_KeyPress }   // C 6635
+			    #[cfg (not (feature = "have_xinput2"))]
+			    { false } }                                          // C 6636
+		     { GDK_KEY_PRESS } else { GDK_KEY_RELEASE });        // C 6637
+  let dpy: *mut GdkDisplay = gtk_widget_get_display (FRAME_GTK_WIDGET! (frame));   // C 6638
+  let keymap: *mut GdkKeymap = gdk_keymap_get_for_display (dpy);         // C 6639
+  let mut consumed: GdkModifierType = 0;                                 // C 6640
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (frame);        // C 6641
+  let result: bool;                                                      // C 6642
+
+  (*xg_event).any.window = gtk_widget_get_window (FRAME_GTK_WIDGET! (frame));   // C 6644
+  g_object_ref ((*xg_event).any.window as gpointer);                     // C 6645
+
+  /* C 6647's `#if GTK_CHECK_VERSION (3, 20, 0)`; C 6652's `#elif GTK_CHECK_VERSION (3, 16, 0)`
+     is the pair below it, and C's `#else` is empty.  */
+  #[cfg (feature = "gtk_check_version_ge_3_20")]
+  {
+    let seat: *mut GdkSeat = gdk_display_get_default_seat (dpy);          // C 6648
+
+    gdk_event_set_device (xg_event,                                      // C 6650
+			  gdk_seat_get_keyboard (seat));                 // C 6651
+  }
+  #[cfg (all (not (feature = "gtk_check_version_ge_3_20"), feature = "gtk_check_version_ge_3_16"))]
+  {
+    let manager: *mut GdkDeviceManager = gdk_display_get_device_manager (dpy);   // C 6653
+    let devices: *mut GList
+      = gdk_device_manager_list_devices (manager,                        // C 6654
+					 GDK_DEVICE_TYPE_MASTER);        // C 6655
+    let mut device: *mut GdkDevice;                                      // C 6656
+    let mut tem: *mut GList;                                             // C 6657
+    tem = devices;                                                       // C 6658 (the `for` head)
+    while ! tem.is_null ()
+      {
+	device = GDK_DEVICE! ((*tem).data);                              // C 6660
+
+	if gdk_device_get_source (device) == GDK_SOURCE_KEYBOARD         // C 6662
+	  {
+	    gdk_event_set_device (xg_event, device);                     // C 6664
+	    break;                                                       // C 6665
+	  }
+	tem = (*tem).next;                                               // C 6658 (the `for` step)
+      }
+
+    g_list_free (devices);                                               // C 6669
+  }
+
+  /* C 6672-6719's `#ifdef HAVE_XINPUT2` pair: the core arm is C 6673's `if`, its `#else` the
+     XInput2 one, so the port writes both under this unit's gate.  */
+  #[cfg (feature = "have_xinput2")]
+  let is_core_event: bool
+    = (*(xkey as *const XGenericEventCookie)).r#type != GenericEvent;   // C 6673
+  #[cfg (not (feature = "have_xinput2"))]
+  let is_core_event: bool = true;                                        // C 6673 (no `#else` in C)
+
+  if is_core_event                                                       // C 6673
+    {
+      (*xg_event).key.hardware_keycode = (*(xkey as *const XKeyEvent)).keycode as u16;   // C 6676
+
+      /* C 6678-6681's `#ifdef HAVE_XKB`.  */
+      #[cfg (feature = "have_xkb")]
+      {
+	if (*dpyinfo).supports_xkb                                       // C 6679
+	  { (*xg_event).key.group = XkbGroupForCoreState! ((*(xkey as *const XKeyEvent)).state) as u8; }   // C 6680
+      }
+      (*xg_event).key.state = (*(xkey as *const XKeyEvent)).state;       // C 6682
+      gdk_keymap_translate_keyboard_state (keymap,                       // C 6683
+					   (*(xkey as *const XKeyEvent)).keycode,   // C 6684
+					   (*(xkey as *const XKeyEvent)).state as GdkModifierType,   // C 6685
+					   (*xg_event).key.group as gint,   // C 6686
+					   (&raw mut (*xg_event).key.keyval),   // C 6687
+					   std::ptr::null_mut (), std::ptr::null_mut (),   // C 6688
+					   (&raw mut consumed));
+      xg_add_virtual_mods (dpyinfo, (&raw mut (*xg_event).key));         // C 6689
+      (*xg_event).key.state &= ! (consumed as c_uint);                   // C 6690
+      (*xg_event).key.time = (*(xkey as *const XKeyEvent)).time as u32;   // C 6691
+      /* C 6692's `#if GTK_CHECK_VERSION (3, 6, 0)`.  */
+      #[cfg (feature = "gtk_check_version_ge_3_6")]
+      {
+	(*xg_event).key.is_modifier                                      // C 6693
+	  = gdk_x11_keymap_key_is_modifier (keymap,                      // C 6693
+					    (*xg_event).key.hardware_keycode)   // C 6694
+	    as c_uint;
+      }
+    }
+  #[cfg (feature = "have_xinput2")]
+  {
+    if ! is_core_event                                                   // C 6698
+      {
+	let xev: *mut XIDeviceEvent
+	  = (*(xkey as *const XGenericEventCookie)).data as *mut XIDeviceEvent;   // C 6700
+
+	(*xg_event).key.hardware_keycode = (*xev).detail as u16;         // C 6702
+	(*xg_event).key.group = (*xev).group.effective as u8;            // C 6703
+	(*xg_event).key.state = (*xev).mods.effective as c_uint;         // C 6704
+	(*xg_event).key.time = (*xev).time as u32;                       // C 6705
+	gdk_keymap_translate_keyboard_state (keymap,                     // C 6706
+					     (*xev).detail as guint,     // C 6707
+					     (*xev).mods.effective,      // C 6708
+					     (*xg_event).key.group as gint,   // C 6709
+					     (&raw mut (*xg_event).key.keyval),   // C 6710
+					     std::ptr::null_mut (), std::ptr::null_mut (),   // C 6711
+					     (&raw mut consumed));
+	xg_add_virtual_mods (dpyinfo, (&raw mut (*xg_event).key));       // C 6712
+	(*xg_event).key.state &= ! (consumed as c_uint);                 // C 6713
+	/* C 6714's `#if GTK_CHECK_VERSION (3, 6, 0)`.  */
+	#[cfg (feature = "gtk_check_version_ge_3_6")]
+	{
+	  (*xg_event).key.is_modifier                                    // C 6715
+	    = gdk_x11_keymap_key_is_modifier (keymap,                    // C 6715
+					      (*xg_event).key.hardware_keycode)   // C 6716
+	      as c_uint;
+	}
+      }
+  }
+
+  result = gtk_im_context_filter_keypress ((*(FRAME_X_OUTPUT! (frame) as *mut xp_output)).im_context,   // C 6721
+					   (&raw mut (*xg_event).key))   // C 6722
+    != 0;                                                              // C 6722 (`gboolean` -> `bool`)
+
+  gdk_event_free (xg_event);                                             // C 6724
+
+  return result;                                                         // C 6726
+}
+
+/* C 6728's `#endif` closes the `#ifndef HAVE_PGTK` that C 6314 opened - in the port that is the
+   `not (have_pgtk)` gate the five items between them carry.  */
+
+/// C 6730-6751: `static void xg_widget_style_updated (GtkWidget *widget, gpointer user_data)` -
+/// GTK's `style-updated` handler, whole body under C 6730's `GTK_CHECK_VERSION (3, 10, 0)`: when the
+/// frame's background is not fully opaque, clear the "opaque region" hint - through the
+/// `_NET_WM_OPAQUE_REGION` property on X (C 6739-6743), through GDK on pgtk (C 6745-6748).  C
+/// `static`, `G_CALLBACK`'d at C 2158, so `unsafe extern "C" fn`; C 6734's `gpointer` is
+/// `as *mut frame`, C 6739's `NULL` is `std::ptr::null_mut ()` (a `gchar *` in Xlib's prototype),
+/// and C 6736's `1.0` comparison is the port's (`alpha_background` is a `double`).
+#[cfg (all (feature = "use_gtk", feature = "gtk_check_version_ge_3_10"))]
+unsafe extern "C" fn xg_widget_style_updated (widget: *mut GtkWidget, user_data: gpointer)   // C 6730-6751
+{
+  let f: *mut frame = user_data as *mut frame;                           // C 6734
+
+  if (*f).alpha_background < 1.0                                         // C 6736
+    {
+      /* C 6738-6749's `#ifndef HAVE_PGTK` pair.  */
+      #[cfg (not (feature = "have_pgtk"))]
+      {
+	XChangeProperty (FRAME_X_DISPLAY! (f),                           // C 6739
+			 FRAME_X_WINDOW! (f),                            // C 6740
+			 (*FRAME_DISPLAY_INFO! (f)).Xatom_net_wm_opaque_region,   // C 6741
+			 XA_CARDINAL, 32, PropModeReplace,               // C 6742
+			 std::ptr::null_mut (), 0);                      // C 6743
+      }
+      #[cfg (feature = "have_pgtk")]
+      {
+	if ! FRAME_GTK_OUTER_WIDGET! (f).is_null ()                      // C 6745
+	    && gtk_widget_get_realized (FRAME_GTK_OUTER_WIDGET! (f)) != 0   // C 6746
+	  {
+	    gdk_window_set_opaque_region (gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! (f)),   // C 6747
+					  std::ptr::null_mut ());        // C 6748
+	  }
+      }
+    }
+}
+
+/* C 6752's `#endif` closes the `GTK_CHECK_VERSION (3, 10, 0)` that C 6730 opened, and C 6753's
+   `#endif /* USE_GTK */` is this file's own last line - the segment the port's `use_gtk` file gate
+   covers end to end.  */

@@ -1089,3 +1089,41 @@ header's line on each row; `GDK_KEY_dead_degree` is the one name that table lack
 `checked 83 unit(s), 0 failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a 336-byte
 object; `src/gtkutil.rs`'s arm readings move by exactly one retirement
 (`cannot find value xg_widget_key_press_event_cb`) with no addition.
+
+
+### status 4.366 (the gtkutil thirty-sixth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_filter_key` (C 6629-6727) is this round's consumer, and it is the lane's last
+mirror batch: **seven rows**, all fresh names by the declaration audit the collision correction
+introduced.
+
+- **`GdkKeymap`** (an opaque head), **`gdk_keymap_get_for_display`** and
+  **`gdk_keymap_translate_keyboard_state`** - C 6639's read and C 6683-6688/6706-6711's two calls, in
+  both faces.
+- **`gdk_x11_keymap_key_is_modifier`** under the round's new `gtk_check_version_ge_3_6` feature
+  (registered in `femacs/xtask/Cargo.toml`, citing C 6692) - C 6693-6694's and C 6715-6716's calls.
+- **`GdkDeviceType`** with **`GDK_DEVICE_TYPE_MASTER`** (the documented first member) and
+  **`gdk_device_manager_list_devices`** - C 6654-6655's read, which C's own `#elif
+  GTK_CHECK_VERSION (3, 16, 0)` guards but whose *row* carries no gate (the arm's gate is the unit's).
+- **`GDK_SOURCE_KEYBOARD`** (`4`, the fifth member of the `GdkInputSource` family whose sixth,
+  `GDK_SOURCE_TOUCHSCREEN = 5`, this file already carried) - C 6662's comparison.
+
+**Everything else this slice needs is a unit-local copy**, for the reasons the previous rounds
+recorded: `GdkModifierType`, `gdk_event_new`/`gdk_event_free`, `gtk_im_context_filter_keypress`,
+`gdk_event_set_device`/`gdk_seat_get_keyboard` (all declared by `src/xwidget.rs`, `src/pgtkterm.rs` or
+`src/pgtkim.rs` over this mirror), `GDK_KEY_PRESS`/`GDK_KEY_RELEASE` (`src/xwidget.rs` 303-304), the
+Xlib event-type constants `KeyPress`/`XI_KeyPress` (which `src/xfns.rs`, `src/xmenu.rs` and
+`src/xterm.rs` each keep per unit), `XkbGroupForCoreState` (XKB's, and unmeasurable here), and
+`XKeyEvent` - whose home is this mirror's `XEvent`, where the 192-byte stand-in at line 1556 still
+carries no members (Owed 10/12/14's class).
+
+**Checks.**  `tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet row(s),
+0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move by
+the mirror's unstable `E0658 c_variadic` row alone in all eight faces (the two retirements of
+`xg_filter_key`/`xg_widget_style_updated` land against no addition), and the pgtk probe's total is
+unchanged at 1,505.
+
+**UNVERIFIED.**  Neither GTK nor GDK nor XInput2 is on this machine, so the seven rows are taken from
+the documents' shapes and this file's conventions, not from headers on disk - the boundary
+`status 4.355` recorded for the GtkPrint* surface.
