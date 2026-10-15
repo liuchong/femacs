@@ -60,12 +60,14 @@ pub unsafe extern "C" fn probe_macros (a: Lisp_Object, b: Lisp_Object) -> Lisp_O
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn probe_defvars () {
   unsafe {
-    DEFVAR_LISP! ("probe-lisp", V_LISP, "");
-    DEFVAR_LISP_NOPRO! ("probe-lisp-nopro", V_LISP, "");
-    DEFVAR_INT! ("probe-int", V_INT, "");
-    DEFVAR_BOOL! ("probe-bool", V_BOOL, "");
-    let offset: c_int = 0;
-    DEFVAR_KBOARD! ("probe-kboard", offset, "");
+    DEFVAR_LISP! (c"probe-lisp", V_LISP, "");
+    DEFVAR_LISP_NOPRO! (c"probe-lisp-nopro", V_LISP, "");
+    DEFVAR_INT! (c"probe-int", V_INT, "");
+    DEFVAR_BOOL! (c"probe-bool", V_BOOL, "");
+    // The offset argument reaches a `static` initializer (`$vname as c_int`), so it has to be
+    // a constant expression - the shape every unit's `offset_of! (kboard, …)` has (status 3.617's
+    // name-argument rule is the same call site).
+    DEFVAR_KBOARD! (c"probe-kboard", 0, "");
   }
 }
 
