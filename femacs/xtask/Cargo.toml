@@ -468,6 +468,7 @@ no_fixnum_timespec_hz                      = []  # see femacs/src/timefns.rs:171
 no_fixnum_trillion                         = []  # see femacs/src/timefns.rs:179
 no_gai_strerror                            = []  # !HAVE_GAI_STRERROR
 no_getifaddrs                              = []  # !HAVE_GETIFADDRS
+no_getloadavg                              = []  # !HAVE_GETLOADAVG (lib/getloadavg.c: gnulib's own implementation, not a `rpl_` rename)
 no_getrlimit                               = []  # !HAVE_GETRLIMIT (src/kqueue.c; macros.tsv 1371 has it at 1)
 no_glibc_boottime                          = []  # see femacs/lib/include/boot-time-aux.rs:61
 no_glibc_realtime                          = []  # see femacs/lib/include/boot-time-aux.rs:180
