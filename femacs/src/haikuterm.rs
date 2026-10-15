@@ -6788,6 +6788,47 @@ pub unsafe extern "C" fn haiku_merge_cursor_foreground (s: *mut glyph_string,
     { *background_out = background; }                                 // C 4820
 }
 
+/* C 4826-4878 carries this unit's nine `DEFVAR_LISP`/`DEFVAR_BOOL` variables: C's `DEFVAR_*`
+   (lisp.h 3495-3530) defines the object (`globals.f_##vname`), so the port defines it here and
+   `globals.rs`'s declaration is shadowed (docs/status.md 3.29, the `src/cmds.rs` 489-492 row).
+   C zero-initialises the `globals` object, so the initialisers are `lisp_h_Qnil ()` / `false`.  */
+// C 4826: `DEFVAR_BOOL ("haiku-initialized", haiku_initialized, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut haiku_initialized: bool = false;
+// C 4829: `DEFVAR_BOOL ("x-use-underline-position-properties", x_use_underline_position_properties, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut x_use_underline_position_properties: bool = false;
+// C 4834: `DEFVAR_BOOL ("x-underline-at-descent-line", x_underline_at_descent_line, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut x_underline_at_descent_line: bool = false;
+// C 4839: `DEFVAR_LISP ("x-toolkit-scroll-bars", Vx_toolkit_scroll_bars, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut Vx_toolkit_scroll_bars: Lisp_Object = lisp_h_Qnil ();
+// C 4843: `DEFVAR_BOOL ("haiku-debug-on-fatal-error", haiku_debug_on_fatal_error, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut haiku_debug_on_fatal_error: bool = false;
+// C 4854: `DEFVAR_LISP ("haiku-meta-keysym", Vhaiku_meta_keysym, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut Vhaiku_meta_keysym: Lisp_Object = lisp_h_Qnil ();
+// C 4862: `DEFVAR_LISP ("haiku-control-keysym", Vhaiku_control_keysym, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut Vhaiku_control_keysym: Lisp_Object = lisp_h_Qnil ();
+// C 4870: `DEFVAR_LISP ("haiku-super-keysym", Vhaiku_super_keysym, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut Vhaiku_super_keysym: Lisp_Object = lisp_h_Qnil ();
+// C 4878: `DEFVAR_LISP ("haiku-shift-keysym", Vhaiku_shift_keysym, ...)`.
+#[cfg (feature = "have_haiku")]
+#[unsafe(no_mangle)]
+pub static mut Vhaiku_shift_keysym: Lisp_Object = lisp_h_Qnil ();
+
 // C 4823-4898.
 #[cfg (feature = "have_haiku")]
 #[unsafe(no_mangle)]
