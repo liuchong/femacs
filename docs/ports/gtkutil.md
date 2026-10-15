@@ -139,6 +139,7 @@
 | **slice 4 (C 2562-2843).** C 2571's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` (`xg_uses_old_file_dialog`), C 2739's same fold (the `xg_get_file_name_from_*`/`with_*` pair) and C 2820's (`xg_get_file_name`'s chooser choice) | `all (use_gtk, have_gtk_file_selection_new)` - registered by this slice | a GTK build whose headers still carry the old file-selection dialog (GTK2) |
 | **slice 5 (C 2844-3002).** C 2848's `#ifdef HAVE_FREETYPE` (the whole font-chooser half), C 2850/2886/2947/2961's `HAVE_GTK3` pairs, C 2918's `#ifdef HAVE_PGTK` and C 2859's `#if PANGO_VERSION_CHECK (1, 36, 7)` (the `PANGO_WEIGHT_SEMILIGHT` step of `xg_weight_to_symbol`) | `all (use_gtk, have_freetype)` for the section, `have_gtk3` for the two symbol walks/`xg_font_filter`/the chooser's desc path, `have_pgtk` inside `xg_get_font`, and `pango_version_ge_1_36_7` - registered by this slice | a GTK build with FreeType and GTK3; a pure-GTK (pgtk) build; a Pango >= 1.36.7 build |
 | C 2145's `#ifdef HAVE_PGTK` (`xg_set_undecorated`), C 2175/2190's `#ifndef HAVE_PGTK` / `#else` (`xg_frame_restack`, `xg_set_skip_taskbar`), C 2209/2229's `#ifdef HAVE_PGTK` (`xg_set_no_focus_on_map`, `xg_set_no_accept_focus`), C 2261's `#ifndef HAVE_PGTK` + C 2268's dead inner `#ifdef HAVE_PGTK` (`xg_set_frame_icon`) | `have_pgtk` / `not (have_pgtk)`; the two in-expression arm splits are arm choosers (`## Deviations` 17) | as above |
+| **slice 20 (C 4770-4876).** C 4829's `#if GTK_CHECK_VERSION (3, 20, 0)` (`xg_update_scrollbar_pos`'s re-layout after the resize) | `gtk_check_version_ge_3_20` - registered by this slice (`femacs/xtask/Cargo.toml` 151; `docs/baseline/feature-coverage.tsv` re-recorded) | a GTK >= 3.20 build |
 
 ## C line ranges
 
@@ -206,7 +207,8 @@
 | 4533-4594 | C 4533's `#ifndef HAVE_GTK3` and C 4534-4535's comment with **`xg_get_scroll_id_for_window`** (C 4537-4553 - slice 15's map read backwards: the X window's widget, then its index in `id_to_widget`, or C's `-1`), C 4556-4558's comment and C 4560's `#if !defined HAVE_GTK3 || defined HAVE_PGTK` with **`xg_gtk_scroll_destroy`** (C 4561-4566 - the `destroy` handler that removes the index), then C 4569's `#if defined HAVE_GTK3 && !defined HAVE_PGTK` with **`xg_scroll_bar_size_allocate_cb`** (C 4570-4592 - the GTK3/X11 `size-allocate` handler: a live configure event goes to `x_scroll_bar_configure` as is, otherwise a synthetic `GdkEvent` is filled from the allocation), plus C 4594's blank | file gate (`use_gtk`) plus C's own three folds; the mirror gains `gtk_get_current_event` and `GDK_CONFIGURE` and `GdkEventConfigure` grows GDK's `width`/`height`, and the unit declares `x_scroll_bar_configure` (Owed 18); slice 17 below |
 | 4595-4687 | C 4595-4596 and **`xg_finish_scroll_bar_creation`** (C 4596-4686 - the tail both scroll-bar constructors share: name the widget, remember the frame on it, connect the four signals (C 4615-4619's `size-allocate`, C 4621-4628's map store plus `destroy`, C 4630-4637's two `GCallback` pairs), wrap the widget in an event box on the frame's edit widget, colour and realize the box, store or discard its X window per face, set the arrow cursor and install the theme's two CSS providers under GTK3), plus C 4687's blank | file gate (`use_gtk`) plus C's own five folds; the mirror gains `GtkUpdateType`, and the unit carries `GtkRange`, `GTK_RANGE`, `gtk_range_set_update_policy` and `gtk_event_box_new` and leaves `GTK_UPDATE_CONTINUOUS` to Owed 6 (Owed 18's class); slice 18 below |
 | 4688-4769 | C 4688-4694's comment and **`xg_create_scroll_bar`** (C 4696-4719 - the vertical constructor: an adjustment over `XG_SB_MIN`/`XG_SB_MAX`, the widget slice 16's `gtk_scrollbar_new!` makes, slice 18's shared tail, and C 4719's `horizontal` marker), C 4722-4726's comment and **`xg_create_horizontal_scroll_bar`** (C 4728-4751 - the same on the other axis with `YG_SB_*` and C 4751's marker), C 4754's comment and **`xg_remove_scroll_bar`** (C 4756-4767 - destroy the widget and its event box, then `SET_FRAME_GARBAGED`), plus C 4769's blank | file gate (`use_gtk`); **no mirror change** - every name these three call is already in place - and the unit gains the `xp_display` alias for C's per-face `Display` (one deviation); slice 19 below |
-| 4770-6753 | **the remainder** — from C 4770-4773's comment above `xg_update_scrollbar_pos` (C 4775) through C 6753: the position/thumb machinery (`xg_update_scrollbar_pos`, `xg_update_horizontal_scrollbar_pos`, the thumb setters and their `clip_to_bounds` arithmetic with `XG_SB_RANGE`/`YG_SB_RANGE`), printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 4770-4876 | C 4770-4773's comment and **`xg_update_scrollbar_pos`** (C 4776-4873 - the vertical position/resize hook: scale the pixel arguments, read the box's old position out of its fixed container, move and resize it, hide both widgets when the height is under the theme's `min-slider-length`, clear under the old position, lower the box's window, sync and mark the frame garbaged), plus C 4875-4876's blanks | file gate (`use_gtk`) plus C's own five folds; the mirror gains `gtk_container_child_get` and `gtk_widget_get_size_request`, the unit carries `gtk_widget_queue_allocate`/`XLowerWindow`/`x_clear_area` (Owed 18), and the round registers the `gtk_check_version_ge_3_20` feature; slice 20 below |
+| 4877-6753 | **the remainder** — from C 4877-4880's comment above `xg_update_horizontal_scrollbar_pos` (C 4883) through C 6753: the horizontal twin and the rest of the position/thumb machinery (the thumb setters with their `clip_to_bounds` arithmetic and `XG_SB_RANGE`/`YG_SB_RANGE`), printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1094,6 +1096,12 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     `GtkUpdateType` is the *type* of C 4611's policy argument; the enumerator itself stays C's name
     and stays undeclared - a deliberate new row in the C face, because inventing a GTK2 value is what
     Owed 6 refuses.
+    **Slice 20 adds three, the same class as slice 17's `x_scroll_bar_configure`:** three *functions*
+    whose home is a mirror but whose name another unit that `include!`s it already declares over it -
+    `gtk_widget_queue_allocate` (`src/pgtkterm.rs` 4452), `XLowerWindow` (`src/xwidget.rs` 6443) and
+    `x_clear_area` (`src/xfns.rs` 2180) - so `src/gtkutil.rs` carries its own copies under C's own
+    folds, and the four mirrors that should hold them (`include/gtk.rs`, `include/xlib.rs`,
+    `include/xterm.rs`) can close all of them in one round that deletes the four copies.
 
 ## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
 
@@ -2153,3 +2161,79 @@ and its note), the class slice 12's `FRAME_MENUBAR_HEIGHT` typing fix belongs to
 the two constructors' widget-building path is evidenced by rustc's name resolution and typing alone,
 GTK2's two enumerators remain Owed 6's, and the `xp_display` alias is the port's reading of C's two
 `Display` typedefs rather than a measurement; the pgtk arm's reading is the probe's (Owed 17).
+
+## Slice 20 (2026-10-15, status 4.350): C 4770-4876 — `xg_update_scrollbar_pos`
+
+**What this slice is.**  The vertical scroll bar's position/resize hook (C 4776-4873): take the widget
+out of slice 15's map, divide C 4795-4798's four pixel arguments down to GTK's units by
+`xg_get_scale`, read the event box's old position and size out of its fixed container
+(C 4801-4807), move and resize it (C 4810-4823, with C 4825-4833's X11-GTK3 `GdkWindow` resize and the
+GTK 3.20 re-layout), hide both widgets instead when the height is under the theme's
+`min-slider-length` (C 4812-4819), clear under the old position through the face's own area API
+(C 4836-4846), lower the box's window so it obscures no child frame (C 4848-4860), sync (C 4862-4870)
+and mark the frame garbaged with the mouse face cancelled (C 4871-4872).  Non-`static` (`gtkutil.h`
+155 declares it and `xterm.c`'s scroll-bar code calls it).  Port: 6,853 -> **7,036 lines**; the
+table's last row splits at C 4876 - the next text is C 4877-4880's comment above
+`xg_update_horizontal_scrollbar_pos`.
+
+**The mirror this slice needed, and a feature this slice registered.**  `include/gtk.rs` gains the
+two fresh names **`gtk_container_child_get`** (gtk/gtkcontainer.h, C 4804-4805's two-property read
+with its `gint` out-parameters, variadic like the style reader slice 16 added) and
+**`gtk_widget_get_size_request`** (gtk/gtkwidget.h, C 4806), both UNVERIFIED.  C 4829's
+`#if GTK_CHECK_VERSION (3, 20, 0)` had **no feature name**, so the round registers
+**`gtk_check_version_ge_3_20`** in `femacs/xtask/Cargo.toml` (C's condition and its site in the
+comment) and re-records `docs/baseline/feature-coverage.tsv` (`1038 feature(s), 1031 never
+enabled`); the gate table above gains that row - the slice-4 registration's shape.
+
+**Three names that stand in the unit.**  `gtk_widget_queue_allocate` (gtk/gtkwidget.h, C 4830) is
+`src/pgtkterm.rs` 4452's, `XLowerWindow` (Xlib.h 3419, C 4856) is `src/xwidget.rs` 6443's, and
+`x_clear_area` (xterm.h 1798, C 4842) is `src/xfns.rs` 2180's - three functions whose home is a
+mirror but whose copies another unit already carries over it (Owed 10/Owed 12/Owed 18's class).  The
+gates are the folds C's own uses sit in; `pgtk_clear_area` (C 4844's `#else`) arrives from
+`include/pgtkterm.rs` 686 as it should, and Xlib's `True`/`False` pair (C 4867's `False`) comes from
+`include/xterm.rs` 76/79, whose note already names `include/xlib.rs`'s frozen `x11_constants` module
+as the pair's eventual home.
+
+**Deviations this slice adds.**
+
+- **C 4795-4798's four `/=` writes are why the four parameters are `mut`** in the port (the
+  `xg_frame_set_char_size` shape at C 1176), and **C 4792's `gint msl;` and C 4801's `oldw`/`oldh`
+  are zeroed** (PORTING.md 1.5): the first arm run measured four `E0384`s and one `E0381` in the two
+  faces whose typeck reaches that far, which is this round's second tool-caught correction after the
+  `E0308` the nineteenth slice's `xp_display` fixed.
+- C 4787's `f->output_data.xp->edit_widget` is the `FRAME_X_OUTPUT!`/`xp_output` spelling slice 18
+  established, so the function carries this file's new `does not mention output_data` row in
+  `macro-body-notes.tsv`.
+- C 4804-4805's variadic property read passes `c"x"`/`c"y"` as `c"…".as_ptr ()`, the two
+  out-parameters as `(&raw mut oldx)` / `(&raw mut oldy)` and C's terminating `NULL` as
+  `std::ptr::null::<c_char> ()` (the slice-16 spelling); C 4811's style read is the same shape with
+  `c"min-slider-length"`.
+- C 4801's `-1` sentinels are kept as literals, C 4839/4840's compound assignments stay compound
+  (`oldw += …` / `oldx -= …`, C's own order - the second uses the first's updated value), and
+  C 4770-4773's, C 4815-4816's, C 4862-4864's comments and C 4855's one-liner are carried as C's own
+  text at their positions.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings, against a materialised baseline** (a temporary `git worktree` at `5ddc13ec`),
+   with a **seventh set** for the feature this round registered (A plus `gtk_check_version_ge_3_20`):
+   arm A **27 -> 28**, arm A plus `gtk_check_version_ge_3_14` **27 -> 28**, arm A plus
+   `gtk_check_version_ge_3_20` **27 -> 28**, arm A without `have_xinput2` **26 -> 27**, arm C (GTK2)
+   **70 -> 71**, arm C plus `have_freetype` **70 -> 71**, the out-of-tree pgtk probe **24 -> 24
+   (identical)**.  Every added row is one more instance of an owed class this ledger already carries:
+   C 4856's `GTK_WIDGET_TO_X_WIN!` reaches `GDK_WINDOW_XID` in the X11 faces and
+   `GDK_WINDOW_XWINDOW` in the GTK2 one (`include/xterm.rs` 1101-1132's gap, the Evidence (2)
+   table's two rows).  The three feature sets (A, A+3.14, A+3.20) move by the same single row, which
+   is what says the 3.20 arm compiles: its only statement is `gtk_widget_queue_allocate`, and that
+   name resolves.
+3. **`extract-abi.py --check`** -> 49 -> **48 `- ` rows**: one retirement (`missing function
+   xg_update_scrollbar_pos`) and one new `does not mention output_data` row, recorded in
+   `macro-body-notes.tsv` (without that entry the reading stands at 49).
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK tree - there is none on this machine - so
+the two new mirror prototypes and the three use-site declarations are UNVERIFIED, the
+`GDK_WINDOW_*` macro gap remains the mirror's, and the new feature's *value* (`GTK >= 3.20`) is the
+gate name rather than a measurement; the pgtk arm's reading is the probe's (Owed 17).

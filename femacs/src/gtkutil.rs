@@ -6865,3 +6865,178 @@ pub unsafe extern "C" fn xg_remove_scroll_bar (f: *mut frame, scrollbar_id: ptrd
       SET_FRAME_GARBAGED! (f);                                          // C 4766
     }
 }
+
+/* ----------------------------------------------------------------------------------------------
+   The three names `xg_update_scrollbar_pos` needs and no mirror in the unit's include graph
+   carries.
+
+   Each one is a *function* whose home is a mirror, but another unit that `include!`s it declares
+   its own copy, so the copy has to stand here instead (Owed 10/Owed 12/Owed 18's class):
+   `gtk_widget_queue_allocate` (gtk/gtkwidget.h, C 4830) is `src/pgtkterm.rs` 4452's,
+   `XLowerWindow` (X11/Xlib.h, C 4856) is `src/xwidget.rs` 6443's, and `x_clear_area` (xterm.h
+   1798, C 4842) is `src/xfns.rs` 2180's.  The gates are the folds C's own uses sit in - C 4825's
+   `!pgtk && gtk3` for the first, C 4841/4854's `#ifndef HAVE_PGTK` for the other two - and
+   `pgtk_clear_area` (C 4844's `#else`) arrives from `include/pgtkterm.rs` 686 as it should.
+   **No GTK tree exists on this machine**, so the first prototype is UNVERIFIED; the two X11 ones
+   are the same declarations those units already carry.
+   ---------------------------------------------------------------------------------------------- */
+/// C: gtk/gtkwidget.h: `void gtk_widget_queue_allocate (GtkWidget *widget);` - C 4830's call, the
+/// re-layout the GTK 3.20 arm asks for after the resize.  **UNVERIFIED.**
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn gtk_widget_queue_allocate (widget: *mut GtkWidget);
+}
+/// C: Xlib.h 3419: `extern int XLowerWindow (Display *display, Window w);` - C 4856's lowering of
+/// the event box's window so it hides no child frame.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn XLowerWindow (display: *mut Display, w: Window) -> c_int;
+}
+/// C: xterm.h 1798: `extern void x_clear_area (struct frame *f, int, int, int, int);` - C 4842's
+/// clear under the scroll bar's old position.
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn x_clear_area (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
+}
+
+/* C 4770-4773's comment above the vertical position updater, carried as C's own text, then
+   C 4775-4873.  */
+
+/// C 4775-4873: `void xg_update_scrollbar_pos (struct frame *f, ptrdiff_t scrollbar_id, int top,
+/// int left, int width, int height)` - the vertical scroll bar's position/resize hook: take the
+/// widget from slice 15's map, scale the four pixel arguments down to GTK's units (C 4795-4798),
+/// read the box's old position and size out of its fixed container (C 4801-4807), move and resize it
+/// (C 4810-4823), hide both widgets instead when the height is under the theme's
+/// `min-slider-length` (C 4812-4819), clear under the old position in the other axis' API
+/// (C 4836-4846), lower the box's window so it obscures no child frame (C 4848-4860), sync
+/// (C 4862-4870) and mark the frame garbaged with the mouse face cancelled (C 4871-4872).  Non-
+/// `static` (`gtkutil.h` 155 declares it and `xterm.c`'s scroll-bar code calls it), so
+/// `#[unsafe(no_mangle)]` with the C ABI.  C 4789/4825/4841/4854/4866's five folds are the port's
+/// `#[cfg]`s (the first pair asks for X11's `GdkWindow` and the 3.20 re-layout, the last three pick
+/// the X11 or the pgtk API), and C 4787's `f->output_data.xp->edit_widget` is the
+/// `FRAME_X_OUTPUT!`/`xp_output` spelling slice 18 established.  C 4795-4798's four `/=` writes are
+/// why the four parameters are `mut` in the port (the `xg_frame_set_char_size` shape at C 1176), and
+/// C 4792/4801's uninitialised locals are the port's zeroed values (PORTING.md 1.5 - the first arm
+/// run measured four `E0384`s and one `E0381` without them, in the two faces whose typeck reaches
+/// this far).
+/* C: /* Update the position of the vertical scroll bar represented by SCROLLBAR_ID
+   C:    in frame F.
+   C:    TOP/LEFT are the new pixel positions where the bar shall appear.
+   C:    WIDTH, HEIGHT is the size in pixels the bar shall have.  */  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_update_scrollbar_pos (f: *mut frame, scrollbar_id: ptrdiff_t,
+						  mut top: c_int, mut left: c_int,
+						  mut width: c_int, mut height: c_int)   // C 4776-4873
+{
+  let wscroll: *mut GtkWidget = xg_get_widget_from_map (scrollbar_id,   // C 4783
+							FRAME_X_DISPLAY! (f));   // C 4784
+  if ! wscroll.is_null ()                                               // C 4785
+    {
+      let wfixed: *mut GtkWidget
+	= (*(FRAME_X_OUTPUT! (f) as *mut xp_output)).edit_widget;      // C 4787
+      let wparent: *mut GtkWidget = gtk_widget_get_parent (wscroll);    // C 4788
+      /* C 4789's `#if !defined HAVE_PGTK && defined HAVE_GTK3`; its `#endif` is C 4791.  */
+      #[cfg (all (not (feature = "have_pgtk"), feature = "have_gtk3"))]
+      let wdesc: *mut GdkWindow = gtk_widget_get_window (wparent);      // C 4790
+      /* C 4792's `gint msl;` is written by C 4811's style read and read at C 4812; the port
+	 zeroes it (PORTING.md 1.5, the `xg_frame_set_char_size` shape below).  */
+      let mut msl: gint = 0;                                            // C 4792
+      let scale: c_int = xg_get_scale (f);                              // C 4793
+
+      top /= scale;                                                     // C 4795
+      left /= scale;                                                    // C 4796
+      height /= scale;                                                  // C 4797
+      width /= scale;                                                   // C 4798
+
+      /* Clear out old position.  */
+      let mut oldx: c_int = -1;                                         // C 4801
+      let mut oldy: c_int = -1;
+      /* C 4801's `int oldw, oldh;` are uninitialised there and written only inside C 4802's `if`;
+	 C 4836's test is what makes the read safe, which Rust cannot see, so the port zeroes them
+	 (PORTING.md 1.5 - the values are only ever read on the path that wrote them).  */
+      let mut oldw: c_int = 0;
+      let mut oldh: c_int = 0;
+      if gtk_widget_get_parent (wparent) == wfixed                       // C 4802
+	{
+	  gtk_container_child_get (GTK_CONTAINER! (wfixed), wparent,      // C 4804
+				   c"x".as_ptr (), (&raw mut oldx),    // C 4805
+				   c"y".as_ptr (), (&raw mut oldy),
+				   std::ptr::null::<c_char> ());
+	  gtk_widget_get_size_request (wscroll, (&raw mut oldw), (&raw mut oldh));   // C 4806
+	}
+
+      /* Move and resize to new values.  */
+      gtk_fixed_move (GTK_FIXED! (wfixed), wparent, left, top);          // C 4810
+      gtk_widget_style_get (wscroll, c"min-slider-length".as_ptr (), (&raw mut msl),   // C 4811
+			    std::ptr::null::<c_char> ());
+      let hidden: bool = height < msl;                                  // C 4812
+      if hidden                                                         // C 4813
+	{
+	  /* C 4815-4816's comment, carried as C's own text.  */
+	  /* C: /* No room.  Hide scroll bar as some themes output a warning if
+	     C:    the height is less than the min size.  */  */
+	  gtk_widget_hide (wparent);                                     // C 4817
+	  gtk_widget_hide (wscroll);                                     // C 4818
+	}
+      else
+	{
+	  gtk_widget_show_all (wparent);                                 // C 4822
+	  gtk_widget_set_size_request (wscroll, width, height);          // C 4823
+
+	  /* C 4825's `#if !defined HAVE_PGTK && defined HAVE_GTK3`; its `#endif` is C 4833.  */
+	  #[cfg (all (not (feature = "have_pgtk"), feature = "have_gtk3"))]
+	  {
+	    if ! wdesc.is_null ()                                        // C 4826
+	      {
+		gdk_window_move_resize (wdesc, left, top, width, height);   // C 4828
+		/* C 4829's `#if GTK_CHECK_VERSION (3, 20, 0)`; its `#endif` is C 4831.  */
+		#[cfg (feature = "gtk_check_version_ge_3_20")]
+		{ gtk_widget_queue_allocate (wparent); }                 // C 4830
+	      }
+	  }
+	}
+
+      if oldx != -1 && oldw > 0 && oldh > 0                              // C 4836
+	{
+	  /* Clear under old scroll bar position.  */
+	  oldw += (scale - 1) * oldw;                                    // C 4839
+	  oldx -= (scale - 1) * oldw;                                    // C 4840
+	  /* C 4841's `#ifndef HAVE_PGTK`; its `#else` is C 4843.  */
+	  #[cfg (not (feature = "have_pgtk"))]
+	  { x_clear_area (f, oldx, oldy, oldw, oldh); }                  // C 4842
+	  #[cfg (feature = "have_pgtk")]
+	  { pgtk_clear_area (f, oldx, oldy, oldw, oldh); }               // C 4844
+	}
+
+      if ! hidden                                                        // C 4848
+	{
+	  let scrollbar: *mut GtkWidget
+	    = xg_get_widget_from_map (scrollbar_id,                      // C 4850
+				      FRAME_X_DISPLAY! (f));             // C 4851
+	  let webox: *mut GtkWidget = gtk_widget_get_parent (scrollbar);    // C 4852
+
+	  /* C 4854's `#ifndef HAVE_PGTK`; its `#else` is C 4857.  */
+	  #[cfg (not (feature = "have_pgtk"))]
+	  {
+	    /* Don't obscure any child frames.  */
+	    XLowerWindow (FRAME_X_DISPLAY! (f), GTK_WIDGET_TO_X_WIN! (webox));   // C 4856
+	  }
+	  #[cfg (feature = "have_pgtk")]
+	  { gdk_window_lower (gtk_widget_get_window (webox)); }         // C 4858
+	}
+
+      /* C 4862-4864's comment, carried as C's own text.  */
+      /* C: /* GTK does not redraw until the main loop is entered again, but
+	 C:    if there are no X events pending we will not enter it.  So we sync
+	 C:    here to get some events.  */  */
+
+      /* C 4866's `#ifndef HAVE_PGTK`; its `#else` is C 4868.  */
+      #[cfg (not (feature = "have_pgtk"))]
+      { XSync (FRAME_X_DISPLAY! (f), False); }                          // C 4867
+      #[cfg (feature = "have_pgtk")]
+      { gdk_flush (); }                                                 // C 4869
+      SET_FRAME_GARBAGED! (f);                                          // C 4871
+      cancel_mouse_face (f);                                            // C 4872
+    }
+}

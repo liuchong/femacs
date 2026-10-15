@@ -693,3 +693,33 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 owed rows only (arm A 26 -> 27, arm A plus `gtk_check_version_ge_3_14` 26 -> 27, arm A without
 `have_xinput2` 25 -> 26, arm C 64 -> 66, arm C plus `have_freetype` 64 -> 66) and the out-of-tree
 pgtk probe is **byte-identical at 24**.
+
+### status 4.350 (the gtkutil twentieth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_update_scrollbar_pos` (C 4770-4876) is the round's consumer, and this file
+gains its two fresh names:
+
+- **`gtk_container_child_get`** (gtk/gtkcontainer.h, C 4804-4805) - the variadic property read of the
+  event box's position in its fixed container ("x"/"y" with `gint` out-parameters), declared with the
+  variadic tail the style reader above already has.  UNVERIFIED.
+- **`gtk_widget_get_size_request`** (gtk/gtkwidget.h, C 4806) - the widget's requested size, the pair
+  that C 4836 tests.  UNVERIFIED.
+
+**Three names the consumer keeps.**  `gtk_widget_queue_allocate` (gtk/gtkwidget.h, C 4830),
+`XLowerWindow` (Xlib.h 3419, C 4856) and `x_clear_area` (xterm.h 1798, C 4842) are functions whose
+home is a mirror but whose names `src/pgtkterm.rs` 4452, `src/xwidget.rs` 6443 and `src/xfns.rs` 2180
+already declare over theirs, so the round keeps copies at the use site (Owed 18 of
+`docs/ports/gtkutil.md`).  The `pgtk_clear_area` the `#else` arm needs comes from this tree's
+`include/pgtkterm.rs` 686 as it should, and Xlib's `True`/`False` pair comes from
+`include/xterm.rs` 76/79 - whose note already records that `include/xlib.rs`'s frozen
+`x11_constants` module is that pair's eventual home, so this round did not move it.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move by
+owed rows only - arm A 27 -> 28 (and the same +1 with `gtk_check_version_ge_3_14` or the new
+`gtk_check_version_ge_3_20`), arm A without `have_xinput2` 26 -> 27, arm C 70 -> 71, arm C plus
+`have_freetype` 70 -> 71 - one more `GTK_WIDGET_TO_X_WIN!` instance in each face, while the
+out-of-tree pgtk probe stays **byte-identical at 24**.  This round also registered the
+`gtk_check_version_ge_3_20` feature in `femacs/xtask/Cargo.toml` (C 4829's condition) and
+re-recorded `docs/baseline/feature-coverage.tsv`.

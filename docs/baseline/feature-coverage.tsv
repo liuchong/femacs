@@ -6,23 +6,23 @@
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
 windowsnt	3408	55	-	-
-have_x_windows	3245	40	-	HAVE_X_WINDOWS
+have_x_windows	3246	40	-	HAVE_X_WINDOWS
 have_ntgui	2709	24	-	-
 have_android	2483	37	-	-
 not_android_stubify	1895	12	-	-
-have_pgtk	1507	29	-	-
+have_pgtk	1570	29	-	-
+use_gtk	1502	17	-	-
 have_window_system	1489	35	-	-
-use_gtk	1386	17	-	-
 have_haiku	827	22	xtask dead-arms	-
-have_gtk3	773	9	-	-
+have_gtk3	826	9	-	-
 use_cairo	647	19	-	-
-use_x_toolkit	556	12	-	USE_X_TOOLKIT
+use_x_toolkit	558	12	-	USE_X_TOOLKIT
 msdos	540	20	-	-
 use_lucid	517	12	-	-
 use_motif	371	6	-	-
 have_ns	359	13	-	HAVE_NS
+have_xinput2	337	8	-	-
 harfbuzz	331	18	-	-
-have_xinput2	329	9	-	-
 dispextern_face_records	291	6	-	-
 have_native_comp	289	12	xtask dead-arms	HAVE_NATIVE_COMP
 use_xcb	282	4	-	-
@@ -160,6 +160,7 @@ clang_major_clang_major_5	9	1	-	-
 cygwin_win32	9	3	-	-
 glibc_time_bits_64	9	1	-	-
 gnulib_sigprocmask	9	1	-	-
+gtk_check_version_ge_3_14	9	3	-	-
 have_xcomposite	9	2	-	-
 hpux	9	5	-	-
 libc	9	4	-	-
@@ -189,7 +190,6 @@ win32_vista	8	1	-	-
 arm	7	1	-	-
 freetype	7	2	-	-
 gnulib_openat2	7	1	-	-
-gtk_check_version_ge_3_14	7	3	-	-
 have_acl_extended_file	7	1	-	-
 have_acl_get_link_np	7	1	-	-
 have_ft_face_getcharvariantindex	7	3	-	-
@@ -705,6 +705,7 @@ gnulib_strtok_r	1	1	-	-
 gnulib_strverscmp	1	1	-	-
 gtk_check_version_ge_3_10	1	1	-	-
 gtk_check_version_ge_3_18	1	1	-	-
+gtk_check_version_ge_3_20	1	1	-	-
 have_copy_file_range	1	1	-	-
 have_decl_sysinfo	1	1	-	-
 have_eaccess	1	1	-	-

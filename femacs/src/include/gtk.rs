@@ -2834,3 +2834,17 @@ pub struct GtkObject
 unsafe extern "C" {
   pub fn gtk_widget_style_get (widget: *mut GtkWidget, first_property_name: *const gchar, ...);
 }
+
+/// C: gtk/gtkcontainer.h: `void gtk_container_child_get (GtkContainer *container, GtkWidget
+/// *child, const gchar *first_prop_name, ...);` - C 4804-4805's two-property read of the event
+/// box's fixed-container position ("x"/"y" with their `gint` out-parameters).  A fresh name (no
+/// other unit declares it), so the mirror takes it; **UNVERIFIED**.
+unsafe extern "C" {
+  pub fn gtk_container_child_get (container: *mut GtkContainer, child: *mut GtkWidget,
+                                  first_prop_name: *const gchar, ...);
+}
+/// C: gtk/gtkwidget.h: `void gtk_widget_get_size_request (GtkWidget *widget, gint *width, gint
+/// *height);` - C 4806's read of the widget's requested size.  A fresh name; **UNVERIFIED**.
+unsafe extern "C" {
+  pub fn gtk_widget_get_size_request (widget: *mut GtkWidget, width: *mut gint, height: *mut gint);
+}
