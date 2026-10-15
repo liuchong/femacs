@@ -504,9 +504,13 @@ unsafe extern "C" {
 pub type resource_types = c_int;
 #[cfg (feature = "have_pgtk")]
 const RES_TYPE_NUMBER: resource_types = 0;          // C: dispextern.h 3984
+#[cfg (feature = "have_pgtk")]
 const RES_TYPE_FLOAT: resource_types = 1;           // C: dispextern.h 3985
+#[cfg (feature = "have_pgtk")]
 const RES_TYPE_BOOLEAN: resource_types = 2;         // C: dispextern.h 3986
+#[cfg (feature = "have_pgtk")]
 const RES_TYPE_STRING: resource_types = 3;          // C: dispextern.h 3988
+#[cfg (feature = "have_pgtk")]
 const RES_TYPE_SYMBOL: resource_types = 4;          // C: dispextern.h 3989
 
 /// C: dispextern.h 3063: `typedef void (*frame_parm_handler) (struct frame *, Lisp_Object,
@@ -4848,6 +4852,7 @@ unsafe fn frame_geometry (frame: Lisp_Object, attribute: Lisp_Object) -> Lisp_Ob
 			   make_fixnum (internal_border_width as EMACS_INT))); }     // C 3413
 }
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("pgtk-frame-geometry", Fpgtk_frame_geometry, Spgtk_frame_geometry,   // C 3416-3458
 	0, 1, 0,
 	doc: "Return geometric attributes of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is an association list of the attributes listed below.  All height\nand width values are in pixels.\n\n`outer-position' is a cons of the outer left and top edges of FRAME\nrelative to the origin - the position (0, 0) - of FRAME's display.\n\n`outer-size' is a cons of the outer width and height of FRAME.  The\nouter size includes the title bar and the external borders as well as\nany menu and/or tool bar of frame.\n\n`external-border-size' is a cons of the horizontal and vertical width of\nFRAME's external borders as supplied by the window manager.\n\n`title-bar-size' is a cons of the width and height of the title bar of\nFRAME as supplied by the window manager.  If both of them are zero,\nFRAME has no title bar.  If only the width is zero, Emacs was not\nable to retrieve the width information.\n\n`menu-bar-external', if non-nil, means the menu bar is external (never\nincluded in the inner edges of FRAME).\n\n`menu-bar-size' is a cons of the width and height of the menu bar of\nFRAME.\n\n`tool-bar-external', if non-nil, means the tool bar is external (never\nincluded in the inner edges of FRAME).\n\n`tool-bar-position' tells on which side the tool bar on FRAME is and can\nbe one of `left', `top', `right' or `bottom'.  If this is nil, FRAME\nhas no tool bar.\n\n`tool-bar-size' is a cons of the width and height of the tool bar of\nFRAME.\n\n`internal-border-width' is the width of the internal border of\nFRAME.",
@@ -4856,6 +4861,7 @@ DEFUN! ("pgtk-frame-geometry", Fpgtk_frame_geometry, Spgtk_frame_geometry,   // 
   return frame_geometry (frame, Qnil ());                               // C 3457
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("pgtk-frame-edges", Fpgtk_frame_edges, Spgtk_frame_edges, 0, 2, 0,   // C 3460-3481
 	doc: "Return edge coordinates of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is a list of the form (LEFT, TOP, RIGHT, BOTTOM).  All values are\nin pixels relative to the origin - the position (0, 0) - of FRAME's\ndisplay.\n\nIf optional argument TYPE is the symbol `outer-edges', return the outer\nedges of FRAME.  The outer edges comprise the decorations of the window\nmanager (like the title bar or external borders) as well as any external\nmenu or tool bar of FRAME.  If optional argument TYPE is the symbol\n`native-edges' or nil, return the native edges of FRAME.  The native\nedges exclude the decorations of the window manager and any external\nmenu or tool bar of FRAME.  If TYPE is the symbol `inner-edges', return\nthe inner edges of FRAME.  These edges exclude title bar, any borders,\nmenu bar or tool bar of FRAME.",
 	(frame: Lisp_Object, type_: Lisp_Object),
@@ -4865,6 +4871,7 @@ DEFUN! ("pgtk-frame-edges", Fpgtk_frame_edges, Spgtk_frame_edges, 0, 2, 0,   // 
       { type_ } else { Qnative_edges () });                             // C 3480
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("pgtk-set-mouse-absolute-pixel-position",                           // C 3483-3502
 	Fpgtk_set_mouse_absolute_pixel_position,
 	Spgtk_set_mouse_absolute_pixel_position, 2, 2, 0,
@@ -4884,6 +4891,7 @@ DEFUN! ("pgtk-set-mouse-absolute-pixel-position",                           // C
   return Qnil ();                                                       // C 3501
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("pgtk-mouse-absolute-pixel-position",                               // C 3504-3525
 	Fpgtk_mouse_absolute_pixel_position,
 	Spgtk_mouse_absolute_pixel_position, 0, 0, 0,
@@ -4905,6 +4913,7 @@ DEFUN! ("pgtk-mouse-absolute-pixel-position",                               // C
   return Fcons (make_fixnum (x as EMACS_INT), make_fixnum (y as EMACS_INT));                      // C 3524
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("pgtk-page-setup-dialog", Fpgtk_page_setup_dialog, Spgtk_page_setup_dialog,   // C 3528-3539
 	0, 0, 0,
 	doc: "Pop up a page setup dialog.\nThe current page setup can be obtained using `x-get-page-setup'.",
@@ -4917,6 +4926,7 @@ DEFUN! ("pgtk-page-setup-dialog", Fpgtk_page_setup_dialog, Spgtk_page_setup_dial
   return Qnil ();                                                       // C 3538
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("pgtk-get-page-setup", Fpgtk_get_page_setup, Spgtk_get_page_setup, 0, 0, 0,   // C 3541-3569
 	doc: "Return the value of the current page setup.\nThe return value is an alist containing the following keys:\n\norientation: page orientation (symbol `portrait', `landscape',\n`reverse-portrait', or `reverse-landscape').\nwidth, height: page width/height in points not including margins.\nleft-margin, right-margin, top-margin, bottom-margin: print margins,\nwhich is the parts of the page that the printer cannot print\non, in points.\n\nThe paper width can be obtained as the sum of width, left-margin, and\nright-margin values if the page orientation is `portrait' or\n`reverse-portrait'.  Otherwise, it is the sum of width, top-margin,\nand bottom-margin values.  Likewise, the paper height is the sum of\nheight, top-margin, and bottom-margin values if the page orientation\nis `portrait' or `reverse-portrait'.  Otherwise, it is the sum of\nheight, left-margin, and right-margin values.",
 	(),
@@ -4930,6 +4940,7 @@ DEFUN! ("pgtk-get-page-setup", Fpgtk_get_page_setup, Spgtk_get_page_setup, 0, 0,
   return result;                                                        // C 3568
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("pgtk-print-frames-dialog", Fpgtk_print_frames_dialog,             // C 3571-3604
 	Spgtk_print_frames_dialog, 0, 1, "",
 	doc: "Pop up a print dialog to print the current contents of FRAMES.\nFRAMES should be nil (the selected frame), a frame, or a list of\nframes (each of which corresponds to one page).  Each frame should be\nvisible.",
@@ -4976,6 +4987,7 @@ unsafe extern "C" fn clean_up_dialog ()
   pgtk_menu_set_in_use (false);                                         // C 3609
 }
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,          // C 3612-3663
 	doc: "SKIP: real doc in xfns.c.  ",
 	(prompt: Lisp_Object, dir: Lisp_Object, default_filename: Lisp_Object,
@@ -5029,6 +5041,7 @@ DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,          // C 
   return unbind_to (count, decoded_file);                               // C 3662
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("pgtk-backend-display-class", Fpgtk_backend_display_class,         // C 3665-3676
 	Spgtk_backend_display_class, 0, 1, "",
 	doc: "Return the name of the Gdk backend display class of TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.",
@@ -5040,6 +5053,7 @@ DEFUN! ("pgtk-backend-display-class", Fpgtk_backend_display_class,         // C 
   return build_string (type_name);                                      // C 3675
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("x-select-font", Fx_select_font, Sx_select_font, 0, 2, 0,          // C 3678-3719
 	doc: "SKIP: real doc in xfns.c.  ",
 	(frame: Lisp_Object, ignored: Lisp_Object),
@@ -5083,6 +5097,7 @@ DEFUN! ("x-select-font", Fx_select_font, Sx_select_font, 0, 2, 0,          // C 
   return unbind_to (count, font);                                       // C 3718
 });
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("x-gtk-debug", Fx_gtk_debug, Sx_gtk_debug, 1, 1, 0,                // C 3721-3732
 	doc: "SKIP: real doc in xfns.c.  ",
 	(enable: Lisp_Object),
@@ -5107,6 +5122,7 @@ unsafe extern "C" fn unwind_gerror_ptr (data: *mut c_void)
     { g_error_free (error); }                                           // C 3739
 }
 
+#[cfg (feature = "have_pgtk")]
 DEFUN! ("x-gtk-launch-uri", Fx_gtk_launch_uri, Sx_gtk_launch_uri, 2, 2, 0,   // C 3742-3772
 	doc: "Tell GTK to launch the default application to show given URI.\n\nThis function is only available on PGTK.",
 	(frame: Lisp_Object, uri: Lisp_Object),
@@ -5171,8 +5187,11 @@ pub static mut Vx_max_tooltip_size: Lisp_Object = lisp_h_Qnil ();
 
 /* C: `<cairo.h>`'s version macros, read from this machine's header (`/opt/homebrew/include/cairo/
    cairo-version.h` 4-6) - the three operands of the `cairo-version-string` DEFVAR below (C 3808).  */
+#[cfg (feature = "have_pgtk")]
 const CAIRO_VERSION_MAJOR: c_int = 1;
+#[cfg (feature = "have_pgtk")]
 const CAIRO_VERSION_MINOR: c_int = 18;
+#[cfg (feature = "have_pgtk")]
 const CAIRO_VERSION_MICRO: c_int = 4;
 /* C: gtk/gtkversion.h: `#define GTK_MAJOR_VERSION …` / `GTK_MINOR_VERSION` / `GTK_MICRO_VERSION` -
    the three operands of the `gtk-version-string` DEFVAR below (C 3794).  **No GTK header exists on
@@ -5180,8 +5199,11 @@ const CAIRO_VERSION_MICRO: c_int = 4;
    the reference's own *requirement* rather than a measured build's: `configure.ac` 3745 sets
    `GTK_REQUIRED=3.22.23` for this toolkit (`GTK_MODULES="gtk+-3.0 >= $GTK_REQUIRED …"`, 3747).
    UNVERIFIED against a linked GTK - the ledger's Owed 14 names it.  */
+#[cfg (feature = "have_pgtk")]
 const GTK_MAJOR_VERSION: c_int = 3;
+#[cfg (feature = "have_pgtk")]
 const GTK_MINOR_VERSION: c_int = 22;
+#[cfg (feature = "have_pgtk")]
 const GTK_MICRO_VERSION: c_int = 23;
 
 /// C 3774-3906: `void syms_of_pgtkfns (void)` - the twenty `DEFSYM`s, the six `DEFVAR`s with their
