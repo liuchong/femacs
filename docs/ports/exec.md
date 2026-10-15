@@ -15,12 +15,16 @@
 > `130ff7633c095c3abdb2937b423992fa3808d9052c5811dad8b1389abaa1ab0f`).  The reference
 > `emacs/exec/exec.c` is md5 `f9517c3c32379ecc87b991a243a52c9a` (unchanged; `emacs/` is read-only).
 >
-> **The file has no gate of its own.**  It contains no file-level `#if` - the 22 conditions below all
-> sit *inside* the body - and it is excluded from the frozen build by the build lists, not by a
-> condition.  So the port follows the three sibling units of the same directory (`exec1.rs`,
-> `test.rs`, `mipsfpu.rs`: no whole-item `#[cfg]`) rather than `exec/trace.rs`'s `have_android` gate,
-> and the frozen `build-tu` reading is a real object rather than the 336-byte empty one
-> (Evidence ①).  Every `#if` inside the body carries both its arms, and its gate names the macro the
+> **The file carries `exec/trace.rs`'s `have_android` gate** (corrected 2026-10-15).  It contains no
+> file-level `#if` - the 22 conditions below all sit *inside* the body - and it is excluded from the
+> frozen build by the build lists, not by a condition.  But the *port's* four units of this directory
+> must agree: with only `exec/trace.rs` gated (the unit that **defines** `exec_init`, `after_fork`,
+> `tracing_execve`, `exec_waitpid`, `user_copy`, `user_alloca`, `__errno_location`), the other three
+> built into real objects that referenced those gated-out symbols - `tools/check-undef.py` read
+> **seven** new undefined references (2026-10-15).  All four now carry `#[cfg (feature =
+> "have_android")]` on every item and on the include graph, their frozen objects are the 336-byte
+> empties (`trace.rs`'s shape, P-86 ⑧) and the undef gate reads zero.  Every `#if` inside the body
+> still carries both its arms, and its gate names the macro the
 > C text tests (P-51); the verdicts are the evaluator's own, because `exec/exec.c` is on
 > `docs/baseline/config/cond-eval-verified.txt` (line 6).
 >
@@ -32,7 +36,7 @@
 
 ## Gate mapping
 
-The file gate is its absence from the frozen source list (above); the table is the body's 22
+The file gate is `feature = "have_android"` (above, corrected 2026-10-15); the table is the body's 22
 conditions in C's order, as `python3 tools/check-cond-eval.py exec/exec.c` reads them
 (`22 conditions, 0 unknown, 0 disagreements [VERIFIED]`, Evidence ⑥).  The feature column is the
 name the port writes, "second arm" the one the `#else`/`#elif` carries; a row with no second arm has
@@ -91,11 +95,11 @@ between blocks therefore sit inside a row rather than between two.
 
 ## Evidence
 
-**① The frozen reading.**  `cd femacs && CARGO_TARGET_DIR=/tmp/exec-lane/cargo
-/tmp/exec-lane/cargo/debug/xtask build-tu exec/exec.c` → `built exec/exec.rs ->
-../build/femacs/exec.o`, **exit 0**, object **49,472 bytes**.  That is a real object because this
-unit carries no whole-file gate (the sibling units' shape): the body compiles with every sub-gate
-off, which is exactly the frozen table's own arm for C 44, C 295/305, C 549/1040 and C 1031.
+**① The frozen reading.**  `cd femacs && CARGO_TARGET_DIR=… cargo run -q -p xtask -- build-tu
+exec/exec.c` → `built exec/exec.rs -> ../build/femacs/exec.o`, **exit 0**, object **336 bytes** -
+the empty object, because this unit carries the `have_android` file gate (2026-10-15's correction,
+made after `tools/check-undef.py` read seven new undefined references; the reading used to be a
+49,472-byte real object and this ledger's earlier text said so).
 
 **② The arm readings.**  Two `probe` invocations (the `build-tu` flags plus `--crate-type=lib -C
 panic=abort` and the cfgs below; the named set is the one the arms need, and the two sets together
@@ -182,11 +186,13 @@ budget and prohibited), and every build artifact this lane produced was deleted 
 
 ## Deviations
 
-1. **The file has no gate of its own.**  C's body hangs on no file-level `#if`; it is the *build
-   lists* that exclude `exec/` here.  The port therefore carries no whole-item `#[cfg]` (the
-   `exec1.rs`/`test.rs`/`mipsfpu.rs` shape rather than `exec/trace.rs`'s `have_android`), and the
-   frozen object is a real 49,472-byte one instead of the 336-byte empty one.  Every inner `#if`
-   still carries both arms (P-86 ①).
+1. **The file carries `exec/trace.rs`'s `have_android` gate** (corrected 2026-10-15; this entry used
+   to record the opposite decision, and the `check-undef.py` reading above is what changed it).  C's
+   body hangs on no file-level `#if`; it is the *build lists* that exclude `exec/` here.  The port's
+   four units of this directory must still agree with each other: gating only `trace.rs` left the
+   other three referencing its definitions (seven rows), so all four carry
+   `#[cfg (feature = "have_android")]` and the frozen objects are the 336-byte empties.  Every inner
+   `#if` still carries both arms (P-86 ①).
 2. **The system surface is declared at its own C `#include` line** (P-88 ①) and the landed mirrors
    are deliberately *not* in this unit's graph: four of their readings are the frozen target's, not
    the loader's target's (`lib/include/errno.rs` 12's `errno` is `(*__error ())` and its
