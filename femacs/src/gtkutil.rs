@@ -6384,8 +6384,9 @@ unsafe extern "C" {
 /// `gdouble` parameters, so each of those call sites carries C's implicit integer-to-`double`
 /// conversion as an explicit `as c_double` (the file's `scale as f64` shape).  They stand here
 /// because `include/gtkutil.rs` is a placeholder (Owed 10/Owed 11); the `XG_SB_RANGE` C 40 also
-/// defines is declared with them here (the slice that reads it), and `YG_SB_RANGE` (C 43) is left
-/// for the horizontal thumb setter's slice.
+/// defines is declared with them here (the slice that reads it), while **`YG_SB_RANGE` (C 43) is
+/// carried by nothing**: no C text in the tree reads it (`gtkutil.h` 43 is its only line), so the
+/// port's rule to carry what the reference's text touches leaves it out.
 #[cfg (feature = "use_gtk")]
 const XG_SB_MIN: c_int = 1;              // gtkutil.h 38
 #[cfg (feature = "use_gtk")]
@@ -6681,6 +6682,15 @@ unsafe extern "C" {
   /// C 5065 (under C 5063's `#if ! GTK_CHECK_VERSION (3, 18, 0)`): `gtk_adjustment_changed (adj);`
   /// C: gtk/gtkadjustment.h: `void gtk_adjustment_changed (GtkAdjustment *adjustment);`
   pub fn gtk_adjustment_changed (adjustment: *mut GtkAdjustment);
+  /// C 5102-5104: `gtk_adjustment_configure (adj, (gdouble) value, ...);`
+  /// C: gtk/gtkadjustment.h: `void gtk_adjustment_configure (GtkAdjustment *adjustment, gdouble
+  /// value, gdouble lower, gdouble upper, gdouble step_increment, gdouble page_increment, gdouble
+  /// page_size);` - C 5102-5104's six-argument write, ungated in C (the horizontal setter calls it
+  /// in both GTK faces).  **UNVERIFIED.**
+  pub fn gtk_adjustment_configure (adjustment: *mut GtkAdjustment, value: c_double,
+				   lower: c_double, upper: c_double,
+				   step_increment: c_double, page_increment: c_double,
+				   page_size: c_double);
 }
 /// C: gtk/gtkeventbox.h: `GtkWidget *gtk_event_box_new (void);` - C 4603's call, the event box
 /// every GTK face wraps its scroll bar in.  `src/pgtkterm.rs` 5221 declares the same name for its
@@ -7362,5 +7372,59 @@ pub unsafe extern "C" fn xg_set_toolkit_scroll_bar_thumb (bar: *mut scroll_bar,
 
 	  unblock_input ();                                              // C 5070
 	}
+    }
+}
+
+/* C 5075-5077's comment above the horizontal thumb setter, carried as C's own text, then
+   C 5078-5109.  */
+
+/// C 5078-5109: `void xg_set_toolkit_horizontal_scroll_bar_thumb (struct scroll_bar *bar, int
+/// portion, int position, int whole)` - the horizontal twin, and a much shorter one than C
+/// 4990-5073: C 5091-5094 clamp the four numbers (`lower`, `upper`, `pagesize`, `value`) with
+/// `max`/`min`, C 5097-5098 fix the two increments at 4 and 1, and C 5102-5104 hands all six to
+/// `gtk_adjustment_configure` in one call.  Its three parameters are only read (no `mut`), the
+/// `Window`-to-`ptrdiff_t` conversion of C 5085 is slice 22's explicit cast, and C 5102-5104's six
+/// `(gdouble)` casts are the port's `as c_double`.  C 5105's `#if ! GTK_CHECK_VERSION (3, 18, 0)`
+/// is the `gtk_check_version_ge_3_18` gate slice 22 registered (the same API) - a plain `#[cfg]`
+/// pair here, because C's `gtk_adjustment_changed` is a statement of its own and not an `else`.
+/// Non-`static` (`gtkutil.h` 159 declares it and `xterm.c`'s scroll-bar code calls it), so
+/// `#[unsafe(no_mangle)]` with the C ABI.
+/* C: /* Set the thumb size and position of horizontal scroll bar BAR.  We are
+   C:    currently displaying PORTION out of a whole WHOLE, and our position
+   C:    POSITION.  */  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut scroll_bar,
+								     portion: c_int,
+								     position: c_int,
+								     whole: c_int)   // C 5079-5109
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME (XWINDOW ((*bar).window)));   // C 5084
+  let wscroll: *mut GtkWidget
+    = xg_get_widget_from_map ((*bar).x_window as ptrdiff_t,            // C 5085
+			      FRAME_X_DISPLAY! (f));            // C 5086
+
+  if ! wscroll.is_null () && (*bar).dragging == -1                       // C 5088
+    {
+      let adj: *mut GtkAdjustment;                                       // C 5090
+      let lower: c_int = 0;                                              // C 5091
+      let upper: c_int = max (whole - 1, 0);                             // C 5092
+      let pagesize: c_int = min (upper, max (portion, 0));               // C 5093
+      let value: c_int = max (0, min (position, upper - pagesize));      // C 5094
+      /* C 5095-5096's comment, carried as C's own text.  */
+      /* C: /* These should be set to something more <portion, whole>
+	 C:	 related.  */  */
+      let page_increment: c_int = 4;                                     // C 5097
+      let step_increment: c_int = 1;                                     // C 5098
+
+      block_input ();                                                    // C 5100
+      adj = gtk_range_get_adjustment (GTK_RANGE! (wscroll));             // C 5101
+      gtk_adjustment_configure (adj, value as c_double, lower as c_double,   // C 5102
+				upper as c_double, step_increment as c_double,   // C 5103
+				page_increment as c_double, pagesize as c_double);   // C 5104
+      /* C 5105's `#if ! GTK_CHECK_VERSION (3, 18, 0)`.  */
+      #[cfg (not (feature = "gtk_check_version_ge_3_18"))]
+      { gtk_adjustment_changed (adj); }                                  // C 5106
+      unblock_input ();                                                  // C 5108
     }
 }
