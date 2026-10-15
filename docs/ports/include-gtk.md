@@ -981,3 +981,39 @@ collides with a name any other unit declares.
 documented shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
 recorded for the GtkPrint* surface.  `GtkIconSize`'s enumerators are not carried at all (no C text
 here names one), so the typedef is the whole row.
+
+
+### status 4.363 (the gtkutil thirty-third-slice round this file took part in)
+
+`src/gtkutil.c`'s teardown, re-position and GTK setup (C 6167-6312) are this round's consumer, and
+they ask for **twelve items** - the binding-set surface, the two `G_TYPE_*` pairs the file's first
+`GTK_TYPE_*` uses need, two GDK key constants and the two pre-3.16/Xft rows.
+
+- **`GtkBindingSet`** (an opaque head) with **`gtk_binding_set_by_class`** and
+  **`gtk_binding_entry_add_signal`** - C 6293-6301's two lookups and two installs.  The installer's
+  modifiers parameter is C's `GdkModifierType` spelled as the scalar it is, with C's type named in
+  the comment (that *name* is `src/pgtkterm.rs` 4932's row, the `GtkStockItem.modifier` situation).
+- **`g_type_class_ref`** plus the two `G_TYPE_*` pairs: `gtk_dialog_get_type` with the
+  `GTK_TYPE_DIALOG` macro, and `gtk_menu_shell_get_type` with `GTK_TYPE_MENU_SHELL`.  C writes the
+  header macros *without* parentheses (they are object-like), so the port's macro takes `()` and the
+  call sites spell `GTK_TYPE_DIALOG! ()` - the name stays in the body, which is what the token check
+  reads.
+- **`GDK_CONTROL_MASK`** (`1 << 2`) and **`GDK_KEY_g`** (`0x0067`) - C 6294/6300's two key
+  arguments; both values are GDK's documented ones, not placeholders.
+- **`gtk_settings_set_string_property`** under `not (feature = "gtk_check_version_ge_3_16")` - the
+  pre-3.16 arm of C 6282's fold, which C also uses for the menu-bar accelerator at C 6274 (that one
+  is inside `#ifndef HAVE_GTK3`).
+- **`XftInit`** under `feature = "have_xft"` - C 6255's call, whose argument is the literal `0`;
+  libXft is not on this machine.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)`; the frozen
+`build-tu src/gtkutil.c` stays exit 0 with a 336-byte object; `src/gtkutil.rs`'s arm readings move by
+five instances of the Owed 11 bit class only (A family 33 -> 38, the new `A+gtk_check_version_ge_3_16`
+set 34 -> 39, AN 32 -> 37, C 56 -> 61, pgtk probe 1,467 -> 1,505); and no item of this batch collides
+with a name any other unit declares.
+
+**UNVERIFIED.**  No GTK or libXft tree is on this machine, so all twelve rows are taken from GTK's
+documented shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
+recorded for the GtkPrint* surface.  The round also registers the ninth version feature the unit
+needs (`gtk_check_version_ge_3_16`) in `femacs/xtask/Cargo.toml`.

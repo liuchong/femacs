@@ -3326,3 +3326,72 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn gtk_misc_set_padding (misc: *mut GtkMisc, xpad: gint, ypad: gint);
 }
+
+/// C: gtk/gtkbinding.h: `typedef struct _GtkBindingSet GtkBindingSet;` - the record
+/// `gtk_binding_set_by_class` returns and `gtk_binding_entry_add_signal` takes (C 6293-6301's two
+/// binding sets).  Both faces have it; an opaque head, **UNVERIFIED**.
+#[repr(C)]
+pub struct GtkBindingSet
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkbinding.h: `GtkBindingSet *gtk_binding_set_by_class (gpointer object_class);` / `void
+/// gtk_binding_entry_add_signal (GtkBindingSet *binding_set, guint keyval, GdkModifierType
+/// modifiers, const gchar *signal_name, guint n_args, ...);` - C 6293/6298's two lookups and C
+/// 6294/6300's two installs.  The modifiers parameter is C's `GdkModifierType` spelled as the
+/// scalar it is (`src/pgtkterm.rs` 4932 owns that *name*, the `GtkStockItem` row's situation).
+/// **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_binding_set_by_class (object_class: gpointer) -> *mut GtkBindingSet;
+  pub fn gtk_binding_entry_add_signal (binding_set: *mut GtkBindingSet, keyval: guint,
+				       modifiers: c_uint, signal_name: *const gchar,
+				       n_args: guint, ...);
+}
+/// C: gtype.h (gobject): `GType g_type_class_ref (GType type);` / `gpointer
+/// g_type_class_unref (gpointer g_class);` - the first is C 6293/6299's call, whose argument is
+/// `GTK_TYPE_DIALOG`/`GTK_TYPE_MENU_SHELL` (the two `*_get_type` rows below).  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn g_type_class_ref (r#type: GType) -> gpointer;
+}
+/// C: gtk/gtkdialog.h: `GType gtk_dialog_get_type (void);` and gtk/gtk.h's
+/// `#define GTK_TYPE_DIALOG (gtk_dialog_get_type ())` - C 6293's argument.  The definition is kept
+/// as the macro C writes (the object-like header macro becomes the port's `GTK_TYPE_DIALOG! ()`,
+/// so the name stays in the body).  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_dialog_get_type () -> GType;
+}
+macro_rules! GTK_TYPE_DIALOG {
+  () => { gtk_dialog_get_type () };
+}
+/// C: gtk/gtkmenushell.h: `GType gtk_menu_shell_get_type (void);` and the same header's
+/// `#define GTK_TYPE_MENU_SHELL (gtk_menu_shell_get_type ())` - C 6299's argument.  **UNVERIFIED.**
+unsafe extern "C" {
+  pub fn gtk_menu_shell_get_type () -> GType;
+}
+macro_rules! GTK_TYPE_MENU_SHELL {
+  () => { gtk_menu_shell_get_type () };
+}
+/// C: gdk/gdktypes.h: `GDK_CONTROL_MASK = 1 << 2` - the second key argument C 6294/6300 install on.
+/// The value is GDK's documented one, not a placeholder; the type is the scalar behind
+/// `GdkModifierType`.  **UNVERIFIED.**
+pub const GDK_CONTROL_MASK: c_uint = 1 << 2;
+/// C: gdk/gdkkeysyms.h: `#define GDK_KEY_g 0x0067` - the keysym C 6294/6300 install.  The value is
+/// the header's own (the lowercase `g` keysym), spelled as a constant because the header is not on
+/// this machine.  **UNVERIFIED.**
+pub const GDK_KEY_g: guint = 0x0067;
+/// C: gtk/gtksettings.h (GTK's before 3.16, and GTK2's): `void gtk_settings_set_string_property
+/// (GtkSettings *settings, const gchar *name, const gchar *v_string, const gchar *origin);` - the
+/// two calls C 6274-6277 (the menu-bar accelerator) and C 6285-6288 (the key theme, the `#else` arm
+/// of C 6282's 3.16 fold) make, so the row carries that fold's **negation**.  **UNVERIFIED.**
+#[cfg (not (feature = "gtk_check_version_ge_3_16"))]
+unsafe extern "C" {
+  pub fn gtk_settings_set_string_property (settings: *mut GtkSettings, name: *const gchar,
+					   v_string: *const gchar, origin: *const gchar);
+}
+/// C: X11/Xft/Xft.h: `int XftInit (const char *config);` - C 6255's call, whose argument is the
+/// literal `0` (a null config string), inside C's own `#if HAVE_XFT`.  libXft is not on this
+/// machine, so the row is **UNVERIFIED** and carries `have_xft`.
+#[cfg (feature = "have_xft")]
+unsafe extern "C" {
+  pub fn XftInit (config: *const c_char) -> c_int;
+}

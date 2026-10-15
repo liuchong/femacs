@@ -150,6 +150,7 @@ gtk_check_version_ge_3_12                  = []  # GTK_CHECK_VERSION (3,12,0) (s
 gtk_check_version_ge_3_14                  = []  # GTK_CHECK_VERSION (3,14,0) (src/gtkutil.c 2419, the dialog label alignment)
 gtk_check_version_ge_3_20                  = []  # GTK_CHECK_VERSION (3,20,0) (src/gtkutil.c 4829, the scroll-bar resize)
 gtk_check_version_ge_3_18                  = []  # GTK_CHECK_VERSION (3,18,0) (src/gtkutil.c 5063, gtk_adjustment_changed in the thumb setter)
+gtk_check_version_ge_3_16                  = []  # GTK_CHECK_VERSION (3,16,0) (src/gtkutil.c 6282, xg_initialize's key-theme branch)
 gtk_check_version_ge_3_22                  = []  # GTK_CHECK_VERSION (3,22,0) (src/gtkutil.c 1065, C 6652's twin)
 harfbuzz                                   = []  # HAVE_HARFBUZZ
 have_aclv_h                                = []  # HAVE_ACLV_H

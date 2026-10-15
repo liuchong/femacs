@@ -9057,3 +9057,246 @@ unsafe extern "C" {
   pub fn lookup_image (f: *mut frame, spec: Lisp_Object, face_id: c_int) -> ptrdiff_t;   // dispextern.h 3757
   pub fn prepare_image_for_display (f: *mut frame, img: *mut image);    // dispextern.h 3756
 }
+
+/* C 6163's blank, C 6164-6165's comment above `free_frame_tool_bar`, and the "Initializing"
+   section's opening: `free_frame_tool_bar`, `xg_change_toolbar_position` and `xg_initialize`.  */
+
+/* C: /* Deallocate all resources for the tool bar on frame F.
+   C:    Remove the tool bar.  */  */
+
+/// C 6167-6209: `void free_frame_tool_bar (struct frame *f)` - give the tool bar back: take it out
+/// of its box when it was packed, otherwise destroy the widget, then clear the frame's four toolbar
+/// slots (C 6192-6193's chained assignments, four statements here), free the `xg_frame_tb_info`
+/// record the outer widget holds, drop that data and ask for a frame resize.  Non-`static`
+/// (gtkutil.h 157 declares it, `xterm.c` calls it), so `#[unsafe(no_mangle)]` with the C ABI.  C
+/// 6170's `f->output_data.xp` is the file's `#[cfg]` pair, C 6178/6180/6191's two `bool_bf` members
+/// are the arm pair (Owed 11's bits - the X arm writes C's names, the pgtk arm goes through
+/// `pgtk_output_bits!`), and C 6205's `0` is `adjust_frame_size`'s `bool pretend` (the C 4231
+/// class), written `false`.
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn free_frame_tool_bar (f: *mut frame)   // C 6167-6209
+{
+  /* C 6170's `f->output_data.xp`: the `#[cfg]` pair is C 35/38's `#define xp`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let x: *mut xp_output = (*f).output_data.x as *mut xp_output;         // C 6170
+  #[cfg (feature = "have_pgtk")]
+  let x: *mut xp_output = (*f).output_data.pgtk as *mut xp_output;      // C 6170
+
+  if ! (*x).toolbar_widget.is_null ()                                   // C 6172
+    {
+      let tbinfo: *mut xg_frame_tb_info;                                // C 6174
+      let top_widget: *mut GtkWidget = (*x).toolbar_widget;             // C 6175
+
+      block_input ();                                                   // C 6177
+      /* C 6178's `x->toolbar_is_packed`: the bit's read (Owed 11).  */
+      #[cfg (not (feature = "have_pgtk"))]
+      let packed: bool = (*x).toolbar_is_packed;                        // C 6178
+      #[cfg (feature = "have_pgtk")]
+      let packed: bool = pgtk_output_bits! (toolbar_is_packed, x);      // C 6178
+      if packed
+	{
+	  /* C 6180's `x->toolbar_in_hbox`: the second bit.  */
+	  #[cfg (not (feature = "have_pgtk"))]
+	  let in_hbox: bool = (*x).toolbar_in_hbox;                     // C 6180
+	  #[cfg (feature = "have_pgtk")]
+	  let in_hbox: bool = pgtk_output_bits! (toolbar_in_hbox, x);   // C 6180
+	  if in_hbox
+	    {
+	      gtk_container_remove (GTK_CONTAINER! ((*x).hbox_widget),   // C 6181
+				    top_widget);                        // C 6182
+	    }
+	  else
+	    {
+	      gtk_container_remove (GTK_CONTAINER! ((*x).vbox_widget),   // C 6184
+				    top_widget);                        // C 6185
+	    }
+	}
+      else
+	{ gtk_widget_destroy ((*x).toolbar_widget); }                    // C 6188
+
+      (*x).toolbar_widget = std::ptr::null_mut ();                       // C 6190
+      /* C 6191's `x->toolbar_is_packed = false;`: the bit's write.  */
+      #[cfg (not (feature = "have_pgtk"))]
+      { (*x).toolbar_is_packed = false; }
+      #[cfg (feature = "have_pgtk")]
+      { pgtk_output_bits! (toolbar_is_packed, x, false); }
+      FRAME_TOOLBAR_TOP_HEIGHT! (f) = 0;                                 // C 6192
+      FRAME_TOOLBAR_BOTTOM_HEIGHT! (f) = 0;
+      FRAME_TOOLBAR_LEFT_WIDTH! (f) = 0;                                 // C 6193
+      FRAME_TOOLBAR_RIGHT_WIDTH! (f) = 0;
+
+      tbinfo = g_object_get_data (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)),   // C 6195
+				  TB_INFO_KEY.as_ptr ())                 // C 6196
+	as *mut xg_frame_tb_info;
+      if ! tbinfo.is_null ()                                             // C 6197
+	{
+	  xfree (tbinfo as *mut c_void);                                 // C 6199
+	  g_object_set_data (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)),    // C 6200
+			     TB_INFO_KEY.as_ptr (),                      // C 6201
+			     std::ptr::null_mut ());                     // C 6202
+	}
+
+      adjust_frame_size (f, -1, -1, 2, false, Qtool_bar_lines ());       // C 6205
+
+      unblock_input ();                                                  // C 6207
+    }
+}
+
+/// C 6211-6239: `void xg_change_toolbar_position (struct frame *f, Lisp_Object pos)` - move the bar:
+/// nothing to do when there is none, otherwise hold a reference across the re-pack (the widget must
+/// survive its removal from the box), take it out, `xg_pack_tool_bar` it at `pos`, drop the
+/// reference and resize when the sizes moved.  Non-`static` (gtkutil.h 163 declares it,
+/// `frame.el`-side callers reach it through `x-frame-geometry`), so `#[unsafe(no_mangle)]`.  C
+/// 6217's `! top_widget` duplicates the test beside it and is carried as the same null check; C
+/// 6221/6233 pass a `GtkWidget *` where the prototypes take `gpointer`, written `as gpointer`; and
+/// C 6222/6224's two bits are the arm pair again.
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_change_toolbar_position (f: *mut frame, pos: Lisp_Object)   // C 6211-6239
+{
+  /* C 6214's `f->output_data.xp`: the `#[cfg]` pair is C 35/38's `#define xp`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let x: *mut xp_output = (*f).output_data.x as *mut xp_output;         // C 6214
+  #[cfg (feature = "have_pgtk")]
+  let x: *mut xp_output = (*f).output_data.pgtk as *mut xp_output;      // C 6214
+  let top_widget: *mut GtkWidget = (*x).toolbar_widget;                 // C 6215
+
+  if (*x).toolbar_widget.is_null () || top_widget.is_null ()            // C 6217
+    { return; }                                                         // C 6218
+
+  block_input ();                                                       // C 6220
+  g_object_ref (top_widget as gpointer);                                // C 6221
+  /* C 6222's `x->toolbar_is_packed`: the bit's read (Owed 11).  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let packed: bool = (*x).toolbar_is_packed;                            // C 6222
+  #[cfg (feature = "have_pgtk")]
+  let packed: bool = pgtk_output_bits! (toolbar_is_packed, x);          // C 6222
+  if packed
+    {
+      /* C 6224's `x->toolbar_in_hbox`: the second bit.  */
+      #[cfg (not (feature = "have_pgtk"))]
+      let in_hbox: bool = (*x).toolbar_in_hbox;                         // C 6224
+      #[cfg (feature = "have_pgtk")]
+      let in_hbox: bool = pgtk_output_bits! (toolbar_in_hbox, x);       // C 6224
+      if in_hbox
+	{
+	  gtk_container_remove (GTK_CONTAINER! ((*x).hbox_widget),      // C 6225
+				top_widget);                            // C 6226
+	}
+      else
+	{
+	  gtk_container_remove (GTK_CONTAINER! ((*x).vbox_widget),      // C 6228
+				top_widget);                            // C 6229
+	}
+    }
+
+  xg_pack_tool_bar (f, pos);                                            // C 6232
+  g_object_unref (top_widget as gpointer);                              // C 6233
+
+  if xg_update_tool_bar_sizes (f)                                       // C 6235
+    { adjust_frame_size (f, -1, -1, 2, false, Qtool_bar_lines ()); }    // C 6236
+
+  unblock_input ();                                                     // C 6238
+}
+
+/* C 6241-6245's blanks, form feed and the "Initializing" banner, carried as C's own text.  */
+/* C: /***********************************************************************
+   C:                       Initializing
+   C: ***********************************************************************/  */
+
+/// C 6246-6312: `void xg_initialize (void)` - the GTK side's one-time setup, in C's order: keep
+/// libXft linked (C 6252-6256), clear the three file-scope objects this file keeps (C 6258-6261),
+/// clear the scroll-bar widget map under C 6263's fold, then ask GTK for the default screen's
+/// settings and (before 3.16, or before GTK3 at all) set the menu-bar accelerator and the "Emacs"
+/// key theme by string property, and finally make dialogs and menus close on `C-g` through two
+/// binding sets.  Non-`static` (gtkutil.h 167 declares it, `xterm.c`/`pgtkterm.c` call it), so
+/// `#[unsafe(no_mangle)]` with the C ABI.  **Two folds are new to this unit**: C 6282's
+/// `GTK_CHECK_VERSION (3, 16, 0)` is the `gtk_check_version_ge_3_16` feature (registered by this
+/// slice in `femacs/xtask/Cargo.toml`, whose row cites C 6282) and C 6252's `HAVE_XFT` is
+/// `have_xft`; C 6305-6307's `HAVE_FREETYPE` and C 6309-6311's `HAVE_XWIDGETS` name two file-scope
+/// objects the earlier slices already carry.  C 6259's `xg_ignore_gtk_scrollbar = 0;` is the port's
+/// `false` (C 4351's `bool`), and C 6260-6261's four-object chain is four statements with C's own
+/// line on the group.
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_initialize ()   // C 6246-6312
+{
+  let mut binding_set: *mut GtkBindingSet;                              // C 6249
+  let settings: *mut GtkSettings;                                       // C 6250
+
+  /* C 6252's `#if HAVE_XFT`; its `#endif` is C 6256.  */
+  #[cfg (feature = "have_xft")]
+  {
+    /* Work around a bug with corrupted data if libXft gets unloaded.  This way
+       we keep it permanently linked in.  */
+    XftInit (std::ptr::null ());                                        // C 6255
+  }
+
+  gdpy_def = std::ptr::null_mut ();                                     // C 6258
+  xg_ignore_gtk_scrollbar = false;                                      // C 6259
+  xg_menu_cb_list.prev = std::ptr::null_mut ();                         // C 6260-6261
+  xg_menu_cb_list.next = std::ptr::null_mut ();
+  xg_menu_item_cb_list.prev = std::ptr::null_mut ();
+  xg_menu_item_cb_list.next = std::ptr::null_mut ();
+
+  /* C 6263's `#if defined HAVE_PGTK || !defined HAVE_GTK3`; its `#endif` is C 6266.  */
+  #[cfg (any (feature = "have_pgtk", not (feature = "have_gtk3")))]
+  {
+    id_to_widget.max_size = 0;                                          // C 6264
+    id_to_widget.used = 0;
+    id_to_widget.widgets = std::ptr::null_mut ();                       // C 6265
+  }
+
+  settings = gtk_settings_get_for_screen (gdk_display_get_default_screen   // C 6268
+					  (gdk_display_get_default ()));   // C 6269
+  /* C 6270-6278's `#ifndef HAVE_GTK3`.  */
+  #[cfg (not (feature = "have_gtk3"))]
+  {
+    /* Remove F10 as a menu accelerator, it does not mix well with Emacs key
+       bindings.  It doesn't seem to be any way to remove properties,
+       so we set it to "" which in means "no key".  */
+    gtk_settings_set_string_property (settings,                         // C 6274
+				      c"gtk-menu-bar-accel".as_ptr (),  // C 6275
+				      c"".as_ptr (),                    // C 6276
+				      EMACS_CLASS.as_ptr ());           // C 6277
+  }
+
+  /* Make GTK text input widgets use Emacs style keybindings.  This is
+     Emacs after all.  */
+  /* C 6282's `#if GTK_CHECK_VERSION (3, 16, 0)`; its `#else` is C 6284-6288.  */
+  #[cfg (feature = "gtk_check_version_ge_3_16")]
+  {
+    g_object_set (settings as gpointer, c"gtk-key-theme-name".as_ptr (),   // C 6283
+		  c"Emacs".as_ptr (), std::ptr::null::<c_char> ());
+  }
+  #[cfg (not (feature = "gtk_check_version_ge_3_16"))]
+  {
+    gtk_settings_set_string_property (settings,                         // C 6285
+				      c"gtk-key-theme-name".as_ptr (),  // C 6286
+				      c"Emacs".as_ptr (),               // C 6287
+				      EMACS_CLASS.as_ptr ());           // C 6288
+  }
+
+  /* Make dialogs close on C-g.  Since file dialog inherits from
+     dialog, this works for them also.  */
+  binding_set = gtk_binding_set_by_class (g_type_class_ref (GTK_TYPE_DIALOG! ()));   // C 6293
+  gtk_binding_entry_add_signal (binding_set, GDK_KEY_g, GDK_CONTROL_MASK,   // C 6294
+				c"close".as_ptr (), 0, std::ptr::null::<c_char> ());   // C 6295
+
+  /* Make menus close on C-g.  */
+  binding_set = gtk_binding_set_by_class (g_type_class_ref              // C 6298
+					  (GTK_TYPE_MENU_SHELL! ()));   // C 6299
+  gtk_binding_entry_add_signal (binding_set, GDK_KEY_g, GDK_CONTROL_MASK,   // C 6300
+				c"cancel".as_ptr (), 0, std::ptr::null::<c_char> ());   // C 6301
+  update_theme_scrollbar_width ();                                      // C 6302
+  update_theme_scrollbar_height ();                                     // C 6303
+
+  /* C 6305-6307's `#ifdef HAVE_FREETYPE`.  */
+  #[cfg (feature = "have_freetype")]
+  { x_last_font_name = std::ptr::null_mut (); }                         // C 6306
+
+  /* C 6309-6311's `#ifdef HAVE_XWIDGETS`.  */
+  #[cfg (feature = "have_xwidgets")]
+  { xg_gtk_initialized = true; }                                        // C 6310
+}
