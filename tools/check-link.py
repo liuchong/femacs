@@ -77,7 +77,21 @@ def program_objects() -> tuple[list[Path], list[str]]:
     return objs, missing
 
 
+class SetupError(Exception):
+    """One of the gate's two inputs is missing, so a reading would measure the setup instead."""
+
+
 def lib_objects() -> list[Path]:
+    if not LIBGNU.is_file():
+        raise SetupError(
+            f"{LIBGNU.relative_to(REPO)} is missing: C's own `temacs` rule links it "
+            "(`LIBEGNU_ARCHIVE = $(lib)/libgnu.a`, this file's docstring), so without it every "
+            "name the port's `lib/` units own reads as undefined and the failure list measures "
+            "an unbuilt reference tree rather than the port.  Measured 2026-10-15: with the "
+            "archive, 302 undefined symbols from 76 program + 87 libgnu object(s) and 0 "
+            "failure(s); without it, 378 from 76 + 0 object(s) and 102 failure(s) - all of them "
+            "gnulib entry points.  Build it once: "
+            "`make -C build/emacs-ref/lib libgnu.a`.")
     out = subprocess.run(["ar", "t", str(LIBGNU)], capture_output=True, text=True).stdout.split()
     objs = []
     for member in out:
@@ -434,10 +448,18 @@ def main() -> int:
     args_write_pending, args_report = args.write_pending, args.report
     args_strict = args.strict
     if args.executable:
-        return executable()
+        try:
+            return executable()
+        except SetupError as e:
+            print(f"setup: {e}")
+            return 2
 
     prog, missing = program_objects()
-    libs = lib_objects()
+    try:
+        libs = lib_objects()
+    except SetupError as e:
+        print(f"setup: {e}")
+        return 2
     if missing:
         print(f"{len(missing)} frozen source(s) have no built object, so the link set is incomplete; "
               f"run `cargo run -q -p xtask -- gate-fast` (or build-tu) first:")
