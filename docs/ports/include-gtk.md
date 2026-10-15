@@ -527,3 +527,24 @@ row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 fail
 336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the eleventh slice's text**
 under arm A (with or without `gtk_check_version_ge_3_14`), arm C or arm C plus `have_freetype`, and
 the pgtk arm's out-of-tree probe reads 10 `^error` matches with none of them this slice's.
+
+### status 4.343 (the gtkutil thirteenth-slice round this file took part in)
+
+`src/gtkutil.c`'s `xg_update_frame_menubar` (C 4193-4234) is the round's consumer: this mirror
+gains **`gtk_box_reorder_child`** (gtk/gtkbox.h, C 4210 - the reorder that puts the menubar first
+in the frame's vbox) and **`gdk_screen_get_system_visual`** (gdk/gdkscreen.h, C 4221 - the visual
+of the `HAVE_GTK3` 32-bit fix-up).  Both read zero tree-wide before this round and both are
+`UNVERIFIED` (no GTK or GDK tree on this machine).
+
+**One name the round could not take.**  `gtk_widget_get_mapped` (C 4200's first test, and C 4333's
+per-child test in the next slice) is already copied by `src/xmenu.rs` 794, `src/pgtkmenu.rs` 243
+and `src/xterm.rs` 31215 - all three `include!` this mirror - so a mirror item would be an `E0428`
+in each of them; it stands in the consumer, and the same class is already Owed 10 (the menu-item
+names) and Owed 12 (`GTK_IS_RADIO_MENU_ITEM`) in `docs/ports/gtkutil.md`.
+
+**Checks.**  `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the frozen `build-tu src/gtkutil.c` stays exit 0 with a
+336-byte object; `src/gtkutil.rs`'s arm readings carry **no anchor in the thirteenth slice's text**
+under arm A (with or without `gtk_check_version_ge_3_14`), arm C, arm C plus `have_freetype` or the
+pgtk probe.

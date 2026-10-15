@@ -199,7 +199,8 @@
 | 3832-3962 | C 3832-3835's comment and **`xg_update_menu_item`** (C 3837-3945), C 3947's comment and `xg_update_toggle_item` (C 3949-3953), C 3955's comment and `xg_update_radio_item` (C 3957-3961), plus C 3962's blank | file gate (`use_gtk`); the mirror gains `GTK_IS_BOX` and `gtk_widget_get_sensitive` (C 3859/3915); slice 10 below |
 | 3963-4095 | C 3963-3973's comment above `xg_update_submenu` and **`xg_update_submenu`** (C 3975-4094 - the recursive submenu reconciler, C 4050 calling itself), plus C 4095's blank | file gate (`use_gtk`); the mirror gains `GTK_IS_SEPARATOR_MENU_ITEM`, `GTK_IS_CHECK_MENU_ITEM`, `GTK_IS_MENU_ITEM` and `gtk_menu_item_get_submenu`, and the unit carries `GTK_IS_RADIO_MENU_ITEM` (Owed 12); slice 11 below |
 | 4096-4189 | C 4096-4104's comment and **`xg_modify_menubar_widgets`** (C 4105-4170, the menubar updater that calls `xg_update_menubar` first and then walks the sub menus when `deep_p`), C 4172-4174's comment and `menubar_map_cb` (C 4176-4188), plus C 4189's blank | file gate (`use_gtk`); `include/xterm.rs`'s `FRAME_MENUBAR_HEIGHT` gains its live arm and loses its uncompilable `void` body (this slice; see the round section); slice 12 below |
-| 4190-6753 | **the remainder** — from C 4190-4192's comment above `xg_update_frame_menubar` through C 6753: `xg_update_frame_menubar`, `free_frame_menubar`, the scroll bars, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 4190-4257 | C 4190-4191's comment and **`xg_update_frame_menubar`** (C 4193-4234, the pack/reorder/show/measure/`adjust_frame_size` body with C 4217-4226's `HAVE_GTK3` arm), C 4236-4237's comment and **`free_frame_menubar`** (C 4239-4256), plus C 4257's blank | file gate (`use_gtk`); the mirror gains `gtk_box_reorder_child` and `gdk_screen_get_system_visual`, and the unit carries `gtk_widget_get_mapped` (Owed 10/12's class); slice 13 below |
+| 4258-6753 | **the remainder** — from C 4258's `#ifndef HAVE_PGTK` and `xg_event_is_for_menubar` (C 4260-4338) through C 6753: `xg_event_is_for_menubar`, the two scroll-bar flags and the `xg_frame_tb_info` record (C 4351-4374), `xg_store_widget_in_map` and the scroll-bar machinery, printing (`draw_page`, `print_settings`), the tool bar (`xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1585,3 +1586,51 @@ the closure line.
 
 **Not claimed.**  No arm was compiled against a real GTK tree, so this slice's mirror change is
 evidenced by rustc's name resolution alone; the pgtk arm's reading is the probe's (Owed 17).
+
+## Slice 13 (2026-10-15, status 4.343): C 4190-4257 — the menubar's frame hooks
+
+**What this slice is.**  C 4190-4191's comment and **`xg_update_frame_menubar`** (C 4193-4234 -
+the `xdisp.c`-called hook that packs the menubar into the frame's vbox, reorders it to the front,
+connects `menubar_map_cb`, shows and measures it, fixes up the visual for a 32-bit display under
+GTK3, and resizes the frame when the height changed), plus C 4236-4237's comment and
+**`free_frame_menubar`** (C 4239-4256 - the removal hook `frame.c` calls).  Port: 5,658 ->
+**5,780 lines**; the table's last row splits at C 4257 - the next text is C 4258's
+`#ifndef HAVE_PGTK` and `xg_event_is_for_menubar`.
+
+**The mirror this slice needed.**  `include/gtk.rs` gains **`gtk_box_reorder_child`**
+(gtk/gtkbox.h, C 4210) and **`gdk_screen_get_system_visual`** (gdk/gdkscreen.h, C 4221), both fresh
+names and both `UNVERIFIED`.  **`gtk_widget_get_mapped`** (C 4200) could not join them: three units
+that `include!` the mirror already carry their own copy (`src/xmenu.rs` 794, `src/pgtkmenu.rs` 243,
+`src/xterm.rs` 31215), so it stands in the unit - the class Owed 10 and Owed 12 record.  Everything
+else was in place, including slice 12's `FRAME_MENUBAR_HEIGHT` fix, which is what makes C 4228/4230
+one spelling each here.
+
+**Deviations this slice adds.**
+
+- **C 4196/4242's `f->output_data.xp`** is C 35/38's `#define xp` (a *token* macro Rust cannot spell
+  inside an expression), so the port writes the member C's own `#define` selects as a `#[cfg]` pair
+  (`output_data.x` / `output_data.pgtk`) - the shape the file's header note at 108-112 records.
+  These two functions differ from the slice-1/2 bodies that do it: they stand in **both** arms.
+- **C 4212's `G_CALLBACK (menubar_map_cb)`** is spelled by the mirror's `g_signal_connect!` macro,
+  so the function carries a `does not mention g_callback` row in `macro-body-notes.tsv`.
+- C 4197's uninitialised `GtkRequisition req` is the port's zeroed value (PORTING.md 1.5),
+  C 4231/4253's `0` is `adjust_frame_size`'s `bool pretend` parameter (the slice-12 class), and
+  C 4251's `= 0` is the null pointer.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings.**  Arm A: **27 `^error` matches (26 errors), none anchored in this slice**;
+   arm A plus `gtk_check_version_ge_3_14`: the same 27.  Arm C (GTK2): **61, none here**; arm C
+   plus `have_freetype`: the same 61.  Arm B and the pgtk set: the dedupe artifact.  The
+   out-of-tree probe reads **10 `^error` matches, none in this slice** - which matters here,
+   because this is the first slice whose text stands in both the `have_pgtk` and the non-pgtk arm
+   (the `#[cfg]` pair above).
+3. **`extract-abi.py --check`** -> 73 -> **71 `- ` rows** (two retired: `xg_update_frame_menubar`
+   and `free_frame_menubar`; one new `does not mention g_callback` row recorded in
+   `macro-body-notes.tsv`); the line-count row reads **14.4%** (C 6,753 vs 5,780).
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK tree, so the two prototypes this slice
+added are `UNVERIFIED`; the pgtk arm's reading is the probe's (Owed 17).

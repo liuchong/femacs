@@ -5656,3 +5656,125 @@ unsafe extern "C" fn menubar_map_cb (w: *mut GtkWidget, user_data: gpointer)
       adjust_frame_size (f, -1, -1, 2, false, Qmenu_bar_lines ());       // C 4186
     }
 }
+
+/* ----------------------------------------------------------------------------------------------
+   `gtk_widget_get_mapped` cannot go into `include/gtk.rs`: three units that `include!` that mirror
+   already carry their own copy (`src/xmenu.rs` 794, `src/pgtkmenu.rs` 243, `src/xterm.rs` 31215),
+   so a mirror item would read `E0428` in each of them.  It stands in this unit, the shape Owed 10
+   and Owed 12 record for the same class.
+   ---------------------------------------------------------------------------------------------- */
+/// C: gtk/gtkwidget.h: `gboolean gtk_widget_get_mapped (GtkWidget *widget);` - C 4200's first
+/// test and C 4333's per-child test in `xg_event_is_for_menubar`.  **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  pub fn gtk_widget_get_mapped (widget: *mut GtkWidget) -> gboolean;
+}
+
+/* C 4190-4191's comment above `xg_update_frame_menubar`, carried as C's own text.  */
+/* C: /* Recompute all the widgets of frame F, when the menu bar has been
+   C:    changed.  */  */
+
+/// C 4193-4234: `void xg_update_frame_menubar (struct frame *f)` - non-`static` (gtkutil.h 112
+/// declares it and `xdisp.c` calls it), so `#[unsafe(no_mangle)]` with the C ABI.  C 4196's
+/// `f->output_data.xp` is C 35/38's `#define xp`, which Rust cannot spell inside an expression,
+/// so the port writes the member C's own `#define` selects as a `#[cfg]` pair (the file's header
+/// note at 108-112) - this function stands in **both** arms, unlike the slice-1/2 bodies that are
+/// arm-gated already.  C 4197's uninitialised `GtkRequisition req` is the port's zeroed value
+/// (PORTING.md 1.5), C 4200/4203/4204's pointer tests are the port's null checks with
+/// C 4201/4204's two `return`s, C 4208-4210's pack and reorder are the mirror's entries,
+/// C 4212's `g_signal_connect` takes `menubar_map_cb`'s address through the mirror's macro,
+/// C 4217's `#if !defined HAVE_PGTK && defined HAVE_GTK3` is that gate pair, and C 4231's `0` is
+/// the `bool pretend` parameter of `adjust_frame_size` (the C 4186 class), written `false`.
+/// C: void
+/// C: xg_update_frame_menubar (struct frame *f)
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_update_frame_menubar (f: *mut frame)
+{
+  /* C 4196's `f->output_data.xp`: the `#[cfg]` pair is C 35/38's `#define xp`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let x: *mut xp_output = (*f).output_data.x as *mut xp_output;         // C 4196 (`xp` = `x`)
+  #[cfg (feature = "have_pgtk")]
+  let x: *mut xp_output = (*f).output_data.pgtk as *mut xp_output;      // C 4196 (`xp` = `pgtk`)
+  let mut req: GtkRequisition = GtkRequisition { width: 0, height: 0 };   // C 4197
+  let scale: c_int = xg_get_scale (f);                                  // C 4198
+
+  if (*x).menubar_widget.is_null ()                                     // C 4200
+      || gtk_widget_get_mapped ((*x).menubar_widget) != 0
+    { return; }                                                         // C 4201
+
+  if ! (*x).menubar_widget.is_null ()                                   // C 4203
+      && ! gtk_widget_get_parent ((*x).menubar_widget).is_null ()
+    { return; } /* Already done this, happens for frames created invisible.  */   // C 4204
+
+  block_input ();                                                       // C 4206
+
+  gtk_box_pack_start (GTK_BOX! ((*x).vbox_widget), (*x).menubar_widget,   // C 4208
+		     FALSE, FALSE, 0);                                  // C 4209
+  gtk_box_reorder_child (GTK_BOX! ((*x).vbox_widget),
+			 (*x).menubar_widget, 0);                       // C 4210
+
+  g_signal_connect! ((*x).menubar_widget, c"map".as_ptr (),             // C 4212
+		     menubar_map_cb, f as gpointer);
+  gtk_widget_show_all ((*x).menubar_widget);                            // C 4213
+  gtk_widget_get_preferred_size ((*x).menubar_widget,
+				 std::ptr::null_mut (), (&raw mut req));   // C 4214
+  req.height *= scale;                                                  // C 4215
+
+  /* C 4217's `#if !defined HAVE_PGTK && defined HAVE_GTK3`.  */
+  #[cfg (all (not (feature = "have_pgtk"), feature = "have_gtk3"))]
+  {
+    if (*FRAME_DISPLAY_INFO! (f)).n_planes == 32                        // C 4218
+      {
+	let screen: *mut GdkScreen
+	  = gtk_widget_get_screen ((*x).menubar_widget);                // C 4220
+	let visual: *mut GdkVisual = gdk_screen_get_system_visual (screen);   // C 4221
+
+	gtk_widget_realize ((*x).menubar_widget);                       // C 4223
+	gtk_widget_set_visual ((*x).menubar_widget, visual);            // C 4224
+      }
+  }
+
+  if FRAME_MENUBAR_HEIGHT! (f) != req.height                            // C 4228
+    {
+      FRAME_MENUBAR_HEIGHT! (f) = req.height;                           // C 4230
+      adjust_frame_size (f, -1, -1, 2, false, Qmenu_bar_lines ());      // C 4231
+    }
+  unblock_input ();                                                     // C 4233
+}
+
+/* C 4236-4237's comment above `free_frame_menubar`, carried as C's own text.  */
+/* C: /* Get rid of the menu bar of frame F, and free its storage.
+   C:    This is used when deleting a frame, and when turning off the menu bar.  */  */
+
+/// C 4239-4256: `void free_frame_menubar (struct frame *f)` - non-`static` (gtkutil.h 110
+/// declares it and `frame.c` calls it), so `#[unsafe(no_mangle)]` with the C ABI.  Its own
+/// `f->output_data.xp` is the same `#[cfg]` pair as above, C 4244's test is the port's null
+/// check, C 4248's `gtk_container_remove` and C 4251's `= 0` are the mirror entry point and the
+/// null pointer, and C 4253's `0` is again `adjust_frame_size`'s `bool pretend` parameter.
+/// C: void
+/// C: free_frame_menubar (struct frame *f)
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn free_frame_menubar (f: *mut frame)
+{
+  /* C 4242's `f->output_data.xp`: the `#[cfg]` pair is C 35/38's `#define xp`.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let x: *mut xp_output = (*f).output_data.x as *mut xp_output;         // C 4242 (`xp` = `x`)
+  #[cfg (feature = "have_pgtk")]
+  let x: *mut xp_output = (*f).output_data.pgtk as *mut xp_output;      // C 4242 (`xp` = `pgtk`)
+
+  if ! (*x).menubar_widget.is_null ()                                   // C 4244
+    {
+      block_input ();                                                   // C 4246
+
+      gtk_container_remove (GTK_CONTAINER! ((*x).vbox_widget),
+			    (*x).menubar_widget);                       // C 4248
+      /* The menubar and its children shall be deleted when removed from
+	 the container.  */                                            // C 4249-4250
+      (*x).menubar_widget = std::ptr::null_mut ();                      // C 4251
+      FRAME_MENUBAR_HEIGHT! (f) = 0;                                    // C 4252
+      adjust_frame_size (f, -1, -1, 2, false, Qmenu_bar_lines ());      // C 4253
+      unblock_input ();                                                 // C 4254
+    }
+}

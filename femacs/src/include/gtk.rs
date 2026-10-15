@@ -2757,3 +2757,13 @@ macro_rules! GTK_IS_MENU_ITEM {
 unsafe extern "C" {
   pub fn gtk_menu_item_get_submenu (menu_item: *mut GtkMenuItem) -> *mut GtkWidget;
 }
+
+/// C: gtk/gtkbox.h: `void gtk_box_reorder_child (GtkBox *box, GtkWidget *child, gint position);`
+/// - C 4210's reorder - and gdk/gdkscreen.h: `GdkVisual *gdk_screen_get_system_visual (GdkScreen
+/// *screen);` - C 4221's visual read in `xg_update_frame_menubar`'s `HAVE_GTK3` arm.  Both are
+/// fresh names (no other unit declares either), so the mirror takes them; both are
+/// **UNVERIFIED** (no GTK or GDK tree on this machine).
+unsafe extern "C" {
+  pub fn gtk_box_reorder_child (box_: *mut GtkBox, child: *mut GtkWidget, position: gint);
+  pub fn gdk_screen_get_system_visual (screen: *mut GdkScreen) -> *mut GdkVisual;
+}
