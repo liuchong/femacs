@@ -214,7 +214,8 @@
 | 5075-5111 | C 5075-5077's comment and **`xg_set_toolkit_horizontal_scroll_bar_thumb`** (C 5079-5109 - the horizontal twin and a much shorter one: C 5091-5094's `max`/`min` clamps, the two fixed increments, and C 5102-5104's single `gtk_adjustment_configure` write, with C 5105's `gtk_check_version_ge_3_18` fold), plus C 5110-5111's blanks | file gate (`use_gtk`) plus C's version fold; **no mirror change and one new in-unit prototype** (`gtk_adjustment_configure`, Owed 18); slice 23 below |
 | 5112-5195 | C 5112-5115's comment and **`xg_event_is_for_scrollbar`** (C 5117-5193 - the predicate `xterm.c` asks when a button event might belong to a scroll bar: C 5123-5142's press test in three faces, C 5143-5164's "did it happen outside the frame's edit widget?" through the pointer's current window, and C 5165-5191's release/motion arm answering with the widget that holds the grab), plus C 5195's blank | file gate (`use_gtk`) plus C's own eight folds; the mirror gains five GDK/GTK names and the unit carries the `EVENT` alias, the `XGenericEvent` record and the three `XI_*` enumerators (Owed 18); slice 24 below |
 | 5196-5298 | C 5196's form feed, C 5197-5199's “Printing” banner and C 5200's `#ifdef USE_CAIRO` (its `#endif` is C 5296): the two file-scope objects `print_settings`/`page_setup` (C 5201-5202 - **two `missing file-scope object` rows retire here**), **`xg_page_setup_dialog`** (C 5205-5216), **`xg_get_page_setup`** (C 5219-5254, C 5226-5242's `switch` as the port's `match` and C 5245-5252's seven-element alist through the `GETSETUP` macro), **`draw_page`** (C 5257-5269) and **`xg_print_frames_dialog`** (C 5272-5294), plus C 5297-5298's blanks | file gate (`use_gtk`) plus `use_cairo` for the whole section; the mirror gains the GtkPrint* surface (four records, three enumerations and eleven entry points), the unit carries `GETSETUP!` and `x_cr_draw_frame` (Owed 18); slice 25 below |
-| 5299-6753 | **the remainder** — from C 5299's form feed and C 5300-5302's “Tool bar functions” banner through C 6753: the tool bar (`XG_TOOL_BAR_*` keys, the callbacks, `xg_create_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
+| 5299-5380 | C 5299's form feed, C 5300-5302's “Tool bar functions” banner and the four `XG_TOOL_BAR_*` data keys (C 5303-5320 - **the four `missing macro`+`missing constant` rows the tool has carried since the first slice retire here**), then **`xg_tool_bar_button_cb`** (C 5326-5336) and **`xg_tool_bar_callback`** (C 5343-5380 - the click handler that turns a tool-bar press into a `TOOL_BAR_EVENT` with GDK's modifier bits converted, with C 5369-5373's `HAVE_PGTK` pair), plus C 5380's blank | file gate (`use_gtk`) plus C's own fold; **no mirror change** - the four keys are `&CStr` constants, `TOOL_BAR_ITEM_*` come in by name from a mirror module, and the unit carries `x_x_to_emacs_modifiers` (Owed 18); slice 26 below |
+| 5381-6753 | **the remainder** — from C 5381-5382's `xg_get_tool_bar_widgets` through C 6753: the rest of the tool bar (`xg_tool_bar_help_callback`, `xg_tool_bar_item_expose_callback`, `xg_pack_tool_bar`, `tb_size_cb`, `xg_create_tool_bar`, `xg_make_tool_item`, `xg_tool_item_stale_p`, `xg_update_tool_bar_sizes`, `update_frame_tool_bar`, …) and `xg_initialize`/`xg_filter_key`/`xg_widget_style_updated`/`xg_im_context_*` at the end | not this slice |
 
 The rows tile C 1-6753 **contiguously** (blank and form-feed lines included) rather than skipping the
 blanks between blocks, and the last row runs on to C 6753, the reference's last line, so
@@ -1137,6 +1138,10 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     6950) is a same-program declaration `include/xterm.rs` has no row for, so `draw_page` reaches it
     through a use-site copy under its definition's gate.  The round's twenty-two *mirror* additions
     (the whole GtkPrint* surface) are not owed to anything - they landed.
+    **Slice 26 adds one more**: `x_x_to_emacs_modifiers` (xterm.h 1826, defined by `xterm.c` /
+    `src/xterm.rs` 24827) is a same-program declaration `include/xterm.rs` has no row for, so
+    `xg_tool_bar_callback`'s C 5370 site reaches it through a use-site copy under its definition's
+    gate.  The round's four `XG_TOOL_BAR_*` keys are the file's own constants and owe nothing.
 
 ## Slice 4 (2026-10-15, status 4.334): C 2562-2843 — the File dialog functions
 
@@ -2626,3 +2631,78 @@ definition's gate - Owed 18's class; the pgtk arm's `pgtk_cr_draw_frame` comes f
 **Not claimed.**  No arm was compiled against a real GTK or cairo tree - cairo *is* on this machine
 but the GTK print records are not - so the whole print surface is UNVERIFIED, the `GDK_WINDOW_*`
 macro gap remains the mirror's, and the pgtk reading is the probe's (Owed 17).
+
+## Slice 26 (2026-10-15, status 4.356): C 5299-5380 — the tool bar's keys and its two entry callbacks
+
+**What this slice is.**  The opening of the "Tool bar functions" section: C 5300-5302's banner and the
+four `GObject` data keys C 5303-5320 defines (`XG_TOOL_BAR_IMAGE_DATA`, `_LAST_MODIFIER`,
+`_STOCK_NAME`, `_ICON_NAME` - **the four `missing macro` and four `missing constant` rows the tool has
+carried since the first slice retire here**), **`xg_tool_bar_button_cb`** (C 5326-5336 - the
+`button-press-event` handler that remembers GDK's modifier state under `XG_TOOL_BAR_LAST_MODIFIER`)
+and **`xg_tool_bar_callback`** (C 5343-5380 - the click handler: recover the item's index from
+`client_data`, the frame from `XG_FRAME_DATA`, build a `TOOL_BAR_EVENT` for the item's key, convert
+GDK's modifier bits through the face's own converter in C 5369-5373's `HAVE_PGTK` pair, store it in
+the keyboard buffer and hand the frame its focus back).  Port: 7,783 -> **7,934 lines**; the table's
+last row splits at C 5380 - the next text is C 5381-5382's `xg_get_tool_bar_widgets`.
+
+**The four string keys needed a spelling the byte check reads.**  The first draft wrote them as
+`*const c_char` constants with `.as_ptr ()` inside - `XG_FRAME_DATA`'s shape - and `extract-abi.py`
+reported four **new** rows: `constant XG_TOOL_BAR_*: C "…" vs Rust c"…".as_ptr () (different bytes)`.
+The difference between the two constants is where C defines them: `XG_FRAME_DATA` lives in
+`gtkutil.h`, which the tool never compares, while these four are this file's own `#define`s and it
+compares their *bytes*; its reader takes a bare string literal (`"…"`, `b"…"` or `c"…"`).  The round
+therefore spells them as **`&core::ffi::CStr` constants** (the `src/widget.rs` 120-135 `XtN*` shape)
+and takes `.as_ptr ()` at each call site - after which the same check reads `37 -> 27` rows with
+**no** addition on this side.  That is the round's one tool-caught spelling decision, and it is
+recorded because the next `#define` of a string in this file must follow it.
+
+**The three names this slice needed, and where they could stand.**
+
+- `TOOL_BAR_ITEM_KEY`/`TOOL_BAR_ITEM_NSLOTS` (dispextern.h 3440-3495's `enum tool_bar_item_idx`) live
+  in `include/dispextern.rs` 2800's `dispextern_unit_names` **module**, so the function imports them
+  by name (`use dispextern_unit_names::{…};`) - the `x11_constants` shape slice 24 used.  They are
+  `c_int` where C's `idx` is an `intptr_t`, so C 5358/5360's implicit widening is `as intptr_t` at
+  the two use sites (measured: two `E0277`s without it).
+- `x_x_to_emacs_modifiers` (xterm.h 1826, defined by `xterm.c` / `src/xterm.rs` 24827) is a
+  same-program declaration no mirror in this unit's graph carries, so it stands at the use site under
+  its definition's gate - Owed 18's class, the `x_scroll_bar_configure` shape.  The pgtk arm's
+  converter arrives from `include/pgtkterm.rs` 689 as it should.
+- **No mirror change this round**: the four keys are the unit's own constants and everything else
+  (`TOOL_BAR_EVENT`, `AREF`, `XSETFRAME!`, `GdkEventButton`, `focus_frame_hook`) was in place.
+
+**Deviations this slice adds.**
+
+- C 5363's `event.kind = TOOL_BAR_EVENT;` is the port's **kind accessor**: `struct input_event` keeps
+  `kind` as the low half of its `bits` word (`include/termhooks.rs` 114-129), which every unit reaches
+  through its own `input_event_bits!` copy (PORTING.md P-80) - the spelling this file's C 3134/2052
+  sites already use.
+- C 5352's uninitialised `struct input_event event` starts **zeroed** in the port (PORTING.md 1.5):
+  the port's `EVENT_INIT` takes the record's address and `&raw mut` on an uninitialised local is an
+  `E0381` (measured here, the same finding slice 16 made for `style_changed_cb`).
+- C 5351's `struct frame *f` is assigned from `g_object_get_data`'s `gpointer` (`as *mut frame`),
+  C 5346/5348's two `(intptr_t)` casts are `as intptr_t`, C 5348's `mod` is the local `mod_` (a Rust
+  keyword; the `src/pgtkterm.rs` 7589 reading of the same name), and C 5370/5372's `int`-to-`c_uint`
+  store into `event.modifiers` is `as c_uint`.
+- C 5321-5325's and C 5338-5342's comments, C 5303-5305's, C 5308-5309's, C 5312-5314's and
+  C 5317-5318's key comments, C 5366-5368's modifier comment and C 5376-5377's focus comment are
+  carried as C's own text at their positions; C 5378's hook call is the
+  `(*FRAME_TERMINAL! (f)).focus_frame_hook.unwrap () (…)` shape the tree uses for terminal hooks.
+
+**Readings.**
+
+1. **The frozen reading - `build-tu`.**  exit 0, `build/femacs/gtkutil.o` is **336 bytes**.
+2. **The arm readings, against a materialised baseline** (a temporary `git worktree` at `aa555274`),
+   the same eight sets: **all eight are identical multisets before and after** (29, 29, 29, 29, 28 for
+   the A faces; 72, 72 for the C faces; 23 for the pgtk probe).  The slice's two callbacks have no
+   caller inside the unit (the tool bar code connects them), so the reading says what it should - and
+   the four arm readings that were *not* clean during the round (`E0425` for the two enum names,
+   `E0609` for `event.kind`, two `E0277`s, one `E0308`, one `E0381`) are all fixed above.
+3. **`extract-abi.py --check`** -> 37 -> **27 `- ` rows**: **ten retirements** (the four constants,
+   their four macro rows and the two functions) and **no addition**; the `line count drifted` row
+   moves from 15.3% to **17.5%** (C 6,753 vs 7,934), still the closing round's.
+4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
+   0 failure(s)`).
+
+**Not claimed.**  No arm was compiled against a real GTK tree - there is none on this machine - so
+the two callbacks' widget path is evidenced by rustc's name resolution and typing alone, the
+`GDK_WINDOW_*` macro gap remains the mirror's, and the pgtk reading is the probe's (Owed 17).

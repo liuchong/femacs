@@ -7781,3 +7781,154 @@ pub unsafe extern "C" fn xg_print_frames_dialog (mut frames: Lisp_Object)   // C
 unsafe extern "C" {
   pub fn x_cr_draw_frame (cr: *mut cairo_t, f: *mut frame);             // xterm.h 1817
 }
+
+/* C 5299's form feed and C 5300-5302's "Tool bar functions" banner, carried as C's own text.  */
+/* C: /***********************************************************************
+   C:                       Tool bar functions
+   C:  ***********************************************************************/  */
+
+/* C 5303-5320: the four `GObject` data keys the tool bar code stores and reads - each a string
+   macro of *this file* in C, so PORTING.md 2.1's string-macro rule applies and the port writes it
+   as a `&CStr` constant (the `src/widget.rs` 120-135 `XtN*` shape), taking `.as_ptr ()` at each
+   call site: the difference from `XG_FRAME_DATA` above is that this one is defined in `gtkutil.h`
+   and never compared, while these four are C's own `#define`s that `extract-abi.py` compares as
+   *bytes*, and a `&CStr` constant is the spelling that check reads.  These are also the four
+   `XG_TOOL_BAR_*` rows the tool has carried since the first slice.  */
+
+/// C 5303-5305's comment, C's own text.
+/* C: /* The key for the data we put in the GtkImage widgets.  The data is
+   C:    the image used by Emacs.  We use this to see if we need to update
+   C:    the GtkImage with a new image.  */  */
+#[cfg (feature = "use_gtk")]
+pub const XG_TOOL_BAR_IMAGE_DATA: &core::ffi::CStr = c"emacs-tool-bar-image";   // C 5306
+
+/* C 5308-5309's comment, C's own text.  */
+/* C: /* The key for storing the latest modifiers so the activate callback can
+   C:    get them.  */  */
+#[cfg (feature = "use_gtk")]
+pub const XG_TOOL_BAR_LAST_MODIFIER: &core::ffi::CStr = c"emacs-tool-bar-modifier";   // C 5310
+
+/// C 5312-5314's comment, C's own text.
+/* C: /* The key for the data we put in the GtkImage widgets.  The data is
+   C:    the stock name used by Emacs.  We use this to see if we need to update
+   C:    the GtkImage with a new image.  */  */
+#[cfg (feature = "use_gtk")]
+pub const XG_TOOL_BAR_STOCK_NAME: &core::ffi::CStr = c"emacs-tool-bar-stock-name";   // C 5315
+
+/// C 5317-5318's comment, C's own text (`As above, but this is used for named theme widgets, as
+/// opposed to stock items.`).
+/* C: /* As above, but this is used for named theme widgets, as opposed to
+   C:    stock items.  */  */
+#[cfg (feature = "use_gtk")]
+pub const XG_TOOL_BAR_ICON_NAME: &core::ffi::CStr = c"emacs-tool-bar-icon-name";   // C 5319
+
+/* C 5321-5325's comment above the button callback, carried as C's own text, then C 5326-5336.  */
+
+/// C 5326-5336: `static gboolean xg_tool_bar_button_cb (GtkWidget *widget, GdkEventButton *event,
+/// gpointer user_data)` - the `button-press-event` handler that remembers the modifying state GDK
+/// reports (C 5333 stores it under `XG_TOOL_BAR_LAST_MODIFIER` for the activate callback below).
+/// C `static`, but a GObject signal handler needs the C ABI, so `unsafe extern "C" fn` (the
+/// `find_scrollbar_cb` shape); C 5335's `FALSE` is the mirror's `gboolean` constant, and its
+/// `(gpointer) state` is the port's `as gpointer` (`intptr_t` is pointer-sized, so C's conversion
+/// is exact).
+/* C: /* Callback function invoked when a tool bar item is pressed.
+   C:    W is the button widget in the tool bar that got pressed,
+   C:    CLIENT_DATA is an integer that is the index of the button in the
+   C:    tool bar.  0 is the first button.  */  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn xg_tool_bar_button_cb (widget: *mut GtkWidget,
+					    event: *mut GdkEventButton,
+					    user_data: gpointer) -> gboolean   // C 5327-5336
+{
+  let state: intptr_t = (*event).state as intptr_t;                     // C 5331
+  let ptr: gpointer = state as gpointer;                                // C 5332
+  g_object_set_data (G_OBJECT! (widget), XG_TOOL_BAR_LAST_MODIFIER.as_ptr (), ptr);   // C 5333
+  return FALSE;                                                         // C 5335
+}
+
+/* C 5338-5342's comment above the activate callback, carried as C's own text, then C 5343-5380.  */
+
+/// C 5343-5380: `static void xg_tool_bar_callback (GtkWidget *w, gpointer client_data)` - the
+/// `clicked`/`activate` handler: recover the button's index from `client_data` (C 5346) and the
+/// modifiers C 5333 stored (C 5347-5348), find the frame the tool bar belongs to (C 5350), and turn
+/// the click into a `TOOL_BAR_EVENT` for that item's key (C 5355-5374), converting GDK's modifier
+/// bits to the reference's through the face's own converter (C 5369-5373) and giving the frame back its
+/// focus (C 5378).  C `static`, C ABI as above.
+///
+/// C 5351's `struct frame *f` is assigned from `g_object_get_data`'s `gpointer`, so the port
+/// spells C's conversion (`as *mut frame`); C 5353's `EVENT_INIT (event)` takes the *struct* in
+/// C's macro and the mirror's function takes its address (`include/termhooks.rs` 131-135), so the
+/// port writes `EVENT_INIT (&raw mut event)`; C 5348's `mod` is a Rust keyword, so the local is
+/// `mod_` (the `src/pgtkterm.rs` 7589 reading of the same name); C 5360's `AREF` and C 5361's
+/// `XSETFRAME` keep their macro forms; the two enum constants are `c_int` where `idx` is an
+/// `intptr_t`, so C 5358/5360's implicit widening is the port's `as intptr_t`; and the two
+/// modifier converters return `int` where `input_event.modifiers` is a `c_uint`
+/// (`include/termhooks.rs` 118), so C 5370/5372's implicit conversion is the port's `as c_uint`.
+/* C: /* Callback function invoked when a tool bar item is pressed.
+   C:    W is the button widget in the tool bar that got pressed,
+   C:    CLIENT_DATA is an integer that is the index of the button in the
+   C:    tool bar.  0 is the first button.  */  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn xg_tool_bar_callback (w: *mut GtkWidget, client_data: gpointer)   // C 5344-5380
+{
+  /* C 5358/5360's `TOOL_BAR_ITEM_NSLOTS`/`TOOL_BAR_ITEM_KEY` are `enum tool_bar_item_idx`'s
+     (`dispextern.h` 3440-3495) and live in `include/dispextern.rs` 2800's
+     `dispextern_unit_names` module, whose items are not in scope unqualified - so the two names
+     come in here (the `x11_constants` shape slice 24 used).  */
+  use dispextern_unit_names::{TOOL_BAR_ITEM_KEY, TOOL_BAR_ITEM_NSLOTS};
+
+  let mut idx: intptr_t = client_data as intptr_t;                      // C 5346
+  let gmod: gpointer
+    = g_object_get_data (G_OBJECT! (w), XG_TOOL_BAR_LAST_MODIFIER.as_ptr ());   // C 5347
+  let mod_: intptr_t = gmod as intptr_t;                                // C 5348 (`mod`)
+
+  let f: *mut frame = g_object_get_data (G_OBJECT! (w), XG_FRAME_DATA) as *mut frame;   // C 5350
+  let mut key: Lisp_Object;                                             // C 5351
+  let mut frame: Lisp_Object;
+  /* C 5352's `struct input_event event;` is uninitialised until C 5353's `EVENT_INIT` writes the
+     whole record; the port's `EVENT_INIT` takes its address, and `&raw mut` on an uninitialised
+     local is `E0381` (measured), so the local starts zeroed the way slice 16 fixed
+     `style_changed_cb`'s (PORTING.md 1.5).  */
+  let mut event: input_event = std::mem::zeroed ();                     // C 5352
+  EVENT_INIT (&raw mut event);                                          // C 5353
+
+  if f.is_null () || (*f).n_tool_bar_items == 0 || NILP ((*f).tool_bar_items)   // C 5355
+    { return; }
+
+  idx *= TOOL_BAR_ITEM_NSLOTS as intptr_t;                              // C 5358
+
+  key = AREF ((*f).tool_bar_items, idx + TOOL_BAR_ITEM_KEY as intptr_t);   // C 5360
+  XSETFRAME! (frame, f);                                                // C 5361
+
+  /* C 5363's `event.kind = TOOL_BAR_EVENT;` is the port's kind accessor: `struct input_event`'s
+     `kind` is the low half of its `bits` word (`include/termhooks.rs` 114-129), which every unit
+     reaches through its own `input_event_bits!` copy (PORTING.md P-80) - the same spelling
+     C 3134/2052 in this file already use.  */
+  input_event_bits! (kind, (&raw mut event), TOOL_BAR_EVENT);           // C 5363
+  event.frame_or_window = frame;                                        // C 5364
+  event.arg = key;                                                      // C 5365
+  /* Convert between the modifier bits GDK uses and the modifier bits
+     Emacs uses.  This assumes GDK and X masks are the same, which they are when
+     this is written.  */
+  /* C 5369's `#ifndef HAVE_PGTK`; its `#else` is C 5371.  */
+  #[cfg (not (feature = "have_pgtk"))]
+  { event.modifiers
+      = x_x_to_emacs_modifiers (FRAME_DISPLAY_INFO! (f), mod_ as c_int) as c_uint; }   // C 5370
+  #[cfg (feature = "have_pgtk")]
+  { event.modifiers
+      = pgtk_gtk_to_emacs_modifiers (FRAME_DISPLAY_INFO! (f), mod_ as c_int) as c_uint; }   // C 5372
+  kbd_buffer_store_event (&raw mut event as *mut c_void);               // C 5374
+
+  /* Return focus to the frame after we have clicked on a detached
+     tool bar button. */
+  (*FRAME_TERMINAL! (f)).focus_frame_hook.unwrap () (f as *mut c_void, false);   // C 5378
+}
+
+/* `x_x_to_emacs_modifiers` (xterm.h 1826: `extern int x_x_to_emacs_modifiers (struct
+   x_display_info *, int);`, defined by `xterm.c` and carried by `src/xterm.rs` 24827) is a
+   same-program declaration no mirror in this unit's graph carries, so C 5370's call needs its
+   prototype here - the `x_scroll_bar_configure` class (Owed 18), under its definition's gate.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  pub fn x_x_to_emacs_modifiers (dpyinfo: *mut x_display_info, state: c_int) -> c_int;   // xterm.h 1826
+}
