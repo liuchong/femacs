@@ -2356,6 +2356,18 @@ DEFUN! ("fringe-bitmaps-at-pos", Ffringe_bitmaps_at_pos, Sfringe_bitmaps_at_pos,
 			    Initialization
  ***********************************************************************/
 
+/* C's two `globals.f_<name>` fields this unit's `syms_of_fringe` registers (its
+   `DEFVAR_LISP` calls at C 1770 and 1779), defined here as the port's storage - C's
+   `struct emacs_globals` is zero-initialised and the DEFVAR macros only take each field's
+   address, so the initialisers are `lisp_h_Qnil ()` (docs/status.md 3.29, the `src/cmds.rs`
+   489-492 row and the `src/image.rs` block shape).  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut Voverflow_newline_into_fringe: Lisp_Object = lisp_h_Qnil ();  // C 1770
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub static mut Vfringe_bitmaps: Lisp_Object = lisp_h_Qnil ();                // C 1779
+
 /// C: 1755-1756: `void` / `syms_of_fringe (void)` - non-`static`, so exported.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
