@@ -99,6 +99,10 @@ include!("include/itree.rs");               // C 50: `#include "itree.h"`
 unsafe extern "C" {
   /// C: lisp.h 4671: `extern void *aligned_alloc (size_t, size_t) ATTRIBUTE_MALLOC_SIZE ((2));`
   fn aligned_alloc (alignment: size_t, size: size_t) -> *mut c_void;
+  /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c; the mirror does not carry
+  ///   it — P-132: this unit used to redefine it as a symbol-only macro, which rejected
+  ///   closures that the real `FUNCTIONP` accepts).
+  fn FUNCTIONP (o: Lisp_Object) -> bool;
   /// C: <stdlib.h> `extern int putenv (char *);`
   fn putenv (string: *mut c_char) -> c_int;
   /// C: <stdlib.h> `extern void free (void *);` — under the frozen configuration gnulib's
@@ -139,11 +143,9 @@ macro_rules! ROUNDUP {
   };
 }
 
-/* C: lisp.h 3772: `#define FUNCTIONP(x) (SYMBOLP (x) && !NILP (Ffboundp (x)))` — the mirror
-   does not carry it (gap reported in docs/ports/alloc.md); the port keeps the name.  */
-macro_rules! FUNCTIONP {
-  ($x:expr) => { SYMBOLP ($x) && !NILP (Ffboundp ($x)) };
-}
+/* P-132: this revision's lisp.h has *no* FUNCTIONP macro — C's call site (alloc.c 3987) calls
+   the function eval.c defines (declared at lisp.h 4799), which also accepts closures, subrs and
+   byte-code objects.  A symbol-only redefinition here made `make-finalizer` reject closures.  */
 
 /* C's `alignof` operator: keeping it as a one-line macro lets every C body that spells it
    keep the same token, the way `FLEXALIGNOF` (lib/include/flexmember.rs) does.  */
@@ -4390,7 +4392,7 @@ DEFUN! ("make-finalizer", Fmake_finalizer, Smake_finalizer, 1, 1, 0,
        doc: "Make a finalizer that will run FUNCTION.\nFUNCTION will be called after garbage collection when the returned\nfinalizer object becomes unreachable.  If the finalizer object is\nreachable only through references from finalizer objects, it does not\ncount as reachable for the purpose of deciding whether to run\nFUNCTION.  FUNCTION will be run once per finalizer object.",
        (function: Lisp_Object),
        {
-  CHECK_TYPE (FUNCTIONP! (function), Qfunctionp (), function);
+  CHECK_TYPE (FUNCTIONP (function), Qfunctionp (), function);
   let finalizer = ALLOCATE_PSEUDOVECTOR! (Lisp_Finalizer, function, pvec_type::PVEC_FINALIZER)
 		  as *mut Lisp_Finalizer;
   (*finalizer).function = function;
