@@ -1680,7 +1680,7 @@ pub unsafe extern "C" fn w32_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
       return Qnil ();
     }
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                          // C 788
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                          // C 788
 
   submenu_stack = SAFE_ALLOCA! (sa_avail, menu_items_used as isize
 				* core::mem::size_of::<*mut widget_value> () as isize)
@@ -1951,7 +1951,7 @@ pub unsafe extern "C" fn w32_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
 			}
 		    }
 		  unblock_input ();                                // C 1034
-		  SAFE_FREE! (sa_count);                           // C 1035
+		  SAFE_FREE! (sa_count, sa_mark);                           // C 1035
 		  return entry;                                    // C 1036
 		}
 	      i += MENU_ITEMS_ITEM_LENGTH;                         // C 1038
@@ -1966,7 +1966,7 @@ pub unsafe extern "C" fn w32_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
     }
 
   unblock_input ();                                            // C 1049
-  SAFE_FREE! (sa_count);                                       // C 1050
+  SAFE_FREE! (sa_count, sa_mark);                                       // C 1050
   return Qnil ();                                              // C 1051
 }
 
@@ -2287,7 +2287,7 @@ unsafe fn simple_dialog_show (f: *mut frame, contents: Lisp_Object,
     {
       let mut text: *mut WCHAR;                                  // C 1319
       let title: *const WCHAR;                                   // C 1320
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);                     // C 1321
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                     // C 1321
 
       if STRINGP (temp)                                          // C 1323
 	{
@@ -2319,7 +2319,7 @@ unsafe fn simple_dialog_show (f: *mut frame, contents: Lisp_Object,
 	}
 
       answer = unicode_message_box.unwrap () (FRAME_W32_WINDOW! (f), text, title, type_);   // C 1350
-      SAFE_FREE! (sa_count);                                     // C 1351
+      SAFE_FREE! (sa_count, sa_mark);                                     // C 1351
     }
   else
     {
@@ -2446,7 +2446,7 @@ unsafe fn add_menu_item (menu: HMENU, wv: *mut widget_value, item: HMENU) -> c_i
   let mut return_value: c_int;                                 // C 1455
   let mut nlen: usize;                                         // C 1456
   let mut orig_len: usize;                                     // C 1456
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                        // C 1457
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                        // C 1457
 
   if menu_separator_name_p ((*wv).name)                        // C 1459
     {
@@ -2663,7 +2663,7 @@ unsafe fn add_menu_item (menu: HMENU, wv: *mut widget_value, item: HMENU) -> c_i
 			FALSE, &raw const info);
 	}
     }
-  SAFE_FREE! (sa_count);                                        // C 1654
+  SAFE_FREE! (sa_count, sa_mark);                                        // C 1654
   return return_value;                                          // C 1655
 }
 
