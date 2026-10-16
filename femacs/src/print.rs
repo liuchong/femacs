@@ -2750,12 +2750,25 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	  || (*p == b'.' as c_char
 	      && ! (size_byte > 1 && c_isalpha (*p.offset (1) as c_int)));
 
+	/* C 2493-2501 is an `if` / `else if` whose second arm ends in `break`, and that `break`
+	   leaves the enclosing *switch*, not the loop that follows: so the name-printing loop
+	   below runs in the `#:` arm too, and is skipped only for an empty name (after printing
+	   `##`).  The port had turned the arm into an `else`, which silently dropped the name of
+	   every uninterned symbol when `print-gensym` was non-nil - measured 2026-10-16,
+	   `(let ((print-gensym t)) (prin1 (make-symbol "plain")))` printed `#:` instead of
+	   `#:plain`, and the same shape cost `elisp-scope`/`map`/`timer` `.elc` their
+	   `#1=#:<name>` labels (`map.elc` wanted `#1=#:missing`).  The flag stands in for C's
+	   `break` (the port's usual discipline for a switch `break`, PORTING.md 2.2).  */
+	let mut print_name: bool = true;
 	if ! NILP (Vprint_gensym)
 	    && ! SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (obj)
 	  { print_c_string (c"#:".as_ptr (), printcharfun); }
 	else if size_byte == 0
-	  { print_c_string (c"##".as_ptr (), printcharfun); }
-	else
+	  {
+	    print_c_string (c"##".as_ptr (), printcharfun);
+	    print_name = false;
+	  }
+	if print_name
 	  {
 	    let mut i: ptrdiff_t = 0;
 	    let mut i_byte: ptrdiff_t = 0;
