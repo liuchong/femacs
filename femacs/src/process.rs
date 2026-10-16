@@ -1298,8 +1298,12 @@ unsafe extern "C" {
   fn pthread_sigmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
   /// C: <signal.h>: `int sigismember (const sigset_t *, int);`
   fn sigismember (set: *const sigset_t, signum: c_int) -> c_int;
-  /// C: bool child_status_changed (pid_t, int *, int)   (sysdep.c 1588)
-  fn child_status_changed (child: pid_t, status: *mut c_int, options: c_int) -> bool;
+  /// C: syswait.h 60: `extern pid_t child_status_changed (pid_t, int *, int);` - the return
+  /// type is the child's pid (sysdep.c 516), and the port's definition returns it too.  It was
+  /// declared `bool` here, which made the caller test only the low bit of the pid: an even pid
+  /// (the common case on this target) then read as "no status changed", the reap was skipped,
+  /// and the process stayed `run` (PORTING.md P-124).
+  fn child_status_changed (child: pid_t, status: *mut c_int, options: c_int) -> pid_t;
   /// C: void synchronize_system_messages_locale (void)   (lisp.h 5142)
   fn synchronize_system_messages_locale ();
   /// C: char *strsignal (int)   (syssignal.h 83's `#ifndef HAVE_STRSIGNAL` is dead:
@@ -7868,7 +7872,7 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
 	  let mut deleted_pid: i64 = 0;
 	  let ok: bool = integer_to_intmax (xpid, &raw mut deleted_pid);
 	  eassert! (ok);
-	  if (child_status_changed (deleted_pid as pid_t, std::ptr::null_mut (), 0))
+	  if (child_status_changed (deleted_pid as pid_t, std::ptr::null_mut (), 0) != 0)
 	    {
 	      changed = true;
 	      if (STRINGP (XCDR (head)))
@@ -7888,7 +7892,7 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
     let mut status: c_int = 0;
 
     if (process_bits! (alive, p)
-	&& child_status_changed ((*p).pid, &raw mut status, WUNTRACED | WCONTINUED))
+	&& child_status_changed ((*p).pid, &raw mut status, WUNTRACED | WCONTINUED) != 0)
       {
 	/* Change the status of the process that was found.  */
 	changed = true;
