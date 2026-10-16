@@ -20910,3 +20910,13 @@
      | **合计** | 2519 | 1945 | **56** | 1661 | retired 5 |
   ④ **结论（本轮的实测）**：四个复制树的差异**只剩两类**——⑴ `.elc` 全族（L1 ✓，已挂起 ✓）；⑵ **5 个生成的版本文件**（`etc/refcards/emacsver.tex` + `doc/{emacs,lispintro,lispref,misc}/emacsver.texi` ✓）。其余 56 个 DIFFERENT 经抽样**全部是 0.1-19 的名字改写**（含选择性形式 ✓）⇒ DoD 第 5 条的剩余工作就是"生成那 5 个文件" + L1 ✓。
   ⑤ **工具自身的两个缺陷（点名，未修完）**：⑴ 早期用**后缀**判文本 ⇒ 无扩展名的 `ChangeLog.*`（恰好 17 件 ✓）被当成"binary" ✗；已改为**按内容判**（无 NUL 即文本 ✓）⇒ 它们变成 name-only ✓，但**同一条命令行在不同次运行里报出 17 与 0 两种合计** ✗（未能复现原因 ✗，**因此本工具尚未接进任何闸门** ✓，本轮的读数以**两次一致的 56**为准 ✓）。⑵ `DIFFERENT` 的**明细行有时不打印** ✗（未定位 ✓）；两个缺陷都记在这里，下次接线前先修 ✓。
+
+- **4.396 验证相第二十八轮：`check-trees.py` 的两个报告缺陷修好，56 个 DIFFERENT 全部归类（2026-10-16）**：
+  ① **缺陷一（已修）**："按后缀判文本" 换成 **按内容判**（无 NUL 即文本 ✓）——`ChangeLog.*` 这类**无扩展名**的文本文件当时被当成 "binary" ✗（恰好 17 件 ✗，这正是 4.395 里"17 与 0 两种合计"的来源：两次读数之间我**改了工具** ✗；本轮加了控制：同一份代码（md5 `4a79d91e…` ✓）连跑 3 次，lisp 行**三次逐字相同** ✓ ⇒ 工具本身是确定的 ✓）。
+  ② **缺陷二（已修）**：`DIFFERENT` 的明细行**从不打印** ✗——因为打印列表被 **1,661 条 `MISSING`**（几乎全是 `.elc` ✓）吃满了前 200 行 ✗。改成**两类分开打印**（DIFFERENT 明细在前、MISSING 只列前 10 并汇总 ✓）⇒ 明细终于可见 ✓。
+  ③ **修好后第一次看清 56 个 DIFFERENT 的构成**（每类都抽样看过内容 ✓）：
+     - `lisp` **17**：15 件 `lisp/international/uni-*.el`（= L1 车道那份 unidata 差异 ✓，4.383 已查明是"参照用 `.elc` 生成器、端口用解释型" ✓）+ `lisp/loaddefs.el`（生成物 ✓，同 4.382 ✓）+ `lisp/desktop.el`（**1 行** ✓：`...in the GNU Emacs Manual.` → `...in the femacs Manual.` ✓）。
+     - `etc` **5**：`org.gnu.emacs`→`org.femacs`、`Gnu Emacs Logo`→`femacs Logo`、`<dc:description>GNU Emacs splash image`→`femacs …` ✓。
+     - `doc` **34**：手册名被改成 femacs、而**语言名 `Emacs Lisp` 保持不变** ✓（任何字符串替换都表达不了这种**选择性**改名 ✓）——含 `doc/misc/*.texi`、`doc/man/emacs.1.in`、`doc/translations/fr/…` ✓。
+  ④ **结论**：**56 个 DIFFERENT 全部属于同一类——0.1-19 要求的选择性改名** ✓（逐类抽样 ✓）；DoD-5 剩下的真实缺口只有三项 ✓：⑴ `.elc` 全族（L1 ✓ 挂起中 ✓）⑵ `lisp/cedet/semantic/bovine/{c-by,make-by,scm-by}.el` 与 `lisp/cedet/semantic/grammar-wy.el`（Lisp 生成物 ✓，4 个 ✓）⑶ `doc/emacs/emacsver.texi` 与 `etc/refcards/emacsver.tex`（版本串 ✓，`sed s/@version@/32.0.50/` 与 `s/@majorversion@/32/` ✓，两个配方都已查明 ✓）。
+  ⑤ **下一步（点名）**：⑴ 写 `tools/gen-emacsver.py`（版本从**端口自己的** `src/emacs.rs` 的 `PACKAGE_VERSION` 取 ✓）生成那 2 个文件 ✓；⑵ 用端口的 emacs 生成 4 个 cedet 文件（同一族"用端口程序跑参照配方"的工具 ✓）；⑶ 把 56 个"选择性改名"文件登记进**基线表**（机器判不了 ✓，按本项目"人的一半"惯例 ✓），之后 `check-trees.py` 才能接进 `gate-fast` ✓。
