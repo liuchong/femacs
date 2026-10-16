@@ -2182,7 +2182,7 @@ DEFUN! ("pgtk-register-dnd-targets", Fpgtk_register_dnd_targets,
 	  let mut tem: Lisp_Object;
 	  let mut t: Lisp_Object;
 	  let mut buf: *mut c_char = std::ptr::null_mut ();
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
 	  f = decode_window_system_frame (frame);
 	  CHECK_LIST (targets);
@@ -2218,7 +2218,7 @@ DEFUN! ("pgtk-register-dnd-targets", Fpgtk_register_dnd_targets,
 	  gtk_drag_dest_set_target_list (FRAME_GTK_WIDGET! (f), list);
 	  gtk_target_list_unref (list);
 
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 
 	  return Qnil ();
 	});
