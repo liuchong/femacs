@@ -876,7 +876,7 @@ unsafe fn scmp (mut s1: *const c_char, mut s2: *const c_char, len: ptrdiff_t) ->
    string length is LEN, is that of a subdirectory that can be searched.  */
 unsafe fn file_name_completion_dirp (fd: c_int, dp: *mut dirent, len: ptrdiff_t) -> bool
 {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let subdir_name: *mut c_char = SAFE_ALLOCA! (sa_avail, len + 2) as *mut c_char;
   memcpy (subdir_name as *mut c_void, (*dp).d_name.as_ptr () as *const c_void,
 	  len as usize);
@@ -884,7 +884,7 @@ unsafe fn file_name_completion_dirp (fd: c_int, dp: *mut dirent, len: ptrdiff_t)
 
   let dirp: bool = sys_faccessat (fd, subdir_name,
 				  F_OK, AT_EACCESS) == 0;
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return dirp;
 }
 
