@@ -229,6 +229,10 @@ unsafe extern "C" {
 
 
 unsafe extern "C" {
+  /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c; the mirror does not carry
+  ///   it — P-132: this unit used to redefine it as a symbol-only macro, which rejected
+  ///   closures that the real `FUNCTIONP` accepts).
+  fn FUNCTIONP (o: Lisp_Object) -> bool;
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (eval.c).
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
   /// C: lisp.h 4945: `extern Lisp_Object other_buffer_safely (Lisp_Object);` (buffer.c).
@@ -6615,13 +6619,9 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
 		   (*w).contents); }
 }
 
-/* C: lisp.h 3772: `#define FUNCTIONP(x) (SYMBOLP (x) && !NILP (Ffboundp (x)))` and lisp.h
-   4826's `extern void record_unwind_protect_excursion (void);` (eval.c) — the mirror does not
-   carry either (the alloc.rs `FUNCTIONP` shape, per-unit copies; docs/ports/window.md reports
-   the gap).  */
-macro_rules! FUNCTIONP {
-  ($x:expr) => { SYMBOLP ($x) && !NILP (Ffboundp ($x)) };
-}
+/* P-132: C's call sites here (window.c 7078, 7956, 7981, 8111) call the *function* FUNCTIONP
+   that eval.c defines (lisp.h 4799); this revision's lisp.h has no such macro.  lisp.h 4826's
+   `extern void record_unwind_protect_excursion (void);` is declared below as C 4826 has it.  */
 
 unsafe extern "C" {
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);` (eval.c).
@@ -6903,7 +6903,7 @@ DEFUN! ("other-window-for-scrolling", Fother_window_for_scrolling, Sother_window
       if NILP (window)
 	{ window = display_buffer (Vother_window_scroll_buffer, Qt (), Qnil ()); }
     }
-  else if FUNCTIONP! (Vother_window_scroll_default)
+  else if FUNCTIONP (Vother_window_scroll_default)
     /* Nothing specified; try to get a window from the function.  */
     { window = call0 (Vother_window_scroll_default); }
   else
@@ -7763,7 +7763,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 		   BUF_PT (XBUFFER ((*w).contents)),
 		   BUF_PT_BYTE (XBUFFER ((*w).contents))); }
 	      window_bits! (w, start_at_line_beg, true);
-	      if FUNCTIONP! (window_restore_killed_buffer_windows)
+	      if FUNCTIONP (window_restore_killed_buffer_windows)
 		  && !MINI_WINDOW_P (w)
 		{ kept_windows = Fcons (list! (window, (*p).buffer,
 					    Fmarker_last_position ((*p).start),
@@ -7788,7 +7788,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 	      window_bits! (w, start_at_line_beg, true);
 	      if !MINI_WINDOW_P (w)
 		{
-		  if FUNCTIONP! (window_restore_killed_buffer_windows)
+		  if FUNCTIONP (window_restore_killed_buffer_windows)
 		    { kept_windows
 		      = Fcons (list! (window, (*p).buffer,
 				     Fmarker_last_position ((*p).start),
@@ -7924,7 +7924,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 
   SAFE_FREE! (sa_count, sa_mark);
 
-  if !NILP (Vrun_hooks) && FUNCTIONP! (window_restore_killed_buffer_windows)
+  if !NILP (Vrun_hooks) && FUNCTIONP (window_restore_killed_buffer_windows)
     { safe_calln! (window_restore_killed_buffer_windows,
 		  frame, kept_windows, Qconfiguration ()); }
 
