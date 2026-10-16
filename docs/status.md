@@ -21278,3 +21278,10 @@
   ④ **裁定**：`PORTING.md` **P-122** ✓（三层候选：`add-function` 对哨兵的包装 ✓ / 包装后哨兵的调用路径（`process.c` 的 `status_notify`/`wait_reading_process_output` ✓）/ 收割路径（SIGCHLD 后 `process-status` 仍 `run` ✗ ✓）；修在 `process.c` 一侧 ✓，**不许**改测试或复制的 `lisp/` 树 ✓；验收 = 探针 0/20 ✓ + `package-vc-tests` 整片 ✓ + 三门口复绿 ✓）。
   ⑤ **资源**：探针端口侧 ~48 秒（含 500×0.005 秒的自旋 ✓）、峰值 31 MB ✓；受控执行器 runtime 1024 MiB ✓；`git -C emacs status --short` 为空 ✓。提交：`spikes/process-sentinel-advice-probe.el` ✓、`PORTING.md`（P-122 ✓）、本提交 ✓。
   ⑥ **下一步（点名）**：⑴ 按 P-122 ③ 在 `process.c`/`keyboard.c` 一侧定案（先判"包装后哨兵是否被调用"✓：在端口 `status_notify` 加 env 守卫打印 ✓，P-115 形状 ✓）；⑵ 修后跑探针（目标 0/20 ✓）与 `package-vc-tests` 整片（45 例 ✓）；⑶ 之后回到 `.elc` 族/其余生成物与 `lisp/emacs-lisp` 整片 L5 刷新 ✓。
+- **4.445 验证相第七十七轮：层位再收敛 —— 是"子进程没被收割"（快退出的子进程约 9/10 丢失），advice 只是表象（2026-10-16）**：
+  ① **更正 4.444** ✗→✓：不带 advice 的同形对照（N=20）端口同样失败 **13/20** ✗、参照 **0/20** ✓ ⇒ advice **不是**变量 ✓。
+  ② **真正的变量 = 子进程退出与等待的相对时机** ✓：`sh -c "exit 0"`（等待开始前已退出）端口 **14/20** 丢失 ✗、参照 0/20 ✓；`sh -c "sleep 0.05; exit 0"` 端口 **0/20** ✓（第二轮 N=10 时 **2/10** ✗ ⇒ 非绝对 ✓）；带 advice 的 `exit 0` **4/6** ✗、参照 0/6 ✓。
+  ③ **每次丢失的签名**：**哨兵从不运行** ✓、`accept-process-output` 2.5 秒后 `process-status` 仍答 **`run`** ✗ ⇒ 子进程**没有被收割** ✓（与 advice 无关 ✓）。
+  ④ **探针**（`spikes/process-sentinel-advice-probe.el` ✓ 已按两形状三读数重写入库 ✓，旋钮 `N`/`ADVICE`/`CHILD` ✓）；裁定 **P-122 ⑵** ✓（诊断方向：`keyboard.c` 的 SIGCHLD 处理 + `process.c` 的 `wait_reading_process_output` 播种/轮询路径，与 C 逐句对照 ✓；验收 = 探针 0 丢失 ✓ + 整片 45 例 ✓ + 三门口复绿 ✓）。
+  ⑤ **资源**：探针各轮端口侧 30-50 秒（自旋等待 ✓）、峰值 **31 MB** ✓；受控执行器 runtime 1024 MiB ✓；`git -C emacs status --short` 为空 ✓。提交：`spikes/process-sentinel-advice-probe.el`（更正版 ✓）、`PORTING.md`（P-122 ⑵ ✓）、本提交 ✓。
+  ⑥ **下一步（点名）**：⑴ 在 `process.rs` 的 `wait_reading_process_output` 与 `keyboard.rs`/`sysdep.rs` 的 SIGCHLD/`pselect` 路径上，与 C 逐句核对"等待开始前已退出"的子进程如何被通知/轮询 ✓（先加 env 守卫打印候选状态 ✓ P-115 形状 ✓）；⑵ 修后跑探针（目标 0 丢失 ✓，fast/slow/advice 三种形状各 N=20 ✓）；⑶ 复跑 `package-vc-tests` 整片 45 例 ✓ + `gate-fast`/`gate-load`/`dump` ✓。
