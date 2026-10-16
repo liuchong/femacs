@@ -1618,7 +1618,7 @@ unsafe extern "C" fn xftfont_draw (s: *mut glyph_string, from: c_int, to: c_int,
 		     height as c_uint);
       }
     }
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   code = SAFE_ALLOCA! (sa_avail,
 		       std::mem::size_of::<FT_UInt> () * len as usize) as *mut FT_UInt;   // C 580
   i = 0;                                                   // C 581
@@ -1659,7 +1659,7 @@ unsafe extern "C" fn xftfont_draw (s: *mut glyph_string, from: c_int, to: c_int,
 		    FRAME_X_COLORMAP! (f), &raw mut fg);
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   unblock_input ();                                        // C 608
   return len;                                              // C 609
 }
