@@ -116,7 +116,7 @@ enum ns_return_frame_mode: Int32 {
 /// C: `void staticpro (Lisp_Object const *)` (src/lisp.h 3919).
 @_silgen_name("staticpro") func staticpro(_ varaddress: UnsafePointer<Lisp_Object>?)
 /// C: `extern void defvar_lisp (struct Lisp_Fwd const *, char const *)` (src/lisp.h 3473).
-@_silgen_name("defvar_lisp") func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+@_silgen_name("defvar_lisp") func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?, docstring: StaticString)
 @_silgen_name("Fcons") func Fcons(_ car: Lisp_Object, _ cdr: Lisp_Object) -> Lisp_Object
 @_silgen_name("Fcar") func Fcar(_ list: Lisp_Object) -> Lisp_Object
 @_silgen_name("Fcdr") func Fcdr(_ list: Lisp_Object) -> Lisp_Object
@@ -273,7 +273,8 @@ fileprivate func pasteboardTypes(_ array: [Any]) -> [NSPasteboard.PasteboardType
 /// `{.a ## maxargs = fnname}` (one slot whichever arity the union member had), and the
 /// initialiser stops at `command_modes`/`doc`.
 fileprivate func make_aligned_subr(_ lname: StaticString, _ minargs: Int16, _ maxargs: Int16,
-                                  _ function: UnsafeMutableRawPointer) -> Aligned_Lisp_Subr {
+                                  _ function: UnsafeMutableRawPointer,
+                                   docstring: StaticString, args: StaticString) -> Aligned_Lisp_Subr {
   return Aligned_Lisp_Subr(s: Lisp_Subr(
     header: vectorlike_header(size: PVEC_SUBR() << PSEUDOVECTOR_AREA_BITS()),
     function: Lisp_Subr_function(ptr: function),
@@ -577,7 +578,7 @@ VALUE is typically a string, or a cons of two markers, but may be
 anything that the functions on `selection-converter-alist' know about.  */) */
 fileprivate var Sns_own_selection_internal: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_own_selection_internal, 2, 2,
-                    unsafeBitCast(Fns_own_selection_internal, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_own_selection_internal, to: UnsafeMutableRawPointer.self), docstring: " Assert an X selection of type SELECTION and value VALUE.\nSELECTION is a symbol, typically `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nVALUE is typically a string, or a cons of two markers, but may be\nanything that the functions on `selection-converter-alist' know about.  ", args: "selection value")
 
 @_cdecl("Fns_own_selection_internal")
 func Fns_own_selection_internal(_ selection: Lisp_Object, _ value: Lisp_Object) -> Lisp_Object {
@@ -633,7 +634,7 @@ func Fns_own_selection_internal(_ selection: Lisp_Object, _ value: Lisp_Object) 
 Disowning it means there is no such selection.  */) */
 fileprivate var Sns_disown_selection_internal: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_disown_selection_internal, 1, 1,
-                    unsafeBitCast(Fns_disown_selection_internal, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_disown_selection_internal, to: UnsafeMutableRawPointer.self), docstring: " If we own the selection SELECTION, disown it.\nDisowning it means there is no such selection.  ", args: "selection")
 
 @_cdecl("Fns_disown_selection_internal")
 func Fns_disown_selection_internal(_ selection: Lisp_Object) -> Lisp_Object {
@@ -658,7 +659,7 @@ these literal upper-case names.)  The symbol nil is the same as
 `PRIMARY', and t is the same as `SECONDARY'.  */) */
 fileprivate var Sns_selection_exists_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_selection_exists_p, 0, 1,
-                    unsafeBitCast(Fns_selection_exists_p, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_selection_exists_p, to: UnsafeMutableRawPointer.self), docstring: " Whether there is an owner for the given X selection.\nSELECTION should be the name of the selection in question, typically\none of the symbols `PRIMARY', `SECONDARY', or `CLIPBOARD'.  (X expects\nthese literal upper-case names.)  The symbol nil is the same as\n`PRIMARY', and t is the same as `SECONDARY'.  ", args: "selection")
 
 @_cdecl("Fns_selection_exists_p")
 func Fns_selection_exists_p(_ selection: Lisp_Object) -> Lisp_Object {
@@ -690,7 +691,7 @@ For convenience, the symbol nil is the same as `PRIMARY',
 and t is the same as `SECONDARY'.  */) */
 fileprivate var Sns_selection_owner_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_selection_owner_p, 0, 1,
-                    unsafeBitCast(Fns_selection_owner_p, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_selection_owner_p, to: UnsafeMutableRawPointer.self), docstring: " Whether the current Emacs process owns the given X Selection.\nThe arg should be the name of the selection in question, typically one of\nthe symbols `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nFor convenience, the symbol nil is the same as `PRIMARY',\nand t is the same as `SECONDARY'.  ", args: "selection")
 
 @_cdecl("Fns_selection_owner_p")
 func Fns_selection_owner_p(_ selection: Lisp_Object) -> Lisp_Object {
@@ -710,7 +711,7 @@ SELECTION-SYMBOL is typically `PRIMARY', `SECONDARY', or `CLIPBOARD'.
 TARGET-TYPE is the type of data desired, typically `STRING'.  */) */
 fileprivate var Sns_get_selection: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_get_selection, 2, 2,
-                    unsafeBitCast(Fns_get_selection, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_get_selection, to: UnsafeMutableRawPointer.self), docstring: " Return text selected from some X window.\nSELECTION-SYMBOL is typically `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nTARGET-TYPE is the type of data desired, typically `STRING'.  ", args: "selection_name target_type")
 
 @_cdecl("Fns_get_selection")
 func Fns_get_selection(_ selection_name: Lisp_Object, _ target_type: Lisp_Object) -> Lisp_Object {
@@ -896,7 +897,7 @@ being ignored.
 FOLLOW-TOOLTIP means the same thing it does in `x-begin-drag'.  */) */
 fileprivate var Sns_begin_drag: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_begin_drag, 3, 6,
-                    unsafeBitCast(Fns_begin_drag, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_begin_drag, to: UnsafeMutableRawPointer.self), docstring: " Begin a drag-and-drop operation on FRAME.\n\nFRAME must be a window system frame.  PBOARD is an alist of (TYPE\n. DATA), where TYPE is one of the following data types that determine\nthe meaning of DATA:\n\n  - `string' means DATA should be a string describing text that will\n    be dragged to another program.\n\n  - `file' means DATA should be a file URL that will be dragged to\n    another program.  DATA may also be a list of file names; that\n    means each file in the list will be dragged to another program.\n\nACTION is the action that will be taken by the drop target towards the\ndata inside PBOARD.\n\nReturn the action that the drop target actually chose to perform, or\nnil if no action was performed (either because there was no drop\ntarget, or the drop was rejected).  If RETURN-FRAME is the symbol\n`now', also return any frame that mouse moves into during the\ndrag-and-drop operation, whilst simultaneously canceling it.  Any\nother non-nil value means to do the same, but to wait for the mouse to\nleave FRAME first.\n\nIf ALLOW-SAME-FRAME is nil, dropping on FRAME will result in the drop\nbeing ignored.\n\nFOLLOW-TOOLTIP means the same thing it does in `x-begin-drag'.  ", args: "frame pboard action return_frame allow_same_frame follow_tooltip")
 
 @_cdecl("Fns_begin_drag")
 func Fns_begin_drag(_ frame: Lisp_Object, _ pboard: Lisp_Object, _ action: Lisp_Object,
@@ -978,6 +979,6 @@ func syms_of_nsselect() {
   // the macro's third argument.
   O_FWD_Vns_sent_selection_hooks = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(objvar: &Vns_sent_selection_hooks))
-  defvar_lisp(&O_FWD_Vns_sent_selection_hooks, "ns-sent-selection-hooks")
+  defvar_lisp(&O_FWD_Vns_sent_selection_hooks, "ns-sent-selection-hooks", docstring: "A list of functions to be called when Emacs answers a selection request.\nThe functions are called with four arguments:\n  - the selection name (typically `PRIMARY', `SECONDARY', or `CLIPBOARD');\n  - the selection-type which Emacs was asked to convert the\n    selection into before sending (for example, `STRING' or `LENGTH');\n  - a flag indicating success or failure for responding to the request.\nWe might have failed (and declined the request) for any number of reasons,\nincluding being asked for a selection that we no longer own, or being asked\nto convert into a type that we don't know about or that is inappropriate.\nThis hook doesn't let you change the behavior of Emacs's selection replies,\nit merely informs you that they have happened.")
   Vns_sent_selection_hooks = Qnil()
 }
