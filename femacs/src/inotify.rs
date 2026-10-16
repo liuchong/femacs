@@ -628,7 +628,7 @@ unsafe extern "C" fn inotify_callback (fd: c_int, _: *mut c_void)
   /* C 333-334: `USE_SAFE_ALLOCA; char *buffer = SAFE_ALLOCA (to_read);` - the port's macros
      name C's `sa_avail`/`sa_count` explicitly (the one shape `include/lisp.rs` 2974-2985
      documents).  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let buffer: *mut c_char = SAFE_ALLOCA! (sa_avail, to_read) as *mut c_char;
   let n: ssize_t = read (fd, buffer as *mut c_void, to_read as usize);
   if n < 0
@@ -664,7 +664,7 @@ unsafe extern "C" fn inotify_callback (fd: c_int, _: *mut c_void)
       i += core::mem::size_of::<inotify_event> () as ssize_t + (*ev).len as ssize_t;
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* C 370-476: `DEFUN ("inotify-add-watch", Finotify_add_watch, Sinotify_add_watch,
