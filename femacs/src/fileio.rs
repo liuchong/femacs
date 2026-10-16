@@ -513,7 +513,7 @@ DEFUN! ("file-name-as-directory", Ffile_name_as_directory,
   let mut length: ptrdiff_t;
   let mut handler: Lisp_Object;
   let mut val: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   CHECK_STRING (file);
 
@@ -534,7 +534,7 @@ DEFUN! ("file-name-as-directory", Ffile_name_as_directory,
   length = file_name_as_directory (buf, SSDATA (file), SBYTES (file),
 				   STRING_MULTIBYTE (file));
   val = make_specified_string (buf, -1, length, STRING_MULTIBYTE (file));
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return val;
 });
 
@@ -593,7 +593,7 @@ DEFUN! ("directory-file-name", Fdirectory_file_name, Sdirectory_file_name,
   let mut length: ptrdiff_t;
   let mut handler: Lisp_Object;
   let mut val: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   CHECK_STRING (directory);
 
@@ -613,7 +613,7 @@ DEFUN! ("directory-file-name", Fdirectory_file_name, Sdirectory_file_name,
   length = directory_file_name (buf, SSDATA (directory), SBYTES (directory),
 				STRING_MULTIBYTE (directory));
   val = make_specified_string (buf, -1, length, STRING_MULTIBYTE (directory));
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return val;
 });
 
@@ -811,12 +811,12 @@ unsafe fn user_homedir (name: *const c_char) -> *mut c_char
     { length += 1; }
   if length == 0
     { return std::ptr::null_mut (); }
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut p: *mut c_char = SAFE_ALLOCA! (sa_avail, length + 1) as *mut c_char;
   memcpy (p as *mut c_void, name as *const c_void, length as usize);
   *p.offset (length) = 0;
   let mut pw: *mut passwd = getpwnam (p);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   /* C 986-988: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` (HAVE_ANDROID undef):
      recorded in `docs/ports/fileio.md` (P-08).  */
   if pw.is_null () || (!(*pw).pw_dir.is_null () && ! IS_ABSOLUTE_FILE_NAME! ((*pw).pw_dir))
@@ -845,7 +845,7 @@ DEFUN! ("expand-file-name", Fexpand_file_name, Sexpand_file_name, 1, 2, 0,
   let mut handled_name: Lisp_Object;
   let mut multibyte: bool;
   let mut hdir: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut name = name;                        /* C reassigns `name` below.  */
   let mut default_directory = default_directory;  /* C reassigns it below.  */
 
@@ -1073,7 +1073,7 @@ DEFUN! ("expand-file-name", Fexpand_file_name, Sexpand_file_name, 1, 2, 0,
 	{
 	  if strcmp (nm, SSDATA (name)) != 0
 	    { name = make_specified_string (nm, -1, nmlim.offset_from (nm), multibyte); }
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	  return name;
 	}
     }
@@ -1246,7 +1246,7 @@ DEFUN! ("expand-file-name", Fexpand_file_name, Sexpand_file_name, 1, 2, 0,
       result = handled_name;
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 });
 
@@ -1394,7 +1394,7 @@ DEFUN! ("substitute-in-file-name", Fsubstitute_in_file_name,
   /* Always work on a copy of the string, in case GC happens during
      decode of environment variables, causing the original Lisp_String
      data to be relocated.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   SAFE_ALLOCA_STRING! (sa_avail, nm, filename);
 
   /* C 2088-2091: `#ifdef DOS_NT` (undefined): recorded in `docs/ports/fileio.md`.  */
@@ -1410,7 +1410,7 @@ DEFUN! ("substitute-in-file-name", Fsubstitute_in_file_name,
       let mut result: Lisp_Object
 	= Fsubstitute_in_file_name
 	  (make_specified_string (p, -1, endp.offset_from (p), multibyte));
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
       return result;
     }
 
@@ -1431,7 +1431,7 @@ DEFUN! ("substitute-in-file-name", Fsubstitute_in_file_name,
   if !substituted
     {
       /* C 2130-2133: `#ifdef WINDOWSNT` (undefined): recorded.  */
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
       return filename;
     }
 
@@ -1448,7 +1448,7 @@ DEFUN! ("substitute-in-file-name", Fsubstitute_in_file_name,
   /* C 2150-2158: `#ifdef WINDOWSNT` (undefined): recorded.  */
   if xnm != SSDATA (filename) as *mut c_char
     { filename = make_specified_string (xnm, -1, x.offset_from (xnm), multibyte); }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return filename;
 });
 
@@ -2443,7 +2443,7 @@ pub unsafe extern "C" fn file_accessible_directory_p (file: Lisp_Object) -> bool
   let mut len: ptrdiff_t = SBYTES (file);
   let mut dir: *const c_char;
   let mut ok: bool;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Normally a file "FOO" is an accessible directory if "FOO/." exists.
      There are three exceptions: "", "/", and "//".  Leave "" alone,
@@ -2474,7 +2474,7 @@ pub unsafe extern "C" fn file_accessible_directory_p (file: Lisp_Object) -> bool
     }
 
   ok = file_access_p (dir, F_OK);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return ok;
 }
 
