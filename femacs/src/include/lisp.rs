@@ -3603,86 +3603,147 @@ macro_rules! DEFUN_ARGS_MANY { () => { (isize, *mut Lisp_Object) } }
 macro_rules! DEFUN_ARGS_UNEVALLED { () => { (Lisp_Object) } }
 
 // --- AUTO_* stack objects (src/lisp.h 5760-5830) ---------------------------
+//
+// C's macro body is `make_lisp_ptr ((&(struct Lisp_String) {{…}}), Lisp_String)` (lisp.h
+// 5820-5826): a *compound literal*, whose storage lasts to the end of the **enclosing block**
+// (C99 6.5.2.5) - which is what lisp.h's own comment says, "the object has the lifetime of the
+// containing block".  A Rust `let` inside a macro's branch block ends there instead, so the
+// returned object would point at dead stack: ASan named exactly that (`stack-use-after-scope`
+// in `Fstring_equal`, reached from `assoc_ignore_text_properties` under `get_minibuffer`) and
+// that is the shape which corrupts malloc's metadata (PORTING.md P-113).
+//
+// Every macro below therefore declares its storage with a binding of the **caller's block** and
+// hands the object back in a second binding of the same name, which shadows it: shadowing
+// leaves the first binding's scope at the end of the block, exactly as C's compound literal
+// does.  C's *expression* forms (`STACK_CONS`, `AUTO_CONS_EXPR`, `AUTO_STR`,
+// `AUTO_STR_WITH_LEN`) cannot be written that way in Rust, so their call sites use the
+// statement forms - a deviation P-113 ② records.
 
-#[macro_export]
+/// C: `#define STACK_CONS(a, b) make_lisp_ptr (&((struct Lisp_Cons) {{…}}), Lisp_Cons)`.
+///
+/// Rust has no compound literal, so there is no expression form whose storage lives to the end
+/// of the enclosing block (PORTING.md P-113): every call site uses the statement macros
+/// (`AUTO_CONS!`, `AUTO_LIST1..4!`), whose storage binding sits in the caller's block.  The name
+/// stays in the mirror so its macro set matches lisp.h's, and a use that has no storage binding
+/// fails at compile time instead of pointing at dead stack.
 macro_rules! STACK_CONS {
-    ($a:expr, $b:expr) => {{
-        let mut cons = Lisp_Cons { u: Lisp_Cons_u { s: Lisp_Cons_s { car: $a, u: Lisp_Cons_s_u { cdr: $b } } } };
-        let obj = make_lisp_ptr (std::ptr::addr_of_mut! (cons) as *mut c_void, Lisp_Type::Lisp_Cons);
-        std::hint::black_box (&mut cons);
-        obj
-    }};
+    ($a:expr, $b:expr) => {
+        compile_error! ("STACK_CONS has no Rust counterpart: use AUTO_CONS! (PORTING.md P-113)")
+    };
 }
 
-#[macro_export]
+/// C: `#define AUTO_CONS_EXPR(a, b) (USE_STACK_CONS ? STACK_CONS (a, b) : Fcons (a, b))` - the
+/// same missing compound literal as `STACK_CONS` (PORTING.md P-113 ②); use `AUTO_CONS!`.
 macro_rules! AUTO_CONS_EXPR {
     ($a:expr, $b:expr) => {
-        if USE_STACK_CONS { STACK_CONS! ($a, $b) } else { unsafe { Fcons ($a, $b) } }
+        compile_error! ("AUTO_CONS_EXPR has no Rust counterpart: use AUTO_CONS! (PORTING.md P-113)")
+    };
+}
+
+/// C: `#define AUTO_STR_WITH_LEN(str, len) (USE_STACK_STRING ? (make_lisp_ptr …) :
+/// make_unibyte_string (str, len))` - the same missing compound literal (PORTING.md P-113 ②);
+/// use `AUTO_STRING_WITH_LEN!`, which binds the storage in the caller's block.
+macro_rules! AUTO_STR_WITH_LEN {
+    ($str:expr, $len:expr) => {
+        compile_error! ("AUTO_STR_WITH_LEN has no Rust counterpart: use AUTO_STRING_WITH_LEN! \
+                         (PORTING.md P-113)")
+    };
+}
+
+/// C: `#define AUTO_STR(str) AUTO_STR_WITH_LEN (str, strlen (str))` (PORTING.md P-113 ②);
+/// use `AUTO_STRING!`.
+macro_rules! AUTO_STR {
+    ($str:expr) => {
+        compile_error! ("AUTO_STR has no Rust counterpart: use AUTO_STRING! (PORTING.md P-113)")
     };
 }
 
 #[macro_export]
-// C's `#define AUTO_CONS(name, a, b) Lisp_Object name = AUTO_CONS_EXPR (a, b)`: the Rust
-// body carries the `;` the C declaration gets from the call site, because a macro whose
-// expansion ends in `let …` cannot be used where a statement is expected.
 macro_rules! AUTO_CONS { ($name:ident, $a:expr, $b:expr) => {
-    let $name = AUTO_CONS_EXPR! ($a, $b);
+    let mut $name = Lisp_Cons { u: Lisp_Cons_u { s: Lisp_Cons_s {
+        car: $a, u: Lisp_Cons_s_u { cdr: $b } } } };
+    let $name = if USE_STACK_CONS {
+        make_lisp_ptr (std::ptr::addr_of_mut! ($name) as *mut c_void, Lisp_Type::Lisp_Cons)
+    } else {
+        unsafe { Fcons ($name.u.s.car, $name.u.s.u.cdr) }
+    };
 } }
+
+/// Link `n` stack cells (already carrying their cars) into a nil-terminated list and return the
+/// head.  C's `AUTO_LIST2 (name, a, b)` is `STACK_CONS (a, STACK_CONS (b, Qnil ()))` - two
+/// compound literals, each with the enclosing block's lifetime - so the port declares the cells
+/// in one binding of the caller's block and links them here (PORTING.md P-113 ③).
+#[inline(always)]
+pub unsafe fn auto_list_link (cells: *mut Lisp_Cons, n: usize) -> Lisp_Object
+{
+  let mut i: usize = n;
+  let mut head: Lisp_Object = Qnil ();
+  while i > 0
+    {
+      i -= 1;
+      (*cells.add (i)).u.s.u.cdr = head;
+      head = make_lisp_ptr (cells.add (i) as *mut c_void, Lisp_Type::Lisp_Cons);
+    }
+  head
+}
 
 #[macro_export]
 macro_rules! AUTO_LIST1 { ($name:ident, $a:expr) => {
-    let $name = if USE_STACK_CONS { STACK_CONS! ($a, Qnil ()) } else { unsafe { list1 ($a) } };
+    let mut $name: [Lisp_Cons; 1] = unsafe { std::mem::zeroed () };
+    $name[0].u.s.car = $a;
+    let $name = if USE_STACK_CONS { unsafe { auto_list_link ($name.as_mut_ptr (), 1) } }
+                else { unsafe { list1 ($name[0].u.s.car) } };
 } }
 
 #[macro_export]
 macro_rules! AUTO_LIST2 { ($name:ident, $a:expr, $b:expr) => {
-    let $name = if USE_STACK_CONS {
-        STACK_CONS! ($a, STACK_CONS! ($b, Qnil ()))
-    } else { unsafe { list2 ($a, $b) } };
+    let mut $name: [Lisp_Cons; 2] = unsafe { std::mem::zeroed () };
+    $name[0].u.s.car = $a;
+    $name[1].u.s.car = $b;
+    let $name = if USE_STACK_CONS { unsafe { auto_list_link ($name.as_mut_ptr (), 2) } }
+                else { unsafe { list2 ($name[0].u.s.car, $name[1].u.s.car) } };
 } }
 
 #[macro_export]
 macro_rules! AUTO_LIST3 { ($name:ident, $a:expr, $b:expr, $c:expr) => {
-    let $name = if USE_STACK_CONS {
-        STACK_CONS! ($a, STACK_CONS! ($b, STACK_CONS! ($c, Qnil ())))
-    } else { unsafe { list3 ($a, $b, $c) } };
+    let mut $name: [Lisp_Cons; 3] = unsafe { std::mem::zeroed () };
+    $name[0].u.s.car = $a;
+    $name[1].u.s.car = $b;
+    $name[2].u.s.car = $c;
+    let $name = if USE_STACK_CONS { unsafe { auto_list_link ($name.as_mut_ptr (), 3) } }
+                else { unsafe { list3 ($name[0].u.s.car, $name[1].u.s.car, $name[2].u.s.car) } };
 } }
 
 #[macro_export]
 macro_rules! AUTO_LIST4 { ($name:ident, $a:expr, $b:expr, $c:expr, $d:expr) => {
-    let $name = if USE_STACK_CONS {
-        STACK_CONS! ($a, STACK_CONS! ($b, STACK_CONS! ($c, STACK_CONS! ($d, Qnil ()))))
-    } else { unsafe { list4 ($a, $b, $c, $d) } };
-} }
-
-#[macro_export]
-macro_rules! AUTO_STR_WITH_LEN {
-    ($str:expr, $len:expr) => {
-        if USE_STACK_STRING {
-            let mut s = Lisp_String { u: Lisp_String_u { s: Lisp_String_s {
-                size: $len, size_byte: -1, intervals: std::ptr::null_mut (),
-                data: $str as *mut u8 } } };
-            let obj = make_lisp_ptr (std::ptr::addr_of_mut! (s) as *mut c_void, Lisp_Type::Lisp_String);
-            std::hint::black_box (&mut s);
-            obj
-        } else {
-            unsafe { make_unibyte_string ($str, $len as ptrdiff_t) }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! AUTO_STR { ($str:expr) => { AUTO_STR_WITH_LEN! ($str, unsafe { strlen ($str) } as isize) } }
-
-#[macro_export]
-macro_rules! AUTO_STRING { ($name:ident, $str:expr) => {
-    let $name = AUTO_STR! ($str);
+    let mut $name: [Lisp_Cons; 4] = unsafe { std::mem::zeroed () };
+    $name[0].u.s.car = $a;
+    $name[1].u.s.car = $b;
+    $name[2].u.s.car = $c;
+    $name[3].u.s.car = $d;
+    let $name = if USE_STACK_CONS { unsafe { auto_list_link ($name.as_mut_ptr (), 4) } }
+                else { unsafe { list4 ($name[0].u.s.car, $name[1].u.s.car,
+                                       $name[2].u.s.car, $name[3].u.s.car) } };
 } }
 
 #[macro_export]
 macro_rules! AUTO_STRING_WITH_LEN { ($name:ident, $str:expr, $len:expr) => {
-    let $name = AUTO_STR_WITH_LEN! ($str, $len);
+    let mut $name = Lisp_String { u: Lisp_String_u { s: Lisp_String_s {
+        size: $len, size_byte: -1, intervals: std::ptr::null_mut (),
+        data: $str as *mut u8 } } };
+    let $name = if USE_STACK_STRING {
+        make_lisp_ptr (std::ptr::addr_of_mut! ($name) as *mut c_void, Lisp_Type::Lisp_String)
+    } else {
+        unsafe { make_unibyte_string ($name.u.s.data as *const c_char,
+                                          $name.u.s.size as ptrdiff_t) }
+    };
 } }
+
+#[macro_export]
+macro_rules! AUTO_STRING { ($name:ident, $str:expr) => {
+    AUTO_STRING_WITH_LEN! ($name, $str, unsafe { strlen ($str) } as isize)
+} }
+
 
 // --- setjmp wrappers (the HAVE__SETJMP branch of src/lisp.h 2271-2287) ------
 
