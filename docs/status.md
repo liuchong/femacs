@@ -20984,3 +20984,9 @@
   ⑦ **闸门**：`gate-fast` 端到端 **exit 0** ✓（含 680 单元双配置编译、c-string 门、eol 门等 ✓）；`gate-load` 绿 ✓（0 undefined + coding eol 15 例 0 失败 ✓）。
   ⑧ **下一步（点名）**：⑴ 端口侧补一份 checkout 层 `.dir-locals.el`（照参照那份的设置 ✓，纯脚手架 ✓）⇒ 让端口树自产的 `.elc` 与参照树那份也能逐字节对齐 ✓；⑵ `.elc` **全族**生成并比对（现在字节编译器可用且输出正确 ✓，差异应聚到极少数文件 ✓）；⑶ 用同一手法复查其它"哨兵值/标记值"常量（本条的类：C 的 `INVALID_LISP_VALUE`、`Qunbound`、`make_lisp_ptr` 家族 ✓）——值得一条文本门 ✓；⑷ 4.400 之后列出的其余项（弱表语义、unidata/loaddefs、L5、性能、平台 ✓）。
   ⑨ **未声称 / 资源**：本轮**一次全量编译**（`gate-fast` ✓，因镜像 `lisp.rs` 被所有单元 include ✓）+ 两次链接 ✓；临时追踪已完整撤回（`fns.rs` 与 HEAD 一致 ✓，`git diff` 只含 `lisp.rs` ✓）；`git -C emacs status --short` 为空 ✓。**提交**：`4d031121`（`port(lisp.h)` ✓）+ 本提交 ✓。
+- **4.404 验证相第三十六轮：端口侧 checkout 层设置落地 ⇒ `.elc` 与参照树副本逐字节一致（DoD-4 的一格收口）（2026-10-16）**：
+  ① **动作**：新增 `femacs/.dir-locals.el`（**只带产品依赖的那几条**：`tab-width 8`、`sentence-end-double-space t`、`fill-column 72`、`emacs-lisp-docstring-fill-column 72`、Lisp 模式 `indent-tabs-mode nil` ✓；参照那份里的 C 模式与 bug-reference 条目**不抄** ✓，且文件里不出现参照产品名 ✓）。
+  ② **读数**：端口字节编译器重新编译 `lisp/emacs-lisp/bytecomp.el` ⇒ 产物 **186311 字节 = 参照树那份**，`cmp` **逐字节一致** ✓✓（此前差 4 处、全在同一段 docstring 的换行 ✓）。加上前一笔的 `byte-opt.elc`（58987 ✓），**这两件 `.elc` 与参照树副本都逐字节一致** ✓。
+  ③ **口径**：这格里"参照树副本"是被**参照自己的 checkout 设置**塑造的产物 ⇒ 端口要复现它，就必须带上等价的 checkout 层设置 ✓——这是**脚手架**层面的等价，不是抄参照的程序（`check-own-voice` 口径不受影响 ✓）。
+  ④ **下一步（点名）**：⑴ 写 `tools/gen-elc.py`（P-102 政策下的 Python 工具 ✓）驱动端口的 `batch-byte-compile` 生成 **`.elc` 全族**并逐字节比对（现在编译器输出已被证明正确 ✓，预期差异聚到极少数文件 ✓）；⑵ 4.403 ⑧⑶ 的"哨兵/标记常量"复查（`INVALID_LISP_VALUE`、`Qunbound`、`make_lisp_ptr` 家族 ✓）与一条文本门 ✓；⑶ 弱表语义、unidata/loaddefs、L5、性能、平台冒烟 ✓。
+  ⑤ **资源 / 提交**：本轮一次单文件字节编译（约 1 分钟 ✓，无全量编译 ✓）；`63419391`（`femacs/.dir-locals.el` ✓）+ 本提交 ✓，均已推送 ✓；`git -C emacs status --short` 为空 ✓。
