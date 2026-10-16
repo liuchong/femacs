@@ -1452,7 +1452,7 @@ unsafe extern "C" fn ftcrfont_draw (s: *mut glyph_string, from: c_int, to: c_int
       cairo_fill (cr);                                            // C 601
     }
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   glyphs = SAFE_ALLOCA! (sa_avail,
 			 std::mem::size_of::<cairo_glyph_t> () * len as usize)
 	     as *mut cairo_glyph_t;                               // C 604
@@ -1499,7 +1499,7 @@ unsafe extern "C" fn ftcrfont_draw (s: *mut glyph_string, from: c_int, to: c_int
     haiku_end_cr_clip (cr);                                       // C 636
     EmacsWindow_end_cr_critical_section (FRAME_HAIKU_WINDOW! (f));   // C 637
   }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   unblock_input ();                                               // C 639
 
   return len;                                                     // C 641
