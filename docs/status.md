@@ -21187,3 +21187,9 @@
   ④ **附带保真观察**：端口 `internal-stack-stats` 报 **1 run**、参照 **3 runs** ✗ ⇒ 两侧"从 C 起跑的解释器嵌套层数"不同 ✓（已单列进 P-116 ⑤ 的 ⑺，不在本条内 ✓）。
   ⑤ **资源 / 提交**：本轮 2 次单文件编译 + 2 次链接 + 6 次探针（各 < 7 秒 ✓），全部经受控执行器 ✓（峰值最高 249 MB ✓）；`git -C emacs status --short` 为空 ✓。**提交**：`femacs/src/alloc.rs`（`FEMACS_GC_SKIP_STACK_SCAN` 与标记栈读数 ✓）、`PORTING.md`（P-116 ⑤ ✓）、本提交 ✓。
   ⑥ **下一步（点名）**：⑴ **二分尺寸阈值**（20 vs 20,000 之间 ✓，例如 100/1000 ✓）——阈值会指出机制（`SAFE_ALLOCA_LIMIT`？`xmalloc` scratch？✓）；⑵ 顺着阈值找"持有它的根"（首疑：端口在自己的 **scratch/alloca 回退**路径上把大对象留在堆上 ✓）；⑶ 之后才是 P-116 的抬档位收益（O1 已能跑通 ✓）与 `opt-level=2`；⑷ 8 个 `port-worse`、`edebug` 挂点、`find-func`/`map-ynp` 退出码 1；⑸ 整棵 `test/`、unidata/loaddefs、性能基线、平台冒烟 ✓。
+- **4.432 验证相第六十四轮："尺寸驱动"作废；保留的必要条件是**绑定到 elisp 局部变量**（P-116 ⑥）（2026-10-16）**：
+  ① **更正**：上一轮的"尺寸驱动"**不成立** ✗——把测量列全后，`20 元` 的 delta 也是 100×20 ✓ ⇒ 那只是"每轮一个对象"的同一现象在不同尺寸下的绝对量 ✓。
+  ② **决定性对照（两个探针只差一处 ✓）**：⑴ 不绑局部：`(setq probe-keep (length (make-list len i)))` ⇒ 长度 **3/5/8/12/16/20/32 全部不保留** ✓（delta −15…+14 ✓）；⑵ 绑局部：`(let ((x (make-list len i))) (setq probe-keep (length x)))` ⇒ 长度 **3…64 全部每轮留一个** ✓（delta = 200×len ✓、per_iter 2→63 ✓）。⇒ **必要条件 = "值被绑到 elisp 局部变量"** ✓，与尺寸无关 ✓。
+  ③ **同轮新增的三条排除**：⑴ `handlerlist` **恒定 4** ✓（新读数 `gc-h:` ✓）；⑵ `mark_c_stack` 的扫描**跨度小而稳定**（3,984 → 13,856 字节 ✓，`bottom` 固定、`end` 随深度变 ✓）⇒ "扫描整片栈"假设**作废** ✗；⑶ `FEMACS_GC_SKIP_STACK_SCAN=1` 让程序直接失败 ✓ ⇒ 扫描承载活数据 ✓（仪器本身的读数 ✓）。
+  ④ **下一步要查的（唯一与判据一致的机制）**：端口对解释器 `let` 局部的实现——值放在哪、由谁持有 ✓，与 C 的 `Bbind`/寄存器窗口逐处对 ✓；顺手把 `internal-stack-stats` 的 **runs 差异**（端口 1 / 参照 3 ✓）一起看（同一条解释器实现线索 ✓）。
+  ⑤ **资源 / 提交**：本轮 3 次单文件编译 + 3 次链接 + 6 次探针（各 < 6 秒 ✓），全部经受控执行器 ✓（峰值最高 254 MB ✓）；`git -C emacs status --short` 为空 ✓。**提交**：`femacs/src/alloc.rs`（`FEMACS_GC_TRACE` 增标记栈/`handlerlist`/扫描跨度三读数 ✓）、`spikes/gc-size-threshold-probe.el`（尺寸表 ✓）、`PORTING.md`（P-116 ⑥ ✓）、本提交 ✓。
