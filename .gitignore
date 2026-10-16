@@ -6,6 +6,11 @@
 #### generated Lisp products (status 4.372): the port's build outputs, not sources
 #
 # Mirrors the reference tree's own `.gitignore` rules for the trees the port owns verbatim:
+#
+# The reference's own root rules also ignore the editor's backup files (`*~`, its
+# .gitignore 327): the generators visit the file they write and `save-buffer` leaves them,
+# in the reference's tree as well as here (measured 2026-10-16, tools/gen-program-products.py).
+*~
 # a product of the build (`lisp/international/charscript.el`, the `*loaddefs.el` family, the
 # unidata/charsets tables, `.elc`) is a build output in both trees, so it is ignored in both.
 # The reference's rules are relative to its own root, hence the `femacs/` prefix here.
