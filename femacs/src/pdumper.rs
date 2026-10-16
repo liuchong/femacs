@@ -4666,7 +4666,7 @@ DEFUN! ("dump-emacs-portable",
 	 }
 
 	 {
-	   USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
 	   let mut filename_1: *mut c_char = core::ptr::null_mut ();
 	   SAFE_ALLOCA_STRING! (sa_avail, filename_1, filename);
@@ -4685,7 +4685,7 @@ DEFUN! ("dump-emacs-portable",
 	   unsafe {
 	     (*ctx).fd = emacs_open (filename_1, O_RDWR | O_TRUNC | O_CREAT, 0o666);
 	   }
-	   SAFE_FREE! (sa_count);
+	   SAFE_FREE! (sa_count, sa_mark);
 	 }
 	 if unsafe { (*ctx).fd } < 0
 	   { report_file_error (c"Opening dump output".as_ptr (), filename); }
