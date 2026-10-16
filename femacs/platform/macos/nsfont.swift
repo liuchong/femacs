@@ -1254,7 +1254,7 @@ func get_frame_param(_ f: UnsafeMutableRawPointer?, _ param: Lisp_Object) -> Lis
 func register_font_driver(_ driver: UnsafePointer<font_driver>?, _ f: UnsafeMutableRawPointer?)
 /// C: `extern void defvar_lisp (struct Lisp_Fwd const *, char const *)` (src/lisp.h 3473).
 @_silgen_name("defvar_lisp")
-func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?, docstring: StaticString)
 
 // Header-only constructs of the driver half (macros, INLINE functions, enumerators); the core
 // exports each C-ABI entry under the C construct's own name, as in the list above.
@@ -2392,7 +2392,7 @@ func syms_of_nsfont() {
   // 3495-3500) and hands it to `defvar_lisp`; the docstring is the macro's third argument.
   O_FWD_Vns_reg_to_script =
     Lisp_Fwd(type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(objvar: &Vns_reg_to_script))
-  defvar_lisp(&O_FWD_Vns_reg_to_script, "ns-reg-to-script")
+  defvar_lisp(&O_FWD_Vns_reg_to_script, "ns-reg-to-script", docstring: " Internal map of font registry to Unicode script.  ")
   Vns_reg_to_script = Qnil()
 
   pdumper_do_now_and_after_load(syms_of_nsfont_for_pdumper)
