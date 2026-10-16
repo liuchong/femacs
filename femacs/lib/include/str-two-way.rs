@@ -199,12 +199,15 @@ pub unsafe fn two_way_short_needle (haystack: *const u8, mut haystack_len: usize
       /* C: `i = suffix - 1;` - with `suffix == 0` this must wrap to `SIZE_MAX`, which the
          loop right below tests for (`while i != SIZE_MAX && ...`); PORTING.md P-96.  */
               i = suffix.wrapping_sub (1);
-              while memory < i + 1 && CANON_ELEMENT! (*needle.add (i))
+              /* C 269: `while (memory < i + 1 && ...)` - `i` is the `SIZE_MAX` sentinel the loop
+                 below tests for, so `i + 1` is *unsigned wraparound* in C (PORTING.md P-96).  */
+              while memory < i.wrapping_add (1) && CANON_ELEMENT! (*needle.add (i))
                                       == CANON_ELEMENT! (*haystack.add (i + j))
                 /* C: `i--;` - `i == 0` must wrap to `SIZE_MAX`, the sentinel the loop's own test
    uses (`while i != SIZE_MAX && ...`); PORTING.md P-96.  */
                 { i = i.wrapping_sub (1); }
-              if i + 1 < memory + 1
+              /* C 272: `if (i + 1 < memory + 1)` - the same wraparound (P-96).  */
+              if i.wrapping_add (1) < memory.wrapping_add (1)
                 { return haystack.add (j) as RETURN_TYPE! (); }
               /* No match, so remember how many repetitions of period
                  on the right half were scanned.  */
@@ -329,10 +332,13 @@ pub unsafe fn two_way_long_needle (haystack: *const u8, haystack_len: usize,
                 {
                   /* Scan for matches in left half.  */
               i = suffix.wrapping_sub (1);
-                  while memory < i + 1 && CANON_ELEMENT! (*needle.add (i))
+                  /* C 390: `while (memory < i + 1 && ...)` - the same sentinel and wraparound
+                     (PORTING.md P-96).  */
+                  while memory < i.wrapping_add (1) && CANON_ELEMENT! (*needle.add (i))
                                           == CANON_ELEMENT! (*haystack.add (i + j))
                     { i = i.wrapping_sub (1); }
-                  if i + 1 < memory + 1
+                  /* C 393: `if (i + 1 < memory + 1)` - the same wraparound (P-96).  */
+                  if i.wrapping_add (1) < memory.wrapping_add (1)
                     { return haystack.add (j) as RETURN_TYPE! (); }
                   /* No match, so remember how many repetitions of period
                      on the right half were scanned.  */
