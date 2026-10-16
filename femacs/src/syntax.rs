@@ -1696,7 +1696,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
   let mut size_byte: ptrdiff_t;
   let mut str_: *const u8;
   let mut len: c_int = 0;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   CHECK_STRING (string);
 
@@ -2189,7 +2189,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 
     SET_PT_BOTH (pos, pos_byte);
 
-    SAFE_FREE! (sa_count);
+    SAFE_FREE! (sa_count, sa_mark);
     return make_fixnum (PT! () - start_point);
   }
 }
