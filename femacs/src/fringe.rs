@@ -2386,7 +2386,7 @@ pub unsafe extern "C" fn syms_of_fringe ()
   defsubr (&raw mut Sset_fringe_bitmap_face);
 
   DEFVAR_LISP! (c"overflow-newline-into-fringe", Voverflow_newline_into_fringe,
-    "Non-nil means that newline may flow into the right fringe.\nThis means that display lines that are exactly as wide as the window\n\\(not counting the final newline) will occupy only one screen line, by\nshowing (or hiding) the final newline in the right fringe; when point\nis at the final newline, the cursor is shown in the right fringe.\nIf nil, also continue lines which are exactly as wide as the window.");
+    " Non-nil means that newline may flow into the right fringe.\nThis means that display lines that are exactly as wide as the window\n(not counting the final newline) will occupy only one screen line, by\nshowing (or hiding) the final newline in the right fringe; when point\nis at the final newline, the cursor is shown in the right fringe.\nIf nil, also continue lines which are exactly as wide as the window.  ");
   Voverflow_newline_into_fringe = Qt ();
 
   DEFVAR_LISP! (c"fringe-bitmaps", Vfringe_bitmaps,
