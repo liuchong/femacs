@@ -330,7 +330,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 
   /* SPECS is set to a string; use it as an interactive prompt.
      Copy it so that STRING will be valid even if a GC relocates SPECS.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let string_len: ptrdiff_t = SBYTES (specs);
   let string: *mut c_char = SAFE_ALLOCA! (sa_avail, string_len + 1) as *mut c_char;
   std::ptr::copy_nonoverlapping (SDATA (specs) as *const c_void, string as *mut c_void,
@@ -880,7 +880,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 
   let val: Lisp_Object = Ffuncall (nargs, args);
   unbind_to (speccount, Qnil ());
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return val;
 });
 
