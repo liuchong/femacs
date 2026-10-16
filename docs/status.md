@@ -20851,3 +20851,10 @@
   ④ **已排除**（累积）：GC（`gc-cons-threshold` 拉到 10^9、`gc-cons-percentage 0` 后照样崩 ✓）、读 `.elc` 路径 ✓、`print`/`print_preprocess` 的逻辑 ✓、`func-arity`（4.384 已修 ✓，L1 的 46 个 `Invalid function: #[…]` 归零 ✓）。
   ⑤ **下一步（点名，都在"写侧"）**：⑴ 在 lldb 下对那个符号的 `name` 字段（对象 + 偏移）下 **watchpoint** ✓ ⇒ 直接抓到**写者**（这是最短路径 ✓）；⑵ 或者给写侧装陷阱：`SET_SYMBOL_NAME`/`intern`/`make-symbol`/`Faset` 的写入点 ✓；⑶ 辅以 `MallocScribble=1`（3.621 用过的手法 ✓）让"被覆盖前的值"更早暴露 ✓；⑷ 抓到后修掉，再重跑 L1 全族。
   ⑥ **未声称**：写者未定位 ✗；本轮只把"坏对象是什么"（**一个 `name` 被文本覆盖的符号** ✓）钉死 ✓——这是从"print 单元 11 处可能"到"一个具体对象的一个字段"的收窄 ✓。
+
+- **4.389 验证相第二十一轮：写侧线索（唯一写入点）、`MallocScribble` 负结果、新 panic 站点（2026-10-16）**：
+  ① **`MallocScribble=1 MallocGuardEdges=1`（3 次）**：仍是 **0 / 139 / 139** ✗、**没有** guard-edge 陷阱命中 ⇒ **不是跨 malloc 块的越界写** ✓，而是"在**合法分配块内**把某个字段写成了文本字节" ✗⇒ 覆盖源就在进程自己的堆里（很可能是**一个真实字符串的数据**被写到错误偏移 ✓）。
+  ② **写侧清点**：全树只有**一处**会写符号的 `name` —— `femacs/src/alloc.rs:4048`（`(*XBARE_SYMBOL (sym)).u.s.name = name;`，C 的 `make_symbol`/`init_symbol` 对应处 ✓），端口与 C 同形 ✓ ⇒ 若是**越界/错址写**，它不走任何符号 API ✓（所以只装 API 陷阱抓不到 ✗，需要 watchpoint 或全单元陷阱 ✓）。
+  ③ **新 panic 站点**（第 6 次运行）：`print` 单元的镜像 `include/lisp.rs:1032:44` 的 **`ptr::offset` 溢出** ✗（`SSDATA`/`SDATA` 一类的指针算术 ✓）⇒ 消费同一个坏对象的**站点族**又多一个 ✓（累计：`STRING_BYTES`（:975/978 ✓）、`print_object` 的两条分支（+2804/+4448 ✓）、`print_circle_candidate_p + 2640`（lldb 下两次同址 ✓）、`SDATA` 的 offset ✓）——**都是同一个坏对象的受害者** ✓。
+  ④ **装置（已撤）**：`print.rs` 的符号分支加了原始字转储（`SYMDMP obj=%p words=…` ✓，副本在 `/tmp/print-traps-4389.rs` ✓）；本轮 6 次运行里该站点**未被命中** ✗（站点随运行漂移 ✓）。
+  ⑤ **下一步（两条，按成本排序）**：⑴ **全单元陷阱**：把镜像里的 `STRINGP` 检查留着（`SBYTES`/`SCHARS`/`SSDATA`/`SDATA` 四处 ✓）**重建全部 680 单元**（`gate-fast` 一次 ✓ 8 分钟 ✓）⇒ 任何单元里第一个踩到坏对象的地方都会被抓住，配合 `fprintf` 打出**对象本身与 tag** ✓；⑵ **lldb watchpoint**：在抓到坏对象之后（同一次运行内）对它所在地址的 `name` 字段下 watchpoint 并继续运行 hmm ✗（覆盖发生在之前 ✗）——正确做法是**在符号刚被创建时**就 watch：需要先知道"哪个符号"（用 ⑵ 先确定符号身份 ✓，再在下一轮用 `Fintern` 断点 + 地址条件 watch ✓）。
