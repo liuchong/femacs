@@ -2831,10 +2831,6 @@ pub fn safe_free (sa_count: specpdl_ref) {
             xfree ((*(specpdl_ptr! ())).unwind_ptr.arg);
         }
     }
-    // PORTING.md P-05: the pool's blocks whose scope the unwinding passed.  C has no such line
-    // (`SAFE_FREE` never touches `alloca` bytes - the frame does), so this is the port's
-    // mechanism, and it is what gives the `SAFE_ALLOCA` family a lifetime in Rust.
-    unsafe { sa_stack_release (unwrap_specpdl_ref (sa_count)) }
 }
 
 #[inline(always)]
@@ -3007,12 +3003,18 @@ macro_rules! ALLOCATE_PLAIN_PSEUDOVECTOR {
 /// A Rust `macro_rules!` cannot: the `let`s it introduces are hygienic, so the caller
 /// never sees `sa_avail`/`sa_count` (the macro was unusable).  The call site therefore
 /// names them, the shape `SAFE_NALLOCA!` already takes: `USE_SAFE_ALLOCA! (sa_avail,
-/// sa_count);` — the one deviation, and the C name is kept.
+/// sa_count, sa_mark);` — the one deviation, and the C name is kept.
+///
+/// `sa_mark` is the third name, and it is the port's: C's `alloca` memory dies with the frame,
+/// which Rust cannot name, so the *scope* carries the pool's height and `SAFE_FREE!` releases
+/// back to it (PORTING.md P-05, P-117 ⑧).  The declaration order matters at the call site:
+/// the height is read before anything is allocated in the scope.
 #[macro_export]
 macro_rules! USE_SAFE_ALLOCA {
-    ($sa_avail:ident, $sa_count:ident) => {
+    ($sa_avail:ident, $sa_count:ident, $sa_mark:ident) => {
         let mut $sa_avail: isize = MAX_ALLOCA;
         let $sa_count: specpdl_ref = SPECPDL_INDEX ();
+        let $sa_mark: usize = unsafe { sa_stack_mark () };
     };
 }
 
@@ -3088,14 +3090,24 @@ macro_rules! SAFE_ALLOCA_STRING {
     }};
 }
 
+/// C: `#define SAFE_FREE() safe_free (sa_count)`.  The port adds the pool's release: this is
+/// where the scope's requests die (its `sa_mark`), and it is *not* part of `safe_free`, whose
+/// walk only covers what C itself pushed (P-117 ⑦).
 #[macro_export]
 macro_rules! SAFE_FREE {
-    ($sa_count:expr) => { safe_free ($sa_count) };
+    ($sa_count:expr, $sa_mark:expr) => {{
+        safe_free ($sa_count);
+        unsafe { sa_stack_release_to ($sa_mark) }
+    }};
 }
 
 #[macro_export]
 macro_rules! SAFE_FREE_UNBIND_TO {
-    ($sa_count:expr, $count:expr, $val:expr) => { safe_free_unbind_to ($count, $sa_count, $val) };
+    ($sa_count:expr, $count:expr, $val:expr, $sa_mark:expr) => {{
+        let val_ = safe_free_unbind_to ($count, $sa_count, $val);
+        unsafe { sa_stack_release_to ($sa_mark) };
+        val_
+    }};
 }
 
 // --- Lisp_Object setters (src/lisp.h 1330-1400) -----------------------------
@@ -4103,11 +4115,15 @@ pub mod other_units {
                                      tag: pvec_type) -> *mut Lisp_Vector;
     }
     unsafe extern "C" {
+        /* PORTING.md P-05/P-117 ⑧: `alloca`'s port and the pair that gives it the scope's
+           lifetime.  `USE_SAFE_ALLOCA!` reads the chain's height with `sa_stack_mark`, and
+           `SAFE_FREE!`/`SAFE_FREE_UNBIND_TO!` hand it back to `sa_stack_release_to` - the
+           release must not ride on `safe_free`'s walk, which only covers what C itself
+           pushed (P-117 ⑦).  The names are the port's own; the definitions live in
+           `alloc.rs`.  */
         pub fn sa_stack_alloc (size: usize) -> *mut c_void;
-        /* PORTING.md P-05: the pool's release, called by `safe_free` below.  The name is
-           the port's own (C frees `alloca` bytes with the frame, not with `SAFE_FREE`), and
-           its definition lives in `alloc.rs` with the rest of the pool.  */
-        pub fn sa_stack_release (depth: isize);
+        pub fn sa_stack_mark () -> usize;
+        pub fn sa_stack_release_to (mark: usize);
         pub fn record_xmalloc (size: usize) -> *mut c_void;
         pub fn xzalloc (size: usize) -> *mut c_void;
         // src/lisp.h 5544: `void *xnmalloc (ptrdiff_t, ptrdiff_t)`, not the
