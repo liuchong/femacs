@@ -565,7 +565,7 @@ pub unsafe extern "C" fn parse_single_submenu (item_key: Lisp_Object,
 {
   let mapvec: *mut Lisp_Object;
   let mut top_level_items: bool = false;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   let len: ptrdiff_t = list_length (maps);
 
@@ -604,7 +604,7 @@ pub unsafe extern "C" fn parse_single_submenu (item_key: Lisp_Object,
       i += 1;
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return top_level_items;
 }
 
@@ -889,7 +889,7 @@ pub unsafe extern "C" fn x_popup_menu_1 (position: Lisp_Object, mut menu: Lisp_O
       /* We were given a list of keymaps.  */
       let nmaps: ptrdiff_t = list_length (menu);
       let maps: *mut Lisp_Object;
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       let mut i: ptrdiff_t;
 
       SAFE_ALLOCA_LISP! (sa_avail, maps, nmaps);
@@ -921,7 +921,7 @@ pub unsafe extern "C" fn x_popup_menu_1 (position: Lisp_Object, mut menu: Lisp_O
 
       menuflags |= MENU_KEYMAPS;
 
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
   else
     {
