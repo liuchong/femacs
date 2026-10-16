@@ -1750,7 +1750,22 @@ macro_rules! FRAME_MOUSE_UPDATE {
    C: #define AUTO_FRAME_ARG(name, parameter, value) AUTO_LIST1 (name, AUTO_CONS_EXPR (parameter, value))  */
 macro_rules! AUTO_FRAME_ARG {
   ($name:ident, $parameter:expr, $value:expr) => {
-    AUTO_LIST1! ($name, AUTO_CONS_EXPR! ($parameter, $value))
+    /* C's expansion is `AUTO_LIST1 (name, AUTO_CONS_EXPR (parameter, value))`: the pair and the
+       one-element list are two compound literals, both with this block's lifetime, and the port
+       declares both cells in one binding here (PORTING.md P-113 ③ - the nested expression form
+       would have given the pair the arm's block instead).  */
+    let mut $name: [Lisp_Cons; 2] = unsafe { std::mem::zeroed () };
+    $name[0].u.s.car = $parameter;
+    $name[0].u.s.u.cdr = $value;
+    let $name = if USE_STACK_CONS {
+      $name[1].u.s.car = unsafe { make_lisp_ptr (std::ptr::addr_of_mut! ($name[0]) as *mut c_void,
+						 Lisp_Type::Lisp_Cons) };
+      $name[1].u.s.u.cdr = Qnil ();
+      unsafe { make_lisp_ptr (std::ptr::addr_of_mut! ($name[1]) as *mut c_void,
+			      Lisp_Type::Lisp_Cons) }
+    } else {
+      unsafe { list1 (Fcons ($name[0].u.s.car, $name[0].u.s.u.cdr)) }
+    };
   };
 }
 
