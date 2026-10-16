@@ -175,7 +175,7 @@ def main() -> int:
                     help="test file pattern, relative to the test root; the default is the "
                          "reference's own ELFILES list (see enumerate_tests)")
     ap.add_argument("--list", action="store_true",
-                    help="print the file list the run would use and exit (no Emacs needed)")
+                    help="print the file list the run would use and exit (no binary needed)")
     ap.add_argument("--timeout", type=int, default=300)
     ap.add_argument("--limit", type=int, default=40, help="max detail lines to print")
     ap.add_argument("--tsv")
