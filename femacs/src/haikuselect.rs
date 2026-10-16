@@ -1125,7 +1125,7 @@ DEFUN! ("haiku-roster-launch", Fhaiku_roster_launch, Shaiku_roster_launch, 2, 2,
   nargs = 0;
   depth = SPECPDL_INDEX ();
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   if STRINGP (file_or_type)
     { SAFE_ALLOCA_STRING! (sa_avail, r#type, file_or_type); }
@@ -1178,14 +1178,14 @@ DEFUN! ("haiku-roster-launch", Fhaiku_roster_launch, Shaiku_roster_launch, 2, 2,
   maybe_quit ();
 
   if rc == B_OK
-    { return SAFE_FREE_UNBIND_TO! (sa_count, depth, make_uint (team_id as uintmax_t)); }
+    { return SAFE_FREE_UNBIND_TO! (sa_count, depth, make_uint (team_id as uintmax_t), sa_mark); }
   else if rc == B_ALREADY_RUNNING
     { return Qalready_running (); }
   else if rc == B_BAD_VALUE
     { signal_error (c"Invalid type or bad arguments".as_ptr (),
 		    list2 (file_or_type, args)); }
 
-  return SAFE_FREE_UNBIND_TO! (sa_count, depth, Qnil ());
+  return SAFE_FREE_UNBIND_TO! (sa_count, depth, Qnil (), sa_mark);
 });
 
 // C 1028-1060.
