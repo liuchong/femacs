@@ -15,7 +15,6 @@ __RNvNtCshIDsKH5exNL_4core9panicking31panic_invalid_enum_construction	a `4core` 
 __RNvNtCshIDsKH5exNL_4core9panicking32panic_null_reference_constructed	a `4core` entry the Rust runtime provides; not this port's debt
 __RNvNtCshIDsKH5exNL_4core9panicking36panic_misaligned_pointer_dereference	a `4core` entry the Rust runtime provides; not this port's debt
 __RNvNtCshIDsKH5exNL_4core9panicking5panic	a `4core` entry the Rust runtime provides; not this port's debt
-__RNvNtCshIDsKH5exNL_4core9panicking9panic_fmt	a `4core` entry the Rust runtime provides; not this port's debt
 __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const23panic_const_div_by_zero	a `4core` entry the Rust runtime provides; not this port's debt
 __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const23panic_const_rem_by_zero	a `4core` entry the Rust runtime provides; not this port's debt
 __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_add_overflow	a `4core` entry the Rust runtime provides; not this port's debt
@@ -77,7 +76,6 @@ _execve	the reference references it too (or an SDK .tbd exports it): provided at
 _execvp	the reference references it too (or an SDK .tbd exports it): provided at link time
 _exit	the reference references it too (or an SDK .tbd exports it): provided at link time
 _exp	the reference references it too (or an SDK .tbd exports it): provided at link time
-_fabs	the reference references it too (or an SDK .tbd exports it): provided at link time
 _faccessat	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fchdir	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fchmod	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -98,7 +96,6 @@ _fmod	the reference references it too (or an SDK .tbd exports it): provided at l
 _fork	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fprintf	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fputc	the reference references it too (or an SDK .tbd exports it): provided at link time
-_fputs	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fread	the reference references it too (or an SDK .tbd exports it): provided at link time
 _free	the reference references it too (or an SDK .tbd exports it): provided at link time
 _freeaddrinfo	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -166,6 +163,7 @@ _memcmp	the reference references it too (or an SDK .tbd exports it): provided at
 _memcpy	the reference references it too (or an SDK .tbd exports it): provided at link time
 _memmove	the reference references it too (or an SDK .tbd exports it): provided at link time
 _memset	the reference references it too (or an SDK .tbd exports it): provided at link time
+_memset_pattern16	the reference references it too (or an SDK .tbd exports it): provided at link time
 _memset_s	the reference references it too (or an SDK .tbd exports it): provided at link time
 _mkdir	the reference references it too (or an SDK .tbd exports it): provided at link time
 _mkostemp	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -249,7 +247,6 @@ _stat	the reference references it too (or an SDK .tbd exports it): provided at l
 _statfs	the reference references it too (or an SDK .tbd exports it): provided at link time
 _stpcpy	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strcasecmp	the reference references it too (or an SDK .tbd exports it): provided at link time
-_strcat	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strchr	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strcmp	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strcpy	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -292,7 +289,6 @@ _tolower	the reference references it too (or an SDK .tbd exports it): provided a
 _toupper	the reference references it too (or an SDK .tbd exports it): provided at link time
 _tparm	the reference references it too (or an SDK .tbd exports it): provided at link time
 _tputs	the reference references it too (or an SDK .tbd exports it): provided at link time
-_trunc	the reference references it too (or an SDK .tbd exports it): provided at link time
 _tzset	the reference references it too (or an SDK .tbd exports it): provided at link time
 _umask	the reference references it too (or an SDK .tbd exports it): provided at link time
 _uname	the reference references it too (or an SDK .tbd exports it): provided at link time
