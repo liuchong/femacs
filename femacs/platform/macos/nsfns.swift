@@ -747,9 +747,9 @@ struct Lisp_Fwd {
 @_silgen_name("Lisp_Fwd_Obj") func Lisp_Fwd_Obj() -> UInt8
 @_silgen_name("Lisp_Fwd_Bool") func Lisp_Fwd_Bool() -> UInt8
 @_silgen_name("defvar_lisp")
-func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?, docstring: StaticString)
 @_silgen_name("defvar_bool")
-func defvar_bool(_ b_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+func defvar_bool(_ b_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?, docstring: StaticString)
 @_silgen_name("staticpro") func staticpro(_ varaddress: UnsafePointer<Lisp_Object>?)
 /// C: `INLINE bool FLOATP (Lisp_Object)` (src/lisp.h 1596) and
 /// `INLINE double XFLOAT_DATA (Lisp_Object)` (src/lisp.h 3176).
@@ -2189,7 +2189,8 @@ func get_geometry_from_preferences(_ dpyinfo: UnsafeMutablePointer<ns_display_in
 /// `PVEC_SUBR << PSEUDOVECTOR_AREA_BITS`, the function slot is C's `{.a ## maxargs = fnname}`,
 /// and the initialiser stops at `command_modes`/`doc`.
 fileprivate func make_aligned_subr(_ lname: StaticString, _ minargs: Int16, _ maxargs: Int16,
-                                   _ function: UnsafeMutableRawPointer) -> Aligned_Lisp_Subr {
+                                   _ function: UnsafeMutableRawPointer,
+                                   docstring: StaticString, args: StaticString) -> Aligned_Lisp_Subr {
   return Aligned_Lisp_Subr(s: Lisp_Subr(
     header: vectorlike_header(size: PVEC_SUBR() << PSEUDOVECTOR_AREA_BITS()),
     function: Lisp_Subr_function(ptr: function),
@@ -2592,7 +2593,7 @@ func Fx_create_frame(_ parmsIn: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_create_frame: StaticString = "x-create-frame"
 fileprivate var Sx_create_frame: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_create_frame, 1, 1,
-                    unsafeBitCast(Fx_create_frame, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_create_frame, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "parms")
 
 // ==========================================================================
 // C 1612-1884: the frame z-order / restack / font / color-panel DEFUNs, the file dialog, and
@@ -2635,7 +2636,7 @@ func Fns_frame_list_z_order(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_frame_list_z_order: StaticString = "ns-frame-list-z-order"
 fileprivate var Sns_frame_list_z_order: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_frame_list_z_order, 0, 1,
-                    unsafeBitCast(Fns_frame_list_z_order, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_frame_list_z_order, to: UnsafeMutableRawPointer.self), docstring: " Return list of Emacs's frames, in Z (stacking) order.\nIf TERMINAL is non-nil and specifies a live frame, return the child\nframes of that frame in Z (stacking) order.\n\nFrames are listed from topmost (first) to bottommost (last).  ", args: "terminal")
 
 /// C 1653-1680: `DEFUN ("ns-frame-restack", …)`.
 @_cdecl("Fns_frame_restack")
@@ -2661,7 +2662,7 @@ func Fns_frame_restack(_ frame1: Lisp_Object, _ frame2: Lisp_Object,
 fileprivate let lname_ns_frame_restack: StaticString = "ns-frame-restack"
 fileprivate var Sns_frame_restack: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_frame_restack, 2, 3,
-                    unsafeBitCast(Fns_frame_restack, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_frame_restack, to: UnsafeMutableRawPointer.self), docstring: " Restack FRAME1 below FRAME2.\nThis means that if both frames are visible and the display areas of\nthese frames overlap, FRAME2 (partially) obscures FRAME1.  If optional\nthird argument ABOVE is non-nil, restack FRAME1 above FRAME2.  This\nmeans that if both frames are visible and the display areas of these\nframes overlap, FRAME1 (partially) obscures FRAME2.\n\nSome window managers may refuse to restack windows.  ", args: "frame1 frame2 above")
 
 /// C 1682-1699: `DEFUN ("x-select-font", …)`.
 @_cdecl("Fx_select_font")
@@ -2678,7 +2679,7 @@ func Fx_select_font(_ frame: Lisp_Object, _ ignored: Lisp_Object) -> Lisp_Object
 fileprivate let lname_x_select_font: StaticString = "x-select-font"
 fileprivate var Sx_select_font: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_select_font, 0, 2,
-                    unsafeBitCast(Fx_select_font, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_select_font, to: UnsafeMutableRawPointer.self), docstring: " Read a font using a Nextstep dialog.\nReturn a font specification describing the selected font.\n\nFRAME is the frame on which to pop up the font chooser.  If omitted or\nnil, it defaults to the selected frame. ", args: "frame ignored")
 
 /// C 1701-1712: `DEFUN ("ns-popup-color-panel", …)` - C's `""` interactively is a null
 /// interactive spec, which the port spells `nil`.
@@ -2691,7 +2692,7 @@ func Fns_popup_color_panel(_ frame: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_popup_color_panel: StaticString = "ns-popup-color-panel"
 fileprivate var Sns_popup_color_panel: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_popup_color_panel, 0, 1,
-                    unsafeBitCast(Fns_popup_color_panel, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_popup_color_panel, to: UnsafeMutableRawPointer.self), docstring: " Pop up the color panel.  ", args: "frame")
 
 /// C 1715-1724: the file dialog's `static struct { id panel; BOOL ret; … } ns_fd_data;`.  The
 /// `NS_IMPL_GNUSTEP`-only `dirS`/`initS`/`no_types` members are recorded, not carried.
@@ -2832,7 +2833,7 @@ func Fns_read_file_name(_ prompt: Lisp_Object, _ dir: Lisp_Object, _ mustmatch: 
 fileprivate let lname_ns_read_file_name: StaticString = "ns-read-file-name"
 fileprivate var Sns_read_file_name: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_read_file_name, 1, 5,
-                    unsafeBitCast(Fns_read_file_name, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_read_file_name, to: UnsafeMutableRawPointer.self), docstring: " Use a graphical panel to read a file name, using prompt PROMPT.\nOptional arg DIR, if non-nil, supplies a default directory.\nOptional arg MUSTMATCH, if non-nil, means the returned file or\ndirectory must exist.\nOptional arg INIT, if non-nil, provides a default file name to use.\nOptional arg DIR-ONLY-P, if non-nil, means choose only directories.  ", args: "prompt dir mustmatch init dir_only_p")
 
 // ==========================================================================
 // C 1886-2610: the defaults/resources group, the x-server-*/x-display-* DEFUNs, the
@@ -2892,7 +2893,7 @@ func Fns_get_resource(_ ownerIn: Lisp_Object, _ name: Lisp_Object) -> Lisp_Objec
 fileprivate let lname_ns_get_resource: StaticString = "ns-get-resource"
 fileprivate var Sns_get_resource: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_get_resource, 2, 2,
-                    unsafeBitCast(Fns_get_resource, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_get_resource, to: UnsafeMutableRawPointer.self), docstring: " Return the value of the property NAME of OWNER from the defaults database.\nIf OWNER is nil, Emacs is assumed.  ", args: "owner name")
 
 /// C 1917-1942: `DEFUN ("ns-set-resource", …)`.
 @_cdecl("Fns_set_resource")
@@ -2918,7 +2919,7 @@ func Fns_set_resource(_ ownerIn: Lisp_Object, _ name: Lisp_Object,
 fileprivate let lname_ns_set_resource: StaticString = "ns-set-resource"
 fileprivate var Sns_set_resource: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_set_resource, 3, 3,
-                    unsafeBitCast(Fns_set_resource, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_set_resource, to: UnsafeMutableRawPointer.self), docstring: " Set property NAME of OWNER to VALUE, from the defaults database.\nIf OWNER is nil, Emacs is assumed.\nIf VALUE is nil, the default is removed.  ", args: "owner name value")
 
 /// C 1944-1955: `DEFUN ("x-server-max-request-size", …)` - no real equivalent under Nextstep.
 @_cdecl("Fx_server_max_request_size")
@@ -2929,7 +2930,7 @@ func Fx_server_max_request_size(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_server_max_request_size: StaticString = "x-server-max-request-size"
 fileprivate var Sx_server_max_request_size: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_server_max_request_size, 0, 1,
-                    unsafeBitCast(Fx_server_max_request_size, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_server_max_request_size, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 1957-1968: `DEFUN ("x-server-vendor", …)` - the `NS_IMPL_GNUSTEP` arm returns "GNU".
 @_cdecl("Fx_server_vendor")
@@ -2940,7 +2941,7 @@ func Fx_server_vendor(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_server_vendor: StaticString = "x-server-vendor"
 fileprivate var Sx_server_vendor: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_server_vendor, 0, 1,
-                    unsafeBitCast(Fx_server_vendor, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_server_vendor, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 1970-1983: `DEFUN ("x-server-version", …)`.
 @_cdecl("Fx_server_version")
@@ -2957,7 +2958,7 @@ func Fx_server_version(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_server_version: StaticString = "x-server-version"
 fileprivate var Sx_server_version: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_server_version, 0, 1,
-                    unsafeBitCast(Fx_server_version, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_server_version, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 1985-1992: `DEFUN ("x-display-screens", …)`.
 @_cdecl("Fx_display_screens")
@@ -2968,7 +2969,7 @@ func Fx_display_screens(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_screens: StaticString = "x-display-screens"
 fileprivate var Sx_display_screens: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_screens, 0, 1,
-                    unsafeBitCast(Fx_display_screens, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_screens, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 1994-2013: `DEFUN ("x-display-mm-height", …)` - the `NS_IMPL_COCOA` arm measures the main
 /// display; the `#else` arm is `25.4 / dpyinfo->resx`.
@@ -2988,7 +2989,7 @@ func Fx_display_mm_height(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_mm_height: StaticString = "x-display-mm-height"
 fileprivate var Sx_display_mm_height: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_mm_height, 0, 1,
-                    unsafeBitCast(Fx_display_mm_height, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_mm_height, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2015-2034: `DEFUN ("x-display-mm-width", …)`.
 @_cdecl("Fx_display_mm_width")
@@ -3007,7 +3008,7 @@ func Fx_display_mm_width(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_mm_width: StaticString = "x-display-mm-width"
 fileprivate var Sx_display_mm_width: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_mm_width, 0, 1,
-                    unsafeBitCast(Fx_display_mm_width, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_mm_width, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2036-2058: `DEFUN ("x-display-backing-store", …)`.  The `NSBackingStoreRetained` /
 /// `Nonretained` arms are the `defined (NS_IMPL_GNUSTEP) || MAC_OS_X_VERSION_MIN_REQUIRED <
@@ -3026,7 +3027,7 @@ func Fx_display_backing_store(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_backing_store: StaticString = "x-display-backing-store"
 fileprivate var Sx_display_backing_store: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_backing_store, 0, 1,
-                    unsafeBitCast(Fx_display_backing_store, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_backing_store, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2060-2085: `DEFUN ("x-display-visual-class", …)`.
 @_cdecl("Fx_display_visual_class")
@@ -3055,7 +3056,7 @@ func Fx_display_visual_class(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_visual_class: StaticString = "x-display-visual-class"
 fileprivate var Sx_display_visual_class: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_visual_class, 0, 1,
-                    unsafeBitCast(Fx_display_visual_class, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_visual_class, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2087-2109: `DEFUN ("x-display-save-under", …)`.
 @_cdecl("Fx_display_save_under")
@@ -3071,7 +3072,7 @@ func Fx_display_save_under(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_save_under: StaticString = "x-display-save-under"
 fileprivate var Sx_display_save_under: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_save_under, 0, 1,
-                    unsafeBitCast(Fx_display_save_under, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_save_under, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2111-2134: `DEFUN ("x-open-connection", …)`.
 @_cdecl("Fx_open_connection")
@@ -3096,7 +3097,7 @@ func Fx_open_connection(_ display: Lisp_Object, _ resource_string: Lisp_Object,
 fileprivate let lname_x_open_connection: StaticString = "x-open-connection"
 fileprivate var Sx_open_connection: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_open_connection, 1, 3,
-                    unsafeBitCast(Fx_open_connection, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_open_connection, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "display resource_string must_succeed")
 
 /// C 2136-2145: `DEFUN ("x-close-connection", …)`.
 @_cdecl("Fx_close_connection")
@@ -3108,7 +3109,7 @@ func Fx_close_connection(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_close_connection: StaticString = "x-close-connection"
 fileprivate var Sx_close_connection: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_close_connection, 1, 1,
-                    unsafeBitCast(Fx_close_connection, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_close_connection, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2147-2159: `DEFUN ("x-display-list", …)`.
 @_cdecl("Fx_display_list")
@@ -3126,7 +3127,7 @@ func Fx_display_list() -> Lisp_Object {
 fileprivate let lname_x_display_list: StaticString = "x-display-list"
 fileprivate var Sx_display_list: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_list, 0, 0,
-                    unsafeBitCast(Fx_display_list, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_list, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "void")
 
 /// C 2161-2169: `DEFUN ("ns-hide-others", …)`.
 @_cdecl("Fns_hide_others")
@@ -3138,7 +3139,7 @@ func Fns_hide_others() -> Lisp_Object {
 fileprivate let lname_ns_hide_others: StaticString = "ns-hide-others"
 fileprivate var Sns_hide_others: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_hide_others, 0, 0,
-                    unsafeBitCast(Fns_hide_others, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_hide_others, to: UnsafeMutableRawPointer.self), docstring: " Hides all applications other than Emacs.  ", args: "void")
 
 /// C 2171-2202: `DEFUN ("ns-hide-emacs", …)`.  The `activate-front` arm is the
 /// `GNUSTEP_GUI_MAJOR_VERSION`-guarded one, dead text on this target (recorded).
@@ -3158,7 +3159,7 @@ func Fns_hide_emacs(_ on: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_hide_emacs: StaticString = "ns-hide-emacs"
 fileprivate var Sns_hide_emacs: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_hide_emacs, 1, 1,
-                    unsafeBitCast(Fns_hide_emacs, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_hide_emacs, to: UnsafeMutableRawPointer.self), docstring: " If ON is non-nil, the entire Emacs application is hidden.\nOtherwise if Emacs is hidden, it is unhidden.\nIf ON is equal to `activate', Emacs is unhidden and becomes\nthe active application.\nIf ON is equal to `activate-front', Emacs is unhidden and\nbecomes the active application, but only the selected frame\nis layered in front of the windows of other applications.  ", args: "on")
 
 /// C 2204-2213: `DEFUN ("ns-emacs-info-panel", …)`.
 @_cdecl("Fns_emacs_info_panel")
@@ -3170,7 +3171,7 @@ func Fns_emacs_info_panel() -> Lisp_Object {
 fileprivate let lname_ns_emacs_info_panel: StaticString = "ns-emacs-info-panel"
 fileprivate var Sns_emacs_info_panel: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_emacs_info_panel, 0, 0,
-                    unsafeBitCast(Fns_emacs_info_panel, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_emacs_info_panel, to: UnsafeMutableRawPointer.self), docstring: " Shows the `Info' or `About' panel for Emacs.  ", args: "void")
 
 /// C 2215-2235: `DEFUN ("ns-font-name", …)`.
 @_cdecl("Fns_font_name")
@@ -3191,7 +3192,7 @@ func Fns_font_name(_ name: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_font_name: StaticString = "ns-font-name"
 fileprivate var Sns_font_name: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_font_name, 1, 1,
-                    unsafeBitCast(Fns_font_name, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_font_name, to: UnsafeMutableRawPointer.self), docstring: " Determine font PostScript or family name for font NAME.\nNAME should be a string containing either the font name or an XLFD\nfont descriptor.  If string contains `fontset' and not\n`fontset-startup', it is left alone.  ", args: "name")
 
 /// C 2237-2289 (non-static).  Called in emacs.c to support early calls to `ns_lisp_to_color`
 /// or `Fns_list_colors`.
@@ -3273,7 +3274,7 @@ func Fns_list_colors(_ frame: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_list_colors: StaticString = "ns-list-colors"
 fileprivate var Sns_list_colors: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_list_colors, 0, 1,
-                    unsafeBitCast(Fns_list_colors, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_list_colors, to: UnsafeMutableRawPointer.self), docstring: " Return a list of all available colors.\nThe optional argument FRAME is currently ignored.  ", args: "frame")
 
 /// C 2331-2354: `DEFUN ("ns-list-services", …)`.  The `NS_IMPL_COCOA` arm is
 /// `/* You can't get services like this in 10.6+.  */ return Qnil;` - the `#else` arm is the
@@ -3285,7 +3286,7 @@ func Fns_list_services() -> Lisp_Object {
 fileprivate let lname_ns_list_services: StaticString = "ns-list-services"
 fileprivate var Sns_list_services: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_list_services, 0, 0,
-                    unsafeBitCast(Fns_list_services, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_list_services, to: UnsafeMutableRawPointer.self), docstring: " List available Nextstep services by querying NSApp.  ", args: "void")
 
 /// C 2356-2374: `DEFUN ("ns-perform-service", …)`.
 @_cdecl("Fns_perform_service")
@@ -3313,7 +3314,7 @@ func Fns_perform_service(_ service: Lisp_Object, _ send: Lisp_Object) -> Lisp_Ob
 fileprivate let lname_ns_perform_service: StaticString = "ns-perform-service"
 fileprivate var Sns_perform_service: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_perform_service, 2, 2,
-                    unsafeBitCast(Fns_perform_service, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_perform_service, to: UnsafeMutableRawPointer.self), docstring: " Perform Nextstep SERVICE on SEND.\nSEND should be either a string or nil.\nThe return value is the result of the service, as string, or nil if\nthere was no result.  ", args: "service send")
 
 // C 2378-2445 (the `NS_IMPL_COCOA` arm): compile and execute SCRIPT and return the error status
 // as function value - 0 on success (with `*result` set), 1 otherwise.
@@ -3425,7 +3426,7 @@ func Fns_do_applescript(_ script: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_do_applescript: StaticString = "ns-do-applescript"
 fileprivate var Sns_do_applescript: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_do_applescript, 1, 1,
-                    unsafeBitCast(Fns_do_applescript, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_do_applescript, to: UnsafeMutableRawPointer.self), docstring: " Execute AppleScript SCRIPT and return the result.\nIf compilation and execution are successful, the resulting script value\nis returned as a string, a number or, in the case of other constructs, t.\nIn case the execution fails, an error is signaled.  ", args: "script")
 
 /// C 2520-2524 (non-static): `struct ns_display_info *check_x_display_info (Lisp_Object)`,
 /// called from frame.c.  `@_cdecl` refuses a pointer to a *Swift* type, so the result is the
@@ -3523,7 +3524,7 @@ func Fsystem_move_file_to_trash(_ filenameIn: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_system_move_file_to_trash: StaticString = "system-move-file-to-trash"
 fileprivate var Ssystem_move_file_to_trash: Aligned_Lisp_Subr =
   make_aligned_subr(lname_system_move_file_to_trash, 1, 1,
-                    unsafeBitCast(Fsystem_move_file_to_trash, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fsystem_move_file_to_trash, to: UnsafeMutableRawPointer.self), docstring: " Move file or directory named FILENAME to the recycle bin.  ", args: "filename")
 
 // ==========================================================================
 // C 2612-3227: the color/display group, the monitor attribute list, `compute_tip_xy`, the tip
@@ -3540,7 +3541,7 @@ func Fxw_color_defined_p(_ color: Lisp_Object, _ frame: Lisp_Object) -> Lisp_Obj
 fileprivate let lname_xw_color_defined_p: StaticString = "xw-color-defined-p"
 fileprivate var Sxw_color_defined_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_xw_color_defined_p, 1, 2,
-                    unsafeBitCast(Fxw_color_defined_p, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fxw_color_defined_p, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "color frame")
 
 /// C 2622-2645: `DEFUN ("xw-color-values", …)`.
 @_cdecl("Fxw_color_values")
@@ -3566,7 +3567,7 @@ func Fxw_color_values(_ color: Lisp_Object, _ frame: Lisp_Object) -> Lisp_Object
 fileprivate let lname_xw_color_values: StaticString = "xw-color-values"
 fileprivate var Sxw_color_values: Aligned_Lisp_Subr =
   make_aligned_subr(lname_xw_color_values, 1, 2,
-                    unsafeBitCast(Fxw_color_values, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fxw_color_values, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "color frame")
 
 /// C 2647-2662: `DEFUN ("xw-display-color-p", …)`.
 @_cdecl("Fxw_display_color_p")
@@ -3584,7 +3585,7 @@ func Fxw_display_color_p(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_xw_display_color_p: StaticString = "xw-display-color-p"
 fileprivate var Sxw_display_color_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_xw_display_color_p, 0, 1,
-                    unsafeBitCast(Fxw_display_color_p, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fxw_display_color_p, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2664-2676: `DEFUN ("x-display-grayscale-p", …)`.
 @_cdecl("Fx_display_grayscale_p")
@@ -3599,7 +3600,7 @@ func Fx_display_grayscale_p(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_grayscale_p: StaticString = "x-display-grayscale-p"
 fileprivate var Sx_display_grayscale_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_grayscale_p, 0, 1,
-                    unsafeBitCast(Fx_display_grayscale_p, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_grayscale_p, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2678-2687: `DEFUN ("x-display-pixel-width", …)`.
 @_cdecl("Fx_display_pixel_width")
@@ -3611,7 +3612,7 @@ func Fx_display_pixel_width(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_pixel_width: StaticString = "x-display-pixel-width"
 fileprivate var Sx_display_pixel_width: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_pixel_width, 0, 1,
-                    unsafeBitCast(Fx_display_pixel_width, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_pixel_width, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2689-2698: `DEFUN ("x-display-pixel-height", …)`.
 @_cdecl("Fx_display_pixel_height")
@@ -3623,7 +3624,7 @@ func Fx_display_pixel_height(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_pixel_height: StaticString = "x-display-pixel-height"
 fileprivate var Sx_display_pixel_height: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_pixel_height, 0, 1,
-                    unsafeBitCast(Fx_display_pixel_height, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_pixel_height, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2700-2734 (static).
 func ns_make_monitor_attribute_list(_ monitors: UnsafeMutablePointer<MonitorInfo>?,
@@ -3757,7 +3758,7 @@ fileprivate let lname_ns_display_monitor_attributes_list: StaticString =
 fileprivate var Sns_display_monitor_attributes_list: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_display_monitor_attributes_list, 0, 1,
                     unsafeBitCast(Fns_display_monitor_attributes_list,
-                                  to: UnsafeMutableRawPointer.self))
+                                  to: UnsafeMutableRawPointer.self), docstring: " Return a list of physical monitor attributes on the X display TERMINAL.\n\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nIn addition to the standard attribute keys listed in\n`display-monitor-attributes-list', the following keys are contained in\nthe attributes:\n\n source -- String describing the source from which multi-monitor\n\t   information is obtained, \"NS\" is always the source.\"\n\nInternal use only, use `display-monitor-attributes-list' instead.  ", args: "terminal")
 
 /// C 2848-2857: `DEFUN ("x-display-planes", …)`.
 @_cdecl("Fx_display_planes")
@@ -3768,7 +3769,7 @@ func Fx_display_planes(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_planes: StaticString = "x-display-planes"
 fileprivate var Sx_display_planes: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_planes, 0, 1,
-                    unsafeBitCast(Fx_display_planes, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_planes, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2859-2867: `DEFUN ("x-display-color-cells", …)`.
 @_cdecl("Fx_display_color_cells")
@@ -3780,7 +3781,7 @@ func Fx_display_color_cells(_ terminal: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_x_display_color_cells: StaticString = "x-display-color-cells"
 fileprivate var Sx_display_color_cells: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_display_color_cells, 0, 1,
-                    unsafeBitCast(Fx_display_color_cells, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_display_color_cells, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "terminal")
 
 /// C 2869-2940 (static).
 func compute_tip_xy(_ f: UnsafeMutableRawPointer?, _ parms: Lisp_Object, _ dx: Lisp_Object,
@@ -4427,7 +4428,7 @@ func Fx_show_tip(_ string: Lisp_Object, _ frame: Lisp_Object, _ parmsIn: Lisp_Ob
 fileprivate let lname_x_show_tip: StaticString = "x-show-tip"
 fileprivate var Sx_show_tip: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_show_tip, 1, 9,
-                    unsafeBitCast(Fx_show_tip, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_show_tip, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "string frame parms timeout dx dy")
 
 /// C 3541-3549: `DEFUN ("x-hide-tip", …)`.
 @_cdecl("Fx_hide_tip")
@@ -4437,7 +4438,7 @@ func Fx_hide_tip() -> Lisp_Object {
 fileprivate let lname_x_hide_tip: StaticString = "x-hide-tip"
 fileprivate var Sx_hide_tip: Aligned_Lisp_Subr =
   make_aligned_subr(lname_x_hide_tip, 0, 0,
-                    unsafeBitCast(Fx_hide_tip, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fx_hide_tip, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xfns.c.  ", args: "void")
 
 /// C 3551-3614 (static).  Return geometric attributes of FRAME according to ATTRIBUTES.
 func frame_geometry(_ frame: Lisp_Object, _ attribute: Lisp_Object) -> Lisp_Object {
@@ -4500,7 +4501,7 @@ func Fns_frame_geometry(_ frame: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_frame_geometry: StaticString = "ns-frame-geometry"
 fileprivate var Sns_frame_geometry: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_frame_geometry, 0, 1,
-                    unsafeBitCast(Fns_frame_geometry, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_frame_geometry, to: UnsafeMutableRawPointer.self), docstring: " Return geometric attributes of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is an association list of the attributes listed below.  All height\nand width values are in pixels.\n\n`outer-position' is a cons of the outer left and top edges of FRAME\n  relative to the origin - the position (0, 0) - of FRAME's display.\n\n`outer-size' is a cons of the outer width and height of FRAME.  The\n  outer size includes the title bar and the external borders as well as\n  any menu and/or tool bar of frame.\n\n`external-border-size' is a cons of the horizontal and vertical width of\n  FRAME's external borders as supplied by the window manager.\n\n`title-bar-size' is a cons of the width and height of the title bar of\n  FRAME as supplied by the window manager.  If both of them are zero,\n  FRAME has no title bar.  If only the width is zero, Emacs was not\n  able to retrieve the width information.\n\n`menu-bar-external', if non-nil, means the menu bar is external (never\n  included in the inner edges of FRAME).\n\n`menu-bar-size' is a cons of the width and height of the menu bar of\n  FRAME.\n\n`tool-bar-external', if non-nil, means the tool bar is external (never\n  included in the inner edges of FRAME).\n\n`tool-bar-position' tells on which side the tool bar on FRAME is and can\n  be one of `left', `top', `right' or `bottom'.  If this is nil, FRAME\n  has no tool bar.\n\n`tool-bar-size' is a cons of the width and height of the tool bar of\n  FRAME.\n\n`internal-border-width' is the width of the internal border of\n  FRAME.  ", args: "frame")
 
 /// C 3660-3682: `DEFUN ("ns-frame-edges", …)`.
 @_cdecl("Fns_frame_edges")
@@ -4511,7 +4512,7 @@ func Fns_frame_edges(_ frame: Lisp_Object, _ type: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_frame_edges: StaticString = "ns-frame-edges"
 fileprivate var Sns_frame_edges: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_frame_edges, 0, 2,
-                    unsafeBitCast(Fns_frame_edges, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_frame_edges, to: UnsafeMutableRawPointer.self), docstring: " Return edge coordinates of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is a list of the form (LEFT, TOP, RIGHT, BOTTOM).  All values are\nin pixels relative to the origin - the position (0, 0) - of FRAME's\ndisplay.\n\nIf optional argument TYPE is the symbol `outer-edges', return the outer\nedges of FRAME.  The outer edges comprise the decorations of the window\nmanager (like the title bar or external borders) as well as any external\nmenu or tool bar of FRAME.  If optional argument TYPE is the symbol\n`native-edges' or nil, return the native edges of FRAME.  The native\nedges exclude the decorations of the window manager and any external\nmenu or tool bar of FRAME.  If TYPE is the symbol `inner-edges', return\nthe inner edges of FRAME.  These edges exclude title bar, any borders,\nmenu bar or tool bar of FRAME.  ", args: "frame type")
 
 /// C 3684-3723: `DEFUN ("ns-set-mouse-absolute-pixel-position", …)` (the `NS_IMPL_COCOA` arm;
 /// the GNUstep arm is empty text).
@@ -4555,7 +4556,7 @@ fileprivate let lname_ns_set_mouse_absolute_pixel_position: StaticString =
 fileprivate var Sns_set_mouse_absolute_pixel_position: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_set_mouse_absolute_pixel_position, 2, 2,
                     unsafeBitCast(Fns_set_mouse_absolute_pixel_position,
-                                  to: UnsafeMutableRawPointer.self))
+                                  to: UnsafeMutableRawPointer.self), docstring: " Move mouse pointer to absolute pixel position (X, Y).\nThe coordinates X and Y are interpreted in pixels relative to a position\n(0, 0) of the selected frame's display.  ", args: "x y")
 
 /// C 3726-3743: `DEFUN ("ns-mouse-absolute-pixel-position", …)`.
 @_cdecl("Fns_mouse_absolute_pixel_position")
@@ -4573,7 +4574,7 @@ fileprivate let lname_ns_mouse_absolute_pixel_position: StaticString =
 fileprivate var Sns_mouse_absolute_pixel_position: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_mouse_absolute_pixel_position, 0, 0,
                     unsafeBitCast(Fns_mouse_absolute_pixel_position,
-                                  to: UnsafeMutableRawPointer.self))
+                                  to: UnsafeMutableRawPointer.self), docstring: " Return absolute position of mouse cursor in pixels.\nThe position is returned as a cons cell (X . Y) of the\ncoordinates of the mouse cursor position in pixels relative to a\nposition (0, 0) of the selected frame's terminal.  ", args: "void")
 
 /// C 3745-3757: `DEFUN ("ns-show-character-palette", …)`.
 @_cdecl("Fns_show_character_palette")
@@ -4587,7 +4588,7 @@ func Fns_show_character_palette() -> Lisp_Object {
 fileprivate let lname_ns_show_character_palette: StaticString = "ns-show-character-palette"
 fileprivate var Sns_show_character_palette: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_show_character_palette, 0, 0,
-                    unsafeBitCast(Fns_show_character_palette, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_show_character_palette, to: UnsafeMutableRawPointer.self), docstring: " Show the macOS character palette.  ", args: "void")
 
 /// C 3759-3777: `DEFUN ("ns-process-is-accessibility-trusted", …)`.
 @_cdecl("Fns_process_is_accessibility_trusted")
@@ -4602,7 +4603,7 @@ fileprivate let lname_ns_process_is_accessibility_trusted: StaticString =
 fileprivate var Sns_process_is_accessibility_trusted: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_process_is_accessibility_trusted, 0, 0,
                     unsafeBitCast(Fns_process_is_accessibility_trusted,
-                                  to: UnsafeMutableRawPointer.self))
+                                  to: UnsafeMutableRawPointer.self), docstring: " Return non-nil if Emacs is trusted by macOS Accessibility.\nReturn nil otherwise or if the OS is not macOS.\nThis is necessary for Emacs to support Zoom and related accessibility\nfeatures.  Authorize Emacs for accessibility via System\nSettings... Privacy & Security... Accessibility... and add the Emacs.app\ninstalled directory to the enabled application list.  ", args: "void")
 
 /// C 3779-3800: `DEFUN ("ns-badge", …)`.
 @_cdecl("Fns_badge")
@@ -4620,7 +4621,7 @@ func Fns_badge(_ badge: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_badge: StaticString = "ns-badge"
 fileprivate var Sns_badge: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_badge, 1, 1,
-                    unsafeBitCast(Fns_badge, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_badge, to: UnsafeMutableRawPointer.self), docstring: " Set the app icon badge to BADGE.\nBADGE should be a string short enough to display nicely in the short\nspace intended for badges.\nIf BADGE is nil, clear the app badge.  ", args: "badge")
 
 // ==========================================================================
 // C 3802-4348: the closing batch - the dock-icon DEFUNs, the sleep block pair, `ns-send-items`,
@@ -4674,7 +4675,7 @@ func Fns_request_user_attention(_ urgency: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_request_user_attention: StaticString = "ns-request-user-attention"
 fileprivate var Sns_request_user_attention: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_request_user_attention, 1, 1,
-                    unsafeBitCast(Fns_request_user_attention, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_request_user_attention, to: UnsafeMutableRawPointer.self), docstring: " Bounce the app dock icon to request user attention.\nIf URGENCY nil, cancel the outstanding request, if any.\nIf URGENCY is the symbol `informational', bouncing lasts a few seconds.\nIf URGENCY is the symbol `critical', bouncing lasts until Emacs is\nfocused.  ", args: "urgency")
 
 /// C 3832-3907: `DEFUN ("ns-progress-indicator", …)`.
 @_cdecl("Fns_progress_indicator")
@@ -4734,7 +4735,7 @@ func Fns_progress_indicator(_ progress: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_progress_indicator: StaticString = "ns-progress-indicator"
 fileprivate var Sns_progress_indicator: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_progress_indicator, 1, 1,
-                    unsafeBitCast(Fns_progress_indicator, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_progress_indicator, to: UnsafeMutableRawPointer.self), docstring: " Bounce the app dock icon to request user attention.\nPROGRESS is a float between 0.0 and 1.0.\nIf PROGRESS is nil, remove the progress indicator.  ", args: "progress")
 
 /// C 3912-3958: `DEFUN ("ns-block-system-sleep", …)`.
 @_cdecl("Fns_block_system_sleep")
@@ -4777,7 +4778,7 @@ func Fns_block_system_sleep(_ why: Lisp_Object, _ allow_display_sleep: Lisp_Obje
 fileprivate let lname_ns_block_system_sleep: StaticString = "ns-block-system-sleep"
 fileprivate var Sns_block_system_sleep: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_block_system_sleep, 2, 2,
-                    unsafeBitCast(Fns_block_system_sleep, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_block_system_sleep, to: UnsafeMutableRawPointer.self), docstring: " Block system idle sleep.\nWHY is a string reason for the block.\nIf ALLOW-DISPLAY-SLEEP is non-nil, block the screen from sleeping.\nReturn a token to unblock this block using `ns-unblock-system-sleep',\nor nil if the block fails.  ", args: "why allow_display_sleep")
 
 /// C 3960-3991: `DEFUN ("ns-unblock-system-sleep", …)`.
 @_cdecl("Fns_unblock_system_sleep")
@@ -4803,7 +4804,7 @@ func Fns_unblock_system_sleep(_ token: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_unblock_system_sleep: StaticString = "ns-unblock-system-sleep"
 fileprivate var Sns_unblock_system_sleep: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_unblock_system_sleep, 1, 1,
-                    unsafeBitCast(Fns_unblock_system_sleep, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_unblock_system_sleep, to: UnsafeMutableRawPointer.self), docstring: " Unblock system idle sleep.\nTOKEN is an object returned by `ns-block-system-sleep'.\nReturn non-nil if the TOKEN block was unblocked.  ", args: "token")
 
 /// C 3993-4045: `DEFUN ("ns-send-items", …)` (the `NS_IMPL_COCOA` arm).
 @_cdecl("Fns_send_items")
@@ -4852,7 +4853,7 @@ func Fns_send_items(_ items: Lisp_Object) -> Lisp_Object {
 fileprivate let lname_ns_send_items: StaticString = "ns-send-items"
 fileprivate var Sns_send_items: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_send_items, 1, 1,
-                    unsafeBitCast(Fns_send_items, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_send_items, to: UnsafeMutableRawPointer.self), docstring: " Send a list of items to macOS applications or services. ", args: "items")
 
 // ==========================================================================
 // C 4048-4065: `@implementation EmacsFileDelegate` - delegate methods for Open/Save panels.
@@ -5037,25 +5038,25 @@ func syms_of_nsfns() {
   // argument.
   O_FWD_Vns_icon_type_alist = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_icon_type_alist) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_Vns_icon_type_alist, "ns-icon-type-alist")
+  defvar_lisp(&O_FWD_Vns_icon_type_alist, "ns-icon-type-alist", docstring: " Alist of elements (REGEXP . IMAGE) for images of icons associated to frames.\nIf the title of a frame matches REGEXP, then IMAGE.tiff is\nselected as the image of the icon representing the frame when it's\nminiaturized.  If an element is t, then Emacs tries to select an icon\nbased on the filetype of the visited file.\n\nThe images have to be installed in a folder called English.lproj in the\nEmacs folder.  You have to restart Emacs after installing new icons.\n\nExample: Install an icon Gnus.tiff and execute the following code\n\n  (setq ns-icon-type-alist\n        (append ns-icon-type-alist\n                \\='((\"^\\\\*\\\\(Group\\\\*$\\\\|Summary \\\\|Article\\\\*$\\\\)\"\n                   . \"Gnus\"))))\n\nWhen you miniaturize a Group, Summary or Article frame, Gnus.tiff will\nbe used as the image of the icon representing the frame.  ")
   Vns_icon_type_alist = list1(Qt())
 
   // C 4229-4233: `DEFVAR_LISP ("ns-version-string", Vns_version_string, …)`.
   O_FWD_Vns_version_string = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_version_string) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_Vns_version_string, "ns-version-string")
+  defvar_lisp(&O_FWD_Vns_version_string, "ns-version-string", docstring: " Toolkit version for NS Windowing.  ")
   Vns_version_string = ns_appkit_version_str()
 
   // C 4280-4286: `DEFVAR_BOOL ("ns-use-proxy-icon", ns_use_proxy_icon, …)`.
   O_FWD_ns_use_proxy_icon = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_proxy_icon) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_ns_use_proxy_icon, "ns-use-proxy-icon")
+  defvar_bool(&O_FWD_ns_use_proxy_icon, "ns-use-proxy-icon", docstring: " When non-nil display a proxy icon in the titlebar.\nThe proxy icon can be used to drag the file associated with the\ncurrent buffer to other applications, a printer, the desktop, etc., in\nthe same way you can from Finder.  Note that you might have to disable\n`tool-bar-mode' to see the proxy icon.\n\nThe default value is t.  ")
   ns_use_proxy_icon = true
 
   // C 4235-4241: `DEFVAR_LISP ("x-max-tooltip-size", Vx_max_tooltip_size, "…")`.
   O_FWD_Vx_max_tooltip_size = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vx_max_tooltip_size) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_Vx_max_tooltip_size, "x-max-tooltip-size")
+  defvar_lisp(&O_FWD_Vx_max_tooltip_size, "x-max-tooltip-size", docstring: " SKIP: real doc in xfns.c.  ")
   Vx_max_tooltip_size = Qnil()
 
   defsubr(&Sns_read_file_name)
