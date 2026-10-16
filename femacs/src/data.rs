@@ -1170,7 +1170,7 @@ pub unsafe extern "C" fn wrong_choice (choice: Lisp_Object, wrong: Lisp_Object) 
   AUTO_STRING! (or, b" or \0".as_ptr () as *const c_char);
   AUTO_STRING! (should_be_specified, b" should be specified\0".as_ptr () as *const c_char);
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   SAFE_ALLOCA_LISP! (sa_avail, args, len * 2 + 1);
 
   *args.offset (i) = one_of;
