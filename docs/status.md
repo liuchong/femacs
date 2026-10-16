@@ -21532,3 +21532,19 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **来源（不是新缺陷，是既有债务的账 ✓）**：`femacs/xtask/src/main.rs` 18-40 行写明单元按 **`-C opt-level=0`** 编 ✓，且**不是选择而是被迫** ✓（P-101 ✓：`-C opt-level=2` 时 `styled_format` 的 `memmove` 读未映射地址 ✗、`-C opt-level=1` 时崩在第一条 `Loading` 之前 ✗ ⇒ “端口的 `unsafe` 打洞层（镜像的类型双关与 `&`/`&mut` 别名）还不具备被优化” ✓，并为它挂了临时的 `-Wl,-stack_size,0x4000000` 作为收据 ✓）。参照的 C 是 **`-g3 -O2`** ✓ ⇒ 3-8× 是 `-O0` 对 `-O2` 的预期量级 ✓；**66× 的正则**则是回退引擎在 `-O0` 下的放大 ✓（同一份源码、同一组优化宏 ✓：`mutually_exclusive` 12/12、`analyze_first` 10/10、`PUSH_FAILURE` 23/24、`POP_FAILURE` 17/18 ✓ 都在 ✓）。
   ④ **结论与排序（本轮改写优先级 ✓）**：⑴ **6 个“端口超时”里有性能类的**（`electric`/`ffap`/`whitespace` ✓，很可能还有 `buffer`/`fns`/`xdisp` ✓）⇒ **不许**当成 6 个独立逻辑缺陷追 ✗，它们与 DoD-7（性能不低于参照 ✓）**同一笔账** ✓；⑵ 唯一出路是 P-101 ②：**先修那两处优化下暴露的 unsafe 缺陷，再把单元抬到 `-O2`** ✓（顺序不许颠倒 ✗），随后撤掉 64 MB 栈链接标志 ✓；⑶ 抬档以后必须复跑：`gate-fast`/`gate-load`/`dump` ✓、`gc-retention-probe` ✓、本轮的基准表 ✓、以及 **6 个超时文件** ✓（届时它们应回到 150 秒内 ✓）。
   ⑤ **资源**：1 次 25 秒 `sample`（峰值 89 MB ✓）+ 1 次基准对拍（43 秒 ✓，峰值 36 MB ✓）；受控执行器 runtime 900 MiB（**下调自默认** ✓）；`git -C emacs status --short` 为空 ✓；临时输出已清理 ✓。提交：本提交（纯读数 ✓）。
+- **4.486 验证相第一百一十七轮：**P-101 的优化债已经还清** —— 单元在 `-O2` 下全绿，基准普遍追平，`ffap-tests` 由超时转为 same（2026-10-17）**：
+  ① **决定性实验** ✓：`FEMACS_OPT_LEVEL=1` ⇒ `tools/check-all-units.sh` **83 units, 0 failure** ✓ + `gate-load` **15 例 0 failure** ✓；再 `FEMACS_OPT_LEVEL=2` ⇒ **83 units, 0 failure** ✓ + `gate-load` **0 failure** ✓ + `dump` 成功 ✓（13,025,304 字节 ✓）。⇒ P-101 记的两处阻塞（`-O1` 崩在第一条 `Loading` 前 ✗、`-O2` 时 `styled_format` 的 `memmove` 读未映射地址 ✗）**都已不复现** ✓ —— 这正是 P-124/P-127/P-130/P-132/P-136 等**真类型/别名缺陷**修掉之后的红利 ✓。
+  ② **基准（同机同命令 ✓；端口 `-O0` → `-O2` → 参照 ✓）**：
+
+     | 工作负载 | `-O0` | **`-O2`** | 参照 | `-O2`/参照 |
+     | --- | ---: | ---: | ---: | ---: |
+     | `dotimes` 1e7 | 5.387 | **1.263** | 0.710 | 1.8× |
+     | `length` 10 万 | 0.0115 | **0.0026** | 0.0038 | **0.7×**（更快 ✓） |
+     | `string-search` 2 MB | 0.0155 | **0.0037** | 0.0028 | 1.3× |
+     | `string-match "a*b*c*d*e"` | 36.83 | **6.94** | 0.554 | **12.5×** ✗ |
+     | `sort` 10 万 | 0.0166 | **0.0037** | 0.0047 | **0.8×**（更快 ✓） |
+
+     ⇒ 除正则外**普遍追平或更好** ✓；正则仍差 12.5× ✗，与 `regex-emacs-tests` 的 `regexp-tests-backtrack-optimization`（“Stack overflow” ✗）同源 ✓ ⇒ 成为 DoD-7 的下一个靶子 ✓。
+  ③ **对 L5 读数的影响** ✓：`ffap-tests` **超时 → `same=1`** ✓（15 例 ✓）；`electric-tests` 仍超时（903 例 × 正则 12.5× ✓ ⇒ 性能 ✓，等正则修完再看 ✓）；`whitespace-tests` 仍超时 ✗ 但**是自旋**（11 例只需几秒 ✓）：`sample` 2293 个样本**全在 `Fmake_indirect_buffer`** ✓（`-O2` 下把内联的 `reset_buffer`/`reset_buffer_local_variables`/`clone_per_buffer_values` 都算在这一帧里 ✓），且第 7 例（`whitespace-tests--global` ✓）通过后即卡住 ⇒ 第 8 例（间接缓冲那一条 ✓）✓ ⇒ 下一个靶子：用**最小复现** `(make-indirect-buffer …)` 定位（本轮已核过 `reset_buffer_local_variables` 的 `tmp = XCDR (tmp)` 两处都在 ✓，`continue` 前那次补偿也是对的 ✓）。
+  ④ **状态与下一步** ✓：`build/femacs/*.o` **当前是 `-O2` 编的** ✓（`xtask` 的默认仍是 `-O0` ✓，`FEMACS_OPT_LEVEL` 是既有开关 ✓）⇒ 把默认改成 `-O2` 是一次**正式改动** ✓，须先做一次验证扫（至少 `lisp/emacs-lisp` + `progmodes` + `src` 三片 ✓，外加 `gate-fast`/`gate-probes` ✓），并把 P-101 ② 的临时 `-Wl,-stack_size,0x4000000` 一并撤掉 ✓（P-101 ③ 说该标志是那笔债的收据 ✓）。
+  ⑤ **资源**：两次全量单元编译（各约 90 秒 ✓）+ 2 次 `gate-load` + 1 次 `dump` + 1 次基准（10 秒 ✓）+ 3 次单文件扫（约 25 分钟 ✓，其中 2 次 300 秒上限 ✓）；受控执行器 build 2048 / runtime 900-1200 MiB（均**下调自默认** ✓）、峰值 ≤ **452 MB** ✓；`git -C emacs status --short` 为空 ✓；临时输出已清理 ✓。提交：本提交（纯读数 + 工作区构建档位由实验决定 ✓）。
