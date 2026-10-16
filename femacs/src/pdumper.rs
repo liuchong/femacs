@@ -5907,10 +5907,19 @@ pub unsafe extern "C" fn pdumper_find_object_type_impl (obj: *const c_void) -> c
     { return PDUMPER_NO_OBJECT; }
   let reloc: *const dump_reloc =
     dump_find_relocation (unsafe { &raw const dump_private.header.object_starts }, offset);
-  /* C reads `reloc->type`.  */
-  let r#type: c_int = dump_reloc_type_of! (unsafe { *reloc });
+  /* C 5236-5238: `return (reloc != NULL && dump_reloc_get_offset (*reloc) == offset)
+     ? reloc->type : PDUMPER_NO_OBJECT;`.  The ternary's *condition* is evaluated first and
+     `reloc->type` only in the true arm, so a NULL `reloc` is never read.  The port used to
+     hoist that read into a `let` above the test, which is a null dereference on the path the
+     reference takes safely - the UB check reported it (build/femacs/units/pdumper/_root.rs
+     5916, status 4.419) and 33 of the 68 `lisp/emacs-lisp` ERT files died there.  */
   return if !reloc.is_null () && dump_reloc_get_offset (unsafe { *reloc }) == offset
-    { r#type }
+    {
+      /* The ternary's true arm, and the only place the record is read for its type: C
+         evaluates `reloc->type` here and never on the NULL path above.  */
+      let r#type: c_int = dump_reloc_type_of! (unsafe { *reloc });
+      r#type
+    }
     else { PDUMPER_NO_OBJECT };
 }
 
