@@ -21291,3 +21291,9 @@
   ③ **逐句核对（本轮读码 ✓）**：`wait_reading_process_output` 的 `status_notify` 调用点与守卫、`status_notify` 本体、`handle_child_signal` 本体**与 C 一致** ✓ ⇒ 丢唤醒不在循环写法 ✓ 而在**信号安装/屏蔽层** ✓（"SIGCHLD 被永久屏蔽"恰好能解释这份读数 ✓）。
   ④ **门槛**：`gate-load=0` ✓（含 `check-coding-eol` 15 例 0 failure ✓）⇒ 仪器门等价 ✓、默认关时不影响行为 ✓。裁定 **P-122 ⑶** ✓：下一步 ⑴ 找端口安装 SIGCHLD 的位置（`emacs_sigaction_init`/`init_signals` ✓）与 C 对照 ✓；⑵ 查 `block_child_signal`/`unblock_child_signal` 与等待前的 `sigprocmask` ✓；⑶ 修后跑三形状探针（目标 0 丢失 ✓）+ `package-vc-tests` 整片 ✓ + 三门口复绿 ✓。
   ⑤ **资源**：2 次单单元编译（各 5-6 秒 ✓）+ 2 次 `gate-load`（链接 ✓ 各含 15 例 diff ✓）+ 3 次探针（7-17 秒 ✓），受控执行器峰值 ≤ **303 MB** ✓（build 3072 MiB / runtime 1024 MiB 均**下调自默认** ✓）；`git -C emacs status --short` 为空 ✓；`/tmp/xt-cargo` 与临时输出已清理 ✓。提交：`femacs/src/process.rs`（仪器 ✓）、`PORTING.md`（P-122 ⑶ ✓）、本提交 ✓。
+- **4.447 验证相第七十九轮：收割本体也没有被调用 —— 探针期间**零次 `waitpid`**（4.446 结论加强 + miss 率波动的如实记录）（2026-10-16）**：
+  ① **仪器扩展**：`FEMACS_CHILD_TRACE` 加一条 `get_child_status`（`sysdep.rs` ✓）—— 端口**唯一**的 `waitpid` 包装 ✓（`child_status_changed`/`process_status` 都经它 ✓）⇒ 没有打印 = **没有收割** ✓；两处改动均过 `extract-abi --check` ✓（`sysdep` OK ✓、`process` OK ✓）且 `gate-load=0` ✓。
+  ② **读数**：`slow`（`sleep 0.05`）**3/3 丢失** ✗、`fast` **2/3 丢失** ✗，`child-get` 打印 **0 条** ✓✗ ⇒ 探针期间**一次收割都没有发生** ✓（连"成功"的一两次也没有 ✗ ⇒ 那几次是 **EOF/EIO** 路径结束的 ✓，与 `waitpid` 无关 ✓）。
+  ③ **如实记录波动**：miss 率在轮次间**明显波动**（`slow`：0/20 ✓ → 2/10 ✗ → 3/3 ✗）⇒ 与环境/负载相关 ✓；因此"快退出"只是**放大因子** ✓ 而不是唯一判据 ✓（P-122 ⑵ 的措辞按此收窄 ✓）。
+  ④ **两个候选取其一（下一轮定案 ✓）**：⑴ **SIGCHLD 未安装或被屏蔽** ✓（打印 `sigaction` 处置与当前屏蔽字 ✓）；⑵ **等待的 fd 集不含子进程管道** ✓（打印 `Atemp`/`max_desc` 的计算 ✓）。裁定 **P-122 ⑷** ✓；验收不变（三形状探针 0 丢失 ✓ + `package-vc-tests` 整片 ✓ + 三门口复绿 ✓）。
+  ⑤ **资源**：2 次单单元编译（5-6 秒 ✓）+ 1 次 `gate-load`（✓）+ 2 次探针（各 ~17 秒 ✓）+ 2 次 `extract-abi --check`（4 秒 ✓），受控执行器峰值 ≤ **283 MB** ✓（build 3072 / runtime 1024 MiB 均下调自默认 ✓）；`git -C emacs status --short` 为空 ✓；`/tmp/xt-cargo` 与临时输出已清理 ✓。提交：`femacs/src/sysdep.rs`（仪器 ✓）、`PORTING.md`（P-122 ⑷ ✓）、本提交 ✓。
