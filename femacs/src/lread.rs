@@ -1044,7 +1044,7 @@ unsafe extern "C" fn load_warn_unescaped_character_literals (file: Lisp_Object)
 }
 
 DEFUN! ("get-load-suffixes", Fget_load_suffixes, Sget_load_suffixes, 0, 0, 0,
-       doc: "Return the suffixes that `load' should try if a suffix is \nrequired.\nThis uses the variables `load-suffixes' and `load-file-rep-suffixes'.",
+       doc: " Return the suffixes that `load' should try if a suffix is required.\nThis uses the variables `load-suffixes' and `load-file-rep-suffixes'.  ",
        (),
        {
 	 let mut lst: Lisp_Object = Qnil ();
@@ -6585,20 +6585,20 @@ pub unsafe extern "C" fn syms_of_lread ()
   defsubr (&raw mut Sobarrayp);
   defsubr (&raw mut Sobarray_clear);
   DEFVAR_LISP! (c"obarray", Vobarray,
-	       "Symbol table for use by `intern' and `read'. It is a vector whose length ought to be prime for best results. The vector's contents don't make sense if examined from Lisp programs; to find all the symbols in an obarray, use `mapatoms'.");
+	       " Symbol table for use by `intern' and `read'.\nIt is a vector whose length ought to be prime for best results.\nThe vector's contents don't make sense if examined from Lisp programs;\nto find all the symbols in an obarray, use `mapatoms'.  ");
   DEFVAR_LISP! (c"values", Vvalues,
-	       "List of values of all expressions which were read, evaluated and printed. Order is reverse chronological. This variable is obsolete as of Emacs 28.1 and should not be used.");
+	       " List of values of all expressions which were read, evaluated and printed.\nOrder is reverse chronological.\nThis variable is obsolete as of Emacs 28.1 and should not be used.  ");
     set_symbol_bits! (declared_special, XBARE_SYMBOL (intern (c"values".as_ptr ())), false);
   DEFVAR_LISP! (c"standard-input", Vstandard_input,
-	       "Stream for read to get input from. See documentation of `read' for possible values.");
+	       " Stream for read to get input from.\nSee documentation of `read' for possible values.  ");
     Vstandard_input = Qt ();
   DEFVAR_LISP! (c"read-circle", Vread_circle,
 	       "Non-nil means read recursive structures using #N= and #N# syntax.");
     Vread_circle = Qt ();
   DEFVAR_LISP! (c"load-path", Vload_path,
-	       "List of directories to search for files to load. Each element is a string (directory file name) or nil (meaning `default-directory'). This list is consulted by the `require' function. Initialized during startup as described in Info node `(elisp)Library Search'. Use `directory-file-name' when adding items to this path. However, Lisp programs that process this list should tolerate directories both with and without trailing slashes.");
+	       " List of directories to search for files to load.\nEach element is a string (directory file name) or nil (meaning\n`default-directory').\nThis list is consulted by the `require' function.\nInitialized during startup as described in Info node `(elisp)Library Search'.\nUse `directory-file-name' when adding items to this path.  However, Lisp\nprograms that process this list should tolerate directories both with\nand without trailing slashes.  ");
   DEFVAR_LISP! (c"load-suffixes", Vload_suffixes,
-	       "List of suffixes for Emacs Lisp files and dynamic modules. This list includes suffixes for both compiled and source Emacs Lisp files. This list should not include the empty string. `load' and related functions try to append these suffixes, in order, to the specified file name if a suffix is allowed or required.");
+	       " List of suffixes for Emacs Lisp files and dynamic modules.\nThis list includes suffixes for both compiled and source Emacs Lisp files.\nThis list should not include the empty string.\n`load' and related functions try to append these suffixes, in order,\nto the specified file name if a suffix is allowed or required.  ");
     Vload_suffixes = list2 (build_string (c".elc".as_ptr ()),
 			  build_string (c".el".as_ptr ()));
 // C: `#ifdef HAVE_MODULES`
@@ -6630,42 +6630,42 @@ pub unsafe extern "C" fn syms_of_lread ()
   { Vdynamic_library_suffixes = Qnil (); }
 // C: `#endif`
   DEFVAR_LISP! (c"load-file-rep-suffixes", Vload_file_rep_suffixes,
-	       "List of suffixes that indicate representations of  the same file. This list should normally start with the empty string. Enabling Auto Compression mode appends the suffixes in `jka-compr-load-suffixes' to this list and disabling Auto Compression mode removes them again. `load' and related functions use this list to determine whether they should look for compressed versions of a file and, if so, which suffixes they should try to append to the file name in order to do so. However, if you want to customize which suffixes the loading functions recognize as compression suffixes, you should customize `jka-compr-load-suffixes' rather than the present variable.");
+	       " List of suffixes that indicate representations of the same file.\nThis list should normally start with the empty string.\n\nEnabling Auto Compression mode appends the suffixes in\n`jka-compr-load-suffixes' to this list and disabling Auto Compression\nmode removes them again.  `load' and related functions use this list to\ndetermine whether they should look for compressed versions of a file\nand, if so, which suffixes they should try to append to the file name\nin order to do so.  However, if you want to customize which suffixes\nthe loading functions recognize as compression suffixes, you should\ncustomize `jka-compr-load-suffixes' rather than the present variable.  ");
     Vload_file_rep_suffixes = list1 (empty_unibyte_string);
   DEFSYM! (Qjka_compr_load_suffixes, "jka-compr-load-suffixes");
   DEFVAR_BOOL! (c"load-in-progress", load_in_progress,
 	       "Non-nil if inside of `load'.");
   DEFSYM! (Qload_in_progress, "load-in-progress");
   DEFVAR_LISP! (c"after-load-alist", Vafter_load_alist,
-	       "An alist of functions to be evalled when particular files are loaded. Each element looks like (REGEXP-OR-FEATURE FUNCS...). REGEXP-OR-FEATURE is either a regular expression to match file names, or a symbol (a feature name). When `load' is run and the file-name argument matches an element's REGEXP-OR-FEATURE, or when `provide' is run and provides the symbol REGEXP-OR-FEATURE, the FUNCS in the element are called. An error in FUNCS does not undo the load, but does prevent calling the rest of the FUNCS.");
+	       " An alist of functions to be evalled when particular files are loaded.\nEach element looks like (REGEXP-OR-FEATURE FUNCS...).\n\nREGEXP-OR-FEATURE is either a regular expression to match file names, or\na symbol (a feature name).\n\nWhen `load' is run and the file-name argument matches an element's\nREGEXP-OR-FEATURE, or when `provide' is run and provides the symbol\nREGEXP-OR-FEATURE, the FUNCS in the element are called.\n\nAn error in FUNCS does not undo the load, but does prevent calling\nthe rest of the FUNCS.  ");
   Vafter_load_alist = Qnil ();
   DEFVAR_LISP! (c"load-history", Vload_history,
-	       "Alist mapping loaded file names to symbols and features. Each alist element should be a list (FILE-NAME ENTRIES...), where FILE-NAME is the name of a file that has been loaded into Emacs. The file name is absolute. As an exception, one of the alist elements may have FILE-NAME nil, for symbols and features not associated with any file. The remaining ENTRIES in the alist element describe the functions and variables defined in that file, the features provided, and the features required. Each entry has the form `(provide . FEATURE)', `(require . FEATURE)', `(defun . FUNCTION)', `(defface . SYMBOL)', `(define-type . SYMBOL)', or `(cl-defmethod METHOD SPECIALIZERS)'. In addition, entries may also be single symbols, which means that symbol was defined by `defvar' or `defconst'. During preloading, the file name recorded is relative to the main Lisp directory. These file names are converted to absolute at startup.");
+	       " Alist mapping loaded file names to symbols and features.\nEach alist element should be a list (FILE-NAME ENTRIES...), where\nFILE-NAME is the name of a file that has been loaded into Emacs.\nThe file name is absolute.\nAs an exception, one of the alist elements may have FILE-NAME nil,\nfor symbols and features not associated with any file.\n\nThe remaining ENTRIES in the alist element describe the functions and\nvariables defined in that file, the features provided, and the\nfeatures required.  Each entry has the form `(provide . FEATURE)',\n`(require . FEATURE)', `(defun . FUNCTION)', `(defface . SYMBOL)',\n `(define-type . SYMBOL)', or `(cl-defmethod METHOD SPECIALIZERS)'.\nIn addition, entries may also be single symbols,\nwhich means that symbol was defined by `defvar' or `defconst'.\n\nDuring preloading, the file name recorded is relative to the main Lisp\ndirectory.  These file names are converted to absolute at startup.  ");
   Vload_history = Qnil ();
   DEFVAR_LISP! (c"load-file-name", Vload_file_name,
-	       "Full name of file being loaded by `load'. In case of native code being loaded this is indicating the corresponding bytecode filename. Use `load-true-file-name' to obtain the .eln filename.");
+	       " Full name of file being loaded by `load'.\n\nIn case of native code being loaded this is indicating the\ncorresponding bytecode filename.  Use `load-true-file-name' to obtain\nthe .eln filename.  ");
   Vload_file_name = Qnil ();
   DEFVAR_LISP! (c"load-true-file-name", Vload_true_file_name,
 	       "Full name of file being loaded by `load'.");
   Vload_true_file_name = Qnil ();
   DEFVAR_LISP! (c"user-init-file", Vuser_init_file,
-	       "File name, including directory, of user's initialization file. If the file loaded had extension `.elc', and the corresponding source file exists, this variable contains the name of source file, suitable for use by functions like `custom-save-all' which edit the init file. While Emacs loads and evaluates any init file, value is the real name of the file, regardless of whether or not it has the `.elc' extension.");
+	       " File name, including directory, of user's initialization file.\nIf the file loaded had extension `.elc', and the corresponding source file\nexists, this variable contains the name of source file, suitable for use\nby functions like `custom-save-all' which edit the init file.\nWhile Emacs loads and evaluates any init file, value is the real name\nof the file, regardless of whether or not it has the `.elc' extension.  ");
   Vuser_init_file = Qnil ();
   DEFVAR_LISP! (c"current-load-list", Vcurrent_load_list,
 	       "Used for internal purposes by `load'.");
   Vcurrent_load_list = Qnil ();
   DEFVAR_LISP! (c"load-read-function", Vload_read_function,
-	       "Function used for reading expressions. It is used by `load' and `eval-region'. Called with a single argument (the stream from which to read). The default is to use the function `read'.");
+	       " Function used for reading expressions.\nIt is used by `load' and `eval-region'.\n\nCalled with a single argument (the stream from which to read).\nThe default is to use the function `read'.  ");
   DEFSYM! (Qread, "read");
   Vload_read_function = Qread ();
   DEFVAR_LISP! (c"load-source-file-function", Vload_source_file_function,
-	       "Function called in `load' to load an Emacs Lisp source file. The value should be a function for doing code conversion before reading a source file. It can also be nil, in which case loading is done without any code conversion. If the value is a function, it is called with four arguments, FULLNAME, FILE, NOERROR, NOMESSAGE. FULLNAME is the absolute name of the file to load, FILE is the non-absolute name (for messages etc.), and NOERROR and NOMESSAGE are the corresponding arguments passed to `load'. The function should return t if the file was loaded.");
+	       " Function called in `load' to load an Emacs Lisp source file.\nThe value should be a function for doing code conversion before\nreading a source file.  It can also be nil, in which case loading is\ndone without any code conversion.\n\nIf the value is a function, it is called with four arguments,\nFULLNAME, FILE, NOERROR, NOMESSAGE.  FULLNAME is the absolute name of\nthe file to load, FILE is the non-absolute name (for messages etc.),\nand NOERROR and NOMESSAGE are the corresponding arguments passed to\n`load'.  The function should return t if the file was loaded.  ");
   Vload_source_file_function = Qnil ();
   DEFVAR_BOOL! (c"load-force-doc-strings", load_force_doc_strings,
-	       "Non-nil means `load' should force-load all dynamic doc strings. This is useful when the file being loaded is a temporary copy.");
+	       " Non-nil means `load' should force-load all dynamic doc strings.\nThis is useful when the file being loaded is a temporary copy.  ");
   load_force_doc_strings = false;
   DEFVAR_LISP! (c"source-directory", Vsource_directory,
-	       "Directory in which Emacs sources were found when Emacs was built. You cannot count on them to still be there!");
+	       " Directory in which Emacs sources were found when Emacs was built.\nYou cannot count on them to still be there!  ");
   Vsource_directory = Fexpand_file_name (build_string (c"../".as_ptr ()),
 					   Fcar (decode_env_path (std::ptr::null (),
 								  PATH_DUMPLOADSEARCH, false)));
@@ -6676,35 +6676,35 @@ pub unsafe extern "C" fn syms_of_lread ()
 	       "List of all DEFVAR_BOOL variables, used by the byte code optimizer.");
   Vbyte_boolean_vars = Qnil ();
   DEFVAR_BOOL! (c"load-dangerous-libraries", load_dangerous_libraries,
-	       "Non-nil means load dangerous compiled Lisp files. Some versions of XEmacs use different byte codes than Emacs. These incompatible byte codes can make Emacs crash when it tries to execute them.");
+	       " Non-nil means load dangerous compiled Lisp files.\nSome versions of XEmacs use different byte codes than Emacs.  These\nincompatible byte codes can make Emacs crash when it tries to execute\nthem.  ");
   load_dangerous_libraries = false;
   DEFVAR_BOOL! (c"force-load-messages", force_load_messages,
-	       "Non-nil means force printing messages when loading Lisp files. This overrides the value of the NOMESSAGE argument to `load'.");
+	       " Non-nil means force printing messages when loading Lisp files.\nThis overrides the value of the NOMESSAGE argument to `load'.  ");
   force_load_messages = false;
   DEFVAR_LISP! (c"bytecomp-version-regexp", Vbytecomp_version_regexp,
-	       "Regular expression matching safe to load compiled Lisp files. When Emacs loads a compiled Lisp file, it reads the first 512 bytes from the file, and matches them against this regular expression. When the regular expression matches, the file is considered to be safe to load.");
+	       " Regular expression matching safe to load compiled Lisp files.\nWhen Emacs loads a compiled Lisp file, it reads the first 512 bytes\nfrom the file, and matches them against this regular expression.\nWhen the regular expression matches, the file is considered to be safe\nto load.  ");
   Vbytecomp_version_regexp = build_string (c"^;;;.\\(in Emacs version\\|bytecomp version FSF\\)".as_ptr ());
   DEFSYM! (Qlexical_binding, "lexical-binding");
   DEFVAR_LISP! (c"lexical-binding", Vlexical_binding,
-	       "Whether to use lexical binding when evaluating code. Non-nil means that the code in the current buffer should be evaluated with lexical binding. This variable is automatically set from the file variables of an interpreted Lisp file read using `load'. Unlike other file local variables, this must be set in the first line of a file.");
+	       " Whether to use lexical binding when evaluating code.\nNon-nil means that the code in the current buffer should be evaluated\nwith lexical binding.\nThis variable is automatically set from the file variables of an\ninterpreted Lisp file read using `load'.  Unlike other file local\nvariables, this must be set in the first line of a file.  ");
   Vlexical_binding = Qnil ();
   Fmake_variable_buffer_local (Qlexical_binding ());
   DEFVAR_LISP! (c"eval-buffer-list", Veval_buffer_list,
 	       "List of buffers being read from by calls to `eval-buffer' and `eval-region'.");
   Veval_buffer_list = Qnil ();
   DEFVAR_LISP! (c"lread--unescaped-character-literals", Vlread_unescaped_character_literals,
-	       "List of deprecated unescaped character literals encountered by `read'. For internal use only.");
+	       " List of deprecated unescaped character literals encountered by `read'.\nFor internal use only.  ");
   Vlread_unescaped_character_literals = Qnil ();
   DEFSYM! (Qlread_unescaped_character_literals, "lread--unescaped-character-literals");
   DEFSYM! (Qbyte_run_unescaped_character_literals_warning, "byte-run--unescaped-character-literals-warning");
   DEFVAR_BOOL! (c"load-prefer-newer", load_prefer_newer,
-	       "Non-nil means `load' prefers the newest version of a file. This applies when a filename suffix is not explicitly specified and `load' is trying various possible suffixes (see `load-suffixes' and `load-file-rep-suffixes'). Normally, it stops at the first file that exists unless you explicitly specify one or the other. If this option is non-nil, it checks all suffixes and uses whichever file is newest. Note that if you customize this, obviously it will not affect files that are loaded before your customizations are read!");
+	       " Non-nil means `load' prefers the newest version of a file.\nThis applies when a filename suffix is not explicitly specified and\n`load' is trying various possible suffixes (see `load-suffixes' and\n`load-file-rep-suffixes').  Normally, it stops at the first file\nthat exists unless you explicitly specify one or the other.  If this\noption is non-nil, it checks all suffixes and uses whichever file is\nnewest.\nNote that if you customize this, obviously it will not affect files\nthat are loaded before your customizations are read!  ");
   load_prefer_newer = false;
   DEFVAR_BOOL! (c"load-no-native", load_no_native,
-	       "Non-nil means not to load native code unless explicitly requested. To load a `.eln' file when this variable is non-nil, use `(load FILE)' where FILE is the filename of the eln file, including the .eln extension. `load-no-native' non-nil will also make Emacs not load native code through `require'.");
+	       " Non-nil means not to load native code unless explicitly requested.\n\nTo load a `.eln' file when this variable is non-nil, use `(load FILE)'\nwhere FILE is the filename of the eln file, including the .eln extension.\n`load-no-native' non-nil will also make Emacs not load native code\nthrough `require'.  ");
   load_no_native = false;
   DEFVAR_LISP! (c"load-path-filter-function", Vload_path_filter_function,
-	       "If non-nil, a function to filter `load-path' for `load'. If this variable is a function, it is called when `load' is about to search for a file along `load-path'. This function is called with three arguments: the current value of `load-path' (a list of directories), the FILE argument to `load', and the current list of load-suffixes. It should return a (hopefully shorter) list of directories, which `load' will use instead of `load-path' to look for the file to load.");
+	       " If non-nil, a function to filter `load-path' for `load'.\n\nIf this variable is a function, it is called when `load' is about to\nsearch for a file along `load-path'.  This function is called with three\narguments: the current value of `load-path' (a list of directories),\nthe FILE argument to `load', and the current list of load-suffixes.\n\nIt should return a (hopefully shorter) list of directories, which `load'\nwill use instead of `load-path' to look for the file to load.  ");
   Vload_path_filter_function = Qnil ();
   DEFSYM! (Qcurrent_load_list, "current-load-list");
   DEFSYM! (Qstandard_input, "standard-input");
