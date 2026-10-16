@@ -69,6 +69,27 @@ def ensure_port_tree_is_a_project_root() -> None:
         gitfile.write_text("gitdir: ../.git\n")
 
 
+PRUNE_DIRS = {"manual", "data", "infra"}
+PRUNE_SUFFIX = "resources"
+
+
+def enumerate_tests(root: Path) -> list[str]:
+    """The reference's own list of test files: `test/Makefile.in` 206-210's `find`, i.e. every
+    `*.el` under the test root except the pruned directories (`manual`, `data`, `infra`,
+    `*resources`) and dotfiles.  Using the same recipe is what makes a sweep's denominator the
+    reference's own (PORTING.md P-138), instead of a hand-written glob that can silently skip
+    a subdirectory (P-137's `textmodes/ispell-tests`) or a differently-named file."""
+    out = []
+    for path in root.rglob("*.el"):
+        if path.name.startswith("."):
+            continue
+        parts = path.relative_to(root).parts[:-1]
+        if any(part in PRUNE_DIRS or part.endswith(PRUNE_SUFFIX) for part in parts):
+            continue
+        out.append(str(path.relative_to(root)))
+    return sorted(out)
+
+
 def cap_memory(mib: int):
     """A `preexec_fn` that caps the child's address space.  Linux honours it; Darwin refuses to
     lower `RLIMIT_AS` below the current address space ("Invalid argument"), which is why the
@@ -150,7 +171,11 @@ def run(prog: Path, test_root: Path, rel: str, timeout: int,
 def main() -> int:
     ensure_port_tree_is_a_project_root()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--glob", default="**/*.el", help="test file pattern, relative to the test root")
+    ap.add_argument("--glob", default="**/*.el",
+                    help="test file pattern, relative to the test root; the default is the "
+                         "reference's own ELFILES list (see enumerate_tests)")
+    ap.add_argument("--list", action="store_true",
+                    help="print the file list the run would use and exit (no Emacs needed)")
     ap.add_argument("--timeout", type=int, default=300)
     ap.add_argument("--limit", type=int, default=40, help="max detail lines to print")
     ap.add_argument("--tsv")
@@ -181,12 +206,20 @@ def main() -> int:
         if not p.is_file():
             print(f"missing program: {p}", file=sys.stderr)
             return 2
-    files = sorted(str(p.relative_to(REF_TEST))
-                   for p in REF_TEST.glob(a.glob)
-                   if p.is_file() and not p.name.startswith("."))
+    if a.glob == "**/*.el":
+        files = enumerate_tests(REF_TEST)
+        print(f"enumerated {len(files)} file(s) from test/Makefile.in's ELFILES recipe")
+    else:
+        files = sorted(str(p.relative_to(REF_TEST))
+                       for p in REF_TEST.glob(a.glob)
+                       if p.is_file() and not p.name.startswith("."))
     if not files:
         print(f"no test files match {a.glob}", file=sys.stderr)
         return 2
+    if a.list:
+        for f in files:
+            print(f)
+        return 0
 
     rows: list[tuple[str, str, int, int, int, int, str]] = []
     started = time.time()
