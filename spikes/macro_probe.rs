@@ -38,8 +38,11 @@ pub unsafe extern "C" fn probe_macros (a: Lisp_Object, b: Lisp_Object) -> Lisp_O
     AUTO_LIST4! (lst4, a, b, cons1, lst1);
     AUTO_STRING! (str1, c"probe".as_ptr ());
     AUTO_STRING_WITH_LEN! (str2, c"probe".as_ptr (), 5);
-    let str3 = AUTO_STR! (c"probe".as_ptr ());
-    let str4 = AUTO_STR_WITH_LEN! (c"probe".as_ptr (), 5);
+    /* C's expression forms have no Rust counterpart - a compound literal's storage lives in the
+       enclosing block, which an expression macro cannot reach (PORTING.md P-113 ②) - so this
+       probe exercises the statement forms, exactly as every call site does.  */
+    AUTO_STRING! (str3, c"probe".as_ptr ());
+    AUTO_STRING_WITH_LEN! (str4, c"probe".as_ptr (), 5);
     let mut target: Lisp_Object = lisp_h_Qnil ();
     XSETINT! (target, 7);
     XSETCONS! (target, cons1);
