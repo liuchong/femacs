@@ -114,7 +114,7 @@ pub unsafe extern "C" fn md5_finish_ctx (ctx: *mut md5_ctx, resbuf: *mut c_void)
   (*ctx).buffer[size - 2] = SWAP! ((*ctx).total[0] << 3);
   (*ctx).buffer[size - 1] = SWAP! (((*ctx).total[1] << 3) | ((*ctx).total[0] >> 29));
 
-  memcpy ((*ctx).buffer.as_mut_ptr ().add (bytes as usize) as *mut c_void,
+  memcpy (((*ctx).buffer.as_mut_ptr () as *mut c_char).add (bytes as usize) as *mut c_void,
           fillbuf.as_ptr () as *const c_void,
           (size - 2) * 4 - bytes as usize);
 
@@ -158,7 +158,7 @@ pub unsafe extern "C" fn md5_process_bytes (mut buffer: *const c_void, mut len: 
       let mut left_over: usize = (*ctx).buflen as usize;
       let add: usize = if 128 - left_over > len { len } else { 128 - left_over };
 
-      memcpy ((*ctx).buffer.as_mut_ptr ().add (left_over) as *mut c_void, buffer, add);
+      memcpy (((*ctx).buffer.as_mut_ptr () as *mut c_char).add (left_over) as *mut c_void, buffer, add);
       (*ctx).buflen = (*ctx).buflen.wrapping_add (add as uint32_t);
 
       if (*ctx).buflen > 64
@@ -170,7 +170,7 @@ pub unsafe extern "C" fn md5_process_bytes (mut buffer: *const c_void, mut len: 
           /* The regions in the following copy operation cannot overlap,
              because ctx->buflen < 64 <= (left_over + add) & ~63.  */
           memcpy ((*ctx).buffer.as_mut_ptr () as *mut c_void,
-                  (*ctx).buffer.as_mut_ptr ().add ((left_over + add) & !63) as *const c_void,
+                  ((*ctx).buffer.as_mut_ptr () as *const c_char).add ((left_over + add) & !63) as *const c_void,
                   (*ctx).buflen as usize);
         }
 
@@ -208,7 +208,7 @@ pub unsafe extern "C" fn md5_process_bytes (mut buffer: *const c_void, mut len: 
     {
       let mut left_over: usize = (*ctx).buflen as usize;
 
-      memcpy ((*ctx).buffer.as_mut_ptr ().add (left_over) as *mut c_void, buffer, len);
+      memcpy (((*ctx).buffer.as_mut_ptr () as *mut c_char).add (left_over) as *mut c_void, buffer, len);
       left_over += len;
       if left_over >= 64
         {
