@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Compare the port's generated files with the reference's, name rewrite aside.
 
-The generated families (`tools/gen-charsets.py`, `gen-leim.py`, `gen-unidata.py`, and the
-`loaddefs`/`theme-loaddefs`/`subdirs` recipes) are byte-identical to the reference's copies except
+The generated families (`tools/gen-charsets.py`, `gen-leim.py`, `gen-unidata.py`, `gen-emacsver.py`, and
+the `loaddefs`/`theme-loaddefs`/`subdirs` recipes) are byte-identical to the reference's copies except
 for one thing PORTING.md 0.1-19 *requires*: the program's name, which the port's own build writes
 where the reference's build wrote the reference's name.  A comparison that does not account for
 that rewrite either reports every file as different or has to be read by eye, which is how a real
@@ -62,6 +62,8 @@ PATTERNS = [
     "lisp/loaddefs.el",
     "lisp/theme-loaddefs.el",
     "lisp/subdirs.el",
+    "doc/emacs/emacsver.texi",
+    "etc/refcards/emacsver.tex",
 ]
 
 
