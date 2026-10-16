@@ -1389,6 +1389,24 @@ pub unsafe extern "C" fn init_baud_rate (fd: c_int) {
 
 // C 442: `#ifndef MSDOS` — live.
 
+/* PORTING.md P-126: the diagnostic switch below is sampled ONCE, at startup, and kept in a
+   plain flag.  `getenv` is not async-signal-safe: on this target it takes an os_unfair_lock, so
+   calling it from `handle_child_signal` - or being delivered while the interrupted code is
+   inside `sysdep`'s own `get_child_status` instrument, which is what the handler's
+   `child_status_changed` call runs - makes libplatform abort the whole program ("BUG IN CLIENT
+   OF LIBPLATFORM: Trying to recursively lock an os_unfair_lock"; macOS reports that abort as
+   SIGKILL).  A flag read is safe there.  P-115's shape is otherwise unchanged: default off, one
+   stderr line per event; the variable must be set before startup, which is how the probes set
+   it.  */
+static FEMACS_CHILD_TRACE: core::sync::atomic::AtomicBool =
+  core::sync::atomic::AtomicBool::new (false);
+
+/* C has no counterpart: P-122/P-125's instruments ask this instead of `getenv`.  */
+#[inline]
+unsafe fn femacs_child_trace () -> bool {
+  return FEMACS_CHILD_TRACE.load (core::sync::atomic::Ordering::Relaxed);
+}
+
 /* Wait for the subprocess with process id CHILD to terminate or change status.
    CHILD must be a child process that has not been reaped.
    If STATUS is non-null, store the waitpid-style exit status into *STATUS
@@ -1402,7 +1420,7 @@ unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
                             interruptible: bool) -> pid_t {
   /* PORTING.md P-122's instrument (FEMACS_CHILD_TRACE, P-115's shape): every reap in the port
      goes through here, so a missing line means the reap itself never happened.  */
-  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+  if femacs_child_trace ()
     {
       fprintf (stderr, c"child-get: child=%d options=%d\n".as_ptr (), child as c_int, options);
     }
@@ -1444,7 +1462,7 @@ unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
 
   /* PORTING.md P-122 ⑻'s instrument (FEMACS_CHILD_TRACE, P-115's shape): what waitpid
      answered - 0 means "no status available yet", which is the branch a missed reap takes.  */
-  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+  if femacs_child_trace ()
     {
       fprintf (stderr, c"child-get-done: pid=%d errno=%d\n".as_ptr (),
 	       pid as c_int, *errno ());
@@ -6128,5 +6146,8 @@ pub unsafe extern "C" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: 
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_sysdep () {
+  /* PORTING.md P-126: sample the diagnostic switch here, where no handler can be running yet.  */
+  FEMACS_CHILD_TRACE.store (! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null (),
+                            core::sync::atomic::Ordering::Relaxed);
   defsubr (&raw mut Sget_internal_run_time);
 }
