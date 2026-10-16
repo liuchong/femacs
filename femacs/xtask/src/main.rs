@@ -67,6 +67,7 @@ fn main() {
         "gate-probes" => gate_probes(),
         "dead-arms" => dead_arms(),
         "gate-load" => gate_load(args.get(1).map(String::as_str)),
+        "link-program" => link_program(args.get(1)),
         "gate-full" => {
             eprintln!(
                 "gate-full needs the reference configured, built and its ERT suite \
@@ -1506,6 +1507,136 @@ fn port_tree(root: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+/// The link driver: an empty `no_std`/`no_main` bin crate plus the port's panic handler.
+///
+/// rustc links the runtime; the program's entry point stays the ported unit's own `main`
+/// (C-shaped, `#[unsafe(no_mangle)]`), which is what lets the same driver serve both the
+/// main program and a `lib-src` program such as `make-docfile`.
+const LINK_DRIVER: &str = "#![no_std]\n#![no_main]\n\
+// femacs link driver (build scaffolding, not a ported file): rustc links the runtime.\n\
+use core::panic::PanicInfo;\n\
+use core::fmt::{self, Write};\n\
+// A panic is a defect (PORTING.md 424), and a handler that only aborts leaves the reason\n\
+// invisible: measured 2026-10-16, a `batch-byte-compile` run died with `Abort trap: 6` and\n\
+// nothing else.  This one writes the panic\'s message and location to stderr first, then\n\
+// aborts exactly as before, so the abort stays the behaviour and the diagnosis is not a guess.\n\
+struct Stderr;\n\
+impl Write for Stderr {\n\
+    fn write_str (&mut self, s: &str) -> fmt::Result {\n\
+        unsafe { write (2, s.as_ptr () as *const core::ffi::c_void, s.len ()); }\n\
+        Ok (())\n\
+    }\n\
+}\n\
+#[panic_handler]\n\
+fn panic (info: &PanicInfo) -> ! {\n\
+    let mut w = Stderr;\n\
+    let _ = w.write_str (\"femacs: panic: \");\n\
+    let _ = write! (w, \"{}\\n\", info);\n\
+    unsafe { abort () }\n\
+}\n\
+unsafe extern \"C\" { fn abort () -> !; fn write (fd: core::ffi::c_int, buf: *const core::ffi::c_void, n: usize) -> isize; }\n\
+// libcompiler_builtins' prebuilt rlib carries EH landing pads (it is built for the\n\
+// toolchain's own std configuration), so it references the C-unmangled\n\
+// rust_eh_personality symbol; nothing raises in a panic=abort link, and the port's panics\n\
+// abort through the handler above, so this no-op satisfies the linker.\n\
+#[unsafe(no_mangle)]\n\
+pub extern \"C\" fn rust_eh_personality () {}\n";
+
+/// `xtask link-program <c-file>`: link one ported program into a runnable binary.
+///
+/// C builds `lib-src/make-docfile` from its single object plus `libgnu`; the port's object stands
+/// for the first and the port's objects for the frozen `libgnu.a` members for the second (goal
+/// constraint 2: nothing of the reference library is linked), archived so only the members the
+/// program needs are pulled in - what `gate_load` does for the whole program, in a second, smaller
+/// instance.  The binary lands where C's tree keeps it (`build/port/lib-src/`, the shape
+/// `build/port/src/temacs` already has), so a recipe that says `$(libsrc)/make-docfile` can be read
+/// with the port's path.
+///
+/// Measured 2026-10-16: this is what `etc/DOC` needs - the reference's DOC rule (src/Makefile.in
+/// 663-668) runs `make-docfile -d srcdir <objects> > etc/DOC`, and the port's loadup dies in
+/// `Snarf-documentation "DOC"` without it.
+fn link_program(rel: Option<&String>) -> i32 {
+    let Some(rel) = rel else {
+        return fail("link-program needs a reference C file, e.g. lib-src/make-docfile.c");
+    };
+    let path = Path::new(rel);
+    let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+    let dir = path.parent().map(|d| d.to_path_buf()).unwrap_or_default();
+    let unit_obj = Path::new(BUILD).join(format!("{stem}.o"));
+    if !unit_obj.is_file() {
+        let code = build_tu(Some(rel));
+        if code != 0 {
+            return code;
+        }
+    }
+    let mut libs: Vec<String> = Vec::new();
+    for member in reference_members() {
+        let mstem = Path::new(&member).file_stem().unwrap_or_default().to_string_lossy().to_string();
+        let cands: Vec<String> = if let Some(base) = mstem.strip_suffix("-gnulib") {
+            vec![mstem.clone(), base.to_string()]
+        } else {
+            vec![mstem.clone()]
+        };
+        for cand in cands {
+            let p = Path::new(REPO).join("build/femacs").join(format!("{cand}.o"));
+            if p.is_file() {
+                libs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
+            }
+        }
+    }
+    if libs.is_empty() {
+        return fail("no port objects for the frozen libgnu.a members: run gate-fast first");
+    }
+    let archive = "../build/load/libgnu-program.a";
+    let _ = fs::remove_file(archive);
+    let mut ar = Command::new("ar");
+    ar.args(["crs", archive]);
+    for l in &libs {
+        ar.arg(l);
+    }
+    match ar.output() {
+        Ok(o) if o.status.success() => {}
+        Ok(o) => return fail(format!("ar: {}", String::from_utf8_lossy(&o.stderr).trim())),
+        Err(e) => return fail(format!("ar: {e}")),
+    }
+    let _ = fs::create_dir_all("../build/load");
+    if let Err(e) = fs::write("../build/load/driver.rs", LINK_DRIVER) {
+        return fail(format!("writing the link driver: {e}"));
+    }
+    let out_path = Path::new("../build/port").join(&dir).join(&stem);
+    if let Some(parent) = out_path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let archive_abs = fs::canonicalize(archive).map(|p| p.display().to_string())
+        .unwrap_or_else(|_| archive.to_string());
+    let unit_abs = unit_obj.canonicalize().map(|p| p.display().to_string())
+        .unwrap_or_else(|_| unit_obj.display().to_string());
+    let rsp = format!("{unit_abs}\n{archive_abs}\n-lSystem\n");
+    if let Err(e) = fs::write("../build/load/link-program-args.rsp", rsp) {
+        return fail(format!("writing the response file: {e}"));
+    }
+    println!("== link-program: {rel} + {} lib object(s) ==", libs.len());
+    let out = match Command::new("rustc")
+        .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
+        .arg("../build/load/driver.rs")
+        .arg("-C").arg("link-arg=@../build/load/link-program-args.rsp")
+        .arg("-o").arg(&out_path)
+        .output()
+    {
+        Ok(o) => o,
+        Err(e) => return fail(format!("rustc link: {e}")),
+    };
+    if out.status.success() && out_path.is_file() {
+        println!("linked {}", out_path.display());
+        return 0;
+    }
+    let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    for line in text.lines().rev().take(20).collect::<Vec<&str>>().into_iter().rev() {
+        println!("  {line}");
+    }
+    fail(format!("the link of {rel} failed"))
+}
+
 fn gate_load(arg: Option<&str>) -> i32 {
     let report = arg == Some("--report");
     // `-W emacs.o`: the frozen build's `temacs` is already linked, and make prints *nothing*
@@ -1611,37 +1742,8 @@ fn gate_load(arg: Option<&str>) -> i32 {
             return fail(format!("{} reference object(s) have no port object", missing.len()));
         }
     }
-    // The driver: an empty no_std/no_main bin crate + the port's panic handler.
-    const DRIVER: &str = "#![no_std]\n#![no_main]\n\
-// femacs link driver (build scaffolding, not a ported file): rustc links the runtime.\n\
-use core::panic::PanicInfo;\n\
-use core::fmt::{self, Write};\n\
-// A panic is a defect (PORTING.md 424), and a handler that only aborts leaves the reason\n\
-// invisible: measured 2026-10-16, a `batch-byte-compile` run died with `Abort trap: 6` and\n\
-// nothing else.  This one writes the panic\'s message and location to stderr first, then\n\
-// aborts exactly as before, so the abort stays the behaviour and the diagnosis is not a guess.\n\
-struct Stderr;\n\
-impl Write for Stderr {\n\
-    fn write_str (&mut self, s: &str) -> fmt::Result {\n\
-        unsafe { write (2, s.as_ptr () as *const core::ffi::c_void, s.len ()); }\n\
-        Ok (())\n\
-    }\n\
-}\n\
-#[panic_handler]\n\
-fn panic (info: &PanicInfo) -> ! {\n\
-    let mut w = Stderr;\n\
-    let _ = w.write_str (\"femacs: panic: \");\n\
-    let _ = write! (w, \"{}\\n\", info);\n\
-    unsafe { abort () }\n\
-}\n\
-unsafe extern \"C\" { fn abort () -> !; fn write (fd: core::ffi::c_int, buf: *const core::ffi::c_void, n: usize) -> isize; }\n\
-// libcompiler_builtins' prebuilt rlib carries EH landing pads (it is built for the\n\
-// toolchain's own std configuration), so it references the C-unmangled\n\
-// rust_eh_personality symbol; nothing raises in a panic=abort link, and the port's panics\n\
-// abort through the handler above, so this no-op satisfies the linker.\n\
-#[unsafe(no_mangle)]\n\
-pub extern \"C\" fn rust_eh_personality () {}\n";
-    if let Err(e) = fs::write("../build/load/driver.rs", DRIVER) {
+    // The driver lives at module scope (`LINK_DRIVER`), because `link-program` uses it too.
+    if let Err(e) = fs::write("../build/load/driver.rs", LINK_DRIVER) {
         return fail(format!("writing the link driver: {e}"));
     }
     // The program has to *find its own tree*, and where it is put decides that: C's
