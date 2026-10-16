@@ -21257,3 +21257,11 @@
   ④ **复制完整性门**（本轮前半 ✓）：`tools/check-verbatim.py` 修好并**接进 `gate-fast`** ✓，修后读数 `6 trees, 4604 files, 8427 sanctioned line(s), 9 accepted absence(s), 0 failures` ✓；`gate-fast exit=0` ✓（466 秒 ✓，新步骤打印 `copied trees: every tracked file is byte-identical or sanctioned` ✓）。4.439 的"312 其他"已在 4.440/4.441 自我更正 ✓（那是临时判据的产物 ✗）。
   ⑤ **资源 / 提交**：本轮 1 次 `gate-fast`（约 8 分钟 ✓，改门必验 ✓）+ 数次 2 秒级生成/读数 ✓；受控运行峰值最高 432 MB ✓（预算 4096 MiB **下调自** 8192 ✓）；`git -C emacs status --short` 为空 ✓；临时产物已清理 ✓。提交：`tools/gen-finder.py` ✓、`PORTING.md`（P-121 ✓）、本提交 ✓。
   ⑥ **下一步（点名）**：⑴ 修 `package-vc-tests` 的哨兵崩溃（`Wrong type argument` ✓，峰值 78 MiB 的有界读数 ✓）；⑵ 同口径落地 `.elc` 全族与 `cus-load.el`/`loaddefs`/unidata/charsets/ja-dic ✓（`finder-inf.el` 已是模板 ✓）；⑶ 用改口径 + 已生成产物的装置重跑 `lisp/emacs-lisp` 整片，刷新 L5 台账 ✓；⑷ 之后：8 个 `port-worse`、`edebug` 挂点、`find-func`/`map-ynp`、整棵 `test/` 切片、P-116 抬档位、`opt-level=2`、性能基线、平台冒烟 ✓。
+- **4.442 验证相第七十四轮：`package-vc-tests` 的崩溃收敛成 7 秒可复现的确定缺陷（2026-10-16）**：
+  ① **有界复现器**（本轮的读数，命令照抄可直接跑 ✓）：
+  `./build/port/src/emacs -Q --batch -L :femacs/test -l ert -l femacs/test/lisp/emacs-lisp/package-vc-tests.el --batch --eval "(ert-run-tests-batch-and-exit '(member package-vc-tests-upgrade-after-require/test-package-two))"`
+  ⇒ 端口**连跑 3 次全失败**（各 1 unexpected ✓、约 5.7 秒 ✓、rc=1 ✓）；参照同一条（带 three 一起 ✓）**2/2 全过、0.98 秒** ✓✓ ⇒ 从"整片 167 秒崩溃"收敛为**确定性、7 秒级**的目标 ✓。
+  ② **失败形状**：`package-vc-tests-package-vc-async-wait 5 1 '("pull")` 返回 nil ✗（5 秒内没等到异步 `git pull` 的 post-command 信号 ✓）；随后 `vc--repo-setprop` → `vc-file-setprop (nil …)` ✗ 抛 `Wrong type argument: stringp, nil` ✓（`(vc-root-dir backend)` = nil ✓，即 `vc-call-backend 'Git 'root default-directory` 认不出根目录 ✓ —— 与"迟到的哨兵在已删除的临时目录里跑"吻合 ✓）。
+  ③ **对照（排除项 ✓）**：裸 `make-process` + `:sentinel` 的探针在端口与参照上**行为一致** ✓（`PROBE sentinel="finished…"` ✓ 各一次 ✓）⇒ 进程**派发**本身没问题 ✗，缺陷在 `vc`/`package-vc` 的异步路径或其状态/时序 ✓。
+  ④ **本机资源**：复现器峰值 **69 MB** ✓、7.5 秒 ✓（受控执行器 runtime 1200 MiB ✓）；`git -C emacs status --short` 为空 ✓。提交：本提交（纯读数 ✓）。
+  ⑤ **下一步（点名）**：⑴ 沿 `package-vc-upgrade` → `vc-pull`（`vc-exec-after` 的 lambda ✓）→ `vc-git pull` 的链条，用上面这条 7 秒复现器做二分 ✓（先判"异步 git 进程是否真的起来了/是否被 `vc-exec-after` 接住" ✓）；⑵ 修好后复跑整片 `package-vc-tests`（45 例 ✓）；⑶ 同口径落地 `.elc` 全族与 `cus-load.el`/`loaddefs`/unidata/charsets/ja-dic（`finder-inf.el` 已是模板 ✓）；⑷ 用改好的装置重跑 `lisp/emacs-lisp` 整片刷新 L5 台账 ✓。
