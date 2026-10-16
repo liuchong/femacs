@@ -6351,7 +6351,17 @@ pub unsafe extern "C" fn garbage_collect ()
 	  h = unsafe { (*h).next };
 	  handlers += 1;
 	}
-      fprintf (stderr, c"gc-h: handlers=%d\n".as_ptr (), handlers);
+      let mut blocks: c_int = 0;
+      let mut bytes: c_long = 0;
+      let mut b: *mut sa_stack_block = unsafe { sa_stack_top };
+      while ! b.is_null () && blocks < 1000000
+	{
+	  bytes += unsafe { (*b).used } as c_long;
+	  b = unsafe { (*b).next };
+	  blocks += 1;
+	}
+      fprintf (stderr, c"gc-h: handlers=%d sa_blocks=%d sa_bytes=%ld\n".as_ptr (),
+	       handlers, blocks, bytes);
     }
 
   eassert! (weak_hash_tables.is_null ());
