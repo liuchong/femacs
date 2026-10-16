@@ -3288,9 +3288,18 @@ DEFUN! ("func-arity", Ffunc_arity, Sfunc_arity, 1, 1, 0,
 	{ result = Fsubr_arity (function); }
       else if CLOSUREP (function)
 	{ result = lambda_arity (function); }
-      /* C 3513-3516's `#ifdef HAVE_MODULES` arm (dead in the frozen configuration).  */
-      #[cfg (feature = "have_modules")]
-      {
+      else
+	/* C 3513-3516's `#ifdef HAVE_MODULES` arm is part of *the same else chain*
+	   (`else if (MODULE_FUNCTIONP (function)) …`), and C's fallback below is the chain's
+	   final `else`.  Writing the guarded arm as a separate statement instead of an `else`
+	   made the whole fallback unconditional, so `func-arity` signalled `invalid-function`
+	   for every argument - a subr, an interpreted closure, a byte-code object alike (measured
+	   2026-10-16: `(func-arity 'car)` -> `(invalid-function car)` where the reference answers
+	   `(1 . 1)`), which is what stopped the byte-compiler at its inlined-defsubst arity check
+	   in 46 of the 111 files of the emacs-lisp directory.  */
+	{
+	  #[cfg (feature = "have_modules")]
+	  {
         unsafe extern "C" {
           /// C: lisp.h 4896: `Lisp_Object module_function_arity (const struct Lisp_Module_Function *);`
           pub fn module_function_arity (function: *const c_void) -> Lisp_Object;
@@ -3317,8 +3326,8 @@ DEFUN! ("func-arity", Ffunc_arity, Sfunc_arity, 1, 1, 0,
               { xsignal1 (Qinvalid_function (), original); }
           }
       }
-      #[cfg(not (feature = "have_modules"))]
-      {
+	  #[cfg (not (feature = "have_modules"))]
+	  {
 	if NILP (function)
 	  { xsignal1 (Qvoid_function (), original); }
 	if !CONSP (function)
@@ -3335,7 +3344,8 @@ DEFUN! ("func-arity", Ffunc_arity, Sfunc_arity, 1, 1, 0,
 	  }
 	else
 	  { xsignal1 (Qinvalid_function (), original); }
-      }
+	  }
+	}
       break;
     }
   return result;
