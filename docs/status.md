@@ -21428,3 +21428,8 @@
   ③ **排除项** ✓：把 stdin 换成 `/dev/null` **仍然挂住** ✗（同一命令、同一时长 ✓）⇒ 与“端口在 `--batch` 下多读了一次 stdin”无关 ✗；进程输出为空 ✗（stdout 是文件、被缓冲 ✓，与「无进展」一致 ✓）。
   ④ **下一步（点名）** ✓：⑴ 拿测试源码（`edebug-tests.el` 的 `edebug-test-code-range` ✓）与 `edebug.el` 的驱动方式（`ert-simulate-keys` + `unread-command-events` ✓ 或 `edebug-recursive-edit` 的等待点 ✓）逐句对照 ✓；⑵ 与 4.443 的 `vc-exec-after` 族（`executing-kbd-macro` / `unread-command-events` ✓）一起看——它们都是“**等待另一个循环里的人喂输入**”的形状 ✓；⑶ 定位后修对应 `*.rs` ✓，再跑该文件与整片 ✓。
   ⑤ **资源 / 提交**：本轮 0 次源码改动 ✓（纯读数 ✓）；受控执行器 runtime 900/700 MiB（**下调自默认** ✓）、峰值 ≤ **74 MB** ✓；`sample` 与 `/usr/bin/time` 均为系统只读工具 ✓；`git -C emacs status --short` 为空 ✓；临时输出已清理 ✓。提交：本提交（纯读数 ✓）。
+- **4.470 验证相第一百零一轮：`edebug-tests` 的挂死 = 漏掉 C `for` 头的 `tem++`（P-134）⇒ `lisp/emacs-lisp` 整片 **68/68 same**（2026-10-17）**：
+  ① **挂点定位（三条读数合围）** ✓：`sample` 的热栈 1523 个样本**全在** `Fcall_interactively` ✓、最深处 `_platform_memchr` 341 个样本 ✓ ⇒ 是**自旋**不是等待 ✓；`edebug-tests-clear-breakpoint` **单独跑就挂**（>20 秒 ✗ / 参照 0.079 秒 ✓）⇒ **与状态无关** ✓（此前用 `backtrace-goto-source` 单测通过 ✓，一度以为要前序用例 ✓——按**字母序**第 14 个才是真凶 ✓，ERT 是按名字排序执行的 ✓）。
+  ② **根因（P-134）** ✓：C `callint.c` 416 的 `for (…; …; tem++)` 里 `tem++` 是**循环头的增量** ✓；端口 `while` 版**漏了它** ✗ ⇒ `memchr` 每次返回同一个 `\n` ⇒ 死循环 ✓（只有交互规格含 `\n` 时才发作 ✓ ⇒ 躲过多轮 ✓）。修：循环体末尾补 `tem = tem.offset (1);` ✓（另两处同形循环 `i++`（C 451/759 ✓）逐头核过、本来就对 ✓）。
+  ③ **验收** ✓：单测 **same=1** ✓（>20 秒挂死 → 通过 ✓）；该文件 **same=1**（49 例 / 两侧各 0 unexpected ✓，耗时从“挂死”回到 ~2 秒 ✓）；**整片 68 文件全 same** ✓✓（4.467 的 67/68 ✓ + 本轮 1 ✓）。
+  ④ **资源 / 门**：1 次单单元编译（`src/callint` ✓ ~1 秒）+ `gate-load` ✓ + `dump` ✓ + 5 次 1-20 秒复现 + 1 次整片切片扫（4 块 ✓ 约 4 分钟 ✓）；受控执行器峰值 ≤ **273 MB**（build 2048、runtime 700-900 MiB 均**下调自默认** ✓）；`git -C emacs status --short` 为空 ✓；临时输出与 `/tmp/xt-cargo` 已清理 ✓。提交：`femacs/src/callint.rs` ✓、`PORTING.md`（P-134 ✓）、本提交 ✓。
