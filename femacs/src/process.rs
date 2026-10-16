@@ -5004,6 +5004,15 @@ DEFUN! ("accept-process-output", Faccept_process_output, Saccept_process_output,
        (process: Lisp_Object, seconds: Lisp_Object, millisec: Lisp_Object,
 	just_this_one: Lisp_Object),
        {
+  {
+    static mut apo_entered: bool = false;
+    if ! apo_entered && ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+      {
+        apo_entered = true;
+        fprintf (stderr, c"accept-apo-enter\n".as_ptr ());
+      }
+  }
+
   let mut secs: EMACS_INT;
   let mut nsecs: c_int;
   let mut seconds: Lisp_Object = seconds;
