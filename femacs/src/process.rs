@@ -2213,7 +2213,7 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
   /* Make the process marker point into the process buffer (if any).  */
   update_process_mark (XPROCESS (proc));
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   {
     /* Decide coding systems for communicating with the process.  Here we don't setup the
@@ -2377,7 +2377,7 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
   else
     { create_pty (proc); }
 
-  return SAFE_FREE_UNBIND_TO! (sa_count, count, proc);
+  return SAFE_FREE_UNBIND_TO! (sa_count, count, proc, sa_mark);
 });
 
 /* If PROC doesn't have its pid set, then an error was signaled and the process wasn't
@@ -6418,7 +6418,7 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
   let mut odeactivate: Lisp_Object;
   let mut chars: *mut c_char;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   chars = SAFE_ALLOCA! (sa_avail,
 			std::mem::size_of_val (&(*coding).carryover) + readmax as usize) as *mut c_char;
 
@@ -6499,7 +6499,7 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
     {
       if (nbytes < 0 || coding_bits! (mode, coding) & CODING_MODE_LAST_BLOCK != 0)
 	{
-	  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil ());
+	  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
 	  return nbytes as c_int;
 	}
       coding_bits! (mode, coding, coding_bits! (mode, coding) | CODING_MODE_LAST_BLOCK);
@@ -6525,7 +6525,7 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
   /* Handling the process output should not deactivate the mark.  */
   Vdeactivate_mark = odeactivate;
 
-  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil ());
+  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
   return nbytes as c_int;
 }
 
