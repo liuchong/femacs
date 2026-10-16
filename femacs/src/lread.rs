@@ -1911,7 +1911,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
   let mut save_fd: c_int = -1;
   #[cfg (feature = "use_android_assets")]
   let mut platform_fd: android_fd_or_asset = android_fd_or_asset { fd: 0, asset: std::ptr::null_mut () };
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* The last-modified time of the newest matching file found.
      Initialize it to something less than all valid timestamps.  */
@@ -2039,7 +2039,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
 	      /* We succeeded; return this descriptor and filename.  */
 	      if !storeptr.is_null ()
 		{ *storeptr = string; }
-	      SAFE_FREE! (sa_count);
+	      SAFE_FREE! (sa_count, sa_mark);
 	      return -2;
 	    }
 	}
@@ -2105,7 +2105,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
 			    if !storeptr.is_null ()
 			      { *storeptr = string; }
 			    *platform = platform_fd.asset;
-			    SAFE_FREE! (sa_count);
+			    SAFE_FREE! (sa_count, sa_mark);
 			    return -3;
 			  }
 
@@ -2161,7 +2161,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
 		  /* We succeeded; return this descriptor and filename.  */
 		  if !storeptr.is_null ()
 		    { *storeptr = string; }
-		  SAFE_FREE! (sa_count);
+		  SAFE_FREE! (sa_count, sa_mark);
 		  return fd;
 		}
 	    }
@@ -2173,7 +2173,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
 				  save_mtime);
 	      if !storeptr.is_null ()
 		{ *storeptr = save_string; }
-	      SAFE_FREE! (sa_count);
+	      SAFE_FREE! (sa_count, sa_mark);
 	      return save_fd;
 	    }
 	}
@@ -2182,7 +2182,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
       { break; }
   });
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   *errno () = last_errno;
   -1
 }
@@ -4986,12 +4986,12 @@ pub unsafe extern "C" fn string_to_number (string: *const c_char, base: c_int,
   if *after_digits == 0
     { return make_bignum_str (string, base); }
   let trimmed_len: ptrdiff_t = after_digits.offset_from (string);
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let trimmed: *mut c_char = SAFE_ALLOCA! (sa_avail, trimmed_len + 1) as *mut c_char;
   memcpy (trimmed as *mut c_void, string as *const c_void, trimmed_len as usize);
   *trimmed.offset (trimmed_len) = 0;
   let result: Lisp_Object = make_bignum_str (trimmed, base);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   result
 }
 
@@ -6439,7 +6439,7 @@ pub unsafe extern "C" fn dir_warning (r#use: *const c_char, dirname: Lisp_Object
 	  diagnostic = SSDATA (s);
 	  diaglen = SBYTES (s);
 	}
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       /* C: `sizeof format - 3 * (sizeof "%s" - 1) + strlen (use) + SBYTES (dirname) + diaglen`
 	 — the `sizeof`s of C's `format` (21) and `"%s"` (3), measured with clang.  */
       let buffer: *mut c_char
@@ -6448,7 +6448,7 @@ pub unsafe extern "C" fn dir_warning (r#use: *const c_char, dirname: Lisp_Object
       let message_len: ptrdiff_t = esprintf (buffer, format, r#use, SSDATA (dirname),
 					     diagnostic);
       message_dolog (buffer, message_len, false, STRING_MULTIBYTE (dirname));
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
 }
 
