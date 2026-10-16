@@ -311,7 +311,7 @@ unsafe fn do_casify_multibyte_string (ctx: *mut casing_context, mut obj: Lisp_Ob
 
   let size: ptrdiff_t = SCHARS (obj);
   let mut n: ptrdiff_t = 0;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   // C's `ckd_mul (&n, size, MAX_MULTIBYTE_LENGTH) || ckd_add (&n, n, sizeof (struct
   // casing_str_buf))`: the two stores happen only when their operation did not overflow
   // (P-15, the ckd_mul/ckd_add family of docs/ports/token-aliases.tsv).
@@ -341,7 +341,7 @@ unsafe fn do_casify_multibyte_string (ctx: *mut casing_context, mut obj: Lisp_Ob
     }
   eassert! (o <= dst_end);
   obj = make_multibyte_string (dst as *const c_char, n, o.offset_from (dst));
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return obj;
 }
 
