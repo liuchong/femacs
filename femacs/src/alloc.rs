@@ -5636,6 +5636,12 @@ macro_rules! SET_STACK_TOP_ADDRESS {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn mark_c_stack (bottom: *const c_char, end: *const c_char)
 {
+  /* An *instrument*, not a behaviour: with the variable set, nothing on the C stack is marked.
+     It answers one question - whether the retention `spikes/gc-retention-probe.el` shows comes
+     from values that only the conservative scan can see (P-115's shape; status 4.431).  */
+  if ! unsafe { getenv (c"FEMACS_GC_SKIP_STACK_SCAN".as_ptr ()).is_null () }
+    { return; }
+
   /* This assumes that the stack is a contiguous region in memory.  If
      that's not the case, something has to be done here to iterate
      over the stack segments.  */
@@ -6326,8 +6332,9 @@ pub unsafe extern "C" fn garbage_collect ()
      4.430).  Off unless the variable is set.  */
   if ! unsafe { getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null () }
     {
-      fprintf (stderr, c"gc: n=%d specpdl_bytes=%ld\n".as_ptr (),
-	       gcs_done as c_int, unwrap_specpdl_ref (count) as c_int);
+      fprintf (stderr, c"gc: n=%d specpdl_bytes=%ld mark_sp=%ld mark_size=%ld\n".as_ptr (),
+	       gcs_done as c_int, unwrap_specpdl_ref (count) as c_int,
+	       unsafe { mark_stk.sp } as c_int, unsafe { mark_stk.size } as c_int);
     }
 
   eassert! (weak_hash_tables.is_null ());
