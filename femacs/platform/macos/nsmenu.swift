@@ -451,7 +451,8 @@ func lispVariadicArg(_ value: Lisp_Object) -> UInt {
 /// `PVEC_SUBR << PSEUDOVECTOR_AREA_BITS`, the function slot is C's `{.a ## maxargs = fnname}`,
 /// and the initialiser stops at `command_modes`/`doc`.
 fileprivate func make_aligned_subr(_ lname: StaticString, _ minargs: Int16, _ maxargs: Int16,
-                                  _ function: UnsafeMutableRawPointer) -> Aligned_Lisp_Subr {
+                                  _ function: UnsafeMutableRawPointer,
+                                   docstring: StaticString, args: StaticString) -> Aligned_Lisp_Subr {
   return Aligned_Lisp_Subr(s: Lisp_Subr(
     header: vectorlike_header(size: PVEC_SUBR() << PSEUDOVECTOR_AREA_BITS()),
     function: Lisp_Subr_function(ptr: function),
@@ -2142,7 +2143,7 @@ func Fns_reset_menu() -> Lisp_Object {
 fileprivate let lname_ns_reset_menu: StaticString = "ns-reset-menu"
 fileprivate var Sns_reset_menu: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_reset_menu, 0, 0,
-                    unsafeBitCast(Fns_reset_menu, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fns_reset_menu, to: UnsafeMutableRawPointer.self), docstring: " Cause the NS menu to be re-calculated.  ", args: "void")
 
 /// C 2017-2022: `DEFUN ("menu-or-popup-active-p", Fmenu_or_popup_active_p,
 /// Smenu_or_popup_active_p, 0, 0, 0, doc: /* SKIP: real doc in xmenu.c.  */)`.
@@ -2153,7 +2154,7 @@ func Fmenu_or_popup_active_p() -> Lisp_Object {
 fileprivate let lname_menu_or_popup_active_p: StaticString = "menu-or-popup-active-p"
 fileprivate var Smenu_or_popup_active_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_menu_or_popup_active_p, 0, 0,
-                    unsafeBitCast(Fmenu_or_popup_active_p, to: UnsafeMutableRawPointer.self))
+                    unsafeBitCast(Fmenu_or_popup_active_p, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xmenu.c.  ", args: "void")
 
 /// C 1776/1788: `*error_name = "Submenu in dialog items"` / `"Too many dialog items"` - the
 /// pointer C stores is a static literal, so the port keeps one stable C string for each (the
