@@ -1180,7 +1180,7 @@ pub unsafe extern "C" fn image_create_bitmap_from_data (f: *mut frame, bits: *mu
   {
     let mut bits = bits;
 
-    USE_SAFE_ALLOCA! (sa_avail, sa_count);
+    USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
     {
       let invertedBits: *mut c_char;
@@ -1201,7 +1201,7 @@ pub unsafe extern "C" fn image_create_bitmap_from_data (f: *mut frame, bits: *mu
 
     stipple = w32_create_pixmap_from_bitmap_data (width as c_int, height as c_int, bits);
 
-    SAFE_FREE! (sa_count);
+    SAFE_FREE! (sa_count, sa_mark);
 
     if bitmap.is_null () || stipple.is_null ()
       { return -1; }
@@ -7293,7 +7293,7 @@ unsafe extern "C" fn xbm_load (f: *mut frame, img: *mut image) -> bool
 				      SSDATA (data).offset (SBYTES (data) as isize)); }
       else
 	{
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
 	  if VECTORP (data)
 	    {
@@ -7354,7 +7354,7 @@ unsafe extern "C" fn xbm_load (f: *mut frame, img: *mut image) -> bool
 	      image_clear_image (f, img);
 	    }
 
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
     }
 
@@ -8795,7 +8795,7 @@ unsafe extern "C" fn xpm_load (f: *mut frame, img: *mut image) -> bool
   let mut attrs: XpmAttributes = core::mem::zeroed ();
   let mut specified_file: Lisp_Object;
   let mut color_symbols: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
   let mut hdc: HDC = core::ptr::null_mut ();
@@ -8946,7 +8946,7 @@ unsafe extern "C" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 	  #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
 		      not (feature = "use_cairo"), feature = "alloc_xpm_colors"))]
 	  { xpm_free_color_cache (); }
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	  return false;
 	}
 
@@ -8983,7 +8983,7 @@ unsafe extern "C" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 	  #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
 		      not (feature = "use_cairo"), feature = "alloc_xpm_colors"))]
 	  { xpm_free_color_cache (); }
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	  return false;
 	}
       #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
@@ -9145,7 +9145,7 @@ unsafe extern "C" fn xpm_load (f: *mut frame, img: *mut image) -> bool
   #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
 	      not (feature = "use_cairo"), feature = "alloc_xpm_colors"))]
   { xpm_free_color_cache (); }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return rc == XpmSuccess;
 }
 
