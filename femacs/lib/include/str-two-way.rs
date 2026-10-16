@@ -150,10 +150,16 @@ pub unsafe fn critical_factorization (needle: *const u8, needle_len: usize,
 
   /* Choose the shorter suffix.  Return the index of the first byte of
      the right half, rather than the last byte of the left half.  */
-  if max_suffix_rev + 1 < max_suffix + 1
-    { return max_suffix + 1; }
+  /* C 221-224: `if (max_suffix_rev + 1 < max_suffix + 1) return max_suffix + 1;` and the
+     `max_suffix_rev + 1` return below.  Both operands are seeded with `SIZE_MAX` and C relies
+     on *unsigned wraparound* here: with no suffix found, `SIZE_MAX + 1` is 0, the comparison is
+     false, and the function returns 0 - the "no factorization" the caller expects
+     (PORTING.md P-96).  Rust's checked addition panicked instead (status 4.419: `attempt to add
+     with overflow`, raised by `units/memmem/...str-two-way_rs.rs`).  */
+  if max_suffix_rev.wrapping_add (1) < max_suffix.wrapping_add (1)
+    { return max_suffix.wrapping_add (1); }
   *period = p_rev;
-  return max_suffix_rev + 1;
+  return max_suffix_rev.wrapping_add (1);
 }
 
 /* Return the first location of non-empty NEEDLE within HAYSTACK, or
@@ -207,7 +213,10 @@ pub unsafe fn two_way_short_needle (haystack: *const u8, mut haystack_len: usize
             }
           else
             {
-              j += i - suffix + 1;
+              /* C: `j += i - suffix + 1;` - `i - suffix` runs below zero when the search
+                 restarts at the first byte, which is what C's `size_t` arithmetic does here
+                 (PORTING.md P-96); Rust's checked arithmetic panicked instead (status 4.419).  */
+              j = j.wrapping_add (i.wrapping_sub (suffix).wrapping_add (1));
               memory = 0;
             }
         }
@@ -237,7 +246,12 @@ pub unsafe fn two_way_short_needle (haystack: *const u8, mut haystack_len: usize
               j += period;
             }
           else
-            { j += i - suffix + 1; }
+            {
+              /* C: `j += i - suffix + 1;` - `i - suffix` runs below zero when the search
+                 restarts at the first byte, which is what C's `size_t` arithmetic does here
+                 (PORTING.md P-96); Rust's checked arithmetic panicked instead (status 4.419).  */
+              j = j.wrapping_add (i.wrapping_sub (suffix).wrapping_add (1));
+            }
         }
     }
   return std::ptr::null_mut ();
@@ -327,7 +341,10 @@ pub unsafe fn two_way_long_needle (haystack: *const u8, haystack_len: usize,
                 }
               else
                 {
-                  j += i - suffix + 1;
+                  /* C: `j += i - suffix + 1;` - `i - suffix` runs below zero when the search
+                     restarts at the first byte, which is what C's `size_t` arithmetic does here
+                     (PORTING.md P-96); Rust's checked arithmetic panicked instead (status 4.419).  */
+                  j = j.wrapping_add (i.wrapping_sub (suffix).wrapping_add (1));
                   memory = 0;
                 }
             }
@@ -367,7 +384,12 @@ pub unsafe fn two_way_long_needle (haystack: *const u8, haystack_len: usize,
                   j += period;
                 }
               else
-                { j += i - suffix + 1; }
+                {
+                  /* C: `j += i - suffix + 1;` - `i - suffix` runs below zero when the search
+                     restarts at the first byte, which is what C's `size_t` arithmetic does here
+                     (PORTING.md P-96); Rust's checked arithmetic panicked instead (status 4.419).  */
+                  j = j.wrapping_add (i.wrapping_sub (suffix).wrapping_add (1));
+                }
             }
         }
     }
