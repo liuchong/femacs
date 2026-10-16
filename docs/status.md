@@ -20820,3 +20820,20 @@
   ③ **站点**：panic 位置在 `print` 单元的 `include/lisp.rs:975/978`（`STRING_BYTES` 的 `(*s).u.s.size_byte` 与 `eassume!(0 <= nbytes)`）✓；被当指针用的值里是**文本字节** ✓⇒ 类型混淆 ✓。`print.rs` 里 `STRING_BYTES/SBYTES` 的站点共 **11 处**（472/709/719/724/738/746/1007/1214/2647/2732 ✓），下一步用 lldb 在 panic 点读 DWARF 内联帧拿到**具体调用点**与 `obj` 的 tag ✓。
   ④ **下一步（点名）**：⑴ 在 2 文件探针上抓内联帧（`bt` 拿不到时用 `frame select`/`register read` 于 panic 点 ✓）；⑵ 顺着调用点回查到**产生坏对象的那一步**（会话内 ✔ 已排除"读 `.elc`"✗）；⑶ 关注点：`byte-opt.el` 的内联/`byte-define-inline` 宏展开产生的对象 ✓、以及 GC 之后被复用/搬动的字符串 ✓。
   ⑤ **未声称**：崩溃根因未定位 ✗；本轮只收窄了触发条件与站点族 ✓；L1 全族仍远未完成 ✓。
+
+- **4.387 验证相第十九轮：给 `SBYTES`/`SCHARS` 装临时陷阱，抓到调用栈——坏对象在 `print_object` 里被当字符串（2026-10-16）**：
+  ① **装置**（临时，已撤）：在镜像 `femacs/src/include/lisp.rs` 的 `SBYTES` 与 `SCHARS` 里加
+     `if !STRINGP (string) { emacs_backtrace (32); emacs_abort (); }` ✓（只用**已在链接里的** `emacs_backtrace`/`emacs_abort` ✓——第一版用了 libc 的 `backtrace_symbols_fd`/`stderr`，链接关卡立刻报"1 个未登记未定义符号" ✗，改成这两个就好了 ✓）。
+     重建 `print` 单元 + 重链即可生效（别的单元不受影响 ✓）。
+  ② **读数（同一会话内 `{byte-opt.el, bytecomp.el}` 两文件探针，跑 3 次）**：`TRAP`（exit 134）✓ / clean ✗ / clean ✗ ⇒ 与 4.386 的非确定性一致 ✓，但**陷阱一旦命中就给出调用栈** ✓：
+     ```
+     0 emacs_backtrace
+     1 print::print_object + 2804      ← 陷阱点在 print_object 里
+     2 print::print
+     3 Fprin1
+     4 eval_sub ...
+     ```
+     ⇒ **`Fprin1` 要打印的对象，在 `print_object` 里被当成字符串** ✗。`print_object` 内只有两处 `SBYTES`（端口 `print.rs:2647` 的**字符串分支**与 `2732` 的**符号分支** `SYMBOL_NAME (obj)` ✓）；两个分支都要求对象**自身**的类型正确 ⇒ 结论是**有一个对象的类型标记与其内容不符**（坏对象 ✓），而不是 print 的逻辑错 ✗（print/preprocess 与 C 逐行一致 ✓ 已在 4.385 验过）。
+  ③ **副产品**：二进制没有 DWARF 行号（单元以 `--emit obj` 编译、无 `-g` ✗），所以 `image lookup -a` 只能给符号+偏移 ✓（要用行号得另建带 `-g` 的对象 ✗，记为可选手段 ✓）。
+  ④ **下一步（点名）**：⑴ 用**同一装置 + 每次命中的 `print_object` 分支判别**（把陷阱拆成两处、各带不同 backtrace 深度，或给 `SYMBOL_NAME`/`SSDATA` 也加陷阱 ✓）⇒ 确定是"字符串分支"还是"符号分支" ✓；⑵ 在命中点用 lldb 读**对象的原始位**与 **tag**（`register read`）⇒ 据 tag 反查它是**哪种对象的错标** ✓；⑶ 顺着"谁写的这个对象"回查（会话内 ✓；`.elc` 路径与 GC 都已排除 ✓）。
+  ⑤ **未声称**：坏对象的来源仍未定位 ✗；本轮只把"在哪被踩"从"print 单元的 11 处可能"收窄到"`print_object` 的两条分支之一" ✓；L1 全族仍远未完成 ✓。
