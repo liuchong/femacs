@@ -2493,7 +2493,7 @@ DEFUN! ("sort-charsets", Fsort_charsets, Ssort_charsets, 1, 1, 0,
 	 let mut id: c_int = 0;
 	 let mut min_id: c_int = INT_MAX;
 	 let mut max_id: c_int = INT_MIN;
-	 USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	 USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
 	 if n == 0
 	   { return Qnil (); }
@@ -2548,7 +2548,7 @@ DEFUN! ("sort-charsets", Fsort_charsets, Ssort_charsets, 1, 1, 0,
 	     tail = XCDR (tail);
 	     i += 1;
 	   }
-	 SAFE_FREE! (sa_count);
+	 SAFE_FREE! (sa_count, sa_mark);
 	 return charsets;
        });
 
