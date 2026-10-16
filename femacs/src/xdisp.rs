@@ -8117,7 +8117,7 @@ unsafe fn load_overlay_strings (it: *mut it, mut charpos: ptrdiff_t)
   let mut entries: *mut overlay_entry = entriesbuf.as_mut_ptr ();
   let mut node: *mut itree_node;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   if charpos <= 0
     { charpos = IT_CHARPOS! (*it); }
@@ -8226,7 +8226,7 @@ unsafe fn load_overlay_strings (it: *mut it, mut charpos: ptrdiff_t)
     }
 
   CHECK_IT (it);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 
@@ -13459,12 +13459,12 @@ pub unsafe extern "C" fn vadd_to_log (format: *const c_char, mut ap: VaList<'_>)
   msg = Fformat_message (nargs, args.as_mut_ptr ());
 
   let len: ptrdiff_t = SBYTES (msg) + 1;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let buffer: *mut c_char = SAFE_ALLOCA! (sa_avail, len) as *mut c_char;
   memcpy (buffer as *mut c_void, SDATA (msg) as *const c_void, len as usize);
 
   message_dolog (buffer, len - 1, true, STRING_MULTIBYTE (msg));
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* Output a newline in the *Messages* buffer if "needs" one.  */
@@ -13755,10 +13755,10 @@ unsafe fn log_message (m: Lisp_Object)
       let nbytes: ptrdiff_t = SBYTES (m);
       let multibyte: bool = STRING_MULTIBYTE (m);
       let mut buffer: *mut c_char;
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       SAFE_ALLOCA_STRING! (sa_avail, buffer, m);
       message_dolog (buffer, nbytes, true, multibyte);
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
 }
 
@@ -14024,7 +14024,7 @@ unsafe fn vmessage (m: *const c_char, mut ap: VaList<'_>)
 	      let mut len: ptrdiff_t;
 	      let maxsize: ptrdiff_t = FRAME_MESSAGE_BUF_SIZE (f) as ptrdiff_t;
 	      let message_bufsize: ptrdiff_t = maxsize + MAX_MULTIBYTE_LENGTH as ptrdiff_t;
-	      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	      let message_buf: *mut c_char = SAFE_ALLOCA! (sa_avail, message_bufsize) as *mut c_char;
 
 	      len = doprnt (message_buf, message_bufsize, m, core::ptr::null (), ap);
@@ -14039,7 +14039,7 @@ unsafe fn vmessage (m: *const c_char, mut ap: VaList<'_>)
 		  *message_buf.offset (len as isize) = 0;
 		}
 	      message3 (make_string (message_buf, len));
-	      SAFE_FREE! (sa_count);
+	      SAFE_FREE! (sa_count, sa_mark);
 	    }
 	  else
 	    { message1 (core::ptr::null ()); }
@@ -24356,7 +24356,7 @@ maybe_produce_line_number (it: *mut it)
      + 2 + 1);` -- gnulib's `INT_STRLEN_BOUND (ptrdiff_t)` measures 20 on the frozen target
      (deviation 229), and the port's `alloca` is the `SAFE_ALLOCA` family (PORTING.md P-05),
      which is why the two tokens are owed to `docs/ports/macro-body-notes.tsv`.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let lnum_buf: *mut c_char =
     SAFE_ALLOCA! (sa_avail, max ((*it).lnum_width as isize, 20) + 2 + 1) as *mut c_char;
   if EQ (Vdisplay_line_numbers, Qrelative ())
@@ -24455,7 +24455,7 @@ maybe_produce_line_number (it: *mut it)
 	  /* PORTING.md P-05: C's `alloca` bytes go with the frame, so the C early `return`
 	     releases them; the port's pool needs the `SAFE_FREE` that the normal exit runs
 	     below (deviation 229).  */
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	  return;
 	}
       p = p.offset (1);
@@ -24527,7 +24527,7 @@ maybe_produce_line_number (it: *mut it)
   it_bits! (line_number_produced_p, it, true);
 
   bidi_unshelve_cache (itdata, false);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* Return true if this glyph row needs a line number to be produced
@@ -31674,7 +31674,7 @@ pub unsafe extern "C" fn note_mouse_highlight (f: *mut frame, mut x: c_int, mut 
 	/* Is this char mouse-active or does it have help-echo?  */
 	position = make_fixnum (pos);
 
-	USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
 	/* C's `check_help_echo:` label (C 37578) takes the two live `goto check_help_echo`s
 	   (C 37418, 37451), so this part is a labelled block that ends where C's label is
@@ -31950,7 +31950,7 @@ pub unsafe extern "C" fn note_mouse_highlight (f: *mut frame, mut x: c_int, mut 
 	  BEGV! () = obegv;
 	  ZV! () = ozv;
 	  set_current_buffer! (obuf);
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
       }
   }
