@@ -43,6 +43,12 @@ follows from what was loaded before.  The two lists are read back from the refer
 `lisp/Makefile.in` (read-only; the port retired its copy with the autotools scaffolding, P-102), so
 a moved list fails loudly instead of silently compiling in another order.
 
+By default the tool **removes each target's product before compiling it**, because
+`batch-byte-compile` skips a file whose `.elc` is not older than its source - measured 2026-10-16,
+a run with everything already built finished in five seconds and compared stale products, which
+made a reading look unchanged when nothing had been compiled at all.  `--no-force` keeps the
+up-to-date products and only compiles what is missing.
+
 `--no-compile` re-reads the products already on disk, which is how a classification (rather than a
 fresh compilation) is repeated.
 """
@@ -60,8 +66,13 @@ REF = REPO / "emacs"
 PORT = REPO / "femacs"
 PROGRAM = REPO / "build/port/src/temacs"
 
-# The loadup is what makes a program start expensive, so files are compiled in batches.
-DEFAULT_CHUNK = 40
+# C compiles *one file per program invocation* (`$(TARGETS): %.elc: %.el` with
+# `$(emacs) -f batch-byte-compile $<`), and the state a program start leaves behind is part of the
+# result: measured 2026-10-16, `lisp/emacs-lisp` read 97 identical / 1 rewrite-only / 13 DIFFERENT
+# in batches of forty and 101 / 2 / 8 one file per run, with `map.elc` differing in one and
+# identical in the other.  The default is therefore the reference's own method; `--chunk N` is a
+# smoke-run convenience whose reading is not comparable to the reference's products.
+DEFAULT_CHUNK = 1
 LOAD_FLAGS = ["-Q", "--batch", "--no-site-file", "--no-site-lisp",
               "--eval", "(setq load-prefer-newer t)", "-f", "batch-byte-compile"]
 
@@ -152,7 +163,7 @@ def reference_order(rels: list[str]) -> list[str]:
     return ordered
 
 
-def compile_chunk(rels: list[str], timeout: int) -> tuple[bool, str]:
+def compile_chunk(rels: list[str], timeout: int, force: bool) -> tuple[bool, str]:
     """Byte-compile one chunk with the port's program, the way C's makefile does it.
 
     C's `compile-main` does `cd $(lisp)` and hands the compiler names relative to it
@@ -161,6 +172,11 @@ def compile_chunk(rels: list[str], timeout: int) -> tuple[bool, str]:
     more difference that has nothing to do with the compiler's behaviour.
     """
     names = ["./" + rel[len("lisp/"):] if rel.startswith("lisp/") else rel for rel in rels]
+    if force:
+        for rel in rels:
+            produced = PORT / pathlib.Path(rel).with_suffix(".elc")
+            if produced.is_file():
+                produced.unlink()
     result = subprocess.run([str(PROGRAM)] + LOAD_FLAGS + names,
                             cwd=str(PORT / "lisp"), capture_output=True, text=True,
                             timeout=timeout,
@@ -211,6 +227,8 @@ def main() -> int:
     parser.add_argument("--show", type=int, default=6, help="differing files to describe")
     parser.add_argument("--order", choices=["reference", "sorted"], default="reference",
                         help="compile in the reference's own order (default) or sorted")
+    parser.add_argument("--no-force", action="store_true",
+                        help="keep up-to-date products (batch-byte-compile skips them)")
     parser.add_argument("--no-compile", action="store_true",
                         help="re-read the products already on disk instead of compiling")
     args = parser.parse_args()
@@ -249,7 +267,7 @@ def main() -> int:
     failures = 0
     for start in range(0, len(rels), args.chunk) if not args.no_compile else []:
         chunk = rels[start:start + args.chunk]
-        ok, message = compile_chunk(chunk, args.timeout)
+        ok, message = compile_chunk(chunk, args.timeout, force=not args.no_force)
         if not ok:
             print(f"chunk {start // args.chunk + 1}: {message}")
             failures += 1
