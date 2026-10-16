@@ -1619,7 +1619,7 @@ pub unsafe extern "C" fn main (mut argc: c_int, argv: *mut *mut c_char) -> c_int
         { lim = extra as rlim_t; }    /* avoid wrap-around in unsigned subtraction */
       let max_failures: ptrdiff_t
 	= min ((lim - extra as rlim_t) as isize,
-	       min (PTRDIFF_MAX as isize, SIZE_MAX as isize)) / ratio as ptrdiff_t;
+	       min (PTRDIFF_MAX as usize, SIZE_MAX) as isize) / ratio as ptrdiff_t;  /* P-127 */
       emacs_re_safe_alloca = max (max_failures * min_ratio as ptrdiff_t, MAX_ALLOCA);
     }
 
