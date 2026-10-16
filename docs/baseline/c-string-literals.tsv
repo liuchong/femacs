@@ -1,0 +1,7 @@
+# C string literals that deliberately hand C a Rust `&str`'s pointer (no NUL terminator).
+#
+# Read by tools/check-c-string-literals.py.  Columns are path, line, reason, tab separated.
+# An entry is a human claim: the site does not pass the pointer to C as a *string* (it is used
+# with an explicit length, or it never reaches C at all).  Empty is the correct state: the whole
+# tree spells its C strings `c"..."` (11,683 sites) or `b"...\0"` (35), with 0 exceptions.
+path	line	reason
