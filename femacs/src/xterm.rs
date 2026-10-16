@@ -1857,7 +1857,7 @@ unsafe fn xm_find_targets_table_idx (header: *mut xm_targets_table_header,
   let mut i: u16;
   let mut targets: *mut u32;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   targets = SAFE_ALLOCA! (sa_avail, std::mem::size_of::<u32> () * ntargets as usize) as *mut u32;
 
   for j in 0..ntargets
@@ -1872,10 +1872,10 @@ unsafe fn xm_find_targets_table_idx (header: *mut xm_targets_table_header,
 		       as *const c_void,
 		     targets as *const c_void,
 		     std::mem::size_of::<u32> () * ntargets as usize) == 0
-	{ SAFE_FREE! (sa_count); return i as c_int; }
+	{ SAFE_FREE! (sa_count, sa_mark); return i as c_int; }
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return -1;
 }
 
@@ -1903,7 +1903,7 @@ unsafe fn xm_write_targets_table (dpy: *mut c_void, wdesc: Window,
   let mut i: u16;
   let mut j: u16;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   header_buffer = SAFE_ALLOCA! (sa_avail, 8) as *mut u8;
   ptr = header_buffer;
 
@@ -1944,7 +1944,7 @@ unsafe fn xm_write_targets_table (dpy: *mut c_void, wdesc: Window,
     }
 
   xfree (rec_buffer as *mut c_void);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* C 1936-1958.  C 1950 swaps a CARD32 member with `SWAPCARD16`, which in C narrows to the
@@ -1959,7 +1959,7 @@ unsafe fn xm_write_drag_initiator_info (dpy: *mut c_void, wdesc: Window,
 
   let mut buf: *mut u8;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   buf = SAFE_ALLOCA! (sa_avail, 8) as *mut u8;
   /* C 1944-1945's `buf[0]`/`buf[1]` keep their subscripts, so the numbers stay in the body. */
   *buf.offset (0) = (*info).byteorder;
@@ -1978,7 +1978,7 @@ unsafe fn xm_write_drag_initiator_info (dpy: *mut c_void, wdesc: Window,
 
   XChangeProperty (dpy, wdesc, prop_name, type_name, 8,
 		   PropModeReplace, buf, 8);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* C 1960-1967: the X error handler that records that the drag window is bad.  */
@@ -3271,7 +3271,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 
   #[cfg (feature = "use_xcb")]
   {
-    USE_SAFE_ALLOCA! (sa_avail, sa_count);
+    USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
     SAFE_NALLOCA! (sa_avail, window_attribute_cookies, 1, nitems);
     SAFE_NALLOCA! (sa_avail, translate_coordinate_cookies, 1, nitems);
@@ -3789,7 +3789,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
     }
 
   #[cfg (feature = "use_xcb")]
-  { SAFE_FREE! (sa_count); }
+  { SAFE_FREE! (sa_count, sa_mark); }
 
   if !data.is_null ()
     { XFree (data as *mut c_void); }
@@ -5983,7 +5983,7 @@ unsafe fn xi_populate_device_from_info (dpyinfo: *mut x_display_info,
   let mut touch_info: *mut XITouchClassInfo;
 
   #[cfg (feature = "have_xinput2_1")]
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Initialize generic information about the device: its ID, which
      buttons are currently pressed and thus presumably actively
@@ -6063,7 +6063,7 @@ unsafe fn xi_populate_device_from_info (dpyinfo: *mut x_display_info,
 	(*xi_device).valuators = std::ptr::null_mut ();
 	(*xi_device).scroll_valuator_count = 0;
 
-	SAFE_FREE! (sa_count);
+	SAFE_FREE! (sa_count, sa_mark);
 	return;
       }
 
@@ -6184,7 +6184,7 @@ unsafe fn xi_populate_device_from_info (dpyinfo: *mut x_display_info,
 	values = (*values).next;
       }
 
-    SAFE_FREE! (sa_count);
+    SAFE_FREE! (sa_count, sa_mark);
   }
 }
 
@@ -15052,12 +15052,12 @@ unsafe extern "C" fn x_io_error_quitter (display: *mut Display) -> c_int
 {
   let server: *const c_char = XDisplayString (display);                 // C 27117
   static fmt: &core::ffi::CStr = c"Connection lost to X server '%s'";   // C 27118
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 27119
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                                // C 27119
   let buf: *mut c_char                                                  // C 27120
     = SAFE_ALLOCA! (sa_avail, 30 + strlen (server) + 1) as *mut c_char;  // C's `sizeof fmt - sizeof "%s"` is 30
   sprintf (buf, fmt.as_ptr (), server);                                 // C 27121 (fmt is a `&CStr`)
   x_connection_closed (display, buf, true);                             // C 27122
-  SAFE_FREE! (sa_count);                                                // C 27123
+  SAFE_FREE! (sa_count, sa_mark);                                                // C 27123
 
   return 0;                                                             // C 27125
 }
@@ -17630,7 +17630,7 @@ unsafe fn x_lower_frame_1 (f: *mut frame)
   let mut tail: Lisp_Object;                                            // C 28749
   let mut sibling: *mut frame;                                          // C 28750
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   windows = SAFE_ALLOCA! (sa_avail, 2 * std::mem::size_of::<Window> ())  // C 28752
 			 as *mut Window;
 
@@ -17654,7 +17654,7 @@ unsafe fn x_lower_frame_1 (f: *mut frame)
     XRestackWindows (FRAME_X_DISPLAY! (f), windows, 2);                 // C 28772
   });
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* Lower frame F.  */
@@ -19246,7 +19246,7 @@ pub unsafe extern "C" fn x_get_atom_name (dpyinfo: *mut x_display_info, atom: At
   if !need_sync.is_null ()                                              // C 29994
     { *need_sync = false; }                                             // C 29995
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   buffer = SAFE_ALLOCA! (sa_avail, 45 + INT_STRLEN_BOUND! (c_int)) as *mut c_char;  // C 29997
 
   match atom                                                           // C 29999
@@ -20026,7 +20026,7 @@ unsafe fn xi_select_hierarchy_events (dpyinfo: *mut x_display_info)
   let mut l: ptrdiff_t;                                                 // C 30606
   let mut m: *mut c_uchar;                                              // C 30607
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   l = XIMaskLen! (XI_LASTEVENT) as ptrdiff_t;                            // C 30609
   m = SAFE_ALLOCA! (sa_avail, l as usize) as *mut c_uchar;              // C 30610
   mask.mask = m;                                                        // C 30610, C's chained `mask.mask = m = …`
@@ -20139,7 +20139,7 @@ pub unsafe extern "C" fn x_term_init (display_name: Lisp_Object, xrm_option: *mu
   let mut i: c_int;                                                     // C 30695
 
 #[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 30698
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                                // C 30698
 
   block_input ();                                                       // C 30701
 
@@ -20319,7 +20319,7 @@ pub unsafe extern "C" fn x_term_init (display_name: Lisp_Object, xrm_option: *mu
 	unblock_input ();                                                // C 30854
 
 #[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
-	SAFE_FREE! (sa_count);                                           // C 30857
+	SAFE_FREE! (sa_count, sa_mark);                                           // C 30857
 	return std::ptr::null_mut ();                                    // C 30859
       }
     }
@@ -20339,7 +20339,7 @@ pub unsafe extern "C" fn x_term_init (display_name: Lisp_Object, xrm_option: *mu
 	unblock_input ();                                                // C 30876
 
 #[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
-	SAFE_FREE! (sa_count);                                           // C 30879
+	SAFE_FREE! (sa_count, sa_mark);                                           // C 30879
 	return std::ptr::null_mut ();                                    // C 30881
       }
   }
@@ -21357,7 +21357,7 @@ pub unsafe extern "C" fn x_term_init (display_name: Lisp_Object, xrm_option: *mu
   unblock_input ();                                                 // C 31832
 
 #[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
-  SAFE_FREE! (sa_count);                                            // C 31835
+  SAFE_FREE! (sa_count, sa_mark);                                            // C 31835
   return dpyinfo;                                                   // C 31837
 }
 
@@ -22197,7 +22197,7 @@ pub unsafe extern "C" fn x_preserve_selections (dpyinfo: *mut x_display_info, lo
 
   if !NILP (new_owner)                                                  // C 32559
     {
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
       owners = SAFE_ALLOCA! (sa_avail, std::mem::size_of::<Window> ()  // C 32561
 			     * nowners as usize) as *mut Window;
@@ -22292,7 +22292,7 @@ pub unsafe extern "C" fn x_preserve_selections (dpyinfo: *mut x_display_info, lo
 		    XCAR (tem)); }
       });
 
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
 }
 /* C 32664's `syms_of_xterm` registers 39 `DEFVAR_*` variables that the reference keeps in the
@@ -22814,7 +22814,7 @@ unsafe fn x_new_focus_frame (dpyinfo: *mut x_display_info, frame: *mut frame)
 #[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
   let mut mask: XIEventMask;                                            // C 11994
 #[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 #[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
   {
     if (*dpyinfo).supports_xi2                                          // C 11995
@@ -22860,7 +22860,7 @@ unsafe fn x_new_focus_frame (dpyinfo: *mut x_display_info, frame: *mut frame)
   x_frame_rehighlight (dpyinfo);                                         // C 12032
 
 #[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* True if the display in DPYINFO supports a version of Xfixes
@@ -26017,7 +26017,7 @@ unsafe fn xi_select_scroll_bar_events (dpyinfo: *mut x_display_info, scroll_bar:
   let mut m: *mut c_uchar;                                              // C 15317
   let mut length: ptrdiff_t;                                            // C 15318
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   length = XIMaskLen! (XI_LASTEVENT) as ptrdiff_t;                        // C 15320
   m = SAFE_ALLOCA! (sa_avail, length as usize) as *mut c_uchar;          // C 15321
   mask.mask = m;  /* C 15321's chained `mask.mask = m = alloca (length);` */
@@ -31351,7 +31351,7 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   /* C 18910-18913: `USE_SAFE_ALLOCA`, "to avoid warnings when SAFE_ALLOCA is not actually
      used".  */
 #[cfg (any (feature = "have_xinput2", feature = "have_xkb", feature = "have_x_i18n"))]
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* This function is not reentrant, so input should be blocked before it is called.  */
 
@@ -38448,7 +38448,7 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
     }
 
 #[cfg (any (feature = "have_xinput2", feature = "have_xkb", feature = "have_x_i18n"))]
-  SAFE_FREE! (sa_count);                                                // C 25628
+  SAFE_FREE! (sa_count, sa_mark);                                                // C 25628
 
   return count;                                                         // C 25631
 }
