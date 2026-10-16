@@ -43,37 +43,6 @@ def load_gen_doc():
 gd = load_gen_doc()
 
 
-def c_docstring_text(path: Path, name: str, kind: str) -> tuple[str, int] | None:
-    """The reference's docstring for `name` as `make-docfile` reads it: (text, line)."""
-    text = path.read_text(encoding="utf-8", errors="replace")
-    macro = "DEFUN" if kind == "F" else "DEFVAR_[A-Z_0-9]+"
-    m = re.search(r"\b(" + macro + r")\s*\(\s*\"" + re.escape(name) + r"\"", text)
-    if not m:
-        return None
-    j = text.find("/*", m.end())
-    if j < 0:
-        return None
-    end = text.find("*/", j + 2)
-    if end < 0:
-        return None
-    raw = text[j + 2:end]
-    out = []
-    k = 0
-    while k < len(raw):                     # make-docfile's escape pass, comment form
-        c = raw[k]
-        if c == "\\" and k + 1 < len(raw):
-            nxt = raw[k + 1]
-            if nxt in "\n\r":
-                k += 2
-                continue
-            out.append({"n": "\n", "t": "\t"}.get(nxt, nxt))
-            k += 2
-            continue
-        out.append(c)
-        k += 1
-    return "".join(out), text.count("\n", 0, j) + 1
-
-
 def rust_literal(text: str) -> str:
     out = ['"']
     for ch in text:
@@ -155,11 +124,11 @@ def main() -> int:
         if cfile is None:
             skipped.append(f"{obj} {name}: no reference invocation found")
             continue
-        ctext = c_docstring_text(cfile, name, kind)
-        if ctext is None:
+        got_c = gd.read_c_docstring(cfile, name, kind)
+        if got_c is None:
             skipped.append(f"{obj} {name}: no docstring read from {cfile.name}")
             continue
-        text, cline = ctext
+        text, cline = got_c[0], got_c[1]
         rec = next((r for r in gd.scan_rust(src) if r.name == name and r.kind == kind), None)
         if rec is None:
             skipped.append(f"{obj} {name}: carrier not scanned in {src.name}")
