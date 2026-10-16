@@ -39,6 +39,31 @@ const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=0", "-C", "overflow-che
                                        "-C", "debug-assertions=on", "-C", "panic=abort",
                                        "-C", "codegen-units=1"];
 
+/// The unit flags, with `-C opt-level` replaced by `FEMACS_OPT_LEVEL` when that variable is set.
+///
+/// The level is a *variable* of this port, not a constant: P-101 records that the port's `unsafe`
+/// layer does not yet survive optimization (`=2` crashes in `styled_format`'s `memmove`, `=1`
+/// before the first `Loading`), and P-116 makes raising it the one remedy for the frame debt, so
+/// the two defects have to be reproduced and fixed at one level at a time.  Unset means the
+/// frozen level, unchanged.
+fn unit_codegen_flags () -> Vec<String>
+{
+  match std::env::var ("FEMACS_OPT_LEVEL")
+    {
+      Ok (v) if ! v.is_empty () =>
+        {
+          let mut out: Vec<String> = UNIT_CODEGEN_FLAGS.iter ().map (|f| f.to_string ()).collect ();
+          if let Some (i) = out.iter ().position (|f| f.starts_with ("opt-level="))
+            {
+              out[i] = format! ("opt-level={v}");
+            }
+          println!("unit codegen: -C opt-level={v} (FEMACS_OPT_LEVEL)");
+          out
+        }
+      _ => UNIT_CODEGEN_FLAGS.iter ().map (|f| f.to_string ()).collect (),
+    }
+}
+
 /// The directories a ported unit can live in.  `docs/port-map.md` pairs every reference file
 /// with a target path, and the C tree's non-`src/` directories keep their own names (PORTING.md
 /// 0.1: `lib/`, `lib-src/`, `lwlib/`, `oldXMenu/`, `exec/`, `nt/`, `msdos/`), so the unit
@@ -1089,7 +1114,7 @@ fn build_tu(rel: Option<&String>) -> i32 {
     let status = rustc_cmd ()
         .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                "--crate-name", &cname])
-        .args(UNIT_CODEGEN_FLAGS)
+        .args(unit_codegen_flags ())
             .args(&sanitizer_flags ())
         .arg(&root)
         .arg("-o").arg(&out)
@@ -2135,7 +2160,7 @@ fn dead_arms() -> i32 {
         let mut cmd = rustc_cmd ();
         cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                   "--crate-name", &cname])
-        .args(UNIT_CODEGEN_FLAGS)
+        .args(unit_codegen_flags ())
             .args(&sanitizer_flags ());
         for (feature, _, _) in FLIPS {
             if !feature.is_empty() {
@@ -2603,7 +2628,7 @@ fn build_finished_tus() -> Result<(), String> {
         let status = rustc_cmd ()
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname])
-            .args(UNIT_CODEGEN_FLAGS)
+            .args(unit_codegen_flags ())
             .args(&sanitizer_flags ())
             .arg(&root)
             .arg("-o")
@@ -2623,7 +2648,7 @@ fn build_finished_tus() -> Result<(), String> {
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname,
                    "--cfg", "enable_checking"])
-            .args(UNIT_CODEGEN_FLAGS)
+            .args(unit_codegen_flags ())
             .args(&sanitizer_flags ())
             .arg(&root)
             .arg("-o")
