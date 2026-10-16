@@ -1401,7 +1401,7 @@ unsafe fn fontset_pattern_regexp (pattern: Lisp_Object) -> Lisp_Object       // 
       let regexsize: ptrdiff_t = (SBYTES (pattern)
 				  + (if ndashes < 14 { 2 } else { 5 }) as isize * nstars as isize
 				  + 2 * nescs as isize + 3);
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       regex = SAFE_ALLOCA! (sa_avail, regexsize) as *mut u8;
       p1 = regex;
 
@@ -1434,7 +1434,7 @@ unsafe fn fontset_pattern_regexp (pattern: Lisp_Object) -> Lisp_Object       // 
 
       Vcached_fontset_data = Fcons (build_string (SSDATA (pattern)),
 				    build_string (regex as *const c_char));
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
 
   return CACHED_FONTSET_REGEX! ();
@@ -2221,7 +2221,7 @@ format is the same as above.  ",                              // C 1876-1892
 
   /* Recode fontsets realized on FRAME from the base fontset FONTSET
      in the table `realized'.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   SAFE_ALLOCA_LISP! (sa_avail, realized0, 2 * ASIZE (Vfontset_table));
   realized[0] = realized0;
   realized[1] = realized[0].add (ASIZE (Vfontset_table) as usize);
@@ -2351,7 +2351,7 @@ format is the same as above.  ",                              // C 1876-1892
       k += 1;
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return tables[0];
 });
 
