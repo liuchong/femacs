@@ -513,7 +513,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
   let mut status: c_int = 0;
   let mut i: ptrdiff_t = 0;
   let count: specpdl_ref = SPECPDL_INDEX ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* PORTING.md 1.5: C leaves NEW_ARGV uninitialized; SAFE_NALLOCA passes it by value,
      so the port starts it at null (lisp.rs's pointee_size note).  */
@@ -1135,7 +1135,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
      when exiting.  */
   synch_process_pid = 0;
 
-  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil ());
+  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
 
   if ! wait_ok
     { return build_unibyte_string (c"internal error".as_ptr ()); }
@@ -1240,7 +1240,7 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
       let coding_systems: Lisp_Object;
       /* PORTING.md 1.5: C leaves ARGS2 uninitialized; SAFE_NALLOCA passes it by value.  */
       let mut args2: *mut Lisp_Object = std::ptr::null_mut ();
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       SAFE_NALLOCA! (sa_avail, args2, 1, nargs + 1);
       *args2 = Qcall_process_region ();
       /* C's `memcpy (args2 + 1, args, nargs * word_size)` counts bytes (PORTING.md P-93).  */
@@ -1248,7 +1248,7 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
 				     (nargs * std::mem::size_of::<Lisp_Object> () as ptrdiff_t) as usize);
       coding_systems = Ffind_operation_coding_system (nargs + 1, args2);
       val = if CONSP (coding_systems) { XCDR (coding_systems) } else { Qnil () };
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
   val = complement_process_encoding_system (val);
 
