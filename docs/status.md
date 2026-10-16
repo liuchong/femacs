@@ -20813,3 +20813,10 @@
   ② **定位到函数**（lldb，`bt`）：`temacs\`print::print_circle_candidate_p + 2508` 的一次 `ldr w8, [x8]` ✗；另一次同根现象是 panic 点在 `include/lisp.rs:975/978`（`STRING_BYTES` 的 `(*s).u.s.size_byte` 与 `eassume!(0 <= nbytes)`）✓——那次被当作指针/结构的地址里是**文本字节**（`…0x74 't', 0x65 'e', 0x53 'S', 0x74 't'…` ✓）⇒ **有一个类型错的 Lisp 对象在会话里流动** ✓，print 的两处只是最先踩到它 ✓。
   ③ **排除**：`print_circle_candidate_p` 与 `print_preprocess` 的端口文本与 C **逐行一致** ✓（不是它俩的逻辑错 ✗）；`func-arity` 修复后的 L1 读数仍成立（错误 51 → 0 ✓）。
   ④ **下一步（点名）**：在**同一会话**里做**序列二分**（最小文件序列）⇒ 找出"哪一步产生了坏对象"（先看它是否与 `.elc` 的写出/读取无关 ✓，再看 `byte-run.el`/`byte-opt.el` 的内联宏展开路径 ✓）；本轮生成的 `.elc` 已在收尾时清掉（L1 全族重跑时再生成 ✓）。
+
+- **4.386 验证相第十八轮：L1 崩溃收窄到"两文件 + 非确定性"，判据指向类型混淆（2026-10-16）**：
+  ① **更小的复现**（同一会话内连发）：`{byte-opt.el, bytecomp.el}` **2 个文件**就能触发 ✓（另外 `{byte-run,byte-opt,bytecomp}` 干净 ✓、`{benchmark,bindat,byte-opt,byte-run,bytecomp}` 与 `{advice,avl-tree,backquote,backtrace,bytecomp}` 都崩 ✓）⇒ 迭代成本降到 ~25 秒 ✓。
+  ② **非确定性（本轮最重要的读数）**：**同一条命令**连续三次得到 **exit 134（panic）/ exit 0（干净）/ exit 0（干净）** ✗；把 `byte-compile-verbose` 关掉时崩、默认（开着）却干净 ✗ ⇒ **缺陷本身每次都发生**（有个非字符串被送进 `print` 单元的 `SBYTES` 站点 ✓），而**只有当地址恰好不对齐时 UB 检查才会 panic** ✓⇒ 表现随地址布局变化 ✓（这也是前几轮"时崩时不崩"的原因 ✓）。warnings/verbose 的差异**不是**根因（两个方向都出现过 ✗）——它们只改变打印路径里**哪一次**读被踩到 ✓。
+  ③ **站点**：panic 位置在 `print` 单元的 `include/lisp.rs:975/978`（`STRING_BYTES` 的 `(*s).u.s.size_byte` 与 `eassume!(0 <= nbytes)`）✓；被当指针用的值里是**文本字节** ✓⇒ 类型混淆 ✓。`print.rs` 里 `STRING_BYTES/SBYTES` 的站点共 **11 处**（472/709/719/724/738/746/1007/1214/2647/2732 ✓），下一步用 lldb 在 panic 点读 DWARF 内联帧拿到**具体调用点**与 `obj` 的 tag ✓。
+  ④ **下一步（点名）**：⑴ 在 2 文件探针上抓内联帧（`bt` 拿不到时用 `frame select`/`register read` 于 panic 点 ✓）；⑵ 顺着调用点回查到**产生坏对象的那一步**（会话内 ✔ 已排除"读 `.elc`"✗）；⑶ 关注点：`byte-opt.el` 的内联/`byte-define-inline` 宏展开产生的对象 ✓、以及 GC 之后被复用/搬动的字符串 ✓。
+  ⑤ **未声称**：崩溃根因未定位 ✗；本轮只收窄了触发条件与站点族 ✓；L1 全族仍远未完成 ✓。
