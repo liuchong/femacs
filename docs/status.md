@@ -21271,3 +21271,10 @@
   ③ **失败时的层位**：带时间戳的轨迹显示两侧事件序列**完全相同**（`vc-git-command …` → `make-process ("git" "pull" "--stat")` → `vc-exec-after proc=#<process git>` → `POSTCMD … "pull"` ✓，拉取本身 0.06-0.17 秒 ✓）；而且**instrumentation 会扰动结果** ✗（只加一条 `vc-exec-after` advice 的 1 次运行失败 ✓、纯跑的那次通过 ✓、加一条 -100 深度空 hook 时通过 ✓）⇒ 竞态在**Lisp 层且窗口很窄** ✓（典型 heisenbug ✓）。
   ④ **本机资源**：8+8 次批量跑峰值 **80 MB** ✓、总计 48 秒 ✓（受控执行器 runtime 1200 MiB ✓）；`git -C emacs status --short` 为空 ✓。提交：本提交（纯读数 ✓）。
   ⑤ **下一步（点名）**：⑴ 换**低扰动**仪器找层位：跑完（无论成败）dump `(length (process-list))` + 挂起定时器/`vc-touched-properties` 等**事后状态** ✓（不改 hook 链 ✓），看失败是否伴随残留进程/定时器 ✓；⑵ 若指向 `vc-exec-after` 的排队（`vc-exec-after` 的 tail 在**别的 buffer**里等 ✓），就用一个**独立最小脚本**复现"异步进程 + `vc-exec-after`"这一层 ✓（不碰 ERT ✓）；⑶ 修好后复跑整片 `package-vc-tests`（45 例 ✓）与 `lisp/emacs-lisp` 整片 ✓。
+- **4.444 验证相第七十六轮：间歇失败的层位定案 = "被 advice 包过的进程哨兵"（端口 14/20 丢失、参照 0/20）（2026-10-16）**：
+  ① **仪器**（新入库 `spikes/process-sentinel-advice-probe.el` ✓）：照 `vc-exec-after` 的机制（`(add-function :after (process-sentinel proc) fun)` ✓ `vc-dispatcher.el` 239-320 ✓）造一个进程、包住它的哨兵、等**原哨兵与包装器两者**，20 次 ✓。
+  ② **读数**：端口 **missed 14 / 20** ✓✗（每次 miss 都是"**原哨兵也没跑** ✓、且进程 2.5 秒后仍 `run` ✗"）、参照 **missed 0 / 20** ✓✓ ⇒ 与 4.443 的单测 flake（端口 4/8、参照 8/8 ✓）方向一致 ✓，且**定位到具体机制** ✓。
+  ③ **对照**：不带 advice 的同形探针 6/6、0.022-0.028 秒（两侧一致 ✓ 4.443）⇒ 缺陷只在"**哨兵被 advice 包装**"这一支 ✓。
+  ④ **裁定**：`PORTING.md` **P-122** ✓（三层候选：`add-function` 对哨兵的包装 ✓ / 包装后哨兵的调用路径（`process.c` 的 `status_notify`/`wait_reading_process_output` ✓）/ 收割路径（SIGCHLD 后 `process-status` 仍 `run` ✗ ✓）；修在 `process.c` 一侧 ✓，**不许**改测试或复制的 `lisp/` 树 ✓；验收 = 探针 0/20 ✓ + `package-vc-tests` 整片 ✓ + 三门口复绿 ✓）。
+  ⑤ **资源**：探针端口侧 ~48 秒（含 500×0.005 秒的自旋 ✓）、峰值 31 MB ✓；受控执行器 runtime 1024 MiB ✓；`git -C emacs status --short` 为空 ✓。提交：`spikes/process-sentinel-advice-probe.el` ✓、`PORTING.md`（P-122 ✓）、本提交 ✓。
+  ⑥ **下一步（点名）**：⑴ 按 P-122 ③ 在 `process.c`/`keyboard.c` 一侧定案（先判"包装后哨兵是否被调用"✓：在端口 `status_notify` 加 env 守卫打印 ✓，P-115 形状 ✓）；⑵ 修后跑探针（目标 0/20 ✓）与 `package-vc-tests` 整片（45 例 ✓）；⑶ 之后回到 `.elc` 族/其余生成物与 `lisp/emacs-lisp` 整片 L5 刷新 ✓。
