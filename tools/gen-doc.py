@@ -149,8 +149,12 @@ def string_literal(s: str, i: int) -> tuple[str, int]:
     raise ValueError("unterminated string")
 
 
-def split_args(s: str, i: int) -> tuple[list[str], int]:
-    """Split the parenthesized argument list at `s[i] == '('` at top-level commas."""
+def split_args(s: str, i: int, keep_comments: bool = False) -> tuple[list[str], int]:
+    """Split the parenthesized argument list at `s[i] == '('` at top-level commas.
+
+    With `keep_comments`, a `/* … */` inside an argument stays in that argument's text - C
+    spells a docstring that way, and it is the thing this scanner is after.
+    """
     assert s[i] == "(", s[i:i + 20]
     i += 1
     depth = 0
@@ -169,6 +173,10 @@ def split_args(s: str, i: int) -> tuple[list[str], int]:
             _, i = string_literal(s, i)
             continue
         if c == "/" and i + 1 < n and s[i + 1] in "/*":
+            if keep_comments:
+                k = s.find("*/", i + 2)
+                i = n if k < 0 else k + 2
+                continue
             i = skip_trivia(s, i)
             continue
         if c in "([{":
@@ -348,6 +356,115 @@ def scan_rust(path: Path) -> list[Record]:
     return out
 
 
+
+# ------------------------------------------- reading a reference docstring (both spellings)
+
+def c_unescape(raw: str) -> str:
+    """`make-docfile`'s escape pass: `\n`->LF, `\t`->TAB, `\`+newline dropped, `\X`->X.
+
+    It runs for a `/* … */` docstring and for a `"…"` one alike (PORTING.md P-109).
+    """
+    out: list[str] = []
+    k = 0
+    while k < len(raw):
+        c = raw[k]
+        if c == "\\" and k + 1 < len(raw):
+            nxt = raw[k + 1]
+            if nxt in "\n\r":
+                k += 2
+                continue
+            out.append({"n": "\n", "t": "\t"}.get(nxt, nxt))
+            k += 2
+            continue
+        out.append(c)
+        k += 1
+    return "".join(out)
+
+
+def c_string_raw(text: str, i: int) -> tuple[str, int]:
+    """The *raw* text of the C string starting at `text[i] == '"'` (escapes untouched)."""
+    assert text[i] == '"'
+    i += 1
+    out: list[str] = []
+    while i < len(text):
+        c = text[i]
+        if c == "\\" and i + 1 < len(text):
+            out.append(c)
+            out.append(text[i + 1])
+            i += 2
+            continue
+        if c == '"':
+            return "".join(out), i + 1
+        out.append(c)
+        i += 1
+    raise ValueError("unterminated C string")
+
+
+def c_doc_value(arg: str) -> str | None:
+    """A docstring argument's text: C's `/* … */`, or its `"…"` (concatenations included)."""
+    t = arg.strip()
+    if t.startswith("doc:"):
+        t = t[4:].lstrip()
+    j = min([k for k in (t.find("/*"), t.find('"')) if k >= 0], default=-1)
+    if j < 0:
+        return None
+    if t.startswith("/*", j):
+        end = t.find("*/", j + 2)
+        if end < 0:
+            return None
+        return c_unescape(t[j + 2:end])
+    pieces: list[str] = []
+    k = j
+    while True:
+        raw, k = c_string_raw(t, k)
+        pieces.append(raw)
+        while k < len(t) and t[k] in " \t\n\r":
+            k += 1
+        if k < len(t) and t[k] == '"':
+            continue
+        break
+    return c_unescape("".join(pieces))
+
+
+def read_c_docstring(path: Path, name: str, kind: str,
+                     args_wanted: bool = False) -> tuple[str, int, list[str]] | None:
+    """C's docstring for this record, read at the invocation's own argument position.
+
+    C's `DEFUN (name, fname, sname, minargs, maxargs, intspec, doc)` and
+    `DEFVAR_* (name, var, doc …)` are parsed the way the Rust side is, so a *string* that
+    precedes the docstring (the intspec, which can be `""`) is never mistaken for it; the
+    docstring itself may be a comment or a (possibly continued, possibly concatenated) string
+    literal, and `make-docfile` treats both the same (PORTING.md P-109).
+    """
+    text = path.read_text(encoding="utf-8", errors="replace")
+    macro = "DEFUN" if kind == "F" else "DEFVAR_[A-Z_0-9]+" if kind == "V" else "DEFUN|DEFVAR_[A-Z_0-9]+"
+    rx = re.compile(r"\b(" + macro + r")\s*\(")
+    m = rx.search(text)
+    while m:
+        args, end = split_args(text, text.index("(", m.start()), keep_comments=True)
+        if args and '"' + name + '"' in args[0]:
+            index = 6 if kind == "F" else 2
+            doc = c_doc_value(args[index]) if index < len(args) else None
+            if doc is None and kind == "V":
+                for cand in args[1:]:
+                    doc = c_doc_value(cand)
+                    if doc is not None:
+                        break
+            if doc is not None:
+                names: list[str] = []
+                if args_wanted:
+                    k = text.find("(", end)
+                    if k >= 0:
+                        inner, _ = split_args(text, k, keep_comments=True)
+                        for a in inner:
+                            ident = re.findall(r"[A-Za-z_][A-Za-z_0-9]*", a)
+                            if ident:
+                                names.append(ident[-1])
+                return doc, text.count("\n", 0, m.start()) + 1, names
+        m = rx.search(text, end)
+    return None
+
+
 # ------------------------------------------------------------------ C's rendering
 
 def put(out: bytearray, pending: list[int], ch: str) -> None:
@@ -473,6 +590,9 @@ def build(ref: bytes, only: str | None = None) -> tuple[bytes, list[str], list[s
     out = bytearray()
     warn: list[str] = []
     pending: list[str] = []
+    # A section the reference fills with records needs a port source; one it leaves empty
+    # (`nsxwidget.o` has no records at all) needs nothing, and must not read as pending.
+    expected = {o for o, recs in split_doc(ref) if recs}
     for obj in reference_sections(ref):
         if only and not obj.startswith(only):
             continue
@@ -480,7 +600,8 @@ def build(ref: bytes, only: str | None = None) -> tuple[bytes, list[str], list[s
         src = port_source(stem)
         out += b"\x1fS" + obj.encode() + b"\n"
         if not src.exists():
-            pending.append(f"{obj}: no port source ({src.name})")
+            if obj in expected:
+                pending.append(f"{obj}: no port source ({src.name})")
             continue
         if src.suffix == ".swift":
             recs, missing = scan_swift(src)
@@ -493,19 +614,89 @@ def build(ref: bytes, only: str | None = None) -> tuple[bytes, list[str], list[s
     return bytes(out), warn, pending
 
 
+def _call_span(text: str, open_at: int) -> tuple[str, int]:
+    """The argument text of the call whose `(` is at `open_at`, and the index after its `)`."""
+    depth = 0
+    i = open_at
+    while i < len(text):
+        c = text[i]
+        if c == '"':
+            _, i = string_literal(text, i)
+            continue
+        if c == "/" and i + 1 < len(text) and text[i + 1] in "/*":
+            i = skip_trivia(text, i)
+            continue
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return text[open_at + 1:i], i + 1
+        i += 1
+    raise ValueError("unbalanced call")
+
+
+def _carried_doc(arg_text: str) -> str | None:
+    """The `docstring:` literal of a Swift carrier, decoded."""
+    m = re.search(r"docstring:\s*", arg_text)
+    if not m:
+        return None
+    i = skip_trivia(arg_text, m.end())
+    if i >= len(arg_text) or arg_text[i] != '"':
+        return None
+    return string_literal(arg_text, i)[0]
+
+
 def scan_swift(path: Path) -> tuple[list[Record], list[str]]:
-    """Read the port's Swift carriers (P-106); report the ones still missing."""
-    s = path.read_text(encoding="utf-8")
+    """Read the port's Swift carriers (P-106/P-110), in source order.
+
+    A subr's Lisp name comes from its `lname_*` constant, its arity from the call, and the
+    record's text and argument names from the carriers that stand beside them; a variable's name
+    and docstring come from its `defvar_*` call.  Sites without carriers are reported pending.
+    """
+    text = path.read_text(encoding="utf-8")
+    names = dict(re.findall(r"fileprivate let (lname_[A-Za-z_0-9]+): StaticString =\s*\"([^\"]*)\"",
+                            text, re.S))
+    sites: list[tuple[int, str, int]] = []      # (offset, kind, open-paren index)
+    for m in re.finditer(r"make_aligned_subr(\(lname_[A-Za-z_0-9]+)", text):
+        sites.append((m.start(), "F", m.start(1)))
+    for m in re.finditer(r"\bdefvar_(?:lisp|bool|int|kboard)\(", text):
+        if text[max(0, m.start() - 5):m.start()].endswith("func "):
+            continue                            # the helper's own definition
+        sites.append((m.start(), "V", m.end() - 1))
     recs: list[Record] = []
-    missing: list[str] = []
-    for m in re.finditer(r"fileprivate var (S[A-Za-z_0-9]+)\s*:\s*Aligned_Lisp_Subr", s):
-        line = s.count("\n", 0, m.start()) + 1
-        tail = s[m.end():s.find("\n\n", m.end()) if s.find("\n\n", m.end()) > 0 else m.end() + 800]
-        missing.append(f"{path.name}:{line} {m.group(1)}: docstring carrier not landed (P-106)")
-    for m in re.finditer(r"\b(defvar_lisp|defvar_bool|defvar_int|defvar_kboard)\s*\(([^;]*?)\)\s*\n", s, re.S):
-        line = s.count("\n", 0, m.start()) + 1
-        missing.append(f"{path.name}:{line} {m.group(1)}: docstring carrier not landed (P-106)")
-    return recs, missing
+    pending: list[str] = []
+    for offset, kind, paren in sorted(sites):
+        arg_text, _ = _call_span(text, paren)
+        line = text.count("\n", 0, offset) + 1
+        doc = _carried_doc(arg_text)
+        if doc is None:
+            pending.append(f"{path.name}:{line}: docstring carrier not landed (P-106)")
+            continue
+        if kind == "F":
+            head = re.match(r"lname_([A-Za-z_0-9]+),\s*(\d+),\s*(\d+)", arg_text)
+            if not head:
+                pending.append(f"{path.name}:{line}: subr call without lname/arity")
+                continue
+            lname = names.get(f"lname_{head.group(1)}")
+            if not lname:
+                pending.append(f"{path.name}:{line}: lname_{head.group(1)} has no literal")
+                continue
+            argnames: list[str] = []
+            m2 = re.search(r"args:\s*", arg_text)
+            if m2:
+                i = skip_trivia(arg_text, m2.end())
+                if i < len(arg_text) and arg_text[i] == '"':
+                    argnames = string_literal(arg_text, i)[0].split()
+            recs.append(Record("F", lname, doc, int(head.group(2)), int(head.group(3)),
+                               argnames, f"{path.name}:{line}"))
+        else:
+            m2 = re.search(r'"([^"]*)"', arg_text)
+            if not m2:
+                pending.append(f"{path.name}:{line}: defvar call without a name")
+                continue
+            recs.append(Record("V", m2.group(1), doc, where=f"{path.name}:{line}"))
+    return recs, pending
 
 
 
