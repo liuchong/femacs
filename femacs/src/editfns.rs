@@ -1289,7 +1289,7 @@ DEFUN! ("user-full-name", Fuser_full_name, Suser_full_name, 0, 1, 0,
       let login: Lisp_Object = Fuser_login_name (INT_TO_INTEGER ((*pw).pw_uid as EMACS_INT));
       if !NILP (login)
         {
-          USE_SAFE_ALLOCA! (sa_avail, sa_count);
+          USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
           let r: *mut c_char = SAFE_ALLOCA! (sa_avail,
                                              strlen (p) + SBYTES (login) as usize + 1) as *mut c_char;
           memcpy (r as *mut c_void, p as *const c_void, q.offset_from (p) as usize);
@@ -1298,7 +1298,7 @@ DEFUN! ("user-full-name", Fuser_full_name, Suser_full_name, 0, 1, 0,
             = upcase (*r.add (q.offset_from (p) as usize) as c_int) as c_char;
           strcpy (s, q.add (1));
           full = build_string (r);
-          SAFE_FREE! (sa_count);
+          SAFE_FREE! (sa_count, sa_mark);
         }
     }
 
@@ -3682,7 +3682,7 @@ unsafe fn styled_format (nargs: ptrdiff_t, args: *mut Lisp_Object, message: bool
   let mut maybe_combine_byte: bool;
   let mut val: Lisp_Object = Qnil ();
   let mut arg_intervals: bool = false;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   /* Do not bother doing "sa_avail -= sizeof initial_buffer;" here,
      as it is OK to go somewhat over MAX_ALLOCA bytes
      for this particular function's stack frame.  */
@@ -4722,7 +4722,7 @@ unsafe fn styled_format (nargs: ptrdiff_t, args: *mut Lisp_Object, message: bool
 
   /* C's `return_val:` label (editfns.c 4354).  */
   /* If we allocated BUF or auxiliary tables with malloc, free them too.  */
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   return val;
 }
@@ -4980,7 +4980,7 @@ DEFUN! ("transpose-regions", Ftranspose_regions, Stranspose_regions, 4, 5,
         { set_text_properties_1 (startr1, endr2, Qnil (), buf, tmp_interval3); }
     }
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   if len1_byte == len2_byte
     {
       temp = SAFE_ALLOCA! (sa_avail, len1_byte as usize) as *mut u8;
@@ -5019,7 +5019,7 @@ DEFUN! ("transpose-regions", Ftranspose_regions, Stranspose_regions, 4, 5,
       memcpy (start1_addr.offset ((len2_byte + len_mid_byte) as isize) as *mut c_void,
               temp as *const c_void, len1_byte as usize);
     }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   if len1 != len2
     /* Restore intervals of the mid.  */
