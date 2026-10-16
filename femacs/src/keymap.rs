@@ -1334,7 +1334,7 @@ DEFUN! ("lookup-key", Flookup_key, Slookup_key, 2, 3, 0,
 		{ new_item = Fdowncase (key_item); }
 	      else
 		{
-		  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+		  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 		  let size = SCHARS (key_item);
 		  let (n_prod, n_overflowed) = size.overflowing_mul (MAX_MULTIBYTE_LENGTH as ptrdiff_t);
 		  let n = if n_overflowed { PTRDIFF_MAX } else { n_prod };
@@ -1358,7 +1358,7 @@ DEFUN! ("lookup-key", Flookup_key, Slookup_key, 2, 3, 0,
 		  new_item = make_multibyte_string (dst as *const c_char,
 						    SCHARS (key_item),
 						    SBYTES (key_item));
-		  SAFE_FREE! (sa_count);
+		  SAFE_FREE! (sa_count, sa_mark);
 		}
 	      ASET (new_key, i, Fintern (new_item, Qnil ()));
 	    }
@@ -1383,7 +1383,7 @@ DEFUN! ("lookup-key", Flookup_key, Slookup_key, 2, 3, 0,
 	  if strstr (SSDATA (lc_key), c" ".as_ptr ()).is_null ()
 	    { continue; }
 
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	  let size = SCHARS (lc_key);
 	  let (n_prod, n_overflowed) = size.overflowing_mul (MAX_MULTIBYTE_LENGTH as ptrdiff_t);
 	  let n = if n_overflowed { PTRDIFF_MAX } else { n_prod };
@@ -1403,7 +1403,7 @@ DEFUN! ("lookup-key", Flookup_key, Slookup_key, 2, 3, 0,
 	    make_multibyte_string (dst as *const c_char,
 				   SCHARS (lc_key), SBYTES (lc_key));
 	  ASET (new_key, i, Fintern (new_it, Qnil ()));
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
 
       /* Check for match.  */
@@ -2082,7 +2082,7 @@ DEFUN! ("key-description", Fkey_description, Skey_description, 1, 2, 0,
   let nprefix: EMACS_INT = XFIXNUM (Flength (prefix));
   let sep = build_string (c" ".as_ptr ());
   let mut add_meta = false;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* This has one extra element at the end that we don't pass to Fconcat.  */
   let (size4_prod, size4_overflowed) = (nkeys + nprefix).overflowing_mul (4);
@@ -2171,7 +2171,7 @@ DEFUN! ("key-description", Fkey_description, Skey_description, 1, 2, 0,
     { result = empty_unibyte_string; }
   else
     { result = Fconcat (len - 1, args); }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 });
 
@@ -2299,7 +2299,7 @@ DEFUN! ("single-key-description", Fsingle_key_description,
        (key: Lisp_Object, no_angles: Lisp_Object),
        {
   let mut key = key;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   if CONSP (key) && lucid_event_type_list_p (key)
     { key = Fevent_convert_list (key); }
@@ -2341,7 +2341,7 @@ DEFUN! ("single-key-description", Fsingle_key_description,
 	  *buffer.offset (len as isize + 1) = b'>' as c_char;
 	  *buffer.offset (len as isize + 2) = b'\0' as c_char;
 	  let result = build_string (buffer);
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	  return result;
 	}
       else
@@ -2935,7 +2935,7 @@ You type        Translation\n\
 	  if !SYMBOLP (*modes.offset (i as isize))
 	    { emacs_abort (); }
 
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	  p = SAFE_ALLOCA! (sa_avail, (42 + SBYTES (SYMBOL_NAME (*modes.offset (i as isize)))) as usize) as *mut c_char;
 	  title = p;
 	  *p = b'\x0c' as c_char; p = p.add (1);
@@ -2954,7 +2954,7 @@ You type        Translation\n\
 		 *maps.offset (i as isize), Qt (), shadow, prefix,
 		 msg, nomenu, Qnil (), Qnil (), Qnil (), buffer);
 	  shadow = Fcons (*maps.offset (i as isize), shadow);
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	  i += 1;
 	}
 
@@ -3287,12 +3287,12 @@ unsafe fn describe_vector (vector: Lisp_Object, prefix: Lisp_Object, args: Lisp_
 		 string constant, so the port writes it as a C string literal and takes
 		 `sizeof fmt` as its byte count plus the terminator.  */
 	      let fmt = c"  (currently shadowed by `%s')";
-	      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	      let buffer =
 		SAFE_ALLOCA! (sa_avail, fmt.count_bytes () + 1 + SBYTES (SYMBOL_NAME (shadowed_by)) as usize) as *mut c_char;
 	      esprintf (buffer, fmt.as_ptr (), SDATA (SYMBOL_NAME (shadowed_by)));
 	      insert_string (buffer);
-	      SAFE_FREE! (sa_count);
+	      SAFE_FREE! (sa_count, sa_mark);
 	    }
 	  else	/* Could be a keymap, a lambda, or a keyboard macro.  */
 	    { insert_string (c"  (currently shadowed)".as_ptr ()); }
