@@ -5954,8 +5954,8 @@ unsafe extern "C" fn emacs_wcscoll_l (a: *const wchar_t, b: *const wchar_t, loc:
     { err = *errno (); }
   else
     {
-      USE_SAFE_ALLOCA! ();
-      let oldcopy: *mut c_char = SAFE_ALLOCA! (strlen (oldloc) + 1) as *mut c_char;
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+      let oldcopy: *mut c_char = SAFE_ALLOCA! (sa_avail, strlen (oldloc) + 1) as *mut c_char;
       strcpy (oldcopy, oldloc);
       if emacs_setlocale (LC_COLLATE, loc).is_null ()
 	{ err = *errno (); }
@@ -5967,7 +5967,7 @@ unsafe extern "C" fn emacs_wcscoll_l (a: *const wchar_t, b: *const wchar_t, loc:
 	  if emacs_setlocale (LC_COLLATE, oldcopy).is_null ()
 	    { err = *errno (); }
 	}
-      SAFE_FREE! ();
+      SAFE_FREE! (sa_count, sa_mark);
     }
 
   *errno () = err;
@@ -5981,15 +5981,15 @@ unsafe extern "C" fn emacs_towlower_l (wc: wint_t, loc: locale_t) -> wint_t {
 
   if !oldloc.is_null ()
     {
-      USE_SAFE_ALLOCA! ();
-      let oldcopy: *mut c_char = SAFE_ALLOCA! (strlen (oldloc) + 1) as *mut c_char;
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+      let oldcopy: *mut c_char = SAFE_ALLOCA! (sa_avail, strlen (oldloc) + 1) as *mut c_char;
       strcpy (oldcopy, oldloc);
       if !emacs_setlocale (LC_CTYPE, loc).is_null ()
 	{
 	  result = towlower (wc);
 	  emacs_setlocale (LC_COLLATE, oldcopy);
 	}
-      SAFE_FREE! ();
+      SAFE_FREE! (sa_count, sa_mark);
     }
 
   return result;
@@ -6007,7 +6007,7 @@ pub unsafe extern "C" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: 
   let mut p1: *mut wchar_t;
   let mut p2: *mut wchar_t;
 
-  USE_SAFE_ALLOCA! ();
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Convert byte stream to code points.  */
   len = SCHARS (s1); i = 0; i_byte = 0;
@@ -6088,7 +6088,7 @@ pub unsafe extern "C" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: 
       { error (c"Invalid string for collation: %s".as_ptr (), emacs_strerror (err)); }
   }
 
-  SAFE_FREE! ();
+  SAFE_FREE! (sa_count, sa_mark);
   return res;
 }
 
