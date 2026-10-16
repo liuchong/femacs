@@ -20837,3 +20837,17 @@
   ③ **副产品**：二进制没有 DWARF 行号（单元以 `--emit obj` 编译、无 `-g` ✗），所以 `image lookup -a` 只能给符号+偏移 ✓（要用行号得另建带 `-g` 的对象 ✗，记为可选手段 ✓）。
   ④ **下一步（点名）**：⑴ 用**同一装置 + 每次命中的 `print_object` 分支判别**（把陷阱拆成两处、各带不同 backtrace 深度，或给 `SYMBOL_NAME`/`SSDATA` 也加陷阱 ✓）⇒ 确定是"字符串分支"还是"符号分支" ✓；⑵ 在命中点用 lldb 读**对象的原始位**与 **tag**（`register read`）⇒ 据 tag 反查它是**哪种对象的错标** ✓；⑶ 顺着"谁写的这个对象"回查（会话内 ✓；`.elc` 路径与 GC 都已排除 ✓）。
   ⑤ **未声称**：坏对象的来源仍未定位 ✗；本轮只把"在哪被踩"从"print 单元的 11 处可能"收窄到"`print_object` 的两条分支之一" ✓；L1 全族仍远未完成 ✓。
+
+- **4.388 验证相第二十轮：抓到坏对象本身——某个**符号**的 `name` 字段被文本字节覆盖（2026-10-16）**：
+  ① **装置**（临时，已撤，两份带仪表的文件留在 `/tmp/lisp-traps-4388.rs`、`/tmp/print-traps-4388.rs`）：
+     ⑴ 镜像 `SBYTES`/`SCHARS` 里 `if !STRINGP (string) { fprintf (stderr, "TRAP %s obj=%p tag=%lu", …); emacs_backtrace (40); emacs_abort () }` ✓（`stderr` 用本仓库既有的 Darwin 拼法 `#[cfg_attr (target_os = "macos", link_name = "__stderrp")]` ✓——第一版写成裸 `backtrace_symbols_fd`/`stderr` 时，`gate-load` 当场报"1 个未登记未定义符号" ✗）；
+     ⑵ `print.rs` 的两处 `SBYTES`（字符串分支 2647、符号分支 2732）各加一条**带站点标记**的同类陷阱 ✓。
+  ② **决定性读数**（同一会话 `{byte-opt.el, bytecomp.el}`，第 5 次运行命中）：
+     ```
+     SITE-SYMBOL obj=0x6f501ea3d5007965 name=0x100d14500
+     ```
+     即**符号分支**上 `SYMBOL_NAME (obj)` 的结果是 `0x6f501ea3d5007965` ✗——低字节是**文本字节**（`0x7965` = "ey"、`0x6f50` = "Po" ✓），而**符号对象本身**（`obj` = 0x100d14500）是个正常的堆指针 ✓。
+  ③ **结论**：**有一个符号对象的 `name` 字段被写成了文本字节**（覆盖 ✗），于是任何"打印这个符号"的路径都会踩到它 ✓（这解释了为什么站点在不同运行里落在 `print_object` 的不同偏移：`+2804`/`+4448` ✓、以及 lldb 下两次同址的 `print_circle_candidate_p + 2640` ✓）。**不是** print 的逻辑错 ✗（与 C 逐行一致 ✓），也**不是** `SYMBOL_NAME` 的错 ✗（端口 = C 的 `(*XSYMBOL (sym)).u.s.name` ✓）。
+  ④ **已排除**（累积）：GC（`gc-cons-threshold` 拉到 10^9、`gc-cons-percentage 0` 后照样崩 ✓）、读 `.elc` 路径 ✓、`print`/`print_preprocess` 的逻辑 ✓、`func-arity`（4.384 已修 ✓，L1 的 46 个 `Invalid function: #[…]` 归零 ✓）。
+  ⑤ **下一步（点名，都在"写侧"）**：⑴ 在 lldb 下对那个符号的 `name` 字段（对象 + 偏移）下 **watchpoint** ✓ ⇒ 直接抓到**写者**（这是最短路径 ✓）；⑵ 或者给写侧装陷阱：`SET_SYMBOL_NAME`/`intern`/`make-symbol`/`Faset` 的写入点 ✓；⑶ 辅以 `MallocScribble=1`（3.621 用过的手法 ✓）让"被覆盖前的值"更早暴露 ✓；⑷ 抓到后修掉，再重跑 L1 全族。
+  ⑥ **未声称**：写者未定位 ✗；本轮只把"坏对象是什么"（**一个 `name` 被文本覆盖的符号** ✓）钉死 ✓——这是从"print 单元 11 处可能"到"一个具体对象的一个字段"的收窄 ✓。
