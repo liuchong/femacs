@@ -5970,7 +5970,7 @@ unsafe fn setup_xi_event_mask (f: *mut frame)
 #[cfg (not (feature = "have_xinput2_1"))]
   let mut selected: *mut XIEventMask;                                   // C 4068
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 #[cfg (not (feature = "have_xinput2_1"))]
   {
     /* Set up fallback values, since XIGetSelectedEvents doesn't work
@@ -6076,7 +6076,7 @@ unsafe fn setup_xi_event_mask (f: *mut frame)
   }
 
   unblock_input ();                                                     // C 4167
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* C 4430-4621: the two `#else` arms of `x_window` - the GTK one (C 4431-4474) and the plain-X one
@@ -10291,7 +10291,7 @@ DEFUN! ("x-begin-drag", Fx_begin_drag, Sx_begin_drag,
   let mut action_list: [Atom; 2048] = [0; 2048];                         // C 7345
   let mut name_list: [*mut c_char; 2048] = [std::ptr::null_mut (); 2048];   // C 7346
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                 // C 7348
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                                 // C 7348
 
   /* C's two `FOR_EACH_TAIL`s walk their own parameters (the macro assigns the parameter back
      to itself), and a DEFUN! argument carries no `mut` (the macro takes `$arg:ident`), so
@@ -10405,7 +10405,7 @@ DEFUN! ("x-begin-drag", Fx_begin_drag, Sx_begin_drag,
 				    !NILP (allow_current_frame), target_atoms, ntargets,
 				    targets_arg, !NILP (follow_tooltip));
 
-  SAFE_FREE! (sa_count);                                                 // C 7445
+  SAFE_FREE! (sa_count, sa_mark);                                                 // C 7445
   return lval;                                                          // C 7446
 });
 
