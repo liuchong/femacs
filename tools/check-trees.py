@@ -152,10 +152,19 @@ def main() -> int:
             totals[key] = totals.get(key, 0) + value
         all_failures += failures
     print(f"total: " + ", ".join(f"{k} {v}" for k, v in totals.items()))
-    for line in all_failures[:200]:
+    # The DIFFERENT details come first and the missing list is summarised: with 1,600+ missing
+    # `.elc` files, a single cap on the combined list printed nothing but "MISSING" (4.395's own
+    # reporting bug, found while producing that round's punch list).
+    different = [line for line in all_failures if "MISSING" not in line]
+    missing = [line for line in all_failures if "MISSING" in line]
+    for line in different[:300]:
         print(line)
-    if len(all_failures) > 200:
-        print(f"... {len(all_failures) - 200} more line(s)")
+    if len(different) > 300:
+        print(f"... {len(different) - 300} more DIFFERENT line(s)")
+    for line in missing[:10]:
+        print(line)
+    if len(missing) > 10:
+        print(f"... {len(missing) - 10} more MISSING line(s)")
     return 1 if (totals.get("DIFFERENT") or totals.get("missing")) else 0
 
 
