@@ -768,7 +768,7 @@ unsafe fn echo_add_key (mut c: Lisp_Object)
   let mut buffer: *mut c_char = initbuf.as_mut_ptr ();
   let mut ptr: *mut c_char = buffer;
   let echo_string: Lisp_Object = KVAR! (current_kboard, echo_string);
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   if STRINGP (echo_string) && SCHARS (echo_string) > 0
     {
@@ -811,7 +811,7 @@ unsafe fn echo_add_key (mut c: Lisp_Object)
     }
 
   kset_echo_string (current_kboard, concat2 (echo_string, new_string));
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* C 538-596.  */
@@ -2191,7 +2191,7 @@ unsafe extern "C" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut Lisp_Ob
      reused by our caller `run_hook_with_args`.
      We could arguably change it temporarily if we set it back
      to its original state before returning, but it's too ugly.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut newargs: *mut Lisp_Object;
   SAFE_ALLOCA_LISP! (sa_avail, newargs, nargs);
   *newargs.offset (0) = hook;
@@ -2200,7 +2200,7 @@ unsafe extern "C" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut Lisp_Ob
 				 ((nargs - 2) * word_size) as usize);
   internal_condition_case_n (safe_run_hooks_1, nargs, newargs,
                              Qt (), safe_run_hooks_error);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return Qnil ();
 }
 
@@ -8509,13 +8509,13 @@ unsafe fn modify_event_symbol (symbol_num: ptrdiff_t, modifiers: c_int, symbol_k
 	     (EMACS_INT)`; `sizeof "-"` is 2.  */
 	  let len: ptrdiff_t = (SBYTES (name_alist_or_stem) + 2
 				+ INT_STRLEN_BOUND! (EMACS_INT) as ptrdiff_t);
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	  buf = SAFE_ALLOCA! (sa_avail, len) as *mut c_char;
 	  /* C's `%"pI"d` is `%ld` (lisp.h 98: `pI` is "l").  */
 	  esprintf (buf, c"%s-%ld".as_ptr (), SDATA (name_alist_or_stem),
 		    XFIXNUM (symbol_int) + 1);
 	  value = intern (buf);
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
       else if !name_table.is_null () && !(*(name_table.offset (symbol_num))).is_null ()
 	{ value = intern (*(name_table.offset (symbol_num))); }
@@ -9471,7 +9471,7 @@ pub unsafe extern "C" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
   let mut mapno: ptrdiff_t;
   let mut oquit: Lisp_Object;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* In order to build the menus, we need to call the keymap
      accessors.  They all call maybe_quit.  But this function is called
@@ -9607,7 +9607,7 @@ pub unsafe extern "C" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
   }
 
   Vinhibit_quit = oquit;
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return menu_bar_items_vector;
 }
 
@@ -10067,7 +10067,7 @@ pub unsafe extern "C" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut c_int) 
   let mut i: ptrdiff_t;
   let mut oquit: Lisp_Object;
   let mut tmaps: *mut Lisp_Object = std::ptr::null_mut ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   *nitems = 0;
 
@@ -10149,7 +10149,7 @@ pub unsafe extern "C" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut c_int) 
 
   Vinhibit_quit = oquit;
   *nitems = ntab_bar_items / TAB_BAR_ITEM_NSLOTS;
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return tab_bar_items_vector;
 }
 
@@ -10496,7 +10496,7 @@ pub unsafe extern "C" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut c_int)
   let mut i: ptrdiff_t;
   let mut oquit: Lisp_Object;
   let mut tmaps: *mut Lisp_Object = std::ptr::null_mut ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   *nitems = 0;
 
@@ -10578,7 +10578,7 @@ pub unsafe extern "C" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut c_int)
 
   Vinhibit_quit = oquit;
   *nitems = ntool_bar_items / TOOL_BAR_ITEM_NSLOTS;
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return tool_bar_items_vector;
 }
 
