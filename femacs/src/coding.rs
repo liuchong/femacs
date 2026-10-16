@@ -8482,7 +8482,7 @@ unsafe fn decode_coding (coding: *mut coding_system)
   #[allow(unused_mut)]
   let mut count: specpdl_ref = SPECPDL_INDEX ();
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   if BUFFERP ((*coding).src_object)
       && (*coding).src_pos > 0
@@ -8650,7 +8650,7 @@ unsafe fn decode_coding (coding: *mut coding_system)
       record_insert ((*coding).dst_pos, (*coding).produced_char);
     }
 
-  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil ());
+  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
 }
 
 
@@ -9039,7 +9039,7 @@ unsafe fn encode_coding (coding: *mut coding_system)
   let mut max_lookup: c_int = 0;
   let mut cclspec: ccl_spec = std::mem::zeroed ();
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   attrs = CODING_ID_ATTRS ((*coding).id as hash_idx_t);
   if (*coding).encoder == Some (encode_coding_raw_text)
@@ -9100,7 +9100,7 @@ unsafe fn encode_coding (coding: *mut coding_system)
 		       coding_bits_get (coding, CODING_SYSTEM_INSERT_BEFORE_MARKERS_SHIFT, 1) != 0);
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* Code-conversion operations use internal buffers.  There's a single
@@ -11500,7 +11500,7 @@ static suffixes: [[u8; 8]; 3] = [*b"-unix\0\0\0", *b"-dos\0\0\0\0", *b"-mac\0\0\
 unsafe fn make_subsidiaries (base: Lisp_Object) -> Lisp_Object
 {
   let base_name_len: ptrdiff_t = SBYTES (SYMBOL_NAME (base));
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let buf: *mut c_char = SAFE_ALLOCA! (sa_avail, base_name_len + 6) as *mut c_char;
 
   memcpy (buf as *mut c_void, SDATA (SYMBOL_NAME (base)) as *const c_void,
@@ -11513,7 +11513,7 @@ unsafe fn make_subsidiaries (base: Lisp_Object) -> Lisp_Object
       ASET (subsidiaries, i as isize, intern (buf));
       i += 1;
     }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return subsidiaries;
 }
 
