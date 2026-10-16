@@ -1086,9 +1086,10 @@ unsafe fn status_message (p: *mut Lisp_Process) -> Lisp_Object
 	    }
 	}
       /* C 874: `AUTO_STRING (suffix, coredump ? " (core dumped)\n" : "\n");`  */
-      let suffix: Lisp_Object = if coredump
-	{ AUTO_STR! (c" (core dumped)\n".as_ptr ()) }
-	else { AUTO_STR! (c"\n".as_ptr ()) };
+      /* C: ONE object whose initialiser is the ternary (PORTING.md P-113 ②).  */
+      AUTO_STRING! (suffix, if coredump
+      	      { c" (core dumped)\n".as_ptr () }
+      	      else { c"\n".as_ptr () });
       return concat2 (string, suffix);
     }
   else if (EQ (symbol, Qexit ()))
@@ -1104,9 +1105,10 @@ unsafe fn status_message (p: *mut Lisp_Process) -> Lisp_Object
 	{ return build_string (c"finished\n".as_ptr ()); }
       AUTO_STRING! (prefix, c"exited abnormally with code ".as_ptr ());
       string = Fnumber_to_string (code);
-      let suffix: Lisp_Object = if coredump
-	{ AUTO_STR! (c" (core dumped)\n".as_ptr ()) }
-	else { AUTO_STR! (c"\n".as_ptr ()) };
+      /* C: ONE object whose initialiser is the ternary (PORTING.md P-113 ②).  */
+      AUTO_STRING! (suffix, if coredump
+		    { c" (core dumped)\n".as_ptr () }
+		    else { c"\n".as_ptr () });
       return concat3 (prefix, string, suffix);
     }
   else if (EQ (symbol, Qfailed ()))
