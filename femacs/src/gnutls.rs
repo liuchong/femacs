@@ -1784,7 +1784,7 @@ unsafe fn emacs_gnutls_certificate_export_pem (cert: gnutls_x509_crt_t) -> Lisp_
 
   if err == GNUTLS_E_SHORT_MEMORY_BUFFER
     {
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       let buf: *mut c_char = SAFE_ALLOCA! (sa_avail, size as ptrdiff_t) as *mut c_char;
       #[cfg (not (feature = "windowsnt"))]
       { err = gnutls_x509_crt_export (cert, GNUTLS_X509_FMT_PEM, buf as *mut c_void,
@@ -1801,7 +1801,7 @@ unsafe fn emacs_gnutls_certificate_export_pem (cert: gnutls_x509_crt_t) -> Lisp_
 	}
 
       let result: Lisp_Object = build_string (buf);
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
       return result;
     }
   else if err < GNUTLS_E_SUCCESS
