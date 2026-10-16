@@ -13735,9 +13735,9 @@ struct Lisp_Fwd {
 @_silgen_name("Lisp_Fwd_Obj") func Lisp_Fwd_Obj() -> UInt8
 @_silgen_name("Lisp_Fwd_Bool") func Lisp_Fwd_Bool() -> UInt8
 @_silgen_name("defvar_lisp")
-func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?, docstring: StaticString)
 @_silgen_name("defvar_bool")
-func defvar_bool(_ b_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+func defvar_bool(_ b_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?, docstring: StaticString)
 
 /// C: `void staticpro (Lisp_Object const *)` (src/lisp.h 3919) - C 11810's call, the same entry
 /// `nsfns.swift` 753 declares.
@@ -13889,149 +13889,149 @@ func syms_of_nsterm() {
   // C 11580-11582: `DEFVAR_LISP ("ns-input-font", ns_input_font, …); ns_input_font = Qnil;`
   O_FWD_ns_input_font = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_font) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_input_font, "ns-input-font")
+  defvar_lisp(&O_FWD_ns_input_font, "ns-input-font", docstring: " The font specified in the last NS event. ")
   ns_input_font = Qnil()
 
   // C 11584-11586: `DEFVAR_LISP ("ns-input-fontsize", ns_input_fontsize, …)`.
   O_FWD_ns_input_fontsize = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_fontsize) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_input_fontsize, "ns-input-fontsize")
+  defvar_lisp(&O_FWD_ns_input_fontsize, "ns-input-fontsize", docstring: " The fontsize specified in the last NS event. ")
   ns_input_fontsize = Qnil()
 
   // C 11588-11590: `DEFVAR_LISP ("ns-input-line", ns_input_line, …)`.
   O_FWD_ns_input_line = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_line) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_input_line, "ns-input-line")
+  defvar_lisp(&O_FWD_ns_input_line, "ns-input-line", docstring: " The line specified in the last NS event. ")
   ns_input_line = Qnil()
 
   // C 11592-11594: `DEFVAR_LISP ("ns-input-spi-name", ns_input_spi_name, …)`.
   O_FWD_ns_input_spi_name = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_spi_name) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_input_spi_name, "ns-input-spi-name")
+  defvar_lisp(&O_FWD_ns_input_spi_name, "ns-input-spi-name", docstring: " The service name specified in the last NS event. ")
   ns_input_spi_name = Qnil()
 
   // C 11596-11598: `DEFVAR_LISP ("ns-input-spi-arg", ns_input_spi_arg, …)`.
   O_FWD_ns_input_spi_arg = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_spi_arg) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_input_spi_arg, "ns-input-spi-arg")
+  defvar_lisp(&O_FWD_ns_input_spi_arg, "ns-input-spi-arg", docstring: " The service argument specified in the last NS event. ")
   ns_input_spi_arg = Qnil()
 
   // C 11600-11602: `DEFVAR_LISP ("ns-input-file", ns_input_file, …)`.
   O_FWD_ns_input_file = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_file) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_input_file, "ns-input-file")
+  defvar_lisp(&O_FWD_ns_input_file, "ns-input-file", docstring: " The file specified in the last NS event.  ")
   ns_input_file = Qnil()
 
   // C 11604-11606: `DEFVAR_LISP ("ns-working-text", ns_working_text, …)`.
   O_FWD_ns_working_text = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_working_text) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_working_text, "ns-working-text")
+  defvar_lisp(&O_FWD_ns_working_text, "ns-working-text", docstring: " String for visualizing working composition sequence.  ")
   ns_working_text = Qnil()
 
   // C 11608-11616: `DEFVAR_LISP ("ns-alternate-modifier", ns_alternate_modifier, …)`; the
   // docstring C 11609-11615 describes the `(:ordinary …)` form.
   O_FWD_ns_alternate_modifier = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_alternate_modifier) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_alternate_modifier, "ns-alternate-modifier")
+  defvar_lisp(&O_FWD_ns_alternate_modifier, "ns-alternate-modifier", docstring: " This variable describes the behavior of the alternate or option key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
   ns_alternate_modifier = Qmeta()                                      // C 11616
 
   // C 11618-11627: `DEFVAR_LISP ("ns-right-alternate-modifier", ns_right_alternate_modifier, …)`.
   O_FWD_ns_right_alternate_modifier = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_alternate_modifier) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_right_alternate_modifier, "ns-right-alternate-modifier")
+  defvar_lisp(&O_FWD_ns_right_alternate_modifier, "ns-right-alternate-modifier", docstring: " This variable describes the behavior of the right alternate or option key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\nIt can also be `left' to use the value of `ns-alternate-modifier' instead.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
   ns_right_alternate_modifier = Qleft()                                // C 11627
 
   // C 11629-11641: `DEFVAR_LISP ("ns-command-modifier", ns_command_modifier, …)`, whose
   // assignment is C's own `NS_IMPL_COCOA` pair - `Qsuper` is the arm this target takes.
   O_FWD_ns_command_modifier = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_command_modifier) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_command_modifier, "ns-command-modifier")
+  defvar_lisp(&O_FWD_ns_command_modifier, "ns-command-modifier", docstring: " This variable describes the behavior of the command key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
   ns_command_modifier = Qsuper()                                       // C 11638
 
   // C 11643-11652: `DEFVAR_LISP ("ns-right-command-modifier", ns_right_command_modifier, …)`.
   O_FWD_ns_right_command_modifier = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_command_modifier) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_right_command_modifier, "ns-right-command-modifier")
+  defvar_lisp(&O_FWD_ns_right_command_modifier, "ns-right-command-modifier", docstring: " This variable describes the behavior of the right command key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\nIt can also be `left' to use the value of `ns-command-modifier' instead.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
   ns_right_command_modifier = Qleft()                                  // C 11652
 
   // C 11654-11662: `DEFVAR_LISP ("ns-control-modifier", ns_control_modifier, …)`.
   O_FWD_ns_control_modifier = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_control_modifier) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_control_modifier, "ns-control-modifier")
+  defvar_lisp(&O_FWD_ns_control_modifier, "ns-control-modifier", docstring: " This variable describes the behavior of the control key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
   ns_control_modifier = Qcontrol()                                     // C 11662
 
   // C 11664-11673: `DEFVAR_LISP ("ns-right-control-modifier", ns_right_control_modifier, …)`.
   O_FWD_ns_right_control_modifier = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_control_modifier) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_right_control_modifier, "ns-right-control-modifier")
+  defvar_lisp(&O_FWD_ns_right_control_modifier, "ns-right-control-modifier", docstring: " This variable describes the behavior of the right control key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\nIt can also be `left' to use the value of `ns-control-modifier' instead.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
   ns_right_control_modifier = Qleft()                                  // C 11673
 
   // C 11675-11683: `DEFVAR_LISP ("ns-function-modifier", ns_function_modifier, …)`.
   O_FWD_ns_function_modifier = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_function_modifier) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_function_modifier, "ns-function-modifier")
+  defvar_lisp(&O_FWD_ns_function_modifier, "ns-function-modifier", docstring: " This variable describes the behavior of the function (fn) key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
   ns_function_modifier = Qnone()                                       // C 11683
 
   // C 11685-11687: `DEFVAR_LISP ("ns-antialias-text", ns_antialias_text, …)`.
   O_FWD_ns_antialias_text = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_antialias_text) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_antialias_text, "ns-antialias-text")
+  defvar_lisp(&O_FWD_ns_antialias_text, "ns-antialias-text", docstring: " Non-nil (the default) means to render text antialiased.  ")
   ns_antialias_text = Qt()                                             // C 11687
 
   // C 11689-11691: `DEFVAR_LISP ("ns-use-thin-smoothing", ns_use_thin_smoothing, …)`.
   O_FWD_ns_use_thin_smoothing = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_thin_smoothing) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_use_thin_smoothing, "ns-use-thin-smoothing")
+  defvar_lisp(&O_FWD_ns_use_thin_smoothing, "ns-use-thin-smoothing", docstring: " Non-nil turns on a font smoothing method that produces thinner strokes.  ")
   ns_use_thin_smoothing = Qnil()                                       // C 11691
 
   // C 11693-11695: `DEFVAR_LISP ("ns-confirm-quit", ns_confirm_quit, …)`.
   O_FWD_ns_confirm_quit = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_confirm_quit) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_confirm_quit, "ns-confirm-quit")
+  defvar_lisp(&O_FWD_ns_confirm_quit, "ns-confirm-quit", docstring: " Whether to confirm application quit using dialog.  ")
   ns_confirm_quit = Qnil()                                             // C 11695
 
   // C 11697-11700: `DEFVAR_LISP ("ns-auto-hide-menu-bar", ns_auto_hide_menu_bar, …)`.
   O_FWD_ns_auto_hide_menu_bar = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_auto_hide_menu_bar) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_auto_hide_menu_bar, "ns-auto-hide-menu-bar")
+  defvar_lisp(&O_FWD_ns_auto_hide_menu_bar, "ns-auto-hide-menu-bar", docstring: " Non-nil means that the menu bar is hidden, but appears when the mouse is near.\nOnly works on Mac OS X.  ")
   ns_auto_hide_menu_bar = Qnil()                                       // C 11700
 
   // C 11702-11708: `DEFVAR_BOOL ("ns-use-native-fullscreen", ns_use_native_fullscreen, …)`;
   // C 11708's second statement is the file's own `ns_last_use_native_fullscreen` copy (C 335).
   O_FWD_ns_use_native_fullscreen = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_native_fullscreen) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_ns_use_native_fullscreen, "ns-use-native-fullscreen")
+  defvar_bool(&O_FWD_ns_use_native_fullscreen, "ns-use-native-fullscreen", docstring: " Non-nil means to use native fullscreen on Mac OS X 10.7 and later.\nNil means use fullscreen the old (< 10.7) way.  The old way works better with\nmultiple monitors, but lacks tool bar.  This variable is ignored on\nMac OS X < 10.7.  Default is t.  ")
   ns_use_native_fullscreen = true                                      // C 11707
   ns_last_use_native_fullscreen = ns_use_native_fullscreen             // C 11708
 
   // C 11710-11714: `DEFVAR_BOOL ("ns-use-fullscreen-animation", ns_use_fullscreen_animation, …)`.
   O_FWD_ns_use_fullscreen_animation = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_fullscreen_animation) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_ns_use_fullscreen_animation, "ns-use-fullscreen-animation")
+  defvar_bool(&O_FWD_ns_use_fullscreen_animation, "ns-use-fullscreen-animation", docstring: " Non-nil means use animation on non-native fullscreen.\nFor native fullscreen, this does nothing.\nDefault is nil.  ")
   ns_use_fullscreen_animation = false                                  // C 11714
 
   // C 11716-11720: `DEFVAR_BOOL ("ns-use-srgb-colorspace", ns_use_srgb_colorspace, …)`.
   O_FWD_ns_use_srgb_colorspace = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_srgb_colorspace) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_ns_use_srgb_colorspace, "ns-use-srgb-colorspace")
+  defvar_bool(&O_FWD_ns_use_srgb_colorspace, "ns-use-srgb-colorspace", docstring: " Non-nil means to use sRGB colorspace on Mac OS X 10.7 and later.\nNote that this does not apply to images.\nThis variable is ignored on Mac OS X < 10.7 and GNUstep.  ")
   ns_use_srgb_colorspace = true                                        // C 11720
 
   // C 11722-11726: `DEFVAR_BOOL ("ns-use-mwheel-acceleration", ns_use_mwheel_acceleration, …)`.
   O_FWD_ns_use_mwheel_acceleration = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_mwheel_acceleration) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_ns_use_mwheel_acceleration, "ns-use-mwheel-acceleration")
+  defvar_bool(&O_FWD_ns_use_mwheel_acceleration, "ns-use-mwheel-acceleration", docstring: " Non-nil means use macOS's standard mouse wheel acceleration.\nThis variable is ignored on macOS < 10.7 and GNUstep.  Default is t.  ")
   ns_use_mwheel_acceleration = true                                    // C 11726
 
   // C 11728-11732: `DEFVAR_LISP ("ns-mwheel-line-height", ns_mwheel_line_height, …)`.
   O_FWD_ns_mwheel_line_height = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_mwheel_line_height) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_ns_mwheel_line_height, "ns-mwheel-line-height")
+  defvar_lisp(&O_FWD_ns_mwheel_line_height, "ns-mwheel-line-height", docstring: " The number of pixels touchpad scrolling considers one line.\nNil or a non-number means use the default frame line height.\nThis variable is ignored on macOS < 10.7 and GNUstep.  Default is nil.  ")
   ns_mwheel_line_height = Qnil()                                       // C 11732
 
   // C 11734-11737: `DEFVAR_BOOL ("ns-use-mwheel-momentum", ns_use_mwheel_momentum, …)`.
   O_FWD_ns_use_mwheel_momentum = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_mwheel_momentum) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_ns_use_mwheel_momentum, "ns-use-mwheel-momentum")
+  defvar_bool(&O_FWD_ns_use_mwheel_momentum, "ns-use-mwheel-momentum", docstring: " Non-nil means mouse wheel scrolling uses momentum.\nThis variable is ignored on macOS < 10.7 and GNUstep.  Default is t.  ")
   ns_use_mwheel_momentum = true                                        // C 11737
 
   /* TODO: Move to common code.  */
@@ -14039,7 +14039,7 @@ func syms_of_nsterm() {
   // variable is `src/xterm.c`'s ("SKIP: real doc in xterm.c"), so this unit registers it only.
   O_FWD_Vx_toolkit_scroll_bars = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vx_toolkit_scroll_bars) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_Vx_toolkit_scroll_bars, "x-toolkit-scroll-bars")
+  defvar_lisp(&O_FWD_Vx_toolkit_scroll_bars, "x-toolkit-scroll-bars", docstring: " SKIP: real doc in xterm.c.  ")
   Vx_toolkit_scroll_bars = Qt()                                        // C 11742
 
   // C 11744-11749: `DEFVAR_BOOL ("x-use-underline-position-properties", …)` and its `DEFSYM
@@ -14047,13 +14047,13 @@ func syms_of_nsterm() {
   // an empty macro).
   O_FWD_x_use_underline_position_properties = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &x_use_underline_position_properties) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_x_use_underline_position_properties, "x-use-underline-position-properties")
+  defvar_bool(&O_FWD_x_use_underline_position_properties, "x-use-underline-position-properties", docstring: " SKIP: real doc in xterm.c.  ")
   x_use_underline_position_properties = false                          // C 11747 (C's `0`)
 
   // C 11751-11754: `DEFVAR_BOOL ("x-underline-at-descent-line", x_underline_at_descent_line, …)`.
   O_FWD_x_underline_at_descent_line = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &x_underline_at_descent_line) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_x_underline_at_descent_line, "x-underline-at-descent-line")
+  defvar_bool(&O_FWD_x_underline_at_descent_line, "x-underline-at-descent-line", docstring: " SKIP: real doc in xterm.c.  ")
   x_underline_at_descent_line = false                                  // C 11754 (C's `0`)
 
   /* TODO: add an "auto" mode that passes clicks through to "utility" UI
@@ -14064,7 +14064,7 @@ func syms_of_nsterm() {
   // C 11762-11767 is the long one about which click activates.
   O_FWD_ns_click_through = Lisp_Fwd(
     type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_click_through) { UnsafeMutableRawPointer($0) }))
-  defvar_bool(&O_FWD_ns_click_through, "ns-click-through")
+  defvar_bool(&O_FWD_ns_click_through, "ns-click-through", docstring: " Whether to pass activation clicks through to Emacs.\nWhen nil, if Emacs is not focused, the click that focuses Emacs will not\nbe interpreted as a common.  If t, it will be.  For example, when nil,\nif Emacs is inactive, two clicks are needed to move point: the first to\nactivate Emacs and the second to activate the mouse-1 binding.  When t,\nonly a single click is needed.  ")
   ns_click_through = true                                              // C 11768
 
   // C 11770: `DEFSYM (Qx_underline_at_descent_line, "x-underline-at-descent-line");` - empty.
@@ -14073,13 +14073,13 @@ func syms_of_nsterm() {
   // …)`.
   O_FWD_Vns_scroll_event_delta_factor = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_scroll_event_delta_factor) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_Vns_scroll_event_delta_factor, "ns-scroll-event-delta-factor")
+  defvar_lisp(&O_FWD_Vns_scroll_event_delta_factor, "ns-scroll-event-delta-factor", docstring: " A factor to apply to pixel deltas reported in scroll events.\n This is only effective for pixel deltas generated from touch pads or\n mice with smooth scrolling capability.  ")
   Vns_scroll_event_delta_factor = make_float(1.0)                      // C 11776
 
   // C 11778-11786: `DEFVAR_LISP ("ns-drag-motion-function", Vns_drag_motion_function, …)`.
   O_FWD_Vns_drag_motion_function = Lisp_Fwd(
     type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_drag_motion_function) { UnsafeMutableRawPointer($0) }))
-  defvar_lisp(&O_FWD_Vns_drag_motion_function, "ns-drag-motion-function")
+  defvar_lisp(&O_FWD_Vns_drag_motion_function, "ns-drag-motion-function", docstring: " Function called when another program drags items over Emacs.\n\nIt is called with three arguments FRAME, X, and Y, whenever the user\nmoves the mouse over an Emacs frame as part of a drag-and-drop\noperation.  FRAME is the frame the mouse is on top of, and X and Y are\nthe frame-relative positions of the mouse in the X and Y axes\nrespectively.  ")
   Vns_drag_motion_function = Qns_handle_drag_motion()                  // C 11786
 
   /* Tell Emacs about this window system.  */
