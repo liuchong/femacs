@@ -274,7 +274,7 @@ unsafe fn module_memory_buffer_too_small (actual: ptrdiff_t, required: ptrdiff_t
    (`internal_handler`, `env_volatile`, `internal_cleanup`) in the caller's block and reads the
    caller's `env`; a Rust `macro_rules!` body cannot name a caller's local (locals introduced
    outside a macro are invisible inside it), so the call sites pass `env` and
-   `internal_cleanup` - the shape `USE_SAFE_ALLOCA! (sa_avail, sa_count)` already takes
+   `internal_cleanup` - the shape `USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark)` already takes
    (PORTING.md P-05; `## Deviations` 2).  C's `sys_setjmp (internal_handler->jmp)` passes a
    `sys_jmp_buf` to the mirror's `*mut jmp_buf` (the `femacs/src/eval.rs` 1618 reading).  */
 #[cfg (feature = "have_modules")]
@@ -758,7 +758,7 @@ unsafe extern "C" fn module_funcall (env: *mut emacs_env, func: emacs_value, nar
   /* Make a new Lisp_Object array starting with the function as the
      first arg, because that's what Ffuncall takes.  */
   let mut newargs: *mut Lisp_Object = core::ptr::null_mut ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   /* C 693: `if (ckd_add (&nargs1, nargs, 1)) overflow_error ();` */
   let (nargs1_new, nargs1_overflow) = nargs.overflowing_add (1);
   if nargs1_overflow
@@ -773,7 +773,7 @@ unsafe extern "C" fn module_funcall (env: *mut emacs_env, func: emacs_value, nar
       i += 1;
     }
   let result: emacs_value = lisp_to_value (env, Ffuncall (nargs1, newargs));
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   MODULE_INTERNAL_CLEANUP! (internal_cleanup);
   return result;
 }
@@ -1489,7 +1489,7 @@ pub unsafe extern "C" fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_protect_module (SPECPDL_MODULE_ENVIRONMENT, env as *mut c_void);
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut args: *mut emacs_value = std::ptr::null_mut ();
   /* FIXME: Is this (nargs <= 0) test needed?  Either omit it and call
      SAFE_NALLOCA unconditionally, or fix this comment to explain why
@@ -1522,7 +1522,7 @@ pub unsafe extern "C" fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t
   maybe_quit ();
 
   module_signal_or_throw (&raw mut priv_);
-  return SAFE_FREE_UNBIND_TO! (sa_count, count, value_to_lisp (ret));
+  return SAFE_FREE_UNBIND_TO! (sa_count, count, value_to_lisp (ret), sa_mark);
 }
 
 /* C 1335-1342: `module_function_arity` (a non-`static` definition).  */
