@@ -2738,7 +2738,7 @@ unsafe fn lisp_data_to_selection_data (dpyinfo: *mut x_display_info,
   let mut r#type: Lisp_Object;                                  // C 2306
   let mut name_buffer: *mut *mut c_char = std::ptr::null_mut ();   // C 2307
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                        // C 2309
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                        // C 2309
 
   r#type = Qnil ();                                             // C 2311
 
@@ -2908,7 +2908,7 @@ unsafe fn lisp_data_to_selection_data (dpyinfo: *mut x_display_info,
 
   (*cs).r#type = symbol_to_x_atom (dpyinfo, r#type);              // C 2469
 
-  SAFE_FREE! (sa_count);                                        // C 2471
+  SAFE_FREE! (sa_count, sa_mark);                                        // C 2471
 }
 
 #[cfg (feature = "have_x_windows")]
