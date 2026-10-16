@@ -426,6 +426,10 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	as *const c_char;
       if tem.is_null ()
 	{ break; }
+      /* P-134: C's `for (…; …; tem++)` advances past the newline `memchr` just found; without
+	 this step `tem` stays on the newline, `memchr` keeps returning it, and the loop spins
+	 forever (the `edebug-tests` hang).  */
+      tem = tem.offset (1);
     }
 
   if MOST_POSITIVE_FIXNUM < min (PTRDIFF_MAX as usize, SIZE_MAX) as ptrdiff_t / word_size  /* P-127 */
