@@ -2186,15 +2186,23 @@ pub unsafe extern "C" fn init_callproc ()
     {
       let lispdir: Lisp_Object
 	= Fcar (decode_env_path (std::ptr::null (), PATH_DUMPLOADSEARCH.as_ptr (), false));
+      /* C spells these four as `AUTO_STR (...)`, an expression whose compound literal lives to
+	 the end of this block; Rust's expression form cannot do that, so they are statement
+	 forms of the same block (PORTING.md P-113 ②).  C has a fresh object for each of the four
+	 - the two `c"NEWS"` occurrences included - so the port declares four.  */
+      AUTO_STRING! (src_rel, c"../src/".as_ptr ());
+      AUTO_STRING! (news_in_data_dir, c"NEWS".as_ptr ());
+      AUTO_STRING! (etc_rel, c"../etc/".as_ptr ());
+      AUTO_STRING! (news_in_newdir, c"NEWS".as_ptr ());
       if ! NILP (Vinstallation_directory)
-	  || ! NILP (Fequal (Fexpand_file_name (AUTO_STR! (c"../src/".as_ptr ()), lispdir),
+	  || ! NILP (Fequal (Fexpand_file_name (src_rel, lispdir),
 			     Vinvocation_directory))
-	  || NILP (Ffile_exists_p (Fexpand_file_name (AUTO_STR! (c"NEWS".as_ptr ()),
+	  || NILP (Ffile_exists_p (Fexpand_file_name (news_in_data_dir,
 						      Vdata_directory)))
 	{
 	  let mut newdir: Lisp_Object;
-	  newdir = Fexpand_file_name (AUTO_STR! (c"../etc/".as_ptr ()), lispdir);
-	  if ! NILP (Ffile_exists_p (Fexpand_file_name (AUTO_STR! (c"NEWS".as_ptr ()),
+	  newdir = Fexpand_file_name (etc_rel, lispdir);
+	  if ! NILP (Ffile_exists_p (Fexpand_file_name (news_in_newdir,
 							newdir)))
 	    { Vdata_directory = newdir; }
 	}
