@@ -1115,7 +1115,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
   let mut elt: Lisp_Object;
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut argnum: ptrdiff_t;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   let mut varlist: Lisp_Object = XCAR (args);
 
@@ -1172,7 +1172,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
     { specbind (Qinternal_interpreter_environment (), lexenv); }
 
   elt = Fprogn (XCDR (args));
-  return SAFE_FREE_UNBIND_TO! (sa_count, count, elt);
+  return SAFE_FREE_UNBIND_TO! (sa_count, count, elt, sa_mark);
 });
 
 DEFUN! ("while", Fwhile, Swhile, 1, UNEVALLED, 0,
@@ -2397,7 +2397,7 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 	      /* Pass a vector of evaluated arguments.  */
 	      let mut vals: *mut Lisp_Object;
 	      let mut argnum: ptrdiff_t = 0;
-	      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
 	      vals = std::ptr::null_mut ();
 	      SAFE_ALLOCA_LISP! (sa_avail, vals, numargs);
@@ -2418,7 +2418,7 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 	      /* Do the debug-on-exit now, while VALS still exists.  */
 	      if backtrace_debug_on_exit (specpdl_ref_to_ptr (count))
 		{ val = call_debugger (list2 (Qexit (), val)); }
-	      SAFE_FREE! (sa_count);
+	      SAFE_FREE! (sa_count, sa_mark);
 	      specpdl_ptr! () = (specpdl_ptr! ()).offset (-1);
 	      return val;
 	    }
@@ -2568,7 +2568,7 @@ DEFUN! ("apply", Fapply, Sapply, 1, MANY, 0,
   let mut funcall_args: *mut Lisp_Object = std::ptr::null_mut ();
   let mut spread_arg: Lisp_Object = *args.offset (nargs - 1);
   let mut fun: Lisp_Object = *args.offset (0);
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   let mut numargs: ptrdiff_t = list_length (spread_arg);
 
@@ -2628,7 +2628,7 @@ DEFUN! ("apply", Fapply, Sapply, 1, MANY, 0,
 
   let retval: Lisp_Object = Ffuncall (funcall_nargs, funcall_args);
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return retval;
 });
 
@@ -3074,7 +3074,7 @@ unsafe fn apply_lambda (fun: Lisp_Object, args: Lisp_Object, count: specpdl_ref)
 {
   let mut arg_vector: *mut Lisp_Object;
   let mut tem: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   let numargs: ptrdiff_t = list_length (args);
   arg_vector = std::ptr::null_mut ();
@@ -3098,7 +3098,7 @@ unsafe fn apply_lambda (fun: Lisp_Object, args: Lisp_Object, count: specpdl_ref)
   /* Do the debug-on-exit now, while arg_vector still exists.  */
   if backtrace_debug_on_exit (specpdl_ref_to_ptr (count))
     { tem = call_debugger (list2 (Qexit (), tem)); }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   specpdl_ptr! () = (specpdl_ptr! ()).offset (-1);
   return tem;
 }
