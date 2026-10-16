@@ -1946,7 +1946,8 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     # across crates - so they are the one deliberate class of port-only exports.  Everything
     # else that carries `#[unsafe(no_mangle)]` must correspond to a C definition (the
     # `emacs_fclose`/P-52 rule).
-    PORT_ONLY_EXPORTS = {"sa_stack_alloc", "sa_stack_release"}
+    PORT_ONLY_EXPORTS = {"sa_stack_alloc", "sa_stack_mark",
+                         "sa_stack_release_to"}
 
     def norm_const (v: str) -> str:
         v = v.strip()
