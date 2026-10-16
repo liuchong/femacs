@@ -1106,7 +1106,7 @@ unsafe fn set_overlays_multibyte (multibyte: bool)
   /* We can't use `itree_node_set_region` at the same time
      as we iterate over the itree, so we need an auxiliary storage
      to keep the list of nodes.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   SAFE_NALLOCA! (sa_avail, nodes, 1, size);
   {
     let mut node: *mut itree_node;
@@ -1156,7 +1156,7 @@ unsafe fn set_overlays_multibyte (multibyte: bool)
       i += 1;
       nodes = nodes.add (1);
     }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* Reinitialize everything about a buffer except its name and contents
@@ -3489,7 +3489,7 @@ pub unsafe extern "C" fn sort_overlays (overlay_vec: *mut Lisp_Object, noverlays
 {
   let mut i: ptrdiff_t;
   let mut j: ptrdiff_t;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut sortvec: *mut sortvec = std::ptr::null_mut ();
   let mut noverlays = noverlays;   /* C's `noverlays = j;` below rebinds it.  */
 
@@ -3532,7 +3532,7 @@ pub unsafe extern "C" fn sort_overlays (overlay_vec: *mut Lisp_Object, noverlays
       i += 1;
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return noverlays;
 }
 
@@ -4419,7 +4419,7 @@ pub unsafe extern "C" fn report_overlay_modification (start: Lisp_Object, end: L
     let mut copy: *mut Lisp_Object;
     let mut i: ptrdiff_t;
 
-    USE_SAFE_ALLOCA! (sa_avail, sa_count);
+    USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
     SAFE_ALLOCA_LISP! (sa_avail, copy, size);
     memcpy (copy as *mut c_void,
 	    (*XVECTOR (last_overlay_modification_hooks)).contents.as_ptr () as *const c_void,
@@ -4442,7 +4442,7 @@ pub unsafe extern "C" fn report_overlay_modification (start: Lisp_Object, end: L
 	  { call_overlay_mod_hooks (prop_i, overlay_i, after, arg1, arg2, arg3); }
       }
 
-    SAFE_FREE! (sa_count);
+    SAFE_FREE! (sa_count, sa_mark);
   }
 }
 
