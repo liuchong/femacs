@@ -936,6 +936,15 @@ pub unsafe extern "C" fn xpalloc (mut pa: *mut c_void, nitems: *mut ptrdiff_t,
     { memory_full_up (); }
   pa = xrealloc (pa, nbytes as size_t);
   *nitems = n;
+  /* A diagnostic switch, in the shape of `FEMACS_GC_TRACE` (docs/status.md 4.402): one line per
+     call, so a caller whose `item_size` and whose own `sizeof` disagree can be seen at once.
+     It is off unless the variable is set, and it prints to stderr only.  */
+  if unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
+    {
+      fprintf (stderr, c"xpalloc: item_size=%d n0=%d incr_min=%d max=%d -> n=%d nbytes=%d\n".as_ptr (),
+	       item_size as c_int, n0 as c_int, nitems_incr_min as c_int,
+	       nitems_max as c_int, n as c_int, nbytes as c_int);
+    }
   return pa;
 }
 
