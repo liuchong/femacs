@@ -1549,7 +1549,7 @@ unsafe fn format_time_string (format: *const c_char, formatlen: ptrdiff_t,
   let mut buffer: [c_char; 4000] = [0; 4000];
   let mut buf: *mut c_char = buffer.as_mut_ptr ();
   let mut len: ptrdiff_t = -1;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   let tz: timezone_t = tzlookup (zone, false);
   /* On some systems, like 32-bit MinGW, tv_sec of struct timespec is
@@ -1583,7 +1583,7 @@ unsafe fn format_time_string (format: *const c_char, formatlen: ptrdiff_t,
   AUTO_STRING_WITH_LEN! (bufstring, buf, len);
   let result: Lisp_Object = code_convert_string_norecord (bufstring,
 							  Vlocale_coding_system, false);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 }
 
@@ -2083,12 +2083,12 @@ pub unsafe extern "C" fn emacs_setenv_TZ (tzstring: *const c_char) -> c_int
        omitted in consequence of an internal environment counter
        remaining unchanged despite DJGPP being all too ready to reuse
        preexisting environment storage.  */
-    USE_SAFE_ALLOCA! (sa_avail, sa_count);
+    USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
     let buf: *mut c_char = SAFE_ALLOCA! (sa_avail, (tzeqlen as usize) + strlen (tzstring) + 1) as *mut c_char;
     strcpy (buf, c"TZ=".as_ptr ());
     strcpy (buf.add (tzeqlen as usize), tzstring);
     xputenv (buf);
-    SAFE_FREE! (sa_count);
+    SAFE_FREE! (sa_count, sa_mark);
     return 0;
   }
 }
