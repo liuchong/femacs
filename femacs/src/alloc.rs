@@ -5642,6 +5642,15 @@ pub unsafe extern "C" fn mark_c_stack (bottom: *const c_char, end: *const c_char
   if ! unsafe { getenv (c"FEMACS_GC_SKIP_STACK_SCAN".as_ptr ()).is_null () }
     { return; }
 
+  /* The instrument also reports the *span* it scans (P-115's shape): if the port scans far more
+     of the stack than its live frames, stale values are roots (status 4.432).  */
+  if ! unsafe { getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null () }
+    {
+      fprintf (stderr, c"stack scan: bottom=%p end=%p span=%ld\n".as_ptr (),
+	       bottom as *const c_void, end as *const c_void,
+	       ((bottom as isize) - (end as isize)) as c_int);
+    }
+
   /* This assumes that the stack is a contiguous region in memory.  If
      that's not the case, something has to be done here to iterate
      over the stack segments.  */
@@ -6335,6 +6344,14 @@ pub unsafe extern "C" fn garbage_collect ()
       fprintf (stderr, c"gc: n=%d specpdl_bytes=%ld mark_sp=%ld mark_size=%ld\n".as_ptr (),
 	       gcs_done as c_int, unwrap_specpdl_ref (count) as c_int,
 	       unsafe { mark_stk.sp } as c_int, unsafe { mark_stk.size } as c_int);
+      let mut handlers: c_int = 0;
+      let mut h: *mut handler = unsafe { handlerlist! () };
+      while ! h.is_null () && handlers < 1000000
+	{
+	  h = unsafe { (*h).next };
+	  handlers += 1;
+	}
+      fprintf (stderr, c"gc-h: handlers=%d\n".as_ptr (), handlers);
     }
 
   eassert! (weak_hash_tables.is_null ());
