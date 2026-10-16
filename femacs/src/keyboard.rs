@@ -392,11 +392,8 @@ unsafe fn echo_keystrokes_p () -> bool
    (the emacs.rs/data.rs shape for the same macro).  */
 const INT_STRLEN_BOUND: usize = ((EMACS_INT_WIDTH - 1) * 146 + 484) / 485 + 1;
 
-/* `lisp.h`'s `FUNCTIONP` (lisp.h 3772) reaches this file as a macro; the mirror does not carry
-   it (P-26), so the port keeps the name (the alloc.rs precedent).  */
-macro_rules! FUNCTIONP {
-  ($x:expr) => { SYMBOLP ($x) && !NILP (Ffboundp ($x)) };
-}
+/* P-132: C's call sites here (keyboard.c 757, 2264, 3255) call the *function* FUNCTIONP that
+   eval.c defines (lisp.h 4799) — this revision's lisp.h has no such macro.  */
 
 /* frame.h 331: `bool_bf glyphs_initialized_p : 1`.  The mirror carries the storage unit
    (`bits1`) and the shift (`FRAME_GLYPHS_INITIALIZED_P_SHIFT`), not an accessor; PORTING.md
@@ -514,8 +511,9 @@ unsafe extern "C" {
   /// C: lisp.h 4802: `extern Lisp_Object apply1 (Lisp_Object, Lisp_Object);` (eval.c; the
   ///   mirror does not carry it, `process.rs` declares its own copy).
   fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (data.c; the mirror does not carry
-  ///   it, `bytecode.rs` declares its own copy).
+  /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c defines it at 3103; the
+  ///   mirror does not carry it, `bytecode.rs` declares its own copy — P-132: this declaration
+  ///   is what the call sites below use; a symbol-only local macro had shadowed it).
   fn FUNCTIONP (o: Lisp_Object) -> bool;
   /// C: lisp.h 5137: `extern AVOID terminate_due_to_signal (int, int);` (emacs.c; the mirror
   /// does not carry it).
@@ -1006,7 +1004,7 @@ pub unsafe extern "C" fn recursive_edit_1 () -> Lisp_Object
   if STRINGP (val)
     { xsignal1 (Qerror (), val); }
 
-  if FUNCTIONP! (val)
+  if FUNCTIONP (val)
     { call0 (val); }
 
   return unbind_to (count, Qnil ());
@@ -2497,7 +2495,7 @@ pub unsafe extern "C" fn show_help_echo (mut help: Lisp_Object, window: Lisp_Obj
 {
   if !NILP (help) && !STRINGP (help)
     {
-      if FUNCTIONP! (help)
+      if FUNCTIONP (help)
 	{ help = safe_calln! (help, window, object, pos); }
       else
 	{ help = safe_eval (help); }
@@ -3541,7 +3539,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	      && !NUMBERP (Vminibuffer_message_timeout))
 	    { resize_mini_window (XWINDOW (minibuf_window), false); }
 	}
-      else if FUNCTIONP! (Vclear_message_function)
+      else if FUNCTIONP (Vclear_message_function)
         { clear_message (true, false); }
     }
 
