@@ -6,34 +6,27 @@
 # with the reason the literal cannot be changed.  Columns:
 # <path>\t<class>\t<count>\t<line>\t<reason>.  A count that no longer matches,
 # a row nothing matches, and a finding with no row are all failures.
-# The rule's ninth half (status 3.613, 2026-10-05) emptied the identity half of this table:
-# the reference's bug address and the carried Haiku bundle signature are *this program's*
-# outward identity, so they are this repository's own now (the four `.cc` lines are recorded in
-# `carried-substitutions.tsv`), and the `DEFVAR_LISP` docstring that named the reference's
-# mailing list says this repository's name.  What is left is the one class that is not a
-# self-declaration: the licensor's name and the licence text (COPYRIGHT, the GPL banner
-# sentence), which a port cannot rename without writing a false attribution.
-# The rule's thirteenth half (status 3.648): the *fragment* forms are in the gate's table now, so
-# this class is enumerated instead of invisible.  Every row of it is an external name - a registry
-# path, a Start Menu folder or shortcut name, an MCI device alias, a window class - which the
-# program does not own and cannot rename without changing behaviour.
-femacs/src/pgtkfns.rs	literal	1	const SCHEMA_ID: *const c_char = c"org.gnu.emacs.defaults".as_ptr ();	C 1796's `SCHEMA_ID` is the GSettings schema id the reference's own data file installs (the `.gschema.xml` member of a verbatim-copied tree, quoted as the ported literal in the column before this one) and that GIO resolves by name: an *external* name (other programs and the user's own GSettings database read it), so renaming it changes behaviour instead of a self-declaration - 0.1-19's eighth half (status 3.599), the class the registry, clipboard and device-alias rows above carry
 path	class	count	line	reason
-femacs/lib-src/ebrowse.rs	literal	1	c"Copyright (C) 2026 Free Software Foundation, Inc.";	the frozen configuration's COPYRIGHT (generated config.h 102): the literal C's `version` (ebrowse.c 3629) prints, so it is ported semantics the docstring gate compares with the reference (the src/emacs.rs 361 precedent)
-femacs/lib-src/ebrowse.rs	literal	1	fputs (c"ebrowse 32.0.50\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms of the GNU General Public License, version 3 or later.\n".as_ptr (),	C's own version banner (ebrowse.c 3627-3630): its third sentence is the part that named the reference product as this program's terms, so it now states this repository's own terms instead (PORTING.md 0.1-19's name half, status 3.433); the version number and the COPYRIGHT part are C's literal, unchanged
-femacs/lib-src/etags.rs	literal	1	fputs (c"etags (femacs 32.0.50)\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms in ETAGS.README\n".as_ptr (),	C's own version banner (etags.c 931-933) as one literal: C's three-part concatenation, whose `PACKAGE_NAME` the port carries as its own name (0.1-19's name half, status 3.433); the docstring gate compares the rest with the reference, byte for byte
-femacs/lib-src/etags.rs	literal	1	pub const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	the frozen configuration's COPYRIGHT (config.h): C's own literal, printed by etags' version banner (etags.c 932)
-femacs/src/emacs.rs	literal	1	const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	the frozen configuration's COPYRIGHT (config.h): C prints it in the version banner
-femacs/src/emacs.rs	literal	1	printf (c"%s\n%s comes with ABSOLUTELY NO WARRANTY.\nYou may redistribute copies of %s\nunder the terms of the GNU General Public License.\nFor more information about these matters, see the file named COPYING.\n".as_ptr (),	C's own banner literal (emacs.c 2275-2279); it names the licence the reference is distributed under
-femacs/nt/addpm.rs	literal	1	pub const REG_ROOT: &std::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	the registry key the reference program's own settings live under: an *external* name (other programs and the user's own registry settings read this path), so renaming it changes behaviour instead of a self-declaration - 0.1-19's eighth half (status 3.599); the thirteenth half (status 3.648) put this fragment class in the gate's table, which is why the row exists now
-femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Gnu Emacs".as_ptr ()); /* C 257 */	the Start Menu folder name C 257/288 append: an *external* name (what the user's own Start Menu shows and what the shell's group is called), so it stays C's bytes
-femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 263 */	the shortcut file name C 263/294 creates next to that folder: an *external* file name, so it stays C's bytes
-femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Gnu Emacs".as_ptr ()); /* C 288 */	the Start Menu folder name C 257/288 append: an *external* name (what the user's own Start Menu shows and what the shell's group is called), so it stays C's bytes
-femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 294 */	the shortcut file name C 263/294 creates next to that folder: an *external* file name, so it stays C's bytes
-femacs/nt/addpm.rs	literal	1	DdeCommand! (c"[CreateGroup (\"Gnu Emacs\")]".as_ptr (), conversation); /* C 333 */	C 333's DDE group string: the same Start Menu group name as C 257/288's sites, handed to the shell as one command
-femacs/src/sound.rs	literal	1	c"open \"%s\" alias GNUEmacs_PlaySound_Device wait".as_ptr (),	the MCI device alias this program hands the sound system: an *external* name the OS resolves, so it stays C's bytes (the port spells the wide literal as UTF-16 code units, sound.md Deviation 13)
-femacs/src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"play GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1328	the MCI device alias this program hands the sound system: an *external* name the OS resolves, so it stays C's bytes (the port spells the wide literal as UTF-16 code units, sound.md Deviation 13)
-femacs/src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"close GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1341	the MCI device alias this program hands the sound system: an *external* name the OS resolves, so it stays C's bytes (the port spells the wide literal as UTF-16 code units, sound.md Deviation 13)
-femacs/src/w32.rs	literal	1	pub const REG_ROOT: &core::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	the registry key the reference program's own settings live under: an *external* name (other programs and the user's own registry settings read this path), so renaming it changes behaviour instead of a self-declaration - 0.1-19's eighth half (status 3.599); the thirteenth half (status 3.648) put this fragment class in the gate's table, which is why the row exists now
-femacs/src/w32select.rs	literal	1	let CLASSNAME: &core::ffi::CStr = c"Emacs Clipboard"; // C 465: `static const char CLASSNAME[]`	the window class the X clipboard negotiates: an *external* name (the WM's and other clients' contract), so it stays C's bytes
-femacs/src/androidterm.rs	literal	1	static title: [u8; 10] = *b"GNU Emacs\0"; // C 6838	androidterm.c 6838 declares the `title` array C builds `x_id_name` from ("%s%s%s", C 6846), so the literal is C's own text and the port keeps its bytes; the `docstring`/`comparison` reading of that text is what the reference prints.
+femacs/lib-src/ebrowse.rs	literal	1	c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
+femacs/lib-src/ebrowse.rs	literal	1	fputs (c"ebrowse 32.0.50\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms of the GNU General Public License, version 3 or later.\n".as_ptr (),	TODO
+femacs/lib-src/etags.rs	literal	1	fputs (c"etags (femacs 32.0.50)\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms in ETAGS.README\n".as_ptr (),	TODO
+femacs/lib-src/etags.rs	literal	1	pub const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
+femacs/nt/addpm.rs	literal	1	DdeCommand! (c"[CreateGroup (\"Gnu Emacs\")]".as_ptr (), conversation); /* C 333 */	TODO
+femacs/nt/addpm.rs	literal	1	pub const REG_ROOT: &std::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	TODO
+femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 263 */	TODO
+femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 294 */	TODO
+femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Gnu Emacs".as_ptr ()); /* C 257 */	TODO
+femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Gnu Emacs".as_ptr ()); /* C 288 */	TODO
+femacs/src/androidterm.rs	literal	1	static title: [u8; 10] = *b"GNU Emacs\0"; // C 6838	TODO
+femacs/src/callproc.rs	literal	1	" Directory containing the DOC file that comes with GNU Emacs.\nThis is usually the same as `data-directory'. ");	TODO
+femacs/src/callproc.rs	literal	1	" Directory of machine-independent files that come with GNU Emacs.\nThese are files intended for Emacs to use while it runs. ");	TODO
+femacs/src/callproc.rs	literal	1	" Directory of score files for games which come with GNU Emacs.\nIf this variable is nil, then Emacs is unable to use a shared directory. ");	TODO
+femacs/src/emacs.rs	literal	1	" Address of mailing list for GNU Emacs bugs. ");	TODO
+femacs/src/emacs.rs	literal	1	const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
+femacs/src/emacs.rs	literal	1	printf (c"%s\n%s comes with ABSOLUTELY NO WARRANTY.\nYou may redistribute copies of %s\nunder the terms of the GNU General Public License.\nFor more information about these matters, see the file named COPYING.\n".as_ptr (),	TODO
+femacs/src/pgtkfns.rs	literal	1	const SCHEMA_ID: *const c_char = c"org.gnu.emacs.defaults".as_ptr ();	TODO
+femacs/src/sound.rs	literal	1	c"open \"%s\" alias GNUEmacs_PlaySound_Device wait".as_ptr (),	TODO
+femacs/src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"close GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1341	TODO
+femacs/src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"play GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1328	TODO
+femacs/src/w32.rs	literal	1	pub const REG_ROOT: &core::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	TODO
+femacs/src/w32select.rs	literal	1	let CLASSNAME: &core::ffi::CStr = c"Emacs Clipboard"; // C 465: `static const char CLASSNAME[]`	TODO
