@@ -1608,7 +1608,8 @@ pub unsafe extern "C" fn calculate_costs (frame: *mut frame)
 	xrealloc (char_ins_del_vector.cast::<c_void> (),
 		  std::mem::size_of::<c_int> () + 2 * std::mem::size_of::<c_int> () * max_frame_cols as usize).cast::<c_int> ();
 
-      std::ptr::write_bytes (char_ins_del_vector, 0,
+      /* C 1255's `memset` counts bytes; through a `u8` pointer (PORTING.md P-114).  */
+      std::ptr::write_bytes (char_ins_del_vector as *mut u8, 0,
 			     std::mem::size_of::<c_int> () + 2 * std::mem::size_of::<c_int> () * max_frame_cols as usize);
 
       if ! f.is_null () && (*tty).TS_ins_line.is_null () && (*tty).TS_del_line.is_null ()
@@ -3850,7 +3851,9 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
     { y0 = 1; }
 
   SAFE_NALLOCA! (sa_avail, state, 1, (*menu).panecount as usize);
-  std::ptr::write_bytes (state, 0, std::mem::size_of::<tty_menu_state> ());
+  /* C 3645: `memset (state, 0, sizeof (*state))` - one element's worth of bytes, through a
+     `u8` pointer (PORTING.md P-114); as an element count this cleared 344 of them.  */
+  std::ptr::write_bytes (state as *mut u8, 0, std::mem::size_of::<tty_menu_state> ());
   faces[0]
     = lookup_derived_face (std::ptr::null_mut (), sf, Qtty_menu_disabled_face (),
 			   DEFAULT_FACE_ID, true);
