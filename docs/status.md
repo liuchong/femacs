@@ -20952,5 +20952,5 @@
   ⑥ **构建与资源**：本轮编译两次（`build-tu` 一个单元 + `gate-fast` 全量 ✓，后者含 680 单元的**双配置**编译 ✓），未起大内存任务 ✓，`build/emacs-ref/lib/libgnu.a` 早已按需重建 ✓，`.o` 等产物留在 `build/`（生成物 ✓）。
   ⑥bis **整树读数**：`gate-fast` **exit 0** ✓（日志里含新门的绿字 `c strings: every site carries its terminator` ✓；该门在 `mirror-dupes` 之前 ✓），其中 680 单元的**双配置**编译（冻结 + `--cfg enable_checking` ✓）通过 ⇒ 本轮那处死臂改动在两种配置下都编得过 ✓。
   ⑥ter **修复范围的读数（不是推理）**：9 件"程序生成物"的**输入**逐个查行尾 ⇒ 8 件 cedet 输入**全 LF**（CR 0 ✓）、只有 `leim/MISC-DIC/pinyin.map` 是 **CRLF**（CR 434 ✓）⇒ 这一处 `decode_eol` 修复的作用面恰好是 pinyin 那一件 ✓（cedet 8 件在修前就已 `name-only` ✓）；全 9 件的**修后重跑**仍记在 ⑧⑴ ✓。
-  ⑦ **提交**：`fb490208`（`region-cache.rs` ✓）→ `b09ebc3c`（门 ✓）→ `a1b7b1a`（空基线表 ✓）→ `03a382d1`（`xtask` 接线 ✓）→ 本提交 ✓，全部签名并推送 ✓。
+  ⑦ **提交**：`fb490208`（`region-cache.rs` ✓）→ `b09ebc3c`（门 ✓）→ `3c021755`（空基线表 ✓；本条早前误记 `a1b7b1a`，按实录更正 ✓）→ `03a382d1`（`xtask` 接线 ✓）→ 本提交 ✓，全部签名并推送 ✓。
   ⑧ **下一步（点名）**：⑴ 重跑 `tools/gen-program-products.py` 全 9 件（确认 cedet 8 件仍 `name-only` ✓）；⑵ `.elc` 全族（L1 ✓，本相最大一笔）；⑶ `lisp/international/uni-*.el` 8 件 + `lisp/loaddefs.el` ✓；⑷ `check-trees.py` 的 cedet/选择性改名口径登记 ✓；⑸ L4/L5、性能基线、平台冒烟 ✓。
