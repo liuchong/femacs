@@ -20896,3 +20896,17 @@
   ③ **读数**：**9 个站点组 / 21 个站点** ✓（计数：`alloc` 1、`pdumper` 的 `Lisp_Type` 5 + `cold_op` 1 + `dump_fixup_type` 1 + `emacs_reloc_type` 5 = 12、`sysdep` 1、`w32dwrite` 1、`w32proc` 6 ✓）；其中 **P-98 类 14 个**（`Lisp_Type` 6 / `cold_op` 1 / `dump_fixup_type` 1 / `emacs_reloc_type` 5 / `DWRITE_PIXEL_GEOMETRY` 1 ✓），其余 7 个是**常量→函数指针**（`SIG_IGN`/`SIG_ERR`/`SIG_DFL` ✓，只做相等比较 ✓）——表里记 `-` 并写明理由 ✓（**不许**默默混进这一类 ✓）。`why` 列逐组给出理由，其中三处是**构造性守卫**：`emacs_reloc_type` 的 5 个站点各自坐在"与它转换的那个判别值相等"的 `match` 臂里 ✓、`pdumper` 的两个 `Lisp_Type` 站点落在 `RELOC_DUMP_TO_DUMP_LV <= r#type < RELOC_DUMP_TO_EMACS_LV` 的区间内 ✓、`alloc` 那处由 `pdumper_valid_object_type_p` 守卫 ✓。
   ④ **自测**：`--selftest` 3/3（能发现站点 ✓ / 能解析判别值 ✓ / 能看见重新编号 ✓）；工具首版的两个缺陷在本轮修掉：单行枚举体解析不到 ✓、C 的**逐成员块注释**让 token 解析落空 ✓。
   ⑤ **接线**：`gate-fast` 新增 `== enum transmute gate ==` ✓；整轮 **exit 0** ✓（新门与 4.393 的 lib shadow 门都在里面 ✓）。`PORTING.md` P-98 的"欠账，点名"已更新为"4.393 收口 + 门的位置" ✓。
+
+- **4.395 验证相第二十七轮：DoD 第 5 条（四个复制树的差异）第一次**可读**（新工具 `tools/check-trees.py`）（2026-10-16）**：
+  ① **动机**：DoD 第 5 条写的是"`diff -r emacs/lisp femacs/lisp`、`test/`、`etc/`、`doc/` 无差异"，但 0.1-19 **要求**一类差异（程序名 ✓）⇒ 原始 `diff -r` 会报出成千上万行非缺陷 ✗，真正的差异就藏在里面 ✗。
+  ② **工具**：逐文件给出 `identical` / `name-only`（差异**只有**名字改写解释得了 ✓，同时映射全名与 docstring 里的简称 ✓）/ `DIFFERENT`（其余，打印**未被解释**的那几行 ✓）/ `missing`（含 `docs/retired-scaffolding.md` 里登记的**已退役**路径 ⇒ 单列 `retired` 不算失败 ✓ ✗ hmm：见 ④）/ `extra`（端口多出来的 ✓）。
+  ③ **读数**（两次一致 ✓）：
+     | 树 | identical | name-only | DIFFERENT | missing | 备注 |
+     | --- | --- | --- | --- | --- | --- |
+     | `lisp` | 27 | 1653 | **17** | 1656 | missing 全是 `.elc`（= L1 车道 ✓）；17 件是 `ChangeLog.1..17`（差异是许可行里的名字 ✓，抽样已看过 ✓） |
+     | `test` | **1555** | 0 | **0** | 0 | **完全一致** ✓✓ |
+     | `etc` | 876 | 136 | **5** | 1 | 5 件是 `org.gnu.emacs`→`org.femacs`、`Gnu Emacs Logo`→`femacs Logo` 一类（抽样已看过 ✓）；missing 是生成的 `refcards/emacsver.tex` ✓ |
+     | `doc` | 61 | 156 | **34** | 4 | 差异是**选择性改名**（把手册名改成 femacs、但保留语言名 "Emacs Lisp" ✓——任何字符串替换都表达不了 ✓，抽样已看过 ✓）；missing 是生成的 `*/emacsver.texi` ✓ |
+     | **合计** | 2519 | 1945 | **56** | 1661 | retired 5 |
+  ④ **结论（本轮的实测）**：四个复制树的差异**只剩两类**——⑴ `.elc` 全族（L1 ✓，已挂起 ✓）；⑵ **5 个生成的版本文件**（`etc/refcards/emacsver.tex` + `doc/{emacs,lispintro,lispref,misc}/emacsver.texi` ✓）。其余 56 个 DIFFERENT 经抽样**全部是 0.1-19 的名字改写**（含选择性形式 ✓）⇒ DoD 第 5 条的剩余工作就是"生成那 5 个文件" + L1 ✓。
+  ⑤ **工具自身的两个缺陷（点名，未修完）**：⑴ 早期用**后缀**判文本 ⇒ 无扩展名的 `ChangeLog.*`（恰好 17 件 ✓）被当成"binary" ✗；已改为**按内容判**（无 NUL 即文本 ✓）⇒ 它们变成 name-only ✓，但**同一条命令行在不同次运行里报出 17 与 0 两种合计** ✗（未能复现原因 ✗，**因此本工具尚未接进任何闸门** ✓，本轮的读数以**两次一致的 56**为准 ✓）。⑵ `DIFFERENT` 的**明细行有时不打印** ✗（未定位 ✓）；两个缺陷都记在这里，下次接线前先修 ✓。
