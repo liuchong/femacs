@@ -1398,8 +1398,18 @@ pub unsafe extern "C" fn init_baud_rate (fd: c_int) {
 
    Return CHILD if successful, 0 if no status is available, and a
    negative value (setting errno) if waitpid is buggy.  */
+unsafe fn waitpid_probe_log (child: pid_t, options: c_int) -> (pid_t, c_int) { (child, options) }
+
 unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
                             interruptible: bool) -> pid_t {
+  /* PORTING.md P-122's instrument (FEMACS_CHILD_TRACE, P-115's shape): every reap in the port
+     goes through here, so a missing line means the reap itself never happened.  */
+  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+    {
+      let r = waitpid_probe_log (child, options);
+      fprintf (stderr, c"child-get: child=%d options=%d\n".as_ptr (), r.0 as c_int, r.1);
+    }
+
   /* PORTING.md 1.5: C declares `pid_t pid;` and the loop below assigns it.  */
   let mut pid: pid_t = 0;
 
