@@ -291,7 +291,7 @@ unsafe fn do_scrolling (frame: *mut frame, current_matrix: *mut glyph_matrix,
   let mut i: c_int;
   let mut j: c_int;
   let mut k: c_int;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* True if we have set a terminal window with set_terminal_window.  */
   let mut terminal_window_p: bool = false;
@@ -462,7 +462,7 @@ unsafe fn do_scrolling (frame: *mut frame, current_matrix: *mut glyph_matrix,
 
   if terminal_window_p
     { set_terminal_window (frame, 0); }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 
@@ -751,7 +751,7 @@ unsafe fn do_direct_scrolling (frame: *mut frame, current_matrix: *mut glyph_mat
   let mut p: *mut matrix_elt;
   let mut i: c_int;
   let mut j: c_int;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* A queue of deletions and insertions to be performed.  */
   #[repr(C)]
@@ -912,7 +912,7 @@ unsafe fn do_direct_scrolling (frame: *mut frame, current_matrix: *mut glyph_mat
 
   if terminal_window_p
     { set_terminal_window (frame, 0); }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 
@@ -923,7 +923,7 @@ pub unsafe extern "C" fn scrolling_1 (frame: *mut frame, window_size: c_int,
 				      old_hash: *mut c_uint, new_hash: *mut c_uint,
 				      free_at_end: c_int)
 {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut matrix: *mut matrix_elt = std::ptr::null_mut ();
   SAFE_NALLOCA! (sa_avail, matrix, window_size + 1, window_size + 1);
 
@@ -948,7 +948,7 @@ pub unsafe extern "C" fn scrolling_1 (frame: *mut frame, window_size: c_int,
 		    unchanged_at_top);
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 
