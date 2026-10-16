@@ -3841,7 +3841,7 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
   let mut col: c_int;
   let mut row: c_int;
   let prev_inhibit_redisplay: Lisp_Object = Vinhibit_redisplay;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Don't allow non-positive x0 and y0, lest the menu will wrap
      around the display.  */
@@ -4098,7 +4098,7 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
   discard_mouse_events ();
   if ! kbd_buffer_events_waiting ()
     { clear_input_pending (); }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   Vinhibit_redisplay = prev_inhibit_redisplay;
   return result;
 }
@@ -4310,7 +4310,7 @@ pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
   y += (*f).top_pos; item_y = y;
 
   /* Create all the necessary panes and their items.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   maxwidth = 0; maxlines = 0; lines = 0; i = 0;
   lpane = TTYM_FAILURE;
   let mut entry_set: bool = false;
@@ -4338,7 +4338,7 @@ pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
 	      tty_menu_destroy (menu);
 	      *error_name = c"Can't create pane".as_ptr ();
 	      entry = Qnil (); entry_set = true;
-	      return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry);
+	      return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry, sa_mark);
 	    }
 	  i += MENU_ITEMS_PANE_LENGTH;
 
@@ -4405,7 +4405,7 @@ pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
 	      tty_menu_destroy (menu);
 	      *error_name = c"Can't add selection to menu".as_ptr ();
 	      entry = Qnil (); entry_set = true;
-	      return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry);
+	      return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry, sa_mark);
 	    }
 	  i += MENU_ITEMS_ITEM_LENGTH;
           lines += 1;
@@ -4540,7 +4540,7 @@ pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
     }
 
   let _ = entry_set;
-  return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry);
+  return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry, sa_mark);
 }
 
 /***********************************************************************
