@@ -3711,7 +3711,18 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 	  STAGE_STARTINSTRING | STAGE_STARTQUOTEDINSTRING =>
 	    {
 	      /* C's `startinstring:` label; `startquotedinstring:` is the label the
-		 prologue can enter instead.  */
+		 prologue can enter instead.  C's label body opens with
+		 `nofence = state->instring != ST_STRING_STYLE;` (C 3415) - a statement *inside*
+		 the label, so the Stage entry has to carry it: without it `nofence` keeps the
+		 value it had at function entry (false when the scan did not start inside a
+		 string), the string loop's `if (nofence && c == state->instring && c_code ==
+		 Sstring) break;` never fires, and **every string runs to the end of the scan** -
+		 `(parse-partial-sexp 1 (point-max))` then reports `nth 3 = 34` for a buffer that
+		 is nothing but a closed string literal, and `loaddefs-generate--parse-file` skips
+		 every `;;;###theme-autoload` cookie it finds inside a docstring (measured
+		 2026-10-16: 3 of the 25 themes lost their `theme-properties` line in
+		 `lisp/theme-loaddefs.el`; docs/status.md 4.382).  */
+	      nofence = unsafe { (*state).instring } != ST_STRING_STYLE;
 	      let mut at_quotedinstring: bool = entry == STAGE_STARTQUOTEDINSTRING;
 	      loop
 		{
