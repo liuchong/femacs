@@ -1522,7 +1522,7 @@ unsafe extern "C" fn xfont_draw (s: *mut glyph_string, from: c_int, to: c_int, x
 
   if (*xfont).min_byte1 == 0 && (*xfont).max_byte1 == 0
     {
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       let str_: *mut c_char = SAFE_ALLOCA! (sa_avail, len) as *mut c_char;
       i = 0;
       while i < len
@@ -1565,7 +1565,7 @@ unsafe extern "C" fn xfont_draw (s: *mut glyph_string, from: c_int, to: c_int, x
 			   gc, x, y, str_, len); }
 	}
       unblock_input ();
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
       return (*s).nchars;
     }
 
@@ -1587,7 +1587,7 @@ unsafe extern "C" fn xfont_draw (s: *mut glyph_string, from: c_int, to: c_int, x
 	}
       else
 	{
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	  let code: *const c_uint = (*s).char2b.offset (from as isize);
 	  let mut char2b: *mut XChar2b = std::ptr::null_mut ();
 	  let mut i: c_int = 0;
@@ -1601,7 +1601,7 @@ unsafe extern "C" fn xfont_draw (s: *mut glyph_string, from: c_int, to: c_int, x
 	    }
 	  XDrawImageString16 (display, FRAME_X_DRAWABLE! ((*s).f),
 			      gc, x, y, char2b, len);
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
     }
   else
@@ -1621,7 +1621,7 @@ unsafe extern "C" fn xfont_draw (s: *mut glyph_string, from: c_int, to: c_int, x
 	}
       else
 	{
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	  let code: *const c_uint = (*s).char2b.offset (from as isize);
 	  let mut char2b: *mut XChar2b = std::ptr::null_mut ();
 	  let mut i: c_int = 0;
@@ -1635,7 +1635,7 @@ unsafe extern "C" fn xfont_draw (s: *mut glyph_string, from: c_int, to: c_int, x
 	    }
 	  XDrawString16 (display, FRAME_X_DRAWABLE! ((*s).f),
 			 gc, x, y, char2b, len);
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
     }
   unblock_input ();
