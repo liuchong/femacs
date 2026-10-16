@@ -61,7 +61,13 @@ def recipes() -> list[list[str]]:
         pending = ""
     found = []
     for command in joined:
-        if "-f batch-tit-" not in command or REF_PROGRAM not in command:
+        # The same Makefile also generates `lisp/language/pinyin.el` through the same library
+        # (`tit-pinyin-convert`), with an output path outside `leim/`, so the three `-f` names
+        # are matched instead of a name prefix.
+        if REF_PROGRAM not in command or not any(
+                f"-f {fn}" in command for fn in ("batch-tit-dic-convert",
+                                                 "batch-tit-miscdic-convert",
+                                                 "tit-pinyin-convert")):
             continue
         found.append(command)
     if not found:
@@ -69,15 +75,23 @@ def recipes() -> list[list[str]]:
     return [shlex.split(c) for c in found]
 
 
-def rewrite(argv: list[str]) -> list[str]:
-    """The same invocation, pointed at the port's program, output directory and inputs.
+def map_path(arg: str) -> str:
+    """Map a reference-tree path argument to the port's copy (the two are not always inside
+    `leim/`: `lisp/language/pinyin.el` is written by a recipe of this Makefile)."""
+    if arg.startswith("-") or arg in ("", "."):
+        return arg
+    path = pathlib.Path(arg)
+    if not path.is_absolute():
+        path = REF_BUILD_LEIM / path
+    try:
+        rel = path.resolve().relative_to(REF.resolve())
+    except (OSError, ValueError):
+        return arg
+    return str(PORT / rel)
 
-    The recipe's paths are relative to the frozen build's `leim/` directory, so the two
-    directories it names are resolved to absolute port paths: `-dir`'s value is the directory
-    the generated dictionaries land in (`<port>/lisp/leim/quail`), and a trailing dictionary
-    argument is the *input* (the port's own copy of the same file, since `emacs/leim`'s data is
-    copied verbatim into `femacs/leim`).
-    """
+
+def rewrite(argv: list[str]) -> list[str]:
+    """The same invocation, pointed at the port's program, output directory and inputs."""
     result: list[str] = []
     i = 0
     while i < len(argv):
@@ -87,16 +101,13 @@ def rewrite(argv: list[str]) -> list[str]:
         elif arg == "-dir":
             result += ["-dir", str(PORT / "lisp/leim/quail")]
             i += 1                      # skip the recipe's own directory argument
-        elif REF_LEIM_INPUT in arg:
-            candidate = PORT / ("leim/" + arg.split(REF_LEIM_INPUT, 1)[1])
-            result.append(str(candidate) if candidate.exists() else arg)
         else:
-            result.append(arg)
+            result.append(map_path(arg))
         i += 1
     return result
 
 
-def run_all() -> int:
+def run_all(only: list[str] = ()) -> int:
     """Run every conversion, then the `leim-list.el` recipe, with the port's program."""
     if not PORT_EMACS.is_file():
         raise SystemExit(f"{PORT_EMACS} is missing: build the port first")
@@ -105,8 +116,19 @@ def run_all() -> int:
 
     failures = 0
     todo = recipes()
+    if only:
+        todo = [a for a in todo if pathlib.Path(a[-1]).name in only]
     for n, argv in enumerate(todo, 1):
         real = rewrite(argv)
+        out = pathlib.Path(real[-1])
+        try:
+            out.resolve().relative_to(REF.resolve())
+        except ValueError:
+            pass                                # good: outside the reference tree
+        else:
+            print(f"[{n}/{len(todo)}] {name}: REFUSED (would write into the reference tree)")
+            failures += 1
+            continue
         result = subprocess.run(real, cwd=REF_BUILD_LEIM, capture_output=True, text=True)
         name = pathlib.Path(argv[-1]).name
         status = "ok" if result.returncode == 0 else f"FAILED ({result.returncode})"
@@ -175,6 +197,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--list", action="store_true", help="print the conversions and exit")
     parser.add_argument("--compare-only", action="store_true", help="skip the runs")
+    parser.add_argument("--only", nargs="*", default=[],
+                        help="run only the recipes whose last argument names these files")
     parser.add_argument("--show", type=int, default=10, help="differing lines to print per file")
     args = parser.parse_args()
 
@@ -183,7 +207,7 @@ def main() -> int:
             print(" ".join(argv))
         return 0
 
-    failures = 0 if args.compare_only else run_all()
+    failures = 0 if args.compare_only else run_all(args.only)
     compare_status = compare(args.show)
     return 1 if (failures or compare_status) else 0
 
