@@ -78,7 +78,15 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
 PORT = REPO / "femacs"
 PROGRAM = REPO / "build/port/src/temacs"
-REFERENCE_PROGRAM = REPO / "build/emacs-ref/src/emacs"
+# The cross-check wants a *state-matched* comparator, and the port has no dump yet: C's build
+# compiles with the undumped `temacs` for the bootstrap phase and with the dumped program later, so
+# an undumped `temacs` is the only program whose starting state (a loadup from source, ~449 gensyms
+# consumed, 112 loads, 91 of them from source) matches the port's.  Measured 2026-10-16: the
+# reference's `temacs` and the port read exactly the same startup (g449 g450 after the loadup), and
+# with it every product that had looked like a defect is byte-identical.
+UNDUMPED_PROGRAM = REPO / "build/emacs-ref/src/temacs"
+DUMPED_PROGRAM = REPO / "build/emacs-ref/src/emacs"
+REFERENCE_PROGRAM = UNDUMPED_PROGRAM if UNDUMPED_PROGRAM.is_file() else DUMPED_PROGRAM
 
 # C compiles *one file per program invocation* (`$(TARGETS): %.elc: %.el` with
 # `$(emacs) -f batch-byte-compile $<`), and the state a program start leaves behind is part of the
@@ -158,6 +166,9 @@ def cross_check(files: list[pathlib.Path], timeout: int,
     The port's own product is saved and put back, so the cross-check never leaves the tree in the
     reference's state.
     """
+    # The program is run with the port's `lisp/` as its cwd, so the path has to be absolute: a
+    # relative one resolved against the tool's own cwd is not the same file.
+    reference_program = reference_program.resolve()
     if not reference_program.is_file():
         raise SystemExit(f"{reference_program} is missing: build the reference's program")
     produced: dict[pathlib.Path, bytes] = {}
@@ -272,7 +283,9 @@ def main() -> int:
                         help="for the differing products, compile the same source with the "
                              "reference's program in the port's tree and say whose difference it is")
     parser.add_argument("--reference-program", type=pathlib.Path, default=REFERENCE_PROGRAM,
-                        help="the reference's program (default: build/emacs-ref/src/emacs)")
+                        help="the reference's program for the cross-check (default: the undumped "
+                             "build/emacs-ref/src/temacs, whose startup state matches the port's; "
+                             "the dumped src/emacs is a different state and gives false verdicts)")
     parser.add_argument("--no-force", action="store_true",
                         help="keep up-to-date products (batch-byte-compile skips them)")
     parser.add_argument("--no-compile", action="store_true",
@@ -307,6 +320,14 @@ def main() -> int:
                 print("nothing left to compile")
                 return 0
 
+    if args.cross_check and args.no_compile:
+        raise SystemExit(
+            "--cross-check compares the products on disk against the reference's program, so with "
+            "--no-compile it compares whatever state built them: measured 2026-10-16, that made "
+            "every product read as a port defect (packages built by a batch run, checkdoc, "
+            "elisp-scope, ...) and all of them are state-only once the same invocation builds both. "
+            "Run --cross-check with compilation, or use --no-compile only for the tree comparison.")
+
     if args.order == "reference" and not args.no_compile:
         rels = reference_order(rels)
 
@@ -326,6 +347,7 @@ def main() -> int:
     for line in details[:args.show * 2]:
         print(line)
     state_only = 0
+    rewrite_cross = 0
     defects: list[str] = []
     if args.cross_check and counts["DIFFERENT"]:
         differing = [PORT / pathlib.Path(rel).with_suffix(".elc") for rel in rels
@@ -342,6 +364,13 @@ def main() -> int:
                 state_only += 1
                 print(f"state-only  {product.relative_to(REPO)}: both programs produce "
                       f"{len(mine)} bytes here, so the difference is this tree's state")
+            elif theirs is not None and rewrite_only(mine, theirs, product_name()):
+                # The two programs agree except for the product name 0.1-19 requires and the
+                # offsets its length moves: the reference *tree's* copy differs because it was
+                # built by the reference's own build, not because the compiler disagrees.
+                rewrite_cross += 1
+                print(f"rewrite-only {product.relative_to(REPO)}: the two programs differ only by "
+                      f"the product name and its offsets")
             else:
                 defects.append(str(product.relative_to(REPO)))
                 print(f"DEFECT      {product.relative_to(REPO)}: the reference's program produces "
@@ -351,8 +380,8 @@ def main() -> int:
     print(f"{total} target(s) with a reference .elc ({skipped} .el without one): "
           f"{counts['identical']} identical, {counts['rewrite-only']} rewrite-only, "
           f"{counts['DIFFERENT']} DIFFERENT, {counts['missing']} missing"
-          + (f"; of the differing, {state_only} state-only, {len(defects)} a port defect"
-             if args.cross_check else ""))
+          + (f"; of the differing, {state_only} state-only, {rewrite_cross} rewrite-only, "
+             f"{len(defects)} a port defect" if args.cross_check else ""))
     if args.cross_check:
         return 1 if (defects or counts["missing"] or failures) else 0
     return 1 if (counts["DIFFERENT"] or counts["missing"] or failures) else 0
