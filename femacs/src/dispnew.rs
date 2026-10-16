@@ -3211,7 +3211,7 @@ unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
   let mut i: c_int;
 
   /* Make a copy of the original rows.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   SAFE_NALLOCA! (sa_avail, old_rows, 1, nlines);
   std::ptr::copy_nonoverlapping (new_rows as *const u8, old_rows as *mut u8,
 				 nlines as usize * core::mem::size_of::<glyph_row> ());
@@ -3237,7 +3237,7 @@ unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
   mirror_line_dance (XWINDOW ((*f).root_window),
 		     unchanged_at_top, nlines, copy_from, retained_p);
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 
@@ -3336,7 +3336,7 @@ unsafe fn mirror_line_dance (w: *mut window, unchanged_at_top: c_int, nlines: c_
 	  let mut old_rows: *mut glyph_row = core::ptr::null_mut ();
 
 	  /* Make a copy of the original rows of matrix m.  */
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	  SAFE_NALLOCA! (sa_avail, old_rows, 1, (*m).nrows);
 	  std::ptr::copy_nonoverlapping ((*m).rows as *const u8, old_rows as *mut u8,
 					 (*m).nrows as usize
@@ -3422,7 +3422,7 @@ unsafe fn mirror_line_dance (w: *mut window, unchanged_at_top: c_int, nlines: c_
 	  /* Check that no pointers are lost.  */
 	  CHECK_MATRIX! (m);
 
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
 
       /* Next window on same level.  */
@@ -6340,7 +6340,7 @@ unsafe fn scrolling (frame: *mut frame)
   const _: () = core::assert! (core::mem::size_of::<c_int> () <= core::mem::size_of::<c_uint> ());
   const _: () = core::assert! (core::mem::align_of::<c_uint> () % core::mem::align_of::<c_int> () == 0);
   let old_hash: *mut c_uint;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut old_hash_buf: *mut c_uint = core::ptr::null_mut ();
   SAFE_NALLOCA! (sa_avail, old_hash_buf, 4, height);
   old_hash = old_hash_buf;
@@ -6361,7 +6361,7 @@ unsafe fn scrolling (frame: *mut frame)
       /* Give up on this scrolling if some old lines are not enabled.  */
       if !MATRIX_ROW_ENABLED_P! (current_matrix, i)
 	{
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	  return;
 	}
       *old_hash.offset (i as isize) = line_hash_code (frame, MATRIX_ROW! (current_matrix, i));
@@ -6394,7 +6394,7 @@ unsafe fn scrolling (frame: *mut frame)
        && (changed_lines as isize) < baud_rate / 2400)
       || unchanged_at_bottom == height)
     {
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
       return;
     }
 
@@ -6423,7 +6423,7 @@ unsafe fn scrolling (frame: *mut frame)
 		   new_hash.offset (unchanged_at_top as isize - 1),
 		   free_at_end_vpos - unchanged_at_top); }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 /* C 5926: `#endif /* HAVE_ANDROID */`.  */
 }
 
