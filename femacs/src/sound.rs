@@ -965,7 +965,7 @@ unsafe extern "C" fn wav_play (s: *mut sound, sd: *mut sound_device)
       let blksize: ptrdiff_t =                                             // C 562
         if (*sd).period_size.is_some () { ((*sd).period_size.unwrap ()) (sd) } else { 2048 };
       let mut data_left: ptrdiff_t = (*header).data_length as ptrdiff_t;   // C 563
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);                               // C 564
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                               // C 564
       let buffer = SAFE_ALLOCA! (sa_avail, blksize as usize) as *mut c_char;  // C 565
       lseek ((*s).fd, core::mem::size_of::<wav_header> () as off_t, SEEK_SET);  // C 566
       while data_left > 0                                                  // C 567-568
@@ -980,7 +980,7 @@ unsafe extern "C" fn wav_play (s: *mut sound, sd: *mut sound_device)
 
       if nbytes < 0                                                        // C 576
 	{ sound_perror (c"Error reading sound file".as_ptr ()); }          // C 577
-      SAFE_FREE! (sa_count);                                               // C 578
+      SAFE_FREE! (sa_count, sa_mark);                                               // C 578
     }
 }
 
@@ -1063,7 +1063,7 @@ unsafe extern "C" fn au_play (s: *mut sound, sd: *mut sound_device)
       lseek ((*s).fd, (*header).data_offset as off_t, SEEK_SET);           // C 656
 
       /* C 658: `/* Copy sound data to the device.  */`  */
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);                               // C 659
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                               // C 659
       let buffer = SAFE_ALLOCA! (sa_avail, blksize as usize) as *mut c_char;  // C 660
       loop                                                                 // C 661
         {
@@ -1074,7 +1074,7 @@ unsafe extern "C" fn au_play (s: *mut sound, sd: *mut sound_device)
 
       if nbytes < 0                                                        // C 664
 	{ sound_perror (c"Error reading sound file".as_ptr ()); }          // C 665
-      SAFE_FREE! (sa_count);                                               // C 666
+      SAFE_FREE! (sa_count, sa_mark);                                               // C 666
     }
 }
 
