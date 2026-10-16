@@ -2695,27 +2695,27 @@ pub unsafe extern "C" fn syms_of_charset ()
   Vcurrent_iso639_language = Qnil ();
 
   charset_ascii
-    = define_charset_internal (Qascii (), 1, b"\x00\x7F\0\0\0\0\0".as_ptr () as *const c_char,
+    = define_charset_internal (Qascii (), 1, b"\x00\x7F\0\0\0\0\0\0".as_ptr () as *const c_char,
 			       0, 127, b'B' as c_int, -1, 0, true, false, 0);
   PDUMPER_REMEMBER_SCALAR! (charset_ascii);
 
   charset_iso_8859_1
-    = define_charset_internal (Qiso_8859_1 (), 1, b"\x00\xFF\0\0\0\0\0".as_ptr () as *const c_char,
+    = define_charset_internal (Qiso_8859_1 (), 1, b"\x00\xFF\0\0\0\0\0\0".as_ptr () as *const c_char,
 			       0, 255, -1, -1, -1, true, false, 0);
   PDUMPER_REMEMBER_SCALAR! (charset_iso_8859_1);
 
   charset_unicode
-    = define_charset_internal (Qunicode (), 3, b"\x00\xFF\x00\xFF\x00\x10\0".as_ptr () as *const c_char,
+    = define_charset_internal (Qunicode (), 3, b"\x00\xFF\x00\xFF\x00\x10\0\0".as_ptr () as *const c_char,
 			       0, MAX_UNICODE_CHAR as c_uint, -1, 0, -1, true, false, 0);
   PDUMPER_REMEMBER_SCALAR! (charset_unicode);
 
   charset_emacs
-    = define_charset_internal (Qemacs (), 3, b"\x00\xFF\x00\xFF\x00\x3F\0".as_ptr () as *const c_char,
+    = define_charset_internal (Qemacs (), 3, b"\x00\xFF\x00\xFF\x00\x3F\0\0".as_ptr () as *const c_char,
 			       0, MAX_5_BYTE_CHAR as c_uint, -1, 0, -1, true, true, 0);
   PDUMPER_REMEMBER_SCALAR! (charset_emacs);
 
   charset_eight_bit
-    = define_charset_internal (Qeight_bit (), 1, b"\x80\xFF\0\0\0\0\0".as_ptr () as *const c_char,
+    = define_charset_internal (Qeight_bit (), 1, b"\x80\xFF\0\0\0\0\0\0".as_ptr () as *const c_char,
 			       128, 255, -1, 0, -1, false, true,
 			       MAX_5_BYTE_CHAR + 1);
   PDUMPER_REMEMBER_SCALAR! (charset_eight_bit);
