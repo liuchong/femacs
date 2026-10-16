@@ -7485,7 +7485,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
   let old_frame: Lisp_Object = selected_frame;
   let f: *mut frame;
   let mut old_point: ptrdiff_t = -1;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   CHECK_WINDOW_CONFIGURATION (configuration);
 
@@ -7922,7 +7922,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
   Vminibuf_scroll_window = (*data).minibuf_scroll_window;
   minibuf_selected_window = (*data).minibuf_selected_window;
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   if !NILP (Vrun_hooks) && FUNCTIONP! (window_restore_killed_buffer_windows)
     { safe_calln! (window_restore_killed_buffer_windows,
