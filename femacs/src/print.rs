@@ -391,13 +391,13 @@ unsafe fn print_finish (pc: *mut print_context)
       if print_buffer.pos != print_buffer.pos_byte
 	  && NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	  let temp: *mut u8 = SAFE_ALLOCA! (sa_avail, print_buffer.pos + 1) as *mut u8;
 	  copy_text (print_buffer.buffer as *mut u8, temp,
 		     print_buffer.pos_byte, true, false);
 	  insert_1_both (temp as *mut c_char, print_buffer.pos,
 			 print_buffer.pos, false, true, false);
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
       else
 	{ insert_1_both (print_buffer.buffer, print_buffer.pos,
@@ -725,13 +725,13 @@ unsafe fn print_string_1 (mut string: Lisp_Object, printcharfun: Lisp_Object,
 
 	  /* Copy the string contents so that relocation of STRING by
 	     GC does not cause trouble.  */
-	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	  let buffer: *mut c_char = SAFE_ALLOCA! (sa_avail, nbytes) as *mut c_char;
 	  memcpy (buffer as *mut c_void, SDATA (string) as *const c_void, nbytes as usize);
 
 	  strout (buffer, chars, nbytes, printcharfun);
 
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	}
       else
 	/* No need to copy, since output to print_buffer can't GC.  */
@@ -1212,12 +1212,12 @@ pub unsafe extern "C" fn print_error_message (mut data: Lisp_Object, stream: Lis
     {
       let cname: Lisp_Object = SYMBOL_NAME (caller);
       let cnamelen: ptrdiff_t = SBYTES (cname);
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       let name: *mut c_char = SAFE_ALLOCA! (sa_avail, cnamelen) as *mut c_char;
       memcpy (name as *mut c_void, SDATA (cname) as *const c_void, cnamelen as usize);
       message_dolog (name, cnamelen, 0, STRING_MULTIBYTE (cname));
       message_dolog (c": ".as_ptr (), 2, 0, false);
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
 
   errname = Fcar (data);
@@ -1802,11 +1802,11 @@ unsafe fn print_pointer (printcharfun: Lisp_Object, buf: *mut c_char, prefix: *c
 unsafe fn print_bignum (obj: Lisp_Object, printcharfun: Lisp_Object)
 {
   let size: ptrdiff_t = bignum_bufsize (obj, 10);
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let str: *mut c_char = SAFE_ALLOCA! (sa_avail, size) as *mut c_char;
   let len: ptrdiff_t = bignum_to_c_string (str, size, obj, 10);
   strout (str, len, len, printcharfun);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 unsafe fn print_bool_vector (obj: Lisp_Object, printcharfun: Lisp_Object)
