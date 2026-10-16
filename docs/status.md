@@ -21343,3 +21343,14 @@
   ③ **验收（不变量）**：一行复现 **12/12 `exit`** ✓、三形状探针 **0 丢失** ✓（4.456 记 ✓）；本轮 `dump` 后的 `emacs` 与 `pdmp` 均为新构建 ✓。
   ④ **资源**：本轮 **4 次完整 `gate-fast`**（各 ~7.5 分钟 ✗ 代价偏高，已记入 P-125 ③ 的教训 ✓）+ 3 次单单元编译 + 2 次 `gate-load` + 2 次 `dump` ✓；受控执行器峰值 ≤ **439 MB** ✓（build 4096 MiB ✓）；`git -C emacs status --short` 为空 ✓；`/tmp/xt-cargo` 与临时输出已清理 ✓。提交：`femacs/src/process.rs`（仪器洁净化 ✓）、`docs/baseline/declarations-allowlist.tsv`（+1 行 ✓）、`PORTING.md`（P-125 ✓）、本提交 ✓。
   ⑤ **下一步（点名）**：⑴ `package-vc-tests` 的新 OOM（900 MiB 上限内 ✗；参照 45 例 0 unexpected ✓）——用更大上限或分段定位 ✓；⑵ `package-tests` 的 3 例 ✓；⑶ 用改好的装置重跑 `lisp/emacs-lisp` 整片刷新 L5 台账 ✓；⑷ 之后：`.elc` 族与其余生成物、兼容性、性能与平台冒烟 ✓。
+- **4.458 验证相第八十九轮：`package-tests` 与 `ert-tests` 转 same；`package-vc-tests` 的 OOM 定位到"共享路径"而非单个用例（2026-10-17）**：
+  ① **L5 读数（改口径 + 已生成产物 + 本轮修复后 ✓，默认选择器 + 900/1500 MiB 上限 ✓）**：
+  | 文件 | 本轮 | 修前 |
+  | --- | --- | --- |
+  | `lisp/emacs-lisp/package-tests.el` | **same=1** ✓（40 例 / 两侧各 0 unexpected ✓） | port-worse（3 unexpected ✗） |
+  | `lisp/emacs-lisp/ert-tests.el` | **same=1** ✓（73 例 / 两侧各 0 ✓） | "内存失控" ✗ |
+  | `lisp/emacs-lisp/package-vc-tests.el` | **crashed（OOM ✗）**：600 MiB 上限内 no summary ✗；参照 45 例 0 unexpected ✓、峰值 68 MiB ✓ | crashed（哨兵报错 ✗） |
+  ② **OOM 的分组定位** ✓（`--selector` 逐组 ✓，每组各跑两侧 ✓）：`post-conditions`（参照 9 例 ✓）、`upgrade`（36 ✓）、`require`（36 ✓）**三组都 OOM** ✗（端口 0 例出结果 ✗）⇒ 不是某一条用例，而是**共享路径**（fixture / `package-vc-install` 一类 ✓）里涨内存 ✓ ⇒ 下一步在该共享路径上做**逐用例 + 每步 conses 读数**（`spikes/` 的 profile 驱动 ✓）或直接查 `package-vc-install` 保留的数据 ✓。
+  ③ **一次外部终止（如实记）** ✗：本轮有一次隔离运行被 `Killed: 9`（executor 峰值仅 75 MB ✗ ⇒ 非本任务的限额 ✓）⇒ 宿主当时内存紧张（有其它作业在跑 ✓）；因此本轮所有读数都用**低上限**（600 MiB ✓）取，且只采信"两侧都跑到判决"的那几条 ✓。
+  ④ **资源**：本轮 **0 次源码改动、0 次编译** ✓（纯读数 ✓）；受控执行器 runtime 1200/2048 MiB（下调自默认 ✓）、峰值 ≤ **100 MB** ✓；`git -C emacs status --short` 为空 ✓；临时产物已清理 ✓。提交：本提交（纯读数 ✓）。
+  ⑤ **下一步（点名）**：⑴ 在 `package-vc-tests` 的共享路径上定位 OOM（逐用例 + conses/每步读数 ✓）；⑵ 用改好的装置重跑 `lisp/emacs-lisp` 整片刷新 L5 台账 ✓；⑶ 之后：`.elc` 族与其余生成物、兼容性、性能与平台冒烟 ✓。
