@@ -2509,8 +2509,16 @@ pub fn HASH_UNUSED_ENTRY_KEY () -> Lisp_Object { INVALID_LISP_VALUE () }
 
 #[inline(always)]
 pub fn INVALID_LISP_VALUE () -> Lisp_Object {
-    // The C constant is a tag value that no real object can have.
-    TAG_PTR (Lisp_Type::Lisp_Int1, std::ptr::null_mut ())
+    // C 2651: `make_lisp_ptr (NULL, Lisp_Float)` - Lisp_Float is 7 in *both* tag schemes
+    // (lisp.h 522), and 7 is not the encoding of any Lisp value: fixnums are `(v << 2) + 2`
+    // or `(v << 2) + 6` (lisp.h 506-511), so 7 is free.  The port had `Lisp_Int1`, i.e. 6,
+    // which is exactly the fixnum 1: measured 2026-10-16, `hash_unused_entry_key_p (1)`
+    // was therefore true, so every slot scan skipped the entry whose key was 1 -
+    // `(maphash ...)`/`#s(hash-table ...)` print the second entry on, read one past the used
+    // region into stale memory, and the byte compiler's `maphash` over a jump table lost its
+    // first case (which is what the `bytecomp.elc` difference and the `print_object` crash
+    // both came from).
+    TAG_PTR (Lisp_Type::Lisp_Float, std::ptr::null_mut ())
 }
 
 #[inline(always)]
