@@ -700,10 +700,15 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
 				new_rows as ptrdiff_t, INT_MAX as ptrdiff_t,
 				core::mem::size_of::<glyph_row> () as ptrdiff_t)
 	as *mut glyph_row;
-      std::ptr::write_bytes ((*matrix).rows.add (old_alloc as usize), 0,
+      /* C's `memset` counts *bytes*; `write_bytes` counts `glyph_row`s and multiplies by
+	 `size_of::<glyph_row> ()` itself, so the destination goes through a `u8` pointer and C's
+	 byte expression stays as it is (P-93's shape, which P-114 extends to the `memset` family).
+	 Handing the byte count to the row pointer wrote 256 times too much - the dump died at this
+	 statement with a 1,572,864-byte ASan report (docs/status.md 4.425/4.426).  */
+      std::ptr::write_bytes ((*matrix).rows.add (old_alloc as usize) as *mut u8, 0,
 			     ((*matrix).rows_allocated as c_int - old_alloc) as usize
 			     * core::mem::size_of::<glyph_row> ());
-      /* A diagnostic switch (PORTING.md P-114's shape): the two operands of the clear below and
+      /* A diagnostic switch (PORTING.md P-115's shape): the two operands of the clear below and
 	 the element size, so a size disagreement between this call site and the allocator is
 	 visible in one line.  Off unless the variable is set.  */
       if unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
@@ -5922,7 +5927,9 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 			     core::mem::size_of::<*mut row_entry> () as ptrdiff_t)
 	as *mut *mut row_entry;
       row_table_size = size;
-      std::ptr::write_bytes (row_table, 0,
+      /* C 5436: `memset (row_table, 0, size * sizeof *row_table)` - bytes, through a `u8`
+	 pointer (P-114).  */
+      std::ptr::write_bytes (row_table as *mut u8, 0,
 			     size as usize * core::mem::size_of::<*mut row_entry> ());
     }
 
