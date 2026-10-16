@@ -20889,3 +20889,10 @@
   ③ **读数**：**13 个单元、14 个系统名**（`open`/`fcntl`/`getdelim`/`getline`/`getgroups`/`mkostemp`/`stpcpy`/`strnlen`/`strtoimax`/`strtoll`/`gmtime_r`+`localtime_r`/`fchmodat`/`dup_cloexec`+`set_cloexec_flag` ✓）、**0 failure、0 遮蔽符号** ✓；对象构建约 5 秒 ✓。
   ④ **接线**：`gate-fast` 的 link 关卡之后新增 `== lib shadow gate ==` 一步（`python3 tools/check-libshadows.py` ✓）；**整轮 `gate-fast` 跑过：exit 0** ✓（7m31s ✓，含这一步 ✓）。
   ⑤ **欠账更新**：此项（P-86 的 13 单元）**收口** ✓；P-86 的其余部分（96 个"整身挂假条件"的文件族 ✓）仍是各自的文本门 + 翻臂读数 ✓，不属本项 ✓。
+
+- **4.394 验证相第二十六轮：P-98 的机器门**落地**（`tools/check-enum-transmutes.py` + 基线表 + 接进 `gate-fast`）（2026-10-16）**：
+  ① **为什么需要它**：P-98 裁定过"整数→无字段枚举的 `transmute` 不许接受非声明值"，并点名**同族站点没有机器门** ✗——而 Rust 的无字段枚举在声明判别值之外**没有任何合法值** ✓，一旦收到别的值就是 UB ✓，且编译期看不见 ✓。
+  ② **工具两半**：⑴ **覆盖**——全树每个 `transmute::<<整数>, T>` 站点都必须登记在 `docs/baseline/enum-transmutes.tsv`（键 = 文件/源类型/目标类型，带**站点计数** ✓）；新站点、消失的站点、计数变化都算失败 ✓，表里的陈旧行也算失败 ✓。⑵ **枚举本身**——每行记录目标枚举的判别值集合（从端口自己的镜像**解析** ✓），门每次**重新解析**：枚举被重新编号 ⇒ 失败 ✓（这正是让旧行的理由变假的情况 ✓）。
+  ③ **读数**：**9 个站点组 / 21 个站点** ✓（计数：`alloc` 1、`pdumper` 的 `Lisp_Type` 5 + `cold_op` 1 + `dump_fixup_type` 1 + `emacs_reloc_type` 5 = 12、`sysdep` 1、`w32dwrite` 1、`w32proc` 6 ✓）；其中 **P-98 类 14 个**（`Lisp_Type` 6 / `cold_op` 1 / `dump_fixup_type` 1 / `emacs_reloc_type` 5 / `DWRITE_PIXEL_GEOMETRY` 1 ✓），其余 7 个是**常量→函数指针**（`SIG_IGN`/`SIG_ERR`/`SIG_DFL` ✓，只做相等比较 ✓）——表里记 `-` 并写明理由 ✓（**不许**默默混进这一类 ✓）。`why` 列逐组给出理由，其中三处是**构造性守卫**：`emacs_reloc_type` 的 5 个站点各自坐在"与它转换的那个判别值相等"的 `match` 臂里 ✓、`pdumper` 的两个 `Lisp_Type` 站点落在 `RELOC_DUMP_TO_DUMP_LV <= r#type < RELOC_DUMP_TO_EMACS_LV` 的区间内 ✓、`alloc` 那处由 `pdumper_valid_object_type_p` 守卫 ✓。
+  ④ **自测**：`--selftest` 3/3（能发现站点 ✓ / 能解析判别值 ✓ / 能看见重新编号 ✓）；工具首版的两个缺陷在本轮修掉：单行枚举体解析不到 ✓、C 的**逐成员块注释**让 token 解析落空 ✓。
+  ⑤ **接线**：`gate-fast` 新增 `== enum transmute gate ==` ✓；整轮 **exit 0** ✓（新门与 4.393 的 lib shadow 门都在里面 ✓）。`PORTING.md` P-98 的"欠账，点名"已更新为"4.393 收口 + 门的位置" ✓。
