@@ -5372,12 +5372,12 @@ pub unsafe extern "C" fn syms_of_xfaces ()
   DEFSYM! (Qtty_color_alist, "tty-color-alist");
   DEFSYM! (Qtty_defined_color_alist, "tty-defined-color-alist");
 
-  DEFVAR_LISP_NOPRO! (c"face-alternative-font-family-alist", Vface_alternative_font_family_alist,
-    "Alist of alternative font families.\nEach element is of the form (FAMILY FAMILY1 FAMILY2 ...).\nIf fonts of FAMILY can't be loaded, try FAMILY1, then FAMILY2, ...  ");
+  /* C 7625-7628 has no `DEFVAR` for these two: they are only reset and protected, so no Lisp
+     variable is registered and `etc/DOC` carries no `V` record for either.  The two
+     `DEFVAR_LISP_NOPRO` calls that stood here were this port's invention (found by
+     `tools/gen-doc.py`, which read them as records the reference does not have).  */
   Vface_alternative_font_family_alist = Qnil ();
   staticpro (&raw const Vface_alternative_font_family_alist);
-  DEFVAR_LISP_NOPRO! (c"face-alternative-font-registry-alist", Vface_alternative_font_registry_alist,
-    "Alist of alternative font registries.\nEach element is of the form (REGISTRY REGISTRY1 REGISTRY2...).\nIf fonts of REGISTRY can't be loaded, try REGISTRY1, then REGISTRY2, ...  ");
   Vface_alternative_font_registry_alist = Qnil ();
   staticpro (&raw const Vface_alternative_font_registry_alist);
 
