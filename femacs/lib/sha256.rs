@@ -349,7 +349,9 @@ pub unsafe extern "C" fn sha256_process_block (buffer: *const c_void, len: usize
   macro_rules! S0 { ($x:expr) => { (rol! ($x, 25) ^ rol! ($x, 14) ^ (($x) >> 3)) } }
   macro_rules! S1 { ($x:expr) => { (rol! ($x, 15) ^ rol! ($x, 13) ^ (($x) >> 10)) } }
   macro_rules! SS0 { ($x:expr) => { (rol! ($x, 30) ^ rol! ($x, 19) ^ rol! ($x, 10)) } }
-  macro_rules! SS1 { ($x:expr) => { (rol! ($x, 26) ^ rol! ($x, 21) ^ (($x) >> 7)) } }
+  /* P-131: C's `SS1(x)` is `rol(x,26)^rol(x,21)^rol(x,7)` - the third term rotates, it does
+     not shift; the port's `>> 7` made every SHA-256 digest wrong, at every length.  */
+  macro_rules! SS1 { ($x:expr) => { (rol! ($x, 26) ^ rol! ($x, 21) ^ rol! ($x, 7)) } }
 
   /* C 325-327's `M(I)`: the comma operator's value is the stored word, and C's `tm` is
      the expansion's own local here (Rust macro hygiene; C assigns it before every read
