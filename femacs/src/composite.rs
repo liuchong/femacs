@@ -2202,7 +2202,7 @@ DEFUN! ("composition-sort-rules", Fcomposition_sort_rules,
        {
   let mut rules = rules;
   let mut nrules: ptrdiff_t = 0;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   CHECK_LIST (rules);
   nrules = list_length (rules);
@@ -2226,7 +2226,7 @@ DEFUN! ("composition-sort-rules", Fcomposition_sort_rules,
       qsort (sortvec as *mut c_void, nrules as usize,
 	     std::mem::size_of::<Lisp_Object> (), Some (compare_composition_rules));
       rules = Flist (nrules, sortvec);
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
 
   return rules;
