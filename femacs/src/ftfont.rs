@@ -1513,7 +1513,7 @@ unsafe fn get_adstyle_property (p: *mut FcPattern) -> Lisp_Object
       || matching_prefix (str_, end.offset_from (str_), c"Italic".as_ptr ())
     { return Qnil (); }
   /* C 171-172: the XLFD substitution comment (bug#70989).  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   tmp = SAFE_ALLOCA! (sa_avail, end.offset_from (str_)) as *mut c_char;
   /* C 175-180: `for (ptrdiff_t i = 0; i < end - str; i++)` with C's four-way character test.  */
   {
@@ -1529,7 +1529,7 @@ unsafe fn get_adstyle_property (p: *mut FcPattern) -> Lisp_Object
       }
   }
   let adstyle: Lisp_Object = font_intern_prop (tmp, end.offset_from (str_), true);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   if font_style_to_value (FONT_WIDTH_INDEX, adstyle, false) >= 0
     { return Qnil (); }
   adstyle
@@ -1931,7 +1931,7 @@ pub unsafe extern "C" fn ftfont_get_cache (f: *mut c_void) -> Lisp_Object
 unsafe fn ftfont_get_charset (registry: Lisp_Object) -> c_int
 {
   let str_: *mut c_char = SSDATA (SYMBOL_NAME (registry));
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let re: *mut c_char
     = SAFE_ALLOCA! (sa_avail, SBYTES (SYMBOL_NAME (registry)) * 2 + 1) as *mut c_char;
   let mut i: c_int;
@@ -1964,7 +1964,7 @@ unsafe fn ftfont_get_charset (registry: Lisp_Object) -> c_int
         { break; }
       i += 1;
     }
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   if (*fc_charset_table.as_ptr ().add (i as usize)).name.is_null ()
     { return -1; }
   if (*fc_charset_table.as_ptr ().add (i as usize)).fc_charset.is_null ()
