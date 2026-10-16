@@ -703,6 +703,15 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
       std::ptr::write_bytes ((*matrix).rows.add (old_alloc as usize), 0,
 			     ((*matrix).rows_allocated as c_int - old_alloc) as usize
 			     * core::mem::size_of::<glyph_row> ());
+      /* A diagnostic switch (PORTING.md P-114's shape): the two operands of the clear below and
+	 the element size, so a size disagreement between this call site and the allocator is
+	 visible in one line.  Off unless the variable is set.  */
+      if unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
+	{
+	  fprintf (stderr, c"adjust_glyph_matrix: sizeof(glyph_row)=%d old_alloc=%d rows_allocated=%d dim.height=%d\n".as_ptr (),
+		   core::mem::size_of::<glyph_row> () as c_int, old_alloc,
+		   (*matrix).rows_allocated as c_int, dim.height);
+	}
     }
   else
     { new_rows = 0; }
