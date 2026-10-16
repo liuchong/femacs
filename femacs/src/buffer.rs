@@ -208,7 +208,8 @@ macro_rules! PER_BUFFER_SYMBOL {
 // 		    min (PTRDIFF_MAX, SIZE_MAX) / word_size))`
 #[macro_export]
 macro_rules! OVERLAY_COUNT_MAX {
-  () => { (MOST_POSITIVE_FIXNUM.min ((PTRDIFF_MAX.min (SIZE_MAX as isize)) / word_size)) };
+  () => { (MOST_POSITIVE_FIXNUM as usize).min (min (PTRDIFF_MAX as usize, SIZE_MAX)  /* P-127 */
+					  / word_size as usize) as isize };
 }
 
 /* Flags indicating which built-in buffer-local variables
