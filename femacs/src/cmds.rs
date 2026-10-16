@@ -437,7 +437,7 @@ unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
     }
   else if n > 1
     {
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       /* C declares `char *strn, *p;` and lets SAFE_NALLOCA fill `strn`; the port's macro
 	 reads the pointee's size from the binding, so it starts null (the callint.rs shape).  */
       let mut strn: *mut c_char = std::ptr::null_mut ();
@@ -450,7 +450,7 @@ unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
 	  p = p.add (len as usize);
 	}
       insert_and_inherit (strn, p.offset_from (strn));
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
   else if n > 0
     { insert_and_inherit (str_.as_ptr () as *const c_char, len as ptrdiff_t); }
