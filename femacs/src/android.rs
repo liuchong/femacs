@@ -7746,7 +7746,7 @@ pub unsafe extern "C" fn android_build_string (text: Lisp_Object, mut ap: ...) -
   let mut characters: *mut jchar;                                      // C 6027
   let mut object: jobject;                                             // C 6029
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 6031
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                                // C 6031
 
   /* C leaves the five locals uninitialised (PORTING.md 1.5).  */
   encoded = Qnil ();
@@ -7776,7 +7776,7 @@ pub unsafe extern "C" fn android_build_string (text: Lisp_Object, mut ap: ...) -
       if ((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) != 0   // C 6049
 	{ break 'error; }                                             // C 6050
 
-      SAFE_FREE! (sa_count);                                          // C 6052
+      SAFE_FREE! (sa_count, sa_mark);                                          // C 6052
       return string;                                                  // C 6053
     }
 
@@ -7800,7 +7800,7 @@ pub unsafe extern "C" fn android_build_string (text: Lisp_Object, mut ap: ...) -
   if ((*(*android_java_env)).ExceptionCheck.unwrap ()) (android_java_env) != 0   // C 6072
     { break 'error; }                                                 // C 6073
 
-  SAFE_FREE! (sa_count);                                              // C 6075
+  SAFE_FREE! (sa_count, sa_mark);                                              // C 6075
   return string;                                                      // C 6076
   }
 
