@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import resource
 import subprocess
 import sys
 import time
@@ -73,6 +74,11 @@ def main() -> int:
     ap.add_argument("--timeout", type=int, default=300)
     ap.add_argument("--limit", type=int, default=40, help="max detail lines to print")
     ap.add_argument("--tsv")
+    ap.add_argument("--max-files", type=int, default=0,
+                    help="stop after this many files (chunked sweeps, so one heavy file cannot "
+                         "cut a long run short); pair with --start-at to resume")
+    ap.add_argument("--start-at", type=int, default=0,
+                    help="skip this many files (resume a chunked sweep)")
     ap.add_argument("--retries", type=int, default=1,
                     help="re-run a crashed file this many times before calling it a defect; a "
                          "file that passes on a retry is reported as flaky, because the port's "
@@ -94,6 +100,11 @@ def main() -> int:
 
     rows: list[tuple[str, str, int, int, int, int, str]] = []
     started = time.time()
+    high_water = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss   # KiB on Darwin
+    if a.start_at:
+        files = files[a.start_at:]
+    if a.max_files:
+        files = files[:a.max_files]
     for i, rel in enumerate(files, 1):
         v1, r1, e1, u1, n1 = run(a.port_prog, PORT_TEST, rel, a.timeout)
         retried = False
@@ -117,8 +128,14 @@ def main() -> int:
             verdict, note = "port-better", f"{u1} unexpected vs {u2}"
         else:
             verdict, note = "both-fail", f"both {u1} unexpected"
+        # The sweep's own memory: a run that lifts the children high-water mark is the one to
+        # look at, and the executor's budget kills the whole sweep otherwise (status 4.427).
+        now = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        if now > high_water:
+            high_water = now
+            note = (note + " " if note else "") + f"new RSS high-water {now // (1024 * 1024)} MiB"
         rows.append((rel, verdict, r1, u1, r2, u2, note))
-        if i % 25 == 0:
+        if i % 10 == 0:
             print(f"  … {i}/{len(files)} ({time.time() - started:.0f}s)", file=sys.stderr)
 
     tally: dict[str, int] = {}
