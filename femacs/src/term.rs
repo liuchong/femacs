@@ -3143,7 +3143,7 @@ DEFUN! ("tty--set-output-buffer-size", Ftty__set_output_buffer_size,
        doc: "Set the output buffer size for a TTY.\n\nSIZE zero means use the system's default value.  If SIZE is\nnon-zero, this also avoids flushing the output stream.\n\nTTY may be a terminal object, a frame, or nil (meaning the selected\nframe's terminal).\n\nThis function temporarily suspends and resumes the terminal\ndevice.",
        (size: Lisp_Object, tty: Lisp_Object),
        {
-  if ! RANGED_FIXNUMP (0, size, std::cmp::min (PTRDIFF_MAX, SIZE_MAX as isize))
+  if ! RANGED_FIXNUMP (0, size, std::cmp::min (PTRDIFF_MAX as usize, SIZE_MAX) as isize  /* P-127 */)
     { error (c"Invalid output buffer size".as_ptr ()); }
   Fsuspend_tty (tty);
   let terminal: *mut terminal = decode_tty_terminal (tty);
