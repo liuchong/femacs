@@ -4826,8 +4826,12 @@ pub unsafe extern "C" fn larger_vector (vec: Lisp_Object, incr_min: ptrdiff_t,
   let mut incr_max: ptrdiff_t;
   let old_size: ptrdiff_t;
   let mut new_size: ptrdiff_t;
-  let C_language_max: ptrdiff_t = min (PTRDIFF_MAX, SIZE_MAX as ptrdiff_t)
-    / std::mem::size_of::<Lisp_Object> () as ptrdiff_t;
+  /* P-127: C's `min (PTRDIFF_MAX, SIZE_MAX)` is compared in the ternary's common type, which is
+     `size_t` here, so C's value is PTRDIFF_MAX; casting SIZE_MAX down to `ptrdiff_t` first wraps
+     to -1, which made this 0 and reported memory exhaustion on a legitimate vector growth.  */
+  let C_language_max: ptrdiff_t = (min (PTRDIFF_MAX as usize, SIZE_MAX)
+				   / std::mem::size_of::<Lisp_Object> () as usize)
+    as ptrdiff_t;
   let n_max: ptrdiff_t = if 0 <= nitems_max && nitems_max < C_language_max
     { nitems_max } else { C_language_max };
   eassert! (VECTORP (vec));
