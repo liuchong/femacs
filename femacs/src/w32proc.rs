@@ -7295,7 +7295,7 @@ pub unsafe extern "C" fn w32_compare_strings (s1: *const c_char, s2: *const c_ch
   static mut pCompareStringW: CompareStringW_Proc = None;            // C 4663
   let mut flags: DWORD = 0;                                          // C 4664
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                             // C 4666
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                             // C 4666
 
   /* The LCID machinery doesn't seem to support the "C" locale, so we
      need to do that by hand.  */
@@ -7353,7 +7353,7 @@ pub unsafe extern "C" fn w32_compare_strings (s1: *const c_char, s2: *const c_ch
     }
   else
     {
-      SAFE_FREE! (sa_count);                                         // C 4718
+      SAFE_FREE! (sa_count, sa_mark);                                         // C 4718
       *errno () = EINVAL;                                            // C 4719
       return _NLSCMPERROR;                                           // C 4720
     }
@@ -7388,7 +7388,7 @@ pub unsafe extern "C" fn w32_compare_strings (s1: *const c_char, s2: *const c_ch
   if !NILP (Vw32_collate_ignore_punctuation)                         // C 4750
     { flags |= NORM_IGNORESYMBOLS; }                                 // C 4751
   val = pCompareStringW.unwrap () (lcid, flags, string1_w, -1, string2_w, -1);   // C 4752
-  SAFE_FREE! (sa_count);                                             // C 4753
+  SAFE_FREE! (sa_count, sa_mark);                                             // C 4753
   if val == 0                                                        // C 4754
     {
       *errno () = EINVAL;                                            // C 4756
