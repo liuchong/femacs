@@ -48,6 +48,7 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 8. **非 C 原生代码用新技术**：`src/*.m` → **Swift**（不用 Objective-C）、`java/**` → Kotlin、`src/haiku_*.cc` → 现代 C++、汇编照旧；**能用 Rust 就用 Rust**。
 9. **不混合链接**：不做 C/Rust 混编的中间态二进制，不做 shim/适配层；构建脚手架（autotools、`Makefile.in`、`configure.ac`）不移植，由 Cargo workspace + `femacs/xtask` 取代。
 10. **产品名与版本声明**：端口自己的文档、注释、提交信息里**不写参照的产品名**（法律风险），一律写"参照 / the reference"；这道门是 `tools/check-own-voice.py`。
+11. **实验纪律**：任何"修法实验"先在 `PORTING.md` 立项（P-1xx）再动手；被否证的版本**连同它带来的白名单/基线/工具改动一并回退**（还原见 §4），回退后**四门复绿**才允许继续推进（P-118）。
 
 ## 2 工具与语言政策（P-102）
 
@@ -61,6 +62,9 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 - 产物用独立目录（`CARGO_TARGET_DIR=/tmp/...` 或仓库内 `build/`），**及时清理**（`build/`、`femacs/target/` 是生成物，可重建）。
 - **不要乱扫文件、不要全盘扫描**：只读与当前任务相关的目录/文件。
 - **不要起大内存任务**：统计/比对脚本必须流式、分文件、有界；历史上一个 Python 脚本吃光内存导致工作进程被中断。
+- **受控执行器是唯一入口**：一切编译、链接、测试、解释器与行为未知的程序都经
+  `python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile build|runtime -- sh -c '…'`；
+  超限就**缩小范围**，**不许加额、不许绕开监控**（P-118）。
 - 规模口径固定：`cloc --quiet femacs`（**不要**量整仓库，`build/` 下生成的 `.rs` 会让数字乱跳）。
 - **环境会清产物**：`build/femacs/*.o` 与 `build/emacs-ref/lib/libgnu.a` 常被环境清空 ⇒ 任何 relink 前都要先全量重编 680 单元（约 10 分钟）；`libgnu.a` 可 `make -C build/emacs-ref/lib libgnu.a` 单独 4 秒重建。**需要 relink 的探针**（插桩、诊断打印等）**要折进已经要重建的那一轮**，不为它单开一轮。
 
@@ -69,6 +73,7 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 - **提交必须签名**（`git commit -S`；提交信息写进文件，不用 heredoc/引号）。无法签名就**停下报告**，不许绕过。
 - **每个文件一次提交**（`port(NAME): …` / `tools: …` / `docs(status): …`），并**及时推送** `origin/master`。
 - **禁止破坏性 git**：`stash`、`reset`、`checkout --`、`rebase`、`push --force`、`amend`。
+- **还原文件的唯一姿势**：`git show HEAD:<路径> > <路径>`；`git checkout --` 在禁止列表里（历史上犯过一次）。
 - 提交内容里**不许出现绝对路径**、不许提交 secrets；保留无关 WIP 与真实作者。
 
 ## 5 汇报纪律
@@ -81,6 +86,7 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 
 - 转写清单 **590/590 完成**（`extract-abi.py --all` = 590 done / 0 WIP / 0 failing）；当前处**行为级验收**相，DoD 见 `docs/goal.md` §10。
 - **优先推进覆盖与代码量**：先把覆盖率推到 100% 阶段完成，之后才集中做问题修复、整合构建与全面验收；**不要做无谓评审、不要过早精修**。
+- **复刻期与 C 严格同形**：文件名/结构/命名/行序都照参照；要不要"更 Rust"地调整，留到全部重写完成后的**全面验收阶段**再判断，之前**不许顺手改好**（P-118）。
 - 验收以**测试与机器门的实际读数**为准（`gate-fast`、`gate-load`、L0–L5、ERT、逐字节比对），不以人工审查代替。
 - 剩余欠账与最近读数：读 `docs/status.md` 末轮记录（`.elc` 全族、2 个 `emacsver`、4 个 cedet 生成物、56 个选择性改名的登记、L4/L5、性能、平台冒烟）。
 
