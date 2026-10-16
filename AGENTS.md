@@ -3,6 +3,7 @@
 > 本文件是**常驻规则的唯一落点**，开工前先读（含上下文被压缩或换执行者之后）。
 > 它只写**不可协商的约束 + 指向权威文档的指针**，细节不复述；冲突时**以权威文档为准**，
 > 并在同一轮修回本文件（裁定见 `PORTING.md` P-103）。
+> 规则变更：只改本文件，并在 `PORTING.md` 记一条裁定（P-1xx）、在 `docs/status.md` 记一轮读数。
 
 ## 0 权威文档与开工自检
 
@@ -23,6 +24,14 @@ git status --short && git log --oneline -5
 python3 tools/extract-abi.py --all          # 覆盖清单：必须 0 failing
 git -C emacs status --short                 # 参照树只读：必须为空
 ```
+
+常用调用（唯一入口；`<cmd>` ∈ `gen-config | layout-asserts | layout-check | build-tu <c-file> | gate-fast | gate-probes | dead-arms | gate-load | link-program <c-file> | gate-full`）：
+
+```sh
+cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
+```
+
+参照程序：状态相消对照用**无 dump** 的 `build/emacs-ref/src/temacs`；带 dump 的是 `build/emacs-ref/src/emacs`。
 
 参照基线：`emacs/` 检出 `fd7afced403`，**只读**、git 忽略。
 
@@ -53,6 +62,7 @@ git -C emacs status --short                 # 参照树只读：必须为空
 - **不要乱扫文件、不要全盘扫描**：只读与当前任务相关的目录/文件。
 - **不要起大内存任务**：统计/比对脚本必须流式、分文件、有界；历史上一个 Python 脚本吃光内存导致工作进程被中断。
 - 规模口径固定：`cloc --quiet femacs`（**不要**量整仓库，`build/` 下生成的 `.rs` 会让数字乱跳）。
+- **环境会清产物**：`build/femacs/*.o` 与 `build/emacs-ref/lib/libgnu.a` 常被环境清空 ⇒ 任何 relink 前都要先全量重编 680 单元（约 10 分钟）；`libgnu.a` 可 `make -C build/emacs-ref/lib libgnu.a` 单独 4 秒重建。**需要 relink 的探针**（插桩、诊断打印等）**要折进已经要重建的那一轮**，不为它单开一轮。
 
 ## 4 git 纪律
 
