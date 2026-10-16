@@ -20807,3 +20807,9 @@
   ③ **读数**：`func-arity` 五类对象（subr、解释型 lambda、词法闭包、byte-code、`make-byte-code`）**与参照逐条一致** ✓；L1 worklist（`tools/l1-worklist.sh femacs/lisp/emacs-lisp`）错误数 **51 → 0** ✓，但**阻断点前移**：现在 8 个 `.elc` 之后在第 9 个文件 **panic（SIGABRT）** ✗，UB 检查点名的位置是 **`print` 单元里 `eassume! (0 <= nbytes)`（`STRING_BYTES`）** ⇒ 有一个**字节长度为负的"字符串"**被处理（下一个待查缺陷，点名 ✓）。
   ④ **附注**：`build/femacs/*.o` 在本轮开始前被外部清理过一次（只剩单件）⇒ 做了**一次完整重建**（`gate-fast`，8m02s ✓）并重新链接；`gate-fast` **exit 0** ✓（含 link 关卡 ✓）。`build/emacs-ref/lib/libgnu.a` 同前几轮一样会被清掉，重建命令 `make -C build/emacs-ref/lib libgnu.a`（≈4 秒）。
   ⑤ **未声称**：L1 未达成（`.elc` 全族未编完、未与参照逐字节比对）；第 9 个文件的那处 panic 未定位到具体对象来源。
+
+- **4.385 验证相第十七轮：L1 崩溃的复现与定位（会话内序列触发、`print_circle_candidate_p` 的错位读取）（2026-10-16）**：
+  ① **复现**：把 worklist 的文件收窄到**字母序前 12 个**，一次会话内 12 发 `batch-byte-compile` ⇒ **exit 134、9 个文件后 panic**（`lisp/emacs-lisp` 目录、正在编 `bytecomp.el` 的 `byte-compile-variadic-numeric` ✓）；单发编 `bytecomp.el`（无论有没有前 8 个 `.elc`）**都不崩** ✓ ⇒ 触发条件是**同一会话内的前序状态**，与"加载了刚写出的 `.elc`"无关（后者本轮实测排除 ✓）。
+  ② **定位到函数**（lldb，`bt`）：`temacs\`print::print_circle_candidate_p + 2508` 的一次 `ldr w8, [x8]` ✗；另一次同根现象是 panic 点在 `include/lisp.rs:975/978`（`STRING_BYTES` 的 `(*s).u.s.size_byte` 与 `eassume!(0 <= nbytes)`）✓——那次被当作指针/结构的地址里是**文本字节**（`…0x74 't', 0x65 'e', 0x53 'S', 0x74 't'…` ✓）⇒ **有一个类型错的 Lisp 对象在会话里流动** ✓，print 的两处只是最先踩到它 ✓。
+  ③ **排除**：`print_circle_candidate_p` 与 `print_preprocess` 的端口文本与 C **逐行一致** ✓（不是它俩的逻辑错 ✗）；`func-arity` 修复后的 L1 读数仍成立（错误 51 → 0 ✓）。
+  ④ **下一步（点名）**：在**同一会话**里做**序列二分**（最小文件序列）⇒ 找出"哪一步产生了坏对象"（先看它是否与 `.elc` 的写出/读取无关 ✓，再看 `byte-run.el`/`byte-opt.el` 的内联宏展开路径 ✓）；本轮生成的 `.elc` 已在收尾时清掉（L1 全族重跑时再生成 ✓）。
