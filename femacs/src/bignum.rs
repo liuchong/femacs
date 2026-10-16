@@ -425,11 +425,11 @@ pub unsafe extern "C" fn mpz_get_d_rounded (num: *const __mpz_struct) -> c_doubl
       && size <= DBL_DIG as ptrdiff_t + 2
     { return mpz_get_d (num); }
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let buf = SAFE_ALLOCA! (sa_avail, size as usize) as *mut c_char;
   mpz_get_str (buf, 10, num);
   let result: c_double = strtod (buf, std::ptr::null_mut ());
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 }
 
@@ -455,11 +455,11 @@ pub unsafe extern "C" fn bignum_to_c_string (buf: *mut c_char, size: ptrdiff_t,
 pub unsafe extern "C" fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object
 {
   let size: ptrdiff_t = bignum_bufsize (num, base.abs ());
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let str_ = SAFE_ALLOCA! (sa_avail, size as usize) as *mut c_char;
   let len: ptrdiff_t = bignum_to_c_string (str_, size, num, base);
   let result: Lisp_Object = make_unibyte_string (str_, len);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 }
 
