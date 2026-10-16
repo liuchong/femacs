@@ -20990,3 +20990,13 @@
   ③ **口径**：这格里"参照树副本"是被**参照自己的 checkout 设置**塑造的产物 ⇒ 端口要复现它，就必须带上等价的 checkout 层设置 ✓——这是**脚手架**层面的等价，不是抄参照的程序（`check-own-voice` 口径不受影响 ✓）。
   ④ **下一步（点名）**：⑴ 写 `tools/gen-elc.py`（P-102 政策下的 Python 工具 ✓）驱动端口的 `batch-byte-compile` 生成 **`.elc` 全族**并逐字节比对（现在编译器输出已被证明正确 ✓，预期差异聚到极少数文件 ✓）；⑵ 4.403 ⑧⑶ 的"哨兵/标记常量"复查（`INVALID_LISP_VALUE`、`Qunbound`、`make_lisp_ptr` 家族 ✓）与一条文本门 ✓；⑶ 弱表语义、unidata/loaddefs、L5、性能、平台冒烟 ✓。
   ⑤ **资源 / 提交**：本轮一次单文件字节编译（约 1 分钟 ✓，无全量编译 ✓）；`63419391`（`femacs/.dir-locals.el` ✓）+ 本提交 ✓，均已推送 ✓；`git -C emacs status --short` 为空 ✓。
+- **4.405 验证相第三十七轮：`.elc` 全族首次读数（`lisp/emacs-lisp`）97/111 逐字节一致，并分出差异的两类（2026-10-16）**：
+  ① **新工具 `tools/gen-elc.py`**（P-102 政策下的 Python 工具 ✓）：照参照 `lisp/Makefile` 的调用形状驱动**端口自己的程序**（`-Q --batch --no-site-file --no-site-lisp --eval (setq load-prefer-newer t) -f batch-byte-compile <分块文件>` ✓），一次进程启动摊到一批文件（每块默认 40 ✓），作用域必须显式给（目录或 glob ✓，不做全盘扫描 ✓）。
+  ② **判据三档 + 记账**：`identical` / `rewrite-only` / `DIFFERENT` / `missing` ✓；其中 `rewrite-only` = 把 `check-generated.py` 的"改名记账"搬到字节层 ✓（0.1-19 要求端口写自己的名字 ✓，而名字长度会移动 `#@<n>` 文档串偏移与 `#$ . <n>` 共享串偏移 ⇒ 两侧都把这些偏移**掩码**后再比 ✓；掩码的风险有界：偏移只因它指向的字符串字节不同而变 ✓ 那些字节仍会显现 ✓）。
+  ③ **首次读数（`lisp/emacs-lisp`，111 个 `.el` 且参照都有 `.elc`）**：**97 identical / 1 rewrite-only / 13 DIFFERENT / 0 missing** ✓；且**整轮跑完没崩** ✓（这正是上一轮 `INVALID_LISP_VALUE` 修复买来的 ✓）。
+  ④ **13 件差异（逐个看过首差）分两类**：
+     - **已被记账解释**：`generate-lisp-file.elc`（只差 `(#$ . 1491)` vs `(#$ . 1494)` ✓——改名长度 −3 导致 ✓，掩码后归零 ✓）。
+     - **真差异（各自的签名）**：⑴ `pcase.elc`/`cl-extra.elc`/`cl-generic.elc` 都是**同一处**——`(eval-after-load 'find-func #[0 "…" …])` 里那个 lambda 的**字节码不同** ✓（端口 `\300\301\302\"\207` + 常量 `[add-to-list find-function-regexp …]` vs 参照 `\301\010\235\203\010\000\010\207…` + `[find-function-regexp …]` ✓）——**编译期状态/顺序**的味道很重 ✓；⑵ `nadvice.elc` 只差 **gensym 计数**（`(fn V1393)` vs `(fn V1456)` ✓）；⑶ `elisp-scope.elc` 差**未驻留符号的打印**（端口 `#1=#:` vs 参照 `#1=#:done29` ✓ ⇒ `print-circle` 打开时端口**丢了名字** ✓）；⑷ `cl-macs.elc` 差一处**符号列表**（`bindat--macroenv …` vs `cl--active-block-names …` ✓）；⑸ 其余（`checkdoc`/`eieio`/`find-func`/`map`/`multisession`/`package`/`timer` ✓）各差几字节。
+  ⑤ **对⑷⑴ 的下一步（点名）**：**按参照自己的顺序编译** —— 参照的 `lisp/Makefile` 有 `compile-first`（`byte-run`/`backquote`/`macroexp`/…）+ `compile-main` ✓，而我这次是**排序分块**跑的 ✗ ⇒ 依赖"先前已加载的文件"的编译（`eval-after-load`、宏定义、`cl-*` 的展开 ✓）会与参照不同 ✓。改法：工具从**参照的 `lisp/Makefile.in`（只读 ✓，端口树里已按 P-102 丢弃 ✓）**读出 `COMPILE_FIRST` 与目录顺序 ✓，照序编译 ✓，再比 ✓。
+  ⑥ **另两件小事（点名）**：⑴ `print-circle` 下未驻留符号的打印（`#:<name>` ✓）小复现：`(let ((print-circle t)) (prin1 (list (make-symbol "x"))))` ✓；⑵ 13 件里若有"只差 `#$`/`#@` 偏移"的，掩码已覆盖 ✓，其余按 ④ 的签名逐条查 ✓。
+  ⑦ **未声称 / 资源**：本轮**未改端口代码**（只加工具 ✓）；编译发生在**端口树内**（`.elc` 是生成物、`.gitignore` 已含 `*.elc` ✓），**参照树一字未动** ✓；跑的是 `lisp/emacs-lisp` 一个目录（111 文件、3 次进程启动 ✓），**没有全盘编译** ✓。**提交**：`5781828a`（工具 ✓）+ 本提交 ✓。
