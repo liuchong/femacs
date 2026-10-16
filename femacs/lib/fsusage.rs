@@ -77,7 +77,11 @@ macro_rules! EXTRACT_TOP_BIT {
 /* C 73's `#define PROPAGATE_TOP_BIT(x)`.  */
 macro_rules! PROPAGATE_TOP_BIT {
   ($x:expr) => {
-    (($x) as u64 | ! (EXTRACT_TOP_BIT! ($x) - 1))
+    /* C 73: `((x) | ~ (EXTRACT_TOP_BIT (x) - 1))`.  With the top bit clear,
+       `EXTRACT_TOP_BIT (x)` is 0, so `0 - 1` is *unsigned wraparound* to all ones and the `~`
+       gives 0 - the value C wants (PORTING.md P-96).  Rust's checked subtraction panicked here
+       (`package-vc-tests` died on it: status 4.428).  */
+    (($x) as u64 | ! (EXTRACT_TOP_BIT! ($x).wrapping_sub (1)))
   };
 }
 
