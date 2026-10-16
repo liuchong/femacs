@@ -68,6 +68,7 @@ fn main() {
         "dead-arms" => dead_arms(),
         "gate-load" => gate_load(args.get(1).map(String::as_str)),
         "link-program" => link_program(args.get(1)),
+        "dump" => dump_emacs(),
         "gate-full" => {
             eprintln!(
                 "gate-full needs the reference configured, built and its ERT suite \
@@ -79,7 +80,8 @@ fn main() {
         _ => {
             println!(
                 "usage: xtask <gen-config|layout-asserts|layout-check|build-tu <c-file>|\
-                 gate-fast|gate-probes|dead-arms|gate-load [--report]|gate-full>"
+                 gate-fast|gate-probes|dead-arms|gate-load [--report]|link-program <c-file>|\
+                 dump|gate-full>"
             );
             0
         }
@@ -1635,6 +1637,54 @@ fn link_program(rel: Option<&String>) -> i32 {
         println!("  {line}");
     }
     fail(format!("the link of {rel} failed"))
+}
+
+/// The reference's dump chain, in `src/Makefile` order.
+///
+/// `emacs$(EXEEXT)` (Makefile 630-636) is a copy of the linked program - `rm -f $@ && cp -f
+/// temacs$(EXEEXT) $@` - and `$(pdmp)` (651-655) then runs that program from the `src`
+/// directory: `LC_ALL=C $(RUN_TEMACS) -batch $(BUILD_DETAILS) -l loadup --temacs=pdump
+/// --bin-dest '$(BIN_DESTDIR)' --eln-dest '$(ELN_DESTDIR)'`, followed by `cp -f $@
+/// $(bootstrap_pdmp)` where `bootstrap_pdmp` is `bootstrap-emacs.pdmp` for `DUMPING=pdumper`
+/// (404).  The frozen configuration's `BIN_DESTDIR`/`ELN_DESTDIR` are `not-set` and
+/// `BUILD_DETAILS` is empty, so the command line below is the reference's own, verbatim.
+///
+/// Without the copy the dump cannot finish: loadup's last step names the dumped program
+/// `emacs-<version>.<build-number>` with `add-name-to-file`, which needs the file the
+/// Makefile rule creates (measured 2026-10-16: the dump itself completed and the naming step
+/// failed with `file-missing`).
+fn dump_emacs() -> i32 {
+    let src = Path::new("../build/port/src");
+    let temacs = src.join("temacs");
+    if !temacs.is_file() {
+        return fail("build/port/src/temacs is missing; `xtask gate-load` links it");
+    }
+    let emacs = src.join("emacs");
+    let _ = fs::remove_file(&emacs);
+    if let Err(e) = fs::copy(&temacs, &emacs) {
+        return fail(format!("cp -f temacs emacs: {e}"));
+    }
+    let status = Command::new("./temacs")
+        .args(["-batch", "-l", "loadup", "--temacs=pdump",
+               "--bin-dest", "not-set", "--eln-dest", "not-set"])
+        .current_dir(src)
+        .env("LC_ALL", "C")
+        .status();
+    match status {
+        Ok(s) if s.success() => {}
+        Ok(s) => return fail(format!("the dump program exited with {s}")),
+        Err(e) => return fail(format!("running ./temacs: {e}")),
+    }
+    let pdmp = src.join("emacs.pdmp");
+    let bootstrap = src.join("bootstrap-emacs.pdmp");
+    if let Err(e) = fs::copy(&pdmp, &bootstrap) {
+        return fail(format!("cp -f emacs.pdmp bootstrap-emacs.pdmp: {e}"));
+    }
+    match fs::metadata(&pdmp) {
+        Ok(m) => println!("dumped {} ({} bytes)", pdmp.display(), m.len()),
+        Err(e) => return fail(format!("emacs.pdmp: {e}")),
+    }
+    0
 }
 
 fn gate_load(arg: Option<&str>) -> i32 {
