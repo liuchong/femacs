@@ -260,7 +260,7 @@ unsafe fn create_lock_file (lfname: *mut c_char, lock_info_str: *mut c_char, for
       static nonce_base: [u8; 15] = *b".#-emacsXXXXXX\0";
       let last_slash: *mut c_char = strrchr (lfname, b'/' as c_int);
       let lfdirlen: ptrdiff_t = last_slash.offset (1) as ptrdiff_t - lfname as ptrdiff_t;
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       let nonce: *mut c_char
 	= SAFE_ALLOCA! (sa_avail, lfdirlen + std::mem::size_of_val (&nonce_base) as ptrdiff_t)
 	  as *mut c_char;
@@ -295,7 +295,7 @@ unsafe fn create_lock_file (lfname: *mut c_char, lock_info_str: *mut c_char, for
 	    { emacs_unlink (nonce); }
 	}
 
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
 
   return err;
