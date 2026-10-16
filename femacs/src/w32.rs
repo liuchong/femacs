@@ -13711,7 +13711,7 @@ pub unsafe extern "C" fn sys_write (fd: c_int, mut buffer: *const c_void, mut co
 
   /* C leaves `nchars` uninitialised (PORTING.md 1.5).  */
   nchars = 0;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 9356 (the mirror's macro)
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                                // C 9356 (the mirror's macro)
 
   if fd < 0                                                             // C 9358
     {                                                                   // C 9359
@@ -13949,7 +13949,7 @@ pub unsafe extern "C" fn sys_write (fd: c_int, mut buffer: *const c_void, mut co
 	}                                                                      // C 9568
     }                                                                   // C 9569
 
-  SAFE_FREE! (sa_count);                                                // C 9571 (the mirror's macro)
+  SAFE_FREE! (sa_count, sa_mark);                                                // C 9571 (the mirror's macro)
   return nchars;                                                        // C 9572
 }                                                                       // C 9573
 
