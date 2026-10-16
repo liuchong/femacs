@@ -200,8 +200,8 @@ macro_rules! ISWORD { ($c:expr) => { (BUFFER_SYNTAX! ($c) == Sword) as c_int }; 
 pub static mut emacs_re_safe_alloca: ptrdiff_t = MAX_ALLOCA;
 /* Like USE_SAFE_ALLOCA, but use emacs_re_safe_alloca.  */
 macro_rules! REGEX_USE_SAFE_ALLOCA {
-  ($sa_avail:ident, $sa_count:ident) => {
-    USE_SAFE_ALLOCA! ($sa_avail, $sa_count);
+  ($sa_avail:ident, $sa_count:ident, $sa_mark:ident) => {
+    USE_SAFE_ALLOCA! ($sa_avail, $sa_count, $sa_mark);
     $sa_avail = emacs_re_safe_alloca;
   };
 }
@@ -4463,6 +4463,9 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
   // `INIT_FAIL_STACK ()` below are C 4181-4183).
   let mut sa_avail: ptrdiff_t = MAX_ALLOCA;
   let sa_count: specpdl_ref = SPECPDL_INDEX ();
+  /* The port's third name (PORTING.md P-05/P-117 ⑧): this function captures the pool's height
+     the way `USE_SAFE_ALLOCA!` does, so `SAFE_FREE!` below releases the scope's own requests.  */
+  let sa_mark: usize = unsafe { sa_stack_mark () };
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   /* Failure-stack and matching macros (C 911-1160, 3658-3681): every one of them names a
@@ -4560,7 +4563,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
         if GROW_FAIL_STACK! (fail_stack, $destination) == 0
 	  {
 	    unbind_to (count, Qnil ());
-	    SAFE_FREE! (sa_count);
+	    SAFE_FREE! (sa_count, sa_mark);
 	    return -2;
 	  }
         DEBUG_PRINT! (c"\n  Doubled stack; size now: %td\n".as_ptr (), fail_stack.size);
@@ -6076,7 +6079,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
   /* endof_re_match: */
   unbind_to (count, Qnil ());
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   /* The factor of 50 below is a heuristic that needs to be tuned.
      It means we consider 50 buffer positions examined by this function
