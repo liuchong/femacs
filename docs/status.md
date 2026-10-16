@@ -21314,3 +21314,8 @@
   ③ **规则补充（P-115 的适用面）** ✓：C 层开关的**验证一律在 `temacs` 上做** ✓（或先经 `egetenv` 走 Lisp 侧环境 ✓）；这也意味着"dump 后 C 层 `getenv` 可用"本身是一条**待修缺陷** ✓（对照 C 的 `main`/`init_environ` ✓）。
   ④ **下一站（点名）**：⑴ 用 **`temacs` + `FEMACS_CHILD_TRACE=1`** 抓"丢收割"那几次的完整路径 ✓（仪器可见 ✓ —— 本轮最重要的解锁 ✓）；⑵ 对照 `emacs.c`/`sysdep.c` 修"启动时重新读 `environ`" ✓；⑶ 之后回到等待路径的栈/fd_set/timeout 对照 ✓，再用一行复现 + 三形状探针 + `package-vc-tests` 整片 + 三门口收口 ✓。
   ⑤ **门槛与资源**：仪器默认关 ✓、`gate-load=0` ✓（15 例 ✓）、`extract-abi --check` **process/sysdep 均 OK** ✓；本轮 **0 次源码改动、0 次编译** ✓（纯读数 ✓）；受控执行器 runtime 1024 MiB（下调自默认 ✓）、峰值 ≤ **50 MB** ✓；`git -C emacs status --short` 为空 ✓；临时产物已清理 ✓。提交：本提交（纯读数 ✓）。
+- **4.451 验证相第八十三轮：更正 4.450；用 temacs 的八次差分定案"处理器跑了但没拿到状态"（2026-10-16）**：
+  ① **更正** ✗→✓：4.450 的"C 层 `getenv` 在 dump 后失效"**不成立** —— 真因是 **`build/port/src/emacs` 是上一次 `dump` 的旧拷贝**（`strings`：`temacs` 23:53 有四标记 ✓、`emacs` 22:38 一个没有 ✗）⇒ 仪器静默与 `getenv` 无关 ✓；规则补充：验证前先 `xtask dump` 或在 `temacs` 上验证 ✓。
+  ② **八次差分（同一 temacs）**：命中 `apo=1 wait=1 state=1 get=1 reap=1 notify=1` ✓（4 次 ✓）；**丢失 `apo=1 wait=1 state=1 get=1 reap=0 notify=0`** ✗（4 次 ✗：run1/3/4/8 ✓）⇒ **SIGCHLD 处理器跑了 ✓、`waitpid` 调了 ✓、没拿到状态** ✗ ⇒ **tick 未变** ⇒ 首部 `if (update_tick != process_tick)` 的 `status_notify` 永不触发 ✗ ⇒ 子进程永久 `run` ✓✓（机制定案 ✓）。
+  ③ **下一站**：给 `get_child_status` 的仪器加打印**返回值 + `errno`** ✓，判 `waitpid` 是回 0（未就绪）还是 -1（ECHILD/EINTR）✓，据此定案并修；候选：pid/选项传错 ✓、信号与 `waitpid` 的次序 ✓、或按 C 在超时路径补一次显式轮询 ✓。
+  ④ **门槛与资源**：本轮 **0 次源码改动、0 次编译** ✓（纯读数 ✓）；仪器默认关 ✓、`gate-load=0` ✓（15 例 ✓）、`extract-abi --check` **process/sysdep 均 OK** ✓；受控执行器 runtime 1024 MiB（下调自默认 ✓）、峰值 ≤ **50 MB** ✓；`git -C emacs status --short` 为空 ✓；临时产物已清理 ✓。提交：本提交（纯读数 ✓）。
