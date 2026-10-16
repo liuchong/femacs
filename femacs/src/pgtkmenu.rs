@@ -919,7 +919,7 @@ pub unsafe extern "C" fn pgtk_menu_show (f: *mut frame, x: c_int, y: c_int, menu
       return Qnil ();                                            // C 604
     }
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                         // C 607
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                         // C 607
   SAFE_NALLOCA! (sa_avail, submenu_stack, 1, menu_items_used);   // C 608
   SAFE_NALLOCA! (sa_avail, subprefix_stack, 1, menu_items_used);   // C 609
   let specpdl_count: specpdl_ref = SPECPDL_INDEX ();              // C 610
@@ -1161,7 +1161,7 @@ pub unsafe extern "C" fn pgtk_menu_show (f: *mut frame, x: c_int, y: c_int, menu
 			}
 		    }
 		  unblock_input ();                                  // C 827
-		  SAFE_FREE! (sa_count);                             // C 828
+		  SAFE_FREE! (sa_count, sa_mark);                             // C 828
 		  return entry;                                      // C 829
 		}
 	      i += MENU_ITEMS_ITEM_LENGTH;                           // C 831
@@ -1176,7 +1176,7 @@ pub unsafe extern "C" fn pgtk_menu_show (f: *mut frame, x: c_int, y: c_int, menu
     }
 
   unblock_input ();                                              // C 842
-  SAFE_FREE! (sa_count);                                         // C 843
+  SAFE_FREE! (sa_count, sa_mark);                                         // C 843
   return Qnil ();                                                // C 844
 }
 
