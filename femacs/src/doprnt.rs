@@ -119,7 +119,7 @@ const PRIdMAX: &str = "jd";
 fn doprnt_non_null_end (buffer: *mut c_char, bufsize: ptrdiff_t, format: *const c_char,
                         format_end: *const c_char, ap: VaList<'_>) -> ptrdiff_t
 {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let fmtlen = unsafe { format_end.offset_from (format) };
   let fmt = SAFE_ALLOCA! (sa_avail, fmtlen + 1) as *mut c_char;
   unsafe {
@@ -127,7 +127,7 @@ fn doprnt_non_null_end (buffer: *mut c_char, bufsize: ptrdiff_t, format: *const 
     *fmt.offset (fmtlen) = 0;
   }
   let nbytes = unsafe { doprnt (buffer, bufsize, fmt, std::ptr::null (), ap) };
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return nbytes;
 }
 
