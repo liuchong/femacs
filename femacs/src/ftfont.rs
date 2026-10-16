@@ -2131,8 +2131,8 @@ unsafe fn ftfont_get_open_type_spec (otf_spec: Lisp_Object) -> *mut OpenTypeSpec
         }
       let len: ptrdiff_t = list_length (val);
       (*spec).features[i as usize]
-        = if (min (PTRDIFF_MAX, SIZE_MAX as isize)
-              / std::mem::size_of::<c_int> () as isize) < len
+        = if (min (PTRDIFF_MAX as usize, SIZE_MAX)  /* P-127 */
+              / std::mem::size_of::<c_int> () as usize) < len as usize
             { std::ptr::null_mut () }
             else
             { malloc ((len * std::mem::size_of::<c_int> () as isize) as usize) as *mut c_uint };
