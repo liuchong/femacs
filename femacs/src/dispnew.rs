@@ -5893,8 +5893,9 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
     const _: () = core::assert! (NEXT_ALMOST_PRIME_LIMIT == 11);
     let next_almost_prime_increment_max: ptrdiff_t = 10;
     let row_table_max: ptrdiff_t =
-      (std::cmp::min (PTRDIFF_MAX, SIZE_MAX as isize) / (3 * core::mem::size_of::<*mut row_entry> () as isize)
-       - next_almost_prime_increment_max);
+      (std::cmp::min (PTRDIFF_MAX as usize, SIZE_MAX)  /* P-127 */
+       / (3 * core::mem::size_of::<*mut row_entry> () as usize)
+       - next_almost_prime_increment_max as usize) as ptrdiff_t;
     let current_nrows_max: ptrdiff_t = row_table_max - (*desired_matrix).nrows as ptrdiff_t;
     if current_nrows_max < (*current_matrix).nrows as ptrdiff_t
       { memory_full_up (); }
@@ -8194,8 +8195,8 @@ unsafe fn init_display_interactive ()
     let (area2, mul_overflow) = area.overflowing_mul (height);
     area = area2;
     if add_overflow || mul_overflow
-	|| (std::cmp::min (PTRDIFF_MAX, SIZE_MAX as isize)
-	    / core::mem::size_of::<glyph> () as isize) < area as isize
+	|| (std::cmp::min (PTRDIFF_MAX as usize, SIZE_MAX)  /* P-127 */
+	    / core::mem::size_of::<glyph> () as usize) < area as usize
       { fatal (c"screen size %dx%d too big".as_ptr (), width, height); }
   }
 
