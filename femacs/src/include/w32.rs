@@ -171,7 +171,7 @@ macro_rules! FD_ISSET {
 /// `sizeof (fd_set)` is `std::mem::size_of::<fd_set> ()`, which keeps the type's name.
 #[cfg (feature = "windowsnt")]
 macro_rules! FD_ZERO {
-  ($p:expr) => { std::ptr::write_bytes ($p, 0, std::mem::size_of::<fd_set> ()) };
+  ($p:expr) => { std::ptr::write_bytes ($p as *mut u8, 0, std::mem::size_of::<fd_set> ()) };
 }
 
 /// C 57: `#define SELECT_TYPE fd_set` - a *type* macro, so it is a nullary `macro_rules!` (the
