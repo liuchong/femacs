@@ -21517,3 +21517,18 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **与前几轮的关系** ✓：这份读数**取代**此前按目录/分片的零散读数（后者仍留作过程证据 ✓）；`char-fold-tests` 这条只在**枚举序**里出现 ✗ 也印证了必须用同一份枚举（P-138 ✓）。
   ⑤ **资源**：47 段扫描（564 文件 × 两侧 ✓ 约 25 分钟 ✓）；受控执行器 runtime 900 MiB（**下调自默认** ✓）、峰值 ≤ **587 MiB**（`tramp` 两侧同超时 ✓）、`ffap` 参照侧 534 MiB ✓；`git -C emacs status --short` 为空 ✓；`build/sweep/*.tsv` 为过程台账（未入库 ✓），**汇总已入库**为 `docs/baseline/ert-sweep.tsv` ✓。提交：`docs/baseline/ert-sweep.tsv` ✓、本提交 ✓。
   ⑥ **下一步（按收益排序）** ✓：⑴ **6 个端口独有的 crashed/超时**（`electric`/`ffap`/`whitespace`/`buffer`/`fns`/`xdisp` ✓）——`electric` 与 `ffap` 的参照侧读数说明它们能跑完 ✓ ⇒ 用 `sample` 抓栈定位（4.469 方法 ✓）；⑵ 引擎族（4.481 的 UB 中止 + 4.479 的 `back_comment` 重叠检查 ✓）——一并可能清掉 `syntax`/`regex-emacs`/`fill`/`paragraphs`/`diff-mode`/`log-edit`/`python`/`cperl`/`ruby`/`char-fold`/`xml`/`font` 等约 15 个文件 ✗；⑶ 其余单例（`calc`/`cus-edit`/`files-x`/`loadhist`/`cedet`×2/`vc-tests` ✓）逐个定位 ✓。
+- **4.485 验证相第一百一十六轮：那份“端口超时”其实是**构建档位的账**（P-101）——基准读数与三倍/七倍/六十七倍的来源（2026-10-17）**：
+  ① **`electric-tests` 不是挂死，是慢** ✓：同一命令跑 25 秒只到 **11/903**（每例自身 0.001-0.01 秒 ✓，时间花在用例之间 ✓），`sample` 的叶子是 `eval_sub`/`list_length`/`xfree` ✓（解释器在跑 ✓，不是等 I/O ✓）；参照同文件 **1020 例 <150 秒** ✓。
+  ② **基准对拍（同机、同命令、两侧 `-Q --batch` ✓）**：
+
+     | 工作负载 | 端口 | 参照 | 比值 |
+     | --- | ---: | ---: | ---: |
+     | `dotimes` 1e7（解释器） | **5.387 s** | 0.708 s | **7.6×** |
+     | `length` 10 万元列表 | 0.0115 | 0.0038 | 3.0× |
+     | `string-search` 2 MB | 0.0155 | 0.0028 | 5.5× |
+     | **`string-match "a*b*c*d*e"` on 20000 个 `a`** | **36.83 s** ✗ | **0.554 s** | **66.5×** ✗ |
+     | `sort` 10 万 | 0.0166 | 0.0053 | 3.1× |
+
+  ③ **来源（不是新缺陷，是既有债务的账 ✓）**：`femacs/xtask/src/main.rs` 18-40 行写明单元按 **`-C opt-level=0`** 编 ✓，且**不是选择而是被迫** ✓（P-101 ✓：`-C opt-level=2` 时 `styled_format` 的 `memmove` 读未映射地址 ✗、`-C opt-level=1` 时崩在第一条 `Loading` 之前 ✗ ⇒ “端口的 `unsafe` 打洞层（镜像的类型双关与 `&`/`&mut` 别名）还不具备被优化” ✓，并为它挂了临时的 `-Wl,-stack_size,0x4000000` 作为收据 ✓）。参照的 C 是 **`-g3 -O2`** ✓ ⇒ 3-8× 是 `-O0` 对 `-O2` 的预期量级 ✓；**66× 的正则**则是回退引擎在 `-O0` 下的放大 ✓（同一份源码、同一组优化宏 ✓：`mutually_exclusive` 12/12、`analyze_first` 10/10、`PUSH_FAILURE` 23/24、`POP_FAILURE` 17/18 ✓ 都在 ✓）。
+  ④ **结论与排序（本轮改写优先级 ✓）**：⑴ **6 个“端口超时”里有性能类的**（`electric`/`ffap`/`whitespace` ✓，很可能还有 `buffer`/`fns`/`xdisp` ✓）⇒ **不许**当成 6 个独立逻辑缺陷追 ✗，它们与 DoD-7（性能不低于参照 ✓）**同一笔账** ✓；⑵ 唯一出路是 P-101 ②：**先修那两处优化下暴露的 unsafe 缺陷，再把单元抬到 `-O2`** ✓（顺序不许颠倒 ✗），随后撤掉 64 MB 栈链接标志 ✓；⑶ 抬档以后必须复跑：`gate-fast`/`gate-load`/`dump` ✓、`gc-retention-probe` ✓、本轮的基准表 ✓、以及 **6 个超时文件** ✓（届时它们应回到 150 秒内 ✓）。
+  ⑤ **资源**：1 次 25 秒 `sample`（峰值 89 MB ✓）+ 1 次基准对拍（43 秒 ✓，峰值 36 MB ✓）；受控执行器 runtime 900 MiB（**下调自默认** ✓）；`git -C emacs status --short` 为空 ✓；临时输出已清理 ✓。提交：本提交（纯读数 ✓）。
