@@ -428,7 +428,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	{ break; }
     }
 
-  if MOST_POSITIVE_FIXNUM < min (PTRDIFF_MAX, SIZE_MAX as ptrdiff_t) / word_size
+  if MOST_POSITIVE_FIXNUM < min (PTRDIFF_MAX as usize, SIZE_MAX) as ptrdiff_t / word_size  /* P-127 */
       && MOST_POSITIVE_FIXNUM < nargs
     { memory_full_up (); }
 
