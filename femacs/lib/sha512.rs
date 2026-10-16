@@ -146,7 +146,7 @@ unsafe fn sha512_conclude_ctx (ctx: *mut sha512_ctx)
   set_uint64 ((*ctx).buffer.as_mut_ptr ().add (size - 1) as *mut c_char,
               SWAP! (u64shl! ((*ctx).total[0], 3)));
 
-  memcpy ((*ctx).buffer.as_mut_ptr ().add (bytes) as *mut c_void,
+  memcpy (((*ctx).buffer.as_mut_ptr () as *mut c_char).add (bytes) as *mut c_void,
           fillbuf.as_ptr () as *const c_void,
           (size - 2) * 8 - bytes);
 
@@ -220,7 +220,7 @@ pub unsafe extern "C" fn sha512_process_bytes (mut buffer: *const c_void, mut le
       let mut left_over: usize = (*ctx).buflen;
       let add: usize = if 256 - left_over > len { len } else { 256 - left_over };
 
-      memcpy ((*ctx).buffer.as_mut_ptr ().add (left_over) as *mut c_void, buffer, add);
+      memcpy (((*ctx).buffer.as_mut_ptr () as *mut c_char).add (left_over) as *mut c_void, buffer, add);
       (*ctx).buflen = (*ctx).buflen.wrapping_add (add);
 
       if (*ctx).buflen > 128
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn sha512_process_bytes (mut buffer: *const c_void, mut le
           /* The regions in the following copy operation cannot overlap,
              because ctx->buflen < 128 <= (left_over + add) & ~127.  */
           memcpy ((*ctx).buffer.as_mut_ptr () as *mut c_void,
-                  (*ctx).buffer.as_mut_ptr ().add ((left_over + add) & !127) as *const c_void,
+                  ((*ctx).buffer.as_mut_ptr () as *const c_char).add ((left_over + add) & !127) as *const c_void,
                   (*ctx).buflen);
         }
 
@@ -267,7 +267,7 @@ pub unsafe extern "C" fn sha512_process_bytes (mut buffer: *const c_void, mut le
     {
       let mut left_over: usize = (*ctx).buflen;
 
-      memcpy ((*ctx).buffer.as_mut_ptr ().add (left_over) as *mut c_void, buffer, len);
+      memcpy (((*ctx).buffer.as_mut_ptr () as *mut c_char).add (left_over) as *mut c_void, buffer, len);
       left_over += len;
       if left_over >= 128
         {
