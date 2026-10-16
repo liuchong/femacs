@@ -4090,8 +4090,12 @@ unsafe fn styled_format (nargs: ptrdiff_t, args: *mut Lisp_Object, message: bool
                     { error (c"Format specifier doesn't match argument type".as_ptr ()); }
                   else
                     {
-                      /* Length of PRIdMAX without the trailing "d".  */
-                      const pMlen: ptrdiff_t = std::mem::size_of_val (PRIdMAX) as ptrdiff_t - 2;
+                      /* C's `sizeof PRIdMAX - 2` counts the terminating null byte, so for the port's
+                         `&str` (no null) the length without the trailing "d" is `len - 1`.  */
+                      /* P-128: `size_of_val` on the `&str` is the str's *byte length*, not its
+                         size including a null, so C's `- 2` here would give 0 and drop the "j"
+                         modifier from the spec.  */
+                      const pMlen: ptrdiff_t = PRIdMAX.len () as ptrdiff_t - 1;
 
                       /* Avoid undefined behavior in underlying sprintf.  */
                       if conversion == 'd' as c_char || conversion == 'i' as c_char
