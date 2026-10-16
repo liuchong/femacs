@@ -203,7 +203,14 @@ def _skip_char_or_lifetime(s: str, i: int) -> int:
 
 
 def name_of(arg: str) -> str:
-    """The argument's name, C's last identifier == Rust's binding before the `:`."""
+    """The argument's name: Rust's binding before the `:`, spelled the way C spells it.
+
+    The port writes `r#where` for a name that clashes with a Rust keyword (PORTING.md 0.2)
+    and `proc_`/`str_`/`macro_` for ones that clash with a primitive - so an `r#` prefix and
+    one trailing `_` come off.  Evidence that nothing else may be stripped: among the
+    reference DOC's 1,794 usage lines, **no** argument token ends in `-`, i.e. C never names
+    a DEFUN argument with a trailing underscore.
+    """
     depth = 0
     for k, c in enumerate(arg):
         if c in "([{<":
@@ -213,9 +220,15 @@ def name_of(arg: str) -> str:
         elif c == ":" and depth == 0:
             head = arg[:k].strip()
             m = re.findall(r"[A-Za-z_][A-Za-z_0-9]*", head)
-            return m[-1] if m else ""
+            return c_arg_name(m[-1]) if m else ""
     m = re.findall(r"[A-Za-z_][A-Za-z_0-9]*", arg)
-    return m[-1] if m else ""
+    return c_arg_name(m[-1]) if m else ""
+
+
+def c_arg_name(rust_name: str) -> str:
+    if rust_name.endswith("_"):
+        rust_name = rust_name[:-1]
+    return rust_name
 
 
 def int_or_none(text: str) -> int | None:
@@ -519,8 +532,8 @@ def report(ref: bytes, built: bytes, limit: int) -> None:
     gained = {obj: recs for obj, recs in got}
     for obj, wrecs in want:
         grecs = gained.get(obj, [])
-        wnames = [n for _, n, _ in wrecs]
-        gnames = [n for _, n, _ in grecs]
+        wnames = [f"{k}{n}" for k, n, _ in wrecs]
+        gnames = [f"{k}{n}" for k, n, _ in grecs]
         if wnames == gnames:
             continue
         print(f"\n{obj}: {len(wrecs)} record(s) expected, {len(grecs)} produced")
@@ -551,10 +564,10 @@ def report_text(ref: bytes, built: bytes, limit: int) -> None:
     (`x-change-window-property` in both `xfns.c` and `w32fns.c`), and the reference DOC
     carries one record per section, so a name-only key compares the wrong pair.
     """
-    want = {(o, n): d for o, recs in split_doc(ref) for _, n, d in recs}
-    got = {(o, n): d for o, recs in split_doc(built) for _, n, d in recs}
+    want = {(o, k, n): d for o, recs in split_doc(ref) for k, n, d in recs}
+    got = {(o, k, n): d for o, recs in split_doc(built) for k, n, d in recs}
     bad = [(f"{o} {n}", want[k], got[k]) for k in want if k in got and want[k] != got[k]
-           for o, n in (k,)]
+           for o, _, n in (k,)]
     print(f"\nrecord text differing: {len(bad)}")
     for n, w, g in bad[:limit]:
         j = next((k for k in range(min(len(w), len(g))) if w[k] != g[k]), min(len(w), len(g)))
@@ -595,12 +608,18 @@ def occurrence(text: str, spans: list[tuple[int, int]], name: str) -> tuple[int,
     return line, in_spans(i, spans)
 
 
-def c_origin(stem: str, name: str) -> tuple[Path | None, int, int]:
-    """Where the reference defines this name: (file, line, offset), or (None, 0, 0)."""
+def c_origin(stem: str, name: str, kind: str = "") -> tuple[Path | None, int, int]:
+    """Where the reference defines this record: (file, line, offset), or (None, 0, 0).
+
+    `kind` matters: several names exist as both a subr and a variable (`window-combination-limit`
+    is a DEFUN in `window.c` *and* a DEFVAR elsewhere in the same file), and the record's kind
+    says which one this is.
+    """
+    macro = "DEFUN" if kind == "F" else "DEFVAR_[A-Z_0-9]+" if kind == "V" else "DEFUN|DEFVAR_[A-Z_0-9]+"
     for cand in (REFERENCE_SRC / f"{stem}.c", REFERENCE_SRC / f"{stem}.m"):
         if cand.exists():
             t = cand.read_text(encoding="utf-8", errors="replace")
-            m = re.search(r"\b(DEFUN|DEFVAR_[A-Z_0-9]+)\s*\(\s*\"" + re.escape(name) + r'\"', t)
+            m = re.search(r"\b(" + macro + r")\s*\(\s*\"" + re.escape(name) + r'\"', t)
             if m:
                 return cand, t.count("\n", 0, m.start()) + 1, m.start()
     return None, 0, 0
@@ -714,7 +733,7 @@ def classify(ref: bytes, built: bytes) -> list[tuple[str, ...]]:
     out: list[tuple[str, ...]] = []
     for sec, kind, name, cref, port, status in rows:
         stem = sec[:-2] if sec.endswith(".o") else sec
-        cfile, cline, _ = c_origin(stem, name)
+        cfile, cline, _ = c_origin(stem, name, kind)
         if status == "swift-carrier-pending":
             verdict = "swift-pending"
         elif cfile is None:
@@ -751,9 +770,7 @@ def worklist(ref: bytes, built: bytes) -> list[tuple[str, ...]]:
     got = {obj: recs for obj, recs in split_doc(built)}
     rows: list[tuple[str, ...]] = []
     for obj, wrecs in want:
-        produced = {n for _, n, _ in got.get(obj, [])}
-        have = {n for _, n, _ in got.get(obj, [])}
-        produced_names = have
+        produced_names = {(k, n) for k, n, _ in got.get(obj, [])}
         stem = section_stem(obj)
         src = port_source(stem)
         if obj.startswith("ns") or obj.startswith("macfont"):
@@ -761,7 +778,7 @@ def worklist(ref: bytes, built: bytes) -> list[tuple[str, ...]]:
         text = src.read_text(encoding="utf-8", errors="replace") if src.exists() else ""
         spans = comment_spans(text) if text else []
         for kind, name, _doc in wrecs:
-            if name in produced_names:
+            if (kind, name) in produced_names:
                 continue
             where = f"{src.name}:{src.parent.name}" if src.exists() else "(no unit)"
             if src.suffix == ".swift":
