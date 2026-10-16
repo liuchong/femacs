@@ -1,0 +1,12 @@
+# file	source	target	count	discriminants	why
+# Written by `tools/check-enum-transmutes.py --write`; the count, the discriminants
+# and the site set are machine-checked, the `why` column is the human half (P-98).
+src/alloc.rs	c_int	Lisp_Type	1	0,1,2,3,4,5,6,7	the branch is entered only when pdumper_valid_object_type_p (r#type) holds, C's own validator of the tag set (alloc.c 6195-6199)
+src/pdumper.rs	c_int	Lisp_Type	5	0,1,2,3,4,5,6,7	the tag is the port's own (written by this unit's dumper into the dump or into remembered_data), not a foreign byte; the Lisp_Symbol case is branched away where C branches it (pdumper.c 3055, 4270, 4583)
+src/pdumper.rs	c_int	cold_op	1	0,1,2,3,4,5	the opcode is one this unit's dumper pushed (COLD_OP_*) into the cold queue; C reads it the same way (pdumper.c 2905-2914)
+src/pdumper.rs	c_int	dump_fixup_type	1	0,1,2,3	the fixup type is one the dumper pushed (DUMP_FIXUP_*); C reads it the same way (pdumper.c 3291-3296)
+src/pdumper.rs	c_int	emacs_reloc_type	5	0,1,2,3,4,5	each site sits in the match arm guarded by equality with the very discriminant it converts (pdumper.c 3095-3100)
+src/sysdep.rs	usize	signal_handler_t	1	-	not P-98's class: SIG_IGN is a constant cast to a function-pointer type, compared for equality and never called, exactly as C writes it
+src/w32dwrite.rs	c_int	DWRITE_PIXEL_GEOMETRY	1	0,1,2	the value is what the DirectWrite API itself returned (GetPixelGeometry); C writes the same cast (w32dwrite.c, dead windowsnt arm)
+src/w32proc.rs	isize	signal_handler	4	-	not P-98's class: SIG_IGN/SIG_ERR/ SIG_DFL constants cast to a function-pointer type, compared for equality and never called, exactly as C writes it
+src/w32proc.rs	usize	signal_handler	2	-	not P-98's class: SIG_IGN/SIG_ERR/ SIG_DFL constants cast to a function-pointer type, compared for equality and never called, exactly as C writes it

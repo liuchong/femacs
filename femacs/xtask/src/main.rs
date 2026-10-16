@@ -1143,6 +1143,20 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a P-86 ledger's C range table has a gap or a malformed row"),
         Err(e) => return fail(e),
     }
+    // P-98's own debt note: "the same family's sites currently receive only declared members, but
+    // nothing pins that".  A payload-less Rust enum has no legal value outside its discriminants,
+    // so every integer-to-enum transmute is recorded in docs/baseline/enum-transmutes.tsv, and the
+    // gate re-parses each target enum (a renumbering must not pass silently).
+    println!("== enum transmute gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-enum-transmutes.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("enum transmutes: every site recorded, every enum unchanged"),
+        Ok(_) => return fail("an integer-to-enum transmute is unrecorded, or its enum moved"),
+        Err(e) => return fail(e),
+    }
     println!("== workspace check ==");
     match Command::new("cargo")
         .env("CARGO_TARGET_DIR", "../build/cargo")
