@@ -15,37 +15,27 @@ const BUILD: &str = "../build/femacs";
 
 /// The `-C` flags every unit object is built with (PORTING.md 0.1-1).
 ///
-/// `opt-level=0` is deliberate and is the only level the port currently survives, measured
-/// 2026-10-16 by rebuilding all 680 units at each level and running the loadup:
-/// `-C opt-level=2` and `-C opt-level=1` both die within the first few `Loading' lines - a
-/// `memmove` from an unmapped address inside `styled_format` (xdisp) at 2, and, with xdisp
-/// rebuilt at 0, a spurious `wrong-type-argument (stringp ...)` that aborts inside `print_object`
-/// (print) while loading `international/mule-conf`; at 1 the crash is before the first
-/// `Loading` line.  The port's `unsafe` layer (the mirrors' type punning and `&`/`&mut` aliasing)
-/// is therefore **not optimization-safe yet** - that is a named open defect, not a build choice.
-///
-/// The cost of 0 is frame size: `eval_sub` is 2992 bytes against the reference's 208 (its own
-/// `CFLAGS = -g3 -O2`), so the 4200-level interpreter recursion the Lisp loader runs
-/// (`macroexpand--all-toplevel` over `cus-start.el`'s 41 KB form) wants ~25 MB of an 8 MB stack
-/// and the SIGSEGV handler abandons `loadup.el` ("Re-entering top level after C stack overflow",
-/// 108 of the reference's 112 files).  The program is therefore *linked* with a 64 MB stack
-/// (`-Wl,-stack_size,0x4000000`, see the link command below), the same remedy the reference's own
-/// macOS app build uses - C's runtime `setrlimit (RLIMIT_STACK, ...)` cannot grow the main
-/// thread's stack on Darwin, which is fixed at exec.
+/// `opt-level=2` is the frozen level as of status 4.486.  P-101 recorded that the port could not
+/// be optimized at all (`=1` died before the first `Loading` line, `=2` in `styled_format`'s
+/// `memmove`), and that the frame-size debt that followed (a 2992-byte `eval_sub` frame against
+/// the reference's 208) forced both `-C opt-level=0` and a 64 MB link-time stack; the aliasing
+/// and mixed-type defects behind it were fixed one at a time afterwards (P-124, P-127, P-130,
+/// P-132, P-136).  Re-measured 2026-10-17: at both `-O1` and `-O2` the 83-unit build reports
+/// `0 failure`, `gate-load` passes its 15 cases and `dump` succeeds, with the 64 MB stack link
+/// flag *removed*, so the debt is paid and the level is no longer a variable of the port - it
+/// is a constant again, and `FEMACS_OPT_LEVEL` stays only as a diagnostic override.
 ///
 /// The two check flags stay explicit: `overflow-checks` because P-96 forbids leaning on release
 /// arithmetic, and `debug-assertions` because a unit is built the way C's checking build is.
-const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=0", "-C", "overflow-checks=on",
+const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=2", "-C", "overflow-checks=on",
                                        "-C", "debug-assertions=on", "-C", "panic=abort",
                                        "-C", "codegen-units=1"];
 
 /// The unit flags, with `-C opt-level` replaced by `FEMACS_OPT_LEVEL` when that variable is set.
 ///
-/// The level is a *variable* of this port, not a constant: P-101 records that the port's `unsafe`
-/// layer does not yet survive optimization (`=2` crashes in `styled_format`'s `memmove`, `=1`
-/// before the first `Loading`), and P-116 makes raising it the one remedy for the frame debt, so
-/// the two defects have to be reproduced and fixed at one level at a time.  Unset means the
-/// frozen level, unchanged.
+/// The level is a constant of the port again (status 4.486); this override is a *diagnostic*:
+/// it exists so a future bisect can ask "does this survive optimization" without editing the
+/// constant, and so a profile run can be taken at another level.  Unset means the frozen level.
 fn unit_codegen_flags () -> Vec<String>
 {
   match std::env::var ("FEMACS_OPT_LEVEL")
@@ -1943,13 +1933,10 @@ fn gate_load(arg: Option<&str>) -> i32 {
     let out = match rustc_cmd ()
         .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
         .args(&sanitizer_flags ())
-        .args([
-               // The main thread's stack is fixed at exec on Darwin, so C's own runtime
-               // `setrlimit (RLIMIT_STACK, ...)` cannot grow it there, and the port needs more
-               // than the 8 MB default while its units are built at `-C opt-level=0` (the frames
-               // are ~14x the reference's; see the reading in `UNIT_CODEGEN_FLAGS`'s note).  The
-               // link-time stack is the same remedy the reference's own macOS app build uses.
-               "-C", "link-arg=-Wl,-stack_size,0x4000000"])
+        // P-101 (3): the 64 MB link-time stack (`-Wl,-stack_size,0x4000000`) existed only because
+        // `-C opt-level=0` frames were ~14x the reference's.  With the units at `-O2` the loader's
+        // recursion fits the 8 MB default again, and status 4.486 removed the flag (measured with
+        // `dump` on the far side of the loader).
         .arg("../build/load/driver.rs")
         .arg("-C").arg("link-arg=@../build/load/link-args.rsp")
         .arg("-o").arg(&out_path)
