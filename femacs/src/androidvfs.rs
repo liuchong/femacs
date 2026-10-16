@@ -1570,7 +1570,7 @@ unsafe fn android_scan_directory_tree (file: *const c_char, limit_return: *mut s
   let mut len: size_t = 0;
   let mut tokens: [*mut c_char; 20] = [std::ptr::null_mut (); 20];      // C 1041
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 1043
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                                // C 1043
 
   'fail: {
   /* Skip past the 5 or 9 byte header.  */                              // C 1045
@@ -1613,7 +1613,7 @@ unsafe fn android_scan_directory_tree (file: *const c_char, limit_return: *mut s
 
   if ntokens == 0                                                       // C 1083
     {
-      SAFE_FREE! (sa_count);                                            // C 1085
+      SAFE_FREE! (sa_count, sa_mark);                                            // C 1085
 
       /* Return the size of the directory tree as the limit.
          Do not subtract the initial header bytes, as the limit
@@ -1701,7 +1701,7 @@ unsafe fn android_scan_directory_tree (file: *const c_char, limit_return: *mut s
 		      max = max.offset ((if OLD_ANDROID_ASSETS != 0 { 9 } else { 5 }) as isize);   // C 1162
 		    }
 
-		  SAFE_FREE! (sa_count);                                // C 1165
+		  SAFE_FREE! (sa_count, sa_mark);                                // C 1165
 		  return max;                                           // C 1166
 		}
 
@@ -1740,7 +1740,7 @@ unsafe fn android_scan_directory_tree (file: *const c_char, limit_return: *mut s
   }
 
   /* C 1199's `fail:` */
-  SAFE_FREE! (sa_count);                                                // C 1200
+  SAFE_FREE! (sa_count, sa_mark);                                                // C 1200
   return std::ptr::null ();                                             // C 1201
 }
 
@@ -8585,7 +8585,7 @@ unsafe extern "C" fn android_root_name (vnode: *mut android_vnode, mut name: *mu
 	      let mut sa_avail: ptrdiff_t = 0;                           // C 6700 (`USE_SAFE_ALLOCA`)
 	      let mut sa_count: ptrdiff_t = 0;
 
-	      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
 	      file_name
 		= android_vfs_convert_name (component_end,               // C 6703
@@ -8598,7 +8598,7 @@ unsafe extern "C" fn android_root_name (vnode: *mut android_vnode, mut name: *mu
 	      /* Copy the trailing NULL byte also.  */
 	      memcpy (name as *mut c_void, SDATA (file_name) as *const c_void, length);   // C 6711
 	      vp = ((*special).initial).unwrap () (name, length - 1);    // C 6712
-	      SAFE_FREE! (sa_count);                                     // C 6713
+	      SAFE_FREE! (sa_count, sa_mark);                                     // C 6713
 	      return vp;                                                 // C 6714
 	    }
 
@@ -8619,7 +8619,7 @@ unsafe extern "C" fn android_root_name (vnode: *mut android_vnode, mut name: *mu
 	      let mut sa_avail: ptrdiff_t = 0;                           // C 6730 (`USE_SAFE_ALLOCA`)
 	      let mut sa_count: ptrdiff_t = 0;
 
-	      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
 	      file_name
 		= android_vfs_convert_name (component_end.offset (-1),   // C 6733
@@ -8632,7 +8632,7 @@ unsafe extern "C" fn android_root_name (vnode: *mut android_vnode, mut name: *mu
 	      /* Copy the trailing NULL byte also.  */
 	      memcpy (name as *mut c_void, SDATA (file_name) as *const c_void, length);   // C 6741
 	      vp = ((*special).initial).unwrap () (name, length - 1);    // C 6742
-	      SAFE_FREE! (sa_count);                                     // C 6743
+	      SAFE_FREE! (sa_count, sa_mark);                                     // C 6743
 	      return vp;                                                 // C 6744
 	    }
 
