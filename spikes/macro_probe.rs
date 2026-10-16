@@ -48,8 +48,10 @@ pub unsafe extern "C" fn probe_macros (a: Lisp_Object, b: Lisp_Object) -> Lisp_O
     XSETCONS! (target, cons1);
     XSETSTRING! (target, str2);
     XSETSYMBOL! (target, unsafe { XBARE_SYMBOL (Qnil ()) });
-    SAFE_FREE! (SPECPDL_INDEX ());
-    USE_SAFE_ALLOCA! (sa_avail, sa_count);
+    USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+    /* The scope's own height is the third name (PORTING.md P-117 ⑧); `sa_count` stays an
+       expression here, the shape the probe has always exercised.  */
+    SAFE_FREE! (SPECPDL_INDEX (), sa_mark);
     let mut buf: *mut Lisp_Object = std::ptr::null_mut ();
     let _p = SAFE_ALLOCA! (sa_avail, 16);
     SAFE_ALLOCA_LISP! (sa_avail, buf, 4);
