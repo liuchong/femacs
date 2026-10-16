@@ -35,6 +35,19 @@ A product can differ from the reference's copy in three ways, and the verdict sa
                   bytes, because the offsets are derived from them;
   DIFFERENT     - something else differs: the first differing offset and its neighbourhood.
 
+`--cross-check` settles *whose* difference it is, for the products that differ: it compiles the
+same source with the **reference's** program inside the **port's** tree and compares the two
+products.  State cancels there (same tree, same loaded files, same order), so
+
+  state-only    - the reference's program produces the port's bytes, so the difference against the
+                  reference *tree's* copy is the tree's state (a dependency built here, a
+                  doc-section layout) and not the port's compiler;
+  DIFFERENT     - the two programs disagree on the same input, which is a port defect.
+
+Measured 2026-10-16 on lisp/emacs-lisp's eight differing products: byte-opt, comp and eieio are
+state-only (59,068 / 396,347 / 33,692 bytes produced by both programs), while checkdoc,
+elisp-scope, multisession, nadvice and package are port defects.
+
 `--order reference` (the default when the reference's makefile can be read) compiles in the order
 C's build uses: the `COMPILE_FIRST` list, then `MAIN_FIRST`, then the rest sorted.  The order is not
 cosmetic - a file compiled after another loads that other file's `.elc`, and several differences in
@@ -65,6 +78,7 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
 PORT = REPO / "femacs"
 PROGRAM = REPO / "build/port/src/temacs"
+REFERENCE_PROGRAM = REPO / "build/emacs-ref/src/emacs"
 
 # C compiles *one file per program invocation* (`$(TARGETS): %.elc: %.el` with
 # `$(emacs) -f batch-byte-compile $<`), and the state a program start leaves behind is part of the
@@ -135,6 +149,33 @@ def first_difference(a: bytes, b: bytes) -> str:
             return (f"first difference at offset {i}: "
                     f"received {a[lo:i + 40]!r} vs expected {b[lo:i + 40]!r}")
     return f"equal over the common prefix; lengths {len(a)} vs {len(b)}"
+
+
+def cross_check(files: list[pathlib.Path], timeout: int,
+                reference_program: pathlib.Path) -> dict[pathlib.Path, bytes]:
+    """Compile each file with the reference's program *in the port's tree*; return its products.
+
+    The port's own product is saved and put back, so the cross-check never leaves the tree in the
+    reference's state.
+    """
+    if not reference_program.is_file():
+        raise SystemExit(f"{reference_program} is missing: build the reference's program")
+    produced: dict[pathlib.Path, bytes] = {}
+    env = {"EMACSLOADPATH": str(PORT / "lisp"), "PATH": "/usr/bin:/bin"}
+    for product in files:
+        rel = pathlib.Path(product).relative_to(PORT).with_suffix(".el")   # the *source*, not the product
+        keep = pathlib.Path("/tmp") / (rel.stem + ".port.elc")
+        keep.write_bytes(pathlib.Path(product).read_bytes())
+        pathlib.Path(product).unlink()
+        subprocess.run([str(reference_program), "-Q", "--batch", "--no-site-file", "--no-site-lisp",
+                        "--eval", "(setq load-prefer-newer t)", "-f", "batch-byte-compile",
+                        "./" + str(rel.relative_to("lisp"))],
+                       cwd=str(PORT / "lisp"), capture_output=True, text=True, timeout=timeout,
+                       env=env)
+        if pathlib.Path(product).is_file():
+            produced[pathlib.Path(product)] = pathlib.Path(product).read_bytes()
+        pathlib.Path(product).write_bytes(keep.read_bytes())
+    return produced
 
 
 def reference_order(rels: list[str]) -> list[str]:
@@ -227,6 +268,11 @@ def main() -> int:
     parser.add_argument("--show", type=int, default=6, help="differing files to describe")
     parser.add_argument("--order", choices=["reference", "sorted"], default="reference",
                         help="compile in the reference's own order (default) or sorted")
+    parser.add_argument("--cross-check", action="store_true",
+                        help="for the differing products, compile the same source with the "
+                             "reference's program in the port's tree and say whose difference it is")
+    parser.add_argument("--reference-program", type=pathlib.Path, default=REFERENCE_PROGRAM,
+                        help="the reference's program (default: build/emacs-ref/src/emacs)")
     parser.add_argument("--no-force", action="store_true",
                         help="keep up-to-date products (batch-byte-compile skips them)")
     parser.add_argument("--no-compile", action="store_true",
@@ -279,10 +325,36 @@ def main() -> int:
               + ("" if len(rewrites) <= args.show else f" … (+{len(rewrites) - args.show})"))
     for line in details[:args.show * 2]:
         print(line)
+    state_only = 0
+    defects: list[str] = []
+    if args.cross_check and counts["DIFFERENT"]:
+        differing = [PORT / pathlib.Path(rel).with_suffix(".elc") for rel in rels
+                     if (PORT / pathlib.Path(rel).with_suffix(".elc")).is_file()
+                     and (PORT / pathlib.Path(rel).with_suffix(".elc")).read_bytes()
+                     != (REF / pathlib.Path(rel).with_suffix(".elc")).read_bytes()]
+        print(f"cross-checking {len(differing)} differing product(s) with the reference's program "
+              f"inside the port's tree")
+        products = cross_check(differing, args.timeout, args.reference_program)
+        for product in differing:
+            mine = product.read_bytes()
+            theirs = products.get(product)
+            if theirs == mine:
+                state_only += 1
+                print(f"state-only  {product.relative_to(REPO)}: both programs produce "
+                      f"{len(mine)} bytes here, so the difference is this tree's state")
+            else:
+                defects.append(str(product.relative_to(REPO)))
+                print(f"DEFECT      {product.relative_to(REPO)}: the reference's program produces "
+                      f"{len(theirs) if theirs else 0} bytes against the port's {len(mine)}")
+
     total = sum(counts.values())
     print(f"{total} target(s) with a reference .elc ({skipped} .el without one): "
           f"{counts['identical']} identical, {counts['rewrite-only']} rewrite-only, "
-          f"{counts['DIFFERENT']} DIFFERENT, {counts['missing']} missing")
+          f"{counts['DIFFERENT']} DIFFERENT, {counts['missing']} missing"
+          + (f"; of the differing, {state_only} state-only, {len(defects)} a port defect"
+             if args.cross_check else ""))
+    if args.cross_check:
+        return 1 if (defects or counts["missing"] or failures) else 0
     return 1 if (counts["DIFFERENT"] or counts["missing"] or failures) else 0
 
 
