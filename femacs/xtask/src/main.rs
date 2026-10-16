@@ -89,6 +89,35 @@ fn main() {
     exit(code);
 }
 
+/// Extra rustc flags for a *diagnostic* build, taken from `FEMACS_SANITIZER=address`.
+///
+/// L5's crashes are heap corruption inside `malloc`, so the useful instrument is one that
+/// names the *writing* site rather than the victim frame (PORTING.md P-112/P-113).  ASan is
+/// that instrument: it needs its flag on the unit compile *and* on the link, and it needs
+/// `RUSTC_BOOTSTRAP=1` because `-Zsanitizer` is a nightly flag.  A normal build is unchanged -
+/// nothing is added unless the variable is set - and the sanitized objects go to the same
+/// `build/femacs/` as always, so the round is the same round.
+fn sanitizer_flags () -> Vec<String>
+{
+  match std::env::var ("FEMACS_SANITIZER")
+    {
+      Ok (v) if ! v.is_empty () => vec! ["-Z".to_string (), format! ("sanitizer={v}")],
+      _ => Vec::new (),
+    }
+}
+
+/// `rustc`, with `RUSTC_BOOTSTRAP=1` when the sanitizer is on, so the nightly flag is accepted
+/// by the stable toolchain the repository pins (`rust-toolchain.toml`).
+fn rustc_cmd () -> std::process::Command
+{
+  let mut c = std::process::Command::new ("rustc");
+  if ! sanitizer_flags ().is_empty ()
+    {
+      c.env ("RUSTC_BOOTSTRAP", "1");
+    }
+  c
+}
+
 fn fail(msg: impl std::fmt::Display) -> i32 {
     eprintln!("error: {msg}");
     1
@@ -940,7 +969,7 @@ fn layout_check() -> i32 {
         Err(e) => return fail(e),
     };
     let bin = Path::new(BUILD).join("layout_probe");
-    let status = Command::new("rustc")
+    let status = rustc_cmd ()
         .args(["--edition", "2024", "--crate-name", "layout_probe", "-C", "panic=abort", "-o"])
         .arg(&bin)
         .arg(&root)
@@ -990,7 +1019,7 @@ fn probe_build(args: &[String]) -> i32 {
         Ok(root) => root,
         Err(e) => return fail(format!("probe {}: {e}", src.display())),
     };
-    let status = Command::new("rustc")
+    let status = rustc_cmd ()
         .args(["--edition", "2024", "-O"])
         .arg(&root)
         .arg("-o")
@@ -1057,10 +1086,11 @@ fn build_tu(rel: Option<&String>) -> i32 {
         Ok(p) => p,
         Err(e) => return fail(e),
     };
-    let status = Command::new("rustc")
+    let status = rustc_cmd ()
         .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                "--crate-name", &cname])
         .args(UNIT_CODEGEN_FLAGS)
+            .args(&sanitizer_flags ())
         .arg(&root)
         .arg("-o").arg(&out)
         .status();
@@ -1425,7 +1455,7 @@ fn probe_programs() -> Result<(), String> {
             Ok(root) => root,
             Err(e) => return Err(format!("probe {probe}: {e}")),
         };
-        let status = Command::new("rustc")
+        let status = rustc_cmd ()
             .args(["--edition", "2024", "--crate-type", "bin", "--emit", "metadata"])
             .arg(&root).arg("-o").arg(&out)
             .status();
@@ -1618,8 +1648,9 @@ fn link_program(rel: Option<&String>) -> i32 {
         return fail(format!("writing the response file: {e}"));
     }
     println!("== link-program: {rel} + {} lib object(s) ==", libs.len());
-    let out = match Command::new("rustc")
+    let out = match rustc_cmd ()
         .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
+        .args(&sanitizer_flags ())
         .arg("../build/load/driver.rs")
         .arg("-C").arg("link-arg=@../build/load/link-program-args.rsp")
         .arg("-o").arg(&out_path)
@@ -1851,8 +1882,10 @@ fn gate_load(arg: Option<&str>) -> i32 {
     println!("== gate-load: linking the frozen temacs object list against the port ==");
     println!("   {} port object(s) + {} lib object(s), linked by rustc (panic=abort, no_std driver)",
              objs.len(), libs.len());
-    let out = match Command::new("rustc")
-        .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang",
+    let out = match rustc_cmd ()
+        .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
+        .args(&sanitizer_flags ())
+        .args([
                // The main thread's stack is fixed at exec on Darwin, so C's own runtime
                // `setrlimit (RLIMIT_STACK, ...)` cannot grow it there, and the port needs more
                // than the 8 MB default while its units are built at `-C opt-level=0` (the frames
@@ -2081,10 +2114,11 @@ fn dead_arms() -> i32 {
             Err(e) => return fail(e),
         };
         let out = format!("{}.o", rel.replace('/', "_").replace(".rs", ""));
-        let mut cmd = Command::new("rustc");
+        let mut cmd = rustc_cmd ();
         cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                   "--crate-name", &cname])
-        .args(UNIT_CODEGEN_FLAGS);
+        .args(UNIT_CODEGEN_FLAGS)
+            .args(&sanitizer_flags ());
         for (feature, _, _) in FLIPS {
             if !feature.is_empty() {
                 cmd.arg("--cfg").arg(format!("feature=\"{feature}\""));
@@ -2548,10 +2582,11 @@ fn build_finished_tus() -> Result<(), String> {
             Ok(p) => p,
             Err(e) => return Err(e),
         };
-        let status = Command::new("rustc")
+        let status = rustc_cmd ()
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname])
             .args(UNIT_CODEGEN_FLAGS)
+            .args(&sanitizer_flags ())
             .arg(&root)
             .arg("-o")
             .arg(&out)
@@ -2566,11 +2601,12 @@ fn build_finished_tus() -> Result<(), String> {
         // bodies (die, stringify!, the conditions) are never compiled at all, so a
         // checking build is the only way to see them (review C's F4).
         let checked = Path::new(BUILD).join(format!("{stem}.checking.o"));
-        let status = Command::new("rustc")
+        let status = rustc_cmd ()
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname,
                    "--cfg", "enable_checking"])
             .args(UNIT_CODEGEN_FLAGS)
+            .args(&sanitizer_flags ())
             .arg(&root)
             .arg("-o")
             .arg(&checked)
