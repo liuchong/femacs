@@ -20800,3 +20800,10 @@
   ④ **事故与恢复（记下来）**：我的第一个 `gen-unidata.py` 只按**绝对路径**判断归属，而参照配方用的是**相对路径** ⇒ 一发把生成的 `charprop.el` 写进了**参照树** ✗；用参照自己的 emacs 重新生成（同一二进制、同一输入）**恢复**（5627 字节、0 处端口名 ✓），并在工具里加**前置拒绝**（输出解析后落在 `emacs/` 下就拒绝，执行前判定 ✓），`gen-leim.py` 同样加了。
   ⑤ **配套脚本政策（用户 2026-10-16 指令）**：写入 `PORTING.md` **P-102** + `docs/goal.md` §3.1 + 新建 `docs/retired-scaffolding.md`；本轮第一次应用 = **丢弃 9 件 autotools 脚手架**（`admin/{charsets,grammars,unidata}`、`doc/{emacs,lispintro,lispref,misc}`、`leim`、`lisp` 的 `Makefile.in`），保留 `test/` 下 4 件与全部测试夹具（`.pl`/`.js`/`.lua`/`.m4`）和 `admin/charsets/*.awk`（参照配方的输入）；`docs/port-map.md` 已重新生成（顺带修掉此前几轮遗留的行数漂移）。
   ⑥ **未声称**：`loaddefs.el`/`uni-*.el` 的逐字节一致仍未达成（前者经人工核对是 name-only，后者等 L1）；`gate-fast` 与 L0 本轮未重跑；`.elc` 全族（L1）未开始。
+
+- **4.384 验证相第十六轮：L1 的阻断点查明并修掉——`Ffunc_arity` 的 `else` 链断了（2026-10-16）**：
+  ① **缺陷**：C 的 `func-arity` 是**一条** `if / else if / else` 链（中间那条 `else if (MODULE_FUNCTIONP …)` 挂在 `#ifdef HAVE_MODULES` 下，链尾的 `else` 才是抛错 fallback）；端口把带门的那条写成了**独立语句** ⇒ 链尾 fallback **无条件执行** ⇒ `func-arity` 对**任何**参数都答 `invalid-function` ✗（实测：`(func-arity 'car)` → `(invalid-function car)`，参照是 `(1 . 1)` ✓）。
+  ② **为什么它是 L1 的阻断点**：`byte-compile-inline-expand` 内联 `defsubst` 时先调 `byte-compile--check-arity-bytecode` ✓，后者用 `func-arity` 问那个 byte-code 对象 ✓ ⇒ 111 个 `lisp/emacs-lisp` 文件里 **46 个**以 `Invalid function: #[…]` 失败 ✗（正是 4.376 记的那一类 ✓）。最小复现：一个 `defsubst` + 一次调用它 ✓（修前端口报 invalid-function、参照给出展开式；修后两者的展开对象**逐字节相同** ✓）。
+  ③ **读数**：`func-arity` 五类对象（subr、解释型 lambda、词法闭包、byte-code、`make-byte-code`）**与参照逐条一致** ✓；L1 worklist（`tools/l1-worklist.sh femacs/lisp/emacs-lisp`）错误数 **51 → 0** ✓，但**阻断点前移**：现在 8 个 `.elc` 之后在第 9 个文件 **panic（SIGABRT）** ✗，UB 检查点名的位置是 **`print` 单元里 `eassume! (0 <= nbytes)`（`STRING_BYTES`）** ⇒ 有一个**字节长度为负的"字符串"**被处理（下一个待查缺陷，点名 ✓）。
+  ④ **附注**：`build/femacs/*.o` 在本轮开始前被外部清理过一次（只剩单件）⇒ 做了**一次完整重建**（`gate-fast`，8m02s ✓）并重新链接；`gate-fast` **exit 0** ✓（含 link 关卡 ✓）。`build/emacs-ref/lib/libgnu.a` 同前几轮一样会被清掉，重建命令 `make -C build/emacs-ref/lib libgnu.a`（≈4 秒）。
+  ⑤ **未声称**：L1 未达成（`.elc` 全族未编完、未与参照逐字节比对）；第 9 个文件的那处 panic 未定位到具体对象来源。
