@@ -7092,7 +7092,7 @@ pub unsafe extern "C" fn syms_of_fns ()
   DEFSYM! (Qcursor_in_echo_area, c"cursor-in-echo-area");
   DEFSYM! (Qwidget_type, c"widget-type");
   DEFVAR_LISP! (c"overriding-plist-environment", Voverriding_plist_environment,
-	  "An alist that overrides the plists of the symbols which it lists. Used by the byte-compiler to apply `define-symbol-prop' during compilation.");
+	  " An alist that overrides the plists of the symbols which it lists.\nUsed by the byte-compiler to apply `define-symbol-prop' during\ncompilation.  ");
   Voverriding_plist_environment = Qnil ();
   DEFSYM! (Qoverriding_plist_environment, c"overriding-plist-environment");
   staticpro (&raw mut string_char_byte_cache_string);
@@ -7101,7 +7101,7 @@ pub unsafe extern "C" fn syms_of_fns ()
   staticpro (&raw mut require_nesting_list);
   Fset (Qyes_or_no_p_history (), Qnil ());
   DEFVAR_LISP! (c"features", Vfeatures,
-	  "A list of symbols which are the features of the executing Emacs. Used by `featurep' and `require', and altered by `provide'.");
+	  " A list of symbols which are the features of the executing Emacs.\nUsed by `featurep' and `require', and altered by `provide'.  ");
   Vfeatures = list1 (Qemacs ());
   DEFSYM! (Qfeatures, c"features");
   /* Let people use lexically scoped vars named `features'.  */
@@ -7117,16 +7117,16 @@ pub unsafe extern "C" fn syms_of_fns ()
   DEFSYM! (Qpaper, c"paper");
   /* #endif	/* HAVE_LANGINFO_CODESET */ */
   DEFVAR_BOOL! (c"use-dialog-box", use_dialog_box,
-	  "Non-nil means mouse commands use dialog boxes to ask questions. This applies to `y-or-n-p' and `yes-or-no-p' questions asked by commands invoked by mouse clicks and mouse menu items. On some platforms, file selection dialogs are also enabled if this is non-nil.");
+	  " Non-nil means mouse commands use dialog boxes to ask questions.\nThis applies to `y-or-n-p' and `yes-or-no-p' questions asked by commands\ninvoked by mouse clicks and mouse menu items.\n\nOn some platforms, file selection dialogs are also enabled if this is\nnon-nil.  ");
   use_dialog_box = true;
   DEFVAR_BOOL! (c"use-file-dialog", use_file_dialog,
-	  "Non-nil means mouse commands use a file dialog to ask for files. This applies to commands from menus and tool bar buttons even when they are initiated from the keyboard. If `use-dialog-box' is nil, that disables the use of a file dialog, regardless of the value of this variable.");
+	  " Non-nil means mouse commands use a file dialog to ask for files.\nThis applies to commands from menus and tool bar buttons even when\nthey are initiated from the keyboard.  If `use-dialog-box' is nil,\nthat disables the use of a file dialog, regardless of the value of\nthis variable.  ");
   use_file_dialog = true;
   DEFVAR_BOOL! (c"use-short-answers", use_short_answers,
-	  "Non-nil means `yes-or-no-p' accepts single-key answers \"y\" or \"n\". When non-nil, `yes-or-no-p' will use `y-or-n-p' to read the answer. This means the user will be able to press just one key to answer, whereas by default the user needs to type the full \"yes\" or \"no\" response and then press RET. We recommend against setting this variable non-nil, because `yes-or-no-p' is intended to be used when users are expected not to respond too quickly, but to take their time and perhaps think about the answer. The same variable also affects the function `read-answer'. See also `yes-or-no-prompt'.");
+	  " Non-nil means `yes-or-no-p' accepts single-key answers \"y\" or \"n\".\nWhen non-nil, `yes-or-no-p' will use `y-or-n-p' to read the answer.\nThis means the user will be able to press just one key to answer, whereas\nby default the user needs to type the full \"yes\" or \"no\" response\nand then press RET.\n\nWe recommend against setting this variable non-nil, because `yes-or-no-p'\nis intended to be used when users are expected not to respond too\nquickly, but to take their time and perhaps think about the answer.\nThe same variable also affects the function `read-answer'.  See also\n`yes-or-no-prompt'.  ");
   use_short_answers = false;
   DEFVAR_LISP! (c"yes-or-no-prompt", Vyes_or_no_prompt,
-	  "String to append when `yes-or-no-p' asks a question. For best results this should end in a space.");
+	  " String to append when `yes-or-no-p' asks a question.\nFor best results this should end in a space.  ");
   Vyes_or_no_prompt = build_unibyte_string (c"(yes or no) ".as_ptr ());
   defsubr (&raw mut Sidentity);
   defsubr (&raw mut Srandom);
