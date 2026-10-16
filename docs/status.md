@@ -21119,3 +21119,7 @@
   ② **能立住的读数（未变）**：`-Q --batch --eval '(princ "")'` **10/10 干净** ✓、`-l ert` 与 `-l …/ert-tests.el` 各 **5/5 干净** ✓（同会话内 ✓）⇒ 触发点在"把文件读进 buffer"这条路上 ✓；`MallocGuardEdges=1`（及 `MallocScribble/MallocErrorAbort/MallocCheckHeapEach` 的组合 ✓）覆盖住症状 ⇒ **布局相关的越界写** ✓。
   ③ **方法学修正（已写进 P-112）**：这类缺陷的读数必须**当场量并标明会话** ✓；一次 5/5 不等于"总能复现" ✗，一次 0/20 也不等于"已修好" ✗（要能固定布局才谈得上回归 ✓）。本轮为此把"下一步"改为：用 **ASan/守卫分配器**（固定装置的路线 ✓）抓写入点，而不是继续找"必崩的命令行"✗。
   ④ **资源 / 提交**：零编译 ✓；`git -C emacs status --short` 为空 ✓。**提交**：`PORTING.md`（P-112 更正）与本提交 ✓。
+- **4.422 验证相第五十四轮：固定装置的可用性读数（gmalloc ✗ / ASan ✓）（2026-10-16）**：
+  ① **`libgmalloc` 不可用（实测）**：`DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib` 下，连最简命令 `-Q --batch --eval '(princ "ok")'` 都 **SIGSEGV (exit 139)** ✓（三条命令全 139 ✓）⇒ 它与**自己 mmap 到录制地址的 dump 堆**不兼容 ✗ ⇒ 这条"零重编的守卫分配器"路线**走不通** ✓（记下来省下一次重复尝试 ✓）。
+  ② **ASan 路线可行（工具链读数）**：`rustc 1.98.1`（stable，当前 default ✓）+ rustup 里已有 **nightly**（`nightly-aarch64-apple-darwin` 与两个日期 pin ✓）⇒ `-Zsanitizer=address` 可用 ✓；单元编译在 `xtask` 的 `UNIT_CODEGEN_FLAGS`（`opt-level=0 / overflow-checks=on / debug-assertions=on / panic=abort / codegen-units=1` ✓，main.rs 38-40 ✓），ASan 需要**单元与链接两处**都带上 sanitizer 标志 ✓ ⇒ 这要折进下一轮重建（与 str-two-way 的链接后验证同一轮 ✓）。
+  ③ **资源 / 提交**：零编译 ✓（三条 gmalloc 试跑各 < 1 秒 ✓）；`git -C emacs status --short` 为空 ✓。**提交**：本提交 ✓。
