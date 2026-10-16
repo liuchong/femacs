@@ -21172,3 +21172,11 @@
   ④ **顺带确认**：`find-func-tests`/`map-ynp-tests` 的"退出码 1"与 `edebug-tests` 的超时**不在**本条内 ✓（它们是各自的行为/挂起问题 ✓），仍按 4.428 的点名逐个处理 ✓。
   ⑤ **资源 / 提交**：本轮 10 次小探针（每次 < 2 秒 ✓，最高 900 MiB 配额、无一超额 ✓）+ 零编译 ✓；`git -C emacs status --short` 为空 ✓。**提交**：`spikes/gc-retention-probe.el`、`PORTING.md`（P-116）、本提交 ✓。
   ⑥ **下一步（点名）**：⑴ 抬档位前的两处 unsafe 缺陷（先 `=1` 的第一条 `Loading` 前崩溃 ✓，再 `=2` 的 `styled_format` `memmove` ✓）；⑵ 8 个 `port-worse`（先 9 条 `backtrace-tests`、6 条 `uuid-tests` ✓）；⑶ `edebug-tests` 挂点、`find-func`/`map-ynp` 退出码 1；⑷ 整棵 `test/`、unidata/loaddefs、性能基线、平台冒烟 ✓。
+- **4.430 验证相第六十二轮：P-116 的解释被证伪并更正；`opt-level=1` 已可跑通（2026-10-16）**：
+  ① **新装置 `FEMACS_OPT_LEVEL`（P-115 的形状 ✓，默认不改行为 ✓）**：把单元的 `-C opt-level` 变成可测变量 ✓（只替换那一个 flag ✓）。
+  ② **`opt-level=1` 现在全链路通过** ✓：`gate-fast` **590 done / 0 in progress / 0 failing** ✓、`gate-load exit=0` ✓、程序跑完 loadup 并输出 `o1-ok` ✓（连 dump 的 doc-string 阶段都走到了 ✓）⇒ **P-101 记录的"=1 崩在第一条 `Loading` 之前"已被此前的修正消掉** ✓（这是本轮的第二条硬读数 ✓）。
+  ③ **但抬档位并不解决保留问题** ✗：同一条 `spikes/gc-retention-probe.el` 在 O1 下读数 **650,230 → 2,650,234 → 4,650,238** ✓（仍 +2,000,000/100 轮 ✓）⇒ P-116 的"帧尺寸"作为唯一解释**不成立** ✗（已在 P-116 里更正 ✓）。
+  ④ **两条排除性读数**：⑴ 端口**在自动 GC**（`gcs-done` 81→88→93 ✓，300 轮里 12 次 ✓）而 conses 仍线性增长 ⇒ **不是"从不 GC"** ✗；⑵ 新装置 `FEMACS_GC_TRACE`（`alloc.rs` 的 `garbage_collect` 顶部 ✓，打印 `gcs_done` 与 specpdl 字节深度 ✓）读数 = **specpdl 平坦在 2784-2944 字节** ✓（97 次 GC 全平坦 ✓）⇒ **不是 specpdl 泄漏** ✗。
+  ⑤ **剩余的头号嫌疑（下一条要点名的）**：端口**没有** C 的 `mark_byte_stack`（`bytecode.c` 434 ✓）⇒ 解释器的寄存器窗口（`bc_frame` 的 `next_stack` 之后那段 ✓）只被**保守 C 栈扫描**覆盖 ✓；扫描还会看到**已返回调用留下的陈旧窗口** ✓，C 那边则由精确标记 + 小帧覆盖掉 ✓ —— 这条差异是现在唯一能解释"逐轮留住一个已被丢弃对象"的机制 ✓。下一步：⑴ 按 C 补 `mark_byte_stack`（本身是保真项 ✓）；⑵ 加一个 **env 守卫的"收窄保守扫描"** 装置（只作仪器，不作修复 ✓），若保留随之消失即定案 ✓。
+  ⑥ **资源 / 提交**：本轮 1 次 O1 全量构建（487 秒 ✓）+ 1 次重链接 + 4 次探针（各 < 6 秒 ✓），全部经受控执行器 ✓（峰值最高 462 MB ✓）；`git -C emacs status --short` 为空 ✓。**提交**：`femacs/xtask/src/main.rs`（`FEMACS_OPT_LEVEL` ✓）、`femacs/src/alloc.rs`（`FEMACS_GC_TRACE` ✓）、`PORTING.md`（P-116 更正 ✓）、本提交 ✓。
+  ⑦ **下一步（点名）**：⑴ `mark_byte_stack` + 收窄扫描装置（定案上面 ⑤）✓；⑵ **抬档位的收益要用起来**：O1 既然能跑通，就在下一轮把 `-C opt-level=1` 定为默认并跑一遍 L5 切片对照（内存与耗时都量 ✓）；⑶ `opt-level=2` 的 `styled_format`/`memmove` 读数（P-101 的另一半 ✓）；⑷ 8 个 `port-worse`、`edebug` 挂点、`find-func`/`map-ynp` 退出码 1；⑸ 整棵 `test/`、unidata/loaddefs、性能基线、平台冒烟 ✓。
