@@ -1704,7 +1704,7 @@ unsafe fn text_extents_internal (dwrite_font_face: *mut IDWriteFontFace,
 {
   let mut hr: HRESULT = 0;					// C 815
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);			// C 817
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);			// C 817
 
   let mut dwrite_font_metrics: DWRITE_FONT_METRICS = core::mem::zeroed ();	// C 819
   (*(*dwrite_font_face).lpVtbl).GetMetrics.unwrap () (dwrite_font_face,
@@ -1737,13 +1737,13 @@ unsafe fn text_extents_internal (dwrite_font_face: *mut IDWriteFontFace,
   /* E_INVALIDARG means some of the glyphs index is out of bounds for the font.  */
   if hr == E_INVALIDARG						// C 841
     {
-      SAFE_FREE! (sa_count);					// C 843
+      SAFE_FREE! (sa_count, sa_mark);					// C 843
       return false;						// C 844
     }
 
   if !verify_hr (hr, c"Failed to GetGdiCompatibleGlyphMetrics".as_ptr ())	// C 847
     {
-      SAFE_FREE! (sa_count);					// C 849
+      SAFE_FREE! (sa_count, sa_mark);					// C 849
       return false;						// C 850
     }
 
@@ -1798,7 +1798,7 @@ unsafe fn text_extents_internal (dwrite_font_face: *mut IDWriteFontFace,
 
       if !verify_hr (hr, c"Failed to GetGlyhRunOutline".as_ptr ())	// C 898
 	{
-	  SAFE_FREE! (sa_count);				// C 900
+	  SAFE_FREE! (sa_count, sa_mark);				// C 900
 	  return false;						// C 901
 	}
 
@@ -1812,7 +1812,7 @@ unsafe fn text_extents_internal (dwrite_font_face: *mut IDWriteFontFace,
       (*metrics).descent = round (dwrite_geometry_sink.max_y as c_double) as c_int as c_short;	// C 911
     }
 
-  SAFE_FREE! (sa_count);					// C 914
+  SAFE_FREE! (sa_count, sa_mark);					// C 914
   return true;							// C 915
 }
 
@@ -2127,7 +2127,7 @@ pub unsafe extern "C" fn w32_dwrite_draw (hdc: HDC, x: c_int, mut y: c_int,
   let mut hr: HRESULT = 0;					// C 1164
   let mut dwrite_font_face: *mut IDWriteFontFace = core::ptr::null_mut ();	// C 1165
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);			// C 1167
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);			// C 1167
 
   let uniscribe_font: *mut uniscribe_font_info
     = font as *mut uniscribe_font_info;				// C 1169-1170
@@ -2192,7 +2192,7 @@ pub unsafe extern "C" fn w32_dwrite_draw (hdc: HDC, x: c_int, mut y: c_int,
 				 &raw mut metrics)
 	{
 	  (*uniscribe_font).dwrite_skip_font = true;		// C 1222
-	  SAFE_FREE! (sa_count);				// C 1223
+	  SAFE_FREE! (sa_count, sa_mark);				// C 1223
 	  return false;						// C 1224
 	}
       *advances.offset (i as isize) = metrics.width as c_float;	// C 1226
@@ -2242,7 +2242,7 @@ pub unsafe extern "C" fn w32_dwrite_draw (hdc: HDC, x: c_int, mut y: c_int,
 	{
 	  (*uniscribe_font).dwrite_skip_font = true;		// C 1266
 	  RELEASE_COM! (layers);				// C 1267
-	  SAFE_FREE! (sa_count);				// C 1268
+	  SAFE_FREE! (sa_count, sa_mark);				// C 1268
 	  return false;						// C 1269
 	}
       loop							// C 1271
@@ -2256,7 +2256,7 @@ pub unsafe extern "C" fn w32_dwrite_draw (hdc: HDC, x: c_int, mut y: c_int,
 	    {
 	      (*uniscribe_font).dwrite_skip_font = true;	// C 1280
 	      RELEASE_COM! (layers);				// C 1281
-	      SAFE_FREE! (sa_count);				// C 1282
+	      SAFE_FREE! (sa_count, sa_mark);				// C 1282
 	      return false;					// C 1283
 	    }
 	  if more_layers == 0					// C 1285
@@ -2266,7 +2266,7 @@ pub unsafe extern "C" fn w32_dwrite_draw (hdc: HDC, x: c_int, mut y: c_int,
 	    {
 	      (*uniscribe_font).dwrite_skip_font = true;	// C 1290
 	      RELEASE_COM! (layers);				// C 1291
-	      SAFE_FREE! (sa_count);				// C 1292
+	      SAFE_FREE! (sa_count, sa_mark);				// C 1292
 	      return false;					// C 1293
 	    }
 	  hr = (*(*bitmap_render_target).lpVtbl).DrawGlyphRun.unwrap ()	// C 1295-1305
@@ -2284,7 +2284,7 @@ pub unsafe extern "C" fn w32_dwrite_draw (hdc: HDC, x: c_int, mut y: c_int,
 	    {
 	      (*uniscribe_font).dwrite_skip_font = true;	// C 1308
 	      RELEASE_COM! (layers);				// C 1309
-	      SAFE_FREE! (sa_count);				// C 1310
+	      SAFE_FREE! (sa_count, sa_mark);				// C 1310
 	      return false;					// C 1311
 	    }
 	}
@@ -2293,7 +2293,7 @@ pub unsafe extern "C" fn w32_dwrite_draw (hdc: HDC, x: c_int, mut y: c_int,
 
   /* Finally, copy the rendered text back to the original DC.  */
   BitBlt (hdc, x - left_margin, y, bitmap_width, bitmap_height, text_dc, 0, 0, SRCCOPY);	// C 1317-1318
-  SAFE_FREE! (sa_count);					// C 1319
+  SAFE_FREE! (sa_count, sa_mark);					// C 1319
   return true;							// C 1320
 }
 
