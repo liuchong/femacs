@@ -21193,3 +21193,10 @@
   ③ **同轮新增的三条排除**：⑴ `handlerlist` **恒定 4** ✓（新读数 `gc-h:` ✓）；⑵ `mark_c_stack` 的扫描**跨度小而稳定**（3,984 → 13,856 字节 ✓，`bottom` 固定、`end` 随深度变 ✓）⇒ "扫描整片栈"假设**作废** ✗；⑶ `FEMACS_GC_SKIP_STACK_SCAN=1` 让程序直接失败 ✓ ⇒ 扫描承载活数据 ✓（仪器本身的读数 ✓）。
   ④ **下一步要查的（唯一与判据一致的机制）**：端口对解释器 `let` 局部的实现——值放在哪、由谁持有 ✓，与 C 的 `Bbind`/寄存器窗口逐处对 ✓；顺手把 `internal-stack-stats` 的 **runs 差异**（端口 1 / 参照 3 ✓）一起看（同一条解释器实现线索 ✓）。
   ⑤ **资源 / 提交**：本轮 3 次单文件编译 + 3 次链接 + 6 次探针（各 < 6 秒 ✓），全部经受控执行器 ✓（峰值最高 254 MB ✓）；`git -C emacs status --short` 为空 ✓。**提交**：`femacs/src/alloc.rs`（`FEMACS_GC_TRACE` 增标记栈/`handlerlist`/扫描跨度三读数 ✓）、`spikes/gc-size-threshold-probe.el`（尺寸表 ✓）、`PORTING.md`（P-116 ⑥ ✓）、本提交 ✓。
+- **4.433 验证相第六十五轮：保留与内存失控的根因 = `sa_stack` 池永不释放（P-117）（2026-10-16）**：
+  ① **新读数（`FEMACS_GC_TRACE` 第四组 ✓）**：`sa_blocks`/`sa_bytes` 单调增长 —— 183 块/93 KB → 873/121 KB → 1,398/319 KB → **255,232 块 / 40.9 MB** ✓（约 1,600 轮循环 ✓）；同时 `handlers=4` 恒定 ✓（继续排除 ✓）。
+  ② **代码级根因**：`sa_stack_release`（`alloc.rs` 1061 ✓）**没有任何调用者** ✓ ⇒ 端口自造的 `sa_stack` 池（Rust 无 `alloca` 的替代 ✓ P-05 ✓）只压不弹 ✓；而 GC **逐块扫这条链**（`alloc.rs` 6461-6475 ✓，端口替 C 的栈扫描补的那段 ✓）⇒ 块内残留的 `Lisp_Object` 成为永久根 ✗ ⇒ **"每轮留住一个已绑到局部的对象"与三个 ERT 文件的内存失控是同一个原因** ✓✓。
+  ③ **对照 C**：C 的 `SAFE_FREE()` 只是 `safe_free (sa_count)` = 按 specpdl 回卷 ✓（alloca 无需释放 ✓、`xmalloc` 回退由 unwind 释放 ✓）⇒ **C 里没有"池"** ✓ ⇒ 这条泄漏与过量标记都是**端口特有**的偏离 ✓。
+  ④ **修法（P-117 ①-③，已写清风险）**：给每对 `SAFE_ALLOCA`/`SAFE_FREE` 一道**水位线**（进入时记 `sa_stack_top`、释放时把水位线以上的块全部 free ✓），**不许**用 `depth >=` 的宽松比较 ✗（会释放同深度外层帧仍在用的块 ✗——这正是现有"严格比较"注释的用意 ✓）；`record_xmalloc` 回退分支也要压一个空水位线以保持配对 ✓；验收 = `sa_blocks` 回到个位数且探针 δ≈0 ✓。
+  ⑤ **资源 / 提交**：本轮 1 次单文件编译 + 1 次链接 + 2 次探针（各 < 6 秒 ✓），经受控执行器 ✓（峰值 288 MB ✓）；`git -C emacs status --short` 为空 ✓。**提交**：`femacs/src/alloc.rs`（`sa_blocks`/`sa_bytes` 读数 ✓）、`PORTING.md`（P-117 ✓）、本提交 ✓。
+  ⑥ **下一步（点名）**：⑴ **按 P-117 实现水位线释放** ✓ 并用 `gc-retention-probe` 验收（`sa_blocks` 个位数、δ≈0 ✓）；⑵ 复跑三个 ERT 失控文件（`ert-tests`/`package-tests`/`package-vc-tests` ✓）与整片切片对照 ✓；⑶ 之后才回到 P-116 的抬档位收益与 `opt-level=2`；⑷ 8 个 `port-worse`、`edebug` 挂点、`find-func`/`map-ynp`、整棵 `test/`、unidata/loaddefs、性能基线、平台冒烟 ✓。
