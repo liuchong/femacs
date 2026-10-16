@@ -21265,3 +21265,9 @@
   ③ **对照（排除项 ✓）**：裸 `make-process` + `:sentinel` 的探针在端口与参照上**行为一致** ✓（`PROBE sentinel="finished…"` ✓ 各一次 ✓）⇒ 进程**派发**本身没问题 ✗，缺陷在 `vc`/`package-vc` 的异步路径或其状态/时序 ✓。
   ④ **本机资源**：复现器峰值 **69 MB** ✓、7.5 秒 ✓（受控执行器 runtime 1200 MiB ✓）；`git -C emacs status --short` 为空 ✓。提交：本提交（纯读数 ✓）。
   ⑤ **下一步（点名）**：⑴ 沿 `package-vc-upgrade` → `vc-pull`（`vc-exec-after` 的 lambda ✓）→ `vc-git pull` 的链条，用上面这条 7 秒复现器做二分 ✓（先判"异步 git 进程是否真的起来了/是否被 `vc-exec-after` 接住" ✓）；⑵ 修好后复跑整片 `package-vc-tests`（45 例 ✓）；⑶ 同口径落地 `.elc` 全族与 `cus-load.el`/`loaddefs`/unidata/charsets/ja-dic（`finder-inf.el` 已是模板 ✓）；⑷ 用改好的装置重跑 `lisp/emacs-lisp` 整片刷新 L5 台账 ✓。
+- **4.443 验证相第七十五轮：`package-vc-tests` 的失败是**间歇性竞态**（端口 4/8 失败、参照 8/8 通过），通用异步层已排除（2026-10-16）**：
+  ① **更正上一轮**（4.442 写"确定性 3/3 失败"）✗：同一命令连跑 **8 次**，端口 **4 通过 / 4 失败**、参照 **8/8 通过** ✓✓ ⇒ 是**约 50% 的间歇竞态** ✓（那次 3/3 只是同一窗口里的连续霉运 ✗）。
+  ② **排除通用异步层** ✓：`make-process` + `:sentinel` 探针（同一个临时 git 仓库上 6 次 `git pull` ✓）在端口与参照上**逐次一致**、耗时 **0.022-0.028 秒** ✓ ⇒ 进程创建/哨兵派发本身没问题 ✓。
+  ③ **失败时的层位**：带时间戳的轨迹显示两侧事件序列**完全相同**（`vc-git-command …` → `make-process ("git" "pull" "--stat")` → `vc-exec-after proc=#<process git>` → `POSTCMD … "pull"` ✓，拉取本身 0.06-0.17 秒 ✓）；而且**instrumentation 会扰动结果** ✗（只加一条 `vc-exec-after` advice 的 1 次运行失败 ✓、纯跑的那次通过 ✓、加一条 -100 深度空 hook 时通过 ✓）⇒ 竞态在**Lisp 层且窗口很窄** ✓（典型 heisenbug ✓）。
+  ④ **本机资源**：8+8 次批量跑峰值 **80 MB** ✓、总计 48 秒 ✓（受控执行器 runtime 1200 MiB ✓）；`git -C emacs status --short` 为空 ✓。提交：本提交（纯读数 ✓）。
+  ⑤ **下一步（点名）**：⑴ 换**低扰动**仪器找层位：跑完（无论成败）dump `(length (process-list))` + 挂起定时器/`vc-touched-properties` 等**事后状态** ✓（不改 hook 链 ✓），看失败是否伴随残留进程/定时器 ✓；⑵ 若指向 `vc-exec-after` 的排队（`vc-exec-after` 的 tail 在**别的 buffer**里等 ✓），就用一个**独立最小脚本**复现"异步进程 + `vc-exec-after`"这一层 ✓（不碰 ERT ✓）；⑶ 修好后复跑整片 `package-vc-tests`（45 例 ✓）与 `lisp/emacs-lisp` 整片 ✓。
