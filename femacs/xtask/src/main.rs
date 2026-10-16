@@ -1411,6 +1411,21 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a string literal reaches C without a NUL terminator"),
         Err(e) => return fail(e),
     }
+    // The six copied trees are a hard constraint of the goal ("copied verbatim, one word
+    // unchanged"), and the gate that reads them is only a claim unless it runs somewhere: the
+    // retirement of the reference's Makefile.in scaffolding (PORTING.md P-102) left it red for
+    // days because nothing called it (measured 2026-10-16: 5 failures, all of them the retired
+    // files' absences and their rows in the substitution table).
+    println!("== copied-trees gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-verbatim.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("copied trees: every tracked file is byte-identical or sanctioned"),
+        Ok(_) => return fail("a copied tree's file list or text moved without a record"),
+        Err(e) => return fail(e),
+    }
     println!("== mirror-dupes gate ==");
     match Command::new("python3")
         .current_dir(REPO)
