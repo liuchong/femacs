@@ -1773,7 +1773,29 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
     if undefined.is_empty() {
         if out.status.success() {
             println!("link: temacs linked from the port's objects alone");
-            return 0;
+            // With the program in hand, the decoding questions that a *static* gate cannot see
+            // are answerable: a coding system's eol type is what removes a DOS-style file's
+            // CRs, and the loop that does it keeps two counters (`pos++` beside
+            // `pos_byte += incr`) whose port advanced the byte position twice and never the
+            // character position - measured 2026-10-16, `decode-coding-string "a\r\nb\r\n"
+            // 'utf-8-dos` came back with the first CR still in it and a GB2312 CRLF file kept
+            // both, which is what cost the pinyin product its 418 lines.  The gate compares
+            // character codes, not printed text: `prin1` writes a bare CR and the terminal then
+            // overwrites the line, which is how a first probe of this defect mis-read two
+            // identical answers.
+            println!("== coding eol gate ==");
+            return match Command::new("python3")
+                .current_dir(REPO)
+                .args(["tools/check-coding-eol.py"])
+                .status()
+            {
+                Ok(s) if s.success() => {
+                    println!("coding eol: every case converts as the reference does");
+                    0
+                }
+                Ok(_) => fail("a decoded text differs from the reference's for the same bytes"),
+                Err(e) => fail(e),
+            };
         }
         for line in text.lines().rev().take(15).collect::<Vec<&str>>().into_iter().rev() {
             println!("  {line}");
