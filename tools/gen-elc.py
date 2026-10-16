@@ -35,6 +35,14 @@ A product can differ from the reference's copy in three ways, and the verdict sa
                   bytes, because the offsets are derived from them;
   DIFFERENT     - something else differs: the first differing offset and its neighbourhood.
 
+`--order reference` (the default when the reference's makefile can be read) compiles in the order
+C's build uses: the `COMPILE_FIRST` list, then `MAIN_FIRST`, then the rest sorted.  The order is not
+cosmetic - a file compiled after another loads that other file's `.elc`, and several differences in
+the first reading (a compiled `eval-after-load` lambda, a gensym counter) are exactly the kind that
+follows from what was loaded before.  The two lists are read back from the reference's own
+`lisp/Makefile.in` (read-only; the port retired its copy with the autotools scaffolding, P-102), so
+a moved list fails loudly instead of silently compiling in another order.
+
 `--no-compile` re-reads the products already on disk, which is how a classification (rather than a
 fresh compilation) is repeated.
 """
@@ -118,11 +126,43 @@ def first_difference(a: bytes, b: bytes) -> str:
     return f"equal over the common prefix; lengths {len(a)} vs {len(b)}"
 
 
+def reference_order(rels: list[str]) -> list[str]:
+    """The reference's own compilation order, restricted to `rels`."""
+    makefile = REF / "lisp/Makefile.in"
+    if not makefile.is_file():
+        raise SystemExit(f"{makefile} is missing: the reference checkout is incomplete")
+    text = makefile.read_text(encoding="utf-8", errors="replace")
+    if "COMPILE_FIRST" not in text or "MAIN_FIRST" not in text:
+        raise SystemExit(f"{makefile} no longer carries COMPILE_FIRST/MAIN_FIRST")
+    first = re.findall(r"\$\(lisp\)/([\w/.-]+)\.elc", text.split("MAIN_FIRST")[0])
+    main = re.findall(r"\./([\w/.-]+)\.el", text.split("MAIN_FIRST", 1)[1].split("\n\n", 1)[0])
+    if not first or not main:
+        raise SystemExit("the reference's compile order lists came out empty "
+                         f"({len(first)} COMPILE_FIRST, {len(main)} MAIN_FIRST)")
+    ordered: list[str] = []
+    for stem in first + main:
+        rel = f"lisp/{stem}.el"
+        if rel in rels and rel not in ordered:
+            ordered.append(rel)
+    ordered += [rel for rel in sorted(rels) if rel not in ordered]
+    head = len(ordered)
+    print(f"compiling in the reference's order: {head} from COMPILE_FIRST/MAIN_FIRST "
+          f"({len(first)} + {len(main)} entries read from lisp/Makefile.in), then "
+          f"{len(rels) - head} in sorted order")
+    return ordered
+
+
 def compile_chunk(rels: list[str], timeout: int) -> tuple[bool, str]:
-    """Byte-compile one chunk with the port's program (cwd is the port's tree)."""
-    paths = [str(PORT / rel) for rel in rels]
-    result = subprocess.run([str(PROGRAM)] + LOAD_FLAGS + paths,
-                            cwd=str(REPO / "femacs"), capture_output=True, text=True,
+    """Byte-compile one chunk with the port's program, the way C's makefile does it.
+
+    C's `compile-main` does `cd $(lisp)` and hands the compiler names relative to it
+    (`./emacs-lisp/eieio.el`), so the port does the same: a file name can reach the compiled output
+    (a docstring, the `;ELC` header), and an absolute path from the tool's own cwd would then be one
+    more difference that has nothing to do with the compiler's behaviour.
+    """
+    names = ["./" + rel[len("lisp/"):] if rel.startswith("lisp/") else rel for rel in rels]
+    result = subprocess.run([str(PROGRAM)] + LOAD_FLAGS + names,
+                            cwd=str(PORT / "lisp"), capture_output=True, text=True,
                             timeout=timeout,
                             env={"EMACSLOADPATH": str(PORT / "lisp"), "PATH": "/usr/bin:/bin"})
     if result.returncode != 0:
@@ -169,6 +209,8 @@ def main() -> int:
     parser.add_argument("--skip-matching", action="store_true",
                         help="leave out the targets whose product already matches")
     parser.add_argument("--show", type=int, default=6, help="differing files to describe")
+    parser.add_argument("--order", choices=["reference", "sorted"], default="reference",
+                        help="compile in the reference's own order (default) or sorted")
     parser.add_argument("--no-compile", action="store_true",
                         help="re-read the products already on disk instead of compiling")
     args = parser.parse_args()
@@ -200,6 +242,9 @@ def main() -> int:
             if not rels:
                 print("nothing left to compile")
                 return 0
+
+    if args.order == "reference" and not args.no_compile:
+        rels = reference_order(rels)
 
     failures = 0
     for start in range(0, len(rels), args.chunk) if not args.no_compile else []:
