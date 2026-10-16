@@ -2633,17 +2633,27 @@ pub unsafe extern "C" fn init_system_name () {
     }
   let mut hostname_alloc: *mut c_char = std::ptr::null_mut ();
   let mut hostname: *mut c_char;
+  /* C's two arms are *preprocessor* text, not blocks, so C's `struct utsname uts` (C 1618) and
+     `char hostname_buf[256]` (C 1622) live at function scope and `hostname` stays valid to the
+     end of the function.  The port's `#[cfg]` arms *are* blocks, whose locals die at the closing
+     brace - ASan reported the later read of the buffer as `stack-use-after-scope`, and the same
+     shape would have hit `uts.nodename` in the other arm (PORTING.md P-113's class,
+     docs/status.md 4.426).  The storage is therefore declared here, where C declares it.  */
+  #[cfg (feature = "no_have_gethostname")]
+  let mut uts: utsname = std::mem::zeroed ();
+  #[cfg (not (feature = "no_have_gethostname"))]
+  let mut hostname_buf: [c_char; 256] = [0; 256];
+  #[cfg (not (feature = "no_have_gethostname"))]
+  let mut hostname_size: ptrdiff_t = std::mem::size_of::<[c_char; 256]> () as ptrdiff_t;
+
   // C 1618-1643: `#ifndef HAVE_GETHOSTNAME` is dead (`HAVE_GETHOSTNAME` is 1); carried.
   #[cfg (feature = "no_have_gethostname")]
   {
-    let mut uts: utsname = std::mem::zeroed ();
     uname (&mut uts);
     hostname = uts.nodename.as_mut_ptr ();
   }
   #[cfg (not (feature = "no_have_gethostname"))]
   {
-    let mut hostname_buf: [c_char; 256] = [0; 256];
-    let mut hostname_size: ptrdiff_t = std::mem::size_of::<[c_char; 256]> () as ptrdiff_t;
     hostname = hostname_buf.as_mut_ptr ();
 
     /* Try to get the host name; if the buffer is too short, try
