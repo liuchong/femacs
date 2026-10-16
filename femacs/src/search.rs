@@ -1504,7 +1504,7 @@ unsafe fn search_buffer_non_re (string: Lisp_Object, pos: ptrdiff_t,   // C 1298
   let mut char_base: c_int = -1;
   let mut boyer_moore_ok: bool = true;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* MULTIBYTE says whether the text to be searched is multibyte.
      We must convert PATTERN to match that, or we will not really
@@ -1692,7 +1692,7 @@ unsafe fn search_buffer_non_re (string: Lisp_Object, pos: ptrdiff_t,   // C 1298
       { boyer_moore (n, pat, len_byte, trt, inverse_trt, pos_byte, lim_byte, char_base) }
     else
       { simple_search (n, pat, raw_pattern_size, len_byte, trt, pos, pos_byte, lim, lim_byte) };
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 }
 
@@ -2975,7 +2975,7 @@ DEFUN! ("match-data", Fmatch_data, Smatch_data, 0, 3, 0,       // C 2816-2947
 
 	 prev = Qnil ();
 
-	 USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	 USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	 SAFE_NALLOCA! (sa_avail, data, 1, 2 * search_regs! ().num_regs + 1);
 
 	 len = 0;
@@ -3048,7 +3048,7 @@ DEFUN! ("match-data", Fmatch_data, Smatch_data, 0, 3, 0,       // C 2816-2947
 	       { XSETCDR (prev, Flist (len - i, data.offset (i as isize))); }
 	   }
 
-	 SAFE_FREE! (sa_count);
+	 SAFE_FREE! (sa_count, sa_mark);
 	 return reuse;
        });
 
@@ -3311,7 +3311,7 @@ DEFUN! ("regexp-quote", Fregexp_quote, Sregexp_quote, 1, 1, 0,   // C 3165-3205
 
 	 CHECK_STRING (string);
 
-	 USE_SAFE_ALLOCA! (sa_avail, sa_count);
+	 USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 	 SAFE_NALLOCA! (sa_avail, temp, 2, SBYTES (string));
 
 	 /* Now copy the data into the new string, inserting escapes. */
@@ -3345,7 +3345,7 @@ DEFUN! ("regexp-quote", Fregexp_quote, Sregexp_quote, 1, 1, 0,   // C 3165-3205
 				    STRING_MULTIBYTE (string)) }
 	   else
 	   { string };
-	 SAFE_FREE! (sa_count);
+	 SAFE_FREE! (sa_count, sa_mark);
 	 return result;
        });
 
