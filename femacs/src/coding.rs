@@ -7862,7 +7862,7 @@ unsafe fn decode_eol (coding: *mut coding_system)
   else if EQ (eol_type, Qdos ())
     {
       let mut n: ptrdiff_t = 0;
-      let pos: ptrdiff_t = (*coding).dst_pos;
+      let mut pos: ptrdiff_t = (*coding).dst_pos;
       let mut pos_byte: ptrdiff_t = (*coding).dst_pos_byte;
       let mut pos_end: ptrdiff_t = pos_byte + (*coding).produced - 1;
 
@@ -7887,7 +7887,7 @@ unsafe fn decode_eol (coding: *mut coding_system)
 	      n += 1;
 	      pos_end -= 1;
 	    }
-	  pos_byte += 1;
+	  pos += 1;
 	  pos_byte += incr as isize;
 	}
       (*coding).produced -= n;
