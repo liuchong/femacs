@@ -30,3 +30,4 @@ femacs/src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"close GNUEma
 femacs/src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"play GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1328	TODO
 femacs/src/w32.rs	literal	1	pub const REG_ROOT: &core::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	TODO
 femacs/src/w32select.rs	literal	1	let CLASSNAME: &core::ffi::CStr = c"Emacs Clipboard"; // C 465: `static const char CLASSNAME[]`	TODO
+tools/gen-finder.py	literal	1	if y == x.replace("GNU Emacs", "femacs"):	TODO

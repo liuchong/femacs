@@ -1293,11 +1293,8 @@ unsafe extern "C" {
   fn sys_faccessat (dirfd: c_int, file: *const c_char, mode: c_int, flags: c_int) -> c_int;
   /// C: void setup_pty (int)   (sysdep.c 3825)
   fn setup_pty (fd: c_int);
-  /// C: <signal.h>: `int pthread_sigmask (int, const sigset_t *, sigset_t *);` — the port's
-  /// `block_child_signal` (sysdep.rs) uses it, and the P-122 instrument reads the mask with it.
-  fn pthread_sigmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
-  /// C: <signal.h>: `int sigismember (const sigset_t *, int);`
-  fn sigismember (set: *const sigset_t, signum: c_int) -> c_int;
+  /* `pthread_sigmask` needs no declaration here: `lib/include/signal.rs` carries it and is in
+     this unit's include graph (the mirror-dupes gate flags a repeat, and it did).  */
   /// C: syswait.h 60: `extern pid_t child_status_changed (pid_t, int *, int);` - the return
   /// type is the child's pid (sysdep.c 516), and the port's definition returns it too.  It was
   /// declared `bool` here, which made the caller test only the low bit of the pid: an even pid
@@ -5778,8 +5775,13 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		    Some (f) => f as *const () as *const c_void,
 		    None => std::ptr::null (),
 		  };
+	      /* `sigismember` is a macro in C (so the reference needs no symbol for it) and
+		 this target's `sigset_t` is one 32-bit word, so the bit is tested directly
+		 (`SIGCHLD` - 1 = 19 here).  The instrument must not add a libc dependency the
+		 reference does not have: gate-fast's partial-link check flags exactly that.  */
+	      let blocked: c_int = ((cur.__val >> (SIGCHLD - 1)) & 1) as c_int;
 	      fprintf (stderr, c"child-state: handler=%p flags=%d blocked=%d\n".as_ptr (),
-		       handler, act.sa_flags, sigismember (&cur, SIGCHLD));
+		       handler, act.sa_flags, blocked);
 	    }
 	}
       /* We have to be informed when we receive a SIGCHLD signal for an asynchronous
