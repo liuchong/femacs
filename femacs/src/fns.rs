@@ -407,7 +407,7 @@ DEFUN! ("string-distance", Fstring_distance, Sstring_distance, 2, 3, 0,
   let mut lastdiag: ptrdiff_t;
   let mut olddiag: ptrdiff_t;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut column: *mut ptrdiff_t = std::ptr::null_mut ();
   SAFE_NALLOCA! (sa_avail, column, 1, len1 + 1);
   y = 0;
@@ -472,7 +472,7 @@ DEFUN! ("string-distance", Fstring_distance, Sstring_distance, 2, 3, 0,
 	}
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return make_fixnum (*column.add (len1 as usize));
 });
 
@@ -899,7 +899,7 @@ pub struct textprop_rec
 /* C 835-1029: `concat_to_string`.  */
 unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Check types and compute total length in chars of arguments in RESULT_LEN,
      length in bytes in RESULT_LEN_BYTE, and determine in DEST_MULTIBYTE
@@ -1118,7 +1118,7 @@ unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
 	}
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 }
 
@@ -1487,7 +1487,7 @@ pub unsafe extern "C" fn string_make_unibyte (string: Lisp_Object) -> Lisp_Objec
   let nchars: ptrdiff_t;
   let mut buf: *mut u8;
   let ret: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   if ! STRING_MULTIBYTE (string)
     { return string; }
@@ -1499,7 +1499,7 @@ pub unsafe extern "C" fn string_make_unibyte (string: Lisp_Object) -> Lisp_Objec
 	     true, false);
 
   ret = make_unibyte_string (buf as *mut c_char, nchars);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   return ret;}
 
@@ -2299,7 +2299,7 @@ DEFUN! ("delete", Fdelete, Sdelete, 2, 2, 0,
     {
       let mut n: ptrdiff_t = 0;
       let size: ptrdiff_t = ASIZE (seq);
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       let mut kept: *mut Lisp_Object
 	= SAFE_ALLOCA! (sa_avail, size * std::mem::size_of::<Lisp_Object> () as ptrdiff_t)
 	  as *mut Lisp_Object;
@@ -2315,7 +2315,7 @@ DEFUN! ("delete", Fdelete, Sdelete, 2, 2, 0,
       if n != size
 	{ seq = Fvector (n, kept); }
 
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
   else if STRINGP (seq)
     {
@@ -2576,7 +2576,7 @@ unsafe fn sort_list (list: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Ob
   else
     {
       let mut result: *mut Lisp_Object;
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       SAFE_ALLOCA_LISP! (sa_avail, result, length);
       let mut tail: Lisp_Object = list;
       let mut i: ptrdiff_t = 0;
@@ -2611,7 +2611,7 @@ unsafe fn sort_list (list: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Ob
 	      i -= 1;
 	    }
 	}
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
       return list;
     }
 }
@@ -3724,7 +3724,7 @@ DEFUN! ("mapconcat", Fmapconcat, Smapconcat, 2, 3, 0,
        doc: "Apply FUNCTION to each element of SEQUENCE, and concat the results as strings.\nIn between each pair of results, stick in SEPARATOR.  Thus, \" \" as\n  SEPARATOR results in spaces between the values returned by FUNCTION.\n\nSEQUENCE may be a list, a vector, a bool-vector, or a string.\n\nOptional argument SEPARATOR must be a string, a vector, or a list of\ncharacters; nil stands for the empty string.\n\nFUNCTION must be a function of one argument, and must return a value\n  that is a sequence of characters: either a string, or a vector or\n  list of numbers that are valid character codepoints; nil is treated\n  as an empty string.",
        (function: Lisp_Object, sequence: Lisp_Object, separator: Lisp_Object),
        {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let leni: EMACS_INT = XFIXNAT (Flength (sequence)) as EMACS_INT;
   if CHAR_TABLE_P (sequence)
     { wrong_type_argument (Qlistp (), sequence); }
@@ -3791,7 +3791,7 @@ DEFUN! ("mapconcat", Fmapconcat, Smapconcat, 2, 3, 0,
     }
 
   let ret: Lisp_Object = Fconcat (nargs, args);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return ret;
 });
 
@@ -3799,7 +3799,7 @@ DEFUN! ("mapcar", Fmapcar, Smapcar, 2, 2, 0,
        doc: "Apply FUNCTION to each element of SEQUENCE, and make a list of the results.\nThe result is a list just as long as SEQUENCE.\nSEQUENCE may be a list, a vector, a bool-vector, or a string.",
        (function: Lisp_Object, sequence: Lisp_Object),
        {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let leni: EMACS_INT = XFIXNAT (Flength (sequence)) as EMACS_INT;
   if CHAR_TABLE_P (sequence)
     { wrong_type_argument (Qlistp (), sequence); }
@@ -3807,7 +3807,7 @@ DEFUN! ("mapcar", Fmapcar, Smapcar, 2, 2, 0,
   SAFE_ALLOCA_LISP! (sa_avail, args, leni);
   let nmapped: ptrdiff_t = mapcar1 (leni, args, function, sequence);
   let ret: Lisp_Object = Flist (nmapped, args);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return ret;
 });
 
@@ -3829,7 +3829,7 @@ DEFUN! ("mapcan", Fmapcan, Smapcan, 2, 2, 0,
        doc: "Apply FUNCTION to each element of SEQUENCE, and concatenate\nthe results by altering them (using `nconc').\nSEQUENCE may be a list, a vector, a bool-vector, or a string.",
        (function: Lisp_Object, sequence: Lisp_Object),
        {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let leni: EMACS_INT = XFIXNAT (Flength (sequence)) as EMACS_INT;
   if CHAR_TABLE_P (sequence)
     { wrong_type_argument (Qlistp (), sequence); }
@@ -3837,7 +3837,7 @@ DEFUN! ("mapcan", Fmapcan, Smapcan, 2, 2, 0,
   SAFE_ALLOCA_LISP! (sa_avail, args, leni);
   let nmapped: ptrdiff_t = mapcar1 (leni, args, function, sequence);
   let ret: Lisp_Object = Fnconc (nmapped, args);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return ret;
 });
 
@@ -4237,7 +4237,7 @@ unsafe fn base64_encode_region_1 (beg: Lisp_Object, end: Lisp_Object, line_break
   let mut iend: ptrdiff_t;
   let mut encoded_length: ptrdiff_t;
   let mut old_pos: ptrdiff_t = PT! ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   validate_region (&raw mut beg, &raw mut end);
 
@@ -4263,7 +4263,7 @@ unsafe fn base64_encode_region_1 (beg: Lisp_Object, end: Lisp_Object, line_break
   if encoded_length < 0
     {
       /* The encoding wasn't possible. */
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
       error (c"Multibyte character in data for base64 encoding".as_ptr ());
     }
 
@@ -4271,7 +4271,7 @@ unsafe fn base64_encode_region_1 (beg: Lisp_Object, end: Lisp_Object, line_break
      and delete the old.  (Insert first in order to preserve markers.)  */
   SET_PT_BOTH (XFIXNAT (beg), ibeg);
   insert (encoded, encoded_length);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   del_range_byte (ibeg + encoded_length, iend + encoded_length);
 
   /* If point was outside of the region, restore it exactly; else just
@@ -4313,7 +4313,7 @@ unsafe fn base64_encode_string_1 (string: Lisp_Object, line_break: bool,
   let mut encoded_length: ptrdiff_t;
   let mut encoded: *mut c_char;
   let encoded_string: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   CHECK_STRING (string);
 
@@ -4341,7 +4341,7 @@ unsafe fn base64_encode_string_1 (string: Lisp_Object, line_break: bool,
     }
 
   encoded_string = make_unibyte_string (encoded, encoded_length);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   return encoded_string;
 }
@@ -4487,7 +4487,7 @@ DEFUN! ("base64-decode-region", Fbase64_decode_region, Sbase64_decode_region,
   let mut decoded_length: ptrdiff_t;
   let mut inserted_chars: ptrdiff_t = 0;
   let multibyte: bool = !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   validate_region (&raw mut beg, &raw mut end);
 
@@ -4521,7 +4521,7 @@ DEFUN! ("base64-decode-region", Fbase64_decode_region, Sbase64_decode_region,
   TEMP_SET_PT_BOTH (XFIXNAT (beg), ibeg);
   insert_1_both (decoded, inserted_chars, decoded_length, false, true, false);
   signal_after_change (XFIXNAT (beg), 0, inserted_chars);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   /* Delete the original text.  */
   del_range_both (PT! (), PT_BYTE! (), XFIXNAT (end) + inserted_chars,
@@ -4547,7 +4547,7 @@ DEFUN! ("base64-decode-string", Fbase64_decode_string, Sbase64_decode_string,
   let mut length: ptrdiff_t;
   let mut decoded_length: ptrdiff_t;
   let mut decoded_string: Lisp_Object = Qnil ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   CHECK_STRING (string);
 
@@ -4567,7 +4567,7 @@ DEFUN! ("base64-decode-string", Fbase64_decode_string, Sbase64_decode_string,
   else
     { decoded_string = Qnil (); }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   if !STRINGP (decoded_string)
     { error (c"Invalid base64 data".as_ptr ()); }
 
