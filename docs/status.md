@@ -21361,3 +21361,11 @@
   ② **两条机制读数**：⑴ 以 0.05 秒间隔装 `run-with-timer` 打印 conses ⇒ **定时器一次都没触发** ✗（只在开头打印了一行 ✓）⇒ 进程陷在**不回事件循环的紧循环**里 ✓（Lisp 或 C 的循环 ✓，两者都会挡住定时器 ✓）；⑵ 0.8 秒时发 **`SIGINT`** ⇒ 进程**干净退出（rc=0 ✓）**⇒ 该循环**尊重 quit** ✓（有 `maybe_quit` ✓），因此是"可中断但自己不停"的分配循环 ✓。⑶ `debug-on-quit` 与 `debug-on-event 'sigusr1` 都**没有**给出 Lisp 回溯 ✗（后者本身就是一条关于端口 `debug-on-event` 支持的**待查项** ✓，另记 ✓）。
   ③ **下一站（点名）**：⑴ 在**共享安装路径**里找那个循环 —— `package-vc-tests-with-installed` / `package-vc-test-deftest`（`package-vc-tests.el` 740 起 ✓）→ `package-vc-install`/`package-vc--unpack`（`package-vc.el` ✓）→ `vc`/`vc-git` 的调用链 ✓，按"没有前进的 `while`"（缓冲/行位置/列表游标 ✓）优先 ✓；⑵ 或用 C 层采样（`sample`/`lldb` ✓）抓那 1.4 秒内的栈 ✓；⑶ 定位后修 ✓，再用 600 MiB 上限跑该用例与整片 ✓。
   ④ **资源（宿主内存紧张，本轮一律低上限 ✓）**：**0 次源码改动、0 次编译** ✓；受控执行器 runtime 400/600/900 MiB（**下调自默认** ✓）、观测到 executor 峰值 ≤ **46 MB** ✓（而进程被外部 `Killed: 9` ✗ ⇒ 宿主有其它作业在抢内存 ✓，因此只采信"两侧都到判决"的读数 ✓）；`git -C emacs status --short` 为空 ✓；`/tmp/xt-cargo` 与临时输出已清理 ✓。提交：本提交（纯读数 ✓）。
+- **4.460 验证相第九十一轮：OOM 的循环在 **ERT 建表阶段**（`ert--make-stats` → `cl-coerce` → 上万次 `defalias`），与测试体无关（2026-10-17）**：
+  ① **lldb 抓栈（不看测试体 ✓）**：在 `Fcons` 上设第 20,000 次命中打断 ⇒ 栈为 `Fcons ← defalias ← Fdefalias ← funcall_subr ← funcall_subr` ✓ ⇒ **上万次 `defalias` 调用** ✓（不是普通分配循环 ✓）。
+  ② **Lisp 侧定位（advice + `backtrace-frame` ✓，无需重编 ✓）**：给 `defalias` 加 `:before` advice，第 3 次调用打印可见帧名 ⇒
+  `("let" "let" "while" "let" "let" "progn" "if" "da-trace" "apply" "defalias" "cl-coerce" "ert--make-stats" …)` ✓
+  ⇒ 调用方是 **`ert--make-stats` → `cl-coerce`** ✓（中间有若干不可见帧 ✓）；`cl-coerce` 本体（`cl-extra.el` 46-65 ✓，与参照**逐字一致** ✓）**没有循环** ✗ ⇒ 循环在它的**被调者**里 ✓。要点：`ert--make-stats` 是**跑测试之前**建表用的 ✓ ⇒ 这解释了 4.458 的分组现象（`post-conditions`/`upgrade`/`require` **三组都 OOM** ✗✓）——**与测试体无关** ✓✓，问题在**选测/建表**这一步 ✓。
+  ③ **复现与仪器（都可直接复用 ✓）**：单条用例复现（4.459 ✓）＝ `post-conditions/test-package-one`；本轮新增 `/tmp` 侧一次性的 advice 驱动（打印可见帧名 ✓）与 lldb 打断计数用法 ✓；**四次运行里有一次通过（rc=0 ✓）**⇒ 该路径**间歇性**发作 ✓（与宿主内存紧张叠加 ✓）。
+  ④ **资源**：本轮 **0 次源码改动、0 次编译** ✓；受控执行器 runtime 400-900 MiB（下调自默认 ✓）；多次运行被宿主 `Killed: 9` ✗（executor 峰值仅 ~44 MB ⇒ 非本任务限额 ✓）；`git -C emacs status --short` 为空 ✓；临时输出已清理 ✓。提交：本提交（纯读数 ✓）。
+  ⑤ **下一步（点名）**：⑴ 把可见帧**完整**打出来（含 `nil` 空档标成 `<gap>` ✓，i 到 40 ✓）并读 `ert--stats-test-key`/`cl-typep`（`cl-extra.el`/`cl-lib.el` ✓）里哪一步会**反复 `defalias`** ✓；⑵ 结论落下后按"某个原语返回值错"的方向在 `*.rs` 侧找 ✓（本项目历史同类 ✓）；⑶ 修后用 600 MiB 上限复跑该用例与整片 ✓。
