@@ -7757,6 +7757,10 @@ unsafe extern "C" fn child_signal_read (fd: c_int, data: *mut c_void)
 /* C 7628-7665: `child_signal_notify`.  */
 unsafe fn child_signal_notify ()
 {
+  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+    {
+      fprintf (stderr, c"child-notify: write_fd=%d\n".as_ptr (), child_signal_write_fd);
+    }
   /* `#ifndef WINDOWSNT` is live.  */
   let fd: c_int = child_signal_write_fd;
   eassert! (0 <= fd);
@@ -7789,6 +7793,8 @@ pub static mut glib_installs_sigchld_handler: bool = false;
 /* C 7702-7787: `handle_child_signal` — a `signal_handler_t` (PORTING.md 1.4).  */
 unsafe extern "C" fn handle_child_signal (sig: c_int)
 {
+  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+    { fprintf (stderr, c"child-signal: sig=%d\n".as_ptr (), sig); }
   let mut tail: Lisp_Object;
   let mut proc_: Lisp_Object;
   let mut changed: bool = false;
@@ -7837,6 +7843,13 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
       {
 	/* Change the status of the process that was found.  */
 	changed = true;
+	/* PORTING.md P-122's instrument (FEMACS_CHILD_TRACE, P-115's shape): which child the
+	   signal handler reaped, and how.  Off unless the variable is set.  */
+	if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+	  {
+	    fprintf (stderr, c"child-reap: pid=%d status=%d WIFEXITED=%d\n".as_ptr (),
+		     (*p).pid as c_int, status, WIFEXITED (status) as c_int);
+	  }
 	process_tick += 1;
 	(*p).tick = process_tick;
 	(*p).raw_status = status;
@@ -8666,6 +8679,8 @@ DEFUN! ("signal-names", Fsignal_names, Ssignal_names, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe fn catch_child_signal ()
 {
+  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+    { fprintf (stderr, c"child-catch: arming\n".as_ptr ()); }
   let mut action: sigaction = std::mem::zeroed ();
   let mut old_action: sigaction = std::mem::zeroed ();
   let mut oldset: sigset_t = std::mem::zeroed ();
