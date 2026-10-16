@@ -1011,62 +1011,86 @@ pub unsafe extern "C" fn record_xmalloc (size: size_t) -> *mut c_void
    Rust has no `alloca`, so the port keeps C's `sa_avail` accounting in the `AVAIL_ALLOCA!` and
    `SAFE_ALLOCA!` macros (lisp.h's mirror) and takes the bytes from this pool.
 
-   What C gets from the frame, the port gets from the specpdl: each block remembers the depth it
-   was requested at, and `safe_free` (lisp.h's, which is what `SAFE_FREE` calls) releases the
-   blocks an unwinding passes.  The test is deliberate and **strict** - `depth > the depth being
-   freed` - because C's `SAFE_FREE` does not free `alloca` bytes at all (the frame does), and two
-   sibling `SAFE_ALLOCA` scopes in one function share a specpdl depth: a `>=` rule would free a
-   block whose owner is still live.  The price is that a scope which starts and ends at the same
-   depth keeps its block until a shallower release, so the pool holds more memory than C's frames
-   would - the memory-pressure comparison P-05 still owes a spike for
-   (`PORTING.md` P-05/§3.2), together with the design's "single bump buffer" (this
-   implementation takes one block per request, because a bump area cannot be released until the
-   last block inside it is gone and a release drops a *subset* of the blocks).
+   What C gets from the frame, the port gets from a *frame-local height*: `USE_SAFE_ALLOCA!`
+   records the chain's height in the scope's own `sa_mark`, and `SAFE_FREE!` (or
+   `SAFE_FREE_UNBIND_TO!`) hands it back to `sa_stack_release_to`, which drops the requests made
+   since - the scope's own, and any a callee left behind, whose frame is gone.  Frame-local
+   storage is what makes the release LIFO-correct: a watermark in a global stack pops another
+   frame's marker (status 4.435), a specpdl-depth bucket collides with the sibling scope that
+   shares the depth (status 4.435), and a per-request specpdl entry is popped by other frames'
+   relative pops (status 4.436, PORTING.md P-117 ⑦) - that last one is why the release is *not*
+   driven by `safe_free`'s walk.
+
+   The price is that a request lives until the scope's `SAFE_FREE` rather than until the frame
+   returns: that is C's own `record_xmalloc` fallback lifetime (`lisp.h` 5629), and C's alloca
+   path is only ever *longer*.  `tools/check-alloca-lifetime.py` keeps the account of the
+   "still used after `SAFE_FREE`" class (status 4.436: none on the frozen checkout).  The GC
+   marks these blocks (see `garbage_collect` below), which is the port's substitute for the
+   stack scan that covers C's alloca memory.
 
    Nothing here is C's: the C tree has neither an `alloca` symbol nor a pool, so
-   `sa_stack_alloc`/`sa_stack_release` are the port's own names.  `check-symbols.py` therefore
-   counts them as this unit's documented deviation (`docs/baseline/symbol-pending.txt`).  */
+   `sa_stack_alloc`/`sa_stack_mark`/`sa_stack_release_to` are the port's own names, and
+   `check-symbols.py` counts them as this unit's documented deviation.  */
 
 /// Every block starts on this boundary, the strictest alignment C's `alloca` gives.
 const SA_STACK_ALIGN: usize = 16;
 
-/* One released block's bookkeeping: the bytes, the specpdl depth they were asked at, and the
-   chain.  A Rust-only record (the C tree has no counterpart), so no `#[repr(C)]`.  */
+/* One request's bookkeeping: the bytes, the Lisp thread that asked for them, and the chain.
+   A Rust-only record (the C tree has no counterpart), so no `#[repr(C)]`.  */
 struct sa_stack_block
 {
   base: *mut u8,
   used: usize,
-  depth: isize,
+  owner: *mut c_void,
   next: *mut sa_stack_block,
 }
 
 static mut sa_stack_top: *mut sa_stack_block = std::ptr::null_mut ();
+
+/* How many blocks the chain holds.  `USE_SAFE_ALLOCA!` reads it into the frame, `SAFE_FREE!`
+   hands that reading back - the scope's own height is the release's only input (P-117 ⑧).  */
+static mut sa_stack_count: usize = 0;
 
 /// C: `alloca`'s port - the allocator behind `AVAIL_ALLOCA!`, called with the byte count the
 /// macro has already charged to `sa_avail`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn sa_stack_alloc (size: usize) -> *mut c_void
 {
-  let depth = unwrap_specpdl_ref (SPECPDL_INDEX ());
   let bytes = (size + SA_STACK_ALIGN - 1) & !(SA_STACK_ALIGN - 1);
   let base = malloc (bytes) as *mut u8;
   if base.is_null ()
     { memory_full (bytes); }
   let header = xmalloc (std::mem::size_of::<sa_stack_block> ()) as *mut sa_stack_block;
-  (*header) = sa_stack_block { base, used: bytes, depth, next: sa_stack_top };
+  (*header) = sa_stack_block { base, used: bytes, owner: current_thread as *mut c_void,
+			       next: sa_stack_top };
   sa_stack_top = header;
+  sa_stack_count += 1;
   return base as *mut c_void;
 }
 
-/// Release every block an unwinding to `depth` passes: `safe_free` calls this.  See the note
-/// above for why the comparison is strict.
+/// The chain's height now: `USE_SAFE_ALLOCA!` stores it in the frame (`sa_mark`), and
+/// `SAFE_FREE!`/`SAFE_FREE_UNBIND_TO!` hand it to `sa_stack_release_to`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sa_stack_release (depth: isize)
+pub unsafe extern "C" fn sa_stack_mark () -> usize
 {
-  while !sa_stack_top.is_null () && (*sa_stack_top).depth > depth
+  return sa_stack_count;
+}
+
+/// Release every request the scope that read `mark` made since it started.  The chain is LIFO,
+/// so this drops exactly those requests - plus any a callee left behind, whose frame is gone -
+/// which is the lifetime C gets from the frame and Rust cannot name itself (PORTING.md P-05,
+/// P-117 ⑧).  The release is deliberately *not* driven by `safe_free`'s walk: that walk only
+/// covers what C itself pushed (P-117 ⑦).  A block belonging to another Lisp thread stops the
+/// release: that thread is suspended, not dead, and its request is still in use.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sa_stack_release_to (mark: usize)
+{
+  while sa_stack_count > mark && !sa_stack_top.is_null ()
+    && (*sa_stack_top).owner == current_thread as *mut c_void
     {
       let header = sa_stack_top;
       sa_stack_top = (*header).next;
+      sa_stack_count -= 1;
       free ((*header).base as *mut c_void);
       xfree (header as *mut c_void);
     }
