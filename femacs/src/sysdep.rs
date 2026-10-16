@@ -1398,16 +1398,13 @@ pub unsafe extern "C" fn init_baud_rate (fd: c_int) {
 
    Return CHILD if successful, 0 if no status is available, and a
    negative value (setting errno) if waitpid is buggy.  */
-unsafe fn waitpid_probe_log (child: pid_t, options: c_int) -> (pid_t, c_int) { (child, options) }
-
 unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
                             interruptible: bool) -> pid_t {
   /* PORTING.md P-122's instrument (FEMACS_CHILD_TRACE, P-115's shape): every reap in the port
      goes through here, so a missing line means the reap itself never happened.  */
   if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
     {
-      let r = waitpid_probe_log (child, options);
-      fprintf (stderr, c"child-get: child=%d options=%d\n".as_ptr (), r.0 as c_int, r.1);
+      fprintf (stderr, c"child-get: child=%d options=%d\n".as_ptr (), child as c_int, options);
     }
 
   /* PORTING.md 1.5: C declares `pid_t pid;` and the loop below assigns it.  */
@@ -1444,6 +1441,14 @@ unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
      that it needs to wake up and look around.  */
   if pid != 0 && !status.is_null () && !input_available_clear_time.is_null ()
     { *input_available_clear_time = make_timespec (0, 0); }
+
+  /* PORTING.md P-122 ⑻'s instrument (FEMACS_CHILD_TRACE, P-115's shape): what waitpid
+     answered - 0 means "no status available yet", which is the branch a missed reap takes.  */
+  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+    {
+      fprintf (stderr, c"child-get-done: pid=%d errno=%d\n".as_ptr (),
+	       pid as c_int, *errno ());
+    }
 
   return pid;
 }
