@@ -852,8 +852,10 @@ unsafe fn ftcrfont_glyph_extents (font: *mut font, glyph: c_uint,
 	xrealloc ((*ftcrfont_info).metrics as *mut c_void,
 		  std::mem::size_of::<*mut font_metrics> () * (row + 1) as usize)
 	as *mut *mut font_metrics;                                // C 74-76
-      std::ptr::write_bytes ((*ftcrfont_info).metrics
-			       .add ((*ftcrfont_info).metrics_nrows as usize),
+      /* C 77-79's `memset` counts bytes, so the destination goes through a `u8` pointer
+	 (PORTING.md P-114).  */
+      std::ptr::write_bytes (((*ftcrfont_info).metrics
+			       .add ((*ftcrfont_info).metrics_nrows as usize)) as *mut u8,
 			     0,
 			     std::mem::size_of::<*mut font_metrics> ()
 			       * (row + 1 - (*ftcrfont_info).metrics_nrows as c_int) as usize);  // C 77-79
