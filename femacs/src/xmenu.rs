@@ -2892,7 +2892,7 @@ pub unsafe extern "C" fn x_menu_show (f: *mut frame, mut x: c_int, y: c_int,
   let mut submenu_stack: *mut *mut widget_value = std::ptr::null_mut ();   // C 1896
   let mut subprefix_stack: *mut Lisp_Object = std::ptr::null_mut ();   // C 1897
   let mut submenu_depth: c_int = 0;                                 // C 1898
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                            // C 1899
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                            // C 1899
   SAFE_NALLOCA! (sa_avail, submenu_stack, 1, menu_items_used);      // C 1900
   SAFE_NALLOCA! (sa_avail, subprefix_stack, 1, menu_items_used);    // C 1901
   let specpdl_count: specpdl_ref = SPECPDL_INDEX ();                // C 1902
@@ -2904,7 +2904,7 @@ pub unsafe extern "C" fn x_menu_show (f: *mut frame, mut x: c_int, y: c_int,
   if menu_items_used <= MENU_ITEMS_PANE_LENGTH                      // C 1908
     {
       *error_name = c"Empty menu".as_ptr ();                         // C 1910
-      SAFE_FREE! (sa_count);                                        // C 1911
+      SAFE_FREE! (sa_count, sa_mark);                                        // C 1911
       return Qnil ();
     }
 
@@ -3153,7 +3153,7 @@ pub unsafe extern "C" fn x_menu_show (f: *mut frame, mut x: c_int, y: c_int,
 		    }
 		  unblock_input ();                                     // C 2143
 
-		  SAFE_FREE! (sa_count);                                // C 2145
+		  SAFE_FREE! (sa_count, sa_mark);                                // C 2145
 		  return entry;
 		}
 	      i += MENU_ITEMS_ITEM_LENGTH;                             // C 2148
@@ -3169,7 +3169,7 @@ pub unsafe extern "C" fn x_menu_show (f: *mut frame, mut x: c_int, y: c_int,
 
   unblock_input ();                                                 // C 2159
 
-  SAFE_FREE! (sa_count);                                            // C 2161
+  SAFE_FREE! (sa_count, sa_mark);                                            // C 2161
   return Qnil ();                                                   // C 2162
 }
 
@@ -3649,7 +3649,7 @@ pub unsafe extern "C" fn x_menu_show (f: *mut frame, mut x: c_int, mut y: c_int,
      counterpart and is recorded in `docs/ports/macro-body-notes.tsv`), and C 2874's label is
      the tail below the block.  The block opens before `USE_SAFE_ALLOCA!` because C's `sa_count`
      is a function-scope local that the label's own tail spends.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                             // C 2590
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                             // C 2590
   block_input ();                                                    // C 2591
   'return_entry: {
 
@@ -3949,7 +3949,7 @@ pub unsafe extern "C" fn x_menu_show (f: *mut frame, mut x: c_int, mut y: c_int,
   }
   /* C's `return_entry:` label.  */
   unblock_input ();                                                   // C 2874
-  return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry);       // C 2875
+  return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry, sa_mark);       // C 2875
 }
 
 /* C 2881-2890: `#ifndef MSDOS` / `popup_activated` / `#endif`.  Both arms are carried; the `#else`
