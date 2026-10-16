@@ -21354,3 +21354,10 @@
   ③ **一次外部终止（如实记）** ✗：本轮有一次隔离运行被 `Killed: 9`（executor 峰值仅 75 MB ✗ ⇒ 非本任务的限额 ✓）⇒ 宿主当时内存紧张（有其它作业在跑 ✓）；因此本轮所有读数都用**低上限**（600 MiB ✓）取，且只采信"两侧都跑到判决"的那几条 ✓。
   ④ **资源**：本轮 **0 次源码改动、0 次编译** ✓（纯读数 ✓）；受控执行器 runtime 1200/2048 MiB（下调自默认 ✓）、峰值 ≤ **100 MB** ✓；`git -C emacs status --short` 为空 ✓；临时产物已清理 ✓。提交：本提交（纯读数 ✓）。
   ⑤ **下一步（点名）**：⑴ 在 `package-vc-tests` 的共享路径上定位 OOM（逐用例 + conses/每步读数 ✓）；⑵ 用改好的装置重跑 `lisp/emacs-lisp` 整片刷新 L5 台账 ✓；⑶ 之后：`.elc` 族与其余生成物、兼容性、性能与平台冒烟 ✓。
+- **4.459 验证相第九十轮：`package-vc-tests` 的 OOM 缩到**单条用例、1.4 秒**；读数是"不可中断的紧循环"（tick 不走、SIGINT 能停）（2026-10-17）**：
+  ① **最小复现（一条用例 ✓）**：
+  `./build/port/src/emacs --no-init-file --no-site-file -L :femacs/test -l ert -l femacs/test/lisp/emacs-lisp/package-vc-tests.el --batch --eval '(ert-run-tests-batch-and-exit "post-conditions/test-package-one")'`
+  ⇒ 端口 **~1.2-1.4 秒内被外部 `SIGKILL`（rc=137 ✗）**、参照 **0.34 秒通过（1 例 / 0 unexpected ✓）** ⇒ 从"整片 45 例 ✗"缩到**一条用例 ✗** ✓。
+  ② **两条机制读数**：⑴ 以 0.05 秒间隔装 `run-with-timer` 打印 conses ⇒ **定时器一次都没触发** ✗（只在开头打印了一行 ✓）⇒ 进程陷在**不回事件循环的紧循环**里 ✓（Lisp 或 C 的循环 ✓，两者都会挡住定时器 ✓）；⑵ 0.8 秒时发 **`SIGINT`** ⇒ 进程**干净退出（rc=0 ✓）**⇒ 该循环**尊重 quit** ✓（有 `maybe_quit` ✓），因此是"可中断但自己不停"的分配循环 ✓。⑶ `debug-on-quit` 与 `debug-on-event 'sigusr1` 都**没有**给出 Lisp 回溯 ✗（后者本身就是一条关于端口 `debug-on-event` 支持的**待查项** ✓，另记 ✓）。
+  ③ **下一站（点名）**：⑴ 在**共享安装路径**里找那个循环 —— `package-vc-tests-with-installed` / `package-vc-test-deftest`（`package-vc-tests.el` 740 起 ✓）→ `package-vc-install`/`package-vc--unpack`（`package-vc.el` ✓）→ `vc`/`vc-git` 的调用链 ✓，按"没有前进的 `while`"（缓冲/行位置/列表游标 ✓）优先 ✓；⑵ 或用 C 层采样（`sample`/`lldb` ✓）抓那 1.4 秒内的栈 ✓；⑶ 定位后修 ✓，再用 600 MiB 上限跑该用例与整片 ✓。
+  ④ **资源（宿主内存紧张，本轮一律低上限 ✓）**：**0 次源码改动、0 次编译** ✓；受控执行器 runtime 400/600/900 MiB（**下调自默认** ✓）、观测到 executor 峰值 ≤ **46 MB** ✓（而进程被外部 `Killed: 9` ✗ ⇒ 宿主有其它作业在抢内存 ✓，因此只采信"两侧都到判决"的读数 ✓）；`git -C emacs status --short` 为空 ✓；`/tmp/xt-cargo` 与临时输出已清理 ✓。提交：本提交（纯读数 ✓）。
