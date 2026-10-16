@@ -5007,7 +5007,7 @@ DEFUN! ("accept-process-output", Faccept_process_output, Saccept_process_output,
        {
   {
     static mut apo_entered: bool = false;
-    if ! apo_entered && ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+    if ! apo_entered && femacs_child_trace ()
       {
         apo_entered = true;
         fprintf (stderr, c"accept-apo-enter\n".as_ptr ());
@@ -5460,7 +5460,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
      Printed once per run, off unless FEMACS_CHILD_TRACE is set.  */
   {
     static mut wait_entered: bool = false;
-    if ! wait_entered && ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+    if ! wait_entered && femacs_child_trace ()
       {
         wait_entered = true;
         fprintf (stderr, c"wait-enter: nsecs=%d read_kbd=%d wait_proc=%p\n".as_ptr (),
@@ -5759,7 +5759,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
       /* PORTING.md P-122 ⑷'s instrument (FEMACS_CHILD_TRACE, P-115's shape): once per run, is
 	 SIGCHLD still delivered to this process's handler, and is it blocked right now?  A
 	 child that is never reaped has to show up here.  */
-      if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+      if femacs_child_trace ()
 	{
 	  static mut child_state_printed: bool = false;
 	  if ! child_state_printed
@@ -7812,7 +7812,7 @@ unsafe extern "C" fn child_signal_read (fd: c_int, data: *mut c_void)
 /* C 7628-7665: `child_signal_notify`.  */
 unsafe fn child_signal_notify ()
 {
-  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+  if femacs_child_trace ()
     {
       fprintf (stderr, c"child-notify: write_fd=%d\n".as_ptr (), child_signal_write_fd);
     }
@@ -7848,7 +7848,7 @@ pub static mut glib_installs_sigchld_handler: bool = false;
 /* C 7702-7787: `handle_child_signal` — a `signal_handler_t` (PORTING.md 1.4).  */
 unsafe extern "C" fn handle_child_signal (sig: c_int)
 {
-  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+  if femacs_child_trace ()
     { fprintf (stderr, c"child-signal: sig=%d\n".as_ptr (), sig); }
   let mut tail: Lisp_Object;
   let mut proc_: Lisp_Object;
@@ -7900,7 +7900,7 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
 	changed = true;
 	/* PORTING.md P-122's instrument (FEMACS_CHILD_TRACE, P-115's shape): which child the
 	   signal handler reaped, and how.  Off unless the variable is set.  */
-	if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+	if femacs_child_trace ()
 	  {
 	    fprintf (stderr, c"child-reap: pid=%d status=%d WIFEXITED=%d\n".as_ptr (),
 		     (*p).pid as c_int, status, WIFEXITED (status) as c_int);
@@ -8734,7 +8734,7 @@ DEFUN! ("signal-names", Fsignal_names, Ssignal_names, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe fn catch_child_signal ()
 {
-  if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+  if femacs_child_trace ()
     { fprintf (stderr, c"child-catch: arming\n".as_ptr ()); }
   let mut action: sigaction = std::mem::zeroed ();
   let mut old_action: sigaction = std::mem::zeroed ();
@@ -8791,11 +8791,32 @@ pub unsafe fn open_channel_for_module (process: Lisp_Object) -> c_int
 
 /* This is not called "init_process" because that is the name of a Mach system call, so it
    would cause problems on Darwin systems.  */
+/* PORTING.md P-126: the diagnostic switch below is sampled ONCE, at startup, and kept in a
+   plain flag.  `getenv` is not async-signal-safe: on this target it takes an os_unfair_lock, so
+   calling it from `handle_child_signal` - or being delivered while the interrupted code is
+   inside `sysdep`'s own `get_child_status` instrument, which is what the handler's
+   `child_status_changed` call runs - makes libplatform abort the whole program ("BUG IN CLIENT
+   OF LIBPLATFORM: Trying to recursively lock an os_unfair_lock"; macOS reports that abort as
+   SIGKILL).  A flag read is safe there.  P-115's shape is otherwise unchanged: default off, one
+   stderr line per event; the variable must be set before startup, which is how the probes set
+   it.  */
+static FEMACS_CHILD_TRACE: core::sync::atomic::AtomicBool =
+  core::sync::atomic::AtomicBool::new (false);
+
+/* C has no counterpart: P-122/P-125's instruments ask this instead of `getenv`.  */
+#[inline]
+unsafe fn femacs_child_trace () -> bool {
+  return FEMACS_CHILD_TRACE.load (core::sync::atomic::Ordering::Relaxed);
+}
+
 /* C 8706-8797: `init_process_emacs`.  C's `#if 0` block (C 8791-8792) is dead in every
    configuration and is recorded, not carried (P-08).  */
 #[unsafe(no_mangle)]
 pub unsafe fn init_process_emacs (sockfd: c_int)
 {
+  /* PORTING.md P-126: sample the diagnostic switch here, where no handler can be running yet.  */
+  FEMACS_CHILD_TRACE.store (! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null (),
+                            core::sync::atomic::Ordering::Relaxed);
   /* `#ifdef subprocesses` is live.  */
   let mut i: c_int;
 
