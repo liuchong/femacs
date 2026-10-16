@@ -2768,7 +2768,14 @@ unsafe fn read_char_escape (source: *mut source, next_char: c_int) -> c_int
 	    { end_of_file_error (source); }
 	  else
 	    {
-	      match entry as u8
+	      /* C's `switch (c)` is a switch on an `int` and its `default:` arm returns the
+		 character itself, so a **multi-byte** entry must not be narrowed into the ASCII
+		 arms: `entry as u8` truncates (U+210A & 0xFF == 0x0A, i.e. `'\n'` -> the "Invalid
+		 escape char syntax: \\<newline>" error, measured 2026-10-16 on
+		 `lisp/international/latin1-disp.el`, whose 15 `\` + U+2xy/2xyz escapes... see the
+		 round in docs/status.md).  The guard is the one this file already uses for the same
+		 reason at `read0`'s two dispatch sites.  */
+	      match if entry >= 0 && entry < 128 { entry as u8 } else { 0 }
 		{
 		  b'a' => { chr = 7; }			/* '\a' */
 		  b'b' => { chr = 8; }			/* '\b' */
@@ -3199,7 +3206,11 @@ unsafe fn read_string_literal (source: *mut source) -> Lisp_Object
 	{
 	  /* First apply string-specific escape rules:  */
 	  ch = readchar (source);
-	  match ch as u8
+	  /* C switches on the character `int`, so only a genuine ASCII SPC/LF is swallowed
+	     here; a multi-byte character whose low byte happens to be one of those must fall
+	     through to `read_char_escape` and yield itself (same defect class as the dispatch
+	     below, measured 2026-10-16).  */
+	  match if ch >= 0 && ch < 128 { ch as u8 } else { 0 }
 	    {
 	      b's' =>
 	      /* `\s' is always a space in strings.  */
