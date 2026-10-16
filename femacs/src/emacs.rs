@@ -2932,7 +2932,7 @@ pub unsafe fn syms_of_emacs ()
   Vemacs_version = build_string (emacs_version.as_ptr ());
 
   DEFVAR_LISP! (c"report-emacs-bug-address", Vreport_emacs_bug_address,
-	       "Address of mailing list for femacs bugs.  ");
+	       " Address of mailing list for GNU Emacs bugs.  ");
   Vreport_emacs_bug_address = build_string (emacs_bugreport.as_ptr ());
 
   DEFVAR_LISP! (c"dump-mode", Vdump_mode,
