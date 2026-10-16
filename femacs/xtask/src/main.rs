@@ -1319,6 +1319,22 @@ configuration (see PORTING.md 2.1's setup steps)");
     // compiles, passes every text gate, and becomes `clashing_extern_declarations` the moment
     // the two spellings disagree - the warning gate-fast's unit builds already print.  The
     // ratchet holds the rows that are deliberate (status 3.76/3.77).
+    // A string handed to C through `.as_ptr ()` has to be NUL-terminated, and a Rust `"..."` is
+    // not: rustc packs literals back to back in rodata, so C reads on past them.  Two defects of
+    // this shape were found by hand (lib/strftime.rs's L_! in 4.398, src/region-cache.rs's two
+    // fprintf format strings in 4.399) and both were text, so the gate reads text - the tree's
+    // 11,683 `c"..."` sites are the accepted spelling, `b"...\\0"` the other, and a plain
+    // literal with no terminator is the defect.
+    println!("== c string literal gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-c-string-literals.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("c strings: every site carries its terminator"),
+        Ok(_) => return fail("a string literal reaches C without a NUL terminator"),
+        Err(e) => return fail(e),
+    }
     println!("== mirror-dupes gate ==");
     match Command::new("python3")
         .current_dir(REPO)
