@@ -4973,7 +4973,11 @@ pub unsafe extern "C" fn string_to_number (string: *const c_char, base: c_int,
     {
       if !negative
 	{ return make_uint (n); }
-      if -(MOST_NEGATIVE_FIXNUM as i64) < n as i64
+      /* P-136: C compares `-MOST_NEGATIVE_FIXNUM` (an int) against `uintmax_t n`, so the
+	 comparison happens in the *unsigned* domain; casting `n` down to `i64` first turns any
+	 n >= 2^63 into a negative number, which both inverts the test and makes the `-signed_n`
+	 below overflow (with 2^63 exactly, `-i64::MIN` panics).  */
+      if ((-(MOST_NEGATIVE_FIXNUM as i64)) as u64) < n
 	{ return make_neg_biguint (n); }
       let signed_n: EMACS_INT = n as EMACS_INT;
       return make_fixnum (-signed_n);
