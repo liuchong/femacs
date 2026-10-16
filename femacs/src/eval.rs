@@ -3852,8 +3852,12 @@ unsafe fn get_backtrace_starting_at (base: Lisp_Object) -> *mut specbinding
       while backtrace_p (pdl)
              && !EQ (base, Findirect_function ((backtrace_function.unwrap ()) (pdl), Qt ()))
         { pdl = backtrace_next (pdl); }
-      while backtrace_p (pdl) && offset >= 0
-        { pdl = backtrace_next (pdl); offset -= 1; }
+      /* P-128: C's condition is `offset-- > 0` - the test uses the *old* value, so an
+         offset of 0 advances nothing; the port's `offset >= 0` advanced one frame too many,
+         which dropped the innermost frame from every backtrace.  */
+      while backtrace_p (pdl)
+             && { let o: c_int = offset; offset -= 1; o > 0 }
+        { pdl = backtrace_next (pdl); }
     }
 
   return pdl;
