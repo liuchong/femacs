@@ -30,7 +30,6 @@ from __future__ import annotations
 import argparse
 import re
 import resource
-import signal
 import subprocess
 import sys
 import threading
@@ -120,8 +119,14 @@ def run(prog: Path, test_root: Path, rel: str, timeout: int,
         m = m2
     if m is None:
         tail = " | ".join(text.strip().splitlines()[-2:])[:160]
-        if memory_mib and (over["fired"] or proc.returncode == -signal.SIGKILL):
+        if over["fired"]:
             return "out-of-memory", 0, 0, 0, f"no summary within a {memory_mib} MiB cap"
+        # A SIGKILL the watchdog did not fire for is not an out-of-memory reading: the port
+        # aborts with SIGKILL when libplatform catches a recursive `os_unfair_lock` abort
+        # (PORTING.md P-126 - `getenv` inside the SIGCHLD handler), and that abort used to be
+        # reported as "out-of-memory", which sent a whole round after the wrong phenomenon.
+        if proc.returncode == -9:
+            return "crashed", 0, 0, 0, f"exit -9 (SIGKILL, watchdog silent): {tail}"
         return ("crashed" if proc.returncode != 0 else "no-summary"), 0, 0, 0, f"exit {proc.returncode}: {tail}"
     ran, expected, unexpected = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
     if proc.returncode != 0 and unexpected == 0:
