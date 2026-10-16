@@ -1243,6 +1243,20 @@ configuration (see PORTING.md 2.1's setup steps)");
         }
         Err(e) => return fail(e),
     }
+    // The link above takes the reference archive's own member set, which is what keeps the
+    // ported `lib/` units that define a *system* function's name (`open`, `fcntl`, ...) out of
+    // the program.  That rule is invisible in the link command itself, so the thirteen units
+    // are audited one by one here (docs/status.md 4.393, PORTING.md's P-86 family).
+    println!("== lib shadow gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-libshadows.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("lib shadows: no ported lib/ object shadows a system symbol"),
+        Ok(_) => return fail("a ported lib/ object is linked, or shadows a system symbol"),
+        Err(e) => return fail(e),
+    }
     // The four classes of declaration 0.1-19 keeps out of the tree - the copied
     // ownership block, the product name in a comment, the removed
     // `@ <rev> (<product> x.y.z)` parenthetical, and the comment that recites any of
