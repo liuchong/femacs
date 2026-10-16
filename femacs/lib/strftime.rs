@@ -86,7 +86,14 @@ pub type CHAR_T = c_char;
 pub type UCHAR_T = c_uchar;
 macro_rules! CHAR_T { () => { c_char } }
 macro_rules! UCHAR_T { () => { c_uchar } }
-macro_rules! L_ { ($str:expr) => { $str } }
+/* C 147-152: `L_(s)` marks a wide vs narrow string literal; the live arm is
+   `#define L_(s) s` over a *NUL-terminated* C string.  A Rust `&str` literal is not
+   NUL-terminated -- measured 2026-10-16, `L_!("%H:%M:%S").as_ptr ()` handed
+   `__strftime_internal` a "string" that ran on into the literal rustc packs next to it
+   (`%Y-%m-%d`, then `%m/%d/%y`), so `(format-time-string "%T")` returned
+   "01:46:40" + "2001-09-09" + "09/09/01" and `(format-time-string "%T|")` lost its
+   literal `|`; the terminator C's literal carries is therefore appended here.  */
+macro_rules! L_ { ($str:expr) => { concat!($str, "\0") } }
 /* C's `L_('x')` is a character constant (an `int`) and `L_("…")` a string literal;
    Rust's `'x'` is a `char`, so the port spells the character uses with `L_C` (whose
    name keeps C's token prefix and whose value is C's `int`) and the strings with `L_`
