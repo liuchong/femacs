@@ -128,7 +128,7 @@ pub unsafe extern "C" fn get_doc_string (filepos: Lisp_Object, unibyte: bool) ->
   let mut pos: Lisp_Object;
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut dir: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   if FIXNUMP (filepos)
     {
@@ -185,7 +185,7 @@ pub unsafe extern "C" fn get_doc_string (filepos: Lisp_Object, unibyte: bool) ->
 	  if *errno () != ENOENT && *errno () != ENOTDIR
 	    { report_file_error (b"Read error on documentation file\0".as_ptr () as *const c_char, file); }
 
-	  SAFE_FREE! (sa_count);
+	  SAFE_FREE! (sa_count, sa_mark);
 	  AUTO_STRING! (cannot_open, b"Cannot open doc string file \"\0".as_ptr () as *const c_char);
 	  AUTO_STRING! (quote_nl, b"\"\n\0".as_ptr () as *const c_char);
 	  return concat3 (cannot_open, file, quote_nl);
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn get_doc_string (filepos: Lisp_Object, unibyte: bool) ->
 	}
       p = p.offset (nread as isize);
     }
-  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil ());
+  SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
 
   /* Sanity checking.  */
   if CONSP (filepos)
@@ -565,7 +565,7 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
     }
 
   let count: specpdl_ref = SPECPDL_INDEX ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   name = SAFE_ALLOCA! (sa_avail, dirlen + SBYTES (filename) + 1) as *mut c_char;
   lispstpcpy (stpcpy (name, dirname), filename); 	/*** Add this line ***/
 
@@ -663,7 +663,7 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
       memmove (buf.as_mut_ptr () as *mut c_void, end as *const c_void, filled as usize);
     }
 
-  return SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil ());
+  return SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
 });
 
 /* Return true if text quoting style should default to quote `like this'.  */
