@@ -21387,3 +21387,10 @@
   ③ **环境**：宿主仍偶发外部 `Killed: 9`（executor 峰值 ~44 MB ⇒ 非本任务限额 ✓）；发作率 ~50% ⇒ 每项仪器都循环多次 ✓。
   ④ **资源**：本轮 **0 次源码改动、0 次编译** ✓；受控执行器 runtime 700 MiB（下调自默认 ✓）；`git -C emacs status --short` 为空 ✓；临时输出已清理 ✓。提交：本提交（纯读数 ✓）。
   ⑤ **下一步（点名）**：⑴ 改用 **C 侧抓栈**（lldb 在 `Fcons` 上加到第 100,000 次命中 ✓，即"走完内置表之后" ✓）看栈长什么样 ✓ —— 这比继续猜 Lisp 名字便宜 ✓；⑵ 或对**表走完之后**的第一批候选函数做**仅入口**计数（`package-menu--*`/`ert--*`/`sort`/`nconc`/`intern` ✓，每 1000 次打印一次 ✓）；⑶ 定位后修对应 `*.rs` ✓，再用 600 MiB 上限复跑该用例与整片 ✓。
+- **4.464 验证相第九十五轮：内置包表这条线**又清掉一个候选**（`package--builtin-alist` 两侧一致 ✓），并把"走完 514 之后"的代码定点到具体函数（2026-10-17）**：
+  ① **代码定位** ✓：唯一"遍历 `package--builtins`（514 条 ✓）并逐条构造"的函数是 **`package--builtin-alist`**（`package.el` 473-479 ✓）：
+  `(with-memoization package--builtin-alist (require 'finder-inf nil t) (cl-loop for bi-desc in package--builtins unless (eq (car bi-desc) 'emacs) collect (list (car bi-desc) (package--from-builtin bi-desc))))` ✓，其中 `package--from-builtin` 对条目做**破坏性 `pop`** ✓（参照同样 ✓）。
+  ② **确定性对照（两侧逐字一致 ✓）**：`(package--builtin-alist)` 两次调用 ⇒ `same-object=t` ✓（memo 生效 ✓）、返回值 `(5x5 #s(package-desc 5x5 nil "simple little puzzle game" nil nil nil builtin nil nil))` ✓、`(car package--builtins)` 仍是 `(5x5 . [nil nil "simple little puzzle game"])` ✓ ⇒ **该函数与参照行为一致** ✓ ⇒ 又一个候选被清掉 ✓（也说明 4.463 的"497/514 处 count"并非它 ✓）。
+  ③ **环境**：宿主仍偶发外部 `Killed: 9`（executor 峰值 ~38 MB ⇒ 非本任务限额 ✓）；发作率 ~50% ⇒ 仪器都要循环多次 ✓。
+  ④ **资源**：本轮 **0 次源码改动、0 次编译** ✓；受控执行器 runtime 700 MiB（下调自默认 ✓）；`git -C emacs status --short` 为空 ✓；临时输出已清理 ✓。提交：本提交（纯读数 ✓）。
+  ⑤ **下一步（点名，两条高信息量路线 ✓）**：⑴ **差分轨迹** ✓：对一组小函数（`intern`/`sort`/`nreverse`/`gethash`/`mapatoms` ✓）打**带时间戳的入口计数**，端口与参照各跑一遍 ✓ ⇒ 端口在何处**停止**、参照在同计数处**继续做什么** ✓ = 第一处分歧 ✓；⑵ **C 侧抓栈** ✓：lldb 在 `Fcons` 上把命中数抬到 **60,000-100,000**（= 走完内置表之后 ✓）直接读栈 ✓ —— 比继续猜 Lisp 名字便宜 ✓。定位后修对应 `*.rs` ✓，再用 600 MiB 上限复跑该用例与整片 ✓。
