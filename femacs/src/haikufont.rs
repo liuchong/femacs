@@ -293,7 +293,7 @@ static mut em_charset_table: [em_charset_table_entry; 41] =
 unsafe fn haikufont_apply_registry (pattern: *mut haiku_font_pattern, registry: Lisp_Object)
 {
   let r#str: *mut c_char = SSDATA (SYMBOL_NAME (registry));       // C 110
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                          // C 111
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                          // C 111
   let re: *mut c_char
     = SAFE_ALLOCA! (sa_avail, SBYTES (SYMBOL_NAME (registry)) * 2 + 1) as *mut c_char;  // C 112
   let mut i: c_int;                                               // C 113
@@ -324,7 +324,7 @@ unsafe fn haikufont_apply_registry (pattern: *mut haiku_font_pattern, registry: 
 	{ break; }
       i += 1;
     }
-  SAFE_FREE! (sa_count);                                          // C 132
+  SAFE_FREE! (sa_count, sa_mark);                                          // C 132
   if em_charset_table[i as usize].name.is_null ()                 // C 133
     { return; }
   let uniquifier: *mut c_int                                      // C 135
