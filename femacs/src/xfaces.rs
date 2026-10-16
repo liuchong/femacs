@@ -4827,7 +4827,7 @@ pub unsafe extern "C" fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t
     { endpos = XFIXNUM (end); }
 
   /* Look at properties from overlays.  */
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   {
     let mut next_overlay: ptrdiff_t = 0;
     GET_OVERLAYS_AT! (sa_avail, pos, overlay_vec, noverlays, &mut next_overlay);
@@ -4868,7 +4868,7 @@ pub unsafe extern "C" fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t
   if noverlays == 0
       && NILP (prop)
     {
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
       return (*default_face).id;
     }
 
@@ -4932,7 +4932,7 @@ pub unsafe extern "C" fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t
 
   *endptr = endpos;
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   /* Look up a realized face with the given face attributes,
      or realize a new one for ASCII characters.  */
