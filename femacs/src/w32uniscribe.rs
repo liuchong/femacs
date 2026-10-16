@@ -2087,7 +2087,7 @@ pub unsafe extern "C" fn uniscribe_check_otf (font: *mut LOGFONT, otf_spec: Lisp
       OTF_INT16_VAL! ('font_table_error, tbl, (langsys_table as c_int) + 4,
 		      &raw mut n_features);				// C 1113
       n_match_features += n_features as c_int;				// C 1114
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);				// C 1115
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);				// C 1115
       SAFE_NALLOCA! (sa_avail, ftags, 1, n_match_features);		// C 1116
       let mut k: c_int = 0;						// C 1117
       if feature_index != 0xFFFF					// C 1118
@@ -2117,7 +2117,7 @@ pub unsafe extern "C" fn uniscribe_check_otf (font: *mut LOGFONT, otf_spec: Lisp
       farray[1] = Qnil ();						// C 1135
       if ! uniscribe_check_features (farray.as_mut_ptr (), ftags, n_match_features)	// C 1136
 	{ break 'font_table_error; }					// C 1137
-      SAFE_FREE! (sa_count);						// C 1138
+      SAFE_FREE! (sa_count, sa_mark);						// C 1138
       i += 1;
     }
 
