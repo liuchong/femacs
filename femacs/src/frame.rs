@@ -2110,7 +2110,7 @@ DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
       let mut r#type: *mut c_char = std::ptr::null_mut ();
       let tty: Lisp_Object;
       let tty_type: Lisp_Object;
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
       tty = get_future_frame_param
         (Qtty (), parms, if FRAME_TERMCAP_P (XFRAME (selected_frame))
@@ -2127,7 +2127,7 @@ DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
 	{ SAFE_ALLOCA_STRING! (sa_avail, r#type, tty_type); }
 
       t = init_tty (name, r#type, false); /* Errors are not fatal.  */
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
 
   /* Make a new frame.  We need to know up front if a parent frame is
@@ -4235,7 +4235,7 @@ DEFUN! ("modify-frame-parameters", Fmodify_frame_parameters,
       let mut i: ptrdiff_t;
       let mut parms: *mut Lisp_Object = std::ptr::null_mut ();
       let values: *mut Lisp_Object;
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
       SAFE_ALLOCA_LISP! (sa_avail, parms, 2 * length);
       values = parms.offset (length as isize);
       let mut params: Lisp_Object = alist;
@@ -4301,7 +4301,7 @@ DEFUN! ("modify-frame-parameters", Fmodify_frame_parameters,
 	    { FRAME_NO_SPECIAL_GLYPHS! (f, !NILP (Fcdr (no_special))); }
 	}
 
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
     }
   return Qnil ();
 });
@@ -5100,7 +5100,7 @@ pub unsafe extern "C" fn gui_set_frame_parameters_1 (f: *mut frame, alist: Lisp_
     }
   CHECK_LIST_END (tail, alist);
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   SAFE_ALLOCA_LISP! (sa_avail, parms, 2 * size);
   values = parms.offset (size);
 
@@ -5369,7 +5369,7 @@ pub unsafe extern "C" fn gui_set_frame_parameters_1 (f: *mut frame, alist: Lisp_
       { x_wm_set_icon_position (f, XFIXNUM (icon_left), XFIXNUM (icon_top)); }
   }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* C 5396-5400.  */
@@ -6554,7 +6554,7 @@ pub unsafe extern "C" fn gui_display_get_resource (dpyinfo: *mut Display_Info,
 			     + (if STRINGP (subclass) { SBYTES (subclass) } else { 0 })
 			     + 3;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let name_key: *mut c_char = SAFE_ALLOCA! (sa_avail, name_keysize + class_keysize) as *mut c_char;
   let class_key: *mut c_char = name_key.offset (name_keysize as isize);
 
@@ -6593,7 +6593,7 @@ pub unsafe extern "C" fn gui_display_get_resource (dpyinfo: *mut Display_Info,
 				    name_key, class_key) }
 	else { std::ptr::null () };
 
-    SAFE_FREE! (sa_count);
+    SAFE_FREE! (sa_count, sa_mark);
 
     if !value.is_null () && *value != 0
       { return build_string (value); }
@@ -6603,7 +6603,7 @@ pub unsafe extern "C" fn gui_display_get_resource (dpyinfo: *mut Display_Info,
 
   #[cfg (feature = "have_android")]
   {
-    SAFE_FREE! (sa_count);
+    SAFE_FREE! (sa_count, sa_mark);
     return Qnil ();
   }
 }
@@ -6634,7 +6634,7 @@ pub unsafe extern "C" fn x_get_resource_string (attribute: *const c_char,
   let result: *const c_char;
   let sf: *mut frame = SELECTED_FRAME ();
   let invocation_namelen: ptrdiff_t = SBYTES (Vinvocation_name);
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Allocate space for the components, the dots which separate them,
      and the final '\0'.  */
@@ -6647,7 +6647,7 @@ pub unsafe extern "C" fn x_get_resource_string (attribute: *const c_char,
 
   result = x_get_string_resource (&raw mut (*FRAME_DISPLAY_INFO! (sf)).rdb as *mut c_void,
 				  name_key, class_key);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 }
 
