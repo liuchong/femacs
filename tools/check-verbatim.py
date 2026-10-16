@@ -10,7 +10,9 @@ that, so this is the gate:
     python3 tools/check-verbatim.py lisp test  # only these
     python3 tools/check-verbatim.py --selftest # prove the readings fire
 
-It compares the file *lists* (a missing file is as much a failure as a changed one) and
+`docs/baseline/verbatim-absent.txt` lists the retired files (PORTING.md P-102), so those are
+read as accepted absences rather than failures.  It compares the file *lists* (a missing file is
+as much a failure as a changed one) and
 then the contents, streamed in blocks so the four-and-a-half-million lines never sit in
 memory.  Exit status 0 means exact equality; 1 lists what differs.
 
@@ -51,6 +53,22 @@ BLOCK = 1 << 20
 # The sanctioned identity lines (0.1-19's tenth half).  Hand-written, one row per line,
 # each with the reason it cannot stay the reference's text; see the module docstring.
 SUBSTITUTIONS = REPO / "docs/baseline/verbatim-substitutions.tsv"
+# The accepted absences: files the reference tracks and this repository deliberately retired,
+# one `<path>` TAB <reason> line each.  Their record is `docs/retired-scaffolding.md`
+# (PORTING.md P-102); without the table an absence is a failure, with it a reading.
+ABSENCES = REPO / "docs/baseline/verbatim-absent.txt"
+
+
+def read_absences() -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not ABSENCES.is_file():
+        return out
+    for line in ABSENCES.read_text(encoding="utf-8").splitlines():
+        if not line or line.startswith("#"):
+            continue
+        path, _, reason = line.partition("\t")
+        out[path] = reason
+    return out
 
 
 def files_under(repo: Path, prefix: str) -> dict[str, Path]:
@@ -160,6 +178,7 @@ def main() -> int:
         return selftest()
 
     subs = read_substitutions()
+    absent = read_absences()
     used: set[str] = set()
     failures = 0
     total_sanctioned = 0
@@ -179,7 +198,8 @@ def main() -> int:
             continue
         a = files_under(src if (src / ".git").is_dir() else src.parent, tree)
         b = files_under(REPO, f"{TARGET}/{tree}")
-        missing = sorted(set(a) - set(b))
+        missing = sorted(rel for rel in set(a) - set(b)
+                         if f"{TARGET}/{tree}/{rel}" not in absent)
         extra = sorted(set(b) - set(a))
         changed: list[str] = []
         sanctioned = 0
@@ -202,7 +222,7 @@ def main() -> int:
         else:
             note = f", {sanctioned} sanctioned line(s)" if sanctioned else ""
             print(f"OK      {tree}: {len(a)} files, byte-identical{note}")
-    stale = sorted(set(subs) - used)
+    stale = sorted(set(subs) - used - set(absent))
     if stale:
         failures += 1
         print(f"FAIL    {SUBSTITUTIONS.name}: {len(stale)} row(s) for a file no tree carries")
@@ -212,7 +232,7 @@ def main() -> int:
                                 else REFERENCE, t))
                 for t in args.trees if (REFERENCE / t).is_dir())
     print(f"{len(args.trees)} trees, {total} files, {total_sanctioned} sanctioned line(s), "
-          f"{failures} failures")
+          f"{len(absent)} accepted absence(s), {failures} failures")
     return 1 if failures else 0
 
 

@@ -1,0 +1,17 @@
+# The copied trees' *accepted absences*: files the reference tracks under `lisp`, `test`,
+# `etc`, `doc`, `leim` or `admin` that this repository deliberately does not carry.  Each
+# line is `<path>` TAB <reason>; `tools/check-verbatim.py` reads the table so an absence is
+# a reading instead of a failure, and anything not listed here is still a failure.
+#
+# The nine rows below are the reference's autotools scaffolding, retired under PORTING.md
+# P-102 with its own record in `docs/retired-scaffolding.md` (the Cargo workspace and
+# `femacs/xtask` replace it, so no reader in this repository's build or gates wants it).
+femacs/lisp/Makefile.in	docs/retired-scaffolding.md row 1: the reference's lisp build; xtask and tools/gen-*.py replace it
+femacs/leim/Makefile.in	docs/retired-scaffolding.md row 2: the reference's leim build; tools/gen-leim.py replaces it
+femacs/admin/unidata/Makefile.in	docs/retired-scaffolding.md row 3: the reference's unidata build; tools/gen-unidata.py replaces it
+femacs/admin/charsets/Makefile.in	docs/retired-scaffolding.md row 4: the reference's charsets build; tools/gen-charsets.py replaces it
+femacs/admin/grammars/Makefile.in	docs/retired-scaffolding.md row 5: the reference's grammar download build; the port has no counterpart product
+femacs/doc/emacs/Makefile.in	docs/retired-scaffolding.md row 6: the reference's Emacs manual build; the port's own documentation chain is not settled yet
+femacs/doc/lispintro/Makefile.in	docs/retired-scaffolding.md row 7: the reference's Lisp Intro build; same as row 6
+femacs/doc/lispref/Makefile.in	docs/retired-scaffolding.md row 8: the reference's Lisp Reference build; same as row 6
+femacs/doc/misc/Makefile.in	docs/retired-scaffolding.md row 9: the reference's other manuals' build; same as row 6
