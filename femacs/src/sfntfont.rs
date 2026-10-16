@@ -766,7 +766,7 @@ unsafe fn sfnt_parse_style (style_name: Lisp_Object, desc: *mut sfnt_font_desc) 
   let mut c: c_char;
   let mut i: c_int;
   let mut x: ptrdiff_t;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Fill in default values.  slant seems to not be consistent with
      Fontconfig.  */
@@ -889,7 +889,7 @@ unsafe fn sfnt_parse_style (style_name: Lisp_Object, desc: *mut sfnt_font_desc) 
       (*desc).adstyle = Fintern ((*desc).adstyle, Qnil ());
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 }
 
 /* Parse the list of design languages in META, a font metadata table,
