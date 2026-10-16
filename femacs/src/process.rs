@@ -1293,6 +1293,11 @@ unsafe extern "C" {
   fn sys_faccessat (dirfd: c_int, file: *const c_char, mode: c_int, flags: c_int) -> c_int;
   /// C: void setup_pty (int)   (sysdep.c 3825)
   fn setup_pty (fd: c_int);
+  /// C: <signal.h>: `int pthread_sigmask (int, const sigset_t *, sigset_t *);` — the port's
+  /// `block_child_signal` (sysdep.rs) uses it, and the P-122 instrument reads the mask with it.
+  fn pthread_sigmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
+  /// C: <signal.h>: `int sigismember (const sigset_t *, int);`
+  fn sigismember (set: *const sigset_t, signum: c_int) -> c_int;
   /// C: bool child_status_changed (pid_t, int *, int)   (sysdep.c 1588)
   fn child_status_changed (child: pid_t, status: *mut c_int, options: c_int) -> bool;
   /// C: void synchronize_system_messages_locale (void)   (lisp.h 5142)
@@ -5441,6 +5446,18 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 					   wait_proc: *mut Lisp_Process,
 					   just_wait_proc: c_int) -> c_int
 {
+  /* PORTING.md P-122 ⑷'s instrument: is this the path `accept-process-output` takes at all?
+     Printed once per run, off unless FEMACS_CHILD_TRACE is set.  */
+  {
+    static mut wait_entered: bool = false;
+    if ! wait_entered && ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+      {
+        wait_entered = true;
+        fprintf (stderr, c"wait-enter: nsecs=%d read_kbd=%d wait_proc=%p\n".as_ptr (),
+                 nsecs, read_kbd, wait_proc as *const c_void);
+      }
+  }
+
   static mut last_read_channel: c_int = -1;
   let mut channel: c_int;
   let mut nfds: c_int;
@@ -5729,6 +5746,29 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  check_write = true;
 	}
 
+      /* PORTING.md P-122 ⑷'s instrument (FEMACS_CHILD_TRACE, P-115's shape): once per run, is
+	 SIGCHLD still delivered to this process's handler, and is it blocked right now?  A
+	 child that is never reaped has to show up here.  */
+      if ! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null ()
+	{
+	  static mut child_state_printed: bool = false;
+	  if ! child_state_printed
+	    {
+	      child_state_printed = true;
+	      let mut act: sigaction = std::mem::zeroed ();
+	      let mut cur: sigset_t = std::mem::zeroed ();
+	      sigaction (SIGCHLD, std::ptr::null (), &raw mut act);
+	      pthread_sigmask (SIG_BLOCK, std::ptr::null (), &raw mut cur);
+	      let handler: *const c_void
+		= match act.__sigaction_u.__sa_handler
+		  {
+		    Some (f) => f as *const () as *const c_void,
+		    None => std::ptr::null (),
+		  };
+	      fprintf (stderr, c"child-state: handler=%p flags=%d blocked=%d\n".as_ptr (),
+		       handler, act.sa_flags, sigismember (&cur, SIGCHLD));
+	    }
+	}
       /* We have to be informed when we receive a SIGCHLD signal for an asynchronous
 	 process.  Otherwise this might deadlock if we receive a SIGCHLD during
 	 `pselect'.  */
