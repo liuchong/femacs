@@ -56,6 +56,19 @@ SELECTOR_PRESETS = {"default": SELECTOR_DEFAULT,
                     "all": "t"}
 
 
+def ensure_port_tree_is_a_project_root() -> None:
+    """`emacs/` is its own git repository (the pinned checkout), and two `project-tests`/
+    `elisp-mode-tests` cases depend on that: they compute `(file-relative-name FILE
+    (project-root ...))` and expect it to start at `test/`.  The port's tree lives inside
+    this repository, so without the same marker its project root is the repository and the
+    relative name starts at `femacs/`.  Writing the gitfile makes the two trees equivalent
+    (PORTING.md P-135); it is ignored by the outer repository, so the worktree stays clean.
+    """
+    gitfile = PORT_TEST.parent / ".git"                 # femacs/.git
+    if not gitfile.exists():
+        gitfile.write_text("gitdir: ../.git\n")
+
+
 def cap_memory(mib: int):
     """A `preexec_fn` that caps the child's address space.  Linux honours it; Darwin refuses to
     lower `RLIMIT_AS` below the current address space ("Invalid argument"), which is why the
@@ -135,6 +148,7 @@ def run(prog: Path, test_root: Path, rel: str, timeout: int,
 
 
 def main() -> int:
+    ensure_port_tree_is_a_project_root()
     ap = argparse.ArgumentParser()
     ap.add_argument("--glob", default="**/*.el", help="test file pattern, relative to the test root")
     ap.add_argument("--timeout", type=int, default=300)
