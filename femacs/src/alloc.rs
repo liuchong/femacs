@@ -6321,6 +6321,15 @@ pub unsafe extern "C" fn garbage_collect ()
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut start: timespec;
 
+  /* P-115's shape: which root set is growing.  The GC runs but retains one discarded object per
+     iteration in `spikes/gc-retention-probe.el`, and the specpdl is the prime suspect (status
+     4.430).  Off unless the variable is set.  */
+  if ! unsafe { getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null () }
+    {
+      fprintf (stderr, c"gc: n=%d specpdl_bytes=%ld\n".as_ptr (),
+	       gcs_done as c_int, unwrap_specpdl_ref (count) as c_int);
+    }
+
   eassert! (weak_hash_tables.is_null ());
 
   if garbage_collection_inhibited != 0
