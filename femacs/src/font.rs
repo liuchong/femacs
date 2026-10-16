@@ -2039,7 +2039,7 @@ pub unsafe extern "C" fn font_dynamic_unparse_xlfd (font: Lisp_Object,
   let mut i: c_int;
   let mut j: c_int;
   let mut name: *mut c_char;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   eassert! (FONTP (font));
 
@@ -2211,7 +2211,7 @@ pub unsafe extern "C" fn font_dynamic_unparse_xlfd (font: Lisp_Object,
 	   f[XLFD_PIXEL_INDEX as usize], f[XLFD_RESX_INDEX as usize],
 	   f[XLFD_SPACING_INDEX as usize], f[XLFD_AVGWIDTH_INDEX as usize],
 	   f[XLFD_REGISTRY_INDEX as usize]);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return name;
 }
 
@@ -3018,7 +3018,7 @@ unsafe fn font_vconcat_entity_vectors (list: Lisp_Object) -> Lisp_Object
   let nargs: ptrdiff_t = list_length (list);
   let mut args: *mut Lisp_Object;
   let mut list: Lisp_Object = list;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   args = std::ptr::null_mut ();
   SAFE_ALLOCA_LISP! (sa_avail, args, nargs);
 
@@ -3030,7 +3030,7 @@ unsafe fn font_vconcat_entity_vectors (list: Lisp_Object) -> Lisp_Object
       list = XCDR (list);
     }
   let result: Lisp_Object = Fvconcat (nargs, args);
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return result;
 }
 
@@ -3089,7 +3089,7 @@ unsafe fn font_sort_entities (list: Lisp_Object, prefer: Lisp_Object, f: *mut fr
   /* PORTING.md 1.5: C declares `Lisp_Object vec UNINIT;` (UNINIT is `= {0,}` in the frozen
      configuration), so the port zero-initialises it.  */
   let mut vec: Lisp_Object = Qnil ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   i = FONT_WEIGHT_INDEX;
   while i <= FONT_AVGWIDTH_INDEX
@@ -3188,7 +3188,7 @@ unsafe fn font_sort_entities (list: Lisp_Object, prefer: Lisp_Object, f: *mut fr
       tail = XCDR (tail);
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
 
   FONT_ADD_LOG! (c"sort-by".as_ptr (), prefer, vec);
   return vec;
@@ -4216,7 +4216,7 @@ pub unsafe extern "C" fn font_find_for_lface (f: *mut frame, attrs: *mut Lisp_Ob
   let mut j: c_int;
   let mut k: c_int;
   let mut l: c_int;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Registry specification alternatives: from the most specific to
      the least specific and finally an unspecified one.  */
@@ -4388,7 +4388,7 @@ pub unsafe extern "C" fn font_find_for_lface (f: *mut frame, attrs: *mut Lisp_Ob
 						attrs, pixel_size, c);
 		      if ! NILP (val)
 			{
-			  SAFE_FREE! (sa_count);
+			  SAFE_FREE! (sa_count, sa_mark);
 			  return val;
 			}
 		    }
@@ -4401,7 +4401,7 @@ pub unsafe extern "C" fn font_find_for_lface (f: *mut frame, attrs: *mut Lisp_Ob
       i += 1;
     }
 
-  SAFE_FREE! (sa_count);
+  SAFE_FREE! (sa_count, sa_mark);
   return Qnil ();
 }
 
@@ -4754,7 +4754,7 @@ pub unsafe extern "C" fn font_update_drivers (f: *mut frame,
       let mut next: *mut *mut c_void;
       let mut tail: Lisp_Object;
       let mut i: c_int;
-      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
       SAFE_NALLOCA! (sa_avail, list_table, 1, num_font_drivers + 1);
       i = 0;
@@ -4797,7 +4797,7 @@ pub unsafe extern "C" fn font_update_drivers (f: *mut frame,
 	  i += 1;
 	}
       *next = std::ptr::null_mut ();
-      SAFE_FREE! (sa_count);
+      SAFE_FREE! (sa_count, sa_mark);
 
       if !((*( (*f).font_driver_list as *mut font_driver_list )).on)
 	{ /* None of the drivers is enabled: enable them all.
@@ -5992,7 +5992,7 @@ DEFUN! ("font-get-glyphs", Ffont_get_glyphs, Sfont_get_glyphs, 3, 4, 0,
   let mut chars: *mut Lisp_Object;
   let mut from: Lisp_Object = from;
   let mut to: Lisp_Object = to;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   chars = std::ptr::null_mut ();
 
   if NILP (object)
@@ -6112,7 +6112,7 @@ DEFUN! ("font-get-glyphs", Ffont_get_glyphs, Sfont_get_glyphs, 3, 4, 0,
       i += 1;
     }
   if ! VECTORP (object)
-    { SAFE_FREE! (sa_count); }
+    { SAFE_FREE! (sa_count, sa_mark); }
   return vec;
 });
 
