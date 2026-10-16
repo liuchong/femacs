@@ -20882,3 +20882,10 @@
      **结论**：`print_preprocess` 在遍历中读到**带符号 tag 的垃圾槽位** ✗；缺陷**对内存布局敏感**（0/134/139 混合 ✓，任何改二进制的仪表都会移动它 ✗ ⇒ 4.391 的毒化"3/3 干净"不可信 ✓）。
      **下一轮的新手段（点名）**：⑴ lldb 命令用 `-o` 逐条写、并把**故障帧**的 `register read --all` 与 `memory read --force` 落盘（本轮两次尝试分别遇到"寄存器没落盘"✗ 与"这次是 SIGABRT 而非 EXC_BAD_ACCESS"✗）⇒ 目标是拿到**容器对象**的地址与类型；⑵ 用 `command script` 在 lldb 里**循环 run 直到 `EXC_BAD_ACCESS`**（跳过 abort 的那些次 ✓），再读容器；⑶ 拿到容器后，在其创建后下 watchpoint 追槽位写入 ✓。
   ② **`initial-environment` 条目退役（4.377 ③ 的欠账）**：实测两端**都是 68 条且集合相同** ✓（`(length initial-environment)` = 68/68 ✓，`comm -23` 差集为空 ✓）⇒ 4.377 记的"68 vs 69"**在本环境不复现** ✓；该变量直接反映**调用者进程的环境** ✓，所以当时的差一条应当来自**不同的 shell 环境**（不是端口缺陷 ✓）。⇒ 该项**退役**（保留此读数以备环境变化时复查 ✓）。
+
+- **4.393 验证相第二十五轮：P-86 的 13 个 `lib/` 单元门**落地**（新工具 + 接进 `gate-fast`）（2026-10-16）**：
+  ① **背景**：这 13 个 `lib/` 单元（`open`/`fcntl`/`getdelim`/`getline`/`getgroups`/`mkostemp`/`stpcpy`/`strnlen`/`strtoimax`/`strtoll`/`time_r`/`fchmodat`/`cloexec` ✓）移植后各自定义一个**系统函数的名字** ✓（冻结配置并不使用这些 gnulib 模块 ✓，C 的 `temacs` 链接也不含它们 ✓）；端口早前的归档把每个 ported `lib/` 单元都塞进去 ⇒ **遮住了 libSystem 的定义** ✗（3.383 实测：程序在跑任何 Lisp 之前就死在**端口自己的 `open`** 里 ✓）。修法（取参照归档的成员集 ✓）已在 `xtask gate_load` 里 ✓，缺的是**逐单元读数** ✓。
+  ② **新工具 `tools/check-libshadows.py`**：对 13 个单元逐个——⑴（缺则用 `xtask build-tu lib/<u>.c` 建）对象存在 ✓；⑵ 该对象**不在**链接响应文件 `build/load/link-args.rsp` 里 ✓；⑶ 从对象里 `nm -g` 出的**全局 text 符号**，**没有一个**出现在最终程序 `build/port/src/temacs` 的已定义符号里 ✓（出现即为真遮蔽 ✗）。
+  ③ **读数**：**13 个单元、14 个系统名**（`open`/`fcntl`/`getdelim`/`getline`/`getgroups`/`mkostemp`/`stpcpy`/`strnlen`/`strtoimax`/`strtoll`/`gmtime_r`+`localtime_r`/`fchmodat`/`dup_cloexec`+`set_cloexec_flag` ✓）、**0 failure、0 遮蔽符号** ✓；对象构建约 5 秒 ✓。
+  ④ **接线**：`gate-fast` 的 link 关卡之后新增 `== lib shadow gate ==` 一步（`python3 tools/check-libshadows.py` ✓）；**整轮 `gate-fast` 跑过：exit 0** ✓（7m31s ✓，含这一步 ✓）。
+  ⑤ **欠账更新**：此项（P-86 的 13 单元）**收口** ✓；P-86 的其余部分（96 个"整身挂假条件"的文件族 ✓）仍是各自的文本门 + 翻臂读数 ✓，不属本项 ✓。
