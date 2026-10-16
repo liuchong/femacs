@@ -223,7 +223,7 @@ unsafe fn digest_menu_items (first_menu: *mut c_void, start: c_int, menu_items_u
   let mut selected: Lisp_Object;
   let mut help: Lisp_Object;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                              // C 47
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                              // C 47
 
   let menu_len: c_int = menu_items_used_ - start + 1;                 // C 49
   let pane_len: c_int = menu_items_used_ - start + 1;                 // C 50
@@ -393,7 +393,7 @@ unsafe fn digest_menu_items (first_menu: *mut c_void, start: c_int, menu_items_u
   if !view.is_null ()                                                 // C 182
     { BView_draw_unlock (view); }                                     // C 183
 
-  SAFE_FREE! (sa_count);                                              // C 185
+  SAFE_FREE! (sa_count, sa_mark);                                              // C 185
 }
 
 /* ==============================================================================================
@@ -648,7 +648,7 @@ pub unsafe extern "C" fn haiku_menu_show (f: *mut frame, mut x: c_int, mut y: c_
   let mut prefix: Lisp_Object;                                        // C 386
   let mut entry: Lisp_Object;
 
-  USE_SAFE_ALLOCA! (sa_avail, sa_count);                              // C 388
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);                              // C 388
 
   view = FRAME_HAIKU_VIEW! (f);                                       // C 390
   i = 0;                                                              // C 391
@@ -663,7 +663,7 @@ pub unsafe extern "C" fn haiku_menu_show (f: *mut frame, mut x: c_int, mut y: c_
     {
       *error_name = c"Empty menu".as_ptr ();                            // C 401
 
-      SAFE_FREE! (sa_count);                                          // C 403
+      SAFE_FREE! (sa_count, sa_mark);                                          // C 403
       return Qnil ();                                                 // C 404
     }
 
@@ -751,7 +751,7 @@ pub unsafe extern "C" fn haiku_menu_show (f: *mut frame, mut x: c_int, mut y: c_
 		  BPopUpMenu_delete (menu);                          // C 476
 		  unblock_input ();                                  // C 477
 
-		  SAFE_FREE! (sa_count);                             // C 479
+		  SAFE_FREE! (sa_count, sa_mark);                             // C 479
 		  return entry;                                      // C 480
 		}
 	      i += MENU_ITEMS_ITEM_LENGTH;                           // C 486
@@ -769,7 +769,7 @@ pub unsafe extern "C" fn haiku_menu_show (f: *mut frame, mut x: c_int, mut y: c_
   BPopUpMenu_delete (menu);                                          // C 498
   unblock_input ();                                                  // C 499
 
-  SAFE_FREE! (sa_count);                                             // C 501
+  SAFE_FREE! (sa_count, sa_mark);                                             // C 501
   return Qnil ();                                                    // C 502
 }
 
