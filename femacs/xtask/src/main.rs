@@ -1304,6 +1304,24 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a ported lib/ object is linked, or shadows a system symbol"),
         Err(e) => return fail(e),
     }
+    // C's `memcpy`/`memset` count *bytes*; `copy_nonoverlapping`/`write_bytes` count `T`s and
+    // multiply by `size_of::<T> ()` themselves, so a ported call that keeps C's byte count
+    // writes `size_of` times too much.  P-93 found it three times in the `memcpy` family and
+    // audited only `copy_nonoverlapping`-shaped sites; the `memset` family went unread until the
+    // dump died writing 1,572,864 bytes into a 6144-byte array (P-114, status 4.426).  The gate
+    // needs no type inference: a count that mentions `size_of` must go through a byte pointer.
+    println!("== typed-count gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-typed-counts.py"])
+        .status()
+    {
+        Ok(s) if s.success() => {
+            println!("typed counts: every byte count goes through a byte pointer (P-93/P-114)")
+        }
+        Ok(_) => return fail("a byte count is handed to a non-byte pointer (P-93/P-114)"),
+        Err(e) => return fail(e),
+    }
     // The four classes of declaration 0.1-19 keeps out of the tree - the copied
     // ownership block, the product name in a comment, the removed
     // `@ <rev> (<product> x.y.z)` parenthetical, and the comment that recites any of
