@@ -21285,3 +21285,9 @@
   ④ **探针**（`spikes/process-sentinel-advice-probe.el` ✓ 已按两形状三读数重写入库 ✓，旋钮 `N`/`ADVICE`/`CHILD` ✓）；裁定 **P-122 ⑵** ✓（诊断方向：`keyboard.c` 的 SIGCHLD 处理 + `process.c` 的 `wait_reading_process_output` 播种/轮询路径，与 C 逐句对照 ✓；验收 = 探针 0 丢失 ✓ + 整片 45 例 ✓ + 三门口复绿 ✓）。
   ⑤ **资源**：探针各轮端口侧 30-50 秒（自旋等待 ✓）、峰值 **31 MB** ✓；受控执行器 runtime 1024 MiB ✓；`git -C emacs status --short` 为空 ✓。提交：`spikes/process-sentinel-advice-probe.el`（更正版 ✓）、`PORTING.md`（P-122 ⑵ ✓）、本提交 ✓。
   ⑥ **下一步（点名）**：⑴ 在 `process.rs` 的 `wait_reading_process_output` 与 `keyboard.rs`/`sysdep.rs` 的 SIGCHLD/`pselect` 路径上，与 C 逐句核对"等待开始前已退出"的子进程如何被通知/轮询 ✓（先加 env 守卫打印候选状态 ✓ P-115 形状 ✓）；⑵ 修后跑探针（目标 0 丢失 ✓，fast/slow/advice 三种形状各 N=20 ✓）；⑶ 复跑 `package-vc-tests` 整片 45 例 ✓ + `gate-fast`/`gate-load`/`dump` ✓。
+- **4.446 验证相第七十八轮：仪器定案 —— SIGCHLD 处理器在探针期间**从未运行**（信号安装/屏蔽层）（2026-10-16）**：
+  ① **仪器**（`femacs/src/process.rs` 共 **+15 行** ✓、逻辑零改动 ✓）：`FEMACS_CHILD_TRACE`（P-115 形状 ✓ 默认关 ✓ 只写 stderr ✓）打印 `handle_child_signal` 入口 ✓、收割分支 ✓、`child_signal_notify` 写端 ✓、`catch_child_signal` 入口 ✓。
+  ② **读数**：快退出子进程探针（`N=4` 与 `N=6` ✓）missed **2/4** ✗ 与 **5/6** ✗，而四类 trace **全为 0** ✓✗ ⇒ **SIGCHLD 处理器从未运行** ✓、**`catch_child_signal` 从未被调用** ✓。
+  ③ **逐句核对（本轮读码 ✓）**：`wait_reading_process_output` 的 `status_notify` 调用点与守卫、`status_notify` 本体、`handle_child_signal` 本体**与 C 一致** ✓ ⇒ 丢唤醒不在循环写法 ✓ 而在**信号安装/屏蔽层** ✓（"SIGCHLD 被永久屏蔽"恰好能解释这份读数 ✓）。
+  ④ **门槛**：`gate-load=0` ✓（含 `check-coding-eol` 15 例 0 failure ✓）⇒ 仪器门等价 ✓、默认关时不影响行为 ✓。裁定 **P-122 ⑶** ✓：下一步 ⑴ 找端口安装 SIGCHLD 的位置（`emacs_sigaction_init`/`init_signals` ✓）与 C 对照 ✓；⑵ 查 `block_child_signal`/`unblock_child_signal` 与等待前的 `sigprocmask` ✓；⑶ 修后跑三形状探针（目标 0 丢失 ✓）+ `package-vc-tests` 整片 ✓ + 三门口复绿 ✓。
+  ⑤ **资源**：2 次单单元编译（各 5-6 秒 ✓）+ 2 次 `gate-load`（链接 ✓ 各含 15 例 diff ✓）+ 3 次探针（7-17 秒 ✓），受控执行器峰值 ≤ **303 MB** ✓（build 3072 MiB / runtime 1024 MiB 均**下调自默认** ✓）；`git -C emacs status --short` 为空 ✓；`/tmp/xt-cargo` 与临时输出已清理 ✓。提交：`femacs/src/process.rs`（仪器 ✓）、`PORTING.md`（P-122 ⑶ ✓）、本提交 ✓。
