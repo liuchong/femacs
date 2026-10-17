@@ -161,6 +161,7 @@ fn config_features () -> Vec<String>
         return Vec::new ();
       };
   let mut out: Vec<String> = Vec::new ();
+  let mut numbers: std::collections::HashMap<String, u64> = std::collections::HashMap::new ();
   for line in text.lines ()
     {
       // The JSON is one `"NAME": "value"` per line (`gen-config-json.py` writes it that way), so a
@@ -175,6 +176,7 @@ fn config_features () -> Vec<String>
         {
           continue;
         }
+      if let Ok (n) = value.parse::<u64> () { numbers.insert (name.to_string (), n); }
       if truthy
         {
           out.push (format! ("feature=\"{name_lower}\""));
@@ -183,6 +185,22 @@ fn config_features () -> Vec<String>
         {
           // A macro the port tests negatively (`#ifndef X` in C).
           out.push (format! ("feature=\"not_{name_lower}\""));
+        }
+    }
+  // `systhread.rs` gates the "alignment room" unions on `alignof_pthread_cond_t_le_…`, which is a
+  // *comparison* of two measured numbers, not a macro: the JSON carries
+  // `ALIGNOF_PTHREAD_COND_T` and `ALIGNOF_MAX_ALIGN_T` and nothing derived the boolean.  With it
+  // always false, Android took the union arm and `thread_state` lost `Clone`/`Copy` and its layout
+  // (status 4.616).  Derived here so both targets agree with their own measurement.
+  for (small, big, feature) in
+    [("ALIGNOF_PTHREAD_MUTEX_T", "ALIGNOF_MAX_ALIGN_T",
+      "alignof_pthread_mutex_t_le_alignof_max_align_t"),
+     ("ALIGNOF_PTHREAD_COND_T", "ALIGNOF_MAX_ALIGN_T",
+      "alignof_pthread_cond_t_le_alignof_max_align_t")]
+    {
+      if let (Some (&a), Some (&b)) = (numbers.get (small), numbers.get (big))
+        {
+          if a <= b { out.push (format! ("feature=\"{feature}\"")); }
         }
     }
   out.sort ();
