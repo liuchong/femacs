@@ -3600,7 +3600,7 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	     information with font entities.  */
 	  if ((*vector).header.size & PSEUDOVECTOR_SIZE_MASK) == FONT_ENTITY_MAX as ptrdiff_t
 	      && (*(PSEUDOVEC_STRUCT! (vector, font_entity))).is_android
-	    { android_finalize_font_entity (PSEUDOVEC_STRUCT! (vector, font_entity)); }
+	    { android_finalize_font_entity (PSEUDOVEC_STRUCT! (vector, font_entity) as *mut c_void); }
 	}
       }
     pvec_type::PVEC_THREAD =>
@@ -3636,7 +3636,7 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	#[cfg (feature = "have_modules")]
 	{
 	  let function = vector as *mut Lisp_Module_Function;
-	  module_finalize_function (function);
+	  module_finalize_function (function as *const c_void);
 	}
       }
     pvec_type::PVEC_NATIVE_COMP_UNIT =>
@@ -5982,9 +5982,9 @@ unsafe fn total_bytes_of_live_objects () -> byte_ct
    (DRIVER-TYPE NUM-FRAMES FONT-CACHE-DATA ...), and return changed entry.  */
 
 #[cfg (feature = "have_window_system")]
-unsafe fn compact_font_cache_entry (entry: Lisp_Object) -> Lisp_Object
+unsafe fn compact_font_cache_entry (mut entry: Lisp_Object) -> Lisp_Object
 {
-  let mut tail: Lisp_Object; let mut prev: *mut Lisp_Object = &raw mut { entry };
+  let mut tail: Lisp_Object; let mut prev: *mut Lisp_Object = &raw mut entry;
 
   tail = entry;
   while CONSP (tail)
@@ -6014,13 +6014,13 @@ unsafe fn compact_font_cache_entry (entry: Lisp_Object) -> Lisp_Object
               if vectorlike_marked_p (&raw mut (*GC_XFONT_ENTITY (AREF (obj_cdr, i))).header)
                 { break; }
 
-              objlist = AREF (AREF (obj_cdr, i), FONT_OBJLIST_INDEX);
+              objlist = AREF (AREF (obj_cdr, i), FONT_OBJLIST_INDEX as isize);
               while CONSP (objlist)
                 {
                   let val: Lisp_Object = XCAR (objlist);
                   let font = GC_XFONT_OBJECT (val);
 
-                  if !NILP (AREF (val, FONT_TYPE_INDEX))
+                  if !NILP (AREF (val, FONT_TYPE_INDEX as isize))
                       && vectorlike_marked_p (&raw mut (*font).header)
                     { break; }
                   objlist = XCDR (objlist);
@@ -7870,13 +7870,14 @@ DEFUN! ("memory-info", Fmemory_info, Smemory_info, 0, 0, 0,
     if sysinfo (&raw mut si) != 0
       { return Qnil (); }
     #[cfg (feature = "linux_sysinfo_unit")]
-    { units = si.mem_unit; }
+    { units = si.mem_unit as uintmax_t; }
     #[cfg (not (feature = "linux_sysinfo_unit"))]
     { units = 1; }
-    return list4i (((si.totalram as uintmax_t) * units / 1024),
-		   ((si.freeram as uintmax_t) * units / 1024),
-		   ((si.totalswap as uintmax_t) * units / 1024),
-		   ((si.freeswap as uintmax_t) * units / 1024));
+    // C passes these to `list4i` (intmax_t) and converts implicitly; Rust needs the cast (4.631).
+    return list4i (((si.totalram as uintmax_t) * units / 1024) as intmax_t,
+		   ((si.freeram as uintmax_t) * units / 1024) as intmax_t,
+		   ((si.totalswap as uintmax_t) * units / 1024) as intmax_t,
+		   ((si.freeswap as uintmax_t) * units / 1024) as intmax_t);
   }
   #[cfg (feature = "windowsnt")]
   {
