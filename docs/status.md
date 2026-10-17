@@ -21698,3 +21698,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **门** ✓：`build-tu src/font.c` ✓、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、**`gate-fast` exit=0 / 590 done / 0 failing** ✓。
   ④ **规则** ✓（P-162 ✓）：循环尾复用扫描游标 ✗ 不重算 ✓；"识别成功 + 结果里仍带着它"是"游标没到边界"的判据 ✓；差分探针用多名字 ✓。
   ⑤ **资源**：1 次单单元编译 ✓ + 1 次 `gate-load`/`dump` ✓ + 2 次探针跑（各 <1 s ✓）+ 1 次单文件 ERT（0.4 s ✓）+ 1 次 `gate-fast`（≈480 s ✓）；受控执行器 build 2048 / runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 269 MB** ✓；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/font.rs`（游标 ✓）、`PORTING.md`（P-162 ✓）、本提交 ✓。
+- **4.511 验证相第一百四十二轮：生成 `cus-load.el` ⇒ `cus-edit-tests` 转 same；同轮 `loadhist`/`char-fold` 复读也为 same（P-163）（2026-10-17）**：
+  ① **`cus-edit-tests`（8 例）** ✓：失败是 `void-variable custom-versions-load-alist` ✗ ⇒ **生成物缺失** ✓；按参照配方（`-l cus-dep` + `custom-make-dependencies` + `SUBDIRS_ALMOST` ✓）用端口程序生成 `lisp/cus-load.el`（**102,462 字节** ✓）⇒ **port-worse → same ✓**。
+  ② **同轮复读** ✓：`lisp/loadhist-tests`（10 例 ✓）与 `lisp/char-fold-tests`（7 例 ✓）**均为 same** ✓ ⇒ port-worse **21 → 18** ✓（`font` 4.510 ✓、`cus-edit` ✓、`loadhist` ✓、`char-fold` ✓）。
+  ③ **字节一致另算 ✗**：端口那份 102,462 vs 参照 108,461 ✓（差 6,099 ✓）；交叉验证（参照程序在端口树里跑同一配方 ✓）与端口同量级 ✓ ⇒ 差异是**树内容** ✓ 而非生成器 ✗ ⇒ DoD-4 独立项 ✓。
+  ④ **仍余一条手头失败** ✓：`lisp/xml-tests` 的 `xml-parse-tests`（5 例里 1 ✗，`equal` 在解析结果的第 0→2→2 层不等 ✓）⇒ 下一轮单点 ✓。
+  ⑤ **资源**：4 次单文件 ERT（4.5 s ✓）+ 3 次 `cus-load` 生成（各 ≤6 s ✓，受控执行器 build 2048 MiB ✓，峰值 **64 MB** ✓）；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓；`femacs/lisp/cus-load.el` 是生成物 ✓、`git status` 未变化 ✓。提交：`PORTING.md`（P-163 ✓）、本提交（纯读数 + 生成物 ✓）。
