@@ -115,11 +115,11 @@ pub union __sigaction_u
      sigset_t sa_mask;
      int sa_flags;
    };  */
-/* C's `<signal.h>` declares `siginfo_t`; the port only ever passes a pointer to it through
-   `sa_sigaction`, so an opaque type that claims nothing about its layout is enough.  Declared
-   here, with `sigaction`, because that is the header C takes both from.  */
-#[cfg (feature = "have_android")]
-pub struct siginfo_t;
+/* C's `<signal.h>` declares `siginfo_t`, and the port's record for it is `sysdep.rs` 193's - one
+   definition per crate, so this mirror carries the pointee untyped instead (P-72 rule 3, the shape
+   `composite` and the `output_data` union use): an opaque second copy here was `E0428 siginfo_t`
+   in every unit that defines it (measured on `src/sysdep.c`), and `sysdep.rs` reads the member
+   C 1885 reads, so a claim of "no layout" is not available to it either.  */
 
 /* bionic's `struct sigaction` is flat and 32 bytes (`sa_sigaction` is a plain member, not a field
    of `__sigaction_u`), measured with `_Static_assert` against the NDK's own `<signal.h>`
@@ -133,7 +133,7 @@ pub struct sigaction
   // the NDK's own `<signal.h>`, which the port names as an opaque `c_void` here so this mirror
   // does not have to declare it (the `android.rs` handler takes `*mut siginfo_t`, and C passes
   // the same pointer through both spellings).
-  pub sa_sigaction: Option<unsafe extern "C" fn (c_int, *mut siginfo_t, *mut c_void)>,
+  pub sa_sigaction: Option<unsafe extern "C" fn (c_int, *mut c_void, *mut c_void)>,
   pub sa_mask: sigset_t,
   pub sa_flags: c_int,
   pub sa_restorer: Option<unsafe extern "C" fn ()>,

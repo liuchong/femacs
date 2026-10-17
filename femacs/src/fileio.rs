@@ -62,6 +62,12 @@ include!("../lib/include/tempname.rs");        // C 114: `#include <tempname.h>`
 include!("../lib/include/binary-io.rs");       // C 116: `#include <binary-io.h>`
 include!("../lib/include/sys-limits.rs");      // lisp.h's `<sys-limits.h>` (SYS_BUFSIZE_MAX)
 include!("include/commands.rs");               // C 122: `#include "commands.h"`
+/* C 60: `#include "android.h"`, inside CC's `#ifdef HAVE_ANDROID`.  The mirror declares C's 85 prototypes in
+   its two modules and glob-imports the second (`include/android.rs` 324), so including it is what
+   supplies `android_is_special_directory`/`android_rewrite_spawn_argv`/`android_init_gui` - the
+   names this unit read as `cannot find function` on `aarch64-linux-android` (measured).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+include!("include/android.rs");               // C 60: `#include "android.h"`
 
 /* C 29-31: `#ifdef DARWIN_OS` / `#include <sys/attr.h>` (DARWIN_OS *is* defined on the
    frozen target, so the include is live).  This file names none of the header's entries, so

@@ -98,6 +98,12 @@ include!("include/termhooks.rs");              // C 120: `#include "termhooks.h"
 include!("include/termchar.rs");               // C 121: `#include "termchar.h"`
 include!("include/process.rs");                // C 123: `#include "process.h"`
 include!("include/cm.rs");                     // C 124: `#include "cm.h"`
+/* C 137: `#include "android.h"`, inside CC's `#ifdef HAVE_ANDROID`.  The mirror declares C's 85 prototypes in
+   its two modules and glob-imports the second (`include/android.rs` 324), so including it is what
+   supplies `android_is_special_directory`/`android_rewrite_spawn_argv`/`android_init_gui` - the
+   names this unit read as `cannot find function` on `aarch64-linux-android` (measured).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+include!("include/android.rs");               // C 137: `#include "android.h"`
 
 /* ==========================================================================================
    The declarations C gets from headers the port has no mirror for.  Each has C's own text
@@ -579,6 +585,7 @@ unsafe extern "C" {
 }
 
 /// `<pthread.h>`, measured: Darwin's `pthread_t` is a pointer to `struct _opaque_pthread_t`.
+#[cfg (not (all (feature = "threads_enabled", feature = "have_pthread")))]
 pub type pthread_t = *mut c_void;
 
 /* `"systty.h"`: `#define CDISABLE _POSIX_VDISABLE` (255 on this target) now comes from
@@ -4502,7 +4509,7 @@ pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
   while CONSP (tail)
     {
       next = XCDR (tail);
-      XSETCAR! (tail, Fstring_to_number (XCAR (tail), Qnil ()));
+      XSETCAR (tail, Fstring_to_number (XCAR (tail), Qnil ()));   // lisp.rs 898 renders C's macro as a fn
       tail = next;
     }
 
@@ -4512,9 +4519,13 @@ pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
   return proclist;
 }
 
-// C 3346-3404: `#elif defined DARWIN_OS || defined __FreeBSD__ || defined __OpenBSD__` —
-// live for this target (DARWIN_OS), and the inner `#ifdef DARWIN_OS`/`#elif __OpenBSD__`
-// arms below it too.
+// C 3346-3404: `#elif defined DARWIN_OS || defined __FreeBSD__ || defined __OpenBSD__` — the
+// frozen target's own arm (and the inner `#ifdef DARWIN_OS`/`#elif __OpenBSD__` arms below it),
+// and C 3314's `#ifdef HAVE_PROCFS` arm above it is the one Android takes (`HAVE_PROCFS` is 1
+// there).  `#elif` is exclusive and Rust's `cfg` is not, so the arm carries the negation of the
+// condition before it - without it the Android build read `E0428 list_system_processes` (measured).
+#[cfg (all (not (feature = "have_procfs"),
+            any (feature = "darwin_os", feature = "__freebsd__", feature = "__openbsd__")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
   let mut mib: [c_int; 6] =

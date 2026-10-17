@@ -2804,6 +2804,10 @@ pub unsafe fn set_act_rec (th: *mut thread_state, act_rec: *mut c_void) {
 /// `INLINE int maybe_disable_address_randomization (int argc, char **argv) { return argc; }`.
 /// The second parameter is C's own and unused, exactly as in C - the port dropped it once and
 /// the call site had to spell one argument (docs/status.md 3.66).
+/// C 5272-5274's gate: the inline is the `#else` arm, and Android sets
+/// `HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` (1), where `sysdep.c` 162 defines the real one - with both
+/// live the unit read `E0428 maybe_disable_address_randomization` (measured).
+#[cfg (not (feature = "have_personality_addr_no_randomize"))]
 #[inline(always)]
 pub fn maybe_disable_address_randomization (argc: c_int, argv: *mut *mut c_char) -> c_int {
     let _ = argv;
@@ -3815,6 +3819,16 @@ macro_rules! CONS_TO_INTEGER { ($cons:expr, $var:expr) => { $var = <_ as ConsToI
 pub mod other_units {
     // the mirror's own types/constants live in the crate root, as lisp.h's do
     use super::*;
+
+    /// C 5273-5274: the `#ifdef HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` arm declares this one and
+    /// `sysdep.c` 162 defines it; the `#else` arm is the inline above (C 5276-5280).  It sits in
+    /// the module rather than at the mirror's root because the defining unit includes this mirror
+    /// (P-39); without it, `src/emacs.c` 1510 read `cannot find function` on Android (measured,
+    /// after the inline was gated with C's own condition).
+    #[cfg (feature = "have_personality_addr_no_randomize")]
+    unsafe extern "C" {
+      pub fn maybe_disable_address_randomization (argc: c_int, argv: *mut *mut c_char) -> c_int;
+    }
 
     // src/lisp.h 4268, 4330, 4345, 4363, 5039, 5110: cmds.c's callees — the definitions live in
     // editfns.c (concat2, replace_range), insdel.c (del_range, insert_and_inherit), search.c

@@ -81,6 +81,12 @@ include!("include/window.rs");                 // C 38: `#include "window.h"`
 include!("include/commands.rs");               // C 36: `#include "commands.h"`
 include!("include/indent.rs");                 // C 37: `#include "indent.h"`
 include!("include/pdumper.rs");                // C 51: `#include "pdumper.h"`
+/* C 43: `#include TERM_HEADER`, inside C's `#ifdef HAVE_WINDOW_SYSTEM`.  The frozen
+   configuration leaves `TERM_HEADER` undefined (no window system), so no unit carried the edge and
+   every `FRAME_DISPLAY_INFO` expansion in this unit's body read `cannot find macro` on
+   `aarch64-linux-android` (measured; `dispnew.rs` carries the same five-way gate).  */
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+include!("include/androidterm.rs");            // C 43 (TERM_HEADER): `androidterm.h`
 
 
 /* window.h 392-410: the nineteen `bool_bf : 1` members share the unit `bits`; the readers are

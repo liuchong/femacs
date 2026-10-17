@@ -212,16 +212,9 @@ unsafe extern "C" {
    which `signal.rs` already reaches).  The names this slice uses are declared here (P-88/P-70, the
    sysdep.rs `<pthread.h>` block shape); the six types are the NDK's measured aarch64/bionic
    records, not the frozen target's, and the ledger records the measurement.  */
-#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-#[derive(Copy, Clone)]
-#[repr(C, align(4))]
-pub struct pthread_mutex_t { pub __opaque: [c_uchar; 40] }       // bionic, sizeof 40 align 4
-#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-#[derive(Copy, Clone)]
-#[repr(C, align(4))]
-pub struct pthread_cond_t { pub __opaque: [c_uchar; 48] }        // bionic, sizeof 48 align 4
-#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-pub type pthread_t = c_long;                                     // bionic, sizeof 8
+/* The three types C takes from `<pthread.h>` are `include/systhread.rs`'s now (both the clang
+   and the bionic arms live there, `docs/baseline/android-pthread-sizes.txt` measures them), so
+   this slice keeps only the two that mirror declares nowhere:  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub type pthread_key_t = c_int;                                  // bionic, sizeof 4
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -282,7 +275,7 @@ unsafe extern "C" {
    gap, and the arm pre-flight patches the mirror copy.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub type sig_atomic_t = c_int;                                   // bionic, sizeof 4
-// `siginfo_t` is declared by <signal.h> in C, so the signal mirror declares it
+// `siginfo_t` is declared by <signal.h> in C, so `signal.rs` names the pointee untyped
 // (femacs/lib/include/signal.rs, `have_android` arm) rather than this unit
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const SA_SIGINFO: c_int = 0x00000004;                        // bionic, measured
@@ -997,7 +990,7 @@ unsafe extern "C" fn android_run_select_thread (thread_data: *mut c_void) -> *mu
    siginfo_t *, void *)` is assigned to `sa_sigaction`, so it is an `unsafe extern "C" fn`.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 #[cfg (not (feature = "android_api_lt_21"))]
-unsafe extern "C" fn android_handle_poll_signal (sig: c_int, siginfo: *mut siginfo_t,
+unsafe extern "C" fn android_handle_poll_signal (sig: c_int, siginfo: *mut c_void,
 						 arg: *mut c_void)          // C 674-691
 {
   let mut queue: *mut android_thread_event_queue;
