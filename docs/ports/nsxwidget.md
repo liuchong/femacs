@@ -4,35 +4,35 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 22
-- [ ] nsxwidget_is_web_view  (line 330)
-- [ ] nsxwidget_webkit_uri  (line 337)
-- [ ] nsxwidget_webkit_title  (line 344)
-- [ ] nsxwidget_webkit_goto_uri  (line 353)
-- [ ] nsxwidget_webkit_goto_history  (line 363)
-- [ ] nsxwidget_webkit_estimated_load_progress  (line 374)
-- [ ] nsxwidget_webkit_stop_loading  (line 381)
-- [ ] nsxwidget_webkit_zoom  (line 388)
-- [ ] js_to_lisp  (line 398, static)
-- [ ] nsxwidget_webkit_execute_script  (line 454)
-- [ ] nsxwidget_init  (line 490)
-- [ ] nsxwidget_kill  (line 507)
-- [ ] nsxwidget_resize  (line 535)
-- [ ] nsxwidget_get_size  (line 545)
-- [ ] nsxwidget_init_view  (line 558)
-- [ ] nsxwidget_delete_view  (line 586)
-- [ ] nsxwidget_show_view  (line 599)
-- [ ] nsxwidget_hide_view  (line 607)
-- [ ] nsxwidget_resize_view  (line 614)
-- [ ] nsxwidget_move_view  (line 620)
-- [ ] nsxwidget_move_widget_in_view  (line 627)
-- [ ] nsxwidget_set_needsdisplay  (line 634)
+- [x] nsxwidget_is_web_view  (line 330)
+- [x] nsxwidget_webkit_uri  (line 337)
+- [x] nsxwidget_webkit_title  (line 344)
+- [x] nsxwidget_webkit_goto_uri  (line 353)
+- [x] nsxwidget_webkit_goto_history  (line 363)
+- [x] nsxwidget_webkit_estimated_load_progress  (line 374)
+- [x] nsxwidget_webkit_stop_loading  (line 381)
+- [x] nsxwidget_webkit_zoom  (line 388)
+- [x] js_to_lisp  (line 398, static)
+- [x] nsxwidget_webkit_execute_script  (line 454)
+- [x] nsxwidget_init  (line 490)
+- [x] nsxwidget_kill  (line 507)
+- [x] nsxwidget_resize  (line 535)
+- [x] nsxwidget_get_size  (line 545)
+- [x] nsxwidget_init_view  (line 558)
+- [x] nsxwidget_delete_view  (line 586)
+- [x] nsxwidget_show_view  (line 599)
+- [x] nsxwidget_hide_view  (line 607)
+- [x] nsxwidget_resize_view  (line 614)
+- [x] nsxwidget_move_view  (line 620)
+- [x] nsxwidget_move_widget_in_view  (line 627)
+- [x] nsxwidget_set_needsdisplay  (line 634)
 
 ## Macros defined — 0
 
 ## Types and their fields — 0
 
 ## File-scope objects — 1
-- [ ] static NSString xwScript  (line 287, static)
+- [x] static NSString xwScript  (line 287, static)
 
 ## Decisions (2026-10-17, before the port)
 
