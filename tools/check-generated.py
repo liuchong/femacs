@@ -66,6 +66,9 @@ PATTERNS = [
     # `admin/unidata/Makefile.in` 54-55's order-only prerequisite, compiled by the port's
     # own program (the `macuvs.h` run it feeds is `gen-unidata.py`'s `run_uvs`).
     "admin/unidata/uvs.elc",
+    # `admin/charsets/Makefile.in` 195-197's generated sed script, which the JISX2131 recipe
+    # reads; `gen-charsets.py` rebuilds it from the port's own data (status 4.608).
+    "admin/charsets/jisx2131-filter",
     "lisp/loaddefs.el",
     "lisp/theme-loaddefs.el",
     "lisp/subdirs.el",

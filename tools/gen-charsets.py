@@ -67,30 +67,52 @@ def recipes(targets_: list[str]) -> list[tuple[str, str]]:
                 lines.append(line.rstrip())
         out = None
         body: list[str] = []
+
+        def flush() -> None:
+            if out and body:
+                cmds.append((out, " && ".join(body)))
+
         for line in lines:
             stripped = line.strip()
             if not stripped:
                 continue
             if stripped.startswith("GEN "):
-                out = stripped.split(None, 1)[1].strip()
-                continue
-            if out is None:
+                flush()
+                out, body = stripped.split(None, 1)[1].strip(), []
                 continue
             if stripped.startswith("make") or "Nothing to be done" in stripped:
                 continue
+            if out is None:
+                # C's Makefile writes some products with `$(AM_V_at)`, which prints **no** `GEN`
+                # progress line at all - so those recipes arrive here before any output name has
+                # been seen.  The redirect is then the only name make gives, and taking it is what
+                # lets this tool rebuild `admin/charsets/jisx2131-filter` (status 4.608): dropping
+                # them silently is what had made that file look like "the reference build's
+                # business" (P-221).
+                named = output_of(stripped)
+                if named is None:
+                    continue
+                cmds.append((named, stripped))
+                continue
             body.append(stripped)
-        if out and body:
-            cmds.append((out, " && ".join(body)))
+        flush()
     return cmds
 
 
 def port_output(out: str) -> str:
     """The port-side path for the reference-source path OUT (make's own `GEN` line names it)."""
     for prefix, dest in (("../../../../emacs/etc/charsets/", f"{PORT}/etc/charsets/"),
-                         ("../../../../emacs/lisp/international/", f"{PORT}/lisp/international/")):
+                         ("../../../../emacs/lisp/international/", f"{PORT}/lisp/international/"),
+                         ("../../../../emacs/admin/charsets/", f"{PORT}/admin/charsets/")):
         if out.startswith(prefix):
             return dest + out[len(prefix):]
     return out
+
+
+# `admin/charsets/Makefile.in` 195-197 generates this sed script from `mapfiles/JISX213A.map`, and
+# 199-201 (`JISX2131.map`) reads it.  So it is an input that is **not** data: it is a product of an
+# earlier recipe in this same run, and it has to come from the port's own tree.
+REF_HELPER = "../../../../emacs/admin/charsets/jisx2131-filter"
 
 
 def rewrite(cmd: str) -> str:
@@ -104,9 +126,13 @@ def rewrite(cmd: str) -> str:
     # No `pathlib` here: `str(PORT / "etc/charsets/")` drops the trailing slash and would glue
     # the file name to the directory (measured before the first run - the pre-flight below).
     for prefix, dest in (("../../../../emacs/etc/charsets/", f"{PORT}/etc/charsets/"),
-                         ("../../../../emacs/lisp/international/", f"{PORT}/lisp/international/")):
+                         ("../../../../emacs/lisp/international/", f"{PORT}/lisp/international/"),
+                         ("../../../../emacs/admin/charsets/", f"{PORT}/admin/charsets/")):
         out = out.replace("> " + prefix, "> " + dest)
-    return out
+    # Then the one input that is not data (see REF_HELPER): it has to come from the port's tree, or
+    # the port's JISX2131.map is reproducible only while the *reference's* build happens to have
+    # left that file behind.
+    return out.replace(REF_HELPER, f"{PORT}/admin/charsets/jisx2131-filter")
 
 
 def output_of(cmd: str) -> str | None:
@@ -114,17 +140,6 @@ def output_of(cmd: str) -> str | None:
     if "> " not in cmd:
         return None
     return cmd.split("> ", 1)[1].split()[0]
-
-
-def is_reference_helper(out: str) -> bool:
-    """A recipe that writes a *helper* into the reference's own source tree.
-
-    `admin/charsets/jisx2131-filter` is a generated sed script that the other recipes only ever
-    *read* (as `SED_SCRIPT`), and it already exists in the reference checkout from its own build.
-    Generating it is the reference build's business, not an artefact the port has to match, so
-    this tool leaves it alone rather than writing into the reference tree.
-    """
-    return out.startswith("../../../../emacs/admin/")
 
 
 def check(out_path: pathlib.Path) -> str:
@@ -160,22 +175,19 @@ def main() -> int:
     if not REF_BUILD.is_dir():
         raise SystemExit(f"{REF_BUILD} is missing: configure the frozen reference build first")
 
-    kept, skipped = [], []
-    for out, cmd in recipes(chosen):
-        if out.startswith("../../../../emacs/admin/"):
-            skipped.append(cmd)
-            continue
-        kept.append((out, cmd))
-    if skipped:
-        print(f"skipped {len(skipped)} recipe(s) that write into the reference tree, "
-              f"e.g. {skipped[0][:90]}")
-    cmds = kept
+    # Nothing is skipped for "it writes into the reference tree" any more: `port_output` sends
+    # every one of those paths to the port's own tree, which is what makes the port able to
+    # rebuild `admin/charsets/jisx2131-filter` from the port's own data at all (P-219/P-221).
+    cmds = recipes(chosen)
     print(f"{len(chosen)} target(s) asked for, {len(cmds)} recipe(s) to run")
     made: list[pathlib.Path] = []
     for out, cmd in cmds:
         # Replace the exact output path make named: that covers the `> path` redirects and the
         # `cp`-style recipes, which name their output without any redirect.
         line = cmd.replace(out, port_output(out))
+        # Then the one *input* that is a product of another recipe in this same run (REF_HELPER):
+        # read the port's copy, not one the reference's build happened to leave behind.
+        line = line.replace(REF_HELPER, f"{PORT}/admin/charsets/jisx2131-filter")
         m = port_output(out)
         r = subprocess.run(["/bin/sh", "-c", line], cwd=REF_BUILD, capture_output=True, text=True)
         if r.returncode != 0:
