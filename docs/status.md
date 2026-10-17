@@ -21969,3 +21969,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **基准范围** ✓（`tools/bench.sh` 连跑两次 ✓）：非 VM 项 **1.07–1.20×** ✓（`regexp-repl` 1.10–1.12× ✓、`buffer-scan` 1.07–1.15× ✓、`sort` 1.19–1.20× ✓）；VM 项 **1.25–1.51×** ✗（`bc-loop` 1.35–1.51× ✓、`bc-sum` 1.27–1.51× ✓、`bc-car` 1.25–1.38× ✓）⇒ 记录为**范围**而非单点 ✓（±10% 抖动 ✓）。
   ④ **口径** ✓：DoD-7 的表述此后以"范围"给出 ✓；VM 那一段的剩余差距属**每指令开销** ✓（P-180/P-182 已排除派发状态变量与 `funcall_subr` 细节 ✓）。
   ⑤ **Lisp 零改动** ✓；本轮 1 次全量重编（`gate-fast` ✓）+ relink/dump ✓ + 冒烟/基准 ✓；`git -C emacs status --short` 为空 ✓。提交：本提交（纯读数 ✓）。
+- **4.553 验证相第一百八十四轮：VM 那 1.25–1.51× 找到名字 —— 参照走 `BYTE_CODE_THREADED`，端口抄的是同一文件的 `switch` 臂（P-185）（2026-10-17）**：
+  ① **证据** ✓：`bytecode.c:37-44` 的 `#if (defined __GNUC__ && !defined __STRICT_ANSI__ && !BYTE_CODE_SAFE && !defined BYTE_CODE_METER)` ⇒ `#define BYTE_CODE_THREADED` ✓ —— 本机 clang/macOS 满足 ✓ ⇒ 参照的解释器是**间接线程化**（每条指令 `goto *targets[op]` ✓）；端口按 **P-03** 只转录**非线程化**臂 ✓（`FIRST!/CASE/CASE_DEFAULT` ✓，PORTING 2.2 的 loop+state ✓）。
+  ② **含义** ✓：这不是"端口慢" ✗，而是**两条同一个 C 源文件的不同分支** ✓；Rust 稳定版没有 label-as-value ✗（`label_break_value` 仍 unstable ✓）⇒ **不用 nightly 无法关闭** ✓。
+  ③ **其余五项** ✓ 没有这条理由 ✓：`regexp-repl` 1.10–1.12× ✓、`buffer-scan` 1.07–1.15× ✓、`sort` 1.19–1.20× ✓、启动 1.13× ✓ —— 属**真实的小差距** ✓。
+  ④ **审计表第 7 条更新** ✓：写明"已从 1.2–3.9× 收到 1.07–1.51×"+"VM 段原因是 threaded vs switch"+"其余五项是小差距" ✓；裁定项仍在 `docs/decisions-needed.md` 第 1 项 ✓。
+  ⑤ **Lisp 零改动** ✓；本轮**零编译** ✓（一次声明门 7 s ✓）；受控执行器峰值 ≤ 60 MB ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-185 ✓）、`docs/acceptance.md`（第 7 条 ✓）、本提交（读数 ✓）。
