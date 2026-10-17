@@ -21704,3 +21704,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **字节一致另算 ✗**：端口那份 102,462 vs 参照 108,461 ✓（差 6,099 ✓）；交叉验证（参照程序在端口树里跑同一配方 ✓）与端口同量级 ✓ ⇒ 差异是**树内容** ✓ 而非生成器 ✗ ⇒ DoD-4 独立项 ✓。
   ④ **仍余一条手头失败** ✓：`lisp/xml-tests` 的 `xml-parse-tests`（5 例里 1 ✗，`equal` 在解析结果的第 0→2→2 层不等 ✓）⇒ 下一轮单点 ✓。
   ⑤ **资源**：4 次单文件 ERT（4.5 s ✓）+ 3 次 `cus-load` 生成（各 ≤6 s ✓，受控执行器 build 2048 MiB ✓，峰值 **64 MB** ✓）；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓；`femacs/lisp/cus-load.el` 是生成物 ✓、`git status` 未变化 ✓。提交：`PORTING.md`（P-163 ✓）、本提交（纯读数 + 生成物 ✓）。
+- **4.512 验证相第一百四十三轮：`xml-tests` 收窄到参数实体替换的最小复现，并判定三条失败同属匹配器（P-164）（2026-10-17）**：
+  ① **最小复现（27 字 ✓）**：`<!DOCTYPE foo [<!ENTITY % pent "AbC"><!ENTITY ent "%pent;">]><foo><bar>&ent;</bar></foo>` ⇒ 端口 `"?"` ✗ / 参照 `"AbC"` ✓；对照组（无参数实体 ✓）两侧 `"AbC;"` ✓ ⇒ 只在**参数实体替换**路径 ✗。
+  ② **归属** ✓：`xml.el` 原样复制 ✓ ⇒ 缺陷在原语 ✓，该路径用的是正则替换/匹配族 ✓ ⇒ 与 `electric-tests`/`log-edit-tests`（匹配器 `d` 越过 `end1` ✓）同族 ✓ ⇒ **三条测试指向同一个靶子** ✓。
+  ③ **本轮同时确认的三条清账（4.510/4.511 的连带 ✓）**：`font-tests` ✓、`cus-edit-tests` ✓、`loadhist-tests` ✓、`char-fold-tests` ✓ 全为 **same** ⇒ port-worse 21 → **18** ✓。
+  ④ **下一轮（集中 ✓）**：不再分头查 ✓，直接做匹配器 —— 从 4.495 的 `crossed prev=2`（`exactn` 出口 ✓）与 4.494 的 `i = -11` 入手 ✓；判据仍是既有的 `crossed`/`d-in-gap`/`dcnt` 三条常驻仪器 ✓。
+  ⑤ **资源**：2 次探针跑（各 <1 s ✓，受控执行器 runtime 700 MiB ✓，峰值 **≤ 22 MB** ✓）；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-164 ✓）、本提交（纯读数 ✓）。
