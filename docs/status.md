@@ -22112,3 +22112,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **三处坑（都已修）** ✓：`d8`/`apksigner` 是包装脚本 ✗（不能 `java -cp` ✓）；清单残留 `@ANDROID_MIN_SDK@` ✗ ⇒ 按 `--min-api 21` 写 21 ✓；`keytool` 用 JBR 里的 ✓。
   ④ **如实记录** ✓：APK **不含原生库** ✓（`libemacs.so`/`libandroid-emacs.so` 等端口的 Android 原生构建 ✓），输出行写明 ✓ ⇒ 设备冒烟仍待设备与原生库 ✓。
   ⑤ **零 Rust 重编** ✓；受控执行器 runtime 1.4 GiB 三次（峰值 ≤ 988 MB ✓）。提交：`tools/check-android-kotlin.sh`（`--apk` ✓）、`femacs/platform/android/AndroidManifest.xml`（minSdk ✓）、`PORTING.md`（P-201 ✓）、`docs/decisions-needed.md`（第 3 项 ✓）、本提交（读数 ✓）。
+- **4.577 验证相第二百零七轮：Android/Linux 的 Rust 目标本来就在 —— 更正决策页第 3 项的"缺工具链"（P-202）（2026-10-17）**：
+  ① **读数** ✓：`rustup target list --installed` ⇒ `aarch64-linux-android` ✓、`armv7-linux-androideabi` ✓、`i686-linux-android` ✓、`x86_64-linux-android` ✓、`aarch64-unknown-linux-gnu` ✓、`aarch64-unknown-linux-musl` ✓（另 iOS 2 个 ✓）。
+  ② **含义** ✓：Android 原生库与 Linux 构建的**编译器前提已备** ✓；缺的是 **`xtask` 的交叉构建驱动**（当前只按冻结 darwin-arm64 配置产单元 ✓）与 **设备/模拟器冒烟** ✓ —— 与"装工具链"是两件不同的事 ✓。
+  ③ **文档更正** ✓：`docs/decisions-needed.md` 第 3 项据此改写 ✓（Windows/Haiku 仍记"未实测" ✓，不作推断 ✓）。
+  ④ **零编译** ✓。提交：`PORTING.md`（P-202 ✓）、`docs/decisions-needed.md` ✓、本提交（读数 ✓）。
