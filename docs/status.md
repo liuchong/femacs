@@ -21975,3 +21975,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **其余五项** ✓ 没有这条理由 ✓：`regexp-repl` 1.10–1.12× ✓、`buffer-scan` 1.07–1.15× ✓、`sort` 1.19–1.20× ✓、启动 1.13× ✓ —— 属**真实的小差距** ✓。
   ④ **审计表第 7 条更新** ✓：写明"已从 1.2–3.9× 收到 1.07–1.51×"+"VM 段原因是 threaded vs switch"+"其余五项是小差距" ✓；裁定项仍在 `docs/decisions-needed.md` 第 1 项 ✓。
   ⑤ **Lisp 零改动** ✓；本轮**零编译** ✓（一次声明门 7 s ✓）；受控执行器峰值 ≤ 60 MB ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-185 ✓）、`docs/acceptance.md`（第 7 条 ✓）、本提交（读数 ✓）。
+- **4.554 验证相第一百八十五轮：核实 threaded 判定的两个前提，并把结论写进拍板页（2026-10-17）**：
+  ① **核实** ✓：`BYTE_CODE_SAFE` 在参照里是 **false** ✓（`bytecode.c:30-31` ✓）、`ENABLE_CHECKING` 在参照的 `config.h` 里是 **undef** ✓（`build/emacs-ref/src/config.h:167` ✓）⇒ `#if (defined __GNUC__ && !defined __STRICT_ANSI__ && !BYTE_CODE_SAFE && !defined BYTE_CODE_METER)` **成立** ✓ ⇒ 参照**确实**跑 threaded ✓（P-185 的前提两个都成立 ✓）。
+  ② **拍板页更新** ✓：`docs/decisions-needed.md` 第 1 项改成"**同一个 C 文件的不同分支**"的口径 ✓，并列出已排除项（GC ✓、`sort` 算法 ✓、`funcall_subr` 含 `argbuf`/`unwrap` ✓、热访问器 ✓、派发状态变量 ✓、安全检查 ✓），把选择写成三条：改口径 / 上 nightly 搬 threaded 臂 / 保持现状 ✓。
+  ③ **其余五项** ✓：启动 1.13× ✓、`regexp-repl` 1.10–1.12× ✓、`buffer-scan` 1.07–1.15× ✓、`sort` 1.19–1.20× ✓ —— **没有** threaded 这条理由 ✓，属真实 codegen 小差距 ✓。
+  ④ **Lisp 零改动** ✓；本轮**零编译** ✓（一次声明门 7 s ✓，峰值 ≤ 60 MB ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/decisions-needed.md`（第 1 项 ✓）、本提交（读数 ✓）。
