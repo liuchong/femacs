@@ -8537,7 +8537,7 @@ unsafe fn modify_event_symbol (symbol_num: ptrdiff_t, modifiers: c_int, symbol_k
       #[cfg (feature = "have_window_system")]
       if NILP (value)
 	{
-	  let name: *mut c_char = get_keysym_name (symbol_num);
+	  let name: *mut c_char = get_keysym_name (symbol_num as c_int);   // C's `get_keysym_name (int)`
 	  if !name.is_null ()
 	    { value = intern (name); }
 	}

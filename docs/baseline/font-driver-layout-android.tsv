@@ -1,0 +1,160 @@
+# struct font_driver from font.h (c), read by
+# `spikes/gated-layout-probe.py struct font_driver font.h c`:
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	sizeof struct font_driver	-	208
+frozen	align struct font_driver	-	8
+frozen	Lisp_Object type	0	0
+frozen	_Bool case_sensitive	0	8
+frozen	Lisp_Object (*)(struct frame *) get_cache	0	16
+frozen	Lisp_Object (*)(struct frame *, Lisp_Object) list	0	24
+frozen	Lisp_Object (*)(struct frame *, Lisp_Object) match	0	32
+frozen	Lisp_Object (*)(struct frame *) list_family	0	40
+frozen	void (*)(Lisp_Object) free_entity	0	48
+frozen	Lisp_Object (*)(struct frame *, Lisp_Object, int) open_font	0	56
+frozen	void (*)(struct font *) close_font	0	64
+frozen	void (*)(struct frame *, struct face *) prepare_face	0	72
+frozen	void (*)(struct frame *, struct face *) done_face	0	80
+frozen	int (*)(Lisp_Object, int) has_char	0	88
+frozen	unsigned int (*)(struct font *, int) encode_char	0	96
+frozen	void (*)(struct font *, const unsigned int *, int, struct font_metrics *) text_extents	0	104
+frozen	int (*)(struct font *, unsigned int, int, int *, int *) anchor_point	0	112
+frozen	Lisp_Object (*)(struct font *) otf_capability	0	120
+frozen	int (*)(struct font *, Lisp_Object, Lisp_Object, int, int, Lisp_Object, int, _Bool) otf_drive	0	128
+frozen	int (*)(struct frame *) start_for_frame	0	136
+frozen	int (*)(struct frame *) end_for_frame	0	144
+frozen	Lisp_Object (*)(Lisp_Object, Lisp_Object) shape	0	152
+frozen	int (*)(struct frame *, struct font *) check	0	160
+frozen	int (*)(struct font *, int, unsigned int *) get_variation_glyphs	0	168
+frozen	void (*)(Lisp_Object, Lisp_Object) filter_properties	0	176
+frozen	_Bool (*)(struct frame *, Lisp_Object, Lisp_Object) cached_font_ok	0	184
+frozen	Lisp_Object (*)(struct font *) combining_capability	0	192
+frozen	void (*)(struct frame *) drop_xrender_surfaces	0	200
+x11	sizeof struct font_driver	-	232
+x11	align struct font_driver	-	8
+x11	Lisp_Object type	0	0
+x11	_Bool case_sensitive	0	8
+x11	Lisp_Object (*)(struct frame *) get_cache	0	16
+x11	Lisp_Object (*)(struct frame *, Lisp_Object) list	0	24
+x11	Lisp_Object (*)(struct frame *, Lisp_Object) match	0	32
+x11	Lisp_Object (*)(struct frame *) list_family	0	40
+x11	void (*)(Lisp_Object) free_entity	0	48
+x11	Lisp_Object (*)(struct frame *, Lisp_Object, int) open_font	0	56
+x11	void (*)(struct font *) close_font	0	64
+x11	void (*)(struct frame *, struct face *) prepare_face	0	72
+x11	void (*)(struct frame *, struct face *) done_face	0	80
+x11	int (*)(Lisp_Object, int) has_char	0	88
+x11	unsigned int (*)(struct font *, int) encode_char	0	96
+x11	void (*)(struct font *, const unsigned int *, int, struct font_metrics *) text_extents	0	104
+x11	int (*)(struct glyph_string *, int, int, int, int, _Bool) draw	0	112
+x11	int (*)(struct font *, unsigned int, struct font_bitmap *, int) get_bitmap	0	120
+x11	void (*)(struct font *, struct font_bitmap *) free_bitmap	0	128
+x11	int (*)(struct font *, unsigned int, int, int *, int *) anchor_point	0	136
+x11	Lisp_Object (*)(struct font *) otf_capability	0	144
+x11	int (*)(struct font *, Lisp_Object, Lisp_Object, int, int, Lisp_Object, int, _Bool) otf_drive	0	152
+x11	int (*)(struct frame *) start_for_frame	0	160
+x11	int (*)(struct frame *) end_for_frame	0	168
+x11	Lisp_Object (*)(Lisp_Object, Lisp_Object) shape	0	176
+x11	int (*)(struct frame *, struct font *) check	0	184
+x11	int (*)(struct font *, int, unsigned int *) get_variation_glyphs	0	192
+x11	void (*)(Lisp_Object, Lisp_Object) filter_properties	0	200
+x11	_Bool (*)(struct frame *, Lisp_Object, Lisp_Object) cached_font_ok	0	208
+x11	Lisp_Object (*)(struct font *) combining_capability	0	216
+x11	void (*)(struct frame *) drop_xrender_surfaces	0	224
+ns_cocoa	sizeof struct font_driver	-	232
+ns_cocoa	align struct font_driver	-	8
+ns_cocoa	Lisp_Object type	0	0
+ns_cocoa	_Bool case_sensitive	0	8
+ns_cocoa	Lisp_Object (*)(struct frame *) get_cache	0	16
+ns_cocoa	Lisp_Object (*)(struct frame *, Lisp_Object) list	0	24
+ns_cocoa	Lisp_Object (*)(struct frame *, Lisp_Object) match	0	32
+ns_cocoa	Lisp_Object (*)(struct frame *) list_family	0	40
+ns_cocoa	void (*)(Lisp_Object) free_entity	0	48
+ns_cocoa	Lisp_Object (*)(struct frame *, Lisp_Object, int) open_font	0	56
+ns_cocoa	void (*)(struct font *) close_font	0	64
+ns_cocoa	void (*)(struct frame *, struct face *) prepare_face	0	72
+ns_cocoa	void (*)(struct frame *, struct face *) done_face	0	80
+ns_cocoa	int (*)(Lisp_Object, int) has_char	0	88
+ns_cocoa	unsigned int (*)(struct font *, int) encode_char	0	96
+ns_cocoa	void (*)(struct font *, const unsigned int *, int, struct font_metrics *) text_extents	0	104
+ns_cocoa	int (*)(struct glyph_string *, int, int, int, int, _Bool) draw	0	112
+ns_cocoa	int (*)(struct font *, unsigned int, struct font_bitmap *, int) get_bitmap	0	120
+ns_cocoa	void (*)(struct font *, struct font_bitmap *) free_bitmap	0	128
+ns_cocoa	int (*)(struct font *, unsigned int, int, int *, int *) anchor_point	0	136
+ns_cocoa	Lisp_Object (*)(struct font *) otf_capability	0	144
+ns_cocoa	int (*)(struct font *, Lisp_Object, Lisp_Object, int, int, Lisp_Object, int, _Bool) otf_drive	0	152
+ns_cocoa	int (*)(struct frame *) start_for_frame	0	160
+ns_cocoa	int (*)(struct frame *) end_for_frame	0	168
+ns_cocoa	Lisp_Object (*)(Lisp_Object, Lisp_Object) shape	0	176
+ns_cocoa	int (*)(struct frame *, struct font *) check	0	184
+ns_cocoa	int (*)(struct font *, int, unsigned int *) get_variation_glyphs	0	192
+ns_cocoa	void (*)(Lisp_Object, Lisp_Object) filter_properties	0	200
+ns_cocoa	_Bool (*)(struct frame *, Lisp_Object, Lisp_Object) cached_font_ok	0	208
+ns_cocoa	Lisp_Object (*)(struct font *) combining_capability	0	216
+ns_cocoa	void (*)(struct frame *) drop_xrender_surfaces	0	224
+x11_ext	sizeof struct font_driver	-	232
+x11_ext	align struct font_driver	-	8
+x11_ext	Lisp_Object type	0	0
+x11_ext	_Bool case_sensitive	0	8
+x11_ext	Lisp_Object (*)(struct frame *) get_cache	0	16
+x11_ext	Lisp_Object (*)(struct frame *, Lisp_Object) list	0	24
+x11_ext	Lisp_Object (*)(struct frame *, Lisp_Object) match	0	32
+x11_ext	Lisp_Object (*)(struct frame *) list_family	0	40
+x11_ext	void (*)(Lisp_Object) free_entity	0	48
+x11_ext	Lisp_Object (*)(struct frame *, Lisp_Object, int) open_font	0	56
+x11_ext	void (*)(struct font *) close_font	0	64
+x11_ext	void (*)(struct frame *, struct face *) prepare_face	0	72
+x11_ext	void (*)(struct frame *, struct face *) done_face	0	80
+x11_ext	int (*)(Lisp_Object, int) has_char	0	88
+x11_ext	unsigned int (*)(struct font *, int) encode_char	0	96
+x11_ext	void (*)(struct font *, const unsigned int *, int, struct font_metrics *) text_extents	0	104
+x11_ext	int (*)(struct glyph_string *, int, int, int, int, _Bool) draw	0	112
+x11_ext	int (*)(struct font *, unsigned int, struct font_bitmap *, int) get_bitmap	0	120
+x11_ext	void (*)(struct font *, struct font_bitmap *) free_bitmap	0	128
+x11_ext	int (*)(struct font *, unsigned int, int, int *, int *) anchor_point	0	136
+x11_ext	Lisp_Object (*)(struct font *) otf_capability	0	144
+x11_ext	int (*)(struct font *, Lisp_Object, Lisp_Object, int, int, Lisp_Object, int, _Bool) otf_drive	0	152
+x11_ext	int (*)(struct frame *) start_for_frame	0	160
+x11_ext	int (*)(struct frame *) end_for_frame	0	168
+x11_ext	Lisp_Object (*)(Lisp_Object, Lisp_Object) shape	0	176
+x11_ext	int (*)(struct frame *, struct font *) check	0	184
+x11_ext	int (*)(struct font *, int, unsigned int *) get_variation_glyphs	0	192
+x11_ext	void (*)(Lisp_Object, Lisp_Object) filter_properties	0	200
+x11_ext	_Bool (*)(struct frame *, Lisp_Object, Lisp_Object) cached_font_ok	0	208
+x11_ext	Lisp_Object (*)(struct font *) combining_capability	0	216
+x11_ext	void (*)(struct frame *) drop_xrender_surfaces	0	224
+custom	sizeof struct font_driver	-	232
+custom	align struct font_driver	-	8
+custom	Lisp_Object type	0	0
+custom	_Bool case_sensitive	0	8
+custom	Lisp_Object (*)(struct frame *) get_cache	0	16
+custom	Lisp_Object (*)(struct frame *, Lisp_Object) list	0	24
+custom	Lisp_Object (*)(struct frame *, Lisp_Object) match	0	32
+custom	Lisp_Object (*)(struct frame *) list_family	0	40
+custom	void (*)(Lisp_Object) free_entity	0	48
+custom	Lisp_Object (*)(struct frame *, Lisp_Object, int) open_font	0	56
+custom	void (*)(struct font *) close_font	0	64
+custom	void (*)(struct frame *, struct face *) prepare_face	0	72
+custom	void (*)(struct frame *, struct face *) done_face	0	80
+custom	int (*)(Lisp_Object, int) has_char	0	88
+custom	unsigned int (*)(struct font *, int) encode_char	0	96
+custom	void (*)(struct font *, const unsigned int *, int, struct font_metrics *) text_extents	0	104
+custom	int (*)(struct glyph_string *, int, int, int, int, _Bool) draw	0	112
+custom	int (*)(struct font *, unsigned int, struct font_bitmap *, int) get_bitmap	0	120
+custom	void (*)(struct font *, struct font_bitmap *) free_bitmap	0	128
+custom	int (*)(struct font *, unsigned int, int, int *, int *) anchor_point	0	136
+custom	Lisp_Object (*)(struct font *) otf_capability	0	144
+custom	int (*)(struct font *, Lisp_Object, Lisp_Object, int, int, Lisp_Object, int, _Bool) otf_drive	0	152
+custom	int (*)(struct frame *) start_for_frame	0	160
+custom	int (*)(struct frame *) end_for_frame	0	168
+custom	Lisp_Object (*)(Lisp_Object, Lisp_Object) shape	0	176
+custom	int (*)(struct frame *, struct font *) check	0	184
+custom	int (*)(struct font *, int, unsigned int *) get_variation_glyphs	0	192
+custom	void (*)(Lisp_Object, Lisp_Object) filter_properties	0	200
+custom	_Bool (*)(struct frame *, Lisp_Object, Lisp_Object) cached_font_ok	0	208
+custom	Lisp_Object (*)(struct font *) combining_capability	0	216
+custom	void (*)(struct frame *) drop_xrender_surfaces	0	224

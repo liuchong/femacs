@@ -292,11 +292,24 @@ pub struct infile
   pub lookahead: i8,                   /* lookahead byte count (`signed char`) */
   pub buf: [c_uchar; MAX_MULTIBYTE_LENGTH as usize - 1], /* lookahead bytes, reversed */
 }
+/* C's `file_stream` is `FILE *` on the frozen target (8 bytes) and `struct android_fd_or_asset`
+   on Android - 16 bytes, `int` plus a pointer - so the record grows by 8 and the two members
+   that follow the stream move with it.  C 212-215 declares `struct infile` in `lread.c`; the
+   numbers below are the two `file_stream` arms' own arithmetic.  */
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<infile> () == 16);
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (std::mem::offset_of! (infile, lookahead) == 8);
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (std::mem::offset_of! (infile, buf) == 9);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<infile> () == 24);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (infile, lookahead) == 16);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (infile, buf) == 17);
 const _: () = core::assert! (std::mem::align_of::<infile> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (infile, stream) == 0);
-const _: () = core::assert! (std::mem::offset_of! (infile, lookahead) == 8);
-const _: () = core::assert! (std::mem::offset_of! (infile, buf) == 9);
 
 static mut infile: *mut infile = std::ptr::null_mut ();                 // C 215
 
@@ -662,7 +675,7 @@ unsafe fn readbyte_from_file () -> c_int
     /* Interrupted reads have been observed while reading over the network.  */
     loop
       {
-	c = getc (instream);
+	c = file_get_char! (instream);   // C 331: `file_get_char (instream)`, the same name the arms define
 	if !(c == EOF && *errno () == EINTR && ferror (instream) != 0)
 	  { break; }
 	unblock_input ();

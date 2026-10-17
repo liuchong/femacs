@@ -1,0 +1,34 @@
+# struct font_entity from font.h (c), read by
+# `spikes/gated-layout-probe.py struct font_entity font.h c`:
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	sizeof struct font_entity	-	120
+frozen	align struct font_entity	-	8
+frozen	union vectorlike_header header	0	0
+frozen	ptrdiff_t size	1	0
+frozen	Lisp_Object[14] props	0	8
+x11	sizeof struct font_entity	-	120
+x11	align struct font_entity	-	8
+x11	union vectorlike_header header	0	0
+x11	ptrdiff_t size	1	0
+x11	Lisp_Object[14] props	0	8
+ns_cocoa	sizeof struct font_entity	-	120
+ns_cocoa	align struct font_entity	-	8
+ns_cocoa	union vectorlike_header header	0	0
+ns_cocoa	ptrdiff_t size	1	0
+ns_cocoa	Lisp_Object[14] props	0	8
+x11_ext	sizeof struct font_entity	-	120
+x11_ext	align struct font_entity	-	8
+x11_ext	union vectorlike_header header	0	0
+x11_ext	ptrdiff_t size	1	0
+x11_ext	Lisp_Object[14] props	0	8
+custom	sizeof struct font_entity	-	128
+custom	align struct font_entity	-	8
+custom	union vectorlike_header header	0	0
+custom	ptrdiff_t size	1	0
+custom	Lisp_Object[14] props	0	8
+custom	_Bool is_android	0	120
