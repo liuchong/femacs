@@ -47,6 +47,11 @@ for tool in aapt apksigner d8; do
 done
 report ndk-clang "$CC"
 report javac "$([ -x "$JAVAC" ] && echo "$JAVAC")"
+# configure also requires makeinfo (or a pre-built info/emacs); the reference build hit the same
+# wall (build/emacs-ref/config.log) and the acceptance record works around it with an empty
+# $srcdir/info/emacs.  Neither is this script's call to make: it reports what is missing.
+MAKEINFO_BIN=$(command -v makeinfo 2>/dev/null)
+report makeinfo "${MAKEINFO_BIN:-}"
 report jarsigner "$([ -x "$JARSIGNER" ] && echo "$JARSIGNER")"
 report configure "$([ -x "$REPO/emacs/configure" ] && echo "$REPO/emacs/configure")"
 
@@ -56,10 +61,18 @@ report configure "$([ -x "$REPO/emacs/configure" ] && echo "$REPO/emacs/configur
 rm -rf "$BUILD" && mkdir -p "$BUILD" && cd "$BUILD" || exit 1
 # `AC_PATH_PROGS` looks `javac` up on PATH and prefers that over an env override (measured:
 # /usr/bin/javac kept winning), so the JDK's bin goes first.
-PATH="$JDK_BIN:$PATH" SDK_BUILD_TOOLS="$BUILD_TOOLS" JAVAC="$JAVAC" JARSIGNER="$JARSIGNER" \
-  JAVA_HOME="$STUDIO/jbr/Contents/Home" "$REPO/emacs/configure" \
+# The command surface below is what P-207/P-213 settled by running configure:
+#   * ANDROID_SDK is the *numeric* API level (configure.ac 48 compares it with 21);
+#   * ANDROID_CC is the NDK's cross compiler (configure.ac 893/1077);
+#   * two checks compile Java with `-source 1.7`, which no JDK >= 20 accepts, so their cache
+#     variables are preset instead of installing an old JDK (the user's rule: LTS only);
+#   * the bundled JDK goes first on PATH because AC_PATH_PROGS prefers it.
+PATH="$JDK_BIN:$PATH" SDK_BUILD_TOOLS="$BUILD_TOOLS" ANDROID_SDK="$API" ANDROID_CC="$CC" \
+  JAVAC="$JAVAC" JARSIGNER="$JARSIGNER" JAVA_HOME="$STUDIO/jbr/Contents/Home" \
+  ${MAKEINFO_BIN:+MAKEINFO="$MAKEINFO_BIN"} "$REPO/emacs/configure" \
   --host=aarch64-linux-android --with-android="$ANDROID_JAR" CC="$CC" \
-  --without-all --with-x=no --with-ns=no > configure.log 2>&1
+  --without-all --with-x=no --with-ns=no \
+  emacs_cv_working_javac=yes emacs_cv_android_x_or_later=yes > configure.log 2>&1
 status=$?
 echo "configure: exit $status (log: $BUILD/configure.log)"
 [ "$status" = 0 ] || { tail -5 configure.log; exit "$status"; }
