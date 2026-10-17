@@ -5069,6 +5069,22 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
       if !goto_fail
 	{
+      /* Instrument (P-147/P-148): at the top of an opcode, `d`'s segment must agree with `dend`
+         (the failure path recomputes `dend` before it comes back here, so a disagreement is a
+         defect, not the transient the pop itself has).  Report the opcode that left it so.  */
+      if size1 != 0 && (dend == end_match_1) != ((d as usize) <= (end1 as usize))
+        {
+          if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+            {
+              fprintf (stderr,
+                       c"REGTRACE crossed prev=%d opcode=%d d-s1=%td size1=%td dend-s1=%td\n".as_ptr (),
+                       PREV_OP_SAVE, *p.offset (-1) as c_int,
+                       (d as isize) - (string1 as isize),
+                       (end1 as isize) - (string1 as isize),
+                       (dend as isize) - (string1 as isize));
+            }
+        }
+
       /* Instrument (P-147): `d` must never stand between the two strings.  The buffer text is
          split at the gap, so a `d` that is past `end1` and short of `string2` is a dangling
          position: report the opcode that left it there.  */
