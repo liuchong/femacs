@@ -726,12 +726,6 @@ pub type Display_Info = ns_display_info;
 #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
 pub type Display_Info = haiku_display_info;
 /// C: dispextern.h 165: `typedef struct android_display_info Display_Info;`
-/* `android_display_info` / `android_image` are records the android headers declare (C only ever
-   names them through pointers in dispextern.h), so they are forward-declared here.  */
-#[cfg (all (feature = "have_window_system", feature = "have_android"))]
-pub struct android_display_info;
-#[cfg (all (feature = "have_window_system", feature = "have_android"))]
-pub struct android_image;
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
 pub type Display_Info = android_display_info;
 // C 152: `typedef struct pgtk_display_info Display_Info;` - deferred with the pgtk records
