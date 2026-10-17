@@ -7,20 +7,20 @@
 ;; Keywords: internal
 ;; Package: emacs
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -1861,7 +1861,7 @@ If this is nil, no message will be displayed."
 (defconst fancy-startup-text
   `((:face (variable-pitch font-lock-comment-face)
      "Welcome to "
-     :link ("femacs"
+     :link ("GNU Emacs"
 	    ,(lambda (_button)
                (let ((browse-url-browser-function 'eww-browse-url))
                  (browse-url "https://www.gnu.org/software/emacs/")))
@@ -1914,10 +1914,10 @@ If this is nil, no message will be displayed."
                  (browse-url "https://www.gnu.org/software/emacs/tour/")))
 	    "Browse https://www.gnu.org/software/emacs/tour/")
      "\tOverview of Emacs features at gnu.org\n"
-     :link ("View femacs Manual" ,(lambda (_button) (info-emacs-manual)))
-     "\tView the femacs manual using Info\n"
+     :link ("View Emacs Manual" ,(lambda (_button) (info-emacs-manual)))
+     "\tView the Emacs manual using Info\n"
      :link ("Absence of Warranty" ,(lambda (_button) (describe-no-warranty)))
-     "\tfemacs comes with "
+     "\tGNU Emacs comes with "
      :face (variable-pitch (:slant oblique))
      "ABSOLUTELY NO WARRANTY\n"
      :face variable-pitch
@@ -1933,7 +1933,7 @@ Each element in the list should be a list of strings or pairs
 (defconst fancy-about-text
   `((:face (variable-pitch font-lock-comment-face)
      "This is "
-     :link ("femacs"
+     :link ("GNU Emacs"
 	    ,(lambda (_button)
                (let ((browse-url-browser-function 'eww-browse-url))
                  (browse-url "https://www.gnu.org/software/emacs/")))
@@ -1978,7 +1978,7 @@ Each element in the list should be a list of strings or pairs
                                    (describe-gnu-project))))
      "\tWhy we developed GNU Emacs, and the GNU operating system\n"
      :link ("Absence of Warranty" ,(lambda (_button) (describe-no-warranty)))
-     "\tfemacs comes with "
+     "\tGNU Emacs comes with "
      :face (variable-pitch (:slant oblique))
      "ABSOLUTELY NO WARRANTY\n"
      :face variable-pitch
@@ -2017,8 +2017,8 @@ Each element in the list should be a list of strings or pairs
                  (browse-url "https://www.gnu.org/software/emacs/tour/")))
 	    "Browse https://www.gnu.org/software/emacs/tour/")
      "\tSee an overview of Emacs features at gnu.org\n"
-     :link ("femacs Manual" ,(lambda (_button) (info-emacs-manual)))
-     "\tDisplay the femacs manual in Info mode"))
+     :link ("Emacs Manual" ,(lambda (_button) (info-emacs-manual)))
+     "\tDisplay the Emacs manual in Info mode"))
   "A list of texts to show in the middle part of the About screen.
 Each element in the list should be a list of strings or pairs
 `:KEYWORD VALUE', like what `fancy-splash-insert' accepts.")
@@ -2235,7 +2235,7 @@ a face or button specification."
 		  (customize-set-variable 'inhibit-startup-screen t)
 		  (customize-mark-to-save 'inhibit-startup-screen)
 		  (custom-save-all))
-		(quit-windows-on "*femacs*" t)))
+		(quit-windows-on "*GNU Emacs*" t)))
      "  ")
     (when (or user-init-file custom-file)
       (let ((checked (create-image "checked.xpm"
@@ -2270,7 +2270,7 @@ a face or button specification."
   "Display fancy startup screen.
 If CONCISE is non-nil, display a concise version of the
 splash screen in another window."
-  (let ((splash-buffer (get-buffer-create "*femacs*")))
+  (let ((splash-buffer (get-buffer-create "*GNU Emacs*")))
     (with-current-buffer splash-buffer
       (let ((inhibit-read-only t))
 	(erase-buffer)
@@ -2313,7 +2313,7 @@ splash screen in another window."
   (let ((frame (fancy-splash-frame)))
     (save-selected-window
       (select-frame frame)
-      (switch-to-buffer "*About femacs*")
+      (switch-to-buffer "*About GNU Emacs*")
       (setq buffer-undo-list t)
       (let ((inhibit-read-only t))
 	(erase-buffer)
@@ -2375,7 +2375,7 @@ If optional argument STARTUP is non-nil, display the startup screen
 after Emacs starts.  If STARTUP is nil, display the About screen.
 If CONCISE is non-nil, display a concise version of the
 splash screen in another window."
-  (let ((splash-buffer (get-buffer-create "*About femacs*")))
+  (let ((splash-buffer (get-buffer-create "*About GNU Emacs*")))
     (with-current-buffer splash-buffer
       (setq buffer-read-only nil)
       (erase-buffer)
@@ -2389,7 +2389,7 @@ splash screen in another window."
       ;; The convention for this piece of code is that
       ;; each piece of output starts with one or two newlines
       ;; and does not end with any newlines.
-      (insert (if startup "Welcome to femacs" "This is femacs"))
+      (insert (if startup "Welcome to GNU Emacs" "This is GNU Emacs"))
       (insert
        (if (eq system-type 'gnu/linux)
 	   ", one component of the GNU/Linux operating system.\n"
@@ -2434,7 +2434,7 @@ splash screen in another window."
       (setq buffer-read-only t)
       (if (and view-read-only (not view-mode))
 	  (view-mode-enter nil 'kill-buffer))
-      (if startup (rename-buffer "*femacs*" t))
+      (if startup (rename-buffer "*GNU Emacs*" t))
       (goto-char (point-min)))
     (if concise
 	(display-buffer splash-buffer)
@@ -2476,14 +2476,14 @@ To quit a partially entered command, type Control-g.\n")
 		 'action (lambda (_button) (help-with-tutorial))
 		 'follow-link t)
   (insert "\t\tLearn basic Emacs keystroke commands\n")
-  (insert-button "Read the femacs Manual"
+  (insert-button "Read the Emacs Manual"
 		 'action (lambda (_button) (info-emacs-manual))
 		 'follow-link t)
-  (insert "\tView the femacs manual using Info\n")
+  (insert "\tView the Emacs manual using Info\n")
   (insert-button "(Non)Warranty"
 		 'action (lambda (_button) (describe-no-warranty))
 		 'follow-link t)
-  (insert "\t\tfemacs comes with ABSOLUTELY NO WARRANTY\n")
+  (insert "\t\tGNU Emacs comes with ABSOLUTELY NO WARRANTY\n")
   (insert-button "Copying Conditions"
 		 'action (lambda (_button) (describe-copying))
 		 'follow-link t)
@@ -2539,7 +2539,7 @@ To quit a partially entered command, type Control-g.\n")
                         "C-h  (Hold down CTRL and press h)")
                        (where (key-description where))
                        (t "M-x help")))))
-    (insert-button "femacs manual"
+    (insert-button "Emacs manual"
                    'action (lambda (_button) (info-emacs-manual))
                    'follow-link t)
     (insert (substitute-command-keys"\t   \\[info-emacs-manual]\t"))
@@ -2606,7 +2606,7 @@ If you have no Meta key, you may instead type ESC followed by the character.)"))
   (insert emacs-copyright "\n")
   (insert (substitute-command-keys
 	   "
-femacs comes with ABSOLUTELY NO WARRANTY; type \\[describe-no-warranty] for "))
+GNU Emacs comes with ABSOLUTELY NO WARRANTY; type \\[describe-no-warranty] for "))
   (insert-button "full details"
 		 'action (lambda (_button) (describe-no-warranty))
 		 'follow-link t)
@@ -2652,7 +2652,7 @@ Type \\[describe-distribution] for information on "))
   (insert-button "Absence of Warranty"
 		 'action (lambda (_button) (describe-no-warranty))
 		 'follow-link t)
-  (insert "\tfemacs comes with ABSOLUTELY NO WARRANTY\n")
+  (insert "\tGNU Emacs comes with ABSOLUTELY NO WARRANTY\n")
 
   (insert-button "Copying Conditions"
 		 'action (lambda (_button) (describe-copying))
@@ -2712,13 +2712,13 @@ A fancy display is used on graphic displays, normal otherwise.
 If CONCISE is non-nil, display a concise version of the startup
 screen."
   ;; Prevent recursive calls from server-process-filter.
-  (if (not (get-buffer "*femacs*"))
+  (if (not (get-buffer "*GNU Emacs*"))
       (if (use-fancy-splash-screens-p)
       	  (fancy-startup-screen concise)
       	(normal-splash-screen t concise))))
 
 (defun display-about-screen ()
-  "Display the *About femacs* buffer.
+  "Display the *About GNU Emacs* buffer.
 A fancy display is used on graphic displays, normal otherwise."
   (interactive)
   (if (use-fancy-splash-screens-p)

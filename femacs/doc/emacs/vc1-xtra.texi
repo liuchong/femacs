@@ -1,9 +1,9 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 2004--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c
 @c This file is included either in vc-xtra.texi (when producing the
-@c printed version) or in the main femacs manual (for the on-line version).
+@c printed version) or in the main Emacs manual (for the on-line version).
 
 @node Miscellaneous VC
 @subsection Miscellaneous Commands and Features of VC
@@ -29,7 +29,7 @@
 
   If you use RCS or CVS for a program with a @file{ChangeLog} file
 @iftex
-(@pxref{Change Log,,,emacs, the femacs Manual}),
+(@pxref{Change Log,,,emacs, the Emacs Manual}),
 @end iftex
 @ifnottex
 (@pxref{Change Log}),
@@ -44,7 +44,7 @@ committed as part of a changeset.  In that case, you should write the
 change log entries first, then pull them into the @samp{*vc-log*}
 buffer when you commit
 @iftex
-(@pxref{Log Buffer,,,emacs, the femacs Manual}).
+(@pxref{Log Buffer,,,emacs, the Emacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Log Buffer}).
@@ -131,7 +131,7 @@ file defaults to the current buffer's file name if it is under VC.
 via the version control system.  The file is removed from the working
 tree, and in the VC Directory buffer
 @iftex
-(@pxref{VC Directory Mode,,, emacs, the femacs Manual}),
+(@pxref{VC Directory Mode,,, emacs, the Emacs Manual}),
 @end iftex
 @ifnottex
 (@pxref{VC Directory Mode}),
@@ -194,7 +194,7 @@ overwriting work in progress.
   You can give a tag or branch name as an argument to @kbd{C-x v =} or
 @kbd{C-x v ~}
 @iftex
-(@pxref{Old Revisions,,,emacs, the femacs Manual}).
+(@pxref{Old Revisions,,,emacs, the Emacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Old Revisions}).
@@ -211,7 +211,7 @@ those tags will be visible even when you bypass VC.
 file you need to rename its master along with it; the command
 @kbd{C-x v R} (@code{vc-rename-file}) will do this automatically
 @iftex
-(@pxref{VC Delete/Rename,,,emacs, the femacs Manual}).
+(@pxref{VC Delete/Rename,,,emacs, the Emacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{VC Delete/Rename}).
@@ -787,7 +787,7 @@ you wish to use.  This will be used as the default value when invoking
 this as a directory local variable
 @iftex
 (@pxref{Directory Variables,,Per-Directory Local Variables,
-emacs, the femacs Manual}).
+emacs, the Emacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Directory Variables}).
@@ -889,7 +889,7 @@ file registered in more than one system, VC uses the system that comes
 first in @code{vc-handled-backends} by default.  The order is also
 significant when you register a file for the first time
 @iftex
-(@pxref{Registering,,,emacs, the femacs Manual}).
+(@pxref{Registering,,,emacs, the Emacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Registering}).
@@ -957,7 +957,7 @@ files, or Mercurial repositories with a very large number of files.
 to non-@code{nil} switches to doing checkin operations asynchronously.
 This is particularly useful as a directory local variable in
 repositories where checkin operations are slow (@pxref{Directory Local
-Variables,,,elisp,femacs Lisp Reference Manual}).
+Variables,,,elisp,GNU Emacs Lisp Reference Manual}).
 
   While an asynchronous checkin operation is in progress, if you use
 @kbd{C-x C-s} to save a buffer visiting any file within the current VC
@@ -1032,7 +1032,7 @@ local backups are made whenever you save the first changes to a file,
 and they are removed after you commit your changes to the repository.
 (Note that these are not the same as ordinary Emacs backup files;
 @iftex
-@pxref{Backup,,,emacs, the femacs Manual}.)
+@pxref{Backup,,,emacs, the Emacs Manual}.)
 @end iftex
 @ifnottex
 @pxref{Backup}.)
@@ -1048,7 +1048,7 @@ of automatic version backups.
 @w{@code{@var{file}.~@var{version}.~}}.  This is similar to the name
 that @kbd{C-x v ~} saves old versions to
 @iftex
-(@pxref{Old Revisions,,,emacs, the femacs Manual}),
+(@pxref{Old Revisions,,,emacs, the Emacs Manual}),
 @end iftex
 @ifnottex
 (@pxref{Old Revisions}),
@@ -1065,7 +1065,7 @@ see the CVS documentation for details.  If that case, you can use
 @kbd{C-x v v} in Emacs to toggle locking, as you would for a
 locking-based version control system
 @iftex
-(@pxref{VC With A Locking VCS,,,emacs, the femacs Manual}).
+(@pxref{VC With A Locking VCS,,,emacs, the Emacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{VC With A Locking VCS}).

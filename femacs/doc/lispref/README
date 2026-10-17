@@ -2,7 +2,7 @@ Copyright (C) 2001-2026 Free Software Foundation, Inc.  -*- outline -*-
 See the end of the file for license conditions.
 
 
-README for the femacs Lisp Reference Manual.
+README for the Emacs Lisp Reference Manual.
 
 * This directory contains the texinfo source files for the Emacs Lisp
 Reference Manual.
@@ -10,7 +10,7 @@ Reference Manual.
 * Report bugs in the Lisp Manual (or in Emacs) using M-x report-emacs-bug.
 To ask questions, use the help-gnu-emacs mailing list.
 
-* The femacs Lisp Reference Manual is quite large.  It totals around
+* The Emacs Lisp Reference Manual is quite large.  It totals around
 1100 pages in smallbook format; the info files total around 3.0 megabytes.
 
 * You can format this manual for Info, for printing hardcopy using TeX,
@@ -32,17 +32,17 @@ the manual.
 ** Use 'make elisp.pdf' or 'make elisp.html' to create PDF or HTML versions.
 
 
-This file is part of femacs.
+This file is part of GNU Emacs.
 
-femacs is free software: you can redistribute it and/or modify
+GNU Emacs is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-femacs is distributed in the hope that it will be useful,
+GNU Emacs is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.

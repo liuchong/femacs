@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1994, 2001--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 @node Byte Compilation
@@ -91,7 +91,7 @@ the @code{byte-compile} function.  You can compile a whole file with
   Sometimes, the byte compiler produces warning and/or error messages
 (@pxref{Compiler Errors}, for details).  These messages are normally
 recorded in a buffer called @file{*Compile-Log*}, which uses
-Compilation mode.  @xref{Compilation Mode,,,emacs, The femacs
+Compilation mode.  @xref{Compilation Mode,,,emacs, The GNU Emacs
 Manual}.  However, if the variable @code{byte-compile-debug} is
 non-@code{nil}, error messages will be signaled as Lisp errors instead
 (@pxref{Errors}).
@@ -267,7 +267,7 @@ that are set up for dynamic loading of documentation strings.
 
 To disable the dynamic loading feature for a specific file, set this
 option to @code{nil} in its header line (@pxref{File Variables, ,
-Local Variables in Files, emacs, The femacs Manual}), like this:
+Local Variables in Files, emacs, The GNU Emacs Manual}), like this:
 
 @smallexample
 -*-byte-compile-dynamic-docstrings: nil;-*-

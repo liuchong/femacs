@@ -41,7 +41,7 @@ modify this GNU manual.''
 @titlepage
 @title WoMan
 @subtitle Browse Unix Manual Pages ``W.O. (without) Man''
-@subtitle as distributed with femacs @value{EMACSVER}
+@subtitle as distributed with Emacs @value{EMACSVER}
 @author Francis J. Wright
 @sp 2
 @author School of Mathematical Sciences
@@ -209,7 +209,7 @@ lines into a single blank line.
 For some time, Emacs has offered an improved interface for browsing man
 pages in the form of the Emacs @code{man} (or @code{manual-entry})
 command, see @ref{Documentation, man, Documentation Commands, emacs, GNU
-femacs Manual}.
+Emacs Manual}.
 This command runs @code{man} as described above, perhaps in
 the background, and then post-processes the output to remove much of the
 @code{nroff} pagination such as page headers and footers, and places the

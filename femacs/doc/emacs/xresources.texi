@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1987, 1993--1995, 1997, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -151,12 +151,12 @@ is the case.
 @table @asis
 @item @code{alpha} (class @code{Alpha})
 Sets the @samp{alpha} frame parameter, determining frame transparency
-(@pxref{Frame Parameters,,, elisp, The femacs Lisp Reference Manual}).
+(@pxref{Frame Parameters,,, elisp, The Emacs Lisp Reference Manual}).
 
 @item @code{alphaBackground} (class @code{AlphaBackground})
 Sets the @samp{alpha-background} frame parameter, determining background
 transparency
-(@pxref{Frame Parameters,,, elisp, The femacs Lisp Reference Manual}).
+(@pxref{Frame Parameters,,, elisp, The Emacs Lisp Reference Manual}).
 
 @item @code{background} (class @code{Background})
 Background color (@pxref{Colors}).

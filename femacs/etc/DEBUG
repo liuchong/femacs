@@ -1,4 +1,4 @@
-Debugging femacs
+Debugging GNU Emacs
 
 Copyright (C) 1985, 2000-2026 Free Software Foundation, Inc.
 See the end of the file for license conditions.
@@ -660,7 +660,7 @@ LD_POINTER_GUARD to 0.
 ** Using GDB in Emacs
 
 Debugging with GDB in Emacs offers some advantages over the command line (See
-the GDB Graphical Interface node of the femacs manual).  There are also some
+the GDB Graphical Interface node of the Emacs manual).  There are also some
 features available just for debugging Emacs:
 
 1) The command gud-print is available on the tool bar (the 'p' icon) and
@@ -1380,20 +1380,20 @@ spurious OOM error should be located.  This exception is invariably
 indicative of a bug within Emacs that should be fixed.
 
 
-This file is part of femacs.
+This file is part of GNU Emacs.
 
-femacs is free software: you can redistribute it and/or modify
+GNU Emacs is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-femacs is distributed in the hope that it will be useful,
+GNU Emacs is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 
 Local variables:

@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 2023--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @node Other Input
@@ -145,7 +145,7 @@ the buffer it is set in.
 
   There are moreover several functions that display or hide the
 on-screen keyboard.  For more details, @xref{On-Screen Keyboards,,,
-elisp, The femacs Lisp Reference Manual}.
+elisp, The Emacs Lisp Reference Manual}.
 
 @cindex quitting, without a keyboard
   Since it may not be possible for Emacs to display the virtual

@@ -1205,14 +1205,14 @@ niet gecontroleerd door een jurist.  Er kunnen derhalve geen rechten
 aan de vertaling worden ontleend.  Na de vertaling volgt het Engelse
 origineel.)
 
-Deze versie van de inleiding is onderdeel van femacs.  Het valt
+Deze versie van de inleiding is onderdeel van GNU Emacs.  Het valt
 onder copyright.  Je mag deze inleiding verspreiden onder bepaalde
 voorwaarden:
 
   Copyright (C) 1985, 1996, 1998, 2001-2026 Free Software Foundation,
   Inc.
 
-  Dit bestand is onderdeel van femacs.
+  Dit bestand is onderdeel van GNU Emacs.
 
   GNU Emacs is vrije software: iedereen mag het verspreiden en/of
   modificeren onder de voorwaarden van de GNU General Public License
@@ -1236,26 +1236,26 @@ delen!
 
 Engels origineel van de copyrightmelding en condities:
 
-This version of the tutorial is a part of femacs.  It is copyrighted
+This version of the tutorial is a part of GNU Emacs.  It is copyrighted
 and comes with permission to distribute copies on certain conditions:
 
   Copyright (C) 1985, 1996, 1998, 2001-2026 Free Software Foundation,
   Inc.
 
-  This file is part of femacs.
+  This file is part of GNU Emacs.
 
-  femacs is free software: you can redistribute it and/or modify
+  GNU Emacs is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  femacs is distributed in the hope that it will be useful,
+  GNU Emacs is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+  along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 Please read the file COPYING and then do give copies of GNU Emacs to
 your friends.  Help stamp out software obstructionism ("ownership") by

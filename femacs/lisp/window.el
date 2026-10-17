@@ -1,4 +1,4 @@
-;;; window.el --- femacs window commands aside from those written in C  -*- lexical-binding:t -*-
+;;; window.el --- GNU Emacs window commands aside from those written in C  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1985-2026 Free Software Foundation, Inc.
 
@@ -6,20 +6,20 @@
 ;; Keywords: internal
 ;; Package: emacs
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -7073,7 +7073,7 @@ affected by this variable.
 This option is provided for backward compatibility only.  New
 code should use a `pop-up-frame-parameters' action alist entry in
 `display-buffer-alist' instead.  See Info node `(elisp) Choosing
-Window Options' in the femacs Lisp manual."
+Window Options' in the Emacs Lisp manual."
   :type '(repeat (cons :format "%v"
 		       (symbol :tag "Parameter")
 		       (sexp :tag "Value")))
@@ -7348,7 +7348,7 @@ ignored.
 This variable is provided for backward compatibility only and
 should not be used in new code.  Customize `display-buffer-alist'
 instead.  See Info node `(elisp) Choosing Window Options' in the
-femacs Lisp manual for an example.
+Emacs Lisp manual for an example.
 
 See also `same-window-regexps'."
  :type '(repeat (string :format "%v"))
@@ -7368,7 +7368,7 @@ the buffer name.  This is for compatibility with
 This variable is provided for backward compatibility only and
 should not be used in new code.  Customize `display-buffer-alist'
 instead.  See Info node `(elisp) Choosing Window Options' in the
-femacs Lisp manual for an example.
+Emacs Lisp manual for an example.
 
 See also `same-window-buffer-names'."
   :type '(repeat (regexp :format "%v"))
@@ -7407,7 +7407,7 @@ This variable is provided mainly for backward compatibility and
 should not be used in new code.  To make `display-buffer' behave
 as if this were t, customize `display-buffer-base-action'
 instead.  See Info node `(elisp) Choosing Window Options' in the
-femacs Lisp manual for an example."
+Emacs Lisp manual for an example."
   :type '(choice
 	  (const :tag "Never" nil)
 	  (const :tag "On graphic displays only" graphic-only)
@@ -7440,7 +7440,7 @@ This variable is provided mainly for backward compatibility and
 should not be used in new code.  To make `display-buffer' behave
 as if this were t, customize `display-buffer-base-action'
 instead.  See Info node `(elisp) Choosing Window Options' in the
-femacs Lisp manual for an example."
+Emacs Lisp manual for an example."
   :type 'boolean
   :group 'windows)
 

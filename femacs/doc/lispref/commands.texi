@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -96,7 +96,7 @@ the error is silenced and the function in which the error occurred
 is removed from the hook.
 
   A request coming into the Emacs server (@pxref{Emacs Server,,,
-emacs, The femacs Manual}) runs these two hooks just as a keyboard
+emacs, The GNU Emacs Manual}) runs these two hooks just as a keyboard
 command does.
 
   Note that, when the buffer text includes very long lines, these two
@@ -254,7 +254,7 @@ command is run.  If the command was invoked without shift-translation,
 and the region is temporarily active, deactivate the region before the
 command is run.  Shift-translation is controlled on the user level by
 @code{shift-select-mode}; see @ref{Shift Selection,,, emacs, The GNU
-femacs Manual}.
+Emacs Manual}.
 
 You can use @samp{*}, @samp{@@}, and @code{^} together; the order does
 not matter.  Actual reading of arguments is controlled by the rest of
@@ -504,7 +504,7 @@ The position of the mark, as an integer.  No I/O.
 @item M
 Arbitrary text, read in the minibuffer using the current buffer's input
 method, and returned as a string (@pxref{Input Methods,,, emacs, The GNU
-femacs Manual}).  Prompt.
+Emacs Manual}).  Prompt.
 
 @item n
 A number, read with the minibuffer.  If the input is not a number, the
@@ -1095,7 +1095,7 @@ but never altered by Lisp programs.
 @defvar last-repeatable-command
 This variable stores the most recently executed command that was not
 part of an input event.  This is the command @code{repeat} will try to
-repeat, @xref{Repeating,,, emacs, The femacs Manual}.
+repeat, @xref{Repeating,,, emacs, The GNU Emacs Manual}.
 @end defvar
 
 @defvar this-command
@@ -2165,7 +2165,7 @@ name contains the property (@pxref{Symbol Properties})
 @code{ignored-mouse-command} is encountered or there is no command
 bound to @code{down-mouse-1}, a more irregular form of translation
 takes place: here, Emacs processes touch screen gestures
-(@pxref{Touchscreens,,, emacs, The femacs Manual}) first, and
+(@pxref{Touchscreens,,, emacs, The GNU Emacs Manual}) first, and
 finally attempts to translate touch screen events into mouse events if
 no gesture was detected prior to a closing @code{touchscreen-end}
 event (with its @var{canceled} parameter @code{nil}, as with simple
@@ -4587,7 +4587,7 @@ saying the command is disabled includes that string.  For example:
      "Text deleted this way cannot be yanked back!\n")
 @end example
 
-  @xref{Disabling,,, emacs, The femacs Manual}, for the details on
+  @xref{Disabling,,, emacs, The GNU Emacs Manual}, for the details on
 what happens when a disabled command is invoked interactively.
 Disabling a command has no effect on calling it as a function from Lisp
 programs.
@@ -4666,7 +4666,7 @@ expressions rather than strings.
   There are a number of commands devoted to the editing and recall of
 previous commands.  The commands @code{repeat-complex-command}, and
 @code{list-command-history} are described in the user manual
-(@pxref{Repetition,,, emacs, The femacs Manual}).  Within the
+(@pxref{Repetition,,, emacs, The GNU Emacs Manual}).  Within the
 minibuffer, the usual minibuffer history commands are available.
 
 @node Keyboard Macros

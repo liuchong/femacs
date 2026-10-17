@@ -1,5 +1,5 @@
 @c -*- coding: utf-8 -*-
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 1999--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -290,7 +290,7 @@ commands to move over certain constructs in programming languages
 (@pxref{Sentences}, @pxref{Moving by Defuns}).  In a programming
 language a sentence is usually a complete language construct smaller
 than defuns, but larger than sexps (@pxref{List Motion,,, elisp, The
-femacs Lisp Reference Manual}).  What exactly is a sentence in this
+Emacs Lisp Reference Manual}).  What exactly is a sentence in this
 case depends on the programming language, but usually it is a complete
 statement, such as a variable definition and initialization, or a
 conditional statement.  An example of a sentence in the C language
@@ -484,7 +484,7 @@ language modes.
 @cindex pretty-printer
   Emacs also provides a Lisp pretty-printer in the @code{pp} package,
 which reformats Lisp objects with nice-looking indentation.
-@xref{Output Functions, pp,, elisp, The femacs Lisp Reference Manual}.
+@xref{Output Functions, pp,, elisp, The Emacs Lisp Reference Manual}.
 
 @node Basic Indent
 @subsection Basic Program Indentation Commands
@@ -576,9 +576,9 @@ string, this command fills and indents the comment or string instead.
 What exactly constitutes a comment, a string, or a defun depends on
 the major mode: the bounds of a defun are decided by the variables
 @code{beginning-of-defun-function} and @code{end-of-defun-function}
-(@pxref{List Motion,,, elisp, The femacs Lisp Reference Manual}),
+(@pxref{List Motion,,, elisp, The Emacs Lisp Reference Manual}),
 and the filling mechanism is decided by @code{fill-paragraph-function}
-(@pxref{Filling,,, elisp, The femacs Lisp Reference Manual}).
+(@pxref{Filling,,, elisp, The Emacs Lisp Reference Manual}).
 
 @kindex C-u TAB
   If you like the relative indentation within a grouping but not the
@@ -632,7 +632,7 @@ expression.
 functions, according to the @code{lisp-indent-function} property of
 the function name.  This is normally done for macro definitions, using
 the @code{declare} construct.  @xref{Defining Macros,,, elisp, The
-femacs Lisp Reference Manual}.
+Emacs Lisp Reference Manual}.
 
   In Emacs Lisp, lists are usually indented as if they are
 function-like forms:
@@ -798,7 +798,7 @@ balanced.
 includes braces, brackets, or whatever delimiters are defined to match
 in pairs.  The major mode controls which delimiters are significant,
 through the syntax table (@pxref{Syntax Tables,, Syntax Tables, elisp,
-The femacs Lisp Reference Manual}).  In Lisp, only parentheses count;
+The Emacs Lisp Reference Manual}).  In Lisp, only parentheses count;
 in C, these commands apply to braces and brackets too.
 
   You can use @kbd{M-x check-parens} to find any unbalanced

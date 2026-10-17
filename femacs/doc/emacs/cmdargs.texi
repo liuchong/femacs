@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -446,7 +446,7 @@ own@footnote{This option has no effect on MS-Windows.}.
 @cindex errors in init file
 Enable the Emacs Lisp debugger for errors in the init file.
 @xref{Error Debugging,, Entering the Debugger on an Error, elisp, The
-femacs Lisp Reference Manual}.
+GNU Emacs Lisp Reference Manual}.
 
 @item --module-assertions
 @opindex --module-assertions
@@ -456,7 +456,7 @@ loadable modules.  This is intended for module authors that wish to
 verify that their module conforms to the module API requirements.  The
 option makes Emacs abort if a module-related assertion triggers.
 @xref{Writing Dynamic Modules,, Writing Dynamically-Loaded Modules,
-elisp, The femacs Lisp Reference Manual}.
+elisp, The GNU Emacs Lisp Reference Manual}.
 
 @item --dump-file=@var{file}
 @opindex --dump-file
@@ -764,7 +764,7 @@ to put temporary files (@pxref{Backup}).  Emacs tries to use
 @vindex TZ@r{, environment variable}
 This specifies the default time zone and possibly also daylight
 saving time information.  @xref{Time Zone Rules,,, elisp, The GNU
-femacs Lisp Reference Manual}.  On MS-DOS, if @env{TZ} is not set in the
+Emacs Lisp Reference Manual}.  On MS-DOS, if @env{TZ} is not set in the
 environment when Emacs starts, Emacs defines a default value as
 appropriate for the country code returned by DOS@.  On MS-Windows, Emacs
 does not use @env{TZ} at all.

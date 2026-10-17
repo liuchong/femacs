@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1993, 1999, 2001--2026 Free Software Foundation,
 @c Inc.
 @c See the file elisp.texi for copying conditions.
@@ -22,12 +22,12 @@ keymaps, @pxref{Keymaps}.
 @table @code
 @item 2C-mode-map
 A sparse keymap for subcommands of the prefix @kbd{C-x 6}.@*
-@xref{Two-Column,, Two-Column Editing, emacs, The femacs Manual}.
+@xref{Two-Column,, Two-Column Editing, emacs, The GNU Emacs Manual}.
 
 @item abbrev-map
 @vindex abbrev-map
 A sparse keymap for subcommands of the prefix @kbd{C-x a}.@*
-@xref{Defining Abbrevs,,, emacs, The femacs Manual}.
+@xref{Defining Abbrevs,,, emacs, The GNU Emacs Manual}.
 
 @item button-buffer-map
 A sparse keymap useful for buffers containing buttons.@*
@@ -48,7 +48,7 @@ A full keymap for @kbd{C-x} commands.
 @item ctl-x-r-map
 @vindex ctl-x-r-map
 A sparse keymap for subcommands of the prefix @kbd{C-x r}.@*
-@xref{Registers,,, emacs, The femacs Manual}.
+@xref{Registers,,, emacs, The GNU Emacs Manual}.
 
 @item esc-map
 A full keymap for @key{ESC} (or @key{Meta}) commands.
@@ -92,7 +92,7 @@ Keymaps}.
 @item kmacro-keymap
 @vindex kmacro-keymap
 A sparse keymap for keys that follows the @kbd{C-x C-k} prefix search.@*
-@xref{Keyboard Macros,,, emacs, The femacs Manual}.
+@xref{Keyboard Macros,,, emacs, The GNU Emacs Manual}.
 
 @item local-function-key-map
 The keymap for translating key sequences to preferred alternatives.@*
@@ -128,7 +128,7 @@ menu-bar-epatch-menu, menu-bar-ediff-merge-menu, menu-bar-ediff-menu, etc.
 @cindex minibuffer-inactive-mode-map
 @item minibuffer-inactive-mode-map
 A full keymap used in the minibuffer when it is not active.@*
-@xref{Minibuffer Edit,, Editing in the Minibuffer, emacs, The femacs Manual}.
+@xref{Minibuffer Edit,, Editing in the Minibuffer, emacs, The GNU Emacs Manual}.
 
 @item mode-line-coding-system-map
 @itemx mode-line-input-method-map
@@ -180,12 +180,12 @@ The keymap used by Special mode.@*
 
 @item tab-prefix-map
 The global keymap used for the @kbd{C-x t} prefix key for tab-bar related commands.@*
-@xref{Tab Bars,,, emacs, The femacs Manual}.
+@xref{Tab Bars,,, emacs, The GNU Emacs Manual}.
 
 @cindex tab-bar-map
 @item tab-bar-map
 The keymap defining the contents of the tab bar.@*
-@xref{Tab Bars,,, emacs, The femacs Manual}.
+@xref{Tab Bars,,, emacs, The GNU Emacs Manual}.
 
 @item tool-bar-map
 The keymap defining the contents of the tool bar.@*

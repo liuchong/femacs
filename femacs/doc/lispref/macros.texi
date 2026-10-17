@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998, 2001--2026 Free Software Foundation,
 @c Inc.
 @c See the file elisp.texi for copying conditions.
@@ -646,7 +646,7 @@ This variable can be used to override the indentation specification used
 for certain symbol, as specified using their @code{lisp-indent-function}
 symbol property (@pxref{Symbol Properties}).  It is intended to be used
 as a file-local or directory-local variable; @xref{File Variables, ,
-Local Variables in Files, emacs, The femacs Manual}.
+Local Variables in Files, emacs, The GNU Emacs Manual}.
 
 Each key is a symbol and each value is an indent specification, which
 overrides the value of the symbol's @code{lisp-indent-function}

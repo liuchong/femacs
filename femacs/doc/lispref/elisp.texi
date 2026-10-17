@@ -13,10 +13,10 @@
 @end ifset
 
 @ifset volflag
-@settitle femacs Lisp Reference Manual: @value{voltitle}
+@settitle GNU Emacs Lisp Reference Manual: @value{voltitle}
 @end ifset
 @ifclear volflag
-@settitle femacs Lisp Reference Manual
+@settitle GNU Emacs Lisp Reference Manual
 @end ifclear
 @documentlanguage en
 @include docstyle.texi
@@ -93,10 +93,10 @@
 
 @copying
 @ifset VERSION
-This is edition @value{VERSION} of the @cite{femacs Lisp Reference Manual},@*
+This is edition @value{VERSION} of the @cite{GNU Emacs Lisp Reference Manual},@*
 @end ifset
 @ifclear VERSION
-This is the @cite{femacs Lisp Reference Manual}
+This is the @cite{GNU Emacs Lisp Reference Manual}
 @end ifclear
 corresponding to Emacs version @value{EMACSVER}.
 
@@ -120,15 +120,15 @@ developing GNU and promoting software freedom.''
 
 @dircategory Emacs lisp
 @direntry
-* Elisp: (elisp).               The femacs Lisp Reference Manual.
+* Elisp: (elisp).               The Emacs Lisp Reference Manual.
 @end direntry
 
 @titlepage
-@title femacs Lisp Reference Manual
+@title GNU Emacs Lisp Reference Manual
 @ifset volflag
 @subtitle @value{voltitle}
 @end ifset
-@subtitle For femacs Version @value{EMACSVER}
+@subtitle For Emacs Version @value{EMACSVER}
 @ifset VERSION
 @subtitle Revision @value{VERSION}, @value{DATE}
 @end ifset
@@ -165,7 +165,7 @@ Cover art by Etienne Suvasa.
 <p>The GNU Emacs website is at
 <a href="/software/emacs/">https://www.gnu.org/software/emacs/</a>.<br>
 For information on using Emacs, refer to the
-<a href="/software/emacs/manual/emacs.html">femacs Manual</a>.<br>
+<a href="/software/emacs/manual/emacs.html">Emacs Manual</a>.<br>
 To view this manual in other formats, click
 <a href="/software/emacs/manual/elisp.html">here</a>.
 @end html

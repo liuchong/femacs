@@ -20,20 +20,20 @@
 ;; This is a GNU ELPA :core package.  Avoid functionality that is not
 ;; compatible with the version of Emacs recorded above.
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -5508,7 +5508,7 @@ connection or, with -A, all applicable connections.
 
 (defun erc-cmd-SV ()
   "Say the current ERC and Emacs version into channel."
-  (erc-send-message (format "I'm using ERC %s with femacs %s (%s%s)%s."
+  (erc-send-message (format "I'm using ERC %s with GNU Emacs %s (%s%s)%s."
                             erc-version
                             emacs-version
                             system-configuration
@@ -9582,7 +9582,7 @@ If optional argument HERE is non-nil, insert version number at point.
 If optional argument BOLD-ERC is non-nil, display \"ERC\" as bold."
   (interactive "P")
   (let ((version-string
-         (format "%s %s (IRC client for femacs %s)"
+         (format "%s %s (IRC client for GNU Emacs %s)"
                  (if bold-erc
                      "\C-bERC\C-b"
                    "ERC")

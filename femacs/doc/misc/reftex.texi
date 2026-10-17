@@ -63,7 +63,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* RefTeX: (reftex).             femacs support for LaTeX cross-references
+* RefTeX: (reftex).             Emacs support for LaTeX cross-references
                                   and citations.
 @end direntry
 
@@ -83,7 +83,7 @@ modify this GNU manual.''
 
 @titlepage
 @title @RefTeX{} User Manual
-@subtitle Support for @LaTeX{} labels, references, citations and index entries with femacs
+@subtitle Support for @LaTeX{} labels, references, citations and index entries with GNU Emacs
 @subtitle Version @value{VERSION}
 
 @author by Carsten Dominik
@@ -2945,8 +2945,8 @@ will actually ask you for each new file about the master file and insert
 this comment automatically.  For more details see the documentation of
 the @AUCTeX{} (@pxref{Multifile,,,auctex, The AUCTeX User Manual}), the
 documentation about the Emacs (La)TeX mode (@pxref{TeX Print,,,emacs,
-The femacs Manual}) and the Emacs documentation on File Variables
-(@pxref{File Variables,,,emacs, The femacs Manual}).
+The GNU Emacs Manual}) and the Emacs documentation on File Variables
+(@pxref{File Variables,,,emacs, The GNU Emacs Manual}).
 
 @item
 The context of a label definition must be found in the same file as the

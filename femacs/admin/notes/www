@@ -82,7 +82,7 @@ Note that paths must (?) be relative to the top-level www.gnu.org.
 I think this is the best method.  You can specify temporary or
 permanent redirects, and changes go live more-or-less straight away.
 
-This method is useful for making cross-references to non-femacs manuals
+This method is useful for making cross-references to non-Emacs manuals
 work; see manual/.htaccess in the repository.  You only have to add a
 single redirect for every given external manual, you can redirect
 html_node to html_node and html_mono to html_mono.
@@ -104,17 +104,17 @@ https://github.com/mikjo/bigitr
 https://lists.gnu.org/r/savannah-hackers-public/2013-04/msg00022.html
 
 
-This file is part of femacs.
+This file is part of GNU Emacs.
 
-femacs is free software: you can redistribute it and/or modify
+GNU Emacs is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-femacs is distributed in the hope that it will be useful,
+GNU Emacs is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.

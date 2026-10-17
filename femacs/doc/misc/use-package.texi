@@ -31,7 +31,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* use-package: (use-package). Declarative package configuration for femacs.
+* use-package: (use-package). Declarative package configuration for Emacs.
 @end direntry
 
 @finalout
@@ -122,7 +122,7 @@ still be used as a sanity check.
 
 It is worth noting that use-package is not intended to replace the
 standard customization command @w{@kbd{M-x customize}} (@pxref{Easy
-Customization,,, emacs, femacs Manual}).  On the contrary, it is
+Customization,,, emacs, GNU Emacs Manual}).  On the contrary, it is
 designed to work together with it, for things that Customize cannot
 do.
 
@@ -145,7 +145,7 @@ declaration to your init file:
 
 @noindent
 This declaration is equivalent to using @code{require} (@pxref{Named
-Features,,, elisp, femacs Lisp Reference Manual}), with some
+Features,,, elisp, GNU Emacs Lisp Reference Manual}), with some
 use-package specific error handling added in.  Just like
 @code{require}, it needs the package @samp{foo} to be installed and
 available via your @code{load-path} (@pxref{Installing packages}).
@@ -311,7 +311,7 @@ things up in such a way that packages are only loaded when some of the
 package's commands is first used (either with @kbd{M-x} or via some key
 binding).  This is based on autoloading, a full description of which
 is outside the scope of this manual.  @xref{Autoload,,, elisp, GNU
-femacs Lisp Reference Manual}, for the full story.
+Emacs Lisp Reference Manual}, for the full story.
 
 @cindex triggers, for loading packages
 Some @code{use-package} keywords provide autoload @dfn{triggers} that
@@ -657,7 +657,7 @@ yourself.  However, use-package makes this more convenient.
 
 When installing packages manually, you must make sure its libraries
 are available on your @code{load-path}.  @xref{Lisp Libraries,,,
-emacs, femacs Manual}, for more details about package loading.
+emacs, GNU Emacs Manual}, for more details about package loading.
 
 @findex :load-path
 The @code{:load-path} keyword provides a convenient way to add
@@ -681,7 +681,7 @@ list of directories, you must inform the byte-compiler of this
 definition, so that the value is available at byte-compilation time.
 This is done by using the special form @code{eval-and-compile} (as
 opposed to @code{eval-when-compile}, @pxref{Eval During Compile,,,
-elisp, femacs Lisp Reference Manual}).  Furthermore, this value is
+elisp, GNU Emacs Lisp Reference Manual}).  Furthermore, this value is
 fixed to the value it had during compilation.  If the operation is
 costly, you do not have to repeat it again on each startup.  For
 example:
@@ -901,7 +901,7 @@ either a single cons or a list of conses.  Each cons has the form
 @w{@code{(@var{key} . @var{command})}}, where @var{key} is a string
 indicating the key to bind, and @var{command} is the name of a command
 (a symbol).  The syntax for the keys is similar to the syntax used by
-the @code{kbd} function (see @ref{Init Rebinding,,, emacs, femacs
+the @code{kbd} function (see @ref{Init Rebinding,,, emacs, GNU Emacs
 Manual}, for more information).
 
 @subheading Using @code{:bind} with a single cons
@@ -968,7 +968,7 @@ Examples:
 
 Remapping of commands with @code{:bind} and @code{bind-key} works as
 expected, because when the binding is a vector, it is passed straight
-to @code{define-key}.  @xref{Remapping Commands,,, elisp, femacs
+to @code{define-key}.  @xref{Remapping Commands,,, elisp, GNU Emacs
 Lisp Reference Manual}, for more information about command remapping.
 For example, the following declaration will rebind
 @code{fill-paragraph} (bound to @kbd{M-q} by default) to
@@ -1077,7 +1077,7 @@ and cannot be autoloaded using the built-in @code{autoload} function.
 
 When you define a keymap using @code{defvar-keymap} you can add the
 required function definition by including @code{:prefix t} in the keymap
-definition (@pxref{Creating Keymaps,,, elisp, femacs Lisp Reference
+definition (@pxref{Creating Keymaps,,, elisp, GNU Emacs Lisp Reference
 Manual}).
 
 For example:
@@ -1124,7 +1124,7 @@ For example:
 @findex :repeat-map@r{, inside} :bind
 @cindex @code{repeat-mode} and use-package, using
 A special case of binding within a local keymap is when that keymap is
-used by @code{repeat-mode} (@pxref{Repeating,,, emacs, femacs
+used by @code{repeat-mode} (@pxref{Repeating,,, emacs, GNU Emacs
 Manual}).  These keymaps are usually defined specifically for
 this.  Using the @code{:repeat-map} keyword, and passing it a name for
 the map it defines, will bind all the following keys inside that map, and
@@ -1365,7 +1365,7 @@ implied by @code{:hook}.
 Similar to @code{:bind}, you can use @code{:mode} and
 @code{:interpreter} to establish a deferred binding within the
 @code{auto-mode-alist} and @code{interpreter-mode-alist} variables
-(@pxref{Auto Major Mode,,, elisp, femacs Lisp Reference Manual}).
+(@pxref{Auto Major Mode,,, elisp, GNU Emacs Lisp Reference Manual}).
 The specifier to either keyword can be a cons cell, a list of cons
 cells, or a string or regexp.
 
@@ -1421,7 +1421,7 @@ Similar to @code{:mode} and @code{:interpreter}, you can also use
 be run if the beginning of a file matches a given regular expression,
 as if these regular expressions were added to @code{magic-mode-alist}
 and @code{magic-fallback-mode-alist} (@pxref{Auto Major Mode,,, elisp,
-femacs Lisp Reference Manual}).  The difference between
+GNU Emacs Lisp Reference Manual}).  The difference between
 @code{:magic} and @code{:magic-fallback}, is that the latter has a
 lower priority than @code{:mode}.
 
@@ -1449,7 +1449,7 @@ beginning of a buffer matches the string @code{"%PDF"}.
 @findex :custom
 In Emacs, you normally set customizable variables (user options) using
 the @code{M-x customize} interface (@pxref{Easy Customization,,,
-emacs, femacs Manual}).  We recommend this method for most users.
+emacs, GNU Emacs Manual}).  We recommend this method for most users.
 However, it is also possible to set them in your @code{use-package}
 declarations by using the @code{:custom} keyword.
 
@@ -1471,7 +1471,7 @@ you.)
 
 Note that the values customized using @code{:custom} are @emph{not}
 saved in the standard Emacs @code{custom-file} (@pxref{Saving
-Customizations,,, emacs, femacs Manual}).  You should therefore set
+Customizations,,, emacs, GNU Emacs Manual}).  You should therefore set
 each user option using either the @code{:custom} keyword @emph{or}
 @w{@kbd{M-x customize-option}} command; the latter will save
 customized values in the Emacs @code{custom-file}.  Do not use both
@@ -1523,7 +1523,7 @@ faces.  Example:
 
 Similarly to @code{:custom} (@pxref{User options}), this allows
 configuring customizable faces outside of Customize (@pxref{Saving
-Customizations,,, emacs, femacs Manual}).  Using both systems to
+Customizations,,, emacs, GNU Emacs Manual}).  Using both systems to
 configure the same face can lead to confusing results.
 
 @node Hiding minor modes
@@ -1601,7 +1601,7 @@ The @code{:delight} keyword takes as its argument a minor mode symbol,
 a replacement string, or quoted mode line data (in which case the
 minor mode symbol is assumed to be the package name with @samp{-mode}
 appended at the end), both of these, or several lists of both.
-@xref{Mode Line Data,,, elisp, femacs Lisp Reference Manual}.  If
+@xref{Mode Line Data,,, elisp, GNU Emacs Lisp Reference Manual}.  If
 no arguments are provided, the default mode name is hidden completely.
 
 For example, the following hides everything for the @samp{foo-mode}
@@ -1654,13 +1654,13 @@ Here is an example of hiding several built-in minor modes:
 @node Installing packages
 @chapter Installing packages automatically
 
-The standard Emacs package manager is documented in the femacs manual
-(@pxref{Package Installation,,, emacs, femacs Manual}).  The
+The standard Emacs package manager is documented in the Emacs manual
+(@pxref{Package Installation,,, emacs, GNU Emacs Manual}).  The
 @code{use-package} macro provides the @code{:ensure} and @code{:pin}
 keywords that interface with that package manager to automatically
 install packages.  The @code{:vc} keyword may be used to control how
 package sources are downloaded; e.g., from remote hosts
-(@pxref{Fetching Package Sources,,, emacs, femacs Manual}).  This
+(@pxref{Fetching Package Sources,,, emacs, GNU Emacs Manual}).  This
 is particularly useful if you use your init file on more than one
 system.
 
@@ -1722,7 +1722,7 @@ especially convenient when wanting to install a package that is not on
 any package archive.
 
 The keyword accepts the same arguments as specified in
-@pxref{Fetching Package Sources,,, emacs, femacs Manual}, except
+@pxref{Fetching Package Sources,,, emacs, GNU Emacs Manual}, except
 that a name need not explicitly be given: it is inferred from the
 declaration.  The accepted property list is augmented by a @code{:rev}
 keyword, which has the same shape as the @code{REV} argument to
@@ -1919,7 +1919,7 @@ Emacs.
 
 If you are having trouble when starting Emacs, you can pass Emacs the
 @samp{--debug-init} command line flag.  @xref{Initial Options,,,
-emacs, femacs Manual}.  To get even more information when using
+emacs, GNU Emacs Manual}.  To get even more information when using
 that flag, add the following to your init file (these options are
 documented below):
 

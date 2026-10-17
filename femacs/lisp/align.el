@@ -6,20 +6,20 @@
 ;; Maintainer: emacs-devel@gnu.org
 ;; Keywords: convenience languages lisp
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -595,7 +595,7 @@ The following attributes are meaningful:
 	    treated.  Within this regexp, there must be at least one
 	    group of characters (typically whitespace) identified by
 	    the special opening and closing parens used in regexp
-	    expressions (`\\\\(' and `\\\\)') (see the femacs manual on
+	    expressions (`\\\\(' and `\\\\)') (see the Emacs manual on
 	    the syntax of regular expressions for more info).
 
 	    If `regexp' is a function, it will be called as a

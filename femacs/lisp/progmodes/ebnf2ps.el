@@ -7,20 +7,20 @@
 ;; Old-Version: 4.4
 ;; URL: https://www.emacswiki.org/cgi-bin/wiki/ViniciusJoseLatorre
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -5242,7 +5242,7 @@ killed after process termination."
        (format "%d %d" (1+ ebnf-eps-upper-x) (1+ ebnf-eps-upper-y))
        "\n%%Title: " filename
        "\n%%CreationDate: " (format-time-string "%T %b %d %Y")
-       "\n%%Creator: " (user-full-name) " (using femacs " emacs-version ")"
+       "\n%%Creator: " (user-full-name) " (using GNU Emacs " emacs-version ")"
        "\n%%DocumentNeededResources: font "
        (or ebnf-fonts-required
 	   (setq ebnf-fonts-required

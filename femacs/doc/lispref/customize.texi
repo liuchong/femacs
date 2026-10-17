@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1997--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 @node Customization
@@ -8,7 +8,7 @@
 @cindex customization item
   Users of Emacs can customize variables and faces without writing
 Lisp code, by using the Customize interface.  @xref{Easy
-Customization,,, emacs, The femacs Manual}.  This chapter describes
+Customization,,, emacs, The GNU Emacs Manual}.  This chapter describes
 how to define @dfn{customization items} that users can interact with
 through the Customize interface.
 
@@ -137,7 +137,7 @@ customization buffer for @var{group}.
 You can specify the text to use in the customization buffer by adding
 @code{:tag @var{name}} after the first element of the @var{link-data};
 for example, @code{(info-link :tag "foo" "(emacs)Top")} makes a link to
-the femacs manual which appears in the buffer as @samp{foo}.
+the Emacs manual which appears in the buffer as @samp{foo}.
 
 You can use this keyword more than once, to add multiple links.
 
@@ -1454,12 +1454,12 @@ evaluated.  @var{comment} is a string describing the customization.
 
 @cindex custom themes
   @dfn{Custom themes} are collections of settings that can be enabled
-or disabled as a unit.  @xref{Custom Themes,,, emacs, The femacs
+or disabled as a unit.  @xref{Custom Themes,,, emacs, The GNU Emacs
 Manual}.  Each Custom theme is defined by an Emacs Lisp source file,
 which should follow the conventions described in this section.
 (Instead of writing a Custom theme by hand, you can also create one
 using a Customize-like interface; @pxref{Creating Custom Themes,,,
-emacs, The femacs Manual}.)
+emacs, The GNU Emacs Manual}.)
 
   A Custom theme file should be named @file{@var{foo}-theme.el}, where
 @var{foo} is the theme name.  The first Lisp form in the file should
@@ -1570,7 +1570,7 @@ the @code{deftheme} macro are added to the front of this list.
 This function loads the Custom theme named @var{theme} from its source
 file, looking for the source file in the directories specified by the
 variable @code{custom-theme-load-path}.  @xref{Custom Themes,,, emacs,
-The femacs Manual}.  It also @dfn{enables} the theme (unless the
+The GNU Emacs Manual}.  It also @dfn{enables} the theme (unless the
 optional argument @var{no-enable} is non-@code{nil}), causing its
 variable and face settings to take effect.  It prompts the user for
 confirmation before loading the theme, unless the optional argument

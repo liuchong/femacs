@@ -1,7 +1,7 @@
 \input texinfo  @c -*-texinfo-*-
 @c %**start of header
 @setfilename ../../eglot.info
-@settitle Eglot: The femacs Client for the Language Server Protocol
+@settitle Eglot: The Emacs Client for the Language Server Protocol
 @documentlanguage en
 @include docstyle.texi
 @syncodeindex vr cp
@@ -28,7 +28,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* Eglot: (eglot).             Language Server Protocol client for femacs.
+* Eglot: (eglot).             Language Server Protocol client for Emacs.
 @end direntry
 
 @titlepage
@@ -38,7 +38,7 @@ modify this GNU manual.''
 @sp 1
 @center @titlefont{to}
 @sp 1
-@center @titlefont{Eglot: The femacs LSP Client}
+@center @titlefont{Eglot: The Emacs LSP Client}
 @ignore
 @sp 2
 @center release 1.8
@@ -148,7 +148,7 @@ visited at the time the @code{eglot} command is invoked, as well as any
 files visited after this invocation.
 
 The notion of a ``project'' used by Eglot is the same Emacs uses
-(@pxref{Projects,,, emacs, femacs Manual}): in the simplest case, the
+(@pxref{Projects,,, emacs, GNU Emacs Manual}): in the simplest case, the
 ``project'' is the single file you are editing, but it can also be all
 the files in a single directory or a directory tree under some version
 control system, such as Git.
@@ -190,7 +190,7 @@ start it.
 
 For Eglot to be useful, it must first be combined with a suitable
 language server.  Usually, that means running the server program locally
-as a child process of Emacs (@pxref{Processes,,, elisp, femacs Lisp
+as a child process of Emacs (@pxref{Processes,,, elisp, GNU Emacs Lisp
 Reference Manual}) and communicating with it via the standard input and
 output streams.
 
@@ -241,7 +241,7 @@ Here @var{host} is a string and @var{port} is a positive integer
 specifying a TCP connection to a remote server.  The @var{args} are
 passed to @code{open-network-stream}, e.g.@: if the connection needs to
 use encryption or other non-default parameters (@pxref{Network,,, elisp,
-femacs Lisp Reference Manual}).
+GNU Emacs Lisp Reference Manual}).
 
 @item (@var{program} @var{args}@dots{} :autoport @var{moreargs}@dots{})
 @var{program} is started with a command line constructed from @var{args}
@@ -278,7 +278,7 @@ Emacs turns on @code{foo-mode}, and will communicate with the program
 via the standard streams.  As usual with invoking programs, the
 executable file @file{fools} should be in one of the directories
 mentioned by the @code{exec-path} variable (@pxref{Subprocess
-Creation,,, elisp, femacs Lisp Reference Manual}), for Eglot to be
+Creation,,, elisp, GNU Emacs Lisp Reference Manual}), for Eglot to be
 able to find it.
 
 Sometimes, multiple servers are acceptable alternatives for handling a
@@ -414,7 +414,7 @@ At-point documentation: when point is near a symbol or an identifier,
 information about the identifier's significance in the program (its
 function or method signature, its type, its custom documentation string,
 etc.) is made available via the ElDoc package (@pxref{Programming
-Language Doc,,, emacs, femacs Manual}).
+Language Doc,,, emacs, GNU Emacs Manual}).
 
 @item
 On-the-fly diagnostic annotations, via the Flymake package
@@ -425,21 +425,21 @@ enhances diagnostics with interactive server-suggested fixes (so-called
 
 @item
 Finding definitions and uses of identifiers, via Xref (@pxref{Xref,,,
-emacs, femacs Manual}).  Eglot provides a backend for the Xref
+emacs, GNU Emacs Manual}).  Eglot provides a backend for the Xref
 capabilities which uses the language server's understanding of the
 program source.  In particular, it eliminates the need to generate tags
-tables (@pxref{Tags tables,,, emacs, femacs Manual}) for languages
+tables (@pxref{Tags tables,,, emacs, GNU Emacs Manual}) for languages
 which are only supported by the @code{etags} backend.
 
 @item
 Buffer navigation by name of function, class, method, etc., via Imenu
-(@pxref{Imenu,,, emacs, femacs Manual}).  Eglot provides its own
+(@pxref{Imenu,,, emacs, GNU Emacs Manual}).  Eglot provides its own
 variant of @code{imenu-create-index-function}, which generates the index
 for the buffer based on the language server's program source analysis.
 
 @item
 Enhanced completion of symbol at point by the @code{completion-at-point}
-command (@pxref{Symbol Completion,,, emacs, femacs Manual}).  This
+command (@pxref{Symbol Completion,,, emacs, GNU Emacs Manual}).  This
 uses the language server's parser data for the completion candidates.
 
 @item
@@ -476,7 +476,7 @@ supported and is activated automatically as you type.
 @item
 Eglot enhances symbol completion front-ends by providing completion
 candidates based on the language server's understanding of the source
-code (@pxref{Symbol Completion,,, emacs, femacs Manual}).  The
+code (@pxref{Symbol Completion,,, emacs, GNU Emacs Manual}).  The
 Company package, installable from GNU ELPA, is a popular package known
 to work well with Eglot.
 
@@ -528,7 +528,7 @@ server should know about all the source files of your program which are
 written in the language supported by the server.  In LSP parlance, the
 set of the source files of a program is known as a @dfn{workspace}.  The
 Emacs equivalent of a workspace is a @dfn{project} (@pxref{Projects,,,
-emacs, femacs Manual}).  Eglot fully supports Emacs projects, and
+emacs, GNU Emacs Manual}).  Eglot fully supports Emacs projects, and
 considers the file in whose buffer Eglot is turned on as belonging to a
 project.  In the simplest case, that file is the entire project, i.e.@:
 your project consists of a single file.  But there are other more
@@ -541,12 +541,12 @@ directory.
 
 @item
 A VC project: source files in a directory hierarchy under some VCS,
-e.g.@: a VCS repository (@pxref{Version Control,,, emacs, femacs
+e.g.@: a VCS repository (@pxref{Version Control,,, emacs, GNU Emacs
 Manual}).
 
 @item
 An EDE project: source files in a directory hierarchy managed via the
-Emacs Development Environment (@pxref{EDE,,, emacs, femacs
+Emacs Development Environment (@pxref{EDE,,, emacs, GNU Emacs
 Manual}).
 @end itemize
 
@@ -644,7 +644,7 @@ commands:
 This command adds the current buffer and the file it visits to the group
 of buffers and files managed by Eglot on behalf of a suitable language
 server.  If a language server for the buffer's @code{major-mode}
-(@pxref{Major Modes,,, emacs, femacs Manual}) is not yet running, it
+(@pxref{Major Modes,,, emacs, GNU Emacs Manual}) is not yet running, it
 will be started; otherwise the buffer and its file will be added to
 those managed by an existing server session.
 
@@ -894,7 +894,7 @@ Flymake faces used for errors and warnings, customize the
 Compared to the breadth of its functionality, Eglot itself has a
 relatively small number of customization variables.  There is
 additionally a set of variables that are usually set from Elisp snippets
-(@pxref{Init File,,, emacs, The femacs Manual}).
+(@pxref{Init File,,, emacs, The GNU Emacs Manual}).
 
 Other times, it's necessary to have finer control of Eglot's interaction
 with these features.  @xref{More Customization}.
@@ -1174,7 +1174,7 @@ hypothetical language @code{Foo} may look like:
 
 For more sophisticated changes, we can take advantage of ElDoc's
 well-defined protocols.  @xref{Programming Language Doc,,, emacs, GNU
-femacs Manual}.  For instance, the functions in
+Emacs Manual}.  For instance, the functions in
 @code{eldoc-display-functions} control displays of the at-point
 documentation produced by @code{eldoc-documentation-functions}.  As an
 example, to ensure that hover documentation specifically is never output
@@ -1293,7 +1293,7 @@ To set project-specific settings, which the LSP specification calls
 @code{eglot-workspace-configuration} may be used.
 
 This variable is a directory-local variable (@pxref{Directory Variables,
-, Per-directory Local Variables, emacs, The femacs Manual}).  It's
+, Per-directory Local Variables, emacs, The GNU Emacs Manual}).  It's
 important to recognize that this variable really only makes sense when
 set directory-locally.  It usually does not make sense to set it
 file-locally or in a major-mode hook.
@@ -1302,10 +1302,10 @@ The most common way to set @code{eglot-workspace-configuration } is
 using a @file{.dir-locals.el} file in the root of your project.  If you
 can't do that, you may also set it from Elisp code via the
 @code{dir-locals-set-class-variables} function.  (@pxref{Directory Local
-Variables,,, elisp, femacs Lisp Reference Manual}).
+Variables,,, elisp, GNU Emacs Lisp Reference Manual}).
 
 However you choose to set it, the variable's value is a plist
-(@pxref{Property Lists,,, elisp, femacs Lisp Reference Manual}) with
+(@pxref{Property Lists,,, elisp, GNU Emacs Lisp Reference Manual}) with
 the following format:
 
 @lisp
@@ -1336,7 +1336,7 @@ ongoing Eglot session.
 For some users, setting @code{eglot-workspace-configuration} is a
 somewhat daunting task.  One of the reasons is having to manage the
 general Elisp syntax of per-mode directory-local variables, which uses
-alists (@pxref{Association Lists,,, elisp, femacs Lisp Reference
+alists (@pxref{Association Lists,,, elisp, GNU Emacs Lisp Reference
 Manual}), and the specific syntax of Eglot's variable, which uses
 plists.  Some examples are useful.
 
@@ -1504,7 +1504,7 @@ always overridden if a directory-local value is detected.
 
 Emacs's preferred way of representing JSON is via Lisp lists.  In Eglot,
 the syntax of this list is the simplest possible (the one with fewer
-parenthesis), a plist (@pxref{Property Lists,,, elisp, femacs Lisp
+parenthesis), a plist (@pxref{Property Lists,,, elisp, GNU Emacs Lisp
 Reference Manual}).
 
 The plist may be arbitrarily complex, and generally containing other
@@ -1514,7 +1514,7 @@ For representing the JSON leaf values @code{true}, @code{false},
 @code{null} and @code{@{@}}, you can use the Lisp values @code{t},
 @code{:json-false}, @code{nil}, and @code{eglot-@{@}}, respectively.
 JSON arrays are represented as Elisp vectors surrounded by square
-brackets (@pxref{Vectors,,,elisp,femacs Lisp Reference Manual}).
+brackets (@pxref{Vectors,,,elisp,GNU Emacs Lisp Reference Manual}).
 
 For example, the plist
 
@@ -1904,7 +1904,7 @@ with the newest one available from the ELPA archives configured in
 You can also update Eglot through other methods, such as
 @code{use-package} (@pxref{Installing packages,,, use-package,
 use-package User Manual}), @code{package-install}, @code{list-packages}
-or the newer @code{package-upgrade} (@pxref{Packages,,, emacs, femacs
+or the newer @code{package-upgrade} (@pxref{Packages,,, emacs, GNU Emacs
 Manual}).  However, do read the docstrings of the command you intend to
 use before you use it, as some of them may not work in exactly the same
 way across Emacs versions, meaning your configuration may be not
@@ -1923,7 +1923,7 @@ maintainers reproduce bugs exactly as they happened to you, the user.
 To report an Eglot bug, send e-mail to @email{bug-gnu-emacs@@gnu.org}.
 
 To understand how to write this email, get acquainted with Emacs's bug
-reporting guidelines (@pxref{Bugs,,, emacs, femacs Manual}).  Then,
+reporting guidelines (@pxref{Bugs,,, emacs, GNU Emacs Manual}).  Then,
 follow this Eglot-specific checklist:
 
 @enumerate

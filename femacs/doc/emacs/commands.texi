@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -87,7 +87,7 @@ mode.  @xref{Multiple Displays}.
   Simple characters and control characters, as well as certain
 non-keyboard inputs such as mouse clicks, are collectively referred to
 as @dfn{input events}.  For details about how Emacs internally handles
-input events, see @ref{Input Events,,, elisp, The femacs Lisp Reference
+input events, see @ref{Input Events,,, elisp, The Emacs Lisp Reference
 Manual}.
 
 @node Keys

@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @node Frames
@@ -412,7 +412,7 @@ exact contents of these context menus depends on the current major
 mode and the buffer contents around the place where you click the
 mouse.  To customize the contents of the context menu, you can use the
 variable @code{context-menu-functions} (@pxref{Major Mode
-Conventions,,, elisp, The femacs Lisp Reference Manual}).
+Conventions,,, elisp, The Emacs Lisp Reference Manual}).
 You can also invoke the context menu by pressing @kbd{S-@key{F10}}.
 
 @node Mode Line Mouse
@@ -470,7 +470,7 @@ boundary to the left or right.
 each @kbd{C-x 4} command pops up a buffer in a different window in the
 selected frame (@pxref{Pop Up Window}), the @kbd{C-x 5} commands use a
 different frame.  If an existing visible or iconified (a.k.a.@:
-``minimized'', @pxref{Visibility of Frames,,, elisp, The femacs Lisp
+``minimized'', @pxref{Visibility of Frames,,, elisp, The Emacs Lisp
 Reference Manual}) frame already displays the requested buffer, that
 frame is raised and deiconified (``un-minimized''); otherwise, a new
 frame is created on the current display terminal.
@@ -1078,7 +1078,7 @@ default font to @samp{Monospace-10}:
 @end example
 
   For a list of frame parameters and their effects, see @ref{Frame
-Parameters,,, elisp, The femacs Lisp Reference Manual}.
+Parameters,,, elisp, The Emacs Lisp Reference Manual}.
 
 @vindex initial-frame-alist
   You can also specify a list of frame parameters which apply to just
@@ -1146,7 +1146,7 @@ convention for X applications).
   You can also use the X resource @samp{verticalScrollBars} to enable
 or disable the scroll bars (@pxref{Resources}).  To control the scroll
 bar width, change the @code{scroll-bar-width} frame parameter
-(@pxref{Frame Parameters,,, elisp, The femacs Lisp Reference Manual}).
+(@pxref{Frame Parameters,,, elisp, The Emacs Lisp Reference Manual}).
 
 @vindex scroll-bar-adjust-thumb-portion
 @cindex overscrolling
@@ -1176,7 +1176,7 @@ information, you can make them visible by enabling window dividers, see
 @ref{Window Dividers}.  To replicate the look of vertical borders, set
 the @code{right-divider-width} parameter of frames to one and have the
 @code{window-divider} face inherit from that of @code{vertical-border},
-@ref{Window Dividers,, Window Dividers, elisp, The femacs Lisp Reference
+@ref{Window Dividers,, Window Dividers, elisp, The Emacs Lisp Reference
 Manual}.
 
 @cindex Horizontal Scroll Bar
@@ -1211,7 +1211,7 @@ variable @code{horizontal-scroll-bar-mode}.
   You can also use the X resource @samp{horizontalScrollBars} to enable
 or disable horizontal scroll bars (@pxref{Resources}).  To control the
 scroll bar height, change the @code{scroll-bar-height} frame parameter
-(@pxref{Frame Parameters,,, elisp, The femacs Lisp Reference Manual}).
+(@pxref{Frame Parameters,,, elisp, The Emacs Lisp Reference Manual}).
 
 @node Window Dividers
 @section Window Dividers
@@ -1245,7 +1245,7 @@ covered by the vertical border used to separate side-by-side windows
 (@pxref{Scroll Bars}).
 
 For more details about window dividers see @ref{Window Dividers,,
-Window Dividers, elisp, The femacs Lisp Reference Manual}.
+Window Dividers, elisp, The Emacs Lisp Reference Manual}.
 
 @node Drag and Drop
 @section Drag and Drop
@@ -1313,7 +1313,7 @@ expecting Emacs to save them.  Normally, Emacs will prompt for a file
 name under which the file will be saved, and then open the file, but
 that behavior can be changed by changing the variable
 @code{x-dnd-direct-save-function}.  @xref{Drag and Drop,,, elisp, The
-femacs Lisp Reference Manual}.
+Emacs Lisp Reference Manual}.
 
 @node Menu Bars
 @section Menu Bars
@@ -1380,11 +1380,11 @@ specific tool bar style, customize the variable @code{tool-bar-style}.
 @cindex tool bar position
   You can also control the placement of the tool bar for the GTK+ tool
 bar with the frame parameter @code{tool-bar-position}.  @xref{Frame
-Parameters,,, elisp, The femacs Lisp Reference Manual}.
+Parameters,,, elisp, The Emacs Lisp Reference Manual}.
 
   NS builds consider the tool bar to be a window decoration, and
 therefore do not display it when a window is undecorated.  @xref{Frame
-Parameters,,, elisp, The femacs Lisp Reference Manual}.  On macOS the
+Parameters,,, elisp, The Emacs Lisp Reference Manual}.  On macOS the
 tool bar is hidden when the frame is put into fullscreen, but can be
 displayed by moving the mouse pointer to the top of the screen.
 
@@ -1739,7 +1739,7 @@ troubleshooting tool and it likely does not need to be customized.  It
 defaults to @code{nil} which uses the D-Bus default timeout which is
 25,000ms or 25s.
 
-@xref{System Taskbar,,, elisp, The femacs Lisp Reference Manual}
+@xref{System Taskbar,,, elisp, The Emacs Lisp Reference Manual}
 
 @node Dialog Boxes
 @section Using Dialog Boxes
@@ -1823,8 +1823,8 @@ mouse.
 
 @item tooltip-frame-parameters
 The frame parameters used for displaying tooltips.  @xref{Frame
-Parameters,,, elisp, The femacs Lisp Reference Manual}, and also
-@ref{Tooltips,,, elisp, The femacs Lisp Reference Manual}.
+Parameters,,, elisp, The Emacs Lisp Reference Manual}, and also
+@ref{Tooltips,,, elisp, The Emacs Lisp Reference Manual}.
 @end vtable
 
 For additional customization options for displaying tooltips, use

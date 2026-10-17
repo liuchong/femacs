@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 2023--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @node Android
@@ -361,7 +361,7 @@ consult the values of the variables
 @code{etags-program-name}, @code{hexl-program-name},
 @code{emacsclient-program-name}, @code{movemail-program-name},
 @code{ebrowse-program-name}, and @code{rcs2log-program-name}.
-@xref{Subprocess Creation,,, elisp, the femacs Lisp Reference Manual}.
+@xref{Subprocess Creation,,, elisp, the Emacs Lisp Reference Manual}.
 
   The @file{/assets} directory containing Emacs start-up files is meant
 to be inaccessible to processes not directly created by @code{zygote},
@@ -941,7 +941,7 @@ devices.
 The @code{alpha}, @code{alpha-background}, @code{z-group},
 @code{override-redirect}, @code{mouse-color}, @code{title},
 @code{wait-for-wm}, @code{sticky}, and @code{undecorated} frame
-parameters (@pxref{Frame Parameters,,, elisp, the femacs Lisp Reference
+parameters (@pxref{Frame Parameters,,, elisp, the Emacs Lisp Reference
 Manual}) are unsupported.
 
 @item

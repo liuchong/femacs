@@ -3,7 +3,7 @@
 @setfilename ../../info/sasl.info
 
 @set VERSION 0.2
-@settitle femacs SASL Library @value{VERSION}
+@settitle Emacs SASL Library @value{VERSION}
 @documentlanguage en
 @include docstyle.texi
 
@@ -27,16 +27,16 @@ modify this GNU manual.''
 
 @dircategory Emacs network features
 @direntry
-* SASL: (sasl).                 The femacs SASL library.
+* SASL: (sasl).                 The Emacs SASL library.
 @end direntry
 
 
 @titlepage
 @ifset WEBHACKDEVEL
-@title femacs SASL Library @value{VERSION} (DEVELOPMENT VERSION)
+@title Emacs SASL Library @value{VERSION} (DEVELOPMENT VERSION)
 @end ifset
 @ifclear WEBHACKDEVEL
-@title femacs SASL Library @value{VERSION}
+@title Emacs SASL Library @value{VERSION}
 @end ifclear
 
 @author by Daiki Ueno

@@ -3,7 +3,7 @@
 ## If you install this file by hand, change the "Exec" lines below
 ## to use absolute file names for the executables.
 [Unit]
-Description=femacs text editor
+Description=Emacs text editor
 Documentation=info:emacs man:emacs(1) https://gnu.org/software/emacs/
 
 [Service]

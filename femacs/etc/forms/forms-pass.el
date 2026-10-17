@@ -1,6 +1,6 @@
 ;;; forms-pass.el --- passwd file demo for forms-mode  -*- lexical-binding:t -*-
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
 ;;; Commentary:
 

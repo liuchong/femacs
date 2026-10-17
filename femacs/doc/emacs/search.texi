@@ -1,5 +1,5 @@
 @c -*- coding: utf-8 -*-
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -793,7 +793,7 @@ matching}) has no effect on them.
   To search the Web for the text in region, type @kbd{M-s M-w}.  This
 command performs an Internet search for the words in region using the
 search engine whose @acronym{URL} is specified by the variable
-@code{eww-search-prefix} (@pxref{Basics, EWW, , eww, The femacs Web
+@code{eww-search-prefix} (@pxref{Basics, EWW, , eww, The Emacs Web
 Wowser Manual}).  If the region is not active, or doesn't contain any
 words, this command prompts the user for a URL or keywords to search.
 
@@ -992,7 +992,7 @@ Search}.
 
   This section (and this manual in general) describes regular
 expression features that users typically use.  @xref{Regular
-Expressions,,, elisp, The femacs Lisp Reference Manual}, for additional
+Expressions,,, elisp, The Emacs Lisp Reference Manual}, for additional
 features used mainly in Lisp programs.
 
   Regular expressions have a syntax in which a few characters are
@@ -1109,7 +1109,7 @@ You can also include certain special @dfn{character classes} in a
 character set.  A @samp{[:} and balancing @samp{:]} enclose a
 character class inside a bracket expression.  For instance,
 @samp{[[:alnum:]]} matches any letter or digit.  @xref{Char Classes,,,
-elisp, The femacs Lisp Reference Manual}, for a list of character
+elisp, The Emacs Lisp Reference Manual}, for a list of character
 classes.
 
 To include a @samp{]} in a character set, you must make it the first character.
@@ -1333,7 +1333,7 @@ word-constituent character.
 @item \w
 matches any word-constituent character.  The syntax table determines
 which characters these are.  @xref{Syntax Tables,, Syntax Tables,
-elisp, The femacs Lisp Reference Manual}.
+elisp, The Emacs Lisp Reference Manual}.
 
 @item \W
 matches any character that is not a word-constituent.
@@ -1356,7 +1356,7 @@ matches any character whose syntax is @var{c}.  Here @var{c} is a
 character that designates a particular syntax class: thus, @samp{w}
 for word constituent, @samp{-} or @samp{ } for whitespace, @samp{.}
 for ordinary punctuation, etc.  @xref{Syntax Class Table,, Syntax Class Table,
-elisp, The femacs Lisp Reference Manual}.
+elisp, The Emacs Lisp Reference Manual}.
 
 @item \S@var{c}
 matches any character whose syntax is not @var{c}.
@@ -1377,7 +1377,7 @@ matches any character that does @emph{not} belong to category
 
   The constructs that pertain to words and syntax are controlled by
 the setting of the syntax table.  @xref{Syntax Tables,, Syntax Tables,
-elisp, The femacs Lisp Reference Manual}.
+elisp, The Emacs Lisp Reference Manual}.
 
 @node Regexp Example
 @section Regular Expression Example
@@ -1716,7 +1716,7 @@ M-x replace-regexp @key{RET} \(x\)\|y @key{RET}
 @end example
 
   For computing replacement strings for @samp{\,}, the @code{format}
-function is often useful (@pxref{Formatting Strings,,, elisp, The femacs
+function is often useful (@pxref{Formatting Strings,,, elisp, The Emacs
 Lisp Reference Manual}).  For example, to add consecutively numbered
 strings like @samp{ABC00042} to columns 73 @w{to 80} (unless they are
 already occupied), you can use
@@ -1790,7 +1790,7 @@ replaces @samp{Foo bar} with @samp{baz quux}, i.e.@: it leaves the
 letter-case of the replacement text unchanged, since the two words in
 @samp{Foo bar} use different capitalization.  What exactly is
 considered a ``word'' depends on the syntax tables that are in effect
-in the current buffer (@pxref{Syntax Tables,,, elisp, The femacs Lisp
+in the current buffer (@pxref{Syntax Tables,,, elisp, The Emacs Lisp
 Reference Manual}); thus, @samp{Foo_Bar} is two words in Text mode,
 but could be a single word in some major mode that supports a
 programming language.

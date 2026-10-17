@@ -1,5 +1,5 @@
 @c -*- coding: utf-8 -*-
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -117,7 +117,7 @@ hooks.  Each mode hook is named after its major mode, e.g., Fortran
 mode has @code{fortran-mode-hook}.  Furthermore, all text-based major
 modes run @code{text-mode-hook}, and many programming language modes
 @footnote{More specifically, the modes which are ``derived'' from
-@code{prog-mode} (@pxref{Derived Modes,,, elisp, The femacs Lisp
+@code{prog-mode} (@pxref{Derived Modes,,, elisp, The Emacs Lisp
 Reference Manual}).} (including all those distributed with Emacs) run
 @code{prog-mode-hook}, prior to running their own mode hooks.  Hook
 functions can look at the value of the variable @code{major-mode} to
@@ -509,7 +509,7 @@ internally.
 
 @vindex treesit-enabled-modes
   As a convenience feature for enabling major modes based on the
-tree-sitter library (@pxref{Parsing Program Source,,, elisp, The femacs
+tree-sitter library (@pxref{Parsing Program Source,,, elisp, The Emacs
 Lisp Reference Manual}), you can customize the user option
 @code{treesit-enabled-modes} to selectively enable or disable
 tree-sitter based modes: if the value is @code{t}, that enables all the

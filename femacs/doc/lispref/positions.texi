@@ -1,5 +1,5 @@
 @c -*- mode: texinfo; coding: utf-8 -*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 @node Positions
@@ -735,7 +735,7 @@ them in Emacs).  The syntax table controls how these functions interpret
 various characters; see @ref{Syntax Tables}.  @xref{Parsing
 Expressions}, for lower-level primitives for scanning sexps or parts of
 sexps.  For user-level commands, see @ref{Parentheses,, Commands for
-Editing with Parentheses, emacs, The femacs Manual}.
+Editing with Parentheses, emacs, The GNU Emacs Manual}.
 
 @deffn Command forward-list &optional arg
 This function moves forward across @var{arg} (default 1) balanced groups of

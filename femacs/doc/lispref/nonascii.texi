@@ -1,5 +1,5 @@
 @c -*- mode: texinfo -*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1998--1999, 2001--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 @node Non-ASCII Characters
@@ -208,7 +208,7 @@ the buffer, and visiting the file again with
 @key{RET} c} (@code{universal-coding-system-argument}) and specify
 @samp{raw-text} as the coding system with which to visit or save a
 file.  @xref{Text Coding, , Specifying a Coding System for File Text,
-emacs, femacs Manual}.  Unlike @code{find-file-literally}, finding
+emacs, GNU Emacs Manual}.  Unlike @code{find-file-literally}, finding
 a file as @samp{raw-text} doesn't disable format conversion,
 uncompression, or auto mode selection.
 
@@ -1491,7 +1491,7 @@ buffer's value of @code{buffer-file-coding-system} (if it is not
 @code{buffer-file-coding-system} and finally the user's most
 preferred coding system, which the user can set using the command
 @code{prefer-coding-system} (@pxref{Recognize Coding,, Recognizing
-Coding Systems, emacs, The femacs Manual}).
+Coding Systems, emacs, The GNU Emacs Manual}).
 
 If one of those coding systems can safely encode all the specified
 text, @code{select-safe-coding-system} chooses it and returns it.
@@ -1706,7 +1706,7 @@ one of @code{auto-coding-alist}, @code{auto-coding-regexp-alist},
 @code{:coding}, or @code{auto-coding-functions}, indicating which one
 supplied the matching rule.  The value @code{:coding} means the coding
 system was specified by the @code{coding:} tag in the file
-(@pxref{Specify Coding,, coding tag, emacs, The femacs Manual}).
+(@pxref{Specify Coding,, coding tag, emacs, The GNU Emacs Manual}).
 The order of looking for a matching rule is @code{auto-coding-alist}
 first, then @code{auto-coding-regexp-alist}, then the @code{coding:}
 tag, and lastly @code{auto-coding-functions}.  If no matching rule was
@@ -2080,7 +2080,7 @@ terminal.
 characters from the keyboard.  Unlike coding systems, which translate
 non-@acronym{ASCII} characters to and from encodings meant to be read by
 programs, input methods provide human-friendly commands.  (@xref{Input
-Methods,,, emacs, The femacs Manual}, for information on how users
+Methods,,, emacs, The GNU Emacs Manual}, for information on how users
 use input methods to enter text.)  How to define input methods is not
 yet documented in this manual, but here we describe how to use them.
 

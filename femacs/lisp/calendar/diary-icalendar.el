@@ -8,7 +8,7 @@
 ;; Human-Keywords: diary, calendar, iCalendar
 ;; Package: icalendar
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
 ;; This file is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 ;; This file is a replacement for the diary import/export features
 ;; previously provided by icalendar.el.  It uses a new parser and offers
 ;; more flexibility and features than the old implementation.  It is
-;; documented in the femacs manual.
+;; documented in the Emacs manual.
 
 ;;; Code:
 

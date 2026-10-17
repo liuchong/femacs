@@ -1,5 +1,5 @@
 @c -*- coding: utf-8 -*-
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -127,7 +127,7 @@ of a character, using the minibuffer.  If you enter a name, the
 command provides completion (@pxref{Completion}).  If you enter a
 code-point, it should be as a hexadecimal number (the convention for
 Unicode), or a number with a specified radix, e.g., @code{#o23072}
-(octal); @xref{Integer Basics,,, elisp, The femacs Lisp Reference
+(octal); @xref{Integer Basics,,, elisp, The Emacs Lisp Reference
 Manual}.  The command then inserts the corresponding character into
 the buffer.
 

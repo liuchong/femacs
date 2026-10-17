@@ -6,24 +6,24 @@
 ;; Maintainer: emacs-devel@gnu.org
 ;; Keywords: docs, maint, lisp
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
-;;   The femacs Lisp manual has a nice chapter on how to write
+;;   The Emacs Lisp manual has a nice chapter on how to write
 ;; documentation strings.  Many stylistic suggestions are fairly
 ;; deterministic and easy to check for syntactically, but also easy
 ;; to forget.  The main checkdoc engine will perform the stylistic
@@ -1387,7 +1387,7 @@ checking of documentation strings.
 Check for style only, such as the first line always being a complete
 sentence, whitespace restrictions, and making sure there are no
 hard-coded key-codes such as C-[char] or mouse-[number] in the comment.
-See the style guide in the femacs Lisp manual for more details.
+See the style guide in the Emacs Lisp manual for more details.
 
 With a non-nil TAKE-NOTES, store all errors found in a warnings
 buffer, otherwise stop after the first error."
@@ -2332,7 +2332,7 @@ News agents may remove it"
      ;; end of different lines.
      (progn
        (goto-char start)
-       ;; There is no documentation in the femacs Lisp manual about this check,
+       ;; There is no documentation in the Emacs Lisp manual about this check,
        ;; it is intended to help clean up messy code and reduce the file size.
        (while (and (not msg) (re-search-forward "[^ \t\n;]\\([ \t]+\\)$" end t))
 	 ;; This is not a complex activity

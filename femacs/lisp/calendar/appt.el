@@ -8,20 +8,20 @@
 ;; Keywords: calendar
 ;; Package: calendar
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -36,7 +36,7 @@
 ;;
 ;; This functions in this file will alert the user of a
 ;; pending appointment based on his/her diary file.  This package
-;; is documented in the femacs manual.
+;; is documented in the Emacs manual.
 ;;
 ;; To activate this package, simply use (appt-activate 1).
 ;; A `diary-file' with appointments of the format described in the

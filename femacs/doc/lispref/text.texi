@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 @node Text
@@ -455,7 +455,7 @@ integer, and @var{character} must be a character.
 
 If called interactively, this command prompts for @var{character}
 using its Unicode name or its code point.  @xref{Inserting Text,,,
-emacs, The femacs Manual}.
+emacs, The GNU Emacs Manual}.
 
 This function does not convert unibyte character codes 128 through 255
 to multibyte characters, not even if the current buffer is a multibyte
@@ -563,7 +563,7 @@ access the character just inserted.
 
 If any function on this hook needs to act on the region (@pxref{The
 Region}), it should make sure Delete Selection mode (@pxref{Using
-Region, Delete Selection, , emacs, The femacs Manual}) doesn't
+Region, Delete Selection, , emacs, The GNU Emacs Manual}) doesn't
 delete the region before @code{post-self-insert-hook} functions are
 invoked.  The way to do so is to add a function that returns
 @code{nil} to @code{self-insert-uses-region-functions}, a special hook
@@ -1665,7 +1665,7 @@ argument implies the value @code{full} for @var{justify}.
 This command fills the paragraph at or after point.  If
 @var{justify} is non-@code{nil}, each line is justified as well.
 It uses the ordinary paragraph motion commands to find paragraph
-boundaries.  @xref{Paragraphs,,, emacs, The femacs Manual}.
+boundaries.  @xref{Paragraphs,,, emacs, The GNU Emacs Manual}.
 
 When @var{region} is non-@code{nil}, then if Transient Mark mode is
 enabled and the mark is active, this command calls @code{fill-region}
@@ -1875,7 +1875,7 @@ the next paragraph.  Its value should be a function, which is called
 with a single argument @var{n}, the number of paragraphs to move, and
 should return the difference between @var{n} and the number of
 paragraphs actually moved.  The default value of this variable is
-@code{forward-paragraph}.  @xref{Paragraphs,,, emacs, The femacs
+@code{forward-paragraph}.  @xref{Paragraphs,,, emacs, The GNU Emacs
 Manual}.
 @end defvar
 
@@ -1892,7 +1892,7 @@ filling.  The default value of this variable is
 If this variable is non-@code{nil}, the filling functions do not delete
 newlines that have the @code{hard} text property.  These hard
 newlines act as paragraph separators.  @xref{Hard and Soft
-Newlines,, Hard and Soft Newlines, emacs, The femacs Manual}.
+Newlines,, Hard and Soft Newlines, emacs, The GNU Emacs Manual}.
 @end defvar
 
 @node Margins
@@ -2093,7 +2093,7 @@ prefix or @code{nil}, meaning it has failed to determine a prefix.
 @cindex Auto Fill mode
 
 Auto Fill mode is a minor mode that fills lines automatically as text is
-inserted.  @xref{Auto Fill,,, emacs, The femacs Manual}.  This
+inserted.  @xref{Auto Fill,,, emacs, The GNU Emacs Manual}.  This
 section describes some variables used by Auto Fill mode.  For a
 description of functions that you can call explicitly to fill and
 justify existing text, see @ref{Filling}.
@@ -2726,7 +2726,7 @@ line that begins in the specified region.
 
 If called interactively with no prefix argument, this command invokes
 a transient mode for adjusting indentation rigidly.  @xref{Indentation
-Commands,,, emacs, The femacs Manual}.
+Commands,,, emacs, The GNU Emacs Manual}.
 @end deffn
 
 @deffn Command indent-code-rigidly start end columns &optional nochange-regexp
@@ -2829,7 +2829,7 @@ spaces and tab characters to reach the next tab stop column; it does not
 affect the display of tab characters in the buffer (@pxref{Usual
 Display}).  Note that the @key{TAB} character as input uses this tab
 stop feature only in a few major modes, such as Text mode.
-@xref{Tab Stops,,, emacs, The femacs Manual}.
+@xref{Tab Stops,,, emacs, The GNU Emacs Manual}.
 
 @deffn Command tab-to-tab-stop
 This command inserts spaces or tabs before point, up to the next tab
@@ -3651,7 +3651,7 @@ highlighting happens only if the mode
 @code{cursor-face-highlight-nonselected-window} is non-@code{nil}, the
 text with this face is highlighted even if the window is not selected,
 similarly to what @code{highlight-nonselected-windows} does for the
-region (@pxref{Mark,, The Mark and the Region, emacs, The femacs
+region (@pxref{Mark,, The Mark and the Region, emacs, The GNU Emacs
 Manual}).
 
 @kindex fontified @r{(text property)}
@@ -4070,7 +4070,7 @@ used by the function that is the default value of
 @kindex display-line-numbers-disable @r{(text property)}
 @item display-line-numbers-disable
 This text property prevents display of line numbers (@pxref{Display
-Custom, display-line-numbers,, emacs, The femacs Manual}) for the
+Custom, display-line-numbers,, emacs, The GNU Emacs Manual}) for the
 text which has this property.
 
 @end table
@@ -4095,7 +4095,7 @@ argument, the help string to display, which is passed through
 unless the help string has a non-@code{nil}
 @code{help-echo-inhibit-substitution} property on its first character; see
 @ref{Keys in Documentation}.  See the code of Tooltip mode
-(@pxref{Tooltips,,, emacs, The femacs Manual}) for an example of a
+(@pxref{Tooltips,,, emacs, The GNU Emacs Manual}) for an example of a
 mode that uses @code{show-help-function}.
 @end defvar
 
@@ -4118,7 +4118,7 @@ If a newline character has this property, it is a ``hard'' newline.
 The fill commands do not alter hard newlines and do not move words
 across them.  However, this property takes effect only if the
 @code{use-hard-newlines} minor mode is enabled.  @xref{Hard and Soft
-Newlines,, Hard and Soft Newlines, emacs, The femacs Manual}.
+Newlines,, Hard and Soft Newlines, emacs, The GNU Emacs Manual}.
 
 @item right-margin
 This property specifies an extra right margin for filling this part of the
@@ -4362,7 +4362,7 @@ However, for compatibility with other graphical applications, Emacs
 also recognizes @kbd{mouse-1} clicks on links, provided the user
 clicks on the link quickly without moving the mouse.  This behavior is
 controlled by the user option @code{mouse-1-click-follows-link}.
-@xref{Mouse References,,, emacs, The femacs Manual}.
+@xref{Mouse References,,, emacs, The GNU Emacs Manual}.
 
 @kindex follow-link @r{(text or overlay property)}
   To set up the link so that it obeys
@@ -4914,7 +4914,7 @@ markers in the list, because it is unspecified.
 When @code{auto-compression-mode} is enabled, Emacs automatically
 uncompresses compressed files when you visit them, and automatically
 recompresses them if you alter and save them.  @xref{Compressed
-Files,,, emacs, The femacs Manual}.
+Files,,, emacs, The GNU Emacs Manual}.
 
 The above feature works by calling an external executable (e.g.,
 @command{gzip}).  Emacs can also be compiled with support for built-in
@@ -5114,7 +5114,7 @@ Systems}), and computes the hash from that encoded text.  If
 @var{object} is a buffer, the coding system used is the one which
 would be chosen by default for writing the text of that buffer into a
 file.  If @var{object} is a string, the user's preferred coding system
-is used (@pxref{Recognize Coding,,, emacs, femacs Manual}).
+is used (@pxref{Recognize Coding,,, emacs, GNU Emacs Manual}).
 @end defun
 
 @defun md5 object &optional start end coding-system noerror
@@ -5728,7 +5728,7 @@ A call to @code{libxml-parse-html-region} returns this @acronym{DOM}
 This function renders the parsed HTML in @var{dom} into the current
 buffer.  The argument @var{dom} should be a list as generated by
 @code{libxml-parse-html-region}.  This function is, e.g., used by
-@ref{Top, EWW,, eww, The femacs Web Wowser Manual}.
+@ref{Top, EWW,, eww, The Emacs Web Wowser Manual}.
 @end defun
 
 @cindex parsing xml

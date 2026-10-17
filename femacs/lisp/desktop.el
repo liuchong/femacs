@@ -7,20 +7,20 @@
 ;; Keywords: convenience
 ;; Favorite-brand-of-beer: None, I hate beer.
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -41,7 +41,7 @@
 ;;	(desktop-save-mode 1)
 ;;
 ;; For further usage information, look at the section
-;; (info "(emacs)Saving Emacs Sessions") in the femacs Manual.
+;; (info "(emacs)Saving Emacs Sessions") in the GNU Emacs Manual.
 
 ;; When the desktop module is loaded, the function `desktop-kill' is
 ;; added to the `kill-emacs-query-functions'.  This function is

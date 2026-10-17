@@ -11,7 +11,7 @@
 .
 @sp 7
 
-@center @titlefont{femacs Lisp Reference Manual}
+@center @titlefont{GNU Emacs Lisp Reference Manual}
 @sp 5
 @center GNU
 @center Emacs Version @value{EMACSVER}

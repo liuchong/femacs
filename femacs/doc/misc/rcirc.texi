@@ -904,7 +904,7 @@ for @code{rcirc} buffers:
                              (flyspell-mode 1)))
 @end example
 
-@xref{Spelling, , Flyspell mode, emacs, The femacs Manual},
+@xref{Spelling, , Flyspell mode, emacs, The GNU Emacs Manual},
 for details.
 
 @node Scrolling conservatively
@@ -926,7 +926,7 @@ window when possible.  The following snippet uses a local value for
                  8192)))
 @end example
 
-@xref{Scrolling, , Scrolling conservatively, emacs, The femacs
+@xref{Scrolling, , Scrolling conservatively, emacs, The GNU Emacs
 Manual}, for details.
 
 @node Changing the time stamp format

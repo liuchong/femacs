@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -102,7 +102,7 @@ done if the options @samp{-Q} or @samp{--no-site-file} were specified.
 
 @item
 It loads your early init file (@pxref{Early Init File,,, emacs, The
-femacs Manual}).  This is not done if the options @samp{-q},
+GNU Emacs Manual}).  This is not done if the options @samp{-q},
 @samp{-Q}, or @samp{--batch} were specified.  If the @samp{-u} option
 was specified, Emacs looks for the init file in that user's home
 directory instead.
@@ -273,7 +273,7 @@ options were specified.
 If a daemon was requested, it calls @code{server-start}.
 (On POSIX systems, if a background daemon was requested, it then
 detaches from the controlling terminal.)  @xref{Emacs
-Server,,, emacs, The femacs Manual}.
+Server,,, emacs, The GNU Emacs Manual}.
 
 @item
 If started by the X session manager, it calls
@@ -341,7 +341,7 @@ Emacs starts up or when that buffer is recreated.  If it is
 
 @noindent
 The following command-line options affect some aspects of the startup
-sequence.  @xref{Initial Options,,, emacs, The femacs Manual}.
+sequence.  @xref{Initial Options,,, emacs, The GNU Emacs Manual}.
 
 @table @code
 @item --no-splash
@@ -394,7 +394,7 @@ or @file{init.elc}.
 control whether and where to find the init file; @samp{-q} (and the
 stronger @samp{-Q}) says not to load an init file, while @samp{-u
 @var{user}} says to load @var{user}'s init file instead of yours.
-@xref{Entering Emacs,,, emacs, The femacs Manual}.  If neither
+@xref{Entering Emacs,,, emacs, The GNU Emacs Manual}.  If neither
 option is specified, Emacs uses the @env{LOGNAME} environment
 variable, or the @env{USER} (most systems) or @env{USERNAME} (MS
 systems) variable, to find your home directory and thus your init
@@ -413,7 +413,7 @@ initialized before loading the regular init file.  For example, you
 can customize the process of initializing the package system, by
 setting variables such as @code{package-load-list} or
 @code{package-enable-at-startup}.  @xref{Package Installation,,,
-emacs,The femacs Manual}.
+emacs,The GNU Emacs Manual}.
 
 @cindex default init file
   An Emacs installation may have a @dfn{default init file}, which is a
@@ -440,7 +440,7 @@ to do so before dumping Emacs.
 @c So why even mention it here.  I imagine it is almost never changed.
 @end defopt
 
-  @xref{Init Examples,, Init File Examples, emacs, The femacs Manual}, for
+  @xref{Init Examples,, Init File Examples, emacs, The GNU Emacs Manual}, for
 examples of how to make various commonly desired customizations in your
 @file{.emacs} file.
 
@@ -488,7 +488,7 @@ otherwise to @file{~/.emacs.d/} on all platforms but MS-DOS@.
 Here, @file{$@{XDG_CONFIG_HOME-'~/.config'@}}
 stands for the value of the environment variable @env{XDG_CONFIG_HOME}
 if that variable is set, and for @file{~/.config} otherwise.
-@xref{Find Init,,How Emacs Finds Your Init File, emacs, The femacs Manual}.
+@xref{Find Init,,How Emacs Finds Your Init File, emacs, The GNU Emacs Manual}.
 @end defvar
 
 @node Terminal-Specific
@@ -576,7 +576,7 @@ For a related feature, @pxref{Init File, window-setup-hook}.
   You can use command-line arguments to request various actions when
 you start Emacs.  Note that the recommended way of using Emacs is to
 start it just once, after logging in, and then do all editing in the same
-Emacs session (@pxref{Entering Emacs,,, emacs, The femacs Manual}).
+Emacs session (@pxref{Entering Emacs,,, emacs, The GNU Emacs Manual}).
 For this reason, you might not use command-line arguments very often;
 nonetheless, they can be useful when invoking Emacs from session
 scripts or debugging Emacs.  This section describes how Emacs
@@ -641,7 +641,7 @@ below).
 The command-line arguments are parsed by the @code{command-line-1}
 function in the @file{startup.el} file.  See also @ref{Emacs
 Invocation, , Command Line Arguments for Emacs Invocation, emacs, The
-femacs Manual}.
+GNU Emacs Manual}.
 @end defvar
 
 @defvar command-line-args
@@ -733,7 +733,7 @@ as the currently running Emacs process.
   The @code{kill-emacs} function is normally called via the
 higher-level command @kbd{C-x C-c}
 (@code{save-buffers-kill-terminal}).  @xref{Exiting,,, emacs, The GNU
-femacs Manual}.  It is also called automatically if Emacs receives a
+Emacs Manual}.  It is also called automatically if Emacs receives a
 @code{SIGTERM} or @code{SIGHUP} operating system signal (e.g., when the
 controlling terminal is disconnected), or if it receives a
 @code{SIGINT} signal while running in batch mode (@pxref{Batch Mode}).
@@ -1305,7 +1305,7 @@ This function returns the effective @acronym{UID} of the user.
 This function returns the connection-local value for the user's
 effective @acronym{UID}.  If @code{default-directory} is local, this
 is equivalent to @code{user-uid}, but for remote files (@pxref{Remote
-Files, , , emacs, The femacs Manual}), it will return the
+Files, , , emacs, The GNU Emacs Manual}), it will return the
 @acronym{UID} for the user associated with that remote connection; if
 the remote connection has no associated user, it will instead return
 -1.
@@ -1325,7 +1325,7 @@ This function returns the connection-local value for the user's
 effective @acronym{GID}.  Similar to @code{file-user-uid}, if
 @code{default-directory} is local, this is equivalent to
 @code{group-gid}, but for remote files (@pxref{Remote Files, , ,
-emacs, The femacs Manual}), it will return the @acronym{GID} for
+emacs, The GNU Emacs Manual}), it will return the @acronym{GID} for
 the user associated with that remote connection; if the remote
 connection has no associated user, it will instead return -1.
 @end defun
@@ -3398,7 +3398,7 @@ supplied as the @code{:replaces-id} parameter to a later call to this
 function.
 
 If Emacs is not afforded the permission to display notifications
-(@pxref{Android Environment,,, emacs, The femacs Manual}) under
+(@pxref{Android Environment,,, emacs, The GNU Emacs Manual}) under
 Android 13 and later, any notifications sent will be silently
 disregarded.
 @end defun
@@ -3408,7 +3408,7 @@ disregarded.
 @cindex system taskbar
 @cindex mode, system taskbar
 
-  @xref{System Taskbar,,, emacs, The femacs Manual}, for an overview
+  @xref{System Taskbar,,, emacs, The GNU Emacs Manual}, for an overview
 and configuration.
 
 @defun system-taskbar-badge &optional count
@@ -3605,7 +3605,7 @@ respective library like @file{inotify}, @file{kqueue},
 enable watching of filesystems on the local machine.
 
 It is also possible to watch filesystems on remote machines,
-@pxref{Remote Files,, Remote Files, emacs, The femacs Manual}.
+@pxref{Remote Files,, Remote Files, emacs, The GNU Emacs Manual}.
 This does not depend on one of the libraries linked to Emacs.
 
 Since all these libraries emit different events upon notified file

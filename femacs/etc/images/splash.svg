@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- femacs Logo
+<!-- Gnu Emacs Logo
 
    Copyright (C) 2008-2026 Free Software Foundation, Inc.
 
    Author: Francesc Rocher <francesc.rocher@gmail.com>
    Based on the original work by Luis Fernandes <elf@ee.ryerson.ca>
 
-   This file is part of femacs.
+   This file is part of GNU Emacs.
 
-   femacs is free software: you can redistribute it and/or modify
+   GNU Emacs is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
 
-   femacs is distributed in the hope that it will be useful,
+   GNU Emacs is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+   along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 -->
 
@@ -82,7 +82,7 @@
             <dc:title>GPL</dc:title>
           </cc:Agent>
         </dc:rights>
-        <dc:description>femacs splash image</dc:description>
+        <dc:description>GNU Emacs splash image</dc:description>
         <dc:contributor>
           <cc:Agent>
             <dc:title>Based on the original work by Luis Fernandes.</dc:title>

@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1994, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -154,7 +154,7 @@ set @code{debug-ignored-errors} to @code{nil}.
 If this variable has a non-@code{nil} value (the default), running the
 command @code{eval-expression} causes @code{debug-on-error} to be
 temporarily bound to @code{t}.  @xref{Lisp Eval,, Evaluating
-Emacs Lisp Expressions, emacs, The femacs Manual}.
+Emacs Lisp Expressions, emacs, The GNU Emacs Manual}.
 
 If @code{eval-expression-debug-on-error} is @code{nil}, then the value
 of @code{debug-on-error} is not changed during @code{eval-expression}.
@@ -480,7 +480,7 @@ type @key{RET} while point is on any name of a function or variable
 which is not underlined, to see help information for that symbol in a
 help buffer, if any exists.  The @code{xref-find-definitions} command,
 bound to @kbd{M-.}, can also be used on any identifier in a backtrace
-(@pxref{Looking Up Identifiers,,,emacs, The femacs Manual}).
+(@pxref{Looking Up Identifiers,,,emacs, The GNU Emacs Manual}).
 
 In backtraces, the tails of long lists and the ends of long strings,
 vectors or structures, as well as objects which are deeply nested,
@@ -925,7 +925,7 @@ missing parenthesis belongs.  How, then, to find what to change?
 
   If the problem is not simply an imbalance of parentheses, a useful
 technique is to try @kbd{C-M-e} (@code{end-of-defun}, @pxref{Moving by
-Defuns,,,emacs, The femacs Manual}) at the beginning of each defun,
+Defuns,,,emacs, The GNU Emacs Manual}) at the beginning of each defun,
 and see if it goes to the place where that defun appears to end.  If
 it does not, there is a problem in that defun.
 
@@ -948,7 +948,7 @@ find the mismatch.)
   The first step is to find the defun that is unbalanced.  If there is
 an excess open parenthesis, the way to do this is to go to the end of
 the file and type @kbd{C-u C-M-u} (@code{backward-up-list},
-@pxref{Moving by Parens,,,emacs, The femacs Manual}).  This will
+@pxref{Moving by Parens,,,emacs, The GNU Emacs Manual}).  This will
 move you to the beginning of the first defun that is unbalanced.
 
   The next step is to determine precisely what is wrong.  There is no
@@ -956,7 +956,7 @@ way to be sure of this except by studying the program, but often the
 existing indentation is a clue to where the parentheses should have
 been.  The easiest way to use this clue is to reindent with @kbd{C-M-q}
 (@code{indent-pp-sexp}, @pxref{Multi-line Indent,,,emacs, The GNU
-femacs Manual}) and see what moves.  @strong{But don't do this yet!}
+Emacs Manual}) and see what moves.  @strong{But don't do this yet!}
 Keep reading, first.
 
   Before you do this, make sure the defun has enough close parentheses.
@@ -989,7 +989,7 @@ with an argument of @minus{}1) to find the end of the first unbalanced
 defun.
 
   Then find the actual matching close parenthesis by typing @kbd{C-M-f}
-(@code{forward-sexp}, @pxref{Expressions,,,emacs, The femacs Manual})
+(@code{forward-sexp}, @pxref{Expressions,,,emacs, The GNU Emacs Manual})
 at the beginning of that defun.  This will leave you somewhere short of
 the place where the defun ought to end.  It is possible that you will
 find a spurious close parenthesis in that vicinity.

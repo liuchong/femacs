@@ -11,20 +11,20 @@
 ;; Old-Version: 7.3.5
 ;; URL: https://www.emacswiki.org/cgi-bin/wiki/ViniciusJoseLatorre
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -910,7 +910,7 @@
 ;; out some special printing instructions from the actual print.  Special
 ;; printing instructions may be appended to the end of the file just like any
 ;; other buffer-local variables.  See section "Local Variables in Files" on
-;; femacs manual for more information.
+;; Emacs manual for more information.
 ;;
 ;; Variables `ps-begin-cut-regexp' and `ps-end-cut-regexp' control together
 ;; what actually gets printed.  Both variables may be set to nil in which case
@@ -5321,7 +5321,7 @@ XSTART YSTART are the relative position for the first page in a sheet.")
      ps-adobe-tag
      "%%Title: " (buffer-name)		; Take job name from name of
 					; first buffer printed
-     "\n%%Creator: femacs " emacs-version
+     "\n%%Creator: GNU Emacs " emacs-version
      "\n%%For: " (user-full-name)       ;FIXME: may need encoding!
      "\n%%CreationDate: " (format-time-string "%T %b %d %Y") ;FIXME: encoding!
      "\n%%Orientation: "

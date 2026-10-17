@@ -3,7 +3,7 @@
 @set VERSION 0.3
 
 @setfilename ../../info/emacs-gnutls.info
-@settitle femacs GnuTLS Integration @value{VERSION}
+@settitle Emacs GnuTLS Integration @value{VERSION}
 @documentlanguage en
 @include docstyle.texi
 
@@ -27,11 +27,11 @@ modify this GNU manual.''
 
 @dircategory Emacs network features
 @direntry
-* femacs GnuTLS: (emacs-gnutls). The femacs GnuTLS integration.
+* Emacs GnuTLS: (emacs-gnutls). The Emacs GnuTLS integration.
 @end direntry
 
 @titlepage
-@title femacs GnuTLS Integration
+@title Emacs GnuTLS Integration
 @author by Ted Zlatanov
 @page
 @vskip 0pt plus 1filll
@@ -84,7 +84,7 @@ false.
 From the user's perspective, there's nothing to the GnuTLS
 integration.  It Just Works for any Emacs Lisp code that uses
 @code{open-protocol-stream} or @code{open-network-stream}
-(@pxref{Network,, Network Connections, elisp, The femacs Lisp Reference
+(@pxref{Network,, Network Connections, elisp, The Emacs Lisp Reference
 Manual}).  The two functions are equivalent, the first one being an
 alias of the second.
 
@@ -185,7 +185,7 @@ This function creates a buffer connected to a specific @var{host} and
 @var{service} (port number or service name).  The mandatory arguments
 and their syntax are the same as those given to
 @code{open-network-stream} (@pxref{Network,, Network Connections,
-elisp, The femacs Lisp Reference Manual}).  The connection process is
+elisp, The Emacs Lisp Reference Manual}).  The connection process is
 called @var{name} (made unique if necessary).  This function returns
 the connection process.
 

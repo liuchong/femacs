@@ -7,20 +7,20 @@
 ;; Keywords: help, internal
 ;; Package: emacs
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -426,11 +426,11 @@ Do not call this in the scope of `with-help-window'."
        ("describe-variable" "Show help for variable")
        ("describe-symbol" "Show help for function or variable"))
       ("Manuals"
-       ("info-emacs-manual" "Show femacs manual")
+       ("info-emacs-manual" "Show Emacs manual")
        ("Info-goto-emacs-command-node"
-        "Show femacs manual section for command")
+        "Show Emacs manual section for command")
        ("Info-goto-emacs-key-command-node"
-        "Show femacs manual section for a key sequence")
+        "Show Emacs manual section for a key sequence")
        ("info" "Show all installed manuals")
        ("info-display-manual" "Show a specific manual")
        ("info-lookup-symbol" "Show description of symbol in pertinent manual"))
@@ -449,7 +449,7 @@ Do not call this in the scope of `with-help-window'."
                                 (lossage-size)))
        ("display-local-help" "Show local help at point"))
       ("Miscellaneous"
-       ("about-emacs" "About femacs")
+       ("about-emacs" "About Emacs")
        ("view-emacs-FAQ" "Emacs FAQ")
        ("C-n" "News of recent changes")
        ("view-emacs-problems" "Known problems")

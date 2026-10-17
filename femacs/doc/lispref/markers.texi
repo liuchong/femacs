@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -631,7 +631,7 @@ This piece of command_loop_1, run unless deactivating the mark:
 
 @defun handle-shift-selection
 This function implements the shift-selection behavior of
-point-motion commands.  @xref{Shift Selection,,, emacs, The femacs
+point-motion commands.  @xref{Shift Selection,,, emacs, The GNU Emacs
 Manual}.  It is called automatically by the Emacs command loop
 whenever a command with a @samp{^} character in its @code{interactive}
 spec is invoked, before the command itself is executed
@@ -673,7 +673,7 @@ more marks than this are pushed onto the @code{mark-ring},
 @findex delete-selection-helper
 @findex delete-selection-pre-hook
 When Delete Selection mode (@pxref{Using Region, Delete Selection, ,
-emacs, The femacs Manual}) is enabled, commands that operate on the
+emacs, The GNU Emacs Manual}) is enabled, commands that operate on the
 active region (a.k.a.@: ``selection'') behave slightly differently.
 This works by adding the function @code{delete-selection-pre-hook} to
 the @code{pre-command-hook} (@pxref{Command Overview}).  That function

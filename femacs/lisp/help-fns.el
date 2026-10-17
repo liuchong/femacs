@@ -7,20 +7,20 @@
 ;; Keywords: help, internal
 ;; Package: emacs
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -2442,7 +2442,7 @@ one of them returns non-nil."
       (error "Cannot read file `%s'" file))
   (pop-to-buffer (generate-new-buffer "*man-doc*"))
   (setq buffer-undo-list t)
-  (insert ".TH \"Command Summary for femacs\"\n"
+  (insert ".TH \"Command Summary for GNU Emacs\"\n"
           ".AU Richard M. Stallman\n")
   (insert-file-contents file)
   (let (notfirst)
@@ -2494,10 +2494,10 @@ one of them returns non-nil."
     ;; Write the output header.
     (insert "\\input texinfo  @c -*-texinfo-*-\n"
             "@setfilename emacsdoc.info\n"
-            "@settitle Command Summary for femacs\n"
+            "@settitle Command Summary for GNU Emacs\n"
             "@finalout\n"
             "\n@node Top\n"
-            "@unnumbered Command Summary for femacs\n\n"
+            "@unnumbered Command Summary for GNU Emacs\n\n"
             "@table @asis\n\n"
             "@iftex\n"
             "@global@let@ITEM@item\n"

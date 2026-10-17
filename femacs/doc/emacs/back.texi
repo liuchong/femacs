@@ -1,17 +1,17 @@
 \input texinfo  @c -*-texinfo-*-
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c
 @c %**start of header
 @setfilename back-cover
-@settitle femacs Manual
+@settitle GNU Emacs Manual
 @include docstyle.texi
 @c %**end of header
 .
 @sp 7
-@center @titlefont {femacs Manual}
+@center @titlefont {GNU Emacs Manual}
 @sp 1
 
 @quotation

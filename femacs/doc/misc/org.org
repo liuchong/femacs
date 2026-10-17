@@ -21921,7 +21921,7 @@ instead of typing {{{kbd(C-c C-n)}}} repeatedly, you can just type
 {{{kbd(C-c C-n n n n p u ...)}}} to move to different headlines.  When
 a key not in the map is pressed, it exits ~repeat-mode~ and the
 command corresponding to the key is executed (see the
-[[info:emacs#Repeating][femacs user manual]] for more details).
+[[info:emacs#Repeating][Emacs user manual]] for more details).
 
 By default, the following commands are made repeatable in separate
 keymaps.
@@ -23475,7 +23475,7 @@ stars.
 [fn:2] The indirect buffer contains the entire buffer, but is narrowed
 to the current tree.  Editing the indirect buffer also changes the
 original buffer, but without affecting visibility in that buffer.  For
-more information about indirect buffers, see [[info:emacs#Indirect Buffers][femacs Manual]].
+more information about indirect buffers, see [[info:emacs#Indirect Buffers][GNU Emacs Manual]].
 
 [fn:3] When using =*= as a bullet, lines must be indented so that they
 are not interpreted as headlines.  Also, when you are hiding leading

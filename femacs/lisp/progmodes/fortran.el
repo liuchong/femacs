@@ -1,4 +1,4 @@
-;;; fortran.el --- Fortran mode for femacs -*- lexical-binding: t -*-
+;;; fortran.el --- Fortran mode for GNU Emacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 1986-2026 Free Software Foundation, Inc.
 
@@ -6,24 +6,24 @@
 ;; Maintainer: emacs-devel@gnu.org
 ;; Keywords: fortran, languages
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
-;; This mode is documented in the femacs manual.
+;; This mode is documented in the Emacs manual.
 ;;
 ;; Note that it is for editing Fortran77 or Fortran90 fixed source
 ;; form.  For editing Fortran 90 free format source, use `f90-mode'
@@ -2136,7 +2136,7 @@ arg DO-SPACE prevents stripping the whitespace."
 (easy-menu-define fortran-menu fortran-mode-map "Menu for Fortran mode."
   `("Fortran"
     ["Manual" (info "(emacs)Fortran") :active t
-     :help "Read the femacs manual chapter on Fortran mode"]
+     :help "Read the Emacs manual chapter on Fortran mode"]
     ("Customization"
      ,(progn
         ;; Tell the byte compiler that `features' is lexical.

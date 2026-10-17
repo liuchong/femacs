@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright (C) 2014-2026 Free Software Foundation, Inc. -->
 <component type="desktop-application">
- <id>org.femacs</id>
+ <id>org.gnu.emacs</id>
  <metadata_license>GFDL-1.3+</metadata_license>
- <name>femacs</name>
+ <name>GNU Emacs</name>
  <summary>An extensible text editor</summary>
  <icon type="remote" width="128" height="128">https://www.gnu.org/software/emacs/images/emacs.png</icon>
  <description>
   <p>
-   femacs is an extensible, customizable text editor - and more.
+   GNU Emacs is an extensible, customizable text editor - and more.
    At its core is an interpreter for Emacs Lisp, a dialect of the Lisp
    programming language with extensions to support text editing.
   </p>
-  <p>The features of femacs include:</p>
+  <p>The features of GNU Emacs include:</p>
   <ul>
    <li>Content-sensitive editing modes, including syntax coloring, for
    a wide-range of file types</li>

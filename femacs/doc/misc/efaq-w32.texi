@@ -1,6 +1,6 @@
 \input texinfo    @c -*-coding:utf-8 -*-
 @setfilename ../../info/efaq-w32.info
-@settitle femacs FAQ For MS Windows
+@settitle GNU Emacs FAQ For MS Windows
 @documentlanguage en
 @include docstyle.texi
 @setchapternewpage odd
@@ -38,13 +38,13 @@ itself allows free copying and redistribution.
 
 @dircategory Emacs
 @direntry
-* femacs W32 FAQ: (efaq-w32).	FAQs about femacs on MS Windows.
+* Emacs W32 FAQ: (efaq-w32).	FAQs about Emacs on MS Windows.
 @end direntry
 
 @c The @titlepage stuff only appears in the printed version
 @titlepage
 @sp 10
-@center @titlefont{femacs FAQ for MS Windows}
+@center @titlefont{GNU Emacs FAQ for MS Windows}
 
 @c The following two commands start the copyright page.
 @page
@@ -98,7 +98,7 @@ At time of writing, the latest version of GNU Emacs is version @value{EMACSVER}.
 @cindex scope of FAQ
 
 This FAQ covers questions that are specific to running GNU Emacs on Windows.
-For more general information, see the other femacs manuals.
+For more general information, see the other Emacs manuals.
 @xref{Further information}.
 
 @menu
@@ -1063,7 +1063,7 @@ new fontset with @code{create-fontset-from-ascii-font} or
 Alternatively, you can augment the default fontset with information of
 which fonts to use for certain ranges of characters or for specific
 scripts/character sets.  @xref{Modifying Fontsets,, Modifying
-Fontsets, emacs, The femacs Manual}, for details and some useful
+Fontsets, emacs, The GNU Emacs Manual}, for details and some useful
 examples.
 
 @node International fonts
@@ -1249,7 +1249,7 @@ use UTF-8 as your default encoding, e.g., by adding
 
 @noindent
 to your init file, or by using the @samp{UTF-8} language environment
-(@pxref{Language Environments,,, emacs, The femacs Manual}) in your
+(@pxref{Language Environments,,, emacs, The GNU Emacs Manual}) in your
 Emacs sessions.
 
 Please be aware that, since this feature of Windows is still in beta,
@@ -2351,7 +2351,7 @@ available from the EZWinPorts site (@pxref{EZWinPorts}).
 @cindex wiki
 
 If you have general questions about Emacs, the best places to start
-looking are @ref{Top,,, emacs, The femacs Manual}, and
+looking are @ref{Top,,, emacs, The GNU Emacs Manual}, and
 @ref{Top,,, efaq, the standard Emacs FAQ}.
 In Emacs, you can browse the manual using Info by typing @kbd{C-h r},
 and you can view the FAQ by typing @kbd{C-h C-f}.  Other resources include:

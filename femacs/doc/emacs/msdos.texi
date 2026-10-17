@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -461,7 +461,7 @@ of the time.  For example:
 
 @noindent
 Note that the strings substituted for these @samp{%}-sequences depend
-on the current locale.  @xref{Time Parsing,,, elisp, The femacs Lisp
+on the current locale.  @xref{Time Parsing,,, elisp, The Emacs Lisp
 Reference Manual}, for more about format time specs.
 
 @vindex ls-lisp-use-localized-time-format
@@ -1029,7 +1029,7 @@ system will take longer.
 Alternatively, you could specify a font backend for a frame via the
 @code{font-backend} frame parameter, using
 @code{modify-frame-parameters} (@pxref{Parameter Access,,, elisp, The
-femacs Lisp Reference Manual}).  You can also request specific font
+Emacs Lisp Reference Manual}).  You can also request specific font
 backend(s) for all your frames via @code{default-frame-alist} and
 @code{initial-frame-alist} (@pxref{Frame Parameters}).  Note that the
 value of the @code{font-backend} parameter should be a list of

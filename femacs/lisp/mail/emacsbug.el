@@ -7,20 +7,20 @@
 ;; Keywords: maint mail
 ;; Package: emacs
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -209,7 +209,7 @@ This requires either the macOS \"open\" command, or the freedesktop
 
 ;;;###autoload
 (defun report-emacs-bug (topic &optional _unused)
-  "Report a bug in femacs.
+  "Report a bug in GNU Emacs.
 Prompts for bug subject.  Leaves you in a mail buffer.
 
 Already submitted bugs can be found in the Emacs bug tracker:
@@ -380,7 +380,7 @@ usually do not have translators for other languages.\n\n")))
                             "  Type \\[report-emacs-bug-insert-to-mailer] to \
 copy text to your preferred mail program.\n"
                           "")
-                        "  Type \\[info-emacs-bug] to visit in Info the femacs Manual section
+                        "  Type \\[info-emacs-bug] to visit in Info the Emacs Manual section
     about when and how to write a bug report, and what
     information you should include to help fix the bug."))))
           (with-current-buffer "*Bug Help*"

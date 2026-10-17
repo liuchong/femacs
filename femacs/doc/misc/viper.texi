@@ -26,14 +26,14 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* VIPER: (viper).               A VI-emulation mode for femacs.
+* VIPER: (viper).               A VI-emulation mode for Emacs.
 @end direntry
 
 @finalout
 
 @titlepage
-@title Viper Is a Package for femacs Rebels
-@subtitle a Vi emulator for femacs
+@title Viper Is a Package for Emacs Rebels
+@subtitle a Vi emulator for Emacs
 @subtitle July 2013, Viper Version 3.14.2
 
 @author Michael Kifer (Viper)
@@ -198,7 +198,7 @@ Emacs can edit several files at once.  A file in Emacs is placed in a
 @dfn{buffer} that usually has the same name as the file.  Buffers are also used
 for other purposes, such as shell interfaces, directory editing, etc.
 @xref{Dired,,Directory Editor,emacs,The
-femacs Manual}, for an example.
+GNU Emacs Manual}, for an example.
 
 A buffer has a distinguished position called the @dfn{point}.
 A @dfn{point} is always between 2 characters, and is @dfn{looking at}
@@ -215,7 +215,7 @@ shouldn't) happen if you restrict yourself to standard Vi keys, unless you
 modify the default editing style.  @xref{Customization}.
 
 In addition to the @dfn{point}, there is another distinguished buffer
-position called the @dfn{mark}.  @xref{Mark,,Mark,emacs,The femacs
+position called the @dfn{mark}.  @xref{Mark,,Mark,emacs,The GNU Emacs
 manual}, for more info on the mark.  The text between the @dfn{point} and
 the @dfn{mark} is called the @dfn{region} of the buffer.  For the Viper
 user, this simply means that in addition to the Vi textmarkers a--z, there
@@ -274,7 +274,7 @@ keymap then that function will be executed when you type the key.
 If no function is bound to a key in the
 local map, however, the function bound to the key in the global map
 will be executed.  @xref{Major Modes,Major Modes,Major Modes,emacs,The
-femacs Manual}, for more information.
+GNU Emacs Manual}, for more information.
 
 A buffer can also have a @dfn{minor mode}.  Minor modes are options that
 you can use or not.  A buffer in @code{text-mode} can have
@@ -282,7 +282,7 @@ you can use or not.  A buffer in @code{text-mode} can have
 any time.  In Emacs, a minor mode may have it own keymap,
 which overrides the local keymap when the minor mode is turned on.  For
 more information, @pxref{Minor Modes,Minor Modes,Minor Modes,emacs,The
-femacs Manual}.
+GNU Emacs Manual}.
 
 @cindex Viper as minor mode
 @cindex Control keys
@@ -512,7 +512,7 @@ management.  @kbd{C-x 2} will split a window, @kbd{C-x 0} will close a
 window.  @kbd{C-x 1} will close all other windows.  @kbd{C-xb} is used to
 switch buffers in a window, and @kbd{C-xo} to move through windows.
 These are about the only necessary keystrokes.
-For the rest, see the femacs Manual.
+For the rest, see the GNU Emacs Manual.
 
 @kindex C-c
 @item C-c
@@ -530,7 +530,7 @@ use @kbd{C-g} to quit.  Similarly, @kbd{C-]} is used to exit
 functionality and no key-binding.  Recursive edits are indicated by
 @samp{[]} brackets framing the modes on the mode line.
 @xref{Recursive Edit,Recursive
-Edit,Recursive Edit,emacs,The femacs Manual}.
+Edit,Recursive Edit,emacs,The GNU Emacs Manual}.
 At user level 1, @kbd{C-g} is bound to @code{viper-info-on-file}
 function instead.
 
@@ -583,7 +583,7 @@ Viper uses Emacs Regular Expressions for searches.  These are a superset of
 Vi regular
 expressions, excepting the change-of-case escapes @samp{\u}, @samp{\L},
 @dots{}, etc.  @xref{Regexps,,Syntax of Regular Expressions,emacs,The
-femacs Manual}, for details.
+GNU Emacs Manual}, for details.
 Files specified to @kbd{:e} use @code{csh} regular expressions
 (globbing, wildcards, what have you).
 However, the function @code{viper-toggle-search-style}, bound to @kbd{C-c /},
@@ -993,7 +993,7 @@ direction.
 Since the undo size is limited, Viper can create backup files and
 auto-save files.  It will normally do this automatically.  It is possible
 to have numbered backups, etc.  For details, @pxref{Backup,,Backup and
-Auto-Save,emacs,The femacs Manual}.
+Auto-Save,emacs,The GNU Emacs Manual}.
 
 @comment [ balance parens
 @cindex viewing registers and markers
@@ -1082,7 +1082,7 @@ The last keyboard macro can also be executed using
 @kbd{*}, and it can be yanked into a register using @kbd{@@!register}.
 This is useful for Emacs style keyboard macros defined using @kbd{C-x(}
 and @kbd{C-x)}.  Emacs keyboard macros have more capabilities.
-@xref{Keyboard Macros,,Keyboard Macros,emacs, The femacs Manual}, for
+@xref{Keyboard Macros,,Keyboard Macros,emacs, The GNU Emacs Manual}, for
 details.
 
 Keyboard Macros allow an interesting form of Query-Replace:
@@ -1137,7 +1137,7 @@ as you go along.  Incremental Search is normally bound to @kbd{C-s} and
 @kbd{C-r}.  @xref{Customization}, to find out how to change the bindings
 of @kbd{C-r or C-s}.
 For details, @pxref{Incremental Search,,Incremental
-Search,emacs,The femacs Manual}.
+Search,emacs,The GNU Emacs Manual}.
 
 @cindex query replace
 Viper also provides a query replace function that prompts through the
@@ -1174,7 +1174,7 @@ Try it: it is really simple!
 It is possible in Emacs to define abbrevs based on the contents of the
 buffer.
 Sophisticated templates can be defined using the Emacs abbreviation
-facilities.  @xref{Abbrevs,,Abbreviations,emacs,The femacs Manual}, for
+facilities.  @xref{Abbrevs,,Abbreviations,emacs,The GNU Emacs Manual}, for
 details.
 
 @cindex dynamic abbrevs
@@ -1359,7 +1359,7 @@ Set mark at beginning and end of buffer, respectively.
 
 @item m,
 Jump to mark and pop mark off the ring.  @xref{Mark,,Mark,emacs,The GNU
-femacs Manual}, for more info.
+Emacs Manual}, for more info.
 
 @kindex ]<a-z>
 @item ] register
@@ -1482,7 +1482,7 @@ This manual also mentions some Emacs features a new user
 should know about.  The details of these are found in the GNU Emacs
 Manual.
 
-The features first.  For details, look up the femacs Manual.
+The features first.  For details, look up the Emacs Manual.
 
 @table @samp
 @cindex make
@@ -2219,7 +2219,7 @@ local to Viper state and the current buffer, not to the major mode.
 In such situations, the remedy is to type @kbd{M-x viper-zap-local-keys}.
 
 So much about Viper-specific bindings.
-@xref{Customization,,Customization,emacs,The femacs
+@xref{Customization,,Customization,emacs,The GNU Emacs
 Manual}, and the Emacs quick reference card for the general info on key
 bindings in Emacs.
 
@@ -2443,7 +2443,7 @@ in the hook to the major mode (e.g., @code{dired-mode-hook}).
 @itemx viper-heading-end
 Regular Expressions for @kbd{[[} and @kbd{]]}.  Note that Emacs defines
 Regexps for paragraphs and sentences.  @xref{Paragraphs,,Paragraphs and
-Sentences,emacs,The femacs Manual}, for details.
+Sentences,emacs,The GNU Emacs Manual}, for details.
 
 @findex viper-set-expert-level
 @item M-x viper-set-expert-level
@@ -2603,7 +2603,7 @@ above block should be commented out.
 Even though these commands are sometimes useful, they are no substitute for
 the powerful @emph{tag table} facility of Emacs.  Viper's @kbd{:tag} command
 in a primitive interface to Emacs tags.  @xref{Tags Tables,,,emacs,
-The femacs Manual}, for more information on tags.
+The GNU Emacs Manual}, for more information on tags.
 
 @kindex S-mouse-1
 @kindex S-mouse-2
@@ -2758,7 +2758,7 @@ register (a lowercase letter); such macros can then be executed by typing
 @xref{Macros and Registers}, for details.
 
 If, however, you need to use a macro regularly, it must be given a
-permanent name and saved.  femacs manual explains how to do this, but
+permanent name and saved.  Emacs manual explains how to do this, but
 invocation of named Emacs macros is quite different from Vi's.  First,
 invocation of permanent Emacs macros takes time because it requires typing
 too many keys (to  a Vi user's taste, anyway).
@@ -2818,7 +2818,7 @@ As if all that is not enough, Viper (through its interface to Emacs
 macros) lets the user define keyboard macros that ask for confirmation or
 even prompt the user for input and then continue.  To do this, one should
 type @kbd{C-x q} (for confirmation) or @kbd{C-u C-x q} (for prompt).
-For details, @pxref{Keyboard Macro Query,,Customization,emacs,The femacs
+For details, @pxref{Keyboard Macro Query,,Customization,emacs,The GNU Emacs
 Manual}.
 
 When the user finishes defining a macro (which is done by typing @kbd{C-x)},
@@ -3470,7 +3470,7 @@ in your Viper customization file.
 @cindex marking
 Emacs mark is referred to in the region specifiers @kbd{r} and @kbd{R}.
 @xref{Emacs Preliminaries}, and @xref{Basics}, for explanation.  Also
-see @ref{Mark,,Mark,emacs,The femacs manual}, for an explanation of
+see @ref{Mark,,Mark,emacs,The GNU Emacs manual}, for an explanation of
 the Emacs mark ring.
 
 @kindex m<a-z>
@@ -3519,7 +3519,7 @@ Go to specified Viper mark and go to the first CHAR on line.
 @subsection Appending Text
 
 @xref{Options}, to see how to change tab and shiftwidth size.  See the GNU
-femacs manual, or try @kbd{C-ha tabs} (If you have turned Emacs help on).
+Emacs manual, or try @kbd{C-ha tabs} (If you have turned Emacs help on).
 Check out the variable @code{indent-tabs-mode} to put in just spaces.
 Also see options for word-wrap.
 

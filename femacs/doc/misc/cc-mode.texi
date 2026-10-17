@@ -34,7 +34,7 @@
 @comment !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 @ignore
 In each of the following pairs of commands, the first generates a
-version with cross references pointing to the femacs manuals,
+version with cross references pointing to the GNU Emacs manuals,
 the second with them pointing to the XEmacs manuals.
     ## Info output
     makeinfo cc-mode.texi
@@ -88,7 +88,7 @@ the second with them pointing to the XEmacs manuals.
 @footnotestyle end
 
 @c The following four macros generate the filenames and titles of the
-@c main (X)femacs manual and the Elisp/Lispref manual.  Leave the
+@c main (X)Emacs manual and the Elisp/Lispref manual.  Leave the
 @c Texinfo variable 'XEMACS' unset to generate a GNU Emacs version, set it
 @c to generate an XEmacs version, e.g., with
 @c "makeinfo -DXEMACS cc-mode.texi".
@@ -112,13 +112,13 @@ XEmacs Lisp Reference Manual
 emacs
 @end macro
 @macro emacsmantitle
-femacs Manual
+GNU Emacs Manual
 @end macro
 @macro lispref
 elisp
 @end macro
 @macro lispreftitle
-femacs Lisp Reference Manual
+GNU Emacs Lisp Reference Manual
 @end macro
 @end ifclear
 
@@ -187,7 +187,7 @@ modify this GNU manual.''
 @comment here is by request from the FSF folks.
 @dircategory Emacs editing modes
 @direntry
-* CC Mode: (ccmode).            femacs mode for editing C, C++, Objective-C,
+* CC Mode: (ccmode).            Emacs mode for editing C, C++, Objective-C,
                                   Java, Pike, AWK, and CORBA IDL code.
 @end direntry
 
@@ -833,7 +833,7 @@ comment style (@pxref{Minor Modes}).
 This command comments out the lines that start in the region.  With a
 negative argument, it does the opposite: it deletes the comment
 delimiters from these lines.  @xref{Multi-Line Comments,,, emacs, GNU
-femacs Manual}, for fuller details.  @code{comment-region} isn't
+Emacs Manual}, for fuller details.  @code{comment-region} isn't
 actually part of @ccmode{}; it is given a @ccmode{} binding for
 convenience.
 
@@ -846,7 +846,7 @@ already@footnote{The name of this command varies between (X)Emacs
 versions.}.  Then reindent the comment according to
 @code{comment-column}
 @ifclear XEMACS
-(@pxref{Options for Comments,,, emacs, femacs Manual})
+(@pxref{Options for Comments,,, emacs, GNU Emacs Manual})
 @end ifclear
 @ifset XEMACS
 (@pxref{Comments,,, xemacs, XEmacs User's Manual})
@@ -1645,7 +1645,7 @@ yourself if the defaults are unsuitable.
 
 Getting your @key{Backspace} and @key{Delete} keys properly set up can
 sometimes be tricky.  The information in @ref{DEL Does Not
-Delete,,,emacs, femacs Manual}, might be helpful if you're having
+Delete,,,emacs, GNU Emacs Manual}, might be helpful if you're having
 trouble with this in GNU Emacs.
 
 
@@ -1787,7 +1787,7 @@ the kill ring.  If there is no current function,
 @code{c-display-defun-name} does nothing.  In Emacs, you can use this
 command in the middle of an interactive search if you set the
 customizable option @code{isearch-allow-scroll} to non-@code{nil}.
-@xref{Not Exiting Isearch,,,emacs, femacs Manual}.
+@xref{Not Exiting Isearch,,,emacs, GNU Emacs Manual}.
 
 @item @kbd{C-c C-\} (@code{c-backslash-region})
 @kindex C-c C-\
@@ -1851,7 +1851,7 @@ supplying patterns for use with Font Lock mode.  This means that you
 get distinct faces on the various syntactic parts such as comments,
 strings, keywords and types, which is very helpful in telling them
 apart at a glance and discovering syntactic errors.  @xref{Font
-Lock,,, emacs, femacs Manual}, for ways to enable font locking in
+Lock,,, emacs, GNU Emacs Manual}, for ways to enable font locking in
 @ccmode{} buffers.
 
 @strong{Please note:} The font locking in AWK mode is currently not
@@ -1892,7 +1892,7 @@ the types aren't recognized by standard patterns.  This is a fairly
 demanding analysis which can be slow on older hardware, and it can
 therefore be disabled by choosing a lower decoration level with the
 variable @code{font-lock-maximum-decoration} (@pxref{Font Lock,,,
-emacs, femacs Manual}).
+emacs, GNU Emacs Manual}).
 
 @vindex font-lock-maximum-decoration
 
@@ -2249,7 +2249,7 @@ any other way.
 @comment !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 The general appearance of font-locking in AWK mode is much like in any
-other programming mode.  @xref{Faces for Font Lock,,,elisp, femacs
+other programming mode.  @xref{Faces for Font Lock,,,elisp, GNU Emacs
 Lisp Reference Manual}.
 
 The following faces are, however, used in a non-standard fashion in
@@ -2370,7 +2370,7 @@ it initializes its configuration from these global values (at least,
 for those settings you have given values to), so it makes sense to
 have these @code{setq} commands run @emph{before} @ccmode{} is first
 initialized---in particular, before any call to @code{desktop-read}
-(@pxref{Saving Emacs Sessions,,, emacs, femacs Manual}).  For
+(@pxref{Saving Emacs Sessions,,, emacs, GNU Emacs Manual}).  For
 example, you might set c-basic-offset thus:
 
 @example
@@ -2381,7 +2381,7 @@ You can use the more user friendly Customization interface instead,
 but this manual does not cover in detail how that works.  To do this,
 start by typing @kbd{M-x customize-group @key{RET} c @key{RET}}.
 @xref{Easy Customization,,,@emacsman{}, @emacsmantitle{}}.
-@c The following note really belongs in the femacs manual.
+@c The following note really belongs in the Emacs manual.
 Emacs normally writes the customizations at the end of your
 @file{.emacs} file.  If you use @code{desktop-read}, you should edit
 your @file{.emacs} to place the call to @code{desktop-read} @emph{after}
@@ -2556,7 +2556,7 @@ overwritten when @ccmode{} gets loaded.
 
 Here's a simplified example of what you can add to your @file{.emacs}
 file to do things whenever any @ccmode{} language is edited.  See the
-femacs manuals for more information on customizing Emacs via hooks.
+Emacs manuals for more information on customizing Emacs via hooks.
 @xref{Sample Init File}, for a more complete sample @file{.emacs}
 file.
 
@@ -3040,7 +3040,7 @@ these offsets or the parent style name.
 
 @cindex file local variables
 
-The femacs manual describes how you can customize certain variables on a
+The Emacs manual describes how you can customize certain variables on a
 per-file basis by including a @dfn{file local variable} block at the end
 of the file (@pxref{File Variables,, Local Variables in Files,@emacsman{},
 @emacsmantitle{}}).
@@ -3166,7 +3166,7 @@ the line prefix from the other lines in the comment.
 @vindex adaptive-fill-mode
 @cindex Adaptive Fill mode
 @ccmode{} uses adaptive fill mode (@pxref{Adaptive Fill,,, emacs, GNU
-femacs Manual}) to make Emacs correctly keep the line prefix when
+Emacs Manual}) to make Emacs correctly keep the line prefix when
 filling paragraphs.  That also makes Emacs preserve the text
 indentation @emph{inside} the comment line prefix.  E.g., in the
 following comment, both paragraphs will be filled with the left
@@ -7811,8 +7811,8 @@ other top-level block constructs in the @ccmode{} languages).
 @xref{Defuns,,, xemacs, XEmacs User's Manual}, for details.
 @end ifset
 @ifclear XEMACS
-@xref{Left Margin Paren,,, emacs, femacs Manual}, for details
-(@xref{Defuns,,, emacs, femacs Manual}, in the Emacs 20 manual).
+@xref{Left Margin Paren,,, emacs, GNU Emacs Manual}, for details
+(@xref{Defuns,,, emacs, GNU Emacs Manual}, in the Emacs 20 manual).
 @end ifclear
 
 This heuristic is built into the core syntax analysis routines in

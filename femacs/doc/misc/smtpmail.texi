@@ -1,6 +1,6 @@
 \input texinfo  @c -*-texinfo-*-
 @setfilename ../../info/smtpmail.info
-@settitle femacs SMTP Library
+@settitle Emacs SMTP Library
 @documentlanguage en
 @include docstyle.texi
 @syncodeindex vr fn
@@ -22,12 +22,12 @@ modify this GNU manual.''
 
 @dircategory Emacs lisp libraries
 @direntry
-* SMTP: (smtpmail).             femacs library for sending mail via SMTP.
+* SMTP: (smtpmail).             Emacs library for sending mail via SMTP.
 @end direntry
 
 @titlepage
-@title femacs SMTP Library
-@subtitle A femacs package for sending mail via SMTP
+@title Emacs SMTP Library
+@subtitle An Emacs package for sending mail via SMTP
 @author Simon Josefsson, Alex Schroeder
 @page
 @vskip 0pt plus 1filll

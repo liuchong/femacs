@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 @node Variables
@@ -1278,7 +1278,7 @@ Then you can bind the variable anywhere in a program, knowing reliably
 what the effect will be.  Wherever you encounter the variable, it will
 be easy to refer back to the definition, e.g., via the @kbd{C-h v}
 command (provided the variable definition has been loaded into Emacs).
-@xref{Name Help,,, emacs, The femacs Manual}.
+@xref{Name Help,,, emacs, The GNU Emacs Manual}.
 
 For example, it is common to use local bindings for customizable
 variables like @code{case-fold-search}:
@@ -1343,9 +1343,9 @@ used in the @file{*scratch*} and @file{*ielm*} buffers, and also when
 evaluating expressions via @kbd{M-:} (@code{eval-expression}), when
 processing the @option{--eval}, @option{-x}, and @option{--script}
 command-line options of Emacs (@pxref{Action Arguments,,, emacs, The GNU
-femacs Manual}), and when processing the @option{--eval} command-line
+Emacs Manual}), and when processing the @option{--eval} command-line
 option of @command{emacsclient} (@pxref{emacsclient Options,,, emacs,
-The femacs Manual}).
+The GNU Emacs Manual}).
 
 @node Converting to Lexical Binding
 @subsection Converting to Lexical Binding
@@ -1533,7 +1533,7 @@ buffer-local binding of buffer @samp{b}.
 
   When a file specifies local variable values, these become buffer-local
 values when you visit the file.  @xref{File Variables,,, emacs, The
-femacs Manual}.
+GNU Emacs Manual}.
 
   A terminal-local variable cannot be made buffer-local
 (@pxref{Multiple Terminals}).
@@ -1992,7 +1992,7 @@ buffer-local value.  This function sets the latter.
   A file can specify local variable values; Emacs uses these to create
 buffer-local bindings for those variables in the buffer visiting that
 file.  @xref{File Variables, , Local Variables in Files, emacs, The
-femacs Manual}, for basic information about file-local variables.
+GNU Emacs Manual}, for basic information about file-local variables.
 This section describes the functions and variables that affect how
 file-local variables are processed.
 
@@ -2273,7 +2273,7 @@ when @file{.dir-locals.el} is under version control in a shared
 repository and cannot be used for personal customizations.  The file
 specifies local variables as a specially formatted list; see
 @ref{Directory Variables, , Per-directory Local Variables, emacs, The
-femacs Manual}, for more details.
+GNU Emacs Manual}, for more details.
 @end defvr
 
 @defun hack-dir-local-variables
@@ -2397,7 +2397,7 @@ still respecting file-local variables (@pxref{File Local Variables}).
 
   Connection-local variables provide a general mechanism for different
 variable settings in buffers with a remote connection (@pxref{Remote
-Files,, Remote Files, emacs, The femacs Manual}).  They are bound
+Files,, Remote Files, emacs, The GNU Emacs Manual}).  They are bound
 and set depending on the remote connection a buffer is dedicated to.
 
 @menu

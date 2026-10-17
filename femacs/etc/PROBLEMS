@@ -1,4 +1,4 @@
-Known Problems with femacs
+Known Problems with GNU Emacs
 
 Copyright (C) 1987-1989, 1993-1999, 2001-2026 Free Software Foundation,
 Inc.
@@ -3900,7 +3900,7 @@ allowed by free versions of Android, such as Replicant):
   $ adb push DroidSansMono.ttf.rpl /system/fonts/DroidSansMono.ttf
 
 or to the user fonts directory described in the "Android Fonts" node
-of the femacs manual.  You may want to perform this procedure even if
+of the Emacs manual.  You may want to perform this procedure even if
 you are not experiencing problems with character display, as the
 automatically generated instructions result in more legible text.
 
@@ -3958,7 +3958,7 @@ utilizing CFF (Compact Font Format) outlines, which the CJK fonts
 bundled with Android have been distributed as since Android 7.0.
 
 The solution is to install a TrueType CJK font to the user fonts
-directory detailed in the "Android Fonts" node of the femacs manual.
+directory detailed in the "Android Fonts" node of the Emacs manual.
 
 Introducing support for the byzantine CFF font format into the Android
 port is a large undertaking that we are looking for volunteers to
@@ -4046,7 +4046,7 @@ executing:
 This is a product of librsvg's failing to locate a suitable MIME
 database enabling it automatically to detect image file formats.  The
 procedure by which to obtain such a database is documented in the node
-'(emacs)Android Software' in the femacs manual; you may also download a
+'(emacs)Android Software' in the Emacs manual; you may also download a
 pre-compiled MIME database from this SourceForge repository:
 
   https://sourceforge.net/projects/android-ports-for-gnu-emacs/files/mime-database.tar.gz/download
@@ -4772,20 +4772,20 @@ as a concentrator.
 This problem seems to be a matter of configuring the DECserver to use
 7 bit characters rather than 8 bit characters.
 
-This file is part of femacs.
+This file is part of GNU Emacs.
 
-femacs is free software: you can redistribute it and/or modify
+GNU Emacs is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-femacs is distributed in the hope that it will be useful,
+GNU Emacs is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 
 Local variables:

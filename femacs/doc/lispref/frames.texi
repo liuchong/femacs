@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -92,7 +92,7 @@ for @code{framep} above.
 @defun frame-initial-p &optional frame
 This predicate returns non-@code{nil} if @var{frame} is or holds the
 initial text frame that is used internally during daemon mode
-(@pxref{Initial Options, daemon,, emacs, The femacs Manual}), batch
+(@pxref{Initial Options, daemon,, emacs, The GNU Emacs Manual}), batch
 mode (@pxref{Batch Mode}), and the early stages of startup
 (@pxref{Startup Summary}).  Interactive and graphical programs, for
 instance, can use this predicate to avoid operating on the initial
@@ -133,7 +133,7 @@ cannot use a frame object.
 
 A frame undeleted using @command{undelete-frame} will retain its
 identifier.  A frame cloned using @command{clone-frame} will not retain
-its original identifier.  @xref{Frame Commands,,,emacs, the femacs
+its original identifier.  @xref{Frame Commands,,,emacs, the Emacs
 Manual}.
 
 Frame identifiers are not persisted using the desktop library
@@ -198,7 +198,7 @@ Any parameters not mentioned in @var{parameters} default to the values
 in the alist @code{default-frame-alist} (@pxref{Initial Parameters});
 parameters not specified there default from the X resources or its
 equivalent on your operating system (@pxref{X Resources,, X Resources,
-emacs, The femacs Manual}).  After the frame is created, this
+emacs, The GNU Emacs Manual}).  After the frame is created, this
 function applies any parameters specified in
 @code{frame-inherited-parameters} (see below) it has no assigned yet,
 taking the values from the frame that was selected when
@@ -261,10 +261,10 @@ selected frame.
 A normal hook run when the Emacs server starts using a client frame.
 When this hook is called, the client frame is the selected one.  Note
 that, depending on how @command{emacsclient} was invoked
-(@pxref{Invoking emacsclient,,, emacs, The femacs Manual}), this
+(@pxref{Invoking emacsclient,,, emacs, The GNU Emacs Manual}), this
 client frame could be a new frame created for the client, or it could
 be an existing frame that the server reused for handling the client
-commands.  @xref{Emacs Server,,, emacs, The femacs Manual}.
+commands.  @xref{Emacs Server,,, emacs, The GNU Emacs Manual}.
 @end defopt
 
 
@@ -363,13 +363,13 @@ never be buffer-local (@pxref{Buffer-Local Variables}).
 terminal.  When Emacs is started from within the X window system, it
 uses the X display specified by the @env{DISPLAY} environment
 variable, or by the @samp{--display} option (@pxref{Initial Options,,,
-emacs, The femacs Manual}).  Emacs can connect to other X displays
+emacs, The GNU Emacs Manual}).  Emacs can connect to other X displays
 via the command @code{make-frame-on-display}.  Each X display has its
 own selected frame and its own minibuffer windows; however, only one
 of those frames is @emph{the} selected frame at any given moment
 (@pxref{Input Focus}).  Emacs can even connect to other text
 terminals, by interacting with the @command{emacsclient} program.
-@xref{Emacs Server,,, emacs, The femacs Manual}.
+@xref{Emacs Server,,, emacs, The GNU Emacs Manual}.
 
 @cindex X display names
 @cindex display name on X
@@ -421,7 +421,7 @@ whether communication can be established with a given X display.
 The optional argument @var{xrm-string}, if not @code{nil}, is a string
 of resource names and values, in the same format used in the
 @file{.Xresources} file.  @xref{X Resources,, X Resources, emacs, The
-femacs Manual}.  These values apply to all Emacs frames created on
+GNU Emacs Manual}.  These values apply to all Emacs frames created on
 this display, overriding the resource values recorded in the X server.
 Here's an example of what this string might look like:
 
@@ -748,7 +748,7 @@ accommodate an overlong tool bar.
 
 @item Tab Bar
 @cindex tab bar
-The tab bar (@pxref{Tab Bars,,,emacs, The femacs Manual}) is always
+The tab bar (@pxref{Tab Bars,,,emacs, The GNU Emacs Manual}) is always
 drawn by Emacs itself.  The tab bar appears above the tool bar in
 Emacs built with an internal tool bar, and below the tool bar in
 builds with an external tool bar.
@@ -1552,7 +1552,7 @@ If these settings affect the frame geometry and appearance, you'll see
 the frame appear with the wrong ones and then change to the specified
 ones.  If that bothers you, you can specify the same geometry and
 appearance with X resources; those do take effect before the frame is
-created.  @xref{X Resources,, X Resources, emacs, The femacs Manual}.
+created.  @xref{X Resources,, X Resources, emacs, The GNU Emacs Manual}.
 
 X resource settings typically apply to all frames.  If you want to
 specify some X resources solely for the sake of the initial frame, and
@@ -1592,7 +1592,7 @@ appearance, those options take effect by adding elements to either
 which affect just the initial frame, such as @samp{--geometry} and
 @samp{--maximized}, add to @code{initial-frame-alist}; the others add
 to @code{default-frame-alist}.  @pxref{Emacs Invocation,, Command Line
-Arguments for Emacs Invocation, emacs, The femacs Manual}.
+Arguments for Emacs Invocation, emacs, The GNU Emacs Manual}.
 
 @node Window Frame Parameters
 @subsection Window Frame Parameters
@@ -1963,7 +1963,7 @@ screen.
 @item fullscreen-restore
 This parameter specifies the desired fullscreen state of the frame
 after invoking the @code{toggle-frame-fullscreen} command (@pxref{Frame
-Commands,,, emacs, The femacs Manual}) in the ``fullboth'' state.
+Commands,,, emacs, The GNU Emacs Manual}) in the ``fullboth'' state.
 Normally this parameter is installed automatically by that command when
 toggling the state to fullboth.  If, however, you start Emacs in the
 ``fullboth'' state, you have to specify the desired behavior in your initial
@@ -2090,7 +2090,7 @@ to not draw bottom dividers.
 @item menu-bar-lines
 The number of lines to allocate at the top of the frame for a menu bar
 (@pxref{Menu Bar}).  The default is 1 if Menu Bar mode is enabled and 0
-otherwise.  @xref{Menu Bars,,,emacs, The femacs Manual}.  For an
+otherwise.  @xref{Menu Bars,,,emacs, The GNU Emacs Manual}.  For an
 external menu bar (@pxref{Frame Layout}), this value remains unchanged
 even when the menu bar wraps to two or more lines.  In that case, the
 @code{menu-bar-size} value returned by @code{frame-geometry}
@@ -2103,7 +2103,7 @@ text terminal too.  On a text terminal the value may be only 0 or 1.
 @item tool-bar-lines
 The number of lines to use for the tool bar (@pxref{Tool Bar}).  The
 default is one if Tool Bar mode is enabled and zero otherwise.
-@xref{Tool Bars,,,emacs, The femacs Manual}.  This value may change
+@xref{Tool Bars,,,emacs, The GNU Emacs Manual}.  This value may change
 whenever the tool bar wraps (@pxref{Frame Layout}).
 
 @vindex tool-bar-position@r{, a frame parameter}
@@ -2117,7 +2117,7 @@ than Nextstep, and @code{left} or @code{right} on builds using GTK+.
 @vindex tab-bar-lines@r{, a frame parameter}
 @item tab-bar-lines
 The number of lines to use for the tab bar (@pxref{Tab Bars,,,emacs, The
-femacs Manual}).  The default is one if Tab Bar mode is enabled and
+GNU Emacs Manual}).  The default is one if Tab Bar mode is enabled and
 zero otherwise.  This value may change whenever the tab bar wraps
 (@pxref{Frame Layout}).  This parameter affects the presence of a tab
 bar on the root frame (@pxref{Child Frames}) of a text terminal too.
@@ -2227,14 +2227,14 @@ Frames}.
 If non-@code{nil}, this parameter specifies the frame whose windows will
 be scrolled whenever the mouse wheel is scrolled with the mouse pointer
 hovering over this frame, see @ref{Mouse Commands,,, emacs, The GNU
-femacs Manual}.  This parameter has no meaning on a text terminal.
+Emacs Manual}.  This parameter has no meaning on a text terminal.
 
 @vindex no-other-frame@r{, a frame parameter}
 @item no-other-frame
 If this is non-@code{nil}, then this frame is not eligible as candidate
 for the functions @code{next-frame}, @code{previous-frame}
 (@pxref{Finding All Frames}) and @code{other-frame}, see @ref{Frame
-Commands,,, emacs, The femacs Manual}.
+Commands,,, emacs, The GNU Emacs Manual}.
 
 @vindex auto-hide-function@r{, a frame parameter}
 @item auto-hide-function
@@ -2280,12 +2280,12 @@ parameter has not been yet implemented on text terminals.
 @vindex cloned-from@r{, a frame parameter}
 @item cloned-from
 The original frame if this frame was made via @code{clone-frame}
-(@pxref{Creating Frames,,,emacs, the femacs Manual}).
+(@pxref{Creating Frames,,,emacs, the Emacs Manual}).
 
 @vindex undeleted@r{, a frame parameter}
 @item undeleted
 This is non-@code{nil} if this frame was undeleted using the command
-@command{undelete-frame} (@pxref{Frame Commands,,,emacs, the femacs
+@command{undelete-frame} (@pxref{Frame Commands,,,emacs, the Emacs
 Manual}).
 @end table
 
@@ -2607,11 +2607,11 @@ MS-Windows, there are currently three available font backends:
 @code{gdi} (the core MS-Windows font driver), @code{uniscribe} (font
 driver for OTF and TTF fonts with text shaping by the Uniscribe
 engine), and @code{harfbuzz} (font driver for OTF and TTF fonts with
-HarfBuzz text shaping) (@pxref{Windows Fonts,,, emacs, The femacs
+HarfBuzz text shaping) (@pxref{Windows Fonts,,, emacs, The GNU Emacs
 Manual}).  The @code{harfbuzz} driver is similarly recommended.  On
 Haiku, there can be several font drivers (@pxref{Haiku Fonts,,, emacs,
-The femacs Manual}), as on Android (@pxref{Android Fonts,,, emacs,
-The femacs Manual}).
+The GNU Emacs Manual}), as on Android (@pxref{Android Fonts,,, emacs,
+The GNU Emacs Manual}).
 
 On other systems, there is only one available font backend, so it does
 not make sense to modify this frame parameter.
@@ -2705,7 +2705,7 @@ transparent according to @code{alpha-background}.
 
 The following frame parameters are semi-obsolete in that they are
 automatically equivalent to particular face attributes of particular
-faces (@pxref{Standard Faces,,, emacs, The femacs Manual}):
+faces (@pxref{Standard Faces,,, emacs, The Emacs Manual}):
 
 @table @code
 @vindex font@r{, a frame parameter}
@@ -2828,7 +2828,7 @@ The classification of the terminal's background color, either
 @item normal-erase-is-backspace
 Value is either 1 or 0, depending on whether
 @code{normal-erase-is-backspace-mode} is turned on or off on this
-terminal.  @xref{DEL Does Not Delete,,, emacs, The femacs Manual}.
+terminal.  @xref{DEL Does Not Delete,,, emacs, The Emacs Manual}.
 @item terminal-initted
 After the terminal is initialized, this is set to the
 terminal-specific initialization function.
@@ -2928,7 +2928,7 @@ surrogate minibuffer for another frame (@pxref{Minibuffers and Frames}).
 Normally, you cannot delete a frame if all other frames are invisible,
 but if @var{force} is non-@code{nil}, then you are allowed to do so.
 Also, the initial terminal frame of an Emacs process running as daemon
-(@pxref{Initial Options, daemon,, emacs, The femacs Manual}) can be
+(@pxref{Initial Options, daemon,, emacs, The GNU Emacs Manual}) can be
 deleted if and only if @var{force} is non-@code{nil}.
 @end deffn
 
@@ -4323,7 +4323,7 @@ displayed on @var{frame} is visible; otherwise it returns @code{nil}.
 @var{frame} omitted or @code{nil} means the selected frame.  This is
 useful when @code{make-pointer-invisible} is set to @code{t}: it
 allows you to know if the pointer has been hidden.
-@xref{Mouse Avoidance,,,emacs, The femacs Manual}.
+@xref{Mouse Avoidance,,,emacs, The Emacs Manual}.
 @end defun
 
 @need 3000
@@ -4435,7 +4435,7 @@ other reason without displaying a pop-up menu.
   An on-screen keyboard is a special kind of pop up provided by the
 system, with rows of clickable buttons that act as a real keyboard.
 
-  On certain systems (@pxref{On-Screen Keyboards,,,emacs, The femacs
+  On certain systems (@pxref{On-Screen Keyboards,,,emacs, The Emacs
 Manual}), Emacs is supposed to display and hide the on screen keyboard
 depending on whether or not the user is about to type something.
 
@@ -4591,7 +4591,7 @@ different applications by means of @dfn{selections}.  Each window
 system defines an arbitrary number of @dfn{selection types}, all
 storing their own data; however, only three are commonly used: the
 @dfn{clipboard}, @dfn{primary selection}, and @dfn{secondary
-selection}.  @xref{Cut and Paste,, Cut and Paste, emacs, The femacs
+selection}.  @xref{Cut and Paste,, Cut and Paste, emacs, The GNU Emacs
 Manual}, for Emacs commands that make use of these selections.  This
 section documents the low-level functions for reading and setting
 window-system selections; @xref{Accessing Selections}, for
@@ -5913,7 +5913,7 @@ If the name @var{color} is not defined, the value is @code{nil}.
 
 This section describes some of the functions and variables for
 querying and using X resources, or their equivalent on your operating
-system.  @xref{X Resources,, X Resources, emacs, The femacs
+system.  @xref{X Resources,, X Resources, emacs, The GNU Emacs
 Manual}, for more information about X resources.
 
 @defun x-get-resource attribute class &optional component subclass

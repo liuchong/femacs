@@ -29,13 +29,13 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* Remember: (remember).         Simple information manager for femacs.
+* Remember: (remember).         Simple information manager for Emacs.
 @end direntry
 
 @titlepage
 @title Guide to Remember Mode
 @subtitle a simple information manager
-@subtitle for femacs
+@subtitle for Emacs
 
 @c The following two commands
 @c start the copyright page.
@@ -208,7 +208,7 @@ appended there into other files, or reorganize your document.
 You can also store remembered data in other backends.  @xref{Backends}.
 
 Here is one way to map the remember functions in your init file
-(@pxref{Init File, , The Emacs Initialization File, emacs, femacs
+(@pxref{Init File, , The Emacs Initialization File, emacs, GNU Emacs
 Manual}) to very accessible keystrokes facilities using the mode:
 
 @lisp
@@ -285,7 +285,7 @@ Destroy the current remember buffer.
 
 @defun remember-mode
 This enters the major mode (@pxref{Major Modes, , Major Modes, emacs,
-femacs Manual}) for output from @code{remember}.  This buffer is
+GNU Emacs Manual}) for output from @code{remember}.  This buffer is
 used to collect data that you want remember.  Just hit @kbd{C-c C-c}
 when you're done entering, and it will go ahead and file the data for
 latter retrieval, and possible indexing.

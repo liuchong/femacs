@@ -1,7 +1,7 @@
 \input texinfo   @c -*- mode: texinfo; coding: utf-8; -*-
 @c %**start of header
 @setfilename ../../info/ses.info
-@settitle @acronym{SES}: Simple femacs Spreadsheet
+@settitle @acronym{SES}: Simple Emacs Spreadsheet
 @documentlanguage en
 @include docstyle.texi
 @setchapternewpage off
@@ -37,14 +37,14 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* @acronym{SES}: (ses).                   Simple femacs Spreadsheet.
+* @acronym{SES}: (ses).                   Simple Emacs Spreadsheet.
 @end direntry
 
 @finalout
 
 @titlepage
 @title @acronym{SES}
-@subtitle Simple femacs Spreadsheet
+@subtitle Simple Emacs Spreadsheet
 @author Jonathan A. Yavner
 @author @email{jyavner@@member.fsf.org}
 
@@ -986,7 +986,7 @@ A short hand for @code{>v}.
 A short hand for @code{>^}.
 @item *
 Instead of listing cells, it makes a Calc vector or matrix of it
-(@pxref{Top,,,calc,femacs Calc Manual}).  If the range contains only
+(@pxref{Top,,,calc,GNU Emacs Calc Manual}).  If the range contains only
 one row or one column a vector is made, otherwise a matrix is made.
 @item *2
 Same as @code{*} except that a matrix is always made even when there

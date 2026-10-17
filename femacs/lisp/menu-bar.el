@@ -7,20 +7,20 @@
 ;; Keywords: internal, mouse
 ;; Package: emacs
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;; Avishai Yacobi suggested some menu rearrangements.
 
@@ -2024,7 +2024,7 @@ key, a click, or a menu-item"))
     menu))
 
 (defun menu-bar-read-lispref ()
-  "Display the femacs Lisp Reference manual in Info mode."
+  "Display the Emacs Lisp Reference manual in Info mode."
   (interactive)
   (info "elisp"))
 
@@ -2034,7 +2034,7 @@ key, a click, or a menu-item"))
   (info "eintr"))
 
 (defun search-emacs-glossary ()
-  "Display the Glossary node of the femacs manual in Info mode."
+  "Display the Glossary node of the Emacs manual in Info mode."
   (interactive)
   (info "(emacs)Glossary"))
 
@@ -2049,13 +2049,13 @@ key, a click, or a menu-item"))
             topic))))
 
 (defun emacs-index-search (topic)
-  "Look up TOPIC in the indices of the femacs User Manual."
+  "Look up TOPIC in the indices of the Emacs User Manual."
   (interactive (emacs-index--prompt))
   (info "emacs")
   (Info-index topic))
 
 (defun elisp-index-search (topic)
-  "Look up TOPIC in the indices of the femacs Lisp Reference Manual."
+  "Look up TOPIC in the indices of the Emacs Lisp Reference Manual."
   (interactive (emacs-index--prompt))
   (info "elisp")
   (Info-index topic))
@@ -2092,13 +2092,13 @@ key, a click, or a menu-item"))
                   :help "Display manual section that describes a key"))
     (define-key menu [lookup-subject-in-elisp-manual]
       '(menu-item "Look Up Subject in Elisp Manual..." elisp-index-search
-                  :help "Find description of a subject in femacs Lisp manual"))
+                  :help "Find description of a subject in Emacs Lisp manual"))
     (define-key menu [lookup-subject-in-emacs-manual]
       '(menu-item "Look Up Subject in User Manual..." emacs-index-search
-                  :help "Find description of a subject in femacs User manual"))
+                  :help "Find description of a subject in Emacs User manual"))
     (define-key menu [emacs-terminology]
       '(menu-item "Emacs Terminology" search-emacs-glossary
-                  :help "Display the Glossary section of the femacs manual"))
+                  :help "Display the Glossary section of the Emacs manual"))
     menu))
 
 (defvar menu-bar-manuals-menu
@@ -2120,7 +2120,7 @@ key, a click, or a menu-item"))
                   :help "Read any of the installed manuals"))
     (define-key menu [emacs-lisp-reference]
       '(menu-item "Emacs Lisp Reference" menu-bar-read-lispref
-                  :help "Read the femacs Lisp Reference manual"))
+                  :help "Read the Emacs Lisp Reference manual"))
     (define-key menu [emacs-lisp-intro]
       '(menu-item "Introduction to Emacs Lisp" menu-bar-read-lispintro
                   :help "Read the Introduction to Emacs Lisp Programming"))
@@ -2137,7 +2137,7 @@ key, a click, or a menu-item"))
       '(menu-item "About GNU" describe-gnu-project
                   :help "About the GNU System, GNU Project, and GNU/Linux"))
     (define-key menu [about-emacs]
-      '(menu-item "About femacs" about-emacs
+      '(menu-item "About Emacs" about-emacs
                   :help "Display version number, copyright info, and basic help"))
     (define-key menu [sep4]
       menu-bar-separator)
@@ -2161,7 +2161,7 @@ key, a click, or a menu-item"))
     (define-key menu [more-manuals]
       `(menu-item "More Manuals" ,menu-bar-manuals-menu))
     (define-key menu [emacs-manual]
-      '(menu-item "Read the femacs Manual" info-emacs-manual
+      '(menu-item "Read the Emacs Manual" info-emacs-manual
                   :help "Full documentation of Emacs features"))
     (define-key menu [describe]
       `(menu-item "Describe" ,menu-bar-describe-menu))
@@ -2201,7 +2201,7 @@ key, a click, or a menu-item"))
     (and (featurep 'ns)
          (not (eq system-type 'darwin))
          (define-key menu [info-panel]
-           '(menu-item "About femacs..." ns-do-emacs-info-panel)))
+           '(menu-item "About Emacs..." ns-do-emacs-info-panel)))
     menu))
 
 (define-key global-map [menu-bar tools]

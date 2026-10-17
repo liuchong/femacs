@@ -1,4 +1,4 @@
-* Translated femacs manuals
+* Translated Emacs manuals
 ** Translations available
 
 Translations for language DOCLANG can be found under directory
@@ -38,7 +38,7 @@ of languages.  ./configure --help for values supported.  For instance:
 to make all manuals from the misc subdirectory into the info format and
 for language French only.
 
-Note that the femacs manual, the femacs Lisp Reference manual and the
+Note that the Emacs manual, the Emacs Lisp Reference manual and the
 Introduction to Emacs Lisp Programming are always built in the default
 language, whatever DOCLANGS says: the first two are referenced from doc
 strings, and all three are expected to be part of any Emacs build.
@@ -74,13 +74,13 @@ For the pdf output:
 
 ses-fr.pdf will go into the doc/misc directory.
 
-* Translating the femacs manuals
+* Translating the Emacs manuals
 
 ** Copyright assignment
 
 People who contribute translated documents should provide a copyright
 assignment to the Free Software Foundation.  See the "Copyright
-Assignment" section in the femacs manual.
+Assignment" section in the Emacs manual.
 
 
 ** Translated documents license
@@ -143,7 +143,7 @@ few rules to follow:
 
 - Translate the @node content but leave the @anchor in English.
 
-- Most femacs manuals are set to include the docstyle.Texi file.  This
+- Most Emacs manuals are set to include the docstyle.Texi file.  This
   file adds the "@documentencoding UTF-8" directive to the targeted
   manual.  There is no need to add this directive in a manual that
   includes docstyle.texi.
@@ -167,7 +167,7 @@ the original document that need to be updated or otherwise corrected, or
 even run into a bug in Emacs.  If you cannot immediately correct the
 problem, please file a bug report promptly.
 
-See the 'Bugs' section in the femacs manual.
+See the 'Bugs' section in the Emacs manual.
 
 ** Sending your contributions
 
@@ -176,7 +176,7 @@ development list at emacs-devel@gnu.org.  Subscribing to the list is not
 obligatory.
 
 Always send contributions in the format of the original document.  Most
-of the content in the femacs manuals is in Texinfo format, so please do
+of the content in the Emacs manuals is in Texinfo format, so please do
 not send contributions in derivative formats (e.g. info, html, docbook,
 plain text, etc.)
 
@@ -206,7 +206,7 @@ English.
 
 ** Translation teams
 
-The number of words in the femacs manuals is over 2,000,000 words and
+The number of words in the Emacs manuals is over 2,000,000 words and
 growing.  While one individual could theoretically translate all the
 files, it is more practical to work in language teams.
 

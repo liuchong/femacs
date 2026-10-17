@@ -1,5 +1,5 @@
 @c -*- coding: utf-8 -*-
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1997, 1999--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @node International
@@ -211,7 +211,7 @@ characters that were composed.
 
 @item
 The character's text properties (@pxref{Text Properties,,,
-elisp, the femacs Lisp Reference Manual}), including any non-default
+elisp, the Emacs Lisp Reference Manual}), including any non-default
 faces used to display the character, and any overlays containing it
 (@pxref{Overlays,,, elisp, the same manual}).
 @end itemize
@@ -1688,7 +1688,7 @@ When modifying the fontset for the @code{symbol} script, the value of
 actually used.
 
 @noindent
-@xref{Fontsets, , , elisp, femacs Lisp Reference Manual}, for more
+@xref{Fontsets, , , elisp, GNU Emacs Lisp Reference Manual}, for more
 details about using the @code{set-fontset-font} function.
 
 @cindex script of a character
@@ -1782,7 +1782,7 @@ of the single-byte character sets at a time.  To specify @emph{which}
 of these codes to use, invoke @kbd{M-x set-language-environment} and
 specify a suitable language environment such as @samp{Latin-@var{n}}.
 @xref{Disabling Multibyte, , Disabling Multibyte Characters, elisp,
-femacs Lisp Reference Manual}.
+GNU Emacs Lisp Reference Manual}.
 
 @vindex unibyte-display-via-language-environment
   Emacs can also display bytes in the range 160 to 255 as readable

@@ -52,7 +52,7 @@ modify this GNU manual.''
 @sp 6
 @center @titlefont{Dired Extra}
 @sp 2
-@center @titlefont{For The femacs}
+@center @titlefont{For The GNU Emacs}
 @sp 1
 @center @titlefont{Directory Editor}
 @sp 4
@@ -297,7 +297,7 @@ inside your @code{dired-mode-hook} to have omitting initially turned on in
 
 To enable omitting automatically only in certain directories you can add
 a directory local setting
-(@pxref{Directory Variables,,,emacs,The femacs manual}) for Dired mode
+(@pxref{Directory Variables,,,emacs,The GNU Emacs manual}) for Dired mode
 
 @example
 ((dired-mode . ((dired-omit-mode . t))))

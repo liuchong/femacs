@@ -7,20 +7,20 @@
 ;; Keywords: help, internal
 ;; Package: emacs
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -873,7 +873,7 @@ The help buffers are divided into \"pages\" by the ^L character."
                       help-window-keep-selected))
 
 (defun help-goto-lispref-info ()
-  "View the femacs Lisp manual *info* node of the current help item."
+  "View the Emacs Lisp manual *info* node of the current help item."
   (interactive nil help-mode)
   (unless help-mode--current-data
     (error "No symbol to look up in the current buffer"))

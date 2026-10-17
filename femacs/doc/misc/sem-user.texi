@@ -16,7 +16,7 @@ tag information, and so forth.
 
 To enable Semantic mode each time you start Emacs, add the line
 @code{(semantic-mode 1)} to your initialization file.  @xref{Init
-File,,,emacs,femacs manual}.
+File,,,emacs,Emacs manual}.
 
 @menu
 * Semantic mode::       Global minor mode for @semantic{}.
@@ -168,7 +168,7 @@ Yank a tag from the tag ring (@code{senator-yank-tag}).
 Copy the current tag into a register
 (@code{senator-copy-tag-to-register}).  With an optional argument,
 kill it as well.  This allows you to insert or jump to that tag with
-the usual register commands.  @xref{Registers,,,emacs,femacs manual}.
+the usual register commands.  @xref{Registers,,,emacs,Emacs manual}.
 
 @item C-c , @kbd{up}
 Transpose the current tag with the previous one
@@ -621,7 +621,7 @@ Run the Semantic idle work function with debugging turned on.
 Semantic Idle Summary mode is a minor mode that displays a short
 summary of the symbol at point, such as its function prototype, in the
 echo area.  Its functionality is similar to what ElDoc mode provides
-for Emacs Lisp (@pxref{Programming Language Doc,,,emacs,femacs manual}).
+for Emacs Lisp (@pxref{Programming Language Doc,,,emacs,Emacs manual}).
 
 @deffn global-semantic-idle-summary-mode &optional arg
 This command toggles Semantic Idle Summary mode in all
@@ -820,7 +820,7 @@ Display completions in a tooltip.
 In addition to @code{semantic-complete-analyze-inline}, you can use
 the simpler command @code{semantic-ia-complete-symbol point}.  This
 behaves like the usual @kbd{M-@key{TAB}} (@code{complete-symbol})
-command (@pxref{Symbol Completion,,,emacs,femacs manual}), except it
+command (@pxref{Symbol Completion,,,emacs,Emacs manual}), except it
 uses the Semantic Analyzer.
 
 @deffn Command semantic-ia-complete-symbol point
@@ -875,7 +875,7 @@ command, like this:
 @end defun
 
 These commands are often more accurate than the @code{xref-find-definitions}
-command (@pxref{Looking Up Identifiers,,,emacs,femacs manual}), because
+command (@pxref{Looking Up Identifiers,,,emacs,Emacs manual}), because
 the Semantic Analyzer is context-sensitive.
 
 You can also use @kbd{C-c , j} (@code{semantic-complete-jump-local})
@@ -1064,7 +1064,7 @@ Or perhaps the parser needs to be fixed.
 @cindex speedbar
 
 You can integrate @semantic{} with the Speedbar.
-@xref{Speedbar,,,emacs,femacs manual}.  To do this, add the following
+@xref{Speedbar,,,emacs,Emacs manual}.  To do this, add the following
 line to your init file:
 
 @example

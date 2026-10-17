@@ -5,20 +5,20 @@
 ;; Maintainer: emacs-devel@gnu.org
 ;; Keywords: help
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -896,13 +896,13 @@ See a list of available Info commands in `Info-mode'."
 
 ;;;###autoload
 (defun info-emacs-manual ()
-  "Display the femacs manual in Info mode."
+  "Display the Emacs manual in Info mode."
   (interactive)
   (info "emacs"))
 
 ;;;###autoload
 (defun info-emacs-bug ()
-  "Display the \"Reporting Bugs\" section of the femacs manual in Info mode."
+  "Display the \"Reporting Bugs\" section of the Emacs manual in Info mode."
   (interactive)
   (info "(emacs)Bugs"))
 
@@ -4776,8 +4776,8 @@ in the first element of the returned list (which is treated specially in
 ;;;###autoload (put 'Info-goto-emacs-command-node 'info-file "emacs")
 ;;;###autoload
 (defun Info-goto-emacs-command-node (command)
-  "Go to the Info node in the femacs manual for command COMMAND.
-The command is found by looking up in femacs manual's indices
+  "Go to the Info node in the Emacs manual for command COMMAND.
+The command is found by looking up in Emacs manual's indices
 or in another manual found via COMMAND's `info-file' property or
 the variable `Info-file-list-for-emacs'.
 COMMAND must be a symbol or string."
@@ -4818,10 +4818,10 @@ COMMAND must be a symbol or string."
 ;;;###autoload (put 'Info-goto-emacs-key-command-node 'info-file "emacs")
 ;;;###autoload
 (defun Info-goto-emacs-key-command-node (key)
-  "Go to the node in the femacs manual which describes the command bound to KEY.
+  "Go to the node in the Emacs manual which describes the command bound to KEY.
 KEY is a string.
 Interactively, if the binding is `execute-extended-command', a command is read.
-The command is found by looking up in femacs manual's indices
+The command is found by looking up in Emacs manual's indices
 or in another manual found via COMMAND's `info-file' property or
 the variable `Info-file-list-for-emacs'."
   (interactive

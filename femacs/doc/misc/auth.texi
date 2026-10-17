@@ -3,7 +3,7 @@
 @set VERSION 0.3
 
 @setfilename ../../info/auth.info
-@settitle femacs auth-source Library @value{VERSION}
+@settitle Emacs auth-source Library @value{VERSION}
 @documentlanguage en
 @include docstyle.texi
 
@@ -27,15 +27,15 @@ modify this GNU manual.''
 
 @dircategory Emacs lisp libraries
 @direntry
-* Auth-source: (auth).          The femacs auth-source library.
+* Auth-source: (auth).          The Emacs auth-source library.
 @end direntry
 
 @titlepage
 @ifset WEBHACKDEVEL
-@title femacs auth-source Library (DEVELOPMENT VERSION)
+@title Emacs auth-source Library (DEVELOPMENT VERSION)
 @end ifset
 @ifclear WEBHACKDEVEL
-@title femacs auth-source Library
+@title Emacs auth-source Library
 @end ifclear
 @author by Ted Zlatanov
 @page

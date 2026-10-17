@@ -240,19 +240,19 @@ This chapter describes some enhancements to Emacs Lisp's
 The functions documented here are intended to produce output more for
 human readers than the standard printing functions such as
 @code{prin1} and @code{princ} (@pxref{Output Functions,,,elisp,GNU
-femacs Lisp Reference Manual}).
+Emacs Lisp Reference Manual}).
 
 Several of these functions have a parameter @var{stream}; this
 specifies what to do with the characters printing produces.  For
 example, it might be a buffer, a marker, @code{nil} (meaning use
 standard output), or @code{t} (use the echo area).  @xref{Output
-Streams,,,elisp,femacs Lisp Reference Manual}, for a full
+Streams,,,elisp,GNU Emacs Lisp Reference Manual}, for a full
 description.
 
 @defvar cl-print-readably
 When this variable is non-@code{nil}, @code{cl-prin1} and other
 functions described here try to produce output which can later be read
-by the Lisp reader (@pxref{Input Functions,,,elisp,femacs Lisp
+by the Lisp reader (@pxref{Input Functions,,,elisp,GNU Emacs Lisp
 Reference Manual}).
 @end defvar
 
@@ -301,7 +301,7 @@ primitives such as @code{prin1}.
 according to its type and the settings described above.  The variables
 @code{print-length} and @code{print-level} and the other standard
 Emacs settings also affect the printing (@pxref{Output
-Variables,,,elisp,femacs Lisp Reference Manual}).
+Variables,,,elisp,GNU Emacs Lisp Reference Manual}).
 @end defun
 
 @defun cl-prin1-to-string object
@@ -332,7 +332,7 @@ limit.
 @defun cl-print-object object stream
 This function prints @var{object} on @var{stream} (see above).  It is
 actually a @code{cl-defgeneric} (@pxref{Generic Functions,,,elisp,GNU
-femacs Lisp Reference Manual}), which is defined for several types of
+Emacs Lisp Reference Manual}), which is defined for several types of
 @var{object}.  Normally, you just call @code{cl-prin1} to print an
 @var{object} rather than calling this function directly.
 
@@ -381,7 +381,7 @@ return value is the buffer position after the expanded text.
 This command expands the ellipsis at point.  Non-interactively, if
 @var{button} is non-@code{nil}, it should be either a buffer position
 or a button made by @code{cl-print-insert-ellipsis}
-(@pxref{Buttons,,,elisp,femacs Lisp Reference Manual}), which
+(@pxref{Buttons,,,elisp,GNU Emacs Lisp Reference Manual}), which
 indicates the position of the ellipsis.  The return value is the
 buffer position after the expanded text.
 @end deffn
@@ -727,7 +727,7 @@ certain top-level forms, like @code{defmacro} (sort-of) and
 @end defmac
 
 Emacs includes two special forms related to @code{cl-eval-when}.
-@xref{Eval During Compile,,,elisp,femacs Lisp Reference Manual}.
+@xref{Eval During Compile,,,elisp,GNU Emacs Lisp Reference Manual}.
 One of these, @code{eval-when-compile}, is not quite equivalent to
 any @code{cl-eval-when} construct and is described below.
 
@@ -1045,7 +1045,7 @@ places in Lisp memory where values can be stored.  The simplest place
 form is a regular Lisp variable.  But the @sc{car}s and @sc{cdr}s of lists,
 elements of arrays, properties of symbols, and many other locations
 are also places where Lisp values are stored.  For basic information,
-@pxref{Generalized Variables,,,elisp,femacs Lisp Reference Manual}.
+@pxref{Generalized Variables,,,elisp,GNU Emacs Lisp Reference Manual}.
 This package provides several additional features related to
 generalized variables.
 
@@ -1326,8 +1326,8 @@ The @code{cl-labels} form is like @code{cl-flet}, except that
 the function bindings can be recursive.  The scoping is lexical,
 but you can only capture functions in closures if
 @code{lexical-binding} is @code{t}.
-@xref{Closures,,,elisp,femacs Lisp Reference Manual}, and
-@ref{Selecting Lisp Dialect,,,elisp,femacs Lisp Reference Manual}.
+@xref{Closures,,,elisp,GNU Emacs Lisp Reference Manual}, and
+@ref{Selecting Lisp Dialect,,,elisp,GNU Emacs Lisp Reference Manual}.
 
 Lexical scoping means that all references to the named
 functions must appear physically within the body of the
@@ -1589,7 +1589,7 @@ Labels have lexical scope and dynamic extent.
 @noindent
 The macros described here provide more sophisticated, high-level
 looping constructs to complement Emacs Lisp's basic loop forms
-(@pxref{Iteration,,,elisp,femacs Lisp Reference Manual}).
+(@pxref{Iteration,,,elisp,GNU Emacs Lisp Reference Manual}).
 
 @defmac cl-loop forms@dots{}
 This package supports both the simple, old-style meaning of
@@ -2244,7 +2244,7 @@ values were @code{nil}, the loop returns @code{nil}.
 
 @item iter-by @var{iterator}
 This clause iterates over the values from the specified form, an
-iterator object.  See (@pxref{Generators,,,elisp,femacs Lisp
+iterator object.  See (@pxref{Generators,,,elisp,GNU Emacs Lisp
 Reference Manual}).
 @end table
 
@@ -3126,7 +3126,7 @@ numbers, it has families of constants like
 @code{most-positive-long-float}, and so on.  This package uses just
 one set of constants because Emacs has only one kind of
 floating-point number, namely the IEEE binary64 floating-point format.
-@xref{Float Basics,,,elisp,femacs Lisp Reference Manual}.
+@xref{Float Basics,,,elisp,GNU Emacs Lisp Reference Manual}.
 
 @defvar cl-most-positive-float
 This constant equals the largest finite value a Lisp float can hold.
@@ -4008,7 +4008,7 @@ birthday-boy
 @end lisp
 
 Any macro that accepts a generalized variable can be used to modify
-struct fields (@pxref{Generalized Variables,,,elisp,femacs Lisp
+struct fields (@pxref{Generalized Variables,,,elisp,GNU Emacs Lisp
 Reference Manual}).  Here is an example using @code{incf}:
 
 @lisp
@@ -4657,10 +4657,10 @@ bindings apply only to references physically within their bodies (or
 within macro expansions in their bodies).  Traditionally, Emacs Lisp
 uses @dfn{dynamic scoping} wherein a binding to a variable is visible
 even inside functions called from the body.
-@xref{Dynamic Binding,,,elisp,femacs Lisp Reference Manual}.
+@xref{Dynamic Binding,,,elisp,GNU Emacs Lisp Reference Manual}.
 Lexical binding is available since Emacs 24.1, so be sure to set
 @code{lexical-binding} to @code{t} if you need to emulate this aspect
-of Common Lisp.  @xref{Lexical Binding,,,elisp,femacs Lisp Reference Manual}.
+of Common Lisp.  @xref{Lexical Binding,,,elisp,GNU Emacs Lisp Reference Manual}.
 
 Here is an example of a Common Lisp code fragment that would fail in
 Emacs Lisp if @code{lexical-binding} were set to @code{nil}:
@@ -4876,7 +4876,7 @@ body, without any effect on the global variable of the same name.
 
 The most important use of lexical bindings is to create @dfn{closures}.
 A closure is a function object that refers to an outside lexical
-variable (@pxref{Closures,,,elisp,femacs Lisp Reference Manual}).
+variable (@pxref{Closures,,,elisp,GNU Emacs Lisp Reference Manual}).
 For example:
 
 @example
@@ -5038,7 +5038,7 @@ Common Lisp defines three macros, @code{define-modify-macro},
 user to extend generalized variables in various ways.
 In Emacs, these are obsolete, replaced by various features of
 @file{gv.el} in Emacs 24.3.
-@xref{Adding Generalized Variables,,,elisp,femacs Lisp Reference Manual}.
+@xref{Adding Generalized Variables,,,elisp,GNU Emacs Lisp Reference Manual}.
 
 
 @defmac define-modify-macro name arglist function [doc-string]

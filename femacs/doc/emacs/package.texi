@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -45,7 +45,7 @@ by the GNU project.  Optionally, you can also download packages from
 third-party archives.  @xref{Package Installation}.
 
   For information about turning an Emacs Lisp program into an
-installable package, @xref{Packaging,,,elisp, The femacs Lisp Reference
+installable package, @xref{Packaging,,,elisp, The Emacs Lisp Reference
 Manual}.
 
 @menu
@@ -487,7 +487,7 @@ create a @dfn{signature file} for each package.  With the public key, you
 can use the signature files to verify the package creator and make sure
 the package has not been tampered with.  Signature verification uses
 @uref{https://www.gnupg.org/, the GnuPG package} via the EasyPG
-interface (@pxref{Top,, EasyPG, epa, femacs EasyPG Assistant Manual}).
+interface (@pxref{Top,, EasyPG, epa, Emacs EasyPG Assistant Manual}).
 A valid signature is not a cast-iron
 guarantee that a package is not malicious, so you should still
 exercise caution.  Package archives should provide instructions
@@ -520,7 +520,7 @@ them must be valid.
   For more information on cryptographic keys and signing,
 @pxref{Top,, GnuPG, gnupg, The GNU Privacy Guard Manual}.
 Emacs comes with an interface to GNU Privacy Guard,
-@pxref{Top,, EasyPG, epa, femacs EasyPG Assistant Manual}.
+@pxref{Top,, EasyPG, epa, Emacs EasyPG Assistant Manual}.
 
 @vindex package-pinned-packages
   If you have more than one package archive enabled, and some of them
@@ -628,7 +628,7 @@ file containing multiple Emacs Lisp source and other files.  Package
 files are automatically retrieved, processed, and disposed of by the
 Emacs commands that install packages.  Normally, you will not need to
 deal directly with them, unless you are making a package
-(@pxref{Packaging,,,elisp, The femacs Lisp Reference Manual}).  Should
+(@pxref{Packaging,,,elisp, The Emacs Lisp Reference Manual}).  Should
 you ever need to install a package directly from a package file, use
 the command @kbd{M-x package-install-file}.
 
@@ -711,7 +711,7 @@ a multi-file package).  A @dfn{package specification} describes these
 properties.
 
   When supported by a package archive (@pxref{Package
-Archives,,,elisp, The femacs Lisp Reference Manual}), Emacs can
+Archives,,,elisp, The Emacs Lisp Reference Manual}), Emacs can
 automatically download a package's specification from said archive.
 If the first argument passed to @code{package-vc-install} is a symbol
 naming a package, then Emacs will use the specification provided by
@@ -732,7 +732,7 @@ form @code{(@var{name} . @var{spec})}, in which @var{spec} should be a
 property list using any of the keys in the table below.
 
 For definitions of basic terms for working with code repositories and
-version control systems, see @ref{VCS Concepts,,,emacs, The femacs
+version control systems, see @ref{VCS Concepts,,,emacs, The GNU Emacs
 Manual}.
 
 @table @code
@@ -773,7 +773,7 @@ is non-@code{nil}.
 @item :vc-backend
 A symbol naming the VC backend to use for downloading a copy of the
 package's repository (@pxref{Version Control Systems,,,emacs, The GNU
-femacs Manual}).  If omitted, Emacs will attempt to make a guess based
+Emacs Manual}).  If omitted, Emacs will attempt to make a guess based
 on the provided URL, or, failing that, the process will fall back onto
 the value of @code{package-vc-default-backend}.
 @end table

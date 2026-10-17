@@ -1,5 +1,5 @@
 @c -*- mode: texinfo -*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -841,7 +841,7 @@ and tells the Lisp compiler to perform inline expansion on it.
 @subsection Finding Definitions
 
 Tools such as Emacs's built-in help command @kbd{C-h f} (@pxref{Help,,,
-emacs, The femacs Manual}) can find the definition site of functions
+emacs, The GNU Emacs Manual}) can find the definition site of functions
 and other Lisp objects in the source code.  To do this, they use the
 variable @code{find-function-regexp-alist}.
 

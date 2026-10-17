@@ -29,13 +29,13 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* Ebrowse: (ebrowse).           A C++ class browser for femacs.
+* Ebrowse: (ebrowse).           A C++ class browser for Emacs.
 @end direntry
 
 @titlepage
 @title Ebrowse User's Manual
 @sp 4
-@subtitle Ebrowse/femacs
+@subtitle Ebrowse/Emacs
 @sp 5
 @author Gerd Moellmann
 @page

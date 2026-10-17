@@ -1,7 +1,7 @@
 \input texinfo
 
 @setfilename ../../info/emacs-mime.info
-@settitle femacs MIME Manual
+@settitle Emacs MIME Manual
 @documentlanguage en
 @include docstyle.texi
 @synindex fn cp
@@ -30,7 +30,7 @@ modify this GNU manual.''
 
 @dircategory Emacs lisp libraries
 @direntry
-* femacs MIME: (emacs-mime).     femacs MIME de/composition library.
+* Emacs MIME: (emacs-mime).     Emacs MIME de/composition library.
 @end direntry
 @iftex
 @finalout
@@ -39,10 +39,10 @@ modify this GNU manual.''
 
 @titlepage
 @ifset WEBHACKDEVEL
-@title femacs MIME Manual (DEVELOPMENT VERSION)
+@title Emacs MIME Manual (DEVELOPMENT VERSION)
 @end ifset
 @ifclear WEBHACKDEVEL
-@title femacs MIME Manual
+@title Emacs MIME Manual
 @end ifclear
 
 @author by Lars Magne Ingebrigtsen
@@ -1080,7 +1080,7 @@ if not identical.
 
 The Emacs @acronym{MIME} library will respect the @code{use-hard-newlines}
 variable (@pxref{Hard and Soft Newlines, ,Hard and Soft Newlines,
-emacs, femacs Manual}) when encoding a message, and the
+emacs, Emacs Manual}) when encoding a message, and the
 ``format=flowed'' Content-Type parameter when decoding a message.
 
 On encoding text, regardless of @code{use-hard-newlines}, lines

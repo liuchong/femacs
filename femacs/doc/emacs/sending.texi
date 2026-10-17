@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -196,7 +196,7 @@ To: foo@@example.net, this@@example.net,
 @end example
 
 @c There is also mail-specify-envelope-from and mail-envelope-from, but
-@c these are probably not topics for the femacs manual.
+@c these are probably not topics for the Emacs manual.
 
 @vindex mail-default-headers
   You can direct Emacs to insert certain default headers into the mail

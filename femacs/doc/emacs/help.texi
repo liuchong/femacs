@@ -1,4 +1,4 @@
-@c This is part of the femacs manual.
+@c This is part of the Emacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -168,12 +168,12 @@ buffer.  @xref{Packages}.
 Display documentation about the specified package
 (@code{describe-package}).  @xref{Package Keywords}.
 @item C-h r
-Display the femacs manual in Info (@code{info-emacs-manual}).
+Display the Emacs manual in Info (@code{info-emacs-manual}).
 @item C-h s
 Display the contents of the current @dfn{syntax table}
 (@code{describe-syntax}).  @xref{Misc Help}.  The syntax table says
 which characters are opening delimiters, which are parts of words, and
-so on.  @xref{Syntax Tables,, Syntax Tables, elisp, The femacs Lisp
+so on.  @xref{Syntax Tables,, Syntax Tables, elisp, The Emacs Lisp
 Reference Manual}, for details.
 @item C-h t
 Enter the Emacs interactive tutorial (@code{help-with-tutorial}).
@@ -239,7 +239,7 @@ string}, which describes exactly what the command does.
 
 @kindex C-h K
 @findex Info-goto-emacs-key-command-node
-  @kbd{C-h K @var{key}} displays the section of the femacs manual that
+  @kbd{C-h K @var{key}} displays the section of the Emacs manual that
 describes the command corresponding to @var{key}.
 
   @kbd{C-h c}, @kbd{C-h k} and @kbd{C-h K} work for any sort of key
@@ -258,7 +258,7 @@ it.  @kbd{C-h w} runs the command @code{where-is}.
 @findex button-describe
 @findex widget-describe
   Some modes in Emacs use various buttons (@pxref{Buttons,,,elisp, The
-femacs Lisp Reference Manual}) and widgets
+Emacs Lisp Reference Manual}) and widgets
 (@pxref{Introduction,,,widget, Emacs Widgets}) that can be clicked to
 perform some action.  To find out what function is ultimately invoked
 by these buttons, Emacs provides the @code{button-describe} and
@@ -326,15 +326,15 @@ yet further information is often reachable by clicking or typing
 @cindex declared type of a function
 @cindex inferred type of a function
 The function type, if known, is expressed with a @dfn{function type
-specifier} (@pxref{Type Specifiers,,,elisp, The femacs Lisp Reference
+specifier} (@pxref{Type Specifiers,,,elisp, The Emacs Lisp Reference
 Manual}), it will be specified if the type was manually declared by a
 Lisp program or inferred by the compiler.  Note that function type
 inference works only when native compilation is enabled (@pxref{native
-compilation,,, elisp, The femacs Lisp Reference Manual}).
+compilation,,, elisp, The Emacs Lisp Reference Manual}).
 
 @vindex help-enable-symbol-autoload
   If you request help for an autoloaded function whose @code{autoload}
-form (@pxref{Autoload,,, elisp, The femacs Lisp Reference Manual})
+form (@pxref{Autoload,,, elisp, The Emacs Lisp Reference Manual})
 doesn't provide a doc string, the @file{*Help*} buffer won't have any
 doc string to display.  In that case, if
 @code{help-enable-symbol-autoload} is non-@code{nil}, Emacs will try
@@ -372,7 +372,7 @@ source files installed (@pxref{Hyperlinking}).
 @findex Info-goto-emacs-command-node
   To find a command's documentation in a manual, use @kbd{C-h F}
 (@code{Info-goto-emacs-command-node}).  This knows about various
-manuals, not just the femacs manual, and finds the right one.
+manuals, not just the Emacs manual, and finds the right one.
 
 @kindex C-h o
 @findex describe-symbol
@@ -556,7 +556,7 @@ View the source of the current help topic (if any)
 @item i
 Look up the current topic in the manual(s) (@code{help-goto-info}).
 @item I
-Look up the current topic in the femacs Lisp manual
+Look up the current topic in the Emacs Lisp manual
 (@code{help-goto-lispref-info}).
 @item c
 Customize the variable or the face (@code{help-customize}).
@@ -685,7 +685,7 @@ currently in use.  @xref{Coding Systems}.
   @kbd{C-h i} (@code{info}) runs the Info program, which browses
 structured documentation files.  @kbd{C-h 4 i}
 (@code{info-other-window}) does the same, but shows the Info buffer in
-another window.  The entire femacs manual is available within Info,
+another window.  The entire Emacs manual is available within Info,
 along with many other manuals for the GNU system.  Type @kbd{h} after
 entering Info to run a tutorial on using Info.
 
@@ -755,7 +755,7 @@ modes, then the local bindings defined by the current major mode, and
 finally the global bindings (@pxref{Key Bindings}).  @kbd{C-h s}
 displays the contents of the syntax table, with explanations of each
 character's syntax (@pxref{Syntax Tables,, Syntax Tables, elisp, The
-femacs Lisp Reference Manual}).
+Emacs Lisp Reference Manual}).
 
 @kindex C-h C-q
 @findex help-quick-toggle

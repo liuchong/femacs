@@ -983,7 +983,7 @@ GNU Info, info-stnd, GNU Info}.)
 @kindex C-q @r{(Info mode)}
   One advanced command useful with most of the others described here
 is @kbd{C-q}, which ``quotes'' the next character so that it is
-entered literally (@pxref{Inserting Text,,,emacs,The femacs
+entered literally (@pxref{Inserting Text,,,emacs,The GNU Emacs
 Manual}).  For example, pressing @kbd{?} ordinarily brings up a list
 of completion possibilities.  If you want to (for example) search for
 an actual @samp{?} character, the simplest way is to insert it using
@@ -1036,7 +1036,7 @@ of the node).
   Instead of using @kbd{s} in Emacs Info and in the stand-alone Info,
 you can use an incremental search started with @kbd{C-s} or @kbd{C-r}.
 It can search through multiple Info nodes.  @xref{Incremental Search,,,
-emacs, The femacs Manual}.  In Emacs, you can disable this behavior
+emacs, The GNU Emacs Manual}.  In Emacs, you can disable this behavior
 by setting the variable @code{Info-isearch-search} to @code{nil}
 (@pxref{Emacs Info Variables}).
 
@@ -1114,7 +1114,7 @@ node name by putting it at the front, in parentheses.  Thus,
 @kbd{g(dir)Top@key{RET}} would go to the Info Directory node, which is
 the node @samp{Top} in the Info file @file{dir}.  Likewise,
 @kbd{g(emacs)Top@key{RET}} (or just @kbd{g(emacs)@key{RET}}) goes to the
-top node of the femacs manual.
+top node of the Emacs manual.
 
   The node name @samp{*} specifies the whole file.  So you can look at
 all of the current file by typing @kbd{g*@key{RET}} or all of any

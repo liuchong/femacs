@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1999, 2001--2026 Free Software Foundation,
 @c Inc.
 @c See the file elisp.texi for copying conditions.
@@ -438,7 +438,7 @@ called @dfn{auto-saving}.  Auto-saving prevents you from losing more
 than a limited amount of work if the system crashes.  By default,
 auto-saves happen every 300 keystrokes, or after around 30 seconds of
 idle time.  @xref{Auto Save, Auto Save, Auto-Saving: Protection Against
-Disasters, emacs, The femacs Manual}, for information on auto-save
+Disasters, emacs, The GNU Emacs Manual}, for information on auto-save
 for users.  Here we describe the functions used to implement auto-saving
 and the variables that control them.
 
@@ -684,7 +684,7 @@ not initialize @code{auto-save-list-file-name}.
   If you have made extensive changes to a file and then change your mind
 about them, you can get rid of them by reading in the previous version
 of the file with the @code{revert-buffer} command.  @xref{Reverting, ,
-Reverting a Buffer, emacs, The femacs Manual}.
+Reverting a Buffer, emacs, The GNU Emacs Manual}.
 
 @deffn Command revert-buffer &optional ignore-auto noconfirm preserve-modes
 This command replaces the buffer text with the text of the visited
@@ -894,4 +894,4 @@ revert every @code{auto-revert-interval} seconds.
 If the new auto-reverting is part of Emacs, you should mention it
 in the documentation string of @code{global-auto-revert-non-file-buffers}.
 
-Similarly, you should document the additions in the femacs manual.
+Similarly, you should document the additions in the Emacs manual.

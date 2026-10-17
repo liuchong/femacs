@@ -1,5 +1,5 @@
 @c -*- mode: texinfo; coding: utf-8 -*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1993, 1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -240,7 +240,7 @@ The default file coding system for Emacs Lisp source files is UTF-8
 contains characters which are @emph{not} in UTF-8, you should specify
 an appropriate coding system in the source file's @samp{-*-} line or
 local variables list.  @xref{File Variables, , Local Variables in
-Files, emacs, The femacs Manual}.
+Files, emacs, The GNU Emacs Manual}.
 
 @item
 Indent the file using the default indentation parameters.
@@ -930,7 +930,7 @@ The argument FOO can be either a number
 
 This avoids a bug in Emacs versions older than 27.1, where the
 @samp{(} was treated as the start of a defun
-(@pxref{Defuns,, Defuns, emacs, The femacs Manual}).
+(@pxref{Defuns,, Defuns, emacs, The GNU Emacs Manual}).
 If you do not anticipate anyone editing your code with older Emacs
 versions, there is no need for this work-around.
 @end itemize
@@ -1131,7 +1131,7 @@ Generally speaking, the @kbd{M-;} (@code{comment-dwim}) command
 automatically starts a comment of the appropriate type; or indents an
 existing comment to the right place, depending on the number of
 semicolons.
-@xref{Comments,, Manipulating Comments, emacs, The femacs Manual}.
+@xref{Comments,, Manipulating Comments, emacs, The GNU Emacs Manual}.
 
 @node Library Headers
 @section Conventional Headers for Emacs Libraries

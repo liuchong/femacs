@@ -24,14 +24,14 @@ modify this GNU manual.''
 
 @dircategory Emacs editing modes
 @direntry
-* Octave mode: (octave-mode).   femacs mode for editing GNU Octave files.
+* Octave mode: (octave-mode).   Emacs mode for editing GNU Octave files.
 @end direntry
 
 @finalout
 
 @titlepage
 @title Octave Mode
-@subtitle A femacs mode for programming in GNU Octave
+@subtitle An Emacs mode for programming in GNU Octave
 
 @page
 @vskip 0pt plus 1filll
@@ -199,11 +199,11 @@ Function comments blocks in @code{octave-function-comment-block}
 
 @cindex Imenu Support
 There is also rudimentary support for Imenu (@pxref{Imenu,,, emacs,
-The femacs Manual}).  Currently, function names can be indexed.
+The GNU Emacs Manual}).  Currently, function names can be indexed.
 
 @cindex ElDoc Mode Support
 @vindex octave-eldoc-message-style
-ElDoc mode (@pxref{Programming Language Doc,,, emacs, The femacs
+ElDoc mode (@pxref{Programming Language Doc,,, emacs, The GNU Emacs
 Manual}) is supported.  By customizing
 @code{octave-eldoc-message-style} it can be changed from displaying
 one or multi line hints.

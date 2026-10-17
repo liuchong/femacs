@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -2675,7 +2675,7 @@ support for the GnuTLS Transport Layer Security Library; see
 @uref{https://www.gnu.org/software/gnutls/, the GnuTLS project page}.
 If your Emacs was compiled with GnuTLS support, the function
 @code{gnutls-available-p} is defined and returns non-@code{nil}.  For
-more details, @pxref{Top,, Overview, emacs-gnutls, The femacs-GnuTLS manual}.
+more details, @pxref{Top,, Overview, emacs-gnutls, The Emacs-GnuTLS manual}.
 The @code{open-network-stream} function can transparently handle the
 details of creating encrypted connections for you, using whatever
 support is available.
@@ -3419,7 +3419,7 @@ Lisp strings).
 @c (Same value, 9600, appears below as well.)
 @var{speed} is the speed of the serial port in bits per second.  9600
 is a common value.  The buffer is in Term mode; see @ref{Term Mode,,,
-emacs, The femacs Manual}, for the commands to use in that buffer.
+emacs, The GNU Emacs Manual}, for the commands to use in that buffer.
 You can change the speed and the configuration in the mode line menu.
 If @var{line-mode} is non-@code{nil}, @code{term-line-mode} is used;
 otherwise @code{term-raw-mode} is used.

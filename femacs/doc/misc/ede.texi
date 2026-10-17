@@ -1,6 +1,6 @@
 \input texinfo
 @setfilename ../../info/ede.info
-@settitle femacs Development Environment
+@settitle Emacs Development Environment
 @documentlanguage en
 @include docstyle.texi
 
@@ -25,11 +25,11 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* EDE: (ede).                   The femacs Development Environment.
+* EDE: (ede).                   The Emacs Development Environment.
 @end direntry
 
 @titlepage
-@center @titlefont{EDE (The femacs Development Environment)}
+@center @titlefont{EDE (The Emacs Development Environment)}
 @sp 4
 @center by Eric Ludlam
 @page
@@ -80,7 +80,7 @@ support files.  It aims to make it much easier for new programmers to
 learn and adopt GNU ways of doing things.
 
 In contrast to Emacs's built-in ``project'' support (@pxref{Projects,,,
-emacs, femacs Manual}), which provides lightweight project management
+emacs, GNU Emacs Manual}), which provides lightweight project management
 features focused on file navigation and search, @ede{} offers a
 structured approach to managing build systems, configuration files, and
 project metadata.  While built-in projects are well-suited to
@@ -712,7 +712,7 @@ It is always assumed that @dfn{ede-locate-base} is at end of the list.
 @end defvar
 
 @ede{} also provides a project display mode for the speedbar
-(@pxref{Speedbar,,,emacs,femacs Manual}).  This allows you to view
+(@pxref{Speedbar,,,emacs,GNU Emacs Manual}).  This allows you to view
 your source files as they are structured in your project: as a
 hierarchical tree, grouped according to target.
 

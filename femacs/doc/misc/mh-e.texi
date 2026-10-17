@@ -59,7 +59,7 @@ Public License.''
 @c Info Directory Entry
 @dircategory Emacs network features
 @direntry
-* MH-E: (mh-e).                 femacs interface to the MH mail system.
+* MH-E: (mh-e).                 Emacs interface to the MH mail system.
 @end direntry
 
 @c Title Page
@@ -229,14 +229,14 @@ read a built-in tutorial by starting GNU Emacs and typing @kbd{C-h t}
 (@code{help-with-tutorial}). (To learn about this notation, see
 @ref{Conventions}.) If you want to take the plunge, consult the
 @iftex
-@cite{femacs Manual},
+@cite{GNU Emacs Manual},
 @end iftex
 @ifinfo
-@ref{Top, , femacs Manual, emacs, femacs Manual},
+@ref{Top, , GNU Emacs Manual, emacs, GNU Emacs Manual},
 @end ifinfo
 @ifhtml
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/,
-@cite{femacs Manual}},
+@cite{GNU Emacs Manual}},
 @end ifhtml
 from the Free Software Foundation.
 
@@ -378,13 +378,13 @@ Variables in MH-E that are normally modified by the user are called
 @dfn{options} and are modified through the customize functions (such
 as @kbd{M-x customize-option} or @kbd{M-x customize-group}).
 @ifnothtml
-@xref{Easy Customization,,,emacs,The femacs Manual}, in @cite{The
-femacs Manual}.
+@xref{Easy Customization,,,emacs,The GNU Emacs Manual}, in @cite{The
+GNU Emacs Manual}.
 @end ifnothtml
 @ifhtml
 See section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Easy-Customization.html,
-Easy Customization} in @cite{The femacs Manual}.
+Easy Customization} in @cite{The GNU Emacs Manual}.
 @end ifhtml
 @xref{Options}.
 
@@ -398,13 +398,13 @@ MH-E provides a set of faces that you can use to personalize the look
 of your MH-E buffers. Use the command @kbd{M-x customize-face} to do
 this.
 @ifnothtml
-@xref{Face Customization,,,emacs,The femacs Manual}, in @cite{The
-femacs Manual}.
+@xref{Face Customization,,,emacs,The GNU Emacs Manual}, in @cite{The
+GNU Emacs Manual}.
 @end ifnothtml
 @ifhtml
 See section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Face-Customization.html,
-Face Customization} in @cite{The femacs Manual}.
+Face Customization} in @cite{The GNU Emacs Manual}.
 @end ifhtml
 
 @cindex abnormal hooks
@@ -416,13 +416,13 @@ Face Customization} in @cite{The femacs Manual}.
 Commands often offer @dfn{hooks} which enable you to extend or modify
 the way a command works.
 @ifnothtml
-@ref{Hooks, , Hooks, emacs, The femacs Manual}, in @cite{The GNU
-femacs Manual}
+@ref{Hooks, , Hooks, emacs, The GNU Emacs Manual}, in @cite{The GNU
+Emacs Manual}
 @end ifnothtml
 @ifhtml
 See section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Hooks.html,
-Hooks} in @cite{The femacs Manual}
+Hooks} in @cite{The GNU Emacs Manual}
 @end ifhtml
 for a description about @dfn{normal hooks} and @dfn{abnormal hooks}.
 MH-E uses normal hooks in nearly all cases, so you can assume that we
@@ -468,12 +468,12 @@ that Emacs fills in text for you when you type @key{SPC} or @key{TAB}.
 A second @key{SPC} or @key{TAB} will list all possibilities at that
 point.
 @ifnothtml
-@xref{Completion, , Completion, emacs, The femacs Manual}.
+@xref{Completion, , Completion, emacs, The GNU Emacs Manual}.
 @end ifnothtml
 @ifhtml
 See the section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Completion.html,
-Completion} in @cite{The femacs Manual}.
+Completion} in @cite{The GNU Emacs Manual}.
 @end ifhtml
 Note that @key{SPC} cannot be used for completing filenames and
 folders.
@@ -1099,8 +1099,8 @@ possible. That way you will get the same behavior inside and outside
 GNU Emacs. Note that MH-E does not provide hooks for customizations
 that can be done in MH; this omission is intentional.
 
-@cindex femacs Lisp Manual
-@cindex Emacs, femacs Lisp Manual
+@cindex Emacs Lisp Manual
+@cindex Emacs, Emacs Lisp Manual
 @cindex Emacs, info
 @cindex Emacs, online help
 @cindex info
@@ -1112,21 +1112,21 @@ exist,
 @c Yes, some of the stuff in the following sections is redundant, but
 @c TeX barfs if the @ifs are inside the @footnote.
 @iftex
-@footnote{The @cite{femacs Lisp Reference Manual} should be available
+@footnote{The @cite{GNU Emacs Lisp Reference Manual} should be available
 via the Info system by typing @kbd{C-h i m Emacs Lisp
 @key{RET}}. It is also available online at @*
 @uref{https://www.gnu.org/software/emacs/manual/elisp.html}.}
 @end iftex
 @ifinfo
-@footnote{@xref{Top, The femacs Lisp Reference Manual, , elisp, GNU
-femacs Lisp Reference Manual}, which should be available via the
+@footnote{@xref{Top, The GNU Emacs Lisp Reference Manual, , elisp, GNU
+Emacs Lisp Reference Manual}, which should be available via the
 Info system. It is also available online at
 @uref{https://www.gnu.org/software/emacs/manual/elisp.html}.}
 @end ifinfo
 @ifhtml
 @footnote{The
 @uref{https://www.gnu.org/software/emacs/manual/elisp.html,
-The femacs Lisp Reference Manual} should be available via
+The GNU Emacs Lisp Reference Manual} should be available via
 the Info system by typing @kbd{C-h i m Emacs Lisp @key{RET}}.}
 @end ifhtml
 and you can look at the code itself for examples. Look in the Emacs
@@ -1286,12 +1286,12 @@ default). If you need to scan just the message 200, then use the range
 When you choose a folder in MH-E via a command such as @kbd{o}
 (@code{mh-refile-msg}), completion is used to enter the folder
 @ifnothtml
-(@pxref{Completion, , , emacs, The femacs Manual}).
+(@pxref{Completion, , , emacs, The GNU Emacs Manual}).
 @end ifnothtml
 @ifhtml
 (see the section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Completion.html,
-Completion} in @cite{The femacs Manual}).
+Completion} in @cite{The GNU Emacs Manual}).
 @end ifhtml
 In addition, MH-E has several ways of choosing a suitable default so
 that the folder can often be selected with a single @key{RET} key.
@@ -2585,7 +2585,7 @@ and @code{mm-html-inhibit-images}
 @end ifinfo
 @ifnotinfo
 (see section @uref{https://www.gnus.org/manual/emacs-mime_6.html,
-Display Customization} in the @cite{The femacs MIME Manual}).
+Display Customization} in the @cite{The Emacs MIME Manual}).
 @end ifnotinfo
 @c -------------------------
 @cindex browser, @samp{w3m}
@@ -2605,7 +2605,7 @@ the option @code{mm-w3m-safe-url-regexp}
 @end ifinfo
 @ifnotinfo
 (see section @uref{https://www.gnus.org/manual/emacs-mime_6.html,
-Display Customization} in the @cite{The femacs MIME Manual}).
+Display Customization} in the @cite{The Emacs MIME Manual}).
 @end ifnotinfo
 @c -------------------------
 @cindex browser, @samp{w3m-standalone}
@@ -2629,7 +2629,7 @@ the Gnus command @kbd{W h} (@pxref{Article Washing,,,gnus}).
 @end ifinfo
 @ifnotinfo
 see section @uref{https://www.gnus.org/manual/emacs-mime_6.html,
-Display Customization} in the @cite{The femacs MIME Manual} and the
+Display Customization} in the @cite{The Emacs MIME Manual} and the
 documentation for the Gnus command @kbd{W h} (see section
 @uref{https://www.gnus.org/manual/gnus_48.html#Article-Washing, Article
 Washing} in the
@@ -5192,7 +5192,7 @@ Meta Language) tags@footnote{
 @end ifinfo
 @ifnotinfo
 See the section Composing in
-@uref{https://www.gnus.org/manual/emacs-mime.html, @cite{The femacs MIME
+@uref{https://www.gnus.org/manual/emacs-mime.html, @cite{The Emacs MIME
 Manual}}.
 @end ifnotinfo
 }. The option @code{mh-compose-insertion} can be used to choose
@@ -5943,13 +5943,13 @@ mh-alias-apropos} to show all aliases or addresses that match a
 regular expression
 @ifnothtml
 (@pxref{Regexps, , Syntax of Regular Expressions, emacs, The
-femacs Manual}).
+GNU Emacs Manual}).
 @end ifnothtml
 @ifhtml
 (see the section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Regexps.html,
 Syntax of Regular Expressions} in
-@cite{The femacs Manual}).
+@cite{The GNU Emacs Manual}).
 @end ifhtml
 
 @node Identities
@@ -6093,13 +6093,13 @@ customize @code{mh-auto-fields-list}, click on the @samp{INS} button
 and enter a regular expression for the recipient's address
 @ifnothtml
 (@pxref{Regexps, , Syntax of Regular Expressions, emacs, The
-femacs Manual}).
+GNU Emacs Manual}).
 @end ifnothtml
 @ifhtml
 (see the section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Regexps.html,
 Syntax of Regular Expressions} in
-@cite{The femacs Manual}).
+@cite{The GNU Emacs Manual}).
 @end ifhtml
 Click on the @samp{INS} button with the @samp{Add at least one item
 below} label. The @samp{Value Menu} contains the following menu items:
@@ -6201,12 +6201,12 @@ containing the value for the field is given.
 
 You can also use the speedbar
 @ifnothtml
-(@pxref{Speedbar, , Speedbar Frames, emacs, The femacs Manual},)
+(@pxref{Speedbar, , Speedbar Frames, emacs, The GNU Emacs Manual},)
 @end ifnothtml
 @ifhtml
 (see the section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Speedbar.html,
-Speedbar Frames} in @cite{The femacs Manual})
+Speedbar Frames} in @cite{The GNU Emacs Manual})
 @end ifhtml
 to view your folders. To bring up the speedbar, run @kbd{M-x speedbar
 @key{RET}}. You will see a new frame appear with all of your MH
@@ -6333,15 +6333,15 @@ already described elsewhere in this manual.
 
 For a description of the menu bar, please
 @ifnothtml
-@xref{Menu Bar, , The Menu Bar, emacs, The femacs Manual}.
+@xref{Menu Bar, , The Menu Bar, emacs, The GNU Emacs Manual}.
 @end ifnothtml
 @ifhtml
 see the section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Menu-Bar.html,
-The Menu Bar} in @cite{The femacs Manual}.
+The Menu Bar} in @cite{The GNU Emacs Manual}.
 @end ifhtml
 
-The femacs manual describes how to get help for a particular
+The Emacs manual describes how to get help for a particular
 menu item. You can also look up a menu item in the index of this
 manual in two ways: all of the menu items are listed alphabetically,
 and you can also browse all of the items under the index entry
@@ -6355,12 +6355,12 @@ and you can also browse all of the items under the index entry
 Emacs also provides a graphical tool bar. For a description of the
 tool bar, please
 @ifnothtml
-@xref{Tool Bars, , Tool Bars, emacs, The femacs Manual}.
+@xref{Tool Bars, , Tool Bars, emacs, The GNU Emacs Manual}.
 @end ifnothtml
 @ifhtml
 see the section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Tool-Bars.html,
-Tool Bars} in @cite{The femacs Manual}.
+Tool Bars} in @cite{The GNU Emacs Manual}.
 @end ifhtml
 
 @cindex @samp{mh-tool-bar} customization group
@@ -8110,12 +8110,12 @@ must be set with @code{setq} instead of in a customization buffer. For
 help with regular expressions, see
 @ifnothtml
 @ref{Regexps, , Syntax of Regular Expressions, emacs, The
-femacs Manual}.
+GNU Emacs Manual}.
 @end ifnothtml
 @ifhtml
 section
 @uref{https://www.gnu.org/software/emacs/manual/html_node/emacs/Regexps.html,
-Syntax of Regular Expressions} in @cite{The femacs Manual}.
+Syntax of Regular Expressions} in @cite{The GNU Emacs Manual}.
 @end ifhtml
 
 The first variable has to do with pruning out garbage.
@@ -8962,9 +8962,9 @@ Bill Wohler, August 2008
 @c
 @c Cross References
 @c
-@c See existing cross-references to the femacs manual and the Emacs
-@c Lisp manual (search for ``femacs Manual'' and ``GNU
-@c femacs Lisp Reference Manual'' respectively).
+@c See existing cross-references to the Emacs manual and the Emacs
+@c Lisp manual (search for ``GNU Emacs Manual'' and ``GNU
+@c Emacs Lisp Reference Manual'' respectively).
 
 @c @ftable Sorting
 @c

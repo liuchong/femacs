@@ -3,7 +3,7 @@
 @setfilename ../../../../info/ses-fr.info
 @documentlanguage fr
 @documentencoding UTF-8
-@settitle @acronym{SES}: Le tableur simple de femacs
+@settitle @acronym{SES}: Le tableur simple d’Emacs
 @include docstyle.texi
 @setchapternewpage off
 @syncodeindex fn cp
@@ -38,14 +38,14 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* @acronym{SES}-fr: (ses-fr).        Le tableur simple de femacs.
+* @acronym{SES}-fr: (ses-fr).        Le tableur simple d’Emacs.
 @end direntry
 
 @finalout
 
 @titlepage
 @title @acronym{SES}
-@subtitle Le tableur simple de femacs
+@subtitle Le tableur simple d’Emacs
 @author Jonathan A. Yavner
 @author @email{jyavner@@member.fsf.org}
 
@@ -1094,7 +1094,7 @@ Un raccourci pour @code{>v}.
 Un raccourci pour @code{>^}.
 @item *
 Au lieu de lister les cellules, en fait un vecteur ou une matrice Calc
-(@pxref{Top,,,calc,femacs Calc Manual}). Si la plage contient
+(@pxref{Top,,,calc,GNU Emacs Calc Manual}). Si la plage contient
 seulement une ligne ou une colonne un vecteur est fait, sinon une
 matrice est faite.
 @item *2

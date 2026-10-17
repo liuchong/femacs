@@ -1,7 +1,7 @@
 \input texinfo.tex
 @c %**start of header
 @setfilename ../../info/widget.info
-@settitle The femacs Widget Library
+@settitle The Emacs Widget Library
 @documentlanguage en
 @include docstyle.texi
 @syncodeindex fn cp
@@ -27,13 +27,13 @@ modify this GNU manual.''
 
 @dircategory Emacs lisp libraries
 @direntry
-* Widget: (widget).             The "widget" package used by the femacs
+* Widget: (widget).             The "widget" package used by the Emacs
                                   Customization facility.
 @end direntry
 
 
 @titlepage
-@title The femacs Widget Library
+@title The Emacs Widget Library
 @page
 @vskip 0pt plus 1filll
 @insertcopying
@@ -570,7 +570,7 @@ plain text.  For inserting text, the recommended way is with the
 Insert @var{args}, either strings or characters, at point.
 
 Uses @code{insert} to perform the insertion, passing @var{args} as
-argument.  @xref{Insertion,,,elisp, the femacs Lisp Reference Manual},
+argument.  @xref{Insertion,,,elisp, the Emacs Lisp Reference Manual},
 for more information about @var{args}.
 
 The resulting text will be read-only.
@@ -1144,7 +1144,7 @@ display, or a form that evaluates to such a string.
 @vindex follow-link@r{ keyword}
 @item :follow-link
 Specifies how to interpret a @key{mouse-1} click on the widget.
-@xref{Clickable Text,, Defining Clickable Text, elisp, the femacs Lisp Reference Manual}.
+@xref{Clickable Text,, Defining Clickable Text, elisp, the Emacs Lisp Reference Manual}.
 
 @vindex indent@r{ keyword}
 @item :indent
@@ -1232,7 +1232,7 @@ arguments, which will be used when creating the @code{radio-button} or
 @item :completions-function
 Function that takes a widget and returns completion data for that
 widget, like @code{completion-at-point-functions} would.
-@xref{Completion,,,elisp, the femacs Lisp Reference Manual}.  It's
+@xref{Completion,,,elisp, the Emacs Lisp Reference Manual}.  It's
 used by @code{editable-field} widgets to provide completions.
 
 By default, it looks into the property @code{:completions}, which
@@ -1485,7 +1485,7 @@ A custom keymap for the link widget, so that it can respond to mouse clicks.
 
 @item :follow-link
 This property allows the link to respect the value of
-@code{mouse-1-click-follows-link}.  @xref{Clickable Text,,,elisp, the femacs Lisp Reference Manual}.
+@code{mouse-1-click-follows-link}.  @xref{Clickable Text,,,elisp, the Emacs Lisp Reference Manual}.
 
 @item :format
 Buttonizes the link, to make it clickable.
@@ -2842,7 +2842,7 @@ Its super is the @code{sexp} widget, and its @code{:value} is
 
 @deffn Widget coding-system
 A widget that can represent a coding system name, offering
-completions.  @xref{Coding Systems,,,elisp, the femacs Lisp Reference
+completions.  @xref{Coding Systems,,,elisp, the Emacs Lisp Reference
 Manual}.  Its super is the @code{symbol} widget.
 
 It has a default value of @code{undecided}.
@@ -3232,7 +3232,7 @@ Prompt the user to choose an item from a list of options.
 
 @var{title} is the name of the list of options.  @var{items} should be
 a menu, with its items in the simple format or in the extended format.
-@xref{Defining Menus,, Defining Menus, elisp, the femacs Lisp Reference
+@xref{Defining Menus,, Defining Menus, elisp, the Emacs Lisp Reference
 Manual}.  Independently of the format, you don't have to provide a
 title for the menu, just pass the desired title in @var{title}.  The
 optional @var{event} is an input event.  If @var{event} is a mouse
@@ -3243,7 +3243,7 @@ the minibuffer.
 
 When @var{items} is a keymap menu, the returned value is the symbol in
 the key vector, as in the argument of @code{define-key}
-(@pxref{Changing Key Bindings,,,elisp, the femacs Lisp Reference
+(@pxref{Changing Key Bindings,,,elisp, the Emacs Lisp Reference
 Manual}).  When @var{items} is a list whose selectable items are of
 the form (@var{name} . @var{value}) (i.e., the simplified format),
 then the return value is the @var{value} of the chosen element.

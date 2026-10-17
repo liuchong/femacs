@@ -7,20 +7,20 @@
 ;; Keywords: help, faces
 ;; Package: emacs
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -781,7 +781,7 @@ Changes in the state of the custom options should notify the buttons via the
 :notify property, so buttons can be enabled/disabled correctly at all times.")
 
 (defun Custom-help ()
-  "Read the node on Easy Customization in the femacs manual."
+  "Read the node on Easy Customization in the Emacs manual."
   (interactive)
   (info "(emacs)Easy Customization"))
 
@@ -1868,8 +1868,8 @@ Otherwise use brackets."
 		     "(emacs)Easy Customization")
       (widget-insert " in the ")
       (widget-create 'custom-manual
-		     :tag "femacs manual"
-		     :help-echo "Read the femacs manual."
+		     :tag "Emacs manual"
+		     :help-echo "Read the Emacs manual."
 		     "(emacs)Top")
       (widget-insert "."))
     (widget-insert "\n")

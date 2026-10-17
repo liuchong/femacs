@@ -1,4 +1,4 @@
-;;; ps-mode.el --- PostScript mode for femacs  -*- lexical-binding: t; -*-
+;;; ps-mode.el --- PostScript mode for GNU Emacs  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 1999, 2001-2026 Free Software Foundation, Inc.
 
@@ -14,20 +14,20 @@
 ;; only if: "... those e-mails have a link to the bug report system,
 ;; where I can cancel these e-mails if I want to.".
 
-;; This file is part of femacs.
+;; This file is part of GNU Emacs.
 
-;; femacs is free software: you can redistribute it and/or modify
+;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; femacs is distributed in the hope that it will be useful,
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with femacs.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -513,7 +513,7 @@ Typing \\<ps-run-mode-map>\\[ps-run-goto-error] when the cursor is at the number
 (defun ps-mode-show-version ()
   "Show current version of PostScript mode."
   (interactive)
-  (message " *** PostScript Mode (ps-mode) in femacs %s *** " emacs-version))
+  (message " *** PostScript Mode (ps-mode) in GNU Emacs %s *** " emacs-version))
 
 ;; From reporter.el
 (defvar reporter-prompt-for-summary-p)

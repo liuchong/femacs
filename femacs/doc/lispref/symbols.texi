@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the femacs Lisp Reference Manual.
+@c This is part of the GNU Emacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -166,7 +166,7 @@ macro (e.g., with @code{defun}).  Such definitions do not conflict.
   These definitions also act as guides for programming tools.  For
 example, the @kbd{C-h f} and @kbd{C-h v} commands create help buffers
 containing links to the relevant variable, function, or macro
-definitions.  @xref{Name Help,,, emacs, The femacs Manual}.
+definitions.  @xref{Name Help,,, emacs, The GNU Emacs Manual}.
 
 @node Creating Symbols
 @section Creating and Interning Symbols
@@ -687,7 +687,7 @@ instructs the Lisp reader to read every symbol form which starts with
 instead.
 
 This variable may only be set in file-local variables (@pxref{File Variables, ,
-Local Variables in Files, emacs, The femacs Manual}).
+Local Variables in Files, emacs, The GNU Emacs Manual}).
 @end defvar
 
 Here's an example of shorthands usage in a hypothetical string
@@ -729,7 +729,7 @@ shorthands @code{snu-split} and @code{snu-lines} used in the second
 version are @emph{not} interned in the obarray.  This is easily seen
 by moving point to the location where the shorthands are used and
 waiting for ElDoc (@pxref{Programming Language Doc, , Local Variables
-in Files, emacs, The femacs Manual}) to hint at the true full name
+in Files, emacs, The GNU Emacs Manual}) to hint at the true full name
 of the symbol under point in the echo area.
 
 Since @code{read-symbol-shorthands} is a file-local variable, it is
