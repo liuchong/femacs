@@ -20332,7 +20332,9 @@ static mut all_tests: [sfnt_interpreter_test; 94] =        // C 18183-19651
       	 PUSHW[0] 255 -30
       	 JMPR[] */
       instructions: &[
-	0xba, 00, 00, 00, 0xb2, 255, 253, 0x1c, 0xb0, 4, 0x1c, 255, 255,
+	/* C 18430 spells these three bytes `00`; Rust reads a bare `00` as decimal 0 too, and
+	   P-94 wants the unprefixed zero, so the value is unchanged (three literals).  */
+	0xba, 0, 0, 0, 0xb2, 255, 253, 0x1c, 0xb0, 4, 0x1c, 255, 255,
 	255, 0xb8, 255, -30, 0x1c,
 	] as *const [c_uchar; 18] as *mut c_uchar,
       num_instructions: 18,
