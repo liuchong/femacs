@@ -343,7 +343,7 @@ lisp/net/secrets-tests.el	same	5	0	5	0
 lisp/net/shr-tests.el	same	5	0	5	0	
 lisp/net/socks-tests.el	same	10	0	10	0	
 lisp/net/tramp-archive-tests.el	same	10	0	10	0	
-lisp/net/tramp-tests.el	crashed	0	0	0	0	both sides exceed 120s; symmetric timeout, not a port defect (needs a longer per-file budget)
+lisp/net/tramp-tests.el	crashed	0	0	0	0	both sides exceed the capped budget: the port hits a 900 MiB cap and the reference reaches 2799 MiB without finishing in 420s; excluded by the memory policy, not a port defect
 lisp/net/webjump-tests.el	same	7	0	7	0	
 lisp/newcomment-tests.el	same	1	0	1	0	
 lisp/nxml/nxml-mode-tests.el	same	8	0	8	0	
