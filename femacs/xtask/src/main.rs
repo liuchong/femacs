@@ -1136,17 +1136,31 @@ fn build_tu(rel: Option<&String>) -> i32 {
         Ok(p) => p,
         Err(e) => return fail(e),
     };
-    let status = rustc_cmd ()
-        .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-               "--crate-name", &cname])
-        .args(unit_codegen_flags ())
-            .args(&sanitizer_flags ())
-        .arg(&root)
-        .arg("-o").arg(&out)
-        .status();
+    // `FEMACS_TARGET` is the first piece of the cross-build driver (P-209/P-210): it compiles
+    // the *same* unit for another Rust target and keeps the object in a target-suffixed file, so
+    // a cross object never overwrites the darwin one the gates read.  It is deliberately only
+    // the toolchain half - a target's semantics still need that target's frozen configuration
+    // (`docs/baseline/config/*.json`, P-204), which is why this is an override and not the
+    // default path.
+    let target = std::env::var("FEMACS_TARGET").ok().filter(|v| !v.is_empty());
+    let mut cmd = rustc_cmd ();
+    cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+              "--crate-name", &cname])
+       .args(unit_codegen_flags ())
+       .args(&sanitizer_flags ());
+    let mut cross_out = out.clone();
+    if let Some(t) = &target {
+        cmd.arg("--target").arg(t);
+        if t.contains("linux") {
+            cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh"));
+        }
+        cross_out = Path::new(BUILD).join(format!("{stem}.{t}.o"));
+        println!("target: {t} (object: {})", cross_out.display());
+    }
+    let status = cmd.arg(&root).arg("-o").arg(&cross_out).status();
     match status {
         Ok(s) if s.success() => {
-            println!("built {crate_root} -> {}", out.display());
+            println!("built {crate_root} -> {}", cross_out.display());
             0
         }
         Ok(s) => fail(format!("rustc failed for {crate_root} ({s})")),
