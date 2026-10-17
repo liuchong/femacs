@@ -21929,3 +21929,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ⑤ **工具自身的坑** ✓：`subr-intspec` **不存在**（`void-function` ✓）⇒ 改用 `(interactive-form f)` ✓；`mapatoms` 里的错误若不用 `ignore-errors` 包住会让整轮静默返回 0 ✓（第一次跑就是"0 / 0" ✗）。
   ⑥ **受控执行器残留再次出现** ✓：本轮又两次遇到 `exit 125 / Combined memory reservations exceed the shared budget` ✗ —— 都由上一轮遗留的 `run.py` 监督进程造成 ✓（`ps` 查到后 `kill -TERM` 即恢复 ✓）⇒ 此后**每次**跑受控命令前先看一眼 `ps` ✓（P-182 ③ 的强化 ✓）。
   ⑦ **Lisp 零改动** ✓；本轮**零单元重编** ✓（只编了 `xtask` 自身 ✓）；`git -C emacs status --short` 为空 ✓。提交：`tools/check-subrs.py`（新门 ✓）、`femacs/xtask/src/main.rs`（接线 ✓）、本提交（读数 ✓）。
+- **4.546 验证相第一百七十七轮：跑了两道此前没跑过的门 —— `check-loadup` **112/112 完全一致** ✓；`check-generated` 露出 **9 个生成物真差异** ✗（P-183）（2026-10-17）**：
+  ① **`tools/check-loadup.py`** ✓：`loaded files: reference 112, port 112` ✓、`only in the reference 0, only in the port 0` ✓、`exit status: reference 0, port 0` ✓、`the two loadups agree file for file` ✓✓ —— loadup/dump 管线的直接证据 ✓。
+  ② **`tools/check-generated.py`** ✗：240 文件 ⇒ **140 identical** ✓ / **91 name-only** ✓ / **9 DIFFERENT** ✗ / **0 missing** ✓。9 个全在 `lisp/international/uni-*.el`（8 个 ✓）+ `lisp/loaddefs.el` ✓。
+  ③ **最小形状** ✓（`uni-bidi.el` ✓ 30 vs 32 行 ✓）：端口在第 17 行后**多一行空行 + 一行被断开的尾巴** ✗；生成器用 `(prin1 map (current-buffer))` ✓（不是 `pp` ✓ —— 实测 `pp-to-string` 两侧一致 107 B/4 行 ✓）⇒ 嫌疑收到 **`prin1` 对字符表的打印形状** ✓。
+  ④ **口径** ✓：`loadup` 一致**不**蕴含生成物一致 ✗（两条管线 ✓），DoD-4 的生成物条款必须以 `check-generated.py` 为准 ✓（P-183 ①）。
+  ⑤ **Lisp 零改动** ✓；本轮**零编译** ✓；受控执行器 runtime 900 MiB，两门各 <1 s ✓（另修掉一次残留 `run.py` ✓）；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-183 ✓）、本提交（纯读数 ✓）。
