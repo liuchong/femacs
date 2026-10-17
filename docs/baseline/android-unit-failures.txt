@@ -1,0 +1,27 @@
+# Android 91-unit sweep: failures by class (2026-10-18, status 4.635)
+#
+# command: cd femacs && FEMACS_CONFIG=android-arm64 <cargo> run -q -p xtask -- gen-config
+#          cd .. && FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
+#            <cargo-dir> tools/check-all-units.sh docs/baseline/frozen-build-sources-android.txt
+#
+# checked 91 unit(s), 71 failure(s); checking 20 unit(s), 0 unit failure(s)
+
+count  reason
+   48  the name `_GL_EXTERN_INLINE` is defined multiple times
+    7  the name `DIRECTORY_SEP` is defined multiple times
+    4  cannot find type `android_display_info` in this scope
+    2  the name `JNIEnv` is defined multiple times
+    2  cannot find type `text_cursor_kinds` in this scope
+    1  each: module_finalize_function / list_system_processes / lispy_function_keys /
+            combine_updates_for_frame / HAVE_TM_GMTOFF  (all "defined multiple times")
+
+# One fix clears two thirds of the list: `_GL_EXTERN_INLINE` is defined in exactly one file
+# (femacs/lib/include/gnulib_config.rs) and included twice in a unit - e.g. in the `xml` unit
+# both `_root.rs`'s copy of systime.rs (line 13) and its copy of timespec.rs (line 22) include the
+# same gnulib_config copy.  `Expand.seen` is meant to cut the second; it does not, and the next
+# round's job is to find out why (both edges are inside `#[cfg]` gates, so the `ungated` branch at
+# xtask main.rs 2686-2697 is the first suspect).
+#
+# The "cannot find type" four are the mirror-declaration class already handled for alloc.c
+# (`android_display_info`, `text_cursor_kinds`): the declarer exists, the using mirror does not
+# include it.
