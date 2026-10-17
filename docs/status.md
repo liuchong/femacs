@@ -21692,3 +21692,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **已排除（逐字同 C ✓）**：`font_parse_fcname` 的"找尺寸"扫描 ✓（`p = name + len - 1` ✓、`p >= name` ✓、失败 `p = name + len` ✓）⇒ 截断在**其后按空格切词/查 style 表**那段 ✓（下一轮单点 ✓）。
   ③ **`syntax-tests`（100 例）** ✓：仍 **3 unexpected ✗**（与 4.501 的 `GET_CHAR_BEFORE_2` 修法无关 ✓，与 P-139 `back_comment` 判断一致 ✓）。
   ④ **资源**：2 次单文件 ERT（2.8 s ✓）+ 1 次失败详情跑（0.3 s ✓）；受控执行器 runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 39 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-161 ✓）、本提交（纯读数 ✓）。
+- **4.510 验证相第一百四十一轮：`font_parse_fcname` 的游标被重算 —— 每个 style 词都多留一段 family（`"Oblique"`→`"Obliqu"`），`font-tests` 由 port-worse 转 same（P-162）（2026-10-17）**：
+  ① **根因** ✓：C 的外层 `for (; p > name; p = q)` 用**内层扫描的最终位置**（词边界 ✓）；端口在 style 链后重算 `q = p.offset (-1); p = q;` ✗ ⇒ 步长变成 1 字节 ✗ ⇒ 下一轮把同一词去掉最后一字符再扫 ✓ ⇒ `"Oblique"` 既设 slant ✓、又留下 family `"Obliqu"` ✗。
+  ② **读数** ✓：7 名字探针（`Oblique`/`Bold`/`Italic`/`Condensed`/`Monospace`/`Foo1`/`Book` ✓）修后与参照**逐项一致** ✓；`src/font-tests.el` **port-worse → same ✓（2 例 ✓）** ⇒ port-worse **21 → 20** ✓。
+  ③ **门** ✓：`build-tu src/font.c` ✓、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、**`gate-fast` exit=0 / 590 done / 0 failing** ✓。
+  ④ **规则** ✓（P-162 ✓）：循环尾复用扫描游标 ✗ 不重算 ✓；"识别成功 + 结果里仍带着它"是"游标没到边界"的判据 ✓；差分探针用多名字 ✓。
+  ⑤ **资源**：1 次单单元编译 ✓ + 1 次 `gate-load`/`dump` ✓ + 2 次探针跑（各 <1 s ✓）+ 1 次单文件 ERT（0.4 s ✓）+ 1 次 `gate-fast`（≈480 s ✓）；受控执行器 build 2048 / runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 269 MB** ✓；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/font.rs`（游标 ✓）、`PORTING.md`（P-162 ✓）、本提交 ✓。
