@@ -1,0 +1,20 @@
+# <pthread.h> type sizes on android/aarch64, measured 2026-10-18
+#
+# Why: the port declares its own replicas of these types (C uses the system's, so there is no C
+# declaration to mirror), and the ones in femacs/src/systhread.rs were sized from a *darwin*
+# measurement.  bionic's shapes differ, which is what made thread_state's size and offsets wrong
+# on Android (P-231).
+#
+# How to reproduce (no execution needed - the target cannot run on this machine):
+#   NDK=$(ls ~/Library/Android/sdk/ndk/*/toolchains/llvm/prebuilt/*/bin/aarch64-linux-android21-clang | tail -1)
+#   printf '#include <pthread.h>\n_Static_assert(sizeof(pthread_cond_t)==48,"x");\n' > sz.c
+#   "$NDK" -std=gnu23 -fsyntax-only sz.c     # bisect the value until it passes
+#
+# NDK: 29.0.14206865, API 21
+type                  sizeof   port's replica (femacs/src/systhread.rs)
+pthread_cond_t           48    48   (matches)
+pthread_mutex_t          40    64   (does NOT match)
+pthread_attr_t           56    64   (does NOT match)
+pthread_mutexattr_t       8    16   (does NOT match)
+pthread_condattr_t        8     8   (matches)
+pthread_t                 8     8   (matches)
