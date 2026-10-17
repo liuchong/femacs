@@ -5491,7 +5491,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    eassert! (*p2.offset (-3) as re_opcode_t == jump
 		      && p2.offset (mcnt as isize) as *const re_char == p);
 	    DEBUG_STATEMENT! (regex_emacs_debug += 2);
-	    if mutually_exclusive_p (bufp, p1, p2.offset (-3) as *const re_char)
+	    if mutually_exclusive_p (bufp, p1, p2 as *const re_char)
 	      {
 		/* Use a fast 'on_failure_keep_string_jump' loop.  */
 		DEBUG_PRINT! (c"  smart exclusive => fast loop.\n".as_ptr ());
