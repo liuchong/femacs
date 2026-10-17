@@ -35,6 +35,7 @@ def sources() -> list[pathlib.Path]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--out", type=pathlib.Path, help="write the candidate rows as a TSV")
     args = ap.parse_args()
 
     files = sources()
@@ -64,9 +65,18 @@ def main() -> int:
     print(f"{len(rows)} extern declaration(s) in {len(mirrors)} mirror file(s)")
     print(f"  {len(cross)} defined in a unit (the merged-source candidates)")
     print(f"  {len(unbacked)} with no unit definition (system symbols, or not yet ported)")
+    lines = [
+        f"{path.relative_to(REPO)}\t{name}\t{', '.join(u.relative_to(REPO).as_posix() for u in units)}"
+        for path, name, units in sorted(cross, key=lambda r: (r[0].as_posix(), r[1]))
+    ]
+    if args.out is not None:
+        args.out.write_text(
+            "mirror\tdeclaration\tdefining_units\n" + "\n".join(lines) + "\n", encoding="utf-8"
+        )
+        print(f"wrote {args.out} ({len(lines)} row(s))")
     if args.list:
-        for path, name, units in sorted(cross, key=lambda r: r[1]):
-            print(f"  {path.relative_to(REPO)}\t{name}\t{', '.join(u.relative_to(REPO).as_posix() for u in units)}")
+        for line in lines:
+            print(f"  {line}")
     return 0
 
 

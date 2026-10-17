@@ -158,7 +158,7 @@ pub struct android_display_info
   /* The time of the last mouse movement.  */
   pub last_mouse_movement_time: Time,
 
-  /* ID of the last menu event received.  -1 means Emacs is waiting
+  /* ID of the last menu event received.  -1 means `Emacs` is waiting
      for a context menu event.  */
   pub menu_event_id: c_int,
 
