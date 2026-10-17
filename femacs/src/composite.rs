@@ -1396,7 +1396,7 @@ pub unsafe extern "C" fn composition_reseat_it (cmp_it: *mut composition_it,
 						mut charpos: ptrdiff_t,
 						mut bytepos: ptrdiff_t,
 						mut endpos: ptrdiff_t, w: *mut window,
-						bidi_level: c_char, face: *mut c_void,
+						bidi_level: i8, face: *mut c_void,
 						string: Lisp_Object) -> bool
 {
   if (*cmp_it).ch == -2

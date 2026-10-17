@@ -93,8 +93,8 @@ pub struct bidi_it
   pub r#type: bidi_type_t,
   pub type_after_wn: bidi_type_t,
   pub orig_type: bidi_type_t,
-  pub resolved_level: c_char,            // C: `signed char` (the composite.rs spelling)
-  pub isolate_level: c_char,             // C: `signed char`
+  pub resolved_level: i8,            // C: `signed char` (the composite.rs spelling)
+  pub isolate_level: i8,             // C: `signed char`
   pub invalid_levels: ptrdiff_t,
   pub invalid_isolates: ptrdiff_t,
   pub prev: bidi_saved_info,
@@ -1152,7 +1152,7 @@ unsafe fn bidi_set_paragraph_end (bidi_it: *mut bidi_it)
   (*bidi_it).invalid_isolates = 0;
   (*bidi_it).stack_idx = 0;
   (*bidi_it).isolate_level = 0;
-  (*bidi_it).resolved_level = (*bidi_it).level_stack[0].level as c_char;
+  (*bidi_it).resolved_level = (*bidi_it).level_stack[0].level as i8;
 }
 
 /* Initialize the bidi iterator from buffer/string position CHARPOS.  */
@@ -1203,7 +1203,7 @@ unsafe fn bidi_line_init (bidi_it: *mut bidi_it)
 {
   (*bidi_it).scan_dir = 1; /* FIXME: do we need to have control on this? */
   (*bidi_it).stack_idx = 0;
-  (*bidi_it).resolved_level = (*bidi_it).level_stack[0].level as c_char;
+  (*bidi_it).resolved_level = (*bidi_it).level_stack[0].level as i8;
   (*bidi_it).level_stack[0].flags = 0; /* NEUTRAL_DIR, false per X1 */
   (*bidi_it).invalid_levels = 0;
   (*bidi_it).isolate_level = 0;	 /* X1 */
@@ -2105,7 +2105,7 @@ unsafe fn bidi_resolve_explicit (bidi_it: *mut bidi_it) -> c_int
 				 &raw mut (*bidi_it).ch_len, &raw mut (*bidi_it).nchars);
     }
   (*bidi_it).ch = curchar;
-  (*bidi_it).resolved_level = new_level as c_char;
+  (*bidi_it).resolved_level = new_level as i8;
 
   /* Don't apply directional override here, as all the types we handle
      below will not be affected by the override anyway, and we need
@@ -2143,7 +2143,7 @@ unsafe fn bidi_resolve_explicit (bidi_it: *mut bidi_it) -> c_int
 		else
 		  { r#override = R2L; }
 		bidi_push_embedding_level (bidi_it, new_level, r#override, false);
-		(*bidi_it).resolved_level = new_level as c_char;
+		(*bidi_it).resolved_level = new_level as i8;
 	      }
 	    else
 	      {
@@ -2168,7 +2168,7 @@ unsafe fn bidi_resolve_explicit (bidi_it: *mut bidi_it) -> c_int
 		else
 		  { r#override = L2R; }
 		bidi_push_embedding_level (bidi_it, new_level, r#override, false);
-		(*bidi_it).resolved_level = new_level as c_char;
+		(*bidi_it).resolved_level = new_level as i8;
 	      }
 	    else
 	      {
@@ -2238,7 +2238,7 @@ unsafe fn bidi_resolve_explicit (bidi_it: *mut bidi_it) -> c_int
 		new_level = bidi_pop_embedding_level (bidi_it);
 		(*bidi_it).isolate_level -= 1;
 	      }
-	    (*bidi_it).resolved_level = new_level as c_char;
+	    (*bidi_it).resolved_level = new_level as i8;
 	    /* Unicode 8.0 correction.  */
 	    {
 	      let stack_override: bidi_dir_t = OVERRIDE! (bidi_it, (*bidi_it).stack_idx)
@@ -3482,7 +3482,7 @@ unsafe fn bidi_level_of_next_char (bidi_it: *mut bidi_it) -> c_int
 	{ level += 1; }
     }
 
-  (*bidi_it).resolved_level = level as c_char;
+  (*bidi_it).resolved_level = level as i8;
   return level;
 }
 
@@ -3532,7 +3532,7 @@ unsafe fn bidi_find_other_level_edge (bidi_it: *mut bidi_it, level: c_int,
 	       and force the resolved level of that character be the
 	       base embedding level.  */
 	    bidi_cache_fetch_state (bidi_cache_idx - 1, bidi_it);
-	    (*bidi_it).resolved_level = new_level as c_char;
+	    (*bidi_it).resolved_level = new_level as i8;
 	    bidi_cache_iterator_state (bidi_it, true, true);
 	  }
 	if !(new_level >= level)
@@ -3670,14 +3670,14 @@ pub unsafe extern "C" fn bidi_move_to_visually_next (bidi_it: *mut bidi_it)
       /* If we are at paragraph's base embedding level and beyond the
 	 last cached position, the cache's job is done and we can
 	 discard it.  */
-      if (*bidi_it).resolved_level == (*bidi_it).level_stack[0].level as c_char
+      if (*bidi_it).resolved_level == (*bidi_it).level_stack[0].level as i8
 	  && (*bidi_it).charpos
 	       > (*bidi_cache.offset (bidi_cache_idx - 1)).charpos
 		 + (*bidi_cache.offset (bidi_cache_idx - 1)).nchars - 1
 	{ bidi_cache_reset (); }
       /* Also reset the cache if it overflowed and we have just
 	 emergency-exited using Plan B.  */
-      else if (*bidi_it).resolved_level == (*bidi_it).level_stack[0].level as c_char
+      else if (*bidi_it).resolved_level == (*bidi_it).level_stack[0].level as i8
 	       && bidi_cache_idx >= bidi_cache_size
 	       && (*bidi_it).charpos == (*bidi_cache.offset (bidi_cache_idx - 1)).charpos
 	{ bidi_cache_reset (); }

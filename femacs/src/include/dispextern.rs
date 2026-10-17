@@ -2961,8 +2961,8 @@ pub struct bidi_it
   pub r#type: bidi_type_t,                  // offset 40
   pub type_after_wn: bidi_type_t,                  // offset 44
   pub orig_type: bidi_type_t,                  // offset 48
-  pub resolved_level: c_char,                  // offset 52
-  pub isolate_level: c_char,                  // offset 53
+  pub resolved_level: i8,                  // offset 52
+  pub isolate_level: i8,                  // offset 53
   pub invalid_levels: ptrdiff_t,                  // offset 56
   pub invalid_isolates: ptrdiff_t,                  // offset 64
   pub prev: bidi_saved_info,                  // offset 72

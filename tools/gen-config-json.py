@@ -61,11 +61,23 @@ def main() -> int:
     ap.add_argument("--target", default="unnamed target")
     ap.add_argument("--keys-from", type=pathlib.Path, default=DEFAULT_KEYS)
     ap.add_argument("--out", type=pathlib.Path, default=None)
+    # `--macro NAME=VALUE` records a value that is *not* a config.h macro.  `HAVE_SIGNBIT` is the
+    # case that needed it: floatfns.c tests `#ifndef signbit`, which is a preprocessor fact about
+    # the compiler's <math.h>, and the darwin JSON's note has always said it was measured that
+    # way - but nothing carried the measurement into a second target, so Android's configuration
+    # lacked the constant and `floatfns.rs` would not compile there (P-227).
+    ap.add_argument("--macro", action="append", default=[], metavar="NAME=VALUE")
     a = ap.parse_args()
 
     header = read_header(a.header)
     keys = json.loads(a.keys_from.read_text("utf-8"))["macros"]
     macros = {k: header.get(k, "absent") for k in keys}
+    for spec in a.macro:
+        name, _, value = spec.partition("=")
+        if not name or not value:
+            raise SystemExit(f"--macro wants NAME=VALUE, not {spec!r}")
+        keys = [*keys, name]
+        macros[name] = value
     doc = {"target": a.target, "source": str(a.header), "macros": macros}
     text = json.dumps(doc, indent=2) + "\n"
     if a.out is None:

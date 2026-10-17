@@ -31,7 +31,7 @@
     "HAVE_RINT": "1",
     "HAVE_TRUNC": "1",
     "HAIKU": "undefined",
-    "HAVE_SIGNBIT": "absent",
+    "HAVE_SIGNBIT": "1",
     "_GL_CONFIG_H_INCLUDED": "1",
     "NATIVE_ELISP_SUFFIX": "\".eln\""
   }

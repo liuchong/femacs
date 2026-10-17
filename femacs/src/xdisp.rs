@@ -1218,7 +1218,7 @@ pub struct bidi_it
   /// C 2170-2171: `type_after_wn` and `orig_type` (offset 44 … 52).
   pub _pad_a: [u8; 8],
   /// Final resolved level of this character.  (C 2176)
-  pub resolved_level: c_char,          // offset 52
+  pub resolved_level: i8,          // offset 52
   /// C 2177-2185: `isolate_level` … `next_en_type` (offset 53 … 184).
   pub _pad_a2: [u8; 131],
   /// Direction of text scan, 1: forw, -1: back.  (C 2186)
@@ -9380,7 +9380,7 @@ macro_rules! CHAR_COMPOSED_P {
 				   (*$IT).w as *mut c_void,
 				   if it_bits! (bidi_p, $IT)
 				   { (*$IT).bidi_it.resolved_level }
-				   else { -1 as c_char },
+				   else { -1 as i8 },
 				   FACE_FROM_ID_OR_NULL ((*$IT).f, (*$IT).face_id) as *mut c_void,
 				   (*$IT).string)))
   };

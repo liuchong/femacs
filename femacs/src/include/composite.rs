@@ -455,7 +455,7 @@ pub mod composite_decls {
     /// ABI-equal `*mut c_void`.
     pub fn composition_reseat_it (cmp_it: *mut c_void, charpos: ptrdiff_t,
 				  bytepos: ptrdiff_t, endpos: ptrdiff_t, w: *mut c_void,
-				  bidi_level: c_char, face: *mut c_void,
+				  bidi_level: i8, face: *mut c_void,
 				  string: Lisp_Object) -> bool;
     /// C: `extern int composition_update_it (struct composition_it *, ptrdiff_t,
     /// ptrdiff_t, Lisp_Object);`

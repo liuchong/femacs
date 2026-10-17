@@ -116,6 +116,16 @@ status=$?
 echo "configure: exit $status (log: $BUILD/configure.log)"
 [ "$status" = 0 ] || { tail -5 configure.log; exit "$status"; }
 [ -f src/config.h ] || { echo "configure succeeded but src/config.h is missing" >&2; exit 3; }
-python3 "$REPO/tools/gen-config-json.py" src/config.h \
+# `HAVE_SIGNBIT` is not a config.h macro (the darwin JSON's note records the same measurement):
+# it is whether the compiler's <math.h> defines `signbit`, which floatfns.c tests with `#ifndef`.
+# Measured with *this* target's compiler, or the constant is missing where the darwin one has it.
+printf '#include <math.h>\n#ifdef signbit\nSIGNBIT_PRESENT\n#endif\n' > config-signbit.c
+if "$CC" -std=gnu23 -E config-signbit.c 2>/dev/null | grep -q SIGNBIT_PRESENT; then
+  HAVE_SIGNBIT=1
+else
+  HAVE_SIGNBIT=0
+fi
+echo "HAVE_SIGNBIT: $HAVE_SIGNBIT (measured with ${CC##*/})"
+python3 "$REPO/tools/gen-config-json.py" --macro "HAVE_SIGNBIT=$HAVE_SIGNBIT" src/config.h \
   --target "android-arm64 (NDK ${CC##*/})" \
   --out "$REPO/docs/baseline/config/android-arm64.json"

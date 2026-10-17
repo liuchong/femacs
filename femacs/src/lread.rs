@@ -273,7 +273,7 @@ static mut read_objects_completed: Lisp_Object = std::ptr::null_mut (); // C 199
 pub struct infile
 {
   pub stream: file_stream,                 /* the input stream */
-  pub lookahead: c_char,                   /* lookahead byte count (`signed char`) */
+  pub lookahead: i8,                   /* lookahead byte count (`signed char`) */
   pub buf: [c_uchar; MAX_MULTIBYTE_LENGTH as usize - 1], /* lookahead bytes, reversed */
 }
 const _: () = core::assert! (std::mem::size_of::<infile> () == 16);

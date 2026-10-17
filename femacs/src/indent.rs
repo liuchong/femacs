@@ -1154,7 +1154,7 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
 	     the invisible text.  If so, update cmp_it.stop_pos.  */
 	  if scan > cmp_it.stop_pos && cmp_it.id < 0
 	    { composition_reseat_it (&raw mut cmp_it as *mut c_void, scan, scan_byte, end,
-				     w as *mut c_void, -1 as c_char,
+				     w as *mut c_void, -1 as i8,
 				     std::ptr::null_mut (), Qnil ()); }
 	}
 
@@ -1187,7 +1187,7 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
       if cmp_it.id >= 0
 	  || (scan == cmp_it.stop_pos
 	      && composition_reseat_it (&raw mut cmp_it as *mut c_void, scan, scan_byte,
-					end, w as *mut c_void, -1 as c_char,
+					end, w as *mut c_void, -1 as i8,
 					std::ptr::null_mut (), Qnil ()))
 	{ composition_update_it (&raw mut cmp_it as *mut c_void, scan, scan_byte,
 				  Qnil ()); }
@@ -1821,7 +1821,7 @@ pub unsafe extern "C" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
 	    }
 	  if newpos > cmp_it.stop_pos && cmp_it.id < 0
 	    { composition_reseat_it (&raw mut cmp_it as *mut c_void, pos, pos_byte, to,
-				     win as *mut c_void, -1 as c_char,
+				     win as *mut c_void, -1 as i8,
 				     std::ptr::null_mut (), Qnil ()); }
 
 	  quit_count = quit_count.wrapping_add (1);
@@ -2049,7 +2049,7 @@ pub unsafe extern "C" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
 	  if cmp_it.id >= 0
 	      || (pos == cmp_it.stop_pos
 		  && composition_reseat_it (&raw mut cmp_it as *mut c_void, pos, pos_byte,
-					    to, win as *mut c_void, -1 as c_char,
+					    to, win as *mut c_void, -1 as i8,
 					    std::ptr::null_mut (), Qnil ()))
 	    { composition_update_it (&raw mut cmp_it as *mut c_void, pos, pos_byte,
 				      Qnil ()); }
