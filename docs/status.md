@@ -22152,3 +22152,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **边界（如实）** ✓：这证明**链接面可用** ✓；端口在 Linux 上"能构建"还差 Linux 冻结配置与按-target 驱动 ✓，"能运行"仍无环境 ✓（P-208 ✓）。
   ④ **零重编** ✓；受控执行器 runtime 700 MiB 三次（峰值 ≤ 425 MB ✓）。提交：`tools/zig-linux-linker.sh` ✓、`PORTING.md`（P-209 ✓）、本提交（读数 ✓）。
 - **4.587 验证相第二百一十七轮：Android 的 APK 结构验收成为可复跑断言（ 通过）（2026-10-18）**：读数 ⇒ `apk: …/emacs.apk, package org.femacs, 5 declared activit(ies) all backed by Kotlin sources, 112 compiled class(es), members and signature checked` ✓。三处工具自身的错在过程中被逐个修掉并记入提交信息：⑴ 复用 `--keep` 目录导致签名产物缺失 ✓；⑵ 二次调用 aapt2 与构建临时目录不一致 ⇒ 改为**读构建自己的读数** ✓；⑶ 清单里 `.Foo` 是**包相对**名（参照两种写法都用 ✓）⇒ 按包名补全 ✓。**边界**：这只覆盖能启动的结构面 ✓，设备/模拟器冒烟仍缺（原生库卡 JDK ≤ 19 ✓）。
+- **4.588 验证相第二百一十八轮：按用户决定把照抄树恢复为**逐字节一致**（DoD-5 转 ✅），并查明 Android 模拟器的两个前置（2026-10-18）**：
+  ① **恢复**：`tools/restore-verbatim.py` 按 `docs/baseline/verbatim-substitutions.tsv` 登记过的 **2,003 个文件**从参照树原样回拷 ✓；该表按决定**清空**（保留表头与理由 ✓，日后若再改写必须重新登记 ✓）。`check-verbatim.py` ⇒ **`6 trees, 4604 files, 0 sanctioned line(s), 9 accepted absence(s), 0 failures`** ✓✓。
+  ② **兼容接口未动** ✓：这些文件里从来没有改过函数名/变量名/路径/Info 节点 ✓（改的只是 licence 散文、docstring、tag 与手册文本 ✓）。macOS 侧即时复验 ✓：`smoke` **11/11** ✓、`check-loadup` "the two loadups agree file for file" ✓、`gate-load` 的 coding-eol **15/15** ✓。
+  ③ **模拟器（如实）** ✗：`emulator -list-avds` ⇒ `Pixel_4_API_30`、`Resizable_Experimental_API_35` ✓，但 `system-images` 只有 **x86**（`android-22/android-tv/x86` ✓）⇒ 在 Apple Silicon 上 `FATAL | Cannot find AVD system path. Please define ANDROID_SDK_ROOT` ✗；需要 **arm64-v8a 系统镜像**（下载动作 ✓，待你许可 ✓）。`tools/try-android-emulator.sh` 已入库 ✓，补上镜像即可直接跑"安装 + 启动日志"两步 ✓。
+  ④ **JDK** ✓：用户要求只用**最新 LTS**、不用旧版绕过 ✓；参照的 `configure` 用 `-source 1.7` 判编译器 ✓（JDK 21/26 都拒绝 ✗）⇒ 待核验最新 LTS 并用 **configure 缓存变量 `emacs_cv_working_javac=yes`** 的兼容方案（不改参照 ✓）先行验证 ✓。
+  ⑤ **零重编** ✓；`git -C emacs status --short` 为空 ✓。
