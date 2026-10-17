@@ -21951,3 +21951,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **口径** ✓：生成物必须比"**同一生成器的两次运行**" ✓（`port×输入` vs `ref×输入` ✓）；且生成器**两侧都要先 `batch-byte-compile`** ✓（源码版与编译版行为不同 ✗ —— 本轮第一次就是拿源码版比的 ✗）。
   ③ **审计表第 4 条更新** ✓：`.elc` 0 缺陷 ✓、dump 两次只差 254 字节 ✓、生成物 0 端口缺陷 ✓（9 条为 `reference-product-stale` ✓）、`check-loadup` 112/112 ✓ ⇒ **DoD-4 判定为达成** ✓（动态模块在本配置下两侧同为不可用 ✓）。
   ④ **Lisp 零改动** ✓；本轮**零单元重编** ✓；受控执行器 runtime 900 MiB、生成 16 次（各 ~0.2 s ✓）、声明门 7 s ✓，峰值 ≤ 120 MB ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-184 ✓）、`docs/acceptance.md`（第 4 条 ✓）、本提交（读数 ✓）。
+- **4.550 验证相第一百八十一轮：批量跑 12 道**非主门**的检查 —— 修掉 1 道（八进制字面量），澄清 1 道（`doc` 树的 MISSING 是参照未跟踪的构建产物）（2026-10-17）**：
+  ① **12 道逐一跑** ✓：`check-verbatim` ✓、`check-own-voice` ✓、`check-coding-eol` ✓、`check-c-string-literals` ✓、`check-do-while` ✓、`check-port-lines` ✓、`check-target-names` ✓、`check-mirror-dupes` ✓ 全 **exit 0** ✓；`check-unit-names` exit 2 = **用法**（其文档也写明"不是十道门之一" ✓）；剩 3 道非零 ✗。
+  ② **`check-octal-literals` ✗ → ✓** ✓：`femacs/src/sfnt.rs:20335` 三处 `00` ✓ —— C 自己在 `sfnt.c:18430` 就写 `0xba, 00, 00, 00, …` ✓，Rust 里裸 `00` 也是**十进制 0** ✓（值相同 ✓），但 P-94 要求去掉零前缀 ⇒ 改成 `0` ✓、注释写明"C 写 `00`、值不变" ✓ ⇒ 复跑 **0 sites** ✓✓，`extract-abi --check sfnt` 仍 **OK** ✓，回归 `font`/`simple`/`buffer` 三文件 **same** ✓、smoke **11/11** ✓。
+  ③ **`check-trees` 的 3 个 MISSING 是澄清而非缺陷** ✓：`doc/man/emacs.1`、`doc/misc/org.texi`、`doc/misc/modus-themes.texi` 在**参照仓库里是 UNTRACKED** ✓（构建产物 ✓，由 `.1.in`/`.org` 生成 ✓），而 `check-verbatim` 只对 `git ls-files` 的集合判等 ✓ ⇒ 它们**本就不属于照抄树** ✓；`doc/translations/fr/misc/ses-fr.texi` 的 3 字节差正是 `GNU Emacs`→`femacs` 的长度差 ✓（−3 ✓）⇒ 也属登记替换 ✓。⇒ **DoD-5 无新增缺口** ✓。
+  ④ **`check-citations` 剩 4 条 stale** ✗（`docs/baseline/citations-allowlist.tsv` 的行不再匹配当前行号/内容 ✓）—— 纯**台账维护** ✓，下一轮逐条重定位 ✓。
+  ⑤ **Lisp 零改动** ✓；本轮编译 1 个单元（`sfnt` ✓ 2 s ✓）+ relink/dump ✓；受控执行器峰值 ≤ 450 MB ✓；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/sfnt.rs`（P-94 字面量 ✓）、本提交（读数 ✓）。
