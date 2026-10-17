@@ -22032,3 +22032,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **修复**：4 个宏体 → `int` 字面量 ✓、13 处 `match c as u8` → `match c` ✓（`femacs/lib/include/c-ctype.rs` ✓，逐字对齐 `emacs/lib/c-ctype.h` ✓）；`c_isblank`/`c_isspace` 原本就是 `int` 比较 ✓ 未动 ✓。
   ④ **回归读数**：`gate-fast` 全绿 ✓（680 单元全量重编一轮 ✓）、4 行最小形状**两侧一致** ✓、按配方重生成 `loaddefs.el` ⇒ 与参照那份**归一化后一致**（0 差异行 ✓）、`xtask dump` ✓、`smoke.sh` **11/11** ✓。
   ⑤ **Lisp 零改动**；本轮**一次**全量重编（gate-fast ✓，P-101 的"不频繁编译"原则下这是修缺陷所需的一轮 ✓）；收尾顺手清掉本轮产生的中间产物 ✓（`build/probes` 等 ✓）。提交：`femacs/lib/include/c-ctype.rs`（路由修复 ✓）、`PORTING.md`（P-191 ✓）、本提交（读数 ✓）。
+- **4.563 验证相第一百九十三轮：P-191 修复后的全量 L5 回归 —— 端口侧 564 个文件逐项**未变**（0 个文件的 ran/unexpected 变化），唯一的判定变化是参照侧一个 flaky 用例（2026-10-17）**：
+  ① **全量读数**（`--selector-preset all`、564 文件、timeout 200、逐子进程 800 MiB、profile 1.4 GiB）：`same=542 / both-fail=11 / crashed=6 / port-worse=4 / both-capped=1`；端口 9,261 例 / **121** unexpected、参照 9,261 / **116**。基线 `docs/baseline/ert-sweep-all.tsv` 是 `542 / 12 / 6 / 3 / 1`。
+  ② **逐文件比对（决定性）**：**端口侧 (ran, unexpected) 变化的文件数 = 0** ✓✓ ⇒ `c-ctype` 的改动**没有**改变任何用例的端口结果 ✓；参照侧只有一个文件变化 ✓：`lisp/erc/erc-scenarios-internal.el`（1 → 0）✗。
+  ③ **那个文件是 flaky** ✓：单独跑 4 次 ⇒ `both-fail(1/1)` / `same(0/0)` / `port-better(0/1)` / `same(0/0)` ✓ ⇒ 两侧都抖 ✓，不是缺陷 ✓（判定的 ±1 来自它 ✓）。
+  ④ **直接证据（新探针）** ✓：`spikes/c-ctype-low-byte-probe.el` —— 12 个"低位字节是控制字符"的码点（U+0100/U+0107/U+010A/U+011B/U+017F/U+2019/U+590D/U+4E00/U+1F600/U+1F60A/U+FFFD?/U+10FFFF）在 `escape-control-characters` 下打印 ⇒ **两侧逐字符相同、`:roundtrip` 均为 t** ✓✓（修前 `复`/`’` 变 `\15`/`\31` ✗）。
+  ⑤ **生成物**：`check-generated.py` 240 文件 ⇒ **140 identical / 100 name-only / 0 DIFFERENT / 0 missing** ✓（这是该门第一次零差异 ✓）。
+  ⑥ **资源与清理**：本轮唯一一次重跑是这份 L5（2,369 s、峰值 999 MB，profile 1.4 GiB 内 ✓；第一次以 900 MiB profile 跑被 `memory_limit` 杀掉 ✓ —— 记录：全量 `all` 选择器需要 > 900 MiB 的**进程树**预算 ✓）；零单元重编 ✓；`git -C emacs status --short` 为空 ✓。提交：`spikes/c-ctype-low-byte-probe.el`（探针 ✓）、`docs/baseline/ert-sweep-after-c-ctype-fix.tsv`（台账 ✓）、`PORTING.md`（P-191 ② 补证 ✓）、`docs/acceptance.md`（L5 行 ✓）、本提交（读数 ✓）。
