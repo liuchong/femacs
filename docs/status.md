@@ -21989,3 +21989,11 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ⑥ **门二：随机差分对拍**（`tools/check-diff-fuzz.py`，新工具）：确定性 PRNG（`--seed`）生成 3–8 步程序，族 = 表达式/文本与缓冲/编码/文件/子进程（每步 `condition-case` 打印值或错误，所以一处错误不遮住后面的步骤）；两侧各跑一次，比 **stdout/stderr/退出码逐字节**。首跑 **60 个程序（seed 0）⇒ same=60, differ=0** ✓，62 s、峰值 ≤ 50 MB（每次子进程另有 500 MiB RSS 看门狗）。
   ⑦ **工具修正**：`tools/gen-unidata.py` 的比较用 `zip` 逐行 ✗ ⇒ 行数不同时**尾巴根本不比**（半份内容也能读成「1 行差异」，这正是 4.549 把它读成「name-only」的原因之一）—— 已改成先比行数并报「没有对应的行数」。
   ⑧ **Lisp 零改动**；本轮**零单元重编**（只重跑了生成器与 dump）；受控执行器 build 2.5 GiB 一次（dump，峰值 17 MB）、runtime 900 MiB 两次（切片与对拍，峰值 ≤ 55 MB）；`git -C emacs status --short` 为空。提交：`tools/check-ert.py`（`--gc-stress`/`--prelude-eval`）、`tools/check-diff-fuzz.py`（新门）、`tools/gen-unidata.py`（比较修正）、`PORTING.md`（P-186）、`docs/acceptance.md`（第 4 条更正）、本提交（读数）。
+- **4.556 验证相第一百八十七轮：把生成器配方漏掉的**前提**补上 —— 生成物差异从 9 项收到 1 项，那 1 项是**文本改写**的坏字符（P-187）（2026-10-17）**：
+  ① **缺口**：`make -B -n all` 只给出**命令**，不给**前提**；参照的 `admin/unidata/Makefile` 60-61（`%.elc: %.el` → `batch-byte-compile`）与 70-81（`${srcdir}/unidata-gen.elc` 是 `uni-*.el` 的 order-only 前提）说明参照**永远加载编译过的生成器**，而 `tools/gen-unidata.py` 之前加载的是**源码**生成器。
+  ② **后果与修复**：源码版 ⇒ 12,301 / 289,626（528 / 524 行）；补上 `compile_generators()`（先 `batch-byte-compile` 再生成）⇒ **12,388 / 289,778**，**行数与参照完全相同**（31 / 525）⇒ 差异只剩**产品名**与**树路径**两项。
+  ③ **路径的来历**：`unidata-gen-file` 编译 describer 并把它存进字符表 ⇒ 打印形式里带着 `.elc` 的路径（`…/emacs/…` 对 `…/femacs/…`）⇒ 每文件 1 字节、**端口缺陷消不掉** ⇒ `tools/check-generated.py` 把"树路径"与产品名并列为**登记替换**。
+  ④ **门读数**：240 文件 ⇒ **140 identical / 99 name-only / 1 DIFFERENT**（此前 140 / 91 / 9）。
+  ⑤ **剩下这 1 个**：`lisp/loaddefs.el` 两处非 ASCII 被**文本改写**写坏（`Bahá’u’lláh`→`Bahá\31u\31lláh`、`回复`→`回\15`，逃逸值 = **码点低位字节**）；**运行期无影响（已测）**——端口 `mail-re-regexps` = `"回复"`、`string-to-list` = `(22238 22797)` = 参照 ⇒ dump 不从该文件取此值；按 P-163 ④ 的"未竟项"（`loaddefs` 这一族要**生成**、不许改写）记在案。
+  ⑥ **验收**：重做 dump ⇒ `(ucs-names)` **51,963**（= 参照）、`(char-from-name "SNOWFLAKE")` **10052**、`?\N{SNOWFLAKE}` 可读 ✓；12 文件 GC 切片 `same=11 / both-fail=1 / crashed=0` ✓。
+  ⑦ **Lisp 零改动**；零单元重编；受控执行器读数：生成器族两次（各 ≤ 8 s、峰值 ≤ 91 MB）、dump 两次（峰值 17 / 136 MB）；`git -C emacs status --short` 为空。提交：`tools/gen-unidata.py`（补前提）、`tools/check-generated.py`（树路径登记替换）、`PORTING.md`（P-187）、`docs/acceptance.md`（第 4 条读数）、本提交。
