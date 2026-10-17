@@ -232,7 +232,16 @@ def compare(show: int) -> int:
         different += 1
         a = got.decode("utf-8", "replace").split("\n")
         b = want.decode("utf-8", "replace").split("\n")
-        diffs = [f"received {x!r} expected {y!r}" for x, y in zip(a, b) if x != y]
+        # `zip` used to hide the tail: when the two files have different line counts, the extra
+        # lines of the longer one were simply not compared, so a file that *lost* half its
+        # content could still read as "1 differing line" (found 2026-10-17, status 4.555: a
+        # generated `uni-*.el` family whose tails had been cut short).
+        pairs = list(zip(a, b))
+        diffs = [f"line {i}: received {x!r} expected {y!r}"
+                 for i, (x, y) in enumerate(pairs, 1) if x != y]
+        if len(a) != len(b):
+            diffs.append(f"line count: {len(a)} vs {len(b)} lines "
+                         f"({abs(len(a) - len(b))} line(s) have no counterpart)")
         print(f"DIFFERENT {produced.name}: {len(diffs)} differing line(s) "
               f"({len(a)} vs {len(b)} lines)")
         for line in diffs[:show]:
