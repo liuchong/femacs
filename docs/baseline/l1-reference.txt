@@ -6,16 +6,18 @@
 # version: 32.0.50
 #   the number only; PORTING.md 0.1-19: the name the reference prints is quoted in
 #   docs/acceptance.md as evidence about the reference, and is not repeated here
-# sha256[0:16]: a959f1d7a8bb4e11
+# sha256[0:16]: ce4ddf73efa2ae07
 
 @@ advice.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ avl-tree.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ backquote.el
@@ -26,21 +28,25 @@
 @@ backtrace.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ benchmark.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ bindat.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ byte-opt.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ byte-run.el
@@ -51,16 +57,19 @@
 @@ bytecomp.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cconv.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ chart.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ check-declare.el
@@ -71,31 +80,38 @@
 @@ checkdoc.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/emacs/lisp/dired-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-extra.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-generic.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-indent.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-lib.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-loaddefs.el
 --- exit: 0
 --- diagnostics:
+Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-macs.el
