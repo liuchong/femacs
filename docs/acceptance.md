@@ -435,6 +435,7 @@ build/port/src/temacs -Q --batch --eval '(princ (+ 1 2))'   # 不设 EMACSLOADPA
 |---|---|---|
 | 强制 GC 压测 | `python3 tools/check-ert.py --gc-stress` | 564 文件（default 选择器）⇒ **same=551 / both-fail=7 / crashed=5（两侧对称）/ port-worse=1**（`lisp/calc/calc-tests.el` 1 vs 0，与常态 L5 同一读数）；端口 8,971 例 / 111 unexpected、参照 8,971 / 110（4.557，台账 `docs/baseline/gc-stress-all.tsv`） |
 | 随机差分对拍 | `python3 tools/check-diff-fuzz.py --programs N --seed S` | 60 个程序（seed 0，表达式/文本与缓冲/编码/文件/子进程五个族）⇒ **same=60, differ=0**（4.555） |
+| 故障注入 | `python3 tools/check-fault-injection.py` | 19 用例 ⇒ **same=16 / backtrace-only=3 / differ=0**；3 个只差回溯**帧**（29/31、35/37、34/42 帧：内联与 Rust 私有符号的拼写）；`ulimit -v/-d/-m` 与 `RLIMIT_AS/DATA` 在 Darwin 被拒（4.559） |
 
 ### 三项需要拍板的事（都不是实现问题）
 
