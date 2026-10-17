@@ -5,7 +5,11 @@
 
 ---
 
-## 问题 1：性能"不低于参照"怎么判？（完成定义第 7 条）
+## 问题 1：性能 —— **已决定（2026-10-17）：暂时搁置**
+
+用户决定：本期优先保证 Rust 逻辑与 C 逻辑一模一样；不为性能改变逻辑；**未追平不得写成达标**。第 7 条仍记为**未达**，附同臂读数与本机噪声区间。以下选项保留作历史记录。
+
+### 原问题：性能"不低于参照"怎么判？（完成定义第 7 条）
 
 **背景读数（都可复跑）**
 - 参照的 macOS 构建走 `BYTE_CODE_THREADED`（计算跳转），端口按 P-03 只转录了同一个 `bytecode.c` 的 `switch` 臂。
@@ -26,7 +30,30 @@
 
 ---
 
-## 问题 2：`lisp/` 等照抄树要不要做到"逐字节一致"？（完成定义第 5 条）
+## 问题 2：`lisp/` 等照抄树 —— **待你决定（解释见下）**
+
+### 到底改了什么（真实路径 + 前/后）
+1. **版权/许可头（注释）** — `femacs/lisp/simple.el` 第 9 行
+   - 前：`;; This file is part of GNU Emacs.`
+   - 后：`;; This file is part of femacs.`
+   （第 11 行 `;; GNU Emacs is free software: …` 同理；**许可证正文与 GPL 条款一字未动**，只改"本文件属于哪个程序"这一句。）
+2. **提示/文档文案（字符串或注释）** — `femacs/etc/tutorials/TUTORIAL` 第 885 行
+   - 前：`applications call "windows".  The Emacs manual contains a Glossary of`
+   - 后：`… The femacs manual contains a Glossary of`
+3. **可执行 Lisp 里的 docstring/`:tag`/`:help-echo` 文本（字符串字面量，不是标识符）** — `femacs/lisp/cus-edit.el`
+   - 前：`:tag "Emacs manual"` / `"Read the node on Easy Customization in the Emacs manual."`
+   - 后：`:tag "femacs manual"` / `… in the femacs manual.`
+   - 同时可见**未改**的兼容接口：`info-emacs-manual`、`info-emacs-bug` 等**函数名**，以及 Info 节点名 `"(emacs)Bugs"`、`"emacs"` 这些**路径/节点标识**都保持原样。
+
+### "8,427" 是什么口径
+`tools/check-verbatim.py` 报告的是**被登记的替换行数**（一行里只要出现产品名并被替换就计 1），跨 6 棵树 4,604 个文件；按树分布（本次实测的**差异行**，含 `.elc` 二进制）：`lisp` 13,517、`doc` 1,182、`etc` 494、`admin` 249、`leim` 11、`test` 1。它不是"改了多少个函数"，也不是"删改了多少行代码"。
+
+### 保留 / 还原的实际影响
+- **保留（现状）**：`check-verbatim` 0 failures（"除登记替换外逐字节一致"）；但 `diff -r` 字面不成立；两个 ERT 用例因文案不同呈 `name-only`。
+- **还原（逐字节）**：`diff -r` 字面成立；代价是**所有 licence 头与手册/教程文案重新出现原产品名**（与你"避免法律风险"的意图相反），且需重生成受影响 `.elc`。
+- **许可角度**：改名**不是**规避许可义务——GPL 正文、版权声明、修改声明都保留；改动只在"本文件属于哪个程序"这类身份句。是否保留由你定。
+
+### 原问题：`lisp/` 等照抄树要不要做到"逐字节一致"？（完成定义第 5 条）
 
 **现状**：`check-verbatim.py` = 6 棵树 / **4,604 文件 / 0 failures**，但其中 **8,427 行**是你要求的**产品名替换**（licence 头、成员声明、手册标题等；逐行登记在 `docs/baseline/verbatim-substitutions.tsv`）。
 
@@ -41,7 +68,11 @@
 
 ---
 
-## 问题 3：平台交付面做到哪几层？（完成定义第 6 条）
+## 问题 3：平台 —— **已决定（2026-10-17）：macOS + Android**
+
+用户决定：先验收 macOS（现成真机）与 Android（可用虚拟机/模拟器）；其余平台暂时搁置；无需再问范围。Android 原生库仍需 JDK ≤ 19（P-207）。以下选项保留作历史记录。
+
+### 原问题：平台交付面做到哪几层？（完成定义第 6 条）
 
 **现状**
 - macOS：`tools/smoke.sh` **11/11**（dump 版与 temacs 版都过）。
