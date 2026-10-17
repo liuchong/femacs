@@ -22045,3 +22045,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **结论** ✓：`overflow-checks` 不是 VM 那 1.3–1.5× 的原因（P-185 的 threaded-vs-switch 结论不变 ✓）；它主要在**字符串/缓冲扫描**里可见 ✓ ⇒ 拍板页第 1 项补上这组数字 ✓。
   ④ **恢复与复验** ✓：默认构建重编（`gate-fast` exit 0 ✓、`inventory/symbols/link/layout/declarations/defvar/subr` 全绿 ✓）、`dump` ✓、`smoke` 11/11 ✓、`git -C emacs status --short` 为空 ✓。
   ⑤ **资源与清理** ✓：两轮全量重编（各 ≈ 8 min ✓、峰值 ≤ 530 MB ✓）；收尾删掉本轮 `emacs-32.0.50.*` 与临时日志 ✓。提交：`femacs/xtask/src/main.rs`（诊断开关 ✓）、`PORTING.md`（P-192 ✓）、`docs/decisions-needed.md`（第 1 项补数字 ✓）、`docs/acceptance.md`（第 7 条读数 ✓）、本提交（读数 ✓）。
+- **4.565 验证相第一百九十五轮：P-191 之后把 DoD-1/5/8 的读数**重取一遍**（不是沿用旧账）（2026-10-17）**：
+  ① **DoD-1**（`extract-abi.py --all`，182 s、峰值 277 MB）⇒ **checked 590 ported files: 590 done, 0 in progress, 0 failing** ✓✓（`c-ctype` 的改动之后重跑 ✓）。
+  ② **DoD-5 的现状读数**（`check-verbatim.py`）⇒ `Verbatim 58 entries / 4,656 files / 4,606,879 lines` ✓、`Replaced 29 entries / 324 files / 63,375 lines` ✓、`6 trees, 4,604 files, 8,427 sanctioned line(s), 9 accepted absence(s), **0 failures**` ✓ —— 政策偏离仍是那 **8,427 行登记替换** ✓（等拍板 ✓）。
+  ③ **DoD-8** ⇒ `docs/ports/` **620 个台账、14,988 勾选、0 未勾** ✓；全部提交 `-S` 且已推送 ✓。
+  ④ **生成物** ⇒ `gen-port-map.py` 重生成 ✓（590 文件 / 678,320 行 ✓；本次只有 Rust 行数随 P-191 变化 ✓：`c-ctype` 225→229 ✓ 等 32 行 ✓）。
+  ⑤ **VM 热点的采样（无编译）** ✓：`sample` 6 s 在 `bc-loop` 上 ⇒ **100% 落在 `exec_byte_code`** ✓（`codegen-units=1` 把解释器内联成一体 ✓）⇒ 稳定版上**没有**可摘的次要热点 ✓，与 P-185 的"dispatch 形状"结论一致 ✓。
+  ⑥ **零编译** ✓；受控执行器 runtime 700 MiB（峰值 ≤ 277 MB ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/port-map.md`（重生成 ✓）、本提交（读数 ✓）。
