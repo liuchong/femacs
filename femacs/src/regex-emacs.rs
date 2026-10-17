@@ -5106,6 +5106,21 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
             }
         }
 
+      /* Instrument (P-170): a per-opcode step trace, so a two-string match can be read
+         opcode by opcode.  `FEMACS_REG_TRACE` only, default off (P-115's shape).  */
+      if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+        {
+          fprintf (stderr,
+                   c"REGTRACE step pat=%td op=%d d-s1=%td dend-s1=%td pos=%td size1=%td end1-s1=%td end2-s1=%td\n".as_ptr (),
+                   (p as isize) - ((*bufp).buffer as isize),
+                   *p as c_int,
+                   (d as isize) - (string1 as isize),
+                   (dend as isize) - (string1 as isize),
+                   pos,
+                   size1,
+                   (end1 as isize) - (string1 as isize),
+                   (end2 as isize) - (string1 as isize));
+        }
       /* Otherwise match next pattern command.  */
       unsafe { if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { PREV_OP_SAVE = *p as c_int; } }
       match { let op = *p as re_opcode_t; p = p.offset (1); op }
@@ -5934,7 +5949,10 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	{ continue 'matcher; }  /* Successfully executed one pattern command; keep going.  */
 
     /* We goto here if a matching operation fails.
-       C's `fail:` label is the `goto_fail` flag (PORTING.md 2.2).  */
+       C's `fail:` label is the `goto_fail` flag (PORTING.md 2.2).  A popped `no_op` frame jumps
+       back to that same label (C 5287-5289), so the block repeats on itself (P-170).  */
+      'fail: loop
+	{
       maybe_quit ();
       if !FAIL_STACK_EMPTY! ()
 	{
@@ -5969,8 +5987,9 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	      }
 
 	      no_op => {
-		/* A special frame used for nastyloops. */
-		goto_fail = true;
+		/* A special frame used for nastyloops.  C 5287-5289: `goto fail` re-enters the pop
+		   block above, it does not go back to the opcode dispatch.  */
+		continue 'fail;
 	      }
 
 	      _ => {
@@ -5978,15 +5997,29 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	      }
 	    }
 
+	  /* Instrument (P-170): what a popped frame restores, before the segment is recomputed
+	     (C 5286-5287).  `FEMACS_REG_TRACE` only.  */
+	  if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+	    {
+	      fprintf (stderr,
+		       c"REGTRACE pop op=%d strnull=%d str-s1=%td d-s1=%td dend-s1=%td em1-s1=%td size1=%td\n".as_ptr (),
+		       *pat.offset (-1) as c_int,
+		       str.is_null () as c_int,
+		       (str as isize) - (string1 as isize),
+		       (d as isize) - (string1 as isize),
+		       (dend as isize) - (string1 as isize),
+		       (end_match_1 as isize) - (string1 as isize),
+		       (end1 as isize) - (string1 as isize));
+	    }
 	  if goto_continue_failure_jump || fallthrough_to_failure_jump
 	    {
 	      /* continue_failure_jump: */
 	      p = extract_address (pat);
 	    }
 
-	  if goto_fail
-	    { continue 'matcher; }
-
+	  /* C 5286-5287: the segment is recomputed from the restored `d` and then the matcher
+	     continues with the next opcode.  The `goto_fail` flag that *entered* this block is
+	     still set here, so testing it again would skip the recompute on every pop (P-170).  */
 	  eassert! (p >= (*bufp).buffer as *const re_char && p <= pend);
 
 	  if d >= string1 && d <= end1
@@ -6009,6 +6042,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	}
       else
 	{ failed = true; break 'matcher; }   /* Matching at this starting point really fails.  */
+	} /* 'fail */
     } /* for (;;) */
 
   // C 5290-5291: `if (best_regs_set) goto restore_best_regs;` - only the exhausted-failure
