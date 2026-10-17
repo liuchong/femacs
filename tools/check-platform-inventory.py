@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""Every platform target the port map names must exist (Swift, Kotlin, C++).
+
+`docs/port-map.md` is generated from the reference checkout, and its non-C rows are the port's
+promise that the Objective-C, Java and Haiku C++ sources have counterparts in the new
+languages (`docs/goal.md`: `src/*.m` -> Swift, `java/**/*.java` -> Kotlin, `src/haiku_*.cc` ->
+modern C++).  The C rows are gated by `extract-abi.py --all`; the platform rows had no gate at
+all, so a target could be absent from the tree while the map merely printed `-` for it - which
+is exactly what status 4.571 found for `src/nsxwidget.m`.
+
+    python3 tools/check-platform-inventory.py            # every non-C family
+    python3 tools/check-platform-inventory.py --show 20
+"""
+
+from __future__ import annotations
+
+import argparse
+import pathlib
+import re
+import sys
+
+REPO = pathlib.Path(__file__).resolve().parent.parent
+MAP = REPO / "docs/port-map.md"
+FAMILIES = ("Swift", "Kotlin", "C++")
+ROW = re.compile(r"^\|\s*`(?P<source>[^`]+)`\s*\|\s*(?P<lines>[\d,]+)\s*\|\s*`(?P<target>[^`]+)`\s*\|\s*(?P<tlines>[-\d,]*)\s*\|")
+
+
+def rows(family: str) -> list[tuple[str, str, str]]:
+    """(source, target, target-lines cell) for one family's section of the map."""
+    out, inside = [], False
+    for line in MAP.read_text("utf-8").split("\n"):
+        if line.startswith("## "):
+            inside = line.startswith(f"## {family} ")
+            continue
+        if not inside:
+            continue
+        m = ROW.match(line)
+        if m:
+            out.append((m.group("source"), m.group("target"), m.group("tlines")))
+    return out
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--show", type=int, default=10)
+    a = ap.parse_args()
+    missing = 0
+    total = 0
+    for family in FAMILIES:
+        entries = rows(family)
+        bad = []
+        for source, target, tlines in entries:
+            total += 1
+            path = REPO / target
+            lines = sum(1 for _ in path.open("rb")) if path.is_file() else 0
+            if not path.is_file() or lines == 0:
+                bad.append((source, target, tlines, lines))
+        print(f"{family:7s}: {len(entries)} entry(ies), {len(bad)} without a target file")
+        for source, target, tlines, lines in bad[:a.show]:
+            print(f"    MISSING {source} -> {target} (map says {tlines or '-'}, file has {lines} lines)")
+        if len(bad) > a.show:
+            print(f"    … {len(bad) - a.show} more")
+        missing += len(bad)
+    print(f"{total} platform entry(ies): {missing} without a target file")
+    return 1 if missing else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
