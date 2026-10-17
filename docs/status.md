@@ -22132,3 +22132,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ① **查清** ✓：`--with-android=` 收的是 **android.jar 的路径** ✓（`configure.ac` 1027 ✓）；`SDK_BUILD_TOOLS`/PATH 里必须有 **aapt、apksigner、d8** ✓（1033-1050 ✓ 缺则报错 ✓）；交叉编译器决定目标三元组 ✓（1082 附近 ✓）。本机三件都在 `build-tools/35.0.1` ✓。
   ② **未执行** ✓：一次 `configure` 尝试被 `controlled-run` 拒绝（`Combined memory reservations exceed the shared budget` ✓，另一项目两个 7 GiB 进程在跑 ✓）⇒ **命令没有启动** ✓，记作"未执行"而非"失败" ✓。
   ③ **零重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-205 ✓）、本提交（读数 ✓）。
+- **4.581 验证相第二百一十一轮：Android 配置一键脚本就位、前置检查实跑通过；configure 仍被共享预算挡住（P-206）（2026-10-17）**：
+  ① **新脚本** ✓：`tools/gen-android-config.sh` —— `--check-prereqs` 只做文件核对 ✓；完整运行按 P-205 的命令面跑 `configure` ✓，成功后用 `tools/gen-config-json.py` 产出 `docs/baseline/config/android-arm64.json` ✓。
+  ② **实跑读数** ✓：`android.jar`(android-36) ✓ / `build-tools/35.0.1` 的 aapt、apksigner、d8 ✓ / NDK 29 的 `aarch64-linux-android21-clang` ✓ / `emacs/configure` ✓ ⇒ **`prerequisites: complete`**（rc=0 ✓、250 MiB 预算 ✓）。
+  ③ **未执行** ✓：三次重活尝试（900/1500/1200 MiB）均被 `Combined memory reservations exceed the shared budget` 拒绝 ✓（另一项目 3 个 `run.py` 在跑 ✓）⇒ 记作等待 ✓。
+  ④ **零重编** ✓。提交：`tools/gen-android-config.sh` ✓、`PORTING.md`（P-206 ✓）、本提交（读数 ✓）。
