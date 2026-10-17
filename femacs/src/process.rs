@@ -1144,7 +1144,13 @@ macro_rules! PTY_ITERATION {
 }
 #[cfg (not (feature = "no_pty_iteration"))]
 macro_rules! PTY_ITERATION {
-  ($body:block) => {{ let mut i: c_int = 0; while i < 1 { $body i += 1; } }}
+  /* C's `for` runs its increment on `continue`; a `while` does not, so the increment runs in the
+     condition (P-159/P-160).  */
+  ($body:block) => {{
+    let mut i: c_int = 0;
+    let mut pty_first: bool = true;
+    while { if !pty_first { i += 1; } pty_first = false; i < 1 } { $body }
+  }}
 }
 #[cfg (not (feature = "no_pty_open"))]
 macro_rules! PTY_OPEN {
