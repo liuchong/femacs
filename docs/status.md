@@ -21763,3 +21763,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ⑤ **性能保护** ✓：P-170 那两条新仪器原先每个 opcode 都调一次 `getenv` ✗（匹配器最热的路径 ✓）⇒ 改成**采样一次**的静态门 ✓（P-126 的「启动时采样」规则 ✓），`PREV_OP_SAVE` 的同类写法一并换掉 ✓。
   ⑥ **Lisp 零改动** ✓：两处都在 C→Rust 一侧（`fns.rs`/`alloc.rs` ✓），`lisp/`、`test/` 照抄树未动 ✓。
   ⑦ **资源**：受控执行器 build 档 5 次单单元重编（各 1.5-2 s ✓、峰值 ≤ 300 MB ✓）+ 5 次 relink/dump（各 1-2 s ✓）；runtime 档 700-900 MiB 实测峰值 **≤ 55 MB** ✓；共 11 个 ERT 文件（合计 22 s ✓，最大 `electric` 903 例 ✓）；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/fns.rs`（P-171 ✓）、`femacs/src/alloc.rs`（P-172 ✓）、`femacs/src/regex-emacs.rs`（仪器采样一次 ✓）、`PORTING.md`（P-171/P-172 ✓）、本提交（纯读数 ✓）。
+- **4.521 验证相第一百五十二轮：下一批靶子的入场读数 —— `syntax-tests` 的 3 例收窄到 2 行最小复现（`back_comment` 往回找注释起点失败）（2026-10-17）**：
+  ① **读数** ✓：`src/syntax-tests.el` 100 例 3 失败 ✓ —— `syntax-comments-c-b6`（`(syntax-comments /* backward t 6 5)` ✓）、`syntax-comments-lisp-n-b105` / `-b107`（`(syntax-comments \#| backward t 105/107)` ✓）⇒ 三条同族：**往回扫块注释**（`forward-comment -1`）✗。
+  ② **最小复现** ✓：用夹具自己的语法装置（测试文件里的 `/*-in` ✓）在**两行**缓冲区里：`"/*/\n*/"`、point 到 `(point-max)`、`(forward-comment -1)` ⇒ 端口 **nil（point 停在 7）** ✗ / 参照 **t（point 到 1）** ✓；同形对照 `"/*/\n*/6"`、`"/*/\n*/x"`、`"a/*/\n*/a"`、`"/*/\n*/ "` **两侧同** ✓ ⇒ 只有"注释体正好是空、且结尾即缓冲区末尾"这一形状分歧 ✓。
+  ③ **层位已收到** ✓：端口走的是 C 的 `leave:` 路径（`from=6` 处 inc 后返回 nil ✓、point 恰好停在 7 ✓）⇒ `code == Sendcomment` ✓、`back_comment (…)` 返回 **false** ✗ ⇒ 靶子在 `emacs/src/syntax.c` 695 起的 `back_comment`（端口 `femacs/src/syntax.rs` ✓），不在 `Fforward_comment` 的循环体 ✓。
+  ④ **下一步** ✓：逐句对照 `back_comment`（C 695-约 1000 ✓）与端口版本 ✓，重点看"安全位置判定 / `string_style` 与 quote 奇偶 / `comstart_pos` 记录 / `nesting`"四条状态机主线的落点 ✓；回归面 = 该文件 100 例 ✓ + 上述 5 条最小形状 ✓ + `lisp/progmodes/ruby-mode-tests`（1 例 ✗ 待查是否同族 ✓）。
+  ⑤ **资源** ✓：受控执行器 runtime 700-900 MiB 实测峰值 **≤ 45 MB** ✓；本轮 ERT 1 个文件（0.3 s ✓）+ 4 次短探针（各 <1 s ✓）+ 1 次 90 s 上限的长跑（`fns-tests` 定位用 ✓）；`git -C emacs status --short` 为空 ✓。
