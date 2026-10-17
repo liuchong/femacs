@@ -444,6 +444,7 @@ def main() -> int:
         print(line)
     state_only = 0
     rewrite_cross = 0
+    volatile = 0
     defects: list[str] = []
     if args.cross_check and counts["DIFFERENT"]:
         differing = [PORT / pathlib.Path(rel).with_suffix(".elc") for rel in rels
@@ -453,7 +454,6 @@ def main() -> int:
         print(f"cross-checking {len(differing)} differing product(s) with the reference's program "
               f"inside the port's tree")
         products = cross_check(differing, args.timeout, args.reference_program)
-        volatile = 0
         for product in differing:
             mine = product.read_bytes()
             theirs = products.get(product)
