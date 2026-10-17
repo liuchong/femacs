@@ -1023,10 +1023,12 @@ pub unsafe extern "C" fn record_xmalloc (size: size_t) -> *mut c_void
    relative pops (status 4.436, PORTING.md P-117 ⑦) - that last one is why the release is *not*
    driven by `safe_free`'s walk.
 
-   The price is that a request lives until the scope's `SAFE_FREE` rather than until the frame
-   returns: that is C's own `record_xmalloc` fallback lifetime (`lisp.h` 5629), and C's alloca
-   path is only ever *longer*.  `tools/check-alloca-lifetime.py` keeps the account of the
-   "still used after `SAFE_FREE`" class (status 4.436: none on the frozen checkout).  The GC
+   The price was that a request lived until the scope's `SAFE_FREE` rather than until the frame
+   returns, while C's alloca path is only ever *longer*.  P-172 made the release recycle the block
+   instead of freeing it, so a `SAFE_FREE`'d buffer is still readable (C's own `Fstring_distance`
+   reads `column[len1]` there) and is still scanned (the returned stack space is).
+   `tools/check-alloca-lifetime.py` keeps the account of the "still used after `SAFE_FREE`" class.
+   The GC
    marks these blocks (see `garbage_collect` below), which is the port's substitute for the
    stack scan that covers C's alloca memory.
 
@@ -1045,9 +1047,20 @@ struct sa_stack_block
   used: usize,
   owner: *mut c_void,
   next: *mut sa_stack_block,
+  /* The recycle link (P-172).  A released block keeps its place in the live chain - C's
+     conservative stack scan still walks the returned stack space - and is threaded here as
+     well, because C's `alloca` never gives the bytes back: `SAFE_FREE` frees only what C pushed
+     on the specpdl, and the alloca memory stays readable until the frame returns or the space
+     is reused.  `Fstring_distance` reads `column[len1]` after `SAFE_FREE`, so freeing here made
+     that read read recycled heap.  */
+  next_free: *mut sa_stack_block,
 }
 
 static mut sa_stack_top: *mut sa_stack_block = std::ptr::null_mut ();
+
+/* Released blocks, awaiting the next request of the same Lisp thread (P-172).  Never handed back
+   to the system: C's alloca space is reused by a later frame, or not at all.  */
+static mut sa_stack_free: *mut sa_stack_block = std::ptr::null_mut ();
 
 /* How many blocks the chain holds.  `USE_SAFE_ALLOCA!` reads it into the frame, `SAFE_FREE!`
    hands that reading back - the scope's own height is the release's only input (P-117 ⑧).  */
@@ -1059,12 +1072,34 @@ static mut sa_stack_count: usize = 0;
 pub unsafe extern "C" fn sa_stack_alloc (size: usize) -> *mut c_void
 {
   let bytes = (size + SA_STACK_ALIGN - 1) & !(SA_STACK_ALIGN - 1);
+  /* Recycle a released block that is big enough, the way C's stack reuses the space an earlier
+     frame left.  Only this thread's blocks are eligible (see the release below).  */
+  let mut header: *mut sa_stack_block = sa_stack_free;
+  let mut prev: *mut sa_stack_block = std::ptr::null_mut ();
+  while ! header.is_null ()
+    && ! ((*header).owner == current_thread as *mut c_void && (*header).used >= bytes)
+    {
+      prev = header;
+      header = (*header).next_free;
+    }
+  if ! header.is_null ()
+    {
+      if prev.is_null ()
+	{ sa_stack_free = (*header).next_free; }
+      else
+	{ (*prev).next_free = (*header).next_free; }
+      (*header).next_free = std::ptr::null_mut ();
+      (*header).next = sa_stack_top;
+      sa_stack_top = header;
+      sa_stack_count += 1;
+      return (*header).base as *mut c_void;
+    }
   let base = malloc (bytes) as *mut u8;
   if base.is_null ()
     { memory_full (bytes); }
-  let header = xmalloc (std::mem::size_of::<sa_stack_block> ()) as *mut sa_stack_block;
+  header = xmalloc (std::mem::size_of::<sa_stack_block> ()) as *mut sa_stack_block;
   (*header) = sa_stack_block { base, used: bytes, owner: current_thread as *mut c_void,
-			       next: sa_stack_top };
+			       next: sa_stack_top, next_free: std::ptr::null_mut () };
   sa_stack_top = header;
   sa_stack_count += 1;
   return base as *mut c_void;
@@ -1093,8 +1128,12 @@ pub unsafe extern "C" fn sa_stack_release_to (mark: usize)
       let header = sa_stack_top;
       sa_stack_top = (*header).next;
       sa_stack_count -= 1;
-      free ((*header).base as *mut c_void);
-      xfree (header as *mut c_void);
+      /* P-172: recycle, do not free.  C's alloca bytes are still readable after `SAFE_FREE` -
+	 C's own `Fstring_distance` reads its column array there - and C's conservative stack scan
+	 still sees them, so the block keeps its place in the live chain for the marker and is
+	 threaded on the recycle list as well.  */
+      (*header).next_free = sa_stack_free;
+      sa_stack_free = header;
     }
 }
 
@@ -6501,6 +6540,16 @@ pub unsafe extern "C" fn garbage_collect ()
 		     ((*block).base as *const u8).offset ((*block).used as isize)
 		       as *const c_void);
 	block = (*block).next;
+      }
+    /* P-172: a released block is the returned stack space, which C's conservative scan still
+	walks until something overwrites it, so it stays a root here too.  */
+    block = sa_stack_free;
+    while !block.is_null ()
+      {
+	mark_memory ((*block).base as *const c_void,
+		     ((*block).base as *const u8).offset ((*block).used as isize)
+		       as *const c_void);
+	block = (*block).next_free;
       }
   }
   mark_composite ();
