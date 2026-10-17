@@ -162,6 +162,11 @@ fn config_features () -> Vec<String>
       };
   let mut out: Vec<String> = Vec::new ();
   let mut numbers: std::collections::HashMap<String, u64> = std::collections::HashMap::new ();
+  // `"features"` (header macros that are cfg gates, written by `--keys-from-header`) is the
+  // authoritative section when present; `"macros"` is the constraint set `gen-config` turns into
+  // constants, and reading it here too is what lets a configuration without the section still
+  // produce its cfgs.
+  let text = text.replacen ("\"features\": {", "\"macros\": {", 1);
   for line in text.lines ()
     {
       // The JSON is one `"NAME": "value"` per line (`gen-config-json.py` writes it that way), so a

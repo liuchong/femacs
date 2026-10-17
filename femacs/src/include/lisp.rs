@@ -4414,7 +4414,9 @@ use other_units::*;
 // header "done" without them.  They are grouped here instead of at their C line
 // position; docs/ports/lisp.md records that deviation.
 
-pub const CHECK_LISP_OBJECT_TYPE: bool = false;
+// `CHECK_LISP_OBJECT_TYPE` is a *config* macro (lisp.h 204/364 only test it), and
+// `include/config.rs` already carries it; redefining it here collided the moment both
+// mirrors were in one unit (status 4.633).
 
 // lisp.h 3206-3216 (`enum Lisp_Closure`) and 3219-3235 (`enum char_bits`): the gate could
 // not read an enum whose `{` sits on the next line, so these fourteen members of lisp.h were

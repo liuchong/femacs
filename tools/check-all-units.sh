@@ -48,10 +48,17 @@ cd "$root/femacs"
 while read -r line; do
   case "$line" in \#*|"") continue ;; esac
   n=$((n + 1))
-  out=$(CARGO_TARGET_DIR="$target" cargo run -q -p xtask -- build-tu "$line" 2>&1 | tail -1) || true
+  # Success used to be read off the *last* line (`| tail -1`), which stopped working the moment a
+  # unit produced a warning after "built ...": every such unit was reported as a failure with a
+  # warning as the reason (found when 91 Android units went from 18 errors to 0 and the sweep still
+  # said 89 failures, status 4.633).  The whole output is kept and matched instead, and the reason
+  # printed on failure is the first `error`/`error[` line rather than whatever came last.
+  out=$(CARGO_TARGET_DIR="$target" cargo run -q -p xtask -- build-tu "$line" 2>&1) || true
   case "$out" in
-    *built*) ;;
-    *) echo "FAIL $line: $out"; fails=$((fails + 1)); continue ;;
+    *"built "*) ;;
+    *) reason=$(printf '%s\n' "$out" | grep -m1 -E '^error' || true)
+       [ -n "$reason" ] || reason=$(printf '%s\n' "$out" | tail -1)
+       echo "FAIL $line: ${reason}"; fails=$((fails + 1)); continue ;;
   esac
   stem=$(basename "$line"); stem=${stem%.*}
   # Rust crate names take no hyphens; `lib-src/make-fingerprint.c` and `src/android-emacs.c` do

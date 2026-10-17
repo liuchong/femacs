@@ -75,19 +75,20 @@ def main() -> int:
 
     header = read_header(a.header)
     keys = json.loads(a.keys_from.read_text("utf-8"))["macros"]
+    # Header macros beyond the shared key list are *cfg features*, never constants: `gen-config`
+    # emits `pub const <name>` for every key, and the mirrors define plenty of these names
+    # themselves (`CHECK_LISP_OBJECT_TYPE`, `__STDC_CONSTANT_MACROS`...), so putting them in
+    # `macros` made the port define them twice (status 4.633).  They go in their own section,
+    # which `config_features()` reads and `gen-config` ignores.
+    features = {}
     if a.keys_from_header:
-        # Only names that can be Rust constants: `--keys-from-header` would otherwise take C's
-        # `#define true 1` / `#define typeof __typeof__` (glibc's own spellings), and `gen-config`
-        # emits `pub const <name>`, so `pub const true` broke every unit (status 4.622).  C spells
-        # its configuration macros in upper case, so the filter is "starts with an upper-case
-        # letter or an underscore".
         import re as _re
-        for name in header:
-            if name in keys:
-                continue
+        for name, value in header.items():
             if not _re.fullmatch(r"[A-Z_][A-Z0-9_]*", name):
                 continue
-            keys = [*keys, name]
+            if name in keys or name in features:
+                continue
+            features[name] = value
     macros = {k: header.get(k, "absent") for k in keys}
     for spec in a.macro:
         name, _, value = spec.partition("=")
@@ -96,6 +97,8 @@ def main() -> int:
         keys = [*keys, name]
         macros[name] = value
     doc = {"target": a.target, "source": str(a.header), "macros": macros}
+    if features:
+        doc["features"] = features
     text = json.dumps(doc, indent=2) + "\n"
     if a.out is None:
         sys.stdout.write(text)
