@@ -1,5 +1,5 @@
 file	verdict	port_ran	port_unexpected	ref_ran	ref_unexpected	note
-lib-src/emacsclient-tests.el	both-fail	2	2	2	2	both 2 unexpected new RSS high-water 29 MiB
+lib-src/emacsclient-tests.el	both-fail	2	2	2	2	both 2 unexpected new RSS high-water 28 MiB
 lisp/abbrev-tests.el	same	22	0	22	0	
 lisp/align-tests.el	same	9	0	9	0	
 lisp/allout-tests.el	same	5	0	5	0	
@@ -7,16 +7,16 @@ lisp/allout-widgets-tests.el	same	1	0	1	0
 lisp/ansi-color-tests.el	same	4	0	4	0	
 lisp/ansi-osc-tests.el	same	4	0	4	0	
 lisp/apropos-tests.el	same	13	0	13	0	
-lisp/arc-mode-tests.el	same	11	0	11	0	new RSS high-water 39 MiB
+lisp/arc-mode-tests.el	same	11	0	11	0	new RSS high-water 38 MiB
 lisp/auth-source-pass-tests.el	same	50	0	50	0	
 lisp/auth-source-tests.el	same	34	0	34	0	
 lisp/autoinsert-tests.el	same	11	0	11	0	
-lisp/autorevert-tests.el	crashed	0	0	0	0	port: crashed exit 1: Running 18 tests (2026-10-17 15:25:57+0800, selector `t') | reference: crashed exit 1: Running 18 tests (2026-10-17 15:25:58+0800, selector `t')
+lisp/autorevert-tests.el	crashed	0	0	0	0	port: crashed exit 1: Running 18 tests (2026-10-17 17:18:45+0800, selector `t') | reference: crashed exit 1: Running 18 tests (2026-10-17 17:18:46+0800, selector `t')
 lisp/battery-tests.el	same	6	0	6	0	
 lisp/bookmark-tests.el	same	47	0	47	0	
 lisp/buff-menu-tests.el	same	1	0	1	0	
 lisp/button-tests.el	same	5	0	5	0	
-lisp/calc/calc-tests.el	port-worse	27	1	27	0	name-only: calc-inhibit-startup-message asserts the reference product name (P-175)
+lisp/calc/calc-tests.el	port-worse	27	1	27	0	1 unexpected vs 0
 lisp/calculator-tests.el	same	2	0	2	0	
 lisp/calendar/cal-bahai-tests.el	same	2	0	2	0	
 lisp/calendar/cal-french-tests.el	same	1	0	1	0	
@@ -79,8 +79,8 @@ lisp/emacs-lisp/cl-generic-tests.el	same	19	0	19	0
 lisp/emacs-lisp/cl-lib-tests.el	same	27	0	27	0	
 lisp/emacs-lisp/cl-macs-tests.el	same	79	0	79	0	
 lisp/emacs-lisp/cl-preloaded-tests.el	same	1	0	1	0	
-lisp/emacs-lisp/cl-print-tests.el	same	6	0	6	0	new RSS high-water 21 MiB
-lisp/emacs-lisp/cl-seq-tests.el	same	61	0	61	0	new RSS high-water 517 MiB
+lisp/emacs-lisp/cl-print-tests.el	same	6	0	6	0	new RSS high-water 20 MiB
+lisp/emacs-lisp/cl-seq-tests.el	same	61	0	61	0	new RSS high-water 516 MiB
 lisp/emacs-lisp/comp-cstr-tests.el	same	93	0	93	0	
 lisp/emacs-lisp/comp-tests.el	same	3	0	3	0	
 lisp/emacs-lisp/cond-star-tests.el	same	1	0	1	0	
@@ -94,7 +94,7 @@ lisp/emacs-lisp/eieio-tests/eieio-test-persist.el	same	10	0	10	0
 lisp/emacs-lisp/eieio-tests/eieio-tests.el	same	42	0	42	0	
 lisp/emacs-lisp/ert-font-lock-tests.el	same	40	0	40	0	
 lisp/emacs-lisp/ert-tests.el	both-capped	0	0	0	0	the file is too heavy for the harness's cap on both sides
-lisp/emacs-lisp/ert-x-tests.el	same	19	0	19	0	new RSS high-water 856 MiB
+lisp/emacs-lisp/ert-x-tests.el	same	19	0	19	0	new RSS high-water 853 MiB
 lisp/emacs-lisp/faceup-tests/faceup-test-basics.el	same	15	0	15	0	
 lisp/emacs-lisp/faceup-tests/faceup-test-files.el	same	1	0	1	0	
 lisp/emacs-lisp/find-func-tests.el	same	6	0	6	0	
@@ -159,10 +159,10 @@ lisp/erc/erc-scenarios-base-association-query.el	same	2	0	2	0
 lisp/erc/erc-scenarios-base-association-samenet.el	same	2	0	2	0	
 lisp/erc/erc-scenarios-base-association.el	same	4	0	4	0	
 lisp/erc/erc-scenarios-base-attach.el	same	3	0	3	0	
-lisp/erc/erc-scenarios-base-auto-recon.el	same	2	0	2	0	new RSS high-water 29 MiB
-lisp/erc/erc-scenarios-base-buffer-display.el	same	4	0	4	0	new RSS high-water 32 MiB
+lisp/erc/erc-scenarios-base-auto-recon.el	same	2	0	2	0	new RSS high-water 28 MiB
+lisp/erc/erc-scenarios-base-buffer-display.el	same	4	0	4	0	new RSS high-water 31 MiB
 lisp/erc/erc-scenarios-base-chan-modes.el	same	2	0	2	0	
-lisp/erc/erc-scenarios-base-compat-rename-bouncer.el	same	2	0	2	0	new RSS high-water 33 MiB
+lisp/erc/erc-scenarios-base-compat-rename-bouncer.el	same	2	0	2	0	new RSS high-water 32 MiB
 lisp/erc/erc-scenarios-base-kill-on-part.el	same	2	0	2	0	
 lisp/erc/erc-scenarios-base-local-module-modes.el	same	2	0	2	0	
 lisp/erc/erc-scenarios-base-local-modules.el	same	3	0	3	0	
@@ -170,14 +170,14 @@ lisp/erc/erc-scenarios-base-misc-regressions.el	same	2	0	2	0
 lisp/erc/erc-scenarios-base-netid-bouncer-id.el	same	2	0	2	0	
 lisp/erc/erc-scenarios-base-netid-bouncer-recon-base.el	same	1	0	1	0	
 lisp/erc/erc-scenarios-base-netid-bouncer-recon-both.el	same	1	0	1	0	
-lisp/erc/erc-scenarios-base-netid-bouncer-recon-id.el	same	2	0	2	0	new RSS high-water 35 MiB
+lisp/erc/erc-scenarios-base-netid-bouncer-recon-id.el	same	2	0	2	0	new RSS high-water 34 MiB
 lisp/erc/erc-scenarios-base-netid-bouncer.el	same	2	0	2	0	
-lisp/erc/erc-scenarios-base-netid-samenet.el	same	4	0	4	0	new RSS high-water 35 MiB
+lisp/erc/erc-scenarios-base-netid-samenet.el	same	4	0	4	0	
 lisp/erc/erc-scenarios-base-query-participants.el	same	2	0	2	0	
 lisp/erc/erc-scenarios-base-reconnect.el	same	3	0	3	0	
-lisp/erc/erc-scenarios-base-renick.el	same	7	0	7	0	new RSS high-water 35 MiB
+lisp/erc/erc-scenarios-base-renick.el	same	7	0	7	0	new RSS high-water 34 MiB
 lisp/erc/erc-scenarios-base-reuse-buffers.el	same	2	0	2	0	
-lisp/erc/erc-scenarios-base-send-message.el	port-worse	2	2	2	0	name-only: the dialog's own matcher (noncommands.eld line 44) expects the VERSION reply to end '... with <reference product>'; the port renames the product, so erc-d's matcher fails and the next server line is never sent (ERC_D_DEBUG shows 'Match failed: PRIVMSG #chan :I'm using ERC 5.7-git with femacs ...')
+lisp/erc/erc-scenarios-base-send-message.el	port-worse	2	2	2	0	2 unexpected vs 0 new RSS high-water 43 MiB
 lisp/erc/erc-scenarios-base-split-line.el	same	3	0	3	0	
 lisp/erc/erc-scenarios-base-statusmsg.el	same	1	0	1	0	
 lisp/erc/erc-scenarios-base-unstable.el	same	3	0	3	0	
@@ -186,7 +186,7 @@ lisp/erc/erc-scenarios-base-upstream-recon-znc.el	same	2	0	2	0
 lisp/erc/erc-scenarios-display-message.el	same	1	0	1	0	
 lisp/erc/erc-scenarios-fill-wrap.el	same	2	0	2	0	
 lisp/erc/erc-scenarios-ignore.el	same	1	0	1	0	
-lisp/erc/erc-scenarios-internal.el	same	43	0	43	0	
+lisp/erc/erc-scenarios-internal.el	both-fail	43	1	43	1	both 1 unexpected
 lisp/erc/erc-scenarios-join-auth-source.el	same	1	0	1	0	
 lisp/erc/erc-scenarios-join-display-context.el	same	1	0	1	0	
 lisp/erc/erc-scenarios-join-netid-newcmd-id.el	same	2	0	2	0	
@@ -239,12 +239,12 @@ lisp/eshell/esh-opt-tests.el	same	13	0	13	0
 lisp/eshell/esh-proc-tests.el	same	26	0	26	0	
 lisp/eshell/esh-util-tests.el	same	27	0	27	0	
 lisp/eshell/esh-var-tests.el	same	114	0	114	0	
-lisp/eshell/esh-worker-tests.el	same	27	0	27	0	new RSS high-water 24 MiB
-lisp/eshell/eshell-tests-unload.el	same	3	0	3	0	new RSS high-water 28 MiB
+lisp/eshell/esh-worker-tests.el	same	27	0	27	0	new RSS high-water 23 MiB
+lisp/eshell/eshell-tests-unload.el	same	3	0	3	0	new RSS high-water 27 MiB
 lisp/eshell/eshell-tests.el	same	19	0	19	0	
 lisp/faces-tests.el	same	5	0	5	0	
-lisp/ffap-tests.el	same	15	0	15	0	new RSS high-water 471 MiB
-lisp/filenotify-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed   4/28  file-notify-test01-add-watch-remote (0.391559 sec) |   skipped   5/28  file-notify-test02-rm-watch (0.000044 sec) | reference: crashed exit 1:    passed   4/28  file-notify-test01-add-watch-remote (0.381313 sec) |   skipped   5/28  file-notify-test02-rm-watch (0.000034 sec)
+lisp/ffap-tests.el	same	15	0	15	0	new RSS high-water 472 MiB
+lisp/filenotify-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed   4/28  file-notify-test01-add-watch-remote (0.407075 sec) |   skipped   5/28  file-notify-test02-rm-watch (0.000039 sec) | reference: crashed exit 1:    passed   4/28  file-notify-test01-add-watch-remote (0.390726 sec) |   skipped   5/28  file-notify-test02-rm-watch (0.000037 sec)
 lisp/files-tests.el	same	131	0	131	0	
 lisp/files-x-tests.el	same	12	0	12	0	
 lisp/find-cmd-tests.el	same	3	0	3	0	
@@ -319,17 +319,17 @@ lisp/mh-e/mh-utils-tests.el	same	19	0	19	0
 lisp/mh-e/mh-xface-tests.el	same	2	0	2	0	
 lisp/minibuffer-tests.el	same	53	0	53	0	
 lisp/misc-tests.el	same	14	0	14	0	
-lisp/mouse-tests.el	same	6	0	6	0	new RSS high-water 20 MiB
+lisp/mouse-tests.el	same	6	0	6	0	new RSS high-water 19 MiB
 lisp/mwheel-tests.el	same	2	0	2	0	
-lisp/net/browse-url-tests.el	same	13	0	13	0	new RSS high-water 23 MiB
-lisp/net/dbus-tests.el	same	27	0	27	0	new RSS high-water 24 MiB
+lisp/net/browse-url-tests.el	same	13	0	13	0	new RSS high-water 22 MiB
+lisp/net/dbus-tests.el	same	27	0	27	0	new RSS high-water 23 MiB
 lisp/net/dig-tests.el	same	1	0	1	0	
 lisp/net/eudc-tests.el	same	11	0	11	0	
-lisp/net/eww-tests.el	same	13	0	13	0	new RSS high-water 24 MiB
+lisp/net/eww-tests.el	same	13	0	13	0	new RSS high-water 23 MiB
 lisp/net/gnutls-tests.el	same	7	0	7	0	
 lisp/net/hmac-md5-tests.el	same	1	0	1	0	
 lisp/net/mailcap-tests.el	same	15	0	15	0	
-lisp/net/network-stream-tests.el	same	27	0	27	0	new RSS high-water 29 MiB
+lisp/net/network-stream-tests.el	same	27	0	27	0	new RSS high-water 28 MiB
 lisp/net/newsticker-tests.el	same	7	0	7	0	
 lisp/net/nsm-tests.el	same	2	0	2	0	
 lisp/net/ntlm-tests.el	same	3	0	3	0	
@@ -343,7 +343,7 @@ lisp/net/secrets-tests.el	same	5	0	5	0
 lisp/net/shr-tests.el	same	5	0	5	0	
 lisp/net/socks-tests.el	same	10	0	10	0	
 lisp/net/tramp-archive-tests.el	same	43	0	43	0	
-lisp/net/tramp-tests.el	crashed	0	0	0	0	both sides exceed the capped budget (port 900 MiB cap; the reference reached 2799 MiB in an earlier run); excluded by the memory policy, not a port defect
+lisp/net/tramp-tests.el	crashed	0	0	0	0	port: timeout no summary within 200s | reference: timeout no summary within 200s new RSS high-water 602 MiB
 lisp/net/webjump-tests.el	same	7	0	7	0	
 lisp/newcomment-tests.el	same	1	0	1	0	
 lisp/nxml/nxml-mode-tests.el	same	8	0	8	0	
@@ -367,7 +367,7 @@ lisp/play/fortune-tests.el	same	1	0	1	0
 lisp/play/life-tests.el	same	1	0	1	0	
 lisp/play/morse-tests.el	same	4	0	4	0	
 lisp/play/studly-tests.el	same	3	0	3	0	
-lisp/proced-tests.el	port-worse	7	1	7	0	flaky: a re-run reports 0 unexpected on the port (6 skipped)
+lisp/proced-tests.el	port-worse	7	1	7	0	1 unexpected vs 0
 lisp/progmodes/asm-mode-tests.el	same	4	0	4	0	
 lisp/progmodes/autoconf-tests.el	same	4	0	4	0	
 lisp/progmodes/bat-mode-tests.el	same	5	0	5	0	
@@ -399,10 +399,10 @@ lisp/progmodes/m4-mode-tests.el	same	3	0	3	0
 lisp/progmodes/make-mode-tests.el	same	1	0	1	0	
 lisp/progmodes/octave-tests.el	same	1	0	1	0	
 lisp/progmodes/opascal-tests.el	same	1	0	1	0	
-lisp/progmodes/pascal-tests.el	same	2	0	2	0	new RSS high-water 20 MiB
-lisp/progmodes/peg-tests.el	same	3	0	3	0	new RSS high-water 23 MiB
-lisp/progmodes/perl-mode-tests.el	same	67	0	67	0	new RSS high-water 26 MiB
-lisp/progmodes/project-tests.el	same	15	0	15	0	new RSS high-water 33 MiB
+lisp/progmodes/pascal-tests.el	same	2	0	2	0	new RSS high-water 19 MiB
+lisp/progmodes/peg-tests.el	same	3	0	3	0	new RSS high-water 22 MiB
+lisp/progmodes/perl-mode-tests.el	same	67	0	67	0	new RSS high-water 25 MiB
+lisp/progmodes/project-tests.el	same	15	0	15	0	new RSS high-water 32 MiB
 lisp/progmodes/ps-mode-tests.el	same	3	0	3	0	
 lisp/progmodes/python-tests.el	both-fail	374	1	374	1	both 1 unexpected new RSS high-water 49 MiB
 lisp/progmodes/ruby-mode-tests.el	same	108	0	108	0	
@@ -428,7 +428,7 @@ lisp/server-tests.el	both-fail	7	2	7	2	both 2 unexpected
 lisp/ses-tests.el	same	14	0	14	0	
 lisp/shadowfile-tests.el	same	10	0	10	0	
 lisp/shell-tests.el	same	8	0	8	0	
-lisp/simple-tests.el	same	54	0	54	0	new RSS high-water 50 MiB
+lisp/simple-tests.el	same	54	0	54	0	new RSS high-water 49 MiB
 lisp/so-long-tests/autoload-longlines-mode-tests.el	same	1	0	1	0	
 lisp/so-long-tests/autoload-major-mode-tests.el	same	1	0	1	0	
 lisp/so-long-tests/autoload-minor-mode-tests.el	same	1	0	1	0	
@@ -479,17 +479,17 @@ lisp/url/url-expand-tests.el	same	4	0	4	0
 lisp/url/url-file-tests.el	same	1	0	1	0	
 lisp/url/url-future-tests.el	same	1	0	1	0	
 lisp/url/url-handlers-tests.el	same	5	0	5	0	
-lisp/url/url-misc-tests.el	same	1	0	1	0	new RSS high-water 21 MiB
-lisp/url/url-parse-tests.el	same	9	0	9	0	new RSS high-water 22 MiB
-lisp/url/url-tramp-tests.el	same	2	0	2	0	new RSS high-water 23 MiB
+lisp/url/url-misc-tests.el	same	1	0	1	0	new RSS high-water 20 MiB
+lisp/url/url-parse-tests.el	same	9	0	9	0	new RSS high-water 21 MiB
+lisp/url/url-tramp-tests.el	same	2	0	2	0	new RSS high-water 22 MiB
 lisp/url/url-util-tests.el	same	4	0	4	0	
-lisp/use-package/use-package-tests.el	same	167	0	167	0	new RSS high-water 25 MiB
+lisp/use-package/use-package-tests.el	same	167	0	167	0	new RSS high-water 24 MiB
 lisp/vc/add-log-tests.el	same	4	0	4	0	
-lisp/vc/diff-mode-tests.el	same	16	0	16	0	new RSS high-water 25 MiB
+lisp/vc/diff-mode-tests.el	same	16	0	16	0	new RSS high-water 24 MiB
 lisp/vc/ediff-diff-tests.el	same	2	0	2	0	
 lisp/vc/ediff-mult-tests.el	same	1	0	1	0	
 lisp/vc/ediff-ptch-tests.el	same	2	0	2	0	
-lisp/vc/emerge-tests.el	same	2	0	2	0	new RSS high-water 42 MiB
+lisp/vc/emerge-tests.el	same	2	0	2	0	new RSS high-water 43 MiB
 lisp/vc/log-edit-tests.el	same	12	0	12	0	
 lisp/vc/smerge-mode-tests.el	same	1	0	1	0	
 lisp/vc/vc-bzr-tests.el	same	3	0	3	0	
@@ -508,12 +508,12 @@ lisp/winner-tests.el	same	1	0	1	0
 lisp/x-dnd-tests.el	same	2	0	2	0	
 lisp/xdg-tests.el	same	4	0	4	0	
 lisp/xml-tests.el	same	5	0	5	0	
-lisp/xt-mouse-tests.el	same	3	0	3	0	new RSS high-water 450 MiB
+lisp/xt-mouse-tests.el	same	3	0	3	0	new RSS high-water 449 MiB
 lisp/yank-media-tests.el	same	1	0	1	0	
 misc/test-custom-deps.el	same	1	0	1	0	
 misc/test-custom-libs.el	same	1	0	1	0	
 misc/test-custom-noloads.el	same	1	0	1	0	
-misc/test-custom-opts.el	same	1	1	1	0	re-read after P-178's fix: ctags-program-name now carries its initialiser and the file is same (1/1); the sweep row above was its pre-fix reading
+misc/test-custom-opts.el	same	1	0	1	0	same after P-178's fix
 src/alloc-tests.el	same	4	0	4	0	
 src/buffer-tests.el	same	408	0	408	0	
 src/callint-tests.el	same	5	0	5	0	
@@ -541,7 +541,7 @@ src/image-tests.el	same	5	0	5	0
 src/indent-tests.el	same	3	0	3	0	
 src/inotify-tests.el	same	3	0	3	0	
 src/json-tests.el	same	25	0	25	0	
-src/keyboard-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000019 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000027 sec) | reference: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000014 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000018 sec)
+src/keyboard-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000013 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000019 sec) | reference: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000012 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000016 sec)
 src/keymap-tests.el	same	47	0	47	0	
 src/lcms-tests.el	same	6	0	6	0	
 src/lread-tests.el	same	55	0	55	0	
