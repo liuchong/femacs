@@ -824,6 +824,231 @@ pub static mut max_used_fringe_bitmap: c_int = MAX_STANDARD_FRINGE_BITMAPS;
    and needs three (`draw_fringe_bitmap_params`, `redisplay_interface` and the two `bool_bf`
    accessors), so it glob-imports the module - exactly what `src/msdos.rs` 530 does with the same
    mirror.  */
+/* `struct face` (C dispextern.h 1787-1937) - the use-site copy the display units carry, for the
+   reason the mirror's `dispextern_face_records` ruling records (status 3.220): the mirror
+   keeps the record behind a `dead-arms` feature that no configuration produces, so on
+   Android the name is out of scope (`src/xfaces.rs` 288 is the oldest copy).  The text is
+   the mirror's; the assertions hold for both targets, and the Android arm's numbers are
+   measured in docs/baseline/face-layout-android.tsv.  */
+/// C 1787-1937: `struct face`.  Measured with the frozen clang: `sizeof` 280, align 8,
+/// `lface`@0, `id`@160, `foreground`@168, `background`@176, `underline_color`@184,
+/// `overline_color`@192, `strike_through_color`@200, `box_color`@208, `font`@216,
+/// `fontset`@224, `box_vertical_line_width`@228, `box_horizontal_line_width`@232,
+/// `underline_pixels_above_descent_line`@236, the 21 `bool_bf`/`ENUM_BF` bits C declares at
+/// 1893-1935 in one 4-byte storage unit at 240, `hash`@248, `next`@256, `prev`@264,
+/// `ascii_face`@272.
+#[repr(C)]
+pub struct face
+{
+  pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
+  pub id: c_int,
+
+  // dispextern.h 1797-1811: the `gc` (C's three arms) and `stipple` that C adds to the face
+  // record under `#ifdef HAVE_WINDOW_SYSTEM`.  Read from `docs/baseline/face-layout.tsv` (P-82: frozen
+  // 280/8, both window-system arms 296/8, `gc` at 168 and `stipple` at 176 in both), which is
+  // also why the two window-system arms add the same sixteen bytes.
+  #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+  pub gc: *mut c_void,        /// C: `GC gc;` (1799) - X11's `struct _XGC *`; no mirror, so the
+                              /// pointer stays untyped (P-72 rule 3, as in `glyph_string`)
+  #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+  pub gc: *mut c_void,        /// C: `struct android_gc *gc;` (1801)
+  #[cfg (all (feature = "have_window_system", not (feature = "have_x_windows"),
+              not (feature = "have_android")))]
+  pub gc: *mut Emacs_GC,      // C: `Emacs_GC *gc;` (1803)
+  #[cfg (feature = "have_window_system")]
+  pub stipple: ptrdiff_t,     // 1810 (measured 176)
+  pub foreground: c_ulong,
+  pub background: c_ulong,
+  pub underline_color: c_ulong,
+  pub overline_color: c_ulong,
+  pub strike_through_color: c_ulong,
+  pub box_color: c_ulong,
+  /* P-72 rule ③: `struct font` is font.rs's type and this mirror cannot reach it (C's
+     dispextern.h only knows the incomplete tag), so the member is the untyped pointer; a unit
+     that includes `include/font.rs` casts it (`src/xfaces.rs` 294 spells it `*mut font`).  */
+  pub font: *mut c_void,   /// C: `struct font *font;` (dispextern.h 1845)
+  pub fontset: c_int,
+  pub box_vertical_line_width: c_int,
+  pub box_horizontal_line_width: c_int,
+  pub underline_pixels_above_descent_line: c_int,
+  /* C 1893-1935: `ENUM_BF (face_box_type) box : 2; ENUM_BF (face_underline_type)
+     underline : 3;` and the seventeen 1-bit `bool_bf` members in one storage unit.  The port
+     stores C's bit-field bytes and names every member through the masks below (PORTING.md
+     1.3/P-80).  */
+  pub bits: u32,
+  pub hash: uintptr_t,
+  pub next: *mut face,
+  pub prev: *mut face,
+  pub ascii_face: *mut face,
+}
+
+/* C 1797-1811's two `HAVE_WINDOW_SYSTEM` members sit between `id` and `foreground`, so every
+   member from `foreground` on is sixteen bytes further along in a window-system build
+   (`docs/baseline/face-layout.tsv`: `frozen` 280/8 with `foreground`@168, `x11`/`ns_cocoa`/
+   `x11_ext` 296/8 with `foreground`@184 - the same two members, measured in both).  The
+   assertions below add this shift rather than repeating a second table, so the one set of
+   measured numbers covers every arm; status 3.505 added it after `src/fringe.rs`'s flip read
+   `13 x E0080` on the frozen values.  */
+#[cfg (not (feature = "have_window_system"))]
+const FACE_WS_SHIFT: usize = 0;
+#[cfg (feature = "have_window_system")]
+const FACE_WS_SHIFT: usize = 16;
+
+const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::align_of::<face> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
+#[cfg (all (feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
+#[cfg (all (feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, next) == 256 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FACE_WS_SHIFT);
+
+/* `struct face_cache` (C dispextern.h 1991-2009) - the use-site copy the display units carry, for the
+   reason the mirror's `dispextern_face_records` ruling records (status 3.220): the mirror
+   keeps the record behind a `dead-arms` feature that no configuration produces, so on
+   Android the name is out of scope (`src/xfaces.rs` 288 is the oldest copy).  The text is
+   the mirror's; the assertions hold for both targets, and the Android arm's numbers are
+   measured in docs/baseline/face-layout-android.tsv.  */
+/// C 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0, `f`@8,
+/// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
+/// the int unit at 36 (carried as a byte, the P-80 convention - `src/window.rs` 907 spells
+/// the same member `bool`, one byte wide either way).
+#[repr(C)]
+pub struct face_cache
+{
+  pub buckets: *mut *mut face,
+  /* P-72 rule ③: `struct frame` is frame.rs's type and a unit that includes this mirror need
+     not include that one (measured: `build-tu src/bidi.c` and `src/lread.c` answered "cannot
+     find type frame" while this member was `*mut frame`), so the member is the untyped
+     pointer - the same pointer, which is what C's incomplete `struct frame *` is.  */
+  pub f: *mut c_void,   /// C: `struct frame *f;` (dispextern.h 1997)
+  pub faces_by_id: *mut *mut face,
+  pub size: ptrdiff_t,
+  pub used: c_int,
+  pub menu_face_changed_p: u8,
+}
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, buckets) == 0);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, f) == 8);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, size) == 24);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
+
+/* `struct draw_fringe_bitmap_params` (C dispextern.h 2159-2200) - the use-site copy the display units carry, for the
+   reason the mirror's `dispextern_face_records` ruling records (status 3.220): the mirror
+   keeps the record behind a `dead-arms` feature that no configuration produces, so on
+   Android the name is out of scope (`src/xfaces.rs` 288 is the oldest copy).  The text is
+   the mirror's; the assertions hold for both targets, and the Android arm's numbers are
+   measured in docs/baseline/draw-fringe-bitmap-params-layout-android.tsv.  */
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct draw_fringe_bitmap_params
+{
+  pub which: c_int,                  // offset 0
+  pub bits: *mut c_ushort,                  // offset 8
+  pub wd: c_int,                  // offset 16
+  pub h: c_int,                  // offset 20
+  pub dh: c_int,                  // offset 24
+  pub x: c_int,                  // offset 28
+  pub y: c_int,                  // offset 32
+  pub bx: c_int,                  // offset 36
+  pub nx: c_int,                  // offset 40
+  pub by: c_int,                  // offset 44
+  pub ny: c_int,                  // offset 48
+  /// C 2215-2240's bitfield run, stored as `flags` (PORTING.md 1.3): offset 52.
+  pub flags: u8,
+  pub face: *mut face,                  // offset 56
+}
+const _: () = core::assert! (core::mem::size_of::<draw_fringe_bitmap_params> () == 64);
+
+/* `struct redisplay_interface` (C dispextern.h 3069-3196) - the use-site copy the display units carry, for the
+   reason the mirror's `dispextern_face_records` ruling records (status 3.220): the mirror
+   keeps the record behind a `dead-arms` feature that no configuration produces, so on
+   Android the name is out of scope (`src/xfaces.rs` 288 is the oldest copy).  The text is
+   the mirror's; the assertions hold for both targets, and the Android arm's numbers are
+   measured in docs/baseline/redisplay-interface-layout-android.tsv.  */
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct redisplay_interface
+{
+  pub frame_parm_handlers: *mut c_void,                  // offset 0
+  pub produce_glyphs: Option<unsafe extern "C" fn (*mut it)>,                  // offset 8
+  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
+  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
+  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
+  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
+  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
+  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 56
+  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
+  pub flush_display: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 72
+  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 80
+  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
+  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
+
+  /* C 3131-3195: the `#ifdef HAVE_WINDOW_SYSTEM` arm of the interface - the fifteen display
+     hooks a window system installs.  Dead text on the frozen target (`HAVE_WINDOW_SYSTEM` is
+     undef there), carried under that feature so that a window-system build gets C's full
+     record; each is one pointer wide and none of them exists in the frozen arm, so the
+     assertions above are unchanged.  They are what `spikes/mirror-struct-coverage.py --arm
+     ns_cocoa` names when it reports this struct's window-system gap (status 3.283).  */
+  #[cfg (feature = "have_window_system")]
+  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut draw_fringe_bitmap_params)>,   // C 3134
+  #[cfg (feature = "have_window_system")]
+  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
+  #[cfg (feature = "have_window_system")]
+  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,                                               // C 3140
+  #[cfg (feature = "have_window_system")]
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                              // C 3144
+  #[cfg (feature = "have_window_system")]
+  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                                           // C 3147
+  #[cfg (feature = "have_window_system")]
+  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
+  #[cfg (feature = "have_window_system")]
+  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
+  #[cfg (feature = "have_window_system")]
+  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut c_void)>,                                       // C 3159
+  #[cfg (feature = "have_window_system")]
+  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+                                                       cursor_type: text_cursor_kinds, cursor_width: c_int,
+                                                       on_p: bool, active_p: bool)>,                                  // C 3165
+  #[cfg (feature = "have_window_system")]
+  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
+  #[cfg (feature = "have_window_system")]
+  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
+  #[cfg (feature = "have_window_system")]
+  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
+                                                            height: c_int, shift_by: c_int)>,                         // C 3182
+  #[cfg (feature = "have_window_system")]
+  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3187
+  #[cfg (feature = "have_window_system")]
+  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3190
+  #[cfg (feature = "have_window_system")]
+  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
+}
+/* C 3131-3195's `HAVE_WINDOW_SYSTEM` members - the fifteen display hooks this record already
+   carries behind that feature - are appended after `fix_overlapping_area`, so they add 120 bytes
+   and shift nothing above them (`docs/baseline/redisplay_interface-layout.tsv`: `frozen` 104/8
+   with the thirteen base members, `x11`/`ns_cocoa`/`x11_ext` 224/8; the fifteen measure 104 …
+   216).  The same device status 3.505/3.506 used for `struct face`, `struct font` and
+   `struct font_driver`.  */
+#[cfg (not (feature = "have_window_system"))]
+const REDISPLAY_IFACE_WS_SHIFT: usize = 0;
+#[cfg (feature = "have_window_system")]
+const REDISPLAY_IFACE_WS_SHIFT: usize = 120;
+#[cfg (all (feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 104 + REDISPLAY_IFACE_WS_SHIFT);
+
 #[cfg (feature = "have_window_system")]
 use dispextern_unit_names::*;
 

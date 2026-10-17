@@ -1311,6 +1311,128 @@ pub unsafe extern "C" fn image_create_bitmap_from_data (f: *mut frame, bits: *mu
 /// `include/android.rs` 69) - the C line is named and the port keeps C's typedef pair.
 #[cfg (all (feature = "have_window_system", feature = "have_android", feature = "not_android_stubify"))]
 include!("include/android.rs");                // C 738: `#include "android.h"`
+
+/* `struct face` (C dispextern.h 1787-1937) - the use-site copy the display units carry, for the
+   reason the mirror's `dispextern_face_records` ruling records (status 3.220): the mirror
+   keeps the record behind a `dead-arms` feature that no configuration produces, so on
+   Android the name is out of scope (`src/xfaces.rs` 288 is the oldest copy).  The text is
+   the mirror's; the assertions hold for both targets, and the Android arm's numbers are
+   measured in docs/baseline/face-layout-android.tsv.  */
+/// C 1787-1937: `struct face`.  Measured with the frozen clang: `sizeof` 280, align 8,
+/// `lface`@0, `id`@160, `foreground`@168, `background`@176, `underline_color`@184,
+/// `overline_color`@192, `strike_through_color`@200, `box_color`@208, `font`@216,
+/// `fontset`@224, `box_vertical_line_width`@228, `box_horizontal_line_width`@232,
+/// `underline_pixels_above_descent_line`@236, the 21 `bool_bf`/`ENUM_BF` bits C declares at
+/// 1893-1935 in one 4-byte storage unit at 240, `hash`@248, `next`@256, `prev`@264,
+/// `ascii_face`@272.
+#[repr(C)]
+pub struct face
+{
+  pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
+  pub id: c_int,
+
+  // dispextern.h 1797-1811: the `gc` (C's three arms) and `stipple` that C adds to the face
+  // record under `#ifdef HAVE_WINDOW_SYSTEM`.  Read from `docs/baseline/face-layout.tsv` (P-82: frozen
+  // 280/8, both window-system arms 296/8, `gc` at 168 and `stipple` at 176 in both), which is
+  // also why the two window-system arms add the same sixteen bytes.
+  #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+  pub gc: *mut c_void,        /// C: `GC gc;` (1799) - X11's `struct _XGC *`; no mirror, so the
+                              /// pointer stays untyped (P-72 rule 3, as in `glyph_string`)
+  #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+  pub gc: *mut c_void,        /// C: `struct android_gc *gc;` (1801)
+  #[cfg (all (feature = "have_window_system", not (feature = "have_x_windows"),
+              not (feature = "have_android")))]
+  pub gc: *mut Emacs_GC,      // C: `Emacs_GC *gc;` (1803)
+  #[cfg (feature = "have_window_system")]
+  pub stipple: ptrdiff_t,     // 1810 (measured 176)
+  pub foreground: c_ulong,
+  pub background: c_ulong,
+  pub underline_color: c_ulong,
+  pub overline_color: c_ulong,
+  pub strike_through_color: c_ulong,
+  pub box_color: c_ulong,
+  /* P-72 rule ③: `struct font` is font.rs's type and this mirror cannot reach it (C's
+     dispextern.h only knows the incomplete tag), so the member is the untyped pointer; a unit
+     that includes `include/font.rs` casts it (`src/xfaces.rs` 294 spells it `*mut font`).  */
+  pub font: *mut c_void,   /// C: `struct font *font;` (dispextern.h 1845)
+  pub fontset: c_int,
+  pub box_vertical_line_width: c_int,
+  pub box_horizontal_line_width: c_int,
+  pub underline_pixels_above_descent_line: c_int,
+  /* C 1893-1935: `ENUM_BF (face_box_type) box : 2; ENUM_BF (face_underline_type)
+     underline : 3;` and the seventeen 1-bit `bool_bf` members in one storage unit.  The port
+     stores C's bit-field bytes and names every member through the masks below (PORTING.md
+     1.3/P-80).  */
+  pub bits: u32,
+  pub hash: uintptr_t,
+  pub next: *mut face,
+  pub prev: *mut face,
+  pub ascii_face: *mut face,
+}
+
+/* C 1797-1811's two `HAVE_WINDOW_SYSTEM` members sit between `id` and `foreground`, so every
+   member from `foreground` on is sixteen bytes further along in a window-system build
+   (`docs/baseline/face-layout.tsv`: `frozen` 280/8 with `foreground`@168, `x11`/`ns_cocoa`/
+   `x11_ext` 296/8 with `foreground`@184 - the same two members, measured in both).  The
+   assertions below add this shift rather than repeating a second table, so the one set of
+   measured numbers covers every arm; status 3.505 added it after `src/fringe.rs`'s flip read
+   `13 x E0080` on the frozen values.  */
+#[cfg (not (feature = "have_window_system"))]
+const FACE_WS_SHIFT: usize = 0;
+#[cfg (feature = "have_window_system")]
+const FACE_WS_SHIFT: usize = 16;
+
+const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::align_of::<face> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
+#[cfg (all (feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
+#[cfg (all (feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, next) == 256 + FACE_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FACE_WS_SHIFT);
+
+/* `struct face_cache` (C dispextern.h 1991-2009) - the use-site copy the display units carry, for the
+   reason the mirror's `dispextern_face_records` ruling records (status 3.220): the mirror
+   keeps the record behind a `dead-arms` feature that no configuration produces, so on
+   Android the name is out of scope (`src/xfaces.rs` 288 is the oldest copy).  The text is
+   the mirror's; the assertions hold for both targets, and the Android arm's numbers are
+   measured in docs/baseline/face-layout-android.tsv.  */
+/// C 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0, `f`@8,
+/// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
+/// the int unit at 36 (carried as a byte, the P-80 convention - `src/window.rs` 907 spells
+/// the same member `bool`, one byte wide either way).
+#[repr(C)]
+pub struct face_cache
+{
+  pub buckets: *mut *mut face,
+  /* P-72 rule ③: `struct frame` is frame.rs's type and a unit that includes this mirror need
+     not include that one (measured: `build-tu src/bidi.c` and `src/lread.c` answered "cannot
+     find type frame" while this member was `*mut frame`), so the member is the untyped
+     pointer - the same pointer, which is what C's incomplete `struct frame *` is.  */
+  pub f: *mut c_void,   /// C: `struct frame *f;` (dispextern.h 1997)
+  pub faces_by_id: *mut *mut face,
+  pub size: ptrdiff_t,
+  pub used: c_int,
+  pub menu_face_changed_p: u8,
+}
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, buckets) == 0);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, f) == 8);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, size) == 24);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
+
 #[cfg (all (feature = "have_window_system", all (feature = "have_android", feature = "not_android_stubify")))]
 pub type image_fd = android_fd_or_asset;
 #[cfg (all (feature = "have_window_system", not (all (feature = "have_android", feature = "not_android_stubify"))))]
