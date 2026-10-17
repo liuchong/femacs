@@ -21856,3 +21856,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **唯一红灯** ✗：`== declaration gate == … 1 failures … error: a ported file carries a product-name declaration` ✗ —— 定位到**我自己上一轮写的 P-175 行** ✗：行内引用了参照产品名（断言原文 ✓）与一处反引号里的产品名 ✗ ⇒ 违反 0.1-19 ✓。改法：两处都改成"参照产品名"的描述 ✓（不外泄该名字 ✓），复跑 **`24 declaration sites (0 forbidden, 24 allowed literals), 0 failures`** ✓✓（exit 0 ✓）。
   ④ **口径** ✓：`gate-fast` 会**重编全部单元** ✓（本轮 8 分钟 ✓，不算"频繁"但也不该随手跑 ✗）⇒ 只在**改了 `femacs/src/*.rs` 且需要整体复核**时跑 ✓；单文件改动用 `extract-abi --check` + `build-tu` 就够 ✓。重编后 `emacs` 二进制未重链 ✗，但本轮改动**只有注释** ✓ ⇒ 机器码不变 ✓（下一轮若改代码再 `gate-load`+`dump` ✓）。
   ⑤ **Lisp 零改动** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-175 行去名 ✓）、本提交（纯读数 ✓）。
+- **4.535 验证相第一百六十六轮：**L5（含 `:expensive-test`）全量扫完 + 修掉一个只有它才能暴露的缺陷（P-178）**（2026-10-17）**：
+  ① **L0/L1/L5（DoD-3 的三级）** ✓：`acceptance-l0 --check` **19 表达式 0 失败** ✓；`acceptance-l1 --check` **111 文件 0 失败** ✓；**L5 全量**（`--selector-preset all` ✓ = 含 `:expensive-test` 与 `:unstable` ✓）564 文件 ⇒ **same 542 / both-fail 11 / crashed 6 / port-worse 4 / both-capped 1** ✓（40 min ✓、峰值 892 MB ✓、台账 `docs/baseline/ert-sweep-all.tsv` ✓）。
+  ② **4 个 port-worse 的三类** ✓：`calc-tests` = 产品名（P-175 ✓）；`proced-tests` = **flaky**（复跑 0 unexpected ✓ 6 skipped ✓）；`misc/test-custom-opts` ✗ 与 `erc-scenarios-base-send-message` ✗ = **真缺陷** ✓。
+  ③ **修掉的那个（P-178）** ✓：`ctags-program-name` 缺 C 2171 那一行初始化 ⇒ 恒 nil ✗ ⇒ `org-ctags-path-to-ctags` 默认 nil ✗ ⇒ `cus-test-opts` 报 type-error ✗；补回后 **"ctags"** ✓、`misc/test-custom-opts` **→ same** ✓。
+  ④ **留下的靶子** ✓：`erc-scenarios-base-send-message` 两次复跑都是 **2 unexpected vs 0** ✗（`Failed awaiting: <bob> alice: You still wrangle` ✓ —— 模拟服务器消息没到达 ✓，与进程/过滤器/timer 异步面同族 ✓），下一轮从这条进 ✓。
+  ⑤ **DoD-8 机器核对** ✓：`docs/ports/*.md` 共 **606 个台账、14,775 个勾选、0 个未勾** ✓。
+  ⑥ **Lisp 零改动** ✓；本轮 `build-tu src/callproc.c` 一格 + `gate-load` + `dump`（合计 3.5 s ✓、峰值 ≤ 300 MB ✓），其余零编译 ✓；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/callproc.rs`（P-178 ✓）、`PORTING.md`（P-178 ✓）、`docs/baseline/ert-sweep-all.tsv`（L5 台账 ✓）、本提交（纯读数 ✓）。
