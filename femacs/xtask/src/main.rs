@@ -1347,6 +1347,21 @@ configuration (see PORTING.md 2.1's setup steps)");
     // separated, `'a` lifetimes versus `'a'` chars) and compares with
     // `docs/baseline/declarations-allowlist.tsv`, so the literals that must stay are
     // counted with a reason rather than being invisible to every other gate (3.73).
+    // P-178: a `DEFVAR_LISP` whose C initialiser line was dropped still compiles, still
+    // registers, and reads nil only when a consumer asks.  This step compares the *values* of
+    // every such variable between the two programs, which is why the class cannot hide here.
+    println!("== defvar value gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-defvar-values.py"])
+        .status()
+    {
+        Ok(s) if s.success() => {
+            println!("defvar values: every DEFVAR the port declares holds the reference's value")
+        }
+        Ok(_) => return fail("a DEFVAR holds a different value than the reference (P-178)"),
+        Err(e) => return fail(e),
+    }
     println!("== declaration gate ==");
     match Command::new("python3")
         .current_dir(REPO)
