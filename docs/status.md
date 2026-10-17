@@ -21812,3 +21812,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **交叉验证（判据 ✓）**：`gen-elc.py lisp/emacs-lisp --skip-matching --cross-check` ⇒ **6 个差异产物全部 `state-only`** ✓（参照程序在端口树里产出与端口**逐字节相同**的字节：83752 / 135480 / 20999 / 186759 / 3736 / 29992 ✓）⇒ **端口编译缺陷 0** ✓✓；差异来自**树的状态**（登记过的产品名替换 ✓）+ **参照那份 `.elc` 的构建顺序**（`gensym-counter` 进程级累积 ✓）。
   ④ **口径更新** ✓：4.493 记的"53 件真 DIFFERENT" ✗ 不等于 53 个缺陷 ✓；此后逐片先跑 `--cross-check` ✓，`state-only` 记"树的差异" ✓、只有"参照程序在端口树里产出不同字节"才算端口缺陷 ✓（P-176 ✓）。
   ⑤ **Lisp 零改动** ✓；受控执行器 runtime 900 MiB、三次短跑（`gen-elc` 3 s ✓、编译探针 2 次各 <1 s ✓），实测峰值 **≤ 60 MB** ✓；本轮**零单元重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-176 ✓）、本提交（纯读数 ✓）。
+- **4.528 验证相第一百五十九轮：**`lisp` 全域 `.elc` 交叉验证 = **0 个端口缺陷**（96 state-only / 1 volatile / 1 缺件）**，并把 volatile 从缺陷计数里摘出（2026-10-17）**：
+  ① **读数** ✓：`gen-elc.py lisp --skip-matching --cross-check` ⇒ 98 个目标：**32 rewrite-only** ✓、**64 DIFFERENT** ✓、**1 missing**（`leim/ja-dic` 的生成物 ✓ 已知 ✓）；其中交叉验证判 **96 state-only** ✓、**0 a port defect** ✓✓、**1 volatile** ✓。
+  ② **volatile 那条** ✓：`lisp/calendar/diary-icalendar.el` 的 `ical:make-uid` 在编译期把 `(format-time-string "%s%N")` 哈希进产物 ✓ ⇒ 用**同一支程序**连编两次，md5 分别为 `1728d66e…` / `86288890…` ✗、参照树那份是 `cba5ade8…` ✓ ⇒ 任何两次编译都不可能相同 ✓，判成"缺陷"是**证据不支持的指控** ✗。工具原先只在注释里写了这一点 ✗、计数照算 ✗ ⇒ 本轮把它改成 `volatile` 一行并**排除出缺陷计数** ✓（汇总行新增 `, N volatile` ✓）。
+  ③ **口径** ✓：`.elc` 的缺陷判定 = "参照程序在端口树里产出**不同**的字节" ✓；`state-only`（两侧同字节 ✓）、`volatile`（同程序两次不同 ✓）都不算缺陷 ✓。
+  ④ **Lisp 零改动** ✓（本轮只改 `tools/gen-elc.py` ✓）；受控执行器 runtime 900 MiB、两次 `lisp` 全域交叉验证（各 49 s ✓），实测峰值 **≤ 70 MB** ✓；本轮**零单元重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/gen-elc.py`（volatile 口径 ✓）、本提交（纯读数 ✓）。
