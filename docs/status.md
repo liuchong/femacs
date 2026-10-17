@@ -21831,3 +21831,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **`sort-100k`** ✗：**3.4 vs 1.7 ms**（**2.0×** ✓ 最大缺口 ✓）⇒ 下一轮优化的第一靶子 ✓（先分清是 `funcall`/subr 派发开销 ✓ 还是比较器的算法 ✓）。
   ⑤ **必须写进口径的事实** ✓：端口单元带 `overflow-checks=on` + `debug-assertions=on` ✓（P-101 ① 明文 ✓、也符合"能 safe 就 safe" ✓），参照是裸 `-O2` ✗ ⇒ 差值里含安全检查成本 ✓；**不拿掉检查换数字** ✗（P-177 ③ ✓）。
   ⑥ **Lisp 零改动** ✓；本轮**零单元重编** ✓；受控执行器 runtime 900 MiB，基准 3 次（各 <1 s ✓），峰值 **≤ 60 MB** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-177 ✓）、本提交（纯读数 ✓）。
+- **4.531 验证相第一百六十二轮：`sort` 的 2.35× 已切到"排序循环本身"，不是比较函数（P-177 的延伸）（2026-10-17）**：
+  ① **分层读数（两侧 `-O2`、min-of-3/5 ✓）**：`value<-1e6`（纯比较循环 ✓）端口 **76 ms vs 60 ms** ✗ = **1.26×**；`sort-1e6-value<`（TimSort + 内建谓词 ✓）端口 **31 ms vs 13 ms** ✗ = **2.35×**；`sort-1e5-symbol`（`#'<` ✓）3.5 vs 1.7 ms ✗ 2.06×；`sort-1e5-closure` 6.3 vs 3.5 ms ✗ 1.8× ⇒ **谓词形态不是变量** ✓，差异在 `sort` 自己的循环 ✓。
+  ② **读码核对（结构一致 ✓）**：`inorder`（`(*ms).pred_fun.unwrap_unchecked() (ms, a, b)` ✓）与 C 的 `ms->pred_fun (ms, a, b)` 同形 ✓；`merge_getmem`（`xfree` + `xmalloc`，**不清零** ✓）与 C 逐字一致 ✓；主循环（`count_run` / `binarysort` / `found_new_run` / `merge_force_collapse` ✓）与 C 同序 ✓；`keys = xzalloc (length * word_size)` 也与 C 同 ✓。⇒ 不是"少了/多了算法步骤" ✗，是**同一段代码的机器码成本** ✓。
+  ③ **已排除的** ✓：谓词类型（nil/符号/闭包都差 1.8–2.3× ✓）、`value_cmp` 本体（只差 1.26× ✓）、内存分配策略（同 C ✓）。
+  ④ **一条未完成的仪器尝试** ✗：想用 `sample` 抓热栈 ✓，两次都被受控执行器的内存上限杀掉（工作量设得太大 ✓，退出码 137 ✓）⇒ 下一轮改用**计数器**（`count_run` 的比较次数 / `merge_lo` 的移动次数 / 每次排序的分配字节 ✓）在诊断构建里打点 ✓，比采样更省 ✓。
+  ⑤ **Lisp 零改动** ✓；本轮**零单元重编** ✓；受控执行器 runtime 900-1100 MiB，基准 2 次（各 <1 s ✓）+ 采样尝试 2 次（均被上限终止 ✓，无残留进程 ✓）；`git -C emacs status --short` 为空 ✓。提交：本提交（纯读数 ✓）。
