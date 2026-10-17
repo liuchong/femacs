@@ -22007,3 +22007,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ① **冒烟**：`tools/smoke.sh` ⇒ **11 check / 0 failure** ✓（P-186/187 两次重生成的 dump 上复跑 ✓）。
   ② **差分对拍**：`tools/check-diff-fuzz.py --programs 60 --seed {0,1,2}` ⇒ **same=60 / 60 / 60，differ=0** ✓（合计 **180 个程序**，0 差异 ✓，每轮约 62 s ✓、峰值 ≤ 55 MB ✓）。
   ③ **Lisp 零改动**；本轮**零编译**；`git -C emacs status --short` 为空。提交：本提交（读数）。
+- **4.559 验证相第一百九十轮：7.2 的最后一道闸门（故障注入）建成 —— 19 用例 16 一致、3 只差回溯帧、0 行为差异（P-188）（2026-10-17）**：
+  ① **新工具** `tools/check-fault-injection.py`：编码异常输入（6 ✓）、信号（SIGTERM/SIGINT/SIGHUP/SIGQUIT/SIGPIPE ✓）、EINTR（`sleep-for` 与 `accept-process-output` 期间反复发 SIGWINCH/SIGCONT ✓）、资源上限（`ulimit -n`/`-f`/`-t`/`-s` ✓）、内存（`RLIMIT_AS` 被平台拒 ✓、有界分配 + 上限 ✓）。
+  ② **读数**：**same=16、backtrace-only=3、differ=0** ✓；退出状态逐一相同 ✓（SIGTERM 15 ✓、SIGHUP 1 ✓、SIGQUIT −3 ✓、SIGXFSZ −25 ✓、SIGXCPU −24 ✓）。
+  ③ **3 个 backtrace-only 的性质**：`SIGQUIT` 29/31 帧、`SIGXFSZ` 35/37 帧、`SIGXCPU` 34/42 帧 —— 差异是**帧数**、**符号拼写**（端口的 Rust 私有符号是改名后的 `_RNv…` ✓）与 `...` 截断标记是否出现 ✓ ⇒ 归因为**内联/Rust 符号名**，非行为差异 ✓（`limit-cpu` 的头两行消息两侧完全一致 ✓）。
+  ④ **平台**：`ulimit -v/-d/-m` 与 `RLIMIT_AS/DATA` 在 Darwin **被拒** ✓（据此内存族改用"有界分配 + 200 MiB 上限"与 `ulimit -s` 的栈溢出 longjmp ✓）。
+  ⑤ **危险教训入库**：注入"单个巨型分配"会让 macOS 超额提交并走进 swap ✗（实测后立即杀掉 ✓）⇒ 一律改用有界循环 ✓（P-188 ③）。
+  ⑥ **Lisp 零改动**；本轮**零编译**；受控执行器 runtime 1,200 MiB（三轮，峰值 ≤ 592 MB ✓、各约 13 s ✓）；`git -C emacs status --short` 为空。提交：`tools/check-fault-injection.py`（新门）、`docs/port-plan.md`（7.2 指明工具）、`docs/acceptance.md`（7.2 表加一行）、`PORTING.md`（P-188）、本提交（读数）。
