@@ -21658,3 +21658,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **排除项（均实测 ✓）**：`(nconc <cyc1> 'tail)` 与 `(nconc <cyc2 1010 元素> 'tail)` 两侧都 `CAUGHT circular-list` ✓；`value_cmp` 的 `PVEC_PROCESS`/`PVEC_BUFFER`（`goto tail_recurse` ✓）、`Fprocess_name` 返回名字串 ✓ 与 C 同形 ✓。
   ③ **下一轮（点名 ✓）**：把 `fns-value<-ordered` 的 `dolist` 按**对象种类**分段跑 ✓（fixnum / bignum / float / symbol / string / buffer / marker / process ✓），一段一段缩到单个 `(X . Y)` 对 ✓ —— 这是该测试唯一的未知量 ✓。
   ④ **资源**：1 次 `sample`（45 s ✓）+ 4 次单测跑（≤25 s ✓）+ 2 次 `nconc` 复现（各 ≤20 s ✓）；受控执行器 runtime 900 MiB（下调自默认 ✓）、峰值 **65 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-155 ✓）、本提交（纯读数 ✓）。
+- **4.504 验证相第一百三十五轮：把 `fns-value<-ordered` 原样复制复现，并把挂死范围缩到"第一个 `dolist` 体之前"（P-156）（2026-10-17）**：
+  ① **忠实复现** ✓：把该测试**原样**写入 `/tmp/real.el`、体内首行加一行日志 ✓ ⇒ 端口 **rc=124（挂死 ✗）**、参照 **rc=0 ✓**，日志里**无 CASE 行** ✓ ⇒ 挂死早于 `(let ((x (car c)) …)` ✓（即 `let*` 绑定、`kill-buffer` 或列表字面量求值 ✓）。
+  ② **逐项排除（实测 ✓）**：`value<` 对 12 类对象各一类 ✓；测试额外的四个向量比较 ✓；**已被 kill 的 buffer** 三方向 ✓；嵌套 `#s(...)` 的读取与打印 ✓；`make-pipe-process`/`get-buffer-create`/`kill-buffer` 在 ERT 内 ✓；`nconc` 循环表两形状 ✓。
+  ③ **顺带发现一处真差异（记入待查 ✓）**：marker 指向**空 buffer** 时 `(value< m1 m2)` 端口 **nil ✗** / 参照 **t ✓**；两 buffer 有文本后两侧一致 ✓。
+  ④ **下一轮（单点 ✓）**：定义齐全的探针（含 `mark3`/`mark4` ✓）求值那个 `dolist` 列表字面量 ✓；上一版探针因漏定义 `mark3` 报 `void-variable` ✗，属探针自身错误 ✓。
+  ⑤ **资源**：7 次 `env … --batch` 短跑（各 ≤60 s，其中一次 30 s 挂死 ✓）+ 1 次 ERT 复制跑 ✓；受控执行器 runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 65 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-156 ✓）、本提交（纯读数 ✓）。
