@@ -22039,3 +22039,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **直接证据（新探针）** ✓：`spikes/c-ctype-low-byte-probe.el` —— 12 个"低位字节是控制字符"的码点（U+0100/U+0107/U+010A/U+011B/U+017F/U+2019/U+590D/U+4E00/U+1F600/U+1F60A/U+FFFD?/U+10FFFF）在 `escape-control-characters` 下打印 ⇒ **两侧逐字符相同、`:roundtrip` 均为 t** ✓✓（修前 `复`/`’` 变 `\15`/`\31` ✗）。
   ⑤ **生成物**：`check-generated.py` 240 文件 ⇒ **140 identical / 100 name-only / 0 DIFFERENT / 0 missing** ✓（这是该门第一次零差异 ✓）。
   ⑥ **资源与清理**：本轮唯一一次重跑是这份 L5（2,369 s、峰值 999 MB，profile 1.4 GiB 内 ✓；第一次以 900 MiB profile 跑被 `memory_limit` 杀掉 ✓ —— 记录：全量 `all` 选择器需要 > 900 MiB 的**进程树**预算 ✓）；零单元重编 ✓；`git -C emacs status --short` 为空 ✓。提交：`spikes/c-ctype-low-byte-probe.el`（探针 ✓）、`docs/baseline/ert-sweep-after-c-ctype-fix.tsv`（台账 ✓）、`PORTING.md`（P-191 ② 补证 ✓）、`docs/acceptance.md`（L5 行 ✓）、本提交（读数 ✓）。
+- **4.564 验证相第一百九十四轮：DoD-7 的归因再收一格 —— `overflow-checks` 的代价 = 字符串/缓冲类 8–16%，VM 与排序在噪声内（P-192）（2026-10-17）**：
+  ① **手段**：新增诊断开关 `FEMACS_OVERFLOW_CHECKS`（同 `FEMACS_OPT_LEVEL` 的形状 ✓，默认标志不动 ✓）⇒ 全量重编一轮（`gate-fast` 489 s ✓）＋ `gate-load`/`dump` ⇒ 用 `tools/bench.sh`（min-of-5 ✓）测 3 轮。
+  ② **读数（checks 关 / checks 开）**：`regexp-repl` **0.97–1.08× / 1.14–1.15×** ✓、`buffer-scan` **0.98–1.01× / 1.22–1.24×** ✓ ⇒ 这两项关掉检查即**追平或超过参照** ✓；`bc-loop` 1.46–1.56× / 1.35–1.54× ✓、`bc-sum` 1.33–1.53× / 1.45–1.52× ✓、`bc-car` 1.11–1.27× / 1.34–1.38× ✓、`sort-100k` 1.10–1.18× / 1.17–1.20× ✓ ⇒ **区间重叠 = 噪声** ✓。
+  ③ **结论** ✓：`overflow-checks` 不是 VM 那 1.3–1.5× 的原因（P-185 的 threaded-vs-switch 结论不变 ✓）；它主要在**字符串/缓冲扫描**里可见 ✓ ⇒ 拍板页第 1 项补上这组数字 ✓。
+  ④ **恢复与复验** ✓：默认构建重编（`gate-fast` exit 0 ✓、`inventory/symbols/link/layout/declarations/defvar/subr` 全绿 ✓）、`dump` ✓、`smoke` 11/11 ✓、`git -C emacs status --short` 为空 ✓。
+  ⑤ **资源与清理** ✓：两轮全量重编（各 ≈ 8 min ✓、峰值 ≤ 530 MB ✓）；收尾删掉本轮 `emacs-32.0.50.*` 与临时日志 ✓。提交：`femacs/xtask/src/main.rs`（诊断开关 ✓）、`PORTING.md`（P-192 ✓）、`docs/decisions-needed.md`（第 1 项补数字 ✓）、`docs/acceptance.md`（第 7 条读数 ✓）、本提交（读数 ✓）。
