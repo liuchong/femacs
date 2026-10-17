@@ -2989,12 +2989,17 @@ pub unsafe extern "C" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
       let maxargs: ptrdiff_t = (*subr).max_args as ptrdiff_t;
       if numargs <= maxargs && maxargs <= 8
 	{
-	  let mut argbuf: [Lisp_Object; 8] = [lisp_h_Qnil (); 8];
+	  /* C leaves `argbuf` uninitialised and writes only the slots it uses; the port used
+	     to fill all eight with nil, which is eight stores on every short call (P-182).
+	     `MaybeUninit` gives C's shape back: the slots below `numargs` are copied in and
+	     the rest of the used range is cleared, so no slot is read before it is written.  */
+	  let mut argbuf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
+	    core::mem::MaybeUninit::uninit ();
 	  let a: *mut Lisp_Object;
 	  if numargs < maxargs
 	    {
 	      eassume! (maxargs <= 8);
-	      a = argbuf.as_mut_ptr ();
+	      a = argbuf.as_mut_ptr () as *mut Lisp_Object;
 	      memcpy (a as *mut c_void, args as *const c_void,
 	              numargs as usize * word_size as usize);
 	      memclear (a.offset (numargs) as *mut c_void,
@@ -3006,46 +3011,46 @@ pub unsafe extern "C" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
 	    {
 	    0 =>
 	      {
-		return (((*subr).function.a0).unwrap ()) ();
+		return (((*subr).function.a0).unwrap_unchecked ()) ();
 	      }
 	    1 =>
 	      {
-		return (((*subr).function.a1).unwrap ()) (*a.offset (0));
+		return (((*subr).function.a1).unwrap_unchecked ()) (*a.offset (0));
 	      }
 	    2 =>
 	      {
-		return (((*subr).function.a2).unwrap ()) (*a.offset (0), *a.offset (1));
+		return (((*subr).function.a2).unwrap_unchecked ()) (*a.offset (0), *a.offset (1));
 	      }
 	    3 =>
 	      {
-		return (((*subr).function.a3).unwrap ())
+		return (((*subr).function.a3).unwrap_unchecked ())
 		       (*a.offset (0), *a.offset (1), *a.offset (2));
 	      }
 	    4 =>
 	      {
-		return (((*subr).function.a4).unwrap ())
+		return (((*subr).function.a4).unwrap_unchecked ())
 		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3));
 	      }
 	    5 =>
 	      {
-		return (((*subr).function.a5).unwrap ())
+		return (((*subr).function.a5).unwrap_unchecked ())
 		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4));
 	      }
 	    6 =>
 	      {
-		return (((*subr).function.a6).unwrap ())
+		return (((*subr).function.a6).unwrap_unchecked ())
 		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4),
 			*a.offset (5));
 	      }
 	    7 =>
 	      {
-		return (((*subr).function.a7).unwrap ())
+		return (((*subr).function.a7).unwrap_unchecked ())
 		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4),
 			*a.offset (5), *a.offset (6));
 	      }
 	    8 =>
 	      {
-		return (((*subr).function.a8).unwrap ())
+		return (((*subr).function.a8).unwrap_unchecked ())
 		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4),
 			*a.offset (5), *a.offset (6), *a.offset (7));
 	      }
