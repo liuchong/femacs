@@ -82,7 +82,11 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 - **频繁阶段性汇报**（每批或每 10 个文件，先到者为准）；被问总进度时给**百分比 + 剩余工作量 + 剩余比例**。
 - 进度三口径：`python3 tools/extract-abi.py --all`（覆盖）、`cloc --quiet femacs`（规模）、`docs/status.md`（本轮读数）。
 
-## 6 当前阶段与优先级（2026-10-16）
+## 6 当前阶段与优先级（入口：`docs/current-state.md`）
+
+**先读 `docs/current-state.md`** —— 那一页是用户已定方向、8 条完成定义判定与复跑命令的唯一快照；本段只保留长期规则，具体读数以快照与 `docs/status.md` 末轮为准。
+
+### 长期规则（2026-10-16 起）
 
 - 转写清单 **590/590 完成**（`extract-abi.py --all` = 590 done / 0 WIP / 0 failing）；当前处**行为级验收**相，DoD 见 `docs/goal.md` §10。
 - **优先推进覆盖与代码量**：先把覆盖率推到 100% 阶段完成，之后才集中做问题修复、整合构建与全面验收；**不要做无谓评审、不要过早精修**。

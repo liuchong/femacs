@@ -1,4 +1,6 @@
 # The acceptance baseline: the reference program the ladder compares against
+判定口径：**8 条完成定义等权**；当前 **6/8 = 75%**（1、2、3、4、5、8 达成；6 部分；7 按用户决定暂挂、记未达）。
+入口快照：`docs/current-state.md`。
 
 `docs/port-plan.md` 7.1's ladder (L0 self-check expressions, L1-L3 `loadup`, L4-L5 the Lisp test
 suite) is *differential*: every rung compares the port with the reference program, so the
