@@ -21648,3 +21648,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **门** ✓：`build-tu src/regex-emacs.c` ✓、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、`gate-fast` 见提交说明 ✓。
   ⑤ **下一步（点名 ✓）**：⑴ 同一脚本扩大到 `while` **非宏**循环里的 `continue`（按 C 侧是否为 `for` 对照 ✓）；⑵ `electric-tests` 的匹配器缺陷（`d` 越过 `end1` ✓）；⑶ `.elc` 96 件状态差按两阶段镜像 ✓；⑷ `back_comment`（P-139 ✓）与其余 port-worse ✓；⑸ 五平台冒烟 ✓。
   ⑥ **资源**：1 次单单元编译 ✓ + 1 次 `gate-load`/`dump` ✓ + 2 次单文件 ERT（2.7 s ✓）+ 1 次 `gate-fast`；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 277 MB** ✓；`git -C emacs status --short` 为空 ✓；临时脚本在 `/tmp` ✓。提交：`femacs/src/regex-emacs.rs`（`GET_CHAR_BEFORE_2` ✓）、`PORTING.md`（P-153 ✓）、本提交 ✓。
+- **4.502 验证相第一百三十三轮：扫描 175 处 `while`+`continue`（按失败文件收敛到 13 处、全部安全），并因宏修法拿到第二条 `crashed → same`（P-154）（2026-10-17）**：
+  ① **扫描与核对** ✓：全树 `while` 块内含 `continue;` 的 **175 处** ✓ ⇒ 按已知失败文件收敛到 `buffer`/`fns`/`xdisp`/`syntax` 的 **13 处** ✓ ⇒ 逐条核对**全部在 `continue` 前已推进循环变量** ✓（`i += 1` / `tmp = XCDR` / `fetch_string_char_as_multibyte_advance` / `i_byte = ch.offset_from` / `inc_both` / `dec_both` ✓）；`xdisp` 两处已显式 `g = g.offset (1); continue;` 并注明 C 的 `for` 语义 ✓。
+  ② **L5 复读（今日修法的连带 ✓）**：`lisp/whitespace-tests.el` **same ✓**（11 例 ✓）；**`src/buffer-tests.el` crashed → same ✓（408 例、两侧 0 unexpected ✓）** ⇒ 端口独有崩溃 **6 → 4** ✓（余 `fns`/`xdisp`/`electric`/`log-edit` ✗）。
+  ③ **仍未解决的挂死** ✓：`src/fns-tests.el`（240 s 无 summary ✗，参照 95 例通过 ✓）、`src/xdisp-tests.el`（240 s ✗，参照 11 例通过 ✓）⇒ 按 P-152 ① 的顺序继续（`sample` 最内层帧 → 该帧内唯一不前进的循环 → 对照 C 的循环头 ✓）。
+  ④ **资源**：1 次三文件 ERT 批跑（962 s ✓，受控执行器 runtime 900 MiB ✓，峰值 **62 MB** ✓）；`git -C emacs status --short` 为空 ✓；本轮**零编译** ✓。提交：`PORTING.md`（P-154 ✓）、本提交（纯读数 ✓）。
