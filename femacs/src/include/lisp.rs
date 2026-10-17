@@ -1825,9 +1825,28 @@ pub const SPECPDL_UNWIND_EXCURSION: u32 = 5;
 pub const SPECPDL_UNWIND_VOID: u32 = 6;
 pub const SPECPDL_BACKTRACE: u32 = 7;
 pub const SPECPDL_NOP: u32 = 8;
+/* C 3558-3562: the rest of the enumeration is target-dependent, because C 3560-3562's two
+   `#ifdef HAVE_MODULES` members sit *between* `SPECPDL_NOP` and `SPECPDL_LET` and C's
+   enumerators are numbered in order.  Android sets `HAVE_MODULES` (1), the frozen target does
+   not (`/* #undef HAVE_MODULES */`), so the six values differ by two between the two arms -
+   transcribed with the frozen target's numbers only, `src/eval.c` 3840-3847's module arm read
+   `cannot find value SPECPDL_MODULE_RUNTIME` on Android (measured).  */
+#[cfg (not (feature = "have_modules"))]
 pub const SPECPDL_LET: u32 = 9;
+#[cfg (not (feature = "have_modules"))]
 pub const SPECPDL_LET_LOCAL: u32 = 10;
+#[cfg (not (feature = "have_modules"))]
 pub const SPECPDL_LET_DEFAULT: u32 = 11;
+#[cfg (feature = "have_modules")]
+pub const SPECPDL_MODULE_RUNTIME: u32 = 9;
+#[cfg (feature = "have_modules")]
+pub const SPECPDL_MODULE_ENVIRONMENT: u32 = 10;
+#[cfg (feature = "have_modules")]
+pub const SPECPDL_LET: u32 = 11;
+#[cfg (feature = "have_modules")]
+pub const SPECPDL_LET_LOCAL: u32 = 12;
+#[cfg (feature = "have_modules")]
+pub const SPECPDL_LET_DEFAULT: u32 = 13;
 
 // lisp.h 4198-4205: `enum Set_Internal_Bind` (the fourth argument of `set_internal`).
 pub type Set_Internal_Bind = c_int;
@@ -3827,6 +3846,23 @@ pub mod other_units {
     #[cfg (all (feature = "have_window_system", feature = "have_android"))]
     unsafe extern "C" { pub fn module_finalize_function (function: *const c_void); }
 
+    /* C 4889-4906 (`#ifdef HAVE_MODULES`): the opaque module-function pointer type and the six
+       entry points `emacs-module.c` defines.  Android sets `HAVE_MODULES`, so `src/print.c`
+       2188/2199 reads them there (`cannot find type module_funcptr`, measured).  */
+    #[cfg (feature = "have_modules")]
+    pub type module_funcptr = Option<unsafe extern "C" fn ()>;
+    #[cfg (feature = "have_modules")]
+    unsafe extern "C" {
+      /* C 4895-4906.  */
+      pub fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t,
+                             args: *mut Lisp_Object) -> Lisp_Object;
+      pub fn module_function_arity (function: *const c_void) -> Lisp_Object;
+      pub fn module_function_documentation (function: *const c_void) -> Lisp_Object;
+      pub fn module_function_interactive_form (function: *const c_void) -> Lisp_Object;
+      pub fn module_function_command_modes (function: *const c_void) -> Lisp_Object;
+      pub fn module_function_address (function: *const c_void) -> module_funcptr;
+      pub fn module_function_data (function: *const c_void) -> *mut c_void;
+    }
     /// C 5273-5274: the `#ifdef HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` arm declares this one and
     /// `sysdep.c` 162 defines it; the `#else` arm is the inline above (C 5276-5280).  It sits in
     /// the module rather than at the mirror's root because the defining unit includes this mirror

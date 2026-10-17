@@ -64,6 +64,10 @@ include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"
 include!("include/syssignal.rs");              // C 40: `#include "syssignal.h"`
 include!("include/tparam.rs");                 // C 42: `#include "tparam.h"`
 include!("include/pdumper.rs");                // C 44: `#include "pdumper.h"`
+/* C 49: `#include "android.h"` (inside C 48's `#ifdef HAVE_ANDROID`).  The mirror glob-imports
+   its object module, so this edge is what supplies `android_init_gui` (measured).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+include!("include/android.rs");                // C 49: `#include "android.h"`
 /* C 53: `#include TERM_HEADER`, inside C 52's `#ifdef HAVE_WINDOW_SYSTEM`.  The frozen
    configuration leaves `TERM_HEADER` undefined (C's own `config.h` 2361 `/* #undef TERM_HEADER */`,
    no window system), which is why the port's units carried no edge for it - and the five

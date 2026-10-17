@@ -87,6 +87,12 @@ include!("include/composite.rs");              // C 37: `#include "composite.h"`
 include!("include/font.rs");                   // C 39: `#include "font.h"`
 include!("include/termhooks.rs");              // C 40: `#include "termhooks.h"`
 include!("include/pdumper.rs");                // C 41: `#include "pdumper.h"`
+/* C 44: `#include TERM_HEADER`, inside `#ifdef HAVE_WINDOW_SYSTEM` - the five-way gate
+   `src/fontset.rs` 75-85 and `src/dispnew.rs` 66-71 carry.  The frozen configuration leaves
+   `TERM_HEADER` undefined, so no unit had the edge and every `FRAME_DISPLAY_INFO`-shaped
+   expansion read `cannot find macro` on Android (measured).  */
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+include!("include/androidterm.rs");            // C 44 (TERM_HEADER): `androidterm.h`
 
 /* ==========================================================================================
    `font.h`'s records, accessors and macros (the mirror gap; see the header note).  */
@@ -461,10 +467,9 @@ unsafe extern "C" {
                                   descent: *mut c_int);
 }
 
-/// C: font.h 683-684: `struct glyph_string` (declared in dispextern.h) has no mirror; C only
-/// passes a pointer to it (`font_driver.draw`), so the port declares the opaque placeholder
-/// P-70 prescribes for a type that is only ever a pointer target.
-pub struct glyph_string;
+/* C: font.h 683-684 only *points* at `struct glyph_string`; its record is dispextern.h's and
+   `include/dispextern.rs` 1614 carries it under `have_window_system`.  An opaque placeholder here
+   was `E0428 glyph_string` on Android, where that arm is live (measured).  */
 
 /// `lisp.h`'s `assoc_no_quit`, which the mirror does not carry.
 unsafe extern "C" {
@@ -3969,23 +3974,23 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
   /* C 2999-3013: `#ifdef HAVE_WINDOW_SYSTEM`, carried.  */
   #[cfg(feature = "have_window_system")]
   {
-    FRAME_DISPLAY_INFO (f).n_fonts += 1;
-    if FRAME_DISPLAY_INFO (f).n_fonts == 1
+    FRAME_DISPLAY_INFO! (f).n_fonts += 1;
+    if FRAME_DISPLAY_INFO! (f).n_fonts == 1
       {
-	FRAME_SMALLEST_CHAR_WIDTH (f) = min_width;
-	FRAME_SMALLEST_FONT_HEIGHT (f) = height;
+	FRAME_SMALLEST_CHAR_WIDTH! (f) = min_width;
+	FRAME_SMALLEST_FONT_HEIGHT! (f) = height;
 	(*f).fonts_changed = 1;
       }
     else
       {
-	if FRAME_SMALLEST_CHAR_WIDTH (f) > min_width
+	if FRAME_SMALLEST_CHAR_WIDTH! (f) > min_width
 	  {
-	    FRAME_SMALLEST_CHAR_WIDTH (f) = min_width;
+	    FRAME_SMALLEST_CHAR_WIDTH! (f) = min_width;
 	    (*f).fonts_changed = 1;
 	  }
-	if FRAME_SMALLEST_FONT_HEIGHT (f) > height
+	if FRAME_SMALLEST_FONT_HEIGHT! (f) > height
 	  {
-	    FRAME_SMALLEST_FONT_HEIGHT (f) = height;
+	    FRAME_SMALLEST_FONT_HEIGHT! (f) = height;
 	    (*f).fonts_changed = 1;
 	  }
       }
@@ -4009,8 +4014,8 @@ unsafe fn font_close_object (f: *mut frame, font_object: Lisp_Object)
   /* C 3032-3034: `#ifdef HAVE_WINDOW_SYSTEM`, carried.  */
   #[cfg(feature = "have_window_system")]
   {
-    eassert! (FRAME_DISPLAY_INFO (f).n_fonts != 0);
-    FRAME_DISPLAY_INFO (f).n_fonts -= 1;
+    eassert! (FRAME_DISPLAY_INFO! (f).n_fonts != 0);
+    FRAME_DISPLAY_INFO! (f).n_fonts -= 1;
   }
 }
 
@@ -5121,7 +5126,7 @@ pub unsafe extern "C" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
 	  else { fetch_string_char_advance_no_check (string, &mut pos, &mut pos_byte) };
       let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c);
       if FIXNUMP (category)
-	  && (XFIXNUM (category) == UNICODE_CATEGORY_Cf as EMACS_INT
+	  && (XFIXNUM (category) == unicode_category_t::UNICODE_CATEGORY_Cf as EMACS_INT
 	      || CHAR_VARIATION_SELECTOR_P (c) != 0)
 	{
 	  continue;
@@ -6174,7 +6179,7 @@ DEFUN! ("frame-font-cache", Fframe_font_cache, Sframe_font_cache, 0, 1, 0,
     let f: *mut frame = decode_live_frame (frame);
 
     if FRAME_WINDOW_P (f)
-      { return (*FRAME_DISPLAY_INFO (f)).name_list_element; }
+      { return (*FRAME_DISPLAY_INFO! (f)).name_list_element; }
   }
   return Qnil ();
 });

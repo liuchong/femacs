@@ -5951,7 +5951,10 @@ pub const FUNCTION_KEY_OFFSET: c_int = 0xff00;
 /* You'll notice that this table is arranged to be conveniently
    indexed by X Windows keysym values.  */
 /* C 5509-5512: `#if defined HAVE_NS || !defined HAVE_WINDOW_SYSTEM` around the
-   `static` keyword; the condition is true here, so the definition is `static`.  */
+   `static` keyword; the condition is true here, so the definition is `static`.  The gate is C's
+   own: with a window system and no NS the arm is not compiled, and Android read
+   `E0428 lispy_function_keys` against its own arm without it (measured).  */
+#[cfg (any (feature = "have_ns", not (feature = "have_window_system")))]
 static mut lispy_function_keys: [*const c_char; 256] = [
     /* X Keysym value */
 

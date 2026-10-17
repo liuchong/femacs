@@ -84,6 +84,11 @@ include!("include/syssignal.rs");              // C 76: `#include "syssignal.h"`
 include!("include/blockinput.rs");             // C 78: `#include "blockinput.h"`
 include!("include/frame.rs");                  // C 79: `#include "frame.h"`
 include!("include/keyboard.rs");               // C 81: `#include "keyboard.h"`
+/* C 96: `#include "android.h"` (inside C 94's `#ifdef HAVE_ANDROID`).  The mirror glob-imports
+   its prototype module, so this edge is what supplies `android_is_special_directory` and
+   `android_rewrite_spawn_argv` (3 x `cannot find function`, measured on Android).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+include!("include/android.rs");                // C 96: `#include "android.h"`
 
 /* The names C gets from lisp.h, process.h, syswait.h and the system headers above, declared
    at the use site (the terminal.rs/filelock.rs shape); none of them has a mirror.  */
@@ -1635,7 +1640,7 @@ pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
        all its children.  On these systems, rewrite the command line to
        call that loader binary instead.  */
 
-    if android_rewrite_spawn_argv (&raw mut argv as *mut *mut *const c_char)
+    if android_rewrite_spawn_argv (&raw mut argv as *const *const *const c_char)   // C 1453's own cast
       { return 1; }
   }
 

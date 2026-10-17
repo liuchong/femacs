@@ -547,6 +547,12 @@ include!("include/commands.rs");               // C 488: `#include "commands.h"`
 include!("include/indent.rs");                 // C 487: `#include "indent.h"`
 include!("include/region-cache.rs");           // C 495: `#include "region-cache.h"`
 include!("include/pdumper.rs");                // lisp.h: `pdumper` declarations
+/* C 501: `#include TERM_HEADER`, inside `#ifdef HAVE_WINDOW_SYSTEM` - the five-way gate
+   `src/fontset.rs` 75-85 and `src/dispnew.rs` 66-71 carry.  The frozen configuration leaves
+   `TERM_HEADER` undefined, so no unit had the edge and every `FRAME_DISPLAY_INFO`-shaped
+   expansion read `cannot find macro` on Android (measured).  */
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+include!("include/androidterm.rs");            // C 501 (TERM_HEADER): `androidterm.h`
 
 /* C spells `enum itree_order`'s members bare (`DESCENDING` inside `ITREE_FOREACH`), and
    Rust 2024 keeps enum variants out of scope, so the port imports them (the

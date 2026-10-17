@@ -6053,27 +6053,10 @@ macro_rules! FRAME_TOOL_BAR_HEIGHT {
   ($f:expr) => { (*$f).tool_bar_height };
 }
 
-/* dispextern.h 115-165: `typedef struct <platform>_display_info Display_Info;`, one per GUI.
-   `include/dispextern.rs` does not carry the typedef (this unit's report to its owner), so each
-   arm is written here behind its platform's own feature, exactly as `FRAME_OUTPUT_DATA` is.  */
-/// C: dispextern.h 115: `typedef struct x_display_info Display_Info;`
-#[cfg (feature = "have_x_windows")]
-pub type Display_Info = x_display_info;
-/// C: dispextern.h 136: `typedef struct w32_display_info Display_Info;`
-#[cfg (feature = "have_ntgui")]
-pub type Display_Info = w32_display_info;
-/// C: dispextern.h 145: `typedef struct ns_display_info Display_Info;`
-#[cfg (feature = "have_ns")]
-pub type Display_Info = ns_display_info;
-/// C: dispextern.h 152: `typedef struct pgtk_display_info Display_Info;`
-#[cfg (feature = "have_pgtk")]
-pub type Display_Info = pgtk_display_info;
-/// C: dispextern.h 159: `typedef struct haiku_display_info Display_Info;`
-#[cfg (feature = "have_haiku")]
-pub type Display_Info = haiku_display_info;
-/// C: dispextern.h 165: `typedef struct android_display_info Display_Info;`
-#[cfg (feature = "have_android")]
-pub type Display_Info = android_display_info;
+/* dispextern.h 115-165's six `typedef struct <platform>_display_info Display_Info;` arms
+   are `include/dispextern.rs` 716-737's now (one per platform, each gated by its own
+   feature); this unit's own six copies were `E0428` on Android once the window-system
+   arm went live (measured) - C has the typedef once, in dispextern.h.  */
 
 /* dispextern.h 3983-3992: `enum resource_types`, itself inside C's `#ifdef HAVE_WINDOW_SYSTEM`;
    C's enum ABI is `c_int` (PORTING.md 1.3).  */
