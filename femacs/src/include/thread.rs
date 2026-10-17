@@ -318,6 +318,12 @@ pub struct Lisp_CondVar
   pub name: Lisp_Object,          // 299
   pub cond: sys_cond_t,           // 301
 }
+/* `sizeof(struct Lisp_CondVar)` is 72 on android/aarch64 (32 on darwin): the Android arm holds a
+   `sys_cond_t` (48) where darwin's holds a smaller one - measured with the same `_Static_assert`
+   probe against C's headers (P-236).  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<Lisp_CondVar> () == 72);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<Lisp_CondVar> () == 32);
 
 // thread.h 303-307: `CONDVARP`.

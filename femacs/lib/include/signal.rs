@@ -59,7 +59,19 @@ pub type sigset_t = c_uint;
    entries lib/pthread_sigmask.c and lib/pselect.c reach through <signal.h>; the measurement
    (`printf ("%zu %d %d %d", sizeof (sigset_t), SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK)`)
    prints `4 1 2 3`.  */
-#[cfg (not (feature = "windowsnt"))]
+/* bionic's `sigset_t` is an `unsigned long` - 8 bytes on aarch64 - while Darwin's is the
+   4-byte `__darwin_sigset_t` the comment above records.  Measured with the same probe
+   (`sizeof(sigset_t)` from the NDK's `<signal.h>`).  */
+#[cfg (feature = "have_android")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct sigset_t
+{
+  pub __val: u64,
+}
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<sigset_t> () == 8);
+#[cfg (all (not (feature = "windowsnt"), not (feature = "have_android")))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sigset_t
@@ -67,6 +79,7 @@ pub struct sigset_t
   pub __val: u32,
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<sigset_t> () == 4);
 
 /// <signal.h>: `#define SIG_BLOCK 1`.
@@ -102,6 +115,26 @@ pub union __sigaction_u
      sigset_t sa_mask;
      int sa_flags;
    };  */
+/* bionic's `struct sigaction` is flat and 32 bytes (`sa_sigaction` is a plain member, not a field
+   of `__sigaction_u`), measured with `_Static_assert` against the NDK's own `<signal.h>`
+   (docs/baseline/android-layout-probe.md, P-237).  The darwin arm keeps its 16-byte shape.  */
+#[cfg (feature = "have_android")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sigaction
+{
+  // bionic declares `void (*sa_sigaction) (int, siginfo_t *, void *)`; `siginfo_t` comes from
+  // the NDK's own `<signal.h>`, which the port names as an opaque `c_void` here so this mirror
+  // does not have to declare it (the `android.rs` handler takes `*mut siginfo_t`, and C passes
+  // the same pointer through both spellings).
+  pub sa_sigaction: Option<unsafe extern "C" fn (c_int, *mut siginfo_t, *mut c_void)>,
+  pub sa_mask: sigset_t,
+  pub sa_flags: c_int,
+  pub sa_restorer: Option<unsafe extern "C" fn ()>,
+}
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<sigaction> () == 32);
+#[cfg (not (feature = "have_android"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sigaction
@@ -111,9 +144,13 @@ pub struct sigaction
   pub sa_flags: c_int,
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<sigaction> () == 16);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_mask) == 8);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_flags) == 12);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<__sigaction_u> () == 8);
 
 /* The `sigset_t` operations, in a uniquely-named module + glob import (the stdio.rs shape):
@@ -167,11 +204,24 @@ pub mod signal_decls {
   }
 
   /// C: `#define sigaddset(set, signo) (*(set) |= __sigbits (signo), 0)` (Darwin arm)
-  #[cfg (not (feature = "windowsnt"))]
+  ///
+  /// One arm per target, as C has one macro per platform: `__val` is 4 bytes on darwin and 8 on
+  /// bionic, and C's `|=` widens automatically where Rust needs the width spelled out
+  /// (`u64 |= u32` fails; status 4.622).
+  #[cfg (all (not (feature = "windowsnt"), not (feature = "have_android")))]
   #[inline(always)]
   pub unsafe fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int
   {
     (*set).__val |= __sigbits (signo);
+    0
+  }
+
+  /// C: the same macro on bionic, where `sigset_t` is an `unsigned long`.
+  #[cfg (feature = "have_android")]
+  #[inline(always)]
+  pub unsafe fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int
+  {
+    (*set).__val |= __sigbits (signo) as u64;
     0
   }
 

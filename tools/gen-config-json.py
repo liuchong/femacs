@@ -76,9 +76,18 @@ def main() -> int:
     header = read_header(a.header)
     keys = json.loads(a.keys_from.read_text("utf-8"))["macros"]
     if a.keys_from_header:
+        # Only names that can be Rust constants: `--keys-from-header` would otherwise take C's
+        # `#define true 1` / `#define typeof __typeof__` (glibc's own spellings), and `gen-config`
+        # emits `pub const <name>`, so `pub const true` broke every unit (status 4.622).  C spells
+        # its configuration macros in upper case, so the filter is "starts with an upper-case
+        # letter or an underscore".
+        import re as _re
         for name in header:
-            if name not in keys:
-                keys = [*keys, name]
+            if name in keys:
+                continue
+            if not _re.fullmatch(r"[A-Z_][A-Z0-9_]*", name):
+                continue
+            keys = [*keys, name]
     macros = {k: header.get(k, "absent") for k in keys}
     for spec in a.macro:
         name, _, value = spec.partition("=")
