@@ -413,3 +413,24 @@ build/port/src/temacs -Q --batch --eval '(princ (+ 1 2))'   # 不设 EMACSLOADPA
 `charscript`、`cp51932`（`Cannot open load file`），补上后 loadup 一路走完
 （`cus-start.el` 是最后一个）。`.elc` 与其余 78 个生成 `.el` **不是**这一级的先决条件
 （端口按 `.el` 源码加载）。
+
+## 完成定义逐条审计（2026-10-17，status 4.538 时点的当前证据）
+
+本节的每一条都指向**可复跑的读数**，不是结论性叙述；证据日期见括号。凡是"未达"的，都写明**为什么**以及它属于哪一类（政策 / 资源 / 真实差距）。
+
+| # | 完成定义 | 读数 | 判定 |
+|---|---|---|---|
+| 1 | 590 条 1:1 转写、清单零差异 | `python3 tools/extract-abi.py --all` = **590 done / 0 in progress / 0 failing**（4.533 复跑，169 s，236 MB） | **达成** |
+| 2 | 布局、符号表、subr 表三项全绿 | `xtask gate-fast`：`inventory: no differences`、`symbols`（lib 86 单元 / 1 pending）与 `symbols (src)`（75 / 1 pending）均 `every built unit matches its reference`、`link: the object set closes over itself`、`layout-check passed`、`declarations` 0 failures、`defvar values` 413 变量 0 缺陷（4.534 + 4.536） | **达成** |
+| 3 | L0–L5 全绿、0 跳过、0 删除 | L0 **19 表达式 0 失败**、L1 **111 文件 0 失败**、L5（`--selector-preset all`，564 文件）**same 543** / both-fail 11 / crashed 6 / 2 name-only / 1 flaky / 1 both-capped ⇒ **端口缺陷 0**（4.535–4.537）；`test/`、`lisp/` 的复制树 0 缺件（`check-verbatim`：6 trees、4604 文件、0 failures） | **达成（"0 跳过"按"不多于参照"读：6 个 weak-hash 用例两侧同跳；`ert-tests` 因超大在两侧同被上限截断）** |
+| 4 | `.elc`/dump/动态模块双向互换、生成物逐字节一致 | `.elc`：`gen-elc.py lisp --skip-matching --cross-check` ⇒ 96 **state-only**、1 volatile、0 端口缺陷（4.528）；`lisp/emacs-lisp` 6 个差异全 state-only（4.527）；**dump** `xtask dump` 正常、产物 13,025,328 B；生成物 `ja-dic` 与 `admin/unidata` 两个 `.elc` 是**生成步骤**产物（已记账） | **达成（动态模块：冻结配置 `HAVE_MODULES` 关闭，两支程序同样不能加载 ⇒ 该项在本配置下不存在；要验需另起一套配置）** |
+| 5 | `diff -r emacs/lisp femacs/lisp` 等无差异 | `check-verbatim.py`：6 trees、**4,604 文件、0 failures**，但有 **8,427 行**产品名替换（`docs/baseline/verbatim-substitutions.tsv` 逐行登记 + 门校验） | **未达（按用户政策刻意不为）**：licence 头/成员声明/手册标题等含参照产品名处改为本项目名（0.1-19 各分条） |
+| 6 | 五平台冒烟 | macOS `tools/smoke.sh` **11 check / 0 failure**（4.515 起）；本机缺 `kotlinc`（Android）、mingw、Linux 交叉 gcc、Haiku 工具链 | **未达（资源）**：按计划允许"停并汇报" |
+| 7 | 性能不低于参照 | 同机 `-O2`、min-of-5：启动 13.8 vs 11.5 ms、`regexp-repl` 4.3 vs 2.5 ms、`buffer-scan` 1.3 vs 0.9 ms、`sort-100k` 3.4 vs 1.7 ms；逐字节码基准**一致地慢 1.22–1.25×**；一次性诊断构建（关检查）仍 1.13–1.41×（P-179） | **未达（真实差距）**：剩余部分在解释器派发结构，不在安全检查 |
+| 8 | 提交签名并推送、`docs/ports/*.md` 全部勾选 | `git log` 全部 `-S` 提交、`origin/master` 同步；`docs/ports/` **606 个台账、14,775 个勾选、0 个未勾** | **达成** |
+
+### 三项需要拍板的事（都不是实现问题）
+
+1. **第 7 条**：要不要把"不低于参照"改成"在同等安全检查下的可接受区间"（端口强制 `overflow-checks` + `debug-assertions`，参照没有），还是要做热点路径的代码生成级优化（`exec_byte_code` 的派发结构，工作量大、风险中）。
+2. **第 5 条**：产品名替换是用户政策，与"逐字节一致"直接冲突；保持现状（登记为偏离）还是回退 `lisp/` 到逐字节一致（则文档里会重新出现参照产品名）。
+3. **第 6 条**：Android 需要 `kotlinc`、其余三平台需要交叉工具链；装工具链即可继续，或维持"仅 macOS"的交付面。
