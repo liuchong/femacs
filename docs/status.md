@@ -22142,3 +22142,7 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **读数** ✓：`checking whether the Java compiler works... no` ✓ ⇒ `configure: exit 1` ✓。
   ③ **定位** ✓：`configure.ac` 958-961 用 `-target 1.7 -source 1.7` ✓；本机 JDK 21 的 `javac` 对该参数直接报 `不再支持源选项 7。请使用 8 或更高版本。` ✓（手工复跑同一命令行 ✓）⇒ 需要 **JDK ≤ 19** ✓ 或改参照（禁止 ✗）。
   ④ **零重编** ✓；受控执行器 build 1.2 GiB 三次（峰值 ≤ 9 MB ✓，都在 javac 检查处早退 ✓）。提交：`PORTING.md`（P-207 ✓）、`docs/decisions-needed.md`（第 3 项补这条前置 ✓）、`tools/gen-android-config.sh`（JDK/PATH 接线 ✓）、本提交（读数 ✓）。
+- **4.583 验证相第二百一十三轮：三平台的"能构建/能运行"分开实测（P-208）（2026-10-17）**：
+  ① **只读核查** ✓：mingw ✗、Haiku ✗、`aarch64-linux-gnu-gcc` ✗、docker/podman/colima ✗；`zig` ✓、`qemu-system-aarch64` ✓（无镜像 ✗）。
+  ② **结论** ✓：Linux **可构建**（Rust 目标 ✓ + zig 作链接器 ✓）但**本机不可运行**（无容器/镜像 ✗）；Windows/Haiku **连构建都缺** ✗。
+  ③ **零重编** ✓（纯只读命令 ✓）。提交：`PORTING.md`（P-208 ✓）、`docs/decisions-needed.md`（第 3 项的可行性边界 ✓）、本提交（读数 ✓）。
