@@ -3979,18 +3979,17 @@ pub unsafe extern "C" fn run_window_change_functions ()
       let mut windows: Lisp_Object;
       let mut number_of_windows: ptrdiff_t;
 
-      if !FRAME_LIVE_P (f)
+      /* C written as a guard: the body used to end with `continue', which a Rust `while`
+         does not turn into the loop's increment (P-159).  */
+      if !( !FRAME_LIVE_P (f)
 	  || !can_set_window_size! (f)
 	  || !after_make_frame! (f)
 	  || FRAME_TOOLTIP_P (f)
 	  || !(frame_window_change
 	       || frame_selected_change
 	       || frame_selected_window_change
-	       || frame_window_state_change)
-	/* Either we are not allowed to run hooks for this frame or no
-	   window change has been reported for it since the last time
-	   we ran window change functions on it.  */
-	{ continue; }
+	       || frame_window_state_change))
+        {
 
       /* Analyze windows and run buffer locals hooks in pre-order.  */
       windows = Fnreverse (window_sub_list (root, Qnil ()));
@@ -4148,6 +4147,7 @@ pub unsafe extern "C" fn run_window_change_functions ()
 	/* This will run any buffer local window configuration change
 	   hook as well.  */
 	{ run_window_configuration_change_hook (f); }
+	  }
     });
 
   /* Run 'window-state-change-hook' if at least one frame has changed
