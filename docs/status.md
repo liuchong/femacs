@@ -21653,3 +21653,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **L5 复读（今日修法的连带 ✓）**：`lisp/whitespace-tests.el` **same ✓**（11 例 ✓）；**`src/buffer-tests.el` crashed → same ✓（408 例、两侧 0 unexpected ✓）** ⇒ 端口独有崩溃 **6 → 4** ✓（余 `fns`/`xdisp`/`electric`/`log-edit` ✗）。
   ③ **仍未解决的挂死** ✓：`src/fns-tests.el`（240 s 无 summary ✗，参照 95 例通过 ✓）、`src/xdisp-tests.el`（240 s ✗，参照 11 例通过 ✓）⇒ 按 P-152 ① 的顺序继续（`sample` 最内层帧 → 该帧内唯一不前进的循环 → 对照 C 的循环头 ✓）。
   ④ **资源**：1 次三文件 ERT 批跑（962 s ✓，受控执行器 runtime 900 MiB ✓，峰值 **62 MB** ✓）；`git -C emacs status --short` 为空 ✓；本轮**零编译** ✓。提交：`PORTING.md`（P-154 ✓）、本提交（纯读数 ✓）。
+- **4.503 验证相第一百三十四轮：`fns-tests` 的挂死定位到 `value<`（`fns-value<-ordered`），并排除 `nconc`/循环表与 `process-name` 两条假设（P-155）（2026-10-17）**：
+  ① **栈与单测二分** ✓：`sample` 最内层帧 = **`Fvaluelt` → `value_cmp`** ✓（当时 38–44 例已过 ✓）；逐个单跑 ✓：**`fns-value<-ordered` rc=124（25 s ✗）**、`fns-value<-unordered` rc=0 ✓ ⇒ 挂死在**有序**比较的某类对象 ✓。
+  ② **排除项（均实测 ✓）**：`(nconc <cyc1> 'tail)` 与 `(nconc <cyc2 1010 元素> 'tail)` 两侧都 `CAUGHT circular-list` ✓；`value_cmp` 的 `PVEC_PROCESS`/`PVEC_BUFFER`（`goto tail_recurse` ✓）、`Fprocess_name` 返回名字串 ✓ 与 C 同形 ✓。
+  ③ **下一轮（点名 ✓）**：把 `fns-value<-ordered` 的 `dolist` 按**对象种类**分段跑 ✓（fixnum / bignum / float / symbol / string / buffer / marker / process ✓），一段一段缩到单个 `(X . Y)` 对 ✓ —— 这是该测试唯一的未知量 ✓。
+  ④ **资源**：1 次 `sample`（45 s ✓）+ 4 次单测跑（≤25 s ✓）+ 2 次 `nconc` 复现（各 ≤20 s ✓）；受控执行器 runtime 900 MiB（下调自默认 ✓）、峰值 **65 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-155 ✓）、本提交（纯读数 ✓）。
