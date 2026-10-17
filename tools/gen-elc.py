@@ -453,9 +453,20 @@ def main() -> int:
         print(f"cross-checking {len(differing)} differing product(s) with the reference's program "
               f"inside the port's tree")
         products = cross_check(differing, args.timeout, args.reference_program)
+        volatile = 0
         for product in differing:
             mine = product.read_bytes()
             theirs = products.get(product)
+            rel = str(product.relative_to(PORT).with_suffix(".el"))
+            if rel in VOLATILE:
+                # The two programs agree on everything deterministic; the product carries a value
+                # that changes between runs, so *no* pair of compiles can match (the same reason
+                # the entry is on this list).  Counting it as a defect would be an accusation the
+                # evidence does not support, so it is reported and excluded from the count.
+                volatile += 1
+                print(f"volatile    {product.relative_to(REPO)}: {VOLATILE[rel]} (excluded from "
+                      f"the defect count)")
+                continue
             if theirs == mine:
                 state_only += 1
                 print(f"state-only  {product.relative_to(REPO)}: both programs produce "
@@ -477,7 +488,9 @@ def main() -> int:
           f"{counts['identical']} identical, {counts['rewrite-only']} rewrite-only, "
           f"{counts['DIFFERENT']} DIFFERENT, {counts['missing']} missing"
           + (f"; of the differing, {state_only} state-only, {rewrite_cross} rewrite-only, "
-             f"{len(defects)} a port defect" if args.cross_check else ""))
+             f"{len(defects)} a port defect"
+             + (f", {volatile} volatile" if volatile else "")
+             if args.cross_check else ""))
     if args.cross_check:
         return 1 if (defects or counts["missing"] or failures) else 0
     return 1 if (counts["DIFFERENT"] or counts["missing"] or failures) else 0
