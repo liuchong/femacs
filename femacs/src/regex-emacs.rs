@@ -4764,7 +4764,11 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    let mut dtemp: *const re_char = if ($p) == ($str2) { ($end1) } else { ($p) };
 	    let dlimit: *const re_char = if ($p) > ($str2) && ($p) <= ($end2) { ($str2) }
 					 else { ($str1) };
-	    while { dtemp = dtemp.offset (-1); dtemp > dlimit }
+	    /* C: `while (dtemp-- > dlimit && !CHAR_HEAD_P (*dtemp)) continue;` - the comparison
+	       uses the value *before* the decrement while the character test uses the value
+	       *after* it, and the failing test still decrements (P-152's family: pre- versus
+	       post-decrement).  Comparing the decremented value instead looked one byte further.  */
+	    while { let old: *const re_char = dtemp; dtemp = dtemp.offset (-1); old > dlimit }
 		  && ! CHAR_HEAD_P (*dtemp as c_int)
 	      { continue; }
 	    $c = STRING_CHAR (dtemp) as _;
