@@ -7,16 +7,27 @@
 #
 #   tools/bench.sh                     # port against the reference
 #   tools/bench.sh --prog build/port/src/emacs --ref build/emacs-ref/src/emacs
+#   tools/bench.sh --save docs/baseline/bench.tsv    # record this machine's numbers
+#   tools/bench.sh --gate docs/baseline/bench.tsv    # fail on a regression against them
 #
-# Exit status is 0 (this reports, it does not gate: DoD-7's target is a judgement call).
+# Exit status is 0 when reporting (DoD-7's target is a judgement call) and, in `--gate` mode,
+# 1 when a case is slower than its baseline by more than `--tolerance` (default 15%).  The
+# reference is rebuilt from time to time for other reasons (P-193 compiled it to the switch
+# arm once), so a gate on the *ratio* would fire on changes that have nothing to do with the
+# port: the gate therefore compares the **port's own milliseconds** to the recorded ones, and
+# prints the reference's beside them for context.
 set -u
 REPO=$(cd "$(dirname "$0")/.." && pwd)
+SAVE=""; GATE=""; TOL=0.15
 PROG="$REPO/build/port/src/emacs"
 REF="$REPO/build/emacs-ref/src/emacs"
 while [ $# -gt 0 ]; do
   case "$1" in
     --prog) PROG=$2; shift 2 ;;
     --ref)  REF=$2;  shift 2 ;;
+    --save) SAVE=$2; shift 2 ;;
+    --gate) GATE=$2; shift 2 ;;
+    --tolerance) TOL=$2; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -64,3 +75,36 @@ paste /tmp/bench-port.txt /tmp/bench-ref.txt | awk '{
   name=$2; a=$3; b=$7;
   if (b > 0) printf "  %-12s %8.4f / %8.4f = %.2fx\n", name, a, b, a/b
 }'
+
+if [ -n "$SAVE" ]; then
+  {
+    printf 'case\tport_ms\tref_ms\tdate\n'
+    today=$(date +%Y-%m-%d)
+    paste /tmp/bench-port.txt /tmp/bench-ref.txt | awk -v d="$today" '{
+      name=$2; a=$3; b=$7;
+      if (b > 0) printf "%s\t%.4f\t%.4f\t%s\n", name, a, b, d
+    }'
+  } > "$SAVE"
+  echo "saved $SAVE"
+fi
+
+if [ -n "$GATE" ]; then
+  status=0
+  echo "== gate against $GATE (tolerance ${TOL})"
+  while IFS="$(printf '\t')" read -r name base_ms rest; do
+    [ "$name" = "case" ] && continue
+    [ -z "$name" ] && continue
+    now=$(awk -v n="$name" '$2 == n { print $3 }' /tmp/bench-port.txt)
+    [ -z "$now" ] && { echo "  MISSING  $name (in the baseline, not in this run)"; status=1; continue; }
+    verdict=$(awk -v b="$base_ms" -v n="$now" -v t="$TOL" 'BEGIN {
+      if (b <= 0) { print "skip"; exit }
+      r = n / b
+      printf "%+.1f%% %s", (r - 1) * 100, (r - 1 > t ? "FAIL" : "ok")
+    }')
+    printf "  %-12s baseline %8.4f ms, now %8.4f ms  %s\n" "$name" "$base_ms" "$now" "$verdict"
+    case "$verdict" in *FAIL) status=1 ;; esac
+  done < "$GATE"
+  [ "$status" = 0 ] && echo "gate: no case is slower than its baseline by more than ${TOL}" \
+                    || echo "gate: a case regressed beyond ${TOL} (DoD-7)"
+  exit "$status"
+fi
