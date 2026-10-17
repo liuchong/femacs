@@ -21908,3 +21908,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **6 个 crashed 全部两侧对称** ✓（`autorevert`/`filenotify`/`tramp`/`eglot`/`emacs-module`/`keyboard` ✓）、12 个 both-fail 同理 ✓、`ert-tests` 因超重在两侧都被上限截断 ✓。
   ⑤ **台账回填** ✓（`docs/baseline/ert-sweep-all.tsv` ✓，含 6 条带理由的注 ✓）。
   ⑥ **Lisp 零改动** ✓；本轮**零编译** ✓（只跑 ERT ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/ert-sweep-all.tsv`（复跑台账 ✓）、本提交（纯读数 ✓）。
+- **4.543 验证相第一百七十四轮：P-181/P-182 之后的三份复验 —— `.elc` 仍 0 缺陷、L5 台账不回归、审计表刷新（2026-10-17）**：
+  ① **`.elc`（P-181 换了代码生成 ✓，必须复验 ✓）** ✓：`gen-elc.py lisp/emacs-lisp --skip-matching --cross-check` ⇒ 6 个差异目标**全部 `state-only`** ✓、**端口缺陷 0** ✓（与 4.527/4.528 一致 ✓）。
+  ② **L5** ✓：见 4.542 —— 542 same ✓，逐文件只 1 处变化且两侧同败 ✓。
+  ③ **审计表刷新** ✓：`docs/acceptance.md` 第 7 条的读数换成 P-181 之后的一组（启动 1.13× ✓、`regexp-repl` 1.23× ✓、`buffer-scan` 1.22× ✓、`sort-100k` 1.12× ✓、VM `bc-loop` **1.72×** ✓、`bc-sum`/`bc-car` 1.40× ✓），并写明"从 1.2–3.9× 收敛 ✓、剩余在 VM 的每指令开销 ✓、P-182 已证明 argbuf/unwrap 不是成本 ✓"。
+  ④ **未决项不变** ✓：性能（1.72× 那一段要动 `exec_byte_code` 的派发 ✓）、平台（工具链 ✓）、产品名（政策 ✓）。
+  ⑤ **Lisp 零改动** ✓；本轮**零编译** ✓（只有 `.elc` 交叉验证 3 s ✓ + 声明门 7 s ✓，峰值 ≤ 90 MB ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/acceptance.md`（第 7 条 ✓）、本提交（纯读数 ✓）。
