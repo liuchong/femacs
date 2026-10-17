@@ -21716,3 +21716,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **结论** ✓：`cond` 的"内部实体声明"分支因 `(or (null next-parameter-entity) (<= (match-end 0) next-parameter-entity))` 为假而**整条跳过** ✗ ⇒ `next-parameter-entity` 或 `match-end` 之一在端口里不对 ✓ —— 两者都是**匹配器**产出的位置 ✓，与 P-164 归属一致 ✓。
   ④ **下一轮单点 ✓**：在该 `cond` 前打印 `next-parameter-entity`、`(match-end 0)`、`(point)`（只打印已算好的值 ✓ P-140 ✓）。
   ⑤ **资源**：4 次探针跑（各 <1 s ✓，受控执行器 runtime 700 MiB ✓，峰值 **≤ 22 MB** ✓）；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-165 ✓）、本提交（纯读数 ✓）。
+- **4.514 验证相第一百四十五轮：`xml` 的三次原语排除仍全绿 ⇒ 按 P-157 暂挂；转 DoD-6，落第一份**平台冒烟矩阵**（P-166）（2026-10-17）**：
+  ① **`xml` 本轮读数（全绿 ⇒ 排除）** ✓：`xml-parse-dtd` 的 `cond` 前三个位置（`point=16`、`next-pe=52`、`match-end=38` ✓）与 `guard=t` **两侧完全一致** ✓；`special-variable-p`/`let`+`set` 的四个特例也一致 ✓ ⇒ 原语层已无可查 ✗ ⇒ 按 P-157 ① **暂挂** ✓（已排除 9 项 ✓、现象落在 `ent-alist` 为空 ✗）。
+  ② **转 DoD-6** ✓：新增 `docs/baseline/platform-smoke.md` ✓ —— 记录**本机实测工具链**：`clang`/`cc`/`rustc`/`cargo`/`swiftc`/`java`/`javac` ✓、Android NDK 25/26 ✓；**缺** `kotlinc` ✗、mingw ✗、linux 交叉 gcc ✗、Haiku 工具链 ✗。
+  ③ **矩阵结论** ✓：macOS 是**唯一**能跑完整阶梯的平台 ✓（L0–L5/性能都在本机持续跑 ✓）；Android 需 `kotlinc`（或 Gradle 分发）✓；Windows/Linux/Haiku 按 `docs/goal.md` §9 第 2 条记为**外部资源缺失** ✓，不得用文本级翻臂编译冒充冒烟 ✗。
+  ④ **DoD-6 推进顺序（已写进矩阵 ✓）**：⑴ macOS 冒烟脚本化（`tools/smoke.sh macos` ✓）；⑵ Android（NDK 26 + `kotlinc` ✓）；⑶ 其余三平台如实记缺 ✓。
+  ⑤ **资源**：2 次探针跑（各 <1 s ✓）；受控执行器 runtime 700 MiB（下调自默认 ✓）、峰值 **≤ 22 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/platform-smoke.md`（新 ✓）、`PORTING.md`（P-166 ✓）、本提交 ✓。
