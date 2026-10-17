@@ -1,0 +1,9 @@
+# macOS + Android acceptance reading (2026-10-18)
+# command: python3 …/run.py --profile runtime --memory-mib 1400 -- bash tools/check-authorized-platforms.sh
+== macOS: smoke ==
+11 check(s), 0 failure(s)
+== Android: gate-android ==
+apk: emacs.apk (181486 bytes), package org.femacs, 5 declared activit(ies) all backed by Kotlin sources, 112 compiled class(es), members and signature checked
+== not run (external prerequisites, docs/current-state.md) ==
+  Android native libraries           needs makeinfo (A) or the info/emacs stub (B)
+  Android emulator install           needs an arm64-v8a system image (C)
