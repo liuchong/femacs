@@ -1459,14 +1459,14 @@ fn frame_output_method (f: *mut frame) -> output_method
 // above is per arm): every reader names its flag's `_UNIT` and `_SHIFT` constants, so no reader
 // picks a unit by hand and no arm can read the wrong word.
 #[inline(always)]
-fn frame_word (f: *mut frame, unit: u32) -> u32
+pub fn frame_word (f: *mut frame, unit: u32) -> u32
 { if unit == 2 { unsafe { (*f).bits2 } } else { unsafe { (*f).bits1 } } }
 
 #[inline(always)]
-fn frame_flag (f: *mut frame, unit: u32, shift: u32) -> bool { frame_word (f, unit) >> shift & 1 != 0 }
+pub fn frame_flag (f: *mut frame, unit: u32, shift: u32) -> bool { frame_word (f, unit) >> shift & 1 != 0 }
 
 #[inline(always)]
-fn frame_set_flag (f: *mut frame, unit: u32, shift: u32, v: u32)
+pub fn frame_set_flag (f: *mut frame, unit: u32, shift: u32, v: u32)
 {
   let mask = 1u32 << shift;
   let word = if unit == 2 { unsafe { &mut (*f).bits2 } } else { unsafe { &mut (*f).bits1 } };
@@ -1474,7 +1474,7 @@ fn frame_set_flag (f: *mut frame, unit: u32, shift: u32, v: u32)
 }
 
 #[inline(always)]
-fn frame_field (f: *mut frame, unit: u32, shift: u32, mask: u32) -> u32
+pub fn frame_field (f: *mut frame, unit: u32, shift: u32, mask: u32) -> u32
 { frame_word (f, unit) >> shift & mask }
 
 // frame.h 1428-1521: the file-scope objects (the .c files define them).
@@ -1941,10 +1941,12 @@ pub fn FRAME_INNER_HEIGHT (f: *mut frame) -> c_int
    C: #define FRAME_SMALLEST_CHAR_WIDTH(f) FRAME_DISPLAY_INFO (f)->smallest_char_width  */
 macro_rules! FRAME_SMALLEST_CHAR_WIDTH {
   ($f:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_char_width } };
+  ($f:expr, $v:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_char_width = $v } };
 }
 /// C: #define FRAME_SMALLEST_FONT_HEIGHT(f) FRAME_DISPLAY_INFO (f)->smallest_font_height
 macro_rules! FRAME_SMALLEST_FONT_HEIGHT {
   ($f:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_font_height } };
+  ($f:expr, $v:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_font_height = $v } };
 }
 
 /* frame.h 1914-1921: `flush_frame` - C's inline calls the display interface's `flush_display`,

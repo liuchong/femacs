@@ -653,7 +653,7 @@ unsafe fn skip_dyn_eof (source: *mut source)
 }
 
 /* C 559-566: `#if !defined USE_ANDROID_ASSETS` selects the live body; the `#else` (C
-   591-617) is the Android one, carried under `#[cfg (feature = "use_android_assets")]` (the
+   591-617) is the Android one, carried under `#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`` (the
    `USE_ANDROID_ASSETS` spelling of the arm, PORTING.md P-51).  */
 unsafe fn readbyte_from_file () -> c_int
 {
@@ -670,7 +670,7 @@ unsafe fn readbyte_from_file () -> c_int
 
   block_input ();
 
-  #[cfg (not (feature = "use_android_assets"))]
+  #[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]   // C 59-60: `USE_ANDROID_ASSETS` is C 69's source-level define
   {
     /* Interrupted reads have been observed while reading over the network.  */
     loop
@@ -685,7 +685,7 @@ unsafe fn readbyte_from_file () -> c_int
       }
   }
 
-  #[cfg (feature = "use_android_assets")]
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
   {
     let mut byte: c_char = 0;
     loop
@@ -1145,7 +1145,7 @@ unsafe extern "C" fn loadhist_initialize (filename: Lisp_Object)
 
 /* C 1037-1051: `#ifdef USE_ANDROID_ASSETS`'s `close_file_unwind_android_fd` is carried
    with the rest of the Android arm (the `use_android_assets` spelling).  */
-#[cfg (feature = "use_android_assets")]
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 unsafe extern "C" fn close_file_unwind_android_fd (ptr: *mut c_void)
 {
   let fd: *mut android_fd_or_asset = ptr as *mut android_fd_or_asset;
@@ -1299,9 +1299,9 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	 let mut must_suffix: Lisp_Object = must_suffix;
 	 let mut stream: file_stream = std::ptr::null_mut ();	/* UNINIT (P-14) */
 	 let mut fd: lread_fd = -1;				/* C leaves it indeterminate */
-	 #[cfg (feature = "use_android_assets")]
+	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	 let mut rc: c_int = 0;
-	 #[cfg (feature = "use_android_assets")]
+	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	 let mut asset: *mut c_void = std::ptr::null_mut ();
 	 let mut fd_index: specpdl_ref = specpdl_ref { bytes: 0 };	/* UNINIT */
 	 let count: specpdl_ref = SPECPDL_INDEX ();
@@ -1345,9 +1345,9 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	    since it would try to load a directory as a Lisp file.  */
 	 if SCHARS (file) == 0
 	   {
-	     #[cfg (not (feature = "use_android_assets"))]
+	     #[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]   // C 59-60: `USE_ANDROID_ASSETS` is C 69's source-level define
 	     { fd = -1; }
-	     #[cfg (feature = "use_android_assets")]
+	     #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	     {
 	       asset = std::ptr::null_mut ();
 	       fd.fd = -1;
@@ -1397,12 +1397,12 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	       { load_path = calln! (Vload_path_filter_function, load_path, file,
 				     suffixes); }
 
-	     #[cfg (not (feature = "use_android_assets"))]
+	     #[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]   // C 59-60: `USE_ANDROID_ASSETS` is C 69's source-level define
 	     {
 	       fd = openp (load_path, file, suffixes, &mut found, Qnil (),
 			   load_prefer_newer, no_native, std::ptr::null_mut ());
 	     }
-	     #[cfg (feature = "use_android_assets")]
+	     #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	     {
 	       asset = std::ptr::null_mut ();
 	       rc = openp (load_path, file, suffixes, &mut found, Qnil (),
@@ -1445,7 +1445,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	     }
 	   }
 
-	 #[cfg (not (feature = "use_android_assets"))]
+	 #[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]   // C 59-60: `USE_ANDROID_ASSETS` is C 69's source-level define
 	 {
 	   if 0 <= fd
 	     {
@@ -1453,7 +1453,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	       record_unwind_protect_int (Some (close_file_unwind), fd);
 	     }
 	 }
-	 #[cfg (feature = "use_android_assets")]
+	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	 {
 	   if !fd.asset.is_null () || fd.fd >= 0
 	     {
@@ -1938,7 +1938,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
   let mut max_suffix_len: ptrdiff_t = 0;
   let mut last_errno: c_int = ENOENT;
   let mut save_fd: c_int = -1;
-  #[cfg (feature = "use_android_assets")]
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
   let mut platform_fd: android_fd_or_asset = android_fd_or_asset { fd: 0, asset: std::ptr::null_mut () };
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
@@ -2115,9 +2115,9 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
 		{ fd = -1; }
 	      else
 		{
-		  #[cfg (not (feature = "use_android_assets"))]
+		  #[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]   // C 59-60: `USE_ANDROID_ASSETS` is C 69's source-level define
 		  { fd = emacs_open (pfn, O_RDONLY, 0); }
-		  #[cfg (feature = "use_android_assets")]
+		  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 		  {
 		    if !platform.is_null ()
 		      {

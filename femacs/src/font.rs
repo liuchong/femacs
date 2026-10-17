@@ -139,19 +139,39 @@ const _: () = core::assert! (std::mem::size_of::<font_spec> () == 112);
 const _: () = core::assert! (std::mem::offset_of! (font_spec, props) == 8);
 
 
+/* `include/font.rs` 337-360 carries C 264-268's `#if defined HAVE_ANDROID && !defined
+   ANDROID_STUBIFY` `bool is_android` member, so the record is 120 bytes on the frozen target and
+   128 on Android (measured: docs/baseline/font-entity-layout-android.tsv).  */
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<font_entity> () == 120);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<font_entity> () == 128);
 const _: () = core::assert! (std::mem::offset_of! (font_entity, props) == 8);
 /* C: `struct font` (font.h 275-418) — the record this unit reads through `(*font).driver` —
    comes from `include/font.rs` now (docs/ports/include-font.md); the records the mirror
    still lacks (`struct font_driver`, `struct font_driver_list`, the accessors) stay here.  */
 
 
+/* C 585-772's three `#ifdef HAVE_WINDOW_SYSTEM` members (`draw`, `get_bitmap`, `free_bitmap`)
+   add 24 bytes and shift everything after `text_extents` by 24; the record is `include/font.rs`
+   553's, so the numbers here are that record's two arms.  Measured:
+   docs/baseline/font-driver-layout-android.tsv (232, `anchor_point`@136,
+   `drop_xrender_surfaces`@224) and the frozen 208/112/200.  */
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::size_of::<font_driver> () == 208);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::size_of::<font_driver> () == 232);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, case_sensitive) == 8);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, get_cache) == 16);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, text_extents) == 104);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (font_driver, anchor_point) == 112);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font_driver, anchor_point) == 136);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (font_driver, drop_xrender_surfaces) == 200);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font_driver, drop_xrender_surfaces) == 224);
 
 
 const _: () = core::assert! (std::mem::size_of::<font_driver_list> () == 24);
@@ -3974,24 +3994,24 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
   /* C 2999-3013: `#ifdef HAVE_WINDOW_SYSTEM`, carried.  */
   #[cfg(feature = "have_window_system")]
   {
-    FRAME_DISPLAY_INFO! (f).n_fonts += 1;
-    if FRAME_DISPLAY_INFO! (f).n_fonts == 1
+    (*FRAME_DISPLAY_INFO! (f)).n_fonts += 1;
+    if (*FRAME_DISPLAY_INFO! (f)).n_fonts == 1
       {
-	FRAME_SMALLEST_CHAR_WIDTH! (f) = min_width;
-	FRAME_SMALLEST_FONT_HEIGHT! (f) = height;
-	(*f).fonts_changed = 1;
+	FRAME_SMALLEST_CHAR_WIDTH! (f, min_width);
+	FRAME_SMALLEST_FONT_HEIGHT! (f, height);
+	frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, 1);   // C 372's bit, through the mirror's packing
       }
     else
       {
 	if FRAME_SMALLEST_CHAR_WIDTH! (f) > min_width
 	  {
-	    FRAME_SMALLEST_CHAR_WIDTH! (f) = min_width;
-	    (*f).fonts_changed = 1;
+	    FRAME_SMALLEST_CHAR_WIDTH! (f, min_width);
+	    frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, 1);   // C 372's bit, through the mirror's packing
 	  }
 	if FRAME_SMALLEST_FONT_HEIGHT! (f) > height
 	  {
-	    FRAME_SMALLEST_FONT_HEIGHT! (f) = height;
-	    (*f).fonts_changed = 1;
+	    FRAME_SMALLEST_FONT_HEIGHT! (f, height);
+	    frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, 1);   // C 372's bit, through the mirror's packing
 	  }
       }
   }
@@ -4014,8 +4034,8 @@ unsafe fn font_close_object (f: *mut frame, font_object: Lisp_Object)
   /* C 3032-3034: `#ifdef HAVE_WINDOW_SYSTEM`, carried.  */
   #[cfg(feature = "have_window_system")]
   {
-    eassert! (FRAME_DISPLAY_INFO! (f).n_fonts != 0);
-    FRAME_DISPLAY_INFO! (f).n_fonts -= 1;
+    eassert! ((*FRAME_DISPLAY_INFO! (f)).n_fonts != 0);
+    (*FRAME_DISPLAY_INFO! (f)).n_fonts -= 1;
   }
 }
 

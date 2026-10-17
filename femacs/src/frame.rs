@@ -5979,26 +5979,12 @@ pub unsafe extern "C" fn gui_set_unsplittable (f: *mut frame, arg: Lisp_Object, 
    carries the `#else` arm's readers and gates them with `not (have_window_system)` (its own note
    records why: the window-system body needs the flag numbering in `docs/baseline/frame-bits.tsv`),
    so the arm's versions are defined here, in C's terms.  */
-/// C: frame.h 1217: `#define FRAME_VERTICAL_SCROLL_BAR_TYPE(f) ((f)->vertical_scroll_bar_type)`
-#[cfg (feature = "have_window_system")]
-macro_rules! FRAME_VERTICAL_SCROLL_BAR_TYPE {
-  ($f:expr) => { (*$f).vertical_scroll_bar_type };
-}
-/// C: frame.h 1218-1219: `#define FRAME_HAS_VERTICAL_SCROLL_BARS(f) ((f)->vertical_scroll_bar_type != vertical_scroll_bar_none)`
-#[cfg (feature = "have_window_system")]
-macro_rules! FRAME_HAS_VERTICAL_SCROLL_BARS {
-  ($f:expr) => { ((*$f).vertical_scroll_bar_type != vertical_scroll_bar_none) };
-}
-/// C: frame.h 1220-1221: `#define FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT(f) ((f)->vertical_scroll_bar_type == vertical_scroll_bar_left)`
-#[cfg (feature = "have_window_system")]
-macro_rules! FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT {
-  ($f:expr) => { ((*$f).vertical_scroll_bar_type == vertical_scroll_bar_left) };
-}
-/// C: frame.h 1222-1223: `#define FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT(f) ((f)->vertical_scroll_bar_type == vertical_scroll_bar_right)`
-#[cfg (feature = "have_window_system")]
-macro_rules! FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT {
-  ($f:expr) => { ((*$f).vertical_scroll_bar_type == vertical_scroll_bar_right) };
-}
+
+/* frame.h 1207-1223's four vertical-scroll-bar readers are `include/frame.rs` 1203-1230's
+   functions now (each is C's own `#else`/`#ifdef HAVE_WINDOW_SYSTEM` pair, and the window-system
+   arm reads the packed `vertical_scroll_bar_type` field the mirror numbers per target).  This
+   unit's four `macro_rules!` read a named member the record does not have and were `E0609` once
+   the window-system arm went live (measured).  */
 
 /* frame.h 1276-1280: `FRAME_HAS_HORIZONTAL_SCROLL_BARS`.  The mirror's reader is the `#else`
    arm (`not (use_horizontal_scroll_bars)`, a constant `0`); the `USE_HORIZONTAL_SCROLL_BARS`
@@ -6116,12 +6102,12 @@ unsafe extern "C" {
 pub unsafe extern "C" fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_Object,
 						       oldval: Lisp_Object)
 {
-  if (EQ (arg, Qleft ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT! (f))
-    || (EQ (arg, Qright ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT! (f))
-    || (NILP (arg) && FRAME_HAS_VERTICAL_SCROLL_BARS! (f))
-    || (!NILP (arg) && !FRAME_HAS_VERTICAL_SCROLL_BARS! (f))
+  if (EQ (arg, Qleft ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f))
+    || (EQ (arg, Qright ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f))
+    || (NILP (arg) && FRAME_HAS_VERTICAL_SCROLL_BARS (f))
+    || (!NILP (arg) && !FRAME_HAS_VERTICAL_SCROLL_BARS (f))
     {
-      FRAME_VERTICAL_SCROLL_BAR_TYPE! (f)
+      FRAME_VERTICAL_SCROLL_BAR_TYPE (f)
 	= if NILP (arg) { vertical_scroll_bar_none }
 	  else if EQ (Qleft (), arg) { vertical_scroll_bar_left }
 	  else if EQ (Qright (), arg) { vertical_scroll_bar_right }
