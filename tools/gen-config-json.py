@@ -67,10 +67,18 @@ def main() -> int:
     # way - but nothing carried the measurement into a second target, so Android's configuration
     # lacked the constant and `floatfns.rs` would not compile there (P-227).
     ap.add_argument("--macro", action="append", default=[], metavar="NAME=VALUE")
+    # The key list used to come from darwin's JSON alone, so a macro only another target defines
+    # (`HAVE_ANDROID`) could not appear anywhere - and the port's `#ifdef` gate for it could never
+    # be opened (P-229).  `--keys-from-header` unions in every name this header defines or undefs.
+    ap.add_argument("--keys-from-header", action="store_true")
     a = ap.parse_args()
 
     header = read_header(a.header)
     keys = json.loads(a.keys_from.read_text("utf-8"))["macros"]
+    if a.keys_from_header:
+        for name in header:
+            if name not in keys:
+                keys = [*keys, name]
     macros = {k: header.get(k, "absent") for k in keys}
     for spec in a.macro:
         name, _, value = spec.partition("=")

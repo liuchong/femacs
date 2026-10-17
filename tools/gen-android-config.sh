@@ -126,6 +126,12 @@ else
   HAVE_SIGNBIT=0
 fi
 echo "HAVE_SIGNBIT: $HAVE_SIGNBIT (measured with ${CC##*/})"
-python3 "$REPO/tools/gen-config-json.py" --macro "HAVE_SIGNBIT=$HAVE_SIGNBIT" src/config.h \
+# The *inner* pass's header, not the outer one: `configure` runs a second configure with
+# `XCONFIGURE=android` (configure.ac 1296-1300) and renames its product to `src/config.h.android`
+# (1315-1316), which is what the Android build compiles against.  The outer pass's `src/config.h`
+# defines `ANDROID_STUBIFY` (2604-2606, host-only) - generating from it recorded a stubify build,
+# i.e. exactly the configuration in which the JNI entry points are compiled out (status 4.615).
+python3 "$REPO/tools/gen-config-json.py" --keys-from-header \
+  --macro "HAVE_SIGNBIT=$HAVE_SIGNBIT" src/config.h.android \
   --target "android-arm64 (NDK ${CC##*/})" \
   --out "$REPO/docs/baseline/config/android-arm64.json"

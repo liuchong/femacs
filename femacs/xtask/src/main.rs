@@ -141,6 +141,55 @@ fn sanitizer_flags () -> Vec<String>
     }
 }
 
+/// `--cfg feature="…"` items for the frozen configuration named by `FEMACS_CONFIG`.
+///
+/// One per macro the JSON calls true, lower-cased (`HAVE_ANDROID` -> `have_android`), because that
+/// is how the port spells C's `#ifdef`s; plus the `not_*` twins of the negative macros the sources
+/// test that way (`ANDROID_STUBIFY` undef -> `not_android_stubify`, which 1,940 sites read).
+/// A missing `FEMACS_CONFIG` yields no cfgs at all, which is the darwin default and stays correct
+/// for darwin: its minimal configuration defines none of these.
+fn config_features () -> Vec<String>
+{
+  let Ok (stem) = std::env::var ("FEMACS_CONFIG")
+    else { return Vec::new () };
+  if stem.is_empty () { return Vec::new (); }
+  let path = Path::new ("../docs/baseline/config").join (format! ("{stem}.json"));
+  let Ok (text) = fs::read_to_string (&path)
+    else
+      {
+        eprintln! ("warning: FEMACS_CONFIG={stem} but {} is unreadable", path.display ());
+        return Vec::new ();
+      };
+  let mut out: Vec<String> = Vec::new ();
+  for line in text.lines ()
+    {
+      // The JSON is one `"NAME": "value"` per line (`gen-config-json.py` writes it that way), so a
+      // line reader is enough and keeps this free of a JSON dependency.
+      let line = line.trim ();
+      let Some (rest) = line.strip_prefix ('"') else { continue };
+      let Some ((name, value)) = rest.split_once ("\": ") else { continue };
+      let value = value.trim_end_matches (',').trim_matches ('"');
+      let truthy = matches! (value, "1" | "true");
+      let name_lower = name.to_ascii_lowercase ();
+      if name.is_empty () || name.starts_with ("target") || name.starts_with ("source")
+        {
+          continue;
+        }
+      if truthy
+        {
+          out.push (format! ("feature=\"{name_lower}\""));
+        }
+      else
+        {
+          // A macro the port tests negatively (`#ifndef X` in C).
+          out.push (format! ("feature=\"not_{name_lower}\""));
+        }
+    }
+  out.sort ();
+  out.dedup ();
+  out
+}
+
 /// `rustc`, with `RUSTC_BOOTSTRAP=1` when the sanitizer is on, so the nightly flag is accepted
 /// by the stable toolchain the repository pins (`rust-toolchain.toml`).
 fn rustc_cmd () -> std::process::Command
@@ -1164,6 +1213,13 @@ fn build_tu(rel: Option<&String>) -> i32 {
               "--crate-name", &cname])
        .args(unit_codegen_flags ())
        .args(&sanitizer_flags ());
+    // The port writes C's `#ifdef`s as `#[cfg(feature = "...")]` (2,316 sites gate on
+    // `have_android` alone), so the frozen configuration has to reach rustc as cfgs.  Until this
+    // existed, only darwin was ever built - where every such gate is correctly *off* - and the
+    // Android units compiled to empty objects (`android.o` was 664 bytes, P-229).
+    for cfg in config_features () {
+        cmd.arg ("--cfg").arg (cfg);
+    }
     let mut cross_out = out.clone();
     if let Some(t) = &target {
         cmd.arg("--target").arg(t);
