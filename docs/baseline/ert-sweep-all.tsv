@@ -513,7 +513,7 @@ lisp/yank-media-tests.el	same	1	0	1	0
 misc/test-custom-deps.el	same	1	0	1	0	
 misc/test-custom-libs.el	same	1	0	1	0	
 misc/test-custom-noloads.el	same	1	0	1	0	
-misc/test-custom-opts.el	port-worse	1	1	1	0	FIXED in 4.535: ctags-program-name had no initialiser (P-178)
+misc/test-custom-opts.el	same	1	1	1	0	re-read after P-178's fix: ctags-program-name now carries its initialiser and the file is same (1/1); the sweep row above was its pre-fix reading
 src/alloc-tests.el	same	4	0	4	0	
 src/buffer-tests.el	same	408	0	408	0	
 src/callint-tests.el	same	5	0	5	0	
