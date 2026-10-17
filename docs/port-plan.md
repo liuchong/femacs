@@ -223,11 +223,11 @@
 
 - **以参照行为为准，差异即 bug**（不是"能跑就行"）。
 - **差分对拍**：随机 Lisp 程序生成器（表达式 + 文件读写 + 进程 + 编码）双跑比对 stdout/stderr/退出码；
-  参照与 femacs 各自运行，逐字节比对。
+  参照与 femacs 各自运行，逐字节比对 —— 已实现为 `python3 tools/check-diff-fuzz.py --programs N --seed S`（确定性 PRNG，每步打印自己的值或错误；status 4.555 首跑 60/60 一致）。
 - **subr 表比对**：名称、参数上下限、interactive 规格、docstring 摘要。
 - **二进制互换**：`.elc`、dump、模块双向。
 - **生成物一致**：`admin/unidata`、`admin/charsets`、`ldefs-boot.el`、`src/lisp.mk` 逐字节。
-- **强制 GC 压测**：`gc-cons-threshold=1` 下跑完整测试套件。
+- **强制 GC 压测**：`gc-cons-threshold=1` 下跑完整测试套件 —— 已实现为 `python3 tools/check-ert.py --gc-stress`（环境变了、测试文件仍是参照自己那份，status 4.555）。
 - **故障注入**：内存不足、EINTR、信号、编码异常输入。
 - **性能**：启动时间、`benchmark-run` 基线、批量文本操作；性能回退超过阈值视为 bug（借用 uutils 口径）。
 
