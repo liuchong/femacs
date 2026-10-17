@@ -18,9 +18,11 @@ pub const EMACS_PDUMPER_H: bool = true;
 
 include!("../../lib/include/stdio.rs");        // pdumper.h 23: `#include <stdio.h>` (`FILE`)
 include!("../../lib/include/fingerprint.rs");  // pdumper.h 23: `#include "fingerprint.h"`
-// pdumper.h 24's `#include "lisp.h"` reaches config.h (lisp.h 27), which the lisp.rs mirror
-// reads for `HAVE_PDUMPER`/`HAVE_NATIVE_COMP` (PORTING.md 0.1-14: config.rs first).
-include!("config.rs");
+// pdumper.h 24's `#include "lisp.h"` reaches config.h (lisp.h 27), which the unit's own root
+// already includes - and `config.h` is *guarded* in C, so the second include is a no-op there.
+// Rust has no such guard: including `config.rs` here as well re-declared every constant, which
+// broke `src/alloc.c` on Android (`CHECK_LISP_OBJECT_TYPE is defined multiple times`, status
+// 4.623).  The include is therefore dropped; the unit still reads the same constants.
 include!("lisp.rs");
 
 pub const PDUMPER_NO_OBJECT: c_int = -1;       // pdumper.h 26
