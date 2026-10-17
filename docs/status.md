@@ -22014,3 +22014,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **平台**：`ulimit -v/-d/-m` 与 `RLIMIT_AS/DATA` 在 Darwin **被拒** ✓（据此内存族改用"有界分配 + 200 MiB 上限"与 `ulimit -s` 的栈溢出 longjmp ✓）。
   ⑤ **危险教训入库**：注入"单个巨型分配"会让 macOS 超额提交并走进 swap ✗（实测后立即杀掉 ✓）⇒ 一律改用有界循环 ✓（P-188 ③）。
   ⑥ **Lisp 零改动**；本轮**零编译**；受控执行器 runtime 1,200 MiB（三轮，峰值 ≤ 592 MB ✓、各约 13 s ✓）；`git -C emacs status --short` 为空。提交：`tools/check-fault-injection.py`（新门）、`docs/port-plan.md`（7.2 指明工具）、`docs/acceptance.md`（7.2 表加一行）、`PORTING.md`（P-188）、本提交（读数）。
+- **4.560 验证相第一百九十一轮：把 `loaddefs` 这一族按参照的配方**生成**（新工具）—— 抓到一条**生成期**真缺陷：端口把两个非 ASCII 字符写成码点低位字节（P-189）（2026-10-17）**：
+  ① **新工具** `tools/gen-loaddefs.py`：从 `build/emacs-ref/lisp` 的 `make -B -n autoloads` 取配方（含 P-187 的前提 `batch-byte-compile loaddefs-gen.el` ✓），把程序换成端口二进制、路径**按形状**重写到端口树（`../../../femacs/lisp` ✓），先 `rm -f lisp/loaddefs.el`（照 `autoloads-force` ✓）再生成 ✓。
+  ② **读数（20 个 `*loaddefs.el`）**：19 个子目录产物 **name-only** ✓、顶层那一个 **DIFFERENT** ✗ —— 差异是**两个字符**：`复`（U+590D）✗ 写成 `\15`、`’`（U+2019）✗ 写成 `\31`，都是**码点的低位字节**（0x0D / 0x19）✓。
+  ③ **公平对照（决定性）**：**同一个** `loaddefs-gen.elc`（P-187 已证两侧编译结果逐字节相同 ✓）、**同一批字节相同**的源文件 ✓，**参照程序**的生成结果字符**正确** ✓、**端口程序**的生成结果**错** ✗ ⇒ 这是**端口生成路径的缺陷** ✓（不是文本改写 ✗，P-187 ⑤ 的归因据此更正 ✓）。
+  ④ **另一条读数**：端口这份产物**让 dump 失败** ✗（`Attempt to autoload rx while preparing to dump` ✓）⇒ 现阶段**不能**切到端口自己生成 loaddefs ✗；树里保持上一份（41,245 行、含已知的两个坏字符 ✓），本工具只作**诊断**用 ✓（文档已写明 ✓）。
+  ⑤ **一次事故与修复（如实记录）**：差分实验里用**参照程序**带上端口的参数跑生成，`loaddefs-generate--emacs-batch`**写进运行程序自己的树** ✗ ⇒ 参照树的 `lisp/loaddefs.el`（构建产物、git 忽略 ✓）被覆盖 ✓；已用**参照程序 + 参照自己的相对路径**重新生成到干净的单遍状态（**41,237 行 / 1,653,500 字节、字符正确** ✓），并把 mtime 复原（Oct 5 00:40 ✓）使加载路径重新选中未动的 `.elc` ✓；`git -C emacs status --short` 为空 ✓，dump 复绿 ✓、smoke **11/11** ✓。
+  ⑥ **Lisp 零改动**；本轮零单元重编（只重跑生成器与 dump ✓）；受控执行器读数：生成器 3 次（各 ≤ 2 s ✓、峰值 ≤ 71 MB ✓）、dump 3 次（峰值 ≤ 106 MB ✓）、smoke 1 次 ✓。提交：`tools/gen-loaddefs.py`（诊断工具 + 警告）、`PORTING.md`（P-189）、`docs/acceptance.md`（第 4 条归因）、本提交（读数）。
