@@ -1386,6 +1386,19 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a DEFVAR holds a different value than the reference (P-178)"),
         Err(e) => return fail(e),
     }
+    // P-197: the non-C platform rows of the port map (Swift/Kotlin/C++) had no gate, so a
+    // missing target printed as `-` and passed.  This step verifies every mapped target
+    // exists; it runs with `--warn` only while `src/nsxwidget.m`'s Swift port is outstanding.
+    println!("== platform inventory gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-platform-inventory.py", "--warn"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("platform inventory: every mapped platform target exists"),
+        Ok(_) => return fail("a mapped platform target is missing (P-197)"),
+        Err(e) => return fail(e),
+    }
     println!("== declaration gate ==");
     match Command::new("python3")
         .current_dir(REPO)

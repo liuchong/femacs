@@ -43,6 +43,11 @@ def rows(family: str) -> list[tuple[str, str, str]]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--show", type=int, default=10)
+    # Temporary while P-197 is open: `src/nsxwidget.m` has no Swift counterpart yet, so the
+    # gate runs in `gate-fast` with `--warn` and reports without failing.  The flag goes away
+    # with that file (P-197 rule ②), which is what keeps this from becoming a silent pass.
+    ap.add_argument("--warn", action="store_true",
+                    help="report gaps but exit 0 (temporary, P-197)")
     a = ap.parse_args()
     missing = 0
     total = 0
@@ -62,6 +67,9 @@ def main() -> int:
             print(f"    … {len(bad) - a.show} more")
         missing += len(bad)
     print(f"{total} platform entry(ies): {missing} without a target file")
+    if missing and a.warn:
+        print("(warning only: P-197 is open; remove --warn when the gap is closed)")
+        return 0
     return 1 if missing else 0
 
 
