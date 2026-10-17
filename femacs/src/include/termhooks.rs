@@ -16,8 +16,12 @@ pub const EMACS_TERMHOOKS_H: bool = true;
    613, 620) name `Emacs_Color`, which dispextern.h defines, and the `dbusbind` arm read 2 x
    `E0425 Emacs_Color` here without the edge (status 3.527).  */
 include!("dispextern.rs");
-include!("androidgui.rs");   // `android_gc`/`android_cursor` — androidterm.h 86's record needs them
-include!("font.rs");   // `font` — a field of the record below
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+include!("androidgui.rs");
+// `font` is a field type of `android_bitmap_record`; `font.rs` also defines `Emacs_Cursor`,
+// which darwin's mirrors define themselves, so this include is Android-only (P-255).
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+include!("font.rs");   // `android_gc`/`android_cursor` — androidterm.h 86's record needs them
 
 /* A single bitmap record, as `android_bitmap_record` in the C.  */
 // androidterm.h 30-46.  Measured with the frozen target's clang (evidence in the ledger):
@@ -25,6 +29,7 @@ include!("font.rs");   // `font` — a field of the record below
 // have_mask 40.
 #[repr(C)]
 #[derive(Clone, Copy)]
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
 pub struct android_bitmap_record
 {
   /* The image backing the bitmap and its mask.  */
@@ -51,6 +56,7 @@ pub struct android_bitmap_record
 // `ptrdiff_t` is `isize`; `Mouse_HLInfo` is dispextern.h's 72-byte record.
 #[repr(C)]
 #[derive(Clone, Copy)]
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
 pub struct android_display_info
 {
   /* Chain of all struct android_display_info structures.  */
