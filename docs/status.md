@@ -21674,3 +21674,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **已核对为与 C 同形 ✓**：`run_window_change_functions`（`window.c` 4066-4210 / `window.rs` 3951-4200 ✓）的 `FOR_EACH_FRAME` ✓、`while CONSP (windows)` 的两处 `continue` 都推进 ✓；`redisplay_internal` 的 `retry` 入口（`sw = w` 在 label 后 ✓、`goto retry` 条件 ✓）。
   ③ **剩下两个可能（下一轮单点 ✓）**：⑴ `FOR_EACH_FRAME!` 的步进或 `Vframe_list` 成环 ✗；⑵ 函数内联的被调（`window_sub_list`/钩子遍历 ✓）不前进 ✗。
   ④ **资源**：1 次 `sample`（40 s ✓）；受控执行器 runtime 900 MiB（下调自默认 ✓）、峰值 **42 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-158 ✓）、本提交（纯读数 ✓）。
+- **4.507 验证相第一百三十八轮：`FOR_EACH_FRAME!` 的调用点 `continue` 造成自旋 —— 一处宏修法把 `xdisp-tests` 从 crashed 变 same，端口独有崩溃 6→3（P-159）（2026-10-17）**：
+  ① **根因** ✓：`FOR_EACH_FRAME!` 是 `while` 形状 ✓，而 11 个调用点的体内含 `continue` ✓（C 的 `for` 会跑增量 ✓、Rust 的 `while` 不会 ✗）⇒ 同一 frame 上自旋；命中的是 `run_window_change_functions` ✓（4.506 的 `xdisp-tests--minibuffer-scroll` ✓）。
+  ② **修法（宏级、一次全修 ✓）**：步进放进循环条件 ✓（`while CONSP (rest) && { list = rest; frame = XCAR (list); rest = XCDR (list); true } ✓`）⇒ `continue` 回到条件时步进已发生 ✓、body 仍看到当前格 ✓、C 的 `true` 令牌保留 ✓；循环结束后 `list` 是最后一格而非 nil ✗（无调用点读取 ✓、注释已写明 ✓）。
+  ③ **失败尝试照实记 ✓**：先把 15 处 `continue;` 改成 `break 'for_each_frame;` ✗ ⇒ `E0426`/`E0695` ⇒ 用 `git show HEAD:<path>` 全部还原 ✓，只保留宏级修法 ✓。
+  ④ **读数** ✓：`src/xdisp-tests.el` **crashed → same ✓（11 例 ✓）**、`src/buffer-tests.el` **same ✓（408 例 ✓）**、`lisp/whitespace-tests.el` **same ✓（11 例 ✓）** ⇒ 端口独有崩溃 **6 → 3** ✓（余 `fns`/`electric`/`log-edit` ✓）。
+  ⑤ **门** ✓：13 个受影响单元全部重编 ✓、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、**`gate-fast` exit=0 / 590 done / 0 failing** ✓（约 511 s ✓，其中一次因宏体令牌门 ✓ 失败后修正 ✓）。
+  ⑥ **资源**：13 次 `build-tu`（合计 ≈23 s ✓）+ 2 次 `gate-load`/`dump` + 2 次 `gate-fast`（634 s ✓）+ 3 个测试文件（3.4 s ✓）；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 427 MB** ✓；`git -C emacs status --short` 为空 ✓；临时输出在 `/tmp` ✓。提交：`femacs/src/include/frame.rs`（宏 ✓）、`femacs/src/window.rs`（守卫化 ✓）、`PORTING.md`（P-159 ✓）、本提交 ✓。
