@@ -22058,3 +22058,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **恢复与复验** ✓：重编 `bytecode.o`（与保存的对象**逐字节相同** ✓）、重做 pdmp ✓、`emacs -Q --batch` 正常 ✓、bench 回到 1.30–1.69× 的 threaded 口径 ✓、`smoke.sh` **11/11** ✓、`git -C emacs status --short` 为空 ✓。
   ④ **含义** ✓：DoD-7 的"1.3–1.5×"**不是**端口慢 ✓，而是**两个不同构建分支** ✓；同臂下端口 VM/排序**更快** ✓，只剩两条字符串路径 4–19% ✗ ⇒ 拍板页第 1 项的 A（改口径）现在有**直接证据** ✓，B（nightly threaded）只影响"是否也吃那 2× 的免费午餐" ✓。
   ⑤ **零端口编译** ✓（只动了参照的构建产物 ✓）；受控执行器 build 2 GiB 三次（峰值 ≤ 141 MB ✓）、runtime 900 MiB 六次 ✓。提交：`PORTING.md`（P-193 ✓）、`docs/decisions-needed.md`（第 1 项 ✓）、`docs/acceptance.md`（第 7 条 ✓）、本提交（读数 ✓）。
+- **4.567 验证相第一百九十七轮：DoD-7 现在有**回归门**（比端口自己的基线，带负对照）（P-194）（2026-10-17）**：
+  ① **新增**：`tools/bench.sh --save docs/baseline/bench.tsv` ✓、`--gate <tsv> [--tolerance 0.15]` ✓ —— 比的是**端口自己的毫秒** ✓（参照会被别的原因重建 ✓，P-193 就把它编成过 switch 臂 ✓ ⇒ 比值门会在无关改动上炸 ✗）。
+  ② **读数**：`--save` ⇒ `docs/baseline/bench.tsv` 6 例（`bc-loop` 5.4450 / `bc-sum` 8.2731 / `bc-car` 12.4099 / `regexp-repl` 3.3100 / `buffer-scan` 1.1470 / `sort-100k` 2.1069 ms ✓）。
+  ③ **门本身**：默认容差 **rc=0** ✓（六例 −8.6%…+2.1% ✓）；**负对照** `--tolerance -0.05` ⇒ **rc=1** ✓（`bc-loop -4.0% FAIL` 等四例 ✓）⇒ 门能红 ✓。
+  ④ **`buffer-scan`/`regexp-repl` 的采样（无编译）** ✓：两侧 top-of-stack 都是 `rpl_re_search_2` / `re_match_2_internal` / `copy_text` ✓；端口多出 `count_size_as_multibyte`(245) 与 `set_point`(230)、参照多出 `char_table_translate`(124) 与 `compile_pattern`(82) ✓ ⇒ 差异在**内联边界**而非算法 ✓，记作下一步的候选 ✓（P-193 的 4–19% 仍是同臂差距 ✓）。
+  ⑤ **零编译** ✓；受控执行器 runtime 900 MiB 五次（峰值 ≤ 72 MB ✓）。提交：`tools/bench.sh`（两种模式 ✓）、`docs/baseline/bench.tsv`（基线 ✓）、`PORTING.md`（P-194 ✓）、`docs/acceptance.md`（第 7 条 ✓）、本提交（读数 ✓）。
