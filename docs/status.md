@@ -21799,3 +21799,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **唯一 `port-worse`** ✓：`lisp/calc/calc-tests` ✓ —— `calc-inhibit-startup-message` 断言参照产品名 ✓，端口按政策改名 ✓ ⇒ `note` 列写 `name-only` ✓（P-175 ✓）。
   ⑤ **一处待调工具** ✗：`tramp-tests` 在 120 s 下**两侧都超时** ✓（参照峰值 581 MB ✓）⇒ 它的判定受 per-file 预算限制 ✗，不是缺陷 ✓；`note` 已写明"需要更长预算" ✓，单文件重跑（≥420 s）排下一轮 ✓。
   ⑥ **Lisp 零改动** ✓；本轮**零编译** ✓（只跑 ERT ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/ert-sweep.tsv`（全量重刷 ✓）、本提交（纯读数 ✓）。
+- **4.526 验证相第一百五十七轮：`tramp` 单文件长预算复跑（两侧都要 >2.8 GB，按内存政策排除）+ `.elc` 的 `lisp/emacs-lisp` 面重读：105 一致 / 2 只有产品名 / 4 真差异，且这 4 条**同一个根** = 编译期 gensym 计数（2026-10-17）**：
+  ① **`tramp-tests`** ✓：`--timeout 420 --memory-mib 900` 单文件复跑 ⇒ 端口**撞 900 MiB 上限** ✗、参照**跑到 2799 MiB 仍未结束** ✗ ⇒ 两侧都远超封顶预算 ✓ ⇒ 按"不启动大内存任务"的政策**排除** ✓，`docs/baseline/ert-sweep.tsv` 的 `note` 已改写为这一结论 ✓（不是端口缺陷 ✓）。
+  ② **`.elc` 面（`lisp/emacs-lisp` ✓ 112 目标）**：`gen-elc.py --skip-matching` ⇒ **105 已一致** ✓、**2 只有产品名** ✓（`generate-lisp-file` / `pcase` ✓）、**4 真差异** ✗（`checkdoc` / `elisp-scope` / `nadvice` / `package` ✓）。
+  ③ **4 条同一个根** ✓：把产品名与 `#@n`/`#$ . n` 两种偏移都掩码后仍不等 ✓，第一个差异**全部**是 **gensym 计数** ✗ —— `checkdoc` `#:done7` vs `#:done284` ✓、`elisp-scope` `#:done0` vs `#:done29` ✓、`nadvice` `(fn V30)` vs `(fn V1456)` ✓、`package` `#:quit15` vs `#:quit76` ✓。
+  ④ **已排除"计数器本身坏"** ✓：新进程里 `(gensym)` = `(g0 g1 g2)` ✓ 两侧同、`(cl-gensym)` = `(G0 G1)` ✓ 两侧同 ⇒ 差异**在编译过程中产生** ✓（端口在编译期少造了成百上千个 gensym ✗）⇒ 下一轮靶子：把计数打点放到一次 `byte-compile` 前后 ✓，定位哪条编译期路径没走 ✓。
+  ⑤ **命名政策复核** ✓（重要 ✓）：`lisp`/`test`/`etc`/`doc`/`leim`/`admin` 六棵树里有 **8,427 行**产品名替换 ✓，全部由 `docs/baseline/verbatim-substitutions.tsv` **逐行登记 + 门校验** ✓（licence 头 5,341 行 ✓、成员声明 ✓、手册标题 ✓ 等 ✓，理由逐条写明 ✓）⇒ `.elc` 的"逐字节一致"必须读作**"除登记替换外一致"** ✓，本轮 4 条**不是**这类 ✓（掩码后仍差 ✓）。
+  ⑥ **Lisp 零改动** ✓（本轮只读 ✓）；受控执行器：`tramp` 一次（16 min ✓、峰值受 900 MiB 封顶 ✓）、`gen-elc` 一次（2 s ✓、峰值 45 MB ✓）、探针 3 次（各 <1 s ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/ert-sweep.tsv`（tramp 结论 ✓）、本提交（纯读数 ✓）。
