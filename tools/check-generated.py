@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare the port's generated files with the reference's, name rewrite aside.
 
-The generated families (`tools/gen-charsets.py`, `gen-leim.py`, `gen-unidata.py`, `gen-emacsver.py`, and
+The generated families (`tools/gen-charsets.py`, `gen-leim.py`, `gen-ja-dic.py`, `gen-unidata.py`, `gen-emacsver.py`, and
 the `loaddefs`/`theme-loaddefs`/`subdirs` recipes) are byte-identical to the reference's copies except
 for one thing PORTING.md 0.1-19 *requires*: the program's name, which the port's own build writes
 where the reference's build wrote the reference's name.  A comparison that does not account for
@@ -59,6 +59,10 @@ PATTERNS = [
     "lisp/language/pinyin.el",
     "lisp/leim/quail/*.el",
     "lisp/leim/leim-list.el",
+    # `leim/Makefile`'s `generate-ja-dic` rule, run by `tools/gen-ja-dic.py`.  The `.elc` is
+    # binary and produced by the port's own program, so it is compared byte for byte.
+    "lisp/leim/ja-dic/ja-dic.el",
+    "lisp/leim/ja-dic/ja-dic.elc",
     "lisp/loaddefs.el",
     "lisp/theme-loaddefs.el",
     "lisp/subdirs.el",
