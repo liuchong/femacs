@@ -90,9 +90,20 @@ def pairs(patterns: list[str]) -> list[tuple[pathlib.Path, pathlib.Path]]:
 
 
 def name_only(reference_lines: list[str], port_lines: list[str], product: str) -> bool:
-    """True when every differing line is explained by the name rewrite."""
+    """True when every differing line is explained by the name rewrite (and the tree path).
+
+    Two registered substitutions are applied, and both are consequences of the port *being* the
+    port rather than the reference: the product name (PORTING.md 0.1-19) wherever a generated
+    file spells it, and the tree's own path where a *compiled* describer embeds it.  The second
+    one is not obvious and was found the hard way (status 4.556): `unidata-gen-file` compiles a
+    describer and stores the function object in the table, and a compiled function prints as a
+    byte-code object that carries the path of the `.elc` it was loaded from - so the reference's
+    generated `uni-*.el` files contain the *reference tree's* path and the port's contain the
+    port's.  It is one directory name, and no port defect can remove it.
+    """
     if len(reference_lines) != len(port_lines):
         return False
+    reference_root, port_root = str(REF), str(PORT)
     for want, got in zip(reference_lines, port_lines):
         if want == got:
             continue
@@ -101,7 +112,8 @@ def name_only(reference_lines: list[str], port_lines: list[str], product: str) -
         # comparison is line by line rather than byte by byte.
         # Two spellings are rewritten: the full product name in the license header, and the
         # short form docstrings use when they mean the manual ("the Emacs manual").
-        if got != want.replace(product, PORT_NAME).replace(product.split()[-1], PORT_NAME):
+        wanted = want.replace(product, PORT_NAME).replace(product.split()[-1], PORT_NAME)
+        if got != wanted.replace(reference_root, port_root):
             return False
     return True
 
