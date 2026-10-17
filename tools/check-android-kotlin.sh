@@ -37,7 +37,21 @@ APK_DIR=${APK_DIR:-}
 
 # Android Studio ships the complete CLI compiler (not just the IDE plugin): `kotlinc` next to
 # its own JDK, which is all this check needs.
-JAVA_HOME=${JAVA_HOME:-$STUDIO/jbr/Contents/Home}
+# The rule for this project is "the latest LTS JDK only, never an old JDK to work around a
+# check".  A Homebrew `openjdk@25` is the newest LTS when it is installed; Android Studio's
+# bundled JBR is the fallback (an LTS too, just older).  Both were measured to build the
+# identical signed APK, so this only picks the default - `JAVA_HOME` still overrides it.
+for _cand in /opt/homebrew/opt/openjdk@25 /usr/local/opt/openjdk@25; do
+  if [ -x "$_cand/bin/javac" ]; then NEWEST_LTS_JDK=$_cand; break; fi
+done
+# Resolution order: an explicit `FEMACS_JAVA_HOME`, then the newest LTS JDK, then an ambient
+# `JAVA_HOME`, then Studio's JBR.  The project rule is "the latest LTS JDK only", so an ambient
+# older `JAVA_HOME` must not silently override it - it is a fallback, not a preference.
+if [ -n "${FEMACS_JAVA_HOME:-}" ]; then JAVA_HOME=$FEMACS_JAVA_HOME
+elif [ -n "${NEWEST_LTS_JDK:-}" ]; then JAVA_HOME=$NEWEST_LTS_JDK
+elif [ -n "${JAVA_HOME:-}" ]; then :
+else JAVA_HOME=$STUDIO/jbr/Contents/Home; fi
+echo "jdk: $JAVA_HOME ($("$JAVA_HOME/bin/java" -version 2>&1 | head -1))"
 KOTLINC="$STUDIO/plugins/Kotlin/kotlinc/bin/kotlinc"
 STDLIB="$STUDIO/plugins/Kotlin/kotlinc/lib/kotlin-stdlib.jar"
 ANDROID_JAR="$ANDROID_HOME/platforms/$ANDROID_API/android.jar"
@@ -67,7 +81,13 @@ RES_ZIP="$OUT/res.zip"
 mkdir -p "$OUT/rclasses"
 R_JAVA=$(find "$GEN" -name R.java | head -1)
 [ -n "$R_JAVA" ] || { echo "aapt2 did not write R.java" >&2; exit 3; }
-"$JAVA_HOME/bin/javac" -classpath "$ANDROID_JAR" -d "$OUT/rclasses" "$R_JAVA" || exit $?
+# `R` is generated, and javac's bytecode target is not fixed by any source: on a JDK newer than
+# the SDK's `d8` understands, javac's default emits a class file version `d8` refuses
+# (`Unsupported class file major version 69` under JDK 25 - measured).  Every Android build pins
+# this (Gradle pins `targetCompatibility`); the port pins it here so the dex input is the same
+# whatever JDK builds it, and so the build can run on the latest LTS JDK.
+JAVAC_RELEASE=${JAVAC_RELEASE:-17}
+"$JAVA_HOME/bin/javac" --release "$JAVAC_RELEASE" -classpath "$ANDROID_JAR" -d "$OUT/rclasses" "$R_JAVA" || exit $?
 (cd "$OUT/rclasses" && "$JAVA_HOME/bin/jar" cf "$OUT/R.jar" .) || exit $?
 R_JAR="$OUT/R.jar"
 echo "resources: R.jar built from $(find "$REPO/femacs/platform/android/res" -type f | wc -l | tr -d ' ') resource file(s)"

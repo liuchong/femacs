@@ -9,7 +9,7 @@
 2. **性能暂挂**（DoD-7 仍记未达）。
 3. **平台范围 = macOS 真机 + Android 模拟器**；Windows/Linux/Haiku 搁置。
 4. **产品名不改**：`lisp/test/etc/doc/leim/admin` **逐字节原样复制**；兼容接口（函数/变量/路径/Info 节点）不变。
-5. **Java 只用最新 LTS**，不得装旧 JDK 绕过。
+5. **Java 只用最新 LTS**：官方最新 LTS = **JDK 25**（2025-09；26/27 非 LTS），`openjdk@25` 已装且 Android 链在它下面实测全绿 ⇒ 不需要任何旧 JDK（`docs/baseline/android-jdk.txt`）。
 6. 内存受控、超限即止；用完的产物及时清理（P-190）。
 
 ## 完成定义（8 条等权）— 当前 **6/8 = 75%**
@@ -33,8 +33,11 @@
 - **arm64-v8a 系统镜像**：本机只有 x86 镜像，Apple Silicon 上 `emulator` 报
   `Cannot find AVD system path`。可选：**(C)** 安装 arm64 镜像（`tools/try-android-emulator.sh` 已就绪）。
 
-已解决、**无需旧 JDK** 的 Java 障碍：`configure` 的两处 `-source 1.7` 探测用缓存变量
-`emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes` 跳过（P-207/P-213）。
+已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
+`emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是
+`d8` 拒绝 `javac` 默认 target 的类文件（`Unsupported class file major version 69`）⇒ 给生成的 `R` 类钉 `--release 17`
+（Android 构建的常规做法）即绿：181,486 B 签名 APK、112 class；与 JBR 21 的 `classes.dex`/`resources.arsc` 哈希相同 ✓。
+默认 JDK 解析：`openjdk@25` → Studio 的 JBR（`JAVA_HOME` 可覆盖）。
 
 ## 一条命令复跑
 

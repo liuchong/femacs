@@ -1,0 +1,37 @@
+# Android packaging chain under the two available LTS JDKs (2026-10-18)
+#
+# Rule (user decision): the latest LTS JDK only.  Official latest LTS = JDK 25
+# (released 2025-09, supported to 2030; JDK 26/27 are non-LTS).
+#   https://www.oracle.com/java/technologies/java-se-support-roadmap.html
+#
+# command (each): JAVA_HOME=<jdk> tools/check-android-kotlin.sh --apk <dir>
+# Both run through the controlled runner (--memory-mib 1400; peak ~0.95 GiB, exit 0).
+
+JDK 25.0.4.1 (/opt/homebrew/opt/openjdk@25, installed for this check)
+  kotlin: exit 0, 112 class file(s)
+  apk: emacs.apk (180K), signed, package org.femacs
+  apk sha256  0837fa000e7dd43598a64a7ddf5387757a1395c446d9e53ce691f65bc0b7a3de
+  classes.dex sha256      943097ac25f65acb96571a4dfeaea4b2a7a30936651def0138247435efe1977a
+  resources.arsc sha256   0d2efa069fa9a6e82a086e014e3d83db0d7ab550c63ebdc998ed74b1e9b18f88
+
+Android Studio JBR 21.0.10 (the previous default)
+  kotlin: exit 0, 112 class file(s)
+  apk: emacs.apk (180K), signed, package org.femacs
+  apk sha256  b0d4be8fd6d2df42efffa2e73f3ad05c362b1940157e29eb249f70e7696b274c
+  classes.dex sha256      943097ac25f65acb96571a4dfeaea4b2a7a30936651def0138247435efe1977a
+  resources.arsc sha256   0d2efa069fa9a6e82a086e014e3d83db0d7ab550c63ebdc998ed74b1e9b18f88
+
+# The two APK files differ only in their zip/signature envelope (timestamps): the dex and the
+# resource table they carry are byte-identical.  So the JDK choice is not a semantic variable.
+#
+# The one real incompatibility found on JDK 25 (raw error, before the fix):
+#   com.android.tools.r8 ... java.lang.IllegalArgumentException:
+#       Unsupported class file major version 69
+#   (d8/R8 8.6.2 from build-tools 35.0.1 reading the R class that javac compiled with its
+#    default target on JDK 25 = class file 69.  Kotlin's own output is class file 52.)
+# Fix: pin the generated R class' bytecode target (javac --release 17), which is what every
+# Android build does (Gradle pins targetCompatibility).  No old JDK was installed or used.
+
+# gate-android under the new default (openjdk@25 preferred, JBR as fallback):
+#   apk: emacs.apk (181486 bytes), package org.femacs, 5 declared activit(ies) all backed by
+#   Kotlin sources, 112 compiled class(es), members and signature checked

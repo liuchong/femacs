@@ -34,7 +34,21 @@ CC=$(ls "$SDK"/ndk/*/toolchains/llvm/prebuilt/*/bin/aarch64-linux-android"$NDK_A
 # without a JDK is a stub that fails there ("the Java compiler does not work" - measured).  The
 # JDK Android Studio ships is the one the rest of the Android leg already uses.
 STUDIO=${STUDIO:-/Applications/Android Studio.app/Contents}
-JDK_BIN="$STUDIO/jbr/Contents/Home/bin"
+# The rule for this project is "the latest LTS JDK only, never an old JDK to work around a
+# check".  A Homebrew `openjdk@25` is the newest LTS when it is installed; Android Studio's
+# bundled JBR is the fallback (an LTS too, just older).  Both were measured to build the
+# identical signed APK, so this only picks the default - `JAVA_HOME` still overrides it.
+for cand in /opt/homebrew/opt/openjdk@25 /usr/local/opt/openjdk@25; do
+  if [ -x "$cand/bin/javac" ]; then NEWEST_LTS_JDK=$cand; break; fi
+done
+# Resolution order: an explicit `FEMACS_JAVA_HOME`, then the newest LTS JDK, then an ambient
+# `JAVA_HOME`, then Studio's JBR.  The project rule is "the latest LTS JDK only", so an ambient
+# older `JAVA_HOME` must not silently override it - it is a fallback, not a preference.
+if [ -n "${FEMACS_JAVA_HOME:-}" ]; then JDK_HOME=$FEMACS_JAVA_HOME
+elif [ -n "${NEWEST_LTS_JDK:-}" ]; then JDK_HOME=$NEWEST_LTS_JDK
+elif [ -n "${JAVA_HOME:-}" ]; then JDK_HOME=$JAVA_HOME
+else JDK_HOME=$STUDIO/jbr/Contents/Home; fi
+JDK_BIN="$JDK_HOME/bin"
 JAVAC=${JAVAC:-$JDK_BIN/javac}
 JARSIGNER=${JARSIGNER:-$JDK_BIN/jarsigner}
 
@@ -68,7 +82,7 @@ rm -rf "$BUILD" && mkdir -p "$BUILD" && cd "$BUILD" || exit 1
 #     variables are preset instead of installing an old JDK (the user's rule: LTS only);
 #   * the bundled JDK goes first on PATH because AC_PATH_PROGS prefers it.
 PATH="$JDK_BIN:$PATH" SDK_BUILD_TOOLS="$BUILD_TOOLS" ANDROID_SDK="$API" ANDROID_CC="$CC" \
-  JAVAC="$JAVAC" JARSIGNER="$JARSIGNER" JAVA_HOME="$STUDIO/jbr/Contents/Home" \
+  JAVAC="$JAVAC" JARSIGNER="$JARSIGNER" JAVA_HOME="$JDK_HOME" \
   ${MAKEINFO_BIN:+MAKEINFO="$MAKEINFO_BIN"} "$REPO/emacs/configure" \
   --host=aarch64-linux-android --with-android="$ANDROID_JAR" CC="$CC" \
   --without-all --with-x=no --with-ns=no \
