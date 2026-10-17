@@ -21817,3 +21817,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **volatile 那条** ✓：`lisp/calendar/diary-icalendar.el` 的 `ical:make-uid` 在编译期把 `(format-time-string "%s%N")` 哈希进产物 ✓ ⇒ 用**同一支程序**连编两次，md5 分别为 `1728d66e…` / `86288890…` ✗、参照树那份是 `cba5ade8…` ✓ ⇒ 任何两次编译都不可能相同 ✓，判成"缺陷"是**证据不支持的指控** ✗。工具原先只在注释里写了这一点 ✗、计数照算 ✗ ⇒ 本轮把它改成 `volatile` 一行并**排除出缺陷计数** ✓（汇总行新增 `, N volatile` ✓）。
   ③ **口径** ✓：`.elc` 的缺陷判定 = "参照程序在端口树里产出**不同**的字节" ✓；`state-only`（两侧同字节 ✓）、`volatile`（同程序两次不同 ✓）都不算缺陷 ✓。
   ④ **Lisp 零改动** ✓（本轮只改 `tools/gen-elc.py` ✓）；受控执行器 runtime 900 MiB、两次 `lisp` 全域交叉验证（各 49 s ✓），实测峰值 **≤ 70 MB** ✓；本轮**零单元重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/gen-elc.py`（volatile 口径 ✓）、本提交（纯读数 ✓）。
+- **4.529 验证相第一百六十轮：`.elc` 全族收口 —— `lisp` 0 缺陷 / `leim` 无编译目标 / `admin` 2 个生成物缺件（已记账）（2026-10-17）**：
+  ① **`lisp`** ✓：98 个非一致目标 ⇒ **32 rewrite-only** ✓、64 DIFFERENT 中 **96 state-only + 1 volatile + 0 端口缺陷** ✓、**1 missing**（`leim/ja-dic` 生成物 ✓），见 4.528 ✓。
+  ② **`leim`** ✓：`leim/**/*.el` **没有带参照 `.elc` 的源文件** ✓（该树只有生成物 ✓）⇒ 无目标 ✓。
+  ③ **`admin`** ✓：仅 2 个目标，均 **MISSING** ✗ —— `admin/unidata/unidata-gen.elc` ✓ 与 `admin/unidata/uvs.elc` ✓；这两个是 **`admin/unidata/Makefile` 的生成物** ✓（编译 cwd 在 `lisp/`、配方由该 Makefile 给 ✓ ⇒ 不在 `gen-elc.py` 的模型里 ✓），已属"生成物账" ✓ 与 `docs/retired-scaffolding.md` 的处置 ✓ ⇒ **不是端口缺陷** ✓。
+  ④ **工具修正** ✓：上轮 `volatile` 的初值放进了 `if` 块里 ✗ ⇒ 无 DIFFERENT 时汇总行会 `UnboundLocalError` ✗（`admin` 面第一次跑就踩到 ✓）；已把 `volatile = 0` 提到块外 ✓，`admin`/`lisp` 两面复跑正常 ✓。
+  ⑤ **DoD-4 口径** ✓：`.elc` 逐字节一致 = **除"登记过的产品名替换"外一致** ✓；`state-only`（参照程序在端口树里同字节 ✓）与 `volatile`（同程序两次不同 ✓）都不计缺陷 ✓；缺件只有生成物 ✓。
+  ⑥ **Lisp 零改动** ✓；受控执行器 runtime 900 MiB、三面各 <1 s-49 s ✓，峰值 **≤ 70 MB** ✓；本轮**零单元重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/gen-elc.py`（`volatile` 初值 ✓）、本提交（纯读数 ✓）。
