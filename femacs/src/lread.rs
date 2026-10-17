@@ -114,8 +114,18 @@ macro_rules! lread_read_quit { ($fd:expr, $buf:expr, $n:expr) => { emacs_read_qu
 #[cfg (not (feature = "have_android"))]
 macro_rules! lread_lseek { ($fd:expr, $off:expr, $whence:expr) => { lseek ($fd, $off, $whence) }; }
 
+/* `config.h`'s `MODULES_SUFFIX` (C 977/1181/1284/5589 read it): the frozen target defines no
+   modules, the Android configuration defines this one as ".so"
+   (`docs/baseline/config/android-arm64.json`).  It sits above the file's `not (have_android)`
+   block on purpose - an attribute there would have attached to this constant (measured).  */
+#[cfg (feature = "have_modules")]
+pub const MODULES_SUFFIX: &core::ffi::CStr = c".so";
 #[cfg (not (feature = "have_android"))]
-/// C: sysstdio.h's `FILE *` (the stdio.rs mirror's `FILE`).
+/// C: sysstdio.h's `FILE *` (the stdio.rs mirror's `FILE`); C 70's `#define file_stream FILE *`
+/// is the arm `!HAVE_ANDROID || ANDROID_STUBIFY || __ANDROID_API__ < 9`, and C 126's
+/// `struct android_fd_or_asset` is the Android one below - the two definitions need C's own
+/// condition here, or both are live and the name is `E0428` (measured).
+#[cfg (not (feature = "have_android"))]
 pub type file_stream = *mut FILE;
 #[cfg (not (feature = "have_android"))]
 macro_rules! file_seek { ($stream:expr, $off:expr, $whence:expr) => { fseek ($stream, $off, $whence) }; }
@@ -202,8 +212,14 @@ unsafe extern "C" {
 
 /* C 128-152: the Android arm's `file_get_char` (a *function* there, listed in the ledger
    at C 132).  */
+/* C 76 and C 132 give the two arms the *same* name - a `#define` on one, a function on the
+   other - so every call site spells `file_get_char (stream)` whether or not there is a `!`.
+   Rust's two shapes cannot share a call form, so the function keeps C's body under a name of
+   its own and the macro names it: the call sites keep C's one shape.  */
 #[cfg (feature = "have_android")]
-unsafe fn file_get_char (stream: file_stream) -> c_int
+macro_rules! file_get_char { ($p:expr) => { file_get_char_android ($p) }; }
+#[cfg (feature = "have_android")]
+unsafe fn file_get_char_android (stream: file_stream) -> c_int
 {
   let mut c: c_int;
   let mut byte: c_char = 0;
@@ -217,7 +233,7 @@ unsafe fn file_get_char (stream: file_stream) -> c_int
 	{ c = EOF; }
       else if rc == -1
 	{
-	  if errno == EINTR
+	  if *errno () == EINTR
 	    { continue; }
 	  else
 	    { c = EOF; }

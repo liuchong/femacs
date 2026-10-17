@@ -4750,17 +4750,13 @@ macro_rules! WINDOW_HANDLE_UINTPTR { ($h:expr) => { ($h) as usize }; }
 macro_rules! PRIuMAX { () => { "ju" } }
 
 
-/* The two `size_hint_flags` sign bits: xterm.h's X11 header arms and `nsgui.h` 122, `pgtkgui.h`
-   85, `w32gui.h` 79, `androidgui.h` 242 and `haikugui.h` 83 all define them as 0x0010/0x0020.  */
-#[cfg (feature = "have_window_system")]
-const XNegative: c_int = 0x0010;
-#[cfg (feature = "have_window_system")]
-const YNegative: c_int = 0x0020;
 
-/* C 5157's `NorthWestGravity`: an X11 constant the non-X GUI headers define themselves
-   (nsgui.h 105, pgtkgui.h 68, w32gui.h 62, androidgui.h 225, haikugui.h 66 - all `1`).  */
-#[cfg (feature = "have_window_system")]
-const NorthWestGravity: c_int = 1;
+
+/* C 5157-5161's geometry constants (`XNegative`, `YNegative`, the four gravities and the four
+   position/size hints) are the GUI headers' (nsgui.h, pgtkgui.h, w32gui.h, androidgui.h,
+   haikugui.h), and this unit reaches them through `TERM_HEADER`'s mirror now
+   (`include/androidgui.rs` 245-277 carries all ten) - the unit's own substitutes were `E0428`
+   once that edge existed (measured, 8 names).  */
 
 /* The mirror-gap functions this half calls; each `/// C:` is the header's own prototype
    (PORTING.md P-72 rule 3, the `frame.rs` use-site shape above).  */
@@ -6083,24 +6079,6 @@ const RES_TYPE_BOOLEAN_NUMBER: resource_types = 5;  // C 3990
 #[cfg (feature = "have_window_system")]
 const EMACS_CLASS: &str = "Emacs";
 
-/* The `window_prompting` bits and the `win_gravity` values.  The six `*gui.h` headers all define
-   them with the same values (the X11 build takes them from `<X11/Xutil.h>`, which this tree does
-   not have); the mirrors that carry them are `include/{ns,pgtk,w32,haiku,android}gui.rs`, and
-   `NorthWestGravity` is already defined above for the first half of the run.  */
-#[cfg (feature = "have_window_system")]
-const NorthEastGravity: c_int = 3;      // nsgui.h 107 / pgtkgui.h 70 / w32gui.h 64 / androidgui.h 227 / haikugui.h 68
-#[cfg (feature = "have_window_system")]
-const SouthWestGravity: c_int = 7;      // nsgui.h 111 / pgtkgui.h 74 / w32gui.h 68 / androidgui.h 231 / haikugui.h 72
-#[cfg (feature = "have_window_system")]
-const SouthEastGravity: c_int = 9;      // nsgui.h 113 / pgtkgui.h 76 / w32gui.h 70 / androidgui.h 233 / haikugui.h 74
-#[cfg (feature = "have_window_system")]
-const USPosition: c_long = 1 << 0;      // nsgui.h 125 / pgtkgui.h 88 / w32gui.h 82 / androidgui.h 245 / haikugui.h 86
-#[cfg (feature = "have_window_system")]
-const USSize: c_long = 1 << 1;
-#[cfg (feature = "have_window_system")]
-const PPosition: c_long = 1 << 2;
-#[cfg (feature = "have_window_system")]
-const PSize: c_long = 1 << 3;
 
 /* C 6538's `#if !defined (HAVE_X_WINDOWS) && defined (NoValue)`: the `NoValue` family, defined
    by the same six `*gui.h` headers (all `0x0000`/`0x0001`/`0x0002`/`0x0004`/`0x0008`; nsgui.h
