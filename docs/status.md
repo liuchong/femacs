@@ -22100,3 +22100,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **读数** ✓：`resources: R.jar built from 18 resource file(s)` ✓、`compiling 40 Kotlin file(s)` ✓、**只剩 1 个错误** ✓：`EmacsConfig.kt:292: unresolved reference 'EmacsConfig'` ✗ —— 那是参照在**构建时生成**的类（`emacs/java/Makefile.in` 100-102 的 `CONFIG_FILE` ✓），端口还没有生成器 ✓。
   ⑤ **门** ✓：`check-platform-inventory.py` 现在也管 Android 数据 ⇒ `Android data: 19 entries, 0 without` ✓、`53 platform targets, 0 without` ✓，rc=0 ✓。
   ⑥ **零 Rust 重编** ✓；受控执行器 runtime 900 MiB 一次（峰值 831 MB ✓）。提交：`femacs/platform/android/{res,AndroidManifest.xml}` ✓、`tools/check-android-kotlin.sh`（资源链 ✓）、`tools/check-platform-inventory.py`（Android 数据 ✓）、`PORTING.md`（P-199 ✓）、本提交（读数 ✓）。
+- **4.575 验证相第二百零五轮：Android 的 Kotlin 壳**零错误编译通过**（`exit 0`, 112 class files）—— 缺的 `EmacsConfig` 用生成器补上（P-200）（2026-10-17）**：
+  ① **新生成器** ✓：`tools/gen-emacs-config.py`（照 `emacs/java/Makefile.in` 411-424 ✓）⇒ `package org.femacs` 的 `object EmacsConfig` + `@JvmField val EMACS_SHARED_LIBRARIES` ✓；列表 = `libemacs.so` + `libandroid-emacs.so` ✓（`java/Makefile.in` 313-314 总会拷进 APK 的两个 ✓），NDK 依赖库留给原生构建 ✓（写明 ✓）。
+  ② **脚本** ✓：先把生成器产物写进临时目录 ✓，再与 40 个源文件一起编译 ✓（不入库 ✓）。
+  ③ **读数** ✓：`resources: R.jar built from 18 resource file(s)` ✓、`compiling 41 Kotlin file(s)` ✓、**`kotlin: exit 0, 112 class file(s)`** ✓✓（仅 warning ✓）。
+  ④ **预算读数（如实记录）** ✓：`kotlinc` 峰值 **956 MB** ✓ ⇒ 900 MiB profile 被 `memory_limit` 杀掉一次 ✗ ✓，改用 **1.4 GiB** 通过 ✓。
+  ⑤ **零 Rust 重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/gen-emacs-config.py` ✓、`tools/check-android-kotlin.sh` ✓、`PORTING.md`（P-200 ✓）、`docs/decisions-needed.md`（第 3 项 ✓）、本提交（读数 ✓）。
