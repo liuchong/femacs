@@ -6,8 +6,9 @@ the biggest of them: C's build byte-compiles every `lisp/**/*.el` whose referenc
 `.elc` beside it.  The port has no `lisp/Makefile` (it went with the rest of the autotools
 scaffolding, PORTING.md P-102), so this tool drives the port's program the way C's makefile does:
 
-    <port>/temacs -Q --batch --no-site-file --no-site-lisp
-                  --eval '(setq load-prefer-newer t)' -f batch-byte-compile <files...>
+    <port>/temacs -Q --batch --no-site-file --no-site-lisp \
+                  --eval "(setq load-prefer-newer t byte-compile-warnings 'all)" \
+                  --eval "(setq org--inhibit-version-check t)" -f batch-byte-compile <files...>
 
 and then compares every product with the reference tree's copy, byte for byte.  Target files are
 handed over in chunks, so one program start (the port's loadup, ~25 s) is amortised over many
@@ -95,8 +96,17 @@ REFERENCE_PROGRAM = UNDUMPED_PROGRAM if UNDUMPED_PROGRAM.is_file() else DUMPED_P
 # identical in the other.  The default is therefore the reference's own method; `--chunk N` is a
 # smoke-run convenience whose reading is not comparable to the reference's products.
 DEFAULT_CHUNK = 1
-LOAD_FLAGS = ["-Q", "--batch", "--no-site-file", "--no-site-lisp",
-              "--eval", "(setq load-prefer-newer t)", "-f", "batch-byte-compile"]
+
+# C's own byte-compile flags, verbatim: `lisp/Makefile.in` 74-78 sets `load-prefer-newer`,
+# `byte-compile-warnings` to `all` and `org--inhibit-version-check` to `t`, and the last one is
+# load-bearing for the products - `org-assert-version` (org-macs.el 52) expands to its *runtime*
+# check unless that variable is set at expansion time, so without it every `org/**` product and
+# every other file that calls the macro differs from the reference's (measured 2026-10-17:
+# `lisp/org` answered 1 identical / 124 DIFFERENT without the flag).
+BYTE_COMPILE_FLAGS = ["--eval", "(setq load-prefer-newer t byte-compile-warnings 'all)",
+                      "--eval", "(setq org--inhibit-version-check t)",
+                      "-f", "batch-byte-compile"]
+LOAD_FLAGS = ["-Q", "--batch", "--no-site-file", "--no-site-lisp", *BYTE_COMPILE_FLAGS]
 
 
 def targets(pattern: str) -> tuple[list[str], int]:
@@ -179,7 +189,7 @@ def cross_check(files: list[pathlib.Path], timeout: int,
         keep.write_bytes(pathlib.Path(product).read_bytes())
         pathlib.Path(product).unlink()
         subprocess.run([str(reference_program), "-Q", "--batch", "--no-site-file", "--no-site-lisp",
-                        "--eval", "(setq load-prefer-newer t)", "-f", "batch-byte-compile",
+                        *BYTE_COMPILE_FLAGS,
                         "./" + str(rel.relative_to("lisp"))],
                        cwd=str(PORT / "lisp"), capture_output=True, text=True, timeout=timeout,
                        env=env)
