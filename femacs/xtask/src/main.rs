@@ -1388,11 +1388,12 @@ configuration (see PORTING.md 2.1's setup steps)");
     }
     // P-197: the non-C platform rows of the port map (Swift/Kotlin/C++) had no gate, so a
     // missing target printed as `-` and passed.  This step verifies every mapped target
-    // exists; it runs with `--warn` only while `src/nsxwidget.m`'s Swift port is outstanding.
+    // exists.  P-198 closed the one gap it found (`src/nsxwidget.m`'s Swift lane), so the
+    // `--warn` that kept `gate-fast` green while that file was missing is gone.
     println!("== platform inventory gate ==");
     match Command::new("python3")
         .current_dir(REPO)
-        .args(["tools/check-platform-inventory.py", "--warn"])
+        .args(["tools/check-platform-inventory.py"])
         .status()
     {
         Ok(s) if s.success() => println!("platform inventory: every mapped platform target exists"),

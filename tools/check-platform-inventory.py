@@ -43,11 +43,10 @@ def rows(family: str) -> list[tuple[str, str, str]]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--show", type=int, default=10)
-    # Temporary while P-197 is open: `src/nsxwidget.m` has no Swift counterpart yet, so the
-    # gate runs in `gate-fast` with `--warn` and reports without failing.  The flag goes away
-    # with that file (P-197 rule ②), which is what keeps this from becoming a silent pass.
+    # Kept for one purpose only: a diagnostic run on a tree where a target is known to be
+    # absent (P-198 removed the only use `gate-fast` had for it).  It is *not* wired in.
     ap.add_argument("--warn", action="store_true",
-                    help="report gaps but exit 0 (temporary, P-197)")
+                    help="report gaps but exit 0 (diagnostic only; not wired into gate-fast)")
     a = ap.parse_args()
     missing = 0
     total = 0
