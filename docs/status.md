@@ -22087,3 +22087,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **性质** ✓：冻结配置 `--with-ns=no` 不编译该文件 ✓，但其余 **7 个 `.m` 都有 Swift 对应物** ✓、`src/nsxwidget.h` 的镜像也在（95 行 ✓）⇒ 这是**遗漏**而非设计取舍 ✓；补法是逐函数对照移植（约 20 个 C 函数 + 3 个 ObjC 类 ✓）。
   ④ **下一步** ✓：把这道门接进 `gate-fast` ✓ 并开始 `nsxwidget.swift` 的移植 ✓（`check-swift-units.py` 会编译它 ✓，所以翻译错误会在门前暴露 ✓）。
   ⑤ **零编译** ✓；受控执行器 runtime 200 MiB 一次（0.08 s ✓）。提交：`tools/check-platform-inventory.py` ✓、`PORTING.md`（P-197 ✓）、本提交（读数 ✓）。
+- **4.573 验证相第二百零三轮：唯一的平台缺件补上 —— `nsxwidget.swift`（888 行）落地，平台映射 53/53 全在，门转严格并全绿（P-198）（2026-10-17）**：
+  ① **落地** ✓：`femacs/platform/macos/nsxwidget.swift`（637 行 C → **888 行 Swift** ✓），逐函数对照（`nsxwidget_is_web_view`…`nsxwidget_set_needsdisplay` 22 个 ✓）、三个 ObjC 类（`XwWebView`/`XwWindow`/`XvWindow` ✓）、`js_to_lisp` 的递归转换 ✓。
+  ② **三件套读数** ✓：`check-swift-units.py` ⇒ **22 C definitions, 0 unported, 0 rows** ✓（汇总 `0 new, 0 stale` ✓）；`xcrun swiftc -typecheck` ⇒ **rc=0** ✓；`check-swift-imports.py` ⇒ 本 lane **0 FAIL** ✓（5 个未提供的名字按 ratchet 带理由记录 ✓）。
+  ③ **门** ✓：`check-platform-inventory.py` ⇒ **53/53** ✓（Swift 8 ✓ / Kotlin 40 ✓ / C++ 5 ✓）；`gate-fast` **exit 0** ✓，且 `platform inventory: every mapped platform target exists` ✓（`--warn` 已删除 ✓）。
+  ④ **门自己抓到的两处真错**（如实记录 ✓）：`@objc` 初始化器与 `@_cdecl` 都不能带 Swift 结构体参数 ✗ ⇒ 去掉 `@objc` ✓、导出改走 22 个裸指针薄包装 ✓。
+  ⑤ **零 Rust 重编**（只动了 Swift/工具/文档 ✓，`gate-fast` 那次是标准验证 ✓）；受控执行器读数：swiftc 三次（≤ 4 s ✓、峰值 ≤ 139 MB ✓）、imports 门三次（各 ≈ 6 min ✓、峰值 ≤ 47 MB ✓）、`gate-fast` 一次（544 s ✓、峰值 395 MB ✓）。提交：`femacs/platform/macos/nsxwidget.swift` ✓、`docs/ports/nsxwidget.md`（22 项全勾 ✓）、`docs/baseline/swift-import-pending.txt`（+5 行 ✓）、`femacs/xtask/src/main.rs` + `tools/check-platform-inventory.py`（转严格 ✓）、`docs/port-map.md`（重生成 ✓）、`PORTING.md`（P-198 ✓）、`docs/acceptance.md`（DoD-1 ✓）、本提交（读数 ✓）。
