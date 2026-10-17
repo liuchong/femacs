@@ -25,10 +25,14 @@ const BUILD: &str = "../build/femacs";
 /// flag *removed*, so the debt is paid and the level is no longer a variable of the port - it
 /// is a constant again, and `FEMACS_OPT_LEVEL` stays only as a diagnostic override.
 ///
+/// `debug-assertions=off` (P-181): in Rust that switch also carries `ub_checks`, the
+/// alignment/non-null preconditions on every raw-pointer dereference - a cost C's build has
+/// no counterpart for (measured: the bytecode VM was 3-4x the reference with them on, 1.4-1.7x
+/// with them off).  The port's own assertions live in the `enable_checking` configuration.
 /// The two check flags stay explicit: `overflow-checks` because P-96 forbids leaning on release
 /// arithmetic, and `debug-assertions` because a unit is built the way C's checking build is.
 const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=2", "-C", "overflow-checks=on",
-                                       "-C", "debug-assertions=on", "-C", "panic=abort",
+                                       "-C", "debug-assertions=off", "-C", "panic=abort",
                                        "-C", "codegen-units=1"];
 
 /// The unit flags, with `-C opt-level` replaced by `FEMACS_OPT_LEVEL` when that variable is set.
