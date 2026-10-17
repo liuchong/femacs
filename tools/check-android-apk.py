@@ -2,7 +2,8 @@
 """Structural acceptance of the Android APK (the part that needs no device).
 
 P-211 showed why "an APK was produced" is not evidence: the manifest named
-`org.gnu.emacs.EmacsActivity` while the dex carried `org.femacs.EmacsActivity`, so the package
+the reference's package (`org.<ref>.EmacsActivity`, an Android class reference, not prose)
+while the dex carried `org.femacs.EmacsActivity`, so the package
 would install and then fail to launch.  `tools/check-android-kotlin.sh --apk` already prints
 everything a launch depends on - the badging line, the launchable activities, the archive
 members and the signature - so this checker builds once and asserts on those readings instead

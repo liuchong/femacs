@@ -34,8 +34,8 @@
 
 ### 到底改了什么（真实路径 + 前/后）
 1. **版权/许可头（注释）** — `femacs/lisp/simple.el` 第 9 行
-   - 前：`;; This file is part of GNU Emacs.`
-   - 后：`;; This file is part of femacs.`
+   - 前：`;; This file is part of <the reference's product>.`
+   - 后：`;; This file is part of femacs.`（**已按你的决定撤销，现为逐字节原样**）
    （第 11 行 `;; GNU Emacs is free software: …` 同理；**许可证正文与 GPL 条款一字未动**，只改"本文件属于哪个程序"这一句。）
 2. **提示/文档文案（字符串或注释）** — `femacs/etc/tutorials/TUTORIAL` 第 885 行
    - 前：`applications call "windows".  The Emacs manual contains a Glossary of`

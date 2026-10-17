@@ -22158,3 +22158,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **模拟器（如实）** ✗：`emulator -list-avds` ⇒ `Pixel_4_API_30`、`Resizable_Experimental_API_35` ✓，但 `system-images` 只有 **x86**（`android-22/android-tv/x86` ✓）⇒ 在 Apple Silicon 上 `FATAL | Cannot find AVD system path. Please define ANDROID_SDK_ROOT` ✗；需要 **arm64-v8a 系统镜像**（下载动作 ✓，待你许可 ✓）。`tools/try-android-emulator.sh` 已入库 ✓，补上镜像即可直接跑"安装 + 启动日志"两步 ✓。
   ④ **JDK** ✓：用户要求只用**最新 LTS**、不用旧版绕过 ✓；参照的 `configure` 用 `-source 1.7` 判编译器 ✓（JDK 21/26 都拒绝 ✗）⇒ 待核验最新 LTS 并用 **configure 缓存变量 `emacs_cv_working_javac=yes`** 的兼容方案（不改参照 ✓）先行验证 ✓。
   ⑤ **零重编** ✓；`git -C emacs status --short` 为空 ✓。
+- **4.590 按新决定闭合 DoD-5，并修掉两处自家文本里的产品名（2026-10-18）**：
+  ① **DoD-5 转达成** ✓：`check-verbatim.py` ⇒ `6 trees, 4,604 files, 0 sanctioned line(s), 9 accepted absence(s), 0 failures` ✓；`docs/acceptance.md` 第 5 条判定列改为"达成" ✓。
+  ② **`gate-fast` 首跑暴露两处**我们自己文本**里的产品名（不是照抄树）** ✗：`docs/decisions-needed.md` 引用了 licence 原句 ✓、`tools/check-android-apk.py` 的 docstring 引用了参照的 Android 包名 ✓ ⇒ 改成占位写法 ✓，`check-declarations.py` 复跑通过 ✓（其余七步在该次运行里已全绿：inventory/symbols×2/link/subr/defvar/platform inventory ✓）。
+  ③ **待补一次** `gate-fast` 全量复跑 ✓（声明门的修复之后尚未整跑 ✓）。
+  ④ **零重编** ✓；`git -C emacs status --short` 为空 ✓。
