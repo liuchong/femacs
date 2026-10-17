@@ -88,6 +88,75 @@ include!("include/font.rs");                   // C 41: `#include "font.h"`
 #[cfg (feature = "have_window_system")]
 include!("include/pdumper.rs");                // C 42: `#include "pdumper.h"`
 
+/* `frame.h` 1379/1646-1661's three accessors: the mirror keeps them in its own
+   `frame_face_accessors` module behind `dispextern_face_records` (which no configuration
+   produces), and this unit calls them six times, so it carries the module itself - the
+   `src/haikufns.rs` 857-876 device, and the shape status 3.220's ruling prescribes for every
+   unit that needs one of the gated records.  */
+/* `struct face_cache` (C dispextern.h 1991-2009) - the same use-site copy the record above
+   is (status 3.220's ruling; the accessors below read its `used`/`faces_by_id`).  */
+/// C 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0, `f`@8,
+/// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
+/// the int unit at 36 (carried as a byte, the P-80 convention - `src/window.rs` 907 spells
+/// the same member `bool`, one byte wide either way).
+#[cfg (feature = "have_window_system")]
+#[repr(C)]
+#[cfg (feature = "have_window_system")]
+pub struct face_cache
+{
+  pub buckets: *mut *mut face,
+  /* P-72 rule ③: `struct frame` is frame.rs's type and a unit that includes this mirror need
+     not include that one (measured: `build-tu src/bidi.c` and `src/lread.c` answered "cannot
+     find type frame" while this member was `*mut frame`), so the member is the untyped
+     pointer - the same pointer, which is what C's incomplete `struct frame *` is.  */
+  pub f: *mut c_void,   /// C: `struct frame *f;` (dispextern.h 1997)
+  pub faces_by_id: *mut *mut face,
+  pub size: ptrdiff_t,
+  pub used: c_int,
+  pub menu_face_changed_p: u8,
+}
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, buckets) == 0);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, f) == 8);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, size) == 24);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
+
+#[cfg (feature = "have_window_system")]
+pub mod frame_face_accessors
+{
+  use super::*;
+
+  /// C 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache`
+  #[inline (always)]
+  pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
+  { unsafe { (*f).face_cache as *mut face_cache } }
+
+  /// C 1646-1650: `INLINE struct face * FACE_FROM_ID (struct frame *f, int id)`
+  #[inline (always)]
+  pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
+  {
+    eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+    unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
+  }
+
+  /// C 1656-1661: `INLINE struct face * FACE_FROM_ID_OR_NULL (struct frame *f, int id)`
+  #[inline (always)]
+  pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
+  {
+    let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+    eassume! (0 <= used);
+    if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
+    else { core::ptr::null_mut () }
+  }
+}
+
 /* `struct face` (C dispextern.h 1787-1937) - the use-site copy the display units carry, for the
    reason the mirror's `dispextern_face_records` ruling records (status 3.220): the mirror
    keeps the record behind a `dead-arms` feature that no configuration produces, so on
@@ -101,7 +170,9 @@ include!("include/pdumper.rs");                // C 42: `#include "pdumper.h"`
 /// `underline_pixels_above_descent_line`@236, the 21 `bool_bf`/`ENUM_BF` bits C declares at
 /// 1893-1935 in one 4-byte storage unit at 240, `hash`@248, `next`@256, `prev`@264,
 /// `ascii_face`@272.
+#[cfg (feature = "have_window_system")]
 #[repr(C)]
+#[cfg (feature = "have_window_system")]
 pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
@@ -158,24 +229,39 @@ const FACE_WS_SHIFT: usize = 0;
 #[cfg (feature = "have_window_system")]
 const FACE_WS_SHIFT: usize = 16;
 
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
 #[cfg (all (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
 #[cfg (all (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, next) == 256 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FACE_WS_SHIFT);
 
 

@@ -837,7 +837,9 @@ pub static mut max_used_fringe_bitmap: c_int = MAX_STANDARD_FRINGE_BITMAPS;
 /// `underline_pixels_above_descent_line`@236, the 21 `bool_bf`/`ENUM_BF` bits C declares at
 /// 1893-1935 in one 4-byte storage unit at 240, `hash`@248, `next`@256, `prev`@264,
 /// `ascii_face`@272.
+#[cfg (feature = "have_window_system")]
 #[repr(C)]
+#[cfg (feature = "have_window_system")]
 pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
@@ -894,24 +896,39 @@ const FACE_WS_SHIFT: usize = 0;
 #[cfg (feature = "have_window_system")]
 const FACE_WS_SHIFT: usize = 16;
 
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
 #[cfg (all (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
 #[cfg (all (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, next) == 256 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FACE_WS_SHIFT);
 
 /* `struct face_cache` (C dispextern.h 1991-2009) - the use-site copy the display units carry, for the
@@ -924,7 +941,9 @@ const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FA
 /// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
 /// the int unit at 36 (carried as a byte, the P-80 convention - `src/window.rs` 907 spells
 /// the same member `bool`, one byte wide either way).
+#[cfg (feature = "have_window_system")]
 #[repr(C)]
+#[cfg (feature = "have_window_system")]
 pub struct face_cache
 {
   pub buckets: *mut *mut face,
@@ -938,11 +957,17 @@ pub struct face_cache
   pub used: c_int,
   pub menu_face_changed_p: u8,
 }
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, buckets) == 0);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, f) == 8);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, size) == 24);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
 
 /* `struct draw_fringe_bitmap_params` (C dispextern.h 2159-2200) - the use-site copy the display units carry, for the
@@ -951,8 +976,10 @@ const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
    Android the name is out of scope (`src/xfaces.rs` 288 is the oldest copy).  The text is
    the mirror's; the assertions hold for both targets, and the Android arm's numbers are
    measured in docs/baseline/draw-fringe-bitmap-params-layout-android.tsv.  */
+#[cfg (feature = "have_window_system")]
 #[repr (C)]
 #[derive (Clone, Copy)]
+#[cfg (feature = "have_window_system")]
 pub struct draw_fringe_bitmap_params
 {
   pub which: c_int,                  // offset 0
@@ -970,6 +997,7 @@ pub struct draw_fringe_bitmap_params
   pub flags: u8,
   pub face: *mut face,                  // offset 56
 }
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (core::mem::size_of::<draw_fringe_bitmap_params> () == 64);
 
 /* `struct redisplay_interface` (C dispextern.h 3069-3196) - the use-site copy the display units carry, for the
@@ -978,12 +1006,14 @@ const _: () = core::assert! (core::mem::size_of::<draw_fringe_bitmap_params> () 
    Android the name is out of scope (`src/xfaces.rs` 288 is the oldest copy).  The text is
    the mirror's; the assertions hold for both targets, and the Android arm's numbers are
    measured in docs/baseline/redisplay-interface-layout-android.tsv.  */
+#[cfg (feature = "have_window_system")]
 #[repr (C)]
 #[derive (Clone, Copy)]
+#[cfg (feature = "have_window_system")]
 pub struct redisplay_interface
 {
   pub frame_parm_handlers: *mut c_void,                  // offset 0
-  pub produce_glyphs: Option<unsafe extern "C" fn (*mut it)>,                  // offset 8
+  pub produce_glyphs: Option<unsafe extern "C" fn (*mut c_void)>,            // offset 8; C's `struct it *` untyped (P-72 rule 3, the mirror's own choice)
   pub write_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
   pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
   pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
@@ -1049,6 +1079,41 @@ const REDISPLAY_IFACE_WS_SHIFT: usize = 120;
 #[cfg (all (feature = "have_window_system"))]
 const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 104 + REDISPLAY_IFACE_WS_SHIFT);
 
+#[cfg (feature = "have_window_system")]
+/* `draw_fringe_bitmap_params`' two `bool_bf` members (C 2159-2200) - the mirror carries the flags
+   byte and these four accessors behind `dispextern_face_records`, so the unit that writes them
+   keeps its own copy (status 3.220's ruling, the `set_cursor_p`/`set_overlay_p` note of
+   `docs/ports/include-dispextern.md`).  */
+#[cfg (feature = "have_window_system")]
+pub const DRAW_FRINGE_BITMAP_CURSOR_P: u8 = 1 << 0;
+#[cfg (feature = "have_window_system")]
+pub const DRAW_FRINGE_BITMAP_OVERLAY_P: u8 = 1 << 1;
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn get_cursor_p (p: *const draw_fringe_bitmap_params) -> bool
+{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P != 0 } }
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn set_cursor_p (p: *mut draw_fringe_bitmap_params, value: bool)
+{
+  unsafe {
+    if value { (*p).flags |= DRAW_FRINGE_BITMAP_CURSOR_P }
+    else { (*p).flags &= !DRAW_FRINGE_BITMAP_CURSOR_P }
+  }
+}
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn get_overlay_p (p: *const draw_fringe_bitmap_params) -> bool
+{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P != 0 } }
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn set_overlay_p (p: *mut draw_fringe_bitmap_params, value: bool)
+{
+  unsafe {
+    if value { (*p).flags |= DRAW_FRINGE_BITMAP_OVERLAY_P }
+    else { (*p).flags &= !DRAW_FRINGE_BITMAP_OVERLAY_P }
+  }
+}
 #[cfg (feature = "have_window_system")]
 use dispextern_unit_names::*;
 

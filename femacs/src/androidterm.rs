@@ -174,25 +174,122 @@ const FACE_WS_SHIFT: usize = 0;
 #[cfg (feature = "have_window_system")]
 const FACE_WS_SHIFT: usize = 16;
 
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
 #[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
 #[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, next) == 256 + FACE_WS_SHIFT);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FACE_WS_SHIFT);
+
+/* `frame.h` 1379/1646-1661's three accessors: the mirror keeps them in its own
+   `frame_face_accessors` module behind `dispextern_face_records` (which no configuration
+   produces), and this unit calls them six times, so it carries the module itself - the
+   `src/haikufns.rs` 857-876 device, and the shape status 3.220's ruling prescribes for every
+   unit that needs one of the gated records.  */
+/* `struct face_cache` (C dispextern.h 1991-2009) - the use-site copy status 3.220 prescribes.  */
+/// C 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0, `f`@8,
+/// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
+/// the int unit at 36 (carried as a byte, the P-80 convention - `src/window.rs` 907 spells
+/// the same member `bool`, one byte wide either way).
+#[cfg (feature = "have_window_system")]
+#[repr(C)]
+#[cfg (feature = "have_window_system")]
+pub struct face_cache
+{
+  pub buckets: *mut *mut face,
+  /* P-72 rule ③: `struct frame` is frame.rs's type and a unit that includes this mirror need
+     not include that one (measured: `build-tu src/bidi.c` and `src/lread.c` answered "cannot
+     find type frame" while this member was `*mut frame`), so the member is the untyped
+     pointer - the same pointer, which is what C's incomplete `struct frame *` is.  */
+  pub f: *mut c_void,   /// C: `struct frame *f;` (dispextern.h 1997)
+  pub faces_by_id: *mut *mut face,
+  pub size: ptrdiff_t,
+  pub used: c_int,
+  pub menu_face_changed_p: u8,
+}
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, buckets) == 0);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, f) == 8);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, size) == 24);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
+
+/* `include/frame.rs` packs C's bit fields into `bits1`/`bits2` (the mirror's `new_size_p` and
+   `want_fullscreen` notes), so this unit reads them the way `src/dispnew.rs` 497 and
+   `src/haikuterm.rs` 3058 do - the mirror's own shifts and masks, not named members.  */
+#[inline(always)]
+#[cfg (feature = "have_window_system")]
+pub fn frame_want_fullscreen (f: *mut frame) -> fullscreen_type {
+  ((unsafe { (*f).bits2 } >> FRAME_WANT_FULLSCREEN_SHIFT) & FRAME_WANT_FULLSCREEN_MASK) as fullscreen_type
+}
+#[inline(always)]
+#[cfg (feature = "have_window_system")]
+pub fn frame_new_size_p (f: *mut frame) -> bool {
+  (unsafe { (*f).bits2 } >> FRAME_NEW_SIZE_P_SHIFT & 1) != 0
+}
+
+#[cfg (feature = "have_window_system")]
+pub mod frame_face_accessors
+{
+  use super::*;
+
+  /// C 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache`
+  #[inline (always)]
+  pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
+  { unsafe { (*f).face_cache as *mut face_cache } }
+
+  /// C 1646-1650: `INLINE struct face * FACE_FROM_ID (struct frame *f, int id)`
+  #[inline (always)]
+  pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
+  {
+    eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+    unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
+  }
+
+  /// C 1656-1661: `INLINE struct face * FACE_FROM_ID_OR_NULL (struct frame *f, int id)`
+  #[inline (always)]
+  pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
+  {
+    let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+    eassume! (0 <= used);
+    if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
+    else { core::ptr::null_mut () }
+  }
+}
 
 /* `struct redisplay_interface` - dispextern.h 3069-3196.  The mirror carries the record inside
    its `dispextern_unit_names` module with the `struct window *`/`struct frame *` slots degraded to
@@ -1380,7 +1477,7 @@ unsafe fn handle_one_android_event (dpyinfo: *mut android_display_info,
 
 	if width != FRAME_PIXEL_WIDTH (f)                              // C 905
 	    || height != FRAME_PIXEL_HEIGHT (f)                        // C 906
-	    || ((*f).new_size_p                                       // C 907
+	    || (frame_new_size_p (f)                                  // C 907
 		&& (((*f).new_width >= 0 && width != (*f).new_width)   // C 908
 		    || ((*f).new_height >= 0 && height != (*f).new_height)))   // C 909
 	  {
@@ -2789,7 +2886,7 @@ unsafe extern "C" fn android_fullscreen_hook (f: *mut frame)
       /* Explicitly setting fullscreen is not supported on older
 	 Android versions.  */                                         // C 2211-2212
 
-      wanted = (if (*f).want_fullscreen == FULLSCREEN_BOTH            // C 2214
+      wanted = (if frame_want_fullscreen (f) == FULLSCREEN_BOTH     // C 2214
 		  { Qfullscreen () } else { Qmaximized () });          // C 2215
 
       if android_set_fullscreen (FRAME_ANDROID_WINDOW! (f),            // C 2217
@@ -3304,7 +3401,59 @@ unsafe extern "C" fn android_delete_terminal (terminal: *mut terminal)
    `dispextern_face_records`), which no glob import brings into this unit - the `src/abi_shim.rs`
    2047 note's device.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-use dispextern_unit_names::{draw_fringe_bitmap_params, get_cursor_p, get_overlay_p};
+/* `draw_fringe_bitmap_params` (C 2159-2200) and its two `bool_bf` accessors - the mirror
+   keeps them behind `dispextern_face_records`, so this unit carries its own copy (status
+   3.220's ruling; the import below named a module that no configuration produces).  */
+#[cfg (feature = "have_window_system")]
+pub const DRAW_FRINGE_BITMAP_CURSOR_P: u8 = 1 << 0;
+#[cfg (feature = "have_window_system")]
+pub const DRAW_FRINGE_BITMAP_OVERLAY_P: u8 = 1 << 1;
+#[inline(always)]
+#[cfg (feature = "have_window_system")]
+pub fn get_cursor_p (p: *const draw_fringe_bitmap_params) -> bool
+{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P != 0 } }
+#[inline(always)]
+#[cfg (feature = "have_window_system")]
+pub fn set_cursor_p (p: *mut draw_fringe_bitmap_params, value: bool)
+{
+  unsafe { if value { (*p).flags |= DRAW_FRINGE_BITMAP_CURSOR_P }
+           else { (*p).flags &= !DRAW_FRINGE_BITMAP_CURSOR_P } }
+}
+#[inline(always)]
+#[cfg (feature = "have_window_system")]
+pub fn get_overlay_p (p: *const draw_fringe_bitmap_params) -> bool
+{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P != 0 } }
+#[inline(always)]
+#[cfg (feature = "have_window_system")]
+pub fn set_overlay_p (p: *mut draw_fringe_bitmap_params, value: bool)
+{
+  unsafe { if value { (*p).flags |= DRAW_FRINGE_BITMAP_OVERLAY_P }
+           else { (*p).flags &= !DRAW_FRINGE_BITMAP_OVERLAY_P } }
+}
+
+#[repr (C)]
+#[derive (Clone, Copy)]
+#[cfg (feature = "have_window_system")]
+pub struct draw_fringe_bitmap_params
+{
+  pub which: c_int,                  // offset 0
+  pub bits: *mut c_ushort,                  // offset 8
+  pub wd: c_int,                  // offset 16
+  pub h: c_int,                  // offset 20
+  pub dh: c_int,                  // offset 24
+  pub x: c_int,                  // offset 28
+  pub y: c_int,                  // offset 32
+  pub bx: c_int,                  // offset 36
+  pub nx: c_int,                  // offset 40
+  pub by: c_int,                  // offset 44
+  pub ny: c_int,                  // offset 48
+  /// C 2215-2240's bitfield run, stored as `flags` (PORTING.md 1.3): offset 52.
+  pub flags: u8,
+  pub face: *mut face,                  // offset 56
+}
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (core::mem::size_of::<draw_fringe_bitmap_params> () == 64);
+
 
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 macro_rules! window_bits {

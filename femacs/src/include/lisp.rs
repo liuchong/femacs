@@ -1,10 +1,10 @@
 // femacs: port of src/lisp.h @ fd7afced403.
-/* C lisp.h 4307: `extern void mark_fringe_data (void);`  */
-#[cfg (all (feature = "have_window_system", feature = "have_android"))]
-unsafe extern "C" { pub fn mark_fringe_data (); }
-/* C lisp.h 4906: `extern void module_finalize_function (const struct Lisp_Module_Function *);`  */
-#[cfg (all (feature = "have_window_system", feature = "have_android"))]
-unsafe extern "C" { pub fn module_finalize_function (function: *const c_void); }
+/* C lisp.h 4307 and 4906 declare `mark_fringe_data` (defined in `src/fringe.c`) and
+   `module_finalize_function` (defined in `src/emacs-module.c`).  Both live inside `other_units`
+   below: at this scope a unit that defines one read `E0428` (measured on `src/fringe.c` and
+   `src/emacs-module.c`), and the module's own glob import (`use other_units::*;`, 4413) puts them
+   back in scope for every reader while the defining unit's own item shadows the import - the
+   shape P-39 prescribes and the module's header comment records.  */
 //
 // This is the header mirror: declarations only (PORTING.md 0.1).  Definitions of
 // functions live in exactly one translation unit each; this file declares types,
@@ -3819,6 +3819,13 @@ macro_rules! CONS_TO_INTEGER { ($cons:expr, $var:expr) => { $var = <_ as ConsToI
 pub mod other_units {
     // the mirror's own types/constants live in the crate root, as lisp.h's do
     use super::*;
+
+    /* C lisp.h 4307: `extern void mark_fringe_data (void);`  */
+    #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+    unsafe extern "C" { pub fn mark_fringe_data (); }
+    /* C lisp.h 4906: `extern void module_finalize_function (const struct Lisp_Module_Function *);`  */
+    #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+    unsafe extern "C" { pub fn module_finalize_function (function: *const c_void); }
 
     /// C 5273-5274: the `#ifdef HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` arm declares this one and
     /// `sysdep.c` 162 defines it; the `#else` arm is the inline above (C 5276-5280).  It sits in

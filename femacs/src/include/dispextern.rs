@@ -1,10 +1,8 @@
 // femacs: port of src/dispextern.h @ fd7afced403.
-/* C dispextern.h 3753 declares mark_image_cache; image_prune_animation_caches sits beside it
-   in the image family, and both are only reached from the window-system arm.  */
-#[cfg (feature = "have_android")]
-unsafe extern "C" { pub fn mark_image_cache (cache: *mut c_void); }
-#[cfg (feature = "have_android")]
-unsafe extern "C" { pub fn image_prune_animation_caches (inhibit: bool); }
+/* C dispextern.h 3753 declares `mark_image_cache` and `image_prune_animation_caches`; both are
+   defined in `src/image.c`, so the declarations live inside `dispextern_late_decls` below - at
+   this scope that unit read `E0428` (measured).  The module's glob import at the file's tail puts
+   them back in scope for every reader, and the defining unit's own item shadows it (P-39).  */
 //
 // WIP mirror (PORTING.md P-66): it carries the *frozen configuration's* live text as it is
 // needed, which is the platform-independent part of the display interface — the scalars,
@@ -4025,6 +4023,12 @@ const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, fix_ove
    declarations, which is how this mirror grows (status 3.357).  */
 pub mod dispextern_late_decls {
   use super::*;
+
+  /* C 3753: the two image-family entry points, defined in `src/image.c`.  */
+  #[cfg (feature = "have_android")]
+  unsafe extern "C" { pub fn mark_image_cache (cache: *mut c_void); }
+  #[cfg (feature = "have_android")]
+  unsafe extern "C" { pub fn image_prune_animation_caches (inhibit: bool); }
 
   unsafe extern "C" {
     /// C: dispextern.h 3563-3565: `struct glyph_row *row_containing_pos (struct window *,

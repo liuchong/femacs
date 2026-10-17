@@ -1325,7 +1325,9 @@ include!("include/android.rs");                // C 738: `#include "android.h"`
 /// `underline_pixels_above_descent_line`@236, the 21 `bool_bf`/`ENUM_BF` bits C declares at
 /// 1893-1935 in one 4-byte storage unit at 240, `hash`@248, `next`@256, `prev`@264,
 /// `ascii_face`@272.
+#[cfg (feature = "have_window_system")]
 #[repr(C)]
+#[cfg (feature = "have_window_system")]
 pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
@@ -1382,24 +1384,39 @@ const FACE_WS_SHIFT: usize = 0;
 #[cfg (feature = "have_window_system")]
 const FACE_WS_SHIFT: usize = 16;
 
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
 #[cfg (all (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
 #[cfg (all (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, next) == 256 + FACE_WS_SHIFT);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FACE_WS_SHIFT);
 
 /* `struct face_cache` (C dispextern.h 1991-2009) - the use-site copy the display units carry, for the
@@ -1412,7 +1429,9 @@ const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FA
 /// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
 /// the int unit at 36 (carried as a byte, the P-80 convention - `src/window.rs` 907 spells
 /// the same member `bool`, one byte wide either way).
+#[cfg (feature = "have_window_system")]
 #[repr(C)]
+#[cfg (feature = "have_window_system")]
 pub struct face_cache
 {
   pub buckets: *mut *mut face,
@@ -1426,11 +1445,17 @@ pub struct face_cache
   pub used: c_int,
   pub menu_face_changed_p: u8,
 }
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, buckets) == 0);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, f) == 8);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, size) == 24);
+#[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
 
 #[cfg (all (feature = "have_window_system", all (feature = "have_android", feature = "not_android_stubify")))]
@@ -6245,7 +6270,10 @@ pub unsafe extern "C" fn image_find_image_file (file: Lisp_Object) -> Lisp_Objec
 /// C: C 4515-4516: `static void close_android_fd (void *ptr)`
 #[cfg (all (feature = "have_window_system", feature = "have_android",
 	    not (feature = "android_stubify")))]
-unsafe fn close_android_fd (ptr: *mut c_void)
+/* C 4516 declares `close_android_fd (void *ptr)` as an ordinary C function, and
+   `record_unwind_protect_ptr`'s parameter is a C function pointer - a Rust-ABI `fn` does not
+   coerce (measured `E0308` on `aarch64-linux-android`).  */
+unsafe extern "C" fn close_android_fd (ptr: *mut c_void)
 {
   android_close_asset (*(ptr as *mut android_fd_or_asset));
 }
@@ -6257,7 +6285,7 @@ unsafe fn close_android_fd (ptr: *mut c_void)
 
 /// C: C 4528-4529: `static char * slurp_file (image_fd fd, ptrdiff_t *size)`
 #[cfg (feature = "have_window_system")]
-unsafe fn slurp_file (fd: image_fd, size: *mut ptrdiff_t) -> *mut c_char
+unsafe fn slurp_file (mut fd: image_fd, size: *mut ptrdiff_t) -> *mut c_char
 {
   /* C declares `buf` inside both arms below (`char *buf = NULL;` in the first, the uninitialised
      `char *buf;` in the second) and reads it once, after the `#endif`; Rust's `let` is
