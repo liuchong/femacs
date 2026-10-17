@@ -4341,6 +4341,10 @@ unsafe extern "C" fn unwind_re_match (ptr: *mut c_void)
 
 /* This is a separate function so that we can force an alloca cleanup
    afterwards.  */
+/// Diagnostic only (P-147): the opcode executed before the current one, so a report can name the
+/// instruction that left `d` in the gap instead of the one that noticed it.
+static mut PREV_OP_SAVE: c_int = -1;
+
 unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 			       string1: *const re_char, size1: ptrdiff_t,
 			       string2: *const re_char, size2: ptrdiff_t,
@@ -5065,7 +5069,25 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
       if !goto_fail
 	{
+      /* Instrument (P-147): `d` must never stand between the two strings.  The buffer text is
+         split at the gap, so a `d` that is past `end1` and short of `string2` is a dangling
+         position: report the opcode that left it there.  */
+      if (d as usize) > (end1 as usize) && (d as usize) < (string2 as usize)
+        {
+          if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+            {
+              fprintf (stderr,
+                       c"REGTRACE d-in-gap opcode=%d prev=%d pattern-offset=%td d-s1=%td size1=%td dend-s1=%td\n".as_ptr (),
+                       *p.offset (-1) as c_int, PREV_OP_SAVE,
+                       (p as isize) - ((*bufp).buffer as isize) - 1,
+                       (d as isize) - (string1 as isize),
+                       (end1 as isize) - (string1 as isize),
+                       (dend as isize) - (string1 as isize));
+            }
+        }
+
       /* Otherwise match next pattern command.  */
+      unsafe { if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { PREV_OP_SAVE = *p as c_int; } }
       match { let op = *p as re_opcode_t; p = p.offset (1); op }
 	{
 	/* Ignore these.  Used to ignore the n of succeed_n's which
@@ -5921,6 +5943,8 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	      on_failure_jump |
 	      succeed_n => {
 		d = str;
+		/* C 5254-5280: the popped frame's opcode decides what `d` becomes; the segment is
+		   recomputed from `d` after the switch (C 5286-5287), never here.  */
 		goto_continue_failure_jump = true;
 	      }
 
