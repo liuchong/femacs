@@ -212,11 +212,40 @@ def read_golden() -> dict[str, tuple[int, str]]:
     return out
 
 
+ACCEPTED = REPO / "docs/baseline/l1-accepted.tsv"
+# The only diagnostic shape an accepted row may excuse: a load-time notice that a `.el` is newer
+# than its `.elc`.  It describes the *tree* the run used, not the binary's behaviour, so a row can
+# be accepted when the notice appears on the golden side because the reference tree's object is
+# older than its source (P-216/P-217).  Anything else stays a failure.
+STALE_OBJECT = "newer than byte-compiled file"
+
+
+def accepted_rows() -> dict[str, str]:
+    rows: dict[str, str] = {}
+    if ACCEPTED.is_file():
+        for raw in ACCEPTED.read_text("utf-8").splitlines():
+            if not raw.strip() or raw.startswith("#"):
+                continue
+            parts = raw.split("\t")
+            if len(parts) >= 2:
+                rows[parts[0]] = parts[1]
+    return rows
+
+
+def only_stale_object_notices(left: str, right: str) -> bool:
+    extra = [line for line in (left + right).split("\n") if line and line not in (left, right)]
+    return bool(extra) and all(STALE_OBJECT in line for line in left.split("\n") if line) \
+        and all(STALE_OBJECT in line for line in right.split("\n") if line)
+
+
 def check(binary: Path) -> int:
     golden = read_golden()
     first, digest = binary_identity(binary)
     print(f"binary: {binary}\n  version: {version_number(first)}\n  sha256[0:16]: {digest}")
     failures = 0
+    accepted = 0
+    allow = accepted_rows()
+    seen: set[str] = set()
     for name, code, diag in records(binary):
         want = golden.get(name)
         if want is None:
@@ -225,6 +254,12 @@ def check(binary: Path) -> int:
             continue
         if (code, diag) == want:
             print(f"ok    {name}")
+            seen.add(name)
+            continue
+        if name in allow and code == want[0] and only_stale_object_notices(diag, want[1]):
+            print(f"accepted  {name}: {' '.join(allow[name].split())[:90]}")
+            accepted += 1
+            seen.add(name)
             continue
         failures += 1
         print(f"FAIL  {name}")
@@ -233,7 +268,11 @@ def check(binary: Path) -> int:
         if diag != want[1]:
             print(f"      diagnostics differ:\n        golden: {want[1][:400]!r}\n"
                   f"        binary: {diag[:400]!r}")
-    print(f"{len(golden)} file(s), {failures} failure(s)")
+    stale = sorted(set(allow) - seen)
+    for name in stale:
+        print(f"STALE accepted row  {name}: it passes now, so the row goes")
+    print(f"{len(golden)} file(s), {failures} failure(s), {accepted} accepted"
+          + (f", {len(stale)} stale row(s)" if stale else ""))
     return 1 if failures else 0
 
 

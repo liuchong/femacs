@@ -1,0 +1,3 @@
+# File → reason for an L1 difference that is not the binary's behaviour.
+# Only the 'newer than byte-compiled file' notice may be excused (see the tool's comment).
+checkdoc.el	the reference tree's emacs/lisp/dired-loaddefs.elc is older than its .el (that file was regenerated during the loaddefs work), so the golden side prints the load-time notice and the port side does not
