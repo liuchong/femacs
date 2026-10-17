@@ -48,11 +48,29 @@ PORT_PROG = REPO / "build/port/src/emacs"
 REF_PROG = REPO / "build/emacs-ref/src/emacs"
 
 ADDRESS = re.compile(r"0x[0-9a-fA-F]+")
+NAME = None          # built on first use, from the name discovered above
 TREE = re.compile(r"/[^ \t]*/(?:emacs|femacs)/")
 MANGLED = re.compile(r"_R[A-Za-z0-9_]*?(\d+)([A-Za-z_][A-Za-z0-9_]*)")
 FRAME = re.compile(r"^\s*\d+\s+\S+\s+0x[0-9a-fA-F]+")
 OFFSET = re.compile(r"\+ \d+$")
-NAME = re.compile(r"GNU Emacs|femacs")
+NAME_LINE = re.compile(r"This file is part of ([^.\n]+)\.")
+
+
+def product_name() -> str:
+    """The reference's product name, read from the reference's own files (never spelled here).
+
+    P-189/P-190's rule and PORTING.md 0.1-19: a ported or own file states its *own* name, and the
+    reference's name is discovered from the reference's artefacts.  `lisp/ldefs-boot.el` is the
+    tracked one, the other two are its build's products.
+    """
+    reference = REPO / "emacs"
+    for rel in ("lisp/ldefs-boot.el", "lisp/international/charprop.el", "lisp/loaddefs.el"):
+        path = reference / rel
+        if path.is_file():
+            m = NAME_LINE.search(path.read_text("utf-8", "surrogateescape"))
+            if m:
+                return m.group(1)
+    return ""
 
 DEEP_RECURSION = ('(defun fi (n) (if (<= n 0) 0 (1+ (fi (1- n))))) '
                   '(condition-case e (progn (fi 100000) (princ "no-overflow")) '
@@ -127,6 +145,9 @@ CASES: list[dict] = [
 
 
 def normalise(text: str) -> str:
+    global NAME
+    if NAME is None:
+        NAME = re.compile("|".join(filter(None, (re.escape(product_name()), "femacs"))))
     text = MANGLED.sub(lambda m: m.group(2), text)
     text = ADDRESS.sub("0xADDR", text)
     text = TREE.sub("<TREE>/", text)

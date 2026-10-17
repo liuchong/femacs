@@ -22,16 +22,12 @@ with the port's own program.
     python3 tools/gen-loaddefs.py --list       # print the commands and exit
     python3 tools/gen-loaddefs.py --compare-only
 
-**Read this before running it.**  The tool is a *diagnostic*, not a build step: measured
-2026-10-17, the port's own generation of this family is not yet equivalent to the reference's, so
-its product must not be shipped.
-
-  * the port's product mangles exactly two characters - `复` (U+590D) comes out as `\15` and `’`
-    (U+2019) as `\31`, each the *low byte* of the codepoint in octal - while the **reference
-    program**, given the same generator `.elc` and byte-identical sources, writes them correctly.
-    That is a defect in the port's generation path (status 4.560).
-  * the port's product makes `xtask dump` fail (`Attempt to autoload rx while preparing to dump`),
-    so nothing that loads `loaddefs` can be rebuilt from it.
+The product is usable as of P-191: the port's generation used to mangle two characters
+(`复` U+590D and `’` U+2019, written as the *low byte* of their codepoints in octal) because the
+`c-ctype` mirror compared `c as u8` where C's `switch (c)` compares the int - `loaddefs-generate--print-form`
+prints a `defvar` value with `(escape-control-characters . t)`, so the truncated predicate made
+both look like control characters.  With that fixed, `--compare-only` reports every file as
+name-only (status 4.562).
 
 Two operational facts the runs cost: `loaddefs-generate--emacs-batch` writes into the running
 program's **own** tree (so a reference-program run with the port's arguments edits the reference
@@ -146,8 +142,10 @@ def check_dirs_outside_the_port(argv: list[str]) -> list[str]:
     a target.
     """
     offenders = []
-    for arg in argv[7:]:                     # everything after `-f loaddefs-generate--emacs-batch`
-        if arg.startswith("-"):
+    for arg in argv[1:]:                    # argv[0] is the program itself
+        # Only path-shaped arguments: flags, the function name after `-f` and the `--eval` forms
+        # carry no separator (measured: a positional scan refused its own recipe).
+        if arg.startswith("-") or not (arg.startswith((".", "/", "~")) or "/" in arg):
             continue
         path = pathlib.Path(arg)
         if not path.is_absolute():
