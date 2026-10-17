@@ -29,6 +29,11 @@
 pub const THREAD_H: bool = true;
 
 include!("systhread.rs");                       // thread.h 41: `#include "systhread.h"`
+
+/* C reaches `JNIEnv` through android.h (thread.h 33-44 includes it); only a pointer to it is
+   ever held here, so an opaque forward declaration is what C has in this position.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub struct JNIEnv;
 include!("../../lib/include/signal.rs");        // thread.h 40: sysselect.h -> <signal.h>
 include!("../../lib/include/sys_select.rs");    // thread.h 40: `#include "sysselect.h"`
 include!("regex-emacs.rs");                     // thread.h 21: `#include "regex-emacs.h"`

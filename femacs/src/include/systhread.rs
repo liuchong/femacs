@@ -20,6 +20,51 @@ pub const SYSTHREAD_H: bool = true;
 
 include!("../../lib/include/attribute.rs");   // C 22: `#include <attribute.h>` (`NODISCARD`)
 
+/* C gets these from `<pthread.h>` (systhread.h 28 includes it).  They live in this mirror so
+   every mirror that names them can see them, and the unit includes this mirror too (P-240).  */
+/* The shapes below are per target, because the port has to declare these types itself (C uses
+   the system's).  bionic's are smaller than darwin's: measured with `_Static_assert(sizeof(T)==N)`
+   under NDK 29 / aarch64 (`docs/baseline/android-pthread-sizes.txt`, P-232) - mutex 40 not 64,
+   attr 56 not 64, mutexattr 8 not 16.  Using darwin's numbers on Android is what made
+   `thread_state`'s size and offsets wrong there (P-231).  */
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
+#[derive (Copy, Clone)]
+#[repr (C, align (4))]
+pub struct pthread_mutex_t { pub __opaque: [c_uchar; 40] }       // bionic: sizeof 40, align 4
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "have_android")))]
+#[derive (Copy, Clone)]
+#[repr (C, align (8))]
+pub struct pthread_mutex_t { pub __opaque: [c_uchar; 64] }       // clang: sizeof 64, align 8
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
+#[derive (Copy, Clone)]
+#[repr (C, align (8))]
+pub struct pthread_cond_t { pub __opaque: [c_uchar; 48] }        // clang: sizeof 48, align 8
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
+#[derive (Copy, Clone)]
+#[repr (C, align (4))]
+pub struct pthread_attr_t { pub __opaque: [c_uchar; 56] }        // bionic: sizeof 56, align 4
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "have_android")))]
+#[derive (Copy, Clone)]
+#[repr (C, align (8))]
+pub struct pthread_attr_t { pub __opaque: [c_uchar; 64] }        // clang: sizeof 64
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
+#[derive (Copy, Clone)]
+#[repr (C, align (4))]
+pub struct pthread_mutexattr_t { pub __opaque: [c_uchar; 8] }    // bionic: sizeof 8, align 4
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "have_android")))]
+#[derive (Copy, Clone)]
+#[repr (C, align (8))]
+pub struct pthread_mutexattr_t { pub __opaque: [c_uchar; 16] }   // clang: sizeof 16
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
+pub type pthread_t = *mut c_void;                                // clang: sizeof 8 (an opaque pointer)
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
+pub const PTHREAD_MUTEX_ERRORCHECK: c_int = 1;                   // clang: 1
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
+pub const PTHREAD_CREATE_DETACHED: c_int = 2;                    // clang: 2
+
 /* C 24-128: `#ifdef THREADS_ENABLED`'s two arms and the `#error` fallback.  The frozen
    configuration leaves `THREADS_ENABLED` undefined (docs/baseline/config/darwin-arm64.macros.tsv
    3678), so C 130-137's dummy arm below is the text this machine compiles; each arm here is

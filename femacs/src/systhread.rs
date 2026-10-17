@@ -27,6 +27,9 @@
 include!("include/config.rs");
 include!("../lib/include/string.rs");	// lisp.h 30: <string.h>
 include!("include/lisp.rs");
+// The `<pthread.h>` surface lives in the mirror now: mirrors that name these types
+// (`include/systhread.rs`, `include/thread.rs`) cannot see a unit-local declaration (P-240).
+include!("include/systhread.rs");
 include!("include/systhread.rs");
 
 // C 13-14's `<setjmp.h>` and `<stdio.h>` come through lisp.h's own chain (lisp.h includes
@@ -131,48 +134,6 @@ pub unsafe extern "C" fn sys_thread_yield ()
    *their* platform's numbers, so the surface stands here (P-88 clause 1; the `src/android.rs`
    158-176 shape).  The sizes and the two constants are clang measurements of this target's own
    `<pthread.h>` (docs/ports/systhread.md `## Evidence`).  */
-/* The shapes below are per target, because the port has to declare these types itself (C uses
-   the system's).  bionic's are smaller than darwin's: measured with `_Static_assert(sizeof(T)==N)`
-   under NDK 29 / aarch64 (`docs/baseline/android-pthread-sizes.txt`, P-232) - mutex 40 not 64,
-   attr 56 not 64, mutexattr 8 not 16.  Using darwin's numbers on Android is what made
-   `thread_state`'s size and offsets wrong there (P-231).  */
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
-#[derive (Copy, Clone)]
-#[repr (C, align (4))]
-pub struct pthread_mutex_t { pub __opaque: [c_uchar; 40] }       // bionic: sizeof 40, align 4
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
-            not (feature = "have_android")))]
-#[derive (Copy, Clone)]
-#[repr (C, align (8))]
-pub struct pthread_mutex_t { pub __opaque: [c_uchar; 64] }       // clang: sizeof 64, align 8
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
-#[derive (Copy, Clone)]
-#[repr (C, align (8))]
-pub struct pthread_cond_t { pub __opaque: [c_uchar; 48] }        // clang: sizeof 48, align 8
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
-#[derive (Copy, Clone)]
-#[repr (C, align (4))]
-pub struct pthread_attr_t { pub __opaque: [c_uchar; 56] }        // bionic: sizeof 56, align 4
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
-            not (feature = "have_android")))]
-#[derive (Copy, Clone)]
-#[repr (C, align (8))]
-pub struct pthread_attr_t { pub __opaque: [c_uchar; 64] }        // clang: sizeof 64
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
-#[derive (Copy, Clone)]
-#[repr (C, align (4))]
-pub struct pthread_mutexattr_t { pub __opaque: [c_uchar; 8] }    // bionic: sizeof 8, align 4
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
-            not (feature = "have_android")))]
-#[derive (Copy, Clone)]
-#[repr (C, align (8))]
-pub struct pthread_mutexattr_t { pub __opaque: [c_uchar; 16] }   // clang: sizeof 16
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
-pub type pthread_t = *mut c_void;                                // clang: sizeof 8 (an opaque pointer)
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
-pub const PTHREAD_MUTEX_ERRORCHECK: c_int = 1;                   // clang: 1
-#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
-pub const PTHREAD_CREATE_DETACHED: c_int = 2;                    // clang: 2
 
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 unsafe extern "C" {
