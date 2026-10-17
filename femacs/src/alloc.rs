@@ -69,6 +69,9 @@ include!("../lib/include/flexmember.rs");   // C 63: `#include <flexmember.h>`
    second one is `E0659`.  */
 include!("../lib/include/mini-gmp.rs");     // C 37: `bignum.h` 25 `#include <gmp.h>` (the frozen build's mini-gmp)
 include!("include/lisp.rs");
+// C reaches these through lisp.h's own includes; the mirrors have to be named here (P-242).
+include!("include/frame.rs");       // `FRAME_IMAGE_CACHE` (frame.h 1006)
+include!("include/sfntfont.rs");    // `mark_sfntfont` (sfntfont.h)
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("include/androidterm.rs");   // androidterm.h 444: `android_finalize_font_entity`                // C 36: `#include "lisp.h"`
 include!("include/bignum.rs");              // C 37: `#include "bignum.h"`
