@@ -22081,3 +22081,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **新工具** ✓：`tools/check-android-kotlin.sh` —— 用这套自带的 `kotlinc` + `android.jar` **离线**编译 `femacs/platform/android/**/*.kt`（40 个文件 ✓）到临时目录并报 class 数 ✓；`STUDIO`/`ANDROID_HOME`/`ANDROID_API` 可覆盖 ✓；缺件时**明确报缺并退 2** ✓（不下载任何东西 ✓）。
   ③ **未跑完的部分（如实记录）** ✓：本轮三次尝试都被**共享预算**拒绝 ✓（另一项目的两次 `node --max-old-space-size=7168` 运行占了 14 GiB 预约 ✓）—— 脚本的**文件发现与 `android.jar` 路径**已在早先一次运行里走到"compiling 40 Kotlin file(s)" ✓，但那次因编译器入口类不对而失败 ✓（当时用的是 IDE 插件 jar ✓，已改成 bundled CLI ✓），**改完的版本尚未获得一次完整运行** ✗。
   ④ **零编译**（无 Rust 单元 ✓）；`git -C emacs status --short` 为空 ✓。提交：`tools/check-android-kotlin.sh` ✓、`docs/decisions-needed.md`（第 3 项更正 ✓）、本提交（读数 ✓）。
+- **4.571 验证相第二百零一轮：非 C 的 53 条平台映射此前**没有门** —— 新门一跑抓到 1 条缺件（`src/nsxwidget.m` → Swift 缺失）（P-197）（2026-10-17）**：
+  ① **新工具** `tools/check-platform-inventory.py` ✓：解析 `docs/port-map.md` 的 Swift / Kotlin / C++ 三节 ✓，逐行核对目标文件存在且非空 ✓，缺件打印 `source -> target` 与映射里的目标行数 ✓。
+  ② **读数** ✓：`Swift 8 entry(ies), 1 without a target file` ✗（`src/nsxwidget.m` → `femacs/platform/macos/nsxwidget.swift`，映射里目标行数是 `-` ✓）；`Kotlin 40, 0` ✓；`C++ 5, 0` ✓ ⇒ **53 条里 1 条缺件** ✗。
+  ③ **性质** ✓：冻结配置 `--with-ns=no` 不编译该文件 ✓，但其余 **7 个 `.m` 都有 Swift 对应物** ✓、`src/nsxwidget.h` 的镜像也在（95 行 ✓）⇒ 这是**遗漏**而非设计取舍 ✓；补法是逐函数对照移植（约 20 个 C 函数 + 3 个 ObjC 类 ✓）。
+  ④ **下一步** ✓：把这道门接进 `gate-fast` ✓ 并开始 `nsxwidget.swift` 的移植 ✓（`check-swift-units.py` 会编译它 ✓，所以翻译错误会在门前暴露 ✓）。
+  ⑤ **零编译** ✓；受控执行器 runtime 200 MiB 一次（0.08 s ✓）。提交：`tools/check-platform-inventory.py` ✓、`PORTING.md`（P-197 ✓）、本提交（读数 ✓）。
