@@ -21664,3 +21664,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **顺带发现一处真差异（记入待查 ✓）**：marker 指向**空 buffer** 时 `(value< m1 m2)` 端口 **nil ✗** / 参照 **t ✓**；两 buffer 有文本后两侧一致 ✓。
   ④ **下一轮（单点 ✓）**：定义齐全的探针（含 `mark3`/`mark4` ✓）求值那个 `dolist` 列表字面量 ✓；上一版探针因漏定义 `mark3` 报 `void-variable` ✗，属探针自身错误 ✓。
   ⑤ **资源**：7 次 `env … --batch` 短跑（各 ≤60 s，其中一次 30 s 挂死 ✓）+ 1 次 ERT 复制跑 ✓；受控执行器 runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 65 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-156 ✓）、本提交（纯读数 ✓）。
+- **4.505 验证相第一百三十六轮：`fns-value<-ordered` 夹到"`unwind-protect` 内的一次字面量求值"，随后按规则暂挂并换靶（P-157）（2026-10-17）**：
+  ① **标记法读数** ✓：原样复制 + 三处标记（`kill-buffer buf3` 后 ✓、进入 `unwind-protect` ✓、`dolist` 体首行 ✓）⇒ 端口日志止于 **`MARK enter-unwind`** ✗、其后 20 s 无输出 ✗（参照 rc=0 ✓）。
+  ② **窗口内成分全部单独跑通 ✓**：`let*`（`big`、三 buffer、四 marker、两 pipe-process ✓）、`(kill-buffer buf3)` ✓、**81 项 `dolist` 字面量**（含 kill 之后求值 ✓）、12 类 `value<` ✓、嵌套 `#s` 读写 ✓、ERT 内进程/缓冲区创建 ✓ ⇒ **单独复现不出来** ✗ ⇒ 只剩"在 `unwind-protect` 里求值该字面量"未单点覆盖 ✓。
+  ③ **决定：暂挂 + 换靶（P-157 ① ✓）**：本条已吃两轮 ✗ ⇒ 下一轮优先推进 `xdisp` 挂死 ✓、`.elc` 96 件状态差 ✓、平台冒烟 ✓；`fns` 的这条留作**单点待办** ✓（已排除 8 项 ✓、只剩 1 处 ✓）。
+  ④ **资源**：5 次 `env … --batch` 短跑（各 ≤20 s，其中 2 次 15-20 s 挂死 ✓）；受控执行器 runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 25 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-157 ✓）、本提交（纯读数 ✓）。
