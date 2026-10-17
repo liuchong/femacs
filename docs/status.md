@@ -21634,3 +21634,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **读数一致性 ✓**：`s1 - s2 = -17` 与 C 的 gap 布局（`s2 - s1 = GPT_BYTE + GAP_SIZE - BEGV_BYTE` ✓）一致 ✓ ⇒ `d - s1 = 4`、`size1 = 3` 就是**越过 `end1` 一字节** ✓；`dend` 被单独改动的假设已被 4.498 的 `pop-mismatch`（0 次 ✓）排除 ✓。
   ④ **下一轮（代码级 ✓，不再加探针 ✓）**：把**每一处 `PREFETCH` 调用点**与 C 一一对照 ✓（C 的保证是"调用前 `d` 至多在段末" ✓；多字符前进后必须先 `PREFETCH` 再取字符 ✓）⇒ 找出端口提前/延后调用 `PREFETCH` 的那一处 ✓。
   ⑤ **资源**：本轮**零编译** ✓（纯代码核对 ✓）；`git -C emacs status --short` 为空 ✓；`build/` 未变 ✓。提交：`PORTING.md`（P-151 ✓）、本提交（纯读数 ✓）。
+- **4.500 验证相第一百三十一轮：`clone-indirect-buffer` 的挂死被一行宏修掉 —— C 的 `for` 在 `continue` 上会执行增量，Rust 的 `while` 不会（P-152）（2026-10-17）**：
+  ① **最小复现与定位** ✓：`(clone-indirect-buffer "c2" nil)` 在端口 **HUNG** ✗、参照 0.4 s 返回 ✓；`sample` 最内层帧 = `Fmake_indirect_buffer + 544` ✓（`reset_buffer`/`clone_per_buffer_values` 内联在此帧 ✓）⇒ 根因是 `clone_per_buffer_values` 对 `offset == name` 的 `continue` ✓ 遇上 `FOR_EACH_PER_BUFFER_OBJECT_AT` 的 `while` 形状 ✗（宏从 `name` 起 ✓ ⇒ 首轮 `continue` ⇒ `offset` 不前进 ⇒ 死循环 ✓）。
+  ② **修法（一行宏 ✓，文本形状仍与 C 逐项对应 ✓）**：`for offset in (name_..=cursor_in_non_selected_windows_).step_by (word_size as usize)` ✓ —— Rust 的 `for` 与 C 的 `for` 在 `continue` 上语义相同 ✓。
+  ③ **读数** ✓：最小复现 **HUNG → OK** ✓；`lisp/whitespace-tests.el` **crashed（11 例卡在第 7 例后）→ same ✓**（两侧各 11 例、0 unexpected ✓）⇒ 端口独有崩溃从 6 条降到 **5** 条 ✓。
+  ④ **门** ✓：`build-tu src/buffer.c` / `src/alloc.c` / `src/frame.c` ✓（宏的三个消费者 ✓）、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、`gate-fast` 见提交说明 ✓。
+  ⑤ **下一步（点名 ✓）**：⑴ 用同一判据扫一遍**其它"`for` 抄成 `while`"**的宏与循环 ✓（`grep` 出带 `continue` 的 `while` ✓ 与 C 对照 ✓）；⑵ `electric-tests` 的匹配器缺陷（`d` 越过 `end1` ✓，已收敛到"进入时就不一致" ✓）；⑶ `.elc` 96 件状态差按两阶段镜像 ✓；⑷ `back_comment`（P-139 ✓）与其余 port-worse ✓；⑸ 五平台冒烟 ✓。
+  ⑥ **资源**：3 次单单元编译 ✓ + 1 次 `gate-load`/`dump` ✓ + 2 次 6 s 复现 ✓ + 1 次单文件 ERT（1.3 s ✓）+ 1 次 `gate-fast`；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 316 MB** ✓；`git -C emacs status --short` 为空 ✓；临时脚本在 `/tmp` ✓。提交：`femacs/src/include/buffer.rs`（宏 ✓）、`PORTING.md`（P-152 ✓）、本提交 ✓。
