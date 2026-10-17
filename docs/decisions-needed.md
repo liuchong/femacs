@@ -39,7 +39,7 @@
 
 ## 3. 平台（完成定义第 6 条"五平台冒烟"）
 
-**现状（2026-10-17 更正）**：macOS `tools/smoke.sh` **11 check / 0 failure**；**Android 的 `kotlinc` 其实已在机器上** —— Android Studio 自带完整 CLI（`plugins/Kotlin/kotlinc/bin/kotlinc`）与 JDK 21，SDK 有 android-34/35/36 与 NDK 28.2/29.0，`tools/check-android-kotlin.sh` 可用它们**离线**编译 40 个 Kotlin 文件（该脚本尚未拿到一次完整运行：共享执行器预算被别的项目占满）；**Android 的 Kotlin 壳已零错误编译通过**（4.575：`tools/check-android-kotlin.sh` ⇒ `exit 0`、112 个 class ✓，含 `res/` 18 个资源、生成的 `R` 与 `EmacsConfig` ✓）；真正缺的是 **APK 打包链**（D8/AAPT2 组装 + 签名）与**真机/模拟器冒烟**。其余三平台仍缺 mingw（Windows）、Linux 交叉 gcc、Haiku 工具链。
+**现状（2026-10-17 更正）**：macOS `tools/smoke.sh` **11 check / 0 failure**；**Android 的 `kotlinc` 其实已在机器上** —— Android Studio 自带完整 CLI（`plugins/Kotlin/kotlinc/bin/kotlinc`）与 JDK 21，SDK 有 android-34/35/36 与 NDK 28.2/29.0，`tools/check-android-kotlin.sh` 可用它们**离线**编译 40 个 Kotlin 文件（该脚本尚未拿到一次完整运行：共享执行器预算被别的项目占满）；**Android 的 Kotlin 壳已零错误编译通过**（4.575：`tools/check-android-kotlin.sh` ⇒ `exit 0`、112 个 class ✓，含 `res/` 18 个资源、生成的 `R` 与 `EmacsConfig` ✓）；**APK 打包链也已跑通**（4.576：`d8` → `aapt2` 资源包 → `zipalign` → `apksigner` ⇒ `emacs.apk` 180 KB、证书校验通过 ✓）；仍缺 **原生库**（等端口的 Android 原生构建）与**真机/模拟器冒烟**。其余三平台仍缺 mingw（Windows）、Linux 交叉 gcc、Haiku 工具链。
 
 **选项**
 - **A（装工具链继续）**：Android 先走（NDK 已有，只缺 `kotlinc`），其余三平台按可用性排序。需要你允许安装（体积与时间都不小）。
