@@ -122,7 +122,13 @@ if [ -n "$APK_DIR" ]; then
       -alias androiddebugkey -dname "CN=femacs debug" -keyalg RSA -validity 10000 >/dev/null 2>&1 || exit $?
   SIGNED="$APK_DIR/emacs.apk"
   JAVA_HOME="$JAVA_HOME" "$APKSIGNER" sign --ks "$KS" --ks-pass pass:android \
-      --out "$SIGNED" "$APK_DIR/emacs-aligned.apk" || exit $?
+      --out "$SIGNED" "$APK_DIR/emacs-aligned.apk" > "$OUT/sign.log" 2>&1
+  sign_status=$?
+  if [ "$sign_status" != 0 ]; then
+    echo "apksigner sign: exit $sign_status"
+    tail -5 "$OUT/sign.log"
+    exit "$sign_status"
+  fi
   JAVA_HOME="$JAVA_HOME" "$APKSIGNER" verify --print-certs "$SIGNED" | head -3
   # Structural acceptance of the APK itself (short of a device): the manifest aapt2 wrote, the
   # dex it carries, and the signature - that is what can be checked without a JDK 7-capable

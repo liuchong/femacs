@@ -22151,3 +22151,4 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **坑** ✓：rustc 传 `-Wl,--fix-cortex-a53-843419` ✓，zig 链接器拒绝 ✗ ⇒ 包装脚本丢掉该勘误提示、其余透传 ✓。
   ③ **边界（如实）** ✓：这证明**链接面可用** ✓；端口在 Linux 上"能构建"还差 Linux 冻结配置与按-target 驱动 ✓，"能运行"仍无环境 ✓（P-208 ✓）。
   ④ **零重编** ✓；受控执行器 runtime 700 MiB 三次（峰值 ≤ 425 MB ✓）。提交：`tools/zig-linux-linker.sh` ✓、`PORTING.md`（P-209 ✓）、本提交（读数 ✓）。
+- **4.587 验证相第二百一十七轮：Android 的 APK 结构验收成为可复跑断言（ 通过）（2026-10-18）**：读数 ⇒ `apk: …/emacs.apk, package org.femacs, 5 declared activit(ies) all backed by Kotlin sources, 112 compiled class(es), members and signature checked` ✓。三处工具自身的错在过程中被逐个修掉并记入提交信息：⑴ 复用 `--keep` 目录导致签名产物缺失 ✓；⑵ 二次调用 aapt2 与构建临时目录不一致 ⇒ 改为**读构建自己的读数** ✓；⑶ 清单里 `.Foo` 是**包相对**名（参照两种写法都用 ✓）⇒ 按包名补全 ✓。**边界**：这只覆盖能启动的结构面 ✓，设备/模拟器冒烟仍缺（原生库卡 JDK ≤ 19 ✓）。
