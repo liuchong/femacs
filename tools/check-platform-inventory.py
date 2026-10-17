@@ -40,6 +40,24 @@ def rows(family: str) -> list[tuple[str, str, str]]:
     return out
 
 
+def android_data() -> list[tuple[str, str]]:
+    """(reference, target) pairs for the Android data the Kotlin shell needs (P-199).
+
+    `emacs/java/AndroidManifest.xml.in` and `emacs/java/res/**` are what `aapt2` turns into the
+    `R` class the Kotlin sources reference; the port has neither, so `kotlinc` reports
+    `unresolved reference 'R'` on every use (measured 2026-10-17).
+    """
+    out = []
+    manifest = pathlib.PurePath("java/AndroidManifest.xml.in")
+    if (REPO / "emacs" / manifest).is_file():
+        out.append((str(manifest), "femacs/platform/android/AndroidManifest.xml"))
+    for ref in sorted((REPO / "emacs/java/res").rglob("*")):
+        if ref.is_file():
+            rel = ref.relative_to(REPO / "emacs")
+            out.append((str(rel), str(pathlib.PurePath("femacs/platform/android") / rel.parts[-2:][0] / rel.parts[-2:][1]) if False else str(pathlib.PurePath("femacs/platform/android") / pathlib.PurePath(*rel.relative_to("java").parts))))
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--show", type=int, default=10)
@@ -65,11 +83,18 @@ def main() -> int:
         if len(bad) > a.show:
             print(f"    … {len(bad) - a.show} more")
         missing += len(bad)
+    data = android_data()
+    data_missing = [(ref, tgt) for ref, tgt in data if not (REPO / tgt).is_file()]
+    print(f"Android data: {len(data)} entry(ies), {len(data_missing)} without a target file")
+    for ref, tgt in data_missing[:a.show]:
+        print(f"    MISSING {ref} -> {tgt}")
+    if len(data_missing) > a.show:
+        print(f"    … {len(data_missing) - a.show} more")
     print(f"{total} platform entry(ies): {missing} without a target file")
-    if missing and a.warn:
+    if (missing or data_missing) and a.warn:
         print("(warning only: P-197 is open; remove --warn when the gap is closed)")
         return 0
-    return 1 if missing else 0
+    return 1 if (missing or data_missing) else 0
 
 
 if __name__ == "__main__":
