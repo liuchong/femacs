@@ -78,10 +78,11 @@ def main() -> int:
         for f in failures:
             print(f"    {f}")
         return 1
+    apk_path = out / "emacs.apk"
+    size = apk_path.stat().st_size if apk_path.is_file() else 0
     if not keep:
         shutil.rmtree(out, ignore_errors=True)
-        out = pathlib.Path("<temp removed>")
-    print(f"apk: {out}/emacs.apk, package {package.group(1)}, "
+    print(f"apk: emacs.apk ({size} bytes), package {package.group(1)}, "
           f"{len(launchables)} declared activit(ies) all backed by Kotlin sources, "
           f"{kotlin.group(1)} compiled class(es), members and signature checked")
     return 0
