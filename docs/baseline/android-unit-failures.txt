@@ -1,27 +1,32 @@
-# Android 91-unit sweep: failures by class (2026-10-18, status 4.635)
+# Android 91-unit sweep: failures by class (2026-10-18, status 4.642)
 #
 # command: cd femacs && FEMACS_CONFIG=android-arm64 <cargo> run -q -p xtask -- gen-config
 #          cd .. && FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
 #            <cargo-dir> tools/check-all-units.sh docs/baseline/frozen-build-sources-android.txt
 #
-# checked 91 unit(s), 71 failure(s); checking 20 unit(s), 0 unit failure(s)
+# checked 91 unit(s), 39 failure(s)
 
-count  reason
-   48  the name `_GL_EXTERN_INLINE` is defined multiple times
-    7  the name `DIRECTORY_SEP` is defined multiple times
-    4  cannot find type `android_display_info` in this scope
-    2  the name `JNIEnv` is defined multiple times
-    2  cannot find type `text_cursor_kinds` in this scope
-    1  each: module_finalize_function / list_system_processes / lispy_function_keys /
-            combine_updates_for_frame / HAVE_TM_GMTOFF  (all "defined multiple times")
+count  reason                                                    state
+   12  cannot find type `font`                                    moved with its record; needs a
+                                                                  cycle-free home (P-254)
+    8  the name `JNIEnv` is defined multiple times                one definition in the tree;
+                                                                  the include is what doubles
+    7  cannot find type `android_display_info`                    remainder of P-254
+    3  cannot find type `text_cursor_kinds`                       dispextern.h 216-225; the unit
+                                                                  cannot include dispextern (cycle)
+    2  cannot find type `frame`                                   same shape
+    2  cannot find macro `FRAME_DISPLAY_INFO`                     same shape
+    2  cannot find function `android_is_special_directory`        declarer is a unit
+    1  each: pthread_t / module_finalize_function / mark_image_cache /
+            mark_fringe_data / list_system_processes / lispy_function_keys /
+            glyph_string / combine_updates_for_frame
 
-# One fix clears two thirds of the list: `_GL_EXTERN_INLINE` is defined in exactly one file
-# (femacs/lib/include/gnulib_config.rs) and included twice in a unit - e.g. in the `xml` unit
-# both `_root.rs`'s copy of systime.rs (line 13) and its copy of timespec.rs (line 22) include the
-# same gnulib_config copy.  `Expand.seen` is meant to cut the second; it does not, and the next
-# round's job is to find out why (both edges are inside `#[cfg]` gates, so the `ungated` branch at
-# xtask main.rs 2686-2697 is the first suspect).
+# History: 89 (before the two counting bugs were fixed) -> 71 (config constants) ->
+# 62 (read_config trailing comma) -> 39 (android_display_info/android_bitmap_record moved into
+# termhooks.rs, the mirror both sides include).
 #
-# The "cannot find type" four are the mirror-declaration class already handled for alloc.c
-# (`android_display_info`, `text_cursor_kinds`): the declarer exists, the using mirror does not
-# include it.
+# The remaining classes are all the same shape: a name whose declarer is either a *unit* or a
+# mirror that is on the other side of an include cycle.  P-253/P-254 establish the rule: such
+# names go into a mirror that both sides include (C's termhooks.h is the model), and anything
+# Android-only that lands there needs `#[cfg(all(feature = "have_window_system",
+# feature = "have_android"))]` (P-255).
