@@ -429,6 +429,13 @@ build/port/src/temacs -Q --batch --eval '(princ (+ 1 2))'   # 不设 EMACSLOADPA
 | 7 | 性能不低于参照 | `tools/bench.sh`（min-of-5、同机、同 `-O2`、两侧同一脚本）：字节码 `bc-loop` **1.39×**、`bc-sum` 1.39×、`bc-car` 1.29×、`regexp-repl` 1.19×、`buffer-scan` 1.23×、`sort-100k` 1.18×；启动 10.6 vs 9.4 ms（1.13×）。P-181 之前是 1.2–3.9×（VM 3–4× ✓），根因是 `debug-assertions` 带的 `ub_checks`（C 无对应物 ✓）；`overflow-checks` 仍开 ✓ | **未达（已从 1.2–3.9× 收到 1.07–1.51×）**：VM 那一段的原因已查明 —— 参照的构建走 `BYTE_CODE_THREADED`（GCC 计算跳转 ✓，`bytecode.c:37-44` 的条件在本机成立 ✓），端口按 P-03 抄的是同一文件的 `switch` 臂 ✓，Rust 稳定版没有 label-as-value ✗ ⇒ 不用 nightly 无法关闭 ✓；其余五项 1.07–1.20× 是真实的小差距，P-182 已排除 `funcall_subr` 的 argbuf/unwrap ✓ |
 | 8 | 提交签名并推送、`docs/ports/*.md` 全部勾选 | `git log` 全部 `-S` 提交、`origin/master` 同步；`docs/ports/` **606 个台账、14,775 个勾选、0 个未勾** | **达成** |
 
+### 7.2 的附加闸门（不在 8 条完成定义之内，但 `docs/port-plan.md` 7.2 要求）
+
+| 闸门 | 工具 | 读数 |
+|---|---|---|
+| 强制 GC 压测 | `python3 tools/check-ert.py --gc-stress` | 564 文件（default 选择器）⇒ **same=551 / both-fail=7 / crashed=5（两侧对称）/ port-worse=1**（`lisp/calc/calc-tests.el` 1 vs 0，与常态 L5 同一读数）；端口 8,971 例 / 111 unexpected、参照 8,971 / 110（4.557，台账 `docs/baseline/gc-stress-all.tsv`） |
+| 随机差分对拍 | `python3 tools/check-diff-fuzz.py --programs N --seed S` | 60 个程序（seed 0，表达式/文本与缓冲/编码/文件/子进程五个族）⇒ **same=60, differ=0**（4.555） |
+
 ### 三项需要拍板的事（都不是实现问题）
 
 1. **第 7 条**：要不要把"不低于参照"改成"在同等安全检查下的可接受区间"（端口强制 `overflow-checks` + `debug-assertions`，参照没有），还是要做热点路径的代码生成级优化（`exec_byte_code` 的派发结构，工作量大、风险中）。
