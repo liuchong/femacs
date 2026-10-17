@@ -42,20 +42,28 @@ const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=2", "-C", "overflow-che
 /// constant, and so a profile run can be taken at another level.  Unset means the frozen level.
 fn unit_codegen_flags () -> Vec<String>
 {
-  match std::env::var ("FEMACS_OPT_LEVEL")
+  let mut out: Vec<String> = UNIT_CODEGEN_FLAGS.iter ().map (|f| f.to_string ()).collect ();
+  if let Some (v) = std::env::var ("FEMACS_OPT_LEVEL").ok ().filter (|v| ! v.is_empty ())
     {
-      Ok (v) if ! v.is_empty () =>
+      if let Some (i) = out.iter ().position (|f| f.starts_with ("opt-level="))
         {
-          let mut out: Vec<String> = UNIT_CODEGEN_FLAGS.iter ().map (|f| f.to_string ()).collect ();
-          if let Some (i) = out.iter ().position (|f| f.starts_with ("opt-level="))
-            {
-              out[i] = format! ("opt-level={v}");
-            }
-          println!("unit codegen: -C opt-level={v} (FEMACS_OPT_LEVEL)");
-          out
+          out[i] = format! ("opt-level={v}");
         }
-      _ => UNIT_CODEGEN_FLAGS.iter ().map (|f| f.to_string ()).collect (),
+      println!("unit codegen: -C opt-level={v} (FEMACS_OPT_LEVEL)");
     }
+  // `FEMACS_OVERFLOW_CHECKS` is a *diagnostic* like `FEMACS_OPT_LEVEL` (status 4.564): P-96
+  // keeps the checks on because the port must not lean on release arithmetic, and the only
+  // reason to build without them is to measure what they cost, so the answer is a number in
+  // the performance table rather than a silent change to the frozen flags.
+  if let Some (v) = std::env::var ("FEMACS_OVERFLOW_CHECKS").ok ().filter (|v| ! v.is_empty ())
+    {
+      if let Some (i) = out.iter ().position (|f| f.starts_with ("overflow-checks="))
+        {
+          out[i] = format! ("overflow-checks={v}");
+        }
+      println!("unit codegen: -C overflow-checks={v} (FEMACS_OVERFLOW_CHECKS)");
+    }
+  out
 }
 
 /// The directories a ported unit can live in.  `docs/port-map.md` pairs every reference file
