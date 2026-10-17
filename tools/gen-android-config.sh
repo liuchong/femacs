@@ -75,18 +75,43 @@ report configure "$([ -x "$REPO/emacs/configure" ] && echo "$REPO/emacs/configur
 rm -rf "$BUILD" && mkdir -p "$BUILD" && cd "$BUILD" || exit 1
 # `AC_PATH_PROGS` looks `javac` up on PATH and prefers that over an env override (measured:
 # /usr/bin/javac kept winning), so the JDK's bin goes first.
+#
+# `MAKEINFO` is passed as a plain assignment: an assignment that comes out of an *expansion*
+# (`${X:+MAKEINFO="$Y"}`) is not an assignment to the shell, it is the command word - which is why
+# this only broke the day `makeinfo` was installed, with
+# `MAKEINFO=/opt/homebrew/bin/makeinfo: No such file or directory` (status 4.610).  The
+# prerequisite check above already refuses to run without `makeinfo`, so the conditional was never
+# needed.
 # The command surface below is what P-207/P-213 settled by running configure:
 #   * ANDROID_SDK is the *numeric* API level (configure.ac 48 compares it with 21);
 #   * ANDROID_CC is the NDK's cross compiler (configure.ac 893/1077);
 #   * two checks compile Java with `-source 1.7`, which no JDK >= 20 accepts, so their cache
 #     variables are preset instead of installing an old JDK (the user's rule: LTS only);
 #   * the bundled JDK goes first on PATH because AC_PATH_PROGS prefers it.
+#
+# The flags are exactly `java/INSTALL` 35-37's documented command plus `--host` and the two cache
+# variables.  `--without-all --with-x=no --with-ns=no` used to be here and are gone: they make
+# `with_toolkit_scroll_bars=no`, and configure.ac 4332-4357 then errors with "Non-toolkit scroll
+# bars are not implemented for your system" because `--with-android` sets `window_system=android`
+# (configure.ac 2595).  Those flags were never exercised past the `makeinfo` wall (status 4.610).
+# `emacs_cv_tputs_lib='none required'` is the third preset cache variable, and it is the same
+# *kind* of decision as the two Java ones: the Android pass itself answers "tputs: not required"
+# (configure.ac 6082, because the NDK's libc has no terminfo), but the `exec/` sub-configure is a
+# fresh process that asks again (configure.ac 215-218 runs `exec/configure` with the cross
+# compiler) and cannot know that answer.  Without this the run dies in `exec/configure` with
+# "The required function 'tputs' was not found in any library" *after* the real Android pass has
+# already written `src/config.h` (status 4.610).
+#
+# `--with-gnutls=ifavailable` is the flag configure itself names when it finds no Android gnutls
+# ("To build anyway, give: --with-gnutls=ifavailable"): the result records gnutls as off, which is
+# what the frozen macOS configuration already records - it has no gnutls key at all.
 PATH="$JDK_BIN:$PATH" SDK_BUILD_TOOLS="$BUILD_TOOLS" ANDROID_SDK="$API" ANDROID_CC="$CC" \
-  JAVAC="$JAVAC" JARSIGNER="$JARSIGNER" JAVA_HOME="$JDK_HOME" \
-  ${MAKEINFO_BIN:+MAKEINFO="$MAKEINFO_BIN"} "$REPO/emacs/configure" \
+  JAVAC="$JAVAC" JARSIGNER="$JARSIGNER" JAVA_HOME="$JDK_HOME" MAKEINFO="$MAKEINFO_BIN" \
+  "$REPO/emacs/configure" \
   --host=aarch64-linux-android --with-android="$ANDROID_JAR" CC="$CC" \
-  --without-all --with-x=no --with-ns=no \
-  emacs_cv_working_javac=yes emacs_cv_android_x_or_later=yes > configure.log 2>&1
+  --with-gnutls=ifavailable \
+  emacs_cv_working_javac=yes emacs_cv_android_x_or_later=yes \
+  emacs_cv_tputs_lib='none required' > configure.log 2>&1
 status=$?
 echo "configure: exit $status (log: $BUILD/configure.log)"
 [ "$status" = 0 ] || { tail -5 configure.log; exit "$status"; }

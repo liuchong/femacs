@@ -25,13 +25,19 @@
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh`（同臂读数见 P-193）；`--gate` 回归门默认绿 |
 | 8 | 提交签名 + 台账 | ✅ | 全 `-S` 推送；`docs/ports/` 15,011 勾选 / 0 未勾 |
 
-## 平台面的两条外部前置（等用户决定，均不涉及旧 JDK）
+## 平台面的现状（两条前置皆已解决；一条新问题等用户决定）
 
-- **`makeinfo`（texinfo）**：`configure` 必需（`emacs/configure.ac` 14231-14235）。缺它 ⇒ 无法产出
-  `docs/baseline/config/android-arm64.json` ⇒ 无法编 `libemacs.so`。
-  可选：**(A)** 安装 texinfo；**(B)** 允许在只读参照树放零字节 `emacs/info/emacs` 桩。
-- **arm64-v8a 系统镜像**：本机只有 x86 镜像，Apple Silicon 上 `emulator` 报
-  `Cannot find AVD system path`。可选：**(C)** 安装 arm64 镜像（`tools/try-android-emulator.sh` 已就绪）。
+- **texinfo/makeinfo：已装（7.3）** ⇒ Android `configure` 第一次跑到底 ✓：
+  `docs/baseline/config/android-arm64.json`（32 宏，与 darwin 只差 3 处）✓。四个坑与规则见 P-223。
+- **arm64-v8a 系统镜像：已装**（`system-images;android-36;default;arm64-v8a`）+ 已建 AVD
+  `femacs-arm64-api36` ✓；`tools/try-android-emulator.sh` 已可调客人内存/GPU ✓。
+- **新问题（等用户决定，P-224）**：受控执行器的 **runtime 档上限 2 GiB**，而它量的是"树内 RSS 之和"
+  ⇒ 模拟器（QEMU 家族，该机固定开销 ~2.0 GB）**连跑两次都被上限杀掉** ✗，缩小客人内存无效 ✗。
+  可选项见 `docs/decisions-needed.md`：**(E1)** 用户明确授权一次模拟器运行的内存额度（需要改共享策略，
+  我没权限自行改）✓；**(E2)** 接受"本机不跑模拟器"，Android 验收停在"结构 + 签名 APK + 原生库"✓；
+  **(E3)** 先修共享执行器的记账（把"和"改成唯一 RSS/最大单进程 ✓，属共享策略改动，需用户拍板）✓。
+- **Android 原生库（不依赖模拟器，下一步）**：交叉目标 `aarch64-linux-android` 已装 ✓、冻结配置已产出 ✓
+  ⇒ 需要的是"按-target 构建 + 链接 `libemacs.so`/`libandroid-emacs.so`"这一步 ✓。
 
 已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
 `emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是
