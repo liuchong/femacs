@@ -64,6 +64,15 @@ include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"
 include!("include/syssignal.rs");              // C 40: `#include "syssignal.h"`
 include!("include/tparam.rs");                 // C 42: `#include "tparam.h"`
 include!("include/pdumper.rs");                // C 44: `#include "pdumper.h"`
+/* C 53: `#include TERM_HEADER`, inside C 52's `#ifdef HAVE_WINDOW_SYSTEM`.  The frozen
+   configuration leaves `TERM_HEADER` undefined (C's own `config.h` 2361 `/* #undef TERM_HEADER */`,
+   no window system), which is why the port's units carried no edge for it - and the five
+   window-system mirrors are where `FRAME_DISPLAY_INFO` and the other term macros live, so every
+   `MOUSE_HL_INFO`/`FRAME_RIF`-shaped expansion in this unit's body read
+   `cannot find macro FRAME_DISPLAY_INFO in this scope` on `aarch64-linux-android` (measured; the
+   `fontset.rs` block is the same five-way gate, C 39 there).  */
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+include!("include/androidterm.rs");            // C 53 (TERM_HEADER): `androidterm.h`
 
 /// `<inttypes.h>` has no mirror (P-26/P-50, the print.rs/doprnt.rs/pdumper.rs shape): the
 /// frozen target's `PRIuMAX` is `"ju"` (measured with clang; `intmax_t` is `long long`).
@@ -2010,8 +2019,8 @@ unsafe fn required_matrix_height (w: *mut window) -> c_int
   if FRAME_WINDOW_P (f)
     {
       /* https://lists.gnu.org/r/emacs-devel/2015-11/msg00194.html  */
-      let ch_height: c_int = std::cmp::max (FRAME_SMALLEST_FONT_HEIGHT (f), 1);
-      let window_pixel_height: c_int = window_box_height (w) + eabs ((*w).vscroll);
+      let ch_height: c_int = std::cmp::max (FRAME_SMALLEST_FONT_HEIGHT! (f), 1);
+      let window_pixel_height: c_int = window_box_height (w) + eabs! ((*w).vscroll);
 
       return (((window_pixel_height + ch_height - 1)
 	       / ch_height) * (*w).nrows_scale_factor
@@ -2037,7 +2046,7 @@ unsafe fn required_matrix_width (w: *mut window) -> c_int
   if FRAME_WINDOW_P (f)
     {
       /* https://lists.gnu.org/r/emacs-devel/2015-11/msg00194.html  */
-      let ch_width: c_int = std::cmp::max (FRAME_SMALLEST_CHAR_WIDTH (f), 1);
+      let ch_width: c_int = std::cmp::max (FRAME_SMALLEST_CHAR_WIDTH! (f), 1);
 
       /* Compute number of glyphs needed in a glyph row.  */
       return (((WINDOW_PIXEL_WIDTH (w) + ch_width - 1)
@@ -2484,11 +2493,11 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
     (*w).left_col = 0;
     (*w).pixel_top = 0;
     (*w).top_line = 0;
-    (*w).pixel_width = (FRAME_PIXEL_WIDTH! (f)
+    (*w).pixel_width = (FRAME_PIXEL_WIDTH (f)
 			- 2 * FRAME_INTERNAL_BORDER_WIDTH (f));
     (*w).total_cols = FRAME_TOTAL_COLS (f);
-    (*w).pixel_height = FRAME_MENU_BAR_HEIGHT! (f);
-    (*w).total_lines = FRAME_MENU_BAR_LINES! (f);
+    (*w).pixel_height = FRAME_MENU_BAR_HEIGHT (f);
+    (*w).total_lines = FRAME_MENU_BAR_LINES (f);
     allocate_matrices_for_window_redisplay (w);
   }
   }
@@ -2517,17 +2526,17 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
     /* Note that tab and tool bar windows appear above the internal
        border, as enforced by WINDOW_TOP_EDGE_Y.  */
 
-    (*w).pixel_top = (FRAME_MENU_BAR_HEIGHT! (f)
+    (*w).pixel_top = (FRAME_MENU_BAR_HEIGHT (f)
 		      + (if !NILP (Vtab_bar_position)
-			   { FRAME_TOOL_BAR_TOP_HEIGHT! (f) } else { 0 }));
-    (*w).top_line = (FRAME_MENU_BAR_LINES! (f)
+			   { FRAME_TOOL_BAR_TOP_HEIGHT (f) } else { 0 }));
+    (*w).top_line = (FRAME_MENU_BAR_LINES (f)
 		     + (if !NILP (Vtab_bar_position)
-			  { FRAME_TOOL_BAR_TOP_LINES! (f) } else { 0 }));
+			  { FRAME_TOOL_BAR_TOP_LINES (f) } else { 0 }));
     (*w).total_cols = FRAME_TOTAL_COLS (f);
-    (*w).pixel_width = (FRAME_PIXEL_WIDTH! (f)
+    (*w).pixel_width = (FRAME_PIXEL_WIDTH (f)
 			- 2 * FRAME_INTERNAL_BORDER_WIDTH (f));
-    (*w).total_lines = FRAME_TAB_BAR_LINES! (f);
-    (*w).pixel_height = FRAME_TAB_BAR_HEIGHT! (f);
+    (*w).total_lines = FRAME_TAB_BAR_LINES (f);
+    (*w).pixel_height = FRAME_TAB_BAR_HEIGHT (f);
     allocate_matrices_for_window_redisplay (w);
   }
   }
@@ -2567,16 +2576,16 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
       {
 	/* Otherwise, place the window at the top of the frame.  */
 
-	(*w).pixel_top = (FRAME_MENU_BAR_HEIGHT! (f)
+	(*w).pixel_top = (FRAME_MENU_BAR_HEIGHT (f)
 			  + (if NILP (Vtab_bar_position)
-			       { FRAME_TAB_BAR_HEIGHT! (f) } else { 0 }));
-	(*w).top_line = (FRAME_MENU_BAR_LINES! (f)
+			       { FRAME_TAB_BAR_HEIGHT (f) } else { 0 }));
+	(*w).top_line = (FRAME_MENU_BAR_LINES (f)
 			 + (if NILP (Vtab_bar_position)
-			      { FRAME_TAB_BAR_LINES! (f) } else { 0 }));
+			      { FRAME_TAB_BAR_LINES (f) } else { 0 }));
       }
 
     (*w).total_cols = FRAME_TOTAL_COLS (f);
-    (*w).pixel_width = (FRAME_PIXEL_WIDTH! (f)
+    (*w).pixel_width = (FRAME_PIXEL_WIDTH (f)
 			- 2 * FRAME_INTERNAL_BORDER_WIDTH (f));
     (*w).total_lines = FRAME_TOOL_BAR_LINES! (f);
     (*w).pixel_height = FRAME_TOOL_BAR_HEIGHT! (f);
@@ -3648,9 +3657,13 @@ pub const FACE_TTY_DEFAULT_FG_COLOR: c_ulong = -2i64 as c_ulong;
 pub const FACE_TTY_DEFAULT_BG_COLOR: c_ulong = -3i64 as c_ulong;
 
 /* dispextern.h 1445-1446: the `OVERLAPS_PRED`/`OVERLAPS_SUCC` bits that
-   `redraw_overlapping_rows` (dispextern.h 3126) ors together.  The dispextern mirror stops
-   before them.  */
+   `redraw_overlapping_rows` (dispextern.h 3126) ors together.  C defines them in
+   `dispextern.h`, i.e. in the mirror - which carries them under `have_window_system`; the
+   copies here are the same two constants for the configurations that do not compile that arm,
+   and the same gate is what keeps the Android build from reading `E0428` twice over.  */
+#[cfg (not (feature = "have_window_system"))]
 pub const OVERLAPS_PRED: c_int = (1 << 0);
+#[cfg (not (feature = "have_window_system"))]
 pub const OVERLAPS_SUCC: c_int = (1 << 1);
 
 /* C 3288-3827: `#ifndef HAVE_ANDROID` (live on the frozen target).  */
@@ -4403,6 +4416,11 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
   }
 }
 
+/* C 3921-4123: the real body sits in the `#ifndef HAVE_ANDROID` arm and C 4118-4123's empty
+   body is the `#else`; the port wrote the first arm ungated (it is the frozen target's own arm)
+   and gated the second with `have_android`, so on Android both were live and the unit read
+   `E0428 combine_updates_for_frame`.  The gate below is C's own condition.  */
+#[cfg (not (feature = "have_android"))]
 #[unsafe(no_mangle)] pub unsafe extern "C" fn combine_updates_for_frame
   (f: *mut frame, inhibit_scrolling: bool)
 {

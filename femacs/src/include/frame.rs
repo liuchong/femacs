@@ -1523,6 +1523,12 @@ pub fn fset_old_selected_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f
 pub fn fset_title (f: *mut frame, val: Lisp_Object) { unsafe { (*f).title = val; } }
 #[inline(always)]
 pub fn fset_tab_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tab_bar_items = val; } }
+/// C: frame.h 845: `INLINE void fset_tab_bar_window (struct frame *f, Lisp_Object val)` - C's
+/// gate is `#if defined (HAVE_WINDOW_SYSTEM)` (frame.h 844), which is why `dispnew.rs` 2505/2648
+/// read `cannot find function fset_tab_bar_window` on Android and never on the frozen target.
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn fset_tab_bar_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tab_bar_window = val; } }
 #[inline(always)]
 pub fn fset_tool_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tool_bar_items = val; } }
 #[inline(always)]
