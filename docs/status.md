@@ -22093,3 +22093,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **门** ✓：`check-platform-inventory.py` ⇒ **53/53** ✓（Swift 8 ✓ / Kotlin 40 ✓ / C++ 5 ✓）；`gate-fast` **exit 0** ✓，且 `platform inventory: every mapped platform target exists` ✓（`--warn` 已删除 ✓）。
   ④ **门自己抓到的两处真错**（如实记录 ✓）：`@objc` 初始化器与 `@_cdecl` 都不能带 Swift 结构体参数 ✗ ⇒ 去掉 `@objc` ✓、导出改走 22 个裸指针薄包装 ✓。
   ⑤ **零 Rust 重编**（只动了 Swift/工具/文档 ✓，`gate-fast` 那次是标准验证 ✓）；受控执行器读数：swiftc 三次（≤ 4 s ✓、峰值 ≤ 139 MB ✓）、imports 门三次（各 ≈ 6 min ✓、峰值 ≤ 47 MB ✓）、`gate-fast` 一次（544 s ✓、峰值 395 MB ✓）。提交：`femacs/platform/macos/nsxwidget.swift` ✓、`docs/ports/nsxwidget.md`（22 项全勾 ✓）、`docs/baseline/swift-import-pending.txt`（+5 行 ✓）、`femacs/xtask/src/main.rs` + `tools/check-platform-inventory.py`（转严格 ✓）、`docs/port-map.md`（重生成 ✓）、`PORTING.md`（P-198 ✓）、`docs/acceptance.md`（DoD-1 ✓）、本提交（读数 ✓）。
+- **4.574 验证相第二百零四轮：Android 腿往前推进两大步 —— 资源与清单移植到位、`R` 能解析；只剩一个**生成类** `EmacsConfig`（P-199）（2026-10-17）**：
+  ① **工具终于跑起来** ✓：`kotlinc` 已在机器上（P-190 的记录 ✓），脚本改用 bundled CLI ✓；先补 `-no-stdlib` 的坑 ✓（否则 `kotlin.String` 全部不可达 ✗）。
+  ② **新发现（补了缺口）** ✗→✓：端口**没有** Android 的资源与清单 ✗ ⇒ `R` 无法生成（`unresolved reference 'R'` 满屏 ✓）；本轮把 `emacs/java/res/**`（18 个文件 ✓）与 `emacs/java/AndroidManifest.xml.in` ✓ 移植到 `femacs/platform/android/{res,AndroidManifest.xml}` ✓（清单里的 `@…@` 占位符按冻结配置代入 ✓、包名与 Kotlin 的 `org.femacs` 对齐 ✓、资源**标识符**保持原样 ✓ —— 全局改名会把 `R.style.EmacsStyle` 改坏 ✗，实测过 ✓）。
+  ③ **脚本升级** ✓：先 `aapt2 compile` + `link` 生成 `R.java` ✓、`javac` 出 `R.jar` ✓、再把它放进 kotlinc 的 `-classpath` ✓（`R.java` 路径按包名动态查找 ✓）。
+  ④ **读数** ✓：`resources: R.jar built from 18 resource file(s)` ✓、`compiling 40 Kotlin file(s)` ✓、**只剩 1 个错误** ✓：`EmacsConfig.kt:292: unresolved reference 'EmacsConfig'` ✗ —— 那是参照在**构建时生成**的类（`emacs/java/Makefile.in` 100-102 的 `CONFIG_FILE` ✓），端口还没有生成器 ✓。
+  ⑤ **门** ✓：`check-platform-inventory.py` 现在也管 Android 数据 ⇒ `Android data: 19 entries, 0 without` ✓、`53 platform targets, 0 without` ✓，rc=0 ✓。
+  ⑥ **零 Rust 重编** ✓；受控执行器 runtime 900 MiB 一次（峰值 831 MB ✓）。提交：`femacs/platform/android/{res,AndroidManifest.xml}` ✓、`tools/check-android-kotlin.sh`（资源链 ✓）、`tools/check-platform-inventory.py`（Android 数据 ✓）、`PORTING.md`（P-199 ✓）、本提交（读数 ✓）。
