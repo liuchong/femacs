@@ -1224,6 +1224,13 @@ fn build_tu(rel: Option<&String>) -> i32 {
     }
     fs::create_dir_all(BUILD).ok();
     let dir = Path::new(BUILD).join("units").join(&stem);
+    // A clean unit directory every time.  `materialize` rewrites the copies it *expands*, but a
+    // copy written under an earlier configuration and now reached only through the dedupe path
+    // keeps its old text - which is how `config.rs`'s 813-constant Android generation survived
+    // into a darwin build and produced 48 "defined multiple times" readings that no source change
+    // could explain (status 4.637).  The directory is a build product; nothing reads it across
+    // runs.
+    let _ = fs::remove_dir_all(&dir);
     let root = match materialize(Path::new(&crate_root), &dir) {
         Ok(p) => p,
         Err(e) => return fail(e),
