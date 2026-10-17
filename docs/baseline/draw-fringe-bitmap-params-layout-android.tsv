@@ -1,0 +1,88 @@
+# struct draw_fringe_bitmap_params from dispextern.h (c), read by
+# `spikes/gated-layout-probe.py struct draw_fringe_bitmap_params dispextern.h c`:
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	sizeof struct draw_fringe_bitmap_params	-	64
+frozen	align struct draw_fringe_bitmap_params	-	8
+frozen	int which	0	0
+frozen	unsigned short * bits	0	8
+frozen	int wd	0	16
+frozen	int h	0	20
+frozen	int dh	0	24
+frozen	int x	0	28
+frozen	int y	0	32
+frozen	int bx	0	36
+frozen	int nx	0	40
+frozen	int by	0	44
+frozen	int ny	0	48
+frozen	bool_bf cursor_p	0	52:0-0
+frozen	bool_bf overlay_p	0	52:1-1
+frozen	struct face * face	0	56
+x11	sizeof struct draw_fringe_bitmap_params	-	64
+x11	align struct draw_fringe_bitmap_params	-	8
+x11	int which	0	0
+x11	unsigned short * bits	0	8
+x11	int wd	0	16
+x11	int h	0	20
+x11	int dh	0	24
+x11	int x	0	28
+x11	int y	0	32
+x11	int bx	0	36
+x11	int nx	0	40
+x11	int by	0	44
+x11	int ny	0	48
+x11	bool_bf cursor_p	0	52:0-0
+x11	bool_bf overlay_p	0	52:1-1
+x11	struct face * face	0	56
+ns_cocoa	sizeof struct draw_fringe_bitmap_params	-	64
+ns_cocoa	align struct draw_fringe_bitmap_params	-	8
+ns_cocoa	int which	0	0
+ns_cocoa	unsigned short * bits	0	8
+ns_cocoa	int wd	0	16
+ns_cocoa	int h	0	20
+ns_cocoa	int dh	0	24
+ns_cocoa	int x	0	28
+ns_cocoa	int y	0	32
+ns_cocoa	int bx	0	36
+ns_cocoa	int nx	0	40
+ns_cocoa	int by	0	44
+ns_cocoa	int ny	0	48
+ns_cocoa	bool_bf cursor_p	0	52:0-0
+ns_cocoa	bool_bf overlay_p	0	52:1-1
+ns_cocoa	struct face * face	0	56
+x11_ext	sizeof struct draw_fringe_bitmap_params	-	64
+x11_ext	align struct draw_fringe_bitmap_params	-	8
+x11_ext	int which	0	0
+x11_ext	unsigned short * bits	0	8
+x11_ext	int wd	0	16
+x11_ext	int h	0	20
+x11_ext	int dh	0	24
+x11_ext	int x	0	28
+x11_ext	int y	0	32
+x11_ext	int bx	0	36
+x11_ext	int nx	0	40
+x11_ext	int by	0	44
+x11_ext	int ny	0	48
+x11_ext	bool_bf cursor_p	0	52:0-0
+x11_ext	bool_bf overlay_p	0	52:1-1
+x11_ext	struct face * face	0	56
+custom	sizeof struct draw_fringe_bitmap_params	-	64
+custom	align struct draw_fringe_bitmap_params	-	8
+custom	int which	0	0
+custom	unsigned short * bits	0	8
+custom	int wd	0	16
+custom	int h	0	20
+custom	int dh	0	24
+custom	int x	0	28
+custom	int y	0	32
+custom	int bx	0	36
+custom	int nx	0	40
+custom	int by	0	44
+custom	int ny	0	48
+custom	bool_bf cursor_p	0	52:0-0
+custom	bool_bf overlay_p	0	52:1-1
+custom	struct face * face	0	56

@@ -1,0 +1,207 @@
+# struct face from dispextern.h (c), read by
+# `spikes/gated-layout-probe.py struct face dispextern.h c`:
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	sizeof struct face	-	280
+frozen	align struct face	-	8
+frozen	Lisp_Object[20] lface	0	0
+frozen	int id	0	160
+frozen	unsigned long foreground	0	168
+frozen	unsigned long background	0	176
+frozen	unsigned long underline_color	0	184
+frozen	unsigned long overline_color	0	192
+frozen	unsigned long strike_through_color	0	200
+frozen	unsigned long box_color	0	208
+frozen	struct font * font	0	216
+frozen	int fontset	0	224
+frozen	int box_vertical_line_width	0	228
+frozen	int box_horizontal_line_width	0	232
+frozen	int underline_pixels_above_descent_line	0	236
+frozen	enum face_box_type box	0	240:0-1
+frozen	enum face_underline_type underline	0	240:2-4
+frozen	bool_bf use_box_color_for_shadows_p	0	240:5-5
+frozen	bool_bf overline_p	0	240:6-6
+frozen	bool_bf strike_through_p	0	240:7-7
+frozen	bool_bf foreground_defaulted_p	0	241:0-0
+frozen	bool_bf background_defaulted_p	0	241:1-1
+frozen	bool_bf underline_defaulted_p	0	241:2-2
+frozen	bool_bf overline_color_defaulted_p	0	241:3-3
+frozen	bool_bf strike_through_color_defaulted_p	0	241:4-4
+frozen	bool_bf box_color_defaulted_p	0	241:5-5
+frozen	bool_bf underline_at_descent_line_p	0	241:6-6
+frozen	bool_bf tty_bold_p	0	241:7-7
+frozen	bool_bf tty_italic_p	0	242:0-0
+frozen	bool_bf tty_reverse_p	0	242:1-1
+frozen	bool_bf tty_strike_through_p	0	242:2-2
+frozen	bool_bf tty_overline_p	0	242:3-3
+frozen	bool_bf colors_copied_bitwise_p	0	242:4-4
+frozen	bool_bf overstrike	0	242:5-5
+frozen	uintptr_t hash	0	248
+frozen	struct face * next	0	256
+frozen	struct face * prev	0	264
+frozen	struct face * ascii_face	0	272
+x11	sizeof struct face	-	296
+x11	align struct face	-	8
+x11	Lisp_Object[20] lface	0	0
+x11	int id	0	160
+x11	GC gc	0	168
+x11	ptrdiff_t stipple	0	176
+x11	unsigned long foreground	0	184
+x11	unsigned long background	0	192
+x11	unsigned long underline_color	0	200
+x11	unsigned long overline_color	0	208
+x11	unsigned long strike_through_color	0	216
+x11	unsigned long box_color	0	224
+x11	struct font * font	0	232
+x11	int fontset	0	240
+x11	int box_vertical_line_width	0	244
+x11	int box_horizontal_line_width	0	248
+x11	int underline_pixels_above_descent_line	0	252
+x11	enum face_box_type box	0	256:0-1
+x11	enum face_underline_type underline	0	256:2-4
+x11	bool_bf use_box_color_for_shadows_p	0	256:5-5
+x11	bool_bf overline_p	0	256:6-6
+x11	bool_bf strike_through_p	0	256:7-7
+x11	bool_bf foreground_defaulted_p	0	257:0-0
+x11	bool_bf background_defaulted_p	0	257:1-1
+x11	bool_bf underline_defaulted_p	0	257:2-2
+x11	bool_bf overline_color_defaulted_p	0	257:3-3
+x11	bool_bf strike_through_color_defaulted_p	0	257:4-4
+x11	bool_bf box_color_defaulted_p	0	257:5-5
+x11	bool_bf underline_at_descent_line_p	0	257:6-6
+x11	bool_bf tty_bold_p	0	257:7-7
+x11	bool_bf tty_italic_p	0	258:0-0
+x11	bool_bf tty_reverse_p	0	258:1-1
+x11	bool_bf tty_strike_through_p	0	258:2-2
+x11	bool_bf tty_overline_p	0	258:3-3
+x11	bool_bf colors_copied_bitwise_p	0	258:4-4
+x11	bool_bf overstrike	0	258:5-5
+x11	uintptr_t hash	0	264
+x11	struct face * next	0	272
+x11	struct face * prev	0	280
+x11	struct face * ascii_face	0	288
+ns_cocoa	sizeof struct face	-	296
+ns_cocoa	align struct face	-	8
+ns_cocoa	Lisp_Object[20] lface	0	0
+ns_cocoa	int id	0	160
+ns_cocoa	Emacs_GC * gc	0	168
+ns_cocoa	ptrdiff_t stipple	0	176
+ns_cocoa	unsigned long foreground	0	184
+ns_cocoa	unsigned long background	0	192
+ns_cocoa	unsigned long underline_color	0	200
+ns_cocoa	unsigned long overline_color	0	208
+ns_cocoa	unsigned long strike_through_color	0	216
+ns_cocoa	unsigned long box_color	0	224
+ns_cocoa	struct font * font	0	232
+ns_cocoa	int fontset	0	240
+ns_cocoa	int box_vertical_line_width	0	244
+ns_cocoa	int box_horizontal_line_width	0	248
+ns_cocoa	int underline_pixels_above_descent_line	0	252
+ns_cocoa	enum face_box_type box	0	256:0-1
+ns_cocoa	enum face_underline_type underline	0	256:2-4
+ns_cocoa	bool_bf use_box_color_for_shadows_p	0	256:5-5
+ns_cocoa	bool_bf overline_p	0	256:6-6
+ns_cocoa	bool_bf strike_through_p	0	256:7-7
+ns_cocoa	bool_bf foreground_defaulted_p	0	257:0-0
+ns_cocoa	bool_bf background_defaulted_p	0	257:1-1
+ns_cocoa	bool_bf underline_defaulted_p	0	257:2-2
+ns_cocoa	bool_bf overline_color_defaulted_p	0	257:3-3
+ns_cocoa	bool_bf strike_through_color_defaulted_p	0	257:4-4
+ns_cocoa	bool_bf box_color_defaulted_p	0	257:5-5
+ns_cocoa	bool_bf underline_at_descent_line_p	0	257:6-6
+ns_cocoa	bool_bf tty_bold_p	0	257:7-7
+ns_cocoa	bool_bf tty_italic_p	0	258:0-0
+ns_cocoa	bool_bf tty_reverse_p	0	258:1-1
+ns_cocoa	bool_bf tty_strike_through_p	0	258:2-2
+ns_cocoa	bool_bf tty_overline_p	0	258:3-3
+ns_cocoa	bool_bf colors_copied_bitwise_p	0	258:4-4
+ns_cocoa	bool_bf overstrike	0	258:5-5
+ns_cocoa	bool_bf synth_ital	0	258:6-6
+ns_cocoa	uintptr_t hash	0	264
+ns_cocoa	struct face * next	0	272
+ns_cocoa	struct face * prev	0	280
+ns_cocoa	struct face * ascii_face	0	288
+x11_ext	sizeof struct face	-	296
+x11_ext	align struct face	-	8
+x11_ext	Lisp_Object[20] lface	0	0
+x11_ext	int id	0	160
+x11_ext	GC gc	0	168
+x11_ext	ptrdiff_t stipple	0	176
+x11_ext	unsigned long foreground	0	184
+x11_ext	unsigned long background	0	192
+x11_ext	unsigned long underline_color	0	200
+x11_ext	unsigned long overline_color	0	208
+x11_ext	unsigned long strike_through_color	0	216
+x11_ext	unsigned long box_color	0	224
+x11_ext	struct font * font	0	232
+x11_ext	int fontset	0	240
+x11_ext	int box_vertical_line_width	0	244
+x11_ext	int box_horizontal_line_width	0	248
+x11_ext	int underline_pixels_above_descent_line	0	252
+x11_ext	enum face_box_type box	0	256:0-1
+x11_ext	enum face_underline_type underline	0	256:2-4
+x11_ext	bool_bf use_box_color_for_shadows_p	0	256:5-5
+x11_ext	bool_bf overline_p	0	256:6-6
+x11_ext	bool_bf strike_through_p	0	256:7-7
+x11_ext	bool_bf foreground_defaulted_p	0	257:0-0
+x11_ext	bool_bf background_defaulted_p	0	257:1-1
+x11_ext	bool_bf underline_defaulted_p	0	257:2-2
+x11_ext	bool_bf overline_color_defaulted_p	0	257:3-3
+x11_ext	bool_bf strike_through_color_defaulted_p	0	257:4-4
+x11_ext	bool_bf box_color_defaulted_p	0	257:5-5
+x11_ext	bool_bf underline_at_descent_line_p	0	257:6-6
+x11_ext	bool_bf tty_bold_p	0	257:7-7
+x11_ext	bool_bf tty_italic_p	0	258:0-0
+x11_ext	bool_bf tty_reverse_p	0	258:1-1
+x11_ext	bool_bf tty_strike_through_p	0	258:2-2
+x11_ext	bool_bf tty_overline_p	0	258:3-3
+x11_ext	bool_bf colors_copied_bitwise_p	0	258:4-4
+x11_ext	bool_bf overstrike	0	258:5-5
+x11_ext	uintptr_t hash	0	264
+x11_ext	struct face * next	0	272
+x11_ext	struct face * prev	0	280
+x11_ext	struct face * ascii_face	0	288
+custom	sizeof struct face	-	296
+custom	align struct face	-	8
+custom	Lisp_Object[20] lface	0	0
+custom	int id	0	160
+custom	struct android_gc * gc	0	168
+custom	ptrdiff_t stipple	0	176
+custom	unsigned long foreground	0	184
+custom	unsigned long background	0	192
+custom	unsigned long underline_color	0	200
+custom	unsigned long overline_color	0	208
+custom	unsigned long strike_through_color	0	216
+custom	unsigned long box_color	0	224
+custom	struct font * font	0	232
+custom	int fontset	0	240
+custom	int box_vertical_line_width	0	244
+custom	int box_horizontal_line_width	0	248
+custom	int underline_pixels_above_descent_line	0	252
+custom	enum face_box_type box	0	256:0-1
+custom	enum face_underline_type underline	0	256:2-4
+custom	bool_bf use_box_color_for_shadows_p	0	256:5-5
+custom	bool_bf overline_p	0	256:6-6
+custom	bool_bf strike_through_p	0	256:7-7
+custom	bool_bf foreground_defaulted_p	0	257:0-0
+custom	bool_bf background_defaulted_p	0	257:1-1
+custom	bool_bf underline_defaulted_p	0	257:2-2
+custom	bool_bf overline_color_defaulted_p	0	257:3-3
+custom	bool_bf strike_through_color_defaulted_p	0	257:4-4
+custom	bool_bf box_color_defaulted_p	0	257:5-5
+custom	bool_bf underline_at_descent_line_p	0	257:6-6
+custom	bool_bf tty_bold_p	0	257:7-7
+custom	bool_bf tty_italic_p	0	258:0-0
+custom	bool_bf tty_reverse_p	0	258:1-1
+custom	bool_bf tty_strike_through_p	0	258:2-2
+custom	bool_bf tty_overline_p	0	258:3-3
+custom	bool_bf colors_copied_bitwise_p	0	258:4-4
+custom	bool_bf overstrike	0	258:5-5
+custom	uintptr_t hash	0	264
+custom	struct face * next	0	272
+custom	struct face * prev	0	280
+custom	struct face * ascii_face	0	288

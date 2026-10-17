@@ -1,0 +1,143 @@
+# struct redisplay_interface from dispextern.h (c), read by
+# `spikes/gated-layout-probe.py struct redisplay_interface dispextern.h c`:
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	sizeof struct redisplay_interface	-	104
+frozen	align struct redisplay_interface	-	8
+frozen	frame_parm_handler * frame_parm_handlers	0	0
+frozen	void (*)(struct it *) produce_glyphs	0	8
+frozen	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) write_glyphs	0	16
+frozen	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) insert_glyphs	0	24
+frozen	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) clear_end_of_line	0	32
+frozen	void (*)(struct window *, struct run *) scroll_run_hook	0	40
+frozen	void (*)(struct window *, struct glyph_row *) after_update_window_line_hook	0	48
+frozen	void (*)(struct window *) update_window_begin_hook	0	56
+frozen	void (*)(struct window *, _Bool, _Bool) update_window_end_hook	0	64
+frozen	void (*)(struct frame *) flush_display	0	72
+frozen	void (*)(struct window *) clear_window_mouse_face	0	80
+frozen	void (*)(struct glyph *, struct frame *, int *, int *) get_glyph_overhangs	0	88
+frozen	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) fix_overlapping_area	0	96
+x11	sizeof struct redisplay_interface	-	224
+x11	align struct redisplay_interface	-	8
+x11	frame_parm_handler * frame_parm_handlers	0	0
+x11	void (*)(struct it *) produce_glyphs	0	8
+x11	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) write_glyphs	0	16
+x11	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) insert_glyphs	0	24
+x11	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) clear_end_of_line	0	32
+x11	void (*)(struct window *, struct run *) scroll_run_hook	0	40
+x11	void (*)(struct window *, struct glyph_row *) after_update_window_line_hook	0	48
+x11	void (*)(struct window *) update_window_begin_hook	0	56
+x11	void (*)(struct window *, _Bool, _Bool) update_window_end_hook	0	64
+x11	void (*)(struct frame *) flush_display	0	72
+x11	void (*)(struct window *) clear_window_mouse_face	0	80
+x11	void (*)(struct glyph *, struct frame *, int *, int *) get_glyph_overhangs	0	88
+x11	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) fix_overlapping_area	0	96
+x11	void (*)(struct window *, struct glyph_row *, struct draw_fringe_bitmap_params *) draw_fringe_bitmap	0	104
+x11	void (*)(int, unsigned short *, int, int) define_fringe_bitmap	0	112
+x11	void (*)(int) destroy_fringe_bitmap	0	120
+x11	void (*)(struct glyph_string *) compute_glyph_string_overhangs	0	128
+x11	void (*)(struct glyph_string *) draw_glyph_string	0	136
+x11	void (*)(struct frame *, Emacs_Cursor) define_frame_cursor	0	144
+x11	void (*)(struct frame *, int, int, int, int) clear_frame_area	0	152
+x11	void (*)(struct frame *) clear_under_internal_border	0	160
+x11	void (*)(struct window *, struct glyph_row *, int, int, enum text_cursor_kinds, int, _Bool, _Bool) draw_window_cursor	0	168
+x11	void (*)(struct window *, int, int, int) draw_vertical_window_border	0	176
+x11	void (*)(struct window *, int, int, int, int) draw_window_divider	0	184
+x11	void (*)(struct frame *, int, int, int, int, int) shift_glyphs_for_insert	0	192
+x11	void (*)(struct frame *) show_hourglass	0	200
+x11	void (*)(struct frame *) hide_hourglass	0	208
+x11	void (*)(struct frame *, Lisp_Object) default_font_parameter	0	216
+ns_cocoa	sizeof struct redisplay_interface	-	224
+ns_cocoa	align struct redisplay_interface	-	8
+ns_cocoa	frame_parm_handler * frame_parm_handlers	0	0
+ns_cocoa	void (*)(struct it *) produce_glyphs	0	8
+ns_cocoa	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) write_glyphs	0	16
+ns_cocoa	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) insert_glyphs	0	24
+ns_cocoa	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) clear_end_of_line	0	32
+ns_cocoa	void (*)(struct window *, struct run *) scroll_run_hook	0	40
+ns_cocoa	void (*)(struct window *, struct glyph_row *) after_update_window_line_hook	0	48
+ns_cocoa	void (*)(struct window *) update_window_begin_hook	0	56
+ns_cocoa	void (*)(struct window *, _Bool, _Bool) update_window_end_hook	0	64
+ns_cocoa	void (*)(struct frame *) flush_display	0	72
+ns_cocoa	void (*)(struct window *) clear_window_mouse_face	0	80
+ns_cocoa	void (*)(struct glyph *, struct frame *, int *, int *) get_glyph_overhangs	0	88
+ns_cocoa	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) fix_overlapping_area	0	96
+ns_cocoa	void (*)(struct window *, struct glyph_row *, struct draw_fringe_bitmap_params *) draw_fringe_bitmap	0	104
+ns_cocoa	void (*)(int, unsigned short *, int, int) define_fringe_bitmap	0	112
+ns_cocoa	void (*)(int) destroy_fringe_bitmap	0	120
+ns_cocoa	void (*)(struct glyph_string *) compute_glyph_string_overhangs	0	128
+ns_cocoa	void (*)(struct glyph_string *) draw_glyph_string	0	136
+ns_cocoa	void (*)(struct frame *, Emacs_Cursor) define_frame_cursor	0	144
+ns_cocoa	void (*)(struct frame *, int, int, int, int) clear_frame_area	0	152
+ns_cocoa	void (*)(struct frame *) clear_under_internal_border	0	160
+ns_cocoa	void (*)(struct window *, struct glyph_row *, int, int, enum text_cursor_kinds, int, _Bool, _Bool) draw_window_cursor	0	168
+ns_cocoa	void (*)(struct window *, int, int, int) draw_vertical_window_border	0	176
+ns_cocoa	void (*)(struct window *, int, int, int, int) draw_window_divider	0	184
+ns_cocoa	void (*)(struct frame *, int, int, int, int, int) shift_glyphs_for_insert	0	192
+ns_cocoa	void (*)(struct frame *) show_hourglass	0	200
+ns_cocoa	void (*)(struct frame *) hide_hourglass	0	208
+ns_cocoa	void (*)(struct frame *, Lisp_Object) default_font_parameter	0	216
+x11_ext	sizeof struct redisplay_interface	-	224
+x11_ext	align struct redisplay_interface	-	8
+x11_ext	frame_parm_handler * frame_parm_handlers	0	0
+x11_ext	void (*)(struct it *) produce_glyphs	0	8
+x11_ext	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) write_glyphs	0	16
+x11_ext	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) insert_glyphs	0	24
+x11_ext	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) clear_end_of_line	0	32
+x11_ext	void (*)(struct window *, struct run *) scroll_run_hook	0	40
+x11_ext	void (*)(struct window *, struct glyph_row *) after_update_window_line_hook	0	48
+x11_ext	void (*)(struct window *) update_window_begin_hook	0	56
+x11_ext	void (*)(struct window *, _Bool, _Bool) update_window_end_hook	0	64
+x11_ext	void (*)(struct frame *) flush_display	0	72
+x11_ext	void (*)(struct window *) clear_window_mouse_face	0	80
+x11_ext	void (*)(struct glyph *, struct frame *, int *, int *) get_glyph_overhangs	0	88
+x11_ext	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) fix_overlapping_area	0	96
+x11_ext	void (*)(struct window *, struct glyph_row *, struct draw_fringe_bitmap_params *) draw_fringe_bitmap	0	104
+x11_ext	void (*)(int, unsigned short *, int, int) define_fringe_bitmap	0	112
+x11_ext	void (*)(int) destroy_fringe_bitmap	0	120
+x11_ext	void (*)(struct glyph_string *) compute_glyph_string_overhangs	0	128
+x11_ext	void (*)(struct glyph_string *) draw_glyph_string	0	136
+x11_ext	void (*)(struct frame *, Emacs_Cursor) define_frame_cursor	0	144
+x11_ext	void (*)(struct frame *, int, int, int, int) clear_frame_area	0	152
+x11_ext	void (*)(struct frame *) clear_under_internal_border	0	160
+x11_ext	void (*)(struct window *, struct glyph_row *, int, int, enum text_cursor_kinds, int, _Bool, _Bool) draw_window_cursor	0	168
+x11_ext	void (*)(struct window *, int, int, int) draw_vertical_window_border	0	176
+x11_ext	void (*)(struct window *, int, int, int, int) draw_window_divider	0	184
+x11_ext	void (*)(struct frame *, int, int, int, int, int) shift_glyphs_for_insert	0	192
+x11_ext	void (*)(struct frame *) show_hourglass	0	200
+x11_ext	void (*)(struct frame *) hide_hourglass	0	208
+x11_ext	void (*)(struct frame *, Lisp_Object) default_font_parameter	0	216
+custom	sizeof struct redisplay_interface	-	224
+custom	align struct redisplay_interface	-	8
+custom	frame_parm_handler * frame_parm_handlers	0	0
+custom	void (*)(struct it *) produce_glyphs	0	8
+custom	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) write_glyphs	0	16
+custom	void (*)(struct window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int) insert_glyphs	0	24
+custom	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) clear_end_of_line	0	32
+custom	void (*)(struct window *, struct run *) scroll_run_hook	0	40
+custom	void (*)(struct window *, struct glyph_row *) after_update_window_line_hook	0	48
+custom	void (*)(struct window *) update_window_begin_hook	0	56
+custom	void (*)(struct window *, _Bool, _Bool) update_window_end_hook	0	64
+custom	void (*)(struct frame *) flush_display	0	72
+custom	void (*)(struct window *) clear_window_mouse_face	0	80
+custom	void (*)(struct glyph *, struct frame *, int *, int *) get_glyph_overhangs	0	88
+custom	void (*)(struct window *, struct glyph_row *, enum glyph_row_area, int) fix_overlapping_area	0	96
+custom	void (*)(struct window *, struct glyph_row *, struct draw_fringe_bitmap_params *) draw_fringe_bitmap	0	104
+custom	void (*)(int, unsigned short *, int, int) define_fringe_bitmap	0	112
+custom	void (*)(int) destroy_fringe_bitmap	0	120
+custom	void (*)(struct glyph_string *) compute_glyph_string_overhangs	0	128
+custom	void (*)(struct glyph_string *) draw_glyph_string	0	136
+custom	void (*)(struct frame *, Emacs_Cursor) define_frame_cursor	0	144
+custom	void (*)(struct frame *, int, int, int, int) clear_frame_area	0	152
+custom	void (*)(struct frame *) clear_under_internal_border	0	160
+custom	void (*)(struct window *, struct glyph_row *, int, int, enum text_cursor_kinds, int, _Bool, _Bool) draw_window_cursor	0	168
+custom	void (*)(struct window *, int, int, int) draw_vertical_window_border	0	176
+custom	void (*)(struct window *, int, int, int, int) draw_window_divider	0	184
+custom	void (*)(struct frame *, int, int, int, int, int) shift_glyphs_for_insert	0	192
+custom	void (*)(struct frame *) show_hourglass	0	200
+custom	void (*)(struct frame *) hide_hourglass	0	208
+custom	void (*)(struct frame *, Lisp_Object) default_font_parameter	0	216
