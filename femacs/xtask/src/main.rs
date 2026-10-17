@@ -96,6 +96,11 @@ fn main() {
         "gate-load" => gate_load(args.get(1).map(String::as_str)),
         "link-program" => link_program(args.get(1)),
         "dump" => dump_emacs(),
+        // The Android acceptance that needs no device: build the APK once and assert what a
+        // launch needs (package, activities backed by Kotlin sources, archive members,
+        // signature).  Kept out of `gate-fast` because it peaks near a gigabyte and takes
+        // seconds; `docs/port-plan.md`'s platform row names it.
+        "gate-android" => run_python(&["tools/check-android-apk.py"]),
         "gate-full" => {
             eprintln!(
                 "gate-full needs the reference configured, built and its ERT suite \
@@ -143,6 +148,14 @@ fn rustc_cmd () -> std::process::Command
       c.env ("RUSTC_BOOTSTRAP", "1");
     }
   c
+}
+
+fn run_python(args: &[&str]) -> i32 {
+    match std::process::Command::new("python3").current_dir(REPO).args(args).status() {
+        Ok(s) if s.success() => 0,
+        Ok(_) => 1,
+        Err(e) => fail(e),
+    }
 }
 
 fn fail(msg: impl std::fmt::Display) -> i32 {

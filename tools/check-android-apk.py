@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -29,6 +30,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--keep", type=pathlib.Path, default=None)
     a = ap.parse_args()
+    keep = a.keep is not None
     out = a.keep or pathlib.Path(tempfile.mkdtemp(prefix="femacs-apk-"))
     run = subprocess.run(["bash", str(SCRIPT), "--apk", str(out)],
                          cwd=str(REPO), capture_output=True, text=True)
@@ -75,6 +77,9 @@ def main() -> int:
         for f in failures:
             print(f"    {f}")
         return 1
+    if not keep:
+        shutil.rmtree(out, ignore_errors=True)
+        out = pathlib.Path("<temp removed>")
     print(f"apk: {out}/emacs.apk, package {package.group(1)}, "
           f"{len(launchables)} declared activit(ies) all backed by Kotlin sources, "
           f"{kotlin.group(1)} compiled class(es), members and signature checked")
