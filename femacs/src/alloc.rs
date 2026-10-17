@@ -6057,7 +6057,7 @@ unsafe fn compact_font_caches ()
 	  entry = XCDR (cache);
 	  while CONSP (entry)
 	    {
-	      XSETCAR! (entry, compact_font_cache_entry (XCAR (entry)));
+	      XSETCAR (entry, compact_font_cache_entry (XCAR (entry)));
 	      entry = XCDR (entry);
 	    }
 	}

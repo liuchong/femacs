@@ -282,8 +282,8 @@ unsafe extern "C" {
    gap, and the arm pre-flight patches the mirror copy.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub type sig_atomic_t = c_int;                                   // bionic, sizeof 4
-#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-pub struct siginfo_t;                                            // only ever a pointer here
+// `siginfo_t` is declared by <signal.h> in C, so the signal mirror declares it
+// (femacs/lib/include/signal.rs, `have_android` arm) rather than this unit
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const SA_SIGINFO: c_int = 0x00000004;                        // bionic, measured
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]

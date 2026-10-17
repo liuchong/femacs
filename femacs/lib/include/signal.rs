@@ -115,6 +115,12 @@ pub union __sigaction_u
      sigset_t sa_mask;
      int sa_flags;
    };  */
+/* C's `<signal.h>` declares `siginfo_t`; the port only ever passes a pointer to it through
+   `sa_sigaction`, so an opaque type that claims nothing about its layout is enough.  Declared
+   here, with `sigaction`, because that is the header C takes both from.  */
+#[cfg (feature = "have_android")]
+pub struct siginfo_t;
+
 /* bionic's `struct sigaction` is flat and 32 bytes (`sa_sigaction` is a plain member, not a field
    of `__sigaction_u`), measured with `_Static_assert` against the NDK's own `<signal.h>`
    (docs/baseline/android-layout-probe.md, P-237).  The darwin arm keeps its 16-byte shape.  */
