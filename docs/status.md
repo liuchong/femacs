@@ -21877,3 +21877,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **L5 终账** ✓（`docs/baseline/ert-sweep-all.tsv` ✓）：543 same ✓ / 11 both-fail ✓ / 6 crashed ✓ / **2 name-only**（`calc-tests` ✓、`erc-scenarios-base-send-message` ✓）/ **1 flaky**（`proced-tests` ✓ 复跑 0 unexpected ✓）/ 1 both-capped ✓ ⇒ **端口真缺陷 0** ✓✓。
   ⑤ **规则** ✓：跑场景类测试遇到"超时等某行"先开**夹具自带的调试开关** ✓（本轮 `ERC_D_DEBUG` ✓ 一行就定案 ✓）；凡是**夹具自己**用产品名做匹配的 ✓，判定写 `name-only` ✓ 并在 `note` 里引夹具行号 ✓。
   ⑥ **Lisp 零改动** ✓；本轮**零编译** ✓；受控执行器 runtime 900 MiB、复跑 2 次（各 11 s ✓、峰值 ≤ 90 MB ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/ert-sweep-all.tsv`（erc 行 ✓）、本提交（纯读数 ✓）。
+- **4.538 验证相第一百六十九轮：一次性诊断构建把 DoD-7 的缺口拆开 —— 检查占 20–35%，其余 1.2–1.4× 是真实差距；构建已还原并被行为验证（P-179）（2026-10-17）**：
+  ① **方法** ✓：`cp -a build/femacs build/femacs.checked` ✓ → 临时把两枚检查改 `off` ✓ → `gate-fast` 全量重编（**exit 0** ✓，说明关检查后所有门仍绿 ✓）→ `gate-load`+`dump` → 同一组基准 → **从副本还原** + `gate-load`+`dump` ✓。
+  ② **读数** ✓（min-of-5 ✓ 同机 ✓）：启动 **13.8 → 10.8 ms**（参照 11.5 ✓）；`regexp-repl` **4.3 → 3.8**（参照 2.5 ✓）；`buffer-scan` **1.3 → 1.1**（参照 0.9 ✓）；`sort-100k` **3.4 → 2.2**（参照 1.7 ✓）⇒ 缺口 **1.2–1.7× → 1.13–1.41×** ✗ 仍未达标 ✓。
+  ③ **还原验证** ✓（不只看文件 ✓）：启动回到 **13.8 ms** ✓、`check-defvar-values` **413 变量 0 缺陷** ✓、`git diff femacs/xtask/src/main.rs` 为空 ✓、`build/femacs` 680 个 `.o` 来自副本 ✓、`dump` 正常 ✓。
+  ④ **结论** ✓：DoD-7 的剩余缺口**不是**安全检查造成的 ✗（那只是 20–35% ✓）⇒ 要达标必须做**热点路径的代码生成级优化** ✓，或在**验收口径**上与用户裁定 ✓ —— 后者不由我自行改写 ✓。
+  ⑤ **Lisp 零改动** ✓；本轮编译 = 诊断全量 1 次（8 min ✓ 峰值 ≤ 450 MB ✓）+ 还原后 relink/dump 2 次（各 <2 s ✓），无残留副本（`build/femacs.checked` 已移回 ✓）；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-179 ✓）、本提交（纯读数 ✓）。
