@@ -46,6 +46,16 @@ pub const WINDOW_H_INCLUDED: bool = true;
 // `buffer.rs` directly.  The closure that *does* change is
 // `src/androidselect.rs`, and by exactly `buffer.rs` and the `itree.rs` it pulls.
 include!("buffer.rs");                        // window.h 605/634/635/1199's BUFFERP, buffer_local_value
+/* window.h 23: `#include "dispextern.h"`.  The mirror's `struct window` reads that header's
+   `enum text_cursor_kinds` (C 344, in the `HAVE_WINDOW_SYSTEM` arm this port writes as
+   `have_window_system`), which C reaches through this edge and the mirror did not carry.  It is
+   the only edge of C 21-23 the mirror was missing, and the three Android units that read the
+   name - `src/editfns.c`, `src/insdel.c`, `src/textprop.c`, 3 x `cannot find type
+   text_cursor_kinds in this scope` at this file's line 151 - are units that take this mirror
+   without ever reaching `dispextern.rs` (C's own include list for them does not supply it
+   either).  Placed after the `buffer.rs` edge C 605/634/635/1199 needs, so the dedupe slot this
+   mirror hands out first stays the one forty-six of its includers already expect.  */
+include!("dispextern.rs");                    // window.h 23: `#include "dispextern.h"`
 
 // window.h 91-100.  Measured: 16 bytes, alignment 4.
 #[repr(C)]

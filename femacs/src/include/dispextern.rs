@@ -4074,3 +4074,29 @@ pub mod dispextern_late_decls {
   }
 }
 use dispextern_late_decls::*;
+
+/* -------------------------------------------------------------------------------------------------
+   The records above name four tags as *pointers*, and two records through aliases, that C needs no
+   declaration for but Rust does:
+
+     * `glyph_string`'s `f` / `w` / `font` (C 1392/1395/1417): C allows a pointer to an incomplete
+       tag, so `dispextern.h` itself carries no edge for the three;
+     * `Display_Info`'s Android alias (C 165) and `Emacs_Pix_Container` (C 166), whose records are
+       `termhooks.rs`'s and `androidgui.rs`'s.
+
+   C's only edge of this set is C 164's `#include "androidgui.h"`.  Measured on
+   `aarch64-linux-android`, the arm that compiles this text for the first time (the darwin
+   configuration sets no window-system feature, so every one of these references was dead before):
+   11 x `cannot find type frame`, 7 x `android_display_info`, 7 x `android_image`, 7 x `window`,
+   5 x `font` across this mirror's includers.  The edges sit at the *end* of the file because Rust
+   items are order-independent - a `include!` near the top would instead take the dedupe slot of
+   every file the units reach after this one (`windows.rs` 48's `buffer.rs` note records the same
+   hazard for the mirror-level shape).  */
+#[cfg (feature = "have_window_system")]
+include!("frame.rs");
+#[cfg (feature = "have_window_system")]
+include!("window.rs");
+#[cfg (feature = "have_window_system")]
+include!("font.rs");
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+include!("androidgui.rs");

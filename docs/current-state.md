@@ -16,7 +16,7 @@
 
 | # | 项 | 判定 | 当前证据（命令） |
 |---|---|---|---|
-| 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` ⇒ 590/0/0 |
+| 1 | 590 条 1:1 转写 | ⚠️ 3 条待修 | `python3 tools/extract-abi.py --all` ⇒ **587 done / 0 in progress / 3 failing**（4.652 实测；旧行的 590/0/0 是更早的读数）：`lib/stdint.in.h` 少 `__STDC_CONSTANT_MACROS`/`__STDC_LIMIT_MACROS`、`src/alloc.c` 行数漂移 10.2%、`src/lisp.h` 少 `CHECK_LISP_OBJECT_TYPE` |
 | 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `xtask gate-fast` ⇒ exit 0（八步） |
 | 3 | L0–L5 | ✅（**L5 台账早于 P-195，重跑中**） | 常态 L5 的台账 `docs/baseline/ert-sweep-all.tsv` 是 4.535-4.563 的读数，**早于最后一次 Rust 改动（P-195/4.568）** ⇒ 按 P-222 需重跑（同一轮的 GC 压测门已重跑并清零唯一 `port-worse`，见 P-225）；L0 ⇒ 19/0 ✓；**L1 ⇒ 111 文件 / 0 失败 / 1 接受**（`docs/baseline/l1-accepted.tsv`：参照树自身的 `.elc` 陈旧，只接受 `newer than byte-compiled file` 这一形态）；L5 ⇒ 端口缺陷 0 ✓ |
 | 4 | `.elc`/dump/生成物/loadup | ✅ | `check-generated.py` **244 文件**（新增 ja-dic 家族、`uvs.elc` 与 `jisx2131-filter`）⇒ **195 identical / 49 name-only / 0 DIFFERENT**；**`.elc` 集合已满**：参照 1,645 个 `.elc` 全有（`ja-dic.elc` 由 `tools/gen-ja-dic.py` 生成，`uvs.elc` 由端口的程序编译，两者都与参照逐字节相同）；**`src/macuvs.h` 也对上了**：`gen-unidata.py` 的 `run_uvs` 用端口的程序打印出与签约副本逐字节相同的 479,218 B（P-219）；`check-loadup.py` ⇒ 两树逐文件一致；**产物面盘点**：参照构建产物 1,973 个，端口有 **1,923**；缺的 50 个**逐条写明理由**（`docs/baseline/build-products-absent.txt`）：脚手架 23（P-102 退役）+ `info/*` 23 + `doc/*` 3（都要 `makeinfo`）+ make stamp 1；理由为 `unclassified` 的行 = 尚未推进的工作 |
