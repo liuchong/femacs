@@ -21957,3 +21957,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **`check-trees` 的 3 个 MISSING 是澄清而非缺陷** ✓：`doc/man/emacs.1`、`doc/misc/org.texi`、`doc/misc/modus-themes.texi` 在**参照仓库里是 UNTRACKED** ✓（构建产物 ✓，由 `.1.in`/`.org` 生成 ✓），而 `check-verbatim` 只对 `git ls-files` 的集合判等 ✓ ⇒ 它们**本就不属于照抄树** ✓；`doc/translations/fr/misc/ses-fr.texi` 的 3 字节差正是 `GNU Emacs`→`femacs` 的长度差 ✓（−3 ✓）⇒ 也属登记替换 ✓。⇒ **DoD-5 无新增缺口** ✓。
   ④ **`check-citations` 剩 4 条 stale** ✗（`docs/baseline/citations-allowlist.tsv` 的行不再匹配当前行号/内容 ✓）—— 纯**台账维护** ✓，下一轮逐条重定位 ✓。
   ⑤ **Lisp 零改动** ✓；本轮编译 1 个单元（`sfnt` ✓ 2 s ✓）+ relink/dump ✓；受控执行器峰值 ≤ 450 MB ✓；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/sfnt.rs`（P-94 字面量 ✓）、本提交（读数 ✓）。
+- **4.551 验证相第一百八十二轮：4 条陈旧引注行重定位 ⇒ **12 道副门全部 exit 0**（2026-10-17）**：
+  ① **修法** ✓：`check-citations` 报 4 条 `stale` + 4 条 `drift` ✓ —— 都是同一批引注随代码移动 ✓。工具**故意**去掉了 `--fix`（status 3.166：曾经改坏过一个 `#include` ✗）⇒ 按它的成对读数**手工重定位** 4 行 ✓：`lisp.rs:4180→4265` ✓、`:2788→2796` ✓、`:3923→4004` ✓、`:4052→4137` ✓（只改 `path:line` ✓，理由列一字未动 ✓）。
+  ② **读数** ✓：`check-citations` ⇒ **676 文件、0 drift、0 range、2609 external、36 allowed、0 stale** ✓✓（exit 0 ✓）。
+  ③ **12 道副门全绿** ✓（本轮同一批复跑 ✓）：`check-verbatim` ✓、`check-own-voice` ✓、`check-citations` ✓、`check-coding-eol` ✓、`check-c-string-literals` ✓、`check-do-while` ✓、`check-octal-literals` ✓、`check-port-lines` ✓、`check-target-names` ✓、`check-mirror-dupes` ✓、`check-subrs` ✓、`check-defvar-values` ✓ —— 全部 exit 0 ✓✓。
+  ④ **一条操作教训** ✓：TSV 的首列是 `path:line` 一个字段 ✓（不是 path + line 两列 ✗）—— 第一次脚本按 `\t` 切导致"重定位 0 行" ✗，改成按 `:` 切后 4 行全中 ✓。
+  ⑤ **Lisp 零改动** ✓；本轮**零编译** ✓；受控执行器 runtime 700 MiB、12 道门 + 1 次引注 ≈ 21 s ✓，峰值 ≤ 90 MB ✓；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/citations-allowlist.tsv`（4 行 ✓）、本提交（读数 ✓）。
