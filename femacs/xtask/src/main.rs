@@ -205,6 +205,10 @@ fn config_features () -> Vec<String>
     }
   out.sort ();
   out.dedup ();
+  if !out.is_empty ()
+    {
+      println! ("config: {} cfg feature(s) from {stem}", out.len ());
+    }
   out
 }
 

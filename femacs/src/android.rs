@@ -213,9 +213,11 @@ unsafe extern "C" {
    sysdep.rs `<pthread.h>` block shape); the six types are the NDK's measured aarch64/bionic
    records, not the frozen target's, and the ledger records the measurement.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[derive(Copy, Clone)]
 #[repr(C, align(4))]
 pub struct pthread_mutex_t { pub __opaque: [c_uchar; 40] }       // bionic, sizeof 40 align 4
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[derive(Copy, Clone)]
 #[repr(C, align(4))]
 pub struct pthread_cond_t { pub __opaque: [c_uchar; 48] }        // bionic, sizeof 48 align 4
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
