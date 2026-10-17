@@ -21850,3 +21850,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **复跑读数** ✓：`extract-abi.py --all` ⇒ **checked 590 ported files: 590 done, 0 in progress, 0 failing** ✓✓（exit 0 ✓，169 s ✓，峰值 **236 MB** ✓）。
   ⑤ **口径** ✓：这条门是 DoD-1 的唯一判据 ✓；本轮证明它**会**因为注释膨胀而红 ✗ ⇒ 此后每次改 `femacs/src/*.rs` 都要**立即**跑一次 `--check <c> <rs>` ✓（单文件 ✓ 秒级 ✓），不要等到整棵 `--all` ✓。
   ⑥ **Lisp 零改动** ✓；本轮只跑门（3 次 `--all` 共 ~8.5 min ✓），**零单元重编** ✓（`alloc.rs` 的改动仅注释 ✓ 机器码不变 ✓）；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/alloc.rs`（注释压缩 ✓）、`docs/ports/line-drift-tolerance.tsv`（`regex-emacs` 行 ✓）、本提交（纯读数 ✓）。
+- **4.534 验证相第一百六十五轮：`gate-fast` 全绿（唯一红灯是我自己写的产品名 ✗，已改）—— DoD-2 在**当前树**上是绿的**（2026-10-17）**：
+  ① **跑法** ✓：`xtask gate-fast`（两档配置全量重编 680 单元 ✓），**491 s** ✓、峰值 **440 MB** ✓。
+  ② **读数（逐条 ✓）**：`checked 590 ported files: 590 done, 0 in progress, 0 failing` ✓；`inventory: no differences` ✓；`symbols: every built unit matches its reference` ✓（lib 86 单元 ✓ 1 pending ✓）；`symbols (src): every built unit matches its reference` ✓（75 单元 ✓ 1 pending ✓、577 个 DEFVAR carrier 是已登记偏离 ✓）；`link: the object set closes over itself` ✓；`layout-check passed` ✓（复跑确认 ✓）。
+  ③ **唯一红灯** ✗：`== declaration gate == … 1 failures … error: a ported file carries a product-name declaration` ✗ —— 定位到**我自己上一轮写的 P-175 行** ✗：行内引用了参照产品名（断言原文 ✓）与一处反引号里的产品名 ✗ ⇒ 违反 0.1-19 ✓。改法：两处都改成"参照产品名"的描述 ✓（不外泄该名字 ✓），复跑 **`24 declaration sites (0 forbidden, 24 allowed literals), 0 failures`** ✓✓（exit 0 ✓）。
+  ④ **口径** ✓：`gate-fast` 会**重编全部单元** ✓（本轮 8 分钟 ✓，不算"频繁"但也不该随手跑 ✗）⇒ 只在**改了 `femacs/src/*.rs` 且需要整体复核**时跑 ✓；单文件改动用 `extract-abi --check` + `build-tu` 就够 ✓。重编后 `emacs` 二进制未重链 ✗，但本轮改动**只有注释** ✓ ⇒ 机器码不变 ✓（下一轮若改代码再 `gate-load`+`dump` ✓）。
+  ⑤ **Lisp 零改动** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-175 行去名 ✓）、本提交（纯读数 ✓）。
