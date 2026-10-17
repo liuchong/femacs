@@ -6,6 +6,8 @@
 
 ## 1. 当前数字（每次提交后核对）
 
+**现状（2026-10-17 权威读法）**：`python3 tools/extract-abi.py --all` = **590 done / 0 failing** ✓、`extract-abi.py --check <c> <rs>` 逐文件 OK ✓；`cloc femacs` ≈ **629 文件 / ~512k code 行** ✓；行为面见 `docs/baseline/ert-sweep.tsv`（564 文件：**same 551 / both-fail 7 / crashed 5 / port-worse 1（产品名）** ✓，即 4.525 ✓）。下面 2026-10-04 起的历史条目保留原读数 ✓，**不再代表现状** ✗。
+
 - 已竣工单元与镜像：**权威清单在 `docs/port-inventory.md`（590 个参照 `.c/.h` 的状态列）与
   `python3 tools/extract-abi.py --all` 的输出**，本节只记总数。截至 `a0caa61`：**已提交单元 320 个**
   （`femacs/src/*.rs` 149 + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 5 + `femacs/exec/*.rs` 5 +
