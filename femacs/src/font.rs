@@ -2663,7 +2663,10 @@ unsafe fn font_parse_fcname (name: *mut c_char, len: ptrdiff_t, font: Lisp_Objec
 	      family_end = p;
 	      break;
 	    }
-	  q = p.offset (-1);
+	  /* C's outer `for (; p > name; p = q)` advances to the word boundary the inner scan
+	     found.  The port recomputed `q = p - 1` here, which overwrote that boundary and made
+	     the next round rescan the same word minus its last character ("Oblique" then read as
+	     the family "Obliqu", status 4.510).  */
 	  p = q;
 	}
 
