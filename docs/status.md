@@ -21722,3 +21722,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **矩阵结论** ✓：macOS 是**唯一**能跑完整阶梯的平台 ✓（L0–L5/性能都在本机持续跑 ✓）；Android 需 `kotlinc`（或 Gradle 分发）✓；Windows/Linux/Haiku 按 `docs/goal.md` §9 第 2 条记为**外部资源缺失** ✓，不得用文本级翻臂编译冒充冒烟 ✗。
   ④ **DoD-6 推进顺序（已写进矩阵 ✓）**：⑴ macOS 冒烟脚本化（`tools/smoke.sh macos` ✓）；⑵ Android（NDK 26 + `kotlinc` ✓）；⑶ 其余三平台如实记缺 ✓。
   ⑤ **资源**：2 次探针跑（各 <1 s ✓）；受控执行器 runtime 700 MiB（下调自默认 ✓）、峰值 **≤ 22 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/platform-smoke.md`（新 ✓）、`PORTING.md`（P-166 ✓）、本提交 ✓。
+- **4.515 验证相第一百四十六轮：DoD-6 有了可执行的冒烟判据 —— `tools/smoke.sh` 11 条差分检查、0 失败（P-167）（2026-10-17）**：
+  ① **工具** ✓：`tools/smoke.sh`（`--prog/--ref/--memory-mib` ✓）—— 11 条 Lisp 检查，每条在**两个程序**上各跑一次并**逐字节比较打印结果** ✓；避开产品名（`emacs-version` 串/subr 描述 ✓）与显示相关项 ✓；
+  ② **读数** ✓：**11 check / 0 failure** ✓（各程序经受控执行器 runtime 700 MiB ✓，整轮 2.4 s ✓）；
+  ③ **契约** ✓：`--prog` 可指向任意平台的程序 ✓（Android arm64 构建 ✓、无 dump 的 `temacs` ✓）⇒ 同一份冒烟直接复用到矩阵其它行 ✓；退出码 = 失败条数 ✓；
+  ④ **矩阵更新** ✓：`docs/baseline/platform-smoke.md` 的 macOS 行写入本条读数 ✓、"macOS 冒烟脚本化"标为**已完成** ✓；
+  ⑤ **资源**：2 次脚本跑（各 2.4-2.7 s ✓）；受控执行器 runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 24 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/smoke.sh`（新 ✓）、`docs/baseline/platform-smoke.md`（读数 ✓）、`PORTING.md`（P-167 ✓）、本提交 ✓。
