@@ -1735,12 +1735,17 @@ macro_rules! PER_BUFFER_VAR_OFFSET {
 // is the last argument (the shape `DEFUN!` already uses) and the `for` becomes a
 // `while`.  The iteration variable stays a macro argument, as in C (PORTING.md P-37).
 #[macro_export]
+// C's shape is `for (offset = A; offset <= B; offset += word_size)`, and a `continue` in a C
+// `for` runs the increment.  A Rust `while` does not: the first offset is `name`, whose
+// `continue` in `clone_per_buffer_values` therefore spun forever (`clone-indirect-buffer` hung,
+// status 4.500).  A `for` over the same sequence has C's semantics, `continue` included.
 macro_rules! FOR_EACH_PER_BUFFER_OBJECT_AT {
     ($offset:ident, $body:block) => {
-        $offset = PER_BUFFER_VAR_OFFSET! (name_);
-        while $offset <= PER_BUFFER_VAR_OFFSET! (cursor_in_non_selected_windows_) {
+        for $offset in (PER_BUFFER_VAR_OFFSET! (name_)
+                        ..= PER_BUFFER_VAR_OFFSET! (cursor_in_non_selected_windows_))
+                        .step_by (word_size as usize)
+        {
             $body
-            $offset += word_size;
         }
     };
 }
