@@ -712,9 +712,22 @@ pub unsafe extern "C" fn count_size_as_multibyte (str: *const u8, len: ptrdiff_t
   -> ptrdiff_t
 {
   /* Count the number of non-ASCII (raw) bytes, since they will occupy
-     two bytes in a multibyte string.  */
+     two bytes in a multibyte string.
+
+     C 675-677 is the byte loop `nonascii += str[i] >> 7`, and clang vectorizes it at -O2;
+     rustc does not run the loop vectorizer below `opt-level=3`, so the same loop costs 3-4x
+     here and showed up as the top frame of the `insert` profile (status 4.568: 1579 samples
+     against 477 on the reference for the same workload).  The word-wide form below computes
+     exactly the same sum - one `>> 7` per byte, then `count_ones` over the packed bytes - and
+     leaves the tail to the byte loop, so the result and the overflow check are unchanged.  */
   let mut nonascii: ptrdiff_t = 0;
   let mut i: ptrdiff_t = 0;
+  while i + 8 <= len
+    {
+      let word: u64 = std::ptr::read_unaligned (str.add (i as usize) as *const u64);
+      nonascii += ((word >> 7) & 0x0101_0101_0101_0101).count_ones () as ptrdiff_t;
+      i += 8;
+    }
   while i < len
     {
       nonascii += (*str.offset (i) >> 7) as ptrdiff_t;
