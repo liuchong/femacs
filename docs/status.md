@@ -22122,3 +22122,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **原因** ✓：平台行的交叉构建会引入**第二份** `docs/baseline/config/*.json` ✓（该目录的 JSON 就是参照 `configure` 的产物 ✓），旧的"排序取第一个"会让整套配置静默切换 ✗。
   ③ **前置链条（查清 ✓）**：target 冻结配置 → 按该配置编单元 → `libemacs.so`（或 Linux 可执行）→ 进 APK/冒烟 ✓；Rust 目标已在 ✓（P-202 ✓），缺的是**配置与驱动** ✓。
   ④ **零 Rust 重编**（只重跑 `xtask gen-config` ✓、耗时 1 s ✓、峰值 196 MB ✓）。提交：`femacs/xtask/src/main.rs` ✓、`PORTING.md`（P-203 ✓）、本提交（读数 ✓）。
+- **4.579 验证相第二百零九轮：第二份冻结配置的生成器就位——它回放现有那份时 31/32 相同，差异只有一个 `HAVE_SIGNBIT`（P-204）（2026-10-17）**：
+  ① **新工具** ✓：`tools/gen-config-json.py <config.h> [--target …] [--out …]` ⇒ 仍按 P-08 的三态输出 ✓（`#define` ⇒ 原值 ✓、`/* #undef */` ⇒ `"undefined"` ✓、未出现 ⇒ `"absent"` ✓）。
+  ② **回放读数** ✓：`build/emacs-ref/src/config.h` ⇒ **32 键 / 31 相同 / 1 不同** ✓（`HAVE_SIGNBIT`：冻结 `"1"` vs 头文件无此名 ✓）。
+  ③ **含义** ✓：Android/Linux 的第二份配置现在只需"一次 `configure` + 本工具" ✓（`FEMACS_CONFIG=android-arm64` ✓ 已在 `xtask gen-config` 里支持 ✓，P-203 ✓）。
+  ④ **未定项（如实记录）** ✓：`HAVE_SIGNBIT` 的差异来源未查（手写 or 另一次 configure ✓），且 `signbit.c` 自带回退 ✓ ⇒ 两条路径在端口里的行为要另测 ✓。
+  ⑤ **零重编** ✓；受控执行器 runtime 300 MiB 一次 ✓。提交：`tools/gen-config-json.py` ✓、`PORTING.md`（P-204 ✓）、本提交（读数 ✓）。
