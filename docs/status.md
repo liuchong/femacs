@@ -22106,3 +22106,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **读数** ✓：`resources: R.jar built from 18 resource file(s)` ✓、`compiling 41 Kotlin file(s)` ✓、**`kotlin: exit 0, 112 class file(s)`** ✓✓（仅 warning ✓）。
   ④ **预算读数（如实记录）** ✓：`kotlinc` 峰值 **956 MB** ✓ ⇒ 900 MiB profile 被 `memory_limit` 杀掉一次 ✗ ✓，改用 **1.4 GiB** 通过 ✓。
   ⑤ **零 Rust 重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/gen-emacs-config.py` ✓、`tools/check-android-kotlin.sh` ✓、`PORTING.md`（P-200 ✓）、`docs/decisions-needed.md`（第 3 项 ✓）、本提交（读数 ✓）。
+- **4.576 验证相第二百零六轮：Android 的 APK 打包链跑通（离线）—— `emacs.apk` 180 KB、签名校验通过（P-201）（2026-10-17）**：
+  ① **链路** ✓：`kotlinc` 41 文件 ⇒ **112 class** ✓ → `d8 --min-api 21` ⇒ `classes.dex` **244 KB** ✓ → 与 `aapt2` 的 `resources.ap_` 合成 → `zipalign -f 4` ✓ → `apksigner sign`（`keytool` 生成的 debug key ✓）⇒ **`emacs.apk` 180 KB** ✓。
+  ② **证据** ✓：`apksigner verify --print-certs` ⇒ `CN=femacs debug` ✓ + SHA-256/SHA-1 摘要 ✓。
+  ③ **三处坑（都已修）** ✓：`d8`/`apksigner` 是包装脚本 ✗（不能 `java -cp` ✓）；清单残留 `@ANDROID_MIN_SDK@` ✗ ⇒ 按 `--min-api 21` 写 21 ✓；`keytool` 用 JBR 里的 ✓。
+  ④ **如实记录** ✓：APK **不含原生库** ✓（`libemacs.so`/`libandroid-emacs.so` 等端口的 Android 原生构建 ✓），输出行写明 ✓ ⇒ 设备冒烟仍待设备与原生库 ✓。
+  ⑤ **零 Rust 重编** ✓；受控执行器 runtime 1.4 GiB 三次（峰值 ≤ 988 MB ✓）。提交：`tools/check-android-kotlin.sh`（`--apk` ✓）、`femacs/platform/android/AndroidManifest.xml`（minSdk ✓）、`PORTING.md`（P-201 ✓）、`docs/decisions-needed.md`（第 3 项 ✓）、本提交（读数 ✓）。
