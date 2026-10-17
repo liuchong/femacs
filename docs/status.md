@@ -21669,3 +21669,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **窗口内成分全部单独跑通 ✓**：`let*`（`big`、三 buffer、四 marker、两 pipe-process ✓）、`(kill-buffer buf3)` ✓、**81 项 `dolist` 字面量**（含 kill 之后求值 ✓）、12 类 `value<` ✓、嵌套 `#s` 读写 ✓、ERT 内进程/缓冲区创建 ✓ ⇒ **单独复现不出来** ✗ ⇒ 只剩"在 `unwind-protect` 里求值该字面量"未单点覆盖 ✓。
   ③ **决定：暂挂 + 换靶（P-157 ① ✓）**：本条已吃两轮 ✗ ⇒ 下一轮优先推进 `xdisp` 挂死 ✓、`.elc` 96 件状态差 ✓、平台冒烟 ✓；`fns` 的这条留作**单点待办** ✓（已排除 8 项 ✓、只剩 1 处 ✓）。
   ④ **资源**：5 次 `env … --batch` 短跑（各 ≤20 s，其中 2 次 15-20 s 挂死 ✓）；受控执行器 runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 25 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-157 ✓）、本提交（纯读数 ✓）。
+- **4.506 验证相第一百三十七轮：`xdisp-tests` 的挂死定位到 `xdisp-tests--minibuffer-scroll`，栈底在 `run_window_change_functions`（P-158）（2026-10-17）**：
+  ① **读数** ✓：`sample` 最内层 `Fredisplay ← redisplay_preserve_echo_area ← redisplay_internal ← run_window_change_functions` ✓；ERT 执行顺序是**字典序** ✓（`test-*` 先 ✓），第 7 个 `minibuffer-resizing` 已过 ✓ ⇒ 第 8 个 = **`xdisp-tests--minibuffer-scroll`（bug#44070）** ✓。
+  ② **已核对为与 C 同形 ✓**：`run_window_change_functions`（`window.c` 4066-4210 / `window.rs` 3951-4200 ✓）的 `FOR_EACH_FRAME` ✓、`while CONSP (windows)` 的两处 `continue` 都推进 ✓；`redisplay_internal` 的 `retry` 入口（`sw = w` 在 label 后 ✓、`goto retry` 条件 ✓）。
+  ③ **剩下两个可能（下一轮单点 ✓）**：⑴ `FOR_EACH_FRAME!` 的步进或 `Vframe_list` 成环 ✗；⑵ 函数内联的被调（`window_sub_list`/钩子遍历 ✓）不前进 ✗。
+  ④ **资源**：1 次 `sample`（40 s ✓）；受控执行器 runtime 900 MiB（下调自默认 ✓）、峰值 **42 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-158 ✓）、本提交（纯读数 ✓）。
