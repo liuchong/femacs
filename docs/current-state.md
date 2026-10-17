@@ -19,7 +19,7 @@
 | 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` ⇒ 590/0/0 |
 | 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `xtask gate-fast` ⇒ exit 0（八步） |
 | 3 | L0–L5 | ✅ | `tools/check-ert.py --selector-preset all`（端口缺陷 0） |
-| 4 | `.elc`/dump/生成物/loadup | ✅ | `check-generated.py` 240 文件 0 差异；`check-loadup.py` 112/112 |
+| 4 | `.elc`/dump/生成物/loadup | ✅ | `check-generated.py` 240 文件 ⇒ **191 identical / 49 name-only / 0 DIFFERENT**（照抄树恢复逐字节后更接近）；`check-loadup.py` ⇒ 两树逐文件一致 |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` ⇒ 4,604 文件 / 0 failures |
 | 6 | 平台（macOS + Android） | ⚠️ 部分 | macOS `tools/smoke.sh` 11/11；Android `xtask gate-android` ⇒ 181,486 B APK / 112 class / 签名通过 |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh`（同臂读数见 P-193）；`--gate` 回归门默认绿 |
