@@ -6060,7 +6060,7 @@ unsafe fn compact_font_caches ()
   t = terminal_list;
   while !t.is_null ()
     {
-      let cache: Lisp_Object = TERMINAL_FONT_CACHE (t);
+      let cache: Lisp_Object = TERMINAL_FONT_CACHE! (t);
       /* Inhibit compacting the caches if the user so wishes.  Some of
 	 the users don't mind a larger memory footprint, but do mind
 	 slower redisplay.  */
@@ -6995,9 +6995,9 @@ unsafe fn mark_frame (ptr: *mut Lisp_Vector)
   /* C 6321-6329 (`#ifdef HAVE_WINDOW_SYSTEM`) is dead.  */
   #[cfg (feature = "have_window_system")]
   {
-    if FRAME_WINDOW_P (f) && !FRAME_OUTPUT_DATA (f).is_null ()
+    if FRAME_WINDOW_P (f) && !FRAME_OUTPUT_DATA! (f).is_null ()
       {
-	let font = FRAME_FONT (f);
+	let font = FRAME_FONT! (f);
 
 	if !font.is_null () && !vectorlike_marked_p (&raw mut (*font).header)
           { mark_vectorlike (&raw mut (*font).header); }
@@ -7025,8 +7025,8 @@ unsafe fn mark_frame (ptr: *mut Lisp_Vector)
   {
     /* Mark this frame's image cache, though it might be common to several
        frames with the same font size.  */
-    if !FRAME_IMAGE_CACHE (f).is_null ()
-      { mark_image_cache (FRAME_IMAGE_CACHE (f)); }
+    if !FRAME_IMAGE_CACHE! (f).is_null ()
+      { mark_image_cache (FRAME_IMAGE_CACHE! (f)); }
   }
 }
 

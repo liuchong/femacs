@@ -1,14 +1,10 @@
 // femacs: port of src/termhooks.h @ fd7afced403.
-/* C termhooks.h 957-959: the android arm of `TERMINAL_FONT_CACHE` (each window system has
-   its own arm there; this mirror only needs the one this target compiles).  */
-#[cfg (feature = "have_android")]
-macro_rules! TERMINAL_FONT_CACHE {
-  ($t:expr) => {
-    if (*(($t) as *mut terminal)).r#type == output_android
-      { (*(*(($t) as *mut terminal)).display_info.android).name_list_element }
-    else { Qnil () }
-  };
-}
+/* OPEN (P-244): C termhooks.h 957-959 has an android arm of `TERMINAL_FONT_CACHE`:
+   `(t->type == output_android ? t->display_info.android->name_list_element : Qnil)`.
+   The mirror cannot express it yet: `display_info.android` is `*mut c_void` here (the
+   union keeps every window system's pointer untyped, like `xterm.rs` does), and naming
+   the struct from this mirror would duplicate androidterm.rs's declaration.  The call
+   site in alloc.rs is therefore still written as a call, not a macro use.  */
 
 // WIP mirror (PORTING.md P-66): `struct input_event` and the two enumerations it carries,
 // which is the slice `keyboard.h` needs (its `union buffered_input_event` embeds the event
