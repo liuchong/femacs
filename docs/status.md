@@ -22071,3 +22071,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **读数**：`insert` 单次 **0.1140 → 0.0639 ms**（= 参照 ✓）；×2000 **242.2 → 142.2 ms**（参照 143.8 ✓）；`buffer-scan` **1.147 → 1.021–1.041 ms** ✓（1.22–1.24× → **1.09–1.16×** ✓）；bench 门 **−10.1%** ✓。
   ⑤ **回归**：`gate-fast` exit 0 ✓（符号/链接/布局/声明/defvar/subr 全绿 ✓）、`dump` ✓、`smoke` 11/11 ✓、`lisp/international/*.el` **82 例全 same** ✓、`extract-abi --check character` OK ✓。
   ⑥ **基准更新**（单独一次提交 ✓）：`docs/baseline/bench.tsv` 按修复后的端口读数重记 ✓。提交：`femacs/src/character.rs` ✓、`PORTING.md`（P-195 ✓）、`docs/acceptance.md`（第 7 条 ✓）、`docs/baseline/bench.tsv` ✓、本提交（读数 ✓）。
+- **4.569 验证相第一百九十九轮：`regexp-repl` 的差距归因到 GC + 派发（两侧剖析形状重合），不是字符串代码缺陷（P-196）（2026-10-17）**：
+  ① **读数**（`sample` 4 s ✓ 同机 ✓ 纯 `replace-regexp-in-string` 负载 ✓）：端口 `process_mark_stack` 1124 / `re_match_2_internal` 208 / `Freplace_match` **185** / `mark_char_table` 163 / `exec_byte_code` 150 / `concat_to_string` 108 ✓；参照 1310 / 195 / **185** / 165 / — / 97 ✓。
+  ② **判读** ✓：`Freplace_match` **完全相同** ✓、GC 标记端口**更少** ✓ ⇒ 没有"某函数系统性慢"的签名 ✓；唯一方向性差异是端口多出的 `exec_byte_code`（Lisp while + 8000 次调用 ✓）⇒ 与 P-185/P-193 的派发差同源 ✓。
+  ③ **即**：`regexp-repl` 这 1.13–1.20× **不需要单独修** ✓（P-195 之后剩余的字符串路径已无独立缺陷 ✓）；DoD-7 的每一行现在都带归因 ✓（`bc-*`/`regexp-repl` → 派发；`buffer-scan` 1.09–1.16× → 已修；`sort` 0.82–0.86× → 端口更快 ✓）。
+  ④ **零编译** ✓；受控执行器 runtime 1 GiB 一次（峰值 ≤ 45 MB ✓）。提交：`PORTING.md`（P-196 ✓）、`docs/acceptance.md`（第 7 条归因 ✓）、本提交（读数 ✓）。
