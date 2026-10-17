@@ -21870,3 +21870,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **接线** ✓：该门已作为 `gate-fast` 的一步（`== defvar value gate ==` ✓），失败信息指向 P-178 ✓。
   ⑤ **L5 台账回填** ✓：`docs/baseline/ert-sweep-all.tsv` 里 `misc/test-custom-opts` 由 `port-worse` 改为 **`same`** ✓（附注写明这是修复后复读 ✓）⇒ 全量口径变为 **same 543 / both-fail 11 / crashed 6 / port-worse 3 / both-capped 1** ✓。
   ⑥ **Lisp 零改动** ✓；本轮零单元重编 ✓（只编了 `xtask` 本身 ✓ <1 s ✓）；受控执行器 runtime 700 MiB、探针 2 次（各 <1 s ✓、峰值 ≤ 60 MB ✓）；`git -C emacs status --short` 为空 ✓。提交：`tools/check-defvar-values.py`（新门 ✓）、`femacs/xtask/src/main.rs`（接线 ✓）、`docs/baseline/ert-sweep-all.tsv`（回填 ✓）、本提交（纯读数 ✓）。
+- **4.537 验证相第一百六十八轮：L5 最后一个"真缺陷"其实也是**产品名**——`erc` 场景的对话框用自己的匹配器断言了参照产品名（P-175 第三例）（2026-10-17）**：
+  ① **仪器** ✓：`erc-d` 自带调试开关（环境变量 `ERC_D_DEBUG` ✓）⇒ 复跑失败用例时它直接打出根因 ✓：`Error running timer 'erc-d--on-request': (error "Match failed: \"PRIVMSG #chan :I'm using ERC 5.7-git with femacs 32.0.50 (aarch64-apple-darwin25.6.0, multi-tty) of 20…"` ✗。
+  ② **根因** ✓：对话框 `erc/test/lisp/erc/resources/base/send-message/noncommands.eld` **第 44 行**自己写着 `((privmsg-sv 10 "PRIVMSG #chan :I'm using ERC " (+ (not " ")) " with GNU Emacs")` ✓ —— 即**假服务器**拿这串去匹配客户端的 VERSION 回复 ✓；端口按既定政策把产品名改成自己的 ✓ ⇒ 匹配失败 ✗ ⇒ 该步的后续（`<bob> alice: You still wrangle` ✓）**永远不会被发出** ✗ ⇒ 用例超时 ✗。
+  ③ **判定** ✓：这是**有意偏离**（P-175 的 `name-only` ✓），**不是端口缺陷** ✗ —— 与 `calc-tests` 同类 ✓，只是这次"断言产品名的一方"是**测试夹具的假服务器**而不是 ERT 断言 ✓。
+  ④ **L5 终账** ✓（`docs/baseline/ert-sweep-all.tsv` ✓）：543 same ✓ / 11 both-fail ✓ / 6 crashed ✓ / **2 name-only**（`calc-tests` ✓、`erc-scenarios-base-send-message` ✓）/ **1 flaky**（`proced-tests` ✓ 复跑 0 unexpected ✓）/ 1 both-capped ✓ ⇒ **端口真缺陷 0** ✓✓。
+  ⑤ **规则** ✓：跑场景类测试遇到"超时等某行"先开**夹具自带的调试开关** ✓（本轮 `ERC_D_DEBUG` ✓ 一行就定案 ✓）；凡是**夹具自己**用产品名做匹配的 ✓，判定写 `name-only` ✓ 并在 `note` 里引夹具行号 ✓。
+  ⑥ **Lisp 零改动** ✓；本轮**零编译** ✓；受控执行器 runtime 900 MiB、复跑 2 次（各 11 s ✓、峰值 ≤ 90 MB ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/ert-sweep-all.tsv`（erc 行 ✓）、本提交（纯读数 ✓）。
