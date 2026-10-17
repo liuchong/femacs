@@ -426,7 +426,7 @@ build/port/src/temacs -Q --batch --eval '(princ (+ 1 2))'   # 不设 EMACSLOADPA
 | 4 | `.elc`/dump/动态模块双向互换、生成物逐字节一致 | `.elc`：`gen-elc.py lisp --skip-matching --cross-check` ⇒ 96 **state-only**、1 volatile、0 端口缺陷（4.528）；`lisp/emacs-lisp` 6 个差异全 state-only（4.527）；**dump** `xtask dump` 正常、产物 13,025,328 B；生成物 `ja-dic` 与 `admin/unidata` 两个 `.elc` 是**生成步骤**产物（已记账） | **达成（动态模块：冻结配置 `HAVE_MODULES` 关闭，两支程序同样不能加载 ⇒ 该项在本配置下不存在；要验需另起一套配置）** |
 | 5 | `diff -r emacs/lisp femacs/lisp` 等无差异 | `check-verbatim.py`：6 trees、**4,604 文件、0 failures**，但有 **8,427 行**产品名替换（`docs/baseline/verbatim-substitutions.tsv` 逐行登记 + 门校验） | **未达（按用户政策刻意不为）**：licence 头/成员声明/手册标题等含参照产品名处改为本项目名（0.1-19 各分条） |
 | 6 | 五平台冒烟 | macOS `tools/smoke.sh` **11 check / 0 failure**（4.515 起）；本机缺 `kotlinc`（Android）、mingw、Linux 交叉 gcc、Haiku 工具链 | **未达（资源）**：按计划允许"停并汇报" |
-| 7 | 性能不低于参照 | 同机 `-O2`、min-of-5：启动 13.8 vs 11.5 ms、`regexp-repl` 4.3 vs 2.5 ms、`buffer-scan` 1.3 vs 0.9 ms、`sort-100k` 3.4 vs 1.7 ms；逐字节码基准**一致地慢 1.22–1.25×**；一次性诊断构建（关检查）仍 1.13–1.41×（P-179） | **未达（真实差距）**：剩余部分在解释器派发结构，不在安全检查 |
+| 7 | 性能不低于参照 | 同机 `-O2`、min-of-5，**P-181 之后**：启动 10.6 vs 9.4 ms（1.13×）、`regexp-repl` 3.2 vs 2.6（1.23×）、`buffer-scan` 1.1 vs 0.9（1.22×）、`sort-100k` 1.9 vs 1.7（1.12×）、字节码 VM `bc-loop` 5.5 vs 3.2（**1.72×**）、`bc-sum` 7.0 vs 5.0（1.40×）、`bc-car` 11.3 vs 8.1（1.40×）。P-181 之前是 1.2–3.9×（VM 3–4× ✓）——根因是 `debug-assertions` 带的 `ub_checks`（C 无对应物 ✓），关掉后大幅收敛 ✓；`overflow-checks` 仍开 ✓ | **未达（真实差距，已从 1.2–3.9× 收到 1.12–1.73×）**：剩余主要在字节码 VM 的每指令开销（P-182 证明 `funcall_subr` 的 argbuf/unwrap 不是成本 ✓） |
 | 8 | 提交签名并推送、`docs/ports/*.md` 全部勾选 | `git log` 全部 `-S` 提交、`origin/master` 同步；`docs/ports/` **606 个台账、14,775 个勾选、0 个未勾** | **达成** |
 
 ### 三项需要拍板的事（都不是实现问题）
