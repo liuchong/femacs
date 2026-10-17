@@ -5996,6 +5996,21 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
     /* succeed_label: */
     DEBUG_PRINT! (c"Accepting match.\n".as_ptr ());
 
+    /* Instrument, not behaviour (P-115's shape): with `FEMACS_REG_TRACE` set, report where the
+       accepted match stands relative to the two strings.  `d` outside `[string1, end2]` is the
+       signature of a bogus acceptance (the `electric-tests` hang's `me = -10`, status 4.494).  */
+    if ((d as isize) < (string1 as isize) || (d as isize) > (end2 as isize))
+      {
+        if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+          {
+            fprintf (stderr,
+                     c"REGTRACE accept-outside d-string1=%td pos=%td end1-string1=%td succ=%d restore=%d\n".as_ptr (),
+                     (d as isize) - (string1 as isize), pos as c_int,
+                     (end1 as isize) - (string1 as isize), do_succeed as c_int,
+                     do_restore as c_int);
+          }
+      }
+
     /* If caller wants register contents data back, do it.  */
     if !regs.is_null ()
       {
