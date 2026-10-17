@@ -22128,3 +22128,7 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **含义** ✓：Android/Linux 的第二份配置现在只需"一次 `configure` + 本工具" ✓（`FEMACS_CONFIG=android-arm64` ✓ 已在 `xtask gen-config` 里支持 ✓，P-203 ✓）。
   ④ **未定项（如实记录）** ✓：`HAVE_SIGNBIT` 的差异来源未查（手写 or 另一次 configure ✓），且 `signbit.c` 自带回退 ✓ ⇒ 两条路径在端口里的行为要另测 ✓。
   ⑤ **零重编** ✓；受控执行器 runtime 300 MiB 一次 ✓。提交：`tools/gen-config-json.py` ✓、`PORTING.md`（P-204 ✓）、本提交（读数 ✓）。
+- **4.580 验证相第二百一十轮：Android `configure` 的参数面查清；实跑被共享预算拒绝（未执行，非失败）（P-205）（2026-10-17）**：
+  ① **查清** ✓：`--with-android=` 收的是 **android.jar 的路径** ✓（`configure.ac` 1027 ✓）；`SDK_BUILD_TOOLS`/PATH 里必须有 **aapt、apksigner、d8** ✓（1033-1050 ✓ 缺则报错 ✓）；交叉编译器决定目标三元组 ✓（1082 附近 ✓）。本机三件都在 `build-tools/35.0.1` ✓。
+  ② **未执行** ✓：一次 `configure` 尝试被 `controlled-run` 拒绝（`Combined memory reservations exceed the shared budget` ✓，另一项目两个 7 GiB 进程在跑 ✓）⇒ **命令没有启动** ✓，记作"未执行"而非"失败" ✓。
+  ③ **零重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-205 ✓）、本提交（读数 ✓）。
