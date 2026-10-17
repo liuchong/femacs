@@ -22026,3 +22026,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **删除的东西（全部无引用、可重建）**：`build/port/src/emacs-32.0.50.*`（204 个 ✓）、`build/femacs.dbg1` ✓、`build/probes` ✓、`nonexistent/` ✓、`/tmp/{ldtest,ldtest2,ldtest3,cg,unidiff,femacs-fuzz-work,femacs-fault-*}*` 与探针/日志 ✓。
   ③ **保留（在用）**：`build/port/src/{temacs,emacs,emacs.pdmp,bootstrap-emacs.pdmp}` ✓、`build/femacs/*.o` + `units/`（链接/符号/布局门在读 ✓）、`build/emacs-ref/**`（参照程序 ✓）、`build/lisp-l1` ✓、`build/{sweep,load,cargo}`（各 ≤ 8 MB ✓）、`/tmp/xt-cargo`（xtask 已构建 ✓ 24 MB ✓）。
   ④ **复验**：`xtask dump` 复绿 ✓（`dumped emacs.pdmp` ✓）、`smoke.sh` **11/11** ✓、`git -C emacs status --short` 为空 ✓、本轮零单元重编 ✓。提交：`AGENTS.md`（规则 ✓）、`PORTING.md`（P-190 ✓）、本提交（读数 ✓）。
+- **4.562 验证相第一百九十二轮：P-189 的根因找到并修掉 —— `c-ctype` 镜像把字符码截成字节（P-191）（2026-10-17）**：
+  ① **定位链**：`loaddefs-gen.el` 的 `loaddefs-generate--print-form` 对 `defvar` 的**值**用带 `(escape-control-characters . t)` 的 `prin1` ✓ ⇒ 判定落在 `print.c` 的 `c_iscntrl` ✓ ⇒ C 是 `switch (c)`（int ✓）而端口镜像是 `match c as u8` ✗ ⇒ `0x590D & 0xFF = 0x0D` 被当成控制字符 ✗✓。
+  ② **最小形状（4 行）** ✓：`(prin1 "回复’" (current-buffer) '(t (escape-newlines . t) (escape-control-characters . t)))` ⇒ 端口 `"回\15\31"` ✗ / 参照 `"回复’"` ✓（修前读数 ✓）。
+  ③ **修复**：4 个宏体 → `int` 字面量 ✓、13 处 `match c as u8` → `match c` ✓（`femacs/lib/include/c-ctype.rs` ✓，逐字对齐 `emacs/lib/c-ctype.h` ✓）；`c_isblank`/`c_isspace` 原本就是 `int` 比较 ✓ 未动 ✓。
+  ④ **回归读数**：`gate-fast` 全绿 ✓（680 单元全量重编一轮 ✓）、4 行最小形状**两侧一致** ✓、按配方重生成 `loaddefs.el` ⇒ 与参照那份**归一化后一致**（0 差异行 ✓）、`xtask dump` ✓、`smoke.sh` **11/11** ✓。
+  ⑤ **Lisp 零改动**；本轮**一次**全量重编（gate-fast ✓，P-101 的"不频繁编译"原则下这是修缺陷所需的一轮 ✓）；收尾顺手清掉本轮产生的中间产物 ✓（`build/probes` 等 ✓）。提交：`femacs/lib/include/c-ctype.rs`（路由修复 ✓）、`PORTING.md`（P-191 ✓）、本提交（读数 ✓）。
