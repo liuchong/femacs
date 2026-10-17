@@ -228,7 +228,7 @@
 - **二进制互换**：`.elc`、dump、模块双向。
 - **生成物一致**：`admin/unidata`、`admin/charsets`、`ldefs-boot.el`、`src/lisp.mk` 逐字节。
 - **强制 GC 压测**：`gc-cons-threshold=1` 下跑完整测试套件 —— 已实现为 `python3 tools/check-ert.py --gc-stress`（环境变了、测试文件仍是参照自己那份，status 4.555）。
-- **故障注入**：内存不足、EINTR、信号、编码异常输入。
+- **故障注入**：内存不足、EINTR、信号、编码异常输入 —— 已实现为 `python3 tools/check-fault-injection.py`（19 用例：编码 6、信号 5、EINTR 2、资源上限 4、内存 2；退出状态与消息逐字节比，回溯帧单独记账；status 4.559）。
 - **性能**：启动时间、`benchmark-run` 基线、批量文本操作；性能回退超过阈值视为 bug（借用 uutils 口径）。
 
 ## 8. 完成定义（DoD）
