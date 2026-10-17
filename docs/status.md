@@ -21901,3 +21901,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **回归面** ✓：9 个 ERT 文件全 **same** ✓（`regex-emacs` 35 ✓、`syntax` 100 ✓、`fns` 95 ✓、`electric` 903 ✓、`simple` 54 ✓、`buffer` 408 ✓、`fill` 16 ✓、`log-edit` 12 ✓、`xdisp` 11 ✓）、`tools/smoke.sh` **11/11** ✓。
   ⑤ **正在跑** ✓：关检查后的**全量 L5**（`--selector-preset all` ✓ 564 文件 ✓）已启动 ✓，前 160 个文件：**same 154** / both-fail 3 / crashed 1 / port-worse 1（`calc` 产品名 ✓）/ both-capped 1（`ert-tests` ✓）✓ —— 与改动前一致 ✓；跑完后回填 `docs/baseline/ert-sweep-all.tsv` ✓。
   ⑥ **Lisp 零改动** ✓；`git -C emacs status --short` 为空 ✓；本轮 1 次全量重编（8 min ✓ 峰值 ≤ 450 MB ✓）+ relink/dump 2 次 ✓ + 基准若干 ✓。提交：`femacs/xtask/src/main.rs`（P-181 标志 ✓）、`PORTING.md`（P-181 ✓）、本提交（读数 ✓）。
+- **4.542 验证相第一百七十三轮：P-181 构建的全量 L5 复跑完成 —— **542 same / 12 both-fail / 6 crashed / 3 port-worse / 1 both-capped**，与上一份台账逐文件相比**只有 1 处判定变化**（且是两侧同败）（2026-10-17）**：
+  ① **读数** ✓：`--selector-preset all` ✓ 564 文件 ✓（40 min ✓、峰值 ≤ 900 MB ✓）：**same 542** ✓ / both-fail 12 ✓ / crashed 6 ✓ / port-worse **3** ✓ / both-capped 1 ✓。
+  ② **与改前台账逐文件比对** ✓：**唯一变化** = `lisp/erc/erc-scenarios-internal` 由 `same` 变 **`both-fail`** ✓ —— **两侧同为 1 unexpected** ✗ ⇒ 环境/时序 ✓，不是端口缺陷 ✓（其余 563 个文件判定不变 ✓）⇒ 「关掉 `debug-assertions`（`ub_checks`）」**没有引入任何行为变化** ✓✓。
+  ③ **3 个 port-worse 全部已定性** ✓：`calc-tests`（产品名 ✓ P-175）、`erc-scenarios-base-send-message`（对话框第 44 行断言产品名 ✓ P-175）、`proced-tests`（此前复跑 0 unexpected ✓ flaky ✓）⇒ **端口缺陷 0** ✓✓。
+  ④ **6 个 crashed 全部两侧对称** ✓（`autorevert`/`filenotify`/`tramp`/`eglot`/`emacs-module`/`keyboard` ✓）、12 个 both-fail 同理 ✓、`ert-tests` 因超重在两侧都被上限截断 ✓。
+  ⑤ **台账回填** ✓（`docs/baseline/ert-sweep-all.tsv` ✓，含 6 条带理由的注 ✓）。
+  ⑥ **Lisp 零改动** ✓；本轮**零编译** ✓（只跑 ERT ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/ert-sweep-all.tsv`（复跑台账 ✓）、本提交（纯读数 ✓）。
