@@ -213,7 +213,7 @@ along with femacs.  If not, see <https://www.gnu.org/licenses/>. -->
   <uses-sdk android:minSdkVersion="21"
 	    android:targetSdkVersion="37"/>
 
-  <application android:name="org.gnu.emacs.EmacsApplication"
+  <application android:name="org.femacs.EmacsApplication"
 	       android:label="Emacs"
 	       android:icon="@mipmap/emacs_icon"
 	       android:hardwareAccelerated="true"
@@ -223,7 +223,7 @@ along with femacs.  If not, see <https://www.gnu.org/licenses/>. -->
 	       android:allowBackup="true"
 	       android:extractNativeLibs="true">
 
-    <activity android:name="org.gnu.emacs.EmacsActivity"
+    <activity android:name="org.femacs.EmacsActivity"
 	      android:launchMode="singleInstance"
 	      android:taskAffinity="emacs.primary_frame"
 	      android:windowSoftInputMode="adjustResize"
@@ -236,7 +236,7 @@ along with femacs.  If not, see <https://www.gnu.org/licenses/>. -->
       </intent-filter>
     </activity>
 
-    <activity android:name="org.gnu.emacs.EmacsOpenActivity"
+    <activity android:name="org.femacs.EmacsOpenActivity"
 	      android:taskAffinity="emacs.open_dialog"
 	      android:excludeFromRecents="true"
 	      android:exported="true">
@@ -281,7 +281,7 @@ along with femacs.  If not, see <https://www.gnu.org/licenses/>. -->
       </intent-filter>
     </activity>
 
-    <activity android:name="org.gnu.emacs.EmacsMultitaskActivity"
+    <activity android:name="org.femacs.EmacsMultitaskActivity"
 	      android:taskAffinity="emacs.secondary_frame"
 	      android:windowSoftInputMode="adjustResize"
 	      android:exported="true"
@@ -315,7 +315,7 @@ along with femacs.  If not, see <https://www.gnu.org/licenses/>. -->
       </intent-filter>
     </activity>
 
-    <provider android:name="org.gnu.emacs.EmacsDocumentsProvider"
+    <provider android:name="org.femacs.EmacsDocumentsProvider"
 	      android:authorities="org.gnu.emacs"
 	      android:exported="true"
 	      android:grantUriPermissions="true"
@@ -330,11 +330,11 @@ along with femacs.  If not, see <https://www.gnu.org/licenses/>. -->
     <receiver android:name=".EmacsDesktopNotification$CancellationReceiver"
 	      android:exported="false">
       <intent-filter>
-        <action android:name="org.gnu.emacs.DISMISSED" />
+        <action android:name="org.femacs.DISMISSED" />
       </intent-filter>
     </receiver>
 
-    <service android:name="org.gnu.emacs.EmacsService"
+    <service android:name="org.femacs.EmacsService"
 	     android:directBootAware="false"
 	     android:enabled="true"
 	     android:exported="false"

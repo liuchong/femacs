@@ -124,6 +124,12 @@ if [ -n "$APK_DIR" ]; then
   JAVA_HOME="$JAVA_HOME" "$APKSIGNER" sign --ks "$KS" --ks-pass pass:android \
       --out "$SIGNED" "$APK_DIR/emacs-aligned.apk" || exit $?
   JAVA_HOME="$JAVA_HOME" "$APKSIGNER" verify --print-certs "$SIGNED" | head -3
+  # Structural acceptance of the APK itself (short of a device): the manifest aapt2 wrote, the
+  # dex it carries, and the signature - that is what can be checked without a JDK 7-capable
+  # configure and without hardware (P-211).
+  echo "== apk contents =="
+  "$AAPT2" dump badging "$SIGNED" 2>/dev/null | grep -E "^(package|sdkVersion|targetSdkVersion|launchable-activity|application-label)" | head -5
+  "$JAVA_HOME/bin/jar" tf "$SIGNED" 2>/dev/null | grep -E "^(classes[0-9]*\.dex|resources\.arsc|AndroidManifest\.xml)$" | sed 's/^/  member: /'
   echo "apk: $SIGNED ($(du -h "$SIGNED" | cut -f1)); native libraries pending the Android native build"
 fi
 exit "$status"
