@@ -202,16 +202,61 @@ pub const FOCUS_OUT_EVENT: event_kind = 23;
 pub const MOVE_FRAME_EVENT: event_kind = 24;
 pub const SELECT_WINDOW_EVENT: event_kind = 25;
 pub const SAVE_SESSION_EVENT: event_kind = 26;
+/* C 253-296: three of this enumeration's members are conditional - `THREAD_EVENT` (C 253,
+   `#ifdef THREADS_ENABLED`), `FILE_NOTIFY_EVENT` (C 291, `#ifdef USE_FILE_NOTIFY`) and
+   `NOTIFICATION_EVENT` (C 285, `#ifdef HAVE_ANDROID`) - and C's enumerators are numbered in
+   order, so every member after the first of them shifts.  The frozen target has none of the
+   three; the Android configuration has all three (`THREADS_ENABLED 1`, `USE_FILE_NOTIFY 1`,
+   `HAVE_ANDROID 1`, docs/baseline/config/android-arm64.json), which is why the two arms below
+   differ by two from `CONFIG_CHANGED_EVENT` on and by one again at the tail.  A third
+   combination would need its own arm, exactly as C would compile it.  */
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const CONFIG_CHANGED_EVENT: event_kind = 27;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const THREAD_EVENT: event_kind = 27;                                // C 253
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const CONFIG_CHANGED_EVENT: event_kind = 28;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const FILE_NOTIFY_EVENT: event_kind = 29;                           // C 291
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const SLEEP_EVENT: event_kind = 28;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const SLEEP_EVENT: event_kind = 30;
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const PREEDIT_TEXT_EVENT: event_kind = 29;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const PREEDIT_TEXT_EVENT: event_kind = 31;
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const TOUCH_END_EVENT: event_kind = 30;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const TOUCH_END_EVENT: event_kind = 32;
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const TOUCHSCREEN_UPDATE_EVENT: event_kind = 31;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const TOUCHSCREEN_UPDATE_EVENT: event_kind = 33;
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const TOUCHSCREEN_BEGIN_EVENT: event_kind = 32;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const TOUCHSCREEN_BEGIN_EVENT: event_kind = 34;
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const TOUCHSCREEN_END_EVENT: event_kind = 33;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const TOUCHSCREEN_END_EVENT: event_kind = 35;
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const PINCH_EVENT: event_kind = 34;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const PINCH_EVENT: event_kind = 36;
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const MONITORS_CHANGED_EVENT: event_kind = 35;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const MONITORS_CHANGED_EVENT: event_kind = 37;
+#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
 pub const TOOLKIT_THEME_CHANGED_EVENT: event_kind = 36;
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const TOOLKIT_THEME_CHANGED_EVENT: event_kind = 38;
+/// C 285: `#ifdef HAVE_ANDROID` / `, NOTIFICATION_EVENT`.
+#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
+pub const NOTIFICATION_EVENT: event_kind = 39;
 
 // termhooks.h 34-51: `enum scroll_bar_part`.
 pub type scroll_bar_part = c_int;

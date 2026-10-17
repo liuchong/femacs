@@ -275,13 +275,10 @@ unsafe extern "C" {
   pub fn strnlen (s: *const c_char, maxlen: usize) -> usize;
 }
 
-/// C: termhooks.h 291: `, FILE_NOTIFY_EVENT` - an `enum input_event_kind` member inside C's
-/// `#ifdef USE_FILE_NOTIFY`, which the frozen `include/termhooks.rs` does not carry (it carries
-/// the frozen configuration's members, so the member before `SLEEP_EVENT` shifts everything
-/// after it), so it is declared here with the value this configuration gives it - the
-/// `src/gfilenotify.rs` 169 / `src/kqueue.rs` 153 reading (28), owed to the mirror round.
-#[cfg (feature = "have_inotify")]
-pub const FILE_NOTIFY_EVENT: c_int = 28;
+/* termhooks.h 291's `, FILE_NOTIFY_EVENT` (inside `#ifdef USE_FILE_NOTIFY`) is the mirror's now:
+   `include/termhooks.rs` carries the whole enumeration with C's conditional members in place, so
+   this configuration's value is 29, not the 28 this unit recorded while the mirror stopped before
+   `THREAD_EVENT` (measured: the two definitions were `E0428` once the mirror's arm went live).  */
 /// termhooks.h's `enum event_kind kind : 16` shares `include/termhooks.rs`'s `input_event::bits`;
 /// C 341 writes `event.kind = FILE_NOTIFY_EVENT;`, so the port keeps C's field name in a per-unit
 /// macro (the `src/gtkutil.rs` 1757-1770 shape, body-identical to `src/kqueue.rs` 156-165).

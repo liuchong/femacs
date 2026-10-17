@@ -3872,6 +3872,13 @@ pub mod other_units {
       /// C: lisp.h 5436: `extern char *get_keysym_name (int);`
       pub fn get_keysym_name (keysym: c_int) -> *mut c_char;
     }
+    /* C 5485-5486 (`#ifdef HAVE_TEXT_CONVERSION`): two entry points `src/textconv.c` defines and
+       `src/keyboard.c` calls; `textconv.h` does not declare them, `lisp.h` does.  */
+    #[cfg (feature = "have_text_conversion")]
+    unsafe extern "C" {
+      pub fn disable_text_conversion ();
+      pub fn resume_text_conversion ();
+    }
     /// C 5273-5274: the `#ifdef HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` arm declares this one and
     /// `sysdep.c` 162 defines it; the `#else` arm is the inline above (C 5276-5280).  It sits in
     /// the module rather than at the mirror's root because the defining unit includes this mirror

@@ -94,15 +94,11 @@ unsafe extern "C" {
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const BUFSIZ: c_int = 1024;
 
-/* termhooks.h 353-355: `NOTIFICATION_EVENT`, the member C writes inside `#ifdef HAVE_ANDROID`
-   at the end of the `enum event_kind` that starts at termhooks.h 72.  `include/termhooks.rs`
-   carries the enum up to
-   TOOLKIT_THEME_CHANGED_EVENT (36) and neither conditional member, so the value is C's chain
-   with `HAVE_ANDROID` defined and `HAVE_HAIKU` undefined (the second conditional member,
-   `NOTIFICATION_CLICKED_EVENT`, would take 37 first if that macro were defined too - recorded in
-   the ledger as a mirror gap, the androidmenu.rs use-site shape).  */
-#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-pub const NOTIFICATION_EVENT: event_kind = 37;
+/* termhooks.h 285's `NOTIFICATION_EVENT` (inside `#ifdef HAVE_ANDROID`) is the mirror's now:
+   `include/termhooks.rs` carries the whole enumeration for this configuration, with C's own
+   conditional members in their places (the file's `event_kind` note).  This unit's copy recorded
+   37, i.e. the value the chain gives *without* `THREAD_EVENT`/`FILE_NOTIFY_EVENT`, and was
+   `E0428` once the mirror's arm went live (measured).  */
 
 /* <intprops.h>'s two macros this file's one buffer size and one range test name.  C reaches them
    through lisp.h 42; the frozen `lib/include/intprops.rs` keeps C's own text and is not compiled,
