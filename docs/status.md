@@ -21824,3 +21824,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **工具修正** ✓：上轮 `volatile` 的初值放进了 `if` 块里 ✗ ⇒ 无 DIFFERENT 时汇总行会 `UnboundLocalError` ✗（`admin` 面第一次跑就踩到 ✓）；已把 `volatile = 0` 提到块外 ✓，`admin`/`lisp` 两面复跑正常 ✓。
   ⑤ **DoD-4 口径** ✓：`.elc` 逐字节一致 = **除"登记过的产品名替换"外一致** ✓；`state-only`（参照程序在端口树里同字节 ✓）与 `volatile`（同程序两次不同 ✓）都不计缺陷 ✓；缺件只有生成物 ✓。
   ⑥ **Lisp 零改动** ✓；受控执行器 runtime 900 MiB、三面各 <1 s-49 s ✓，峰值 **≤ 70 MB** ✓；本轮**零单元重编** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/gen-elc.py`（`volatile` 初值 ✓）、本提交（纯读数 ✓）。
+- **4.530 验证相第一百六十一轮：DoD-7 的第一份可比读数 —— 端口比参照慢 1.30–2.0×，正则已从 12.5× 降到 1.72×（P-177）（2026-10-17）**：
+  ① **口径** ✓：同机、两侧 `-O2`（端口 4.486 起冻结 ✓）、每项 **min-of-5** ✓、batch、`--no-init-file` ✓、`gc-cons-threshold` 拉满 ✓（不去测 GC ✓）。
+  ② **启动** ✓：**13.0 ms vs 10.0 ms** ✗（1.30×，median 13.7 vs 10.2 ✓）。
+  ③ **批量文本** ✓：`regexp-repl`（12 KB、`\\(beta\\)` 回引 ✓）**4.3 vs 2.5 ms** ✗（**1.72×** ✓ 已是 4.486 记的 12.5× 的大幅改善 ✓）；`buffer-scan`（8,000 行 `re-search-forward` ✓）**1.3 vs 0.9 ms** ✗（1.44×）；`insert-200k` 0.2 vs 0.1 ms（微秒级 ✓ 噪声大 ✓）；`string-match` **0.4 vs 0.4 ms** ✓ 持平。
+  ④ **`sort-100k`** ✗：**3.4 vs 1.7 ms**（**2.0×** ✓ 最大缺口 ✓）⇒ 下一轮优化的第一靶子 ✓（先分清是 `funcall`/subr 派发开销 ✓ 还是比较器的算法 ✓）。
+  ⑤ **必须写进口径的事实** ✓：端口单元带 `overflow-checks=on` + `debug-assertions=on` ✓（P-101 ① 明文 ✓、也符合"能 safe 就 safe" ✓），参照是裸 `-O2` ✗ ⇒ 差值里含安全检查成本 ✓；**不拿掉检查换数字** ✗（P-177 ③ ✓）。
+  ⑥ **Lisp 零改动** ✓；本轮**零单元重编** ✓；受控执行器 runtime 900 MiB，基准 3 次（各 <1 s ✓），峰值 **≤ 60 MB** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-177 ✓）、本提交（纯读数 ✓）。
