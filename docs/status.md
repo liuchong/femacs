@@ -22052,3 +22052,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **生成物** ⇒ `gen-port-map.py` 重生成 ✓（590 文件 / 678,320 行 ✓；本次只有 Rust 行数随 P-191 变化 ✓：`c-ctype` 225→229 ✓ 等 32 行 ✓）。
   ⑤ **VM 热点的采样（无编译）** ✓：`sample` 6 s 在 `bc-loop` 上 ⇒ **100% 落在 `exec_byte_code`** ✓（`codegen-units=1` 把解释器内联成一体 ✓）⇒ 稳定版上**没有**可摘的次要热点 ✓，与 P-185 的"dispatch 形状"结论一致 ✓。
   ⑥ **零编译** ✓；受控执行器 runtime 700 MiB（峰值 ≤ 277 MB ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/port-map.md`（重生成 ✓）、本提交（读数 ✓）。
+- **4.566 验证相第一百九十六轮：把**参照自己**编成 switch 臂再比 —— 同臂下端口在 VM 上更快，DoD-7 的归因定量闭环（P-193）（2026-10-17）**：
+  ① **做法**：只重编参照的 `bytecode.o`（`-DBYTE_CODE_SAFE=1` ✓ ⇒ `bytecode.c:41-43` 的 threaded 条件不成立 ✓）、`make temacs`、用新 temacs 重做 pdmp ✓（指纹绑可执行文件 ✓）。
+  ② **读数**（端口 / 参照）：参照 switch 臂 `bc-loop` **6.80–7.08 ms** ✓ vs 参照 threaded **3.20–3.34 ms** ✓ ⇒ **派发形状本身值 2.0–2.1×** ✓✓；端口 4.95–5.45 ms ⇒ **0.70–0.79× 于 C-switch** ✓。`bc-sum` 0.67–0.74× ✓、`bc-car` 0.74× ✓、`sort` 0.82–0.86× ✓；`regexp-repl` 1.04–1.11× ✗、`buffer-scan` 1.14–1.19× ✗。
+  ③ **恢复与复验** ✓：重编 `bytecode.o`（与保存的对象**逐字节相同** ✓）、重做 pdmp ✓、`emacs -Q --batch` 正常 ✓、bench 回到 1.30–1.69× 的 threaded 口径 ✓、`smoke.sh` **11/11** ✓、`git -C emacs status --short` 为空 ✓。
+  ④ **含义** ✓：DoD-7 的"1.3–1.5×"**不是**端口慢 ✓，而是**两个不同构建分支** ✓；同臂下端口 VM/排序**更快** ✓，只剩两条字符串路径 4–19% ✗ ⇒ 拍板页第 1 项的 A（改口径）现在有**直接证据** ✓，B（nightly threaded）只影响"是否也吃那 2× 的免费午餐" ✓。
+  ⑤ **零端口编译** ✓（只动了参照的构建产物 ✓）；受控执行器 build 2 GiB 三次（峰值 ≤ 141 MB ✓）、runtime 900 MiB 六次 ✓。提交：`PORTING.md`（P-193 ✓）、`docs/decisions-needed.md`（第 1 项 ✓）、`docs/acceptance.md`（第 7 条 ✓）、本提交（读数 ✓）。
