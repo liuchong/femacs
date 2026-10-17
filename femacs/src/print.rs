@@ -1793,7 +1793,7 @@ unsafe fn print_pointer (printcharfun: Lisp_Object, buf: *mut c_char, prefix: *c
 
   /* In theory this assignment could lose info on pre-C99 hosts, but
      in practice it doesn't.  */
-  let up: uintmax_t = ui;
+  let up: uintmax_t = ui as uintmax_t;   // C 1634: `uintmax_t up = ui;`
 
   let len: c_int = sprintf (buf, c"%s 0x%jx".as_ptr (), prefix, up);
   strout (buf, len as ptrdiff_t, len as ptrdiff_t, printcharfun);
@@ -2185,18 +2185,18 @@ unsafe fn print_vectorlike_unreadable (obj: Lisp_Object, printcharfun: Lisp_Obje
       {
 	print_c_string (c"#<module function ".as_ptr (), printcharfun);
         let function: *const Lisp_Module_Function = XMODULE_FUNCTION (obj);
-        let ptr: module_funcptr = module_function_address (function);
+        let ptr: module_funcptr = module_function_address (function as *const c_void);
 	let mut file: *const c_char = std::ptr::null ();
 	let mut symbol: *const c_char = std::ptr::null ();
-	dynlib_addr (ptr as *mut c_void, &raw mut file, &raw mut symbol);
+	dynlib_addr (Some (ptr), &raw mut file, &raw mut symbol);   // C passes the fn pointer; the port's parameter is the nullable shape
 
 	if symbol.is_null ()
           { print_pointer (printcharfun, buf, c"at".as_ptr (),
-			   data_from_funcptr (ptr)); }
+			   data_from_funcptr (Some (ptr))); }
         else
 	  { print_c_string (symbol, printcharfun); }
 
-        let data: *mut c_void = module_function_data (function);
+        let data: *mut c_void = module_function_data (function as *const c_void);
         if ! data.is_null ()
           { print_pointer (printcharfun, buf, c" with data".as_ptr (), data); }
 

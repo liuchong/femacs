@@ -1379,9 +1379,9 @@ unsafe extern "C"
 #[cfg (feature = "have_modules")]
 pub type specbind_tag = u32;
 #[cfg (feature = "have_modules")]
-pub const SPECPDL_MODULE_RUNTIME: specbind_tag = 9;
-#[cfg (feature = "have_modules")]
-pub const SPECPDL_MODULE_ENVIRONMENT: specbind_tag = 10;
+/* C's two`SPECPDL_MODULE_*` enumerators are `lisp.h`'s (3560-3562); `include/lisp.rs` carries
+   them under `have_modules` (the enumeration's numbering depends on that arm), so the unit does
+   not define its own second copy (measured: `E0428` once the mirror's arm went live).  */
 
 /* C 1207-1223: `module_signal_or_throw`.  C's `case emacs_funcall_exit_signal:` falls into
    `case emacs_funcall_exit_throw:`; the port's arms stay separate because the first statement
@@ -1548,9 +1548,12 @@ pub unsafe extern "C" fn module_function_documentation
 
 /* C 1350-1354: `module_function_address` (a non-`static` definition).  C's cast
    `(module_funcptr) function->subr` is the same `transmute` shape as C 1242's.  */
-/// C: lisp.h 4889: typedef void (*module_funcptr) (void);
+/// C: lisp.h 4889: typedef void (*module_funcptr) (void); - a plain function pointer, the shape
+/// `lisp.rs` 3857 declares (one typedef in C, one type here).  `src/print.c` 2195 casts it to
+/// `void *`, which an `Option` wrapper cannot do; the nullable shape stays where C's own
+/// pointer *can* be null (`dynlib_addr`'s parameter).
 #[cfg (feature = "have_modules")]
-pub type module_funcptr = Option<unsafe extern "C" fn ()>;
+pub use crate::other_units::module_funcptr;
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn module_function_address

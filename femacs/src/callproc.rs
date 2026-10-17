@@ -1640,7 +1640,7 @@ pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
        all its children.  On these systems, rewrite the command line to
        call that loader binary instead.  */
 
-    if android_rewrite_spawn_argv (&raw mut argv as *const *const *const c_char)   // C 1453's own cast
+    if android_rewrite_spawn_argv (&raw mut argv as *const *const *const c_char) != 0   // C 1453: the int result in an `if`
       { return 1; }
   }
 

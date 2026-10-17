@@ -35,7 +35,13 @@ pub struct Emacs_Color
 }
 
 /* Accommodate X's usage of None as a null resource ID.  */
-// `#define No_Cursor (NULL)` (dispextern.h 58; the X branch's `(None)` is dead).
+// `#define No_Cursor (NULL)` (dispextern.h 58; the X branch's `(None)` is dead).  C's `NULL`
+// converts to whatever `Emacs_Cursor` is; on Android that is `androidgui.h` 42's
+// `android_cursor`/`Emacs_Cursor` - an `intptr_t`, not a pointer - so the constant has the
+// target's own type (measured: `src/xdisp.c` read 8 x `mismatched types` here).
+#[cfg (feature = "have_android")]
+pub const No_Cursor: Emacs_Cursor = 0;
+#[cfg (not (feature = "have_android"))]
 pub const No_Cursor: *mut c_void = std::ptr::null_mut ();
 
 /* C 44: `typedef XRectangle Emacs_Rectangle;` in the X11 arm, and the struct C 66-70 defines in

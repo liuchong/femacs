@@ -3850,7 +3850,7 @@ pub mod other_units {
        entry points `emacs-module.c` defines.  Android sets `HAVE_MODULES`, so `src/print.c`
        2188/2199 reads them there (`cannot find type module_funcptr`, measured).  */
     #[cfg (feature = "have_modules")]
-    pub type module_funcptr = Option<unsafe extern "C" fn ()>;
+    pub type module_funcptr = unsafe extern "C" fn ();   // C 4889: a plain function pointer
     #[cfg (feature = "have_modules")]
     unsafe extern "C" {
       /* C 4895-4906.  */

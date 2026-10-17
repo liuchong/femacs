@@ -154,12 +154,14 @@ static mut main_thread: aligned_thread_state
       m_saved_search_regs: re_registers { num_regs: 0, start: std::ptr::null_mut (), end: std::ptr::null_mut () },
       m_waiting_for_user_input_p: 0,
       m_waiting_for_input: false,
-      m_getcjmp: sys_jmp_buf { bytes: [0; 192] },
+      m_getcjmp: unsafe { core::mem::zeroed () },   // C's static is zero-initialized (192 or 256 bytes)
       thread_id: 0,
-      thread_condvar: 0,
+      thread_condvar: unsafe { core::mem::zeroed () },
       wait_condvar: std::ptr::null_mut (),
       thread_name: std::ptr::null_mut (),
       not_holding_lock: 0,
+      #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+      java_env: 0 as *mut JNIEnv,   // C's zero-initialized `JNIEnv *java_env` (thread.h 98)
       next_thread: std::ptr::null_mut (),
       bc: bc_thread_state { fp: std::ptr::null_mut (), stack: std::ptr::null_mut (),
                             stack_end: std::ptr::null_mut () },
@@ -173,7 +175,7 @@ pub static mut current_thread: *mut thread_state = unsafe { std::ptr::addr_of_mu
 #[unsafe(no_mangle)]
 pub static mut all_threads: *mut thread_state = unsafe { std::ptr::addr_of_mut! (main_thread.s) };
 
-static mut global_lock: sys_mutex_t = 0;
+static mut global_lock: sys_mutex_t = unsafe { core::mem::zeroed () };
 
 /* thread.c 70's declaration is the one above (interrupt_input_blocked).  */
 

@@ -8538,7 +8538,7 @@ DEFUN! ("window-cursor-info", Fwindow_cursor_info, Swindow_cursor_info,
      This mimics what the various *term.c backends do in their
      *_draw_stretch_glyph methods.  */
   if !phys_cursor_glyph.is_null ()
-      && glyph_bits! (type, phys_cursor_glyph) == STRETCH_GLYPH
+      && glyph_bits! (type, unsafe { *phys_cursor_glyph }) == STRETCH_GLYPH   // C 8748: `phys_cursor_glyph->type`
       && !((*w).phys_cursor_type == BAR_CURSOR
 	  || (*w).phys_cursor_type == HBAR_CURSOR)
       && !x_stretch_cursor_p
