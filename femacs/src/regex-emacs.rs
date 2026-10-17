@@ -1902,7 +1902,12 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
 	 are (PORTING.md 2.2, the bytecode.rs/tparam.rs shape).  */
       let mut goto_normal_char = false;
 
-      match c as u8 as char
+      /* C's `switch (c)` switches on the whole character.  `c as u8 as char` kept only the
+	low byte, so a multibyte char whose low byte is a metacharacter took that
+	metacharacter's arm - U+203F (0x203F) became `?`, U+205B became `[` (P-174).  */
+      let dispatch: char = match char::from_u32 (c as u32)
+	{ Some (d) => d, None => '\0' };
+      match dispatch
 	{
 	  ' ' => {
 	    let mut p1: *const re_char = p;
@@ -2298,7 +2303,12 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
 	    PATFETCH! (c);
 
 	    let mut goto_unfetch_interval = false;
-	    match c as u8 as char
+	    /* C's `switch (c)` switches on the whole character.  `c as u8 as char` kept only the
+	    low byte, so a multibyte char whose low byte is a metacharacter took that
+	    metacharacter's arm - U+203F (0x203F) became `?`, U+205B became `[` (P-174).  */
+	    let dispatch: char = match char::from_u32 (c as u32)
+	      { Some (d) => d, None => '\0' };
+	    match dispatch
 	      {
 		'(' => {
 		  let mut shy = false;
@@ -2312,7 +2322,10 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
 			  while !shy
 			    {
 			      PATFETCH! (c);
-			      match c as u8 as char
+			      /* P-174: the whole character, as C's `switch (c)` does.  */
+			      let dispatch: char = match char::from_u32 (c as u32)
+				{ Some (d) => d, None => '\0' };
+			      match dispatch
 				{
 				  ':' => { shy = true; }
 				  '0' => {
