@@ -22146,3 +22146,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ① **只读核查** ✓：mingw ✗、Haiku ✗、`aarch64-linux-gnu-gcc` ✗、docker/podman/colima ✗；`zig` ✓、`qemu-system-aarch64` ✓（无镜像 ✗）。
   ② **结论** ✓：Linux **可构建**（Rust 目标 ✓ + zig 作链接器 ✓）但**本机不可运行**（无容器/镜像 ✗）；Windows/Haiku **连构建都缺** ✗。
   ③ **零重编** ✓（纯只读命令 ✓）。提交：`PORTING.md`（P-208 ✓）、`docs/decisions-needed.md`（第 3 项的可行性边界 ✓）、本提交（读数 ✓）。
+- **4.584 验证相第二百一十四轮：Linux 交叉链接实跑通过（zig 当链接器，产物是 ELF aarch64）（P-209）（2026-10-17）**：
+  ① **读数** ✓：`rustc --target aarch64-unknown-linux-gnu -C linker=tools/zig-linux-linker.sh` ⇒ `file m` = **`ELF 64-bit LSB pie executable, ARM aarch64, dynamically linked`** ✓。
+  ② **坑** ✓：rustc 传 `-Wl,--fix-cortex-a53-843419` ✓，zig 链接器拒绝 ✗ ⇒ 包装脚本丢掉该勘误提示、其余透传 ✓。
+  ③ **边界（如实）** ✓：这证明**链接面可用** ✓；端口在 Linux 上"能构建"还差 Linux 冻结配置与按-target 驱动 ✓，"能运行"仍无环境 ✓（P-208 ✓）。
+  ④ **零重编** ✓；受控执行器 runtime 700 MiB 三次（峰值 ≤ 425 MB ✓）。提交：`tools/zig-linux-linker.sh` ✓、`PORTING.md`（P-209 ✓）、本提交（读数 ✓）。
