@@ -3863,6 +3863,15 @@ pub mod other_units {
       pub fn module_function_address (function: *const c_void) -> module_funcptr;
       pub fn module_function_data (function: *const c_void) -> *mut c_void;
     }
+    /* C 4280/5436: two more declarations for definitions in other units (`src/fns.c`,
+       `src/xterm.c`/`androidterm.c`); `src/keyboard.c` reads both and includes no header that
+       names them on this target.  */
+    unsafe extern "C" {
+      /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);`
+      pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+      /// C: lisp.h 5436: `extern char *get_keysym_name (int);`
+      pub fn get_keysym_name (keysym: c_int) -> *mut c_char;
+    }
     /// C 5273-5274: the `#ifdef HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` arm declares this one and
     /// `sysdep.c` 162 defines it; the `#else` arm is the inline above (C 5276-5280).  It sits in
     /// the module rather than at the mirror's root because the defining unit includes this mirror

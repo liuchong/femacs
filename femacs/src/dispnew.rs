@@ -4692,9 +4692,9 @@ unsafe fn redraw_overlapped_rows (w: *mut window, yb: c_int)
 	      output_cursor_to (w, i, 0, (*row).y,
 				if area == TEXT_AREA { (*row).x } else { 0 });
 	      if (*row).used [area as usize] != 0
-		{ ((*FRAME_RIF! (f)).write_glyphs.unwrap ()) (w, row, (*row).glyphs [area as usize],
+		{ ((*((FRAME_RIF! (f)) as *mut redisplay_interface)).write_glyphs.unwrap ()) (w, row, (*row).glyphs [area as usize],
 						   area, (*row).used [area as usize] as c_int); }
-	      ((*FRAME_RIF! (f)).clear_end_of_line.unwrap ()) (w, row, area, -1);
+	      ((*((FRAME_RIF! (f)) as *mut redisplay_interface)).clear_end_of_line.unwrap ()) (w, row, area, -1);
 	      area += 1;
 	    }
 
@@ -4737,11 +4737,11 @@ unsafe fn redraw_overlapping_rows (w: *mut window, yb: c_int)
 	  if MATRIX_ROW_OVERLAPS_PRED_P! (row) && i > 0
 	      && !glyph_row_bits! (overlapped_p,
 				   MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, i - 1))
-	    { overlaps |= OVERLAPS_PRED; }
+	    { overlaps |= OVERLAPS_PRED as c_int; }
 	  if MATRIX_ROW_OVERLAPS_SUCC_P! (row) && bottom_y < yb
 	      && !glyph_row_bits! (overlapped_p,
 				   MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, i + 1))
-	    { overlaps |= OVERLAPS_SUCC; }
+	    { overlaps |= OVERLAPS_SUCC as c_int; }
 
 	  if overlaps != 0
 	    {
@@ -4756,11 +4756,11 @@ unsafe fn redraw_overlapping_rows (w: *mut window, yb: c_int)
 
 	      /* Record in neighbor rows that ROW overwrites part of
 		 their display.  */
-	      if overlaps & OVERLAPS_PRED != 0
+	      if overlaps & OVERLAPS_PRED as c_int != 0
 		{ glyph_row_bits! (overlapped_p,
 				   MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, i - 1),
 				   true); }
-	      if overlaps & OVERLAPS_SUCC != 0
+	      if overlaps & OVERLAPS_SUCC as c_int != 0
 		{ glyph_row_bits! (overlapped_p,
 				   MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, i + 1),
 				   true); }
@@ -5069,7 +5069,7 @@ unsafe fn update_window (w: *mut window)
 
   #[cfg (feature = "have_window_system")]
   {
-  update_window_fringes (w, 0);
+  update_window_fringes (w, false);
 
   /* End the update of window W.  Don't set the cursor if we
      paused updating the display because in this case,
@@ -5107,15 +5107,15 @@ unsafe fn update_window (w: *mut window)
 
   block_input ();
 
-  if (*FRAME_RIF! (f)).update_window_begin_hook.is_some ()
-    { ((*FRAME_RIF! (f)).update_window_begin_hook.unwrap ()) (w); }
+  if (*((FRAME_RIF! (f)) as *mut redisplay_interface)).update_window_begin_hook.is_some ()
+    { ((*((FRAME_RIF! (f)) as *mut redisplay_interface)).update_window_begin_hook.unwrap ()) (w); }
 
   (*w).output_cursor = (*w).cursor;
 
-  if f == (*hlinfo).mouse_face_mouse_frame
+  if f as *mut c_void == (*hlinfo).mouse_face_mouse_frame
     {
       /* Don't do highlighting for mouse motion during the update.  */
-      (*hlinfo).mouse_face_defer = true;
+      set_mouse_face_defer (hlinfo, true);   // C 3020's bit, through the mirror's setter
 
       /* If the frame needs to be redrawn, simply forget about any
 	 prior mouse highlighting.  */
@@ -5173,8 +5173,8 @@ unsafe fn update_window (w: *mut window)
       (*hlinfo).mouse_face_window = Qnil ();
     }
 
-  if (*FRAME_RIF! (f)).update_window_end_hook.is_some ()
-    { ((*FRAME_RIF! (f)).update_window_end_hook.unwrap ()) (w,
+  if (*((FRAME_RIF! (f)) as *mut redisplay_interface)).update_window_end_hook.is_some ()
+    { ((*((FRAME_RIF! (f)) as *mut redisplay_interface)).update_window_end_hook.unwrap ()) (w,
 							   cursor_on_p,
 							   mouse_face_overwritten_p); }
 }
@@ -7011,7 +7011,7 @@ unsafe extern "C" {
   let mut string: Lisp_Object;
   let mut row: *mut glyph_row;
   #[cfg (feature = "have_window_system")]
-  let img: *mut c_void = core::ptr::null_mut ();
+  let mut img: *mut c_void = core::ptr::null_mut ();   // C 7015: reassigned at 7125/7249/7352
   let mut x0: c_int; let x1: c_int; let mut to_x: c_int; let mut it_vpos: c_int;
   let mut itdata: *mut c_void = core::ptr::null_mut ();
 
@@ -7149,7 +7149,7 @@ unsafe extern "C" {
 	  {
 	    if !img.is_null ()
 	      {
-		*dy -= (*row).ascent - (*glyph).ascent;
+		*dy -= (*row).ascent - (*glyph).ascent as c_int;
 		*dx += glyph_slice_bits! (x, (*glyph).slice.img) as c_int;
 		*dy += glyph_slice_bits! (y, (*glyph).slice.img) as c_int;
 		/* Image slices positions are still relative to the entire image */
@@ -7253,7 +7253,7 @@ unsafe extern "C" {
 		  x0 += glyph_slice_bits! (x, (*glyph).slice.img) as c_int;
 		  y0 += glyph_slice_bits! (y, (*glyph).slice.img) as c_int;
 		}
-	      y0 -= (*row).ascent - (*glyph).ascent;
+	      y0 -= (*row).ascent - (*glyph).ascent as c_int;
 	    }
 	  }
 	}
@@ -7352,7 +7352,7 @@ unsafe extern "C" {
 	      img = IMAGE_OPT_FROM_ID (WINDOW_XFRAME! (w), (*glyph).u.img_id);
 	      if !img.is_null ()
 		{ *object = (*(img as *mut image)).spec; }
-	      y0 -= (*row).ascent - (*glyph).ascent;
+	      y0 -= (*row).ascent - (*glyph).ascent as c_int;
 	      x0 += glyph_slice_bits! (x, (*glyph).slice.img) as c_int;
 	      y0 += glyph_slice_bits! (y, (*glyph).slice.img) as c_int;
 	    }

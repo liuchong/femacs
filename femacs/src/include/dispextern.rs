@@ -4030,6 +4030,28 @@ const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, fix_ove
 pub mod dispextern_late_decls {
   use super::*;
 
+  /* C 3655-3706 and 3853-3854: the display entry points the two units that call them do not
+     include a header for (they are definitions in `src/xdisp.c`/`src/fringe.rs`, declared here in
+     C).  A declaration at this module's scope cannot collide with the defining unit's own item
+     (P-39); the ones C gates with `HAVE_WINDOW_SYSTEM` carry that gate.  */
+  #[cfg (feature = "have_window_system")]
+  unsafe extern "C" {
+    /* C 3853-3854.  */
+    pub fn start_hourglass ();
+    pub fn cancel_hourglass ();
+    /* C 3705-3706.  */
+    pub fn draw_window_fringes (w: *mut window, redraw: bool) -> bool;
+    pub fn update_window_fringes (w: *mut window, redraw: bool) -> bool;
+    /* C 3655, 3658-3659, 3665, 3667.  */
+    pub fn display_and_set_cursor (w: *mut window, on: bool, hpos: c_int, vpos: c_int,
+                                   x: c_int, y: c_int);
+    pub fn gui_draw_vertical_border (w: *mut window);
+    pub fn gui_draw_right_divider (w: *mut window);
+    pub fn find_hot_spot (map: Lisp_Object, x: c_int, y: c_int) -> Lisp_Object;
+    pub fn get_tab_bar_item_kbd (f: *mut frame, x: c_int, y: c_int,
+                                 key: *mut c_int, budget_p: *mut bool) -> c_int;
+  }
+
   /* C 3753: the two image-family entry points, defined in `src/image.c`.  */
   #[cfg (feature = "have_android")]
   unsafe extern "C" { pub fn mark_image_cache (cache: *mut c_void); }

@@ -106,6 +106,17 @@ include!("include/window.rs");                 // C 32: `#include "window.h"`
 include!("include/keyboard.rs");               // C 31: `#include "keyboard.h"`
 include!("include/macros.rs");                 // C 30: `#include "macros.h"`
 include!("include/commands.rs");               // C 33: `#include "commands.h"`
+/* C 49: `#include "textconv.h"` - the conversion entry points this unit calls
+   (`detect_conversion_events`, `handle_pending_conversion_events`,
+   `conversion_disabled_p`, `disable_text_conversion`, `resume_text_conversion`,
+   `check_postponed_buffers`) are that header's prototypes.  */
+include!("include/textconv.rs");               // C 49: `#include "textconv.h"`
+/* `textconv.h`'s prototypes live in the mirror's `textconv_decls` module (P-17/P-21:
+   `src/textconv.c` defines them, so a root-level copy would be `E0428` there).  */
+use textconv_decls::*;
+/* C 53: `#include "android.h"` (inside C 51's `#ifdef HAVE_ANDROID`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+include!("include/android.rs");                // C 53: `#include "android.h"`
 include!("include/syntax.rs");                 // C 37: `#include "syntax.h"`
 include!("include/keymap.rs");                 // C 39: `#include "keymap.h"`
 include!("include/blockinput.rs");             // C 40: `#include "blockinput.h"`
@@ -2295,7 +2306,7 @@ pub unsafe extern "C" fn start_polling ()
       {
 	/* Turn alarm handling on unconditionally.  It might have
 	   been turned off in process.c.  */
-	turn_on_atimers (1);
+	turn_on_atimers (true);
 
 	/* If poll timer doesn't exist, or we need one with
 	   a different interval, start a new one.  */
@@ -2380,7 +2391,7 @@ pub unsafe extern "C" fn bind_polling_period (n: c_int)
   {
     if FIXNUMP (Vpolling_period)
       {
-	let mut new: intmax_t = XFIXNUM (Vpolling_period);
+	let mut new: intmax_t = XFIXNUM (Vpolling_period) as intmax_t;
 
 	if n as intmax_t > new
 	  { new = n as intmax_t; }
@@ -2559,7 +2570,7 @@ unsafe fn read_event_from_main_queue (end_time: *mut timespec,
                                       used_mouse_menu: *mut bool) -> Lisp_Object
 {
   let mut c: Lisp_Object = Qnil ();
-  let mut save_jump: sys_jmp_buf = sys_jmp_buf { bytes: [0; 192] };
+  let mut save_jump: sys_jmp_buf = unsafe { core::mem::zeroed () };
   /* C passes `local_getcjmp` by value; the port takes its address, which needs a local
      copy (Rust cannot take `&raw mut` of a parameter).  */
   let mut local_getcjmp_copy: sys_jmp_buf = local_getcjmp;
@@ -2791,8 +2802,8 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 		     used_mouse_menu: *mut bool, end_time: *mut timespec) -> Lisp_Object
 {
   let mut c: Lisp_Object;
-  let mut local_getcjmp: sys_jmp_buf = sys_jmp_buf { bytes: [0; 192] };
-  let mut save_jump: sys_jmp_buf = sys_jmp_buf { bytes: [0; 192] };
+  let mut local_getcjmp: sys_jmp_buf = unsafe { core::mem::zeroed () };
+  let mut save_jump: sys_jmp_buf = unsafe { core::mem::zeroed () };
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut tem: Lisp_Object = Qnil ();
   let mut save: Lisp_Object = Qnil ();
@@ -9200,7 +9211,7 @@ pub unsafe extern "C" fn handle_input_available_signal (sig: c_int)
   /* Make all writes from the Android UI thread visible.  If
      `android_urgent_query' has been set, preceding writes to query
      related variables should become observable here on as well.  */
-  asm ("dmb ishst");
+  unsafe { core::arch::asm! ("dmb ishst") };   // C 9203's `__asm__`
   #[cfg (feature = "not_aarch64")]
   {
   __atomic_thread_fence (__ATOMIC_SEQ_CST);
