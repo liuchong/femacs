@@ -21687,3 +21687,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **读数** ✓：10 个受影响单元全部重编 ✓、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、**`gate-fast` exit=0 / 590 done / 0 failing** ✓。
   ④ **口径说明** ✓：这 12 处是**潜在**缺陷 ✓（**当前无测试命中** ✓），证据是形状 + 编译 + 门 ✓，不是测试翻转 ✗；真正翻转的是 4.507 的 `run_window_change_functions` ✓。
   ⑤ **资源**：3 次批量 `build-tu`（合计 ≈20 s ✓）+ 2 次 `gate-load`/`dump` + 1 次 `gate-fast`（≈480 s ✓）；受控执行器 build 2048 MiB（下调自默认 ✓）、峰值 **≤ 302 MB** ✓；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/include/lisp.rs`（两个 tail 宏 + DOHASH ✓）、`femacs/src/process.rs`（PTY_ITERATION ✓）、`PORTING.md`（P-160 ✓）、本提交 ✓。
+- **4.509 验证相第一百四十轮：抽查两个 port-worse 文件 —— `font-tests` 是干净的 off-by-one（`"Oblique"`→`"Obliqu"`），`syntax-tests` 不变（P-161）（2026-10-17）**：
+  ① **`font-tests`（2 例）** ✓：`font-parse-tests` FAILED ✓、`font-parse-xlfd-test` 通过 ✓ ⇒ 唯一失败是 `(font-get (font-spec :name "Oblique") :family)` 端口 **`"Obliqu"` ✗** / 参照 **`nil` ✓**（少一字符且本应认作 style 词 ✓）。
+  ② **已排除（逐字同 C ✓）**：`font_parse_fcname` 的"找尺寸"扫描 ✓（`p = name + len - 1` ✓、`p >= name` ✓、失败 `p = name + len` ✓）⇒ 截断在**其后按空格切词/查 style 表**那段 ✓（下一轮单点 ✓）。
+  ③ **`syntax-tests`（100 例）** ✓：仍 **3 unexpected ✗**（与 4.501 的 `GET_CHAR_BEFORE_2` 修法无关 ✓，与 P-139 `back_comment` 判断一致 ✓）。
+  ④ **资源**：2 次单文件 ERT（2.8 s ✓）+ 1 次失败详情跑（0.3 s ✓）；受控执行器 runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 39 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-161 ✓）、本提交（纯读数 ✓）。
