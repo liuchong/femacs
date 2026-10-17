@@ -4504,24 +4504,27 @@ macro_rules! FOR_EACH_TAIL_SAFE {
                 tortoise: $state,
                 l: 0,
             };
-            /* C: `CONSP (tail) || (likely (NILP (tail)), false)` */
-            while CONSP ($state) || { likely (NILP ($state)); false }
+            /* C: `CONSP (tail) || (likely (NILP (tail)), false)`.  The stepper runs in the
+               condition, not after the body: a `continue` in a C `for` runs the increment, a
+               `continue` in a Rust `while` does not (P-159/P-160).  */
+            let mut for_each_tail_first: bool = true;
+            while { if !for_each_tail_first
+                     {
+                       /* Stepper: `(tail) = XCDR (tail)`, then
+                          `! likely (! BASE_EQ (tail, li.tortoise))` - "cycle found".  */
+                       $state = XCDR ($state);
+                       if BASE_EQ ($state, li.tortoise)
+                         { $state = Qnil (); }
+                       else if ! likely (({ li.l += 1; li.l } & (FOR_EACH_TAIL_THRESHOLD - 1)) != 0)
+                         {
+                           if false || (POWER_OF_2 (li.l) && { li.tortoise = $state; false })
+                             { }
+                         }
+                     }
+                   for_each_tail_first = false;
+                   CONSP ($state) || { likely (NILP ($state)); false } }
               {
                 $body
-
-                /* Stepper: `(tail) = XCDR (tail)`, then
-                   `! likely (! BASE_EQ (tail, li.tortoise))` — the "cycle found" disjunct.  */
-                $state = XCDR ($state);
-                if BASE_EQ ($state, li.tortoise)
-                  { $state = Qnil (); }
-                else if ! likely (({ li.l += 1; li.l } & (FOR_EACH_TAIL_THRESHOLD - 1)) != 0)
-                  {
-                    /* C's second disjunct is `((check_quit) ? maybe_quit () : (void) 0, false)
-                       || (POWER_OF_2 (li.l) && (li.tortoise = (tail), false))`, which is false
-                       either way; what survives is the tortoise advance.  */
-                    if false || (POWER_OF_2 (li.l) && { li.tortoise = $state; false })
-                      { }
-                  }
               }
         }
     };
@@ -4547,21 +4550,27 @@ macro_rules! FOR_EACH_TAIL {
                 tortoise: $state,
                 l: 0,
             };
-            /* C: `CONSP (tail) || (likely (NILP (tail)), false)` */
-            while CONSP ($state) || { likely (NILP ($state)); false }
+            /* C: `CONSP (tail) || (likely (NILP (tail)), false)`.  As in FOR_EACH_TAIL_SAFE,
+               the stepper runs in the condition so that a `continue` in a body reaches it
+               (P-159/P-160); CHECK_QUIT is true, so the periodic branch calls `maybe_quit ()`.  */
+            let mut for_each_tail_first: bool = true;
+            while { if !for_each_tail_first
+                     {
+                       /* Stepper (lisp.h 5909-5912) with CHECK_QUIT true.  */
+                       $state = XCDR ($state);
+                       if BASE_EQ ($state, li.tortoise)
+                         { circular_list ($state); }
+                       else if ! likely (({ li.l += 1; li.l } & (FOR_EACH_TAIL_THRESHOLD - 1)) != 0)
+                         {
+                           maybe_quit ();
+                           if POWER_OF_2 (li.l)
+                             { li.tortoise = $state; }
+                         }
+                     }
+                   for_each_tail_first = false;
+                   CONSP ($state) || { likely (NILP ($state)); false } }
               {
                 $body
-
-                /* Stepper (lisp.h 5909-5912) with CHECK_QUIT true.  */
-                $state = XCDR ($state);
-                if BASE_EQ ($state, li.tortoise)
-                  { circular_list ($state); }
-                else if ! likely (({ li.l += 1; li.l } & (FOR_EACH_TAIL_THRESHOLD - 1)) != 0)
-                  {
-                    maybe_quit ();
-                    if POWER_OF_2 (li.l)
-                      { li.tortoise = $state; }
-                  }
               }
         }
     };
@@ -4587,17 +4596,24 @@ macro_rules! DOHASH {
             let dohash_base: *mut Lisp_Object = dohash_kv;
             let mut $k: Lisp_Object;
             let mut $v: Lisp_Object;
-            while dohash_kv < dohash_end
+            /* The increment runs in the condition, so a `continue` in `$body` reaches it as it
+               does in C's `for` (P-159/P-160); it also keeps the eassert that the table was not
+               rehashed mid-loop.  */
+            let mut dohash_first: bool = true;
+            while { if !dohash_first
+                     {
+                       eassert! (dohash_base == (*($h)).key_and_value
+                                 && dohash_end
+                                    == dohash_base.wrapping_add (2 * HASH_TABLE_SIZE ($h) as usize));
+                       dohash_kv = dohash_kv.wrapping_add (2);
+                     }
+                   dohash_first = false;
+                   dohash_kv < dohash_end }
               {
                 $k = *dohash_kv.offset (0);
                 $v = *dohash_kv.offset (1); /* maybe unused */
                 if ! hash_unused_entry_key_p ($k)
                   { $body }
-                /* C's increment: the table must not have been rehashed mid-loop.  */
-                eassert! (dohash_base == (*($h)).key_and_value
-                          && dohash_end
-                             == dohash_base.wrapping_add (2 * HASH_TABLE_SIZE ($h) as usize));
-                dohash_kv = dohash_kv.wrapping_add (2);
               }
         }
     };
