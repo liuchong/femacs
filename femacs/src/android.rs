@@ -1055,7 +1055,7 @@ unsafe fn android_init_events ()                            // C 710-764
   #[cfg (not (feature = "android_api_lt_21"))]
   {
     sigfillset (&raw mut sa.sa_mask);
-    sa.sa_sigaction = Some (android_handle_poll_signal);
+    sa.__sigaction_u.__sa_sigaction = Some (android_handle_poll_signal);  // C's flat `sa_sigaction`
     sa.sa_flags = SA_SIGINFO;
     if sigaction (SELECT_SIGNAL, &raw const sa, std::ptr::null_mut ()) != 0
       {

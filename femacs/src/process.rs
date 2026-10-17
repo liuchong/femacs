@@ -5418,7 +5418,9 @@ unsafe fn wait_reading_process_output_1 ()
 /* C 5299-5317: `android_select_wrapper` — the `HAVE_ANDROID && !ANDROID_STUBIFY &&
    THREADS_ENABLED` arm (dead on this target).  */
 #[cfg (feature = "have_android")]
-unsafe fn android_select_wrapper (nfds: c_int, readfds: *mut fd_set, writefds: *mut fd_set,
+/* C's own function has C linkage and `thread_select`'s parameter is `select_func`, i.e. a
+   C function pointer (`unsafe extern "C" fn` here) - a Rust-ABI `fn` does not coerce.  */
+unsafe extern "C" fn android_select_wrapper (nfds: c_int, readfds: *mut fd_set, writefds: *mut fd_set,
 				  exceptfds: *mut fd_set, timeout: *const timespec,
 				  sigmask: *const sigset_t) -> c_int
 {

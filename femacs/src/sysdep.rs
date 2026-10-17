@@ -936,7 +936,13 @@ pub struct save_signal {
   pub action: sigaction,
 }
 
+/* `struct save_signal` is `{ int code; struct sigaction action; }`, so its size follows the
+   target's `sigaction`: 8 + 16 = 24 where the frozen target's is 16 bytes, 8 + 32 = 40 where
+   bionic's is 32 (measured, P-237).  */
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<save_signal> () == 24);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<save_signal> () == 40);
 const _: () = core::assert! (std::mem::offset_of! (save_signal, code) == 0);
 const _: () = core::assert! (std::mem::offset_of! (save_signal, action) == 8);
 
@@ -2805,7 +2811,11 @@ pub unsafe extern "C" fn emacs_sigaction_init (action: *mut sigaction,
 }
 
 // C 1714-1716: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` is live (syssignal.h 39).
-static mut main_thread_id: pthread_t = std::ptr::null_mut ();
+/* C 407/1196 declare `static pthread_t main_thread_id;`, i.e. zero-initialized.  The port's
+   `pthread_t` is an opaque pointer on the frozen target and `long` on Android
+   (`include/systhread.rs` 62-70), so the initializer is written as a cast rather than as
+   `null_mut` - the mirror's Android arm made the pointer spelling an E0308 (measured).  */
+static mut main_thread_id: pthread_t = 0 as pthread_t;
 
 /* SIG has arrived at the current process.  Deliver it to the main
    thread, which should handle it with HANDLER.  (Delivering the

@@ -121,19 +121,23 @@ pub union __sigaction_u
    in every unit that defines it (measured on `src/sysdep.c`), and `sysdep.rs` reads the member
    C 1885 reads, so a claim of "no layout" is not available to it either.  */
 
-/* bionic's `struct sigaction` is flat and 32 bytes (`sa_sigaction` is a plain member, not a field
-   of `__sigaction_u`), measured with `_Static_assert` against the NDK's own `<signal.h>`
-   (docs/baseline/android-layout-probe.md, P-237).  The darwin arm keeps its 16-byte shape.  */
+/* bionic's `struct sigaction` is flat and 32 bytes (`sa_sigaction` and `sa_handler` are the two
+   names of one anonymous union member, not a field of `__sigaction_u`), measured with
+   `_Static_assert` against the NDK's own `<signal.h>` (docs/baseline/android-layout-probe.md,
+   P-237).  The darwin arm keeps its 16-byte shape.
+
+   The port names that anonymous union `__sigaction_u` with darwin's two member names, so C's own
+   two spellings (`sa_handler` 1710/2014/2033/2037 and `sa_sigaction` 1837/1961 in `sysdep.c`)
+   reach the same slot through one field path on both targets: Rust has no anonymous-union alias,
+   and the alternative was a `transmute` at each of the twelve sites that read the slot
+   (`src/sysdep.c` six, `src/process.c` six).  Offset, size and alignment are unchanged - the
+   union is 8 bytes at 0 on both arms, which the two assertions below and the one at 148 hold.  */
 #[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sigaction
 {
-  // bionic declares `void (*sa_sigaction) (int, siginfo_t *, void *)`; `siginfo_t` comes from
-  // the NDK's own `<signal.h>`, which the port names as an opaque `c_void` here so this mirror
-  // does not have to declare it (the `android.rs` handler takes `*mut siginfo_t`, and C passes
-  // the same pointer through both spellings).
-  pub sa_sigaction: Option<unsafe extern "C" fn (c_int, *mut c_void, *mut c_void)>,
+  pub __sigaction_u: __sigaction_u,
   pub sa_mask: sigset_t,
   pub sa_flags: c_int,
   pub sa_restorer: Option<unsafe extern "C" fn ()>,
