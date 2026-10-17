@@ -22076,3 +22076,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **判读** ✓：`Freplace_match` **完全相同** ✓、GC 标记端口**更少** ✓ ⇒ 没有"某函数系统性慢"的签名 ✓；唯一方向性差异是端口多出的 `exec_byte_code`（Lisp while + 8000 次调用 ✓）⇒ 与 P-185/P-193 的派发差同源 ✓。
   ③ **即**：`regexp-repl` 这 1.13–1.20× **不需要单独修** ✓（P-195 之后剩余的字符串路径已无独立缺陷 ✓）；DoD-7 的每一行现在都带归因 ✓（`bc-*`/`regexp-repl` → 派发；`buffer-scan` 1.09–1.16× → 已修；`sort` 0.82–0.86× → 端口更快 ✓）。
   ④ **零编译** ✓；受控执行器 runtime 1 GiB 一次（峰值 ≤ 45 MB ✓）。提交：`PORTING.md`（P-196 ✓）、`docs/acceptance.md`（第 7 条归因 ✓）、本提交（读数 ✓）。
+- **4.570 验证相第二百轮：Android 的前置条件比记录的更好 —— Android Studio 自带**完整 `kotlinc` CLI**与 JDK，Kotlin 源码的编译检查**不需要联网安装**（新工具，受共享预算阻塞未跑完）（2026-10-17）**：
+  ① **发现** ✓：`/Applications/Android Studio.app/Contents/plugins/Kotlin/kotlinc/bin/kotlinc` ✓（完整 CLI ✓，不只 IDE 插件 ✓）、自带 JDK **21.0.10** ✓；SDK 侧有 `platforms/android-34/35/36` ✓ 与 NDK **28.2 / 29.0** ✓ ⇒ `docs/decisions-needed.md` 第 3 项里"Android 只缺 `kotlinc`"这条**要更正** ✓（`kotlinc` 已在机器上 ✓，缺的只是**真机/模拟器冒烟**与 APK 打包链 ✓）。
+  ② **新工具** ✓：`tools/check-android-kotlin.sh` —— 用这套自带的 `kotlinc` + `android.jar` **离线**编译 `femacs/platform/android/**/*.kt`（40 个文件 ✓）到临时目录并报 class 数 ✓；`STUDIO`/`ANDROID_HOME`/`ANDROID_API` 可覆盖 ✓；缺件时**明确报缺并退 2** ✓（不下载任何东西 ✓）。
+  ③ **未跑完的部分（如实记录）** ✓：本轮三次尝试都被**共享预算**拒绝 ✓（另一项目的两次 `node --max-old-space-size=7168` 运行占了 14 GiB 预约 ✓）—— 脚本的**文件发现与 `android.jar` 路径**已在早先一次运行里走到"compiling 40 Kotlin file(s)" ✓，但那次因编译器入口类不对而失败 ✓（当时用的是 IDE 插件 jar ✓，已改成 bundled CLI ✓），**改完的版本尚未获得一次完整运行** ✗。
+  ④ **零编译**（无 Rust 单元 ✓）；`git -C emacs status --short` 为空 ✓。提交：`tools/check-android-kotlin.sh` ✓、`docs/decisions-needed.md`（第 3 项更正 ✓）、本提交（读数 ✓）。
