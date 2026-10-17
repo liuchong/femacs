@@ -21681,3 +21681,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **读数** ✓：`src/xdisp-tests.el` **crashed → same ✓（11 例 ✓）**、`src/buffer-tests.el` **same ✓（408 例 ✓）**、`lisp/whitespace-tests.el` **same ✓（11 例 ✓）** ⇒ 端口独有崩溃 **6 → 3** ✓（余 `fns`/`electric`/`log-edit` ✓）。
   ⑤ **门** ✓：13 个受影响单元全部重编 ✓、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、**`gate-fast` exit=0 / 590 done / 0 failing** ✓（约 511 s ✓，其中一次因宏体令牌门 ✓ 失败后修正 ✓）。
   ⑥ **资源**：13 次 `build-tu`（合计 ≈23 s ✓）+ 2 次 `gate-load`/`dump` + 2 次 `gate-fast`（634 s ✓）+ 3 个测试文件（3.4 s ✓）；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 427 MB** ✓；`git -C emacs status --short` 为空 ✓；临时输出在 `/tmp` ✓。提交：`femacs/src/include/frame.rs`（宏 ✓）、`femacs/src/window.rs`（守卫化 ✓）、`PORTING.md`（P-159 ✓）、本提交 ✓。
+- **4.508 验证相第一百三十九轮：同一形状再扫出四个宏、12 处潜在自旋，全部按 `first` 模板修掉（P-160）（2026-10-17）**：
+  ① **扫描** ✓：全树"展开成 `while` 且带 body 参数"的宏 8 个 ✓；调用点 body 含 `continue` 的 12 处 ✓；步进在 `$body` 之后的有四个宏 ✗：`FOR_EACH_TAIL`（4 ✓）、`FOR_EACH_TAIL_SAFE`（6 ✓）、`DOHASH`（1 ✓）、`PTY_ITERATION`（1 ✓）。
+  ② **修法（三行模板 ✓）**：`while { if !first { <stepper> } first = false; <test> } { body }` ✓ —— 首轮不步进 ✓、`continue` 后步进 ✓、副作用位置不变 ✓；四个宏各自的语义保留 ✓（`circular_list`/`maybe_quit` ✓、`$state = Qnil ()` ✓、DOHASH 的 `eassert` ✓、`i < 1` ✓）。
+  ③ **读数** ✓：10 个受影响单元全部重编 ✓、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、**`gate-fast` exit=0 / 590 done / 0 failing** ✓。
+  ④ **口径说明** ✓：这 12 处是**潜在**缺陷 ✓（**当前无测试命中** ✓），证据是形状 + 编译 + 门 ✓，不是测试翻转 ✗；真正翻转的是 4.507 的 `run_window_change_functions` ✓。
+  ⑤ **资源**：3 次批量 `build-tu`（合计 ≈20 s ✓）+ 2 次 `gate-load`/`dump` + 1 次 `gate-fast`（≈480 s ✓）；受控执行器 build 2048 MiB（下调自默认 ✓）、峰值 **≤ 302 MB** ✓；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/include/lisp.rs`（两个 tail 宏 + DOHASH ✓）、`femacs/src/process.rs`（PTY_ITERATION ✓）、`PORTING.md`（P-160 ✓）、本提交 ✓。
