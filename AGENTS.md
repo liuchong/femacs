@@ -90,6 +90,8 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 - 验收以**测试与机器门的实际读数**为准（`gate-fast`、`gate-load`、L0–L5、ERT、逐字节比对），不以人工审查代替。
 - 剩余欠账与最近读数：读 `docs/status.md` 末轮记录（`.elc` 全族、2 个 `emacsver`、4 个 cedet 生成物、56 个选择性改名的登记、L4/L5、性能、平台冒烟）。
 
+- **用完即清（P-190）**：`xtask dump` 每轮新增一对 `build/port/src/emacs-32.0.50.N{,.pdmp}`（~16 MB），加上 `build/*.dbg*`、`build/probes`、探针目录与 `/tmp` 一次性临时树，**用完即删**；保留在用项 = `build/port/src/{temacs,emacs,emacs.pdmp,bootstrap-emacs.pdmp}`、`build/femacs/*.o` 与 `units/`、`build/emacs-ref/**`、`build/lisp-l1`。每轮收尾 `du -sh build/* | sort -h` 看一眼；删前 `grep -rl <名> tools femacs/xtask docs` 确认没人读；删后复验 dump + smoke，并把释放量记进 `docs/status.md`。
+
 ## 7 速查
 
 - **禁止启用 Codex Fast mode**：不得 `/fast on`、不得 `service_tier = "fast"`、不得 `[features].fast_mode = true`（无例外硬规则）。
