@@ -4344,6 +4344,10 @@ unsafe extern "C" fn unwind_re_match (ptr: *mut c_void)
 /// Diagnostic only (P-147): the opcode executed before the current one, so a report can name the
 /// instruction that left `d` in the gap instead of the one that noticed it.
 static mut PREV_OP_SAVE: c_int = -1;
+/* The `FEMACS_REG_TRACE` gate is sampled once: the opcode loop and the failure-stack pop are the
+   hottest paths in the matcher, and a `getenv` per iteration would be a real cost (P-115's shape
+   with P-126's "sample at startup" rule).  -1 = not asked yet.  */
+static mut REG_TRACE_ON: c_int = -1;
 
 unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 			       string1: *const re_char, size1: ptrdiff_t,
@@ -5108,7 +5112,9 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
       /* Instrument (P-170): a per-opcode step trace, so a two-string match can be read
          opcode by opcode.  `FEMACS_REG_TRACE` only, default off (P-115's shape).  */
-      if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+      if REG_TRACE_ON < 0
+        { REG_TRACE_ON = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
+      if REG_TRACE_ON != 0
         {
           fprintf (stderr,
                    c"REGTRACE step pat=%td op=%d d-s1=%td dend-s1=%td pos=%td size1=%td end1-s1=%td end2-s1=%td\n".as_ptr (),
@@ -5122,7 +5128,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
                    (end2 as isize) - (string1 as isize));
         }
       /* Otherwise match next pattern command.  */
-      unsafe { if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { PREV_OP_SAVE = *p as c_int; } }
+      unsafe { if REG_TRACE_ON != 0 { PREV_OP_SAVE = *p as c_int; } }
       match { let op = *p as re_opcode_t; p = p.offset (1); op }
 	{
 	/* Ignore these.  Used to ignore the n of succeed_n's which
@@ -5999,7 +6005,9 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
 	  /* Instrument (P-170): what a popped frame restores, before the segment is recomputed
 	     (C 5286-5287).  `FEMACS_REG_TRACE` only.  */
-	  if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+	  if REG_TRACE_ON < 0
+	    { REG_TRACE_ON = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
+	  if REG_TRACE_ON != 0
 	    {
 	      fprintf (stderr,
 		       c"REGTRACE pop op=%d strnull=%d str-s1=%td d-s1=%td dend-s1=%td em1-s1=%td size1=%td\n".as_ptr (),
