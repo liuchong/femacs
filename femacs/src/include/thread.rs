@@ -41,9 +41,24 @@ include!("regex-emacs.rs");                     // thread.h 21: `#include "regex
 /// unit that hands it to `sys_setjmp` spells the cast then.
 #[repr(C, align(4))]
 #[derive(Clone, Copy)]
+#[cfg (not (feature = "have_android"))]
 pub struct sys_jmp_buf { pub bytes: [u8; 192] }
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 192);
+/* bionic's `sigjmp_buf` is 256 on aarch64, measured with `_Static_assert` against C's own headers
+   (docs/baseline/android-layout-probe.md, P-236) - 64 bytes larger than darwin's, which is most
+   of the gap that made `thread_state` read 520 against C's 592.  */
+#[cfg (feature = "have_android")]
+#[derive (Copy, Clone)]
+#[repr (C, align (8))]
+pub struct sys_jmp_buf { pub bytes: [u8; 256] }
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 256);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::align_of::<sys_jmp_buf> () == 4);
+/* `_Alignof(sys_jmp_buf)` is 8 on android/aarch64 (same `_Static_assert` probe).  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::align_of::<sys_jmp_buf> () == 8);
 
 /* Byte-code interpreter thread state.  */
 // thread.h 54-60.  `fp` is `struct bc_frame *`, a type no mirror carries and only a pointer
@@ -110,7 +125,12 @@ pub struct thread_state
   pub error_symbol: Lisp_Object,                  // 89
   pub error_data: Lisp_Object,                    // 90
   pub buffer_disposition: Lisp_Object,            // 93
-  pub event_object: Lisp_Object,                  // 97
+  pub event_object: Lisp_Object,
+  /* C: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` / `JNIEnv *java_env;` (thread.h
+     97-99, between `event_object` and `m_stack_bottom`).  Without it the Android arm's
+     `thread_state` was 8 bytes short of C's at this point, and 72 short overall (P-236).  */
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  pub java_env: *mut JNIEnv,                  // 97
   pub m_stack_bottom: *const c_char,              // C: `char const *m_stack_bottom;` (102)
   pub stack_top: *const c_void,                   // 110
   pub m_catchlist: *mut c_void,                   // C: `struct catchtag *m_catchlist;` (112)
@@ -142,8 +162,17 @@ const _: () = core::assert! (std::mem::size_of::<thread_state> () == 592);
 #[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 472);
 const _: () = core::assert! (std::mem::offset_of! (thread_state, event_object) == 72);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, m_specpdl) == 128);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, m_specpdl) == 120);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 224);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 216);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 480);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 408);
 /* The Android arm has a different shape: measured with `_Static_assert` against C's own
    headers under NDK 29 / aarch64, which reads 552 for this one (darwin reads
