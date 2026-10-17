@@ -44,6 +44,13 @@ def prepare() -> list[Path]:
     if SCRATCH.is_dir():
         shutil.rmtree(SCRATCH)
     shutil.copytree(src, SCRATCH)
+    # `copytree` keeps mtimes, so a `.elc` that predates its `.el` makes every load print
+    # "Source file … newer than byte-compiled file; using older file".  That is a property of the
+    # *fixture*, not of the binary: the copied trees were re-copied by decision (2026-10-18) and
+    # their `.el` are newer than the `.elc` beside them.  Dropping the stale objects makes both
+    # sides compile the same sources and keeps the diagnostics comparable (P-216).
+    for stale in SCRATCH.rglob("*.elc"):
+        stale.unlink()
     files = sorted(p for p in SCRATCH.rglob("*.el") if p.is_file())
     if not files:
         raise SystemExit(f"no .el file under {SCRATCH.relative_to(REPO)}")
