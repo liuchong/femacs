@@ -21963,3 +21963,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **12 道副门全绿** ✓（本轮同一批复跑 ✓）：`check-verbatim` ✓、`check-own-voice` ✓、`check-citations` ✓、`check-coding-eol` ✓、`check-c-string-literals` ✓、`check-do-while` ✓、`check-octal-literals` ✓、`check-port-lines` ✓、`check-target-names` ✓、`check-mirror-dupes` ✓、`check-subrs` ✓、`check-defvar-values` ✓ —— 全部 exit 0 ✓✓。
   ④ **一条操作教训** ✓：TSV 的首列是 `path:line` 一个字段 ✓（不是 path + line 两列 ✗）—— 第一次脚本按 `\t` 切导致"重定位 0 行" ✗，改成按 `:` 切后 4 行全中 ✓。
   ⑤ **Lisp 零改动** ✓；本轮**零编译** ✓；受控执行器 runtime 700 MiB、12 道门 + 1 次引注 ≈ 21 s ✓，峰值 ≤ 90 MB ✓；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/citations-allowlist.tsv`（4 行 ✓）、本提交（读数 ✓）。
+- **4.552 验证相第一百八十三轮：当前树的 `gate-fast` 全绿（八步 ✓）+ `temacs` 冒烟 11/11 + 基准范围复测（2026-10-17）**：
+  ① **`gate-fast`（本轮重跑 ✓、`exit 0` ✓、约 8 min ✓）**：`checked 590 ported files: 590 done, 0 failing` ✓、`inventory: no differences` ✓、`symbols`（lib/src）✓、`link: the object set closes over itself` ✓、**`subr table: the port registers the reference's subrs`** ✓、**`defvar values: every DEFVAR … holds the reference's value`** ✓、`declarations: no product-name declaration` ✓、`layout-check passed` ✓✓ —— 这是**当前树**（含 P-178/P-181/P-182/sfnt/引注四处改动之后 ✓）的完整门读数 ✓。
+  ② **第二种程序形状的冒烟** ✓：`tools/smoke.sh --prog build/port/src/temacs`（**未 dump** 的端口）对参照 dump 后的程序 ⇒ **11 check / 0 failure** ✓✓ ⇒ 冒烟不只在一个二进制上成立 ✓。
+  ③ **基准范围** ✓（`tools/bench.sh` 连跑两次 ✓）：非 VM 项 **1.07–1.20×** ✓（`regexp-repl` 1.10–1.12× ✓、`buffer-scan` 1.07–1.15× ✓、`sort` 1.19–1.20× ✓）；VM 项 **1.25–1.51×** ✗（`bc-loop` 1.35–1.51× ✓、`bc-sum` 1.27–1.51× ✓、`bc-car` 1.25–1.38× ✓）⇒ 记录为**范围**而非单点 ✓（±10% 抖动 ✓）。
+  ④ **口径** ✓：DoD-7 的表述此后以"范围"给出 ✓；VM 那一段的剩余差距属**每指令开销** ✓（P-180/P-182 已排除派发状态变量与 `funcall_subr` 细节 ✓）。
+  ⑤ **Lisp 零改动** ✓；本轮 1 次全量重编（`gate-fast` ✓）+ relink/dump ✓ + 冒烟/基准 ✓；`git -C emacs status --short` 为空 ✓。提交：本提交（纯读数 ✓）。
