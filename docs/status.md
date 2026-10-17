@@ -21628,3 +21628,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **下一轮的做法（已定 ✓）**：在 `exactn` 上做**入口/出口成对读数** ✓（只打印已算好的局部变量 ✓，P-140 ✓），判定出口时是否已跨段 ✓；顺带核对 C 的 `d++`（单字节分支 ✓）与端口 `d = d.offset(1)` 是否逐字对应 ✓（多字节下 C 用 `d++` ✓，若端口写成 `d += buf_charlen` ✗ 会在多字节文本上先出问题 ✓）。
   ④ **门** ✓：`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）；`gate-fast` 见下一条提交（仪器改动后必跑 ✓）。
   ⑤ **资源**：1 次单单元编译 + 1 次 `gate-load`/`dump` + 1 次 25 s 最小复现 ✓；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 285 MB** ✓；`git -C emacs status --short` 为空 ✓；临时脚本在 `/tmp` ✓。提交：`femacs/src/regex-emacs.rs`（`pop-mismatch` 判据 ✓）、`PORTING.md`（P-150 ✓）、本提交 ✓。
+- **4.499 验证相第一百三十轮：`exactn` 与两串建立逐字核对为同形 ⇒ 靶子改为 `PREFETCH` 的调用点清单（P-151）（2026-10-17）**：
+  ① **逐字核对（代码级，无新探针 ✓）**：多字节分支 `PREFETCH (d = dfail)` → `buf_ch = string_char_and_length` → `if (TRANSLATE (buf_ch) != pat_ch)` → `p += pat_charlen` → **`d += buf_charlen`** ✓ → `mcnt -= pat_charlen` ✓；串的建立（`pos >= size1` / `stop < size1` 两分支 ✓、`d = string1 + pos`、`dend = end_match_1` ✓）同样一致 ✓。
+  ② **更正 4.498 ③ 的措辞（照实记 ✓）**：`d++` 是**另一个分支**的形状 ✓，多字节分支是 `d += buf_charlen` ✓ —— 登记必须写明哪一个分支 ✓（P-151 ① 已立为规则 ✓）。
+  ③ **读数一致性 ✓**：`s1 - s2 = -17` 与 C 的 gap 布局（`s2 - s1 = GPT_BYTE + GAP_SIZE - BEGV_BYTE` ✓）一致 ✓ ⇒ `d - s1 = 4`、`size1 = 3` 就是**越过 `end1` 一字节** ✓；`dend` 被单独改动的假设已被 4.498 的 `pop-mismatch`（0 次 ✓）排除 ✓。
+  ④ **下一轮（代码级 ✓，不再加探针 ✓）**：把**每一处 `PREFETCH` 调用点**与 C 一一对照 ✓（C 的保证是"调用前 `d` 至多在段末" ✓；多字符前进后必须先 `PREFETCH` 再取字符 ✓）⇒ 找出端口提前/延后调用 `PREFETCH` 的那一处 ✓。
+  ⑤ **资源**：本轮**零编译** ✓（纯代码核对 ✓）；`git -C emacs status --short` 为空 ✓；`build/` 未变 ✓。提交：`PORTING.md`（P-151 ✓）、本提交（纯读数 ✓）。
