@@ -2366,6 +2366,8 @@ pub unsafe extern "C" fn syms_of_callproc ()
 
   DEFVAR_LISP! (c"ctags-program-name", Vctags_program_name,
 	       "Name of the `ctags' program.\nUse this instead of calling `ctags' directly, as `ctags' may have been\nrenamed to comply with executable naming restrictions on the system.");
+  /* C 2171: the initialiser the port had dropped (P-178).  */
+  Vctags_program_name = build_string (c"ctags".as_ptr ());
 
   DEFVAR_LISP! (c"etags-program-name", Vetags_program_name,
 	       "Name of the `etags' program distributed with Emacs.\nUse this instead of calling `etags' directly, as `etags' may have been\nrenamed to comply with executable naming restrictions on the system.");
