@@ -19,6 +19,8 @@
 **`overflow-checks` 的代价（P-192，诊断构建实测 3 轮）**：关掉后 `regexp-repl` **1.14–1.15× → 0.97–1.08×**、`buffer-scan` **1.22–1.24× → 0.98–1.01×**（两项追平或超过参照）；`bc-loop`/`bc-sum`/`bc-car`/`sort` 前后区间重叠 ⇒ 噪声。⇒ 检查常开（P-96，以及「能 safe 尽量 safe」的要求）的代价约 **8–16%**，且**不能**解释 VM 的 1.3–1.5×。
 
 **已经排除**：GC 次数（两侧相同）、`sort` 算法（与 C 逐行同形）、`funcall_subr`（同形；`argbuf`/`unwrap` 也改回 C 的形状后无变化）、热访问器（全部 `#[inline(always)]`）、派发状态变量（可预测分支，~0.5%），以及**安全检查**（关掉后只回收 20–35%，P-181 已把 `ub_checks` 关掉 ✓）。
+**定量闭环（P-193，2026-10-17）**：把**参照自己**编成 switch 臂（`BYTE_CODE_SAFE=1`）后，`bc-loop` 由 **3.20–3.34 ms 变成 6.80–7.08 ms** ⇒ **派发形状本身值 2.0–2.1×**；端口（switch）4.95–5.45 ms ⇒ **0.70–0.79× 于同臂 C**，`bc-sum` 0.67–0.74×、`bc-car` 0.74×、`sort` 0.82–0.86×；仅 `regexp-repl` 1.04–1.11×、`buffer-scan` 1.14–1.19× 仍慢。
+
 **结论**（P-185）：VM 那一段是**参照的构建与本端走的是同一个 C 文件的不同分支** —— `bytecode.c:37-44` 在 clang/macOS 上定义 `BYTE_CODE_THREADED`（计算跳转 ✓，`ENABLE_CHECKING` 与 `BYTE_CODE_SAFE` 都是关的 ✓、已核实 ✓），端口按 P-03 抄**非线程化**臂；Rust 稳定版没有 label-as-value（`label_break_value` 仍 unstable）⇒ **不用 nightly 关不掉**。其余五项 1.07–1.20× 是真实的小差距。
 
 **选项**
