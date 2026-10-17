@@ -22003,3 +22003,7 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **唯一的 port-worse = `lisp/calc/calc-tests.el`（1 vs 0）** ✓，与常态 L5 台账 `docs/baseline/ert-sweep-all.tsv` 里那一条**同一文件、同一读数** ✓ ⇒ **强制 GC 没有引入任何新差异** ✓（该例属已判定的产品名口径 ✓）。
   ④ **资源**：1,263 s、峰值 **653 MB**（900 MiB 预算内 ✓，`--memory-mib 700` 的看门狗未触发 ✓）；台账入库 `docs/baseline/gc-stress-all.tsv`（565 行 ✓，与 `ert-sweep-all.tsv` 同格式 ✓）。
   ⑤ **Lisp 零改动**；本轮**零编译**（只跑测试）；`git -C emacs status --short` 为空。提交：`docs/baseline/gc-stress-all.tsv`（台账）、`docs/acceptance.md`（7.2 附加闸门一节）、本提交（读数）。
+- **4.558 验证相第一百八十九轮：重做 dump 之后 smoke 复绿；差分对拍扩到三个种子共 180 个程序，全部一致（2026-10-17）**：
+  ① **冒烟**：`tools/smoke.sh` ⇒ **11 check / 0 failure** ✓（P-186/187 两次重生成的 dump 上复跑 ✓）。
+  ② **差分对拍**：`tools/check-diff-fuzz.py --programs 60 --seed {0,1,2}` ⇒ **same=60 / 60 / 60，differ=0** ✓（合计 **180 个程序**，0 差异 ✓，每轮约 62 s ✓、峰值 ≤ 55 MB ✓）。
+  ③ **Lisp 零改动**；本轮**零编译**；`git -C emacs status --short` 为空。提交：本提交（读数）。
