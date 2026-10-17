@@ -6087,12 +6087,37 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
     let dcnt: ptrdiff_t = POINTER_TO_OFFSET! (d) - pos;
 
+    if dcnt < -1 && ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+      {
+        fprintf (stderr,
+                 c"REGTRACE dcnt=%td d-s1=%td s1-s2=%td size1=%td pos=%td first=%d succ=%d restore=%d\n".as_ptr (),
+                 dcnt as isize, (d as isize) - (string1 as isize),
+                 (string1 as isize) - (string2 as isize),
+                 (end1 as isize) - (string1 as isize), pos as isize,
+                 FIRST_STRING_P! (d) as c_int, do_succeed as c_int, do_restore as c_int);
+      }
+
     DEBUG_PRINT! (c"Returning %td from re_match_2.\n".as_ptr (), dcnt);
 
     retval = dcnt;
     }
 
   /* endof_re_match: */
+  /* Instrument, not behaviour (P-115/P-146): the reference never returns a negative value other
+     than -1 or -2, so report the state that produced one.  */
+  if retval < -1
+    {
+      if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+        {
+          fprintf (stderr,
+                   c"REGTRACE bad-retval retval=%td pos=%td d-s1=%td s1-s2=%td end1-s2=%td end2-s2=%td\n".as_ptr (),
+                   retval as isize, pos as isize,
+                   (d as isize) - (string1 as isize),
+                   (string1 as isize) - (string2 as isize),
+                   (end1 as isize) - (string2 as isize),
+                   (end2 as isize) - (string2 as isize));
+        }
+    }
   unbind_to (count, Qnil ());
   SAFE_FREE! (sa_count, sa_mark);
 
