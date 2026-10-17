@@ -739,6 +739,9 @@ unsafe fn prev_char_comend_first (mut pos: ptrdiff_t, mut pos_byte: ptrdiff_t) -
    Global syntax data remains valid for backward search starting at
    the returned value (or at FROM, if the search was not successful).  */
 
+/* `FEMACS_BC_TRACE`'s sampled answer (P-173 instrumentation).  -1 = not asked yet.  */
+static mut BC_TRACE_ON: c_int = -1;
+
 unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 		 comnested: bool, comstyle: c_int, charpos_ptr: *mut ptrdiff_t,
 		 bytepos_ptr: *mut ptrdiff_t) -> bool
@@ -782,6 +785,19 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
      (PORTING.md 2.2: a forward jump out of a loop is not an early return).  */
   let mut jumped_to_lossage: bool = false;
   let mut jumped_to_done: bool = false;
+  /* Instrument (P-173): `back_comment`'s own scan, one line per iteration.  `FEMACS_BC_TRACE`
+     only, sampled once (P-115's shape).  */
+  macro_rules! BCTRACE {
+    ($($a:tt)*) => {
+      /* This unit does not include <stdlib.h>, so the instrument names the symbol
+	 itself (the same `getenv` the rest of the port already links against).  */
+      unsafe extern "C" { fn getenv (name: *const c_char) -> *mut c_char; }
+      if BC_TRACE_ON < 0
+	{ unsafe { BC_TRACE_ON = if getenv (c"FEMACS_BC_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; } }
+      if BC_TRACE_ON != 0
+	{ unsafe { fprintf (stderr, $($a)*); } }
+    };
+  }
 
   /* FIXME: A }} comment-ender style leads to incorrect behavior
      in the case of {{ c }}} because we ignore the last two chars which are
@@ -832,6 +848,9 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
       /* If a 2-char comment sequence partly overlaps with another,
 	 we don't try to be clever.  E.g. |*| in C, or }% in modes that
 	 have %..\n and %{..}%.  */
+      BCTRACE! (c"BCT iter from=%td code=%d com2start=%d com2end=%d comstart=%d csp=%td c=%d\n".as_ptr (),
+	       from, code as c_int, com2start as c_int, com2end as c_int, comstart as c_int,
+	       comstart_pos, c);
       if from > stop && (com2end || comstart)
 	{
 	  let mut next: ptrdiff_t = from;
@@ -850,7 +869,7 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 		  && (comstyle
 		      == SYNTAX_FLAGS_COMMENT_STYLE (syntax, prev_syntax))
 		  && SYNTAX_FLAGS_COMSTART_FIRST (next_syntax)))
-	    { jumped_to_lossage = true; break; }
+	    { jumped_to_lossage = true; BCTRACE! (c"BCT lossage from=%td\n".as_ptr (), from); break; }
 	  /* UPDATE_SYNTAX_TABLE_FORWARD (next + 1); */
 	}
 
@@ -922,7 +941,7 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 		     incorrect) reasoning as below:  since it is followed by uniform
 		     paired string quotes, this comment-start has to be outside of
 		     strings, else the comment-end itself would be inside a string. */
-		  { jumped_to_done = true; break; }
+		  { jumped_to_done = true; BCTRACE! (c"BCT done from=%td\n".as_ptr (), from); break; }
 	      }
 	  }
 
@@ -973,22 +992,16 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 
   if ! jumped_to_done
     {
-      if comstart_pos == 0
-	{
-	  from = comment_end;
-	  from_byte = comment_end_byte;
-	  UPDATE_SYNTAX_TABLE_FORWARD (comment_end);
-	}
-      /* If comstart_pos is set and we get here (ie. didn't jump to `lossage'
-	 or `done'), then we've found the beginning of the non-nested comment.  */
-      else if ! jumped_to_lossage	/* C's `else if (1)` */
-	{
-	  from = comstart_pos;
-	  from_byte = comstart_byte;
-	  UPDATE_SYNTAX_TABLE_FORWARD (from - 1);
-	}
-      else
+      /* C's `goto lossage` (786/840) lands on the `else lossage:` label itself, so the
+	 `comstart_pos == 0` test above it is bypassed.  The port used to test that first, so
+	 the whole lossage body was skipped whenever a jump had happened with comstart_pos
+	 still 0 - and it returned `from == comment_end` (false) instead of decoding forward
+	 (P-173).  The jump's arm comes first here for the same reason C's label is reachable
+	 only by the jump: C's `else if (1)` means the fall-through arm is the third one.  */
+      if jumped_to_lossage
 	{ /* lossage: */
+	  BCTRACE! (c"BCT lossage-in comnested=%d comstyle=%d comment_end=%td\n".as_ptr (),
+		   comnested as c_int, comstyle, comment_end);
 	  let mut state: lisp_parse_state = unsafe { std::mem::zeroed () };
 	  let mut adjusted: bool = true;
 	  /* We had two kinds of string delimiters mixed up
@@ -1021,6 +1034,9 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 		  unsafe { find_start_value_byte = CHAR_TO_BYTE (find_start_value); }
 		}
 
+	      BCTRACE! (c"BCT lossage-step defun_start=%td incomment=%d comstyle=%d comstr_start=%td lev=%d thislev=%td\n".as_ptr (),
+		       defun_start, state.incomment, state.comstyle, state.comstr_start,
+		       (CONSP (state.levelstarts) as c_int), state.thislevelstart);
 	      if state.incomment == (if comnested { 1 } else { -1 })
 		  && state.comstyle == comstyle
 		{ from = state.comstr_start; }
@@ -1045,12 +1061,28 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	  from_byte = CHAR_TO_BYTE (from);
 	  UPDATE_SYNTAX_TABLE_FORWARD (from - 1);
 	}
+      else if comstart_pos == 0
+	{
+	  from = comment_end;
+	  from_byte = comment_end_byte;
+	  UPDATE_SYNTAX_TABLE_FORWARD (comment_end);
+	}
+      /* If comstart_pos is set and we get here (ie. didn't jump to `lossage'
+	 or `done'), then we've found the beginning of the non-nested comment.  */
+      else
+	{
+	  from = comstart_pos;
+	  from_byte = comstart_byte;
+	  UPDATE_SYNTAX_TABLE_FORWARD (from - 1);
+	}
     }
 
   // done:
   unsafe { *charpos_ptr = from; }
   unsafe { *bytepos_ptr = from_byte; }
 
+  BCTRACE! (c"BCT end from=%td comment_end=%td lossage=%d done=%d csp=%td\n".as_ptr (),
+	   from, comment_end, jumped_to_lossage as c_int, jumped_to_done as c_int, comstart_pos);
   return from != comment_end;
 }
 
