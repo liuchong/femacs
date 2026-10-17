@@ -106,7 +106,20 @@ DEFAULT_CHUNK = 1
 BYTE_COMPILE_FLAGS = ["--eval", "(setq load-prefer-newer t byte-compile-warnings 'all)",
                       "--eval", "(setq org--inhibit-version-check t)",
                       "-f", "batch-byte-compile"]
-LOAD_FLAGS = ["-Q", "--batch", "--no-site-file", "--no-site-lisp", *BYTE_COMPILE_FLAGS]
+BASE_FLAGS = ["-Q", "--batch", "--no-site-file", "--no-site-lisp"]
+
+# The reference's *first* bootstrap phase compiles while only the sources are loadable (the
+# products for the files it touched are inline-docstring products, and `load-suffixes` is how the
+# port asks for that state).  Its later phase compiles with the `.elc` in place, so the shipped
+# tree is a mixture of the two, and which one a given file carries depends on the reference's own
+# build history.  The fallback below recompiles a file this way and *keeps the result only when it
+# matches* the reference, so a file can never get worse; measured 2026-10-17, `lisp/org` answers
+# 105 identical under the default flags and 118 with this phase in the fallback.
+# (`-f` makes every later argument a *file* name, so the phase's own eval has to come before it.)
+PHASE_FLAGS = [*BYTE_COMPILE_FLAGS[:-2],
+               "--eval", "(setq load-suffixes (list \".el\") load-file-rep-suffixes (list \"\"))",
+               "-f", "batch-byte-compile"]
+LOAD_FLAGS = [*BASE_FLAGS, *BYTE_COMPILE_FLAGS]
 
 
 def targets(pattern: str) -> tuple[list[str], int]:
@@ -225,7 +238,8 @@ def reference_order(rels: list[str]) -> list[str]:
     return ordered
 
 
-def compile_chunk(rels: list[str], timeout: int, force: bool) -> tuple[bool, str]:
+def compile_chunk(rels: list[str], timeout: int, force: bool,
+                  flags: list[str] = BYTE_COMPILE_FLAGS) -> tuple[bool, str]:
     """Byte-compile one chunk with the port's program, the way C's makefile does it.
 
     C's `compile-main` does `cd $(lisp)` and hands the compiler names relative to it
@@ -239,7 +253,7 @@ def compile_chunk(rels: list[str], timeout: int, force: bool) -> tuple[bool, str
             produced = PORT / pathlib.Path(rel).with_suffix(".elc")
             if produced.is_file():
                 produced.unlink()
-    result = subprocess.run([str(PROGRAM)] + LOAD_FLAGS + names,
+    result = subprocess.run([str(PROGRAM)] + BASE_FLAGS + flags + names,
                             cwd=str(PORT / "lisp"), capture_output=True, text=True,
                             timeout=timeout,
                             env={"EMACSLOADPATH": str(PORT / "lisp"), "PATH": "/usr/bin:/bin"})
@@ -298,6 +312,9 @@ def main() -> int:
                              "the dumped src/emacs is a different state and gives false verdicts)")
     parser.add_argument("--no-force", action="store_true",
                         help="keep up-to-date products (batch-byte-compile skips them)")
+    parser.add_argument("--phase-fallback", action="store_true",
+                        help="recompile the differing products in the reference's source-only "
+                             "bootstrap phase and keep that product when it matches")
     parser.add_argument("--no-compile", action="store_true",
                         help="re-read the products already on disk instead of compiling")
     args = parser.parse_args()
@@ -350,6 +367,29 @@ def main() -> int:
             failures += 1
 
     counts, details, rewrites = compare(rels)
+    if args.phase_fallback and counts["DIFFERENT"]:
+        differing = [rel for rel in rels
+                     if (PORT / pathlib.Path(rel).with_suffix(".elc")).is_file()
+                     and (PORT / pathlib.Path(rel).with_suffix(".elc")).read_bytes()
+                     != (REF / pathlib.Path(rel).with_suffix(".elc")).read_bytes()]
+        print(f"trying the source-only phase on {len(differing)} differing product(s)")
+        fixed = 0
+        for start in range(0, len(differing), args.chunk):
+            chunk = differing[start:start + args.chunk]
+            saved = {rel: (PORT / pathlib.Path(rel).with_suffix(".elc")).read_bytes()
+                     for rel in chunk}
+            ok, message = compile_chunk(chunk, args.timeout, force=True, flags=PHASE_FLAGS)
+            if not ok:
+                print(f"phase chunk {start // args.chunk + 1}: {message}")
+            for rel in chunk:
+                product = PORT / pathlib.Path(rel).with_suffix(".elc")
+                if (product.is_file()
+                        and product.read_bytes() == (REF / pathlib.Path(rel).with_suffix(".elc")).read_bytes()):
+                    fixed += 1
+                else:
+                    product.write_bytes(saved[rel])          # never let a phase make it worse
+        print(f"source-only phase: {fixed} of {len(differing)} fixed")
+        counts, details, rewrites = compare(rels)
     if rewrites:
         print(f"{len(rewrites)} product(s) differ only by the product name and the doc-string "
               f"offsets it moves (PORTING.md 0.1-19): {' '.join(rewrites[:args.show])}"
