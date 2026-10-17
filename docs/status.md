@@ -21740,3 +21740,11 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **P-168 ① 仍成立** ✓："端口与参照的 `paragraphs.elc` 逐字节相同" ✓ —— 但结论方向错了 ✗。
   ④ **真正的靶子（不变 ✓）**：`paragraphs-tests-transpose-sentences`（`(end-of-buffer)` ✗）与 `fill-test-fill-paragraph-semlf`（两行被合并 ✗）⇒ 都在 `sentence-end`/`forward-sentence` 线上 ✓。
   ⑤ **资源**：5 次 `env … --batch` 短跑（各 <1 s ✓）+ 1 次 ERT（1.2 s ✓）；受控执行器 runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 22 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-169 ✓）、本提交（纯读数 ✓，含一处**自我更正** ✓）。
+- **4.518 验证相第一百四十九轮：匹配器弹出后的段重算不可达 —— 修一处 ⇒ 两个 port-worse 与两个暂挂崩溃同轮转 same（P-170）（2026-10-17）**：
+  ① **靶子（4.517 的收口点 ✓）**：`paragraphs-tests-transpose-sentences` 的 `transpose-subr` 正向路径 ✓ —— 用 `forward-sentence` 的正/负参数单跑两侧全同 ✓ ⇒ 收到"跨间隙匹配"这一层 ✓。
+  ② **最小复现（11 字节缓冲区 + 一条正则 ✓）**：`(insert "01234.56789")` + 在 `.` 与 `5` 之间造间隙（`(goto-char 7) (insert "Z") (delete-char 1)` ✓ 文本不变 ✓）+ `(re-search-forward "\\([.]\\($\\|[5][6]\\)\\)" nil t)` ⇒ 端口 **nil** ✗ / 参照 **6..9** ✓（同一文本整段插入则两侧同 ⇒ 缺陷只在**跨间隙**时出现 ✓）。
+  ③ **定位（仪器 ✓）**：`FEMACS_REG_TRACE=1` 加两条默认关的打印（opcode 步进 ✓ + 弹出帧 ✓ P-115 形状 ✓）⇒ `pop op=14 str-s1=6 d-s1=6 dend-s1=20 em1-s1=6` 后 `dend` 仍是 `end_match_2` ✗ ⇒ C 5286-5287 的段重算没有跑 ✓；读码确认：弹出块是**在 `goto_fail` 为真时进入的** ✓，而块内 `if goto_fail { continue 'matcher; }` 又测同一个标志 ⇒ 块尾的重算/eassert/P-149 仪器**全部不可达** ✗。
+  ④ **修法（两处 ✓）**：弹出块写成 `'fail: loop { … }`、`no_op` 帧 `continue 'fail`（C 5287-5289 的 `goto fail` ✓）；删掉块内那条过期判据 ✗ ⇒ 段重算每次弹出都跑 ✓。
+  ⑤ **读数（同一支程序，重编 1 单元 + relink + dump ✓ 3.8 s ✓）**：`paragraphs-tests` **same** ✓（16/16 ✓）、`fill-tests` **same** ✓（16/16 ✓）、`electric-tests` **same** ✓（**903/903** ✓ 暂挂项 ✓）、`log-edit-tests` **same** ✓（12/12 ✓ 暂挂项 ✓）、`regex-emacs-tests` **same** ✓（35/35 ✓）、`simple-tests` **same** ✓（54/54 ✓）、`src/xml-tests` **same** ✓、`lisp/xml-tests` **仍 port-worse** ✓（1/5 ✗ 另一个根 ✓）、7 条差分探针**全部 same** ✓（含 4.517 的 `transpose-sentences 2` ✓ 与 `probe17` 的 15 条模式矩阵 ✓）；`tools/smoke.sh` **11 check / 0 failure** ✓。
+  ⑥ **Lisp 零改动** ✓：改的是 `femacs/src/regex-emacs.rs` ✓；`lisp/`、`test/`、`etc/`、`doc/` 照抄树未动 ✓（`check-verbatim.py` 读数不变 ✓），新版本 Elisp 语法保持与参照冻结检出逐字节一致 ✓。
+  ⑦ **资源**：8 次 ERT（合计 15 s ✓，最多 903 例 ✓）；受控执行器 build 8 GiB 上限实测峰值 **≤ 300 MB** ✓、runtime 400-900 MiB 实测 **≤ 27 MB** ✓；本轮共用 4 次单单元重编（各 1.8 s ✓）+ 4 次 relink/dump（各 <1.5 s ✓）；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/regex-emacs.rs`（缺陷修复 ✓）、`PORTING.md`（P-170 ✓）、本提交（纯读数 ✓）。
