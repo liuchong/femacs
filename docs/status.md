@@ -21622,3 +21622,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **门** ✓：`gate-fast` **exit=0**、**590 done / 0 failing** ✓（约 511 s ✓）；`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）。
   ④ **下一轮靶子（收敛到两条路径 ✓）**：`exactn` 的 `d = dfail` 回滚 ✓ 与弹栈的 `d = str` ✓ —— 修法必须与 C 同形 ✓（C 5286-5287 只置 `end_match_1` ✓）；若确认 C 在相同输入下不出现该状态 ✓，则缺陷在**捕获/恢复点** ✗ 而非重算逻辑 ✓。回归门：`regex-emacs-tests`(35) ✓ + `electric-tests`(903) ✓ + `log-edit-tests` ✓ + `gate-fast` ✓。
   ⑤ **资源**：2 次单单元编译 + 2 次 `gate-load`/`dump` + 1 次 `gate-fast`（511 s ✓）+ 2 次 25-27 s 最小复现 ✓；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 292 MB** ✓；`git -C emacs status --short` 为空 ✓；临时脚本在 `/tmp` ✓。提交：`femacs/src/regex-emacs.rs`（`crossed` 判据 ✓）、`PORTING.md`（P-149 ✓）、本提交 ✓。
+- **4.498 验证相第一百二十九轮：弹栈路径被"负结果"排除，不一致的来源收敛到 `exactn` 的出口（P-150）（2026-10-17）**：
+  ① **负结果（同为读数 ✓）**：在 C 5286-5287 的 `dend` 重算**之后**再检一次分段一致 ✓（`pop-mismatch` 判据 ✓）⇒ 本轮 **0 次触发** ✓ ⇒ "弹栈把 `d` 放回 string1 段却不重算 `dend`"假设**排除** ✓；`d = dfail` 的回滚也被覆盖为 0 ✓（端口与 C 同形：`d = dfail; goto_fail` ✓ ⇒ 必经重算 ✓）。
+  ② **收敛后的唯一来源** ✓：`crossed` 的 `prev=2`（`exactn` ✓，两次出现 ✓）；进入不一致时 `d` 在 string1 起点、`dend` 在 string2 ✓ ⇒ 某次 `exactn` 的**成功退出**把 `d` 留在 string1 段而 `dend` 停在上一次 `PREFETCH` 的 string2 ✓。
+  ③ **下一轮的做法（已定 ✓）**：在 `exactn` 上做**入口/出口成对读数** ✓（只打印已算好的局部变量 ✓，P-140 ✓），判定出口时是否已跨段 ✓；顺带核对 C 的 `d++`（单字节分支 ✓）与端口 `d = d.offset(1)` 是否逐字对应 ✓（多字节下 C 用 `d++` ✓，若端口写成 `d += buf_charlen` ✗ 会在多字节文本上先出问题 ✓）。
+  ④ **门** ✓：`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）；`gate-fast` 见下一条提交（仪器改动后必跑 ✓）。
+  ⑤ **资源**：1 次单单元编译 + 1 次 `gate-load`/`dump` + 1 次 25 s 最小复现 ✓；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 285 MB** ✓；`git -C emacs status --short` 为空 ✓；临时脚本在 `/tmp` ✓。提交：`femacs/src/regex-emacs.rs`（`pop-mismatch` 判据 ✓）、`PORTING.md`（P-150 ✓）、本提交 ✓。
