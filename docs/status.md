@@ -21710,3 +21710,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **本轮同时确认的三条清账（4.510/4.511 的连带 ✓）**：`font-tests` ✓、`cus-edit-tests` ✓、`loadhist-tests` ✓、`char-fold-tests` ✓ 全为 **same** ⇒ port-worse 21 → **18** ✓。
   ④ **下一轮（集中 ✓）**：不再分头查 ✓，直接做匹配器 —— 从 4.495 的 `crossed prev=2`（`exactn` 出口 ✓）与 4.494 的 `i = -11` 入手 ✓；判据仍是既有的 `crossed`/`d-in-gap`/`dcnt` 三条常驻仪器 ✓。
   ⑤ **资源**：2 次探针跑（各 <1 s ✓，受控执行器 runtime 700 MiB ✓，峰值 **≤ 22 MB** ✓）；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-164 ✓）、本提交（纯读数 ✓）。
+- **4.513 验证相第一百四十四轮：`xml` 的 `"?"` 实为"两条声明都没记下"——`xml-entity-alist` 为空，`cond` 分支被跳过（P-165）（2026-10-17）**：
+  ① **数据结构级读数** ✓（最小输入 ✓）：`xml-parse-dtd` 后端口 `pe-alist nil` / **`ent-alist nil` ✗**；参照 `pe-alist nil` / **`ent-alist (("ent" . "AbC"))` ✓** ⇒ 不是"值被写成 `?`" ✗，而是**两条声明都没进 alist** ✗。
+  ② **成组排除的 5 个原语（各 1 行、两侧一致 ✓）**：`xml--entity-replacement-text "AbC"` ✓、`replace-match "AbC" t t`（`looking-at`/`re-search-forward` 两条路 ✓）、`xml--entity-replacement-text "%pent;"`（绑定 alist ✓）、`xml-pe-reference-re` ✓、`<!ENTITY …>` 大正则的 `looking-at`/`re-search-forward` 与 `match-string 1/2/3` ✓。
+  ③ **结论** ✓：`cond` 的"内部实体声明"分支因 `(or (null next-parameter-entity) (<= (match-end 0) next-parameter-entity))` 为假而**整条跳过** ✗ ⇒ `next-parameter-entity` 或 `match-end` 之一在端口里不对 ✓ —— 两者都是**匹配器**产出的位置 ✓，与 P-164 归属一致 ✓。
+  ④ **下一轮单点 ✓**：在该 `cond` 前打印 `next-parameter-entity`、`(match-end 0)`、`(point)`（只打印已算好的值 ✓ P-140 ✓）。
+  ⑤ **资源**：4 次探针跑（各 <1 s ✓，受控执行器 runtime 700 MiB ✓，峰值 **≤ 22 MB** ✓）；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-165 ✓）、本提交（纯读数 ✓）。
