@@ -11,13 +11,11 @@
 @@ advice.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ avl-tree.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ backquote.el
@@ -28,25 +26,21 @@ Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/
 @@ backtrace.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ benchmark.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ bindat.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ byte-opt.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ byte-run.el
@@ -57,19 +51,16 @@ Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/
 @@ bytecomp.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cconv.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ chart.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ check-declare.el
@@ -80,38 +71,32 @@ Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/
 @@ checkdoc.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/emacs/lisp/dired-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-extra.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-generic.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-indent.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-lib.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-loaddefs.el
 --- exit: 0
 --- diagnostics:
-Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/cl-loaddefs.el’ newer than byte-compiled file; using older file
 
 --- end diagnostics
 @@ cl-macs.el
@@ -397,6 +382,10 @@ Source file ‘/Users/liu/projects/src/github.com/liuchong/femacs/build/lisp-l1/
 @@ oclosure.el
 --- exit: 0
 --- diagnostics:
+
+In end of data:
+build/lisp-l1/oclosure.el:323:42: Warning: the function ‘gv-setter’ might not be defined at runtime.
+build/lisp-l1/oclosure.el:179:22: Warning: the function ‘cl--arglist-args’ might not be defined at runtime.
 
 --- end diagnostics
 @@ package-activate.el
