@@ -134,12 +134,30 @@ pub struct thread_state
   pub next_thread: *mut thread_state,             // 216
   pub bc: bc_thread_state,                        // 218
 }
+/* The Android arm has a different shape: measured with `_Static_assert` against C's own
+   headers under NDK 29 / aarch64, which reads 592 for this one (darwin reads
+   472).  `docs/baseline/android-layout-probe.md`.  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<thread_state> () == 592);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 472);
 const _: () = core::assert! (std::mem::offset_of! (thread_state, event_object) == 72);
 const _: () = core::assert! (std::mem::offset_of! (thread_state, m_specpdl) == 120);
 const _: () = core::assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 216);
 const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 408);
+/* The Android arm has a different shape: measured with `_Static_assert` against C's own
+   headers under NDK 29 / aarch64, which reads 552 for this one (darwin reads
+   432).  `docs/baseline/android-layout-probe.md`.  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 552);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 432);
+/* The Android arm has a different shape: measured with `_Static_assert` against C's own
+   headers under NDK 29 / aarch64, which reads 568 for this one (darwin reads
+   448).  `docs/baseline/android-layout-probe.md`.  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 568);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 448);
 
 /* thread.h 116-192: the checkpoint machinery.  Each macro is C's own body (PORTING.md
@@ -216,6 +234,12 @@ pub struct lisp_mutex_t
   pub count: c_uint,              // 254
   pub condition: sys_cond_t,      // 256
 }
+/* The Android arm has a different shape: measured with `_Static_assert` against C's own
+   headers under NDK 29 / aarch64, which reads 64 for this one (darwin reads
+   16).  `docs/baseline/android-layout-probe.md`.  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<lisp_mutex_t> () == 64);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<lisp_mutex_t> () == 16);
 
 // thread.h 260-268: `struct Lisp_Mutex`.  Measured 32 bytes, alignment 8.
@@ -227,6 +251,12 @@ pub struct Lisp_Mutex
   pub name: Lisp_Object,          // 265
   pub mutex: lisp_mutex_t,        // 268
 }
+/* The Android arm has a different shape: measured with `_Static_assert` against C's own
+   headers under NDK 29 / aarch64, which reads 80 for this one (darwin reads
+   32).  `docs/baseline/android-layout-probe.md`.  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<Lisp_Mutex> () == 80);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<Lisp_Mutex> () == 32);
 
 // thread.h 269-273: `MUTEXP`.

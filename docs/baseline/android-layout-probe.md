@@ -24,13 +24,30 @@ Include set:
 gnulib headers generated *for this configuration* (pointing at the darwin build's copies instead
 makes `time.h` redefine `struct tm_zone` and breaks the probe).
 
+## Measured for android/aarch64 (NDK 29)
+
+Probe: `#include "lisp.h"` + `#include "thread.h"`, then `_Static_assert((EXPR)==N,"")`.
+C needs the `struct` keyword - `sizeof(thread_state)` alone is a C error, which is what made the
+first attempt look like a missing declaration.
+
+    sizeof(struct thread_state)                     592   (darwin 472)
+    offsetof(struct thread_state, not_holding_lock) 552   (darwin 432)
+    offsetof(struct thread_state, bc)               568   (darwin 448)
+    sizeof(lisp_mutex_t)                             64   (darwin 16)
+    sizeof(struct Lisp_Mutex)                        80   (darwin 32)
+
+The five are now per-target in `femacs/src/include/thread.rs` (`feature = "have_android"`), and
+darwin still builds.
+
 ## What is still open
 
-With that set a probe including `lisp.h` and `thread.h` compiles cleanly, but
-`sizeof(thread_state)` reports `use of undeclared identifier 'thread_state'` - `struct
-thread_state` sits unguarded at `emacs/src/thread.h` 62, so something in the include chain is
-ending early.  Next round: find that (start with `-H` / `-E` on the probe and look for where
-`thread.h` stops), then the six numbers, then write them per target in `include/thread.rs`.
+With those numbers in place the Android unit still fails the first assertion, and the port's own
+`thread_state` reads **520** against C's **592** - a 72-byte gap.  The `systhread` members are
+right (`sys_cond_t` 48, `sys_mutex_t` 40, `sys_thread_t` 8, all matching C), and both structs
+count 32 fields, so the difference is in a member's shape rather than a missing type: the C field
+list names `string` and `java_env`, and the port's names differ (`m_`-prefixed) but the pair does
+not obviously account for 72 bytes.  Next: compare the two structs field by field with the offsets
+C reports (`offsetof` bisect per field), which pins the differing member exactly.
 
 ## Numbers already measured (P-232, unchanged)
 
