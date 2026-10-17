@@ -22064,3 +22064,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **门本身**：默认容差 **rc=0** ✓（六例 −8.6%…+2.1% ✓）；**负对照** `--tolerance -0.05` ⇒ **rc=1** ✓（`bc-loop -4.0% FAIL` 等四例 ✓）⇒ 门能红 ✓。
   ④ **`buffer-scan`/`regexp-repl` 的采样（无编译）** ✓：两侧 top-of-stack 都是 `rpl_re_search_2` / `re_match_2_internal` / `copy_text` ✓；端口多出 `count_size_as_multibyte`(245) 与 `set_point`(230)、参照多出 `char_table_translate`(124) 与 `compile_pattern`(82) ✓ ⇒ 差异在**内联边界**而非算法 ✓，记作下一步的候选 ✓（P-193 的 4–19% 仍是同臂差距 ✓）。
   ⑤ **零编译** ✓；受控执行器 runtime 900 MiB 五次（峰值 ≤ 72 MB ✓）。提交：`tools/bench.sh`（两种模式 ✓）、`docs/baseline/bench.tsv`（基线 ✓）、`PORTING.md`（P-194 ✓）、`docs/acceptance.md`（第 7 条 ✓）、本提交（读数 ✓）。
+- **4.568 验证相第一百九十八轮：`insert` 路径慢 1.7× 的根因抓到并修掉（循环未向量化）—— `buffer-scan` 比值收到 1.09–1.16×（P-195）（2026-10-17）**：
+  ① **定位链**：`buffer-scan` 里先拿掉正则因素 —— 纯 `(insert text)` 探针 ⇒ 端口 **0.1140 ms** / 参照 **0.0639 ms** ✗（1.78×）✓；`sample` 纯 insert 负载 ⇒ 端口 `count_size_as_multibyte` **1579** 样本 ≈ `copy_text` 1385 ✗，参照 477 vs 2428 ✓。
+  ② **根因**：C 675-677 的 `nonascii += str[i] >> 7` 被 clang `-O2` 向量化 ✓，**rustc 在 `opt-level<3` 不跑循环向量化** ✓ ⇒ 同形循环慢 3–4× ✓。
+  ③ **修复**：8 字节 `read_unaligned` + `(word >> 7) & 0x0101…` + `count_ones` ✓，尾部保留字节循环 ✓，`ckd_add` 的溢出路径不变 ✓。
+  ④ **读数**：`insert` 单次 **0.1140 → 0.0639 ms**（= 参照 ✓）；×2000 **242.2 → 142.2 ms**（参照 143.8 ✓）；`buffer-scan` **1.147 → 1.021–1.041 ms** ✓（1.22–1.24× → **1.09–1.16×** ✓）；bench 门 **−10.1%** ✓。
+  ⑤ **回归**：`gate-fast` exit 0 ✓（符号/链接/布局/声明/defvar/subr 全绿 ✓）、`dump` ✓、`smoke` 11/11 ✓、`lisp/international/*.el` **82 例全 same** ✓、`extract-abi --check character` OK ✓。
+  ⑥ **基准更新**（单独一次提交 ✓）：`docs/baseline/bench.tsv` 按修复后的端口读数重记 ✓。提交：`femacs/src/character.rs` ✓、`PORTING.md`（P-195 ✓）、`docs/acceptance.md`（第 7 条 ✓）、`docs/baseline/bench.tsv` ✓、本提交（读数 ✓）。
