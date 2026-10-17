@@ -135,6 +135,30 @@ def rewrite(argv: list[str]) -> list[str]:
     return [str(PORT_PROG) if a in (REF_PROG, f"'{REF_PROG}'") else map_path(a) for a in argv]
 
 
+def check_dirs_outside_the_port(argv: list[str]) -> list[str]:
+    """Directories the generator would scan that are not inside the port's tree.
+
+    The tool must refuse those.  `loaddefs-generate--emacs-batch` writes each output as
+    `<argument>/loaddefs.el` *and* maintains its own top-level `loaddefs.el`, so a directory
+    outside the port (a temp tree, the reference's own `lisp/`) would either be written to or
+    would make the port's file grow a second copy of itself - both measured on 2026-10-17, the
+    second one twice.  The rule from P-186 and P-189 is the same one: only the port's tree is ever
+    a target.
+    """
+    offenders = []
+    for arg in argv[7:]:                     # everything after `-f loaddefs-generate--emacs-batch`
+        if arg.startswith("-"):
+            continue
+        path = pathlib.Path(arg)
+        if not path.is_absolute():
+            path = REF_LISP_BUILD / path
+        try:
+            path.resolve().relative_to(PORT.resolve())
+        except (OSError, ValueError):
+            offenders.append(arg)
+    return offenders
+
+
 def run_command(argv: list[str], what: str) -> int:
     result = subprocess.run(argv, cwd=REF_LISP_BUILD, capture_output=True, text=True)
     status = "ok" if result.returncode == 0 else f"FAILED ({result.returncode})"
@@ -213,6 +237,12 @@ def main() -> int:
             real = rewrite(argv)
             what = "compiled loaddefs-gen.el" if "batch-byte-compile" in argv \
                 else "generated the *loaddefs.el family"
+            offenders = check_dirs_outside_the_port(real)
+            if offenders:
+                print(f"REFUSED {what}: these directories are not in the port's tree: "
+                      f"{' '.join(offenders[:3])}")
+                failures += 1
+                continue
             failures += run_command(real, what)
     status = compare(a.show)
     return 1 if (failures or status) else 0
