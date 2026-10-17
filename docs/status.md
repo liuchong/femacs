@@ -21921,3 +21921,11 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **两项工具的坑（已修 ✓）**：`bench-m` 宏里标签要 `(quote ,label)` 否则 `void-variable (bc-loop)` ✗；`paste` 之后 awk 的参照值在 **$7** 不是 $6 ✗。
   ⑤ **未决不变** ✓：VM 那 1.39× 要继续压就得动 `exec_byte_code` 的派发 ✓；平台与产品名两项仍待拍板 ✓。
   ⑥ **Lisp 零改动** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/bench.sh`（新工具 ✓）、`docs/acceptance.md`（第 7 条换成脚本读数 ✓）、本提交（读数 ✓）。
+- **4.545 验证相第一百七十六轮：补上 DoD-2 第三腿的**证据**——新增 `tools/check-subrs.py`，subr 表两侧 **1255 / 1255、0 缺 0 多 0 异**（2026-10-17）**：
+  ① **缺口** ✓：审计表第 2 条声称"符号表、subr 表"全绿 ✓，但此前**没有专门校验 subr 表内容**的工具 ✗（`check-symbols` 管的是链接符号 ✓、`layout-check` 管的是布局 ✓）⇒ 这一条的证据是**间接的** ✗。
+  ② **新工具** ✓：`tools/check-subrs.py` —— 让**两支程序各自**枚举 `obarray` ✓ 里所有 `subrp` 的符号 ✓，输出 `(名字, subr-arity, interactive-form)` ✓ 并逐项比对 ✓（在运行期比，绕开 `subrs` 段里被重定位过的指针 ✗）。
+  ③ **读数** ✓：**端口 1255 / 参照 1255 个 subr** ✓、**0 missing、0 extra、0 arity/intspec 差异** ✓ ✓ ⇒ DoD-2 的第三条现在有**直接证据** ✓。
+  ④ **接线** ✓：已作为 `gate-fast` 的一步（`== subr table gate ==` ✓），失败信息指向 DoD-2 ✓；`xtask` 编译通过 ✓（`help` 正常 ✓）。
+  ⑤ **工具自身的坑** ✓：`subr-intspec` **不存在**（`void-function` ✓）⇒ 改用 `(interactive-form f)` ✓；`mapatoms` 里的错误若不用 `ignore-errors` 包住会让整轮静默返回 0 ✓（第一次跑就是"0 / 0" ✗）。
+  ⑥ **受控执行器残留再次出现** ✓：本轮又两次遇到 `exit 125 / Combined memory reservations exceed the shared budget` ✗ —— 都由上一轮遗留的 `run.py` 监督进程造成 ✓（`ps` 查到后 `kill -TERM` 即恢复 ✓）⇒ 此后**每次**跑受控命令前先看一眼 `ps` ✓（P-182 ③ 的强化 ✓）。
+  ⑦ **Lisp 零改动** ✓；本轮**零单元重编** ✓（只编了 `xtask` 自身 ✓）；`git -C emacs status --short` 为空 ✓。提交：`tools/check-subrs.py`（新门 ✓）、`femacs/xtask/src/main.rs`（接线 ✓）、本提交（读数 ✓）。
