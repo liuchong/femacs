@@ -58,7 +58,13 @@ while read -r line; do
     *"built "*) ;;
     *) reason=$(printf '%s\n' "$out" | grep -m1 -E '^error' || true)
        [ -n "$reason" ] || reason=$(printf '%s\n' "$out" | tail -1)
-       echo "FAIL $line: ${reason}"; fails=$((fails + 1)); continue ;;
+       echo "FAIL $line: ${reason}"
+       # The whole output, because the one-line reason hid a difference between this script's
+       # run and the same command by hand (status 4.637): anything the build printed is here.
+       if [ -n "${FEMACS_CHECK_VERBOSE:-}" ]; then
+         printf '%s\n' "$out" | sed 's/^/  | /'
+       fi
+       fails=$((fails + 1)); continue ;;
   esac
   stem=$(basename "$line"); stem=${stem%.*}
   # Rust crate names take no hyphens; `lib-src/make-fingerprint.c` and `src/android-emacs.c` do

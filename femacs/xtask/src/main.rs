@@ -256,7 +256,11 @@ fn read_config(path: &Path) -> BTreeMap<String, String> {
             in_macros = true;
             continue;
         }
-        if in_macros && t == "}" {
+        // The `macros` block closes with `},` - a trailing comma - so `t == "}"` never matched and
+        // the reader ran on into the `features` section, turning 781 cfg gates into constants.
+        // That is the 809-constant `config.rs` behind the 48 `_GL_EXTERN_INLINE` duplicates
+        // (status 4.638).
+        if in_macros && t.trim_end_matches(',').trim() == "}" {
             break;
         }
         if in_macros {
