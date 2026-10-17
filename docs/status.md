@@ -21734,3 +21734,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **连带解释** ✓：`fill-tests`/`paragraphs-tests` 的失败是**加载层**（`require` 失败 ✓）而非语义 ✓ —— 此前两轮按语义查是方向错误 ✗（照实记 ✓）。
   ④ **下一轮单点 ✓**：极小 `.el`（只含 `(provide 'smoke-x)` ✓）→ 用端口编译器编 `.elc` → 加载 ✓；若丢 ⇒ `bytecomp` ✗；若正常 ⇒ 该文件某处形式 ✗（按文件末尾二分 ✓）。
   ⑤ **资源**：8 次 `env … --batch` 短跑（各 <1 s ✓，受控执行器 runtime 700-900 MiB ✓，峰值 **≤ 57 MB** ✓）；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-168 ✓）、本提交（纯读数 ✓）。
+- **4.517 验证相第一百四十八轮：更正 P-168 —— `require 'paragraphs` 的失败两侧一致，不是端口缺陷；两条失败回到语义（P-169）（2026-10-17）**：
+  ① **对照读数** ✓：同一条件下**参照程序**也给出 `startup featurep=nil require=(ERR error)` ✓，与端口**一字不差** ✓ ⇒ P-168 ②③ 的"加载层缺陷"结论**作废** ✗（照实更正 ✓）。
+  ② **原因** ✓：`paragraphs-tests.el` 28 行自己写着 `;; (require 'paragraphs) ; loaded by default` ✓ ⇒ `paragraphs` 是**预加载但没有 provide 特性** ✓，两侧一致 ✓ ⇒ `featurep` 不能用来判加载失败 ✗。
+  ③ **P-168 ① 仍成立** ✓："端口与参照的 `paragraphs.elc` 逐字节相同" ✓ —— 但结论方向错了 ✗。
+  ④ **真正的靶子（不变 ✓）**：`paragraphs-tests-transpose-sentences`（`(end-of-buffer)` ✗）与 `fill-test-fill-paragraph-semlf`（两行被合并 ✗）⇒ 都在 `sentence-end`/`forward-sentence` 线上 ✓。
+  ⑤ **资源**：5 次 `env … --batch` 短跑（各 <1 s ✓）+ 1 次 ERT（1.2 s ✓）；受控执行器 runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 22 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-169 ✓）、本提交（纯读数 ✓，含一处**自我更正** ✓）。
