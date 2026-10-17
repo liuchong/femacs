@@ -19,7 +19,7 @@
 | 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` ⇒ 590/0/0 |
 | 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `xtask gate-fast` ⇒ exit 0（八步） |
 | 3 | L0–L5 | ✅ | L0 ⇒ 19/0 ✓；**L1 ⇒ 111 文件 / 0 失败 / 1 接受**（`docs/baseline/l1-accepted.tsv`：参照树自身的 `.elc` 陈旧，只接受 `newer than byte-compiled file` 这一形态）；L5 ⇒ 端口缺陷 0 ✓ |
-| 4 | `.elc`/dump/生成物/loadup | ✅ | `check-generated.py` **242 文件**（新增 ja-dic 家族）⇒ **193 identical / 49 name-only / 0 DIFFERENT**；**`.elc` 集合已满**：参照 1,645 个 `.elc` 端口现在全有（此前唯一缺的 `lisp/leim/ja-dic/ja-dic.elc` 已由 `tools/gen-ja-dic.py` 用端口的程序生成，与参照产物逐字节相同）；`check-loadup.py` ⇒ 两树逐文件一致 |
+| 4 | `.elc`/dump/生成物/loadup | ✅ | `check-generated.py` **243 文件**（新增 ja-dic 家族与 `uvs.elc`）⇒ **194 identical / 49 name-only / 0 DIFFERENT**；**`.elc` 集合已满**：参照 1,645 个 `.elc` 全有（`ja-dic.elc` 由 `tools/gen-ja-dic.py` 生成，`uvs.elc` 由端口的程序编译，两者都与参照逐字节相同）；**`src/macuvs.h` 也对上了**：`gen-unidata.py` 的 `run_uvs` 用端口的程序打印出与签约副本逐字节相同的 479,218 B（P-219）；`check-loadup.py` ⇒ 两树逐文件一致；**产物面盘点**：参照构建产物 1,973 个，端口有 **1,922**，缺的 51 个 = 脚手架 23（P-102 退役）+ `info/*` 23 + `doc/*` 3（都要 `makeinfo`）+ `admin/` stamp/脚本 2 |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` ⇒ 4,604 文件 / 0 failures |
 | 6 | 平台（macOS + Android） | ⚠️ 部分 | macOS `tools/smoke.sh` 11/11；Android `xtask gate-android` ⇒ 181,486 B APK / 112 class / 签名通过 |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh`（同臂读数见 P-193）；`--gate` 回归门默认绿 |

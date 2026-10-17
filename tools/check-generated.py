@@ -63,6 +63,9 @@ PATTERNS = [
     # binary and produced by the port's own program, so it is compared byte for byte.
     "lisp/leim/ja-dic/ja-dic.el",
     "lisp/leim/ja-dic/ja-dic.elc",
+    # `admin/unidata/Makefile.in` 54-55's order-only prerequisite, compiled by the port's
+    # own program (the `macuvs.h` run it feeds is `gen-unidata.py`'s `run_uvs`).
+    "admin/unidata/uvs.elc",
     "lisp/loaddefs.el",
     "lisp/theme-loaddefs.el",
     "lisp/subdirs.el",
