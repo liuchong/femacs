@@ -21728,3 +21728,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ③ **契约** ✓：`--prog` 可指向任意平台的程序 ✓（Android arm64 构建 ✓、无 dump 的 `temacs` ✓）⇒ 同一份冒烟直接复用到矩阵其它行 ✓；退出码 = 失败条数 ✓；
   ④ **矩阵更新** ✓：`docs/baseline/platform-smoke.md` 的 macOS 行写入本条读数 ✓、"macOS 冒烟脚本化"标为**已完成** ✓；
   ⑤ **资源**：2 次脚本跑（各 2.4-2.7 s ✓）；受控执行器 runtime 700-900 MiB（下调自默认 ✓）、峰值 **≤ 24 MB** ✓；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`tools/smoke.sh`（新 ✓）、`docs/baseline/platform-smoke.md`（读数 ✓）、`PORTING.md`（P-167 ✓）、本提交 ✓。
+- **4.516 验证相第一百四十七轮：又两条 port-worse 转 same；同时抓到一个大缺陷 —— `paragraphs.elc` 加载后 `featurep` 为 nil（P-168）（2026-10-17）**：
+  ① **两条翻转** ✓：`lisp/vc/diff-mode-tests`（16 例 ✓）与 `lisp/cedet/semantic-utest-ia`（17 例 ✓）**same** ⇒ port-worse **18 → 16** ✓；仍余 `fill-tests`（1 ✗）与 `paragraphs-tests`（1 ✗）。
+  ② **大缺陷（本轮最重要）** ✓：`require 'paragraphs` 在端口里报 **`failed to provide feature 'paragraphs'`** ✗；递进读数 ✓：`cmp` 显示端口与参照的 `paragraphs.elc` **逐字节相同** ✓、改指参照那份**同样失败** ✗、直接 `load` 后 `featurep=nil` ✗ 而 `forward-sentence`/`start-of-paragraph-text` **都已定义** ✓、独立 `(provide 'zzz)` 正常 ✓ ⇒ 缺陷在**执行该 `.elc` 顶层那条 `provide`** ✗（不是生成物 ✗、不是 `Fprovide` ✗、不是加载路径 ✗）。
+  ③ **连带解释** ✓：`fill-tests`/`paragraphs-tests` 的失败是**加载层**（`require` 失败 ✓）而非语义 ✓ —— 此前两轮按语义查是方向错误 ✗（照实记 ✓）。
+  ④ **下一轮单点 ✓**：极小 `.el`（只含 `(provide 'smoke-x)` ✓）→ 用端口编译器编 `.elc` → 加载 ✓；若丢 ⇒ `bytecomp` ✗；若正常 ⇒ 该文件某处形式 ✗（按文件末尾二分 ✓）。
+  ⑤ **资源**：8 次 `env … --batch` 短跑（各 <1 s ✓，受控执行器 runtime 700-900 MiB ✓，峰值 **≤ 57 MB** ✓）；本轮**零编译** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-168 ✓）、本提交（纯读数 ✓）。
