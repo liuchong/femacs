@@ -203,9 +203,32 @@ fn gen_config() -> i32 {
     // from being committed).
     entries.retain(|p| p.extension().is_some_and(|e| e == "json"));
     entries.sort();
+    // One configuration today (`darwin-arm64`).  The moment a second one lands - an Android or
+    // Linux target for the platform rows - "the first file alphabetically" would silently
+    // become the port's whole configuration, which is the same class of mistake the `.json`
+    // filter above fixed.  So the choice is explicit: `FEMACS_CONFIG=<stem>` names one, and
+    // more than one candidate without it is an error rather than a coin flip (P-203).
+    let chosen = std::env::var("FEMACS_CONFIG").ok().filter(|v| !v.is_empty());
+    if let Some(stem) = &chosen {
+        entries.retain(|p| p.file_stem().is_some_and(|s| s == stem.as_str()));
+        if entries.is_empty() {
+            return fail(format!("FEMACS_CONFIG={stem} names no *.json in {}", dir.display()));
+        }
+    } else if entries.len() > 1 {
+        let names: Vec<String> = entries
+            .iter()
+            .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
+            .collect();
+        return fail(format!(
+            "{} frozen configurations ({}): set FEMACS_CONFIG to choose one",
+            entries.len(),
+            names.join(", ")
+        ));
+    }
     let Some(target) = entries.into_iter().next() else {
         return fail(format!("no *.json frozen configuration in {}", dir.display()));
     };
+    println!("config: {}", target.display());
     let macros = read_config(&target);
     // No inner attributes: this file is textually included by every translation
     // unit, and inner attributes are only legal at the top of a module.

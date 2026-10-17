@@ -22117,3 +22117,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **含义** ✓：Android 原生库与 Linux 构建的**编译器前提已备** ✓；缺的是 **`xtask` 的交叉构建驱动**（当前只按冻结 darwin-arm64 配置产单元 ✓）与 **设备/模拟器冒烟** ✓ —— 与"装工具链"是两件不同的事 ✓。
   ③ **文档更正** ✓：`docs/decisions-needed.md` 第 3 项据此改写 ✓（Windows/Haiku 仍记"未实测" ✓，不作推断 ✓）。
   ④ **零编译** ✓。提交：`PORTING.md`（P-202 ✓）、`docs/decisions-needed.md` ✓、本提交（读数 ✓）。
+- **4.578 验证相第二百零八轮：`gen-config` 改为显式选择（为第二份冻结配置铺路），并查清交叉构建的前置链条（P-203）（2026-10-17）**：
+  ① **改动** ✓：`FEMACS_CONFIG=<stem>` 指定配置 ✓；多个候选且未指定 ⇒ 报错并列出名字 ✓；生成时打印 `config: <path>` ✓（本次 ⇒ `darwin-arm64.json` ✓）。
+  ② **原因** ✓：平台行的交叉构建会引入**第二份** `docs/baseline/config/*.json` ✓（该目录的 JSON 就是参照 `configure` 的产物 ✓），旧的"排序取第一个"会让整套配置静默切换 ✗。
+  ③ **前置链条（查清 ✓）**：target 冻结配置 → 按该配置编单元 → `libemacs.so`（或 Linux 可执行）→ 进 APK/冒烟 ✓；Rust 目标已在 ✓（P-202 ✓），缺的是**配置与驱动** ✓。
+  ④ **零 Rust 重编**（只重跑 `xtask gen-config` ✓、耗时 1 s ✓、峰值 196 MB ✓）。提交：`femacs/xtask/src/main.rs` ✓、`PORTING.md`（P-203 ✓）、本提交（读数 ✓）。
