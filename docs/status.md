@@ -22021,3 +22021,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **另一条读数**：端口这份产物**让 dump 失败** ✗（`Attempt to autoload rx while preparing to dump` ✓）⇒ 现阶段**不能**切到端口自己生成 loaddefs ✗；树里保持上一份（41,245 行、含已知的两个坏字符 ✓），本工具只作**诊断**用 ✓（文档已写明 ✓）。
   ⑤ **一次事故与修复（如实记录）**：差分实验里用**参照程序**带上端口的参数跑生成，`loaddefs-generate--emacs-batch`**写进运行程序自己的树** ✗ ⇒ 参照树的 `lisp/loaddefs.el`（构建产物、git 忽略 ✓）被覆盖 ✓；已用**参照程序 + 参照自己的相对路径**重新生成到干净的单遍状态（**41,237 行 / 1,653,500 字节、字符正确** ✓），并把 mtime 复原（Oct 5 00:40 ✓）使加载路径重新选中未动的 `.elc` ✓；`git -C emacs status --short` 为空 ✓，dump 复绿 ✓、smoke **11/11** ✓。
   ⑥ **Lisp 零改动**；本轮零单元重编（只重跑生成器与 dump ✓）；受控执行器读数：生成器 3 次（各 ≤ 2 s ✓、峰值 ≤ 71 MB ✓）、dump 3 次（峰值 ≤ 106 MB ✓）、smoke 1 次 ✓。提交：`tools/gen-loaddefs.py`（诊断工具 + 警告）、`PORTING.md`（P-189）、`docs/acceptance.md`（第 4 条归因）、本提交（读数）。
+- **4.561 清理轮：`build/` 从 2.7 GB 收到 416 MB（释放 ≈ 2.3 GB）—— 用完即清定为常驻规则（P-190）（2026-10-17）**：
+  ① **占用盘点**：`build/` 2.7 GB 里最大的是 `build/port/src`（2.0 GB ✗）—— `xtask dump` 每轮新增一对 `emacs-32.0.50.N{,.pdmp}`，两轮之间累积 **204 个文件** ✓；另有 `build/femacs.dbg1` 311 MB ✗、`build/probes` 11 MB ✓、根部 `nonexistent/`（0 B）✓、`/tmp` 下的一次性临时树（~10 MB）✓。
+  ② **删除的东西（全部无引用、可重建）**：`build/port/src/emacs-32.0.50.*`（204 个 ✓）、`build/femacs.dbg1` ✓、`build/probes` ✓、`nonexistent/` ✓、`/tmp/{ldtest,ldtest2,ldtest3,cg,unidiff,femacs-fuzz-work,femacs-fault-*}*` 与探针/日志 ✓。
+  ③ **保留（在用）**：`build/port/src/{temacs,emacs,emacs.pdmp,bootstrap-emacs.pdmp}` ✓、`build/femacs/*.o` + `units/`（链接/符号/布局门在读 ✓）、`build/emacs-ref/**`（参照程序 ✓）、`build/lisp-l1` ✓、`build/{sweep,load,cargo}`（各 ≤ 8 MB ✓）、`/tmp/xt-cargo`（xtask 已构建 ✓ 24 MB ✓）。
+  ④ **复验**：`xtask dump` 复绿 ✓（`dumped emacs.pdmp` ✓）、`smoke.sh` **11/11** ✓、`git -C emacs status --short` 为空 ✓、本轮零单元重编 ✓。提交：`AGENTS.md`（规则 ✓）、`PORTING.md`（P-190 ✓）、本提交（读数 ✓）。
