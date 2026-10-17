@@ -5987,6 +5987,20 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
 	  if d >= string1 && d <= end1
 	    { dend = end_match_1; }
+	  /* Instrument (P-149): if the recompute above did not restore agreement, the pop put `d`
+	     in the other segment and C's `if` cannot express that.  */
+	  if size1 != 0 && ((dend == end_match_1) != ((d as usize) <= (end1 as usize)))
+	    {
+	      if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
+		{
+		  fprintf (stderr,
+			   c"REGTRACE pop-mismatch str-s1=%td size1=%td d-s1=%td dend-s1=%td\n".as_ptr (),
+			   (str as isize) - (string1 as isize),
+			   (end1 as isize) - (string1 as isize),
+			   (d as isize) - (string1 as isize),
+			   (dend as isize) - (string1 as isize));
+		}
+	    }
 	  continue 'matcher;
 	}
       else
