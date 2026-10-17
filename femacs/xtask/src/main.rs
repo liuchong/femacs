@@ -2663,6 +2663,17 @@ impl Expand {
             let gated_here = gates[line_no];
             match include_target(line).map(|name| canonical(&dir.join(name))) {
                 Some(target) if target.is_file() => {
+                    // `FEMACS_DEBUG_EXPAND=1` prints each edge's decision.  It exists because the
+                    // `_GL_EXTERN_INLINE` duplicate (48 Android units, P-249) is invisible in the
+                    // output: the copy is included once per *including* mirror, and this is the
+                    // only place that knows which branch each edge took.
+                    if std::env::var("FEMACS_DEBUG_EXPAND").is_ok_and(|v| !v.is_empty()) {
+                        eprintln!("expand: {} gated={gated_here} path_gated={path_gated} seen={} ungated={} <- {}",
+                                  target.file_name().unwrap_or_default().to_string_lossy(),
+                                  self.seen.contains(&target),
+                                  self.ungated.contains(&target),
+                                  dir.display());
+                    }
                     if self.seen.contains(&target) {
                         out.push_str(&format!("// [xtask dedupe] {} already included{newline}",
                                               target.display()));
