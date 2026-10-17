@@ -4,26 +4,25 @@
 #          cd .. && FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
 #            <cargo-dir> tools/check-all-units.sh docs/baseline/frozen-build-sources-android.txt
 #
-# checked 91 unit(s), 39 failure(s)
+# checked 91 unit(s), 33 failure(s)
 
 count  reason                                                    state
-   12  cannot find type `font`                                    moved with its record; needs a
-                                                                  cycle-free home (P-254)
-    8  the name `JNIEnv` is defined multiple times                one definition in the tree;
-                                                                  the include is what doubles
     7  cannot find type `android_display_info`                    remainder of P-254
     3  cannot find type `text_cursor_kinds`                       dispextern.h 216-225; the unit
                                                                   cannot include dispextern (cycle)
-    2  cannot find type `frame`                                   same shape
+    3  cannot find type `frame`                                   same shape
     2  cannot find macro `FRAME_DISPLAY_INFO`                     same shape
     2  cannot find function `android_is_special_directory`        declarer is a unit
     1  each: pthread_t / module_finalize_function / mark_image_cache /
             mark_fringe_data / list_system_processes / lispy_function_keys /
-            glyph_string / combine_updates_for_frame
+            glyph_string / combine_updates_for_frame / android_is_special_directory
+
+# JNIEnv (8) cleared: include/thread.rs now includes include/jni.rs (the real
+# `pub type JNIEnv = *const JNINativeInterface`) instead of declaring an opaque stand-in.
 
 # History: 89 (before the two counting bugs were fixed) -> 71 (config constants) ->
 # 62 (read_config trailing comma) -> 39 (android_display_info/android_bitmap_record moved into
-# termhooks.rs, the mirror both sides include).
+# termhooks.rs, the mirror both sides include) -> 33 (JNIEnv declared once, in jni.rs).
 #
 # The remaining classes are all the same shape: a name whose declarer is either a *unit* or a
 # mirror that is on the other side of an include cycle.  P-253/P-254 establish the rule: such
