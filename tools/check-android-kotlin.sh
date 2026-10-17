@@ -55,7 +55,12 @@ R_JAVA=$(find "$GEN" -name R.java | head -1)
 R_JAR="$OUT/R.jar"
 echo "resources: R.jar built from $(find "$REPO/femacs/platform/android/res" -type f | wc -l | tr -d ' ') resource file(s)"
 
-FILES=$(find "$REPO/femacs/platform/android" -name '*.kt' | sort)
+# The reference generates a class at build time (`EmacsConfig`, java/Makefile.in 411-424); the
+# Kotlin sources name it, so the generator runs first and its file joins the compilation.
+mkdir -p "$OUT/generated"
+python3 "$REPO/tools/gen-emacs-config.py" --out "$OUT/generated" || exit $?
+
+FILES=$(find "$REPO/femacs/platform/android" "$OUT/generated" -name '*.kt' | sort)
 COUNT=$(printf '%s\n' "$FILES" | grep -c .)
 echo "compiling $COUNT Kotlin file(s) against $ANDROID_JAR"
 # shellcheck disable=SC2086
