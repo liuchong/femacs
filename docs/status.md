@@ -21997,3 +21997,9 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ⑤ **剩下这 1 个**：`lisp/loaddefs.el` 两处非 ASCII 被**文本改写**写坏（`Bahá’u’lláh`→`Bahá\31u\31lláh`、`回复`→`回\15`，逃逸值 = **码点低位字节**）；**运行期无影响（已测）**——端口 `mail-re-regexps` = `"回复"`、`string-to-list` = `(22238 22797)` = 参照 ⇒ dump 不从该文件取此值；按 P-163 ④ 的"未竟项"（`loaddefs` 这一族要**生成**、不许改写）记在案。
   ⑥ **验收**：重做 dump ⇒ `(ucs-names)` **51,963**（= 参照）、`(char-from-name "SNOWFLAKE")` **10052**、`?\N{SNOWFLAKE}` 可读 ✓；12 文件 GC 切片 `same=11 / both-fail=1 / crashed=0` ✓。
   ⑦ **Lisp 零改动**；零单元重编；受控执行器读数：生成器族两次（各 ≤ 8 s、峰值 ≤ 91 MB）、dump 两次（峰值 17 / 136 MB）；`git -C emacs status --short` 为空。提交：`tools/gen-unidata.py`（补前提）、`tools/check-generated.py`（树路径登记替换）、`PORTING.md`（P-187）、`docs/acceptance.md`（第 4 条读数）、本提交。
+- **4.557 验证相第一百八十八轮：全量强制 GC 压测跑完 —— 564 文件里与常态 L5 的差异集合**完全相同**（无新差异）（2026-10-17）**：
+  ① **读数**（`tools/check-ert.py --gc-stress --selector-preset default --memory-mib 700`，564 文件）：**same=551 / both-fail=7 / crashed=5 / port-worse=1**；端口 8,971 例 / 111 unexpected，参照 8,971 例 / **110** ✓。
+  ② **5 个 crashed 全部两侧对称** ✓（`autorevert-tests`、`net/tramp-tests`（两侧都在 120 s 内无 summary ✓）、`progmodes/eglot-tests`、`src/emacs-module-tests`、`src/keyboard-tests` ✓）⇒ 不是端口缺陷 ✓。
+  ③ **唯一的 port-worse = `lisp/calc/calc-tests.el`（1 vs 0）** ✓，与常态 L5 台账 `docs/baseline/ert-sweep-all.tsv` 里那一条**同一文件、同一读数** ✓ ⇒ **强制 GC 没有引入任何新差异** ✓（该例属已判定的产品名口径 ✓）。
+  ④ **资源**：1,263 s、峰值 **653 MB**（900 MiB 预算内 ✓，`--memory-mib 700` 的看门狗未触发 ✓）；台账入库 `docs/baseline/gc-stress-all.tsv`（565 行 ✓，与 `ert-sweep-all.tsv` 同格式 ✓）。
+  ⑤ **Lisp 零改动**；本轮**零编译**（只跑测试）；`git -C emacs status --short` 为空。提交：`docs/baseline/gc-stress-all.tsv`（台账）、`docs/acceptance.md`（7.2 附加闸门一节）、本提交（读数）。
