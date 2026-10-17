@@ -803,12 +803,26 @@ macro_rules! XSETFRAME {
 // `DEFUN!` shape) and the `for` becomes a `while` whose increment sits at the body's end —
 // the increment still runs after the body, exactly as C's does.  The token deviation (`for`)
 // is recorded in docs/ports/macro-body-notes.tsv.
+// C's shape is `for (list = Vframe_list; CONSP (list) && (frame = XCAR (list), true);
+// list = XCDR (list))`, and a `continue` in a C `for` runs the increment.  A Rust `while` does
+// not, so the body's `continue` left the list where it was and spun on the same frame - measured
+// 2026-10-17, `xdisp-tests--minibuffer-scroll` hung in `run_window_change_functions`, whose body
+// continues on a frame that needs no work.  The advance therefore happens *before* the body, in a
+// private variable, and the body still sees the current cell in `$list_var`; then `continue`
+// reaches the next frame exactly as C's does.  The one consequence: after the loop `$list_var`
+// holds the last cell rather than nil, which no call site reads.
 macro_rules! FOR_EACH_FRAME {
     ($list_var:ident, $frame_var:ident, $body:block) => {
-        $list_var = unsafe { Vframe_list };
-        while CONSP ($list_var) && { $frame_var = XCAR ($list_var); true } {
-            $body
-            $list_var = XCDR ($list_var);
+        {
+            let mut for_each_frame_rest: Lisp_Object = unsafe { Vframe_list };
+            while CONSP (for_each_frame_rest)
+                && { $list_var = for_each_frame_rest;
+                     $frame_var = XCAR ($list_var);
+                     for_each_frame_rest = XCDR ($list_var);
+                     true }
+            {
+                $body
+            }
         }
     };
 }
