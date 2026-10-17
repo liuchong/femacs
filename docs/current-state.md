@@ -39,6 +39,10 @@
 ## 一条命令复跑
 
 ```sh
+# 已授权平台（macOS + Android 结构）一条命令，失败即停：
+python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime \
+    --memory-mib 1400 -- bash tools/check-authorized-platforms.sh
+
 cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast      # 静态/链接/布局/声明/清单
 cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-android   # Android 结构验收（~1 GB 峰值）
 bash tools/smoke.sh                                                                  # macOS 冒烟
