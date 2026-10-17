@@ -72,8 +72,11 @@ def main() -> int:
     table = variables(makefile)
     objects = expand(" ".join(f"$({root})" for root in ROOTS), table)
     names = sorted({o for o in objects.split() if o.endswith(".o")})
-    sources = [o[:-2] + ".c" for o in names]
-    present = [c for c in sources if (REPO / "emacs/src" / c).is_file()]
+    # The list's shape is the darwin list's: `src/NAME.c`, because that is what `build-tu` takes.
+    # Emitting bare names would have made `check-all-units.sh <list>` look for files called
+    # `alloc.c` at the repository root (caught before the first per-target build, status 4.612).
+    sources = ["src/" + o[:-2] + ".c" for o in names]
+    present = [c for c in sources if (REPO / "emacs" / c).is_file()]
     absent = [c for c in sources if c not in present]
     if absent:
         # A name the reference's own `src/` does not have means the expansion went wrong; say so
@@ -85,8 +88,10 @@ def main() -> int:
               f"#       --makefile {args.makefile} --out {args.out}\n"
               f"# The recipe differs from the darwin list's `make -n` because this target's build\n"
               f"# directory is not a host make directory (see the tool's docstring).\n")
-    title = args.title or f"# Sources the frozen {args.makefile} configuration compiles.\n"
-    args.out.write_text(title + recipe + "\n".join(present) + "\n")
+    title = args.title or f"# Sources the frozen {args.makefile} configuration compiles."
+    # The title is given without a trailing newline by callers; the file's first line must not run
+    # into the recipe comment (caught on the first generated list, status 4.612).
+    args.out.write_text(title.rstrip("\n") + "\n" + recipe + "\n".join(present) + "\n")
     print(f"{len(present)} source(s) -> {args.out}")
     return 0
 

@@ -36,8 +36,7 @@
   可选项见 `docs/decisions-needed.md`：**(E1)** 用户明确授权一次模拟器运行的内存额度（需要改共享策略，
   我没权限自行改）✓；**(E2)** 接受"本机不跑模拟器"，Android 验收停在"结构 + 签名 APK + 原生库"✓；
   **(E3)** 先修共享执行器的记账（把"和"改成唯一 RSS/最大单进程 ✓，属共享策略改动，需用户拍板）✓。
-- **Android 原生库（不依赖模拟器，下一步）**：交叉目标 `aarch64-linux-android` 已装 ✓、冻结配置已产出 ✓、**该目标的编译集已冻结**（91 个 `src/*.c`，P-226 ✓）
-  ⇒ 剩下的是"按-target 构建 + 链接 `libemacs.so`/`libandroid-emacs.so`"这一步 ✓（`link-program` 现在只做可执行文件，`.so` 是新的连接模式）。
+- **Android 原生库（不依赖模拟器）**：交叉目标已装 **到钉住的 nightly 上**（P-04 的 `nightly-2026-10-01`）✓、冻结配置已产出 ✓、编译集已冻结（**91 个 `src/*.c`**，P-226 ✓）、**第一次按-target 构建已完成：87/91 通过** ✓。**剩 4 个真实缺陷**（P-227 ✓，攒齐后一次改）：3 个是 `c_char` 符号性假设（`bidi.rs`/`indent.rs`/`xdisp.rs` ✓，android 上 `c_char = u8` ✗）、1 个是 `HAVE_SIGNBIT` 在 Android 配置里被记成 `absent` ✗（它不是 config.h 宏、要按目标测量 ✓）。改完要做**一次 L5 刷新** ✓（P-222：读数必须晚于改动 ✓）。之后才是 `.so` 连接模式 + 打包进 APK ✓。
 
 已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
 `emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是
