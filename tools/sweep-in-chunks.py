@@ -42,7 +42,10 @@ def run_chunk(tool: str, tool_args: list[str], start: int, count: int, tsv: path
             "--start-at", str(start), "--max-files", str(count), "--tsv", str(tsv)]
     done = subprocess.run(argv, cwd=REPO, capture_output=True, text=True, timeout=timeout)
     reading = {"exit": done.returncode, "reason": "?", "peak": 0, "seconds": 0.0}
-    for line in done.stdout.splitlines():
+    # The runner's report is read from *both* streams: this driver first searched stdout only and
+    # printed `over budget (?, peak 0 MiB)` for every chunk, i.e. it could not tell a killed chunk
+    # from a finished one (status 4.611).
+    for line in (done.stdout + done.stderr).splitlines():
         if line.startswith("controlled-run: "):
             try:
                 payload = json.loads(line[len("controlled-run: "):])

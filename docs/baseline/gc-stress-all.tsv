@@ -11,12 +11,12 @@ lisp/arc-mode-tests.el	same	11	0	11	0	new RSS high-water 38 MiB
 lisp/auth-source-pass-tests.el	same	50	0	50	0	
 lisp/auth-source-tests.el	same	34	0	34	0	
 lisp/autoinsert-tests.el	same	11	0	11	0	
-lisp/autorevert-tests.el	crashed	0	0	0	0	port: crashed exit 1: Running 9 tests (2026-10-17 18:48:19+0800, selector `(not (or (tag :expensive-test) (tag :unstable)))') | reference: crashed exit 1: Running 9 tests (2026-10-17 18:48:20+0800, selector `(not (or (tag :expensive-test) (tag :unstable)))')
+lisp/autorevert-tests.el	crashed	0	0	0	0	port: crashed exit 1: Running 9 tests (2026-10-18 02:29:36+0800, selector `(not (or (tag :expensive-test) (tag :unstable)))') | reference: crashed exit 1: Source file `/Users/liu/projects/src/github.com/liuchong/femacs/emacs/lisp/net/tramp-loaddefs.el' newer than byte-compiled file; using older file | Running 9 te
 lisp/battery-tests.el	same	6	0	6	0	
 lisp/bookmark-tests.el	same	47	0	47	0	
 lisp/buff-menu-tests.el	same	1	0	1	0	
 lisp/button-tests.el	same	5	0	5	0	
-lisp/calc/calc-tests.el	port-worse	27	1	27	0	1 unexpected vs 0
+lisp/calc/calc-tests.el	same	27	0	27	0	
 lisp/calculator-tests.el	same	2	0	2	0	
 lisp/calendar/cal-bahai-tests.el	same	2	0	2	0	
 lisp/calendar/cal-french-tests.el	same	1	0	1	0	
@@ -57,7 +57,7 @@ lisp/dabbrev-tests.el	same	16	0	16	0
 lisp/delim-col-tests.el	same	9	0	9	0	
 lisp/descr-text-tests.el	same	3	0	3	0	
 lisp/desktop-tests.el	same	5	0	5	0	
-lisp/dired-aux-tests.el	same	5	0	5	0	new RSS high-water 106 MiB
+lisp/dired-aux-tests.el	same	5	0	5	0	new RSS high-water 108 MiB
 lisp/dired-tests.el	same	23	0	23	0	
 lisp/dired-x-tests.el	same	2	0	2	0	
 lisp/dnd-tests.el	same	7	0	7	0	
@@ -243,7 +243,7 @@ lisp/eshell/esh-worker-tests.el	same	27	0	27	0
 lisp/eshell/eshell-tests-unload.el	same	3	0	3	0	
 lisp/eshell/eshell-tests.el	same	19	0	19	0	
 lisp/faces-tests.el	same	5	0	5	0	
-lisp/ffap-tests.el	same	15	0	15	0	new RSS high-water 472 MiB
+lisp/ffap-tests.el	same	15	0	15	0	new RSS high-water 511 MiB
 lisp/filenotify-tests.el	same	4	0	4	0	
 lisp/files-tests.el	same	131	0	131	0	
 lisp/files-x-tests.el	same	12	0	12	0	
@@ -281,7 +281,7 @@ lisp/imenu-tests.el	same	3	0	3	0
 lisp/info-tests.el	same	1	0	1	0	
 lisp/info-xref-tests.el	same	4	0	4	0	
 lisp/international/ccl-tests.el	same	8	0	8	0	
-lisp/international/mule-tests.el	same	16	0	16	0	
+lisp/international/mule-tests.el	same	16	0	16	0	new RSS high-water 60 MiB
 lisp/international/mule-util-tests.el	same	41	0	41	0	
 lisp/international/textsec-tests.el	same	12	0	12	0	
 lisp/international/ucs-normalize-tests.el	same	5	0	5	0	
@@ -293,7 +293,7 @@ lisp/kmacro-tests.el	same	58	0	58	0
 lisp/language/viet-util-tests.el	same	1	0	1	0	
 lisp/loadhist-tests.el	same	10	0	10	0	
 lisp/lpr-tests.el	same	2	0	2	0	
-lisp/ls-lisp-tests.el	same	5	0	5	0	
+lisp/ls-lisp-tests.el	same	5	0	5	0	new RSS high-water 163 MiB
 lisp/mail/flow-fill-tests.el	same	3	0	3	0	
 lisp/mail/footnote-tests.el	same	1	0	1	0	
 lisp/mail/ietf-drums-date-tests.el	same	1	0	1	0	
@@ -343,7 +343,7 @@ lisp/net/secrets-tests.el	same	5	0	5	0
 lisp/net/shr-tests.el	same	5	0	5	0	
 lisp/net/socks-tests.el	same	10	0	10	0	
 lisp/net/tramp-archive-tests.el	same	10	0	10	0	
-lisp/net/tramp-tests.el	crashed	0	0	0	0	port: timeout no summary within 120s | reference: timeout no summary within 120s new RSS high-water 599 MiB
+lisp/net/tramp-tests.el	crashed	0	0	0	0	port: out-of-memory no summary within a 700 MiB cap | reference: timeout no summary within 300s new RSS high-water 1571 MiB
 lisp/net/webjump-tests.el	same	7	0	7	0	
 lisp/newcomment-tests.el	same	1	0	1	0	
 lisp/nxml/nxml-mode-tests.el	same	8	0	8	0	
@@ -541,7 +541,7 @@ src/image-tests.el	same	5	0	5	0
 src/indent-tests.el	same	3	0	3	0	
 src/inotify-tests.el	same	3	0	3	0	
 src/json-tests.el	same	25	0	25	0	
-src/keyboard-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000014 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000019 sec) | reference: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000013 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000018 sec)
+src/keyboard-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000014 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000018 sec) | reference: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000012 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000016 sec)
 src/keymap-tests.el	same	47	0	47	0	
 src/lcms-tests.el	same	6	0	6	0	
 src/lread-tests.el	same	55	0	55	0	

@@ -18,7 +18,7 @@
 |---|---|---|---|
 | 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` ⇒ 590/0/0 |
 | 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `xtask gate-fast` ⇒ exit 0（八步） |
-| 3 | L0–L5 | ✅ | L0 ⇒ 19/0 ✓；**L1 ⇒ 111 文件 / 0 失败 / 1 接受**（`docs/baseline/l1-accepted.tsv`：参照树自身的 `.elc` 陈旧，只接受 `newer than byte-compiled file` 这一形态）；L5 ⇒ 端口缺陷 0 ✓ |
+| 3 | L0–L5 | ✅（**L5 台账早于 P-195，重跑中**） | 常态 L5 的台账 `docs/baseline/ert-sweep-all.tsv` 是 4.535-4.563 的读数，**早于最后一次 Rust 改动（P-195/4.568）** ⇒ 按 P-222 需重跑（同一轮的 GC 压测门已重跑并清零唯一 `port-worse`，见 P-225）；L0 ⇒ 19/0 ✓；**L1 ⇒ 111 文件 / 0 失败 / 1 接受**（`docs/baseline/l1-accepted.tsv`：参照树自身的 `.elc` 陈旧，只接受 `newer than byte-compiled file` 这一形态）；L5 ⇒ 端口缺陷 0 ✓ |
 | 4 | `.elc`/dump/生成物/loadup | ✅ | `check-generated.py` **244 文件**（新增 ja-dic 家族、`uvs.elc` 与 `jisx2131-filter`）⇒ **195 identical / 49 name-only / 0 DIFFERENT**；**`.elc` 集合已满**：参照 1,645 个 `.elc` 全有（`ja-dic.elc` 由 `tools/gen-ja-dic.py` 生成，`uvs.elc` 由端口的程序编译，两者都与参照逐字节相同）；**`src/macuvs.h` 也对上了**：`gen-unidata.py` 的 `run_uvs` 用端口的程序打印出与签约副本逐字节相同的 479,218 B（P-219）；`check-loadup.py` ⇒ 两树逐文件一致；**产物面盘点**：参照构建产物 1,973 个，端口有 **1,923**；缺的 50 个**逐条写明理由**（`docs/baseline/build-products-absent.txt`）：脚手架 23（P-102 退役）+ `info/*` 23 + `doc/*` 3（都要 `makeinfo`）+ make stamp 1；理由为 `unclassified` 的行 = 尚未推进的工作 |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` ⇒ 4,604 文件 / 0 failures |
 | 6 | 平台（macOS + Android） | ⚠️ 部分 | macOS `tools/smoke.sh` 11/11；Android `xtask gate-android` ⇒ 181,486 B APK / 112 class / 签名通过 |
@@ -36,8 +36,8 @@
   可选项见 `docs/decisions-needed.md`：**(E1)** 用户明确授权一次模拟器运行的内存额度（需要改共享策略，
   我没权限自行改）✓；**(E2)** 接受"本机不跑模拟器"，Android 验收停在"结构 + 签名 APK + 原生库"✓；
   **(E3)** 先修共享执行器的记账（把"和"改成唯一 RSS/最大单进程 ✓，属共享策略改动，需用户拍板）✓。
-- **Android 原生库（不依赖模拟器，下一步）**：交叉目标 `aarch64-linux-android` 已装 ✓、冻结配置已产出 ✓
-  ⇒ 需要的是"按-target 构建 + 链接 `libemacs.so`/`libandroid-emacs.so`"这一步 ✓。
+- **Android 原生库（不依赖模拟器，下一步）**：交叉目标 `aarch64-linux-android` 已装 ✓、冻结配置已产出 ✓、**该目标的编译集已冻结**（91 个 `src/*.c`，P-226 ✓）
+  ⇒ 剩下的是"按-target 构建 + 链接 `libemacs.so`/`libandroid-emacs.so`"这一步 ✓（`link-program` 现在只做可执行文件，`.so` 是新的连接模式）。
 
 已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
 `emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是
