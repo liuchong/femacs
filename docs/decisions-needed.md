@@ -48,6 +48,7 @@
 - Android：**Kotlin 41 文件零错误（112 class）**、`res/` 18 个资源 + 清单、`R` 与 `EmacsConfig` 生成、**d8 → zipalign → apksigner 产签名的 `emacs.apk`（180 KB）**；缺**原生库**（等一次 Android `configure`，已连续被机器上别的任务占满共享内存预算）与**真机/模拟器冒烟**。
 - Linux：`aarch64-unknown-linux-{gnu,musl}` 目标已装，缺**按-target 的构建驱动**。
 - Windows（mingw）与 Haiku：**工具链未实测**。
+- **Android 原生库的精确卡点（4.582 实测）**：参照的 `configure` 用 `javac -source 1.7` 判定编译器可用，而本机只有 **JDK 21 / 26**，两者都拒绝 1.7 ⇒ 需要一个 **JDK ≤ 19**（17 或 11），属于安装动作，需你同意。
 
 **选项**
 

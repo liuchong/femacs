@@ -22137,3 +22137,8 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **实跑读数** ✓：`android.jar`(android-36) ✓ / `build-tools/35.0.1` 的 aapt、apksigner、d8 ✓ / NDK 29 的 `aarch64-linux-android21-clang` ✓ / `emacs/configure` ✓ ⇒ **`prerequisites: complete`**（rc=0 ✓、250 MiB 预算 ✓）。
   ③ **未执行** ✓：三次重活尝试（900/1500/1200 MiB）均被 `Combined memory reservations exceed the shared budget` 拒绝 ✓（另一项目 3 个 `run.py` 在跑 ✓）⇒ 记作等待 ✓。
   ④ **零重编** ✓。提交：`tools/gen-android-config.sh` ✓、`PORTING.md`（P-206 ✓）、本提交（读数 ✓）。
+- **4.582 验证相第二百一十二轮：Android configure 的卡点精确定位到 **JDK 版本**（21 不支持 `-source 1.7`），不是端口也不是 NDK（P-207）（2026-10-17）**：
+  ① **运行** ✓：共享预算本轮放行 ⇒ `tools/gen-android-config.sh` 真的跑到了 `configure` ✓（前置检查 `prerequisites: complete` ✓）。
+  ② **读数** ✓：`checking whether the Java compiler works... no` ✓ ⇒ `configure: exit 1` ✓。
+  ③ **定位** ✓：`configure.ac` 958-961 用 `-target 1.7 -source 1.7` ✓；本机 JDK 21 的 `javac` 对该参数直接报 `不再支持源选项 7。请使用 8 或更高版本。` ✓（手工复跑同一命令行 ✓）⇒ 需要 **JDK ≤ 19** ✓ 或改参照（禁止 ✗）。
+  ④ **零重编** ✓；受控执行器 build 1.2 GiB 三次（峰值 ≤ 9 MB ✓，都在 javac 检查处早退 ✓）。提交：`PORTING.md`（P-207 ✓）、`docs/decisions-needed.md`（第 3 项补这条前置 ✓）、`tools/gen-android-config.sh`（JDK/PATH 接线 ✓）、本提交（读数 ✓）。

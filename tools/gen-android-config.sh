@@ -30,6 +30,13 @@ done
 ANDROID_JAR="$SDK/platforms/android-$API/android.jar"
 BUILD_TOOLS=$(ls -d "$SDK"/build-tools/* 2>/dev/null | tail -1)
 CC=$(ls "$SDK"/ndk/*/toolchains/llvm/prebuilt/*/bin/aarch64-linux-android"$NDK_API"-clang 2>/dev/null | tail -1)
+# configure compiles a Java program to prove the toolchain works, and /usr/bin/javac on a Mac
+# without a JDK is a stub that fails there ("the Java compiler does not work" - measured).  The
+# JDK Android Studio ships is the one the rest of the Android leg already uses.
+STUDIO=${STUDIO:-/Applications/Android Studio.app/Contents}
+JDK_BIN="$STUDIO/jbr/Contents/Home/bin"
+JAVAC=${JAVAC:-$JDK_BIN/javac}
+JARSIGNER=${JARSIGNER:-$JDK_BIN/jarsigner}
 
 missing=0
 report() { printf '%-28s %s\n' "$1" "${2:-missing}"; [ -n "${2:-}" ] || missing=1; }
@@ -39,13 +46,18 @@ for tool in aapt apksigner d8; do
   report "$tool" "$([ -x "$BUILD_TOOLS/$tool" ] && echo "$BUILD_TOOLS/$tool")"
 done
 report ndk-clang "$CC"
+report javac "$([ -x "$JAVAC" ] && echo "$JAVAC")"
+report jarsigner "$([ -x "$JARSIGNER" ] && echo "$JARSIGNER")"
 report configure "$([ -x "$REPO/emacs/configure" ] && echo "$REPO/emacs/configure")"
 
 [ "$CHECK" = 1 ] && { [ "$missing" = 0 ] && echo "prerequisites: complete" || echo "prerequisites: incomplete"; exit "$missing"; }
 [ "$missing" = 0 ] || { echo "prerequisites are incomplete; nothing was run" >&2; exit 2; }
 
 rm -rf "$BUILD" && mkdir -p "$BUILD" && cd "$BUILD" || exit 1
-SDK_BUILD_TOOLS="$BUILD_TOOLS" "$REPO/emacs/configure" \
+# `AC_PATH_PROGS` looks `javac` up on PATH and prefers that over an env override (measured:
+# /usr/bin/javac kept winning), so the JDK's bin goes first.
+PATH="$JDK_BIN:$PATH" SDK_BUILD_TOOLS="$BUILD_TOOLS" JAVAC="$JAVAC" JARSIGNER="$JARSIGNER" \
+  JAVA_HOME="$STUDIO/jbr/Contents/Home" "$REPO/emacs/configure" \
   --host=aarch64-linux-android --with-android="$ANDROID_JAR" CC="$CC" \
   --without-all --with-x=no --with-ns=no > configure.log 2>&1
 status=$?
