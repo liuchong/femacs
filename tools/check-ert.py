@@ -122,11 +122,21 @@ def watchdog(proc: subprocess.Popen, mib: int) -> bool:
 
 def run(prog: Path, test_root: Path, rel: str, timeout: int,
         selector: str = SELECTOR_DEFAULT,
-        memory_mib: int = 0) -> tuple[str, int, int, int, str]:
-    """(verdict, ran, expected, unexpected, note) for one program and one test file."""
+        memory_mib: int = 0,
+        prelude: str = "") -> tuple[str, int, int, int, str]:
+    """(verdict, ran, expected, unexpected, note) for one program and one test file.
+
+    `prelude` is evaluated after `-l ert` and before the test file, so a rung can put the
+    program into a different *environment* without touching the harness recipe: the GC
+    stress rung (docs/port-plan.md 7.2's "强制 GC 压测") passes `(setq gc-cons-threshold 1)`
+    here, which makes every allocation a GC decision while the test files stay byte for
+    byte the reference's own."""
     argv = [str(prog), "--no-init-file", "--no-site-file", "--no-site-lisp", "-L", f":{test_root}",
-            "-l", "ert", "-l", str(test_root / rel), "--batch",
-            "--eval", f"(ert-run-tests-batch-and-exit (quote {selector}))"]
+            "-l", "ert"]
+    if prelude:
+        argv += ["--eval", prelude]
+    argv += ["-l", str(test_root / rel), "--batch",
+             "--eval", f"(ert-run-tests-batch-and-exit (quote {selector}))"]
     proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                             env={"HOME": "/nonexistent", "PATH": "/usr/bin:/bin",
                                  "LC_ALL": "C"},
@@ -193,6 +203,12 @@ def main() -> int:
                          "reference's own SELECTOR_DEFAULT (test/Makefile.in 139)")
     ap.add_argument("--selector-preset", choices=sorted(SELECTOR_PRESETS), default=None,
                     help="the reference's shorthand: default|expensive|all")
+    ap.add_argument("--prelude-eval", default="",
+                    help="Lisp evaluated after `-l ert` and before the test file, on both "
+                         "programs (the environment the file runs in)")
+    ap.add_argument("--gc-stress", action="store_true",
+                    help="shortcut for --prelude-eval '(setq gc-cons-threshold 1)': the "
+                         "forced-GC rung of docs/port-plan.md 7.2")
     ap.add_argument("--memory-mib", type=int, default=0,
                     help="cap each side's address space (RLIMIT_AS); a file that runs out of "
                          "memory is then a bounded reading instead of an executor kill")
@@ -202,6 +218,13 @@ def main() -> int:
 
     if a.selector_preset:
         a.selector = SELECTOR_PRESETS[a.selector_preset]
+    if a.gc_stress:
+        if a.prelude_eval:
+            print("--gc-stress and --prelude-eval are mutually exclusive", file=sys.stderr)
+            return 2
+        a.prelude_eval = "(setq gc-cons-threshold 1)"
+    if a.prelude_eval:
+        print(f"prelude: {a.prelude_eval}")
     for p in (a.port_prog, a.ref_prog):
         if not p.is_file():
             print(f"missing program: {p}", file=sys.stderr)
@@ -229,17 +252,20 @@ def main() -> int:
     if a.max_files:
         files = files[:a.max_files]
     for i, rel in enumerate(files, 1):
-        v1, r1, e1, u1, n1 = run(a.port_prog, PORT_TEST, rel, a.timeout, a.selector, a.memory_mib)
+        v1, r1, e1, u1, n1 = run(a.port_prog, PORT_TEST, rel, a.timeout, a.selector,
+                                 a.memory_mib, a.prelude_eval)
         retried = False
         while v1 != "ok" and a.retries > 0 and not retried:
             retried = True
-            v1, r1, e1, u1, n1 = run(a.port_prog, PORT_TEST, rel, a.timeout, a.selector, a.memory_mib)
+            v1, r1, e1, u1, n1 = run(a.port_prog, PORT_TEST, rel, a.timeout, a.selector,
+                                 a.memory_mib, a.prelude_eval)
             if v1 == "ok":
                 rows.append((rel, "flaky", r1, u1, 0, 0,
                              "the port crashed and passed on a retry"))
         if retried and v1 == "ok":
             continue
-        v2, r2, e2, u2, n2 = run(a.ref_prog, REF_TEST, rel, a.timeout, a.selector, a.memory_mib)
+        v2, r2, e2, u2, n2 = run(a.ref_prog, REF_TEST, rel, a.timeout, a.selector,
+                                 a.memory_mib, a.prelude_eval)
         if v1 == "out-of-memory" and v2 == "out-of-memory":
             rows.append((rel, "both-capped", r1, u1, r2, u2,
                          "the file is too heavy for the harness's cap on both sides"))
