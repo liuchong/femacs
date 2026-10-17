@@ -21,7 +21,7 @@
 
 | 平台 | 现在能做的 | 缺什么 | 读数 |
 | --- | --- | --- | --- |
-| macOS（本机） | 全部：`gate-fast`、`gate-load`、`dump`、L0–L5、性能基准 | — | ✓ 已在本机持续跑（`docs/status.md` 各轮） |
+| macOS（本机） | 全部：`gate-fast`、`gate-load`、`dump`、L0–L5、性能基准，以及 `tools/smoke.sh` | — | ✓ **`tools/smoke.sh` = 11 检查 / 0 失败**（2026-10-17）；L0–L5 见 `docs/status.md` 各轮 |
 | Android | NDK 编 `aarch64` 的 `temacs`（`.so`/可执行 ✓）；Kotlin 侧需 `kotlinc` 或 Gradle 分发包 | `kotlinc` ✗ | 未开始 |
 | Windows | 文本级：`nt/`、`w32*.rs` 的镜像与翻臂编译 | mingw 交叉工具链 ✗ | 未开始（按 goal §9 记"外部资源"） |
 | Linux | 文本级：`exec/`、`lib-src/` 的镜像 | linux 交叉 `gcc` ✗ | 未开始（同上） |
@@ -29,8 +29,9 @@
 
 ## 3 DoD-6 的推进顺序（按本机能做的先做）
 
-1. **macOS 冒烟脚本化**：把 L0–L4 阶梯 + 一条 Lisp 冒烟收进一个命令（`tools/smoke.sh macos`），
-   让"平台冒烟"变成可重复的一行读数，而不是散在 status 里。
+1. ~~**macOS 冒烟脚本化**~~ ✓ **已完成**：`tools/smoke.sh` —— 11 条检查，每条都是"同一 Lisp
+   形式在两个程序上打印同一行"的**差分**判据（避开产品名与显示相关项）；`--prog` 可指向任意平台的
+   程序（Android 的 arm64 构建、无 dump 的 `temacs`），所以同一份冒烟可以直接搬到 DoD-6 的其它行。
 2. **Android**：装 `kotlinc`（或 Gradle wrapper）后，用 NDK 26 编 `aarch64` 的 `temacs`，
    跑同一条 Lisp 冒烟；Kotlin 单元用 `kotlinc` 编 + `java` 跑单元级冒烟。
 3. **Windows / Linux / Haiku**：工具链在本机不存在 ⇒ 按 `docs/goal.md` §9 第 2 条**如实记为
