@@ -21790,3 +21790,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ② **归因** ✓：这是**既定产品命名政策**的**有意偏离** ✓（与 `.elc` 那族"31 件只差产品名" ✓ 同类 ✓）⇒ 不是端口缺陷 ✓；修它要么违反命名政策 ✗、要么改测试 ✗（硬约束 5 ✓）⇒ 唯一处置是**归类 + 台账说明** ✓。
   ③ **规则** ✓：ERT 判定加第五档 `name-only` ✓（断言含参照产品名而端口改名 ✓），`note` 列写断言与端口输出 ✓（P-175 ✓）。
   ④ **Lisp 零改动** ✓；本轮零编译 ✓（只有 ERT 与读码 ✓）；受控执行器 runtime 900 MiB 实测峰值 **≤ 50 MB** ✓；`git -C emacs status --short` 为空 ✓。提交：`PORTING.md`（P-175 ✓）、本提交（纯读数 ✓）。
+- **4.525 验证相第一百五十六轮：全量 ERT 台账按当前程序重刷 —— **564 文件：same 551 / both-fail 7 / crashed 5 / port-worse 1（且那 1 条是产品名）**（2026-10-17）**：
+  ① **口径** ✓：与 4.484 完全相同 ✓（参照 `test/Makefile.in` 的 `ELFILES` 全量 564 ✓、两侧同一 `SELECTOR_DEFAULT` ✓、`--timeout 120 --memory-mib 700` ✓），分 8 片跑完 ✓（80×7 + 4 ✓，总耗时 **1295 s** ✓，受控执行器 runtime 900 MiB、实测峰值 **630 MB** ✓）。
+  ② **读数（`docs/baseline/ert-sweep.tsv` 已按本轮覆盖 ✓）**：**same 551** ✓ / **both-fail 7** ✓ / **crashed 5** ✓ / **port-worse 1** ✓ = 564 ✓。对 4.484 的 **same 525 / port-worse 21 / crashed 12 / both-fail 6** ✓ ⇒ **same +26** ✓、**port-worse 21 → 1** ✓、crashed 12 → 5 ✓。
+  ③ **13 条非 same 全部对称** ✓（逐条读了 `note` 列 ✓）：`both-fail` = `lib-src/emacsclient-tests`（两侧各 2 ✓）、`image/exif-tests`（各 2 ✓）、`server-tests`（各 2 ✓）、`uniquify-tests`（各 2 ✓）、`vc-test-misc`（各 1 ✓）、`src/comp-tests`（两侧各 **100** ✓ —— 未编译的 native-comp 夹具 ✓）、`src/process-tests`（各 1 ✓）；`crashed` = `autorevert`（两侧 exit 1 ✓）、`tramp`（**两侧都超时** ✓）、`eglot`（两侧 exit 1 ✓ 需 clangd ✓）、`src/emacs-module-tests`（两侧 exit 255 ✓ 模块未构建 ✓）、`src/keyboard-tests`（两侧各 24/26 后 exit 1 ✓）。⇒ **端口独有缺陷 0** ✓✓。
+  ④ **唯一 `port-worse`** ✓：`lisp/calc/calc-tests` ✓ —— `calc-inhibit-startup-message` 断言参照产品名 ✓，端口按政策改名 ✓ ⇒ `note` 列写 `name-only` ✓（P-175 ✓）。
+  ⑤ **一处待调工具** ✗：`tramp-tests` 在 120 s 下**两侧都超时** ✓（参照峰值 581 MB ✓）⇒ 它的判定受 per-file 预算限制 ✗，不是缺陷 ✓；`note` 已写明"需要更长预算" ✓，单文件重跑（≥420 s）排下一轮 ✓。
+  ⑥ **Lisp 零改动** ✓；本轮**零编译** ✓（只跑 ERT ✓）；`git -C emacs status --short` 为空 ✓。提交：`docs/baseline/ert-sweep.tsv`（全量重刷 ✓）、本提交（纯读数 ✓）。
