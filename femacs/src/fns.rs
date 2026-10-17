@@ -3467,17 +3467,20 @@ unsafe fn value_cmp (a: Lisp_Object, b: Lisp_Object, maxdepth: c_int) -> c_int
 		  { return 0; }
 		}
 	    }
-	  else if BIGNUMP (a)
-	    { return -value_cmp (b, a, maxdepth); }
-	  else if SYMBOL_WITH_POS_P (a) && symbols_with_pos_enabled
-	    {
-	      a = XSYMBOL_WITH_POS_SYM (a);
-	      continue 'tail_recurse;
-	    }
-
-	  break 'type_mismatch;
-      break 'type_mismatch;
 	}
+      /* C 3237-3248: these two are the `else if` of `if (VECTORLIKEP (b))`, not of the inner
+	 `if (ta == tb)`.  Nested inside that block they were unreachable for a bignum on the
+	 left and a fixnum on the right, and the arm fell off its end back into this loop
+	 forever (P-171).  */
+      else if BIGNUMP (a)
+	{ return -value_cmp (b, a, maxdepth); }
+      else if SYMBOL_WITH_POS_P (a) && symbols_with_pos_enabled
+	{
+	  a = XSYMBOL_WITH_POS_SYM (a);
+	  continue 'tail_recurse;
+	}
+
+      break 'type_mismatch;
       }
 
     Lisp_Type::Lisp_Float =>
