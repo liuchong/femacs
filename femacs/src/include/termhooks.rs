@@ -1,4 +1,14 @@
 // femacs: port of src/termhooks.h @ fd7afced403.
+/* C termhooks.h 957-959: the android arm of `TERMINAL_FONT_CACHE` (each window system has
+   its own arm there; this mirror only needs the one this target compiles).  */
+#[cfg (feature = "have_android")]
+macro_rules! TERMINAL_FONT_CACHE {
+  ($t:expr) => {
+    if (*(($t) as *mut terminal)).r#type == output_android
+      { (*(*(($t) as *mut terminal)).display_info.android).name_list_element }
+    else { Qnil () }
+  };
+}
 
 // WIP mirror (PORTING.md P-66): `struct input_event` and the two enumerations it carries,
 // which is the slice `keyboard.h` needs (its `union buffered_input_event` embeds the event

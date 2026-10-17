@@ -1,4 +1,10 @@
 // femacs: port of src/dispextern.h @ fd7afced403.
+/* C dispextern.h 3753 declares mark_image_cache; image_prune_animation_caches sits beside it
+   in the image family, and both are only reached from the window-system arm.  */
+#[cfg (feature = "have_android")]
+unsafe extern "C" { pub fn mark_image_cache (cache: *mut c_void); }
+#[cfg (feature = "have_android")]
+unsafe extern "C" { pub fn image_prune_animation_caches (inhibit: bool); }
 //
 // WIP mirror (PORTING.md P-66): it carries the *frozen configuration's* live text as it is
 // needed, which is the platform-independent part of the display interface — the scalars,

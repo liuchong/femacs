@@ -1,4 +1,7 @@
 // femacs: port of src/lisp.h @ fd7afced403.
+/* C lisp.h 4307: `extern void mark_fringe_data (void);`  */
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+unsafe extern "C" { pub fn mark_fringe_data (); }
 //
 // This is the header mirror: declarations only (PORTING.md 0.1).  Definitions of
 // functions live in exactly one translation unit each; this file declares types,
