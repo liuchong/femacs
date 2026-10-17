@@ -110,9 +110,12 @@ pub const _UINT64_T: core::ffi::c_int = 1;
 pub const GNULIB_defined_stdint_types: core::ffi::c_int = 1;
 
 /* C 57/60: `__STDC_CONSTANT_MACROS`/`__STDC_LIMIT_MACROS`, the pre-C++11 opt-ins of the
-   `#ifdef __cplusplus` arm (dead in C, the value the template's text gives).  */
-pub const __STDC_CONSTANT_MACROS: core::ffi::c_int = 1;
-pub const __STDC_LIMIT_MACROS: core::ffi::c_int = 1;
+   `#ifdef __cplusplus` arm (dead in C, the value the template's text gives).
+
+   The port does **not** declare them here: `config.h` 2704 has
+   `/* #undef __STDC_CONSTANT_MACROS */`, and in C a `#undef` after `<stdint.h>` cancels the
+   header's definition, so the configuration's value is the only one that exists.  Declaring the
+   template's `1` as well both collided with `config.rs` and contradicted it (status 4.634).  */
 
 /* --- the template's own helper macros (C 124-133) -----------------------------------------
 
