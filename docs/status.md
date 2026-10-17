@@ -21641,3 +21641,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **门** ✓：`build-tu src/buffer.c` / `src/alloc.c` / `src/frame.c` ✓（宏的三个消费者 ✓）、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、`gate-fast` 见提交说明 ✓。
   ⑤ **下一步（点名 ✓）**：⑴ 用同一判据扫一遍**其它"`for` 抄成 `while`"**的宏与循环 ✓（`grep` 出带 `continue` 的 `while` ✓ 与 C 对照 ✓）；⑵ `electric-tests` 的匹配器缺陷（`d` 越过 `end1` ✓，已收敛到"进入时就不一致" ✓）；⑶ `.elc` 96 件状态差按两阶段镜像 ✓；⑷ `back_comment`（P-139 ✓）与其余 port-worse ✓；⑸ 五平台冒烟 ✓。
   ⑥ **资源**：3 次单单元编译 ✓ + 1 次 `gate-load`/`dump` ✓ + 2 次 6 s 复现 ✓ + 1 次单文件 ERT（1.3 s ✓）+ 1 次 `gate-fast`；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 316 MB** ✓；`git -C emacs status --short` 为空 ✓；临时脚本在 `/tmp` ✓。提交：`femacs/src/include/buffer.rs`（宏 ✓）、`PORTING.md`（P-152 ✓）、本提交 ✓。
+- **4.501 验证相第一百三十二轮：按 P-152 的通用形状扫全树宏 ⇒ 3 个候选、1 个真缺陷（`GET_CHAR_BEFORE_2` 的 `dtemp--`）（P-153）（2026-10-17）**：
+  ① **扫描口径** ✓：解析每个 `macro_rules!` 的展开文本 ✓，取同时含 `while` 与 `continue` 的 ✓ ⇒ **3 个**：`sfnt.rs` 的 `LOOPCALL` ✓（安全 ✓）、`regex-emacs.rs` 的 `SETUP_MULTIBYTE_RANGE` ✓（端口已显式补 `C0 += 1; continue;` ✓）、`regex-emacs.rs` 的 **`GET_CHAR_BEFORE_2`** ✗。
+  ② **缺陷与修法** ✓：C 是 `while (dtemp-- > dlimit && !CHAR_HEAD_P (*dtemp)) continue;` ✓（比较用旧值 ✓、取字符用新值 ✓、失败也比较后仍减 1 ✓）；端口比的是**减之后**的值 ✗ ⇒ 多走一字节 ✗。改为显式 `loop { let old = dtemp; dtemp -= 1; if !(old > dlimit) break; if CHAR_HEAD_P (*dtemp) break; }` ✓，三条语义逐项对应 ✓。
+  ③ **读数（无回归 ✓）**：`src/regex-emacs-tests.el` **35 例 0 unexpected ✓ same** ✓；`lisp/whitespace-tests.el` **11 例 0 unexpected ✓ same** ✓。
+  ④ **门** ✓：`build-tu src/regex-emacs.c` ✓、`gate-load` 15 例 ✓、`dump` 成功（13,025,304 B ✓）、`gate-fast` 见提交说明 ✓。
+  ⑤ **下一步（点名 ✓）**：⑴ 同一脚本扩大到 `while` **非宏**循环里的 `continue`（按 C 侧是否为 `for` 对照 ✓）；⑵ `electric-tests` 的匹配器缺陷（`d` 越过 `end1` ✓）；⑶ `.elc` 96 件状态差按两阶段镜像 ✓；⑷ `back_comment`（P-139 ✓）与其余 port-worse ✓；⑸ 五平台冒烟 ✓。
+  ⑥ **资源**：1 次单单元编译 ✓ + 1 次 `gate-load`/`dump` ✓ + 2 次单文件 ERT（2.7 s ✓）+ 1 次 `gate-fast`；受控执行器 build 2048 / runtime 900 MiB（下调自默认 ✓）、峰值 **≤ 277 MB** ✓；`git -C emacs status --short` 为空 ✓；临时脚本在 `/tmp` ✓。提交：`femacs/src/regex-emacs.rs`（`GET_CHAR_BEFORE_2` ✓）、`PORTING.md`（P-153 ✓）、本提交 ✓。
