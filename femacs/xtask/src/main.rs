@@ -1351,6 +1351,18 @@ configuration (see PORTING.md 2.1's setup steps)");
     // separated, `'a` lifetimes versus `'a'` chars) and compares with
     // `docs/baseline/declarations-allowlist.tsv`, so the literals that must stay are
     // counted with a reason rather than being invisible to every other gate (3.73).
+    // DoD-2's third leg: the subr table itself.  The symbol gate covers linkage names; this
+    // asks both programs which subrs they register, with what arity and interactive form.
+    println!("== subr table gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-subrs.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("subr table: the port registers the reference's subrs"),
+        Ok(_) => return fail("the port's subr table differs from the reference's (DoD-2)"),
+        Err(e) => return fail(e),
+    }
     // P-178: a `DEFVAR_LISP` whose C initialiser line was dropped still compiles, still
     // registers, and reads nil only when a consumer asks.  This step compares the *values* of
     // every such variable between the two programs, which is why the class cannot hide here.
