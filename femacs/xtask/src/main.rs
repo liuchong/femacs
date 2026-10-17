@@ -94,6 +94,9 @@ fn main() {
         "gate-probes" => gate_probes(),
         "dead-arms" => dead_arms(),
         "gate-load" => gate_load(args.get(1).map(String::as_str)),
+        // Android links `libemacs.so` instead of a program (src/Makefile.in 727-755), so the
+        // object set needs a *shared* link: same units, no `main`.
+        "link-shared" => link_shared(args.get(1).map(String::as_str)),
         "link-program" => link_program(args.get(1)),
         "dump" => dump_emacs(),
         // The Android acceptance that needs no device: build the APK once and assert what a
@@ -1648,6 +1651,132 @@ fn probe_programs() -> Result<(), String> {
 /// these, and C's `temacs` rule links them through `LIBEGNU_ARCHIVE`.  The port has no archive of
 /// its own (goal constraint 2), so its objects for these members stand in - and *only* these:
 /// see the call site for what linking a member C never builds costs.
+/// The driver of a shared library: no `main`, but the panic handler C's build gets from libc.
+const SHARED_DRIVER: &str = "#![no_std]\n\n\
+#[panic_handler]\n\
+fn panic (_info: &core::panic::PanicInfo) -> ! { loop {} }\n";
+
+/// `xtask link-shared <target>` - link the port's objects for TARGET into `libemacs.so`.
+///
+/// `src/Makefile.in` 727-755 builds Android's `libemacs.so` with `-shared` over `$(ALLOBJS)`;
+/// the port's equivalent is its per-target unit objects (`build/femacs/<unit>.<target>.o`, written
+/// by `build-tu` under `FEMACS_TARGET`), linked as a Rust `cdylib` so the language runtime's own
+/// symbols come along.  No `libgnu.a` is passed: a port unit carries the gnulib mirrors it
+/// includes, which is why the first link needed none - it left three undefined symbols, all of
+/// them bionic/libc++ (`__cxa_atexit`, `__cxa_finalize`, `rust_eh_personality`), measured with
+/// `llvm-nm -D --undefined-only` (status 4.614).
+///
+/// The linker is the NDK's cross compiler, named by `FEMACS_ANDROID_CC` or found under
+/// `$ANDROID_HOME`/`$HOME/Library/Android/sdk` the way `tools/gen-android-config.sh` finds it.
+fn link_shared (target: Option<&str>) -> i32
+{
+  let Some(target) = target else
+    {
+      return fail ("link-shared needs a target, e.g. aarch64-linux-android");
+    };
+  let target = target.to_string ();
+  let build = Path::new (BUILD);
+  let mut objects: Vec<PathBuf> = Vec::new ();
+  match fs::read_dir (build)
+    {
+      Ok (entries) => for entry in entries.flatten ()
+        {
+          let path = entry.path ();
+          let name = path.file_name ().map (|n| n.to_string_lossy ().into_owned ())
+            .unwrap_or_default ();
+          if name.ends_with (&format! (".{target}.o")) { objects.push (path); }
+        },
+      Err (e) => return fail (format! ("reading {}: {e}", build.display ())),
+    }
+  objects.sort ();
+  if objects.is_empty ()
+    {
+      return fail (format! ("no `*.{target}.o` in {}: build the units under FEMACS_TARGET first",
+                            build.display ()));
+    }
+  let Some (linker) = android_linker (&target)
+    else
+      {
+        return fail ("no Android cross compiler: set FEMACS_ANDROID_CC, or install the NDK\
+                      under $ANDROID_HOME / $HOME/Library/Android/sdk");
+      };
+  let dir = Path::new ("../build/port").join (&target);
+  if let Err (e) = fs::create_dir_all (&dir)
+    {
+      return fail (format! ("creating {}: {e}", dir.display ()));
+    }
+  if let Err (e) = fs::write ("../build/load/shared-driver.rs", SHARED_DRIVER)
+    {
+      return fail (format! ("writing the shared driver: {e}"));
+    }
+  let mut rsp: Vec<String> = Vec::new ();
+  for object in &objects
+    {
+      rsp.push (fs::canonicalize (object).map (|p| p.display ().to_string ())
+                  .unwrap_or_else (|_| object.display ().to_string ()));
+    }
+  if let Err (e) = fs::write ("../build/load/link-shared-args.rsp", rsp.join ("\n") + "\n")
+    {
+      return fail (format! ("writing the response file: {e}"));
+    }
+  let out_path = dir.join ("libemacs.so");
+  println! ("== link-shared: {target} ==");
+  println! ("   {} object(s) -> {}", objects.len (), out_path.display ());
+  let out = match rustc_cmd ()
+    .args (["--edition", "2024", "--crate-type", "cdylib", "--target", &target,
+            "-C", "panic=abort"])
+    .arg ("-C").arg (format! ("linker={linker}"))
+    .arg ("-C").arg ("link-arg=@../build/load/link-shared-args.rsp")
+    .arg ("../build/load/shared-driver.rs")
+    .arg ("-o").arg (&out_path)
+    .output ()
+  {
+    Ok (o) => o,
+    Err (e) => return fail (format! ("rustc link: {e}")),
+  };
+  if !out.status.success () || !out_path.is_file ()
+    {
+      return fail (format! ("link-shared failed: {}",
+                            String::from_utf8_lossy (&out.stderr).trim ()));
+    }
+  println! ("linked {} ({} bytes)", out_path.display (),
+            fs::metadata (&out_path).map (|m| m.len ()).unwrap_or (0));
+  0
+}
+
+/// The NDK cross compiler for TARGET: `FEMACS_ANDROID_CC`, else the newest NDK under the SDK.
+fn android_linker (target: &str) -> Option<String>
+{
+  if let Ok (cc) = std::env::var ("FEMACS_ANDROID_CC")
+    {
+      if !cc.is_empty () { return Some (cc); }
+    }
+  let api = std::env::var ("ANDROID_NDK_API").unwrap_or_else (|_| "21".to_string ());
+  let sdk = std::env::var ("ANDROID_HOME").ok ().map (PathBuf::from).or_else (||
+    std::env::var ("HOME").ok ().map (|h| Path::new ("/").join (h).join ("Library/Android/sdk")))
+    ?;
+  let triple = match target
+    {
+      "aarch64-linux-android" => format! ("aarch64-linux-android{api}-clang"),
+      "x86_64-linux-android" => format! ("x86_64-linux-android{api}-clang"),
+      "armv7-linux-androideabi" => format! ("armv7a-linux-androideabi{api}-clang"),
+      _ => return None,
+    };
+  let mut found: Vec<PathBuf> = Vec::new ();
+  for entry in fs::read_dir (sdk.join ("ndk")).ok ()?
+    {
+      let entry = entry.ok ()?;
+      let prebuilt = entry.path ().join ("toolchains/llvm/prebuilt");
+      for host in fs::read_dir (&prebuilt).ok ()?.flatten ()
+        {
+          let candidate = host.path ().join ("bin").join (&triple);
+          if candidate.is_file () { found.push (candidate); }
+        }
+    }
+  found.sort ();
+  found.pop ().map (|p| p.display ().to_string ())
+}
+
 fn reference_members() -> Vec<String> {
     let archive = Path::new(REPO).join("build/emacs-ref/lib/libgnu.a");
     if !archive.is_file() {

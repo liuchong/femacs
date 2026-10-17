@@ -36,7 +36,7 @@
   可选项见 `docs/decisions-needed.md`：**(E1)** 用户明确授权一次模拟器运行的内存额度（需要改共享策略，
   我没权限自行改）✓；**(E2)** 接受"本机不跑模拟器"，Android 验收停在"结构 + 签名 APK + 原生库"✓；
   **(E3)** 先修共享执行器的记账（把"和"改成唯一 RSS/最大单进程 ✓，属共享策略改动，需用户拍板）✓。
-- **Android 原生库（不依赖模拟器）**：交叉目标已装 **到钉住的 nightly 上**（P-04 的 `nightly-2026-10-01`）✓、冻结配置已产出 ✓、编译集已冻结（**91 个 `src/*.c`**，P-226 ✓）、**按-target 构建已全绿：android 91/91、darwin 83/83，0 failure** ✓✓（P-228：4 个缺陷全修 —— `signed char` 必须是 `i8` 而不是平台相关的 `c_char` ✓、`HAVE_SIGNBIT` 改为按目标测量 ✓）。**下一步**：`.so` 连接模式（`libemacs.so` / `libandroid-emacs.so`）→ 重打含原生库的 APK ✓；并按 P-222 在这一版上**再跑一次常态 L5** ✓（正在跑的那次是改动前的 ✓）。
+- **Android 原生库（不依赖模拟器）**：交叉目标已装 **到钉住的 nightly 上**（P-04 的 `nightly-2026-10-01`）✓、冻结配置已产出 ✓、编译集已冻结（**91 个 `src/*.c`**，P-226 ✓）、**按-target 构建已全绿：android 91/91、darwin 83/83，0 failure** ✓✓（P-228：4 个缺陷全修 —— `signed char` 必须是 `i8` 而不是平台相关的 `c_char` ✓、`HAVE_SIGNBIT` 改为按目标测量 ✓）。**`.so` 已能链**（`xtask link-shared` ⇒ `libemacs.so` 755,048 B、AArch64 ✓），但**导出符号几乎为空** ✗ —— 配置宏 → `--cfg feature` 的映射只覆盖 darwin 的 32 个键、`HAVE_ANDROID` 不在其内 ⇒ Android 的门（`have_android` 2,316 处 ✓）全是关的 ✗（P-229）。**下一步**：按目标生成键 → `--cfg` 映射 ✓ → 重编 → 断言 JNI 导出 ✓ → `android-emacs.rs`（目前空单元 ✗）→ 打包含 `.so` 的 APK ✓；并按 P-222 在这一版上**再跑一次常态 L5** ✓（正在跑的那次是改动前的 ✓）。
 
 已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
 `emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是
