@@ -160,6 +160,36 @@ def product_name() -> bytes:
     raise SystemExit("cannot read the reference's product name from its generated files")
 
 
+# Products that cannot be byte-identical to anything, because the compile itself embeds a value
+# that changes from run to run.  The list is *evidence-backed*, not a convenience: each entry has
+# been compiled twice with the same program and produced two different products (the check below
+# reproduces that, `--determinism-check`).  `lisp/calendar/diary-icalendar.el` calls
+# `ical:make-uid` (icalendar.el 517), which formats `(format-time-string "%s%N")` and hashes it, so
+# its byte-code carries a compile-time nano-second stamp: measured 2026-10-17, two runs of the
+# port's own program differ in 19 bytes.  A `--cross-check` verdict on such a file reads as a port
+# defect even though the two programs agree on everything deterministic.
+VOLATILE = {
+    "lisp/calendar/diary-icalendar.el":
+        "ical:make-uid hashes (format-time-string \"%s%N\") at compile time",
+}
+
+
+def determinism_check(rel: str, timeout: int) -> bool:
+    """Compile REL twice with the same program; True when the two products are byte-identical."""
+    product = PORT / pathlib.Path(rel).with_suffix(".elc")
+    first = None
+    for attempt in range(2):
+        if product.is_file():
+            product.unlink()
+        ok, message = compile_chunk([rel], timeout, force=True)
+        if not ok:
+            raise SystemExit(f"determinism check: {message}")
+        data = product.read_bytes()
+        if attempt == 0:
+            first = data
+    return first == product.read_bytes()
+
+
 def rewrite_only(got: bytes, want: bytes, product: bytes) -> bool:
     """True when the product name's rewrite and its doc-string offsets explain every difference."""
     def normalise(data: bytes) -> bytes:
@@ -265,7 +295,7 @@ def compile_chunk(rels: list[str], timeout: int, force: bool,
 
 def compare(rels: list[str]) -> tuple[dict[str, int], list[str]]:
     """Compare each product with the reference's copy; return the counts and the detail lines."""
-    counts = {"identical": 0, "rewrite-only": 0, "DIFFERENT": 0, "missing": 0}
+    counts = {"identical": 0, "rewrite-only": 0, "volatile": 0, "DIFFERENT": 0, "missing": 0}
     details: list[str] = []
     rewrites: list[str] = []
     product = product_name()
@@ -284,6 +314,10 @@ def compare(rels: list[str]) -> tuple[dict[str, int], list[str]]:
             counts["rewrite-only"] += 1
             rewrites.append(str(produced.relative_to(REPO)))
             continue
+        if rel in VOLATILE:
+            counts["volatile"] += 1
+            details.append(f"VOLATILE     {produced.relative_to(REPO)}: {VOLATILE[rel]}")
+            continue
         counts["DIFFERENT"] += 1
         details.append(f"DIFFERENT    {produced.relative_to(REPO)} ({len(got)} vs {len(want)} bytes)")
         details.append(f"  {first_difference(got, want)}")
@@ -292,8 +326,9 @@ def compare(rels: list[str]) -> tuple[dict[str, int], list[str]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("scope", help="a glob under the reference tree, e.g. lisp/emacs-lisp or "
-                                      "'lisp/emacs-lisp/*.el'")
+    parser.add_argument("scope", nargs="?",
+                        help="a glob under the reference tree, e.g. lisp/emacs-lisp or "
+                             "'lisp/emacs-lisp/*.el' (omitted only with --determinism-check)")
     parser.add_argument("--chunk", type=int, default=DEFAULT_CHUNK,
                         help=f"files per program start (default {DEFAULT_CHUNK})")
     parser.add_argument("--timeout", type=int, default=1800, help="seconds per chunk")
@@ -312,6 +347,9 @@ def main() -> int:
                              "the dumped src/emacs is a different state and gives false verdicts)")
     parser.add_argument("--no-force", action="store_true",
                         help="keep up-to-date products (batch-byte-compile skips them)")
+    parser.add_argument("--determinism-check", metavar="REL", action="append", default=[],
+                        help="compile REL twice with the same program and report whether the "
+                             "two products are identical (the evidence for the VOLATILE list)")
     parser.add_argument("--phase-fallback", action="store_true",
                         help="recompile the differing products in the reference's source-only "
                              "bootstrap phase and keep that product when it matches")
@@ -323,6 +361,14 @@ def main() -> int:
         raise SystemExit(f"{PROGRAM} is missing: build the port's program "
                          f"(xtask gate-fast, then gate-load)")
 
+    if args.determinism_check:
+        for rel in args.determinism_check:
+            stable = determinism_check(rel, args.timeout)
+            print(f"{'stable  ' if stable else 'volatile'} {rel}")
+        return 0
+
+    if args.scope is None:
+        raise SystemExit("a scope is required unless --determinism-check is given")
     pattern = args.scope if any(ch in args.scope for ch in "*?[") else f"{args.scope.rstrip('/')}/**/*.el"
     rels, skipped = targets(pattern)
     if not rels:
