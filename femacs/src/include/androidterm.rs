@@ -191,6 +191,20 @@ pub struct android_display_info
   /* The invisible cursor used for pointer blanking.  */
   pub invisible_cursor: android_cursor,
 }
+
+/* C termhooks.h 957-959: `#define TERMINAL_FONT_CACHE(t) (t->type == output_android ?
+   t->display_info.android->name_list_element : Qnil)`.  Defined here rather than in
+   termhooks.rs because it needs the struct above and Rust has no forward declaration
+   (P-246; a placement deviation, not a semantic one).  */
+#[cfg (feature = "have_android")]
+macro_rules! TERMINAL_FONT_CACHE {
+  ($t:expr) => {
+    if (*(($t) as *mut terminal)).r#type == output_android
+      { (*((*(($t) as *mut terminal)).display_info.android as *mut android_display_info))
+          .name_list_element }
+    else { Qnil () }
+  };
+}
 const _: () = core::assert! (std::mem::size_of::<android_display_info> () == 312);
 
 /* Structure representing a single tool (finger or stylus) pressed

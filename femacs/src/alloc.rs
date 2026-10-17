@@ -7864,7 +7864,10 @@ DEFUN! ("memory-info", Fmemory_info, Smemory_info, 0, 0, 0,
      target; they are carried (P-51), and the live `#else` arm is below.  */
   #[cfg (feature = "have_linux_sysinfo")]
   {
-    let mut si: sysinfo;
+    // C declares `struct sysinfo si;` uninitialised and lets `sysinfo (&si)` fill it; Rust needs
+    // a value before the FFI call, and the early return below means the zeroing is never read
+    // (status 4.632).
+    let mut si: sysinfo = unsafe { core::mem::zeroed () };
     let mut units: uintmax_t;
 
     if sysinfo (&raw mut si) != 0
@@ -7874,10 +7877,10 @@ DEFUN! ("memory-info", Fmemory_info, Smemory_info, 0, 0, 0,
     #[cfg (not (feature = "linux_sysinfo_unit"))]
     { units = 1; }
     // C passes these to `list4i` (intmax_t) and converts implicitly; Rust needs the cast (4.631).
-    return list4i (((si.totalram as uintmax_t) * units / 1024) as intmax_t,
-		   ((si.freeram as uintmax_t) * units / 1024) as intmax_t,
-		   ((si.totalswap as uintmax_t) * units / 1024) as intmax_t,
-		   ((si.freeswap as uintmax_t) * units / 1024) as intmax_t);
+    return list4i (((si.totalram as uintmax_t) * units / 1024) as isize,
+		   ((si.freeram as uintmax_t) * units / 1024) as isize,
+		   ((si.totalswap as uintmax_t) * units / 1024) as isize,
+		   ((si.freeswap as uintmax_t) * units / 1024) as isize);
   }
   #[cfg (feature = "windowsnt")]
   {

@@ -1,11 +1,7 @@
 // femacs: port of src/termhooks.h @ fd7afced403.
-/* OPEN (P-244): C termhooks.h 957-959 has an android arm of `TERMINAL_FONT_CACHE`:
-   `(t->type == output_android ? t->display_info.android->name_list_element : Qnil)`.
-   The mirror cannot express it yet: `display_info.android` is `*mut c_void` here (the
-   union keeps every window system's pointer untyped, like `xterm.rs` does), and naming
-   the struct from this mirror would duplicate androidterm.rs's declaration.  The call
-   site in alloc.rs is therefore still written as a call, not a macro use.  */
-
+/* C termhooks.h 957-959 has the android arm of `TERMINAL_FONT_CACHE`; it is defined in
+   androidterm.rs instead, because it needs `struct android_display_info` (declared
+   there) and Rust has no struct forward declaration (P-246).  */
 // WIP mirror (PORTING.md P-66): `struct input_event` and the two enumerations it carries,
 // which is the slice `keyboard.h` needs (its `union buffered_input_event` embeds the event
 // by value).  `struct terminal` and the `FRAME_*`/`TERMINAL_*` macros follow in the next
