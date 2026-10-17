@@ -478,6 +478,47 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
       matcher_overflow ();
     }
 
+  /* Instrument, not behaviour (P-115's shape; status 4.494): detect a *repeating* call - the same
+     point with the same pattern a few hundred times in a row - and report that call's text and
+     pattern once.  Repetition, not buffer size, is what identifies the loop, so the load-time noise
+     (which also has small buffers) does not hide it.  */
+  unsafe {
+    static mut LAST_POINT: ptrdiff_t = -1;
+    static mut LAST_PAT: Lisp_Object = std::ptr::null_mut ();
+    static mut SAME: c_int = 0;
+    /* Sampled once: the switch is read on the hottest path in the program, and `getenv` per call
+       would be a real cost (P-126's "sample at startup" rule, applied to a diagnostic).  */
+    static mut TRACE: c_int = -1;
+    if TRACE < 0
+      { TRACE = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
+    if TRACE != 0
+      {
+        let here: ptrdiff_t = PT! ();
+        if here == LAST_POINT && string == LAST_PAT
+          { SAME += 1; }
+        else
+          { LAST_POINT = here; LAST_PAT = string; SAME = 1; }
+        if SAME == 200
+          {
+            fprintf (stderr, c"REGTRACE loop point=%td i=%td text=".as_ptr (), here, i as isize);
+            let total: ptrdiff_t = ZV! () - BEGV! ();
+            let mut k: ptrdiff_t = 0;
+            while k < total && k < 40
+              { fputc (FETCH_BYTE! (BEGV_BYTE! () + k) as c_int, stderr); k += 1; }
+            fprintf (stderr, c" pat=".as_ptr ());
+            if STRINGP (string)
+              {
+                let d: *const c_char = SSDATA (string);
+                let n: ptrdiff_t = SBYTES (string);
+                let mut j: ptrdiff_t = 0;
+                while j < n && j < 160
+                  { fputc (*d.offset (j) as c_int, stderr); j += 1; }
+              }
+            fprintf (stderr, c"\n".as_ptr ());
+          }
+      }
+  }
+
   val = if i >= 0 { Qt () } else { Qnil () };
   if modify_match_data && i >= 0
     {
