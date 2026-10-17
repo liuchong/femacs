@@ -8,6 +8,12 @@
 #
 #   tools/check-android-kotlin.sh              # compile to a temp dir, print the class count
 #   tools/check-android-kotlin.sh --keep DIR   # keep the output classes in DIR
+#   tools/check-android-kotlin.sh --apk DIR    # also assemble and sign an APK in DIR
+#
+# `--apk` runs the rest of `emacs/java/Makefile.in`'s packaging: `d8` turns the classes into
+# `classes.dex`, `aapt2 link`'s archive and that dex are zipped into an APK, and `apksigner`
+# signs it with a debug key `keytool` generates once.  The APK is built *without* the native
+# libraries, which the port's Android native build will add (P-201); everything else is real.
 #
 # Environment overrides (all optional): STUDIO (the Android Studio bundle), ANDROID_HOME,
 # ANDROID_API (default android-36).  Exit status is the compiler's.
@@ -17,7 +23,17 @@ STUDIO=${STUDIO:-/Applications/Android Studio.app/Contents}
 ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 ANDROID_API=${ANDROID_API:-android-36}
 OUT=""
-[ "${1:-}" = "--keep" ] && OUT=${2:-}
+OUT=""
+KEEP=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --keep) KEEP=$2; shift 2 ;;
+    --apk)  APK_DIR=$2; shift 2 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+OUT=""
+APK_DIR=${APK_DIR:-}
 
 # Android Studio ships the complete CLI compiler (not just the IDE plugin): `kotlinc` next to
 # its own JDK, which is all this check needs.
@@ -35,6 +51,7 @@ for f in "$KOTLINC" "$STDLIB" "$ANDROID_JAR" "$AAPT2"; do
   fi
 done
 
+[ -n "$KEEP" ] && OUT=$KEEP
 [ -n "$OUT" ] || OUT=$(mktemp -d /tmp/femacs-kt.XXXXXX)
 mkdir -p "$OUT"
 
@@ -71,4 +88,42 @@ JAVA_HOME="$JAVA_HOME" "$KOTLINC" -classpath "$ANDROID_JAR:$R_JAR" -d "$OUT" $FI
 status=$?
 classes=$(find "$OUT" -name '*.class' | wc -l | tr -d ' ')
 echo "kotlin: exit $status, $classes class file(s) in $OUT"
+[ "$status" = 0 ] || exit "$status"
+
+if [ -n "$APK_DIR" ]; then
+  mkdir -p "$APK_DIR"
+  BUILD_TOOLS=$(dirname "$AAPT2")
+  D8="$BUILD_TOOLS/d8"
+  APKSIGNER="$BUILD_TOOLS/apksigner"
+  ZIPALIGN="$BUILD_TOOLS/zipalign"
+  KEYTOOL="$JAVA_HOME/bin/keytool"
+  for f in "$D8" "$APKSIGNER" "$ZIPALIGN" "$KEYTOOL"; do
+    [ -f "$f" ] || { echo "missing: $f" >&2; exit 2; }
+  done
+
+  # 1. classes -> dex (the reference's Makefile does this with d8 or r8).
+  mkdir -p "$OUT/dex"
+  find "$OUT" -name '*.class' > "$OUT/classes.txt"
+  # `d8`/`apksigner` in build-tools are wrapper scripts around their jars, so they are run
+  # directly (a `java -cp <script>` cannot find their main class - measured).
+  JAVA_HOME="$JAVA_HOME" "$D8" --lib "$ANDROID_JAR" --min-api 21 --output "$OUT/dex" \
+    $(cat "$OUT/classes.txt") || exit $?
+  echo "dex: $(ls "$OUT/dex"/*.dex 2>/dev/null | wc -l | tr -d ' ') file(s), $(du -h "$OUT/dex/classes.dex" | cut -f1)"
+
+  # 2. resources.ap_ + classes.dex -> apk
+  UNSIGNED="$APK_DIR/emacs-unsigned.apk"
+  cp "$OUT/resources.ap_" "$UNSIGNED"
+  (cd "$OUT/dex" && "$JAVA_HOME/bin/jar" uf "$UNSIGNED" classes.dex) || exit $?
+  "$ZIPALIGN" -f 4 "$UNSIGNED" "$APK_DIR/emacs-aligned.apk" || exit $?
+
+  # 3. a debug key, generated once, and the signature (the reference signs too).
+  KS="$APK_DIR/debug.keystore"
+  [ -f "$KS" ] || "$KEYTOOL" -genkeypair -keystore "$KS" -storepass android -keypass android \
+      -alias androiddebugkey -dname "CN=femacs debug" -keyalg RSA -validity 10000 >/dev/null 2>&1 || exit $?
+  SIGNED="$APK_DIR/emacs.apk"
+  JAVA_HOME="$JAVA_HOME" "$APKSIGNER" sign --ks "$KS" --ks-pass pass:android \
+      --out "$SIGNED" "$APK_DIR/emacs-aligned.apk" || exit $?
+  JAVA_HOME="$JAVA_HOME" "$APKSIGNER" verify --print-certs "$SIGNED" | head -3
+  echo "apk: $SIGNED ($(du -h "$SIGNED" | cut -f1)); native libraries pending the Android native build"
+fi
 exit "$status"

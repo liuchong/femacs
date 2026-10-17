@@ -210,7 +210,7 @@ along with femacs.  If not, see <https://www.gnu.org/licenses/>. -->
 
   <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK"/>
 
-  <uses-sdk android:minSdkVersion="@ANDROID_MIN_SDK@"
+  <uses-sdk android:minSdkVersion="21"
 	    android:targetSdkVersion="37"/>
 
   <application android:name="org.gnu.emacs.EmacsApplication"
