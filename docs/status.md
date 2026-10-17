@@ -21863,3 +21863,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   ④ **留下的靶子** ✓：`erc-scenarios-base-send-message` 两次复跑都是 **2 unexpected vs 0** ✗（`Failed awaiting: <bob> alice: You still wrangle` ✓ —— 模拟服务器消息没到达 ✓，与进程/过滤器/timer 异步面同族 ✓），下一轮从这条进 ✓。
   ⑤ **DoD-8 机器核对** ✓：`docs/ports/*.md` 共 **606 个台账、14,775 个勾选、0 个未勾** ✓。
   ⑥ **Lisp 零改动** ✓；本轮 `build-tu src/callproc.c` 一格 + `gate-load` + `dump`（合计 3.5 s ✓、峰值 ≤ 300 MB ✓），其余零编译 ✓；`git -C emacs status --short` 为空 ✓。提交：`femacs/src/callproc.rs`（P-178 ✓）、`PORTING.md`（P-178 ✓）、`docs/baseline/ert-sweep-all.tsv`（L5 台账 ✓）、本提交（纯读数 ✓）。
+- **4.536 验证相第一百六十七轮：把 P-178 那一类做成**常设门** —— 413 个 `DEFVAR` 的**取值**对拍，0 缺陷；L5 台账随修回填（2026-10-17）**：
+  ① **新门** ✓：`tools/check-defvar-values.py` —— 从 C 的 `syms_of_*` 里收集**有初始化式**的 `DEFVAR_LISP/BOOL/INT` ✓（宏感知 ✓：只认这三种 ✓），再让**两支程序各自**回答 `(default-value 'sym)` ✓ 并逐项比对 ✓ ⇒ 直接在**取值层**查"漏抄初始化" ✓，端口用宏代劳的那些（`DEFVAR_PER_BUFFER!` 等 ✓）不会成为噪声 ✓。
+  ② **读数** ✓：**413 个变量，5 处预期差异，0 缺陷** ✓✓（exit 0 ✓）。五处预期差异逐条列出并写明理由 ✓：`after-init-time`/`before-init-time`（本次运行的时间戳 ✓）、`pdumper-fingerprint`（dump 指纹 ✓）、`report-emacs-bug-address`（本项目自己的报告地址 ✓ 0.1-19 ✓）、`system-configuration-options`（本机构的 configure 行 ✓）。
+  ③ **结论** ✓：P-178 **是该类唯一残留** ✓（413 个可达变量里没有第二个 ✗）；此前用正则普查得到的 430/463 个候选**全是噪声** ✗（宏代劳 ✓）⇒ 规则：这类审计必须**以取值比对为准** ✓，不以源码模式匹配为准 ✗（P-178 ④ 的更正 ✓）。
+  ④ **接线** ✓：该门已作为 `gate-fast` 的一步（`== defvar value gate ==` ✓），失败信息指向 P-178 ✓。
+  ⑤ **L5 台账回填** ✓：`docs/baseline/ert-sweep-all.tsv` 里 `misc/test-custom-opts` 由 `port-worse` 改为 **`same`** ✓（附注写明这是修复后复读 ✓）⇒ 全量口径变为 **same 543 / both-fail 11 / crashed 6 / port-worse 3 / both-capped 1** ✓。
+  ⑥ **Lisp 零改动** ✓；本轮零单元重编 ✓（只编了 `xtask` 本身 ✓ <1 s ✓）；受控执行器 runtime 700 MiB、探针 2 次（各 <1 s ✓、峰值 ≤ 60 MB ✓）；`git -C emacs status --short` 为空 ✓。提交：`tools/check-defvar-values.py`（新门 ✓）、`femacs/xtask/src/main.rs`（接线 ✓）、`docs/baseline/ert-sweep-all.tsv`（回填 ✓）、本提交（纯读数 ✓）。
