@@ -4539,8 +4539,12 @@ pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
 // and C 3314's `#ifdef HAVE_PROCFS` arm above it is the one Android takes (`HAVE_PROCFS` is 1
 // there).  `#elif` is exclusive and Rust's `cfg` is not, so the arm carries the negation of the
 // condition before it - without it the Android build read `E0428 list_system_processes` (measured).
+/* The `DARWIN_OS`/`__FreeBSD__`/`__OpenBSD__` half of C 3346 is a *platform* condition, not a
+   configure macro - the darwin configuration carries neither name, so the port spells it with
+   `target_os` (measured: with a feature the darwin build lost the symbol and `gate-load`
+   reported `_list_system_processes` undefined).  */
 #[cfg (all (not (feature = "have_procfs"),
-            any (feature = "darwin_os", feature = "__freebsd__", feature = "__openbsd__")))]
+            any (target_os = "macos", target_os = "freebsd", target_os = "openbsd")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
   let mut mib: [c_int; 6] =
@@ -4587,7 +4591,11 @@ pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
    The Haiku implementation is in haiku.c.  */
 // C 3396-3404: `#elif !defined (WINDOWSNT) && !defined (MSDOS) && !defined (HAIKU)` — dead
 // (clang's chain takes the DARWIN_OS arm above); carried.
-#[cfg (feature = "no_tty_process_list")]
+/* C 3396-3404: `#elif !defined (WINDOWSNT) && !defined (MSDOS) && !defined (HAIKU)` - the
+   complement of the two arms above, spelled as such so the three stay exclusive.  */
+#[cfg (all (not (feature = "have_procfs"),
+            not (target_os = "macos"), not (target_os = "freebsd"), not (target_os = "openbsd"),
+            not (feature = "windowsnt"), not (feature = "msdos"), not (feature = "haiku")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
   return Qnil ();
