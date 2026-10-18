@@ -1296,23 +1296,6 @@ DEFUN! ("native-elisp-load", Fnative_elisp_load, Snative_elisp_load, 1, 2, 0,
 
 /* C 5578: `#endif /* HAVE_NATIVE_COMP */` - the file gate's end.  */
 
-/// C 5580-5590: `DEFUN ("native-comp-available-p", Fnative_comp_available_p, …)`.  Live text:
-/// outside the file gate, as in C.
-DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
-       Snative_comp_available_p, 0, 0, 0,
-       doc: "Return non-nil if native compilation support is built-in.",
-       (),
-       {
-  #[cfg (feature = "have_native_comp")]
-  {
-    return if load_gccjit_if_necessary (false) { Qt () } else { Qnil () };
-  }
-  #[cfg (not (feature = "have_native_comp"))]
-  {
-    return Qnil ();
-  }
-});
-
 /// C 5369-5381: `void unload_comp_unit (struct Lisp_Native_Comp_Unit *cu)`.
 #[cfg (feature = "have_native_comp")]
 #[unsafe(no_mangle)]
@@ -2924,6 +2907,9 @@ unsafe extern "C" {
 /// with the type readings in `docs/ports/comp.md`).
 #[cfg (feature = "have_native_comp")]
 pub type gcc_jit_unary_op = c_uint;
+/// C: libgccjit.h 1181: `GCC_JIT_UNARY_OP_MINUS,` - the first enumerator, i.e. 0.
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_UNARY_OP_MINUS: gcc_jit_unary_op = 0;
 /// C: libgccjit.h 1193: `GCC_JIT_UNARY_OP_LOGICAL_NEGATE,` - the third enumerator, i.e. 2.
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_UNARY_OP_LOGICAL_NEGATE: gcc_jit_unary_op = 2;
@@ -3080,6 +3066,23 @@ pub const GCC_JIT_COMPARISON_NE: gcc_jit_comparison = 1;
 /// C: libgccjit.h 1297: `GCC_JIT_COMPARISON_LE,`
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_COMPARISON_LE: gcc_jit_comparison = 3;
+
+/// Names the reference's own headers declare and no mirror carries: `list` and `prog_ignore` are
+/// `lisp.h`'s, `realpath` and `allocate_native_comp_unit` are `<stdlib.h>`/`comp.c`'s, and
+/// `internal_condition_case_1`/`file_name_absolute_p` are declared where they are used elsewhere
+/// in the tree (`eval.rs` 1687, `fileio.rs` 2161).  Each is the P-55 use-site shape.
+#[cfg (feature = "have_native_comp")]
+unsafe extern "C" {
+  pub fn list (n: ptrdiff_t, ...) -> Lisp_Object;
+  pub fn prog_ignore (body: Lisp_Object);
+  pub fn realpath (file_name: *const c_char, resolved_name: *mut c_char) -> *mut c_char;
+  pub fn allocate_native_comp_unit () -> *mut Lisp_Native_Comp_Unit;
+  pub fn internal_condition_case_1 (
+    bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>, arg: Lisp_Object,
+    handlers: Lisp_Object,
+    hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object;
+  pub fn file_name_absolute_p (filename: *const c_char) -> bool;
+}
 
 /// `fatal` is `sysdep.c` 2399's non-`static` definition; C declares it where it is used, and the
 /// units that call it carry the variadic declaration themselves (`eval.rs` 100, `androidterm.rs`
@@ -4432,7 +4435,7 @@ unsafe fn compile_function (func: Lisp_Object)
 				       comp.exported_funcs_h, Qnil ()))
     as *mut gcc_jit_function;
 
-  comp.func_has_non_local = ! NILP (CALLNI! ("comp-func-has-non-local", func)) as c_int;
+  comp.func_has_non_local = ! NILP (CALLNI! ("comp-func-has-non-local", func));
   comp.func_speed = XFIXNUM (CALLNI! ("comp-func-speed", func));
   comp.func_safety = XFIXNUM (CALLNI! ("comp-func-safety", func));
 
@@ -4442,7 +4445,11 @@ unsafe fn compile_function (func: Lisp_Object)
 				comp.func_relocs_ptr_type,
 				c"freloc".as_ptr ());
 
-  SAFE_NALLOCA! (sa_avail, comp.frame, 1, comp.frame_size as usize);
+  /* C's `SAFE_NALLOCA (comp.frame, 1, comp.frame_size)` names a struct member; the mirror's
+     macro takes an identifier (it assigns the buffer), so the member is carried in and back.  */
+  let mut frame_buf: *mut *mut gcc_jit_lvalue = comp.frame;
+  SAFE_NALLOCA! (sa_avail, frame_buf, 1, comp.frame_size as usize);
+  comp.frame = frame_buf;
   if comp.func_has_non_local != 0 || comp.func_speed == 0
     {
       /* FIXME: See bug#42360.  */
