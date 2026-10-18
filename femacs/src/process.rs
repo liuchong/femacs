@@ -2090,8 +2090,6 @@ unsafe fn get_required_string_keyword_param (kwargs: Lisp_Object,
 }
 
 unsafe extern "C" {
-  /// C: Lisp_Object plist_get (Lisp_Object, Lisp_Object)   (lisp.h 4280)
-  fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
   /// C: Lisp_Object plist_member (Lisp_Object, Lisp_Object)   (lisp.h 4279)
   fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
 }
@@ -6358,8 +6356,6 @@ unsafe extern "C" {
   fn clear_waiting_for_input ();
   /// C: struct timespec timer_check (void)   (atimer.c, lisp.h 5397)
   fn timer_check () -> timespec;
-  /// C: void do_pending_window_change (bool)   (dispnew.c, lisp.h 4916)
-  fn do_pending_window_change (safe: bool);
   /// C: void swallow_events (bool)   (keyboard.c, lisp.h 4900)
   fn swallow_events (do_display: bool);
   /// C: bool detect_input_pending (void)   (keyboard.c, lisp.h 4894)

@@ -159,7 +159,6 @@ unsafe extern "C" {
 /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object, Lisp_Object);`
 #[cfg (feature = "have_sound")]
 unsafe extern "C" {
-  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
 }
 /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
 #[cfg (feature = "have_sound")]

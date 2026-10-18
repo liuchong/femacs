@@ -16372,7 +16372,6 @@ unsafe extern "system" {
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
   pub fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
-  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
   pub fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object)
                   -> Lisp_Object;
 }

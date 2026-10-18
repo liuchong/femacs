@@ -744,24 +744,6 @@ unsafe extern "C" {
 /// the arms are never compiled, P-51).
 #[cfg (feature = "have_android")]
 unsafe extern "C" {
-  pub fn android_fstatat (dirfd: c_int, filename: *const c_char, st: *mut c_void,
-			  flags: c_int) -> c_int;
-  pub fn android_fstat (fd: c_int, statb: *mut stat) -> c_int;
-  pub fn android_faccessat (fd: c_int, pathname: *const c_char, mode: c_int, flags: c_int)
-    -> c_int;
-  pub fn android_open (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
-  pub fn android_close (fd: c_int) -> c_int;
-  pub fn android_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
-  pub fn android_fclose (stream: *mut FILE) -> c_int;
-  pub fn android_unlink (name: *const c_char) -> c_int;
-  pub fn android_symlink (target: *const c_char, linkname: *const c_char) -> c_int;
-  pub fn android_rmdir (dirname: *const c_char) -> c_int;
-  pub fn android_mkdir (dirname: *const c_char, mode: mode_t) -> c_int;
-  pub fn android_renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int,
-				     dst: *const c_char) -> c_int;
-  pub fn android_rename (src: *const c_char, dst: *const c_char) -> c_int;
-  pub fn android_fchmodat (fd: c_int, path: *const c_char, mode: mode_t, flags: c_int)
-    -> c_int;
 }
 
 /// `<stdlib.h>`: `long random (void);` — the frozen configuration's `HAVE_RANDOM` arm
@@ -997,7 +979,6 @@ unsafe extern "C" {
   /* int cfsetspeed (struct termios *, speed_t);  */
   pub fn cfsetspeed (termios_p: *mut termios, vitesse: speed_t) -> c_int;
   /* Lisp_Object plist_get (Lisp_Object, Lisp_Object);  */
-  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
   /* Lisp_Object plist_member (Lisp_Object, Lisp_Object);  */
   pub fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
   /* Lisp_Object plist_put (Lisp_Object, Lisp_Object, Lisp_Object);  */

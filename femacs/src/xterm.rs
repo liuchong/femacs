@@ -17389,7 +17389,6 @@ unsafe extern "C" {
    rule 4).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn do_pending_window_change (safe: bool);
 }
 
 /* C: gtkutil.h 165: `extern void xg_frame_set_char_size (struct frame *f, int width, int

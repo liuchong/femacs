@@ -83,6 +83,15 @@ def measure() -> tuple[set[str], set[str], int, int, dict[str, set[str]]]:
     built for weeks is a defect in that unit.
     """
     ours = sorted(glob.glob(os.path.join(REPO, OURS, "**", "*.o"), recursive=True))
+    # A cross-target object (`<stem>.<target>.o`, `xtask build-tu` under FEMACS_TARGET) holds
+    # another libc's symbols: its `__error`, `accept` and `abort` are bionic's, not libSystem's,
+    # so measuring it against this machine's SDK list is a category error - and it made
+    # `gate-fast` read 446 new unresolved names the moment the Android sweep had run (measured).
+    # Those objects are checked by their own target's link (`xtask link-shared`, whose 69 JNI
+    # exports and the APK carrying them are the evidence), so this gate reads host objects.
+    import re as _re
+    _cross = _re.compile(r"\.[a-z0-9_]+-[a-z0-9-]*android\.o$|\.[a-z0-9_]+-linux-[a-z0-9-]+\.o$")
+    ours = [o for o in ours if not _cross.search(o)]
     refs = sorted(glob.glob(os.path.join(REPO, REF, "**", "*.o"), recursive=True))
     refs += sorted(glob.glob(os.path.join(REPO, REF, "**", "*.a"), recursive=True))
     if not ours:

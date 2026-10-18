@@ -98,8 +98,6 @@ unsafe extern "C" {
   fn labeled_restrictions_remove_in_current_buffer ();
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);`
-  fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
   // window.h 1210/1216 (`decode_live_window`, `window_internal_height`) are the window.rs
   // mirror's now; the use-site copies are gone (P-26).
   /// C: window.h 1223: `extern int window_body_width (struct window *w, enum

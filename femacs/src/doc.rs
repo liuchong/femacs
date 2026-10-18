@@ -429,8 +429,6 @@ DEFUN! ("internal-subr-documentation", Fsubr_documentation, Ssubr_documentation,
       pub fn MODULE_FUNCTIONP (a: Lisp_Object) -> bool;
       /// C: Lisp_Object XMODULE_FUNCTION (Lisp_Object)
       pub fn XMODULE_FUNCTION (a: Lisp_Object) -> Lisp_Object;
-      /// C: Lisp_Object module_function_documentation (Lisp_Object)
-      pub fn module_function_documentation (a: Lisp_Object) -> Lisp_Object;
     }
     if MODULE_FUNCTIONP (function)
       { return module_function_documentation (XMODULE_FUNCTION (function)); }

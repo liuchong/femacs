@@ -4038,9 +4038,9 @@ pub mod dispextern_late_decls {
      include a header for (they are definitions in `src/xdisp.c`/`src/fringe.rs`, declared here in
      C).  A declaration at this module's scope cannot collide with the defining unit's own item
      (P-39); the ones C gates with `HAVE_WINDOW_SYSTEM` carry that gate.  */
-  /* C 2068/3923: two more of this header's declarations (a variable and a function), for the
-     units that read them and include no header naming them on this target.  */
-  #[cfg (feature = "have_window_system")]
+  /* C 2068/3923: a variable and a function this header declares **ungated** (the `#endif`s
+     around them belong to their neighbours), so the mirror declares them ungated too and the
+     units carry no copy - the textual declaration gate reads both arms.  */
   unsafe extern "C" {
     pub static mut face_change: bool;
     pub fn do_pending_window_change (inhibit: bool);

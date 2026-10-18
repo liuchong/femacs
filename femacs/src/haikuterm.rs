@@ -3072,7 +3072,6 @@ unsafe extern "C" {
   pub fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph;
   pub fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row, glyph: *mut glyph,
 				   x: *mut c_int, y: *mut c_int, h: *mut c_int);
-  pub fn do_pending_window_change (safe: bool);
   /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);` -
   /// reached through `WINDOW_BOX_HEIGHT_NO_MODE_LINE!` (include/dispextern.rs 1308 and the two
   /// siblings), which no mirror declares the callee of, so the unit names it here (P-72 rule 4;

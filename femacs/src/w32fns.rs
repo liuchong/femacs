@@ -15816,7 +15816,6 @@ unsafe fn delete_tray_notification (f: *mut frame, id: c_int)
 /// C: extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);
 #[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
 unsafe extern "C" {
-  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
 }
 
 /// C 10635-10763: `w32-notification-notify` - C 10700-10708's locals (`0, MANY` per C 10637),

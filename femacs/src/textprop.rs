@@ -61,8 +61,6 @@ use itree_order::*;
 unsafe extern "C" {
   /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
   fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);`
-  fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4354: `extern void prepare_to_modify_buffer_1 (ptrdiff_t, ptrdiff_t,
   /// ptrdiff_t *);`
   fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrdiff_t,

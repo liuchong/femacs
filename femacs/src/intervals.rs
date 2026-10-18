@@ -1794,7 +1794,6 @@ pub unsafe extern "C" fn graft_intervals_into_buffer (source: INTERVAL, mut posi
    defined in fns.c.  The `lisp.rs` mirror does not carry it yet (a mirror gap reported in
    docs/ports/intervals.md, PORTING.md 0.1-2/P-72 rule 3).  */
 unsafe extern "C" {
-  fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
 }
 
 #[unsafe(no_mangle)]

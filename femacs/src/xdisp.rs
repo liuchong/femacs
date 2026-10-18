@@ -559,9 +559,13 @@ include!("include/androidterm.rs");            // C 501 (TERM_HEADER): `androidt
    buffer.rs/textprop.rs shape).  */
 use itree_order::*;
 
-/* C 504-506: `#ifndef FRAME_OUTPUT_DATA` / `#define FRAME_OUTPUT_DATA(f) (NULL)`.  The
-   frozen configuration has no window system, so `FRAME_OUTPUT_DATA` is C's NULL fallback
-   (frame.h only defines it again under `HAVE_WINDOW_SYSTEM`).  */
+/* C 504-506: `#ifndef FRAME_OUTPUT_DATA` / `#define FRAME_OUTPUT_DATA(f) (NULL)` - the
+   *fallback*, which C only compiles when the term header has not defined the name.  The port
+   spells that guard as the configuration condition: with a window system the TERM_HEADER
+   mirror (`include/androidterm.rs` 288, `nsterm.rs` 528, ...) owns the definition, and this
+   unit had both in its graph (measured: "FRAME_OUTPUT_DATA is already declared by
+   femacs/src/include/androidterm.rs").  */
+#[cfg (not (feature = "have_window_system"))]
 macro_rules! FRAME_OUTPUT_DATA {
   ($f:expr) => { { let _ = $f; core::ptr::null_mut () } };
 }
@@ -789,8 +793,6 @@ unsafe extern "C" {
   pub fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t;
   /// C: lisp.h 5082: `extern void cancel_echoing (void);` (keyboard.c defines it).
   pub fn cancel_echoing ();
-  /// C: dispextern.h 3923: `void do_pending_window_change (bool);` (window.c defines it).
-  pub fn do_pending_window_change (safe: bool);
   /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);` (dispnew.c
   /// defines it).
   pub fn clear_glyph_matrix (matrix: *mut glyph_matrix);
@@ -935,7 +937,6 @@ unsafe extern "C" {
   /// (intervals.c defines it; the lisp.h mirror the chain carries does not have it -
   /// intervals.rs and coding.rs each declare the same prototype at their own use site, and
   /// `display_mode_element` at C 28507 is this unit's first use).
-  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4281-4282: `extern Lisp_Object plist_put (Lisp_Object plist, Lisp_Object
   /// prop, Lisp_Object val);` (intervals.c defines it; same mirror gap as `plist_get`,
   /// first use at C 28510).

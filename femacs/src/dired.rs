@@ -130,8 +130,6 @@ unsafe extern "C" {
   pub fn internal_condition_case_2 (bfun: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
                                     arg1: Lisp_Object, arg2: Lisp_Object, handlers: Lisp_Object,
                                     hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object;
-  /// C: lisp.h 4280: `Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop)`
-  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
 
   /// C: regex-emacs.h 50: `extern Lisp_Object re_match_object;`
   pub static mut re_match_object: Lisp_Object;

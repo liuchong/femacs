@@ -375,8 +375,6 @@ pub unsafe extern "C" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
     unsafe extern "C" {
       /// C: dispextern.h 3073: `extern bool display_hourglass_p;`
       pub static mut display_hourglass_p: bool;
-      /// C: dispextern.h 3854: `extern void cancel_hourglass (void);`
-      pub fn cancel_hourglass ();
     }
     if display_hourglass_p
       { cancel_hourglass (); }
@@ -3156,11 +3154,6 @@ unsafe fn funcall_lambda (fun: Lisp_Object, nargs: ptrdiff_t, arg_vector: *mut L
       let mut taken: bool = false;
       #[cfg (feature = "have_modules")]
       {
-        unsafe extern "C" {
-          /// C: lisp.h 4895: `Lisp_Object funcall_module (Lisp_Object, ptrdiff_t, Lisp_Object *);`
-          pub fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t,
-                                 arg_vector: *mut Lisp_Object) -> Lisp_Object;
-        }
         if MODULE_FUNCTIONP (fun)
           { return funcall_module (fun, nargs, arg_vector); }
       }
@@ -3306,8 +3299,6 @@ DEFUN! ("func-arity", Ffunc_arity, Sfunc_arity, 1, 1, 0,
 	  #[cfg (feature = "have_modules")]
 	  {
         unsafe extern "C" {
-          /// C: lisp.h 4896: `Lisp_Object module_function_arity (const struct Lisp_Module_Function *);`
-          pub fn module_function_arity (function: *const c_void) -> Lisp_Object;
         }
         if MODULE_FUNCTIONP (function)
           { result = module_function_arity (XMODULE_FUNCTION (function) as *const c_void); }
@@ -4568,8 +4559,6 @@ DEFUN! ("commandp", Fcommandp, Scommandp, 1, 2, 0,
       #[cfg (feature = "have_modules")]
       {
         unsafe extern "C" {
-          /// C: lisp.h 4899: `Lisp_Object module_function_interactive_form (const struct Lisp_Module_Function *);`
-          pub fn module_function_interactive_form (f: *const c_void) -> Lisp_Object;
         }
         /* Module functions are interactive if their `interactive_form'
            field is non-nil. */

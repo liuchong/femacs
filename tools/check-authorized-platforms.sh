@@ -35,6 +35,12 @@ echo "== Android: native library =="
   cd "$REPO/femacs" || exit 1
   FEMACS_CONFIG=android-arm64 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
     cargo run -q -p xtask -- gen-config >/dev/null || exit 1
+  # The objects are a build product and are cleaned between rounds, so build them here rather
+  # than depending on a sweep that ran earlier in the session.
+  FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
+    CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+    bash tools/check-all-units.sh \
+    "$REPO/docs/baseline/frozen-build-sources-android.txt" >/dev/null || exit 1
   FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
     cargo run -q -p xtask -- link-shared aarch64-linux-android 2>&1 | tail -1 || exit 1

@@ -2945,8 +2945,6 @@ unsafe extern "C" {
   /// Lisp_Object);`
   pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
 			    inhibit: c_int, pretend: bool, parameter: Lisp_Object);
-  /// C: dispextern.h 3923: `void do_pending_window_change (bool);`
-  pub fn do_pending_window_change (safe: bool);
   /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *, int *);`
   pub fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
   /// C: dispextern.h 3822: `void free_frame_faces (struct frame *);`

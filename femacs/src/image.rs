@@ -3927,7 +3927,6 @@ unsafe extern "C" {
 // mirror gap.
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
-  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
 }
 // C: dispextern.h 3754: `void image_prune_animation_caches (bool);` - the definition is
 // `image.c`'s own (C 13504-13515) and the seventh slice landed it, so this declaration is gone

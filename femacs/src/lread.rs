@@ -1194,8 +1194,6 @@ unsafe extern "C" {
   fn count_lines (from: ptrdiff_t, to: ptrdiff_t) -> ptrdiff_t;
   /// C: lisp.h 4656: `extern void free_cons (struct Lisp_Cons *);` (alloc.c).
   fn free_cons (cons: *mut Lisp_Cons);
-  /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);` (fns.c).
-  fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 5392: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object),
   /// Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));` (eval.c).
   fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,

@@ -12,18 +12,26 @@
 5. **Java 只用最新 LTS**：官方最新 LTS = **JDK 25**（2025-09；26/27 非 LTS），`openjdk@25` 已装且 Android 链在它下面实测全绿 ⇒ 不需要任何旧 JDK（`docs/baseline/android-jdk.txt`）。
 6. 内存受控、超限即止；用完的产物及时清理（P-190）。
 
-## 完成定义（8 条等权）— 当前 **7/8 = 87.5%**
+## 完成定义（8 条等权）— 当前 **6/8 = 75%**
 
-| # | 项 | 判定 | 当前证据（命令） |
-|---|---|---|---|
-| 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` ⇒ **590 done / 0 in progress / 0 failing**（4.671） |
-| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `xtask gate-fast` ⇒ exit 0（八步） |
-| 3 | L0–L5 | ✅ | L0 19/0；L1 111 文件 / 0 失败 / 1 接受；**L5 默认选择器 same 552 / both-fail 7 / crashed 5 / port-worse 0**（`docs/baseline/ert-sweep-default.tsv`，4.676）；`all` 档唯一 `port-worse` 是上游 `:unstable` 的 `erc-d-run-linger`（P-293） |
-| 4 | `.elc`/dump/生成物/loadup | ✅ | `check-generated.py` **244 文件**（新增 ja-dic 家族、`uvs.elc` 与 `jisx2131-filter`）⇒ **195 identical / 49 name-only / 0 DIFFERENT**；**`.elc` 集合已满**：参照 1,645 个 `.elc` 全有（`ja-dic.elc` 由 `tools/gen-ja-dic.py` 生成，`uvs.elc` 由端口的程序编译，两者都与参照逐字节相同）；**`src/macuvs.h` 也对上了**：`gen-unidata.py` 的 `run_uvs` 用端口的程序打印出与签约副本逐字节相同的 479,218 B（P-219）；`check-loadup.py` ⇒ 两树逐文件一致；**产物面盘点**：参照构建产物 1,973 个，端口有 **1,923**；缺的 50 个**逐条写明理由**（`docs/baseline/build-products-absent.txt`）：脚手架 23（P-102 退役）+ `info/*` 23 + `doc/*` 3（都要 `makeinfo`）+ make stamp 1；理由为 `unclassified` 的行 = 尚未推进的工作 |
-| 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` ⇒ 4,604 文件 / 0 failures |
-| 6 | 平台（macOS + Android） | ⚠️ 部分（**Android 单元 91/91 全绿；`.so` 69 个 JNI 导出；签名 APK 含 `.so`**，4.670；模拟器冒烟待 E1/E2/E3） | macOS `tools/smoke.sh` **11/11**（2026-10-18 在**重链+dump 后的新二进制**上复验）；Android `xtask gate-android` ⇒ 181,486 B APK / 112 class / 签名通过 |
-| 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh`（同臂读数见 P-193）；`--gate` 回归门默认绿 |
-| 8 | 提交签名 + 台账 | ✅ | 全 `-S` 推送；`docs/ports/` 15,011 勾选 / 0 未勾 |
+每行一句可复跑的命令、最后一次读数，以及它在本文件与 `docs/status.md` 里的出处。读这张表
+不需要先读 `status.md`：命令跑出来的数与表里的数相同，就是这一条的当前证据。
+
+| # | 项 | 判定 | 证据命令 | 最后一次读数（出处） |
+|---|---|---|---|---|
+| 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | **590 done / 0 in progress / 0 failing**（4.671） |
+| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast` | exit 0（八步；4.662 之后 `sysdep` 改动已由 4.680 复验） |
+| 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check`、`tools/acceptance-l1.py --check`、`python3 tools/check-ert.py --selector-preset default --tsv /tmp/ert.tsv` | L0 **19/0**；L1 **111 文件 / 0 失败 / 1 接受**；L5 默认选择器 **same 552 / both-fail 7 / crashed 5 / port-worse 0**（`docs/baseline/ert-sweep-default.tsv`，4.676）。`all` 档唯一 `port-worse` 是上游 `:unstable` 的 `erc-d-run-linger`（P-293） |
+| 4 | `.elc`/dump/生成物/loadup | ✅ | `python3 tools/check-generated.py`、`tools/check-loadup.py`、`tools/check-dump-offsets.py` | **244 文件：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**；两树 loadup 逐文件一致；19 处 dump offset 0 failure（4.600/4.678） |
+| 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.679） |
+| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh` | macOS smoke **11/0**；`gate-android` **181,486 B / 112 class / 签名**；`libemacs.so` **5,944,616 B / 69 个 JNI 导出**；含 `lib/arm64-v8a/libemacs.so` 的**签名 APK 3.2 MB**（4.677）。**模拟器冒烟未达**：`tools/try-android-emulator.sh --plan` 是它要跑的步骤，等待 E1/E2/E3 |
+| 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh` | 同臂 0.70–0.86×（P-193）；按用户决定不追平、不记为达标 |
+| 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git log --show-signature` | **238 台账绑定 / 0 failure / 0 行无台账**（4.679）；全部提交 `-S` 并推送 |
+
+**计数口径（一句说清）**：8 条里 `✅` 的是 **1、2、3、4、5、8** 六条；第 6 条是 `⚠️ 部分`、
+第 7 条是 `⏸ 记未达`，两条都不计入达成 ⇒ **6/8 = 75%**。此前我写过 7/8（87.5%），那是把第 6 条
+的"Android 结构面全绿"误当成整条达成——**已更正**，判定不变：第 6 条要等模拟器冒烟（E1/E2/E3），
+第 7 条按用户决定暂挂。8/8 的路径因此是"代码已完成 + 用户做出预算决定（E1 或 E3）"。
 
 ## 平台面的现状（两条前置皆已解决；一条新问题等用户决定）
 

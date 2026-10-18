@@ -9786,7 +9786,6 @@ unsafe extern "system" {
 }
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn do_pending_window_change (safe: bool);
 }
 
 /* C 6909-6910's note above `w32_calc_absolute_position`, carried as C's own text.  */
