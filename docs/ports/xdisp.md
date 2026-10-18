@@ -4305,6 +4305,15 @@ brief's two budgeted commands, disclosed here) supplied the full 57-error list f
   reading is **37**.  Last line
   `- line count drifted 25.6%: C 39805 vs Rust 29626` (`FAIL` stays: C 30717-39805 and the
   C 15616 hole are not transcribed, so the 5% tolerance cannot close yet).
+
+**2026-10-18 更正（4.703）**：上面那句"the C 15616 hole are not transcribed"与"C 30717-39805 … 未转写"**已过时一半** ✓：
+① **C 15616 的洞已补** ✓ —— `tty_handle_tab_bar_click`（C 15616-15654）与 `tty_get_tab_bar_item` 都在 `femacs/src/xdisp.rs`（15807 / `tty_handle_tab_bar_click_decl` 模块）✓，
+`python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` ⇒ **OK** ✓。
+② **C 30717-39805 仍有真缺口** ✓，且**已量清**：该区间的 95 个函数定义名里，**62 个在 `xdisp.rs` 中不存在** ✓ —— 全部是 `#ifdef HAVE_WINDOW_SYSTEM` / glyph-string / GUI 一族
+（`append_glyph_string`、`fill_glyph_string`、`expose_window_tree`、`gui_*`、`show_hourglass`、`update_window_cursor` …）✓，即**冻结配置下不编译的死臂** ✓。
+`--check` 之所以 OK ✓，是因为它比的是**活文本**（P-86 的容差）✓；行数比的 5% 容差因此收不口 ✓（C 39,805 / Rust 33,411，漂移 16.1% ✓）。
+⇒ **DoD-1 的口径差别正落在这里** ✓：按 A/C 这些死臂记 `text-only` 即算 ✓；按 B（每行都要转写）则**必须把这一族补上** ✓ —— 与 `comp.c` 的做法相同 ✓。
+
 * `femacs/src/xdisp.rs`: 29,626 lines, md5 `9c171c3f48f6bf7107bbfe61a2c4fbb6`
   (`27,160 -> 29,626`, +2,466).
 * `docs/ports/xdisp.md`: 24 unchecked boxes (`44 -> 24`: 20 ticked for this round's own
