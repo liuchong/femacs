@@ -357,6 +357,14 @@ macro_rules! mini {
 
 /* lisp.h 3966: `extern struct hash_table_test hashtest_eq;` — the mirror carries
    `hashtest_eql`/`hashtest_equal` but not this one (P-72 rule 3).  */
+/* C 6666-6677's `atoi`/`atof` come from `<stdlib.h>`.  The mirror's `stdlib.rs` does not carry
+   the pair, and two other units declare their own copies at their use sites (P-55), so the
+   declaration lives here too rather than in the shared header.  */
+unsafe extern "C" {
+  pub fn atoi (s: *const c_char) -> c_int;
+  pub fn atof (s: *const c_char) -> c_double;
+}
+
 unsafe extern "C" {
   /// C: lisp.h 4260: `extern struct hash_table_test const hashtest_eq, hashtest_eql, hashtest_equal;` (fns.c defines it).
   pub static mut hashtest_eq: hash_table_test;
@@ -4870,8 +4878,8 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
         { }                                    /* C 4939: the empty statement.  */
       else if !p.is_null ()
         {
-          parent_width = FRAME_PIXEL_WIDTH! (p);
-          parent_height = FRAME_PIXEL_HEIGHT! (p);
+          parent_width = FRAME_PIXEL_WIDTH! (p) as c_uint;   // C 4937: `unsigned`
+          parent_height = FRAME_PIXEL_HEIGHT! (p) as c_uint;
           *parent_done = 1;
         }
       else
@@ -4918,9 +4926,9 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
       else if FRAME_UNDECORATED (f) != 0
         {
           outer_minus_text_width
-            = (FRAME_PIXEL_WIDTH! (f) - FRAME_TEXT_WIDTH! (f)) as c_uint;
+            = (FRAME_PIXEL_WIDTH! (f) as isize - FRAME_TEXT_WIDTH! (f) as isize) as c_uint;
           outer_minus_text_height
-            = (FRAME_PIXEL_HEIGHT! (f) - FRAME_TEXT_HEIGHT! (f)) as c_uint;
+            = (FRAME_PIXEL_HEIGHT! (f) as isize - FRAME_TEXT_HEIGHT! (f) as isize) as c_uint;
           *outer_done = 1;
         }
       else if *outer_done == 0
@@ -4939,20 +4947,20 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
               outer_minus_text_width
                 = (XFIXNUM (Fnth (make_fixnum (2), outer_edges))
                    - XFIXNUM (Fnth (make_fixnum (0), outer_edges))
-                   - FRAME_TEXT_WIDTH! (f)) as c_uint;
+                   - FRAME_TEXT_WIDTH! (f) as isize) as c_uint;
               outer_minus_text_height
                 = (XFIXNUM (Fnth (make_fixnum (3), outer_edges))
                    - XFIXNUM (Fnth (make_fixnum (1), outer_edges))
-                   - FRAME_TEXT_HEIGHT! (f)) as c_uint;
+                   - FRAME_TEXT_HEIGHT! (f) as isize) as c_uint;
             }
           else
             {
               /* If we can't get any outer edges, proceed as if the frame
                  were undecorated.  */
               outer_minus_text_width
-                = (FRAME_PIXEL_WIDTH! (f) - FRAME_TEXT_WIDTH! (f)) as c_uint;
+                = (FRAME_PIXEL_WIDTH! (f) as isize - FRAME_TEXT_WIDTH! (f) as isize) as c_uint;
               outer_minus_text_height
-                = (FRAME_PIXEL_HEIGHT! (f) - FRAME_TEXT_HEIGHT! (f)) as c_uint;
+                = (FRAME_PIXEL_HEIGHT! (f) as isize - FRAME_TEXT_HEIGHT! (f) as isize) as c_uint;
             }
 
           *outer_done = 1;
@@ -5021,7 +5029,7 @@ unsafe fn handle_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object
       if !FRAME_RIF! (f).is_null ()
         {
           let handlers: *mut frame_parm_handler
-            = (*FRAME_RIF! (f)).frame_parm_handlers as *mut frame_parm_handler;
+            = (*((FRAME_RIF! (f)) as *mut redisplay_interface)).frame_parm_handlers as *mut frame_parm_handler;
           let handler: frame_parm_handler
             = *handlers.offset (XFIXNAT (param_index) as isize);
 
@@ -5046,7 +5054,7 @@ unsafe fn handle_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object
    (PORTING.md 0.2).  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_frame_parameters_1 (f: *mut frame, alist: Lisp_Object,
+pub unsafe extern "C" fn gui_set_frame_parameters_1 (f: *mut frame, mut alist: Lisp_Object,
                                                       default_parameter: bool)
 {
   let mut tail: Lisp_Object;
@@ -5497,15 +5505,15 @@ pub unsafe extern "C" fn gui_set_fullscreen (f: *mut frame, new_value: Lisp_Obje
 					     old_value: Lisp_Object)
 {
   if NILP (new_value)
-    { (*f).want_fullscreen = FULLSCREEN_NONE; }
+    { frame_set_field (f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, FULLSCREEN_NONE as u32); }
   else if EQ (new_value, Qfullboth ()) || EQ (new_value, Qfullscreen ())
-    { (*f).want_fullscreen = FULLSCREEN_BOTH; }
+    { frame_set_field (f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, FULLSCREEN_BOTH as u32); }
   else if EQ (new_value, Qfullwidth ())
-    { (*f).want_fullscreen = FULLSCREEN_WIDTH; }
+    { frame_set_field (f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, FULLSCREEN_WIDTH as u32); }
   else if EQ (new_value, Qfullheight ())
-    { (*f).want_fullscreen = FULLSCREEN_HEIGHT; }
+    { frame_set_field (f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, FULLSCREEN_HEIGHT as u32); }
   else if EQ (new_value, Qmaximized ())
-    { (*f).want_fullscreen = FULLSCREEN_MAXIMIZED; }
+    { frame_set_field (f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, FULLSCREEN_MAXIMIZED as u32); }
 
   if let Some (fullscreen_hook) = (*FRAME_TERMINAL! (f)).fullscreen_hook
     { fullscreen_hook (f as *mut c_void); }
@@ -5813,7 +5821,7 @@ pub unsafe extern "C" fn gui_set_font_backend (f: *mut frame, new_value: Lisp_Ob
   if ! FRAME_FONT! (f).is_null ()
     {
       /* Reconsider default font after backend(s) change (Bug#23386).  */
-      if let Some (default_font_parameter) = (*FRAME_RIF! (f)).default_font_parameter
+      if let Some (default_font_parameter) = (*((FRAME_RIF! (f)) as *mut redisplay_interface)).default_font_parameter
 	{ default_font_parameter (f as *mut c_void, Qnil ()); }
       face_change = true;
       windows_or_buffers_changed = 18;

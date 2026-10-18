@@ -162,9 +162,9 @@ const _: () = core::assert! (std::mem::offset_of! (android_fd_or_asset, asset) =
 #[cfg (feature = "have_android")]
 pub type lread_fd = android_fd_or_asset;
 #[cfg (feature = "have_android")]
-macro_rules! lread_fd_cmp { ($fd:expr, $n:expr) => { !$fd.asset && $fd.fd == ($n) }; }
+macro_rules! lread_fd_cmp { ($fd:expr, $n:expr) => { !($fd).asset && ($fd).fd == ($n) }; }
 #[cfg (feature = "have_android")]
-macro_rules! lread_fd_p { ($fd:expr) => { $fd.asset || $fd.fd >= 0 }; }
+macro_rules! lread_fd_p { ($fd:expr) => { ($fd).asset || ($fd).fd >= 0 }; }
 #[cfg (feature = "have_android")]
 macro_rules! lread_close { ($fd:expr) => { android_close_asset ($fd) }; }
 #[cfg (feature = "have_android")]
@@ -1297,8 +1297,11 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
        {
 	 let mut file: Lisp_Object = file;
 	 let mut must_suffix: Lisp_Object = must_suffix;
-	 let mut stream: file_stream = std::ptr::null_mut ();	/* UNINIT (P-14) */
-	 let mut fd: lread_fd = -1;				/* C leaves it indeterminate */
+	 let mut stream: file_stream = file_stream_invalid! ();	/* UNINIT (P-14) */
+	 /* C 1117 leaves `lread_fd fd;` indeterminate; on Android the type is
+	    `struct android_fd_or_asset`, so `-1` is not a value of it - a zeroed record is the
+	    port's defined stand-in (P-14), and every read of it is under the guard below.  */
+	 let mut fd: lread_fd = unsafe { core::mem::zeroed () };
 	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	 let mut rc: c_int = 0;
 	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`

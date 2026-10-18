@@ -1476,6 +1476,14 @@ pub fn frame_set_flag (f: *mut frame, unit: u32, shift: u32, v: u32)
 #[inline(always)]
 pub fn frame_field (f: *mut frame, unit: u32, shift: u32, mask: u32) -> u32
 { frame_word (f, unit) >> shift & mask }
+/// C writes the multi-bit fields as assignments (`f->want_fullscreen = v`), so the port needs
+/// the writer as well as the reader: same word, same shift, C's own mask.
+#[inline(always)]
+pub fn frame_set_field (f: *mut frame, unit: u32, shift: u32, mask: u32, v: u32)
+{
+  let word = if unit == 2 { unsafe { &mut (*f).bits2 } } else { unsafe { &mut (*f).bits1 } };
+  *word = (*word & ! (mask << shift)) | ((v & mask) << shift);
+}
 
 // frame.h 1428-1521: the file-scope objects (the .c files define them).
 unsafe extern "C" { pub static mut frame_next_id: EMACS_UINT; }              // 1428
