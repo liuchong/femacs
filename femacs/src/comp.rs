@@ -1249,6 +1249,70 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/// C 5533-5576: `DEFUN ("native-elisp-load", Fnative_elisp_load, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("native-elisp-load", Fnative_elisp_load, Snative_elisp_load, 1, 2, 0,
+       doc: "Load native elisp code FILENAME.\nLATE-LOAD has to be non-nil when loading for deferred compilation.",
+       (filename: Lisp_Object, late_load: Lisp_Object),
+       {
+  CHECK_STRING (filename);
+  if NILP (Ffile_exists_p (filename))
+    { xsignal2 (Qnative_lisp_load_failed (), build_string (c"file does not exists".as_ptr ()),
+	      filename); }
+  let comp_u: *mut Lisp_Native_Comp_Unit = allocate_native_comp_unit ();
+  let encoded_filename: Lisp_Object = ENCODE_FILE (filename);
+
+  if ! NILP (Fgethash (filename, Vcomp_loaded_comp_units_h, Qnil ()))
+      && ! file_in_eln_sys_dir (filename)
+      && ! NILP (Ffile_writable_p (filename))
+    {
+      /* If in this session there was ever a file loaded with this
+	 name, rename it before loading, to make sure we always get a
+	 new handle!  */
+      let tmp_filename: Lisp_Object =
+	Fmake_temp_file_internal (filename, Qnil (), build_string (c".eln.tmp".as_ptr ()),
+				  Qnil ());
+      if NILP (Ffile_writable_p (tmp_filename))
+	{ (*comp_u).handle = dynlib_open_for_eln (SSDATA (encoded_filename)); }
+      else
+	{
+	  Frename_file (filename, tmp_filename, Qt ());
+	  (*comp_u).handle = dynlib_open_for_eln (SSDATA (ENCODE_FILE (tmp_filename)));
+	  Frename_file (tmp_filename, filename, Qnil ());
+	}
+    }
+  else
+    { (*comp_u).handle = dynlib_open_for_eln (SSDATA (encoded_filename)); }
+
+  if (*comp_u).handle.is_null ()
+    { xsignal2 (Qnative_lisp_load_failed (), filename,
+	      build_string (dynlib_error ())); }
+  (*comp_u).file = filename;
+  (*comp_u).data_vec = Qnil ();
+  (*comp_u).lambda_gc_guard_h = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
+  (*comp_u).lambda_c_name_idx_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
+  return load_comp_unit (comp_u, false, ! NILP (late_load));
+});
+
+/* C 5578: `#endif /* HAVE_NATIVE_COMP */` - the file gate's end.  */
+
+/// C 5580-5590: `DEFUN ("native-comp-available-p", Fnative_comp_available_p, …)`.  Live text:
+/// outside the file gate, as in C.
+DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
+       Snative_comp_available_p, 0, 0, 0,
+       doc: "Return non-nil if native compilation support is built-in.",
+       (),
+       {
+  #[cfg (feature = "have_native_comp")]
+  {
+    return if load_gccjit_if_necessary (false) { Qt () } else { Qnil () };
+  }
+  #[cfg (not (feature = "have_native_comp"))]
+  {
+    return Qnil ();
+  }
+});
+
 /// C 5369-5381: `void unload_comp_unit (struct Lisp_Native_Comp_Unit *cu)`.
 #[cfg (feature = "have_native_comp")]
 #[unsafe(no_mangle)]
@@ -6852,5 +6916,218 @@ unsafe fn declare_imported_func (subr_sym: Lisp_Object,
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_comp ()
 {
+  /* C 5596-5854: `#ifdef HAVE_NATIVE_COMP`, the file gate's `syms_of` region.  */
+  #[cfg (feature = "have_native_comp")]
+  {
+  DEFVAR_BOOL! ("native-comp-jit-compilation", native_comp_jit_compilation,
+    doc: "If non-nil, compile loaded .elc files asynchronously.\n\nAfter compilation, each function definition is updated to use the\nnatively compiled one.");
+  native_comp_jit_compilation = true;
+
+  DEFSYM! (Qnative_comp_speed, c"native-comp-speed");
+  DEFSYM! (Qnative_comp_debug, c"native-comp-debug");
+  DEFSYM! (Qnative_comp_driver_options, c"native-comp-driver-options");
+  DEFSYM! (Qnative_comp_compiler_options, c"native-comp-compiler-options");
+  DEFSYM! (Qcomp_libgccjit_reproducer, c"comp-libgccjit-reproducer");
+
+  /* Limple instruction set.  */
+  DEFSYM! (Qcomment, c"comment");
+  DEFSYM! (Qjump, c"jump");
+  DEFSYM! (Qcall, c"call");
+  DEFSYM! (Qcallref, c"callref");
+  DEFSYM! (Qdirect_call, c"direct-call");
+  DEFSYM! (Qdirect_callref, c"direct-callref");
+  DEFSYM! (Qassume, c"assume");
+  DEFSYM! (Qsetimm, c"setimm");
+  DEFSYM! (Qreturn, c"return");
+  DEFSYM! (Qunreachable, c"unreachable");
+  DEFSYM! (Qcomp_mvar, c"comp-mvar");
+  DEFSYM! (Qcond_jump, c"cond-jump");
+  DEFSYM! (Qphi, c"phi");
+  /* Ops in use for prologue emission.  */
+  DEFSYM! (Qset_par_to_local, c"set-par-to-local");
+  DEFSYM! (Qset_args_to_local, c"set-args-to-local");
+  DEFSYM! (Qset_rest_args_to_local, c"set-rest-args-to-local");
+  DEFSYM! (Qinc_args, c"inc-args");
+  DEFSYM! (Qcond_jump_narg_leq, c"cond-jump-narg-leq");
+  /* Others.  */
+  DEFSYM! (Qpush_handler, c"push-handler");
+  DEFSYM! (Qpop_handler, c"pop-handler");
+  DEFSYM! (Qfetch_handler, c"fetch-handler");
+  DEFSYM! (Qcondition_case, c"condition-case");
+  /* call operands.  */
+  DEFSYM! (Qcatcher, c"catcher");
+  DEFSYM! (Qentry, c"entry");
+  DEFSYM! (Qset_internal, c"set_internal");
+  DEFSYM! (Qrecord_unwind_current_buffer, c"record_unwind_current_buffer");
+  DEFSYM! (Qrecord_unwind_protect_excursion, c"record_unwind_protect_excursion");
+  DEFSYM! (Qhelper_unbind_n, c"helper_unbind_n");
+  DEFSYM! (Qhelper_unwind_protect, c"helper_unwind_protect");
+  DEFSYM! (Qhelper_save_restriction, c"helper_save_restriction");
+  DEFSYM! (Qhelper_sanitizer_assert, c"helper_sanitizer_assert");
+  /* Inliners.  */
+  DEFSYM! (Qadd1, c"1+");
+  DEFSYM! (Qsub1, c"1-");
+  DEFSYM! (Qconsp, c"consp");
+  DEFSYM! (Qcar, c"car");
+  DEFSYM! (Qcdr, c"cdr");
+  DEFSYM! (Qsetcar, c"setcar");
+  DEFSYM! (Qsetcdr, c"setcdr");
+  DEFSYM! (Qnegate, c"negate");
+  DEFSYM! (Qnumberp, c"numberp");
+  DEFSYM! (Qintegerp, c"integerp");
+  DEFSYM! (Qcomp_maybe_gc_or_quit, c"comp-maybe-gc-or-quit");
+  DEFSYM! (Qsymbol_with_pos_p, c"symbol-with-pos-p");
+
+  /* Allocation classes. */
+  DEFSYM! (Qd_default, c"d-default");
+  DEFSYM! (Qd_ephemeral, c"d-ephemeral");
+
+  /* Others.  */
+  DEFSYM! (Qnative_compiler, c"native-compiler");
+  DEFSYM! (Qfixnum, c"fixnum");
+  DEFSYM! (Qscratch, c"scratch");
+  DEFSYM! (Qlate, c"late");
+  DEFSYM! (Qgccjit, c"gccjit");
+  DEFSYM! (Qcomp_subr_trampoline_install, c"comp-subr-trampoline-install");
+  DEFSYM! (Qnative_comp_warning_on_missing_source,
+	  c"native-comp-warning-on-missing-source");
+
+  /* To be signaled by the compiler.  */
+  DEFSYM! (Qnative_compiler_error, c"native-compiler-error");
+  Fput (Qnative_compiler_error (), Qerror_conditions (),
+	list (Qnative_compiler_error (), Qerror ()));
+  Fput (Qnative_compiler_error (), Qerror_message (),
+        build_string (c"Native compiler error".as_ptr ()));
+
+  DEFSYM! (Qnative_ice, c"native-ice");
+  Fput (Qnative_ice (), Qerror_conditions (),
+	list (Qnative_ice (), Qnative_compiler_error (), Qerror ()));
+  Fput (Qnative_ice (), Qerror_message (),
+        build_string (c"Internal native compiler error".as_ptr ()));
+
+  /* By the load machinery.  */
+  DEFSYM! (Qnative_lisp_load_failed, c"native-lisp-load-failed");
+  Fput (Qnative_lisp_load_failed (), Qerror_conditions (),
+	list (Qnative_lisp_load_failed (), Qerror ()));
+  Fput (Qnative_lisp_load_failed (), Qerror_message (),
+        build_string (c"Native elisp load failed".as_ptr ()));
+
+  DEFSYM! (Qnative_lisp_wrong_reloc, c"native-lisp-wrong-reloc");
+  Fput (Qnative_lisp_wrong_reloc (), Qerror_conditions (),
+	list (Qnative_lisp_wrong_reloc (), Qnative_lisp_load_failed (), Qerror ()));
+  Fput (Qnative_lisp_wrong_reloc (), Qerror_message (),
+        build_string (c"Primitive redefined or wrong relocation".as_ptr ()));
+
+  DEFSYM! (Qwrong_register_subr_call, c"wrong-register-subr-call");
+  Fput (Qwrong_register_subr_call (), Qerror_conditions (),
+	list (Qwrong_register_subr_call (), Qnative_lisp_load_failed (), Qerror ()));
+  Fput (Qwrong_register_subr_call (), Qerror_message (),
+        build_string (c"comp--register-subr can only be called during native lisp load phase.".as_ptr ()));
+
+  DEFSYM! (Qnative_lisp_file_inconsistent, c"native-lisp-file-inconsistent");
+  Fput (Qnative_lisp_file_inconsistent (), Qerror_conditions (),
+	list (Qnative_lisp_file_inconsistent (), Qnative_lisp_load_failed (), Qerror ()));
+  Fput (Qnative_lisp_file_inconsistent (), Qerror_message (),
+        build_string (c"eln file inconsistent with current runtime configuration, please recompile".as_ptr ()));
+
+  DEFSYM! (Qcomp_sanitizer_error, c"comp-sanitizer-error");
+  Fput (Qcomp_sanitizer_error (), Qerror_conditions (),
+	list (Qcomp_sanitizer_error (), Qerror ()));
+  Fput (Qcomp_sanitizer_error (), Qerror_message (),
+        build_string (c"Native code sanitizer runtime error".as_ptr ()));
+
+  DEFSYM! (Qnative__compile_async, c"native--compile-async");
+
+  defsubr (&raw mut Scomp__subr_signature);
+  defsubr (&raw mut Scomp_el_to_eln_rel_filename);
+  defsubr (&raw mut Scomp_el_to_eln_filename);
+  defsubr (&raw mut Scomp_native_driver_options_effective_p);
+  defsubr (&raw mut Scomp_native_compiler_options_effective_p);
+  defsubr (&raw mut Scomp__install_trampoline);
+  defsubr (&raw mut Scomp__init_ctxt);
+  defsubr (&raw mut Scomp__release_ctxt);
+  defsubr (&raw mut Scomp__compile_ctxt_to_file0);
+  defsubr (&raw mut Scomp_libgccjit_version);
+  defsubr (&raw mut Scomp__register_lambda);
+  defsubr (&raw mut Scomp__register_subr);
+  defsubr (&raw mut Scomp__late_register_subr);
+  defsubr (&raw mut Snative_elisp_load);
+
+  staticpro (&raw mut comp.exported_funcs_h);
+  comp.exported_funcs_h = Qnil ();
+  staticpro (&raw mut comp.imported_funcs_h);
+  comp.imported_funcs_h = Qnil ();
+  staticpro (&raw mut comp.func_blocks_h);
+  staticpro (&raw mut comp.emitter_dispatcher);
+  comp.emitter_dispatcher = Qnil ();
+  staticpro (&raw mut loadsearch_re_list);
+  loadsearch_re_list = Qnil ();
+
+  DEFVAR_LISP! ("comp-ctxt", Vcomp_ctxt,
+	       doc: "The compiler context.");
+  Vcomp_ctxt = Qnil ();
+
+  /* FIXME should be initialized but not here...  Plus this don't have
+     to be necessarily exposed to lisp but can easy debug for now.  */
+  DEFVAR_LISP! ("comp-subr-list", Vcomp_subr_list,
+    doc: "List of all defined subrs.");
+  DEFVAR_LISP! ("comp-abi-hash", Vcomp_abi_hash,
+    doc: "String signing the .eln files ABI.");
+  Vcomp_abi_hash = Qnil ();
+  DEFVAR_LISP! ("comp-native-version-dir", Vcomp_native_version_dir,
+    doc: "Directory in use to disambiguate eln compatibility.");
+  Vcomp_native_version_dir = Qnil ();
+
+  DEFVAR_LISP! ("comp-deferred-pending-h", Vcomp_deferred_pending_h,
+    doc: "Hash table symbol-name -> function-value.\nFor internal use.");
+  Vcomp_deferred_pending_h = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
+
+  DEFVAR_LISP! ("comp-eln-to-el-h", Vcomp_eln_to_el_h,
+    doc: "Hash table eln-filename -> el-filename.");
+  Vcomp_eln_to_el_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
+
+  DEFVAR_LISP! ("native-comp-eln-load-path", Vnative_comp_eln_load_path,
+    doc: "List of directories to look for native-compiled *.eln files.\n\nThe *.eln files are actually looked for in a version-specific\nsubdirectory of each directory in this list.  That subdirectory\nis determined by the value of `comp-native-version-dir'.\nIf the name of a directory in this list is not absolute, it is\nassumed to be relative to `invocation-directory'.\nThe last directory of this list is assumed to be the one holding\nthe system *.eln files, which are the files produced when building\nEmacs.");
+
+  /* Temporary value in use for bootstrap.  We can't do better as
+     `invocation-directory' is still unset, will be fixed up during
+     dump reload.  */
+  Vnative_comp_eln_load_path = Fcons (build_string (c"../native-lisp/".as_ptr ()), Qnil ());
+
+  DEFVAR_LISP! ("native-comp-enable-subr-trampolines",
+	       Vnative_comp_enable_subr_trampolines,
+    doc: "If non-nil, enable generation of trampolines for calling primitives.\nTrampolines are needed so that Emacs respects redefinition or advice of\nprimitive functions when they are called from native-compiled Lisp code\nat `native-comp-speed' of 2.\n\nBy default, the value is t, and when Emacs sees a redefined or advised\nprimitive called from native-compiled Lisp, it generates a trampoline\nfor it on-the-fly.\n\nIf the value is a file name (a string), it specifies the directory in\nwhich to deposit the generated trampolines, overriding the directories\nin `native-comp-eln-load-path'.\n\nWhen this variable is nil, generation of trampolines is disabled.\n\nDisabling the generation of trampolines, when a trampoline for a redefined\nor advised primitive is not already available from previous compilations,\nmeans that such redefinition or advice will not have effect when calling\nprimitives from native-compiled Lisp code.  That is, calls to primitives\nwithout existing trampolines from native-compiled Lisp will behave as if\nthe primitive was called directly from C, and will ignore its redefinition\nand advice.");
+
+  DEFVAR_LISP! ("comp-installed-trampolines-h", Vcomp_installed_trampolines_h,
+    doc: "Hash table subr-name -> installed trampoline.\nThis is used to prevent double trampoline instantiation, and also to\nprotect the trampolines against GC.");
+  Vcomp_installed_trampolines_h = Fmake_hash_table (0, std::ptr::null_mut ());
+
+  DEFVAR_LISP! ("comp-no-native-file-h", V_comp_no_native_file_h,
+    doc: "Files for which no deferred compilation should be performed.\nThese files' compilation should not be deferred because the bytecode\nversion was explicitly requested by the user during load.\nFor internal use.");
+  V_comp_no_native_file_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
+
+  DEFVAR_BOOL! ("comp-file-preloaded-p", comp_file_preloaded_p,
+    doc: "When non-nil, assume the file being compiled to be preloaded.");
+
+  DEFVAR_LISP! ("comp-loaded-comp-units-h", Vcomp_loaded_comp_units_h,
+    doc: "Hash table recording all loaded compilation units, file -> CU.");
+  Vcomp_loaded_comp_units_h =
+    CALLN! (Fmake_hash_table, QCweakness (), Qvalue (), QCtest (), Qequal ());
+
+  DEFVAR_LISP! ("comp-subr-arities-h", Vcomp_subr_arities_h,
+    doc: "Hash table recording the arity of Lisp primitives.\nThis is in case they are redefined so the compiler still knows how to\ncompile calls to them.\nsubr-name -> arity\nFor internal use.");
+  Vcomp_subr_arities_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
+
+  DEFVAR_BOOL! ("comp-sanitizer-active", comp_sanitizer_active,
+    doc: "If non-nil, enable runtime execution of native-compiler sanitizer.\nFor this to be effective, Lisp code must be compiled\nwith `comp-sanitizer-emit' non-nil.\nThis is intended to be used only for development and\nverification of the native compiler.");
+  comp_sanitizer_active = false;
+
+  DEFVAR_LISP! ("comp--#$", Vcomp__hashdollar,
+    doc: "Special value which will print as \"#$\".");
+  Vcomp__hashdollar = build_string (c"#$".as_ptr ());
+
+  Fprovide (intern_c_string (c"native-compile".as_ptr ()), Qnil ());
+  }
+
   defsubr (&raw mut Snative_comp_available_p);
 }
