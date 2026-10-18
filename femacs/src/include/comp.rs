@@ -41,7 +41,10 @@ pub struct Lisp_Native_Comp_Unit
 				     Lisp_Object definition)
      {}                                                                 */
 /// The empty body is the reference's own (comp.h 92-95), not a port stub: with
-/// HAVE_NATIVE_COMP undefined this is the definition every caller links against.
+/// HAVE_NATIVE_COMP undefined this is the definition every caller links against; when that
+/// macro *is* defined comp.h declares the real one and `src/comp.c` defines it, which is the
+/// condition the gate below reproduces.
+#[cfg (not (feature = "have_native_comp"))]
 #[inline(always)]
 pub fn maybe_defer_native_compilation (function_name: Lisp_Object, definition: Lisp_Object)
 {
@@ -58,6 +61,13 @@ pub fn maybe_defer_native_compilation (function_name: Lisp_Object, definition: L
 /// Lisp_Native_Comp_Unit` - that record is above (comp.h 25-51, live text), so the port has the
 /// type; C only ever passes it through by pointer here, which is why this signature keeps
 /// `*mut c_void` (PORTING.md P-72 3) and the type stays a declaration the caller may ignore.
+///
+/// **Both this and the `maybe_defer_native_compilation` above are C's `#else` arms** - the empty
+/// `static inline` definitions the reference has when `HAVE_NATIVE_COMP` is undefined.  When that
+/// macro *is* defined, comp.h 39-41/47-48 declare the real ones and `src/comp.c` defines them, so
+/// the port gates the two exactly as C's preprocessor does; without the gate the unit's
+/// definitions and these would collide in the one crate root the materialiser builds.
+#[cfg (not (feature = "have_native_comp"))]
 #[inline(always)]
 pub fn unload_comp_unit (cu: *mut core::ffi::c_void) {
   let _ = cu;
