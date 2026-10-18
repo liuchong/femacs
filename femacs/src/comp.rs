@@ -1249,6 +1249,162 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/// C 4778-4928: `DEFUN ("comp--compile-ctxt-to-file0", …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp--compile-ctxt-to-file0", Fcomp__compile_ctxt_to_file0,
+       Scomp__compile_ctxt_to_file0,
+       1, 1, 0,
+       doc: "Compile the current context as native code to file FILENAME.",
+       (filename: Lisp_Object),
+       {
+  load_gccjit_if_necessary (true);
+
+  CHECK_STRING (filename);
+  let base_name: Lisp_Object = Fsubstring (filename, Qnil (), make_fixnum (-4));
+  let ebase_name: Lisp_Object = ENCODE_FILE (base_name);
+
+  comp.func_relocs_local = std::ptr::null_mut ();
+
+  #[cfg (feature = "windowsnt")]
+  {
+    let mut ebase_name: Lisp_Object = ansi_encode_filename (ebase_name);
+    /* Tell libgccjit the actual file name of the loaded DLL, otherwise
+       it will use 'libgccjit.so', which is not useful.  */
+    let libgccjit_loaded_from: Lisp_Object = Fget (Qgccjit (), QCloaded_from ());
+
+    if CONSP (libgccjit_loaded_from)
+      {
+        /* Use the absolute file name if available, otherwise the name
+	   we looked for in w32_delayed_load.  */
+        let mut libgccjit_fname: Lisp_Object = XCDR (libgccjit_loaded_from);
+        if NILP (libgccjit_fname)
+	  { libgccjit_fname = XCAR (libgccjit_loaded_from); }
+        /* Must encode to ANSI, as libgccjit will not be able to handle
+	   UTF-8 encoded file names.  */
+        libgccjit_fname = ENCODE_FILE (libgccjit_fname);
+        libgccjit_fname = ansi_encode_filename (libgccjit_fname);
+        gcc_jit_context_set_str_option (comp.ctxt, GCC_JIT_STR_OPTION_PROGNAME,
+				      SSDATA (libgccjit_fname));
+      }
+    else	/* this should never happen */
+      { gcc_jit_context_set_str_option (comp.ctxt, GCC_JIT_STR_OPTION_PROGNAME,
+				    c"libgccjit-0.dll".as_ptr ()); }
+  }
+
+  comp.speed = XFIXNUM (CALLNI! ("comp-ctxt-speed", Vcomp_ctxt));
+  eassert! (comp.speed < INT_MAX as EMACS_INT);
+  comp.debug = XFIXNUM (CALLNI! ("comp-ctxt-debug", Vcomp_ctxt));
+  eassert! (comp.debug < INT_MAX as EMACS_INT);
+  comp.driver_options = CALLNI! ("comp-ctxt-driver-options", Vcomp_ctxt);
+  comp.compiler_options = CALLNI! ("comp-ctxt-compiler-options", Vcomp_ctxt);
+
+  if comp.debug != 0
+    { gcc_jit_context_set_bool_option (comp.ctxt,
+				       GCC_JIT_BOOL_OPTION_DEBUGINFO,
+				       1); }
+  if comp.debug >= 3
+    {
+      logfile = emacs_fopen (c"libgccjit.log".as_ptr (), c"w".as_ptr ());
+      gcc_jit_context_set_logfile (comp.ctxt,
+				   logfile,
+				   0, 0);
+      gcc_jit_context_set_bool_option (comp.ctxt,
+				       GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES,
+				       1);
+      gcc_jit_context_set_bool_option (comp.ctxt,
+				       GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING,
+				       1);
+    }
+
+  gcc_jit_context_set_int_option (comp.ctxt,
+				  GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL,
+				  if comp.speed < 0 { 0 }
+				  else if comp.speed > 3 { 3 }
+				  else { comp.speed as c_int });
+
+  /* On MacOS set a unique dylib ID.  */
+  #[cfg (all (feature = "libgccjit_have_gcc_jit_context_add_driver_option",
+	      target_os = "macos"))]
+  {
+    gcc_jit_context_add_driver_option (comp.ctxt, c"-install_name".as_ptr ());
+    gcc_jit_context_add_driver_option (
+           comp.ctxt, SSDATA (Ffile_name_nondirectory (filename)));
+  }
+
+  comp.d_default_idx =
+    CALLNI! ("comp-data-container-idx", CALLNI! ("comp-ctxt-d-default", Vcomp_ctxt));
+  comp.d_ephemeral_idx =
+    CALLNI! ("comp-data-container-idx", CALLNI! ("comp-ctxt-d-ephemeral", Vcomp_ctxt));
+
+  emit_ctxt_code ();
+
+  /* Define inline functions.  */
+  define_CAR_CDR ();
+  define_PSEUDOVECTORP ();
+  define_GET_SYMBOL_WITH_POSITION ();
+  define_CHECK_TYPE ();
+  define_SYMBOL_WITH_POS_SYM ();
+  define_bool_to_lisp_obj ();
+  define_setcar_setcdr ();
+  define_add1_sub1 ();
+  define_negate ();
+  define_maybe_gc_or_quit ();
+
+  let func_h: *mut Lisp_Hash_Table =
+    XHASH_TABLE (CALLNI! ("comp-ctxt-funcs-h", Vcomp_ctxt));
+  DOHASH! (func_h, k, function, { declare_function (function); });
+  /* Compile all functions. Can't be done before because the
+     relocation structs has to be already defined.  */
+  DOHASH! (func_h, k, function, { compile_function (function); });
+
+  /* Work around bug#46495 (GCC PR99126). */
+  #[cfg (all (feature = "wide_emacs_int",
+	      feature = "libgccjit_have_gcc_jit_context_add_command_line_option"))]
+  {
+    let version: Lisp_Object = Fcomp_libgccjit_version ();
+    if NILP (version)
+	|| XFIXNUM (XCAR (version)) < 11
+      { gcc_jit_context_add_command_line_option (comp.ctxt,
+					     c"-fdisable-tree-isolate-paths".as_ptr ()); }
+  }
+
+  add_compiler_options ();
+  add_driver_options ();
+
+  if comp.debug > 1
+    { gcc_jit_context_dump_to_file (comp.ctxt,
+				    format_string (c"%s.c".as_ptr (), SSDATA (ebase_name)),
+				    1); }
+  if ! NILP (Fsymbol_value (Qcomp_libgccjit_reproducer ()))
+    { gcc_jit_context_dump_reproducer_to_file (
+      comp.ctxt,
+      format_string (c"%s_libgccjit_repro.c".as_ptr (), SSDATA (ebase_name))); }
+
+  let tmp_file: Lisp_Object =
+    CALLNI! ("make-temp-file", base_name, Qnil (), build_string (c".eln.tmp".as_ptr ()), Qnil ());
+
+  let mut encoded_tmp_file: Lisp_Object = ENCODE_FILE (tmp_file);
+  #[cfg (feature = "windowsnt")]
+  {
+    encoded_tmp_file = ansi_encode_filename (encoded_tmp_file);
+  }
+  gcc_jit_context_compile_to_file (comp.ctxt,
+				   GCC_JIT_OUTPUT_KIND_DYNAMIC_LIBRARY,
+				   SSDATA (encoded_tmp_file));
+
+  let err: *const c_char = gcc_jit_context_get_first_error (comp.ctxt);
+  if ! err.is_null ()
+    { xsignal3 (Qnative_ice (),
+	      build_string (c"failed to compile".as_ptr ()),
+	      filename,
+	      build_string (err)); }
+
+  CALLNI! ("comp-clean-up-stale-eln", filename);
+  CALLNI! ("comp-delete-or-replace-file", filename, tmp_file);
+
+  return filename;
+});
+
 /// C 4704-4739: `static void add_driver_options (void)`.  Both gated arms are C's
 /// `#if defined (LIBGCCJIT_HAVE_gcc_jit_context_add_driver_option)`; the feature that names the
 /// macro is off in the frozen configuration, so the two `#endif` bodies are the live text and the
@@ -2020,6 +2176,35 @@ unsafe extern "C" {
   /// int num_bytes, int is_signed);`
   pub fn gcc_jit_context_get_int_type (ctxt: *mut gcc_jit_context, num_bytes: c_int,
                                        is_signed: c_int) -> *mut gcc_jit_type;
+  /// C: libgccjit.h 265-267: `void gcc_jit_context_set_str_option (gcc_jit_context *ctxt,
+  /// enum gcc_jit_str_option opt, const char *value);`
+  pub fn gcc_jit_context_set_str_option (ctxt: *mut gcc_jit_context, opt: gcc_jit_str_option,
+                                         value: *const c_char);
+  /// C: libgccjit.h 271-273: `void gcc_jit_context_set_int_option (gcc_jit_context *ctxt,
+  /// enum gcc_jit_int_option opt, int value);`
+  pub fn gcc_jit_context_set_int_option (ctxt: *mut gcc_jit_context, opt: gcc_jit_int_option,
+                                         value: c_int);
+  /// C: libgccjit.h 279-281: `void gcc_jit_context_set_bool_option (gcc_jit_context *ctxt,
+  /// enum gcc_jit_bool_option opt, int value);`
+  pub fn gcc_jit_context_set_bool_option (ctxt: *mut gcc_jit_context, opt: gcc_jit_bool_option,
+                                          value: c_int);
+  /// C: libgccjit.h 427-430: `void gcc_jit_context_compile_to_file (gcc_jit_context *ctxt,
+  /// enum gcc_jit_output_kind output_kind, const char *output_path);`
+  pub fn gcc_jit_context_compile_to_file (ctxt: *mut gcc_jit_context,
+                                          output_kind: gcc_jit_output_kind,
+                                          output_path: *const c_char);
+  /// C: libgccjit.h 440-442: `void gcc_jit_context_dump_to_file (gcc_jit_context *ctxt,
+  /// const char *path, int update_locations);`
+  pub fn gcc_jit_context_dump_to_file (ctxt: *mut gcc_jit_context, path: *const c_char,
+                                       update_locations: c_int);
+  /// C: libgccjit.h 452-455: `void gcc_jit_context_set_logfile (gcc_jit_context *ctxt,
+  /// FILE *logfile, int flags, int verbosity);`
+  pub fn gcc_jit_context_set_logfile (ctxt: *mut gcc_jit_context, logfile: *mut FILE,
+                                      flags: c_int, verbosity: c_int);
+  /// C: libgccjit.h 1745-1746: `void gcc_jit_context_dump_reproducer_to_file
+  /// (gcc_jit_context *ctxt, const char *path);`
+  pub fn gcc_jit_context_dump_reproducer_to_file (ctxt: *mut gcc_jit_context,
+                                                  path: *const c_char);
   /// C: libgccjit.h 763-767: `gcc_jit_type *gcc_jit_context_new_union_type
   /// (gcc_jit_context *ctxt, gcc_jit_location *loc, const char *name, int num_fields,
   /// gcc_jit_field **fields);`
@@ -2081,6 +2266,43 @@ pub const GCC_JIT_BINARY_OP_LSHIFT: gcc_jit_binary_op = 10;
 /// C: libgccjit.h 1272: `GCC_JIT_BINARY_OP_RSHIFT,`
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_BINARY_OP_RSHIFT: gcc_jit_binary_op = 11;
+
+/// C: libgccjit.h 178-188: `enum gcc_jit_str_option { GCC_JIT_STR_OPTION_PROGNAME, … };` - the
+/// alias (measured like the others) and the one enumerator this file names.
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_str_option = c_uint;
+/// C: libgccjit.h 182: `GCC_JIT_STR_OPTION_PROGNAME,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_STR_OPTION_PROGNAME: gcc_jit_str_option = 0;
+
+/// C: libgccjit.h 191-201: `enum gcc_jit_int_option { GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL };`
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_int_option = c_uint;
+/// C: libgccjit.h 198: `GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL: gcc_jit_int_option = 0;
+
+/// C: libgccjit.h 205-260: `enum gcc_jit_bool_option { GCC_JIT_BOOL_OPTION_DEBUGINFO, … };` - the
+/// three enumerators C 4826-4840 names, at the positions they hold there (DEBUGINFO first,
+/// DUMP_EVERYTHING fifth, KEEP_INTERMEDIATES sixth).
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_bool_option = c_uint;
+/// C: libgccjit.h 214: `GCC_JIT_BOOL_OPTION_DEBUGINFO,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BOOL_OPTION_DEBUGINFO: gcc_jit_bool_option = 0;
+/// C: libgccjit.h 243: `GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BOOL_OPTION_DUMP_EVERYTHING: gcc_jit_bool_option = 5;
+/// C: libgccjit.h 254: `GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BOOL_OPTION_KEEP_INTERMEDIATES: gcc_jit_bool_option = 6;
+
+/// C: libgccjit.h 406-419: `enum gcc_jit_output_kind { GCC_JIT_OUTPUT_KIND_ASSEMBLER, … };`
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_output_kind = c_uint;
+/// C: libgccjit.h 415: `GCC_JIT_OUTPUT_KIND_DYNAMIC_LIBRARY,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_OUTPUT_KIND_DYNAMIC_LIBRARY: gcc_jit_output_kind = 2;
 
 /// C: libgccjit.h 553-620: `enum gcc_jit_types { GCC_JIT_TYPE_VOID, … };` - the alias (measured
 /// like the others) and the ten enumerators this slice names, in C's order from 0.
