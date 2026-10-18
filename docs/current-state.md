@@ -47,7 +47,7 @@
 ## 一条命令复跑
 
 ```sh
-# 已授权平台（macOS + Android 结构）一条命令，失败即停：
+# 已授权平台（macOS + Android 结构 + 原生库 + 带 .so 的签名 APK）一条命令，失败即停：
 python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime \
     --memory-mib 1400 -- bash tools/check-authorized-platforms.sh
 
