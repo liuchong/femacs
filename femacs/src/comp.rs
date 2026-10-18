@@ -1473,6 +1473,22 @@ unsafe extern "C" {
   /// (gcc_jit_lvalue *global, const void *blob, size_t num_bytes);`
   pub fn gcc_jit_global_set_initializer (global: *mut gcc_jit_lvalue, blob: *const c_void,
                                          num_bytes: size_t) -> *mut gcc_jit_lvalue;
+  /// C: libgccjit.h 736-738: `gcc_jit_struct *gcc_jit_context_new_opaque_struct
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, const char *name);`
+  pub fn gcc_jit_context_new_opaque_struct (ctxt: *mut gcc_jit_context,
+                                            loc: *mut gcc_jit_location, name: *const c_char)
+    -> *mut gcc_jit_struct;
+  /// C: libgccjit.h 747-750: `void gcc_jit_struct_set_fields (gcc_jit_struct *struct_type,
+  /// gcc_jit_location *loc, int num_fields, gcc_jit_field **fields);`
+  pub fn gcc_jit_struct_set_fields (struct_type: *mut gcc_jit_struct,
+                                    loc: *mut gcc_jit_location, num_fields: c_int,
+                                    fields: *mut *mut gcc_jit_field);
+  /// C: libgccjit.h 763-767: `gcc_jit_type *gcc_jit_context_new_union_type
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, const char *name, int num_fields,
+  /// gcc_jit_field **fields);`
+  pub fn gcc_jit_context_new_union_type (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                         name: *const c_char, num_fields: c_int,
+                                         fields: *mut *mut gcc_jit_field) -> *mut gcc_jit_type;
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -2321,6 +2337,307 @@ unsafe fn emit_XSETCDR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
 /* ==============================================================================================
    Code emitted by LIMPLE statemes.  (C 1951-1953's banner, kept where C has it.)
    ============================================================================================== */
+
+/* Inline function definition and lisp data structure follows.  (C 3071-3073's banner.)  */
+
+/* struct Lisp_Cons definition.  */
+
+/// C 3077-3184: `static void define_lisp_cons (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_lisp_cons ()
+{
+  /*
+    union cdr_u
+    {
+      Lisp_Object cdr;
+      struct Lisp_Cons *chain;
+    };
+
+    struct cons_s
+    {
+      Lisp_Object car;
+      union cdr_u u;
+    };
+
+    union cons_u
+    {
+      struct cons_s s;
+      char align_pad[sizeof (struct Lisp_Cons)];
+    };
+
+    struct Lisp_Cons
+    {
+      union cons_u u;
+    };
+  */
+
+  comp.lisp_cons_s =
+    gcc_jit_context_new_opaque_struct (comp.ctxt,
+				       std::ptr::null_mut (),
+				       c"comp_Lisp_Cons".as_ptr ());
+  comp.lisp_cons_type =
+    gcc_jit_struct_as_type (comp.lisp_cons_s);
+  comp.lisp_cons_ptr_type =
+    gcc_jit_type_get_pointer (comp.lisp_cons_type);
+
+  comp.lisp_cons_u_s_u_cdr =
+    gcc_jit_context_new_field (comp.ctxt,
+			       std::ptr::null_mut (),
+			       comp.lisp_obj_type,
+			       c"cdr".as_ptr ());
+
+  let cdr_u_fields: [*mut gcc_jit_field; 2] =
+    [ comp.lisp_cons_u_s_u_cdr,
+      gcc_jit_context_new_field (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.lisp_cons_ptr_type,
+				 c"chain".as_ptr ()) ];
+
+  let cdr_u: *mut gcc_jit_type =
+    gcc_jit_context_new_union_type (comp.ctxt,
+				    std::ptr::null_mut (),
+				    c"comp_cdr_u".as_ptr (),
+				    countof! (cdr_u_fields) as c_int,
+				    cdr_u_fields.as_ptr () as *mut *mut gcc_jit_field);
+
+  comp.lisp_cons_u_s_car = gcc_jit_context_new_field (comp.ctxt,
+					    std::ptr::null_mut (),
+					    comp.lisp_obj_type,
+					    c"car".as_ptr ());
+  comp.lisp_cons_u_s_u = gcc_jit_context_new_field (comp.ctxt,
+						    std::ptr::null_mut (),
+						    cdr_u,
+						    c"u".as_ptr ());
+  let cons_s_fields: [*mut gcc_jit_field; 2] =
+    [ comp.lisp_cons_u_s_car,
+      comp.lisp_cons_u_s_u ];
+
+  let cons_s: *mut gcc_jit_struct =
+    gcc_jit_context_new_struct_type (comp.ctxt,
+				     std::ptr::null_mut (),
+				     c"comp_cons_s".as_ptr (),
+				     countof! (cons_s_fields) as c_int,
+				     cons_s_fields.as_ptr () as *mut *mut gcc_jit_field);
+
+  comp.lisp_cons_u_s = gcc_jit_context_new_field (comp.ctxt,
+				 std::ptr::null_mut (),
+				 gcc_jit_struct_as_type (cons_s),
+				 c"s".as_ptr ());
+
+  let cons_u_fields: [*mut gcc_jit_field; 2] =
+    [ comp.lisp_cons_u_s,
+      gcc_jit_context_new_field (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	gcc_jit_context_new_array_type (comp.ctxt,
+					std::ptr::null_mut (),
+					comp.char_type,
+					core::mem::size_of::<Lisp_Cons> () as c_int),
+	c"align_pad".as_ptr ()) ];
+
+  let lisp_cons_u_type: *mut gcc_jit_type =
+    gcc_jit_context_new_union_type (comp.ctxt,
+				    std::ptr::null_mut (),
+				    c"comp_cons_u".as_ptr (),
+				    countof! (cons_u_fields) as c_int,
+				    cons_u_fields.as_ptr () as *mut *mut gcc_jit_field);
+
+  comp.lisp_cons_u =
+    gcc_jit_context_new_field (comp.ctxt,
+			       std::ptr::null_mut (),
+			       lisp_cons_u_type,
+			       c"u".as_ptr ());
+  gcc_jit_struct_set_fields (comp.lisp_cons_s,
+			     std::ptr::null_mut (), 1, &raw mut comp.lisp_cons_u);
+
+}
+
+/// C 3186-3217: `static void define_lisp_symbol_with_position (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_lisp_symbol_with_position ()
+{
+  comp.lisp_symbol_with_position_header =
+    gcc_jit_context_new_field (comp.ctxt,
+			       std::ptr::null_mut (),
+			       comp.ptrdiff_type,
+			       c"header".as_ptr ());
+  comp.lisp_symbol_with_position_sym =
+    gcc_jit_context_new_field (comp.ctxt,
+			       std::ptr::null_mut (),
+			       comp.lisp_obj_type,
+			       c"sym".as_ptr ());
+  comp.lisp_symbol_with_position_pos =
+    gcc_jit_context_new_field (comp.ctxt,
+			       std::ptr::null_mut (),
+			       comp.lisp_obj_type,
+			       c"pos".as_ptr ());
+  let fields: [*mut gcc_jit_field; 3] = [comp.lisp_symbol_with_position_header,
+			       comp.lisp_symbol_with_position_sym,
+			       comp.lisp_symbol_with_position_pos];
+  comp.lisp_symbol_with_position =
+    gcc_jit_context_new_struct_type (comp.ctxt,
+				     std::ptr::null_mut (),
+				     c"comp_lisp_symbol_with_position".as_ptr (),
+				     3,
+				     fields.as_ptr () as *mut *mut gcc_jit_field);
+  comp.lisp_symbol_with_position_type =
+    gcc_jit_struct_as_type (comp.lisp_symbol_with_position);
+  comp.lisp_symbol_with_position_ptr_type =
+    gcc_jit_type_get_pointer (comp.lisp_symbol_with_position_type);
+}
+
+/* Opaque jmp_buf definition.  */
+
+/// C 3221-3238: `static void define_jmp_buf (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_jmp_buf ()
+{
+  let field: *mut gcc_jit_field =
+    gcc_jit_context_new_field (
+      comp.ctxt,
+      std::ptr::null_mut (),
+      gcc_jit_context_new_array_type (comp.ctxt,
+				      std::ptr::null_mut (),
+				      comp.char_type,
+				      core::mem::size_of::<sys_jmp_buf> () as c_int),
+      c"stuff".as_ptr ());
+  comp.jmp_buf_s =
+    gcc_jit_context_new_struct_type (comp.ctxt,
+				     std::ptr::null_mut (),
+				     c"comp_jmp_buf".as_ptr (),
+				     1, &raw const field as *mut *mut gcc_jit_field);
+}
+
+/// C 3240-3253: `static void define_memcpy (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_memcpy ()
+{
+
+  let params: [*mut gcc_jit_param; 3] =
+    [ gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (), comp.void_ptr_type,
+				 c"dest".as_ptr ()),
+      gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (), comp.void_ptr_type,
+				 c"src".as_ptr ()),
+      gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (), comp.size_t_type,
+				 c"n".as_ptr ()) ];
+
+  comp.memcpy =
+    gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (), GCC_JIT_FUNCTION_IMPORTED,
+				  comp.void_ptr_type, c"memcpy".as_ptr (),
+				  countof! (params) as c_int,
+				  params.as_ptr () as *mut *mut gcc_jit_param, 0);
+}
+
+/* struct handler definition  */
+
+/// C 3257-3315: `static void define_handler_struct (void)`.  C's four `offsetof`/`sizeof`
+/// expressions against `struct handler` are the mirror's record and `core::mem`'s operators.
+#[cfg(feature = "have_native_comp")]
+unsafe fn define_handler_struct ()
+{
+  comp.handler_s =
+    gcc_jit_context_new_opaque_struct (comp.ctxt, std::ptr::null_mut (),
+				       c"comp_handler".as_ptr ());
+  comp.handler_ptr_type =
+    gcc_jit_type_get_pointer (gcc_jit_struct_as_type (comp.handler_s));
+
+  comp.handler_jmp_field = gcc_jit_context_new_field (comp.ctxt,
+						      std::ptr::null_mut (),
+						      gcc_jit_struct_as_type (
+							comp.jmp_buf_s),
+						      c"jmp".as_ptr ());
+  comp.handler_val_field = gcc_jit_context_new_field (comp.ctxt,
+						      std::ptr::null_mut (),
+						      comp.lisp_obj_type,
+						      c"val".as_ptr ());
+  comp.handler_next_field = gcc_jit_context_new_field (comp.ctxt,
+						       std::ptr::null_mut (),
+						       comp.handler_ptr_type,
+						       c"next".as_ptr ());
+  let fields: [*mut gcc_jit_field; 6] =
+    [ gcc_jit_context_new_field (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	gcc_jit_context_new_array_type (comp.ctxt,
+					std::ptr::null_mut (),
+					comp.char_type,
+					core::mem::offset_of! (handler, val) as c_int),
+	c"pad0".as_ptr ()),
+      comp.handler_val_field,
+      comp.handler_next_field,
+      gcc_jit_context_new_field (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	gcc_jit_context_new_array_type (comp.ctxt,
+					std::ptr::null_mut (),
+					comp.char_type,
+					(core::mem::offset_of! (handler, jmp)
+					 - core::mem::offset_of! (handler, next)
+					 - core::mem::size_of::<*mut handler> ()) as c_int),
+	c"pad1".as_ptr ()),
+      comp.handler_jmp_field,
+      gcc_jit_context_new_field (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	gcc_jit_context_new_array_type (comp.ctxt,
+					std::ptr::null_mut (),
+					comp.char_type,
+					(core::mem::size_of::<handler> ()
+					 - core::mem::offset_of! (handler, jmp)
+					 - core::mem::size_of::<sys_jmp_buf> ()) as c_int),
+	c"pad2".as_ptr ()) ];
+  gcc_jit_struct_set_fields (comp.handler_s,
+			     std::ptr::null_mut (),
+			     countof! (fields) as c_int,
+			     fields.as_ptr () as *mut *mut gcc_jit_field);
+
+}
+
+/// C 3317-3360: `static void define_thread_state_struct (void)`.
+#[cfg(feature = "have_native_comp")]
+unsafe fn define_thread_state_struct ()
+{
+  /* Partially opaque definition for `thread_state'.
+     Because we need to access just m_handlerlist hopefully this is requires
+     less manutention then the full deifnition.	 */
+
+  comp.m_handlerlist = gcc_jit_context_new_field (comp.ctxt,
+						  std::ptr::null_mut (),
+						  comp.handler_ptr_type,
+						  c"m_handlerlist".as_ptr ());
+  let fields: [*mut gcc_jit_field; 3] =
+    [ gcc_jit_context_new_field (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	gcc_jit_context_new_array_type (comp.ctxt,
+					std::ptr::null_mut (),
+					comp.char_type,
+					core::mem::offset_of! (thread_state,
+							  m_handlerlist) as c_int),
+	c"pad0".as_ptr ()),
+      comp.m_handlerlist,
+      gcc_jit_context_new_field (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	gcc_jit_context_new_array_type (
+	  comp.ctxt,
+	  std::ptr::null_mut (),
+	  comp.char_type,
+	  (core::mem::size_of::<thread_state> ()
+	  - core::mem::offset_of! (thread_state,
+		      m_handlerlist)
+	  - core::mem::size_of::<*mut handler> ()) as c_int),
+	c"pad1".as_ptr ()) ];
+
+  comp.thread_state_s =
+    gcc_jit_context_new_struct_type (comp.ctxt,
+				     std::ptr::null_mut (),
+				     c"comp_thread_state".as_ptr (),
+				     countof! (fields) as c_int,
+				     fields.as_ptr () as *mut *mut gcc_jit_field);
+  comp.thread_state_ptr_type =
+    gcc_jit_type_get_pointer (gcc_jit_struct_as_type (comp.thread_state_s));
+}
 
 /* Emit an r-value from an mvar meta variable.
    In case this is a constant that was propagated return it otherwise load it
