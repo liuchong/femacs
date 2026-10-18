@@ -22,8 +22,10 @@ the next step and are named as missing rather than approximated (`docs/android-a
 from __future__ import annotations
 
 import argparse
+import gzip
 import pathlib
 import shutil
+import subprocess
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -67,6 +69,62 @@ def stage(out: pathlib.Path, report_only: bool) -> tuple[int, int]:
     return files, total
 
 
+def gzip_large_el(out: pathlib.Path) -> int:
+    """C 236-250: gzip the `.el` of every `.elc` at least 1536 bytes, plus `etc/publicsuffix.txt`.
+
+    `gzip -9n` is what C runs; `mtime=0` is Python's way to leave the timestamp out, which is the
+    `-n` half of that flag and keeps two builds of the same tree byte-identical.
+    """
+    count = 0
+    lisp = out / "assets" / "lisp"
+    for elc in sorted(lisp.rglob("*.elc")):
+        if elc.stat().st_size < 1536:
+            continue
+        el = elc.with_suffix(".el")
+        if not el.is_file() or el.with_suffix(".el.gz").exists():
+            continue
+        with el.open("rb") as src, gzip.GzipFile(str(el) + ".gz", "wb", 9, mtime=0) as dst:
+            shutil.copyfileobj(src, dst)
+        el.unlink()
+        count += 1
+    suffix = out / "assets" / "etc" / "publicsuffix.txt"
+    if suffix.is_file() and not suffix.with_suffix(".txt.gz").exists():
+        with suffix.open("rb") as src, gzip.GzipFile(str(suffix) + ".gz", "wb", 9, mtime=0) as dst:
+            shutil.copyfileobj(src, dst)
+        suffix.unlink()
+        count += 1
+    return count
+
+
+def build_metadata(out: pathlib.Path) -> None:
+    """C 252-260: `assets/version` and `assets/build_info`, from the checkout and the host."""
+    assets = out / "assets"
+    try:
+        head = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"],
+                              capture_output=True, text=True).stdout.strip() or "Unknown"
+        branch = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--abbrev-ref", "HEAD"],
+                                capture_output=True, text=True).stdout.strip() or "Unknown"
+    except OSError:
+        head = branch = "Unknown"
+    (assets / "version").write_text(f"{head}\n{branch}\n", encoding="utf-8")
+    (assets / "build_info").write_text(
+        f"{subprocess.run(['hostname'], capture_output=True, text=True).stdout.strip()}\n",
+        encoding="utf-8")
+
+
+def directory_tree(out: pathlib.Path) -> str:
+    """C 261-263: `asset-directory-tool assets assets/directory-tree` - the port's own copy."""
+    tool = REPO / "build" / "port" / "asset-directory-tool"
+    if not tool.is_file():
+        return ("asset-directory-tool is not built (xtask link/`build-tu lib-src/asset-directory-tool.c` "
+                "first): directory-tree not written")
+    run = subprocess.run([str(tool), str(out / "assets"), str(out / "assets" / "directory-tree")],
+                         capture_output=True, text=True)
+    if run.returncode != 0:
+        return f"asset-directory-tool failed: {(run.stderr or run.stdout).strip()[:200]}"
+    return "directory-tree written"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -77,8 +135,14 @@ def main() -> int:
     if a.out is None and not a.report:
         sys.exit("give --out DIR (to stage) or --report (to count)")
     files, total = stage(a.out or pathlib.Path("/nonexistent"), a.report or a.out is None)
-    print(f"assets: {files} file(s), {total / (1024 * 1024):.1f} MiB"
-          + (" (report only)" if a.report else f" staged in {a.out}"))
+    if a.report or a.out is None:
+        print(f"assets: {files} file(s), {total / (1024 * 1024):.1f} MiB (report only)")
+        return 0 if files else 1
+    gz = gzip_large_el(a.out)
+    build_metadata(a.out)
+    note = directory_tree(a.out)
+    print(f"assets: {files} file(s), {total / (1024 * 1024):.1f} MiB staged in {a.out}; "
+          f"{gz} file(s) gzipped (C 236-250); {note}")
     return 0 if files else 1
 
 
