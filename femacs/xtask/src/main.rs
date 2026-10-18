@@ -2416,11 +2416,19 @@ fn gate_load(arg: Option<&str>) -> i32 {
 /// not of `gate-fast`, because it is a second compile of every unit.
 fn dead_arms() -> i32 {
     // feature -> (config key, value with the feature on)
-    const FLIPS: [(&str, &str, &str); 7] = [
+    const FLIPS: [(&str, &str, &str); 8] = [
         ("no_rint", "HAVE_RINT", "false"),
         ("no_trunc", "HAVE_TRUNC", "false"),
         ("no_signbit", "HAVE_SIGNBIT", "false"),
         ("have_haiku", "HAIKU", "true"),
+        // `HAIKU` alone is not a configuration C can compile: `haikugui.h` 43 defines
+        // `Emacs_Cursor` unconditionally and `dispextern.h` 175 defines it again under
+        // `#ifndef HAVE_WINDOW_SYSTEM`, so the pair is a redefinition unless the window-system
+        // macro is set as well - which a real Haiku configuration has (configure turns on
+        // HAVE_WINDOW_SYSTEM for whatever window system it finds).  The frozen configuration
+        // has no `HAVE_WINDOW_SYSTEM` constant at all (no window system was configured), so
+        // only the feature moves here - the empty key is the shape `glyph_debug` below uses.
+        ("have_window_system", "", "true"),
         // `have_native_comp` was the one structural arm *nothing* compiled: `cfg!(feature =
         // "have_native_comp")` is false in every real build (the `[features]` table in this
         // manifest leaves every feature off, and this list did not name it until F6), so `lisp.rs`'s `#[cfg(feature = "have_native_comp")]` pair — the

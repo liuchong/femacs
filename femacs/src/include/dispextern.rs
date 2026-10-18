@@ -701,14 +701,22 @@ macro_rules! GLYPH_EQUAL_P {
 // the W32 units use is C's own from the term header - `include/w32term.rs` 49 carries
 // `w32term.h` 21's `#include "w32gui.h"` - so nothing is lost by leaving this one out.
 /// C: dispextern.h 143: `#include "nsgui.h"`
-#[cfg (all (feature = "have_window_system", feature = "have_ns"))]
+#[cfg (feature = "have_ns")]
 include!("nsgui.rs");
 /// C: dispextern.h 150: `#include "pgtkgui.h"`
-#[cfg (all (feature = "have_window_system", feature = "have_pgtk"))]
+#[cfg (feature = "have_pgtk")]
 include!("pgtkgui.rs");
 /// C: dispextern.h 158: `#include "haikugui.h"`
-#[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+#[cfg (feature = "have_haiku")]
 include!("haikugui.rs");
+// The three conditions above are C's own (`#ifdef HAVE_NS` at 142, `#ifdef HAVE_PGTK` at 149,
+// `#ifdef HAVE_HAIKU` at 157) and carry **no** `have_window_system` conjunct: a real Haiku/NS/PGTK
+// configuration defines that macro too, but the conjunct is not C's text, and with it on the edge
+// the `dead-arms` `have_haiku` flip puts this mirror's copy of `haikugui.rs` in a dead position -
+// the mirror that *does* need the names (`include/haikuterm.rs` 31, live in that flip) then reads
+// `E0425: cannot find type 'haiku'` x15 + `'Window'` x2, because the materialiser's de-duplication
+// is by file and this edge wins (measured 4.684, docs/ports/comp.md's neighbours).
+//
 // C: dispextern.h 164: `#include "androidgui.h"` is **not** carried here, although C has the line.
 // `androidgui.rs` is the one gui mirror with `include!`s of its own (`stdint.in.rs`,
 // `lib/include/wchar.rs`), and `xtask`'s materializer dedupes nested `include!`s by *file*, with

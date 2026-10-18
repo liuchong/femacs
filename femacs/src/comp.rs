@@ -88,6 +88,54 @@ include!("../lib/include/md5.rs");              // C 39: `#include "md5.h"`
 #[cfg (feature = "have_native_comp")]
 include!("include/sysstdio.rs");                // C 40: `#include "sysstdio.h"`
 
+/* C 31: `#include <libgccjit.h>` - the reference tree has no such file (P-88: a third-party
+   header, the class `decompress.rs`'s `<zlib.h>` and `lcms.rs`'s `<lcms2.h>` are the first two
+   of), so this unit carries the declarations its own lines use.  The ten below are the ones this
+   slice names; the header's other tags (`gcc_jit_result` 59, `gcc_jit_object` 84,
+   `gcc_jit_function_type` 112, `gcc_jit_vector_type` 115, `gcc_jit_case` 157) are named by no
+   line of it.  Every one of the ten is an *incomplete* tag in that header (`typedef struct
+   gcc_jit_type gcc_jit_type;`, libgccjit.h 100), so C holds one only through a pointer and there
+   is no layout to measure: the reading is that `sizeof` is rejected for all ten, and
+
+       clang -std=gnu23 -I/opt/homebrew/include -fsyntax-only <probe>   # probe: ## Evidence in
+                                                                       # docs/ports/comp.md
+
+   reports ten `invalid application of 'sizeof' to an incomplete type` errors, while
+   `_Static_assert (sizeof (gcc_jit_type *) == 8)` holds.  The port's zero-sized marker is that
+   same incomplete type - the shape `callproc.rs` 206-207 uses for `_posix_spawn_file_actions` -
+   and it is what keeps the `have_native_comp` arm honest: with the types named, the arm's
+   compile reading stops being "cannot find type" (the 81 `E0425`s `docs/ports/comp.md` records).  */
+/// C: `typedef struct gcc_jit_context gcc_jit_context;`  (libgccjit.h 56)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_context { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_location gcc_jit_location;`  (libgccjit.h 97)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_location { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_type gcc_jit_type;`  (libgccjit.h 100)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_type { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_field gcc_jit_field;`  (libgccjit.h 105)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_field { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_struct gcc_jit_struct;`  (libgccjit.h 109)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_struct { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_function gcc_jit_function;`  (libgccjit.h 120)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_function { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_block gcc_jit_block;`  (libgccjit.h 138)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_block { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_rvalue gcc_jit_rvalue;`  (libgccjit.h 141)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_rvalue { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_lvalue gcc_jit_lvalue;`  (libgccjit.h 146)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_lvalue { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_param gcc_jit_param;`  (libgccjit.h 151)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_param { _private: [u8; 0] }
+
 /* ==============================================================================================
    C 44-46: the banner comment C writes over the libgccjit dynamic loader.
    ============================================================================================== */
