@@ -948,6 +948,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-316 | **`static` 是随配置变的：一个定义、两种链接性用 `cfg_attr`**：① C 的 `#ifndef HAVE_ANDROID / static / #endif`（`sysdep.c` 2377-2379 ✓）意味着同一份代码在一个目标上是文件内可见、在另一个目标上是公开符号 ✓；端口写成 `#[cfg_attr (feature = "have_android", unsafe(no_mangle))]` ✓ 即可，不要拆成两份 ✗、也不要只看参照对象有没有符号就下结论 ✗（参照是 darwin ✓）。② 判据：两个目标的 `nm` 各看一次 ✓ —— 该导出的目标 `T <name>` ✓、不该导出的目标只有 mangled ✓。 |
 
+| P-317 | **镜像里有的声明，单元里不许再写一份；每轮结束跑一次完整平台门**：① 4.713 把 `posix_memalign` 加进 `<stdlib.h>` 镜像后 ✗，`sfntfont-android.rs` 自己的那份成了 `E0428` ✓ —— 名字归属镜像（P-26/P-297 ✓），单元里的副本要收回 ✓。② **单点编译不足以发现这类问题** ✓：只有整条 Android sweep（91 单元）才会碰到它 ✓ ⇒ 每轮收尾跑 `tools/check-authorized-platforms.sh` ✓（四段：macOS smoke / gate-android / 原生库 + 棘轮 / 签名 APK ✓）。③ 76 条未决的构成要按"C 的守卫 + 配置"逐条判 ✓，而不是笼统一句"剩下的是窗口系统" ✗（4.725 的读数是 33 / 1 / 42 ✓）。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**

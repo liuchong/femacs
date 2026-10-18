@@ -102,8 +102,9 @@ pub mod android_bitmap {
 unsafe extern "C" {
   /// C: `<string.h>`: `char *strstr (const char *, const char *);`
   pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
-  /// C: `<stdlib.h>`: `int posix_memalign (void **, size_t, size_t);`
-  pub fn posix_memalign (memptr: *mut *mut c_void, alignment: usize, size: usize) -> c_int;
+  /* C's `<stdlib.h>` declares `posix_memalign`; the `<stdlib.h>` mirror owns that declaration
+     now (`lib/include/stdlib.rs`, added for `alloc.c` 4.713), so this unit's copy went away - two
+     declarations of one name in one unit is E0428 (measured in the android sweep, status 4.725).  */
   /// C: lisp.h 4432: `extern AVOID memory_full (size_t);` (alloc.c defines it).
   pub fn memory_full (size: size_t) -> !;
   /// C: font.h 896: `extern void register_font_driver (struct font_driver const *,
