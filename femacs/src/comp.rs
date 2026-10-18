@@ -93,6 +93,16 @@ include!("include/sysstdio.rs");                // C 40: `#include "sysstdio.h"`
 #[cfg (feature = "have_native_comp")]
 include!("../lib/include/stdcountof.rs");       // lisp.h 28: `<stdcountof.h>` (`countof`)
 
+/* C 22's `<string.h>` reaches this unit through `lisp.h`, and the mirror
+   (`lib/include/string.rs`) carries neither of these two names: `strnlen` and `mempcpy` are
+   declared here the way `doprnt.rs` 69 and `androidvfs.rs` 244 declare them (P-55's use-site
+   shape, which P-26 leaves for a name the shared mirror does not have).  */
+#[cfg (feature = "have_native_comp")]
+unsafe extern "C" {
+  pub fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
+  pub fn mempcpy (dest: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
+}
+
 /* C 31: `#include <libgccjit.h>` - the reference tree has no such file (P-88: a third-party
    header, the class `decompress.rs`'s `<zlib.h>` and `lcms.rs`'s `<lcms2.h>` are the first two
    of), so this unit carries the declarations its own lines use.  The eleven below are the ones this
@@ -1443,6 +1453,26 @@ unsafe extern "C" {
   /// gcc_jit_location *loc, gcc_jit_rvalue *rvalue);`
   pub fn gcc_jit_block_end_with_return (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
                                         rvalue: *mut gcc_jit_rvalue);
+  /// C: libgccjit.h 727-732: `gcc_jit_struct *gcc_jit_context_new_struct_type
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, const char *name, int num_fields,
+  /// gcc_jit_field **fields);`
+  pub fn gcc_jit_context_new_struct_type (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                          name: *const c_char, num_fields: c_int,
+                                          fields: *mut *mut gcc_jit_field) -> *mut gcc_jit_struct;
+  /// C: libgccjit.h 905-910: `gcc_jit_lvalue *gcc_jit_context_new_global (gcc_jit_context *ctxt,
+  /// gcc_jit_location *loc, enum gcc_jit_global_kind kind, gcc_jit_type *type,
+  /// const char *name);`
+  pub fn gcc_jit_context_new_global (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                     kind: gcc_jit_global_kind, type_: *mut gcc_jit_type,
+                                     name: *const c_char) -> *mut gcc_jit_lvalue;
+  /// C: libgccjit.h 1172-1174: `gcc_jit_rvalue *gcc_jit_context_new_string_literal
+  /// (gcc_jit_context *ctxt, const char *value);`
+  pub fn gcc_jit_context_new_string_literal (ctxt: *mut gcc_jit_context, value: *const c_char)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1092-1094: `gcc_jit_lvalue *gcc_jit_global_set_initializer
+  /// (gcc_jit_lvalue *global, const void *blob, size_t num_bytes);`
+  pub fn gcc_jit_global_set_initializer (global: *mut gcc_jit_lvalue, blob: *const c_void,
+                                         num_bytes: size_t) -> *mut gcc_jit_lvalue;
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -1498,6 +1528,17 @@ pub const GCC_JIT_BINARY_OP_LSHIFT: gcc_jit_binary_op = 10;
 /// C: libgccjit.h 1272: `GCC_JIT_BINARY_OP_RSHIFT,`
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_BINARY_OP_RSHIFT: gcc_jit_binary_op = 11;
+
+/// C: libgccjit.h 888-901: `enum gcc_jit_global_kind { GCC_JIT_GLOBAL_EXPORTED, … };` - the alias
+/// (measured like the others) and the two enumerators this slice names.
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_global_kind = c_uint;
+/// C: libgccjit.h 893: `GCC_JIT_GLOBAL_EXPORTED,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_GLOBAL_EXPORTED: gcc_jit_global_kind = 0;
+/// C: libgccjit.h 897: `GCC_JIT_GLOBAL_INTERNAL,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_GLOBAL_INTERNAL: gcc_jit_global_kind = 1;
 
 /// C: libgccjit.h 802-836: `enum gcc_jit_function_kind { GCC_JIT_FUNCTION_EXPORTED, … };` - the
 /// alias (measured like the others) and the two enumerators this slice names.
@@ -2940,6 +2981,257 @@ unsafe fn emit_integerp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
   return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
 				   comp.bool_to_lisp_obj, 1,
 				   &raw mut res);
+}
+
+/* This is in charge of serializing an object and export a function to
+   retrieve it at load time.  */
+/* `#pragma GCC diagnostic push`/`pop` and the ignored `-Waddress` around C 2661-2852 are C's own
+   diagnostics control and have no Rust counterpart.  */
+/// C 2661-2851: `static void emit_static_object (const char *name, Lisp_Object obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_static_object (name: *const c_char, obj: Lisp_Object)
+{
+  /* libgccjit has no support for initialized static data.
+     The mechanism below is certainly not aesthetic but I assume the bottle neck
+     in terms of performance at load time will still be the reader.
+     NOTE: we can not rely on libgccjit even for valid NULL terminated C
+     strings cause of this funny bug that will affect all pre gcc10 era gccs:
+     https://gcc.gnu.org/ml/jit/2019-q3/msg00013.html  */
+
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  /* Preserve uninterned symbols, this is specifically necessary for
+     CL macro expansion in dynamic scope code (bug#42088).  See
+     `byte-compile-output-file-form'.  */
+  specbind (intern_c_string (c"print-escape-newlines".as_ptr ()), Qt ());
+  specbind (intern_c_string (c"print-length".as_ptr ()), Qnil ());
+  specbind (intern_c_string (c"print-level".as_ptr ()), Qnil ());
+  specbind (intern_c_string (c"print-quoted".as_ptr ()), Qt ());
+  specbind (intern_c_string (c"print-gensym".as_ptr ()), Qt ());
+  specbind (intern_c_string (c"print-circle".as_ptr ()), Qt ());
+  /* Bind print-number-table and print-continuous-numbering so comp--#$
+     prints as #$.  */
+  let print_number_table: Lisp_Object =
+    CALLN! (Fmake_hash_table, QCtest (), Qeq ());
+  Fputhash (Vcomp__hashdollar, build_string (c"#$".as_ptr ()) , print_number_table);
+  specbind (intern_c_string (c"print-number-table".as_ptr ()), print_number_table);
+  specbind (intern_c_string (c"print-continuous-numbering".as_ptr ()), Qt ());
+  let str_: Lisp_Object = Fprin1_to_string (obj, Qnil (), Qnil ());
+  unbind_to (count, Qnil ());
+
+  let len: ptrdiff_t = SBYTES (str_);
+  let mut p: *const c_char = SSDATA (str_);
+
+  #[cfg (feature = "libgccjit_have_gcc_jit_global_set_initializer")]
+  {
+    if fn_gcc_jit_global_set_initializer.is_some () || ! cfg! (feature = "windowsnt")
+      {
+	let str_size: ptrdiff_t = len + 1;
+	let size: ptrdiff_t = core::mem::size_of::<static_obj_t> () as ptrdiff_t + str_size;
+	let static_obj: *mut static_obj_t = xmalloc (size as usize) as *mut static_obj_t;
+	(*static_obj).len = str_size;
+	memcpy ((*static_obj).data.as_mut_ptr () as *mut c_void, p as *const c_void,
+		str_size as usize);
+	let blob: *mut gcc_jit_lvalue =
+	  gcc_jit_context_new_global (
+	    comp.ctxt,
+	    std::ptr::null_mut (),
+	    GCC_JIT_GLOBAL_EXPORTED,
+	    gcc_jit_context_new_array_type (comp.ctxt, std::ptr::null_mut (),
+					    comp.char_type,
+					    size as c_int),
+	    format_string (c"%s_blob".as_ptr (), name));
+	gcc_jit_global_set_initializer (blob, static_obj as *const c_void, size as size_t);
+	xfree (static_obj as *mut c_void);
+
+	return;
+      }
+  }
+
+  let a_type: *mut gcc_jit_type =
+    gcc_jit_context_new_array_type (comp.ctxt,
+				    std::ptr::null_mut (),
+				    comp.char_type,
+				    (len + 1) as c_int);
+  let fields: [*mut gcc_jit_field; 2] =
+    [ gcc_jit_context_new_field (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.ptrdiff_type,
+				 c"len".as_ptr ()),
+      gcc_jit_context_new_field (comp.ctxt,
+				 std::ptr::null_mut (),
+				 a_type,
+				 c"data".as_ptr ()) ];
+
+  let data_struct_t: *mut gcc_jit_type =
+    gcc_jit_struct_as_type (
+      gcc_jit_context_new_struct_type (comp.ctxt,
+				       std::ptr::null_mut (),
+				       format_string (c"%s_struct".as_ptr (), name),
+				       countof! (fields) as c_int,
+				       fields.as_ptr () as *mut *mut gcc_jit_field));
+
+  let data_struct: *mut gcc_jit_lvalue =
+    gcc_jit_context_new_global (comp.ctxt,
+				std::ptr::null_mut (),
+				GCC_JIT_GLOBAL_INTERNAL,
+				data_struct_t,
+				format_string (c"%s_s".as_ptr (), name));
+
+  let f: *mut gcc_jit_function =
+    gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_FUNCTION_EXPORTED,
+				  gcc_jit_type_get_pointer (data_struct_t),
+				  name,
+				  0, std::ptr::null_mut (), 0);
+  let mut block: *mut gcc_jit_block = gcc_jit_function_new_block (f, std::ptr::null_mut ());
+
+  if comp.debug > 1
+    {
+      let comment: *mut c_char = memcpy (xmalloc (len as usize), p as *const c_void,
+					 len as usize) as *mut c_char;
+      let mut i: ptrdiff_t = 0;
+      while i < len - 1
+	{
+	  if *comment.offset (i as isize) == 0
+	    { *comment.offset (i as isize) = b'\n' as c_char; }
+	  i += 1;
+	}
+      gcc_jit_block_add_comment (block, std::ptr::null_mut (), comment);
+      xfree (comment as *mut c_void);
+    }
+
+  let arr: *mut gcc_jit_lvalue =
+      gcc_jit_lvalue_access_field (data_struct, std::ptr::null_mut (), fields[1]);
+
+  let ptrvar: *mut gcc_jit_lvalue = gcc_jit_function_new_local (f, std::ptr::null_mut (),
+                                                       comp.char_ptr_type,
+                                                       c"ptr".as_ptr ());
+
+  gcc_jit_block_add_assignment (
+    block,
+    std::ptr::null_mut (),
+    ptrvar,
+    gcc_jit_lvalue_get_address (
+      gcc_jit_context_new_array_access (
+        comp.ctxt,
+        std::ptr::null_mut (),
+        gcc_jit_lvalue_as_rvalue (arr),
+        gcc_jit_context_new_rvalue_from_int (comp.ctxt, comp.int_type, 0)),
+      std::ptr::null_mut ()));
+
+  /* We can't use always string literals longer that 200 bytes because
+     they cause a crash in pre GCC 10 libgccjit.
+     <https://gcc.gnu.org/ml/jit/2019-q3/msg00013.html>.
+
+     Adjust if possible to reduce the number of function calls.  */
+  let mut buff: [c_char; 1024] = [0; 1024];
+  let chunk_size: c_int = if NILP (Fcomp_libgccjit_version ()) { 200 }
+                          else { core::mem::size_of_val (&buff) as c_int };
+  let mut i: ptrdiff_t = 0;
+  while i < len
+    {
+      let l: c_int = strnlen (p, (chunk_size - 1) as size_t) as c_int;
+
+      if l != 0
+        {
+	  let buff_end: *mut c_void = mempcpy (buff.as_mut_ptr () as *mut c_void,
+					      p as *const c_void, l as size_t);
+	  *(buff_end as *mut c_char) = 0;
+
+          p = p.offset (l as isize);
+          i += l as ptrdiff_t;
+
+          let args: [*mut gcc_jit_rvalue; 3] =
+	    [ gcc_jit_lvalue_as_rvalue (ptrvar),
+	      gcc_jit_context_new_string_literal (comp.ctxt, buff.as_ptr ()),
+	      gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+						   comp.size_t_type,
+						   l) ];
+
+          gcc_jit_block_add_eval (block, std::ptr::null_mut (),
+                                  gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
+                                                            comp.memcpy,
+							    countof! (args) as c_int,
+							    args.as_ptr () as *mut *mut gcc_jit_rvalue));
+          gcc_jit_block_add_assignment (block, std::ptr::null_mut (), ptrvar,
+            gcc_jit_lvalue_get_address (
+              gcc_jit_context_new_array_access (comp.ctxt, std::ptr::null_mut (),
+                gcc_jit_lvalue_as_rvalue (ptrvar),
+                gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+                                                     comp.uintptr_type,
+                                                     l)),
+              std::ptr::null_mut ()));
+        }
+      else
+        {
+          /* If strlen returned 0 that means that the static object
+             contains a NULL byte.  In that case just move over to the
+             next block.  We can rely on the byte being zero because
+             the dynamic linker cleared it.  */
+          p = p.offset (1);
+          i += 1;
+          gcc_jit_block_add_assignment (
+            block, std::ptr::null_mut (), ptrvar,
+            gcc_jit_lvalue_get_address (
+              gcc_jit_context_new_array_access (
+                comp.ctxt, std::ptr::null_mut (), gcc_jit_lvalue_as_rvalue (ptrvar),
+                gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+                                                     comp.uintptr_type, 1)),
+              std::ptr::null_mut ()));
+        }
+    }
+
+  gcc_jit_block_add_assignment (
+	block,
+	std::ptr::null_mut (),
+	gcc_jit_lvalue_access_field (data_struct, std::ptr::null_mut (), fields[0]),
+	gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					     comp.ptrdiff_type,
+					     len as c_int));
+  let res: *mut gcc_jit_rvalue = gcc_jit_lvalue_get_address (data_struct, std::ptr::null_mut ());
+  gcc_jit_block_end_with_return (block, std::ptr::null_mut (), res);
+}
+
+/// C 2854-2892: `static reloc_array_t declare_imported_data_relocs (Lisp_Object container,
+/// const char *code_symbol, const char *addr_fun_symbol, const char *text_symbol)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn declare_imported_data_relocs (container: Lisp_Object,
+					code_symbol: *const c_char,
+					addr_fun_symbol: *const c_char,
+					text_symbol: *const c_char) -> reloc_array_t
+{
+  /* Imported objects.  */
+  let len: EMACS_INT =
+    XFIXNUM (CALLNI! (c"hash-table-count".as_ptr (),
+		     CALLNI! (c"comp-data-container-idx".as_ptr (), container)));
+  let mut d_reloc: Lisp_Object = CALLNI! (c"comp-data-container-l".as_ptr (), container);
+  d_reloc = Fvconcat (1, &raw mut d_reloc);
+
+  emit_static_object (text_symbol, d_reloc);
+
+  let d_reloc_type: *mut gcc_jit_type
+    = gcc_jit_context_new_array_type (comp.ctxt, std::ptr::null_mut (),
+				      comp.lisp_obj_type, len as c_int);
+  let d_reloc_lval: *mut gcc_jit_lvalue
+    = gcc_jit_context_new_global (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_GLOBAL_INTERNAL,
+				  d_reloc_type, code_symbol);
+  let d_reloc_rval: *mut gcc_jit_rvalue
+    = gcc_jit_lvalue_as_rvalue (d_reloc_lval);
+  let addr_rval: *mut gcc_jit_rvalue
+    = gcc_jit_lvalue_get_address (d_reloc_lval, std::ptr::null_mut ());
+  let addr_rval_type: *mut gcc_jit_type = gcc_jit_rvalue_get_type (addr_rval);
+  let get_addr_fun: *mut gcc_jit_function
+    = gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				    GCC_JIT_FUNCTION_EXPORTED,
+				    addr_rval_type, addr_fun_symbol,
+				    0, std::ptr::null_mut (), 0);
+  let block: *mut gcc_jit_block
+    = gcc_jit_function_new_block (get_addr_fun, std::ptr::null_mut ());
+  gcc_jit_block_end_with_return (block, std::ptr::null_mut (), addr_rval);
+
+  let res: reloc_array_t = reloc_array_t { len: len, r_val: d_reloc_rval };
+  return res;
 }
 
 /// C 2650-2655: `static gcc_jit_rvalue *emit_maybe_gc_or_quit (Lisp_Object insn)`.
