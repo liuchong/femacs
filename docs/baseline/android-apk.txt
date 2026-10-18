@@ -1,3 +1,16 @@
 # gate-android reading (2026-10-18)
 # command: cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-android
 apk: emacs.apk (181486 bytes), package org.femacs, 5 declared activit(ies) all backed by Kotlin sources, 112 compiled class(es), members and signature checked
+
+# native reading (2026-10-18, status 4.677)
+# commands:
+#   cd femacs && FEMACS_CONFIG=android-arm64 CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gen-config
+#   cd femacs && FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
+#       CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- link-shared aarch64-linux-android
+#   JAVA_HOME=/opt/homebrew/opt/openjdk@25 bash tools/check-android-kotlin.sh --apk /tmp/femacs-apk \
+#       --native build/port/aarch64-linux-android/libemacs.so
+libemacs.so: 5944616 bytes, 69 Java_org_femacs_EmacsNative_* exports (llvm-nm -D --defined-only)
+apk: /tmp/femacs-apk/emacs.apk (3.2M), members: classes.dex, resources.arsc, AndroidManifest.xml,
+     lib/arm64-v8a/libemacs.so; apksigner verify: passes
+# one command for the whole authorised surface: bash tools/check-authorized-platforms.sh
+# (macOS smoke + gate-android + link-shared's export assertion + the APK with the library)
