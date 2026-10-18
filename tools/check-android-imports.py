@@ -23,6 +23,13 @@ The measurement is differential, the way `tools/check-undef.py` is:
     directory does not have is reported as unknown rather than silently trusted;
   * **unresolved** = imports - providers.  These are names no library in the process provides.
 
+Whether that *blocks loading* depends on the binding the link asked for.  With `-z now` (this
+link used to pass it) every import is eager and one missing name fails the `dlopen`; with bionic's
+default lazy binding - which is what C's own `libemacs.so` link has (`src/Makefile.in` 749-755,
+no `-z now`) - the library loads and only a *call* to the missing name faults, which is C's own
+behaviour for `backtrace` at API 21 (bionic added it in 33, `emacs_backtrace` calls it
+unguarded).  The tool reads `DT_FLAGS`/`DT_BIND_NOW` and says which of the two applies.
+
 The port is not finished on this target, so unresolved names are expected while the arms land.
 `docs/baseline/android-imports-pending.txt` is therefore a **ratchet**: this tool fails on a name
 that is *new* (a misspelling, an invented helper, a `#[no_mangle]` that went missing, a header
@@ -112,6 +119,26 @@ def measure(so: pathlib.Path, api: str) -> tuple[set[str], set[str], list[str], 
     return unresolved, imports, unknown, {n: origins.get(n, set()) for n in unresolved}
 
 
+def binds_eagerly(so: pathlib.Path) -> bool:
+    """Whether the library asks for eager binding (`-z now`) - then a missing import blocks load."""
+    readelf = ndk_bin() / "llvm-readelf"
+    text = subprocess.run([str(readelf), "-d", str(so)],
+                          capture_output=True, text=True).stdout
+    # DF_BIND_NOW is bit 0x8 of DT_FLAGS; DT_BIND_NOW is the pre-DF_FLAGS spelling.
+    if "BIND_NOW" in text:
+        return True
+    for line in text.splitlines():
+        if "FLAGS" in line and "0x" in line:
+            for token in line.split():
+                if token.startswith("0x"):
+                    try:
+                        if int(token, 16) & 0x8:
+                            return True
+                    except ValueError:
+                        pass
+    return False
+
+
 def read_pending(path: pathlib.Path) -> list[str]:
     if not path.is_file():
         return []
@@ -135,6 +162,7 @@ def main() -> int:
         sys.exit(f"{args.so} does not exist: build it first (`xtask link-shared "
                  f"{TARGET}`)")
     unresolved, imports, unknown, origins = measure(so, args.api)
+    eager = binds_eagerly(so)
     path = REPO / args.pending
     if args.write_pending:
         header = ("# Names the Android `libemacs.so` imports that no library in the process\n"
@@ -173,8 +201,10 @@ def main() -> int:
               "  `--write-pending` after reading the list) or a defect in the referring unit.")
         return 1
     tail = "; the library cannot be dlopen'ed until that list is empty" if unresolved else ""
+    binding = ("eager (-z now): the library will not load" if eager
+               else "lazy (bionic default): it loads, and a call to a missing name faults")
     print(f"check-android-imports: {len(imports)} import(s); {len(unresolved)} unresolved "
-          f"(0 new){tail}")
+          f"(0 new); binding {binding}{tail if eager else ''}")
     return 0
 
 

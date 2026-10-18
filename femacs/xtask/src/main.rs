@@ -1912,6 +1912,9 @@ fn link_shared (target: Option<&str>) -> i32
     }
   let mut cmd = Command::new (&linker);
   cmd.arg ("-shared").arg ("-o").arg (&out_path)
+     // `-z relro,-z now` stays: the NDK driver defaults to `-z now` anyway (measured with
+     // `llvm-readelf -d` on a scratch link), so it is the target's binding either way, and
+     // `check-android-imports.py` reports which binding the built library has.
      .args (["-Wl,--gc-sections", "-Wl,-z,relro,-z,now", "-nodefaultlibs"])
      // `-nodefaultlibs` (below) drops the driver's own `-lc`, and bionic resolves a `dlopen`ed
      // library's undefined symbols through that library's `DT_NEEDED` list alone - libc is not
