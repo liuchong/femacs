@@ -29,11 +29,15 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --keep) KEEP=$2; shift 2 ;;
     --apk)  APK_DIR=$2; shift 2 ;;
+    # `--native PATH` puts a shared library at `lib/arm64-v8a/libemacs.so` inside the APK, the
+    # member the Android shell loads.  Without it the APK is the structural one of P-211.
+    --native) NATIVE_SO=$2; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 OUT=""
 APK_DIR=${APK_DIR:-}
+NATIVE_SO=${NATIVE_SO:-}
 
 # Android Studio ships the complete CLI compiler (not just the IDE plugin): `kotlinc` next to
 # its own JDK, which is all this check needs.
@@ -134,6 +138,14 @@ if [ -n "$APK_DIR" ]; then
   UNSIGNED="$APK_DIR/emacs-unsigned.apk"
   cp "$OUT/resources.ap_" "$UNSIGNED"
   (cd "$OUT/dex" && "$JAVA_HOME/bin/jar" uf "$UNSIGNED" classes.dex) || exit $?
+  # The native library, when the caller has one: same member path the Android shell's
+  # `System.loadLibrary ("emacs")` looks for.
+  if [ -n "$NATIVE_SO" ]; then
+    [ -f "$NATIVE_SO" ] || { echo "missing native library: $NATIVE_SO" >&2; exit 2; }
+    mkdir -p "$OUT/native/lib/arm64-v8a"
+    cp "$NATIVE_SO" "$OUT/native/lib/arm64-v8a/libemacs.so"
+    (cd "$OUT/native" && "$JAVA_HOME/bin/jar" uf "$UNSIGNED" lib/arm64-v8a/libemacs.so) || exit $?
+  fi
   "$ZIPALIGN" -f 4 "$UNSIGNED" "$APK_DIR/emacs-aligned.apk" || exit $?
 
   # 3. a debug key, generated once, and the signature (the reference signs too).
@@ -155,7 +167,11 @@ if [ -n "$APK_DIR" ]; then
   # configure and without hardware (P-211).
   echo "== apk contents =="
   "$AAPT2" dump badging "$SIGNED" 2>/dev/null | grep -E "^(package|sdkVersion|targetSdkVersion|launchable-activity|application-label)" | head -5
-  "$JAVA_HOME/bin/jar" tf "$SIGNED" 2>/dev/null | grep -E "^(classes[0-9]*\.dex|resources\.arsc|AndroidManifest\.xml)$" | sed 's/^/  member: /'
-  echo "apk: $SIGNED ($(du -h "$SIGNED" | cut -f1)); native libraries pending the Android native build"
+  "$JAVA_HOME/bin/jar" tf "$SIGNED" 2>/dev/null | grep -E "^(classes[0-9]*\.dex|resources\.arsc|AndroidManifest\.xml|lib/arm64-v8a/libemacs\.so)$" | sed 's/^/  member: /'
+  if [ -n "$NATIVE_SO" ]; then
+    echo "apk: $SIGNED ($(du -h "$SIGNED" | cut -f1)); native: lib/arm64-v8a/libemacs.so"
+  else
+    echo "apk: $SIGNED ($(du -h "$SIGNED" | cut -f1)); native libraries pending (pass --native PATH)"
+  fi
 fi
 exit "$status"

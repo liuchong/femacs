@@ -1816,17 +1816,41 @@ fn link_shared (target: Option<&str>) -> i32
   let out_path = dir.join ("libemacs.so");
   println! ("== link-shared: {target} ==");
   println! ("   {} object(s) -> {}", objects.len (), out_path.display ());
-  let out = match rustc_cmd ()
-    .args (["--edition", "2024", "--crate-type", "cdylib", "--target", &target,
-            "-C", "panic=abort"])
-    .arg ("-C").arg (format! ("linker={linker}"))
-    .arg ("-C").arg ("link-arg=@../build/load/link-shared-args.rsp")
-    .arg ("../build/load/shared-driver.rs")
-    .arg ("-o").arg (&out_path)
-    .output ()
+  // The link goes through the NDK's own clang, the way C's Android build does, and **not**
+  // through `rustc --crate-type cdylib`: a cdylib's version script lists only the driver
+  // crate's own items, so every symbol the 91 objects define stayed invisible
+  // (`--dyn-syms` had nothing but the table header, status 4.669).  clang keeps every
+  // `#[no_mangle]` definition visible by default, which is exactly C's export set - the 69
+  // `Java_org_femacs_EmacsNative_*` entry points included.
+  let sysroot = match rustc_cmd ().arg ("--print").arg ("sysroot").output ()
+    {
+      Ok (o) if o.status.success () =>
+        PathBuf::from (String::from_utf8_lossy (&o.stdout).trim ()),
+      _ => return fail ("rustc --print sysroot failed: the target's core rlib is needed"),
+    };
+  let rlib_dir = sysroot.join ("lib/rustlib").join (&target).join ("lib");
+  let pick = |prefix: &str| -> Option<PathBuf>
+    {
+      let mut hits: Vec<PathBuf> = fs::read_dir (&rlib_dir).ok ()?.flatten ()
+        .map (|e| e.path ())
+        .filter (|p| p.file_name ().and_then (|n| n.to_str ())
+                 .map (|n| n.starts_with (prefix) && n.ends_with (".rlib")).unwrap_or (false))
+        .collect ();
+      hits.sort ();
+      hits.pop ()
+    };
+  let (Some (core), Some (builtins)) = (pick ("libcore-"), pick ("libcompiler_builtins-"))
+    else { return fail (format! ("no core/compiler_builtins rlib under {}", rlib_dir.display ())) };
+  let mut cmd = Command::new (&linker);
+  cmd.arg ("-shared").arg ("-o").arg (&out_path)
+     .args (["-Wl,--gc-sections", "-Wl,-z,relro,-z,now", "-nodefaultlibs"])
+     .args (["-ldl", "-lm", "-llog", "-landroid"]);
+  for object in &objects { cmd.arg (object); }
+  cmd.arg (&core).arg (&builtins);
+  let out = match cmd.output ()
   {
     Ok (o) => o,
-    Err (e) => return fail (format! ("rustc link: {e}")),
+    Err (e) => return fail (format! ("clang link: {e}")),
   };
   if !out.status.success () || !out_path.is_file ()
     {
