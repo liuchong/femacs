@@ -152,3 +152,27 @@
 系统的 ncurses 提供、Android 必须由树内自己的 `termcap.c` 提供）会在 C 侧一并落进同一批工作，按 C 的配置走即可。
 
 选定后我会把结论写进 `docs/acceptance.md` 的判定列，并按口径重跑平台与 DoD-1 的读数。
+
+---
+
+## 附录：Android 剩余 74 条未决导入的完整清单（2026-10-18，status 4.727）
+
+生成方式：`docs/baseline/android-imports-pending.txt`（未决名字）× `docs/baseline/android-arms.tsv`（每个名字的 C 定义位置与预处理条件）× `docs/baseline/config/android-arm64.json`（Android 配置的宏）。分类规则写在每节开头；这份清单的目的，是让"还要多久"与"需要你决定什么"都有据可查。
+
+### A. 窗口系统臂（受问题 4 约束）（40 条）
+
+C 的定义在 `HAVE_WINDOW_SYSTEM`/`X`/`NS`/`PGTK`/`HAIKU`/`NTGUI`/`WINDOWSNT`/`MSDOS` 之类守卫下，或定义文件是 `xfns.c`/`haikuterm.c` 这类窗口后端。Android 是窗口系统，所以这些在它上面是**活代码**；写不写、怎么写，取决于问题 4 选 A/B/C。
+
+`IMAGE_OPT_FROM_ID`, `Vx_mode_pointer_shape`, `Vx_nontext_pointer_shape`, `Vx_resource_class`, `Vx_resource_name`, `cancel_hourglass`, `display_and_set_cursor`, `draw_phys_cursor_glyph`, `expose_frame`, `face_for_font`, `find_hot_spot`, `font_for_underline_metrics`, `fset_parent_frame`, `get_glyph_string_clip_rect`, `get_glyph_string_clip_rects`, `get_phys_cursor_geometry`, `get_tab_bar_item_kbd`, `gui_clear_cursor`, `gui_clear_end_of_line`, `gui_draw_vertical_border`, `gui_fix_overlapping_area`, `gui_get_glyph_overhangs`, `gui_insert_glyphs`, `gui_intersect_rectangles`, `gui_produce_glyphs`, `gui_union_rectangles`, `gui_update_cursor`, `gui_write_glyphs`, `handle_tab_bar_click`, `handle_tool_bar_click`, `make_monitor_attribute_list`, `prepare_face_for_display`, `redraw_image_glyphs`, `remember_mouse_glyph`, `share_image_cache`, `start_hourglass`, `tty_draw_row_with_mouse_face`, `x_stretch_cursor_p`, `x_underline_at_descent_line`, `x_use_underline_position_properties`
+
+### B. 上游/平台缺口（不需要决定，但也不是端口缺陷）（31 条）
+
+这些名字所在的 C 单元或守卫在 Android 配置下**编不过或链不上**：bionic 在 API 21 没有该符号（`posix_spawn*`、`getifaddrs`、`getloadavg`、`confstr`、`utmpx*` 等），或是 macOS 专有（`mach_*`、`proc_pid*`、`sysctl`、`renameatx_np`），或依赖头宏而配置未记录（`__error`、`stdin/stdout/stderr`）。处理方式是按 C 编排（保持相同导入、留在棘轮），证据见 `docs/status.md` 4.715/4.725。
+
+`backtrace`, `backtrace_symbols_fd`, `confstr`, `devname`, `endutxent`, `freeifaddrs`, `getifaddrs`, `getloadavg`, `getutxent`, `mach_timebase_info`, `mkostemp`, `posix_spawn`, `posix_spawn_file_actions_addchdir`, `posix_spawn_file_actions_adddup2`, `posix_spawn_file_actions_destroy`, `posix_spawn_file_actions_init`, `posix_spawnattr_destroy`, `posix_spawnattr_init`, `posix_spawnattr_setflags`, `posix_spawnattr_setsigdefault`, `posix_spawnattr_setsigmask`, `proc_pid_rusage`, `proc_pidinfo`, `proc_pidpath`, `renameatx_np`, `setutxent`, `stderr`, `stdin`, `stdout`, `sysctl`, `utmpxname`
+
+### C. 其它（逐条待判）（3 条）
+
+既不在窗口系统守卫下、也不属于上面两类：需要逐个看 C 的守卫与端口对应位置，多半是派生 cfg 名或配置未记录的宏。
+
+`__darwin_check_fd_set_overflow`, `__error`, `timerfd_callback`

@@ -4101,12 +4101,17 @@ DEFUN! ("locale-info", Flocale_info, Slocale_info, 1, 1, 0,
   /* STR is apparently unused on Android.  */
   let _ = str_;
 
-  /* C 3923-3945: `#ifdef HAVE_LANGINFO_CODESET` (live, so is the inner `DAY_1` arm).  */
+  /* C 3923-3975: the `codeset`, `days` and `months` arms are each inside `#ifdef
+     HAVE_LANGINFO_CODESET` (the frozen configuration sets it; the Android one leaves it undefined,
+     and bionic has no `nl_langinfo` - status 4.727).  */
+
+  #[cfg (not (feature = "not_have_langinfo_codeset"))]
   if EQ (item, Qcodeset ())
     {
       str_ = nl_langinfo (CODESET);
       return build_string (str_);
     }
+  #[cfg (not (feature = "not_have_langinfo_codeset"))]
   if EQ (item, Qdays ())  /* E.g., for calendar-day-name-array.  */
     {
       let v: Lisp_Object = make_nil_vector (7);
@@ -4126,6 +4131,7 @@ DEFUN! ("locale-info", Flocale_info, Slocale_info, 1, 1, 0,
 	}
       return v;
     }
+  #[cfg (not (feature = "not_have_langinfo_codeset"))]
   if EQ (item, Qmonths ())  /* E.g., for calendar-month-name-array.  */
     {
       let v: Lisp_Object = make_nil_vector (12);

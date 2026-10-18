@@ -49,7 +49,6 @@ handle_tool_bar_click
 mach_timebase_info
 make_monitor_attribute_list
 mkostemp
-nl_langinfo
 posix_spawn
 posix_spawn_file_actions_addchdir
 posix_spawn_file_actions_adddup2
