@@ -1779,6 +1779,15 @@ const SHARED_DRIVER: &str = "#![no_std]\n\n\
    never unwinds into C (PORTING.md constraint 9).  */\n\
 #[panic_handler]\n\
 fn rust_begin_unwind (_info: &core::panic::PanicInfo) -> ! { unsafe { abort () } }\n\n\
+/* Rust's unwind entry point.  With `panic = abort` nothing unwinds, and C's build has no such\n\
+   symbol at all; the name is a requirement of the Rust runtime objects that `-nodefaultlibs`\n\
+   links here, so the driver provides it with `_Unwind`'s own signature and aborts if it is ever\n\
+   reached (status 4.726).  */\n\
+#[unsafe(export_name = \"rust_eh_personality\")]\n\
+pub extern \"C\" fn rust_eh_personality (_version: i32, _actions: i32, _class: u64,\n\
+                                      _object: *mut core::ffi::c_void,\n\
+                                      _context: *mut core::ffi::c_void) -> i32\n\
+{ unsafe { abort () } }\n\n\
 unsafe extern \"C\" { fn abort () -> !; }\n";
 
 /// `xtask link-shared <target>` - link the port's objects for TARGET into `libemacs.so`.

@@ -950,6 +950,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-317 | **镜像里有的声明，单元里不许再写一份；每轮结束跑一次完整平台门**：① 4.713 把 `posix_memalign` 加进 `<stdlib.h>` 镜像后 ✗，`sfntfont-android.rs` 自己的那份成了 `E0428` ✓ —— 名字归属镜像（P-26/P-297 ✓），单元里的副本要收回 ✓。② **单点编译不足以发现这类问题** ✓：只有整条 Android sweep（91 单元）才会碰到它 ✓ ⇒ 每轮收尾跑 `tools/check-authorized-platforms.sh` ✓（四段：macOS smoke / gate-android / 原生库 + 棘轮 / 签名 APK ✓）。③ 76 条未决的构成要按"C 的守卫 + 配置"逐条判 ✓，而不是笼统一句"剩下的是窗口系统" ✗（4.725 的读数是 33 / 1 / 42 ✓）。 |
 
+| P-318 | **`-nodefaultlibs` 下 Rust 运行时符号由 driver 补齐，并写清"永不调用"**：① `rust_begin_unwind`（按 rlib 里读到的 mangled 名 ✓）与 `rust_eh_personality`（`_Unwind` 的 5 参数签名 ✓、函数体 `abort` ✓）都由 `xtask` 生成的 driver 提供 ✓；② 两个符号都要在 `.so` 里核对成**定义**而不是 `U` ✓（棘轮 ✓）；③ 这类符号 C 侧根本不存在 ✓ ⇒ 在注释里写明「这是 Rust 运行时的要求、`panic=abort` 下永不被调用」 ✓，避免以后被误当成 C 的行为 ✓。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**

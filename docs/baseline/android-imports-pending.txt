@@ -67,7 +67,6 @@ proc_pidpath
 redraw_image_glyphs
 remember_mouse_glyph
 renameatx_np
-rust_eh_personality
 setutxent
 share_image_cache
 start_hourglass
