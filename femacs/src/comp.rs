@@ -1390,6 +1390,14 @@ unsafe extern "C" {
   pub fn gcc_jit_context_new_comparison (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
                                          op: gcc_jit_comparison, a: *mut gcc_jit_rvalue,
                                          b: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1447-1449: `gcc_jit_lvalue *gcc_jit_rvalue_dereference (gcc_jit_rvalue *rvalue,
+  /// gcc_jit_location *loc);`
+  pub fn gcc_jit_rvalue_dereference (rvalue: *mut gcc_jit_rvalue, loc: *mut gcc_jit_location)
+    -> *mut gcc_jit_lvalue;
+  /// C: libgccjit.h 852-854: `gcc_jit_function *gcc_jit_context_get_builtin_function
+  /// (gcc_jit_context *ctxt, const char *name);`
+  pub fn gcc_jit_context_get_builtin_function (ctxt: *mut gcc_jit_context, name: *const c_char)
+    -> *mut gcc_jit_function;
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -1936,6 +1944,230 @@ unsafe fn emit_SYMBOL_WITH_POS_P (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rval
 				   comp.pseudovectorp,
 				   2,
 				   args.as_ptr () as *mut *mut gcc_jit_rvalue);
+}
+
+/* C 4932-4951's `DEFUN ("comp-libgccjit-version", …)` is transcribed **here**, out of C's order,
+   because this slice's `emit_EQ` (C 1529) calls it and nothing between C 1520 and C 4932 defines
+   it.  Rust resolves items regardless of position, so the body is C's; it moves to its own
+   position when the C 4932 region is transcribed (`docs/ports/comp.md` records the move).
+   `#pragma GCC diagnostic push`/`pop` and the ignored `-Waddress` around it are C's own
+   diagnostics control and have no Rust counterpart.  */
+/// C 4932-4951: `DEFUN ("comp-libgccjit-version", Fcomp_libgccjit_version, …)`.
+/// `LIBGCCJIT_HAVE_gcc_jit_version` is undefined in the frozen configuration, so C 4948-4950 is
+/// the live arm and C 4940-4947 is carried under the feature that names the macro.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp-libgccjit-version", Fcomp_libgccjit_version,
+       Scomp_libgccjit_version, 0, 0, 0,
+       doc: "Return libgccjit version in use.\n\nThe return value has the form (MAJOR MINOR PATCHLEVEL) or nil if\nunknown (before GCC version 10).",
+       (),
+       {
+  #[cfg (feature = "libgccjit_have_gcc_jit_version")]
+  {
+    load_gccjit_if_necessary (true);
+
+    return if *gcc_jit_version_major.as_ref ().unwrap () != std::ptr::null_mut ()
+      { list3 (make_fixnum (gcc_jit_version_major () as EMACS_INT),
+	       make_fixnum (gcc_jit_version_minor () as EMACS_INT),
+	       make_fixnum (gcc_jit_version_patchlevel () as EMACS_INT)) }
+      else
+      { Qnil () };
+  }
+  #[cfg (not (feature = "libgccjit_have_gcc_jit_version"))]
+  {
+    return Qnil ();
+  }
+});
+
+/// C 1520-1552: `static gcc_jit_rvalue *emit_EQ (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.  C's
+/// `__builtin_expect` arm is guarded by a run-time version test (`bug#79722`), so both arms are
+/// live code here, as in C.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_EQ (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  let base_eq: *mut gcc_jit_rvalue = emit_BASE_EQ (x, y);
+  let mut symbols_with_pos_enabled_rval: *mut gcc_jit_rvalue = gcc_jit_lvalue_as_rvalue (
+    gcc_jit_rvalue_dereference (comp.f_symbols_with_pos_enabled_ref,
+                                std::ptr::null_mut ()));
+
+  /* Do not use '__builtin_expect' with libgccjit < 14 (bug#79722).  */
+  let version: Lisp_Object = Fcomp_libgccjit_version ();
+  if ! NILP (version) && XFIXNUM (XCAR (version)) >= 14
+    {
+      let expect_args: [*mut gcc_jit_rvalue; 2] =
+        [ emit_coerce (comp.long_type, symbols_with_pos_enabled_rval),
+          gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+                                               comp.long_type,
+                                               0) ];
+
+      symbols_with_pos_enabled_rval = emit_coerce (
+        comp.bool_type,
+        gcc_jit_context_new_call (
+          comp.ctxt,
+          std::ptr::null_mut (),
+          gcc_jit_context_get_builtin_function (comp.ctxt,
+                                                c"__builtin_expect".as_ptr ()),
+          2,
+          expect_args.as_ptr () as *mut *mut gcc_jit_rvalue));
+    }
+
+  return emit_OR (
+    base_eq,
+    emit_AND (symbols_with_pos_enabled_rval, emit_slow_eq (x, y)));
+}
+
+/// C 1554-1560: `static gcc_jit_rvalue *emit_FLOATP (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_FLOATP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"FLOATP".as_ptr ());
+
+  return emit_TAGGEDP (obj, Lisp_Type::Lisp_Float as Lisp_Word_tag);
+}
+
+/// C 1562-1579: `static gcc_jit_rvalue *emit_BIGNUMP (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_BIGNUMP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  /* PSEUDOVECTORP (x, PVEC_BIGNUM); */
+  emit_comment (c"BIGNUMP".as_ptr ());
+
+  let args: [*mut gcc_jit_rvalue; 2] =
+    [ obj,
+      gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					   comp.int_type,
+					   pvec_type::PVEC_BIGNUM as c_int) ];
+
+  return gcc_jit_context_new_call (comp.ctxt,
+				   std::ptr::null_mut (),
+				   comp.pseudovectorp,
+				   2,
+				   args.as_ptr () as *mut *mut gcc_jit_rvalue);
+}
+
+/// C 1581-1625: `static gcc_jit_rvalue *emit_FIXNUMP (gcc_jit_rvalue *obj)`.  C's
+/// `(Lisp_Int0 >> !USE_LSB_TAG)` and the `USE_LSB_TAG ? obj : …` selection are constants; the
+/// port reads the same ones.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_FIXNUMP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  /* (! (((unsigned) (XLI (x) >> (USE_LSB_TAG ? 0 : FIXNUM_BITS))
+	- (unsigned) (Lisp_Int0 >> !USE_LSB_TAG))
+	& ((1 << INTTYPEBITS) - 1)))  */
+  emit_comment (c"FIXNUMP".as_ptr ());
+
+  let sh_res: *mut gcc_jit_rvalue =
+    if USE_LSB_TAG
+    { obj }
+    else
+    { emit_binary_op (GCC_JIT_BINARY_OP_RSHIFT,
+		      comp.emacs_int_type,
+		      emit_XLI (obj),
+		      gcc_jit_context_new_rvalue_from_int (
+			comp.ctxt,
+			comp.emacs_int_type,
+			FIXNUM_BITS as c_int)) };
+
+  let minus_res: *mut gcc_jit_rvalue =
+    emit_binary_op (
+      GCC_JIT_BINARY_OP_MINUS,
+	   comp.unsigned_type,
+	   sh_res,
+	   gcc_jit_context_new_rvalue_from_int (
+	     comp.ctxt,
+	     comp.unsigned_type,
+	     (Lisp_Type::Lisp_Int0 as c_int >> if ! USE_LSB_TAG { 1 } else { 0 })));
+
+  let res: *mut gcc_jit_rvalue =
+   gcc_jit_context_new_unary_op (
+     comp.ctxt,
+     std::ptr::null_mut (),
+     GCC_JIT_UNARY_OP_LOGICAL_NEGATE,
+     comp.int_type,
+     emit_binary_op (
+       GCC_JIT_BINARY_OP_BITWISE_AND,
+       comp.unsigned_type,
+       minus_res,
+       gcc_jit_context_new_rvalue_from_int (
+	 comp.ctxt,
+	 comp.unsigned_type,
+	 ((1usize << INTTYPEBITS) - 1) as c_int)));
+
+  return res;
+}
+
+/// C 1627-1653: `static gcc_jit_rvalue *emit_XFIXNUM (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XFIXNUM (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"XFIXNUM".as_ptr ());
+  let mut i: *mut gcc_jit_rvalue = emit_coerce (comp.emacs_uint_type, emit_XLI (obj));
+
+  /* FIXME: Implementation dependent (both RSHIFT are arithmetic).  */
+
+  if ! USE_LSB_TAG
+    {
+      i = emit_binary_op (GCC_JIT_BINARY_OP_LSHIFT,
+			  comp.emacs_uint_type,
+			  i,
+			  comp.inttypebits);
+
+      return emit_binary_op (GCC_JIT_BINARY_OP_RSHIFT,
+			     comp.emacs_int_type,
+			     i,
+			     comp.inttypebits);
+    }
+  else
+    { return emit_coerce (comp.emacs_int_type,
+			  emit_binary_op (GCC_JIT_BINARY_OP_RSHIFT,
+					  comp.emacs_int_type,
+					  i,
+					  comp.inttypebits)); }
+}
+
+/// C 1655-1664: `static gcc_jit_rvalue *emit_INTEGERP (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_INTEGERP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"INTEGERP".as_ptr ());
+
+  return emit_binary_op (GCC_JIT_BINARY_OP_LOGICAL_OR,
+			 comp.bool_type,
+			 emit_FIXNUMP (obj),
+			 emit_BIGNUMP (obj));
+}
+
+/// C 1666-1675: `static gcc_jit_rvalue *emit_NUMBERP (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_NUMBERP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"NUMBERP".as_ptr ());
+
+  return emit_binary_op (GCC_JIT_BINARY_OP_LOGICAL_OR,
+			 comp.bool_type,
+			 emit_INTEGERP (obj),
+			 emit_FLOATP (obj));
+}
+
+/// C 1677-1696: `static gcc_jit_rvalue *emit_make_fixnum_LSB_TAG (gcc_jit_rvalue *n)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_make_fixnum_LSB_TAG (n: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  /*
+    EMACS_UINT u = n;
+    n = u << INTTYPEBITS;
+    n += int0;
+  */
+
+  let mut tmp: *mut gcc_jit_rvalue =
+    emit_binary_op (GCC_JIT_BINARY_OP_LSHIFT,
+		    comp.emacs_int_type,
+		    n, comp.inttypebits);
+
+  tmp = emit_binary_op (GCC_JIT_BINARY_OP_PLUS,
+			comp.emacs_int_type,
+			tmp, comp.lisp_int0);
+
+  return emit_coerce (comp.lisp_obj_type, tmp);
 }
 
 /// C 1506-1518: `static gcc_jit_rvalue *emit_slow_eq (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
