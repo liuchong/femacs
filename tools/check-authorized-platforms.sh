@@ -13,11 +13,12 @@
 #
 # Run it through the controlled executor (the packaging half peaks near a gigabyte):
 #   python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime \
-#       --memory-mib 1400 -- bash tools/check-authorized-platforms.sh
+#       -- bash tools/check-authorized-platforms.sh
 #
-# The emulator smoke is not here: it is the one step the runtime profile's memory ceiling
-# refuses (docs/decisions-needed.md E1/E2/E3, awaiting the user's decision), and this script
-# reports it as blocked rather than as passed or not-run.
+# The emulator smoke is not here: it boots a device and takes minutes, so it stays a separate
+# step (`tools/try-android-emulator.sh`, printed at the end with a copy-pasteable command).
+# The runtime profile holds QEMU's own footprint by itself (R38: 4 GiB start, 16 GiB hard cap),
+# so the old E1/E2/E3 budget question is closed (docs/decisions-needed.md).
 set -u
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 APK_DIR=${FEMACS_APK_DIR:-/tmp/femacs-apk}
@@ -44,6 +45,14 @@ echo "== Android: native library =="
   FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
     cargo run -q -p xtask -- link-shared aarch64-linux-android 2>&1 | tail -1 || exit 1
+  # `gen-config` above rewrote the tree's mirror (`src/include/config.rs`) with the Android
+  # constants.  The frozen configuration is the one that belongs in git, so put it back here and
+  # fail loudly if the tree does not return to its committed state: the first scripted run of this
+  # file left the Android values behind, dirty, for the next session to find (measured 4.705).
+  FEMACS_CONFIG=darwin-arm64 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+    cargo run -q -p xtask -- gen-config >/dev/null || exit 1
+  git -C "$REPO" diff --quiet -- femacs/src/include/config.rs || {
+    echo "   config.rs did not come back to the frozen configuration" >&2; exit 1; }
 ) || status=1
 
 SO="$REPO/build/port/aarch64-linux-android/libemacs.so"
@@ -55,6 +64,15 @@ if [ -f "$SO" ] && [ -n "$NDK_BIN" ]; then
 else
   echo "   no $SO or no NDK: the native step did not run" >&2
   status=1
+fi
+
+# The link's exit status is not evidence that the library can be *loaded*: `-shared` does not
+# imply `-z defs`, so lld emits a library whose imports nothing provides, and every structural
+# gate above (APK member, JNI exports, signature) passes - the device then refuses the first
+# `dlopen` (P-300, status 4.707).  This gate reads the library's imports against the NDK's stub
+# libraries and ratchets what is still missing.
+if [ -f "$SO" ]; then
+  if python3 "$REPO/tools/check-android-imports.py" --so "$SO" 2>&1 | sed 's/^/   /'; then :; else status=1; fi
 fi
 
 echo "== Android: signed APK with the native library =="
@@ -76,5 +94,8 @@ echo "== Android: emulator smoke =="
 # cap on its own (R38), so the emulator's ~2 GB fixed cost is inside the authorised budget and the
 # old E1/E2/E3 question is closed.  The step is still separate from this script's four legs because
 # it boots a device and takes minutes; `tools/try-android-emulator.sh` runs it.
-printf '  %-30s %s\n' "Android emulator smoke" "run: FEMACS_EMULATOR_BUDGET_OK=1 sh tools/try-android-emulator.sh"
+printf '  %-30s %s\n' "Android emulator smoke" \
+  "FEMACS_EMULATOR_BUDGET_OK=1 sh tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk $APK_DIR/emacs.apk"
+printf '  %-30s %s\n' "  (through the executor)" \
+  "python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- sh tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk $APK_DIR/emacs.apk"
 exit "$status"

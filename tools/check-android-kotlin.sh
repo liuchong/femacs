@@ -10,9 +10,11 @@
 #   tools/check-android-kotlin.sh --keep DIR   # keep the output classes in DIR
 #   tools/check-android-kotlin.sh --apk DIR    # also assemble and sign an APK in DIR
 #
-# `--apk` runs the rest of `emacs/java/Makefile.in`'s packaging: `d8` turns the classes into
-# `classes.dex`, `aapt2 link`'s archive and that dex are zipped into an APK, and `apksigner`
-# signs it with a debug key `keytool` generates once.  The APK is built *without* the native
+# `--apk` runs the rest of `emacs/java/Makefile.in`'s packaging: `d8` turns the classes - the
+# port's own *and* the Kotlin runtime the sources call (`kotlin-stdlib.jar`, which a Java shell
+# does not need and the port's Kotlin one does) - into `classes.dex`, `aapt2 link`'s archive and
+# that dex are zipped into an APK, and `apksigner` signs it with a debug key `keytool` generates
+# once.  The APK is built *without* the native
 # libraries, which the port's Android native build will add (P-201); everything else is real.
 #
 # Environment overrides (all optional): STUDIO (the Android Studio bundle), ANDROID_HOME,
@@ -99,7 +101,15 @@ echo "resources: R.jar built from $(find "$REPO/femacs/platform/android/res" -ty
 # The reference generates a class at build time (`EmacsConfig`, java/Makefile.in 411-424); the
 # Kotlin sources name it, so the generator runs first and its file joins the compilation.
 mkdir -p "$OUT/generated"
-python3 "$REPO/tools/gen-emacs-config.py" --out "$OUT/generated" || exit $?
+# The class names `libemacs.so`'s `(NEEDED)` closure, so the generator is given the linked
+# library when the caller has one (without it the list is empty, which is the honest reading of
+# "no Android library exists yet" - not a list of files, which is what the first version of the
+# generator produced and what killed the app on the device, 4.706).
+if [ -n "$NATIVE_SO" ]; then
+  python3 "$REPO/tools/gen-emacs-config.py" --out "$OUT/generated" --library "$NATIVE_SO" || exit $?
+else
+  python3 "$REPO/tools/gen-emacs-config.py" --out "$OUT/generated" || exit $?
+fi
 
 FILES=$(find "$REPO/femacs/platform/android" "$OUT/generated" -name '*.kt' | sort)
 COUNT=$(printf '%s\n' "$FILES" | grep -c .)
@@ -130,9 +140,23 @@ if [ -n "$APK_DIR" ]; then
   find "$OUT" -name '*.class' > "$OUT/classes.txt"
   # `d8`/`apksigner` in build-tools are wrapper scripts around their jars, so they are run
   # directly (a `java -cp <script>` cannot find their main class - measured).
+  # `d8` puts its *inputs* into the dex, and the Kotlin sources call the standard library at
+  # runtime: kotlinc emits `kotlin.jvm.internal.Intrinsics` into every non-null parameter check,
+  # `kotlin.collections.*` into every list operation.  The compiler's own `kotlin-stdlib.jar`
+  # therefore has to be an input alongside the app's classes.  Without it the APK installs and
+  # launches and then dies in the first `ContentProvider.onCreate`
+  # (`NoClassDefFoundError: Failed resolution of: Lkotlin/jvm/internal/Intrinsics` - measured on
+  # the emulator, status 4.706; the reference's shell is Java, so this input has no counterpart
+  # there and nothing else in the port's build supplies it).
   JAVA_HOME="$JAVA_HOME" "$D8" --lib "$ANDROID_JAR" --min-api 21 --output "$OUT/dex" \
-    $(cat "$OUT/classes.txt") || exit $?
+    $(cat "$OUT/classes.txt") "$STDLIB" || exit $?
   echo "dex: $(ls "$OUT/dex"/*.dex 2>/dev/null | wc -l | tr -d ' ') file(s), $(du -h "$OUT/dex/classes.dex" | cut -f1)"
+  # And assert it, so a dex built from the app's own classes alone cannot pass this check: the
+  # type descriptor is a plain string in the dex string table.
+  if ! LC_ALL=C grep -aq "Lkotlin/jvm/internal/Intrinsics;" "$OUT/dex/classes.dex"; then
+    echo "the dex does not carry kotlin.jvm.internal.Intrinsics (the Kotlin runtime is missing)" >&2
+    exit 3
+  fi
 
   # 2. resources.ap_ + classes.dex -> apk
   UNSIGNED="$APK_DIR/emacs-unsigned.apk"

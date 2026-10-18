@@ -1,4 +1,4 @@
-# 当前状态（2026-10-18，status 4.682 时点）
+# 当前状态（2026-10-18，status 4.707 时点）
 
 给下一次会话的**入口快照**：判定口径、读数、复跑命令、未决事项。逐轮记录仍在 `docs/status.md`，
 口径与规则在 `PORTING.md`，验收细则在 `docs/acceptance.md`。
@@ -24,7 +24,7 @@
 | 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check`、`tools/acceptance-l1.py --check`、`python3 tools/check-ert.py --selector-preset default --tsv /tmp/ert.tsv` | L0 **19/0**；L1 **111 文件 / 0 失败 / 1 接受**；L5 默认选择器 **same 552 / both-fail 7 / crashed 5 / port-worse 0**（`docs/baseline/ert-sweep-default.tsv`，4.676）。`all` 档唯一 `port-worse` 是上游 `:unstable` 的 `erc-d-run-linger`（P-293） |
 | 4 | `.elc`/dump/生成物/loadup | ✅ | `python3 tools/check-generated.py`、`tools/check-loadup.py`、`tools/check-dump-offsets.py` | **244 文件：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**；两树 loadup 逐文件一致；19 处 dump offset 0 failure（4.600/4.678） |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.679） |
-| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh` | macOS smoke **11/0**；`gate-android` **181,486 B / 112 class / 签名**；`libemacs.so` **5,944,664 B / 69 个 JNI 导出**；含 `lib/arm64-v8a/libemacs.so` 的**签名 APK 3.2 MB**；**Android 单元 sweep 91/91 + 0 unit failure**（4.682，本树；清单用绝对路径）—— 四段 exit 0、127 s / 峰值 970 MB。**模拟器冒烟未达**：`tools/try-android-emulator.sh --plan` 是它要跑的步骤，等待 E1/E2/E3 |
+| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh` | macOS smoke **11/0**；`gate-android` **181,486 B / 112 class / 签名**；`libemacs.so` **5,944,816 B / 69 个 JNI 导出**；含 `lib/arm64-v8a/libemacs.so` 的**签名 APK 3.9 MB**；**Android 单元 sweep 91/91 + 0 unit failure**—— 四段 exit 0。**模拟器冒烟已能跑到应用层**（4.705–4.707）：AVD `femacs-arm64-api36` boot ✓、`adb install` Success ✓、`am start -W` Status: ok ✓，并挖出并修掉三个真缺陷（dex 缺 Kotlin 运行库 ✗→✓、`EmacsConfig` 抄错列表 ✗→✓、`-nodefaultlibs` 掉 libc ✗→✓）；**但库仍不可 `dlopen`**：新门 `python3 tools/check-android-imports.py` 读到 **480 导入 / 214 未决**（棘轮 `docs/baseline/android-imports-pending.txt`，主要是本目标未转写的 `HAVE_WINDOW_SYSTEM` 臂）⇒ 应用层结论**未达** |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh` | 同臂 0.70–0.86×（P-193）；按用户决定不追平、不记为达标 |
 | 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git log --show-signature` | **238 台账绑定 / 0 failure / 0 行无台账**（4.679）；全部提交 `-S` 并推送 |
 
@@ -50,18 +50,21 @@
 - **`tools/check-authorized-platforms.sh` 的静默失败已修**（4.682）：它在子 shell 里 `cd femacs` 之后用相对路径调 `tools/check-all-units.sh`，
   这一段一直失败而 `tail -1` 把它咽掉；改用 `"$REPO/tools/..."` 之后四段真的都跑了（exit 0）。同类脚本若 `cd` 之后仍用相对路径，都要按这条检查。
 
-## 平台面的现状（两条前置皆已解决；一条新问题等用户决定）
+## 平台面的现状（前置全解决；一条口径问题等用户决定）
 
-- **texinfo/makeinfo：已装（7.3）** ⇒ Android `configure` 第一次跑到底 ✓：
-  `docs/baseline/config/android-arm64.json`（32 宏，与 darwin 只差 3 处）✓。四个坑与规则见 P-223。
-- **arm64-v8a 系统镜像：已装**（`system-images;android-36;default;arm64-v8a`）+ 已建 AVD
-  `femacs-arm64-api36` ✓；`tools/try-android-emulator.sh` 已可调客人内存/GPU ✓。
-- **新问题（等用户决定，P-224）**：受控执行器的 **runtime 档上限 2 GiB**，而它量的是"树内 RSS 之和"
-  ⇒ 模拟器（QEMU 家族，该机固定开销 ~2.0 GB）**连跑两次都被上限杀掉** ✗，缩小客人内存无效 ✗。
-  可选项见 `docs/decisions-needed.md`：**(E1)** 用户明确授权一次模拟器运行的内存额度（需要改共享策略，
-  我没权限自行改）✓；**(E2)** 接受"本机不跑模拟器"，Android 验收停在"结构 + 签名 APK + 原生库"✓；
-  **(E3)** 先修共享执行器的记账（把"和"改成唯一 RSS/最大单进程 ✓，属共享策略改动，需用户拍板）✓。
-- **Android 原生库（不依赖模拟器）**：交叉目标已装 **到钉住的 nightly 上**（P-04 的 `nightly-2026-10-01`）✓、冻结配置已产出 ✓、编译集已冻结（**91 个 `src/*.c`**，P-226 ✓）、**按-target 构建已全绿：android 91/91、darwin 83/83，0 failure** ✓✓（P-228：4 个缺陷全修 —— `signed char` 必须是 `i8` 而不是平台相关的 `c_char` ✓、`HAVE_SIGNBIT` 改为按目标测量 ✓）。**`.so` 已能链**（`xtask link-shared` ⇒ `libemacs.so` 755,048 B、AArch64 ✓），但**导出符号几乎为空** ✗ —— 配置宏 → `--cfg feature` 的映射只覆盖 darwin 的 32 个键、`HAVE_ANDROID` 不在其内 ⇒ Android 的门（`have_android` 2,316 处 ✓）全是关的 ✗（P-229）。***映射已建成** ✓（`--cfg` 按目标发出 ✓，874 键 / 334 真 ✓；并从**内层** `config.h.android` 取值 ✓ 以免记成 stubify ✗）⇒ **打开门后 `src/android.c` 报三类真缺陷** ✓（`Copy` ✗、`Clone` ✗、`thread_state` 的尺寸/偏移断言 ✗）⇒ 下一步是按这三类清单修 Android 臂 ✓ → 重编 → 断言 JNI 导出 ✓ → `android-emacs.rs`（目前空单元 ✗）→ 打包含 `.so` 的 APK ✓；并按 P-222 在这一版上**再跑一次常态 L5** ✓（正在跑的那次是改动前的 ✓）。
+- **texinfo/makeinfo：已装（7.3）** ⇒ Android `configure` 跑到底 ✓（P-223）；**arm64-v8a 镜像 + AVD
+  `femacs-arm64-api36` 已就绪** ✓；受控执行器按 R38 自动扩容（实测 4 → 6 GiB ✓、硬上限 16 GiB ✓）⇒
+  原 **E1/E2/E3 已作废**（`docs/decisions-needed.md` 保留作历史）。
+- **Android 侧现在的真实缺口是可加载性，不是结构** ✓：三个真缺陷已在 4.705 修完（`classes.dex` 现在带
+  Kotlin 运行库 ✓、`EmacsConfig` 现在按 `java/Makefile.in` 375-404 的 `(NEEDED)` 闭包生成 ✓、
+  `link-shared` 现在带 `-lc -ljnigraphics` ✓），但 `libemacs.so` 仍有 **214 条未决导入** ⇒
+  `dlopen` 仍会失败（读数与构成见 `docs/status.md` 4.707 ✓，门是
+  `python3 tools/check-android-imports.py` ✓）。
+- **新问题（等用户决定，`docs/decisions-needed.md` 问题 4）**：那 214 条里最大的一块是端口的
+  `xdisp.rs` 等处**按 P-08 记成"dead on this target"的 `HAVE_WINDOW_SYSTEM` 臂** ✓ —— 对冻结的
+  **darwin** 配置它们确实是死臂 ✓，对用户授权的 **Android** 却是活臂 ✓（`HAVE_ANDROID` 打开 ✓）。
+  口径 A（死臂只记录）下 macOS 侧成立、Android 侧永远不可加载；口径 C（按目标配置决定活/死）下
+  这些臂要写成条件编译，工作队列就是那份棘轮。
 
 已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
 `emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是
@@ -74,7 +77,15 @@
 ```sh
 # 已授权平台（macOS + Android 结构 + 原生库 + 带 .so 的签名 APK）一条命令，失败即停：
 python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime \
-    --memory-mib 1400 -- bash tools/check-authorized-platforms.sh
+    -- bash tools/check-authorized-platforms.sh
+
+# 模拟器冒烟（应用层断言：进程、native 入口、失败形态；R38 自动扩容）：
+ANDROID_SDK_ROOT=$HOME/Library/Android/sdk FEMACS_EMULATOR_BUDGET_OK=1 \
+  python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- \
+  bash tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk /tmp/femacs-apk/emacs.apk
+
+# Android 可加载面（导入 vs NDK stub 库，棘轮）：
+python3 tools/check-android-imports.py
 
 cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast      # 静态/链接/布局/声明/清单
 cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-android   # Android 结构验收（~1 GB 峰值）

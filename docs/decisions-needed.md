@@ -2,6 +2,7 @@
 
 结论：① 性能 —— 暂搁置（未追平，不写成达标）；② 产品名 —— **不改名**，`lisp/test/etc/doc/leim/admin` 逐字节原样，
 兼容接口（函数/变量/路径/Info 节点）不变，已执行；③ 平台 —— macOS 真机 + Android 模拟器，其余搁置。
+**新增（2026-10-18）：问题 4 仍待你决定 —— DoD-1「全部复刻」对“活臂/死臂”的口径**（见文末；新证据：Android 侧有 214 条库导入无人提供，其中最大的一块正是被记成死臂的 `HAVE_WINDOW_SYSTEM` 臂）。
 **两条外部前置已解决**（2026-10-18，用户授权安装）：`texinfo`/`makeinfo` 已装 ⇒ Android `configure` 跑到底、冻结配置产出
 （P-223）；`arm64-v8a` 系统镜像与 AVD 已就绪 ✓。
 
@@ -122,3 +123,32 @@
 ---
 
 选定后请直接说"A/B/C"（三个问题互相独立，可分开定）。我会把选中结论写进 `docs/acceptance.md` 的判定列、更新本文件为结案记录，并把对应证据重跑一遍。
+
+---
+
+## 问题 4（新增，2026-10-18）：DoD-1「全部复刻」对**活臂**的口径 —— Android 侧已经等价于“必须写”
+
+**背景（本次模拟器冒烟把断言提到应用层后量到的）**
+- 用户授权的两个平台里，**Android 是窗口系统**（`HAVE_ANDROID` 打开 ✓），而端口的 `xdisp.rs` 等处把 C 的
+  `#ifdef HAVE_WINDOW_SYSTEM` 段落**逐处写成了“dead on this target (P-08)”注释**（例：`femacs/src/xdisp.rs`
+  30417/30421/30426）。这在冻结的 **darwin** 配置下是对的，在 **Android** 上却把活代码记成了死代码。
+- 读数（可复跑）：`python3 tools/check-android-imports.py` ⇒ `libemacs.so` **480 个导入 / 214 个无人提供**
+  （棘轮 `docs/baseline/android-imports-pending.txt`）。构成为 **196** 个小写 C 名字（含 `display_and_set_cursor`、
+  `cancel_hourglass`、`tputs`、`BC`/`UP`/`PC`/`cost` 一类）+ **15** 个 UpperCamel + **2** 个 darwin 头镜像名
+  （`__error`、`__darwin_check_fd_set_overflow`）+ **1** 个 Rust mangled（链接里没有 panic handler）。
+- 结论：只要这些名字无人提供，`libemacs.so` 就**不能被 `dlopen`**，Android 侧只能停在“结构 + 可链接 + 签名 APK”。
+
+**选项**
+
+| 选项 | 做法 | 影响 |
+|---|---|---|
+| **A. 维持现状规则（P-08）** | 死臂只记录，不转写 | macOS 侧 DoD-1 成立 ✓、零额外工作量；但 Android 侧那 196 条**永远无人提供** ⇒ “Android 能跑”不可达 ✗，DoD-6 只能记“结构面达成、应用层未达”；新门会长期报 214 条未决 |
+| **B. 无差别逐行写（含 darwin 死臂）** | 把 `HAVE_WINDOW_SYSTEM` 等臂在**所有**目标上都写出来 | 最“满”的口径；工作量最大（`xdisp.c` 一处此前量到 62 个函数），且 darwin 上这些代码永不执行、只增加维护面 |
+| **C. 按目标配置决定活/死（建议）** | 给镜像加 `have_window_system`/`have_android` 之类的 cfg 门，把臂写成**条件编译**；活臂必写、死臂仍只记录 | 规则从“人工裁剪平台”变成“配置决定” ✓；macOS 侧读数不变 ✓；Android 侧的工作队列就是那份 214 条的棘轮 ✓（其中 3 条是另一类小井：darwin 头镜像名 2 条、panic handler 1 条，与臂无关，各自独立修） |
+
+> 我的建议：**C**。它不降低验收标准（活臂照样逐行写），也不为 darwin 增加永不执行的代码。
+
+**另需你知晓（不需要决定，属实现细节）**：`y`/`n` 之外的第三方依赖（例如 Android 上 `BC`/`UP`/`PC`/`cost` 在 darwin 由
+系统的 ncurses 提供、Android 必须由树内自己的 `termcap.c` 提供）会在 C 侧一并落进同一批工作，按 C 的配置走即可。
+
+选定后我会把结论写进 `docs/acceptance.md` 的判定列，并按口径重跑平台与 DoD-1 的读数。

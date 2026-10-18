@@ -1844,7 +1844,15 @@ fn link_shared (target: Option<&str>) -> i32
   let mut cmd = Command::new (&linker);
   cmd.arg ("-shared").arg ("-o").arg (&out_path)
      .args (["-Wl,--gc-sections", "-Wl,-z,relro,-z,now", "-nodefaultlibs"])
-     .args (["-ldl", "-lm", "-llog", "-landroid"]);
+     // `-nodefaultlibs` (below) drops the driver's own `-lc`, and bionic resolves a `dlopen`ed
+     // library's undefined symbols through that library's `DT_NEEDED` list alone - libc is not
+     // implicit.  Without `-lc` here the library has no `malloc` at all, and the device reports
+     // `dlopen failed: cannot locate symbol "malloc" referenced by ... libemacs.so` (measured
+     // 4.707; the C build's `libemacs.so` carries libc.so through the driver's defaults).
+     // `-llog -ljnigraphics` (and `-landroid`, which `configure.ac` 2634-2635 adds when
+     // `android_get_device_api_level` exists) are the reference's `ANDROID_LIBS`; `-lc` and
+     // `-ldl -lm` are what the driver would have added if `-nodefaultlibs` were absent.
+     .args (["-ldl", "-lm", "-llog", "-ljnigraphics", "-landroid", "-lc"]);
   for object in &objects { cmd.arg (object); }
   cmd.arg (&core).arg (&builtins);
   let out = match cmd.output ()
