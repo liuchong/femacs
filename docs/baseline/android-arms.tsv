@@ -16,7 +16,6 @@ Vx_resource_class	system
 Vx_resource_name	system		
 __darwin_check_fd_set_overflow	runtime		
 __error	runtime		
-android_emacs_init	arm	emacs/src/emacs.c:1323	#else
 android_intercept_control_space	system		
 android_keyboard_bell_duration	system		
 android_pass_multimedia_buttons_to_system	system		
@@ -24,12 +23,9 @@ backtrace	arm	emacs/lib/execinfo.in.h:39	#ifndef _GL_EXECINFO_H
 backtrace_symbols_fd	arm	emacs/lib/execinfo.in.h:55	#ifndef _GL_EXECINFO_H
 cancel_hourglass	arm	emacs/src/xdisp.c:39699	#ifdef HAVE_WINDOW_SYSTEM
 confstr	system		
-create_tty_output	arm	emacs/src/term.c:4326	#if !defined MSDOS && !defined HAVE_ANDROID
 devname	system		
 display_and_set_cursor	arm	emacs/src/xdisp.c:35327	#ifdef HAVE_WINDOW_SYSTEM
 draw_phys_cursor_glyph	arm	emacs/src/xdisp.c:35140	#ifdef HAVE_WINDOW_SYSTEM
-endgrent	system		
-endpwent	system		
 endutxent	system		
 expose_frame	arm	emacs/src/xdisp.c:38256	#ifdef HAVE_WINDOW_SYSTEM
 face_for_font	arm	emacs/src/xfaces.c:5161	#ifdef HAVE_WINDOW_SYSTEM
@@ -43,10 +39,8 @@ get_glyph_string_clip_rect	arm	emacs/src/xdisp.c:2697	#ifdef HAVE_WINDOW_SYSTEM
 get_glyph_string_clip_rects	arm	emacs/src/xdisp.c:2497	#ifdef HAVE_WINDOW_SYSTEM
 get_phys_cursor_geometry	arm	emacs/src/xdisp.c:2709	#ifdef HAVE_WINDOW_SYSTEM
 get_tab_bar_item_kbd	arm	emacs/src/xdisp.c:15323	#ifdef HAVE_WINDOW_SYSTEM
-getgrent	system		
 getifaddrs	system		
 getloadavg	arm	emacs/src/haiku.c:217	
-getpwent	system		
 getutxent	system		
 gui_clear_cursor	arm	emacs/src/xdisp.c:35507	#ifdef HAVE_WINDOW_SYSTEM
 gui_clear_end_of_line	arm	emacs/src/xdisp.c:34688	#ifdef HAVE_WINDOW_SYSTEM
@@ -61,12 +55,8 @@ gui_update_cursor	arm	emacs/src/xdisp.c:35495	#ifdef HAVE_WINDOW_SYSTEM
 gui_write_glyphs	arm	emacs/src/xdisp.c:34587	#ifdef HAVE_WINDOW_SYSTEM
 handle_tab_bar_click	arm	emacs/src/xdisp.c:15356	#ifdef HAVE_WINDOW_SYSTEM
 handle_tool_bar_click	arm	emacs/src/xdisp.c:16537	#ifdef HAVE_WINDOW_SYSTEM && #ifndef HAVE_EXT_TOOL_BAR
-inflate	system		
-inflateEnd	system		
-inflateInit2_	system		
 mach_timebase_info	system		
 make_monitor_attribute_list	arm	emacs/src/frame.c:7151	#else && #ifdef HAVE_WINDOW_SYSTEM
-memset_s	system		
 mkostemp	arm	emacs/lib/mkostemp.c:43	
 nl_langinfo	arm	emacs/src/w32proc.c:4149	#ifdef HAVE_LANGINFO_CODESET
 posix_madvise	system		

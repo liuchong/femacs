@@ -933,6 +933,9 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-308 | **一个 C 函数、两个名字：一份 Rust 函数体 + 两个薄壳，谓词用 C 原句；门要能按名字找到函数体**：① `emacs.c` 1315-1323 的 `#if`/`#else` 只换**声明**（`main` 两参数 / `android_emacs_init` 三参数 ✓）⇒ 端口保留一份函数体 ✓、两个壳各传 C 那一支该传的值（`main` 传 `NULL` ✓）✓。② 壳的 cfg 要**照抄 C 的整个谓词** ✓（`!HAVE_ANDROID || ANDROID_STUBIFY` ✓），别只取里面一个宏 ✗ —— stubify 构建仍走 `main` ✓。③ 符号面要两个目标各验一次 ✓（Android 有 `android_emacs_init` 无 `main` ✓、darwin 反之 ✓）✓。④ `extract-abi --check` 按名字取函数体 ✗ ⇒ 用 `docs/ports/function-aliases.tsv` 声明**候选名**（含函数体自己的名字 ✓），表格只登记 C 自己的这种形状 ✓。 | **规则，立即生效** | ① 遇到「同一个 C 函数在不同配置下不同名」，先写一份体 + 壳 ✓，再补一行别名表 ✓。② 别名表里的行必须写清 C 的行号与原因 ✓，且不得跨文件复用 ✓。 |
 
+| P-309 | **`__asm__` 屏障用 `black_box` 表达，并记偏离**：C 的 `memset_explicit` 在 clang 臂用 `__asm__ volatile ("" : : "g"(s) : "memory")` ✓ 阻止死存储消除 ✓；Rust 侧写成 `let _ = std::hint::black_box (s);` ✓（`black_box` 是 Rust 文档化的优化屏障 ✓），并在该处写明与 C 的内联汇编不同 ✓。 |
+| P-310 | **cfg 词表在两份配置上不对称，门的写法要照这份不对称来**：① `xtask config_features()` 对 **darwin** 读 `macros` 段 ✓（只发**正向** `have_*` ✓、`macros` 里缺席的键什么都不发 ✗）、对 **android** 读 `features` 段 ✓（`"undefined"` ⇒ `not_have_*` ✓、`"1"` ⇒ `have_*` ✓）。② 因此：「该宏成立」要看它在**本配置**有没有正向键 ✓ —— darwin 缺席的宏只能写 `not (feature = "not_have_x")` ✓、有正向键的（如 `HAVE_MEMSET_S`）写 `feature = "have_x"` ✓；「该宏不成立」写 `feature = "not_have_x"` ✓。③ 先在 JSON 里查键的存在性，再落 cfg ✓ —— 写反会让两个目标各红一次 ✓（本轮实测 ✓）。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**

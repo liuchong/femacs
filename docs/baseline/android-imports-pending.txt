@@ -15,7 +15,6 @@ Vx_resource_class
 Vx_resource_name
 __darwin_check_fd_set_overflow
 __error
-android_emacs_init
 android_intercept_control_space
 android_keyboard_bell_duration
 android_pass_multimedia_buttons_to_system
@@ -26,8 +25,6 @@ confstr
 devname
 display_and_set_cursor
 draw_phys_cursor_glyph
-endgrent
-endpwent
 endutxent
 expose_frame
 face_for_font
@@ -41,10 +38,8 @@ get_glyph_string_clip_rect
 get_glyph_string_clip_rects
 get_phys_cursor_geometry
 get_tab_bar_item_kbd
-getgrent
 getifaddrs
 getloadavg
-getpwent
 getutxent
 gui_clear_cursor
 gui_clear_end_of_line
@@ -59,12 +54,8 @@ gui_update_cursor
 gui_write_glyphs
 handle_tab_bar_click
 handle_tool_bar_click
-inflate
-inflateEnd
-inflateInit2_
 mach_timebase_info
 make_monitor_attribute_list
-memset_s
 mkostemp
 nl_langinfo
 posix_madvise

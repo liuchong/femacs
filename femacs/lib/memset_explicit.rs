@@ -19,13 +19,41 @@ include!("include/string.rs");     // <string.h> (`memset_s`, `memset`)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn memset_explicit (s: *mut c_void, c: c_int, len: usize) -> *mut c_void
 {
-  /* C 10-11's `#if HAVE_EXPLICIT_MEMSET` arm (`return explicit_memset (s, c, len);`),
-     C 13-15's `# if !HAVE_MEMSET_S_SUPPORTS_ZERO` guard (`if (len > 0)`), C 18-22's
-     `#elif defined __GNUC__ && !defined __clang__` arm and C 23-36's two remaining arms
-     (`__asm__ volatile ("" ::: "memory")`, the `g`-constraint form and the
-     `volatile_memset` function pointer) are dead here and named at this site (P-51).  */
+  /* C 10-36's four arms, in C's order.  `HAVE_EXPLICIT_MEMSET` and `HAVE_MEMSET_S` are the
+     configuration's; the third (`__GNUC__ && !__clang__`) cannot apply to rustc, and the port is
+     compiled by LLVM, so the clang arm (`memset` plus a barrier) is the one that stands for both
+     when neither macro is set - which is the Android configuration's case (status 4.717).  */
+  #[cfg (feature = "have_explicit_memset")]
+  {
+    /* C 10-11: `return explicit_memset (s, c, len);`  */
+    return explicit_memset (s, c, len);
+  }
 
-  /* C 16-17 (the live `HAVE_MEMSET_S` arm).  */
-  let _ = memset_s (s, len, c, len);
-  return s;
+  #[cfg (all (not (feature = "have_explicit_memset"), feature = "have_memset_s"))]
+  {
+    /* C 13-17: the `# if !HAVE_MEMSET_S_SUPPORTS_ZERO` guard, then the call.  */
+    #[cfg (not (feature = "have_memset_s_supports_zero"))]
+    {
+      if len > 0
+        { let _ = memset_s (s, len, c, len); }
+      return s;
+    }
+    #[cfg (feature = "have_memset_s_supports_zero")]
+    {
+      let _ = memset_s (s, len, c, len);
+      return s;
+    }
+  }
+
+  #[cfg (all (not (feature = "have_explicit_memset"), not (feature = "have_memset_s")))]
+  {
+    /* C 23-28: "With asm ("" ::: "memory") LLVM analyzes uses of 's' and finds that the whole
+       thing is dead and eliminates it.  Use 'g' to work around this problem."  Rust's documented
+       equivalent of that barrier is `black_box` (it keeps the operand live and the write
+       unremovable); Rust has no inline asm on every target, so the barrier is spelled this way
+       and the deviation from C's inline assembly is recorded here (PORTING.md P-309).  */
+    let _ = memset (s, c, len);
+    let _ = std::hint::black_box (s);
+    return s;
+  }
 }

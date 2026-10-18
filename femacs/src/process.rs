@@ -4424,6 +4424,7 @@ unsafe extern "C" {
 
 /* `#ifdef HAVE_GETIFADDRS` is live.  */
 /* C 4354-4428: `network_interface_list`.  */
+#[cfg (not (feature = "not_have_getifaddrs"))]
 unsafe fn network_interface_list (full: bool, r#match: c_ushort) -> Lisp_Object
 {
   let mut res: Lisp_Object = Qnil ();
@@ -4502,7 +4503,9 @@ unsafe fn network_interface_list (full: bool, r#match: c_ushort) -> Lisp_Object
       it = (*it).ifa_next;
     }
   /* `#ifdef HAVE_FREEIFADDRS` is live.  */
-  freeifaddrs (ifap);
+  /* C 4430-4432: `#ifdef HAVE_FREEIFADDRS`.  */
+  #[cfg (not (feature = "not_have_freeifaddrs"))]
+  { freeifaddrs (ifap); }
 
   return res;
 }
@@ -4795,7 +4798,11 @@ DEFUN! ("network-interface-list", Fnetwork_interface_list, Snetwork_interface_li
        doc: "Return an alist of all network interfaces and their network address.\nEach element is a cons of the form (IFNAME . IP) where IFNAME is a\nstring containing the interface name, and IP is the network address in\ninternal format; see the description of ADDRESS in\n`make-network-process'.  The interface name is not guaranteed to be\nunique.\n\nOptional parameter FULL non-nil means return all IP address info for\neach interface.  Each element is then a list of the form\n    (IFNAME IP BCAST MASK)\nwhere IFNAME is the interface name, IP the IP address,\nBCAST the broadcast address, and MASK the network mask.\n\nOptional parameter FAMILY controls the type of addresses to return.\nThe default of nil means both IPv4 and IPv6, symbol `ipv4' means IPv4\nonly, symbol `ipv6' means IPv6 only.\n\nSee also `network-interface-info', which is limited to IPv4 only.\n\nIf the information is not available, return nil.",
        (full: Lisp_Object, family: Lisp_Object),
        {
-  /* `#if defined HAVE_GETIFADDRS || defined WINDOWSNT` is live.  */
+  /* C 4740-4694: `#if defined HAVE_GETIFADDRS || defined WINDOWSNT`.  The frozen configuration
+     has the macro, the Android one does not (bionic gained `getifaddrs` in API 24), so the arm
+     follows the `not_have_getifaddrs` key that only the Android configuration emits (P-310).  */
+  #[cfg (not (feature = "not_have_getifaddrs"))]
+  {
   let mut r#match: c_ushort;
   let mut full_info: bool = false;
 
@@ -4811,8 +4818,9 @@ DEFUN! ("network-interface-list", Fnetwork_interface_list, Snetwork_interface_li
   else
     { error (c"Unsupported address family".as_ptr ()); }
   return network_interface_list (full_info, r#match);
+  }
   /* C 4696-4700's `#else` arm of `#if defined HAVE_GETIFADDRS || defined WINDOWSNT`.  */
-  #[cfg (feature = "no_getifaddrs")]
+  #[cfg (feature = "not_have_getifaddrs")]
   { return Qnil (); }
 });
 

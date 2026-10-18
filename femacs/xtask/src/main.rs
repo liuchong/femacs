@@ -1924,7 +1924,11 @@ fn link_shared (target: Option<&str>) -> i32
      // `-llog -ljnigraphics` (and `-landroid`, which `configure.ac` 2634-2635 adds when
      // `android_get_device_api_level` exists) are the reference's `ANDROID_LIBS`; `-lc` and
      // `-ldl -lm` are what the driver would have added if `-nodefaultlibs` were absent.
-     .args (["-ldl", "-lm", "-llog", "-ljnigraphics", "-landroid", "-lc"]);
+     // `-lz` is C's `LIBZ` (`src/Makefile.in` 266, from `configure.ac` 4986's
+     // `emacs_cv_libz`); the Android configuration has `HAVE_ZLIB`, so `decompress.c`'s
+     // `inflate*` calls are compiled and the stub library provides them (measured on
+     // `sysroot/.../21/libz.so`, status 4.717).
+     .args (["-ldl", "-lm", "-llog", "-ljnigraphics", "-landroid", "-lz", "-lc"]);
   for object in &objects { cmd.arg (object); }
   for object in &driver { cmd.arg (object); }
   cmd.arg (&core).arg (&builtins);

@@ -1040,13 +1040,17 @@ DEFUN! ("system-users", Fsystem_users, Ssystem_users, 0, 0, 0,
        (),
        {
   let mut users: Lisp_Object = Qnil ();
-  /* HAVE_GETPWENT and HAVE_ENDPWENT are 1 on the frozen target, so C 1153's arm is live.  */
-  let mut pw: *mut passwd;
+  /* C 1153-1166: `#if defined HAVE_GETPWENT && defined HAVE_ENDPWENT` - live for the frozen
+     target, undefined for the Android one (bionic has no `getpwent`).  */
+  #[cfg (all (not (feature = "not_have_getpwent"), not (feature = "not_have_endpwent")))]
+  {
+    let mut pw: *mut passwd;
 
-  while { pw = getpwent (); !pw.is_null () }
-    { users = Fcons (DECODE_SYSTEM (build_string ((*pw).pw_name)), users); }
+    while { pw = getpwent (); !pw.is_null () }
+      { users = Fcons (DECODE_SYSTEM (build_string ((*pw).pw_name)), users); }
 
-  endpwent ();
+    endpwent ();
+  }
 
   if NILP (users)
     /* At least current user is always known. */
@@ -1059,13 +1063,16 @@ DEFUN! ("system-groups", Fsystem_groups, Ssystem_groups, 0, 0, 0,
        (),
        {
   let mut groups: Lisp_Object = Qnil ();
-  /* HAVE_GETGRENT and HAVE_ENDGRENT are 1 on the frozen target, so C 1173's arm is live.  */
-  let mut gr: *mut group;
+  /* C 1173-1184: `#if defined HAVE_GETGRENT && defined HAVE_ENDGRENT` - same split.  */
+  #[cfg (all (not (feature = "not_have_getgrent"), not (feature = "not_have_endgrent")))]
+  {
+    let mut gr: *mut group;
 
-  while { gr = getgrent (); !gr.is_null () }
-    { groups = Fcons (DECODE_SYSTEM (build_string ((*gr).gr_name)), groups); }
+    while { gr = getgrent (); !gr.is_null () }
+      { groups = Fcons (DECODE_SYSTEM (build_string ((*gr).gr_name)), groups); }
 
-  endgrent ();
+    endgrent ();
+  }
 
   return groups;
 });
