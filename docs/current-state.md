@@ -38,25 +38,14 @@
 
 ## 已知红（不属完成定义八条，但每轮要知道）
 
-- **`xtask gate-probes` 红，且已连续修掉两条前置原因（4.683 实测）**：`gate-probes` 比 `gate-fast` 多跑
-  `spikes/*-probe.sh`（含 `lisp-abi-probe`）与 `xtask dead-arms`。本轮修掉的是：① `spikes/lisp-abi-probe.sh` 的
-  `plist_get`/`get_keysym_name` 注解不是生成器要的规范形（已改）；② 生成器不读 `#[cfg]`，于是把冻结配置里**关着的**声明
-  （`mark_fringe_data`、`module_finalize_function`）也交给 clang 去解析（已改为按 `docs/baseline/config/darwin-arm64.json`
-  过滤，并把跳过的名字逐条打印）；③ 三个 P-05 端口侧名字（`sa_stack_alloc`/`sa_stack_mark`/`sa_stack_release_to`）
-  进了 `SKIP` 表，各带理由。`lisp-abi-probe` 现在通过（182 条）。
-  **剩下的红是 `dead-arms`，卡在 `src/comp.rs`**：翻转 `have_native_comp` 后，该臂报 **81 个 `E0425`（找不到类型）**
-  —— `gcc_jit_type`×30、`gcc_jit_function`×19、`gcc_jit_field`×12、`gcc_jit_rvalue`×8、`gcc_jit_struct`×5、
-  `gcc_jit_lvalue`×5、`gcc_jit_context`×1、`gcc_jit_block`×1，即 C 31 `#include <libgccjit.h>` 的类型一个都没声明
-  （P-88 要求这种第三方头的声明**写在单元自己里**，`decompress.rs`/`lcms.rs` 是已按此办理的两个先例）。`docs/ports/comp.md`
-  已把这条记录为 arm 的 `text-only` 读数（“83 name-resolution errors”），所以它是**已记录、未修**。
-  `libgccjit.h` 本机**在**：`/opt/homebrew/include/libgccjit.h`（`brew --prefix libgccjit` = `/opt/homebrew/opt/libgccjit`）
-  ⇒ 这条可以照 P-88 用真头量布局后补声明，不需要外部依赖。
-- **`docs/ports/*.md` 里有 81 个账本写着 `not transcribed`**（4.683 实测，195 行）：绝大多数是**任何配置都不编译的臂**
-  （Windows/Haiku/X11/NS 等），按 P-86 clause 3 记成 `text-only`；**最大的一处是 `src/comp.c`**：`comp.rs` 只到
-  **slice 1 = C 25-822**，**slice 2（C 824-5857，约 4,754 行）尚未转写**（`docs/ports/comp.md` 的战表已记），
-  `src/xdisp.c` 另有一处 C 15616 的洞（`docs/ports/xdisp.md` 4307 明说“5% 容差因此收不了口”）。
-  ⇒ `extract-abi.py --all` 的 `590 done / 0 failing` 是**名字/清单口径**，它覆盖不到“每一行 C 文本都已转写”。
-  严格按“全部 C 源码逐行复刻”读，DoD-1 是 **⚠️ 部分**；按 P-86 的容差记录读，DoD-1 是 ✅。**这条口径属于政策选择，留给用户定。**
+- **`xtask gate-probes` 红，只剩 `dead-arms` 的 4 处（4.684 实测）**：本轮修掉的是 `lisp-abi-probe` 的两条（注解规范形 + 生成器按冻结配置求值 `#[cfg]`）
+  与 `comp.rs` 的 81 条 `E0425`（按 P-88 补上 `<libgccjit.h>` 的 10 个类型，clang 量得不完整、8 字节指针）。**还剩 4 处，都是"镜像没抄 C 的声明块"**：
+  `estimate_mode_line_height` ×2（C 无门声明在 `dispextern.h` 3582）、`window_box_left` ×1（`dispextern.h` 3579）、`haiku_display_info` ×1（`dispextern.h` 159 的 typedef，
+  标签定义在 `include/haikuterm.rs`）。端口现在把这些名字分散写在各 unit（`androidterm.rs` 4875、`fringe.rs` 1137、`dispnew.rs` 269 …），C 却是**头里一份**。
+  `gate-fast` **不包含** `dead-arms`，所以这条红只在单独跑 `gate-probes` 时现形。
+- **声明块的缺口是全局的（4.684 测量，方法见 `docs/status.md` 4.684 ⑤）**：**1,032 条** C 声明不在自己的镜像里，其中 **1,006 条在树内别处声明**（名字口径的门因此看不见）、**26 条全树没有**；
+  最多的是 `lisp.h` 423、`dispextern.h` 206、`xterm.h` 126、`font.h` 69、`frame.h` 56、`gtkutil.h` 49、`keyboard.h` 36。**这是测量值、不是判据**（正则口径粗、含死分支名）。
+  ⇒ 下一条工作线：按 P-297 把 C 的声明块照抄进对应镜像，并把 unit 里的 use-site 副本按 P-26 收回去。
 
 - **`tools/check-authorized-platforms.sh` 的静默失败已修**（4.682）：它在子 shell 里 `cd femacs` 之后用相对路径调 `tools/check-all-units.sh`，
   这一段一直失败而 `tail -1` 把它咽掉；改用 `"$REPO/tools/..."` 之后四段真的都跑了（exit 0）。同类脚本若 `cd` 之后仍用相对路径，都要按这条检查。
