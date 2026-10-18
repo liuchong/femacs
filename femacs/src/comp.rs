@@ -1293,7 +1293,57 @@ unsafe extern "C" {
   /// gcc_jit_location *loc, const char *text);`
   pub fn gcc_jit_block_add_comment (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
                                     text: *const c_char);
+  /// C: libgccjit.h 1102-1103: `gcc_jit_rvalue *gcc_jit_lvalue_as_rvalue (gcc_jit_lvalue *lvalue);`
+  pub fn gcc_jit_lvalue_as_rvalue (lvalue: *mut gcc_jit_lvalue) -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1108-1109: `gcc_jit_type *gcc_jit_rvalue_get_type (gcc_jit_rvalue *rvalue);`
+  pub fn gcc_jit_rvalue_get_type (rvalue: *mut gcc_jit_rvalue) -> *mut gcc_jit_type;
+  /// C: libgccjit.h 1201-1206: `gcc_jit_rvalue *gcc_jit_context_new_unary_op
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, enum gcc_jit_unary_op op,
+  /// gcc_jit_type *result_type, gcc_jit_rvalue *rvalue);`
+  pub fn gcc_jit_context_new_unary_op (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                       op: gcc_jit_unary_op, result_type: *mut gcc_jit_type,
+                                       rvalue: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1315-1319: `gcc_jit_rvalue *gcc_jit_context_new_call (gcc_jit_context *ctxt,
+  /// gcc_jit_location *loc, gcc_jit_function *func, int numargs, gcc_jit_rvalue **args);`
+  pub fn gcc_jit_context_new_call (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                   func: *mut gcc_jit_function, numargs: c_int,
+                                   args: *mut *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1322-1326: `gcc_jit_rvalue *gcc_jit_context_new_call_through_ptr
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, gcc_jit_rvalue *fn_ptr, int numargs,
+  /// gcc_jit_rvalue **args);`
+  pub fn gcc_jit_context_new_call_through_ptr (ctxt: *mut gcc_jit_context,
+                                               loc: *mut gcc_jit_location,
+                                               fn_ptr: *mut gcc_jit_rvalue, numargs: c_int,
+                                               args: *mut *mut gcc_jit_rvalue)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1439-1442: `gcc_jit_lvalue *gcc_jit_rvalue_dereference_field
+  /// (gcc_jit_rvalue *ptr, gcc_jit_location *loc, gcc_jit_field *field);`
+  pub fn gcc_jit_rvalue_dereference_field (ptr: *mut gcc_jit_rvalue, loc: *mut gcc_jit_location,
+                                           field: *mut gcc_jit_field) -> *mut gcc_jit_lvalue;
+  /// C: libgccjit.h 1454-1456: `gcc_jit_rvalue *gcc_jit_lvalue_get_address (gcc_jit_lvalue *lvalue,
+  /// gcc_jit_location *loc);`
+  pub fn gcc_jit_lvalue_get_address (lvalue: *mut gcc_jit_lvalue, loc: *mut gcc_jit_location)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1577-1582: `void gcc_jit_block_end_with_conditional (gcc_jit_block *block,
+  /// gcc_jit_location *loc, gcc_jit_rvalue *boolval, gcc_jit_block *on_true,
+  /// gcc_jit_block *on_false);`
+  pub fn gcc_jit_block_end_with_conditional (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
+                                             boolval: *mut gcc_jit_rvalue,
+                                             on_true: *mut gcc_jit_block,
+                                             on_false: *mut gcc_jit_block);
 }
+
+/// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
+/// GCC_JIT_UNARY_OP_BITWISE_NEGATE, GCC_JIT_UNARY_OP_LOGICAL_NEGATE, GCC_JIT_UNARY_OP_ABS };` -
+/// the port's alias for a C enum, plus the one enumerator this slice names.  Measured with clang:
+/// `sizeof (enum gcc_jit_unary_op) == 4` and `__builtin_types_compatible_p (enum
+/// gcc_jit_unary_op, unsigned int)` both hold, so the alias is `c_uint` (the reading is recorded
+/// with the type readings in `docs/ports/comp.md`).
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_unary_op = c_uint;
+/// C: libgccjit.h 1193: `GCC_JIT_UNARY_OP_LOGICAL_NEGATE,` - the third enumerator, i.e. 2.
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_UNARY_OP_LOGICAL_NEGATE: gcc_jit_unary_op = 2;
 
 /// `fatal` is `sysdep.c` 2399's non-`static` definition; C declares it where it is used, and the
 /// units that call it carry the variadic declaration themselves (`eval.rs` 100, `androidterm.rs`
@@ -1438,6 +1488,122 @@ unsafe fn obj_to_reloc (obj: Lisp_Object) -> imm_reloc_t
                                                    comp.ptrdiff_type,
                                                    XFIXNUM (idx) as c_int);
   return reloc;
+}
+
+/// C 1012-1066: `static gcc_jit_rvalue *emit_call (Lisp_Object func, gcc_jit_type *ret_type,
+/// ptrdiff_t nargs, gcc_jit_rvalue **args, bool direct)`.  `ret_type` is unused by C's own body
+/// (the declaration keeps it), hence the file's `allow (unused_variables)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_call (func: Lisp_Object, ret_type: *mut gcc_jit_type, nargs: ptrdiff_t,
+                     args: *mut *mut gcc_jit_rvalue, direct: bool) -> *mut gcc_jit_rvalue
+{
+  let gcc_func: Lisp_Object =
+    Fgethash (func,
+              if direct { comp.exported_funcs_h } else { comp.imported_funcs_h },
+              Qnil ());
+
+  if NILP (gcc_func)
+    { xsignal2 (Qnative_ice (), build_string (c"missing function declaration".as_ptr ()), func); }
+
+  if direct
+    {
+      emit_comment (format_string (c"direct call to: %s".as_ptr (), SSDATA (func)));
+      return gcc_jit_context_new_call (comp.ctxt,
+                                       std::ptr::null_mut (),
+                                       xmint_pointer (gcc_func) as *mut gcc_jit_function,
+                                       nargs as c_int,
+                                       args);
+    }
+  else
+    {
+      /* Inline functions so far don't have a local variable for
+	 function reloc table so we fall back to the global one.  Even
+	 if this is not aesthetic calling into C from open-code is
+	 always a fallback and therefore not be performance critical.
+	 To fix this could think do the inline our-self without
+	 relying on GCC. */
+      let f_ptr: *mut gcc_jit_lvalue =
+	gcc_jit_rvalue_dereference_field (
+	  gcc_jit_lvalue_as_rvalue (if ! comp.func_relocs_local.is_null ()
+				      { comp.func_relocs_local }
+				      else
+				      { comp.func_relocs }),
+	  std::ptr::null_mut (),
+	  xmint_pointer (gcc_func) as *mut gcc_jit_field);
+
+      if f_ptr.is_null ()
+	{ xsignal2 (Qnative_ice (),
+		    build_string (c"missing function relocation".as_ptr ()),
+		    func); }
+      emit_comment (format_string (c"calling subr: %s".as_ptr (),
+				   SSDATA (SYMBOL_NAME (func))));
+      return gcc_jit_context_new_call_through_ptr (comp.ctxt,
+						   std::ptr::null_mut (),
+						   gcc_jit_lvalue_as_rvalue (f_ptr),
+						   nargs as c_int,
+						   args);
+    }
+}
+
+/// C 1068-1078: `static gcc_jit_rvalue *emit_call_ref (Lisp_Object func, ptrdiff_t nargs,
+/// gcc_jit_lvalue *base_arg, bool direct)`.  C's `gcc_jit_rvalue *args[]` is a two-element array
+/// on the stack, passed as the pointer C's `emit_call` reads.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_call_ref (func: Lisp_Object, nargs: ptrdiff_t, base_arg: *mut gcc_jit_lvalue,
+			 direct: bool) -> *mut gcc_jit_rvalue
+{
+  let args: [*mut gcc_jit_rvalue; 2] =
+    [ gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					   comp.ptrdiff_type,
+					   nargs as c_int),
+      gcc_jit_lvalue_get_address (base_arg, std::ptr::null_mut ()) ];
+  return emit_call (func, comp.lisp_obj_type, 2,
+		    args.as_ptr () as *mut *mut gcc_jit_rvalue, direct);
+}
+
+/* Close current basic block emitting a conditional.  */
+
+/// C 1080-1106: `static void emit_cond_jump (gcc_jit_rvalue *test, gcc_jit_block *then_target,
+/// gcc_jit_block *else_target)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_cond_jump (test: *mut gcc_jit_rvalue, then_target: *mut gcc_jit_block,
+			  else_target: *mut gcc_jit_block)
+{
+  if gcc_jit_rvalue_get_type (test) == comp.bool_type
+    { gcc_jit_block_end_with_conditional (comp.block, std::ptr::null_mut (), test,
+					  then_target, else_target); }
+  else
+    /* In case test is not bool we do a logical negation to obtain a bool as
+       result.  */
+    { gcc_jit_block_end_with_conditional (
+	comp.block,
+	std::ptr::null_mut (),
+	gcc_jit_context_new_unary_op (comp.ctxt,
+				      std::ptr::null_mut (),
+				      GCC_JIT_UNARY_OP_LOGICAL_NEGATE,
+				      comp.bool_type,
+				      test),
+	else_target,
+	then_target); }
+}
+
+/// C 1108-1118: `#ifndef LIBGCCJIT_HAVE_gcc_jit_context_new_bitcast` / `static int
+/// type_to_cast_index (gcc_jit_type *type)`.  The gate is the same one `NUM_CAST_TYPES` (C
+/// 538-540) carries: the macro is undefined in the frozen configuration, so this arm is the live
+/// side there.
+#[cfg (all (feature = "have_native_comp",
+	    not (feature = "libgccjit_have_gcc_jit_context_new_bitcast")))]
+unsafe fn type_to_cast_index (type_: *mut gcc_jit_type) -> c_int
+{
+  let mut i: c_int = 0;
+  while i < NUM_CAST_TYPES as c_int
+    {
+      if type_ == comp.cast_types[i as usize]
+	{ return i; }
+      i += 1;
+    }
+
+  xsignal1 (Qnative_ice (), build_string (c"unsupported cast".as_ptr ()));
 }
 
 /// C 943-950: `static void emit_comment (const char *str)`.
