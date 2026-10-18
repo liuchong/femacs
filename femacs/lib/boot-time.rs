@@ -48,6 +48,21 @@ include!("include/stdio.rs");           // C 26: `#include <stdio.h>` (FILE, fre
 include!("include/string.in.rs");       // C 27: `#include <string.h>` (memeq, strlen)
 include!("include/sys_types.in.rs");    // C 28: `#include <sys/types.h>` (pid_t)
 include!("include/time.in.rs");         // C 33/55: `<time.h>` (struct timespec)
+
+/* <time.h>: `CLOCK_REALTIME`.  The `<time.h>` mirror carries the *type* (`struct timespec`) and
+   this name is left to the unit, the way `gettime.rs` 18 and `tempname.rs` 97 already declare it;
+   the mirror that uses it (`include/boot-time-aux.rs` 224, C `boot-time-aux.h` 184) reaches it
+   from the including unit's scope.  Measured: the Android sweep failed on this name alone
+   (status 4.708), and bionic defines it as 0 (`<time.h>`), the same value the frozen target's
+   `<time.h>` has.  */
+pub const CLOCK_REALTIME: c_int = 0;
+
+/* <time.h>: the Linux/Android arm of `include/boot-time-aux.rs` calls `clock_gettime`, which the
+   unit declares the way `gettime.rs` 22 does (the `<time.h>` mirror carries the type, not the
+   call).  Measured: the Android sweep named it right after the gate above was fixed (4.708).  */
+unsafe extern "C" {
+  pub fn clock_gettime (clock_id: c_int, tp: *mut timespec) -> c_int;
+}
 include!("include/sys_time.rs");        // C 50/55: `<sys/time.h>` (struct timeval)
 include!("include/utmpx.rs");           // C 54: `#include "readutmp.h"` -> `<utmpx.h>`
 include!("include/readutmp.rs");        // C 54: `#include "readutmp.h"` (the mirror; status 3.198)

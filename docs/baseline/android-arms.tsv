@@ -1,0 +1,124 @@
+# The Android import ratchet as a per-file work queue (tools/gen-android-arms.py).
+# The reading this queue exists to drive to zero is
+# `python3 tools/check-android-imports.py` (docs/status.md 4.707).
+#
+# name	C file	line	preprocessor conditions	class	port unit
+BC		0		not_found	
+IMAGE_OPT_FROM_ID		0		not_found	
+MODULE_FUNCTIONP		0		not_found	
+PC		0		not_found	
+UP		0		not_found	
+Vandroid_wait_for_event_timeout		0		not_found	
+Vfont_log		0		not_found	
+Vvertical_centering_font_regexp		0		not_found	
+Vx_mode_pointer_shape		0		not_found	
+Vx_nontext_pointer_shape		0		not_found	
+Vx_resource_class		0		not_found	
+Vx_resource_name		0		not_found	
+Wcm_clear	emacs/src/cm.c	435		other	femacs/src/cm.rs
+Wcm_init	emacs/src/cm.c	450		other	femacs/src/cm.rs
+XMODULE_FUNCTION		0		not_found	
+__darwin_check_fd_set_overflow		0		platform_name	
+__error		0		platform_name	
+aligned_alloc	emacs/src/alloc.c	978	#elif defined HAVE_POSIX_MEMALIGN	other	femacs/src/alloc.rs
+android_emacs_init	emacs/src/emacs.c	1323	#else	other	femacs/src/emacs.rs
+android_intercept_control_space		0		not_found	
+android_keyboard_bell_duration		0		not_found	
+android_pass_multimedia_buttons_to_system		0		not_found	
+backtrace		0		not_found	
+backtrace_symbols_fd		0		not_found	
+cancel_hourglass	emacs/src/xdisp.c	39699	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+cmcheckmagic	emacs/src/cm.c	113		other	femacs/src/cm.rs
+cmcostinit	emacs/src/cm.c	142		other	femacs/src/cm.rs
+cmgoto	emacs/src/cm.c	331		other	femacs/src/cm.rs
+cmputc	emacs/src/cm.c	45		other	femacs/src/cm.rs
+confstr		0		not_found	
+cost		0		not_found	
+current_tty		0		not_found	
+devname		0		not_found	
+display_and_set_cursor	emacs/src/xdisp.c	35327	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+draw_phys_cursor_glyph	emacs/src/xdisp.c	35140	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+endgrent		0		not_found	
+endpwent		0		not_found	
+endutxent		0		not_found	
+evalcost	emacs/src/cm.c	35		other	femacs/src/cm.rs
+expose_frame	emacs/src/xdisp.c	38256	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+face_for_font	emacs/src/xfaces.c	5161	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xfaces.rs
+find_hot_spot	emacs/src/xdisp.c	36586	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+font_for_underline_metrics	emacs/src/xdisp.c	32295	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+freeifaddrs		0		not_found	
+from_unicode_buffer	emacs/src/coding.c	8554	#if defined (WINDOWSNT) || defined (CYGWIN) || defined HAVE_ANDROID	window_system	femacs/src/coding.rs
+fset_parent_frame		0		not_found	
+futimes		0		not_found	
+get_glyph_string_clip_rect	emacs/src/xdisp.c	2697	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+get_glyph_string_clip_rects	emacs/src/xdisp.c	2497	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+get_phys_cursor_geometry	emacs/src/xdisp.c	2709	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+get_tab_bar_item_kbd	emacs/src/xdisp.c	15323	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+getgrent		0		not_found	
+getifaddrs		0		not_found	
+getloadavg	emacs/lib/getloadavg.c	376		other	femacs/lib/getloadavg.rs
+getpwent		0		not_found	
+getutxent		0		not_found	
+gui_clear_cursor	emacs/src/xdisp.c	35507	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_clear_end_of_line	emacs/src/xdisp.c	34688	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_draw_vertical_border	emacs/src/xdisp.c	37954	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_fix_overlapping_area	emacs/src/xdisp.c	35093	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_get_glyph_overhangs	emacs/src/xdisp.c	31448	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_insert_glyphs	emacs/src/xdisp.c	34631	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_intersect_rectangles	emacs/src/xdisp.c	38344	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_produce_glyphs	emacs/src/xdisp.c	33807	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_union_rectangles	emacs/src/xdisp.c	38401	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_update_cursor	emacs/src/xdisp.c	35495	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+gui_write_glyphs	emacs/src/xdisp.c	34587	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+handle_tab_bar_click	emacs/src/xdisp.c	15356	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+handle_tool_bar_click	emacs/src/xdisp.c	16537	#ifdef HAVE_WINDOW_SYSTEM && #ifndef HAVE_EXT_TOOL_BAR	window_system	femacs/src/xdisp.rs
+inflate		0		not_found	
+inflateEnd		0		not_found	
+inflateInit2_		0		not_found	
+mach_timebase_info		0		not_found	
+make_monitor_attribute_list	emacs/src/frame.c	7151	#else && #ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/frame.rs
+memset_s		0		not_found	
+mkostemp	emacs/lib/mkostemp.c	43		other	femacs/lib/mkostemp.rs
+nl_langinfo	emacs/lib-src/ntlib.c	543		other	femacs/lib-src/ntlib.rs
+posix_madvise		0		not_found	
+posix_spawn		0		not_found	
+posix_spawn_file_actions_addchdir		0		not_found	
+posix_spawn_file_actions_adddup2		0		not_found	
+posix_spawn_file_actions_destroy		0		not_found	
+posix_spawn_file_actions_init		0		not_found	
+posix_spawnattr_destroy		0		not_found	
+posix_spawnattr_init		0		not_found	
+posix_spawnattr_setflags		0		not_found	
+posix_spawnattr_setsigdefault		0		not_found	
+posix_spawnattr_setsigmask		0		not_found	
+prepare_face_for_display	emacs/src/xfaces.c	4771	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xfaces.rs
+proc_pid_rusage		0		not_found	
+proc_pidinfo		0		not_found	
+proc_pidpath		0		not_found	
+reading_key_sequence		0		not_found	
+redraw_image_glyphs	emacs/src/xdisp.c	32964	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+remember_mouse_glyph	emacs/src/xdisp.c	2781	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+renameat_noreplace	emacs/src/sysdep.c	2400		other	femacs/src/sysdep.rs
+renameatx_np		0		not_found	
+report_file_notify_error	emacs/src/fileio.c	310	#ifdef USE_FILE_NOTIFY	other	femacs/src/fileio.rs
+rust_eh_personality		0		not_found	
+setutxent		0		not_found	
+share_image_cache	emacs/src/xfaces.c	645	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xfaces.rs
+start_hourglass	emacs/src/xdisp.c	39674	#ifdef HAVE_WINDOW_SYSTEM	window_system	femacs/src/xdisp.rs
+stderr		0		not_found	
+stdin		0		not_found	
+stdout		0		not_found	
+sysctl		0		not_found	
+tgetent	emacs/src/termcap.c	348		other	femacs/src/termcap.rs
+tgetflag	emacs/src/termcap.c	92		other	femacs/src/termcap.rs
+tgetnum	emacs/src/termcap.c	83		other	femacs/src/termcap.rs
+tgetstr	emacs/src/termcap.c	104		other	femacs/src/termcap.rs
+tigetflag		0		not_found	
+tigetstr		0		not_found	
+timerfd_callback	emacs/src/atimer.c	424	#ifdef HAVE_TIMERFD	other	femacs/src/atimer.rs
+tputs	emacs/src/termcap.c	271		other	femacs/src/termcap.rs
+utmpxname		0		not_found	
+x_stretch_cursor_p		0		not_found	
+x_underline_at_descent_line		0		not_found	
+x_use_underline_position_properties		0		not_found	
+xstrcasecmp		0		not_found	

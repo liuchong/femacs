@@ -1,0 +1,101 @@
+# The `lib/` sources the Android configuration's link needs, one per line.
+#
+# The frozen darwin list (`lib-link-sources.txt`) is the starting point: gnulib's `lib/` layer
+# ships as `libgnu.a` in C, so it is in neither `frozen-build-sources*.txt`, and each target has
+# to name the units it builds.  What differs for this target is recorded here rather than in the
+# darwin list, because the darwin link does not need it:
+#
+#   * `lib/mini-gmp.c` is listed alongside its includer `lib/mini-gmp-gnulib.c`.  C compiles the
+#     wrapper - `#include "mini-gmp.c"` under gnulib's allocator bindings - into one object
+#     (`nxm -g build/emacs-ref/lib/mini-gmp-gnulib.o` prints 127 `T _mpz_*`), while the port keeps
+#     the includer an empty unit and the definitions in `femacs/lib/mini-gmp.rs`
+#     (tools/check-symbols.py's `ALIASES`, tools/check-link.py 22-23).  Without the includee the
+#     Android link left all 59 `mpz_*` imports unresolved (status 4.708).
+#
+lib/acl-errno-valid.c
+lib/acl-internal.c
+lib/allocator.c
+lib/binary-io.c
+lib/boot-time.c
+lib/byteswap.c
+lib/c-ctype.c
+lib/c-strcasecmp.c
+lib/c-strncasecmp.c
+lib/canonicalize-lgpl.c
+lib/careadlinkat.c
+lib/close-stream.c
+lib/copy-file-range.c
+lib/dtoastr.c
+lib/dtotimespec.c
+lib/endian.c
+lib/file-has-acl.c
+lib/filemode.c
+lib/filevercmp.c
+lib/fingerprint.c
+lib/fpending.c
+lib/free.c
+lib/fseterr.c
+lib/fstatat.c
+lib/fsusage.c
+lib/futimens.c
+lib/get-permissions.c
+lib/getopt.c
+lib/getopt1.c
+lib/getrandom.c
+lib/gettime.c
+lib/issymlink.c
+lib/lstat.c
+lib/malloc/dynarray_at_failure.c
+lib/malloc/dynarray_emplace_enlarge.c
+lib/malloc/dynarray_finalize.c
+lib/malloc/dynarray_resize.c
+lib/malloc/dynarray_resize_clear.c
+lib/malloc/scratch_buffer_grow.c
+lib/malloc/scratch_buffer_grow_preserve.c
+lib/malloc/scratch_buffer_set_array_size.c
+lib/md5-stream.c
+lib/md5.c
+lib/memeq.c
+lib/memmem.c
+lib/mempcpy.c
+lib/memrchr.c
+lib/memset_explicit.c
+lib/mini-gmp-gnulib.c
+lib/mktime.c
+lib/nanosleep.c
+lib/nproc.c
+lib/nstrftime.c
+lib/openat-die.c
+lib/openat-proc.c
+lib/pipe2.c
+lib/qcopy-acl.c
+lib/rawmemchr.c
+lib/regex.c
+lib/save-cwd.c
+lib/set-permissions.c
+lib/sha1.c
+lib/sha256.c
+lib/sha3.c
+lib/sha512.c
+lib/sig2str.c
+lib/sigdescr_np.c
+lib/stat-time.c
+lib/stdc_bit_width.c
+lib/stdc_count_ones.c
+lib/stdc_leading_zeros.c
+lib/stdc_memreverse8u.c
+lib/stdc_trailing_zeros.c
+lib/stdlib.c
+lib/streq.c
+lib/strnul.c
+lib/tempname.c
+lib/time_rz.c
+lib/timegm.c
+lib/timespec-add.c
+lib/timespec-sub.c
+lib/timespec.c
+lib/u64.c
+lib/unistd.c
+lib/utimens.c
+lib/utimensat.c
+lib/mini-gmp.c

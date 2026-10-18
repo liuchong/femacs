@@ -132,17 +132,17 @@
 - 用户授权的两个平台里，**Android 是窗口系统**（`HAVE_ANDROID` 打开 ✓），而端口的 `xdisp.rs` 等处把 C 的
   `#ifdef HAVE_WINDOW_SYSTEM` 段落**逐处写成了“dead on this target (P-08)”注释**（例：`femacs/src/xdisp.rs`
   30417/30421/30426）。这在冻结的 **darwin** 配置下是对的，在 **Android** 上却把活代码记成了死代码。
-- 读数（可复跑）：`python3 tools/check-android-imports.py` ⇒ `libemacs.so` **480 个导入 / 214 个无人提供**
-  （棘轮 `docs/baseline/android-imports-pending.txt`）。构成为 **196** 个小写 C 名字（含 `display_and_set_cursor`、
-  `cancel_hourglass`、`tputs`、`BC`/`UP`/`PC`/`cost` 一类）+ **15** 个 UpperCamel + **2** 个 darwin 头镜像名
-  （`__error`、`__darwin_check_fd_set_overflow`）+ **1** 个 Rust mangled（链接里没有 panic handler）。
+- 读数（可复跑）：`python3 tools/check-android-imports.py` ⇒ `libemacs.so` **402 个导入 / 119 个无人提供**
+  （棘轮 `docs/baseline/android-imports-pending.txt`；`docs/status.md` 4.708 记了从 214 降到 119 的六步）。
+  逐条落位（`tools/gen-android-arms.py` ⇒ `docs/baseline/android-arms.tsv`）后：**`HAVE_WINDOW_SYSTEM` 臂 31 条**
+  （`xdisp.c` 26、`xfaces.c` 3 等）、`not_found` 66 条、`other` 20 条、平台名 2 条。
 - 结论：只要这些名字无人提供，`libemacs.so` 就**不能被 `dlopen`**，Android 侧只能停在“结构 + 可链接 + 签名 APK”。
 
 **选项**
 
 | 选项 | 做法 | 影响 |
 |---|---|---|
-| **A. 维持现状规则（P-08）** | 死臂只记录，不转写 | macOS 侧 DoD-1 成立 ✓、零额外工作量；但 Android 侧那 196 条**永远无人提供** ⇒ “Android 能跑”不可达 ✗，DoD-6 只能记“结构面达成、应用层未达”；新门会长期报 214 条未决 |
+| **A. 维持现状规则（P-08）** | 死臂只记录，不转写 | macOS 侧 DoD-1 成立 ✓、零额外工作量；但 Android 侧那 31 条臂**永远无人提供** ⇒ “Android 能跑”不可达 ✗，DoD-6 只能记“结构面达成、应用层未达”；新门会长期报 31 条未决（另 88 条与死臂无关，A 口径下照常修）|
 | **B. 无差别逐行写（含 darwin 死臂）** | 把 `HAVE_WINDOW_SYSTEM` 等臂在**所有**目标上都写出来 | 最“满”的口径；工作量最大（`xdisp.c` 一处此前量到 62 个函数），且 darwin 上这些代码永不执行、只增加维护面 |
 | **C. 按目标配置决定活/死（建议）** | 给镜像加 `have_window_system`/`have_android` 之类的 cfg 门，把臂写成**条件编译**；活臂必写、死臂仍只记录 | 规则从“人工裁剪平台”变成“配置决定” ✓；macOS 侧读数不变 ✓；Android 侧的工作队列就是那份 214 条的棘轮 ✓（其中 3 条是另一类小井：darwin 头镜像名 2 条、panic handler 1 条，与臂无关，各自独立修） |
 

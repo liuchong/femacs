@@ -1746,9 +1746,24 @@ fn probe_programs() -> Result<(), String> {
 /// its own (goal constraint 2), so its objects for these members stand in - and *only* these:
 /// see the call site for what linking a member C never builds costs.
 /// The driver of a shared library: no `main`, but the panic handler C's build gets from libc.
+/// The Android link's `-nodefaultlibs` is the reason this driver is compiled separately: the
+/// unit objects are Rust objects, `core` is linked from its rlib, and nothing then supplies the
+/// symbol `core`'s precompiled panic paths call - `rust_begin_unwind`, under the crate
+/// disambiguator rustc minted when *core* was built.  A separately compiled crate cannot
+/// reproduce that spelling (measured: a crate-local `#[panic_handler]` is exported as
+/// `_RNvCs1njKG4L9aB3_7___rustc17rust_begin_unwind`), so the driver exports exactly the name the
+/// objects import - read out of them by `unwind_symbol` below - and routes the lang item to it.
+/// The handler aborts, which is what C does and what PORTING.md's constraint 9 (`panic = "abort"`,
+/// never unwind into C) requires.
 const SHARED_DRIVER: &str = "#![no_std]\n\n\
+/* The lang item `core`'s precompiled code calls.  Its symbol carries the crate disambiguator\
+   rustc minted for `__rustc` in the toolchain that built `core`, which is why this driver is\
+   compiled with the *same* toolchain (`rustc_cmd`, the repository's pinned nightly) and why\
+   `link-shared` verifies the definition afterwards instead of trusting it.  A panic aborts -\
+   never unwinds into C (PORTING.md constraint 9).  */\n\
 #[panic_handler]\n\
-fn panic (_info: &core::panic::PanicInfo) -> ! { loop {} }\n";
+fn rust_begin_unwind (_info: &core::panic::PanicInfo) -> ! { unsafe { abort () } }\n\n\
+unsafe extern \"C\" { fn abort () -> !; }\n";
 
 /// `xtask link-shared <target>` - link the port's objects for TARGET into `libemacs.so`.
 ///
@@ -1799,10 +1814,6 @@ fn link_shared (target: Option<&str>) -> i32
     {
       return fail (format! ("creating {}: {e}", dir.display ()));
     }
-  if let Err (e) = fs::write ("../build/load/shared-driver.rs", SHARED_DRIVER)
-    {
-      return fail (format! ("writing the shared driver: {e}"));
-    }
   let mut rsp: Vec<String> = Vec::new ();
   for object in &objects
     {
@@ -1841,6 +1852,48 @@ fn link_shared (target: Option<&str>) -> i32
     };
   let (Some (core), Some (builtins)) = (pick ("libcore-"), pick ("libcompiler_builtins-"))
     else { return fail (format! ("no core/compiler_builtins rlib under {}", rlib_dir.display ())) };
+  // The panic entry point.  `core`'s own code references the lang item `rust_begin_unwind` under
+  // the crate disambiguator rustc minted for `core` - a different spelling per toolchain
+  // (measured: `_RNvCs1njKG4L9aB3_...` from stable 1.98.1, `_RNvCs8kYXCe6bXIp_...` from the pinned
+  // nightly) - and nothing in the link defines it, so the driver is compiled for the target and
+  // exports exactly the name the inputs import, read out of them rather than guessed.
+  let mut driver: Vec<PathBuf> = Vec::new ();
+  let mut inputs: Vec<PathBuf> = objects.clone ();
+  inputs.push (core.clone ());
+  inputs.push (builtins.clone ());
+  match ndk_bin (&linker).and_then (|bin| unwind_symbol (&bin, &inputs))
+    {
+      Some (name) =>
+        {
+          if let Err (e) = fs::write ("../build/load/shared-driver.rs", SHARED_DRIVER)
+            {
+              return fail (format! ("writing the shared driver: {e}"));
+            }
+          let object = PathBuf::from (format! ("../build/load/shared-driver.{target}.o"));
+          let mut cmd = rustc_cmd ();
+          cmd.arg ("--target").arg (&target).arg ("-O").arg ("--crate-type").arg ("lib")
+             .arg ("--emit=obj").arg ("-o").arg (&object)
+             .arg (Path::new ("../build/load/shared-driver.rs"));
+          match cmd.output ()
+            {
+              Ok (o) if o.status.success () => driver.push (object),
+              Ok (o) => return fail (format! ("compiling the shared driver: {}",
+                                              String::from_utf8_lossy (&o.stderr).trim ())),
+              Err (e) => return fail (format! ("rustc for the shared driver: {e}")),
+            }
+          // The point of the whole exercise is that this exact spelling exists, so it is checked
+          // here rather than trusted: a definition of `name` in the driver's object, or the link
+          // goes on and the device refuses the `dlopen` (P-300).
+          let Some (bin) = ndk_bin (&linker) else { return fail ("no NDK bin directory") };
+          match defines (&bin, &driver[0], &name)
+            {
+              Ok (true) => println! ("   panic driver: {name}"),
+              Ok (false) => return fail (format! ("the driver does not define {name}")),
+              Err (e) => return fail (format! ("llvm-nm on the driver: {e}")),
+            }
+        }
+      None => println! ("   no rust_begin_unwind import: no panic driver needed"),
+    }
   let mut cmd = Command::new (&linker);
   cmd.arg ("-shared").arg ("-o").arg (&out_path)
      .args (["-Wl,--gc-sections", "-Wl,-z,relro,-z,now", "-nodefaultlibs"])
@@ -1854,6 +1907,7 @@ fn link_shared (target: Option<&str>) -> i32
      // `-ldl -lm` are what the driver would have added if `-nodefaultlibs` were absent.
      .args (["-ldl", "-lm", "-llog", "-ljnigraphics", "-landroid", "-lc"]);
   for object in &objects { cmd.arg (object); }
+  for object in &driver { cmd.arg (object); }
   cmd.arg (&core).arg (&builtins);
   let out = match cmd.output ()
   {
@@ -1868,6 +1922,43 @@ fn link_shared (target: Option<&str>) -> i32
   println! ("linked {} ({} bytes)", out_path.display (),
             fs::metadata (&out_path).map (|m| m.len ()).unwrap_or (0));
   0
+}
+
+/// The tool directory the NDK cross compiler lives in, where its `llvm-nm`/`llvm-readelf` are.
+fn ndk_bin (linker: &str) -> Option<PathBuf>
+{
+  Path::new (linker).parent ().map (|p| p.to_path_buf ())
+}
+
+/// The `rust_begin_unwind` spelling the objects import, or `None` when they import none.
+fn unwind_symbol (bin: &Path, objects: &[PathBuf]) -> Option<String>
+{
+  let mut cmd = Command::new (bin.join ("llvm-nm"));
+  cmd.arg ("-u");
+  for object in objects { cmd.arg (object); }
+  let out = cmd.output ().ok ()?;
+  let text = String::from_utf8_lossy (&out.stdout).into_owned ();
+  text.lines ()
+      .map (|line| line.rsplit (' ').next ().unwrap_or ("").trim ().to_string ())
+      .find (|name| name.contains ("17rust_begin_unwind"))
+}
+
+/// Whether OBJECT defines SYMBOL (an `nm` type letter other than `U`).
+fn defines (bin: &Path, object: &Path, symbol: &str) -> Result<bool, String>
+{
+  let out = Command::new (bin.join ("llvm-nm")).arg (object).output ()
+    .map_err (|e| e.to_string ())?;
+  let text = String::from_utf8_lossy (&out.stdout).into_owned ();
+  Ok (text.lines ().any (|line|
+    {
+      let mut fields = line.split_whitespace ();
+      match (fields.next (), fields.next (), fields.next ())
+        {
+          (Some (_addr), Some (kind), Some (name)) => kind != "U" && kind != "w" && name == symbol,
+          (Some (kind), Some (name), None) => kind != "U" && kind != "w" && name == symbol,
+          _ => false,
+        }
+    }))
 }
 
 /// The NDK cross compiler for TARGET: `FEMACS_ANDROID_CC`, else the newest NDK under the SDK.

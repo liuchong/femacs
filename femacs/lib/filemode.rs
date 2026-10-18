@@ -31,27 +31,27 @@ include!("include/sys_stat.in.rs");
    's' socket
    'w' whiteout (4.4BSD)
    '?' some other file type  */
-#[cfg (feature = "have_decl_strmode")]
+#[cfg (feature = "not_have_decl_strmode")]
 unsafe fn ftypelet (bits: mode_t) -> c_char
 {
   /* These are the most common, so test for them first.  */
-  if S_ISREG! (bits) != 0
+  if S_ISREG! (bits)
     { return b'-' as c_char; }
-  if S_ISDIR! (bits) != 0
+  if S_ISDIR! (bits)
     { return b'd' as c_char; }
 
   /* Other letters standardized by POSIX 1003.1-2004.  */
-  if S_ISBLK! (bits) != 0
+  if S_ISBLK! (bits)
     { return b'b' as c_char; }
-  if S_ISCHR! (bits) != 0
+  if S_ISCHR! (bits)
     { return b'c' as c_char; }
-  if S_ISLNK! (bits) != 0
+  if S_ISLNK! (bits)
     { return b'l' as c_char; }
-  if S_ISFIFO! (bits) != 0
+  if S_ISFIFO! (bits)
     { return b'p' as c_char; }
 
   /* Other file types (though not letters) standardized by POSIX.  */
-  if S_ISSOCK! (bits) != 0
+  if S_ISSOCK! (bits)
     { return b's' as c_char; }
 
   /* Nonstandard file types.  */
@@ -72,7 +72,7 @@ unsafe fn ftypelet (bits: mode_t) -> c_char
 }
 
 /* Like filemodestring, but rely only on MODE.  */
-#[cfg (feature = "have_decl_strmode")]
+#[cfg (feature = "not_have_decl_strmode")]
 pub unsafe extern "C" fn strmode (mode: mode_t, str_: *mut c_char)
 {
   *str_.offset (0) = ftypelet (mode);
@@ -104,6 +104,11 @@ pub unsafe extern "C" fn strmode (mode: mode_t, str_: *mut c_char)
    strmode`-less system entry: macOS's <string.h> declares `strmode`, which
    is what the live `filemodestring` calls (the header mirror records C's `#if
    !HAVE_DECL_STRMODE` arm as a cfg'd declaration of its own).  */
+/* filemode.h's declaration of the system's `strmode`, which C's single call site below
+   resolves to when the system declares it; the port keeps one call site too, so the name it
+   resolves to is imported here rather than reached through `system::` (C writes `strmode (...)`
+   either way - `HAVE_DECL_STRMODE` decides which definition, not which call).  */
+#[cfg (not (feature = "not_have_decl_strmode"))]
 mod system {
   use super::*;
 
@@ -111,6 +116,8 @@ mod system {
     pub fn strmode (mode: mode_t, str_: *mut c_char);
   }
 }
+#[cfg (not (feature = "not_have_decl_strmode"))]
+use system::strmode;
 
 /* filemodestring - fill in string STR with an ls-style ASCII
    representation of the st_mode field of file stats block STATP.
@@ -160,7 +167,7 @@ mod system {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn filemodestring (statp: *const stat, str_: *mut c_char)
 {
-  system::strmode ((*statp).st_mode, str_);
+  strmode ((*statp).st_mode, str_);
 
   if S_TYPEISSEM! (statp) != 0
     { *str_.offset (0) = b'F' as c_char; }

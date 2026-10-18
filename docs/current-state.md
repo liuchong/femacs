@@ -1,4 +1,4 @@
-# 当前状态（2026-10-18，status 4.707 时点）
+# 当前状态（2026-10-18，status 4.708 时点）
 
 给下一次会话的**入口快照**：判定口径、读数、复跑命令、未决事项。逐轮记录仍在 `docs/status.md`，
 口径与规则在 `PORTING.md`，验收细则在 `docs/acceptance.md`。
@@ -24,7 +24,7 @@
 | 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check`、`tools/acceptance-l1.py --check`、`python3 tools/check-ert.py --selector-preset default --tsv /tmp/ert.tsv` | L0 **19/0**；L1 **111 文件 / 0 失败 / 1 接受**；L5 默认选择器 **same 552 / both-fail 7 / crashed 5 / port-worse 0**（`docs/baseline/ert-sweep-default.tsv`，4.676）。`all` 档唯一 `port-worse` 是上游 `:unstable` 的 `erc-d-run-linger`（P-293） |
 | 4 | `.elc`/dump/生成物/loadup | ✅ | `python3 tools/check-generated.py`、`tools/check-loadup.py`、`tools/check-dump-offsets.py` | **244 文件：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**；两树 loadup 逐文件一致；19 处 dump offset 0 failure（4.600/4.678） |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.679） |
-| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh` | macOS smoke **11/0**；`gate-android` **181,486 B / 112 class / 签名**；`libemacs.so` **5,944,816 B / 69 个 JNI 导出**；含 `lib/arm64-v8a/libemacs.so` 的**签名 APK 3.9 MB**；**Android 单元 sweep 91/91 + 0 unit failure**—— 四段 exit 0。**模拟器冒烟已能跑到应用层**（4.705–4.707）：AVD `femacs-arm64-api36` boot ✓、`adb install` Success ✓、`am start -W` Status: ok ✓，并挖出并修掉三个真缺陷（dex 缺 Kotlin 运行库 ✗→✓、`EmacsConfig` 抄错列表 ✗→✓、`-nodefaultlibs` 掉 libc ✗→✓）；**但库仍不可 `dlopen`**：新门 `python3 tools/check-android-imports.py` 读到 **480 导入 / 214 未决**（棘轮 `docs/baseline/android-imports-pending.txt`，主要是本目标未转写的 `HAVE_WINDOW_SYSTEM` 臂）⇒ 应用层结论**未达** |
+| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh` | macOS smoke **11/0**；`gate-android` **181,486 B / 112 class / 签名**；`libemacs.so` **5,944,816 B / 69 个 JNI 导出**；含 `lib/arm64-v8a/libemacs.so` 的**签名 APK 3.9 MB**；**Android 单元 sweep 91/91 + 0 unit failure**—— 四段 exit 0。**模拟器冒烟已能跑到应用层**（4.705–4.707）：AVD `femacs-arm64-api36` boot ✓、`adb install` Success ✓、`am start -W` Status: ok ✓，并挖出并修掉三个真缺陷（dex 缺 Kotlin 运行库 ✗→✓、`EmacsConfig` 抄错列表 ✗→✓、`-nodefaultlibs` 掉 libc ✗→✓）；**但库仍不可 `dlopen`**：新门 `python3 tools/check-android-imports.py` 读到 **402 导入 / 119 未决**（棘轮 `docs/baseline/android-imports-pending.txt`，构成：`not_found` 66 / `HAVE_WINDOW_SYSTEM` 臂 31 / 其他 20 / 平台名 2）⇒ 应用层结论**未达** |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh` | 同臂 0.70–0.86×（P-193）；按用户决定不追平、不记为达标 |
 | 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git log --show-signature` | **238 台账绑定 / 0 failure / 0 行无台账**（4.679）；全部提交 `-S` 并推送 |
 
@@ -55,16 +55,20 @@
 - **texinfo/makeinfo：已装（7.3）** ⇒ Android `configure` 跑到底 ✓（P-223）；**arm64-v8a 镜像 + AVD
   `femacs-arm64-api36` 已就绪** ✓；受控执行器按 R38 自动扩容（实测 4 → 6 GiB ✓、硬上限 16 GiB ✓）⇒
   原 **E1/E2/E3 已作废**（`docs/decisions-needed.md` 保留作历史）。
-- **Android 侧现在的真实缺口是可加载性，不是结构** ✓：三个真缺陷已在 4.705 修完（`classes.dex` 现在带
-  Kotlin 运行库 ✓、`EmacsConfig` 现在按 `java/Makefile.in` 375-404 的 `(NEEDED)` 闭包生成 ✓、
-  `link-shared` 现在带 `-lc -ljnigraphics` ✓），但 `libemacs.so` 仍有 **214 条未决导入** ⇒
-  `dlopen` 仍会失败（读数与构成见 `docs/status.md` 4.707 ✓，门是
-  `python3 tools/check-android-imports.py` ✓）。
-- **新问题（等用户决定，`docs/decisions-needed.md` 问题 4）**：那 214 条里最大的一块是端口的
+- **Android 侧现在的真实缺口是可加载性，不是结构** ✓：4.705 修的三个缺陷（dex 缺 Kotlin 运行库 ✓、
+  `EmacsConfig` 列表语义 ✓、`-nodefaultlibs` 掉 libc ✓）之后，4.708 又把未决导入从 **214 → 119** ✓：
+  `lib/` 单元进了 Android 链接集（`docs/baseline/lib-link-sources-android.txt` ✓，−59 的 `mpz_*`）、
+  panic 入口按 rlib 里读到的名字编出并断言 ✓、`strmode` 的条件写反 ✓、`boot-time.c` 的目标谓词/`clock_gettime`/
+  `<sys/sysinfo.h>` 镜像补齐 ✓（Android 现在 `src` 91/91 ＋ `lib` 87/87 全绿 ✓）。读数与构成见
+  `docs/status.md` 4.708 ✓；门仍是 `python3 tools/check-android-imports.py` ✓。
+- **新问题（等用户决定，`docs/decisions-needed.md` 问题 4）**：那 119 条里有一块（31 条）是端口的
   `xdisp.rs` 等处**按 P-08 记成"dead on this target"的 `HAVE_WINDOW_SYSTEM` 臂** ✓ —— 对冻结的
   **darwin** 配置它们确实是死臂 ✓，对用户授权的 **Android** 却是活臂 ✓（`HAVE_ANDROID` 打开 ✓）。
   口径 A（死臂只记录）下 macOS 侧成立、Android 侧永远不可加载；口径 C（按目标配置决定活/死）下
-  这些臂要写成条件编译，工作队列就是那份棘轮。
+  这些臂要写成条件编译。**注意**：这 31 条不再是全部 —— 剩下 88 条是两类与死臂无关的活儿
+  （66 条 `not_found`：端口侧还没有定义或还没接入的单元/全局；20 条 `other` 与 2 条平台名：
+  目标接口镜像，如 `__error`、`CLOCK_REALTIME`、`utmpxname`），它们**不需要任何政策决定**，
+  我会继续推进。
 
 已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
 `emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是

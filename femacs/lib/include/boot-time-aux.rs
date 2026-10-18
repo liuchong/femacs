@@ -40,6 +40,13 @@ include!("stdcountof.rs");     // <stdcountof.h> (`countof!`)
 include!("stdio.rs");          // <stdio.h> (`FILE`, `fopen`, `fread`, `fclose`)
 include!("sys_sysctl.rs");     // <sys/sysctl.h> (`sysctl`)
 
+/* `<sys/sysinfo.h>`, which gives C 68's arm its `struct sysinfo`: gnulib's `boot-time-aux.h` uses
+   it without including the header (the configuration's own chain brings it in - `HAVE_SYS_SYSINFO_H`,
+   and bionic's file includes `<linux/kernel.h>` for the struct).  The arm is dead on the frozen
+   target, so nothing here needed the mirror until the Android configuration compiled it.  */
+#[cfg (feature = "have_sys_sysinfo_h")]
+include!("sys_sysinfo.rs");
+
 /* C 230-232's gate names two <sys/sysctl.h> rows that the port has no mirror for: `CTL_KERN`
    (1) and `KERN_BOOTTIME` (21) are the frozen target's values (the clang probe in
    docs/ports/boot-time.md), and lib/boot-time.rs declared them until the header became a
@@ -47,11 +54,15 @@ include!("sys_sysctl.rs");     // <sys/sysctl.h> (`sysctl`)
 pub const CTL_KERN: c_int = 1;
 pub const KERN_BOOTTIME: c_int = 21;
 
-/* C 19-80: `#if defined __linux__ || defined __ANDROID__` - dead on this target, carried.  */
+/* C 19's gate is a *platform* predicate - `#if defined __linux__ || defined __ANDROID__` - so the
+   port spells it as one (PORTING.md P-290: platform conditions are `target_os`, not config
+   macros).  It was a derived `feature = "linux_or_android"` that no configuration emitted, which
+   made the whole block dead everywhere and left the Android sweep failing on `get_linux_uptime`
+   (status 4.708).  */
 
 /* C 21-22: "Store the uptime counter, as managed by the Linux kernel, in *P_UPTIME.  Return 0
    upon success, -1 upon failure."  */
-#[cfg (feature = "linux_or_android")]
+#[cfg (any (target_os = "linux", target_os = "android"))]
 unsafe fn get_linux_uptime (p_uptime: *mut timespec) -> c_int
 {
   /* C 27-29: "The clock_gettime facility returns the uptime with a resolution of 1 µsec.  It

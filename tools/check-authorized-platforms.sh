@@ -42,6 +42,17 @@ echo "== Android: native library =="
     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
     bash "$REPO/tools/check-all-units.sh" \
     "$REPO/docs/baseline/frozen-build-sources-android.txt" >/dev/null || exit 1
+  # The gnulib `lib/` layer ships as `libgnu.a` in C, so it is in neither source list; the
+  # Android configuration needs it for the same reason the frozen one does, and its `lib/` set is
+  # not the darwin set (the Android headers do not declare `strmode`, the system has no
+  # `memset_s`, and the bundled mini-gmp is what answers `mpz_*` there).  Without this sweep the
+  # link leaves 59 mini-gmp imports unresolved on its own (status 4.708).
+  for list in "$REPO/docs/baseline/lib-link-sources.txt" "$REPO/docs/baseline/lib-link-sources-android.txt"; do
+    [ -f "$list" ] || continue
+    FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
+      CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+      bash "$REPO/tools/check-all-units.sh" "$list" >/dev/null || exit 1
+  done
   FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
     cargo run -q -p xtask -- link-shared aarch64-linux-android 2>&1 | tail -1 || exit 1
