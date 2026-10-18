@@ -62,6 +62,8 @@ include!("include/character.rs");              // C 27: `#include "character.h"`
 include!("include/itree.rs");                 // buffer.h 35: `#include "itree.h"`
 include!("include/buffer.rs");                 // C 28: `#include "buffer.h"`
 include!("include/window.rs");                 // C 29: `#include "window.h"`
+include!("include/dispextern.rs");            // window.h 23: `#include "dispextern.h"`,
+                                               // for window.rs 159 `text_cursor_kinds`
 include!("include/region-cache.rs");            // C 30: `#include "region-cache.h"`
 include!("include/pdumper.rs");                // C 31: `#include "pdumper.h"`
 include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (memcpy, memmove, memset, strlen)

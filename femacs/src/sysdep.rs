@@ -3579,7 +3579,7 @@ pub unsafe extern "C" fn emacs_fstatat (dirfd: c_int, filename: *const c_char, s
   {
     loop
       {
-	r = android_fstatat (dirfd, filename, st, flags);
+	r = android_fstatat (dirfd, filename, st as *mut stat, flags);   // android.h 84's `struct stat *`
 	if r == 0 || *errno () != EINTR
 	  { break; }
 	maybe_quit ();
@@ -3674,7 +3674,7 @@ pub unsafe extern "C" fn emacs_open (file: *const c_char, oflags: c_int, mode: c
   {
     loop
       {
-	fd = android_open (file, oflags, mode);
+	fd = android_open (file, oflags, mode as mode_t);   // android.h 82's `mode_t`
 	if fd >= 0 || *errno () != EINTR
 	  { break; }
 	maybe_quit ();
@@ -3702,7 +3702,7 @@ pub unsafe extern "C" fn emacs_open_noquit (file: *const c_char, mut oflags: c_i
   #[cfg (feature = "have_android")]
   {
     loop
-      { fd = android_open (file, oflags, mode); if !(fd < 0 && *errno () == EINTR) { break; } }
+      { fd = android_open (file, oflags, mode as mode_t); if !(fd < 0 && *errno () == EINTR) { break; } }
   }
   return fd;
 }

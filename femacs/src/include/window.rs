@@ -17,7 +17,8 @@
 // window.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const WINDOW_H_INCLUDED: bool = true;
 
-// window.h 23's `#include "dispextern.h"` is not carried (the WIP note above).
+// window.h 23's `#include "dispextern.h"` is not carried by this mirror (the note at the
+// `buffer.rs` edge below says where the one name it supplies is reached instead).
 //
 // `window.h`'s own text names two things owned by `buffer.h`: `BUFFERP` at window.h 605
 // (`WINDOW_LEAF_P`), 634 and 1199 (`WINDOW_LIVE_P`), and `buffer_local_value` at window.h 635
@@ -46,16 +47,19 @@ pub const WINDOW_H_INCLUDED: bool = true;
 // `buffer.rs` directly.  The closure that *does* change is
 // `src/androidselect.rs`, and by exactly `buffer.rs` and the `itree.rs` it pulls.
 include!("buffer.rs");                        // window.h 605/634/635/1199's BUFFERP, buffer_local_value
-/* window.h 23: `#include "dispextern.h"`.  The mirror's `struct window` reads that header's
-   `enum text_cursor_kinds` (C 344, in the `HAVE_WINDOW_SYSTEM` arm this port writes as
-   `have_window_system`), which C reaches through this edge and the mirror did not carry.  It is
-   the only edge of C 21-23 the mirror was missing, and the three Android units that read the
-   name - `src/editfns.c`, `src/insdel.c`, `src/textprop.c`, 3 x `cannot find type
-   text_cursor_kinds in this scope` at this file's line 151 - are units that take this mirror
-   without ever reaching `dispextern.rs` (C's own include list for them does not supply it
-   either).  Placed after the `buffer.rs` edge C 605/634/635/1199 needs, so the dedupe slot this
-   mirror hands out first stays the one forty-six of its includers already expect.  */
-include!("dispextern.rs");                    // window.h 23: `#include "dispextern.h"`
+/* window.h 23: `#include "dispextern.h"`, and the one name this mirror needs from it is
+   `enum text_cursor_kinds` (C 344's member, in the `HAVE_WINDOW_SYSTEM` arm).  Neither the
+   edge nor a use-site alias can live here.  The edge: `src/include/dispextern.rs` includes
+   this file back, so an edge at this point is a cycle the materialiser breaks by putting
+   dispextern.rs's flat expansion *here* - which is what `spikes/haiku_inc_probe.rs` cannot
+   accept (its module order - dispextern.rs inside a module, glob-imported, ahead of
+   `haikugui.rs` - is what keeps the two Haiku `Emacs_Cursor` definitions apart; with the edge
+   present the probe reads "`Emacs_Cursor` redefined here").  The alias: `pub type
+   text_cursor_kinds = c_int` collides (E0428) with dispextern.rs's own alias in every unit
+   that includes both, `src/abi_shim.rs` 41/43 first.  So the name resolves where C's edge
+   delivers it - at the translation unit - and the units that take this mirror without ever
+   reaching `dispextern.rs` carry the edge themselves (`src/editfns.rs`, `src/insdel.rs`,
+   `src/textprop.rs`): P-72 rule 4, the shape 3.377 gave `keyboard.rs` for `buffer.h`.  */
 
 // window.h 91-100.  Measured: 16 bytes, alignment 4.
 #[repr(C)]

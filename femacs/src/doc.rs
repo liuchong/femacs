@@ -431,7 +431,10 @@ DEFUN! ("internal-subr-documentation", Fsubr_documentation, Ssubr_documentation,
       pub fn XMODULE_FUNCTION (a: Lisp_Object) -> Lisp_Object;
     }
     if MODULE_FUNCTIONP (function)
-      { return module_function_documentation (XMODULE_FUNCTION (function)); }
+      /* C 1344: C's `XMODULE_FUNCTION` yields `struct Lisp_Module_Function *` and lisp.h
+	 4897's declaration takes that pointer const-qualified - C converts implicitly, Rust's
+	 mirror spells the parameter `*const c_void` (P-72 rule 3), so the conversion is here.  */
+      { return module_function_documentation (XMODULE_FUNCTION (function) as *const c_void); }
   }
   if SUBRP (function)
     { return make_fixnum ((*XSUBR (function)).doc as EMACS_INT); }

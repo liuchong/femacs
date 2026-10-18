@@ -3872,9 +3872,9 @@ pub mod other_units {
        `src/xterm.c`/`androidterm.c`); `src/keyboard.c` reads both and includes no header that
        names them on this target.  */
     unsafe extern "C" {
-      /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);`
+      /// C: Lisp_Object plist_get (Lisp_Object, Lisp_Object)
       pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
-      /// C: lisp.h 5436: `extern char *get_keysym_name (int);`
+      /// C: char *get_keysym_name (int)
       pub fn get_keysym_name (keysym: c_int) -> *mut c_char;
     }
     /* C 5485-5486 (`#ifdef HAVE_TEXT_CONVERSION`): two entry points `src/textconv.c` defines and

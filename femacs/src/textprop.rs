@@ -50,6 +50,8 @@ include!("include/character.rs");              // buffer.h 26: `#include "charac
 include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
 include!("include/buffer.rs");                 // C 23: `#include "buffer.h"`
 include!("include/window.rs");                 // C 24: `#include "window.h"`
+include!("include/dispextern.rs");            // window.h 23: `#include "dispextern.h"`,
+                                               // for window.rs 159 `text_cursor_kinds`
 
 /* C spells `enum itree_order`'s members bare (`ASCENDING` in the `ITREE_FOREACH`
    expansion), and Rust 2024 keeps enum variants out of scope, so the port imports them

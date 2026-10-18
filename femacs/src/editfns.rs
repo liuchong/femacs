@@ -56,6 +56,8 @@ include!("include/character.rs");              // C 53: `#include "character.h"`
 include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"`
 include!("include/buffer.rs");                 // C 54: `#include "buffer.h"`
 include!("include/window.rs");                 // C 55: `#include "window.h"`
+include!("include/dispextern.rs");            // window.h 23: `#include "dispextern.h"`,
+                                               // for window.rs 159 `text_cursor_kinds`
 include!("include/blockinput.rs");             // C 56: `#include "blockinput.h"`
 include!("include/coding.rs");                 // C 57: `#include "coding.h"`
 include!("../lib/include/string.rs");          // lisp.h's `<string.h>` (memcpy/strlen)

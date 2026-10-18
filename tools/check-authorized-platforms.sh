@@ -39,7 +39,7 @@ echo "== Android: native library =="
   # than depending on a sweep that ran earlier in the session.
   FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
-    bash tools/check-all-units.sh \
+    bash "$REPO/tools/check-all-units.sh" \
     "$REPO/docs/baseline/frozen-build-sources-android.txt" >/dev/null || exit 1
   FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
