@@ -1,4 +1,4 @@
-// femacs: mirror of the `<sys/sysinfo.h>` surface alloc.c 68 includes (`HAVE_LINUX_SYSINFO`).
+// femacs: mirror of the system's <sys/sysinfo.h> surface alloc.c 68 includes (`HAVE_LINUX_SYSINFO`).
 //
 // C never declares `struct sysinfo` - the platform's header does.  The port has to, and bionic's
 // layout is fixed (aarch64: eight 8-byte counters, the procs/pad pair, two more counters, then

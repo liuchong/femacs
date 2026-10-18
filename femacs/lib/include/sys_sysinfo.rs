@@ -1,4 +1,4 @@
-// femacs: mirror of the system `<sys/sysinfo.h>` (PORTING.md 0.1), measured from the Android NDK's
+// femacs: mirror of the system's <sys/sysinfo.h> (PORTING.md 0.1), measured from the Android NDK's
 // header (`ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/`).
 //
 // The file exists because gnulib's `boot-time-aux.h` uses `struct sysinfo` and `sysinfo ()` in its
