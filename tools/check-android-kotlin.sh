@@ -35,7 +35,7 @@ while [ $# -gt 0 ]; do
     # member the Android shell loads.  Without it the APK is the structural one of P-211.
     --native) NATIVE_SO=$2; shift 2 ;;
     # `--assets` packs C's `assets/{lisp,etc,bitmaps}` tree too (java/Makefile.in 200-297): the
-    # Android build has no dump, so Emacs reads its Lisp from there (docs/android-app-readiness.md).
+    # Android build has no dump, so the port reads its Lisp from there (docs/android-app-readiness.md).
     --assets) ASSETS=1; shift ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac

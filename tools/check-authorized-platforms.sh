@@ -86,7 +86,7 @@ if [ -f "$SO" ]; then
   if python3 "$REPO/tools/check-android-imports.py" --so "$SO" 2>&1 | sed 's/^/   /'; then :; else status=1; fi
 fi
 
-# The assets tree is not optional any more: Android's Emacs reads its Lisp from the APK (there is no
+# The assets tree is not optional any more: the Android port reads its Lisp from the APK (there is no
 # dump), and `tools/gen-android-assets.py` reproduces C's `install_temp` recipe, including
 # `assets/directory-tree` from the port's own `asset-directory-tool` (docs/android-app-readiness.md).
 echo "== Android: signed APK with the native library and the assets tree =="

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Stage the `assets/` tree C's `java/Makefile.in` packs into the Android APK.
 
-Android's Emacs reads its Lisp from the APK's assets (it has no dump file), so an APK without
+The Android port reads its Lisp from the APK's assets (it has no dump file), so an APK without
 `assets/` cannot start however well its native library links.  C builds that tree in
 `java/Makefile.in` 200-297:
 
   * `cp -r` the four trees into `install_temp/assets` (206-219);
-  * delete the junk Emacs' own packaging deletes (220-235: `.gitignore`, `.DS_Store`, `#*`, `.#*`,
+  * delete the junk the reference's own packaging deletes (220-235: `.gitignore`, `.DS_Store`, `#*`, `.#*`,
     `*~`, `*.orig`, `ChangeLog*`, `[mM]akefile*[.-]in`, `Makefile`);
   * gzip `.el` files whose `.elc` is at least 1536 bytes (236-250) and split the largest files
     through `lib-src/asset-directory-tool` (250-297), because `aapt2` cannot compress what the
