@@ -365,6 +365,82 @@ unsafe extern "C" {
   pub fn atof (s: *const c_char) -> c_double;
 }
 
+/* `struct redisplay_interface` (C dispextern.h 3069-3196) - the use-site copy status
+   3.220 prescribes; `FRAME_RIF` hands back the degraded `*mut c_void`, and this unit
+   reads two of the record's members (measured: `frame_parm_handlers`,
+   `default_font_parameter`).  The text is the mirror's, gate spent.  */
+#[cfg (feature = "have_window_system")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct redisplay_interface
+{
+  pub frame_parm_handlers: *mut c_void,                  // offset 0
+  pub produce_glyphs: Option<unsafe extern "C" fn (*mut c_void)>   /* C's `struct it *` untyped (P-72 3) */,                  // offset 8
+  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
+  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
+  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
+  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
+  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
+  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 56
+  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
+  pub flush_display: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 72
+  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 80
+  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
+  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
+
+  /* C 3131-3195: the `#ifdef HAVE_WINDOW_SYSTEM` arm of the interface - the fifteen display
+     hooks a window system installs.  Dead text on the frozen target (`HAVE_WINDOW_SYSTEM` is
+     undef there), carried under that feature so that a window-system build gets C's full
+     record; each is one pointer wide and none of them exists in the frozen arm, so the
+     assertions above are unchanged.  They are what `spikes/mirror-struct-coverage.py --arm
+     ns_cocoa` names when it reports this struct's window-system gap (status 3.283).  */
+  #[cfg (feature = "have_window_system")]
+  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut c_void   /* C's `struct draw_fringe_bitmap_params *` untyped (P-72 3) */)>,   // C 3134
+  #[cfg (feature = "have_window_system")]
+  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
+  #[cfg (feature = "have_window_system")]
+  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,                                               // C 3140
+  #[cfg (feature = "have_window_system")]
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                              // C 3144
+  #[cfg (feature = "have_window_system")]
+  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                                           // C 3147
+  #[cfg (feature = "have_window_system")]
+  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
+  #[cfg (feature = "have_window_system")]
+  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
+  #[cfg (feature = "have_window_system")]
+  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut c_void)>,                                       // C 3159
+  #[cfg (feature = "have_window_system")]
+  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+                                                       cursor_type: text_cursor_kinds, cursor_width: c_int,
+                                                       on_p: bool, active_p: bool)>,                                  // C 3165
+  #[cfg (feature = "have_window_system")]
+  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
+  #[cfg (feature = "have_window_system")]
+  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
+  #[cfg (feature = "have_window_system")]
+  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
+                                                            height: c_int, shift_by: c_int)>,                         // C 3182
+  #[cfg (feature = "have_window_system")]
+  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3187
+  #[cfg (feature = "have_window_system")]
+  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3190
+  #[cfg (feature = "have_window_system")]
+  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
+}
+/* C 3131-3195's `HAVE_WINDOW_SYSTEM` members - the fifteen display hooks this record already
+   carries behind that feature - are appended after `fix_overlapping_area`, so they add 120 bytes
+   and shift nothing above them (`docs/baseline/redisplay_interface-layout.tsv`: `frozen` 104/8
+   with the thirteen base members, `x11`/`ns_cocoa`/`x11_ext` 224/8; the fifteen measure 104 …
+   216).  The same device status 3.505/3.506 used for `struct face`, `struct font` and
+   `struct font_driver`.  */
+#[cfg (not (feature = "have_window_system"))]
+const REDISPLAY_IFACE_WS_SHIFT: usize = 0;
+#[cfg (feature = "have_window_system")]
+const REDISPLAY_IFACE_WS_SHIFT: usize = 120;
+#[cfg (all (feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 104 + REDISPLAY_IFACE_WS_SHIFT);
+
 unsafe extern "C" {
   /// C: lisp.h 4260: `extern struct hash_table_test const hashtest_eq, hashtest_eql, hashtest_equal;` (fns.c defines it).
   pub static mut hashtest_eq: hash_table_test;
@@ -5886,8 +5962,8 @@ pub unsafe extern "C" fn gui_set_right_fringe (f: *mut frame, new_value: Lisp_Ob
 pub unsafe extern "C" fn gui_set_border_width (f: *mut frame, arg: Lisp_Object,
 					       oldval: Lisp_Object)
 {
-  let border_width: c_int = check_integer_range (arg, INT_MIN as EMACS_INT,
-						 INT_MAX as EMACS_INT) as c_int;
+  let border_width: c_int = check_integer_range (arg, INT_MIN as intmax_t,
+						 INT_MAX as intmax_t) as c_int;
 
   if border_width == (*f).border_width
     { return; }
@@ -6110,25 +6186,26 @@ unsafe extern "C" {
 pub unsafe extern "C" fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_Object,
 						       oldval: Lisp_Object)
 {
-  if (EQ (arg, Qleft ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f))
-    || (EQ (arg, Qright ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f))
-    || (NILP (arg) && FRAME_HAS_VERTICAL_SCROLL_BARS (f))
-    || (!NILP (arg) && !FRAME_HAS_VERTICAL_SCROLL_BARS (f))
+  if (EQ (arg, Qleft ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f) != 0)
+    || (EQ (arg, Qright ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f) != 0)
+    || (NILP (arg) && FRAME_HAS_VERTICAL_SCROLL_BARS (f) != 0)
+    || (!NILP (arg) && FRAME_HAS_VERTICAL_SCROLL_BARS (f) == 0)
     {
-      FRAME_VERTICAL_SCROLL_BAR_TYPE (f)
-	= if NILP (arg) { vertical_scroll_bar_none }
+      frame_set_field (f, FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_UNIT,
+                       FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_SHIFT, FRAME_VERTICAL_SCROLL_BAR_MASK,
+                       (if NILP (arg) { vertical_scroll_bar_none }
 	  else if EQ (Qleft (), arg) { vertical_scroll_bar_left }
 	  else if EQ (Qright (), arg) { vertical_scroll_bar_right }
 	  else if EQ (Qleft (), Vdefault_frame_scroll_bars) { vertical_scroll_bar_left }
 	  else if EQ (Qright (), Vdefault_frame_scroll_bars) { vertical_scroll_bar_right }
-	  else { vertical_scroll_bar_none };
+	  else { vertical_scroll_bar_none }) as u32);
 
       /* We set this parameter before creating the native window for
 	 the frame, so we can get the geometry right from the start.
 	 However, if the window hasn't been created yet, we shouldn't
 	 call set_window_size_hook.  */
       if FRAME_NATIVE_WINDOW! (f) != 0
-	{ adjust_frame_size (f, -1, -1, 3, 0, Qvertical_scroll_bars ()); }
+	{ adjust_frame_size (f, -1, -1, 3, false, Qvertical_scroll_bars ()); }
 
       SET_FRAME_GARBAGED! (f);
     }
@@ -6154,7 +6231,7 @@ pub unsafe extern "C" fn gui_set_horizontal_scroll_bars (f: *mut frame, arg: Lis
 	   However, if the window hasn't been created yet, we shouldn't
 	   call set_window_size_hook.  */
 	if FRAME_NATIVE_WINDOW! (f) != 0
-	  { adjust_frame_size (f, -1, -1, 3, 0, Qhorizontal_scroll_bars ()); }
+	  { adjust_frame_size (f, -1, -1, 3, false, Qhorizontal_scroll_bars ()); }
 
 	SET_FRAME_GARBAGED! (f);
       }
@@ -6179,7 +6256,7 @@ pub unsafe extern "C" fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Obje
 	  FRAME_CONFIG_SCROLL_BAR_COLS! (f)
 	    = ((XFIXNAT (arg) + unit as EMACS_INT - 1) / unit as EMACS_INT) as c_int;
 	  if FRAME_NATIVE_WINDOW! (f) != 0
-	    { adjust_frame_size (f, -1, -1, 3, 0, Qscroll_bar_width ()); }
+	    { adjust_frame_size (f, -1, -1, 3, false, Qscroll_bar_width ()); }
 
 	  SET_FRAME_GARBAGED! (f);
 	}
@@ -6192,7 +6269,7 @@ pub unsafe extern "C" fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Obje
 	  { set_scroll_bar_default_width_hook (f as *mut c_void); } }
 
       if FRAME_NATIVE_WINDOW! (f) != 0
-	{ adjust_frame_size (f, -1, -1, 3, 0, Qscroll_bar_width ()); }
+	{ adjust_frame_size (f, -1, -1, 3, false, Qscroll_bar_width ()); }
 
       SET_FRAME_GARBAGED! (f);
     }
@@ -6222,7 +6299,7 @@ pub unsafe extern "C" fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Obj
 	    FRAME_CONFIG_SCROLL_BAR_LINES! (f)
 	      = ((XFIXNAT (arg) + unit as EMACS_INT - 1) / unit as EMACS_INT) as c_int;
 	    if FRAME_NATIVE_WINDOW! (f) != 0
-	      { adjust_frame_size (f, -1, -1, 3, 0, Qscroll_bar_height ()); }
+	      { adjust_frame_size (f, -1, -1, 3, false, Qscroll_bar_height ()); }
 
 	    SET_FRAME_GARBAGED! (f);
 	  }
@@ -6235,7 +6312,7 @@ pub unsafe extern "C" fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Obj
 	    { set_scroll_bar_default_height_hook (f as *mut c_void); } }
 
 	if FRAME_NATIVE_WINDOW! (f) != 0
-	  { adjust_frame_size (f, -1, -1, 3, 0, Qscroll_bar_height ()); }
+	  { adjust_frame_size (f, -1, -1, 3, false, Qscroll_bar_height ()); }
 
 	SET_FRAME_GARBAGED! (f);
       }
@@ -6808,7 +6885,7 @@ pub unsafe extern "C" fn gui_default_parameter (f: *mut frame, alist: Lisp_Objec
     the corresponding argument is updated;  for each value
     not found, the corresponding argument is left unchanged.  */
 #[cfg (feature = "have_window_system")]
-#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+#[cfg (any (all (not (feature = "have_x_windows"), feature = "no_value"), feature = "have_android"))]
 unsafe fn XParseGeometry (mut string: *mut c_char, x: *mut c_int, y: *mut c_int,
 			  width: *mut c_uint, height: *mut c_uint) -> c_int
 {
@@ -6915,7 +6992,8 @@ DEFUN! ("x-parse-geometry", Fx_parse_geometry, Sx_parse_geometry, 1, 1, 0,
     if !strchr (SSDATA (string), b' ' as c_int).is_null ()
       { return calln! (Qns_parse_geometry (), string); }
   }
-  let geometry: c_int = XParseGeometry (SSDATA (string), &raw mut x, &raw mut y,
+  #[cfg (any (all (not (feature = "have_x_windows"), feature = "no_value"), feature = "have_android"))]
+  let geometry: c_int = XParseGeometry (SSDATA (string) as *mut c_char, &raw mut x, &raw mut y,
 					&raw mut width, &raw mut height);
   let mut result: Lisp_Object = Qnil ();
   if geometry & XValue != 0
