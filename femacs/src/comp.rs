@@ -1407,6 +1407,11 @@ unsafe extern "C" {
   /// gcc_jit_location *loc, gcc_jit_rvalue *rvalue);`
   pub fn gcc_jit_block_add_eval (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
                                  rvalue: *mut gcc_jit_rvalue);
+  /// C: libgccjit.h 678-682: `gcc_jit_type *gcc_jit_context_new_array_type (gcc_jit_context *ctxt,
+  /// gcc_jit_location *loc, gcc_jit_type *element_type, int num_elements);`
+  pub fn gcc_jit_context_new_array_type (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                         element_type: *mut gcc_jit_type, num_elements: c_int)
+    -> *mut gcc_jit_type;
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -2227,6 +2232,159 @@ unsafe fn emit_XSETCDR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
 /* ==============================================================================================
    Code emitted by LIMPLE statemes.  (C 1951-1953's banner, kept where C has it.)
    ============================================================================================== */
+
+/* Emit an r-value from an mvar meta variable.
+   In case this is a constant that was propagated return it otherwise load it
+   from frame.  */
+
+/// C 2079's function-pointer type, spelled once: `gcc_jit_rvalue *(*emitter_ptr) (Lisp_Object)`.
+#[cfg (feature = "have_native_comp")]
+pub type Llisp_emitter = unsafe extern "C" fn (Lisp_Object) -> *mut gcc_jit_rvalue;
+
+/// C 1959-1996: `static gcc_jit_rvalue *emit_mvar_rval (Lisp_Object mvar)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_mvar_rval (mvar: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  let const_vld: Lisp_Object = CALLNI! (c"comp-cstr-imm-vld-p".as_ptr (), mvar);
+
+  if ! NILP (const_vld)
+    {
+      let value: Lisp_Object = CALLNI! (c"comp-cstr-imm".as_ptr (), mvar);
+      if NILP (Fgethash (value,
+			  CALLNI! (c"comp-ctxt-non-materializable-objs-h".as_ptr (), Vcomp_ctxt),
+			  Qnil ()))
+	{
+	  if comp.debug > 1
+	    {
+	      let func: Lisp_Object =
+		Fgethash (value,
+			  CALLNI! (c"comp-ctxt-byte-func-to-func-h".as_ptr (), Vcomp_ctxt),
+			  Qnil ());
+
+	      emit_comment (
+	        SSDATA (
+		  Fprin1_to_string (
+		    if NILP (func) { value }
+		    else { CALLNI! (c"comp-func-c-name".as_ptr (), func) },
+		    Qnil (), Qnil ())));
+	    }
+	  if FIXNUMP (value)
+	    {
+	      /* We can still emit directly objects that are self-contained in a
+		 word (read fixnums).  */
+	      return emit_rvalue_from_lisp_obj (value);
+	    }
+	  /* Other const objects are fetched from the reloc array.  */
+	  return emit_lisp_obj_rval (value);
+	}
+    }
+
+  return gcc_jit_lvalue_as_rvalue (emit_mvar_lval (mvar));
+}
+
+/// C 1998-2007: `static void emit_frame_assignment (Lisp_Object dst_mvar,
+/// gcc_jit_rvalue *val)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_frame_assignment (dst_mvar: Lisp_Object, val: *mut gcc_jit_rvalue)
+{
+
+  gcc_jit_block_add_assignment (
+    comp.block,
+    std::ptr::null_mut (),
+    emit_mvar_lval (dst_mvar),
+    val);
+}
+
+/// C 2009-2033: `static gcc_jit_rvalue *emit_set_internal (Lisp_Object args)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_set_internal (args_in: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  /*
+    Ex: (set_internal #s(comp-mvar nil nil t comp-test-up-val nil nil)
+                      #s(comp-mvar 1 4 t nil symbol nil)).
+  */
+  /* TODO: Inline the most common case.  */
+  if list_length (args_in) != 3
+    { xsignal2 (Qnative_ice (),
+		build_string (c"unexpected arg length for insns".as_ptr ()),
+		args_in); }
+
+  let mut args: Lisp_Object = XCDR (args_in);
+  let mut i: c_int = 0;
+  let mut gcc_args: [*mut gcc_jit_rvalue; 4] = [std::ptr::null_mut (); 4];
+  FOR_EACH_TAIL! (args, {
+    gcc_args[i as usize] = emit_mvar_rval (XCAR (args));
+    i += 1;
+  });
+  gcc_args[2] = emit_lisp_obj_rval (Qnil ());
+  gcc_args[3] = gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+						     comp.int_type,
+						     SET_INTERNAL_SET);
+  return emit_call (intern_c_string (c"set_internal".as_ptr ()), comp.void_type, 4,
+		    gcc_args.as_mut_ptr (), false);
+}
+
+/* This is for a regular function with arguments as m-var.  */
+
+/// C 2037-2052: `static gcc_jit_rvalue *emit_simple_limple_call (Lisp_Object args,
+/// gcc_jit_type *ret_type, bool direct)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_simple_limple_call (args_in: Lisp_Object, ret_type: *mut gcc_jit_type,
+				   direct: bool) -> *mut gcc_jit_rvalue
+{
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+  let callee: Lisp_Object = FIRST! (args_in);
+  let mut args: Lisp_Object = XCDR (args_in);
+  let mut i: ptrdiff_t = 0;
+  let nargs: ptrdiff_t = list_length (args);
+  let mut gcc_args: *mut *mut gcc_jit_rvalue = std::ptr::null_mut ();
+  SAFE_NALLOCA! (sa_avail, gcc_args, 1, nargs);
+  FOR_EACH_TAIL! (args, {
+    *gcc_args.offset (i) = emit_mvar_rval (XCAR (args));
+    i += 1;
+  });
+
+  let res: *mut gcc_jit_rvalue = emit_call (callee, ret_type, nargs, gcc_args, direct);
+  SAFE_FREE! (sa_count, sa_mark);
+  return res;
+}
+
+/// C 2054-2061: `static gcc_jit_rvalue *emit_simple_limple_call_lisp_ret (Lisp_Object args)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_simple_limple_call_lisp_ret (args: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  /*
+    Ex: (call Fcons #s(comp-mvar 3 0 t 1 nil) #s(comp-mvar 4 nil t nil nil)).
+  */
+  return emit_simple_limple_call (args, comp.lisp_obj_type, false);
+}
+
+/// C 2063-2067: `static gcc_jit_rvalue *emit_simple_limple_call_void_ret (Lisp_Object args)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_simple_limple_call_void_ret (args: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return emit_simple_limple_call (args, comp.void_type, false);
+}
+
+/* Entry point to dispatch emitting (call fun ...).  */
+
+/// C 2071-2084: `static gcc_jit_rvalue *emit_limple_call (Lisp_Object insn)`.  C's
+/// `gcc_jit_rvalue * (*emitter_ptr) (Lisp_Object)` is a function pointer the emitter registry
+/// hands back as `void *`; the port has the same alias and the same `xmint_pointer` recovery.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_limple_call (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  let callee_sym: Lisp_Object = FIRST! (insn);
+  let emitter: Lisp_Object = Fgethash (callee_sym, comp.emitter_dispatcher, Qnil ());
+
+  if ! NILP (emitter)
+    {
+      let emitter_ptr: Llisp_emitter = std::mem::transmute (xmint_pointer (emitter));
+      return emitter_ptr (insn);
+    }
+
+  return emit_simple_limple_call_lisp_ret (insn);
+}
 
 /* C 4932-4951's `DEFUN ("comp-libgccjit-version", …)` is transcribed **here**, out of C's order,
    because this slice's `emit_EQ` (C 1529) calls it and nothing between C 1520 and C 4932 defines
