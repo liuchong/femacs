@@ -82,4 +82,3 @@ utmpxname
 x_stretch_cursor_p
 x_underline_at_descent_line
 x_use_underline_position_properties
-xstrcasecmp

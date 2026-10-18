@@ -57,6 +57,11 @@ include!("include/lisp.rs");                   // C 31: `#include "lisp.h"`
 include!("include/blockinput.rs");             // C 32: `#include "blockinput.h"`
 #[cfg (feature = "have_window_system")]
 include!("include/character.rs");              // C 33: `#include "character.h"`
+
+/* C 104-108's `INLINE int xstrcasecmp (...)`: `dispextern.h` gives every including unit its own
+   copy, and the mirror keeps one in `dispextern_externs` (a module, so a unit with its own copy -
+   `font.rs` 324 - does not collide).  The call below names that copy instead of an `extern "C"`
+   declaration, which asked the linker for a symbol C never defines (status 4.723).  */
 #[cfg (feature = "have_window_system")]
 include!("include/charset.rs");                // C 34: `#include "charset.h"`
 #[cfg (feature = "have_window_system")]
@@ -1669,7 +1674,7 @@ pub unsafe fn fs_query_fontset (name: Lisp_Object, name_pattern: c_int) -> c_int
       this_name = FONTSET_NAME! (fontset);
       if if name_pattern == 1
 	 { fast_string_match_ignore_case (name, this_name) >= 0 }
-	 else { xstrcasecmp (SSDATA (name), SSDATA (this_name)) == 0 }
+	 else { dispextern_externs::xstrcasecmp (SSDATA (name), SSDATA (this_name)) == 0 }
 	{ return i; }
       i += 1;
     }

@@ -944,6 +944,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-314 | **棘轮的每一条未决名字都要追问三件事：C 定义了吗、端口定义了吗、端口导出了吗**：① 端口**有**定义而 `.so` 仍是 `U` ⇒ 缺 `#[unsafe(no_mangle)]` ✓（`Vfont_log`/`Vvertical_centering_font_regexp`/`reading_key_sequence`，4.721/4.722 ✓）—— `check-android-imports.py` 现在会自动打印这一形态 ✓。② C 的 `INLINE`/`static inline` **没有**跨单元符号 ✓ ⇒ 端口要在**每个**用它的单元里放一份副本 ✓，**不要**给它 `no_mangle` ✗（`xstrcasecmp` ✓）。副本的位置要落在该单元的包含链之内 ✓（放错会 `cannot find type c_char` ✓）。③ 改了单元就先各自编两个目标 ✓，再链接 ✓，再看棘轮 ✓ —— 只看 android ✓ 会让 darwin 红着进仓库 ✗（本轮一次 ✓，已回退 ✓）。 |
 
+| P-315 | **C 的 `INLINE` 已经有镜像副本时，调用点写镜像路径，不要再造一份、更不要 `extern`**：① 镜像把 `INLINE` 项放在模块里（`dispextern_externs` ✓），因为它不能与自带副本的单元同层 ✓。② 调用点三种写法只有一种对 ✓：`extern "C"` 声明 ✗（C 没有该符号 ✓）、自己再写一份 ✗（`E0428` ✓ / 或落在包含链之外 `cannot find type` ✓）、`模块::名字（…）` ✓。③ 判据仍是 `nm`：`.so` 里该名字应为**不再出现** ✓（不是 `U` 也不是 `T` ✓）。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**
