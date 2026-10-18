@@ -3192,6 +3192,205 @@ unsafe fn emit_static_object (name: *const c_char, obj: Lisp_Object)
   gcc_jit_block_end_with_return (block, std::ptr::null_mut (), res);
 }
 
+/// C 2894-2908: `static void declare_imported_data (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn declare_imported_data ()
+{
+  /* Imported objects.  */
+  comp.data_relocs =
+    declare_imported_data_relocs (CALLNI! (c"comp-ctxt-d-default".as_ptr (), Vcomp_ctxt),
+				  DATA_RELOC_SYM,
+				  DATA_RELOC_ADDR_SYM,
+				  TEXT_DATA_RELOC_SYM);
+  comp.data_relocs_ephemeral =
+    declare_imported_data_relocs (CALLNI! (c"comp-ctxt-d-ephemeral".as_ptr (), Vcomp_ctxt),
+				  DATA_RELOC_EPHEMERAL_SYM,
+				  DATA_RELOC_EPHEMERAL_ADDR_SYM,
+				  TEXT_DATA_RELOC_EPHEMERAL_SYM);
+}
+
+/*
+  Declare as imported all the functions that are requested from the runtime.
+  These are either subrs or not.  Note that the list created here must match
+  the array `helper_link_table'.
+*/
+/// C 2920-2927: `#define ADD_IMPORTED(f_name, ret_type, nargs, args)` - C's `STR (f_name)`
+/// stringifies the token, which a Rust macro cannot, so the call sites pass the same text as a
+/// `c"..."` literal (the `CALLNI!` shape above).  C's macro also writes the enclosing
+/// `field_list` by name; a `macro_rules!` is hygienic, so that variable is a parameter here.
+#[cfg (feature = "have_native_comp")]
+macro_rules! ADD_IMPORTED {
+  ($field_list:ident, $f_name:expr, $ret_type:expr, $nargs:expr, $args:expr) => {{
+    let name: Lisp_Object = intern_c_string ($f_name);
+    let field: Lisp_Object =
+      make_mint_ptr (declare_imported_func (name, $ret_type, $nargs, $args) as *mut c_void);
+    let el: Lisp_Object = Fcons (name, field);
+    $field_list = Fcons (el, $field_list);
+  }};
+}
+
+/// C 2915-2979: `static Lisp_Object declare_runtime_imported_funcs (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn declare_runtime_imported_funcs () -> Lisp_Object
+{
+  let mut field_list: Lisp_Object = Qnil ();
+
+  let mut args: [*mut gcc_jit_type; 4] = [std::ptr::null_mut (); 4];
+
+  ADD_IMPORTED! (field_list, c"wrong_type_argument".as_ptr (), comp.void_type, 2, std::ptr::null_mut ());
+
+  args[0] = comp.lisp_obj_type;
+  args[1] = comp.int_type;
+  ADD_IMPORTED! (field_list, c"helper_PSEUDOVECTOR_TYPEP_XUNTAG".as_ptr (), comp.bool_type, 2,
+		 args.as_mut_ptr ());
+
+  args[0] = comp.lisp_obj_type;
+  args[1] = comp.int_type;
+  ADD_IMPORTED! (field_list, c"push_handler".as_ptr (), comp.handler_ptr_type, 2, args.as_mut_ptr ());
+
+  ADD_IMPORTED! (field_list, c"record_unwind_protect_excursion".as_ptr (), comp.void_type, 0,
+		 std::ptr::null_mut ());
+
+  args[0] = comp.lisp_obj_type;
+  ADD_IMPORTED! (field_list, c"helper_unbind_n".as_ptr (), comp.lisp_obj_type, 1, args.as_mut_ptr ());
+
+  ADD_IMPORTED! (field_list, c"helper_save_restriction".as_ptr (), comp.void_type, 0,
+		 std::ptr::null_mut ());
+
+  args[0] = comp.lisp_obj_type;
+  ADD_IMPORTED! (field_list, c"helper_GET_SYMBOL_WITH_POSITION".as_ptr (),
+		 comp.lisp_symbol_with_position_ptr_type,
+		 1, args.as_mut_ptr ());
+
+  args[0] = comp.lisp_obj_type;
+  args[1] = comp.lisp_obj_type;
+  ADD_IMPORTED! (field_list, c"slow_eq".as_ptr (), comp.bool_type, 2, args.as_mut_ptr ());
+
+  args[0] = comp.lisp_obj_type;
+  args[1] = comp.lisp_obj_type;
+  ADD_IMPORTED! (field_list, c"helper_sanitizer_assert".as_ptr (), comp.lisp_obj_type, 2,
+		 args.as_mut_ptr ());
+
+  ADD_IMPORTED! (field_list, c"record_unwind_current_buffer".as_ptr (), comp.void_type, 0,
+		 std::ptr::null_mut ());
+
+  args[0] = comp.lisp_obj_type;
+  args[1] = comp.lisp_obj_type;
+  args[2] = comp.lisp_obj_type;
+  args[3] = comp.int_type;
+  ADD_IMPORTED! (field_list, c"set_internal".as_ptr (), comp.void_type, 4, args.as_mut_ptr ());
+
+  args[0] = comp.lisp_obj_type;
+  ADD_IMPORTED! (field_list, c"helper_unwind_protect".as_ptr (), comp.void_type, 1, args.as_mut_ptr ());
+
+  args[0] = comp.lisp_obj_type;
+  args[1] = comp.lisp_obj_type;
+  ADD_IMPORTED! (field_list, c"specbind".as_ptr (), comp.void_type, 2, args.as_mut_ptr ());
+
+  ADD_IMPORTED! (field_list, c"maybe_gc".as_ptr (), comp.void_type, 0, std::ptr::null_mut ());
+
+  ADD_IMPORTED! (field_list, c"maybe_quit".as_ptr (), comp.void_type, 0, std::ptr::null_mut ());
+
+  return Freverse (field_list);
+}
+
+/*
+  This emit the code needed by every compilation unit to be loaded.
+*/
+/// C 2984-3068: `static void emit_ctxt_code (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_ctxt_code ()
+{
+  /* Emit optimize qualities.  */
+  let opt_qly: [Lisp_Object; 3] =
+    [ Fcons (Qnative_comp_speed (), make_fixnum (comp.speed)),
+      Fcons (Qnative_comp_debug (), make_fixnum (comp.debug)),
+      Fcons (Qgccjit (),
+	     Fcomp_libgccjit_version ()) ];
+  emit_static_object (TEXT_OPTIM_QLY_SYM,
+		      Flist (countof! (opt_qly) as ptrdiff_t,
+			     opt_qly.as_ptr () as *mut Lisp_Object));
+
+  emit_static_object (TEXT_FDOC_SYM,
+		      CALLNI! (c"comp-ctxt-function-docs".as_ptr (), Vcomp_ctxt));
+
+  comp.current_thread_ref =
+    gcc_jit_lvalue_as_rvalue (
+      gcc_jit_context_new_global (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	GCC_JIT_GLOBAL_EXPORTED,
+	gcc_jit_type_get_pointer (comp.thread_state_ptr_type),
+	CURRENT_THREAD_RELOC_SYM));
+
+  comp.f_symbols_with_pos_enabled_ref =
+    gcc_jit_lvalue_as_rvalue (
+      gcc_jit_context_new_global (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	GCC_JIT_GLOBAL_EXPORTED,
+	comp.bool_ptr_type,
+	F_SYMBOLS_WITH_POS_ENABLED_RELOC_SYM));
+
+  gcc_jit_context_new_global (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	GCC_JIT_GLOBAL_EXPORTED,
+	comp.lisp_obj_type,
+	COMP_UNIT_SYM);
+
+  declare_imported_data ();
+
+  /* Functions imported from Lisp code.	 */
+  freloc_check_fill ();
+  let mut fields: *mut *mut gcc_jit_field =
+    xmalloc ((freloc.size as usize) * core::mem::size_of::<*mut gcc_jit_field> ())
+      as *mut *mut gcc_jit_field;
+  let mut n_frelocs: ptrdiff_t = 0;
+  let mut f_runtime: Lisp_Object = declare_runtime_imported_funcs ();
+  FOR_EACH_TAIL! (f_runtime, {
+      let el: Lisp_Object = XCAR (f_runtime);
+      eassert! (n_frelocs < freloc.size);
+      *fields.offset (n_frelocs as isize) =
+	xmint_pointer (XCDR (el)) as *mut gcc_jit_field;
+      n_frelocs += 1;
+    });
+
+  /* Sign the .eln for the exposed ABI it expects at load.  */
+  eassert! (! NILP (Vcomp_abi_hash));
+  emit_static_object (LINK_TABLE_HASH_SYM, Vcomp_abi_hash);
+
+  let mut subr_l: Lisp_Object = Vcomp_subr_list;
+  FOR_EACH_TAIL! (subr_l, {
+      let subr: *mut Lisp_Subr = XSUBR (XCAR (subr_l));
+      let subr_sym: Lisp_Object = intern_c_string ((*subr).symbol_name);
+      eassert! (n_frelocs < freloc.size);
+      *fields.offset (n_frelocs as isize) =
+	declare_imported_func (subr_sym, comp.lisp_obj_type,
+			       (*subr).max_args as c_int,   // C's `short` -> `int` widening
+			       std::ptr::null_mut ());
+      n_frelocs += 1;
+    });
+
+  let f_reloc_struct: *mut gcc_jit_struct =
+    gcc_jit_context_new_struct_type (comp.ctxt,
+				     std::ptr::null_mut (),
+				     c"freloc_link_table".as_ptr (),
+				     n_frelocs as c_int, fields);
+  comp.func_relocs_ptr_type =
+    gcc_jit_type_get_pointer (
+      gcc_jit_struct_as_type (f_reloc_struct));
+
+  comp.func_relocs =
+    gcc_jit_context_new_global (comp.ctxt,
+				std::ptr::null_mut (),
+				GCC_JIT_GLOBAL_EXPORTED,
+				comp.func_relocs_ptr_type,
+				FUNC_LINK_TABLE_SYM);
+
+  xfree (fields as *mut c_void);
+}
+
 /// C 2854-2892: `static reloc_array_t declare_imported_data_relocs (Lisp_Object container,
 /// const char *code_symbol, const char *addr_fun_symbol, const char *text_symbol)`.
 #[cfg (feature = "have_native_comp")]
