@@ -212,6 +212,25 @@ TOKEN_ALIAS_EQUIV: dict = {}
 TOKEN_ALIAS_WARNINGS: list = []
 
 
+
+# `docs/ports/function-aliases.tsv`: C functions the port spells under more than one name (C's own
+# `#if`/`#else` around a declarator, or a `#define` that renames).  `--check` tries each listed
+# port name as a candidate body, the same way it already tries one definition per arm.
+FUNCTION_ALIASES: dict[tuple[str, str], list[str]] = {}
+
+
+def load_function_aliases(path: Path) -> None:
+    FUNCTION_ALIASES.clear()
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        fields = line.split("\t")
+        if len(fields) < 3:
+            continue
+        FUNCTION_ALIASES[(fields[0], fields[1])] = fields[2].split()
+
 def load_token_aliases(path: Path) -> None:
     """Read the families (`canonical<TAB>spelling,spelling<TAB>reason`)."""
     TOKEN_ALIASES.clear()
@@ -2332,6 +2351,14 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         # one of them: the candidates are tried in file order and the arm with the fewest
         # complaints wins, so a faithful second arm is not reported as a broken first one.
         candidates = r.get("bodies_all", {}).get(name) or [rust_body]
+        # The tables spell a reference file the way the reference tree does (`src/emacs.c`),
+        # while this loop holds a repository-relative path (`emacs/src/emacs.c`).
+        c_rel = str(c_path.relative_to(HERE.parent)) if str(c_path).startswith(
+            str(HERE.parent)) else str(c_path)
+        c_rel = c_rel[len("emacs/"):] if c_rel.startswith("emacs/") else c_rel
+        for alias in FUNCTION_ALIASES.get((c_rel, name), []):
+            candidates = candidates + (r.get("bodies_all", {}).get(alias)
+                                       or ([r["bodies"][alias]] if alias in r["bodies"] else []))
         best: list[str] | None = None
         for candidate in candidates:
             rows: list[str] = []
@@ -2640,6 +2667,7 @@ def main() -> int:
     object_rows = read_excluded_objects(object_rows_path)
     exported_rows = read_exported_substitutions(Path(args.exported_substitutions))
     load_token_aliases(Path(args.token_aliases))
+    load_function_aliases(HERE.parent / "docs/ports/function-aliases.tsv")
     cond_macros = Path(args.cond_macros)
     cond_paths = Path(args.cond_macro_paths)
     if cond_paths.is_file():

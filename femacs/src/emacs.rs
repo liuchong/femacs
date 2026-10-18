@@ -1433,6 +1433,24 @@ unsafe fn load_pdump (argc: c_int, argv: *mut *mut c_char,
   return emacs_executable;
 }
 
+/* C 1318-1323: the two spellings of the one body above.  `main` gets C's `dump_file = NULL`,
+   `android_emacs_init` gets the JNI entry's argument (`android.rs`'s `initEmacs` calls it, C
+   `android.c` 2087-2192).  */
+#[cfg (any (not (feature = "have_android"), feature = "android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
+{
+  emacs_init_body (argc, argv, std::ptr::null_mut ())
+}
+
+#[cfg (all (feature = "have_android", not (feature = "android_stubify")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn android_emacs_init (argc: c_int, argv: *mut *mut c_char,
+					     dump_file: *mut c_char) -> c_int
+{
+  emacs_init_body (argc, argv, dump_file)
+}
+
 /* -----------------------------------------------------------------------------------------
    C 1315-2637.  `main` (the `#else` arm's `android_emacs_init` is dead, and with it the
    WINDOWSNT/NTGUI/NS/PGTK/MSDOS/HAIKU/ANDROID/LIBSYSTEMD/SECCOMP/PROFILING/DAEMON_MUST_EXEC
@@ -1442,17 +1460,21 @@ unsafe fn load_pdump (argc: c_int, argv: *mut *mut c_char,
    `main` never returns (C's `eassume (false)`), so the port marks the same point with
    `unreachable_unchecked` after the macro.
    -------------------------------------------------------------------------------------- */
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn main (mut argc: c_int, argv: *mut *mut c_char) -> c_int
+/* C 1315-1323: one body, two names.  `#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY`
+   makes it `int main (int argc, char **argv)`; the `#else` makes it
+   `int android_emacs_init (int argc, char **argv, char *dump_file)`, and C's local
+   `char *dump_file = NULL;` (C 1329-1334) is only for the `main` spelling - the Android one
+   carries the parameter the JNI entry passes.  The port keeps one body and the two wrappers
+   below, so the initialisation order stays a single text.  */
+unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
+			   mut dump_file: *mut c_char) -> c_int
 {
   /* Variable near the bottom of the stack, and aligned appropriately
      for pointers.  */
   let mut stack_bottom_variable: *mut c_void = std::ptr::null_mut ();
   let mut old_argc: c_int = 0;
-  let mut dump_file: *mut c_char = std::ptr::null_mut ();
-
-  /* This is just a dummy argument used to avoid extra defines.  */
-  dump_file = std::ptr::null_mut ();
+  /* C 1329-1334's `char *dump_file; dump_file = NULL;` is the `main` spelling only; the value is
+     the parameter here (the wrappers below pass NULL from `main`, exactly what C assigns).  */
 
   let mut no_loadup: bool = false;
   let mut junk: *mut c_char = std::ptr::null_mut ();

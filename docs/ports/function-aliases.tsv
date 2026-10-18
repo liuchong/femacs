@@ -1,0 +1,10 @@
+# C functions whose definition this repository's Rust spells under more than one name.
+#
+# Only for the shape C itself writes as one function under two names - an `#if`/`#else` around the
+# declarator, or a `#define` that renames it - where the port keeps one body and one wrapper per
+# spelling.  `tools/extract-abi.py --check` compares the C body against each listed port name and
+# accepts the best match (its "the port may carry one definition per arm" rule, extended to two
+# names).  One row per C function: file, C name, space-separated port names, and why.
+#
+# file	C name	port names	why
+src/emacs.c	main	main android_emacs_init emacs_init_body	C 1315-1323: `#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY` calls it `main`, the `#else` calls it `android_emacs_init` with a third parameter; the port keeps one body (`emacs_init_body`) behind both names, so all three names are candidates (status 4.716)
