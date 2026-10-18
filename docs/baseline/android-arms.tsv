@@ -6,10 +6,7 @@
 # Swift-facing shim defines it).
 #
 # name	class	definition site	conditions
-BC	arm	emacs/src/tparam.c:52	
 IMAGE_OPT_FROM_ID	arm	emacs/src/frame.h:1679	#ifdef HAVE_TEXT_CONVERSION && #ifdef HAVE_WINDOW_SYSTEM
-MODULE_FUNCTIONP	arm	emacs/src/lisp.h:4890	#ifndef EMACS_LISP_H
-UP	arm	emacs/src/tparam.c:53	
 Vandroid_wait_for_event_timeout	system		
 Vfont_log	system		
 Vvertical_centering_font_regexp	system		
@@ -17,10 +14,8 @@ Vx_mode_pointer_shape	system
 Vx_nontext_pointer_shape	system		
 Vx_resource_class	system		
 Vx_resource_name	system		
-XMODULE_FUNCTION	arm	emacs/src/lisp.h:4896	#ifndef EMACS_LISP_H
 __darwin_check_fd_set_overflow	runtime		
 __error	runtime		
-aligned_alloc	arm	emacs/src/alloc.c:978	#elif defined HAVE_POSIX_MEMALIGN
 android_emacs_init	arm	emacs/src/emacs.c:1323	#else
 android_intercept_control_space	system		
 android_keyboard_bell_duration	system		
@@ -74,7 +69,6 @@ make_monitor_attribute_list	arm	emacs/src/frame.c:7151	#else && #ifdef HAVE_WIND
 memset_s	system		
 mkostemp	arm	emacs/lib/mkostemp.c:43	
 nl_langinfo	arm	emacs/src/w32proc.c:4149	#ifdef HAVE_LANGINFO_CODESET
-per_line_cost	arm	emacs/src/term.c:1146	#ifndef HAVE_ANDROID
 posix_madvise	system		
 posix_spawn	system		
 posix_spawn_file_actions_addchdir	system		
@@ -95,16 +89,13 @@ redraw_image_glyphs	arm	emacs/src/xdisp.c:32964	#ifdef HAVE_WINDOW_SYSTEM
 remember_mouse_glyph	arm	emacs/src/xdisp.c:2781	#ifdef HAVE_WINDOW_SYSTEM
 renameat_noreplace	arm	emacs/src/sysdep.c:2400	
 renameatx_np	system		
-report_file_notify_error	arm	emacs/src/fileio.c:310	#ifdef USE_FILE_NOTIFY
 rust_eh_personality	system		
-set_tty_color_mode	arm	emacs/src/term.c:2421	#if !defined MSDOS && !defined HAVE_ANDROID
 setutxent	system		
 share_image_cache	arm	emacs/src/xfaces.c:645	#ifdef HAVE_WINDOW_SYSTEM
 start_hourglass	arm	emacs/src/xdisp.c:39674	#ifdef HAVE_WINDOW_SYSTEM
 stderr	system		
 stdin	system		
 stdout	system		
-string_cost	arm	emacs/src/term.c:1118	#ifndef HAVE_ANDROID
 sysctl	system		
 timerfd_callback	arm	emacs/src/atimer.c:424	#ifdef HAVE_TIMERFD
 tty_draw_row_with_mouse_face	arm	emacs/src/msdos.c:996	#ifdef MSDOS && #ifndef HAVE_X_WINDOWS

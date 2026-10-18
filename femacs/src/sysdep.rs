@@ -2854,7 +2854,10 @@ static mut thread_backtrace_npointers: c_int = 0;
 unsafe extern "C" fn deliver_thread_signal (sig: c_int, handler: signal_handler_t) {
   let old_errno: c_int = *errno ();
 
-  /* C 1770-1782: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` is live.  */
+  /* C 1770-1782: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` - live for the frozen configuration,
+     absent for Android (`HAVE_BACKTRACE` is absent there too, so its `backtrace` call would not
+     link; C's macro is what C itself tests).  */
+  #[cfg (feature = "forward_signal_to_main_thread")]
   {
     if pthread_equal (pthread_self (), main_thread_id) == 0
       {

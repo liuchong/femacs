@@ -258,9 +258,25 @@ pub unsafe extern "C" fn report_file_error (string: *const c_char, name: Lisp_Ob
   report_file_errno (string, name, *errno ());
 }
 
-/* `report_file_notify_error` (C 279-294) is entirely inside `#ifdef USE_FILE_NOTIFY`
-   (undefined), so the frozen configuration does not compile it; recorded in
-   `docs/ports/fileio.md` (P-08).  */
+/* C 303-317: `#ifdef USE_FILE_NOTIFY` - dead for the frozen configuration, live for the Android
+   one (`USE_FILE_NOTIFY` is 1 there, and so is `HAVE_INOTIFY`, so `inotify.c` calls this).  The
+   earlier note recorded it as "not compiled" and left a comment; the definition is written now
+   (status 4.714).  */
+
+/* Like `report_file_error`, but reports a file-notify-error instead.  */
+#[cfg (feature = "use_file_notify")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn report_file_notify_error (string: *const c_char, name: Lisp_Object) -> !
+{
+  let mut str_: *mut c_char = emacs_strerror (*errno ());
+  AUTO_STRING! (unibyte_str, str_);
+  let mut errstring: Lisp_Object
+    = code_convert_string_norecord (unibyte_str, Vlocale_coding_system, false);
+  let mut data: Lisp_Object = if CONSP (name) || NILP (name) { name } else { list1 (name) };
+  let mut errdata: Lisp_Object = Fcons (errstring, data);
+
+  xsignal (Qfile_notify_error (), Fcons (build_string (string), errdata));
+}
 
 /* ACTION failed for FILE with errno ERR.  Signal an error if ERR
    means the file's metadata could not be retrieved even though it may

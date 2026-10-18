@@ -16709,6 +16709,11 @@ redisplay_internal ()
   if face_change
     { windows_or_buffers_changed = 47; }
 
+  /* C 17454-17471 is `#if !defined MSDOS && !defined HAVE_ANDROID`: the previous-frame bookkeeping
+     and the `set_tty_color_mode` call belong to the tty arm, which Android does not compile
+     (status 4.714).  */
+  #[cfg (all (not (feature = "msdos"), not (feature = "have_android")))]
+  {
   let mut previous_frame: *mut frame;
   if is_tty_frame (sf)
       && { previous_frame = (*FRAME_TTY! (sf)).previous_frame;
@@ -16725,6 +16730,7 @@ redisplay_internal ()
 	}
       (*FRAME_TTY! (sf)).previous_frame = sf;
     }
+  }
 
   /* Set the visible flags for all frames.  Do this before checking for
      resized or garbaged frames; they want to know if their frames are

@@ -2169,7 +2169,12 @@ DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
        doc: "Create an additional terminal frame, possibly on another terminal.\nThis function takes one argument, an alist specifying frame parameters.\n\nYou can create multiple frames on a single text terminal, but only one\nof them (the selected terminal frame) is actually displayed.\n\nIn practice, generally you don't need to specify any parameters,\nexcept when you want to create a new frame on another terminal.\nIn that case, the `tty' parameter specifies the device file to open,\nand the `tty-type' parameter specifies the terminal type.  Example:\n\n   (make-terminal-frame \\='((tty . \"/dev/pts/5\") (tty-type . \"xterm\")))\n\nNote that changing the size of one terminal frame automatically\naffects all frames on the same terminal device.  ",
        (parms: Lisp_Object),
        {
-  /* C 1755-1758's `#ifdef HAVE_ANDROID` is dead (HAVE_ANDROID undef).  */
+  /* C 1755-1758: the `#ifdef HAVE_ANDROID` arm (the platform has no text terminals); everything
+     below is C's `#else`, which Android does not compile (status 4.714).  */
+  #[cfg (feature = "have_android")]
+  { error (c"Text terminals are not supported on this platform".as_ptr ()); }
+  #[cfg (not (feature = "have_android"))]
+  {
   let mut parms = parms;
   let mut t: *mut terminal = std::ptr::null_mut ();
   let sf: *mut frame = SELECTED_FRAME ();
@@ -2308,6 +2313,7 @@ DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
   after_make_frame! (f, true);
 
   return frame;
+  }
 });
 
 /* Perform the switch to frame FRAME.

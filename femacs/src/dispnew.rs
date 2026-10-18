@@ -8179,7 +8179,7 @@ unsafe fn init_display_interactive ()
     (*f).output_data.tty = &mut the_only_tty_output;
     (*f).output_data.tty.display_info = &mut the_only_display_info;
     }
-    #[cfg (not (feature = "msdos"))]
+    #[cfg (all (not (feature = "msdos"), not (feature = "have_android")))]
     {
     if FRAME_TERMCAP_P (f)
       { create_tty_output (f); }

@@ -115,6 +115,7 @@ pub struct matrix_elt
    to the place at which the first mismatch between old and
    new contents appears.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn calculate_scrolling (frame: *mut frame,
 			       /* matrix is of size window_size + 1 on each side.  */
 			       matrix: *mut matrix_elt,
@@ -283,6 +284,7 @@ unsafe fn calculate_scrolling (frame: *mut frame,
    considered.  These two arguments can specify any contiguous range
    of lines.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn do_scrolling (frame: *mut frame, current_matrix: *mut glyph_matrix,
 			matrix: *mut matrix_elt, window_size: c_int,
 			unchanged_at_top: c_int)
@@ -506,6 +508,7 @@ unsafe fn do_scrolling (frame: *mut frame, current_matrix: *mut glyph_matrix,
    meanings here as in calculate_scrolling, and old_draw_cost
    is the equivalent of draw_cost for the old line contents */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn calculate_direct_scrolling (frame: *mut frame,
 				      /* matrix is of size window_size + 1 on each side.  */
 				      matrix: *mut matrix_elt,
@@ -744,6 +747,7 @@ unsafe fn calculate_direct_scrolling (frame: *mut frame,
    is described in more detail in calculate_direct_scrolling, where
    the cost matrix for this approach is constructed. */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn do_direct_scrolling (frame: *mut frame, current_matrix: *mut glyph_matrix,
 			       cost_matrix: *mut matrix_elt, window_size: c_int,
 			       unchanged_at_top: c_int)
@@ -917,6 +921,7 @@ unsafe fn do_direct_scrolling (frame: *mut frame, current_matrix: *mut glyph_mat
 
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn scrolling_1 (frame: *mut frame, window_size: c_int,
 				      unchanged_at_top: c_int, unchanged_at_bottom: c_int,
 				      draw_cost: *mut c_int, old_draw_cost: *mut c_int,
@@ -959,6 +964,7 @@ pub unsafe extern "C" fn scrolling_1 (frame: *mut frame, window_size: c_int,
    such a line will have little weight.  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn scrolling_max_lines_saved (start: c_int, end: c_int,
 						    oldhash: *mut c_uint, newhash: *mut c_uint,
 						    cost: *mut c_int) -> c_int
@@ -1030,6 +1036,7 @@ pub unsafe extern "C" fn scrolling_max_lines_saved (start: c_int, end: c_int,
 /* Calculate the line insertion/deletion
    overhead and multiply factor values */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn line_ins_del (frame: *mut frame, ov1: c_int, pf1: c_int, ovn: c_int, pfn: c_int,
 			ov: *mut c_int, mf: *mut c_int)
 {
@@ -1049,6 +1056,7 @@ unsafe fn line_ins_del (frame: *mut frame, ov1: c_int, pf1: c_int, ovn: c_int, p
     }
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn ins_del_costs (frame: *mut frame,
 			 one_line_string: *const c_char, multi_string: *const c_char,
 			 setup_string: *const c_char, cleanup_string: *const c_char,
@@ -1113,6 +1121,7 @@ unsafe fn ins_del_costs (frame: *mut frame,
  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn do_line_insertion_deletion_costs (frame: *mut frame,
 							   ins_line_string: *const c_char,
 							   multi_ins_string: *const c_char,

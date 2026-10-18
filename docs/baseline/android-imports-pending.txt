@@ -23,7 +23,6 @@ backtrace
 backtrace_symbols_fd
 cancel_hourglass
 confstr
-create_tty_output
 devname
 display_and_set_cursor
 draw_phys_cursor_glyph
@@ -68,7 +67,6 @@ make_monitor_attribute_list
 memset_s
 mkostemp
 nl_langinfo
-per_line_cost
 posix_madvise
 posix_spawn
 posix_spawn_file_actions_addchdir
@@ -89,16 +87,13 @@ redraw_image_glyphs
 remember_mouse_glyph
 renameat_noreplace
 renameatx_np
-report_file_notify_error
 rust_eh_personality
-set_tty_color_mode
 setutxent
 share_image_cache
 start_hourglass
 stderr
 stdin
 stdout
-string_cost
 sysctl
 timerfd_callback
 tty_draw_row_with_mouse_face
