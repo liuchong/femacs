@@ -234,8 +234,10 @@ static mut all_kboards: *mut KBOARD = std::ptr::null_mut ();
 static mut single_kboard: bool = false;
 
 /* C 117-119: `#ifdef HAVE_TEXT_CONVERSION`'s `bool reading_key_sequence;` (the macro is
-   `#undef` on this target; carried per P-51).  */
+   `#undef` on this target; carried per P-51).  C's `DEFVAR_BOOL` defines it and the definition
+   has to carry the C symbol: another unit references it (PORTING.md P-313, status 4.722).  */
 #[cfg (feature = "have_text_conversion")]
+#[unsafe(no_mangle)]
 pub static mut reading_key_sequence: bool = false;
 
 /* C 122-126: `MIN_NUM_RECENT_KEYS` and the two arms of `MAX_NUM_RECENT_KEYS` (the frozen

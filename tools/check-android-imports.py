@@ -139,6 +139,28 @@ def binds_eagerly(so: pathlib.Path) -> bool:
     return False
 
 
+
+def port_definition(name: str) -> str:
+    """Where the port defines NAME as a Rust item, if it does - the "written but not exported" case.
+
+    An unresolved import that the port *does* define is not a missing transcription: it is a
+    definition without `#[unsafe(no_mangle)]` (`from_unicode_buffer` in 4.718, `Vfont_log` and
+    `Vvertical_centering_font_regexp` in 4.721), and naming the file and line turns the ratchet row
+    into an instruction.
+    """
+    fn = re.compile(rf"^(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn {re.escape(name)}\s*[\(<]")
+    st = re.compile(rf"^(?:pub\s+)?static mut {re.escape(name)}\s*:")
+    for root in ("femacs/src", "femacs/lib", "femacs/lib/include"):
+        for path in sorted((REPO / root).glob("*.rs")):
+            lines = path.read_text(errors="replace").splitlines()
+            for i, line in enumerate(lines):
+                if fn.match(line) or st.match(line):
+                    prev = lines[i - 1].strip() if i else ""
+                    exported = "no_mangle" in prev
+                    return (f"{path.relative_to(REPO)}:{i + 1}"
+                            + ("" if exported else "  <- defined but NOT exported (`no_mangle` missing)"))
+    return ""
+
 def read_pending(path: pathlib.Path) -> list[str]:
     if not path.is_file():
         return []
@@ -195,12 +217,23 @@ def main() -> int:
         for name in new[:40]:
             who = ", ".join(sorted(origins.get(name, ()))) or "nothing in DT_NEEDED"
             print(f"  - {name:38s} searched: {who}")
+            where = port_definition(name)
+            if where:
+                print(f"    {where}")
         if len(new) > 40:
             print(f"  … {len(new) - 40} more")
         print("  A new entry is either an arm that is not transcribed for this target (then run\n"
               "  `--write-pending` after reading the list) or a defect in the referring unit.")
         return 1
     tail = "; the library cannot be dlopen'ed until that list is empty" if unresolved else ""
+    if unresolved:
+        written = {n: port_definition(n) for n in sorted(unresolved)}
+        written = {n: w for n, w in written.items() if w}
+        if written:
+            print(f"check-android-imports: {len(written)} unresolved name(s) the port defines but "
+                  f"does not export:")
+            for n, w in list(written.items())[:20]:
+                print(f"  - {n:38s} {w}")
     binding = ("eager (-z now): the library will not load" if eager
                else "lazy (bionic default): it loads, and a call to a missing name faults")
     print(f"check-android-imports: {len(imports)} import(s); {len(unresolved)} unresolved "

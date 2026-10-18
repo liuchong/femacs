@@ -327,6 +327,9 @@ pub static mut Valternate_fontname_alist: Lisp_Object = std::ptr::null_mut ();
 #[cfg (feature = "have_window_system")]
 pub static mut Vfontset_alias_alist: Lisp_Object = std::ptr::null_mut ();
 #[cfg (feature = "have_window_system")]
+/* C's `DEFVAR_LISP` in `syms_of_fontset` defines this global; `sfntfont.rs` references it from
+   another unit, so the C symbol has to exist (PORTING.md P-313, status 4.722).  */
+#[unsafe(no_mangle)]
 pub static mut Vvertical_centering_font_regexp: Lisp_Object = std::ptr::null_mut ();
 #[cfg (feature = "have_window_system")]
 pub static mut Votf_script_alist: Lisp_Object = std::ptr::null_mut ();

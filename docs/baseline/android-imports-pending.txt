@@ -6,7 +6,6 @@
 # a missing #[no_mangle], or a header mirror hard-coding another platform's
 # symbol).  A non-empty file means the library cannot be dlopen'ed.
 IMAGE_OPT_FROM_ID
-Vvertical_centering_font_regexp
 Vx_mode_pointer_shape
 Vx_nontext_pointer_shape
 Vx_resource_class
@@ -65,7 +64,6 @@ prepare_face_for_display
 proc_pid_rusage
 proc_pidinfo
 proc_pidpath
-reading_key_sequence
 redraw_image_glyphs
 remember_mouse_glyph
 renameat_noreplace
