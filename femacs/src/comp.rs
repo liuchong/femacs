@@ -2791,6 +2791,248 @@ unsafe fn define_setcar_setcdr ()
    Currently expose just fixnum arithmetic.
 */
 
+/* Define a function to convert boolean into t or nil */
+
+/// C 4072-4107: `static void define_bool_to_lisp_obj (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_bool_to_lisp_obj ()
+{
+  /* x ? Qt : Qnil */
+  let param: *mut gcc_jit_param = gcc_jit_context_new_param (comp.ctxt,
+						    std::ptr::null_mut (),
+						    comp.bool_type,
+						    c"x".as_ptr ());
+  comp.bool_to_lisp_obj =
+    gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_FUNCTION_INTERNAL,
+				  comp.lisp_obj_type,
+				  c"bool_to_lisp_obj".as_ptr (),
+				  1,
+				  &raw const param as *mut *mut gcc_jit_param,
+				  0);
+  DECL_BLOCK! (entry_block, comp.bool_to_lisp_obj);
+  DECL_BLOCK! (ret_t_block, comp.bool_to_lisp_obj);
+  DECL_BLOCK! (ret_nil_block, comp.bool_to_lisp_obj);
+  comp.block = entry_block;
+  comp.func = comp.bool_to_lisp_obj;
+
+  emit_cond_jump (gcc_jit_param_as_rvalue (param),
+		  ret_t_block,
+		  ret_nil_block);
+
+  comp.block = ret_t_block;
+  gcc_jit_block_end_with_return (ret_t_block,
+				 std::ptr::null_mut (),
+				 emit_lisp_obj_rval (Qt ()));
+
+  comp.block = ret_nil_block;
+  gcc_jit_block_end_with_return (ret_nil_block,
+				 std::ptr::null_mut (),
+				 emit_lisp_obj_rval (Qnil ()));
+}
+
+/// C 4109-4163: `static gcc_jit_function *declare_lex_function (Lisp_Object func)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn declare_lex_function (func: Lisp_Object) -> *mut gcc_jit_function
+{
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+  let c_name: Lisp_Object = CALLNI! ("comp-func-c-name", func);
+  let args: Lisp_Object = CALLNI! ("comp-func-l-args", func);
+  let nargs: bool = ! NILP (CALLNI! ("comp-nargs-p", args));
+
+  let res: *mut gcc_jit_function;
+  if ! nargs
+    {
+      let max_args: EMACS_INT = XFIXNUM (CALLNI! ("comp-args-max", args));
+      eassert! (max_args < INT_MAX as EMACS_INT);
+      let mut type_: *mut *mut gcc_jit_type = std::ptr::null_mut ();
+      SAFE_NALLOCA! (sa_avail, type_, 1, max_args as usize);
+      let mut i: ptrdiff_t = 0;
+      while i < max_args
+	{
+	  *type_.offset (i as isize) = comp.lisp_obj_type;
+	  i += 1;
+	}
+
+      let mut params: *mut *mut gcc_jit_param = std::ptr::null_mut ();
+      SAFE_NALLOCA! (sa_avail, params, 1, max_args as usize);
+      let mut i: c_int = 0;
+      while (i as EMACS_INT) < max_args
+	{
+	  *params.offset (i as isize) = gcc_jit_context_new_param (comp.ctxt,
+					      std::ptr::null_mut (),
+					      *type_.offset (i as isize),
+					      format_string (c"par_%d".as_ptr (), i));
+	  i += 1;
+	}
+      res = gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+					  GCC_JIT_FUNCTION_EXPORTED,
+					  comp.lisp_obj_type,
+					  SSDATA (c_name),
+					  max_args as c_int,
+					  params,
+					  0);
+    }
+  else
+    {
+      let params: [*mut gcc_jit_param; 2] =
+	[ gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.ptrdiff_type,
+				     c"nargs".as_ptr ()),
+	  gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.lisp_obj_ptr_type,
+				     c"args".as_ptr ()) ];
+      res = gcc_jit_context_new_function (comp.ctxt,
+				      std::ptr::null_mut (),
+				      GCC_JIT_FUNCTION_EXPORTED,
+				      comp.lisp_obj_type,
+				      SSDATA (c_name),
+				      countof! (params) as c_int,
+				      params.as_ptr () as *mut *mut gcc_jit_param, 0);
+    }
+  SAFE_FREE! (sa_count, sa_mark);
+  return res;
+}
+
+/* Declare a function being compiled and add it to comp.exported_funcs_h.  */
+
+/// C 4167-4182: `static void declare_function (Lisp_Object func)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn declare_function (func: Lisp_Object)
+{
+  let gcc_func: *mut gcc_jit_function =
+    if ! NILP (CALLNI! ("comp-func-l-p", func))
+    { declare_lex_function (func) }
+    else
+    { gcc_jit_context_new_function (comp.ctxt,
+				    std::ptr::null_mut (),
+				    GCC_JIT_FUNCTION_EXPORTED,
+				    comp.lisp_obj_type,
+				    SSDATA (CALLNI! ("comp-func-c-name", func)),
+				    0, std::ptr::null_mut (), 0) };
+  Fputhash (CALLNI! ("comp-func-c-name", func),
+	    make_mint_ptr (gcc_func as *mut c_void),
+	    comp.exported_funcs_h);
+}
+
+/// C 4184-4283: `static void compile_function (Lisp_Object func)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn compile_function (func: Lisp_Object)
+{
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+  comp.frame_size = XFIXNUM (CALLNI! ("comp-func-frame-size", func));
+  eassert! (comp.frame_size < INT_MAX as EMACS_INT);
+
+  comp.func = xmint_pointer (Fgethash (CALLNI! ("comp-func-c-name", func),
+				       comp.exported_funcs_h, Qnil ()))
+    as *mut gcc_jit_function;
+
+  comp.func_has_non_local = ! NILP (CALLNI! ("comp-func-has-non-local", func)) as c_int;
+  comp.func_speed = XFIXNUM (CALLNI! ("comp-func-speed", func));
+  comp.func_safety = XFIXNUM (CALLNI! ("comp-func-safety", func));
+
+  comp.func_relocs_local =
+    gcc_jit_function_new_local (comp.func,
+				std::ptr::null_mut (),
+				comp.func_relocs_ptr_type,
+				c"freloc".as_ptr ());
+
+  SAFE_NALLOCA! (sa_avail, comp.frame, 1, comp.frame_size as usize);
+  if comp.func_has_non_local != 0 || comp.func_speed == 0
+    {
+      /* FIXME: See bug#42360.  */
+      let arr: *mut gcc_jit_lvalue =
+        gcc_jit_function_new_local (
+          comp.func,
+          std::ptr::null_mut (),
+          gcc_jit_context_new_array_type (comp.ctxt,
+                                          std::ptr::null_mut (),
+                                          comp.lisp_obj_type,
+                                          comp.frame_size as c_int),
+          c"frame".as_ptr ());
+
+      let mut i: ptrdiff_t = 0;
+      while i < comp.frame_size
+	{
+	  *comp.frame.offset (i as isize) =
+          gcc_jit_context_new_array_access (
+            comp.ctxt,
+            std::ptr::null_mut (),
+            gcc_jit_lvalue_as_rvalue (arr),
+            gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+                                                 comp.int_type,
+                                                 i as c_int));
+	  i += 1;
+	}
+    }
+  else
+    {
+      let mut i: ptrdiff_t = 0;
+      while i < comp.frame_size
+	{
+	  *comp.frame.offset (i as isize) =
+	    gcc_jit_function_new_local (comp.func,
+				    std::ptr::null_mut (),
+				    comp.lisp_obj_type,
+				    format_string (c"slot_%td".as_ptr (), i));
+	  i += 1;
+	}
+    }
+
+  comp.scratch = std::ptr::null_mut ();
+
+  comp.loc_handler = gcc_jit_function_new_local (comp.func,
+						  std::ptr::null_mut (),
+						  comp.handler_ptr_type,
+						  c"c".as_ptr ());
+
+  comp.func_blocks_h = Fmake_hash_table (0, std::ptr::null_mut ());
+
+  /* Pre-declare all basic blocks to gcc.
+     The "entry" block must be declared as first.  */
+  declare_block (Qentry ());
+  let ht: *mut Lisp_Hash_Table = XHASH_TABLE (CALLNI! ("comp-func-blocks", func));
+  DOHASH! (ht, block_name, block, {
+      if ! EQ (block_name, Qentry ())
+	{ declare_block (block_name); }
+    });
+
+  gcc_jit_block_add_assignment (retrieve_block (Qentry ()),
+				std::ptr::null_mut (),
+				comp.func_relocs_local,
+				gcc_jit_lvalue_as_rvalue (comp.func_relocs));
+
+
+  DOHASH! (ht, block_name, block, {
+      let insns: Lisp_Object = CALLNI! ("comp-block-insns", block);
+      if NILP (block) || NILP (insns)
+	{ xsignal1 (Qnative_ice (),
+		  build_string (c"basic block is missing or empty".as_ptr ())); }
+
+      comp.block = retrieve_block (block_name);
+      let mut insns: Lisp_Object = insns;
+      while CONSP (insns)
+	{
+	  let insn: Lisp_Object = XCAR (insns);
+	  emit_limple_insn (insn);
+	  insns = XCDR (insns);
+	}
+    });
+  let err: *const c_char = gcc_jit_context_get_first_error (comp.ctxt);
+  if ! err.is_null ()
+    { xsignal3 (Qnative_ice (),
+	      build_string (c"failing to compile function".as_ptr ()),
+	      CALLNI! ("comp-func-name", func),
+	      build_string (err)); }
+  SAFE_FREE! (sa_count, sa_mark);
+}
+
+/**********************************/
+/* Entry points exposed to lisp.  */
+/**********************************/
+
 /// C 3778-3847: `static void define_negate (void)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_negate ()
