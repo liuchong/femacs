@@ -12,11 +12,10 @@
 #
 # The list is a ratchet: `tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`
 # fails on an entry that has become clean, so it can only shrink (status §3.30).
-# lib/regex is the *aggregate* translation unit: C 57-59 include regex_internal.c, regcomp.c
-# and regexec.c, so the reference `regex.o` exports all three files' symbols.  The port keeps
-# them in the three sibling objects (femacs/lib/{regex_internal,regcomp,regexec}.o carry the
-# same 13 `rpl_*` definitions), which is why this object's own table is empty; docs/ports/regex.md
-# records the shape.  The entry can go once the build links the three into one object, if that
-# is what the dump and the module ABI need.
-lib/regex
+# `lib/regex` left the list in status 4.748, without merging anything: it is the *aggregate*
+# translation unit (C 57-59 include regex_internal.c, regcomp.c and regexec.c), so its reference
+# object exports all three files' symbols while the port keeps them in the three siblings
+# (docs/ports/regex.md).  `check-symbols.py` now takes a stem list and compares the three
+# siblings against that one object, which is why the gate demanded the entry's removal rather
+# than a merge of the three into one - the empty list below is the ratchet's floor.
 

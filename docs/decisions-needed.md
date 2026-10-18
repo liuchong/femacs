@@ -132,19 +132,21 @@
 - 用户授权的两个平台里，**Android 是窗口系统**（`HAVE_ANDROID` 打开 ✓），而端口的 `xdisp.rs` 等处把 C 的
   `#ifdef HAVE_WINDOW_SYSTEM` 段落**逐处写成了“dead on this target (P-08)”注释**（例：`femacs/src/xdisp.rs`
   30417/30421/30426）。这在冻结的 **darwin** 配置下是对的，在 **Android** 上却把活代码记成了死代码。
-- 读数（可复跑）：`python3 tools/check-android-imports.py` ⇒ `libemacs.so` **402 个导入 / 119 个无人提供**
-  （棘轮 `docs/baseline/android-imports-pending.txt`；`docs/status.md` 4.708 记了从 214 降到 119 的六步）。
-  逐条落位（`tools/gen-android-arms.py` ⇒ `docs/baseline/android-arms.tsv`）后：**`HAVE_WINDOW_SYSTEM` 臂 31 条**
-  （`xdisp.c` 26、`xfaces.c` 3 等）、`not_found` 66 条、`other` 20 条、平台名 2 条。
+- 读数（可复跑，2026-10-18 status 4.747）：`python3 tools/check-android-imports.py` ⇒ `libemacs.so`
+  **359 个导入 / 71 个无人提供**（棘轮 `docs/baseline/android-imports-pending.txt`；`docs/status.md` 4.708 记的是
+  更早一步的 402/119，此后 119 → 71）。逐条落位（`tools/gen-android-arms.py` ⇒ `docs/baseline/android-arms.tsv`，
+  71 行）后：**窗口系统臂 40 条**（`xdisp.c` 27、`xfaces.c` 3、`frame.c` 3、`frame.h` 2、`androidfns.c` 2、
+  `androidterm.c` 2、`msdos.c` 1；施工队列 `docs/baseline/window-arms-plan.tsv` 40 行）+ **上游/平台缺口 31 条**
+  （附录 B，不需要决定）。数字由 `python3 tools/check-doc-numbers.py` 对着表核对，不再靠人眼。
 - 结论：只要这些名字无人提供，`libemacs.so` 就**不能被 `dlopen`**，Android 侧只能停在“结构 + 可链接 + 签名 APK”。
 
 **选项**
 
 | 选项 | 做法 | 影响 |
 |---|---|---|
-| **A. 维持现状规则（P-08）** | 死臂只记录，不转写 | macOS 侧 DoD-1 成立 ✓、零额外工作量；但 Android 侧那 31 条臂**永远无人提供** ⇒ “Android 能跑”不可达 ✗，DoD-6 只能记“结构面达成、应用层未达”；新门会长期报 31 条未决（另 88 条与死臂无关，A 口径下照常修）|
+| **A. 维持现状规则（P-08）** | 死臂只记录，不转写 | macOS 侧 DoD-1 成立 ✓、零额外工作量；但 Android 侧那 40 条臂**永远无人提供** ⇒ “Android 能跑”不可达 ✗，DoD-6 只能记“结构面达成、应用层未达”；新门会长期报 71 条未决（其中 31 条是上游/平台缺口，与窗口臂无关；A 口径下按 C 的编排处理）|
 | **B. 无差别逐行写（含 darwin 死臂）** | 把 `HAVE_WINDOW_SYSTEM` 等臂在**所有**目标上都写出来 | 最“满”的口径；工作量最大（`xdisp.c` 一处此前量到 62 个函数；全树 `HAVE_WINDOW_SYSTEM` 区域 **14,946 行**，status 4.711）且 darwin 上这些代码永不执行、只增加维护面 |
-| **C. 按目标配置决定活/死（建议）** | 给镜像加 `have_window_system`/`have_android` 之类的 cfg 门，把臂写成**条件编译**；活臂必写、死臂仍只记录 | 规则从“人工裁剪平台”变成“配置决定” ✓；macOS 侧读数不变 ✓；Android 侧的工作队列是两份可复跑的清单 ✓：名字侧 `android-arms.tsv` **119 条** ✓、文本侧 `platform-arms.tsv`（`HAVE_WINDOW_SYSTEM` 区域 **14,946 行** ✓，status 4.711 ✓）；其余 88 条与窗口系统无关，不需要决定 ✓ |
+| **C. 按目标配置决定活/死（建议）** | 给镜像加 `have_window_system`/`have_android` 之类的 cfg 门，把臂写成**条件编译**；活臂必写、死臂仍只记录 | 规则从“人工裁剪平台”变成“配置决定” ✓；macOS 侧读数不变 ✓；Android 侧的工作队列是两份可复跑的清单 ✓：名字侧 `android-arms.tsv` **40 条窗口臂**（71 行 = 40 窗口臂 + 31 上游缺口）✓、文本侧 `platform-arms.tsv`（`HAVE_WINDOW_SYSTEM` 区域 **14,946 行** ✓，status 4.711 ✓）；其余 31 条是上游/平台缺口，与窗口系统无关，不需要决定 ✓ |
 
 > 我的建议：**C**。它不降低验收标准（活臂照样逐行写），也不为 darwin 增加永不执行的代码。
 

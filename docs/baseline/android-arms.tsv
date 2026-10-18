@@ -7,18 +7,10 @@
 #
 # name	class	definition site	conditions
 IMAGE_OPT_FROM_ID	arm	emacs/src/frame.h:1679	#ifdef HAVE_TEXT_CONVERSION && #ifdef HAVE_WINDOW_SYSTEM
-Vandroid_wait_for_event_timeout	system		
-Vfont_log	system		
-Vvertical_centering_font_regexp	system		
 Vx_mode_pointer_shape	system		
 Vx_nontext_pointer_shape	system		
 Vx_resource_class	system		
 Vx_resource_name	system		
-__darwin_check_fd_set_overflow	runtime		
-__error	runtime		
-android_intercept_control_space	system		
-android_keyboard_bell_duration	system		
-android_pass_multimedia_buttons_to_system	system		
 backtrace	arm	emacs/lib/execinfo.in.h:39	#ifndef _GL_EXECINFO_H
 backtrace_symbols_fd	arm	emacs/lib/execinfo.in.h:55	#ifndef _GL_EXECINFO_H
 cancel_hourglass	arm	emacs/src/xdisp.c:39699	#ifdef HAVE_WINDOW_SYSTEM
@@ -56,7 +48,6 @@ handle_tool_bar_click	arm	emacs/src/xdisp.c:16537	#ifdef HAVE_WINDOW_SYSTEM && #
 mach_timebase_info	system		
 make_monitor_attribute_list	arm	emacs/src/frame.c:7151	#else && #ifdef HAVE_WINDOW_SYSTEM
 mkostemp	arm	emacs/lib/mkostemp.c:43	
-nl_langinfo	arm	emacs/src/w32proc.c:4149	#ifdef HAVE_LANGINFO_CODESET
 posix_spawn	system		
 posix_spawn_file_actions_addchdir	system		
 posix_spawn_file_actions_adddup2	system		
@@ -71,12 +62,9 @@ prepare_face_for_display	arm	emacs/src/xfaces.c:4771	#ifdef HAVE_WINDOW_SYSTEM
 proc_pid_rusage	system		
 proc_pidinfo	system		
 proc_pidpath	system		
-reading_key_sequence	arm	emacs/src/keyboard.c:117	#ifdef HAVE_TEXT_CONVERSION
 redraw_image_glyphs	arm	emacs/src/xdisp.c:32964	#ifdef HAVE_WINDOW_SYSTEM
 remember_mouse_glyph	arm	emacs/src/xdisp.c:2781	#ifdef HAVE_WINDOW_SYSTEM
-renameat_noreplace	arm	emacs/src/sysdep.c:2400	
 renameatx_np	system		
-rust_eh_personality	system		
 setutxent	system		
 share_image_cache	arm	emacs/src/xfaces.c:645	#ifdef HAVE_WINDOW_SYSTEM
 start_hourglass	arm	emacs/src/xdisp.c:39674	#ifdef HAVE_WINDOW_SYSTEM
@@ -84,10 +72,8 @@ stderr	system
 stdin	system		
 stdout	system		
 sysctl	system		
-timerfd_callback	arm	emacs/src/atimer.c:424	#ifdef HAVE_TIMERFD
 tty_draw_row_with_mouse_face	arm	emacs/src/msdos.c:996	#ifdef MSDOS && #ifndef HAVE_X_WINDOWS
 utmpxname	system		
 x_stretch_cursor_p	system		
 x_underline_at_descent_line	system		
 x_use_underline_position_properties	system		
-xstrcasecmp	arm	emacs/src/dispextern.h:108	#ifndef DISPEXTERN_H_INCLUDED
