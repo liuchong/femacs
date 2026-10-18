@@ -2379,16 +2379,15 @@ pub unsafe extern "C" fn sfnt_map_glyf_table (fd: c_int,
      `#elif defined HAVE_MADVISE` (also 1, 1445) is carried under the feature the tree
      registers for `!HAVE_POSIX_MADVISE` (the `pdumper.rs` 5281-5284 shape), and the arm where
      neither macro is defined has no text in C.  */
-  #[cfg (not (feature = "no_have_posix_madvise"))]
+  /* The vocabulary, not a derived name: the frozen configuration satisfies C's first arm, the
+     Android one has `HAVE_POSIX_MADVISE` undefined and `HAVE_MADVISE` set (P-310, status 4.720).  */
+  #[cfg (not (feature = "have_madvise"))]
   {
     posix_madvise (glyphs, (*directory).length as size_t,
 		   POSIX_MADV_WILLNEED);
   }
-  #[cfg (feature = "no_have_posix_madvise")]
-  {
-    if cfg! (feature = "have_madvise")
-      { madvise (glyphs, (*directory).length as size_t, MADV_WILLNEED); }
-  }
+  #[cfg (feature = "have_madvise")]
+  { madvise (glyphs, (*directory).length as size_t, MADV_WILLNEED); }
 
   /* Allocate the glyf table.  */
   glyf = xmalloc (std::mem::size_of::<sfnt_glyf_table> ()) as *mut sfnt_glyf_table;

@@ -678,9 +678,12 @@ pub fn JIS_TO_SJIS2 (code: c_int) -> c_int
 }
 
 /// coding.h 724: `#define WCSDATA(x) ((wchar_t *) SDATA (x))` - the wide-character view of a
-/// string's bytes, which `to_unicode` hands back to its caller (C's cast, spelled out).
+/// string's bytes, which `to_unicode` hands back to its caller (C's cast, spelled out).  The
+/// pointee is spelled `c_int` because this mirror is `include!`d by units that do not include
+/// `<wchar.h>`; `wchar_t` is that same 4-byte signed type on both targets (the `<wchar.h>` mirror
+/// says so, and bionic's `typedef int wchar_t` agrees - status 4.718/4.720).
 #[inline(always)]
-pub fn WCSDATA (x: Lisp_Object) -> *mut wchar_t
+pub fn WCSDATA (x: Lisp_Object) -> *mut c_int
 {
-  SDATA (x) as *mut wchar_t
+  SDATA (x) as *mut c_int
 }

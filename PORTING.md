@@ -938,6 +938,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-311 | **写了函数不等于导出了符号：`extern "C"` 还要 `#[unsafe(no_mangle)]`；棘轮读数不动就是证据**：① `coding.rs` 的 Android 段三个函数第一版只有 `pub unsafe extern "C" fn` ✗ ⇒ 单元里有函数 ✓、目标文件里没有 C 符号 ✗、别的单元照样导入无人提供 ✗（4.718 实测 ✓）。② 凡 C 会导出名字的（非 `static` ✓），端口一律 `#[cfg (…)] #[unsafe(no_mangle)] pub unsafe extern "C" fn` ✓；`static` 的用 `#[unsafe(no_mangle)] pub static mut` ✓。③ **判据顺序**：`nm` 看目标文件有没有那个名字 ✓ → 再链接 ✓ → 再看棘轮 ✓；只看「编过了」会漏这一整类 ✗。 |
 
+| P-312 | **`xtask` 发不出的 cfg 名等于"永远为假的门"：派生名一律换回词表里的键**：① 复盘出四例同类缺陷 ✓：`no_have_posix_madvise`（`sfnt.rs`/`pdumper.rs` ✓）、`posix_memalign`（`alloc.rs` 4.713 ✓）、`linux_or_android`（`boot-time-aux.rs` 4.708 ✓）、`no_getifaddrs`（`process.rs` 4.717 ✓）—— 名字看起来合理，但 `config_features()` 从不发出它 ×。② 规则：门里只允许出现 `config_features()` **能**发出的词（`have_<key>` / `not_have_<key>` / `vm_ms_windows` 这类显式列表项 ✓）✓；需要组合条件时在 `xtask` 里**派生**并写清对应 C 的行号 ✓（`my_aligned_alloc` 的先例 ✓）。③ 共享头镜像里不要引用**只有部分单元**才包含的镜像类型 ✓（`WCSDATA` 的 `wchar_t` 一例 ✓）：写成 `c_int`/`c_void` 一类通用的 FFI 类型并注记 ✓。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**

@@ -5297,17 +5297,27 @@ fn dump_discard_mem (mem: *mut c_void, size: size_t)
     let mut old_prot: DWORD = 0;
     VirtualProtect (mem, size, PAGE_NOACCESS, &mut old_prot);
   }
-  #[cfg (feature = "no_have_posix_madvise")]
-  { if cfg! (feature = "have_madvise")
-      { /* `madvise (mem, size, MADV_DONTNEED);` */ unsafe { madvise (mem, size, MADV_DONTNEED); } } }
-  #[cfg (not (any (feature = "vm_ms_windows", feature = "no_have_posix_madvise",
-                   feature = "windowsnt")))]
-    unsafe {
-      /* Discard COWed pages.  */
-      posix_madvise (mem, size, POSIX_MADV_DONTNEED);
-      /* Release the commit charge for the mapping.  */
-      mprotect (mem, size, PROT_NONE);
-    }
+  /* C 4765-4773: inside `#elif VM_SUPPORTED == VM_POSIX`, `#ifdef HAVE_POSIX_MADVISE` then
+     `#elif defined HAVE_MADVISE`.  The frozen configuration has the first; the Android one has
+     `HAVE_POSIX_MADVISE` undefined and `HAVE_MADVISE` set, so it takes the second (bionic's
+     `madvise` is API 1, status 4.720).  `havve_madvise` is the name `xtask` emits from that key.  */
+  #[cfg (not (feature = "have_madvise"))]
+  #[cfg (not (any (feature = "vm_ms_windows", feature = "windowsnt")))]
+  unsafe {
+    /* Discard COWed pages.  */
+    posix_madvise (mem, size, POSIX_MADV_DONTNEED);
+  }
+  #[cfg (feature = "have_madvise")]
+  #[cfg (not (any (feature = "vm_ms_windows", feature = "windowsnt")))]
+  unsafe {
+    /* Discard COWed pages.  */
+    madvise (mem, size, MADV_DONTNEED);
+  }
+  /* The commit charge is released on both POSIX arms (C 4774-4776 sits outside the `#if`).  */
+  #[cfg (not (any (feature = "vm_ms_windows", feature = "windowsnt")))]
+  unsafe {
+    mprotect (mem, size, PROT_NONE);
+  }
 }
 
 fn dump_mmap_discard_contents (map: *mut dump_memory_map)
