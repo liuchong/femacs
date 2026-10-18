@@ -2791,6 +2791,303 @@ unsafe fn define_setcar_setcdr ()
    Currently expose just fixnum arithmetic.
 */
 
+/// C 3778-3847: `static void define_negate (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_negate ()
+{
+  let bb_orig: *mut gcc_jit_block = comp.block;
+  let param: [*mut gcc_jit_param; 2] =
+	[ gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.lisp_obj_type,
+				     c"n".as_ptr ()),
+	  gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.bool_type,
+				     c"cert_fixnum".as_ptr ()) ];
+
+  let negate: *mut gcc_jit_function = gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_FUNCTION_INTERNAL,
+				  comp.lisp_obj_type,
+				  c"negate".as_ptr (),
+				  2, param.as_ptr () as *mut *mut gcc_jit_param, 0);
+  comp.negate = negate;
+  comp.func = negate;
+
+  DECL_BLOCK! (entry_block, negate);
+  DECL_BLOCK! (inline_block, negate);
+  DECL_BLOCK! (fcall_block, negate);
+
+  comp.block = entry_block;
+
+  /* (cert_fixnum || FIXNUMP (TOP)) && XFIXNUM (TOP) != MOST_NEGATIVE_FIXNUM
+     ? make_fixnum (- XFIXNUM (TOP)) : Fminus (1, &TOP))  */
+
+  let n: *mut gcc_jit_lvalue = gcc_jit_param_as_lvalue (param[0]);
+  let n_fixnum: *mut gcc_jit_rvalue = emit_XFIXNUM (gcc_jit_lvalue_as_rvalue (n));
+  let sure_fixnum: *mut gcc_jit_rvalue =
+    emit_binary_op (GCC_JIT_BINARY_OP_LOGICAL_OR,
+		    comp.bool_type,
+		    gcc_jit_param_as_rvalue (param[1]),
+		    emit_FIXNUMP (gcc_jit_lvalue_as_rvalue (n)));
+
+  emit_cond_jump (emit_binary_op (GCC_JIT_BINARY_OP_LOGICAL_AND,
+				  comp.bool_type,
+				  sure_fixnum,
+				  gcc_jit_context_new_comparison (
+				    comp.ctxt,
+				    std::ptr::null_mut (),
+				    GCC_JIT_COMPARISON_NE,
+				    n_fixnum,
+				    emit_rvalue_from_emacs_int (
+                                      MOST_NEGATIVE_FIXNUM))),
+		  inline_block,
+		  fcall_block);
+
+  comp.block = inline_block;
+  let inline_res: *mut gcc_jit_rvalue =
+    gcc_jit_context_new_unary_op (comp.ctxt,
+				  std::ptr::null_mut (),
+				  GCC_JIT_UNARY_OP_MINUS,
+				  comp.emacs_int_type,
+				  n_fixnum);
+
+  gcc_jit_block_end_with_return (inline_block,
+				 std::ptr::null_mut (),
+				 emit_make_fixnum (inline_res));
+
+  comp.block = fcall_block;
+  let call_res: *mut gcc_jit_rvalue = emit_call_ref (Qminus (), 1, n, false);
+  gcc_jit_block_end_with_return (fcall_block,
+				 std::ptr::null_mut (),
+				 call_res);
+  comp.block = bb_orig;
+}
+
+/* Define a substitute for PSEUDOVECTORP as always inlined function.  */
+
+/// C 3851-3902: `static void define_PSEUDOVECTORP (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_PSEUDOVECTORP ()
+{
+  let param: [*mut gcc_jit_param; 2] =
+    [ gcc_jit_context_new_param (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.lisp_obj_type,
+				 c"a".as_ptr ()),
+      gcc_jit_context_new_param (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.int_type,
+				 c"code".as_ptr ()) ];
+
+  comp.pseudovectorp =
+    gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_FUNCTION_INTERNAL,
+				  comp.bool_type,
+				  c"PSEUDOVECTORP".as_ptr (),
+				  2,
+				  param.as_ptr () as *mut *mut gcc_jit_param,
+				  0);
+
+  DECL_BLOCK! (entry_block, comp.pseudovectorp);
+  DECL_BLOCK! (ret_false_b, comp.pseudovectorp);
+  DECL_BLOCK! (call_pseudovector_typep_b, comp.pseudovectorp);
+
+  comp.block = entry_block;
+  comp.func = comp.pseudovectorp;
+
+  emit_cond_jump (emit_VECTORLIKEP (gcc_jit_param_as_rvalue (param[0])),
+		  call_pseudovector_typep_b,
+		  ret_false_b);
+
+  comp.block = ret_false_b;
+  gcc_jit_block_end_with_return (ret_false_b,
+				 std::ptr::null_mut (),
+				 gcc_jit_context_new_rvalue_from_int (
+				   comp.ctxt,
+				   comp.bool_type,
+				   0));
+
+  let args: [*mut gcc_jit_rvalue; 2] =
+    [ gcc_jit_param_as_rvalue (param[0]),
+      gcc_jit_param_as_rvalue (param[1]) ];
+  comp.block = call_pseudovector_typep_b;
+  /* FIXME use XUNTAG now that's available.  */
+  gcc_jit_block_end_with_return (
+    call_pseudovector_typep_b,
+    std::ptr::null_mut (),
+    emit_call (intern_c_string (c"helper_PSEUDOVECTOR_TYPEP_XUNTAG".as_ptr ()),
+	       comp.bool_type, 2, args.as_ptr () as *mut *mut gcc_jit_rvalue, false));
+}
+
+/// C 3904-3936: `static void define_GET_SYMBOL_WITH_POSITION (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_GET_SYMBOL_WITH_POSITION ()
+{
+  let param: [*mut gcc_jit_param; 1] =
+    [ gcc_jit_context_new_param (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.lisp_obj_type,
+				 c"a".as_ptr ()) ];
+
+  comp.get_symbol_with_position =
+    gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_FUNCTION_INTERNAL,
+				  comp.lisp_symbol_with_position_ptr_type,
+				  c"GET_SYMBOL_WITH_POSITION".as_ptr (),
+				  1,
+				  param.as_ptr () as *mut *mut gcc_jit_param,
+				  0);
+
+  DECL_BLOCK! (entry_block, comp.get_symbol_with_position);
+
+  comp.block = entry_block;
+  comp.func = comp.get_symbol_with_position;
+
+  let args: [*mut gcc_jit_rvalue; 1] =
+    [ gcc_jit_param_as_rvalue (param[0]) ];
+  /* FIXME use XUNTAG now that's available.  */
+  gcc_jit_block_end_with_return (
+    entry_block,
+    std::ptr::null_mut (),
+    emit_call (intern_c_string (c"helper_GET_SYMBOL_WITH_POSITION".as_ptr ()),
+	       comp.lisp_symbol_with_position_ptr_type,
+	       1, args.as_ptr () as *mut *mut gcc_jit_rvalue, false));
+}
+
+/// C 3938-3978: `static void define_SYMBOL_WITH_POS_SYM (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_SYMBOL_WITH_POS_SYM ()
+{
+  let param: [*mut gcc_jit_param; 1] =
+    [ gcc_jit_context_new_param (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.lisp_obj_type,
+				 c"a".as_ptr ()) ];
+  comp.symbol_with_pos_sym =
+    gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_FUNCTION_INTERNAL,
+				  comp.lisp_obj_type,
+				  c"SYMBOL_WITH_POS_SYM".as_ptr (),
+				  1,
+				  param.as_ptr () as *mut *mut gcc_jit_param,
+				  0);
+
+  DECL_BLOCK! (entry_block, comp.symbol_with_pos_sym);
+  comp.func = comp.symbol_with_pos_sym;
+  comp.block = entry_block;
+
+  emit_CHECK_SYMBOL_WITH_POS (gcc_jit_param_as_rvalue (param [0]));
+
+  let args: [*mut gcc_jit_rvalue; 1] = [ gcc_jit_param_as_rvalue (param [0]) ];
+
+  let swp: *mut gcc_jit_rvalue = gcc_jit_context_new_call (comp.ctxt,
+				  std::ptr::null_mut (),
+				  comp.get_symbol_with_position,
+				  1,
+				  args.as_ptr () as *mut *mut gcc_jit_rvalue);
+  let tmpl: *mut gcc_jit_lvalue = gcc_jit_rvalue_dereference (swp, std::ptr::null_mut ());
+  let tmpr: *mut gcc_jit_rvalue = gcc_jit_lvalue_as_rvalue (tmpl);
+  gcc_jit_block_end_with_return (entry_block,
+				 std::ptr::null_mut (),
+				 gcc_jit_rvalue_access_field (
+				   tmpr,
+				   std::ptr::null_mut (),
+				   comp.lisp_symbol_with_position_sym));
+}
+
+/// C 3980-4068: `static void define_maybe_gc_or_quit (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_maybe_gc_or_quit ()
+{
+
+  /*
+    void
+    maybe_gc_or_quit (void)
+    {
+      static unsigned quitcounter;
+     inc:
+      quitcounter++;
+      if (quitcounter >> 14) goto maybe_do_it else goto pass;
+     maybe_do_it:
+          quitcounter = 0;
+          maybe_gc ();
+          maybe_quit ();
+          return;
+     pass:
+          return;
+    }
+  */
+
+  let bb_orig: *mut gcc_jit_block = comp.block;
+
+  let quitcounter: *mut gcc_jit_lvalue =
+    gcc_jit_context_new_global (
+      comp.ctxt,
+      std::ptr::null_mut (),
+      GCC_JIT_GLOBAL_INTERNAL,
+      comp.unsigned_type,
+      c"quitcounter".as_ptr ());
+
+  let f: *mut gcc_jit_function = gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_FUNCTION_INTERNAL,
+				  comp.void_type,
+				  c"maybe_gc_quit".as_ptr (),
+				  0, std::ptr::null_mut (), 0);
+  comp.maybe_gc_or_quit = f;
+  comp.func = f;
+  DECL_BLOCK! (increment_block, f);
+  DECL_BLOCK! (maybe_do_it_block, f);
+  DECL_BLOCK! (pass_block, f);
+
+  comp.block = increment_block;
+
+  gcc_jit_block_add_assignment (
+    comp.block,
+    std::ptr::null_mut (),
+    quitcounter,
+    emit_binary_op (GCC_JIT_BINARY_OP_PLUS,
+		    comp.unsigned_type,
+		    gcc_jit_lvalue_as_rvalue (quitcounter),
+		    gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+							 comp.unsigned_type,
+							 1)));
+  emit_cond_jump (
+    emit_binary_op (GCC_JIT_BINARY_OP_RSHIFT,
+		    comp.unsigned_type,
+		    gcc_jit_lvalue_as_rvalue (quitcounter),
+		    gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+							 comp.unsigned_type,
+							 9)),
+    /* 9 translates into checking for GC or quit every 512 calls to
+       'maybe_gc_quit'.  This is the smallest value I could find with
+       no performance impact running elisp-banechmarks and the same
+       used by the byte interpreter (see 'exec_byte_code').  */
+    maybe_do_it_block,
+    pass_block);
+
+  comp.block = maybe_do_it_block;
+
+  gcc_jit_block_add_assignment (
+    comp.block,
+    std::ptr::null_mut (),
+    quitcounter,
+    gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					 comp.unsigned_type,
+					 0));
+  gcc_jit_block_add_eval (comp.block, std::ptr::null_mut (),
+			  emit_call (intern_c_string (c"maybe_gc".as_ptr ()),
+				     comp.void_type, 0, std::ptr::null_mut (), false));
+  gcc_jit_block_add_eval (comp.block, std::ptr::null_mut (),
+			  emit_call (intern_c_string (c"maybe_quit".as_ptr ()),
+				     comp.void_type, 0, std::ptr::null_mut (), false));
+  gcc_jit_block_end_with_void_return (comp.block, std::ptr::null_mut ());
+
+  gcc_jit_block_end_with_void_return (pass_block, std::ptr::null_mut ());
+
+  comp.block = bb_orig;
+}
+
 /// C 3697-3776: `static void define_add1_sub1 (void)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_add1_sub1 ()
