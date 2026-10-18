@@ -86,10 +86,13 @@ if [ -f "$SO" ]; then
   if python3 "$REPO/tools/check-android-imports.py" --so "$SO" 2>&1 | sed 's/^/   /'; then :; else status=1; fi
 fi
 
-echo "== Android: signed APK with the native library =="
+# The assets tree is not optional any more: Android's Emacs reads its Lisp from the APK (there is no
+# dump), and `tools/gen-android-assets.py` reproduces C's `install_temp` recipe, including
+# `assets/directory-tree` from the port's own `asset-directory-tool` (docs/android-app-readiness.md).
+echo "== Android: signed APK with the native library and the assets tree =="
 if JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@25} \
-   bash "$REPO/tools/check-android-kotlin.sh" --apk "$APK_DIR" --native "$SO" 2>&1 \
-   | grep -E 'member: lib/arm64-v8a|^apk: ' ; then :; else status=1; fi
+   bash "$REPO/tools/check-android-kotlin.sh" --apk "$APK_DIR" --native "$SO" --assets 2>&1 \
+   | grep -E 'member: lib/arm64-v8a|assets: |^apk: ' ; then :; else status=1; fi
 if [ -f "$APK_DIR/emacs.apk" ]; then
   BT=$(ls -d "$HOME"/Library/Android/sdk/build-tools/* 2>/dev/null | tail -1)
   if JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@25} \
