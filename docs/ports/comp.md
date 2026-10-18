@@ -16,7 +16,7 @@
 > the dynamic loading of libgccjit, this unit's records and its first functions up to
 > `hash_native_abi`'s closing brace - and stops there because C 824's `freloc_check_fill` is the
 > first place the file needs `FOR_EACH_TAIL`, one of the macros `docs/ports/excluded-macros.txt`
-> keeps `kind=deferred` (P-22: "使用这些宏的文件暂不开工").  C 824-5857 is **not transcribed yet**
+> keeps `kind=deferred` (P-22: "使用这些宏的文件暂不开工").  C 824-5857 is **arriving in tranches** (only C 824-1010 is transcribed so far)
 > and the line-range table below says so per range rather than leaving it to prose.
 
 `HAVE_NATIVE_COMP` is `undef` (`docs/baseline/config/darwin-arm64.macros.tsv` 1473); `WINDOWSNT`
@@ -46,7 +46,7 @@ included by no configuration - see the gap note below), and the arm-flip reading
 | C 738, 752/756 `HAVE_ZLIB` (the two blocks in `comp_hash_source_file`) | `not (feature = "have_zlib")` / `feature = "have_zlib"` | both arms carried |
 | C 797 `#ifdef NS_SELF_CONTAINED` (in `hash_native_abi`) | `"ns_self_contained"` | a self-contained app-bundle configuration |
 | C 5585 `#ifdef HAVE_NATIVE_COMP` in `Fnative_comp_available_p` | `feature = "have_native_comp"` / `not (...)` | both arms carried |
-| C 5596-5854 `#ifdef HAVE_NATIVE_COMP` in `syms_of_comp` | `feature = "have_native_comp"` (slice 2: not transcribed yet) | - |
+| C 5596-5854 `#ifdef HAVE_NATIVE_COMP` in `syms_of_comp` | `feature = "have_native_comp"` (slice 2: tranche 2, not transcribed yet) | - |
 
 **The missing gates are named here, not added.**  Eight of the features the table names -
 `libgccjit_have_gcc_jit_global_set_initializer`, `libgccjit_have_gcc_jit_context_new_bitcast`,
@@ -96,7 +96,8 @@ that mirror's own notes live).
 | 731-767 | C 732-767 `comp_hash_source_file` | file gate / `have_zlib` (C 738-743, 752-758) |
 | 768-777 | C 769-777 `DEFUN ("comp--subr-signature", …)` | file gate |
 | 778-822 | C 779-822 `hash_native_abi` | file gate / `ns_self_contained` (C 797-818) |
-| 823-5577 | C 824-5577, the rest of the file gate's region: `freloc_check_fill` (`FOR_EACH_TAIL`), `bcall0`, the `emit_*` primitives, the Limple opcode tables, `limple_to_gimple`, `emit_lap_*`, `declare_*`/`compile_*`, the libgccjit entry points and `load_comp_unit` | **slice 2, not transcribed yet** (C 824's `FOR_EACH_TAIL` is a `kind=deferred` row in `docs/ports/excluded-macros.txt`) **not transcribed yet** (the tolerance row records the shortfall, status 3.678) |
+| 824-1010 | C 824-1010: `freloc_check_fill` (`FOR_EACH_TAIL`), `bcall0`, `retrieve_block`, `declare_block`, `emit_mvar_lval`, `register_emitter`, `obj_to_reloc`, `emit_comment`, `declare_imported_func`, plus C 504-505's `CALLNI` macro and the seven `<libgccjit.h>` prototypes C 511-517's `#ifndef WINDOWSNT` arm calls directly | **landed (4.686)** - `dead-arms` compiles it with `have_native_comp` on: 340/340 units, 0 failed |
+| 1011-5577 | C 1011-5577, the rest of the file gate's region: the `emit_*` primitives, the Limple opcode tables, `limple_to_gimple`, `emit_lap_*`, `declare_*`/`compile_*`, the remaining libgccjit entry points and `load_comp_unit` | **slice 2, not transcribed yet** (the tolerance row records the shortfall, status 3.678) |
 | 5578-5590 | C 5578 `#endif /* HAVE_NATIVE_COMP */` (the file gate's end), C 5580-5590 `DEFUN ("native-comp-available-p", …)` | **live text**, both arms of C 5585 carried |
 | 5591-5595 | the blank run and `syms_of_comp`'s head (C 5593-5595) | live text |
 | 5596-5854 | `syms_of_comp`'s `#ifdef HAVE_NATIVE_COMP` region (the `DEFVAR_BOOL`, the `comp--#$` `DEFVAR_LISP`, the fifty-odd `DEFSYM`s, `Fprovide`) | **slice 2, not transcribed yet** |
