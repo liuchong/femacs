@@ -4712,7 +4712,17 @@ pub unsafe extern "C" fn syms_of_androidfns ()
   DEFSYM! (Qx_hide_tip, "x-hide-tip");                             // C 3668
   DEFSYM! (Qcancel_timer, "cancel-timer");                         // C 3669
   DEFSYM! (Qassq_delete_all, "assq-delete-all");                   // C 3670
-  DEFSYM! (Qcolor, "color");                                       // C 3671
+  /* C's three `DEFVAR_BOOL`/`DEFVAR_INT` invocations below expand to a definition plus the
+   registration; the port's macros only register, and `android.rs` references these from another
+   unit, so the definitions are here with their C symbols (status 4.721).  */
+#[unsafe(no_mangle)]
+pub static mut android_pass_multimedia_buttons_to_system: bool = false;
+#[unsafe(no_mangle)]
+pub static mut android_intercept_control_space: bool = false;
+#[unsafe(no_mangle)]
+pub static mut android_keyboard_bell_duration: EMACS_INT = 0;
+
+DEFSYM! (Qcolor, "color");                                       // C 3671
 
   DEFVAR_LISP! (c"x-max-tooltip-size", Vx_max_tooltip_size,         // C 3673-3674
 		doc: "SKIP: real doc in xfns.c.  ");

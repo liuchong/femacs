@@ -6,8 +6,6 @@
 # a missing #[no_mangle], or a header mirror hard-coding another platform's
 # symbol).  A non-empty file means the library cannot be dlopen'ed.
 IMAGE_OPT_FROM_ID
-Vandroid_wait_for_event_timeout
-Vfont_log
 Vvertical_centering_font_regexp
 Vx_mode_pointer_shape
 Vx_nontext_pointer_shape
@@ -15,9 +13,6 @@ Vx_resource_class
 Vx_resource_name
 __darwin_check_fd_set_overflow
 __error
-android_intercept_control_space
-android_keyboard_bell_duration
-android_pass_multimedia_buttons_to_system
 backtrace
 backtrace_symbols_fd
 cancel_hourglass

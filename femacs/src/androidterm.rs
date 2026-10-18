@@ -8965,6 +8965,12 @@ pub static mut Vx_toolkit_scroll_bars: Lisp_Object = lisp_h_Qnil ();   // C 7078
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_androidterm ()
 {
+/* C 6997's `DEFVAR_LISP` expands to the global's definition plus its registration; the port's
+   `DEFVAR_LISP!` only registers, and `globals.rs` only declares, so the definition is here with
+   its C symbol (status 4.721).  */
+#[unsafe(no_mangle)]
+pub static mut Vandroid_wait_for_event_timeout: Lisp_Object = lisp_h_Qnil ();
+
   Fprovide (Qandroid (), Qnil ());                                      // C 6994
 
   DEFVAR_LISP! (c"android-wait-for-event-timeout",                      // C 6996-6997

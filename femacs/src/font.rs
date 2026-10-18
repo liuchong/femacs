@@ -6453,6 +6453,10 @@ pub static mut Vfont_encoding_alist: Lisp_Object = lisp_h_Qnil ();
 pub static mut Vfont_weight_table: Lisp_Object = lisp_h_Qnil ();
 pub static mut Vfont_slant_table: Lisp_Object = lisp_h_Qnil ();
 pub static mut Vfont_width_table: Lisp_Object = lisp_h_Qnil ();
+/* C's `DEFVAR_LISP` in `syms_of_font` expands to the *definition* of the global plus its
+   registration; `fontset.rs` references it from another unit, so the C symbol has to exist
+   (`globals.rs` only declares it - status 4.721).  */
+#[unsafe(no_mangle)]
 pub static mut Vfont_log: Lisp_Object = lisp_h_Qnil ();
 pub static mut inhibit_compacting_font_caches: bool = false;
 pub static mut xft_ignore_color_fonts: bool = false;

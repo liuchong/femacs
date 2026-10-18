@@ -940,6 +940,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-312 | **`xtask` 发不出的 cfg 名等于"永远为假的门"：派生名一律换回词表里的键**：① 复盘出四例同类缺陷 ✓：`no_have_posix_madvise`（`sfnt.rs`/`pdumper.rs` ✓）、`posix_memalign`（`alloc.rs` 4.713 ✓）、`linux_or_android`（`boot-time-aux.rs` 4.708 ✓）、`no_getifaddrs`（`process.rs` 4.717 ✓）—— 名字看起来合理，但 `config_features()` 从不发出它 ×。② 规则：门里只允许出现 `config_features()` **能**发出的词（`have_<key>` / `not_have_<key>` / `vm_ms_windows` 这类显式列表项 ✓）✓；需要组合条件时在 `xtask` 里**派生**并写清对应 C 的行号 ✓（`my_aligned_alloc` 的先例 ✓）。③ 共享头镜像里不要引用**只有部分单元**才包含的镜像类型 ✓（`WCSDATA` 的 `wchar_t` 一例 ✓）：写成 `c_int`/`c_void` 一类通用的 FFI 类型并注记 ✓。 |
 
+| P-313 | **`DEFVAR_*` 只注册不定义：跨单元引用的全局要显式写出定义并 `no_mangle`**：① C 的 `DEFVAR_BOOL/LISP/INT` 是"定义 + 注册"两步 ✓，端口的同名宏只注册 ✓、`globals.rs` 只声明 ✓ ⇒ **谁都不定义** ⇒ 目标文件里是 `U` ✗（`Vfont_log`、三个 `android_*`、`Vandroid_wait_for_event_timeout`，4.721 实测 ✓）。② 修法：在 `syms_of_*` 所在单元写 `#[unsafe(no_mangle)] pub static mut X: T = <C 的初值>;` ✓ —— 同单元的局部定义遮蔽 `globals.rs` 的 glob 导入 ✓。③ **判据**：`nm <unit>.o` 里该名字应为 `B`/`D`/`T` 而不是 `U` ✓；只看"编过了"发现不了 ✓（`extern` 声明处的赋值也能过编译 ✓）。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**
