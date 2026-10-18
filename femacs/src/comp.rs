@@ -33,7 +33,7 @@
 // The consequence is measured, not asserted: the arm's compile reading stops in name resolution
 // (see that ledger's `## Evidence`), so this slice's arm evidence is `text-only` (P-86 clause 3).
 //
-// **Slice 1 covers C 25-822.**  The file is 5,857 lines and is being ported in slices; this is the
+// **Slice 1 covers C 25-822, slice 2 is arriving from C 824 on.**  The file is 5,857 lines and is being ported in slices; this is the
 // first (the dynamic loading of libgccjit, this unit's data structures, and the hashing helpers),
 // and it stops at `hash_native_abi`'s closing brace because C 824's `freloc_check_fill` is the
 // first place the file needs `FOR_EACH_TAIL`, one of the macros `femacs/src/include/w32common.h`
@@ -87,6 +87,11 @@ include!("include/coding.rs");                  // C 38: `#include "coding.h"`
 include!("../lib/include/md5.rs");              // C 39: `#include "md5.h"`
 #[cfg (feature = "have_native_comp")]
 include!("include/sysstdio.rs");                // C 40: `#include "sysstdio.h"`
+/* lisp.h 28's `#include <stdcountof.h>` - C reaches it through lisp.h (C 23), and this unit is
+   the first to need `countof` (slice 2's `freloc_check_fill`).  Gated like this file's other
+   includes, so the frozen configuration compiles none of it.  */
+#[cfg (feature = "have_native_comp")]
+include!("../lib/include/stdcountof.rs");       // lisp.h 28: `<stdcountof.h>` (`countof`)
 
 /* C 31: `#include <libgccjit.h>` - the reference tree has no such file (P-88: a third-party
    header, the class `decompress.rs`'s `<zlib.h>` and `lcms.rs`'s `<lcms2.h>` are the first two
@@ -739,6 +744,7 @@ const NUM_CAST_TYPES: usize = 15;
 /// for data relocations.
 #[cfg (feature = "have_native_comp")]
 #[repr(C)]
+#[derive(Clone, Copy)]   // C copies this record by value (`reloc.array = comp.data_relocs;`, C 917)
 pub struct reloc_array_t
 {
   pub len: EMACS_INT,
@@ -1229,6 +1235,287 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 // (docs/ports/link.md, reading three).
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
+
+/* ==============================================================================================
+   C 824-5857: **slice 2**.  It starts here because C 824's `freloc_check_fill` is the file's first
+   `FOR_EACH_TAIL` (the mirror's `FOR_EACH_TAIL!`, the `syntax` row of
+   `docs/ports/excluded-macros.txt`) and the first `goto`; the slice is arriving in tranches and
+   `docs/ports/comp.md` carries the ledger rows.
+   ============================================================================================== */
+
+/// C 504-505: `#define CALLNI(fun, ...) calln (intern_c_string (STR (fun)), __VA_ARGS__)` - this
+/// file's own macro (C 507's `DECL_BLOCK` is written at its uses and `FIXNUM` is the mirror's).
+/// C's `STR (fun)` stringifies the token; a Rust macro cannot, so the call sites pass the same
+/// text as a `c"..."` literal.
+macro_rules! CALLNI {
+  ($fun:expr, $($args:expr),* $(,)?) => {
+    calln! (intern_c_string ($fun), $($args),*)
+  };
+}
+
+/* C 511-517's `#ifndef WINDOWSNT` arm takes these straight from `<libgccjit.h>`, while C 48-442's
+   `WINDOWSNT` arm loads the same names into `fn_gcc_jit_*` pointers - so the declarations below
+   are the half that is *not* `windowsnt`.  `<libgccjit.h>` is the third-party header P-88
+   describes (`comp.rs`'s file note), and each prototype carries that header's own line.  */
+#[cfg (all (feature = "have_native_comp", not (feature = "windowsnt")))]
+unsafe extern "C" {
+  /// C: libgccjit.h 644-645: `gcc_jit_type *gcc_jit_type_get_const (gcc_jit_type *type);`
+  pub fn gcc_jit_type_get_const (type_: *mut gcc_jit_type) -> *mut gcc_jit_type;
+  /// C: libgccjit.h 701-704: `gcc_jit_field *gcc_jit_context_new_field (gcc_jit_context *ctxt,
+  /// gcc_jit_location *loc, gcc_jit_type *type, const char *name);`
+  pub fn gcc_jit_context_new_field (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                    type_: *mut gcc_jit_type, name: *const c_char)
+    -> *mut gcc_jit_field;
+  /// C: libgccjit.h 771-776: `gcc_jit_type *gcc_jit_context_new_function_ptr_type
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, gcc_jit_type *return_type, int num_params,
+  /// gcc_jit_type **param_types, int is_variadic);`
+  pub fn gcc_jit_context_new_function_ptr_type (ctxt: *mut gcc_jit_context,
+                                                loc: *mut gcc_jit_location,
+                                                return_type: *mut gcc_jit_type,
+                                                num_params: c_int,
+                                                param_types: *mut *mut gcc_jit_type,
+                                                is_variadic: c_int) -> *mut gcc_jit_type;
+  /// C: libgccjit.h 874-875: `gcc_jit_block *gcc_jit_function_new_block (gcc_jit_function *func,
+  /// const char *name);`
+  pub fn gcc_jit_function_new_block (func: *mut gcc_jit_function, name: *const c_char)
+    -> *mut gcc_jit_block;
+  /// C: libgccjit.h 1112-1114: `gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_int
+  /// (gcc_jit_context *ctxt, gcc_jit_type *numeric_type, int value);`
+  pub fn gcc_jit_context_new_rvalue_from_int (ctxt: *mut gcc_jit_context,
+                                              numeric_type: *mut gcc_jit_type, value: c_int)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1495-1498: `gcc_jit_lvalue *gcc_jit_function_new_local (gcc_jit_function *func,
+  /// gcc_jit_location *loc, gcc_jit_type *type, const char *name);`
+  pub fn gcc_jit_function_new_local (func: *mut gcc_jit_function, loc: *mut gcc_jit_location,
+                                     type_: *mut gcc_jit_type, name: *const c_char)
+    -> *mut gcc_jit_lvalue;
+  /// C: libgccjit.h 1561-1563: `void gcc_jit_block_add_comment (gcc_jit_block *block,
+  /// gcc_jit_location *loc, const char *text);`
+  pub fn gcc_jit_block_add_comment (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
+                                    text: *const c_char);
+}
+
+/// `fatal` is `sysdep.c` 2399's non-`static` definition; C declares it where it is used, and the
+/// units that call it carry the variadic declaration themselves (`eval.rs` 100, `androidterm.rs`
+/// 8695 - the same shape, since no mirror names it).
+#[cfg (feature = "have_native_comp")]
+unsafe extern "C" { pub fn fatal (msgid: *const c_char, ...) -> !; }
+
+/// C 824-850: `static void freloc_check_fill (void)`.  C's `goto overflow` leaves the loop and
+/// the following statements at once, so the body is a labelled block and the label's code sits
+/// after it, where C's `overflow:` sits.
+#[cfg (feature = "have_native_comp")]
+unsafe fn freloc_check_fill ()
+{
+  if freloc.size != 0
+    { return; }
+
+  eassert! (! NILP (Vcomp_subr_list));
+
+  'overflow: {
+    if countof! (helper_link_table) > F_RELOC_MAX_SIZE
+      { break 'overflow; }
+    memcpy (freloc.link_table.as_mut_ptr () as *mut c_void,
+            helper_link_table.as_ptr () as *const c_void,
+            core::mem::size_of_val (&helper_link_table));
+    freloc.size = countof! (helper_link_table) as ptrdiff_t;
+
+    let mut subr_l: Lisp_Object = Vcomp_subr_list;
+    FOR_EACH_TAIL! (subr_l, {
+      if freloc.size == F_RELOC_MAX_SIZE as ptrdiff_t
+        { break 'overflow; }
+      let subr: *mut Lisp_Subr = XSUBR (XCAR (subr_l));
+      freloc.link_table[freloc.size as usize] =
+        (*subr).function.a0.map_or (std::ptr::null_mut (), |a0| a0 as *mut c_void);
+      freloc.size += 1;
+    });
+    return;
+  }
+
+  fatal (c"Overflowing function relocation table, increase F_RELOC_MAX_SIZE".as_ptr ());
+}
+
+/// C 852-856: `static void bcall0 (Lisp_Object f)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn bcall0 (f: Lisp_Object)
+{
+  calln! (f);
+}
+
+/// C 858-867: `static gcc_jit_block *retrieve_block (Lisp_Object block_name)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn retrieve_block (block_name: Lisp_Object) -> *mut gcc_jit_block
+{
+  let value: Lisp_Object = Fgethash (block_name, comp.func_blocks_h, Qnil ());
+
+  if NILP (value)
+    { xsignal2 (Qnative_ice (), build_string (c"missing basic block".as_ptr ()), block_name); }
+
+  return xmint_pointer (value) as *mut gcc_jit_block;
+}
+
+/// C 869-880: `static void declare_block (Lisp_Object block_name)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn declare_block (block_name: Lisp_Object)
+{
+  let name_str: *mut c_char = SSDATA (SYMBOL_NAME (block_name));
+  let block: *mut gcc_jit_block = gcc_jit_function_new_block (comp.func, name_str);
+  let value: Lisp_Object = make_mint_ptr (block as *mut c_void);
+
+  if ! NILP (Fgethash (block_name, comp.func_blocks_h, Qnil ()))
+    { xsignal1 (Qnative_ice (), build_string (c"double basic block declaration".as_ptr ())); }
+
+  Fputhash (block_name, value, comp.func_blocks_h);
+}
+
+/// C 882-900: `static gcc_jit_lvalue *emit_mvar_lval (Lisp_Object mvar)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_mvar_lval (mvar: Lisp_Object) -> *mut gcc_jit_lvalue
+{
+  let mvar_slot: Lisp_Object = CALLNI! (c"comp-mvar-slot".as_ptr (), mvar);
+
+  if EQ (mvar_slot, Qscratch ())
+    {
+      if comp.scratch.is_null ()
+        { comp.scratch = gcc_jit_function_new_local (comp.func,
+                                                     std::ptr::null_mut (),
+                                                     comp.lisp_obj_type,
+                                                     c"scratch".as_ptr ()); }
+      return comp.scratch;
+    }
+
+  let slot_n: EMACS_INT = XFIXNUM (mvar_slot);
+  eassert! (slot_n < comp.frame_size);
+  return *comp.frame.offset (slot_n as isize);
+}
+
+/// C 902-907: `static void register_emitter (Lisp_Object key, void *func)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn register_emitter (key: Lisp_Object, func: *mut c_void)
+{
+  let value: Lisp_Object = make_mint_ptr (func);
+  Fputhash (key, value, comp.emitter_dispatcher);
+}
+
+/// C 909-941: `static imm_reloc_t obj_to_reloc (Lisp_Object obj)`.  C declares `reloc` without an
+/// initialiser and writes both fields on every path that reaches the return (PORTING.md 0.1-13's
+/// zeroed reading for C's uninitialised storage); C's `goto found` jumps *forward* into the middle
+/// of the body, so the statements from `found:` on sit in a labelled block.
+#[cfg (feature = "have_native_comp")]
+unsafe fn obj_to_reloc (obj: Lisp_Object) -> imm_reloc_t
+{
+  let mut reloc: imm_reloc_t = std::mem::zeroed ();
+  let idx: Lisp_Object;
+
+  'found: {
+    let idx_first: Lisp_Object = Fgethash (obj, comp.d_default_idx, Qnil ());
+    if ! NILP (idx_first)
+      {
+        reloc.array = comp.data_relocs;
+        idx = idx_first;
+        break 'found;
+      }
+
+    let idx_second: Lisp_Object = Fgethash (obj, comp.d_ephemeral_idx, Qnil ());
+    if ! NILP (idx_second)
+      {
+        reloc.array = comp.data_relocs_ephemeral;
+        idx = idx_second;
+        break 'found;
+      }
+
+    xsignal1 (Qnative_ice (),
+              build_string (c"can't find data in relocation containers".as_ptr ()));
+    eassume! (false);
+  }
+
+  // found:
+  eassert! (XFIXNUM (idx) < reloc.array.len);
+  if ! FIXNUMP (idx)
+    { xsignal1 (Qnative_ice (),
+                build_string (c"inconsistent data relocation container".as_ptr ())); }
+  reloc.idx = gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+                                                   comp.ptrdiff_type,
+                                                   XFIXNUM (idx) as c_int);
+  return reloc;
+}
+
+/// C 943-950: `static void emit_comment (const char *str)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_comment (str_: *const c_char)
+{
+  if comp.debug != 0
+    { gcc_jit_block_add_comment (comp.block, std::ptr::null_mut (), str_); }
+}
+
+/// C 952-1010: `static gcc_jit_field *declare_imported_func (...)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn declare_imported_func (subr_sym: Lisp_Object,
+                                                ret_type: *mut gcc_jit_type,
+                                                nargs: c_int,
+                                                types_in: *mut *mut gcc_jit_type)
+  -> *mut gcc_jit_field
+{
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+  let mut nargs: c_int = nargs;
+  let mut types: *mut *mut gcc_jit_type = types_in;
+  /* Don't want to declare the same function two times.  */
+  if ! NILP (Fgethash (subr_sym, comp.imported_funcs_h, Qnil ()))
+    { xsignal2 (Qnative_ice (),
+                build_string (c"unexpected double function declaration".as_ptr ()),
+                subr_sym); }
+
+  if nargs as isize == MANY
+    {
+      nargs = 2;
+      types = SAFE_ALLOCA! (sa_avail,
+                            nargs as usize * core::mem::size_of::<*mut gcc_jit_type> ())
+                as *mut *mut gcc_jit_type;
+      *types.offset (0) = comp.ptrdiff_type;
+      *types.offset (1) = comp.lisp_obj_ptr_type;
+    }
+  else if nargs as isize == UNEVALLED
+    {
+      nargs = 1;
+      types = SAFE_ALLOCA! (sa_avail,
+                            nargs as usize * core::mem::size_of::<*mut gcc_jit_type> ())
+                as *mut *mut gcc_jit_type;
+      *types.offset (0) = comp.lisp_obj_type;
+    }
+  else if types_in.is_null ()
+    {
+      SAFE_NALLOCA! (sa_avail, types, 1, nargs as usize);
+      let mut i: ptrdiff_t = 0;
+      while i < nargs as ptrdiff_t
+        {
+          *types.offset (i as isize) = comp.lisp_obj_type;
+          i += 1;
+        }
+    }
+
+  /* String containing the function ptr name.  */
+  let f_ptr_name: Lisp_Object =
+    calln! (intern_c_string (c"comp-c-func-name".as_ptr ()),
+            subr_sym, make_string (c"R".as_ptr (), 1));
+
+  let f_ptr_type: *mut gcc_jit_type =
+    gcc_jit_type_get_const (
+      gcc_jit_context_new_function_ptr_type (comp.ctxt,
+                                             std::ptr::null_mut (),
+                                             ret_type,
+                                             nargs,
+                                             types,
+                                             0));
+  let field: *mut gcc_jit_field =
+    gcc_jit_context_new_field (comp.ctxt,
+                               std::ptr::null_mut (),
+                               f_ptr_type,
+                               SSDATA (f_ptr_name));
+
+  Fputhash (subr_sym, make_mint_ptr (field as *mut c_void), comp.imported_funcs_h);
+  SAFE_FREE! (sa_count, sa_mark);
+  return field;
+}
 
 /// C 5593-5857: `syms_of_comp`.  C 5596-5854's `#ifdef HAVE_NATIVE_COMP` region is this file's
 /// other dead region (the `native-comp-jit-compilation` `DEFVAR_BOOL`, the `comp--#$`
