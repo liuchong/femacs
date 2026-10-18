@@ -155,9 +155,9 @@
 
 ---
 
-## 附录：Android 剩余 72 条未决导入的完整清单（2026-10-18，status 4.728）
+## 附录：Android 剩余 71 条未决导入的完整清单（2026-10-18，status 4.729）
 
-生成方式：`docs/baseline/android-imports-pending.txt`（未决名字）× `docs/baseline/android-arms.tsv`（每个名字的 C 定义位置与预处理条件）× `docs/baseline/config/android-arm64.json`（Android 配置的宏）。分类规则写在每节开头；这份清单的目的，是让"还要多久"与"需要你决定什么"都有据可查。
+生成方式：`docs/baseline/android-imports-pending.txt`（未决名字）× `docs/baseline/android-arms.tsv`（每个名字的 C 定义位置与预处理条件）× `docs/baseline/config/android-arm64.json`（Android 配置的宏）。分类规则写在每节开头。**C 组已清零**：剩下的每一条，要么取决于问题 4，要么是上游/平台缺口。
 
 ### A. 窗口系统臂（受问题 4 约束）（40 条）
 
@@ -171,8 +171,8 @@ C 的定义在 `HAVE_WINDOW_SYSTEM`/`X`/`NS`/`PGTK`/`HAIKU`/`NTGUI`/`WINDOWSNT`/
 
 `backtrace`, `backtrace_symbols_fd`, `confstr`, `devname`, `endutxent`, `freeifaddrs`, `getifaddrs`, `getloadavg`, `getutxent`, `mach_timebase_info`, `mkostemp`, `posix_spawn`, `posix_spawn_file_actions_addchdir`, `posix_spawn_file_actions_adddup2`, `posix_spawn_file_actions_destroy`, `posix_spawn_file_actions_init`, `posix_spawnattr_destroy`, `posix_spawnattr_init`, `posix_spawnattr_setflags`, `posix_spawnattr_setsigdefault`, `posix_spawnattr_setsigmask`, `proc_pid_rusage`, `proc_pidinfo`, `proc_pidpath`, `renameatx_np`, `setutxent`, `stderr`, `stdin`, `stdout`, `sysctl`, `utmpxname`
 
-### C. 其它（逐条待判）（1 条）
+### C. 其它（逐条待判）（0 条）
 
-既不在窗口系统守卫下、也不属于上面两类：需要逐个看 C 的守卫与端口对应位置。
+已清零。
 
-`timerfd_callback`
+（无）

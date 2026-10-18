@@ -398,11 +398,40 @@ unsafe extern "C" fn handle_alarm_signal (sig: c_int)
   pending_signals = true;
 }
 
-// C 418-448's `#ifdef HAVE_TIMERFD` block (`timerfd_callback`, the entry
-// `wait_reading_process_output` calls when the descriptor is readable, with its three
-// `eassert`/`emacs_abort` arms) is dead on this target: it needs `timerfd`, which nothing
-// defines here, and `emacs_read`'s caller is reached only through the timerfd machinery
-// (docs/ports/atimer.md).
+/* C 418-448: `#ifdef HAVE_TIMERFD` - dead for the frozen configuration, live for the Android one
+   (`HAVE_TIMERFD` is 1 there, and `process.c` 8360's `add_timer_wait_descriptor` installs this
+   callback; status 4.729).  C's `static int timerfd` sits in the `HAVE_ITIMERSPEC` block at 62,
+   which this configuration does not record, so the port carries the variable under the same
+   `have_timerfd` key that guards its only reader and writer (the timerfd arm of
+   `set_alarm`) - recorded in docs/ports/atimer.md as a configuration question, not a rewrite.  */
+#[cfg (feature = "have_timerfd")]
+static mut timerfd: c_int = 0;
+
+/// C 421-446: "Called from wait_reading_process_output when FD, which should be equal to
+/// TIMERFD, is available for reading."
+#[cfg (feature = "have_timerfd")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn timerfd_callback (fd: c_int, _arg: *mut c_void)
+{
+  /* C 423-424: "Timer should expire just once."  */
+  eassert! (fd == timerfd);
+  let mut expirations: u64 = 0;
+  let nbytes: ptrdiff_t = emacs_read (fd, &raw mut expirations as *mut c_void,
+				      std::mem::size_of::<u64> () as ptrdiff_t);
+
+  if nbytes == std::mem::size_of::<u64> () as ptrdiff_t
+    {
+      eassert! (expirations == 1);
+      do_pending_atimers ();
+    }
+  else if nbytes < 0
+    /* C 436-441: "For some not yet known reason, we may get weird event and no data on timer
+       descriptor."  */
+    { eassert! (*errno () == EAGAIN); }
+  else
+    /* C 442-444: "I don't know what else can happen with this descriptor."  */
+    { emacs_abort (); }
+}
 
 /* Do pending timers.  */
 

@@ -71,7 +71,6 @@ stderr
 stdin
 stdout
 sysctl
-timerfd_callback
 tty_draw_row_with_mouse_face
 utmpxname
 x_stretch_cursor_p
