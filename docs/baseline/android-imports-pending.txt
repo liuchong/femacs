@@ -31,7 +31,6 @@ face_for_font
 find_hot_spot
 font_for_underline_metrics
 freeifaddrs
-from_unicode_buffer
 fset_parent_frame
 futimes
 get_glyph_string_clip_rect

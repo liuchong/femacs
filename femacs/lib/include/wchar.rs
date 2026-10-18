@@ -39,3 +39,10 @@ unsafe extern "C" {
   /* wint_t btowc (int c);  */
   pub fn btowc (c: c_int) -> wint_t;
 }
+
+unsafe extern "C" {
+  /// <wchar.h>: `size_t wcslen (const wchar_t *)`.  bionic declares it unconditionally; the
+  /// frozen target's glibc does too, so the mirror carries it for every configuration (only the
+  /// Android arm of `coding.c` calls it - status 4.718).
+  pub fn wcslen (s: *const wchar_t) -> usize;
+}

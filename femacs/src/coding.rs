@@ -9884,6 +9884,66 @@ pub unsafe extern "C" fn preferred_coding_system () -> Lisp_Object
   return CODING_ID_NAME (id as hash_idx_t);
 }
 
+/* C 8528-8578: `#if defined (WINDOWSNT) || defined (CYGWIN) || defined HAVE_ANDROID`.  The frozen
+   configuration excludes the whole region (P-08 recorded it as a comment); the Android one
+   compiles it, and its `from_unicode_buffer` takes the `#else` arm - "This code is used only on
+   Android, where little endian UTF-16 strings are extended to 32-bit wchar_t" (status 4.718).
+   The port writes the Android arm; `WINDOWSNT`/`CYGWIN` are not targets of this repository.  */
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn from_unicode (mut str_: Lisp_Object) -> Lisp_Object
+{
+  CHECK_STRING (str_);
+  if ! STRING_MULTIBYTE (str_) && (SBYTES (str_) & 1) != 0
+    {
+      /* C: `str = Fsubstring (str, make_fixnum (0), make_fixnum (-1));`  */
+      str_ = Fsubstring (str_, make_fixnum (0), make_fixnum (-1));
+    }
+
+  return code_convert_string_norecord (str_, Qutf_16le (), false);
+}
+
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn from_unicode_buffer (wstr: *const wchar_t) -> Lisp_Object
+{
+  let length: ptrdiff_t = wcslen (wstr) as ptrdiff_t;
+
+  /* C 8563-8567: `uint16_t *words; ... SAFE_NALLOCA (words, sizeof *words, length + 1);` - the
+     macro assigns into the binding, so the port declares it first (its `pointee_size` reads the
+     type from there, PORTING.md 1.5).  */
+  let mut words: *mut u16 = std::ptr::null_mut ();
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+  SAFE_NALLOCA! (sa_avail, words, std::mem::size_of::<u16> (), length + 1);
+
+  let mut i: ptrdiff_t = 0;
+  while i < length
+    {
+      *words.offset (i) = *wstr.offset (i) as u16;
+      i += 1;
+    }
+  *words.offset (length) = 0;
+
+  AUTO_STRING_WITH_LEN! (str_, words as *const c_char, length * std::mem::size_of::<u16> () as ptrdiff_t);
+  return unbind_to (sa_count, from_unicode (str_));
+}
+
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn to_unicode (str_: Lisp_Object, buf: *mut Lisp_Object) -> *mut wchar_t
+{
+  *buf = code_convert_string_norecord (str_, Qutf_16le (), true);
+  /* C 8581-8588: "We need to make another copy ... to ensure that the final string is _doubly_
+     zero terminated".  */
+  let s_ = make_uninit_string ((SBYTES (*buf) + 1) as ptrdiff_t);
+  /* `SBYTES` is C's `ptrdiff_t`; `memcpy`'s length and `add`'s offset are `usize` (the
+     alias `PTRDIFF_MAX`-bounded lengths the port carries elsewhere, PORTING.md 1.4).  */
+  memcpy (SDATA (s_) as *mut c_void, SDATA (*buf) as *const c_void, SBYTES (*buf) as usize);
+  *SDATA (s_).add (SBYTES (*buf) as usize) = 0;
+  *buf = s_;
+  return WCSDATA (*buf);
+}
+
 /*** 8. Emacs Lisp library functions ***/
 
 DEFUN! ("coding-system-p", Fcoding_system_p, Scoding_system_p, 1, 1, 0,

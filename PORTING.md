@@ -936,6 +936,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 | P-309 | **`__asm__` 屏障用 `black_box` 表达，并记偏离**：C 的 `memset_explicit` 在 clang 臂用 `__asm__ volatile ("" : : "g"(s) : "memory")` ✓ 阻止死存储消除 ✓；Rust 侧写成 `let _ = std::hint::black_box (s);` ✓（`black_box` 是 Rust 文档化的优化屏障 ✓），并在该处写明与 C 的内联汇编不同 ✓。 |
 | P-310 | **cfg 词表在两份配置上不对称，门的写法要照这份不对称来**：① `xtask config_features()` 对 **darwin** 读 `macros` 段 ✓（只发**正向** `have_*` ✓、`macros` 里缺席的键什么都不发 ✗）、对 **android** 读 `features` 段 ✓（`"undefined"` ⇒ `not_have_*` ✓、`"1"` ⇒ `have_*` ✓）。② 因此：「该宏成立」要看它在**本配置**有没有正向键 ✓ —— darwin 缺席的宏只能写 `not (feature = "not_have_x")` ✓、有正向键的（如 `HAVE_MEMSET_S`）写 `feature = "have_x"` ✓；「该宏不成立」写 `feature = "not_have_x"` ✓。③ 先在 JSON 里查键的存在性，再落 cfg ✓ —— 写反会让两个目标各红一次 ✓（本轮实测 ✓）。 |
 
+| P-311 | **写了函数不等于导出了符号：`extern "C"` 还要 `#[unsafe(no_mangle)]`；棘轮读数不动就是证据**：① `coding.rs` 的 Android 段三个函数第一版只有 `pub unsafe extern "C" fn` ✗ ⇒ 单元里有函数 ✓、目标文件里没有 C 符号 ✗、别的单元照样导入无人提供 ✗（4.718 实测 ✓）。② 凡 C 会导出名字的（非 `static` ✓），端口一律 `#[cfg (…)] #[unsafe(no_mangle)] pub unsafe extern "C" fn` ✓；`static` 的用 `#[unsafe(no_mangle)] pub static mut` ✓。③ **判据顺序**：`nm` 看目标文件有没有那个名字 ✓ → 再链接 ✓ → 再看棘轮 ✓；只看「编过了」会漏这一整类 ✗。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**

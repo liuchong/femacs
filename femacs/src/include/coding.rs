@@ -676,3 +676,11 @@ pub fn JIS_TO_SJIS2 (code: c_int) -> c_int
     }
   (s1 << 8) | s2
 }
+
+/// coding.h 724: `#define WCSDATA(x) ((wchar_t *) SDATA (x))` - the wide-character view of a
+/// string's bytes, which `to_unicode` hands back to its caller (C's cast, spelled out).
+#[inline(always)]
+pub fn WCSDATA (x: Lisp_Object) -> *mut wchar_t
+{
+  SDATA (x) as *mut wchar_t
+}
