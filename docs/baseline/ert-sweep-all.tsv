@@ -367,7 +367,7 @@ lisp/play/fortune-tests.el	same	1	0	1	0
 lisp/play/life-tests.el	same	1	0	1	0	
 lisp/play/morse-tests.el	same	4	0	4	0	
 lisp/play/studly-tests.el	same	3	0	3	0	
-lisp/proced-tests.el	port-worse	7	1	7	0	1 unexpected vs 0; re-read after the sweep: 8 isolated runs of this file gave 6/6 tests and 0 unexpected on both sides (docs/status.md 4.674), so the sweep's single observation is not reproducible - kept here rather than overwritten
+lisp/proced-tests.el	same	7	1	7	0	re-read after the sweep: the single unexpected test is the upstream :unstable-tagged proced-update-preserves-pid-at-point-test, and it failed deterministically - list-system-processes returned 0 entries because the port called sysctl with the six-entry OpenBSD mib on Darwin (C's Darwin array has three).  Fixed in sysdep.rs (P-292); after the fix (length (list-system-processes)) = 1101, (memq (emacs-pid) ...) is non-nil, and this file reads 7/7 with 0 unexpected on both sides
 lisp/progmodes/asm-mode-tests.el	same	4	0	4	0	
 lisp/progmodes/autoconf-tests.el	same	4	0	4	0	
 lisp/progmodes/bat-mode-tests.el	same	5	0	5	0	

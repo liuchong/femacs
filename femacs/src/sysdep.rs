@@ -381,6 +381,8 @@ pub const CTL_KERN: c_int = 1;
 pub const KERN_PROC: c_int = 14;
 pub const KERN_PROC_PID: c_int = 1;
 pub const KERN_PROC_ALL: c_int = 0;
+/// `<sys/sysctl.h>`: `KERN_PROC_PROC` (FreeBSD's variant of `KERN_PROC_ALL`).
+pub const KERN_PROC_PROC: c_int = 2;
 pub const KERN_PROCARGS2: c_int = 49;
 pub const HW_MEMSIZE: c_int = 24;
 /// `<sys/resource.h>`: `#define RUSAGE_SELF 0` (measured).
@@ -4547,9 +4549,19 @@ pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
             any (target_os = "macos", target_os = "freebsd", target_os = "openbsd")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
-  let mut mib: [c_int; 6] =
-    /* C 3351-3358: `#ifdef DARWIN_OS` is live.  */
-    { [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0, 0, 0] };
+  /* C 3351-3358's three arrays, each with its own length: Darwin's is **three** entries
+     (`{CTL_KERN, KERN_PROC, KERN_PROC_ALL}`), OpenBSD's six (`KERN_PROC_ALL, 0,
+     sizeof (struct kinfo_proc), 4096`) and FreeBSD's three with `KERN_PROC_PROC`.  The port had
+     one six-entry array for all three, so on Darwin `sysctl` was called with `namelen` 6 and
+     refused it (`rc=-1`, measured with the same constants in C: 3 entries -> 701784 bytes,
+     6 -> -1), which left `list-system-processes` empty.  */
+  #[cfg (target_os = "macos")]
+  let mut mib: [c_int; 3] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL];
+  #[cfg (target_os = "openbsd")]
+  let mut mib: [c_int; 6] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0,
+                             std::mem::size_of::<kinfo_proc> () as c_int, 4096];
+  #[cfg (all (not (target_os = "macos"), not (target_os = "openbsd")))]
+  let mut mib: [c_int; 3] = [CTL_KERN, KERN_PROC, KERN_PROC_PROC];
   /* PORTING.md 1.5: C declares `size_t len;` and `sysctl` fills it.  */
   let mut len: usize = 0;
   let mibsize: usize = countof! (mib);
