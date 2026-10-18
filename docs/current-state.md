@@ -1,4 +1,4 @@
-# 当前状态（2026-10-18，status 4.729 时点）
+# 当前状态（2026-10-18，status 4.730 时点）
 
 给下一次会话的**入口快照**：判定口径、读数、复跑命令、未决事项。逐轮记录仍在 `docs/status.md`，
 口径与规则在 `PORTING.md`，验收细则在 `docs/acceptance.md`。
@@ -19,8 +19,8 @@
 
 | # | 项 | 判定 | 证据命令 | 最后一次读数（出处） |
 |---|---|---|---|---|
-| 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | **590 done / 0 in progress / 0 failing**（4.671） |
-| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast` | exit 0（八步；**4.682 在本树重跑** 535 s / 峰值 539 MB。红门的起因是 `window.rs` 的 dispextern 边，现改由 `editfns`/`insdel`/`textprop` 三个单元自带，见 status 4.682） |
+| 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | **590 done / 0 in progress / 0 failing**（4.671；4.730 复跑仍 0 failing） |
+| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast` | exit 0（八步；**4.730 在本树重跑** 569 s / 峰值 383 MB。红门的起因是 `window.rs` 的 dispextern 边，现改由 `editfns`/`insdel`/`textprop` 三个单元自带，见 status 4.682） |
 | 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check`、`tools/acceptance-l1.py --check`、`python3 tools/check-ert.py --selector-preset default --tsv /tmp/ert.tsv` | L0 **19/0**；L1 **111 文件 / 0 失败 / 1 接受**；L5 默认选择器 **same 552 / both-fail 7 / crashed 5 / port-worse 0**（`docs/baseline/ert-sweep-default.tsv`，4.676）。`all` 档唯一 `port-worse` 是上游 `:unstable` 的 `erc-d-run-linger`（P-293） |
 | 4 | `.elc`/dump/生成物/loadup | ✅ | `python3 tools/check-generated.py`、`tools/check-loadup.py`、`tools/check-dump-offsets.py` | **244 文件：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**；两树 loadup 逐文件一致；19 处 dump offset 0 failure（4.600/4.678） |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.679） |

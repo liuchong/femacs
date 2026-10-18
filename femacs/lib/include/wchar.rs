@@ -40,9 +40,7 @@ unsafe extern "C" {
   pub fn btowc (c: c_int) -> wint_t;
 }
 
-unsafe extern "C" {
-  /// <wchar.h>: `size_t wcslen (const wchar_t *)`.  bionic declares it unconditionally; the
-  /// frozen target's glibc does too, so the mirror carries it for every configuration (only the
-  /// Android arm of `coding.c` calls it - status 4.718).
-  pub fn wcslen (s: *const wchar_t) -> usize;
-}
+/* `<wchar.h>`'s `size_t wcslen (const wchar_t *)` is declared by the units that call it, not
+   here: `wchar_t` is `int` on the frozen and Android targets and `unsigned short` on Windows, and
+   one declaration cannot serve both (status 4.730, PORTING.md P-317's "the mirror owns it" rule
+   applies only when every including unit sees the same type).  */

@@ -3076,9 +3076,8 @@ pub const GCC_JIT_COMPARISON_LE: gcc_jit_comparison = 3;
 /// in the tree (`eval.rs` 1687, `fileio.rs` 2161).  Each is the P-55 use-site shape.
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" {
-  /// C: lisp.h's `extern Lisp_Object list (Lisp_Object, ...)` - variadic from the first object,
-  /// not from a count.
-  pub fn list (arg: Lisp_Object, ...) -> Lisp_Object;
+  /* C's `list` comes from `lisp.h`, which this unit includes; declaring it here as well is the
+     duplicate `check-mirror-dupes.py` rejects (status 4.730).  */
   pub fn prog_ignore (body: Lisp_Object);
   pub fn realpath (file_name: *const c_char, resolved_name: *mut c_char) -> *mut c_char;
   pub fn allocate_native_comp_unit () -> *mut Lisp_Native_Comp_Unit;
@@ -6921,6 +6920,56 @@ unsafe fn declare_imported_func (subr_sym: Lisp_Object,
   Fputhash (subr_sym, make_mint_ptr (field as *mut c_void), comp.imported_funcs_h);
   SAFE_FREE! (sa_count, sa_mark);
   return field;
+/* C's `DEFVAR_*` in `syms_of_comp` expands to the definition of each global plus its
+   registration; the port's macros only register, and `check-globals.py` requires the definition to
+   live in the unit that registers it (P-313).  Types and initial values are C's: `LISP` starts as
+   nil, `BOOL` as false - `syms_of_comp` assigns the rest.  */
+
+#[unsafe(no_mangle)]
+pub static mut native_comp_jit_compilation: bool = false;
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp_ctxt: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp_subr_list: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp_abi_hash: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp_native_version_dir: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp_deferred_pending_h: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut Vnative_comp_eln_load_path: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut Vnative_comp_enable_subr_trampolines: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp_installed_trampolines_h: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut V_comp_no_native_file_h: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut comp_file_preloaded_p: bool = false;
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp_loaded_comp_units_h: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp_subr_arities_h: Lisp_Object = lisp_h_Qnil ();
+
+#[unsafe(no_mangle)]
+pub static mut comp_sanitizer_active: bool = false;
+
+#[unsafe(no_mangle)]
+pub static mut Vcomp__hashdollar: Lisp_Object = lisp_h_Qnil ();
+
 }
 
 /// C 5593-5857: `syms_of_comp`.  C 5596-5854's `#ifdef HAVE_NATIVE_COMP` region is this file's

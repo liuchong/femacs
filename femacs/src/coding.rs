@@ -9903,6 +9903,11 @@ pub unsafe extern "C" fn from_unicode (mut str_: Lisp_Object) -> Lisp_Object
   return code_convert_string_norecord (str_, Qutf_16le (), false);
 }
 
+unsafe extern "C" {
+  /// <wchar.h>: `size_t wcslen (const wchar_t *)` - C 8565's `wcslen (wstr)`.
+  pub fn wcslen (s: *const wchar_t) -> usize;
+}
+
 #[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn from_unicode_buffer (wstr: *const wchar_t) -> Lisp_Object
