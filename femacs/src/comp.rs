@@ -1249,6 +1249,180 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/* Queue an asynchronous compilation for the source file defining
+   FUNCTION_NAME and perform a late load.
+
+   NOTE: ideally would be nice to move its call simply into Fload but
+   we need DEFINITION to guard against function redefinition while
+   async compilation happen.  */
+
+/// C 5076-5128: `void maybe_defer_native_compilation (Lisp_Object function_name,
+/// Lisp_Object definition)`.  C 5080-5100 is an `#if 0` block of logging code: text the compiler
+/// never sees, carried here as a comment so the file's shape stays readable.
+#[cfg (feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn maybe_defer_native_compilation (function_name: Lisp_Object,
+							 definition: Lisp_Object)
+{
+  /* C 5080-5100: `#if 0` - `#include <sys/types.h>`, `#include <unistd.h>`, the `log_%d` file and
+     the `fprintf`/`fflush` calls.  Dead text from C's own source; no port counterpart.  */
+  if ! load_gccjit_if_necessary (false)
+    { return; }
+
+  if native_comp_jit_compilation == false
+      || noninteractive
+      || ! NILP (Vpurify_flag)
+      || ! CLOSUREP (definition)
+      || ! STRINGP (Vload_true_file_name)
+      || ! suffix_p (Vload_true_file_name, c".elc".as_ptr ())
+      || ! NILP (Fgethash (Vload_true_file_name, V_comp_no_native_file_h, Qnil ()))
+    { return; }
+
+  let mut src: Lisp_Object =
+    concat2 (CALLNI! ("file-name-sans-extension", Vload_true_file_name),
+	     build_string (c".el".as_ptr ()));
+  if NILP (Ffile_exists_p (src))
+    {
+      src = concat2 (src, build_string (c".gz".as_ptr ()));
+      if NILP (Ffile_exists_p (src))
+	{ return; }
+    }
+
+  Fputhash (function_name, definition, Vcomp_deferred_pending_h);
+
+  pending_funcalls
+    = Fcons (list (Qnative__compile_async (), src, Qnil (), Qlate ()),
+             pending_funcalls);
+}
+
+/**************************************/
+/* Functions used to load eln files.  */
+/**************************************/
+
+/* Fixup the system eln-cache directory, which is the last entry in
+   `native-comp-eln-load-path'.  Argument is a .eln file in that directory.  */
+/// C 5137-5158: `void fixup_eln_load_path (Lisp_Object eln_filename)`.
+#[cfg (feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn fixup_eln_load_path (eln_filename: Lisp_Object)
+{
+  let mut last_cell: Lisp_Object = Qnil ();
+  let mut tem: Lisp_Object = Vnative_comp_eln_load_path;
+  FOR_EACH_TAIL! (tem, {
+    if CONSP (tem)
+      { last_cell = tem; }
+  });
+
+  let preloaded: [u8; 12] = *b"/preloaded/\0";   // C's `const char preloaded[] = "/preloaded/"`;
+  let mut eln_cache_sys: Lisp_Object = Ffile_name_directory (eln_filename);
+  let p_preloaded: *const c_char =
+    SSDATA (eln_cache_sys).offset (SBYTES (eln_cache_sys)
+				   - core::mem::size_of_val (&preloaded) as ptrdiff_t + 1);
+  let preloaded_p: bool = strcmp (p_preloaded, preloaded.as_ptr () as *const c_char) == 0;
+
+  /* One or two directories up...  */
+  let mut i: c_int = 0;
+  while i < (if preloaded_p { 2 } else { 1 })
+    {
+      eln_cache_sys =
+	Ffile_name_directory (Fsubstring_no_properties (eln_cache_sys, Qnil (),
+						      make_fixnum (-1)));
+      i += 1;
+    }
+  Fsetcar (last_cell, eln_cache_sys);
+}
+
+/// C 5179's `static_obj_t *(*f) (void)` and C 5191's `Lisp_Object *(*fun) (void)` - the two
+/// function-pointer types `dynlib_sym` hands back as `void *`.
+#[cfg (feature = "have_native_comp")]
+pub type LLstatic_obj_fn = Option<unsafe extern "C" fn () -> *mut static_obj_t>;
+#[cfg (feature = "have_native_comp")]
+pub type LLreloc_fn = Option<unsafe extern "C" fn () -> *mut Lisp_Object>;
+
+/// C 5160: `typedef char *(*comp_lit_str_func) (void);` - the type C names and never uses beyond
+/// the typedef itself.
+#[cfg (feature = "have_native_comp")]
+pub type comp_lit_str_func = unsafe extern "C" fn () -> *mut c_char;
+
+/* Deserialize read and return static object.  */
+/// C 5162-5186: `static Lisp_Object load_static_obj (struct Lisp_Native_Comp_Unit *comp_u,
+/// const char *name)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn load_static_obj (comp_u: *mut Lisp_Native_Comp_Unit, name: *const c_char)
+  -> Lisp_Object
+{
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  let mut blob: *mut static_obj_t =
+    dynlib_sym ((*comp_u).handle, format_string (c"%s_blob".as_ptr (), name))
+      as *mut static_obj_t;
+  /* Special value so we can recognize #$, which is used for entries in
+     the static vector that must be overwritten at load time.  This is a
+     specific string that contains "#$", which is not EQ to any
+     legitimate object returned by Fread.  */
+  specbind (intern_c_string (c"load-file-name".as_ptr ()),
+	    Vcomp__hashdollar);
+  if ! blob.is_null ()
+    /* New blob format.  */
+    { return unbind_to (count, Fread (make_string ((*blob).data.as_ptr (), (*blob).len))); }
+
+  let f: LLstatic_obj_fn = std::mem::transmute (dynlib_sym ((*comp_u).handle, name));
+  if f.is_none ()
+    { xsignal1 (Qnative_lisp_file_inconsistent (), (*comp_u).file); }
+
+  blob = f.unwrap () ();
+  return unbind_to (count, Fread (make_string ((*blob).data.as_ptr (), (*blob).len)));
+
+}
+
+/// C 5188-5195: `static Lisp_Object *find_relocs (dynlib_handle_ptr handle, const char *fun_sym)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn find_relocs (handle: dynlib_handle_ptr, fun_sym: *const c_char) -> *mut Lisp_Object
+{
+  let fun: LLreloc_fn = std::mem::transmute (dynlib_sym (handle, fun_sym));
+  if fun.is_none ()
+    { return std::ptr::null_mut (); }
+  return fun.unwrap () ();
+}
+
+/* Return false when something is wrong or true otherwise.  */
+
+/// C 5197-5224: `static bool check_comp_unit_relocs (struct Lisp_Native_Comp_Unit *comp_u)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn check_comp_unit_relocs (comp_u: *mut Lisp_Native_Comp_Unit) -> bool
+{
+  let handle: dynlib_handle_ptr = (*comp_u).handle;
+  let data_relocs: *mut Lisp_Object
+    = find_relocs (handle, DATA_RELOC_ADDR_SYM);
+  if data_relocs.is_null ()
+    { return false; }
+
+  let d_vec_len: EMACS_INT = XFIXNUM (Flength ((*comp_u).data_vec));
+
+  let mut i: ptrdiff_t = 0;
+  while i < d_vec_len
+    {
+      let x: Lisp_Object = *data_relocs.offset (i as isize);
+      if EQ (x, Vcomp__hashdollar)
+	{ return false; }
+      else if NATIVE_COMP_FUNCTIONP (x)
+	{
+	  if NILP (Fgethash (x, (*comp_u).lambda_gc_guard_h, Qnil ()))
+	    { return false; }
+	}
+      else if ! EQ (x, AREF ((*comp_u).data_vec, i))
+	{ return false; }
+      i += 1;
+    }
+  return true;
+}
+
+/// C 5226-5230: `static void unset_cu_load_ongoing (Lisp_Object comp_u)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn unset_cu_load_ongoing (comp_u: Lisp_Object)
+{
+  (*XNATIVE_COMP_UNIT (comp_u)).load_ongoing = false;
+}
+
 /* The helper entry points `declare_runtime_imported_funcs` names for the compiled code.  C's
    `bcall0`, `prog_ignore`, `save_restriction_save`/`_restore` and `internal_delete_file` are other
    units' definitions; the ones no mirror names are declared where they are used.  */
