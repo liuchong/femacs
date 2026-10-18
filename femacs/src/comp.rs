@@ -95,10 +95,10 @@ include!("../lib/include/stdcountof.rs");       // lisp.h 28: `<stdcountof.h>` (
 
 /* C 31: `#include <libgccjit.h>` - the reference tree has no such file (P-88: a third-party
    header, the class `decompress.rs`'s `<zlib.h>` and `lcms.rs`'s `<lcms2.h>` are the first two
-   of), so this unit carries the declarations its own lines use.  The ten below are the ones this
-   slice names; the header's other tags (`gcc_jit_result` 59, `gcc_jit_object` 84,
-   `gcc_jit_function_type` 112, `gcc_jit_vector_type` 115, `gcc_jit_case` 157) are named by no
-   line of it.  Every one of the ten is an *incomplete* tag in that header (`typedef struct
+   of), so this unit carries the declarations its own lines use.  The eleven below are the ones this
+   slice names; the header's other tags (`gcc_jit_result` 59, `gcc_jit_function_type` 112,
+   `gcc_jit_vector_type` 115, `gcc_jit_case` 157) are named by no line of it.  `gcc_jit_object`
+   joined the ten when `gcc_jit_type_is_pointer`'s prototype (the bitcast arm's) named it.  Every one of the ten is an *incomplete* tag in that header (`typedef struct
    gcc_jit_type gcc_jit_type;`, libgccjit.h 100), so C holds one only through a pointer and there
    is no layout to measure: the reading is that `sizeof` is rejected for all ten, and
 
@@ -113,6 +113,9 @@ include!("../lib/include/stdcountof.rs");       // lisp.h 28: `<stdcountof.h>` (
 /// C: `typedef struct gcc_jit_context gcc_jit_context;`  (libgccjit.h 56)
 #[cfg (feature = "have_native_comp")]
 #[repr(C)] pub struct gcc_jit_context { _private: [u8; 0] }
+/// C: `typedef struct gcc_jit_object gcc_jit_object;`  (libgccjit.h 84)
+#[cfg (feature = "have_native_comp")]
+#[repr(C)] pub struct gcc_jit_object { _private: [u8; 0] }
 /// C: `typedef struct gcc_jit_location gcc_jit_location;`  (libgccjit.h 97)
 #[cfg (feature = "have_native_comp")]
 #[repr(C)] pub struct gcc_jit_location { _private: [u8; 0] }
@@ -1331,6 +1334,42 @@ unsafe extern "C" {
                                              boolval: *mut gcc_jit_rvalue,
                                              on_true: *mut gcc_jit_block,
                                              on_false: *mut gcc_jit_block);
+  /// C: libgccjit.h 1275-1280: `gcc_jit_rvalue *gcc_jit_context_new_binary_op
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, enum gcc_jit_binary_op op,
+  /// gcc_jit_type *result_type, gcc_jit_rvalue *a, gcc_jit_rvalue *b);`
+  pub fn gcc_jit_context_new_binary_op (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                        op: gcc_jit_binary_op, result_type: *mut gcc_jit_type,
+                                        a: *mut gcc_jit_rvalue, b: *mut gcc_jit_rvalue)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1423-1426: `gcc_jit_lvalue *gcc_jit_lvalue_access_field
+  /// (gcc_jit_lvalue *struct_or_union, gcc_jit_location *loc, gcc_jit_field *field);`
+  pub fn gcc_jit_lvalue_access_field (struct_or_union: *mut gcc_jit_lvalue,
+                                      loc: *mut gcc_jit_location, field: *mut gcc_jit_field)
+    -> *mut gcc_jit_lvalue;
+  /// C: libgccjit.h 1431-1434: `gcc_jit_rvalue *gcc_jit_rvalue_access_field
+  /// (gcc_jit_rvalue *struct_or_union, gcc_jit_location *loc, gcc_jit_field *field);`
+  pub fn gcc_jit_rvalue_access_field (struct_or_union: *mut gcc_jit_rvalue,
+                                      loc: *mut gcc_jit_location, field: *mut gcc_jit_field)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1531-1535: `void gcc_jit_block_add_assignment (gcc_jit_block *block,
+  /// gcc_jit_location *loc, gcc_jit_lvalue *lvalue, gcc_jit_rvalue *rvalue);`
+  pub fn gcc_jit_block_add_assignment (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
+                                       lvalue: *mut gcc_jit_lvalue, rvalue: *mut gcc_jit_rvalue);
+  /* C 1155-1183's `#ifdef LIBGCCJIT_HAVE_gcc_jit_context_new_bitcast` arm calls these three;
+     the macro is undefined in the frozen configuration, so that arm is the one no flip reaches,
+     and the declarations are here for the configuration that defines it.  */
+  /// C: libgccjit.h 641-642: `gcc_jit_object *gcc_jit_type_is_pointer (gcc_jit_type *type);`
+  pub fn gcc_jit_type_is_pointer (type_: *mut gcc_jit_type) -> *mut gcc_jit_object;
+  /// C: libgccjit.h 1333-1337: `gcc_jit_rvalue *gcc_jit_context_new_cast (gcc_jit_context *ctxt,
+  /// gcc_jit_location *loc, gcc_jit_rvalue *rvalue, gcc_jit_type *type);`
+  pub fn gcc_jit_context_new_cast (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                   rvalue: *mut gcc_jit_rvalue, type_: *mut gcc_jit_type)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1907-1910: `gcc_jit_rvalue *gcc_jit_context_new_bitcast (gcc_jit_context *ctxt,
+  /// gcc_jit_location *loc, gcc_jit_rvalue *rvalue, gcc_jit_type *type);`
+  pub fn gcc_jit_context_new_bitcast (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                      rvalue: *mut gcc_jit_rvalue, type_: *mut gcc_jit_type)
+    -> *mut gcc_jit_rvalue;
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -1344,6 +1383,12 @@ pub type gcc_jit_unary_op = c_uint;
 /// C: libgccjit.h 1193: `GCC_JIT_UNARY_OP_LOGICAL_NEGATE,` - the third enumerator, i.e. 2.
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_UNARY_OP_LOGICAL_NEGATE: gcc_jit_unary_op = 2;
+
+/// C: libgccjit.h 1211-1240: `enum gcc_jit_binary_op { GCC_JIT_BINARY_OP_PLUS, … };` - the alias,
+/// measured the same way as `gcc_jit_unary_op` above (`sizeof` 4, underlying type `unsigned int`;
+/// the enumerators this slice names arrive with the tranche that first names them).
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_binary_op = c_uint;
 
 /// `fatal` is `sysdep.c` 2399's non-`static` definition; C declares it where it is used, and the
 /// units that call it carry the variadic declaration themselves (`eval.rs` 100, `androidterm.rs`
@@ -1488,6 +1533,114 @@ unsafe fn obj_to_reloc (obj: Lisp_Object) -> imm_reloc_t
                                                    comp.ptrdiff_type,
                                                    XFIXNUM (idx) as c_int);
   return reloc;
+}
+
+/// C 1120-1197: `static gcc_jit_rvalue *emit_coerce (gcc_jit_type *new_type, gcc_jit_rvalue *obj)`.
+/// C's two `#ifdef` arms are carried as the gates they name: `LISP_OBJECT_IS_STRUCT` (undefined in
+/// the frozen configuration, and no flip turns it on) and
+/// `LIBGCCJIT_HAVE_gcc_jit_context_new_bitcast` (also undefined there, so C 1185-1196 is the live
+/// side - the cast matrix `type_to_cast_index` indexes).
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_coerce (new_type: *mut gcc_jit_type, obj: *mut gcc_jit_rvalue)
+  -> *mut gcc_jit_rvalue
+{
+  let old_type: *mut gcc_jit_type = gcc_jit_rvalue_get_type (obj);
+
+  if new_type == old_type
+    { return obj; }
+
+  #[cfg (feature = "lisp_object_is_struct")]
+  {
+    if old_type == comp.lisp_obj_type
+      {
+	let lwordobj: *mut gcc_jit_rvalue =
+	  gcc_jit_rvalue_access_field (obj, std::ptr::null_mut (), comp.lisp_obj_i);
+	return emit_coerce (new_type, lwordobj);
+      }
+
+    if new_type == comp.lisp_obj_type
+      {
+	let lwordobj: *mut gcc_jit_rvalue =
+	  emit_coerce (comp.lisp_word_type, obj);
+
+	// C's `static ptrdiff_t i;`: a function-scope static, and C reads `i++` (the value first).
+	static mut i: ptrdiff_t = 0;
+	let counter: ptrdiff_t = i;
+	i += 1;
+	let tmp_s: *mut gcc_jit_lvalue =
+	  gcc_jit_function_new_local (comp.func, std::ptr::null_mut (), comp.lisp_obj_type,
+				      format_string (c"lisp_obj_%td".as_ptr (), counter));
+
+	gcc_jit_block_add_assignment (
+	  comp.block, std::ptr::null_mut (),
+	  gcc_jit_lvalue_access_field (tmp_s, std::ptr::null_mut (),
+				       comp.lisp_obj_i),
+	  lwordobj);
+	return gcc_jit_lvalue_as_rvalue (tmp_s);
+      }
+  }
+
+  #[cfg (feature = "libgccjit_have_gcc_jit_context_new_bitcast")]
+  {
+    let old_is_ptr: bool = ! gcc_jit_type_is_pointer (old_type).is_null ();
+    let new_is_ptr: bool = ! gcc_jit_type_is_pointer (new_type).is_null ();
+
+    let mut tmp: *mut gcc_jit_rvalue = obj;
+
+    /* `gcc_jit_context_new_bitcast` requires that the types being converted
+       between have the same layout and as such, doesn't allow converting
+       between an arbitrarily sized integer/boolean and a pointer. Casting it
+       to a uintptr/void* is still necessary, to ensure that it can be bitcast
+       into a (void *)/uintptr respectively.  */
+    if old_is_ptr != new_is_ptr
+      {
+	if old_is_ptr
+	  {
+	    tmp = gcc_jit_context_new_cast (comp.ctxt, std::ptr::null_mut (), tmp,
+					    comp.void_ptr_type);
+	    tmp = gcc_jit_context_new_bitcast (comp.ctxt, std::ptr::null_mut (), tmp,
+					       comp.uintptr_type);
+	  }
+	else
+	  {
+	    tmp = gcc_jit_context_new_cast (comp.ctxt, std::ptr::null_mut (), tmp,
+					    comp.uintptr_type);
+	    tmp = gcc_jit_context_new_bitcast (comp.ctxt, std::ptr::null_mut (), tmp,
+					       comp.void_ptr_type);
+	  }
+      }
+    return gcc_jit_context_new_cast (comp.ctxt, std::ptr::null_mut (), tmp, new_type);
+  }
+
+  /* C 1185-1196: `#else /* !LIBGCCJIT_HAVE_gcc_jit_context_new_bitcast */`.  C passes `&obj` -
+     the address of its own parameter - and the port spells that with a binding of its own.  */
+  #[cfg (not (feature = "libgccjit_have_gcc_jit_context_new_bitcast"))]
+  {
+    let old_index: c_int = type_to_cast_index (old_type);
+    let new_index: c_int = type_to_cast_index (new_type);
+
+    /* Lookup the appropriate cast function in the cast matrix.  */
+    let mut obj_: *mut gcc_jit_rvalue = obj;
+    return gcc_jit_context_new_call (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.cast_functions_from_to[old_index as usize]
+				       [new_index as usize],
+				     1, &raw mut obj_);
+  }
+}
+
+/// C 1199-1210: `static gcc_jit_rvalue *emit_binary_op (enum gcc_jit_binary_op op,
+/// gcc_jit_type *result_type, gcc_jit_rvalue *a, gcc_jit_rvalue *b)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_binary_op (op: gcc_jit_binary_op, result_type: *mut gcc_jit_type,
+			  a: *mut gcc_jit_rvalue, b: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  /* FIXME Check here for possible UB.  */
+  return gcc_jit_context_new_binary_op (comp.ctxt, std::ptr::null_mut (),
+					op,
+					result_type,
+					emit_coerce (result_type, a),
+					emit_coerce (result_type, b));
 }
 
 /// C 1012-1066: `static gcc_jit_rvalue *emit_call (Lisp_Object func, gcc_jit_type *ret_type,
