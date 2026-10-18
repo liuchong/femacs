@@ -1249,6 +1249,165 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/// C 5279-5281's `Lisp_Object (*top_level_run)(Lisp_Object)` - the entry point the compiled unit
+/// exports, cast out of `dynlib_sym`'s `void *`.
+#[cfg (feature = "have_native_comp")]
+pub type LLtop_level_fn = Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>;
+
+/// C 5232-5367: `Lisp_Object load_comp_unit (struct Lisp_Native_Comp_Unit *comp_u,
+/// bool loading_dump, bool late_load)`.  C's `XSETNATIVE_COMP_UNIT (a, b)` is
+/// `XSETPSEUDOVECTOR (a, b, PVEC_NATIVE_COMP_UNIT)` and the mirror has that macro.
+#[cfg (feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn load_comp_unit (comp_u_in: *mut Lisp_Native_Comp_Unit,
+					 loading_dump: bool,
+					 late_load: bool) -> Lisp_Object
+{
+  let mut res: Lisp_Object = Qnil ();
+  let handle: dynlib_handle_ptr = (*comp_u_in).handle;
+  let mut comp_u: *mut Lisp_Native_Comp_Unit = comp_u_in;
+  let mut comp_u_lisp_obj: Lisp_Object = Qnil ();
+  XSETPSEUDOVECTOR! (comp_u_lisp_obj, comp_u, pvec_type::PVEC_NATIVE_COMP_UNIT);
+
+  let saved_cu: *mut Lisp_Object =
+    dynlib_sym (handle, COMP_UNIT_SYM) as *mut Lisp_Object;
+  if saved_cu.is_null ()
+    { xsignal1 (Qnative_lisp_file_inconsistent (), (*comp_u).file); }
+  (*comp_u).loaded_once = ! NILP (*saved_cu);
+  let data_eph_relocs: *mut Lisp_Object
+    = find_relocs (handle, DATA_RELOC_EPHEMERAL_ADDR_SYM);
+  eassume! (! data_eph_relocs.is_null ());
+
+  /* While resurrecting from an image dump loading more than once the
+     same compilation unit does not make any sense.  */
+  eassert! (! (loading_dump && (*comp_u).loaded_once));
+
+  if (*comp_u).loaded_once
+    /* 'dlopen' returns the same handle when trying to load two times
+       the same shared.  In this case touching 'd_reloc' etc leads to
+       fails in case a frame with a reference to it in a live reg is
+       active (native-comp-speed > 0).
+
+       We must *never* mess with static pointers in an already loaded
+       eln.  */
+    {
+      comp_u_lisp_obj = *saved_cu;
+      comp_u = XNATIVE_COMP_UNIT (comp_u_lisp_obj);
+      (*comp_u).loaded_once = true;
+    }
+  else
+    { *saved_cu = comp_u_lisp_obj; }
+
+  /* Once we are sure to have the right compilation unit we want to
+     identify is we have at least another load active on it.  */
+  let recursive_load: bool = (*comp_u).load_ongoing;
+  (*comp_u).load_ongoing = true;
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  if ! recursive_load
+    { record_unwind_protect (unset_cu_load_ongoing as *mut c_void, comp_u_lisp_obj); }
+
+  freloc_check_fill ();
+
+  let top_level_run: LLtop_level_fn =
+    std::mem::transmute (dynlib_sym (handle,
+		  if late_load { c"late_top_level_run".as_ptr () }
+		  else { c"top_level_run".as_ptr () }));
+
+  /* Always set data_imp_relocs pointer in the compilation unit (in can be
+     used in 'dump_do_dump_relocation').  */
+  (*comp_u).data_relocs = find_relocs (handle, DATA_RELOC_ADDR_SYM);
+  eassert! (! (*comp_u).data_relocs.is_null ());
+
+  if ! (*comp_u).loaded_once
+    {
+      let current_thread_reloc: *mut *mut c_void =
+	dynlib_sym (handle, CURRENT_THREAD_RELOC_SYM) as *mut *mut c_void;
+      let f_symbols_with_pos_enabled_reloc: *mut *mut c_void =
+	dynlib_sym (handle, F_SYMBOLS_WITH_POS_ENABLED_RELOC_SYM) as *mut *mut c_void;
+      let data_relocs: *mut Lisp_Object = (*comp_u).data_relocs;
+      let freloc_link_table: *mut *mut c_void =
+	dynlib_sym (handle, FUNC_LINK_TABLE_SYM) as *mut *mut c_void;
+
+      if ! (! current_thread_reloc.is_null ()
+	    && ! f_symbols_with_pos_enabled_reloc.is_null ()
+	    && ! data_relocs.is_null ()
+	    && ! data_eph_relocs.is_null ()
+	    && ! freloc_link_table.is_null ()
+	    && top_level_run.is_some ())
+	  || NILP (Fstring_equal (load_static_obj (comp_u, LINK_TABLE_HASH_SYM),
+				  Vcomp_abi_hash))
+	{ xsignal1 (Qnative_lisp_file_inconsistent (), (*comp_u).file); }
+
+      *current_thread_reloc = &raw mut current_thread as *mut c_void;
+      *f_symbols_with_pos_enabled_reloc = &raw mut symbols_with_pos_enabled as *mut c_void;
+
+      /* Imported functions.  */
+      *freloc_link_table = freloc.link_table.as_mut_ptr () as *mut c_void;
+
+      /* Imported data.  */
+      if ! loading_dump
+	{
+	  (*comp_u).optimize_qualities =
+	    load_static_obj (comp_u, TEXT_OPTIM_QLY_SYM);
+	  (*comp_u).data_vec = load_static_obj (comp_u, TEXT_DATA_RELOC_SYM);
+	}
+
+      let d_vec_len: EMACS_INT = XFIXNUM (Flength ((*comp_u).data_vec));
+      let mut i: EMACS_INT = 0;
+      while i < d_vec_len
+	{
+	  *data_relocs.offset (i as isize) = AREF ((*comp_u).data_vec, i);
+	  i += 1;
+	}
+    }
+
+  if ! loading_dump
+    {
+      /* Note: data_ephemeral_vec is not GC protected except than by
+	 this function frame.  After this functions will be
+	 deactivated GC will be free to collect it, but it MUST
+	 survive till 'top_level_run' has finished his job.  We store
+	 into the ephemeral allocation class only objects that we know
+	 are necessary exclusively during the first load.  Once these
+	 are collected we don't have to maintain them in the heap
+	 forever.  */
+      let mut data_ephemeral_vec: Lisp_Object = Qnil ();
+      /* In case another load of the same CU is active on the stack
+	 all ephemeral data is hold by that frame.  Re-writing
+	 'data_ephemeral_vec' would be not only a waste of cycles but
+	 more importantly would lead to crashes if the contained data
+	 is not cons hashed.  */
+      if ! recursive_load
+	{
+	  data_ephemeral_vec =
+	    load_static_obj (comp_u, TEXT_DATA_RELOC_EPHEMERAL_SYM);
+
+	  let d_vec_len: EMACS_INT = XFIXNUM (Flength (data_ephemeral_vec));
+	  let mut i: EMACS_INT = 0;
+	  while i < d_vec_len
+	    {
+	      *data_eph_relocs.offset (i as isize) = AREF (data_ephemeral_vec, i);
+	      i += 1;
+	    }
+	}
+      /* Executing this will perform all the expected environment
+	 modifications.  */
+      res = top_level_run.unwrap () (comp_u_lisp_obj);
+      /* Make sure data_ephemeral_vec still exists after top_level_run has run.
+	 Guard against sibling call optimization (or any other).  */
+      data_ephemeral_vec = data_ephemeral_vec;
+      eassert! (check_comp_unit_relocs (comp_u));
+    }
+
+  if ! recursive_load
+    /* Clean-up the load ongoing flag in case.  */
+    { unbind_to (count, Qnil ()); }
+
+  register_native_comp_unit (comp_u_lisp_obj);
+
+  return res;
+}
+
 /* Queue an asynchronous compilation for the source file defining
    FUNCTION_NAME and perform a late load.
 
