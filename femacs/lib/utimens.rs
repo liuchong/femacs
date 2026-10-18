@@ -347,6 +347,10 @@ pub unsafe extern "C" fn fdutimens (fd: c_int, file: *const c_char,
            are out there?  So play it safe and fall back on the code
            below.  */
         /* C 447-452's `#  if HAVE_FUTIMESAT && !FUTIMESAT_NULL_BUG` arm is dead.  */
+        /* C 447-488 is `# if (HAVE_FUTIMESAT && !FUTIMESAT_NULL_BUG) || HAVE_FUTIMES`: live for
+           the frozen target (`HAVE_FUTIMES`), absent for the Android one, whose configuration
+           sets neither macro (status 4.719).  */
+        #[cfg (not (feature = "not_have_futimes"))]
         if (futimes (fd, t) == 0)
           {
             /* C 456-487's `#  if defined __linux__ && defined __GLIBC__` arm (the

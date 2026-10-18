@@ -32,7 +32,6 @@ find_hot_spot
 font_for_underline_metrics
 freeifaddrs
 fset_parent_frame
-futimes
 get_glyph_string_clip_rect
 get_glyph_string_clip_rects
 get_phys_cursor_geometry
