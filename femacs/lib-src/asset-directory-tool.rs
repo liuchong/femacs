@@ -18,29 +18,17 @@
 use std::ffi::{c_char, c_double, c_float, c_int, c_long, c_longlong, c_schar, c_short, c_uchar,
               c_uint, c_ulong, c_ulonglong, c_ushort, c_void};
 
-#[cfg (feature = "have_android")]
 include!("../src/include/config.rs");      // C 20: `#include <config.h>`
-#[cfg (feature = "have_android")]
 include!("../lib/include/stdio.rs");       // C 22: `#include <stdio.h>`
-#[cfg (feature = "have_android")]
 include!("../lib/include/assert.in.rs");   // C 23: `#include <assert.h>` (`static_assert`)
-#[cfg (feature = "have_android")]
 include!("../lib/include/fcntl.in.rs");    // C 24: `#include <fcntl.h>`
-#[cfg (feature = "have_android")]
 include!("../lib/include/errno.in.rs");    // C 25: `#include <errno.h>`
-#[cfg (feature = "have_android")]
 include!("../lib/include/byteswap.in.rs"); // C 26: `#include <byteswap.h>` (`bswap_32`)
-#[cfg (feature = "have_android")]
 include!("../lib/include/stdlib.rs");      // C 27: `#include <stdlib.h>`
-#[cfg (feature = "have_android")]
 include!("../lib/include/dirent.in.rs");   // C 28: `#include <dirent.h>` (`struct dirent`)
-#[cfg (feature = "have_android")]
 include!("../lib/include/dirent.rs");      // C 28: that header's `DIR` and its five calls
-#[cfg (feature = "have_android")]
 include!("../lib/include/string.rs");      // C 29: `#include <string.h>`
-#[cfg (feature = "have_android")]
 include!("../lib/include/unistd.in.rs");   // C 30: `#include <unistd.h>` (`write`, `ssize_t`)
-#[cfg (feature = "have_android")]
 include!("../lib/include/sys_stat.in.rs"); // C 32: `#include <sys/stat.h>`
 
 /// `<stddef.h>`'s `size_t`, written out the way `lib-src/emacsclient.rs` 68 does (measured: 8
@@ -68,7 +56,6 @@ const _: () = core::assert! (std::mem::offset_of! (dirent, d_name) == 21);
 /* `<stdlib.h>`'s `abort` and `exit`, which no mirror carries yet (the `lib-src/emacsclient.rs`
    292-295 and `src/sfnt.rs` notes record the same gap).  */
 /// C: `void abort (void);`
-#[cfg (feature = "have_android")]
 unsafe extern "C" {
   pub fn abort () -> !;
   /// C: `void exit (int);`
@@ -77,7 +64,6 @@ unsafe extern "C" {
 
 /// C 60: `struct directory_tree` - "The offset to the next sibling, the name of this directory or
 /// file, `st_size` of this entry, and the subdirectories and files inside this directory."
-#[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct directory_tree
@@ -98,12 +84,10 @@ pub struct directory_tree
 
 /// C 80-81: `static bool need_file_size;` - "Whether the size of each entry should be prepended to the
 /// start pointer."
-#[cfg (feature = "have_android")]
 static mut need_file_size: bool = false;
 
 /// C 90-95: `static _Noreturn void croak (const char *what)` - "Exit with EXIT_FAILURE, after printing
 /// a description of a failing function WHAT along with the details of the error."
-#[cfg (feature = "have_android")]
 unsafe fn croak (what: *const c_char) -> !
 {
   perror (what);
@@ -113,7 +97,6 @@ unsafe fn croak (what: *const c_char) -> !
 /// C 98-112: `static void *xmalloc (size_t size)` - "Like malloc, but aborts on failure."  This file's
 /// own `static xmalloc` is not `lisp.h`'s object of the same name: that header's mirror is not in this
 /// unit's include graph.
-#[cfg (feature = "have_android")]
 unsafe fn xmalloc (size: size_t) -> *mut c_void
 {
   let ptr: *mut c_void;
@@ -129,7 +112,6 @@ unsafe fn xmalloc (size: size_t) -> *mut c_void
 /// C 119-215: `static void main_1 (DIR *dir, struct directory_tree *parent)` - "Recursively build a
 /// struct directory_tree structure for each subdirectory or file in DIR, in preparation for writing it
 /// out to disk."
-#[cfg (feature = "have_android")]
 unsafe fn main_1 (dir: *mut DIR, parent: *mut directory_tree)
 {
   /* C 121-124: `struct dirent *dirent; int dir_fd, fd; struct stat statb; struct directory_tree
@@ -243,7 +225,6 @@ unsafe fn main_1 (dir: *mut DIR, parent: *mut directory_tree)
 
 /// C 218-272: `static void main_2 (int fd, struct directory_tree *tree, size_t *offset)` - "Write the
 /// struct directory_tree TREE and all of is children to the file descriptor FD."
-#[cfg (feature = "have_android")]
 unsafe fn main_2 (fd: c_int, tree: *mut directory_tree, offset: *mut size_t)
 {
   let mut size: ssize_t = 0;
@@ -306,7 +287,6 @@ unsafe fn main_2 (fd: c_int, tree: *mut directory_tree, offset: *mut size_t)
 
 /// C 274-338: `int main (int argc, char **argv)` - the program's entry point, so the port keeps the
 /// name and exports it (`#[unsafe(no_mangle)]`, PORTING.md 0.2).
-#[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 {

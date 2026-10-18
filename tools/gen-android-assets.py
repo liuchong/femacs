@@ -114,7 +114,7 @@ def build_metadata(out: pathlib.Path) -> None:
 
 def directory_tree(out: pathlib.Path) -> str:
     """C 261-263: `asset-directory-tool assets assets/directory-tree` - the port's own copy."""
-    tool = REPO / "build" / "port" / "asset-directory-tool"
+    tool = REPO / "build" / "port" / "lib-src" / "asset-directory-tool"
     if not tool.is_file():
         return ("asset-directory-tool is not built (xtask link/`build-tu lib-src/asset-directory-tool.c` "
                 "first): directory-tree not written")

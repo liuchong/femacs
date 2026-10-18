@@ -43,8 +43,10 @@ Lisp，启动会在 `loadup` 之前失败。
 ## 进度（4.738）
 
 - 判据 1：未决 **71** 条，未达。
-- 判据 2 的第一半（`assets/` 存在）：**达成** ✓ —— `tools/gen-android-assets.py` 按 C 的
-  `install_temp` 规则 staging，`tools/check-android-kotlin.sh --assets` 把它打进 APK：
-  **4,357 个文件、APK 47 MB**（`unzip -l` 里 4,357 个 `assets/` 成员）。C 的 gzip 与大文件分包
-  尚未复刻，记为下一步。
+- 判据 2 的第一半（`assets/` 存在且与 C 同构）：**达成** ✓（4.741）——
+  `tools/gen-android-assets.py` 复刻了 C 的 `install_temp` 全套：复制四棵树 + 垃圾过滤、
+  `gzip -9n` 1,557 个文件、`version`/`build_info`、以及用**端口自己的**
+  `build/port/lib-src/asset-directory-tool` 生成 `assets/directory-tree`（78,642 B）。
+  `tools/check-android-kotlin.sh --assets` 打进 APK ⇒ **4,360 个 `assets/` 成员、47 MB**。
+  C 的 `--api-8` 大文件分包按它的条件（`ANDROID_SDK_8_OR_EARLIER`）不适用，minSdk 21。
 - 判据 3：待问题 4。
