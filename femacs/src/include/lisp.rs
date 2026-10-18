@@ -3868,12 +3868,22 @@ pub mod other_units {
       pub fn module_function_address (function: *const c_void) -> module_funcptr;
       pub fn module_function_data (function: *const c_void) -> *mut c_void;
     }
-    /* C 4280/5436: two more declarations for definitions in other units (`src/fns.c`,
-       `src/xterm.c`/`androidterm.c`); `src/keyboard.c` reads both and includes no header that
-       names them on this target.  */
+    /* C 4280: `extern Lisp_Object plist_get (Lisp_Object, Lisp_Object);` - a definition in
+       another unit (`src/fns.c`) that `src/keyboard.c` reads and whose header does not name it
+       on this target.  */
     unsafe extern "C" {
       /// C: Lisp_Object plist_get (Lisp_Object, Lisp_Object)
       pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+    }
+    /* C 5434-5436 (`#ifdef HAVE_WINDOW_SYSTEM`): `extern char *get_keysym_name (int);` - the
+       definition is `src/xterm.c`/`nsterm.m`/`androidterm.c`'s, and `src/keyboard.c` 7796 calls
+       it under the same gate (carried there too).  The gate is C's own and is written here for
+       that reason: the frozen configuration leaves `HAVE_WINDOW_SYSTEM` undefined, so the
+       reference headers declare neither the name (lisp.h 5434) nor a caller, and an ungated
+       declaration is one the `lisp-abi-probe` C leg cannot compare against - it rejected the
+       whole harness with `use of undeclared identifier 'get_keysym_name'` (status 4.682).  */
+    #[cfg (feature = "have_window_system")]
+    unsafe extern "C" {
       /// C: char *get_keysym_name (int)
       pub fn get_keysym_name (keysym: c_int) -> *mut c_char;
     }

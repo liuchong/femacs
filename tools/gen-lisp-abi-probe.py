@@ -22,6 +22,7 @@ and width but not for the spelling of a nameable pointee, and object declaration
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -74,6 +75,11 @@ SKIP = {
     # P-05: C's `alloca` has no Rust counterpart, so AVAIL_ALLOCA calls a port-side
     # allocator (alloc.rs).  lisp.h has no such declaration to check against.
     "sa_stack_alloc": "port-side alloca replacement (P-05), not a C name in lisp.h",
+    # P-05 again: the SAFE_ALLOCA chain's height.  C spells it `sa_count`, a local in the
+    # `SAFE_ALLOCA`/`SAFE_FREE` macros, so lisp.h has no declaration to compare against either.
+    "sa_stack_mark": "port-side SAFE_ALLOCA name (P-05), not a C name in lisp.h",
+    # The third of the family: C's `SAFE_FREE` sets the chain's height back, again from a macro.
+    "sa_stack_release_to": "port-side SAFE_ALLOCA name (P-05), not a C name in lisp.h",
 }
 
 TAG_RE = re.compile(r"\b(struct|union|enum)\s+(\w+)")
@@ -235,8 +241,68 @@ def split_top_level(args: str) -> list:
 OBJECT_RE = re.compile(r"pub static (?:mut )?(\w+)\s*:\s*([^;]+);")
 
 
+def frozen_macros(path: str) -> dict:
+    """The frozen configuration's macro table, keyed by the Rust feature's own spelling.
+
+    `feature = "have_modules"` asks about `HAVE_MODULES`, and the C harness compiles against
+    the *same* frozen `config.h` (`build/emacs-ref/src`), so a gate the mirror holds closed is
+    dead text in C too - and dead text has no prototype for this probe to compare against
+    (status 4.682: `mark_fringe_data` and `module_finalize_function`, both written under
+    `#[cfg (all (feature = "have_window_system", feature = "have_android"))]`, made clang
+    reject the whole harness with `use of undeclared identifier`).  The table is the one
+    `xtask gen-config` reads; `undefined` and `absent` both mean "not defined".
+    """
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return {name.upper(): value not in ("undefined", "absent")
+            for name, value in data["macros"].items()}
+
+
+def cfg_holds(expr: str, macros: dict) -> bool | None:
+    """Evaluate a `#[cfg (…)]` expression against MACROS; `None` when it is not a macro gate."""
+    expr = expr.strip()
+    m = re.match(r"^(all|any)\s*\((.*)\)$", expr, re.S)
+    if m:
+        vals = [cfg_holds(a, macros) for a in split_top_level(m.group(2))]
+        if any(v is None for v in vals):
+            return None
+        return all(vals) if m.group(1) == "all" else any(vals)
+    m = re.match(r"^not\s*\((.*)\)$", expr, re.S)
+    if m:
+        v = cfg_holds(m.group(1), macros)
+        return None if v is None else not v
+    m = re.match(r'^feature\s*=\s*"(\w+)"$', expr)
+    if m:
+        return macros.get(m.group(1).upper())
+    return None
+
+
+def cfg_attrs(line: str) -> list:
+    """The `#[cfg (…)]` expressions in one attribute line."""
+    return [m.group(1) for m in re.finditer(r"#\[\s*cfg\s*\((.*)\)\s*\]", line)]
+
+
+def block_is_live(gates: list, macros: dict) -> bool:
+    """True when no gate above a block is closed in MACROS (undecided counts as closed)."""
+    return all(cfg_holds(expr, macros) is True for line in gates for expr in cfg_attrs(line))
+
+
+def block_gate_reason(gates: list, macros: dict) -> str:
+    """Why a block is dead text here, or the empty string when it is live."""
+    out = []
+    for line in gates:
+        for expr in cfg_attrs(line):
+            v = cfg_holds(expr, macros)
+            if v is not True:
+                out.append(f"#[cfg ({expr})] is " + ("false" if v is False else "undecided")
+                           + " in the frozen configuration")
+    return "; ".join(out)
+
+
 def extern_blocks(text: str) -> list:
-    """The text of every `unsafe extern "C" { … }` block in TEXT."""
+    """Every `unsafe extern "C" { … }` block in TEXT, with the `#[cfg]`s that gate it.
+
+    Returns `(gates, body)` pairs, GATES being the attribute lines written above the block.
+    """
     out = []
     for m in re.finditer(r"unsafe extern \"C\"\s*\{", text):
         depth, i = 0, m.end() - 1
@@ -248,7 +314,16 @@ def extern_blocks(text: str) -> list:
                 if depth == 0:
                     break
             i += 1
-        out.append(text[m.end():i])
+        gates = []
+        for line in reversed(text[:m.start()].split("\n")):
+            line = line.strip()
+            if line.startswith("#[cfg"):
+                gates.append(line)
+            elif line.startswith("#[") or line.startswith("//") or not line:
+                continue
+            else:
+                break
+        out.append((list(reversed(gates)), text[m.end():i]))
     return out
 
 
@@ -278,11 +353,15 @@ def logical_lines(block: str) -> list:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mirror", default="femacs/src/include/lisp.rs")
+    ap.add_argument("--config", default="docs/baseline/config/darwin-arm64.json",
+                    help="the frozen configuration the C harness compiles against; a "
+                         "declaration gated off here has no C prototype to compare with")
     ap.add_argument("--baseline", default="docs/ports/lisp-decl-abi-baseline.txt",
                     help="declarations whose type is known to differ from lisp.h's; "
                          "listed with a reason, so a *new* deviation still fails")
     args = ap.parse_args()
     text = Path(args.mirror).read_text(encoding="utf-8")
+    macros = frozen_macros(args.config)
 
     baselined = set()
     base_path = Path(args.baseline)
@@ -300,14 +379,38 @@ def main() -> int:
     print()
     tags, typedefs = reference_c_tables()
     objects: list[str] = []
-    for block in extern_blocks(text):
+    for gates, block in extern_blocks(text):
+        if not block_is_live(gates, macros):
+            continue
         for match in OBJECT_RE.finditer(block):
             objects.append(match.group(1))
     checked: list[str] = []
     skipped: list[str] = []
+    gated: dict[str, str] = {}
     unmapped: list[str] = []
-    for block in extern_blocks(text):
+    for gates, block in extern_blocks(text):
+        reason = block_gate_reason(gates, macros)
         for annotation, decl in logical_lines(block):
+            name_m = re.match(r"(?:#\[[^\]]*\]\s*)*pub fn (\w+)", decl)
+            if reason and name_m:
+                # Dead text in this configuration: skip it *by name*, so an addition to the
+                # gated list is visible in the probe's own output (status 4.682).
+                gated[name_m.group(1)] = reason
+                continue
+            attrs = re.match(r"((?:#\[[^\]]*\]\s*)+)(.*)$", decl, re.S)
+            if attrs and "cfg" in attrs.group(1):
+                inner = []
+                for expr in cfg_attrs(attrs.group(1)):
+                    v = cfg_holds(expr, macros)
+                    if v is not True:
+                        inner.append(f"#[cfg ({expr})] is "
+                                     + ("false" if v is False else "undecided") + " here")
+                decl = attrs.group(2)
+                if inner:
+                    name_m = re.match(r"pub fn (\w+)", decl)
+                    if name_m:
+                        gated[name_m.group(1)] = "; ".join(inner)
+                        continue
             m = re.match(r"pub fn (\w+)\s*\((.*)\)\s*(?:->\s*([^;]+?))?;\s*$", decl)
             if not m:
                 continue
@@ -381,6 +484,8 @@ def main() -> int:
               + (" ... */" if len(objects) > 8 else " */"), file=sys.stderr)
     for name in sorted(skipped):
         print(f"/* skipped {name}: {SKIP[name]} */", file=sys.stderr)
+    for name in sorted(gated):
+        print(f"/* skipped {name}: {gated[name]} */", file=sys.stderr)
     if len(checked) < 40:
         print(f"error: only {len(checked)} declarations mapped (floor 40)", file=sys.stderr)
         return 1
