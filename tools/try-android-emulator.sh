@@ -73,7 +73,10 @@ EMU="$SDK/emulator/emulator"
 "$EMU" -avd "$AVD" -no-window -no-audio -no-boot-anim -no-snapshot -no-metrics -memory "$MEM" \
        -gpu "$GPU" > /tmp/femacs-emulator.log 2>&1 &
 EMU_PID=$!
-trap 'kill $EMU_PID 2>/dev/null; "$ADB" emu kill >/dev/null 2>&1' EXIT
+# The emulator spawns its own qemu child; killing only `$EMU_PID` leaves that one behind and the
+# controlled executor reports `descendants_left`.  Shut it down through adb, then wait for the
+# process to actually go away (measured: ~2 s), so the run ends with nothing of its own left.
+trap '"$ADB" emu kill >/dev/null 2>&1; i=0; while kill -0 $EMU_PID 2>/dev/null && [ $i -lt 15 ]; do i=$((i+1)); sleep 1; done; kill $EMU_PID 2>/dev/null' EXIT
 
 "$ADB" wait-for-device || exit 3
 i=0
@@ -87,8 +90,9 @@ echo "boot: completed (avd $AVD)"
 echo "install: exit $?"
 
 "$ADB" logcat -c
-"$ADB" shell am start -n org.femacs/.EmacsActivity >/dev/null 2>&1
+echo "== launch =="
+"$ADB" shell am start -W -n org.femacs/.EmacsActivity 2>&1 | sed 's/^/  /' | head -6
 sleep 4
-echo "== launch log (first matching lines) =="
-"$ADB" logcat -d 2>/dev/null | grep -iE "org\.femacs|UnsatisfiedLink|dlopen|FATAL" | head -6
+echo "== launch log (app lines, link errors and fatals) =="
+"$ADB" logcat -d 2>/dev/null | grep -iE "org\.femacs|UnsatisfiedLink|dlopen|FATAL" | head -10
 [ "$KEEP" = 1 ] || true
