@@ -1398,6 +1398,15 @@ unsafe extern "C" {
   /// (gcc_jit_context *ctxt, const char *name);`
   pub fn gcc_jit_context_get_builtin_function (ctxt: *mut gcc_jit_context, name: *const c_char)
     -> *mut gcc_jit_function;
+  /// C: libgccjit.h 1373-1377: `gcc_jit_lvalue *gcc_jit_context_new_array_access
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, gcc_jit_rvalue *ptr, gcc_jit_rvalue *index);`
+  pub fn gcc_jit_context_new_array_access (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                           ptr: *mut gcc_jit_rvalue, index: *mut gcc_jit_rvalue)
+    -> *mut gcc_jit_lvalue;
+  /// C: libgccjit.h 1519-1522: `void gcc_jit_block_add_eval (gcc_jit_block *block,
+  /// gcc_jit_location *loc, gcc_jit_rvalue *rvalue);`
+  pub fn gcc_jit_block_add_eval (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
+                                 rvalue: *mut gcc_jit_rvalue);
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -1945,6 +1954,279 @@ unsafe fn emit_SYMBOL_WITH_POS_P (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rval
 				   2,
 				   args.as_ptr () as *mut *mut gcc_jit_rvalue);
 }
+
+/// C 1698-1723: `static gcc_jit_rvalue *emit_make_fixnum_MSB_TAG (gcc_jit_rvalue *n)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_make_fixnum_MSB_TAG (n: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  /*
+    n &= INTMASK;
+    n += (int0 << VALBITS);
+    return XIL (n);
+  */
+
+  let intmask: *mut gcc_jit_rvalue = emit_rvalue_from_emacs_uint (INTMASK as EMACS_UINT);
+
+  let mut n: *mut gcc_jit_rvalue =
+    emit_binary_op (GCC_JIT_BINARY_OP_BITWISE_AND,
+		    comp.emacs_uint_type,
+		    intmask, n);
+
+  n =
+    emit_binary_op (GCC_JIT_BINARY_OP_PLUS,
+		    comp.emacs_uint_type,
+		    emit_binary_op (GCC_JIT_BINARY_OP_LSHIFT,
+				    comp.emacs_uint_type,
+				    comp.lisp_int0,
+                                    emit_rvalue_from_emacs_uint (VALBITS as EMACS_UINT)),
+		    n);
+
+  return emit_coerce (comp.lisp_obj_type, n);
+}
+
+/// C 1726-1733: `static gcc_jit_rvalue *emit_make_fixnum (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_make_fixnum (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"make_fixnum".as_ptr ());
+  return if USE_LSB_TAG
+    { emit_make_fixnum_LSB_TAG (obj) }
+    else
+    { emit_make_fixnum_MSB_TAG (obj) };
+}
+
+/// C 1735-1746: `static gcc_jit_lvalue *emit_lisp_obj_reloc_lval (Lisp_Object obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_lisp_obj_reloc_lval (obj: Lisp_Object) -> *mut gcc_jit_lvalue
+{
+  emit_comment (format_string (c"l-value for lisp obj: %s".as_ptr (),
+			       SSDATA (Fprin1_to_string (obj, Qnil (), Qnil ()))));
+
+  let reloc: imm_reloc_t = obj_to_reloc (obj);
+  return gcc_jit_context_new_array_access (comp.ctxt,
+					   std::ptr::null_mut (),
+					   reloc.array.r_val,
+					   reloc.idx);
+}
+
+/// C 1748-1762: `static gcc_jit_rvalue *emit_lisp_obj_rval (Lisp_Object obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_lisp_obj_rval (obj: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  emit_comment (format_string (c"const lisp obj: %s".as_ptr (),
+			       SSDATA (Fprin1_to_string (obj, Qnil (), Qnil ()))));
+
+  if NILP (obj)
+    {
+      let n: *mut gcc_jit_rvalue =
+	emit_rvalue_from_lisp_word (iQnil as Lisp_Word);
+      return emit_coerce (comp.lisp_obj_type, n);
+    }
+
+  return gcc_jit_lvalue_as_rvalue (emit_lisp_obj_reloc_lval (obj));
+}
+
+/// C 1764-1769: `static gcc_jit_rvalue *emit_NILP (gcc_jit_rvalue *x)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_NILP (x: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"NILP".as_ptr ());
+  return emit_BASE_EQ (x, emit_lisp_obj_rval (Qnil ()));
+}
+
+/// C 1771-1791: `static gcc_jit_rvalue *emit_XCAR (gcc_jit_rvalue *c)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XCAR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"XCAR".as_ptr ());
+
+  /* XCONS (c)->u.s.car */
+  return
+    gcc_jit_rvalue_access_field (
+      /* XCONS (c)->u.s */
+      gcc_jit_rvalue_access_field (
+	/* XCONS (c)->u */
+	gcc_jit_lvalue_as_rvalue (
+	  gcc_jit_rvalue_dereference_field (
+	    emit_XCONS (c),
+	    std::ptr::null_mut (),
+	    comp.lisp_cons_u)),
+	std::ptr::null_mut (),
+	comp.lisp_cons_u_s),
+      std::ptr::null_mut (),
+      comp.lisp_cons_u_s_car);
+}
+
+/// C 1793-1812: `static gcc_jit_lvalue *emit_lval_XCAR (gcc_jit_rvalue *c)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_lval_XCAR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_lvalue
+{
+  emit_comment (c"lval_XCAR".as_ptr ());
+
+  /* XCONS (c)->u.s.car */
+  return
+    gcc_jit_lvalue_access_field (
+      /* XCONS (c)->u.s */
+      gcc_jit_lvalue_access_field (
+	/* XCONS (c)->u */
+	gcc_jit_rvalue_dereference_field (
+	  emit_XCONS (c),
+	  std::ptr::null_mut (),
+	  comp.lisp_cons_u),
+	std::ptr::null_mut (),
+	comp.lisp_cons_u_s),
+      std::ptr::null_mut (),
+      comp.lisp_cons_u_s_car);
+}
+
+/// C 1814-1837: `static gcc_jit_rvalue *emit_XCDR (gcc_jit_rvalue *c)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XCDR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"XCDR".as_ptr ());
+  /* XCONS (c)->u.s.u.cdr */
+  return
+    gcc_jit_rvalue_access_field (
+      /* XCONS (c)->u.s.u */
+      gcc_jit_rvalue_access_field (
+	/* XCONS (c)->u.s */
+	gcc_jit_rvalue_access_field (
+	  /* XCONS (c)->u */
+	  gcc_jit_lvalue_as_rvalue (
+	    gcc_jit_rvalue_dereference_field (
+	      emit_XCONS (c),
+	      std::ptr::null_mut (),
+	      comp.lisp_cons_u)),
+	  std::ptr::null_mut (),
+	  comp.lisp_cons_u_s),
+	std::ptr::null_mut (),
+	comp.lisp_cons_u_s_u),
+      std::ptr::null_mut (),
+      comp.lisp_cons_u_s_u_cdr);
+}
+
+/// C 1839-1862: `static gcc_jit_lvalue *emit_lval_XCDR (gcc_jit_rvalue *c)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_lval_XCDR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_lvalue
+{
+  emit_comment (c"lval_XCDR".as_ptr ());
+
+  /* XCONS (c)->u.s.u.cdr */
+  return
+    gcc_jit_lvalue_access_field (
+      /* XCONS (c)->u.s.u */
+      gcc_jit_lvalue_access_field (
+	/* XCONS (c)->u.s */
+	gcc_jit_lvalue_access_field (
+	  /* XCONS (c)->u */
+	  gcc_jit_rvalue_dereference_field (
+	    emit_XCONS (c),
+	    std::ptr::null_mut (),
+	    comp.lisp_cons_u),
+	  std::ptr::null_mut (),
+	  comp.lisp_cons_u_s),
+	std::ptr::null_mut (),
+	comp.lisp_cons_u_s_u),
+      std::ptr::null_mut (),
+      comp.lisp_cons_u_s_u_cdr);
+}
+
+/// C 1864-1882: `static void emit_CHECK_CONS (gcc_jit_rvalue *x)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_CHECK_CONS (x: *mut gcc_jit_rvalue)
+{
+  emit_comment (c"CHECK_CONS".as_ptr ());
+
+  let args: [*mut gcc_jit_rvalue; 3] =
+    [ emit_CONSP (x),
+      emit_lisp_obj_rval (Qconsp ()),
+      x ];
+
+  gcc_jit_block_add_eval (
+    comp.block,
+    std::ptr::null_mut (),
+    gcc_jit_context_new_call (comp.ctxt,
+			      std::ptr::null_mut (),
+			      comp.check_type,
+			      3,
+			      args.as_ptr () as *mut *mut gcc_jit_rvalue));
+}
+
+/// C 1884-1905: `static void emit_CHECK_SYMBOL_WITH_POS (gcc_jit_rvalue *x)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_CHECK_SYMBOL_WITH_POS (x: *mut gcc_jit_rvalue)
+{
+  emit_comment (c"CHECK_SYMBOL_WITH_POS".as_ptr ());
+
+  let args: [*mut gcc_jit_rvalue; 3] =
+    [ gcc_jit_context_new_cast (comp.ctxt,
+				std::ptr::null_mut (),
+				emit_SYMBOL_WITH_POS_P (x),
+				comp.int_type),
+      emit_lisp_obj_rval (Qsymbol_with_pos_p ()),
+      x ];
+
+  gcc_jit_block_add_eval (
+    comp.block,
+    std::ptr::null_mut (),
+    gcc_jit_context_new_call (comp.ctxt,
+			      std::ptr::null_mut (),
+			      comp.check_type,
+			      3,
+			      args.as_ptr () as *mut *mut gcc_jit_rvalue));
+}
+
+/// C 1907-1913: `static gcc_jit_rvalue *emit_car_addr (gcc_jit_rvalue *c)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_car_addr (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"car_addr".as_ptr ());
+
+  return gcc_jit_lvalue_get_address (emit_lval_XCAR (c), std::ptr::null_mut ());
+}
+
+/// C 1915-1921: `static gcc_jit_rvalue *emit_cdr_addr (gcc_jit_rvalue *c)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_cdr_addr (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"cdr_addr".as_ptr ());
+
+  return gcc_jit_lvalue_get_address (emit_lval_XCDR (c), std::ptr::null_mut ());
+}
+
+/// C 1923-1935: `static void emit_XSETCAR (gcc_jit_rvalue *c, gcc_jit_rvalue *n)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XSETCAR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
+{
+  emit_comment (c"XSETCAR".as_ptr ());
+
+  gcc_jit_block_add_assignment (
+    comp.block,
+    std::ptr::null_mut (),
+    gcc_jit_rvalue_dereference (
+      emit_car_addr (c),
+      std::ptr::null_mut ()),
+    n);
+}
+
+/// C 1937-1949: `static void emit_XSETCDR (gcc_jit_rvalue *c, gcc_jit_rvalue *n)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XSETCDR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
+{
+  emit_comment (c"XSETCDR".as_ptr ());
+
+  gcc_jit_block_add_assignment (
+    comp.block,
+    std::ptr::null_mut (),
+    gcc_jit_rvalue_dereference (
+      emit_cdr_addr (c),
+      std::ptr::null_mut ()),
+    n);
+}
+
+/* ==============================================================================================
+   Code emitted by LIMPLE statemes.  (C 1951-1953's banner, kept where C has it.)
+   ============================================================================================== */
 
 /* C 4932-4951's `DEFUN ("comp-libgccjit-version", …)` is transcribed **here**, out of C's order,
    because this slice's `emit_EQ` (C 1529) calls it and nothing between C 1520 and C 4932 defines
