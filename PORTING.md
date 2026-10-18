@@ -923,6 +923,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-303 | **“冻结配置看不到的条件”要两侧都写：`#ifndef HAVE_ANDROID` 加门、`#ifdef HAVE_ANDROID` 转写；判据回到 Makefile**：① 端口把冻结配置的活文本写成活代码 ✓，于是 `#ifndef HAVE_ANDROID` 里的一切在 Android 构建里也被编 ✓ ⇒ 只要它引用的单元（如 `CM_OBJ` ✓）在 Android 上按 C 的清单不存在，就变成未定义引用 ✗（`cm.c` 一族 9 条实测 ✓）。② **不能靠把它加进清单来修** ✗：那等于让端口编 C 不编的代码 ✓（违反一致性 ✓）；正确做法是给该区域加 `#[cfg (not (feature = "have_android"))]` ✓ 并**写出** `#ifdef HAVE_ANDROID` 的另一侧 ✓。③ **C 的清单是权威** ✓：`emacs/src/Makefile.in` 344-345 的 `CM_OBJ` 注释直接写着 Empty for MinGW and Android ✓ —— 端口清单与端口门冲突时，先回 Makefile 找答案 ✓，别改清单 ✓。 | **规则，立即生效** | ① 每个 `#ifndef HAVE_ANDROID` / `#ifdef HAVE_ANDROID` 区域都是两侧的工作项 ✓，按区域清点 ✓（`term.c` 22+2 ✓）。② 清单与门冲突时，以 C 的 Makefile 变量为准 ✓，并把判据写进台账 ✓。 |
 
+| P-304 | **`#ifndef HAVE_ANDROID` 不只在定义层：语句块、`defsubr`、DEFUN 的主体都要逐处对**：① 只按“区域里有哪些定义”加门会漏三处 ✗ —— `calculate_costs` 里的一整块 ✓、`maybe_fatal` 里的一个调用（C 还有 `#else` 的 `eassert` ✓）、`syms_of_term` 里的两条 `defsubr` ✓（`term.c` 实测 ✓）。② DEFUN 是**注册**（两配置都要有 ✓）、它的**主体**才是加门的对象 ✓（Android 侧改调 `*_android` 助手 ✓）；C 的 `#else` 若只是同一句 `error (...)` 抄了两遍 ✓，端口也留两份 ✓（别合并 ✓）。③ C 的 `_Noreturn` 用 `eassume! (false); std::hint::unreachable_unchecked ()` 表达 ✓（`emacs.rs` 2160 的 `main` 先例 ✓）。④ **判据只有一条**：`check-cond-eval.py <file>` 的 `0 disagreements` ✓ + `extract-abi --check` 的 `OK` ✓ + 两目标编译 0 错误 ✓ —— 三者齐了才算这片加门完成 ✓。 | **规则，立即生效** | ① 每个区域都要问“它是定义、语句块，还是注册” ✓，三种写法不同 ✓。② 臂的**另一侧**如果没转写，宁可让名字留在棘轮里 ✓，也不加门造空壳 ✗。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**

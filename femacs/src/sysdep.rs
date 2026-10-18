@@ -2547,7 +2547,9 @@ pub unsafe extern "C" fn reset_sys_modes (tty_out: *mut tty_display_info) {
       return;
     }
 
-  // C 1506: `#ifndef HAVE_ANDROID` — live.
+  /* C 1506-1576 is `#ifndef HAVE_ANDROID`: for the Android configuration C has no body here, so
+     the block is excluded rather than compiled (the port had it as live text, status 4.712).  */
+  #[cfg (not (feature = "have_android"))]
   {
     if !tty_bits! (term_initted, tty_out)
       { return; }

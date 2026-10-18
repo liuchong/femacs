@@ -36,29 +36,51 @@ ITEM = re.compile(r"^(?:[A-Za-z_][\w \t*]*[\s*])?"
 
 
 def regions(path: pathlib.Path) -> list[tuple[str, int, int, list[str]]]:
-    """(condition, first_line, last_line, items) for each guarded region in PATH."""
+    """(condition, first_line, last_line, items) for each guarded region in PATH.
+
+    A region with an `#else` is reported as two spans - the condition's own branch and the
+    complement's - because the first version reported the whole `#if`/`#endif` and so attributed
+    `init_tty`'s 554-line `#else` body to `#ifdef HAVE_ANDROID` (measured 4.711: C's Android arm
+    of `init_tty` is three lines, `maybe_fatal`, and the rest belongs to the other branch).
+    """
     lines = path.read_text(errors="replace").splitlines()
     out: list[tuple[str, int, int, list[str]]] = []
     for start, line in enumerate(lines):
         if not line.startswith("#if") or not any(w in line for w in WANTED):
             continue
         depth = 0
+        branch = []
         for end in range(start, len(lines)):
-            if lines[end].startswith("#if"):
+            text = lines[end]
+            if text.startswith("#if"):
                 depth += 1
-            elif lines[end].startswith("#endif"):
+            elif text.startswith("#endif"):
                 depth -= 1
                 if depth == 0:
                     break
+            elif depth == 1 and text.startswith("#else"):
+                out.append((" ".join(line.split()), start + 1, end,
+                            items_of(lines, start + 1, end)))
+                branch = []
+                start = end            # the complement's span starts here
+                continue
+            if depth >= 1:
+                branch.append(text)
         else:
             continue
-        items = []
-        for body in lines[start + 1:end]:
-            m = ITEM.match(body)
-            if m:
-                items.append(m.group(1))
-        out.append((" ".join(line.split()), start + 1, end + 1, items))
+        out.append((" ".join(line.split()), start + 1, end + 1, items_of(lines, start + 1, end + 1)))
     return out
+
+
+def items_of(lines: list[str], start: int, end: int) -> list[str]:
+    items = []
+    for body in lines[start:end]:
+        if body.startswith(("#", " ", "\t", "}", "/*", "*")):
+            continue
+        m = ITEM.match(body)
+        if m:
+            items.append(m.group(1))
+    return items
 
 
 def main() -> int:

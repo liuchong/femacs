@@ -465,6 +465,7 @@ macro_rules! tty_bits {
 
 /* Ring the bell on a tty.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_ring_bell (f: *mut frame)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -479,6 +480,7 @@ unsafe extern "C" fn tty_ring_bell (f: *mut frame)
 
 /* Set up termcap modes for Emacs.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_send_additional_strings (terminal: *mut terminal, sym: Lisp_Object)
 {
   /* Use only accessors like CDR_SAFE and assq_no_quit to avoid any
@@ -507,6 +509,7 @@ unsafe fn tty_send_additional_strings (terminal: *mut terminal, sym: Lisp_Object
     }
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_set_terminal_modes (terminal: *mut terminal)
 {
   let tty: *mut tty_display_info = (*terminal).display_info.tty.cast::<tty_display_info> ();
@@ -535,6 +538,7 @@ unsafe extern "C" fn tty_set_terminal_modes (terminal: *mut terminal)
 
 /* Reset termcap modes before exiting Emacs.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_reset_terminal_modes (terminal: *mut terminal)
 {
   let tty: *mut tty_display_info = (*terminal).display_info.tty.cast::<tty_display_info> ();
@@ -557,6 +561,7 @@ unsafe extern "C" fn tty_reset_terminal_modes (terminal: *mut terminal)
 
 /* Flag the end of a display update on a termcap terminal.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_update_end (f: *mut frame)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -570,6 +575,7 @@ unsafe extern "C" fn tty_update_end (f: *mut frame)
 
 /* The implementation of set_terminal_window for termcap frames.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_set_terminal_window (f: *mut frame, size: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -579,6 +585,7 @@ unsafe extern "C" fn tty_set_terminal_window (f: *mut frame, size: c_int)
     { tty_set_scroll_region (f, 0, (*tty).specified_window); }
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_set_scroll_region (f: *mut frame, start: c_int, stop: c_int)
 {
   let mut buf: *mut c_char = std::ptr::null_mut ();
@@ -599,6 +606,7 @@ unsafe fn tty_set_scroll_region (f: *mut frame, start: c_int, stop: c_int)
   losecursor! (tty);
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_turn_on_insert (tty: *mut tty_display_info)
 {
   if ! tty_bits! (insert_mode, tty)
@@ -607,6 +615,7 @@ unsafe fn tty_turn_on_insert (tty: *mut tty_display_info)
 }
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_turn_off_insert (tty: *mut tty_display_info)
 {
   if tty_bits! (insert_mode, tty)
@@ -616,6 +625,7 @@ unsafe fn tty_turn_off_insert (tty: *mut tty_display_info)
 
 /* Handle highlighting.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_turn_off_highlight (tty: *mut tty_display_info)
 {
   if tty_bits! (standout_mode, tty)
@@ -623,6 +633,7 @@ unsafe fn tty_turn_off_highlight (tty: *mut tty_display_info)
   tty_bits! (standout_mode, tty, 0);
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_turn_on_highlight (tty: *mut tty_display_info)
 {
   if ! tty_bits! (standout_mode, tty)
@@ -630,6 +641,7 @@ unsafe fn tty_turn_on_highlight (tty: *mut tty_display_info)
   tty_bits! (standout_mode, tty, 1);
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_toggle_highlight (tty: *mut tty_display_info)
 {
   if tty_bits! (standout_mode, tty)
@@ -641,6 +653,7 @@ unsafe fn tty_toggle_highlight (tty: *mut tty_display_info)
 /* Make cursor invisible.  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn tty_hide_cursor (tty: *mut tty_display_info)
 {
   if (tty_bits! (cursor_hidden, tty) as c_int) == 0
@@ -658,6 +671,7 @@ pub unsafe extern "C" fn tty_hide_cursor (tty: *mut tty_display_info)
 /* Ensure that cursor is visible.  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn tty_show_cursor (tty: *mut tty_display_info)
 {
   if tty_bits! (cursor_hidden, tty)
@@ -676,6 +690,7 @@ pub unsafe extern "C" fn tty_show_cursor (tty: *mut tty_display_info)
    empty space inside windows.  What this is,
    depends on the user option inverse-video.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_background_highlight (tty: *mut tty_display_info)
 {
   if inverse_video
@@ -686,6 +701,7 @@ unsafe fn tty_background_highlight (tty: *mut tty_display_info)
 
 /* Set standout mode to the mode specified for the text to be output.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_highlight_if_desired (tty: *mut tty_display_info)
 {
   if inverse_video
@@ -697,6 +713,7 @@ unsafe fn tty_highlight_if_desired (tty: *mut tty_display_info)
 /* Move cursor to row/column position VPOS/HPOS.  HPOS/VPOS are
    frame-relative coordinates.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -715,6 +732,7 @@ unsafe extern "C" fn tty_cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 
 /* Similar but don't take any account of the wasted characters.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -731,6 +749,7 @@ unsafe extern "C" fn tty_raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 
 /* Clear from cursor to end of frame on a termcap device. */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_clear_to_end (f: *mut frame)
 {
   let mut i: c_int = 0;
@@ -755,6 +774,7 @@ unsafe extern "C" fn tty_clear_to_end (f: *mut frame)
 
 /* Clear an entire termcap frame. */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_clear_frame (f: *mut frame)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -776,6 +796,7 @@ unsafe extern "C" fn tty_clear_frame (f: *mut frame)
 
    Note that the cursor may be moved, on terminals lacking a `ce' string.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_clear_end_of_line (f: *mut frame, first_unused_hpos: c_int)
 {
   let mut i: c_int = 0;
@@ -860,6 +881,7 @@ static mut encode_terminal_dst_size: ptrdiff_t = 0;
    sequence, and return a pointer to that byte sequence.  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn encode_terminal_code (src: *mut glyph, src_len: c_int,
 					       coding: *mut coding_system) -> *mut u8
 {
@@ -1092,6 +1114,7 @@ unsafe extern "C" fn encode_terminal_code_android (src: *mut glyph, src_len: c_i
 
 /* An implementation of write_glyphs for termcap frames. */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_write_glyphs_1 (f: *mut frame, mut string: *mut glyph, len: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -1162,6 +1185,7 @@ unsafe fn tty_write_glyphs_1 (f: *mut frame, mut string: *mut glyph, len: c_int)
 
 /* C 820-878: `#ifndef DOS_NT`; DOS_NT is undef in the frozen configuration.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_write_glyphs_with_face (f: *mut frame, string: *mut glyph,
 				      mut len: c_int, face: *mut face)
 {
@@ -1219,6 +1243,7 @@ unsafe fn tty_write_glyphs_with_face (f: *mut frame, string: *mut glyph,
 
 /* An implementation of insert_glyphs for termcap frames. */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_insert_glyphs (f: *mut frame, mut start: *mut glyph, mut len: c_int)
 {
   let mut buf: *mut c_char = std::ptr::null_mut ();
@@ -1311,6 +1336,7 @@ unsafe extern "C" fn tty_insert_glyphs (f: *mut frame, mut start: *mut glyph, mu
   cmcheckmagic (tty);
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_write_glyphs (f: *mut frame, string: *mut glyph, len: c_int)
 {
   let mut string = string;
@@ -1349,6 +1375,7 @@ unsafe extern "C" fn tty_write_glyphs (f: *mut frame, string: *mut glyph, len: c
 
 /* An implementation of delete_glyphs for termcap frames. */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_delete_glyphs (f: *mut frame, n: c_int)
 {
   let mut buf: *mut c_char = std::ptr::null_mut ();
@@ -1384,6 +1411,7 @@ unsafe extern "C" fn tty_delete_glyphs (f: *mut frame, n: c_int)
 
 /* An implementation of ins_del_lines for termcap frames. */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -1455,6 +1483,7 @@ unsafe extern "C" fn tty_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
    not counting any line-dependent padding.  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn string_cost (str_: *const c_char) -> c_int
 {
   cost = 0;
@@ -1466,6 +1495,7 @@ pub unsafe extern "C" fn string_cost (str_: *const c_char) -> c_int
 /* Compute cost of sending "str", in characters,
    counting any line-dependent padding at one line.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn string_cost_one_line (str_: *const c_char) -> c_int
 {
   cost = 0;
@@ -1478,6 +1508,7 @@ unsafe fn string_cost_one_line (str_: *const c_char) -> c_int
    in tenths of characters.  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn per_line_cost (str_: *const c_char) -> c_int
 {
   cost = 0;
@@ -1500,6 +1531,7 @@ macro_rules! char_ins_del_cost {
   ($f:expr) => { char_ins_del_vector.add (FRAME_COLS ($f) as usize) };
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn calculate_ins_del_char_costs (f: *mut frame)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -1582,6 +1614,8 @@ pub unsafe extern "C" fn calculate_costs (frame: *mut frame)
      accessor is a reader, so the assignment names the field C's macro expands to.  */
   (*frame).cost_calculation_baud_rate = baud_rate as intmax_t;
 
+  #[cfg (not (feature = "have_android"))]
+  {
   if FRAME_TERMCAP_P (frame)
     {
       let tty: *mut tty_display_info = FRAME_TTY! (frame);
@@ -1635,6 +1669,7 @@ pub unsafe extern "C" fn calculate_costs (frame: *mut frame)
 
       cmcostinit (FRAME_TTY! (frame)); /* set up cursor motion costs */
     }
+  }
 }
 
 /* C 1310-1315: `struct fkey_table` (C 1308-1311's anonymous `typedef`-less record); the
@@ -1910,6 +1945,7 @@ macro_rules! CONDITIONAL_REASSIGN {
    This function scans the termcap function key sequence entries, and
    adds entries to Vinput_decode_map for each function key it finds.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn term_get_fkeys (address: *mut *mut c_char, kboard: *mut KBOARD)
 {
   /* We run the body of the function (term_get_fkeys_1) and ignore all Lisp
@@ -1928,6 +1964,7 @@ unsafe fn term_get_fkeys (address: *mut *mut c_char, kboard: *mut KBOARD)
 static mut term_get_fkeys_address: *mut *mut c_char = std::ptr::null_mut ();
 static mut term_get_fkeys_kboard: *mut KBOARD = std::ptr::null_mut ();
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn term_get_fkeys_1 () -> Lisp_Object
 {
   let mut i: c_int = 0;
@@ -2623,6 +2660,7 @@ macro_rules! MAY_USE_WITH_COLORS_P {
 /* Turn appearances of face FACE_ID on tty frame F on.
    FACE_ID is a realized face ID number, in the face cache.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn turn_on_face (f: *mut frame, face: *mut face)
 {
   let fg: c_ulong = (*face).foreground;
@@ -2718,6 +2756,7 @@ unsafe fn turn_on_face (f: *mut frame, face: *mut face)
 
 /* Turn off appearances of face FACE_ID on tty frame F.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn turn_off_face (f: *mut frame, face: *mut face)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -2832,6 +2871,7 @@ static mut default_set_background: *mut c_char = std::ptr::null_mut ();
 
 /* Save or restore the default color-related capabilities of this
    terminal.  */
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool)
 {
 
@@ -2859,6 +2899,7 @@ unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool
    we saw at init_tty time; -1 means turn off color support.  */
 /* termchar.h 255 declares `tty_setup_colors` at the mirror's crate root, so the
    definition lives in a glob-imported module (the terminal.rs shape, P-21).  */
+#[cfg (not (feature = "have_android"))]
 pub mod term_setup_colors_def {
   use super::*;
 
@@ -2896,6 +2937,7 @@ pub mod term_setup_colors_def {
   }
 
 }
+#[cfg (not (feature = "have_android"))]
 use term_setup_colors_def::*;
 #[cfg (feature = "windowsnt")]
 unsafe fn tty_setup_colors_windowsnt (tty: *mut tty_display_info, mode: c_int)
@@ -2920,6 +2962,7 @@ unsafe fn tty_setup_colors_windowsnt (tty: *mut tty_display_info, mode: c_int)
 }
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn set_tty_color_mode (tty: *mut tty_display_info, f: *mut frame)
 {
   let mut tem: Lisp_Object;
@@ -3022,6 +3065,10 @@ DEFUN! ("suspend-tty", Fsuspend_tty, Ssuspend_tty, 0, 1, 0,
        doc: "Suspend the terminal device TTY.\n\nThe device is restored to its default state, and Emacs ceases all\naccess to the tty device.  Frames that use the device are not deleted,\nbut input is not read from them and if they change, their display is\nnot updated.\n\nTTY may be a terminal object, a frame, or nil for the terminal device\nof the currently selected frame.\n\nThis function runs `suspend-tty-functions' after suspending the\ndevice.  The functions are run with one arg, the id of the suspended\nterminal device.\n\n`suspend-tty' does nothing if it is called on a device that is already\nsuspended.\n\nA suspended tty may be resumed by calling `resume-tty' on it.",
        (tty: Lisp_Object),
        {
+  /* C 2509-2599 is `#ifndef HAVE_ANDROID` and C 2600-2604 is its `#else` (`error (...)`,
+     carried by `fsuspend_tty_android` below, the shape `init_tty` uses).  */
+  #[cfg (not (feature = "have_android"))]
+  {
   let t: *mut terminal = decode_tty_terminal (tty);
 
   if t == std::ptr::null_mut ()
@@ -3057,11 +3104,14 @@ DEFUN! ("suspend-tty", Fsuspend_tty, Ssuspend_tty, 0, 1, 0,
 
   /* Clear display hooks to prevent further output.  */
   clear_tty_hooks (t);
+  }
+  #[cfg (feature = "have_android")]
+  { fsuspend_tty_android (); }
 
   return Qnil ();
 });
 
-/* C 2594-2598: the `#else /* HAVE_ANDROID */` arm, dead on this target.  */
+/* C 2594-2598: the `#else /* HAVE_ANDROID */` arm of `Fsuspend_tty`.  */
 #[cfg (feature = "have_android")]
 unsafe fn fsuspend_tty_android ()
 {
@@ -3073,6 +3123,10 @@ DEFUN! ("resume-tty", Fresume_tty, Sresume_tty, 0, 1, 0,
        doc: "Resume the previously suspended terminal device TTY.\nThe terminal is opened and reinitialized.  Frames that are on the\nsuspended terminal are revived.\n\nIt is an error to resume a terminal while another terminal is active\non the same device.\n\nThis function runs `resume-tty-functions' after resuming the terminal.\nThe functions are run with one arg, the id of the resumed terminal\ndevice.\n\n`resume-tty' does nothing if it is called on a device that is not\nsuspended.\n\nTTY may be a terminal object, a frame, or nil (meaning the selected\nframe's terminal).",
        (tty: Lisp_Object),
        {
+  /* C 2623-2685 is `#ifndef HAVE_ANDROID`; C 2686-2690 is its `#else`, which carries the same
+     two lines `Fsuspend_tty` does (C's own duplication, so the port keeps two arms too).  */
+  #[cfg (not (feature = "have_android"))]
+  {
   let t: *mut terminal;
   let fd: c_int;
 
@@ -3134,10 +3188,22 @@ DEFUN! ("resume-tty", Fresume_tty, Sresume_tty, 0, 1, 0,
     }
 
   set_tty_hooks (t);
+  }
+  #[cfg (feature = "have_android")]
+  { fresume_tty_android (); }
 
   return Qnil ();
 });
 
+/* C 2686-2690: the `#else /* HAVE_ANDROID */` arm of `Fresume_tty`.  */
+#[cfg (feature = "have_android")]
+unsafe fn fresume_tty_android ()
+{
+  /* Android doesn't support TTY terminal devices, so unconditionally signal.  */
+  error (c"Attempt to suspend a non-text terminal device".as_ptr ());
+}
+
+#[cfg (not (feature = "have_android"))]
 DEFUN! ("tty--set-output-buffer-size", Ftty__set_output_buffer_size,
        Stty__set_output_buffer_size, 1, 2, 0,
        doc: "Set the output buffer size for a TTY.\n\nSIZE zero means use the system's default value.  If SIZE is\nnon-zero, this also avoids flushing the output stream.\n\nTTY may be a terminal object, a frame, or nil (meaning the selected\nframe's terminal).\n\nThis function temporarily suspends and resumes the terminal\ndevice.",
@@ -3151,6 +3217,7 @@ DEFUN! ("tty--set-output-buffer-size", Ftty__set_output_buffer_size,
   return Fresume_tty (tty);
 });
 
+#[cfg (not (feature = "have_android"))]
 DEFUN! ("tty--output-buffer-size", Ftty__output_buffer_size,
        Stty__output_buffer_size, 0, 1, 0,
        doc: "Return the output buffer size of TTY.\n\nTTY may be a terminal object, a frame, or nil (meaning the selected\nframe's terminal).\n\nA value of zero means TTY uses the system's default value.",
@@ -3169,6 +3236,7 @@ DEFUN! ("tty--output-buffer-size", Ftty__output_buffer_size,
 /* Implementation of draw_row_with_mouse_face for TTY/GPM and macOS.  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn tty_draw_row_with_mouse_face (w: *mut window, window_row: *mut glyph_row,
 						      mut window_start_x: c_int,
 						      mut window_end_x: c_int,
@@ -3396,6 +3464,7 @@ pub type tty_menu = tty_menu_struct;
 
 /* Create a brand new menu structure.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_create () -> *mut tty_menu
 {
   return xzalloc (std::mem::size_of::<tty_menu> ()).cast::<tty_menu> ();
@@ -3404,6 +3473,7 @@ unsafe fn tty_menu_create () -> *mut tty_menu
 /* Allocate some (more) memory for MENU ensuring that there is room for one
    more item.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_make_room (menu: *mut tty_menu)
 {
   if (*menu).allocated == (*menu).count as ptrdiff_t
@@ -3425,6 +3495,7 @@ unsafe fn tty_menu_make_room (menu: *mut tty_menu)
 
 /* Search the given menu structure for a given pane number.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_search_pane (menu: *mut tty_menu, pane: c_int) -> *mut tty_menu
 {
   let mut i: c_int;
@@ -3448,6 +3519,7 @@ unsafe fn tty_menu_search_pane (menu: *mut tty_menu, pane: c_int) -> *mut tty_me
 
 /* Determine how much screen space a given menu needs.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_calc_size (menu: *mut tty_menu, width: *mut c_int, height: *mut c_int)
 {
   let mut i: c_int;
@@ -3473,6 +3545,7 @@ unsafe fn tty_menu_calc_size (menu: *mut tty_menu, width: *mut c_int, height: *m
   *height = maxheight;
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn mouse_get_xy (x: *mut c_int, y: *mut c_int)
 {
   let mouse: Lisp_Object = mouse_position (tty_menu_calls_mouse_position_function);
@@ -3495,6 +3568,7 @@ unsafe fn mouse_get_xy (x: *mut c_int, y: *mut c_int)
 /* Display MENU at (X,Y) using FACES, starting with FIRST_ITEM
    (zero-based).  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_display (menu: *mut tty_menu, x: c_int, mut y: c_int, pn: c_int,
 			    faces: *mut c_int, mx: c_int, my: c_int, first_item: c_int,
 			    disp_help: bool)
@@ -3559,6 +3633,7 @@ unsafe fn tty_menu_display (menu: *mut tty_menu, x: c_int, mut y: c_int, pn: c_i
 
 /* Create a new pane and place it on the outer-most level.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_add_pane (menu: *mut tty_menu, txt: *const c_char) -> c_int
 {
   let len: c_int;
@@ -3581,6 +3656,7 @@ unsafe fn tty_menu_add_pane (menu: *mut tty_menu, txt: *const c_char) -> c_int
 
 /* Create a new item in a menu pane.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_add_selection (mut menu: *mut tty_menu, pane: c_int,
 				  txt: *mut c_char, enable: bool,
 				  help_text: *const c_char) -> bool
@@ -3610,6 +3686,7 @@ unsafe fn tty_menu_add_selection (mut menu: *mut tty_menu, pane: c_int,
 
 /* Decide where the menu would be placed if requested at (X,Y).  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_locate (menu: *mut tty_menu, x: c_int, y: c_int,
 			   ulx: *mut c_int, uly: *mut c_int, width: *mut c_int, height: *mut c_int)
 {
@@ -3633,6 +3710,7 @@ pub struct tty_menu_state
    enable all its rows.  Value is a glyph matrix holding the contents
    of F's current frame matrix with all its glyph rows enabled.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn save_and_enable_current_matrix (f: *mut frame) -> *mut glyph_matrix
 {
   let mut i: c_int;
@@ -3666,6 +3744,7 @@ unsafe fn save_and_enable_current_matrix (f: *mut frame) -> *mut glyph_matrix
 /* Restore the contents of frame F's desired frame matrix from SAVED,
    and free memory associated with SAVED.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn restore_desired_matrix (f: *mut frame, saved: *mut glyph_matrix)
 {
   let mut i: c_int = 0;
@@ -3704,6 +3783,7 @@ unsafe fn restore_desired_matrix (f: *mut frame, saved: *mut glyph_matrix)
     }
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn free_saved_screen (saved: *mut glyph_matrix)
 {
   let mut i: c_int;
@@ -3725,6 +3805,7 @@ unsafe fn free_saved_screen (saved: *mut glyph_matrix)
 }
 
 /* Update the display of frame F from its saved contents.  */
+#[cfg (not (feature = "have_android"))]
 unsafe fn screen_update (f: *mut frame, mtx: *mut glyph_matrix)
 {
   restore_desired_matrix (f, mtx);
@@ -3743,6 +3824,7 @@ pub const MI_SCROLL_BACK: mi_result = 5;
 /* Read user input and return X and Y coordinates where that input
    puts us.  We only consider mouse movement and click events, and
    keyboard movement commands; the rest are ignored.  */
+#[cfg (not (feature = "have_android"))]
 unsafe fn read_menu_input (sf: *mut frame, x: *mut c_int, y: *mut c_int, min_y: c_int,
 			   max_y: c_int, mut first_time: *mut bool) -> mi_result
 {
@@ -3816,6 +3898,7 @@ unsafe fn read_menu_input (sf: *mut frame, x: *mut c_int, y: *mut c_int, min_y: 
 }
 
 /* Display menu, wait for user's response, and return that response.  */
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut c_int,
 			     mut x0: c_int, mut y0: c_int, txt: *mut *mut c_char,
 			     help_callback: Option<unsafe extern "C" fn (*const c_char, c_int, c_int)>,
@@ -4105,6 +4188,7 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
 
 /* Dispose of a menu.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_destroy (menu: *mut tty_menu)
 {
   let mut i: c_int;
@@ -4131,6 +4215,7 @@ unsafe fn tty_menu_destroy (menu: *mut tty_menu)
    PANE is the pane number, and ITEM is the menu item number in
    the menu (currently not used).  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_menu_help_callback (help_string: *const c_char, pane: c_int, item: c_int)
 {
   let mut first_item: *mut Lisp_Object;
@@ -4159,6 +4244,7 @@ pub struct tty_pop_down_menu
   pub buffer: *mut buffer,
 }
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_pop_down_menu (arg: *mut c_void)
 {
   let data: *mut tty_pop_down_menu = arg.cast::<tty_pop_down_menu> ();
@@ -4170,6 +4256,7 @@ unsafe extern "C" fn tty_pop_down_menu (arg: *mut c_void)
 }
 
 /* Return the zero-based index of the last menu-bar item on frame F.  */
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_last_menubar_item (f: *mut frame) -> c_int
 {
   let mut i: c_int = 0;
@@ -4198,6 +4285,7 @@ unsafe fn tty_menu_last_menubar_item (f: *mut frame) -> c_int
    says which one--next or previous--item to look for.  X and Y are
    measured in character cells.  This should only be called on TTY
    frames.  */
+#[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_new_item_coords (f: *mut frame, which: c_int, x: *mut c_int, y: *mut c_int)
 {
   eassert! (FRAME_TERMCAP_P (f) && FRAME_LIVE_P (f));
@@ -4254,6 +4342,7 @@ unsafe fn tty_menu_new_item_coords (f: *mut frame, which: c_int, x: *mut c_int, 
 
 /* WINDOWSNT uses this as menu_show_hook, see w32console.c.  */
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuflags: c_int,
 					title: Lisp_Object, error_name: *mut *const c_char) -> Lisp_Object
 {
@@ -4551,6 +4640,7 @@ pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
    already have its device initialized.  */
 
 #[unsafe(no_mangle)]
+#[cfg (not (feature = "have_android"))]
 pub unsafe extern "C" fn create_tty_output (f: *mut frame)
 {
   let t: *mut tty_output = xzalloc (std::mem::size_of::<tty_output> ()).cast::<tty_output> ();
@@ -4565,6 +4655,7 @@ pub unsafe extern "C" fn create_tty_output (f: *mut frame)
 /* Delete frame F's face cache, and its tty-dependent part.  This is
    installed as a delete_frame_hook.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn tty_free_frame_resources (f: *mut frame)
 {
   eassert! (FRAME_TERMCAP_P (f));
@@ -4579,6 +4670,7 @@ unsafe extern "C" fn tty_free_frame_resources (f: *mut frame)
 
 /* Reset the hooks in TERMINAL.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn clear_tty_hooks (terminal: *mut terminal)
 {
   (*terminal).rif = std::ptr::null_mut ();
@@ -4621,6 +4713,7 @@ unsafe fn clear_tty_hooks (terminal: *mut terminal)
 
 /* Initialize hooks in TERMINAL with the values needed for a tty.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe fn set_tty_hooks (terminal: *mut terminal)
 {
   (*terminal).cursor_to_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), tty_cursor_to);
@@ -4655,6 +4748,7 @@ unsafe fn set_tty_hooks_msdos (terminal: *mut terminal)
 }
 
 /* If FD is the controlling terminal, drop it.  */
+#[cfg (not (feature = "have_android"))]
 unsafe fn dissociate_if_controlling_tty (fd: c_int)
 {
   /* If tcgetpgrp succeeds, fd is the controlling terminal,
@@ -4689,6 +4783,23 @@ unsafe fn dissociate_if_controlling_tty (fd: c_int)
    system policy (and the required libraries are usually not
    available.)  */
 
+/* C 4478-4487: `#ifdef HAVE_ANDROID` marks this function `_Noreturn` and its arm signals
+   ("Text terminals are not supported under Android"); the tty implementation below is the
+   `#else` arm, which for the Android configuration is not compiled at all.  The port keeps the
+   C-ABI symbol in both configurations and splits the arms the way the rest of this file does
+   (`init_tty_android`, `init_tty_msdos`).  */
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn init_tty (_name: *const c_char, _terminal_type: *const c_char,
+				   must_succeed: bool) -> *mut terminal
+{
+  init_tty_android (must_succeed);
+  /* C's arm is `_Noreturn` - `maybe_fatal` signals in both of its branches - so the port marks
+     the same point the way `main` does (`emacs.rs` 2160-2162, C's `eassume (false)`).  */
+  std::hint::unreachable_unchecked ()
+}
+
+#[cfg (not (feature = "have_android"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn init_tty (mut name: *const c_char, terminal_type: *const c_char,
 				   must_succeed: bool) -> *mut terminal
@@ -5168,8 +5279,12 @@ unsafe extern "C" fn vfatal (str_: *const c_char, mut args: ...)
 unsafe extern "C" fn maybe_fatal (must_succeed: bool, terminal: *mut terminal,
 				  str1: *const c_char, str2: *const c_char, mut args: ...)
 {
+  #[cfg (not (feature = "have_android"))]
   if ! terminal.is_null ()
     { delete_tty (terminal); }
+  #[cfg (feature = "have_android")]
+  /* C 5062-5063: the `#else` arm's assertion.  */
+  { eassert! (terminal.is_null ()); }
 
   if must_succeed
     { vfatal (str2, args); }
@@ -5185,6 +5300,7 @@ pub unsafe extern "C" fn fatal (str_: *const c_char, mut args: ...)
 
 /* Delete the given tty terminal, closing all frames on it.  */
 
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn delete_tty (terminal: *mut terminal)
 {
   let mut tty: *mut tty_display_info;
@@ -5464,7 +5580,9 @@ pub unsafe extern "C" fn syms_of_term ()
   defsubr (&raw mut Stty_top_frame);
   defsubr (&raw mut Ssuspend_tty);
   defsubr (&raw mut Sresume_tty);
+  #[cfg (not (feature = "have_android"))]
   defsubr (&raw mut Stty__set_output_buffer_size);
+  #[cfg (not (feature = "have_android"))]
   defsubr (&raw mut Stty__output_buffer_size);
   defsubr (&raw mut Stty_frame_at);
 

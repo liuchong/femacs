@@ -4,7 +4,7 @@
 # docs/baseline/android-arms.tsv (docs/status.md 4.710, PORTING.md P-302/P-303).
 #
 # C file	condition	lines		span	items	first items
-emacs/src/android.c	#ifndef ANDROID_STUBIFY	61-7619	7558	204	android_run_select_thread android_init_thread_events android_finalize_thread_events android_get_poll_thread android_set_task_name android_run_select_thread
+emacs/src/android.c	#ifndef ANDROID_STUBIFY	61-7543	7482	194	android_run_select_thread android_init_thread_events android_finalize_thread_events android_get_poll_thread android_set_task_name android_run_select_thread
 emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	48-6671	6623	150	android_window_to_frame android_clear_frame android_show_hourglass make_invisible_cursor android_hide_hourglass android_flash
 emacs/src/msdos.c	#ifdef MSDOS	34-4364	4330	125	spawnve _crt0_startup_flags _crt0_startup_flags event_timestamp mouse_on mouse_off
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	30756-32977	2221	38	dump_glyph_string dump_glyph_string init_glyph_string append_glyph_string_lists prepend_glyph_string_lists append_glyph_string
@@ -13,61 +13,62 @@ emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	482-1773	1291	34	blink_bit bright_bg ma
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	33468-34757	1289	7	calc_line_height_property append_glyphless_glyph produce_glyphless_glyph gui_produce_glyphs gui_write_glyphs gui_insert_glyphs
 emacs/src/term.c	#if !defined (MSDOS) && !defined HAVE_ANDROID	3194-4311	1117	21	tty_menu_create tty_menu_make_room tty_menu_search_pane tty_menu_calc_size mouse_get_xy tty_menu_display
 emacs/src/androidfont.c	#ifndef ANDROID_STUBIFY	42-1103	1061	25	android_init_font_driver android_init_font_spec android_init_font_metrics android_init_integer android_init_font_object androidfont_get_cache
-emacs/src/sound.c	#ifndef WINDOWSNT	415-1427	1012	27	string_default find_sound_type sound_cleanup le2hl le2hs be2hl
 emacs/src/scroll.c	#ifndef HAVE_ANDROID	27-1000	973	11	do_direct_scrolling do_scrolling calculate_scrolling do_scrolling calculate_direct_scrolling do_direct_scrolling
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	15684-16633	949	11	update_tool_bar build_desired_tool_bar_string display_tool_bar_line tool_bar_height DEFUN redisplay_tool_bar
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	1182-2107	925	15	xv_drag_begin_cb xwidget_button_1 xwidget_button xwidget_motion_notify xwidget_scroll xwidget_pinch
-emacs/src/androidmenu.c	#ifndef ANDROID_STUBIFY	29-839	810	12	popup_activated android_init_emacs_context_menu android_unwind_local_frame android_push_local_frame android_dismiss_menu android_process_events_for_menu
+emacs/src/androidmenu.c	#ifndef ANDROID_STUBIFY	29-830	801	11	popup_activated android_init_emacs_context_menu android_unwind_local_frame android_push_local_frame android_dismiss_menu android_process_events_for_menu
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	14805-15603	798	10	build_desired_tab_bar_string display_tab_bar_line tab_bar_height DEFUN redisplay_tab_bar tab_bar_item_info
+emacs/src/sound.c	#ifndef WINDOWSNT	415-1207	792	25	string_default find_sound_type sound_cleanup le2hl le2hs be2hl
 emacs/src/dosfns.c	#ifdef MSDOS	23-804	781	26	DEFUN DEFUN DEFUN DEFUN DEFUN DEFUN
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	2669-3367	698	21	android_set_background_color android_set_border_color android_set_cursor_color android_set_cursor_type android_set_foreground_color android_set_child_frame_border_width
 emacs/src/w16select.c	#ifdef MSDOS	29-694	665	25	identify_winoldap_version open_clipboard empty_clipboard set_clipboard_data get_clipboard_data_size get_clipboard_data
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	37783-38445	662	12	expose_area expose_line expose_overlaps phys_cursor_in_rect_p gui_draw_vertical_border gui_draw_right_divider
 emacs/src/filelock.c	#ifndef MSDOS	53-664	611	13	get_boot_sec rename_lock_file create_lock_file lock_file_1 within_one_second read_lock_data
-emacs/src/term.c	#ifndef HAVE_ANDROID	150-759	609	23	tty_ring_bell tty_send_additional_strings tty_set_terminal_modes tty_reset_terminal_modes tty_update_end tty_set_terminal_window
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	125-730	605	23	gamma_correct android_defined_color android_decode_color android_set_parent_frame android_set_name_internal android_set_name
+emacs/src/term.c	#ifndef HAVE_ANDROID	150-747	597	22	tty_ring_bell tty_send_additional_strings tty_set_terminal_modes tty_reset_terminal_modes tty_update_end tty_set_terminal_window
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	2490-3063	573	6	get_glyph_string_clip_rects get_glyph_string_clip_rect get_phys_cursor_geometry remember_mouse_glyph DEFUN rectangle
 emacs/src/textconv.c	#ifdef HAVE_ANDROID	1746-2316	570	14	get_conversion_field start_batch_edit end_batch_edit commit_text finish_composing_text set_composing_text
-emacs/src/term.c	#ifdef HAVE_ANDROID	4493-5047	554	0	
+emacs/src/term.c	#ifdef HAVE_ANDROID	4497-5047	550	0	
 emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	2793-3310	517	11	IT_menu_create IT_menu_make_room IT_menu_search_pane IT_menu_calc_size IT_menu_display XMenuCreate
-emacs/src/keyboard.c	#ifdef HAVE_ANDROID	5127-5636	509	6	lispy_function_keys lispy_function_keys lispy_multimedia_keys lispy_kana_keys lispy_function_keys iso_lispy_function_keys
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	740-1215	475	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	743-1215	472	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	761-1228	467	10	tty_write_glyphs_1 tty_write_glyphs_with_face tty_insert_glyphs tty_write_glyphs tty_delete_glyphs tty_ins_del_lines
 emacs/src/w32fns.c	#if defined WINDOWSNT && !defined HAVE_DBUS	10330-10797	467	7	BOOL get_dll_version utf8_mbslen_lim add_tray_notification delete_tray_notification DEFUN
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	35086-35513	427	8	gui_fix_overlapping_area draw_phys_cursor_glyph erase_phys_cursor display_and_set_cursor update_window_cursor update_cursor_in_window_tree
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	6326-6740	414	7	xg_add_virtual_mods xg_virtual_mods_to_x xg_im_context_commit xg_im_context_preedit_changed xg_im_context_preedit_end xg_widget_key_press_event_cb
 emacs/src/comp.c	#ifdef WINDOWSNT	49-443	394	65	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	1914-2298	384	4	unwind_create_tip_frame android_create_tip_frame android_hide_tip compute_tip_xy
+emacs/src/keyboard.c	#ifdef HAVE_ANDROID	5127-5480	353	3	lispy_function_keys lispy_function_keys lispy_multimedia_keys
 emacs/src/buffer.c	#if defined USE_MMAP_FOR_BUFFERS && !defined WINDOWSNT	4282-4632	350	6	mmap_init mmap_free_1 mmap_enlarge mmap_alloc mmap_free mmap_realloc
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	6345-6672	327	0	
 emacs/src/menu.c	#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NS) || defined (HAVE_NTGUI)	568-876	308	4	make_widget_value free_menubar_widget_value_tree digest_single_submenu update_submenu_strings
 emacs/src/w32fns.c	#ifdef WINDOWSNT	11063-11367	304	5	DEFUN DEFUN not DEFUN not
 emacs/src/image.c	#if defined HAVE_XPM || defined USE_CAIRO || defined HAVE_NS \	5953-6254	301	16	xpm_format xpm_cache_color xpm_init_color_cache xpm_free_color_cache xpm_color_bucket xpm_cache_color
-emacs/src/dynlib.c	#ifdef WINDOWSNT	33-330	297	15	BOOL dynlib_reset_last_error dynlib_reset_last_error dynlib_open dynlib_open_for_eln dynlib_sym
+emacs/src/dynlib.c	#ifdef WINDOWSNT	33-325	292	15	BOOL dynlib_reset_last_error dynlib_reset_last_error dynlib_open dynlib_open_for_eln dynlib_sym
 emacs/src/w32fns.c	#ifdef WINDOWSNT	2879-3162	283	3	funhook setup_w32_kbdhook remove_w32_kbdhook
 emacs/src/treesit.c	#ifdef WINDOWSNT	35-316	281	57	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	2305-2584	279	0	
 emacs/src/dispnew.c	#ifndef HAVE_ANDROID	3562-3841	279	10	prepare_desired_root_row make_glyph_space neutralize_wide_char box_from_display_table box_default box_glyph
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	2308-2584	276	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	24506-24764	258	0	
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	565-821	256	1	parse_settings
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	1539-1789	250	3	compare_fonts_by_sort_order DEFUN DEFUN
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	34844-35078	234	2	get_window_cursor_type notice_overwritten_cursor
-emacs/src/fileio.c	#ifdef WINDOWSNT	2330-2563	233	0	
 emacs/src/term.c	#if !defined DOS_NT && !defined HAVE_ANDROID	1299-1527	228	4	keys term_get_fkeys_1 term_get_fkeys term_get_fkeys_1
+emacs/src/sound.c	#ifndef WINDOWSNT	1208-1427	219	2	do_play_sound DEFUN
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	3372-3588	216	1	syms_of_androidfns_for_pdumper
-emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	943-1155	212	0	
+emacs/src/fileio.c	#ifdef WINDOWSNT	2351-2563	212	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	39637-39849	212	5	show_hourglass start_hourglass cancel_hourglass adjust_glyph_width_for_mouse_face get_cursor_offset_for_mouse_face
-emacs/src/dispnew.c	#ifndef HAVE_ANDROID	3935-4137	202	7	abs_cursor_pos is_in_matrix frame_selected_window_frame is_cursor_obscured terminal_cursor_magic combine_updates_for_frame
-emacs/src/image.c	#ifndef HAVE_ANDROID	3179-3381	202	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	822-1020	198	7	hierarchy_ch_cb qttip_cb xg_prepare_tooltip xg_show_tooltip xg_hide_tooltip xg_show_tooltip
+emacs/src/dispnew.c	#ifndef HAVE_ANDROID	3935-4131	196	6	abs_cursor_pos is_in_matrix frame_selected_window_frame is_cursor_obscured terminal_cursor_magic combine_updates_for_frame
+emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	965-1155	190	0	
 emacs/src/xdisp.c	#ifndef HAVE_ANDROID	27955-28135	180	4	deep_copy_glyph_row display_tty_menu_separator_char display_tty_menu_separator display_tty_menu_item
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	822-997	175	5	hierarchy_ch_cb qttip_cb xg_prepare_tooltip xg_show_tooltip xg_hide_tooltip
 emacs/src/sysdep.c	#ifndef MSDOS	446-619	173	4	get_child_status wait_for_termination child_status_changed child_setup_tty
-emacs/src/sound.c	#ifndef WINDOWSNT	115-287	172	6	vox_write wav_init wav_play au_init au_play do_play_sound
 emacs/src/frame.c	#ifndef HAVE_ANDROID	1482-1647	165	2	make_terminal_frame get_future_frame_param
+emacs/src/sound.c	#ifndef WINDOWSNT	115-280	165	5	vox_write wav_init wav_play au_init au_play
 emacs/src/w32image.c	#ifdef WINDOWSNT	42-207	165	1	gdiplus_init
 emacs/src/xmenu.c	#ifndef MSDOS	147-308	161	4	x_menu_set_in_use x_menu_wait_for_event x_menu_translate_generic_event x_menu_dispatch_event
 emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	305-462	157	9	w32_get_resource w32_get_resource w32_getenv w32_window_app w32_window_app w32_execvp
 emacs/src/image.c	#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID	3905-4062	157	4	x_check_image_size x_create_x_image_and_pixmap x_destroy_x_image x_create_xrender_picture
+emacs/src/keyboard.c	#ifdef HAVE_ANDROID	5481-5636	155	3	lispy_kana_keys lispy_function_keys iso_lispy_function_keys
 emacs/src/sqlite.c	#ifdef WINDOWSNT	46-196	150	29	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN
 emacs/src/term.c	#ifndef HAVE_ANDROID	2103-2252	149	2	turn_on_face turn_off_face
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	859-1005	146	1	apply_xft_settings
@@ -76,22 +77,20 @@ emacs/lib-src/pop.c	#ifdef WINDOWSNT	1563-1702	139	5	int void load_ws2 sys_getad
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	36485-36623	138	7	on_hot_spot_p find_hot_spot DEFUN format cons cons
 emacs/src/w32fns.c	#ifdef WINDOWSNT	9769-9904	135	3	BOOL BOOL DEFUN
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	1493-1626	133	1	frame_geometry
-emacs/src/sysdep.c	#if defined HAVE_STACK_OVERFLOW_HANDLING && !defined WINDOWSNT	1865-1994	129	4	stack_overflow handle_sigsegv init_sigsegv init_sigsegv
 emacs/src/term.c	#if !defined MSDOS && !defined HAVE_ANDROID	2324-2453	129	3	tty_default_color_capabilities tty_setup_colors set_tty_color_mode
 emacs/src/font.c	#if defined HAVE_XFT || defined HAVE_FREETYPE || defined HAVE_NS	1876-2004	128	1	font_unparse_fcname
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	3956-4082	126	4	set_font_frame_param DEFUN face_boolean_x_resource_value DEFUN
-emacs/src/w32font.c	#ifdef WINDOWSNT	105-230	125	9	UINT BOOL DWORD BOOL w32_load_unicows_or_gdi32 get_outline_metrics_w
 emacs/src/xfns.c	#if defined HAVE_X_WINDOWS && defined USE_X_TOOLKIT	2787-2912	125	2	xic_default_fontset xic_create_fontsetname
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	5442-5566	124	1	gui_supports_face_attributes_p
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	1379-1502	123	3	load_face_colors unload_color free_face_colors
 emacs/src/frame.c	#ifdef MSDOS	1787-1907	120	0	
 emacs/src/hbfont.c	#ifdef HAVE_NTGUI	31-151	120	29	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN
+emacs/src/sysdep.c	#if defined HAVE_STACK_OVERFLOW_HANDLING && !defined WINDOWSNT	1865-1985	120	3	stack_overflow handle_sigsegv init_sigsegv
 emacs/src/xsettings.c	#ifdef HAVE_PGTK	273-390	117	4	store_font_options_changed apply_gsettings_font_hinting apply_gsettings_font_antialias apply_gsettings_font_rgba_order
 emacs/src/emacs.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	790-905	115	2	follow_if_symlink find_emacs_executable
-emacs/src/gtkutil.c	#if defined HAVE_PGTK || !defined HAVE_GTK3	4366-4481	115	5	xg_store_widget_in_map xg_remove_widget_from_map xg_get_widget_from_map find_scrollbar_cb xg_get_widget_from_map
+emacs/src/image.c	#ifndef HAVE_ANDROID	3179-3294	115	0	
 emacs/src/image.c	#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID	1215-1329	114	4	image_sync_to_pixmaps x_create_x_image_and_pixmap x_destroy_x_image x_create_bitmap_mask
-emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	1996-2109	113	0	
-emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	1116-1225	109	0	
+emacs/src/w32font.c	#ifdef WINDOWSNT	105-219	114	9	UINT BOOL DWORD BOOL w32_load_unicows_or_gdi32 get_outline_metrics_w
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	5602-5710	108	1	DEFUN
 emacs/src/xfaces.c	#if defined HAVE_X_WINDOWS && defined USE_X_TOOLKIT	4090-4197	107	1	x_update_menu_appearance
 emacs/src/w32fns.c	#ifdef WINDOWSNT	9908-10014	106	1	DEFUN
@@ -99,20 +98,18 @@ emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	4303-4408	105	2	redraw_overlapped_
 emacs/src/dosfns.c	#ifndef HAVE_X_WINDOWS	377-482	105	6	vga_colors msdos_stdcolor_idx msdos_stdcolor_name ms_windows_version w95_set_virtual_machine_title x_set_title
 emacs/src/w32fns.c	#ifdef WINDOWSNT	8569-8674	105	2	int DEFUN
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	811-916	105	2	DEFUN load_pixmap
-emacs/src/androidterm.c	#ifdef ANDROID_STUBIFY	6896-7000	104	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	14142-14245	103	1	gui_consider_frame_title
+emacs/src/androidterm.c	#ifdef ANDROID_STUBIFY	6898-7000	102	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	3898-4000	102	2	codepoint_is_emoji_eligible font_range
 emacs/src/dispnew.c	#ifndef HAVE_ANDROID	1170-1271	101	2	line_hash_code line_draw_cost
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	381-481	100	2	xg_get_pixbuf_from_pix_and_mask xg_get_pixbuf_from_surface
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	1838-1938	100	1	xg_create_frame_outer_widgets
-emacs/src/keyboard.c	#ifdef WINDOWSNT	8219-8319	100	0	
-emacs/src/alloc.c	#ifdef HAVE_WINDOW_SYSTEM	5508-5607	99	2	compact_font_cache_entry compact_font_caches
 emacs/src/image.c	#if defined HAVE_X_WINDOWS	1229-1327	98	1	x_create_bitmap_mask
 emacs/src/term.c	#ifndef HAVE_ANDROID	4372-4470	98	3	clear_tty_hooks set_tty_hooks dissociate_if_controlling_tty
 emacs/src/xwidget.c	#ifdef HAVE_PGTK	130-228	98	3	mouse_target_changed xw_forward_event_translate xw_forward_event_from_view
-emacs/src/lread.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	60-157	97	2	invalid_file_stream file_get_char
+emacs/src/keyboard.c	#ifdef WINDOWSNT	8223-8319	96	0	
 emacs/src/image.c	#ifdef HAVE_PGTK	498-593	95	1	image_bitmap_to_cr_pattern
-emacs/src/keyboard.c	#ifdef WINDOWSNT	2442-2535	93	0	
+emacs/src/alloc.c	#ifdef HAVE_WINDOW_SYSTEM	5508-5602	94	2	compact_font_cache_entry compact_font_caches
 emacs/src/dispnew.c	#ifndef HAVE_ANDROID	5811-5902	91	0	
 emacs/src/menu.c	#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NS) \	877-967	90	1	find_and_call_menu_selection
 emacs/src/w32term.c	#ifdef WINDOWSNT	3682-3772	90	1	w32_queue_notifications
@@ -121,75 +118,71 @@ emacs/src/term.c	#if !defined DOS_NT && !defined HAVE_ANDROID	2754-2843	89	1	tty
 emacs/src/frame.c	#if !defined (HAVE_X_WINDOWS) && defined (NoValue)	6552-6640	88	1	XParseGeometry
 emacs/src/image.c	#ifdef HAVE_ANDROID	2971-3059	88	4	matrix_identity matrix_rotate matrix_mirror_horizontal matrix_translate
 emacs/src/image.c	#ifdef HAVE_NTGUI	4145-4233	88	0	
-emacs/src/keyboard.c	#ifdef MSDOS	8230-8318	88	0	
+emacs/src/keyboard.c	#ifdef WINDOWSNT	2448-2535	87	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	3295-3381	86	0	
+emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	1116-1201	85	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	24303-24388	85	0	
-emacs/src/sound.c	#ifndef WINDOWSNT	1448-1532	84	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	10976-11059	83	6	BOOL system_parameters_info_w_fn DEFUN BOOL get_last_input_info_fn DEFUN
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	4645-4727	82	2	gui_update_window_begin gui_update_window_end
 emacs/src/sysdep.c	#ifndef WINDOWSNT	535-617	82	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4266-4347	81	1	xg_event_is_for_menubar
 emacs/src/image.c	#ifdef HAVE_HAIKU	939-1020	81	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	4367-4448	81	4	image_get_x_image_or_dc image_unget_x_image_or_dc image_get_x_image image_unget_x_image
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	4283-4363	80	1	DEFUN
+emacs/src/gtkutil.c	#if defined HAVE_PGTK || !defined HAVE_GTK3	4366-4446	80	3	xg_store_widget_in_map xg_remove_widget_from_map xg_get_widget_from_map
+emacs/src/keyboard.c	#ifdef MSDOS	8238-8318	80	0	
 emacs/src/emacsgtkfixed.c	#ifndef HAVE_PGTK	131-210	79	2	XSetWMSizeHints XSetWMNormalHints
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	37008-37087	79	1	note_fringe_highlight
 emacs/src/image.c	#ifdef WINDOWSNT	10925-11003	78	13	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN
-emacs/src/emacs.c	#ifdef WINDOWSNT	826-902	76	0	
 emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	404-480	76	5	screen_old_address screen_virtual_segment screen_virtual_offset dosv_refresh_virtual_screen dos_direct_output
+emacs/src/android.c	#ifndef ANDROID_STUBIFY	7544-7619	75	10	android_create_gc android_free_gc android_create_image android_destroy_image android_put_pixel android_get_pixel
 emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	1798-1872	74	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	2848-2921	73	0	
 emacs/src/image.c	#ifdef HAVE_ANDROID	1022-1094	72	0	
-emacs/src/image.c	#ifdef ANDROID_STUBIFY	1023-1093	70	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	831-902	71	0	
+emacs/src/lread.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	86-157	71	2	invalid_file_stream file_get_char
 emacs/src/xfaces.c	#ifdef HAVE_X_WINDOWS	1430-1500	70	2	unload_color free_face_colors
-emacs/src/timefns.c	#ifndef MSDOS	2016-2085	69	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	7136-7204	68	2	free_monitors make_monitor_attribute_list
 emacs/src/image.c	#ifdef HAVE_NTGUI	4943-5010	67	2	w32_create_pixmap_from_bitmap_data convert_mono_to_color_image
-emacs/src/term.c	#ifndef HAVE_ANDROID	2634-2701	67	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	10853-10919	66	2	DEFUN KEY
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	6416-6482	66	0	
+emacs/src/image.c	#ifdef ANDROID_STUBIFY	1028-1093	65	0	
 emacs/src/menu.c	#ifdef HAVE_NS	969-1034	65	1	find_and_return_menu_selection
+emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	2045-2109	64	0	
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2868-2931	63	0	
-emacs/src/xwidget.c	#ifndef HAVE_PGTK	2180-2242	62	2	xv_do_draw xwidget_view_draw_cb
-emacs/src/image.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	4537-4598	61	0	
+emacs/src/term.c	#ifndef HAVE_ANDROID	2634-2696	62	0	
 emacs/src/coding.c	#if defined (WINDOWSNT) || defined (CYGWIN) || defined HAVE_ANDROID	8538-8598	60	3	from_unicode from_unicode_buffer to_unicode
 emacs/src/term.c	#ifndef HAVE_ANDROID	5097-5156	59	1	delete_tty
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	2190-2249	59	1	set_lface_from_font
-emacs/lib-src/emacsclient.c	#ifndef HAVE_ANDROID	1693-1751	58	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	7070-7128	58	2	DEFUN parameters
 emacs/src/dispnew.c	#ifndef HAVE_ANDROID	3313-3370	57	4	rect_intersect root_xy child_xy frame_rect_abs
 emacs/src/sysdep.c	#ifndef HAVE_ANDROID	1519-1576	57	0	
-emacs/src/xml.c	#ifdef WINDOWSNT	32-89	57	9	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN
+emacs/src/image.c	#ifdef HAVE_NTGUI	4392-4448	56	2	image_get_x_image image_unget_x_image
 emacs/src/xwidget.c	#ifdef HAVE_PGTK	1064-1120	56	3	cursor_for_hit define_cursors mouse_target_changed
-emacs/src/keyboard.c	#if defined HAVE_X11 || defined HAVE_PGTK	4630-4685	55	0	
 emacs/src/lcms.c	#ifdef WINDOWSNT	35-90	55	8	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN
+emacs/src/sound.c	#ifndef WINDOWSNT	1448-1503	55	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	1235-1290	55	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	3647-3702	55	0	
+emacs/src/timefns.c	#ifndef MSDOS	2016-2070	54	0	
 emacs/src/image.c	#if defined HAVE_X_WINDOWS || defined USE_CAIRO || defined HAVE_HAIKU \	7719-7772	53	1	image_pixmap_draw_cross
 emacs/src/keyboard.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	6998-7051	53	0	
 emacs/src/image.c	#if defined HAVE_XPM && defined HAVE_X_WINDOWS && !defined USE_GTK	6256-6308	52	1	x_create_bitmap_from_xpm_data
 emacs/src/term.c	#if !defined MSDOS && !defined HAVE_ANDROID	4316-4368	52	3	create_tty_output tty_free_frame_resources tty_free_frame_resources
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	36808-36860	52	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	37169-37221	52	0	
-emacs/src/callproc.c	#ifdef WINDOWSNT	1271-1322	51	0	
 emacs/src/frame.c	#if (defined HAVE_PGTK || defined HAVE_NTGUI \	6058-6109	51	1	gui_set_alpha
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	4764-4815	51	1	prepare_face_for_display
+emacs/src/keyboard.c	#if defined HAVE_X11 || defined HAVE_PGTK	4630-4680	50	0	
 emacs/lib-src/etags.c	#if !MSDOS && !defined (DOS_NT)	7971-8020	49	1	escape_shell_arg_string
 emacs/src/dispnew.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)	2263-2312	49	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	5817-5866	49	0	
-emacs/src/term.c	#ifdef WINDOWSNT	4824-4873	49	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	8702-8751	49	0	
-emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	5306-5355	49	0	
-emacs/src/dired.c	#if defined DOS_NT || (defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	114-162	48	0	
+emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	1996-2044	48	0	
 emacs/src/fringe.c	#if defined (HAVE_X_WINDOWS) || defined (HAVE_ANDROID)	1449-1497	48	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	308-356	48	0	
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	889-937	48	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	6284-6332	48	2	realize_non_ascii_face font_maybe_unset_attribute
+emacs/src/xml.c	#ifdef WINDOWSNT	32-80	48	8	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	230-278	48	4	xw_translate_x_modifiers xw_maybe_synthesize_crossing xw_notify_virtual_upwards_until window_coords_from_toplevel
-emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6748-6795	47	0	
-emacs/src/dispnew.c	#ifndef HAVE_ANDROID	7361-7408	47	0	
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	402-449	47	3	x_bitmap_height x_bitmap_width x_bitmap_stipple
-emacs/src/image.c	#ifndef HAVE_NTGUI	7812-7859	47	0	
-emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	23-69	46	1	w32_getenv
 emacs/src/callproc.c	#ifndef MSDOS	672-718	46	0	
 emacs/src/dosfns.c	#ifndef HAVE_X_WINDOWS	322-368	46	0	
 emacs/src/fileio.c	#ifndef MSDOS	2460-2506	46	0	
@@ -197,130 +190,136 @@ emacs/src/xfaces.c	#ifndef HAVE_X_WINDOWS	7319-7365	46	1	DEFUN
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2741-2787	46	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	762-807	45	0	
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	1041-1086	45	1	xft_settings_event
+emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6748-6792	44	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	7496-7540	44	1	XPutPixel
+emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	5306-5350	44	0	
 emacs/lib-src/movemail.c	#ifdef WINDOWSNT	804-847	43	1	movemail_strftime
-emacs/src/comp.c	#ifndef WINDOWSNT	2153-2196	43	0	
+emacs/src/callproc.c	#ifdef WINDOWSNT	1279-1322	43	0	
 emacs/src/image.c	#ifdef HAVE_NS	809-852	43	0	
 emacs/src/image.c	#if defined (HAVE_X_WINDOWS)	13269-13312	43	0	
-emacs/src/sound.c	#ifndef WINDOWSNT	54-97	43	0	
-emacs/src/term.c	#ifndef HAVE_ANDROID	2567-2610	43	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	3204-3247	43	2	check_w32_winkey_state reset_w32_kbdhook_state
+emacs/src/dispnew.c	#ifndef HAVE_ANDROID	7361-7403	42	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	37347-37389	42	0	
-emacs/src/emacs.c	#ifndef WINDOWSNT	3435-3476	41	0	
 emacs/src/gtkutil.c	#if defined HAVE_PGTK && defined HAVE_GSETTINGS	1467-1508	41	3	xg_set_gtk_theme_dark_mode xg_update_dark_mode_for_all_displays xg_set_initial_dark_mode
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	6932-6973	41	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	7055-7096	41	0	
-emacs/src/callproc.c	#ifndef MSDOS	1281-1321	40	0	
 emacs/src/menu.c	#ifdef HAVE_NTGUI	755-795	40	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	2706-2746	40	2	DEFUN DEFUN
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	37689-37729	40	0	
 emacs/src/callproc.c	#ifndef WINDOWSNT	1516-1555	39	0	
-emacs/src/emacs.c	#if !defined DOS_NT && !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	3117-3155	38	0	
 emacs/src/image.c	#ifdef WINDOWSNT	6175-6213	38	5	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN init_xpm_functions
+emacs/src/term.c	#ifndef HAVE_ANDROID	2567-2605	38	0	
 emacs/src/xdisp.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	27911-27949	38	0	
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	1708-1745	37	1	android_frame_list_z_order
 emacs/src/image.c	#if defined HAVE_XPM || defined HAVE_NS || defined HAVE_HAIKU \	6215-6252	37	2	xpm_valid_color_symbols_p xpm_image_p
-emacs/src/keyboard.c	#ifndef HAVE_HAIKU	4236-4273	37	0	
 emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	956-992	36	5	close_winsock close_winsock initialize_sockets initialize_sockets w32_connect_timer
 emacs/src/callproc.c	#ifdef MSDOS /* MW, July 1993 */	629-665	36	0	
 emacs/src/dispnew.c	#if defined (HAVE_WINDOW_SYSTEM)	2225-2261	36	0	
 emacs/src/font.c	#if defined (HAVE_XFT) || defined (HAVE_FREETYPE) || defined (HAVE_NS)	242-278	36	2	font_unparse_fcname font_build_object
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	6483-6519	36	0	
-emacs/src/w32select.c	#ifdef WINDOWSNT	828-864	36	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	5153-5189	36	1	face_for_font
 emacs/src/decompress.c	#ifdef WINDOWSNT	30-65	35	4	DEF_DLL_FN DEF_DLL_FN DEF_DLL_FN init_zlib_functions
-emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7260-7295	35	0	
-emacs/src/image.c	#ifndef HAVE_NTGUI	7940-7975	35	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	33134-33169	35	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	33388-33423	35	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	36630-36665	35	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	36734-36769	35	0	
 emacs/src/xsettings.c	#ifdef HAVE_PGTK	445-480	35	0	
-emacs/src/emacs.c	#ifdef WINDOWSNT	3317-3351	34	0	
-emacs/src/fileio.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	116-150	34	0	
+emacs/lib-src/emacsclient.c	#ifndef HAVE_ANDROID	1693-1727	34	0	
+emacs/src/emacs.c	#if !defined DOS_NT && !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	3117-3151	34	0	
+emacs/src/emacs.c	#ifndef WINDOWSNT	3435-3469	34	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	3380-3414	34	2	frame_char_to_pixel_position frame_set_mouse_position
 emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	775-809	34	1	ftcrfont_get_default_font_options
+emacs/src/gtkutil.c	#if defined HAVE_PGTK || !defined HAVE_GTK3	4447-4481	34	2	find_scrollbar_cb xg_get_widget_from_map
 emacs/src/sound.c	#ifndef WINDOWSNT	297-331	34	2	sound_perror sound_warning
+emacs/src/term.c	#ifdef WINDOWSNT	4824-4858	34	0	
 emacs/src/w32term.c	#ifdef WINDOWSNT	2119-2153	34	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	2332-2366	34	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	37292-37326	34	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	757-791	34	0	
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	823-857	34	1	read_settings
+emacs/src/dired.c	#if defined DOS_NT || (defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	114-147	33	0	
 emacs/src/emacs.c	#if defined (HAVE_X_WINDOWS) || defined (HAVE_PGTK)	2089-2122	33	0	
-emacs/src/filelock.c	#ifdef WINDOWSNT	163-196	33	0	
 emacs/src/image.c	#ifdef HAVE_PGTK	854-887	33	0	
-emacs/src/process.c	#if defined HAVE_GLIB && !defined WINDOWSNT	8735-8768	33	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	4498-4531	33	1	maybe_pass_notification
+emacs/src/w32select.c	#ifdef WINDOWSNT	828-861	33	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	3808-3841	33	0	
-emacs/src/filelock.c	#ifdef MSDOS	781-813	32	0	
+emacs/src/image.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	4566-4598	32	0	
 emacs/src/process.c	#ifndef WINDOWSNT	3639-3671	32	0	
 emacs/src/sysdep.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY && defined HAVE_MMAP	1831-1863	32	2	handle_sigbus init_sigbus
-emacs/src/w32uniscribe.c	#ifdef WINDOWSNT	1546-1578	32	0	
 emacs/src/xsettings.c	#if defined HAVE_GSETTINGS || defined HAVE_GCONF || !defined HAVE_PGTK	73-105	32	2	store_config_changed_event dpyinfo_valid
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	1007-1039	32	1	read_and_apply_settings
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	1428-1459	31	1	android_make_monitor_attribute_list
 emacs/src/dispnew.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	2192-2223	31	0	
+emacs/src/filelock.c	#ifdef WINDOWSNT	165-196	31	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	6064-6095	31	0	
 emacs/src/image.c	#ifdef WINDOWSNT	13613-13644	31	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	14305-14336	31	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	2180-2211	31	1	xv_do_draw
+emacs/src/emacs.c	#ifdef WINDOWSNT	3317-3347	30	0	
+emacs/src/filelock.c	#ifdef MSDOS	783-813	30	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	7413-7443	30	0	
-emacs/src/process.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	5817-5847	30	0	
-emacs/src/term.c	#ifndef HAVE_ANDROID	2260-2290	30	0	
-emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	21579-21609	30	0	
-emacs/src/alloc.c	#ifdef WINDOWSNT	5314-5343	29	0	
+emacs/src/process.c	#if defined HAVE_GLIB && !defined WINDOWSNT	8735-8765	30	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	2212-2242	30	1	xwidget_view_draw_cb
 emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6675-6704	29	0	
 emacs/src/process.c	#ifndef WINDOWSNT	7647-7676	29	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	637-666	29	1	share_image_cache
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	4666-4695	29	1	lface_same_font_attributes_p
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	4726-4755	29	0	
+emacs/src/comp.c	#ifndef WINDOWSNT	2168-2196	28	0	
 emacs/src/emacs.c	#ifdef HAVE_NS	2052-2080	28	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1398-1426	28	1	xg_win_to_widget
-emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.2 91/10/20 Manabu Higashida */	721-749	28	0	
+emacs/src/image.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	4537-4565	28	0	
+emacs/src/sound.c	#ifndef WINDOWSNT	1504-1532	28	0	
 emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2601-2629	28	1	posix_close
-emacs/src/w32fns.c	#ifdef WINDOWSNT	11510-11538	28	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	4906-4934	28	1	clear_face_gcs
 emacs/src/xmenu.c	#ifdef HAVE_X_WINDOWS	71-99	28	0	
-emacs/lib-src/pop.c	#ifdef WINDOWSNT	29-56	27	2	sys_getaddrinfo sys_freeaddrinfo
+emacs/src/alloc.c	#ifdef WINDOWSNT	5316-5343	27	0	
 emacs/src/callproc.c	#ifndef HAVE_ANDROID	1879-1906	27	0	
-emacs/src/doc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	43-70	27	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	1959-1986	27	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	625-652	27	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	6528-6555	27	0	
+emacs/src/image.c	#ifndef HAVE_NTGUI	7832-7859	27	0	
 emacs/src/print.c	#ifdef HAVE_MODULES	1618-1645	27	2	data_from_funcptr print_pointer
 emacs/src/print.c	#ifdef HAVE_MODULES	2015-2042	27	0	
-emacs/src/xwidget.c	#ifndef HAVE_PGTK	813-840	27	0	
-emacs/src/xwidget.c	#ifndef HAVE_PGTK	850-877	27	0	
+emacs/src/term.c	#ifndef HAVE_ANDROID	2260-2287	27	0	
 emacs/src/dispnew.c	#ifdef HAVE_X_WINDOWS	7270-7296	26	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	1190-1216	26	0	
 emacs/src/image.c	#ifdef HAVE_ANDROID	196-222	26	0	
 emacs/src/image.c	#if defined USE_CAIRO || defined (HAVE_HAIKU)	4399-4425	26	0	
-emacs/src/xml.c	#ifdef WINDOWSNT	94-120	26	0	
-emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	3405-3431	26	0	
+emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	21579-21605	26	0	
+emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	44-69	25	0	
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	33-58	25	0	
 emacs/src/frame.c	#if defined HAVE_X_WINDOWS && !defined USE_X_TOOLKIT && !defined USE_GTK	6355-6380	25	1	x_get_resource_string
-emacs/src/process.c	#ifndef WINDOWSNT	6141-6166	25	0	
+emacs/src/lread.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	60-85	25	0	
 emacs/src/treesit.c	#ifndef WINDOWSNT	766-791	25	0	
+emacs/src/w32fns.c	#ifdef WINDOWSNT	11510-11535	25	0	
 emacs/src/xfaces.c	#ifdef MSDOS	6719-6744	25	0	
 emacs/src/xsettings.c	#ifdef HAVE_PGTK	246-271	25	1	xg_settings_key_valid_p
-emacs/lib-src/emacsclient.c	#ifndef HAVE_ANDROID	626-650	24	0	
 emacs/src/character.c	#ifdef HAVE_WINDOW_SYSTEM	397-421	24	0	
 emacs/src/comp.c	#ifdef WINDOWSNT	4800-4824	24	0	
 emacs/src/emacs.c	#ifndef WINDOWSNT	2983-3007	24	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1077-1101	24	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	308-332	24	0	
 emacs/src/gtkutil.c	#if defined HAVE_GTK3 && !defined HAVE_PGTK	4578-4602	24	1	xg_scroll_bar_size_allocate_cb
+emacs/src/image.c	#ifdef HAVE_NTGUI	4367-4391	24	2	image_get_x_image_or_dc image_unget_x_image_or_dc
 emacs/src/menu.c	#if defined HAVE_EXT_MENU_BAR || defined HAVE_ANDROID	171-195	24	2	push_submenu_start push_submenu_end
 emacs/src/w32fns.c	#ifdef WINDOWSNT	12473-12497	24	1	load_unicows_dll_for_w32fns
 emacs/src/xfaces.c	#ifdef HAVE_NTGUI	548-572	24	2	x_create_gc x_free_gc
 emacs/src/xmenu.c	#ifdef HAVE_X_WINDOWS	2537-2561	24	0	
-emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2968-2992	24	0	
+emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	1202-1225	23	0	
+emacs/lib-src/emacsclient.c	#ifndef HAVE_ANDROID	1728-1751	23	0	
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	3784-3807	23	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1232-1255	23	0	
+emacs/src/callproc.c	#ifndef MSDOS	1298-1321	23	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	333-356	23	0	
+emacs/src/keyboard.c	#ifndef HAVE_HAIKU	4236-4259	23	0	
 emacs/src/menu.c	#ifdef HAVE_NTGUI	679-702	23	0	
-emacs/src/sqlite.c	#ifdef WINDOWSNT	201-224	23	0	
+emacs/src/sound.c	#ifndef WINDOWSNT	54-77	23	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	1216-1239	23	10	update_tool_bar gui_draw_bottom_divider notice_overwritten_cursor normal_char_height normal_char_ascent_descent append_stretch_glyph
-emacs/src/coding.c	#if defined WINDOWSNT || defined CYGWIN	8556-8578	22	0	
+emacs/src/xml.c	#ifdef WINDOWSNT	94-117	23	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	813-836	23	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	850-873	23	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	3405-3428	23	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	341-363	22	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	129-151	22	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	998-1020	22	2	xg_show_tooltip xg_hide_tooltip
 emacs/src/image.c	#ifdef HAVE_HAIKU	4121-4143	22	0	
 emacs/src/keyboard.c	#ifdef HAVE_NTGUI	6435-6457	22	0	
 emacs/src/sysdep.c	#ifndef WINDOWSNT	365-387	22	0	
@@ -329,145 +328,137 @@ emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	3918-3940	22	0
 emacs/src/xsettings.c	#if defined HAVE_GSETTINGS || defined HAVE_GCONF || !defined HAVE_PGTK	145-167	22	1	map_tool_bar_style
 emacs/src/xsettings.c	#if defined HAVE_PGTK && defined HAVE_GSETTINGS	1174-1196	22	1	xg_get_system_dark_mode
 emacs/src/alloc.c	#if defined HAVE_ANDROID && !defined (__clang__)	5629-5650	21	1	android_make_lisp_symbol
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1875-1896	21	0	
 emacs/src/doprnt.c	#if defined HAVE_X_WINDOWS && defined USE_X_TOOLKIT	562-583	21	1	exprintf
+emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	943-964	21	0	
 emacs/src/emacs.c	#if defined WINDOWSNT || defined HAVE_NTGUI	1404-1425	21	0	
+emacs/src/fileio.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	116-137	21	0	
 emacs/src/fileio.c	#if defined HAVE_NATIVE_COMP && defined WINDOWSNT	2630-2651	21	2	internal_delete_file_1 internal_delete_file
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	206-227	21	0	
 emacs/src/image.c	#ifdef HAVE_HAIKU	666-687	21	0	
 emacs/src/image.c	#ifdef WINDOWSNT	13428-13449	21	0	
 emacs/src/keyboard.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	6142-6163	21	1	coords_in_menu_bar_window
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	6165-6186	21	1	coords_in_tab_bar_window
 emacs/src/sysdep.c	#ifndef MSDOS	862-883	21	2	block_child_signal unblock_child_signal
-emacs/src/treesit.c	#ifdef WINDOWSNT	542-563	21	0	
 emacs/src/window.c	#ifdef HAVE_WINDOW_SYSTEM	8752-8773	21	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	2296-2317	21	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	6629-6650	21	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	21612-21633	21	0	
+emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	23-43	20	1	w32_getenv
+emacs/lib-src/pop.c	#ifdef WINDOWSNT	29-49	20	2	sys_getaddrinfo sys_freeaddrinfo
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	1782-1802	20	1	android_frame_restack
-emacs/src/dired.c	#ifndef HAVE_ANDROID	126-146	20	0	
+emacs/src/doc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	50-70	20	0	
+emacs/src/fileio.c	#ifdef WINDOWSNT	2330-2350	20	0	
 emacs/src/ftcrfont.c	#ifdef HAVE_PGTK	644-664	20	1	ftcrfont_cached_font_ok
 emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4345-4365	20	1	image_sync_to_pixmaps
-emacs/src/image.c	#if !defined USE_CAIRO && !defined HAVE_NS && !defined HAVE_HAIKU \	7468-7488	20	0	
+emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7260-7280	20	0	
 emacs/src/process.c	#ifndef WINDOWSNT	7604-7624	20	0	
+emacs/src/sqlite.c	#ifdef WINDOWSNT	201-221	20	0	
+emacs/src/w32uniscribe.c	#ifdef WINDOWSNT	1546-1566	20	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	5810-5830	20	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	35655-35675	20	0	
 emacs/src/xdisp.c	#if defined (HAVE_WINDOW_SYSTEM)	37241-37261	20	0	
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	1261-1281	20	1	init_xsettings
-emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	808-827	19	0	
 emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	2330-2349	19	0	
-emacs/lib-src/etags.c	#if defined WINDOWSNT || MSDOS	1468-1487	19	0	
-emacs/lib-src/etags.c	#if MSDOS || defined (DOS_NT)	1768-1787	19	0	
 emacs/src/callproc.c	#ifndef HAVE_ANDROID	1744-1763	19	0	
-emacs/src/comp.c	#ifdef WINDOWSNT	448-467	19	0	
 emacs/src/dired.c	#ifdef WINDOWSNT	257-276	19	0	
 emacs/src/font.c	#ifdef HAVE_ANDROID	188-207	19	1	font_make_entity_android
 emacs/src/image.c	#ifdef HAVE_HAIKU	175-194	19	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	5931-5950	19	0	
 emacs/src/image.c	#if defined HAVE_XPM || defined HAVE_NS || defined HAVE_HAIKU \	5974-5993	19	1	xpm_format
-emacs/src/process.c	#if defined HAVE_GETIFADDRS || defined WINDOWSNT	4695-4714	19	0	
+emacs/src/image.c	#ifndef HAVE_NTGUI	7812-7831	19	0	
 emacs/src/process.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY \	5311-5330	19	1	android_select_wrapper
+emacs/src/process.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	5828-5847	19	0	
+emacs/src/process.c	#ifndef WINDOWSNT	6147-6166	19	0	
+emacs/src/sound.c	#ifndef WINDOWSNT	78-97	19	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	84-103	19	0	
 emacs/src/term.c	#ifdef WINDOWSNT	2397-2416	19	0	
-emacs/src/term.c	#ifdef MSDOS	2648-2667	19	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	1484-1503	19	1	window_box_edges
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	31663-31682	19	0	
 emacs/src/xfaces.c	#ifdef HAVE_X_WINDOWS	271-290	19	0	
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	544-563	19	1	get_prop_window
 emacs/lib-src/movemail.c	#ifdef WINDOWSNT	85-103	18	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1878-1896	18	0	
+emacs/src/dired.c	#ifndef HAVE_ANDROID	128-146	18	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	3859-3877	18	1	update_bar_window
 emacs/src/emacs.c	#ifndef WINDOWSNT	2778-2796	18	1	copy_args
 emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	3047-3065	18	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1356-1374	18	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1794-1812	18	0	
 emacs/src/image.c	#ifndef HAVE_NS /* TODO: NS support, however this not needed for toolbars */	7813-7831	18	0	
+emacs/src/image.c	#ifndef HAVE_NTGUI	7957-7975	18	0	
 emacs/src/keyboard.c	#ifndef HAVE_NS	12760-12778	18	0	
+emacs/src/treesit.c	#ifdef WINDOWSNT	542-560	18	0	
 emacs/src/xdisp.c	#if defined (HAVE_WINDOW_SYSTEM)	23760-23778	18	0	
 emacs/src/xfaces.c	#if defined (HAVE_NS) || defined (HAVE_HAIKU)	574-592	18	2	x_create_gc x_free_gc
 emacs/src/xfaces.c	#ifdef HAVE_PGTK	594-612	18	2	x_create_gc x_free_gc
 emacs/src/callproc.c	#ifdef MSDOS	558-575	17	0	
+emacs/src/coding.c	#if defined WINDOWSNT || defined CYGWIN	8561-8578	17	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	1768-1785	17	0	
 emacs/src/filelock.c	#ifndef MSDOS	709-726	17	0	
 emacs/src/fringe.c	#if !defined(HAVE_X_WINDOWS) && defined (HAVE_PGTK)	1499-1516	17	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	2266-2283	17	1	xg_set_frame_icon
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	3373-3390	17	1	menu_bar_button_pressed_cb
-emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4254-4271	17	0	
-emacs/src/keyboard.c	#if defined HAVE_X11 || HAVE_PGTK	4240-4257	17	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	129-146	17	0	
 emacs/src/menu.c	#ifdef HAVE_X_WINDOWS	1195-1212	17	0	
 emacs/src/sysdep.c	#ifndef WINDOWSNT	206-223	17	1	emacs_exec_file
 emacs/src/sysdep.c	#ifdef WINDOWSNT	4769-4786	17	1	str_collate
 emacs/src/xfaces.c	#ifdef HAVE_ANDROID	614-631	17	2	x_create_gc x_free_gc
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	5978-5995	17	1	face_fontset
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1474-1490	16	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2968-2985	17	0	
+emacs/lib-src/emacsclient.c	#ifndef HAVE_ANDROID	626-642	16	0	
+emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	808-824	16	0	
+emacs/src/callproc.c	#ifndef MSDOS	1281-1297	16	0	
+emacs/src/comp.c	#ifdef WINDOWSNT	448-464	16	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	1796-1812	16	0	
 emacs/src/fileio.c	#ifndef MSDOS	2422-2438	16	0	
-emacs/src/frame.c	#ifndef HAVE_ANDROID	6316-6332	16	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1191-1207	16	0	
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	1102-1118	16	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	6440-6456	16	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	5931-5947	16	0	
+emacs/src/image.c	#ifndef HAVE_NTGUI	7940-7956	16	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	6254-6270	16	0	
+emacs/src/process.c	#if defined HAVE_GETIFADDRS || defined WINDOWSNT	4695-4711	16	0	
 emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2455-2471	16	1	sys_openat
-emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	30558-30574	16	0	
+emacs/src/term.c	#ifdef MSDOS	2651-2667	16	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	30668-30684	16	0	
-emacs/src/xdisp.c	#ifdef HAVE_NTGUI	30788-30804	16	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	705-721	16	0	
-emacs/src/xfaces.c	#ifndef HAVE_WINDOW_SYSTEM	6178-6194	16	0	
 emacs/src/xmenu.c	#ifndef HAVE_X_WINDOWS	2742-2758	16	0	
 emacs/src/xsettings.c	#if defined HAVE_GSETTINGS || defined HAVE_GCONF || !defined HAVE_PGTK	169-185	16	1	store_tool_bar_style_changed
-emacs/lib-src/etags.c	#if MSDOS || defined (DOS_NT)	7932-7947	15	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1222-1237	15	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1244-1259	15	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1764-1779	15	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	558-573	15	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	2184-2199	15	0	
-emacs/src/fns.c	#if defined __STDC_ISO_10646__ || defined WINDOWSNT	633-648	15	0	
-emacs/src/fns.c	#if defined __STDC_ISO_10646__ || defined WINDOWSNT	682-697	15	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	3005-3020	15	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4201-4216	15	0	
 emacs/src/fringe.c	#ifdef HAVE_NTGUI	1866-1881	15	1	w32_reset_fringes
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK /* gtk_plug not found. */	1598-1613	15	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1232-1247	15	0	
 emacs/src/image.c	#ifdef HAVE_NS	372-387	15	2	XGetPixel XPutPixel
-emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4327-4342	15	0	
-emacs/src/image.c	#ifndef HAVE_ANDROID	6917-6932	15	0	
-emacs/src/lread.c	#ifdef WINDOWSNT	1433-1448	15	0	
-emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.1 91/10/16 HIRANO Satoshi */	371-386	15	0	
-emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	517-532	15	0	
+emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4256-4271	15	0	
+emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.2 91/10/20 Manabu Higashida */	721-736	15	0	
 emacs/src/xdisp.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)	23793-23808	15	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	35679-35694	15	0	
-emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	4465-4480	15	0	
 emacs/src/xsettings.c	#if (defined USE_CAIRO || defined HAVE_XFT) && (defined HAVE_GSETTINGS || defined HAVE_GCONF || !defined HAVE_PGTK)	128-143	15	1	store_font_name_changed
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	1027-1042	15	0	
-emacs/src/coding.c	#ifdef WINDOWSNT	10443-10457	14	0	
-emacs/src/coding.c	#ifdef WINDOWSNT	10469-10483	14	0	
-emacs/src/decompress.c	#ifdef WINDOWSNT	208-222	14	0	
+emacs/src/comp.c	#ifndef WINDOWSNT	2153-2167	14	0	
+emacs/src/dired.c	#if defined DOS_NT || (defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	148-162	14	0	
 emacs/src/dosfns.c	#ifndef HAVE_X_WINDOWS	253-267	14	2	w95_set_virtual_machine_title restore_parent_vm_title
-emacs/src/emacs.c	#if defined HAVE_WCHAR_H && !defined WINDOWSNT	421-435	14	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	1409-1423	14	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	1595-1609	14	0	
-emacs/src/frame.c	#ifdef MSDOS	1573-1587	14	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	2860-2874	14	0	
 emacs/src/image.c	#ifndef HAVE_NS	7062-7076	14	0	
-emacs/src/lcms.c	#ifdef WINDOWSNT	570-584	14	0	
-emacs/src/process.c	#if defined HAVE_GLIB && !defined HAVE_NS	5832-5846	14	0	
-emacs/src/process.c	#ifndef MSDOS	8653-8667	14	0	
+emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7281-7295	14	0	
 emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2501-2515	14	1	emacs_openat
-emacs/src/timefns.c	#ifndef WINDOWSNT	2052-2066	14	0	
+emacs/src/term.c	#ifdef WINDOWSNT	4859-4873	14	0	
+emacs/src/timefns.c	#ifndef MSDOS	2071-2085	14	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	1913-1927	14	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	3706-3720	14	0	
+emacs/src/xfaces.c	#ifndef HAVE_WINDOW_SYSTEM	6180-6194	14	0	
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2939-2953	14	0	
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	4211-4225	14	1	lower_frame_xwidget_views
 emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	474-487	13	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1477-1490	13	0	
 emacs/src/callproc.c	#ifndef MSDOS	251-264	13	0	
 emacs/src/callproc.c	#ifdef WINDOWSNT	994-1007	13	0	
 emacs/src/comp.c	#ifdef WINDOWSNT	5049-5062	13	0	
-emacs/src/dired.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	47-60	13	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	6494-6507	13	0	
 emacs/src/dosfns.c	#ifndef HAVE_X_WINDOWS	163-176	13	1	DEFUN
-emacs/src/emacs.c	#ifdef WINDOWSNT	499-512	13	0	
 emacs/src/font.c	#ifdef HAVE_NTGUI	2754-2767	13	0	
-emacs/src/font.c	#ifdef HAVE_X_WINDOWS	6067-6080	13	0	
 emacs/src/frame.c	#ifdef MSDOS	1033-1046	13	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	1200-1213	13	4	image_get_x_image_or_dc image_unget_x_image_or_dc image_get_x_image image_unget_x_image
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1194-1207	13	0	
+emacs/src/keyboard.c	#ifndef HAVE_HAIKU	4260-4273	13	0	
 emacs/src/process.c	#ifndef WINDOWSNT	2372-2385	13	0	
 emacs/src/sysdep.c	#ifdef WINDOWSNT	1038-1051	13	0	
 emacs/src/window.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_MENU_BAR)	1705-1718	13	0	
@@ -481,7 +472,9 @@ emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	5365-5378	13	0
 emacs/src/xmenu.c	#ifndef MSDOS	2774-2787	13	0	
 emacs/src/xsettings.c	#ifdef HAVE_PGTK	1314-1327	13	1	xsettings_get_font_options
 emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	667-679	12	0	
-emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	2132-2144	12	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1225-1237	12	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1247-1259	12	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1767-1779	12	0	
 emacs/src/callproc.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	169-181	12	0	
 emacs/src/callproc.c	#ifndef MSDOS	199-211	12	0	
 emacs/src/comp.c	#ifdef WINDOWSNT	5025-5037	12	2	return_nil directory_files_matching
@@ -489,52 +482,64 @@ emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	6389-6401	12	0
 emacs/src/emacs.c	#ifdef HAVE_X_WINDOWS	2375-2387	12	0	
 emacs/src/emacs.c	#ifdef HAVE_ANDROID	2451-2463	12	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	3275-3287	12	0	
+emacs/src/fileio.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	138-150	12	0	
+emacs/src/fns.c	#if defined __STDC_ISO_10646__ || defined WINDOWSNT	633-645	12	0	
+emacs/src/fns.c	#if defined __STDC_ISO_10646__ || defined WINDOWSNT	682-694	12	0	
 emacs/src/font.c	#ifdef HAVE_NTGUI	1649-1661	12	0	
 emacs/src/frame.c	#ifndef HAVE_ANDROID	1727-1739	12	1	tty_child_frame_rect
 emacs/src/fringe.c	#ifdef HAVE_NTGUI	1518-1530	12	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	1930-1942	12	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1089-1101	12	0	
 emacs/src/image.c	#if defined USE_CAIRO || defined HAVE_HAIKU || defined HAVE_NS	4283-4295	12	0	
-emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7325-7337	12	0	
+emacs/src/keyboard.c	#if defined HAVE_X11 || HAVE_PGTK	4240-4252	12	0	
 emacs/src/menu.c	#ifdef HAVE_NTGUI /* FIXME: Is it really w32-specific? --Stef */	1379-1391	12	0	
 emacs/src/process.c	#ifndef WINDOWSNT	7627-7639	12	1	child_signal_read
+emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.1 91/10/16 HIRANO Satoshi */	374-386	12	0	
+emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.2 91/10/20 Manabu Higashida */	737-749	12	0	
 emacs/src/sysdep.c	#ifndef HAVE_ANDROID	800-812	12	1	reset_sigio
 emacs/src/term.c	#ifndef HAVE_ANDROID	65-77	12	9	tty_set_scroll_region turn_on_face turn_off_face tty_turn_off_highlight tty_background_highlight clear_tty_hooks
 emacs/src/w32xfns.c	#ifdef WINDOWSNT	26-38	12	0	
+emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	517-529	12	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	24245-24257	12	0	
-emacs/src/xwidget.c	#ifndef HAVE_PGTK	604-616	12	0	
+emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	30558-30570	12	0	
+emacs/src/xdisp.c	#ifdef HAVE_NTGUI	30788-30800	12	0	
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2135-2147	12	1	xwidget_view_from_window
+emacs/lib-src/etags.c	#if defined WINDOWSNT || MSDOS	1476-1487	11	0	
+emacs/lib-src/etags.c	#if MSDOS || defined (DOS_NT)	1776-1787	11	0	
 emacs/src/alloc.c	#ifdef HAVE_MODULES	3868-3879	11	1	make_user_ptr
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1827-1838	11	0	
 emacs/src/composite.c	#ifdef HAVE_WINDOW_SYSTEM	960-971	11	0	
+emacs/src/decompress.c	#ifdef WINDOWSNT	208-219	11	0	
 emacs/src/dispnew.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	2354-2365	11	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	6416-6427	11	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	6585-6596	11	0	
+emacs/src/emacs.c	#if defined HAVE_WCHAR_H && !defined WINDOWSNT	421-432	11	0	
 emacs/src/emacs.c	#ifdef HAVE_PGTK	1818-1829	11	0	
-emacs/src/emacs.c	#ifdef WINDOWSNT	3216-3227	11	0	
-emacs/src/emacs.c	#ifdef WINDOWSNT	3642-3653	11	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	1290-1301	11	0	
 emacs/src/filelock.c	#ifndef MSDOS	690-701	11	0	
+emacs/src/frame.c	#ifndef HAVE_ANDROID	6316-6327	11	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	7900-7911	11	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	6750-6761	11	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1077-1088	11	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1356-1367	11	0	
 emacs/src/image.c	#if defined(USE_CAIRO) || defined(HAVE_NS)	79-90	11	0	
-emacs/src/image.c	#ifndef ANDROID_STUBIFY	3504-3515	11	0	
-emacs/src/image.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	4494-4505	11	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	5423-5434	11	0	
-emacs/src/image.c	#ifndef HAVE_NTGUI	7890-7901	11	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	6440-6451	11	0	
+emacs/src/image.c	#if !defined USE_CAIRO && !defined HAVE_NS && !defined HAVE_HAIKU \	7477-7488	11	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	6054-6065	11	0	
 emacs/src/keyboard.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	6501-6512	11	0	
+emacs/src/lcms.c	#ifdef WINDOWSNT	570-581	11	0	
 emacs/src/menu.c	#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NS) \	423-434	11	0	
+emacs/src/process.c	#ifndef MSDOS	8653-8664	11	0	
+emacs/src/term.c	#ifndef HAVE_ANDROID	748-759	11	1	encode_terminal_code
 emacs/src/w32fns.c	#ifdef WINDOWSNT	61-72	11	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	12045-12056	11	0	
+emacs/src/w32uniscribe.c	#ifdef WINDOWSNT	1567-1578	11	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	33020-33031	11	0	
 emacs/src/xfaces.c	#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID	4796-4807	11	0	
-emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2153-2164	11	0	
 emacs/lib-src/make-fingerprint.c	#ifdef WINDOWSNT	50-60	10	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	2591-2601	10	0	
 emacs/src/callproc.c	#ifdef WINDOWSNT	1729-1739	10	0	
 emacs/src/callproc.c	#ifndef MSDOS	1986-1996	10	0	
 emacs/src/dispnew.c	#if defined (HAVE_WINDOW_SYSTEM)	2367-2377	10	0	
 emacs/src/dispnew.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)	2379-2389	10	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	499-509	10	0	
 emacs/src/emacs.c	#ifdef HAVE_MODULES	2040-2050	10	0	
 emacs/src/emacs.c	#ifdef HAVE_HAIKU	2440-2450	10	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	3366-3376	10	0	
@@ -542,57 +547,48 @@ emacs/src/fileio.c	#ifdef MSDOS	231-241	10	0
 emacs/src/fileio.c	#ifdef WINDOWSNT	1956-1966	10	0	
 emacs/src/fileio.c	#ifndef WINDOWSNT	2249-2259	10	1	clone_file
 emacs/src/filelock.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	550-560	10	0	
-emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	2174-2184	10	0	
-emacs/src/frame.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_ANDROID	7472-7482	10	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	2195-2205	10	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	206-216	10	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	217-227	10	0	
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	67-77	10	0	
 emacs/src/image.c	#ifdef HAVE_NS	153-163	10	0	
 emacs/src/image.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	613-623	10	0	
 emacs/src/image.c	#if defined HAVE_HAIKU	3066-3076	10	0	
 emacs/src/image.c	#ifdef HAVE_NS	4235-4245	10	0	
+emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4327-4337	10	0	
 emacs/src/image.c	#if defined HAVE_X_WINDOWS && !defined USE_CAIRO	5995-6005	10	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	6470-6480	10	0	
-emacs/src/image.c	#ifndef ANDROID_STUBIFY	7758-7768	10	0	
 emacs/src/image.c	#if HAVE_NTGUI	12889-12899	10	0	
 emacs/src/image.c	#ifdef HAVE_NS	13733-13743	10	0	
 emacs/src/lread.c	#ifdef HAVE_MODULES	978-988	10	0	
-emacs/src/minibuf.c	#ifndef HAVE_NTGUI	937-947	10	0	
+emacs/src/lread.c	#ifdef WINDOWSNT	1438-1448	10	0	
 emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	4340-4350	10	0	
 emacs/src/pdumper.c	#if HAVE_NS && !NS_SELF_CONTAINED	5587-5597	10	0	
-emacs/src/sysdep.c	#ifdef WINDOWSNT	738-748	10	0	
+emacs/src/process.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	5817-5827	10	0	
 emacs/src/sysdep.c	#ifndef HAVE_ANDROID	986-996	10	1	widen_foreground_group
 emacs/src/term.c	#ifndef MSDOS	5476-5486	10	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	10099-10109	10	1	w32_version_string
+emacs/src/w32font.c	#ifdef WINDOWSNT	220-230	10	0	
 emacs/src/w32proc.c	#ifdef HAVE_NTGUI	2144-2154	10	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	6329-6339	10	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	334-344	10	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	1252-1262	10	0	
 emacs/src/xfaces.c	#ifndef HAVE_NTGUI	3809-3819	10	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	6088-6098	10	0	
-emacs/src/xwidget.c	#ifndef HAVE_PGTK	572-582	10	0	
 emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	2502-2511	9	0	
-emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	2611-2620	9	0	
-emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	2630-2639	9	0	
+emacs/lib-src/etags.c	#if MSDOS || defined (DOS_NT)	7932-7941	9	0	
 emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	2652-2661	9	0	
 emacs/src/callproc.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	1449-1458	9	0	
 emacs/src/callproc.c	#ifndef HAVE_PGTK	1748-1757	9	0	
 emacs/src/callproc.c	#ifdef HAVE_PGTK	1885-1894	9	0	
-emacs/src/comp.c	#ifndef WINDOWSNT	513-522	9	0	
 emacs/src/data.c	#ifdef HAVE_MODULES	501-510	9	1	DEFUN
-emacs/src/dired.c	#ifdef WINDOWSNT	929-938	9	0	
-emacs/src/dired.c	#ifdef WINDOWSNT	944-953	9	0	
+emacs/src/dired.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	51-60	9	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	68-77	9	0	
-emacs/src/frame.c	#ifndef HAVE_X_WINDOWS	485-494	9	0	
-emacs/src/frame.c	#ifdef MSDOS	1767-1776	9	0	
 emacs/src/frame.c	#ifdef HAVE_PGTK	2876-2885	9	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1436-1445	9	0	
 emacs/src/gtkutil.c	#if !defined HAVE_PGTK && defined HAVE_GTK3	4225-4234	9	0	
 emacs/src/image.c	#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID	716-725	9	0	
 emacs/src/image.c	#ifdef HAVE_WINDOW_SYSTEM	5902-5911	9	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	1528-1537	9	0	
 emacs/src/keyboard.c	#ifdef HAVE_NS	6368-6377	9	0	
 emacs/src/keyboard.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	8445-8454	9	0	
-emacs/src/lread.c	#ifdef HAVE_MODULES	1285-1294	9	0	
 emacs/src/menu.c	#ifdef HAVE_WINDOW_SYSTEM	1397-1406	9	0	
 emacs/src/pdumper.c	#ifdef MSDOS	4186-4195	9	0	
 emacs/src/sysdep.c	#ifdef WINDOWSNT	1011-1020	9	0	
@@ -603,52 +599,47 @@ emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	1103-1112	9	0
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	33209-33218	9	0	
 emacs/src/xdisp.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)	37263-37272	9	0	
 emacs/src/xfaces.c	#if defined (HAVE_WINDOW_SYSTEM)	3620-3629	9	0	
+emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	4465-4474	9	0	
 emacs/src/xfaces.c	#ifdef HAVE_X_WINDOWS	4784-4793	9	0	
 emacs/src/xmenu.c	#ifndef MSDOS	2887-2896	9	1	popup_activated
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	4014-4023	9	0	
-emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	2150-2158	8	0	
 emacs/src/alloc.c	#ifdef HAVE_WINDOW_SYSTEM	6335-6343	8	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1830-1838	8	0	
+emacs/src/androidmenu.c	#ifndef ANDROID_STUBIFY	831-839	8	1	popup_activated
 emacs/src/callproc.c	#ifndef HAVE_ANDROID	1916-1924	8	0	
 emacs/src/data.c	#ifdef HAVE_MODULES	1191-1199	8	0	
 emacs/src/data.c	#ifdef HAVE_MODULES	1262-1270	8	0	
 emacs/src/decompress.c	#ifdef WINDOWSNT	251-259	8	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	4623-4631	8	0	
-emacs/src/emacs.c	#ifndef HAVE_ANDROID	423-431	8	0	
-emacs/src/emacs.c	#ifdef MSDOS	586-594	8	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	1436-1444	8	0	
 emacs/src/emacs.c	#ifdef MSDOS	2152-2160	8	0	
 emacs/src/emacs.c	#ifdef HAVE_WINDOW_SYSTEM	2366-2374	8	0	
 emacs/src/emacs.c	#ifdef HAVE_PGTK	2431-2439	8	0	
 emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY && 0	2626-2634	8	0	
-emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	101-109	8	0	
-emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	119-127	8	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	3216-3224	8	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	3642-3650	8	0	
 emacs/src/eval.c	#ifdef HAVE_MODULES	2355-2363	8	0	
 emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	193-201	8	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	2153-2161	8	0	
-emacs/src/fileio.c	#ifdef WINDOWSNT	2303-2311	8	0	
-emacs/src/filelock.c	#ifdef WINDOWSNT	206-214	8	0	
 emacs/src/font.c	#ifdef HAVE_NTGUI	2036-2044	8	0	
 emacs/src/font.c	#ifdef HAVE_NS	3420-3428	8	0	
+emacs/src/font.c	#ifdef HAVE_X_WINDOWS	6067-6075	8	0	
 emacs/src/fontset.c	#ifdef HAVE_WINDOW_SYSTEM	1691-1699	8	0	
+emacs/src/frame.c	#ifdef MSDOS	1573-1581	8	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	5478-5486	8	0	
-emacs/src/frame.c	#if defined (HAVE_WINDOW_SYSTEM) && !defined (HAVE_ANDROID)	7702-7710	8	0	
 emacs/src/fringe.c	#if defined (HAVE_X_WINDOWS) || defined (HAVE_PGTK) || defined (HAVE_ANDROID)	1434-1442	8	1	swap_nibble
-emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	25-33	8	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	33-41	8	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	958-966	8	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1568-1576	8	1	delete_cb
-emacs/src/gtkutil.c	#if !defined HAVE_PGTK	1739-1747	8	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	3141-3149	8	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	3474-3482	8	0	
 emacs/src/gtkutil.c	#if !defined HAVE_PGTK && defined HAVE_GTK3	4834-4842	8	0	
 emacs/src/gtkutil.c	#if !defined HAVE_PGTK && defined HAVE_GTK3	4941-4949	8	0	
 emacs/src/image.c	#if defined (HAVE_X_WINDOWS) || defined (HAVE_NTGUI) || defined (HAVE_ANDROID)	451-459	8	1	image_bitmap_pixmap
 emacs/src/image.c	#ifdef HAVE_HAIKU	701-709	8	0	
-emacs/src/image.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	737-745	8	0	
-emacs/src/image.c	#ifndef HAVE_ANDROID	3980-3988	8	0	
-emacs/src/image.c	#ifndef HAVE_ANDROID	4411-4419	8	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	1205-1213	8	2	image_get_x_image image_unget_x_image
+emacs/src/image.c	#ifdef HAVE_NTGUI	1934-1942	8	0	
+emacs/src/image.c	#ifndef ANDROID_STUBIFY	3504-3512	8	0	
+emacs/src/image.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	4497-4505	8	0	
 emacs/src/image.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	4519-4527	8	1	close_android_fd
-emacs/src/image.c	#ifdef HAVE_NTGUI	7391-7399	8	0	
+emacs/src/image.c	#if !defined USE_CAIRO && !defined HAVE_NS && !defined HAVE_HAIKU \	7468-7476	8	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	13712-13720	8	0	
 emacs/src/inotify.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	461-469	8	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	1557-1565	8	0	
@@ -663,33 +654,37 @@ emacs/src/lcms.c	#ifdef WINDOWSNT	406-414	8	0
 emacs/src/lcms.c	#ifdef WINDOWSNT	447-455	8	0	
 emacs/src/lcms.c	#ifdef WINDOWSNT	502-510	8	0	
 emacs/src/lcms.c	#ifdef WINDOWSNT	547-555	8	0	
-emacs/src/lread.c	#ifndef MSDOS	5623-5631	8	0	
+emacs/src/minibuf.c	#ifndef HAVE_NTGUI	939-947	8	0	
 emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	2470-2478	8	0	
 emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	3726-3734	8	0	
-emacs/src/pdumper.c	#ifdef WINDOWSNT	5854-5862	8	0	
-emacs/src/process.c	#ifndef MSDOS	8712-8720	8	0	
+emacs/src/process.c	#if defined HAVE_GLIB && !defined HAVE_NS	5832-5840	8	0	
 emacs/src/sysdep.c	#ifdef WINDOWSNT	126-134	8	1	_spawnlp
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2443-2451	8	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2543-2551	8	0	
-emacs/src/term.c	#ifdef MSDOS	4530-4538	8	0	
+emacs/src/sysdep.c	#if defined HAVE_STACK_OVERFLOW_HANDLING && !defined WINDOWSNT	1986-1994	8	1	init_sigsegv
 emacs/src/textconv.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	46-54	8	0	
+emacs/src/timefns.c	#ifndef WINDOWSNT	2058-2066	8	0	
 emacs/src/w32fns.c	#if defined WINDOWSNT && !defined HAVE_DBUS	11631-11639	8	0	
 emacs/src/w32term.c	#ifdef WINDOWSNT	8121-8129	8	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	25187-25195	8	0	
-emacs/src/xdisp.c	#ifdef HAVE_NTGUI	31745-31753	8	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	35639-35647	8	0	
 emacs/src/xdisp.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_MENU_BAR)	37231-37239	8	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	37280-37288	8	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	3793-3801	8	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	4391-4399	8	0	
+emacs/src/xml.c	#ifdef WINDOWSNT	81-89	8	1	libxml2_loaded_p
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2272-2280	8	1	xwidget_expose
+emacs/lib-src/emacsclient.c	#ifndef HAVE_ANDROID	643-650	7	0	
 emacs/lib-src/etags.c	#ifdef WINDOWSNT	98-105	7	0	
-emacs/lib-src/movemail.c	#ifndef WINDOWSNT	592-599	7	0	
+emacs/lib-src/etags.c	#if defined WINDOWSNT || MSDOS	1468-1475	7	0	
+emacs/lib-src/etags.c	#if MSDOS || defined (DOS_NT)	1768-1775	7	0	
 emacs/src/alloc.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	3147-3154	7	0	
-emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	1698-1705	7	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	2591-2598	7	0	
+emacs/src/callproc.c	#ifdef WINDOWSNT	1271-1278	7	0	
+emacs/src/coding.c	#ifdef WINDOWSNT	10450-10457	7	0	
+emacs/src/coding.c	#ifdef WINDOWSNT	10476-10483	7	0	
 emacs/src/dired.c	#ifdef WINDOWSNT	199-206	7	0	
+emacs/src/dired.c	#ifdef WINDOWSNT	931-938	7	0	
+emacs/src/dired.c	#ifdef WINDOWSNT	946-953	7	0	
 emacs/src/dispnew.c	#ifdef HAVE_ANDROID	7298-7305	7	0	
-emacs/src/editfns.c	#ifdef MSDOS	93-100	7	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	45-52	7	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	172-179	7	0	
 emacs/src/emacs.c	#ifndef MSDOS	472-479	7	0	
@@ -699,54 +694,57 @@ emacs/src/emacs.c	#ifdef HAVE_NS	2740-2747	7	0
 emacs/src/eval.c	#ifdef HAVE_MODULES	3851-3858	7	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	1352-1359	7	0	
 emacs/src/fileio.c	#ifdef MSDOS	2555-2562	7	0	
-emacs/src/fileio.c	#ifdef WINDOWSNT	3081-3088	7	0	
+emacs/src/frame.c	#ifndef HAVE_X_WINDOWS	487-494	7	0	
 emacs/src/frame.c	#if defined (HAVE_WINDOW_SYSTEM)	1058-1065	7	0	
 emacs/src/frame.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)	1067-1074	7	0	
+emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	2174-2181	7	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	2958-2965	7	0	
+emacs/src/frame.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_ANDROID	7472-7479	7	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1248-1255	7	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1438-1445	7	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK /* gtk_plug not found. */	1598-1605	7	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK /* gtk_plug not found. */	1606-1613	7	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	2234-2241	7	0	
 emacs/src/gtkutil.c	#if !defined HAVE_GTK3 || defined HAVE_PGTK	4569-4576	7	1	xg_gtk_scroll_destroy
 emacs/src/gtkutil.c	#if defined HAVE_PGTK || !defined HAVE_GTK3	4630-4637	7	0	
-emacs/src/gtkutil.c	#ifdef HAVE_PGTK	4664-4671	7	0	
 emacs/src/image.c	#if defined HAVE_PGTK && defined HAVE_IMAGEMAGICK	104-111	7	0	
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	604-611	7	0	
 emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	2117-2124	7	0	
 emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	2135-2142	7	0	
 emacs/src/image.c	#ifndef ANDROID_STUBIFY	3540-3547	7	0	
-emacs/src/image.c	#ifndef HAVE_ANDROID	3953-3960	7	0	
-emacs/src/image.c	#ifndef ANDROID_STUBIFY	5040-5047	7	0	
 emacs/src/image.c	#ifndef HAVE_NTGUI	6332-6339	7	0	
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	6576-6583	7	0	
-emacs/src/image.c	#ifndef HAVE_NS	7041-7048	7	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	6917-6924	7	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	6925-6932	7	0	
+emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7330-7337	7	0	
+emacs/src/image.c	#ifndef ANDROID_STUBIFY	7758-7765	7	0	
 emacs/src/keyboard.c	#if defined HAVE_X11 || defined HAVE_PGTK || defined HAVE_HAIKU	4614-4621	7	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	7814-7821	7	0	
-emacs/src/lread.c	#ifdef HAVE_MODULES	1501-1508	7	0	
+emacs/src/keyboard.c	#ifdef MSDOS	8230-8237	7	0	
 emacs/src/menu.c	#ifdef HAVE_NTGUI /* W32 specific because other terminals clear	1422-1429	7	0	
-emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	1909-1916	7	0	
 emacs/src/process.c	#if !defined USABLE_SIGIO && !defined WINDOWSNT	5806-5813	7	0	
 emacs/src/sysdep.c	#ifdef WINDOWSNT	78-85	7	0	
 emacs/src/sysdep.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	1949-1956	7	0	
 emacs/src/sysdep.c	#if !defined HAVE_ANDROID	2097-2104	7	0	
 emacs/src/sysdep.c	#if !defined HAVE_NTGUI && !(defined HAVE_ANDROID \	2420-2427	7	1	emacs_abort
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2524-2531	7	0	
 emacs/src/thread.c	#ifdef HAVE_NS	788-795	7	0	
 emacs/src/timefns.c	#ifndef MSDOS	1985-1992	7	0	
-emacs/src/w32term.c	#if defined WINDOWSNT && HAVE_NATIVE_IMAGE_API	8417-8424	7	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	17258-17265	7	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	22000-22007	7	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	22168-22175	7	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	677-684	7	0	
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	187-194	7	0	
-emacs/lib-src/ebrowse.c	#ifdef __MSDOS__	43-49	6	0	
+emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	2138-2144	6	0	
 emacs/lib-src/emacsclient.c	#ifdef HAVE_NTGUI	2175-2181	6	0	
-emacs/lib-src/etags.c	#ifdef MSDOS	90-96	6	0	
+emacs/lib-src/pop.c	#ifdef WINDOWSNT	50-56	6	0	
 emacs/lib-src/pop.c	#ifdef WINDOWSNT	1005-1011	6	0	
 emacs/src/alloc.c	#ifdef HAVE_MODULES	3188-3194	6	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1345-1351	6	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1358-1364	6	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1379-1385	6	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1392-1398	6	0	
+emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	2611-2617	6	0	
+emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	2630-2636	6	0	
 emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6833-6839	6	0	
 emacs/src/callproc.c	#ifndef HAVE_ANDROID	1866-1872	6	0	
+emacs/src/coding.c	#ifdef WINDOWSNT	10443-10449	6	0	
+emacs/src/coding.c	#ifdef WINDOWSNT	10469-10475	6	0	
 emacs/src/dired.c	#ifdef WINDOWSNT	170-176	6	1	directory_files_internal_w32_unwind
 emacs/src/dired.c	#ifdef WINDOWSNT	1073-1079	6	0	
 emacs/src/dispnew.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	801-807	6	0	
@@ -755,57 +753,50 @@ emacs/src/dispnew.c	#ifdef HAVE_NTGUI	7307-7313	6	0
 emacs/src/dispnew.c	#ifdef HAVE_NS	7315-7321	6	0	
 emacs/src/dispnew.c	#ifdef HAVE_PGTK	7323-7329	6	0	
 emacs/src/dispnew.c	#ifdef HAVE_HAIKU	7331-7337	6	0	
-emacs/src/dispnew.c	#ifdef MSDOS	7378-7384	6	0	
-emacs/src/emacs.c	#ifndef WINDOWSNT	233-239	6	0	
-emacs/src/emacs.c	#ifdef MSDOS	612-618	6	0	
+emacs/src/doc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	43-49	6	0	
+emacs/src/emacs.c	#ifndef HAVE_ANDROID	425-431	6	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	1057-1063	6	0	
-emacs/src/emacs.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	1318-1324	6	2	main android_emacs_init
 emacs/src/emacs.c	#ifdef HAVE_NS	2423-2429	6	0	
 emacs/src/emacs.c	#if !defined ANDROID_STUBIFY	2456-2462	6	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	2483-2489	6	0	
 emacs/src/emacs.c	#ifdef HAVE_NS	2767-2773	6	0	
 emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	3070-3076	6	0	
+emacs/src/emacs.c	#ifndef WINDOWSNT	3470-3476	6	0	
 emacs/src/eval.c	#ifdef HAVE_MODULES	4377-4383	6	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	1702-1708	6	0	
+emacs/src/fileio.c	#ifdef WINDOWSNT	2305-2311	6	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	5590-5596	6	0	
-emacs/src/font.c	#ifdef WINDOWSNT	6042-6048	6	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	115-121	6	1	display_available
+emacs/src/frame.c	#ifdef MSDOS	1770-1776	6	0	
 emacs/src/frame.c	#ifdef MSDOS	3445-3451	6	0	
 emacs/src/frame.c	#ifdef MSDOS	3490-3496	6	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4365-4371	6	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4384-4390	6	0	
-emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4693-4699	6	0	
-emacs/src/frame.c	#if defined (HAVE_NTGUI) || defined (NS_IMPL_COCOA) || (defined (USE_GTK) && defined (USE_TOOLKIT_SCROLL_BARS))	7473-7479	6	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	793-799	6	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1368-1374	6	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1752-1758	6	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5187-5193	6	0	
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	461-467	6	1	x_bitmap_mask
 emacs/src/image.c	#if defined HAVE_HAIKU || defined HAVE_NS || defined HAVE_PGTK \	747-753	6	3	slurp_file image_find_image_fd xbm_read_bitmap_data
 emacs/src/image.c	#if defined HAVE_ANDROID	3078-3084	6	0	
-emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4072-4078	6	0	
-emacs/src/image.c	#ifdef HAVE_ANDROID	4437-4443	6	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	3982-3988	6	0	
 emacs/src/image.c	#if defined (HAVE_XPM) || defined (HAVE_NS) || defined (HAVE_PGTK) \	5922-5928	6	2	xpm_image_p xpm_load
 emacs/src/image.c	#ifdef HAVE_NTGUI	6418-6424	6	0	
-emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7249-7255	6	0	
-emacs/src/image.c	#if !defined USE_CAIRO && !defined HAVE_HAIKU && !defined HAVE_ANDROID	7815-7821	6	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	7876-7882	6	0	
-emacs/src/image.c	#ifndef HAVE_NS	7943-7949	6	0	
+emacs/src/image.c	#ifndef HAVE_NTGUI	7890-7896	6	0	
 emacs/src/image.c	#ifndef HAVE_NS	7950-7956	6	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	725-731	6	0	
 emacs/src/keyboard.c	#ifdef HAVE_X_WINDOWS	4131-4137	6	0	
 emacs/src/keyboard.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	6492-6498	6	0	
 emacs/src/keyboard.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	8369-8375	6	0	
+emacs/src/lread.c	#ifdef HAVE_MODULES	1285-1291	6	0	
 emacs/src/lread.c	#ifdef HAVE_MODULES	5605-5611	6	0	
 emacs/src/menu.c	#if defined (USE_GTK) || defined (HAVE_NS)	1309-1315	6	0	
 emacs/src/menu.c	#ifdef HAVE_NTGUI	1602-1608	6	0	
 emacs/src/process.c	#ifdef subprocesses /* Actually means "not MSDOS". */	8384-8390	6	0	
-emacs/src/process.c	#ifndef MSDOS	8640-8646	6	0	
-emacs/src/sysdep.c	#ifdef WINDOWSNT	2251-2257	6	0	
+emacs/src/sound.c	#ifndef WINDOWSNT	281-287	6	1	do_play_sound
 emacs/src/sysdep.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2681-2687	6	1	emacs_fclose
 emacs/src/sysdep.c	#ifdef WINDOWSNT	2772-2778	6	2	static_assert static_assert
 emacs/src/systhread.c	#ifdef HAVE_NS	190-196	6	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	128-134	6	0	
-emacs/src/term.c	#ifdef WINDOWSNT	371-377	6	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	1149-1155	6	0	
 emacs/src/thread.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	798-804	6	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	344-350	6	0	
@@ -818,128 +809,122 @@ emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	18238-18244	6	0
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	35522-35528	6	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	38681-38687	6	0	
 emacs/src/xfaces.c	#ifdef HAVE_X_WINDOWS	4733-4739	6	0	
-emacs/src/xmenu.c	#ifdef HAVE_X_WINDOWS	2618-2624	6	0	
-emacs/src/xwidget.c	#ifndef HAVE_X_WINDOWS	644-650	6	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	610-616	6	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2986-2992	6	0	
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	3021-3027	6	0	
 emacs/src/xwidget.c	#if defined HAVE_XINPUT2 || defined HAVE_PGTK	3029-3035	6	0	
-emacs/lib-src/emacsclient.c	#ifdef HAVE_PGTK	637-642	5	0	
+emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	2132-2137	5	0	
+emacs/lib-src/etags.c	#if MSDOS || defined (DOS_NT)	7942-7947	5	0	
 emacs/lib-src/make-docfile.c	#ifdef WINDOWSNT	53-58	5	0	
 emacs/src/alloc.c	#ifdef HAVE_ANDROID	5942-5947	5	0	
 emacs/src/alloc.c	#ifdef HAVE_WINDOW_SYSTEM	6355-6360	5	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1289-1294	5	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1302-1307	5	0	
-emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1671-1676	5	0	
 emacs/src/callproc.c	#ifdef WINDOWSNT	59-64	5	0	
-emacs/src/callproc.c	#ifdef MSDOS /* Demacs 1.1.1 91/10/16 HIRANO Satoshi */	373-378	5	0	
-emacs/src/callproc.c	#ifdef WINDOWSNT	1247-1252	5	0	
-emacs/src/callproc.c	#ifdef WINDOWSNT	1692-1697	5	0	
-emacs/src/callproc.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2043-2048	5	0	
-emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	2215-2220	5	0	
+emacs/src/comp.c	#ifndef WINDOWSNT	513-518	5	0	
+emacs/src/dispnew.c	#ifndef HAVE_ANDROID	4132-4137	5	1	combine_updates_for_frame
+emacs/src/emacs.c	#ifdef MSDOS	586-591	5	0	
 emacs/src/emacs.c	#if defined HAVE_PDUMPER && !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	1330-1335	5	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	1398-1403	5	0	
-emacs/src/emacs.c	#ifndef WINDOWSNT	1732-1737	5	0	
 emacs/src/emacs.c	#ifdef HAVE_NS	2294-2299	5	0	
 emacs/src/emacs.c	#ifdef HAVE_NTGUI	2401-2406	5	0	
 emacs/src/emacs.c	#ifdef MSDOS	2416-2421	5	0	
 emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2565-2570	5	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	2578-2583	5	0	
-emacs/src/emacs.c	#ifdef WINDOWSNT	3077-3082	5	0	
 emacs/src/eval.c	#ifdef HAVE_X_WINDOWS	1441-1446	5	0	
 emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2517-2522	5	0	
 emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	5789-5794	5	0	
 emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	6719-6724	5	0	
+emacs/src/filelock.c	#ifdef WINDOWSNT	206-211	5	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	2993-2998	5	0	
+emacs/src/frame.c	#ifdef MSDOS	1582-1587	5	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	2936-2941	5	0	
-emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	586-591	5	0	
+emacs/src/frame.c	#if defined (HAVE_WINDOW_SYSTEM) && !defined (HAVE_ANDROID)	7702-7707	5	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	25-30	5	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	97-102	5	4	xg_im_context_commit xg_im_context_preedit_changed xg_im_context_preedit_end xg_widget_key_press_event_cb
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1704-1709	5	0	
+emacs/src/gtkutil.c	#if !defined HAVE_PGTK	1739-1744	5	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1959-1964	5	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4863-4868	5	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4968-4973	5	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	2200-2205	5	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	6750-6755	5	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	6756-6761	5	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	727-732	5	0	
+emacs/src/image.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	737-742	5	0	
 emacs/src/image.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	1120-1125	5	0	
 emacs/src/image.c	#ifdef HAVE_HAIKU	1141-1146	5	0	
 emacs/src/image.c	#ifdef WINDOWSNT	1354-1359	5	0	
 emacs/src/image.c	#if defined HAVE_HAIKU	3168-3173	5	0	
 emacs/src/image.c	#ifdef HAVE_HAIKU	3234-3239	5	0	
 emacs/src/image.c	#ifdef WINDOWSNT	6441-6446	5	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	6470-6475	5	0	
 emacs/src/image.c	#ifndef HAVE_NS	7891-7896	5	0	
 emacs/src/image.c	#if defined (HAVE_XPM) || defined (HAVE_NS) \	13659-13664	5	0	
-emacs/src/keyboard.c	#ifdef MSDOS	61-66	5	0	
+emacs/src/keyboard.c	#ifdef WINDOWSNT	2442-2447	5	0	
 emacs/src/keyboard.c	#if defined (HAVE_NS)	4318-4323	5	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	4329-4334	5	0	
 emacs/src/keyboard.c	#ifdef HAVE_NS	4519-4524	5	0	
 emacs/src/keyboard.c	#ifdef HAVE_NS	14591-14596	5	0	
 emacs/src/lread.c	#ifdef HAVE_MODULES	1183-1188	5	0	
+emacs/src/lread.c	#ifndef MSDOS	5623-5628	5	0	
 emacs/src/pdumper.c	#ifndef HAVE_ANDROID	4081-4086	5	0	
+emacs/src/pdumper.c	#ifdef WINDOWSNT	5854-5859	5	0	
 emacs/src/print.c	#ifdef WINDOWSNT	265-270	5	0	
-emacs/src/process.c	#ifdef WINDOWSNT	7342-7347	5	0	
+emacs/src/process.c	#if defined HAVE_GLIB && !defined HAVE_NS	5841-5846	5	0	
+emacs/src/process.c	#ifndef WINDOWSNT	6141-6146	5	0	
 emacs/src/sound.c	#ifndef WINDOWSNT	399-404	5	0	
-emacs/src/sysdep.c	#ifdef MSDOS	655-660	5	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2647-2652	5	0	
+emacs/src/sysdep.c	#ifdef WINDOWSNT	738-743	5	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2526-2531	5	0	
 emacs/src/sysdep.c	#ifdef WINDOWSNT	2955-2960	5	0	
-emacs/src/term.c	#ifndef HAVE_ANDROID	5073-5078	5	0	
+emacs/src/term.c	#ifdef MSDOS	4530-4535	5	0	
 emacs/src/termcap.c	#if defined (MSDOS) && !defined (TEST)	386-391	5	0	
+emacs/src/timefns.c	#ifndef WINDOWSNT	2052-2057	5	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	5747-5752	5	0	
 emacs/src/w32font.c	#ifdef WINDOWSNT	3073-3078	5	0	
-emacs/src/w32image.c	#ifdef WINDOWSNT	224-229	5	0	
 emacs/src/w32xfns.c	#ifdef WINDOWSNT	433-438	5	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	1118-1123	5	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	23183-23188	5	0	
-emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	30742-30747	5	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	33067-33072	5	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	37414-37419	5	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	38501-38506	5	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	391-396	5	3	set_font_frame_param clear_face_gcs realize_non_ascii_face
 emacs/src/xfaces.c	#ifdef MSDOS	1195-1200	5	0	
 emacs/src/xfaces.c	#if defined (HAVE_WINDOW_SYSTEM)	2942-2947	5	0	
+emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	4475-4480	5	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	7851-7856	5	0	
 emacs/src/xmenu.c	#ifdef HAVE_X_WINDOWS	2812-2817	5	0	
-emacs/src/xsettings.c	#ifndef HAVE_PGTK	41-46	5	0	
 emacs/src/xsettings.c	#ifdef HAVE_PGTK	235-240	5	0	
 emacs/src/xsettings.c	#ifdef HAVE_PGTK	1160-1165	5	0	
 emacs/src/xterm.c	#if defined(HAVE_XWIDGETS) && !defined(HAVE_PGTK)	32432-32437	5	0	
-emacs/src/xwidget.c	#ifndef HAVE_PGTK	41-46	5	0	
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	62-67	5	0	
 emacs/src/xwidget.c	#ifdef HAVE_PGTK	451-456	5	0	
-emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2172-2177	5	0	
-emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2258-2263	5	0	
-emacs/lib-src/movemail.c	#ifdef WINDOWSNT	389-393	4	0	
-emacs/src/alloc.c	#ifdef HAVE_X_WINDOWS	7613-7617	4	0	
-emacs/src/alloc.c	#ifdef HAVE_PGTK	7619-7623	4	0	
-emacs/src/alloc.c	#ifdef WINDOWSNT	7625-7629	4	0	
-emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6722-6726	4	0	
-emacs/src/callproc.c	#ifdef MSDOS	116-120	4	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	577-582	5	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	604-609	5	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2153-2158	5	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2159-2164	5	0	
+emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	2150-2154	4	0	
+emacs/src/alloc.c	#ifdef HAVE_WINDOW_SYSTEM	5603-5607	4	0	
+emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	1698-1702	4	0	
 emacs/src/callproc.c	#ifdef MSDOS	1242-1246	4	0	
-emacs/src/callproc.c	#ifdef WINDOWSNT	1658-1662	4	0	
 emacs/src/callproc.c	#ifdef WINDOWSNT	2054-2058	4	0	
-emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2181-2185	4	0	
-emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2191-2195	4	0	
-emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2202-2206	4	0	
-emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2227-2231	4	0	
-emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2238-2242	4	0	
+emacs/src/coding.c	#if defined WINDOWSNT || defined CYGWIN	8556-8560	4	0	
 emacs/src/dispnew.c	#if defined (HAVE_WINDOW_SYSTEM)	809-813	4	0	
 emacs/src/dispnew.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)	815-819	4	0	
-emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	4459-4463	4	0	
-emacs/src/dispnew.c	#ifdef WINDOWSNT	7343-7347	4	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	7352-7356	4	0	
-emacs/src/editfns.c	#ifdef WINDOWSNT	106-110	4	0	
-emacs/src/emacs-module.c	#ifdef HAVE_WINDOW_SYSTEM	977-981	4	0	
+emacs/src/dispnew.c	#ifndef HAVE_ANDROID	7404-7408	4	0	
+emacs/src/dynlib.c	#ifdef WINDOWSNT	326-330	4	0	
+emacs/src/editfns.c	#ifdef MSDOS	93-97	4	0	
 emacs/src/emacs.c	#if defined WINDOWSNT || defined HAVE_NTGUI	54-58	4	0	
 emacs/src/emacs.c	#ifdef HAVE_MODULES	293-297	4	0	
-emacs/src/emacs.c	#ifdef MSDOS	967-971	4	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	826-830	4	0	
 emacs/src/emacs.c	#ifdef MSDOS	1638-1642	4	0	
 emacs/src/emacs.c	#ifdef HAVE_NTGUI	2369-2373	4	0	
-emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	25-29	4	0	
+emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	105-109	4	0	
+emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	123-127	4	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	1527-1531	4	0	
-emacs/src/fileio.c	#ifdef WINDOWSNT	1540-1544	4	0	
-emacs/src/fileio.c	#ifndef MSDOS	2384-2388	4	0	
-emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	3140-3144	4	0	
+emacs/src/fileio.c	#ifdef WINDOWSNT	3081-3085	4	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	3392-3396	4	0	
 emacs/src/fileio.c	#ifdef MSDOS	3791-3795	4	0	
 emacs/src/filelock.c	#ifdef WINDOWSNT	47-51	4	0	
-emacs/src/font.c	#ifndef HAVE_NS	3533-3537	4	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	3578-3582	4	0	
+emacs/src/font.c	#ifdef HAVE_X_WINDOWS	6076-6080	4	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	2630-2634	4	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	3775-3779	4	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4168-4172	4	0	
@@ -948,118 +933,104 @@ emacs/src/frame.c	#ifdef MSDOS	4278-4282	4	0
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4406-4410	4	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4435-4439	4	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	5401-5405	4	0	
-emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	7568-7572	4	0	
-emacs/src/frame.c	#if defined (USE_GTK) || defined (HAVE_NS)	7703-7707	4	0	
-emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	7783-7787	4	0	
+emacs/src/frame.c	#ifndef HAVE_ANDROID	6328-6332	4	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	7894-7898	4	0	
-emacs/src/ftcrfont.c	#ifdef HAVE_PGTK	175-179	4	0	
-emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	564-568	4	0	
-emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	615-619	4	0	
-emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	630-634	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	239-243	4	2	xg_display_open xg_display_open
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	248-252	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	261-265	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	302-306	4	2	xg_display_close xg_display_close
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	369-373	4	2	xg_create_default_cursor xg_create_default_cursor
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1521-1525	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1550-1554	4	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	37-41	4	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	962-966	4	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	1730-1734	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	2180-2184	4	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	2195-2199	4	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	3478-3482	4	0	
 emacs/src/gtkutil.c	#if defined HAVE_GTK3 && !defined HAVE_PGTK	4624-4628	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4850-4854	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4875-4879	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4953-4957	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4976-4980	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5145-5149	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5154-5158	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5274-5278	4	0	
-emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5380-5384	4	0	
+emacs/src/gtkutil.c	#ifdef HAVE_PGTK	4664-4668	4	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	147-151	4	0	
 emacs/src/image.c	#if (defined HAVE_X_WINDOWS \	169-173	4	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	238-242	4	2	w32_create_pixmap_from_bitmap_data XPutPixel
 emacs/src/image.c	#ifdef HAVE_NS	654-658	4	0	
 emacs/src/image.c	#ifdef HAVE_PGTK	660-664	4	0	
+emacs/src/image.c	#ifdef ANDROID_STUBIFY	1023-1027	4	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	1200-1204	4	2	image_get_x_image_or_dc image_unget_x_image_or_dc
 emacs/src/image.c	#if defined HAVE_HAIKU	3208-3212	4	0	
 emacs/src/image.c	#ifdef HAVE_HAIKU	3220-3224	4	0	
-emacs/src/image.c	#ifndef HAVE_ANDROID	3922-3926	4	0	
-emacs/src/image.c	#ifndef ANDROID_STUBIFY	3983-3987	4	0	
-emacs/src/image.c	#ifndef HAVE_ANDROID	4009-4013	4	0	
+emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4074-4078	4	0	
 emacs/src/image.c	#if defined USE_CAIRO || defined HAVE_HAIKU || defined HAVE_NS	4260-4264	4	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	4265-4269	4	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	7282-7286	4	0	
-emacs/src/image.c	#ifndef HAVE_ANDROID	7553-7557	4	0	
-emacs/src/image.c	#ifdef HAVE_NTGUI	7780-7784	4	0	
+emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4338-4342	4	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	4415-4419	4	0	
+emacs/src/image.c	#ifndef ANDROID_STUBIFY	5040-5044	4	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	6452-6456	4	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	6476-6480	4	0	
+emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7325-7329	4	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	7391-7395	4	0	
+emacs/src/image.c	#ifndef HAVE_NTGUI	7897-7901	4	0	
 emacs/src/image.c	#if defined HAVE_XPM || defined HAVE_NS || defined HAVE_HAIKU \	13484-13488	4	0	
-emacs/src/keyboard.c	#ifdef WINDOWSNT	91-95	4	2	DEV_TTY DEV_TTY
 emacs/src/keyboard.c	#ifndef WINDOWSNT	2432-2436	4	0	
 emacs/src/keyboard.c	#ifdef HAVE_NS	3143-3147	4	0	
-emacs/src/keyboard.c	#ifndef HAVE_HAIKU	4615-4619	4	0	
+emacs/src/keyboard.c	#if defined HAVE_X11 || HAVE_PGTK	4253-4257	4	0	
+emacs/src/keyboard.c	#if defined HAVE_X11 || defined HAVE_PGTK	4681-4685	4	0	
 emacs/src/keyboard.c	#ifdef MSDOS	12684-12688	4	0	
-emacs/src/keyboard.c	#ifdef MSDOS	12701-12705	4	0	
-emacs/src/keyboard.c	#ifdef MSDOS	12724-12728	4	0	
-emacs/src/keyboard.c	#ifdef MSDOS	12734-12738	4	0	
+emacs/src/lread.c	#ifdef WINDOWSNT	1433-1437	4	0	
 emacs/src/lread.c	#ifdef WINDOWSNT	1941-1945	4	0	
-emacs/src/lread.c	#ifdef HAVE_MODULES	5614-5618	4	0	
 emacs/src/menu.c	#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NTGUI) || defined (HAVE_NS) \	50-54	4	0	
 emacs/src/menu.c	#ifdef HAVE_WINDOW_SYSTEM	1373-1377	4	0	
-emacs/src/process.c	#ifdef WINDOWSNT	6101-6105	4	0	
+emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	1909-1913	4	0	
+emacs/src/process.c	#ifndef MSDOS	8712-8716	4	0	
+emacs/src/sysdep.c	#ifdef WINDOWSNT	744-748	4	0	
 emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.2 91/10/20 Manabu Higashida, MW Aug 1993 */	1279-1283	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2476-2480	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2486-2490	4	0	
-emacs/src/sysdep.c	#ifdef MSDOS	2590-2594	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2670-2674	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2696-2700	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2706-2710	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2716-2720	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2726-2730	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2737-2741	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2747-2751	4	0	
-emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2757-2761	4	0	
-emacs/src/sysdep.c	#ifdef WINDOWSNT	4580-4584	4	0	
-emacs/src/term.c	#ifdef WINDOWSNT	354-358	4	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2447-2451	4	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2547-2551	4	0	
+emacs/src/term.c	#ifdef WINDOWSNT	373-377	4	0	
+emacs/src/term.c	#ifndef HAVE_ANDROID	2606-2610	4	0	
 emacs/src/term.c	#ifndef MSDOS	2588-2592	4	0	
-emacs/src/term.c	#ifdef MSDOS	4435-4439	4	0	
-emacs/src/term.c	#if defined TERMINFO || (defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	5344-5348	4	0	
+emacs/src/term.c	#ifndef HAVE_ANDROID	2697-2701	4	0	
 emacs/src/term.c	#if !defined MSDOS && !defined HAVE_ANDROID	5462-5466	4	0	
-emacs/src/termcap.c	#ifdef MSDOS	329-333	4	0	
-emacs/src/terminal.c	#ifndef HAVE_ANDROID	118-122	4	0	
-emacs/src/terminal.c	#ifndef HAVE_ANDROID	136-140	4	0	
-emacs/src/thread.c	#if defined HAVE_GLIB && ! defined (HAVE_NS)	35-39	4	0	
 emacs/src/thread.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	137-141	4	0	
 emacs/src/thread.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	854-858	4	0	
-emacs/src/timefns.c	#ifndef MSDOS	1998-2002	4	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	5733-5737	4	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	12000-12004	4	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	12021-12025	4	0	
+emacs/src/w32term.c	#if defined WINDOWSNT && HAVE_NATIVE_IMAGE_API	8417-8421	4	0	
 emacs/src/xdisp.c	#if false && defined HAVE_X_WINDOWS	3029-3033	4	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	13744-13748	4	0	
 emacs/src/xdisp.c	#if defined (HAVE_NS)	14503-14507	4	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	18022-18026	4	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	25843-25847	4	0	
+emacs/src/xdisp.c	#ifdef HAVE_NTGUI	31745-31749	4	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	33177-33181	4	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	33193-33197	4	0	
 emacs/src/xdisp.c	#if defined (HAVE_X_WINDOWS) || defined (HAVE_NS) || defined (MSDOS) \	37022-37026	4	0	
 emacs/src/xdisp.c	#if defined (HAVE_X_WINDOWS) || defined (HAVE_NS) || defined (MSDOS) \	37109-37113	4	0	
 emacs/src/xdisp.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	38305-38309	4	0	
 emacs/src/xdisp.c	#ifdef HAVE_NTGUI	39720-39724	4	0	
-emacs/src/xfaces.c	#ifndef ANDROID_STUBIFY	4800-4804	4	0	
-emacs/src/xfaces.c	#ifdef HAVE_NTGUI	7348-7352	4	0	
+emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	5351-5355	4	0	
 emacs/src/xmenu.c	#ifdef HAVE_X_WINDOWS	59-63	4	0	
-emacs/src/xsettings.c	#ifndef HAVE_PGTK	29-33	4	0	
-emacs/src/xsettings.c	#ifndef HAVE_PGTK	97-101	4	0	
-emacs/src/xwidget.c	#ifndef HAVE_PGTK	774-778	4	0	
+emacs/src/xmenu.c	#ifdef HAVE_X_WINDOWS	2620-2624	4	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	572-576	4	0	
+emacs/src/xwidget.c	#ifndef HAVE_X_WINDOWS	646-650	4	0	
 emacs/src/xwidget.c	#ifndef HAVE_PGTK	2961-2965	4	0	
+emacs/lib-src/ebrowse.c	#ifdef __MSDOS__	43-46	3	0	
 emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	1048-1051	3	0	
+emacs/lib-src/emacsclient.c	#ifndef WINDOWSNT	2155-2158	3	0	
 emacs/lib-src/emacsclient.c	#ifdef HAVE_NTGUI	2225-2228	3	0	
+emacs/lib-src/etags.c	#ifdef MSDOS	90-93	3	0	
+emacs/lib-src/movemail.c	#ifndef WINDOWSNT	592-595	3	0	
+emacs/lib-src/movemail.c	#ifndef WINDOWSNT	596-599	3	0	
 emacs/lib-src/pop.c	#ifdef WINDOWSNT	1537-1540	3	0	
 emacs/src/alloc.c	#ifdef WINDOWSNT	142-145	3	0	
 emacs/src/alloc.c	#ifdef HAVE_X_WINDOWS	5937-5940	3	0	
 emacs/src/alloc.c	#ifdef HAVE_WINDOW_SYSTEM	6012-6015	3	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1348-1351	3	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1361-1364	3	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1382-1385	3	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1395-1398	3	0	
 emacs/src/androidmenu.c	#ifndef ANDROID_STUBIFY	852-855	3	0	
 emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6874-6877	3	0	
 emacs/src/callproc.c	#ifdef MSDOS /* Demacs 1.1.1 91/10/16 HIRANO Satoshi */	66-69	3	0	
+emacs/src/callproc.c	#ifdef MSDOS /* Demacs 1.1.1 91/10/16 HIRANO Satoshi */	375-378	3	0	
 emacs/src/callproc.c	#ifndef MSDOS	923-926	3	0	
 emacs/src/callproc.c	#ifdef MSDOS	2095-2098	3	0	
 emacs/src/coding.c	#if defined (WINDOWSNT) || defined (CYGWIN) || defined HAVE_ANDROID	11815-11818	3	0	
+emacs/src/comp.c	#ifndef WINDOWSNT	519-522	3	0	
+emacs/src/dired.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	47-50	3	0	
 emacs/src/dired.c	#ifdef WINDOWSNT	360-363	3	0	
 emacs/src/dispnew.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	835-838	3	0	
 emacs/src/dispnew.c	#if defined (HAVE_WINDOW_SYSTEM)	840-843	3	0	
@@ -1068,18 +1039,27 @@ emacs/src/dispnew.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR
 emacs/src/dispnew.c	#if defined(HAVE_WINDOW_SYSTEM)	3884-3887	3	0	
 emacs/src/dispnew.c	#if defined(HAVE_WINDOW_SYSTEM) && !defined(HAVE_EXT_TOOL_BAR)	3893-3896	3	0	
 emacs/src/dispnew.c	#ifdef HAVE_NTGUI	5337-5340	3	0	
+emacs/src/dispnew.c	#ifdef MSDOS	7381-7384	3	0	
 emacs/src/doc.c	#ifdef HAVE_MODULES	396-399	3	0	
 emacs/src/dosfns.c	#ifndef HAVE_X_WINDOWS	744-747	3	0	
 emacs/src/emacs-module.c	#ifdef WINDOWSNT	113-116	3	0	
 emacs/src/emacs.c	#ifdef MSDOS	64-67	3	0	
 emacs/src/emacs.c	#if defined (HAVE_X_WINDOWS) || defined (HAVE_PGTK) || defined (HAVE_NS)	192-195	3	0	
+emacs/src/emacs.c	#ifndef WINDOWSNT	233-236	3	0	
 emacs/src/emacs.c	#ifndef WINDOWSNT	254-257	3	0	
+emacs/src/emacs.c	#ifdef MSDOS	612-615	3	0	
+emacs/src/emacs.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	1321-1324	3	1	android_emacs_init
 emacs/src/emacs.c	#ifdef HAVE_NS	1427-1430	3	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	1555-1558	3	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	2289-2292	3	0	
 emacs/src/emacs.c	#ifdef HAVE_X_WINDOWS	3027-3030	3	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	3079-3082	3	0	
+emacs/src/emacs.c	#if !defined DOS_NT && !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	3152-3155	3	0	
 emacs/src/emacs.c	#ifdef HAVE_HAIKU	3124-3127	3	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	3348-3351	3	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	3656-3659	3	0	
+emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	101-104	3	0	
+emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	119-122	3	0	
 emacs/src/eval.c	#ifdef HAVE_WINDOW_SYSTEM	293-296	3	0	
 emacs/src/eval.c	#ifdef HAVE_MODULES	3388-3391	3	0	
 emacs/src/eval.c	#ifdef HAVE_MODULES	3523-3526	3	0	
@@ -1099,6 +1079,7 @@ emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	1987-199
 emacs/src/fileio.c	#ifdef WINDOWSNT	2135-2138	3	0	
 emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2539-2542	3	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	3038-3041	3	0	
+emacs/src/font.c	#ifdef WINDOWSNT	6042-6045	3	0	
 emacs/src/frame.c	#ifdef MSDOS	48-51	3	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	136-139	3	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	1457-1460	3	0	
@@ -1110,10 +1091,16 @@ emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	2724-2727	3	0
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	2893-2896	3	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	3440-3443	3	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	4217-4220	3	0	
+emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4696-4699	3	0	
 emacs/src/frame.c	#ifdef HAVE_NS	6672-6675	3	0	
 emacs/src/frame.c	#ifdef HAVE_PGTK	7179-7182	3	0	
+emacs/src/frame.c	#if defined (HAVE_NTGUI) || defined (NS_IMPL_COCOA) || (defined (USE_GTK) && defined (USE_TOOLKIT_SCROLL_BARS))	7473-7476	3	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	588-591	3	0	
 emacs/src/gmalloc.c	#ifdef MSDOS	90-93	3	2	memalign posix_memalign
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	33-36	3	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	762-765	3	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	796-799	3	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	958-961	3	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1527-1530	3	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	2012-2015	3	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	2150-2153	3	0	
@@ -1123,7 +1110,9 @@ emacs/src/gtkutil.c	#ifdef HAVE_PGTK	2822-2825	3	0
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	2925-2928	3	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	3302-3305	3	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	3454-3457	3	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	3474-3477	3	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4686-4689	3	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5190-5193	3	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	5881-5884	3	0	
 emacs/src/gtkutil.c	#if defined HAVE_PGTK || !defined HAVE_GTK3	6275-6278	3	0	
 emacs/src/image.c	#ifdef WINDOWSNT	132-135	3	0	
@@ -1131,10 +1120,21 @@ emacs/src/image.c	#ifdef HAVE_NS	691-694	3	0
 emacs/src/image.c	#ifdef HAVE_PGTK	696-699	3	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	1127-1130	3	0	
 emacs/src/image.c	#ifdef HAVE_PGTK	1136-1139	3	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	1930-1933	3	0	
 emacs/src/image.c	#ifdef HAVE_HAIKU	3195-3198	3	0	
 emacs/src/image.c	#ifndef HAVE_ANDROID	3944-3947	3	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	3953-3956	3	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	3957-3960	3	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	4411-4414	3	0	
+emacs/src/image.c	#ifdef HAVE_ANDROID	4440-4443	3	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	6323-6326	3	0	
 emacs/src/image.c	#ifndef HAVE_NS	6903-6906	3	0	
+emacs/src/image.c	#ifndef HAVE_NS	7041-7044	3	0	
+emacs/src/image.c	#ifndef HAVE_NS	7045-7048	3	0	
+emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7249-7252	3	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	7396-7399	3	0	
+emacs/src/image.c	#if !defined USE_CAIRO && !defined HAVE_HAIKU && !defined HAVE_ANDROID	7818-7821	3	0	
+emacs/src/image.c	#ifndef HAVE_NS	7946-7949	3	0	
 emacs/src/indent.c	#ifdef HAVE_WINDOW_SYSTEM	1350-1353	3	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	979-982	3	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	1212-1215	3	0	
@@ -1144,6 +1144,7 @@ emacs/src/keyboard.c	#ifdef HAVE_X_WINDOWS	4590-4593	3	0
 emacs/src/keyboard.c	#if defined HAVE_NS || !defined HAVE_WINDOW_SYSTEM	5527-5530	3	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	6906-6909	3	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	6986-6989	3	0	
+emacs/src/keyboard.c	#ifdef WINDOWSNT	8219-8222	3	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	10630-10633	3	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	10716-10719	3	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	11961-11964	3	0	
@@ -1152,6 +1153,8 @@ emacs/src/keyboard.c	#ifdef HAVE_NTGUI	13528-13531	3	0
 emacs/src/keyboard.c	#ifdef HAVE_NS	14538-14541	3	0	
 emacs/src/keyboard.c	#ifdef HAVE_NTGUI	14587-14590	3	0	
 emacs/src/keyboard.c	#if defined (WINDOWSNT)	14651-14654	3	0	
+emacs/src/lread.c	#ifdef HAVE_MODULES	1501-1504	3	0	
+emacs/src/lread.c	#ifdef HAVE_MODULES	1505-1508	3	0	
 emacs/src/minibuf.c	#ifdef HAVE_WINDOW_SYSTEM	611-614	3	0	
 emacs/src/msdos.c	#ifdef HAVE_X_WINDOWS	1786-1789	3	0	
 emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	2438-2441	3	0	
@@ -1165,9 +1168,16 @@ emacs/src/process.c	#ifdef WINDOWSNT	3680-3683	3	0
 emacs/src/process.c	#ifdef WINDOWSNT	4035-4038	3	0	
 emacs/src/process.c	#ifdef WINDOWSNT	4750-4753	3	0	
 emacs/src/process.c	#if !defined WINDOWSNT && defined HAVE_TCDRAIN	7503-7506	3	0	
+emacs/src/process.c	#ifndef MSDOS	8640-8643	3	0	
+emacs/src/process.c	#ifndef MSDOS	8717-8720	3	0	
+emacs/src/sysdep.c	#ifdef WINDOWSNT	2254-2257	3	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2443-2446	3	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2543-2546	3	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2649-2652	3	0	
 emacs/src/term.c	#ifdef MSDOS	48-51	3	1	been_here
 emacs/src/term.c	#ifndef HAVE_ANDROID	1121-1124	3	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	1135-1138	3	0	
+emacs/src/term.c	#ifdef HAVE_ANDROID	4493-4496	3	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	5444-5447	3	0	
 emacs/src/term.c	#ifndef HAVE_ANDROID	5468-5471	3	0	
 emacs/src/treesit.c	#ifndef WINDOWSNT	5530-5533	3	0	
@@ -1184,23 +1194,37 @@ emacs/src/xdisp.c	#ifdef HAVE_NTGUI	14721-14724	3	0
 emacs/src/xdisp.c	#ifdef HAVE_NS	14730-14733	3	0	
 emacs/src/xdisp.c	#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NS)	17436-17439	3	0	
 emacs/src/xdisp.c	#if defined (HAVE_HAIKU)	17441-17444	3	0	
+emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	21606-21609	3	0	
 emacs/src/xdisp.c	#ifdef HAVE_NTGUI	21892-21895	3	0	
 emacs/src/xdisp.c	#ifdef HAVE_NTGUI	22902-22905	3	0	
 emacs/src/xdisp.c	#ifdef HAVE_NTGUI	27804-27807	3	0	
 emacs/src/xdisp.c	#if defined (HAVE_PGTK)	27808-27811	3	0	
 emacs/src/xdisp.c	#ifdef HAVE_NS	27818-27821	3	0	
 emacs/src/xdisp.c	#ifdef HAVE_HAIKU	27823-27826	3	0	
+emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	30571-30574	3	0	
+emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	30744-30747	3	0	
+emacs/src/xdisp.c	#ifdef HAVE_NTGUI	30801-30804	3	0	
+emacs/src/xdisp.c	#ifdef HAVE_NTGUI	31750-31753	3	0	
 emacs/src/xdisp.c	#if defined HAVE_HAIKU	37028-37031	3	0	
 emacs/src/xdisp.c	#if defined (HAVE_HAIKU)	37115-37118	3	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	39371-39374	3	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	5846-5849	3	0	
 emacs/src/xfaces.c	#ifdef MSDOS	6693-6696	3	0	
 emacs/src/xmenu.c	#ifndef MSDOS	2531-2534	3	0	
+emacs/src/xsettings.c	#ifndef HAVE_PGTK	43-46	3	0	
 emacs/src/xsettings.c	#ifdef HAVE_PGTK	221-224	3	0	
 emacs/src/xsettings.c	#ifdef HAVE_PGTK	1383-1386	3	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	837-840	3	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	874-877	3	0	
+emacs/lib-src/ebrowse.c	#ifdef __MSDOS__	47-49	2	0	
+emacs/lib-src/emacsclient.c	#ifdef HAVE_PGTK	637-639	2	0	
+emacs/lib-src/emacsclient.c	#ifdef HAVE_PGTK	640-642	2	0	
+emacs/lib-src/emacsclient.c	#ifdef WINDOWSNT	825-827	2	0	
+emacs/lib-src/etags.c	#ifdef MSDOS	94-96	2	0	
 emacs/lib-src/etags.c	#if !MSDOS && !defined (DOS_NT)	394-396	2	1	escape_shell_arg_string
 emacs/lib-src/movemail.c	#ifdef MSDOS	81-83	2	0	
 emacs/lib-src/movemail.c	#ifdef WINDOWSNT	105-107	2	0	
+emacs/lib-src/movemail.c	#ifdef WINDOWSNT	391-393	2	0	
 emacs/lib-src/pop.c	#ifdef WINDOWSNT	956-958	2	1	have_winsock
 emacs/lib-src/update-game-score.c	#ifdef WINDOWSNT	51-53	2	0	
 emacs/src/alloc.c	#ifdef HAVE_WINDOW_SYSTEM	51-53	2	0	
@@ -1211,6 +1235,33 @@ emacs/src/alloc.c	#ifdef HAVE_HAIKU	5929-5931	2	0
 emacs/src/alloc.c	#ifdef HAVE_WINDOW_SYSTEM	5933-5935	2	0	
 emacs/src/alloc.c	#ifndef ANDROID_STUBIFY	5944-5946	2	0	
 emacs/src/alloc.c	#ifdef HAVE_NS	5949-5951	2	0	
+emacs/src/alloc.c	#ifdef HAVE_X_WINDOWS	7615-7617	2	0	
+emacs/src/alloc.c	#ifdef HAVE_PGTK	7621-7623	2	0	
+emacs/src/alloc.c	#ifdef WINDOWSNT	7627-7629	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	740-742	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1222-1224	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1244-1246	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1289-1291	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1292-1294	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1302-1304	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1305-1307	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1345-1347	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1358-1360	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1379-1381	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1392-1394	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1474-1476	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1671-1673	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1674-1676	2	0	
+emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	1703-1705	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1764-1766	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1827-1829	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	1875-1877	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	2305-2307	2	0	
+emacs/src/androidfns.c	#ifdef ANDROID_STUBIFY	2599-2601	2	0	
+emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	2618-2620	2	0	
+emacs/src/androidfns.c	#ifndef ANDROID_STUBIFY	2637-2639	2	0	
+emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6724-6726	2	0	
+emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6793-6795	2	0	
 emacs/src/atimer.c	#ifdef MSDOS	36-38	2	0	
 emacs/src/buffer.c	#ifdef WINDOWSNT	47-49	2	0	
 emacs/src/callproc.c	#ifdef MSDOS	28-30	2	0	
@@ -1218,13 +1269,30 @@ emacs/src/callproc.c	#ifdef MSDOS	83-85	2	0
 emacs/src/callproc.c	#ifdef HAVE_NS	87-89	2	0	
 emacs/src/callproc.c	#ifdef HAVE_PGTK	91-93	2	0	
 emacs/src/callproc.c	#ifdef HAVE_ANDROID	95-97	2	0	
+emacs/src/callproc.c	#ifdef MSDOS	118-120	2	0	
 emacs/src/callproc.c	#ifdef MSDOS	515-517	2	0	
+emacs/src/callproc.c	#ifdef WINDOWSNT	1247-1249	2	0	
+emacs/src/callproc.c	#ifdef WINDOWSNT	1250-1252	2	0	
+emacs/src/callproc.c	#ifdef WINDOWSNT	1660-1662	2	0	
+emacs/src/callproc.c	#ifdef WINDOWSNT	1692-1694	2	0	
+emacs/src/callproc.c	#ifdef WINDOWSNT	1695-1697	2	0	
 emacs/src/callproc.c	#ifndef HAVE_ANDROID	1856-1858	2	0	
+emacs/src/callproc.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2043-2045	2	0	
+emacs/src/callproc.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2046-2048	2	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2183-2185	2	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2193-2195	2	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2204-2206	2	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	2215-2217	2	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY \	2218-2220	2	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2229-2231	2	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2240-2242	2	0	
 emacs/src/character.c	#ifdef HAVE_WINDOW_SYSTEM	362-364	2	0	
+emacs/src/comp.c	#ifdef WINDOWSNT	465-467	2	0	
 emacs/src/comp.c	#ifdef WINDOWSNT	4341-4343	2	0	
 emacs/src/comp.c	#ifdef WINDOWSNT	4378-4380	2	0	
 emacs/src/comp.c	#ifdef WINDOWSNT	4918-4920	2	0	
 emacs/src/data.c	#ifdef HAVE_MODULES	4376-4378	2	0	
+emacs/src/decompress.c	#ifdef WINDOWSNT	220-222	2	0	
 emacs/src/dired.c	#ifdef MSDOS	43-45	2	0	
 emacs/src/dired.c	#ifdef WINDOWSNT	62-64	2	1	is_slow_fs
 emacs/src/dired.c	#ifdef WINDOWSNT	294-296	2	0	
@@ -1233,25 +1301,40 @@ emacs/src/dispnew.c	#ifdef HAVE_ANDROID	48-50	2	0
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	52-54	2	0	
 emacs/src/dispnew.c	#ifdef WINDOWSNT	60-62	2	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	4441-4443	2	0	
+emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	4461-4463	2	0	
 emacs/src/dispnew.c	#ifndef HAVE_ANDROID	5943-5945	2	0	
 emacs/src/dispnew.c	#ifndef HAVE_ANDROID	6143-6145	2	0	
 emacs/src/dispnew.c	#ifndef HAVE_ANDROID	6156-6158	2	0	
 emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	6285-6287	2	0	
 emacs/src/dispnew.c	#ifndef WINDOWSNT	7256-7258	2	0	
+emacs/src/dispnew.c	#ifdef WINDOWSNT	7345-7347	2	0	
+emacs/src/dispnew.c	#ifdef MSDOS	7378-7380	2	0	
 emacs/src/dosfns.c	#ifndef HAVE_X_WINDOWS	681-683	2	0	
 emacs/src/dosfns.c	#ifndef HAVE_X_WINDOWS	717-719	2	0	
 emacs/src/editfns.c	#ifdef HAVE_ANDROID	36-38	2	0	
 emacs/src/editfns.c	#ifdef WINDOWSNT	59-61	2	0	
+emacs/src/editfns.c	#ifdef MSDOS	98-100	2	0	
+emacs/src/editfns.c	#ifdef WINDOWSNT	108-110	2	0	
+emacs/src/emacs-module.c	#ifdef HAVE_WINDOW_SYSTEM	979-981	2	0	
 emacs/src/emacs.c	#ifdef HAVE_ANDROID	37-39	2	0	
 emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	41-43	2	0	
 emacs/src/emacs.c	#ifdef HAVE_WINDOW_SYSTEM	89-91	2	0	
 emacs/src/emacs.c	#ifdef HAVE_HAIKU	120-122	2	0	
 emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	143-145	2	0	
 emacs/src/emacs.c	#if defined NS_IMPL_COCOA || defined CYGWIN || defined HAVE_HAIKU	213-215	2	0	
+emacs/src/emacs.c	#ifndef WINDOWSNT	237-239	2	0	
 emacs/src/emacs.c	#ifndef WINDOWSNT	264-266	2	1	copy_args
+emacs/src/emacs.c	#if defined HAVE_WCHAR_H && !defined WINDOWSNT	433-435	2	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	510-512	2	0	
+emacs/src/emacs.c	#ifdef MSDOS	592-594	2	0	
+emacs/src/emacs.c	#ifdef MSDOS	616-618	2	0	
+emacs/src/emacs.c	#ifdef MSDOS	969-971	2	0	
+emacs/src/emacs.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	1318-1320	2	1	main
 emacs/src/emacs.c	#ifndef WINDOWSNT	1462-1464	2	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	1529-1531	2	0	
 emacs/src/emacs.c	#ifdef HAVE_WINDOW_SYSTEM	1685-1687	2	0	
+emacs/src/emacs.c	#ifndef WINDOWSNT	1732-1734	2	0	
+emacs/src/emacs.c	#ifndef WINDOWSNT	1735-1737	2	0	
 emacs/src/emacs.c	#ifdef HAVE_WINDOW_SYSTEM	2007-2009	2	0	
 emacs/src/emacs.c	#ifdef HAVE_MODULES	2345-2347	2	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	2356-2358	2	0	
@@ -1267,7 +1350,10 @@ emacs/src/emacs.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2990-2992
 emacs/src/emacs.c	#ifdef MSDOS	3177-3179	2	0	
 emacs/src/emacs.c	#ifdef HAVE_NS	3181-3183	2	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	3189-3191	2	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	3225-3227	2	0	
 emacs/src/emacs.c	#ifdef WINDOWSNT	3307-3309	2	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	3651-3653	2	0	
+emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	27-29	2	0	
 emacs/src/emacsgtkfixed.c	#ifndef HAVE_PGTK	53-55	2	1	emacs_fixed_get_type
 emacs/src/eval.c	#ifdef HAVE_X_WINDOWS	1866-1868	2	0	
 emacs/src/fileio.c	#ifdef HAVE_ANDROID	59-61	2	0	
@@ -1276,17 +1362,26 @@ emacs/src/fileio.c	#ifdef WINDOWSNT	90-92	2	0
 emacs/src/fileio.c	#ifndef WINDOWSNT	134-136	2	0	
 emacs/src/fileio.c	#ifdef MSDOS	1309-1311	2	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	1312-1314	2	0	
+emacs/src/fileio.c	#ifdef WINDOWSNT	1542-1544	2	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	1697-1699	2	0	
+emacs/src/fileio.c	#ifndef MSDOS	2386-2388	2	0	
 emacs/src/fileio.c	#ifdef MSDOS	3076-3078	2	0	
+emacs/src/fileio.c	#ifdef WINDOWSNT	3086-3088	2	0	
+emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	3142-3144	2	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	3400-3402	2	0	
 emacs/src/fileio.c	#ifdef WINDOWSNT	5732-5734	2	0	
 emacs/src/filelock.c	#ifdef HAVE_ANDROID	55-57	2	0	
+emacs/src/filelock.c	#ifdef WINDOWSNT	212-214	2	0	
 emacs/src/filelock.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	544-546	2	0	
+emacs/src/fns.c	#if defined __STDC_ISO_10646__ || defined WINDOWSNT	646-648	2	0	
+emacs/src/fns.c	#if defined __STDC_ISO_10646__ || defined WINDOWSNT	695-697	2	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	43-45	2	0	
 emacs/src/font.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	181-183	2	0	
 emacs/src/font.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	199-201	2	0	
+emacs/src/font.c	#ifndef HAVE_NS	3535-3537	2	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	5932-5934	2	0	
 emacs/src/font.c	#ifdef HAVE_WINDOW_SYSTEM	5962-5964	2	0	
+emacs/src/font.c	#ifdef WINDOWSNT	6046-6048	2	0	
 emacs/src/font.c	#ifdef HAVE_X_WINDOWS	6082-6084	2	0	
 emacs/src/font.c	#ifdef HAVE_NTGUI	6089-6091	2	0	
 emacs/src/fontset.c	#ifdef HAVE_WINDOW_SYSTEM	38-40	2	0	
@@ -1295,9 +1390,13 @@ emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	44-46	2	0
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	81-83	2	1	gui_report_frame_params
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	128-130	2	0	
 emacs/src/frame.c	#ifndef HAVE_NTGUI	1195-1197	2	0	
+emacs/src/frame.c	#ifdef HAVE_ANDROID	1760-1762	2	0	
+emacs/src/frame.c	#ifdef MSDOS	1767-1769	2	0	
+emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	2182-2184	2	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	2615-2617	2	0	
 emacs/src/frame.c	#if defined (USE_X_TOOLKIT) || defined (HAVE_NTGUI)	2918-2920	2	0	
 emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	3486-3488	2	0	
+emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	4693-4695	2	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	4894-4896	2	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	5147-5149	2	0	
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	5284-5286	2	0	
@@ -1308,28 +1407,65 @@ emacs/src/frame.c	#ifdef HAVE_NS	6475-6477	2	0
 emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	7268-7270	2	0	
 emacs/src/frame.c	#ifdef HAVE_PGTK	7302-7304	2	0	
 emacs/src/frame.c	#ifdef HAVE_NS	7333-7335	2	0	
+emacs/src/frame.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_ANDROID	7480-7482	2	0	
+emacs/src/frame.c	#if defined (HAVE_NTGUI) || defined (NS_IMPL_COCOA) || (defined (USE_GTK) && defined (USE_TOOLKIT_SCROLL_BARS))	7477-7479	2	0	
+emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	7570-7572	2	0	
+emacs/src/frame.c	#if defined (HAVE_WINDOW_SYSTEM) && !defined (HAVE_ANDROID)	7708-7710	2	0	
+emacs/src/frame.c	#if defined (USE_GTK) || defined (HAVE_NS)	7705-7707	2	0	
+emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	7785-7787	2	0	
 emacs/src/fringe.c	#ifdef HAVE_PGTK	33-35	2	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	31-33	2	0	
 emacs/src/ftcrfont.c	#ifdef HAVE_PGTK	40-42	2	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_PGTK	177-179	2	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	566-568	2	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	617-619	2	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	632-634	2	0	
 emacs/src/ftcrfont.c	#ifdef HAVE_PGTK	756-758	2	0	
 emacs/src/ftfont.c	#ifdef HAVE_HAIKU	3194-3196	2	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	60-62	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	241-243	2	1	xg_display_open
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	250-252	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	263-265	2	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	289-291	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	304-306	2	1	xg_display_close
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	371-373	2	1	xg_create_default_cursor
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	375-377	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	793-795	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1191-1193	2	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1278-1280	2	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1388-1390	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1523-1525	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1552-1554	2	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1590-1592	2	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1694-1696	2	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1720-1722	2	0	
+emacs/src/gtkutil.c	#if !defined HAVE_PGTK	1745-1747	2	0	
 emacs/src/gtkutil.c	#ifdef HAVE_PGTK	1776-1778	2	0	
 emacs/src/gtkutil.c	#if defined HAVE_PGTK && defined HAVE_GSETTINGS	1829-1831	2	0	
 emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1967-1969	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	2182-2184	2	0	
+emacs/src/gtkutil.c	#ifdef HAVE_PGTK	4669-4671	2	0	
 emacs/src/gtkutil.c	#if defined HAVE_PGTK || !defined HAVE_GTK3	4692-4694	2	0	
 emacs/src/gtkutil.c	#if !defined HAVE_PGTK && defined HAVE_GTK3	4798-4800	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4852-4854	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4863-4865	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4866-4868	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4877-4879	2	0	
 emacs/src/gtkutil.c	#if !defined HAVE_PGTK && defined HAVE_GTK3	4906-4908	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4955-4957	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4968-4970	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4971-4973	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4978-4980	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5147-5149	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5156-5158	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5187-5189	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5276-5278	2	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5382-5384	2	0	
 emacs/src/image.c	#ifdef HAVE_WINDOW_SYSTEM	63-65	2	0	
 emacs/src/image.c	#ifndef HAVE_NS	81-83	2	0	
 emacs/src/image.c	#ifdef HAVE_PGTK	165-167	2	0	
 emacs/src/image.c	#ifndef ANDROID_STUBIFY	717-719	2	0	
+emacs/src/image.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	743-745	2	0	
 emacs/src/image.c	#ifdef HAVE_NS	1132-1134	2	0	
 emacs/src/image.c	#ifdef HAVE_X_WINDOWS	1818-1820	2	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	2027-2029	2	0	
@@ -1337,10 +1473,25 @@ emacs/src/image.c	#ifdef HAVE_NTGUI	2068-2070	2	0
 emacs/src/image.c	#if defined HAVE_X_WINDOWS && !defined USE_CAIRO	2148-2150	2	0	
 emacs/src/image.c	#ifdef HAVE_HAIKU	3133-3135	2	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	3137-3139	2	0	
+emacs/src/image.c	#ifndef ANDROID_STUBIFY	3513-3515	2	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	3924-3926	2	0	
+emacs/src/image.c	#ifndef ANDROID_STUBIFY	3985-3987	2	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	4011-4013	2	0	
+emacs/src/image.c	#ifdef HAVE_ANDROID	4437-4439	2	0	
+emacs/src/image.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	4494-4496	2	0	
+emacs/src/image.c	#ifndef ANDROID_STUBIFY	5045-5047	2	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	5948-5950	2	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	6587-6589	2	0	
 emacs/src/image.c	#if !defined (HAVE_NS)	6845-6847	2	0	
+emacs/src/image.c	#ifdef HAVE_X_WINDOWS	7253-7255	2	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	7284-7286	2	0	
 emacs/src/image.c	#ifdef HAVE_NTGUI	7450-7452	2	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	7555-7557	2	0	
+emacs/src/image.c	#ifndef ANDROID_STUBIFY	7766-7768	2	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	7782-7784	2	0	
+emacs/src/image.c	#if !defined USE_CAIRO && !defined HAVE_HAIKU && !defined HAVE_ANDROID	7815-7817	2	0	
 emacs/src/image.c	#if !defined USE_CAIRO && !defined HAVE_HAIKU	7823-7825	2	0	
+emacs/src/image.c	#ifndef HAVE_NS	7943-7945	2	0	
 emacs/src/image.c	#ifdef WINDOWSNT	10421-10423	2	0	
 emacs/src/image.c	#ifdef WINDOWSNT	12111-12113	2	0	
 emacs/src/image.c	#if defined HAVE_X_WINDOWS && !defined USE_CAIRO	13074-13076	2	0	
@@ -1348,24 +1499,37 @@ emacs/src/indent.c	#ifdef HAVE_WINDOW_SYSTEM	1343-1345	2	0
 emacs/src/indent.c	#ifdef HAVE_WINDOW_SYSTEM	1956-1958	2	0	
 emacs/src/inotify.c	#ifdef HAVE_ANDROID	45-47	2	0	
 emacs/src/keyboard.c	#ifdef HAVE_ANDROID	52-54	2	0	
+emacs/src/keyboard.c	#ifdef MSDOS	61-63	2	0	
+emacs/src/keyboard.c	#ifdef MSDOS	64-66	2	0	
 emacs/src/keyboard.c	#if defined HAVE_STACK_OVERFLOW_HANDLING && !defined WINDOWSNT	74-76	2	0	
 emacs/src/keyboard.c	#ifdef HAVE_WINDOW_SYSTEM	87-89	2	0	
+emacs/src/keyboard.c	#ifdef WINDOWSNT	93-95	2	1	DEV_TTY
 emacs/src/keyboard.c	#ifdef WINDOWSNT	1128-1130	2	0	
 emacs/src/keyboard.c	#ifdef HAVE_X_WINDOWS	4053-4055	2	0	
+emacs/src/keyboard.c	#ifndef HAVE_HAIKU	4617-4619	2	0	
 emacs/src/keyboard.c	#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR	6983-6985	2	0	
 emacs/src/keyboard.c	#ifndef WINDOWSNT	8197-8199	2	0	
 emacs/src/keyboard.c	#ifdef HAVE_NTGUI	12141-12143	2	0	
 emacs/src/keyboard.c	#ifdef HAVE_NS	12144-12146	2	0	
 emacs/src/keyboard.c	#ifdef HAVE_NS	12147-12149	2	0	
 emacs/src/keyboard.c	#if defined (WINDOWSNT)	12164-12166	2	0	
+emacs/src/keyboard.c	#ifdef MSDOS	12703-12705	2	0	
 emacs/src/keyboard.c	#ifdef MSDOS	12716-12718	2	0	
+emacs/src/keyboard.c	#ifdef MSDOS	12726-12728	2	0	
+emacs/src/keyboard.c	#ifdef MSDOS	12736-12738	2	0	
 emacs/src/keyboard.c	#ifndef HAVE_HAIKU	14700-14702	2	0	
+emacs/src/lcms.c	#ifdef WINDOWSNT	582-584	2	0	
 emacs/src/lread.c	#ifdef MSDOS	49-51	2	0	
 emacs/src/lread.c	#ifdef HAVE_NS	53-55	2	0	
+emacs/src/lread.c	#ifdef HAVE_MODULES	1292-1294	2	0	
+emacs/src/lread.c	#ifdef HAVE_MODULES	5616-5618	2	0	
+emacs/src/lread.c	#ifndef MSDOS	5629-5631	2	0	
 emacs/src/menu.c	#ifdef HAVE_WINDOW_SYSTEM	36-38	2	0	
 emacs/src/menu.c	#ifdef HAVE_NTGUI	40-42	2	0	
 emacs/src/minibuf.c	#ifdef HAVE_NTGUI	37-39	2	0	
+emacs/src/msdos.c	#ifndef HAVE_X_WINDOWS	1914-1916	2	0	
 emacs/src/msdos.c	#ifdef HAVE_X_WINDOWS	3681-3683	2	0	
+emacs/src/pdumper.c	#ifdef WINDOWSNT	5860-5862	2	0	
 emacs/src/print.c	#ifdef WINDOWSNT	46-48	2	0	
 emacs/src/process.c	#ifdef HAVE_WINDOW_SYSTEM	127-129	2	0	
 emacs/src/process.c	#ifndef WINDOWSNT	133-135	2	0	
@@ -1373,21 +1537,57 @@ emacs/src/process.c	#ifndef WINDOWSNT	298-300	2	1	child_signal_read
 emacs/src/process.c	#ifdef WINDOWSNT	2366-2368	2	0	
 emacs/src/process.c	#ifdef WINDOWSNT	2514-2516	2	0	
 emacs/src/process.c	#ifdef WINDOWSNT	3506-3508	2	0	
+emacs/src/process.c	#if defined HAVE_GETIFADDRS || defined WINDOWSNT	4712-4714	2	0	
+emacs/src/process.c	#ifdef WINDOWSNT	6103-6105	2	0	
+emacs/src/process.c	#ifdef WINDOWSNT	7342-7344	2	0	
+emacs/src/process.c	#ifdef WINDOWSNT	7345-7347	2	0	
+emacs/src/process.c	#ifndef MSDOS	8644-8646	2	0	
+emacs/src/process.c	#ifndef MSDOS	8665-8667	2	0	
+emacs/src/process.c	#if defined HAVE_GLIB && !defined WINDOWSNT	8766-8768	2	0	
 emacs/src/sound.c	#ifdef WINDOWSNT	1438-1440	2	0	
 emacs/src/sound.c	#ifdef WINDOWSNT	1551-1553	2	0	
+emacs/src/sqlite.c	#ifdef WINDOWSNT	222-224	2	0	
 emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.2 91/10/20 Manabu Higashida, MW Aug 1993 */	96-98	2	0	
 emacs/src/sysdep.c	#ifdef HAVE_ANDROID	136-138	2	0	
 emacs/src/sysdep.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	140-142	2	0	
+emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.1 91/10/16 HIRANO Satoshi */	371-373	2	0	
+emacs/src/sysdep.c	#ifdef MSDOS	655-657	2	0	
+emacs/src/sysdep.c	#ifdef MSDOS	658-660	2	0	
 emacs/src/sysdep.c	#ifndef MSDOS	753-755	2	0	
 emacs/src/sysdep.c	#ifdef MSDOS /* Demacs 1.1.2 91/10/20 Manabu Higashida */	1571-1573	2	0	
 emacs/src/sysdep.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY && defined HAVE_MMAP	2129-2131	2	0	
+emacs/src/sysdep.c	#ifdef WINDOWSNT	2251-2253	2	0	
 emacs/src/sysdep.c	#ifndef HAVE_ANDROID	2396-2398	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2478-2480	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2488-2490	2	0	
 emacs/src/sysdep.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	2520-2522	2	0	
+emacs/src/sysdep.c	#ifdef MSDOS	2592-2594	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2672-2674	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2698-2700	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2708-2710	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2718-2720	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2728-2730	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2739-2741	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2749-2751	2	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2759-2761	2	0	
+emacs/src/sysdep.c	#ifdef WINDOWSNT	4582-4584	2	0	
 emacs/src/systhread.c	#ifdef HAVE_NS	25-27	2	0	
 emacs/src/term.c	#ifdef WINDOWSNT	61-63	2	0	
+emacs/src/term.c	#ifdef WINDOWSNT	356-358	2	0	
+emacs/src/term.c	#ifndef HAVE_ANDROID	2288-2290	2	0	
+emacs/src/term.c	#ifdef MSDOS	2648-2650	2	0	
+emacs/src/term.c	#ifdef MSDOS	4437-4439	2	0	
 emacs/src/term.c	#ifdef HAVE_ANDROID	4486-4488	2	0	
+emacs/src/term.c	#ifdef MSDOS	4536-4538	2	0	
+emacs/src/term.c	#ifndef HAVE_ANDROID	5073-5075	2	0	
+emacs/src/term.c	#ifndef HAVE_ANDROID	5076-5078	2	0	
+emacs/src/term.c	#if defined TERMINFO || (defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	5346-5348	2	0	
 emacs/src/termcap.c	#ifdef MSDOS	32-34	2	0	
+emacs/src/termcap.c	#ifdef MSDOS	331-333	2	0	
+emacs/src/terminal.c	#ifndef HAVE_ANDROID	120-122	2	0	
+emacs/src/terminal.c	#ifndef HAVE_ANDROID	138-140	2	0	
 emacs/src/thread.c	#ifdef HAVE_NS	31-33	2	0	
+emacs/src/thread.c	#if defined HAVE_GLIB && ! defined (HAVE_NS)	37-39	2	0	
 emacs/src/thread.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	113-115	2	0	
 emacs/src/thread.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	662-664	2	0	
 emacs/src/thread.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	783-785	2	0	
@@ -1395,7 +1595,9 @@ emacs/src/thread.c	#ifdef HAVE_NS	849-851	2	0
 emacs/src/thread.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	1262-1264	2	0	
 emacs/src/timefns.c	#ifdef WINDOWSNT	43-45	2	1	sys_clock
 emacs/src/timefns.c	#ifdef WINDOWSNT	328-330	2	0	
+emacs/src/timefns.c	#ifndef MSDOS	2000-2002	2	0	
 emacs/src/treesit.c	#ifndef WINDOWSNT	506-508	2	0	
+emacs/src/treesit.c	#ifdef WINDOWSNT	561-563	2	0	
 emacs/src/treesit.c	#ifdef WINDOWSNT	5390-5392	2	0	
 emacs/src/w32.c	#ifdef HAVE_MODULES	91-93	2	1	dynlib_reset_last_error
 emacs/src/w32.c	#ifdef HAVE_MODULES	11113-11115	2	0	
@@ -1403,10 +1605,15 @@ emacs/src/w32console.c	#ifdef WINDOWSNT	42-44	2	0
 emacs/src/w32fns.c	#ifdef HAVE_NTGUI	334-336	2	1	hinst
 emacs/src/w32fns.c	#ifdef WINDOWSNT	5755-5757	2	0	
 emacs/src/w32fns.c	#ifdef WINDOWSNT	10137-10139	2	0	
+emacs/src/w32fns.c	#ifdef WINDOWSNT	11536-11538	2	0	
 emacs/src/w32font.c	#ifndef WINDOWSNT	1583-1585	2	0	
 emacs/src/w32image.c	#ifdef WINDOWSNT	35-37	2	0	
+emacs/src/w32image.c	#ifdef WINDOWSNT	224-226	2	0	
+emacs/src/w32image.c	#ifdef WINDOWSNT	227-229	2	0	
+emacs/src/w32select.c	#ifdef WINDOWSNT	862-864	2	0	
 emacs/src/w32term.c	#ifdef WINDOWSNT	51-53	2	0	
 emacs/src/w32term.c	#ifndef WINDOWSNT	55-57	2	0	
+emacs/src/w32term.c	#if defined WINDOWSNT && HAVE_NATIVE_IMAGE_API	8422-8424	2	0	
 emacs/src/w32xfns.c	#ifdef WINDOWSNT	49-51	2	0	
 emacs/src/w32xfns.c	#ifdef WINDOWSNT	81-83	2	0	
 emacs/src/window.c	#ifdef HAVE_WINDOW_SYSTEM	42-44	2	0	
@@ -1414,6 +1621,7 @@ emacs/src/window.c	#ifdef MSDOS	45-47	2	0
 emacs/src/window.c	#if defined (HAVE_WINDOW_SYSTEM)	7280-7282	2	0	
 emacs/src/window.c	#if defined (HAVE_WINDOW_SYSTEM) && ! defined (HAVE_EXT_TOOL_BAR)	7283-7285	2	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	500-502	2	0	
+emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	530-532	2	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	14389-14391	2	0	
 emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	14415-14417	2	0	
 emacs/src/xdisp.c	#if !defined MSDOS && !defined HAVE_ANDROID	17490-17492	2	0	
@@ -1437,6 +1645,8 @@ emacs/src/xfaces.c	#ifdef HAVE_ANDROID	258-260	2	0
 emacs/src/xfaces.c	#ifndef MSDOS	1367-1369	2	0	
 emacs/src/xfaces.c	#ifdef HAVE_X_WINDOWS	4750-4752	2	0	
 emacs/src/xfaces.c	#ifdef HAVE_X_WINDOWS	4757-4759	2	0	
+emacs/src/xfaces.c	#ifndef ANDROID_STUBIFY	4802-4804	2	0	
+emacs/src/xfaces.c	#ifdef HAVE_NTGUI	7350-7352	2	0	
 emacs/src/xfaces.c	#ifdef HAVE_X_WINDOWS	7381-7383	2	0	
 emacs/src/xfaces.c	#ifdef HAVE_X_WINDOWS	7394-7396	2	0	
 emacs/src/xfaces.c	#ifdef HAVE_WINDOW_SYSTEM	7648-7650	2	0	
@@ -1444,7 +1654,127 @@ emacs/src/xfaces.c	#ifndef HAVE_X_WINDOWS	7653-7655	2	0
 emacs/src/xfaces.c	#if defined DEBUG_X_COLORS && defined HAVE_X_WINDOWS	7679-7681	2	0	
 emacs/src/xgselect.c	#ifndef HAVE_PGTK	131-133	2	0	
 emacs/src/xmenu.c	#ifdef MSDOS	50-52	2	0	
+emacs/src/xml.c	#ifdef WINDOWSNT	118-120	2	0	
+emacs/src/xsettings.c	#ifndef HAVE_PGTK	31-33	2	0	
+emacs/src/xsettings.c	#ifndef HAVE_PGTK	99-101	2	0	
 emacs/src/xsettings.c	#ifndef HAVE_PGTK	1288-1290	2	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	41-43	2	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	44-46	2	0	
 emacs/src/xwidget.c	#if !defined HAVE_XINPUT2 && !defined HAVE_PGTK	423-425	2	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	776-778	2	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2172-2174	2	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2175-2177	2	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2258-2260	2	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2261-2263	2	0	
 emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	2862-2864	2	0	
 emacs/src/xwidget.c	#ifdef HAVE_PGTK	2932-2934	2	0	
+emacs/src/xwidget.c	#ifdef HAVE_X_WINDOWS	3429-3431	2	0	
+emacs/lib-src/movemail.c	#ifdef WINDOWSNT	389-390	1	0	
+emacs/src/alloc.c	#ifdef WINDOWSNT	5314-5315	1	0	
+emacs/src/alloc.c	#ifdef HAVE_X_WINDOWS	7613-7614	1	0	
+emacs/src/alloc.c	#ifdef HAVE_PGTK	7619-7620	1	0	
+emacs/src/alloc.c	#ifdef WINDOWSNT	7625-7626	1	0	
+emacs/src/androidterm.c	#ifndef ANDROID_STUBIFY	6722-6723	1	0	
+emacs/src/androidterm.c	#ifdef ANDROID_STUBIFY	6896-6897	1	0	
+emacs/src/callproc.c	#ifdef MSDOS	116-117	1	0	
+emacs/src/callproc.c	#ifdef MSDOS /* Demacs 1.1.1 91/10/16 HIRANO Satoshi */	373-374	1	0	
+emacs/src/callproc.c	#ifdef WINDOWSNT	1658-1659	1	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2181-2182	1	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2191-2192	1	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2202-2203	1	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2227-2228	1	0	
+emacs/src/callproc.c	#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY	2238-2239	1	0	
+emacs/src/dired.c	#ifndef HAVE_ANDROID	126-127	1	0	
+emacs/src/dired.c	#ifdef WINDOWSNT	929-930	1	0	
+emacs/src/dired.c	#ifdef WINDOWSNT	944-945	1	0	
+emacs/src/dispnew.c	#ifdef HAVE_WINDOW_SYSTEM	4459-4460	1	0	
+emacs/src/dispnew.c	#ifdef WINDOWSNT	7343-7344	1	0	
+emacs/src/editfns.c	#ifdef WINDOWSNT	106-107	1	0	
+emacs/src/emacs-module.c	#ifdef HAVE_WINDOW_SYSTEM	977-978	1	0	
+emacs/src/emacs.c	#ifndef HAVE_ANDROID	423-424	1	0	
+emacs/src/emacs.c	#ifdef MSDOS	967-968	1	0	
+emacs/src/emacs.c	#ifdef WINDOWSNT	3077-3078	1	0	
+emacs/src/emacsgtkfixed.c	#ifdef HAVE_PGTK	25-26	1	0	
+emacs/src/fileio.c	#ifdef WINDOWSNT	1540-1541	1	0	
+emacs/src/fileio.c	#ifdef WINDOWSNT	2303-2304	1	0	
+emacs/src/fileio.c	#ifndef MSDOS	2384-2385	1	0	
+emacs/src/fileio.c	#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY	3140-3141	1	0	
+emacs/src/filelock.c	#ifdef WINDOWSNT	163-164	1	0	
+emacs/src/filelock.c	#ifdef MSDOS	781-782	1	0	
+emacs/src/font.c	#ifndef HAVE_NS	3533-3534	1	0	
+emacs/src/frame.c	#ifndef HAVE_X_WINDOWS	485-486	1	0	
+emacs/src/frame.c	#ifdef HAVE_WINDOW_SYSTEM	7568-7569	1	0	
+emacs/src/frame.c	#if defined (USE_GTK) || defined (HAVE_NS)	7703-7704	1	0	
+emacs/src/frame.c	#ifdef HAVE_X_WINDOWS	7783-7784	1	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_PGTK	175-176	1	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	564-565	1	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	586-587	1	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	615-616	1	0	
+emacs/src/ftcrfont.c	#ifdef HAVE_X_WINDOWS	630-631	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	239-240	1	1	xg_display_open
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	248-249	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	261-262	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	302-303	1	1	xg_display_close
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	369-370	1	1	xg_create_default_cursor
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1436-1437	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1521-1522	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	1550-1551	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	2180-2181	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4850-4851	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4875-4876	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4953-4954	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	4976-4977	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5145-5146	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5154-5155	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5274-5275	1	0	
+emacs/src/gtkutil.c	#ifndef HAVE_PGTK	5380-5381	1	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	3922-3923	1	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	3980-3981	1	0	
+emacs/src/image.c	#ifndef ANDROID_STUBIFY	3983-3984	1	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	4009-4010	1	0	
+emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4072-4073	1	0	
+emacs/src/image.c	#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO	4254-4255	1	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	7282-7283	1	0	
+emacs/src/image.c	#ifndef HAVE_ANDROID	7553-7554	1	0	
+emacs/src/image.c	#ifdef HAVE_NTGUI	7780-7781	1	0	
+emacs/src/keyboard.c	#ifdef WINDOWSNT	91-92	1	1	DEV_TTY
+emacs/src/keyboard.c	#ifndef HAVE_HAIKU	4615-4616	1	0	
+emacs/src/keyboard.c	#ifdef MSDOS	12701-12702	1	0	
+emacs/src/keyboard.c	#ifdef MSDOS	12724-12725	1	0	
+emacs/src/keyboard.c	#ifdef MSDOS	12734-12735	1	0	
+emacs/src/lread.c	#ifdef HAVE_MODULES	5614-5615	1	0	
+emacs/src/minibuf.c	#ifndef HAVE_NTGUI	937-938	1	0	
+emacs/src/process.c	#ifdef WINDOWSNT	6101-6102	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2476-2477	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2486-2487	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2524-2525	1	0	
+emacs/src/sysdep.c	#ifdef MSDOS	2590-2591	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2647-2648	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2670-2671	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2696-2697	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2706-2707	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2716-2717	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2726-2727	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2737-2738	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2747-2748	1	0	
+emacs/src/sysdep.c	#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	2757-2758	1	0	
+emacs/src/sysdep.c	#ifdef WINDOWSNT	4580-4581	1	0	
+emacs/src/term.c	#ifdef WINDOWSNT	354-355	1	0	
+emacs/src/term.c	#ifdef WINDOWSNT	371-372	1	0	
+emacs/src/term.c	#ifdef MSDOS	4435-4436	1	0	
+emacs/src/term.c	#if defined TERMINFO || (defined HAVE_ANDROID && !defined ANDROID_STUBIFY)	5344-5345	1	0	
+emacs/src/termcap.c	#ifdef MSDOS	329-330	1	0	
+emacs/src/terminal.c	#ifndef HAVE_ANDROID	118-119	1	0	
+emacs/src/terminal.c	#ifndef HAVE_ANDROID	136-137	1	0	
+emacs/src/thread.c	#if defined HAVE_GLIB && ! defined (HAVE_NS)	35-36	1	0	
+emacs/src/timefns.c	#ifndef MSDOS	1998-1999	1	0	
+emacs/src/xdisp.c	#ifdef HAVE_WINDOW_SYSTEM	30742-30743	1	0	
+emacs/src/xfaces.c	#ifndef ANDROID_STUBIFY	4800-4801	1	0	
+emacs/src/xfaces.c	#ifndef HAVE_WINDOW_SYSTEM	6178-6179	1	0	
+emacs/src/xfaces.c	#ifdef HAVE_NTGUI	7348-7349	1	0	
+emacs/src/xmenu.c	#ifdef HAVE_X_WINDOWS	2618-2619	1	0	
+emacs/src/xsettings.c	#ifndef HAVE_PGTK	29-30	1	0	
+emacs/src/xsettings.c	#ifndef HAVE_PGTK	41-42	1	0	
+emacs/src/xsettings.c	#ifndef HAVE_PGTK	97-98	1	0	
+emacs/src/xwidget.c	#ifndef HAVE_X_WINDOWS	644-645	1	0	
+emacs/src/xwidget.c	#ifndef HAVE_PGTK	774-775	1	0	
