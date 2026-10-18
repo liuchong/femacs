@@ -1,0 +1,46 @@
+# The window-system arms as a work order, for decision C (tools/gen-window-arms-plan.py).
+# Each row: the name the Android library needs, its C definition, the enclosing
+# `#if` region (start-end in that C file), the port unit that will hold the arm, the
+# preprocessor conditions, and the action.  Nothing here changes code.
+#
+# name	C definition	C region	port unit	conditions	action
+IMAGE_OPT_FROM_ID	emacs/src/frame.h:1679	1664-1685		#ifdef HAVE_TEXT_CONVERSION && #ifdef HAVE_WINDOW_SYSTEM	arm to write
+Vx_mode_pointer_shape	emacs/src/androidfns.c:3652				global to define
+Vx_nontext_pointer_shape	emacs/src/androidfns.c:3592				global to define
+Vx_resource_class	emacs/src/frame.c:7409				global to define
+Vx_resource_name	emacs/src/frame.c:7397				global to define
+cancel_hourglass	emacs/src/xdisp.c:39699	39637-39849	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+display_and_set_cursor	emacs/src/xdisp.c:35327	35086-35513	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+draw_phys_cursor_glyph	emacs/src/xdisp.c:35140	35086-35513	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+expose_frame	emacs/src/xdisp.c:38256	37783-38445	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+face_for_font	emacs/src/xfaces.c:5161	5153-5189	femacs/src/xfaces.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+find_hot_spot	emacs/src/xdisp.c:36586	36485-36623	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+font_for_underline_metrics	emacs/src/xdisp.c:32295	30756-32977	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+fset_parent_frame	emacs/src/frame.h:774	772-778		#ifdef HAVE_TEXT_CONVERSION && #if defined (HAVE_WINDOW_SYSTEM)	arm to write
+get_glyph_string_clip_rect	emacs/src/xdisp.c:2697	2490-3063	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+get_glyph_string_clip_rects	emacs/src/xdisp.c:2497	2490-3063	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+get_phys_cursor_geometry	emacs/src/xdisp.c:2709	2490-3063	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+get_tab_bar_item_kbd	emacs/src/xdisp.c:15323	14805-15603	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_clear_cursor	emacs/src/xdisp.c:35507	35086-35513	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_clear_end_of_line	emacs/src/xdisp.c:34688	33468-34757	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_draw_vertical_border	emacs/src/xdisp.c:37954	37783-38445	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_fix_overlapping_area	emacs/src/xdisp.c:35093	35086-35513	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_get_glyph_overhangs	emacs/src/xdisp.c:31448	30756-32977	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_insert_glyphs	emacs/src/xdisp.c:34631	33468-34757	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_intersect_rectangles	emacs/src/xdisp.c:38344	37783-38445	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_produce_glyphs	emacs/src/xdisp.c:33807	33468-34757	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_union_rectangles	emacs/src/xdisp.c:38401	37783-38445	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_update_cursor	emacs/src/xdisp.c:35495	35086-35513	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+gui_write_glyphs	emacs/src/xdisp.c:34587	33468-34757	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+handle_tab_bar_click	emacs/src/xdisp.c:15356	14805-15603	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+handle_tool_bar_click	emacs/src/xdisp.c:16537	16192-16631	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM && #ifndef HAVE_EXT_TOOL_BAR	arm to write
+make_monitor_attribute_list	emacs/src/frame.c:7151	7136-7204	femacs/src/frame.rs	#else && #ifdef HAVE_WINDOW_SYSTEM	arm to write
+prepare_face_for_display	emacs/src/xfaces.c:4771	4764-4815	femacs/src/xfaces.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+redraw_image_glyphs	emacs/src/xdisp.c:32964	30756-32977	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+remember_mouse_glyph	emacs/src/xdisp.c:2781	2490-3063	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+share_image_cache	emacs/src/xfaces.c:645	637-666	femacs/src/xfaces.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+start_hourglass	emacs/src/xdisp.c:39674	39637-39849	femacs/src/xdisp.rs	#ifdef HAVE_WINDOW_SYSTEM	arm to write
+tty_draw_row_with_mouse_face	emacs/src/msdos.c:996	482-1773	femacs/src/msdos.rs	#ifdef MSDOS && #ifndef HAVE_X_WINDOWS	arm to write
+x_stretch_cursor_p	emacs/src/xdisp.c:38638				global to define
+x_underline_at_descent_line	emacs/src/androidterm.c:7031				global to define
+x_use_underline_position_properties	emacs/src/androidterm.c:7024				global to define
