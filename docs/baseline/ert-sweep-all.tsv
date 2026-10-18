@@ -11,7 +11,7 @@ lisp/arc-mode-tests.el	same	11	0	11	0	new RSS high-water 38 MiB
 lisp/auth-source-pass-tests.el	same	50	0	50	0	
 lisp/auth-source-tests.el	same	34	0	34	0	
 lisp/autoinsert-tests.el	same	11	0	11	0	
-lisp/autorevert-tests.el	crashed	0	0	0	0	port: crashed exit 1: Running 18 tests (2026-10-18 08:54:48+0800, selector `t') | reference: crashed exit 1: Source file `/Users/liu/projects/src/github.com/liuchong/femacs/emacs/lisp/net/tramp-loaddefs.el' newer than byte-compiled file; using older file | Running 18 t
+lisp/autorevert-tests.el	crashed	0	0	0	0	port: crashed exit 1: Running 18 tests (2026-10-18 09:31:27+0800, selector `t') | reference: crashed exit 1: Source file `/Users/liu/projects/src/github.com/liuchong/femacs/emacs/lisp/net/tramp-loaddefs.el' newer than byte-compiled file; using older file | Running 18 t
 lisp/battery-tests.el	same	6	0	6	0	
 lisp/bookmark-tests.el	same	47	0	47	0	
 lisp/buff-menu-tests.el	same	1	0	1	0	
@@ -186,7 +186,7 @@ lisp/erc/erc-scenarios-base-upstream-recon-znc.el	same	2	0	2	0
 lisp/erc/erc-scenarios-display-message.el	same	1	0	1	0	
 lisp/erc/erc-scenarios-fill-wrap.el	same	2	0	2	0	
 lisp/erc/erc-scenarios-ignore.el	same	1	0	1	0	
-lisp/erc/erc-scenarios-internal.el	both-fail	43	1	43	1	both 1 unexpected
+lisp/erc/erc-scenarios-internal.el	port-worse	43	1	43	0	1 unexpected vs 0
 lisp/erc/erc-scenarios-join-auth-source.el	same	1	0	1	0	
 lisp/erc/erc-scenarios-join-display-context.el	same	1	0	1	0	
 lisp/erc/erc-scenarios-join-netid-newcmd-id.el	same	2	0	2	0	
@@ -244,7 +244,7 @@ lisp/eshell/eshell-tests-unload.el	same	3	0	3	0
 lisp/eshell/eshell-tests.el	same	19	0	19	0	
 lisp/faces-tests.el	same	5	0	5	0	
 lisp/ffap-tests.el	same	15	0	15	0	
-lisp/filenotify-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed   4/28  file-notify-test01-add-watch-remote (0.445049 sec) |   skipped   5/28  file-notify-test02-rm-watch (0.000040 sec) | reference: crashed exit 1:    passed   4/28  file-notify-test01-add-watch-remote (0.448467 sec) |   skipped   5/28  file-notify-test02-rm-watch (0.000037 sec)
+lisp/filenotify-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed   4/28  file-notify-test01-add-watch-remote (0.435588 sec) |   skipped   5/28  file-notify-test02-rm-watch (0.000037 sec) | reference: crashed exit 1:    passed   4/28  file-notify-test01-add-watch-remote (0.463756 sec) |   skipped   5/28  file-notify-test02-rm-watch (0.000034 sec)
 lisp/files-tests.el	same	131	0	131	0	
 lisp/files-x-tests.el	same	12	0	12	0	
 lisp/find-cmd-tests.el	same	3	0	3	0	
@@ -367,7 +367,7 @@ lisp/play/fortune-tests.el	same	1	0	1	0
 lisp/play/life-tests.el	same	1	0	1	0	
 lisp/play/morse-tests.el	same	4	0	4	0	
 lisp/play/studly-tests.el	same	3	0	3	0	
-lisp/proced-tests.el	same	7	1	7	0	re-read after the sweep: the single unexpected test is the upstream :unstable-tagged proced-update-preserves-pid-at-point-test, and it failed deterministically - list-system-processes returned 0 entries because the port called sysctl with the six-entry OpenBSD mib on Darwin (C's Darwin array has three).  Fixed in sysdep.rs (P-292); after the fix (length (list-system-processes)) = 1101, (memq (emacs-pid) ...) is non-nil, and this file reads 7/7 with 0 unexpected on both sides
+lisp/proced-tests.el	same	7	0	7	0	
 lisp/progmodes/asm-mode-tests.el	same	4	0	4	0	
 lisp/progmodes/autoconf-tests.el	same	4	0	4	0	
 lisp/progmodes/bat-mode-tests.el	same	5	0	5	0	
@@ -541,7 +541,7 @@ src/image-tests.el	same	5	0	5	0
 src/indent-tests.el	same	3	0	3	0	
 src/inotify-tests.el	same	3	0	3	0	
 src/json-tests.el	same	25	0	25	0	
-src/keyboard-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000012 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000019 sec) | reference: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000012 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000014 sec)
+src/keyboard-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000012 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000019 sec) | reference: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000011 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000015 sec)
 src/keymap-tests.el	same	47	0	47	0	
 src/lcms-tests.el	same	6	0	6	0	
 src/lread-tests.el	same	55	0	55	0	

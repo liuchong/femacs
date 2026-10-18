@@ -12,13 +12,13 @@
 5. **Java 只用最新 LTS**：官方最新 LTS = **JDK 25**（2025-09；26/27 非 LTS），`openjdk@25` 已装且 Android 链在它下面实测全绿 ⇒ 不需要任何旧 JDK（`docs/baseline/android-jdk.txt`）。
 6. 内存受控、超限即止；用完的产物及时清理（P-190）。
 
-## 完成定义（8 条等权）— 当前 **6/8 = 75%**
+## 完成定义（8 条等权）— 当前 **7/8 = 87.5%**
 
 | # | 项 | 判定 | 当前证据（命令） |
 |---|---|---|---|
 | 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` ⇒ **590 done / 0 in progress / 0 failing**（4.671） |
 | 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `xtask gate-fast` ⇒ exit 0（八步） |
-| 3 | L0–L5 | ✅（**L5 台账早于 P-195，重跑中**） | 常态 L5 的台账 `docs/baseline/ert-sweep-all.tsv` 是 4.535-4.563 的读数，**早于最后一次 Rust 改动（P-195/4.568）** ⇒ 按 P-222 需重跑（同一轮的 GC 压测门已重跑并清零唯一 `port-worse`，见 P-225）；L0 ⇒ 19/0 ✓；**L1 ⇒ 111 文件 / 0 失败 / 1 接受**（`docs/baseline/l1-accepted.tsv`：参照树自身的 `.elc` 陈旧，只接受 `newer than byte-compiled file` 这一形态）；L5 ⇒ 端口缺陷 0 ✓ |
+| 3 | L0–L5 | ✅ | L0 19/0；L1 111 文件 / 0 失败 / 1 接受；**L5 默认选择器 same 552 / both-fail 7 / crashed 5 / port-worse 0**（`docs/baseline/ert-sweep-default.tsv`，4.676）；`all` 档唯一 `port-worse` 是上游 `:unstable` 的 `erc-d-run-linger`（P-293） |
 | 4 | `.elc`/dump/生成物/loadup | ✅ | `check-generated.py` **244 文件**（新增 ja-dic 家族、`uvs.elc` 与 `jisx2131-filter`）⇒ **195 identical / 49 name-only / 0 DIFFERENT**；**`.elc` 集合已满**：参照 1,645 个 `.elc` 全有（`ja-dic.elc` 由 `tools/gen-ja-dic.py` 生成，`uvs.elc` 由端口的程序编译，两者都与参照逐字节相同）；**`src/macuvs.h` 也对上了**：`gen-unidata.py` 的 `run_uvs` 用端口的程序打印出与签约副本逐字节相同的 479,218 B（P-219）；`check-loadup.py` ⇒ 两树逐文件一致；**产物面盘点**：参照构建产物 1,973 个，端口有 **1,923**；缺的 50 个**逐条写明理由**（`docs/baseline/build-products-absent.txt`）：脚手架 23（P-102 退役）+ `info/*` 23 + `doc/*` 3（都要 `makeinfo`）+ make stamp 1；理由为 `unclassified` 的行 = 尚未推进的工作 |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` ⇒ 4,604 文件 / 0 failures |
 | 6 | 平台（macOS + Android） | ⚠️ 部分（**Android 单元 91/91 全绿；`.so` 69 个 JNI 导出；签名 APK 含 `.so`**，4.670；模拟器冒烟待 E1/E2/E3） | macOS `tools/smoke.sh` **11/11**（2026-10-18 在**重链+dump 后的新二进制**上复验）；Android `xtask gate-android` ⇒ 181,486 B APK / 112 class / 签名通过 |
