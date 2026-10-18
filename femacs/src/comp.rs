@@ -1412,6 +1412,19 @@ unsafe extern "C" {
   pub fn gcc_jit_context_new_array_type (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
                                          element_type: *mut gcc_jit_type, num_elements: c_int)
     -> *mut gcc_jit_type;
+  /// C: libgccjit.h 783-787: `gcc_jit_param *gcc_jit_context_new_param (gcc_jit_context *ctxt,
+  /// gcc_jit_location *loc, gcc_jit_type *type, const char *name);`
+  pub fn gcc_jit_context_new_param (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                    type_: *mut gcc_jit_type, name: *const c_char)
+    -> *mut gcc_jit_param;
+  /// C: libgccjit.h 840-848: `gcc_jit_function *gcc_jit_context_new_function (gcc_jit_context *ctxt,
+  /// gcc_jit_location *loc, enum gcc_jit_function_kind kind, gcc_jit_type *return_type,
+  /// const char *name, int num_params, gcc_jit_param **params, int is_variadic);`
+  pub fn gcc_jit_context_new_function (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                       kind: gcc_jit_function_kind,
+                                       return_type: *mut gcc_jit_type, name: *const c_char,
+                                       num_params: c_int, params: *mut *mut gcc_jit_param,
+                                       is_variadic: c_int) -> *mut gcc_jit_function;
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -1467,6 +1480,20 @@ pub const GCC_JIT_BINARY_OP_LSHIFT: gcc_jit_binary_op = 10;
 /// C: libgccjit.h 1272: `GCC_JIT_BINARY_OP_RSHIFT,`
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_BINARY_OP_RSHIFT: gcc_jit_binary_op = 11;
+
+/// C: libgccjit.h 802-836: `enum gcc_jit_function_kind { GCC_JIT_FUNCTION_EXPORTED, … };` - the
+/// alias (measured like the others) and the two enumerators this slice names.
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_function_kind = c_uint;
+/// C: libgccjit.h 806: `GCC_JIT_FUNCTION_EXPORTED,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_FUNCTION_EXPORTED: gcc_jit_function_kind = 0;
+/// C: libgccjit.h 810: `GCC_JIT_FUNCTION_INTERNAL,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_FUNCTION_INTERNAL: gcc_jit_function_kind = 1;
+/// C: libgccjit.h 815: `GCC_JIT_FUNCTION_IMPORTED,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_FUNCTION_IMPORTED: gcc_jit_function_kind = 2;
 
 /// C: libgccjit.h 1284-1304: `enum gcc_jit_comparison { GCC_JIT_COMPARISON_EQ, … };` - the alias
 /// (measured like the two above) and the one enumerator this slice names.
@@ -2322,6 +2349,166 @@ unsafe fn emit_set_internal (args_in: Lisp_Object) -> *mut gcc_jit_rvalue
 						     SET_INTERNAL_SET);
   return emit_call (intern_c_string (c"set_internal".as_ptr ()), comp.void_type, 4,
 		    gcc_args.as_mut_ptr (), false);
+}
+
+/// C 2086-2143: `static gcc_jit_rvalue *emit_limple_call_ref (Lisp_Object insn, bool direct)`.
+/// C's `static int i = 0;` is a function-scope static whose `i++` is a post-increment.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_limple_call_ref (insn: Lisp_Object, direct: bool) -> *mut gcc_jit_rvalue
+{
+  /* Ex: (funcall #s(comp-mvar 1 5 t eql symbol t)
+                  #s(comp-mvar 2 6 nil nil nil t)
+		  #s(comp-mvar 3 7 t 0 fixnum t)).  */
+  static mut i: c_int = 0;
+  let callee: Lisp_Object = FIRST! (insn);
+  let nargs: EMACS_INT = XFIXNUM (Flength (CDR (insn)));
+
+  if nargs == 0
+    { return emit_call_ref (callee, 0, *comp.frame.offset (0), direct); }
+
+  if comp.func_has_non_local || comp.func_speed == 0
+    {
+      /* FIXME: See bug#42360.  */
+      let first_arg: Lisp_Object = SECOND! (insn);
+      let first_slot: EMACS_INT = XFIXNUM (CALLNI! (c"comp-mvar-slot".as_ptr (), first_arg));
+      return emit_call_ref (callee, nargs, *comp.frame.offset (first_slot as isize), direct);
+    }
+
+  let counter: c_int = i;
+  i += 1;
+  let tmp_arr: *mut gcc_jit_lvalue =
+    gcc_jit_function_new_local (
+      comp.func,
+      std::ptr::null_mut (),
+      gcc_jit_context_new_array_type (comp.ctxt,
+				      std::ptr::null_mut (),
+				      comp.lisp_obj_type,
+				      nargs as c_int),
+      format_string (c"call_arr_%d".as_ptr (), counter));
+
+  let mut j: ptrdiff_t = 0;
+  let mut arg: Lisp_Object = CDR (insn);
+  FOR_EACH_TAIL! (arg, {
+      gcc_jit_block_add_assignment (
+        comp.block,
+	std::ptr::null_mut (),
+	gcc_jit_context_new_array_access (
+	  comp.ctxt,
+	  std::ptr::null_mut (),
+	  gcc_jit_lvalue_as_rvalue (tmp_arr),
+	  gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					       comp.int_type,
+					       j as c_int)),
+	emit_mvar_rval (XCAR (arg)));
+      j += 1;
+    });
+
+  return emit_call_ref (
+	   callee,
+	   nargs,
+	   gcc_jit_context_new_array_access (comp.ctxt,
+					     std::ptr::null_mut (),
+					     gcc_jit_lvalue_as_rvalue (tmp_arr),
+					     comp.zero),
+	   direct);
+}
+
+/// C 2145-2192: `static gcc_jit_rvalue *emit_setjmp (gcc_jit_rvalue *buf)`.  C's `#ifndef
+/// WINDOWSNT` arm is the live one here; the `windowsnt` arm is carried as its feature.  C's
+/// `STR (SETJMP_NAME)` is a stringified macro (`SETJMP_NAME` binds `SETJMP`), and the file note
+/// above records that the port spells the name at the call site - `_setjmp` in the arm this
+/// target takes (`HAVE__SETJMP` is 1 and `WINDOWSNT` is undef).
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_setjmp (buf: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  #[cfg (not (feature = "windowsnt"))]
+  {
+    let args: [*mut gcc_jit_rvalue; 1] = [buf];
+    let params: [*mut gcc_jit_param; 1] =
+    [
+      gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (), comp.void_ptr_type,
+				 c"buf".as_ptr ()),
+    ];
+    /* Don't call setjmp through a function pointer (Bug#46824) */
+    let f: *mut gcc_jit_function =
+      gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				    GCC_JIT_FUNCTION_IMPORTED,
+				    comp.int_type, c"_setjmp".as_ptr (),
+				    countof! (params) as c_int,
+				    params.as_ptr () as *mut *mut gcc_jit_param,
+				    0);
+
+    return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (), f, 1,
+				     args.as_ptr () as *mut *mut gcc_jit_rvalue);
+  }
+  #[cfg (feature = "windowsnt")]
+  {
+    /* _setjmp (buf, __builtin_frame_address (0)) */
+    let params: [*mut gcc_jit_param; 2] =
+    [
+      gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (), comp.void_ptr_type,
+				 c"buf".as_ptr ()),
+      gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (), comp.void_ptr_type,
+				 c"frame".as_ptr ()),
+    ];
+    let mut args: [*mut gcc_jit_rvalue; 2] = [std::ptr::null_mut (); 2];
+
+    args[0] =
+      gcc_jit_context_new_rvalue_from_int (comp.ctxt, comp.unsigned_type, 0);
+
+    args[1] =
+      gcc_jit_context_new_call (
+	comp.ctxt,
+	std::ptr::null_mut (),
+	gcc_jit_context_get_builtin_function (comp.ctxt,
+					      c"__builtin_frame_address".as_ptr ()),
+	1, args.as_ptr () as *mut *mut gcc_jit_rvalue);
+    args[0] = buf;
+    let f: *mut gcc_jit_function =
+      gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				    GCC_JIT_FUNCTION_IMPORTED,
+				    comp.int_type, c"_setjmp".as_ptr (),
+				    countof! (params) as c_int,
+				    params.as_ptr () as *mut *mut gcc_jit_param,
+				    0);
+
+    return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (), f, 2,
+				     args.as_ptr () as *mut *mut gcc_jit_rvalue);
+  }
+}
+
+/* Register an handler for a non local exit.  */
+
+/// C 2196-2222: `static void emit_limple_push_handler (gcc_jit_rvalue *handler,
+/// gcc_jit_rvalue *handler_type, gcc_jit_block *handler_bb, gcc_jit_block *guarded_bb,
+/// Lisp_Object clobbered_mvar)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_limple_push_handler (handler: *mut gcc_jit_rvalue,
+				    handler_type: *mut gcc_jit_rvalue,
+				    handler_bb: *mut gcc_jit_block,
+				    guarded_bb: *mut gcc_jit_block,
+				    clobbered_mvar: Lisp_Object)
+{
+   /* struct handler *c = push_handler (POP, type);  */
+
+  let mut args: [*mut gcc_jit_rvalue; 2] = [ handler, handler_type ];
+  gcc_jit_block_add_assignment (
+    comp.block,
+    std::ptr::null_mut (),
+    comp.loc_handler,
+    emit_call (intern_c_string (c"push_handler".as_ptr ()),
+	       comp.handler_ptr_type, 2, args.as_mut_ptr (), false));
+
+  args[0] =
+    gcc_jit_lvalue_get_address (
+	gcc_jit_rvalue_dereference_field (
+	  gcc_jit_lvalue_as_rvalue (comp.loc_handler),
+	  std::ptr::null_mut (),
+	  comp.handler_jmp_field),
+	std::ptr::null_mut ());
+
+  let res: *mut gcc_jit_rvalue = emit_setjmp (args[0]);
+  emit_cond_jump (res, handler_bb, guarded_bb);
 }
 
 /* This is for a regular function with arguments as m-var.  */
