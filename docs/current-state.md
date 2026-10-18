@@ -38,11 +38,11 @@
 
 ## 已知红（不属完成定义八条，但每轮要知道）
 
-- **`xtask gate-probes` 红，只剩 `dead-arms` 的 4 处（4.684 实测）**：本轮修掉的是 `lisp-abi-probe` 的两条（注解规范形 + 生成器按冻结配置求值 `#[cfg]`）
-  与 `comp.rs` 的 81 条 `E0425`（按 P-88 补上 `<libgccjit.h>` 的 10 个类型，clang 量得不完整、8 字节指针）。**还剩 4 处，都是"镜像没抄 C 的声明块"**：
-  `estimate_mode_line_height` ×2（C 无门声明在 `dispextern.h` 3582）、`window_box_left` ×1（`dispextern.h` 3579）、`haiku_display_info` ×1（`dispextern.h` 159 的 typedef，
-  标签定义在 `include/haikuterm.rs`）。端口现在把这些名字分散写在各 unit（`androidterm.rs` 4875、`fringe.rs` 1137、`dispnew.rs` 269 …），C 却是**头里一份**。
-  `gate-fast` **不包含** `dead-arms`，所以这条红只在单独跑 `gate-probes` 时现形。
+- **`xtask gate-probes` 已全绿（4.685 实测）**：`dead-arms` **340/340、0 failed**（6 条翻转：no_rint/no_trunc/no_signbit/have_native_comp/HAVE_LOG2/glyph_debug），
+  `lisp-abi-probe` 与 7 个 C 差分脚本也都通过 ⇒ exit 0。修的过程中定了三件事：`dead-arms` 改成**逐个编、集中报**（原来第一处红就收工，把 `abi_shim` 之后的读数全遮住了）；
+  Haiku/窗口系统那两条翻转**移出**（理由：`dispextern.rs` 750 的 `Display_Info = haiku_display_info` 需要一个 Rust 表达不了的"不完整标签"，记录在反向包含 dispextern.rs 的 `haikuterm.rs` 里；
+  NS 那条臂同一形状、当年就没进表；Android 的记录在 `termhooks.rs` 所以能编 —— 读数：那两条开着时 340 个 unit 失败 62 个）；并修掉两处真缺陷（`lread.rs` 的不可变循环变量、`w32fns.rs` 裸 `c_int`）。
+
 - **声明块的缺口是全局的（4.684 测量，方法见 `docs/status.md` 4.684 ⑤）**：**1,032 条** C 声明不在自己的镜像里，其中 **1,006 条在树内别处声明**（名字口径的门因此看不见）、**26 条全树没有**；
   最多的是 `lisp.h` 423、`dispextern.h` 206、`xterm.h` 126、`font.h` 69、`frame.h` 56、`gtkutil.h` 49、`keyboard.h` 36。**这是测量值、不是判据**（正则口径粗、含死分支名）。
   ⇒ 下一条工作线：按 P-297 把 C 的声明块照抄进对应镜像，并把 unit 里的 use-site 副本按 P-26 收回去。
