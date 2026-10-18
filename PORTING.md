@@ -954,6 +954,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-319 | **`config.rs` 是生成物：提交前必须确认它是**冻结配置**那一份**：① 平台脚本会临时把 `src/include/config.rs` 改成 Android 版本 ✓ 再还原 ✓ —— 任何 `git add -A` 都可能把中间态提交进仓库 ✗（4.731 实测 ✓：`HEAD` 里是 `HAVE_MODULES: true`/`SYSTEM_TYPE "android"` ✗）。② 判据：`git show HEAD:femacs/src/include/config.rs | grep 'HAVE_MODULES: bool = false'` ✓；不确定时跑一次 `FEMACS_CONFIG=darwin-arm64 gen-config` ✓ 再比 ✓。③ `git add -A` 之前先 `git status --short`，看到这个文件就停下来确认 ✓。 |
 
+| P-320 | **门报红先分三类：代码错、表过期、口径错**：① **表过期** ✓：`do-while-allowlist.tsv` 存行号 ✓ ⇒ 编辑后必须跟着改 ✓（工具会报 stale ✓，而「新失败 + stale 行」往往是同一条 ✓）。② **口径错** ✓：`check-symbols` 假设「C 的一个对象对应端口的一个对象」 ✗ —— `lib/regex.c` include 了 `regcomp.c`/`regexec.c`/`regex_internal.c` ✓ ⇒ 别名要写成 **stem 列表**并取并集 ✓；`check-trees` 与 `.gitignore` 的生成物冲突 ✓ ⇒ 记「生成物」身份 ✓，**不改**接受名单 ✗。③ **代码错** ✓ 才改代码 ✓；改完按 P-317 的次序复核（两目标编译 → 链接 → 棘轮 → 相关门 ✓）。④ **cfg 与 C 条件的一致性**用 `check-cond-eval --verified` 全量量 ✓（5,662 条件、0 disagreements ✓，4.737 ✓）—— 这是加门/改门之后最便宜的总复核 ✓。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**
