@@ -3487,7 +3487,10 @@ pub unsafe extern "C" fn emacs_backtrace (backtrace_limit: c_int) {
 // C 2376-2378: the `#ifndef HAVE_ANDROID` arm is live, so C's `static` keyword applies; the
 // inventory's row lost the marker (the scanner read the `#endif` line before the declarator)
 // and the port had given the definition an external name - the reference object exports no
-// `_renameat_noreplace` (docs/status.md 3.67).
+// `_renameat_noreplace` (docs/status.md 3.67) ... because C 2377-2379 makes it `static` unless
+// `HAVE_ANDROID`: `androidvfs.c` 894 calls it, so on that target C *does* export it and the port
+// must too (status 4.724).  `cfg_attr` keeps one definition with C's two linkages.
+#[cfg_attr (feature = "have_android", unsafe(no_mangle))]
 pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int,
                                   dst: *const c_char) -> c_int {
   /* C 2382-2396: `#if HAVE_RENAMEAT2 && defined RENAME_NOREPLACE` and the `SYS_renameat2`
