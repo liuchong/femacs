@@ -370,7 +370,7 @@ pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int,
 {
   #[cfg(feature = "have_window_system")]
   {
-    return face_for_char (f, face, character, pos, object);
+    return unsafe { face_for_char (f, face, character, pos, object) };
   }
   #[cfg(not (feature = "have_window_system"))]
   {
@@ -5063,7 +5063,7 @@ unsafe extern "C" {
 #[cfg(feature = "have_window_system")]
 unsafe fn codepoint_is_emoji_eligible (ch: c_int) -> bool
 {
-  if EQ (CHAR_TABLE_REF (Vchar_script_table, ch), Qemoji ())
+  if EQ (CHAR_TABLE_REF (Vchar_script_table, ch as isize), Qemoji ())
     { return true; }
 
   if ! NILP (Fmemq (make_fixnum (ch as EMACS_INT),
@@ -5144,7 +5144,7 @@ pub unsafe extern "C" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
       c = if NILP (string)
 	  { fetch_char_advance_no_check (&mut pos, &mut pos_byte) }
 	  else { fetch_string_char_advance_no_check (string, &mut pos, &mut pos_byte) };
-      let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c);
+      let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
       if FIXNUMP (category)
 	  && (XFIXNUM (category) == unicode_category_t::UNICODE_CATEGORY_Cf as EMACS_INT
 	      || CHAR_VARIATION_SELECTOR_P (c) != 0)
@@ -5404,7 +5404,7 @@ DEFUN! ("font-face-attributes", Ffont_face_attributes, Sfont_face_attributes, 1,
 		       else { FRAME_RES (f) as c_int };
       plist[n as usize] = QCheight ();
       n += 1;
-      plist[n as usize] = make_fixnum (PIXEL_TO_POINT! (XFIXNUM (val) * 10, dpi as c_double)
+      plist[n as usize] = make_fixnum (PIXEL_TO_POINT! ((XFIXNUM (val) * 10) as c_double, dpi as c_double)
 				       as EMACS_INT);
       n += 1;
     }

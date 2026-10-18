@@ -162,15 +162,18 @@ const _: () = core::assert! (std::mem::offset_of! (android_fd_or_asset, asset) =
 #[cfg (feature = "have_android")]
 pub type lread_fd = android_fd_or_asset;
 #[cfg (feature = "have_android")]
-macro_rules! lread_fd_cmp { ($fd:expr, $n:expr) => { !($fd).asset && ($fd).fd == ($n) }; }
+macro_rules! lread_fd_cmp { ($fd:expr, $n:expr) => { ($fd).asset.is_null () && ($fd).fd == ($n) }; }
 #[cfg (feature = "have_android")]
-macro_rules! lread_fd_p { ($fd:expr) => { ($fd).asset || ($fd).fd >= 0 }; }
+macro_rules! lread_fd_p { ($fd:expr) => { !($fd).asset.is_null () || ($fd).fd >= 0 }; }
 #[cfg (feature = "have_android")]
 macro_rules! lread_close { ($fd:expr) => { android_close_asset ($fd) }; }
 #[cfg (feature = "have_android")]
 macro_rules! lread_fstat { ($fd:expr, $st:expr) => { android_asset_fstat ($fd, $st) }; }
 #[cfg (feature = "have_android")]
-macro_rules! lread_read_quit { ($fd:expr, $buf:expr, $n:expr) => { android_asset_read_quit ($fd, $buf, $n) }; }
+/* C's Android arm passes a `size_t` where the shared call site's `$n` is a `ptrdiff_t`; C
+   converts implicitly, so the macro casts.  */
+#[cfg (feature = "have_android")]
+macro_rules! lread_read_quit { ($fd:expr, $buf:expr, $n:expr) => { android_asset_read_quit ($fd, $buf, ($n) as usize) }; }
 #[cfg (feature = "have_android")]
 macro_rules! lread_lseek { ($fd:expr, $off:expr, $whence:expr) => { android_asset_lseek ($fd, $off, $whence) }; }
 #[cfg (feature = "have_android")]
@@ -182,11 +185,14 @@ macro_rules! file_tell { ($stream:expr) => { android_asset_lseek ($stream, 0, SE
 #[cfg (feature = "have_android")]
 macro_rules! file_seek { ($stream:expr, $off:expr, $whence:expr) => { android_asset_lseek ($stream, $off, $whence) }; }
 #[cfg (feature = "have_android")]
-macro_rules! file_stream_valid_p { ($p:expr) => { $p.asset || $p.fd >= 0 }; }
+macro_rules! file_stream_valid_p { ($p:expr) => { !($p).asset.is_null () || ($p).fd >= 0 }; }
 #[cfg (feature = "have_android")]
 macro_rules! file_stream_close { ($p:expr) => { android_close_asset ($p) }; }
+/* C 155: `static struct android_fd_or_asset invalid_file_stream = { .fd = -1 };` - a value, so
+   the port's is a `const` (a `static mut` would need an `unsafe` read at every use, and C has
+   none).  */
 #[cfg (feature = "have_android")]
-static mut invalid_file_stream: android_fd_or_asset =
+const invalid_file_stream: android_fd_or_asset =
   android_fd_or_asset { fd: -1, asset: std::ptr::null_mut () };
 #[cfg (feature = "have_android")]
 macro_rules! file_stream_invalid { () => { invalid_file_stream }; }
@@ -1626,7 +1632,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	       efound = ENCODE_FILE (found);
 	       stream = emacs_fopen (SSDATA (efound), fmode);
 	     }
-	     #[cfg (all (not (feature = "windowsnt"), not (feature = "use_android_assets")))]
+	     #[cfg (all (not (feature = "windowsnt"), not (all (feature = "have_android", feature = "not_android_stubify"))))]
 	     {
 	       stream = emacs_fdopen (fd, fmode);
 	     }
