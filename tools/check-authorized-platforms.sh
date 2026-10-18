@@ -71,6 +71,10 @@ if [ -f "$APK_DIR/emacs.apk" ]; then
   fi
 fi
 
-echo "== blocked (awaiting the user's decision, docs/decisions-needed.md) =="
-printf '  %-30s %s\n' "Android emulator smoke" "E1 (a larger runtime budget), E2 (accept the structure only) or E3 (fix the accounting)"
+echo "== Android: emulator smoke =="
+# The controlled executor now starts the runtime profile at 4 GiB and grows toward a 16 GiB hard
+# cap on its own (R38), so the emulator's ~2 GB fixed cost is inside the authorised budget and the
+# old E1/E2/E3 question is closed.  The step is still separate from this script's four legs because
+# it boots a device and takes minutes; `tools/try-android-emulator.sh` runs it.
+printf '  %-30s %s\n' "Android emulator smoke" "run: FEMACS_EMULATOR_BUDGET_OK=1 sh tools/try-android-emulator.sh"
 exit "$status"
