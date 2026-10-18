@@ -1256,16 +1256,6 @@ pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
    `docs/ports/comp.md` carries the ledger rows.
    ============================================================================================== */
 
-/// C 504-505: `#define CALLNI(fun, ...) calln (intern_c_string (STR (fun)), __VA_ARGS__)` - this
-/// file's own macro (C 507's `DECL_BLOCK` is written at its uses and `FIXNUM` is the mirror's).
-/// C's `STR (fun)` stringifies the token; a Rust macro cannot, so the call sites pass the same
-/// text as a `c"..."` literal.
-macro_rules! CALLNI {
-  ($fun:expr, $($args:expr),* $(,)?) => {
-    calln! (intern_c_string ($fun), $($args),*)
-  };
-}
-
 /* C 511-517's `#ifndef WINDOWSNT` arm takes these straight from `<libgccjit.h>`, while C 48-442's
    `WINDOWSNT` arm loads the same names into `fn_gcc_jit_*` pointers - so the declarations below
    are the half that is *not* `windowsnt`.  `<libgccjit.h>` is the third-party header P-88
@@ -1453,6 +1443,10 @@ unsafe extern "C" {
   /// gcc_jit_location *loc, gcc_jit_rvalue *rvalue);`
   pub fn gcc_jit_block_end_with_return (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
                                         rvalue: *mut gcc_jit_rvalue);
+  /// C: libgccjit.h 1601-1604: `void gcc_jit_block_end_with_void_return (gcc_jit_block *block,
+  /// gcc_jit_location *loc);`
+  pub fn gcc_jit_block_end_with_void_return (block: *mut gcc_jit_block,
+                                             loc: *mut gcc_jit_location);
   /// C: libgccjit.h 727-732: `gcc_jit_struct *gcc_jit_context_new_struct_type
   /// (gcc_jit_context *ctxt, gcc_jit_location *loc, const char *name, int num_fields,
   /// gcc_jit_field **fields);`
@@ -1577,6 +1571,9 @@ pub type gcc_jit_comparison = c_uint;
 /// C: libgccjit.h 1288: `GCC_JIT_COMPARISON_EQ,`
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_COMPARISON_EQ: gcc_jit_comparison = 0;
+/// C: libgccjit.h 1291: `GCC_JIT_COMPARISON_NE,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_COMPARISON_NE: gcc_jit_comparison = 1;
 /// C: libgccjit.h 1297: `GCC_JIT_COMPARISON_LE,`
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_COMPARISON_LE: gcc_jit_comparison = 3;
@@ -1658,7 +1655,7 @@ unsafe fn declare_block (block_name: Lisp_Object)
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_mvar_lval (mvar: Lisp_Object) -> *mut gcc_jit_lvalue
 {
-  let mvar_slot: Lisp_Object = CALLNI! (c"comp-mvar-slot".as_ptr (), mvar);
+  let mvar_slot: Lisp_Object = CALLNI! ("comp-mvar-slot", mvar);
 
   if EQ (mvar_slot, Qscratch ())
     {
@@ -2593,6 +2590,478 @@ unsafe fn define_handler_struct ()
 
 }
 
+/// C 3508-3558: `static void define_CHECK_TYPE (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_CHECK_TYPE ()
+{
+  let param: [*mut gcc_jit_param; 3] =
+    [ gcc_jit_context_new_param (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.int_type,
+				 c"ok".as_ptr ()),
+      gcc_jit_context_new_param (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.lisp_obj_type,
+				 c"predicate".as_ptr ()),
+      gcc_jit_context_new_param (comp.ctxt,
+				 std::ptr::null_mut (),
+				 comp.lisp_obj_type,
+				 c"x".as_ptr ()) ];
+  comp.check_type =
+    gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				  GCC_JIT_FUNCTION_INTERNAL,
+				  comp.void_type,
+				  c"CHECK_TYPE".as_ptr (),
+				  3,
+				  param.as_ptr () as *mut *mut gcc_jit_param,
+				  0);
+  let ok: *mut gcc_jit_rvalue = gcc_jit_param_as_rvalue (param[0]);
+  let predicate: *mut gcc_jit_rvalue = gcc_jit_param_as_rvalue (param[1]);
+  let x: *mut gcc_jit_rvalue = gcc_jit_param_as_rvalue (param[2]);
+
+  DECL_BLOCK! (entry_block, comp.check_type);
+  DECL_BLOCK! (ok_block, comp.check_type);
+  DECL_BLOCK! (not_ok_block, comp.check_type);
+
+  comp.block = entry_block;
+  comp.func = comp.check_type;
+
+  emit_cond_jump (ok, ok_block, not_ok_block);
+
+  gcc_jit_block_end_with_void_return (ok_block, std::ptr::null_mut ());
+
+  comp.block = not_ok_block;
+
+  let wrong_type_args: [*mut gcc_jit_rvalue; 2] = [ predicate, x ];
+
+  gcc_jit_block_add_eval (comp.block,
+			  std::ptr::null_mut (),
+			  emit_call (intern_c_string (c"wrong_type_argument".as_ptr ()),
+				     comp.void_type, 2,
+				     wrong_type_args.as_ptr () as *mut *mut gcc_jit_rvalue,
+				     false));
+
+  gcc_jit_block_end_with_void_return (not_ok_block, std::ptr::null_mut ());
+}
+
+/* Define a substitute for CAR as always inlined function.  */
+
+/// C 3562-3635: `static void define_CAR_CDR (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_CAR_CDR ()
+{
+  let mut func: [*mut gcc_jit_function; 2] = [std::ptr::null_mut (); 2];
+  let f_name: [*const c_char; 2] = [ c"CAR".as_ptr (), c"CDR".as_ptr () ];
+  let mut i: c_int = 0;
+  while i < 2
+    {
+      let param: [*mut gcc_jit_param; 2] =
+	[ gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.lisp_obj_type,
+				     c"c".as_ptr ()),
+	  gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.bool_type,
+				     c"cert_cons".as_ptr ()) ];
+      /* TODO: understand why after ipa-prop pass gcc is less keen on inlining
+	 and as consequence can refuse to compile these. (see dhrystone.el)
+	 Flag this and all the one involved in ipa-prop as
+	 GCC_JIT_FUNCTION_INTERNAL not to fail compilation in case.
+	 This seems at least to have no perf downside.  */
+      func[i as usize] =
+	gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				      GCC_JIT_FUNCTION_INTERNAL,
+				      comp.lisp_obj_type,
+				      f_name[i as usize],
+				      2, param.as_ptr () as *mut *mut gcc_jit_param, 0);
+
+      let c: *mut gcc_jit_rvalue = gcc_jit_param_as_rvalue (param[0]);
+      DECL_BLOCK! (entry_block, func[i as usize]);
+      DECL_BLOCK! (is_cons_b, func[i as usize]);
+      DECL_BLOCK! (not_a_cons_b, func[i as usize]);
+      comp.block = entry_block;
+      comp.func = func[i as usize];
+      emit_cond_jump (emit_binary_op (GCC_JIT_BINARY_OP_LOGICAL_OR,
+				      comp.bool_type,
+				      gcc_jit_param_as_rvalue (param[1]),
+				      emit_CONSP (c)),
+		      is_cons_b,
+		      not_a_cons_b);
+      comp.block = is_cons_b;
+      if i == 0
+	{ gcc_jit_block_end_with_return (comp.block, std::ptr::null_mut (), emit_XCAR (c)); }
+      else
+	{ gcc_jit_block_end_with_return (comp.block, std::ptr::null_mut (), emit_XCDR (c)); }
+
+      comp.block = not_a_cons_b;
+
+      DECL_BLOCK! (is_nil_b, func[i as usize]);
+      DECL_BLOCK! (not_nil_b, func[i as usize]);
+
+      emit_cond_jump (emit_NILP (c), is_nil_b, not_nil_b);
+
+      comp.block = is_nil_b;
+      gcc_jit_block_end_with_return (comp.block,
+				     std::ptr::null_mut (),
+				     emit_lisp_obj_rval (Qnil ()));
+
+      comp.block = not_nil_b;
+      let wrong_type_args: [*mut gcc_jit_rvalue; 2] =
+	[ emit_lisp_obj_rval (Qlistp ()), c ];
+
+      gcc_jit_block_add_eval (comp.block,
+			      std::ptr::null_mut (),
+			      emit_call (intern_c_string (c"wrong_type_argument".as_ptr ()),
+					 comp.void_type, 2,
+					 wrong_type_args.as_ptr () as *mut *mut gcc_jit_rvalue,
+					 false));
+      gcc_jit_block_end_with_return (comp.block,
+				     std::ptr::null_mut (),
+				     emit_lisp_obj_rval (Qnil ()));
+      i += 1;
+    }
+  comp.car = func[0];
+  comp.cdr = func[1];
+}
+
+/// C 3637-3690: `static void define_setcar_setcdr (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_setcar_setcdr ()
+{
+  let f_name: [*const c_char; 2] = [ c"setcar".as_ptr (), c"setcdr".as_ptr () ];
+  let par_name: [*const c_char; 2] = [ c"new_car".as_ptr (), c"new_cdr".as_ptr () ];
+
+  let mut i: c_int = 0;
+  while i < 2
+    {
+      let cell: *mut gcc_jit_param =
+	gcc_jit_context_new_param (comp.ctxt,
+				   std::ptr::null_mut (),
+				   comp.lisp_obj_type,
+				   c"cell".as_ptr ());
+      let new_el: *mut gcc_jit_param =
+	gcc_jit_context_new_param (comp.ctxt,
+				   std::ptr::null_mut (),
+				   comp.lisp_obj_type,
+				   par_name[i as usize]);
+
+      let param: [*mut gcc_jit_param; 3] =
+	[ cell,
+	  new_el,
+	  gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.bool_type,
+				     c"cert_cons".as_ptr ()) ];
+
+      /* C's `gcc_jit_function **f_ref = !i ? &comp.setcar : &comp.setcdr;` - the address of the
+	 field the loop writes; the port writes the field through the same two names.  */
+      let f: *mut gcc_jit_function = gcc_jit_context_new_function (comp.ctxt,
+					     std::ptr::null_mut (),
+					     GCC_JIT_FUNCTION_INTERNAL,
+					     comp.lisp_obj_type,
+					     f_name[i as usize],
+					     3, param.as_ptr () as *mut *mut gcc_jit_param, 0);
+      if i == 0 { comp.setcar = f; } else { comp.setcdr = f; }
+      DECL_BLOCK! (entry_block, f);
+      comp.func = f;
+      comp.block = entry_block;
+
+      /* CHECK_CONS (cell);  */
+      emit_CHECK_CONS (gcc_jit_param_as_rvalue (cell));
+
+      /* XSETCDR (cell, newel);  */
+      if i == 0
+	{ emit_XSETCAR (gcc_jit_param_as_rvalue (cell),
+		      gcc_jit_param_as_rvalue (new_el)); }
+      else
+	{ emit_XSETCDR (gcc_jit_param_as_rvalue (cell),
+		      gcc_jit_param_as_rvalue (new_el)); }
+
+      /* return newel;  */
+      gcc_jit_block_end_with_return (entry_block,
+				     std::ptr::null_mut (),
+				     gcc_jit_param_as_rvalue (new_el));
+      i += 1;
+    }
+}
+
+/*
+   Define a substitute for Fadd1 Fsub1.
+   Currently expose just fixnum arithmetic.
+*/
+
+/// C 3697-3776: `static void define_add1_sub1 (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn define_add1_sub1 ()
+{
+  let bb_orig: *mut gcc_jit_block = comp.block;
+  let mut func: [*mut gcc_jit_function; 2] = [std::ptr::null_mut (); 2];
+  let f_name: [*const c_char; 2] = [ c"add1".as_ptr (), c"sub1".as_ptr () ];
+  let fall_back_func: [*const c_char; 2] = [ c"1+".as_ptr (), c"1-".as_ptr () ];
+  let op: [gcc_jit_binary_op; 2] =
+    [ GCC_JIT_BINARY_OP_PLUS, GCC_JIT_BINARY_OP_MINUS ];
+  let mut i: ptrdiff_t = 0;
+  while i < 2
+    {
+      let param: [*mut gcc_jit_param; 2] =
+	[ gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.lisp_obj_type,
+				     c"n".as_ptr ()),
+	  gcc_jit_context_new_param (comp.ctxt,
+				     std::ptr::null_mut (),
+				     comp.bool_type,
+				     c"cert_fixnum".as_ptr ()) ];
+      func[i as usize] = gcc_jit_context_new_function (comp.ctxt, std::ptr::null_mut (),
+				      GCC_JIT_FUNCTION_INTERNAL,
+				      comp.lisp_obj_type,
+				      f_name[i as usize],
+				      2,
+				      param.as_ptr () as *mut *mut gcc_jit_param, 0);
+      comp.func = func[i as usize];
+      DECL_BLOCK! (entry_block, func[i as usize]);
+      DECL_BLOCK! (inline_block, func[i as usize]);
+      DECL_BLOCK! (fcall_block, func[i as usize]);
+
+      comp.block = entry_block;
+
+      /* cert_fixnum ||
+	 ((FIXNUMP (n) && XFIXNUM (n) != MOST_POSITIVE_FIXNUM
+	 ? (XFIXNUM (n) + 1)
+	 : Fadd1 (n)) */
+
+      let n: *mut gcc_jit_rvalue = gcc_jit_param_as_rvalue (param[0]);
+      let n_fixnum: *mut gcc_jit_rvalue = emit_XFIXNUM (n);
+      let sure_fixnum: *mut gcc_jit_rvalue =
+	emit_binary_op (GCC_JIT_BINARY_OP_LOGICAL_OR,
+			comp.bool_type,
+			gcc_jit_param_as_rvalue (param[1]),
+			emit_FIXNUMP (n));
+      emit_cond_jump (
+	emit_binary_op (
+	  GCC_JIT_BINARY_OP_LOGICAL_AND,
+	  comp.bool_type,
+	  sure_fixnum,
+	  gcc_jit_context_new_comparison (
+	    comp.ctxt,
+	    std::ptr::null_mut (),
+	    GCC_JIT_COMPARISON_NE,
+	    n_fixnum,
+	    if i == 0
+	    { emit_rvalue_from_emacs_int (MOST_POSITIVE_FIXNUM) }
+	    else
+	    { emit_rvalue_from_emacs_int (MOST_NEGATIVE_FIXNUM) })),
+	inline_block,
+	fcall_block);
+
+      comp.block = inline_block;
+      let inline_res: *mut gcc_jit_rvalue =
+	emit_binary_op (op[i as usize], comp.emacs_int_type, n_fixnum, comp.one);
+
+      gcc_jit_block_end_with_return (inline_block,
+				     std::ptr::null_mut (),
+				     emit_make_fixnum (inline_res));
+
+      comp.block = fcall_block;
+      let call_res: *mut gcc_jit_rvalue =
+	emit_call (intern_c_string (fall_back_func[i as usize]),
+		   comp.lisp_obj_type, 1,
+		   &raw const n as *mut *mut gcc_jit_rvalue, false);
+      gcc_jit_block_end_with_return (fcall_block,
+				     std::ptr::null_mut (),
+				     call_res);
+      i += 1;
+    }
+  comp.block = bb_orig;
+  comp.add1 = func[0];
+  comp.sub1 = func[1];
+}
+
+/// C 3401-3406: `struct cast_type { gcc_jit_type *type; const char *name; bool is_ptr; };` - the
+/// record the cast matrix is built from, declared in C between the two functions that use it.
+#[cfg (all (feature = "have_native_comp",
+	    not (feature = "libgccjit_have_gcc_jit_context_new_bitcast")))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct cast_type
+{
+  pub r#type: *mut gcc_jit_type,
+  pub name: *const c_char,
+  pub is_ptr: bool,
+}
+
+/// C 3363-3399: `static gcc_jit_function *define_type_punning (const char *name,
+/// gcc_jit_type *from, gcc_jit_field *from_field, gcc_jit_type *to, gcc_jit_field *to_field)`.
+/// C 3379's `DECL_BLOCK (entry_block, result)` is the file's `DECL_BLOCK!` macro (C 507-509).
+#[cfg (all (feature = "have_native_comp",
+	    not (feature = "libgccjit_have_gcc_jit_context_new_bitcast")))]
+unsafe fn define_type_punning (name: *const c_char,
+			       from: *mut gcc_jit_type, from_field: *mut gcc_jit_field,
+			       to: *mut gcc_jit_type, to_field: *mut gcc_jit_field)
+  -> *mut gcc_jit_function
+{
+  let param: *mut gcc_jit_param = gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (),
+                                                    from, c"arg".as_ptr ());
+  let result: *mut gcc_jit_function = gcc_jit_context_new_function (comp.ctxt,
+                               std::ptr::null_mut (),
+                               GCC_JIT_FUNCTION_INTERNAL,
+                               to,
+                               name,
+                               1,
+                               &raw const param as *mut *mut gcc_jit_param,
+                               0);
+
+  let mut entry_block: *mut gcc_jit_block =
+    gcc_jit_function_new_block (result, c"entry_block".as_ptr ());
+
+  let tmp_union: *mut gcc_jit_lvalue
+    = gcc_jit_function_new_local (result,
+                                  std::ptr::null_mut (),
+                                  comp.cast_union_type,
+                                  c"union_cast".as_ptr ());
+
+  gcc_jit_block_add_assignment (entry_block, std::ptr::null_mut (),
+                                gcc_jit_lvalue_access_field (tmp_union, std::ptr::null_mut (),
+							     from_field),
+                                gcc_jit_param_as_rvalue (param));
+
+  gcc_jit_block_end_with_return (entry_block,
+                                 std::ptr::null_mut (),
+                                 gcc_jit_rvalue_access_field (
+                                   gcc_jit_lvalue_as_rvalue (tmp_union),
+                                   std::ptr::null_mut (), to_field));
+
+  return result;
+}
+
+/// C 3408-3446: `static gcc_jit_function *define_cast_from_to (struct cast_type from,
+/// struct cast_type to)`.
+#[cfg (all (feature = "have_native_comp",
+	    not (feature = "libgccjit_have_gcc_jit_context_new_bitcast")))]
+unsafe fn define_cast_from_to (from: cast_type, to: cast_type) -> *mut gcc_jit_function
+{
+  let name: *mut c_char = format_string (c"cast_from_%s_to_%s".as_ptr (), from.name, to.name);
+  let param: *mut gcc_jit_param = gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (),
+						    from.r#type, c"arg".as_ptr ());
+  let result: *mut gcc_jit_function
+    = gcc_jit_context_new_function (comp.ctxt,
+				    std::ptr::null_mut (),
+				    GCC_JIT_FUNCTION_INTERNAL,
+				    to.r#type, name,
+				    1, &raw const param as *mut *mut gcc_jit_param, 0);
+  let mut entry_block: *mut gcc_jit_block =
+    gcc_jit_function_new_block (result, c"entry_block".as_ptr ());
+
+  let mut tmp: *mut gcc_jit_rvalue = gcc_jit_param_as_rvalue (param);
+  if from.is_ptr != to.is_ptr
+    {
+      if from.is_ptr
+	{
+	  tmp = gcc_jit_context_new_cast (comp.ctxt, std::ptr::null_mut (),
+					  tmp, comp.void_ptr_type);
+	  tmp = gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
+					  comp.cast_ptr_to_int, 1,
+					  &raw mut tmp as *mut *mut gcc_jit_rvalue);
+	}
+      else
+	{
+	  tmp = gcc_jit_context_new_cast (comp.ctxt, std::ptr::null_mut (),
+					  tmp, comp.uintptr_type);
+	  tmp = gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
+					  comp.cast_int_to_ptr, 1,
+					  &raw mut tmp as *mut *mut gcc_jit_rvalue);
+	}
+    }
+
+  tmp = gcc_jit_context_new_cast (comp.ctxt, std::ptr::null_mut (), tmp, to.r#type);
+
+  gcc_jit_block_end_with_return (entry_block, std::ptr::null_mut (), tmp);
+
+  return result;
+}
+
+/// C 3448-3505: `static void define_cast_functions (void)`.  C's `struct cast_type
+/// cast_types[NUM_CAST_TYPES]` initialiser is a constant table here; the two loops fill
+/// `comp.cast_types` and the `cast_functions_from_to` matrix as C's do.
+#[cfg (all (feature = "have_native_comp",
+	    not (feature = "libgccjit_have_gcc_jit_context_new_bitcast")))]
+unsafe fn define_cast_functions ()
+{
+  let cast_types: [cast_type; NUM_CAST_TYPES]
+    = [ cast_type { r#type: comp.bool_type, name: c"bool".as_ptr (), is_ptr: false },
+        cast_type { r#type: comp.char_ptr_type, name: c"char_ptr".as_ptr (), is_ptr: true },
+        cast_type { r#type: comp.int_type, name: c"int".as_ptr (), is_ptr: false },
+        cast_type { r#type: comp.lisp_cons_ptr_type, name: c"lisp_cons_ptr".as_ptr (),
+		    is_ptr: true },
+        cast_type { r#type: comp.lisp_obj_ptr_type, name: c"lisp_obj_ptr".as_ptr (),
+		    is_ptr: true },
+        cast_type { r#type: comp.lisp_word_tag_type, name: c"lisp_word_tag".as_ptr (),
+		    is_ptr: false },
+        cast_type { r#type: comp.lisp_word_type, name: c"lisp_word".as_ptr (),
+		    is_ptr: LISP_WORDS_ARE_POINTERS },
+        cast_type { r#type: comp.long_long_type, name: c"long_long".as_ptr (), is_ptr: false },
+        cast_type { r#type: comp.long_type, name: c"long".as_ptr (), is_ptr: false },
+        cast_type { r#type: comp.ptrdiff_type, name: c"ptrdiff".as_ptr (), is_ptr: false },
+        cast_type { r#type: comp.uintptr_type, name: c"uintptr".as_ptr (), is_ptr: false },
+        cast_type { r#type: comp.unsigned_long_long_type, name: c"unsigned_long_long".as_ptr (),
+		    is_ptr: false },
+        cast_type { r#type: comp.unsigned_long_type, name: c"unsigned_long".as_ptr (),
+		    is_ptr: false },
+        cast_type { r#type: comp.unsigned_type, name: c"unsigned".as_ptr (), is_ptr: false },
+        cast_type { r#type: comp.void_ptr_type, name: c"void_ptr".as_ptr (), is_ptr: true } ];
+  let mut cast_union_fields: [*mut gcc_jit_field; 2] = [std::ptr::null_mut (); 2];
+
+  /* Define the union used for type punning.  */
+  cast_union_fields[0] = gcc_jit_context_new_field (comp.ctxt,
+						    std::ptr::null_mut (),
+						    comp.void_ptr_type,
+						    c"void_ptr".as_ptr ());
+  cast_union_fields[1] = gcc_jit_context_new_field (comp.ctxt,
+						    std::ptr::null_mut (),
+						    comp.uintptr_type,
+						    c"uintptr".as_ptr ());
+
+  comp.cast_union_type
+    = gcc_jit_context_new_union_type (comp.ctxt,
+				      std::ptr::null_mut (),
+				      c"cast_union".as_ptr (),
+				      2, cast_union_fields.as_ptr () as *mut *mut gcc_jit_field);
+
+  comp.cast_ptr_to_int = define_type_punning (c"cast_pointer_to_uintptr_t".as_ptr (),
+					      comp.void_ptr_type,
+					      cast_union_fields[0],
+					      comp.uintptr_type,
+					      cast_union_fields[1]);
+  comp.cast_int_to_ptr = define_type_punning (c"cast_uintptr_t_to_pointer".as_ptr (),
+					      comp.uintptr_type,
+					      cast_union_fields[1],
+					      comp.void_ptr_type,
+					      cast_union_fields[0]);
+
+
+  let mut i: usize = 0;
+  while i < NUM_CAST_TYPES
+    {
+      comp.cast_types[i] = cast_types[i].r#type;
+      i += 1;
+    }
+
+  /* Define the cast functions using a matrix.  */
+  let mut i: usize = 0;
+  while i < NUM_CAST_TYPES
+    {
+      let mut j: usize = 0;
+      while j < NUM_CAST_TYPES
+        {
+          comp.cast_functions_from_to[i][j] =
+            define_cast_from_to (cast_types[i], cast_types[j]);
+          j += 1;
+        }
+      i += 1;
+    }
+}
+
 /// C 3317-3360: `static void define_thread_state_struct (void)`.
 #[cfg(feature = "have_native_comp")]
 unsafe fn define_thread_state_struct ()
@@ -2651,27 +3120,27 @@ pub type Llisp_emitter = unsafe extern "C" fn (Lisp_Object) -> *mut gcc_jit_rval
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_mvar_rval (mvar: Lisp_Object) -> *mut gcc_jit_rvalue
 {
-  let const_vld: Lisp_Object = CALLNI! (c"comp-cstr-imm-vld-p".as_ptr (), mvar);
+  let const_vld: Lisp_Object = CALLNI! ("comp-cstr-imm-vld-p", mvar);
 
   if ! NILP (const_vld)
     {
-      let value: Lisp_Object = CALLNI! (c"comp-cstr-imm".as_ptr (), mvar);
+      let value: Lisp_Object = CALLNI! ("comp-cstr-imm", mvar);
       if NILP (Fgethash (value,
-			  CALLNI! (c"comp-ctxt-non-materializable-objs-h".as_ptr (), Vcomp_ctxt),
+			  CALLNI! ("comp-ctxt-non-materializable-objs-h", Vcomp_ctxt),
 			  Qnil ()))
 	{
 	  if comp.debug > 1
 	    {
 	      let func: Lisp_Object =
 		Fgethash (value,
-			  CALLNI! (c"comp-ctxt-byte-func-to-func-h".as_ptr (), Vcomp_ctxt),
+			  CALLNI! ("comp-ctxt-byte-func-to-func-h", Vcomp_ctxt),
 			  Qnil ());
 
 	      emit_comment (
 	        SSDATA (
 		  Fprin1_to_string (
 		    if NILP (func) { value }
-		    else { CALLNI! (c"comp-func-c-name".as_ptr (), func) },
+		    else { CALLNI! ("comp-func-c-name", func) },
 		    Qnil (), Qnil ())));
 	    }
 	  if FIXNUMP (value)
@@ -2749,7 +3218,7 @@ unsafe fn emit_limple_call_ref (insn: Lisp_Object, direct: bool) -> *mut gcc_jit
     {
       /* FIXME: See bug#42360.  */
       let first_arg: Lisp_Object = SECOND! (insn);
-      let first_slot: EMACS_INT = XFIXNUM (CALLNI! (c"comp-mvar-slot".as_ptr (), first_arg));
+      let first_slot: EMACS_INT = XFIXNUM (CALLNI! ("comp-mvar-slot", first_arg));
       return emit_call_ref (callee, nargs, *comp.frame.offset (first_slot as isize), direct);
     }
 
@@ -2890,10 +3359,10 @@ unsafe fn emit_limple_insn (insn: Lisp_Object)
       let target1: *mut gcc_jit_block = retrieve_block (arg[2]);
       let target2: *mut gcc_jit_block = retrieve_block (arg[3]);
 
-      if (! NILP (CALLNI! (c"comp-cstr-imm-vld-p".as_ptr (), arg[0]))
-	   && NILP (CALLNI! (c"comp-cstr-imm".as_ptr (), arg[0])))
-	  || (! NILP (CALLNI! (c"comp-cstr-imm-vld-p".as_ptr (), arg[1]))
-	      && NILP (CALLNI! (c"comp-cstr-imm".as_ptr (), arg[1])))
+      if (! NILP (CALLNI! ("comp-cstr-imm-vld-p", arg[0]))
+	   && NILP (CALLNI! ("comp-cstr-imm", arg[0])))
+	  || (! NILP (CALLNI! ("comp-cstr-imm-vld-p", arg[1]))
+	      && NILP (CALLNI! ("comp-cstr-imm", arg[1])))
 	{ emit_cond_jump (emit_BASE_EQ (a, b), target1, target2); }
       else
 	{ emit_cond_jump (emit_EQ (a, b), target1, target2); }
@@ -3080,7 +3549,7 @@ unsafe fn emit_limple_insn (insn: Lisp_Object)
         C: local[2] = list (nargs - 2, args);
       */
 
-      let slot_n: EMACS_INT = XFIXNUM (CALLNI! (c"comp-mvar-slot".as_ptr (), arg[0]));
+      let slot_n: EMACS_INT = XFIXNUM (CALLNI! ("comp-mvar-slot", arg[0]));
       eassert! (slot_n < INT_MAX as EMACS_INT);
       let n: *mut gcc_jit_rvalue =
 	gcc_jit_context_new_rvalue_from_int (comp.ctxt,
@@ -3169,7 +3638,7 @@ unsafe fn emit_call_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Obje
 {
   let hint_match: bool =
     comp.func_safety == 0
-    && ! NILP (CALLNI! (c"comp-mvar-type-hint-match-p".as_ptr (), SECOND! (insn), type_));
+    && ! NILP (CALLNI! ("comp-mvar-type-hint-match-p", SECOND! (insn), type_));
   let args: [*mut gcc_jit_rvalue; 2] =
     [ emit_mvar_rval (SECOND! (insn)),
       gcc_jit_context_new_rvalue_from_int (comp.ctxt,
@@ -3189,7 +3658,7 @@ unsafe fn emit_call2_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Obj
 {
   let hint_match: bool =
     comp.func_safety == 0
-    && ! NILP (CALLNI! (c"comp-mvar-type-hint-match-p".as_ptr (), SECOND! (insn), type_));
+    && ! NILP (CALLNI! ("comp-mvar-type-hint-match-p", SECOND! (insn), type_));
   let args: [*mut gcc_jit_rvalue; 3] =
     [ emit_mvar_rval (SECOND! (insn)),
       emit_mvar_rval (THIRD! (insn)),
@@ -3515,12 +3984,12 @@ unsafe fn declare_imported_data ()
 {
   /* Imported objects.  */
   comp.data_relocs =
-    declare_imported_data_relocs (CALLNI! (c"comp-ctxt-d-default".as_ptr (), Vcomp_ctxt),
+    declare_imported_data_relocs (CALLNI! ("comp-ctxt-d-default", Vcomp_ctxt),
 				  DATA_RELOC_SYM,
 				  DATA_RELOC_ADDR_SYM,
 				  TEXT_DATA_RELOC_SYM);
   comp.data_relocs_ephemeral =
-    declare_imported_data_relocs (CALLNI! (c"comp-ctxt-d-ephemeral".as_ptr (), Vcomp_ctxt),
+    declare_imported_data_relocs (CALLNI! ("comp-ctxt-d-ephemeral", Vcomp_ctxt),
 				  DATA_RELOC_EPHEMERAL_SYM,
 				  DATA_RELOC_EPHEMERAL_ADDR_SYM,
 				  TEXT_DATA_RELOC_EPHEMERAL_SYM);
@@ -3629,7 +4098,7 @@ unsafe fn emit_ctxt_code ()
 			     opt_qly.as_ptr () as *mut Lisp_Object));
 
   emit_static_object (TEXT_FDOC_SYM,
-		      CALLNI! (c"comp-ctxt-function-docs".as_ptr (), Vcomp_ctxt));
+		      CALLNI! ("comp-ctxt-function-docs", Vcomp_ctxt));
 
   comp.current_thread_ref =
     gcc_jit_lvalue_as_rvalue (
@@ -3718,9 +4187,9 @@ unsafe fn declare_imported_data_relocs (container: Lisp_Object,
 {
   /* Imported objects.  */
   let len: EMACS_INT =
-    XFIXNUM (CALLNI! (c"hash-table-count".as_ptr (),
-		     CALLNI! (c"comp-data-container-idx".as_ptr (), container)));
-  let mut d_reloc: Lisp_Object = CALLNI! (c"comp-data-container-l".as_ptr (), container);
+    XFIXNUM (CALLNI! ("hash-table-count",
+		     CALLNI! ("comp-data-container-idx", container)));
+  let mut d_reloc: Lisp_Object = CALLNI! ("comp-data-container-l", container);
   d_reloc = Fvconcat (1, &raw mut d_reloc);
 
   emit_static_object (text_symbol, d_reloc);
