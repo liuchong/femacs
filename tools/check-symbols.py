@@ -35,7 +35,12 @@ RUST_NOISE = re.compile(r'^(__R|_R|_ZN)')
 # The port keeps the definitions in `mini-gmp.rs` (the includee) and the includer is the
 # §3.25 empty unit, so the comparison has to follow the same edge: the port half of
 # `lib/mini-gmp-gnulib` is `build/femacs/mini-gmp.o`.
-ALIASES = {"lib/mini-gmp-gnulib": "lib/mini-gmp"}
+# A C translation unit may `#include` another `.c` and become one object: `lib/regex.c` pulls in
+# `regcomp.c`, `regexec.c` and `regex_internal.c` (gnulib's arrangement), so the port keeps the four
+# as separate units and the symbols of the includers' objects are what the reference object carries
+# (status 4.736).  The value is the list of port stems whose symbols stand for the C object.
+ALIASES = {"lib/mini-gmp-gnulib": ["lib/mini-gmp"],
+           "lib/regex": ["lib/regex", "lib/regcomp", "lib/regexec", "lib/regex_internal"]}
 
 # The port's one systematic symbol deviation from C (docs/status.md 3.29 and 3.60): C keeps a
 # `DEFVAR_*` variable's storage inside the single `globals` object (`globals.f_<name>`,
@@ -135,13 +140,16 @@ def main() -> int:
         # flat `build/femacs/<stem>.o` build-tu writes.
         rel = os.path.relpath(rs, femacs_dir)[:-3].replace(os.sep, "/")
         stem = os.path.basename(rel)
-        mine_stem = ALIASES.get(f"{a.dir}/{rel}", f"{a.dir}/{rel}").split("/")[-1]
-        mine = f"{ROOT}/build/femacs/{mine_stem}.o"
+        stems = ALIASES.get(f"{a.dir}/{rel}", [f"{a.dir}/{rel}"])
+        mines = [f"{ROOT}/build/femacs/{st.split('/')[-1]}.o" for st in stems]
         ref = f"{ROOT}/build/emacs-ref/{a.dir}/{rel}.o"
-        if not (os.path.exists(mine) and os.path.exists(ref)):
+        if not (all(os.path.exists(m) for m in mines) and os.path.exists(ref)):
             continue
         compared += 1
-        me, _ = syms(mine)
+        me: set[str] = set()
+        for m in mines:
+            got, _ = syms(m)
+            me |= got
         re_, _ = syms(ref)
         allowed = (defvar_carriers(a.dir, stem) | {f"_{n}" for n in PORT_ONLY}) & me
         p17 = P17 & re_
