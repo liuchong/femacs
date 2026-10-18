@@ -2803,6 +2803,154 @@ unsafe fn emit_limple_insn (insn: Lisp_Object)
 }
 
 /* Inliners.  (C 2524-2526's banner, kept where C has it.)  */
+/// C 2528-2542: `static gcc_jit_rvalue *emit_call_with_type_hint (gcc_jit_function *func,
+/// Lisp_Object insn, Lisp_Object type)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_call_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Object,
+				    type_: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  let hint_match: bool =
+    comp.func_safety == 0
+    && ! NILP (CALLNI! (c"comp-mvar-type-hint-match-p".as_ptr (), SECOND! (insn), type_));
+  let args: [*mut gcc_jit_rvalue; 2] =
+    [ emit_mvar_rval (SECOND! (insn)),
+      gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					   comp.bool_type,
+					   hint_match as c_int) ];
+
+  return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (), func, 2,
+				   args.as_ptr () as *mut *mut gcc_jit_rvalue);
+}
+
+/* Same as before but with two args. The type hint is on the 2th.  */
+/// C 2545-2560: `static gcc_jit_rvalue *emit_call2_with_type_hint (gcc_jit_function *func,
+/// Lisp_Object insn, Lisp_Object type)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_call2_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Object,
+				     type_: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  let hint_match: bool =
+    comp.func_safety == 0
+    && ! NILP (CALLNI! (c"comp-mvar-type-hint-match-p".as_ptr (), SECOND! (insn), type_));
+  let args: [*mut gcc_jit_rvalue; 3] =
+    [ emit_mvar_rval (SECOND! (insn)),
+      emit_mvar_rval (THIRD! (insn)),
+      gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					   comp.bool_type,
+					   hint_match as c_int) ];
+
+  return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (), func, 3,
+				   args.as_ptr () as *mut *mut gcc_jit_rvalue);
+}
+
+/// C 2563-2567: `static gcc_jit_rvalue *emit_add1 (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_add1 (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return emit_call_with_type_hint (comp.add1, insn, Qfixnum ());
+}
+
+/// C 2569-2573: `static gcc_jit_rvalue *emit_sub1 (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_sub1 (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return emit_call_with_type_hint (comp.sub1, insn, Qfixnum ());
+}
+
+/// C 2575-2579: `static gcc_jit_rvalue *emit_negate (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_negate (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return emit_call_with_type_hint (comp.negate, insn, Qfixnum ());
+}
+
+/// C 2581-2591: `static gcc_jit_rvalue *emit_consp (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_consp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  let x: *mut gcc_jit_rvalue = emit_mvar_rval (SECOND! (insn));
+  let mut res: *mut gcc_jit_rvalue = emit_coerce (comp.bool_type,
+						  emit_CONSP (x));
+  return gcc_jit_context_new_call (comp.ctxt,
+				   std::ptr::null_mut (),
+				   comp.bool_to_lisp_obj,
+				   1, &raw mut res);
+}
+
+/// C 2593-2605: `static gcc_jit_rvalue *emit_eq (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_eq (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  let x: *mut gcc_jit_rvalue = emit_mvar_rval (SECOND! (insn));
+  let y: *mut gcc_jit_rvalue = emit_mvar_rval (THIRD! (insn));
+  let mut res: *mut gcc_jit_rvalue = emit_EQ (x, y);
+  res = emit_coerce (comp.bool_type, res);
+  return gcc_jit_context_new_call (comp.ctxt,
+                                   std::ptr::null_mut (),
+                                   comp.bool_to_lisp_obj,
+                                   1,
+                                   &raw mut res);
+}
+
+/// C 2608-2612: `static gcc_jit_rvalue *emit_car (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_car (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return emit_call_with_type_hint (comp.car, insn, Qcons ());
+}
+
+/// C 2614-2618: `static gcc_jit_rvalue *emit_cdr (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_cdr (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return emit_call_with_type_hint (comp.cdr, insn, Qcons ());
+}
+
+/// C 2620-2624: `static gcc_jit_rvalue *emit_setcar (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_setcar (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return emit_call2_with_type_hint (comp.setcar, insn, Qcons ());
+}
+
+/// C 2626-2630: `static gcc_jit_rvalue *emit_setcdr (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_setcdr (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return emit_call2_with_type_hint (comp.setcdr, insn, Qcons ());
+}
+
+/// C 2632-2639: `static gcc_jit_rvalue *emit_numperp (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_numperp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  let x: *mut gcc_jit_rvalue = emit_mvar_rval (SECOND! (insn));
+  let mut res: *mut gcc_jit_rvalue = emit_NUMBERP (x);
+  return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
+				   comp.bool_to_lisp_obj, 1,
+				   &raw mut res);
+}
+
+/// C 2641-2648: `static gcc_jit_rvalue *emit_integerp (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_integerp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  let x: *mut gcc_jit_rvalue = emit_mvar_rval (SECOND! (insn));
+  let mut res: *mut gcc_jit_rvalue = emit_INTEGERP (x);
+  return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
+				   comp.bool_to_lisp_obj, 1,
+				   &raw mut res);
+}
+
+/// C 2650-2655: `static gcc_jit_rvalue *emit_maybe_gc_or_quit (Lisp_Object insn)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_maybe_gc_or_quit (insn: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
+				   comp.maybe_gc_or_quit, 0,
+				   std::ptr::null_mut ());
+}
+
 
 /* Register an handler for a non local exit.  */
 
