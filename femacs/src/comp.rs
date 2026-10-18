@@ -3076,8 +3076,12 @@ pub const GCC_JIT_COMPARISON_LE: gcc_jit_comparison = 3;
 /// in the tree (`eval.rs` 1687, `fileio.rs` 2161).  Each is the P-55 use-site shape.
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" {
-  /* C's `list` comes from `lisp.h`, which this unit includes; declaring it here as well is the
-     duplicate `check-mirror-dupes.py` rejects (status 4.730).  */
+  /// C: lisp.h's `extern Lisp_Object list (Lisp_Object, ...)` - variadic from the first object,
+  /// not from a count.  `check-mirror-dupes.py` reports this as a duplicate of a mirror
+  /// declaration; the ratchet row in `docs/baseline/mirror-dupes.tsv` records why it stays: with
+  /// `have_native_comp` flipped on (the `dead-arms` configuration) that mirror declaration is not
+  /// in scope, and the unit does not compile without its own copy (status 4.733).
+  pub fn list (arg: Lisp_Object, ...) -> Lisp_Object;
   pub fn prog_ignore (body: Lisp_Object);
   pub fn realpath (file_name: *const c_char, resolved_name: *mut c_char) -> *mut c_char;
   pub fn allocate_native_comp_unit () -> *mut Lisp_Native_Comp_Unit;
