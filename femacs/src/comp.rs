@@ -1425,6 +1425,24 @@ unsafe extern "C" {
                                        return_type: *mut gcc_jit_type, name: *const c_char,
                                        num_params: c_int, params: *mut *mut gcc_jit_param,
                                        is_variadic: c_int) -> *mut gcc_jit_function;
+  /// C: libgccjit.h 794-795: `gcc_jit_lvalue *gcc_jit_param_as_lvalue (gcc_jit_param *param);`
+  pub fn gcc_jit_param_as_lvalue (param: *mut gcc_jit_param) -> *mut gcc_jit_lvalue;
+  /// C: libgccjit.h 798-799: `gcc_jit_rvalue *gcc_jit_param_as_rvalue (gcc_jit_param *param);`
+  pub fn gcc_jit_param_as_rvalue (param: *mut gcc_jit_param) -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 861-862: `gcc_jit_param *gcc_jit_function_get_param (gcc_jit_function *func,
+  /// int index);`
+  pub fn gcc_jit_function_get_param (func: *mut gcc_jit_function, index: c_int)
+    -> *mut gcc_jit_param;
+  /// C: libgccjit.h 464-465: `const char *gcc_jit_context_get_first_error (gcc_jit_context *ctxt);`
+  pub fn gcc_jit_context_get_first_error (ctxt: *mut gcc_jit_context) -> *const c_char;
+  /// C: libgccjit.h 1590-1593: `void gcc_jit_block_end_with_jump (gcc_jit_block *block,
+  /// gcc_jit_location *loc, gcc_jit_block *target);`
+  pub fn gcc_jit_block_end_with_jump (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
+                                      target: *mut gcc_jit_block);
+  /// C: libgccjit.h 1597-1601: `void gcc_jit_block_end_with_return (gcc_jit_block *block,
+  /// gcc_jit_location *loc, gcc_jit_rvalue *rvalue);`
+  pub fn gcc_jit_block_end_with_return (block: *mut gcc_jit_block, loc: *mut gcc_jit_location,
+                                        rvalue: *mut gcc_jit_rvalue);
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -1502,6 +1520,9 @@ pub type gcc_jit_comparison = c_uint;
 /// C: libgccjit.h 1288: `GCC_JIT_COMPARISON_EQ,`
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_COMPARISON_EQ: gcc_jit_comparison = 0;
+/// C: libgccjit.h 1297: `GCC_JIT_COMPARISON_LE,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_COMPARISON_LE: gcc_jit_comparison = 3;
 
 /// `fatal` is `sysdep.c` 2399's non-`static` definition; C declares it where it is used, and the
 /// units that call it carry the variadic declaration themselves (`eval.rs` 100, `androidterm.rs`
@@ -2476,6 +2497,312 @@ unsafe fn emit_setjmp (buf: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 				     args.as_ptr () as *mut *mut gcc_jit_rvalue);
   }
 }
+
+/// C 2224-2521: `static void emit_limple_insn (Lisp_Object insn)`.  C's `Lisp_Object arg[6]` is a
+/// six-slot stack array the `FOR_EACH_TAIL` below fills, and `res` is declared before the dispatch
+/// (only the `set` arm writes and reads it, as in C).
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_limple_insn (insn: Lisp_Object)
+{
+  let op: Lisp_Object = XCAR (insn);
+  let args: Lisp_Object = XCDR (insn);
+  let mut res: *mut gcc_jit_rvalue;
+  let mut arg: [Lisp_Object; 6] = [Qnil (); 6];
+
+  let mut p: Lisp_Object = XCDR (insn);
+  let mut i: ptrdiff_t = 0;
+  FOR_EACH_TAIL! (p, {
+      if i == countof! (arg) as ptrdiff_t
+	{ break; }
+      arg[i as usize] = XCAR (p);
+      i += 1;
+    });
+
+  if EQ (op, Qjump ())
+    {
+      /* Unconditional branch.  */
+      let target: *mut gcc_jit_block = retrieve_block (arg[0]);
+      gcc_jit_block_end_with_jump (comp.block, std::ptr::null_mut (), target);
+    }
+  else if EQ (op, Qcond_jump ())
+    {
+      /* Conditional branch.  */
+      let a: *mut gcc_jit_rvalue = emit_mvar_rval (arg[0]);
+      let b: *mut gcc_jit_rvalue = emit_mvar_rval (arg[1]);
+      let target1: *mut gcc_jit_block = retrieve_block (arg[2]);
+      let target2: *mut gcc_jit_block = retrieve_block (arg[3]);
+
+      if (! NILP (CALLNI! (c"comp-cstr-imm-vld-p".as_ptr (), arg[0]))
+	   && NILP (CALLNI! (c"comp-cstr-imm".as_ptr (), arg[0])))
+	  || (! NILP (CALLNI! (c"comp-cstr-imm-vld-p".as_ptr (), arg[1]))
+	      && NILP (CALLNI! (c"comp-cstr-imm".as_ptr (), arg[1])))
+	{ emit_cond_jump (emit_BASE_EQ (a, b), target1, target2); }
+      else
+	{ emit_cond_jump (emit_EQ (a, b), target1, target2); }
+    }
+  else if EQ (op, Qcond_jump_narg_leq ())
+    {
+      /*
+	 Limple: (cond-jump-narg-less 2 entry_2 entry_fallback_2)
+	 C: if (nargs < 2) goto entry2_fallback; else goto entry_2;
+      */
+      let nargs: *mut gcc_jit_lvalue =
+	gcc_jit_param_as_lvalue (gcc_jit_function_get_param (comp.func, 0));
+      eassert! (XFIXNUM (arg[0]) < INT_MAX as EMACS_INT);
+      let n: *mut gcc_jit_rvalue =
+	gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					     comp.ptrdiff_type,
+					     XFIXNUM (arg[0]) as c_int);
+      let target1: *mut gcc_jit_block = retrieve_block (arg[1]);
+      let target2: *mut gcc_jit_block = retrieve_block (arg[2]);
+      let test: *mut gcc_jit_rvalue = gcc_jit_context_new_comparison (
+			       comp.ctxt,
+			       std::ptr::null_mut (),
+			       GCC_JIT_COMPARISON_LE,
+			       gcc_jit_lvalue_as_rvalue (nargs),
+			       n);
+      emit_cond_jump (test, target1, target2);
+    }
+  else if EQ (op, Qphi ()) || EQ (op, Qassume ())
+    {
+      /* Nothing to do for phis or assumes in the backend.  */
+    }
+  else if EQ (op, Qpush_handler ())
+    {
+      /* (push-handler condition-case #s(comp-mvar 0 3 t (arith-error) cons nil) 1 bb_2 bb_1) 
+      int h_num UNINIT; */
+      let handler_spec: Lisp_Object = arg[0];
+      let handler: *mut gcc_jit_rvalue = emit_mvar_rval (arg[1]);
+      let mut h_num: handlertype;
+      if EQ (handler_spec, Qcatcher ())
+	{ h_num = CATCHER; }
+      else if EQ (handler_spec, Qcondition_case ())
+	{ h_num = CONDITION_CASE; }
+      else
+	{ xsignal2 (Qnative_ice (), build_string (c"incoherent insn".as_ptr ()), insn); }
+      let handler_type: *mut gcc_jit_rvalue =
+	gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					     comp.int_type,
+					     h_num);
+      let handler_bb: *mut gcc_jit_block = retrieve_block (arg[2]);
+      let guarded_bb: *mut gcc_jit_block = retrieve_block (arg[3]);
+      emit_limple_push_handler (handler, handler_type, handler_bb, guarded_bb,
+				arg[0]);
+    }
+  else if EQ (op, Qpop_handler ())
+    {
+      /*
+	C: current_thread->m_handlerlist =
+	     current_thread->m_handlerlist->next;
+      */
+      let m_handlerlist: *mut gcc_jit_lvalue =
+	gcc_jit_rvalue_dereference_field (
+	  gcc_jit_lvalue_as_rvalue (
+	    gcc_jit_rvalue_dereference (comp.current_thread_ref, std::ptr::null_mut ())),
+	  std::ptr::null_mut (),
+	  comp.m_handlerlist);
+
+      gcc_jit_block_add_assignment (
+	comp.block,
+	std::ptr::null_mut (),
+	m_handlerlist,
+	gcc_jit_lvalue_as_rvalue (
+	  gcc_jit_rvalue_dereference_field (
+	    gcc_jit_lvalue_as_rvalue (m_handlerlist),
+	    std::ptr::null_mut (),
+	    comp.handler_next_field)));
+
+    }
+  else if EQ (op, Qfetch_handler ())
+    {
+      let m_handlerlist: *mut gcc_jit_lvalue =
+	gcc_jit_rvalue_dereference_field (
+	  gcc_jit_lvalue_as_rvalue (
+	    gcc_jit_rvalue_dereference (comp.current_thread_ref, std::ptr::null_mut ())),
+	  std::ptr::null_mut (),
+	  comp.m_handlerlist);
+      gcc_jit_block_add_assignment (comp.block,
+				    std::ptr::null_mut (),
+				    comp.loc_handler,
+				    gcc_jit_lvalue_as_rvalue (m_handlerlist));
+
+      gcc_jit_block_add_assignment (
+	comp.block,
+	std::ptr::null_mut (),
+	m_handlerlist,
+	gcc_jit_lvalue_as_rvalue (
+	  gcc_jit_rvalue_dereference_field (
+	    gcc_jit_lvalue_as_rvalue (comp.loc_handler),
+	    std::ptr::null_mut (),
+	    comp.handler_next_field)));
+      emit_frame_assignment (
+	arg[0],
+	gcc_jit_lvalue_as_rvalue (
+	  gcc_jit_rvalue_dereference_field (
+	    gcc_jit_lvalue_as_rvalue (comp.loc_handler),
+	    std::ptr::null_mut (),
+	    comp.handler_val_field)));
+    }
+  else if EQ (op, Qcall ())
+    {
+      gcc_jit_block_add_eval (comp.block, std::ptr::null_mut (),
+			      emit_limple_call (args));
+    }
+  else if EQ (op, Qcallref ())
+    {
+      gcc_jit_block_add_eval (comp.block, std::ptr::null_mut (),
+			      emit_limple_call_ref (args, false));
+    }
+  else if EQ (op, Qdirect_call ())
+    {
+      gcc_jit_block_add_eval (
+        comp.block, std::ptr::null_mut (),
+	emit_simple_limple_call (XCDR (insn), comp.lisp_obj_type, true));
+    }
+  else if EQ (op, Qdirect_callref ())
+    {
+      gcc_jit_block_add_eval (comp.block, std::ptr::null_mut (),
+			      emit_limple_call_ref (XCDR (insn), true));
+    }
+  else if EQ (op, Qset ())
+    {
+      let arg1: Lisp_Object = arg[1];
+
+      if EQ (Fcl_type_of (arg1), Qcomp_mvar ())
+	{ res = emit_mvar_rval (arg1); }
+      else if EQ (FIRST! (arg1), Qcall ())
+	{ res = emit_limple_call (XCDR (arg1)); }
+      else if EQ (FIRST! (arg1), Qcallref ())
+	{ res = emit_limple_call_ref (XCDR (arg1), false); }
+      else if EQ (FIRST! (arg1), Qdirect_call ())
+	{ res = emit_simple_limple_call (XCDR (arg1), comp.lisp_obj_type, true); }
+      else if EQ (FIRST! (arg1), Qdirect_callref ())
+	{ res = emit_limple_call_ref (XCDR (arg1), true); }
+      else
+	{ xsignal2 (Qnative_ice (),
+		    build_string (c"LIMPLE inconsistent arg1 for insn".as_ptr ()),
+		    insn); }
+
+      if res.is_null ()
+	{ xsignal1 (Qnative_ice (),
+		    build_string (gcc_jit_context_get_first_error (comp.ctxt))); }
+
+      emit_frame_assignment (arg[0], res);
+    }
+  else if EQ (op, Qset_par_to_local ())
+    {
+      /* Ex: (set-par-to-local #s(comp-mvar 0 3 nil nil nil nil) 0).  */
+      let param_n: EMACS_INT = XFIXNUM (arg[1]);
+      eassert! (param_n < INT_MAX as EMACS_INT);
+      let param: *mut gcc_jit_rvalue =
+	gcc_jit_param_as_rvalue (gcc_jit_function_get_param (comp.func,
+							     param_n as c_int));
+      emit_frame_assignment (arg[0], param);
+    }
+  else if EQ (op, Qset_args_to_local ())
+    {
+      /*
+	Ex: (set-args-to-local #s(comp-mvar 1 6 nil nil nil nil))
+	C: local[1] = *args;
+      */
+      let gcc_args: *mut gcc_jit_rvalue =
+	gcc_jit_lvalue_as_rvalue (
+	  gcc_jit_param_as_lvalue (gcc_jit_function_get_param (comp.func, 1)));
+
+      let res: *mut gcc_jit_rvalue =
+	gcc_jit_lvalue_as_rvalue (gcc_jit_rvalue_dereference (gcc_args,
+							      std::ptr::null_mut ()));
+
+      emit_frame_assignment (arg[0], res);
+    }
+  else if EQ (op, Qset_rest_args_to_local ())
+    {
+      /*
+        Ex: (set-rest-args-to-local #s(comp-mvar 2 9 nil nil nil nil))
+        C: local[2] = list (nargs - 2, args);
+      */
+
+      let slot_n: EMACS_INT = XFIXNUM (CALLNI! (c"comp-mvar-slot".as_ptr (), arg[0]));
+      eassert! (slot_n < INT_MAX as EMACS_INT);
+      let n: *mut gcc_jit_rvalue =
+	gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					     comp.ptrdiff_type,
+					     slot_n as c_int);
+      let nargs: *mut gcc_jit_lvalue =
+	gcc_jit_param_as_lvalue (gcc_jit_function_get_param (comp.func, 0));
+      let args_: *mut gcc_jit_lvalue =
+	gcc_jit_param_as_lvalue (gcc_jit_function_get_param (comp.func, 1));
+
+      let list_args: [*mut gcc_jit_rvalue; 2] =
+	[ emit_binary_op (GCC_JIT_BINARY_OP_MINUS,
+			  comp.ptrdiff_type,
+			  gcc_jit_lvalue_as_rvalue (nargs),
+			  n),
+	  gcc_jit_lvalue_as_rvalue (args_) ];
+
+      res = emit_call (Qlist (), comp.lisp_obj_type, 2,
+		       list_args.as_ptr () as *mut *mut gcc_jit_rvalue, false);
+
+      emit_frame_assignment (arg[0], res);
+    }
+  else if EQ (op, Qinc_args ())
+    {
+      /*
+	Ex: (inc-args)
+	C: ++args;
+      */
+      let args_: *mut gcc_jit_lvalue =
+	gcc_jit_param_as_lvalue (gcc_jit_function_get_param (comp.func, 1));
+
+      gcc_jit_block_add_assignment (comp.block,
+				    std::ptr::null_mut (),
+				    args_,
+				    emit_ptr_arithmetic (
+				      gcc_jit_lvalue_as_rvalue (args_),
+				      comp.lisp_obj_ptr_type,
+				      core::mem::size_of::<Lisp_Object> () as c_int,
+				      comp.one));
+    }
+  else if EQ (op, Qsetimm ())
+    {
+      /* Ex: (setimm #s(comp-mvar 9 1 t 3 nil) a).  */
+      emit_comment (SSDATA (Fprin1_to_string (arg[1], Qnil (), Qnil ())));
+      let reloc: imm_reloc_t = obj_to_reloc (arg[1]);
+      emit_frame_assignment (
+	arg[0],
+	gcc_jit_lvalue_as_rvalue (
+	  gcc_jit_context_new_array_access (comp.ctxt,
+					    std::ptr::null_mut (),
+					    reloc.array.r_val,
+					    reloc.idx)));
+    }
+  else if EQ (op, Qcomment ())
+    {
+      /* Ex: (comment "Function: foo").  */
+      emit_comment (SSDATA (arg[0]));
+    }
+  else if EQ (op, Qreturn ())
+    {
+      gcc_jit_block_end_with_return (comp.block,
+				     std::ptr::null_mut (),
+				     emit_mvar_rval (arg[0]));
+    }
+  else if EQ (op, Qunreachable ())
+    {
+      /* Libgccjit has no __builtin_unreachable.  */
+      gcc_jit_block_end_with_return (comp.block,
+				     std::ptr::null_mut (),
+				     emit_lisp_obj_rval (Qnil ()));
+    }
+  else
+    {
+      xsignal2 (Qnative_ice (),
+		build_string (c"LIMPLE op inconsistent".as_ptr ()),
+		op);
+    }
+}
+
+/* Inliners.  (C 2524-2526's banner, kept where C has it.)  */
 
 /* Register an handler for a non local exit.  */
 
