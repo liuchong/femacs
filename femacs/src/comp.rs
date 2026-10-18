@@ -1249,6 +1249,100 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/// C 4704-4739: `static void add_driver_options (void)`.  Both gated arms are C's
+/// `#if defined (LIBGCCJIT_HAVE_gcc_jit_context_add_driver_option)`; the feature that names the
+/// macro is off in the frozen configuration, so the two `#endif` bodies are the live text and the
+/// whole block reduces to the two `CONSP` checks - carried exactly as C spells them.
+#[cfg (feature = "have_native_comp")]
+unsafe fn add_driver_options ()
+{
+  let mut options: Lisp_Object = Fsymbol_value (Qnative_comp_driver_options ());
+
+  #[cfg (feature = "libgccjit_have_gcc_jit_context_add_driver_option")]
+  {
+    load_gccjit_if_necessary (true);
+    if ! NILP (Fcomp_native_driver_options_effective_p ())
+      {
+	let mut options: Lisp_Object = options;
+	FOR_EACH_TAIL! (options, {
+	    gcc_jit_context_add_driver_option (comp.ctxt,
+					 /* FIXME: Need to encode
+					    this, but how? either
+					    ENCODE_FILE or
+					    ENCODE_SYSTEM.  */
+					 SSDATA (XCAR (options)));
+	  });
+      }
+  }
+  if CONSP (options)
+    { xsignal1 (Qnative_compiler_error (),
+	      build_string (c"Customizing native compiler options via `comp-native-driver-options' is only available on libgccjit version 9 and above.".as_ptr ())); }
+
+  /* Captured `comp-native-driver-options' because file-local.  */
+  #[cfg (feature = "libgccjit_have_gcc_jit_context_add_driver_option")]
+  {
+    options = comp.driver_options;
+    if ! NILP (Fcomp_native_driver_options_effective_p ())
+      {
+	let mut options: Lisp_Object = options;
+	FOR_EACH_TAIL! (options, {
+	    gcc_jit_context_add_driver_option (comp.ctxt,
+					 /* FIXME: Need to encode
+					    this, but how? either
+					    ENCODE_FILE or
+					    ENCODE_SYSTEM.  */
+					 SSDATA (XCAR (options)));
+	  });
+      }
+  }
+}
+
+/// C 4741-4776: `static void add_compiler_options (void)` - the same shape with the
+/// command-line-option macro.
+#[cfg (feature = "have_native_comp")]
+unsafe fn add_compiler_options ()
+{
+  let mut options: Lisp_Object = Fsymbol_value (Qnative_comp_compiler_options ());
+
+  #[cfg (feature = "libgccjit_have_gcc_jit_context_add_command_line_option")]
+  {
+    load_gccjit_if_necessary (true);
+    if ! NILP (Fcomp_native_compiler_options_effective_p ())
+      {
+	let mut options: Lisp_Object = options;
+	FOR_EACH_TAIL! (options, {
+	    gcc_jit_context_add_command_line_option (comp.ctxt,
+                                                 /* FIXME: Need to encode
+                                                    this, but how? either
+                                                    ENCODE_FILE or
+                                                    ENCODE_SYSTEM.  */
+                                                 SSDATA (XCAR (options)));
+	  });
+      }
+  }
+  if CONSP (options)
+    { xsignal1 (Qnative_compiler_error (),
+	      build_string (c"Customizing native compiler options via `comp-native-compiler-options' is only available on libgccjit version 9 and above.".as_ptr ())); }
+
+  /* Captured `comp-native-compiler-options' because file-local.  */
+  #[cfg (feature = "libgccjit_have_gcc_jit_context_add_command_line_option")]
+  {
+    options = comp.compiler_options;
+    if ! NILP (Fcomp_native_compiler_options_effective_p ())
+      {
+	let mut options: Lisp_Object = options;
+	FOR_EACH_TAIL! (options, {
+	    gcc_jit_context_add_command_line_option (comp.ctxt,
+                                               /* FIXME: Need to encode
+                                                  this, but how? either
+                                                  ENCODE_FILE or
+                                                  ENCODE_SYSTEM.  */
+                                               SSDATA (XCAR (options)));
+	  });
+      }
+  }
+}
+
 /// C 4472-4504: `DEFUN ("comp--install-trampoline", Fcomp__install_trampoline, …)`.
 #[cfg (feature = "have_native_comp")]
 DEFUN! ("comp--install-trampoline", Fcomp__install_trampoline,
