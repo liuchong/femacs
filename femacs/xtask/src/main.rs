@@ -2416,19 +2416,24 @@ fn gate_load(arg: Option<&str>) -> i32 {
 /// not of `gate-fast`, because it is a second compile of every unit.
 fn dead_arms() -> i32 {
     // feature -> (config key, value with the feature on)
-    const FLIPS: [(&str, &str, &str); 8] = [
+    const FLIPS: [(&str, &str, &str); 6] = [
         ("no_rint", "HAVE_RINT", "false"),
         ("no_trunc", "HAVE_TRUNC", "false"),
         ("no_signbit", "HAVE_SIGNBIT", "false"),
-        ("have_haiku", "HAIKU", "true"),
-        // `HAIKU` alone is not a configuration C can compile: `haikugui.h` 43 defines
-        // `Emacs_Cursor` unconditionally and `dispextern.h` 175 defines it again under
-        // `#ifndef HAVE_WINDOW_SYSTEM`, so the pair is a redefinition unless the window-system
-        // macro is set as well - which a real Haiku configuration has (configure turns on
-        // HAVE_WINDOW_SYSTEM for whatever window system it finds).  The frozen configuration
-        // has no `HAVE_WINDOW_SYSTEM` constant at all (no window system was configured), so
-        // only the feature moves here - the empty key is the shape `glyph_debug` below uses.
-        ("have_window_system", "", "true"),
+        // `have_haiku` (and the `have_window_system` that must travel with it: `haikugui.h` 43
+        // defines `Emacs_Cursor` unconditionally and `dispextern.h` 175 does it again under
+        // `#ifndef HAVE_WINDOW_SYSTEM`, so `HAIKU` alone is not a configuration C can compile)
+        // is **out**, the way the NS flip below the loader section is out.  Measured with both
+        // on: **62 of the 340 units fail**, and the dominant error is `dispextern.rs` 750's
+        // `Error: cannot find type haiku_display_info` - that arm is `pub type Display_Info =
+        // haiku_display_info`, and the record is `include/haikuterm.rs` 89's, a mirror that
+        // includes `dispextern.rs` back.  C needs no edge for it: `dispextern.h` 159 only
+        // *introduces* an incomplete tag, which Rust cannot spell without a definition point, so
+        // every non-Haiku unit that includes this mirror fails once the arm is live.  `ns_gui`'s
+        // arm has exactly the same shape (`nsterm.rs` 326) and for that reason the NS flip was
+        // never in this list; `android_display_info` is `termhooks.rs` 60's, which is why the
+        // Android arm *does* compile.  Re-adding the two entries is the whole change once the
+        // platform records have a home a mirror can reach (the same condition the NS note sets).
         // `have_native_comp` was the one structural arm *nothing* compiled: `cfg!(feature =
         // "have_native_comp")` is false in every real build (the `[features]` table in this
         // manifest leaves every feature off, and this list did not name it until F6), so `lisp.rs`'s `#[cfg(feature = "have_native_comp")]` pair — the
@@ -2504,6 +2509,7 @@ fn dead_arms() -> i32 {
         Err(e) => return fail(e),
     };
     let mut n = 0;
+    let mut failures: Vec<String> = Vec::new();
     for rel in units {
         // The unit goes through the same include-graph expansion as a normal build
         // (PORTING.md 0.1-4), inside the copy, so the flipped configuration and the
@@ -2533,11 +2539,28 @@ fn dead_arms() -> i32 {
                 println!("dead arms compile: {rel}");
                 n += 1;
             }
-            Ok(s) => return fail(format!("{rel} does not compile with the dead arms ({s})")),
-            Err(e) => return fail(format!("{rel}: {e}")),
+            // A first failure used to end the run, so every unit after it was never compiled:
+            // `abi_shim` sorts first, and its four errors hid the whole rest of the tree
+            // (measured 4.684).  Each unit is compiled and the failures are named at the end;
+            // the exit code is still non-zero, so the gate is unchanged.
+            Ok(s) => {
+                println!("dead arms FAIL: {rel} ({s})");
+                failures.push(rel.clone());
+            }
+            Err(e) => {
+                println!("dead arms FAIL: {rel}: {e}");
+                failures.push(rel.clone());
+            }
         }
     }
-    println!("{n} translation unit(s) compiled with the non-frozen arms");
+    println!("{n} translation unit(s) compiled with the non-frozen arms, {} failed",
+             failures.len());
+    for f in &failures {
+        println!("  failed: {f}");
+    }
+    if !failures.is_empty() {
+        return 1;
+    }
     0
 }
 

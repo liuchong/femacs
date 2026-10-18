@@ -1903,7 +1903,7 @@ unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
     let eln_rel_name: Lisp_Object = Fcomp_el_to_eln_rel_filename (src_name);
 
     let mut dir: Lisp_Object = Qnil ();
-    let eln_path_tail = eln_path_tail;
+    let mut eln_path_tail = eln_path_tail;   // C's `FOR_EACH_TAIL_SAFE` stepper assigns it
     FOR_EACH_TAIL_SAFE! (eln_path_tail, {
       dir = XCAR (eln_path_tail);
       let eln_name: Lisp_Object

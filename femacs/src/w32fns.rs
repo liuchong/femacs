@@ -849,8 +849,12 @@ static mut menu_free_timer: c_uint = 0;
    feature that names the non-frozen side (P-51; `glyph_debug` is registered and
    `xtask dead-arms`-flippable).  */
 /// C: #ifdef GLYPH_DEBUG / static int dpyinfo_refcount; / #endif
+/// `GLYPH_DEBUG` is not `HAVE_NTGUI`, so this item sits outside the gate that brings
+/// `lisp.rs` (and with it the `c_int` alias) into the unit: a unit that names a C type
+/// spells it from `core::ffi` itself rather than leaning on the includer's prelude, the
+/// rule the NS arms got from the same reading (status 3.91 (2)).
 #[cfg (feature = "glyph_debug")]
-static mut dpyinfo_refcount: c_int = 0;
+static mut dpyinfo_refcount: core::ffi::c_int = 0;
 
 #[cfg (feature = "have_ntgui")]
 static mut w32_visible_system_caret_hwnd: HWND = core::ptr::null_mut ();
