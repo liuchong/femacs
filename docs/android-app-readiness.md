@@ -1,52 +1,26 @@
-# Android「应用真正跑起来」的判据（2026-10-18，status 4.738）
+# Android「应用真正跑起来」的判据（2026-10-18，status 4.743）
 
-DoD-6 的"应用层"至今未断言。这一页把"要满足什么才算断言"写成三条可复跑的判据，
-并给出每条当前的读数与缺口。前两条属于代码/打包，第三条是待决的政策问题。
+DoD-6 的"应用层"至今未断言。这一页是它的验收表：每条判据、复跑命令、当前读数、状态。
+`tools/check-authorized-platforms.sh` 收尾时会用 `tools/android-readiness.py` 把这三行打出来
+（数字从 `docs/baseline/android-imports-pending.txt` 与 `docs/baseline/android-arms.tsv` 现算）。
 
-## 1. `libemacs.so` 能被 `dlopen`
+| # | 判据 | 复跑命令 | 当前读数（4.743） | 状态 |
+|---|---|---|---|---|
+| 1 | `libemacs.so` 能被 `dlopen`（未决导入归零） | `python3 tools/check-android-imports.py` | **71** 条未决、0 new；链接带 `-z now`（`llvm-readelf -d` 读到 `BIND_NOW`）⇒ 任一未决即不可加载 | ⛔ 未达 |
+| 2a | APK 带与 C 同构的 `assets/`（无 dump，Lisp 从这里读） | `bash tools/check-android-kotlin.sh --apk DIR --native libemacs.so --assets` | **4,360** 个成员、APK **48 MB**、含 `assets/directory-tree`（78,642 B）与 `versions`/`build_info` | ✅ 达成 |
+| 2b | 启动到 Lisp | `FEMACS_EMULATOR_BUDGET_OK=1 bash tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk /tmp/femacs-apk/emacs.apk` | 断言 `setEmacsParams` 的 `Initializing femacs …`、`EmacsThread` 的 `initEmacs`、无 linker/tombstone | ⛔ 未达（等 1） |
+| 3 | 40 条窗口系统臂的取舍 | `docs/decisions-needed.md` 问题 4 | A 维持 P-08 / B 无差别逐行写 / **C 按目标配置决定活/死（建议）** | ⏳ 待你决定 |
 
-**判据**：`python3 tools/check-android-imports.py` 的未决数 **归零**。
+## 为什么第 1 条必须是"归零"
 
-**为什么是归零而不是"更少"**：这个链接带 `-z now`（NDK 驱动的默认，实测 `llvm-readelf -d`
-读到 `BIND_NOW`），任何一条无人提供的导入都会让 `dlopen` 直接失败；工具会打印
+这个链接是 eager binding（`-z now`，NDK 驱动的默认）。懒绑定下少几个符号还能加载、只在调用时
+炸；eager 下任何一条无人提供的导入都会让 `dlopen` 直接失败 —— `check-android-imports.py` 会打印
 `binding eager (-z now): the library will not load`。
 
-**当前读数**：`359 导入 / 71 未决 / 0 new`。构成（`docs/decisions-needed.md` 附录）：
-40 条窗口系统臂（受问题 4 约束）、31 条上游/平台缺口（C 自己的构建里同样没有这些名字）。
+## assets 那一段复刻了 C 的什么
 
-## 2. 应用能启动到 Lisp
-
-**判据**：logcat 里出现 `setEmacsParams` 的 `Initializing femacs …` 行、`EmacsThread` 调
-`initEmacs` 的行，且没有 `UnsatisfiedLinkError`/`tombstone`（`tools/try-android-emulator.sh`
-已按这三条断言，退出码即结论）。
-
-**当前缺口（新发现，4.738）**：APK 里 **没有 `assets/`** ✗。C 的 `java/Makefile.in` 200-297
-把 `etc`/`lisp`/`info`/`bitmaps` 装进 `install_temp/assets/`，并对大文件做 gzip/大文件分包，
-因为 Android 上的 Emacs 从 `assets/` 读 Lisp（没有 dump 文件）。`unzip -l
-/tmp/femacs-apk/emacs.apk` 现在是 18 个成员、0 个 `assets/` ⇒ 即使 `.so` 能加载，也找不到
-Lisp，启动会在 `loadup` 之前失败。
-
-**要做的事（不需要政策决定）**：
-
-1. 打包 `assets/{etc,lisp,info,bitmaps}`，源就是仓库里逐字节一致的 `femacs/lisp`、`femacs/etc`、
-   `femacs/info`、`femacs/etc/images`（C 的 `install_temp` 规则 206-235 起）。
-2. 复刻 C 的压缩与大文件方案（236-297）：`aapt2` 不压缩已压缩资源，C 对 ≥1536 字节的 `.el`
-   做 `gzip -9n`、把超大文件与 `.gz` 打包进 `assets_raw/`、`assets_gz/`，由
-   `lib-src/asset-directory-tool` 生成 `directory-tree`。
-3. 打包后重跑第 2 条断言。
-
-## 3. 第 1 条里那 40 条窗口系统臂
-
-受 `docs/decisions-needed.md` 的问题 4 约束（A 维持 P-08 / B 无差别逐行写 / C 按目标配置
-决定活/死，建议 C）。这一条不解决，第 1 条不可能归零。
-
-## 进度（4.738）
-
-- 判据 1：未决 **71** 条，未达。
-- 判据 2 的第一半（`assets/` 存在且与 C 同构）：**达成** ✓（4.741）——
-  `tools/gen-android-assets.py` 复刻了 C 的 `install_temp` 全套：复制四棵树 + 垃圾过滤、
-  `gzip -9n` 1,557 个文件、`version`/`build_info`、以及用**端口自己的**
-  `build/port/lib-src/asset-directory-tool` 生成 `assets/directory-tree`（78,642 B）。
-  `tools/check-android-kotlin.sh --assets` 打进 APK ⇒ **4,360 个 `assets/` 成员、47 MB**。
-  C 的 `--api-8` 大文件分包按它的条件（`ANDROID_SDK_8_OR_EARLIER`）不适用，minSdk 21。
-- 判据 3：待问题 4。
+`java/Makefile.in` 200-297：复制 `lisp`/`etc`/`bitmaps`、去掉 `.gitignore`/`ChangeLog*` 一类垃圾、
+把 `.elc` ≥1536 字节对应的 `.el` 做 `gzip -9n`（1,557 个）、写 `assets/version` 与
+`assets/build_info`、用 `asset-directory-tool` 生成 `assets/directory-tree`。`--api-8` 的
+大文件分包只在 `ANDROID_SDK_8_OR_EARLIER` 时执行，本端口 minSdk 21 ⇒ 按 C 的条件不适用。
+`info/` 是 makeinfo 生成物，未建时跳过并打印说明。

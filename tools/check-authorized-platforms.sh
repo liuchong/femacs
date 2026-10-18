@@ -108,6 +108,9 @@ echo "== Android: emulator smoke =="
 # cap on its own (R38), so the emulator's ~2 GB fixed cost is inside the authorised budget and the
 # old E1/E2/E3 question is closed.  The step is still separate from this script's four legs because
 # it boots a device and takes minutes; `tools/try-android-emulator.sh` runs it.
+echo "== Android: what the application layer still needs =="
+python3 "$REPO/tools/android-readiness.py" | sed 's/^/   /'
+
 printf '  %-30s %s\n' "Android emulator smoke" \
   "FEMACS_EMULATOR_BUDGET_OK=1 sh tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk $APK_DIR/emacs.apk"
 printf '  %-30s %s\n' "  (through the executor)" \
