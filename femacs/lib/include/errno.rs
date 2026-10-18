@@ -8,13 +8,26 @@
 
 unsafe extern "C" {
   /// <errno.h>: the per-thread error number's address (`int *__error (void)`).
+  #[cfg (not (target_os = "android"))]
   pub fn __error () -> *mut c_int;
+  /// bionic's spelling of the same entry: `<errno.h>` 52 `int* __errno(void)` and 58
+  /// `#define errno (*__errno())` (status 4.728).
+  #[cfg (target_os = "android")]
+  pub fn __errno () -> *mut c_int;
 }
 
 /// <errno.h>'s `errno` on the frozen target: `#define errno (*__error ())`, so C's
 /// `errno = 0;` is the port's `*errno () = 0;` and C's `errno != 0` its `*errno () != 0`.
+/// Android's header spells the same macro over `__errno`, and a platform predicate is
+/// `target_os` (PORTING.md P-290).
 #[inline(always)]
-pub unsafe fn errno () -> *mut c_int { __error () }
+pub unsafe fn errno () -> *mut c_int
+{
+  #[cfg (not (target_os = "android"))]
+  { __error () }
+  #[cfg (target_os = "android")]
+  { __errno () }
+}
 
 /// <errno.h>: `#define EINVAL 22`.
 pub const EINVAL: c_int = 22;

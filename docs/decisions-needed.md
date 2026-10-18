@@ -155,7 +155,7 @@
 
 ---
 
-## 附录：Android 剩余 74 条未决导入的完整清单（2026-10-18，status 4.727）
+## 附录：Android 剩余 72 条未决导入的完整清单（2026-10-18，status 4.728）
 
 生成方式：`docs/baseline/android-imports-pending.txt`（未决名字）× `docs/baseline/android-arms.tsv`（每个名字的 C 定义位置与预处理条件）× `docs/baseline/config/android-arm64.json`（Android 配置的宏）。分类规则写在每节开头；这份清单的目的，是让"还要多久"与"需要你决定什么"都有据可查。
 
@@ -167,12 +167,12 @@ C 的定义在 `HAVE_WINDOW_SYSTEM`/`X`/`NS`/`PGTK`/`HAIKU`/`NTGUI`/`WINDOWSNT`/
 
 ### B. 上游/平台缺口（不需要决定，但也不是端口缺陷）（31 条）
 
-这些名字所在的 C 单元或守卫在 Android 配置下**编不过或链不上**：bionic 在 API 21 没有该符号（`posix_spawn*`、`getifaddrs`、`getloadavg`、`confstr`、`utmpx*` 等），或是 macOS 专有（`mach_*`、`proc_pid*`、`sysctl`、`renameatx_np`），或依赖头宏而配置未记录（`__error`、`stdin/stdout/stderr`）。处理方式是按 C 编排（保持相同导入、留在棘轮），证据见 `docs/status.md` 4.715/4.725。
+这些名字所在的 C 单元或守卫在 Android 配置下**编不过或链不上**：bionic 在 API 21 没有该符号（`posix_spawn*`、`getifaddrs`、`getloadavg`、`confstr`、`utmpx*` 等），或是 macOS 专有（`mach_*`、`proc_pid*`、`sysctl`、`renameatx_np`），或依赖头宏而配置未记录（`stdin`/`stdout`/`stderr`）。处理方式是按 C 编排（保持相同导入、留在棘轮），证据见`docs/status.md` 4.715/4.725。
 
 `backtrace`, `backtrace_symbols_fd`, `confstr`, `devname`, `endutxent`, `freeifaddrs`, `getifaddrs`, `getloadavg`, `getutxent`, `mach_timebase_info`, `mkostemp`, `posix_spawn`, `posix_spawn_file_actions_addchdir`, `posix_spawn_file_actions_adddup2`, `posix_spawn_file_actions_destroy`, `posix_spawn_file_actions_init`, `posix_spawnattr_destroy`, `posix_spawnattr_init`, `posix_spawnattr_setflags`, `posix_spawnattr_setsigdefault`, `posix_spawnattr_setsigmask`, `proc_pid_rusage`, `proc_pidinfo`, `proc_pidpath`, `renameatx_np`, `setutxent`, `stderr`, `stdin`, `stdout`, `sysctl`, `utmpxname`
 
-### C. 其它（逐条待判）（3 条）
+### C. 其它（逐条待判）（1 条）
 
-既不在窗口系统守卫下、也不属于上面两类：需要逐个看 C 的守卫与端口对应位置，多半是派生 cfg 名或配置未记录的宏。
+既不在窗口系统守卫下、也不属于上面两类：需要逐个看 C 的守卫与端口对应位置。
 
-`__darwin_check_fd_set_overflow`, `__error`, `timerfd_callback`
+`timerfd_callback`
