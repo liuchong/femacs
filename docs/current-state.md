@@ -38,10 +38,26 @@
 
 ## 已知红（不属完成定义八条，但每轮要知道）
 
-- **`xtask gate-probes` 红**（4.682 实测）：`spikes/lisp-abi-probe.sh` 的两条 `/// C:` 注解已改成生成器要的规范形，但 C 侧编译仍报
-  `mark_fringe_data`/`module_finalize_function` **未声明** —— 它们在 `include/lisp.rs` 的 `pub mod other_units` 里带
-  `#[cfg (all (have_window_system, have_android))]`，而**生成器不读 `#[cfg]`**，冻结配置的 C 头里没有这两个名字。修法：让生成器按冻结特性集过滤 `#[cfg]`
-  （工具改动，未做）。`gate-fast` **不包含** `gate-probes`（它只跑 `probe_programs()` 的 16 个 Rust 探针），所以这条红不会在 `gate-fast` 里现形，必须单独跑。
+- **`xtask gate-probes` 红，且已连续修掉两条前置原因（4.683 实测）**：`gate-probes` 比 `gate-fast` 多跑
+  `spikes/*-probe.sh`（含 `lisp-abi-probe`）与 `xtask dead-arms`。本轮修掉的是：① `spikes/lisp-abi-probe.sh` 的
+  `plist_get`/`get_keysym_name` 注解不是生成器要的规范形（已改）；② 生成器不读 `#[cfg]`，于是把冻结配置里**关着的**声明
+  （`mark_fringe_data`、`module_finalize_function`）也交给 clang 去解析（已改为按 `docs/baseline/config/darwin-arm64.json`
+  过滤，并把跳过的名字逐条打印）；③ 三个 P-05 端口侧名字（`sa_stack_alloc`/`sa_stack_mark`/`sa_stack_release_to`）
+  进了 `SKIP` 表，各带理由。`lisp-abi-probe` 现在通过（182 条）。
+  **剩下的红是 `dead-arms`，卡在 `src/comp.rs`**：翻转 `have_native_comp` 后，该臂报 **81 个 `E0425`（找不到类型）**
+  —— `gcc_jit_type`×30、`gcc_jit_function`×19、`gcc_jit_field`×12、`gcc_jit_rvalue`×8、`gcc_jit_struct`×5、
+  `gcc_jit_lvalue`×5、`gcc_jit_context`×1、`gcc_jit_block`×1，即 C 31 `#include <libgccjit.h>` 的类型一个都没声明
+  （P-88 要求这种第三方头的声明**写在单元自己里**，`decompress.rs`/`lcms.rs` 是已按此办理的两个先例）。`docs/ports/comp.md`
+  已把这条记录为 arm 的 `text-only` 读数（“83 name-resolution errors”），所以它是**已记录、未修**。
+  `libgccjit.h` 本机**在**：`/opt/homebrew/include/libgccjit.h`（`brew --prefix libgccjit` = `/opt/homebrew/opt/libgccjit`）
+  ⇒ 这条可以照 P-88 用真头量布局后补声明，不需要外部依赖。
+- **`docs/ports/*.md` 里有 81 个账本写着 `not transcribed`**（4.683 实测，195 行）：绝大多数是**任何配置都不编译的臂**
+  （Windows/Haiku/X11/NS 等），按 P-86 clause 3 记成 `text-only`；**最大的一处是 `src/comp.c`**：`comp.rs` 只到
+  **slice 1 = C 25-822**，**slice 2（C 824-5857，约 4,754 行）尚未转写**（`docs/ports/comp.md` 的战表已记），
+  `src/xdisp.c` 另有一处 C 15616 的洞（`docs/ports/xdisp.md` 4307 明说“5% 容差因此收不了口”）。
+  ⇒ `extract-abi.py --all` 的 `590 done / 0 failing` 是**名字/清单口径**，它覆盖不到“每一行 C 文本都已转写”。
+  严格按“全部 C 源码逐行复刻”读，DoD-1 是 **⚠️ 部分**；按 P-86 的容差记录读，DoD-1 是 ✅。**这条口径属于政策选择，留给用户定。**
+
 - **`tools/check-authorized-platforms.sh` 的静默失败已修**（4.682）：它在子 shell 里 `cd femacs` 之后用相对路径调 `tools/check-all-units.sh`，
   这一段一直失败而 `tail -1` 把它咽掉；改用 `"$REPO/tools/..."` 之后四段真的都跑了（exit 0）。同类脚本若 `cd` 之后仍用相对路径，都要按这条检查。
 
