@@ -35,8 +35,12 @@ def main() -> int:
               if any(w in rows.get(n, "") for w in WINDOW)
               or n.startswith(("Vx_", "x_")) or n == "tty_draw_row_with_mouse_face"]
     assets = REPO / "docs/baseline/android-assets.tsv"
+    upstream = len(names) - len(window)
     print(f"judgement 1 (libemacs.so can be dlopen'd): {'PASS' if not names else 'NOT MET'} - "
-          f"{len(names)} unresolved import(s), eager binding")
+          f"{len(names)} unresolved import(s), eager binding - {len(window)} window-system arms "
+          f"(decision 4) and {upstream} upstream/platform gaps C's own build does not have either")
+    print("   reading after decision C: the 40 must reach zero and the 31 stay arranged as C has "
+          "them (docs/window-arms-plan.md)")
     print(f"judgement 2 (the app starts to Lisp): assets packed, launch NOT ASSERTED - "
           f"see docs/android-app-readiness.md")
     print(f"judgement 3 (the {len(window)} window-system names): awaiting the decision in "

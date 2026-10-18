@@ -6,7 +6,7 @@ DoD-6 的"应用层"至今未断言。这一页是它的验收表：每条判据
 
 | # | 判据 | 复跑命令 | 当前读数（4.743） | 状态 |
 |---|---|---|---|---|
-| 1 | `libemacs.so` 能被 `dlopen`（未决导入归零） | `python3 tools/check-android-imports.py` | **71** 条未决、0 new；链接带 `-z now`（`llvm-readelf -d` 读到 `BIND_NOW`）⇒ 任一未决即不可加载 | ⛔ 未达 |
+| 1 | `libemacs.so` 能被 `dlopen` | `python3 tools/check-android-imports.py` | **71** 条未决、0 new（**40 窗口臂 + 31 上游缺口**）；链接带 `-z now`（`BIND_NOW`）⇒ 任一未决即不可加载。**C 口径下的读法**：40 条归零 + 31 条按 C 编排（见 `docs/window-arms-plan.md`） | ⛔ 未达 |
 | 2a | APK 带与 C 同构的 `assets/`（无 dump，Lisp 从这里读） | `bash tools/check-android-kotlin.sh --apk DIR --native libemacs.so --assets` | **4,360** 个成员、APK **48 MB**、含 `assets/directory-tree`（78,642 B）与 `versions`/`build_info` | ✅ 达成 |
 | 2b | 启动到 Lisp | `FEMACS_EMULATOR_BUDGET_OK=1 bash tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk /tmp/femacs-apk/emacs.apk` | 断言 `setEmacsParams` 的 `Initializing femacs …`、`EmacsThread` 的 `initEmacs`、无 linker/tombstone | ⛔ 未达（等 1） |
 | 3 | 40 条窗口系统臂的取舍 | `docs/decisions-needed.md` 问题 4 | A 维持 P-08 / B 无差别逐行写 / **C 按目标配置决定活/死（建议）** | ⏳ 待你决定 |
