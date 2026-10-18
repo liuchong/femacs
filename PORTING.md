@@ -921,6 +921,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-302 | **按 `nm` 分类，不按正则；第二个配置的分支是一条可枚举的工作队列**：① `gen-android-arms.py` 第一版用正则找 C 定义 ✗ ⇒ `char *BC;`（类型在前）与跨行签名全漏 ✓ ⇒ 66 条被误报成“没有定义” ✗；改成**先读 `nm`**（参照对象 + libgnu.a + 端口对象 ✓）、再问源码“某配置是否定义它” ✓ ⇒ 五类：`arm`/`system`/`runtime`/`port_arm`/`port_gap` ✓（4.709 读数 66/51/2/0/0 ✓）。② “冻结配置把某条臂写成活代码、另一个配置走另一条”是**可枚举的** ✓：`arm` 类就是那张清单 ✓（C 的定义位置 + `#if` 条件 ✓），逐条写另一条臂即可 ✓；只有其中依赖窗口系统的那部分受 DoD-1 口径影响 ✓。③ **先核对配置口径再动手** ✓：端口冻结的 Android 配置 = `aarch64-linux-android21-clang` + `ANDROID_SDK=36` ✓，与 C 从编译器名推出的 `ANDROID_MIN_SDK` 一致 ✓ ⇒ `posix_spawn`（bionic API 28 才有）一类**不是链接设置错** ✗，抬 API 不是修法 ✓。 | **规则，立即生效** | ① **“谁定义它”用 `nm` 回答** ✓；源码扫描只回答“某个配置是否定义” ✓，且必须容忍类型在前的写法 ✓。② 每轮开工先看棘轮与它的分类 ✓，按类推进、按类记账 ✓。 |
 
+| P-303 | **“冻结配置看不到的条件”要两侧都写：`#ifndef HAVE_ANDROID` 加门、`#ifdef HAVE_ANDROID` 转写；判据回到 Makefile**：① 端口把冻结配置的活文本写成活代码 ✓，于是 `#ifndef HAVE_ANDROID` 里的一切在 Android 构建里也被编 ✓ ⇒ 只要它引用的单元（如 `CM_OBJ` ✓）在 Android 上按 C 的清单不存在，就变成未定义引用 ✗（`cm.c` 一族 9 条实测 ✓）。② **不能靠把它加进清单来修** ✗：那等于让端口编 C 不编的代码 ✓（违反一致性 ✓）；正确做法是给该区域加 `#[cfg (not (feature = "have_android"))]` ✓ 并**写出** `#ifdef HAVE_ANDROID` 的另一侧 ✓。③ **C 的清单是权威** ✓：`emacs/src/Makefile.in` 344-345 的 `CM_OBJ` 注释直接写着 Empty for MinGW and Android ✓ —— 端口清单与端口门冲突时，先回 Makefile 找答案 ✓，别改清单 ✓。 | **规则，立即生效** | ① 每个 `#ifndef HAVE_ANDROID` / `#ifdef HAVE_ANDROID` 区域都是两侧的工作项 ✓，按区域清点 ✓（`term.c` 22+2 ✓）。② 清单与门冲突时，以 C 的 Makefile 变量为准 ✓，并把判据写进台账 ✓。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**
