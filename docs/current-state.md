@@ -1,4 +1,4 @@
-# 当前状态（2026-10-18，status 4.593 时点）
+# 当前状态（2026-10-18，status 4.682 时点）
 
 给下一次会话的**入口快照**：判定口径、读数、复跑命令、未决事项。逐轮记录仍在 `docs/status.md`，
 口径与规则在 `PORTING.md`，验收细则在 `docs/acceptance.md`。
@@ -20,11 +20,11 @@
 | # | 项 | 判定 | 证据命令 | 最后一次读数（出处） |
 |---|---|---|---|---|
 | 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | **590 done / 0 in progress / 0 failing**（4.671） |
-| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast` | exit 0（八步；4.662 之后 `sysdep` 改动已由 4.680 复验） |
+| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast` | exit 0（八步；**4.682 在本树重跑** 535 s / 峰值 539 MB。红门的起因是 `window.rs` 的 dispextern 边，现改由 `editfns`/`insdel`/`textprop` 三个单元自带，见 status 4.682） |
 | 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check`、`tools/acceptance-l1.py --check`、`python3 tools/check-ert.py --selector-preset default --tsv /tmp/ert.tsv` | L0 **19/0**；L1 **111 文件 / 0 失败 / 1 接受**；L5 默认选择器 **same 552 / both-fail 7 / crashed 5 / port-worse 0**（`docs/baseline/ert-sweep-default.tsv`，4.676）。`all` 档唯一 `port-worse` 是上游 `:unstable` 的 `erc-d-run-linger`（P-293） |
 | 4 | `.elc`/dump/生成物/loadup | ✅ | `python3 tools/check-generated.py`、`tools/check-loadup.py`、`tools/check-dump-offsets.py` | **244 文件：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**；两树 loadup 逐文件一致；19 处 dump offset 0 failure（4.600/4.678） |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.679） |
-| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh` | macOS smoke **11/0**；`gate-android` **181,486 B / 112 class / 签名**；`libemacs.so` **5,944,616 B / 69 个 JNI 导出**；含 `lib/arm64-v8a/libemacs.so` 的**签名 APK 3.2 MB**（4.677）。**模拟器冒烟未达**：`tools/try-android-emulator.sh --plan` 是它要跑的步骤，等待 E1/E2/E3 |
+| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh` | macOS smoke **11/0**；`gate-android` **181,486 B / 112 class / 签名**；`libemacs.so` **5,944,664 B / 69 个 JNI 导出**；含 `lib/arm64-v8a/libemacs.so` 的**签名 APK 3.2 MB**；**Android 单元 sweep 91/91 + 0 unit failure**（4.682，本树；清单用绝对路径）—— 四段 exit 0、127 s / 峰值 970 MB。**模拟器冒烟未达**：`tools/try-android-emulator.sh --plan` 是它要跑的步骤，等待 E1/E2/E3 |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh` | 同臂 0.70–0.86×（P-193）；按用户决定不追平、不记为达标 |
 | 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git log --show-signature` | **238 台账绑定 / 0 failure / 0 行无台账**（4.679）；全部提交 `-S` 并推送 |
 
@@ -32,6 +32,18 @@
 第 7 条是 `⏸ 记未达`，两条都不计入达成 ⇒ **6/8 = 75%**。此前我写过 7/8（87.5%），那是把第 6 条
 的"Android 结构面全绿"误当成整条达成——**已更正**，判定不变：第 6 条要等模拟器冒烟（E1/E2/E3），
 第 7 条按用户决定暂挂。8/8 的路径因此是"代码已完成 + 用户做出预算决定（E1 或 E3）"。
+
+**第 2 条的历史要记清**：4.681 的账面上把它写成 `✅`，但同一轮的记录里 `gate-fast` 是**红**的（`spikes/haiku_inc_probe.rs`）⇒
+按"当前树上的可复跑证据"严格读，那一刻是 **5/8 = 62.5%**；4.682 把红门修回绿（本树 exit 0）⇒ **6/8 = 75%**。计数规则不变：部分达成记 0。
+
+## 已知红（不属完成定义八条，但每轮要知道）
+
+- **`xtask gate-probes` 红**（4.682 实测）：`spikes/lisp-abi-probe.sh` 的两条 `/// C:` 注解已改成生成器要的规范形，但 C 侧编译仍报
+  `mark_fringe_data`/`module_finalize_function` **未声明** —— 它们在 `include/lisp.rs` 的 `pub mod other_units` 里带
+  `#[cfg (all (have_window_system, have_android))]`，而**生成器不读 `#[cfg]`**，冻结配置的 C 头里没有这两个名字。修法：让生成器按冻结特性集过滤 `#[cfg]`
+  （工具改动，未做）。`gate-fast` **不包含** `gate-probes`（它只跑 `probe_programs()` 的 16 个 Rust 探针），所以这条红不会在 `gate-fast` 里现形，必须单独跑。
+- **`tools/check-authorized-platforms.sh` 的静默失败已修**（4.682）：它在子 shell 里 `cd femacs` 之后用相对路径调 `tools/check-all-units.sh`，
+  这一段一直失败而 `tail -1` 把它咽掉；改用 `"$REPO/tools/..."` 之后四段真的都跑了（exit 0）。同类脚本若 `cd` 之后仍用相对路径，都要按这条检查。
 
 ## 平台面的现状（两条前置皆已解决；一条新问题等用户决定）
 
