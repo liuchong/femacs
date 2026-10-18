@@ -952,6 +952,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-318 | **`-nodefaultlibs` 下 Rust 运行时符号由 driver 补齐，并写清"永不调用"**：① `rust_begin_unwind`（按 rlib 里读到的 mangled 名 ✓）与 `rust_eh_personality`（`_Unwind` 的 5 参数签名 ✓、函数体 `abort` ✓）都由 `xtask` 生成的 driver 提供 ✓；② 两个符号都要在 `.so` 里核对成**定义**而不是 `U` ✓（棘轮 ✓）；③ 这类符号 C 侧根本不存在 ✓ ⇒ 在注释里写明「这是 Rust 运行时的要求、`panic=abort` 下永不被调用」 ✓，避免以后被误当成 C 的行为 ✓。 |
 
+| P-319 | **`config.rs` 是生成物：提交前必须确认它是**冻结配置**那一份**：① 平台脚本会临时把 `src/include/config.rs` 改成 Android 版本 ✓ 再还原 ✓ —— 任何 `git add -A` 都可能把中间态提交进仓库 ✗（4.731 实测 ✓：`HEAD` 里是 `HAVE_MODULES: true`/`SYSTEM_TYPE "android"` ✗）。② 判据：`git show HEAD:femacs/src/include/config.rs | grep 'HAVE_MODULES: bool = false'` ✓；不确定时跑一次 `FEMACS_CONFIG=darwin-arm64 gen-config` ✓ 再比 ✓。③ `git add -A` 之前先 `git status --short`，看到这个文件就停下来确认 ✓。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**
