@@ -1249,6 +1249,193 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/* `<epaths.h>` has no mirror (it is a configure product, the `callproc.rs` 284 / `lread.rs` 74
+   shape): C 4367/4369 read `PATH_REL_LOADSEARCH` and `PATH_DUMPLOADSEARCH` from it, and the two
+   values below are the frozen build's own (`build/emacs-ref/src/epaths.h` 34 and 51, read
+   together with the frozen `configure` that produced them).  */
+#[cfg (feature = "have_native_comp")]
+const PATH_REL_LOADSEARCH: *const c_char = c"32.0.50/lisp".as_ptr ();
+#[cfg (feature = "have_native_comp")]
+const PATH_DUMPLOADSEARCH: *const c_char =
+  c"/Users/liu/projects/src/github.com/liuchong/femacs/build/emacs-ref/../../emacs/lisp".as_ptr ();
+/// C 4369's `PATH_DUMPLOADSEARCH "/"` - C's adjacent-literal concatenation, which a Rust
+/// `c"..."` literal cannot express across a `const`, so the joined text is a second literal.
+#[cfg (feature = "have_native_comp")]
+const PATH_DUMPLOADSEARCH_SLASH: *const c_char =
+  c"/Users/liu/projects/src/github.com/liuchong/femacs/build/emacs-ref/../../emacs/lisp/".as_ptr ();
+
+/* In use by Fcomp_el_to_eln_filename.  */
+/// C 4291: `static Lisp_Object loadsearch_re_list;` - C's tentative definition (zeroed, i.e.
+/// `nil`, PORTING.md 0.1-13).
+#[cfg (feature = "have_native_comp")]
+static mut loadsearch_re_list: Lisp_Object = lisp_h_Qnil ();
+
+/// C 4293-4298: `static Lisp_Object make_directory_wrapper (Lisp_Object directory)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn make_directory_wrapper (directory: Lisp_Object) -> Lisp_Object
+{
+  CALLNI! ("make-directory", directory, Qt ());
+  return Qnil ();
+}
+
+/// C 4300-4304: `static Lisp_Object make_directory_wrapper_1 (Lisp_Object ignore)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn make_directory_wrapper_1 (ignore: Lisp_Object) -> Lisp_Object
+{
+  return Qt ();
+}
+
+/// C 4306-4395: `DEFUN ("comp-el-to-eln-rel-filename", Fcomp_el_to_eln_rel_filename, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp-el-to-eln-rel-filename", Fcomp_el_to_eln_rel_filename,
+       Scomp_el_to_eln_rel_filename, 1, 1, 0,
+       doc: "Return the relative name of the .eln file for FILENAME.\nFILENAME must exist, and if it's a symlink, the target must exist.\nIf FILENAME is compressed, it must have the \".gz\" extension,\nand Emacs must have been compiled with zlib; the file will be\nuncompressed on the fly to hash its contents.\nValue includes the original base name, followed by 2 hash values,\none for the file name and another for its contents, followed by .eln.",
+       (filename: Lisp_Object),
+       {
+  CHECK_STRING (filename);
+
+  /* Resolve possible symlinks in FILENAME, so that path_hash below
+     always compares equal. (Bug#44701).  */
+  let mut filename: Lisp_Object = Fexpand_file_name (filename, Qnil ());
+  let file_normalized: *mut c_char =
+    realpath (SSDATA (ENCODE_FILE (filename)), std::ptr::null_mut ());
+  if ! file_normalized.is_null ()
+    {
+      filename = DECODE_FILE (make_unibyte_string (file_normalized,
+						   strlen (file_normalized) as ptrdiff_t));
+      xfree (file_normalized as *mut c_void);
+    }
+
+  if NILP (Ffile_exists_p (filename))
+    { xsignal1 (Qfile_missing (), filename); }
+
+  #[cfg (feature = "windowsnt")]
+  {
+    filename = Fw32_long_file_name (filename);
+  }
+
+  let content_hash: Lisp_Object = comp_hash_source_file (filename);
+
+  if suffix_p (filename, c".gz".as_ptr ())
+    { filename = Fsubstring (filename, Qnil (), make_fixnum (-3)); }
+
+  /* We create eln filenames with an hash in order to look-up these
+     starting from the source filename, IOW have a relation
+
+     /absolute/path/filename.el + content ->
+     eln-cache/filename-path_hash-content_hash.eln.
+
+     'dlopen' can return the same handle if two shared with the same
+     filename are loaded in two different times (even if the first was
+     deleted!).  To prevent this scenario the source file content is
+     included in the hashing algorithm.
+
+     As at any point in time no more then one file can exist with the
+     same filename, should be possible to clean up all
+     filename-path_hash-* except the most recent one (or the new one
+     being recompiled).
+
+     As installing .eln files compiled during the build changes their
+     absolute path we need an hashing mechanism that is not sensitive
+     to that.  For this we replace if match PATH_DUMPLOADSEARCH or
+     *PATH_REL_LOADSEARCH have been replaced with `'//'` before computing the hash.  */
+
+  if NILP (loadsearch_re_list)
+    {
+      let sys_re: Lisp_Object =
+	concat2 (build_string (c"\\`[[:ascii:]]+".as_ptr ()),
+		 Fregexp_quote (build_string (PATH_REL_LOADSEARCH)));
+      let mut dump_load_search: Lisp_Object =
+	Fexpand_file_name (build_string (PATH_DUMPLOADSEARCH_SLASH),
+			   Qnil ());
+      #[cfg (feature = "windowsnt")]
+      {
+	dump_load_search = Fw32_long_file_name (dump_load_search);
+      }
+      loadsearch_re_list = list2 (sys_re, Fregexp_quote (dump_load_search));
+    }
+
+  let mut lds_re_tail: Lisp_Object = loadsearch_re_list;
+  FOR_EACH_TAIL! (lds_re_tail, {
+      let match_idx: Lisp_Object =
+	Fstring_match (XCAR (lds_re_tail), filename, Qnil (), Qnil ());
+      if BASE_EQ (match_idx, make_fixnum (0))
+	{
+	  filename =
+	    Freplace_match (build_string (c"//".as_ptr ()), Qt (), Qt (), filename, Qnil ());
+	  break;
+	}
+    });
+  let separator: Lisp_Object = build_string (c"-".as_ptr ());
+  let path_hash: Lisp_Object = comp_hash_string (filename);
+  filename = concat2 (Ffile_name_nondirectory (Fsubstring (filename, Qnil (),
+							   make_fixnum (-3))),
+		      separator);
+  let hash: Lisp_Object = concat3 (path_hash, separator, content_hash);
+  return concat3 (filename, hash, build_string (NATIVE_ELISP_SUFFIX.as_ptr ()));
+});
+
+/// C 4397-4470: `DEFUN ("comp-el-to-eln-filename", Fcomp_el_to_eln_filename, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp-el-to-eln-filename", Fcomp_el_to_eln_filename,
+       Scomp_el_to_eln_filename, 1, 2, 0,
+       doc: "Return the absolute .eln file name for source FILENAME.\nThe resulting .eln file name is intended to be used for natively\ncompiling FILENAME.  FILENAME must exist and be readable, but other\nthan that, its leading directories are ignored when constructing\nthe name of the .eln file.\nIf BASE-DIR is non-nil, use it as the directory for the .eln file;\nnon-absolute BASE-DIR is interpreted as relative to `invocation-directory'.\nIf BASE-DIR is omitted or nil, look for the first writable directory\nin `native-comp-eln-load-path', and use as BASE-DIR its subdirectory\nwhose name is given by `comp-native-version-dir'.\nIf FILENAME specifies a preloaded file, the directory for the .eln\nfile is the \"preloaded/\" subdirectory of the directory determined\nas described above.  FILENAME is considered to be a preloaded file if\nthe value of `comp-file-preloaded-p' is non-nil, or if FILENAME\nappears in the value of the environment variable LISP_PRELOADED;\nthe latter is supposed to be used by the Emacs build procedure.",
+       (filename: Lisp_Object, base_dir: Lisp_Object),
+       {
+  let source_filename: Lisp_Object = filename;
+  let mut filename: Lisp_Object = Fcomp_el_to_eln_rel_filename (filename);
+  let mut base_dir: Lisp_Object = base_dir;
+
+  /* If base_dir was not specified search inside Vnative_comp_eln_load_path
+     for the first directory where we have write access.  */
+  if NILP (base_dir)
+    {
+      let mut eln_load_paths: Lisp_Object = Vnative_comp_eln_load_path;
+      FOR_EACH_TAIL! (eln_load_paths, {
+	  let dir: Lisp_Object = XCAR (eln_load_paths);
+	  if ! NILP (Ffile_exists_p (dir))
+	    {
+	      if ! NILP (Ffile_writable_p (dir))
+		{
+		  base_dir = dir;
+		  break;
+		}
+	    }
+	  else
+	    {
+	      /* Try to create the directory and if succeeds use it.  */
+	      if NILP (internal_condition_case_1 (make_directory_wrapper,
+						   dir, Qt (),
+						   make_directory_wrapper_1))
+		{
+		  base_dir = dir;
+		  break;
+		}
+	    }
+	});
+      if NILP (base_dir)
+	{ error (c"Cannot find suitable directory for output in `native-comp-eln-load-path'.".as_ptr ()); }
+    }
+
+  if ! file_name_absolute_p (SSDATA (base_dir))
+    { base_dir = Fexpand_file_name (base_dir, Vinvocation_directory); }
+
+  /* In case the file being compiled is found in 'LISP_PRELOADED' or
+     `comp-file-preloaded-p' is non-nil target for output the
+     'preloaded' subfolder.  */
+  let lisp_preloaded: Lisp_Object =
+    Fgetenv_internal (build_string (c"LISP_PRELOADED".as_ptr ()), Qnil ());
+  base_dir = Fexpand_file_name (Vcomp_native_version_dir, base_dir);
+  if comp_file_preloaded_p
+      || (! NILP (lisp_preloaded)
+	  && ! NILP (Fmember (CALLNI! ("file-name-base", source_filename),
+			     Fmapcar (intern_c_string (c"file-name-base".as_ptr ()),
+				      CALLNI! ("split-string", lisp_preloaded)))))
+    { base_dir = Fexpand_file_name (build_string (c"preloaded".as_ptr ()), base_dir); }
+
+  return Fexpand_file_name (filename, base_dir);
+});
+
 /* ==============================================================================================
    C 824-5857: **slice 2**.  It starts here because C 824's `freloc_check_fill` is the file's first
    `FOR_EACH_TAIL` (the mirror's `FOR_EACH_TAIL!`, the `syntax` row of
