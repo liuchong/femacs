@@ -34,12 +34,16 @@ while [ $# -gt 0 ]; do
     # `--native PATH` puts a shared library at `lib/arm64-v8a/libemacs.so` inside the APK, the
     # member the Android shell loads.  Without it the APK is the structural one of P-211.
     --native) NATIVE_SO=$2; shift 2 ;;
+    # `--assets` packs C's `assets/{lisp,etc,bitmaps}` tree too (java/Makefile.in 200-297): the
+    # Android build has no dump, so Emacs reads its Lisp from there (docs/android-app-readiness.md).
+    --assets) ASSETS=1; shift ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 OUT=""
 APK_DIR=${APK_DIR:-}
 NATIVE_SO=${NATIVE_SO:-}
+ASSETS=${ASSETS:-0}
 
 # Android Studio ships the complete CLI compiler (not just the IDE plugin): `kotlinc` next to
 # its own JDK, which is all this check needs.
@@ -169,6 +173,11 @@ if [ -n "$APK_DIR" ]; then
     mkdir -p "$OUT/native/lib/arm64-v8a"
     cp "$NATIVE_SO" "$OUT/native/lib/arm64-v8a/libemacs.so"
     (cd "$OUT/native" && "$JAVA_HOME/bin/jar" uf "$UNSIGNED" lib/arm64-v8a/libemacs.so) || exit $?
+  fi
+  if [ "$ASSETS" = 1 ]; then
+    python3 "$REPO/tools/gen-android-assets.py" --out "$OUT/pack" >/dev/null || exit $?
+    (cd "$OUT/pack" && "$JAVA_HOME/bin/jar" uf "$UNSIGNED" assets) || exit $?
+    echo "assets: $(cd "$OUT/pack" && find assets -type f | wc -l | tr -d ' ') file(s) packed"
   fi
   "$ZIPALIGN" -f 4 "$UNSIGNED" "$APK_DIR/emacs-aligned.apk" || exit $?
 
