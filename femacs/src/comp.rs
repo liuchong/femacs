@@ -1249,6 +1249,180 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/// C 5369-5381: `void unload_comp_unit (struct Lisp_Native_Comp_Unit *cu)`.
+#[cfg (feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn unload_comp_unit (cu: *mut Lisp_Native_Comp_Unit)
+{
+  if (*cu).handle.is_null ()
+    { return; }
+
+  let saved_cu: *mut Lisp_Object =
+    dynlib_sym ((*cu).handle, COMP_UNIT_SYM) as *mut Lisp_Object;
+  let mut this_cu: Lisp_Object = Qnil ();
+  XSETPSEUDOVECTOR! (this_cu, cu, pvec_type::PVEC_NATIVE_COMP_UNIT);
+  if EQ (this_cu, *saved_cu)
+    { *saved_cu = Qnil (); }
+  dynlib_close ((*cu).handle);
+}
+
+/// C 5383-5398: `Lisp_Object native_function_doc (Lisp_Object function)`.
+#[cfg (feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn native_function_doc (function: Lisp_Object) -> Lisp_Object
+{
+  let cu: *mut Lisp_Native_Comp_Unit =
+    XNATIVE_COMP_UNIT (Fsubr_native_comp_unit (function));
+
+  if NILP ((*cu).data_fdoc_v)
+    { (*cu).data_fdoc_v = load_static_obj (cu, TEXT_FDOC_SYM); }
+  if ! VECTORP ((*cu).data_fdoc_v)
+    { xsignal2 (Qnative_lisp_file_inconsistent (), (*cu).file,
+	      build_string (c"missing documentation vector".as_ptr ())); }
+  let doc: EMACS_INT = (*XSUBR (function)).doc as EMACS_INT;
+  if doc < 0
+    { return AREF ((*cu).data_fdoc_v, -doc - 1); }
+  return make_fixnum (doc);
+}
+
+/// C 5400-5449: `static Lisp_Object make_subr (...)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn make_subr (symbol_name: Lisp_Object, minarg: Lisp_Object, maxarg_in: Lisp_Object,
+	   c_name: Lisp_Object, type_: Lisp_Object, doc_idx: Lisp_Object,
+	   intspec: Lisp_Object, command_modes: Lisp_Object, comp_u: Lisp_Object)
+  -> Lisp_Object
+{
+  let cu: *mut Lisp_Native_Comp_Unit = XNATIVE_COMP_UNIT (comp_u);
+  let handle: dynlib_handle_ptr = (*cu).handle;
+  if handle.is_null ()
+    { xsignal0 (Qwrong_register_subr_call ()); }
+
+  let func: *mut c_void = dynlib_sym (handle, SSDATA (c_name));
+  eassert! (! func.is_null ());
+  let x: *mut Aligned_Lisp_Subr =
+    allocate_pseudovector (
+			  VECSIZE (core::mem::size_of::<Aligned_Lisp_Subr> ()) as c_int,
+			  0, VECSIZE (core::mem::size_of::<Aligned_Lisp_Subr> ()) as c_int,
+			  pvec_type::PVEC_SUBR) as *mut Aligned_Lisp_Subr;
+  let mut minarg: Lisp_Object = minarg;
+  let mut maxarg: Lisp_Object = maxarg_in;
+  if CONSP (minarg)
+    {
+      /* Dynamic code.  */
+      (*x).s.lambda_list = maxarg;
+      maxarg = XCDR (minarg);
+      minarg = XCAR (minarg);
+    }
+  else
+    {
+      (*x).s.lambda_list = Qnil ();
+    }
+  (*x).s.function.a0 = Some (std::mem::transmute (func));
+  (*x).s.min_args = XFIXNUM (minarg);
+  (*x).s.max_args = if FIXNUMP (maxarg) { XFIXNUM (maxarg) as c_short }
+                    else { MANY as c_short };
+  (*x).s.symbol_name = xstrdup (SSDATA (symbol_name));
+  (*x).s.intspec.native = intspec;
+  (*x).s.command_modes = command_modes;
+  (*x).s.doc = (-XFIXNUM (doc_idx) - 1) as c_int;
+  eassert! ((*x).s.doc < 0);
+  (*x).s.native_comp_u = comp_u;
+  (*x).s.native_c_name = xstrdup (SSDATA (c_name));
+  (*x).s.r#type = type_;
+  let mut tem: Lisp_Object = Qnil ();
+  XSETSUBR! (tem, &raw mut (*x).s);
+
+  return tem;
+}
+
+/// C 5451-5482: `DEFUN ("comp--register-lambda", Fcomp__register_lambda, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp--register-lambda", Fcomp__register_lambda, Scomp__register_lambda,
+       7, 7, 0,
+       doc: "Register anonymous lambda.\nThis gets called by top_level_run during the load phase.",
+       (reloc_idx: Lisp_Object, c_name: Lisp_Object, minarg: Lisp_Object,
+        maxarg: Lisp_Object, type_: Lisp_Object, rest: Lisp_Object,
+        comp_u: Lisp_Object),
+       {
+  let doc_idx: Lisp_Object = FIRST! (rest);
+  let intspec: Lisp_Object = SECOND! (rest);
+  let command_modes: Lisp_Object = THIRD! (rest);
+
+  let cu: *mut Lisp_Native_Comp_Unit = XNATIVE_COMP_UNIT (comp_u);
+  if (*cu).loaded_once
+    { return Qnil (); }
+
+  let tem: Lisp_Object =
+    make_subr (c_name, minarg, maxarg, c_name, type_, doc_idx, intspec,
+	       command_modes, comp_u);
+
+  /* We must protect it against GC because the function is not
+     reachable through symbols.  */
+  Fputhash (tem, Qt (), (*cu).lambda_gc_guard_h);
+  /* This is for fixing up the value in d_reloc while resurrecting
+     from dump.  See 'dump_do_dump_relocation'.  */
+  eassert! (NILP (Fgethash (c_name, (*cu).lambda_c_name_idx_h, Qnil ())));
+  Fputhash (c_name, reloc_idx, (*cu).lambda_c_name_idx_h);
+  /* Do the real relocation fixup.  */
+  *((*cu).data_relocs).offset (XFIXNUM (reloc_idx) as isize) = tem;
+
+  return tem;
+});
+
+/// C 5484-5503: `DEFUN ("comp--register-subr", Fcomp__register_subr, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp--register-subr", Fcomp__register_subr, Scomp__register_subr,
+       7, 7, 0,
+       doc: "Register exported subr.\nThis gets called by top_level_run during the load phase.",
+       (name: Lisp_Object, c_name: Lisp_Object, minarg: Lisp_Object,
+        maxarg: Lisp_Object, type_: Lisp_Object, rest: Lisp_Object,
+        comp_u: Lisp_Object),
+       {
+  let doc_idx: Lisp_Object = FIRST! (rest);
+  let intspec: Lisp_Object = SECOND! (rest);
+  let command_modes: Lisp_Object = THIRD! (rest);
+
+  let tem: Lisp_Object =
+    make_subr (SYMBOL_NAME (name), minarg, maxarg, c_name, type_, doc_idx,
+	       intspec, command_modes, comp_u);
+
+  /* C's `defalias (name, tem)` is `Fdefalias (name, tem, Qnil)` in lisp.h.  */
+  Fdefalias (name, tem, Qnil ());
+
+  return tem;
+});
+
+/// C 5505-5518: `DEFUN ("comp--late-register-subr", Fcomp__late_register_subr, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp--late-register-subr", Fcomp__late_register_subr,
+       Scomp__late_register_subr, 7, 7, 0,
+       doc: "Register exported subr.\nThis gets called by late_top_level_run during the load phase.",
+       (name: Lisp_Object, c_name: Lisp_Object, minarg: Lisp_Object,
+        maxarg: Lisp_Object, type_: Lisp_Object, rest: Lisp_Object,
+        comp_u: Lisp_Object),
+       {
+  if ! NILP (Fequal (Fsymbol_function (name),
+		     Fgethash (name, Vcomp_deferred_pending_h, Qnil ())))
+    { Fcomp__register_subr (name, c_name, minarg, maxarg, type_, rest, comp_u); }
+  Fremhash (name, Vcomp_deferred_pending_h);
+  return Qnil ();
+});
+
+/// C 5520-5531: `static bool file_in_eln_sys_dir (Lisp_Object filename)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn file_in_eln_sys_dir (filename: Lisp_Object) -> bool
+{
+  let mut eln_sys_dir: Lisp_Object = Qnil ();
+  let mut tmp: Lisp_Object = Vnative_comp_eln_load_path;
+  FOR_EACH_TAIL! (tmp, {
+    eln_sys_dir = XCAR (tmp);
+  });
+  return ! NILP (Fstring_match (Fregexp_quote (Fexpand_file_name (eln_sys_dir,
+								 Qnil ())),
+			       Fexpand_file_name (filename, Qnil ()),
+			       Qnil (), Qnil ()));
+}
+
 /// C 5279-5281's `Lisp_Object (*top_level_run)(Lisp_Object)` - the entry point the compiled unit
 /// exports, cast out of `dynlib_sym`'s `void *`.
 #[cfg (feature = "have_native_comp")]
