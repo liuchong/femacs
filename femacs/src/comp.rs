@@ -1249,10 +1249,260 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/// C 4472-4504: `DEFUN ("comp--install-trampoline", Fcomp__install_trampoline, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp--install-trampoline", Fcomp__install_trampoline,
+       Scomp__install_trampoline, 2, 2, 0,
+       doc: "Install a TRAMPOLINE for primitive SUBR-NAME.",
+       (subr_name: Lisp_Object, trampoline: Lisp_Object),
+       {
+  CHECK_SYMBOL (subr_name);
+  CHECK_SUBR (trampoline);
+  let orig_subr: Lisp_Object = Fsymbol_function (subr_name);
+  CHECK_SUBR (orig_subr);
+
+  /* FIXME: add a post dump load trampoline machinery to remove this
+     check.  */
+  if will_dump_p ()
+    { signal_error (c"Trying to advice unexpected primitive before dumping".as_ptr (),
+		  subr_name); }
+
+  let mut subr_l: Lisp_Object = Vcomp_subr_list;
+  let mut i: ptrdiff_t = countof! (helper_link_table) as ptrdiff_t;
+  FOR_EACH_TAIL! (subr_l, {
+      let subr: Lisp_Object = XCAR (subr_l);
+      if EQ (subr, orig_subr)
+	{
+	  freloc.link_table[i as usize] =
+	    (*XSUBR (trampoline)).function.a0.map_or (std::ptr::null_mut (),
+						      |a0| a0 as *mut c_void);
+	  Fputhash (subr_name, trampoline, Vcomp_installed_trampolines_h);
+	  return Qt ();
+	}
+      i += 1;
+    });
+    signal_error (c"Trying to install trampoline for non existent subr".as_ptr (),
+		  subr_name);
+    return Qnil ();
+});
+
+/// C 4506-4651: `DEFUN ("comp--init-ctxt", Fcomp__init_ctxt, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp--init-ctxt", Fcomp__init_ctxt, Scomp__init_ctxt,
+       0, 0, 0,
+       doc: "Initialize the native compiler context.\nReturn t on success.",
+       (),
+       {
+  load_gccjit_if_necessary (true);
+
+  if ! comp.ctxt.is_null ()
+    {
+      xsignal1 (Qnative_ice (),
+		build_string (c"compiler context already taken".as_ptr ()));
+      return Qnil ();
+    }
+
+  if NILP (comp.emitter_dispatcher)
+    {
+      /* Move this into syms_of_comp the day will be dumpable.  */
+      comp.emitter_dispatcher = Fmake_hash_table (0, std::ptr::null_mut ());
+      register_emitter (Qset_internal (), emit_set_internal as *mut c_void);
+      register_emitter (Qhelper_unbind_n (), emit_simple_limple_call_lisp_ret as *mut c_void);
+      register_emitter (Qhelper_unwind_protect (),
+			emit_simple_limple_call_void_ret as *mut c_void);
+      register_emitter (Qrecord_unwind_current_buffer (),
+			emit_simple_limple_call_lisp_ret as *mut c_void);
+      register_emitter (Qrecord_unwind_protect_excursion (),
+			emit_simple_limple_call_void_ret as *mut c_void);
+      register_emitter (Qhelper_save_restriction (),
+			emit_simple_limple_call_void_ret as *mut c_void);
+      register_emitter (Qhelper_sanitizer_assert (),
+			emit_simple_limple_call_lisp_ret as *mut c_void);
+      /* Inliners.  */
+      register_emitter (Qadd1 (), emit_add1 as *mut c_void);
+      register_emitter (Qsub1 (), emit_sub1 as *mut c_void);
+      register_emitter (Qconsp (), emit_consp as *mut c_void);
+      register_emitter (Qeq (), emit_eq as *mut c_void);
+      register_emitter (Qcar (), emit_car as *mut c_void);
+      register_emitter (Qcdr (), emit_cdr as *mut c_void);
+      register_emitter (Qsetcar (), emit_setcar as *mut c_void);
+      register_emitter (Qsetcdr (), emit_setcdr as *mut c_void);
+      register_emitter (Qnegate (), emit_negate as *mut c_void);
+      register_emitter (Qnumberp (), emit_numperp as *mut c_void);
+      register_emitter (Qintegerp (), emit_integerp as *mut c_void);
+      register_emitter (Qcomp_maybe_gc_or_quit (), emit_maybe_gc_or_quit as *mut c_void);
+    }
+
+  comp.ctxt = gcc_jit_context_acquire ();
+
+  comp.void_type = gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_VOID);
+  comp.void_ptr_type =
+    gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_VOID_PTR);
+  comp.bool_type = gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_BOOL);
+  comp.char_type = gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_CHAR);
+  comp.int_type = gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_INT);
+  comp.unsigned_type = gcc_jit_context_get_type (comp.ctxt,
+						 GCC_JIT_TYPE_UNSIGNED_INT);
+  comp.long_type = gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_LONG);
+  comp.unsigned_long_type =
+    gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_UNSIGNED_LONG);
+  comp.long_long_type =
+    gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_LONG_LONG);
+  comp.unsigned_long_long_type =
+    gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_UNSIGNED_LONG_LONG);
+  comp.bool_ptr_type = gcc_jit_type_get_pointer (comp.bool_type);
+  comp.char_ptr_type = gcc_jit_type_get_pointer (comp.char_type);
+  comp.emacs_int_type = gcc_jit_context_get_int_type (comp.ctxt,
+						      core::mem::size_of::<EMACS_INT> () as c_int,
+						      1);
+  comp.emacs_uint_type = gcc_jit_context_get_int_type (comp.ctxt,
+						       core::mem::size_of::<EMACS_UINT> () as c_int,
+						       0);
+  if LISP_WORDS_ARE_POINTERS
+    {
+      comp.lisp_word_type =
+	gcc_jit_type_get_pointer (
+	  gcc_jit_struct_as_type (
+	    gcc_jit_context_new_opaque_struct (comp.ctxt,
+					   std::ptr::null_mut (),
+					   c"Lisp_X".as_ptr ())));
+    }
+  else
+    { comp.lisp_word_type = comp.emacs_int_type; }
+  comp.lisp_word_tag_type
+    = gcc_jit_context_get_int_type (comp.ctxt,
+				    core::mem::size_of::<Lisp_Word_tag> () as c_int, 0);
+  #[cfg (feature = "lisp_object_is_struct")]
+  {
+    comp.lisp_obj_i = gcc_jit_context_new_field (comp.ctxt,
+                                               std::ptr::null_mut (),
+                                               comp.lisp_word_type,
+                                               c"i".as_ptr ());
+    comp.lisp_obj_s = gcc_jit_context_new_struct_type (comp.ctxt,
+                                                     std::ptr::null_mut (),
+                                                     c"Lisp_Object".as_ptr (),
+                                                     1,
+                                                     &raw mut comp.lisp_obj_i);
+    comp.lisp_obj_type = gcc_jit_struct_as_type (comp.lisp_obj_s);
+  }
+  #[cfg (not (feature = "lisp_object_is_struct"))]
+  {
+    comp.lisp_obj_type = comp.lisp_word_type;
+  }
+  comp.lisp_obj_ptr_type = gcc_jit_type_get_pointer (comp.lisp_obj_type);
+  comp.zero =
+    gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					 comp.emacs_int_type,
+					 0);
+  comp.one =
+    gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					 comp.emacs_int_type,
+					 1);
+  comp.inttypebits =
+    gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					 comp.emacs_uint_type,
+					 INTTYPEBITS as c_int);
+  comp.lisp_int0 =
+    gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					 comp.emacs_int_type,
+					 Lisp_Type::Lisp_Int0 as c_int);
+  comp.ptrdiff_type = gcc_jit_context_get_int_type (comp.ctxt,
+						    core::mem::size_of::<*mut c_void> () as c_int,
+						    1);
+  comp.uintptr_type = gcc_jit_context_get_int_type (comp.ctxt,
+						    core::mem::size_of::<*mut c_void> () as c_int,
+						    0);
+  comp.size_t_type = gcc_jit_context_get_int_type (comp.ctxt,
+						   core::mem::size_of::<size_t> () as c_int,
+						   0);
+
+  comp.exported_funcs_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
+  /*
+    Always reinitialize this cause old function definitions are garbage
+    collected by libgccjit when the ctxt is released.
+  */
+  comp.imported_funcs_h = Fmake_hash_table (0, std::ptr::null_mut ());
+
+  define_memcpy ();
+
+  /* Define data structures.  */
+
+  define_lisp_cons ();
+  define_lisp_symbol_with_position ();
+  define_jmp_buf ();
+  define_handler_struct ();
+  define_thread_state_struct ();
+  #[cfg (not (feature = "libgccjit_have_gcc_jit_context_new_bitcast"))]
+  {
+    define_cast_functions ();
+  }
+
+  return Qt ();
+});
+
+/// C 4653-4668: `DEFUN ("comp--release-ctxt", Fcomp__release_ctxt, …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp--release-ctxt", Fcomp__release_ctxt, Scomp__release_ctxt,
+       0, 0, 0,
+       doc: "Release the native compiler context.",
+       (),
+       {
+  load_gccjit_if_necessary (true);
+
+  if ! comp.ctxt.is_null ()
+    { gcc_jit_context_release (comp.ctxt); }
+
+  if ! logfile.is_null ()
+    { emacs_fclose (logfile); }
+  comp.ctxt = std::ptr::null_mut ();
+
+  return Qt ();
+});
+
+/// C 4672-4684: `DEFUN ("comp-native-driver-options-effective-p", …)`.  C's
+/// `#if defined (LIBGCCJIT_HAVE_gcc_jit_context_add_driver_option)` arm tests the loaded symbol.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp-native-driver-options-effective-p",
+       Fcomp_native_driver_options_effective_p,
+       Scomp_native_driver_options_effective_p,
+       0, 0, 0,
+       doc: "Return t if `comp-native-driver-options' is effective.",
+       (),
+       {
+  #[cfg (feature = "libgccjit_have_gcc_jit_context_add_driver_option")]
+  {
+    if ! fn_gcc_jit_context_add_driver_option.is_none ()
+      { return Qt (); }
+  }
+  return Qnil ();
+});
+
+/// C 4689-4701: `DEFUN ("comp-native-compiler-options-effective-p", …)`.
+#[cfg (feature = "have_native_comp")]
+DEFUN! ("comp-native-compiler-options-effective-p",
+       Fcomp_native_compiler_options_effective_p,
+       Scomp_native_compiler_options_effective_p,
+       0, 0, 0,
+       doc: "Return t if `comp-native-compiler-options' is effective.",
+       (),
+       {
+  #[cfg (feature = "libgccjit_have_gcc_jit_context_add_command_line_option")]
+  {
+    if ! fn_gcc_jit_context_add_command_line_option.is_none ()
+      { return Qt (); }
+  }
+  return Qnil ();
+});
+
 /* `<epaths.h>` has no mirror (it is a configure product, the `callproc.rs` 284 / `lread.rs` 74
    shape): C 4367/4369 read `PATH_REL_LOADSEARCH` and `PATH_DUMPLOADSEARCH` from it, and the two
    values below are the frozen build's own (`build/emacs-ref/src/epaths.h` 34 and 51, read
    together with the frozen `configure` that produced them).  */
+/// `emacs_fclose` is `sysdep.c`'s non-`static` definition; C 4664 declares it where it is used
+/// and the units that call it carry the declaration themselves (`charset.rs` 117).
+#[cfg (feature = "have_native_comp")]
+unsafe extern "C" { pub fn emacs_fclose (stream: *mut FILE) -> c_int; }
+
 #[cfg (feature = "have_native_comp")]
 const PATH_REL_LOADSEARCH: *const c_char = c"32.0.50/lisp".as_ptr ();
 #[cfg (feature = "have_native_comp")]
@@ -1664,6 +1914,18 @@ unsafe extern "C" {
   pub fn gcc_jit_struct_set_fields (struct_type: *mut gcc_jit_struct,
                                     loc: *mut gcc_jit_location, num_fields: c_int,
                                     fields: *mut *mut gcc_jit_field);
+  /// C: libgccjit.h 166-167: `gcc_jit_context *gcc_jit_context_acquire (void);`
+  pub fn gcc_jit_context_acquire () -> *mut gcc_jit_context;
+  /// C: libgccjit.h 171-172: `void gcc_jit_context_release (gcc_jit_context *ctxt);`
+  pub fn gcc_jit_context_release (ctxt: *mut gcc_jit_context);
+  /// C: libgccjit.h 628-630: `gcc_jit_type *gcc_jit_context_get_type (gcc_jit_context *ctxt,
+  /// enum gcc_jit_types type_);`
+  pub fn gcc_jit_context_get_type (ctxt: *mut gcc_jit_context, type_: gcc_jit_types)
+    -> *mut gcc_jit_type;
+  /// C: libgccjit.h 633-635: `gcc_jit_type *gcc_jit_context_get_int_type (gcc_jit_context *ctxt,
+  /// int num_bytes, int is_signed);`
+  pub fn gcc_jit_context_get_int_type (ctxt: *mut gcc_jit_context, num_bytes: c_int,
+                                       is_signed: c_int) -> *mut gcc_jit_type;
   /// C: libgccjit.h 763-767: `gcc_jit_type *gcc_jit_context_new_union_type
   /// (gcc_jit_context *ctxt, gcc_jit_location *loc, const char *name, int num_fields,
   /// gcc_jit_field **fields);`
@@ -1725,6 +1987,41 @@ pub const GCC_JIT_BINARY_OP_LSHIFT: gcc_jit_binary_op = 10;
 /// C: libgccjit.h 1272: `GCC_JIT_BINARY_OP_RSHIFT,`
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_BINARY_OP_RSHIFT: gcc_jit_binary_op = 11;
+
+/// C: libgccjit.h 553-620: `enum gcc_jit_types { GCC_JIT_TYPE_VOID, … };` - the alias (measured
+/// like the others) and the ten enumerators this slice names, in C's order from 0.
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_types = c_uint;
+/// C: libgccjit.h 556: `GCC_JIT_TYPE_VOID,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_VOID: gcc_jit_types = 0;
+/// C: libgccjit.h 559: `GCC_JIT_TYPE_VOID_PTR,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_VOID_PTR: gcc_jit_types = 1;
+/// C: libgccjit.h 563: `GCC_JIT_TYPE_BOOL,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_BOOL: gcc_jit_types = 2;
+/// C: libgccjit.h 569: `GCC_JIT_TYPE_CHAR,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_CHAR: gcc_jit_types = 3;
+/// C: libgccjit.h 578: `GCC_JIT_TYPE_INT,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_INT: gcc_jit_types = 8;
+/// C: libgccjit.h 579: `GCC_JIT_TYPE_UNSIGNED_INT,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_UNSIGNED_INT: gcc_jit_types = 9;
+/// C: libgccjit.h 582: `GCC_JIT_TYPE_LONG,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_LONG: gcc_jit_types = 10;
+/// C: libgccjit.h 583: `GCC_JIT_TYPE_UNSIGNED_LONG,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_UNSIGNED_LONG: gcc_jit_types = 11;
+/// C: libgccjit.h 586: `GCC_JIT_TYPE_LONG_LONG,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_LONG_LONG: gcc_jit_types = 12;
+/// C: libgccjit.h 587: `GCC_JIT_TYPE_UNSIGNED_LONG_LONG,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_TYPE_UNSIGNED_LONG_LONG: gcc_jit_types = 13;
 
 /// C: libgccjit.h 888-901: `enum gcc_jit_global_kind { GCC_JIT_GLOBAL_EXPORTED, … };` - the alias
 /// (measured like the others) and the two enumerators this slice names.
