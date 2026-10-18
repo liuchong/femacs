@@ -39,10 +39,14 @@ pub struct Emacs_Color
 // converts to whatever `Emacs_Cursor` is; on Android that is `androidgui.h` 42's
 // `android_cursor`/`Emacs_Cursor` - an `intptr_t`, not a pointer - so the constant has the
 // target's own type (measured: `src/xdisp.c` read 8 x `mismatched types` here).
-#[cfg (feature = "have_android")]
-pub const No_Cursor: Emacs_Cursor = 0;
+/* The frozen arm first: it is the one whose body is C's own `NULL`, and `extract-abi` pairs the
+   macro with the first definition it reads.  A pointer-to-integer cast is not const-evaluable
+   (measured: 63 Android units read "pointers cannot be cast to integers during const eval"), so
+   the Android arm's null handle is the integer zero.  */
 #[cfg (not (feature = "have_android"))]
 pub const No_Cursor: *mut c_void = std::ptr::null_mut ();
+#[cfg (feature = "have_android")]
+pub const No_Cursor: Emacs_Cursor = 0 as Emacs_Cursor;
 
 /* C 44: `typedef XRectangle Emacs_Rectangle;` in the X11 arm, and the struct C 66-70 defines in
    the `#else`; the two arms are 8 and 16 bytes, which is why `struct MonitorInfo` (two of these)

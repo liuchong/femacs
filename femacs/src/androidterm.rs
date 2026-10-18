@@ -1477,7 +1477,7 @@ unsafe fn handle_one_android_event (dpyinfo: *mut android_display_info,
 
 	if width != FRAME_PIXEL_WIDTH (f)                              // C 905
 	    || height != FRAME_PIXEL_HEIGHT (f)                        // C 906
-	    || (frame_new_size_p (f)                                  // C 907
+	    || ({ let new_size_p: bool = frame_new_size_p (f); new_size_p }   // C 907: `f->new_size_p`
 		&& (((*f).new_width >= 0 && width != (*f).new_width)   // C 908
 		    || ((*f).new_height >= 0 && height != (*f).new_height)))   // C 909
 	  {
@@ -2886,7 +2886,7 @@ unsafe extern "C" fn android_fullscreen_hook (f: *mut frame)
       /* Explicitly setting fullscreen is not supported on older
 	 Android versions.  */                                         // C 2211-2212
 
-      wanted = (if frame_want_fullscreen (f) == FULLSCREEN_BOTH     // C 2214
+      wanted = (if { let want_fullscreen = frame_want_fullscreen (f); want_fullscreen } == FULLSCREEN_BOTH
 		  { Qfullscreen () } else { Qmaximized () });          // C 2215
 
       if android_set_fullscreen (FRAME_ANDROID_WINDOW! (f),            // C 2217

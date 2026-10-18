@@ -3999,19 +3999,25 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
       {
 	FRAME_SMALLEST_CHAR_WIDTH! (f, min_width);
 	FRAME_SMALLEST_FONT_HEIGHT! (f, height);
-	frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, 1);   // C 372's bit, through the mirror's packing
+	/* C 372: `f->fonts_changed = 1;` - the flag is a bit of the record's packed run.  */
+	  let fonts_changed: u32 = 1;
+	  frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, fonts_changed);
       }
     else
       {
 	if FRAME_SMALLEST_CHAR_WIDTH! (f) > min_width
 	  {
 	    FRAME_SMALLEST_CHAR_WIDTH! (f, min_width);
-	    frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, 1);   // C 372's bit, through the mirror's packing
+	    /* C 372: `f->fonts_changed = 1;` - the flag is a bit of the record's packed run.  */
+	  let fonts_changed: u32 = 1;
+	  frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, fonts_changed);
 	  }
 	if FRAME_SMALLEST_FONT_HEIGHT! (f) > height
 	  {
 	    FRAME_SMALLEST_FONT_HEIGHT! (f, height);
-	    frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, 1);   // C 372's bit, through the mirror's packing
+	    /* C 372: `f->fonts_changed = 1;` - the flag is a bit of the record's packed run.  */
+	  let fonts_changed: u32 = 1;
+	  frame_set_flag (f, FRAME_FONTS_CHANGED_UNIT, FRAME_FONTS_CHANGED_SHIFT, fonts_changed);
 	  }
       }
   }

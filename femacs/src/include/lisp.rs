@@ -3344,6 +3344,11 @@ pub const WRAP_SPECPDL_REF: bool = true;
 pub const DEFINE_NON_NIL_Q_SYMBOL_MACROS: bool = true;
 pub const LISP_WORDS_ARE_POINTERS: bool = true;      // recorded: the port only supports this
 pub const LISP_OBJECT_IS_STRUCT: bool = false;       // CHECK_LISP_OBJECT_TYPE is not supported
+/* C 200-204/364/588: `CHECK_LISP_OBJECT_TYPE` is the `--enable-check-lisp-object-type`
+   configuration switch; the frozen configuration does not define it (config.h 2704's block),
+   and C 364's `#if !CHECK_LISP_OBJECT_TYPE` is the arm this port compiles - so its value is 0,
+   which is what `extract-abi` compares against the header's test.  */
+pub const CHECK_LISP_OBJECT_TYPE: bool = false;
 pub const EMACS_LISP_H: bool = true;                 // the include guard has no Rust equivalent
 
 #[inline(always)]

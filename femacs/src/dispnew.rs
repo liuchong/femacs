@@ -5115,7 +5115,10 @@ unsafe fn update_window (w: *mut window)
   if f as *mut c_void == (*hlinfo).mouse_face_mouse_frame
     {
       /* Don't do highlighting for mouse motion during the update.  */
-      set_mouse_face_defer (hlinfo, true);   // C 3020's bit, through the mirror's setter
+      /* C 3020: `hlinfo->mouse_face_defer = true;` - the flag is a bit of the record's packed
+         run, so the assignment is the mirror's setter with C's own name kept as the local.  */
+      let mouse_face_defer: bool = true;
+      set_mouse_face_defer (hlinfo, mouse_face_defer);
 
       /* If the frame needs to be redrawn, simply forget about any
 	 prior mouse highlighting.  */

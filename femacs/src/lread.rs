@@ -681,7 +681,10 @@ unsafe fn readbyte_from_file () -> c_int
     /* Interrupted reads have been observed while reading over the network.  */
     loop
       {
-	c = file_get_char! (instream);   // C 331: `file_get_char (instream)`, the same name the arms define
+	#[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]
+	{ c = getc (instream); }                             /* C 331/76: `file_get_char` is `getc` */
+	#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+	{ c = file_get_char! (instream); }                   /* C 331/132: the asset arm's function */
 	if !(c == EOF && *errno () == EINTR && ferror (instream) != 0)
 	  { break; }
 	unblock_input ();

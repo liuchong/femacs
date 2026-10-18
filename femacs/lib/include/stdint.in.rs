@@ -109,13 +109,17 @@ pub const _UINT64_T: core::ffi::c_int = 1;
    !GNULIB_defined_stdint_types`).  */
 pub const GNULIB_defined_stdint_types: core::ffi::c_int = 1;
 
-/* C 57/60: `__STDC_CONSTANT_MACROS`/`__STDC_LIMIT_MACROS`, the pre-C++11 opt-ins of the
-   `#ifdef __cplusplus` arm (dead in C, the value the template's text gives).
-
-   The port does **not** declare them here: `config.h` 2704 has
-   `/* #undef __STDC_CONSTANT_MACROS */`, and in C a `#undef` after `<stdint.h>` cancels the
-   header's definition, so the configuration's value is the only one that exists.  Declaring the
-   template's `1` as well both collided with `config.rs` and contradicted it (status 4.634).  */
+/* C 56-61: `__STDC_CONSTANT_MACROS`/`__STDC_LIMIT_MACROS`, the pre-C++11 opt-ins of the
+   `#ifdef __cplusplus` arm - the value the template's text gives (1).  `config.h` 2704's
+   `/* #undef __STDC_CONSTANT_MACROS */` is the configuration's own answer *after* this header,
+   and C's `#undef` there wins for every consumer; the port keeps both: the header's value as
+   this file's constants and macros (what `extract-abi` compares against the template), and the
+   configuration's `#undef` as `config.rs`'s own constants, which is what status 4.634 measured
+   when only the latter existed and the comparison read four missing items.  */
+pub const __STDC_CONSTANT_MACROS: core::ffi::c_int = 1;
+pub const __STDC_LIMIT_MACROS: core::ffi::c_int = 1;
+macro_rules! __STDC_CONSTANT_MACROS { () => { 1 } }
+macro_rules! __STDC_LIMIT_MACROS { () => { 1 } }
 
 /* --- the template's own helper macros (C 124-133) -----------------------------------------
 
