@@ -1370,6 +1370,26 @@ unsafe extern "C" {
   pub fn gcc_jit_context_new_bitcast (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
                                       rvalue: *mut gcc_jit_rvalue, type_: *mut gcc_jit_type)
     -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 640-641: `gcc_jit_type *gcc_jit_type_get_pointer (gcc_jit_type *type);`
+  pub fn gcc_jit_type_get_pointer (type_: *mut gcc_jit_type) -> *mut gcc_jit_type;
+  /// C: libgccjit.h 741-742: `gcc_jit_type *gcc_jit_struct_as_type (gcc_jit_struct *struct_type);`
+  pub fn gcc_jit_struct_as_type (struct_type: *mut gcc_jit_struct) -> *mut gcc_jit_type;
+  /// C: libgccjit.h 1117-1120: `gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_long
+  /// (gcc_jit_context *ctxt, gcc_jit_type *numeric_type, long value);`
+  pub fn gcc_jit_context_new_rvalue_from_long (ctxt: *mut gcc_jit_context,
+                                               numeric_type: *mut gcc_jit_type, value: c_long)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1137-1140: `gcc_jit_rvalue *gcc_jit_context_new_rvalue_from_ptr
+  /// (gcc_jit_context *ctxt, gcc_jit_type *pointer_type, void *value);`
+  pub fn gcc_jit_context_new_rvalue_from_ptr (ctxt: *mut gcc_jit_context,
+                                              pointer_type: *mut gcc_jit_type, value: *mut c_void)
+    -> *mut gcc_jit_rvalue;
+  /// C: libgccjit.h 1306-1310: `gcc_jit_rvalue *gcc_jit_context_new_comparison
+  /// (gcc_jit_context *ctxt, gcc_jit_location *loc, enum gcc_jit_comparison op,
+  /// gcc_jit_rvalue *a, gcc_jit_rvalue *b);`
+  pub fn gcc_jit_context_new_comparison (ctxt: *mut gcc_jit_context, loc: *mut gcc_jit_location,
+                                         op: gcc_jit_comparison, a: *mut gcc_jit_rvalue,
+                                         b: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue;
 }
 
 /// C: libgccjit.h 1176-1198: `enum gcc_jit_unary_op { GCC_JIT_UNARY_OP_MINUS,
@@ -1384,11 +1404,55 @@ pub type gcc_jit_unary_op = c_uint;
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_UNARY_OP_LOGICAL_NEGATE: gcc_jit_unary_op = 2;
 
-/// C: libgccjit.h 1211-1240: `enum gcc_jit_binary_op { GCC_JIT_BINARY_OP_PLUS, … };` - the alias,
-/// measured the same way as `gcc_jit_unary_op` above (`sizeof` 4, underlying type `unsigned int`;
-/// the enumerators this slice names arrive with the tranche that first names them).
+/// C: libgccjit.h 1211-1272: `enum gcc_jit_binary_op { GCC_JIT_BINARY_OP_PLUS, … };` - the alias,
+/// measured the same way as `gcc_jit_unary_op` above (`sizeof` 4, underlying type `unsigned int`),
+/// then the twelve enumerators, in C's order from 0.
 #[cfg (feature = "have_native_comp")]
 pub type gcc_jit_binary_op = c_uint;
+/// C: libgccjit.h 1214: `GCC_JIT_BINARY_OP_PLUS,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_PLUS: gcc_jit_binary_op = 0;
+/// C: libgccjit.h 1219: `GCC_JIT_BINARY_OP_MINUS,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_MINUS: gcc_jit_binary_op = 1;
+/// C: libgccjit.h 1224: `GCC_JIT_BINARY_OP_MULT,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_MULT: gcc_jit_binary_op = 2;
+/// C: libgccjit.h 1232: `GCC_JIT_BINARY_OP_DIVIDE,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_DIVIDE: gcc_jit_binary_op = 3;
+/// C: libgccjit.h 1237: `GCC_JIT_BINARY_OP_MODULO,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_MODULO: gcc_jit_binary_op = 4;
+/// C: libgccjit.h 1242: `GCC_JIT_BINARY_OP_BITWISE_AND,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_BITWISE_AND: gcc_jit_binary_op = 5;
+/// C: libgccjit.h 1247: `GCC_JIT_BINARY_OP_BITWISE_XOR,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_BITWISE_XOR: gcc_jit_binary_op = 6;
+/// C: libgccjit.h 1252: `GCC_JIT_BINARY_OP_BITWISE_OR,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_BITWISE_OR: gcc_jit_binary_op = 7;
+/// C: libgccjit.h 1257: `GCC_JIT_BINARY_OP_LOGICAL_AND,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_LOGICAL_AND: gcc_jit_binary_op = 8;
+/// C: libgccjit.h 1262: `GCC_JIT_BINARY_OP_LOGICAL_OR,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_LOGICAL_OR: gcc_jit_binary_op = 9;
+/// C: libgccjit.h 1267: `GCC_JIT_BINARY_OP_LSHIFT,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_LSHIFT: gcc_jit_binary_op = 10;
+/// C: libgccjit.h 1272: `GCC_JIT_BINARY_OP_RSHIFT,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_BINARY_OP_RSHIFT: gcc_jit_binary_op = 11;
+
+/// C: libgccjit.h 1284-1304: `enum gcc_jit_comparison { GCC_JIT_COMPARISON_EQ, … };` - the alias
+/// (measured like the two above) and the one enumerator this slice names.
+#[cfg (feature = "have_native_comp")]
+pub type gcc_jit_comparison = c_uint;
+/// C: libgccjit.h 1288: `GCC_JIT_COMPARISON_EQ,`
+#[cfg (feature = "have_native_comp")]
+pub const GCC_JIT_COMPARISON_EQ: gcc_jit_comparison = 0;
 
 /// `fatal` is `sysdep.c` 2399's non-`static` definition; C declares it where it is used, and the
 /// units that call it carry the variadic declaration themselves (`eval.rs` 100, `androidterm.rs`
@@ -1533,6 +1597,361 @@ unsafe fn obj_to_reloc (obj: Lisp_Object) -> imm_reloc_t
                                                    comp.ptrdiff_type,
                                                    XFIXNUM (idx) as c_int);
   return reloc;
+}
+
+/* Should come with libgccjit.  */
+
+/// C 1212-1254: `static gcc_jit_rvalue *emit_rvalue_from_long_long (gcc_jit_type *type,
+/// long long n)`.  C's `(unsigned long long) n >> 32` is an unsigned shift, so the port casts
+/// before shifting.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_rvalue_from_long_long (type_: *mut gcc_jit_type, n: c_longlong)
+  -> *mut gcc_jit_rvalue
+{
+  emit_comment (format_string (c"emit long long: %lld".as_ptr (), n));
+
+  let high: *mut gcc_jit_rvalue =
+    gcc_jit_context_new_rvalue_from_long (comp.ctxt,
+					  comp.unsigned_long_long_type,
+					  ((n as c_ulonglong) >> 32) as c_long);
+  let low: *mut gcc_jit_rvalue =
+    emit_binary_op (GCC_JIT_BINARY_OP_RSHIFT,
+		    comp.unsigned_long_long_type,
+		    emit_binary_op (GCC_JIT_BINARY_OP_LSHIFT,
+				    comp.unsigned_long_long_type,
+				    gcc_jit_context_new_rvalue_from_long (
+				      comp.ctxt,
+				      comp.unsigned_long_long_type,
+				      n as c_long),
+				    gcc_jit_context_new_rvalue_from_int (
+				      comp.ctxt,
+				      comp.unsigned_long_long_type,
+				      32)),
+		    gcc_jit_context_new_rvalue_from_int (
+		      comp.ctxt,
+		      comp.unsigned_long_long_type,
+		      32));
+
+  return
+    emit_coerce (type_,
+      emit_binary_op (
+	GCC_JIT_BINARY_OP_BITWISE_OR,
+	comp.unsigned_long_long_type,
+	emit_binary_op (
+	  GCC_JIT_BINARY_OP_LSHIFT,
+	  comp.unsigned_long_long_type,
+	  high,
+	  gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					       comp.unsigned_long_long_type,
+					       32)),
+	low));
+}
+
+/// C 1256-1266: `static gcc_jit_rvalue *emit_rvalue_from_emacs_uint (EMACS_UINT val)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_rvalue_from_emacs_uint (val: EMACS_UINT) -> *mut gcc_jit_rvalue
+{
+  #[cfg (feature = "wide_emacs_int")]
+  {
+    if val > ULONG_MAX
+      { return emit_rvalue_from_long_long (comp.emacs_uint_type, val as c_longlong); }
+  }
+  return gcc_jit_context_new_rvalue_from_long (comp.ctxt,
+					       comp.emacs_uint_type,
+					       val as c_long);
+}
+
+/// C 1268-1276: `static gcc_jit_rvalue *emit_rvalue_from_emacs_int (EMACS_INT val)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_rvalue_from_emacs_int (val: EMACS_INT) -> *mut gcc_jit_rvalue
+{
+  if val > LONG_MAX as EMACS_INT || val < LONG_MIN as EMACS_INT
+    { return emit_rvalue_from_long_long (comp.emacs_int_type, val as c_longlong); }
+  else
+    { return gcc_jit_context_new_rvalue_from_long (comp.ctxt,
+						 comp.emacs_int_type, val as c_long); }
+}
+
+/// C 1278-1288: `static gcc_jit_rvalue *emit_rvalue_from_lisp_word_tag (Lisp_Word_tag val)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_rvalue_from_lisp_word_tag (val: Lisp_Word_tag) -> *mut gcc_jit_rvalue
+{
+  #[cfg (feature = "wide_emacs_int")]
+  {
+    if val > ULONG_MAX
+      { return emit_rvalue_from_long_long (comp.lisp_word_tag_type, val as c_longlong); }
+  }
+  return gcc_jit_context_new_rvalue_from_long (comp.ctxt,
+					       comp.lisp_word_tag_type,
+					       val as c_long);
+}
+
+/// C 1290-1305: `static gcc_jit_rvalue *emit_rvalue_from_lisp_word (Lisp_Word val)`.  C's
+/// `#if LISP_WORDS_ARE_POINTERS` reads a constant `lisp.h` defines, not a configuration macro, and
+/// the constant is what decides which arm *exists*: with it true `Lisp_Word` is `struct Lisp_X *`,
+/// so C's `#else` arm (`val > LONG_MAX`) is text the preprocessor never shows the compiler, and a
+/// pointer comparison against `LONG_MAX` does not type-check in Rust either.  The arm is therefore
+/// written against the integer view of the same word (a `usize` cast), which is the spelling
+/// `Lisp_Word` itself has in that configuration; it is dead text, and both arms are carried.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_rvalue_from_lisp_word (val: Lisp_Word) -> *mut gcc_jit_rvalue
+{
+  if LISP_WORDS_ARE_POINTERS
+    {
+      return gcc_jit_context_new_rvalue_from_ptr (comp.ctxt,
+                                                  comp.lisp_word_type,
+                                                  val as *mut c_void);
+    }
+  else
+    {
+      /* C's `#else` arm compares `val` as an integer, which is the spelling `Lisp_Word` has in
+	 *that* configuration (a word, not a pointer).  This one makes `Lisp_Word` a
+	 `struct Lisp_X *`, so the arm reads the same bits through the integer view C's own
+	 configuration would have given it - and the arm is never taken, because
+	 `LISP_WORDS_ARE_POINTERS` is `true` (`include/lisp.rs` 3345).  */
+      let word: usize = val as usize;
+      if word > LONG_MAX as usize
+	{ return emit_rvalue_from_long_long (comp.lisp_word_type,
+					     word as c_longlong); }
+      else
+	{ return gcc_jit_context_new_rvalue_from_long (comp.ctxt,
+						       comp.lisp_word_type,
+						       word as c_long); }
+    }
+}
+
+/// C 1307-1316: `static gcc_jit_rvalue *emit_rvalue_from_lisp_obj (Lisp_Object obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_rvalue_from_lisp_obj (obj: Lisp_Object) -> *mut gcc_jit_rvalue
+{
+  #[cfg (feature = "lisp_object_is_struct")]
+  {
+    return emit_coerce (comp.lisp_obj_type,
+                        emit_rvalue_from_lisp_word (obj.i));
+  }
+  #[cfg (not (feature = "lisp_object_is_struct"))]
+  {
+    return emit_rvalue_from_lisp_word (obj);
+  }
+}
+
+/*
+   Emit the equivalent of:
+   (typeof_ptr) ((uintptr) ptr + size_of_ptr_ref * i)
+*/
+
+/// C 1318-1346: `static gcc_jit_rvalue *emit_ptr_arithmetic (gcc_jit_rvalue *ptr,
+/// gcc_jit_type *ptr_type, int size_of_ptr_ref, gcc_jit_rvalue *i)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_ptr_arithmetic (ptr: *mut gcc_jit_rvalue, ptr_type: *mut gcc_jit_type,
+			       size_of_ptr_ref: c_int, i: *mut gcc_jit_rvalue)
+  -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"ptr_arithmetic".as_ptr ());
+
+  let offset: *mut gcc_jit_rvalue =
+    emit_binary_op (
+      GCC_JIT_BINARY_OP_MULT,
+      comp.uintptr_type,
+      gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					   comp.uintptr_type,
+					   size_of_ptr_ref),
+      i);
+
+  return
+    emit_coerce (
+      ptr_type,
+      emit_binary_op (
+	GCC_JIT_BINARY_OP_PLUS,
+	comp.uintptr_type,
+	ptr,
+	offset));
+}
+
+/// C 1348-1353: `static gcc_jit_rvalue *emit_XLI (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XLI (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"XLI".as_ptr ());
+  return emit_coerce (comp.emacs_int_type, obj);
+}
+
+/// C 1355-1361: `static gcc_jit_rvalue *emit_XLP (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XLP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"XLP".as_ptr ());
+
+  return emit_coerce (comp.void_ptr_type, obj);
+}
+
+/// C 1363-1377: `static gcc_jit_rvalue *emit_XUNTAG (gcc_jit_rvalue *a, gcc_jit_type *type,
+/// Lisp_Word_tag lisp_word_tag)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XUNTAG (a: *mut gcc_jit_rvalue, type_: *mut gcc_jit_type,
+		       lisp_word_tag: Lisp_Word_tag) -> *mut gcc_jit_rvalue
+{
+  /* #define XUNTAG(a, type, ctype) ((ctype *)
+     ((char *) XLP (a) - LISP_WORD_TAG (type))) */
+  emit_comment (c"XUNTAG".as_ptr ());
+
+  return emit_coerce (
+	   gcc_jit_type_get_pointer (type_),
+	   emit_binary_op (
+	     GCC_JIT_BINARY_OP_MINUS,
+	     comp.uintptr_type,
+	     emit_XLP (a),
+	     emit_rvalue_from_lisp_word_tag (lisp_word_tag)));
+}
+
+/// C 1379-1387: `static gcc_jit_rvalue *emit_XCONS (gcc_jit_rvalue *a)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_XCONS (a: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"XCONS".as_ptr ());
+
+  return emit_XUNTAG (a,
+		      gcc_jit_struct_as_type (comp.lisp_cons_s),
+		      LISP_WORD_TAG (Lisp_Type::Lisp_Cons as Lisp_Word_tag));
+}
+
+/// C 1389-1400: `static gcc_jit_rvalue *emit_BASE_EQ (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_BASE_EQ (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"BASE_EQ".as_ptr ());
+
+  return gcc_jit_context_new_comparison (
+	   comp.ctxt,
+	   std::ptr::null_mut (),
+	   GCC_JIT_COMPARISON_EQ,
+	   emit_XLI (x),
+	   emit_XLI (y));
+}
+
+/// C 1402-1412: `static gcc_jit_rvalue *emit_AND (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_AND (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  return gcc_jit_context_new_binary_op (
+    comp.ctxt,
+    std::ptr::null_mut (),
+    GCC_JIT_BINARY_OP_LOGICAL_AND,
+    comp.bool_type,
+    x,
+    y);
+}
+
+/// C 1414-1424: `static gcc_jit_rvalue *emit_OR (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_OR (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  return gcc_jit_context_new_binary_op (
+    comp.ctxt,
+    std::ptr::null_mut (),
+    GCC_JIT_BINARY_OP_LOGICAL_OR,
+    comp.bool_type,
+    x,
+    y);
+}
+
+/// C 1426-1469: `static gcc_jit_rvalue *emit_TAGGEDP (gcc_jit_rvalue *obj, Lisp_Word_tag tag)`.
+/// C's `(USE_LSB_TAG ? 0 : VALBITS)` and `((1 << GCTYPEBITS) - 1)` are constants it evaluates at
+/// compile time; the port reads the same two constants (`include/lisp.rs` 77 and lisp.h's widths).
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_TAGGEDP (obj: *mut gcc_jit_rvalue, tag: Lisp_Word_tag) -> *mut gcc_jit_rvalue
+{
+  /* (! (((unsigned) (XLI (a) >> (USE_LSB_TAG ? 0 : VALBITS)) 	- (unsigned) (tag)) 	& ((1 << GCTYPEBITS) - 1))) */
+  emit_comment (c"TAGGEDP".as_ptr ());
+
+  let sh_res: *mut gcc_jit_rvalue =
+    emit_binary_op (
+      GCC_JIT_BINARY_OP_RSHIFT,
+      comp.emacs_int_type,
+      emit_XLI (obj),
+      gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					   comp.emacs_int_type,
+					   (if USE_LSB_TAG { 0 } else { VALBITS as c_int })));
+
+  let minus_res: *mut gcc_jit_rvalue =
+    emit_binary_op (
+      GCC_JIT_BINARY_OP_MINUS,
+	   comp.unsigned_type,
+	   sh_res,
+	   gcc_jit_context_new_rvalue_from_int (
+	     comp.ctxt,
+	     comp.unsigned_type,
+	     tag as c_int));
+
+  let res: *mut gcc_jit_rvalue =
+   gcc_jit_context_new_unary_op (
+     comp.ctxt,
+     std::ptr::null_mut (),
+     GCC_JIT_UNARY_OP_LOGICAL_NEGATE,
+     comp.int_type,
+     emit_binary_op (
+       GCC_JIT_BINARY_OP_BITWISE_AND,
+       comp.unsigned_type,
+       minus_res,
+       gcc_jit_context_new_rvalue_from_int (
+	 comp.ctxt,
+	 comp.unsigned_type,
+	 ((1usize << GCTYPEBITS) - 1) as c_int)));
+
+  return res;
+}
+
+/// C 1471-1477: `static gcc_jit_rvalue *emit_VECTORLIKEP (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_VECTORLIKEP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"VECTORLIKEP".as_ptr ());
+
+  return emit_TAGGEDP (obj, Lisp_Type::Lisp_Vectorlike as Lisp_Word_tag);
+}
+
+/// C 1479-1485: `static gcc_jit_rvalue *emit_CONSP (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_CONSP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"CONSP".as_ptr ());
+
+  return emit_TAGGEDP (obj, Lisp_Type::Lisp_Cons as Lisp_Word_tag);
+}
+
+/// C 1487-1504: `static gcc_jit_rvalue *emit_SYMBOL_WITH_POS_P (gcc_jit_rvalue *obj)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_SYMBOL_WITH_POS_P (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  emit_comment (c"SYMBOL_WITH_POS_P".as_ptr ());
+
+  let args: [*mut gcc_jit_rvalue; 2] =
+    [ obj,
+      gcc_jit_context_new_rvalue_from_int (comp.ctxt,
+					   comp.int_type,
+					   pvec_type::PVEC_SYMBOL_WITH_POS as c_int) ];
+
+  return gcc_jit_context_new_call (comp.ctxt,
+				   std::ptr::null_mut (),
+				   comp.pseudovectorp,
+				   2,
+				   args.as_ptr () as *mut *mut gcc_jit_rvalue);
+}
+
+/// C 1506-1518: `static gcc_jit_rvalue *emit_slow_eq (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
+/// C's `countof (args)` is the array's length, a constant; the port passes the same 2.
+#[cfg (feature = "have_native_comp")]
+unsafe fn emit_slow_eq (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
+{
+  let args: [*mut gcc_jit_rvalue; 2] =
+    [ emit_coerce (comp.lisp_obj_type, x),
+      emit_coerce (comp.lisp_obj_type, y) ];
+
+  return emit_call (intern_c_string (c"slow_eq".as_ptr ()),
+                    comp.bool_type,
+		    countof! (args) as ptrdiff_t,
+                    args.as_ptr () as *mut *mut gcc_jit_rvalue,
+                    false);
 }
 
 /// C 1120-1197: `static gcc_jit_rvalue *emit_coerce (gcc_jit_type *new_type, gcc_jit_rvalue *obj)`.
