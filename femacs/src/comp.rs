@@ -1249,6 +1249,138 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+/* The helper entry points `declare_runtime_imported_funcs` names for the compiled code.  C's
+   `bcall0`, `prog_ignore`, `save_restriction_save`/`_restore` and `internal_delete_file` are other
+   units' definitions; the ones no mirror names are declared where they are used.  */
+#[cfg (feature = "have_native_comp")]
+unsafe extern "C" {
+  pub fn save_restriction_save () -> Lisp_Object;
+  pub fn save_restriction_restore (arg: Lisp_Object);
+  pub fn internal_delete_file (file: Lisp_Object) -> Lisp_Object;
+}
+
+/// C 4961-4967: `static void helper_unwind_protect (Lisp_Object handler)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn helper_unwind_protect (handler: Lisp_Object)
+{
+  /* Support for a function here is new in 24.4.  */
+  record_unwind_protect (
+    if FUNCTIONP (handler) { bcall0 as *mut c_void }
+    else { prog_ignore as *mut c_void },
+    handler);
+}
+
+/// C 4969-4973: `static Lisp_Object helper_unbind_n (Lisp_Object n)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn helper_unbind_n (n: Lisp_Object) -> Lisp_Object
+{
+  return unbind_to (specpdl_ref_add (SPECPDL_INDEX (), -XFIXNUM (n)), Qnil ());
+}
+
+/// C 4975-4980: `static void helper_save_restriction (void)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn helper_save_restriction ()
+{
+  record_unwind_protect (save_restriction_restore as *mut c_void,
+			 save_restriction_save ());
+}
+
+/// C 4982-4988: `static bool helper_PSEUDOVECTOR_TYPEP_XUNTAG (Lisp_Object a,
+/// enum pvec_type code)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn helper_PSEUDOVECTOR_TYPEP_XUNTAG (a: Lisp_Object, code: pvec_type) -> bool
+{
+  return PSEUDOVECTOR_TYPEP (XUNTAG! (a,
+				      LISP_WORD_TAG (Lisp_Type::Lisp_Vectorlike as Lisp_Word_tag),
+				      vectorlike_header),
+			     code);
+}
+
+/// C 4990-4995: `static struct Lisp_Symbol_With_Pos *helper_GET_SYMBOL_WITH_POSITION
+/// (Lisp_Object a)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn helper_GET_SYMBOL_WITH_POSITION (a: Lisp_Object) -> *mut Lisp_Symbol_With_Pos
+{
+  CHECK_TYPE (SYMBOL_WITH_POS_P (a), Qsymbol_with_pos_p (), a);
+  return XUNTAG! (a, LISP_WORD_TAG (Lisp_Type::Lisp_Vectorlike as Lisp_Word_tag),
+		  Lisp_Symbol_With_Pos);
+}
+
+/// C 4997-5010: `static Lisp_Object helper_sanitizer_assert (Lisp_Object val,
+/// Lisp_Object type)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn helper_sanitizer_assert (val: Lisp_Object, type_: Lisp_Object) -> Lisp_Object
+{
+  if ! comp_sanitizer_active
+      || ! NILP ((CALLNI! ("cl-typep", val, type_)))
+    { return Qnil (); }
+
+  AUTO_STRING! (format, c"Comp sanitizer FAIL for %s with type %s");
+  CALLN! (Fmessage, format, val, type_);
+  CALLNI! ("backtrace");
+  xsignal2 (Qcomp_sanitizer_error (), val, type_);
+
+  return Qnil ();
+}
+
+/* `native-comp-eln-load-path' clean-up support code.  */
+
+#[cfg(all (feature = "have_native_comp", feature = "windowsnt"))]
+unsafe fn return_nil (arg: Lisp_Object) -> Lisp_Object
+{
+  return Qnil ();
+}
+
+#[cfg(all (feature = "have_native_comp", feature = "windowsnt"))]
+unsafe fn directory_files_matching (name: Lisp_Object, match_: Lisp_Object) -> Lisp_Object
+{
+  return Fdirectory_files (name, Qt (), match_, Qnil (), Qnil ());
+}
+
+/* Windows does not let us delete a .eln file that is currently loaded
+   by a process.  The strategy is to rename .eln files into .old.eln
+   instead of removing them when this is not possible and clean-up
+   `native-comp-eln-load-path' when exiting.
+
+   Any error is ignored because it may be due to the file being loaded
+   in another Emacs instance.  */
+/// C 5036-5053: `void eln_load_path_final_clean_up (void)`.
+#[cfg (feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn eln_load_path_final_clean_up ()
+{
+  #[cfg (feature = "windowsnt")]
+  {
+    let mut dir_tail: Lisp_Object = Vnative_comp_eln_load_path;
+    FOR_EACH_TAIL! (dir_tail, {
+	let files_in_dir: Lisp_Object =
+	  internal_condition_case_2 (directory_files_matching as *mut c_void,
+				     Fexpand_file_name (Vcomp_native_version_dir,
+							XCAR (dir_tail)),
+				     build_string (c"\\.eln\\.old\\'".as_ptr ()),
+				     Qt (), return_nil as *mut c_void);
+	let mut files_in_dir: Lisp_Object = files_in_dir;
+	FOR_EACH_TAIL! (files_in_dir, {
+	    internal_delete_file (XCAR (files_in_dir));
+	  });
+      });
+  }
+}
+
+/* This function puts the compilation unit in the
+  `Vcomp_loaded_comp_units_h` hashmap.  */
+/// C 5057-5062: `static void register_native_comp_unit (Lisp_Object comp_u)`.
+#[cfg (feature = "have_native_comp")]
+unsafe fn register_native_comp_unit (comp_u: Lisp_Object)
+{
+  Fputhash (
+    (*XNATIVE_COMP_UNIT (comp_u)).file, comp_u, Vcomp_loaded_comp_units_h);
+}
+
+/***********************************/
+/* Deferred compilation mechanism. */
+/***********************************/
+
 /// C 4778-4928: `DEFUN ("comp--compile-ctxt-to-file0", …)`.
 #[cfg (feature = "have_native_comp")]
 DEFUN! ("comp--compile-ctxt-to-file0", Fcomp__compile_ctxt_to_file0,
