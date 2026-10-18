@@ -44,6 +44,23 @@ pub struct Lisp_Native_Comp_Unit
 /// HAVE_NATIVE_COMP undefined this is the definition every caller links against; when that
 /// macro *is* defined comp.h declares the real one and `src/comp.c` defines it, which is the
 /// condition the gate below reproduces.
+/* comp.h 39-41/47-48: when `HAVE_NATIVE_COMP` is defined the two are *declarations* of
+   definitions in `src/comp.c`.  They sit in a module with a glob import so the defining unit's own
+   items shadow the glob (P-39, the `include/window.rs` 895 shape) while every other unit that
+   includes this mirror still sees the names.  */
+#[cfg (feature = "have_native_comp")]
+pub mod comp_h_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn maybe_defer_native_compilation (function_name: Lisp_Object,
+                                           definition: Lisp_Object);
+    pub fn unload_comp_unit (cu: *mut Lisp_Native_Comp_Unit);
+  }
+}
+#[cfg (feature = "have_native_comp")]
+use comp_h_decls::*;
+
 #[cfg (not (feature = "have_native_comp"))]
 #[inline(always)]
 pub fn maybe_defer_native_compilation (function_name: Lisp_Object, definition: Lisp_Object)

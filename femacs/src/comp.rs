@@ -1872,7 +1872,7 @@ unsafe fn helper_sanitizer_assert (val: Lisp_Object, type_: Lisp_Object) -> Lisp
       || ! NILP ((CALLNI! ("cl-typep", val, type_)))
     { return Qnil (); }
 
-  AUTO_STRING! (format, c"Comp sanitizer FAIL for %s with type %s");
+  AUTO_STRING! (format, c"Comp sanitizer FAIL for %s with type %s".as_ptr ());
   CALLN! (Fmessage, format, val, type_);
   CALLNI! ("backtrace");
   xsignal2 (Qcomp_sanitizer_error (), val, type_);
@@ -2461,7 +2461,7 @@ static mut loadsearch_re_list: Lisp_Object = lisp_h_Qnil ();
 
 /// C 4293-4298: `static Lisp_Object make_directory_wrapper (Lisp_Object directory)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn make_directory_wrapper (directory: Lisp_Object) -> Lisp_Object
+unsafe extern "C" fn make_directory_wrapper (directory: Lisp_Object) -> Lisp_Object
 {
   CALLNI! ("make-directory", directory, Qt ());
   return Qnil ();
@@ -2469,7 +2469,7 @@ unsafe fn make_directory_wrapper (directory: Lisp_Object) -> Lisp_Object
 
 /// C 4300-4304: `static Lisp_Object make_directory_wrapper_1 (Lisp_Object ignore)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn make_directory_wrapper_1 (ignore: Lisp_Object) -> Lisp_Object
+unsafe extern "C" fn make_directory_wrapper_1 (ignore: Lisp_Object) -> Lisp_Object
 {
   return Qt ();
 }
@@ -2593,9 +2593,9 @@ DEFUN! ("comp-el-to-eln-filename", Fcomp_el_to_eln_filename,
 	  else
 	    {
 	      /* Try to create the directory and if succeeds use it.  */
-	      if NILP (internal_condition_case_1 (make_directory_wrapper,
+	      if NILP (internal_condition_case_1 (Some (make_directory_wrapper),
 						   dir, Qt (),
-						   make_directory_wrapper_1))
+						   Some (make_directory_wrapper_1)))
 		{
 		  base_dir = dir;
 		  break;
@@ -3076,7 +3076,9 @@ pub const GCC_JIT_COMPARISON_LE: gcc_jit_comparison = 3;
 /// in the tree (`eval.rs` 1687, `fileio.rs` 2161).  Each is the P-55 use-site shape.
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" {
-  pub fn list (n: ptrdiff_t, ...) -> Lisp_Object;
+  /// C: lisp.h's `extern Lisp_Object list (Lisp_Object, ...)` - variadic from the first object,
+  /// not from a count.
+  pub fn list (arg: Lisp_Object, ...) -> Lisp_Object;
   pub fn prog_ignore (body: Lisp_Object);
   pub fn realpath (file_name: *const c_char, resolved_name: *mut c_char) -> *mut c_char;
   pub fn allocate_native_comp_unit () -> *mut Lisp_Native_Comp_Unit;
@@ -4456,7 +4458,7 @@ unsafe fn compile_function (func: Lisp_Object)
   let mut frame_buf: *mut *mut gcc_jit_lvalue = comp.frame;
   SAFE_NALLOCA! (sa_avail, frame_buf, 1, comp.frame_size as usize);
   comp.frame = frame_buf;
-  if comp.func_has_non_local != 0 || comp.func_speed == 0
+  if comp.func_has_non_local || comp.func_speed == 0
     {
       /* FIXME: See bug#42360.  */
       let arr: *mut gcc_jit_lvalue =
@@ -6932,7 +6934,7 @@ pub unsafe extern "C" fn syms_of_comp ()
   /* C 5596-5854: `#ifdef HAVE_NATIVE_COMP`, the file gate's `syms_of` region.  */
   #[cfg (feature = "have_native_comp")]
   {
-  DEFVAR_BOOL! ("native-comp-jit-compilation", native_comp_jit_compilation,
+  DEFVAR_BOOL! (c"native-comp-jit-compilation", native_comp_jit_compilation,
     doc: "If non-nil, compile loaded .elc files asynchronously.\n\nAfter compilation, each function definition is updated to use the\nnatively compiled one.");
   native_comp_jit_compilation = true;
 
@@ -7076,30 +7078,30 @@ pub unsafe extern "C" fn syms_of_comp ()
   staticpro (&raw mut loadsearch_re_list);
   loadsearch_re_list = Qnil ();
 
-  DEFVAR_LISP! ("comp-ctxt", Vcomp_ctxt,
+  DEFVAR_LISP! (c"comp-ctxt", Vcomp_ctxt,
 	       doc: "The compiler context.");
   Vcomp_ctxt = Qnil ();
 
   /* FIXME should be initialized but not here...  Plus this don't have
      to be necessarily exposed to lisp but can easy debug for now.  */
-  DEFVAR_LISP! ("comp-subr-list", Vcomp_subr_list,
+  DEFVAR_LISP! (c"comp-subr-list", Vcomp_subr_list,
     doc: "List of all defined subrs.");
-  DEFVAR_LISP! ("comp-abi-hash", Vcomp_abi_hash,
+  DEFVAR_LISP! (c"comp-abi-hash", Vcomp_abi_hash,
     doc: "String signing the .eln files ABI.");
   Vcomp_abi_hash = Qnil ();
-  DEFVAR_LISP! ("comp-native-version-dir", Vcomp_native_version_dir,
+  DEFVAR_LISP! (c"comp-native-version-dir", Vcomp_native_version_dir,
     doc: "Directory in use to disambiguate eln compatibility.");
   Vcomp_native_version_dir = Qnil ();
 
-  DEFVAR_LISP! ("comp-deferred-pending-h", Vcomp_deferred_pending_h,
+  DEFVAR_LISP! (c"comp-deferred-pending-h", Vcomp_deferred_pending_h,
     doc: "Hash table symbol-name -> function-value.\nFor internal use.");
   Vcomp_deferred_pending_h = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
 
-  DEFVAR_LISP! ("comp-eln-to-el-h", Vcomp_eln_to_el_h,
+  DEFVAR_LISP! (c"comp-eln-to-el-h", Vcomp_eln_to_el_h,
     doc: "Hash table eln-filename -> el-filename.");
   Vcomp_eln_to_el_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
 
-  DEFVAR_LISP! ("native-comp-eln-load-path", Vnative_comp_eln_load_path,
+  DEFVAR_LISP! (c"native-comp-eln-load-path", Vnative_comp_eln_load_path,
     doc: "List of directories to look for native-compiled *.eln files.\n\nThe *.eln files are actually looked for in a version-specific\nsubdirectory of each directory in this list.  That subdirectory\nis determined by the value of `comp-native-version-dir'.\nIf the name of a directory in this list is not absolute, it is\nassumed to be relative to `invocation-directory'.\nThe last directory of this list is assumed to be the one holding\nthe system *.eln files, which are the files produced when building\nEmacs.");
 
   /* Temporary value in use for bootstrap.  We can't do better as
@@ -7107,35 +7109,35 @@ pub unsafe extern "C" fn syms_of_comp ()
      dump reload.  */
   Vnative_comp_eln_load_path = Fcons (build_string (c"../native-lisp/".as_ptr ()), Qnil ());
 
-  DEFVAR_LISP! ("native-comp-enable-subr-trampolines",
+  DEFVAR_LISP! (c"native-comp-enable-subr-trampolines",
 	       Vnative_comp_enable_subr_trampolines,
     doc: "If non-nil, enable generation of trampolines for calling primitives.\nTrampolines are needed so that Emacs respects redefinition or advice of\nprimitive functions when they are called from native-compiled Lisp code\nat `native-comp-speed' of 2.\n\nBy default, the value is t, and when Emacs sees a redefined or advised\nprimitive called from native-compiled Lisp, it generates a trampoline\nfor it on-the-fly.\n\nIf the value is a file name (a string), it specifies the directory in\nwhich to deposit the generated trampolines, overriding the directories\nin `native-comp-eln-load-path'.\n\nWhen this variable is nil, generation of trampolines is disabled.\n\nDisabling the generation of trampolines, when a trampoline for a redefined\nor advised primitive is not already available from previous compilations,\nmeans that such redefinition or advice will not have effect when calling\nprimitives from native-compiled Lisp code.  That is, calls to primitives\nwithout existing trampolines from native-compiled Lisp will behave as if\nthe primitive was called directly from C, and will ignore its redefinition\nand advice.");
 
-  DEFVAR_LISP! ("comp-installed-trampolines-h", Vcomp_installed_trampolines_h,
+  DEFVAR_LISP! (c"comp-installed-trampolines-h", Vcomp_installed_trampolines_h,
     doc: "Hash table subr-name -> installed trampoline.\nThis is used to prevent double trampoline instantiation, and also to\nprotect the trampolines against GC.");
   Vcomp_installed_trampolines_h = Fmake_hash_table (0, std::ptr::null_mut ());
 
-  DEFVAR_LISP! ("comp-no-native-file-h", V_comp_no_native_file_h,
+  DEFVAR_LISP! (c"comp-no-native-file-h", V_comp_no_native_file_h,
     doc: "Files for which no deferred compilation should be performed.\nThese files' compilation should not be deferred because the bytecode\nversion was explicitly requested by the user during load.\nFor internal use.");
   V_comp_no_native_file_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
 
-  DEFVAR_BOOL! ("comp-file-preloaded-p", comp_file_preloaded_p,
+  DEFVAR_BOOL! (c"comp-file-preloaded-p", comp_file_preloaded_p,
     doc: "When non-nil, assume the file being compiled to be preloaded.");
 
-  DEFVAR_LISP! ("comp-loaded-comp-units-h", Vcomp_loaded_comp_units_h,
+  DEFVAR_LISP! (c"comp-loaded-comp-units-h", Vcomp_loaded_comp_units_h,
     doc: "Hash table recording all loaded compilation units, file -> CU.");
   Vcomp_loaded_comp_units_h =
     CALLN! (Fmake_hash_table, QCweakness (), Qvalue (), QCtest (), Qequal ());
 
-  DEFVAR_LISP! ("comp-subr-arities-h", Vcomp_subr_arities_h,
+  DEFVAR_LISP! (c"comp-subr-arities-h", Vcomp_subr_arities_h,
     doc: "Hash table recording the arity of Lisp primitives.\nThis is in case they are redefined so the compiler still knows how to\ncompile calls to them.\nsubr-name -> arity\nFor internal use.");
   Vcomp_subr_arities_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
 
-  DEFVAR_BOOL! ("comp-sanitizer-active", comp_sanitizer_active,
+  DEFVAR_BOOL! (c"comp-sanitizer-active", comp_sanitizer_active,
     doc: "If non-nil, enable runtime execution of native-compiler sanitizer.\nFor this to be effective, Lisp code must be compiled\nwith `comp-sanitizer-emit' non-nil.\nThis is intended to be used only for development and\nverification of the native compiler.");
   comp_sanitizer_active = false;
 
-  DEFVAR_LISP! ("comp--#$", Vcomp__hashdollar,
+  DEFVAR_LISP! (c"comp--#$", Vcomp__hashdollar,
     doc: "Special value which will print as \"#$\".");
   Vcomp__hashdollar = build_string (c"#$".as_ptr ());
 

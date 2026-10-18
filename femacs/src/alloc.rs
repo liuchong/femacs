@@ -3649,7 +3649,7 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	  // untyped pointer because `Lisp_Native_Comp_Unit` is not in that mirror's scope
 	  // (P-72 rule ③, comp.rs's own note).  This arm is the one place the type *is* in scope,
 	  // so the conversion lives here - same pointer, same call.
-	  unload_comp_unit (cu as *mut core::ffi::c_void);
+	  unload_comp_unit (cu);
 	}
       }
     pvec_type::PVEC_SUBR =>
