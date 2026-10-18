@@ -1365,13 +1365,13 @@ unsafe fn make_subr (symbol_name: Lisp_Object, minarg: Lisp_Object, maxarg_in: L
       (*x).s.lambda_list = Qnil ();
     }
   (*x).s.function.a0 = Some (std::mem::transmute (func));
-  (*x).s.min_args = XFIXNUM (minarg);
+  (*x).s.min_args = XFIXNUM (minarg) as i16;   // `Lisp_Subr.min_args` is a `short`
   (*x).s.max_args = if FIXNUMP (maxarg) { XFIXNUM (maxarg) as c_short }
                     else { MANY as c_short };
   (*x).s.symbol_name = xstrdup (SSDATA (symbol_name));
   (*x).s.intspec.native = intspec;
   (*x).s.command_modes = command_modes;
-  (*x).s.doc = (-XFIXNUM (doc_idx) - 1) as c_int;
+  (*x).s.doc = -XFIXNUM (doc_idx) - 1;        // `Lisp_Subr.doc` is an `EMACS_INT`
   eassert! ((*x).s.doc < 0);
   (*x).s.native_comp_u = comp_u;
   (*x).s.native_c_name = xstrdup (SSDATA (c_name));
@@ -1525,7 +1525,7 @@ pub unsafe extern "C" fn load_comp_unit (comp_u_in: *mut Lisp_Native_Comp_Unit,
   (*comp_u).load_ongoing = true;
   let count: specpdl_ref = SPECPDL_INDEX ();
   if ! recursive_load
-    { record_unwind_protect (unset_cu_load_ongoing as *mut c_void, comp_u_lisp_obj); }
+    { record_unwind_protect (Some (std::mem::transmute (unset_cu_load_ongoing as *const c_void)), comp_u_lisp_obj); }
 
   freloc_check_fill ();
 
@@ -1818,10 +1818,13 @@ unsafe extern "C" {
 unsafe fn helper_unwind_protect (handler: Lisp_Object)
 {
   /* Support for a function here is new in 24.4.  */
-  record_unwind_protect (
-    if FUNCTIONP (handler) { bcall0 as *mut c_void }
-    else { prog_ignore as *mut c_void },
-    handler);
+  /* C's `FUNCTIONP (handler) ? bcall0 : prog_ignore` is a function-pointer choice; the port's
+     `record_unwind_protect` takes an `Option<fn (Lisp_Object)>`, so the two items are cast to
+     that type and the condition is C's own test written against the mirror's predicate.  */
+  let fnptr: Option<unsafe extern "C" fn (Lisp_Object)> =
+    if FUNCTIONP (handler) { Some (std::mem::transmute (bcall0 as *const c_void)) }
+    else { Some (std::mem::transmute (prog_ignore as *const c_void)) };
+  record_unwind_protect (fnptr, handler);
 }
 
 /// C 4969-4973: `static Lisp_Object helper_unbind_n (Lisp_Object n)`.
@@ -1835,7 +1838,7 @@ unsafe fn helper_unbind_n (n: Lisp_Object) -> Lisp_Object
 #[cfg (feature = "have_native_comp")]
 unsafe fn helper_save_restriction ()
 {
-  record_unwind_protect (save_restriction_restore as *mut c_void,
+  record_unwind_protect (Some (std::mem::transmute (save_restriction_restore as *const c_void)),
 			 save_restriction_save ());
 }
 
@@ -3082,6 +3085,9 @@ unsafe extern "C" {
     handlers: Lisp_Object,
     hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object;
   pub fn file_name_absolute_p (filename: *const c_char) -> bool;
+  /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` - a real (non-inline) definition the
+  /// mirror does not carry.
+  pub fn FUNCTIONP (a: Lisp_Object) -> bool;
 }
 
 /// `fatal` is `sysdep.c` 2399's non-`static` definition; C declares it where it is used, and the
