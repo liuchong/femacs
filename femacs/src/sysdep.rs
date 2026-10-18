@@ -3555,6 +3555,11 @@ unsafe extern "C" {
 /// `<stdio.h>`: `#define RENAME_EXCL 0x00000004` (the frozen macro table).
 pub const RENAME_EXCL: c_uint = 0x00000004;
 
+/* C 2399-2405: `#if !defined HAVE_NTGUI && !(defined HAVE_ANDROID && !defined
+   ANDROID_STUBIFY)` - the Android arm defines its own (`android.c` 5915 logs a stack trace),
+   so this one is not compiled there.  Without the gate the shared library link read
+   `duplicate symbol: emacs_abort` (measured).  */
+#[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]
 // C 2399-2406: `#if !defined HAVE_NTGUI && !(defined HAVE_ANDROID && !defined
 // ANDROID_STUBIFY)` is live.
 #[unsafe(no_mangle)]
