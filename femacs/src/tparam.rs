@@ -62,13 +62,17 @@ pub unsafe extern "C" fn tparam (string: *const c_char, outstring: *mut c_char, 
                   arg.as_mut_ptr ());
 }
 
-/* tparam.h 41-42: `extern char *BC; extern char *UP;` - the two objects are *defined* in
-   terminfo.c (femacs/src/terminfo.rs) and this translation unit only declares them.  The port
-   had defined them here before terminfo.c was ported; corrected then.  */
-unsafe extern "C" {
-  pub static mut BC: *mut c_char;
-  pub static mut UP: *mut c_char;
-}
+/* C 51-52: `char *BC; char *UP;` - this translation unit *defines* the two globals (tparam.h
+   41-42 declares them for its includers).  The port had left them as declarations on the reading
+   that the frozen build gets them from the system's termcap library; the Android configuration
+   has no such library (`TERMCAP_OBJ` is `tparam.o` alone there, `src/Makefile.in` 194), so the
+   definition has to be here (measured: the Android library imported both names and nothing
+   provided them, status 4.713).  C's file-scope `char *BC;` is a tentative definition that is
+   zero for the whole program; the port spells that out.  */
+#[unsafe(no_mangle)]
+pub static mut BC: *mut c_char = std::ptr::null_mut ();
+#[unsafe(no_mangle)]
+pub static mut UP: *mut c_char = std::ptr::null_mut ();
 
 // tparam.c 53: `static char tgoto_buf[50];` - a bss array, zero in C and here.
 static mut tgoto_buf: [c_char; 50] = [0; 50];

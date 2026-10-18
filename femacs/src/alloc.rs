@@ -1222,20 +1222,27 @@ pub const BLOCK_ALIGN: usize = 1 << 15;
 const _: () = core::assert! (BLOCK_ALIGN & (BLOCK_ALIGN - 1) == 0);
 
 /* Use aligned_alloc if it or a simple substitute is available.  */
-/* C 969-988: `#if (defined HAVE_ALIGNED_ALLOC || …)` is live, so C defines `USE_ALIGNED_ALLOC`
-   to 1 and calls the C library's `aligned_alloc` (declared here at its use site below,
-   P-72 ③); the `#elif defined HAVE_POSIX_MEMALIGN` arm (`#define aligned_alloc
-   my_aligned_alloc` plus the `aligned_alloc` helper) is dead and is carried under the feature
-   that names it.  */
+/* C 969-988: the first arm (`defined HAVE_ALIGNED_ALLOC || (!defined SYSTEM_MALLOC &&
+   !defined DOUG_LEA_MALLOC)`) calls the C library's `aligned_alloc`; the `#elif defined
+   HAVE_POSIX_MEMALIGN` arm defines `aligned_alloc` as `my_aligned_alloc`, the helper below.
+   `xtask` derives `my_aligned_alloc` from those keys, because the condition combines them
+   (`SYSTEM_MALLOC` is 1 on Android, whose bionic has no `aligned_alloc` at API 21, so the second
+   arm is the Android one - status 4.713).  C's `#define aligned_alloc my_aligned_alloc` is the
+   port's macro either way, so the call site is spelled once.  */
 pub const USE_ALIGNED_ALLOC: c_int = 1;
 
-#[cfg (feature = "posix_memalign")]
+#[cfg (feature = "my_aligned_alloc")]
 macro_rules! aligned_alloc {
   ($alignment:expr, $size:expr) => { my_aligned_alloc ($alignment, $size) };
 }
 
-#[cfg (feature = "posix_memalign")]
-unsafe fn aligned_alloc (alignment: size_t, size: size_t) -> *mut c_void
+#[cfg (not (feature = "my_aligned_alloc"))]
+macro_rules! aligned_alloc {
+  ($alignment:expr, $size:expr) => { aligned_alloc ($alignment, $size) };
+}
+
+#[cfg (feature = "my_aligned_alloc")]
+unsafe fn my_aligned_alloc (alignment: size_t, size: size_t) -> *mut c_void
 {
   /* POSIX says the alignment must be a power-of-2 multiple of sizeof (void *).
      Verify this for all arguments this function is given.  */
@@ -1244,7 +1251,9 @@ unsafe fn aligned_alloc (alignment: size_t, size: size_t) -> *mut c_void
 			   & (BLOCK_ALIGN / std::mem::size_of::<*mut c_void> () - 1)) == 0);
   eassert! (alignment == BLOCK_ALIGN);
 
-  let mut p: *mut c_void;
+  /* C 981 declares `void *p;` and lets `posix_memalign` write it.  Rust needs an initial value
+     before the read (E0381), and the call writes it on every path that reads it.  */
+  let mut p: *mut c_void = std::ptr::null_mut ();
   return if posix_memalign (&raw mut p, alignment, size) == 0 { p }
 	 else { std::ptr::null_mut () };
 }
@@ -1378,7 +1387,7 @@ unsafe fn lisp_align_malloc (nbytes: ptrdiff_t, r#type: mem_type) -> *mut c_void
       /* C 1107-1112: the `#ifdef USE_ALIGNED_ALLOC` arm is live; the dead `#else` arm is
 	 carried (P-51).  */
       static_assert! (ABLOCKS_BYTES % BLOCK_ALIGN == 0);
-      abase = aligned_alloc (BLOCK_ALIGN, ABLOCKS_BYTES) as *mut ablocks;
+      abase = aligned_alloc! (BLOCK_ALIGN, ABLOCKS_BYTES) as *mut ablocks;
       base = abase as *mut c_void;
       #[cfg (feature = "no_use_aligned_alloc")]
       {

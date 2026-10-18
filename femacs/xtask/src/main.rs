@@ -162,6 +162,10 @@ fn config_features () -> Vec<String>
       };
   let mut out: Vec<String> = Vec::new ();
   let mut numbers: std::collections::HashMap<String, u64> = std::collections::HashMap::new ();
+  // The names the configuration calls true, for the conditions that combine keys (`aligned_alloc`
+  // below is `HAVE_ALIGNED_ALLOC || (!SYSTEM_MALLOC && !DOUG_LEA_MALLOC)`, then
+  // `HAVE_POSIX_MEMALIGN`).
+  let mut truthy: std::collections::HashSet<String> = std::collections::HashSet::new ();
   // `"features"` (header macros that are cfg gates, written by `--keys-from-header`) is the
   // authoritative section when present; `"macros"` is the constraint set `gen-config` turns into
   // constants, and reading it here too is what lets a configuration without the section still
@@ -175,14 +179,15 @@ fn config_features () -> Vec<String>
       let Some (rest) = line.strip_prefix ('"') else { continue };
       let Some ((name, value)) = rest.split_once ("\": ") else { continue };
       let value = value.trim_end_matches (',').trim_matches ('"');
-      let truthy = matches! (value, "1" | "true");
+      let truthy_value = matches! (value, "1" | "true");
       let name_lower = name.to_ascii_lowercase ();
       if name.is_empty () || name.starts_with ("target") || name.starts_with ("source")
         {
           continue;
         }
       if let Ok (n) = value.parse::<u64> () { numbers.insert (name.to_string (), n); }
-      if truthy
+      if truthy_value { truthy.insert (name.to_string ()); }
+      if truthy_value
         {
           out.push (format! ("feature=\"{name_lower}\""));
         }
@@ -191,6 +196,17 @@ fn config_features () -> Vec<String>
           // A macro the port tests negatively (`#ifndef X` in C).
           out.push (format! ("feature=\"not_{name_lower}\""));
         }
+    }
+  // C's `#if (defined HAVE_ALIGNED_ALLOC || (!defined SYSTEM_MALLOC && !defined DOUG_LEA_MALLOC))`
+  // takes the platform's `aligned_alloc`; when that is false and `HAVE_POSIX_MEMALIGN` is set, C's
+  // `#elif` defines its own over `posix_memalign` (`alloc.c` 969-988).  bionic at API 21 has no
+  // `aligned_alloc` at all, so the second arm is the Android one - derived here because the
+  // condition combines keys rather than naming one (status 4.713).
+  let platform_aligned_alloc = truthy.contains ("HAVE_ALIGNED_ALLOC")
+    || (!truthy.contains ("SYSTEM_MALLOC") && !truthy.contains ("DOUG_LEA_MALLOC"));
+  if !platform_aligned_alloc && truthy.contains ("HAVE_POSIX_MEMALIGN")
+    {
+      out.push ("feature=\"my_aligned_alloc\"".to_string ());
     }
   // `systhread.rs` gates the "alignment room" unions on `alignof_pthread_cond_t_le_…`, which is a
   // *comparison* of two measured numbers, not a macro: the JSON carries

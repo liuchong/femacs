@@ -5,10 +5,7 @@
 # transcribed for this target; a NEW symbol here is a defect (a misspelling,
 # a missing #[no_mangle], or a header mirror hard-coding another platform's
 # symbol).  A non-empty file means the library cannot be dlopen'ed.
-BC
 IMAGE_OPT_FROM_ID
-MODULE_FUNCTIONP
-UP
 Vandroid_wait_for_event_timeout
 Vfont_log
 Vvertical_centering_font_regexp
@@ -16,10 +13,8 @@ Vx_mode_pointer_shape
 Vx_nontext_pointer_shape
 Vx_resource_class
 Vx_resource_name
-XMODULE_FUNCTION
 __darwin_check_fd_set_overflow
 __error
-aligned_alloc
 android_emacs_init
 android_intercept_control_space
 android_keyboard_bell_duration

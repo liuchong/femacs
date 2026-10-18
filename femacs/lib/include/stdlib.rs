@@ -22,6 +22,10 @@ unsafe extern "C" {
   pub fn calloc (nmemb: usize, size: usize) -> *mut c_void;
   /* void free (void *ptr);  */
   pub fn free (ptr: *mut c_void);
+  /* int posix_memalign (void **memptr, size_t alignment, size_t size);  - the entry alloc.c's
+     `#elif defined HAVE_POSIX_MEMALIGN` arm calls (C 982); bionic's header 74 declares it and
+     every API level has it, while `aligned_alloc` only arrived in API 28 (status 4.713).  */
+  pub fn posix_memalign (memptr: *mut *mut c_void, alignment: usize, size: usize) -> c_int;
 }
 
 /* The two entries lib/nproc.c needs, added to this mirror (`getenv` for the OMP variables,

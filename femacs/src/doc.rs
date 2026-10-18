@@ -420,16 +420,14 @@ DEFUN! ("internal-subr-documentation", Fsubr_documentation, Ssubr_documentation,
     if !NILP (Fnative_comp_function_p (function))
       { return native_function_doc (function); }
   }
-  // C 394-397: the `#ifdef HAVE_MODULES` arm, dead for the same reason and never compiled
-  // (`have_modules` is not one of xtask dead-arms' FLIPS).
+  // C 394-397: the `#ifdef HAVE_MODULES` arm, dead on the frozen target and live for the Android
+  // configuration (its `HAVE_MODULES` is 1).
   #[cfg (feature = "have_modules")]
   {
-    unsafe extern "C" {
-      /// C: bool MODULE_FUNCTIONP (Lisp_Object)  (module-env / emacs-module.h)
-      pub fn MODULE_FUNCTIONP (a: Lisp_Object) -> bool;
-      /// C: Lisp_Object XMODULE_FUNCTION (Lisp_Object)
-      pub fn XMODULE_FUNCTION (a: Lisp_Object) -> Lisp_Object;
-    }
+    /* `MODULE_FUNCTIONP` and `XMODULE_FUNCTION` are lisp.h *macros* (C 4860-4870), not C
+       functions: the port has them as the mirror's own Rust functions and this unit reaches them
+       through `include/lisp.rs`.  Declaring them `extern "C"` here made the Android link import
+       two symbols nothing defines (status 4.713).  */
     if MODULE_FUNCTIONP (function)
       /* C 1344: C's `XMODULE_FUNCTION` yields `struct Lisp_Module_Function *` and lisp.h
 	 4897's declaration takes that pointer const-qualified - C converts implicitly, Rust's

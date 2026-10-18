@@ -925,6 +925,8 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
 | P-304 | **`#ifndef HAVE_ANDROID` 不只在定义层：语句块、`defsubr`、DEFUN 的主体都要逐处对**：① 只按“区域里有哪些定义”加门会漏三处 ✗ —— `calculate_costs` 里的一整块 ✓、`maybe_fatal` 里的一个调用（C 还有 `#else` 的 `eassert` ✓）、`syms_of_term` 里的两条 `defsubr` ✓（`term.c` 实测 ✓）。② DEFUN 是**注册**（两配置都要有 ✓）、它的**主体**才是加门的对象 ✓（Android 侧改调 `*_android` 助手 ✓）；C 的 `#else` 若只是同一句 `error (...)` 抄了两遍 ✓，端口也留两份 ✓（别合并 ✓）。③ C 的 `_Noreturn` 用 `eassume! (false); std::hint::unreachable_unchecked ()` 表达 ✓（`emacs.rs` 2160 的 `main` 先例 ✓）。④ **判据只有一条**：`check-cond-eval.py <file>` 的 `0 disagreements` ✓ + `extract-abi --check` 的 `OK` ✓ + 两目标编译 0 错误 ✓ —— 三者齐了才算这片加门完成 ✓。 | **规则，立即生效** | ① 每个区域都要问“它是定义、语句块，还是注册” ✓，三种写法不同 ✓。② 臂的**另一侧**如果没转写，宁可让名字留在棘轮里 ✓，也不加门造空壳 ✗。 |
 
+| P-305 | **宏 / 暂定定义 / 条件重命名：先判 C 的“种类”，再写 Rust**：① `char *BC;` 在文件作用域是**暂定定义**（恒为零 ✓），不是声明 ✓ —— 只写 `extern` 会让「系统库提供」这一假设变成链接失败（Android 无 termcap 库 ✓，4.713 实测 ✓）。② `lisp.h` 的 `MODULE_FUNCTIONP`/`XMODULE_FUNCTION` 是**宏** ✓，不是函数 ✗ —— 在 unit 里写 `extern "C"` 会让链接去导入不存在的符号 ✓（`doc.c` 的 `HAVE_MODULES` 块 ✓）。③ C 的 `#define NAME other` 会把**同名 extern 与同名定义一起改名** ✓ ⇒ 端口用 C 预处理后的名字 ✓（`my_aligned_alloc` ✓）；同名定义 + 镜像 extern 在 Rust 里是 E0428 ✗，在 C 里是允许的遮蔽 ✓。④ 条件里**组合了多个键**（`HAVE_ALIGNED_ALLOC || (!SYSTEM_MALLOC && !DOUG_LEA_MALLOC)` ✓）时，`xtask` 要按这些键**派生**一个 cfg ✓ —— 不能拿其中一个键的名字当 cfg ✗（`posix_memalign` 从未发出 ✓）。⑤ C 的 `#define` 分流两端可以都写成**一个宏** ✓（平台调用 / 自己的实现 ✓），调用点只写一次 ✓。 | **规则，立即生效** | ① 遇到“链接说没人定义”，先问：这是宏、暂定定义、还是被 `#define` 改过名的东西？ ✓ 三类各有各的写法 ✓。② 派生 cfg 的名字要写清它对应 C 的哪一行条件 ✓，并在 `xtask` 里按同样的键组合推导 ✓。 |
+
 ### 0.2 命名与可见性
 
 - 函数、宏、结构体、联合、枚举、枚举成员、全局变量、静态变量、subr：**名字逐字相同**
