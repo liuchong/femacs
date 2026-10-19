@@ -53,6 +53,6 @@ echo "== exit info =="
 "$ADB" shell dumpsys activity exit-info org.femacs 2>/dev/null | grep -a -m3 "reason=\|timestamp="
 echo "== our last log lines =="
 "$ADB" logcat -d 2>/dev/null | grep -a 'android_run_debug_thread' | tail -6 | cut -c1-160
-echo "== crash buffer =="
-"$ADB" logcat -b crash -d 2>/dev/null | tail -4 | cut -c1-160
+echo "== crash buffer: the first frames =="
+"$ADB" logcat -b crash -d 2>/dev/null | grep -a -m14 '#0[0-9] pc\|Abort message\|Fatal signal' | cut -c1-190
 "$ADB" emu kill >/dev/null 2>&1
