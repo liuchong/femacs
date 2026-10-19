@@ -3236,6 +3236,10 @@ unsafe fn android_new_font (f: *mut frame, font_object: Lisp_Object, mut fontset
   FRAME_COLUMN_WIDTH! (f, (*font).average_width);                       // C 2500
   get_font_ascent_descent (font, &raw mut font_ascent, &raw mut font_descent);   // C 2501
   FRAME_LINE_HEIGHT! (f, font_ascent + font_descent);                   // C 2502
+  fprintf (stderr, c"ANEWFONT ps=%d h=%d sw=%d aw=%d asc=%d desc=%d => cw=%d lh=%d\n".as_ptr (),
+	   (*font).pixel_size, (*font).height, (*font).space_width, (*font).average_width,
+	   (*font).ascent, (*font).descent,
+	   FRAME_COLUMN_WIDTH (f), FRAME_LINE_HEIGHT (f));
 
   /* We could use a more elaborate calculation here.  */                // C 2504
   FRAME_TAB_BAR_HEIGHT! (f, FRAME_TAB_BAR_LINES (f) * FRAME_LINE_HEIGHT (f));   // C 2505

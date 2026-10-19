@@ -29923,11 +29923,19 @@ calc_pixel_width_or_height (res: *mut c_double, it: *mut it,
 pub unsafe extern "C" fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int,
 						  descent: *mut c_int)
 {
-  /* C 30704-30709's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead on this target (P-08); the
-     frozen arm is C 30707-30708's `*ascent = 1; *descent = 0;`.  */
-  let _ = font;
-  *ascent = 1;
-  *descent = 0;
+  /* C 30704-30709: the `HAVE_WINDOW_SYSTEM` arm is **live** on this target (Android defines it);
+     recording it dead was what pinned every Android frame's line height to 1 px, because
+     `android_new_font` reads its answer into `FRAME_LINE_HEIGHT` (status 4.914/4.915).  */
+  #[cfg (feature = "have_window_system")]
+  {
+    normal_char_ascent_descent (font, -1, ascent, descent);
+  }
+  #[cfg (not (feature = "have_window_system"))]
+  {
+    let _ = font;
+    *ascent = 1;
+    *descent = 0;
+  }
 }
 
 /* ==================================================================== */
