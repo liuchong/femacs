@@ -1,0 +1,17 @@
+first_pid_at=1s pid=2192
+== pid@40s: 
+== gfxinfo ==
+== window ==
+  mCurrentFocus=Window{ce87ebe u0 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}
+  mFocusedApp=ActivityRecord{112059806 u0 com.android.launcher3/.uioverrides.QuickstepLauncher t6}
+== pid after keys: 2253
+== gfxinfo after ==
+== log ==
+10-20 05:59:30.157  2192  2214 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 05:59:30.160  2192  2214 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 05:59:30.162  2192  2214 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 05:59:30.246  2192  2213 F emacs_abort: emacs_abort called, please review the following stack trace
+10-20 05:59:30.246  2192  2213 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0 in tid 2213 (Emacs main thre), pid 2192 (org.femacs)
+10-20 05:59:30.489  2225  2225 F DEBUG   : Abort message: 'emacs_abort called, please review the following stack trace'
+10-20 05:59:30.489  2225  2225 F DEBUG   :       #00 pc 0000000000138fb0  /data/app/~~znjZ2THolorOFmN2mmpJLQ==/org.femacs-NY4g6Q-545550itNArZG-w==/lib/arm64/lib
+10-20 05:59:30.923   910  1000 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#7) android.os.BinderProxy@a4431fa@0
