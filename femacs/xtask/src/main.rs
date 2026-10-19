@@ -1898,8 +1898,35 @@ const SHARED_DRIVER: &str = "#![no_std]\n\n\
    compiled with the *same* toolchain (`rustc_cmd`, the repository's pinned nightly) and why\
    `link-shared` verifies the definition afterwards instead of trusting it.  A panic aborts -\
    never unwinds into C (PORTING.md constraint 9).  */\n\
+struct PanicBuf { b: [u8; 320], n: usize }\n\
+impl core::fmt::Write for PanicBuf\n\
+{\n\
+  fn write_str (&mut self, s: &str) -> core::fmt::Result\n\
+  {\n\
+    let bytes = s.as_bytes ();\n\
+    if bytes.len () > self.b.len () - self.n { return Err (core::fmt::Error) }\n\
+    self.b[self.n..self.n + bytes.len ()].copy_from_slice (bytes);\n\
+    self.n += bytes.len ();\n\
+    Ok (())\n\
+  }\n\
+}\n\
+/* A panic is a defect, and its message has to reach the device log: the default std hook never\n\
+   runs here (this file supplies the lang item), which is why the statuses up to 4.864 had only\n\
+   the backtrace and no source line (status 4.865).  */\n\
 #[panic_handler]\n\
-fn rust_begin_unwind (_info: &core::panic::PanicInfo) -> ! { unsafe { abort () } }\n\n\
+fn rust_begin_unwind (info: &core::panic::PanicInfo) -> !\n\
+{\n\
+  use core::fmt::Write;\n\
+  let mut pb = PanicBuf { b: [0u8; 320], n: 0 };\n\
+  let msg = info.payload ().downcast_ref::<&str> ().copied ().unwrap_or (\"?\");\n\
+  let _ = write! (&mut pb, \"PANIC {}:{} {}\",\n\
+                  info.location ().map (|l| l.file ()).unwrap_or (\"?\"),\n\
+                  info.location ().map (|l| l.line ()).unwrap_or (0),\n\
+                  msg);\n\
+  pb.b[pb.n] = b'\\n'; pb.n += 1;\n\
+  unsafe { write (2, pb.b.as_ptr (), pb.n as usize); abort () }\n\
+}\n\
+\n\
 /* Rust's unwind entry point.  With `panic = abort` nothing unwinds, and C's build has no such\n\
    symbol at all; the name is a requirement of the Rust runtime objects that `-nodefaultlibs`\n\
    links here, so the driver provides it with `_Unwind`'s own signature and aborts if it is ever\n\
@@ -1909,7 +1936,7 @@ pub extern \"C\" fn rust_eh_personality (_version: i32, _actions: i32, _class: u
                                       _object: *mut core::ffi::c_void,\n\
                                       _context: *mut core::ffi::c_void) -> i32\n\
 { unsafe { abort () } }\n\n\
-unsafe extern \"C\" { fn abort () -> !; }\n";
+unsafe extern \"C\" { fn abort () -> !; fn write (fd: i32, buf: *const u8, n: usize) -> isize; }\n";
 
 /// `xtask link-shared <target>` - link the port's objects for TARGET into `libemacs.so`.
 ///
