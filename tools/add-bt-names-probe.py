@@ -12,7 +12,7 @@ the frame that faulted instead of narrowing it one statement at a time.
 import pathlib
 import sys
 
-SRC = pathlib.Path("/Users/liu/projects/src/github.com/liuchong/femacs/femacs/src/sysdep.rs")
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/sysdep.rs"
 
 HELPER = '''/* TEMPORARY probe (tools/add-bt-names-probe.py): the fatal backtrace with symbol names.  */
 unsafe fn bt_names_probe (buffer: *mut *mut c_void, npointers: c_int)

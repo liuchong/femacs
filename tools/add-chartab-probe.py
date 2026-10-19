@@ -18,7 +18,7 @@ never came back:
 import pathlib
 import sys
 
-SRC = pathlib.Path("/Users/liu/projects/src/github.com/liuchong/femacs/femacs/src/chartab.rs")
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/chartab.rs"
 
 HELPER = '''/* TEMPORARY char-table probe (tools/add-chartab-probe.py).  */
 #[cfg (feature = "have_android")]

@@ -1,0 +1,325 @@
+# Device readings for status 4.827-4.830 (2026-10-19)
+
+Kept in the repository rather than in `/tmp` (R40): these are the readings the 4.829 verdict rests
+on, and the harness that reproduces them is `tools/device-run.sh`.
+
+Each run is a clean install (`adb uninstall` first - `install -r` is silently ignored when the
+signature differs, status 4.823) and the numbers come from
+`/data/data/org.femacs/files/probe.log`, which the process opens with `O_CREAT|O_APPEND` and closes
+on every call, because logcat loses its tail when the process dies.
+
+Probe tags: `FA` = `tools/add-fontset-probe.py` (the fontset macro, `fontset_add` and the caller's
+loop), `CB` = `tools/add-chartab-probe.py` (the char-table range writers), `AL` =
+`tools/add-alloc-probe.py` (`make_vector` and `garbage_collect`).  Every line carries `gettid()`
+after the tag, because two threads append to the same file.
+
+
+## Run A - stop inside make_vector, all lines from one thread
+
+```
+Install command complete in 177 ms
+WaitTime: 491
+Complete
+== probe.log size ==
+658687 /data/data/org.femacs/files/probe.log
+== AL/crash context: last 120 lines ==
+FA 2739 fb 0 0
+FA 2739 done 0 0
+FA 2739 ret 0 0
+FA 2739 call 0 0
+FA 2739 m 0 1
+FA 2739 c1 131072 196607
+AL 2739 mv0 1 0
+AL 2739 mv1 0 0
+FA 2739 c1b 0 0
+CB 2739 fr0 0 0
+CB 2739 fr1 0 0
+CB 2739 fr2 0 0
+CB 2739 fr3 0 0
+CB 2739 csr 131072 196607
+CB 2739 csi 2 131072
+CB 2739 cse 3 2
+FA 2739 c2 0 0
+FA 2739 ret 0 0
+FA 2739 call 0 0
+FA 2739 m 0 1
+FA 2739 c1 57344 63743
+AL 2739 mv0 1 0
+AL 2739 mv1 0 0
+FA 2739 c1b 0 0
+CB 2739 fr0 0 0
+CB 2739 fr1 0 0
+CB 2739 fr2 0 0
+CB 2739 fr3 0 0
+CB 2739 csr 57344 63743
+CB 2739 csi 0 0
+CB 2739 scsr 1 0
+CB 2739 scs 14 57344
+CB 2739 scs 15 61440
+CB 2739 scsr 2 61440
+CB 2739 scs 0 61440
+CB 2739 scs 1 61568
+CB 2739 scs 2 61696
+CB 2739 scs 3 61824
+CB 2739 scs 4 61952
+CB 2739 scs 5 62080
+CB 2739 scs 6 62208
+CB 2739 scs 7 62336
+CB 2739 scs 8 62464
+CB 2739 scs 9 62592
+CB 2739 scs 10 62720
+CB 2739 scs 11 62848
+CB 2739 scs 12 62976
+CB 2739 scs 13 63104
+CB 2739 scs 14 63232
+CB 2739 scs 15 63360
+CB 2739 scs 16 63488
+CB 2739 scs 17 63616
+CB 2739 scs 18 63744
+CB 2739 cse 1 0
+FA 2739 c2 0 0
+FA 2739 ret 0 0
+FA 2739 call 0 0
+FA 2739 m 1 1
+FA 2739 e0 529642177696 529642177704
+FA 2739 enter 0 0
+AL 2739 mv0 1 0
+AL 2739 mv1 0 0
+FA 2739 vec 0 0
+FA 2739 rng 57344 63743
+FA 2739 ref 57344 63743
+CB 2739 csr 57344 63743
+CB 2739 csi 0 0
+CB 2739 scsr 1 0
+CB 2739 scs 14 57344
+CB 2739 scs 15 61440
+CB 2739 scsr 2 61440
+CB 2739 scs 0 61440
+CB 2739 scs 1 61568
+CB 2739 scs 2 61696
+CB 2739 scs 3 61824
+CB 2739 scs 4 61952
+CB 2739 scs 5 62080
+CB 2739 scs 6 62208
+CB 2739 scs 7 62336
+CB 2739 scs 8 62464
+CB 2739 scs 9 62592
+CB 2739 scs 10 62720
+CB 2739 scs 11 62848
+CB 2739 scs 12 62976
+CB 2739 scs 13 63104
+CB 2739 scs 14 63232
+CB 2739 scs 15 63360
+CB 2739 scs 16 63488
+CB 2739 scs 17 63616
+CB 2739 scs 18 63744
+CB 2739 cse 1 0
+FA 2739 set 57344 63743
+FA 2739 ret 0 0
+AL 2739 mv0 76 0
+AL 2739 mv1 0 0
+FA 2739 call 0 0
+FA 2739 m 0 1
+FA 2739 c1 0 127
+AL 2739 mv0 1 0
+AL 2739 mv1 0 0
+FA 2739 c1b 0 0
+CB 2739 fr0 0 0
+CB 2739 fr1 0 0
+CB 2739 fr2 0 0
+CB 2739 fr3 0 0
+CB 2739 csr 0 127
+CB 2739 csi 0 0
+CB 2739 scsr 1 0
+CB 2739 scs 0 0
+CB 2739 scsr 2 0
+CB 2739 scs 0 0
+CB 2739 scs 1 128
+CB 2739 scs 1 4096
+CB 2739 cse 1 0
+FA 2739 c2 0 0
+FA 2739 ret 0 0
+FA 2739 call 0 0
+FA 2739 m 0 1
+FA 2739 c1 160 591
+AL 2739 mv0 1 0
+== per-thread counts (last 4000 lines) ==
+   4000 2739
+== GC tags ==
+27
+27
+== bt frames ==
+== exit info ==
+  package: org.femacs
+    Historical Process Exit for uid=10285
+        ApplicationExitInfo #0:
+          timestamp=2026-10-19 17:11:27.659 pid=2721 realUid=10285 packageUid=10285 definingUid=10285 user=0
+          process=org.femacs reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=11
+          importance=100 pss=0.00 rss=0.00 description=null state=empty trace=null
+  package: android
+    Historical Process Exit for uid=1037
+/tmp/femacs-run-big.sh: line 42: 19964 Abort trap: 6           "$EMU" -avd "$AVD" -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -memory 2048 > /tmp/manual-emu.log 2>&1
+```
+
+## Run B - same stop; the malloc-debug properties did not take effect
+
+```
+Install command complete in 192 ms
+usage: setprop NAME VALUE
+
+Sets an Android system property.
+WaitTime: 425
+Complete
+== probe.log size ==
+658687 /data/data/org.femacs/files/probe.log
+== AL/crash context: last 120 lines ==
+FA 2844 fb 0 0
+FA 2844 done 0 0
+FA 2844 ret 0 0
+FA 2844 call 0 0
+FA 2844 m 0 1
+FA 2844 c1 131072 196607
+AL 2844 mv0 1 0
+AL 2844 mv1 0 0
+FA 2844 c1b 0 0
+CB 2844 fr0 0 0
+CB 2844 fr1 0 0
+CB 2844 fr2 0 0
+CB 2844 fr3 0 0
+CB 2844 csr 131072 196607
+CB 2844 csi 2 131072
+CB 2844 cse 3 2
+FA 2844 c2 0 0
+FA 2844 ret 0 0
+FA 2844 call 0 0
+FA 2844 m 0 1
+FA 2844 c1 57344 63743
+AL 2844 mv0 1 0
+AL 2844 mv1 0 0
+FA 2844 c1b 0 0
+CB 2844 fr0 0 0
+CB 2844 fr1 0 0
+CB 2844 fr2 0 0
+CB 2844 fr3 0 0
+CB 2844 csr 57344 63743
+CB 2844 csi 0 0
+CB 2844 scsr 1 0
+CB 2844 scs 14 57344
+CB 2844 scs 15 61440
+CB 2844 scsr 2 61440
+CB 2844 scs 0 61440
+CB 2844 scs 1 61568
+CB 2844 scs 2 61696
+CB 2844 scs 3 61824
+CB 2844 scs 4 61952
+CB 2844 scs 5 62080
+CB 2844 scs 6 62208
+CB 2844 scs 7 62336
+CB 2844 scs 8 62464
+CB 2844 scs 9 62592
+CB 2844 scs 10 62720
+CB 2844 scs 11 62848
+CB 2844 scs 12 62976
+CB 2844 scs 13 63104
+CB 2844 scs 14 63232
+CB 2844 scs 15 63360
+CB 2844 scs 16 63488
+CB 2844 scs 17 63616
+CB 2844 scs 18 63744
+CB 2844 cse 1 0
+FA 2844 c2 0 0
+FA 2844 ret 0 0
+FA 2844 call 0 0
+FA 2844 m 1 1
+FA 2844 e0 529819395232 529819395240
+FA 2844 enter 0 0
+AL 2844 mv0 1 0
+AL 2844 mv1 0 0
+FA 2844 vec 0 0
+FA 2844 rng 57344 63743
+FA 2844 ref 57344 63743
+CB 2844 csr 57344 63743
+CB 2844 csi 0 0
+CB 2844 scsr 1 0
+CB 2844 scs 14 57344
+CB 2844 scs 15 61440
+CB 2844 scsr 2 61440
+CB 2844 scs 0 61440
+CB 2844 scs 1 61568
+CB 2844 scs 2 61696
+CB 2844 scs 3 61824
+CB 2844 scs 4 61952
+CB 2844 scs 5 62080
+CB 2844 scs 6 62208
+CB 2844 scs 7 62336
+CB 2844 scs 8 62464
+CB 2844 scs 9 62592
+CB 2844 scs 10 62720
+CB 2844 scs 11 62848
+CB 2844 scs 12 62976
+CB 2844 scs 13 63104
+CB 2844 scs 14 63232
+CB 2844 scs 15 63360
+CB 2844 scs 16 63488
+CB 2844 scs 17 63616
+CB 2844 scs 18 63744
+CB 2844 cse 1 0
+FA 2844 set 57344 63743
+FA 2844 ret 0 0
+AL 2844 mv0 76 0
+AL 2844 mv1 0 0
+FA 2844 call 0 0
+FA 2844 m 0 1
+FA 2844 c1 0 127
+AL 2844 mv0 1 0
+AL 2844 mv1 0 0
+FA 2844 c1b 0 0
+CB 2844 fr0 0 0
+CB 2844 fr1 0 0
+CB 2844 fr2 0 0
+CB 2844 fr3 0 0
+CB 2844 csr 0 127
+CB 2844 csi 0 0
+CB 2844 scsr 1 0
+CB 2844 scs 0 0
+CB 2844 scsr 2 0
+CB 2844 scs 0 0
+CB 2844 scs 1 128
+CB 2844 scs 1 4096
+CB 2844 cse 1 0
+FA 2844 c2 0 0
+FA 2844 ret 0 0
+FA 2844 call 0 0
+FA 2844 m 0 1
+FA 2844 c1 160 591
+AL 2844 mv0 1 0
+== per-thread counts (last 4000 lines) ==
+   4000 2844
+== GC tags ==
+27
+27
+== malloc debug ==
+grep: repetition-operator operand invalid
+== bt frames ==
+== exit info ==
+  package: org.femacs
+    Historical Process Exit for uid=10286
+        ApplicationExitInfo #0:
+          timestamp=2026-10-19 17:14:38.495 pid=2825 realUid=10286 packageUid=10286 definingUid=10286 user=0
+          process=org.femacs reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=11
+          importance=100 pss=0.00 rss=0.00 description=null state=empty trace=null
+  package: android
+    Historical Process Exit for uid=1037
+```
+
+## Run C - the emulator refuses to start: the host volume is too full
+
+```
+emulator died
+INFO         |   Checking: hasSufficientHwGpu
+INFO         |      Ok: Hardware GPU compatibility checks are not required
+INFO         |   Checking: hasSufficientSystem
+INFO         |      Ok: System requirements to run avd: `femacs-arm64-api36` are met
+FATAL        | Your device does not have enough disk space to run avd: `femacs-arm64-api36`.
+```
+

@@ -1,0 +1,109 @@
+#!/bin/sh
+# Start the emulator, install the APK, run the app, and print every reading the run produced.
+#
+# This is the durable form of the ad-hoc scripts the 4.8xx rounds used.  It differs from
+# tools/try-android-emulator.sh in the three things those rounds needed on every iteration:
+#
+#   * `adb uninstall` before `adb install`: with a different signature `install -r` is silently
+#     ignored, and the run then measures the *previous* library (status 4.823);
+#   * the durable `probe.log` (status 4.826): written with `O_CREAT|O_APPEND` and closed on every
+#     call, because logcat loses the tail when the process dies;
+#   * the crash record: the `crash` log buffer, `/data/tombstones`, and `dumpsys activity
+#     exit-info`, which is what names the signal when the app leaves no message of its own.
+#
+# `-no-snapshot-save` is deliberate: the AVD had grown a fresh ~700 MB snapshot per run, and the
+# emulator refuses to start when the host volume has less room than the AVD needs (status 4.830).
+#
+# An AI-started run goes through the controlled executor (R38); this script starts QEMU in the
+# background and needs that budget:
+#
+#   FEMACS_EMULATOR_BUDGET_OK=1 python3 ~/.assistant/skills/controlled-run/scripts/run.py \
+#     --profile runtime --timeout 1800 -- bash tools/device-run.sh --apk /tmp/femacs-apk/emacs.apk
+#
+#   tools/device-run.sh [--avd NAME] [--apk FILE] [--memory MIB] [--tail N] [--plan]
+set -u
+REPO=$(cd "$(dirname "$0")/.." && pwd)
+SDK=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}
+ADB=$SDK/platform-tools/adb
+EMU=$SDK/emulator/emulator
+AVD=${AVD_NAME:-femacs-arm64-api36}
+APK=${APK_PATH:-/tmp/femacs-apk/emacs.apk}
+MEM=${EMULATOR_MEMORY_MIB:-2048}
+TAIL=${PROBE_TAIL:-120}
+GPU=${EMULATOR_GPU:-swiftshader_indirect}
+BOOT_WAIT=${BOOT_WAIT:-240}
+SETTLE=${SETTLE:-25}
+PLAN=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --avd) AVD=$2; shift 2 ;;
+    --apk) APK=$2; shift 2 ;;
+    --memory) MEM=$2; shift 2 ;;
+    --tail) TAIL=$2; shift 2 ;;
+    --plan) PLAN=1; shift ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+if [ "$PLAN" = 1 ]; then
+  echo "plan (nothing is started):"
+  echo "  1. $EMU -avd $AVD -no-window -no-audio -no-boot-anim -no-snapshot-save -memory $MEM -gpu $GPU"
+  echo "  2. adb wait-for-device; poll sys.boot_completed (bounded at ${BOOT_WAIT}s)"
+  echo "  3. adb uninstall org.femacs; adb install -r $APK"
+  echo "  4. adb shell am start -W -n org.femacs/.EmacsActivity; wait ${SETTLE}s"
+  echo "  5. adb shell tail -$TAIL /data/data/org.femacs/files/probe.log"
+  echo "  6. adb logcat -b crash -d; adb shell ls -lt /data/tombstones; dumpsys activity exit-info"
+  echo "  7. adb logcat -d | grep android_run_debug_thread | tail -20"
+  exit 0
+fi
+
+[ -f "$APK" ] || { echo "no APK at $APK" >&2; exit 2; }
+"$ADB" emu kill >/dev/null 2>&1
+sleep 2
+"$EMU" -avd "$AVD" -no-window -no-audio -no-boot-anim -no-snapshot-save \
+       -memory "$MEM" -gpu "$GPU" > /tmp/device-run-emulator.log 2>&1 &
+EMUPID=$!
+trap '"$ADB" emu kill >/dev/null 2>&1; sleep 2; kill $EMUPID 2>/dev/null' EXIT
+
+booted=0
+i=0
+while [ "$i" -lt "$BOOT_WAIT" ]; do
+  if ! kill -0 $EMUPID 2>/dev/null; then
+    echo "emulator exited during boot:"; tail -5 /tmp/device-run-emulator.log; exit 1
+  fi
+  if [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
+    booted=1; break
+  fi
+  i=$((i + 1)); sleep 1
+done
+[ "$booted" = 1 ] || { echo "no boot after ${BOOT_WAIT}s"; tail -5 /tmp/device-run-emulator.log; exit 1; }
+
+"$ADB" root >/dev/null 2>&1
+sleep 2
+"$ADB" uninstall org.femacs >/dev/null 2>&1
+sleep 2
+echo "== install =="
+"$ADB" install -r "$APK" 2>&1 | tail -2
+"$ADB" shell rm -f /data/data/org.femacs/files/probe.log
+"$ADB" logcat -c 2>/dev/null
+echo "== start =="
+"$ADB" shell am start -W -n org.femacs/.EmacsActivity 2>&1 | tail -3
+sleep "$SETTLE"
+echo "== probe.log size =="
+"$ADB" shell "wc -l /data/data/org.femacs/files/probe.log 2>/dev/null"
+echo "== probe.log last $TAIL lines =="
+"$ADB" shell "tail -$TAIL /data/data/org.femacs/files/probe.log"
+echo "== writers of the last 4000 lines (thread id is the number after the tag) =="
+"$ADB" shell "tail -4000 /data/data/org.femacs/files/probe.log | awk '{print \$2}' | sort | uniq -c | sort -rn | head -6"
+echo "== crash buffer =="
+"$ADB" logcat -b crash -d 2>/dev/null | tail -40
+echo "== tombstones =="
+"$ADB" shell ls -lt /data/tombstones 2>/dev/null | head -3
+echo "== app log tail (the process's own lines) =="
+"$ADB" logcat -d 2>/dev/null | grep -a 'android_run_debug_thread\|Emacs\|emacs' | tail -20
+echo "== exit info =="
+"$ADB" shell dumpsys activity exit-info 2>/dev/null | grep -A3 "org.femacs" | head -8
+echo "== note =="
+echo "This script prints everything it reads and keeps nothing itself: capture its stdout when the"
+echo "run matters (docs/baseline/device-run-*.txt is that capture).  Only rebuildable intermediates"
+echo "live in /tmp: the APK under /tmp/femacs-apk, the cargo target dir, and the emulator's own log."

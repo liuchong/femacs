@@ -14,7 +14,7 @@ a collection can start, so the two candidates are separated by four tags:
 import pathlib
 import sys
 
-SRC = pathlib.Path("/Users/liu/projects/src/github.com/liuchong/femacs/femacs/src/alloc.rs")
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/alloc.rs"
 
 HELPER = '''/* TEMPORARY allocation probe (tools/add-alloc-probe.py).  */
 #[cfg (feature = "have_android")]

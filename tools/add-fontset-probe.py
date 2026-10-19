@@ -22,7 +22,7 @@ between an `if` and its `{`.
 import pathlib
 import sys
 
-SRC = pathlib.Path("/Users/liu/projects/src/github.com/liuchong/femacs/femacs/src/fontset.rs")
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/fontset.rs"
 
 HELPER = '''/* TEMPORARY fontset probe (tools/add-fontset-probe.py).  */
 #[cfg (feature = "have_android")]
