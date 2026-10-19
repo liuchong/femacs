@@ -699,6 +699,17 @@ pub unsafe extern "C" fn decode_any_frame (frame: Lisp_Object) -> *mut frame
   return XFRAME (frame);
 }
 
+/* C 116-121: `display_available`, inside C 115's `#ifdef HAVE_WINDOW_SYSTEM`.  C's body is
+   `return x_display_list != NULL;`, and `x_display_list` arrives through `TERM_HEADER`'s mirror
+   above - on Android it is `androidterm.rs`'s definition, the one `android_term_init` sets.
+   The port had only the null-frame fallback (`false`) instead of this function (status 4.867).  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn display_available () -> bool
+{
+  return ! x_display_list.is_null ();
+}
+
 /* C 134-142: with a window system the check returns when one is available; without one the
    only live tail is `error (…)`.  Android's configuration compiles the first arm (its
    HAVE_WINDOW_SYSTEM is 1), and the port had only the frozen arm - so creating the first GUI
@@ -7495,6 +7506,64 @@ DEFUN! ("frame--set-was-invisible", Fframe__set_was_invisible,
   return if was_invisible! (f) { Qt () } else { Qnil () };
 });
 
+/* C 7057-7123: `Freconsider_frame_fonts`, inside C 7055's `#ifdef HAVE_WINDOW_SYSTEM`.  It is
+   dead on the frozen terminal target and live on every GUI one, which is why it was recorded
+   rather than carried until now; Android reached it at startup, where Lisp's
+   `frame-notice-user-settings` calls it after a `config-changed` event and the missing
+   `defsubr` below made it void (status 4.867).  */
+#[cfg (feature = "have_window_system")]
+DEFUN! ("reconsider-frame-fonts", Freconsider_frame_fonts, Sreconsider_frame_fonts, 1, 1, 0,
+       doc: "Recreate FRAME's default font using updated font parameters.\nSignal an error if FRAME is not a window system frame.  This should be\ncalled after a `config-changed' event is received, signaling that the\nparameters (such as pixel density) used by the system to open fonts\nhave changed.  ",
+       (frame: Lisp_Object),
+       {
+  let f: *mut frame;
+  let mut params: Lisp_Object;
+  let font_parameter: Lisp_Object;
+
+  f = decode_window_system_frame (frame);
+
+  /* Kludge: if a `font' parameter was already specified,
+     create an alist containing just that parameter.  (bug#59371)
+
+     This sounds so simple, right?  Well, read on below: */
+  params = Qnil ();
+
+  /* The difference between Qfont and Qfont_parameter is that the
+     latter is not set automatically by the likes of x_new_font, and
+     implicitly as the default face is realized.  It is only set when
+     the user specifically specifies a `font' frame parameter, and is
+     cleared the moment the frame's font becomes defined by a face
+     attribute, instead of through the `font' frame parameter.  */
+  font_parameter = get_frame_param (f, Qfont_parameter ());
+
+  if !NILP (font_parameter)
+    { params = list1 (Fcons (Qfont (), font_parameter)); }
+
+  /* First, call this to reinitialize any font backend specific
+     stuff.  */
+
+  if let Some (default_font_parameter) = (*((FRAME_RIF! (f)) as *mut redisplay_interface)).default_font_parameter
+    { default_font_parameter (f as *mut c_void, params); }
+
+  /* For a mysterious reason, x_default_font_parameter sets Qfont to
+     nil in the alist!  */
+
+  if !NILP (font_parameter)
+    { params = list1 (Fcons (Qfont (), font_parameter)); }
+
+  /* Now call this to apply the existing value(s) of the `default'
+     face.  */
+  calln! (Qface_set_after_frame_default (), frame, params);
+
+  /* Restore the value of the `font-parameter' parameter, as
+     `face-set-after-frame-default' will have changed it through its
+     calls to `set-face-attribute'.  */
+  if !NILP (font_parameter)
+    { store_frame_param (f, Qfont_parameter (), font_parameter); }
+
+  return Qnil ();
+});
+
 /* C 7055-7112 and 7120-7187's `#ifdef HAVE_WINDOW_SYSTEM` blocks (the X pointer and
    `Display_Info` machinery) are dead on the frozen target and live on Android; the part this
    round writes is `make_monitor_attribute_list` (C 7144-7187) below - `free_monitors` (C 7124-7135)
@@ -8012,9 +8081,24 @@ pub unsafe extern "C" fn syms_of_frame ()
   defsubr (&raw mut Sset_frame_window_state_change);
   defsubr (&raw mut Sframe_scale_factor);
 
-  /* C 7877-7881's `#ifdef HAVE_WINDOW_SYSTEM` block is dead (P-08).  */
+  /* C 7877-7881: live in every GUI configuration; the frozen terminal target has no window
+     system, and the two functions' own `#[cfg (feature = "have_window_system")]` matches this
+     block's.  Android needs all three registrations: without them `x-get-resource`,
+     `x-parse-geometry` and `reconsider-frame-fonts` are void at startup (status 4.867).  */
+  #[cfg (feature = "have_window_system")]
+  {
+    defsubr (&raw mut Sx_get_resource);
+    defsubr (&raw mut Sx_parse_geometry);
+    defsubr (&raw mut Sreconsider_frame_fonts);
+  }
 
-  /* C 7883-7894's `#ifdef HAVE_WINDOW_SYSTEM` block is dead (P-08).  */
+  /* C 7883-7894: `Qmove_toolbar`'s DEFSYM is live in a GUI configuration; its nested
+     `#if !defined HAVE_EXT_TOOL_BAR || defined USE_GTK` is false here (Android and NS both
+     define HAVE_EXT_TOOL_BAR, and USE_GTK is not defined), so `Fprovide` is C's dead arm.  */
+  #[cfg (feature = "have_window_system")]
+  {
+    DEFSYM! (Qmove_toolbar, c"move-toolbar");
+  }
 
   DEFVAR_LISP! (c"toolkit-theme", Vtoolkit_theme,
                "The current toolkit theme.\nEither the symbol `light' or the symbol `dark', reflecting the system's\ncurrent theme preference.  This variable is updated automatically when\nthe system theme changes.\n\nThis variable is only set on PGTK, Android, and MS-Windows builds.  ");

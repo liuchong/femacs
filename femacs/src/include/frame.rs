@@ -1451,11 +1451,22 @@ pub unsafe fn default_pixels_per_inch_y () -> c_double
 #[cfg (not (feature = "have_window_system"))]
 pub fn window_system_available (f: *mut frame) -> bool { let _ = f; false }
 /* frame.h 1494-1502's window arm: `f ? FRAME_WINDOW_P (f) || FRAME_MSDOS_P (f) :
-   display_available ()`.  Android's build has no X11 display list, so `display_available ()`
-   is false there, which is what the null-frame arm returns.  */
+   display_available ()`.  The null arm used to return a hard-coded `false` with the note that
+   Android has no X11 display list; that is wrong - `display_available` is `x_display_list != NULL`
+   (C 116-121), and Android sets it in `android_term_init`, so `x-get-resource` at startup
+   errored with "Window system is not in use or not initialized" (status 4.867).  */
 #[cfg (feature = "have_window_system")]
 pub fn window_system_available (f: *mut frame) -> bool {
-    if ! f.is_null () { unsafe { FRAME_WINDOW_P (f) || FRAME_MSDOS_P (f) } } else { false }
+    if ! f.is_null () { unsafe { FRAME_WINDOW_P (f) || FRAME_MSDOS_P (f) } }
+    else
+      {
+        /* frame.h 1488-1490's `extern bool display_available (void);`, declared at this use site
+           instead of at file scope: this mirror is textually included by `src/frame.rs` too,
+           which *defines* the function (C 116-121), and a crate-level declaration plus a
+           definition of one name is a duplicate item there.  */
+        unsafe extern "C" { fn display_available () -> bool; }
+        unsafe { display_available () }
+      }
 }
 
 // frame.h 1437-1450: sets the `iconified` flag (bit 9 of unit 1).

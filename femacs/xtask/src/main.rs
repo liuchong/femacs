@@ -2045,6 +2045,12 @@ fn link_shared (target: Option<&str>) -> i32
     };
   let (Some (core), Some (builtins)) = (pick ("libcore-"), pick ("libcompiler_builtins-"))
     else { return fail (format! ("no core/compiler_builtins rlib under {}", rlib_dir.display ())) };
+  // `alloc` is the third runtime rlib the objects need: the port's own `Vec`/`Box`/`String`
+  // code names generic instances (`<String as Clone>::clone`, `CString::new`) whose bodies only
+  // exist in `alloc`'s precompiled objects, exactly as `core`'s panic path only exists in
+  // `core`'s.  Linking the rlib resolves them the way rustc would; `alloc`'s own calls back
+  // into the global allocator land on the shim `alloc_shim_source` writes (status 4.866).
+  let alloc = pick ("liballoc-");
   // The panic entry point.  `core`'s own code references the lang item `rust_begin_unwind` under
   // the crate disambiguator rustc minted for `core` - a different spelling per toolchain
   // (measured: `_RNvCs1njKG4L9aB3_...` from stable 1.98.1, `_RNvCs8kYXCe6bXIp_...` from the pinned
@@ -2054,11 +2060,19 @@ fn link_shared (target: Option<&str>) -> i32
   let mut inputs: Vec<PathBuf> = objects.clone ();
   inputs.push (core.clone ());
   inputs.push (builtins.clone ());
+  if let Some (alloc) = &alloc { inputs.push (alloc.clone ()); }
   match ndk_bin (&linker).and_then (|bin| unwind_symbol (&bin, &inputs))
     {
       Some (name) =>
         {
-          if let Err (e) = fs::write ("../build/load/shared-driver.rs", SHARED_DRIVER)
+          // `-nodefaultlibs` also leaves `alloc`'s global-allocator shim undefined: the port's
+          // own `Vec`/`Box` code (emacs.rs) calls `__rust_alloc`/`__rust_dealloc`, whose bodies
+          // `std` normally supplies.  The shim symbols are read out of the objects and generated
+          // here on top of `malloc`/`free` - the same libc allocation C's `xmalloc` uses, so the
+          // port's heap accounting and `malloc` hooks stay the reference's (status 4.866).
+          let mut source = String::from (SHARED_DRIVER);
+          source.push_str (&alloc_shim_source (&ndk_bin (&linker).unwrap (), &inputs));
+          if let Err (e) = fs::write ("../build/load/shared-driver.rs", &source)
             {
               return fail (format! ("writing the shared driver: {e}"));
             }
@@ -2083,6 +2097,15 @@ fn link_shared (target: Option<&str>) -> i32
               Ok (true) => println! ("   panic driver: {name}"),
               Ok (false) => return fail (format! ("the driver does not define {name}")),
               Err (e) => return fail (format! ("llvm-nm on the driver: {e}")),
+            }
+          for (shim, _) in alloc_shims (&bin, &inputs)
+            {
+              match defines (&bin, &driver[0], &shim)
+                {
+                  Ok (true) => println! ("   alloc shim: {shim}"),
+                  Ok (false) => return fail (format! ("the driver does not define {shim}")),
+                  Err (e) => return fail (format! ("llvm-nm on the driver: {e}")),
+                }
             }
         }
       None => println! ("   no rust_begin_unwind import: no panic driver needed"),
@@ -2109,6 +2132,7 @@ fn link_shared (target: Option<&str>) -> i32
   for object in &objects { cmd.arg (object); }
   for object in &driver { cmd.arg (object); }
   cmd.arg (&core).arg (&builtins);
+  if let Some (alloc) = &alloc { cmd.arg (alloc); }
   let out = match cmd.output ()
   {
     Ok (o) => o,
@@ -2141,6 +2165,70 @@ fn unwind_symbol (bin: &Path, objects: &[PathBuf]) -> Option<String>
   text.lines ()
       .map (|line| line.rsplit (' ').next ().unwrap_or ("").trim ().to_string ())
       .find (|name| name.contains ("17rust_begin_unwind"))
+}
+
+/// The allocator shim symbols the inputs import, paired with the shim body each one needs.
+///
+/// `alloc`'s precompiled half expects the global allocator to be reachable under these names,
+/// exactly as `core`'s panic path expects `rust_begin_unwind`; the spelling carries the
+/// toolchain's `__rustc` crate disambiguator, so it is read out of the objects, never guessed.
+/// The suffixes are the stable tails of the three symbols rustc emits for `#[global_allocator]`.
+fn alloc_shims (bin: &Path, objects: &[PathBuf]) -> Vec<(String, &'static str)>
+{
+  let mut cmd = Command::new (bin.join ("llvm-nm"));
+  cmd.arg ("-u");
+  for object in objects { cmd.arg (object); }
+  let Ok (out) = cmd.output () else { return Vec::new () };
+  let text = String::from_utf8_lossy (&out.stdout).into_owned ();
+  let mut names: Vec<String> = Vec::new ();
+  for line in text.lines ()
+    {
+      let name = line.rsplit (' ').next ().unwrap_or ("").trim ();
+      if ! names.iter ().any (|n| n == name) { names.push (name.to_string ()); }
+    }
+  let mut shims: Vec<(String, &'static str)> = Vec::new ();
+  for (suffix, kind) in [("35___rust_no_alloc_shim_is_unstable_v2", "unstable"),
+                         ("12___rust_alloc", "alloc"),
+                         ("14___rust_dealloc", "dealloc"),
+                         ("15___rust_realloc", "realloc"),
+                         ("20___rust_alloc_zeroed", "alloc_zeroed")]
+    {
+      if let Some (name) = names.iter ().find (|n| n.ends_with (suffix))
+        {
+          shims.push ((name.clone (), kind));
+        }
+    }
+  shims
+}
+
+/// Rust source for the allocator shims above, appended to `SHARED_DRIVER`.
+///
+/// Every body lands on libc `malloc`/`free`/`realloc`: the reference's `xmalloc` is a wrapper
+/// over the same calls, so an allocation the port makes through `Vec` is accounted for, and
+/// freed, exactly where C's is.  Over-aligned requests (align > 16, bionic malloc's own
+/// guarantee) go through `posix_memalign`, which `free` accepts.
+fn alloc_shim_source (bin: &Path, objects: &[PathBuf]) -> String
+{
+  let shims = alloc_shims (bin, objects);
+  if shims.is_empty () { return String::new (); }
+  let mut src = String::from ("\nunsafe extern \"C\" {\n  fn malloc (n: usize) -> *mut core::ffi::c_void;\n  fn free (p: *mut core::ffi::c_void);\n  fn realloc (p: *mut core::ffi::c_void, n: usize) -> *mut core::ffi::c_void;\n  fn posix_memalign (p: *mut *mut core::ffi::c_void, align: usize, size: usize) -> i32;\n}\n");
+  src.push_str ("unsafe fn femacs_alloc_impl (size: usize, align: usize) -> *mut u8\n{\n  if align <= 16 { return malloc (size) as *mut u8 }\n  let mut p: *mut core::ffi::c_void = core::ptr::null_mut ();\n  if posix_memalign (&mut p, align, size) != 0 { return core::ptr::null_mut () }\n  p as *mut u8\n}\n");
+  src.push_str ("unsafe fn femacs_dealloc_impl (p: *mut u8) { free (p as *mut core::ffi::c_void) }\n");
+  src.push_str ("unsafe fn femacs_realloc_impl (p: *mut u8, old: usize, new: usize, align: usize) -> *mut u8\n{\n  if p.is_null () { return femacs_alloc_impl (new, align) }\n  if align <= 16 { return realloc (p as *mut core::ffi::c_void, new) as *mut u8 }\n  let q = femacs_alloc_impl (new, align);\n  if ! q.is_null ()\n    {\n      core::ptr::copy_nonoverlapping (p, q, core::cmp::min (old, new));\n      femacs_dealloc_impl (p);\n    }\n  q\n}\n");
+  src.push_str ("unsafe fn femacs_alloc_zeroed_impl (size: usize, align: usize) -> *mut u8\n{\n  let p = femacs_alloc_impl (size, align);\n  if ! p.is_null () { core::ptr::write_bytes (p, 0, size) }\n  p\n}\n");
+  for (name, kind) in shims
+    {
+      let text = match kind
+        {
+          "unstable" => format! ("#[unsafe(export_name = \"{name}\")]\npub static FEMACS_ALLOC_SHIM_V2: u8 = 0;\n"),
+          "alloc" => format! ("#[unsafe(export_name = \"{name}\")]\npub unsafe fn femacs_alloc (size: usize, align: usize) -> *mut u8\n{{ femacs_alloc_impl (size, align) }}\n"),
+          "dealloc" => format! ("#[unsafe(export_name = \"{name}\")]\npub unsafe fn femacs_dealloc (p: *mut u8, _size: usize, _align: usize)\n{{ femacs_dealloc_impl (p) }}\n"),
+          "realloc" => format! ("#[unsafe(export_name = \"{name}\")]\npub unsafe fn femacs_realloc (p: *mut u8, old: usize, new: usize, align: usize) -> *mut u8\n{{ femacs_realloc_impl (p, old, new, align) }}\n"),
+          _ => format! ("#[unsafe(export_name = \"{name}\")]\npub unsafe fn femacs_alloc_zeroed (size: usize, align: usize) -> *mut u8\n{{ femacs_alloc_zeroed_impl (size, align) }}\n"),
+        };
+      src.push_str (&text);
+    }
+  src
 }
 
 /// Whether OBJECT defines SYMBOL (an `nm` type letter other than `U`).
