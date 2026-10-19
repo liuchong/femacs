@@ -2056,6 +2056,26 @@ pub struct MonitorInfo
   pub scale_factor: c_double,
 }
 
+/* frame.h 1934's record, measured for the configuration the Android leg builds: `Emacs_Rectangle`
+   is dispextern.h's four-`int` shape there, so `geom` 0, `work` 16, `mm_width` 32, `mm_height` 36,
+   `name` 40 and the record 48 - the numbers `spikes/gated-layout-probe.py` gave (status 3.312) and
+   the ones `androidfns.rs`'s local copy states.  That copy is gated `not (have_window_system)`,
+   which is the *host* arm, so before this block the record had no assertion at all in the
+   configuration Android builds while `android_make_monitor_attribute_list` fills one by value
+   (status 4.832's audit).  `have_pgtk` adds `scale_factor`, hence the negation.  */
+#[cfg (all (feature = "have_window_system", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::size_of::<MonitorInfo> () == 48);
+#[cfg (all (feature = "have_window_system", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, geom) == 0);
+#[cfg (all (feature = "have_window_system", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, work) == 16);
+#[cfg (all (feature = "have_window_system", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, mm_width) == 32);
+#[cfg (all (feature = "have_window_system", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, mm_height) == 36);
+#[cfg (all (feature = "have_window_system", not (feature = "have_pgtk")))]
+const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, name) == 40);
+
 /* frame.h 1937-1943: the record's two entry points.  They are `extern` declarations in the header
    and definitions in frame.c (`free_monitors`, `make_monitor_attribute_list`), so the mirror
    carries the declarations the same way `include/haiku_support.rs` does.
