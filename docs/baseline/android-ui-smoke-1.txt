@@ -1,0 +1,13 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== alive? ==
+pid=
+== frames ==
+== key ==
+== still alive? ==
+2227
+== last app lines ==
+10-20 05:37:26.878  2132  2179 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 05:37:26.879  2132  2179 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 05:37:26.885  2132  2179 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 05:37:26.889  2132  2179 I android_run_debug_thread: Finding pointers to doc strings...done
+controlled-run: {"run_id": "f8a49e86e293459c94abb1da1481f259", "profile": "runtime", "executable": "bash", "argv_sha256": "da4cbec924638dc883f3ec5f563c89da3d0b3965f9eda2fbcef4bb5dbef3ec31", "limit_bytes": 6442450944, "peak_rss_bytes": 4334895104, "reason": "descendants_left", "root_pid": 33263, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 48.126}
