@@ -22691,3 +22691,16 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   4. **含义** ✓：既然合法区间逐位相等，那么破坏发生在**入链之后**（与 4.839 的 248→8 一致 ✓），而 `SIGABRT` 说明坏值还可能来自**调用方传进来的 `len`** ✓（`make_vector` 的 `len` 被写坏 ✓）。下一轮因此要同时盯**入链后**与**进入分配器前**两端 ✓。
   5. **下一步（点名）** ✓：⑴ 在 `allocate_vectorlike` 入口打 `(len, nbytes)`、在 `make_vector` 入口打 `(len, init)` ⇒ 抓第一个越界/荒谬长度 ✓；⑵ 给 Android 打开 `ENABLE_CHECKING`（`.checking` 通路 ✓）⇒ `eassume!(VBLOCK_BYTES_MIN <= nbytes)`、`eassert!(vector_nbytes > nbytes)` 等会在**第一处不一致**处 abort 并给符号 ✓，比继续手工追踪省得多 ✓。
   6. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓），探针工具更新并入树 ✓。
+
+- **4.841 「入链后立刻被清零」的地址已锁定，且 `restbytes` 与刚取出的头尺寸对不上 ⇒ 强烈指向“同一次调用既发放又把同一向量留在链上”（重复发放）（2026-10-19）**：
+  1. **探针** ✓：`push`/`take`/`take2` 改打 **`(地址, header.size)`** ✓（同一地址可以逐行对齐 ✓），并在 `allocate_vectorlike` 的块分支入口加 `al-in (nbytes, 0)` ✓（看清调用方要了多大 ✓）。
+  2. **读数（干净安装 ✓）** ✓（行号为事件序 ✓）：
+     - `60 al-in 608` → `61 take2 <A4> 4611686018444656640`（解出 restsize 120 ⇒ 968 B ✓）→ `62 split-push (608, 360)` ✓ 自洽 ✓ → `66 push <A5> 4611686018444345344`（restsize 30 ⇒ 248 B ✓，入 43 号桶 ✓）；
+     - `67 al-in 112` → `68 take2 <A5> 4611686018444345344`（同一个 248 B 头 ✓）→ `69 split-push (112, 248)` ✗ —— 对 248 B 的头、112 B 的请求，`restbytes` 应为 **136**，却打印 **248**（= 头的全部）✓；
+     - `70–73`：把 248 B 的剩余块入 29 号桶（`push <A6> …8000` ✓ 头正确 ✓）；
+     - `74 al-in 112` → **`75 take2 <A6> 0`** ✗ —— 同一地址，紧接着读到的 `header.size` 已经变成 **0** ✓（`memclear` 的长度正好等于该请求 ✓ 但写到了**已被链上的剩余块**里 ✓）；
+     - 之后 `76 split-push (112, −104)` → `77 short (−104)` → `78 enter-push <VINDEX = 2.3e18>` ⇒ **`vector_free_lists[负]` 越界写** ✓（4.839 的链条 ✓）。
+  3. **结论（本轮新增的机制判断）** ✓：`restbytes = 248` 只有在 `nbytes = 0` 时才成立 ⇒ 有一次调用把 **0** 长度的请求带进了 `allocate_vector_from_block` ✓，于是 `ADVANCE (vector, 0) = vector` —— **头本身被当作“剩余块”重新挂回链上** ✓，同时 `return vector` 又把它发放给调用方 ✓ ⇒ **同一向量既在链上又是活对象** ✓；随后 `memclear`/`header.size = len` 把它清零 ✓ ⇒ 下一次出链读到 0 ✓ ⇒ 负 `restbytes` ⇒ 越界写 ✓ ⇒ 与 tombstone 的 `0x6`/`−2` 完全一致 ✓。
+  4. **已排除** ✓：`ROUNDUP!`/`POWER_OF_2`（Rust 里 `&` 优先级高于 `==`，与 C 语义一致 ✓）、`vroundup_ct`（8/16/2040 断言 ✓）、`VINDEX`、`PVECHEADERSIZE`、`pseudovector_nbytes`、`memclear`。
+  5. **下一步（点名）** ✓：把两个出链点再补上 **`index` 与 `nbytes`**（四个数对齐 ✓），并在 `allocate_vector_from_block` 入口对 `nbytes == 0` 打一条 `zerolen` ✓ ⇒ 直接读出**谁传了 0**（调用栈上只有 `allocate_vectorlike` 一个调用点 ✓，所以接下来看 `vroundup!(nbytes)` 与 `len` 的来路 ✓）。
+  6. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓），探针工具在树里 ✓。
