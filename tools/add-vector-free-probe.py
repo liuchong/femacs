@@ -103,7 +103,9 @@ SITES = [
 
 
 def apply(s, remove):
-    for anchor, where, probe in SITES:
+    # Removal walks the sites backwards: two of them share an anchor and sit next to each other,
+    # and the later insertion lands before the earlier one, so the forward order cannot undo it.
+    for anchor, where, probe in (reversed (SITES) if remove else SITES):
         if anchor.startswith("  while !block.is_null"):
             continue
         if s.count(anchor) != 1:

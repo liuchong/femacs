@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Cross-check `tools/add-vector-free-probe.py`'s log for the allocator's own invariants.
 
-Three invariants, each a line of output when it breaks:
+Four invariants, each a line of output when it breaks:
 
   * a `take`/`take2` whose header is 0 while the entry was linked with a size - the vector was
     zeroed while it sat on the list;
   * an `al-clear` whose `[p, p + nbytes)` covers a vector that is still linked - the caller is
     zeroing a free object (the mechanism the 4.836-4.842 rounds were chasing);
   * a `split-push` whose `restbytes` is outside `0 .. VECTOR_BLOCK_BYTES` - the bin's head did not
-    match its bin.
+    match its bin;
+  * a `take`/`take2` of a vector that has already been handed out and not linked back since - the
+    allocator issued the same object twice, so its next user zeroes a header that is still linked.
 
     tools/analyse-free-log.py run.log
 """
@@ -34,11 +36,18 @@ def main():
               for p in (l.split() for l in pathlib.Path(sys.argv[1]).read_text().splitlines()
                         if l.startswith("VF "))]
     linked = {}
+    live = {}
     findings = 0
     for i, (a, b, tag) in enumerate(events):
         if tag == "push":
             linked[a] = size_of(b)
+            live.pop(a, None)
         elif tag in ("take", "take2"):
+            if a in live:
+                findings += 1
+                print("event %d: take of %d, which is still live (given at event %d)"
+                      % (i, a, live[a]))
+            live[a] = i
             want = linked.pop(a, None)
             if want and size_of(b) == 0:
                 findings += 1

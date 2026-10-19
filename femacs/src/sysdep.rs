@@ -3907,7 +3907,11 @@ pub unsafe extern "C" fn emacs_close (fd: c_int) -> c_int {
 
   loop
     {
-      // C 2626-2631: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
+      // C 2626-2631: this is C's `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)`.
+      // Both arms were compiled on Android, so `posix_close` closed the descriptor first and
+      // `android_close` then reported EBADF for every close (status 4.848: a pipe's own write end
+      // read back as EBADF one statement after a successful write).
+      #[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]
       {
 	r = posix_close (fd, POSIX_CLOSE_RESTART);
       }

@@ -76,7 +76,7 @@ if [ "$DUMP_ONLY" != 1 ] && [ -n "${CHECK_NATIVE:-1}" ]; then
   NDK_BIN=$(ls -d "$SDK"/ndk/*/toolchains/llvm/prebuilt/*/bin 2>/dev/null | tail -1)
   if [ -n "$NDK_BIN" ] && [ -f "$SO" ]; then
     missing=""
-    for sym in android_init_gui Java_org_femacs_EmacsNative_initEmacs Fandroid_enumerate_fonts; do
+    for sym in android_init_gui Java_org_femacs_EmacsNative_initEmacs Fandroid_enumerate_fonts emacs_pipe; do
       "$NDK_BIN/llvm-nm" -D --defined-only "$SO" 2>/dev/null | grep -q " $sym\$" || missing="$missing $sym"
     done
     if [ -n "$missing" ]; then
@@ -133,6 +133,15 @@ echo "== probe.log size =="
 "$ADB" shell "wc -l /data/data/org.femacs/files/probe.log 2>/dev/null"
 echo "== probe.log last $TAIL lines =="
 "$ADB" shell "tail -$TAIL /data/data/org.femacs/files/probe.log"
+# The device keeps the log only until the AVD is torn down, so keep a durable copy in the tree
+# (R40: run evidence belongs to the project, not to a temporary directory) for the offline
+# analysers (`tools/analyse-free-log.py`).  adb is root by now, which is what makes the app's
+# private directory readable.
+if "$ADB" pull /data/data/org.femacs/files/probe.log "$REPO/docs/baseline/probe-run.log" >/dev/null 2>&1; then
+  echo "== probe.log pulled to docs/baseline/probe-run.log ($(wc -l < "$REPO/docs/baseline/probe-run.log") lines) =="
+else
+  echo "== probe.log not pulled =="
+fi
 echo "== writers of the last 4000 lines (thread id is the number after the tag) =="
 "$ADB" shell "tail -4000 /data/data/org.femacs/files/probe.log | awk '{print \$2}' | sort | uniq -c | sort -rn | head -6"
 echo "== tags and threads over the whole log =="
@@ -150,7 +159,11 @@ for t in $("$ADB" shell ls /data/tombstones 2>/dev/null | tr -d '\r' | grep -v '
   "$ADB" shell "head -40 /data/tombstones/$t" 2>/dev/null
 done
 echo "== app log tail (the process's own lines) =="
-"$ADB" logcat -d 2>/dev/null | grep -a 'android_run_debug_thread\|org\.femacs' | tail -20
+# The handler prints the innermost frame first, so the useful end of its backtrace is the *head*
+# of the matching lines; `tail -20` kept only the outermost five frames (status 4.845).
+"$ADB" logcat -d 2>/dev/null | grep -a 'android_run_debug_thread' | head -40
+# The app's own lines: the fatal handler's message, and anything a probe writes to fd 2.
+"$ADB" logcat -d 2>/dev/null | grep -a 'org\.femacs\|^PIPE \|^CL \|assertion failed' | tail -25
 echo "== the fatal-signal path (our own handler, debuggerd, malloc debug) =="
 "$ADB" logcat -d 2>/dev/null | grep -a 'femacs-bt\|Fatal signal\|debuggerd\|libc  :\|Abort message\|malloc_debug' | tail -25
 echo "== exit info =="
