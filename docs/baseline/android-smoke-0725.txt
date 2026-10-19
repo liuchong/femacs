@@ -1,0 +1,25 @@
+first_pid_at=2s pid=2170
+== pid@40s: 2170
+== gfxinfo ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 1 (50.00%)
+Number Missed Vsync: 0
+== window ==
+  mCurrentFocus=Window{b8789f9 u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{82468497 u0 org.femacs/.EmacsActivity t7}
+== pid after keys: 2170
+== gfxinfo after ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 1 (50.00%)
+Number Missed Vsync: 0
+== log ==
+10-20 07:26:02.309  2170  2191 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 07:26:02.309  2170  2191 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 07:26:02.370  2170  2191 I android_run_debug_thread: ANEWFONT ps=12 h=15 sw=7 aw=7 asc=12 desc=3 => cw=7 lh=15
+10-20 07:26:02.392  2170  2191 I android_run_debug_thread: DL y=0 lasty=15 used=0
+10-20 07:26:02.393  2170  2191 I android_run_debug_thread: FLIP glyphs=1 win=35 x 80 rows=40 u0=0 u1=0 u2=0 lh=15 cw=7
+10-20 07:26:02.393  2170  2191 I android_run_debug_thread: DL y=0 lasty=17 used=0
+10-20 07:26:02.393  2170  2191 I android_run_debug_thread: DL y=0 lasty=17 used=66
+10-20 07:26:02.393  2170  2191 I android_run_debug_thread: DL y=0 lasty=522 used=0
