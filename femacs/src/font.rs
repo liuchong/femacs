@@ -5268,9 +5268,9 @@ pub unsafe extern "C" fn copy_font_spec (font: Lisp_Object) -> Lisp_Object
   /* C: `memcpy (spec->props + 1, XVECTOR (font)->contents + 1, (FONT_EXTRA_INDEX - 1) *
      word_size)`.  The port's counterpart is `copy_nonoverlapping`'s (src, dst, n) order
      (PORTING.md 2.1's memcpy family).  */
-  std::ptr::copy_nonoverlapping ((*(XVECTOR (font))).contents.as_ptr ().offset (1),
-				 (*spec).props.as_mut_ptr ().offset (1),
-				 ((FONT_EXTRA_INDEX - 1) as usize * word_size as usize));
+  std::ptr::copy_nonoverlapping ((*(XVECTOR (font))).contents.as_ptr ().offset (1) as *const u8,
+				 (*spec).props.as_mut_ptr ().offset (1) as *mut u8,
+				 (FONT_EXTRA_INDEX - 1) as usize * word_size as usize);
 
   /* Copy an alist of extra information but discard :font-entity property.  */
   pcdr = (*spec).props.as_mut_ptr ().offset (FONT_EXTRA_INDEX as isize);
