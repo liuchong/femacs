@@ -1,0 +1,228 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== install ==
+ess
+Install command complete in 237 ms
+== start ==
+TotalTime: 239
+WaitTime: 240
+Complete
+== probe.log size ==
+== probe.log last 10 lines ==
+tail: /data/data/org.femacs/files/probe.log: No such file or directory
+== probe.log not pulled ==
+== writers of the last 4000 lines (thread id is the number after the tag) ==
+tail: /data/data/org.femacs/files/probe.log: No such file or directory
+== tags and threads over the whole log ==
+awk: can't open file /data/data/org.femacs/files/probe.log
+ source line number 1
+== where each thread stopped (last line number per tag) ==
+grep: /data/data/org.femacs/files/probe.log: No such file or directory
+grep: /data/data/org.femacs/files/probe.log: No such file or directory
+/system/bin/sh: can't open /data/data/org.femacs/files/probe.log: No such file or directory
+== crash buffer (head: the signal, the fault address and frame #00) ==
+--------- beginning of crash
+10-20 02:12:27.089  2179  2198 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0 in tid 2198 (Emacs main thre), pid 2179 (org.femacs)
+10-20 02:12:27.230  2211  2211 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+10-20 02:12:27.230  2211  2211 F DEBUG   : Build fingerprint: 'Android/sdk_phone64_arm64/emu64a:16/BE2A.250530.026.D1/13818094:userdebug/test-keys'
+10-20 02:12:27.230  2211  2211 F DEBUG   : Revision: '0'
+10-20 02:12:27.230  2211  2211 F DEBUG   : ABI: 'arm64'
+10-20 02:12:27.230  2211  2211 F DEBUG   : Timestamp: 2026-10-20 02:12:27.121244260+0800
+10-20 02:12:27.230  2211  2211 F DEBUG   : Process uptime: 2s
+10-20 02:12:27.230  2211  2211 F DEBUG   : Cmdline: org.femacs
+10-20 02:12:27.230  2211  2211 F DEBUG   : pid: 2179, tid: 2198, name: Emacs main thre  >>> org.femacs <<<
+10-20 02:12:27.230  2211  2211 F DEBUG   : uid: 10243
+10-20 02:12:27.230  2211  2211 F DEBUG   : tagged_addr_ctrl: 0000000000000001 (PR_TAGGED_ADDR_ENABLE)
+10-20 02:12:27.230  2211  2211 F DEBUG   : pac_enabled_keys: 000000000000000f (PR_PAC_APIAKEY, PR_PAC_APIBKEY, PR_PAC_APDAKEY, PR_PAC_APDBKEY)
+10-20 02:12:27.230  2211  2211 F DEBUG   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0000000000000000
+10-20 02:12:27.230  2211  2211 F DEBUG   : Cause: null pointer dereference
+10-20 02:12:27.230  2211  2211 F DEBUG   : Abort message: 'emacs_abort called, please review the following stack trace'
+10-20 02:12:27.230  2211  2211 F DEBUG   :     x0  0000000000000001  x1  b400007b79e9dc90  x2  0000000000000004  x3  0000186c570125b9
+10-20 02:12:27.230  2211  2211 F DEBUG   :     x4  00ffffffffffffff  x5  0000000000002954  x6  64687564711f6472  x7  7f7f7f7f7f7f7f7f
+10-20 02:12:27.230  2211  2211 F DEBUG   :     x8  0000000000000000  x9  8929fdc59ef6c7e7  x10 0000007cc6a2b1c8  x11 0000000000000000
+10-20 02:12:27.230  2211  2211 F DEBUG   :     x12 000000006ad65d8b  x13 000000007fffffff  x14 0000000000002954  x15 0000186c5701c3a0
+10-20 02:12:27.230  2211  2211 F DEBUG   :     x16 0000000000000001  x17 0000007cabe957a0  x18 00000078ee73c000  x19 b400007a6a0187e8
+10-20 02:12:27.230  2211  2211 F DEBUG   :     x20 b400007b024442c0  x21 0000000000000006  x22 b400007a6a0187ec  x23 0000000000000003
+10-20 02:12:27.230  2211  2211 F DEBUG   :     x24 0000000000000000  x25 0000000000000003  x26 0000000000000000  x27 0000000000000067
+10-20 02:12:27.230  2211  2211 F DEBUG   :     x28 0000000000000000  x29 0000007980171900
+10-20 02:12:27.230  2211  2211 F DEBUG   :     lr  00000078f6177b48  sp  0000007980171900  pc  00000078f6177b4c  pst 0000000060000000
+10-20 02:12:27.230  2211  2211 F DEBUG   : 47 total frames
+10-20 02:12:27.230  2211  2211 F DEBUG   : backtrace:
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #00 pc 000000000016cb4c  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (emacs_abort+36)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #01 pc 00000000002f1664  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCsa93eHzN0raX_11regex_emacs19re_match_2_internal+20992)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #02 pc 00000000002f38a8  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (rpl_re_search_2+2640)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #03 pc 00000000002f2e48  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (rpl_re_search+44)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #04 pc 00000000002f9690  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (fast_string_match_internal+144)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #05 pc 0000000000313f14  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (sfntfont_open+2444)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #06 pc 0000000000247db0  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCsgGOD1S6i4Ot_4font16font_open_entity+244)
+== crash buffer (tail: the frames near the entry point) ==
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #39 pc 000000000068a444  /apex/com.android.art/lib64/libart.so (nterp_helper+3924) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #40 pc 000000000010dbe0  <anonymous:79ccf60000> (org.femacs.EmacsThread.run+136)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #41 pc 0000000000328194  /apex/com.android.art/lib64/libart.so (art_quick_invoke_stub+612) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #42 pc 00000000002d9348  /apex/com.android.art/lib64/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+216) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #43 pc 0000000000421028  /apex/com.android.art/lib64/libart.so (art::Thread::CreateCallback(void*)+932) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #44 pc 0000000000420c74  /apex/com.android.art/lib64/libart.so (art::Thread::CreateCallbackWithUffdGc(void*)+8) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #45 pc 0000000000080df8  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+232) (BuildId: 2445fc73ede03b9536eef49355aff375)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #46 pc 0000000000073dd8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 2445fc73ede03b9536eef49355aff375)
+== tombstones ==
+total 1864
+-rw-rw-r-- 1 tombstoned system 459516 2026-10-20 02:12 tombstone_17
+-rw-rw-r-- 1 tombstoned system 276080 2026-10-20 02:12 tombstone_17.pb
+--- tombstone_17
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: 'Android/sdk_phone64_arm64/emu64a:16/BE2A.250530.026.D1/13818094:userdebug/test-keys'
+Revision: '0'
+ABI: 'arm64'
+Timestamp: 2026-10-20 02:12:27.121244260+0800
+Process uptime: 2s
+Cmdline: org.femacs
+pid: 2179, tid: 2198, name: Emacs main thre  >>> org.femacs <<<
+uid: 10243
+tagged_addr_ctrl: 0000000000000001 (PR_TAGGED_ADDR_ENABLE)
+pac_enabled_keys: 000000000000000f (PR_PAC_APIAKEY, PR_PAC_APIBKEY, PR_PAC_APDAKEY, PR_PAC_APDBKEY)
+signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0000000000000000
+Cause: null pointer dereference
+Abort message: 'emacs_abort called, please review the following stack trace'
+    x0  0000000000000001  x1  b400007b79e9dc90  x2  0000000000000004  x3  0000186c570125b9
+    x4  00ffffffffffffff  x5  0000000000002954  x6  64687564711f6472  x7  7f7f7f7f7f7f7f7f
+    x8  0000000000000000  x9  8929fdc59ef6c7e7  x10 0000007cc6a2b1c8  x11 0000000000000000
+    x12 000000006ad65d8b  x13 000000007fffffff  x14 0000000000002954  x15 0000186c5701c3a0
+    x16 0000000000000001  x17 0000007cabe957a0  x18 00000078ee73c000  x19 b400007a6a0187e8
+    x20 b400007b024442c0  x21 0000000000000006  x22 b400007a6a0187ec  x23 0000000000000003
+    x24 0000000000000000  x25 0000000000000003  x26 0000000000000000  x27 0000000000000067
+    x28 0000000000000000  x29 0000007980171900
+    lr  00000078f6177b48  sp  0000007980171900  pc  00000078f6177b4c  pst 0000000060000000
+
+47 total frames
+backtrace:
+      #00 pc 000000000016cb4c  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (emacs_abort+36)
+      #01 pc 00000000002f1664  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCsa93eHzN0raX_11regex_emacs19re_match_2_internal+20992)
+      #02 pc 00000000002f38a8  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (rpl_re_search_2+2640)
+      #03 pc 00000000002f2e48  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (rpl_re_search+44)
+      #04 pc 00000000002f9690  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (fast_string_match_internal+144)
+      #05 pc 0000000000313f14  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (sfntfont_open+2444)
+      #06 pc 0000000000247db0  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCsgGOD1S6i4Ot_4font16font_open_entity+244)
+      #07 pc 000000000024d0ec  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (font_load_for_lface+84)
+      #08 pc 00000000003ab380  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCs82uaypPSNxQ_6xfaces12realize_face+1888)
+      #09 pc 00000000003adf98  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCs82uaypPSNxQ_6xfaces18realize_named_face+384)
+      #10 pc 00000000003aea08  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCs82uaypPSNxQ_6xfaces19realize_basic_faces+1848)
+      #11 pc 00000000003b11d8  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (recompute_basic_faces+28)
+      #12 pc 0000000000399e50  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (init_iterator+1144)
+      #13 pc 00000000003a21e4  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (resize_mini_window+876)
+== app log tail (the process's own lines) ==
+10-20 02:12:26.826  2179  2199 I android_run_debug_thread: Loading emacs-lisp/tabulated-list...
+10-20 02:12:26.827  2179  2199 I android_run_debug_thread: Loading emacs-lisp/tabulated-list...done
+10-20 02:12:26.827  2179  2199 I android_run_debug_thread: Loading buff-menu...
+10-20 02:12:26.829  2179  2199 I android_run_debug_thread: Loading buff-menu...done
+10-20 02:12:26.829  2179  2199 I android_run_debug_thread: Loading fringe...
+10-20 02:12:26.832  2179  2199 I android_run_debug_thread: Loading fringe...done
+10-20 02:12:26.832  2179  2199 I android_run_debug_thread: Loading emacs-lisp/regexp-opt...
+10-20 02:12:26.832  2179  2199 I android_run_debug_thread: Loading emacs-lisp/regexp-opt...done
+10-20 02:12:26.832  2179  2199 I android_run_debug_thread: Loading image...
+10-20 02:12:26.832  2179  2199 I android_run_debug_thread: Loading image...done
+10-20 02:12:26.832  2179  2199 I android_run_debug_thread: Loading international/fontset...
+10-20 02:12:26.832  2179  2199 I android_run_debug_thread: Loading international/fontset...done
+10-20 02:12:26.832  2179  2199 I android_run_debug_thread: Loading dnd...
+10-20 02:12:26.857  2179  2199 I android_run_debug_thread: Loading dnd...done
+10-20 02:12:26.857  2179  2199 I android_run_debug_thread: Loading tool-bar...
+10-20 02:12:26.858  2179  2199 I android_run_debug_thread: Loading tool-bar...done
+10-20 02:12:26.858  2179  2199 I android_run_debug_thread: Loading dynamic-setting...
+10-20 02:12:26.858  2179  2199 I android_run_debug_thread: Loading dynamic-setting...done
+10-20 02:12:26.859  2179  2199 I android_run_debug_thread: Loading ls-lisp...
+10-20 02:12:26.859  2179  2199 I android_run_debug_thread: Loading ls-lisp...done
+10-20 02:12:26.859  2179  2199 I android_run_debug_thread: Loading touch-screen...
+10-20 02:12:26.860  2179  2199 I android_run_debug_thread: Loading touch-screen...done
+10-20 02:12:26.860  2179  2199 I android_run_debug_thread: Loading term/common-win...
+10-20 02:12:26.861  2179  2199 I android_run_debug_thread: Loading term/common-win...done
+10-20 02:12:26.861  2179  2199 I android_run_debug_thread: Loading term/android-win...
+10-20 02:12:26.865  2179  2199 I android_run_debug_thread: Loading term/android-win...done
+10-20 02:12:26.865  2179  2199 I android_run_debug_thread: Loading mwheel...
+10-20 02:12:26.865  2179  2199 I android_run_debug_thread: Loading mwheel...done
+10-20 02:12:26.865  2179  2199 I android_run_debug_thread: Loading progmodes/elisp-mode...
+10-20 02:12:26.868  2179  2199 I android_run_debug_thread: Loading progmodes/elisp-mode...done
+10-20 02:12:26.868  2179  2199 I android_run_debug_thread: Loading emacs-lisp/float-sup...
+10-20 02:12:26.868  2179  2199 I android_run_debug_thread: Loading emacs-lisp/float-sup...done
+10-20 02:12:26.868  2179  2199 I android_run_debug_thread: Loading vc/vc-hooks...
+10-20 02:12:26.868  2179  2199 I android_run_debug_thread: Loading vc/vc-hooks...done
+10-20 02:12:26.869  2179  2199 I android_run_debug_thread: Loading vc/ediff-hook...
+10-20 02:12:26.869  2179  2199 I android_run_debug_thread: Loading vc/ediff-hook...done
+10-20 02:12:26.869  2179  2199 I android_run_debug_thread: Loading uniquify...
+10-20 02:12:26.870  2179  2199 I android_run_debug_thread: Loading uniquify...done
+10-20 02:12:26.870  2179  2199 I android_run_debug_thread: Loading electric...
+10-20 02:12:26.871  2179  2199 I android_run_debug_thread: Loading electric...done
+10-20 02:12:26.871  2179  2199 I android_run_debug_thread: Loading paren...
+10-20 02:12:26.872  2179  2199 I android_run_debug_thread: Loading paren...done
+10-20 02:12:26.872  2179  2199 I android_run_debug_thread: Loading emacs-lisp/shorthands...
+10-20 02:12:26.872  2179  2199 I android_run_debug_thread: Loading emacs-lisp/shorthands...done
+10-20 02:12:26.873  2179  2199 I android_run_debug_thread: Loading emacs-lisp/eldoc...
+10-20 02:12:26.899  2179  2199 I android_run_debug_thread: Loading emacs-lisp/eldoc...done
+10-20 02:12:26.899  2179  2199 I android_run_debug_thread: Loading emacs-lisp/cconv...
+10-20 02:12:26.899  2179  2199 I android_run_debug_thread: Loading emacs-lisp/cconv...done
+10-20 02:12:26.900  2179  2199 I android_run_debug_thread: Loading cus-start...
+10-20 02:12:26.900  2179  2199 I android_run_debug_thread: Loading cus-start...done
+10-20 02:12:26.900  2179  2199 I android_run_debug_thread: Loading tooltip...
+10-20 02:12:26.900  2179  2199 I android_run_debug_thread: Loading tooltip...done
+10-20 02:12:26.900  2179  2199 I android_run_debug_thread: Loading international/iso-transl...
+10-20 02:12:26.902  2179  2199 I android_run_debug_thread: Loading international/iso-transl...done
+10-20 02:12:26.902  2179  2199 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 02:12:26.902  2179  2199 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 02:12:26.902  2179  2199 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 02:12:26.906  2179  2199 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 02:12:26.949  2179  2199 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 02:12:26.952  2179  2199 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #13 pc 00000000003a21e4  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (resize_mini_window+876)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #14 pc 000000000025a640  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (do_switch_frame+324)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #15 pc 00000000001a086c  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (exec_byte_code+1220)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #16 pc 000000000021fd18  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (Ffuncall+476)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #17 pc 00000000001a0384  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCsc5ZC1ixQP9B_8bytecode6bcall0+24)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #18 pc 0000000000226ff8  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (unbind_to+112)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #19 pc 00000000001a07c4  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (exec_byte_code+1052)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #20 pc 0000000000221e20  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCs3LLZNOKOaYE_4eval12apply_lambda+264)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #21 pc 0000000000223f7c  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (eval_sub+1360)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #22 pc 000000000021f8bc  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (Feval+80)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #23 pc 0000000000224268  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (eval_sub+2108)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #24 pc 00000000002a6f48  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCs6qH8o4dCLcE_5lread12readevalloop+1788)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #25 pc 00000000002a58fc  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (Fload+2576)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #26 pc 0000000000224350  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (eval_sub+2340)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #27 pc 000000000021f8bc  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (Feval+80)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #28 pc 0000000000224e18  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (internal_condition_case+108)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #29 pc 00000000002874d0  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCsaOXJNhLi8Xi_8keyboard11top_level_1+44)
+10-20 02:12:27.230  2211  2211 F DEBUG   :       #30 pc 0000000000224cb0  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (internal_catch+84)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #31 pc 000000000029a78c  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (recursive_edit_1+480)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #32 pc 0000000000285968  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (Frecursive_edit+404)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #33 pc 000000000021ce00  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (_RNvCsknNO81jgF4N_5emacs15emacs_init_body+6736)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #34 pc 000000000021d674  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (android_emacs_init+8)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #35 pc 00000000001627e8  /data/app/~~HdZ5zb7f1ZN-OE42xxdvOw==/org.femacs-cLGRMIGRTi2mHBveqGYQ_Q==/lib/arm64/libemacs.so (Java_org_femacs_EmacsNative_initEmacs+696)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #38 pc 0000000000104b08  <anonymous:79ccf60000> (org.femacs.EmacsNative$Companion.initEmacs+0)
+10-20 02:12:27.231  2211  2211 F DEBUG   :       #40 pc 000000000010dbe0  <anonymous:79ccf60000> (org.femacs.EmacsThread.run+136)
+10-20 02:12:27.235   664  2218 E ActivityManager: App crashed on incremental package org.femacs which is 100% loaded.
+10-20 02:12:27.237   664  2218 W ActivityTaskManager:   Force finishing activity org.femacs/.EmacsActivity
+10-20 02:12:27.238   908   998 V WindowManagerShell: Transition requested (#7): android.os.BinderProxy@9d4264c TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=60 effectiveUid=10243 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=20717 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@dc7a695} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 0 - 0, 0) topActivityInfo=ActivityInfo{f0183aa org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 16, debugId = 7 }
+10-20 02:12:27.246   664   772 W InputDispatcher: channel '926ace8 org.femacs/org.femacs.EmacsActivity' ~ Consumer closed input channel or an error occurred.  events=0x9
+10-20 02:12:27.246   664   772 E InputDispatcher: channel '926ace8 org.femacs/org.femacs.EmacsActivity' ~ Channel is unrecoverably broken and will be disposed!
+10-20 02:12:27.246   664   772 I WindowManager: WINDOW DIED Window{926ace8 u0 org.femacs/org.femacs.EmacsActivity}
+10-20 02:12:27.247   664  2131 I WindowManager: WIN DEATH: Window{926ace8 u0 org.femacs/org.femacs.EmacsActivity EXITING}
+10-20 02:12:27.247   664  2143 I ImeTracker: org.femacs:47d71d6: onRequestHide at ORIGIN_SERVER reason HIDE_REMOVE_CLIENT fromUser false
+10-20 02:12:27.247   664  2143 I ImeTracker: org.femacs:47d71d6: onCancelled at PHASE_SERVER_SHOULD_HIDE
+10-20 02:12:27.248   664   960 I ActivityManager: Process org.femacs (pid 2179) has died: fg  TOP 
+10-20 02:12:27.290   664   688 V WindowManager: Sent Transition (#7) createdAt=10-20 02:12:27.237 via request=TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=60 effectiveUid=10243 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=20717 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{9eee2a0 Task{b6a743c #60 type=standard A=10243:emacs.primary_frame}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 0 - 0, 0) topActivityInfo=ActivityInfo{b836e59 org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 16, debugId = 7 }
+10-20 02:12:27.301   664   692 W ActivityTaskManager: Unable to send transaction to client proc org.femacs: no app thread
+10-20 02:12:27.352   664   692 W ActivityTaskManager: Unable to send transaction to client proc org.femacs: no app thread
+10-20 02:12:27.670   664  2131 W WindowManager: Exception thrown during dispatchAppVisibility Window{926ace8 u0 org.femacs/org.femacs.EmacsActivity EXITING}
+10-20 02:12:27.738   664   691 W ActivityTaskManager: Activity top resumed state loss timeout for ActivityRecord{226924079 u0 org.femacs/.EmacsActivity t-1 f}}
+== the fatal-signal path (our own handler, debuggerd, malloc debug) ==
+10-20 02:12:27.089  2179  2198 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0 in tid 2198 (Emacs main thre), pid 2179 (org.femacs)
+10-20 02:12:27.230  2211  2211 F DEBUG   : Abort message: 'emacs_abort called, please review the following stack trace'
+== exit info ==
+  package: org.femacs
+    Historical Process Exit for uid=10243
+        ApplicationExitInfo #0:
+          timestamp=2026-10-20 02:12:27.237 pid=2179 realUid=10243 packageUid=10243 definingUid=10243 user=0
+          process=org.femacs reason=5 (APP CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11
+          importance=100 pss=0.00 rss=0.00 description=crash state=empty trace=null
+  package: android
+    Historical Process Exit for uid=1037
+== note ==
+This script prints everything it reads and keeps nothing itself: capture its stdout when the
+run matters (docs/baseline/device-run-*.txt is that capture).  Only rebuildable intermediates
+live in /tmp: the APK under /tmp/femacs-apk, the cargo target dir, and the emulator's own log.
+controlled-run: {"run_id": "b37452336c3c44dcaec90e6daa4d80ab", "profile": "runtime", "executable": "bash", "argv_sha256": "44e6c03ae2987742fc2945e8f98999fb38ba8895f5c8e14e98dbbbe1ca8b6aa5", "limit_bytes": 6442450944, "peak_rss_bytes": 4457119744, "reason": "exited", "root_pid": 48110, "exit_code": 0, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 54.765}
