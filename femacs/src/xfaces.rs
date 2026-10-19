@@ -66,6 +66,9 @@ include!("include/blockinput.rs");        // C 265: blockinput.h
 include!("include/window.rs");            // C 266: window.h
 include!("include/termchar.rs");          // C 267: termchar.h
 include!("include/font.rs");              // C 269: font.h
+include!("include/fontset.rs");            // C 270: fontset.h (`fontset_name`)
+#[cfg (feature = "have_window_system")]
+include!("include/androidterm.rs");         // frame.h's Android `FRAME_FONT`/`FRAME_FONTSET`
 include!("include/keymap.rs");            // keyboard.h/window.h: keymap.h
 include!("include/disptab.rs");           // frame.h: disptab.h
 include!("include/commands.rs");          // lisp.h: commands.h (`noninteractive`)
@@ -1504,6 +1507,69 @@ unsafe fn lface_fully_specified_p (attrs: *const Lisp_Object) -> bool
     }
 
   return i == LFACE_VECTOR_SIZE;
+}
+
+
+/* C's `f->default_face_done_p` (frame.h 340, a `bool_bf`): the per-unit reader/writer shape
+   `msdos.rs` uses; `include/frame.rs` carries the measured shift and the field's unit (1).  */
+#[cfg (feature = "have_window_system")]
+macro_rules! set_frame_flag1 {
+  ($f:expr, $shift:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << $shift)) | (($v as u32) << $shift)
+  };
+}
+
+#[cfg (feature = "have_window_system")]
+macro_rules! default_face_done_p {
+  ($f:expr) => { (*$f).bits1 >> FRAME_DEFAULT_FACE_DONE_P_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_DEFAULT_FACE_DONE_P_SHIFT, $v) };
+}
+
+/* Set font-related attributes of Lisp face LFACE from FONT-OBJECT (C 2181-2245).  If FORCE_P is
+   zero, set only unspecified attributes of LFACE; the `font` attribute is always set.  */
+#[cfg (feature = "have_window_system")]
+unsafe fn set_lface_from_font (f: *mut frame, lface: Lisp_Object,
+			       font_object: Lisp_Object, force_p: bool)
+{
+  let mut val: Lisp_Object;
+  let font: *mut font = XFONT_OBJECT (font_object);
+
+  if force_p || UNSPECIFIEDP! (LFACE_FAMILY! (lface))
+    {
+      let family: Lisp_Object = AREF (font_object, FONT_FAMILY_INDEX as isize);
+      ASET (lface, LFACE_FAMILY_INDEX as isize, SYMBOL_NAME (family));
+    }
+
+  if force_p || UNSPECIFIEDP! (LFACE_FOUNDRY! (lface))
+    {
+      let foundry: Lisp_Object = AREF (font_object, FONT_FOUNDRY_INDEX as isize);
+      ASET (lface, LFACE_FOUNDRY_INDEX as isize, SYMBOL_NAME (foundry));
+    }
+
+  if force_p || UNSPECIFIEDP! (LFACE_HEIGHT! (lface))
+    {
+      let pt: c_int = PIXEL_TO_POINT! (((*font).pixel_size * 10) as c_double, FRAME_RES (f)) as c_int;
+      eassert! (pt > 0);
+      ASET (lface, LFACE_HEIGHT_INDEX as isize, make_fixnum (pt as EMACS_INT));
+    }
+
+  if force_p || UNSPECIFIEDP! (LFACE_WEIGHT! (lface))
+    {
+      val = FONT_WEIGHT_FOR_FACE! (font_object);
+      ASET (lface, LFACE_WEIGHT_INDEX as isize, if ! NILP (val) { val } else { Qnormal () });
+    }
+  if force_p || UNSPECIFIEDP! (LFACE_SLANT! (lface))
+    {
+      val = FONT_SLANT_FOR_FACE! (font_object);
+      ASET (lface, LFACE_SLANT_INDEX as isize, if ! NILP (val) { val } else { Qnormal () });
+    }
+  if force_p || UNSPECIFIEDP! (LFACE_SWIDTH! (lface))
+    {
+      val = FONT_WIDTH_FOR_FACE! (font_object);
+      ASET (lface, LFACE_SWIDTH_INDEX as isize, if ! NILP (val) { val } else { Qnormal () });
+    }
+
+  ASET (lface, LFACE_FONT_INDEX as isize, font_object);
 }
 
 /* C 2184-2243: the `HAVE_WINDOW_SYSTEM` block (`set_lface_from_font`) is dead.  */
@@ -4591,7 +4657,21 @@ unsafe fn realize_default_face (f: *mut frame) -> bool
        lface = Finternal_make_lisp_face (Qdefault (), frame);
     }
 
-  /* C's `HAVE_WINDOW_SYSTEM` arm (`set_lface_from_font` and the fontset name) is dead.  */
+  /* C 6081-6091: the `HAVE_WINDOW_SYSTEM` arm.  The frozen darwin configuration does not compile
+     it (HAVE_WINDOW_SYSTEM is undefined there); Android's does, and without it the default face
+     keeps family/foundry/height/weight/slant/swidth/fontset unspecified - the first frame then
+     trips `lface_fully_specified_p` (device run, status 4.854).  */
+  #[cfg (feature = "have_window_system")]
+  {
+    if FRAME_WINDOW_P (f)
+      {
+	let mut font_object: Lisp_Object = Qnil ();
+	XSETFONT! (font_object, FRAME_FONT! (f));
+	set_lface_from_font (f, lface, font_object, default_face_done_p! (f));
+	ASET (lface, LFACE_FONTSET_INDEX as isize, fontset_name (FRAME_FONTSET! (f)));
+	default_face_done_p! (f, true);
+      }
+  }
 
   if ! FRAME_WINDOW_P (f)
     {

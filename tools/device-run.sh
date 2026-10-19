@@ -149,7 +149,7 @@ echo "== tags and threads over the whole log =="
 echo "== where each thread stopped (last line number per tag) =="
 "$ADB" shell "grep -n '^AF ' /data/data/org.femacs/files/probe.log | tail -2; grep -c '^AF ' /data/data/org.femacs/files/probe.log; wc -l < /data/data/org.femacs/files/probe.log"
 echo "== crash buffer (head: the signal, the fault address and frame #00) =="
-"$ADB" logcat -b crash -d 2>/dev/null | head -14
+"$ADB" logcat -b crash -d 2>/dev/null | head -34
 echo "== crash buffer (tail: the frames near the entry point) =="
 "$ADB" logcat -b crash -d 2>/dev/null | tail -8
 echo "== tombstones =="
