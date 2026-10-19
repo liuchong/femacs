@@ -1,0 +1,126 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== install ==
+ess
+Install command complete in 367 ms
+== start ==
+TotalTime: 241
+WaitTime: 242
+Complete
+/tmp/device-run-guest.sh: line 141: //docs/baseline/probe-maps.txt: No such file or directory
+/tmp/device-run-guest.sh: line 148: //docs/baseline/probe-maps.txt: No such file or directory
+== probe.log size ==
+== probe.log last 8 lines ==
+tail: /data/data/org.femacs/files/probe.log: No such file or directory
+== probe.log not pulled ==
+== writers of the last 4000 lines (thread id is the number after the tag) ==
+tail: /data/data/org.femacs/files/probe.log: No such file or directory
+== tags and threads over the whole log ==
+awk: can't open file /data/data/org.femacs/files/probe.log
+ source line number 1
+== where each thread stopped (last line number per tag) ==
+grep: /data/data/org.femacs/files/probe.log: No such file or directory
+grep: /data/data/org.femacs/files/probe.log: No such file or directory
+/system/bin/sh: can't open /data/data/org.femacs/files/probe.log: No such file or directory
+== crash buffer (head: the signal, the fault address and frame #00) ==
+== crash buffer (tail: the frames near the entry point) ==
+== tombstones ==
+total 208
+-rw-rw-r-- 1 tombstoned system 0 2026-10-20 04:53 tombstone_25
+-rw-rw-r-- 1 tombstoned system 0 2026-10-20 04:53 tombstone_25.pb
+--- tombstone_25
+== app log tail (the process's own lines) ==
+10-20 05:20:32.827  2161  2181 I android_run_debug_thread: Loading emacs-lisp/tabulated-list...
+10-20 05:20:32.827  2161  2181 I android_run_debug_thread: Loading emacs-lisp/tabulated-list...done
+10-20 05:20:32.828  2161  2181 I android_run_debug_thread: Loading buff-menu...
+10-20 05:20:32.828  2161  2181 I android_run_debug_thread: Loading buff-menu...done
+10-20 05:20:32.828  2161  2181 I android_run_debug_thread: Loading fringe...
+10-20 05:20:32.829  2161  2181 I android_run_debug_thread: Loading fringe...done
+10-20 05:20:32.829  2161  2181 I android_run_debug_thread: Loading emacs-lisp/regexp-opt...
+10-20 05:20:32.829  2161  2181 I android_run_debug_thread: Loading emacs-lisp/regexp-opt...done
+10-20 05:20:32.829  2161  2181 I android_run_debug_thread: Loading image...
+10-20 05:20:32.830  2161  2181 I android_run_debug_thread: Loading image...done
+10-20 05:20:32.831  2161  2181 I android_run_debug_thread: Loading international/fontset...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading international/fontset...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading dnd...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading dnd...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading tool-bar...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading tool-bar...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading dynamic-setting...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading dynamic-setting...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading ls-lisp...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading ls-lisp...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading touch-screen...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading touch-screen...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading term/common-win...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading term/common-win...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading term/android-win...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading term/android-win...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading mwheel...
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading mwheel...done
+10-20 05:20:32.835  2161  2181 I android_run_debug_thread: Loading progmodes/elisp-mode...
+10-20 05:20:32.837  2161  2181 I android_run_debug_thread: Loading progmodes/elisp-mode...done
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading emacs-lisp/float-sup...
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading emacs-lisp/float-sup...done
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading vc/vc-hooks...
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading vc/vc-hooks...done
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading vc/ediff-hook...
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading vc/ediff-hook...done
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading uniquify...
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading uniquify...done
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading electric...
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading electric...done
+10-20 05:20:32.840  2161  2181 I android_run_debug_thread: Loading paren...
+10-20 05:20:32.850  2161  2181 I android_run_debug_thread: Loading paren...done
+10-20 05:20:32.850  2161  2181 I android_run_debug_thread: Loading emacs-lisp/shorthands...
+10-20 05:20:32.850  2161  2181 I android_run_debug_thread: Loading emacs-lisp/shorthands...done
+10-20 05:20:32.850  2161  2181 I android_run_debug_thread: Loading emacs-lisp/eldoc...
+10-20 05:20:32.875  2161  2181 I android_run_debug_thread: Loading emacs-lisp/eldoc...done
+10-20 05:20:32.875  2161  2181 I android_run_debug_thread: Loading emacs-lisp/cconv...
+10-20 05:20:32.875  2161  2181 I android_run_debug_thread: Loading emacs-lisp/cconv...done
+10-20 05:20:32.875  2161  2181 I android_run_debug_thread: Loading cus-start...
+10-20 05:20:32.875  2161  2181 I android_run_debug_thread: Loading cus-start...done
+10-20 05:20:32.875  2161  2181 I android_run_debug_thread: Loading tooltip...
+10-20 05:20:32.876  2161  2181 I android_run_debug_thread: Loading tooltip...done
+10-20 05:20:32.876  2161  2181 I android_run_debug_thread: Loading international/iso-transl...
+10-20 05:20:32.877  2161  2181 I android_run_debug_thread: Loading international/iso-transl...done
+10-20 05:20:32.877  2161  2181 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 05:20:32.877  2161  2181 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 05:20:32.877  2161  2181 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 05:20:32.879  2161  2181 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 05:20:32.882  2161  2181 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 05:20:32.885  2161  2181 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 05:20:32.050  1339  1360 D SessionCommitReceiver: Removing unneeded PromiseIcon for package: org.femacs, install reason: 0, alreadyAddedPromiseIcon: false
+10-20 05:20:32.050  1339  1360 D PackageUpdatedTask: Package updated: mOp=UPDATE packages=[org.femacs], user=UserHandle{0}
+10-20 05:20:32.186   656  1132 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x4 cmp=org.femacs/.EmacsActivity} with LAUNCH_SINGLE_INSTANCE from uid 0 (BAL_ALLOW_ALLOWLISTED_UID) result code=0
+10-20 05:20:32.199   899  1001 V WindowManagerShell: Transition requested (#6): android.os.BinderProxy@9d2878e TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=197 effectiveUid=10300 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=20738 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@9c52baf} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{49d1bbc org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 6 }
+10-20 05:20:32.215   656   693 I ActivityManager: Start proc 2161:org.femacs/u0a300 for next-top-activity {org.femacs/org.femacs.EmacsActivity}
+10-20 05:20:32.215   656   837 I AppWidgetServiceImpl: Updating package stopped masked state for uid 10300 package org.femacs isStopped false
+10-20 05:20:32.220  2161  2161 I org.femacs: Using CollectorTypeCMC GC.
+10-20 05:20:32.226  2161  2161 E org.femacs: Not starting debugger since process cannot load the jdwp agent.
+10-20 05:20:32.257  2161  2161 D nativeloader: Configuring clns-9 for other apk /data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/base.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/lib/arm64:/data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/org.femacs
+10-20 05:20:32.258  2161  2161 I org.femacs: AssetManager2(0xb40000719425aeb8) locale list changing from [] to [en-US]
+10-20 05:20:32.259  2161  2161 V GraphicsEnvironment: org.femacs is not listed in per-application setting
+10-20 05:20:32.259  2161  2161 V GraphicsEnvironment: org.femacs is not listed in ANGLE allowlist or settings, returning default
+10-20 05:20:32.263  2161  2161 D nativeloader: Load /system/lib64/libjnigraphics.so using class loader ns clns-9 (caller=/data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/base.apk): ok
+10-20 05:20:32.267  2161  2161 D nativeloader: Load /data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/lib/arm64/libemacs.so using class loader ns clns-9 (caller=/data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/base.apk): ok
+10-20 05:20:32.283  2161  2161 I org.femacs: AssetManager2(0xb400007194258938) locale list changing from [] to [en-US]
+10-20 05:20:32.294   656  2138 I ActivityManager: Background started FGS: Allowed [callingPackage: org.femacs; callingUid: 10300; uidState: TOP ; uidBFSL: [BFSL]; intent: Intent { xflg=0x4 cmp=org.femacs/.EmacsService }; code:PROC_STATE_TOP; tempAllowListReason:<null>; allowWiu:12; targetSdkVersion:37; callerTargetSdkVersion:37; startForegroundCount:0; bindFromPackage:null: isBindService:false]
+10-20 05:20:32.326   656   683 V WindowManager: Sent Transition (#6) createdAt=10-20 05:20:32.181 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=197 effectiveUid=10300 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=20738 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{9dabefe Task{9e6eed8 #197 type=standard A=10300:emacs.primary_frame}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{ec8e65f org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 6 }
+10-20 05:20:32.356  2161  2161 D EmacsService: Initializing Emacs, where filesDir = /data/data/org.femacs/files, libDir = /data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/lib/arm64, and classPath = /data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/base.apk; args = (none); display density: 420.0 by 420.0 scaled to 420.0
+10-20 05:20:32.359  2161  2180 I setEmacsParams: Site-lisp directory: /data/data/org.femacs/files/site-lisp
+10-20 05:20:32.359  2161  2180 I setEmacsParams: Files directory: /data/data/org.femacs/files
+10-20 05:20:32.359  2161  2180 I setEmacsParams: Native code directory: /data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/lib/arm64
+10-20 05:20:32.359  2161  2180 I setEmacsParams: Game score path: /data/data/org.femacs/files/scores
+10-20 05:20:32.359  2161  2180 I setEmacsParams: Class path: /data/app/~~OqNa8AC72BEYfKBSaJ-8QQ==/org.femacs-3HPWVj1UrHNOHja1kW4qWw==/base.apk
+10-20 05:20:32.364  2161  2181 I android_run_debug_thread: Using load-path (/data/data/org.femacs/files/site-lisp /assets/lisp/ /assets/lisp/emacs-lisp /assets/lisp/progmodes /assets/lisp/language /assets/lisp/international /assets/lisp/textmodes /assets/lisp/vc)
+10-20 05:20:32.370   656  2138 D CoreBackPreview: Window{7577f1 u0 org.femacs/org.femacs.EmacsActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@9ca3429, mPriority=0, mIsAnimationCallback=true, mOverrideBehavior=0}
+10-20 05:20:32.423   656   683 I ActivityTaskManager: Displayed org.femacs/.EmacsActivity for user 0: +241ms
+10-20 05:20:32.457   656   776 I ImeTracker: org.femacs:3a8d17a3: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+10-20 05:20:32.460  2161  2161 I ImeTracker: org.femacs:3a8d17a3: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+== the fatal-signal path (our own handler, debuggerd, malloc debug) ==
+== exit info ==
+== note ==
+This script prints everything it reads and keeps nothing itself: capture its stdout when the
+run matters (docs/baseline/device-run-*.txt is that capture).  Only rebuildable intermediates
+live in /tmp: the APK under /tmp/femacs-apk, the cargo target dir, and the emulator's own log.
+controlled-run: {"run_id": "b973dd1db38d4656bb07acf025de7753", "profile": "runtime", "executable": "bash", "argv_sha256": "65c854c0026dfcee4a2586e8f223e93d1fd8a4ec3ff592878b34de8c0cddf44b", "limit_bytes": 6442450944, "peak_rss_bytes": 4270325760, "reason": "exited", "root_pid": 53412, "exit_code": 0, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 54.392}

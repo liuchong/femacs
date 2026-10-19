@@ -563,12 +563,13 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     })
   }
 
-  override fun lockCanvas(gc: EmacsGC): Canvas {
-    /* EmacsView.java 254-255 returns null when its bitmap is not yet
-       allocated, so `EmacsView.kt' declares `getCanvas (gc): Canvas?';
-       the already-landed `EmacsDrawable.lockCanvas' returns a non-null
-       Canvas, hence the assertion (P-83 ⑤⑮).  */
-    return view.getCanvas(gc)!!
+  override fun lockCanvas(gc: EmacsGC): Canvas? {
+    /* `EmacsView.getCanvas` (EmacsView.java 254-255) returns null while the bitmap is not yet
+       allocated, and the reference's callers test for null (EmacsFillRectangle.java 68 and the
+       other draw requests).  The port asserted non-null here, so the null became a
+       NullPointerException on the Emacs thread the first time a window was cleared before its
+       view had been laid out (measured on the device, status 4.901).  */
+    return view.getCanvas(gc)
   }
 
   override fun damageRect(damageRect: Rect) {

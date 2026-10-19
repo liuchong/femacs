@@ -73,7 +73,7 @@ class EmacsPixmap(width: Int, height: Int, depth: Int) : EmacsHandleObject(), Em
     this.depth = depth
   }
 
-  override fun lockCanvas(gc: EmacsGC): Canvas {
+  override fun lockCanvas(gc: EmacsGC): Canvas? {
     var i: Int
 
     if (canvas == null) {

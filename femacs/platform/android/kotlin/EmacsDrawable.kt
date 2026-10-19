@@ -10,7 +10,7 @@ import android.graphics.Rect
    the Java ones, so the C-ABI side is unaffected (PORTING.md P-83 ②).  `getBitmap` is nullable
    because `EmacsPixmap.destroyHandle` sets the field to null (P-83 ⑤).  */
 interface EmacsDrawable {
-  fun lockCanvas(gc: EmacsGC): Canvas
+  fun lockCanvas(gc: EmacsGC): Canvas?
   fun damageRect(damageRect: Rect)
   fun damageRect(left: Int, top: Int, right: Int, bottom: Int)
   fun getBitmap(): Bitmap?
