@@ -26,6 +26,7 @@ import gzip
 import pathlib
 import shutil
 import subprocess
+import time
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -107,8 +108,14 @@ def build_metadata(out: pathlib.Path) -> None:
     except OSError:
         head = branch = "Unknown"
     (assets / "version").write_text(f"{head}\n{branch}\n", encoding="utf-8")
+    # C 261: `{ hostname; date +%s; }` - **two** lines, and the second one is the file's whole
+    # point: `version.el`'s `android-read-build-time` is `(end-of-line)` followed by
+    # `(read (current-buffer))`, i.e. it reads the line *after* the host name.  Staging only the
+    # host name made that `read` hit the end of the buffer, and the load of `version.elc` died with
+    # `End of file during parsing: #<killed buffer>` (status 4.808).
     (assets / "build_info").write_text(
-        f"{subprocess.run(['hostname'], capture_output=True, text=True).stdout.strip()}\n",
+        f"{subprocess.run(['hostname'], capture_output=True, text=True).stdout.strip()}\n"
+        f"{int(time.time ())}\n",
         encoding="utf-8")
 
 

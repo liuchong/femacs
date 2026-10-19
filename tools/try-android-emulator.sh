@@ -64,6 +64,8 @@ if [ "$PLAN" = 1 ]; then
   echo "     no linker/tombstone failure, and the device still booted afterwards"
   echo "  6. pull the device's own libraries (DT_NEEDED) into $DEVICE_LIBS and read the import"
   echo "     table against them: what the delivery device provides, not what API 21's stubs do"
+  echo "  7. crash evidence: the crash buffer, `dumpsys activity exit-info`, and the newest tombstone"
+  echo "     under /data/tombstones (read after `adb root`), so a native abort arrives with its reason"
   exit 0
 fi
 if [ "${FEMACS_EMULATOR_BUDGET_OK:-0}" != 1 ]; then
@@ -115,6 +117,16 @@ while [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" !=
   sleep 2
 done
 echo "boot: completed (avd $AVD, guest ${MEM} MiB)"
+
+# A tombstone is only evidence if the guest manages to write one: every tombstone this AVD left
+# behind from an earlier run is 0 bytes (debuggerd could not finish the write), and an empty file
+# then reads as "nothing crashed" while the crash buffer says otherwise.  Root the device, clear
+# the directory so the newest file belongs to this run, and print the guest's free space, so a
+# full /data is a reading instead of an inference.
+"$ADB" root >/dev/null 2>&1
+"$ADB" wait-for-device >/dev/null 2>&1
+"$ADB" shell rm -f /data/tombstones/tombstone_* >/dev/null 2>&1
+echo "guest /data: $("$ADB" shell df -h /data 2>/dev/null | tail -1 | tr -d '\r')"
 
 # `install -r` is not enough: a *different* signing key leaves the old package in place, adb
 # prints the failure and exits non-zero, and the launch below then runs the package that was
@@ -261,4 +273,38 @@ if [ -n "$BIN_DIR" ] && [ -f "$SO" ]; then
 else
   echo "  no NDK llvm-readelf or no $SO: no device reading was taken" >&2
 fi
+echo "== crash evidence =="
+# The app's own log is a filtered view (`--pid` above), and a native abort is reported by a thread
+# whose lines that filter drops: the whole buffer is saved as well, so the launch reads back as one
+# timeline instead of two fragments.  A tombstone can only be read from a rooted device.
+CRASH_LOG=/tmp/femacs-crash.log
+FULL_LOG=/tmp/femacs-logcat-full.log
+"$ADB" logcat -d -b crash 2>/dev/null > "$CRASH_LOG"
+"$ADB" logcat -d 2>/dev/null > "$FULL_LOG"
+echo "  full buffer: $FULL_LOG ($(wc -l < "$FULL_LOG" | tr -d ' ') lines); crash buffer: $CRASH_LOG"
+if [ -s "$CRASH_LOG" ]; then
+  echo "  crash buffer, last 20 lines:"
+  tail -20 "$CRASH_LOG" | sed 's/^/     | /'
+else
+  echo "  crash buffer: empty"
+fi
+echo "  buffer lines naming the package (last 20):"
+grep -a "org\.femacs" "$FULL_LOG" | tail -20 | sed 's/^/     | /'
+echo "  every pid the package ran under in this buffer:"
+grep -aoE "org\.femacs[^:]*: [0-9]+|[0-9]+ +[0-9]+ [A-Z] org\.femacs" "$FULL_LOG" | head -5 | sed 's/^/     | /'
+echo "  exit-info:"
+"$ADB" shell dumpsys activity exit-info org.femacs 2>&1 | head -12 | sed 's/^/     | /'
+"$ADB" root >/dev/null 2>&1
+"$ADB" wait-for-device >/dev/null 2>&1
+# `ls -t` puts the newest tombstone first, and more than one is printed because a device that
+# restarted the app mid-launch leaves the earlier one in place.  A tombstone is reported with its
+# size: one written while the guest's disk was full is 0 bytes, and an empty read must not be
+# mistaken for "nothing crashed".
+echo "  tombstones:"
+"$ADB" shell ls -l /data/tombstones 2>&1 | sed 's/^/     | /'
+TS=$("$ADB" shell ls -t /data/tombstones 2>/dev/null | tr -d '\r' | grep -v '\.pb$' | head -2)
+for t in $TS; do
+  echo "  tombstone /data/tombstones/$t:"
+  "$ADB" shell cat "/data/tombstones/$t" 2>/dev/null | head -70 | sed 's/^/     | /'
+done
 exit "$status"

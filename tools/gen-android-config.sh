@@ -161,7 +161,23 @@ echo "_CS_PATH: $CS_PATH, RENAME_EXCL: $RENAME_EXCL (measured with ${CC##*/})"
 # (1315-1316), which is what the Android build compiles against.  The outer pass's `src/config.h`
 # defines `ANDROID_STUBIFY` (2604-2606, host-only) - generating from it recorded a stubify build,
 # i.e. exactly the configuration in which the JNI entry points are compiled out (status 4.615).
+# The header is read a second time *by the preprocessor*, and that reading is the authority on
+# which macros this configuration has: a `#define` inside an arm the compiler never takes is
+# present as text and absent as a macro, and reading only the text recorded
+# `WORDS_BIGENDIAN 1` (from `#if defined AC_APPLE_UNIVERSAL_BUILD`), which switched the port's
+# byte-swapping off and kept every font from registering (status 4.805).  The include paths are
+# the ones the build itself compiles with: this build directory's `src` first, then the two
+# source directories `conf_post.h` and gnulib's headers live in.
+"$CC" -std=gnu23 -E -dM -I src -I "$REPO/emacs/src" -I "$REPO/emacs/lib" \
+  -x c src/config.h.android > "$BUILD/config.h.android.dM" 2>"$BUILD/config.h.android.dM.err" || {
+    echo "the preprocessor could not read src/config.h.android:" >&2
+    tail -3 "$BUILD/config.h.android.dM.err" >&2
+    exit 4
+  }
+echo "preprocessor macro dump: $BUILD/config.h.android.dM ($(wc -l < "$BUILD/config.h.android.dM" | tr -d ' ') line(s))"
+
 python3 "$REPO/tools/gen-config-json.py" --keys-from-header \
+  --preprocessed "$BUILD/config.h.android.dM" \
   --macro "HAVE_SIGNBIT=$HAVE_SIGNBIT" \
   --macro "_CS_PATH=$CS_PATH" \
   --macro "RENAME_EXCL=$RENAME_EXCL" \
