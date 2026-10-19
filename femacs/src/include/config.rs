@@ -2,6 +2,9 @@
 // Source: docs/baseline/config/*.json (PORTING.md P-08).
 
 pub const ALIGNOF_EMACS_INT: i64 = 8;
+pub const EMACS_CONFIGURATION: &core::ffi::CStr = c"aarch64-apple-darwin25.6.0"; // C string literal
+pub const EMACS_CONFIG_FEATURES: &core::ffi::CStr = c"PDUMPER"; // C string literal
+pub const EMACS_CONFIG_OPTIONS: &core::ffi::CStr = c"--without-all --with-x=no --with-ns=no 'CPPFLAGS=-I/opt/homebrew/opt/icu4c/include -I/opt/homebrew/opt/ruby/include -I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/qt/include -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/ruby/include -I/opt/homebrew/opt/sqlite/include -I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/curl/include -I/opt/homebrew/opt/mysql-client/include -I/opt/homebrew/opt/libxml2/include -I/opt/homebrew/opt/imagemagick@6/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/gflags/include -I/opt/homebrew/opt/openssl/include -I/opt/homebrew/opt/binutils/include ' 'LDFLAGS=-L/opt/homebrew/opt/icu4c/lib -L/opt/homebrew/opt/ruby/lib -L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/qt/lib -L/opt/homebrew/opt/openblas/lib -L/opt/homebrew/opt/ruby/lib -L/opt/homebrew/opt/sqlite/lib -L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/curl/lib -L/opt/homebrew/opt/mysql-client/lib -L/opt/homebrew/opt/libxml2/lib -L/opt/homebrew/opt/imagemagick@6/lib -L/opt/homebrew/opt/readline/lib -L/opt/homebrew/opt/gettext/lib -L/opt/homebrew/opt/gflags/lib -L/opt/homebrew/opt/openssl/lib -L/opt/homebrew/opt/binutils/lib '"; // C string literal
 pub const GC_SETJMP_WORKS: bool = true;
 pub const HAIKU: bool = false; // #undef in config.h
 pub const HAVE_C_ALIGNASOF: bool = true;

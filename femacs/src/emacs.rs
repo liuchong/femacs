@@ -489,10 +489,10 @@ const PACKAGE_NAME: &CStr = c"femacs";
 const PACKAGE_VERSION: &CStr = c"32.0.50";
 const PACKAGE_BUGREPORT: &CStr = c"https://github.com/liuchong/femacs/issues";
 const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";
-const EMACS_CONFIGURATION: &CStr = c"aarch64-apple-darwin25.6.0";
-const EMACS_CONFIG_FEATURES: &CStr = c"PDUMPER";
-const EMACS_CONFIG_OPTIONS: &CStr =
-  c"--without-all --with-x=no --with-ns=no 'CPPFLAGS=-I/opt/homebrew/opt/icu4c/include -I/opt/homebrew/opt/ruby/include -I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/qt/include -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/ruby/include -I/opt/homebrew/opt/sqlite/include -I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/curl/include -I/opt/homebrew/opt/mysql-client/include -I/opt/homebrew/opt/libxml2/include -I/opt/homebrew/opt/imagemagick@6/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/gflags/include -I/opt/homebrew/opt/openssl/include -I/opt/homebrew/opt/binutils/include ' 'LDFLAGS=-L/opt/homebrew/opt/icu4c/lib -L/opt/homebrew/opt/ruby/lib -L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/qt/lib -L/opt/homebrew/opt/openblas/lib -L/opt/homebrew/opt/ruby/lib -L/opt/homebrew/opt/sqlite/lib -L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/curl/lib -L/opt/homebrew/opt/mysql-client/lib -L/opt/homebrew/opt/libxml2/lib -L/opt/homebrew/opt/imagemagick@6/lib -L/opt/homebrew/opt/readline/lib -L/opt/homebrew/opt/gettext/lib -L/opt/homebrew/opt/gflags/lib -L/opt/homebrew/opt/openssl/lib -L/opt/homebrew/opt/binutils/lib '";
+/* C reads `EMACS_CONFIGURATION`, `EMACS_CONFIG_FEATURES` and `EMACS_CONFIG_OPTIONS` from
+   `config.h`, so they are `config.rs` constants now and not this file's text: the frozen
+   target's three values used to be spelled here, and the Android build then reported
+   `aarch64-apple-darwin…` in `(emacs-version)` (measured on the device, status 4.881).  */
 /* C's `config.h` `#define SYSTEM_TYPE "darwin"` is read by `syms_of_emacs` as a C string
    (`intern_c_string (SYSTEM_TYPE)`), so `config.rs` carries the decoded value as a `&CStr`
    and the use site spells C's expression with `.as_ptr ()` - the shape every other config.h

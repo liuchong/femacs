@@ -1,0 +1,18 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+Starting: Intent { cmp=org.femacs/.EmacsActivity (has extras) }
+== exit info ==
+          timestamp=2026-10-20 02:45:51.519 pid=2139 realUid=10256 packageUid=10256 definingUid=10256 user=0
+          process=org.femacs reason=5 (APP CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11
+== our last log lines ==
+10-20 02:45:51.293  2139  2158 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 02:45:51.293  2139  2158 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 02:45:51.293  2139  2158 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 02:45:51.295  2139  2158 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 02:45:51.299  2139  2158 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 02:45:51.301  2139  2158 I android_run_debug_thread: Finding pointers to doc strings...done
+== crash buffer ==
+10-20 02:45:51.513  2165  2165 F DEBUG   :       #43 pc 0000000000421028  /apex/com.android.art/lib64/libart.so (art::Thread::CreateCallback(void*)+932) (BuildI
+10-20 02:45:51.513  2165  2165 F DEBUG   :       #44 pc 0000000000420c74  /apex/com.android.art/lib64/libart.so (art::Thread::CreateCallbackWithUffdGc(void*)+8)
+10-20 02:45:51.513  2165  2165 F DEBUG   :       #45 pc 0000000000080df8  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+232) (BuildId: 
+10-20 02:45:51.513  2165  2165 F DEBUG   :       #46 pc 0000000000073dd8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 2445fc73e
+controlled-run: {"run_id": "434884482fb84740bb5122bedb40343e", "profile": "runtime", "executable": "bash", "argv_sha256": "e93675c8caeee42901512d42c380cff2a893621d2ec869604388618311c0e394", "limit_bytes": 6442450944, "peak_rss_bytes": 4314365952, "reason": "descendants_left", "root_pid": 59318, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 45.3}

@@ -346,6 +346,39 @@ fn read_config(path: &Path) -> BTreeMap<String, String> {
     out
 }
 
+/// The value-bearing macros C reads as C *strings* but the frozen JSON keeps in its `features`
+/// object, because that object is the whole `config.h` (status 4.881).
+///
+/// `config.h` defines `EMACS_CONFIGURATION`, `EMACS_CONFIG_FEATURES` and `EMACS_CONFIG_OPTIONS`
+/// per target, and `emacs.c` passes each to `build_string`; `docs/baseline/config/*.json` stores
+/// them (with their C quotes) under `features`, where `gen-config` turned them into `cfg` gates -
+/// so their *values* never reached the port and `emacs.rs` hard-coded the frozen target's.  The
+/// Android build then reported `aarch64-apple-darwin…` in `(emacs-version)` (measured on the
+/// device, docs/baseline/android-batch-regex.txt).  This reader returns exactly those three, and
+/// only when the JSON carries a quoted string for them.
+fn read_feature_strings(path: &Path) -> BTreeMap<String, String> {
+    const NAMES: [&str; 3] =
+        ["EMACS_CONFIGURATION", "EMACS_CONFIG_FEATURES", "EMACS_CONFIG_OPTIONS"];
+    let text = fs::read_to_string(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let mut out = BTreeMap::new();
+    let mut in_features = false;
+    for line in text.lines() {
+        let t = line.trim();
+        if t.starts_with("\"features\"") { in_features = true; continue; }
+        if in_features && t.trim_end_matches(',').trim() == "}" { break; }
+        if !in_features { continue; }
+        if let Some((k, v)) = t.split_once(':') {
+            let k = k.trim().trim_matches('"');
+            if !NAMES.contains(&k) { continue; }
+            let raw = v.trim().trim_end_matches(',').trim();
+            if raw.starts_with('"') && raw.ends_with('"') && raw.len() >= 2
+                && let Some(value) = json_unescape(&raw[1..raw.len() - 1])
+                { out.insert(k.to_string(), value); }
+        }
+    }
+    out
+}
+
 fn gen_config() -> i32 {
     let dir = Path::new(REPO).join("docs/baseline/config");
     let mut entries: Vec<PathBuf> = fs::read_dir(&dir)
@@ -417,6 +450,15 @@ fn gen_config() -> i32 {
             }
         };
         rs.push_str(&line);
+    }
+    // The three target strings `emacs.c` reads (see `read_feature_strings`): emitted as `&CStr`
+    // exactly like the string macros above, so a unit can hand them to `build_string` unchanged.
+    for (k, v) in read_feature_strings (&target) {
+        // The JSON stores the macro *body* (`"android"`, with its C quotes), exactly as the
+        // `macros` reader above hands it to `c_string_value`.
+        let Some (body) = c_string_value (&v) else { continue };
+        rs.push_str (&format! ("pub const {k}: &core::ffi::CStr = c{}; // C string literal\n",
+                              c_literal (&body)));
     }
     let out = Path::new("src/include/config.rs");
     fs::create_dir_all(out.parent().unwrap()).ok();
